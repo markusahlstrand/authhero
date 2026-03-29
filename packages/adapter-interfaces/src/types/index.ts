@@ -84,4 +84,4 @@ export * from "./TenantSettings";
 export * from "./Stats";
 export * from "./CustomText";
 export * from "./Strategy";
-export * from "./MfaEnrollment";
+export * from "./AuthenticationMethod";

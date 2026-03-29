@@ -64,8 +64,7 @@ export function App(props: AppProps) {
   const [certErrorUrl, setCertErrorUrl] = useState<string | null>(null);
 
   // Use a default domain for now - in the working project, domain selection might be handled differently
-  const selectedDomain =
-    props.initialDomain || getConfigValue("domain") || "";
+  const selectedDomain = props.initialDomain || getConfigValue("domain") || "";
 
   // Check if we've already verified single-tenant mode for THIS domain
   // The flag is stored as "domain|true" or "domain|false" to ensure we re-check when domain changes

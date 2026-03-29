@@ -22,7 +22,8 @@ const httpsEnabled = process.env.HTTPS_ENABLED === "true";
 const shouldSeed = process.env.SEED === "true";
 const allowedOriginsEnv = process.env.ALLOWED_ORIGINS || "";
 const environment = process.env.ENVIRONMENT || "production";
-const jwksCacheTimeout = Number(process.env.JWKS_CACHE_TIMEOUT_IN_SECONDS) || 600;
+const jwksCacheTimeout =
+  Number(process.env.JWKS_CACHE_TIMEOUT_IN_SECONDS) || 600;
 const organizationName = process.env.ORGANIZATION_NAME || "AuthHero";
 
 const defaultIssuer = httpsEnabled
@@ -183,7 +184,9 @@ if (httpsEnabled) {
         { stdio: "inherit" },
       );
     } catch {
-      console.error("Failed to generate certificates. Ensure openssl is installed.");
+      console.error(
+        "Failed to generate certificates. Ensure openssl is installed.",
+      );
       process.exit(1);
     }
   }
@@ -196,13 +199,13 @@ if (httpsEnabled) {
   serve({
     fetch: (request) =>
       app.fetch(request, {
-          ISSUER: issuer,
-          AUTH_URL: issuer,
-          ENVIRONMENT: environment,
-          JWKS_CACHE_TIMEOUT_IN_SECONDS: jwksCacheTimeout,
-          ORGANIZATION_NAME: organizationName,
-          data: dataAdapter,
-        }),
+        ISSUER: issuer,
+        AUTH_URL: issuer,
+        ENVIRONMENT: environment,
+        JWKS_CACHE_TIMEOUT_IN_SECONDS: jwksCacheTimeout,
+        ORGANIZATION_NAME: organizationName,
+        data: dataAdapter,
+      }),
     port,
     createServer: https.createServer,
     serverOptions: { key, cert },
@@ -214,13 +217,13 @@ if (httpsEnabled) {
   serve({
     fetch: (request) =>
       app.fetch(request, {
-          ISSUER: issuer,
-          AUTH_URL: issuer,
-          ENVIRONMENT: environment,
-          JWKS_CACHE_TIMEOUT_IN_SECONDS: jwksCacheTimeout,
-          ORGANIZATION_NAME: organizationName,
-          data: dataAdapter,
-        }),
+        ISSUER: issuer,
+        AUTH_URL: issuer,
+        ENVIRONMENT: environment,
+        JWKS_CACHE_TIMEOUT_IN_SECONDS: jwksCacheTimeout,
+        ORGANIZATION_NAME: organizationName,
+        data: dataAdapter,
+      }),
     port,
   });
 }

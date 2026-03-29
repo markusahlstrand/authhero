@@ -46,7 +46,13 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
     description:
       "Local development setup with SQLite database - great for getting started",
     templateDir: "local",
-    packageJson: (projectName, multiTenant, conformance, workspace, adminUi) => {
+    packageJson: (
+      projectName,
+      multiTenant,
+      conformance,
+      workspace,
+      adminUi,
+    ) => {
       const v = workspace ? "workspace:*" : "latest";
       return {
         name: projectName,
@@ -86,7 +92,13 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
     name: "Cloudflare Workers (D1)",
     description: "Cloudflare Workers setup with D1 database",
     templateDir: "cloudflare",
-    packageJson: (projectName, multiTenant, conformance, workspace, adminUi) => {
+    packageJson: (
+      projectName,
+      multiTenant,
+      conformance,
+      workspace,
+      adminUi,
+    ) => {
       const v = workspace ? "workspace:*" : "latest";
       return {
         name: projectName,
@@ -139,7 +151,13 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
     name: "AWS SST (Lambda + DynamoDB)",
     description: "Serverless AWS deployment with Lambda, DynamoDB, and SST",
     templateDir: "aws-sst",
-    packageJson: (projectName, multiTenant, conformance, workspace, adminUi) => {
+    packageJson: (
+      projectName,
+      multiTenant,
+      conformance,
+      workspace,
+      adminUi,
+    ) => {
       const v = workspace ? "workspace:*" : "latest";
       return {
         name: projectName,
@@ -370,7 +388,10 @@ main().catch(console.error);
 `;
 }
 
-function generateLocalAppFileContent(multiTenant: boolean | undefined, adminUi?: boolean): string {
+function generateLocalAppFileContent(
+  multiTenant: boolean | undefined,
+  adminUi?: boolean,
+): string {
   const adminImports = adminUi ? `import fs from "fs";\n` : "";
   const adminPaths = adminUi
     ? `
@@ -518,7 +539,9 @@ ${adminHandlerCode}
 `;
 }
 
-function generateCloudflareSeedFileContent(multiTenant: boolean | undefined): string {
+function generateCloudflareSeedFileContent(
+  multiTenant: boolean | undefined,
+): string {
   const tenantId = multiTenant ? "control_plane" : "main";
   const tenantName = multiTenant ? "Control Plane" : "Main";
 
@@ -582,8 +605,13 @@ export default {
 `;
 }
 
-function generateCloudflareAppFileContent(multiTenant: boolean | undefined, adminUi?: boolean): string {
-  const adminImport = adminUi ? `import adminIndexHtml from "./admin-index-html";\n` : "";
+function generateCloudflareAppFileContent(
+  multiTenant: boolean | undefined,
+  adminUi?: boolean,
+): string {
+  const adminImport = adminUi
+    ? `import adminIndexHtml from "./admin-index-html";\n`
+    : "";
   const adminConfig = adminUi ? `    adminIndexHtml,\n` : "";
 
   if (multiTenant) {
@@ -672,7 +700,9 @@ ${adminConfig}  });
 `;
 }
 
-function generateAwsSstAppFileContent(multiTenant: boolean | undefined): string {
+function generateAwsSstAppFileContent(
+  multiTenant: boolean | undefined,
+): string {
   if (multiTenant) {
     return `import { Context } from "hono";
 import { swaggerUI } from "@hono/swagger-ui";
@@ -783,7 +813,9 @@ export default function createApp(config: AppConfig) {
 `;
 }
 
-function generateAwsSstSeedFileContent(multiTenant: boolean | undefined): string {
+function generateAwsSstSeedFileContent(
+  multiTenant: boolean | undefined,
+): string {
   const tenantId = multiTenant ? "control_plane" : "main";
   const tenantName = multiTenant ? "Control Plane" : "Main";
 
@@ -827,7 +859,10 @@ main().catch(console.error);
 `;
 }
 
-function generateAwsSstFiles(projectPath: string, multiTenant: boolean | undefined): void {
+function generateAwsSstFiles(
+  projectPath: string,
+  multiTenant: boolean | undefined,
+): void {
   const srcDir = path.join(projectPath, "src");
 
   // Generate app.ts
@@ -847,9 +882,7 @@ function printAwsSstSuccessMessage(): void {
   console.log("\\n" + "─".repeat(50));
   console.log("🔐 AuthHero deployed to AWS!");
   console.log("📚 Check SST output for your API URL");
-  console.log(
-    "🚀 Open your server URL /setup to complete initial setup",
-  );
+  console.log("🚀 Open your server URL /setup to complete initial setup");
   console.log("🌐 Portal available at https://local.authhero.net");
   console.log("─".repeat(50) + "\\n");
 }
@@ -1044,9 +1077,7 @@ function printCloudflareSuccessMessage(): void {
   console.log("\n" + "─".repeat(50));
   console.log("🔐 AuthHero server running at https://localhost:3000");
   console.log("📚 API documentation available at https://localhost:3000/docs");
-  console.log(
-    "🚀 Open https://localhost:3000/setup to complete initial setup",
-  );
+  console.log("🚀 Open https://localhost:3000/setup to complete initial setup");
   console.log("🌐 Portal available at https://local.authhero.net");
   console.log("─".repeat(50) + "\n");
 }
@@ -1060,9 +1091,7 @@ function printLocalSuccessMessage(): void {
   console.log("⚠️  You may need to trust the certificate in your browser");
   console.log("🔐 AuthHero server running at https://localhost:3000");
   console.log("📚 API documentation available at https://localhost:3000/docs");
-  console.log(
-    "🚀 Open https://localhost:3000/setup to complete initial setup",
-  );
+  console.log("🚀 Open https://localhost:3000/setup to complete initial setup");
   console.log("🌐 Portal available at https://local.authhero.net");
   console.log("─".repeat(50) + "\n");
 }
@@ -1232,7 +1261,13 @@ program
     fs.writeFileSync(
       path.join(projectPath, "package.json"),
       JSON.stringify(
-        config.packageJson(projectName, multiTenant, conformance, workspace, adminUi),
+        config.packageJson(
+          projectName,
+          multiTenant,
+          conformance,
+          workspace,
+          adminUi,
+        ),
         null,
         2,
       ),
@@ -1529,9 +1564,7 @@ program
       } else if (setupType === "aws-sst") {
         console.log("  npm install");
         console.log("  npm run dev  # Deploys to AWS in development mode");
-        console.log(
-          "\nOpen your server URL /setup to complete initial setup",
-        );
+        console.log("\nOpen your server URL /setup to complete initial setup");
       }
 
       console.log("\nServer will be available at: https://localhost:3000");

@@ -45,7 +45,7 @@ export async function accountSecurityScreen(
   }> = [];
   try {
     enrollments = (
-      await ctx.env.data.mfaEnrollments.list(tenant.id, user.user_id)
+      await ctx.env.data.authenticationMethods.list(tenant.id, user.user_id)
     ).filter((e) => e.confirmed);
   } catch {
     // MFA adapter may not exist
@@ -179,7 +179,7 @@ async function handleAccountSecuritySubmit(
   if (action === "remove_enrollment" && enrollmentId) {
     try {
       // Verify the enrollment belongs to this user
-      const enrollment = await ctx.env.data.mfaEnrollments.get(
+      const enrollment = await ctx.env.data.authenticationMethods.get(
         tenant.id,
         enrollmentId,
       );
@@ -193,7 +193,7 @@ async function handleAccountSecuritySubmit(
         };
       }
 
-      await ctx.env.data.mfaEnrollments.remove(tenant.id, enrollmentId);
+      await ctx.env.data.authenticationMethods.remove(tenant.id, enrollmentId);
 
       return {
         screen: await accountSecurityScreen({

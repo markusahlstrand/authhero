@@ -34,7 +34,7 @@ import { createUserOrganizationsAdapter } from "./user-organizations";
 import { createInvitesAdapter } from "./invites";
 import { createStatsAdapter } from "./stats";
 import { createCustomTextAdapter } from "./customText";
-import { createMfaEnrollmentsAdapter } from "./mfaEnrollments";
+import { createAuthenticationMethodsAdapter } from "./authenticationMethods";
 
 export { migrateToLatest, migrateDown } from "../migrate/migrate";
 
@@ -58,7 +58,7 @@ export default function createAdapters(
     keys: createKeysAdapter(db),
     loginSessions: createLoginAdapter(db),
     logs: createLogsAdapter(db),
-    mfaEnrollments: createMfaEnrollmentsAdapter(db),
+    authenticationMethods: createAuthenticationMethodsAdapter(db),
     passwords: createPasswordAdapter(db),
     promptSettings: createPromptSettingsAdapter(db),
     refreshTokens: createRefreshTokensAdapter(db),

@@ -109,7 +109,12 @@ export function TenantAppBar(props: TenantAppBarProps) {
     >
       <TitlePortal />
       <Box sx={{ display: "flex", alignItems: "center" }}>
-        <Link color="inherit" href={`${getBasePath()}/tenants`} underline="none" sx={{ mr: 2 }}>
+        <Link
+          color="inherit"
+          href={`${getBasePath()}/tenants`}
+          underline="none"
+          sx={{ mr: 2 }}
+        >
           {tenant?.name || tenantId || "Unknown"} - Tenants
         </Link>
         {domainSelectorButton}

@@ -159,7 +159,7 @@ describe("MFA TOTP (authenticator app)", () => {
       expect(html).toContain("authhero-widget");
 
       // An MFA enrollment should have been created
-      const enrollments = await env.data.mfaEnrollments.list(
+      const enrollments = await env.data.authenticationMethods.list(
         "tenantId",
         "email|userId",
       );
@@ -205,7 +205,7 @@ describe("MFA TOTP (authenticator app)", () => {
       );
 
       // Get the enrollment and its secret
-      const enrollments = await env.data.mfaEnrollments.list(
+      const enrollments = await env.data.authenticationMethods.list(
         "tenantId",
         "email|userId",
       );
@@ -239,7 +239,7 @@ describe("MFA TOTP (authenticator app)", () => {
       expect(redirectLocation).toContain("/mfa/totp-challenge");
 
       // Enrollment should now be confirmed
-      const updatedEnrollments = await env.data.mfaEnrollments.list(
+      const updatedEnrollments = await env.data.authenticationMethods.list(
         "tenantId",
         "email|userId",
       );
@@ -302,7 +302,7 @@ describe("MFA TOTP (authenticator app)", () => {
       expect(postResponse.status).toBe(200);
 
       // Enrollment should still be unconfirmed
-      const enrollments = await env.data.mfaEnrollments.list(
+      const enrollments = await env.data.authenticationMethods.list(
         "tenantId",
         "email|userId",
       );
@@ -367,7 +367,7 @@ describe("MFA TOTP (authenticator app)", () => {
         expect(enrollGetResponse.status).toBe(200);
 
         // Get the generated TOTP secret
-        const enrollments = await env.data.mfaEnrollments.list(
+        const enrollments = await env.data.authenticationMethods.list(
           "tenantId",
           "email|userId",
         );
@@ -442,12 +442,15 @@ describe("MFA TOTP (authenticator app)", () => {
 
       // Create a confirmed TOTP enrollment
       const totpSecret = "JBSWY3DPEHPK3PXP";
-      const enrollment = await env.data.mfaEnrollments.create("tenantId", {
-        user_id: "email|userId",
-        type: "totp",
-        totp_secret: totpSecret,
-        confirmed: true,
-      });
+      const enrollment = await env.data.authenticationMethods.create(
+        "tenantId",
+        {
+          user_id: "email|userId",
+          type: "totp",
+          totp_secret: totpSecret,
+          confirmed: true,
+        },
+      );
 
       // Create a login session in AWAITING_MFA state
       const loginSession = await env.data.loginSessions.create("tenantId", {
@@ -464,7 +467,7 @@ describe("MFA TOTP (authenticator app)", () => {
         user_id: "email|userId",
         state: LoginSessionState.AWAITING_MFA,
         state_data: JSON.stringify({
-          mfaEnrollmentId: enrollment.id,
+          authenticationMethodId: enrollment.id,
         }),
       });
 
@@ -506,12 +509,15 @@ describe("MFA TOTP (authenticator app)", () => {
       await enableTotpMfa(managementApp, env, token);
 
       // Create a confirmed TOTP enrollment
-      const enrollment = await env.data.mfaEnrollments.create("tenantId", {
-        user_id: "email|userId",
-        type: "totp",
-        totp_secret: "JBSWY3DPEHPK3PXP",
-        confirmed: true,
-      });
+      const enrollment = await env.data.authenticationMethods.create(
+        "tenantId",
+        {
+          user_id: "email|userId",
+          type: "totp",
+          totp_secret: "JBSWY3DPEHPK3PXP",
+          confirmed: true,
+        },
+      );
 
       // Create a login session in AWAITING_MFA state
       const loginSession = await env.data.loginSessions.create("tenantId", {
@@ -528,7 +534,7 @@ describe("MFA TOTP (authenticator app)", () => {
         user_id: "email|userId",
         state: LoginSessionState.AWAITING_MFA,
         state_data: JSON.stringify({
-          mfaEnrollmentId: enrollment.id,
+          authenticationMethodId: enrollment.id,
         }),
       });
 
@@ -558,7 +564,7 @@ describe("MFA TOTP (authenticator app)", () => {
       await enableTotpMfa(managementApp, env, token);
 
       // Create a confirmed TOTP enrollment
-      await env.data.mfaEnrollments.create("tenantId", {
+      await env.data.authenticationMethods.create("tenantId", {
         user_id: "email|userId",
         type: "totp",
         totp_secret: "JBSWY3DPEHPK3PXP",
@@ -566,7 +572,7 @@ describe("MFA TOTP (authenticator app)", () => {
       });
 
       // Verify the enrollment exists
-      const enrollments = await env.data.mfaEnrollments.list(
+      const enrollments = await env.data.authenticationMethods.list(
         "tenantId",
         "email|userId",
       );

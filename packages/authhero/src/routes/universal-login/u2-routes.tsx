@@ -858,16 +858,16 @@ function createScreenRouteHandler(screenId: string) {
       const stateData = loginSession.state_data
         ? JSON.parse(loginSession.state_data)
         : {};
-      if (stateData.mfaEnrollmentId) {
-        const enrollment = await ctx.env.data.mfaEnrollments.get(
+      if (stateData.authenticationMethodId) {
+        const enrollment = await ctx.env.data.authenticationMethods.get(
           client.tenant.id,
-          stateData.mfaEnrollmentId,
+          stateData.authenticationMethodId,
         );
         if (enrollment?.phone_number) {
           screenData.phone = enrollment.phone_number;
         }
       } else if (loginSession.user_id) {
-        const enrollments = await ctx.env.data.mfaEnrollments.list(
+        const enrollments = await ctx.env.data.authenticationMethods.list(
           client.tenant.id,
           loginSession.user_id,
         );

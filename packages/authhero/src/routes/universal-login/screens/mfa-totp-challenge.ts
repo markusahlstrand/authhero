@@ -88,10 +88,10 @@ async function getEnrollmentSecret(
     ? JSON.parse(loginSession.state_data)
     : {};
 
-  if (stateData.mfaEnrollmentId) {
-    const enrollment = await ctx.env.data.mfaEnrollments.get(
+  if (stateData.authenticationMethodId) {
+    const enrollment = await ctx.env.data.authenticationMethods.get(
       tenantId,
-      stateData.mfaEnrollmentId,
+      stateData.authenticationMethodId,
     );
     if (enrollment?.totp_secret) {
       return enrollment.totp_secret;
@@ -99,7 +99,7 @@ async function getEnrollmentSecret(
   }
 
   if (loginSession.user_id) {
-    const enrollments = await ctx.env.data.mfaEnrollments.list(
+    const enrollments = await ctx.env.data.authenticationMethods.list(
       tenantId,
       loginSession.user_id,
     );
@@ -236,14 +236,14 @@ export const mfaTotpChallengeScreenDefinition: ScreenDefinition = {
           : {};
 
         // If enrolling, confirm the enrollment
-        if (stateData.mfaEnrollmentId) {
-          const enrollment = await ctx.env.data.mfaEnrollments.get(
+        if (stateData.authenticationMethodId) {
+          const enrollment = await ctx.env.data.authenticationMethods.get(
             client.tenant.id,
-            stateData.mfaEnrollmentId,
+            stateData.authenticationMethodId,
           );
 
           if (enrollment && !enrollment.confirmed) {
-            await ctx.env.data.mfaEnrollments.update(
+            await ctx.env.data.authenticationMethods.update(
               client.tenant.id,
               enrollment.id,
               { confirmed: true },

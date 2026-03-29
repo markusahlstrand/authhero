@@ -2,14 +2,12 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables, AuthHeroConfig } from "../types";
 import { seed } from "../seed";
 import { getConnectionFromIdentifier } from "../utils/username";
-import {
-  WidgetPage,
-  renderWidgetSSR,
-} from "./universal-login/u2-widget-page";
+import { WidgetPage, renderWidgetSSR } from "./universal-login/u2-widget-page";
 
 export default function createSetupApp(config: AuthHeroConfig) {
   const hasAdminUi = !!(config.adminHandler || config.adminIndexHtml);
-  const isMultiTenant = config.managementApiExtensions?.some(e => e.path === "/tenants") ?? false;
+  const isMultiTenant =
+    config.managementApiExtensions?.some((e) => e.path === "/tenants") ?? false;
 
   const setupApp = new OpenAPIHono<{
     Bindings: Bindings;
@@ -86,18 +84,22 @@ export default function createSetupApp(config: AuthHeroConfig) {
       ],
       ...(error
         ? {
-          messages: [
-            {
-              type: "error",
-              text: error,
-            },
-          ],
-        }
+            messages: [
+              {
+                type: "error",
+                text: error,
+              },
+            ],
+          }
         : {}),
     };
   }
 
-  function getSuccessScreen(tenantId: string, isMultiTenant: boolean, hasAdminUi: boolean) {
+  function getSuccessScreen(
+    tenantId: string,
+    isMultiTenant: boolean,
+    hasAdminUi: boolean,
+  ) {
     return {
       action: hasAdminUi ? "/admin" : "https://local.authhero.net",
       method: "GET",
@@ -302,7 +304,11 @@ export default function createSetupApp(config: AuthHeroConfig) {
       }
 
       const tenantId = tenants[0]!.id;
-      const successScreen = getSuccessScreen(tenantId, isMultiTenant, hasAdminUi);
+      const successScreen = getSuccessScreen(
+        tenantId,
+        isMultiTenant,
+        hasAdminUi,
+      );
 
       return renderSetupPage(ctx, successScreen, "setup-complete");
     },
