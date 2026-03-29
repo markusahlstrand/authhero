@@ -1890,7 +1890,7 @@ const IdentityCard = () => {
   );
 };
 
-const MfaEnrollmentsTab = () => {
+const AuthenticationMethodsTab = () => {
   const [enrollments, setEnrollments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
@@ -2316,7 +2316,7 @@ export function UserEdit() {
           </ReferenceManyField>
         </TabbedForm.Tab>
         <TabbedForm.Tab label="MFA">
-          <MfaEnrollmentsTab />
+          <AuthenticationMethodsTab />
         </TabbedForm.Tab>
         <TabbedForm.Tab label="Raw JSON">
           <FunctionField

@@ -45,7 +45,7 @@ export type EntityType =
   | "CLIENT_CONNECTION"
   | "UNIVERSAL_LOGIN_TEMPLATE"
   | "CUSTOM_TEXT"
-  | "MFA_ENROLLMENT";
+  | "AUTHENTICATION_METHOD";
 
 /**
  * Base DynamoDB item structure for single-table design

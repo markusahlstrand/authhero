@@ -6,9 +6,9 @@ export function remove(db: Kysely<Database>) {
     // Planetscale has no cascading delete as it has no FK
     // so we manually remove related rows before deleting users
     await db
-      .deleteFrom("mfa_enrollments")
-      .where("mfa_enrollments.tenant_id", "=", tenant_id)
-      .where("mfa_enrollments.user_id", "in", (qb) =>
+      .deleteFrom("authentication_methods")
+      .where("authentication_methods.tenant_id", "=", tenant_id)
+      .where("authentication_methods.user_id", "in", (qb) =>
         qb
           .selectFrom("users")
           .select("users.user_id")

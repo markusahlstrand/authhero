@@ -29,7 +29,7 @@ export async function accountScreen(
   // Fetch MFA enrollments
   let mfaCount = 0;
   try {
-    const enrollments = await ctx.env.data.mfaEnrollments.list(
+    const enrollments = await ctx.env.data.authenticationMethods.list(
       tenant.id,
       user.user_id,
     );

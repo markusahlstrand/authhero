@@ -156,7 +156,7 @@ export const mfaPhoneEnrollmentScreenDefinition: ScreenDefinition = {
         });
 
         // Create an unconfirmed MFA enrollment
-        const enrollment = await ctx.env.data.mfaEnrollments.create(
+        const enrollment = await ctx.env.data.authenticationMethods.create(
           client.tenant.id,
           {
             user_id: loginSession.user_id,
@@ -174,7 +174,7 @@ export const mfaPhoneEnrollmentScreenDefinition: ScreenDefinition = {
         await ctx.env.data.loginSessions.update(client.tenant.id, state, {
           state_data: JSON.stringify({
             ...existingStateData,
-            mfaEnrollmentId: enrollment.id,
+            authenticationMethodId: enrollment.id,
           }),
         });
 
@@ -183,7 +183,7 @@ export const mfaPhoneEnrollmentScreenDefinition: ScreenDefinition = {
           await sendMfaOtp(ctx, client, loginSession, phoneNumber);
         } catch (otpErr) {
           // Roll back: delete the enrollment since OTP delivery failed
-          await ctx.env.data.mfaEnrollments.remove(
+          await ctx.env.data.authenticationMethods.remove(
             client.tenant.id,
             enrollment.id,
           );

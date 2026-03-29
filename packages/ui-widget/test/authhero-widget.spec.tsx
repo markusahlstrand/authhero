@@ -224,7 +224,9 @@ describe("authhero-widget", () => {
     // Find the submit button and click it
     const form = page.root!.shadowRoot!.querySelector("form");
     expect(form).not.toBeNull();
-    form!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    form!.dispatchEvent(
+      new Event("submit", { bubbles: true, cancelable: true }),
+    );
 
     await page.waitForChanges();
 

@@ -3,7 +3,7 @@ import { HTTPException } from "hono/http-exception";
 import {
   LoginSession,
   LogTypes,
-  MfaEnrollment,
+  AuthenticationMethod,
   Strategy,
 } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
@@ -22,8 +22,8 @@ export type MfaCheckResult =
   | {
       required: true;
       enrolled: true;
-      enrollment: MfaEnrollment;
-      allEnrollments: MfaEnrollment[];
+      enrollment: AuthenticationMethod;
+      allEnrollments: AuthenticationMethod[];
     };
 
 /**
@@ -58,7 +58,10 @@ export async function checkMfaRequired(
 
   // Look up user's confirmed MFA enrollments, filtered to enabled factors
   const enabledFactors = tenant.mfa?.factors;
-  const enrollments = await ctx.env.data.mfaEnrollments.list(tenantId, userId);
+  const enrollments = await ctx.env.data.authenticationMethods.list(
+    tenantId,
+    userId,
+  );
   const confirmedEnrollments = enrollments.filter(
     (e) =>
       e.confirmed &&

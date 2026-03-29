@@ -99,7 +99,7 @@ export const mfaLoginOptionsScreenDefinition: ScreenDefinition = {
       );
 
       const tenant = client.tenant;
-      const enrollments = await ctx.env.data.mfaEnrollments.list(
+      const enrollments = await ctx.env.data.authenticationMethods.list(
         tenant.id,
         loginSession.user_id,
       );
@@ -195,7 +195,7 @@ export const mfaLoginOptionsScreenDefinition: ScreenDefinition = {
       }
 
       // Handle existing enrollment selection
-      const enrollments = await ctx.env.data.mfaEnrollments.list(
+      const enrollments = await ctx.env.data.authenticationMethods.list(
         client.tenant.id,
         loginSession.user_id,
       );
@@ -215,7 +215,7 @@ export const mfaLoginOptionsScreenDefinition: ScreenDefinition = {
       await ctx.env.data.loginSessions.update(client.tenant.id, state, {
         state_data: JSON.stringify({
           ...stateData,
-          mfaEnrollmentId: selectedEnrollment.id,
+          authenticationMethodId: selectedEnrollment.id,
         }),
       });
 

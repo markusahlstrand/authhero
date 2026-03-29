@@ -775,7 +775,11 @@ export class AuthheroWidget {
     // If this is a submit button click, trigger form submission
     if (detail.type === "submit") {
       // For GET screens (or missing method), navigate directly — no form submission needed
-      if ((!this._screen?.method || this._screen.method.toUpperCase() === "GET") && this._screen?.action) {
+      if (
+        (!this._screen?.method ||
+          this._screen.method.toUpperCase() === "GET") &&
+        this._screen?.action
+      ) {
         window.location.href = this.buildUrl(this._screen.action);
         return;
       }

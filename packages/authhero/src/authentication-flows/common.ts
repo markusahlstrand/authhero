@@ -1173,13 +1173,13 @@ export async function createFrontChannelAuthResponse(
       // If state is AWAITING_MFA, user needs to complete MFA
       if (currentState === LoginSessionState.AWAITING_MFA) {
         let targetPath = "/u2/mfa/login-options";
-        if (stateData.mfaEnrollmentId) {
-          const enrollments = await ctx.env.data.mfaEnrollments.list(
+        if (stateData.authenticationMethodId) {
+          const enrollments = await ctx.env.data.authenticationMethods.list(
             client.tenant.id,
             user.user_id,
           );
           const enrollment = enrollments.find(
-            (e) => e.id === stateData.mfaEnrollmentId,
+            (e) => e.id === stateData.authenticationMethodId,
           );
           if (enrollment?.confirmed && enrollment.type === "phone") {
             targetPath = "/u2/mfa/phone-challenge";
@@ -1287,7 +1287,7 @@ export async function createFrontChannelAuthResponse(
                 state: newState,
                 state_data: JSON.stringify({
                   ...stateData,
-                  mfaEnrollmentId: mfaCheck.enrollment.id,
+                  authenticationMethodId: mfaCheck.enrollment.id,
                 }),
               },
             );
