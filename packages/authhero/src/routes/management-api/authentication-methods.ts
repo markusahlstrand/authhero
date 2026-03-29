@@ -42,6 +42,20 @@ const createAuthenticationMethodSchema = z
     confirmed: z.boolean().optional().default(true),
   })
   .superRefine((data, ctx) => {
+    if (data.type === "phone" && !data.phone_number) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "phone_number is required when type is 'phone'",
+        path: ["phone_number"],
+      });
+    }
+    if (data.type === "totp" && !data.totp_secret) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "totp_secret is required when type is 'totp'",
+        path: ["totp_secret"],
+      });
+    }
     const webauthnTypes = ["webauthn-roaming", "webauthn-platform", "passkey"];
     if (webauthnTypes.includes(data.type)) {
       if (!data.credential_id) {

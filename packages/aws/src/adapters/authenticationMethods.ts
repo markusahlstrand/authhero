@@ -117,8 +117,16 @@ export function createAuthenticationMethodsAdapter(
       methodId: string,
       data: AuthenticationMethodUpdate,
     ): Promise<AuthenticationMethod> {
+      const existing = await this.get(tenantId, methodId);
+      if (!existing) {
+        throw new Error(`Authentication method ${methodId} not found`);
+      }
+
+      const merged = { ...existing, ...data, updated_at: new Date().toISOString() };
+      authenticationMethodSchema.parse(merged);
+
       const updates: Record<string, unknown> = {
-        updated_at: new Date().toISOString(),
+        updated_at: merged.updated_at,
       };
 
       if (data.phone_number !== undefined)
@@ -143,11 +151,7 @@ export function createAuthenticationMethodsAdapter(
         updates,
       );
 
-      const updated = await this.get(tenantId, methodId);
-      if (!updated) {
-        throw new Error(`Authentication method ${methodId} not found`);
-      }
-      return updated;
+      return authenticationMethodSchema.parse(merged);
     },
 
     async remove(tenantId: string, methodId: string): Promise<boolean> {
