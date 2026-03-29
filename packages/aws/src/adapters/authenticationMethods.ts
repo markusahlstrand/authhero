@@ -77,8 +77,9 @@ export function createAuthenticationMethodsAdapter(
         updated_at: now,
       };
 
+      const authMethod = toAuthenticationMethod(item);
       await putItem(ctx, item);
-      return toAuthenticationMethod(item);
+      return authMethod;
     },
 
     async get(

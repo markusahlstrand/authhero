@@ -8,25 +8,58 @@ const authenticationMethodSchema = z.object({
   type: z.string(),
   confirmed: z.boolean(),
   phone_number: z.string().optional(),
+  credential_id: z.string().optional(),
+  public_key: z.string().optional(),
+  sign_count: z.number().optional(),
+  credential_backed_up: z.boolean().optional(),
+  transports: z.array(z.string()).optional(),
+  friendly_name: z.string().optional(),
   created_at: z.string(),
 });
 
 const authenticationMethodsListSchema = z.array(authenticationMethodSchema);
 
-const createAuthenticationMethodSchema = z.object({
-  type: z.enum([
-    "phone",
-    "totp",
-    "email",
-    "push",
-    "webauthn-roaming",
-    "webauthn-platform",
-    "passkey",
-  ]),
-  phone_number: z.string().optional(),
-  totp_secret: z.string().optional(),
-  confirmed: z.boolean().optional().default(true),
-});
+const createAuthenticationMethodSchema = z
+  .object({
+    type: z.enum([
+      "phone",
+      "totp",
+      "email",
+      "push",
+      "webauthn-roaming",
+      "webauthn-platform",
+      "passkey",
+    ]),
+    phone_number: z.string().optional(),
+    totp_secret: z.string().optional(),
+    // WebAuthn/Passkey-specific
+    credential_id: z.string().optional(),
+    public_key: z.string().optional(),
+    sign_count: z.number().int().nonnegative().optional(),
+    credential_backed_up: z.boolean().optional(),
+    transports: z.array(z.string()).optional(),
+    friendly_name: z.string().optional(),
+    confirmed: z.boolean().optional().default(true),
+  })
+  .superRefine((data, ctx) => {
+    const webauthnTypes = ["webauthn-roaming", "webauthn-platform", "passkey"];
+    if (webauthnTypes.includes(data.type)) {
+      if (!data.credential_id) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `credential_id is required when type is '${data.type}'`,
+          path: ["credential_id"],
+        });
+      }
+      if (!data.public_key) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `public_key is required when type is '${data.type}'`,
+          path: ["public_key"],
+        });
+      }
+    }
+  });
 
 export const authenticationMethodsRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -77,6 +110,12 @@ export const authenticationMethodsRoutes = new OpenAPIHono<{
         type: e.type,
         confirmed: e.confirmed,
         phone_number: e.phone_number,
+        credential_id: e.credential_id,
+        public_key: e.public_key,
+        sign_count: e.sign_count,
+        credential_backed_up: e.credential_backed_up,
+        transports: e.transports,
+        friendly_name: e.friendly_name,
         created_at: e.created_at,
       }));
 
@@ -134,6 +173,12 @@ export const authenticationMethodsRoutes = new OpenAPIHono<{
           type: body.type,
           phone_number: body.phone_number,
           totp_secret: body.totp_secret,
+          credential_id: body.credential_id,
+          public_key: body.public_key,
+          sign_count: body.sign_count,
+          credential_backed_up: body.credential_backed_up,
+          transports: body.transports,
+          friendly_name: body.friendly_name,
           confirmed: body.confirmed ?? true,
         },
       );
@@ -144,6 +189,12 @@ export const authenticationMethodsRoutes = new OpenAPIHono<{
           type: enrollment.type,
           confirmed: enrollment.confirmed,
           phone_number: enrollment.phone_number,
+          credential_id: enrollment.credential_id,
+          public_key: enrollment.public_key,
+          sign_count: enrollment.sign_count,
+          credential_backed_up: enrollment.credential_backed_up,
+          transports: enrollment.transports,
+          friendly_name: enrollment.friendly_name,
           created_at: enrollment.created_at,
         },
         201,
@@ -202,6 +253,12 @@ export const authenticationMethodsRoutes = new OpenAPIHono<{
         type: enrollment.type,
         confirmed: enrollment.confirmed,
         phone_number: enrollment.phone_number,
+        credential_id: enrollment.credential_id,
+        public_key: enrollment.public_key,
+        sign_count: enrollment.sign_count,
+        credential_backed_up: enrollment.credential_backed_up,
+        transports: enrollment.transports,
+        friendly_name: enrollment.friendly_name,
         created_at: enrollment.created_at,
       });
     },

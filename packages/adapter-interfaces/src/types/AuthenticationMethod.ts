@@ -24,7 +24,7 @@ const authenticationMethodBaseSchema = z.object({
   // WebAuthn/Passkey-specific
   credential_id: z.string().optional(),
   public_key: z.string().optional(),
-  sign_count: z.number().optional(),
+  sign_count: z.number().int().nonnegative().optional(),
   credential_backed_up: z.boolean().optional(),
   transports: z.array(z.string()).optional(),
   friendly_name: z.string().optional(),

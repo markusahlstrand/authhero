@@ -505,12 +505,15 @@ export const guardianRoutes = new OpenAPIHono<{
       }
 
       const hasSupportedFactor =
-        tenant.mfa?.factors?.sms === true || tenant.mfa?.factors?.otp === true;
+        tenant.mfa?.factors?.sms === true ||
+        tenant.mfa?.factors?.otp === true ||
+        tenant.mfa?.factors?.webauthn_roaming === true ||
+        tenant.mfa?.factors?.webauthn_platform === true;
 
       if (!hasSupportedFactor) {
         throw new HTTPException(400, {
           message:
-            "At least one MFA factor (SMS or OTP) must be enabled before creating enrollment tickets.",
+            "At least one MFA factor (SMS, OTP, or WebAuthn) must be enabled before creating enrollment tickets.",
         });
       }
 

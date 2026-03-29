@@ -187,6 +187,10 @@ export const mfaPhoneEnrollmentScreenDefinition: ScreenDefinition = {
             client.tenant.id,
             enrollment.id,
           );
+          // Revert session state_data so it no longer references the removed enrollment
+          await ctx.env.data.loginSessions.update(client.tenant.id, state, {
+            state_data: JSON.stringify(existingStateData),
+          });
           throw otpErr;
         }
 

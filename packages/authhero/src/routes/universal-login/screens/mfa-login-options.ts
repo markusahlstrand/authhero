@@ -211,6 +211,16 @@ export const mfaLoginOptionsScreenDefinition: ScreenDefinition = {
         });
       }
 
+      // Only phone and totp are supported for MFA challenge selection
+      if (
+        selectedEnrollment.type !== "phone" &&
+        selectedEnrollment.type !== "totp"
+      ) {
+        throw new HTTPException(400, {
+          message: "Unsupported MFA factor type",
+        });
+      }
+
       // Store the selected enrollment ID in state_data
       await ctx.env.data.loginSessions.update(client.tenant.id, state, {
         state_data: JSON.stringify({

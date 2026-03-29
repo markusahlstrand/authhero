@@ -301,6 +301,7 @@ export async function updateItem(
       TableName: ctx.tableName,
       Key: { PK: pk, SK: sk },
       UpdateExpression: updateExpression,
+      ConditionExpression: "attribute_exists(PK)",
       ExpressionAttributeNames: expressionAttributeNames,
       ExpressionAttributeValues: expressionAttributeValues,
     }),
