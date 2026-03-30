@@ -1,5 +1,11 @@
 # authhero
 
+## 4.79.0
+
+### Minor Changes
+
+- 50685fd: Use custom domains for openid-configuration
+
 ## 4.78.0
 
 ### Minor Changes
