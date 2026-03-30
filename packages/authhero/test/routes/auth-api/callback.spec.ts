@@ -4,6 +4,7 @@ import { getTestServer } from "../../helpers/test-server";
 import { nanoid } from "nanoid";
 import {
   AuthorizationResponseMode,
+  LoginSessionState,
   Strategy,
 } from "@authhero/adapter-interfaces";
 
@@ -749,5 +750,168 @@ describe("callback", () => {
     // Verify no user operations were performed yet (since we're redirecting)
     const logs = await env.data.logs.list("tenantId");
     expect(logs).toHaveLength(0);
+  });
+
+  it("should complete callback successfully when login session has expired during processing", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const oauthClient = testClient(oauthApp, env);
+
+    await env.data.connections.create("tenantId", {
+      id: "connectionId",
+      name: "mock-strategy",
+      strategy: "mock-strategy",
+      options: {
+        client_id: "clientId",
+        client_secret: "clientSecret",
+      },
+    });
+
+    const loginSession = await env.data.loginSessions.create("tenantId", {
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      csrf_token: "csrfToken",
+      authParams: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+      },
+    });
+
+    const state = await env.data.codes.create("tenantId", {
+      code_id: nanoid(),
+      code_type: "oauth2_state",
+      login_id: loginSession.id,
+      connection_id: "connectionId",
+      code_verifier: "verifier",
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+    });
+
+    // Simulate session expiring during processing
+    await env.data.loginSessions.update("tenantId", loginSession.id, {
+      state: LoginSessionState.EXPIRED,
+    });
+
+    const response = await oauthClient.callback.$get({
+      query: {
+        state: state.code_id,
+        code: "foo@example.com",
+      },
+    });
+
+    // Should still succeed with a redirect containing an authorization code
+    expect(response.status).toEqual(302);
+    const location = response.headers.get("location");
+    expect(location).toBeTruthy();
+    const redirectUri = new URL(location!);
+    expect(redirectUri.pathname).toEqual("/callback");
+    expect(redirectUri.searchParams.get("code")).toBeTruthy();
+  });
+
+  it("should redirect to login with meaningful error when login session is already completed", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const oauthClient = testClient(oauthApp, env);
+
+    await env.data.connections.create("tenantId", {
+      id: "connectionId",
+      name: "mock-strategy",
+      strategy: "mock-strategy",
+      options: {
+        client_id: "clientId",
+        client_secret: "clientSecret",
+      },
+    });
+
+    const loginSession = await env.data.loginSessions.create("tenantId", {
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      csrf_token: "csrfToken",
+      authParams: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+      },
+    });
+
+    const state = await env.data.codes.create("tenantId", {
+      code_id: nanoid(),
+      code_type: "oauth2_state",
+      login_id: loginSession.id,
+      connection_id: "connectionId",
+      code_verifier: "verifier",
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+    });
+
+    // Simulate a duplicate callback that already completed the session
+    await env.data.loginSessions.update("tenantId", loginSession.id, {
+      state: LoginSessionState.COMPLETED,
+    });
+
+    const response = await oauthClient.callback.$get({
+      query: {
+        state: state.code_id,
+        code: "foo@example.com",
+      },
+    });
+
+    expect(response.status).toEqual(302);
+    const location = response.headers.get("location");
+    expect(location).toBeTruthy();
+    const redirectUri = new URL(location!);
+    expect(redirectUri.pathname).toEqual("/u/login/identifier");
+    // Should include a meaningful error_description, not just "access_denied"
+    const errorDescription = redirectUri.searchParams.get("error_description");
+    expect(errorDescription).toBeTruthy();
+    expect(errorDescription).not.toEqual("access_denied");
+  });
+
+  it("should redirect to login with failure reason when login session has failed", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const oauthClient = testClient(oauthApp, env);
+
+    await env.data.connections.create("tenantId", {
+      id: "connectionId",
+      name: "mock-strategy",
+      strategy: "mock-strategy",
+      options: {
+        client_id: "clientId",
+        client_secret: "clientSecret",
+      },
+    });
+
+    const loginSession = await env.data.loginSessions.create("tenantId", {
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      csrf_token: "csrfToken",
+      authParams: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+      },
+    });
+
+    const state = await env.data.codes.create("tenantId", {
+      code_id: nanoid(),
+      code_type: "oauth2_state",
+      login_id: loginSession.id,
+      connection_id: "connectionId",
+      code_verifier: "verifier",
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+    });
+
+    // Simulate session failure with a specific reason
+    await env.data.loginSessions.update("tenantId", loginSession.id, {
+      state: LoginSessionState.FAILED,
+      failure_reason: "User account locked",
+    });
+
+    const response = await oauthClient.callback.$get({
+      query: {
+        state: state.code_id,
+        code: "foo@example.com",
+      },
+    });
+
+    expect(response.status).toEqual(302);
+    const location = response.headers.get("location");
+    expect(location).toBeTruthy();
+    const redirectUri = new URL(location!);
+    expect(redirectUri.pathname).toEqual("/u/login/identifier");
+    // Should include the failure reason in the error description
+    const errorDescription = redirectUri.searchParams.get("error_description");
+    expect(errorDescription).toContain("User account locked");
   });
 });

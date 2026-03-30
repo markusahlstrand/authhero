@@ -201,14 +201,17 @@ export const callbackRoutes = new OpenAPIHono<{
               );
               if (loginSession) {
                 let errorMessage = "access_denied";
+                let errorCode = "access_denied";
                 try {
                   const body = JSON.parse(err.message);
-                  errorMessage = body.message || errorMessage;
+                  errorMessage =
+                    body.error_description || body.message || errorMessage;
+                  errorCode = body.error || errorCode;
                 } catch {
                   // If message is not JSON, use it directly
                   errorMessage = err.message || errorMessage;
                 }
-                return returnError(ctx, state, "access_denied", errorMessage);
+                return returnError(ctx, state, errorCode, errorMessage);
               }
             }
           }
@@ -313,14 +316,17 @@ export const callbackRoutes = new OpenAPIHono<{
               );
               if (loginSession) {
                 let errorMessage = "access_denied";
+                let errorCode = "access_denied";
                 try {
                   const body = JSON.parse(err.message);
-                  errorMessage = body.message || errorMessage;
+                  errorMessage =
+                    body.error_description || body.message || errorMessage;
+                  errorCode = body.error || errorCode;
                 } catch {
                   // If message is not JSON, use it directly
                   errorMessage = err.message || errorMessage;
                 }
-                return returnError(ctx, state, "access_denied", errorMessage);
+                return returnError(ctx, state, errorCode, errorMessage);
               }
             }
           }

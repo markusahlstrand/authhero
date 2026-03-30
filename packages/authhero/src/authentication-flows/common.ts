@@ -21,6 +21,7 @@ import {
   AUTHORIZATION_CODE_EXPIRES_IN_SECONDS,
   SILENT_AUTH_MAX_AGE_IN_SECONDS,
   TICKET_EXPIRATION_TIME,
+  UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS,
 } from "../constants";
 import { serializeAuthCookie } from "../utils/cookies";
 import { getIssuer } from "../variables";
@@ -574,14 +575,14 @@ export async function authenticateLoginSession(
 
   const currentState = currentLoginSession.state || LoginSessionState.PENDING;
 
-  // Guard against terminal states
+  // Guard against terminal states (EXPIRED is allowed — see createFrontChannelAuthResponse)
   if (
     currentState === LoginSessionState.FAILED ||
-    currentState === LoginSessionState.EXPIRED ||
     currentState === LoginSessionState.COMPLETED
   ) {
-    throw new HTTPException(400, {
-      message: `Cannot authenticate login session in ${currentState} state`,
+    throw new JSONHTTPException(400, {
+      error: "access_denied",
+      error_description: `Cannot authenticate login session in ${currentState} state`,
     });
   }
 
@@ -639,7 +640,13 @@ export async function authenticateLoginSession(
   }
 
   // Transition to AUTHENTICATED state
-  const { state: newState } = transitionLoginSession(currentState, {
+  // If the session was EXPIRED, treat as PENDING for the state machine transition
+  // since the XState machine defines expired as a final state with no outbound transitions
+  const stateForTransition =
+    currentState === LoginSessionState.EXPIRED
+      ? LoginSessionState.PENDING
+      : currentState;
+  const { state: newState } = transitionLoginSession(stateForTransition, {
     type: LoginSessionEventType.AUTHENTICATE,
     userId: user.user_id,
   });
@@ -649,11 +656,20 @@ export async function authenticateLoginSession(
 
   // Update the login session with session_id, user_id, new state, and auth_connection
   // auth_connection is stored early so it survives hook redirects (new HTTP requests)
+  // If recovering from EXPIRED, also extend expires_at so the session doesn't
+  // immediately expire again during subsequent MFA/hook checks
   await ctx.env.data.loginSessions.update(client.tenant.id, loginSession.id, {
     session_id,
     state: newState,
     user_id: user.user_id,
     ...(resolvedConnection ? { auth_connection: resolvedConnection } : {}),
+    ...(currentState === LoginSessionState.EXPIRED
+      ? {
+          expires_at: new Date(
+            Date.now() + UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS * 1000,
+          ).toISOString(),
+        }
+      : {}),
   });
 
   return session_id;
@@ -1130,15 +1146,15 @@ export async function createFrontChannelAuthResponse(
         error_description: `Login session failed: ${currentLoginSession.failure_reason || "unknown reason"}`,
       });
     }
-    if (currentState === LoginSessionState.EXPIRED) {
-      throw new JSONHTTPException(400, {
-        error: "invalid_request",
-        error_description: "Login session has expired",
-      });
-    }
+    // EXPIRED sessions are NOT rejected here — if we got this far, the OAuth
+    // exchange succeeded and we have a valid user. The TTL expiry should only
+    // block new auth attempts, not in-flight completions.
 
-    // If state is PENDING (or any pre-authenticated state), we need to authenticate
-    if (currentState === LoginSessionState.PENDING) {
+    // If state is PENDING or EXPIRED, we need to authenticate
+    if (
+      currentState === LoginSessionState.PENDING ||
+      currentState === LoginSessionState.EXPIRED
+    ) {
       session_id = await authenticateLoginSession(ctx, {
         user,
         client,
