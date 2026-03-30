@@ -1,5 +1,12 @@
 # @authhero/docs
 
+## 1.53.0
+
+### Minor Changes
+
+- 164fe2c: Added passkeys
+- 74d8dc5: Docs update
+
 ## 1.52.0
 
 ### Minor Changes

@@ -1,5 +1,16 @@
 # @authhero/drizzle
 
+## 0.31.0
+
+### Minor Changes
+
+- 164fe2c: Added passkeys
+
+### Patch Changes
+
+- Updated dependencies [164fe2c]
+  - @authhero/adapter-interfaces@0.150.0
+
 ## 0.30.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # create-authhero
 
+## 0.36.0
+
+### Minor Changes
+
+- 164fe2c: Added passkeys
+
 ## 0.35.0
 
 ### Minor Changes

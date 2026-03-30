@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.150.0
+
+### Minor Changes
+
+- 164fe2c: Added passkeys
+
 ## 0.149.0
 
 ### Minor Changes
