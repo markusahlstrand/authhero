@@ -397,6 +397,24 @@
       "title": "Użyj klucza bezpieczeństwa"
     }
   },
+  "passkeys": {
+    "passkey-enrollment-nudge": {
+      "title": "Zabezpiecz swoje konto kluczem dostępu",
+      "description": "Klucze dostępu wykorzystują biometrię lub PIN urządzenia, aby logować się szybciej i bezpieczniej.",
+      "enrollButtonText": "Skonfiguruj klucz dostępu",
+      "snoozeButtonText": "Może później",
+      "optOutLinkText": "Nie pokazuj ponownie",
+      "pageTitle": "Konfiguracja Klucza Dostępu | ${clientName}"
+    },
+    "passkey-enrollment": {
+      "title": "Utwórz klucz dostępu",
+      "description": "Postępuj zgodnie z instrukcjami przeglądarki, aby utworzyć klucz dostępu dla tego konta.",
+      "errorMessage": "Nie udało się utworzyć klucza dostępu. Spróbuj ponownie.",
+      "cancelLinkText": "Pomiń na razie",
+      "retryButtonText": "Spróbuj ponownie",
+      "pageTitle": "Tworzenie Klucza Dostępu | ${clientName}"
+    }
+  },
   "organizations": {
     "organizations": {
       "description": "Wybierz organizację, do której chcesz się zalogować",

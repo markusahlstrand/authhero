@@ -59,6 +59,8 @@ const SCREEN_TO_PROMPT_MAP: Record<string, PromptScreen> = {
   "pre-signup-sent": "signup",
   consent: "consent",
   "login-passwordless-identifier": "login-passwordless",
+  "passkey-enrollment-nudge": "passkeys",
+  "passkey-enrollment": "passkeys",
 };
 
 /**

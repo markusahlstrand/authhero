@@ -72,6 +72,8 @@ const SCREEN_TO_PROMPT_MAP: Record<string, PromptScreen> = {
   "mfa-email": "mfa-email",
   "mfa-push": "mfa-push",
   "mfa-webauthn": "mfa-webauthn",
+  "passkey-enrollment-nudge": "passkeys",
+  "passkey-enrollment": "passkeys",
   "mfa-voice": "mfa-voice",
   "mfa-phone-enrollment": "mfa-phone",
   "mfa-login-options": "mfa-login-options",
@@ -1668,6 +1670,50 @@ export const u2Routes = new OpenAPIHono<{
       "Process MFA factor selection",
     ),
     createScreenPostHandler("mfa-login-options"),
+  )
+  // --------------------------------
+  // GET /u2/passkey/enrollment-nudge - Passkey enrollment nudge
+  // --------------------------------
+  .openapi(
+    createScreenRoute(
+      "passkey-enrollment-nudge",
+      "/passkey/enrollment-nudge",
+      "Passkey enrollment nudge - asks user to set up a passkey",
+    ),
+    createScreenRouteHandler("passkey-enrollment-nudge"),
+  )
+  // --------------------------------
+  // POST /u2/passkey/enrollment-nudge
+  // --------------------------------
+  .openapi(
+    createScreenPostRoute(
+      "passkey-enrollment-nudge",
+      "/passkey/enrollment-nudge",
+      "Process passkey enrollment nudge response",
+    ),
+    createScreenPostHandler("passkey-enrollment-nudge"),
+  )
+  // --------------------------------
+  // GET /u2/passkey/enrollment - Passkey registration ceremony
+  // --------------------------------
+  .openapi(
+    createScreenRoute(
+      "passkey-enrollment",
+      "/passkey/enrollment",
+      "Passkey enrollment screen - WebAuthn registration ceremony",
+    ),
+    createScreenRouteHandler("passkey-enrollment"),
+  )
+  // --------------------------------
+  // POST /u2/passkey/enrollment
+  // --------------------------------
+  .openapi(
+    createScreenPostRoute(
+      "passkey-enrollment",
+      "/passkey/enrollment",
+      "Process passkey enrollment form submission",
+    ),
+    createScreenPostHandler("passkey-enrollment"),
   )
   // --------------------------------
   // GET /u2/account - Account management hub

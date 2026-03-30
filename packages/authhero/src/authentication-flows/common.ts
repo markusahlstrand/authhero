@@ -1326,6 +1326,80 @@ export async function createFrontChannelAuthResponse(
     }
   }
 
+  // ============================================================================
+  // PASSKEY ENROLLMENT NUDGE CHECK
+  // ============================================================================
+  // After MFA, check if we should nudge the user to enroll a passkey.
+  // Only shown for interactive flows (not silent auth / web_message).
+  // ============================================================================
+  if (
+    params.loginSession &&
+    user &&
+    responseMode !== AuthorizationResponseMode.WEB_MESSAGE
+  ) {
+    const currentLoginSession = await ctx.env.data.loginSessions.get(
+      client.tenant.id,
+      params.loginSession.id,
+    );
+
+    if (currentLoginSession) {
+      const currentState =
+        currentLoginSession.state || LoginSessionState.PENDING;
+      let stateData: Record<string, unknown> = {};
+      if (currentLoginSession.state_data) {
+        try {
+          stateData = JSON.parse(currentLoginSession.state_data);
+        } catch {
+          // ignore parse errors
+        }
+      }
+
+      if (
+        currentState === LoginSessionState.AUTHENTICATED &&
+        !stateData.passkey_nudge_completed
+      ) {
+        const { checkPasskeyNudgeRequired } =
+          await import("./passkey-enrollment");
+        const nudgeCheck = await checkPasskeyNudgeRequired(
+          ctx,
+          client.tenant.id,
+          user.user_id,
+          currentLoginSession.auth_connection,
+        );
+
+        if (nudgeCheck.show) {
+          // Use continuation mechanism to pause login flow
+          await startLoginSessionContinuation(
+            ctx,
+            client.tenant.id,
+            currentLoginSession,
+            ["passkey-enrollment"],
+            `/u/continue?state=${encodeURIComponent(params.loginSession.id)}`,
+          );
+
+          return new Response(null, {
+            status: 302,
+            headers: {
+              location: `/u2/passkey/enrollment-nudge?state=${encodeURIComponent(params.loginSession.id)}`,
+            },
+          });
+        } else {
+          // Mark nudge as completed so we don't re-check on re-entry
+          await ctx.env.data.loginSessions.update(
+            client.tenant.id,
+            params.loginSession.id,
+            {
+              state_data: JSON.stringify({
+                ...stateData,
+                passkey_nudge_completed: true,
+              }),
+            },
+          );
+        }
+      }
+    }
+  }
+
   // If a refresh token wasn't passed in (or already set) and 'offline_access' is in the current authParams.scope, create one.
   // Don't create refresh tokens for impersonated users for security reasons.
   if (

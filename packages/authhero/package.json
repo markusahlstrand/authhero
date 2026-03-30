@@ -79,6 +79,7 @@
     "@authhero/adapter-interfaces": "workspace:*",
     "@authhero/saml": "workspace:*",
     "@peculiar/x509": "^1.14.0",
+    "@simplewebauthn/server": "^11.0.0",
     "arctic": "3.7.0",
     "bcryptjs": "^3.0.3",
     "classnames": "^2.5.1",
