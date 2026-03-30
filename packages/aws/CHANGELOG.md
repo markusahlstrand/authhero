@@ -1,5 +1,11 @@
 # @authhero/aws-adapter
 
+## 0.25.0
+
+### Minor Changes
+
+- adfc437: Add passkeys login
+
 ## 0.24.0
 
 ### Minor Changes

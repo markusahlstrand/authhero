@@ -1,5 +1,11 @@
 # authhero
 
+## 4.78.0
+
+### Minor Changes
+
+- adfc437: Add passkeys login
+
 ## 4.77.0
 
 ### Minor Changes
