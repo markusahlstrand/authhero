@@ -865,9 +865,20 @@ export async function startLoginSessionContinuation(
 
   // Only update if transition is valid and state changed
   if (newState !== currentState) {
+    // Merge continuation keys with existing state_data to preserve flags like mfa_verified
+    let existingData: Record<string, unknown> = {};
+    if (currentSession.state_data) {
+      try {
+        existingData = JSON.parse(currentSession.state_data);
+      } catch {
+        // ignore parse errors
+      }
+    }
+
     await ctx.env.data.loginSessions.update(tenantId, loginSession.id, {
       state: newState,
       state_data: JSON.stringify({
+        ...existingData,
         continuationScope: scope,
         continuationReturnUrl: returnUrl,
       }),
@@ -905,12 +916,20 @@ export async function completeLoginSessionContinuation(
     return undefined;
   }
 
-  // Parse state_data to get return URL
+  // Parse state_data to get return URL and preserve non-continuation keys
   let returnUrl: string | undefined;
+  let restoredData: Record<string, unknown> = {};
   if (currentSession.state_data) {
     try {
       const data = JSON.parse(currentSession.state_data);
       returnUrl = data.continuationReturnUrl;
+      // Remove only continuation-specific keys, preserve the rest
+      const {
+        continuationScope: _scope,
+        continuationReturnUrl: _url,
+        ...rest
+      } = data;
+      restoredData = rest;
     } catch {
       // Ignore parse errors
     }
@@ -925,7 +944,10 @@ export async function completeLoginSessionContinuation(
   if (newState !== currentState) {
     await ctx.env.data.loginSessions.update(tenantId, loginSession.id, {
       state: newState,
-      state_data: undefined, // Clear continuation data
+      state_data:
+        Object.keys(restoredData).length > 0
+          ? JSON.stringify(restoredData)
+          : undefined,
     });
   } else {
     console.warn(
@@ -1321,6 +1343,80 @@ export async function createFrontChannelAuthResponse(
               },
             });
           }
+        }
+      }
+    }
+  }
+
+  // ============================================================================
+  // PASSKEY ENROLLMENT NUDGE CHECK
+  // ============================================================================
+  // After MFA, check if we should nudge the user to enroll a passkey.
+  // Only shown for interactive flows (not silent auth / web_message).
+  // ============================================================================
+  if (
+    params.loginSession &&
+    user &&
+    responseMode !== AuthorizationResponseMode.WEB_MESSAGE
+  ) {
+    const currentLoginSession = await ctx.env.data.loginSessions.get(
+      client.tenant.id,
+      params.loginSession.id,
+    );
+
+    if (currentLoginSession) {
+      const currentState =
+        currentLoginSession.state || LoginSessionState.PENDING;
+      let stateData: Record<string, unknown> = {};
+      if (currentLoginSession.state_data) {
+        try {
+          stateData = JSON.parse(currentLoginSession.state_data);
+        } catch {
+          // ignore parse errors
+        }
+      }
+
+      if (
+        currentState === LoginSessionState.AUTHENTICATED &&
+        !stateData.passkey_nudge_completed
+      ) {
+        const { checkPasskeyNudgeRequired } =
+          await import("./passkey-enrollment");
+        const nudgeCheck = await checkPasskeyNudgeRequired(
+          ctx,
+          client.tenant.id,
+          user.user_id,
+          currentLoginSession.auth_connection,
+        );
+
+        if (nudgeCheck.show) {
+          // Use continuation mechanism to pause login flow
+          await startLoginSessionContinuation(
+            ctx,
+            client.tenant.id,
+            currentLoginSession,
+            ["passkey-enrollment"],
+            `/u/continue?state=${encodeURIComponent(params.loginSession.id)}`,
+          );
+
+          return new Response(null, {
+            status: 302,
+            headers: {
+              location: `/u2/passkey/enrollment-nudge?state=${encodeURIComponent(params.loginSession.id)}`,
+            },
+          });
+        } else {
+          // Mark nudge as completed so we don't re-check on re-entry
+          await ctx.env.data.loginSessions.update(
+            client.tenant.id,
+            params.loginSession.id,
+            {
+              state_data: JSON.stringify({
+                ...stateData,
+                passkey_nudge_completed: true,
+              }),
+            },
+          );
         }
       }
     }

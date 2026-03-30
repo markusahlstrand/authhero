@@ -397,6 +397,24 @@
       "title": "Brug din sikkerhedsnøgle"
     }
   },
+  "passkeys": {
+    "passkey-enrollment-nudge": {
+      "title": "Sikr din konto med en adgangsnøgle",
+      "description": "Adgangsnøgler bruger din enheds biometri eller PIN til at logge dig ind hurtigere og mere sikkert.",
+      "enrollButtonText": "Konfigurer adgangsnøgle",
+      "snoozeButtonText": "Måske senere",
+      "optOutLinkText": "Vis ikke dette igen",
+      "pageTitle": "Konfigurer Adgangsnøgle | ${clientName}"
+    },
+    "passkey-enrollment": {
+      "title": "Opret din adgangsnøgle",
+      "description": "Følg anvisningerne fra din browser for at oprette en adgangsnøgle til denne konto.",
+      "errorMessage": "Oprettelse af adgangsnøgle mislykkedes. Prøv venligst igen.",
+      "cancelLinkText": "Spring over for nu",
+      "retryButtonText": "Prøv igen",
+      "pageTitle": "Opret Adgangsnøgle | ${clientName}"
+    }
+  },
   "organizations": {
     "organizations": {
       "description": "Vælg hvilken organisation du vil logge ind på",

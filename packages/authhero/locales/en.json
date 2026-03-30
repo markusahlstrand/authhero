@@ -397,6 +397,24 @@
       "title": "Use your security key"
     }
   },
+  "passkeys": {
+    "passkey-enrollment-nudge": {
+      "title": "Secure your account with a passkey",
+      "description": "Passkeys use your device's biometrics or PIN to sign you in faster and more securely.",
+      "enrollButtonText": "Set up passkey",
+      "snoozeButtonText": "Maybe later",
+      "optOutLinkText": "Don't show this again",
+      "pageTitle": "Set Up Passkey | ${clientName}"
+    },
+    "passkey-enrollment": {
+      "title": "Create your passkey",
+      "description": "Follow the prompts from your browser to create a passkey for this account.",
+      "errorMessage": "Failed to create passkey. Please try again.",
+      "cancelLinkText": "Skip for now",
+      "retryButtonText": "Try again",
+      "pageTitle": "Create Passkey | ${clientName}"
+    }
+  },
   "organizations": {
     "organizations": {
       "description": "Choose which organization to log in to",

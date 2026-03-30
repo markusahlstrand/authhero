@@ -397,6 +397,24 @@
       "title": "Använd din säkerhetsnyckel"
     }
   },
+  "passkeys": {
+    "passkey-enrollment-nudge": {
+      "title": "Skydda ditt konto med en nyckel",
+      "description": "Nycklar använder enhetens biometri eller PIN-kod för att logga in snabbare och säkrare.",
+      "enrollButtonText": "Konfigurera nyckel",
+      "snoozeButtonText": "Kanske senare",
+      "optOutLinkText": "Visa inte detta igen",
+      "pageTitle": "Konfigurera Nyckel | ${clientName}"
+    },
+    "passkey-enrollment": {
+      "title": "Skapa din nyckel",
+      "description": "Följ anvisningarna från din webbläsare för att skapa en nyckel för detta konto.",
+      "errorMessage": "Det gick inte att skapa nyckeln. Försök igen.",
+      "cancelLinkText": "Hoppa över för nu",
+      "retryButtonText": "Försök igen",
+      "pageTitle": "Skapa Nyckel | ${clientName}"
+    }
+  },
   "organizations": {
     "organizations": {
       "description": "Välj vilken organisation du vill logga in på",

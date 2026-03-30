@@ -1,63 +1,6 @@
+import { detectIncognito } from "detectincognitojs";
+
 const INCOGNITO_SESSION_KEY = "authhero_incognito_mode";
-const INCOGNITO_SCRIPT_URL = "https://unpkg.com/detectincognitojs@1.6.2";
-
-/**
- * Dynamically loads the detectincognito library from unpkg CDN
- * @returns Promise resolving to the detectIncognito function
- */
-async function loadDetectIncognitoLib(): Promise<
-  (args?: any) => Promise<{ isPrivate: boolean }>
-> {
-  // Check if already loaded in window
-  if ((window as any).detectIncognito) {
-    return (window as any).detectIncognito;
-  }
-
-  return new Promise((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src = INCOGNITO_SCRIPT_URL;
-    script.type = "text/javascript";
-    script.crossOrigin = "anonymous";
-
-    script.onload = () => {
-      // Try different possible locations
-      let detectIncognito = (window as any).detectIncognito;
-
-      // Also check for default export
-      if (!detectIncognito && (window as any).__detectIncognito) {
-        detectIncognito = (window as any).__detectIncognito;
-      }
-
-      // Check module patterns
-      if (
-        !detectIncognito &&
-        (window as any).module &&
-        (window as any).module.exports
-      ) {
-        detectIncognito = (window as any).module.exports;
-      }
-
-      if (detectIncognito && typeof detectIncognito === "function") {
-        resolve(detectIncognito);
-      } else if (detectIncognito && detectIncognito.detectIncognito) {
-        resolve(detectIncognito.detectIncognito);
-      } else if (
-        typeof detectIncognito === "object" &&
-        detectIncognito.default
-      ) {
-        resolve(detectIncognito.default);
-      } else {
-        reject(new Error("detectIncognito not found after loading script"));
-      }
-    };
-
-    script.onerror = () => {
-      reject(new Error("Failed to load detectincognitojs script"));
-    };
-
-    document.head.appendChild(script);
-  });
-}
 
 /**
  * Synchronously checks if the browser is in incognito mode by reading from session storage
@@ -88,9 +31,6 @@ export async function detectAndCacheIncognito(): Promise<boolean> {
     if (cachedValue !== null) {
       return cachedValue === "true";
     }
-
-    // Load the detection library
-    const detectIncognito = await loadDetectIncognitoLib();
 
     // Perform the actual detection
     const { isPrivate } = await detectIncognito();

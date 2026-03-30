@@ -397,6 +397,24 @@
       "title": "Bruk sikkerhetsnøkkelen din"
     }
   },
+  "passkeys": {
+    "passkey-enrollment-nudge": {
+      "title": "Sikre kontoen din med en passnøkkel",
+      "description": "Passnøkler bruker enhetens biometri eller PIN-kode for å logge deg inn raskere og sikrere.",
+      "enrollButtonText": "Sett opp passnøkkel",
+      "snoozeButtonText": "Kanskje senere",
+      "optOutLinkText": "Ikke vis dette igjen",
+      "pageTitle": "Sett Opp Passnøkkel | ${clientName}"
+    },
+    "passkey-enrollment": {
+      "title": "Opprett passnøkkelen din",
+      "description": "Følg instruksjonene fra nettleseren for å opprette en passnøkkel for denne kontoen.",
+      "errorMessage": "Kunne ikke opprette passnøkkel. Vennligst prøv igjen.",
+      "cancelLinkText": "Hopp over for nå",
+      "retryButtonText": "Prøv igjen",
+      "pageTitle": "Opprett Passnøkkel | ${clientName}"
+    }
+  },
   "organizations": {
     "organizations": {
       "description": "Velg hvilken organisasjon du vil logge inn på",

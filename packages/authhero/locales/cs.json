@@ -397,6 +397,24 @@
       "title": "Použijte svůj bezpečnostní klíč"
     }
   },
+  "passkeys": {
+    "passkey-enrollment-nudge": {
+      "title": "Zabezpečte svůj účet pomocí passkey",
+      "description": "Passkey používají biometrii nebo PIN vašeho zařízení k rychlejšímu a bezpečnějšímu přihlášení.",
+      "enrollButtonText": "Nastavit passkey",
+      "snoozeButtonText": "Možná později",
+      "optOutLinkText": "Nezobrazovat znovu",
+      "pageTitle": "Nastavení Passkey | ${clientName}"
+    },
+    "passkey-enrollment": {
+      "title": "Vytvořte svůj passkey",
+      "description": "Postupujte podle pokynů prohlížeče a vytvořte passkey pro tento účet.",
+      "errorMessage": "Vytvoření passkey se nezdařilo. Zkuste to prosím znovu.",
+      "cancelLinkText": "Prozatím přeskočit",
+      "retryButtonText": "Zkusit znovu",
+      "pageTitle": "Vytvoření Passkey | ${clientName}"
+    }
+  },
   "organizations": {
     "organizations": {
       "description": "Vyberte, ke které organizaci se chcete přihlásit",

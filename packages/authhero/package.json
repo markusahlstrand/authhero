@@ -59,6 +59,7 @@
     "autoprefixer": "10.4.21",
     "better-sqlite3": "^12.4.1",
     "cssnano": "7.1.2",
+    "detectincognitojs": "^1.6.2",
     "dts-bundle-generator": "^9.5.1",
     "fast-xml-parser": "^5.3.1",
     "hono": "^4.10.4",
@@ -79,6 +80,7 @@
     "@authhero/adapter-interfaces": "workspace:*",
     "@authhero/saml": "workspace:*",
     "@peculiar/x509": "^1.14.0",
+    "@simplewebauthn/server": "^13.0.0",
     "arctic": "3.7.0",
     "bcryptjs": "^3.0.3",
     "classnames": "^2.5.1",
@@ -97,6 +99,9 @@
     "@hono/zod-openapi": "^0.19.2",
     "hono": "^4.8.7",
     "ua-parser-js": "^2.0.0"
+  },
+  "engines": {
+    "node": ">=20"
   },
   "peerDependenciesMeta": {
     "@authhero/widget": {
