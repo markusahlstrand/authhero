@@ -397,6 +397,24 @@
       "title": "Käytä turva-avaintasi"
     }
   },
+  "passkeys": {
+    "passkey-enrollment-nudge": {
+      "title": "Suojaa tilisi tunnistautumisavaimella",
+      "description": "Tunnistautumisavaimet käyttävät laitteesi biometriikkaa tai PIN-koodia kirjautuaksesi nopeammin ja turvallisemmin.",
+      "enrollButtonText": "Määritä tunnistautumisavain",
+      "snoozeButtonText": "Ehkä myöhemmin",
+      "optOutLinkText": "Älä näytä tätä uudelleen",
+      "pageTitle": "Määritä Tunnistautumisavain | ${clientName}"
+    },
+    "passkey-enrollment": {
+      "title": "Luo tunnistautumisavain",
+      "description": "Seuraa selaimesi ohjeita luodaksesi tunnistautumisavaimen tälle tilille.",
+      "errorMessage": "Tunnistautumisavaimen luominen epäonnistui. Yritä uudelleen.",
+      "cancelLinkText": "Ohita toistaiseksi",
+      "retryButtonText": "Yritä uudelleen",
+      "pageTitle": "Luo Tunnistautumisavain | ${clientName}"
+    }
+  },
   "organizations": {
     "organizations": {
       "description": "Valitse organisaatio, johon haluat kirjautua",

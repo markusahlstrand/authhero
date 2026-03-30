@@ -122,7 +122,11 @@ export function createAuthenticationMethodsAdapter(
         throw new Error(`Authentication method ${methodId} not found`);
       }
 
-      const merged = { ...existing, ...data, updated_at: new Date().toISOString() };
+      const merged = {
+        ...existing,
+        ...data,
+        updated_at: new Date().toISOString(),
+      };
       authenticationMethodSchema.parse(merged);
 
       const updates: Record<string, unknown> = {

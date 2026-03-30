@@ -397,6 +397,24 @@
       "title": "Usa la tua chiave di sicurezza"
     }
   },
+  "passkeys": {
+    "passkey-enrollment-nudge": {
+      "title": "Proteggi il tuo account con una passkey",
+      "description": "Le passkey utilizzano la biometria o il PIN del tuo dispositivo per accedere più velocemente e in modo più sicuro.",
+      "enrollButtonText": "Configura passkey",
+      "snoozeButtonText": "Forse più tardi",
+      "optOutLinkText": "Non mostrare più",
+      "pageTitle": "Configura Passkey | ${clientName}"
+    },
+    "passkey-enrollment": {
+      "title": "Crea la tua passkey",
+      "description": "Segui le istruzioni del browser per creare una passkey per questo account.",
+      "errorMessage": "Creazione della passkey non riuscita. Riprova.",
+      "cancelLinkText": "Salta per ora",
+      "retryButtonText": "Riprova",
+      "pageTitle": "Crea Passkey | ${clientName}"
+    }
+  },
   "organizations": {
     "organizations": {
       "description": "Scegli a quale organizzazione accedere",
