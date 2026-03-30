@@ -84,4 +84,4 @@ A promise that resolves to a new token response object.
 
 ## Further Reference
 
-For management API details (users, tenants, applications, connections, domains), see the [Management API](../api/management-api/) and [Adapter Interfaces](./adapter-interfaces/) documentation.
+For management API details (users, tenants, applications, connections, domains), see the [Management API](../security/management-api) and [Adapter Interfaces](./adapter-interfaces/) documentation.
