@@ -45,5 +45,8 @@
     "vitest": "^4.0.7"
   },
   "dependencies": {},
+  "engines": {
+    "node": ">=20"
+  },
   "packageManager": "pnpm@10.20.0"
 }

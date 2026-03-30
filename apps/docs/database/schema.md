@@ -643,6 +643,21 @@ erDiagram
 <script>
 // Initialize when page loads
 if (typeof window !== 'undefined') {
+  // Tear down any previous instance before re-initializing
+  if (window._mermaidControls && window._mermaidControls.teardown) {
+    window._mermaidControls.teardown();
+  }
+
+  // Central tracking object for all resources created by this script
+  window._mermaidControls = {
+    observer: null,
+    timeouts: [],
+    panHandlers: new Map(),  // wrapper element -> { startPan, endPan, pan }
+    keydownHandler: null,
+    domContentLoadedHandler: null,
+    teardown: null
+  };
+
   // Global variables
   window.currentZoom = 1;
   window.isFullscreen = false;
@@ -662,10 +677,10 @@ if (typeof window !== 'undefined') {
   window.resetZoom = function() {
     window.currentZoom = 1;
     applyZoom();
-    
+
     // Reset scroll position
-    const wrapper = window.isFullscreen ? 
-      document.getElementById('fullscreen-mermaid-wrapper') : 
+    var wrapper = window.isFullscreen ?
+      document.getElementById('fullscreen-mermaid-wrapper') :
       document.getElementById('mermaid-wrapper');
     if (wrapper) {
       wrapper.scrollLeft = 0;
@@ -674,21 +689,21 @@ if (typeof window !== 'undefined') {
   }
 
   window.toggleFullscreen = function() {
-    const overlay = document.getElementById('fullscreen-overlay');
-    const normalWrapper = document.getElementById('mermaid-wrapper');
-    const fullscreenWrapper = document.getElementById('fullscreen-mermaid-wrapper');
-    
+    var overlay = document.getElementById('fullscreen-overlay');
+    var normalWrapper = document.getElementById('mermaid-wrapper');
+    var fullscreenWrapper = document.getElementById('fullscreen-mermaid-wrapper');
+
     if (!overlay || !normalWrapper || !fullscreenWrapper) {
       console.log('Missing elements:', { overlay: !!overlay, normalWrapper: !!normalWrapper, fullscreenWrapper: !!fullscreenWrapper });
       return;
     }
-    
+
     window.isFullscreen = !window.isFullscreen;
-    
+
     if (window.isFullscreen) {
       overlay.classList.add('active');
       // Move mermaid to fullscreen container
-      const mermaidElement = normalWrapper.querySelector('.mermaid');
+      var mermaidElement = normalWrapper.querySelector('.mermaid');
       if (mermaidElement) {
         fullscreenWrapper.appendChild(mermaidElement);
         addPanFunctionality(); // Re-add pan functionality for fullscreen
@@ -698,7 +713,7 @@ if (typeof window !== 'undefined') {
     } else {
       overlay.classList.remove('active');
       // Move mermaid back to normal container
-      const mermaidElement = fullscreenWrapper.querySelector('.mermaid');
+      var mermaidElement = fullscreenWrapper.querySelector('.mermaid');
       if (mermaidElement) {
         normalWrapper.appendChild(mermaidElement);
         addPanFunctionality(); // Re-add pan functionality for normal view
@@ -706,140 +721,212 @@ if (typeof window !== 'undefined') {
       }
       document.body.style.overflow = '';
     }
-    
+
     applyZoom();
   }
+
+  // Define the teardown function
+  window._mermaidControls.teardown = function() {
+    var ctrl = window._mermaidControls;
+
+    // Disconnect MutationObserver
+    if (ctrl.observer) {
+      ctrl.observer.disconnect();
+      ctrl.observer = null;
+    }
+
+    // Clear pending timeouts
+    ctrl.timeouts.forEach(function(id) { clearTimeout(id); });
+    ctrl.timeouts = [];
+
+    // Remove pan event listeners from all tracked wrappers
+    ctrl.panHandlers.forEach(function(handlers, wrapper) {
+      wrapper.removeEventListener('mousedown', handlers.startPan);
+      wrapper.removeEventListener('mouseleave', handlers.endPan);
+      wrapper.removeEventListener('mouseup', handlers.endPan);
+      wrapper.removeEventListener('mousemove', handlers.pan);
+    });
+    ctrl.panHandlers.clear();
+
+    // Remove keydown listener
+    if (ctrl.keydownHandler) {
+      window.removeEventListener('keydown', ctrl.keydownHandler);
+      ctrl.keydownHandler = null;
+    }
+
+    // Remove DOMContentLoaded listener (only effective if still loading)
+    if (ctrl.domContentLoadedHandler) {
+      document.removeEventListener('DOMContentLoaded', ctrl.domContentLoadedHandler);
+      ctrl.domContentLoadedHandler = null;
+    }
+  };
+
   // Try multiple initialization methods
   if (document.readyState === 'loading') {
+    window._mermaidControls.domContentLoadedHandler = initializeMermaidControls;
     document.addEventListener('DOMContentLoaded', initializeMermaidControls);
   } else {
     initializeMermaidControls();
   }
-  
+
   // Also try with a timeout for Mermaid rendering
-  setTimeout(initializeMermaidControls, 1000);
-  setTimeout(initializeMermaidControls, 2000);
-  
+  window._mermaidControls.timeouts.push(setTimeout(initializeMermaidControls, 1000));
+  window._mermaidControls.timeouts.push(setTimeout(initializeMermaidControls, 2000));
+
   // Set up MutationObserver to detect when Mermaid renders
-  const observer = new MutationObserver(function(mutations) {
+  var observer = new MutationObserver(function(mutations) {
     mutations.forEach(function(mutation) {
       if (mutation.type === 'childList') {
-        const mermaidElements = document.querySelectorAll('.mermaid svg');
+        var mermaidElements = document.querySelectorAll('.mermaid svg');
         if (mermaidElements.length > 0 && !window.mermaidSvg) {
           initializeMermaidControls();
         }
       }
     });
   });
-  
+
   observer.observe(document.body, {
     childList: true,
     subtree: true
+  });
+  window._mermaidControls.observer = observer;
+
+  // Close fullscreen with Escape key
+  window._mermaidControls.keydownHandler = function(e) {
+    if (e.key === 'Escape' && window.isFullscreen) {
+      window.toggleFullscreen();
+    }
+  };
+  window.addEventListener('keydown', window._mermaidControls.keydownHandler);
+
+  // Teardown on page unload and route change
+  window.addEventListener('beforeunload', function() {
+    if (window._mermaidControls && window._mermaidControls.teardown) {
+      window._mermaidControls.teardown();
+    }
   });
 }
 
 function initializeMermaidControls() {
   console.log('Initializing Mermaid controls...');
-  
+
   // Look for mermaid element
-  const mermaidElement = document.querySelector('.mermaid');
-  const mermaidSvg = document.querySelector('.mermaid svg');
-  
-  console.log('Found elements:', { 
-    mermaidElement: !!mermaidElement, 
-    mermaidSvg: !!mermaidSvg 
+  var mermaidElement = document.querySelector('.mermaid');
+  var mermaidSvg = document.querySelector('.mermaid svg');
+
+  console.log('Found elements:', {
+    mermaidElement: !!mermaidElement,
+    mermaidSvg: !!mermaidSvg
   });
-  
+
   if (mermaidElement && mermaidSvg) {
     window.mermaidSvg = mermaidSvg;
     console.log('Found Mermaid SVG, initializing...');
     window.mermaidSvg.id = 'mermaid-diagram';
-    
+
     // Ensure proper styling
     window.mermaidSvg.style.maxWidth = '100%';
     window.mermaidSvg.style.height = 'auto';
     window.mermaidSvg.style.background = 'transparent';
-    
+
     // Fix text colors
     fixMermaidTextColors();
-    
+
     // Make sure it's in the wrapper
-    const wrapper = document.getElementById('mermaid-wrapper');
+    var wrapper = document.getElementById('mermaid-wrapper');
     if (wrapper && !wrapper.contains(mermaidElement)) {
       wrapper.appendChild(mermaidElement);
       console.log('Moved mermaid to wrapper');
     }
-    
+
     // Add pan functionality
     addPanFunctionality();
-    
+
     // Apply initial zoom
     applyZoom();
-    
+
+    // Stop the observer and clear remaining timeouts once initialized
+    if (window._mermaidControls) {
+      if (window._mermaidControls.observer) {
+        window._mermaidControls.observer.disconnect();
+        window._mermaidControls.observer = null;
+      }
+      window._mermaidControls.timeouts.forEach(function(id) { clearTimeout(id); });
+      window._mermaidControls.timeouts = [];
+    }
+
     return true;
   }
-  
+
   console.log('Mermaid elements not found yet');
   return false;
 }
 
 function fixMermaidTextColors() {
   if (!window.mermaidSvg) return;
-  
+
   console.log('Fixing Mermaid text colors...');
-  
+
   // Get computed CSS variables
-  const textColor = getComputedStyle(document.documentElement).getPropertyValue('--vp-c-text-1').trim() || '#213547';
-  const textColor2 = getComputedStyle(document.documentElement).getPropertyValue('--vp-c-text-2').trim() || '#476582';
-  
+  var textColor = getComputedStyle(document.documentElement).getPropertyValue('--vp-c-text-1').trim() || '#213547';
+  var textColor2 = getComputedStyle(document.documentElement).getPropertyValue('--vp-c-text-2').trim() || '#476582';
+
   // Fix all text elements
-  const textElements = window.mermaidSvg.querySelectorAll('text');
-  textElements.forEach(text => {
+  var textElements = window.mermaidSvg.querySelectorAll('text');
+  textElements.forEach(function(text) {
     text.style.fill = textColor;
     text.style.fontFamily = 'inherit';
     text.style.visibility = 'visible';
     text.style.opacity = '1';
   });
-  
+
   // Fix specific ERD text elements
-  const entityLabels = window.mermaidSvg.querySelectorAll('.er-entityNameText, .entityLabel');
-  entityLabels.forEach(label => {
+  var entityLabels = window.mermaidSvg.querySelectorAll('.er-entityNameText, .entityLabel');
+  entityLabels.forEach(function(label) {
     label.style.fill = textColor;
     label.style.fontWeight = 'bold';
     label.style.fontSize = '14px';
   });
-  
-  const attributeTexts = window.mermaidSvg.querySelectorAll('.er-attributeText');
-  attributeTexts.forEach(attr => {
+
+  var attributeTexts = window.mermaidSvg.querySelectorAll('.er-attributeText');
+  attributeTexts.forEach(function(attr) {
     attr.style.fill = textColor2;
     attr.style.fontSize = '12px';
   });
-  
+
   // Force any white text to be visible
-  const whiteTexts = window.mermaidSvg.querySelectorAll('[fill="white"], [fill="#ffffff"], [fill="#FFFFFF"]');
-  whiteTexts.forEach(text => {
+  var whiteTexts = window.mermaidSvg.querySelectorAll('[fill="white"], [fill="#ffffff"], [fill="#FFFFFF"]');
+  whiteTexts.forEach(function(text) {
     text.setAttribute('fill', textColor);
   });
-  
-  console.log(`Fixed ${textElements.length} text elements`);
+
+  console.log('Fixed ' + textElements.length + ' text elements');
 }
 
 function addPanFunctionality() {
   if (!window.mermaidSvg) return;
-  
-  let isPanning = false;
-  let startX, startY, scrollLeft, scrollTop;
-  
-  const wrapper = window.isFullscreen ? 
-    document.getElementById('fullscreen-mermaid-wrapper') : 
+
+  var isPanning = false;
+  var startX, startY, scrollLeft, scrollTop;
+
+  var wrapper = window.isFullscreen ?
+    document.getElementById('fullscreen-mermaid-wrapper') :
     document.getElementById('mermaid-wrapper');
-  
+
   if (!wrapper) return;
-  
-  // Remove existing event listeners to avoid duplicates
+
+  // Remove existing pan listeners on this wrapper to avoid duplicates
+  if (window._mermaidControls && window._mermaidControls.panHandlers.has(wrapper)) {
+    var old = window._mermaidControls.panHandlers.get(wrapper);
+    wrapper.removeEventListener('mousedown', old.startPan);
+    wrapper.removeEventListener('mouseleave', old.endPan);
+    wrapper.removeEventListener('mouseup', old.endPan);
+    wrapper.removeEventListener('mousemove', old.pan);
+  }
+
   wrapper.style.cursor = 'grab';
-  
-  const startPan = (e) => {
+
+  var startPan = function(e) {
     isPanning = true;
     startX = e.pageX - wrapper.offsetLeft;
     startY = e.pageY - wrapper.offsetTop;
@@ -847,56 +934,52 @@ function addPanFunctionality() {
     scrollTop = wrapper.scrollTop;
     wrapper.style.cursor = 'grabbing';
   };
-  
-  const endPan = () => {
+
+  var endPan = function() {
     isPanning = false;
     wrapper.style.cursor = 'grab';
   };
-  
-  const pan = (e) => {
+
+  var pan = function(e) {
     if (!isPanning) return;
     e.preventDefault();
-    const x = e.pageX - wrapper.offsetLeft;
-    const y = e.pageY - wrapper.offsetTop;
-    const walkX = (x - startX) * 2;
-    const walkY = (y - startY) * 2;
+    var x = e.pageX - wrapper.offsetLeft;
+    var y = e.pageY - wrapper.offsetTop;
+    var walkX = (x - startX) * 2;
+    var walkY = (y - startY) * 2;
     wrapper.scrollLeft = scrollLeft - walkX;
     wrapper.scrollTop = scrollTop - walkY;
   };
-  
+
   wrapper.addEventListener('mousedown', startPan);
   wrapper.addEventListener('mouseleave', endPan);
   wrapper.addEventListener('mouseup', endPan);
   wrapper.addEventListener('mousemove', pan);
+
+  // Track the handlers so they can be removed later
+  if (window._mermaidControls) {
+    window._mermaidControls.panHandlers.set(wrapper, { startPan: startPan, endPan: endPan, pan: pan });
+  }
 }
 
 function applyZoom() {
   if (!window.mermaidSvg) return;
-  
-  window.mermaidSvg.style.transform = `scale(${window.currentZoom})`;
-  
+
+  window.mermaidSvg.style.transform = 'scale(' + window.currentZoom + ')';
+
   // Fix text colors after zoom (sometimes they get reset)
   fixMermaidTextColors();
-  
-  // Update container size to accommodate scaled content
-  const wrapper = window.isFullscreen ? 
-    document.getElementById('fullscreen-mermaid-wrapper') : 
-    document.getElementById('mermaid-wrapper');
-    
-  if (wrapper && window.mermaidSvg) {
-    const rect = window.mermaidSvg.getBoundingClientRect();
-    wrapper.style.minWidth = `${rect.width * window.currentZoom}px`;
-    wrapper.style.minHeight = `${rect.height * window.currentZoom}px`;
-  }
-}
 
-// Close fullscreen with Escape key
-if (typeof window !== 'undefined') {
-  window.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && window.isFullscreen) {
-      window.toggleFullscreen();
-    }
-  });
+  // Update container size to accommodate scaled content
+  var wrapper = window.isFullscreen ?
+    document.getElementById('fullscreen-mermaid-wrapper') :
+    document.getElementById('mermaid-wrapper');
+
+  if (wrapper && window.mermaidSvg) {
+    var rect = window.mermaidSvg.getBoundingClientRect();
+    wrapper.style.minWidth = rect.width * window.currentZoom + 'px';
+    wrapper.style.minHeight = rect.height * window.currentZoom + 'px';
+  }
 }
 </script>
 
@@ -924,7 +1007,7 @@ OAuth/OIDC client applications that can authenticate users. Each application has
 - Client secrets for confidential clients
 - Allowed redirect URIs and origins
 - OAuth flow configuration
-- Custom addons and settings
+- Custom add-ons and settings
 
 #### `connections`
 

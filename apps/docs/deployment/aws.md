@@ -761,8 +761,18 @@ Ensure Lambda/ECS has IAM permissions for DynamoDB:
 ```json
 {
   "Effect": "Allow",
-  "Action": ["dynamodb:*"],
-  "Resource": "arn:aws:dynamodb:*:*:table/authhero*"
+  "Action": [
+    "dynamodb:GetItem",
+    "dynamodb:PutItem",
+    "dynamodb:UpdateItem",
+    "dynamodb:DeleteItem",
+    "dynamodb:Query",
+    "dynamodb:Scan"
+  ],
+  "Resource": [
+    "arn:aws:dynamodb:us-east-1:xxx:table/authhero-prod",
+    "arn:aws:dynamodb:us-east-1:xxx:table/authhero-prod/index/*"
+  ]
 }
 ```
 

@@ -80,7 +80,6 @@ export type AuthenticationMethodUpdate = Partial<
   Omit<AuthenticationMethodInsert, "user_id" | "type">
 >;
 
-
 export const authenticationMethodSchema = z
   .object({
     ...authenticationMethodBaseSchema.shape,

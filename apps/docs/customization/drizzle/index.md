@@ -29,9 +29,9 @@ npm install @authhero/drizzle
 ```typescript
 import { Database } from "@authhero/drizzle";
 import { drizzle } from "drizzle-orm/better-sqlite3";
-import Database from "better-sqlite3";
+import BetterSqlite3 from "better-sqlite3";
 
-const sqlite = new Database("authhero.db");
+const sqlite = new BetterSqlite3("authhero.db");
 const db = drizzle(sqlite);
 
 const database = new Database({ db });
@@ -75,7 +75,7 @@ const database = new Database({ db });
 The Drizzle adapter uses strongly-typed schema definitions:
 
 ```typescript
-import { pgTable, varchar, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, varchar, boolean, timestamp, primaryKey } from "drizzle-orm/pg-core";
 
 export const tenants = pgTable("tenants", {
   id: varchar("id", { length: 255 }).primaryKey(),

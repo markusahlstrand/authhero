@@ -7,7 +7,7 @@ description: Install the AuthHero package using npm, yarn, or pnpm. Requirements
 
 ## Requirements
 
-- Node.js (version 16 or higher)
+- Node.js (version 20 or higher; CI-tested on Node.js 22.x)
 - npm, yarn, or pnpm package manager
 
 ## Installation
