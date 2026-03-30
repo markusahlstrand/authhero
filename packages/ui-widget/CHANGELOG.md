@@ -1,5 +1,16 @@
 # @authhero/widget
 
+## 0.28.0
+
+### Minor Changes
+
+- 164fe2c: Added passkeys
+
+### Patch Changes
+
+- Updated dependencies [164fe2c]
+  - @authhero/adapter-interfaces@0.150.0
+
 ## 0.27.0
 
 ### Minor Changes

@@ -1,5 +1,19 @@
 # @authhero/docker
 
+## 1.2.0
+
+### Minor Changes
+
+- 164fe2c: Added passkeys
+
+### Patch Changes
+
+- Updated dependencies [164fe2c]
+  - @authhero/widget@0.28.0
+  - authhero@4.77.0
+  - @authhero/react-admin@0.56.0
+  - @authhero/kysely-adapter@10.113.0
+
 ## 1.1.1
 
 ### Patch Changes
