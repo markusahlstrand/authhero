@@ -1,6 +1,7 @@
 import {
   AuthenticationMethod,
   AuthenticationMethodInsert,
+  AuthenticationMethodUpdate,
 } from "../types/AuthenticationMethod";
 
 export interface AuthenticationMethodsAdapter {
@@ -16,7 +17,7 @@ export interface AuthenticationMethodsAdapter {
   update: (
     tenant_id: string,
     method_id: string,
-    data: Partial<AuthenticationMethodInsert>,
+    data: AuthenticationMethodUpdate,
   ) => Promise<AuthenticationMethod>;
   remove: (tenant_id: string, method_id: string) => Promise<boolean>;
 }

@@ -2,6 +2,7 @@ import {
   AuthenticationMethodsAdapter,
   AuthenticationMethod,
   AuthenticationMethodInsert,
+  AuthenticationMethodUpdate,
   authenticationMethodSchema,
 } from "@authhero/adapter-interfaces";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
@@ -76,8 +77,9 @@ export function createAuthenticationMethodsAdapter(
         updated_at: now,
       };
 
+      const authMethod = toAuthenticationMethod(item);
       await putItem(ctx, item);
-      return toAuthenticationMethod(item);
+      return authMethod;
     },
 
     async get(
@@ -113,10 +115,18 @@ export function createAuthenticationMethodsAdapter(
     async update(
       tenantId: string,
       methodId: string,
-      data: Partial<AuthenticationMethodInsert>,
+      data: AuthenticationMethodUpdate,
     ): Promise<AuthenticationMethod> {
+      const existing = await this.get(tenantId, methodId);
+      if (!existing) {
+        throw new Error(`Authentication method ${methodId} not found`);
+      }
+
+      const merged = { ...existing, ...data, updated_at: new Date().toISOString() };
+      authenticationMethodSchema.parse(merged);
+
       const updates: Record<string, unknown> = {
-        updated_at: new Date().toISOString(),
+        updated_at: merged.updated_at,
       };
 
       if (data.phone_number !== undefined)
@@ -141,11 +151,7 @@ export function createAuthenticationMethodsAdapter(
         updates,
       );
 
-      const updated = await this.get(tenantId, methodId);
-      if (!updated) {
-        throw new Error(`Authentication method ${methodId} not found`);
-      }
-      return updated;
+      return authenticationMethodSchema.parse(merged);
     },
 
     async remove(tenantId: string, methodId: string): Promise<boolean> {
