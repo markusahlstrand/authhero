@@ -865,9 +865,20 @@ export async function startLoginSessionContinuation(
 
   // Only update if transition is valid and state changed
   if (newState !== currentState) {
+    // Merge continuation keys with existing state_data to preserve flags like mfa_verified
+    let existingData: Record<string, unknown> = {};
+    if (currentSession.state_data) {
+      try {
+        existingData = JSON.parse(currentSession.state_data);
+      } catch {
+        // ignore parse errors
+      }
+    }
+
     await ctx.env.data.loginSessions.update(tenantId, loginSession.id, {
       state: newState,
       state_data: JSON.stringify({
+        ...existingData,
         continuationScope: scope,
         continuationReturnUrl: returnUrl,
       }),
@@ -905,12 +916,20 @@ export async function completeLoginSessionContinuation(
     return undefined;
   }
 
-  // Parse state_data to get return URL
+  // Parse state_data to get return URL and preserve non-continuation keys
   let returnUrl: string | undefined;
+  let restoredData: Record<string, unknown> = {};
   if (currentSession.state_data) {
     try {
       const data = JSON.parse(currentSession.state_data);
       returnUrl = data.continuationReturnUrl;
+      // Remove only continuation-specific keys, preserve the rest
+      const {
+        continuationScope: _scope,
+        continuationReturnUrl: _url,
+        ...rest
+      } = data;
+      restoredData = rest;
     } catch {
       // Ignore parse errors
     }
@@ -925,7 +944,10 @@ export async function completeLoginSessionContinuation(
   if (newState !== currentState) {
     await ctx.env.data.loginSessions.update(tenantId, loginSession.id, {
       state: newState,
-      state_data: undefined, // Clear continuation data
+      state_data:
+        Object.keys(restoredData).length > 0
+          ? JSON.stringify(restoredData)
+          : undefined,
     });
   } else {
     console.warn(

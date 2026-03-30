@@ -19,6 +19,7 @@ import {
 import {
   createFrontChannelAuthResponse,
   completeLoginSessionContinuation,
+  hasValidContinuationScope,
 } from "../../../authentication-flows/common";
 import { logMessage } from "../../../helpers/logging";
 
@@ -65,7 +66,7 @@ async function passkeyEnrollmentScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        content: `<script type="application/json" id="webauthn-options">${extra.optionsJSON}</script>
+        content: `<script type="application/json" id="webauthn-options">${extra.optionsJSON.replace(/</g, "\\u003c")}</script>
 <script>
 (async function(){
   function b64u2buf(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';var b=atob(s),a=new Uint8Array(b.length);for(var i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return a.buffer}
@@ -184,6 +185,72 @@ function getExpectedOrigin(ctx: any): string {
   return `${protocol}://${host}`;
 }
 
+/**
+ * Generate fresh WebAuthn registration options and store the challenge.
+ * Returns the JSON string for optionsJSON, or undefined if session/user is missing.
+ */
+async function generateFreshOptionsJSON(
+  context: ScreenContext,
+): Promise<string | undefined> {
+  const { ctx, client, state } = context;
+
+  const loginSession = await ctx.env.data.loginSessions.get(
+    client.tenant.id,
+    state,
+  );
+  if (!loginSession?.user_id) return undefined;
+
+  const user = await ctx.env.data.users.get(
+    client.tenant.id,
+    loginSession.user_id,
+  );
+  if (!user) return undefined;
+
+  const enrollments = await ctx.env.data.authenticationMethods.list(
+    client.tenant.id,
+    user.user_id,
+  );
+  const passkeyTypes = ["passkey", "webauthn-roaming", "webauthn-platform"];
+  const excludeCredentials = enrollments
+    .filter((e) => passkeyTypes.includes(e.type) && e.credential_id)
+    .map((e) => ({
+      id: e.credential_id!,
+      transports: (e.transports || []) as AuthenticatorTransport[],
+    }));
+
+  const rpId = getRpId(ctx);
+  const rpName = client.tenant.friendly_name || client.tenant.id || "AuthHero";
+  const userName = user.email || user.username || user.user_id;
+  const userDisplayName = user.name || user.email || user.user_id;
+
+  const options = await generateRegistrationOptions({
+    rpName,
+    rpID: rpId,
+    userName,
+    userDisplayName,
+    excludeCredentials,
+    authenticatorSelection: {
+      residentKey: "required",
+      userVerification: "preferred",
+    },
+    attestationType: "none",
+    timeout: 60000,
+  });
+
+  const stateData = loginSession.state_data
+    ? JSON.parse(loginSession.state_data)
+    : {};
+
+  await ctx.env.data.loginSessions.update(client.tenant.id, state, {
+    state_data: JSON.stringify({
+      ...stateData,
+      webauthn_challenge: options.challenge,
+    }),
+  });
+
+  return JSON.stringify(options);
+}
+
 export const passkeyEnrollmentScreenDefinition: ScreenDefinition = {
   id: "passkey-enrollment",
   name: "Passkey Enrollment",
@@ -198,6 +265,11 @@ export const passkeyEnrollmentScreenDefinition: ScreenDefinition = {
       );
 
       if (!loginSession || !loginSession.user_id) {
+        return passkeyEnrollmentScreen(context);
+      }
+
+      // Verify the session is in the correct continuation state
+      if (!hasValidContinuationScope(loginSession, "passkey-enrollment")) {
         return passkeyEnrollmentScreen(context);
       }
 
@@ -236,7 +308,7 @@ export const passkeyEnrollmentScreenDefinition: ScreenDefinition = {
         userDisplayName,
         excludeCredentials,
         authenticatorSelection: {
-          residentKey: "preferred",
+          residentKey: "required",
           userVerification: "preferred",
         },
         attestationType: "none",
@@ -289,6 +361,11 @@ export const passkeyEnrollmentScreenDefinition: ScreenDefinition = {
             errorMessage: "Session not found",
           }),
         };
+      }
+
+      // Verify the session is in the correct continuation state
+      if (!hasValidContinuationScope(loginSession, "passkey-enrollment")) {
+        return { screen: await passkeyEnrollmentScreen(context) };
       }
 
       // Handle skip action — resume auth flow without enrolling
@@ -357,8 +434,10 @@ export const passkeyEnrollmentScreenDefinition: ScreenDefinition = {
 
       // Handle registration
       if (action !== "register" || !credentialJson) {
+        const optionsJSON = await generateFreshOptionsJSON(context);
         return {
           screen: await passkeyEnrollmentScreen(context, {
+            optionsJSON,
             errorMessage: m.errorMessage(),
           }),
         };
@@ -370,8 +449,10 @@ export const passkeyEnrollmentScreenDefinition: ScreenDefinition = {
       const expectedChallenge = stateData.webauthn_challenge as string;
 
       if (!expectedChallenge) {
+        const optionsJSON = await generateFreshOptionsJSON(context);
         return {
           screen: await passkeyEnrollmentScreen(context, {
+            optionsJSON,
             errorMessage: "Challenge expired. Please try again.",
           }),
         };
@@ -381,8 +462,10 @@ export const passkeyEnrollmentScreenDefinition: ScreenDefinition = {
       try {
         credential = JSON.parse(credentialJson);
       } catch {
+        const optionsJSON = await generateFreshOptionsJSON(context);
         return {
           screen: await passkeyEnrollmentScreen(context, {
+            optionsJSON,
             errorMessage: m.errorMessage(),
           }),
         };
@@ -406,8 +489,10 @@ export const passkeyEnrollmentScreenDefinition: ScreenDefinition = {
             description: "Passkey enrollment verification failed",
             userId: loginSession.user_id,
           });
+          const optionsJSON = await generateFreshOptionsJSON(context);
           return {
             screen: await passkeyEnrollmentScreen(context, {
+              optionsJSON,
               errorMessage: m.errorMessage(),
             }),
           };
@@ -492,8 +577,10 @@ export const passkeyEnrollmentScreenDefinition: ScreenDefinition = {
           userId: loginSession.user_id,
         });
 
+        const optionsJSON = await generateFreshOptionsJSON(context);
         return {
           screen: await passkeyEnrollmentScreen(context, {
+            optionsJSON,
             errorMessage: m.errorMessage(),
           }),
         };

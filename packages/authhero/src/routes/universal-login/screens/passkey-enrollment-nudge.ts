@@ -20,12 +20,13 @@ import { createTranslation } from "../../../i18n";
 import {
   createFrontChannelAuthResponse,
   completeLoginSessionContinuation,
+  hasValidContinuationScope,
 } from "../../../authentication-flows/common";
 
 async function passkeyEnrollmentNudgeScreen(
   context: ScreenContext,
 ): Promise<ScreenResult> {
-  const { branding, state, routePrefix } = context;
+  const { branding, state } = context;
 
   const locale = context.language || "en";
   const { m } = createTranslation(
@@ -97,7 +98,7 @@ async function passkeyEnrollmentNudgeScreen(
 
   const screen: UiScreen = {
     name: "passkey-enrollment-nudge",
-    action: `${routePrefix}/passkey/enrollment-nudge?state=${encodeURIComponent(state)}`,
+    action: `/u2/passkey/enrollment-nudge?state=${encodeURIComponent(state)}`,
     method: "POST",
     title: m.title(),
     description: m.description(),
@@ -191,12 +192,18 @@ export const passkeyEnrollmentNudgeScreenDefinition: ScreenDefinition = {
         return { screen: await passkeyEnrollmentNudgeScreen(context) };
       }
 
+      // Verify the session is in the correct continuation state
+      if (
+        !hasValidContinuationScope(loginSession, "passkey-enrollment")
+      ) {
+        return { screen: await passkeyEnrollmentNudgeScreen(context) };
+      }
+
       // Determine which button was clicked by checking data keys
       if ("action_enroll" in data) {
         // Redirect to the actual passkey enrollment screen
-        const routePrefix = context.routePrefix || "/u2";
         return {
-          redirect: `${routePrefix}/passkey/enrollment?state=${encodeURIComponent(state)}`,
+          redirect: `/u2/passkey/enrollment?state=${encodeURIComponent(state)}`,
         };
       }
 
