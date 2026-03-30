@@ -41,9 +41,8 @@ export const wellKnownRoutes = new OpenAPIHono<{
           headers: {
             "access-control-allow-origin": "*",
             "access-control-allow-method": "GET",
-            "cache-control": `public, max-age=${JWKS_CACHE_TIMEOUT_IN_SECONDS}, stale-while-revalidate=${
-              JWKS_CACHE_TIMEOUT_IN_SECONDS * 2
-            }, stale-if-error=86400`,
+            "cache-control": `public, max-age=${JWKS_CACHE_TIMEOUT_IN_SECONDS}, stale-while-revalidate=${JWKS_CACHE_TIMEOUT_IN_SECONDS * 2
+              }, stale-if-error=86400`,
           },
         },
       );
@@ -70,16 +69,17 @@ export const wellKnownRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
+      const customDomain = ctx.var.custom_domain;
       const result = openIDConfigurationSchema.parse({
-        issuer: getIssuer(ctx.env),
-        authorization_endpoint: `${getAuthUrl(ctx.env)}authorize`,
-        token_endpoint: `${getAuthUrl(ctx.env)}oauth/token`,
-        device_authorization_endpoint: `${getAuthUrl(ctx.env)}oauth/device/code`,
-        userinfo_endpoint: `${getAuthUrl(ctx.env)}userinfo`,
-        mfa_challenge_endpoint: `${getAuthUrl(ctx.env)}mfa/challenge`,
-        jwks_uri: `${getAuthUrl(ctx.env)}.well-known/jwks.json`,
-        registration_endpoint: `${getAuthUrl(ctx.env)}oidc/register`,
-        revocation_endpoint: `${getAuthUrl(ctx.env)}oauth/revoke`,
+        issuer: getIssuer(ctx.env, customDomain),
+        authorization_endpoint: `${getAuthUrl(ctx.env, customDomain)}authorize`,
+        token_endpoint: `${getAuthUrl(ctx.env, customDomain)}oauth/token`,
+        device_authorization_endpoint: `${getAuthUrl(ctx.env, customDomain)}oauth/device/code`,
+        userinfo_endpoint: `${getAuthUrl(ctx.env, customDomain)}userinfo`,
+        mfa_challenge_endpoint: `${getAuthUrl(ctx.env, customDomain)}mfa/challenge`,
+        jwks_uri: `${getAuthUrl(ctx.env, customDomain)}.well-known/jwks.json`,
+        registration_endpoint: `${getAuthUrl(ctx.env, customDomain)}oidc/register`,
+        revocation_endpoint: `${getAuthUrl(ctx.env, customDomain)}oauth/revoke`,
         scopes_supported: [
           "openid",
           "profile",
@@ -147,9 +147,8 @@ export const wellKnownRoutes = new OpenAPIHono<{
         headers: {
           "access-control-allow-origin": "*",
           "access-control-allow-method": "GET",
-          "cache-control": `public, max-age=${JWKS_CACHE_TIMEOUT_IN_SECONDS}, stale-while-revalidate=${
-            JWKS_CACHE_TIMEOUT_IN_SECONDS * 2
-          }, stale-if-error=86400`,
+          "cache-control": `public, max-age=${JWKS_CACHE_TIMEOUT_IN_SECONDS}, stale-while-revalidate=${JWKS_CACHE_TIMEOUT_IN_SECONDS * 2
+            }, stale-if-error=86400`,
         },
       });
     },

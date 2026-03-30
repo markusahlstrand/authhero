@@ -11,6 +11,9 @@ export function getUniversalLoginUrl(env: Bindings) {
   return env.UNIVERSAL_LOGIN_URL || `${env.ISSUER}u/`;
 }
 
-export function getAuthUrl(env: Bindings) {
+export function getAuthUrl(env: Bindings, customDomain?: string) {
+  if (customDomain) {
+    return `https://${customDomain}/`;
+  }
   return env.OAUTH_API_URL || env.ISSUER;
 }
