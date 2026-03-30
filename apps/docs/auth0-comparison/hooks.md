@@ -8,7 +8,7 @@ description: Compare AuthHero hooks with Auth0 Actions. AuthHero offers pre/post
 Auth0 made the decision to deprecate its Hooks feature in October 2024, moving towards Actions as the primary way to customize authentication flows. While Actions offer powerful capabilities, AuthHero continues to support a flexible Hooks system that provides distinct advantages, especially for certain use cases.
 
 ::: tip Complete Hooks Documentation
-For comprehensive documentation on hooks including lifecycle, configuration, payloads, and examples, see the [Hooks Guide](../guides/hooks.md).
+For comprehensive documentation on hooks including lifecycle, configuration, payloads, and examples, see the [Hooks Guide](/features/hooks).
 :::
 
 ## Quick Comparison
@@ -64,7 +64,7 @@ AuthHero supports the following trigger points for hooks:
 
 ````
 
-For detailed information on each hook including payloads, API methods, and examples, see the [Hooks Guide](../guides/hooks.md).
+For detailed information on each hook including payloads, API methods, and examples, see the [Hooks Guide](/features/hooks).
 
 ## Key Architectural Differences
 
@@ -94,7 +94,7 @@ Auth0 Actions primarily focus on code-based actions with limited webhook support
 | Post-User Deletion              | Async     | ❌ No          |
 | Post-User Registration Webhooks | Async     | ❌ No          |
 
-See the [Hook Execution Order](../guides/hooks.md#hook-execution-order-summary) section for complete lifecycle details.
+See the [Hook Execution Order](/features/hooks#hook-execution-order-summary) section for complete lifecycle details.
 
 ### Entity Hooks
 
@@ -118,7 +118,7 @@ AuthHero provides entity hooks for managing configuration entities at the data a
 - Validate entity configurations before save
 - Initialize default settings for new entities
 
-See the [Entity Hooks Guide](../guides/hooks.md#entity-hooks) for detailed documentation and examples.
+See the [Entity Hooks Guide](/features/hooks#entity-hooks) for detailed documentation and examples.
 
 ## Configuration Methods
 
@@ -179,7 +179,7 @@ POST /api/v2/hooks
 }
 ```
 
-For complete configuration examples, see the [Hooks Guide Configuration Section](../guides/hooks.md#configuration).
+For complete configuration examples, see the [Hooks Guide Configuration Section](/features/hooks#configuration).
 
 ## Migration from Auth0
 
@@ -271,12 +271,12 @@ const { app } = init({
 
 ## Additional Resources
 
-- [Hooks Guide](../guides/hooks.md) - Complete hooks documentation
-- [Hook Lifecycle](../guides/hooks.md#hook-lifecycle) - Detailed execution flow
-- [Hook Types](../guides/hooks.md#hook-types) - Code, webhooks, forms, and pages
-- [API Objects](../guides/hooks.md#api-objects) - Available APIs in each hook
-- [Best Practices](../guides/hooks.md#best-practices) - Implementation guidelines
-- [Common Use Cases](../guides/hooks.md#common-use-cases) - Real-world examples
+- [Hooks Guide](/features/hooks) - Complete hooks documentation
+- [Hook Lifecycle](/features/hooks#hook-lifecycle) - Detailed execution flow
+- [Hook Types](/features/hooks#hook-types) - Code, webhooks, forms, and pages
+- [API Objects](/features/hooks#api-objects) - Available APIs in each hook
+- [Best Practices](/features/hooks#best-practices) - Implementation guidelines
+- [Common Use Cases](/features/hooks#common-use-cases) - Real-world examples
 
 ## AuthHero's Approach to Hooks
 

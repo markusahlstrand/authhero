@@ -144,259 +144,295 @@ gtag('config', 'G-DNZWG3PF2L');`,
       nav: [
         { text: "Home", link: "/" },
         { text: "Getting Started", link: "/getting-started" },
-        { text: "Components", link: "/components/" },
-        { text: "API Reference", link: "/api/" },
+        { text: "Architecture", link: "/architecture/" },
+        { text: "API Reference", link: "/api/overview" },
       ],
 
       sidebar: [
         {
-          text: "Introduction",
+          text: "Getting Started",
           items: [
             { text: "What is AuthHero?", link: "/" },
-            { text: "Getting Started", link: "/getting-started" },
-            { text: "Architecture", link: "/architecture" },
-            { text: "Database Schema", link: "/database-schema" },
-            { text: "Security Model", link: "/security-model" },
+            { text: "Installation", link: "/getting-started" },
           ],
         },
         {
-          text: "Concepts",
+          text: "Architecture",
           collapsed: false,
           items: [
-            { text: "Overview", link: "/concepts/" },
-            { text: "Tenants", link: "/concepts/tenants" },
-            { text: "Applications", link: "/concepts/applications" },
-            { text: "Connections", link: "/concepts/connections" },
-            { text: "Users", link: "/concepts/users" },
-            { text: "Organizations", link: "/concepts/organizations" },
-            { text: "Resource Servers", link: "/concepts/resource-servers" },
-            { text: "Tokens", link: "/concepts/tokens" },
-            { text: "Hooks", link: "/concepts/hooks" },
+            { text: "Overview", link: "/architecture/" },
+            {
+              text: "The AuthHero Package",
+              link: "/architecture/authhero-package",
+            },
+            {
+              text: "Auth0 Compatibility",
+              link: "/architecture/auth0-compatibility",
+            },
+            {
+              text: "Universal Login",
+              link: "/architecture/universal-login",
+            },
+            { text: "Adapters", link: "/architecture/adapters" },
+            { text: "Multi-Tenancy", link: "/architecture/multi-tenancy" },
+          ],
+        },
+        {
+          text: "Entities",
+          collapsed: false,
+          items: [
+            { text: "Overview", link: "/entities/" },
+            {
+              text: "Identity",
+              collapsed: false,
+              items: [
+                { text: "Users", link: "/entities/identity/users" },
+                {
+                  text: "Organizations",
+                  link: "/entities/identity/organizations",
+                },
+              ],
+            },
+            {
+              text: "Configuration",
+              collapsed: false,
+              items: [
+                {
+                  text: "Tenants",
+                  link: "/entities/configuration/tenants",
+                },
+                {
+                  text: "Applications",
+                  link: "/entities/configuration/applications",
+                },
+                {
+                  text: "Connections",
+                  link: "/entities/configuration/connections",
+                },
+                {
+                  text: "Domains",
+                  link: "/entities/configuration/domains",
+                },
+              ],
+            },
+            {
+              text: "Security",
+              collapsed: false,
+              items: [
+                {
+                  text: "Resource Servers",
+                  link: "/entities/security/resource-servers",
+                },
+                { text: "Tokens", link: "/entities/security/tokens" },
+                {
+                  text: "Roles & Permissions",
+                  link: "/entities/security/roles-permissions",
+                },
+              ],
+            },
+          ],
+        },
+        {
+          text: "Features",
+          collapsed: false,
+          items: [
+            { text: "Overview", link: "/features/" },
+            {
+              text: "Authentication Flows",
+              link: "/features/authentication-flows",
+            },
+            {
+              text: "SPA Authentication",
+              link: "/features/spa-authentication",
+            },
             {
               text: "Multi-Factor Authentication",
-              link: "/concepts/mfa",
+              link: "/features/mfa",
             },
-            { text: "Adapters", link: "/concepts/adapters" },
+            { text: "Hooks", link: "/features/hooks" },
+            { text: "Account Linking", link: "/features/account-linking" },
+            { text: "Impersonation", link: "/features/impersonation" },
+            {
+              text: "Session Management",
+              link: "/features/session-management",
+            },
+            { text: "RBAC & Scopes", link: "/features/rbac-and-scopes" },
+            { text: "Forms", link: "/features/forms" },
+            { text: "Flows", link: "/features/flows" },
+            {
+              text: "Multi-Tenant SaaS",
+              link: "/features/multi-tenant-saas",
+            },
           ],
         },
         {
-          text: "Deployment Targets",
+          text: "Security Model",
           collapsed: false,
           items: [
-            { text: "Overview", link: "/deployment-targets/" },
-            { text: "Docker", link: "/deployment-targets/docker" },
-            { text: "Local Development", link: "/deployment-targets/local" },
+            { text: "Overview", link: "/security/" },
+            {
+              text: "RBAC, Scopes & Permissions",
+              link: "/security/rbac",
+            },
+            {
+              text: "Management API Security",
+              link: "/security/management-api",
+            },
+            {
+              text: "Multi-Tenancy & Organizations",
+              link: "/security/multi-tenancy",
+            },
+          ],
+        },
+        {
+          text: "Database",
+          collapsed: true,
+          items: [
+            { text: "Overview", link: "/database/" },
+            { text: "Schema", link: "/database/schema" },
+            { text: "Migration Strategies", link: "/database/migration" },
+            { text: "Integration", link: "/database/integration" },
+          ],
+        },
+        {
+          text: "Deployment",
+          collapsed: true,
+          items: [
+            { text: "Overview", link: "/deployment/" },
+            { text: "Docker", link: "/deployment/docker" },
             {
               text: "Cloudflare Workers",
-              link: "/deployment-targets/cloudflare",
+              link: "/deployment/cloudflare",
             },
-            { text: "AWS", link: "/deployment-targets/aws" },
-            { text: "Multi-Cloud", link: "/deployment-targets/multi-cloud" },
+            { text: "AWS", link: "/deployment/aws" },
+            { text: "Local Development", link: "/deployment/local" },
+            { text: "Multi-Cloud", link: "/deployment/multi-cloud" },
             {
-              text: "Widget Assets",
-              link: "/deployment-targets/widget-assets",
+              text: "Custom Domain Setup",
+              link: "/deployment/custom-domain-setup",
             },
+            { text: "Widget Assets", link: "/deployment/widget-assets" },
           ],
         },
         {
-          text: "Applications",
+          text: "Customization & Extensibility",
+          collapsed: true,
           items: [
-            { text: "React Admin", link: "/apps/react-admin/" },
-            { text: "Auth0 Proxy", link: "/apps/auth0-proxy/" },
-            { text: "Demo App", link: "/apps/demo/" },
-          ],
-        },
-        {
-          text: "Packages",
-          items: [
-            { text: "Overview", link: "/packages/overview" },
-            { text: "Core Library", link: "/packages/authhero/" },
+            { text: "Overview", link: "/customization/" },
+            {
+              text: "Adapter Interfaces",
+              link: "/customization/adapter-interfaces/",
+            },
+            {
+              text: "Built-in Adapters",
+              link: "/customization/built-in-adapters",
+            },
+            {
+              text: "Custom Auth Middleware",
+              link: "/customization/custom-authorization-middleware",
+            },
             {
               text: "UI Widget",
-              link: "/packages/ui-widget/",
-              collapsed: false,
+              link: "/customization/ui-widget/",
+              collapsed: true,
               items: [
                 {
                   text: "Getting Started",
-                  link: "/packages/ui-widget/getting-started",
+                  link: "/customization/ui-widget/getting-started",
                 },
                 {
                   text: "SSR & Hydration",
-                  link: "/packages/ui-widget/ssr-hydration",
+                  link: "/customization/ui-widget/ssr-hydration",
                 },
                 {
                   text: "Props & Events",
-                  link: "/packages/ui-widget/props-events",
+                  link: "/customization/ui-widget/props-events",
                 },
                 {
                   text: "Integration Patterns",
-                  link: "/packages/ui-widget/integration-patterns",
+                  link: "/customization/ui-widget/integration-patterns",
                 },
                 {
                   text: "Customization",
-                  link: "/packages/ui-widget/customization",
+                  link: "/customization/ui-widget/customization",
                 },
                 {
                   text: "API Reference",
-                  link: "/packages/ui-widget/api-reference",
+                  link: "/customization/ui-widget/api-reference",
                 },
               ],
             },
             {
-              text: "Multi-Tenancy",
-              link: "/packages/multi-tenancy/",
-              collapsed: false,
+              text: "SAML Package",
+              link: "/customization/saml/",
+              collapsed: true,
+              items: [
+                {
+                  text: "Configuration",
+                  link: "/customization/saml/configuration",
+                },
+                {
+                  text: "Custom Signers",
+                  link: "/customization/saml/custom-signers",
+                },
+                {
+                  text: "API Reference",
+                  link: "/customization/saml/api-reference",
+                },
+              ],
+            },
+            {
+              text: "Multi-Tenancy Package",
+              link: "/customization/multi-tenancy/",
+              collapsed: true,
               items: [
                 {
                   text: "Architecture",
-                  link: "/packages/multi-tenancy/architecture",
+                  link: "/customization/multi-tenancy/architecture",
+                },
+                {
+                  text: "Control Plane",
+                  link: "/customization/multi-tenancy/control-plane",
                 },
                 {
                   text: "Database Isolation",
-                  link: "/packages/multi-tenancy/database-isolation",
+                  link: "/customization/multi-tenancy/database-isolation",
                 },
                 {
                   text: "Tenant Lifecycle",
-                  link: "/packages/multi-tenancy/tenant-lifecycle",
+                  link: "/customization/multi-tenancy/tenant-lifecycle",
                 },
                 {
                   text: "Runtime Fallback",
-                  link: "/packages/multi-tenancy/runtime-fallback",
+                  link: "/customization/multi-tenancy/runtime-fallback",
                 },
                 {
                   text: "Subdomain Routing",
-                  link: "/packages/multi-tenancy/subdomain-routing",
+                  link: "/customization/multi-tenancy/subdomain-routing",
                 },
                 {
                   text: "API Reference",
-                  link: "/packages/multi-tenancy/api-reference",
+                  link: "/customization/multi-tenancy/api-reference",
                 },
                 {
                   text: "Migration Guide",
-                  link: "/packages/multi-tenancy/migration",
-                },
-              ],
-            },
-            { text: "SAML", link: "/packages/saml/" },
-            { text: "AWS Adapter", link: "/adapters/aws/" },
-            { text: "Create AuthHero", link: "/packages/create-authhero/" },
-          ],
-        },
-        {
-          text: "Components",
-          items: [{ text: "Overview", link: "/components/" }],
-        },
-        {
-          text: "Adapters",
-          items: [
-            { text: "Overview", link: "/adapters/" },
-            { text: "Interfaces", link: "/adapters/interfaces/" },
-            { text: "Kysely (SQL)", link: "/adapters/kysely/" },
-            { text: "Drizzle (SQL)", link: "/adapters/drizzle/" },
-            { text: "AWS (DynamoDB)", link: "/adapters/aws/" },
-            {
-              text: "Cloudflare",
-              link: "/adapters/cloudflare/",
-              items: [
-                { text: "Overview", link: "/adapters/cloudflare/" },
-                {
-                  text: "Custom Domains",
-                  link: "/adapters/cloudflare/custom-domains",
-                },
-                { text: "Cache", link: "/adapters/cloudflare/cache" },
-                {
-                  text: "Analytics Engine",
-                  link: "/adapters/cloudflare/analytics-engine",
-                },
-                { text: "R2 SQL", link: "/adapters/cloudflare/r2-sql" },
-              ],
-            },
-          ],
-        },
-        {
-          text: "API Reference",
-          items: [
-            { text: "Overview", link: "/api/overview" },
-            { text: "Endpoints", link: "/api/endpoints" },
-            { text: "Error Codes", link: "/api/error-codes" },
-            { text: "Forms", link: "/api/forms" },
-            { text: "Flows", link: "/api/flows" },
-          ],
-        },
-        {
-          text: "Guides",
-          items: [
-            {
-              text: "Authentication",
-              collapsed: false,
-              items: [
-                {
-                  text: "Authentication Flow",
-                  link: "/guides/authentication-flow",
-                },
-                {
-                  text: "SPA Authentication",
-                  link: "/guides/spa-authentication",
-                },
-                { text: "MFA Setup", link: "/guides/mfa-setup" },
-                {
-                  text: "Account Management",
-                  link: "/guides/account-management",
-                },
-                { text: "Impersonation", link: "/guides/impersonation" },
-              ],
-            },
-            {
-              text: "Authorization",
-              collapsed: false,
-              items: [
-                {
-                  text: "RBAC and Scopes",
-                  link: "/guides/rbac-and-scopes",
-                },
-                {
-                  text: "Custom Authorization Middleware",
-                  link: "/guides/custom-authorization-middleware",
+                  link: "/customization/multi-tenancy/migration",
                 },
               ],
             },
             {
-              text: "Infrastructure",
-              collapsed: false,
-              items: [
-                {
-                  text: "Custom Domain Setup",
-                  link: "/guides/custom-domain-setup",
-                },
-                {
-                  text: "Database Integration",
-                  link: "/guides/database-integration",
-                },
-                {
-                  text: "Multi-Tenant SaaS Setup",
-                  link: "/guides/multi-tenant-saas-setup",
-                },
-              ],
+              text: "Core Configuration",
+              link: "/customization/configuration",
             },
             {
-              text: "Migration",
-              collapsed: false,
-              items: [
-                {
-                  text: "Database Migration",
-                  link: "/guides/database-migration",
-                },
-                {
-                  text: "SAML Migration",
-                  link: "/guides/saml-migration",
-                },
-              ],
+              text: "Hono Variables",
+              link: "/customization/hono-variables",
             },
-            { text: "Troubleshooting", link: "/guides/troubleshooting" },
           ],
         },
         {
           text: "Auth0 Comparison",
+          collapsed: true,
           items: [
             { text: "Overview", link: "/auth0-comparison/" },
             {
@@ -405,11 +441,28 @@ gtag('config', 'G-DNZWG3PF2L');`,
             },
             { text: "Hooks", link: "/auth0-comparison/hooks" },
             { text: "Multi-Tenant", link: "/auth0-comparison/multi-tenant" },
-            { text: "Redirect URLs", link: "/auth0-comparison/redirect-urls" },
+            {
+              text: "Redirect URLs",
+              link: "/auth0-comparison/redirect-urls",
+            },
+            {
+              text: "SAML Migration",
+              link: "/auth0-comparison/saml-migration",
+            },
+          ],
+        },
+        {
+          text: "API Reference",
+          collapsed: true,
+          items: [
+            { text: "Overview", link: "/api/overview" },
+            { text: "Endpoints", link: "/api/endpoints" },
+            { text: "Error Codes", link: "/api/error-codes" },
           ],
         },
         {
           text: "Contributing",
+          collapsed: true,
           items: [
             {
               text: "Development Setup",
