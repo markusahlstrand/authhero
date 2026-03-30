@@ -191,7 +191,11 @@ widget.addEventListener("formSubmit", async (e) => {
 
 ## 4. Custom Token Management
 
-Handle tokens and sessions yourself without an auth library.
+Handle tokens and sessions yourself without an auth library. Access tokens are kept in memory (never persisted to `localStorage`), and refresh tokens are managed via `httpOnly` cookies set by your backend.
+
+::: warning Security Note
+Do not store access tokens or refresh tokens in `localStorage` or `sessionStorage`. These are accessible to any JavaScript on the page, making them vulnerable to XSS attacks. Instead, keep access tokens in memory and let the backend manage refresh tokens in `httpOnly`, `Secure`, `SameSite=Strict` cookies.
+:::
 
 **Best for:**
 
@@ -204,15 +208,16 @@ Handle tokens and sessions yourself without an auth library.
 ```typescript
 import "@authhero/widget";
 
+// In-memory token store — cleared on page reload, not accessible to XSS
+let accessToken: string | null = null;
+
 const tokenStorage = {
-  get: () => localStorage.getItem("access_token"),
-  set: (token: string, refresh?: string) => {
-    localStorage.setItem("access_token", token);
-    if (refresh) localStorage.setItem("refresh_token", refresh);
+  get: () => accessToken,
+  set: (token: string) => {
+    accessToken = token;
   },
   clear: () => {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
+    accessToken = null;
   },
 };
 
@@ -236,10 +241,13 @@ widget.addEventListener("formSubmit", async (e) => {
     const url = new URL(result.redirect);
     const code = url.searchParams.get("code");
 
-    // Exchange code for tokens
-    const tokenResponse = await fetch("/oauth/token", {
+    // Exchange code for tokens via your backend.
+    // The backend should set the refresh token as an httpOnly cookie
+    // and return only the access token in the response body.
+    const tokenResponse = await fetch("/api/auth/token", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
       body: JSON.stringify({
         grant_type: "authorization_code",
         code,
@@ -248,8 +256,8 @@ widget.addEventListener("formSubmit", async (e) => {
       }),
     });
 
-    const tokens = await tokenResponse.json();
-    tokenStorage.set(tokens.access_token, tokens.refresh_token);
+    const { access_token } = await tokenResponse.json();
+    tokenStorage.set(access_token);
 
     // Redirect to app
     window.location.href = "/app";
@@ -258,26 +266,35 @@ widget.addEventListener("formSubmit", async (e) => {
   }
 });
 
-// Token refresh
+// Token refresh — the refresh token is sent automatically via the
+// httpOnly cookie; only the new access token is returned in the body.
 async function refreshAccessToken() {
-  const refreshToken = localStorage.getItem("refresh_token");
-
-  const response = await fetch("/oauth/token", {
+  const response = await fetch("/api/auth/token", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
     body: JSON.stringify({
       grant_type: "refresh_token",
-      refresh_token: refreshToken,
       client_id: "your-client-id",
     }),
   });
 
-  const tokens = await response.json();
-  tokenStorage.set(tokens.access_token, tokens.refresh_token);
+  const { access_token } = await response.json();
+  tokenStorage.set(access_token);
 
-  return tokens.access_token;
+  return access_token;
 }
 ```
+
+::: tip Backend token endpoint
+Your `/api/auth/token` endpoint should proxy to the AuthHero `/oauth/token` endpoint. On a successful response containing a `refresh_token`, the backend strips it from the JSON body and sets it as a cookie:
+
+```
+Set-Cookie: refresh_token=<token>; HttpOnly; Secure; SameSite=Strict; Path=/api/auth; Max-Age=2592000
+```
+
+On refresh requests, the backend reads the cookie and forwards it to `/oauth/token`.
+:::
 
 ## 5. Generic Forms (Non-Auth)
 

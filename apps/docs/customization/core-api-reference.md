@@ -82,22 +82,6 @@ Refreshes an access token using a refresh token.
 
 A promise that resolves to a new token response object.
 
-## User Management Methods
+## Further Reference
 
-[User management methods will be documented here]
-
-## Tenant Management Methods
-
-[Tenant management methods will be documented here]
-
-## Application Management Methods
-
-[Application management methods will be documented here]
-
-## Connection Management Methods
-
-[Connection management methods will be documented here]
-
-## Domain Management Methods
-
-[Domain management methods will be documented here]
+For management API details (users, tenants, applications, connections, domains), see the [Management API](../api/management-api/) and [Adapter Interfaces](./adapter-interfaces/) documentation.

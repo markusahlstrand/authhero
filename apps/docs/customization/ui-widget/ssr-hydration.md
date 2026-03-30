@@ -72,7 +72,7 @@ const html = `
 <!DOCTYPE html>
 <html>
 <head>
-  <script type="module" src="/widget/authhero-widget.esm.js"></script>
+  <script type="module" src="/u/widget/authhero-widget.esm.js"></script>
 </head>
 <body>
   ${widgetResult.html}
@@ -202,7 +202,7 @@ app.get("/u2/login/:screenId", async (c) => {
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Login</title>
       <!-- Widget script for hydration -->
-      <script type="module" src="/widget/authhero-widget.esm.js"></script>
+      <script type="module" src="/u/widget/authhero-widget.esm.js"></script>
     </head>
     <body>
       ${widgetResult.html}

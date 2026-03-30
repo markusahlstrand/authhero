@@ -86,7 +86,7 @@ export interface UserAdapter {
   ): Promise<User | null>;
 }
 
-export interface SessionAdapter:
+export interface SessionAdapter {
   create(session: CreateSession): Promise<Session>;
   get(sessionId: string): Promise<Session | null>;
   update(sessionId: string, session: Partial<Session>): Promise<Session>;
