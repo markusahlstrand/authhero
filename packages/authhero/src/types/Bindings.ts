@@ -2,9 +2,7 @@ import { DataAdapters } from "@authhero/adapter-interfaces";
 import type { SamlSigner } from "@authhero/saml/core";
 import { Hooks } from "./Hooks";
 import { EntityHooksConfig, WebhookInvoker } from "./AuthHeroConfig";
-import { EmailService } from "./EmailService";
 import { StrategyHandler } from "../strategies";
-import { smsService } from "./SMSService";
 
 declare type Fetcher = {
   fetch: typeof fetch;
@@ -28,9 +26,6 @@ export type Bindings = {
    * Use these to implement cross-tenant sync, audit logging, webhooks, etc.
    */
   entityHooks?: EntityHooksConfig;
-
-  emailProviders?: { [key: string]: EmailService };
-  smsProviders?: { [key: string]: smsService };
 
   // Add additional strategies
   STRATEGIES?: { [strategy: string]: StrategyHandler };

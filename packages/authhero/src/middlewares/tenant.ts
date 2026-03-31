@@ -64,6 +64,15 @@ export async function tenantMiddleware(
     ctx.set("host", new URL(getIssuer(ctx.env)).host);
   }
 
+  // Check query string for tenant_id (used in enrollment ticket URLs)
+  if (!ctx.var.tenant_id) {
+    const tenantIdQuery = ctx.req.query("tenant_id");
+    if (tenantIdQuery) {
+      ctx.set("tenant_id", tenantIdQuery);
+      return await next();
+    }
+  }
+
   // Auto-detect single tenant: if no tenant found and only one exists in DB, use it
   if (!ctx.var.tenant_id) {
     const { tenants } = await ctx.env.data.tenants.list({ per_page: 2 });

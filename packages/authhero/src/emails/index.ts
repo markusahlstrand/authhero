@@ -34,12 +34,12 @@ export async function sendEmail(
     throw new HTTPException(500, { message: "Email provider not found" });
   }
 
-  const emailService = ctx.env.emailProviders?.[emailProvider.name];
+  const emailService = ctx.env.data.emailService;
   if (!emailService) {
-    throw new HTTPException(500, { message: "Email provider not found" });
+    throw new HTTPException(500, { message: "Email service not configured" });
   }
 
-  await emailService({
+  await emailService.send({
     emailProvider,
     ...params,
     from: emailProvider.default_from_address || `login@${ctx.env.ISSUER}`,
@@ -70,14 +70,12 @@ export async function sendSms(
     throw new HTTPException(500, { message: "SMS provider not found" });
   }
 
-  const provider = smsProvider.options?.provider || "twilio";
-
-  const smsService = ctx.env.smsProviders?.[provider];
+  const smsService = ctx.env.data.smsService;
   if (!smsService) {
-    throw new HTTPException(500, { message: "SMS provider not found" });
+    throw new HTTPException(500, { message: "SMS service not configured" });
   }
 
-  await smsService({
+  await smsService.send({
     options: smsProvider.options,
     to: params.to,
     from: params.from,

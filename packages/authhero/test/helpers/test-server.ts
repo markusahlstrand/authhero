@@ -158,15 +158,15 @@ export async function getTestServer(
   const mockEmailService = new MockEmailService();
   const mockSmsService = new MockSmsService();
 
+  const dataWithServices = {
+    ...data,
+    emailService: mockEmailService,
+    smsService: mockSmsService,
+  };
+
   const env: Bindings = {
-    data,
+    data: dataWithServices,
     hooks: args.hooks,
-    emailProviders: {
-      "mock-email": mockEmailService.sendEmail.bind(mockEmailService),
-    },
-    smsProviders: {
-      twilio: mockSmsService.sendSms.bind(mockSmsService),
-    },
     JWKS_SERVICE: {
       fetch: async () =>
         new Response(
@@ -191,7 +191,7 @@ export async function getTestServer(
   };
 
   const apps = init({
-    dataAdapter: data,
+    dataAdapter: dataWithServices,
     entityHooks: args.entityHooks,
   });
   return {

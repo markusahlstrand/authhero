@@ -357,7 +357,9 @@
       "authenticatorAppLabel": "Authenticator App",
       "authenticatorAppDescription": "Use your authenticator app to get a verification code",
       "smsLabel": "Text Message",
-      "smsDescription": "Get a verification code sent to your phone"
+      "smsDescription": "Get a verification code sent to your phone",
+      "passkeyLabel": "Passkey",
+      "passkeyDescription": "Use your device's biometrics or security key"
     }
   },
   "mfa-push": {

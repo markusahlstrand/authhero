@@ -561,7 +561,7 @@ export const guardianRoutes = new OpenAPIHono<{
 
       // Build the ticket URL using the trusted issuer, not the request host header
       const issuer = getIssuer(ctx.env, ctx.var.custom_domain);
-      const ticketUrl = `${issuer}u2/guardian/enroll?ticket=${ticketId}`;
+      const ticketUrl = `${issuer}u2/guardian/enroll?ticket=${ticketId}&tenant_id=${tenantId}`;
 
       return ctx.json(
         {

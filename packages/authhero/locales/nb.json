@@ -357,7 +357,9 @@
       "authenticatorAppLabel": "Autentiseringsapp",
       "authenticatorAppDescription": "Bruk autentiseringsappen din for å få en bekreftelseskode",
       "smsLabel": "Tekstmelding",
-      "smsDescription": "Få en bekreftelseskode sendt til telefonen din"
+      "smsDescription": "Få en bekreftelseskode sendt til telefonen din",
+      "passkeyLabel": "Tilgangsnøkkel",
+      "passkeyDescription": "Bruk enhetens biometri eller sikkerhetsnøkkel"
     }
   },
   "mfa-push": {

@@ -357,7 +357,9 @@
       "authenticatorAppLabel": "Autentizační aplikace",
       "authenticatorAppDescription": "Použijte autentizační aplikaci k získání ověřovacího kódu",
       "smsLabel": "Textová zpráva",
-      "smsDescription": "Nechte si zaslat ověřovací kód na telefon"
+      "smsDescription": "Nechte si zaslat ověřovací kód na telefon",
+      "passkeyLabel": "Přístupový klíč",
+      "passkeyDescription": "Použijte biometrii zařízení nebo bezpečnostní klíč"
     }
   },
   "mfa-push": {

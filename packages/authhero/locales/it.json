@@ -357,7 +357,9 @@
       "authenticatorAppLabel": "App di autenticazione",
       "authenticatorAppDescription": "Usa la tua app di autenticazione per ottenere un codice di verifica",
       "smsLabel": "Messaggio di testo",
-      "smsDescription": "Ricevi un codice di verifica inviato al tuo telefono"
+      "smsDescription": "Ricevi un codice di verifica inviato al tuo telefono",
+      "passkeyLabel": "Chiave di accesso",
+      "passkeyDescription": "Usa la biometria del tuo dispositivo o una chiave di sicurezza"
     }
   },
   "mfa-push": {

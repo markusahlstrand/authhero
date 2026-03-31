@@ -357,7 +357,9 @@
       "authenticatorAppLabel": "Todennussovellus",
       "authenticatorAppDescription": "Käytä todennussovellusta vahvistuskoodin saamiseksi",
       "smsLabel": "Tekstiviesti",
-      "smsDescription": "Saat vahvistuskoodin puhelimeesi tekstiviestillä"
+      "smsDescription": "Saat vahvistuskoodin puhelimeesi tekstiviestillä",
+      "passkeyLabel": "Pääsyavain",
+      "passkeyDescription": "Käytä laitteesi biometriikkaa tai suojausavainta"
     }
   },
   "mfa-push": {

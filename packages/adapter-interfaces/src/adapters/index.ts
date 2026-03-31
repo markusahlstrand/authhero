@@ -33,6 +33,8 @@ import { AuthenticationMethodsAdapter } from "./AuthenticationMethods";
 import { StatsAdapter } from "./Stats";
 import { UniversalLoginTemplatesAdapter } from "./UniversalLoginTemplates";
 import { CustomTextAdapter } from "./CustomText";
+import { EmailServiceAdapter } from "./EmailService";
+import { SmsServiceAdapter } from "./SmsService";
 
 /**
  * Parameters for cleaning up expired sessions
@@ -80,6 +82,8 @@ export interface DataAdapters {
   organizations: OrganizationsAdapter;
   authenticationMethods: AuthenticationMethodsAdapter;
   userOrganizations: UserOrganizationsAdapter;
+  emailService?: EmailServiceAdapter;
+  smsService?: SmsServiceAdapter;
   /**
    * Optional session cleanup function.
    * Cleans up expired login_sessions, sessions, and refresh_tokens.
@@ -113,3 +117,5 @@ export * from "./Stats";
 export * from "./UniversalLoginTemplates";
 export * from "./CustomText";
 export * from "./AuthenticationMethods";
+export * from "./EmailService";
+export * from "./SmsService";

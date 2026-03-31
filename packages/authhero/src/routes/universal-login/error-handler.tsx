@@ -35,11 +35,24 @@ function getUserFriendlyMessage(err: Error): string {
 }
 
 function mapMessage(msg: string): string {
-  if (msg.toLowerCase().includes("login session not found")) {
+  const lower = msg.toLowerCase();
+  if (lower.includes("login session not found")) {
     return "Your login session has expired or is invalid. Please go back to the application and try signing in again.";
   }
-  if (msg.toLowerCase().includes("login session closed")) {
+  if (lower.includes("login session closed")) {
     return "Your login session has ended. Please return to the application and try again.";
+  }
+  if (lower.includes("ticket not found")) {
+    return "This enrollment link is invalid. Please request a new enrollment link.";
+  }
+  if (lower.includes("ticket has already been used")) {
+    return "This enrollment link has already been used. Please request a new enrollment link.";
+  }
+  if (lower.includes("ticket has expired")) {
+    return "This enrollment link has expired. Please request a new enrollment link.";
+  }
+  if (lower.includes("invalid enrollment session")) {
+    return "The enrollment session is no longer valid. Please request a new enrollment link.";
   }
   return "An unexpected error occurred. Please try again later.";
 }
@@ -72,6 +85,10 @@ export function createUniversalLoginErrorHandler() {
         );
       }
       return c.json({ error: errMessage }, status as any);
+    }
+
+    if (status >= 500) {
+      console.error(`[u2] ${c.req.method} ${c.req.path} ${status}:`, err);
     }
 
     const message =

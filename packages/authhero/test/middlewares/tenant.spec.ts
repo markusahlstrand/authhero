@@ -19,6 +19,7 @@ describe("tenantMiddleware", () => {
     mockCtx = {
       req: {
         header: mockHeaderFn,
+        query: vi.fn().mockReturnValue(undefined),
       },
       env: {
         data: {

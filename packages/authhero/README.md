@@ -94,14 +94,20 @@ To clean build artifacts manually:
 pnpm clean
 ```
 
-## Email Providers
+## Email and SMS Service Adapters
 
-Authhero supports email providers for sending authentication-related emails. You can use pre-built email provider packages or configure a custom provider. Example:
+Authhero supports email and SMS service adapters for sending authentication-related emails and codes. Provide them as part of your `DataAdapters`:
 
-```javascript
-emailProviders: {
-  sqs: sendSqsEmail,
-},
+```typescript
+import { EmailServiceAdapter, SmsServiceAdapter } from "@authhero/adapter-interfaces";
+
+const dataAdapter = {
+  ...createAdapters(db),
+  emailService: myEmailAdapter,
+  smsService: mySmsAdapter,
+};
+
+const { app } = init({ dataAdapter });
 ```
 
 ## Contributing

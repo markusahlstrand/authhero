@@ -1,12 +1,14 @@
-import { SendEmailParams } from "../../src/types/EmailService";
+import {
+  EmailServiceAdapter,
+  EmailServiceSendParams,
+} from "@authhero/adapter-interfaces";
 
-export class MockEmailService {
-  sentEmails: SendEmailParams[] = [];
+export class MockEmailService implements EmailServiceAdapter {
+  sentEmails: EmailServiceSendParams[] = [];
 
-  async sendEmail(params: SendEmailParams) {
+  send = async (params: EmailServiceSendParams) => {
     this.sentEmails.push(params);
-    return {};
-  }
+  };
 
   getSentEmails() {
     return this.sentEmails;

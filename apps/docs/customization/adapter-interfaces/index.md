@@ -64,6 +64,10 @@ export interface DatabaseAdapter {
 
   // Audit
   logs: LogAdapter;
+
+  // Services (optional)
+  emailService?: EmailServiceAdapter;
+  smsService?: SmsServiceAdapter;
 }
 ```
 

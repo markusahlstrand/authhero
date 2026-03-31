@@ -357,7 +357,9 @@
       "authenticatorAppLabel": "Aplikacja uwierzytelniająca",
       "authenticatorAppDescription": "Użyj aplikacji uwierzytelniającej, aby uzyskać kod weryfikacyjny",
       "smsLabel": "Wiadomość tekstowa",
-      "smsDescription": "Otrzymaj kod weryfikacyjny wysłany na swój telefon"
+      "smsDescription": "Otrzymaj kod weryfikacyjny wysłany na swój telefon",
+      "passkeyLabel": "Klucz dostępu",
+      "passkeyDescription": "Użyj biometrii urządzenia lub klucza bezpieczeństwa"
     }
   },
   "mfa-push": {
