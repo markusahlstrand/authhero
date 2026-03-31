@@ -414,6 +414,7 @@
       "errorMessage": "Det gick inte att skapa nyckeln. Försök igen.",
       "cancelLinkText": "Hoppa över för nu",
       "retryButtonText": "Försök igen",
+      "enrollmentComplete": "Din nyckel har konfigurerats. Du kan stänga denna sida.",
       "pageTitle": "Skapa Nyckel | ${clientName}"
     }
   },

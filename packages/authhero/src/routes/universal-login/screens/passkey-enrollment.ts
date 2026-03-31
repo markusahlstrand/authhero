@@ -100,7 +100,7 @@ async function passkeyEnrollmentScreen(
       id: "skip",
       text: "",
       linkText: m.cancelLinkText(),
-      href: `javascript:void(function(){var f=document.querySelector('form');if(f){document.getElementById('action-field').value='skip';f.submit()}}())`,
+      href: `javascript:void(function(){var f=document.querySelector('form');if(!f){var w=document.querySelector('authhero-widget');if(w&&w.shadowRoot)f=w.shadowRoot.querySelector('form')}if(f){var a=f.querySelector('[name="action-field"]')||f.querySelector('#action-field');if(a){a.value='skip'}f.submit()}}())`,
     });
   }
 
@@ -117,9 +117,9 @@ async function passkeyEnrollmentScreen(
   // Build WebAuthn script to run at page level
   let extraScript: string | undefined;
   if (extra?.optionsJSON) {
-    const safeOptions = extra.optionsJSON.replace(/</g, "\\u003c");
+    const safeOptions = JSON.stringify(extra.optionsJSON).replace(/</g, "\\u003c");
     extraScript = `(async function(){
-  var opts=${safeOptions};
+  var opts=JSON.parse(${safeOptions});
   function b64u2buf(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';var b=atob(s),a=new Uint8Array(b.length);for(var i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return a.buffer}
   function buf2b64u(b){var a=new Uint8Array(b),s='';for(var i=0;i<a.length;i++)s+=String.fromCharCode(a[i]);return btoa(s).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'')}
   try{
@@ -159,6 +159,13 @@ async function passkeyEnrollmentScreen(
     }
   }catch(e){
     console.error('WebAuthn registration error:',e);
+    var form=document.querySelector('form');
+    if(!form){var w=document.querySelector('authhero-widget');if(w&&w.shadowRoot)form=w.shadowRoot.querySelector('form')}
+    if(form){
+      var af=form.querySelector('[name="action-field"]')||form.querySelector('#action-field');
+      if(af)af.value='error';
+      form.submit();
+    }
   }
 })();`;
   }
@@ -392,14 +399,25 @@ export const passkeyEnrollmentScreenDefinition: ScreenDefinition = {
       }
 
       // Handle skip action — resume auth flow without enrolling
+      // Server-side guard: skip is only allowed in continuation flows (nudge).
+      // Guardian enrollment and AWAITING_MFA are mandatory — skip must be rejected.
       if (action === "skip") {
-        if (isContinuation) {
-          await completeLoginSessionContinuation(
-            ctx,
-            client.tenant.id,
-            loginSession,
-          );
+        if (!isContinuation) {
+          const optionsJSON = await generateFreshOptionsJSON(context);
+          return {
+            screen: await passkeyEnrollmentScreen(context, {
+              optionsJSON,
+              errorMessage: "Enrollment is required",
+              isGuardianEnrollment,
+            }),
+          };
         }
+
+        await completeLoginSessionContinuation(
+          ctx,
+          client.tenant.id,
+          loginSession,
+        );
 
         // Mark nudge as completed
         const currentSession = await ctx.env.data.loginSessions.get(
@@ -560,8 +578,7 @@ export const passkeyEnrollmentScreenDefinition: ScreenDefinition = {
             action: "",
             method: "GET",
             title: m.title(),
-            description:
-              "Your passkey has been set up successfully. You can close this page.",
+            description: m.enrollmentComplete(),
             components: [],
           };
           return {

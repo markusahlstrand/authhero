@@ -414,6 +414,7 @@
       "errorMessage": "Oprettelse af adgangsnøgle mislykkedes. Prøv venligst igen.",
       "cancelLinkText": "Spring over for nu",
       "retryButtonText": "Prøv igen",
+      "enrollmentComplete": "Din adgangsnøgle er konfigureret. Du kan lukke denne side.",
       "pageTitle": "Opret Adgangsnøgle | ${clientName}"
     }
   },

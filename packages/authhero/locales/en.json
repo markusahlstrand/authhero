@@ -414,6 +414,7 @@
       "errorMessage": "Failed to create passkey. Please try again.",
       "cancelLinkText": "Skip for now",
       "retryButtonText": "Try again",
+      "enrollmentComplete": "Your passkey has been set up successfully. You can close this page.",
       "pageTitle": "Create Passkey | ${clientName}"
     }
   },

@@ -358,7 +358,7 @@
       "authenticatorAppDescription": "Bruk autentiseringsappen din for å få en bekreftelseskode",
       "smsLabel": "Tekstmelding",
       "smsDescription": "Få en bekreftelseskode sendt til telefonen din",
-      "passkeyLabel": "Tilgangsnøkkel",
+      "passkeyLabel": "Passnøkkel",
       "passkeyDescription": "Bruk enhetens biometri eller sikkerhetsnøkkel"
     }
   },
@@ -414,6 +414,7 @@
       "errorMessage": "Kunne ikke opprette passnøkkel. Vennligst prøv igjen.",
       "cancelLinkText": "Hopp over for nå",
       "retryButtonText": "Prøv igjen",
+      "enrollmentComplete": "Passnøkkelen din er konfigurert. Du kan lukke denne siden.",
       "pageTitle": "Opprett Passnøkkel | ${clientName}"
     }
   },

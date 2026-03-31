@@ -513,6 +513,7 @@ type WidgetContentProps = {
   brandingJson?: string;
   themeJson?: string;
   widgetHtml?: string;
+  extraScript?: string;
   poweredByLogo?: {
     url: string;
     alt: string;
@@ -532,6 +533,7 @@ function WidgetContent({
   brandingJson,
   themeJson,
   widgetHtml,
+  extraScript,
   poweredByLogo,
 }: WidgetContentProps) {
   // Note: We don't need to call escapeHtml() on these values because
@@ -574,6 +576,9 @@ function WidgetContent({
       data-screen={screenId}
     >
       {widgetElement}
+      {extraScript && (
+        <script dangerouslySetInnerHTML={{ __html: extraScript }} />
+      )}
       {safePoweredByUrl && (
         <div class="powered-by">
           {safePoweredByHref ? (
@@ -999,6 +1004,7 @@ function createScreenRouteHandler(screenId: string) {
         brandingJson,
         themeJson,
         widgetHtml,
+        extraScript: result.extraScript,
         poweredByLogo: ctx.env.poweredByLogo,
       });
 
@@ -1307,6 +1313,7 @@ function createScreenPostHandler(screenId: string) {
         brandingJson,
         themeJson,
         widgetHtml,
+        extraScript: screenResult.extraScript,
         poweredByLogo: ctx.env.poweredByLogo,
       });
 
@@ -1340,6 +1347,7 @@ function createScreenPostHandler(screenId: string) {
           client.client_metadata?.termsAndConditionsUrl,
         )}
         darkMode={darkMode}
+        extraScript={screenResult.extraScript}
       />,
     );
   };
