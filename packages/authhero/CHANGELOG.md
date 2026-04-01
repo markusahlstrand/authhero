@@ -1,5 +1,19 @@
 # authhero
 
+## 4.80.0
+
+### Minor Changes
+
+- 3e74dea: Update handling of host headers
+- 022f12f: Move email and sms to adapters
+
+### Patch Changes
+
+- Updated dependencies [3e74dea]
+- Updated dependencies [022f12f]
+  - @authhero/adapter-interfaces@0.151.0
+  - @authhero/widget@0.28.1
+
 ## 4.79.0
 
 ### Minor Changes

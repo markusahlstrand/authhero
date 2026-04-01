@@ -1,5 +1,12 @@
 # @authhero/adapter-interfaces
 
+## 0.151.0
+
+### Minor Changes
+
+- 3e74dea: Update handling of host headers
+- 022f12f: Move email and sms to adapters
+
 ## 0.150.0
 
 ### Minor Changes

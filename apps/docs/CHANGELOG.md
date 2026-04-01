@@ -1,5 +1,12 @@
 # @authhero/docs
 
+## 1.54.0
+
+### Minor Changes
+
+- 3e74dea: Update handling of host headers
+- 022f12f: Move email and sms to adapters
+
 ## 1.53.0
 
 ### Minor Changes
