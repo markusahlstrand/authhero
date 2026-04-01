@@ -1,5 +1,11 @@
 # @authhero/docs
 
+## 1.55.0
+
+### Minor Changes
+
+- 4e95762: Support organizations for refresh tokens
+
 ## 1.54.0
 
 ### Minor Changes
