@@ -179,7 +179,7 @@ async function passkeyEnrollmentScreen(
  * requires rp.id to match the browser's current origin.
  */
 function getRpId(ctx: any): string {
-  const host = ctx.req.header("host") || "localhost";
+  const host = ctx.var.host || "localhost";
   // Strip port if present
   return host.split(":")[0];
 }
@@ -189,7 +189,7 @@ function getRpId(ctx: any): string {
  * Must use the actual request host to match the browser's origin.
  */
 function getExpectedOrigin(ctx: any): string {
-  const host = ctx.req.header("host") || "localhost";
+  const host = ctx.var.host || "localhost";
   const protocol = host.includes("localhost") ? "http" : "https";
   return `${protocol}://${host}`;
 }

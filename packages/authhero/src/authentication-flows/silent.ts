@@ -71,7 +71,7 @@ export async function silentAuth({
 
       const clearCookies = clearAuthCookie(
         client.tenant.id,
-        ctx.req.header("host"),
+        ctx.var.host,
       );
       clearCookies.forEach((cookie) => {
         headers.append("set-cookie", cookie);
@@ -306,7 +306,7 @@ export async function silentAuth({
   const cookies = serializeAuthCookie(
     client.tenant.id,
     session.id,
-    ctx.req.header("host"),
+    ctx.var.host,
   );
   cookies.forEach((cookie) => {
     headers.append("set-cookie", cookie);

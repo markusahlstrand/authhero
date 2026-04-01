@@ -88,7 +88,7 @@ export async function logMessage(
       client_id: ctx.var.client_id,
       client_name: "",
       user_id: params.userId || ctx.var.user_id || "",
-      hostname: ctx.req.header("host") || "",
+      hostname: ctx.var.host || "",
       user_name: ctx.var.username || "",
       connection_id: "",
       connection: params.connection || ctx.var.connection || "",

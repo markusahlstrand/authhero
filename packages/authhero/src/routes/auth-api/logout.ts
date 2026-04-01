@@ -132,7 +132,7 @@ export const logoutRoutes = new OpenAPIHono<{
       const headers = new Headers();
       const clearCookies = clearAuthCookie(
         client.tenant.id,
-        ctx.var.custom_domain || ctx.req.header("host"),
+        ctx.var.host,
       );
       clearCookies.forEach((cookie) => {
         headers.append("set-cookie", cookie);
