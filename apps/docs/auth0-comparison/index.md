@@ -245,7 +245,7 @@ Migrate from Auth0 with minimal code changes:
 
 ### Organization Switching via Refresh Token
 
-Both Auth0 and AuthHero support passing an `organization` parameter in the refresh token grant to switch organization context without re-authentication. This enables seamless multi-org workflows in B2B applications.
+AuthHero extends the refresh token grant with an optional `organization` parameter, allowing users to switch organization context without re-authentication. This enables seamless multi-org workflows in B2B applications. Note: Auth0 does not currently support this parameter in the refresh token grant.
 
 ```http
 POST /oauth/token

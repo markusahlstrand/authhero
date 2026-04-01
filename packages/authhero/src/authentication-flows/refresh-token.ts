@@ -13,7 +13,7 @@ export const refreshTokenParamsSchema = z.object({
   redirect_uri: z.string().optional(),
   refresh_token: z.string(),
   client_secret: z.string().optional(),
-  organization: z.string().optional(),
+  organization: z.string().min(1).optional(),
 });
 
 export async function refreshTokenGrant(
@@ -102,6 +102,27 @@ export async function refreshTokenGrant(
       throw new JSONHTTPException(400, {
         error: "invalid_request",
         error_description: `Organization '${effectiveOrganization}' not found`,
+      });
+    }
+
+    // Verify the user is a member of the organization
+    const userOrgs = await ctx.env.data.userOrganizations.list(
+      client.tenant.id,
+      {
+        q: `user_id:${user.user_id}`,
+        per_page: 1000,
+      },
+    );
+
+    const isMember = userOrgs.userOrganizations.some(
+      (uo) => uo.organization_id === organization!.id,
+    );
+
+    if (!isMember) {
+      throw new JSONHTTPException(403, {
+        error: "access_denied",
+        error_description:
+          "User is not a member of the specified organization",
       });
     }
   }
