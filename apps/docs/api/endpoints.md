@@ -32,19 +32,51 @@ tenant-id: <your-tenant-id>
 
 ### POST /oauth/token
 
-Exchanges credentials for access tokens.
+Exchanges credentials for access tokens. Supports multiple grant types.
 
-**Request Body:**
+**Grant Types:**
+
+#### Client Credentials
 
 ```json
 {
-  "grant_type": "password",
-  "username": "user@example.com",
-  "password": "password",
+  "grant_type": "client_credentials",
   "client_id": "your-client-id",
-  "scope": "openid profile email"
+  "client_secret": "your-client-secret",
+  "audience": "https://api.example.com"
 }
 ```
+
+#### Authorization Code
+
+```json
+{
+  "grant_type": "authorization_code",
+  "code": "AUTHORIZATION_CODE",
+  "client_id": "your-client-id",
+  "redirect_uri": "https://example.com/callback",
+  "code_verifier": "PKCE_CODE_VERIFIER"
+}
+```
+
+#### Refresh Token
+
+```json
+{
+  "grant_type": "refresh_token",
+  "refresh_token": "REFRESH_TOKEN",
+  "client_id": "your-client-id",
+  "organization": "org-id-or-name"
+}
+```
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `grant_type` | Yes | Must be `refresh_token` |
+| `refresh_token` | Yes | The refresh token |
+| `client_id` | Yes | Your application's client ID |
+| `client_secret` | No | Required for confidential clients |
+| `organization` | No | Organization ID or name. Pass to switch organization context, or omit to preserve the original organization from the login session. |
 
 **Response:**
 
@@ -53,7 +85,7 @@ Exchanges credentials for access tokens.
   "access_token": "...",
   "id_token": "...",
   "refresh_token": "...",
-  "expires_in": 3600,
+  "expires_in": 86400,
   "token_type": "Bearer"
 }
 ```

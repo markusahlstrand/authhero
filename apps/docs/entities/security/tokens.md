@@ -83,6 +83,22 @@ client_id=CLIENT_ID&
 client_secret=CLIENT_SECRET
 ```
 
+**Organization Switching:**
+
+You can pass an optional `organization` parameter when refreshing tokens to switch the organization context without requiring the user to re-authenticate:
+
+```http
+POST /oauth/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=refresh_token&
+refresh_token=REFRESH_TOKEN&
+client_id=CLIENT_ID&
+organization=org_abc456
+```
+
+If no `organization` parameter is provided, the original organization from the login session is preserved. The new tokens will include the `org_id` and `org_name` claims for the target organization. The user must be a member of the target organization.
+
 ## Token Lifetimes
 
 Token lifetimes are configurable per tenant and application:

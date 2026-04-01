@@ -75,6 +75,26 @@ Organization invitations provide a streamlined way to onboard new users to an or
 - `ttl_sec`: Time-to-live in seconds before the invitation expires
 - `send_invitation_email`: Whether to automatically send an invitation email
 
+## Organization Switching
+
+Users who belong to multiple organizations can switch between them without re-authenticating by passing the `organization` parameter in a refresh token grant:
+
+```http
+POST /oauth/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=refresh_token&
+refresh_token=REFRESH_TOKEN&
+client_id=CLIENT_ID&
+organization=target-org
+```
+
+The `organization` parameter accepts either an organization ID or name. The user must be a member of the target organization. The resulting tokens will include the new organization's `org_id` and `org_name` claims.
+
+If no `organization` parameter is provided during a refresh, the original organization from the login session is automatically preserved.
+
+See [Authentication Flow](/features/authentication-flows#organization-switching) and [Tokens](/entities/security/tokens#refresh-tokens) for more details.
+
 ## Organization Roles and Permissions
 
 Organizations support role-based access control (RBAC) to manage user permissions within the organization context.
