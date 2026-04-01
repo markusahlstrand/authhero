@@ -1,5 +1,18 @@
 # @authhero/kysely-adapter
 
+## 10.114.0
+
+### Minor Changes
+
+- 3e74dea: Update handling of host headers
+- 022f12f: Move email and sms to adapters
+
+### Patch Changes
+
+- Updated dependencies [3e74dea]
+- Updated dependencies [022f12f]
+  - @authhero/adapter-interfaces@0.151.0
+
 ## 10.113.0
 
 ### Minor Changes

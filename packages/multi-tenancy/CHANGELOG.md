@@ -1,5 +1,18 @@
 # @authhero/multi-tenancy
 
+## 14.17.0
+
+### Minor Changes
+
+- 3e74dea: Update handling of host headers
+
+### Patch Changes
+
+- Updated dependencies [3e74dea]
+- Updated dependencies [022f12f]
+  - @authhero/adapter-interfaces@0.151.0
+  - authhero@4.80.0
+
 ## 14.16.0
 
 ### Minor Changes
