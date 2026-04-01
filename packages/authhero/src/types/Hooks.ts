@@ -199,6 +199,9 @@ export type OnExecutePreUserRegistrationAPI = {
     setUserMetadata: (key: string, value: any) => void;
     setLinkedTo: (primaryUserId: string) => void;
   };
+  access: {
+    deny: (code: string, reason?: string) => void;
+  };
   token: TokenAPI;
 };
 

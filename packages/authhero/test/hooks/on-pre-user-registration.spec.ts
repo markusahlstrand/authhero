@@ -115,4 +115,110 @@ describe("on-pre-user-registration-hook", () => {
 
     expect(user?.given_name).toBe("given_name");
   });
+
+  it("should block user creation when deny() is called", async () => {
+    const { env, managementApp } = await getTestServer({
+      hooks: {
+        onExecutePreUserRegistration: async (
+          _: HookEvent,
+          api: OnExecutePreUserRegistrationAPI,
+        ) => {
+          api.access.deny("unauthorized", "Registration not allowed");
+        },
+      },
+    });
+
+    const client = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const response = await client.users.$post(
+      {
+        json: {
+          email: "denied@example.com",
+          connection: Strategy.USERNAME_PASSWORD,
+        },
+        header: {
+          "tenant-id": "tenantId",
+        },
+      },
+      {
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      },
+    );
+
+    expect(response.status).toBe(400);
+    const error = (await response.json()) as { message: string };
+    expect(error.message).toContain("Registration denied");
+  });
+
+  it("should continue user creation when hook throws a generic error", async () => {
+    const { env, managementApp } = await getTestServer({
+      hooks: {
+        onExecutePreUserRegistration: async () => {
+          throw new Error("Something went wrong");
+        },
+      },
+    });
+
+    const client = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const response = await client.users.$post(
+      {
+        json: {
+          email: "error-but-continues@example.com",
+          connection: Strategy.USERNAME_PASSWORD,
+        },
+        header: {
+          "tenant-id": "tenantId",
+        },
+      },
+      {
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      },
+    );
+
+    expect(response.status).toBe(201);
+  });
+
+  it("should block user creation when deny() is called with code only", async () => {
+    const { env, managementApp } = await getTestServer({
+      hooks: {
+        onExecutePreUserRegistration: async (
+          _: HookEvent,
+          api: OnExecutePreUserRegistrationAPI,
+        ) => {
+          api.access.deny("blocked");
+        },
+      },
+    });
+
+    const client = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const response = await client.users.$post(
+      {
+        json: {
+          email: "blocked@example.com",
+          connection: Strategy.USERNAME_PASSWORD,
+        },
+        header: {
+          "tenant-id": "tenantId",
+        },
+      },
+      {
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      },
+    );
+
+    expect(response.status).toBe(400);
+    const error = (await response.json()) as { message: string };
+    expect(error.message).toBe("Registration denied: blocked");
+  });
 });
