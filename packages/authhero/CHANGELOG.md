@@ -1,5 +1,12 @@
 # authhero
 
+## 4.81.0
+
+### Minor Changes
+
+- 4e95762: Support organizations for refresh tokens
+- 5a51e9f: Add deny for pre register event
+
 ## 4.80.0
 
 ### Minor Changes
