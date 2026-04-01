@@ -357,7 +357,9 @@
       "authenticatorAppLabel": "Authenticator App",
       "authenticatorAppDescription": "Use your authenticator app to get a verification code",
       "smsLabel": "Text Message",
-      "smsDescription": "Get a verification code sent to your phone"
+      "smsDescription": "Get a verification code sent to your phone",
+      "passkeyLabel": "Passkey",
+      "passkeyDescription": "Use your device's biometrics or security key"
     }
   },
   "mfa-push": {
@@ -412,6 +414,7 @@
       "errorMessage": "Failed to create passkey. Please try again.",
       "cancelLinkText": "Skip for now",
       "retryButtonText": "Try again",
+      "enrollmentComplete": "Your passkey has been set up successfully. You can close this page.",
       "pageTitle": "Create Passkey | ${clientName}"
     }
   },

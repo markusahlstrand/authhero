@@ -1538,7 +1538,7 @@ export async function createFrontChannelAuthResponse(
     const authCookies = serializeAuthCookie(
       client.tenant.id,
       session_id,
-      ctx.var.custom_domain || ctx.req.header("host") || "",
+      ctx.var.host || "",
     );
     authCookies.forEach((cookie) => {
       headers.append("set-cookie", cookie);

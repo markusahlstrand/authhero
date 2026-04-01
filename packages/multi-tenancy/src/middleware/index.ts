@@ -173,7 +173,8 @@ export function createSubdomainMiddleware(
       resolveSubdomain,
     } = config.subdomainRouting;
 
-    const host = ctx.req.header("host") || "";
+    const host =
+      ctx.req.header("x-forwarded-host") || ctx.req.header("host") || "";
 
     // Extract subdomain
     let subdomain: string | null = null;

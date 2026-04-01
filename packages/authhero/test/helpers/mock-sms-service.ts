@@ -1,12 +1,14 @@
-import { SendSMSParams } from "../../src/types/SMSService";
+import {
+  SmsServiceAdapter,
+  SmsServiceSendParams,
+} from "@authhero/adapter-interfaces";
 
-export class MockSmsService {
-  sentSms: SendSMSParams[] = [];
+export class MockSmsService implements SmsServiceAdapter {
+  sentSms: SmsServiceSendParams[] = [];
 
-  async sendSms(params: SendSMSParams) {
+  send = async (params: SmsServiceSendParams) => {
     this.sentSms.push(params);
-    return {};
-  }
+  };
 
   getSentSms() {
     return this.sentSms;

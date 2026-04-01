@@ -357,7 +357,9 @@
       "authenticatorAppLabel": "Aplikacja uwierzytelniająca",
       "authenticatorAppDescription": "Użyj aplikacji uwierzytelniającej, aby uzyskać kod weryfikacyjny",
       "smsLabel": "Wiadomość tekstowa",
-      "smsDescription": "Otrzymaj kod weryfikacyjny wysłany na swój telefon"
+      "smsDescription": "Otrzymaj kod weryfikacyjny wysłany na swój telefon",
+      "passkeyLabel": "Klucz dostępu",
+      "passkeyDescription": "Użyj biometrii urządzenia lub klucza bezpieczeństwa"
     }
   },
   "mfa-push": {
@@ -412,6 +414,7 @@
       "errorMessage": "Nie udało się utworzyć klucza dostępu. Spróbuj ponownie.",
       "cancelLinkText": "Pomiń na razie",
       "retryButtonText": "Spróbuj ponownie",
+      "enrollmentComplete": "Twój klucz dostępu został pomyślnie skonfigurowany. Możesz zamknąć tę stronę.",
       "pageTitle": "Tworzenie Klucza Dostępu | ${clientName}"
     }
   },

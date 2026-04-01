@@ -55,6 +55,8 @@ export type WidgetPageProps = {
   availableLanguages?: string[];
   termsAndConditionsUrl?: string;
   darkMode?: DarkModePreference;
+  /** Optional inline script injected at page level (e.g. WebAuthn ceremony) */
+  extraScript?: string;
 };
 
 // ---------------------------------------------------------------------------
@@ -192,6 +194,7 @@ export function WidgetPage({
   availableLanguages,
   termsAndConditionsUrl,
   darkMode = "auto",
+  extraScript,
 }: WidgetPageProps) {
   // Build CSS variables from branding
   const cssVariables: string[] = [];
@@ -372,6 +375,9 @@ export function WidgetPage({
           style={widgetContainerStyle}
           dangerouslySetInnerHTML={{ __html: widgetHtml }}
         />
+        {extraScript && (
+          <script dangerouslySetInnerHTML={{ __html: extraScript }} />
+        )}
         <footer class="page-footer-bar">
           <div class="footer-left">
             {safePoweredByUrl && (

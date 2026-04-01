@@ -111,15 +111,10 @@ export async function sendMfaOtp(
     (c) => c.strategy === Strategy.SMS,
   );
 
-  const provider =
-    tenant.mfa?.sms_provider?.provider ||
-    smsConnection?.options?.provider ||
-    "twilio";
-
-  const smsService = ctx.env.smsProviders?.[provider];
+  const smsService = ctx.env.data.smsService;
   if (!smsService) {
     throw new HTTPException(500, {
-      message: `SMS provider '${provider}' not configured`,
+      message: "SMS service not configured",
     });
   }
 
@@ -127,7 +122,7 @@ export async function sendMfaOtp(
   const options = smsConnection?.options || tenant.mfa?.twilio || {};
 
   try {
-    await smsService({
+    await smsService.send({
       options,
       to: phoneNumber,
       from: tenant.friendly_name,

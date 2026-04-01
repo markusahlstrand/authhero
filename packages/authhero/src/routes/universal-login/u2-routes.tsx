@@ -32,6 +32,8 @@ import {
 } from "./screens/registry";
 import type { ScreenContext } from "./screens/types";
 import { HTTPException } from "hono/http-exception";
+import { LogTypes } from "@authhero/adapter-interfaces";
+import { logMessage } from "../../helpers/logging";
 import {
   sanitizeUrl,
   sanitizeCssColor,
@@ -511,6 +513,7 @@ type WidgetContentProps = {
   brandingJson?: string;
   themeJson?: string;
   widgetHtml?: string;
+  extraScript?: string;
   poweredByLogo?: {
     url: string;
     alt: string;
@@ -530,6 +533,7 @@ function WidgetContent({
   brandingJson,
   themeJson,
   widgetHtml,
+  extraScript,
   poweredByLogo,
 }: WidgetContentProps) {
   // Note: We don't need to call escapeHtml() on these values because
@@ -572,6 +576,9 @@ function WidgetContent({
       data-screen={screenId}
     >
       {widgetElement}
+      {extraScript && (
+        <script dangerouslySetInnerHTML={{ __html: extraScript }} />
+      )}
       {safePoweredByUrl && (
         <div class="powered-by">
           {safePoweredByHref ? (
@@ -997,6 +1004,7 @@ function createScreenRouteHandler(screenId: string) {
         brandingJson,
         themeJson,
         widgetHtml,
+        extraScript: result.extraScript,
         poweredByLogo: ctx.env.poweredByLogo,
       });
 
@@ -1032,6 +1040,7 @@ function createScreenRouteHandler(screenId: string) {
           client.client_metadata?.termsAndConditionsUrl,
         )}
         darkMode={darkMode}
+        extraScript={result.extraScript}
       />,
     );
   };
@@ -1304,6 +1313,7 @@ function createScreenPostHandler(screenId: string) {
         brandingJson,
         themeJson,
         widgetHtml,
+        extraScript: screenResult.extraScript,
         poweredByLogo: ctx.env.poweredByLogo,
       });
 
@@ -1337,6 +1347,7 @@ function createScreenPostHandler(screenId: string) {
           client.client_metadata?.termsAndConditionsUrl,
         )}
         darkMode={darkMode}
+        extraScript={screenResult.extraScript}
       />,
     );
   };
@@ -1847,13 +1858,33 @@ export const u2Routes = new OpenAPIHono<{
 
       // Validate the ticket
       const code = await ctx.env.data.codes.get(tenantId, ticket, "ticket");
-      if (!code || code.used_at) {
+      if (!code) {
+        logMessage(ctx, tenantId, {
+          type: LogTypes.MFA_ENROLLMENT_FAILED,
+          description: "Enrollment ticket not found",
+        });
         throw new HTTPException(403, {
-          message: "Invalid or expired enrollment ticket",
+          message: "Enrollment ticket not found",
+        });
+      }
+
+      if (code.used_at) {
+        logMessage(ctx, tenantId, {
+          type: LogTypes.MFA_ENROLLMENT_FAILED,
+          description: "Enrollment ticket has already been used",
+          userId: code.user_id,
+        });
+        throw new HTTPException(403, {
+          message: "Enrollment ticket has already been used",
         });
       }
 
       if (new Date(code.expires_at) < new Date()) {
+        logMessage(ctx, tenantId, {
+          type: LogTypes.MFA_ENROLLMENT_FAILED,
+          description: "Enrollment ticket has expired",
+          userId: code.user_id,
+        });
         throw new HTTPException(403, {
           message: "Enrollment ticket has expired",
         });
@@ -1862,8 +1893,13 @@ export const u2Routes = new OpenAPIHono<{
       // Atomically consume the ticket (prevents race conditions)
       const consumed = await ctx.env.data.codes.consume(tenantId, ticket);
       if (!consumed) {
+        logMessage(ctx, tenantId, {
+          type: LogTypes.MFA_ENROLLMENT_FAILED,
+          description: "Enrollment ticket has already been used",
+          userId: code.user_id,
+        });
         throw new HTTPException(403, {
-          message: "Invalid or expired enrollment ticket",
+          message: "Enrollment ticket has already been used",
         });
       }
 
@@ -1873,6 +1909,11 @@ export const u2Routes = new OpenAPIHono<{
         code.login_id,
       );
       if (!loginSession || !loginSession.user_id) {
+        logMessage(ctx, tenantId, {
+          type: LogTypes.MFA_ENROLLMENT_FAILED,
+          description: "Invalid enrollment session",
+          userId: code.user_id,
+        });
         throw new HTTPException(403, {
           message: "Invalid enrollment session",
         });
@@ -1884,13 +1925,24 @@ export const u2Routes = new OpenAPIHono<{
 
       const state = encodeURIComponent(loginSession.id);
 
-      if (factors?.otp && factors?.sms) {
-        // Both factors enabled - let user choose
+      const hasOtp = factors?.otp === true;
+      const hasSms = factors?.sms === true;
+      const hasWebauthn =
+        factors?.webauthn_roaming === true ||
+        factors?.webauthn_platform === true;
+
+      const factorCount =
+        (hasOtp ? 1 : 0) + (hasSms ? 1 : 0) + (hasWebauthn ? 1 : 0);
+
+      if (factorCount > 1) {
+        // Multiple factors enabled - let user choose
         return ctx.redirect(`/u2/mfa/login-options?state=${state}`);
-      } else if (factors?.otp) {
+      } else if (hasOtp) {
         return ctx.redirect(`/u2/mfa/totp-enrollment?state=${state}`);
-      } else if (factors?.sms) {
+      } else if (hasSms) {
         return ctx.redirect(`/u2/mfa/phone-enrollment?state=${state}`);
+      } else if (hasWebauthn) {
+        return ctx.redirect(`/u2/passkey/enrollment?state=${state}`);
       }
 
       throw new HTTPException(400, {

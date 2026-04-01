@@ -231,56 +231,80 @@ When deploying AuthHero, additional configuration is provided through environmen
 If both `samlSigner` config option and `SAML_SIGN_URL` environment variable are set, the `samlSigner` config takes priority. See [SAML Configuration](/customization/saml/configuration) for details.
 :::
 
-### Email Provider Configuration
+### Email Service Adapter
 
-Configure email providers for sending authentication emails:
+Configure an email service adapter for sending authentication emails. The adapter is provided as part of `DataAdapters`:
 
 ```typescript
-// In your environment bindings
-env.emailProviders = {
-  sqs: sendSqsEmail,
-  sendgrid: sendSendGridEmail,
+import { EmailServiceAdapter } from "@authhero/adapter-interfaces";
+
+const emailService: EmailServiceAdapter = {
+  async send(params) {
+    // params.emailProvider contains credentials and provider config
+    // Send via your preferred provider (SendGrid, SES, etc.)
+  },
 };
-```
 
-Email providers must implement the `EmailService` interface:
-
-```typescript
-type EmailService = (params: {
-  emailProvider: EmailProvider;
-  to: string;
-  from: string;
-  subject: string;
-  html?: string;
-  text?: string;
-  template: string;
-  data: Record<string, string>;
-}) => Promise<{}>;
-```
-
-### SMS Provider Configuration
-
-Configure SMS providers for sending authentication codes:
-
-```typescript
-// In your environment bindings
-env.smsProviders = {
-  twilio: sendTwilioSms,
-  vonage: sendVonageSms,
+const dataAdapter = {
+  ...createAdapters(db),
+  emailService,
 };
+
+const { app } = init({ dataAdapter });
 ```
 
-SMS providers must implement the `smsService` interface:
+The `EmailServiceAdapter` interface:
 
 ```typescript
-type smsService = (params: {
-  to: string;
-  from?: string;
-  text: string;
-  template: string;
-  options: any;
-  data: Record<string, string>;
-}) => Promise<{}>;
+interface EmailServiceAdapter {
+  send(params: {
+    emailProvider: EmailProvider;
+    to: string;
+    from: string;
+    subject: string;
+    html?: string;
+    text?: string;
+    template: string;
+    data: Record<string, string>;
+  }): Promise<void>;
+}
+```
+
+### SMS Service Adapter
+
+Configure an SMS service adapter for sending authentication codes. The adapter is provided as part of `DataAdapters`:
+
+```typescript
+import { SmsServiceAdapter } from "@authhero/adapter-interfaces";
+
+const smsService: SmsServiceAdapter = {
+  async send(params) {
+    // params.options contains provider-specific config (e.g., Twilio credentials)
+    // Send via your preferred provider (Twilio, Vonage, etc.)
+  },
+};
+
+const dataAdapter = {
+  ...createAdapters(db),
+  smsService,
+};
+
+const { app } = init({ dataAdapter });
+```
+
+The `SmsServiceAdapter` interface:
+
+```typescript
+interface SmsServiceAdapter {
+  send(params: {
+    to: string;
+    from?: string;
+    text: string;
+    template: string;
+    options: Record<string, unknown>;
+    data: Record<string, string>;
+  }): Promise<void>;
+}
 ```
 
 ## Branding Configuration

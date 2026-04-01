@@ -11,7 +11,7 @@ import { HTTPException } from "hono/http-exception";
 
 interface MfaOption {
   id: string;
-  type: "totp" | "phone";
+  type: "totp" | "phone" | "passkey";
   label: string;
   description: string;
 }
@@ -104,51 +104,77 @@ export const mfaLoginOptionsScreenDefinition: ScreenDefinition = {
         loginSession.user_id,
       );
       const confirmedEnrollments = enrollments.filter(
-        (e) => (e.type === "phone" || e.type === "totp") && e.confirmed,
+        (e) =>
+          (e.type === "phone" ||
+            e.type === "totp" ||
+            e.type === "passkey" ||
+            e.type === "webauthn-roaming" ||
+            e.type === "webauthn-platform") &&
+          e.confirmed,
       );
 
       const options: MfaOption[] = [];
 
-      if (confirmedEnrollments.length > 0) {
-        // User has confirmed enrollments - show those as options
-        for (const enrollment of confirmedEnrollments) {
-          if (enrollment.type === "totp") {
-            options.push({
-              id: enrollment.id,
-              type: "totp",
-              label: m.authenticatorAppLabel(),
-              description: m.authenticatorAppDescription(),
-            });
-          } else if (enrollment.type === "phone") {
-            const maskedPhone = enrollment.phone_number
-              ? `****${enrollment.phone_number.slice(-4)}`
-              : "";
-            options.push({
-              id: enrollment.id,
-              type: "phone",
-              label: `${m.smsLabel()} ${maskedPhone}`,
-              description: m.smsDescription(),
-            });
-          }
-        }
-      } else {
-        // User needs to enroll - show available factor types from tenant config
-        if (tenant.mfa?.factors?.otp === true) {
+      // Show confirmed enrollments as challenge options
+      for (const enrollment of confirmedEnrollments) {
+        if (enrollment.type === "totp") {
           options.push({
-            id: "enroll-totp",
+            id: enrollment.id,
             type: "totp",
             label: m.authenticatorAppLabel(),
             description: m.authenticatorAppDescription(),
           });
-        }
-        if (tenant.mfa?.factors?.sms === true) {
+        } else if (enrollment.type === "phone") {
+          const maskedPhone = enrollment.phone_number
+            ? `****${enrollment.phone_number.slice(-4)}`
+            : "";
           options.push({
-            id: "enroll-phone",
+            id: enrollment.id,
             type: "phone",
-            label: m.smsLabel(),
+            label: `${m.smsLabel()} ${maskedPhone}`,
             description: m.smsDescription(),
           });
         }
+      }
+
+      // Show available enrollment options for factors the user hasn't enrolled in yet
+      const enrolledTypes = new Set(confirmedEnrollments.map((e) => e.type));
+
+      if (
+        tenant.mfa?.factors?.otp === true &&
+        !enrolledTypes.has("totp")
+      ) {
+        options.push({
+          id: "enroll-totp",
+          type: "totp",
+          label: m.authenticatorAppLabel(),
+          description: m.authenticatorAppDescription(),
+        });
+      }
+      if (
+        tenant.mfa?.factors?.sms === true &&
+        !enrolledTypes.has("phone")
+      ) {
+        options.push({
+          id: "enroll-phone",
+          type: "phone",
+          label: m.smsLabel(),
+          description: m.smsDescription(),
+        });
+      }
+      if (
+        (tenant.mfa?.factors?.webauthn_roaming === true ||
+          tenant.mfa?.factors?.webauthn_platform === true) &&
+        !enrolledTypes.has("passkey") &&
+        !enrolledTypes.has("webauthn-roaming") &&
+        !enrolledTypes.has("webauthn-platform")
+      ) {
+        options.push({
+          id: "enroll-passkey",
+          type: "passkey",
+          label: m.passkeyLabel(),
+          description: m.passkeyDescription(),
+        });
       }
 
       return mfaLoginOptionsScreen(context, options);
@@ -193,6 +219,11 @@ export const mfaLoginOptionsScreenDefinition: ScreenDefinition = {
           redirect: `${routePrefix}/mfa/phone-enrollment?state=${encodeURIComponent(state)}`,
         };
       }
+      if (selectedId === "enroll-passkey") {
+        return {
+          redirect: `${routePrefix}/passkey/enrollment?state=${encodeURIComponent(state)}`,
+        };
+      }
 
       // Handle existing enrollment selection
       const enrollments = await ctx.env.data.authenticationMethods.list(
@@ -211,16 +242,6 @@ export const mfaLoginOptionsScreenDefinition: ScreenDefinition = {
         });
       }
 
-      // Only phone and totp are supported for MFA challenge selection
-      if (
-        selectedEnrollment.type !== "phone" &&
-        selectedEnrollment.type !== "totp"
-      ) {
-        throw new HTTPException(400, {
-          message: "Unsupported MFA factor type",
-        });
-      }
-
       // Store the selected enrollment ID in state_data
       await ctx.env.data.loginSessions.update(client.tenant.id, state, {
         state_data: JSON.stringify({
@@ -235,21 +256,27 @@ export const mfaLoginOptionsScreenDefinition: ScreenDefinition = {
         };
       }
 
-      // Phone - send OTP first
-      if (selectedEnrollment.phone_number) {
-        const { sendMfaOtp } =
-          await import("../../../authentication-flows/mfa");
-        await sendMfaOtp(
-          ctx,
-          client,
-          loginSession,
-          selectedEnrollment.phone_number,
-        );
+      if (selectedEnrollment.type === "phone") {
+        // Phone - send OTP first
+        if (selectedEnrollment.phone_number) {
+          const { sendMfaOtp } =
+            await import("../../../authentication-flows/mfa");
+          await sendMfaOtp(
+            ctx,
+            client,
+            loginSession,
+            selectedEnrollment.phone_number,
+          );
+        }
+
+        return {
+          redirect: `${routePrefix}/mfa/phone-challenge?state=${encodeURIComponent(state)}`,
+        };
       }
 
-      return {
-        redirect: `${routePrefix}/mfa/phone-challenge?state=${encodeURIComponent(state)}`,
-      };
+      throw new HTTPException(400, {
+        message: "Unsupported MFA factor type",
+      });
     },
   },
 };

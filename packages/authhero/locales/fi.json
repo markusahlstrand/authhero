@@ -357,7 +357,9 @@
       "authenticatorAppLabel": "Todennussovellus",
       "authenticatorAppDescription": "Käytä todennussovellusta vahvistuskoodin saamiseksi",
       "smsLabel": "Tekstiviesti",
-      "smsDescription": "Saat vahvistuskoodin puhelimeesi tekstiviestillä"
+      "smsDescription": "Saat vahvistuskoodin puhelimeesi tekstiviestillä",
+      "passkeyLabel": "Tunnistautumisavain",
+      "passkeyDescription": "Käytä laitteesi biometriikkaa tai suojausavainta"
     }
   },
   "mfa-push": {
@@ -412,6 +414,7 @@
       "errorMessage": "Tunnistautumisavaimen luominen epäonnistui. Yritä uudelleen.",
       "cancelLinkText": "Ohita toistaiseksi",
       "retryButtonText": "Yritä uudelleen",
+      "enrollmentComplete": "Tunnistautumisavaimesi on määritetty onnistuneesti. Voit sulkea tämän sivun.",
       "pageTitle": "Luo Tunnistautumisavain | ${clientName}"
     }
   },

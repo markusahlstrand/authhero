@@ -357,7 +357,9 @@
       "authenticatorAppLabel": "App di autenticazione",
       "authenticatorAppDescription": "Usa la tua app di autenticazione per ottenere un codice di verifica",
       "smsLabel": "Messaggio di testo",
-      "smsDescription": "Ricevi un codice di verifica inviato al tuo telefono"
+      "smsDescription": "Ricevi un codice di verifica inviato al tuo telefono",
+      "passkeyLabel": "Passkey",
+      "passkeyDescription": "Usa la biometria del tuo dispositivo o una chiave di sicurezza"
     }
   },
   "mfa-push": {
@@ -412,6 +414,7 @@
       "errorMessage": "Creazione della passkey non riuscita. Riprova.",
       "cancelLinkText": "Salta per ora",
       "retryButtonText": "Riprova",
+      "enrollmentComplete": "La tua passkey è stata configurata con successo. Puoi chiudere questa pagina.",
       "pageTitle": "Crea Passkey | ${clientName}"
     }
   },

@@ -357,7 +357,9 @@
       "authenticatorAppLabel": "Godkendelsesapp",
       "authenticatorAppDescription": "Brug din godkendelsesapp til at få en bekræftelseskode",
       "smsLabel": "Sms-besked",
-      "smsDescription": "Få en bekræftelseskode sendt til din telefon"
+      "smsDescription": "Få en bekræftelseskode sendt til din telefon",
+      "passkeyLabel": "Adgangsnøgle",
+      "passkeyDescription": "Brug din enheds biometri eller sikkerhedsnøgle"
     }
   },
   "mfa-push": {
@@ -412,6 +414,7 @@
       "errorMessage": "Oprettelse af adgangsnøgle mislykkedes. Prøv venligst igen.",
       "cancelLinkText": "Spring over for nu",
       "retryButtonText": "Prøv igen",
+      "enrollmentComplete": "Din adgangsnøgle er konfigureret. Du kan lukke denne side.",
       "pageTitle": "Opret Adgangsnøgle | ${clientName}"
     }
   },

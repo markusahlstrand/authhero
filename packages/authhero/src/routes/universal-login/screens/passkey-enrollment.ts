@@ -9,7 +9,7 @@
  */
 
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
-import { LogTypes } from "@authhero/adapter-interfaces";
+import { LogTypes, LoginSessionState } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { createTranslation } from "../../../i18n";
 import {
@@ -31,6 +31,7 @@ async function passkeyEnrollmentScreen(
   extra?: {
     optionsJSON?: string;
     errorMessage?: string;
+    isGuardianEnrollment?: boolean;
   },
 ): Promise<ScreenResult> {
   const { branding, state, routePrefix } = context;
@@ -55,61 +56,6 @@ async function passkeyEnrollmentScreen(
         content: `<div role="alert" style="color:#dc2626;margin-bottom:12px">${extra.errorMessage}</div>`,
       },
       order: 0,
-    });
-  }
-
-  if (extra?.optionsJSON) {
-    // Inline script that runs the WebAuthn registration ceremony
-    components.push({
-      id: "webauthn_script",
-      type: "RICH_TEXT",
-      category: "BLOCK",
-      visible: true,
-      config: {
-        content: `<script type="application/json" id="webauthn-options">${extra.optionsJSON.replace(/</g, "\\u003c")}</script>
-<script>
-(async function(){
-  function b64u2buf(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';var b=atob(s),a=new Uint8Array(b.length);for(var i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return a.buffer}
-  function buf2b64u(b){var a=new Uint8Array(b),s='';for(var i=0;i<a.length;i++)s+=String.fromCharCode(a[i]);return btoa(s).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'')}
-  try{
-    var opts=JSON.parse(document.getElementById('webauthn-options').textContent);
-    var pk={publicKey:{
-      challenge:b64u2buf(opts.challenge),
-      rp:{id:opts.rp.id,name:opts.rp.name},
-      user:{id:b64u2buf(opts.user.id),name:opts.user.name,displayName:opts.user.displayName},
-      pubKeyCredParams:opts.pubKeyCredParams,
-      timeout:opts.timeout,
-      attestation:opts.attestation||'none',
-      authenticatorSelection:opts.authenticatorSelection||{residentKey:'preferred',userVerification:'preferred'}
-    }};
-    if(opts.excludeCredentials&&opts.excludeCredentials.length){
-      pk.publicKey.excludeCredentials=opts.excludeCredentials.map(function(c){return{id:b64u2buf(c.id),type:c.type,transports:c.transports}});
-    }
-    var cred=await navigator.credentials.create(pk);
-    var resp={
-      id:cred.id,
-      rawId:buf2b64u(cred.rawId),
-      type:cred.type,
-      response:{
-        attestationObject:buf2b64u(cred.response.attestationObject),
-        clientDataJSON:buf2b64u(cred.response.clientDataJSON)
-      },
-      clientExtensionResults:cred.getClientExtensionResults(),
-      authenticatorAttachment:cred.authenticatorAttachment||undefined
-    };
-    if(cred.response.getTransports)resp.response.transports=cred.response.getTransports();
-    document.getElementById('credential-field').value=JSON.stringify(resp);
-    document.getElementById('action-field').value='register';
-    document.querySelector('form').submit();
-  }catch(e){
-    var el=document.getElementById('webauthn-error');
-    if(el){el.textContent=e.message||'Registration failed';el.style.display='block'}
-  }
-})();
-</script>
-<div id="webauthn-error" role="alert" style="color:#dc2626;display:none;margin-top:12px"></div>`,
-      },
-      order: 1,
     });
   }
 
@@ -147,6 +93,17 @@ async function passkeyEnrollmentScreen(
     });
   }
 
+  const links: UiScreen["links"] = [];
+  // Only show "Skip for now" in continuation flow, not guardian enrollment
+  if (!extra?.isGuardianEnrollment) {
+    links.push({
+      id: "skip",
+      text: "",
+      linkText: m.cancelLinkText(),
+      href: `javascript:void(function(){var f=document.querySelector('form');if(!f){var w=document.querySelector('authhero-widget');if(w&&w.shadowRoot)f=w.shadowRoot.querySelector('form')}if(f){var a=f.querySelector('[name="action-field"]')||f.querySelector('#action-field');if(a){a.value='skip'}f.submit()}}())`,
+    });
+  }
+
   const screen: UiScreen = {
     name: "passkey-enrollment",
     action: `${routePrefix}/passkey/enrollment?state=${encodeURIComponent(state)}`,
@@ -154,33 +111,85 @@ async function passkeyEnrollmentScreen(
     title: m.title(),
     description: extra?.errorMessage ? undefined : m.description(),
     components,
-    links: [
-      {
-        id: "skip",
-        text: "",
-        linkText: m.cancelLinkText(),
-        href: `javascript:void(function(){var f=document.querySelector('form');if(f){document.getElementById('action-field').value='skip';f.submit()}}())`,
-      },
-    ],
+    ...(links.length > 0 && { links }),
   };
 
-  return { screen, branding };
+  // Build WebAuthn script to run at page level
+  let extraScript: string | undefined;
+  if (extra?.optionsJSON) {
+    const safeOptions = JSON.stringify(extra.optionsJSON).replace(/</g, "\\u003c");
+    extraScript = `(async function(){
+  var opts=JSON.parse(${safeOptions});
+  function b64u2buf(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';var b=atob(s),a=new Uint8Array(b.length);for(var i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return a.buffer}
+  function buf2b64u(b){var a=new Uint8Array(b),s='';for(var i=0;i<a.length;i++)s+=String.fromCharCode(a[i]);return btoa(s).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'')}
+  try{
+    var pk={publicKey:{
+      challenge:b64u2buf(opts.challenge),
+      rp:{id:opts.rp.id,name:opts.rp.name},
+      user:{id:b64u2buf(opts.user.id),name:opts.user.name,displayName:opts.user.displayName},
+      pubKeyCredParams:opts.pubKeyCredParams,
+      timeout:opts.timeout,
+      attestation:opts.attestation||'none',
+      authenticatorSelection:opts.authenticatorSelection||{residentKey:'preferred',userVerification:'preferred'}
+    }};
+    if(opts.excludeCredentials&&opts.excludeCredentials.length){
+      pk.publicKey.excludeCredentials=opts.excludeCredentials.map(function(c){return{id:b64u2buf(c.id),type:c.type,transports:c.transports}});
+    }
+    var cred=await navigator.credentials.create(pk);
+    var resp={
+      id:cred.id,
+      rawId:buf2b64u(cred.rawId),
+      type:cred.type,
+      response:{
+        attestationObject:buf2b64u(cred.response.attestationObject),
+        clientDataJSON:buf2b64u(cred.response.clientDataJSON)
+      },
+      clientExtensionResults:cred.getClientExtensionResults(),
+      authenticatorAttachment:cred.authenticatorAttachment||undefined
+    };
+    if(cred.response.getTransports)resp.response.transports=cred.response.getTransports();
+    var form=document.querySelector('form');
+    if(!form){var w=document.querySelector('authhero-widget');if(w&&w.shadowRoot)form=w.shadowRoot.querySelector('form')}
+    if(form){
+      var cf=form.querySelector('[name="credential-field"]')||form.querySelector('#credential-field');
+      var af=form.querySelector('[name="action-field"]')||form.querySelector('#action-field');
+      if(cf)cf.value=JSON.stringify(resp);
+      if(af)af.value='register';
+      form.submit();
+    }
+  }catch(e){
+    console.error('WebAuthn registration error:',e);
+    var form=document.querySelector('form');
+    if(!form){var w=document.querySelector('authhero-widget');if(w&&w.shadowRoot)form=w.shadowRoot.querySelector('form')}
+    if(form){
+      var af=form.querySelector('[name="action-field"]')||form.querySelector('#action-field');
+      if(af)af.value='error';
+      form.submit();
+    }
+  }
+})();`;
+  }
+
+  return { screen, branding, extraScript };
 }
 
 /**
- * Extract the RP ID from the host — strips port and uses the root domain
+ * Extract the RP ID from the host — strips port and uses the root domain.
+ * Must use the actual request host (not custom_domain) because WebAuthn
+ * requires rp.id to match the browser's current origin.
  */
 function getRpId(ctx: any): string {
-  const host = ctx.var.custom_domain || ctx.req.header("host") || "localhost";
+  const host = ctx.var.host || "localhost";
   // Strip port if present
   return host.split(":")[0];
 }
 
 /**
- * Get the origin URL for WebAuthn verification
+ * Get the origin URL for WebAuthn verification.
+ * Must use the actual request host to match the browser's origin.
  */
 function getExpectedOrigin(ctx: any): string {
-  const host = ctx.var.custom_domain || ctx.req.header("host") || "localhost";
+  const host = ctx.var.host || "localhost";
   const protocol = host.includes("localhost") ? "http" : "https";
   return `${protocol}://${host}`;
 }
@@ -268,8 +277,20 @@ export const passkeyEnrollmentScreenDefinition: ScreenDefinition = {
         return passkeyEnrollmentScreen(context);
       }
 
-      // Verify the session is in the correct continuation state
-      if (!hasValidContinuationScope(loginSession, "passkey-enrollment")) {
+      // Allow passkey enrollment from continuation flow or MFA enrollment flow
+      const stateData = loginSession.state_data
+        ? JSON.parse(loginSession.state_data)
+        : {};
+      const isGuardianEnrollment = stateData.guardian_enrollment === true;
+      const isContinuation = hasValidContinuationScope(
+        loginSession,
+        "passkey-enrollment",
+      );
+      if (
+        !isGuardianEnrollment &&
+        loginSession.state !== LoginSessionState.AWAITING_MFA &&
+        !isContinuation
+      ) {
         return passkeyEnrollmentScreen(context);
       }
 
@@ -316,10 +337,6 @@ export const passkeyEnrollmentScreenDefinition: ScreenDefinition = {
       });
 
       // Store the challenge in state_data for verification
-      const stateData = loginSession.state_data
-        ? JSON.parse(loginSession.state_data)
-        : {};
-
       await ctx.env.data.loginSessions.update(client.tenant.id, state, {
         state_data: JSON.stringify({
           ...stateData,
@@ -335,6 +352,7 @@ export const passkeyEnrollmentScreenDefinition: ScreenDefinition = {
 
       return passkeyEnrollmentScreen(context, {
         optionsJSON: JSON.stringify(options),
+        isGuardianEnrollment,
       });
     },
 
@@ -363,13 +381,38 @@ export const passkeyEnrollmentScreenDefinition: ScreenDefinition = {
         };
       }
 
-      // Verify the session is in the correct continuation state
-      if (!hasValidContinuationScope(loginSession, "passkey-enrollment")) {
+      // Allow passkey enrollment from continuation flow or MFA enrollment flow
+      const postStateData = loginSession.state_data
+        ? JSON.parse(loginSession.state_data)
+        : {};
+      const isGuardianEnrollment = postStateData.guardian_enrollment === true;
+      const isContinuation = hasValidContinuationScope(
+        loginSession,
+        "passkey-enrollment",
+      );
+      if (
+        !isGuardianEnrollment &&
+        loginSession.state !== LoginSessionState.AWAITING_MFA &&
+        !isContinuation
+      ) {
         return { screen: await passkeyEnrollmentScreen(context) };
       }
 
       // Handle skip action — resume auth flow without enrolling
+      // Server-side guard: skip is only allowed in continuation flows (nudge).
+      // Guardian enrollment and AWAITING_MFA are mandatory — skip must be rejected.
       if (action === "skip") {
+        if (!isContinuation) {
+          const optionsJSON = await generateFreshOptionsJSON(context);
+          return {
+            screen: await passkeyEnrollmentScreen(context, {
+              optionsJSON,
+              errorMessage: "Enrollment is required",
+              isGuardianEnrollment,
+            }),
+          };
+        }
+
         await completeLoginSessionContinuation(
           ctx,
           client.tenant.id,
@@ -524,6 +567,27 @@ export const passkeyEnrollmentScreenDefinition: ScreenDefinition = {
           description: "Passkey enrollment completed",
           userId: loginSession.user_id,
         });
+
+        // For ticket-based guardian enrollment, show success instead of resuming auth
+        const successStateData = loginSession.state_data
+          ? JSON.parse(loginSession.state_data)
+          : {};
+        if (successStateData.guardian_enrollment) {
+          const successScreen: UiScreen = {
+            name: "passkey-enrollment",
+            action: "",
+            method: "GET",
+            title: m.title(),
+            description: m.enrollmentComplete(),
+            components: [],
+          };
+          return {
+            screen: {
+              screen: successScreen,
+              branding: context.branding,
+            },
+          };
+        }
 
         // Complete the continuation and resume auth flow
         await completeLoginSessionContinuation(

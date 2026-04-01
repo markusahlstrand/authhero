@@ -12,6 +12,14 @@ export async function tenantMiddleware(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   next: Next,
 ) {
+  // Resolve browser-facing host upfront (before any early returns)
+  const xForwardedHost = ctx.req.header("x-forwarded-host");
+  const hostHeader = ctx.req.header("host");
+  ctx.set(
+    "host",
+    xForwardedHost || hostHeader || new URL(getIssuer(ctx.env)).host,
+  );
+
   const user = ctx.var.user;
   if (user?.tenant_id) {
     ctx.set("tenant_id", user.tenant_id);
@@ -26,32 +34,29 @@ export async function tenantMiddleware(
   }
 
   // Check x-forwarded-host for custom domains (used for proxied requests)
-  const xForwardedHost = ctx.req.header("x-forwarded-host");
   if (xForwardedHost) {
-    const domain = await ctx.env.data.customDomains.getByDomain(xForwardedHost);
+    const domain =
+      await ctx.env.data.customDomains.getByDomain(xForwardedHost);
     if (domain) {
       ctx.set("tenant_id", domain.tenant_id);
       ctx.set("custom_domain", xForwardedHost);
-      ctx.set("host", xForwardedHost);
       return await next();
     }
   }
 
   // Check host header for custom domains (when accessed directly, not via proxy)
-  const host = ctx.req.header("host");
-  if (host) {
-    ctx.set("host", host);
-
+  if (hostHeader) {
     // First, check if the full host is a registered custom domain
-    const customDomain = await ctx.env.data.customDomains.getByDomain(host);
+    const customDomain =
+      await ctx.env.data.customDomains.getByDomain(hostHeader);
     if (customDomain) {
       ctx.set("tenant_id", customDomain.tenant_id);
-      ctx.set("custom_domain", host);
+      ctx.set("custom_domain", hostHeader);
       return await next();
     }
 
     // Otherwise, check if the subdomain matches a tenant ID
-    const hostParts = host.split(".");
+    const hostParts = hostHeader.split(".");
     if (hostParts.length > 1 && typeof hostParts[0] === "string") {
       const subdomain = hostParts[0];
       // Check if the subdomain exists as a tenant ID
@@ -60,8 +65,15 @@ export async function tenantMiddleware(
         ctx.set("tenant_id", subdomain);
       }
     }
-  } else {
-    ctx.set("host", new URL(getIssuer(ctx.env)).host);
+  }
+
+  // Check query string for tenant_id (used in enrollment ticket URLs)
+  if (!ctx.var.tenant_id) {
+    const tenantIdQuery = ctx.req.query("tenant_id");
+    if (tenantIdQuery) {
+      ctx.set("tenant_id", tenantIdQuery);
+      return await next();
+    }
   }
 
   // Auto-detect single tenant: if no tenant found and only one exists in DB, use it

@@ -41,7 +41,9 @@ export function create(db: Kysely<Database>) {
         tenant_id,
         created_at_ts: nowTs,
         updated_at_ts: nowTs,
-        expires_at_ts: nowTs + 1000 * 60 * 60 * 24, // 24 hours from now
+        expires_at_ts: login.expires_at
+          ? new Date(login.expires_at).getTime()
+          : nowTs + 1000 * 60 * 60 * 24, // default: 24 hours from now
       })
       .execute();
 

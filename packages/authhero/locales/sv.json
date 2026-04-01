@@ -357,7 +357,9 @@
       "authenticatorAppLabel": "Autentiseringsapp",
       "authenticatorAppDescription": "Använd din autentiseringsapp för att få en verifieringskod",
       "smsLabel": "Sms",
-      "smsDescription": "Få en verifieringskod skickad till din telefon"
+      "smsDescription": "Få en verifieringskod skickad till din telefon",
+      "passkeyLabel": "Lösenordsnyckel",
+      "passkeyDescription": "Använd din enhets biometri eller säkerhetsnyckel"
     }
   },
   "mfa-push": {
@@ -412,6 +414,7 @@
       "errorMessage": "Det gick inte att skapa nyckeln. Försök igen.",
       "cancelLinkText": "Hoppa över för nu",
       "retryButtonText": "Försök igen",
+      "enrollmentComplete": "Din nyckel har konfigurerats. Du kan stänga denna sida.",
       "pageTitle": "Skapa Nyckel | ${clientName}"
     }
   },

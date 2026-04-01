@@ -68,6 +68,7 @@ describe("locale completeness", () => {
       "email",
       "status",
       "password",
+      "passkey",
       "ok",
       "invitation",
     ]);

@@ -87,6 +87,8 @@ export interface ScreenResult {
   screen: UiScreen;
   /** Branding to apply */
   branding?: ScreenBranding;
+  /** Optional inline script to inject at page level (e.g. WebAuthn ceremony) */
+  extraScript?: string;
 }
 
 /**
