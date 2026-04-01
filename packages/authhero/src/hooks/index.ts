@@ -105,10 +105,22 @@ function createUserHooks(
                 user.linked_to = primaryUserId;
               },
             },
+            access: {
+              deny: (code: string, reason?: string) => {
+                throw new JSONHTTPException(400, {
+                  message: reason
+                    ? `Registration denied: ${code} - ${reason}`
+                    : `Registration denied: ${code}`,
+                });
+              },
+            },
             token: createTokenAPI(ctx, tenant_id),
           },
         );
       } catch (err) {
+        if (err instanceof HTTPException) {
+          throw err;
+        }
         logMessage(ctx, tenant_id, {
           type: LogTypes.FAILED_SIGNUP,
           description: "Pre user registration hook failed",
