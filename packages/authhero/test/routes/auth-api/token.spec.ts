@@ -1390,6 +1390,406 @@ describe("token", () => {
     });
   });
 
+  describe("organization-aware refresh_token flow", () => {
+    it("should preserve org context from login session when no org param is passed", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const client = testClient(oauthApp, env);
+
+      // Create an organization
+      const organization = await env.data.organizations.create("tenantId", {
+        name: "refresh-org",
+        display_name: "Refresh Org",
+      });
+
+      // Create a user and add to organization
+      const user = await env.data.users.create("tenantId", {
+        user_id: "email|refresh-org-user",
+        email: "refresh-org-user@example.com",
+        provider: "email",
+        connection: "email",
+        email_verified: true,
+        is_social: false,
+      });
+
+      await env.data.userOrganizations.create("tenantId", {
+        user_id: user.user_id,
+        organization_id: organization.id,
+      });
+
+      // Create a login session with organization
+      const loginSession = await env.data.loginSessions.create("tenantId", {
+        expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+        csrf_token: "csrfToken",
+        authParams: {
+          client_id: "clientId",
+          redirect_uri: "https://example.com/callback",
+          organization: organization.id,
+        },
+      });
+
+      const idle_expires_at = new Date(
+        Date.now() + 1000 * 60 * 60,
+      ).toISOString();
+
+      await env.data.refreshTokens.create("tenantId", {
+        id: "refreshTokenOrgPreserve",
+        login_id: loginSession.id,
+        user_id: user.user_id,
+        client_id: "clientId",
+        resource_servers: [
+          {
+            audience: "http://example.com",
+            scopes: "openid",
+          },
+        ],
+        device: {
+          last_ip: "",
+          initial_ip: "",
+          last_user_agent: "",
+          initial_user_agent: "",
+          initial_asn: "",
+          last_asn: "",
+        },
+        rotating: false,
+        idle_expires_at,
+        expires_at: idle_expires_at,
+      });
+
+      // Refresh without passing organization param
+      const response = await client.oauth.token.$post(
+        // @ts-expect-error - testClient type requires both form and json
+        {
+          form: {
+            grant_type: "refresh_token",
+            refresh_token: "refreshTokenOrgPreserve",
+            client_id: "clientId",
+          },
+        },
+        { headers: { "tenant-id": "tenantId" } },
+      );
+
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as TokenResponse;
+
+      const accessToken = parseJWT(body.access_token);
+      const payload = accessToken?.payload as any;
+      expect(payload.org_id).toBe(organization.id);
+
+      // Clean up
+      await env.data.users.remove("tenantId", user.user_id);
+      await env.data.organizations.remove("tenantId", organization.id);
+    });
+
+    it("should switch to a different organization via org param", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const client = testClient(oauthApp, env);
+
+      // Create two organizations
+      const org1 = await env.data.organizations.create("tenantId", {
+        name: "refresh-org-1",
+        display_name: "Refresh Org 1",
+      });
+      const org2 = await env.data.organizations.create("tenantId", {
+        name: "refresh-org-2",
+        display_name: "Refresh Org 2",
+      });
+
+      // Create a user and add to both organizations
+      const user = await env.data.users.create("tenantId", {
+        user_id: "email|refresh-switch-user",
+        email: "refresh-switch@example.com",
+        provider: "email",
+        connection: "email",
+        email_verified: true,
+        is_social: false,
+      });
+
+      await env.data.userOrganizations.create("tenantId", {
+        user_id: user.user_id,
+        organization_id: org1.id,
+      });
+      await env.data.userOrganizations.create("tenantId", {
+        user_id: user.user_id,
+        organization_id: org2.id,
+      });
+
+      // Create a login session with org1
+      const loginSession = await env.data.loginSessions.create("tenantId", {
+        expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+        csrf_token: "csrfToken",
+        authParams: {
+          client_id: "clientId",
+          redirect_uri: "https://example.com/callback",
+          organization: org1.id,
+        },
+      });
+
+      const idle_expires_at = new Date(
+        Date.now() + 1000 * 60 * 60,
+      ).toISOString();
+
+      await env.data.refreshTokens.create("tenantId", {
+        id: "refreshTokenOrgSwitch",
+        login_id: loginSession.id,
+        user_id: user.user_id,
+        client_id: "clientId",
+        resource_servers: [
+          {
+            audience: "http://example.com",
+            scopes: "openid",
+          },
+        ],
+        device: {
+          last_ip: "",
+          initial_ip: "",
+          last_user_agent: "",
+          initial_user_agent: "",
+          initial_asn: "",
+          last_asn: "",
+        },
+        rotating: false,
+        idle_expires_at,
+        expires_at: idle_expires_at,
+      });
+
+      // Refresh with org2 (switch)
+      const response = await client.oauth.token.$post(
+        // @ts-expect-error - testClient type requires both form and json
+        {
+          form: {
+            grant_type: "refresh_token",
+            refresh_token: "refreshTokenOrgSwitch",
+            client_id: "clientId",
+            organization: org2.id,
+          },
+        },
+        { headers: { "tenant-id": "tenantId" } },
+      );
+
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as TokenResponse;
+
+      const accessToken = parseJWT(body.access_token);
+      const payload = accessToken?.payload as any;
+      expect(payload.org_id).toBe(org2.id);
+
+      // Clean up
+      await env.data.users.remove("tenantId", user.user_id);
+      await env.data.organizations.remove("tenantId", org1.id);
+      await env.data.organizations.remove("tenantId", org2.id);
+    });
+
+    it("should return 400 when organization is not found", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const client = testClient(oauthApp, env);
+
+      const idle_expires_at = new Date(
+        Date.now() + 1000 * 60 * 60,
+      ).toISOString();
+
+      await env.data.refreshTokens.create("tenantId", {
+        id: "refreshTokenOrgNotFound",
+        login_id: "loginSessionId",
+        user_id: "email|userId",
+        client_id: "clientId",
+        resource_servers: [
+          {
+            audience: "http://example.com",
+            scopes: "openid",
+          },
+        ],
+        device: {
+          last_ip: "",
+          initial_ip: "",
+          last_user_agent: "",
+          initial_user_agent: "",
+          initial_asn: "",
+          last_asn: "",
+        },
+        rotating: false,
+        idle_expires_at,
+        expires_at: idle_expires_at,
+      });
+
+      const response = await client.oauth.token.$post(
+        // @ts-expect-error - testClient type requires both form and json
+        {
+          form: {
+            grant_type: "refresh_token",
+            refresh_token: "refreshTokenOrgNotFound",
+            client_id: "clientId",
+            organization: "nonexistent-org-id",
+          },
+        },
+        { headers: { "tenant-id": "tenantId" } },
+      );
+
+      expect(response.status).toBe(400);
+      const body = (await response.json()) as ErrorResponse;
+      expect(body).toEqual({
+        error: "invalid_request",
+        error_description: "Organization 'nonexistent-org-id' not found",
+      });
+    });
+
+    it("should return 403 when user is not a member of the requested organization", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const client = testClient(oauthApp, env);
+
+      // Create a resource server with RBAC enabled (required for membership check)
+      const resourceServer = await env.data.resourceServers.create("tenantId", {
+        name: "Refresh Org API",
+        identifier: "https://refresh-org-api.example.com",
+        scopes: [{ value: "read:data", description: "Read data" }],
+        options: {
+          enforce_policies: true,
+          token_dialect: "access_token_authz",
+        },
+      });
+
+      // Create an organization
+      const organization = await env.data.organizations.create("tenantId", {
+        name: "refresh-org-no-member",
+        display_name: "Refresh Org No Member",
+      });
+
+      // Create a user but do NOT add to organization
+      const user = await env.data.users.create("tenantId", {
+        user_id: "email|refresh-no-member",
+        email: "refresh-no-member@example.com",
+        provider: "email",
+        connection: "email",
+        email_verified: true,
+        is_social: false,
+      });
+
+      const loginSession = await env.data.loginSessions.create("tenantId", {
+        expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+        csrf_token: "csrfToken",
+        authParams: {
+          client_id: "clientId",
+          redirect_uri: "https://example.com/callback",
+        },
+      });
+
+      const idle_expires_at = new Date(
+        Date.now() + 1000 * 60 * 60,
+      ).toISOString();
+
+      await env.data.refreshTokens.create("tenantId", {
+        id: "refreshTokenNoMember",
+        login_id: loginSession.id,
+        user_id: user.user_id,
+        client_id: "clientId",
+        resource_servers: [
+          {
+            audience: "https://refresh-org-api.example.com",
+            scopes: "read:data",
+          },
+        ],
+        device: {
+          last_ip: "",
+          initial_ip: "",
+          last_user_agent: "",
+          initial_user_agent: "",
+          initial_asn: "",
+          last_asn: "",
+        },
+        rotating: false,
+        idle_expires_at,
+        expires_at: idle_expires_at,
+      });
+
+      const response = await client.oauth.token.$post(
+        // @ts-expect-error - testClient type requires both form and json
+        {
+          form: {
+            grant_type: "refresh_token",
+            refresh_token: "refreshTokenNoMember",
+            client_id: "clientId",
+            organization: organization.id,
+          },
+        },
+        { headers: { "tenant-id": "tenantId" } },
+      );
+
+      expect(response.status).toBe(403);
+      const body = (await response.json()) as ErrorResponse;
+      expect(body).toEqual({
+        error: "access_denied",
+        error_description:
+          "User is not a member of the specified organization",
+      });
+
+      // Clean up
+      await env.data.resourceServers.remove("tenantId", resourceServer.id!);
+      await env.data.users.remove("tenantId", user.user_id);
+      await env.data.organizations.remove("tenantId", organization.id);
+    });
+
+    it("should return tokens without org claims when no org in session and no org param", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const client = testClient(oauthApp, env);
+
+      const loginSession = await env.data.loginSessions.create("tenantId", {
+        expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+        csrf_token: "csrfToken",
+        authParams: {
+          client_id: "clientId",
+          redirect_uri: "https://example.com/callback",
+        },
+      });
+
+      const idle_expires_at = new Date(
+        Date.now() + 1000 * 60 * 60,
+      ).toISOString();
+
+      await env.data.refreshTokens.create("tenantId", {
+        id: "refreshTokenNoOrg",
+        login_id: loginSession.id,
+        user_id: "email|userId",
+        client_id: "clientId",
+        resource_servers: [
+          {
+            audience: "http://example.com",
+            scopes: "openid",
+          },
+        ],
+        device: {
+          last_ip: "",
+          initial_ip: "",
+          last_user_agent: "",
+          initial_user_agent: "",
+          initial_asn: "",
+          last_asn: "",
+        },
+        rotating: false,
+        idle_expires_at,
+        expires_at: idle_expires_at,
+      });
+
+      const response = await client.oauth.token.$post(
+        // @ts-expect-error - testClient type requires both form and json
+        {
+          form: {
+            grant_type: "refresh_token",
+            refresh_token: "refreshTokenNoOrg",
+            client_id: "clientId",
+          },
+        },
+        { headers: { "tenant-id": "tenantId" } },
+      );
+
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as TokenResponse;
+
+      const accessToken = parseJWT(body.access_token);
+      const payload = accessToken?.payload as any;
+      expect(payload.org_id).toBeUndefined();
+      expect(payload.org_name).toBeUndefined();
+    });
+  });
+
   describe("organization-aware authorization_code flow", () => {
     it("should throw 403 error when user is not a member of the required organization", async () => {
       const { oauthApp, env } = await getTestServer();

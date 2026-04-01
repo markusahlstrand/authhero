@@ -243,6 +243,24 @@ Migrate from Auth0 with minimal code changes:
 }
 ```
 
+### Organization Switching via Refresh Token
+
+Both Auth0 and AuthHero support passing an `organization` parameter in the refresh token grant to switch organization context without re-authentication. This enables seamless multi-org workflows in B2B applications.
+
+```http
+POST /oauth/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=refresh_token&
+refresh_token=REFRESH_TOKEN&
+client_id=CLIENT_ID&
+organization=target-org-id
+```
+
+- If `organization` is provided, tokens are issued for the specified organization (user must be a member)
+- If `organization` is omitted, the original organization from the login session is preserved
+- The `organization` parameter accepts both organization IDs and names
+
 ### Auth0 Conformance Mode
 
 AuthHero provides a per-client `auth0_conformant` flag (default: `true`) to ensure compatibility with Auth0 SDKs and applications. When enabled, AuthHero follows Auth0's behavior patterns which deviate slightly from strict OIDC specifications. Set to `false` for strict OIDC compliance.

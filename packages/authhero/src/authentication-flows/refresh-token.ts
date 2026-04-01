@@ -13,6 +13,7 @@ export const refreshTokenParamsSchema = z.object({
   redirect_uri: z.string().optional(),
   refresh_token: z.string(),
   client_secret: z.string().optional(),
+  organization: z.string().optional(),
 });
 
 export async function refreshTokenGrant(
@@ -74,14 +75,35 @@ export async function refreshTokenGrant(
 
   const resourceServer = refreshToken.resource_servers[0];
 
-  // Resolve session_id from the login session
+  // Resolve session_id and login session data
   let sessionId: string | undefined;
+  let loginSession;
   if (refreshToken.login_id) {
-    const loginSession = await ctx.env.data.loginSessions.get(
+    loginSession = await ctx.env.data.loginSessions.get(
       client.tenant.id,
       refreshToken.login_id,
     );
     sessionId = loginSession?.session_id;
+  }
+
+  // Resolve organization: explicit param takes priority, then fall back to login session
+  const effectiveOrganization =
+    params.organization ?? loginSession?.authParams.organization;
+
+  let organization: { id: string; name: string } | undefined;
+  if (effectiveOrganization) {
+    const orgData = await ctx.env.data.organizations.get(
+      client.tenant.id,
+      effectiveOrganization,
+    );
+    if (orgData) {
+      organization = { id: orgData.id, name: orgData.name };
+    } else {
+      throw new JSONHTTPException(400, {
+        error: "invalid_request",
+        error_description: `Organization '${effectiveOrganization}' not found`,
+      });
+    }
   }
 
   // Update the idle_expires_at
@@ -117,6 +139,7 @@ export async function refreshTokenGrant(
     refresh_token: refreshToken.id,
     session_id: sessionId,
     login_id: refreshToken.login_id,
+    organization,
     authParams: {
       client_id: client.client_id,
       audience: resourceServer?.audience,

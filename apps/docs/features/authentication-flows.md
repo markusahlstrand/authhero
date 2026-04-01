@@ -33,7 +33,40 @@ AuthHero issues several types of tokens:
 
 ## Refresh Token Flow
 
-[Refresh token flow will be documented here]
+Refresh tokens allow your application to obtain new access tokens without requiring the user to re-authenticate.
+
+```http
+POST /oauth/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=refresh_token&
+refresh_token=REFRESH_TOKEN&
+client_id=CLIENT_ID&
+client_secret=CLIENT_SECRET
+```
+
+The response includes a new access token (and optionally an ID token if `openid` scope was requested).
+
+### Organization Switching
+
+When working with [organizations](/entities/identity/organizations), you can switch the organization context during a refresh token exchange by passing the `organization` parameter:
+
+```http
+POST /oauth/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=refresh_token&
+refresh_token=REFRESH_TOKEN&
+client_id=CLIENT_ID&
+organization=ORG_ID_OR_NAME
+```
+
+This enables seamless organization switching in multi-tenant applications without requiring the user to log in again. The behavior is:
+
+- **With `organization` parameter**: Tokens are issued for the specified organization. The user must be a member.
+- **Without `organization` parameter**: The original organization from the login session is preserved in the new tokens.
+
+See [Tokens](/entities/security/tokens) for details on organization-related token claims.
 
 ## Custom Authentication Flows
 
