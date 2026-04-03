@@ -117,7 +117,10 @@ async function passkeyEnrollmentScreen(
   // Build WebAuthn script to run at page level
   let extraScript: string | undefined;
   if (extra?.optionsJSON) {
-    const safeOptions = JSON.stringify(extra.optionsJSON).replace(/</g, "\\u003c");
+    const safeOptions = JSON.stringify(extra.optionsJSON).replace(
+      /</g,
+      "\\u003c",
+    );
     extraScript = `(async function(){
   var opts=JSON.parse(${safeOptions});
   function b64u2buf(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';var b=atob(s),a=new Uint8Array(b.length);for(var i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return a.buffer}

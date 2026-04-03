@@ -20,6 +20,12 @@ export function addTimingLogs(
       continue;
     }
 
+    // Pass through top-level functions (e.g., transaction, sessionCleanup)
+    if (typeof adapter === "function") {
+      wrappedAdapters[adapterName] = adapter;
+      continue;
+    }
+
     const wrappedAdapter: Record<string, any> = {};
 
     // Process each method in the adapter

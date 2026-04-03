@@ -72,6 +72,12 @@ export function addCaching(
       continue;
     }
 
+    // Pass through top-level functions (e.g., transaction, sessionCleanup)
+    if (typeof adapter === "function") {
+      wrappedAdapters[adapterName] = adapter;
+      continue;
+    }
+
     // Check if this adapter entity should be cached
     const shouldCacheEntity =
       shouldCacheAllEntities || entitiesToCache.has(adapterName);

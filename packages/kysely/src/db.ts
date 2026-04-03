@@ -420,4 +420,18 @@ export interface Database {
   universal_login_templates: z.infer<typeof sqlUniversalLoginTemplateSchema>;
   custom_text: z.infer<typeof sqlCustomTextSchema>;
   authentication_methods: z.infer<typeof sqlAuthenticationMethodSchema>;
+  outbox_events: {
+    id: string;
+    tenant_id: string;
+    event_type: string;
+    log_type: string;
+    aggregate_type: string;
+    aggregate_id: string;
+    payload: string;
+    created_at: string;
+    processed_at: string | null;
+    retry_count: number;
+    next_retry_at: string | null;
+    error: string | null;
+  };
 }

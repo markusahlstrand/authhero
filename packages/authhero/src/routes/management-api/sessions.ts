@@ -1,7 +1,8 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
 import { HTTPException } from "hono/http-exception";
-import { sessionSchema } from "@authhero/adapter-interfaces";
+import { sessionSchema, LogTypes } from "@authhero/adapter-interfaces";
+import { logMessage } from "../../helpers/logging";
 
 export const sessionsRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -89,6 +90,13 @@ export const sessionsRoutes = new OpenAPIHono<{
         });
       }
 
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Delete a Session",
+        targetType: "session",
+        targetId: id,
+      });
+
       return ctx.text("OK");
     },
   )
@@ -130,6 +138,13 @@ export const sessionsRoutes = new OpenAPIHono<{
           message: "Session not found",
         });
       }
+
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Revoke a Session",
+        targetType: "session",
+        targetId: id,
+      });
 
       return ctx.text("Session deletion request accepted.", { status: 202 });
     },

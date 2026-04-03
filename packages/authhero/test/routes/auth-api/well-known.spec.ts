@@ -136,12 +136,8 @@ describe("jwks", () => {
     expect(body.authorization_endpoint).toBe(
       "https://login.example.com/authorize",
     );
-    expect(body.token_endpoint).toBe(
-      "https://login.example.com/oauth/token",
-    );
-    expect(body.userinfo_endpoint).toBe(
-      "https://login.example.com/userinfo",
-    );
+    expect(body.token_endpoint).toBe("https://login.example.com/oauth/token");
+    expect(body.userinfo_endpoint).toBe("https://login.example.com/userinfo");
     expect(body.jwks_uri).toBe(
       "https://login.example.com/.well-known/jwks.json",
     );

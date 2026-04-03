@@ -360,6 +360,7 @@ const createMockAdapters = (): DataAdapters => ({
   userRoles: {} as any,
   organizations: {} as any,
   userOrganizations: {} as any,
+  transaction: async (fn: any) => fn(createMockAdapters()),
 });
 
 describe("Runtime Fallback Adapter (Settings Inheritance)", () => {

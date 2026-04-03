@@ -68,7 +68,7 @@ export default function createAdapters(
     tableName: config.tableName,
   };
 
-  return {
+  const adapters: DataAdapters = {
     branding: createBrandingAdapter(ctx),
     clients: createClientsAdapter(ctx),
     clientConnections: createClientConnectionsAdapter(ctx),
@@ -101,7 +101,15 @@ export default function createAdapters(
     userPermissions: createUserPermissionsAdapter(ctx),
     userRoles: createUserRolesAdapter(ctx),
     users: createUsersAdapter(ctx),
+    // DynamoDB does not support traditional SQL transactions.
+    // Passthrough: execute the callback with the same adapters.
+    async transaction<T>(
+      fn: (trxAdapters: DataAdapters) => Promise<T>,
+    ): Promise<T> {
+      return fn(adapters);
+    },
   };
+  return adapters;
 }
 
 // Re-export individual adapters for custom usage

@@ -1,3 +1,4 @@
+export * from "./AuditEvent";
 export * from "./Flow";
 export * from "./auth0";
 export * from "./Client";

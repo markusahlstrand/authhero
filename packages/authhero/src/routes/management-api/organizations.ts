@@ -6,6 +6,7 @@ import {
   roleListSchema,
   inviteSchema,
   inviteInsertSchema,
+  LogTypes,
 } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../../types";
 import { HTTPException } from "hono/http-exception";
@@ -15,6 +16,7 @@ import {
 } from "../../utils/entity-id";
 import { querySchema } from "../../types/auth0/Query";
 import { parseSort } from "../../utils/sort";
+import { logMessage } from "../../helpers/logging";
 
 // Query schema for invitations list endpoint
 const invitationsQuerySchema = z.object({
@@ -272,6 +274,13 @@ export const organizationRoutes = new OpenAPIHono<{
         throw new HTTPException(404, { message: "Organization not found" });
       }
 
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Delete an Organization",
+        targetType: "organization",
+        targetId: id,
+      });
+
       return ctx.text("OK");
     },
   )
@@ -335,6 +344,14 @@ export const organizationRoutes = new OpenAPIHono<{
         throw new HTTPException(404, { message: "Organization not found" });
       }
 
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Update an Organization",
+        targetType: "organization",
+        targetId: id,
+        afterState: organization as unknown as Record<string, unknown>,
+      });
+
       return ctx.json(organization);
     },
   )
@@ -387,6 +404,14 @@ export const organizationRoutes = new OpenAPIHono<{
         tenant_id,
         organizationData,
       );
+
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Create an Organization",
+        targetType: "organization",
+        targetId: organization.id,
+        afterState: organization as unknown as Record<string, unknown>,
+      });
 
       return ctx.json(organization, { status: 201 });
     },
@@ -555,6 +580,13 @@ export const organizationRoutes = new OpenAPIHono<{
         }
       }
 
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Add Members to an Organization",
+        targetType: "organization_member",
+        targetId: organizationId,
+      });
+
       return new Response(null, { status: 204 });
     },
   )
@@ -615,6 +647,13 @@ export const organizationRoutes = new OpenAPIHono<{
           );
         }
       }
+
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Remove Members from an Organization",
+        targetType: "organization_member",
+        targetId: organizationId,
+      });
 
       return ctx.json({ message: "Members removed successfully" });
     },
@@ -763,6 +802,13 @@ export const organizationRoutes = new OpenAPIHono<{
         }
       }
 
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Assign Roles to an Organization Member",
+        targetType: "organization_member_role",
+        targetId: user_id,
+      });
+
       return ctx.json(
         { message: "Roles assigned successfully" },
         { status: 201 },
@@ -842,6 +888,13 @@ export const organizationRoutes = new OpenAPIHono<{
           });
         }
       }
+
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Remove Roles from an Organization Member",
+        targetType: "organization_member_role",
+        targetId: user_id,
+      });
 
       return ctx.json({ message: "Roles removed successfully" });
     },
@@ -1138,6 +1191,14 @@ export const organizationRoutes = new OpenAPIHono<{
 
       const invite = await ctx.env.data.invites.create(tenant_id, inviteData);
 
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Create an Organization Invitation",
+        targetType: "invitation",
+        targetId: invite.id,
+        afterState: invite as unknown as Record<string, unknown>,
+      });
+
       return ctx.json(invite, { status: 201 });
     },
   )
@@ -1195,6 +1256,13 @@ export const organizationRoutes = new OpenAPIHono<{
       if (!result) {
         throw new HTTPException(404, { message: "Invitation not found" });
       }
+
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Delete an Organization Invitation",
+        targetType: "invitation",
+        targetId: invitation_id,
+      });
 
       return ctx.body(null, { status: 204 });
     },
