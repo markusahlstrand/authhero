@@ -131,7 +131,7 @@ export const sessionsRoutes = new OpenAPIHono<{
       const { id } = ctx.req.valid("param");
 
       const result = await ctx.env.data.sessions.update(ctx.var.tenant_id, id, {
-        revoked_at: new Date().toDateString(),
+        revoked_at: new Date().toISOString(),
       });
       if (!result) {
         throw new HTTPException(404, {

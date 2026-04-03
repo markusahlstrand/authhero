@@ -241,7 +241,7 @@ export const userRoutes = new OpenAPIHono<{
         },
       ],
       responses: {
-        200: {
+        204: {
           description: "Status",
         },
       },
@@ -276,7 +276,7 @@ export const userRoutes = new OpenAPIHono<{
         },
       });
 
-      return ctx.text("OK");
+      return ctx.body(null, 204);
     },
   )
   // --------------------------------

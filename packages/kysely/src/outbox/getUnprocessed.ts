@@ -16,6 +16,12 @@ export function getUnprocessedOutboxEvents(db: Kysely<Database>) {
           eb("next_retry_at", "<=", now),
         ]),
       )
+      .where((eb) =>
+        eb.or([
+          eb("claimed_by", "is", null),
+          eb("claim_expires_at", "<=", now),
+        ]),
+      )
       .orderBy("created_at", "asc")
       .orderBy("id", "asc")
       .limit(limit)

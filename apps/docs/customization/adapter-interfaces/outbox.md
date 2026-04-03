@@ -17,6 +17,9 @@ interface OutboxAdapter {
   /** Fetch unprocessed events ready for delivery */
   getUnprocessed(limit: number): Promise<OutboxEvent[]>;
 
+  /** Atomically claim events for exclusive processing. Returns IDs that were successfully claimed. */
+  claimEvents(ids: string[], workerId: string, leaseMs: number): Promise<string[]>;
+
   /** Mark events as successfully processed */
   markProcessed(ids: string[]): Promise<void>;
 
@@ -137,6 +140,8 @@ The `outbox_events` table stores events with denormalized index columns:
 | `retry_count` | INTEGER | Delivery attempts |
 | `next_retry_at` | TEXT | Backoff timestamp |
 | `error` | TEXT | Last error message |
+| `claimed_by` | TEXT | Worker ID holding the lease |
+| `claim_expires_at` | TEXT | When the lease expires |
 
 ## Related
 

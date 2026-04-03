@@ -15,6 +15,7 @@ const BASE_DELAY_MS = 1000;
 const MAX_DELAY_MS = 300_000; // 5 minutes
 const DEFAULT_MAX_RETRIES = 5;
 const DEFAULT_RETENTION_DAYS = 7;
+const DEFAULT_LEASE_MS = 30_000; // 30 seconds
 
 function computeNextRetryAt(retryCount: number): string {
   const delayMs = Math.min(
@@ -40,10 +41,19 @@ export async function drainOutbox(
   const events = await outbox.getUnprocessed(batchSize);
   if (events.length === 0) return;
 
+  // Claim events to prevent concurrent workers from processing the same batch
+  const workerId = crypto.randomUUID();
+  const allIds = events.map((e) => e.id);
+  const claimedIds = new Set(
+    await outbox.claimEvents(allIds, workerId, DEFAULT_LEASE_MS),
+  );
+  const claimedEvents = events.filter((e) => claimedIds.has(e.id));
+  if (claimedEvents.length === 0) return;
+
   const processedIds: string[] = [];
   const failedIds: string[] = [];
 
-  for (const event of events) {
+  for (const event of claimedEvents) {
     // Mark exhausted events as processed so they don't block the queue
     if (event.retry_count >= maxRetries) {
       console.warn(

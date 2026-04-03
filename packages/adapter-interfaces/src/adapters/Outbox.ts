@@ -18,6 +18,12 @@ export interface OutboxAdapter {
   create(tenantId: string, event: AuditEventInsert): Promise<void>;
   /** Fetch unprocessed events ready for delivery */
   getUnprocessed(limit: number): Promise<OutboxEvent[]>;
+  /** Atomically claim events for exclusive processing. Returns IDs that were successfully claimed. */
+  claimEvents(
+    ids: string[],
+    workerId: string,
+    leaseMs: number,
+  ): Promise<string[]>;
   /** Mark events as successfully processed */
   markProcessed(ids: string[]): Promise<void>;
   /** Mark an event for retry with a backoff delay */

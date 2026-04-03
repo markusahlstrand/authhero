@@ -328,6 +328,12 @@ export const organizationRoutes = new OpenAPIHono<{
       const { id } = ctx.req.valid("param");
       const body = ctx.req.valid("json");
 
+      const beforeOrg = await ctx.env.data.organizations.get(tenant_id, id);
+
+      if (!beforeOrg) {
+        throw new HTTPException(404, { message: "Organization not found" });
+      }
+
       const updated = await ctx.env.data.organizations.update(
         tenant_id,
         id,
@@ -349,6 +355,7 @@ export const organizationRoutes = new OpenAPIHono<{
         description: "Update an Organization",
         targetType: "organization",
         targetId: id,
+        beforeState: beforeOrg as unknown as Record<string, unknown>,
         afterState: organization as unknown as Record<string, unknown>,
       });
 

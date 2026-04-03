@@ -6,10 +6,12 @@ export function waitUntil(ctx: Context, promise: Promise<unknown>) {
   if (getRuntimeKey() === "workerd") {
     try {
       ctx.executionCtx.waitUntil(promise);
+      return;
     } catch {
-      // If executionCtx is not available, just await the promise
-      // This can happen in certain test environments or local dev setups
-      promise.catch((e) => console.error("waitUntil promise error:", e));
+      // If executionCtx is not available, fall through to the default handler
     }
   }
+
+  // For non-workerd runtimes (Node, Bun, etc.), fire-and-forget with error logging
+  promise.catch((e) => console.error("waitUntil promise error:", e));
 }

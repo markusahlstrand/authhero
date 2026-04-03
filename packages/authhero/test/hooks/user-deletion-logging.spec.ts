@@ -52,7 +52,7 @@ describe("user deletion - Management API logging", () => {
       },
     );
 
-    expect(deleteResponse.status).toBe(200);
+    expect(deleteResponse.status).toBe(204);
 
     // Fetch logs
     const { logs } = await env.data.logs.list("tenantId", {
@@ -155,7 +155,7 @@ describe("user deletion - Management API logging", () => {
       },
     );
 
-    expect(deleteResponse.status).toBe(200);
+    expect(deleteResponse.status).toBe(204);
 
     // Fetch logs
     const { logs } = await env.data.logs.list("tenantId", {
@@ -474,7 +474,7 @@ describe("user deletion - Management API logging", () => {
       },
     );
 
-    expect(deleteResponse.status).toBe(200);
+    expect(deleteResponse.status).toBe(204);
 
     // Verify the primary user is deleted
     const deletedPrimary = await env.data.users.get(

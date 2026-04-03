@@ -35,6 +35,14 @@ function redactSensitiveFields(
   return result;
 }
 
+/** Redact sensitive fields if the value is a plain object, otherwise return as-is */
+function redactBody(body: unknown): unknown {
+  if (body && typeof body === "object" && !Array.isArray(body)) {
+    return redactSensitiveFields(body as Record<string, unknown>);
+  }
+  return body;
+}
+
 export type LogParams = {
   type: LogType;
   description?: string;
@@ -156,7 +164,7 @@ function buildAuditEvent(
             ]),
           )
         : undefined,
-      body: params.body || ctx.var.body || undefined,
+      body: redactBody(params.body || ctx.var.body || undefined),
       ip: ctx.var.ip || "",
       user_agent: ctx.var.useragent || undefined,
     },
@@ -214,18 +222,8 @@ export async function logMessage(
   if (ctx.env.outbox?.enabled && ctx.env.data.outbox) {
     const event = buildAuditEvent(ctx, tenantId, params);
 
-    // Enrich with geo information if adapter is available
-    if (ctx.env.data.geo) {
-      try {
-        const geoInfo = await ctx.env.data.geo.getGeoInfo(headers);
-        if (geoInfo) {
-          event.location = geoInfo;
-        }
-      } catch {
-        // Silently ignore geo lookup errors
-      }
-    }
-
+    // Geo enrichment is deferred to the outbox relay/processor.
+    // The IP is already captured in event.request.ip.
     await ctx.env.data.outbox.create(tenantId, event);
     return;
   }
@@ -256,7 +254,7 @@ export async function logMessage(
           method: ctx.req.method,
           path: ctx.req.path,
           qs: ctx.req.queries(),
-          body: params.body || ctx.var.body || "",
+          body: redactBody(params.body || ctx.var.body || ""),
         },
         ...(params.response && {
           response: params.response,

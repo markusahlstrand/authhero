@@ -433,5 +433,7 @@ export interface Database {
     retry_count: number;
     next_retry_at: string | null;
     error: string | null;
+    claimed_by: string | null;
+    claim_expires_at: string | null;
   };
 }
