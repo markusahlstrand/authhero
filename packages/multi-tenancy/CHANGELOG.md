@@ -1,5 +1,17 @@
 # @authhero/multi-tenancy
 
+## 14.18.0
+
+### Minor Changes
+
+- f3b910c: Add outbox pattern
+
+### Patch Changes
+
+- Updated dependencies [f3b910c]
+  - @authhero/adapter-interfaces@0.152.0
+  - authhero@4.82.0
+
 ## 14.17.0
 
 ### Minor Changes

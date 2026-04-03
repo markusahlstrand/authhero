@@ -1,5 +1,16 @@
 # @authhero/aws-adapter
 
+## 0.26.0
+
+### Minor Changes
+
+- f3b910c: Add outbox pattern
+
+### Patch Changes
+
+- Updated dependencies [f3b910c]
+  - @authhero/adapter-interfaces@0.152.0
+
 ## 0.25.1
 
 ### Patch Changes
