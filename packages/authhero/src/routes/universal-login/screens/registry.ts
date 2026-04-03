@@ -24,6 +24,7 @@ import { accountProfileScreenDefinition } from "./account-profile";
 import { accountSecurityScreenDefinition } from "./account-security";
 import { accountLinkedScreenDefinition } from "./account-linked";
 import { accountDeleteScreenDefinition } from "./account-delete";
+import { accountPasskeysScreenDefinition } from "./account-passkeys";
 import { passkeyEnrollmentNudgeScreenDefinition } from "./passkey-enrollment-nudge";
 import { passkeyEnrollmentScreenDefinition } from "./passkey-enrollment";
 
@@ -55,6 +56,7 @@ export const screenRegistry: Map<string, ScreenDefinition> = new Map([
   ["account-security", accountSecurityScreenDefinition],
   ["account-linked", accountLinkedScreenDefinition],
   ["account-delete", accountDeleteScreenDefinition],
+  ["account-passkeys", accountPasskeysScreenDefinition],
   ["passkey-enrollment-nudge", passkeyEnrollmentNudgeScreenDefinition],
   ["passkey-enrollment", passkeyEnrollmentScreenDefinition],
 ]);

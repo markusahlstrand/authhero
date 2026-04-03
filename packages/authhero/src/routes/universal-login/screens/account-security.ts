@@ -8,6 +8,7 @@ import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { resolveAccountUser } from "./account-helpers";
 import { escapeHtml } from "../sanitization-utils";
+import { PASSKEY_TYPES } from "./passkey-utils";
 
 const MFA_TYPE_LABELS: Record<string, string> = {
   totp: "Authenticator App",
@@ -46,7 +47,11 @@ export async function accountSecurityScreen(
   try {
     enrollments = (
       await ctx.env.data.authenticationMethods.list(tenant.id, user.user_id)
-    ).filter((e) => e.confirmed);
+    ).filter(
+      (e) =>
+        e.confirmed &&
+        !PASSKEY_TYPES.includes(e.type as (typeof PASSKEY_TYPES)[number]),
+    );
   } catch {
     // MFA adapter may not exist
   }
