@@ -51,7 +51,7 @@ describe("User Deletion Hooks", () => {
         },
       );
 
-      expect(deleteResponse.status).toBe(200);
+      expect(deleteResponse.status).toBe(204);
 
       // Verify the hook was called
       expect(hookMock).toHaveBeenCalledTimes(1);
@@ -254,7 +254,7 @@ describe("User Deletion Hooks", () => {
       );
 
       // Deletion should succeed
-      expect(deleteResponse.status).toBe(200);
+      expect(deleteResponse.status).toBe(204);
 
       // Verify the hook was called
       expect(hookMock).toHaveBeenCalledTimes(1);
@@ -313,7 +313,7 @@ describe("User Deletion Hooks", () => {
         },
       );
 
-      expect(deleteResponse.status).toBe(200);
+      expect(deleteResponse.status).toBe(204);
 
       // Verify the hook was called
       expect(hookMock).toHaveBeenCalledTimes(1);
@@ -385,7 +385,7 @@ describe("User Deletion Hooks", () => {
       );
 
       // Deletion should still succeed
-      expect(deleteResponse.status).toBe(200);
+      expect(deleteResponse.status).toBe(204);
 
       // Verify the hook was called
       expect(hookMock).toHaveBeenCalledTimes(1);
@@ -448,7 +448,7 @@ describe("User Deletion Hooks", () => {
         },
       );
 
-      expect(deleteResponse.status).toBe(200);
+      expect(deleteResponse.status).toBe(204);
 
       // Verify cleanup operations were performed
       expect(cleanupOperations).toHaveLength(3);
@@ -513,7 +513,7 @@ describe("User Deletion Hooks", () => {
         },
       );
 
-      expect(deleteResponse.status).toBe(200);
+      expect(deleteResponse.status).toBe(204);
 
       // Verify both hooks were called in correct order
       expect(callOrder).toEqual(["pre", "post"]);
@@ -689,7 +689,7 @@ describe("User Deletion Hooks", () => {
         },
       );
 
-      expect(deleteResponse.status).toBe(200);
+      expect(deleteResponse.status).toBe(204);
 
       // Verify user is deleted
       const { users } = await env.data.users.list("tenantId");

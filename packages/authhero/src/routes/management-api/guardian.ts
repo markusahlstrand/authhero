@@ -2,8 +2,9 @@ import { Bindings, Variables } from "../../types";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
 import { nanoid } from "nanoid";
-import { LoginSessionState } from "@authhero/adapter-interfaces";
+import { LoginSessionState, LogTypes } from "@authhero/adapter-interfaces";
 import { getIssuer } from "../../variables";
+import { logMessage } from "../../helpers/logging";
 
 // Auth0-compatible Guardian MFA factor types
 const factorNames = [
@@ -200,6 +201,13 @@ export const guardianRoutes = new OpenAPIHono<{
         },
       });
 
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Set SMS Provider",
+        targetType: "guardian",
+        targetId: ctx.var.tenant_id,
+      });
+
       return ctx.json({ provider });
     },
   )
@@ -307,6 +315,13 @@ export const guardianRoutes = new OpenAPIHono<{
           ...tenant.mfa,
           twilio: updatedTwilio,
         },
+      });
+
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Configure Twilio Provider",
+        targetType: "guardian",
+        targetId: ctx.var.tenant_id,
       });
 
       return ctx.json({
@@ -448,6 +463,13 @@ export const guardianRoutes = new OpenAPIHono<{
         },
       });
 
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Set Guardian Policies",
+        targetType: "guardian",
+        targetId: ctx.var.tenant_id,
+      });
+
       return ctx.json(policy === "always" ? ["all-applications"] : []);
     },
   )
@@ -567,6 +589,13 @@ export const guardianRoutes = new OpenAPIHono<{
         url.searchParams.append("tenant_id", tenantId);
       }
       const ticketUrl = url.toString();
+
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Create Enrollment Ticket",
+        targetType: "guardian",
+        targetId: ctx.var.tenant_id,
+      });
 
       return ctx.json(
         {
@@ -693,6 +722,13 @@ export const guardianRoutes = new OpenAPIHono<{
             [internalKey]: enabled,
           },
         },
+      });
+
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Update Guardian Factor",
+        targetType: "guardian",
+        targetId: ctx.var.tenant_id,
       });
 
       return ctx.json({

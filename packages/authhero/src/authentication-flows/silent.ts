@@ -69,10 +69,7 @@ export async function silentAuth({
         description,
       });
 
-      const clearCookies = clearAuthCookie(
-        client.tenant.id,
-        ctx.var.host,
-      );
+      const clearCookies = clearAuthCookie(client.tenant.id, ctx.var.host);
       clearCookies.forEach((cookie) => {
         headers.append("set-cookie", cookie);
       });

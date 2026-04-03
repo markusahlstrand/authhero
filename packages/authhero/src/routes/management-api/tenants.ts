@@ -1,8 +1,13 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
 import { Bindings, Variables } from "../../types";
-import { tenantInsertSchema, tenantSchema } from "@authhero/adapter-interfaces";
+import {
+  tenantInsertSchema,
+  tenantSchema,
+  LogTypes,
+} from "@authhero/adapter-interfaces";
 import { deepMergePatch } from "../../utils/deep-merge";
+import { logMessage } from "../../helpers/logging";
 
 export const tenantRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -114,6 +119,15 @@ export const tenantRoutes = new OpenAPIHono<{
           message: "Failed to retrieve updated tenant",
         });
       }
+
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Update tenant settings",
+        targetType: "tenant",
+        targetId: ctx.var.tenant_id,
+        beforeState: existingTenant as Record<string, unknown>,
+        afterState: updatedTenant as Record<string, unknown>,
+      });
 
       return ctx.json(updatedTenant);
     },

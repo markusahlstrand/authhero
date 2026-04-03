@@ -41,8 +41,9 @@ export const wellKnownRoutes = new OpenAPIHono<{
           headers: {
             "access-control-allow-origin": "*",
             "access-control-allow-method": "GET",
-            "cache-control": `public, max-age=${JWKS_CACHE_TIMEOUT_IN_SECONDS}, stale-while-revalidate=${JWKS_CACHE_TIMEOUT_IN_SECONDS * 2
-              }, stale-if-error=86400`,
+            "cache-control": `public, max-age=${JWKS_CACHE_TIMEOUT_IN_SECONDS}, stale-while-revalidate=${
+              JWKS_CACHE_TIMEOUT_IN_SECONDS * 2
+            }, stale-if-error=86400`,
           },
         },
       );
@@ -147,8 +148,9 @@ export const wellKnownRoutes = new OpenAPIHono<{
         headers: {
           "access-control-allow-origin": "*",
           "access-control-allow-method": "GET",
-          "cache-control": `public, max-age=${JWKS_CACHE_TIMEOUT_IN_SECONDS}, stale-while-revalidate=${JWKS_CACHE_TIMEOUT_IN_SECONDS * 2
-            }, stale-if-error=86400`,
+          "cache-control": `public, max-age=${JWKS_CACHE_TIMEOUT_IN_SECONDS}, stale-while-revalidate=${
+            JWKS_CACHE_TIMEOUT_IN_SECONDS * 2
+          }, stale-if-error=86400`,
         },
       });
     },

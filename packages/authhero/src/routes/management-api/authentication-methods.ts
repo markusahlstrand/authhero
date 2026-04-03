@@ -1,6 +1,8 @@
 import { Bindings, Variables } from "../../types";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
+import { LogTypes } from "@authhero/adapter-interfaces";
+import { logMessage } from "../../helpers/logging";
 
 // Auth0-compatible authentication method response schema
 const authenticationMethodSchema = z.object({
@@ -197,6 +199,13 @@ export const authenticationMethodsRoutes = new OpenAPIHono<{
         },
       );
 
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Create Authentication Method",
+        targetType: "authentication_method",
+        targetId: enrollment.id,
+      });
+
       return ctx.json(
         {
           id: enrollment.id,
@@ -329,6 +338,13 @@ export const authenticationMethodsRoutes = new OpenAPIHono<{
           message: "Authentication method not found",
         });
       }
+
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Delete Authentication Method",
+        targetType: "authentication_method",
+        targetId: method_id,
+      });
 
       return ctx.body(null, 204);
     },

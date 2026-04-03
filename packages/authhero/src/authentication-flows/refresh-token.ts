@@ -121,8 +121,7 @@ export async function refreshTokenGrant(
     if (!isMember) {
       throw new JSONHTTPException(403, {
         error: "access_denied",
-        error_description:
-          "User is not a member of the specified organization",
+        error_description: "User is not a member of the specified organization",
       });
     }
   }

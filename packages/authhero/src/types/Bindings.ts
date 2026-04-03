@@ -1,7 +1,11 @@
 import { DataAdapters } from "@authhero/adapter-interfaces";
 import type { SamlSigner } from "@authhero/saml/core";
 import { Hooks } from "./Hooks";
-import { EntityHooksConfig, WebhookInvoker } from "./AuthHeroConfig";
+import {
+  EntityHooksConfig,
+  OutboxConfig,
+  WebhookInvoker,
+} from "./AuthHeroConfig";
 import { StrategyHandler } from "../strategies";
 
 declare type Fetcher = {
@@ -55,4 +59,8 @@ export type Bindings = {
   // Optional custom webhook invoker
   // Set via init({ webhookInvoker: ... })
   webhookInvoker?: WebhookInvoker;
+
+  // Optional transactional outbox configuration
+  // Set via init({ outbox: { enabled: true } })
+  outbox?: OutboxConfig;
 };

@@ -6,7 +6,9 @@ import {
   flowInsertSchema,
   flowSchema,
   totalsSchema,
+  LogTypes,
 } from "@authhero/adapter-interfaces";
+import { logMessage } from "../../helpers/logging";
 import { parseSort } from "../../utils/sort";
 
 const flowsWithTotalsSchema = totalsSchema.extend({
@@ -154,6 +156,13 @@ export const flowsRoutes = new OpenAPIHono<{
         });
       }
 
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Delete a Flow",
+        targetType: "flow",
+        targetId: id,
+      });
+
       return ctx.text("OK");
     },
   )
@@ -208,6 +217,14 @@ export const flowsRoutes = new OpenAPIHono<{
         });
       }
 
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Update a Flow",
+        targetType: "flow",
+        targetId: id,
+        afterState: flow as Record<string, unknown>,
+      });
+
       return ctx.json(flow);
     },
   )
@@ -252,6 +269,15 @@ export const flowsRoutes = new OpenAPIHono<{
       const body = ctx.req.valid("json");
 
       const flow = await ctx.env.data.flows.create(tenant_id, body);
+
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Create a Flow",
+        targetType: "flow",
+        targetId: flow.id,
+        afterState: flow as Record<string, unknown>,
+      });
+
       return ctx.json(flow, { status: 201 });
     },
   );

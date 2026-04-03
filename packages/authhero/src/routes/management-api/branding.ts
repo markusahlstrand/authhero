@@ -1,6 +1,7 @@
 import { Bindings, Variables } from "../../types";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { brandingSchema } from "@authhero/adapter-interfaces";
+import { brandingSchema, LogTypes } from "@authhero/adapter-interfaces";
+import { logMessage } from "../../helpers/logging";
 import { themesRoutes } from "./themes";
 import { DEFAULT_BRANDING } from "../../constants/defaultBranding";
 import { HTTPException } from "hono/http-exception";
@@ -97,6 +98,13 @@ export const brandingRoutes = new OpenAPIHono<{
       const updatedBranding = await ctx.env.data.branding.get(
         ctx.var.tenant_id,
       );
+
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Update Branding",
+        targetType: "branding",
+        targetId: ctx.var.tenant_id,
+      });
 
       return ctx.json(updatedBranding || DEFAULT_BRANDING);
     },
@@ -199,6 +207,13 @@ export const brandingRoutes = new OpenAPIHono<{
         template,
       );
 
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Set Universal Login Template",
+        targetType: "universal_login_template",
+        targetId: ctx.var.tenant_id,
+      });
+
       return ctx.body(null, 204);
     },
   )
@@ -228,6 +243,13 @@ export const brandingRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       await ctx.env.data.universalLoginTemplates.delete(ctx.var.tenant_id);
+
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Delete Universal Login Template",
+        targetType: "universal_login_template",
+        targetId: ctx.var.tenant_id,
+      });
 
       return ctx.body(null, 204);
     },

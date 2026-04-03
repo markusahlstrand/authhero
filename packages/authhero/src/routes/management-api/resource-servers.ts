@@ -6,8 +6,10 @@ import {
   resourceServerInsertSchema,
   resourceServerSchema,
   totalsSchema,
+  LogTypes,
 } from "@authhero/adapter-interfaces";
 import { parseSort } from "../../utils/sort";
+import { logMessage } from "../../helpers/logging";
 
 const resourceServersWithTotalsSchema = totalsSchema.extend({
   resource_servers: z.array(resourceServerSchema),
@@ -176,6 +178,14 @@ export const resourceServerRoutes = new OpenAPIHono<{
 
       await ctx.env.data.resourceServers.remove(tenant_id, id);
 
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Delete a Resource Server",
+        targetType: "resource_server",
+        targetId: id,
+        beforeState: resourceServer as unknown as Record<string, unknown>,
+      });
+
       return ctx.text("OK");
     },
   )
@@ -253,6 +263,18 @@ export const resourceServerRoutes = new OpenAPIHono<{
         });
       }
 
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Update a Resource Server",
+        targetType: "resource_server",
+        targetId: id,
+        beforeState: existingResourceServer as unknown as Record<
+          string,
+          unknown
+        >,
+        afterState: resourceServer as unknown as Record<string, unknown>,
+      });
+
       return ctx.json(resourceServer);
     },
   )
@@ -300,6 +322,14 @@ export const resourceServerRoutes = new OpenAPIHono<{
         tenant_id,
         body,
       );
+
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Create a Resource Server",
+        targetType: "resource_server",
+        targetId: resourceServer.id,
+        afterState: resourceServer as unknown as Record<string, unknown>,
+      });
 
       return ctx.json(resourceServer, { status: 201 });
     },

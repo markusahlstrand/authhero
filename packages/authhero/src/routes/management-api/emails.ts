@@ -1,6 +1,7 @@
 import { Bindings, Variables } from "../../types";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { emailProviderSchema } from "@authhero/adapter-interfaces";
+import { emailProviderSchema, LogTypes } from "@authhero/adapter-interfaces";
+import { logMessage } from "../../helpers/logging";
 import { HTTPException } from "hono/http-exception";
 
 export const emailProviderRoutes = new OpenAPIHono<{
@@ -87,6 +88,13 @@ export const emailProviderRoutes = new OpenAPIHono<{
         emailProvider,
       );
 
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Create Email Provider",
+        targetType: "email_provider",
+        targetId: ctx.var.tenant_id,
+      });
+
       return ctx.text("OK", { status: 201 });
     },
   )
@@ -125,6 +133,13 @@ export const emailProviderRoutes = new OpenAPIHono<{
       const branding = ctx.req.valid("json");
 
       await ctx.env.data.emailProviders.update(ctx.var.tenant_id, branding);
+
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Update Email Provider",
+        targetType: "email_provider",
+        targetId: ctx.var.tenant_id,
+      });
 
       return ctx.text("OK");
     },

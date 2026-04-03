@@ -193,9 +193,7 @@ export const passkeyEnrollmentNudgeScreenDefinition: ScreenDefinition = {
       }
 
       // Verify the session is in the correct continuation state
-      if (
-        !hasValidContinuationScope(loginSession, "passkey-enrollment")
-      ) {
+      if (!hasValidContinuationScope(loginSession, "passkey-enrollment")) {
         return { screen: await passkeyEnrollmentNudgeScreen(context) };
       }
 

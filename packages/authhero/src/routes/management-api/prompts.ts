@@ -4,8 +4,10 @@ import {
   promptSettingSchema,
   promptScreenSchema,
   customTextSchema,
+  LogTypes,
 } from "@authhero/adapter-interfaces";
 import { getLocaleDefaults } from "../../i18n";
+import { logMessage } from "../../helpers/logging";
 
 export const promptsRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -98,6 +100,13 @@ export const promptsRoutes = new OpenAPIHono<{
         ctx.var.tenant_id,
         updatedPromptSettings,
       );
+
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Update Prompt Settings",
+        targetType: "prompt_settings",
+        targetId: ctx.var.tenant_id,
+      });
 
       return ctx.json(updatedPromptSettings);
     },
@@ -263,6 +272,13 @@ export const promptsRoutes = new OpenAPIHono<{
         customText,
       );
 
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Set Custom Text",
+        targetType: "custom_text",
+        targetId: ctx.var.tenant_id,
+      });
+
       return ctx.json(customText);
     },
   )
@@ -299,6 +315,13 @@ export const promptsRoutes = new OpenAPIHono<{
       const { prompt, language } = ctx.req.valid("param");
 
       await ctx.env.data.customText.delete(ctx.var.tenant_id, prompt, language);
+
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Delete Custom Text",
+        targetType: "custom_text",
+        targetId: ctx.var.tenant_id,
+      });
 
       return ctx.body(null, 204);
     },

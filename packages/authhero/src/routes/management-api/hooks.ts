@@ -4,7 +4,9 @@ import {
   hookInsertSchema,
   hookSchema,
   totalsSchema,
+  LogTypes,
 } from "@authhero/adapter-interfaces";
+import { logMessage } from "../../helpers/logging";
 import { querySchema } from "../../types/auth0/Query";
 import { parseSort } from "../../utils/sort";
 import { HTTPException } from "hono/http-exception";
@@ -117,6 +119,14 @@ export const hooksRoutes = new OpenAPIHono<{
         hookData,
       );
 
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Create a Hook",
+        targetType: "hook",
+        targetId: hooks.hook_id,
+        afterState: hooks as Record<string, unknown>,
+      });
+
       return ctx.json(hooks, { status: 201 });
     },
   )
@@ -177,6 +187,14 @@ export const hooksRoutes = new OpenAPIHono<{
       if (!result) {
         throw new HTTPException(404, { message: "Hook not found" });
       }
+
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Update a Hook",
+        targetType: "hook",
+        targetId: hook_id,
+        afterState: result as Record<string, unknown>,
+      });
 
       return ctx.json(result);
     },
@@ -268,6 +286,13 @@ export const hooksRoutes = new OpenAPIHono<{
       if (!result) {
         throw new HTTPException(404, { message: "Hook not found" });
       }
+
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Delete a Hook",
+        targetType: "hook",
+        targetId: hook_id,
+      });
 
       return ctx.text("OK");
     },

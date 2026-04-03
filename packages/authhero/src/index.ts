@@ -114,6 +114,11 @@ export function init(config: AuthHeroConfig) {
       ctx.env.webhookInvoker = config.webhookInvoker;
     }
 
+    // Add outbox config if provided
+    if (config.outbox) {
+      ctx.env.outbox = config.outbox;
+    }
+
     await next();
   });
 

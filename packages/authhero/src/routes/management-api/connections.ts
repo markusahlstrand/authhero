@@ -1,11 +1,13 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
 import { HTTPException } from "hono/http-exception";
+import { logMessage } from "../../helpers/logging";
 import { querySchema } from "../../types";
 import {
   connectionInsertSchema,
   connectionSchema,
   totalsSchema,
+  LogTypes,
 } from "@authhero/adapter-interfaces";
 import { parseSort } from "../../utils/sort";
 import { generateConnectionId } from "../../utils/entity-id";
@@ -180,6 +182,13 @@ export const connectionRoutes = new OpenAPIHono<{
         });
       }
 
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Delete a Connection",
+        targetType: "connection",
+        targetId: id,
+      });
+
       return ctx.text("OK");
     },
   )
@@ -227,6 +236,8 @@ export const connectionRoutes = new OpenAPIHono<{
       const body = ctx.req.valid("json");
       const tenantId = ctx.var.tenant_id;
 
+      const connectionBefore = await ctx.env.data.connections.get(tenantId, id);
+
       const result = await ctx.env.data.connections.update(tenantId, id, body);
       if (!result) {
         throw new HTTPException(404, {
@@ -241,6 +252,16 @@ export const connectionRoutes = new OpenAPIHono<{
           message: "Connection not found",
         });
       }
+
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Update a Connection",
+        beforeState: connectionBefore as Record<string, unknown>,
+        afterState: connection as Record<string, unknown>,
+        targetType: "connection",
+        targetId: id,
+        body,
+      });
 
       return ctx.json(connection);
     },
@@ -291,6 +312,14 @@ export const connectionRoutes = new OpenAPIHono<{
       const connection = await ctx.env.data.connections.create(tenantId, {
         ...body,
         id: connectionId,
+      });
+
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Create a Connection",
+        afterState: connection as Record<string, unknown>,
+        targetType: "connection",
+        targetId: connection.id,
       });
 
       return ctx.json(connection, { status: 201 });
@@ -446,6 +475,13 @@ export const connectionRoutes = new OpenAPIHono<{
           }
         }
       }
+
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Update Connection Clients",
+        targetType: "connection_client",
+        targetId: id,
+      });
 
       return ctx.text("OK");
     },

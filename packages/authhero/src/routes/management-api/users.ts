@@ -241,13 +241,18 @@ export const userRoutes = new OpenAPIHono<{
         },
       ],
       responses: {
-        200: {
+        204: {
           description: "Status",
         },
       },
     }),
     async (ctx) => {
       const { user_id } = ctx.req.valid("param");
+
+      const userToDelete = await ctx.env.data.users.get(
+        ctx.var.tenant_id,
+        user_id,
+      );
 
       const result = await ctx.env.data.users.remove(
         ctx.var.tenant_id,
@@ -262,13 +267,16 @@ export const userRoutes = new OpenAPIHono<{
       await logMessage(ctx, ctx.var.tenant_id, {
         type: LogTypes.SUCCESS_API_OPERATION,
         description: "Delete a User",
+        beforeState: userToDelete ?? undefined,
+        targetType: "user",
+        targetId: user_id,
         response: {
           statusCode: 204,
           body: {},
         },
       });
 
-      return ctx.text("OK");
+      return ctx.body(null, 204);
     },
   )
   // --------------------------------
@@ -381,6 +389,9 @@ export const userRoutes = new OpenAPIHono<{
         await logMessage(ctx, ctx.var.tenant_id, {
           type: LogTypes.SUCCESS_API_OPERATION,
           description: "User created",
+          afterState: result,
+          targetType: "user",
+          targetId: result.user_id,
         });
 
         // Build response with identities
@@ -619,6 +630,10 @@ export const userRoutes = new OpenAPIHono<{
       await logMessage(ctx, ctx.var.tenant_id, {
         type: LogTypes.SUCCESS_API_OPERATION,
         description: "Update a User",
+        beforeState: userToPatch,
+        afterState: patchedUser,
+        targetType: "user",
+        targetId: user_id,
         body,
         response: {
           statusCode: 200,
@@ -701,6 +716,13 @@ export const userRoutes = new OpenAPIHono<{
 
       const identities = [user, ...linkedusers.users].map(pickIdentity);
 
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Link a user identity",
+        targetType: "identity",
+        targetId: user_id,
+      });
+
       return ctx.json(z.array(identitySchema).parse(identities), {
         status: 201,
       });
@@ -754,6 +776,13 @@ export const userRoutes = new OpenAPIHono<{
       if (!user) {
         throw new HTTPException(404);
       }
+
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Unlink a user identity",
+        targetType: "identity",
+        targetId: user_id,
+      });
 
       return ctx.json([auth0UserResponseSchema.parse(user)]);
     },
@@ -946,6 +975,13 @@ export const userRoutes = new OpenAPIHono<{
         }
       }
 
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Assign permissions to a user",
+        targetType: "user_permission",
+        targetId: user_id,
+      });
+
       return ctx.json(
         { message: "Permissions assigned successfully" },
         { status: 201 },
@@ -1019,6 +1055,13 @@ export const userRoutes = new OpenAPIHono<{
           });
         }
       }
+
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Remove permissions from a user",
+        targetType: "user_permission",
+        targetId: user_id,
+      });
 
       return ctx.json({ message: "Permissions removed successfully" });
     },
@@ -1102,6 +1145,13 @@ export const userRoutes = new OpenAPIHono<{
         }
       }
 
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Assign roles to a user",
+        targetType: "user_role",
+        targetId: user_id,
+      });
+
       return ctx.json(
         { message: "Roles assigned successfully" },
         { status: 201 },
@@ -1151,6 +1201,13 @@ export const userRoutes = new OpenAPIHono<{
           });
         }
       }
+
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Remove roles from a user",
+        targetType: "user_role",
+        targetId: user_id,
+      });
 
       return ctx.json({ message: "Roles removed successfully" });
     },
@@ -1276,6 +1333,13 @@ export const userRoutes = new OpenAPIHono<{
         ctx.var.tenant_id,
         membershipToRemove.id,
       );
+
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Remove a user from an organization",
+        targetType: "user_organization",
+        targetId: user_id,
+      });
 
       return ctx.json({
         message: "User removed from organization successfully",

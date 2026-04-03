@@ -68,7 +68,7 @@ export default function createAdapters(
     tableName: config.tableName,
   };
 
-  return {
+  const adapters: DataAdapters = {
     branding: createBrandingAdapter(ctx),
     clients: createClientsAdapter(ctx),
     clientConnections: createClientConnectionsAdapter(ctx),
@@ -101,7 +101,29 @@ export default function createAdapters(
     userPermissions: createUserPermissionsAdapter(ctx),
     userRoles: createUserRolesAdapter(ctx),
     users: createUsersAdapter(ctx),
+    // DynamoDB does not support SQL-style transactions that span arbitrary
+    // reads and writes.  TransactWriteItems only supports up to 100 write
+    // operations and cannot wrap interleaved read→write logic, so a generic
+    // buffered-write proxy is not feasible without rewriting every adapter.
+    //
+    // The passthrough is safe as long as no OutboxAdapter is attached,
+    // because the outbox pattern specifically relies on atomicity between
+    // entity writes and outbox event writes.  If an outbox is present we
+    // throw early so the caller knows atomicity cannot be guaranteed.
+    async transaction<T>(
+      fn: (trxAdapters: DataAdapters) => Promise<T>,
+    ): Promise<T> {
+      if (adapters.outbox) {
+        throw new Error(
+          "DynamoDB adapter does not support atomic transactions. " +
+            "Cannot guarantee atomicity between entity writes and outbox " +
+            "events. Use a SQL-backed adapter for outbox-enabled tenants.",
+        );
+      }
+      return fn(adapters);
+    },
   };
+  return adapters;
 }
 
 // Re-export individual adapters for custom usage
