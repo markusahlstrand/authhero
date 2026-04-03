@@ -20,7 +20,7 @@ The outbox separates **capture** from **delivery**: the audit event is written t
 
 When the outbox is enabled, each mutating management API request is wrapped in a single database transaction:
 
-```
+```text
 ┌─────────────────────────────────────────────┐
 │  DB Transaction (request-scoped)            │
 │                                             │

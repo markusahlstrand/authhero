@@ -44,8 +44,12 @@ export async function drainOutbox(
   const failedIds: string[] = [];
 
   for (const event of events) {
-    // Skip events that have exceeded max retries
+    // Mark exhausted events as processed so they don't block the queue
     if (event.retry_count >= maxRetries) {
+      console.warn(
+        `Outbox event ${event.id} exceeded max retries (${maxRetries}), marking as processed. Last error: ${event.error}`,
+      );
+      processedIds.push(event.id);
       continue;
     }
 

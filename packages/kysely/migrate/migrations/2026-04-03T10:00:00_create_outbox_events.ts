@@ -16,7 +16,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
     .addColumn("payload", "text", (col) => col.notNull())
     .addColumn("created_at", "varchar(35)", (col) => col.notNull())
     .addColumn("processed_at", "varchar(35)")
-    .addColumn("retry_count", "integer", (col) => col.defaultTo(0))
+    .addColumn("retry_count", "integer", (col) => col.notNull().defaultTo(0))
     .addColumn("next_retry_at", "varchar(35)")
     .addColumn("error", "text")
     .execute();

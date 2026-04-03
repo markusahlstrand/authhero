@@ -18,9 +18,8 @@ function toLogInsert(event: AuditEvent): LogInsert {
     description: event.description || "",
     ip: event.request.ip,
     user_agent: event.request.user_agent || "",
-    user_id:
-      event.target.type === "user" ? event.target.id : event.actor.id || "",
-    user_name: "",
+    user_id: event.actor.id || "",
+    user_name: event.actor.email || "",
     client_id: event.actor.client_id,
     client_name: "",
     connection: event.connection,

@@ -15,9 +15,11 @@ Audit events are written as `LogInsert` records to the logs table via `waitUntil
 
 ### Transactional Outbox Mode
 
-When enabled, a rich `AuditEvent` is written to an `outbox_events` table **within the same database transaction** as the entity mutation. A background relay then transforms and delivers events to destinations (logs table, and potentially Analytics Engine, R2, webhooks).
+When enabled, a rich `AuditEvent` is written to an `outbox_events` table alongside the entity mutation. A background relay then transforms and delivers events to destinations (logs table, and potentially Analytics Engine, R2, webhooks).
 
-This guarantees that if the entity write succeeds, the audit event is captured. If either fails, both are rolled back.
+**With transactions enabled** (the default, `useTransactions: true` in the Kysely adapter), the outbox write and entity mutation share the same database transaction. This guarantees that if the entity write succeeds, the audit event is captured. If either fails, both are rolled back.
+
+**With `useTransactions: false`** (passthrough mode), the outbox write is best-effort and not rollback-safe. The entity mutation and outbox insert are independent writes — if the entity write fails after the outbox write succeeds, the background relay may still deliver the audit event for a mutation that was never persisted.
 
 ## Configuration
 
@@ -58,11 +60,11 @@ When `captureEntityState` is enabled, update operations capture the entity state
 
 ## How Events Flow
 
-```
+```text
 Request Handler
   │
-  ├─ Entity write (e.g., UPDATE user)     ┐
-  └─ Outbox write (INSERT outbox_events)  ┘  Same DB transaction
+  ├─ Entity write (e.g., UPDATE user)     ┐  Same DB transaction when
+  └─ Outbox write (INSERT outbox_events)  ┘  useTransactions: true (default)
                     │
                     ▼  waitUntil (after response)
               Outbox Relay

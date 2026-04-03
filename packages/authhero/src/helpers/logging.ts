@@ -106,8 +106,13 @@ function buildAuditEvent(
   tenantId: string,
   params: LogParams,
 ): AuditEventInsert {
-  const beforeState = redactSensitiveFields(params.beforeState);
-  const afterState = redactSensitiveFields(params.afterState);
+  const captureEntityState = ctx.env.outbox?.captureEntityState !== false;
+  const beforeState = captureEntityState
+    ? redactSensitiveFields(params.beforeState)
+    : undefined;
+  const afterState = captureEntityState
+    ? redactSensitiveFields(params.afterState)
+    : undefined;
 
   return {
     tenant_id: tenantId,
@@ -193,14 +198,6 @@ export async function logMessage(
   tenantId: string,
   params: LogParams,
 ): Promise<void> {
-  // Outbox path: write rich AuditEvent to outbox (synchronously, within transaction)
-  if (ctx.env.outbox?.enabled && ctx.env.data.outbox) {
-    const event = buildAuditEvent(ctx, tenantId, params);
-    await ctx.env.data.outbox.create(tenantId, event);
-    return;
-  }
-
-  // Legacy path: build LogInsert and fire-and-forget
   // Extract headers synchronously before any async operations
   // Must create a plain object copy because the Headers object may not be
   // accessible after the request context closes (e.g., in waitUntil)
@@ -211,6 +208,26 @@ export async function logMessage(
     for (const [key, value] of Object.entries(rawHeaders)) {
       headers[key.toLowerCase()] = value;
     }
+  }
+
+  // Outbox path: write rich AuditEvent to outbox (synchronously, within transaction)
+  if (ctx.env.outbox?.enabled && ctx.env.data.outbox) {
+    const event = buildAuditEvent(ctx, tenantId, params);
+
+    // Enrich with geo information if adapter is available
+    if (ctx.env.data.geo) {
+      try {
+        const geoInfo = await ctx.env.data.geo.getGeoInfo(headers);
+        if (geoInfo) {
+          event.location = geoInfo;
+        }
+      } catch {
+        // Silently ignore geo lookup errors
+      }
+    }
+
+    await ctx.env.data.outbox.create(tenantId, event);
+    return;
   }
 
   const createLogPromise = async () => {
