@@ -8,7 +8,9 @@ import {
   roleInsertSchema,
   totalsSchema,
   rolePermissionListSchema,
+  LogTypes,
 } from "@authhero/adapter-interfaces";
+import { logMessage } from "../../helpers/logging";
 
 const rolesWithTotalsSchema = totalsSchema.extend({
   roles: z.array(roleSchema),
@@ -172,6 +174,14 @@ export const roleRoutes = new OpenAPIHono<{
 
       const role = await ctx.env.data.roles.create(tenantId, body);
 
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Create a Role",
+        targetType: "role",
+        targetId: role.id,
+        afterState: role as unknown as Record<string, unknown>,
+      });
+
       return ctx.json(role, { status: 201 });
     },
   )
@@ -232,6 +242,14 @@ export const roleRoutes = new OpenAPIHono<{
 
       const role = await ctx.env.data.roles.get(tenantId, id);
 
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Update a Role",
+        targetType: "role",
+        targetId: id,
+        afterState: role as unknown as Record<string, unknown>,
+      });
+
       return ctx.json(role!);
     },
   )
@@ -276,6 +294,13 @@ export const roleRoutes = new OpenAPIHono<{
       if (!deleted) {
         throw new HTTPException(404);
       }
+
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Delete a Role",
+        targetType: "role",
+        targetId: id,
+      });
 
       return ctx.text("OK");
     },
@@ -428,6 +453,13 @@ export const roleRoutes = new OpenAPIHono<{
         });
       }
 
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Assign Permissions to a Role",
+        targetType: "role_permission",
+        targetId: id,
+      });
+
       return ctx.json(
         { message: "Permissions assigned successfully" },
         { status: 201 },
@@ -505,6 +537,13 @@ export const roleRoutes = new OpenAPIHono<{
           message: "Failed to remove permissions from role",
         });
       }
+
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Remove Permissions from a Role",
+        targetType: "role_permission",
+        targetId: id,
+      });
 
       return ctx.json({ message: "Permissions removed successfully" });
     },

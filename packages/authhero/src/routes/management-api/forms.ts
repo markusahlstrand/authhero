@@ -6,7 +6,9 @@ import {
   formInsertSchema,
   formSchema,
   totalsSchema,
+  LogTypes,
 } from "@authhero/adapter-interfaces";
+import { logMessage } from "../../helpers/logging";
 import { parseSort } from "../../utils/sort";
 
 const formsWithTotalsSchema = totalsSchema.extend({
@@ -147,6 +149,14 @@ export const formsRoutes = new OpenAPIHono<{
           message: "Form not found",
         });
       }
+
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Delete a Form",
+        targetType: "form",
+        targetId: id,
+      });
+
       return ctx.text("OK");
     },
   )
@@ -205,6 +215,15 @@ export const formsRoutes = new OpenAPIHono<{
           message: "Form not found",
         });
       }
+
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Update a Form",
+        targetType: "form",
+        targetId: id,
+        afterState: form as Record<string, unknown>,
+      });
+
       return ctx.json(form);
     },
   )
@@ -248,6 +267,15 @@ export const formsRoutes = new OpenAPIHono<{
       const tenant_id = ctx.var.tenant_id;
       const body = ctx.req.valid("json");
       const form = await ctx.env.data.forms.create(tenant_id, body);
+
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Create a Form",
+        targetType: "form",
+        targetId: form.id,
+        afterState: form as Record<string, unknown>,
+      });
+
       return ctx.json(form, { status: 201 });
     },
   );

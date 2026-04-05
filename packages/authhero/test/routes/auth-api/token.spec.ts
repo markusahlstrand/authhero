@@ -1717,8 +1717,7 @@ describe("token", () => {
       const body = (await response.json()) as ErrorResponse;
       expect(body).toEqual({
         error: "access_denied",
-        error_description:
-          "User is not a member of the specified organization",
+        error_description: "User is not a member of the specified organization",
       });
 
       // Clean up

@@ -5,7 +5,9 @@ import { querySchema } from "../../types";
 import {
   customDomainInsertSchema,
   customDomainSchema,
+  LogTypes,
 } from "@authhero/adapter-interfaces";
+import { logMessage } from "../../helpers/logging";
 
 export const customDomainRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -136,6 +138,13 @@ export const customDomainRoutes = new OpenAPIHono<{
         });
       }
 
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Delete a Custom Domain",
+        targetType: "custom_domain",
+        targetId: id,
+      });
+
       return ctx.text("OK");
     },
   )
@@ -200,6 +209,14 @@ export const customDomainRoutes = new OpenAPIHono<{
         throw new HTTPException(404);
       }
 
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Update a Custom Domain",
+        targetType: "custom_domain",
+        targetId: id,
+        afterState: customDomain as Record<string, unknown>,
+      });
+
       return ctx.json(customDomain);
     },
   )
@@ -246,6 +263,14 @@ export const customDomainRoutes = new OpenAPIHono<{
         ctx.var.tenant_id,
         body,
       );
+
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Create a Custom Domain",
+        targetType: "custom_domain",
+        targetId: customDomain.custom_domain_id,
+        afterState: customDomain as Record<string, unknown>,
+      });
 
       return ctx.json(customDomain, { status: 201 });
     },

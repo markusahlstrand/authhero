@@ -5,7 +5,9 @@ import {
   clientGrantInsertSchema,
   clientGrantSchema,
   totalsSchema,
+  LogTypes,
 } from "@authhero/adapter-interfaces";
+import { logMessage } from "../../helpers/logging";
 
 // Auth0-compatible query schema for client grants
 const clientGrantsQuerySchema = z.object({
@@ -254,6 +256,13 @@ export const clientGrantRoutes = new OpenAPIHono<{
         });
       }
 
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Delete a Client Grant",
+        targetType: "client_grant",
+        targetId: id,
+      });
+
       return ctx.text("OK");
     },
   )
@@ -326,6 +335,16 @@ export const clientGrantRoutes = new OpenAPIHono<{
           message: "Client grant not found",
         });
       }
+
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Update a Client Grant",
+        targetType: "client_grant",
+        targetId: id,
+        beforeState: exists as Record<string, unknown>,
+        afterState: clientGrant as Record<string, unknown>,
+      });
+
       return ctx.json(clientGrant);
     },
   )
@@ -373,6 +392,14 @@ export const clientGrantRoutes = new OpenAPIHono<{
         tenant_id,
         body,
       );
+
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Create a Client Grant",
+        targetType: "client_grant",
+        targetId: clientGrant.id,
+        afterState: clientGrant as Record<string, unknown>,
+      });
 
       return ctx.json(clientGrant, { status: 201 });
     },

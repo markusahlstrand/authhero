@@ -1,4 +1,5 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
+import { Context } from "hono";
 import { Bindings, Variables, AuthHeroConfig } from "../../types";
 import { brandingRoutes } from "./branding";
 import { userRoutes } from "./users";
@@ -32,6 +33,10 @@ import { organizationRoutes } from "./organizations";
 import { statsRoutes } from "./stats";
 import { guardianRoutes } from "./guardian";
 import { authenticationMethodsRoutes } from "./authentication-methods";
+import { DataAdapters } from "@authhero/adapter-interfaces";
+import { waitUntil } from "../../helpers/wait-until";
+import { drainOutbox } from "../../helpers/outbox-relay";
+import { LogsDestination } from "../../helpers/outbox-destinations/logs";
 
 export default function create(config: AuthHeroConfig) {
   const app = new OpenAPIHono<{
@@ -144,20 +149,21 @@ export default function create(config: AuthHeroConfig) {
 
   registerComponent(app);
 
-  app.use(async (ctx, next) => {
-    // First add data hooks (for user operations)
-    const dataWithHooks = addDataHooks(ctx, managementAdapter);
+  // Apply decorator chain (hooks, caching, timing) on top of base adapters
+  const applyDecorators = (
+    ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+    data: DataAdapters,
+  ): DataAdapters => {
+    const dataWithHooks = addDataHooks(ctx, data);
 
-    // Management API always uses request-scoped caching for data freshness
     const cacheAdapter = createInMemoryCache({
-      defaultTtlSeconds: 0, // No TTL for request-scoped cache
-      maxEntries: 100, // Smaller limit since it's per-request
-      cleanupIntervalMs: 0, // Disable cleanup since cache dies with the request
+      defaultTtlSeconds: 0,
+      maxEntries: 100,
+      cleanupIntervalMs: 0,
     });
 
-    // Then wrap with caching for commonly accessed read-only entities
     const cachedData = addCaching(dataWithHooks, {
-      defaultTtl: 0, // Always use request-scoped caching for management API
+      defaultTtl: 0,
       cacheEntities: [
         "tenants",
         "connections",
@@ -172,13 +178,42 @@ export default function create(config: AuthHeroConfig) {
       cache: cacheAdapter,
     });
 
-    // Store cached data initially - entity hooks will be added after tenant is known
-    ctx.env.data = addTimingLogs(ctx, cachedData);
+    return addTimingLogs(ctx, cachedData);
+  };
 
-    // Store config for entity hooks (to be applied after tenant middleware)
-    ctx.env.entityHooks = config.entityHooks;
+  const MUTATING_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"]);
 
-    return next();
+  app.use(async (ctx, next) => {
+    const outboxEnabled = ctx.env.outbox?.enabled;
+    const isMutating = MUTATING_METHODS.has(ctx.req.method);
+
+    if (outboxEnabled && isMutating) {
+      // Wrap the entire request in a transaction so entity writes
+      // and outbox event writes are atomic
+      await managementAdapter.transaction(async (trxAdapters) => {
+        ctx.env.data = applyDecorators(ctx, trxAdapters);
+        ctx.env.entityHooks = config.entityHooks;
+        await next();
+      });
+      // Transaction committed — drain outbox in background
+      if (managementAdapter.outbox) {
+        waitUntil(
+          ctx,
+          drainOutbox(
+            managementAdapter.outbox,
+            [new LogsDestination(managementAdapter.logs)],
+            {
+              maxRetries: ctx.env.outbox?.maxRetries,
+              retentionDays: ctx.env.outbox?.retentionDays,
+            },
+          ),
+        );
+      }
+    } else {
+      ctx.env.data = applyDecorators(ctx, managementAdapter);
+      ctx.env.entityHooks = config.entityHooks;
+      await next();
+    }
   });
 
   app

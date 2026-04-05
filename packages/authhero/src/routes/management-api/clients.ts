@@ -4,9 +4,11 @@ import {
   clientInsertSchema,
   totalsSchema,
   connectionSchema,
+  LogTypes,
 } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../../types";
 import { HTTPException } from "hono/http-exception";
+import { logMessage } from "../../helpers/logging";
 import { nanoid } from "nanoid";
 import { querySchema } from "../../types/auth0/Query";
 import { parseSort } from "../../utils/sort";
@@ -171,6 +173,13 @@ export const clientRoutes = new OpenAPIHono<{
         throw new HTTPException(404, { message: "Client not found" });
       }
 
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Delete a Client",
+        targetType: "client",
+        targetId: id,
+      });
+
       return ctx.text("OK");
     },
   )
@@ -220,12 +229,23 @@ export const clientRoutes = new OpenAPIHono<{
 
       const clientUpdate = body;
 
+      const clientBefore = await ctx.env.data.clients.get(tenant_id, id);
       await ctx.env.data.clients.update(tenant_id, id, clientUpdate);
       const client = await ctx.env.data.clients.get(tenant_id, id);
 
       if (!client) {
         throw new HTTPException(404, { message: "Client not found" });
       }
+
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Update a Client",
+        beforeState: clientBefore as Record<string, unknown>,
+        afterState: client as Record<string, unknown>,
+        targetType: "client",
+        targetId: id,
+        body,
+      });
 
       return ctx.json(client);
     },
@@ -276,6 +296,14 @@ export const clientRoutes = new OpenAPIHono<{
       };
 
       const client = await ctx.env.data.clients.create(tenant_id, clientCreate);
+
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Create a Client",
+        afterState: client as Record<string, unknown>,
+        targetType: "client",
+        targetId: client.client_id,
+      });
 
       return ctx.json(client, { status: 201 });
     },
@@ -446,6 +474,13 @@ export const clientRoutes = new OpenAPIHono<{
           };
         }),
       );
+
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Update Client Connections",
+        targetType: "client_connection",
+        targetId: id,
+      });
 
       return ctx.json({ enabled_connections: enabledConnections });
     },

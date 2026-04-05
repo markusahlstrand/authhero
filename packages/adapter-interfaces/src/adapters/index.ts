@@ -35,6 +35,7 @@ import { UniversalLoginTemplatesAdapter } from "./UniversalLoginTemplates";
 import { CustomTextAdapter } from "./CustomText";
 import { EmailServiceAdapter } from "./EmailService";
 import { SmsServiceAdapter } from "./SmsService";
+import { OutboxAdapter } from "./Outbox";
 
 /**
  * Parameters for cleaning up expired sessions
@@ -84,6 +85,14 @@ export interface DataAdapters {
   userOrganizations: UserOrganizationsAdapter;
   emailService?: EmailServiceAdapter;
   smsService?: SmsServiceAdapter;
+  /** Optional outbox adapter for transactional audit event capture */
+  outbox?: OutboxAdapter;
+  /**
+   * Execute a callback within a database transaction.
+   * The callback receives a set of adapters scoped to the transaction.
+   * If the callback throws, the transaction is rolled back.
+   */
+  transaction<T>(fn: (trxAdapters: DataAdapters) => Promise<T>): Promise<T>;
   /**
    * Optional session cleanup function.
    * Cleans up expired login_sessions, sessions, and refresh_tokens.
@@ -119,3 +128,4 @@ export * from "./CustomText";
 export * from "./AuthenticationMethods";
 export * from "./EmailService";
 export * from "./SmsService";
+export * from "./Outbox";

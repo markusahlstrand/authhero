@@ -140,10 +140,7 @@ export const mfaLoginOptionsScreenDefinition: ScreenDefinition = {
       // Show available enrollment options for factors the user hasn't enrolled in yet
       const enrolledTypes = new Set(confirmedEnrollments.map((e) => e.type));
 
-      if (
-        tenant.mfa?.factors?.otp === true &&
-        !enrolledTypes.has("totp")
-      ) {
+      if (tenant.mfa?.factors?.otp === true && !enrolledTypes.has("totp")) {
         options.push({
           id: "enroll-totp",
           type: "totp",
@@ -151,10 +148,7 @@ export const mfaLoginOptionsScreenDefinition: ScreenDefinition = {
           description: m.authenticatorAppDescription(),
         });
       }
-      if (
-        tenant.mfa?.factors?.sms === true &&
-        !enrolledTypes.has("phone")
-      ) {
+      if (tenant.mfa?.factors?.sms === true && !enrolledTypes.has("phone")) {
         options.push({
           id: "enroll-phone",
           type: "phone",

@@ -35,8 +35,7 @@ export async function tenantMiddleware(
 
   // Check x-forwarded-host for custom domains (used for proxied requests)
   if (xForwardedHost) {
-    const domain =
-      await ctx.env.data.customDomains.getByDomain(xForwardedHost);
+    const domain = await ctx.env.data.customDomains.getByDomain(xForwardedHost);
     if (domain) {
       ctx.set("tenant_id", domain.tenant_id);
       ctx.set("custom_domain", xForwardedHost);

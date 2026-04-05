@@ -1,8 +1,9 @@
 import { Bindings, Variables } from "../../types";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { themeSchema } from "@authhero/adapter-interfaces";
+import { themeSchema, LogTypes } from "@authhero/adapter-interfaces";
 import { DEFAULT_THEME } from "../../constants/defaultTheme";
 import { deepMergePatch } from "../../utils/deep-merge";
+import { logMessage } from "../../helpers/logging";
 
 export const themesRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -111,6 +112,17 @@ export const themesRoutes = new OpenAPIHono<{
           "default",
         );
       }
+
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Update Theme",
+        targetType: "theme",
+        targetId: "default",
+        ...(existingTheme
+          ? { beforeState: existingTheme as Record<string, unknown> }
+          : {}),
+        afterState: mergedTheme as Record<string, unknown>,
+      });
 
       // Return the merged theme (what we just saved)
       return ctx.json({ ...mergedTheme, themeId: "default" });

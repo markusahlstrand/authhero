@@ -243,9 +243,10 @@ export const passkeyEnrollmentScreenDefinition: ScreenDefinition = {
         client.tenant.id,
         user.user_id,
       );
-      const passkeyTypes = ["passkey", "webauthn-roaming", "webauthn-platform"];
       const excludeCredentials = enrollments
-        .filter((e) => passkeyTypes.includes(e.type) && e.credential_id)
+        .filter(
+          (e) => PASSKEY_TYPES.includes(e.type as (typeof PASSKEY_TYPES)[number]) && e.credential_id,
+        )
         .map((e) => ({
           id: e.credential_id!,
           transports: (e.transports || []) as AuthenticatorTransport[],

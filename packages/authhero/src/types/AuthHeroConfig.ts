@@ -111,6 +111,21 @@ export interface ManagementApiExtension {
   router: OpenAPIHono<any, any, any>;
 }
 
+/**
+ * Configuration for the transactional outbox pattern.
+ * When enabled, audit events are written atomically with entity mutations
+ * and delivered asynchronously by a background relay.
+ */
+export interface OutboxConfig {
+  enabled: boolean;
+  /** Capture entity before/after state in audit events (default: true) */
+  captureEntityState?: boolean;
+  /** Days to retain processed outbox events before cleanup (default: 7) */
+  retentionDays?: number;
+  /** Max delivery retries before giving up on an event (default: 5) */
+  maxRetries?: number;
+}
+
 export interface AuthHeroConfig {
   dataAdapter: DataAdapters;
 
@@ -289,4 +304,12 @@ export interface AuthHeroConfig {
    * enabling client-side routing in the admin SPA.
    */
   adminIndexHtml?: string;
+
+  /**
+   * Transactional outbox configuration.
+   * When enabled, audit events are written atomically within the same
+   * database transaction as entity mutations, then delivered asynchronously
+   * by a background relay to the logs table (and other destinations).
+   */
+  outbox?: OutboxConfig;
 }

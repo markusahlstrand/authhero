@@ -1,7 +1,11 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
 import { HTTPException } from "hono/http-exception";
-import { refreshTokenInsertSchema } from "@authhero/adapter-interfaces";
+import {
+  refreshTokenInsertSchema,
+  LogTypes,
+} from "@authhero/adapter-interfaces";
+import { logMessage } from "../../helpers/logging";
 
 export const refreshTokensRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -94,6 +98,13 @@ export const refreshTokensRoutes = new OpenAPIHono<{
           message: "Session not found",
         });
       }
+
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Delete a Refresh Token",
+        targetType: "refresh_token",
+        targetId: id,
+      });
 
       return ctx.text("OK");
     },

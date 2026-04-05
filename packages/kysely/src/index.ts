@@ -35,6 +35,7 @@ import { createInvitesAdapter } from "./invites";
 import { createStatsAdapter } from "./stats";
 import { createCustomTextAdapter } from "./customText";
 import { createAuthenticationMethodsAdapter } from "./authenticationMethods";
+import { createOutboxAdapter } from "./outbox";
 
 export { migrateToLatest, migrateDown } from "../migrate/migrate";
 
@@ -42,7 +43,7 @@ export default function createAdapters(
   db: Kysely<Database>,
   databaseOptions = { useTransactions: true },
 ): DataAdapters {
-  return {
+  const adapters: DataAdapters = {
     branding: createBrandingAdapter(db),
     clients: createClientsAdapter(db),
     clientConnections: createClientConnectionsAdapter(db),
@@ -77,5 +78,18 @@ export default function createAdapters(
     organizations: createOrganizationsAdapter(db),
     userOrganizations: createUserOrganizationsAdapter(db),
     stats: createStatsAdapter(db),
+    outbox: createOutboxAdapter(db),
+    async transaction<T>(
+      fn: (trxAdapters: DataAdapters) => Promise<T>,
+    ): Promise<T> {
+      if (databaseOptions.useTransactions === false) {
+        return fn(adapters);
+      }
+      return db.transaction().execute(async (trx) => {
+        const trxAdapters = createAdapters(trx, databaseOptions);
+        return fn(trxAdapters);
+      });
+    },
   };
+  return adapters;
 }
