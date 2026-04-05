@@ -1,5 +1,17 @@
 # authhero
 
+## 4.82.0
+
+### Minor Changes
+
+- f3b910c: Add outbox pattern
+
+### Patch Changes
+
+- Updated dependencies [f3b910c]
+  - @authhero/adapter-interfaces@0.152.0
+  - @authhero/widget@0.28.2
+
 ## 4.81.0
 
 ### Minor Changes

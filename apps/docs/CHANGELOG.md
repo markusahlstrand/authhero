@@ -1,5 +1,11 @@
 # @authhero/docs
 
+## 1.56.0
+
+### Minor Changes
+
+- f3b910c: Add outbox pattern
+
 ## 1.55.0
 
 ### Minor Changes

@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.115.0
+
+### Minor Changes
+
+- f3b910c: Add outbox pattern
+
+### Patch Changes
+
+- Updated dependencies [f3b910c]
+  - @authhero/adapter-interfaces@0.152.0
+
 ## 10.114.0
 
 ### Minor Changes

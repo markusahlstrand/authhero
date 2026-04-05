@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.152.0
+
+### Minor Changes
+
+- f3b910c: Add outbox pattern
+
 ## 0.151.0
 
 ### Minor Changes
