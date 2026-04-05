@@ -1,5 +1,11 @@
 # authhero
 
+## 4.83.0
+
+### Minor Changes
+
+- e8336c3: Add passkeys to the account page
+
 ## 4.82.0
 
 ### Minor Changes
