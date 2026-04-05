@@ -8,6 +8,7 @@ import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { resolveAccountUser } from "./account-helpers";
 import { escapeHtml } from "../sanitization-utils";
+import { PASSKEY_TYPES } from "./passkey-utils";
 
 /**
  * Create the account hub screen
@@ -26,17 +27,30 @@ export async function accountScreen(
 
   const { user } = await resolveAccountUser(context);
 
-  // Fetch MFA enrollments
+  // Fetch enrollments and separate MFA from passkeys
   let mfaCount = 0;
+  let passkeyCount = 0;
   try {
     const enrollments = await ctx.env.data.authenticationMethods.list(
       tenant.id,
       user.user_id,
     );
-    mfaCount = enrollments.filter((e) => e.confirmed).length;
+    const confirmed = enrollments.filter((e) => e.confirmed);
+    passkeyCount = confirmed.filter((e) =>
+      PASSKEY_TYPES.includes(e.type as (typeof PASSKEY_TYPES)[number]),
+    ).length;
+    mfaCount = confirmed.filter(
+      (e) =>
+        !PASSKEY_TYPES.includes(e.type as (typeof PASSKEY_TYPES)[number]),
+    ).length;
   } catch {
     // MFA adapter may not exist
   }
+
+  // Check if any connection has passkeys enabled
+  const hasPasskeysEnabled = context.connections.some(
+    (c) => c.options?.authentication_methods?.passkey?.enabled,
+  );
 
   // Count linked identities (non-primary)
   const linkedIdentities =
@@ -83,7 +97,7 @@ export async function accountScreen(
     },
   ];
 
-  const links = [
+  const links: Array<{ id: string; text: string; href: string }> = [
     {
       id: "edit-profile",
       text: "Edit Profile",
@@ -94,6 +108,17 @@ export async function accountScreen(
       text: `Security Settings${mfaCount > 0 ? ` (${mfaCount} method${mfaCount !== 1 ? "s" : ""})` : ""}`,
       href: `${routePrefix}/account/security?state=${stateParam}`,
     },
+  ];
+
+  if (hasPasskeysEnabled) {
+    links.push({
+      id: "passkeys",
+      text: `Passkeys${passkeyCount > 0 ? ` (${passkeyCount})` : ""}`,
+      href: `${routePrefix}/account/passkeys?state=${stateParam}`,
+    });
+  }
+
+  links.push(
     {
       id: "linked-accounts",
       text: `Linked Accounts${linkedIdentities.length > 0 ? ` (${linkedIdentities.length})` : ""}`,
@@ -104,7 +129,7 @@ export async function accountScreen(
       text: "Delete Account",
       href: `${routePrefix}/account/delete?state=${stateParam}`,
     },
-  ];
+  );
 
   const screen: UiScreen = {
     name: "account",

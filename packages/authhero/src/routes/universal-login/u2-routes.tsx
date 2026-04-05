@@ -85,6 +85,7 @@ const SCREEN_TO_PROMPT_MAP: Record<string, PromptScreen> = {
   "account-security": "common",
   "account-linked": "common",
   "account-delete": "common",
+  "account-passkeys": "common",
   status: "status",
   "device-flow": "device-flow",
   "email-verification": "email-verification",
@@ -1824,6 +1825,28 @@ export const u2Routes = new OpenAPIHono<{
       "Process account deletion",
     ),
     createScreenPostHandler("account-delete"),
+  )
+  // --------------------------------
+  // GET /u2/account/passkeys - Passkey management
+  // --------------------------------
+  .openapi(
+    createScreenRoute(
+      "account-passkeys",
+      "/account/passkeys",
+      "Passkey management - view, add, rename, remove passkeys",
+    ),
+    createScreenRouteHandler("account-passkeys"),
+  )
+  // --------------------------------
+  // POST /u2/account/passkeys
+  // --------------------------------
+  .openapi(
+    createScreenPostRoute(
+      "account-passkeys",
+      "/account/passkeys",
+      "Process passkey management form submission",
+    ),
+    createScreenPostHandler("account-passkeys"),
   )
   // --------------------------------
   // GET /u2/guardian/enroll - Guardian enrollment ticket redemption
