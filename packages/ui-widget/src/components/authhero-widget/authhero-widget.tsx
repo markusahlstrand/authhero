@@ -651,7 +651,21 @@ export class AuthheroWidget {
 
     if (!this._screen || this.loading) return;
 
-    const submitData = overrideData || this.formData;
+    let submitData = overrideData || { ...this.formData };
+
+    // Merge hidden input values from DOM (may have been set programmatically
+    // by inline scripts, e.g. passkey management buttons)
+    const form = this.el.shadowRoot?.querySelector("form");
+    if (form) {
+      const hiddenInputs = form.querySelectorAll<HTMLInputElement>(
+        'input[type="hidden"]',
+      );
+      hiddenInputs.forEach((input) => {
+        if (input.name && input.value) {
+          submitData[input.name] = input.value;
+        }
+      });
+    }
 
     // Always emit the submit event
     this.formSubmit.emit({
@@ -741,6 +755,11 @@ export class AuthheroWidget {
             this.persistState();
           }
 
+          // Execute extra script if present (e.g. WebAuthn ceremony)
+          if (result.extraScript) {
+            this.executeExtraScript(result.extraScript);
+          }
+
           // Focus first input on new screen
           this.focusFirstInput();
         } else if (result.complete) {
@@ -770,6 +789,46 @@ export class AuthheroWidget {
       this.loading = false;
     }
   };
+
+  /**
+   * Override form.submit() so that scripts (e.g. WebAuthn ceremony) that call
+   * form.submit() go through the widget's JSON fetch pipeline instead of a
+   * native form-urlencoded POST.
+   */
+  private overrideFormSubmit() {
+    const shadowRoot = this.el.shadowRoot;
+    if (!shadowRoot) return;
+
+    const form = shadowRoot.querySelector("form");
+    if (!form) return;
+
+    form.submit = () => {
+      const formData = new FormData(form);
+      const data: Record<string, string> = {};
+      formData.forEach((value, key) => {
+        if (typeof value === "string") {
+          data[key] = value;
+        }
+      });
+      const syntheticEvent = { preventDefault: () => {} } as Event;
+      this.handleSubmit(syntheticEvent, data);
+    };
+  }
+
+  /**
+   * Execute an inline script returned by the server (e.g. WebAuthn registration).
+   * Waits for DOM update, overrides form.submit(), then runs the script.
+   */
+  private executeExtraScript(scriptContent: string) {
+    requestAnimationFrame(() => {
+      this.overrideFormSubmit();
+
+      const scriptEl = document.createElement("script");
+      scriptEl.textContent = scriptContent;
+      document.body.appendChild(scriptEl);
+      document.body.removeChild(scriptEl);
+    });
+  }
 
   private handleButtonClick = (detail: ButtonClickEventDetail) => {
     // If this is a submit button click, trigger form submission
@@ -1015,9 +1074,13 @@ export class AuthheroWidget {
       screen.messages?.filter((m) => m.type === "error") || [];
     const screenSuccesses =
       screen.messages?.filter((m) => m.type === "success") || [];
-    const components = [...(screen.components ?? [])]
+    const allComponents = [...(screen.components ?? [])];
+    const components = allComponents
       .filter((c) => c.visible !== false)
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    const hiddenComponents = allComponents.filter(
+      (c) => c.visible === false,
+    );
 
     // Separate social, divider, and field components for layout ordering
     const socialComponents = components.filter((c) =>
@@ -1109,6 +1172,16 @@ export class AuthheroWidget {
           ))}
 
           <form onSubmit={this.handleSubmit} part="form">
+            {/* Hidden fields rendered as plain inputs for script access */}
+            {hiddenComponents.map((c) => (
+              <input
+                type="hidden"
+                name={c.id}
+                id={c.id}
+                key={c.id}
+                value={this.formData[c.id] || ""}
+              />
+            ))}
             <div class="form-content">
               {/* Social buttons section - order controlled by CSS */}
               {socialComponents.length > 0 && (

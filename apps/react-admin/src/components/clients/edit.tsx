@@ -8,8 +8,6 @@ import {
   SimpleShowLayout,
   TextField,
   TabbedForm,
-  SimpleFormIterator,
-  ArrayInput,
   FunctionField,
   ReferenceManyField,
   Datagrid,
@@ -695,6 +693,73 @@ const GrantTypesInput = ({ source }: { source: string }) => {
   );
 };
 
+const StringArrayInput = ({
+  source,
+  label,
+}: {
+  source: string;
+  label?: string;
+}) => {
+  const { field } = useInput({ source });
+  const { value, onChange } = field;
+
+  const items: string[] = Array.isArray(value) ? value : [];
+
+  const handleAdd = () => {
+    onChange([...items, ""]);
+  };
+
+  const handleRemove = (index: number) => {
+    onChange(items.filter((_, i) => i !== index));
+  };
+
+  const handleChange = (index: number, newValue: string) => {
+    const updated = [...items];
+    updated[index] = newValue;
+    onChange(updated);
+  };
+
+  return (
+    <Box sx={{ mt: 1, mb: 2 }}>
+      {label && (
+        <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5 }}>
+          {label}
+        </Typography>
+      )}
+      {items.map((item, index) => (
+        <Box
+          key={index}
+          sx={{ display: "flex", alignItems: "center", mb: 0.5 }}
+        >
+          <MuiTextField
+            value={item}
+            onChange={(e) => handleChange(index, e.target.value)}
+            size="small"
+            fullWidth
+            sx={{ mr: 1 }}
+          />
+          <IconButton
+            onClick={() => handleRemove(index)}
+            size="small"
+            color="error"
+          >
+            <DeleteIcon />
+          </IconButton>
+        </Box>
+      ))}
+      <Button
+        variant="outlined"
+        size="small"
+        startIcon={<AddIcon />}
+        onClick={handleAdd}
+        sx={{ mt: 0.5 }}
+      >
+        Add
+      </Button>
+    </Box>
+  );
+};
+
 const ClientMetadataInput = ({ source }: { source: string }) => {
   const { field } = useInput({ source });
   const { value, onChange } = field;
@@ -1234,26 +1299,16 @@ export function ClientEdit() {
           />
           <ClientMetadataInput source="client_metadata" />
           <GrantTypesInput source="grant_types" />
-          <ArrayInput source="callbacks">
-            <SimpleFormIterator inline>
-              <TextInput source="" defaultValue="" />
-            </SimpleFormIterator>
-          </ArrayInput>
-          <ArrayInput source="allowed_logout_urls">
-            <SimpleFormIterator inline>
-              <TextInput source="" defaultValue="" />
-            </SimpleFormIterator>
-          </ArrayInput>
-          <ArrayInput source="web_origins">
-            <SimpleFormIterator inline>
-              <TextInput source="" defaultValue="" />
-            </SimpleFormIterator>
-          </ArrayInput>
-          <ArrayInput source="allowed_clients">
-            <SimpleFormIterator inline>
-              <TextInput source="" defaultValue="" />
-            </SimpleFormIterator>
-          </ArrayInput>
+          <StringArrayInput source="callbacks" label="Callbacks" />
+          <StringArrayInput
+            source="allowed_logout_urls"
+            label="Allowed Logout URLs"
+          />
+          <StringArrayInput source="web_origins" label="Web Origins" />
+          <StringArrayInput
+            source="allowed_clients"
+            label="Allowed Clients"
+          />
           <Labeled label="Created At">
             <DateField source="created_at" showTime={true} />
           </Labeled>

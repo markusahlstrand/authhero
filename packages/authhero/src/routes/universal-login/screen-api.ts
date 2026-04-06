@@ -663,6 +663,7 @@ export const screenApiRoutes = new OpenAPIHono<{
             branding: screenData.branding,
             screenId: nextScreenId,
             navigateUrl,
+            extraScript: screenData.extraScript,
           },
           "error" in result ? 400 : 200,
         );
