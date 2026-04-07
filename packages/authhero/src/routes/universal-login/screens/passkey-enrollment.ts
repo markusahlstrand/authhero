@@ -27,6 +27,7 @@ import {
   getRpId,
   getExpectedOrigin,
   buildWebAuthnRegistrationScript,
+  buildWebAuthnCeremony,
 } from "./passkey-utils";
 
 /**
@@ -120,13 +121,15 @@ async function passkeyEnrollmentScreen(
     ...(links.length > 0 && { links }),
   };
 
-  // Build WebAuthn script to run at page level
+  // Build WebAuthn script to run at page level (SSR) and structured ceremony data (widget SPA)
   let extraScript: string | undefined;
+  let ceremony: ReturnType<typeof buildWebAuthnCeremony> | undefined;
   if (extra?.optionsJSON) {
     extraScript = buildWebAuthnRegistrationScript(extra.optionsJSON);
+    ceremony = buildWebAuthnCeremony(extra.optionsJSON);
   }
 
-  return { screen, branding, extraScript };
+  return { screen, branding, extraScript, ceremony };
 }
 
 /**

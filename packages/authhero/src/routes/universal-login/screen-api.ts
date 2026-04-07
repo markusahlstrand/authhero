@@ -220,6 +220,46 @@ const screenResponseSchema = z.object({
   branding: brandingResponseSchema.optional(),
 });
 
+const webAuthnCeremonySchema = z.object({
+  type: z.literal("webauthn-registration"),
+  options: z.object({
+    challenge: z.string(),
+    rp: z.object({ id: z.string(), name: z.string() }),
+    user: z.object({
+      id: z.string(),
+      name: z.string(),
+      displayName: z.string(),
+    }),
+    pubKeyCredParams: z.array(
+      z.object({ alg: z.number(), type: z.string() }),
+    ),
+    timeout: z.number().optional(),
+    attestation: z.string().optional(),
+    authenticatorSelection: z
+      .object({
+        residentKey: z.string().optional(),
+        userVerification: z.string().optional(),
+      })
+      .optional(),
+    excludeCredentials: z
+      .array(
+        z.object({
+          id: z.string(),
+          type: z.string(),
+          transports: z.array(z.string()).optional(),
+        }),
+      )
+      .optional(),
+  }),
+  successAction: z.string(),
+});
+
+const screenPostResponseSchema = screenResponseSchema.extend({
+  screenId: z.string().optional(),
+  navigateUrl: z.string().optional(),
+  ceremony: webAuthnCeremonySchema.optional(),
+});
+
 /**
  * Convert database branding to ScreenBranding type
  */
@@ -571,7 +611,7 @@ export const screenApiRoutes = new OpenAPIHono<{
           content: {
             "application/json": {
               schema: z.union([
-                screenResponseSchema,
+                screenPostResponseSchema,
                 z.object({ redirect: z.string() }),
                 z.object({ complete: z.boolean() }),
               ]),
@@ -663,6 +703,7 @@ export const screenApiRoutes = new OpenAPIHono<{
             branding: screenData.branding,
             screenId: nextScreenId,
             navigateUrl,
+            ceremony: screenData.ceremony,
           },
           "error" in result ? 400 : 200,
         );

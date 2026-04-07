@@ -651,7 +651,21 @@ export class AuthheroWidget {
 
     if (!this._screen || this.loading) return;
 
-    const submitData = overrideData || this.formData;
+    let submitData = { ...this.formData, ...(overrideData || {}) };
+
+    // Merge hidden input values from DOM (may have been set programmatically
+    // by inline scripts, e.g. passkey management buttons)
+    const form = this.el.shadowRoot?.querySelector("form");
+    if (form) {
+      const hiddenInputs = form.querySelectorAll<HTMLInputElement>(
+        'input[type="hidden"]',
+      );
+      hiddenInputs.forEach((input) => {
+        if (input.name && input.value) {
+          submitData[input.name] = input.value;
+        }
+      });
+    }
 
     // Always emit the submit event
     this.formSubmit.emit({
@@ -741,6 +755,11 @@ export class AuthheroWidget {
             this.persistState();
           }
 
+          // Perform WebAuthn ceremony if present (structured data, not script)
+          if (result.ceremony) {
+            this.performWebAuthnCeremony(result.ceremony);
+          }
+
           // Focus first input on new screen
           this.focusFirstInput();
         } else if (result.complete) {
@@ -770,6 +789,245 @@ export class AuthheroWidget {
       this.loading = false;
     }
   };
+
+  /**
+   * Override form.submit() so that scripts (e.g. WebAuthn ceremony) that call
+   * form.submit() go through the widget's JSON fetch pipeline instead of a
+   * native form-urlencoded POST.
+   */
+  private overrideFormSubmit() {
+    const shadowRoot = this.el.shadowRoot;
+    if (!shadowRoot) return;
+
+    const form = shadowRoot.querySelector("form");
+    if (!form) return;
+
+    form.submit = () => {
+      const formData = new FormData(form);
+      const data: Record<string, string> = {};
+      formData.forEach((value, key) => {
+        if (typeof value === "string") {
+          data[key] = value;
+        }
+      });
+      const syntheticEvent = { preventDefault: () => {} } as Event;
+      this.handleSubmit(syntheticEvent, data);
+    };
+  }
+
+  /**
+   * Validate and execute a structured WebAuthn ceremony returned by the server.
+   * Instead of injecting arbitrary script content, this parses the ceremony JSON,
+   * validates the expected fields, and calls the WebAuthn API natively.
+   */
+  private performWebAuthnCeremony(ceremony: unknown) {
+    if (!this.isValidWebAuthnCeremony(ceremony)) {
+      console.error("Invalid WebAuthn ceremony payload", ceremony);
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      this.overrideFormSubmit();
+      this.executeWebAuthnRegistration(ceremony);
+    });
+  }
+
+  /**
+   * Schema validation for WebAuthn ceremony payloads.
+   * Checks required fields and types before invoking browser APIs.
+   */
+  private isValidWebAuthnCeremony(
+    data: unknown,
+  ): data is {
+    type: "webauthn-registration";
+    options: {
+      challenge: string;
+      rp: { id: string; name: string };
+      user: { id: string; name: string; displayName: string };
+      pubKeyCredParams: Array<{ alg: number; type: string }>;
+      timeout?: number;
+      attestation?: string;
+      authenticatorSelection?: {
+        residentKey?: string;
+        userVerification?: string;
+      };
+      excludeCredentials?: Array<{
+        id: string;
+        type: string;
+        transports?: string[];
+      }>;
+    };
+    successAction: string;
+  } {
+    if (typeof data !== "object" || data === null) return false;
+    const obj = data as Record<string, unknown>;
+    if (obj.type !== "webauthn-registration") return false;
+    if (typeof obj.successAction !== "string") return false;
+
+    const opts = obj.options;
+    if (typeof opts !== "object" || opts === null) return false;
+    const o = opts as Record<string, unknown>;
+    if (typeof o.challenge !== "string") return false;
+
+    const rp = o.rp;
+    if (typeof rp !== "object" || rp === null) return false;
+    if (
+      typeof (rp as Record<string, unknown>).id !== "string" ||
+      typeof (rp as Record<string, unknown>).name !== "string"
+    )
+      return false;
+
+    const user = o.user;
+    if (typeof user !== "object" || user === null) return false;
+    const u = user as Record<string, unknown>;
+    if (
+      typeof u.id !== "string" ||
+      typeof u.name !== "string" ||
+      typeof u.displayName !== "string"
+    )
+      return false;
+
+    if (!Array.isArray(o.pubKeyCredParams)) return false;
+
+    return true;
+  }
+
+  /**
+   * Perform the WebAuthn navigator.credentials.create() ceremony and submit
+   * the credential result via the form.
+   */
+  private async executeWebAuthnRegistration(ceremony: {
+    type: "webauthn-registration";
+    options: {
+      challenge: string;
+      rp: { id: string; name: string };
+      user: { id: string; name: string; displayName: string };
+      pubKeyCredParams: Array<{ alg: number; type: string }>;
+      timeout?: number;
+      attestation?: string;
+      authenticatorSelection?: {
+        residentKey?: string;
+        userVerification?: string;
+      };
+      excludeCredentials?: Array<{
+        id: string;
+        type: string;
+        transports?: string[];
+      }>;
+    };
+    successAction: string;
+  }) {
+    const opts = ceremony.options;
+
+    const b64uToBuf = (s: string): ArrayBuffer => {
+      s = s.replace(/-/g, "+").replace(/_/g, "/");
+      while (s.length % 4) s += "=";
+      const b = atob(s);
+      const a = new Uint8Array(b.length);
+      for (let i = 0; i < b.length; i++) a[i] = b.charCodeAt(i);
+      return a.buffer;
+    };
+
+    const bufToB64u = (b: ArrayBuffer): string => {
+      const a = new Uint8Array(b);
+      let s = "";
+      for (let i = 0; i < a.length; i++) s += String.fromCharCode(a[i]);
+      return btoa(s)
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/, "");
+    };
+
+    const findForm = (): HTMLFormElement | null => {
+      const shadowRoot = this.el?.shadowRoot;
+      if (shadowRoot) {
+        const f = shadowRoot.querySelector("form");
+        if (f) return f;
+      }
+      return document.querySelector("form");
+    };
+
+    try {
+      const publicKey: PublicKeyCredentialCreationOptions = {
+        challenge: b64uToBuf(opts.challenge),
+        rp: { id: opts.rp.id, name: opts.rp.name },
+        user: {
+          id: b64uToBuf(opts.user.id),
+          name: opts.user.name,
+          displayName: opts.user.displayName,
+        },
+        pubKeyCredParams: opts.pubKeyCredParams.map((p) => ({
+          alg: p.alg,
+          type: p.type as PublicKeyCredentialType,
+        })),
+        timeout: opts.timeout,
+        attestation: (opts.attestation || "none") as AttestationConveyancePreference,
+        authenticatorSelection: opts.authenticatorSelection
+          ? {
+              residentKey: (opts.authenticatorSelection.residentKey ||
+                "preferred") as ResidentKeyRequirement,
+              userVerification: (opts.authenticatorSelection
+                .userVerification ||
+                "preferred") as UserVerificationRequirement,
+            }
+          : undefined,
+      };
+
+      if (opts.excludeCredentials?.length) {
+        publicKey.excludeCredentials = opts.excludeCredentials.map((c) => ({
+          id: b64uToBuf(c.id),
+          type: c.type as PublicKeyCredentialType,
+          transports: (c.transports || []) as AuthenticatorTransport[],
+        }));
+      }
+
+      const cred = (await navigator.credentials.create({
+        publicKey,
+      })) as PublicKeyCredential;
+
+      const response = cred.response as AuthenticatorAttestationResponse;
+      const resp: Record<string, unknown> = {
+        id: cred.id,
+        rawId: bufToB64u(cred.rawId),
+        type: cred.type,
+        response: {
+          attestationObject: bufToB64u(response.attestationObject),
+          clientDataJSON: bufToB64u(response.clientDataJSON),
+        },
+        clientExtensionResults: cred.getClientExtensionResults(),
+        authenticatorAttachment:
+          (cred as any).authenticatorAttachment || undefined,
+      };
+
+      if (typeof response.getTransports === "function") {
+        (resp.response as Record<string, unknown>).transports =
+          response.getTransports();
+      }
+
+      const form = findForm();
+      if (form) {
+        const cf =
+          form.querySelector<HTMLInputElement>('[name="credential-field"]') ||
+          form.querySelector<HTMLInputElement>("#credential-field");
+        const af =
+          form.querySelector<HTMLInputElement>('[name="action-field"]') ||
+          form.querySelector<HTMLInputElement>("#action-field");
+        if (cf) cf.value = JSON.stringify(resp);
+        if (af) af.value = ceremony.successAction;
+        form.submit();
+      }
+    } catch (e) {
+      console.error("WebAuthn registration error:", e);
+      const form = findForm();
+      if (form) {
+        const af =
+          form.querySelector<HTMLInputElement>('[name="action-field"]') ||
+          form.querySelector<HTMLInputElement>("#action-field");
+        if (af) af.value = "error";
+        form.submit();
+      }
+    }
+  }
 
   private handleButtonClick = (detail: ButtonClickEventDetail) => {
     // If this is a submit button click, trigger form submission
@@ -1015,9 +1273,13 @@ export class AuthheroWidget {
       screen.messages?.filter((m) => m.type === "error") || [];
     const screenSuccesses =
       screen.messages?.filter((m) => m.type === "success") || [];
-    const components = [...(screen.components ?? [])]
+    const allComponents = [...(screen.components ?? [])];
+    const components = allComponents
       .filter((c) => c.visible !== false)
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    const hiddenComponents = allComponents.filter(
+      (c) => c.visible === false,
+    );
 
     // Separate social, divider, and field components for layout ordering
     const socialComponents = components.filter((c) =>
@@ -1109,6 +1371,16 @@ export class AuthheroWidget {
           ))}
 
           <form onSubmit={this.handleSubmit} part="form">
+            {/* Hidden fields rendered as plain inputs for script access */}
+            {hiddenComponents.map((c) => (
+              <input
+                type="hidden"
+                name={c.id}
+                id={c.id}
+                key={c.id}
+                value={this.formData[c.id] || ""}
+              />
+            ))}
             <div class="form-content">
               {/* Social buttons section - order controlled by CSS */}
               {socialComponents.length > 0 && (
