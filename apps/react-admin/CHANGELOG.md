@@ -1,5 +1,16 @@
 # @authhero/react-admin
 
+## 0.57.0
+
+### Minor Changes
+
+- 885eeeb: Fix passkeys
+
+### Patch Changes
+
+- Updated dependencies [885eeeb]
+  - @authhero/widget@0.29.0
+
 ## 0.56.0
 
 ### Minor Changes

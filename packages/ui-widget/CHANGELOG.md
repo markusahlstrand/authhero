@@ -1,5 +1,11 @@
 # @authhero/widget
 
+## 0.29.0
+
+### Minor Changes
+
+- 885eeeb: Fix passkeys
+
 ## 0.28.2
 
 ### Patch Changes
