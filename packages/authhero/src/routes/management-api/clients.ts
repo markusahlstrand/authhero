@@ -80,12 +80,12 @@ export const clientRoutes = new OpenAPIHono<{
       const clients = result.clients;
 
       if (include_totals) {
-        // TODO: this should be supported by the adapter
         return ctx.json({
           clients,
-          start: 0,
-          limit: 10,
-          length: clients.length,
+          start: result.totals?.start ?? 0,
+          limit: result.totals?.limit ?? per_page,
+          length: result.totals?.length ?? clients.length,
+          total: result.totals?.total,
         });
       }
 
