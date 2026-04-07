@@ -47,7 +47,7 @@ const { app } = initMultiTenant({
   // Optional: Configure control plane for runtime fallback and access control
   controlPlane: {
     tenantId: "control_plane",
-    clientId: "default_client",
+    clientId: "default",
   },
   // That's it! Everything else has sensible defaults:
   // - Resource servers, roles, and connections sync enabled

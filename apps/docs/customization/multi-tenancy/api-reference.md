@@ -36,7 +36,7 @@ const { app } = initMultiTenant({
   dataAdapter: createAdapters(db),
   controlPlane: {
     tenantId: "control_plane",
-    clientId: "default_client",
+    clientId: "default",
   },
 });
 
