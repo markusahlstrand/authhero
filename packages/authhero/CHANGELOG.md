@@ -1,5 +1,16 @@
 # authhero
 
+## 4.84.0
+
+### Minor Changes
+
+- 885eeeb: Fix passkeys
+
+### Patch Changes
+
+- Updated dependencies [885eeeb]
+  - @authhero/widget@0.29.0
+
 ## 4.83.0
 
 ### Minor Changes
