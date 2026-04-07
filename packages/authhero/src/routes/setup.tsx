@@ -63,20 +63,10 @@ export default function createSetupApp(config: AuthHeroConfig) {
           },
         },
         {
-          id: "name",
-          category: "FIELD",
-          type: "TEXT",
-          order: 3,
-          label: "Tenant name",
-          config: {
-            placeholder: isMultiTenant ? "Control Plane" : "My App",
-          },
-        },
-        {
           id: "submit",
           category: "BLOCK",
           type: "NEXT_BUTTON",
-          order: 4,
+          order: 3,
           config: {
             text: "Set up AuthHero",
           },

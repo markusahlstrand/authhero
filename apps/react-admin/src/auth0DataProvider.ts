@@ -247,10 +247,6 @@ export default (
             client.clients.list({
               page: page - 1,
               per_page: perPage,
-              sort:
-                field && order
-                  ? `${field}:${order === "DESC" ? "-1" : "1"}`
-                  : undefined,
               q: params.filter?.q,
               include_totals: true,
             }),

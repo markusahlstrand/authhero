@@ -414,7 +414,8 @@ const adminIndexPath = path.join(adminDistPath, "index.html");
       .replace(/src="\\.\\//g, 'src="/admin/')
       .replace(/href="\\.\\//g, 'href="/admin/');
     const configJson = JSON.stringify({
-      domain: issuer.replace(/\\/$/, ""),${multiTenant ? `\n      clientId: CONTROL_PLANE_CLIENT_ID,` : ""}
+      domain: issuer.replace(/\\/$/, ""),
+      clientId: ${multiTenant ? "CONTROL_PLANE_CLIENT_ID," : `"default",`}
       basePath: "/admin",
     }).replace(/</g, "\\\\u003c");
     configWithHandlers.adminIndexHtml = rawHtml.replace(
@@ -573,7 +574,7 @@ export default {
         issuer,
         tenantId: "${tenantId}",
         tenantName: "${tenantName}",
-        isControlPlane: ${!!multiTenant},
+        isControlPlane: ${!!multiTenant},${multiTenant ? `\n        clientId: "default_client",` : ""}
       });
 
       return new Response(

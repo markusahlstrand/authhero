@@ -1,10 +1,10 @@
 import { Kysely } from "kysely";
 import { HTTPException } from "hono/http-exception";
 import { nanoid } from "nanoid";
-import { Database, databaseOptions } from "../db";
+import { Database } from "../db";
 import { User, UserInsert } from "@authhero/adapter-interfaces";
 
-export function create(db: Kysely<Database>, databaseOptions: databaseOptions) {
+export function create(db: Kysely<Database>) {
   return async (tenantId: string, user: UserInsert): Promise<User> => {
     const { identities, phone_verified, password, ...rest } = user as User &
       Pick<UserInsert, "password">;
@@ -25,43 +25,20 @@ export function create(db: Kysely<Database>, databaseOptions: databaseOptions) {
     };
 
     try {
-      if (databaseOptions.useTransactions === false) {
-        await db.insertInto("users").values(sqlUser).execute();
+      await db.insertInto("users").values(sqlUser).execute();
 
-        // If password is provided, create it in the same transaction
-        if (password && sqlUser.user_id) {
-          const passwordRecord = {
-            id: nanoid(),
-            user_id: sqlUser.user_id,
-            password: password.hash,
-            algorithm: password.algorithm as "bcrypt" | "argon2id",
-            is_current: 1,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            tenant_id: tenantId,
-          };
-          await db.insertInto("passwords").values(passwordRecord).execute();
-        }
-      } else {
-        // Use a transaction to ensure atomicity of user and password creation
-        await db.transaction().execute(async (trx) => {
-          await trx.insertInto("users").values(sqlUser).execute();
-
-          // If password is provided, create it in the same transaction
-          if (password && sqlUser.user_id) {
-            const passwordRecord = {
-              id: nanoid(),
-              user_id: sqlUser.user_id,
-              password: password.hash,
-              algorithm: password.algorithm as "bcrypt" | "argon2id",
-              is_current: 1,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-              tenant_id: tenantId,
-            };
-            await trx.insertInto("passwords").values(passwordRecord).execute();
-          }
-        });
+      if (password && sqlUser.user_id) {
+        const passwordRecord = {
+          id: nanoid(),
+          user_id: sqlUser.user_id,
+          password: password.hash,
+          algorithm: password.algorithm as "bcrypt" | "argon2id",
+          is_current: 1,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          tenant_id: tenantId,
+        };
+        await db.insertInto("passwords").values(passwordRecord).execute();
       }
     } catch (err: any) {
       if (
