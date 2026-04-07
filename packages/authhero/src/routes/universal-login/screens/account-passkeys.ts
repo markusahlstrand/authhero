@@ -19,6 +19,7 @@ import {
   getRpId,
   getExpectedOrigin,
   buildWebAuthnRegistrationScript,
+  buildWebAuthnCeremony,
 } from "./passkey-utils";
 
 /**
@@ -28,6 +29,7 @@ async function accountPasskeysScreen(
   context: ScreenContext,
   extra?: {
     extraScript?: string;
+    ceremony?: import("./types").WebAuthnCeremony;
   },
 ): Promise<ScreenResult> {
   const {
@@ -180,7 +182,12 @@ async function accountPasskeysScreen(
     messages,
   };
 
-  return { screen, branding, extraScript: extra?.extraScript };
+  return {
+    screen,
+    branding,
+    extraScript: extra?.extraScript,
+    ceremony: extra?.ceremony,
+  };
 }
 
 /**
@@ -363,9 +370,16 @@ async function handleAccountPasskeysSubmit(
         optionsJSON,
         "complete_add_passkey",
       );
+      const ceremony = buildWebAuthnCeremony(
+        optionsJSON,
+        "complete_add_passkey",
+      );
 
       return {
-        screen: await accountPasskeysScreen(context, { extraScript }),
+        screen: await accountPasskeysScreen(context, {
+          extraScript,
+          ceremony,
+        }),
       };
     } catch {
       return {

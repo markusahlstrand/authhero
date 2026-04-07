@@ -2,6 +2,8 @@
  * Shared WebAuthn/passkey utilities used by passkey-enrollment and account-passkeys screens
  */
 
+import type { WebAuthnCeremony } from "./types";
+
 export const PASSKEY_TYPES = [
   "passkey",
   "webauthn-roaming",
@@ -91,4 +93,40 @@ export function buildWebAuthnRegistrationScript(
     }
   }
 })();`;
+}
+
+/**
+ * Build a structured WebAuthn ceremony object for the widget SPA flow.
+ * The widget validates the shape and performs the ceremony natively
+ * instead of executing arbitrary script content.
+ *
+ * @param optionsJSON - JSON string of WebAuthn registration options
+ * @param successAction - The action value to set on successful registration (default: "register")
+ */
+export function buildWebAuthnCeremony(
+  optionsJSON: string,
+  successAction = "register",
+): WebAuthnCeremony {
+  const options = JSON.parse(optionsJSON);
+  return {
+    type: "webauthn-registration",
+    options: {
+      challenge: options.challenge,
+      rp: { id: options.rp.id, name: options.rp.name },
+      user: {
+        id: options.user.id,
+        name: options.user.name,
+        displayName: options.user.displayName,
+      },
+      pubKeyCredParams: options.pubKeyCredParams,
+      timeout: options.timeout,
+      attestation: options.attestation || "none",
+      authenticatorSelection: options.authenticatorSelection || {
+        residentKey: "preferred",
+        userVerification: "preferred",
+      },
+      excludeCredentials: options.excludeCredentials,
+    },
+    successAction,
+  };
 }
