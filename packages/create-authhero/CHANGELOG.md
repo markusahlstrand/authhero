@@ -1,5 +1,11 @@
 # create-authhero
 
+## 0.37.0
+
+### Minor Changes
+
+- 2f65572: Fix nested transactions
+
 ## 0.36.0
 
 ### Minor Changes

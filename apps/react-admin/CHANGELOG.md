@@ -1,5 +1,12 @@
 # @authhero/react-admin
 
+## 0.58.0
+
+### Minor Changes
+
+- 2f65572: Fix nested transactions
+- 76f2b7f: Fix paging of clients in react-admin
+
 ## 0.57.0
 
 ### Minor Changes

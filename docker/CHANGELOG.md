@@ -1,5 +1,19 @@
 # @authhero/docker
 
+## 1.3.0
+
+### Minor Changes
+
+- 2f65572: Fix nested transactions
+
+### Patch Changes
+
+- Updated dependencies [2f65572]
+- Updated dependencies [76f2b7f]
+  - authhero@4.85.0
+  - @authhero/react-admin@0.58.0
+  - @authhero/kysely-adapter@10.116.0
+
 ## 1.2.7
 
 ### Patch Changes

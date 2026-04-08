@@ -1,5 +1,12 @@
 # @authhero/kysely-adapter
 
+## 10.116.0
+
+### Minor Changes
+
+- 2f65572: Fix nested transactions
+- 76f2b7f: Fix paging of clients in react-admin
+
 ## 10.115.0
 
 ### Minor Changes
