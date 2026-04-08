@@ -1,5 +1,11 @@
 # authhero
 
+## 4.87.0
+
+### Minor Changes
+
+- 77b7c76: Add outbox middleware
+
 ## 4.86.0
 
 ### Minor Changes
