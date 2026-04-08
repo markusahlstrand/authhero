@@ -27,19 +27,30 @@ export function outboxMiddleware(
 ): MiddlewareHandler<{ Bindings: Bindings; Variables: Variables }> {
   return async (ctx, next) => {
     ctx.set("outboxEventIds", []);
-    await next();
-
-    const eventIds = ctx.var.outboxEventIds ?? [];
-    if (eventIds.length === 0) return;
-
-    const outbox = options.getOutbox(ctx);
-    if (!outbox) return;
-
-    waitUntil(
-      ctx,
-      processOutboxEvents(outbox, eventIds, options.getDestinations(ctx), {
-        maxRetries: ctx.env.outbox?.maxRetries,
-      }),
-    );
+    let error: unknown;
+    try {
+      await next();
+    } catch (e) {
+      error = e;
+    } finally {
+      const eventIds = ctx.var.outboxEventIds ?? [];
+      if (eventIds.length > 0) {
+        const outbox = options.getOutbox(ctx);
+        if (outbox) {
+          waitUntil(
+            ctx,
+            processOutboxEvents(
+              outbox,
+              eventIds,
+              options.getDestinations(ctx),
+              {
+                maxRetries: ctx.env.outbox?.maxRetries,
+              },
+            ),
+          );
+        }
+      }
+    }
+    if (error) throw error;
   };
 }
