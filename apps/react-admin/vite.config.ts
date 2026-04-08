@@ -43,7 +43,14 @@ export default defineConfig({
     port: HTTPS_PORT,
   },
   resolve: {
-    dedupe: ["react-router", "react-router-dom", "ra-core"],
+    dedupe: [
+      "react",
+      "react-dom",
+      "react-hook-form",
+      "react-router",
+      "react-router-dom",
+      "ra-core",
+    ],
   },
   base: "./",
   test: {

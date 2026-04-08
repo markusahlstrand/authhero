@@ -1,57 +1,37 @@
 import { DomainConfig } from "./domainUtils";
-import {
-  Auth0Client,
-  ICache,
-  Cacheable,
-  MaybePromise,
-} from "@auth0/auth0-spa-js";
+import { Auth0Client } from "@auth0/auth0-spa-js";
 
-// Import the CACHE_KEY_PREFIX constant for consistency with the Auth0 SDK
-const CACHE_KEY_PREFIX = "@@auth0spajs@@";
+// In-memory cache for organization-scoped access tokens.
+// The Auth0 SDK cache key does not include organization, so we maintain our own.
+const orgTokenCache = new Map<string, { token: string; expiresAt: number }>();
 
 /**
- * Custom cache provider that wraps localStorage and adds organization isolation.
- * This ensures that tokens and auth state are kept separate between organizations.
- * Based on the original LocalStorageCache implementation from auth0-spa-js.
+ * Get an access token scoped to a specific organization using refresh tokens.
+ * Caches tokens in memory and only calls the token endpoint when expired.
  */
-export class OrgCache implements ICache {
-  private orgId: string;
-
-  constructor(orgId: string) {
-    // Normalize organization ID to lowercase to avoid casing mismatches
-    this.orgId = orgId.toLowerCase();
+export async function getOrgAccessToken(
+  auth0Client: Auth0Client,
+  orgId: string,
+  audience: string,
+): Promise<string> {
+  const normalizedOrgId = orgId.toLowerCase();
+  const cached = orgTokenCache.get(normalizedOrgId);
+  if (cached && cached.expiresAt > Date.now() + 60_000) {
+    return cached.token;
   }
 
-  public set<T = Cacheable>(key: string, entry: T) {
-    const orgKey = `${key}:${this.orgId}`;
-    localStorage.setItem(orgKey, JSON.stringify(entry));
-  }
+  const token = await auth0Client.getTokenSilently({
+    cacheMode: "off" as const,
+    authorizationParams: { audience, organization: normalizedOrgId },
+  });
 
-  public get<T = Cacheable>(key: string): MaybePromise<T | undefined> {
-    const orgKey = `${key}:${this.orgId}`;
-    const json = window.localStorage.getItem(orgKey);
-
-    if (!json) return;
-
-    try {
-      const payload = JSON.parse(json) as T;
-      return payload;
-    } catch (e) {
-      return;
-    }
-  }
-
-  public remove(key: string) {
-    const orgKey = `${key}:${this.orgId}`;
-    localStorage.removeItem(orgKey);
-  }
-
-  public allKeys() {
-    const orgSuffix = `:${this.orgId}`;
-    return Object.keys(window.localStorage).filter(
-      (key) => key.startsWith(CACHE_KEY_PREFIX) && key.endsWith(orgSuffix),
-    );
-  }
+  // Decode JWT exp claim for cache TTL
+  const payload = JSON.parse(atob(token.split(".")[1]!));
+  orgTokenCache.set(normalizedOrgId, {
+    token,
+    expiresAt: payload.exp * 1000,
+  });
+  return token;
 }
 
 async function fetchTokenWithClientCredentials(
@@ -102,14 +82,9 @@ async function fetchTokenWithClientCredentials(
 
 /**
  * Clear the organization token cache (e.g., on logout).
- * This clears all organization-specific localStorage entries.
  */
 export function clearOrganizationTokenCache(): void {
-  // Clear all org-cached tokens from localStorage
-  const keysToRemove = Object.keys(window.localStorage).filter(
-    (key) => key.startsWith(CACHE_KEY_PREFIX) && key.match(/:[^:]+$/),
-  );
-  keysToRemove.forEach((key) => localStorage.removeItem(key));
+  orgTokenCache.clear();
 }
 
 /**
@@ -156,7 +131,7 @@ export async function getOrganizationToken(
 /**
  * Get a token for the given domain configuration.
  * For OAuth login, this gets a token WITHOUT organization scope.
- * Use createAuth0ClientForOrg for organization-scoped tokens.
+ * Use getOrgAccessToken for organization-scoped tokens.
  */
 export default async function getToken(
   domainConfig: DomainConfig,
