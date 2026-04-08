@@ -1,5 +1,5 @@
 import { Auth0AuthProvider } from "ra-auth-auth0";
-import { Auth0Client } from "@auth0/auth0-spa-js";
+import { Auth0Client, ICache } from "@auth0/auth0-spa-js";
 import { ManagementClient } from "auth0";
 import {
   getSelectedDomainFromStorage,
@@ -29,6 +29,39 @@ const auth0ClientCache = new Map<string, Auth0Client>();
 // Cache for management clients
 const managementClientCache = new Map<string, ManagementClient>();
 
+// Domain-prefixed localStorage cache so each domain gets isolated token storage
+class PrefixedLocalStorageCache implements ICache {
+  private prefix: string;
+
+  constructor(domain: string) {
+    this.prefix = `@@auth0spajs@@::${domain}::`;
+  }
+
+  set<T>(key: string, entry: T) {
+    localStorage.setItem(`${this.prefix}${key}`, JSON.stringify(entry));
+  }
+
+  get<T>(key: string): T | undefined {
+    const json = localStorage.getItem(`${this.prefix}${key}`);
+    if (!json) return;
+    try {
+      return JSON.parse(json) as T;
+    } catch {
+      return;
+    }
+  }
+
+  remove(key: string) {
+    localStorage.removeItem(`${this.prefix}${key}`);
+  }
+
+  allKeys() {
+    return Object.keys(localStorage)
+      .filter((key) => key.startsWith(this.prefix))
+      .map((key) => key.slice(this.prefix.length));
+  }
+}
+
 // Create a function to get Auth0Client with the specified domain (no organization)
 export const createAuth0Client = (domain: string) => {
   // Check cache first to avoid creating multiple clients for the same domain
@@ -52,7 +85,7 @@ export const createAuth0Client = (domain: string) => {
   const auth0Client = new Auth0Client({
     domain: fullDomain,
     clientId,
-    cacheLocation: "localstorage",
+    cache: new PrefixedLocalStorageCache(formatDomain(domain)),
     useRefreshTokens: true,
     useRefreshTokensFallback: false,
     authorizationParams: {

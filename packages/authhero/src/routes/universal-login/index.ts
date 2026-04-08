@@ -23,6 +23,8 @@ import { validateEmailRoutes } from "./validate-email";
 import { preSignupSentRoutes } from "./pre-signup-sent";
 import { tenantMiddleware } from "../../middlewares/tenant";
 import { clientInfoMiddleware } from "../../middlewares/client-info";
+import { outboxMiddleware } from "../../middlewares/outbox";
+import { LogsDestination } from "../../helpers/outbox-destinations/logs";
 import { tailwindCss } from "../../styles";
 import { clientJs } from "../../client/client-bundle";
 import { formNodeRoutes } from "./form-node";
@@ -89,6 +91,12 @@ export default function create(config: AuthHeroConfig) {
   }
 
   app
+    .use(
+      outboxMiddleware({
+        getOutbox: () => config.dataAdapter.outbox,
+        getDestinations: () => [new LogsDestination(config.dataAdapter.logs)],
+      }),
+    )
     .use(async (ctx, next) => {
       // First add data hooks
       const dataWithHooks = addDataHooks(ctx, config.dataAdapter);
