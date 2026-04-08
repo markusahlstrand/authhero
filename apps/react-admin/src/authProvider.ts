@@ -56,9 +56,9 @@ class PrefixedLocalStorageCache implements ICache {
   }
 
   allKeys() {
-    return Object.keys(localStorage).filter((key) =>
-      key.startsWith(this.prefix),
-    );
+    return Object.keys(localStorage)
+      .filter((key) => key.startsWith(this.prefix))
+      .map((key) => key.slice(this.prefix.length));
   }
 }
 
