@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.117.0
+
+### Minor Changes
+
+- 884e950: Update outbox
+
+### Patch Changes
+
+- Updated dependencies [884e950]
+  - @authhero/adapter-interfaces@0.153.0
+
 ## 10.116.0
 
 ### Minor Changes

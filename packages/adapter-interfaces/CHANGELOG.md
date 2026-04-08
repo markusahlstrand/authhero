@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.153.0
+
+### Minor Changes
+
+- 884e950: Update outbox
+
 ## 0.152.0
 
 ### Minor Changes
