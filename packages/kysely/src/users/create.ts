@@ -25,7 +25,7 @@ export function create(db: Kysely<Database>) {
     };
 
     try {
-      await db.transaction().execute(async (trx) => {
+      const execute = async (trx: Kysely<Database>) => {
         await trx.insertInto("users").values(sqlUser).execute();
 
         if (password && sqlUser.user_id) {
@@ -41,7 +41,13 @@ export function create(db: Kysely<Database>) {
           };
           await trx.insertInto("passwords").values(passwordRecord).execute();
         }
-      });
+      };
+
+      if (db.isTransaction) {
+        await execute(db);
+      } else {
+        await db.transaction().execute(execute);
+      }
     } catch (err: any) {
       if (
         err.code === "SQLITE_CONSTRAINT_UNIQUE" ||
