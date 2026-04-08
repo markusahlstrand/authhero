@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 10.118.0
+
+### Minor Changes
+
+- 77b7c76: Add outbox middleware
+
 ## 10.117.0
 
 ### Minor Changes
