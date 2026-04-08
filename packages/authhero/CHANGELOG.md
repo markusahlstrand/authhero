@@ -1,5 +1,17 @@
 # authhero
 
+## 4.86.0
+
+### Minor Changes
+
+- 884e950: Update outbox
+
+### Patch Changes
+
+- Updated dependencies [884e950]
+  - @authhero/adapter-interfaces@0.153.0
+  - @authhero/widget@0.29.1
+
 ## 4.85.0
 
 ### Minor Changes

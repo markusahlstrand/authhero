@@ -1,5 +1,11 @@
 # create-authhero
 
+## 0.38.0
+
+### Minor Changes
+
+- 884e950: Remove https
+
 ## 0.37.0
 
 ### Minor Changes

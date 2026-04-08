@@ -1,5 +1,17 @@
 # @authhero/react-admin
 
+## 0.59.0
+
+### Minor Changes
+
+- af80757: Switch to use refresh-tokens
+
+### Patch Changes
+
+- Updated dependencies [884e950]
+  - @authhero/adapter-interfaces@0.153.0
+  - @authhero/widget@0.29.1
+
 ## 0.58.0
 
 ### Minor Changes
