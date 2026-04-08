@@ -180,24 +180,27 @@ export const getClientIdFromStorage = (domain: string): string => {
 };
 
 /**
- * Constructs a full URL with HTTPS protocol
- * - Always uses https:// for all domains (including localhost with self-signed certs)
- * - Preserves existing https:// protocol if already present
- * - Converts http:// to https://
+ * Constructs a full URL with the appropriate protocol
+ * - Uses http:// for localhost and 127.0.0.1 (no self-signed certs needed locally)
+ * - Uses https:// for all other domains
+ * - Preserves existing protocol if already present
  */
 export const buildUrlWithProtocol = (domain: string): string => {
   const trimmedDomain = domain.trim();
 
-  // Check if it already has a protocol
-  if (trimmedDomain.startsWith("https://")) {
+  // Preserve existing protocol
+  if (
+    trimmedDomain.startsWith("https://") ||
+    trimmedDomain.startsWith("http://")
+  ) {
     return trimmedDomain;
   }
 
-  // Convert http:// to https://
-  if (trimmedDomain.startsWith("http://")) {
-    return trimmedDomain.replace("http://", "https://");
+  // Use HTTP for localhost/127.0.0.1
+  const [host] = trimmedDomain.split(":");
+  if (host === "localhost" || host === "127.0.0.1") {
+    return `http://${trimmedDomain}`;
   }
 
-  // No protocol specified - add https://
   return `https://${trimmedDomain}`;
 };

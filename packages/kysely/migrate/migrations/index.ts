@@ -136,6 +136,8 @@ import * as o037_mfa_enrollments from "./2026-03-21T10:00:00_mfa_enrollments";
 import * as o038_add_otp_to_codes from "./2026-03-22T10:00:00_add_otp_to_codes";
 import * as o039_rename_mfa_enrollments_to_authentication_methods from "./2026-03-28T10:00:00_rename_mfa_enrollments_to_authentication_methods";
 import * as o040_create_outbox_events from "./2026-04-03T10:00:00_create_outbox_events";
+import * as o041_add_outbox_claim_columns from "./2026-04-03T11:00:00_add_outbox_claim_columns";
+import * as o042_add_outbox_claim_index from "./2026-04-08T10:00:00_add_outbox_claim_index";
 
 // These need to be in alphabetic order
 export default {
@@ -277,4 +279,6 @@ export default {
   o038_add_otp_to_codes,
   o039_rename_mfa_enrollments_to_authentication_methods,
   o040_create_outbox_events,
+  o041_add_outbox_claim_columns,
+  o042_add_outbox_claim_index,
 };

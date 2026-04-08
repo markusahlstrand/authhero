@@ -14,8 +14,10 @@ export interface OutboxEvent extends AuditEvent {
 }
 
 export interface OutboxAdapter {
-  /** Write an audit event to the outbox */
-  create(tenantId: string, event: AuditEventInsert): Promise<void>;
+  /** Write an audit event to the outbox. Returns the event ID. */
+  create(tenantId: string, event: AuditEventInsert): Promise<string>;
+  /** Fetch events by their IDs */
+  getByIds(ids: string[]): Promise<OutboxEvent[]>;
   /** Fetch unprocessed events ready for delivery */
   getUnprocessed(limit: number): Promise<OutboxEvent[]>;
   /** Atomically claim events for exclusive processing. Returns IDs that were successfully claimed. */

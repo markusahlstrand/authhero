@@ -529,22 +529,6 @@ const authorizedHttpClient = (url: string, options: HttpOptions = {}) => {
         };
       })
       .catch((error) => {
-        // Check for certificate errors (network failures when connecting to HTTPS with untrusted cert)
-        if (error.message === "Failed to fetch" || error.name === "TypeError") {
-          const urlObj = new URL(url);
-          if (
-            urlObj.hostname === "localhost" ||
-            urlObj.hostname === "127.0.0.1"
-          ) {
-            const certError = new Error(
-              `Unable to connect to ${urlObj.origin}. This may be due to an untrusted SSL certificate.\n\n` +
-                `Please visit ${urlObj.origin} in your browser and accept the security warning to trust the certificate, then refresh this page.`,
-            );
-            (certError as any).isCertificateError = true;
-            (certError as any).serverUrl = urlObj.origin;
-            throw certError;
-          }
-        }
         throw error;
       });
   } else {

@@ -13,6 +13,7 @@ import { EventDestination } from "../outbox-relay";
  */
 function toLogInsert(event: AuditEvent): LogInsert {
   return {
+    log_id: event.id,
     type: event.log_type as LogType,
     date: event.timestamp,
     description: event.description || "",
@@ -65,7 +66,21 @@ export class LogsDestination implements EventDestination {
 
   async deliver(events: { tenantId: string; log: LogInsert }[]): Promise<void> {
     for (const { tenantId, log } of events) {
-      await this.logs.create(tenantId, log);
+      try {
+        await this.logs.create(tenantId, log);
+      } catch (error) {
+        // Idempotent: if this event was already delivered (e.g., cron retry after
+        // per-request delivery succeeded but markProcessed failed), skip it.
+        const message =
+          error instanceof Error ? error.message : String(error);
+        if (
+          message.includes("UNIQUE constraint failed") ||
+          message.includes("Duplicate entry")
+        ) {
+          continue;
+        }
+        throw error;
+      }
     }
   }
 }

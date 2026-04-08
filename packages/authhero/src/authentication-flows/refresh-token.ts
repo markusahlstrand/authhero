@@ -105,24 +105,62 @@ export async function refreshTokenGrant(
       });
     }
 
-    // Verify the user is a member of the organization
-    const userOrgs = await ctx.env.data.userOrganizations.list(
-      client.tenant.id,
-      {
-        q: `user_id:${user.user_id}`,
-        per_page: 1000,
-      },
-    );
+    // Check if user has global admin:organizations permission (bypasses membership check)
+    let hasGlobalOrgAdminPermission = false;
+    const currentTenant = await ctx.env.data.tenants.get(client.tenant.id);
 
-    const isMember = userOrgs.userOrganizations.some(
-      (uo) => uo.organization_id === organization!.id,
-    );
+    if (
+      currentTenant?.flags?.inherit_global_permissions_in_organizations &&
+      resourceServer?.audience
+    ) {
+      const globalRoles = await ctx.env.data.userRoles.list(
+        client.tenant.id,
+        user.user_id,
+        undefined,
+        "", // Empty string for tenant-level (global) roles
+      );
 
-    if (!isMember) {
-      throw new JSONHTTPException(403, {
-        error: "access_denied",
-        error_description: "User is not a member of the specified organization",
-      });
+      for (const role of globalRoles) {
+        const rolePermissions = await ctx.env.data.rolePermissions.list(
+          client.tenant.id,
+          role.id,
+          { per_page: 1000 },
+        );
+
+        const hasAdminOrg = rolePermissions.some(
+          (permission) =>
+            permission.permission_name === "admin:organizations" &&
+            permission.resource_server_identifier === resourceServer.audience,
+        );
+
+        if (hasAdminOrg) {
+          hasGlobalOrgAdminPermission = true;
+          break;
+        }
+      }
+    }
+
+    // Verify the user is a member of the organization (unless they have global admin permission)
+    if (!hasGlobalOrgAdminPermission) {
+      const userOrgs = await ctx.env.data.userOrganizations.list(
+        client.tenant.id,
+        {
+          q: `user_id:${user.user_id}`,
+          per_page: 1000,
+        },
+      );
+
+      const isMember = userOrgs.userOrganizations.some(
+        (uo) => uo.organization_id === organization!.id,
+      );
+
+      if (!isMember) {
+        throw new JSONHTTPException(403, {
+          error: "access_denied",
+          error_description:
+            "User is not a member of the specified organization",
+        });
+      }
     }
   }
 

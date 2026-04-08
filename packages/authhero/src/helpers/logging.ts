@@ -224,7 +224,12 @@ export async function logMessage(
 
     // Geo enrichment is deferred to the outbox relay/processor.
     // The IP is already captured in event.request.ip.
-    await ctx.env.data.outbox.create(tenantId, event);
+    const eventId = await ctx.env.data.outbox.create(tenantId, event);
+
+    // Collect the event ID so the request middleware can process it after responding
+    const existingIds = ctx.var.outboxEventIds || [];
+    existingIds.push(eventId);
+    ctx.set("outboxEventIds", existingIds);
     return;
   }
 

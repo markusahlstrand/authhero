@@ -30,4 +30,6 @@ export type Variables = {
   auth0_client?: Auth0Client;
   useragent?: string;
   countryCode?: CountryCode;
+  // Outbox event IDs created during this request (for per-request processing)
+  outboxEventIds?: string[];
 };

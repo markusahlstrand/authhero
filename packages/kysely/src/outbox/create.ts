@@ -4,7 +4,7 @@ import { AuditEventInsert } from "@authhero/adapter-interfaces";
 import { Database } from "../db";
 
 export function createOutboxEvent(db: Kysely<Database>) {
-  return async (tenantId: string, event: AuditEventInsert): Promise<void> => {
+  return async (tenantId: string, event: AuditEventInsert): Promise<string> => {
     const id = nanoid();
 
     await db
@@ -24,5 +24,7 @@ export function createOutboxEvent(db: Kysely<Database>) {
         error: null,
       })
       .execute();
+
+    return id;
   };
 }
