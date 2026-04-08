@@ -19,8 +19,7 @@ import { addCaching } from "../../helpers/cache-wrapper";
 import { createInMemoryCache } from "../../adapters/cache/in-memory";
 import { tenantMiddleware } from "../../middlewares/tenant";
 import { clientInfoMiddleware } from "../../middlewares/client-info";
-import { waitUntil } from "../../helpers/wait-until";
-import { processOutboxEvents } from "../../helpers/outbox-relay";
+import { outboxMiddleware } from "../../middlewares/outbox";
 import { LogsDestination } from "../../helpers/outbox-destinations/logs";
 
 export default function create(config: AuthHeroConfig) {
@@ -29,23 +28,12 @@ export default function create(config: AuthHeroConfig) {
     Variables: Variables;
   }>();
 
-  // Process outbox events created during this request after the response
-  app.use(async (ctx, next) => {
-    ctx.set("outboxEventIds", []);
-    await next();
-    const eventIds = ctx.var.outboxEventIds ?? [];
-    if (eventIds.length > 0 && config.dataAdapter.outbox) {
-      waitUntil(
-        ctx,
-        processOutboxEvents(
-          config.dataAdapter.outbox,
-          eventIds,
-          [new LogsDestination(config.dataAdapter.logs)],
-          { maxRetries: ctx.env.outbox?.maxRetries },
-        ),
-      );
-    }
-  });
+  app.use(
+    outboxMiddleware({
+      getOutbox: () => config.dataAdapter.outbox,
+      getDestinations: () => [new LogsDestination(config.dataAdapter.logs)],
+    }),
+  );
 
   app.use(async (ctx, next) => {
     // First add data hooks

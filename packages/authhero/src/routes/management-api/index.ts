@@ -34,8 +34,7 @@ import { statsRoutes } from "./stats";
 import { guardianRoutes } from "./guardian";
 import { authenticationMethodsRoutes } from "./authentication-methods";
 import { DataAdapters } from "@authhero/adapter-interfaces";
-import { waitUntil } from "../../helpers/wait-until";
-import { processOutboxEvents } from "../../helpers/outbox-relay";
+import { outboxMiddleware } from "../../middlewares/outbox";
 import { LogsDestination } from "../../helpers/outbox-destinations/logs";
 
 export default function create(config: AuthHeroConfig) {
@@ -183,6 +182,13 @@ export default function create(config: AuthHeroConfig) {
 
   const MUTATING_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"]);
 
+  app.use(
+    outboxMiddleware({
+      getOutbox: () => managementAdapter.outbox,
+      getDestinations: () => [new LogsDestination(managementAdapter.logs)],
+    }),
+  );
+
   app.use(async (ctx, next) => {
     const outboxEnabled = ctx.env.outbox?.enabled;
     const isMutating = MUTATING_METHODS.has(ctx.req.method);
@@ -190,25 +196,11 @@ export default function create(config: AuthHeroConfig) {
     if (outboxEnabled && isMutating) {
       // Wrap the entire request in a transaction so entity writes
       // and outbox event writes are atomic
-      ctx.set("outboxEventIds", []);
       await managementAdapter.transaction(async (trxAdapters) => {
         ctx.env.data = applyDecorators(ctx, trxAdapters);
         ctx.env.entityHooks = config.entityHooks;
         await next();
       });
-      // Transaction committed — process only this request's outbox events
-      const eventIds = ctx.var.outboxEventIds ?? [];
-      if (eventIds.length > 0 && managementAdapter.outbox) {
-        waitUntil(
-          ctx,
-          processOutboxEvents(
-            managementAdapter.outbox,
-            eventIds,
-            [new LogsDestination(managementAdapter.logs)],
-            { maxRetries: ctx.env.outbox?.maxRetries },
-          ),
-        );
-      }
     } else {
       ctx.env.data = applyDecorators(ctx, managementAdapter);
       ctx.env.entityHooks = config.entityHooks;

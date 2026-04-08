@@ -25,6 +25,8 @@ import { addCaching } from "../../helpers/cache-wrapper";
 import { createInMemoryCache } from "../../adapters/cache/in-memory";
 import { tenantMiddleware } from "../../middlewares/tenant";
 import { clientInfoMiddleware } from "../../middlewares/client-info";
+import { outboxMiddleware } from "../../middlewares/outbox";
+import { LogsDestination } from "../../helpers/outbox-destinations/logs";
 import { screenApiRoutes } from "./screen-api";
 import { u2Routes } from "./u2-routes.tsx";
 import { u2FormNodeRoutes } from "./u2-form-node.tsx";
@@ -63,6 +65,12 @@ export default function createU2App(config: AuthHeroConfig) {
 
   // Data adapter middleware
   app
+    .use(
+      outboxMiddleware({
+        getOutbox: () => config.dataAdapter.outbox,
+        getDestinations: () => [new LogsDestination(config.dataAdapter.logs)],
+      }),
+    )
     .use(async (ctx, next) => {
       const dataWithHooks = addDataHooks(ctx, config.dataAdapter);
       const cachedData = addCaching(dataWithHooks, {
