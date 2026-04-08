@@ -11,7 +11,7 @@ import {
 import getToken, {
   clearOrganizationTokenCache,
   getOrganizationToken,
-  OrgCache,
+  getOrgAccessToken,
 } from "./utils/tokenUtils";
 import { getConfigValue, getBasePath } from "./utils/runtimeConfig";
 
@@ -25,9 +25,6 @@ const activeSessions = new Map<string, boolean>();
 
 // Cache for auth0 clients (domain only, no org)
 const auth0ClientCache = new Map<string, Auth0Client>();
-
-// Cache for organization-specific auth0 clients (domain:orgId)
-const auth0OrgClientCache = new Map<string, Auth0Client>();
 
 // Cache for management clients
 const managementClientCache = new Map<string, ManagementClient>();
@@ -56,7 +53,8 @@ export const createAuth0Client = (domain: string) => {
     domain: fullDomain,
     clientId,
     cacheLocation: "localstorage",
-    useRefreshTokens: false,
+    useRefreshTokens: true,
+    useRefreshTokensFallback: false,
     authorizationParams: {
       audience,
       redirect_uri: redirectUri,
@@ -116,56 +114,6 @@ export const createAuth0Client = (domain: string) => {
   return auth0Client;
 };
 
-/**
- * Create an Auth0Client for a specific organization with isolated cache.
- * This ensures tokens for different organizations don't interfere with each other.
- */
-export const createAuth0ClientForOrg = (
-  domain: string,
-  organizationId: string,
-) => {
-  // Normalize organization ID to lowercase to avoid casing mismatches
-  const normalizedOrgId = organizationId.toLowerCase();
-  const cacheKey = `${domain}:${normalizedOrgId}`;
-
-  // Check cache first
-  if (auth0OrgClientCache.has(cacheKey)) {
-    return auth0OrgClientCache.get(cacheKey)!;
-  }
-
-  // Build full domain URL with HTTPS
-  const fullDomain = buildUrlWithProtocol(domain);
-
-  // Get redirect URI from current app URL
-  const currentUrl = new URL(window.location.href);
-  const redirectUri = `${currentUrl.protocol}//${currentUrl.host}${getBasePath()}/auth-callback`;
-
-  // Use the management API audience for cross-tenant operations
-  // The org_id claim in the token determines which tenant's resources are accessed
-  const audience = getConfigValue("audience") || "urn:authhero:management";
-
-  const clientId = getClientIdFromStorage(domain);
-
-  const auth0Client = new Auth0Client({
-    domain: fullDomain,
-    clientId,
-    useRefreshTokens: false,
-    // Use organization-specific cache to isolate tokens
-    // Note: Don't use cacheLocation when providing a custom cache
-    cache: new OrgCache(normalizedOrgId),
-    authorizationParams: {
-      audience,
-      redirect_uri: redirectUri,
-      scope: "openid profile email",
-      organization: normalizedOrgId,
-    },
-  });
-
-  // Store in cache
-  auth0OrgClientCache.set(cacheKey, auth0Client);
-  return auth0Client;
-};
-
 // Create a Management API client
 export const createManagementClient = async (
   apiDomain: string,
@@ -174,9 +122,10 @@ export const createManagementClient = async (
 ): Promise<ManagementClient> => {
   // Normalize tenant ID to lowercase to avoid casing mismatches
   const normalizedTenantId = tenantId?.toLowerCase();
+  const oauthKey = oauthDomain ? formatDomain(oauthDomain) : apiDomain;
   const cacheKey = normalizedTenantId
-    ? `${apiDomain}:${normalizedTenantId}`
-    : apiDomain;
+    ? `${oauthKey}|${apiDomain}|${normalizedTenantId}`
+    : `${oauthKey}|${apiDomain}`;
 
   // Check cache first
   if (managementClientCache.has(cacheKey)) {
@@ -205,29 +154,19 @@ export const createManagementClient = async (
   if (normalizedTenantId && !isSingleTenant) {
     // When accessing tenant-specific resources in MULTI-TENANT mode, use org-scoped token
     if (domainConfig.connectionMethod === "login") {
-      // For OAuth login, use organization-scoped client
-      const orgAuth0Client = createAuth0ClientForOrg(
-        domainForAuth,
-        normalizedTenantId,
-      );
-
+      const auth0Client = createAuth0Client(domainForAuth);
       const audience = getConfigValue("audience") || "urn:authhero:management";
 
       try {
-        token = await orgAuth0Client.getTokenSilently({
-          authorizationParams: {
-            audience,
-            organization: normalizedTenantId,
-          },
-        });
+        token = await getOrgAccessToken(
+          auth0Client,
+          normalizedTenantId,
+          audience,
+          domainForAuth,
+        );
       } catch (error) {
-        // If silent token acquisition fails, redirect to login with org
-        // Get the base auth0 client to get the user's email for login hint
-        const baseClient = createAuth0Client(domainForAuth);
-        const user = await baseClient.getUser().catch(() => null);
-
-        // Redirect to login with organization
-        await orgAuth0Client.loginWithRedirect({
+        const user = await auth0Client.getUser().catch(() => null);
+        await auth0Client.loginWithRedirect({
           authorizationParams: {
             organization: normalizedTenantId,
             login_hint: user?.email,
@@ -236,8 +175,6 @@ export const createManagementClient = async (
             returnTo: window.location.pathname,
           },
         });
-
-        // This won't be reached as loginWithRedirect redirects the page
         throw new Error(
           `Redirecting to login for organization ${normalizedTenantId}`,
         );
@@ -594,22 +531,6 @@ const authorizedHttpClient = (url: string, options: HttpOptions = {}) => {
         };
       })
       .catch((error) => {
-        // Check for certificate errors (network failures when connecting to HTTPS with untrusted cert)
-        if (error.message === "Failed to fetch" || error.name === "TypeError") {
-          const urlObj = new URL(url);
-          if (
-            urlObj.hostname === "localhost" ||
-            urlObj.hostname === "127.0.0.1"
-          ) {
-            const certError = new Error(
-              `Unable to connect to ${urlObj.origin}. This may be due to an untrusted SSL certificate.\n\n` +
-                `Please visit ${urlObj.origin} in your browser and accept the security warning to trust the certificate, then refresh this page.`,
-            );
-            (certError as any).isCertificateError = true;
-            (certError as any).serverUrl = urlObj.origin;
-            throw certError;
-          }
-        }
         throw error;
       });
   } else {
@@ -856,32 +777,14 @@ export const createOrganizationHttpClient = (organizationId: string) => {
           throw error;
         });
     } else {
-      // For OAuth login, use an organization-specific client with isolated cache
-      const orgAuth0Client = createAuth0ClientForOrg(
-        selectedDomain,
-        normalizedOrgId,
-      );
-
-      // Use the management API audience for cross-tenant operations
-      // The org_id in the token will determine which tenant's resources are being accessed
+      // For OAuth login, use refresh token with organization parameter
+      const auth0Client = createAuth0Client(selectedDomain);
       const audience = getConfigValue("audience") || "urn:authhero:management";
 
-      // First, check if we have a valid session for this organization
-      request = orgAuth0Client
-        .getTokenSilently({
-          authorizationParams: {
-            audience,
-            organization: normalizedOrgId,
-          },
-        })
+      request = getOrgAccessToken(auth0Client, normalizedOrgId, audience, formattedSelectedDomain)
         .catch(async (_error) => {
-          // If silent token acquisition fails, we need to redirect to login with org
-          // Get the base auth0 client to get the user's email for login hint
-          const baseClient = createAuth0Client(selectedDomain);
-          const user = await baseClient.getUser().catch(() => null);
-
-          // Redirect to login with organization
-          await orgAuth0Client.loginWithRedirect({
+          const user = await auth0Client.getUser().catch(() => null);
+          await auth0Client.loginWithRedirect({
             authorizationParams: {
               organization: normalizedOrgId,
               login_hint: user?.email,
@@ -890,8 +793,6 @@ export const createOrganizationHttpClient = (organizationId: string) => {
               returnTo: window.location.pathname,
             },
           });
-
-          // This won't be reached as loginWithRedirect redirects the page
           throw new Error(
             `Redirecting to login for organization ${normalizedOrgId}`,
           );

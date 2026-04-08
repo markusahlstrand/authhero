@@ -2,29 +2,14 @@ import { Kysely } from "kysely";
 import { OutboxEvent, AuditEvent } from "@authhero/adapter-interfaces";
 import { Database } from "../db";
 
-export function getUnprocessedOutboxEvents(db: Kysely<Database>) {
-  return async (limit: number): Promise<OutboxEvent[]> => {
-    const now = new Date().toISOString();
+export function getOutboxEventsByIds(db: Kysely<Database>) {
+  return async (ids: string[]): Promise<OutboxEvent[]> => {
+    if (ids.length === 0) return [];
 
     const rows = await db
       .selectFrom("outbox_events")
       .selectAll()
-      .where("processed_at", "is", null)
-      .where((eb) =>
-        eb.or([
-          eb("next_retry_at", "is", null),
-          eb("next_retry_at", "<=", now),
-        ]),
-      )
-      .where((eb) =>
-        eb.or([
-          eb("claimed_by", "is", null),
-          eb("claim_expires_at", "<=", now),
-        ]),
-      )
-      .orderBy("created_at", "asc")
-      .orderBy("id", "asc")
-      .limit(limit)
+      .where("id", "in", ids)
       .execute();
 
     return rows.map((row) => {

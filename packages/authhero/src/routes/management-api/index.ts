@@ -35,7 +35,7 @@ import { guardianRoutes } from "./guardian";
 import { authenticationMethodsRoutes } from "./authentication-methods";
 import { DataAdapters } from "@authhero/adapter-interfaces";
 import { waitUntil } from "../../helpers/wait-until";
-import { drainOutbox } from "../../helpers/outbox-relay";
+import { processOutboxEvents } from "../../helpers/outbox-relay";
 import { LogsDestination } from "../../helpers/outbox-destinations/logs";
 
 export default function create(config: AuthHeroConfig) {
@@ -190,22 +190,22 @@ export default function create(config: AuthHeroConfig) {
     if (outboxEnabled && isMutating) {
       // Wrap the entire request in a transaction so entity writes
       // and outbox event writes are atomic
+      ctx.set("outboxEventIds", []);
       await managementAdapter.transaction(async (trxAdapters) => {
         ctx.env.data = applyDecorators(ctx, trxAdapters);
         ctx.env.entityHooks = config.entityHooks;
         await next();
       });
-      // Transaction committed — drain outbox in background
-      if (managementAdapter.outbox) {
+      // Transaction committed — process only this request's outbox events
+      const eventIds = ctx.var.outboxEventIds ?? [];
+      if (eventIds.length > 0 && managementAdapter.outbox) {
         waitUntil(
           ctx,
-          drainOutbox(
+          processOutboxEvents(
             managementAdapter.outbox,
+            eventIds,
             [new LogsDestination(managementAdapter.logs)],
-            {
-              maxRetries: ctx.env.outbox?.maxRetries,
-              retentionDays: ctx.env.outbox?.retentionDays,
-            },
+            { maxRetries: ctx.env.outbox?.maxRetries },
           ),
         );
       }

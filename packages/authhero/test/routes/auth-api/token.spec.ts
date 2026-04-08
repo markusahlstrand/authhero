@@ -1726,6 +1726,137 @@ describe("token", () => {
       await env.data.organizations.remove("tenantId", organization.id);
     });
 
+    it("should allow refresh token with organization when user has global admin:organizations permission", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const client = testClient(oauthApp, env);
+
+      const audience = "https://admin-refresh-api.example.com";
+
+      // Create a resource server with RBAC enabled
+      const resourceServer = await env.data.resourceServers.create("tenantId", {
+        name: "Admin Refresh API",
+        identifier: audience,
+        scopes: [
+          { value: "admin:organizations", description: "Manage organizations" },
+          { value: "read:users", description: "Read users" },
+        ],
+        options: {
+          enforce_policies: true,
+          token_dialect: "access_token_authz",
+        },
+      });
+
+      // Create an organization (user will NOT be a member)
+      const organization = await env.data.organizations.create("tenantId", {
+        name: "admin-bypass-org",
+        display_name: "Admin Bypass Org",
+      });
+
+      // Create a user but do NOT add to organization
+      const user = await env.data.users.create("tenantId", {
+        user_id: "email|global-admin-user",
+        email: "global-admin@example.com",
+        provider: "email",
+        connection: "email",
+        email_verified: true,
+        is_social: false,
+      });
+
+      // Create a global admin role with admin:organizations permission
+      const adminRole = await env.data.roles.create("tenantId", {
+        name: "Global Org Admin",
+        description: "Can manage all organizations",
+      });
+
+      await env.data.rolePermissions.assign("tenantId", adminRole.id, [
+        {
+          role_id: adminRole.id,
+          resource_server_identifier: audience,
+          permission_name: "admin:organizations",
+        },
+      ]);
+
+      // Assign global role to user (organizationId = "" for global)
+      await env.data.userRoles.create(
+        "tenantId",
+        user.user_id,
+        adminRole.id,
+        "", // Global role (no organization)
+      );
+
+      // Enable the inherit_global_permissions_in_organizations flag
+      await env.data.tenants.update("tenantId", {
+        flags: {
+          inherit_global_permissions_in_organizations: true,
+        },
+      });
+
+      const loginSession = await env.data.loginSessions.create("tenantId", {
+        expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+        csrf_token: "csrfToken",
+        authParams: {
+          client_id: "clientId",
+          redirect_uri: "https://example.com/callback",
+        },
+      });
+
+      const idle_expires_at = new Date(
+        Date.now() + 1000 * 60 * 60,
+      ).toISOString();
+
+      await env.data.refreshTokens.create("tenantId", {
+        id: "refreshTokenGlobalAdmin",
+        login_id: loginSession.id,
+        user_id: user.user_id,
+        client_id: "clientId",
+        resource_servers: [
+          {
+            audience,
+            scopes: "admin:organizations read:users",
+          },
+        ],
+        device: {
+          last_ip: "",
+          initial_ip: "",
+          last_user_agent: "",
+          initial_user_agent: "",
+          initial_asn: "",
+          last_asn: "",
+        },
+        rotating: false,
+        idle_expires_at,
+        expires_at: idle_expires_at,
+      });
+
+      // This should succeed despite user NOT being a member of the organization
+      const response = await client.oauth.token.$post(
+        // @ts-expect-error - testClient type requires both form and json
+        {
+          form: {
+            grant_type: "refresh_token",
+            refresh_token: "refreshTokenGlobalAdmin",
+            client_id: "clientId",
+            organization: organization.id,
+          },
+        },
+        { headers: { "tenant-id": "tenantId" } },
+      );
+
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as TokenResponse;
+      expect(body.access_token).toBeDefined();
+
+      // Verify the token has the correct org_id
+      const payload = parseJWT(body.access_token)?.payload as any;
+      expect(payload.org_id).toBe(organization.id);
+
+      // Clean up
+      await env.data.tenants.update("tenantId", { flags: {} });
+      await env.data.resourceServers.remove("tenantId", resourceServer.id!);
+      await env.data.users.remove("tenantId", user.user_id);
+      await env.data.organizations.remove("tenantId", organization.id);
+    });
+
     it("should return tokens without org claims when no org in session and no org param", async () => {
       const { oauthApp, env } = await getTestServer();
       const client = testClient(oauthApp, env);

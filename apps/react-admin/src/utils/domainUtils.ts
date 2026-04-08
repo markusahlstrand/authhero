@@ -180,24 +180,41 @@ export const getClientIdFromStorage = (domain: string): string => {
 };
 
 /**
- * Constructs a full URL with HTTPS protocol
- * - Always uses https:// for all domains (including localhost with self-signed certs)
- * - Preserves existing https:// protocol if already present
- * - Converts http:// to https://
+ * Constructs a full URL with the appropriate protocol
+ * - Uses http:// for localhost and 127.0.0.1 (no self-signed certs needed locally)
+ * - Uses https:// for all other domains
+ * - Upgrades http:// to https:// for non-loopback hosts
  */
 export const buildUrlWithProtocol = (domain: string): string => {
   const trimmedDomain = domain.trim();
 
-  // Check if it already has a protocol
-  if (trimmedDomain.startsWith("https://")) {
+  const isLoopback = (hostname: string) =>
+    hostname === "localhost" || hostname === "127.0.0.1";
+
+  // Parse the input to extract the hostname reliably
+  const hasScheme = /^https?:\/\//i.test(trimmedDomain);
+  const toParse = hasScheme ? trimmedDomain : `https://${trimmedDomain}`;
+
+  let parsed: URL;
+  try {
+    parsed = new URL(toParse);
+  } catch {
+    // If it can't be parsed, fall back to https
+    return `https://${trimmedDomain}`;
+  }
+
+  if (hasScheme) {
+    // Allow http only for loopback; upgrade everything else to https
+    if (parsed.protocol === "http:" && !isLoopback(parsed.hostname)) {
+      return trimmedDomain.replace(/^http:\/\//i, "https://");
+    }
     return trimmedDomain;
   }
 
-  // Convert http:// to https://
-  if (trimmedDomain.startsWith("http://")) {
-    return trimmedDomain.replace("http://", "https://");
+  // No scheme provided — use http for loopback, https otherwise
+  if (isLoopback(parsed.hostname)) {
+    return `http://${trimmedDomain}`;
   }
 
-  // No protocol specified - add https://
   return `https://${trimmedDomain}`;
 };

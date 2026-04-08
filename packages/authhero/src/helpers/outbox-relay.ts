@@ -26,8 +26,80 @@ function computeNextRetryAt(retryCount: number): string {
 }
 
 /**
+ * Process specific outbox events by their IDs.
+ * Used by per-request processing where each request handles only its own events.
+ * Claims events first to prevent concurrent processing by drain workers.
+ */
+export async function processOutboxEvents(
+  outbox: OutboxAdapter,
+  ids: string[],
+  destinations: EventDestination[],
+  options?: { maxRetries?: number },
+): Promise<void> {
+  if (ids.length === 0) return;
+
+  const maxRetries = options?.maxRetries ?? DEFAULT_MAX_RETRIES;
+
+  // Claim events to prevent concurrent processing by drain workers
+  const workerId = crypto.randomUUID();
+  const claimedIds = await outbox.claimEvents(ids, workerId, DEFAULT_LEASE_MS);
+  if (claimedIds.length === 0) return;
+
+  const events = await outbox.getByIds(claimedIds);
+  if (events.length === 0) return;
+
+  const processedIds: string[] = [];
+
+  for (const event of events) {
+    if (event.retry_count >= maxRetries) {
+      console.warn(
+        `Outbox event ${event.id} exceeded max retries (${maxRetries}), marking as processed. Last error: ${event.error}`,
+      );
+      processedIds.push(event.id);
+      continue;
+    }
+
+    let allSucceeded = true;
+
+    for (const destination of destinations) {
+      try {
+        const transformed = destination.transform(event);
+        await destination.deliver([transformed]);
+      } catch (error) {
+        allSucceeded = false;
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        try {
+          await outbox.markRetry(
+            event.id,
+            `${destination.name}: ${errorMessage}`,
+            computeNextRetryAt(event.retry_count),
+          );
+        } catch {
+          // Best effort
+        }
+        break;
+      }
+    }
+
+    if (allSucceeded) {
+      processedIds.push(event.id);
+    }
+  }
+
+  if (processedIds.length > 0) {
+    try {
+      await outbox.markProcessed(processedIds);
+    } catch {
+      // Best effort
+    }
+  }
+}
+
+/**
  * Drain unprocessed events from the outbox and deliver to all destinations.
- * Each destination is processed independently — a failure in one does not block others.
+ * Intended for cron/scheduled use to sweep up events that failed per-request processing.
+ * Uses claim mechanism for safe multi-worker execution.
  */
 export async function drainOutbox(
   outbox: OutboxAdapter,

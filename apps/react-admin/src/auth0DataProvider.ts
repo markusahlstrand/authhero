@@ -242,17 +242,7 @@ export default (
           resourceKey: "users",
           idKey: "user_id",
         },
-        clients: {
-          fetch: (client) =>
-            client.clients.list({
-              page: page - 1,
-              per_page: perPage,
-              q: params.filter?.q,
-              include_totals: true,
-            }),
-          resourceKey: "clients",
-          idKey: "client_id",
-        },
+        // clients handled separately with client-side paging/search
         connections: {
           fetch: (client) => client.connections.list(),
           resourceKey: "connections",
@@ -295,11 +285,6 @@ export default (
           fetch: (client) => client.forms.list(),
           resourceKey: "forms",
           idKey: "id",
-        },
-        "custom-domains": {
-          fetch: (client: any) => client.customDomains.list(),
-          resourceKey: "custom_domains",
-          idKey: "custom_domain_id",
         },
         hooks: {
           fetch: (client: any) => client.hooks.list(),
@@ -410,6 +395,27 @@ export default (
         }
       }
 
+      // Handle clients with client-side paging and search (fetch all, filter locally)
+      if (resource === "clients" && !resourcePath.includes("/")) {
+        const result = await managementClient.clients.list({
+          page: 0,
+          per_page: 500,
+          include_totals: false,
+        });
+        const { data: allClients } = normalizeSDKResponse(result, "clients");
+
+        return clientSideListHandler({
+          data: allClients,
+          page,
+          perPage: perPage || 10,
+          sortField: field,
+          sortOrder: order,
+          searchQuery: params.filter?.q,
+          searchFields: ["name", "client_id"],
+          idKey: "client_id",
+        });
+      }
+
       // Handle organizations with client-side paging and search (fetch 500, filter locally)
       if (resource === "organizations" && !resourcePath.includes("/")) {
         const result = await managementClient.organizations.list({
@@ -427,6 +433,26 @@ export default (
           searchQuery: params.filter?.q,
           searchFields: ["name", "display_name"],
           idKey: "id",
+        });
+      }
+
+      // Handle custom-domains with client-side paging and search
+      if (resource === "custom-domains" && !resourcePath.includes("/")) {
+        const result = await (managementClient as any).customDomains.list();
+        const { data: allDomains } = normalizeSDKResponse(
+          result,
+          "custom_domains",
+        );
+
+        return clientSideListHandler({
+          data: allDomains,
+          page,
+          perPage: perPage || 10,
+          sortField: field,
+          sortOrder: order,
+          searchQuery: params.filter?.q,
+          searchFields: ["domain", "custom_domain_id"],
+          idKey: "custom_domain_id",
         });
       }
 
