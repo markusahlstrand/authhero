@@ -107,7 +107,7 @@ try {
       .readFileSync(adminIndexPath, "utf-8")
       .replace(/src="\.\/assets\//g, 'src="/admin/assets/')
       .replace(/href="\.\/assets\//g, 'href="/admin/assets/');
-    const configScript = `<script>window.__AUTHHERO_ADMIN_CONFIG__={domain:window.location.origin,basePath:"/admin"}</script>`;
+    const configScript = `<script>window.__AUTHHERO_ADMIN_CONFIG__={domain:window.location.origin,clientId:"default",basePath:"/admin"}</script>`;
     const injectedHtml = adminHtml.replace(
       "</head>",
       configScript + "\n</head>",

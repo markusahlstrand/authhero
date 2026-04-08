@@ -74,7 +74,7 @@ export default function createAdapters(
     themes: createThemesAdapter(db),
     universalLoginTemplates: createUniversalLoginTemplatesAdapter(db),
     customText: createCustomTextAdapter(db),
-    users: createUsersAdapter(db, databaseOptions),
+    users: createUsersAdapter(db),
     organizations: createOrganizationsAdapter(db),
     userOrganizations: createUserOrganizationsAdapter(db),
     stats: createStatsAdapter(db),
@@ -86,7 +86,7 @@ export default function createAdapters(
         return fn(adapters);
       }
       return db.transaction().execute(async (trx) => {
-        const trxAdapters = createAdapters(trx, databaseOptions);
+        const trxAdapters = createAdapters(trx, { ...databaseOptions, useTransactions: false });
         return fn(trxAdapters);
       });
     },

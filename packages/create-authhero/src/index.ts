@@ -229,9 +229,9 @@ function generateLocalSeedFileContent(
   ];
   const conformanceCallbacks = conformance
     ? [
-        `https://localhost.emobix.co.uk:8443/test/a/${conformanceAlias}/callback`,
-        `https://localhost:8443/test/a/${conformanceAlias}/callback`,
-      ]
+      `https://localhost.emobix.co.uk:8443/test/a/${conformanceAlias}/callback`,
+      `https://localhost:8443/test/a/${conformanceAlias}/callback`,
+    ]
     : [];
   const callbacks = [...defaultCallbacks, ...conformanceCallbacks];
 
@@ -376,7 +376,8 @@ async function main() {
     adminPassword,
     tenantId: "${tenantId}",
     tenantName: "${tenantName}",
-    isControlPlane: ${!!multiTenant},${multiTenant ? `\n    clientId: "default_client",` : ""}
+    isControlPlane: ${!!multiTenant},
+    clientId: "default"
     callbacks: ${JSON.stringify(callbacks)},
     allowedLogoutUrls: ${JSON.stringify(allowedLogoutUrls)},
   });
@@ -414,7 +415,8 @@ const adminIndexPath = path.join(adminDistPath, "index.html");
       .replace(/src="\\.\\//g, 'src="/admin/')
       .replace(/href="\\.\\//g, 'href="/admin/');
     const configJson = JSON.stringify({
-      domain: issuer.replace(/\\/$/, ""),${multiTenant ? `\n      clientId: CONTROL_PLANE_CLIENT_ID,` : ""}
+      domain: issuer.replace(/\\/$/, ""),
+      clientId: ${multiTenant ? "CONTROL_PLANE_CLIENT_ID," : `"default",`}
       basePath: "/admin",
     }).replace(/</g, "\\\\u003c");
     configWithHandlers.adminIndexHtml = rawHtml.replace(
@@ -447,7 +449,7 @@ const widgetPath = path.resolve(
 ${adminPaths}
 // Control plane configuration
 const CONTROL_PLANE_TENANT_ID = "control_plane";
-const CONTROL_PLANE_CLIENT_ID = "default_client";
+const CONTROL_PLANE_CLIENT_ID = "default";
 
 export default function createApp(config: AuthHeroConfig & { dataAdapter: DataAdapters }) {
   const configWithHandlers: AuthHeroConfig & { dataAdapter: DataAdapters } = {
@@ -574,6 +576,7 @@ export default {
         tenantId: "${tenantId}",
         tenantName: "${tenantName}",
         isControlPlane: ${!!multiTenant},
+        clientId: "default",
       });
 
       return new Response(
@@ -622,7 +625,7 @@ import { initMultiTenant } from "@authhero/multi-tenancy";
 ${adminImport}
 // Control plane configuration
 const CONTROL_PLANE_TENANT_ID = "control_plane";
-const CONTROL_PLANE_CLIENT_ID = "default_client";
+const CONTROL_PLANE_CLIENT_ID = "default";
 
 export default function createApp(config: AuthHeroConfig & { dataAdapter: DataAdapters }) {
   // Initialize multi-tenant AuthHero - syncs resource servers, roles, and connections by default
@@ -711,7 +714,7 @@ import { initMultiTenant } from "@authhero/multi-tenancy";
 
 // Control plane configuration
 const CONTROL_PLANE_TENANT_ID = "control_plane";
-const CONTROL_PLANE_CLIENT_ID = "default_client";
+const CONTROL_PLANE_CLIENT_ID = "default";
 
 interface AppConfig extends AuthHeroConfig {
   dataAdapter: DataAdapters;

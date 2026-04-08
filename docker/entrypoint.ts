@@ -65,6 +65,7 @@ try {
 const dataAdapter = createAdapters(db);
 
 // Seed if requested
+let seedClientId: string | undefined;
 if (shouldSeed) {
   const adminUsername = process.env.ADMIN_USERNAME;
   const adminPassword = process.env.ADMIN_PASSWORD;
@@ -85,6 +86,7 @@ if (shouldSeed) {
       tenantName: "Control Plane",
       isControlPlane: true,
     });
+    seedClientId = result.clientId;
     console.log(`Seed complete — client_id: ${result.clientId}`);
   } catch (error) {
     // Seed is idempotent, log but don't crash
@@ -121,11 +123,9 @@ if (fs.existsSync(adminIndexPath)) {
   const rawHtml = fs.readFileSync(adminIndexPath, "utf-8");
   const adminConfig: Record<string, string> = {
     domain: issuer.replace(/\/$/, ""),
+    clientId: process.env.ADMIN_CLIENT_ID || seedClientId || "default",
     basePath: "/admin",
   };
-  if (process.env.ADMIN_CLIENT_ID) {
-    adminConfig.clientId = process.env.ADMIN_CLIENT_ID;
-  }
   if (process.env.ADMIN_API_URL) {
     adminConfig.apiUrl = process.env.ADMIN_API_URL;
   }

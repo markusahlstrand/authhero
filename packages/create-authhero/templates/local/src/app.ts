@@ -40,6 +40,7 @@ export default function createApp(config: AuthHeroConfig) {
       .replace(/href="\.\/assets\//g, 'href="/admin/assets/');
     const configJson = JSON.stringify({
       domain: issuer.replace(/\/$/, ""),
+      clientId: "default",
       basePath: "/admin",
     }).replace(/</g, "\\u003c");
     configWithHandlers.adminIndexHtml = rawHtml.replace(
