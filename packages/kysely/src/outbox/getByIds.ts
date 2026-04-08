@@ -16,6 +16,7 @@ export function getOutboxEventsByIds(db: Kysely<Database>) {
       const payload = JSON.parse(row.payload) as AuditEvent;
       return {
         ...payload,
+        id: row.id,
         created_at: row.created_at,
         processed_at: row.processed_at,
         retry_count: row.retry_count,

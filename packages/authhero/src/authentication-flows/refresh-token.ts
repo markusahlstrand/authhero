@@ -113,29 +113,47 @@ export async function refreshTokenGrant(
       currentTenant?.flags?.inherit_global_permissions_in_organizations &&
       resourceServer?.audience
     ) {
-      const globalRoles = await ctx.env.data.userRoles.list(
-        client.tenant.id,
-        user.user_id,
-        undefined,
-        "", // Empty string for tenant-level (global) roles
+      // Check direct user permissions at tenant level
+      const globalUserPermissions =
+        await ctx.env.data.userPermissions.list(
+          client.tenant.id,
+          user.user_id,
+          undefined,
+          "", // Empty string for tenant-level (global) permissions
+        );
+
+      hasGlobalOrgAdminPermission = globalUserPermissions.some(
+        (permission) =>
+          permission.permission_name === "admin:organizations" &&
+          permission.resource_server_identifier === resourceServer.audience,
       );
 
-      for (const role of globalRoles) {
-        const rolePermissions = await ctx.env.data.rolePermissions.list(
+      // Check role-derived permissions at tenant level
+      if (!hasGlobalOrgAdminPermission) {
+        const globalRoles = await ctx.env.data.userRoles.list(
           client.tenant.id,
-          role.id,
-          { per_page: 1000 },
+          user.user_id,
+          undefined,
+          "", // Empty string for tenant-level (global) roles
         );
 
-        const hasAdminOrg = rolePermissions.some(
-          (permission) =>
-            permission.permission_name === "admin:organizations" &&
-            permission.resource_server_identifier === resourceServer.audience,
-        );
+        for (const role of globalRoles) {
+          const rolePermissions = await ctx.env.data.rolePermissions.list(
+            client.tenant.id,
+            role.id,
+            { per_page: 1000 },
+          );
 
-        if (hasAdminOrg) {
-          hasGlobalOrgAdminPermission = true;
-          break;
+          const hasAdminOrg = rolePermissions.some(
+            (permission) =>
+              permission.permission_name === "admin:organizations" &&
+              permission.resource_server_identifier === resourceServer.audience,
+          );
+
+          if (hasAdminOrg) {
+            hasGlobalOrgAdminPermission = true;
+            break;
+          }
         }
       }
     }

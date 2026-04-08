@@ -122,9 +122,10 @@ export const createManagementClient = async (
 ): Promise<ManagementClient> => {
   // Normalize tenant ID to lowercase to avoid casing mismatches
   const normalizedTenantId = tenantId?.toLowerCase();
+  const oauthKey = oauthDomain ? formatDomain(oauthDomain) : apiDomain;
   const cacheKey = normalizedTenantId
-    ? `${apiDomain}:${normalizedTenantId}`
-    : apiDomain;
+    ? `${oauthKey}|${apiDomain}|${normalizedTenantId}`
+    : `${oauthKey}|${apiDomain}`;
 
   // Check cache first
   if (managementClientCache.has(cacheKey)) {
@@ -161,6 +162,7 @@ export const createManagementClient = async (
           auth0Client,
           normalizedTenantId,
           audience,
+          domainForAuth,
         );
       } catch (error) {
         const user = await auth0Client.getUser().catch(() => null);
@@ -779,7 +781,7 @@ export const createOrganizationHttpClient = (organizationId: string) => {
       const auth0Client = createAuth0Client(selectedDomain);
       const audience = getConfigValue("audience") || "urn:authhero:management";
 
-      request = getOrgAccessToken(auth0Client, normalizedOrgId, audience)
+      request = getOrgAccessToken(auth0Client, normalizedOrgId, audience, formattedSelectedDomain)
         .catch(async (_error) => {
           const user = await auth0Client.getUser().catch(() => null);
           await auth0Client.loginWithRedirect({

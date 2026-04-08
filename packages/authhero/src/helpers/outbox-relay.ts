@@ -28,7 +28,7 @@ function computeNextRetryAt(retryCount: number): string {
 /**
  * Process specific outbox events by their IDs.
  * Used by per-request processing where each request handles only its own events.
- * No claiming needed since these events belong to the current request.
+ * Claims events first to prevent concurrent processing by drain workers.
  */
 export async function processOutboxEvents(
   outbox: OutboxAdapter,
@@ -39,7 +39,13 @@ export async function processOutboxEvents(
   if (ids.length === 0) return;
 
   const maxRetries = options?.maxRetries ?? DEFAULT_MAX_RETRIES;
-  const events = await outbox.getByIds(ids);
+
+  // Claim events to prevent concurrent processing by drain workers
+  const workerId = crypto.randomUUID();
+  const claimedIds = await outbox.claimEvents(ids, workerId, DEFAULT_LEASE_MS);
+  if (claimedIds.length === 0) return;
+
+  const events = await outbox.getByIds(claimedIds);
   if (events.length === 0) return;
 
   const processedIds: string[] = [];

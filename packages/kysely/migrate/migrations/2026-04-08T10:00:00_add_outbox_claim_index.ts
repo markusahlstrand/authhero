@@ -21,5 +21,5 @@ export async function up(db: Kysely<Database>): Promise<void> {
  * Down migration: Drop the outbox claim index
  */
 export async function down(db: Kysely<Database>): Promise<void> {
-  await db.schema.dropIndex("idx_outbox_claim").execute();
+  await db.schema.dropIndex("idx_outbox_claim").on("outbox_events").execute();
 }

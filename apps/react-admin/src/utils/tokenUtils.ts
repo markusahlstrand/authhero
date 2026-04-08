@@ -13,9 +13,11 @@ export async function getOrgAccessToken(
   auth0Client: Auth0Client,
   orgId: string,
   audience: string,
+  domain: string,
 ): Promise<string> {
   const normalizedOrgId = orgId.toLowerCase();
-  const cached = orgTokenCache.get(normalizedOrgId);
+  const cacheKey = `${domain}|${audience}|${normalizedOrgId}`;
+  const cached = orgTokenCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now() + 60_000) {
     return cached.token;
   }
@@ -25,9 +27,15 @@ export async function getOrgAccessToken(
     authorizationParams: { audience, organization: normalizedOrgId },
   });
 
-  // Decode JWT exp claim for cache TTL
-  const payload = JSON.parse(atob(token.split(".")[1]!));
-  orgTokenCache.set(normalizedOrgId, {
+  // Decode JWT exp claim for cache TTL (Base64URL → Base64 before decoding)
+  const base64Url = token.split(".")[1]!;
+  const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = base64.padEnd(
+    base64.length + ((4 - (base64.length % 4)) % 4),
+    "=",
+  );
+  const payload = JSON.parse(atob(padded));
+  orgTokenCache.set(cacheKey, {
     token,
     expiresAt: payload.exp * 1000,
   });
