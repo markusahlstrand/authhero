@@ -105,7 +105,22 @@ type WebAuthnCeremonyPayload =
       successAction: string;
     }
   | {
-      type: "webauthn-authentication" | "webauthn-authentication-conditional";
+      type: "webauthn-authentication";
+      options: {
+        challenge: string;
+        rpId?: string;
+        timeout?: number;
+        userVerification?: string;
+        allowCredentials?: Array<{
+          id: string;
+          type: string;
+          transports?: string[];
+        }>;
+      };
+      successAction: string;
+    }
+  | {
+      type: "webauthn-authentication-conditional";
       options: {
         challenge: string;
         rpId?: string;
