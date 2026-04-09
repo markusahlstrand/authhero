@@ -237,11 +237,15 @@ export async function identifierScreen(
     (c) => c.strategy === Strategy.USERNAME_PASSWORD,
   );
 
-  // Check if signups are disabled via client metadata
+  // Check if signups are disabled via client metadata or screen_hint=login
   const signupsDisabled = client.client_metadata?.disable_sign_ups === "true";
+  const authorizeUrl = context.ctx.var.loginSession?.authorization_url;
+  const screenHintLogin =
+    authorizeUrl &&
+    new URL(authorizeUrl).searchParams.get("screen_hint") === "login";
 
   // Add signup link as a component inside the form (not as a separate links section)
-  if (hasPasswordConnection && !signupsDisabled) {
+  if (hasPasswordConnection && !signupsDisabled && !screenHintLogin) {
     const signupUrl = `${routePrefix}/signup?state=${encodeURIComponent(state)}`;
     components.push({
       id: "signup-link",
