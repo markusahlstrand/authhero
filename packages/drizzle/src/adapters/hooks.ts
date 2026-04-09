@@ -84,34 +84,34 @@ export function createHooksAdapter(db: DrizzleDb) {
       if (params.form_id !== undefined) updateData.form_id = params.form_id;
       if (params.template_id !== undefined) updateData.template_id = params.template_id;
 
-      await db
+      const results = await db
         .update(hooks)
         .set(updateData)
         .where(
           and(eq(hooks.tenant_id, tenant_id), eq(hooks.hook_id, hook_id)),
-        );
+        )
+        .returning();
 
-      return true;
+      return results.length > 0;
     },
 
     async list(tenant_id: string, params?: ListParams) {
       const { page = 0, per_page = 50, include_totals = false, sort, q } =
         params || {};
 
+      const luceneFilter = q
+        ? buildLuceneFilter(hooks, q, ["url", "form_id", "template_id"])
+        : undefined;
+
+      const whereClause = luceneFilter
+        ? and(eq(hooks.tenant_id, tenant_id), luceneFilter)
+        : eq(hooks.tenant_id, tenant_id);
+
       let query = db
         .select()
         .from(hooks)
-        .where(eq(hooks.tenant_id, tenant_id))
+        .where(whereClause)
         .$dynamic();
-
-      if (q) {
-        const filter = buildLuceneFilter(hooks, q, [
-          "url",
-          "form_id",
-          "template_id",
-        ]);
-        if (filter) query = query.where(filter);
-      }
 
       if (sort?.sort_by) {
         const col = (hooks as any)[sort.sort_by];
@@ -132,7 +132,7 @@ export function createHooksAdapter(db: DrizzleDb) {
       const [countResult] = await db
         .select({ count: countFn() })
         .from(hooks)
-        .where(eq(hooks.tenant_id, tenant_id));
+        .where(whereClause);
 
       return {
         hooks: mapped,

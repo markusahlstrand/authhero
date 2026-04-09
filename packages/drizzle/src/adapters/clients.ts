@@ -236,7 +236,8 @@ export function createClientsAdapter(db: DrizzleDb): ClientsAdapter {
 
       if (q) {
         const filter = buildLuceneFilter(clients, q, ["name", "client_id"]);
-        if (filter) query = query.where(filter);
+        if (filter)
+          query = query.where(and(eq(clients.tenant_id, tenant_id), filter));
       }
 
       if (sort?.sort_by) {

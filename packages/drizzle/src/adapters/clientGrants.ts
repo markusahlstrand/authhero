@@ -108,19 +108,19 @@ export function createClientGrantsAdapter(db: DrizzleDb) {
       const { page = 0, per_page = 50, include_totals = false, sort, q } =
         params || {};
 
+      const luceneFilter = q
+        ? buildLuceneFilter(clientGrants, q, ["client_id", "audience"])
+        : undefined;
+
+      const whereCondition = luceneFilter
+        ? and(eq(clientGrants.tenant_id, tenant_id), luceneFilter)
+        : eq(clientGrants.tenant_id, tenant_id);
+
       let query = db
         .select()
         .from(clientGrants)
-        .where(eq(clientGrants.tenant_id, tenant_id))
+        .where(whereCondition)
         .$dynamic();
-
-      if (q) {
-        const filter = buildLuceneFilter(clientGrants, q, [
-          "client_id",
-          "audience",
-        ]);
-        if (filter) query = query.where(filter);
-      }
 
       if (sort?.sort_by) {
         const col = (clientGrants as any)[sort.sort_by];
@@ -141,7 +141,7 @@ export function createClientGrantsAdapter(db: DrizzleDb) {
       const [countResult] = await db
         .select({ count: countFn() })
         .from(clientGrants)
-        .where(eq(clientGrants.tenant_id, tenant_id));
+        .where(whereCondition);
 
       return {
         client_grants: mapped,

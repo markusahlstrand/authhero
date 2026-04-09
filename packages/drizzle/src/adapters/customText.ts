@@ -40,40 +40,20 @@ export function createCustomTextAdapter(db: DrizzleDb) {
       const now = Date.now();
       const stringified = JSON.stringify(data);
 
-      // Check if exists
-      const existing = await db
-        .select({ tenant_id: customText.tenant_id })
-        .from(customText)
-        .where(
-          and(
-            eq(customText.tenant_id, tenant_id),
-            eq(customText.prompt, prompt),
-            eq(customText.language, language),
-          ),
-        )
-        .get();
-
-      if (existing) {
-        await db
-          .update(customText)
-          .set({ custom_text: stringified, updated_at_ts: now })
-          .where(
-            and(
-              eq(customText.tenant_id, tenant_id),
-              eq(customText.prompt, prompt),
-              eq(customText.language, language),
-            ),
-          );
-      } else {
-        await db.insert(customText).values({
+      await db
+        .insert(customText)
+        .values({
           tenant_id,
           prompt,
           language,
           custom_text: stringified,
           created_at_ts: now,
           updated_at_ts: now,
+        })
+        .onConflictDoUpdate({
+          target: [customText.tenant_id, customText.prompt, customText.language],
+          set: { custom_text: stringified, updated_at_ts: now },
         });
-      }
     },
 
     async delete(

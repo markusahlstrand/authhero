@@ -1,4 +1,4 @@
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, sql } from "drizzle-orm";
 import type { Connection } from "@authhero/adapter-interfaces";
 import { clients, connections } from "../schema/sqlite";
 import { parseJsonIfString, removeNullProperties } from "../helpers/transform";
@@ -65,7 +65,7 @@ export function createClientConnectionsAdapter(
       client_id: string,
       connection_ids: string[],
     ): Promise<boolean> {
-      await db
+      const results = await db
         .update(clients)
         .set({ connections: JSON.stringify(connection_ids) })
         .where(
@@ -73,9 +73,10 @@ export function createClientConnectionsAdapter(
             eq(clients.tenant_id, tenant_id),
             eq(clients.client_id, client_id),
           ),
-        );
+        )
+        .returning();
 
-      return true;
+      return results.length > 0;
     },
 
     async listByConnection(
@@ -105,7 +106,7 @@ export function createClientConnectionsAdapter(
       client_id: string,
     ): Promise<boolean> {
       const client = await db
-        .select({ connections: clients.connections })
+        .select({ client_id: clients.client_id })
         .from(clients)
         .where(
           and(
@@ -117,24 +118,18 @@ export function createClientConnectionsAdapter(
 
       if (!client) return false;
 
-      const connectionIds: string[] = parseJsonIfString(
-        client.connections,
-        [],
-      ) || [];
-
-      if (connectionIds.includes(connection_id)) return true;
-
-      connectionIds.push(connection_id);
-
-      await db
-        .update(clients)
-        .set({ connections: JSON.stringify(connectionIds) })
-        .where(
-          and(
-            eq(clients.tenant_id, tenant_id),
-            eq(clients.client_id, client_id),
-          ),
-        );
+      // Atomic single-statement update using SQLite JSON functions to avoid
+      // lost updates from concurrent read-modify-write cycles.
+      await db.run(
+        sql`UPDATE clients SET connections = CASE
+          WHEN connections IS NULL OR connections = '[]' OR connections = ''
+            THEN json_array(${connection_id})
+          WHEN EXISTS (SELECT 1 FROM json_each(connections) WHERE value = ${connection_id})
+            THEN connections
+          ELSE json_insert(connections, '$[#]', ${connection_id})
+        END
+        WHERE tenant_id = ${tenant_id} AND client_id = ${client_id}`,
+      );
 
       return true;
     },
@@ -144,37 +139,16 @@ export function createClientConnectionsAdapter(
       connection_id: string,
       client_id: string,
     ): Promise<boolean> {
-      const client = await db
-        .select({ connections: clients.connections })
-        .from(clients)
-        .where(
-          and(
-            eq(clients.tenant_id, tenant_id),
-            eq(clients.client_id, client_id),
-          ),
+      // Atomic single-statement update using SQLite JSON functions to avoid
+      // lost updates from concurrent read-modify-write cycles.
+      await db.run(
+        sql`UPDATE clients SET connections = (
+          SELECT COALESCE(json_group_array(je.value), '[]')
+          FROM json_each(COALESCE(connections, '[]')) AS je
+          WHERE je.value != ${connection_id}
         )
-        .get();
-
-      if (!client) return true;
-
-      const connectionIds: string[] = parseJsonIfString(
-        client.connections,
-        [],
-      ) || [];
-
-      const filtered = connectionIds.filter((id) => id !== connection_id);
-
-      if (filtered.length === connectionIds.length) return true;
-
-      await db
-        .update(clients)
-        .set({ connections: JSON.stringify(filtered) })
-        .where(
-          and(
-            eq(clients.tenant_id, tenant_id),
-            eq(clients.client_id, client_id),
-          ),
-        );
+        WHERE tenant_id = ${tenant_id} AND client_id = ${client_id}`,
+      );
 
       return true;
     },

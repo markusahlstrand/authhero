@@ -123,7 +123,10 @@ export function createRefreshTokensAdapter(
 
       if (q) {
         const filter = buildLuceneFilter(refreshTokens, q, ["user_id"]);
-        if (filter) query = query.where(filter);
+        if (filter)
+          query = query.where(
+            and(eq(refreshTokens.tenant_id, tenant_id), filter),
+          );
       }
 
       if (sort?.sort_by) {

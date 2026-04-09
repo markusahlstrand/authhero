@@ -134,6 +134,17 @@ export const mfaLoginOptionsScreenDefinition: ScreenDefinition = {
             label: `${m.smsLabel()} ${maskedPhone}`,
             description: m.smsDescription(),
           });
+        } else if (
+          enrollment.type === "passkey" ||
+          enrollment.type === "webauthn-roaming" ||
+          enrollment.type === "webauthn-platform"
+        ) {
+          options.push({
+            id: enrollment.id,
+            type: "passkey",
+            label: m.passkeyLabel(),
+            description: m.passkeyDescription(),
+          });
         }
       }
 

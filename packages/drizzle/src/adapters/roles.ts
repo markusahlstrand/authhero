@@ -78,16 +78,15 @@ export function createRolesAdapter(db: DrizzleDb) {
       const { page = 0, per_page = 50, include_totals = false, sort, q } =
         params || {};
 
-      let query = db
-        .select()
-        .from(roles)
-        .where(eq(roles.tenant_id, tenantId))
-        .$dynamic();
+      const luceneFilter = q
+        ? buildLuceneFilter(roles, q, ["name"])
+        : undefined;
 
-      if (q) {
-        const filter = buildLuceneFilter(roles, q, ["name"]);
-        if (filter) query = query.where(filter);
-      }
+      const whereClause = luceneFilter
+        ? and(eq(roles.tenant_id, tenantId), luceneFilter)
+        : eq(roles.tenant_id, tenantId);
+
+      let query = db.select().from(roles).where(whereClause).$dynamic();
 
       if (sort?.sort_by) {
         const col = (roles as any)[sort.sort_by];
@@ -108,7 +107,7 @@ export function createRolesAdapter(db: DrizzleDb) {
       const [countResult] = await db
         .select({ count: countFn() })
         .from(roles)
-        .where(eq(roles.tenant_id, tenantId));
+        .where(whereClause);
 
       return {
         roles: mapped,

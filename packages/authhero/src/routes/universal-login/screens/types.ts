@@ -84,7 +84,10 @@ export interface ScreenContext {
  * The widget validates the shape and performs the ceremony natively.
  */
 export interface WebAuthnCeremony {
-  type: "webauthn-registration" | "webauthn-authentication";
+  type:
+    | "webauthn-registration"
+    | "webauthn-authentication"
+    | "webauthn-authentication-conditional";
   options: {
     challenge: string;
     rp?: { id: string; name: string };

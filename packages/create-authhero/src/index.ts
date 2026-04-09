@@ -377,7 +377,7 @@ async function main() {
     tenantId: "${tenantId}",
     tenantName: "${tenantName}",
     isControlPlane: ${!!multiTenant},
-    clientId: "default"
+    clientId: "default",
     callbacks: ${JSON.stringify(callbacks)},
     allowedLogoutUrls: ${JSON.stringify(allowedLogoutUrls)},
   });

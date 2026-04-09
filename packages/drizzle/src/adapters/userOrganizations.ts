@@ -97,21 +97,23 @@ export function createUserOrganizationsAdapter(
       const { page = 0, per_page = 50, include_totals = false, q } =
         params || {};
 
-      let query = db
-        .select()
-        .from(userOrganizations)
-        .where(eq(userOrganizations.tenant_id, tenantId))
-        .$dynamic();
+      const tenantFilter = eq(userOrganizations.tenant_id, tenantId);
 
+      let whereCondition = tenantFilter;
       if (q) {
         const filter = buildLuceneFilter(userOrganizations, q, [
           "user_id",
           "organization_id",
         ]);
-        if (filter) query = query.where(filter);
+        if (filter) whereCondition = and(tenantFilter, filter)!;
       }
 
-      const results = await query.offset(page * per_page).limit(per_page);
+      const results = await db
+        .select()
+        .from(userOrganizations)
+        .where(whereCondition)
+        .offset(page * per_page)
+        .limit(per_page);
       const mapped = results.map((row) => {
         const { tenant_id: _, ...rest } = row;
         return rest;
@@ -124,7 +126,7 @@ export function createUserOrganizationsAdapter(
       const [countResult] = await db
         .select({ count: countFn() })
         .from(userOrganizations)
-        .where(eq(userOrganizations.tenant_id, tenantId));
+        .where(whereCondition);
 
       return {
         userOrganizations: mapped,

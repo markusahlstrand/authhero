@@ -151,11 +151,7 @@ export function createResourceServersAdapter(
       const { page = 0, per_page = 50, include_totals = false, sort, q } =
         params || {};
 
-      let query = db
-        .select()
-        .from(resourceServers)
-        .where(eq(resourceServers.tenant_id, tenant_id))
-        .$dynamic();
+      const whereConditions = [eq(resourceServers.tenant_id, tenant_id)];
 
       if (q) {
         // Custom filter for resource servers: name and identifier with LIKE
@@ -165,15 +161,17 @@ export function createResourceServersAdapter(
           const isNegation = field?.startsWith("-");
           const cleanField = isNegation ? field?.substring(1) : field;
           const col = (resourceServers as any)[cleanField!];
-          if (col) {
-            if (isNegation) {
-              // For simplicity, skip negation LIKE
-            } else {
-              query = query.where(like(col, `%${value}%`));
-            }
+          if (col && !isNegation) {
+            whereConditions.push(like(col, `%${value}%`));
           }
         }
       }
+
+      let query = db
+        .select()
+        .from(resourceServers)
+        .where(and(...whereConditions))
+        .$dynamic();
 
       if (sort?.sort_by) {
         const col = (resourceServers as any)[sort.sort_by];
@@ -194,7 +192,7 @@ export function createResourceServersAdapter(
       const [countResult] = await db
         .select({ count: countFn() })
         .from(resourceServers)
-        .where(eq(resourceServers.tenant_id, tenant_id));
+        .where(and(...whereConditions));
 
       return {
         resource_servers: mapped,

@@ -14,24 +14,16 @@
  */
 
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
-import {
-  LogTypes,
-  Strategy,
-  StrategyType,
-} from "@authhero/adapter-interfaces";
+import { StrategyType } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { createTranslation } from "../../../i18n";
-import {
-  generateAuthenticationOptions,
-  verifyAuthenticationResponse,
-} from "@simplewebauthn/server";
+import { generateAuthenticationOptions } from "@simplewebauthn/server";
 import { createFrontChannelAuthResponse } from "../../../authentication-flows/common";
-import { logMessage } from "../../../helpers/logging";
 import {
   getRpId,
-  getExpectedOrigin,
   buildWebAuthnAuthenticationScript,
   buildWebAuthnAuthenticationCeremony,
+  verifyPasskeyAuthentication,
 } from "./passkey-utils";
 
 /**
@@ -237,25 +229,9 @@ export const passkeyChallengeScreenDefinition: ScreenDefinition = {
         };
       }
 
-      const stateData = loginSession.state_data
-        ? JSON.parse(loginSession.state_data)
-        : {};
-      const expectedChallenge = stateData.webauthn_challenge as string;
+      const result = await verifyPasskeyAuthentication(context, credentialJson);
 
-      if (!expectedChallenge) {
-        const optionsJSON = await generateFreshAuthenticationOptions(context);
-        return {
-          screen: await passkeyChallengeScreen(context, {
-            optionsJSON,
-            errorMessage: "Challenge expired. Please try again.",
-          }),
-        };
-      }
-
-      let credential;
-      try {
-        credential = JSON.parse(credentialJson);
-      } catch {
+      if (!result.success) {
         const optionsJSON = await generateFreshAuthenticationOptions(context);
         return {
           screen: await passkeyChallengeScreen(context, {
@@ -265,154 +241,26 @@ export const passkeyChallengeScreenDefinition: ScreenDefinition = {
         };
       }
 
-      // Look up the authentication method by credential ID
-      const authMethod = await ctx.env.data.authenticationMethods.getByCredentialId(
-        client.tenant.id,
-        credential.id,
-      );
+      // Complete the login
+      const authResult = await createFrontChannelAuthResponse(ctx, {
+        authParams: result.loginSession.authParams,
+        user: result.primaryUser,
+        client,
+        loginSession: {
+          ...result.loginSession,
+          user_id: result.primaryUser.user_id,
+        },
+        authConnection: result.authConnection,
+        authStrategy: {
+          strategy: "passkey",
+          strategy_type: StrategyType.DATABASE,
+        },
+      });
 
-      if (!authMethod || !authMethod.public_key || !authMethod.confirmed) {
-        logMessage(ctx, client.tenant.id, {
-          type: LogTypes.FAILED_LOGIN,
-          description: "Passkey not found or not confirmed",
-        });
-        const optionsJSON = await generateFreshAuthenticationOptions(context);
-        return {
-          screen: await passkeyChallengeScreen(context, {
-            optionsJSON,
-            errorMessage: m.errorMessage(),
-          }),
-        };
-      }
-
-      const rpId = getRpId(ctx);
-      const expectedOrigin = getExpectedOrigin(ctx);
-
-      try {
-        // Convert stored base64url public key back to Uint8Array
-        const publicKeyBytes = Buffer.from(authMethod.public_key, "base64url");
-
-        const verification = await verifyAuthenticationResponse({
-          response: credential,
-          expectedChallenge,
-          expectedOrigin,
-          expectedRPID: rpId,
-          credential: {
-            id: authMethod.credential_id!,
-            publicKey: new Uint8Array(publicKeyBytes),
-            counter: authMethod.sign_count || 0,
-            transports: (authMethod.transports || []) as AuthenticatorTransport[],
-          },
-          requireUserVerification: false,
-        });
-
-        if (!verification.verified) {
-          logMessage(ctx, client.tenant.id, {
-            type: LogTypes.FAILED_LOGIN,
-            description: "Passkey verification failed",
-          });
-          const optionsJSON = await generateFreshAuthenticationOptions(context);
-          return {
-            screen: await passkeyChallengeScreen(context, {
-              optionsJSON,
-              errorMessage: m.errorMessage(),
-            }),
-          };
-        }
-
-        // Update sign count for clone detection
-        await ctx.env.data.authenticationMethods.update(
-          client.tenant.id,
-          authMethod.id,
-          {
-            sign_count: verification.authenticationInfo.newCounter,
-          },
-        );
-
-        // Get the user associated with this passkey
-        const user = await ctx.env.data.users.get(
-          client.tenant.id,
-          authMethod.user_id,
-        );
-
-        if (!user) {
-          logMessage(ctx, client.tenant.id, {
-            type: LogTypes.FAILED_LOGIN,
-            description: "User not found for passkey",
-          });
-          const optionsJSON = await generateFreshAuthenticationOptions(context);
-          return {
-            screen: await passkeyChallengeScreen(context, {
-              optionsJSON,
-              errorMessage: m.errorMessage(),
-            }),
-          };
-        }
-
-        // Resolve to primary user if linked
-        const primaryUser = user.linked_to
-          ? await ctx.env.data.users.get(client.tenant.id, user.linked_to)
-          : user;
-
-        if (!primaryUser) {
-          const optionsJSON = await generateFreshAuthenticationOptions(context);
-          return {
-            screen: await passkeyChallengeScreen(context, {
-              optionsJSON,
-              errorMessage: m.errorMessage(),
-            }),
-          };
-        }
-
-        logMessage(ctx, client.tenant.id, {
-          type: LogTypes.SUCCESS_LOGIN,
-          description: "Passkey authentication successful",
-          userId: primaryUser.user_id,
-        });
-
-        // Set mfa_verified to bypass MFA - passkeys provide multi-factor assurance
-        await ctx.env.data.loginSessions.update(client.tenant.id, state, {
-          user_id: primaryUser.user_id,
-          state_data: JSON.stringify({
-            ...stateData,
-            mfa_verified: true,
-          }),
-        });
-
-        // Complete the login
-        const result = await createFrontChannelAuthResponse(ctx, {
-          authParams: loginSession.authParams,
-          user: primaryUser,
-          client,
-          loginSession: {
-            ...loginSession,
-            user_id: primaryUser.user_id,
-          },
-          authConnection: user.connection || Strategy.USERNAME_PASSWORD,
-          authStrategy: {
-            strategy: "passkey",
-            strategy_type: StrategyType.DATABASE,
-          },
-        });
-
-        const location = result.headers.get("location");
-        const cookies = result.headers.getSetCookie?.() || [];
-        if (location) return { redirect: location, cookies };
-        return { response: result };
-      } catch (err) {
-        logMessage(ctx, client.tenant.id, {
-          type: LogTypes.FAILED_LOGIN,
-          description: `Passkey authentication error: ${err instanceof Error ? err.message : "unknown"}`,
-        });
-
-        const optionsJSON = await generateFreshAuthenticationOptions(context);
-        return {
-          screen: await passkeyChallengeScreen(context, {
-            optionsJSON,
-            errorMessage: m.errorMessage(),
-          }),
-        };
-      }
+      const location = authResult.headers.get("location");
+      const cookies = authResult.headers.getSetCookie?.() || [];
+      if (location) return { redirect: location, cookies };
+      return { response: authResult };
     },
   },
 };

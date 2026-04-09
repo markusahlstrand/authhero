@@ -1,4 +1,4 @@
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { rolePermissions, resourceServers } from "../schema/sqlite";
 import type { DrizzleDb } from "./types";
 
@@ -55,32 +55,38 @@ export function createRolePermissionsAdapter(
         )
         .all();
 
-      // Try to get resource server names
-      const mapped = await Promise.all(
-        results.map(async (row) => {
-          const rs = await db
-            .select({ name: resourceServers.name })
-            .from(resourceServers)
-            .where(
-              and(
-                eq(resourceServers.tenant_id, tenant_id),
-                eq(
-                  resourceServers.identifier,
-                  row.resource_server_identifier,
-                ),
-              ),
-            )
-            .get();
+      // Batch-fetch resource server names to avoid N+1 queries
+      const uniqueIdentifiers = [
+        ...new Set(results.map((r) => r.resource_server_identifier)),
+      ];
 
-          return {
-            ...row,
-            resource_server_name:
-              rs?.name || row.resource_server_identifier,
-          };
-        }),
-      );
+      const nameMap = new Map<string, string>();
+      if (uniqueIdentifiers.length > 0) {
+        const rsRows = await db
+          .select({
+            identifier: resourceServers.identifier,
+            name: resourceServers.name,
+          })
+          .from(resourceServers)
+          .where(
+            and(
+              eq(resourceServers.tenant_id, tenant_id),
+              inArray(resourceServers.identifier, uniqueIdentifiers),
+            ),
+          )
+          .all();
 
-      return mapped;
+        for (const rs of rsRows) {
+          nameMap.set(rs.identifier, rs.name);
+        }
+      }
+
+      return results.map((row) => ({
+        ...row,
+        resource_server_name:
+          nameMap.get(row.resource_server_identifier) ||
+          row.resource_server_identifier,
+      }));
     },
 
     async remove(

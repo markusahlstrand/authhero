@@ -161,10 +161,20 @@ export function createOrganizationsAdapter(db: DrizzleDb) {
         return { organizations: mapped };
       }
 
+      const countConditions = [eq(organizations.tenant_id, tenantId)];
+      if (q) {
+        countConditions.push(
+          or(
+            like(organizations.name, `%${q}%`),
+            like(organizations.display_name, `%${q}%`),
+          )!,
+        );
+      }
+
       const [countResult] = await db
         .select({ count: countFn() })
         .from(organizations)
-        .where(eq(organizations.tenant_id, tenantId));
+        .where(and(...countConditions));
 
       return {
         organizations: mapped,

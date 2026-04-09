@@ -123,7 +123,8 @@ export function createConnectionsAdapter(db: DrizzleDb) {
 
       if (q) {
         const lucene = buildLuceneFilter(connections, q, ["name"]);
-        if (lucene) query = query.where(lucene);
+        if (lucene)
+          query = query.where(and(eq(connections.tenant_id, tenant_id), lucene));
       }
 
       if (sort?.sort_by) {

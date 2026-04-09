@@ -1,4 +1,12 @@
-import { eq, and, count as countFn, asc, desc } from "drizzle-orm";
+import {
+  eq,
+  and,
+  count as countFn,
+  asc,
+  desc,
+  inArray,
+  isNull,
+} from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { HTTPException } from "hono/http-exception";
 import type { User, ListParams } from "@authhero/adapter-interfaces";
@@ -89,7 +97,9 @@ export function createUsersAdapter(db: DrizzleDb) {
         app_metadata: JSON.stringify(params.app_metadata || {}),
         user_metadata: JSON.stringify(params.user_metadata || {}),
         address: params.address ? JSON.stringify(params.address) : undefined,
-        profileData: params.profileData,
+        profileData: params.profileData
+          ? JSON.stringify(params.profileData)
+          : undefined,
         locale: params.locale,
         middle_name: params.middle_name,
         preferred_username: params.preferred_username,
@@ -102,8 +112,26 @@ export function createUsersAdapter(db: DrizzleDb) {
         updated_at: params.updated_at || now,
       };
 
+      const passwordId = params.password ? nanoid() : undefined;
+
       try {
-        await db.insert(users).values(sqlData);
+        await db.transaction(async (tx) => {
+          await tx.insert(users).values(sqlData);
+
+          // Insert password if provided
+          if (params.password && passwordId) {
+            await tx.insert(passwords).values({
+              id: passwordId,
+              tenant_id,
+              user_id: params.user_id,
+              password: params.password.hash || params.password,
+              algorithm: params.password.algorithm || "bcrypt",
+              is_current: 1,
+              created_at: now,
+              updated_at: now,
+            });
+          }
+        });
       } catch (error: any) {
         if (
           error?.message?.includes("UNIQUE constraint") ||
@@ -113,20 +141,6 @@ export function createUsersAdapter(db: DrizzleDb) {
         }
         throw new HTTPException(500, {
           message: `${error?.code}, ${error?.message}`,
-        });
-      }
-
-      // Insert password if provided
-      if (params.password) {
-        await db.insert(passwords).values({
-          id: nanoid(),
-          tenant_id,
-          user_id: params.user_id,
-          password: params.password.hash || params.password,
-          algorithm: params.password.algorithm || "bcrypt",
-          is_current: 1,
-          created_at: now,
-          updated_at: now,
         });
       }
 
@@ -185,7 +199,6 @@ export function createUsersAdapter(db: DrizzleDb) {
         "last_login",
         "provider",
         "connection",
-        "profileData",
         "locale",
         "middle_name",
         "preferred_username",
@@ -216,6 +229,8 @@ export function createUsersAdapter(db: DrizzleDb) {
         updateData.user_metadata = JSON.stringify(params.user_metadata);
       if ((params as any).address !== undefined)
         updateData.address = JSON.stringify((params as any).address);
+      if (params.profileData !== undefined)
+        updateData.profileData = JSON.stringify(params.profileData);
 
       await db
         .update(users)
@@ -231,11 +246,10 @@ export function createUsersAdapter(db: DrizzleDb) {
       const { page = 0, per_page = 50, include_totals = false, sort, q } =
         params || {};
 
-      let query = db
-        .select()
-        .from(users)
-        .where(eq(users.tenant_id, tenant_id))
-        .$dynamic();
+      const conditions = [
+        eq(users.tenant_id, tenant_id),
+        isNull(users.linked_to),
+      ];
 
       if (q) {
         const filter = buildLuceneFilter(users, q, [
@@ -244,8 +258,16 @@ export function createUsersAdapter(db: DrizzleDb) {
           "nickname",
           "username",
         ]);
-        if (filter) query = query.where(filter);
+        if (filter) conditions.push(filter);
       }
+
+      const whereClause = and(...conditions);
+
+      let query = db
+        .select()
+        .from(users)
+        .where(whereClause)
+        .$dynamic();
 
       if (sort?.sort_by) {
         const col = (users as any)[sort.sort_by];
@@ -258,27 +280,26 @@ export function createUsersAdapter(db: DrizzleDb) {
 
       const results = await query.offset(page * per_page).limit(per_page);
 
-      // Fetch all linked users for these results
-      const primaryIds = results
-        .filter((r) => !r.linked_to)
-        .map((r) => r.user_id);
+      // Fetch linked users for these results
+      const primaryIds = results.map((r) => r.user_id);
 
       let allLinked: any[] = [];
       if (primaryIds.length > 0) {
         allLinked = await db
           .select()
           .from(users)
-          .where(eq(users.tenant_id, tenant_id))
-          .all();
-        allLinked = allLinked.filter((u) => u.linked_to);
+          .where(
+            and(
+              eq(users.tenant_id, tenant_id),
+              inArray(users.linked_to, primaryIds),
+            ),
+          );
       }
 
-      const mapped = results
-        .filter((r) => !r.linked_to)
-        .map((row) => {
-          const linked = allLinked.filter((u) => u.linked_to === row.user_id);
-          return sqlToUser(row, linked);
-        });
+      const mapped = results.map((row) => {
+        const linked = allLinked.filter((u) => u.linked_to === row.user_id);
+        return sqlToUser(row, linked);
+      });
 
       if (!include_totals) {
         return { users: mapped };
@@ -287,7 +308,7 @@ export function createUsersAdapter(db: DrizzleDb) {
       const [countResult] = await db
         .select({ count: countFn() })
         .from(users)
-        .where(eq(users.tenant_id, tenant_id));
+        .where(whereClause);
 
       return {
         users: mapped,
@@ -298,13 +319,35 @@ export function createUsersAdapter(db: DrizzleDb) {
     },
 
     async remove(tenant_id: string, user_id: string): Promise<boolean> {
-      // Delete authentication methods
+      // Collect all user IDs to delete: primary + linked
+      const linkedUsers = await db
+        .select({ user_id: users.user_id })
+        .from(users)
+        .where(
+          and(eq(users.tenant_id, tenant_id), eq(users.linked_to, user_id)),
+        );
+      const allUserIds = [
+        user_id,
+        ...linkedUsers.map((u) => u.user_id),
+      ];
+
+      // Delete authentication methods for all users
       await db
         .delete(authenticationMethods)
         .where(
           and(
             eq(authenticationMethods.tenant_id, tenant_id),
-            eq(authenticationMethods.user_id, user_id),
+            inArray(authenticationMethods.user_id, allUserIds),
+          ),
+        );
+
+      // Delete passwords for all users
+      await db
+        .delete(passwords)
+        .where(
+          and(
+            eq(passwords.tenant_id, tenant_id),
+            inArray(passwords.user_id, allUserIds),
           ),
         );
 

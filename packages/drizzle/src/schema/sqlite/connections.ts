@@ -36,23 +36,27 @@ export const connections = sqliteTable(
   ],
 );
 
-export const customDomains = sqliteTable("custom_domains", {
-  custom_domain_id: text("custom_domain_id", { length: 256 }).primaryKey(),
-  tenant_id: text("tenant_id", { length: 191 })
-    .notNull()
-    .references(() => tenants.id, { onDelete: "cascade" }),
-  domain: text("domain", { length: 255 }).notNull(),
-  primary: integer("primary", { mode: "boolean" }).notNull(),
-  status: text("status", { length: 50 }).notNull(),
-  type: text("type", { length: 50 }).notNull(),
-  origin_domain_name: text("origin_domain_name", { length: 255 }),
-  verification: text("verification", { length: 2048 }),
-  custom_client_ip_header: text("custom_client_ip_header", { length: 50 }),
-  tls_policy: text("tls_policy", { length: 50 }),
-  domain_metadata: text("domain_metadata", { length: 2048 }),
-  created_at: text("created_at", { length: 35 }).notNull(),
-  updated_at: text("updated_at", { length: 35 }).notNull(),
-});
+export const customDomains = sqliteTable(
+  "custom_domains",
+  {
+    custom_domain_id: text("custom_domain_id", { length: 256 }).primaryKey(),
+    tenant_id: text("tenant_id", { length: 191 })
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    domain: text("domain", { length: 255 }).notNull(),
+    primary: integer("primary", { mode: "boolean" }).notNull(),
+    status: text("status", { length: 50 }).notNull(),
+    type: text("type", { length: 50 }).notNull(),
+    origin_domain_name: text("origin_domain_name", { length: 255 }),
+    verification: text("verification", { length: 2048 }),
+    custom_client_ip_header: text("custom_client_ip_header", { length: 50 }),
+    tls_policy: text("tls_policy", { length: 50 }),
+    domain_metadata: text("domain_metadata", { length: 2048 }),
+    created_at: text("created_at", { length: 35 }).notNull(),
+    updated_at: text("updated_at", { length: 35 }).notNull(),
+  },
+  (table) => [uniqueIndex("custom_domains_domain_unique").on(table.domain)],
+);
 
 export const domains = sqliteTable("domains", {
   id: text("id", { length: 255 }).primaryKey(),
