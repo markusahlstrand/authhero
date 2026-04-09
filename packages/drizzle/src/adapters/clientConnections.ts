@@ -141,7 +141,7 @@ export function createClientConnectionsAdapter(
     ): Promise<boolean> {
       // Atomic single-statement update using SQLite JSON functions to avoid
       // lost updates from concurrent read-modify-write cycles.
-      await db.run(
+      const result = await db.run(
         sql`UPDATE clients SET connections = (
           SELECT COALESCE(json_group_array(je.value), '[]')
           FROM json_each(COALESCE(connections, '[]')) AS je
@@ -150,7 +150,9 @@ export function createClientConnectionsAdapter(
         WHERE tenant_id = ${tenant_id} AND client_id = ${client_id}`,
       );
 
-      return true;
+      // better-sqlite3 returns { changes }, D1 returns { meta: { changes } }
+      const changes = result.changes ?? result.meta?.changes ?? 0;
+      return changes > 0;
     },
   };
 }

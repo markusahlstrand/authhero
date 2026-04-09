@@ -1,6 +1,10 @@
 import { eq, and, count as countFn, asc, desc } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import type { ClientGrant, ListParams } from "@authhero/adapter-interfaces";
+import type {
+  ClientGrant,
+  ClientGrantInsert,
+  ListParams,
+} from "@authhero/adapter-interfaces";
 import { clientGrants } from "../schema/sqlite";
 import { removeNullProperties, parseJsonIfString } from "../helpers/transform";
 import { buildLuceneFilter } from "../helpers/filter";
@@ -67,28 +71,29 @@ export function createClientGrantsAdapter(db: DrizzleDb) {
     async update(
       tenant_id: string,
       id: string,
-      params: Partial<ClientGrant>,
+      params: Partial<ClientGrantInsert>,
     ): Promise<boolean> {
+      const {
+        scope,
+        authorization_details_types,
+        allow_any_organization,
+        is_system,
+        ...rest
+      } = params;
+
       const updateData: any = {
+        ...rest,
         updated_at: new Date().toISOString(),
       };
 
-      if (params.scope !== undefined)
-        updateData.scope = JSON.stringify(params.scope);
-      if (params.organization_usage !== undefined)
-        updateData.organization_usage = params.organization_usage;
-      if (params.allow_any_organization !== undefined)
-        updateData.allow_any_organization = params.allow_any_organization
-          ? 1
-          : 0;
-      if (params.is_system !== undefined)
-        updateData.is_system = params.is_system ? 1 : 0;
-      if (params.subject_type !== undefined)
-        updateData.subject_type = params.subject_type;
-      if (params.authorization_details_types !== undefined)
+      if (scope !== undefined) updateData.scope = JSON.stringify(scope);
+      if (authorization_details_types !== undefined)
         updateData.authorization_details_types = JSON.stringify(
-          params.authorization_details_types,
+          authorization_details_types,
         );
+      if (allow_any_organization !== undefined)
+        updateData.allow_any_organization = allow_any_organization ? 1 : 0;
+      if (is_system !== undefined) updateData.is_system = is_system ? 1 : 0;
 
       const results = await db
         .update(clientGrants)
@@ -129,6 +134,8 @@ export function createClientGrantsAdapter(db: DrizzleDb) {
             sort.sort_order === "desc" ? desc(col) : asc(col),
           );
         }
+      } else {
+        query = query.orderBy(asc(clientGrants.created_at));
       }
 
       const results = await query.offset(page * per_page).limit(per_page);

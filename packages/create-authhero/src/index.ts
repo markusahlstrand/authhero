@@ -410,7 +410,7 @@ const adminIndexPath = path.join(adminDistPath, "index.html");
   // Add admin UI handler if the package is installed
   if (fs.existsSync(adminIndexPath)) {
     const issuer =
-      process.env.ISSUER || \`https://localhost:\${process.env.PORT || 3000}/\`;
+      process.env.ISSUER || \`http://localhost:\${process.env.PORT || 3000}/\`;
     const rawHtml = fs.readFileSync(adminIndexPath, "utf-8")
       .replace(/src="\\.\\//g, 'src="/admin/')
       .replace(/href="\\.\\//g, 'href="/admin/');
@@ -1078,8 +1078,8 @@ function generateCloudflareFiles(
  */
 function printCloudflareSuccessMessage(): void {
   console.log("\n" + "─".repeat(50));
-  console.log("🔐 AuthHero server running at http://localhost:3000");
-  console.log("🚀 Open http://localhost:3000 to complete initial setup");
+  console.log("🔐 AuthHero server running at https://localhost:3000");
+  console.log("🚀 Open https://localhost:3000 to complete initial setup");
   console.log("─".repeat(50) + "\n");
 }
 
@@ -1559,7 +1559,7 @@ program
         );
         console.log("  npm run dev  # or npm run dev:remote for production");
         console.log(
-          "\nOpen http://localhost:3000 to complete initial setup",
+          "\nOpen https://localhost:3000 to complete initial setup",
         );
       } else if (setupType === "aws-sst") {
         console.log("  npm install");

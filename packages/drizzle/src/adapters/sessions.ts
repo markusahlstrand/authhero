@@ -146,17 +146,18 @@ export function createSessionsAdapter(db: DrizzleDb) {
       const { page = 0, per_page = 50, include_totals = false, sort, q } =
         params || {};
 
+      const luceneFilter = q
+        ? buildLuceneFilter(sessions, q, ["user_id"])
+        : undefined;
+      const whereClause = luceneFilter
+        ? and(eq(sessions.tenant_id, tenant_id), luceneFilter)
+        : eq(sessions.tenant_id, tenant_id);
+
       let query = db
         .select()
         .from(sessions)
-        .where(eq(sessions.tenant_id, tenant_id))
+        .where(whereClause)
         .$dynamic();
-
-      if (q) {
-        const filter = buildLuceneFilter(sessions, q, ["user_id"]);
-        if (filter)
-          query = query.where(and(eq(sessions.tenant_id, tenant_id), filter));
-      }
 
       if (sort?.sort_by) {
         const col = (sessions as any)[sort.sort_by];
@@ -177,7 +178,7 @@ export function createSessionsAdapter(db: DrizzleDb) {
       const [countResult] = await db
         .select({ count: countFn() })
         .from(sessions)
-        .where(eq(sessions.tenant_id, tenant_id));
+        .where(whereClause);
 
       return {
         sessions: mapped,

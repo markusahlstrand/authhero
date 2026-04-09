@@ -33,7 +33,7 @@ export default function createApp(config: AuthHeroConfig) {
   // Add admin UI handler if the package is installed
   if (fs.existsSync(adminIndexPath)) {
     const issuer =
-      process.env.ISSUER || `https://localhost:${process.env.PORT || 3000}/`;
+      process.env.ISSUER || `http://localhost:${process.env.PORT || 3000}/`;
     const rawHtml = fs
       .readFileSync(adminIndexPath, "utf-8")
       .replace(/src="\.\/assets\//g, 'src="/admin/assets/')

@@ -1,4 +1,4 @@
-import { eq, and, count as countFn, asc, desc, like } from "drizzle-orm";
+import { eq, and, count as countFn, asc, desc, like, sql } from "drizzle-orm";
 import type { ResourceServer, ListParams } from "@authhero/adapter-interfaces";
 import { resourceServers } from "../schema/sqlite";
 import { removeNullProperties, parseJsonIfString } from "../helpers/transform";
@@ -115,12 +115,8 @@ export function createResourceServersAdapter(
       if (params.scopes !== undefined)
         updateData.scopes = JSON.stringify(params.scopes);
       if (params.options !== undefined) {
-        // Merge with existing options
-        const existing = await this.get(tenant_id, id);
-        updateData.options = JSON.stringify({
-          ...(existing?.options || {}),
-          ...params.options,
-        });
+        // Merge atomically in the database using SQLite's json_patch
+        updateData.options = sql`json_patch(COALESCE(${resourceServers.options}, '{}'), ${JSON.stringify(params.options)})`;
       }
       if (params.metadata !== undefined)
         updateData.metadata = JSON.stringify(params.metadata);

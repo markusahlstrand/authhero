@@ -115,23 +115,21 @@ export function createUsersAdapter(db: DrizzleDb) {
       const passwordId = params.password ? nanoid() : undefined;
 
       try {
-        await db.transaction(async (tx) => {
-          await tx.insert(users).values(sqlData);
+        await db.insert(users).values(sqlData);
 
-          // Insert password if provided
-          if (params.password && passwordId) {
-            await tx.insert(passwords).values({
-              id: passwordId,
-              tenant_id,
-              user_id: params.user_id,
-              password: params.password.hash || params.password,
-              algorithm: params.password.algorithm || "bcrypt",
-              is_current: 1,
-              created_at: now,
-              updated_at: now,
-            });
-          }
-        });
+        // Insert password if provided
+        if (params.password && passwordId) {
+          await db.insert(passwords).values({
+            id: passwordId,
+            tenant_id,
+            user_id: params.user_id,
+            password: params.password.hash || params.password,
+            algorithm: params.password.algorithm || "bcrypt",
+            is_current: 1,
+            created_at: now,
+            updated_at: now,
+          });
+        }
       } catch (error: any) {
         if (
           error?.message?.includes("UNIQUE constraint") ||

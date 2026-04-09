@@ -1,4 +1,4 @@
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, or, inArray } from "drizzle-orm";
 import { rolePermissions, resourceServers } from "../schema/sqlite";
 import type { DrizzleDb } from "./types";
 
@@ -14,26 +14,19 @@ export function createRolePermissionsAdapter(
         permission_name: string;
       }>,
     ): Promise<boolean> {
-      for (const perm of permissions) {
-        try {
-          await db.insert(rolePermissions).values({
+      const now = new Date().toISOString();
+      await db
+        .insert(rolePermissions)
+        .values(
+          permissions.map((perm) => ({
             tenant_id,
             role_id,
             resource_server_identifier: perm.resource_server_identifier,
             permission_name: perm.permission_name,
-            created_at: new Date().toISOString(),
-          });
-        } catch (error: any) {
-          // Ignore duplicate constraint errors (idempotent)
-          if (
-            error?.message?.includes("UNIQUE constraint") ||
-            error?.message?.includes("SQLITE_CONSTRAINT_PRIMARYKEY")
-          ) {
-            continue;
-          }
-          throw error;
-        }
-      }
+            created_at: now,
+          })),
+        )
+        .onConflictDoNothing();
 
       return true;
     },
@@ -97,27 +90,28 @@ export function createRolePermissionsAdapter(
         permission_name: string;
       }>,
     ): Promise<boolean> {
-      let deleted = false;
-      for (const perm of permissions) {
-        const results = await db
-          .delete(rolePermissions)
-          .where(
-            and(
-              eq(rolePermissions.tenant_id, tenant_id),
-              eq(rolePermissions.role_id, role_id),
-              eq(
-                rolePermissions.resource_server_identifier,
-                perm.resource_server_identifier,
-              ),
-              eq(rolePermissions.permission_name, perm.permission_name),
-            ),
-          )
-          .returning();
+      const permsPredicates = permissions.map((perm) =>
+        and(
+          eq(
+            rolePermissions.resource_server_identifier,
+            perm.resource_server_identifier,
+          ),
+          eq(rolePermissions.permission_name, perm.permission_name),
+        ),
+      );
 
-        if (results.length > 0) deleted = true;
-      }
+      const results = await db
+        .delete(rolePermissions)
+        .where(
+          and(
+            eq(rolePermissions.tenant_id, tenant_id),
+            eq(rolePermissions.role_id, role_id),
+            or(...permsPredicates),
+          ),
+        )
+        .returning();
 
-      return deleted;
+      return results.length > 0;
     },
   };
 }
