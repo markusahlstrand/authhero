@@ -8,6 +8,7 @@ import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { getLoginPath } from "./types";
 import { createTranslation } from "../../../i18n";
+import { requestPasswordReset } from "../../../authentication-flows/password";
 
 /**
  * Create the forgot-password screen
@@ -112,15 +113,92 @@ export async function forgotPasswordScreen(
 /**
  * Screen definition for the forgot-password screen
  */
+/**
+ * Create the forgot-password success screen (email sent confirmation)
+ */
+async function forgotPasswordSentScreen(
+  context: ScreenContext,
+): Promise<ScreenResult> {
+  const { branding, state, customText } = context;
+
+  const locale = context.language || "en";
+  const { m } = createTranslation(
+    "reset-password",
+    "reset-password",
+    locale,
+    customText,
+  );
+  const { m: loginM } = createTranslation("login", "login", locale, customText);
+
+  const components: FormNodeComponent[] = [
+    {
+      id: "info",
+      type: "RICH_TEXT",
+      category: "BLOCK",
+      visible: true,
+      config: {
+        content: m.successDescription(),
+      },
+      order: 0,
+    },
+  ];
+
+  const screen: UiScreen = {
+    name: "forgot-password",
+    action: "",
+    method: "GET",
+    title: m.successTitle(),
+    components,
+    links: [
+      {
+        id: "back",
+        text: m.backToLoginText(),
+        linkText: loginM.buttonText(),
+        href: `${await getLoginPath(context)}?state=${encodeURIComponent(state)}`,
+      },
+    ],
+  };
+
+  return {
+    screen,
+    branding,
+  };
+}
+
 export const forgotPasswordScreenDefinition: ScreenDefinition = {
   id: "forgot-password",
   name: "Forgot Password",
   description: "Password reset request screen",
   handler: {
     get: forgotPasswordScreen,
-    // POST handler would:
-    // 1. Validate email exists
-    // 2. Send password reset email
-    // 3. Show confirmation message
+    post: async (context) => {
+      const { ctx, client, state } = context;
+
+      const loginSession = await ctx.env.data.loginSessions.get(
+        client.tenant.id,
+        state,
+      );
+
+      if (!loginSession?.authParams?.username) {
+        return {
+          error: "Session expired",
+          screen: await forgotPasswordScreen({
+            ...context,
+            errors: { email: "Session expired. Please start over." },
+          }),
+        };
+      }
+
+      await requestPasswordReset(
+        ctx,
+        client,
+        loginSession.authParams.username,
+        state,
+      );
+
+      return {
+        screen: await forgotPasswordSentScreen(context),
+      };
+    },
   },
 };

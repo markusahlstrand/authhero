@@ -7,7 +7,10 @@ export function getIssuer(env: Bindings, customDomain?: string) {
   return env.ISSUER;
 }
 
-export function getUniversalLoginUrl(env: Bindings) {
+export function getUniversalLoginUrl(env: Bindings, customDomain?: string) {
+  if (customDomain) {
+    return `https://${customDomain}/u/`;
+  }
   return env.UNIVERSAL_LOGIN_URL || `${env.ISSUER}u/`;
 }
 

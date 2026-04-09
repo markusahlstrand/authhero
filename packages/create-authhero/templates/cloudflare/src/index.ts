@@ -58,7 +58,7 @@ export default {
       // Allow CORS for the Management API from admin UIs
       allowedOrigins: [
         "http://localhost:5173",
-        "https://localhost:3000",
+        "http://localhost:3000",
         "https://manage.authhero.net",
         "https://local.authhero.net",
         origin,

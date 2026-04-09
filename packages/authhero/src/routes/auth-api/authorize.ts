@@ -269,8 +269,8 @@ export const authorizeRoutes = new OpenAPIHono<{
         const validCallbacks = client.callbacks || [];
         if (ctx.var.host) {
           // Allow wildcard for the auth server
-          validCallbacks.push(`${getIssuer(ctx.env)}/*`);
-          validCallbacks.push(`${getUniversalLoginUrl(ctx.env)}/*`);
+          validCallbacks.push(`${getIssuer(ctx.env, ctx.var.custom_domain)}/*`);
+          validCallbacks.push(`${getUniversalLoginUrl(ctx.env, ctx.var.custom_domain)}/*`);
         }
 
         if (

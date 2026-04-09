@@ -121,7 +121,8 @@
       "usernamePlaceholder": "Brukernavn eller e-postadresse",
       "usernameTooLong": "Brukernavnet må være ${max} tegn eller færre",
       "usernameTooShort": "Brukernavnet må være minst ${min} tegn",
-      "wrongCredentials": "Feil brukernavn eller passord"
+      "wrongCredentials": "Feil brukernavn eller passord",
+      "passkeyButtonText": "Logg inn med passkey"
     }
   },
   "login-id": {
@@ -197,7 +198,8 @@
       "wrong-email-username-credentials": "Feil e-postadresse, brukernavn eller passord",
       "wrong-phone-credentials": "Feil telefonnummer eller passord",
       "wrong-phone-username-credentials": "Feil telefonnummer, brukernavn eller passord. Telefonnumre må inkludere landskode.",
-      "wrong-username-credentials": "Feil brukernavn eller passord"
+      "wrong-username-credentials": "Feil brukernavn eller passord",
+      "passkeyButtonText": "Logg inn med passkey"
     }
   },
   "login-password": {
@@ -416,6 +418,14 @@
       "retryButtonText": "Prøv igjen",
       "enrollmentComplete": "Passnøkkelen din er konfigurert. Du kan lukke denne siden.",
       "pageTitle": "Opprett Passnøkkel | ${clientName}"
+    },
+    "passkey-challenge": {
+      "title": "Logg inn med passkey",
+      "description": "Følg instruksjonene fra nettleseren for å bekrefte identiteten din.",
+      "errorMessage": "Autentisering med passkey mislyktes. Vennligst prøv igjen.",
+      "cancelLinkText": "Tilbake til innlogging",
+      "retryButtonText": "Prøv igjen",
+      "pageTitle": "Logg inn med passkey | ${clientName}"
     }
   },
   "organizations": {

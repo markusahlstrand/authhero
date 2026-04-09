@@ -5,8 +5,11 @@ pnpm authhero build
 pnpm cloudflare build
 pnpm multi-tenancy build
 pnpm aws-adapter build
+pnpm drizzle build
+pnpm widget build
 
 pnpm kysely test
+pnpm drizzle test
 pnpm saml test
 pnpm authhero test
 pnpm aws-adapter test

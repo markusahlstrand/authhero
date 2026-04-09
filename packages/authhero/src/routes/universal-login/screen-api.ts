@@ -220,7 +220,7 @@ const screenResponseSchema = z.object({
   branding: brandingResponseSchema.optional(),
 });
 
-const webAuthnCeremonySchema = z.object({
+const webAuthnRegistrationCeremonySchema = z.object({
   type: z.literal("webauthn-registration"),
   options: z.object({
     challenge: z.string(),
@@ -253,6 +253,34 @@ const webAuthnCeremonySchema = z.object({
   }),
   successAction: z.string(),
 });
+
+const webAuthnAuthenticationCeremonySchema = z.object({
+  type: z.enum([
+    "webauthn-authentication",
+    "webauthn-authentication-conditional",
+  ]),
+  options: z.object({
+    challenge: z.string(),
+    rpId: z.string().optional(),
+    timeout: z.number().optional(),
+    userVerification: z.string().optional(),
+    allowCredentials: z
+      .array(
+        z.object({
+          id: z.string(),
+          type: z.string(),
+          transports: z.array(z.string()).optional(),
+        }),
+      )
+      .optional(),
+  }),
+  successAction: z.string(),
+});
+
+const webAuthnCeremonySchema = z.union([
+  webAuthnRegistrationCeremonySchema,
+  webAuthnAuthenticationCeremonySchema,
+]);
 
 const screenPostResponseSchema = screenResponseSchema.extend({
   screenId: z.string().optional(),
@@ -556,6 +584,7 @@ export const screenApiRoutes = new OpenAPIHono<{
         return ctx.json({
           screen,
           branding: builtInResult.branding,
+          ceremony: builtInResult.ceremony,
         });
       }
 

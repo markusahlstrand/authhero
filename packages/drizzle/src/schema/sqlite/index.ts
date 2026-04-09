@@ -35,3 +35,6 @@ export * from "./authenticationMethods";
 
 // Logs
 export * from "./logs";
+
+// Outbox
+export * from "./outbox";

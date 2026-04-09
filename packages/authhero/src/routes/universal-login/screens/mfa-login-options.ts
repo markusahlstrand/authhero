@@ -134,6 +134,17 @@ export const mfaLoginOptionsScreenDefinition: ScreenDefinition = {
             label: `${m.smsLabel()} ${maskedPhone}`,
             description: m.smsDescription(),
           });
+        } else if (
+          enrollment.type === "passkey" ||
+          enrollment.type === "webauthn-roaming" ||
+          enrollment.type === "webauthn-platform"
+        ) {
+          options.push({
+            id: enrollment.id,
+            type: "passkey",
+            label: m.passkeyLabel(),
+            description: m.passkeyDescription(),
+          });
         }
       }
 
@@ -265,6 +276,16 @@ export const mfaLoginOptionsScreenDefinition: ScreenDefinition = {
 
         return {
           redirect: `${routePrefix}/mfa/phone-challenge?state=${encodeURIComponent(state)}`,
+        };
+      }
+
+      if (
+        selectedEnrollment.type === "passkey" ||
+        selectedEnrollment.type === "webauthn-roaming" ||
+        selectedEnrollment.type === "webauthn-platform"
+      ) {
+        return {
+          redirect: `${routePrefix}/passkey/challenge?state=${encodeURIComponent(state)}`,
         };
       }
 

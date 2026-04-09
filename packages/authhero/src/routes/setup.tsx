@@ -74,13 +74,13 @@ export default function createSetupApp(config: AuthHeroConfig) {
       ],
       ...(error
         ? {
-            messages: [
-              {
-                type: "error",
-                text: error,
-              },
-            ],
-          }
+          messages: [
+            {
+              type: "error",
+              text: error,
+            },
+          ],
+        }
         : {}),
     };
   }
@@ -242,16 +242,16 @@ export default function createSetupApp(config: AuthHeroConfig) {
         "https://manage.authhero.net/auth-callback",
         "https://local.authhero.net/auth-callback",
         "https://localhost:5173/auth-callback",
-        "https://localhost:3000/auth-callback",
-        "https://localhost:3000/admin/auth-callback",
+        "http://localhost:3000/auth-callback",
+        "http://localhost:3000/admin/auth-callback",
       ];
       const allowedLogoutUrls = [
         origin,
         `${origin}/admin`,
         "https://manage.authhero.net",
         "https://local.authhero.net",
-        "https://localhost:5173",
-        "https://localhost:3000",
+        "http://localhost:5173",
+        "http://localhost:3000",
       ];
 
       await seed(ctx.env.data, {

@@ -13,6 +13,10 @@ export interface AuthenticationMethodsAdapter {
     tenant_id: string,
     method_id: string,
   ) => Promise<AuthenticationMethod | null>;
+  getByCredentialId: (
+    tenant_id: string,
+    credential_id: string,
+  ) => Promise<AuthenticationMethod | null>;
   list: (tenant_id: string, user_id: string) => Promise<AuthenticationMethod[]>;
   update: (
     tenant_id: string,

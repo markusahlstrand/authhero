@@ -570,7 +570,7 @@ export class AuthheroNode {
   private renderTextField(component: FieldComponent & { type: "TEXT" }) {
     const inputId = `input-${component.id}`;
     const errors = this.getErrors();
-    const { multiline, max_length } = component.config ?? {};
+    const { multiline, max_length, autocomplete } = component.config ?? {} as any;
     const effectiveValue = this.getEffectiveValue();
     const hasValue = !!(effectiveValue && effectiveValue.length > 0);
 
@@ -612,6 +612,7 @@ export class AuthheroNode {
             required={component.required}
             disabled={this.disabled}
             maxLength={max_length}
+            autoComplete={autocomplete}
             onInput={this.handleInput}
             onKeyDown={this.handleKeyDown}
           />
@@ -633,6 +634,7 @@ export class AuthheroNode {
     const errors = this.getErrors();
     const effectiveValue = this.getEffectiveValue();
     const hasValue = !!(effectiveValue && effectiveValue.length > 0);
+    const { autocomplete } = (component.config ?? {}) as any;
 
     return (
       <div class="input-wrapper" part="input-wrapper">
@@ -648,7 +650,7 @@ export class AuthheroNode {
             placeholder=" "
             required={component.required}
             disabled={this.disabled}
-            autocomplete="email"
+            autocomplete={autocomplete || "email"}
             onInput={this.handleInput}
             onKeyDown={this.handleKeyDown}
           />

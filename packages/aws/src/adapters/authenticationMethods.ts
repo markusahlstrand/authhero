@@ -96,6 +96,26 @@ export function createAuthenticationMethodsAdapter(
       return toAuthenticationMethod(item);
     },
 
+    async getByCredentialId(
+      tenantId: string,
+      credentialId: string,
+    ): Promise<AuthenticationMethod | null> {
+      const result = await queryItems<AuthenticationMethodItem>(
+        ctx,
+        authenticationMethodKeys.pk(tenantId),
+        {
+          skPrefix: "AUTHENTICATION_METHOD#",
+        },
+      );
+
+      const item = result.items.find(
+        (i) => i.credential_id === credentialId,
+      );
+
+      if (!item) return null;
+      return toAuthenticationMethod(item);
+    },
+
     async list(
       tenantId: string,
       userId: string,

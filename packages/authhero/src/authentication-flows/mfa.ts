@@ -47,17 +47,24 @@ export async function checkMfaRequired(
 
   // Validate that at least one supported factor is enabled
   const hasSupportedFactor =
-    tenant.mfa?.factors?.sms === true || tenant.mfa?.factors?.otp === true;
+    tenant.mfa?.factors?.sms === true ||
+    tenant.mfa?.factors?.otp === true ||
+    tenant.mfa?.factors?.webauthn_roaming === true ||
+    tenant.mfa?.factors?.webauthn_platform === true;
 
   if (!hasSupportedFactor) {
     throw new HTTPException(500, {
       message:
-        "MFA policy requires MFA but no supported factors are enabled. Enable at least one factor (e.g. SMS or OTP) in the tenant MFA configuration.",
+        "MFA policy requires MFA but no supported factors are enabled. Enable at least one factor (e.g. SMS, OTP, or WebAuthn) in the tenant MFA configuration.",
     });
   }
 
   // Look up user's confirmed MFA enrollments, filtered to enabled factors
   const enabledFactors = tenant.mfa?.factors;
+  const hasWebauthn =
+    enabledFactors?.webauthn_roaming === true ||
+    enabledFactors?.webauthn_platform === true;
+  const passkeyTypes = ["passkey", "webauthn-roaming", "webauthn-platform"];
   const enrollments = await ctx.env.data.authenticationMethods.list(
     tenantId,
     userId,
@@ -66,7 +73,8 @@ export async function checkMfaRequired(
     (e) =>
       e.confirmed &&
       ((e.type === "phone" && enabledFactors?.sms === true) ||
-        (e.type === "totp" && enabledFactors?.otp === true)),
+        (e.type === "totp" && enabledFactors?.otp === true) ||
+        (passkeyTypes.includes(e.type) && hasWebauthn)),
   );
 
   if (confirmedEnrollments.length > 0) {

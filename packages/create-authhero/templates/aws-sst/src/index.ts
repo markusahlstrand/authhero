@@ -41,12 +41,12 @@ export async function handler(event: APIGatewayProxyEventV2, context: Context) {
   const allowedOrigins = process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
     : [
-        // WARNING: These localhost origins are for development only
-        // Remove or override via ALLOWED_ORIGINS env var in production
-        "http://localhost:5173",
-        "https://localhost:3000",
-        origin,
-      ].filter(Boolean);
+      // WARNING: These localhost origins are for development only
+      // Remove or override via ALLOWED_ORIGINS env var in production
+      "http://localhost:5173",
+      "http://localhost:3000",
+      origin,
+    ].filter(Boolean);
 
   // Create app instance per request to avoid issuer contamination
   // Lambda containers are reused, so we can't mutate process.env.ISSUER globally

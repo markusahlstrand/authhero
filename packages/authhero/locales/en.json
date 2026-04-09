@@ -121,6 +121,7 @@
       "usernamePlaceholder": "Username or email address",
       "usernameTooLong": "Username must be ${max} characters or less",
       "usernameTooShort": "Username must be at least ${min} characters",
+      "passkeyButtonText": "Sign in with a passkey",
       "wrongCredentials": "Wrong username or password"
     }
   },
@@ -197,6 +198,7 @@
       "wrong-email-username-credentials": "Incorrect email address, username, or password",
       "wrong-phone-credentials": "Incorrect phone number or password",
       "wrong-phone-username-credentials": "Incorrect phone number, username or password. Phone numbers must include the country code.",
+      "passkeyButtonText": "Sign in with a passkey",
       "wrong-username-credentials": "Incorrect username or password"
     }
   },
@@ -416,6 +418,14 @@
       "retryButtonText": "Try again",
       "enrollmentComplete": "Your passkey has been set up successfully. You can close this page.",
       "pageTitle": "Create Passkey | ${clientName}"
+    },
+    "passkey-challenge": {
+      "title": "Sign in with a passkey",
+      "description": "Follow the prompts from your browser to verify your identity.",
+      "errorMessage": "Passkey authentication failed. Please try again.",
+      "cancelLinkText": "Back to login",
+      "retryButtonText": "Try again",
+      "pageTitle": "Sign In with Passkey | ${clientName}"
     }
   },
   "organizations": {

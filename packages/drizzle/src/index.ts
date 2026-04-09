@@ -1,11 +1,12 @@
 /**
- * AuthHero Drizzle Schema Package
+ * AuthHero Drizzle Adapter Package
  *
- * This package provides Drizzle ORM schemas for AuthHero.
- * Currently supports SQLite/D1 for Cloudflare Workers.
- *
- * Use drizzle-kit to generate migrations from these schemas.
+ * Provides both Drizzle ORM schemas and a full DataAdapters implementation
+ * for SQLite/D1 (Cloudflare Workers).
  */
+
+// Default export: adapter factory
+export { default } from "./adapters";
 
 // SQLite/D1 schema
 export * as sqlite from "./schema/sqlite";

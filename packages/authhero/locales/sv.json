@@ -121,7 +121,8 @@
       "usernamePlaceholder": "Användarnamn eller e-postadress",
       "usernameTooLong": "Användarnamnet får vara högst ${max} tecken",
       "usernameTooShort": "Användarnamnet måste vara minst ${min} tecken",
-      "wrongCredentials": "Fel användarnamn eller lösenord"
+      "wrongCredentials": "Fel användarnamn eller lösenord",
+      "passkeyButtonText": "Logga in med passkey"
     }
   },
   "login-id": {
@@ -197,7 +198,8 @@
       "wrong-email-username-credentials": "Fel e-postadress, användarnamn eller lösenord",
       "wrong-phone-credentials": "Fel telefonnummer eller lösenord",
       "wrong-phone-username-credentials": "Fel telefonnummer, användarnamn eller lösenord. Telefonnummer måste innehålla landskod.",
-      "wrong-username-credentials": "Fel användarnamn eller lösenord"
+      "wrong-username-credentials": "Fel användarnamn eller lösenord",
+      "passkeyButtonText": "Logga in med passkey"
     }
   },
   "login-password": {
@@ -416,6 +418,14 @@
       "retryButtonText": "Försök igen",
       "enrollmentComplete": "Din nyckel har konfigurerats. Du kan stänga denna sida.",
       "pageTitle": "Skapa Nyckel | ${clientName}"
+    },
+    "passkey-challenge": {
+      "title": "Logga in med passkey",
+      "description": "Följ instruktionerna från din webbläsare för att verifiera din identitet.",
+      "errorMessage": "Autentisering med passkey misslyckades. Försök igen.",
+      "cancelLinkText": "Tillbaka till inloggning",
+      "retryButtonText": "Försök igen",
+      "pageTitle": "Logga in med passkey | ${clientName}"
     }
   },
   "organizations": {

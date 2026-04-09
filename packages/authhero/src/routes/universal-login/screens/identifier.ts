@@ -8,6 +8,7 @@ import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
 import {
   getConnectionIdentifierConfig,
   Strategy,
+  StrategyType,
 } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import {
@@ -27,6 +28,14 @@ import { enterPasswordScreen } from "./enter-password";
 import { createTranslation } from "../../../i18n";
 import type { LoginIdScreen } from "../../../generated/locale-types";
 import { getConnectionIconUrl } from "../../../strategies";
+import { generateAuthenticationOptions } from "@simplewebauthn/server";
+import { createFrontChannelAuthResponse } from "../../../authentication-flows/common";
+import {
+  getRpId,
+  buildConditionalMediationScript,
+  buildWebAuthnConditionalMediationCeremony,
+  verifyPasskeyAuthentication,
+} from "./passkey-utils";
 
 /**
  * Build social login buttons from available connections
@@ -189,6 +198,40 @@ export async function identifierScreen(
     );
   }
 
+  // Check if passkeys are enabled for conditional mediation
+  const hasPasskeysEnabled = context.connections.some(
+    (c) => c.options?.authentication_methods?.passkey?.enabled,
+  );
+
+  if (hasPasskeysEnabled) {
+    // Add hidden fields for passkey credential submission
+    components.push(
+      {
+        id: "credential-field",
+        type: "TEXT" as const,
+        category: "FIELD" as const,
+        visible: false,
+        config: {},
+        order: components.length + 1,
+      },
+      {
+        id: "action-field",
+        type: "TEXT" as const,
+        category: "FIELD" as const,
+        visible: false,
+        config: {},
+        order: components.length + 2,
+      },
+    );
+
+    // Add autocomplete="username webauthn" to the username field
+    const usernameComponent = components.find((c) => c.id === "username");
+    if (usernameComponent && "config" in usernameComponent) {
+      (usernameComponent.config as Record<string, unknown>).autocomplete =
+        "username webauthn";
+    }
+  }
+
   // Check if password signup is available
   const hasPasswordConnection = context.connections.some(
     (c) => c.strategy === Strategy.USERNAME_PASSWORD,
@@ -237,9 +280,50 @@ export async function identifierScreen(
     }
   }
 
+  // Generate conditional mediation WebAuthn options if passkeys enabled
+  let extraScript: string | undefined;
+  let ceremony: ReturnType<typeof buildWebAuthnConditionalMediationCeremony> | undefined;
+
+  if (hasPasskeysEnabled) {
+    const rpId = getRpId(context.ctx);
+
+    const options = await generateAuthenticationOptions({
+      rpID: rpId,
+      userVerification: "preferred",
+      timeout: 60000,
+    });
+
+    // Store the challenge in the login session
+    const loginSession = await context.ctx.env.data.loginSessions.get(
+      context.client.tenant.id,
+      state,
+    );
+    if (loginSession) {
+      const stateData = loginSession.state_data
+        ? JSON.parse(loginSession.state_data)
+        : {};
+      await context.ctx.env.data.loginSessions.update(
+        context.client.tenant.id,
+        state,
+        {
+          state_data: JSON.stringify({
+            ...stateData,
+            webauthn_challenge: options.challenge,
+          }),
+        },
+      );
+    }
+
+    const optionsJSON = JSON.stringify(options);
+    extraScript = buildConditionalMediationScript(optionsJSON);
+    ceremony = buildWebAuthnConditionalMediationCeremony(optionsJSON);
+  }
+
   return {
     screen,
     branding,
+    extraScript,
+    ceremony,
   };
 }
 
@@ -254,6 +338,48 @@ export const identifierScreenDefinition: ScreenDefinition = {
     get: identifierScreen,
     post: async (context, data) => {
       const { ctx, client, state } = context;
+
+      // Handle passkey authentication from conditional mediation
+      const action = data["action-field"] as string;
+      if (action === "passkey-authenticate") {
+        const credentialJson = data["credential-field"] as string;
+        const result = await verifyPasskeyAuthentication(
+          context,
+          credentialJson,
+        );
+
+        if (result.success) {
+          const authResult = await createFrontChannelAuthResponse(ctx, {
+            authParams: result.loginSession.authParams,
+            user: result.primaryUser,
+            client,
+            loginSession: {
+              ...result.loginSession,
+              user_id: result.primaryUser.user_id,
+            },
+            authConnection: result.authConnection,
+            authStrategy: {
+              strategy: "passkey",
+              strategy_type: StrategyType.DATABASE,
+            },
+          });
+
+          const location = authResult.headers.get("location");
+          const cookies = authResult.headers.getSetCookie?.() || [];
+          if (location) return { redirect: location, cookies };
+          return { response: authResult };
+        }
+
+        // On passkey failure, re-render identifier with error
+        return {
+          error: result.error,
+          screen: await identifierScreen({
+            ...context,
+            messages: [{ text: result.error, type: "error" as const }],
+          }),
+        };
+      }
+
       const username = (data.username as string)?.toLowerCase()?.trim();
 
       // Check if the password connection has username identifier enabled
