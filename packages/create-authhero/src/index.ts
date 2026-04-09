@@ -1079,7 +1079,7 @@ function generateCloudflareFiles(
 function printCloudflareSuccessMessage(): void {
   console.log("\n" + "─".repeat(50));
   console.log("🔐 AuthHero server running at https://localhost:3000");
-  console.log("🚀 Open https://localhost:3000 to complete initial setup");
+  console.log("🚀 Open https://localhost:3000/setup to complete initial setup");
   console.log("─".repeat(50) + "\n");
 }
 
@@ -1550,7 +1550,7 @@ program
         console.log("  npm run migrate");
         console.log("  npm run dev");
         console.log(
-          "\nOpen http://localhost:3000 to complete initial setup",
+          "\nOpen http://localhost:3000/setup to complete initial setup",
         );
       } else if (setupType === "cloudflare") {
         console.log("  npm install");
@@ -1559,7 +1559,7 @@ program
         );
         console.log("  npm run dev  # or npm run dev:remote for production");
         console.log(
-          "\nOpen https://localhost:3000 to complete initial setup",
+          "\nOpen https://localhost:3000/setup to complete initial setup",
         );
       } else if (setupType === "aws-sst") {
         console.log("  npm install");

@@ -68,6 +68,12 @@ export function createResourceServersAdapter(
         }
       }
 
+      // Ensure is_system has a value matching the DB default so the
+      // returned object is consistent with the persisted row.
+      if (values.is_system === undefined) {
+        values.is_system = 0;
+      }
+
       await db.insert(resourceServers).values(values);
 
       return sqlToResourceServer({ ...values, tenant_id });
@@ -144,8 +150,10 @@ export function createResourceServersAdapter(
     },
 
     async list(tenant_id: string, params?: ListParams) {
-      const { page = 0, per_page = 50, include_totals = false, sort, q } =
+      const { page: rawPage = 0, per_page: rawPerPage = 50, include_totals = false, sort, q } =
         params || {};
+      const page = Math.max(0, Math.floor(Number(rawPage) || 0));
+      const per_page = Math.min(Math.max(1, Math.floor(Number(rawPerPage) || 50)), 500);
 
       const whereConditions = [eq(resourceServers.tenant_id, tenant_id)];
 

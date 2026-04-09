@@ -115,21 +115,23 @@ export function createUsersAdapter(db: DrizzleDb) {
       const passwordId = params.password ? nanoid() : undefined;
 
       try {
-        await db.insert(users).values(sqlData);
+        await db.transaction(async (tx) => {
+          await tx.insert(users).values(sqlData);
 
-        // Insert password if provided
-        if (params.password && passwordId) {
-          await db.insert(passwords).values({
-            id: passwordId,
-            tenant_id,
-            user_id: params.user_id,
-            password: params.password.hash || params.password,
-            algorithm: params.password.algorithm || "bcrypt",
-            is_current: 1,
-            created_at: now,
-            updated_at: now,
-          });
-        }
+          // Insert password if provided
+          if (params.password && passwordId) {
+            await tx.insert(passwords).values({
+              id: passwordId,
+              tenant_id,
+              user_id: params.user_id,
+              password: params.password.hash || params.password,
+              algorithm: params.password.algorithm || "bcrypt",
+              is_current: 1,
+              created_at: now,
+              updated_at: now,
+            });
+          }
+        });
       } catch (error: any) {
         if (
           error?.message?.includes("UNIQUE constraint") ||
@@ -137,8 +139,9 @@ export function createUsersAdapter(db: DrizzleDb) {
         ) {
           throw new HTTPException(409, { message: "User already exists" });
         }
+        console.error("User upsert failed:", error?.code, error?.message);
         throw new HTTPException(500, {
-          message: `${error?.code}, ${error?.message}`,
+          message: "Internal server error",
         });
       }
 
@@ -230,14 +233,15 @@ export function createUsersAdapter(db: DrizzleDb) {
       if (params.profileData !== undefined)
         updateData.profileData = JSON.stringify(params.profileData);
 
-      await db
+      const results = await db
         .update(users)
         .set(updateData)
         .where(
           and(eq(users.tenant_id, tenant_id), eq(users.user_id, user_id)),
-        );
+        )
+        .returning();
 
-      return true;
+      return results.length > 0;
     },
 
     async list(tenant_id: string, params?: ListParams) {
@@ -317,54 +321,56 @@ export function createUsersAdapter(db: DrizzleDb) {
     },
 
     async remove(tenant_id: string, user_id: string): Promise<boolean> {
-      // Collect all user IDs to delete: primary + linked
-      const linkedUsers = await db
-        .select({ user_id: users.user_id })
-        .from(users)
-        .where(
-          and(eq(users.tenant_id, tenant_id), eq(users.linked_to, user_id)),
-        );
-      const allUserIds = [
-        user_id,
-        ...linkedUsers.map((u) => u.user_id),
-      ];
+      return await db.transaction(async (tx) => {
+        // Collect all user IDs to delete: primary + linked
+        const linkedUsers = await tx
+          .select({ user_id: users.user_id })
+          .from(users)
+          .where(
+            and(eq(users.tenant_id, tenant_id), eq(users.linked_to, user_id)),
+          );
+        const allUserIds = [
+          user_id,
+          ...linkedUsers.map((u) => u.user_id),
+        ];
 
-      // Delete authentication methods for all users
-      await db
-        .delete(authenticationMethods)
-        .where(
-          and(
-            eq(authenticationMethods.tenant_id, tenant_id),
-            inArray(authenticationMethods.user_id, allUserIds),
-          ),
-        );
+        // Delete authentication methods for all users
+        await tx
+          .delete(authenticationMethods)
+          .where(
+            and(
+              eq(authenticationMethods.tenant_id, tenant_id),
+              inArray(authenticationMethods.user_id, allUserIds),
+            ),
+          );
 
-      // Delete passwords for all users
-      await db
-        .delete(passwords)
-        .where(
-          and(
-            eq(passwords.tenant_id, tenant_id),
-            inArray(passwords.user_id, allUserIds),
-          ),
-        );
+        // Delete passwords for all users
+        await tx
+          .delete(passwords)
+          .where(
+            and(
+              eq(passwords.tenant_id, tenant_id),
+              inArray(passwords.user_id, allUserIds),
+            ),
+          );
 
-      // Delete linked users
-      await db
-        .delete(users)
-        .where(
-          and(eq(users.tenant_id, tenant_id), eq(users.linked_to, user_id)),
-        );
+        // Delete linked users
+        await tx
+          .delete(users)
+          .where(
+            and(eq(users.tenant_id, tenant_id), eq(users.linked_to, user_id)),
+          );
 
-      // Delete primary user
-      const results = await db
-        .delete(users)
-        .where(
-          and(eq(users.tenant_id, tenant_id), eq(users.user_id, user_id)),
-        )
-        .returning();
+        // Delete primary user
+        const results = await tx
+          .delete(users)
+          .where(
+            and(eq(users.tenant_id, tenant_id), eq(users.user_id, user_id)),
+          )
+          .returning();
 
-      return results.length > 0;
+        return results.length > 0;
+      });
     },
 
     async unlink(
@@ -374,7 +380,7 @@ export function createUsersAdapter(db: DrizzleDb) {
       linked_user_id: string,
     ): Promise<boolean> {
       const linkedUserId = `${provider}|${linked_user_id}`;
-      await db
+      const results = await db
         .update(users)
         .set({ linked_to: null })
         .where(
@@ -383,9 +389,10 @@ export function createUsersAdapter(db: DrizzleDb) {
             eq(users.user_id, linkedUserId),
             eq(users.linked_to, user_id),
           ),
-        );
+        )
+        .returning();
 
-      return true;
+      return results.length > 0;
     },
   };
 }

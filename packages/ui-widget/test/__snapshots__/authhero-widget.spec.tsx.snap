@@ -96,7 +96,7 @@ exports[`authhero-widget renders MFA TOTP screen 1`] = `
                 <template shadowrootmode="open">
                   <div class="input-wrapper" part="input-wrapper">
                     <div class="input-container">
-                      <input class="input-field" data-input-name="totp_code" id="input-totp_code" name="totp_code" part="input" placeholder=" " required="" type="text" value="">
+                      <input autocomplete="one-time-code" class="input-field" data-input-name="totp_code" id="input-totp_code" name="totp_code" part="input" placeholder=" " required="" type="text" value="">
                       <label class="input-label" htmlfor="input-totp_code" part="label">
                         Verification code
                         <span class="required">
