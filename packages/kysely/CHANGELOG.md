@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.119.0
+
+### Minor Changes
+
+- fa7ce07: Updates for passkeys login
+
+### Patch Changes
+
+- Updated dependencies [fa7ce07]
+  - @authhero/adapter-interfaces@0.154.0
+
 ## 10.118.0
 
 ### Minor Changes

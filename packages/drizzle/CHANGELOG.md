@@ -1,5 +1,17 @@
 # @authhero/drizzle
 
+## 0.32.0
+
+### Minor Changes
+
+- fa7ce07: Update drizzle for production use
+- fa7ce07: Updates for passkeys login
+
+### Patch Changes
+
+- Updated dependencies [fa7ce07]
+  - @authhero/adapter-interfaces@0.154.0
+
 ## 0.31.3
 
 ### Patch Changes
