@@ -22,9 +22,10 @@ const SocialButton = ({
     client_id: loginSession.authParams.client_id,
     connection,
   });
-  if (loginSession.authParams.response_type) {
-    queryString.set("response_type", loginSession.authParams.response_type);
-  }
+  queryString.set(
+    "response_type",
+    loginSession.authParams.response_type || "code",
+  );
   if (loginSession.authParams.redirect_uri) {
     queryString.set("redirect_uri", loginSession.authParams.redirect_uri);
   }

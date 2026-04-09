@@ -171,30 +171,37 @@ export const forgotPasswordScreenDefinition: ScreenDefinition = {
   description: "Password reset request screen",
   handler: {
     get: forgotPasswordScreen,
-    post: async (context) => {
+    post: async (context, data) => {
       const { ctx, client, state } = context;
 
+      const email = (data.email as string)?.trim();
+
+      if (!email) {
+        return {
+          error: "Email is required",
+          screen: await forgotPasswordScreen({
+            ...context,
+            errors: { email: "Email is required" },
+          }),
+        };
+      }
+
+      // Update the login session with the email for subsequent screens
       const loginSession = await ctx.env.data.loginSessions.get(
         client.tenant.id,
         state,
       );
 
-      if (!loginSession?.authParams?.username) {
-        return {
-          error: "Session expired",
-          screen: await forgotPasswordScreen({
-            ...context,
-            errors: { email: "Session expired. Please start over." },
-          }),
-        };
+      if (loginSession) {
+        await ctx.env.data.loginSessions.update(client.tenant.id, state, {
+          authParams: {
+            ...loginSession.authParams,
+            username: email,
+          },
+        });
       }
 
-      await requestPasswordReset(
-        ctx,
-        client,
-        loginSession.authParams.username,
-        state,
-      );
+      await requestPasswordReset(ctx, client, email, state);
 
       return {
         screen: await forgotPasswordSentScreen(context),

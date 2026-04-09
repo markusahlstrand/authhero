@@ -383,7 +383,9 @@ export const loginPasswordlessIdentifierScreenDefinition: ScreenDefinition = {
             language,
           });
         }
-      } catch {
+      } catch (err) {
+        console.error("Failed to send verification code:", err);
+
         // Clean up the created code on delivery failure
         await ctx.env.data.codes.remove(client.tenant.id, code_id);
 

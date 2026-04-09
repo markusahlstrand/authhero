@@ -245,16 +245,28 @@ export class AuthheroNode {
       return;
     }
 
-    // Standard phone-only mode — strip '+' since the picker provides the prefix
-    const cleaned = value.replace(/[^\d\s\-()]/g, "");
-    if (cleaned !== value) {
-      target.value = cleaned;
+    // Standard phone-only mode — try dial code detection first so that
+    // typing "+46" or "0046" switches the country selector automatically
+    const dialLocal = this.detectDialCodeFromInput(value);
+    if (dialLocal !== null) {
+      const cleanedLocal = dialLocal
+        .replace(/[^\d\s\-()]/g, "");
+      target.value = cleanedLocal;
+      this.localPhoneNumber = cleanedLocal;
+      const fullNumber = `${this.selectedCountry.dialCode}${cleanedLocal}`;
+      this.fieldChange.emit({ id: this.component.id, value: fullNumber });
+    } else {
+      // No dial code — strip non-digit chars since the picker provides the prefix
+      const cleaned = value.replace(/[^\d\s\-()]/g, "");
+      if (cleaned !== value) {
+        target.value = cleaned;
+      }
+      this.localPhoneNumber = cleaned;
+      const fullNumber = cleaned
+        ? `${this.selectedCountry.dialCode}${cleaned}`
+        : "";
+      this.fieldChange.emit({ id: this.component.id, value: fullNumber });
     }
-    this.localPhoneNumber = cleaned;
-    const fullNumber = cleaned
-      ? `${this.selectedCountry.dialCode}${cleaned}`
-      : "";
-    this.fieldChange.emit({ id: this.component.id, value: fullNumber });
   };
 
   private handleInput = (e: Event) => {

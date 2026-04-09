@@ -137,7 +137,7 @@ export async function accountScreen(
       visible: true,
       config: {
         content: `
-          <div style="display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;flex-direction:column;gap:16px;margin-bottom:8px">
             <div style="display:flex;align-items:center;gap:12px">
               ${
                 user.picture
