@@ -6,6 +6,7 @@ import {
   desc,
   inArray,
   isNull,
+  sql,
 } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { HTTPException } from "hono/http-exception";
@@ -115,23 +116,21 @@ export function createUsersAdapter(db: DrizzleDb) {
       const passwordId = params.password ? nanoid() : undefined;
 
       try {
-        await db.transaction(async (tx) => {
-          await tx.insert(users).values(sqlData);
+        await db.insert(users).values(sqlData);
 
-          // Insert password if provided
-          if (params.password && passwordId) {
-            await tx.insert(passwords).values({
-              id: passwordId,
-              tenant_id,
-              user_id: params.user_id,
-              password: params.password.hash || params.password,
-              algorithm: params.password.algorithm || "bcrypt",
-              is_current: 1,
-              created_at: now,
-              updated_at: now,
-            });
-          }
-        });
+        // Insert password if provided
+        if (params.password && passwordId) {
+          await db.insert(passwords).values({
+            id: passwordId,
+            tenant_id,
+            user_id: params.user_id,
+            password: params.password.hash || params.password,
+            algorithm: params.password.algorithm || "bcrypt",
+            is_current: 1,
+            created_at: now,
+            updated_at: now,
+          });
+        }
       } catch (error: any) {
         if (
           error?.message?.includes("UNIQUE constraint") ||
@@ -321,9 +320,12 @@ export function createUsersAdapter(db: DrizzleDb) {
     },
 
     async remove(tenant_id: string, user_id: string): Promise<boolean> {
-      return await db.transaction(async (tx) => {
+      // Use manual BEGIN/COMMIT/ROLLBACK because Drizzle's built-in
+      // db.transaction() doesn't support async callbacks with better-sqlite3.
+      db.run(sql`BEGIN`);
+      try {
         // Collect all user IDs to delete: primary + linked
-        const linkedUsers = await tx
+        const linkedUsers = await db
           .select({ user_id: users.user_id })
           .from(users)
           .where(
@@ -335,7 +337,7 @@ export function createUsersAdapter(db: DrizzleDb) {
         ];
 
         // Delete authentication methods for all users
-        await tx
+        await db
           .delete(authenticationMethods)
           .where(
             and(
@@ -345,7 +347,7 @@ export function createUsersAdapter(db: DrizzleDb) {
           );
 
         // Delete passwords for all users
-        await tx
+        await db
           .delete(passwords)
           .where(
             and(
@@ -355,22 +357,26 @@ export function createUsersAdapter(db: DrizzleDb) {
           );
 
         // Delete linked users
-        await tx
+        await db
           .delete(users)
           .where(
             and(eq(users.tenant_id, tenant_id), eq(users.linked_to, user_id)),
           );
 
         // Delete primary user
-        const results = await tx
+        const results = await db
           .delete(users)
           .where(
             and(eq(users.tenant_id, tenant_id), eq(users.user_id, user_id)),
           )
           .returning();
 
+        db.run(sql`COMMIT`);
         return results.length > 0;
-      });
+      } catch (e) {
+        db.run(sql`ROLLBACK`);
+        throw e;
+      }
     },
 
     async unlink(
