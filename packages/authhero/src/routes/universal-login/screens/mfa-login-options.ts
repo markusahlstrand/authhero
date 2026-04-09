@@ -268,6 +268,16 @@ export const mfaLoginOptionsScreenDefinition: ScreenDefinition = {
         };
       }
 
+      if (
+        selectedEnrollment.type === "passkey" ||
+        selectedEnrollment.type === "webauthn-roaming" ||
+        selectedEnrollment.type === "webauthn-platform"
+      ) {
+        return {
+          redirect: `${routePrefix}/passkey/challenge?state=${encodeURIComponent(state)}`,
+        };
+      }
+
       throw new HTTPException(400, {
         message: "Unsupported MFA factor type",
       });

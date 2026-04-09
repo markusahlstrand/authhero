@@ -39,10 +39,23 @@ async function accountPasskeysScreen(
     state,
     messages,
     routePrefix = "/u2",
+    client,
   } = context;
 
   const { user } = await resolveAccountUser(context);
   const stateParam = encodeURIComponent(state);
+
+  // Build logout URL
+  const loginSession = await ctx.env.data.loginSessions.get(tenant.id, state);
+  const returnTo =
+    loginSession?.authParams?.redirect_uri || loginSession?.authorization_url;
+  const logoutParams = new URLSearchParams({
+    client_id: client.client_id,
+  });
+  if (returnTo) {
+    logoutParams.set("returnTo", returnTo);
+  }
+  const logoutUrl = `/v2/logout?${logoutParams.toString()}`;
 
   // Fetch passkey enrollments
   let passkeys: Array<{
@@ -75,7 +88,7 @@ async function accountPasskeysScreen(
       visible: true,
       config: {
         content:
-          "<p style='color:#6b7280'>You have no passkeys registered.</p>",
+          "<p style='color:#6b7280;text-align:center;padding:24px 0'>You have no passkeys registered.</p>",
       },
       order: 0,
     });
@@ -91,14 +104,14 @@ async function accountPasskeysScreen(
           : "";
 
         return `
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #e5e7eb">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border:1px solid #e5e7eb;border-radius:8px">
             <div>
-              <div style="font-weight:500">${name}${backupBadge}</div>
-              ${createdAt ? `<div style="font-size:12px;color:#9ca3af">Added ${escapeHtml(createdAt)}</div>` : ""}
+              <div style="font-weight:500;font-size:14px">${name}${backupBadge}</div>
+              ${createdAt ? `<div style="font-size:13px;color:#6b7280;margin-top:2px">Added ${escapeHtml(createdAt)}</div>` : ""}
             </div>
             <div style="display:flex;gap:8px">
-              <button type="submit" name="action" value="rename_passkey" style="background:none;border:1px solid #d1d5db;border-radius:4px;padding:4px 10px;font-size:13px;cursor:pointer;color:#374151" onclick="return (function(btn){var f=btn.closest('form');if(!f){var w=document.querySelector('authhero-widget');if(w&&w.shadowRoot)f=w.shadowRoot.querySelector('form')}if(f){var p=f.querySelector('[name=&quot;passkey_id&quot;]');if(p)p.value='${escapeHtml(passkey.id)}';var n=prompt('Enter a new name for this passkey:',${JSON.stringify(name).replace(/"/g, '&quot;')});if(n===null)return false;var fn=f.querySelector('[name=&quot;friendly_name&quot;]');if(fn)fn.value=n;return true}return false})(this)">Rename</button>
-              <button type="submit" name="action" value="remove_passkey" style="background:none;border:1px solid #fecaca;border-radius:4px;padding:4px 10px;font-size:13px;cursor:pointer;color:#dc2626" onclick="(function(btn){var f=btn.closest('form');if(!f){var w=document.querySelector('authhero-widget');if(w&&w.shadowRoot)f=w.shadowRoot.querySelector('form')}if(f){var p=f.querySelector('[name=&quot;passkey_id&quot;]');if(p)p.value='${escapeHtml(passkey.id)}'}})(this)">Remove</button>
+              <button type="submit" name="action" value="rename_passkey" style="background:none;border:1px solid #d1d5db;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;color:#374151" onclick="return (function(btn){var f=btn.closest('form');if(!f){var w=document.querySelector('authhero-widget');if(w&&w.shadowRoot)f=w.shadowRoot.querySelector('form')}if(f){var p=f.querySelector('[name=&quot;passkey_id&quot;]');if(p)p.value='${escapeHtml(passkey.id)}';var n=prompt('Enter a new name for this passkey:',${JSON.stringify(name).replace(/"/g, '&quot;')});if(n===null)return false;var fn=f.querySelector('[name=&quot;friendly_name&quot;]');if(fn)fn.value=n;return true}return false})(this)">Rename</button>
+              <button type="submit" name="action" value="remove_passkey" style="background:none;border:1px solid #fecaca;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;color:#dc2626" onclick="(function(btn){var f=btn.closest('form');if(!f){var w=document.querySelector('authhero-widget');if(w&&w.shadowRoot)f=w.shadowRoot.querySelector('form')}if(f){var p=f.querySelector('[name=&quot;passkey_id&quot;]');if(p)p.value='${escapeHtml(passkey.id)}'}})(this)">Remove</button>
             </div>
           </div>
         `;
@@ -111,7 +124,7 @@ async function accountPasskeysScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        content: `<div>${passkeyHtml}</div>`,
+        content: `<div style="display:flex;flex-direction:column;gap:8px">${passkeyHtml}</div>`,
       },
       order: 0,
     });
@@ -177,6 +190,11 @@ async function accountPasskeysScreen(
         id: "back-to-account",
         text: "Back to Account",
         href: `${routePrefix}/account?state=${stateParam}`,
+      },
+      {
+        id: "logout",
+        text: "Log Out",
+        href: logoutUrl,
       },
     ],
     messages,

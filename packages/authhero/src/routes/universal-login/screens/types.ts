@@ -84,12 +84,13 @@ export interface ScreenContext {
  * The widget validates the shape and performs the ceremony natively.
  */
 export interface WebAuthnCeremony {
-  type: "webauthn-registration";
+  type: "webauthn-registration" | "webauthn-authentication";
   options: {
     challenge: string;
-    rp: { id: string; name: string };
-    user: { id: string; name: string; displayName: string };
-    pubKeyCredParams: Array<{ alg: number; type: string }>;
+    rp?: { id: string; name: string };
+    rpId?: string;
+    user?: { id: string; name: string; displayName: string };
+    pubKeyCredParams?: Array<{ alg: number; type: string }>;
     timeout?: number;
     attestation?: string;
     authenticatorSelection?: {
@@ -97,6 +98,12 @@ export interface WebAuthnCeremony {
       userVerification?: string;
     };
     excludeCredentials?: Array<{
+      id: string;
+      type: string;
+      transports?: string[];
+    }>;
+    userVerification?: string;
+    allowCredentials?: Array<{
       id: string;
       type: string;
       transports?: string[];

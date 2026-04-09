@@ -19,6 +19,7 @@ export async function accountScreen(
   const {
     ctx,
     tenant,
+    client,
     branding,
     state,
     routePrefix = "/u2",
@@ -64,6 +65,69 @@ export async function accountScreen(
 
   const stateParam = encodeURIComponent(state);
 
+  // Build logout URL
+  const loginSession = await ctx.env.data.loginSessions.get(tenant.id, state);
+  const returnTo =
+    loginSession?.authParams?.redirect_uri || loginSession?.authorization_url;
+  const logoutParams = new URLSearchParams({
+    client_id: client.client_id,
+  });
+  if (returnTo) {
+    logoutParams.set("returnTo", returnTo);
+  }
+  const logoutUrl = `/v2/logout?${logoutParams.toString()}`;
+
+  // Build navigation links HTML
+  const navItems: Array<{
+    href: string;
+    label: string;
+    detail?: string;
+  }> = [
+    {
+      href: `${routePrefix}/account/profile?state=${stateParam}`,
+      label: "Edit Profile",
+      detail: "Name, email, phone number, and picture",
+    },
+    {
+      href: `${routePrefix}/account/security?state=${stateParam}`,
+      label: "Security Settings",
+      detail: mfaCount > 0
+        ? `${mfaCount} method${mfaCount !== 1 ? "s" : ""} configured`
+        : "Multi-factor authentication",
+    },
+  ];
+
+  if (hasPasskeysEnabled) {
+    navItems.push({
+      href: `${routePrefix}/account/passkeys?state=${stateParam}`,
+      label: "Passkeys",
+      detail: passkeyCount > 0
+        ? `${passkeyCount} passkey${passkeyCount !== 1 ? "s" : ""} registered`
+        : "Sign in without a password",
+    });
+  }
+
+  navItems.push({
+    href: `${routePrefix}/account/linked?state=${stateParam}`,
+    label: "Linked Accounts",
+    detail: linkedIdentities.length > 0
+      ? `${linkedIdentities.length} linked account${linkedIdentities.length !== 1 ? "s" : ""}`
+      : "Connect social accounts",
+  });
+
+  const navLinksHtml = navItems
+    .map(
+      (item) => `
+        <a href="${escapeHtml(item.href)}" style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border:1px solid #e5e7eb;border-radius:8px;text-decoration:none;color:inherit;transition:background 0.15s">
+          <div>
+            <div style="font-weight:500;font-size:14px">${escapeHtml(item.label)}</div>
+            ${item.detail ? `<div style="font-size:13px;color:#6b7280;margin-top:2px">${escapeHtml(item.detail)}</div>` : ""}
+          </div>
+          <div style="color:#9ca3af;font-size:18px">&#8250;</div>
+        </a>`,
+    )
+    .join("");
+
   const components: FormNodeComponent[] = [
     // User info section
     {
@@ -74,7 +138,7 @@ export async function accountScreen(
       config: {
         content: `
           <div style="display:flex;flex-direction:column;gap:16px">
-            <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+            <div style="display:flex;align-items:center;gap:12px">
               ${
                 user.picture
                   ? `<img src="${escapeHtml(user.picture)}" alt="" style="width:48px;height:48px;border-radius:50%;object-fit:cover" />`
@@ -85,51 +149,44 @@ export async function accountScreen(
                 <div style="color:#6b7280;font-size:14px">${escapeHtml(user.email || "")}</div>
               </div>
             </div>
-            <hr style="border:none;border-top:1px solid #e5e7eb" />
-            <div style="display:flex;flex-direction:column;gap:4px">
-              <div style="font-size:13px;color:#6b7280">Phone</div>
-              <div style="font-size:14px">${user.phone_number ? escapeHtml(user.phone_number) : '<span style="color:#9ca3af">Not set</span>'}</div>
-            </div>
           </div>
         `,
       },
       order: 0,
     },
+    // Navigation links section
+    {
+      id: "nav-links",
+      type: "RICH_TEXT",
+      category: "BLOCK",
+      visible: true,
+      config: {
+        content: `<div style="display:flex;flex-direction:column;gap:8px">${navLinksHtml}</div>`,
+      },
+      order: 1,
+    },
+    // Danger zone
+    {
+      id: "danger-zone",
+      type: "RICH_TEXT",
+      category: "BLOCK",
+      visible: true,
+      config: {
+        content: `
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;padding-top:16px;border-top:1px solid #e5e7eb">
+            <a href="${escapeHtml(`${routePrefix}/account/delete?state=${stateParam}`)}" style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border:1px solid #fecaca;border-radius:8px;text-decoration:none;color:#dc2626;transition:background 0.15s">
+              <div>
+                <div style="font-weight:500;font-size:14px">Delete Account</div>
+                <div style="font-size:13px;color:#ef4444;margin-top:2px">Permanently delete your account and data</div>
+              </div>
+              <div style="font-size:18px">&#8250;</div>
+            </a>
+          </div>
+        `,
+      },
+      order: 2,
+    },
   ];
-
-  const links: Array<{ id: string; text: string; href: string }> = [
-    {
-      id: "edit-profile",
-      text: "Edit Profile",
-      href: `${routePrefix}/account/profile?state=${stateParam}`,
-    },
-    {
-      id: "security-settings",
-      text: `Security Settings${mfaCount > 0 ? ` (${mfaCount} method${mfaCount !== 1 ? "s" : ""})` : ""}`,
-      href: `${routePrefix}/account/security?state=${stateParam}`,
-    },
-  ];
-
-  if (hasPasskeysEnabled) {
-    links.push({
-      id: "passkeys",
-      text: `Passkeys${passkeyCount > 0 ? ` (${passkeyCount})` : ""}`,
-      href: `${routePrefix}/account/passkeys?state=${stateParam}`,
-    });
-  }
-
-  links.push(
-    {
-      id: "linked-accounts",
-      text: `Linked Accounts${linkedIdentities.length > 0 ? ` (${linkedIdentities.length})` : ""}`,
-      href: `${routePrefix}/account/linked?state=${stateParam}`,
-    },
-    {
-      id: "delete-account",
-      text: "Delete Account",
-      href: `${routePrefix}/account/delete?state=${stateParam}`,
-    },
-  );
 
   const screen: UiScreen = {
     name: "account",
@@ -138,7 +195,13 @@ export async function accountScreen(
     title: "Account Settings",
     description: "Manage your account",
     components,
-    links,
+    links: [
+      {
+        id: "logout",
+        text: "Log Out",
+        href: logoutUrl,
+      },
+    ],
     messages,
   };
 

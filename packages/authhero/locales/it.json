@@ -121,7 +121,8 @@
       "usernamePlaceholder": "Nome utente o indirizzo email",
       "usernameTooLong": "Il nome utente deve avere al massimo ${max} caratteri",
       "usernameTooShort": "Il nome utente deve avere almeno ${min} caratteri",
-      "wrongCredentials": "Nome utente o password errati"
+      "wrongCredentials": "Nome utente o password errati",
+      "passkeyButtonText": "Accedi con una passkey"
     }
   },
   "login-id": {
@@ -197,7 +198,8 @@
       "wrong-email-username-credentials": "Indirizzo email, nome utente o password errati",
       "wrong-phone-credentials": "Numero di telefono o password errati",
       "wrong-phone-username-credentials": "Numero di telefono, nome utente o password errati. I numeri di telefono devono includere il prefisso internazionale.",
-      "wrong-username-credentials": "Nome utente o password errati"
+      "wrong-username-credentials": "Nome utente o password errati",
+      "passkeyButtonText": "Accedi con una passkey"
     }
   },
   "login-password": {
@@ -416,6 +418,14 @@
       "retryButtonText": "Riprova",
       "enrollmentComplete": "La tua passkey è stata configurata con successo. Puoi chiudere questa pagina.",
       "pageTitle": "Crea Passkey | ${clientName}"
+    },
+    "passkey-challenge": {
+      "title": "Accedi con passkey",
+      "description": "Segui le istruzioni del browser per verificare la tua identità.",
+      "errorMessage": "Autenticazione con passkey non riuscita. Riprova.",
+      "cancelLinkText": "Torna al login",
+      "retryButtonText": "Riprova",
+      "pageTitle": "Accedi con passkey | ${clientName}"
     }
   },
   "organizations": {

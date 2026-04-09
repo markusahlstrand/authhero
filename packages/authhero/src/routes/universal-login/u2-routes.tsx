@@ -76,6 +76,7 @@ const SCREEN_TO_PROMPT_MAP: Record<string, PromptScreen> = {
   "mfa-webauthn": "mfa-webauthn",
   "passkey-enrollment-nudge": "passkeys",
   "passkey-enrollment": "passkeys",
+  "passkey-challenge": "passkeys",
   "mfa-voice": "mfa-voice",
   "mfa-phone-enrollment": "mfa-phone",
   "mfa-login-options": "mfa-login-options",
@@ -1726,6 +1727,28 @@ export const u2Routes = new OpenAPIHono<{
       "Process passkey enrollment form submission",
     ),
     createScreenPostHandler("passkey-enrollment"),
+  )
+  // --------------------------------
+  // GET /u2/passkey/challenge - Passkey authentication challenge
+  // --------------------------------
+  .openapi(
+    createScreenRoute(
+      "passkey-challenge",
+      "/passkey/challenge",
+      "Passkey authentication challenge - sign in with a passkey",
+    ),
+    createScreenRouteHandler("passkey-challenge"),
+  )
+  // --------------------------------
+  // POST /u2/passkey/challenge
+  // --------------------------------
+  .openapi(
+    createScreenPostRoute(
+      "passkey-challenge",
+      "/passkey/challenge",
+      "Process passkey authentication response",
+    ),
+    createScreenPostHandler("passkey-challenge"),
   )
   // --------------------------------
   // GET /u2/account - Account management hub

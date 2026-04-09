@@ -189,6 +189,25 @@ export async function identifierScreen(
     );
   }
 
+  // Add passkey button if any connection has passkeys enabled
+  const hasPasskeysEnabled = context.connections.some(
+    (c) => c.options?.authentication_methods?.passkey?.enabled,
+  );
+
+  if (hasPasskeysEnabled) {
+    const passkeyUrl = `${routePrefix}/passkey/challenge?state=${encodeURIComponent(state)}`;
+    components.push({
+      id: "passkey-link",
+      type: "RICH_TEXT",
+      category: "BLOCK",
+      visible: true,
+      config: {
+        content: `<div class="passkey-link" style="text-align:center;margin-top:8px"><a href="${passkeyUrl}">${(m as any).passkeyButtonText()}</a></div>`,
+      },
+      order: components.length + 1,
+    });
+  }
+
   // Check if password signup is available
   const hasPasswordConnection = context.connections.some(
     (c) => c.strategy === Strategy.USERNAME_PASSWORD,

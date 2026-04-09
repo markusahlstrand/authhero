@@ -17,14 +17,14 @@
     "src/schema",
     "drizzle"
   ],
-  "main": "dist/drizzle.cjs",
-  "module": "dist/drizzle.mjs",
-  "types": "dist/drizzle.d.ts",
+  "main": "dist/drizzle-adapter.cjs",
+  "module": "dist/drizzle-adapter.mjs",
+  "types": "dist/drizzle-adapter.d.ts",
   "exports": {
     ".": {
-      "require": "./dist/drizzle.cjs",
-      "import": "./dist/drizzle.mjs",
-      "types": "./dist/drizzle.d.ts"
+      "require": "./dist/drizzle-adapter.cjs",
+      "import": "./dist/drizzle-adapter.mjs",
+      "types": "./dist/drizzle-adapter.d.ts"
     },
     "./schema/sqlite": {
       "import": "./src/schema/sqlite/index.ts",
@@ -33,19 +33,29 @@
   },
   "scripts": {
     "build": "tsc && vite build",
+    "test": "vitest run",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push"
   },
-  "devDependencies": {
-    "@rollup/plugin-commonjs": "^26.0.1",
-    "@rollup/plugin-node-resolve": "^15.2.3",
-    "@types/node": "^20.14.9",
-    "drizzle-kit": "^0.31.4",
-    "typescript": "^5.5.2",
-    "vite": "^5.3.2"
-  },
   "dependencies": {
     "@authhero/adapter-interfaces": "workspace:*",
-    "drizzle-orm": "^0.44.2"
+    "drizzle-orm": "^0.44.2",
+    "nanoid": "^5.0.8"
+  },
+  "devDependencies": {
+    "@hono/zod-openapi": "^0.19.2",
+    "@rollup/plugin-commonjs": "^26.0.1",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@types/better-sqlite3": "^7.6.0",
+    "@types/node": "^20.14.9",
+    "better-sqlite3": "^11.10.0",
+    "drizzle-kit": "^0.31.4",
+    "hono": "^4.6.11",
+    "typescript": "^5.5.2",
+    "vite": "^5.3.2",
+    "vitest": "^2.1.5"
+  },
+  "peerDependencies": {
+    "hono": "^4.6.8"
   }
 }

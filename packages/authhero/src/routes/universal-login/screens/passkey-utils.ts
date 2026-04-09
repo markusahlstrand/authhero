@@ -130,3 +130,89 @@ export function buildWebAuthnCeremony(
     successAction,
   };
 }
+
+/**
+ * Build the inline JavaScript that triggers navigator.credentials.get()
+ * for passkey authentication (login) and auto-submits the form.
+ *
+ * @param optionsJSON - JSON string of WebAuthn authentication options
+ * @param successAction - The action value to set on successful authentication (default: "authenticate")
+ */
+export function buildWebAuthnAuthenticationScript(
+  optionsJSON: string,
+  successAction = "authenticate",
+): string {
+  const safeOptions = JSON.stringify(optionsJSON).replace(/</g, "\\u003c");
+  return `(async function(){
+  var opts=JSON.parse(${safeOptions});
+  function b64u2buf(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';var b=atob(s),a=new Uint8Array(b.length);for(var i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return a.buffer}
+  function buf2b64u(b){var a=new Uint8Array(b),s='';for(var i=0;i<a.length;i++)s+=String.fromCharCode(a[i]);return btoa(s).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'')}
+  try{
+    var pk={publicKey:{
+      challenge:b64u2buf(opts.challenge),
+      rpId:opts.rpId,
+      timeout:opts.timeout,
+      userVerification:opts.userVerification||'preferred'
+    }};
+    if(opts.allowCredentials&&opts.allowCredentials.length){
+      pk.publicKey.allowCredentials=opts.allowCredentials.map(function(c){return{id:b64u2buf(c.id),type:c.type,transports:c.transports}});
+    }
+    var cred=await navigator.credentials.get(pk);
+    var resp={
+      id:cred.id,
+      rawId:buf2b64u(cred.rawId),
+      type:cred.type,
+      response:{
+        authenticatorData:buf2b64u(cred.response.authenticatorData),
+        clientDataJSON:buf2b64u(cred.response.clientDataJSON),
+        signature:buf2b64u(cred.response.signature)
+      },
+      clientExtensionResults:cred.getClientExtensionResults(),
+      authenticatorAttachment:cred.authenticatorAttachment||undefined
+    };
+    if(cred.response.userHandle)resp.response.userHandle=buf2b64u(cred.response.userHandle);
+    var form=document.querySelector('form');
+    if(!form){var w=document.querySelector('authhero-widget');if(w&&w.shadowRoot)form=w.shadowRoot.querySelector('form')}
+    if(form){
+      var cf=form.querySelector('[name="credential-field"]')||form.querySelector('#credential-field');
+      var af=form.querySelector('[name="action-field"]')||form.querySelector('#action-field');
+      if(cf)cf.value=JSON.stringify(resp);
+      if(af)af.value='${successAction}';
+      form.submit();
+    }
+  }catch(e){
+    console.error('WebAuthn authentication error:',e);
+    var form=document.querySelector('form');
+    if(!form){var w=document.querySelector('authhero-widget');if(w&&w.shadowRoot)form=w.shadowRoot.querySelector('form')}
+    if(form){
+      var af=form.querySelector('[name="action-field"]')||form.querySelector('#action-field');
+      if(af)af.value='error';
+      form.submit();
+    }
+  }
+})();`;
+}
+
+/**
+ * Build a structured WebAuthn authentication ceremony object for the widget SPA flow.
+ *
+ * @param optionsJSON - JSON string of WebAuthn authentication options
+ * @param successAction - The action value to set on successful authentication (default: "authenticate")
+ */
+export function buildWebAuthnAuthenticationCeremony(
+  optionsJSON: string,
+  successAction = "authenticate",
+): WebAuthnCeremony {
+  const options = JSON.parse(optionsJSON);
+  return {
+    type: "webauthn-authentication",
+    options: {
+      challenge: options.challenge,
+      rpId: options.rpId,
+      timeout: options.timeout,
+      userVerification: options.userVerification || "preferred",
+      allowCredentials: options.allowCredentials,
+    },
+    successAction,
+  };
+}

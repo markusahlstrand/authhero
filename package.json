@@ -15,7 +15,7 @@
     "interfaces": "pnpm --filter @authhero/adapter-interfaces",
     "cloudflare": "pnpm --filter @authhero/cloudflare-adapter",
     "aws-adapter": "pnpm --filter @authhero/aws-adapter",
-    "drizzle": "pnpm --filter @authhero/drizzle-adapter",
+    "drizzle": "pnpm --filter @authhero/drizzle",
     "kysely": "pnpm --filter @authhero/kysely-adapter",
     "demo": "pnpm --filter @authhero/demo",
     "saml": "pnpm --filter @authhero/saml",

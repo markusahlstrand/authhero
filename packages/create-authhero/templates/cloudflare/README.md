@@ -58,7 +58,7 @@ This project is designed to be **open-source friendly**. Sensitive Cloudflare ID
    npm run dev
    ```
 
-The server will be available at `https://localhost:3000`.
+The server will be available at `http://localhost:3000`.
 
 ### Remote Development (Your Cloudflare Account)
 

@@ -121,7 +121,8 @@
       "usernamePlaceholder": "Käyttäjänimi tai sähköpostiosoite",
       "usernameTooLong": "Käyttäjänimen on oltava enintään ${max} merkkiä",
       "usernameTooShort": "Käyttäjänimen on oltava vähintään ${min} merkkiä",
-      "wrongCredentials": "Väärä käyttäjänimi tai salasana"
+      "wrongCredentials": "Väärä käyttäjänimi tai salasana",
+      "passkeyButtonText": "Kirjaudu sisään passkey:llä"
     }
   },
   "login-id": {
@@ -197,7 +198,8 @@
       "wrong-email-username-credentials": "Virheellinen sähköpostiosoite, käyttäjänimi tai salasana",
       "wrong-phone-credentials": "Virheellinen puhelinnumero tai salasana",
       "wrong-phone-username-credentials": "Virheellinen puhelinnumero, käyttäjänimi tai salasana. Puhelinnumeron tulee sisältää maatunnus.",
-      "wrong-username-credentials": "Virheellinen käyttäjänimi tai salasana"
+      "wrong-username-credentials": "Virheellinen käyttäjänimi tai salasana",
+      "passkeyButtonText": "Kirjaudu sisään passkey:llä"
     }
   },
   "login-password": {
@@ -416,6 +418,14 @@
       "retryButtonText": "Yritä uudelleen",
       "enrollmentComplete": "Tunnistautumisavaimesi on määritetty onnistuneesti. Voit sulkea tämän sivun.",
       "pageTitle": "Luo Tunnistautumisavain | ${clientName}"
+    },
+    "passkey-challenge": {
+      "title": "Kirjaudu sisään passkey:llä",
+      "description": "Noudata selaimesi ohjeita henkilöllisyytesi vahvistamiseksi.",
+      "errorMessage": "Passkey-todennus epäonnistui. Yritä uudelleen.",
+      "cancelLinkText": "Takaisin kirjautumiseen",
+      "retryButtonText": "Yritä uudelleen",
+      "pageTitle": "Kirjaudu sisään passkey:llä | ${clientName}"
     }
   },
   "organizations": {

@@ -89,8 +89,8 @@ export const accountRoutes = new OpenAPIHono<{
         const validCallbacks = client.callbacks || [];
         if (ctx.var.host) {
           // Allow wildcard for the auth server
-          validCallbacks.push(`${getIssuer(ctx.env)}/*`);
-          validCallbacks.push(`${getUniversalLoginUrl(ctx.env)}/*`);
+          validCallbacks.push(`${getIssuer(ctx.env, ctx.var.custom_domain)}/*`);
+          validCallbacks.push(`${getUniversalLoginUrl(ctx.env, ctx.var.custom_domain)}/*`);
         }
 
         if (
@@ -155,7 +155,7 @@ export const accountRoutes = new OpenAPIHono<{
           if (user?.email !== login_hint) {
             // Session user doesn't match login_hint, redirect to login
             return ctx.redirect(
-              `${getUniversalLoginUrl(ctx.env)}login/identifier?state=${encodeURIComponent(loginSession.id)}`,
+              `${getUniversalLoginUrl(ctx.env, ctx.var.custom_domain)}login/identifier?state=${encodeURIComponent(loginSession.id)}`,
             );
           }
         }
@@ -181,7 +181,7 @@ export const accountRoutes = new OpenAPIHono<{
 
       // No valid session, redirect to login
       return ctx.redirect(
-        `${getUniversalLoginUrl(ctx.env)}login/identifier?state=${encodeURIComponent(loginSession.id)}`,
+        `${getUniversalLoginUrl(ctx.env, ctx.var.custom_domain)}login/identifier?state=${encodeURIComponent(loginSession.id)}`,
       );
     },
   );

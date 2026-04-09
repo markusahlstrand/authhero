@@ -121,7 +121,8 @@
       "usernamePlaceholder": "Nazwa użytkownika lub adres e-mail",
       "usernameTooLong": "Nazwa użytkownika musi mieć maksymalnie ${max} znaków",
       "usernameTooShort": "Nazwa użytkownika musi mieć co najmniej ${min} znaków",
-      "wrongCredentials": "Nieprawidłowa nazwa użytkownika lub hasło"
+      "wrongCredentials": "Nieprawidłowa nazwa użytkownika lub hasło",
+      "passkeyButtonText": "Zaloguj się za pomocą passkey"
     }
   },
   "login-id": {
@@ -197,7 +198,8 @@
       "wrong-email-username-credentials": "Nieprawidłowy adres e-mail, nazwa użytkownika lub hasło",
       "wrong-phone-credentials": "Nieprawidłowy numer telefonu lub hasło",
       "wrong-phone-username-credentials": "Nieprawidłowy numer telefonu, nazwa użytkownika lub hasło. Numery telefonów muszą zawierać kod kraju.",
-      "wrong-username-credentials": "Nieprawidłowa nazwa użytkownika lub hasło"
+      "wrong-username-credentials": "Nieprawidłowa nazwa użytkownika lub hasło",
+      "passkeyButtonText": "Zaloguj się za pomocą passkey"
     }
   },
   "login-password": {
@@ -416,6 +418,14 @@
       "retryButtonText": "Spróbuj ponownie",
       "enrollmentComplete": "Twój klucz dostępu został pomyślnie skonfigurowany. Możesz zamknąć tę stronę.",
       "pageTitle": "Tworzenie Klucza Dostępu | ${clientName}"
+    },
+    "passkey-challenge": {
+      "title": "Zaloguj się za pomocą passkey",
+      "description": "Postępuj zgodnie z instrukcjami przeglądarki, aby zweryfikować swoją tożsamość.",
+      "errorMessage": "Uwierzytelnianie za pomocą passkey nie powiodło się. Spróbuj ponownie.",
+      "cancelLinkText": "Powrót do logowania",
+      "retryButtonText": "Spróbuj ponownie",
+      "pageTitle": "Logowanie za pomocą passkey | ${clientName}"
     }
   },
   "organizations": {

@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "344580d9-98c4-4ecd-92cf-b8085be3ea47",
+  "id": "ab4ec13b-e783-4cf8-a351-d433e6170867",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "tenants": {
@@ -383,8 +383,12 @@
           "name": "passwords_tenant_id_tenants_id_fk",
           "tableFrom": "passwords",
           "tableTo": "tenants",
-          "columnsFrom": ["tenant_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -640,37 +644,59 @@
       "indexes": {
         "unique_email_provider": {
           "name": "unique_email_provider",
-          "columns": ["email", "provider", "tenant_id"],
+          "columns": [
+            "email",
+            "provider",
+            "tenant_id"
+          ],
           "isUnique": true
         },
         "unique_phone_provider": {
           "name": "unique_phone_provider",
-          "columns": ["phone_number", "provider", "tenant_id"],
+          "columns": [
+            "phone_number",
+            "provider",
+            "tenant_id"
+          ],
           "isUnique": true
         },
         "unique_username_provider": {
           "name": "unique_username_provider",
-          "columns": ["username", "provider", "tenant_id"],
+          "columns": [
+            "username",
+            "provider",
+            "tenant_id"
+          ],
           "isUnique": true
         },
         "users_email_index": {
           "name": "users_email_index",
-          "columns": ["email"],
+          "columns": [
+            "email"
+          ],
           "isUnique": false
         },
         "users_linked_to_index": {
           "name": "users_linked_to_index",
-          "columns": ["linked_to"],
+          "columns": [
+            "linked_to"
+          ],
           "isUnique": false
         },
         "users_name_index": {
           "name": "users_name_index",
-          "columns": ["name"],
+          "columns": [
+            "name"
+          ],
           "isUnique": false
         },
         "users_phone_tenant_provider_index": {
           "name": "users_phone_tenant_provider_index",
-          "columns": ["tenant_id", "phone_number", "provider"],
+          "columns": [
+            "tenant_id",
+            "phone_number",
+            "provider"
+          ],
           "isUnique": false
         }
       },
@@ -679,15 +705,22 @@
           "name": "users_tenant_id_tenants_id_fk",
           "tableFrom": "users",
           "tableTo": "tenants",
-          "columnsFrom": ["tenant_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
         "users_tenants": {
-          "columns": ["user_id", "tenant_id"],
+          "columns": [
+            "user_id",
+            "tenant_id"
+          ],
           "name": "users_tenants"
         }
       },
@@ -795,8 +828,12 @@
           "name": "authentication_codes_tenant_id_tenants_id_fk",
           "tableFrom": "authentication_codes",
           "tableTo": "tenants",
-          "columnsFrom": ["tenant_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -917,7 +954,9 @@
       "indexes": {
         "codes_expires_at_index": {
           "name": "codes_expires_at_index",
-          "columns": ["expires_at"],
+          "columns": [
+            "expires_at"
+          ],
           "isUnique": false
         }
       },
@@ -926,15 +965,22 @@
           "name": "codes_tenant_id_tenants_id_fk",
           "tableFrom": "codes",
           "tableTo": "tenants",
-          "columnsFrom": ["tenant_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
         "PK_codes_code_id_code_type": {
-          "columns": ["code_id", "code_type"],
+          "columns": [
+            "code_id",
+            "code_type"
+          ],
           "name": "PK_codes_code_id_code_type"
         }
       },
@@ -1161,32 +1207,51 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
+        },
+        "auth_connection": {
+          "name": "auth_connection",
+          "type": "text(255)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         }
       },
       "indexes": {
         "login_sessions_id_index": {
           "name": "login_sessions_id_index",
-          "columns": ["id"],
+          "columns": [
+            "id"
+          ],
           "isUnique": false
         },
         "login_sessions_state_idx": {
           "name": "login_sessions_state_idx",
-          "columns": ["state"],
+          "columns": [
+            "state"
+          ],
           "isUnique": false
         },
         "login_sessions_state_updated_idx": {
           "name": "login_sessions_state_updated_idx",
-          "columns": ["state", "updated_at_ts"],
+          "columns": [
+            "state",
+            "updated_at_ts"
+          ],
           "isUnique": false
         },
         "login_sessions_tenant_user_idx": {
           "name": "login_sessions_tenant_user_idx",
-          "columns": ["tenant_id", "user_id"],
+          "columns": [
+            "tenant_id",
+            "user_id"
+          ],
           "isUnique": false
         },
         "idx_login_sessions_expires_at_ts": {
           "name": "idx_login_sessions_expires_at_ts",
-          "columns": ["expires_at_ts"],
+          "columns": [
+            "expires_at_ts"
+          ],
           "isUnique": false
         }
       },
@@ -1195,15 +1260,22 @@
           "name": "login_sessions_tenant_id_tenants_id_fk",
           "tableFrom": "login_sessions",
           "tableTo": "tenants",
-          "columnsFrom": ["tenant_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
         "login_sessions_pk": {
-          "columns": ["tenant_id", "id"],
+          "columns": [
+            "tenant_id",
+            "id"
+          ],
           "name": "login_sessions_pk"
         }
       },
@@ -1343,12 +1415,16 @@
       "indexes": {
         "otps_email_index": {
           "name": "otps_email_index",
-          "columns": ["email"],
+          "columns": [
+            "email"
+          ],
           "isUnique": false
         },
         "otps_expires_at_index": {
           "name": "otps_expires_at_index",
-          "columns": ["expires_at"],
+          "columns": [
+            "expires_at"
+          ],
           "isUnique": false
         }
       },
@@ -1357,8 +1433,12 @@
           "name": "otps_tenant_id_tenants_id_fk",
           "tableFrom": "otps",
           "tableTo": "tenants",
-          "columnsFrom": ["tenant_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1391,8 +1471,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "session_id": {
-          "name": "session_id",
+        "login_id": {
+          "name": "login_id",
           "type": "text(21)",
           "primaryKey": false,
           "notNull": true,
@@ -1458,17 +1538,24 @@
       "indexes": {
         "idx_refresh_tokens_user_id": {
           "name": "idx_refresh_tokens_user_id",
-          "columns": ["tenant_id", "user_id"],
+          "columns": [
+            "tenant_id",
+            "user_id"
+          ],
           "isUnique": false
         },
-        "idx_refresh_tokens_session_id": {
-          "name": "idx_refresh_tokens_session_id",
-          "columns": ["session_id"],
+        "idx_refresh_tokens_login_id": {
+          "name": "idx_refresh_tokens_login_id",
+          "columns": [
+            "login_id"
+          ],
           "isUnique": false
         },
         "idx_refresh_tokens_expires_at_ts": {
           "name": "idx_refresh_tokens_expires_at_ts",
-          "columns": ["expires_at_ts"],
+          "columns": [
+            "expires_at_ts"
+          ],
           "isUnique": false
         }
       },
@@ -1477,15 +1564,22 @@
           "name": "refresh_tokens_tenant_id_tenants_id_fk",
           "tableFrom": "refresh_tokens",
           "tableTo": "tenants",
-          "columnsFrom": ["tenant_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
         "refresh_tokens_pk": {
-          "columns": ["tenant_id", "id"],
+          "columns": [
+            "tenant_id",
+            "id"
+          ],
           "name": "refresh_tokens_pk"
         }
       },
@@ -1597,17 +1691,24 @@
       "indexes": {
         "IDX_sessions_login_session_id": {
           "name": "IDX_sessions_login_session_id",
-          "columns": ["login_session_id"],
+          "columns": [
+            "login_session_id"
+          ],
           "isUnique": false
         },
         "idx_sessions_user_id": {
           "name": "idx_sessions_user_id",
-          "columns": ["tenant_id", "user_id"],
+          "columns": [
+            "tenant_id",
+            "user_id"
+          ],
           "isUnique": false
         },
         "idx_sessions_expires_at_ts": {
           "name": "idx_sessions_expires_at_ts",
-          "columns": ["expires_at_ts"],
+          "columns": [
+            "expires_at_ts"
+          ],
           "isUnique": false
         }
       },
@@ -1616,15 +1717,22 @@
           "name": "sessions_tenant_id_tenants_id_fk",
           "tableFrom": "sessions",
           "tableTo": "tenants",
-          "columnsFrom": ["tenant_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
         "sessions_pk": {
-          "columns": ["tenant_id", "id"],
+          "columns": [
+            "tenant_id",
+            "id"
+          ],
           "name": "sessions_pk"
         }
       },
@@ -1732,8 +1840,12 @@
           "name": "tickets_tenant_id_tenants_id_fk",
           "tableFrom": "tickets",
           "tableTo": "tenants",
-          "columnsFrom": ["tenant_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1837,7 +1949,9 @@
       "indexes": {
         "idx_client_grants_audience": {
           "name": "idx_client_grants_audience",
-          "columns": ["audience"],
+          "columns": [
+            "audience"
+          ],
           "isUnique": false
         }
       },
@@ -1846,15 +1960,22 @@
           "name": "client_grants_tenant_id_tenants_id_fk",
           "tableFrom": "client_grants",
           "tableTo": "tenants",
-          "columnsFrom": ["tenant_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
         "pk_client_grants": {
-          "columns": ["tenant_id", "id"],
+          "columns": [
+            "tenant_id",
+            "id"
+          ],
           "name": "pk_client_grants"
         }
       },
@@ -2243,15 +2364,22 @@
           "name": "clients_tenant_id_tenants_id_fk",
           "tableFrom": "clients",
           "tableTo": "tenants",
-          "columnsFrom": ["tenant_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
         "clients_tenant_id_client_id": {
-          "columns": ["tenant_id", "client_id"],
+          "columns": [
+            "tenant_id",
+            "client_id"
+          ],
           "name": "clients_tenant_id_client_id"
         }
       },
@@ -2365,12 +2493,16 @@
       "indexes": {
         "connections_tenant_id_index": {
           "name": "connections_tenant_id_index",
-          "columns": ["tenant_id"],
+          "columns": [
+            "tenant_id"
+          ],
           "isUnique": false
         },
         "connections_id_unique": {
           "name": "connections_id_unique",
-          "columns": ["id"],
+          "columns": [
+            "id"
+          ],
           "isUnique": true
         }
       },
@@ -2379,15 +2511,22 @@
           "name": "connections_tenant_id_tenants_id_fk",
           "tableFrom": "connections",
           "tableTo": "tenants",
-          "columnsFrom": ["tenant_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
         "connections_tenant_id_id_pk": {
-          "columns": ["tenant_id", "id"],
+          "columns": [
+            "tenant_id",
+            "id"
+          ],
           "name": "connections_tenant_id_id_pk"
         }
       },
@@ -2495,8 +2634,12 @@
           "name": "custom_domains_tenant_id_tenants_id_fk",
           "tableFrom": "custom_domains",
           "tableTo": "tenants",
-          "columnsFrom": ["tenant_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2578,8 +2721,12 @@
           "name": "domains_tenant_id_tenants_id_fk",
           "tableFrom": "domains",
           "tableTo": "tenants",
-          "columnsFrom": ["tenant_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2707,22 +2854,31 @@
       "indexes": {
         "idx_invites_tenant_id": {
           "name": "idx_invites_tenant_id",
-          "columns": ["tenant_id"],
+          "columns": [
+            "tenant_id"
+          ],
           "isUnique": false
         },
         "idx_invites_organization_id": {
           "name": "idx_invites_organization_id",
-          "columns": ["organization_id"],
+          "columns": [
+            "organization_id"
+          ],
           "isUnique": false
         },
         "idx_invites_expires_at": {
           "name": "idx_invites_expires_at",
-          "columns": ["expires_at"],
+          "columns": [
+            "expires_at"
+          ],
           "isUnique": false
         },
         "idx_invites_tenant_created": {
           "name": "idx_invites_tenant_created",
-          "columns": ["tenant_id", "created_at"],
+          "columns": [
+            "tenant_id",
+            "created_at"
+          ],
           "isUnique": false
         }
       },
@@ -2808,7 +2964,9 @@
       "indexes": {
         "idx_organizations_tenant_id": {
           "name": "idx_organizations_tenant_id",
-          "columns": ["tenant_id"],
+          "columns": [
+            "tenant_id"
+          ],
           "isUnique": false
         }
       },
@@ -2866,22 +3024,32 @@
       "indexes": {
         "user_organizations_unique": {
           "name": "user_organizations_unique",
-          "columns": ["tenant_id", "user_id", "organization_id"],
+          "columns": [
+            "tenant_id",
+            "user_id",
+            "organization_id"
+          ],
           "isUnique": true
         },
         "idx_user_organizations_tenant_id": {
           "name": "idx_user_organizations_tenant_id",
-          "columns": ["tenant_id"],
+          "columns": [
+            "tenant_id"
+          ],
           "isUnique": false
         },
         "idx_user_organizations_user_id": {
           "name": "idx_user_organizations_user_id",
-          "columns": ["user_id"],
+          "columns": [
+            "user_id"
+          ],
           "isUnique": false
         },
         "idx_user_organizations_organization_id": {
           "name": "idx_user_organizations_organization_id",
-          "columns": ["organization_id"],
+          "columns": [
+            "organization_id"
+          ],
           "isUnique": false
         }
       },
@@ -3018,7 +3186,10 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {
         "resource_servers_pk": {
-          "columns": ["tenant_id", "id"],
+          "columns": [
+            "tenant_id",
+            "id"
+          ],
           "name": "resource_servers_pk"
         }
       },
@@ -3067,7 +3238,10 @@
       "indexes": {
         "role_permissions_role_fk": {
           "name": "role_permissions_role_fk",
-          "columns": ["tenant_id", "role_id"],
+          "columns": [
+            "tenant_id",
+            "role_id"
+          ],
           "isUnique": false
         },
         "role_permissions_permission_fk": {
@@ -3160,7 +3334,10 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {
         "roles_pk": {
-          "columns": ["tenant_id", "id"],
+          "columns": [
+            "tenant_id",
+            "id"
+          ],
           "name": "roles_pk"
         }
       },
@@ -3217,7 +3394,10 @@
       "indexes": {
         "user_permissions_user_fk": {
           "name": "user_permissions_user_fk",
-          "columns": ["tenant_id", "user_id"],
+          "columns": [
+            "tenant_id",
+            "user_id"
+          ],
           "isUnique": false
         },
         "user_permissions_permission_fk": {
@@ -3231,7 +3411,9 @@
         },
         "user_permissions_organization_fk": {
           "name": "user_permissions_organization_fk",
-          "columns": ["organization_id"],
+          "columns": [
+            "organization_id"
+          ],
           "isUnique": false
         }
       },
@@ -3294,24 +3476,37 @@
       "indexes": {
         "user_roles_user_fk": {
           "name": "user_roles_user_fk",
-          "columns": ["tenant_id", "user_id"],
+          "columns": [
+            "tenant_id",
+            "user_id"
+          ],
           "isUnique": false
         },
         "user_roles_role_fk": {
           "name": "user_roles_role_fk",
-          "columns": ["tenant_id", "role_id"],
+          "columns": [
+            "tenant_id",
+            "role_id"
+          ],
           "isUnique": false
         },
         "user_roles_organization_fk": {
           "name": "user_roles_organization_fk",
-          "columns": ["organization_id"],
+          "columns": [
+            "organization_id"
+          ],
           "isUnique": false
         }
       },
       "foreignKeys": {},
       "compositePrimaryKeys": {
         "user_roles_pk": {
-          "columns": ["tenant_id", "user_id", "role_id", "organization_id"],
+          "columns": [
+            "tenant_id",
+            "user_id",
+            "role_id",
+            "organization_id"
+          ],
           "name": "user_roles_pk"
         }
       },
@@ -3391,8 +3586,12 @@
           "name": "branding_tenant_id_tenants_id_fk",
           "tableFrom": "branding",
           "tableTo": "tenants",
-          "columnsFrom": ["tenant_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -3453,15 +3652,23 @@
           "name": "custom_text_tenant_id_tenants_id_fk",
           "tableFrom": "custom_text",
           "tableTo": "tenants",
-          "columnsFrom": ["tenant_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
         "custom_text_tenant_id_prompt_language_pk": {
-          "columns": ["tenant_id", "prompt", "language"],
+          "columns": [
+            "tenant_id",
+            "prompt",
+            "language"
+          ],
           "name": "custom_text_tenant_id_prompt_language_pk"
         }
       },
@@ -3585,7 +3792,9 @@
       "indexes": {
         "flows_tenant_id_idx": {
           "name": "flows_tenant_id_idx",
-          "columns": ["tenant_id"],
+          "columns": [
+            "tenant_id"
+          ],
           "isUnique": false
         }
       },
@@ -3594,8 +3803,12 @@
           "name": "flows_tenant_id_tenants_id_fk",
           "tableFrom": "flows",
           "tableTo": "tenants",
-          "columnsFrom": ["tenant_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -3695,7 +3908,9 @@
       "indexes": {
         "forms_tenant_id_idx": {
           "name": "forms_tenant_id_idx",
-          "columns": ["tenant_id"],
+          "columns": [
+            "tenant_id"
+          ],
           "isUnique": false
         }
       },
@@ -3704,8 +3919,12 @@
           "name": "forms_tenant_id_tenants_id_fk",
           "tableFrom": "forms",
           "tableTo": "tenants",
-          "columnsFrom": ["tenant_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -3802,8 +4021,12 @@
           "name": "hooks_tenant_id_tenants_id_fk",
           "tableFrom": "hooks",
           "tableTo": "tenants",
-          "columnsFrom": ["tenant_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -3907,8 +4130,12 @@
           "name": "keys_tenant_id_tenants_id_fk",
           "tableFrom": "keys",
           "tableTo": "tenants",
-          "columnsFrom": ["tenant_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3916,8 +4143,12 @@
           "name": "keys_connection_connections_id_fk",
           "tableFrom": "keys",
           "tableTo": "connections",
-          "columnsFrom": ["connection"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "connection"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -4374,7 +4605,9 @@
       "indexes": {
         "themes_tenant_id_idx": {
           "name": "themes_tenant_id_idx",
-          "columns": ["tenant_id"],
+          "columns": [
+            "tenant_id"
+          ],
           "isUnique": false
         }
       },
@@ -4383,15 +4616,22 @@
           "name": "themes_tenant_id_tenants_id_fk",
           "tableFrom": "themes",
           "tableTo": "tenants",
-          "columnsFrom": ["tenant_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
         "themes_pkey": {
-          "columns": ["tenant_id", "themeId"],
+          "columns": [
+            "tenant_id",
+            "themeId"
+          ],
           "name": "themes_pkey"
         }
       },
@@ -4436,8 +4676,158 @@
           "name": "universal_login_templates_tenant_id_tenants_id_fk",
           "tableFrom": "universal_login_templates",
           "tableTo": "tenants",
-          "columnsFrom": ["tenant_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "authentication_methods": {
+      "name": "authentication_methods",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text(26)",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text(191)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "type": {
+          "name": "type",
+          "type": "text(32)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "phone_number": {
+          "name": "phone_number",
+          "type": "text(32)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "totp_secret": {
+          "name": "totp_secret",
+          "type": "text(255)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "credential_id": {
+          "name": "credential_id",
+          "type": "text(512)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "public_key": {
+          "name": "public_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "sign_count": {
+          "name": "sign_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "credential_backed_up": {
+          "name": "credential_backed_up",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "transports": {
+          "name": "transports",
+          "type": "text(512)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "friendly_name": {
+          "name": "friendly_name",
+          "type": "text(255)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "confirmed": {
+          "name": "confirmed",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "created_at_ts": {
+          "name": "created_at_ts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at_ts": {
+          "name": "updated_at_ts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "authentication_methods_tenant_user_idx": {
+          "name": "authentication_methods_tenant_user_idx",
+          "columns": [
+            "tenant_id",
+            "user_id"
+          ],
+          "isUnique": false
+        },
+        "authentication_methods_credential_id_idx": {
+          "name": "authentication_methods_credential_id_idx",
+          "columns": [
+            "credential_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "authentication_methods_tenant_id_tenants_id_fk": {
+          "name": "authentication_methods_tenant_id_tenants_id_fk",
+          "tableFrom": "authentication_methods",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -4656,26 +5046,182 @@
       "indexes": {
         "logs_user_id": {
           "name": "logs_user_id",
-          "columns": ["user_id"],
+          "columns": [
+            "user_id"
+          ],
           "isUnique": false
         },
         "logs_tenant_id": {
           "name": "logs_tenant_id",
-          "columns": ["tenant_id"],
+          "columns": [
+            "tenant_id"
+          ],
           "isUnique": false
         },
         "logs_date": {
           "name": "logs_date",
-          "columns": ["date"],
+          "columns": [
+            "date"
+          ],
           "isUnique": false
         },
         "IDX_logs_tenant_date_type_user": {
           "name": "IDX_logs_tenant_date_type_user",
-          "columns": ["tenant_id", "date", "type", "user_id"],
+          "columns": [
+            "tenant_id",
+            "date",
+            "type",
+            "user_id"
+          ],
           "isUnique": false
         }
       },
       "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "outbox_events": {
+      "name": "outbox_events",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text(26)",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text(191)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "event_type": {
+          "name": "event_type",
+          "type": "text(64)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "log_type": {
+          "name": "log_type",
+          "type": "text(64)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "aggregate_type": {
+          "name": "aggregate_type",
+          "type": "text(64)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "aggregate_id": {
+          "name": "aggregate_id",
+          "type": "text(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "payload": {
+          "name": "payload",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text(35)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "processed_at": {
+          "name": "processed_at",
+          "type": "text(35)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "retry_count": {
+          "name": "retry_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "next_retry_at": {
+          "name": "next_retry_at",
+          "type": "text(35)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "error": {
+          "name": "error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "claimed_by": {
+          "name": "claimed_by",
+          "type": "text(255)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "claim_expires_at": {
+          "name": "claim_expires_at",
+          "type": "text(35)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "idx_outbox_events_tenant_id": {
+          "name": "idx_outbox_events_tenant_id",
+          "columns": [
+            "tenant_id"
+          ],
+          "isUnique": false
+        },
+        "idx_outbox_events_processed_at": {
+          "name": "idx_outbox_events_processed_at",
+          "columns": [
+            "processed_at"
+          ],
+          "isUnique": false
+        },
+        "idx_outbox_events_claimed_by": {
+          "name": "idx_outbox_events_claimed_by",
+          "columns": [
+            "claimed_by"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "outbox_events_tenant_id_tenants_id_fk": {
+          "name": "outbox_events_tenant_id_tenants_id_fk",
+          "tableFrom": "outbox_events",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}

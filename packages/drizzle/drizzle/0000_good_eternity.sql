@@ -210,7 +210,7 @@ CREATE TABLE `refresh_tokens` (
 	`id` text(21) NOT NULL,
 	`tenant_id` text(191) NOT NULL,
 	`client_id` text(191) NOT NULL,
-	`session_id` text(21) NOT NULL,
+	`login_id` text(21) NOT NULL,
 	`user_id` text(255),
 	`resource_servers` text NOT NULL,
 	`device` text NOT NULL,
@@ -224,7 +224,7 @@ CREATE TABLE `refresh_tokens` (
 );
 --> statement-breakpoint
 CREATE INDEX `idx_refresh_tokens_user_id` ON `refresh_tokens` (`tenant_id`,`user_id`);--> statement-breakpoint
-CREATE INDEX `idx_refresh_tokens_session_id` ON `refresh_tokens` (`session_id`);--> statement-breakpoint
+CREATE INDEX `idx_refresh_tokens_login_id` ON `refresh_tokens` (`login_id`);--> statement-breakpoint
 CREATE INDEX `idx_refresh_tokens_expires_at_ts` ON `refresh_tokens` (`expires_at_ts`);--> statement-breakpoint
 CREATE TABLE `sessions` (
 	`id` text(21) NOT NULL,
@@ -682,6 +682,27 @@ CREATE TABLE `universal_login_templates` (
 	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
+CREATE TABLE `authentication_methods` (
+	`id` text(26) PRIMARY KEY NOT NULL,
+	`tenant_id` text(191) NOT NULL,
+	`user_id` text(255) NOT NULL,
+	`type` text(32) NOT NULL,
+	`phone_number` text(32),
+	`totp_secret` text(255),
+	`credential_id` text(512),
+	`public_key` text,
+	`sign_count` integer,
+	`credential_backed_up` integer,
+	`transports` text(512),
+	`friendly_name` text(255),
+	`confirmed` integer DEFAULT 0 NOT NULL,
+	`created_at_ts` integer NOT NULL,
+	`updated_at_ts` integer NOT NULL,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE INDEX `authentication_methods_tenant_user_idx` ON `authentication_methods` (`tenant_id`,`user_id`);--> statement-breakpoint
+CREATE INDEX `authentication_methods_credential_id_idx` ON `authentication_methods` (`credential_id`);--> statement-breakpoint
 CREATE TABLE `logs` (
 	`log_id` text(21) PRIMARY KEY NOT NULL,
 	`category` text(255),
@@ -717,4 +738,25 @@ CREATE TABLE `logs` (
 CREATE INDEX `logs_user_id` ON `logs` (`user_id`);--> statement-breakpoint
 CREATE INDEX `logs_tenant_id` ON `logs` (`tenant_id`);--> statement-breakpoint
 CREATE INDEX `logs_date` ON `logs` (`date`);--> statement-breakpoint
-CREATE INDEX `IDX_logs_tenant_date_type_user` ON `logs` (`tenant_id`,`date`,`type`,`user_id`);
+CREATE INDEX `IDX_logs_tenant_date_type_user` ON `logs` (`tenant_id`,`date`,`type`,`user_id`);--> statement-breakpoint
+CREATE TABLE `outbox_events` (
+	`id` text(26) PRIMARY KEY NOT NULL,
+	`tenant_id` text(191) NOT NULL,
+	`event_type` text(64) NOT NULL,
+	`log_type` text(64) NOT NULL,
+	`aggregate_type` text(64) NOT NULL,
+	`aggregate_id` text(255) NOT NULL,
+	`payload` text NOT NULL,
+	`created_at` text(35) NOT NULL,
+	`processed_at` text(35),
+	`retry_count` integer DEFAULT 0 NOT NULL,
+	`next_retry_at` text(35),
+	`error` text,
+	`claimed_by` text(255),
+	`claim_expires_at` text(35),
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE INDEX `idx_outbox_events_tenant_id` ON `outbox_events` (`tenant_id`);--> statement-breakpoint
+CREATE INDEX `idx_outbox_events_processed_at` ON `outbox_events` (`processed_at`);--> statement-breakpoint
+CREATE INDEX `idx_outbox_events_claimed_by` ON `outbox_events` (`claimed_by`);

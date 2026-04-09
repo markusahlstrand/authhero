@@ -121,7 +121,8 @@
       "usernamePlaceholder": "Uživatelské jméno nebo e-mailová adresa",
       "usernameTooLong": "Uživatelské jméno musí mít nejvýše ${max} znaků",
       "usernameTooShort": "Uživatelské jméno musí mít alespoň ${min} znaků",
-      "wrongCredentials": "Nesprávné uživatelské jméno nebo heslo"
+      "wrongCredentials": "Nesprávné uživatelské jméno nebo heslo",
+      "passkeyButtonText": "Přihlásit se pomocí passkey"
     }
   },
   "login-id": {
@@ -197,7 +198,8 @@
       "wrong-email-username-credentials": "Nesprávná e-mailová adresa, uživatelské jméno nebo heslo",
       "wrong-phone-credentials": "Nesprávné telefonní číslo nebo heslo",
       "wrong-phone-username-credentials": "Nesprávné telefonní číslo, uživatelské jméno nebo heslo. Telefonní čísla musí obsahovat předvolbu země.",
-      "wrong-username-credentials": "Nesprávné uživatelské jméno nebo heslo"
+      "wrong-username-credentials": "Nesprávné uživatelské jméno nebo heslo",
+      "passkeyButtonText": "Přihlásit se pomocí passkey"
     }
   },
   "login-password": {
@@ -416,6 +418,14 @@
       "retryButtonText": "Zkusit znovu",
       "enrollmentComplete": "Váš passkey byl úspěšně nastaven. Tuto stránku můžete zavřít.",
       "pageTitle": "Vytvoření Passkey | ${clientName}"
+    },
+    "passkey-challenge": {
+      "title": "Přihlásit se pomocí passkey",
+      "description": "Postupujte podle pokynů prohlížeče k ověření vaší identity.",
+      "errorMessage": "Ověření pomocí passkey selhalo. Zkuste to prosím znovu.",
+      "cancelLinkText": "Zpět na přihlášení",
+      "retryButtonText": "Zkusit znovu",
+      "pageTitle": "Přihlášení pomocí passkey | ${clientName}"
     }
   },
   "organizations": {

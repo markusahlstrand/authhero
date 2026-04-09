@@ -646,14 +646,14 @@ export async function seed(
       "https://manage.authhero.net/auth-callback",
       "https://local.authhero.net/auth-callback",
       "https://localhost:5173/auth-callback",
-      "https://localhost:3000/auth-callback",
-      "https://localhost:3000/admin/auth-callback",
+      "http://localhost:3000/auth-callback",
+      "http://localhost:3000/admin/auth-callback",
     ],
     allowedLogoutUrls = [
       "https://manage.authhero.net",
       "https://local.authhero.net",
-      "https://localhost:5173",
-      "https://localhost:3000",
+      "http://localhost:5173",
+      "http://localhost:3000",
     ],
     debug = true,
   } = options;

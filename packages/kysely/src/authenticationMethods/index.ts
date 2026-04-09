@@ -3,6 +3,7 @@ import { AuthenticationMethodsAdapter } from "@authhero/adapter-interfaces";
 import { Database } from "../db";
 import { create } from "./create";
 import { get } from "./get";
+import { getByCredentialId } from "./getByCredentialId";
 import { list } from "./list";
 import { update } from "./update";
 import { remove } from "./remove";
@@ -13,6 +14,7 @@ export function createAuthenticationMethodsAdapter(
   return {
     create: create(db),
     get: get(db),
+    getByCredentialId: getByCredentialId(db),
     list: list(db),
     update: update(db),
     remove: remove(db),

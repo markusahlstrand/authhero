@@ -22,15 +22,10 @@ yarn install
 You can configure the default domain connection using environment variables. Create a `.env` file in the `apps/react-admin` directory:
 
 ```bash
-# Production
-VITE_AUTH0_DOMAIN=login.sesamy.com
-VITE_AUTH0_CLIENT_ID=auth-admin
-VITE_AUTH0_API_URL=https://auth2.sesamy.com
-
-# Or for local development
+# For local development
 VITE_AUTH0_DOMAIN=localhost:3000
 VITE_AUTH0_CLIENT_ID=auth-admin
-VITE_AUTH0_API_URL=https://localhost:3000
+VITE_AUTH0_API_URL=http://localhost:3000
 
 # Optional: Skip domain selector and use configured domain directly
 VITE_SINGLE_DOMAIN_MODE=true
