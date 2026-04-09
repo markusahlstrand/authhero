@@ -16,6 +16,26 @@ const BOOLEAN_FIELDS = [
   "is_system",
 ] as const;
 
+const VALID_COLUMNS = new Set([
+  "id",
+  "tenant_id",
+  "identifier",
+  "name",
+  "scopes",
+  "signing_alg",
+  "signing_secret",
+  "token_lifetime",
+  "token_lifetime_for_web",
+  "skip_consent_for_verifiable_first_party_clients",
+  "allow_offline_access",
+  "verification_key",
+  "options",
+  "is_system",
+  "metadata",
+  "created_at",
+  "updated_at",
+]);
+
 function sqlToResourceServer(row: any): ResourceServer {
   const { tenant_id: _, verification_key, scopes, options, metadata, ...rest } = row;
   const result: any = { ...rest };
@@ -164,8 +184,8 @@ export function createResourceServersAdapter(
           const [, field, value] = match;
           const isNegation = field?.startsWith("-");
           const cleanField = isNegation ? field?.substring(1) : field;
-          const col = (resourceServers as any)[cleanField!];
-          if (col && !isNegation) {
+          if (cleanField && VALID_COLUMNS.has(cleanField) && !isNegation) {
+            const col = (resourceServers as any)[cleanField];
             whereConditions.push(like(col, `%${value}%`));
           }
         }
@@ -177,13 +197,11 @@ export function createResourceServersAdapter(
         .where(and(...whereConditions))
         .$dynamic();
 
-      if (sort?.sort_by) {
+      if (sort?.sort_by && VALID_COLUMNS.has(sort.sort_by)) {
         const col = (resourceServers as any)[sort.sort_by];
-        if (col) {
-          query = query.orderBy(
-            sort.sort_order === "desc" ? desc(col) : asc(col),
-          );
-        }
+        query = query.orderBy(
+          sort.sort_order === "desc" ? desc(col) : asc(col),
+        );
       }
 
       const results = await query.offset(page * per_page).limit(per_page);
