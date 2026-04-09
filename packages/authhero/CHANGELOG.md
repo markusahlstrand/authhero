@@ -1,5 +1,17 @@
 # authhero
 
+## 4.88.0
+
+### Minor Changes
+
+- fa7ce07: Updates for passkeys login
+
+### Patch Changes
+
+- Updated dependencies [fa7ce07]
+  - @authhero/adapter-interfaces@0.154.0
+  - @authhero/widget@0.29.2
+
 ## 4.87.0
 
 ### Minor Changes

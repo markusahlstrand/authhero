@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.154.0
+
+### Minor Changes
+
+- fa7ce07: Updates for passkeys login
+
 ## 0.153.0
 
 ### Minor Changes
