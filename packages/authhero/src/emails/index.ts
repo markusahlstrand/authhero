@@ -146,6 +146,60 @@ export async function sendResetPassword(
   });
 }
 
+export async function sendResetPasswordCode(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  to: string,
+  code: string,
+  language?: string,
+) {
+  const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
+  if (!tenant) {
+    throw new HTTPException(500, { message: "Tenant not found" });
+  }
+
+  const branding = await ctx.env.data.branding.get(ctx.var.tenant_id);
+  const logo = branding?.logo_url || "";
+  const buttonColor = branding?.colors?.primary || "#7d68f4";
+
+  const options = {
+    vendorName: tenant.friendly_name,
+    lng: language || "en",
+  };
+
+  await sendEmail(ctx, {
+    to,
+    subject: t("reset_password_title", options),
+    html: `Your password reset code is: ${code}`,
+    template: "auth-code",
+    data: {
+      code,
+      vendorName: tenant.friendly_name,
+      logo,
+      supportUrl: tenant.support_url || "https://support.sesamy.com",
+      buttonColor,
+      welcomeToYourAccount: t("password_reset_title", options),
+      linkEmailClickToLogin: t(
+        "reset_password_email_click_to_reset",
+        options,
+      ),
+      linkEmailLogin: t("reset_password_email_reset", options),
+      linkEmailOrEnterCode: t("link_email_or_enter_code", {
+        ...options,
+        code,
+      }),
+      codeValid30Mins: t("code_valid_30_minutes", options),
+      supportInfo: t("support_info", options),
+      contactUs: t("contact_us", options),
+      copyright: t("copyright", options),
+    },
+  });
+
+  logMessage(ctx, tenant.id, {
+    type: LogTypes.SUCCESS_CHANGE_PASSWORD_REQUEST,
+    description: to,
+  });
+}
+
 export interface SendCodeParams {
   to: string;
   code: string;

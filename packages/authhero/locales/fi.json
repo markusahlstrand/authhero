@@ -457,6 +457,28 @@
       "successTitle": "Salasanan palautussähköposti lähetetty",
       "title": "Unohditko salasanan?",
       "user-not-found": "Käyttäjää ei löytynyt"
+    },
+    "reset-password-code": {
+      "backToLoginText": "Takaisin kirjautumiseen",
+      "buttonText": "Vaihda salasana",
+      "codeLabel": "Palautuskoodi",
+      "codePlaceholder": "Syötä 6-numeroinen koodi",
+      "confirmPasswordLabel": "Vahvista salasana",
+      "confirmPasswordPlaceholder": "Vahvista salasana",
+      "defaultDescription": "Syötä sähköpostiisi lähetetty koodi ja valitse uusi salasana",
+      "description": "Lähetimme koodin osoitteeseen ${email}",
+      "failed": "Salasanan vaihto epäonnistui. Yritä uudelleen.",
+      "invalidCode": "Syöttämäsi koodi on virheellinen tai vanhentunut",
+      "noCode": "Syötä palautuskoodi",
+      "pageTitle": "Syötä palautuskoodi | ${clientName}",
+      "passwordLabel": "Uusi salasana",
+      "passwordPlaceholder": "Uusi salasana",
+      "passwordTooWeak": "Salasana on liian heikko",
+      "passwordsDidntMatch": "Salasanat eivät täsmää",
+      "resendSuccess": "Uusi koodi on lähetetty sähköpostiisi",
+      "resendText": "Lähetä koodi uudelleen",
+      "sessionExpired": "Istuntosi on vanhentunut. Yritä uudelleen.",
+      "title": "Syötä palautuskoodi"
     }
   },
   "signup": {

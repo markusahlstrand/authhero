@@ -457,6 +457,28 @@
       "successTitle": "Sjekk e-posten din",
       "title": "Har du glemt passordet?",
       "user-not-found": "Brukeren ble ikke funnet"
+    },
+    "reset-password-code": {
+      "backToLoginText": "Tilbake til innlogging",
+      "buttonText": "Tilbakestill passord",
+      "codeLabel": "Tilbakestillingskode",
+      "codePlaceholder": "Skriv inn 6-sifret kode",
+      "confirmPasswordLabel": "Bekreft passord",
+      "confirmPasswordPlaceholder": "Bekreft passord",
+      "defaultDescription": "Skriv inn koden som ble sendt til e-posten din og velg et nytt passord",
+      "description": "Vi sendte en kode til ${email}",
+      "failed": "Tilbakestilling av passord mislyktes. Vennligst prøv igjen.",
+      "invalidCode": "Koden du skrev inn er ugyldig eller har utløpt",
+      "noCode": "Vennligst skriv inn tilbakestillingskoden",
+      "pageTitle": "Skriv inn tilbakestillingskode | ${clientName}",
+      "passwordLabel": "Nytt passord",
+      "passwordPlaceholder": "Nytt passord",
+      "passwordTooWeak": "Passordet er for svakt",
+      "passwordsDidntMatch": "Passordene samsvarer ikke",
+      "resendSuccess": "En ny kode har blitt sendt til e-posten din",
+      "resendText": "Send kode på nytt",
+      "sessionExpired": "Økten din har utløpt. Vennligst prøv igjen.",
+      "title": "Skriv inn tilbakestillingskode"
     }
   },
   "signup": {

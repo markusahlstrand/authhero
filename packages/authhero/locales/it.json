@@ -457,6 +457,28 @@
       "successTitle": "Controlla la tua email",
       "title": "Hai dimenticato la password?",
       "user-not-found": "Utente non trovato"
+    },
+    "reset-password-code": {
+      "backToLoginText": "Torna al login",
+      "buttonText": "Reimposta password",
+      "codeLabel": "Codice di reimpostazione",
+      "codePlaceholder": "Inserisci il codice a 6 cifre",
+      "confirmPasswordLabel": "Conferma password",
+      "confirmPasswordPlaceholder": "Conferma password",
+      "defaultDescription": "Inserisci il codice inviato alla tua email e scegli una nuova password",
+      "description": "Abbiamo inviato un codice a ${email}",
+      "failed": "Reimpostazione della password non riuscita. Riprova.",
+      "invalidCode": "Il codice inserito non è valido o è scaduto",
+      "noCode": "Inserisci il codice di reimpostazione",
+      "pageTitle": "Inserisci il codice di reimpostazione | ${clientName}",
+      "passwordLabel": "Nuova password",
+      "passwordPlaceholder": "Nuova password",
+      "passwordTooWeak": "La password è troppo debole",
+      "passwordsDidntMatch": "Le password non corrispondono",
+      "resendSuccess": "Un nuovo codice è stato inviato alla tua email",
+      "resendText": "Reinvia codice",
+      "sessionExpired": "La sessione è scaduta. Riprova.",
+      "title": "Inserisci il codice di reimpostazione"
     }
   },
   "signup": {

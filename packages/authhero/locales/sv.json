@@ -457,6 +457,28 @@
       "successTitle": "Vi har skickat ett e-postmeddelande med instruktioner om hur du återställer ditt lösenord till den e-postadress du angav.",
       "title": "Har du glömt lösenordet?",
       "user-not-found": "Användaren hittades inte"
+    },
+    "reset-password-code": {
+      "backToLoginText": "Tillbaka till inloggning",
+      "buttonText": "Återställ lösenord",
+      "codeLabel": "Återställningskod",
+      "codePlaceholder": "Ange 6-siffrig kod",
+      "confirmPasswordLabel": "Bekräfta lösenord",
+      "confirmPasswordPlaceholder": "Bekräfta lösenord",
+      "defaultDescription": "Ange koden som skickades till din e-post och välj ett nytt lösenord",
+      "description": "Vi skickade en kod till ${email}",
+      "failed": "Lösenordsåterställningen misslyckades. Försök igen.",
+      "invalidCode": "Koden du angav är ogiltig eller har gått ut",
+      "noCode": "Vänligen ange återställningskoden",
+      "pageTitle": "Ange återställningskod | ${clientName}",
+      "passwordLabel": "Nytt lösenord",
+      "passwordPlaceholder": "Nytt lösenord",
+      "passwordTooWeak": "Lösenordet är för svagt",
+      "passwordsDidntMatch": "Lösenorden matchar inte",
+      "resendSuccess": "En ny kod har skickats till din e-post",
+      "resendText": "Skicka koden igen",
+      "sessionExpired": "Din session har gått ut. Försök igen.",
+      "title": "Ange återställningskod"
     }
   },
   "signup": {

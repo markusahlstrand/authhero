@@ -54,6 +54,7 @@ const SCREEN_TO_PROMPT_MAP: Record<string, PromptScreen> = {
   signup: "signup",
   "forgot-password": "reset-password",
   "reset-password": "reset-password",
+  "reset-password-code": "reset-password",
   impersonate: "login",
   "pre-signup": "signup-id",
   "pre-signup-sent": "signup",
@@ -362,7 +363,10 @@ async function buildScreenContext(
   const data: Record<string, unknown> = {};
   const username = loginSession?.authParams?.username;
   if (username) {
-    if (screenId === "email-otp-challenge") {
+    if (
+      screenId === "email-otp-challenge" ||
+      screenId === "reset-password-code"
+    ) {
       data.email = username;
     } else if (screenId === "sms-otp-challenge") {
       data.phone = username;
@@ -780,6 +784,7 @@ screenApiRoutes.openapi(
         // Screen IDs that map to non-standard URL paths
         const screenIdToPath: Record<string, string> = {
           "forgot-password": "reset-password/request",
+          "reset-password-code": "reset-password/code",
         };
         const navigatePrefix = loginScreenIds.includes(nextScreenId)
           ? "/u2/login"

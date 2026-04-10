@@ -457,6 +457,28 @@
       "successTitle": "Sprawdź swoją pocztę",
       "title": "Zapomniałeś hasła?",
       "user-not-found": "Nie znaleziono użytkownika"
+    },
+    "reset-password-code": {
+      "backToLoginText": "Wróć do logowania",
+      "buttonText": "Zresetuj hasło",
+      "codeLabel": "Kod resetowania",
+      "codePlaceholder": "Wprowadź 6-cyfrowy kod",
+      "confirmPasswordLabel": "Potwierdź hasło",
+      "confirmPasswordPlaceholder": "Potwierdź hasło",
+      "defaultDescription": "Wprowadź kod wysłany na Twój e-mail i wybierz nowe hasło",
+      "description": "Wysłaliśmy kod na ${email}",
+      "failed": "Reset hasła nie powiódł się. Spróbuj ponownie.",
+      "invalidCode": "Wprowadzony kod jest nieprawidłowy lub wygasł",
+      "noCode": "Wprowadź kod resetowania",
+      "pageTitle": "Wprowadź kod resetowania | ${clientName}",
+      "passwordLabel": "Nowe hasło",
+      "passwordPlaceholder": "Nowe hasło",
+      "passwordTooWeak": "Hasło jest zbyt słabe",
+      "passwordsDidntMatch": "Hasła nie są zgodne",
+      "resendSuccess": "Nowy kod został wysłany na Twój e-mail",
+      "resendText": "Wyślij kod ponownie",
+      "sessionExpired": "Twoja sesja wygasła. Spróbuj ponownie.",
+      "title": "Wprowadź kod resetowania"
     }
   },
   "signup": {
