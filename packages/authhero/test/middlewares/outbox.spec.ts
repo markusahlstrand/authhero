@@ -55,8 +55,8 @@ describe("outboxMiddleware", () => {
     app = new OpenAPIHono<{ Bindings: Bindings; Variables: Variables }>();
   });
 
-  it("initializes outboxEventIds to an empty array before next()", async () => {
-    let capturedIds: string[] | undefined;
+  it("initializes outboxEventPromises to an empty array before next()", async () => {
+    let capturedPromises: Promise<string>[] | undefined;
 
     app.use(
       outboxMiddleware({
@@ -66,16 +66,16 @@ describe("outboxMiddleware", () => {
     );
 
     app.get("/test", (c) => {
-      capturedIds = c.get("outboxEventIds");
+      capturedPromises = c.get("outboxEventPromises");
       return c.json({ ok: true });
     });
 
     await app.request("/test");
 
-    expect(capturedIds).toEqual([]);
+    expect(capturedPromises).toEqual([]);
   });
 
-  it("calls processOutboxEvents when event IDs are collected", async () => {
+  it("calls processOutboxEvents when event promises are collected", async () => {
     app.use(
       outboxMiddleware({
         getOutbox: () => outbox,
@@ -84,9 +84,9 @@ describe("outboxMiddleware", () => {
     );
 
     app.get("/test", (c) => {
-      const ids = c.get("outboxEventIds") || [];
-      ids.push("evt-1");
-      c.set("outboxEventIds", ids);
+      const promises = c.get("outboxEventPromises") || [];
+      promises.push(Promise.resolve("evt-1"));
+      c.set("outboxEventPromises", promises);
       return c.json({ ok: true });
     });
 
@@ -102,7 +102,7 @@ describe("outboxMiddleware", () => {
     );
   });
 
-  it("processes multiple event IDs collected during a request", async () => {
+  it("processes multiple event promises collected during a request", async () => {
     app.use(
       outboxMiddleware({
         getOutbox: () => outbox,
@@ -111,9 +111,13 @@ describe("outboxMiddleware", () => {
     );
 
     app.get("/test", (c) => {
-      const ids = c.get("outboxEventIds") || [];
-      ids.push("evt-1", "evt-2", "evt-3");
-      c.set("outboxEventIds", ids);
+      const promises = c.get("outboxEventPromises") || [];
+      promises.push(
+        Promise.resolve("evt-1"),
+        Promise.resolve("evt-2"),
+        Promise.resolve("evt-3"),
+      );
+      c.set("outboxEventPromises", promises);
       return c.json({ ok: true });
     });
 
@@ -127,7 +131,7 @@ describe("outboxMiddleware", () => {
     );
   });
 
-  it("does not process when no event IDs are collected", async () => {
+  it("does not process when no event promises are collected", async () => {
     app.use(
       outboxMiddleware({
         getOutbox: () => outbox,
@@ -152,9 +156,9 @@ describe("outboxMiddleware", () => {
     );
 
     app.get("/test", (c) => {
-      const ids = c.get("outboxEventIds") || [];
-      ids.push("evt-1");
-      c.set("outboxEventIds", ids);
+      const promises = c.get("outboxEventPromises") || [];
+      promises.push(Promise.resolve("evt-1"));
+      c.set("outboxEventPromises", promises);
       return c.json({ ok: true });
     });
 
@@ -173,9 +177,9 @@ describe("outboxMiddleware", () => {
     );
 
     app.get("/test", (c) => {
-      const ids = c.get("outboxEventIds") || [];
-      ids.push("evt-1");
-      c.set("outboxEventIds", ids);
+      const promises = c.get("outboxEventPromises") || [];
+      promises.push(Promise.resolve("evt-1"));
+      c.set("outboxEventPromises", promises);
       return c.json({ ok: true });
     });
 
@@ -188,6 +192,34 @@ describe("outboxMiddleware", () => {
       ["evt-1"],
       [destination],
       { maxRetries: 10 },
+    );
+  });
+
+  it("awaits pending promises from non-awaited logMessage calls", async () => {
+    app.use(
+      outboxMiddleware({
+        getOutbox: () => outbox,
+        getDestinations: () => [destination],
+      }),
+    );
+
+    app.get("/test", (c) => {
+      const promises = c.get("outboxEventPromises") || [];
+      // Simulate a slow async outbox.create (like a non-awaited logMessage)
+      promises.push(
+        new Promise((resolve) => setTimeout(() => resolve("evt-delayed"), 50)),
+      );
+      c.set("outboxEventPromises", promises);
+      return c.json({ ok: true });
+    });
+
+    await app.request("/test", undefined, {} as Bindings);
+
+    expect(processOutboxEvents).toHaveBeenCalledWith(
+      outbox,
+      ["evt-delayed"],
+      [destination],
+      expect.any(Object),
     );
   });
 });

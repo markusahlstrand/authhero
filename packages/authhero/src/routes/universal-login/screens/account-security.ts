@@ -58,6 +58,7 @@ export async function accountSecurityScreen(
 
   const components: FormNodeComponent[] = [];
 
+  // Build enrollment list HTML
   if (enrollments.length === 0) {
     components.push({
       id: "no-enrollments",
@@ -71,7 +72,6 @@ export async function accountSecurityScreen(
       order: 0,
     });
   } else {
-    // Build HTML list of enrollments with remove buttons
     const enrollmentHtml = enrollments
       .map((enrollment) => {
         const typeLabel = MFA_TYPE_LABELS[enrollment.type] || enrollment.type;
@@ -83,11 +83,12 @@ export async function accountSecurityScreen(
           : "";
 
         return `
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #e5e7eb">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border:1px solid #e5e7eb;border-radius:8px">
             <div>
-              <div style="font-weight:500">${escapeHtml(typeLabel)}${detail}</div>
-              ${createdAt ? `<div style="font-size:12px;color:#9ca3af">Added ${escapeHtml(createdAt)}</div>` : ""}
+              <div style="font-weight:500;font-size:14px">${escapeHtml(typeLabel)}${detail}</div>
+              ${createdAt ? `<div style="font-size:13px;color:#9ca3af;margin-top:2px">Added ${escapeHtml(createdAt)}</div>` : ""}
             </div>
+            <button type="submit" name="action" value="remove_enrollment" data-enrollment-id="${escapeHtml(enrollment.id)}" style="background:none;border:1px solid #fecaca;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;color:#dc2626" onclick="handleRemoveEnrollment(this)">Remove</button>
           </div>
         `;
       })
@@ -99,47 +100,66 @@ export async function accountSecurityScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        content: `<div>${enrollmentHtml}</div>`,
+        content: `<div style="display:flex;flex-direction:column;gap:8px">${enrollmentHtml}</div>`,
       },
       order: 0,
     });
 
-    // Add a hidden field for enrollment_id and action, plus a select to pick which one to remove
+    // Hidden fields for remove action
     components.push(
-      {
-        id: "action",
-        type: "TEXT",
-        category: "FIELD",
-        visible: false,
-        config: {
-          default_value: "remove_enrollment",
-        },
-        required: false,
-        order: 1,
-      },
       {
         id: "enrollment_id",
         type: "TEXT",
         category: "FIELD",
-        visible: true,
-        label: "Enrollment ID to remove",
-        config: {
-          placeholder: "Select an enrollment to remove",
-        },
-        required: true,
-        order: 2,
-      },
-      {
-        id: "submit",
-        type: "NEXT_BUTTON",
-        category: "BLOCK",
-        visible: true,
-        config: {
-          text: "Remove Selected Method",
-        },
-        order: 3,
+        visible: false,
+        config: {},
+        required: false,
+        order: 1,
       },
     );
+  }
+
+  // Build "Add method" links based on tenant MFA factor config
+  const addLinks: string[] = [];
+  const hasTotp = tenant.mfa?.factors?.otp === true;
+  const hasSms = tenant.mfa?.factors?.sms === true;
+  const hasExistingTotp = enrollments.some((e) => e.type === "totp");
+
+  if (hasTotp && !hasExistingTotp) {
+    addLinks.push(
+      `<a href="${routePrefix}/account/security/totp-enrollment?state=${stateParam}" style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border:1px solid #d1d5db;border-radius:8px;text-decoration:none;color:inherit;transition:background 0.15s">
+        <div>
+          <div style="font-weight:500;font-size:14px">Add Authenticator App</div>
+          <div style="font-size:13px;color:#6b7280;margin-top:2px">Use an app like Google Authenticator or Authy</div>
+        </div>
+        <div style="color:#9ca3af;font-size:18px">&#8250;</div>
+      </a>`,
+    );
+  }
+
+  if (hasSms) {
+    addLinks.push(
+      `<a href="${routePrefix}/account/security/phone-enrollment?state=${stateParam}" style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border:1px solid #d1d5db;border-radius:8px;text-decoration:none;color:inherit;transition:background 0.15s">
+        <div>
+          <div style="font-weight:500;font-size:14px">Add Phone (SMS)</div>
+          <div style="font-size:13px;color:#6b7280;margin-top:2px">Receive verification codes via text message</div>
+        </div>
+        <div style="color:#9ca3af;font-size:18px">&#8250;</div>
+      </a>`,
+    );
+  }
+
+  if (addLinks.length > 0) {
+    components.push({
+      id: "add-methods",
+      type: "RICH_TEXT",
+      category: "BLOCK",
+      visible: true,
+      config: {
+        content: `<div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;padding-top:16px;border-top:1px solid #e5e7eb">${addLinks.join("")}</div>`,
+      },
+      order: 2,
+    });
   }
 
   const screen: UiScreen = {
@@ -159,7 +179,22 @@ export async function accountSecurityScreen(
     messages,
   };
 
-  return { screen, branding };
+  const extraScript =
+    enrollments.length > 0
+      ? `function handleRemoveEnrollment(btn) {
+  var f = btn.closest('form');
+  if (!f) {
+    var w = document.querySelector('authhero-widget');
+    if (w && w.shadowRoot) f = w.shadowRoot.querySelector('form');
+  }
+  if (f) {
+    var input = f.querySelector('[name="enrollment_id"]');
+    if (input) input.value = btn.getAttribute('data-enrollment-id');
+  }
+}`
+      : undefined;
+
+  return { screen, branding, extraScript };
 }
 
 /**

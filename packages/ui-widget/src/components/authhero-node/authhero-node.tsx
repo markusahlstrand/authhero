@@ -195,6 +195,42 @@ export class AuthheroNode {
     return null;
   }
 
+  /**
+   * Shared phone-input cleaning logic. Detects dial codes, strips non-phone
+   * characters, updates the input value, and emits the full number.
+   * @param allowPlus When true, uses a two-pass clean that first keeps '+'
+   *   then strips it (for combined tel+email fields). When false, strips '+'
+   *   in a single pass (phone-only fields where the picker provides the prefix).
+   */
+  private processPhoneInput(
+    target: HTMLInputElement,
+    value: string,
+    allowPlus: boolean,
+  ): void {
+    const dialLocal = this.detectDialCodeFromInput(value);
+    if (dialLocal !== null) {
+      const cleanedLocal = allowPlus
+        ? dialLocal.replace(/[^+\d\s\-()]/g, "").replace(/\+/g, "")
+        : dialLocal.replace(/[^\d\s\-()]/g, "");
+      target.value = cleanedLocal;
+      this.localPhoneNumber = cleanedLocal;
+      const fullNumber = `${this.selectedCountry.dialCode}${cleanedLocal}`;
+      this.fieldChange.emit({ id: this.component.id, value: fullNumber });
+    } else {
+      const cleaned = allowPlus
+        ? value.replace(/[^+\d\s\-()]/g, "").replace(/\+/g, "")
+        : value.replace(/[^\d\s\-()]/g, "");
+      if (cleaned !== value) {
+        target.value = cleaned;
+      }
+      this.localPhoneNumber = cleaned;
+      const fullNumber = cleaned
+        ? `${this.selectedCountry.dialCode}${cleaned}`
+        : "";
+      this.fieldChange.emit({ id: this.component.id, value: fullNumber });
+    }
+  }
+
   private handlePhoneInput = (e: Event) => {
     const target = e.target as HTMLInputElement;
     const value = target.value;
@@ -213,30 +249,7 @@ export class AuthheroNode {
       this.telEmailMode = !looksLikePhone;
 
       if (!this.telEmailMode) {
-        // Phone mode — first try dial code detection before stripping '+'
-        // so that typing +46 or 0046 can match a country
-        const dialLocal = this.detectDialCodeFromInput(value);
-        if (dialLocal !== null) {
-          // Dial code matched — strip it from the input and show only local part
-          const cleanedLocal = dialLocal
-            .replace(/[^+\d\s\-()]/g, "")
-            .replace(/\+/g, "");
-          target.value = cleanedLocal;
-          this.localPhoneNumber = cleanedLocal;
-          const fullNumber = `${this.selectedCountry.dialCode}${cleanedLocal}`;
-          this.fieldChange.emit({ id: this.component.id, value: fullNumber });
-        } else {
-          // No dial code — strip non-phone chars and '+' (picker provides the prefix)
-          const cleaned = value.replace(/[^+\d\s\-()]/g, "").replace(/\+/g, "");
-          if (cleaned !== value) {
-            target.value = cleaned;
-          }
-          this.localPhoneNumber = cleaned;
-          const fullNumber = cleaned
-            ? `${this.selectedCountry.dialCode}${cleaned}`
-            : "";
-          this.fieldChange.emit({ id: this.component.id, value: fullNumber });
-        }
+        this.processPhoneInput(target, value, true);
       } else {
         // Email or text — emit as-is
         this.localPhoneNumber = value;
@@ -245,16 +258,8 @@ export class AuthheroNode {
       return;
     }
 
-    // Standard phone-only mode — strip '+' since the picker provides the prefix
-    const cleaned = value.replace(/[^\d\s\-()]/g, "");
-    if (cleaned !== value) {
-      target.value = cleaned;
-    }
-    this.localPhoneNumber = cleaned;
-    const fullNumber = cleaned
-      ? `${this.selectedCountry.dialCode}${cleaned}`
-      : "";
-    this.fieldChange.emit({ id: this.component.id, value: fullNumber });
+    // Standard phone-only mode
+    this.processPhoneInput(target, value, false);
   };
 
   private handleInput = (e: Event) => {

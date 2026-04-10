@@ -1675,7 +1675,12 @@ export class AuthheroWidget {
             </div>
           ))}
 
-          <form onSubmit={this.handleSubmit} part="form">
+          <form
+            onSubmit={this.handleSubmit}
+            action={screen.action}
+            method={screen.method || "POST"}
+            part="form"
+          >
             {/* Hidden fields rendered as plain inputs for script access */}
             {hiddenComponents.map((c) => (
               <input

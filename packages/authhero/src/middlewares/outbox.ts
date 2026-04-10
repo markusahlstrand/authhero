@@ -26,14 +26,25 @@ export function outboxMiddleware(
   options: OutboxMiddlewareOptions,
 ): MiddlewareHandler<{ Bindings: Bindings; Variables: Variables }> {
   return async (ctx, next) => {
-    ctx.set("outboxEventIds", []);
+    ctx.set("outboxEventPromises", []);
     let error: unknown;
     try {
       await next();
     } catch (e) {
       error = e;
     } finally {
-      const eventIds = ctx.var.outboxEventIds ?? [];
+      const eventPromises = ctx.var.outboxEventPromises ?? [];
+      let eventIds: string[] = [];
+      if (eventPromises.length > 0) {
+        const settled = await Promise.allSettled(eventPromises);
+        for (const result of settled) {
+          if (result.status === "fulfilled") {
+            eventIds.push(result.value);
+          } else {
+            console.error("Outbox event creation failed", result.reason);
+          }
+        }
+      }
       if (eventIds.length > 0) {
         const outbox = options.getOutbox(ctx);
         if (outbox) {

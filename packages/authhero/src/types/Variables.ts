@@ -30,6 +30,7 @@ export type Variables = {
   auth0_client?: Auth0Client;
   useragent?: string;
   countryCode?: CountryCode;
-  // Outbox event IDs created during this request (for per-request processing)
-  outboxEventIds?: string[];
+  // Outbox event ID promises created during this request (for per-request processing).
+  // Promises are pushed synchronously so that non-awaited logMessage calls are still captured.
+  outboxEventPromises?: Promise<string>[];
 };

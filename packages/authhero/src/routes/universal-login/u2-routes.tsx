@@ -1806,6 +1806,50 @@ export const u2Routes = new OpenAPIHono<{
     createScreenPostHandler("account-security"),
   )
   // --------------------------------
+  // GET /u2/account/security/totp-enrollment - TOTP enrollment from account
+  // --------------------------------
+  .openapi(
+    createScreenRoute(
+      "account-mfa-totp-enrollment",
+      "/account/security/totp-enrollment",
+      "Set up authenticator app MFA from account settings",
+    ),
+    createScreenRouteHandler("account-mfa-totp-enrollment"),
+  )
+  // --------------------------------
+  // POST /u2/account/security/totp-enrollment
+  // --------------------------------
+  .openapi(
+    createScreenPostRoute(
+      "account-mfa-totp-enrollment",
+      "/account/security/totp-enrollment",
+      "Process authenticator app enrollment form submission",
+    ),
+    createScreenPostHandler("account-mfa-totp-enrollment"),
+  )
+  // --------------------------------
+  // GET /u2/account/security/phone-enrollment - Phone enrollment from account
+  // --------------------------------
+  .openapi(
+    createScreenRoute(
+      "account-mfa-phone-enrollment",
+      "/account/security/phone-enrollment",
+      "Set up SMS MFA from account settings",
+    ),
+    createScreenRouteHandler("account-mfa-phone-enrollment"),
+  )
+  // --------------------------------
+  // POST /u2/account/security/phone-enrollment
+  // --------------------------------
+  .openapi(
+    createScreenPostRoute(
+      "account-mfa-phone-enrollment",
+      "/account/security/phone-enrollment",
+      "Process phone enrollment form submission",
+    ),
+    createScreenPostHandler("account-mfa-phone-enrollment"),
+  )
+  // --------------------------------
   // GET /u2/account/linked - Linked accounts
   // --------------------------------
   .openapi(

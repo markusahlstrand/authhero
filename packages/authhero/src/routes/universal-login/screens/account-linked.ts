@@ -25,7 +25,8 @@ const PROVIDER_LABELS: Record<string, string> = {
 export async function accountLinkedScreen(
   context: ScreenContext,
 ): Promise<ScreenResult> {
-  const { branding, state, messages, routePrefix = "/u2" } = context;
+  const { branding, state, routePrefix = "/u2" } = context;
+  let { messages } = context;
 
   const { user } = await resolveAccountUser(context);
   const stateParam = encodeURIComponent(state);
@@ -54,19 +55,19 @@ export async function accountLinkedScreen(
       order: 0,
     });
   } else {
-    // Build HTML list of linked identities
+    // Build HTML list of linked identities with unlink buttons
     const identitiesHtml = linkedIdentities
       .map((identity) => {
         const providerLabel =
           PROVIDER_LABELS[identity.provider] || identity.provider;
         const email = identity.profileData?.email || identity.user_id;
-
         return `
           <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #e5e7eb">
             <div>
               <div style="font-size:13px;color:#6b7280">${escapeHtml(providerLabel)}</div>
               <div style="font-weight:500">${escapeHtml(email)}</div>
             </div>
+            <button type="submit" name="action" value="unlink_account:${escapeHtml(identity.provider)}:${escapeHtml(identity.user_id)}" style="padding:6px 16px;font-size:13px;color:#dc2626;border:1px solid #dc2626;border-radius:6px;background:transparent;cursor:pointer;white-space:nowrap">Unlink</button>
           </div>
         `;
       })
@@ -82,55 +83,6 @@ export async function accountLinkedScreen(
       },
       order: 0,
     });
-
-    // Add fields for unlinking
-    components.push(
-      {
-        id: "action",
-        type: "TEXT",
-        category: "FIELD",
-        visible: false,
-        config: {
-          default_value: "unlink_account",
-        },
-        required: false,
-        order: 1,
-      },
-      {
-        id: "provider",
-        type: "TEXT",
-        category: "FIELD",
-        visible: true,
-        label: "Provider to unlink",
-        config: {
-          placeholder: "e.g. google-oauth2",
-        },
-        required: true,
-        order: 2,
-      },
-      {
-        id: "linked_user_id",
-        type: "TEXT",
-        category: "FIELD",
-        visible: true,
-        label: "User ID to unlink",
-        config: {
-          placeholder: "User ID",
-        },
-        required: true,
-        order: 3,
-      },
-      {
-        id: "submit",
-        type: "NEXT_BUTTON",
-        category: "BLOCK",
-        visible: true,
-        config: {
-          text: "Unlink Account",
-        },
-        order: 4,
-      },
-    );
   }
 
   const screen: UiScreen = {
@@ -170,24 +122,36 @@ async function handleAccountLinkedSubmit(
   const { user } = await resolveAccountUser(context);
 
   const action = data.action as string;
-  const provider = data.provider as string;
-  const linkedUserId = data.linked_user_id as string;
 
-  if (action === "unlink_account" && provider && linkedUserId) {
+  // Parse composite action value: "unlink_account:provider:user_id"
+  const unlinkMatch = action?.match(/^unlink_account:(.+?):(.+)$/);
+  if (unlinkMatch) {
+    const provider = unlinkMatch[1]!;
+    const linkedUserId = unlinkMatch[2]!;
     try {
-      await ctx.env.data.users.unlink(
+      const success = await ctx.env.data.users.unlink(
         tenant.id,
         user.user_id,
         provider,
         linkedUserId,
       );
 
+      if (success) {
+        return {
+          screen: await accountLinkedScreen({
+            ...context,
+            messages: [
+              { text: "Account unlinked successfully", type: "success" },
+            ],
+          }),
+        };
+      }
+
       return {
+        error: "Failed to unlink account",
         screen: await accountLinkedScreen({
           ...context,
-          messages: [
-            { text: "Account unlinked successfully", type: "success" },
-          ],
+          messages: [{ text: "Failed to unlink account", type: "error" }],
         }),
       };
     } catch {

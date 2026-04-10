@@ -224,12 +224,13 @@ export async function logMessage(
 
     // Geo enrichment is deferred to the outbox relay/processor.
     // The IP is already captured in event.request.ip.
-    const eventId = await ctx.env.data.outbox.create(tenantId, event);
+    const eventPromise = ctx.env.data.outbox.create(tenantId, event);
 
-    // Collect the event ID so the request middleware can process it after responding
-    const existingIds = ctx.var.outboxEventIds || [];
-    existingIds.push(eventId);
-    ctx.set("outboxEventIds", existingIds);
+    // Push the promise synchronously so even non-awaited logMessage calls
+    // are captured by the outbox middleware's finally block.
+    const existingPromises = ctx.var.outboxEventPromises || [];
+    existingPromises.push(eventPromise);
+    ctx.set("outboxEventPromises", existingPromises);
     return;
   }
 
