@@ -1,5 +1,16 @@
 # @authhero/drizzle
 
+## 0.33.0
+
+### Minor Changes
+
+- a59a49b: Implement disable-sso
+
+### Patch Changes
+
+- Updated dependencies [a59a49b]
+  - @authhero/adapter-interfaces@0.155.0
+
 ## 0.32.0
 
 ### Minor Changes

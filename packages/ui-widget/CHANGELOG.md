@@ -1,5 +1,16 @@
 # @authhero/widget
 
+## 0.30.0
+
+### Minor Changes
+
+- 4176937: Handle outbox messages and update universal auth
+
+### Patch Changes
+
+- Updated dependencies [a59a49b]
+  - @authhero/adapter-interfaces@0.155.0
+
 ## 0.29.2
 
 ### Patch Changes

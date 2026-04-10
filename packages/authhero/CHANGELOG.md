@@ -1,5 +1,20 @@
 # authhero
 
+## 4.89.0
+
+### Minor Changes
+
+- 37eee72: Add support for screen_hint signup
+- a59a49b: Implement disable-sso
+- 4176937: Handle outbox messages and update universal auth
+
+### Patch Changes
+
+- Updated dependencies [a59a49b]
+- Updated dependencies [4176937]
+  - @authhero/adapter-interfaces@0.155.0
+  - @authhero/widget@0.30.0
+
 ## 4.88.0
 
 ### Minor Changes

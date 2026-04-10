@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 0.155.0
+
+### Minor Changes
+
+- a59a49b: Implement disable-sso
+
 ## 0.154.0
 
 ### Minor Changes
