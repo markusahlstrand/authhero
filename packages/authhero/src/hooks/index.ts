@@ -237,24 +237,28 @@ function createUserUpdateHooks(
       // Check if email was updated or verified - if so, check for account linking
       if (updates.email || updates.email_verified) {
         const updatedUser = await trxData.users.get(tenant_id, user_id);
-        if (updatedUser && updatedUser.email && updatedUser.email_verified) {
-          // Get all users with the same verified email
+        if (
+          updatedUser &&
+          !updatedUser.linked_to &&
+          updatedUser.email &&
+          updatedUser.email_verified
+        ) {
+          const normalizedEmail = updatedUser.email.toLowerCase();
           const { users: matchingUsers } = await trxData.users.list(tenant_id, {
             page: 0,
             per_page: 10,
             include_totals: false,
-            q: `email:${updatedUser.email}`,
+            q: `email:${normalizedEmail}`,
           });
 
-          // Filter to verified users and exclude the current user
-          const verifiedUsers = matchingUsers.filter(
+          // Find a primary user with verified email, excluding the current user
+          const primaryUser = matchingUsers.find(
             (u) => u.email_verified && u.user_id !== user_id && !u.linked_to,
           );
 
-          // If there's another verified user with the same email, link to them
-          if (verifiedUsers.length > 0) {
+          if (primaryUser) {
             await trxData.users.update(tenant_id, user_id, {
-              linked_to: verifiedUsers[0]!.user_id,
+              linked_to: primaryUser.user_id,
             });
           }
         }
