@@ -475,6 +475,7 @@
       "passwordPlaceholder": "Ny adgangskode",
       "passwordTooWeak": "Adgangskoden er for svag",
       "passwordsDidntMatch": "Adgangskoderne matcher ikke",
+      "resendFailed": "Kunne ikke sende koden igen. Prøv igen.",
       "resendSuccess": "En ny kode er blevet sendt til din e-mail",
       "resendText": "Send kode igen",
       "sessionExpired": "Din session er udløbet. Prøv venligst igen.",

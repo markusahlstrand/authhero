@@ -89,21 +89,14 @@ export async function sendSms(
   });
 }
 
-export async function sendResetPassword(
+async function buildEmailContext(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
-  to: string,
-  // auth0 just has a ticket, but we have a code and a state
-  code: string,
-  state?: string,
   language?: string,
 ) {
   const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
   if (!tenant) {
     throw new HTTPException(500, { message: "Tenant not found" });
   }
-
-  // the auth0 link looks like this:  https://auth.sesamy.dev/u/reset-verify?ticket={ticket}#
-  const passwordResetUrl = `${getUniversalLoginUrl(ctx.env)}reset-password?state=${state}&code=${code}`;
 
   const branding = await ctx.env.data.branding.get(ctx.var.tenant_id);
   const logo = branding?.logo_url || "";
@@ -113,6 +106,25 @@ export async function sendResetPassword(
     vendorName: tenant.friendly_name,
     lng: language || "en",
   };
+
+  return { tenant, logo, buttonColor, options };
+}
+
+export async function sendResetPassword(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  to: string,
+  // auth0 just has a ticket, but we have a code and a state
+  code: string,
+  state?: string,
+  language?: string,
+) {
+  const { tenant, logo, buttonColor, options } = await buildEmailContext(
+    ctx,
+    language,
+  );
+
+  // the auth0 link looks like this:  https://auth.sesamy.dev/u/reset-verify?ticket={ticket}#
+  const passwordResetUrl = `${getUniversalLoginUrl(ctx.env)}reset-password?state=${state}&code=${code}`;
 
   await sendEmail(ctx, {
     to,
@@ -152,19 +164,10 @@ export async function sendResetPasswordCode(
   code: string,
   language?: string,
 ) {
-  const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
-  if (!tenant) {
-    throw new HTTPException(500, { message: "Tenant not found" });
-  }
-
-  const branding = await ctx.env.data.branding.get(ctx.var.tenant_id);
-  const logo = branding?.logo_url || "";
-  const buttonColor = branding?.colors?.primary || "#7d68f4";
-
-  const options = {
-    vendorName: tenant.friendly_name,
-    lng: language || "en",
-  };
+  const { tenant, logo, buttonColor, options } = await buildEmailContext(
+    ctx,
+    language,
+  );
 
   await sendEmail(ctx, {
     to,

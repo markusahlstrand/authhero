@@ -475,6 +475,7 @@
       "passwordPlaceholder": "Nytt passord",
       "passwordTooWeak": "Passordet er for svakt",
       "passwordsDidntMatch": "Passordene samsvarer ikke",
+      "resendFailed": "Kunne ikke sende koden på nytt. Vennligst prøv igjen.",
       "resendSuccess": "En ny kode har blitt sendt til e-posten din",
       "resendText": "Send kode på nytt",
       "sessionExpired": "Økten din har utløpt. Vennligst prøv igjen.",
