@@ -61,20 +61,13 @@ export async function accountLinkedScreen(
         const providerLabel =
           PROVIDER_LABELS[identity.provider] || identity.provider;
         const email = identity.profileData?.email || identity.user_id;
-        const actionUrl = `${routePrefix}/account/linked?state=${stateParam}`;
-
         return `
           <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #e5e7eb">
             <div>
               <div style="font-size:13px;color:#6b7280">${escapeHtml(providerLabel)}</div>
               <div style="font-weight:500">${escapeHtml(email)}</div>
             </div>
-            <form method="POST" action="${escapeHtml(actionUrl)}" style="margin:0">
-              <input type="hidden" name="action" value="unlink_account" />
-              <input type="hidden" name="provider" value="${escapeHtml(identity.provider)}" />
-              <input type="hidden" name="linked_user_id" value="${escapeHtml(identity.user_id)}" />
-              <button type="submit" style="padding:6px 16px;font-size:13px;color:#dc2626;border:1px solid #dc2626;border-radius:6px;background:transparent;cursor:pointer;white-space:nowrap">Unlink</button>
-            </form>
+            <button type="submit" name="action" value="unlink_account:${escapeHtml(identity.provider)}:${escapeHtml(identity.user_id)}" style="padding:6px 16px;font-size:13px;color:#dc2626;border:1px solid #dc2626;border-radius:6px;background:transparent;cursor:pointer;white-space:nowrap">Unlink</button>
           </div>
         `;
       })
@@ -129,10 +122,12 @@ async function handleAccountLinkedSubmit(
   const { user } = await resolveAccountUser(context);
 
   const action = data.action as string;
-  const provider = data.provider as string;
-  const linkedUserId = data.linked_user_id as string;
 
-  if (action === "unlink_account" && provider && linkedUserId) {
+  // Parse composite action value: "unlink_account:provider:user_id"
+  const unlinkMatch = action?.match(/^unlink_account:(.+?):(.+)$/);
+  if (unlinkMatch) {
+    const provider = unlinkMatch[1]!;
+    const linkedUserId = unlinkMatch[2]!;
     try {
       const success = await ctx.env.data.users.unlink(
         tenant.id,
