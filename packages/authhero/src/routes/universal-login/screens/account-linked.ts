@@ -25,30 +25,11 @@ const PROVIDER_LABELS: Record<string, string> = {
 export async function accountLinkedScreen(
   context: ScreenContext,
 ): Promise<ScreenResult> {
-  const { ctx, branding, state, routePrefix = "/u2" } = context;
+  const { branding, state, routePrefix = "/u2" } = context;
   let { messages } = context;
 
   const { user } = await resolveAccountUser(context);
   const stateParam = encodeURIComponent(state);
-
-  // Handle unlink action from query parameters (triggered by unlink buttons)
-  const query = ctx.req.query();
-  if (query.action === "unlink_account" && query.provider && query.linked_user_id) {
-    try {
-      await ctx.env.data.users.unlink(
-        context.tenant.id,
-        user.user_id,
-        query.provider,
-        query.linked_user_id,
-      );
-      messages = [{ text: "Account unlinked successfully", type: "success" }];
-      // Re-resolve user after unlink to get updated identities
-      const { user: updatedUser } = await resolveAccountUser(context);
-      Object.assign(user, updatedUser);
-    } catch {
-      messages = [{ text: "Failed to unlink account", type: "error" }];
-    }
-  }
 
   // Filter to non-primary identities
   const linkedIdentities =
@@ -80,7 +61,7 @@ export async function accountLinkedScreen(
         const providerLabel =
           PROVIDER_LABELS[identity.provider] || identity.provider;
         const email = identity.profileData?.email || identity.user_id;
-        const unlinkHref = `${routePrefix}/account/linked?state=${stateParam}&action=unlink_account&provider=${encodeURIComponent(identity.provider)}&linked_user_id=${encodeURIComponent(identity.user_id)}`;
+        const actionUrl = `${routePrefix}/account/linked?state=${stateParam}`;
 
         return `
           <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #e5e7eb">
@@ -88,7 +69,12 @@ export async function accountLinkedScreen(
               <div style="font-size:13px;color:#6b7280">${escapeHtml(providerLabel)}</div>
               <div style="font-weight:500">${escapeHtml(email)}</div>
             </div>
-            <a href="${escapeHtml(unlinkHref)}" style="padding:6px 16px;font-size:13px;color:#dc2626;border:1px solid #dc2626;border-radius:6px;text-decoration:none;white-space:nowrap">Unlink</a>
+            <form method="POST" action="${escapeHtml(actionUrl)}" style="margin:0">
+              <input type="hidden" name="action" value="unlink_account" />
+              <input type="hidden" name="provider" value="${escapeHtml(identity.provider)}" />
+              <input type="hidden" name="linked_user_id" value="${escapeHtml(identity.user_id)}" />
+              <button type="submit" style="padding:6px 16px;font-size:13px;color:#dc2626;border:1px solid #dc2626;border-radius:6px;background:transparent;cursor:pointer;white-space:nowrap">Unlink</button>
+            </form>
           </div>
         `;
       })
@@ -148,19 +134,29 @@ async function handleAccountLinkedSubmit(
 
   if (action === "unlink_account" && provider && linkedUserId) {
     try {
-      await ctx.env.data.users.unlink(
+      const success = await ctx.env.data.users.unlink(
         tenant.id,
         user.user_id,
         provider,
         linkedUserId,
       );
 
+      if (success) {
+        return {
+          screen: await accountLinkedScreen({
+            ...context,
+            messages: [
+              { text: "Account unlinked successfully", type: "success" },
+            ],
+          }),
+        };
+      }
+
       return {
+        error: "Failed to unlink account",
         screen: await accountLinkedScreen({
           ...context,
-          messages: [
-            { text: "Account unlinked successfully", type: "success" },
-          ],
+          messages: [{ text: "Failed to unlink account", type: "error" }],
         }),
       };
     } catch {

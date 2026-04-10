@@ -88,7 +88,7 @@ export async function accountSecurityScreen(
               <div style="font-weight:500;font-size:14px">${escapeHtml(typeLabel)}${detail}</div>
               ${createdAt ? `<div style="font-size:13px;color:#9ca3af;margin-top:2px">Added ${escapeHtml(createdAt)}</div>` : ""}
             </div>
-            <button type="submit" name="action" value="remove_enrollment" style="background:none;border:1px solid #fecaca;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;color:#dc2626" onclick="(function(btn){var f=btn.closest('form');if(!f){var w=document.querySelector('authhero-widget');if(w&&w.shadowRoot)f=w.shadowRoot.querySelector('form')}if(f){var p=f.querySelector('[name=&quot;enrollment_id&quot;]');if(p)p.value='${escapeHtml(enrollment.id)}'}})(this)">Remove</button>
+            <button type="submit" name="action" value="remove_enrollment" data-enrollment-id="${escapeHtml(enrollment.id)}" style="background:none;border:1px solid #fecaca;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;color:#dc2626" onclick="handleRemoveEnrollment(this)">Remove</button>
           </div>
         `;
       })
@@ -179,7 +179,22 @@ export async function accountSecurityScreen(
     messages,
   };
 
-  return { screen, branding };
+  const extraScript =
+    enrollments.length > 0
+      ? `function handleRemoveEnrollment(btn) {
+  var f = btn.closest('form');
+  if (!f) {
+    var w = document.querySelector('authhero-widget');
+    if (w && w.shadowRoot) f = w.shadowRoot.querySelector('form');
+  }
+  if (f) {
+    var input = f.querySelector('[name="enrollment_id"]');
+    if (input) input.value = btn.getAttribute('data-enrollment-id');
+  }
+}`
+      : undefined;
+
+  return { screen, branding, extraScript };
 }
 
 /**

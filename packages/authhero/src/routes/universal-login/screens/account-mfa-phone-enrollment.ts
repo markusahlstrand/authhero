@@ -8,6 +8,7 @@ import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
 import { LogTypes } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { resolveAccountUser } from "./account-helpers";
+import { escapeHtml } from "../sanitization-utils";
 import { sendMfaOtp, verifyMfaOtp } from "../../../authentication-flows/mfa";
 import { logMessage } from "../../../helpers/logging";
 
@@ -103,7 +104,7 @@ function codeInputScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        content: `<p style="text-align:center;color:#6b7280">A verification code has been sent to <strong>${maskedPhone}</strong></p>`,
+        content: `<p style="text-align:center;color:#6b7280">A verification code has been sent to <strong>${escapeHtml(maskedPhone)}</strong></p>`,
       },
       order: 1,
     },
@@ -337,13 +338,30 @@ export const accountMfaPhoneEnrollmentScreenDefinition: ScreenDefinition = {
         }
 
         // Confirm the enrollment
-        if (stateData.authenticationMethodId) {
-          await ctx.env.data.authenticationMethods.update(
-            tenant.id,
-            stateData.authenticationMethodId,
-            { confirmed: true },
-          );
+        if (!stateData.authenticationMethodId) {
+          logMessage(ctx, tenant.id, {
+            type: LogTypes.MFA_ENROLLMENT_FAILED,
+            description:
+              "MFA phone enrollment failed: missing authenticationMethodId in session state",
+            userId: user.user_id,
+          });
+          return {
+            error: "Enrollment session is invalid",
+            screen: phoneInputScreen({
+              ...context,
+              errors: {
+                phone_number:
+                  "Something went wrong. Please start the enrollment again.",
+              },
+            }),
+          };
         }
+
+        await ctx.env.data.authenticationMethods.update(
+          tenant.id,
+          stateData.authenticationMethodId,
+          { confirmed: true },
+        );
 
         logMessage(ctx, tenant.id, {
           type: LogTypes.MFA_ENROLLMENT_COMPLETE,

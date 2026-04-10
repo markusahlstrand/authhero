@@ -34,10 +34,17 @@ export function outboxMiddleware(
       error = e;
     } finally {
       const eventPromises = ctx.var.outboxEventPromises ?? [];
-      const eventIds =
-        eventPromises.length > 0
-          ? await Promise.all(eventPromises)
-          : ([] as string[]);
+      let eventIds: string[] = [];
+      if (eventPromises.length > 0) {
+        const settled = await Promise.allSettled(eventPromises);
+        for (const result of settled) {
+          if (result.status === "fulfilled") {
+            eventIds.push(result.value);
+          } else {
+            console.error("Outbox event creation failed", result.reason);
+          }
+        }
+      }
       if (eventIds.length > 0) {
         const outbox = options.getOutbox(ctx);
         if (outbox) {

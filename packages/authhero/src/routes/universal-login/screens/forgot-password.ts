@@ -172,16 +172,25 @@ export const forgotPasswordScreenDefinition: ScreenDefinition = {
   handler: {
     get: forgotPasswordScreen,
     post: async (context, data) => {
-      const { ctx, client, state } = context;
+      const { ctx, client, state, customText } = context;
+
+      const locale = context.language || "en";
+      const { m } = createTranslation(
+        "reset-password",
+        "reset-password",
+        locale,
+        customText,
+      );
 
       const email = (data.email as string)?.trim();
 
       if (!email) {
+        const errorMsg = m["no-email"]();
         return {
-          error: "Email is required",
+          error: errorMsg,
           screen: await forgotPasswordScreen({
             ...context,
-            errors: { email: "Email is required" },
+            errors: { email: errorMsg },
           }),
         };
       }

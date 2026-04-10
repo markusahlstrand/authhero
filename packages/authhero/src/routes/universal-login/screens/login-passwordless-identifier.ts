@@ -384,7 +384,10 @@ export const loginPasswordlessIdentifierScreenDefinition: ScreenDefinition = {
           });
         }
       } catch (err) {
-        console.error("Failed to send verification code:", err);
+        const safeErr = err instanceof Error
+          ? { name: err.name, message: err.message }
+          : { name: "UnknownError" };
+        console.error("Failed to send verification code:", safeErr);
 
         // Clean up the created code on delivery failure
         await ctx.env.data.codes.remove(client.tenant.id, code_id);
