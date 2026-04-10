@@ -114,7 +114,12 @@ export const accountRoutes = new OpenAPIHono<{
       const session = authCookie
         ? await env.data.sessions.get(client.tenant.id, authCookie)
         : undefined;
-      const validSession = session && !session.revoked_at ? session : undefined;
+      let validSession = session && !session.revoked_at ? session : undefined;
+
+      // If SSO is disabled for this client, ignore any existing session
+      if (client.sso_disabled) {
+        validSession = undefined;
+      }
 
       const url = new URL(ctx.req.url);
       if (ctx.var.custom_domain) {
