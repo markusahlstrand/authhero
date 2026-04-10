@@ -1393,6 +1393,11 @@ export function ClientEdit() {
             label="First Party Application"
             helperText="First party applications are trusted applications that don't require user consent for standard scopes."
           />
+          <BooleanInput
+            source="sso_disabled"
+            label="SSO Disabled"
+            helperText="When enabled, this client will not reuse existing SSO sessions. Users must authenticate every time, even if they have an active session from another client."
+          />
         </TabbedForm.Tab>
         <TabbedForm.Tab label="Raw JSON">
           <FunctionField

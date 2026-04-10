@@ -15,7 +15,7 @@ export function create(db: Kysely<Database>) {
       oidc_conformant: params.oidc_conformant ?? true,
       auth0_conformant: params.auth0_conformant ?? true,
       sso: params.sso ?? false,
-      sso_disabled: params.sso_disabled ?? true,
+      sso_disabled: params.sso_disabled ?? false,
       cross_origin_authentication: params.cross_origin_authentication ?? false,
       custom_login_page_on: params.custom_login_page_on ?? false,
       require_pushed_authorization_requests:

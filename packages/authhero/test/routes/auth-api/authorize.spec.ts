@@ -917,4 +917,193 @@ describe("authorize", () => {
       expect(login?.authParams.state).toBe("query-state");
     });
   });
+
+  describe("sso_disabled", () => {
+    it("should return login_required for prompt=none when sso_disabled is true despite valid session", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const oauthClient = testClient(oauthApp, env);
+
+      // Update the client to have sso_disabled=true
+      await env.data.clients.update("tenantId", "clientId", {
+        sso_disabled: true,
+      });
+
+      const loginSession = await env.data.loginSessions.create("tenantId", {
+        expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+        csrf_token: "csrfToken",
+        authParams: {
+          client_id: "clientId",
+          username: "foo@example.com",
+          redirect_uri: "https://example.com/callback",
+        },
+      });
+
+      await env.data.sessions.create("tenantId", {
+        id: "ssoDisabledSessionId",
+        user_id: "email|userId",
+        clients: ["clientId"],
+        idle_expires_at: new Date(Date.now() + 1000).toISOString(),
+        login_session_id: loginSession.id,
+        device: {
+          last_ip: "",
+          initial_ip: "",
+          last_user_agent: "",
+          initial_user_agent: "",
+          initial_asn: "",
+          last_asn: "",
+        },
+      });
+
+      const response = await oauthClient.authorize.$get(
+        {
+          query: {
+            client_id: "clientId",
+            redirect_uri: "https://example.com/callback",
+            state: "state",
+            nonce: "nonce",
+            code_challenge: "codeChallenge",
+            code_challenge_method: CodeChallengeMethod.S256,
+            scope: "openid email profile",
+            prompt: "none",
+            response_mode: AuthorizationResponseMode.WEB_MESSAGE,
+            response_type: AuthorizationResponseType.CODE,
+          },
+        },
+        {
+          headers: {
+            origin: "https://example.com",
+            cookie: "tenantId-auth-token=ssoDisabledSessionId",
+          },
+        },
+      );
+
+      expect(response.status).toEqual(200);
+      const body = await response.text();
+      expect(body).toContain("login_required");
+    });
+
+    it("should redirect to login when sso_disabled is true despite valid session", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const oauthClient = testClient(oauthApp, env);
+
+      // Update the client to have sso_disabled=true
+      await env.data.clients.update("tenantId", "clientId", {
+        sso_disabled: true,
+      });
+
+      const loginSession = await env.data.loginSessions.create("tenantId", {
+        expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+        csrf_token: "csrfToken",
+        authParams: {
+          client_id: "clientId",
+          username: "foo@example.com",
+          redirect_uri: "https://example.com/callback",
+        },
+      });
+
+      await env.data.sessions.create("tenantId", {
+        id: "ssoDisabledSessionId2",
+        user_id: "email|userId",
+        clients: ["clientId"],
+        idle_expires_at: new Date(Date.now() + 1000).toISOString(),
+        login_session_id: loginSession.id,
+        device: {
+          last_ip: "",
+          initial_ip: "",
+          last_user_agent: "",
+          initial_user_agent: "",
+          initial_asn: "",
+          last_asn: "",
+        },
+      });
+
+      const response = await oauthClient.authorize.$get(
+        {
+          query: {
+            client_id: "clientId",
+            redirect_uri: "https://example.com/callback",
+            state: "state",
+            nonce: "nonce",
+            scope: "openid email profile",
+            response_type: AuthorizationResponseType.CODE,
+          },
+        },
+        {
+          headers: {
+            origin: "https://example.com",
+            cookie: "tenantId-auth-token=ssoDisabledSessionId2",
+          },
+        },
+      );
+
+      // Should redirect to login, not to check-account
+      expect(response.status).toEqual(302);
+      const location = response.headers.get("location");
+      expect(location).toContain("/u/login/identifier");
+      expect(location).not.toContain("/check-account");
+    });
+
+    it("should reuse session for prompt=none when sso_disabled is false", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const oauthClient = testClient(oauthApp, env);
+
+      // Default test client has sso_disabled=false, but set explicitly for clarity
+      await env.data.clients.update("tenantId", "clientId", {
+        sso_disabled: false,
+      });
+
+      const loginSession = await env.data.loginSessions.create("tenantId", {
+        expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+        csrf_token: "csrfToken",
+        authParams: {
+          client_id: "clientId",
+          username: "foo@example.com",
+          redirect_uri: "https://example.com/callback",
+        },
+      });
+
+      await env.data.sessions.create("tenantId", {
+        id: "ssoEnabledSessionId",
+        user_id: "email|userId",
+        clients: ["clientId"],
+        idle_expires_at: new Date(Date.now() + 1000).toISOString(),
+        login_session_id: loginSession.id,
+        device: {
+          last_ip: "",
+          initial_ip: "",
+          last_user_agent: "",
+          initial_user_agent: "",
+          initial_asn: "",
+          last_asn: "",
+        },
+      });
+
+      const response = await oauthClient.authorize.$get(
+        {
+          query: {
+            client_id: "clientId",
+            redirect_uri: "https://example.com/callback",
+            state: "state",
+            nonce: "nonce",
+            code_challenge: "codeChallenge",
+            code_challenge_method: CodeChallengeMethod.S256,
+            scope: "openid email profile",
+            prompt: "none",
+            response_mode: AuthorizationResponseMode.WEB_MESSAGE,
+            response_type: AuthorizationResponseType.CODE,
+          },
+        },
+        {
+          headers: {
+            origin: "https://example.com",
+            cookie: "tenantId-auth-token=ssoEnabledSessionId",
+          },
+        },
+      );
+
+      expect(response.status).toEqual(200);
+      const body = await response.text();
+      expect(body).toContain('"code":"');
+    });
+  });
 });

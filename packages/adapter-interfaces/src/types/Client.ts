@@ -124,9 +124,9 @@ export const clientInsertSchema = z.object({
     description:
       "Applies only to SSO clients and determines whether Auth0 will handle Single Sign On (true) or whether the Identity Provider will (false).",
   }),
-  sso_disabled: z.boolean().default(true).openapi({
+  sso_disabled: z.boolean().default(false).openapi({
     description:
-      "Whether Single Sign On is disabled (true) or enabled (true). Defaults to true.",
+      "Whether Single Sign On is disabled for this client. When true, existing SSO sessions will not be reused and users must authenticate every time.",
   }),
   cross_origin_authentication: z.boolean().default(false).openapi({
     description:

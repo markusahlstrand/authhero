@@ -136,7 +136,7 @@ export function createClientsAdapter(db: DrizzleDb): ClientsAdapter {
       // Common overrides
       client.oidc_conformant = params.oidc_conformant ?? true;
       client.auth0_conformant = params.auth0_conformant ?? true;
-      client.sso_disabled = params.sso_disabled ?? true;
+      client.sso_disabled = params.sso_disabled ?? false;
 
       // Set array/object defaults
       for (const field of JSON_ARRAY_FIELDS) {
