@@ -227,7 +227,12 @@ function createUserUpdateHooks(
     // Wrap the update and potential account linking in a transaction
     await data.transaction(async (trxData) => {
       // If we get here, proceed with the update
-      await trxData.users.update(tenant_id, user_id, updates);
+      const updated = await trxData.users.update(tenant_id, user_id, updates);
+      if (!updated) {
+        throw new JSONHTTPException(404, {
+          message: "User not found",
+        });
+      }
 
       // Check if email was updated or verified - if so, check for account linking
       if (updates.email || updates.email_verified) {
