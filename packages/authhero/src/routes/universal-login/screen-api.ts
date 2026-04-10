@@ -54,6 +54,7 @@ const SCREEN_TO_PROMPT_MAP: Record<string, PromptScreen> = {
   signup: "signup",
   "forgot-password": "reset-password",
   "reset-password": "reset-password",
+  "reset-password-code": "reset-password",
   impersonate: "login",
   "pre-signup": "signup-id",
   "pre-signup-sent": "signup",
@@ -362,7 +363,10 @@ async function buildScreenContext(
   const data: Record<string, unknown> = {};
   const username = loginSession?.authParams?.username;
   if (username) {
-    if (screenId === "email-otp-challenge") {
+    if (
+      screenId === "email-otp-challenge" ||
+      screenId === "reset-password-code"
+    ) {
       data.email = username;
     } else if (screenId === "sms-otp-challenge") {
       data.phone = username;
@@ -508,11 +512,86 @@ async function getDatabaseScreen(
 export const screenApiRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /u2/screen/:screenId - Get screen configuration
-  // --------------------------------
-  .openapi(
+}>();
+
+// --------------------------------
+// Handle form-urlencoded POST submissions (SSR form-submit fallback)
+// The inline WebAuthn script calls form.submit() which sends
+// application/x-www-form-urlencoded. This middleware intercepts those
+// requests before the OpenAPI JSON handler runs.
+// --------------------------------
+screenApiRoutes.use("/:screenId", async (ctx, next) => {
+  if (ctx.req.method !== "POST") return next();
+  const contentType = ctx.req.header("content-type") || "";
+  if (!contentType.includes("application/x-www-form-urlencoded"))
+    return next();
+
+  const screenId = ctx.req.param("screenId");
+  const url = new URL(ctx.req.url);
+  const state = url.searchParams.get("state") || "";
+
+  // Parse form data
+  const formData = await ctx.req.parseBody();
+  const data: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(formData)) {
+    data[key] = value;
+  }
+
+  // Try built-in screen handler
+  const definition = getScreenDefinition(screenId);
+  if (!definition?.handler.post) {
+    throw new HTTPException(400, {
+      message: `Screen ${screenId} does not support POST submissions`,
+    });
+  }
+
+  const screenContext = await buildScreenContext(ctx, state, screenId);
+  const result = await definition.handler.post(screenContext, data);
+
+  // Redirect result → 302 redirect with cookies
+  if ("redirect" in result) {
+    const headers = new Headers();
+    headers.set("Location", result.redirect);
+    if (result.cookies?.length) {
+      for (const cookie of result.cookies) {
+        headers.append("Set-Cookie", cookie);
+      }
+    }
+    return new Response(null, { status: 302, headers });
+  }
+
+  // Response passthrough (e.g. web_message mode)
+  if ("response" in result) {
+    return result.response;
+  }
+
+  // Screen result (error case) → redirect back to the HTML page so the
+  // user can retry. The Referer header points to the original HTML page
+  // (e.g. /u2/passkey/enrollment?state=...) whose GET handler will
+  // regenerate fresh WebAuthn options.
+  const referer = ctx.req.header("referer");
+  if (referer) {
+    try {
+      const refererUrl = new URL(referer);
+      return ctx.redirect(
+        refererUrl.pathname + "?" + refererUrl.searchParams.toString(),
+      );
+    } catch {
+      // Invalid referer, fall through
+    }
+  }
+
+  // Fallback: return JSON
+  return ctx.json({
+    screen: result.screen.screen,
+    branding: result.screen.branding,
+  });
+});
+
+// --------------------------------
+// GET /u2/screen/:screenId - Get screen configuration
+// --------------------------------
+screenApiRoutes.openapi(
     createRoute({
       tags: ["screen-api"],
       method: "get",
@@ -607,11 +686,12 @@ export const screenApiRoutes = new OpenAPIHono<{
         message: `Screen not found: ${screenId}. Available built-in screens: ${listScreenIds().join(", ")}`,
       });
     },
-  )
-  // --------------------------------
-  // POST /u2/screen/:screenId - Submit form and get next screen
-  // --------------------------------
-  .openapi(
+  );
+
+// --------------------------------
+// POST /u2/screen/:screenId - Submit form and get next screen
+// --------------------------------
+screenApiRoutes.openapi(
     createRoute({
       tags: ["screen-api"],
       method: "post",
@@ -704,6 +784,7 @@ export const screenApiRoutes = new OpenAPIHono<{
         // Screen IDs that map to non-standard URL paths
         const screenIdToPath: Record<string, string> = {
           "forgot-password": "reset-password/request",
+          "reset-password-code": "reset-password/code",
         };
         const navigatePrefix = loginScreenIds.includes(nextScreenId)
           ? "/u2/login"

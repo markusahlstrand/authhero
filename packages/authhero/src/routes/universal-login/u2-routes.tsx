@@ -61,6 +61,7 @@ const SCREEN_TO_PROMPT_MAP: Record<string, PromptScreen> = {
   signup: "signup",
   "forgot-password": "reset-password",
   "reset-password": "reset-password",
+  "reset-password-code": "reset-password",
   impersonate: "login",
   "pre-signup": "signup-id",
   "pre-signup-sent": "signup",
@@ -1459,6 +1460,17 @@ export const u2Routes = new OpenAPIHono<{
     createScreenRouteHandler("reset-password"),
   )
   // --------------------------------
+  // GET /u2/reset-password/code - Enter reset code + new password
+  // --------------------------------
+  .openapi(
+    createScreenRoute(
+      "reset-password-code",
+      "/reset-password/code",
+      "Reset password code entry screen",
+    ),
+    createScreenRouteHandler("reset-password-code"),
+  )
+  // --------------------------------
   // GET /u2/impersonate - User impersonation
   // --------------------------------
   .openapi(
@@ -1543,6 +1555,14 @@ export const u2Routes = new OpenAPIHono<{
       "Process reset-password form submission (no-JS fallback)",
     ),
     createScreenPostHandler("reset-password"),
+  )
+  .openapi(
+    createScreenPostRoute(
+      "reset-password-code",
+      "/reset-password/code",
+      "Process reset-password-code form submission (no-JS fallback)",
+    ),
+    createScreenPostHandler("reset-password-code"),
   )
   .openapi(
     createScreenPostRoute(
