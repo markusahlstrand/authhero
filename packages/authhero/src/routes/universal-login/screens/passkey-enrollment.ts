@@ -298,7 +298,8 @@ export const passkeyEnrollmentScreenDefinition: ScreenDefinition = {
 
     post: async (context, data) => {
       const { ctx, client, state } = context;
-      const action = data.action as string;
+      const action =
+        (data.action as string) || (data["action-field"] as string) || "";
       const credentialJson = data["credential-field"] as string;
 
       const locale = context.language || "en";
