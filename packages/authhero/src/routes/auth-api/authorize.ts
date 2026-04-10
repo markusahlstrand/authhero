@@ -306,6 +306,11 @@ export const authorizeRoutes = new OpenAPIHono<{
         }
       }
 
+      // If SSO is disabled for this client, ignore any existing session
+      if (client.sso_disabled) {
+        validSession = undefined;
+      }
+
       // Silent authentication with iframe
       if (prompt == "none") {
         if (!sanitizedRedirectUri || !state || !response_type) {

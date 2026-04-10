@@ -48,7 +48,7 @@ describe("clients", () => {
       require_proof_of_possession: false,
       require_pushed_authorization_requests: false,
       sso: false,
-      sso_disabled: true,
+      sso_disabled: false,
       callbacks: [],
       allowed_logout_urls: [],
       allowed_origins: [],
