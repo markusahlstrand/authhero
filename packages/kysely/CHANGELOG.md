@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.120.0
+
+### Minor Changes
+
+- a59a49b: Implement disable-sso
+
+### Patch Changes
+
+- Updated dependencies [a59a49b]
+  - @authhero/adapter-interfaces@0.155.0
+
 ## 10.119.0
 
 ### Minor Changes
