@@ -224,34 +224,63 @@ function createUserUpdateHooks(
       }
     }
 
-    // If we get here, proceed with the update
-    await data.users.update(tenant_id, user_id, updates);
-
-    // Check if email was updated or verified - if so, check for account linking
-    if (updates.email || updates.email_verified) {
-      const updatedUser = await data.users.get(tenant_id, user_id);
-      if (updatedUser && updatedUser.email && updatedUser.email_verified) {
-        // Get all users with the same verified email
-        const { users: matchingUsers } = await data.users.list(tenant_id, {
-          page: 0,
-          per_page: 10,
-          include_totals: false,
-          q: `email:${updatedUser.email}`,
+    // Wrap the update and potential account linking in a transaction
+    await data.transaction(async (trxData) => {
+      // If we get here, proceed with the update
+      const updated = await trxData.users.update(tenant_id, user_id, updates);
+      if (!updated) {
+        throw new JSONHTTPException(404, {
+          message: "User not found",
         });
+      }
 
-        // Filter to verified users and exclude the current user
-        const verifiedUsers = matchingUsers.filter(
-          (u) => u.email_verified && u.user_id !== user_id && !u.linked_to,
-        );
-
-        // If there's another verified user with the same email, link to them
-        if (verifiedUsers.length > 0) {
-          await data.users.update(tenant_id, user_id, {
-            linked_to: verifiedUsers[0]!.user_id,
+      // Check if email was updated or verified - if so, check for account linking
+      // Uses the same matching approach as getPrimaryUserByEmail in linkUsersHook,
+      // but excludes the current user from candidates (since they're already in the DB)
+      if (updates.email || updates.email_verified) {
+        const updatedUser = await trxData.users.get(tenant_id, user_id);
+        if (
+          updatedUser &&
+          !updatedUser.linked_to &&
+          updatedUser.email &&
+          updatedUser.email_verified
+        ) {
+          const normalizedEmail = updatedUser.email.toLowerCase();
+          const { users: matchingUsers } = await trxData.users.list(tenant_id, {
+            page: 0,
+            per_page: 10,
+            include_totals: false,
+            q: `email:${normalizedEmail}`,
           });
+
+          // Exclude the current user from candidates
+          const otherUsers = matchingUsers.filter(
+            (u) => u.user_id !== user_id,
+          );
+
+          // Find an unlinked primary user (consistent with getPrimaryUserByEmail)
+          const primaryCandidate = otherUsers.find((u) => !u.linked_to);
+
+          if (primaryCandidate) {
+            await trxData.users.update(tenant_id, user_id, {
+              linked_to: primaryCandidate.user_id,
+            });
+          } else if (otherUsers[0]?.linked_to) {
+            // All other matching users are already linked — follow the chain
+            // to find the actual primary (same as getPrimaryUserByEmail fallback)
+            const resolvedPrimary = await trxData.users.get(
+              tenant_id,
+              otherUsers[0].linked_to,
+            );
+            if (resolvedPrimary) {
+              await trxData.users.update(tenant_id, user_id, {
+                linked_to: resolvedPrimary.user_id,
+              });
+            }
+          }
         }
       }
-    }
+    });
 
     if (updates.email) {
       logMessage(ctx, tenant_id, {
