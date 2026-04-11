@@ -533,55 +533,62 @@ screenApiRoutes.use("/:screenId", async (ctx, next) => {
     data[key] = value;
   }
 
-  // Try built-in screen handler
+  // 1. Try built-in screen POST handler
   const definition = getScreenDefinition(screenId);
-  if (!definition?.handler.post) {
+  if (definition?.handler.post) {
+    const screenContext = await buildScreenContext(ctx, state, screenId);
+    const result = await definition.handler.post(screenContext, data);
+
+    // Redirect result → 302 redirect with cookies
+    if ("redirect" in result) {
+      const headers = new Headers();
+      headers.set("Location", result.redirect);
+      if (result.cookies?.length) {
+        for (const cookie of result.cookies) {
+          headers.append("Set-Cookie", cookie);
+        }
+      }
+      return new Response(null, { status: 302, headers });
+    }
+
+    // Response passthrough (e.g. web_message mode)
+    if ("response" in result) {
+      return result.response;
+    }
+
+    // Screen result (error case) → redirect back to the HTML page so the
+    // user can retry. The Referer header points to the original HTML page
+    // (e.g. /u2/passkey/enrollment?state=...) whose GET handler will
+    // regenerate fresh WebAuthn options.
+    const referer = ctx.req.header("referer");
+    if (referer) {
+      try {
+        const refererUrl = new URL(referer);
+        return ctx.redirect(
+          refererUrl.pathname + "?" + refererUrl.searchParams.toString(),
+        );
+      } catch {
+        // Invalid referer, fall through
+      }
+    }
+
+    // Fallback: return JSON
+    return ctx.json({
+      screen: result.screen.screen,
+      branding: result.screen.branding,
+    });
+  }
+
+  // 2. For built-in screens without POST handler, return error
+  if (isValidScreenId(screenId)) {
     throw new HTTPException(400, {
       message: `Screen ${screenId} does not support POST submissions`,
     });
   }
 
-  const screenContext = await buildScreenContext(ctx, state, screenId);
-  const result = await definition.handler.post(screenContext, data);
-
-  // Redirect result → 302 redirect with cookies
-  if ("redirect" in result) {
-    const headers = new Headers();
-    headers.set("Location", result.redirect);
-    if (result.cookies?.length) {
-      for (const cookie of result.cookies) {
-        headers.append("Set-Cookie", cookie);
-      }
-    }
-    return new Response(null, { status: 302, headers });
-  }
-
-  // Response passthrough (e.g. web_message mode)
-  if ("response" in result) {
-    return result.response;
-  }
-
-  // Screen result (error case) → redirect back to the HTML page so the
-  // user can retry. The Referer header points to the original HTML page
-  // (e.g. /u2/passkey/enrollment?state=...) whose GET handler will
-  // regenerate fresh WebAuthn options.
-  const referer = ctx.req.header("referer");
-  if (referer) {
-    try {
-      const refererUrl = new URL(referer);
-      return ctx.redirect(
-        refererUrl.pathname + "?" + refererUrl.searchParams.toString(),
-      );
-    } catch {
-      // Invalid referer, fall through
-    }
-  }
-
-  // Fallback: return JSON
-  return ctx.json({
-    screen: result.screen.screen,
-    branding: result.screen.branding,
-  });
+  // 3. Not a built-in screen — let subsequent handlers (e.g. database
+  //    form POST) deal with it
+  return next();
 });
 
 // --------------------------------

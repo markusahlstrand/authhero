@@ -154,6 +154,9 @@ describe("screen-api form-urlencoded POST", () => {
     // The identifier handler returns a screen result (next screen),
     // which the middleware redirects back to the Referer.
     expect(postResponse.status).toBe(302);
+    const redirectLocation = postResponse.headers.get("location");
+    expect(redirectLocation).toContain("/u2/login/identifier");
+    expect(redirectLocation).toContain(`state=${encodeURIComponent(state)}`);
   });
 
   it("should still accept JSON POST (regression)", async () => {
@@ -196,46 +199,4 @@ describe("screen-api form-urlencoded POST", () => {
     expect(body.screen).toBeTruthy();
   });
 
-  it("should handle form-urlencoded POST for identifier screen", async () => {
-    const { u2App, oauthApp, env } = await getTestServer({ mockEmail: true });
-    const oauthClient = testClient(oauthApp, env);
-
-    // Start OAuth flow to get a valid state
-    const authorizeResponse = await oauthClient.authorize.$get({
-      query: {
-        client_id: "clientId",
-        redirect_uri: "https://example.com/callback",
-        state: "state",
-        nonce: "nonce",
-        scope: "openid email profile",
-        response_type: AuthorizationResponseType.CODE,
-      },
-    });
-
-    expect(authorizeResponse.status).toBe(302);
-    const location = authorizeResponse.headers.get("location");
-    const universalUrl = new URL(`https://example.com${location}`);
-    const state = universalUrl.searchParams.get("state")!;
-
-    // POST with form-urlencoded to the identifier screen
-    const formBody = new URLSearchParams({
-      username: "foo@example.com",
-    });
-
-    const postResponse = await u2App.request(
-      `/screen/identifier?state=${encodeURIComponent(state)}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          Referer: `http://localhost:3000/u2/login/identifier?state=${encodeURIComponent(state)}`,
-        },
-        body: formBody.toString(),
-      },
-      env,
-    );
-
-    // Should not be 500 - form-urlencoded should be handled
-    expect(postResponse.status).not.toBe(500);
-  });
 });
