@@ -1,5 +1,13 @@
 # authhero
 
+## 4.90.0
+
+### Minor Changes
+
+- 9b0da44: Add transaction for linking of users
+- 18b50b9: Send reset password code
+- 71b17f7: Fix enroll passkey
+
 ## 4.89.0
 
 ### Minor Changes
