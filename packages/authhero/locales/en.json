@@ -475,6 +475,7 @@
       "passwordPlaceholder": "New password",
       "passwordTooWeak": "Password is too weak",
       "passwordsDidntMatch": "Passwords don't match",
+      "resendFailed": "Failed to resend the code. Please try again.",
       "resendSuccess": "A new code has been sent to your email",
       "resendText": "Resend code",
       "sessionExpired": "Your session has expired. Please try again.",

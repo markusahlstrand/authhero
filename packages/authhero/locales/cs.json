@@ -475,6 +475,7 @@
       "passwordPlaceholder": "Nové heslo",
       "passwordTooWeak": "Heslo je příliš slabé",
       "passwordsDidntMatch": "Hesla se neshodují",
+      "resendFailed": "Nepodařilo se znovu odeslat kód. Zkuste to prosím znovu.",
       "resendSuccess": "Nový kód byl odeslán na váš e-mail",
       "resendText": "Odeslat kód znovu",
       "sessionExpired": "Platnost vaší relace vypršela. Zkuste to prosím znovu.",

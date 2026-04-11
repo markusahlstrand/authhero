@@ -199,13 +199,24 @@ export const resetPasswordCodeScreenDefinition: ScreenDefinition = {
           };
         }
 
-        await requestPasswordReset(
-          ctx,
-          client,
-          loginSession.authParams.username,
-          state,
-          "code",
-        );
+        try {
+          await requestPasswordReset(
+            ctx,
+            client,
+            loginSession.authParams.username,
+            state,
+            "code",
+          );
+        } catch (err) {
+          console.error("Failed to resend password reset code:", err);
+          return {
+            error: m.resendFailed(),
+            screen: await resetPasswordCodeScreen({
+              ...context,
+              messages: [{ text: m.resendFailed(), type: "error" as const }],
+            }),
+          };
+        }
 
         return {
           screen: await resetPasswordCodeScreen({

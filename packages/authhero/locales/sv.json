@@ -475,6 +475,7 @@
       "passwordPlaceholder": "Nytt lösenord",
       "passwordTooWeak": "Lösenordet är för svagt",
       "passwordsDidntMatch": "Lösenorden matchar inte",
+      "resendFailed": "Kunde inte skicka koden igen. Försök igen.",
       "resendSuccess": "En ny kod har skickats till din e-post",
       "resendText": "Skicka koden igen",
       "sessionExpired": "Din session har gått ut. Försök igen.",

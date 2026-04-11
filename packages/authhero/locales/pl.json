@@ -475,6 +475,7 @@
       "passwordPlaceholder": "Nowe hasło",
       "passwordTooWeak": "Hasło jest zbyt słabe",
       "passwordsDidntMatch": "Hasła nie są zgodne",
+      "resendFailed": "Nie udało się ponownie wysłać kodu. Spróbuj ponownie.",
       "resendSuccess": "Nowy kod został wysłany na Twój e-mail",
       "resendText": "Wyślij kod ponownie",
       "sessionExpired": "Twoja sesja wygasła. Spróbuj ponownie.",

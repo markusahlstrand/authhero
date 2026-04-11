@@ -475,6 +475,7 @@
       "passwordPlaceholder": "Uusi salasana",
       "passwordTooWeak": "Salasana on liian heikko",
       "passwordsDidntMatch": "Salasanat eivät täsmää",
+      "resendFailed": "Koodin uudelleenlähetys epäonnistui. Yritä uudelleen.",
       "resendSuccess": "Uusi koodi on lähetetty sähköpostiisi",
       "resendText": "Lähetä koodi uudelleen",
       "sessionExpired": "Istuntosi on vanhentunut. Yritä uudelleen.",

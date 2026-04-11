@@ -86,6 +86,16 @@ export async function executePasswordReset(params: {
     return { error: "code_expired", field: "code" };
   }
 
+  // Atomically claim the code so no concurrent request can reuse it
+  const consumed = await env.data.codes.consume(
+    client.tenant.id,
+    foundCode.code_id,
+  );
+
+  if (!consumed) {
+    return { error: "code_expired", field: "code" };
+  }
+
   try {
     // Mark old password as not current (for password history)
     const existingPassword = await env.data.passwords.get(
@@ -123,9 +133,6 @@ export async function executePasswordReset(params: {
       description: `Password changed for ${user.email}`,
       userId: user.user_id,
     });
-
-    // Delete the used code
-    await env.data.codes.remove(client.tenant.id, foundCode.code_id);
 
     return { success: true };
   } catch (err) {

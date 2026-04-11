@@ -475,6 +475,7 @@
       "passwordPlaceholder": "Nuova password",
       "passwordTooWeak": "La password è troppo debole",
       "passwordsDidntMatch": "Le password non corrispondono",
+      "resendFailed": "Impossibile reinviare il codice. Riprova.",
       "resendSuccess": "Un nuovo codice è stato inviato alla tua email",
       "resendText": "Reinvia codice",
       "sessionExpired": "La sessione è scaduta. Riprova.",
