@@ -551,100 +551,107 @@ screenApiRoutes.use("/:screenId", async (ctx, next) => {
     data[key] = value;
   }
 
-  // Try built-in screen handler
+  // 1. Try built-in screen POST handler
   const definition = getScreenDefinition(screenId);
-  if (!definition?.handler.post) {
+  if (definition?.handler.post) {
+    const {
+      screenContext,
+      branding,
+      theme,
+      loginSession,
+    } = await buildScreenContext(ctx, state, screenId);
+    const result = await definition.handler.post(screenContext, data);
+
+    // Redirect result → 302 redirect with cookies
+    if ("redirect" in result) {
+      const headers = new Headers();
+      headers.set("Location", result.redirect);
+      if (result.cookies?.length) {
+        for (const cookie of result.cookies) {
+          headers.append("Set-Cookie", cookie);
+        }
+      }
+      return new Response(null, { status: 302, headers });
+    }
+
+    // Response passthrough (e.g. web_message mode)
+    if ("response" in result) {
+      return result.response;
+    }
+
+    // Screen result (error/validation case) → redirect back to Referer (PRG pattern)
+    // Browser form submissions should redirect so the user doesn't get
+    // a "resubmit form?" dialog on refresh.
+    const referer = ctx.req.header("referer");
+    if (referer) {
+      return new Response(null, {
+        status: 302,
+        headers: { Location: referer },
+      });
+    }
+
+    // Fallback when no Referer: render the screen HTML directly
+    const screenResult = result.screen;
+    const resultScreenId = screenResult.screen.name || screenId;
+    const screenJson = JSON.stringify(screenResult.screen);
+    const brandingJson = screenResult.branding
+      ? JSON.stringify(screenResult.branding)
+      : undefined;
+    const themeJson = theme ? JSON.stringify(theme) : undefined;
+    const authParamsJson = JSON.stringify({
+      client_id: loginSession.authParams.client_id,
+      ...(loginSession.authParams.redirect_uri && {
+        redirect_uri: loginSession.authParams.redirect_uri,
+      }),
+      ...(loginSession.authParams.scope && {
+        scope: loginSession.authParams.scope,
+      }),
+      ...(loginSession.authParams.audience && {
+        audience: loginSession.authParams.audience,
+      }),
+      ...(loginSession.authParams.nonce && {
+        nonce: loginSession.authParams.nonce,
+      }),
+      ...(loginSession.authParams.response_type && {
+        response_type: loginSession.authParams.response_type,
+      }),
+    });
+
+    const darkModeCookie = getCookie(ctx, "ah-dark-mode");
+    const darkMode: DarkModePreference =
+      darkModeCookie === "dark" || darkModeCookie === "light"
+        ? darkModeCookie
+        : "auto";
+
+    return renderWidgetPageResponse(ctx, {
+      screenId: resultScreenId,
+      screenJson,
+      brandingJson,
+      themeJson,
+      state,
+      authParamsJson,
+      branding,
+      theme,
+      clientName: screenContext.client.name || "AuthHero",
+      poweredByLogo: ctx.env.poweredByLogo,
+      language: screenContext.language,
+      termsAndConditionsUrl: sanitizeUrl(
+        screenContext.client.client_metadata?.termsAndConditionsUrl,
+      ),
+      darkMode,
+    });
+  }
+
+  // 2. For built-in screens without POST handler, return error
+  if (isValidScreenId(screenId)) {
     throw new HTTPException(400, {
       message: `Screen ${screenId} does not support POST submissions`,
     });
   }
 
-  const {
-    screenContext,
-    branding,
-    theme,
-    loginSession,
-  } = await buildScreenContext(ctx, state, screenId);
-  const result = await definition.handler.post(screenContext, data);
-
-  // Redirect result → 302 redirect with cookies
-  if ("redirect" in result) {
-    const headers = new Headers();
-    headers.set("Location", result.redirect);
-    if (result.cookies?.length) {
-      for (const cookie of result.cookies) {
-        headers.append("Set-Cookie", cookie);
-      }
-    }
-    return new Response(null, { status: 302, headers });
-  }
-
-  // Response passthrough (e.g. web_message mode)
-  if ("response" in result) {
-    return result.response;
-  }
-
-  // Screen result (error/validation case) → redirect back to Referer (PRG pattern)
-  // Browser form submissions should redirect so the user doesn't get
-  // a "resubmit form?" dialog on refresh.
-  const referer = ctx.req.header("referer");
-  if (referer) {
-    return new Response(null, {
-      status: 302,
-      headers: { Location: referer },
-    });
-  }
-
-  // Fallback when no Referer: render the screen HTML directly
-  const screenResult = result.screen;
-  const resultScreenId = screenResult.screen.name || screenId;
-  const screenJson = JSON.stringify(screenResult.screen);
-  const brandingJson = screenResult.branding
-    ? JSON.stringify(screenResult.branding)
-    : undefined;
-  const themeJson = theme ? JSON.stringify(theme) : undefined;
-  const authParamsJson = JSON.stringify({
-    client_id: loginSession.authParams.client_id,
-    ...(loginSession.authParams.redirect_uri && {
-      redirect_uri: loginSession.authParams.redirect_uri,
-    }),
-    ...(loginSession.authParams.scope && {
-      scope: loginSession.authParams.scope,
-    }),
-    ...(loginSession.authParams.audience && {
-      audience: loginSession.authParams.audience,
-    }),
-    ...(loginSession.authParams.nonce && {
-      nonce: loginSession.authParams.nonce,
-    }),
-    ...(loginSession.authParams.response_type && {
-      response_type: loginSession.authParams.response_type,
-    }),
-  });
-
-  const darkModeCookie = getCookie(ctx, "ah-dark-mode");
-  const darkMode: DarkModePreference =
-    darkModeCookie === "dark" || darkModeCookie === "light"
-      ? darkModeCookie
-      : "auto";
-
-  return renderWidgetPageResponse(ctx, {
-    screenId: resultScreenId,
-    screenJson,
-    brandingJson,
-    themeJson,
-    state,
-    authParamsJson,
-    branding,
-    theme,
-    clientName: screenContext.client.name || "AuthHero",
-    poweredByLogo: ctx.env.poweredByLogo,
-    language: screenContext.language,
-    termsAndConditionsUrl: sanitizeUrl(
-      screenContext.client.client_metadata?.termsAndConditionsUrl,
-    ),
-    darkMode,
-  });
+  // 3. Not a built-in screen — let subsequent handlers (e.g. database
+  //    form POST) deal with it
+  return next();
 });
 
 // --------------------------------

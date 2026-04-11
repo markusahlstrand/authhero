@@ -154,6 +154,9 @@ describe("screen-api form-urlencoded POST", () => {
     // The identifier handler returns a screen result (next screen),
     // which the middleware redirects back to the Referer.
     expect(postResponse.status).toBe(302);
+    const redirectLocation = postResponse.headers.get("location");
+    expect(redirectLocation).toContain("/u2/login/identifier");
+    expect(redirectLocation).toContain(`state=${encodeURIComponent(state)}`);
   });
 
   it("should still accept JSON POST (regression)", async () => {
