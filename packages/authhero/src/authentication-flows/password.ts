@@ -14,7 +14,11 @@ import { EnrichedClient } from "../helpers/client";
 import { Bindings, GrantFlowUserResult, Variables } from "../types";
 import { getOrCreateUserByProvider, getUserByProvider } from "../helpers/users";
 import { AuthError } from "../types/AuthError";
-import { sendResetPassword, sendValidateEmailAddress } from "../emails";
+import {
+  sendResetPassword,
+  sendResetPasswordCode,
+  sendValidateEmailAddress,
+} from "../emails";
 import { stringifyAuth0Client } from "../utils/client-info";
 import { createFrontChannelAuthResponse, failLoginSession } from "./common";
 import {
@@ -283,6 +287,7 @@ export async function requestPasswordReset(
   client: EnrichedClient,
   email: string,
   state: string,
+  verification_method?: "link" | "code",
 ) {
   // Create the user if if doesn't exist. We probably want to wait with this until the user resets the password?
   await getOrCreateUserByProvider(ctx, {
@@ -356,5 +361,9 @@ export async function requestPasswordReset(
     ).toISOString(),
   });
 
-  await sendResetPassword(ctx, email, createdCode.code_id, loginSessionId);
+  if (verification_method === "code") {
+    await sendResetPasswordCode(ctx, email, createdCode.code_id);
+  } else {
+    await sendResetPassword(ctx, email, createdCode.code_id, loginSessionId);
+  }
 }

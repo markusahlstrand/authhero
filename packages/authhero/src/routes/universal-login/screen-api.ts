@@ -17,6 +17,10 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
 import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
+import { renderWidgetPageResponse } from "./u2-widget-page";
+import type { DarkModePreference } from "./u2-widget-page";
+import { sanitizeUrl } from "./sanitization-utils";
+import { getCookie } from "hono/cookie";
 import {
   getScreen,
   getScreenDefinition,
@@ -54,6 +58,7 @@ const SCREEN_TO_PROMPT_MAP: Record<string, PromptScreen> = {
   signup: "signup",
   "forgot-password": "reset-password",
   "reset-password": "reset-password",
+  "reset-password-code": "reset-password",
   impersonate: "login",
   "pre-signup": "signup-id",
   "pre-signup-sent": "signup",
@@ -312,7 +317,12 @@ async function buildScreenContext(
   prefill?: Record<string, string>,
   errors?: Record<string, string>,
   uiLocalesOverride?: string,
-): Promise<ScreenContext> {
+): Promise<{
+  screenContext: ScreenContext;
+  branding: any;
+  theme: any;
+  loginSession: any;
+}> {
   const {
     client,
     branding,
@@ -362,7 +372,10 @@ async function buildScreenContext(
   const data: Record<string, unknown> = {};
   const username = loginSession?.authParams?.username;
   if (username) {
-    if (screenId === "email-otp-challenge") {
+    if (
+      screenId === "email-otp-challenge" ||
+      screenId === "reset-password-code"
+    ) {
       data.email = username;
     } else if (screenId === "sms-otp-challenge") {
       data.phone = username;
@@ -395,24 +408,29 @@ async function buildScreenContext(
   }
 
   return {
-    ctx,
-    tenant: client.tenant,
-    client,
-    theme: themeResult ?? undefined,
-    branding: toScreenBranding(branding),
-    connections,
-    state,
-    prefill: {
-      ...prefill,
-      username: loginSession?.authParams?.username,
-      email: loginSession?.authParams?.username,
+    screenContext: {
+      ctx,
+      tenant: client.tenant,
+      client,
+      theme: themeResult ?? undefined,
+      branding: toScreenBranding(branding),
+      connections,
+      state,
+      prefill: {
+        ...prefill,
+        username: loginSession?.authParams?.username,
+        email: loginSession?.authParams?.username,
+      },
+      data: Object.keys(data).length > 0 ? data : undefined,
+      errors,
+      customText,
+      language,
+      promptScreen,
+      routePrefix,
     },
-    data: Object.keys(data).length > 0 ? data : undefined,
-    errors,
-    customText,
-    language,
-    promptScreen,
-    routePrefix,
+    branding,
+    theme: themeResult ?? undefined,
+    loginSession,
   };
 }
 
@@ -555,6 +573,13 @@ screenApiRoutes.use("/:screenId", async (ctx, next) => {
     if ("response" in result) {
       return result.response;
     }
+  const {
+    screenContext,
+    branding,
+    theme,
+    loginSession,
+  } = await buildScreenContext(ctx, state, screenId);
+  const result = await definition.handler.post(screenContext, data);
 
     // Screen result (error case) → redirect back to the HTML page so the
     // user can retry. The Referer header points to the original HTML page
@@ -589,6 +614,67 @@ screenApiRoutes.use("/:screenId", async (ctx, next) => {
   // 3. Not a built-in screen — let subsequent handlers (e.g. database
   //    form POST) deal with it
   return next();
+  // Screen result (error/validation case) → redirect back to Referer (PRG pattern)
+  // Browser form submissions should redirect so the user doesn't get
+  // a "resubmit form?" dialog on refresh.
+  const referer = ctx.req.header("referer");
+  if (referer) {
+    return new Response(null, {
+      status: 302,
+      headers: { Location: referer },
+    });
+  }
+
+  // Fallback when no Referer: render the screen HTML directly
+  const screenResult = result.screen;
+  const resultScreenId = screenResult.screen.name || screenId;
+  const screenJson = JSON.stringify(screenResult.screen);
+  const brandingJson = screenResult.branding
+    ? JSON.stringify(screenResult.branding)
+    : undefined;
+  const themeJson = theme ? JSON.stringify(theme) : undefined;
+  const authParamsJson = JSON.stringify({
+    client_id: loginSession.authParams.client_id,
+    ...(loginSession.authParams.redirect_uri && {
+      redirect_uri: loginSession.authParams.redirect_uri,
+    }),
+    ...(loginSession.authParams.scope && {
+      scope: loginSession.authParams.scope,
+    }),
+    ...(loginSession.authParams.audience && {
+      audience: loginSession.authParams.audience,
+    }),
+    ...(loginSession.authParams.nonce && {
+      nonce: loginSession.authParams.nonce,
+    }),
+    ...(loginSession.authParams.response_type && {
+      response_type: loginSession.authParams.response_type,
+    }),
+  });
+
+  const darkModeCookie = getCookie(ctx, "ah-dark-mode");
+  const darkMode: DarkModePreference =
+    darkModeCookie === "dark" || darkModeCookie === "light"
+      ? darkModeCookie
+      : "auto";
+
+  return renderWidgetPageResponse(ctx, {
+    screenId: resultScreenId,
+    screenJson,
+    brandingJson,
+    themeJson,
+    state,
+    authParamsJson,
+    branding,
+    theme,
+    clientName: screenContext.client.name || "AuthHero",
+    poweredByLogo: ctx.env.poweredByLogo,
+    language: screenContext.language,
+    termsAndConditionsUrl: sanitizeUrl(
+      screenContext.client.client_metadata?.termsAndConditionsUrl,
+    ),
+    darkMode,
+  });
 });
 
 // --------------------------------
@@ -636,7 +722,7 @@ screenApiRoutes.openapi(
       const { screenId } = ctx.req.valid("param");
       const { state, nodeId, ui_locales } = ctx.req.valid("query");
 
-      const screenContext = await buildScreenContext(
+      const { screenContext } = await buildScreenContext(
         ctx,
         state,
         screenId,
@@ -746,7 +832,7 @@ screenApiRoutes.openapi(
       // 1. Try built-in screen POST handler
       const definition = getScreenDefinition(screenId);
       if (definition?.handler.post) {
-        const screenContext = await buildScreenContext(ctx, state, screenId);
+        const { screenContext } = await buildScreenContext(ctx, state, screenId);
         const result = await definition.handler.post(screenContext, data);
 
         // Handler returns { response } for direct Response passthrough (e.g., web_message mode)
@@ -787,6 +873,7 @@ screenApiRoutes.openapi(
         // Screen IDs that map to non-standard URL paths
         const screenIdToPath: Record<string, string> = {
           "forgot-password": "reset-password/request",
+          "reset-password-code": "reset-password/code",
         };
         const navigatePrefix = loginScreenIds.includes(nextScreenId)
           ? "/u2/login"
@@ -829,7 +916,7 @@ screenApiRoutes.openapi(
       }
 
       // 3. Fallback to database form handling
-      const screenContext = await buildScreenContext(ctx, state, screenId);
+      const { screenContext } = await buildScreenContext(ctx, state, screenId);
       const dbResult = await getDatabaseScreen(
         ctx,
         screenContext.tenant.id,

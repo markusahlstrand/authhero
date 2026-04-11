@@ -30,6 +30,7 @@ import { accountPasskeysScreenDefinition } from "./account-passkeys";
 import { passkeyEnrollmentNudgeScreenDefinition } from "./passkey-enrollment-nudge";
 import { passkeyEnrollmentScreenDefinition } from "./passkey-enrollment";
 import { passkeyChallengeScreenDefinition } from "./passkey-challenge";
+import { resetPasswordCodeScreenDefinition } from "./reset-password-code";
 
 /**
  * Registry of all built-in screens
@@ -71,6 +72,7 @@ export const screenRegistry: Map<string, ScreenDefinition> = new Map([
   ["passkey-enrollment-nudge", passkeyEnrollmentNudgeScreenDefinition],
   ["passkey-enrollment", passkeyEnrollmentScreenDefinition],
   ["passkey-challenge", passkeyChallengeScreenDefinition],
+  ["reset-password-code", resetPasswordCodeScreenDefinition],
 ]);
 
 /**

@@ -5,10 +5,12 @@
  */
 
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
+import { Strategy } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { getLoginPath } from "./types";
 import { createTranslation } from "../../../i18n";
 import { requestPasswordReset } from "../../../authentication-flows/password";
+import { resetPasswordCodeScreen } from "./reset-password-code";
 
 /**
  * Create the forgot-password screen
@@ -210,7 +212,23 @@ export const forgotPasswordScreenDefinition: ScreenDefinition = {
         });
       }
 
-      await requestPasswordReset(ctx, client, email, state);
+      // Check the connection's verification_method
+      const passwordConnection = context.client.connections.find(
+        (c) => c.strategy === Strategy.USERNAME_PASSWORD,
+      );
+      const verificationMethod =
+        passwordConnection?.options?.attributes?.email?.verification_method;
+
+      await requestPasswordReset(ctx, client, email, state, verificationMethod);
+
+      if (verificationMethod === "code") {
+        return {
+          screen: await resetPasswordCodeScreen({
+            ...context,
+            data: { ...context.data, email },
+          }),
+        };
+      }
 
       return {
         screen: await forgotPasswordSentScreen(context),

@@ -16,6 +16,141 @@ import {
   validatePasswordPolicy,
 } from "../../../helpers/password-policy";
 import { createTranslation } from "../../../i18n";
+import type { Context } from "hono";
+import type { Bindings, Variables } from "../../../types";
+import type { EnrichedClient } from "../../../helpers/client";
+
+/**
+ * Shared helper to execute a password reset: validate code, validate policy,
+ * update password, mark email verified, log, and delete code.
+ */
+export async function executePasswordReset(params: {
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>;
+  client: EnrichedClient;
+  code: string;
+  password: string;
+  username: string;
+}): Promise<
+  { success: true } | { error: string; field: "code" | "password" }
+> {
+  const { ctx, client, code, password, username } = params;
+  const { env } = ctx;
+
+  // Get the user
+  const user = await getUserByProvider({
+    userAdapter: env.data.users,
+    tenant_id: client.tenant.id,
+    username,
+    provider: USERNAME_PASSWORD_PROVIDER,
+  });
+
+  if (!user) {
+    return { error: "User not found", field: "password" };
+  }
+
+  // Find the password connection by strategy
+  const passwordConnection = client.connections.find(
+    (c) => c.strategy === Strategy.USERNAME_PASSWORD,
+  );
+  const connectionName = passwordConnection?.name || user.connection;
+
+  // Validate password against connection policy
+  const policy = await getPasswordPolicy(
+    env.data,
+    client.tenant.id,
+    connectionName,
+  );
+
+  try {
+    await validatePasswordPolicy(policy, {
+      tenantId: client.tenant.id,
+      userId: user.user_id,
+      newPassword: password,
+      userData: user,
+      data: env.data,
+    });
+  } catch (policyError: unknown) {
+    const errorMessage =
+      policyError instanceof Error ? policyError.message : "Password too weak";
+    return { error: errorMessage, field: "password" };
+  }
+
+  // Validate the reset code
+  const foundCode = await env.data.codes.get(
+    client.tenant.id,
+    code,
+    "password_reset",
+  );
+
+  if (!foundCode) {
+    return { error: "code_expired", field: "code" };
+  }
+
+  // Atomically claim the code so no concurrent request can reuse it
+  const consumed = await env.data.codes.consume(
+    client.tenant.id,
+    foundCode.code_id,
+  );
+
+  if (!consumed) {
+    return { error: "code_expired", field: "code" };
+  }
+
+  try {
+    // Mark old password as not current (for password history)
+    const existingPassword = await env.data.passwords.get(
+      client.tenant.id,
+      user.user_id,
+    );
+    if (existingPassword) {
+      await env.data.passwords.update(client.tenant.id, {
+        id: existingPassword.id,
+        user_id: user.user_id,
+        password: existingPassword.password,
+        algorithm: existingPassword.algorithm,
+        is_current: false,
+      });
+    }
+
+    // Create new password
+    await env.data.passwords.create(client.tenant.id, {
+      user_id: user.user_id,
+      password: await bcryptjs.hash(password, 10),
+      algorithm: "bcrypt",
+      is_current: true,
+    });
+
+    // Mark email as verified if it wasn't
+    if (!user.email_verified) {
+      await env.data.users.update(client.tenant.id, user.user_id, {
+        email_verified: true,
+      });
+    }
+
+    // Log the successful password change
+    await logMessage(ctx, client.tenant.id, {
+      type: LogTypes.SUCCESS_CHANGE_PASSWORD,
+      description: `Password changed for ${user.email}`,
+      userId: user.user_id,
+    });
+
+    return { success: true };
+  } catch (err) {
+    // Log the failure
+    const errorDetails =
+      err instanceof Error ? err.message : JSON.stringify(err);
+    await logMessage(ctx, client.tenant.id, {
+      type: LogTypes.FAILED_CHANGE_PASSWORD,
+      description: `Password reset failed for ${user.email}: ${errorDetails}`,
+      userId: user.user_id,
+    });
+
+    return {
+      error: err instanceof Error ? err.message : "Password reset failed",
+      field: "password",
+    };
+  }
+}
 
 /**
  * Create the reset-password screen
@@ -165,63 +300,7 @@ export const resetPasswordScreenDefinition: ScreenDefinition = {
         };
       }
 
-      // Get the user
-      const user = await getUserByProvider({
-        userAdapter: env.data.users,
-        tenant_id: client.tenant.id,
-        username: loginSession.authParams.username,
-        provider: USERNAME_PASSWORD_PROVIDER,
-      });
-
-      if (!user) {
-        return {
-          error: "User not found",
-          screen: await resetPasswordScreen({
-            ...context,
-            errors: { password: "User not found" },
-          }),
-        };
-      }
-
-      // Find the password connection by strategy to get the correct connection name
-      // This is needed because user.connection may contain "Username-Password-Authentication"
-      // (a hardcoded fallback) instead of the actual connection name
-      const passwordConnection = client.connections.find(
-        (c) => c.strategy === Strategy.USERNAME_PASSWORD,
-      );
-      const connectionName = passwordConnection?.name || user.connection;
-
-      // Validate password against connection policy
-      const policy = await getPasswordPolicy(
-        env.data,
-        client.tenant.id,
-        connectionName,
-      );
-
-      try {
-        await validatePasswordPolicy(policy, {
-          tenantId: client.tenant.id,
-          userId: user.user_id,
-          newPassword: password,
-          userData: user,
-          data: env.data,
-        });
-      } catch (policyError: unknown) {
-        const errorMessage =
-          policyError instanceof Error
-            ? policyError.message
-            : m.passwordTooWeak();
-
-        return {
-          error: errorMessage,
-          screen: await resetPasswordScreen({
-            ...context,
-            errors: { password: errorMessage },
-          }),
-        };
-      }
-
-      // Validate the reset code
+      // Validate the reset code is present
       const codeParam = context.data?.code as string | undefined;
       if (!codeParam) {
         return {
@@ -233,88 +312,29 @@ export const resetPasswordScreenDefinition: ScreenDefinition = {
         };
       }
 
-      const foundCode = await env.data.codes.get(
-        client.tenant.id,
-        codeParam,
-        "password_reset",
-      );
+      const result = await executePasswordReset({
+        ctx,
+        client,
+        code: codeParam,
+        password,
+        username: loginSession.authParams.username,
+      });
 
-      if (!foundCode) {
-        const errorMessage = m.codeExpired();
-        return {
-          error: errorMessage,
-          screen: await resetPasswordScreen({
-            ...context,
-            errors: { password: errorMessage },
-          }),
-        };
-      }
-
-      try {
-        // Mark old password as not current (for password history)
-        const existingPassword = await env.data.passwords.get(
-          client.tenant.id,
-          user.user_id,
-        );
-        if (existingPassword) {
-          await env.data.passwords.update(client.tenant.id, {
-            id: existingPassword.id,
-            user_id: user.user_id,
-            password: existingPassword.password,
-            algorithm: existingPassword.algorithm,
-            is_current: false,
-          });
-        }
-
-        // Create new password
-        await env.data.passwords.create(client.tenant.id, {
-          user_id: user.user_id,
-          password: await bcryptjs.hash(password, 10),
-          algorithm: "bcrypt",
-          is_current: true,
-        });
-
-        // Mark email as verified if it wasn't
-        if (!user.email_verified) {
-          await env.data.users.update(client.tenant.id, user.user_id, {
-            email_verified: true,
-          });
-        }
-
-        // Log the successful password change
-        await logMessage(ctx, client.tenant.id, {
-          type: LogTypes.SUCCESS_CHANGE_PASSWORD,
-          description: `Password changed for ${user.email}`,
-          userId: user.user_id,
-        });
-
-        // Delete the used code
-        await env.data.codes.remove(client.tenant.id, foundCode.code_id);
-
-        // Redirect to login with success message
+      if ("success" in result) {
         const redirectUrl = `/u2/identifier?state=${encodeURIComponent(state)}&message=password_reset_success`;
         return { redirect: redirectUrl };
-      } catch (err) {
-        // Log the failure
-        const errorDetails =
-          err instanceof Error ? err.message : JSON.stringify(err);
-        await logMessage(ctx, client.tenant.id, {
-          type: LogTypes.FAILED_CHANGE_PASSWORD,
-          description: `Password reset failed for ${user.email}: ${errorDetails}`,
-          userId: user.user_id,
-        });
-
-        const resetErrorMessage =
-          err instanceof Error ? err.message : m.failed();
-
-        return {
-          error: resetErrorMessage,
-          screen: await resetPasswordScreen({
-            ...context,
-            errors: { password: resetErrorMessage },
-          }),
-        };
       }
+
+      const errorMessage =
+        result.error === "code_expired" ? m.codeExpired() : result.error;
+
+      return {
+        error: errorMessage,
+        screen: await resetPasswordScreen({
+          ...context,
+          errors: { [result.field]: errorMessage },
+        }),
+      };
     },
   },
 };

@@ -457,6 +457,29 @@
       "successTitle": "E-mail til nulstilling af adgangskode sendt",
       "title": "Har du glemt din adgangskode?",
       "user-not-found": "Bruger ikke fundet"
+    },
+    "reset-password-code": {
+      "backToLoginText": "Tilbage til login",
+      "buttonText": "Nulstil adgangskode",
+      "codeLabel": "Nulstillingskode",
+      "codePlaceholder": "Indtast 6-cifret kode",
+      "confirmPasswordLabel": "Bekræft adgangskode",
+      "confirmPasswordPlaceholder": "Bekræft adgangskode",
+      "defaultDescription": "Indtast koden sendt til din e-mail og vælg en ny adgangskode",
+      "description": "Vi sendte en kode til ${email}",
+      "failed": "Nulstilling af adgangskode mislykkedes. Prøv venligst igen.",
+      "invalidCode": "Den indtastede kode er ugyldig eller udløbet",
+      "noCode": "Indtast venligst nulstillingskoden",
+      "pageTitle": "Indtast nulstillingskode | ${clientName}",
+      "passwordLabel": "Ny adgangskode",
+      "passwordPlaceholder": "Ny adgangskode",
+      "passwordTooWeak": "Adgangskoden er for svag",
+      "passwordsDidntMatch": "Adgangskoderne matcher ikke",
+      "resendFailed": "Kunne ikke sende koden igen. Prøv igen.",
+      "resendSuccess": "En ny kode er blevet sendt til din e-mail",
+      "resendText": "Send kode igen",
+      "sessionExpired": "Din session er udløbet. Prøv venligst igen.",
+      "title": "Indtast nulstillingskode"
     }
   },
   "signup": {

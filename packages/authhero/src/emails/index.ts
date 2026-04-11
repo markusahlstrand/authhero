@@ -89,21 +89,14 @@ export async function sendSms(
   });
 }
 
-export async function sendResetPassword(
+async function buildEmailContext(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
-  to: string,
-  // auth0 just has a ticket, but we have a code and a state
-  code: string,
-  state?: string,
   language?: string,
 ) {
   const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
   if (!tenant) {
     throw new HTTPException(500, { message: "Tenant not found" });
   }
-
-  // the auth0 link looks like this:  https://auth.sesamy.dev/u/reset-verify?ticket={ticket}#
-  const passwordResetUrl = `${getUniversalLoginUrl(ctx.env)}reset-password?state=${state}&code=${code}`;
 
   const branding = await ctx.env.data.branding.get(ctx.var.tenant_id);
   const logo = branding?.logo_url || "";
@@ -113,6 +106,25 @@ export async function sendResetPassword(
     vendorName: tenant.friendly_name,
     lng: language || "en",
   };
+
+  return { tenant, logo, buttonColor, options };
+}
+
+export async function sendResetPassword(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  to: string,
+  // auth0 just has a ticket, but we have a code and a state
+  code: string,
+  state?: string,
+  language?: string,
+) {
+  const { tenant, logo, buttonColor, options } = await buildEmailContext(
+    ctx,
+    language,
+  );
+
+  // the auth0 link looks like this:  https://auth.sesamy.dev/u/reset-verify?ticket={ticket}#
+  const passwordResetUrl = `${getUniversalLoginUrl(ctx.env)}reset-password?state=${state}&code=${code}`;
 
   await sendEmail(ctx, {
     to,
@@ -140,6 +152,51 @@ export async function sendResetPassword(
   });
 
   // Log the password reset request
+  logMessage(ctx, tenant.id, {
+    type: LogTypes.SUCCESS_CHANGE_PASSWORD_REQUEST,
+    description: to,
+  });
+}
+
+export async function sendResetPasswordCode(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  to: string,
+  code: string,
+  language?: string,
+) {
+  const { tenant, logo, buttonColor, options } = await buildEmailContext(
+    ctx,
+    language,
+  );
+
+  await sendEmail(ctx, {
+    to,
+    subject: t("reset_password_title", options),
+    html: `Your password reset code is: ${code}`,
+    template: "auth-code",
+    data: {
+      code,
+      vendorName: tenant.friendly_name,
+      logo,
+      supportUrl: tenant.support_url || "https://support.sesamy.com",
+      buttonColor,
+      welcomeToYourAccount: t("password_reset_title", options),
+      linkEmailClickToLogin: t(
+        "reset_password_email_click_to_reset",
+        options,
+      ),
+      linkEmailLogin: t("reset_password_email_reset", options),
+      linkEmailOrEnterCode: t("link_email_or_enter_code", {
+        ...options,
+        code,
+      }),
+      codeValid30Mins: t("code_valid_30_minutes", options),
+      supportInfo: t("support_info", options),
+      contactUs: t("contact_us", options),
+      copyright: t("copyright", options),
+    },
+  });
+
   logMessage(ctx, tenant.id, {
     type: LogTypes.SUCCESS_CHANGE_PASSWORD_REQUEST,
     description: to,
