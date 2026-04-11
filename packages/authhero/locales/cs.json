@@ -457,6 +457,29 @@
       "successTitle": "Zkontrolujte svůj e-mail",
       "title": "Zapomněli jste heslo?",
       "user-not-found": "Uživatel nenalezen"
+    },
+    "reset-password-code": {
+      "backToLoginText": "Zpět na přihlášení",
+      "buttonText": "Obnovit heslo",
+      "codeLabel": "Kód pro obnovení",
+      "codePlaceholder": "Zadejte 6místný kód",
+      "confirmPasswordLabel": "Potvrzení hesla",
+      "confirmPasswordPlaceholder": "Potvrzení hesla",
+      "defaultDescription": "Zadejte kód zaslaný na váš e-mail a zvolte nové heslo",
+      "description": "Odeslali jsme kód na ${email}",
+      "failed": "Obnovení hesla se nezdařilo. Zkuste to prosím znovu.",
+      "invalidCode": "Zadaný kód je neplatný nebo vypršel",
+      "noCode": "Zadejte prosím kód pro obnovení",
+      "pageTitle": "Zadejte kód pro obnovení | ${clientName}",
+      "passwordLabel": "Nové heslo",
+      "passwordPlaceholder": "Nové heslo",
+      "passwordTooWeak": "Heslo je příliš slabé",
+      "passwordsDidntMatch": "Hesla se neshodují",
+      "resendFailed": "Nepodařilo se znovu odeslat kód. Zkuste to prosím znovu.",
+      "resendSuccess": "Nový kód byl odeslán na váš e-mail",
+      "resendText": "Odeslat kód znovu",
+      "sessionExpired": "Platnost vaší relace vypršela. Zkuste to prosím znovu.",
+      "title": "Zadejte kód pro obnovení"
     }
   },
   "signup": {

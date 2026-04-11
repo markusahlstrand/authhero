@@ -457,6 +457,29 @@
       "successTitle": "Check your email",
       "title": "Forgot your password?",
       "user-not-found": "User not found"
+    },
+    "reset-password-code": {
+      "backToLoginText": "Back to login",
+      "buttonText": "Reset Password",
+      "codeLabel": "Reset Code",
+      "codePlaceholder": "Enter 6-digit code",
+      "confirmPasswordLabel": "Confirm Password",
+      "confirmPasswordPlaceholder": "Confirm password",
+      "defaultDescription": "Enter the code sent to your email and choose a new password",
+      "description": "We sent a code to ${email}",
+      "failed": "Password reset failed. Please try again.",
+      "invalidCode": "The code you entered is invalid or has expired",
+      "noCode": "Please enter the reset code",
+      "pageTitle": "Enter Reset Code | ${clientName}",
+      "passwordLabel": "New Password",
+      "passwordPlaceholder": "New password",
+      "passwordTooWeak": "Password is too weak",
+      "passwordsDidntMatch": "Passwords don't match",
+      "resendFailed": "Failed to resend the code. Please try again.",
+      "resendSuccess": "A new code has been sent to your email",
+      "resendText": "Resend code",
+      "sessionExpired": "Your session has expired. Please try again.",
+      "title": "Enter reset code"
     }
   },
   "signup": {
