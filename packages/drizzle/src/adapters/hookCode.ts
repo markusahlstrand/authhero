@@ -1,13 +1,17 @@
 import { eq, and } from "drizzle-orm";
+import { customAlphabet } from "nanoid";
 import type { HookCode, HookCodeInsert } from "@authhero/adapter-interfaces";
 import { hookCode } from "../schema/sqlite";
 import { convertDatesToAdapter } from "../helpers/dates";
 import type { DrizzleDb } from "./types";
 
+const generateId = customAlphabet(
+  "0123456789abcdefghijklmnopqrstuvwxyz",
+  17,
+);
+
 function generateHookCodeId(): string {
-  const { customAlphabet } = require("nanoid");
-  const generate = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 17);
-  return `hc_${generate()}`;
+  return `hc_${generateId()}`;
 }
 
 function sqlToHookCode(row: any): HookCode {

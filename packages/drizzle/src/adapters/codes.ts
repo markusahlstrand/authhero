@@ -29,18 +29,21 @@ export function createCodesAdapter(db: DrizzleDb) {
       code_id: string,
       code_type: string,
     ): Promise<Code | null> {
-      let query = db
-        .select()
-        .from(codes)
-        .where(and(eq(codes.code_id, code_id), eq(codes.code_type, code_type)))
-        .$dynamic();
-
-      // tenant_id is optional in some cases
-      if (tenant_id && tenant_id.length > 0) {
-        query = query.where(eq(codes.tenant_id, tenant_id));
+      if (!tenant_id) {
+        throw new Error("tenant_id is required");
       }
 
-      const result = await query.get();
+      const result = await db
+        .select()
+        .from(codes)
+        .where(
+          and(
+            eq(codes.tenant_id, tenant_id),
+            eq(codes.code_id, code_id),
+            eq(codes.code_type, code_type),
+          ),
+        )
+        .get();
 
       if (!result) return null;
       return sqlToCode(result);

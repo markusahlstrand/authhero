@@ -171,12 +171,16 @@ export const hookCodeRoutes = new OpenAPIHono<{
       const { id } = ctx.req.valid("param");
       const body = ctx.req.valid("json");
 
-      await ctx.env.data.hookCode.update(ctx.var.tenant_id, id, body);
-      const hookCode = await ctx.env.data.hookCode.get(ctx.var.tenant_id, id);
-
-      if (!hookCode) {
+      const updated = await ctx.env.data.hookCode.update(
+        ctx.var.tenant_id,
+        id,
+        body,
+      );
+      if (!updated) {
         throw new HTTPException(404, { message: "Hook code not found" });
       }
+
+      const hookCode = await ctx.env.data.hookCode.get(ctx.var.tenant_id, id);
 
       // Re-deploy to execution environment if supported
       if (body.code && ctx.env.codeExecutor?.deploy) {

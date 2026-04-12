@@ -71,6 +71,8 @@ export default {
       }), { status: 200, headers: { "Content-Type": "application/json" } });
     }
 
+    let getCalls;
+
     try {
       const { triggerId, event } = await request.json();
       const fnName = fnNames[triggerId];
@@ -84,10 +86,11 @@ export default {
         }), { status: 200, headers: { "Content-Type": "application/json" } });
       }
 
-      const { api, getCalls } = createRecordingApiProxy(triggerId);
+      const proxy = createRecordingApiProxy(triggerId);
+      getCalls = proxy.getCalls;
 
       if (typeof exports[fnName] === "function") {
-        await exports[fnName](event, api);
+        await exports[fnName](event, proxy.api);
       }
 
       return new Response(JSON.stringify({
@@ -101,7 +104,7 @@ export default {
         success: false,
         error: err instanceof Error ? err.message : String(err),
         durationMs: Date.now() - start,
-        apiCalls: [],
+        apiCalls: getCalls ? getCalls() : [],
       }), { status: 200, headers: { "Content-Type": "application/json" } });
     }
   },

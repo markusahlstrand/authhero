@@ -137,11 +137,10 @@ function createUserHooks(
         per_page: 100,
         include_totals: false,
       });
-      const preRegCodeHooks = allHooks.filter(
-        (h: any) => h.enabled && isCodeHook(h),
-      );
+      const preRegCodeHooks = allHooks
+        .filter((h) => h.enabled)
+        .filter(isCodeHook);
       for (const hook of preRegCodeHooks) {
-        if (!isCodeHook(hook)) continue;
         try {
           await handleCodeHook(
             ctx,

@@ -112,8 +112,8 @@ export function init(config: AuthHeroConfig) {
       ctx.env.poweredByLogo = config.poweredByLogo;
     }
 
-    // Add codeExecutor from config if provided
-    if (config.codeExecutor) {
+    // Add codeExecutor from config if provided, but don't overwrite an existing one
+    if (ctx.env.codeExecutor == null && config.codeExecutor) {
       ctx.env.codeExecutor = config.codeExecutor;
     }
 

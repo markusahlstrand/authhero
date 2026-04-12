@@ -86,7 +86,14 @@ export const triggerHandlerNames: Record<string, string> = {
 /** Returns the default code template for the given trigger ID. */
 export function getDefaultCodeTemplate(triggerId?: string): string {
   const handlerName =
-    (triggerId && triggerHandlerNames[triggerId]) || "onExecutePostLogin";
+    triggerId && triggerHandlerNames[triggerId];
+  if (!handlerName) {
+    return `// Replace "onExecuteHandler" with the handler for your trigger
+exports.onExecuteHandler = async (event, api) => {
+  // Add your custom logic here
+};
+`;
+  }
   return `exports.${handlerName} = async (event, api) => {
   // Add your custom logic here
 };

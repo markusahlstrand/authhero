@@ -26,7 +26,16 @@ export function get(db: Kysely<Database>) {
     return {
       ...rest,
       ...dates,
-      secrets: secrets ? JSON.parse(secrets) : undefined,
+      secrets: secrets
+        ? (() => {
+            try {
+              return JSON.parse(secrets);
+            } catch {
+              console.warn(`Failed to parse secrets for hook_code ${id}`);
+              return undefined;
+            }
+          })()
+        : undefined,
     } as HookCode;
   };
 }

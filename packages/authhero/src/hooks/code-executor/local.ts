@@ -88,9 +88,10 @@ export class LocalCodeExecutor implements CodeExecutor {
       const wrappedCode = `
         const exports = {};
         ${params.code}
-        if (typeof exports.${fnName} === 'function') {
-          return exports.${fnName}(event, api);
+        if (typeof exports.${fnName} !== 'function') {
+          throw new Error('Expected export exports.${fnName} not found');
         }
+        return exports.${fnName}(event, api);
       `;
 
       const fn = new Function("event", "api", wrappedCode);

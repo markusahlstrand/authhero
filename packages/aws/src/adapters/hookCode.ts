@@ -11,7 +11,7 @@ interface HookCodeItem extends DynamoDBBaseItem {
   id: string;
   tenant_id: string;
   code: string;
-  secrets?: string;
+  secrets?: string | null;
 }
 
 const hookCodeKeys = {
@@ -41,7 +41,7 @@ export function createHookCodeAdapter(ctx: DynamoDBContext): HookCodeAdapter {
         id,
         tenant_id: tenantId,
         code: input.code,
-        secrets: input.secrets ? JSON.stringify(input.secrets) : undefined,
+        secrets: input.secrets ? JSON.stringify(input.secrets) : null,
         created_at: now,
         updated_at: now,
       };

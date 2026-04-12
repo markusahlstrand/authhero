@@ -1,19 +1,14 @@
 import { Context } from "hono";
-import { DataAdapters, LogTypes } from "@authhero/adapter-interfaces";
+import { DataAdapters, Hook, LogTypes } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
 import { HookEvent, OnExecuteCredentialsExchangeAPI } from "../types/Hooks";
 import { logMessage } from "../helpers/logging";
 
 // Type guard for code hooks
-export function isCodeHook(
-  hook: any,
-): hook is { code_id: string; hook_id: string; enabled: boolean } {
-  return (
-    typeof hook === "object" &&
-    hook !== null &&
-    typeof hook.code_id === "string" &&
-    typeof hook.enabled === "boolean"
-  );
+type CodeHook = Extract<Hook, { code_id: string }>;
+
+export function isCodeHook(hook: Hook): hook is CodeHook {
+  return "code_id" in hook;
 }
 
 /**

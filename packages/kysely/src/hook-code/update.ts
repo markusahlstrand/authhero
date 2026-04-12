@@ -20,13 +20,13 @@ export function update(db: Kysely<Database>) {
       sqlValues.secrets = JSON.stringify(hookCode.secrets);
     }
 
-    await db
+    const result = await db
       .updateTable("hook_code")
       .set(sqlValues)
       .where("hook_code.id", "=", id)
       .where("hook_code.tenant_id", "=", tenant_id)
-      .execute();
+      .executeTakeFirst();
 
-    return true;
+    return result.numUpdatedRows > 0;
   };
 }

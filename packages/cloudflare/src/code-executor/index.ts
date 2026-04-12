@@ -47,6 +47,12 @@ export interface CloudflareCodeExecutorConfig {
    * Only used when `dispatcher` is not provided.
    */
   dispatchUrl?: string;
+
+  /**
+   * Cloudflare Workers compatibility date used when deploying scripts.
+   * Defaults to "2024-11-20" if not provided.
+   */
+  compatibilityDate?: string;
 }
 
 /**
@@ -80,7 +86,14 @@ export class CloudflareCodeExecutor implements CodeExecutor {
     hookCodeId?: string;
     triggerId: string;
     event: Record<string, unknown>;
+    /** Wall-clock timeout (ms). Used for HTTP-based fallback invocation. */
     timeoutMs?: number;
+    /**
+     * CPU-time limit (ms) passed to the Cloudflare dispatcher binding.
+     * Unlike timeoutMs (wall-clock), this caps only actual CPU cycles;
+     * I/O wait does not count against it. Defaults to 5 000 ms.
+     */
+    cpuLimitMs?: number;
   }): Promise<CodeExecutionResult> {
     const start = Date.now();
 
@@ -107,7 +120,7 @@ export class CloudflareCodeExecutor implements CodeExecutor {
         const workerHandle = this.config.dispatcher.get(
           scriptName,
           {},
-          { limits: { cpuMs: params.timeoutMs ?? 5000 } },
+          { limits: { cpuMs: params.cpuLimitMs ?? 5000 } },
         );
         response = await workerHandle.fetch(
           new Request("https://hook.internal/execute", {
@@ -172,7 +185,7 @@ export class CloudflareCodeExecutor implements CodeExecutor {
 
     const metadata = JSON.stringify({
       main_module: "index.js",
-      compatibility_date: "2024-11-20",
+      compatibility_date: this.config.compatibilityDate ?? "2024-11-20",
     });
 
     const formData = new FormData();
