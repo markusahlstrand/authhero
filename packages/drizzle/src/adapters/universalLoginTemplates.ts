@@ -3,9 +3,7 @@ import type { UniversalLoginTemplate } from "@authhero/adapter-interfaces";
 import { universalLoginTemplates } from "../schema/sqlite";
 import type { DrizzleDb } from "./types";
 
-export function createUniversalLoginTemplatesAdapter(
-  db: DrizzleDb,
-) {
+export function createUniversalLoginTemplatesAdapter(db: DrizzleDb) {
   return {
     async get(tenant_id: string): Promise<UniversalLoginTemplate | null> {
       const result = await db

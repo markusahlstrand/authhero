@@ -2,9 +2,7 @@ import { eq, and } from "drizzle-orm";
 import { userPermissions, resourceServers } from "../schema/sqlite";
 import type { DrizzleDb } from "./types";
 
-export function createUserPermissionsAdapter(
-  db: DrizzleDb,
-) {
+export function createUserPermissionsAdapter(db: DrizzleDb) {
   return {
     async create(
       tenant_id: string,
@@ -50,9 +48,7 @@ export function createUserPermissionsAdapter(
       ];
 
       if (organization_id) {
-        conditions.push(
-          eq(userPermissions.organization_id, organization_id),
-        );
+        conditions.push(eq(userPermissions.organization_id, organization_id));
       }
 
       const results = await db
@@ -69,10 +65,7 @@ export function createUserPermissionsAdapter(
             .where(
               and(
                 eq(resourceServers.tenant_id, tenant_id),
-                eq(
-                  resourceServers.identifier,
-                  row.resource_server_identifier,
-                ),
+                eq(resourceServers.identifier, row.resource_server_identifier),
               ),
             )
             .get();
@@ -80,8 +73,7 @@ export function createUserPermissionsAdapter(
           return {
             resource_server_identifier: row.resource_server_identifier,
             permission_name: row.permission_name,
-            resource_server_name:
-              rs?.name || row.resource_server_identifier,
+            resource_server_name: rs?.name || row.resource_server_identifier,
             organization_id:
               row.organization_id === "" ? undefined : row.organization_id,
           };
@@ -111,10 +103,7 @@ export function createUserPermissionsAdapter(
               permission.resource_server_identifier,
             ),
             eq(userPermissions.permission_name, permission.permission_name),
-            eq(
-              userPermissions.organization_id,
-              organization_id || "",
-            ),
+            eq(userPermissions.organization_id, organization_id || ""),
           ),
         )
         .returning();

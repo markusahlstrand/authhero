@@ -198,5 +198,4 @@ describe("screen-api form-urlencoded POST", () => {
     const body = (await postResponse.json()) as { screen: { name: string } };
     expect(body.screen).toBeTruthy();
   });
-
 });

@@ -12,7 +12,14 @@ function generateOrganizationId(): string {
 }
 
 function sqlToOrganization(row: any): Organization {
-  const { tenant_id: _, branding, metadata, enabled_connections, token_quota, ...rest } = row;
+  const {
+    tenant_id: _,
+    branding,
+    metadata,
+    enabled_connections,
+    token_quota,
+    ...rest
+  } = row;
   return removeNullProperties({
     ...rest,
     branding: parseJsonIfString(branding, {}),

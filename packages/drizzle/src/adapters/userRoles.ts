@@ -65,10 +65,7 @@ export function createUserRolesAdapter(db: DrizzleDb) {
             .select()
             .from(roles)
             .where(
-              and(
-                eq(roles.tenant_id, tenant_id),
-                eq(roles.id, row.role_id),
-              ),
+              and(eq(roles.tenant_id, tenant_id), eq(roles.id, row.role_id)),
             )
             .get();
 

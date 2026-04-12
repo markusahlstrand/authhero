@@ -169,7 +169,10 @@ export const accountMfaTotpEnrollmentScreenDefinition: ScreenDefinition = {
       if (!code) {
         return {
           error: "Please enter the verification code",
-          screen: await reRenderWithQr(context, "Please enter the verification code"),
+          screen: await reRenderWithQr(
+            context,
+            "Please enter the verification code",
+          ),
         };
       }
 
@@ -203,20 +206,25 @@ export const accountMfaTotpEnrollmentScreenDefinition: ScreenDefinition = {
         });
         return {
           error: "Verification failed",
-          screen: await reRenderWithQr(context, "Verification failed. Please try again."),
+          screen: await reRenderWithQr(
+            context,
+            "Verification failed. Please try again.",
+          ),
         };
       }
 
       if (!valid) {
         logMessage(ctx, tenant.id, {
           type: LogTypes.MFA_AUTH_FAILED,
-          description:
-            "MFA TOTP enrollment verification failed - invalid code",
+          description: "MFA TOTP enrollment verification failed - invalid code",
           userId: user.user_id,
         });
         return {
           error: "Invalid code",
-          screen: await reRenderWithQr(context, "Invalid code. Please try again."),
+          screen: await reRenderWithQr(
+            context,
+            "Invalid code. Please try again.",
+          ),
         };
       }
 

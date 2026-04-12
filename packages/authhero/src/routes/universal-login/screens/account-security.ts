@@ -106,17 +106,15 @@ export async function accountSecurityScreen(
     });
 
     // Hidden fields for remove action
-    components.push(
-      {
-        id: "enrollment_id",
-        type: "TEXT",
-        category: "FIELD",
-        visible: false,
-        config: {},
-        required: false,
-        order: 1,
-      },
-    );
+    components.push({
+      id: "enrollment_id",
+      type: "TEXT",
+      category: "FIELD",
+      visible: false,
+      config: {},
+      required: false,
+      order: 1,
+    });
   }
 
   // Build "Add method" links based on tenant MFA factor config

@@ -51,7 +51,11 @@ export function createCustomTextAdapter(db: DrizzleDb) {
           updated_at_ts: now,
         })
         .onConflictDoUpdate({
-          target: [customText.tenant_id, customText.prompt, customText.language],
+          target: [
+            customText.tenant_id,
+            customText.prompt,
+            customText.language,
+          ],
           set: { custom_text: stringified, updated_at_ts: now },
         });
     },

@@ -2,9 +2,7 @@ import { eq, and, or, inArray } from "drizzle-orm";
 import { rolePermissions, resourceServers } from "../schema/sqlite";
 import type { DrizzleDb } from "./types";
 
-export function createRolePermissionsAdapter(
-  db: DrizzleDb,
-) {
+export function createRolePermissionsAdapter(db: DrizzleDb) {
   return {
     async assign(
       tenant_id: string,

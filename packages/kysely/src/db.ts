@@ -121,6 +121,16 @@ const sqlHookSchema = z.object({
   url: z.string().optional().nullable(),
   form_id: z.string().optional().nullable(),
   template_id: z.string().optional().nullable(),
+  code_id: z.string().optional().nullable(),
+});
+
+export const sqlHookCodeSchema = z.object({
+  id: z.string(),
+  tenant_id: z.string(),
+  code: z.string(),
+  secrets: z.string().optional().nullable(),
+  created_at_ts: z.number(),
+  updated_at_ts: z.number(),
 });
 
 const sqlEmailProvidersSchema = z.object({
@@ -398,6 +408,7 @@ export interface Database {
   custom_domains: z.infer<typeof sqlCustomDomainSchema>;
   email_providers: z.infer<typeof sqlEmailProvidersSchema>;
   forms: z.infer<typeof sqlFormSchema>;
+  hook_code: z.infer<typeof sqlHookCodeSchema>;
   hooks: z.infer<typeof sqlHookSchema>;
   keys: SigningKey & { created_at: string };
   login_sessions: z.infer<typeof sqlLoginSchema>;

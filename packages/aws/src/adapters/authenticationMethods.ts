@@ -108,9 +108,7 @@ export function createAuthenticationMethodsAdapter(
         },
       );
 
-      const item = result.items.find(
-        (i) => i.credential_id === credentialId,
-      );
+      const item = result.items.find((i) => i.credential_id === credentialId);
 
       if (!item) return null;
       return toAuthenticationMethod(item);

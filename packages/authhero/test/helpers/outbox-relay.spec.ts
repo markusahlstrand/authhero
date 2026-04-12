@@ -6,9 +6,7 @@ import {
   EventDestination,
 } from "../../src/helpers/outbox-relay";
 
-function makeOutboxEvent(
-  overrides: Partial<OutboxEvent> = {},
-): OutboxEvent {
+function makeOutboxEvent(overrides: Partial<OutboxEvent> = {}): OutboxEvent {
   return {
     id: "evt-1",
     tenant_id: "tenant-1",
@@ -105,11 +103,7 @@ describe("processOutboxEvents", () => {
     });
     const destination = makeDestination();
 
-    await processOutboxEvents(
-      outbox,
-      ["evt-1", "evt-2"],
-      [destination],
-    );
+    await processOutboxEvents(outbox, ["evt-1", "evt-2"], [destination]);
 
     expect(outbox.getByIds).toHaveBeenCalledWith(["evt-1"]);
     expect(destination.deliver).toHaveBeenCalledTimes(1);
@@ -127,11 +121,7 @@ describe("processOutboxEvents", () => {
     });
     const destination = makeDestination();
 
-    await processOutboxEvents(
-      outbox,
-      ["evt-1", "evt-2"],
-      [destination],
-    );
+    await processOutboxEvents(outbox, ["evt-1", "evt-2"], [destination]);
 
     expect(destination.deliver).toHaveBeenCalledTimes(2);
     expect(outbox.markProcessed).toHaveBeenCalledWith(["evt-1", "evt-2"]);

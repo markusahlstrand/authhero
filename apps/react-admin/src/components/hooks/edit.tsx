@@ -81,6 +81,7 @@ export function HookEdit() {
     if (formData?.url) return "webhook";
     if (formData?.form_id) return "form";
     if (formData?.template_id) return "template";
+    if (formData?.code_id) return "code";
     return undefined;
   };
 
@@ -100,7 +101,9 @@ export function HookEdit() {
                       ? "Form hook"
                       : type === "template"
                         ? "Template hook"
-                        : ""}
+                        : type === "code"
+                          ? "Code hook"
+                          : ""}
                 </Typography>
                 {type === "webhook" && (
                   <TextInput
@@ -138,6 +141,15 @@ export function HookEdit() {
                     validate={[required()]}
                     fullWidth
                     helperText="The pre-defined hook template to execute"
+                  />
+                )}
+                {type === "code" && (
+                  <TextInput
+                    source="code_id"
+                    label="Code ID"
+                    fullWidth
+                    helperText="The ID of the hook code record"
+                    disabled
                   />
                 )}
               </>

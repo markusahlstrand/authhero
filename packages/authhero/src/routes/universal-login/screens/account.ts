@@ -41,8 +41,7 @@ export async function accountScreen(
       PASSKEY_TYPES.includes(e.type as (typeof PASSKEY_TYPES)[number]),
     ).length;
     mfaCount = confirmed.filter(
-      (e) =>
-        !PASSKEY_TYPES.includes(e.type as (typeof PASSKEY_TYPES)[number]),
+      (e) => !PASSKEY_TYPES.includes(e.type as (typeof PASSKEY_TYPES)[number]),
     ).length;
   } catch {
     // MFA adapter may not exist
@@ -91,9 +90,10 @@ export async function accountScreen(
     {
       href: `${routePrefix}/account/security?state=${stateParam}`,
       label: "Security Settings",
-      detail: mfaCount > 0
-        ? `${mfaCount} method${mfaCount !== 1 ? "s" : ""} configured`
-        : "Multi-factor authentication",
+      detail:
+        mfaCount > 0
+          ? `${mfaCount} method${mfaCount !== 1 ? "s" : ""} configured`
+          : "Multi-factor authentication",
     },
   ];
 
@@ -101,18 +101,20 @@ export async function accountScreen(
     navItems.push({
       href: `${routePrefix}/account/passkeys?state=${stateParam}`,
       label: "Passkeys",
-      detail: passkeyCount > 0
-        ? `${passkeyCount} passkey${passkeyCount !== 1 ? "s" : ""} registered`
-        : "Sign in without a password",
+      detail:
+        passkeyCount > 0
+          ? `${passkeyCount} passkey${passkeyCount !== 1 ? "s" : ""} registered`
+          : "Sign in without a password",
     });
   }
 
   navItems.push({
     href: `${routePrefix}/account/linked?state=${stateParam}`,
     label: "Linked Accounts",
-    detail: linkedIdentities.length > 0
-      ? `${linkedIdentities.length} linked account${linkedIdentities.length !== 1 ? "s" : ""}`
-      : "Connect social accounts",
+    detail:
+      linkedIdentities.length > 0
+        ? `${linkedIdentities.length} linked account${linkedIdentities.length !== 1 ? "s" : ""}`
+        : "Connect social accounts",
   });
 
   const navLinksHtml = navItems

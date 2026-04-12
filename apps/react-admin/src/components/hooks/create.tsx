@@ -12,6 +12,7 @@ import {
 } from "react-admin";
 import { useFormContext, useWatch } from "react-hook-form";
 import {
+  codeHookTriggerChoices,
   getTemplateChoicesForTrigger,
   hookTemplates,
   triggerChoices,
@@ -75,6 +76,7 @@ export function HooksCreate() {
     { id: "webhook", name: "Webhook" },
     { id: "form", name: "Form" },
     { id: "template", name: "Template" },
+    { id: "code", name: "Code" },
   ];
 
   return (
@@ -136,16 +138,31 @@ export function HooksCreate() {
                 />
               );
             }
+            if (formData.type === "code") {
+              return (
+                <>
+                  <TextInput
+                    source="code_id"
+                    label="Code ID"
+                    validate={[required()]}
+                    fullWidth
+                    helperText="The ID of the hook code record (create one first via the API)"
+                  />
+                </>
+              );
+            }
             return null;
           }}
         </FormDataConsumer>
         <FormDataConsumer>
           {({ formData }) => {
-            // When type is "template", only show triggers that have templates
+            // Narrow trigger choices based on hook type
             const filteredTriggerChoices =
               formData.type === "template"
                 ? triggerChoicesWithTemplatesOnly
-                : triggerChoices;
+                : formData.type === "code"
+                  ? codeHookTriggerChoices
+                  : triggerChoices;
 
             return (
               <SelectInput

@@ -1305,10 +1305,7 @@ export function ClientEdit() {
             label="Allowed Logout URLs"
           />
           <StringArrayInput source="web_origins" label="Web Origins" />
-          <StringArrayInput
-            source="allowed_clients"
-            label="Allowed Clients"
-          />
+          <StringArrayInput source="allowed_clients" label="Allowed Clients" />
           <Labeled label="Created At">
             <DateField source="created_at" showTime={true} />
           </Labeled>

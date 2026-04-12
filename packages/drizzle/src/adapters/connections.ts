@@ -2,10 +2,7 @@ import { eq, and, count as countFn, asc, desc } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 import type { Connection, ListParams } from "@authhero/adapter-interfaces";
 import { connections } from "../schema/sqlite";
-import {
-  removeNullProperties,
-  parseJsonIfString,
-} from "../helpers/transform";
+import { removeNullProperties, parseJsonIfString } from "../helpers/transform";
 import { buildLuceneFilter } from "../helpers/filter";
 import type { DrizzleDb } from "./types";
 
@@ -57,7 +54,10 @@ export function createConnectionsAdapter(db: DrizzleDb) {
       return sqlToConnection(connection);
     },
 
-    async get(tenant_id: string, connection_id: string): Promise<Connection | null> {
+    async get(
+      tenant_id: string,
+      connection_id: string,
+    ): Promise<Connection | null> {
       const result = await db
         .select()
         .from(connections)
@@ -124,7 +124,9 @@ export function createConnectionsAdapter(db: DrizzleDb) {
       if (q) {
         const lucene = buildLuceneFilter(connections, q, ["name"]);
         if (lucene)
-          query = query.where(and(eq(connections.tenant_id, tenant_id), lucene));
+          query = query.where(
+            and(eq(connections.tenant_id, tenant_id), lucene),
+          );
       }
 
       if (sort?.sort_by) {

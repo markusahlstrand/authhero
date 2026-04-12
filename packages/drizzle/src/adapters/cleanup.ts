@@ -21,9 +21,7 @@ export function createSessionCleanup(db: DrizzleDb) {
         conditions.push(eq(refreshTokens.tenant_id, params.tenant_id));
       }
 
-      await db
-        .delete(refreshTokens)
-        .where(and(...conditions));
+      await db.delete(refreshTokens).where(and(...conditions));
 
       // Delete expired sessions
       conditions = [
@@ -39,9 +37,7 @@ export function createSessionCleanup(db: DrizzleDb) {
         conditions.push(eq(sessions.user_id, params.user_id));
       }
 
-      await db
-        .delete(sessions)
-        .where(and(...conditions));
+      await db.delete(sessions).where(and(...conditions));
 
       // Delete expired login sessions
       conditions = [lt(loginSessions.expires_at_ts, cutoffTime)];
@@ -49,9 +45,7 @@ export function createSessionCleanup(db: DrizzleDb) {
         conditions.push(eq(loginSessions.tenant_id, params.tenant_id));
       }
 
-      await db
-        .delete(loginSessions)
-        .where(and(...conditions));
+      await db.delete(loginSessions).where(and(...conditions));
     } catch (error) {
       console.error("Session cleanup error:", error);
     }

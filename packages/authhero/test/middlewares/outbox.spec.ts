@@ -20,9 +20,7 @@ import { outboxMiddleware } from "../../src/middlewares/outbox";
 import { processOutboxEvents } from "../../src/helpers/outbox-relay";
 import { waitUntil } from "../../src/helpers/wait-until";
 
-function makeOutbox(
-  overrides: Partial<OutboxAdapter> = {},
-): OutboxAdapter {
+function makeOutbox(overrides: Partial<OutboxAdapter> = {}): OutboxAdapter {
   return {
     create: vi.fn().mockResolvedValue("evt-new"),
     getByIds: vi.fn().mockResolvedValue([]),

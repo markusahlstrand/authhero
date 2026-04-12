@@ -20,18 +20,19 @@ export function createStatsAdapter(db: DrizzleDb) {
       const results = await db
         .select({
           date: sql<string>`substr(${logs.date}, 1, 10)`.as("date"),
-          logins:
-            sql<number>`SUM(CASE WHEN ${logs.type} IN (${sql.join(LOGIN_TYPES.map((t) => sql`${t}`), sql`, `)}) THEN 1 ELSE 0 END)`.as(
-              "logins",
-            ),
+          logins: sql<number>`SUM(CASE WHEN ${logs.type} IN (${sql.join(
+            LOGIN_TYPES.map((t) => sql`${t}`),
+            sql`, `,
+          )}) THEN 1 ELSE 0 END)`.as("logins"),
           signups:
             sql<number>`SUM(CASE WHEN ${logs.type} = 'ss' THEN 1 ELSE 0 END)`.as(
               "signups",
             ),
           leaked_passwords:
-            sql<number>`SUM(CASE WHEN ${logs.type} IN (${sql.join(LEAKED_PASSWORD_TYPES.map((t) => sql`${t}`), sql`, `)}) THEN 1 ELSE 0 END)`.as(
-              "leaked_passwords",
-            ),
+            sql<number>`SUM(CASE WHEN ${logs.type} IN (${sql.join(
+              LEAKED_PASSWORD_TYPES.map((t) => sql`${t}`),
+              sql`, `,
+            )}) THEN 1 ELSE 0 END)`.as("leaked_passwords"),
         })
         .from(logs)
         .where(
@@ -69,7 +70,10 @@ export function createStatsAdapter(db: DrizzleDb) {
           and(
             eq(logs.tenant_id, tenant_id),
             gte(logs.date, thirtyDaysAgo),
-            sql`${logs.type} IN (${sql.join(LOGIN_TYPES.map((t) => sql`${t}`), sql`, `)})`,
+            sql`${logs.type} IN (${sql.join(
+              LOGIN_TYPES.map((t) => sql`${t}`),
+              sql`, `,
+            )})`,
           ),
         );
 

@@ -1,4 +1,4 @@
-import { DataAdapters } from "@authhero/adapter-interfaces";
+import { CodeExecutor, DataAdapters } from "@authhero/adapter-interfaces";
 import type { SamlSigner } from "@authhero/saml/core";
 import { Hooks } from "./Hooks";
 import {
@@ -55,6 +55,10 @@ export type Bindings = {
     href?: string;
     height?: number;
   };
+
+  // Optional code executor for user-authored code hooks
+  // Set via init({ codeExecutor: ... })
+  codeExecutor?: CodeExecutor;
 
   // Optional custom webhook invoker
   // Set via init({ webhookInvoker: ... })

@@ -58,14 +58,8 @@ export const screenRegistry: Map<string, ScreenDefinition> = new Map([
   ["account", accountScreenDefinition],
   ["account-profile", accountProfileScreenDefinition],
   ["account-security", accountSecurityScreenDefinition],
-  [
-    "account-mfa-totp-enrollment",
-    accountMfaTotpEnrollmentScreenDefinition,
-  ],
-  [
-    "account-mfa-phone-enrollment",
-    accountMfaPhoneEnrollmentScreenDefinition,
-  ],
+  ["account-mfa-totp-enrollment", accountMfaTotpEnrollmentScreenDefinition],
+  ["account-mfa-phone-enrollment", accountMfaPhoneEnrollmentScreenDefinition],
   ["account-linked", accountLinkedScreenDefinition],
   ["account-delete", accountDeleteScreenDefinition],
   ["account-passkeys", accountPasskeysScreenDefinition],

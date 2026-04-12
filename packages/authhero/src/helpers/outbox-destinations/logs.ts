@@ -71,8 +71,7 @@ export class LogsDestination implements EventDestination {
       } catch (error) {
         // Idempotent: if this event was already delivered (e.g., cron retry after
         // per-request delivery succeeded but markProcessed failed), skip it.
-        const message =
-          error instanceof Error ? error.message : String(error);
+        const message = error instanceof Error ? error.message : String(error);
         if (
           message.includes("UNIQUE constraint failed") ||
           message.includes("Duplicate entry")

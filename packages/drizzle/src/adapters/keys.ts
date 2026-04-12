@@ -14,8 +14,12 @@ export function createKeysAdapter(db: DrizzleDb) {
     },
 
     async list(params?: ListParams) {
-      const { page = 0, per_page = 50, include_totals = false, sort } =
-        params || {};
+      const {
+        page = 0,
+        per_page = 50,
+        include_totals = false,
+        sort,
+      } = params || {};
 
       const now = new Date().toISOString();
 
@@ -58,7 +62,10 @@ export function createKeysAdapter(db: DrizzleDb) {
       };
     },
 
-    async update(kid: string, signingKey: Partial<SigningKey>): Promise<boolean> {
+    async update(
+      kid: string,
+      signingKey: Partial<SigningKey>,
+    ): Promise<boolean> {
       const results = await db
         .update(keys)
         .set(signingKey as any)

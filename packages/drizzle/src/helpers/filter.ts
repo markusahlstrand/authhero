@@ -145,7 +145,9 @@ export function buildLuceneFilter<T extends SQLiteTableWithColumns<any>>(
               : sql`${sql.identifier(key)} IS NOT NULL`,
           );
         } else {
-          conditions.push(sql`${sql.identifier(key)} ${sql.raw(isNegation ? "!=" : (operator ?? "="))} ${value}`);
+          conditions.push(
+            sql`${sql.identifier(key)} ${sql.raw(isNegation ? "!=" : (operator ?? "="))} ${value}`,
+          );
         }
         continue;
       }

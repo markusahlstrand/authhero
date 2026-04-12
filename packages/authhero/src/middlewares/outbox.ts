@@ -2,10 +2,7 @@ import { Context, MiddlewareHandler } from "hono";
 import { OutboxAdapter } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
 import { waitUntil } from "../helpers/wait-until";
-import {
-  processOutboxEvents,
-  EventDestination,
-} from "../helpers/outbox-relay";
+import { processOutboxEvents, EventDestination } from "../helpers/outbox-relay";
 
 type Ctx = Context<{ Bindings: Bindings; Variables: Variables }>;
 

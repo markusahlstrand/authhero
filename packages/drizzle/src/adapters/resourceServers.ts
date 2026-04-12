@@ -37,7 +37,14 @@ const VALID_COLUMNS = new Set([
 ]);
 
 function sqlToResourceServer(row: any): ResourceServer {
-  const { tenant_id: _, verification_key, scopes, options, metadata, ...rest } = row;
+  const {
+    tenant_id: _,
+    verification_key,
+    scopes,
+    options,
+    metadata,
+    ...rest
+  } = row;
   const result: any = { ...rest };
 
   result.scopes = parseJsonIfString(scopes, []);
@@ -57,9 +64,7 @@ function sqlToResourceServer(row: any): ResourceServer {
   return removeNullProperties(result);
 }
 
-export function createResourceServersAdapter(
-  db: DrizzleDb,
-) {
+export function createResourceServersAdapter(db: DrizzleDb) {
   return {
     async create(tenant_id: string, params: any): Promise<ResourceServer> {
       const now = new Date().toISOString();
@@ -99,10 +104,7 @@ export function createResourceServersAdapter(
       return sqlToResourceServer({ ...values, tenant_id });
     },
 
-    async get(
-      tenant_id: string,
-      id: string,
-    ): Promise<ResourceServer | null> {
+    async get(tenant_id: string, id: string): Promise<ResourceServer | null> {
       const result = await db
         .select()
         .from(resourceServers)
@@ -170,10 +172,18 @@ export function createResourceServersAdapter(
     },
 
     async list(tenant_id: string, params?: ListParams) {
-      const { page: rawPage = 0, per_page: rawPerPage = 50, include_totals = false, sort, q } =
-        params || {};
+      const {
+        page: rawPage = 0,
+        per_page: rawPerPage = 50,
+        include_totals = false,
+        sort,
+        q,
+      } = params || {};
       const page = Math.max(0, Math.floor(Number(rawPage) || 0));
-      const per_page = Math.min(Math.max(1, Math.floor(Number(rawPerPage) || 50)), 500);
+      const per_page = Math.min(
+        Math.max(1, Math.floor(Number(rawPerPage) || 50)),
+        500,
+      );
 
       const whereConditions = [eq(resourceServers.tenant_id, tenant_id)];
 

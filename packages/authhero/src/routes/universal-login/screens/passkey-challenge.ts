@@ -123,7 +123,9 @@ async function passkeyChallengeScreen(
 
   // Build WebAuthn authentication script and ceremony data
   let extraScript: string | undefined;
-  let ceremony: ReturnType<typeof buildWebAuthnAuthenticationCeremony> | undefined;
+  let ceremony:
+    | ReturnType<typeof buildWebAuthnAuthenticationCeremony>
+    | undefined;
   if (extra?.optionsJSON) {
     extraScript = buildWebAuthnAuthenticationScript(extra.optionsJSON);
     ceremony = buildWebAuthnAuthenticationCeremony(extra.optionsJSON);

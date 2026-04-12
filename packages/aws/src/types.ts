@@ -45,7 +45,8 @@ export type EntityType =
   | "CLIENT_CONNECTION"
   | "UNIVERSAL_LOGIN_TEMPLATE"
   | "CUSTOM_TEXT"
-  | "AUTHENTICATION_METHOD";
+  | "AUTHENTICATION_METHOD"
+  | "HOOK_CODE";
 
 /**
  * Base DynamoDB item structure for single-table design

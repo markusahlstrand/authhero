@@ -64,3 +64,20 @@ export const triggerChoices = [
 export const triggerChoicesWithTemplatesOnly = triggerChoices.filter((c) =>
   triggerIdsWithTemplates.has(c.id),
 );
+
+/** Trigger IDs supported by code hooks. */
+export const codeHookTriggerChoices = triggerChoices.filter((c) =>
+  [
+    "post-user-login",
+    "credentials-exchange",
+    "pre-user-registration",
+    "post-user-registration",
+  ].includes(c.id),
+);
+
+/** Default code template shown when creating a new code hook. */
+export const defaultCodeTemplate = `exports.onExecutePostLogin = async (event, api) => {
+  // Add custom claims to the access token
+  // api.accessToken.setCustomClaim("custom_key", "custom_value");
+};
+`;

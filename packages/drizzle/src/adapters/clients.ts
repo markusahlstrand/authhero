@@ -79,7 +79,11 @@ function sqlToClient(row: any): Client {
 function clientToSql(client: Partial<Client>): any {
   const sql: any = { ...client };
 
-  booleanToInt(client, BOOLEAN_FIELDS as unknown as (keyof typeof client)[], sql);
+  booleanToInt(
+    client,
+    BOOLEAN_FIELDS as unknown as (keyof typeof client)[],
+    sql,
+  );
 
   for (const field of JSON_ARRAY_FIELDS) {
     if ((client as any)[field] !== undefined) {
@@ -225,8 +229,13 @@ export function createClientsAdapter(db: DrizzleDb): ClientsAdapter {
     },
 
     async list(tenant_id: string, params?: ListParams) {
-      const { page = 0, per_page = 50, include_totals = false, sort, q } =
-        params || {};
+      const {
+        page = 0,
+        per_page = 50,
+        include_totals = false,
+        sort,
+        q,
+      } = params || {};
 
       let query = db
         .select()

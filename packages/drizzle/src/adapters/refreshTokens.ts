@@ -35,9 +35,7 @@ function sqlToRefreshToken(row: any): RefreshToken {
   });
 }
 
-export function createRefreshTokensAdapter(
-  db: DrizzleDb,
-) {
+export function createRefreshTokensAdapter(db: DrizzleDb) {
   return {
     async create(tenant_id: string, token: any): Promise<RefreshToken> {
       const now = Date.now();
@@ -67,10 +65,7 @@ export function createRefreshTokensAdapter(
         .select()
         .from(refreshTokens)
         .where(
-          and(
-            eq(refreshTokens.tenant_id, tenant_id),
-            eq(refreshTokens.id, id),
-          ),
+          and(eq(refreshTokens.tenant_id, tenant_id), eq(refreshTokens.id, id)),
         )
         .get();
 
@@ -101,10 +96,7 @@ export function createRefreshTokensAdapter(
         .update(refreshTokens)
         .set(updateData)
         .where(
-          and(
-            eq(refreshTokens.tenant_id, tenant_id),
-            eq(refreshTokens.id, id),
-          ),
+          and(eq(refreshTokens.tenant_id, tenant_id), eq(refreshTokens.id, id)),
         )
         .returning();
 
@@ -112,8 +104,13 @@ export function createRefreshTokensAdapter(
     },
 
     async list(tenant_id: string, params?: ListParams) {
-      const { page = 0, per_page = 50, include_totals = false, sort, q } =
-        params || {};
+      const {
+        page = 0,
+        per_page = 50,
+        include_totals = false,
+        sort,
+        q,
+      } = params || {};
 
       let query = db
         .select()
@@ -162,10 +159,7 @@ export function createRefreshTokensAdapter(
       const results = await db
         .delete(refreshTokens)
         .where(
-          and(
-            eq(refreshTokens.tenant_id, tenant_id),
-            eq(refreshTokens.id, id),
-          ),
+          and(eq(refreshTokens.tenant_id, tenant_id), eq(refreshTokens.id, id)),
         )
         .returning();
 

@@ -814,7 +814,12 @@ export const createOrganizationHttpClient = (organizationId: string) => {
       const auth0Client = createAuth0Client(selectedDomain);
       const audience = getConfigValue("audience") || "urn:authhero:management";
 
-      request = getOrgAccessToken(auth0Client, normalizedOrgId, audience, formattedSelectedDomain)
+      request = getOrgAccessToken(
+        auth0Client,
+        normalizedOrgId,
+        audience,
+        formattedSelectedDomain,
+      )
         .catch(async (_error) => {
           const user = await auth0Client.getUser().catch(() => null);
           await auth0Client.loginWithRedirect({

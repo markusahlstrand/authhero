@@ -1,9 +1,13 @@
-import { List, Datagrid, TextField, BooleanField, TextInput } from "react-admin";
+import {
+  List,
+  Datagrid,
+  TextField,
+  BooleanField,
+  TextInput,
+} from "react-admin";
 import { PostListActions } from "../listActions/PostListActions";
 
-const filters = [
-  <TextInput key="search" label="Search" source="q" alwaysOn />,
-];
+const filters = [<TextInput key="search" label="Search" source="q" alwaysOn />];
 
 export function DomainList() {
   return (

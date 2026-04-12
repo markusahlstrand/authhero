@@ -14,9 +14,7 @@ function sqlToCustomDomain(row: any): CustomDomain {
   });
 }
 
-export function createCustomDomainsAdapter(
-  db: DrizzleDb,
-) {
+export function createCustomDomainsAdapter(db: DrizzleDb) {
   return {
     async create(tenant_id: string, params: any): Promise<CustomDomain> {
       const now = new Date().toISOString();

@@ -9,6 +9,7 @@ import { clientRoutes } from "./clients";
 import { tenantRoutes } from "./tenants";
 import { logRoutes } from "./logs";
 import { hooksRoutes } from "./hooks";
+import { hookCodeRoutes } from "./hook-code";
 import { connectionRoutes } from "./connections";
 import { promptsRoutes } from "./prompts";
 import { registerComponent } from "../../middlewares/register-component";
@@ -239,6 +240,7 @@ export default function create(config: AuthHeroConfig) {
     .route("/client-grants", clientGrantRoutes)
     .route("/logs", logRoutes)
     .route("/hooks", hooksRoutes)
+    .route("/hook-code", hookCodeRoutes)
     .route("/connections", connectionRoutes)
     .route("/prompts", promptsRoutes)
     .route("/sessions", sessionsRoutes)

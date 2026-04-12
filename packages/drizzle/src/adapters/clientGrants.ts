@@ -11,7 +11,14 @@ import { buildLuceneFilter } from "../helpers/filter";
 import type { DrizzleDb } from "./types";
 
 function sqlToClientGrant(row: any): ClientGrant {
-  const { tenant_id: _, scope, authorization_details_types, allow_any_organization, is_system, ...rest } = row;
+  const {
+    tenant_id: _,
+    scope,
+    authorization_details_types,
+    allow_any_organization,
+    is_system,
+    ...rest
+  } = row;
   return removeNullProperties({
     ...rest,
     scope: parseJsonIfString(scope, []),
@@ -57,10 +64,7 @@ export function createClientGrantsAdapter(db: DrizzleDb) {
         .select()
         .from(clientGrants)
         .where(
-          and(
-            eq(clientGrants.tenant_id, tenant_id),
-            eq(clientGrants.id, id),
-          ),
+          and(eq(clientGrants.tenant_id, tenant_id), eq(clientGrants.id, id)),
         )
         .get();
 
@@ -99,10 +103,7 @@ export function createClientGrantsAdapter(db: DrizzleDb) {
         .update(clientGrants)
         .set(updateData)
         .where(
-          and(
-            eq(clientGrants.tenant_id, tenant_id),
-            eq(clientGrants.id, id),
-          ),
+          and(eq(clientGrants.tenant_id, tenant_id), eq(clientGrants.id, id)),
         )
         .returning();
 
@@ -110,8 +111,13 @@ export function createClientGrantsAdapter(db: DrizzleDb) {
     },
 
     async list(tenant_id: string, params?: ListParams) {
-      const { page = 0, per_page = 50, include_totals = false, sort, q } =
-        params || {};
+      const {
+        page = 0,
+        per_page = 50,
+        include_totals = false,
+        sort,
+        q,
+      } = params || {};
 
       const luceneFilter = q
         ? buildLuceneFilter(clientGrants, q, ["client_id", "audience"])
@@ -162,10 +168,7 @@ export function createClientGrantsAdapter(db: DrizzleDb) {
       const results = await db
         .delete(clientGrants)
         .where(
-          and(
-            eq(clientGrants.tenant_id, tenant_id),
-            eq(clientGrants.id, id),
-          ),
+          and(eq(clientGrants.tenant_id, tenant_id), eq(clientGrants.id, id)),
         )
         .returning();
 

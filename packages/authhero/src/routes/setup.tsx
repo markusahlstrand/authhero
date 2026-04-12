@@ -74,13 +74,13 @@ export default function createSetupApp(config: AuthHeroConfig) {
       ],
       ...(error
         ? {
-          messages: [
-            {
-              type: "error",
-              text: error,
-            },
-          ],
-        }
+            messages: [
+              {
+                type: "error",
+                text: error,
+              },
+            ],
+          }
         : {}),
     };
   }

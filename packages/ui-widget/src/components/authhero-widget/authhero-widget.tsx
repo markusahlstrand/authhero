@@ -1005,10 +1005,7 @@ export class AuthheroWidget {
       const a = new Uint8Array(b);
       let s = "";
       for (let i = 0; i < a.length; i++) s += String.fromCharCode(a[i]);
-      return btoa(s)
-        .replace(/\+/g, "-")
-        .replace(/\//g, "_")
-        .replace(/=+$/, "");
+      return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
     };
 
     const findForm = (): HTMLFormElement | null => {
@@ -1034,13 +1031,13 @@ export class AuthheroWidget {
           type: p.type as PublicKeyCredentialType,
         })),
         timeout: opts.timeout,
-        attestation: (opts.attestation || "none") as AttestationConveyancePreference,
+        attestation: (opts.attestation ||
+          "none") as AttestationConveyancePreference,
         authenticatorSelection: opts.authenticatorSelection
           ? {
               residentKey: (opts.authenticatorSelection.residentKey ||
                 "preferred") as ResidentKeyRequirement,
-              userVerification: (opts.authenticatorSelection
-                .userVerification ||
+              userVerification: (opts.authenticatorSelection.userVerification ||
                 "preferred") as UserVerificationRequirement,
             }
           : undefined,
@@ -1136,10 +1133,7 @@ export class AuthheroWidget {
       const a = new Uint8Array(b);
       let s = "";
       for (let i = 0; i < a.length; i++) s += String.fromCharCode(a[i]);
-      return btoa(s)
-        .replace(/\+/g, "-")
-        .replace(/\//g, "_")
-        .replace(/=+$/, "");
+      return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
     };
 
     const findForm = (): HTMLFormElement | null => {
@@ -1266,10 +1260,7 @@ export class AuthheroWidget {
       const a = new Uint8Array(b);
       let s = "";
       for (let i = 0; i < a.length; i++) s += String.fromCharCode(a[i]);
-      return btoa(s)
-        .replace(/\+/g, "-")
-        .replace(/\//g, "_")
-        .replace(/=+$/, "");
+      return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
     };
 
     try {
@@ -1582,9 +1573,7 @@ export class AuthheroWidget {
     const components = allComponents
       .filter((c) => c.visible !== false)
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-    const hiddenComponents = allComponents.filter(
-      (c) => c.visible === false,
-    );
+    const hiddenComponents = allComponents.filter((c) => c.visible === false);
 
     // Separate social, divider, and field components for layout ordering
     const socialComponents = components.filter((c) =>

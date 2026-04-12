@@ -16,6 +16,7 @@ import { createConnectionsAdapter } from "./adapters/connections";
 import { createLoginSessionsAdapter } from "./adapters/loginSessions";
 import { createBrandingAdapter } from "./adapters/branding";
 import { createUniversalLoginTemplatesAdapter } from "./adapters/universalLoginTemplates";
+import { createHookCodeAdapter } from "./adapters/hookCode";
 import { createHooksAdapter } from "./adapters/hooks";
 import { createKeysAdapter } from "./adapters/keys";
 import { createCustomDomainsAdapter } from "./adapters/customDomains";
@@ -79,6 +80,7 @@ export default function createAdapters(
     emailProviders: createEmailProvidersAdapter(ctx),
     flows: createFlowsAdapter(ctx),
     forms: createFormsAdapter(ctx),
+    hookCode: createHookCodeAdapter(ctx),
     hooks: createHooksAdapter(ctx),
     invites: createInvitesAdapter(ctx),
     keys: createKeysAdapter(ctx),

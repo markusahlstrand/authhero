@@ -110,7 +110,7 @@ async function accountPasskeysScreen(
               ${createdAt ? `<div style="font-size:13px;color:#6b7280;margin-top:2px">Added ${escapeHtml(createdAt)}</div>` : ""}
             </div>
             <div style="display:flex;gap:8px">
-              <button type="submit" name="action" value="rename_passkey" style="background:none;border:1px solid #d1d5db;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;color:#374151" onclick="return (function(btn){var f=btn.closest('form');if(!f){var w=document.querySelector('authhero-widget');if(w&&w.shadowRoot)f=w.shadowRoot.querySelector('form')}if(f){var p=f.querySelector('[name=&quot;passkey_id&quot;]');if(p)p.value='${escapeHtml(passkey.id)}';var n=prompt('Enter a new name for this passkey:',${JSON.stringify(name).replace(/"/g, '&quot;')});if(n===null)return false;var fn=f.querySelector('[name=&quot;friendly_name&quot;]');if(fn)fn.value=n;return true}return false})(this)">Rename</button>
+              <button type="submit" name="action" value="rename_passkey" style="background:none;border:1px solid #d1d5db;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;color:#374151" onclick="return (function(btn){var f=btn.closest('form');if(!f){var w=document.querySelector('authhero-widget');if(w&&w.shadowRoot)f=w.shadowRoot.querySelector('form')}if(f){var p=f.querySelector('[name=&quot;passkey_id&quot;]');if(p)p.value='${escapeHtml(passkey.id)}';var n=prompt('Enter a new name for this passkey:',${JSON.stringify(name).replace(/"/g, "&quot;")});if(n===null)return false;var fn=f.querySelector('[name=&quot;friendly_name&quot;]');if(fn)fn.value=n;return true}return false})(this)">Rename</button>
               <button type="submit" name="action" value="remove_passkey" style="background:none;border:1px solid #fecaca;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;color:#dc2626" onclick="(function(btn){var f=btn.closest('form');if(!f){var w=document.querySelector('authhero-widget');if(w&&w.shadowRoot)f=w.shadowRoot.querySelector('form')}if(f){var p=f.querySelector('[name=&quot;passkey_id&quot;]');if(p)p.value='${escapeHtml(passkey.id)}'}})(this)">Remove</button>
             </div>
           </div>
@@ -339,9 +339,8 @@ async function handleAccountPasskeysSubmit(
       const excludeCredentials = enrollments
         .filter(
           (e) =>
-            PASSKEY_TYPES.includes(
-              e.type as (typeof PASSKEY_TYPES)[number],
-            ) && e.credential_id,
+            PASSKEY_TYPES.includes(e.type as (typeof PASSKEY_TYPES)[number]) &&
+            e.credential_id,
         )
         .map((e) => ({
           id: e.credential_id!,
@@ -423,9 +422,7 @@ async function handleAccountPasskeysSubmit(
         error: "Missing credential data",
         screen: await accountPasskeysScreen({
           ...context,
-          messages: [
-            { text: "Missing credential data", type: "error" },
-          ],
+          messages: [{ text: "Missing credential data", type: "error" }],
         }),
       };
     }
@@ -460,9 +457,7 @@ async function handleAccountPasskeysSubmit(
           error: "Invalid credential",
           screen: await accountPasskeysScreen({
             ...context,
-            messages: [
-              { text: "Invalid credential data", type: "error" },
-            ],
+            messages: [{ text: "Invalid credential data", type: "error" }],
           }),
         };
       }
@@ -483,9 +478,7 @@ async function handleAccountPasskeysSubmit(
           error: "Verification failed",
           screen: await accountPasskeysScreen({
             ...context,
-            messages: [
-              { text: "Passkey verification failed", type: "error" },
-            ],
+            messages: [{ text: "Passkey verification failed", type: "error" }],
           }),
         };
       }
@@ -533,7 +526,10 @@ async function handleAccountPasskeysSubmit(
         screen: await accountPasskeysScreen({
           ...context,
           messages: [
-            { text: "Passkey registration failed. Please try again.", type: "error" },
+            {
+              text: "Passkey registration failed. Please try again.",
+              type: "error",
+            },
           ],
         }),
       };

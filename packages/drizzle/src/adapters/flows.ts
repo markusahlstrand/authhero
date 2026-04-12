@@ -71,8 +71,12 @@ export function createFlowsAdapter(db: DrizzleDb) {
     },
 
     async list(tenant_id: string, params?: ListParams) {
-      const { page = 0, per_page = 50, include_totals = false, sort } =
-        params || {};
+      const {
+        page = 0,
+        per_page = 50,
+        include_totals = false,
+        sort,
+      } = params || {};
 
       let query = db
         .select()
