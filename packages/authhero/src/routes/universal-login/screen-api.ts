@@ -217,14 +217,6 @@ const uiScreenSchema = z.object({
     .optional(),
 });
 
-/**
- * Screen API response schema
- */
-const screenResponseSchema = z.object({
-  screen: uiScreenSchema,
-  branding: brandingResponseSchema.optional(),
-});
-
 const webAuthnRegistrationCeremonySchema = z.object({
   type: z.literal("webauthn-registration"),
   options: z.object({
@@ -285,10 +277,18 @@ const webAuthnCeremonySchema = z.union([
   webAuthnAuthenticationCeremonySchema,
 ]);
 
+/**
+ * Screen API response schema
+ */
+const screenResponseSchema = z.object({
+  screen: uiScreenSchema,
+  branding: brandingResponseSchema.optional(),
+  ceremony: webAuthnCeremonySchema.optional(),
+});
+
 const screenPostResponseSchema = screenResponseSchema.extend({
   screenId: z.string().optional(),
   navigateUrl: z.string().optional(),
-  ceremony: webAuthnCeremonySchema.optional(),
 });
 
 /**
@@ -938,8 +938,17 @@ screenApiRoutes.openapi(
           ],
         },
       );
+      if (!errorResult) {
+        console.error(
+          `getDatabaseScreen returned null for screenId=${screenId}, state=${state}, nodeId=${dbResult.nodeId}`,
+        );
+        return ctx.json(
+          { error: "Failed to render error screen" },
+          400,
+        );
+      }
       return ctx.json(
-        { screen: errorResult!.screen, branding: screenContext.branding },
+        { screen: errorResult.screen, branding: screenContext.branding },
         400,
       );
     }

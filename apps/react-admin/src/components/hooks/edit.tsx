@@ -18,6 +18,7 @@ import {
 import { useFormContext, useWatch } from "react-hook-form";
 import { Typography } from "@mui/material";
 import {
+  codeHookTriggerChoices,
   getTemplateChoicesForTrigger,
   hookTemplates,
   triggerChoices,
@@ -63,6 +64,15 @@ function validateHookForm(values: Record<string, any>) {
     if (meta && meta.trigger_id !== values.trigger_id) {
       errors.template_id =
         "This template is not compatible with the selected trigger";
+    }
+  }
+  if (values.code_id && values.trigger_id) {
+    const isValidCodeTrigger = codeHookTriggerChoices.some(
+      (c) => c.id === values.trigger_id,
+    );
+    if (!isValidCodeTrigger) {
+      errors.trigger_id =
+        "This trigger is not supported by code hooks";
     }
   }
   return errors;
@@ -156,7 +166,20 @@ export function HookEdit() {
             );
           }}
         </FormDataConsumer>
-        <SelectInput source="trigger_id" choices={triggerChoices} required />
+        <FormDataConsumer>
+          {({ formData }) => {
+            const type = getType(formData ?? record);
+            const filteredTriggerChoices =
+              type === "code" ? codeHookTriggerChoices : triggerChoices;
+            return (
+              <SelectInput
+                source="trigger_id"
+                choices={filteredTriggerChoices}
+                required
+              />
+            );
+          }}
+        </FormDataConsumer>
         <BooleanInput source="enabled" />
         <BooleanInput
           source="synchronous"

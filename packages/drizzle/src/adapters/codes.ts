@@ -90,12 +90,13 @@ export function createCodesAdapter(db: DrizzleDb) {
     },
 
     async used(tenant_id: string, code_id: string): Promise<boolean> {
-      await db
+      const results = await db
         .update(codes)
         .set({ used_at: new Date().toISOString() })
-        .where(and(eq(codes.tenant_id, tenant_id), eq(codes.code_id, code_id)));
+        .where(and(eq(codes.tenant_id, tenant_id), eq(codes.code_id, code_id)))
+        .returning();
 
-      return true;
+      return results.length > 0;
     },
 
     async consume(tenant_id: string, code_id: string): Promise<boolean> {

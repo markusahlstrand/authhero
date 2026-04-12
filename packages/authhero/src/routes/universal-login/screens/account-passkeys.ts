@@ -110,8 +110,8 @@ async function accountPasskeysScreen(
               ${createdAt ? `<div style="font-size:13px;color:#6b7280;margin-top:2px">Added ${escapeHtml(createdAt)}</div>` : ""}
             </div>
             <div style="display:flex;gap:8px">
-              <button type="submit" name="action" value="rename_passkey" style="background:none;border:1px solid #d1d5db;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;color:#374151" onclick="return (function(btn){var f=btn.closest('form');if(!f){var w=document.querySelector('authhero-widget');if(w&&w.shadowRoot)f=w.shadowRoot.querySelector('form')}if(f){var p=f.querySelector('[name=&quot;passkey_id&quot;]');if(p)p.value='${escapeHtml(passkey.id)}';var n=prompt('Enter a new name for this passkey:',${JSON.stringify(name).replace(/"/g, "&quot;")});if(n===null)return false;var fn=f.querySelector('[name=&quot;friendly_name&quot;]');if(fn)fn.value=n;return true}return false})(this)">Rename</button>
-              <button type="submit" name="action" value="remove_passkey" style="background:none;border:1px solid #fecaca;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;color:#dc2626" onclick="(function(btn){var f=btn.closest('form');if(!f){var w=document.querySelector('authhero-widget');if(w&&w.shadowRoot)f=w.shadowRoot.querySelector('form')}if(f){var p=f.querySelector('[name=&quot;passkey_id&quot;]');if(p)p.value='${escapeHtml(passkey.id)}'}})(this)">Remove</button>
+              <button type="submit" name="action" value="rename_passkey" class="rename-passkey-btn" data-passkey-id="${escapeHtml(passkey.id)}" data-friendly-name="${name}" style="background:none;border:1px solid #d1d5db;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;color:#374151">Rename</button>
+              <button type="submit" name="action" value="remove_passkey" class="remove-passkey-btn" data-passkey-id="${escapeHtml(passkey.id)}" style="background:none;border:1px solid #fecaca;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;color:#dc2626">Remove</button>
             </div>
           </div>
         `;
@@ -200,10 +200,38 @@ async function accountPasskeysScreen(
     messages,
   };
 
+  // Event listeners for passkey rename/remove buttons (avoids inline JS injection)
+  const passkeyScript =
+    passkeys.length > 0
+      ? `(function(){
+function getForm(el){var f=el.closest('form');if(!f){var w=document.querySelector('authhero-widget');if(w&&w.shadowRoot)f=w.shadowRoot.querySelector('form')}return f}
+function setup(root){
+root.querySelectorAll('.rename-passkey-btn').forEach(function(btn){
+btn.addEventListener('click',function(e){
+var f=getForm(btn);if(!f){e.preventDefault();return}
+var p=f.querySelector('[name="passkey_id"]');if(p)p.value=btn.dataset.passkeyId;
+var n=prompt('Enter a new name for this passkey:',btn.dataset.friendlyName);
+if(n===null){e.preventDefault();return}
+var fn=f.querySelector('[name="friendly_name"]');if(fn)fn.value=n;
+})});
+root.querySelectorAll('.remove-passkey-btn').forEach(function(btn){
+btn.addEventListener('click',function(){
+var f=getForm(btn);if(!f)return;
+var p=f.querySelector('[name="passkey_id"]');if(p)p.value=btn.dataset.passkeyId;
+})});
+}
+setup(document);var w=document.querySelector('authhero-widget');if(w&&w.shadowRoot)setup(w.shadowRoot);
+})()`
+      : undefined;
+
+  const combinedScript = [passkeyScript, extra?.extraScript]
+    .filter(Boolean)
+    .join("\n") || undefined;
+
   return {
     screen,
     branding,
-    extraScript: extra?.extraScript,
+    extraScript: combinedScript,
     ceremony: extra?.ceremony,
   };
 }

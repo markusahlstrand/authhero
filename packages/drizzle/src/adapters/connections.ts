@@ -117,17 +117,14 @@ export function createConnectionsAdapter(db: DrizzleDb) {
         q,
       } = params || {};
 
-      let baseFilter = eq(connections.tenant_id, tenant_id);
-
-      let query = db.select().from(connections).where(baseFilter).$dynamic();
+      let filter = eq(connections.tenant_id, tenant_id);
 
       if (q) {
         const lucene = buildLuceneFilter(connections, q, ["name"]);
-        if (lucene)
-          query = query.where(
-            and(eq(connections.tenant_id, tenant_id), lucene),
-          );
+        if (lucene) filter = and(filter, lucene)!;
       }
+
+      let query = db.select().from(connections).where(filter).$dynamic();
 
       if (sort?.sort_by) {
         const col = (connections as any)[sort.sort_by];
@@ -148,7 +145,7 @@ export function createConnectionsAdapter(db: DrizzleDb) {
       const [countResult] = await db
         .select({ count: countFn() })
         .from(connections)
-        .where(baseFilter);
+        .where(filter);
 
       return {
         connections: mapped,

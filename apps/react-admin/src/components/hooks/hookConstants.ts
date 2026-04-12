@@ -75,9 +75,20 @@ export const codeHookTriggerChoices = triggerChoices.filter((c) =>
   ].includes(c.id),
 );
 
-/** Default code template shown when creating a new code hook. */
-export const defaultCodeTemplate = `exports.onExecutePostLogin = async (event, api) => {
-  // Add custom claims to the access token
-  // api.accessToken.setCustomClaim("custom_key", "custom_value");
+/** Maps trigger IDs to the expected export function name for code hooks. */
+export const triggerHandlerNames: Record<string, string> = {
+  "post-user-login": "onExecutePostLogin",
+  "credentials-exchange": "onExecuteCredentialsExchange",
+  "pre-user-registration": "onExecutePreUserRegistration",
+  "post-user-registration": "onExecutePostUserRegistration",
+};
+
+/** Returns the default code template for the given trigger ID. */
+export function getDefaultCodeTemplate(triggerId?: string): string {
+  const handlerName =
+    (triggerId && triggerHandlerNames[triggerId]) || "onExecutePostLogin";
+  return `exports.${handlerName} = async (event, api) => {
+  // Add your custom logic here
 };
 `;
+}
