@@ -206,7 +206,7 @@ export const hookCodeRoutes = new OpenAPIHono<{
         "not_required";
       let deploymentError: string | undefined;
 
-      if (body.code && ctx.env.codeExecutor?.deploy) {
+      if (body.code !== undefined && ctx.env.codeExecutor?.deploy) {
         try {
           await ctx.env.codeExecutor.deploy(id, body.code);
           deploymentStatus = "deployed";
