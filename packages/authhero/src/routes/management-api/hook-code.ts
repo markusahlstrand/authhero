@@ -8,6 +8,11 @@ import {
 import { logMessage } from "../../helpers/logging";
 import { HTTPException } from "hono/http-exception";
 
+const hookCodeResponseSchema = hookCodeSchema.extend({
+  deploymentStatus: z.enum(["deployed", "failed", "not_required"]),
+  deploymentError: z.string().optional(),
+});
+
 export const hookCodeRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
@@ -41,7 +46,7 @@ export const hookCodeRoutes = new OpenAPIHono<{
         201: {
           content: {
             "application/json": {
-              schema: hookCodeSchema,
+              schema: hookCodeResponseSchema,
             },
           },
           description: "The created hook code",
@@ -57,13 +62,21 @@ export const hookCodeRoutes = new OpenAPIHono<{
       );
 
       // Deploy to execution environment if supported
+      let deploymentStatus: "deployed" | "failed" | "not_required" =
+        "not_required";
+      let deploymentError: string | undefined;
+
       if (ctx.env.codeExecutor?.deploy) {
         try {
           await ctx.env.codeExecutor.deploy(hookCode.id, body.code);
+          deploymentStatus = "deployed";
         } catch (err) {
+          deploymentStatus = "failed";
+          deploymentError =
+            err instanceof Error ? err.message : String(err);
           await logMessage(ctx, ctx.var.tenant_id, {
             type: LogTypes.FAILED_HOOK,
-            description: `Failed to deploy hook code ${hookCode.id}: ${err instanceof Error ? err.message : String(err)}`,
+            description: `Failed to deploy hook code ${hookCode.id}: ${deploymentError}`,
           });
         }
       }
@@ -75,7 +88,10 @@ export const hookCodeRoutes = new OpenAPIHono<{
         targetId: hookCode.id,
       });
 
-      return ctx.json(hookCode, { status: 201 });
+      return ctx.json(
+        { ...hookCode, deploymentStatus, deploymentError },
+        { status: 201 },
+      );
     },
   )
   // --------------------------------
@@ -157,7 +173,7 @@ export const hookCodeRoutes = new OpenAPIHono<{
         200: {
           content: {
             "application/json": {
-              schema: hookCodeSchema,
+              schema: hookCodeResponseSchema,
             },
           },
           description: "The updated hook code",
@@ -181,15 +197,26 @@ export const hookCodeRoutes = new OpenAPIHono<{
       }
 
       const hookCode = await ctx.env.data.hookCode.get(ctx.var.tenant_id, id);
+      if (!hookCode) {
+        throw new HTTPException(404, { message: "Hook code not found" });
+      }
 
       // Re-deploy to execution environment if supported
+      let deploymentStatus: "deployed" | "failed" | "not_required" =
+        "not_required";
+      let deploymentError: string | undefined;
+
       if (body.code && ctx.env.codeExecutor?.deploy) {
         try {
           await ctx.env.codeExecutor.deploy(id, body.code);
+          deploymentStatus = "deployed";
         } catch (err) {
+          deploymentStatus = "failed";
+          deploymentError =
+            err instanceof Error ? err.message : String(err);
           await logMessage(ctx, ctx.var.tenant_id, {
             type: LogTypes.FAILED_HOOK,
-            description: `Failed to deploy hook code ${id}: ${err instanceof Error ? err.message : String(err)}`,
+            description: `Failed to deploy hook code ${id}: ${deploymentError}`,
           });
         }
       }
@@ -201,7 +228,7 @@ export const hookCodeRoutes = new OpenAPIHono<{
         targetId: id,
       });
 
-      return ctx.json(hookCode);
+      return ctx.json({ ...hookCode, deploymentStatus, deploymentError });
     },
   )
   // --------------------------------

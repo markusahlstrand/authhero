@@ -940,7 +940,7 @@ screenApiRoutes.openapi(
       );
       if (!errorResult) {
         console.error(
-          `getDatabaseScreen returned null for screenId=${screenId}, state=${state}, nodeId=${dbResult.nodeId}`,
+          `getDatabaseScreen returned null for screenId=${screenId}, state=[REDACTED], nodeId=${dbResult.nodeId}`,
         );
         return ctx.json(
           { error: "Failed to render error screen" },
