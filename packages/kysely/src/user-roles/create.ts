@@ -29,6 +29,7 @@ export function create(db: Kysely<Database>) {
         error.code === "SQLITE_CONSTRAINT_PRIMARYKEY" ||
         error.code === "SQLITE_CONSTRAINT_UNIQUE" ||
         error.code === "SQLITE_CONSTRAINT" ||
+        error.code === "ER_DUP_ENTRY" ||
         (error.message && error.message.includes("UNIQUE constraint failed")) ||
         (error.message &&
           error.message.includes("PRIMARY KEY constraint failed"))

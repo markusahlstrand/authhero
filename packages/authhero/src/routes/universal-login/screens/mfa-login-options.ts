@@ -103,13 +103,16 @@ export const mfaLoginOptionsScreenDefinition: ScreenDefinition = {
         tenant.id,
         loginSession.user_id,
       );
+      const enabledFactors = tenant.mfa?.factors;
+      const hasWebauthn =
+        enabledFactors?.webauthn_roaming === true ||
+        enabledFactors?.webauthn_platform === true;
+      const passkeyTypes = ["passkey", "webauthn-roaming", "webauthn-platform"];
       const relevantEnrollments = enrollments.filter(
         (e) =>
-          e.type === "phone" ||
-          e.type === "totp" ||
-          e.type === "passkey" ||
-          e.type === "webauthn-roaming" ||
-          e.type === "webauthn-platform",
+          (e.type === "phone" && enabledFactors?.sms === true) ||
+          (e.type === "totp" && enabledFactors?.otp === true) ||
+          (passkeyTypes.includes(e.type) && hasWebauthn),
       );
       const confirmedEnrollments = relevantEnrollments.filter(
         (e) => e.confirmed,
@@ -150,11 +153,11 @@ export const mfaLoginOptionsScreenDefinition: ScreenDefinition = {
         }
       }
 
-      // Only show enrollment options when the user has NO existing enrollments
-      // (confirmed or pending). If they already have any MFA enrollment, they
-      // must verify an existing factor before enrolling additional ones.
-      if (relevantEnrollments.length === 0) {
-        const enrolledTypes = new Set(relevantEnrollments.map((e) => e.type));
+      // Only show enrollment options when the user has no confirmed enrollments.
+      // Pending (unconfirmed) enrollments should not block showing enroll options,
+      // so the user can resume or start a new enrollment flow.
+      if (confirmedEnrollments.length === 0) {
+        const enrolledTypes = new Set(confirmedEnrollments.map((e) => e.type));
 
         if (tenant.mfa?.factors?.otp === true && !enrolledTypes.has("totp")) {
           options.push({
@@ -229,14 +232,22 @@ export const mfaLoginOptionsScreenDefinition: ScreenDefinition = {
           client.tenant.id,
           loginSession.user_id,
         );
+        const tenant = client.tenant;
+        const enabledFactorsPost = tenant.mfa?.factors;
+        const hasWebauthnPost =
+          enabledFactorsPost?.webauthn_roaming === true ||
+          enabledFactorsPost?.webauthn_platform === true;
+        const passkeyTypesPost = [
+          "passkey",
+          "webauthn-roaming",
+          "webauthn-platform",
+        ];
         const hasExistingEnrollment = enrollments.some(
           (e) =>
-            e.confirmed ||
-            e.type === "phone" ||
-            e.type === "totp" ||
-            e.type === "passkey" ||
-            e.type === "webauthn-roaming" ||
-            e.type === "webauthn-platform",
+            e.confirmed &&
+            ((e.type === "phone" && enabledFactorsPost?.sms === true) ||
+              (e.type === "totp" && enabledFactorsPost?.otp === true) ||
+              (passkeyTypesPost.includes(e.type) && hasWebauthnPost)),
         );
         if (hasExistingEnrollment) {
           throw new HTTPException(403, {

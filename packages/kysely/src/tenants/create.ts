@@ -24,6 +24,7 @@ export function create(db: Kysely<Database>) {
         error?.message?.includes("UNIQUE constraint failed") ||
         error?.message?.includes("duplicate key") ||
         error?.code === "SQLITE_CONSTRAINT" ||
+        error?.code === "ER_DUP_ENTRY" ||
         error?.code === "23505" // PostgreSQL unique violation
       ) {
         throw new HTTPException(409, {

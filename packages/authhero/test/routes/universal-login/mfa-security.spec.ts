@@ -380,6 +380,77 @@ describe("MFA security", () => {
       expect(response.status).toBe(403);
     });
 
+    it("should block direct navigation to passkey-enrollment when user has confirmed enrollments", async () => {
+      const { managementApp, u2App, env } = await getTestServer({
+        mockEmail: true,
+        testTenantLanguage: "en",
+      });
+
+      const token = await getAdminToken();
+      await enableMultiFactorMfa(managementApp, env, token);
+
+      // Create a confirmed TOTP enrollment
+      await env.data.authenticationMethods.create("tenantId", {
+        user_id: "email|userId",
+        type: "totp",
+        totp_secret: "JBSWY3DPEHPK3PXP",
+        confirmed: true,
+      });
+
+      const loginSession = await createMfaLoginSession(env);
+
+      // Try to GET the passkey-enrollment screen directly
+      const response = await u2App.request(
+        `/passkey/enrollment?state=${encodeURIComponent(loginSession.id)}`,
+        {
+          method: "GET",
+          headers: { "tenant-id": "tenantId" },
+        },
+        env,
+      );
+
+      expect(response.status).toBe(403);
+    });
+
+    it("should block direct POST to passkey-enrollment when user has confirmed enrollments", async () => {
+      const { managementApp, u2App, env } = await getTestServer({
+        mockEmail: true,
+        testTenantLanguage: "en",
+      });
+
+      const token = await getAdminToken();
+      await enableMultiFactorMfa(managementApp, env, token);
+
+      // Create a confirmed TOTP enrollment
+      await env.data.authenticationMethods.create("tenantId", {
+        user_id: "email|userId",
+        type: "totp",
+        totp_secret: "JBSWY3DPEHPK3PXP",
+        confirmed: true,
+      });
+
+      const loginSession = await createMfaLoginSession(env);
+
+      // Try to POST to passkey-enrollment directly
+      const response = await u2App.request(
+        `/passkey/enrollment?state=${encodeURIComponent(loginSession.id)}`,
+        {
+          method: "POST",
+          headers: {
+            "tenant-id": "tenantId",
+            "content-type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            "credential-field": "{}",
+            "action-field": "register",
+          }).toString(),
+        },
+        env,
+      );
+
+      expect(response.status).toBe(403);
+    });
+
     it("should allow enrollment when user has no confirmed enrollments", async () => {
       const { managementApp, u2App, env } = await getTestServer({
         mockEmail: true,

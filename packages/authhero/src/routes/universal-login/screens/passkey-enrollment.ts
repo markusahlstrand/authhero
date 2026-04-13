@@ -21,6 +21,7 @@ import {
   completeLoginSessionContinuation,
   hasValidContinuationScope,
 } from "../../../authentication-flows/common";
+import { HTTPException } from "hono/http-exception";
 import { logMessage } from "../../../helpers/logging";
 import {
   PASSKEY_TYPES,
@@ -248,6 +249,15 @@ export const passkeyEnrollmentScreenDefinition: ScreenDefinition = {
         client.tenant.id,
         user.user_id,
       );
+
+      // Block enrollment if user already has confirmed MFA methods
+      if (enrollments.some((e) => e.confirmed)) {
+        throw new HTTPException(403, {
+          message:
+            "Cannot enroll new MFA factor while existing factors are active",
+        });
+      }
+
       const excludeCredentials = enrollments
         .filter(
           (e) =>
@@ -341,6 +351,18 @@ export const passkeyEnrollmentScreenDefinition: ScreenDefinition = {
         !isContinuation
       ) {
         return { screen: await passkeyEnrollmentScreen(context) };
+      }
+
+      // Block enrollment if user already has confirmed MFA methods
+      const existingMethods = await ctx.env.data.authenticationMethods.list(
+        client.tenant.id,
+        loginSession.user_id,
+      );
+      if (existingMethods.some((e) => e.confirmed)) {
+        throw new HTTPException(403, {
+          message:
+            "Cannot enroll new MFA factor while existing factors are active",
+        });
       }
 
       // Handle skip action — resume auth flow without enrolling

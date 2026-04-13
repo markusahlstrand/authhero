@@ -36,7 +36,8 @@ export function assign(db: Kysely<Database>) {
           // Ignore duplicate key constraint errors (SQLITE_CONSTRAINT_PRIMARYKEY)
           if (
             error.code === "SQLITE_CONSTRAINT_PRIMARYKEY" ||
-            error.code === "SQLITE_CONSTRAINT_UNIQUE"
+            error.code === "SQLITE_CONSTRAINT_UNIQUE" ||
+            error.code === "ER_DUP_ENTRY"
           ) {
             // Permission already exists, this is fine for idempotent operation
             continue;
