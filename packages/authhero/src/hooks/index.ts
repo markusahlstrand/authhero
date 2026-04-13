@@ -209,7 +209,7 @@ function createUserHooks(
 
       // Execute post-user-registration code hooks
       {
-        const { hooks: allHooks } = await data.hooks.list(tenant_id, {
+        const { hooks: allHooks } = await ctx.env.data.hooks.list(tenant_id, {
           q: "trigger_id:post-user-registration",
           page: 0,
           per_page: 100,
@@ -223,7 +223,7 @@ function createUserHooks(
           try {
             await handleCodeHook(
               ctx,
-              data,
+              ctx.env.data,
               hook,
               { ctx, user: result, request } as any,
               "post-user-registration",

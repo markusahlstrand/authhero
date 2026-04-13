@@ -226,6 +226,10 @@ export default function create(config: AuthHeroConfig) {
         throw err;
       }
 
+      // Reset to non-transactional adapters now that the transaction
+      // has committed, so deferred hooks use a live adapter.
+      ctx.env.data = applyDecorators(ctx, managementAdapter);
+
       // Run deferred post-hooks after the transaction has committed.
       // These are fire-and-forget (failures are logged, not thrown).
       const deferred = ctx.var.deferredPostHooks ?? [];
