@@ -29,31 +29,33 @@ export function createCodesAdapter(db: DrizzleDb) {
       code_id: string,
       code_type: string,
     ): Promise<Code | null> {
-      let query = db
+      if (!tenant_id) {
+        throw new Error("tenant_id is required");
+      }
+
+      const result = await db
         .select()
         .from(codes)
         .where(
           and(
+            eq(codes.tenant_id, tenant_id),
             eq(codes.code_id, code_id),
             eq(codes.code_type, code_type),
           ),
         )
-        .$dynamic();
-
-      // tenant_id is optional in some cases
-      if (tenant_id && tenant_id.length > 0) {
-        query = query.where(eq(codes.tenant_id, tenant_id));
-      }
-
-      const result = await query.get();
+        .get();
 
       if (!result) return null;
       return sqlToCode(result);
     },
 
     async list(tenant_id: string, params?: ListParams) {
-      const { page = 0, per_page = 50, include_totals = false, sort } =
-        params || {};
+      const {
+        page = 0,
+        per_page = 50,
+        include_totals = false,
+        sort,
+      } = params || {};
 
       let query = db
         .select()
@@ -91,14 +93,13 @@ export function createCodesAdapter(db: DrizzleDb) {
     },
 
     async used(tenant_id: string, code_id: string): Promise<boolean> {
-      await db
+      const results = await db
         .update(codes)
         .set({ used_at: new Date().toISOString() })
-        .where(
-          and(eq(codes.tenant_id, tenant_id), eq(codes.code_id, code_id)),
-        );
+        .where(and(eq(codes.tenant_id, tenant_id), eq(codes.code_id, code_id)))
+        .returning();
 
-      return true;
+      return results.length > 0;
     },
 
     async consume(tenant_id: string, code_id: string): Promise<boolean> {
@@ -121,9 +122,7 @@ export function createCodesAdapter(db: DrizzleDb) {
     async remove(tenant_id: string, code_id: string): Promise<boolean> {
       const results = await db
         .delete(codes)
-        .where(
-          and(eq(codes.tenant_id, tenant_id), eq(codes.code_id, code_id)),
-        )
+        .where(and(eq(codes.tenant_id, tenant_id), eq(codes.code_id, code_id)))
         .returning();
 
       return results.length > 0;

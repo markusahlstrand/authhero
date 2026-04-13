@@ -28,6 +28,7 @@ import { HookRequest } from "../types/Hooks";
 import { isFormHook, handleFormHook } from "./formhooks";
 import { isPageHook, handlePageHook } from "./pagehooks";
 import { isTemplateHook, handleTemplateHook } from "./templatehooks";
+import { isCodeHook, handleCodeHook } from "./codehooks";
 import { createServiceToken } from "../helpers/service-token";
 import { startLoginSessionHook } from "../authentication-flows/common";
 
@@ -128,6 +129,57 @@ function createUserHooks(
       }
     }
 
+    // Execute pre-user-registration code hooks
+    {
+      const { hooks: allHooks } = await data.hooks.list(tenant_id, {
+        q: "trigger_id:pre-user-registration",
+        page: 0,
+        per_page: 100,
+        include_totals: false,
+      });
+      const preRegCodeHooks = allHooks
+        .filter((h) => h.enabled)
+        .filter(isCodeHook);
+      for (const hook of preRegCodeHooks) {
+        try {
+          await handleCodeHook(
+            ctx,
+            data,
+            hook,
+            { ctx, user, request } as any,
+            "pre-user-registration",
+            {
+              user: {
+                setUserMetadata: (key: string, value: any) => {
+                  (user as any)[key] = value;
+                },
+                setLinkedTo: (primaryUserId: string) => {
+                  user.linked_to = primaryUserId;
+                },
+              },
+              access: {
+                deny: (code: string, reason?: string) => {
+                  throw new JSONHTTPException(400, {
+                    message: reason
+                      ? `Registration denied: ${code} - ${reason}`
+                      : `Registration denied: ${code}`,
+                  });
+                },
+              },
+            },
+          );
+        } catch (err) {
+          if (err instanceof HTTPException) {
+            throw err;
+          }
+          logMessage(ctx, tenant_id, {
+            type: LogTypes.FAILED_SIGNUP,
+            description: `Pre user registration code hook ${hook.hook_id} failed`,
+          });
+        }
+      }
+    }
+
     // Check for existing user with the same email and if so link the users
     let result = await linkUsersHook(data)(tenant_id, user);
 
@@ -149,6 +201,37 @@ function createUserHooks(
           type: LogTypes.FAILED_SIGNUP,
           description: "Post user registration hook failed",
         });
+      }
+    }
+
+    // Execute post-user-registration code hooks
+    {
+      const { hooks: allHooks } = await data.hooks.list(tenant_id, {
+        q: "trigger_id:post-user-registration",
+        page: 0,
+        per_page: 100,
+        include_totals: false,
+      });
+      const postRegCodeHooks = allHooks.filter(
+        (h: any) => h.enabled && isCodeHook(h),
+      );
+      for (const hook of postRegCodeHooks) {
+        if (!isCodeHook(hook)) continue;
+        try {
+          await handleCodeHook(
+            ctx,
+            data,
+            hook,
+            { ctx, user: result, request } as any,
+            "post-user-registration",
+            { user: {} },
+          );
+        } catch (err) {
+          logMessage(ctx, tenant_id, {
+            type: LogTypes.FAILED_SIGNUP,
+            description: `Post user registration code hook ${hook.hook_id} failed`,
+          });
+        }
       }
     }
 
@@ -254,9 +337,7 @@ function createUserUpdateHooks(
           });
 
           // Exclude the current user from candidates
-          const otherUsers = matchingUsers.filter(
-            (u) => u.user_id !== user_id,
-          );
+          const otherUsers = matchingUsers.filter((u) => u.user_id !== user_id);
 
           // Find an unlinked primary user (consistent with getPrimaryUserByEmail)
           const primaryCandidate = otherUsers.find((u) => !u.linked_to);
@@ -981,6 +1062,61 @@ export async function postUserLoginHook(
       logMessage(ctx, tenant_id, {
         type: LogTypes.FAILED_HOOK,
         description: `Failed to execute template hook: ${hook.template_id}`,
+      });
+    }
+  }
+
+  // Handle code hooks (execute user-authored code)
+  const codeHooks = postLoginHooks.filter(
+    (h: any) => h.enabled && isCodeHook(h),
+  );
+  for (const hook of codeHooks) {
+    if (!isCodeHook(hook)) continue;
+    try {
+      await handleCodeHook(
+        ctx,
+        data,
+        hook,
+        {
+          ctx,
+          user,
+          request: {
+            ip: ctx.var.ip || "",
+            user_agent: ctx.var.useragent || "",
+            method: ctx.req.method,
+            url: ctx.req.url,
+          },
+          tenant: { id: tenant_id },
+        } as any,
+        "post-user-login",
+        {
+          accessToken: {
+            setCustomClaim: () => {
+              throw new Error(
+                "accessToken.setCustomClaim is not supported in post-login hooks. Use the credentials-exchange hook to modify access tokens.",
+              );
+            },
+          },
+          idToken: {
+            setCustomClaim: () => {
+              throw new Error(
+                "idToken.setCustomClaim is not supported in post-login hooks. Use the credentials-exchange hook to modify ID tokens.",
+              );
+            },
+          },
+          access: {
+            deny: () => {
+              throw new Error(
+                "access.deny is not supported in post-login hooks. Use the pre-user-registration hook to deny access during signup.",
+              );
+            },
+          },
+        },
+      );
+    } catch (err) {
+      logMessage(ctx, tenant_id, {
+        type: LogTypes.FAILED_HOOK,
+        description: `Failed to execute code hook: ${hook.hook_id}`,
       });
     }
   }

@@ -575,7 +575,8 @@ export class AuthheroNode {
   private renderTextField(component: FieldComponent & { type: "TEXT" }) {
     const inputId = `input-${component.id}`;
     const errors = this.getErrors();
-    const { multiline, max_length, autocomplete } = component.config ?? {} as any;
+    const { multiline, max_length, autocomplete } =
+      component.config ?? ({} as any);
     const effectiveValue = this.getEffectiveValue();
     const hasValue = !!(effectiveValue && effectiveValue.length > 0);
 

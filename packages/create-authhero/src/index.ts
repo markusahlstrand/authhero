@@ -229,9 +229,9 @@ function generateLocalSeedFileContent(
   ];
   const conformanceCallbacks = conformance
     ? [
-      `https://localhost.emobix.co.uk:8443/test/a/${conformanceAlias}/callback`,
-      `https://localhost:8443/test/a/${conformanceAlias}/callback`,
-    ]
+        `https://localhost.emobix.co.uk:8443/test/a/${conformanceAlias}/callback`,
+        `https://localhost:8443/test/a/${conformanceAlias}/callback`,
+      ]
     : [];
   const callbacks = [...defaultCallbacks, ...conformanceCallbacks];
 

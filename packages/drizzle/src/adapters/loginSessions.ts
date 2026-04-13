@@ -108,10 +108,7 @@ export function createLoginSessionsAdapter(db: DrizzleDb) {
         .select()
         .from(loginSessions)
         .where(
-          and(
-            eq(loginSessions.tenant_id, tenant_id),
-            eq(loginSessions.id, id),
-          ),
+          and(eq(loginSessions.tenant_id, tenant_id), eq(loginSessions.id, id)),
         )
         .get();
 
@@ -159,10 +156,7 @@ export function createLoginSessionsAdapter(db: DrizzleDb) {
         .update(loginSessions)
         .set(updateData)
         .where(
-          and(
-            eq(loginSessions.tenant_id, tenant_id),
-            eq(loginSessions.id, id),
-          ),
+          and(eq(loginSessions.tenant_id, tenant_id), eq(loginSessions.id, id)),
         );
 
       return true;
@@ -172,10 +166,7 @@ export function createLoginSessionsAdapter(db: DrizzleDb) {
       const results = await db
         .delete(loginSessions)
         .where(
-          and(
-            eq(loginSessions.tenant_id, tenant_id),
-            eq(loginSessions.id, id),
-          ),
+          and(eq(loginSessions.tenant_id, tenant_id), eq(loginSessions.id, id)),
         )
         .returning();
 

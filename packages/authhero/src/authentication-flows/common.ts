@@ -31,6 +31,7 @@ import {
   isTemplateHook,
   handleCredentialsExchangeTemplateHook,
 } from "../hooks/templatehooks";
+import { handleCredentialsExchangeCodeHooks } from "../hooks/codehooks";
 import renderAuthIframe from "../utils/authIframe";
 import { calculateScopesAndPermissions } from "../helpers/scopes-permissions";
 import { JSONHTTPException } from "../errors/json-http-exception";
@@ -379,6 +380,41 @@ export async function createAuthTokens(
         }
       }
     }
+
+    // Execute credentials-exchange code hooks
+    const codeHookApi = buildCredentialsExchangeApi(
+      ctx,
+      accessTokenPayload,
+      idTokenPayload,
+    );
+
+    await handleCredentialsExchangeCodeHooks(
+      ctx,
+      hooks,
+      {
+        ctx,
+        client: client as EnrichedClient,
+        user,
+        request: {
+          ip: ctx.var.ip || "",
+          user_agent: ctx.var.useragent || "",
+          method: ctx.req?.method || "",
+          url: ctx.req?.url || "",
+        },
+        scope: authParams.scope || "",
+        grant_type: "",
+        connection:
+          connectionInfo ||
+          (connectionName
+            ? {
+                id: connectionName,
+                name: connectionName,
+                strategy: user?.provider || "auth0",
+              }
+            : undefined),
+      },
+      codeHookApi,
+    );
   }
 
   const header = {

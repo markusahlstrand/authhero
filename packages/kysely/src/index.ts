@@ -16,6 +16,7 @@ import { createCustomDomainsAdapter } from "./customDomains";
 import { createBrandingAdapter } from "./branding";
 import { createUniversalLoginTemplatesAdapter } from "./universalLoginTemplates";
 import { createHooksAdapter } from "./hooks";
+import { createHookCodeAdapter } from "./hook-code";
 import { createThemesAdapter } from "./themes";
 import { DataAdapters } from "@authhero/adapter-interfaces";
 import { createLoginAdapter } from "./loginSessions";
@@ -54,6 +55,7 @@ export default function createAdapters(
     customDomains: createCustomDomainsAdapter(db),
     flows: createFlowsAdapter(db),
     forms: createFormsAdapter(db),
+    hookCode: createHookCodeAdapter(db),
     hooks: createHooksAdapter(db),
     invites: createInvitesAdapter(db),
     keys: createKeysAdapter(db),
@@ -86,7 +88,10 @@ export default function createAdapters(
         return fn(adapters);
       }
       return db.transaction().execute(async (trx) => {
-        const trxAdapters = createAdapters(trx, { ...databaseOptions, useTransactions: false });
+        const trxAdapters = createAdapters(trx, {
+          ...databaseOptions,
+          useTransactions: false,
+        });
         return fn(trxAdapters);
       });
     },

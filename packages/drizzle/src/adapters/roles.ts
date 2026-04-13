@@ -75,8 +75,13 @@ export function createRolesAdapter(db: DrizzleDb) {
     },
 
     async list(tenantId: string, params?: ListParams) {
-      const { page = 0, per_page = 50, include_totals = false, sort, q } =
-        params || {};
+      const {
+        page = 0,
+        per_page = 50,
+        include_totals = false,
+        sort,
+        q,
+      } = params || {};
 
       const luceneFilter = q
         ? buildLuceneFilter(roles, q, ["name"])

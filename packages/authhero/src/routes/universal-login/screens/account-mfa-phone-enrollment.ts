@@ -15,9 +15,7 @@ import { logMessage } from "../../../helpers/logging";
 /**
  * Render the phone number input screen (step 1)
  */
-function phoneInputScreen(
-  context: ScreenContext,
-): ScreenResult {
+function phoneInputScreen(context: ScreenContext): ScreenResult {
   const { branding, state, errors, messages, routePrefix = "/u2" } = context;
   const stateParam = encodeURIComponent(state);
 
@@ -63,7 +61,8 @@ function phoneInputScreen(
     action: `${routePrefix}/account/security/phone-enrollment?state=${stateParam}`,
     method: "POST",
     title: "Set Up Phone (SMS)",
-    description: "Enter your phone number to receive verification codes via SMS.",
+    description:
+      "Enter your phone number to receive verification codes via SMS.",
     components,
     links: [
       {
@@ -277,7 +276,8 @@ export const accountMfaPhoneEnrollmentScreenDefinition: ScreenDefinition = {
             screen: phoneInputScreen({
               ...context,
               errors: {
-                phone_number: "Failed to send verification code. Please try again.",
+                phone_number:
+                  "Failed to send verification code. Please try again.",
               },
             }),
           };
@@ -302,7 +302,10 @@ export const accountMfaPhoneEnrollmentScreenDefinition: ScreenDefinition = {
           return {
             error: "Please enter the verification code",
             screen: codeInputScreen(
-              { ...context, errors: { code: "Please enter the verification code" } },
+              {
+                ...context,
+                errors: { code: "Please enter the verification code" },
+              },
               masked,
             ),
           };
@@ -315,23 +318,22 @@ export const accountMfaPhoneEnrollmentScreenDefinition: ScreenDefinition = {
           };
         }
 
-        const valid = await verifyMfaOtp(
-          ctx,
-          tenant.id,
-          loginSession.id,
-          code,
-        );
+        const valid = await verifyMfaOtp(ctx, tenant.id, loginSession.id, code);
 
         if (!valid) {
           logMessage(ctx, tenant.id, {
             type: LogTypes.MFA_AUTH_FAILED,
-            description: "MFA phone enrollment verification failed - invalid code",
+            description:
+              "MFA phone enrollment verification failed - invalid code",
             userId: user.user_id,
           });
           return {
             error: "Invalid code",
             screen: codeInputScreen(
-              { ...context, errors: { code: "Invalid code. Please try again." } },
+              {
+                ...context,
+                errors: { code: "Invalid code. Please try again." },
+              },
               masked,
             ),
           };

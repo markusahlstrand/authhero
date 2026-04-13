@@ -26,6 +26,13 @@ const templateHookAllowedTriggers = z.enum([
   "credentials-exchange",
 ]);
 
+const codeHookAllowedTriggers = z.enum([
+  "post-user-login",
+  "credentials-exchange",
+  "pre-user-registration",
+  "post-user-registration",
+]);
+
 // Available template IDs mapped to their trigger types
 export const hookTemplateId = z.enum([
   "ensure-username",
@@ -85,10 +92,17 @@ const templateHookInsertSchema = z.object({
   template_id: hookTemplateId,
 });
 
+const codeHookInsertSchema = z.object({
+  ...hookBaseCommonProperties,
+  trigger_id: codeHookAllowedTriggers,
+  code_id: z.string(),
+});
+
 export const hookInsertSchema = z.union([
   webHookInsertSchema,
   formHookInsertSchema,
   templateHookInsertSchema,
+  codeHookInsertSchema,
 ]);
 export type HookInsert = z.infer<typeof hookInsertSchema>;
 
@@ -116,10 +130,19 @@ const templateHookSchema = z.object({
   template_id: hookTemplateId,
 });
 
+const codeHookSchema = z.object({
+  ...hookBaseCommonProperties,
+  trigger_id: codeHookAllowedTriggers,
+  ...baseEntitySchema.shape,
+  hook_id: z.string(),
+  code_id: z.string(),
+});
+
 export const hookSchema = z.union([
   webHookSchema,
   formHookSchema,
   templateHookSchema,
+  codeHookSchema,
 ]);
 
 export type Hook = z.infer<typeof hookSchema>;

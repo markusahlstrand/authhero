@@ -24,6 +24,14 @@ export type { R2SQLLogsAdapterConfig };
 export type { AnalyticsEngineLogsAdapterConfig, AnalyticsEngineDataset };
 export type { CloudflareConfig };
 
+// Code executor for Workers for Platforms
+export {
+  CloudflareCodeExecutor,
+  type CloudflareCodeExecutorConfig,
+  type DispatchNamespace,
+} from "./code-executor";
+export { generateWorkerScript } from "./code-executor/worker-template";
+
 // Re-export adapters for direct usage
 export { createAnalyticsEngineLogsAdapter } from "./analytics-engine-logs";
 export { createAnalyticsEngineStatsAdapter } from "./analytics-engine-logs";

@@ -114,13 +114,12 @@ export async function refreshTokenGrant(
       resourceServer?.audience
     ) {
       // Check direct user permissions at tenant level
-      const globalUserPermissions =
-        await ctx.env.data.userPermissions.list(
-          client.tenant.id,
-          user.user_id,
-          undefined,
-          "", // Empty string for tenant-level (global) permissions
-        );
+      const globalUserPermissions = await ctx.env.data.userPermissions.list(
+        client.tenant.id,
+        user.user_id,
+        undefined,
+        "", // Empty string for tenant-level (global) permissions
+      );
 
       hasGlobalOrgAdminPermission = globalUserPermissions.some(
         (permission) =>

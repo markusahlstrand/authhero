@@ -38,9 +38,7 @@ export function createInvitesAdapter(db: DrizzleDb) {
       const id = params.id || generateInviteId();
       const ttl_sec = params.ttl_sec || 604800; // 7 days default
       const now = new Date();
-      const expires_at = new Date(
-        now.getTime() + ttl_sec * 1000,
-      ).toISOString();
+      const expires_at = new Date(now.getTime() + ttl_sec * 1000).toISOString();
 
       const values: any = {
         id,
@@ -51,8 +49,7 @@ export function createInvitesAdapter(db: DrizzleDb) {
         invitation_url: params.invitation_url,
         ticket_id: params.ticket_id,
         ttl_sec,
-        send_invitation_email:
-          params.send_invitation_email !== false ? 1 : 0,
+        send_invitation_email: params.send_invitation_email !== false ? 1 : 0,
         created_at: now.toISOString(),
         expires_at,
       };
@@ -121,8 +118,12 @@ export function createInvitesAdapter(db: DrizzleDb) {
     },
 
     async list(tenantId: string, params?: ListParams) {
-      const { page = 0, per_page = 50, include_totals = false, sort } =
-        params || {};
+      const {
+        page = 0,
+        per_page = 50,
+        include_totals = false,
+        sort,
+      } = params || {};
 
       let query = db
         .select()

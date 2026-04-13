@@ -18,6 +18,7 @@ import {
 import { useFormContext, useWatch } from "react-hook-form";
 import { Typography } from "@mui/material";
 import {
+  codeHookTriggerChoices,
   getTemplateChoicesForTrigger,
   hookTemplates,
   triggerChoices,
@@ -65,6 +66,15 @@ function validateHookForm(values: Record<string, any>) {
         "This template is not compatible with the selected trigger";
     }
   }
+  if (values.code_id && values.trigger_id) {
+    const isValidCodeTrigger = codeHookTriggerChoices.some(
+      (c) => c.id === values.trigger_id,
+    );
+    if (!isValidCodeTrigger) {
+      errors.trigger_id =
+        "This trigger is not supported by code hooks";
+    }
+  }
   return errors;
 }
 
@@ -81,6 +91,7 @@ export function HookEdit() {
     if (formData?.url) return "webhook";
     if (formData?.form_id) return "form";
     if (formData?.template_id) return "template";
+    if (formData?.code_id) return "code";
     return undefined;
   };
 
@@ -100,7 +111,9 @@ export function HookEdit() {
                       ? "Form hook"
                       : type === "template"
                         ? "Template hook"
-                        : ""}
+                        : type === "code"
+                          ? "Code hook"
+                          : ""}
                 </Typography>
                 {type === "webhook" && (
                   <TextInput
@@ -140,11 +153,33 @@ export function HookEdit() {
                     helperText="The pre-defined hook template to execute"
                   />
                 )}
+                {type === "code" && (
+                  <TextInput
+                    source="code_id"
+                    label="Code ID"
+                    fullWidth
+                    helperText="The ID of the hook code record"
+                    disabled
+                  />
+                )}
               </>
             );
           }}
         </FormDataConsumer>
-        <SelectInput source="trigger_id" choices={triggerChoices} required />
+        <FormDataConsumer>
+          {({ formData }) => {
+            const type = getType(formData ?? record);
+            const filteredTriggerChoices =
+              type === "code" ? codeHookTriggerChoices : triggerChoices;
+            return (
+              <SelectInput
+                source="trigger_id"
+                choices={filteredTriggerChoices}
+                required
+              />
+            );
+          }}
+        </FormDataConsumer>
         <BooleanInput source="enabled" />
         <BooleanInput
           source="synchronous"

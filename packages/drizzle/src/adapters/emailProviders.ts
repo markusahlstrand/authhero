@@ -4,9 +4,7 @@ import { emailProviders } from "../schema/sqlite";
 import { removeNullProperties, parseJsonIfString } from "../helpers/transform";
 import type { DrizzleDb } from "./types";
 
-export function createEmailProvidersAdapter(
-  db: DrizzleDb,
-) {
+export function createEmailProvidersAdapter(db: DrizzleDb) {
   return {
     async create(tenant_id: string, data: EmailProvider): Promise<void> {
       const now = new Date().toISOString();
@@ -41,7 +39,10 @@ export function createEmailProvidersAdapter(
       });
     },
 
-    async update(tenant_id: string, data: Partial<EmailProvider>): Promise<void> {
+    async update(
+      tenant_id: string,
+      data: Partial<EmailProvider>,
+    ): Promise<void> {
       const updateData: Record<string, any> = {
         updated_at: new Date().toISOString(),
       };

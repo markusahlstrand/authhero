@@ -57,6 +57,7 @@ export * from "./CustomDomain";
 // Forms.ts takes precedence for conflicting names (FieldComponent, FlowNode, StepNode, fieldComponentSchema)
 export * from "./Forms";
 export * from "./Hook";
+export * from "./HookCode";
 export * from "./Identity";
 export * from "./Invite";
 export * from "./JWKS";

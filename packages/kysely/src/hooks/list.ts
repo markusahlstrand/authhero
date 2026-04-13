@@ -16,7 +16,12 @@ export function list(db: Kysely<Database>) {
     let query = db.selectFrom("hooks").where("hooks.tenant_id", "=", tenant_id);
 
     if (q) {
-      query = luceneFilter(db, query, q, ["url", "form_id", "template_id"]);
+      query = luceneFilter(db, query, q, [
+        "url",
+        "form_id",
+        "template_id",
+        "code_id",
+      ]);
     }
 
     const filteredQuery = query.offset(page * per_page).limit(per_page);

@@ -50,9 +50,7 @@ function sqlToMethod(row: any): AuthenticationMethod {
   });
 }
 
-export function createAuthenticationMethodsAdapter(
-  db: DrizzleDb,
-) {
+export function createAuthenticationMethodsAdapter(db: DrizzleDb) {
   return {
     async create(
       tenant_id: string,
@@ -188,7 +186,9 @@ export function createAuthenticationMethodsAdapter(
 
       const result = await this.get(tenant_id, method_id);
       if (!result) {
-        throw new Error(`Authentication method ${method_id} not found after update`);
+        throw new Error(
+          `Authentication method ${method_id} not found after update`,
+        );
       }
       return result;
     },

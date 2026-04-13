@@ -54,11 +54,11 @@ export interface MultiTenantConfig extends Omit<
    * @default { resourceServers: true, roles: true }
    */
   sync?:
-  | {
-    resourceServers?: boolean;
-    roles?: boolean;
-  }
-  | false;
+    | {
+        resourceServers?: boolean;
+        roles?: boolean;
+      }
+    | false;
 
   /**
    * Default permissions to grant when creating a tenant organization.
@@ -212,9 +212,9 @@ export function initMultiTenant(config: MultiTenantConfig): MultiTenantResult {
   const syncEnabled = sync !== false;
   const syncConfig = syncEnabled
     ? {
-      resourceServers: sync.resourceServers ?? true,
-      roles: sync.roles ?? true,
-    }
+        resourceServers: sync.resourceServers ?? true,
+        roles: sync.roles ?? true,
+      }
     : { resourceServers: false, roles: false };
 
   // Create default getChildTenantIds if not provided

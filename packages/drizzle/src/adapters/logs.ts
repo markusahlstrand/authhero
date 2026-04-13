@@ -99,8 +99,13 @@ export function createLogsAdapter(db: DrizzleDb) {
     },
 
     async list(tenant_id: string, params?: ListParams) {
-      const { page = 0, per_page = 50, include_totals = false, sort, q } =
-        params || {};
+      const {
+        page = 0,
+        per_page = 50,
+        include_totals = false,
+        sort,
+        q,
+      } = params || {};
 
       let query = db
         .select()
@@ -154,9 +159,7 @@ export function createLogsAdapter(db: DrizzleDb) {
       const result = await db
         .select()
         .from(logs)
-        .where(
-          and(eq(logs.tenant_id, tenant_id), eq(logs.log_id, log_id)),
-        )
+        .where(and(eq(logs.tenant_id, tenant_id), eq(logs.log_id, log_id)))
         .get();
 
       if (!result) return null;

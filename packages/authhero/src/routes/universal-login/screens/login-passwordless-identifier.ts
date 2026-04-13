@@ -384,9 +384,10 @@ export const loginPasswordlessIdentifierScreenDefinition: ScreenDefinition = {
           });
         }
       } catch (err) {
-        const safeErr = err instanceof Error
-          ? { name: err.name, message: err.message }
-          : { name: "UnknownError" };
+        const safeErr =
+          err instanceof Error
+            ? { name: err.name, message: err.message }
+            : { name: "UnknownError" };
         console.error("Failed to send verification code:", safeErr);
 
         // Clean up the created code on delivery failure

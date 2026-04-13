@@ -159,7 +159,9 @@ async function generateFreshOptionsJSON(
   );
   const excludeCredentials = enrollments
     .filter(
-      (e) => PASSKEY_TYPES.includes(e.type as (typeof PASSKEY_TYPES)[number]) && e.credential_id,
+      (e) =>
+        PASSKEY_TYPES.includes(e.type as (typeof PASSKEY_TYPES)[number]) &&
+        e.credential_id,
     )
     .map((e) => ({
       id: e.credential_id!,
@@ -248,7 +250,9 @@ export const passkeyEnrollmentScreenDefinition: ScreenDefinition = {
       );
       const excludeCredentials = enrollments
         .filter(
-          (e) => PASSKEY_TYPES.includes(e.type as (typeof PASSKEY_TYPES)[number]) && e.credential_id,
+          (e) =>
+            PASSKEY_TYPES.includes(e.type as (typeof PASSKEY_TYPES)[number]) &&
+            e.credential_id,
         )
         .map((e) => ({
           id: e.credential_id!,

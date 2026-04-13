@@ -151,9 +151,7 @@ export function createUsersAdapter(db: DrizzleDb) {
       const result = await db
         .select()
         .from(users)
-        .where(
-          and(eq(users.tenant_id, tenant_id), eq(users.user_id, user_id)),
-        )
+        .where(and(eq(users.tenant_id, tenant_id), eq(users.user_id, user_id)))
         .get();
 
       if (!result) return null;
@@ -163,10 +161,7 @@ export function createUsersAdapter(db: DrizzleDb) {
         .select()
         .from(users)
         .where(
-          and(
-            eq(users.tenant_id, tenant_id),
-            eq(users.linked_to, user_id),
-          ),
+          and(eq(users.tenant_id, tenant_id), eq(users.linked_to, user_id)),
         )
         .all();
 
@@ -235,17 +230,20 @@ export function createUsersAdapter(db: DrizzleDb) {
       const results = await db
         .update(users)
         .set(updateData)
-        .where(
-          and(eq(users.tenant_id, tenant_id), eq(users.user_id, user_id)),
-        )
+        .where(and(eq(users.tenant_id, tenant_id), eq(users.user_id, user_id)))
         .returning();
 
       return results.length > 0;
     },
 
     async list(tenant_id: string, params?: ListParams) {
-      const { page = 0, per_page = 50, include_totals = false, sort, q } =
-        params || {};
+      const {
+        page = 0,
+        per_page = 50,
+        include_totals = false,
+        sort,
+        q,
+      } = params || {};
 
       const conditions = [
         eq(users.tenant_id, tenant_id),
@@ -264,11 +262,7 @@ export function createUsersAdapter(db: DrizzleDb) {
 
       const whereClause = and(...conditions);
 
-      let query = db
-        .select()
-        .from(users)
-        .where(whereClause)
-        .$dynamic();
+      let query = db.select().from(users).where(whereClause).$dynamic();
 
       if (sort?.sort_by) {
         const col = (users as any)[sort.sort_by];
@@ -331,10 +325,7 @@ export function createUsersAdapter(db: DrizzleDb) {
           .where(
             and(eq(users.tenant_id, tenant_id), eq(users.linked_to, user_id)),
           );
-        const allUserIds = [
-          user_id,
-          ...linkedUsers.map((u) => u.user_id),
-        ];
+        const allUserIds = [user_id, ...linkedUsers.map((u) => u.user_id)];
 
         // Delete authentication methods for all users
         await db

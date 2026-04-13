@@ -14,9 +14,7 @@ function sqlToConnection(row: any): Connection {
   });
 }
 
-export function createClientConnectionsAdapter(
-  db: DrizzleDb,
-) {
+export function createClientConnectionsAdapter(db: DrizzleDb) {
   return {
     async listByClient(
       tenant_id: string,
@@ -35,10 +33,8 @@ export function createClientConnectionsAdapter(
 
       if (!client) return [];
 
-      const connectionIds: string[] = parseJsonIfString(
-        client.connections,
-        [],
-      ) || [];
+      const connectionIds: string[] =
+        parseJsonIfString(client.connections, []) || [];
 
       if (connectionIds.length === 0) return [];
 

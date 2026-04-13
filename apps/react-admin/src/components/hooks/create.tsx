@@ -12,6 +12,7 @@ import {
 } from "react-admin";
 import { useFormContext, useWatch } from "react-hook-form";
 import {
+  codeHookTriggerChoices,
   getTemplateChoicesForTrigger,
   hookTemplates,
   triggerChoices,
@@ -48,6 +49,39 @@ function ClearTemplateOnTriggerChange() {
 }
 
 /**
+ * Watches type and clears stale type-specific fields whenever
+ * the hook type changes. Renders nothing.
+ */
+function ClearTypeOnChange() {
+  const { setValue } = useFormContext();
+  const type = useWatch({ name: "type" });
+  const prevType = useRef(type);
+
+  useEffect(() => {
+    if (prevType.current !== undefined && prevType.current !== type) {
+      if (prevType.current === "code") {
+        setValue("code_id", undefined);
+      }
+      if (prevType.current === "template") {
+        setValue("template_id", undefined);
+      }
+      if (prevType.current === "form") {
+        setValue("form_id", undefined);
+      }
+      if (prevType.current === "webhook") {
+        setValue("url", undefined);
+      }
+      // Trigger choices differ per type, so reset to avoid
+      // carrying over an invalid selection
+      setValue("trigger_id", undefined);
+    }
+    prevType.current = type;
+  }, [type, setValue]);
+
+  return null;
+}
+
+/**
  * Form-level validation: prevents saving an incompatible template_id / trigger_id
  * pair even if the clearing effect hasn't fired yet.
  */
@@ -75,11 +109,13 @@ export function HooksCreate() {
     { id: "webhook", name: "Webhook" },
     { id: "form", name: "Form" },
     { id: "template", name: "Template" },
+    { id: "code", name: "Code" },
   ];
 
   return (
     <Create>
       <SimpleForm validate={validateHookForm}>
+        <ClearTypeOnChange />
         <ClearTemplateOnTriggerChange />
         <SelectInput
           source="type"
@@ -136,16 +172,31 @@ export function HooksCreate() {
                 />
               );
             }
+            if (formData.type === "code") {
+              return (
+                <>
+                  <TextInput
+                    source="code_id"
+                    label="Code ID"
+                    validate={[required()]}
+                    fullWidth
+                    helperText="The ID of the hook code record (create one first via the API)"
+                  />
+                </>
+              );
+            }
             return null;
           }}
         </FormDataConsumer>
         <FormDataConsumer>
           {({ formData }) => {
-            // When type is "template", only show triggers that have templates
+            // Narrow trigger choices based on hook type
             const filteredTriggerChoices =
               formData.type === "template"
                 ? triggerChoicesWithTemplatesOnly
-                : triggerChoices;
+                : formData.type === "code"
+                  ? codeHookTriggerChoices
+                  : triggerChoices;
 
             return (
               <SelectInput

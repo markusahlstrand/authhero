@@ -26,7 +26,9 @@ export function createFormsAdapter(db: DrizzleDb) {
       };
 
       for (const field of JSON_FIELDS) {
-        values[field] = JSON.stringify(params[field] || (field === "nodes" ? [] : {}));
+        values[field] = JSON.stringify(
+          params[field] || (field === "nodes" ? [] : {}),
+        );
       }
 
       await db.insert(forms).values(values);
@@ -85,8 +87,12 @@ export function createFormsAdapter(db: DrizzleDb) {
     },
 
     async list(tenant_id: string, params?: ListParams) {
-      const { page = 0, per_page = 50, include_totals = false, sort } =
-        params || {};
+      const {
+        page = 0,
+        per_page = 50,
+        include_totals = false,
+        sort,
+      } = params || {};
 
       let query = db
         .select()

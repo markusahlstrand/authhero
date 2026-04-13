@@ -91,9 +91,7 @@ export function createSessionsAdapter(db: DrizzleDb) {
       const result = await db
         .select()
         .from(sessions)
-        .where(
-          and(eq(sessions.tenant_id, tenant_id), eq(sessions.id, id)),
-        )
+        .where(and(eq(sessions.tenant_id, tenant_id), eq(sessions.id, id)))
         .get();
 
       if (!result) return null;
@@ -134,17 +132,20 @@ export function createSessionsAdapter(db: DrizzleDb) {
       const results = await db
         .update(sessions)
         .set(updateData)
-        .where(
-          and(eq(sessions.tenant_id, tenant_id), eq(sessions.id, id)),
-        )
+        .where(and(eq(sessions.tenant_id, tenant_id), eq(sessions.id, id)))
         .returning();
 
       return results.length > 0;
     },
 
     async list(tenant_id: string, params?: ListParams) {
-      const { page = 0, per_page = 50, include_totals = false, sort, q } =
-        params || {};
+      const {
+        page = 0,
+        per_page = 50,
+        include_totals = false,
+        sort,
+        q,
+      } = params || {};
 
       const luceneFilter = q
         ? buildLuceneFilter(sessions, q, ["user_id"])
@@ -153,11 +154,7 @@ export function createSessionsAdapter(db: DrizzleDb) {
         ? and(eq(sessions.tenant_id, tenant_id), luceneFilter)
         : eq(sessions.tenant_id, tenant_id);
 
-      let query = db
-        .select()
-        .from(sessions)
-        .where(whereClause)
-        .$dynamic();
+      let query = db.select().from(sessions).where(whereClause).$dynamic();
 
       if (sort?.sort_by) {
         const col = (sessions as any)[sort.sort_by];
@@ -191,9 +188,7 @@ export function createSessionsAdapter(db: DrizzleDb) {
     async remove(tenant_id: string, id: string): Promise<boolean> {
       const results = await db
         .delete(sessions)
-        .where(
-          and(eq(sessions.tenant_id, tenant_id), eq(sessions.id, id)),
-        )
+        .where(and(eq(sessions.tenant_id, tenant_id), eq(sessions.id, id)))
         .returning();
 
       return results.length > 0;

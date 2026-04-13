@@ -23,7 +23,8 @@ function sqlToTheme(row: any): Theme {
 
   // Convert integer booleans in nested objects
   if (unflattened.borders) {
-    unflattened.borders.show_widget_shadow = !!unflattened.borders.show_widget_shadow;
+    unflattened.borders.show_widget_shadow =
+      !!unflattened.borders.show_widget_shadow;
   }
   if (unflattened.fonts) {
     unflattened.fonts.links_bold = !!unflattened.fonts.links_bold;

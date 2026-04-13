@@ -237,23 +237,43 @@ export const emailProviders = sqliteTable("email_providers", {
   updated_at: text("updated_at", { length: 35 }).notNull(),
 });
 
-export const hooks = sqliteTable("hooks", {
-  hook_id: text("hook_id", { length: 21 }).primaryKey(),
-  tenant_id: text("tenant_id", { length: 191 })
-    .notNull()
-    .references(() => tenants.id, { onDelete: "cascade" }),
-  url: text("url", { length: 512 }), // nullable - only required for webhook type hooks
-  trigger_id: text("trigger_id", { length: 255 }).notNull(),
-  enabled: integer("enabled", { mode: "boolean" }).notNull(),
-  created_at_ts: integer("created_at_ts").notNull(),
-  updated_at_ts: integer("updated_at_ts").notNull(),
-  synchronous: integer("synchronous", { mode: "boolean" })
-    .notNull()
-    .default(false),
-  priority: integer("priority"),
-  form_id: text("form_id", { length: 128 }), // only required for form type hooks
-  template_id: text("template_id", { length: 64 }), // only required for template type hooks
-});
+export const hooks = sqliteTable(
+  "hooks",
+  {
+    hook_id: text("hook_id", { length: 21 }).primaryKey(),
+    tenant_id: text("tenant_id", { length: 191 })
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    url: text("url", { length: 512 }), // nullable - only required for webhook type hooks
+    trigger_id: text("trigger_id", { length: 255 }).notNull(),
+    enabled: integer("enabled", { mode: "boolean" }).notNull(),
+    created_at_ts: integer("created_at_ts").notNull(),
+    updated_at_ts: integer("updated_at_ts").notNull(),
+    synchronous: integer("synchronous", { mode: "boolean" })
+      .notNull()
+      .default(false),
+    priority: integer("priority"),
+    form_id: text("form_id", { length: 128 }), // only required for form type hooks
+    template_id: text("template_id", { length: 64 }), // only required for template type hooks
+    code_id: text("code_id", { length: 21 }), // only required for code type hooks
+  },
+  (table) => [index("hooks_tenant_id_idx").on(table.tenant_id)],
+);
+
+export const hookCode = sqliteTable(
+  "hook_code",
+  {
+    id: text("id", { length: 21 }).primaryKey(),
+    tenant_id: text("tenant_id", { length: 191 })
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    code: text("code").notNull(),
+    secrets: text("secrets"),
+    created_at_ts: integer("created_at_ts").notNull(),
+    updated_at_ts: integer("updated_at_ts").notNull(),
+  },
+  (table) => [index("hook_code_tenant_id_idx").on(table.tenant_id)],
+);
 
 export const keys = sqliteTable("keys", {
   kid: text("kid", { length: 255 }).primaryKey(),

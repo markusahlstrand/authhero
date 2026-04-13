@@ -3,9 +3,7 @@ import type { PromptSetting } from "@authhero/adapter-interfaces";
 import { promptSettings } from "../schema/sqlite";
 import type { DrizzleDb } from "./types";
 
-export function createPromptSettingsAdapter(
-  db: DrizzleDb,
-) {
+export function createPromptSettingsAdapter(db: DrizzleDb) {
   return {
     async get(tenant_id: string): Promise<PromptSetting> {
       const result = await db

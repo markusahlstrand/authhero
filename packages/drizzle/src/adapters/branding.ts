@@ -66,7 +66,8 @@ export function createBrandingAdapter(db: DrizzleDb) {
             colors_page_background_type: colors?.page_background?.type,
             colors_page_background_start: colors?.page_background?.start,
             colors_page_background_end: colors?.page_background?.end,
-            colors_page_background_angle_dev: colors?.page_background?.angle_deg,
+            colors_page_background_angle_dev:
+              colors?.page_background?.angle_deg,
             font_url: font?.url,
           },
         });

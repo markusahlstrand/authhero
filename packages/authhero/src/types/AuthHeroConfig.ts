@@ -1,4 +1,5 @@
 import {
+  CodeExecutor,
   Connection,
   ConnectionInsert,
   CreateTenantParams,
@@ -257,6 +258,20 @@ export interface AuthHeroConfig {
     /** Optional height in pixels (default: 20) */
     height?: number;
   };
+
+  /**
+   * Code executor for user-authored code hooks.
+   *
+   * When provided, code hooks stored in the database will be executed
+   * using this executor at auth flow trigger points.
+   *
+   * Available implementations:
+   * - `LocalCodeExecutor` — uses `new Function()`, suitable for local dev only
+   * - Custom implementations for isolated-vm, Cloudflare Workers for Platforms, etc.
+   *
+   * If not provided, code hooks are silently skipped.
+   */
+  codeExecutor?: CodeExecutor;
 
   /**
    * Custom webhook invoker function.

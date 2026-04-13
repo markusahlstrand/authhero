@@ -286,7 +286,9 @@ export async function identifierScreen(
 
   // Generate conditional mediation WebAuthn options if passkeys enabled
   let extraScript: string | undefined;
-  let ceremony: ReturnType<typeof buildWebAuthnConditionalMediationCeremony> | undefined;
+  let ceremony:
+    | ReturnType<typeof buildWebAuthnConditionalMediationCeremony>
+    | undefined;
 
   if (hasPasskeysEnabled) {
     const rpId = getRpId(context.ctx);

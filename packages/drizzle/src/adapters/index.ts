@@ -11,6 +11,7 @@ import { createCustomTextAdapter } from "./customText";
 import { createEmailProvidersAdapter } from "./emailProviders";
 import { createFlowsAdapter } from "./flows";
 import { createFormsAdapter } from "./forms";
+import { createHookCodeAdapter } from "./hookCode";
 import { createHooksAdapter } from "./hooks";
 import { createInvitesAdapter } from "./invites";
 import { createKeysAdapter } from "./keys";
@@ -55,6 +56,7 @@ export default function createAdapters(
     emailProviders: createEmailProvidersAdapter(db),
     flows: createFlowsAdapter(db),
     forms: createFormsAdapter(db),
+    hookCode: createHookCodeAdapter(db),
     hooks: createHooksAdapter(db),
     invites: createInvitesAdapter(db),
     keys: createKeysAdapter(db),

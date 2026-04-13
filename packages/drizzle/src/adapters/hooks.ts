@@ -15,10 +15,10 @@ function generateHookId(): string {
 function sqlToHook(row: any): Hook {
   const { tenant_id: _, created_at_ts, updated_at_ts, ...rest } = row;
 
-  const dates = convertDatesToAdapter(
-    { created_at_ts, updated_at_ts },
-    ["created_at_ts", "updated_at_ts"],
-  );
+  const dates = convertDatesToAdapter({ created_at_ts, updated_at_ts }, [
+    "created_at_ts",
+    "updated_at_ts",
+  ]);
 
   return removeNullProperties({
     ...rest,
@@ -44,6 +44,7 @@ export function createHooksAdapter(db: DrizzleDb) {
         priority: hook.priority,
         form_id: hook.form_id,
         template_id: hook.template_id,
+        code_id: hook.code_id,
         created_at_ts: now,
         updated_at_ts: now,
       };
@@ -57,9 +58,7 @@ export function createHooksAdapter(db: DrizzleDb) {
       const result = await db
         .select()
         .from(hooks)
-        .where(
-          and(eq(hooks.tenant_id, tenant_id), eq(hooks.hook_id, hook_id)),
-        )
+        .where(and(eq(hooks.tenant_id, tenant_id), eq(hooks.hook_id, hook_id)))
         .get();
 
       if (!result) return null;
@@ -75,43 +74,50 @@ export function createHooksAdapter(db: DrizzleDb) {
         updated_at_ts: Date.now(),
       };
 
-      if (params.trigger_id !== undefined) updateData.trigger_id = params.trigger_id;
+      if (params.trigger_id !== undefined)
+        updateData.trigger_id = params.trigger_id;
       if (params.url !== undefined) updateData.url = params.url;
       if (params.enabled !== undefined) updateData.enabled = params.enabled;
       if (params.synchronous !== undefined)
         updateData.synchronous = params.synchronous;
       if (params.priority !== undefined) updateData.priority = params.priority;
       if (params.form_id !== undefined) updateData.form_id = params.form_id;
-      if (params.template_id !== undefined) updateData.template_id = params.template_id;
+      if (params.template_id !== undefined)
+        updateData.template_id = params.template_id;
+      if (params.code_id !== undefined) updateData.code_id = params.code_id;
 
       const results = await db
         .update(hooks)
         .set(updateData)
-        .where(
-          and(eq(hooks.tenant_id, tenant_id), eq(hooks.hook_id, hook_id)),
-        )
+        .where(and(eq(hooks.tenant_id, tenant_id), eq(hooks.hook_id, hook_id)))
         .returning();
 
       return results.length > 0;
     },
 
     async list(tenant_id: string, params?: ListParams) {
-      const { page = 0, per_page = 50, include_totals = false, sort, q } =
-        params || {};
+      const {
+        page = 0,
+        per_page = 50,
+        include_totals = false,
+        sort,
+        q,
+      } = params || {};
 
       const luceneFilter = q
-        ? buildLuceneFilter(hooks, q, ["url", "form_id", "template_id"])
+        ? buildLuceneFilter(hooks, q, [
+            "url",
+            "form_id",
+            "template_id",
+            "code_id",
+          ])
         : undefined;
 
       const whereClause = luceneFilter
         ? and(eq(hooks.tenant_id, tenant_id), luceneFilter)
         : eq(hooks.tenant_id, tenant_id);
 
-      let query = db
-        .select()
-        .from(hooks)
-        .where(whereClause)
-        .$dynamic();
+      let query = db.select().from(hooks).where(whereClause).$dynamic();
 
       if (sort?.sort_by) {
         const col = (hooks as any)[sort.sort_by];
@@ -145,9 +151,7 @@ export function createHooksAdapter(db: DrizzleDb) {
     async remove(tenant_id: string, hook_id: string): Promise<boolean> {
       const results = await db
         .delete(hooks)
-        .where(
-          and(eq(hooks.tenant_id, tenant_id), eq(hooks.hook_id, hook_id)),
-        )
+        .where(and(eq(hooks.tenant_id, tenant_id), eq(hooks.hook_id, hook_id)))
         .returning();
 
       return results.length > 0;

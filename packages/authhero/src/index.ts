@@ -50,6 +50,9 @@ export { USERNAME_PASSWORD_PROVIDER } from "./constants";
 export * as preDefinedHooks from "./hooks/pre-defined";
 export type { EnsureUsernameOptions } from "./hooks/pre-defined";
 
+// Export code executor implementations
+export { LocalCodeExecutor } from "./hooks/code-executor/local";
+
 i18next.init({
   supportedLngs: ["en", "it", "nb", "sv", "pl", "cs", "fi", "da"],
   fallbackLng: "en",
@@ -107,6 +110,11 @@ export function init(config: AuthHeroConfig) {
     // Add poweredByLogo from config if provided
     if (config.poweredByLogo) {
       ctx.env.poweredByLogo = config.poweredByLogo;
+    }
+
+    // Add codeExecutor from config if provided, but don't overwrite an existing one
+    if (ctx.env.codeExecutor == null && config.codeExecutor) {
+      ctx.env.codeExecutor = config.codeExecutor;
     }
 
     // Add webhookInvoker from config if provided

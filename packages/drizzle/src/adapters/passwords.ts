@@ -95,7 +95,8 @@ export function createPasswordsAdapter(db: DrizzleDb) {
       };
 
       if (params.password !== undefined) updateData.password = params.password;
-      if (params.algorithm !== undefined) updateData.algorithm = params.algorithm;
+      if (params.algorithm !== undefined)
+        updateData.algorithm = params.algorithm;
       if (params.is_current !== undefined)
         updateData.is_current = params.is_current ? 1 : 0;
 

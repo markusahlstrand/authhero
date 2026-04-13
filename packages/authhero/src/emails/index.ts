@@ -181,10 +181,7 @@ export async function sendResetPasswordCode(
       supportUrl: tenant.support_url || "https://support.sesamy.com",
       buttonColor,
       welcomeToYourAccount: t("password_reset_title", options),
-      linkEmailClickToLogin: t(
-        "reset_password_email_click_to_reset",
-        options,
-      ),
+      linkEmailClickToLogin: t("reset_password_email_click_to_reset", options),
       linkEmailLogin: t("reset_password_email_reset", options),
       linkEmailOrEnterCode: t("link_email_or_enter_code", {
         ...options,

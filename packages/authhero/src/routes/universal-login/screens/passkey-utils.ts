@@ -352,11 +352,10 @@ export async function verifyPasskeyAuthentication(
   }
 
   // Look up the authentication method by credential ID
-  const authMethod =
-    await ctx.env.data.authenticationMethods.getByCredentialId(
-      client.tenant.id,
-      credential.id,
-    );
+  const authMethod = await ctx.env.data.authenticationMethods.getByCredentialId(
+    client.tenant.id,
+    credential.id,
+  );
 
   if (!authMethod || !authMethod.public_key || !authMethod.confirmed) {
     logMessage(ctx, client.tenant.id, {

@@ -7,6 +7,7 @@ export type EntityType =
   | "connection"
   | "action"
   | "hook"
+  | "hook_code"
   | "rule"
   | "resource_server"
   | "guardian_factor"
@@ -17,6 +18,7 @@ const ENTITY_PREFIXES: Record<EntityType, string> = {
   connection: "con_",
   action: "act_",
   hook: "h_",
+  hook_code: "hc_",
   rule: "rul_",
   resource_server: "api_",
   guardian_factor: "gfa_",
@@ -76,6 +78,10 @@ export function generateResourceServerId(): string {
 
 export function generateGuardianFactorId(): string {
   return generateEntityId("guardian_factor");
+}
+
+export function generateHookCodeId(): string {
+  return generateEntityId("hook_code");
 }
 
 export function generateInviteId(): string {

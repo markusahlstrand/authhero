@@ -1,20 +1,18 @@
 import { eq, and, count as countFn } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { HTTPException } from "hono/http-exception";
-import type { UserOrganization, ListParams } from "@authhero/adapter-interfaces";
+import type {
+  UserOrganization,
+  ListParams,
+} from "@authhero/adapter-interfaces";
 import { userOrganizations, organizations } from "../schema/sqlite";
 import { removeNullProperties, parseJsonIfString } from "../helpers/transform";
 import { buildLuceneFilter } from "../helpers/filter";
 import type { DrizzleDb } from "./types";
 
-export function createUserOrganizationsAdapter(
-  db: DrizzleDb,
-) {
+export function createUserOrganizationsAdapter(db: DrizzleDb) {
   return {
-    async create(
-      tenantId: string,
-      params: any,
-    ): Promise<UserOrganization> {
+    async create(tenantId: string, params: any): Promise<UserOrganization> {
       const now = new Date().toISOString();
       const id = params.id || nanoid();
 
@@ -45,10 +43,7 @@ export function createUserOrganizationsAdapter(
       return rest;
     },
 
-    async get(
-      tenantId: string,
-      id: string,
-    ): Promise<UserOrganization | null> {
+    async get(tenantId: string, id: string): Promise<UserOrganization | null> {
       const result = await db
         .select()
         .from(userOrganizations)
@@ -94,8 +89,12 @@ export function createUserOrganizationsAdapter(
     },
 
     async list(tenantId: string, params?: ListParams) {
-      const { page = 0, per_page = 50, include_totals = false, q } =
-        params || {};
+      const {
+        page = 0,
+        per_page = 50,
+        include_totals = false,
+        q,
+      } = params || {};
 
       const tenantFilter = eq(userOrganizations.tenant_id, tenantId);
 
@@ -141,8 +140,7 @@ export function createUserOrganizationsAdapter(
       userId: string,
       params?: ListParams,
     ) {
-      const { page = 0, per_page = 50, include_totals = false } =
-        params || {};
+      const { page = 0, per_page = 50, include_totals = false } = params || {};
 
       const userOrgs = await db
         .select()
@@ -173,7 +171,14 @@ export function createUserOrganizationsAdapter(
 
           if (!org) return null;
 
-          const { tenant_id: _, branding, metadata, enabled_connections, token_quota, ...rest } = org;
+          const {
+            tenant_id: _,
+            branding,
+            metadata,
+            enabled_connections,
+            token_quota,
+            ...rest
+          } = org;
           return removeNullProperties({
             ...rest,
             branding: parseJsonIfString(branding, {}),

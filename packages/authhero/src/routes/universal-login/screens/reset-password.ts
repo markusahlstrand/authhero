@@ -30,9 +30,7 @@ export async function executePasswordReset(params: {
   code: string;
   password: string;
   username: string;
-}): Promise<
-  { success: true } | { error: string; field: "code" | "password" }
-> {
+}): Promise<{ success: true } | { error: string; field: "code" | "password" }> {
   const { ctx, client, code, password, username } = params;
   const { env } = ctx;
 
