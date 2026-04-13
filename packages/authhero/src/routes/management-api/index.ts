@@ -34,9 +34,10 @@ import { organizationRoutes } from "./organizations";
 import { statsRoutes } from "./stats";
 import { guardianRoutes } from "./guardian";
 import { authenticationMethodsRoutes } from "./authentication-methods";
-import { DataAdapters } from "@authhero/adapter-interfaces";
+import { DataAdapters, LogTypes } from "@authhero/adapter-interfaces";
 import { outboxMiddleware } from "../../middlewares/outbox";
 import { LogsDestination } from "../../helpers/outbox-destinations/logs";
+import { logMessage } from "../../helpers/logging";
 
 export default function create(config: AuthHeroConfig) {
   const app = new OpenAPIHono<{
@@ -195,13 +196,46 @@ export default function create(config: AuthHeroConfig) {
     const isMutating = MUTATING_METHODS.has(ctx.req.method);
 
     if (outboxEnabled && isMutating) {
-      // Wrap the entire request in a transaction so entity writes
-      // and outbox event writes are atomic
-      await managementAdapter.transaction(async (trxAdapters) => {
-        ctx.env.data = applyDecorators(ctx, trxAdapters);
-        ctx.env.entityHooks = config.entityHooks;
-        await next();
-      });
+      // Wrap the request in a transaction so entity writes
+      // and outbox event writes are atomic.
+      // Slow post-hooks (webhooks, code hooks) are deferred
+      // to run after the transaction commits — see deferredPostHooks.
+      ctx.set("deferredPostHooks", []);
+      try {
+        await managementAdapter.transaction(async (trxAdapters) => {
+          ctx.env.data = applyDecorators(ctx, trxAdapters);
+          ctx.env.entityHooks = config.entityHooks;
+          await next();
+        });
+      } catch (err) {
+        // Transaction rolled back — any outbox events created inside are gone.
+        // Switch to non-transactional adapters and log the error so it persists.
+        ctx.env.data = applyDecorators(ctx, managementAdapter);
+        const tenantId = ctx.var?.tenant_id;
+        if (tenantId) {
+          try {
+            await logMessage(ctx, tenantId, {
+              type: LogTypes.FAILED_API_OPERATION,
+              description:
+                err instanceof Error ? err.message : "Transaction failed",
+            });
+          } catch {
+            // Best effort — don't mask the original error
+          }
+        }
+        throw err;
+      }
+
+      // Run deferred post-hooks after the transaction has committed.
+      // These are fire-and-forget (failures are logged, not thrown).
+      const deferred = ctx.var.deferredPostHooks ?? [];
+      for (const fn of deferred) {
+        try {
+          await fn();
+        } catch (err) {
+          console.error("Deferred post-hook failed:", err);
+        }
+      }
     } else {
       ctx.env.data = applyDecorators(ctx, managementAdapter);
       ctx.env.entityHooks = config.entityHooks;

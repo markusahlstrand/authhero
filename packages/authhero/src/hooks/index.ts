@@ -183,60 +183,72 @@ function createUserHooks(
     // Check for existing user with the same email and if so link the users
     let result = await linkUsersHook(data)(tenant_id, user);
 
-    if (ctx.env.hooks?.onExecutePostUserRegistration) {
-      try {
-        await ctx.env.hooks.onExecutePostUserRegistration(
-          {
-            ctx,
-            user,
-            request,
-          },
-          {
-            user: {},
-            token: createTokenAPI(ctx, tenant_id),
-          },
-        );
-      } catch (err) {
-        logMessage(ctx, tenant_id, {
-          type: LogTypes.FAILED_SIGNUP,
-          description: "Post user registration hook failed",
-        });
-      }
-    }
-
-    // Execute post-user-registration code hooks
-    {
-      const { hooks: allHooks } = await data.hooks.list(tenant_id, {
-        q: "trigger_id:post-user-registration",
-        page: 0,
-        per_page: 100,
-        include_totals: false,
-      });
-      const postRegCodeHooks = allHooks.filter(
-        (h: any) => h.enabled && isCodeHook(h),
-      );
-      for (const hook of postRegCodeHooks) {
-        if (!isCodeHook(hook)) continue;
+    // Defer post-registration hooks so they run after the transaction commits.
+    // This keeps the transaction short (only DB writes + outbox events).
+    const postHookWork = async () => {
+      if (ctx.env.hooks?.onExecutePostUserRegistration) {
         try {
-          await handleCodeHook(
-            ctx,
-            data,
-            hook,
-            { ctx, user: result, request } as any,
-            "post-user-registration",
-            { user: {} },
+          await ctx.env.hooks.onExecutePostUserRegistration(
+            {
+              ctx,
+              user,
+              request,
+            },
+            {
+              user: {},
+              token: createTokenAPI(ctx, tenant_id),
+            },
           );
         } catch (err) {
           logMessage(ctx, tenant_id, {
             type: LogTypes.FAILED_SIGNUP,
-            description: `Post user registration code hook ${hook.hook_id} failed`,
+            description: "Post user registration hook failed",
           });
         }
       }
-    }
 
-    // Invoke post-user-registration webhooks
-    await postUserRegistrationWebhook(ctx)(tenant_id, result);
+      // Execute post-user-registration code hooks
+      {
+        const { hooks: allHooks } = await data.hooks.list(tenant_id, {
+          q: "trigger_id:post-user-registration",
+          page: 0,
+          per_page: 100,
+          include_totals: false,
+        });
+        const postRegCodeHooks = allHooks.filter(
+          (h: any) => h.enabled && isCodeHook(h),
+        );
+        for (const hook of postRegCodeHooks) {
+          if (!isCodeHook(hook)) continue;
+          try {
+            await handleCodeHook(
+              ctx,
+              data,
+              hook,
+              { ctx, user: result, request } as any,
+              "post-user-registration",
+              { user: {} },
+            );
+          } catch (err) {
+            logMessage(ctx, tenant_id, {
+              type: LogTypes.FAILED_SIGNUP,
+              description: `Post user registration code hook ${hook.hook_id} failed`,
+            });
+          }
+        }
+      }
+
+      // Invoke post-user-registration webhooks
+      await postUserRegistrationWebhook(ctx)(tenant_id, result);
+    };
+
+    const deferred = ctx.var.deferredPostHooks;
+    if (deferred) {
+      deferred.push(postHookWork);
+    } else {
+      // Not inside a transaction — run immediately
+      await postHookWork();
+    }
 
     return result;
   };
@@ -637,7 +649,7 @@ function createUserDeletionHooks(
     // Proceed with deletion
     const result = await data.users.remove(tenant_id, user_id);
 
-    // Log the user deletion if successful
+    // Log the user deletion if successful (stays inside transaction for atomicity)
     if (result) {
       logMessage(ctx, tenant_id, {
         type: LogTypes.SUCCESS_USER_DELETION,
@@ -653,42 +665,55 @@ function createUserDeletionHooks(
           connection: userToDelete.connection || "",
         },
       });
-
-      // Invoke post-user-deletion webhooks
-      try {
-        await postUserDeletionWebhook(ctx)(tenant_id, userToDelete);
-      } catch (err) {
-        logMessage(ctx, tenant_id, {
-          type: LogTypes.FAILED_HOOK,
-          description: `Post user deletion webhook failed: ${err instanceof Error ? err.message : String(err)}`,
-        });
-        // Don't throw - user is already deleted
-      }
     }
 
-    // Call post-user-deletion hook if configured (after successful deletion)
-    if (result && ctx.env.hooks?.onExecutePostUserDeletion) {
-      try {
-        await ctx.env.hooks.onExecutePostUserDeletion(
-          {
-            ctx,
-            user: userToDelete,
-            user_id,
-            request,
-            tenant: {
-              id: tenant_id,
-            },
-          },
-          {
-            token: createTokenAPI(ctx, tenant_id),
-          },
-        );
-      } catch (err) {
-        logMessage(ctx, tenant_id, {
-          type: LogTypes.FAILED_HOOK,
-          description: `Post user deletion hook failed: ${err instanceof Error ? err.message : String(err)}`,
-        });
-        // Don't throw - user is already deleted
+    // Defer post-deletion hooks so they run after the transaction commits.
+    if (result) {
+      const postHookWork = async () => {
+        // Invoke post-user-deletion webhooks
+        try {
+          await postUserDeletionWebhook(ctx)(tenant_id, userToDelete);
+        } catch (err) {
+          logMessage(ctx, tenant_id, {
+            type: LogTypes.FAILED_HOOK,
+            description: `Post user deletion webhook failed: ${err instanceof Error ? err.message : String(err)}`,
+          });
+          // Don't throw - user is already deleted
+        }
+
+        // Call post-user-deletion hook if configured
+        if (ctx.env.hooks?.onExecutePostUserDeletion) {
+          try {
+            await ctx.env.hooks.onExecutePostUserDeletion(
+              {
+                ctx,
+                user: userToDelete,
+                user_id,
+                request,
+                tenant: {
+                  id: tenant_id,
+                },
+              },
+              {
+                token: createTokenAPI(ctx, tenant_id),
+              },
+            );
+          } catch (err) {
+            logMessage(ctx, tenant_id, {
+              type: LogTypes.FAILED_HOOK,
+              description: `Post user deletion hook failed: ${err instanceof Error ? err.message : String(err)}`,
+            });
+            // Don't throw - user is already deleted
+          }
+        }
+      };
+
+      const deferred = ctx.var.deferredPostHooks;
+      if (deferred) {
+        deferred.push(postHookWork);
+      } else {
+        // Not inside a transaction — run immediately
+        await postHookWork();
       }
     }
 
