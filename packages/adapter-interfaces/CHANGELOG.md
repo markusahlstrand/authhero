@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 1.1.0
+
+### Minor Changes
+
+- 3da602c: Trim transactions
+
 ## 1.0.0
 
 ### Major Changes
