@@ -1,5 +1,19 @@
 # @authhero/multi-tenancy
 
+## 14.19.0
+
+### Minor Changes
+
+- 20d5140: Add support for dynamic code
+
+  BREAKING CHANGE: `DataAdapters` now requires a `hookCode: HookCodeAdapter` property. Adapters implementing `DataAdapters` must provide a `hookCode` adapter with `create`, `get`, `update`, and `remove` methods for managing hook code storage. See `packages/kysely/src/hook-code/` for a reference implementation.
+
+### Patch Changes
+
+- Updated dependencies [20d5140]
+  - @authhero/adapter-interfaces@1.0.0
+  - authhero@4.91.0
+
 ## 14.18.0
 
 ### Minor Changes
