@@ -140,6 +140,7 @@ export const LogTypes = {
   // Successful operations
   SUCCESS_LOGIN: "s",
   SUCCESS_API_OPERATION: "sapi",
+  FAILED_API_OPERATION: "fapi",
   SUCCESS_CHANGE_EMAIL: "sce",
   SUCCESS_CROSS_ORIGIN_AUTHENTICATION: "scoa",
   SUCCESS_CHANGE_PASSWORD: "scp",
