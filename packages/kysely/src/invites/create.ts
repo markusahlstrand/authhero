@@ -41,6 +41,7 @@ export function create(db: Kysely<Database>) {
     } catch (err: any) {
       if (
         err.code === "SQLITE_CONSTRAINT_UNIQUE" ||
+        err.code === "ER_DUP_ENTRY" ||
         err.message.includes("AlreadyExists")
       ) {
         throw new HTTPException(409, {

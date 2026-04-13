@@ -8,6 +8,7 @@ import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
 import { LogTypes } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { createTranslation } from "../../../i18n";
+import { HTTPException } from "hono/http-exception";
 import {
   generateTotpSecret,
   createTotpUri,
@@ -152,6 +153,18 @@ export const mfaTotpEnrollmentScreenDefinition: ScreenDefinition = {
         return mfaTotpEnrollmentScreen(context);
       }
 
+      // Block enrollment if user already has confirmed MFA methods
+      const existingMethods = await ctx.env.data.authenticationMethods.list(
+        client.tenant.id,
+        loginSession.user_id,
+      );
+      if (existingMethods.some((e) => e.confirmed)) {
+        throw new HTTPException(403, {
+          message:
+            "Cannot enroll new MFA factor while existing factors are active",
+        });
+      }
+
       const stateData = loginSession.state_data
         ? JSON.parse(loginSession.state_data)
         : {};
@@ -273,9 +286,27 @@ export const mfaTotpEnrollmentScreenDefinition: ScreenDefinition = {
         };
       }
 
+      // Block enrollment if user already has confirmed MFA methods
+      const existingMethods = await ctx.env.data.authenticationMethods.list(
+        client.tenant.id,
+        loginSession.user_id,
+      );
+      // Exclude the current pending enrollment from the check
       const stateData = loginSession.state_data
         ? JSON.parse(loginSession.state_data)
         : {};
+      const currentEnrollmentId = stateData.authenticationMethodId;
+      if (
+        existingMethods.some(
+          (e) => e.confirmed && e.id !== currentEnrollmentId,
+        )
+      ) {
+        throw new HTTPException(403, {
+          message:
+            "Cannot enroll new MFA factor while existing factors are active",
+        });
+      }
+
       const secretBase32 = stateData.totpSecret as string | undefined;
 
       if (!secretBase32) {

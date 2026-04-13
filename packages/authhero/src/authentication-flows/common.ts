@@ -1259,6 +1259,13 @@ export async function createFrontChannelAuthResponse(
             targetPath = "/u2/mfa/phone-challenge";
           } else if (enrollment?.confirmed && enrollment.type === "totp") {
             targetPath = "/u2/mfa/totp-challenge";
+          } else if (
+            enrollment?.confirmed &&
+            (enrollment.type === "passkey" ||
+              enrollment.type === "webauthn-roaming" ||
+              enrollment.type === "webauthn-platform")
+          ) {
+            targetPath = "/u2/passkey/challenge";
           } else if (enrollment?.type === "totp") {
             targetPath = "/u2/mfa/totp-enrollment";
           } else if (enrollment?.type === "phone") {
@@ -1297,6 +1304,9 @@ export async function createFrontChannelAuthResponse(
             const tenant = client.tenant;
             const hasOtp = tenant.mfa?.factors?.otp === true;
             const hasSms = tenant.mfa?.factors?.sms === true;
+            const hasWebauthn =
+              tenant.mfa?.factors?.webauthn_roaming === true ||
+              tenant.mfa?.factors?.webauthn_platform === true;
 
             await ctx.env.data.loginSessions.update(
               client.tenant.id,
@@ -1306,8 +1316,10 @@ export async function createFrontChannelAuthResponse(
               },
             );
 
-            // If both factors available, show selection screen
-            if (hasOtp && hasSms) {
+            // If multiple factors available, show selection screen
+            const enabledFactorCount =
+              (hasOtp ? 1 : 0) + (hasSms ? 1 : 0) + (hasWebauthn ? 1 : 0);
+            if (enabledFactorCount > 1) {
               return new Response(null, {
                 status: 302,
                 headers: {
@@ -1322,6 +1334,16 @@ export async function createFrontChannelAuthResponse(
                 status: 302,
                 headers: {
                   location: `/u2/mfa/totp-enrollment?state=${encodeURIComponent(params.loginSession.id)}`,
+                },
+              });
+            }
+
+            if (hasWebauthn) {
+              // Redirect to passkey enrollment
+              return new Response(null, {
+                status: 302,
+                headers: {
+                  location: `/u2/passkey/enrollment?state=${encodeURIComponent(params.loginSession.id)}`,
                 },
               });
             }
@@ -1372,6 +1394,19 @@ export async function createFrontChannelAuthResponse(
                 status: 302,
                 headers: {
                   location: `/u2/mfa/totp-challenge?state=${encodeURIComponent(params.loginSession.id)}`,
+                },
+              });
+            }
+
+            if (
+              mfaCheck.enrollment.type === "passkey" ||
+              mfaCheck.enrollment.type === "webauthn-roaming" ||
+              mfaCheck.enrollment.type === "webauthn-platform"
+            ) {
+              return new Response(null, {
+                status: 302,
+                headers: {
+                  location: `/u2/passkey/challenge?state=${encodeURIComponent(params.loginSession.id)}`,
                 },
               });
             }

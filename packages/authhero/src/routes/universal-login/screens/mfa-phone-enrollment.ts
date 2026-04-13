@@ -10,6 +10,7 @@ import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { createTranslation } from "../../../i18n";
 import { sendMfaOtp } from "../../../authentication-flows/mfa";
 import { logMessage } from "../../../helpers/logging";
+import { HTTPException } from "hono/http-exception";
 
 /**
  * Create the mfa-phone-enrollment screen
@@ -94,7 +95,30 @@ export const mfaPhoneEnrollmentScreenDefinition: ScreenDefinition = {
   name: "MFA Phone Enrollment",
   description: "Phone number enrollment screen for SMS MFA",
   handler: {
-    get: mfaPhoneEnrollmentScreen,
+    get: async (context) => {
+      const { ctx, client, state } = context;
+
+      const loginSession = await ctx.env.data.loginSessions.get(
+        client.tenant.id,
+        state,
+      );
+
+      if (loginSession?.user_id) {
+        // Block enrollment if user already has confirmed MFA methods
+        const existingMethods = await ctx.env.data.authenticationMethods.list(
+          client.tenant.id,
+          loginSession.user_id,
+        );
+        if (existingMethods.some((e) => e.confirmed)) {
+          throw new HTTPException(403, {
+            message:
+              "Cannot enroll new MFA factor while existing factors are active",
+          });
+        }
+      }
+
+      return mfaPhoneEnrollmentScreen(context);
+    },
     post: async (context, data) => {
       const { ctx, client, state } = context;
       const phoneNumber = (data.phone_number as string)?.trim();
@@ -146,6 +170,18 @@ export const mfaPhoneEnrollmentScreenDefinition: ScreenDefinition = {
             errors: { phone_number: errorMessage },
           }),
         };
+      }
+
+      // Block enrollment if user already has confirmed MFA methods
+      const existingMethods = await ctx.env.data.authenticationMethods.list(
+        client.tenant.id,
+        loginSession.user_id,
+      );
+      if (existingMethods.some((e) => e.confirmed)) {
+        throw new HTTPException(403, {
+          message:
+            "Cannot enroll new MFA factor while existing factors are active",
+        });
       }
 
       try {

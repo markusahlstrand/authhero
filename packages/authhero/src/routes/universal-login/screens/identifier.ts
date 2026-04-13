@@ -259,6 +259,27 @@ export async function identifierScreen(
     });
   }
 
+  // Build links (e.g., passkey challenge link)
+  const links: UiScreen["links"] = [];
+
+  if (hasPasskeysEnabled) {
+    const passkeyConnection = context.connections.find(
+      (c) => c.options?.authentication_methods?.passkey?.enabled,
+    );
+    const challengeUi =
+      passkeyConnection?.options?.passkey_options?.challenge_ui;
+
+    // Show passkey link unless challenge_ui is explicitly "autofill" only
+    if (challengeUi !== "autofill") {
+      links.push({
+        id: "passkey-link",
+        text: "",
+        linkText: m.passkeyButtonText(),
+        href: `${routePrefix}/passkey/challenge?state=${encodeURIComponent(state)}`,
+      });
+    }
+  }
+
   const screen: UiScreen = {
     name: "identifier",
     // Action points to HTML endpoint for no-JS fallback
@@ -271,6 +292,7 @@ export async function identifierScreen(
     }),
     components,
     messages,
+    ...(links.length > 0 ? { links } : {}),
   };
 
   // Pre-fill username if provided
