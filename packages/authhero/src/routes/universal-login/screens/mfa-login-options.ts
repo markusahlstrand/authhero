@@ -148,38 +148,42 @@ export const mfaLoginOptionsScreenDefinition: ScreenDefinition = {
         }
       }
 
-      // Show available enrollment options for factors the user hasn't enrolled in yet
-      const enrolledTypes = new Set(confirmedEnrollments.map((e) => e.type));
+      // Only show enrollment options when the user has NO confirmed enrollments.
+      // If they already have MFA enrolled, they must verify an existing factor
+      // before enrolling additional ones (prevents MFA bypass).
+      if (confirmedEnrollments.length === 0) {
+        const enrolledTypes = new Set(confirmedEnrollments.map((e) => e.type));
 
-      if (tenant.mfa?.factors?.otp === true && !enrolledTypes.has("totp")) {
-        options.push({
-          id: "enroll-totp",
-          type: "totp",
-          label: m.authenticatorAppLabel(),
-          description: m.authenticatorAppDescription(),
-        });
-      }
-      if (tenant.mfa?.factors?.sms === true && !enrolledTypes.has("phone")) {
-        options.push({
-          id: "enroll-phone",
-          type: "phone",
-          label: m.smsLabel(),
-          description: m.smsDescription(),
-        });
-      }
-      if (
-        (tenant.mfa?.factors?.webauthn_roaming === true ||
-          tenant.mfa?.factors?.webauthn_platform === true) &&
-        !enrolledTypes.has("passkey") &&
-        !enrolledTypes.has("webauthn-roaming") &&
-        !enrolledTypes.has("webauthn-platform")
-      ) {
-        options.push({
-          id: "enroll-passkey",
-          type: "passkey",
-          label: m.passkeyLabel(),
-          description: m.passkeyDescription(),
-        });
+        if (tenant.mfa?.factors?.otp === true && !enrolledTypes.has("totp")) {
+          options.push({
+            id: "enroll-totp",
+            type: "totp",
+            label: m.authenticatorAppLabel(),
+            description: m.authenticatorAppDescription(),
+          });
+        }
+        if (tenant.mfa?.factors?.sms === true && !enrolledTypes.has("phone")) {
+          options.push({
+            id: "enroll-phone",
+            type: "phone",
+            label: m.smsLabel(),
+            description: m.smsDescription(),
+          });
+        }
+        if (
+          (tenant.mfa?.factors?.webauthn_roaming === true ||
+            tenant.mfa?.factors?.webauthn_platform === true) &&
+          !enrolledTypes.has("passkey") &&
+          !enrolledTypes.has("webauthn-roaming") &&
+          !enrolledTypes.has("webauthn-platform")
+        ) {
+          options.push({
+            id: "enroll-passkey",
+            type: "passkey",
+            label: m.passkeyLabel(),
+            description: m.passkeyDescription(),
+          });
+        }
       }
 
       return mfaLoginOptionsScreen(context, options);
@@ -213,18 +217,34 @@ export const mfaLoginOptionsScreenDefinition: ScreenDefinition = {
 
       const selectedId = selectedKey.replace("factor_", "");
 
-      // Handle enrollment options
-      if (selectedId === "enroll-totp") {
-        return {
-          redirect: `${routePrefix}/mfa/totp-enrollment?state=${encodeURIComponent(state)}`,
-        };
-      }
-      if (selectedId === "enroll-phone") {
-        return {
-          redirect: `${routePrefix}/mfa/phone-enrollment?state=${encodeURIComponent(state)}`,
-        };
-      }
-      if (selectedId === "enroll-passkey") {
+      // Handle enrollment options - only allowed when user has no confirmed enrollments
+      if (
+        selectedId === "enroll-totp" ||
+        selectedId === "enroll-phone" ||
+        selectedId === "enroll-passkey"
+      ) {
+        const enrollments = await ctx.env.data.authenticationMethods.list(
+          client.tenant.id,
+          loginSession.user_id,
+        );
+        const hasConfirmedEnrollment = enrollments.some((e) => e.confirmed);
+        if (hasConfirmedEnrollment) {
+          throw new HTTPException(403, {
+            message:
+              "Cannot enroll new MFA factor while existing factors are active",
+          });
+        }
+
+        if (selectedId === "enroll-totp") {
+          return {
+            redirect: `${routePrefix}/mfa/totp-enrollment?state=${encodeURIComponent(state)}`,
+          };
+        }
+        if (selectedId === "enroll-phone") {
+          return {
+            redirect: `${routePrefix}/mfa/phone-enrollment?state=${encodeURIComponent(state)}`,
+          };
+        }
         return {
           redirect: `${routePrefix}/passkey/enrollment?state=${encodeURIComponent(state)}`,
         };

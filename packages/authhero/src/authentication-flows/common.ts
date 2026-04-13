@@ -1259,6 +1259,13 @@ export async function createFrontChannelAuthResponse(
             targetPath = "/u2/mfa/phone-challenge";
           } else if (enrollment?.confirmed && enrollment.type === "totp") {
             targetPath = "/u2/mfa/totp-challenge";
+          } else if (
+            enrollment?.confirmed &&
+            (enrollment.type === "passkey" ||
+              enrollment.type === "webauthn-roaming" ||
+              enrollment.type === "webauthn-platform")
+          ) {
+            targetPath = "/u2/passkey/challenge";
           } else if (enrollment?.type === "totp") {
             targetPath = "/u2/mfa/totp-enrollment";
           } else if (enrollment?.type === "phone") {
@@ -1372,6 +1379,19 @@ export async function createFrontChannelAuthResponse(
                 status: 302,
                 headers: {
                   location: `/u2/mfa/totp-challenge?state=${encodeURIComponent(params.loginSession.id)}`,
+                },
+              });
+            }
+
+            if (
+              mfaCheck.enrollment.type === "passkey" ||
+              mfaCheck.enrollment.type === "webauthn-roaming" ||
+              mfaCheck.enrollment.type === "webauthn-platform"
+            ) {
+              return new Response(null, {
+                status: 302,
+                headers: {
+                  location: `/u2/passkey/challenge?state=${encodeURIComponent(params.loginSession.id)}`,
                 },
               });
             }
