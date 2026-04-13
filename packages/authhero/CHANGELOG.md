@@ -1,5 +1,11 @@
 # authhero
 
+## 4.92.0
+
+### Minor Changes
+
+- 7e0b2cb: Fix mfa security issues
+
 ## 4.91.0
 
 ### Minor Changes
