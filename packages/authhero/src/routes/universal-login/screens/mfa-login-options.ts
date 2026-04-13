@@ -257,14 +257,29 @@ export const mfaLoginOptionsScreenDefinition: ScreenDefinition = {
         }
 
         if (selectedId === "enroll-totp") {
+          if (enabledFactorsPost?.otp !== true) {
+            throw new HTTPException(403, {
+              message: "MFA factor not enabled",
+            });
+          }
           return {
             redirect: `${routePrefix}/mfa/totp-enrollment?state=${encodeURIComponent(state)}`,
           };
         }
         if (selectedId === "enroll-phone") {
+          if (enabledFactorsPost?.sms !== true) {
+            throw new HTTPException(403, {
+              message: "MFA factor not enabled",
+            });
+          }
           return {
             redirect: `${routePrefix}/mfa/phone-enrollment?state=${encodeURIComponent(state)}`,
           };
+        }
+        if (!hasWebauthnPost) {
+          throw new HTTPException(403, {
+            message: "MFA factor not enabled",
+          });
         }
         return {
           redirect: `${routePrefix}/passkey/enrollment?state=${encodeURIComponent(state)}`,

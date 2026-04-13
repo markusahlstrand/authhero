@@ -80,7 +80,9 @@ async function findExistingUser(
     ? `email:${user.email.toLowerCase()}`
     : user.phone_number
       ? `phone_number:${user.phone_number}`
-      : null;
+      : user.username
+        ? `username:${user.username.toLowerCase()}`
+        : null;
 
   if (!q) return null;
 
@@ -97,7 +99,13 @@ async function findExistingUser(
   // If the existing user is linked, return the primary (same as the happy path)
   if (existing.linked_to) {
     const primary = await data.users.get(tenant_id, existing.linked_to);
-    if (primary) return primary;
+    if (!primary) {
+      throw new JSONHTTPException(500, {
+        error: "server_error",
+        error_description: "Primary user does not exist for linked user",
+      });
+    }
+    return primary;
   }
 
   return existing;

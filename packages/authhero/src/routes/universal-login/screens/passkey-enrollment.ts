@@ -251,7 +251,20 @@ export const passkeyEnrollmentScreenDefinition: ScreenDefinition = {
       );
 
       // Block enrollment if user already has confirmed MFA methods
-      if (enrollments.some((e) => e.confirmed)) {
+      // Only consider factors that are enabled in the tenant's MFA config
+      const enabledFactors = client.tenant.mfa?.factors;
+      const hasWebauthn =
+        enabledFactors?.webauthn_roaming === true ||
+        enabledFactors?.webauthn_platform === true;
+      const passkeyTypes = ["passkey", "webauthn-roaming", "webauthn-platform"];
+      const hasConfirmedEnabledFactor = enrollments.some(
+        (e) =>
+          e.confirmed &&
+          ((e.type === "phone" && enabledFactors?.sms === true) ||
+            (e.type === "totp" && enabledFactors?.otp === true) ||
+            (passkeyTypes.includes(e.type) && hasWebauthn)),
+      );
+      if (hasConfirmedEnabledFactor) {
         throw new HTTPException(403, {
           message:
             "Cannot enroll new MFA factor while existing factors are active",
@@ -354,11 +367,28 @@ export const passkeyEnrollmentScreenDefinition: ScreenDefinition = {
       }
 
       // Block enrollment if user already has confirmed MFA methods
+      // Only consider factors that are enabled in the tenant's MFA config
       const existingMethods = await ctx.env.data.authenticationMethods.list(
         client.tenant.id,
         loginSession.user_id,
       );
-      if (existingMethods.some((e) => e.confirmed)) {
+      const enabledFactorsPost = client.tenant.mfa?.factors;
+      const hasWebauthnPost =
+        enabledFactorsPost?.webauthn_roaming === true ||
+        enabledFactorsPost?.webauthn_platform === true;
+      const passkeyTypesPost = [
+        "passkey",
+        "webauthn-roaming",
+        "webauthn-platform",
+      ];
+      const hasConfirmedEnabledFactorPost = existingMethods.some(
+        (e) =>
+          e.confirmed &&
+          ((e.type === "phone" && enabledFactorsPost?.sms === true) ||
+            (e.type === "totp" && enabledFactorsPost?.otp === true) ||
+            (passkeyTypesPost.includes(e.type) && hasWebauthnPost)),
+      );
+      if (hasConfirmedEnabledFactorPost) {
         throw new HTTPException(403, {
           message:
             "Cannot enroll new MFA factor while existing factors are active",
