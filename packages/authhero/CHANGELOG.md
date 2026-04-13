@@ -1,5 +1,17 @@
 # authhero
 
+## 4.93.0
+
+### Minor Changes
+
+- 3da602c: Trim transactions
+
+### Patch Changes
+
+- Updated dependencies [3da602c]
+  - @authhero/adapter-interfaces@1.1.0
+  - @authhero/widget@0.31.1
+
 ## 4.92.0
 
 ### Minor Changes
