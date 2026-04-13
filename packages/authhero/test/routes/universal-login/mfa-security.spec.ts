@@ -1,10 +1,14 @@
 import { describe, it, expect } from "vitest";
+import { Context } from "hono";
 import {
   AuthorizationResponseType,
   LoginSessionState,
 } from "@authhero/adapter-interfaces";
 import { getTestServer } from "../../helpers/test-server";
 import { getAdminToken } from "../../helpers/token";
+import { Bindings, Variables } from "../../../src/types";
+import { getEnrichedClient } from "../../../src/helpers/client";
+import { getPrimaryUserByEmail } from "../../../src/helpers/users";
 
 /**
  * Helper to enable OTP factor and set MFA policy to "always" on the test tenant.
@@ -446,7 +450,7 @@ describe("MFA security", () => {
         },
       );
 
-      // Create login session with passkey authenticationMethodId
+      // Create login session first without session_id (FK requires session to exist)
       const loginSession = await env.data.loginSessions.create("tenantId", {
         expires_at: new Date(Date.now() + 600000).toISOString(),
         csrf_token: "csrfToken",
@@ -462,29 +466,78 @@ describe("MFA security", () => {
         state: LoginSessionState.AUTHENTICATED,
       });
 
-      // Import and call createFrontChannelAuthResponse to test the routing
-      const { createFrontChannelAuthResponse } = await import(
-        "../../../src/authentication-flows/common"
-      );
+      // Create the session, then link it back to the login session
+      await env.data.sessions.create("tenantId", {
+        id: "test-session-id",
+        user_id: "email|userId",
+        clients: ["clientId"],
+        expires_at: new Date(Date.now() + 600000).toISOString(),
+        used_at: new Date().toISOString(),
+        login_session_id: loginSession.id,
+        device: {
+          last_ip: "",
+          initial_ip: "",
+          last_user_agent: "",
+          initial_user_agent: "",
+          initial_asn: "",
+          last_asn: "",
+        },
+      });
+      await env.data.loginSessions.update("tenantId", loginSession.id, {
+        session_id: "test-session-id",
+      });
 
-      // We need to check the routing logic directly through the MFA check
-      // The checkMfaRequired function should return the passkey enrollment
+      // Verify checkMfaRequired detects the passkey enrollment
       const { checkMfaRequired } = await import(
         "../../../src/authentication-flows/mfa"
       );
-
-      // Create a minimal context for checkMfaRequired
       const mfaCheck = await checkMfaRequired(
         { env } as any,
         "tenantId",
         "email|userId",
       );
-
       expect(mfaCheck.required).toBe(true);
       if (mfaCheck.required && mfaCheck.enrolled) {
         expect(mfaCheck.enrollment.type).toBe("webauthn-roaming");
         expect(mfaCheck.allEnrollments).toHaveLength(1);
       }
+
+      // Drive the login session through createFrontChannelAuthResponse
+      const { createFrontChannelAuthResponse } = await import(
+        "../../../src/authentication-flows/common"
+      );
+
+      const ctx = {
+        env,
+        var: { tenant_id: "tenantId" },
+        req: {
+          header: () => {},
+          queries: () => {},
+        },
+      } as unknown as Context<{ Bindings: Bindings; Variables: Variables }>;
+
+      const client = await getEnrichedClient(env, "clientId");
+      const user = await getPrimaryUserByEmail({
+        userAdapter: env.data.users,
+        tenant_id: "tenantId",
+        email: "foo@example.com",
+      });
+      if (!client || !user) {
+        throw new Error("Client or user not found");
+      }
+
+      const response = await createFrontChannelAuthResponse(ctx, {
+        authParams: loginSession.authParams,
+        client,
+        user,
+        loginSession,
+      });
+
+      expect(response.status).toBe(302);
+      const location = response.headers.get("location");
+      expect(location).toBe(
+        `/u2/passkey/challenge?state=${encodeURIComponent(loginSession.id)}`,
+      );
     });
 
     it("should detect multiple enrollments (TOTP + passkey) and return all", async () => {

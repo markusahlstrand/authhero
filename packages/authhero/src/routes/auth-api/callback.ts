@@ -37,6 +37,7 @@ async function returnError(
   error: string,
   error_description?: string,
   error_code?: string,
+  skipLog?: boolean,
 ) {
   const oauth2code = await ctx.env.data.codes.get(
     ctx.var.tenant_id || "",
@@ -60,10 +61,12 @@ async function returnError(
     throw new HTTPException(400, { message: "Redirect uri not found" });
   }
 
-  logMessage(ctx, ctx.var.tenant_id, {
-    type: LogTypes.FAILED_LOGIN,
-    description: `Failed connection login: ${error_code} ${error}, ${error_description}`,
-  });
+  if (!skipLog) {
+    logMessage(ctx, ctx.var.tenant_id, {
+      type: LogTypes.FAILED_LOGIN,
+      description: `Failed connection login: ${error_code} ${error}, ${error_description}`,
+    });
+  }
 
   let routePrefix = "/u";
   let loginPath = "/login/identifier";
@@ -215,7 +218,14 @@ async function handleCallback(
       description: `Connection callback failed: ${description}`,
     });
 
-    return returnError(ctx, state, "connection_error", description);
+    return returnError(
+      ctx,
+      state,
+      "connection_error",
+      "Connection failed",
+      undefined,
+      true,
+    );
   }
 }
 

@@ -103,14 +103,16 @@ export const mfaLoginOptionsScreenDefinition: ScreenDefinition = {
         tenant.id,
         loginSession.user_id,
       );
-      const confirmedEnrollments = enrollments.filter(
+      const relevantEnrollments = enrollments.filter(
         (e) =>
-          (e.type === "phone" ||
-            e.type === "totp" ||
-            e.type === "passkey" ||
-            e.type === "webauthn-roaming" ||
-            e.type === "webauthn-platform") &&
-          e.confirmed,
+          e.type === "phone" ||
+          e.type === "totp" ||
+          e.type === "passkey" ||
+          e.type === "webauthn-roaming" ||
+          e.type === "webauthn-platform",
+      );
+      const confirmedEnrollments = relevantEnrollments.filter(
+        (e) => e.confirmed,
       );
 
       const options: MfaOption[] = [];
@@ -148,11 +150,11 @@ export const mfaLoginOptionsScreenDefinition: ScreenDefinition = {
         }
       }
 
-      // Only show enrollment options when the user has NO confirmed enrollments.
-      // If they already have MFA enrolled, they must verify an existing factor
-      // before enrolling additional ones (prevents MFA bypass).
-      if (confirmedEnrollments.length === 0) {
-        const enrolledTypes = new Set(confirmedEnrollments.map((e) => e.type));
+      // Only show enrollment options when the user has NO existing enrollments
+      // (confirmed or pending). If they already have any MFA enrollment, they
+      // must verify an existing factor before enrolling additional ones.
+      if (relevantEnrollments.length === 0) {
+        const enrolledTypes = new Set(relevantEnrollments.map((e) => e.type));
 
         if (tenant.mfa?.factors?.otp === true && !enrolledTypes.has("totp")) {
           options.push({
@@ -217,7 +219,7 @@ export const mfaLoginOptionsScreenDefinition: ScreenDefinition = {
 
       const selectedId = selectedKey.replace("factor_", "");
 
-      // Handle enrollment options - only allowed when user has no confirmed enrollments
+      // Handle enrollment options - only allowed when user has no existing MFA enrollments
       if (
         selectedId === "enroll-totp" ||
         selectedId === "enroll-phone" ||
@@ -227,8 +229,16 @@ export const mfaLoginOptionsScreenDefinition: ScreenDefinition = {
           client.tenant.id,
           loginSession.user_id,
         );
-        const hasConfirmedEnrollment = enrollments.some((e) => e.confirmed);
-        if (hasConfirmedEnrollment) {
+        const hasExistingEnrollment = enrollments.some(
+          (e) =>
+            e.confirmed ||
+            e.type === "phone" ||
+            e.type === "totp" ||
+            e.type === "passkey" ||
+            e.type === "webauthn-roaming" ||
+            e.type === "webauthn-platform",
+        );
+        if (hasExistingEnrollment) {
           throw new HTTPException(403, {
             message:
               "Cannot enroll new MFA factor while existing factors are active",
