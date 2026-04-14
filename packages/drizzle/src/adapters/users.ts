@@ -118,20 +118,29 @@ export function createUsersAdapter(db: DrizzleDb) {
     const passwordId = params.password ? nanoid() : undefined;
 
     try {
-      await db.insert(users).values(sqlData);
-
-      // Insert password if provided
       if (params.password && passwordId) {
-        await db.insert(passwords).values({
-          id: passwordId,
-          tenant_id,
-          user_id: params.user_id,
-          password: params.password.hash || params.password,
-          algorithm: params.password.algorithm || "bcrypt",
-          is_current: 1,
-          created_at: now,
-          updated_at: now,
-        });
+        // Wrap user + password inserts in a transaction so both
+        // succeed or both rollback.
+        db.run(sql`BEGIN`);
+        try {
+          await db.insert(users).values(sqlData);
+          await db.insert(passwords).values({
+            id: passwordId,
+            tenant_id,
+            user_id: params.user_id,
+            password: params.password.hash || params.password,
+            algorithm: params.password.algorithm || "bcrypt",
+            is_current: 1,
+            created_at: now,
+            updated_at: now,
+          });
+          db.run(sql`COMMIT`);
+        } catch (e) {
+          db.run(sql`ROLLBACK`);
+          throw e;
+        }
+      } else {
+        await db.insert(users).values(sqlData);
       }
     } catch (error: any) {
       if (

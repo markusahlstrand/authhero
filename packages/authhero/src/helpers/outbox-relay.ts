@@ -23,6 +23,21 @@ const DEFAULT_MAX_RETRIES = 5;
 const DEFAULT_RETENTION_DAYS = 7;
 const DEFAULT_LEASE_MS = 30_000; // 30 seconds
 
+async function tryDeadLetter(
+  outbox: OutboxAdapter,
+  eventId: string,
+  error: string,
+): Promise<void> {
+  console.warn(
+    `Outbox event ${eventId} dead-lettering: ${error}`,
+  );
+  try {
+    await outbox.deadLetter(eventId, error);
+  } catch {
+    // Best effort — event stays in outbox if dead-letter write fails
+  }
+}
+
 function computeNextRetryAt(retryCount: number): string {
   const delayMs = Math.min(
     BASE_DELAY_MS * Math.pow(2, retryCount),
@@ -58,17 +73,11 @@ export async function processOutboxEvents(
 
   for (const event of events) {
     if (event.retry_count >= maxRetries) {
-      console.warn(
-        `Outbox event ${event.id} exceeded max retries (${maxRetries}), dead-lettering. Last error: ${event.error}`,
+      await tryDeadLetter(
+        outbox,
+        event.id,
+        event.error || `Exceeded max retries (${maxRetries})`,
       );
-      try {
-        await outbox.deadLetter(
-          event.id,
-          event.error || `Exceeded max retries (${maxRetries})`,
-        );
-      } catch {
-        // Best effort — event stays in outbox if dead-letter write fails
-      }
       continue;
     }
 
@@ -99,21 +108,11 @@ export async function processOutboxEvents(
     }
 
     if (!anyDestinationAccepted) {
-      // Routing bug: an event made it into the outbox but no destination
-      // filters it in. Dead-lettering immediately surfaces the
-      // misconfiguration in `/api/v2/failed-events` instead of silently
-      // marking it processed.
-      console.warn(
-        `Outbox event ${event.id} (event_type=${event.event_type}) had no accepting destination — dead-lettering.`,
+      await tryDeadLetter(
+        outbox,
+        event.id,
+        `No destination accepts event_type=${event.event_type}`,
       );
-      try {
-        await outbox.deadLetter(
-          event.id,
-          `No destination accepts event_type=${event.event_type}`,
-        );
-      } catch {
-        // Best effort — event stays in outbox if dead-letter write fails.
-      }
       continue;
     }
 
@@ -164,17 +163,11 @@ export async function drainOutbox(
     // Move exhausted events to dead-letter so they don't block the queue and
     // are still visible via the failed-events management endpoints.
     if (event.retry_count >= maxRetries) {
-      console.warn(
-        `Outbox event ${event.id} exceeded max retries (${maxRetries}), dead-lettering. Last error: ${event.error}`,
+      await tryDeadLetter(
+        outbox,
+        event.id,
+        event.error || `Exceeded max retries (${maxRetries})`,
       );
-      try {
-        await outbox.deadLetter(
-          event.id,
-          event.error || `Exceeded max retries (${maxRetries})`,
-        );
-      } catch {
-        // Best effort
-      }
       continue;
     }
 
@@ -205,17 +198,11 @@ export async function drainOutbox(
     }
 
     if (!anyDestinationAccepted) {
-      console.warn(
-        `Outbox event ${event.id} (event_type=${event.event_type}) had no accepting destination — dead-lettering.`,
+      await tryDeadLetter(
+        outbox,
+        event.id,
+        `No destination accepts event_type=${event.event_type}`,
       );
-      try {
-        await outbox.deadLetter(
-          event.id,
-          `No destination accepts event_type=${event.event_type}`,
-        );
-      } catch {
-        // Best effort
-      }
       continue;
     }
 

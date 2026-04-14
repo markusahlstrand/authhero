@@ -2,9 +2,20 @@ import { Bindings, Variables } from "../../types";
 import { HTTPException } from "hono/http-exception";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { querySchema } from "../../types/auth0/Query";
+import { auditEventSchema } from "@authhero/adapter-interfaces";
+
+const outboxEventSchema = auditEventSchema.extend({
+  created_at: z.string(),
+  processed_at: z.string().nullable(),
+  retry_count: z.number(),
+  next_retry_at: z.string().nullable(),
+  error: z.string().nullable(),
+  dead_lettered_at: z.string().nullable().optional(),
+  final_error: z.string().nullable().optional(),
+});
 
 const listFailedEventsResponseSchema = z.object({
-  events: z.array(z.any()),
+  events: z.array(outboxEventSchema),
   start: z.number(),
   limit: z.number(),
   length: z.number(),

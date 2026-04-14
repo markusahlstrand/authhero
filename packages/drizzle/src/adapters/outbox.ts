@@ -5,6 +5,7 @@ import {
   isNotNull,
   lte,
   desc,
+  asc,
   or,
   sql,
   inArray,
@@ -200,7 +201,7 @@ export function createOutboxAdapter(db: DrizzleDb): OutboxAdapter {
             isNotNull(outboxEvents.dead_lettered_at),
           ),
         )
-        .orderBy(desc(outboxEvents.dead_lettered_at), outboxEvents.id)
+        .orderBy(desc(outboxEvents.dead_lettered_at), asc(outboxEvents.id))
         .offset(page * per_page)
         .limit(per_page)
         .all();
