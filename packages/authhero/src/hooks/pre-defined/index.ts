@@ -19,3 +19,5 @@
 export { ensureUsername } from "./ensure-username";
 export type { EnsureUsernameOptions } from "./ensure-username";
 export { setPreferredUsername } from "./set-preferred-username";
+export { accountLinking } from "./account-linking";
+export type { AccountLinkingOptions } from "./account-linking";
