@@ -7,6 +7,10 @@ description: Comprehensive guide to AuthHero hooks including lifecycle, configur
 
 This guide explains how hooks work in AuthHero, including their lifecycle, configuration options, and usage patterns.
 
+::: tip Looking for the design details?
+The [Hooks & Outbox Pipeline](../architecture/hooks-pipeline.md) architecture doc explains the **why**: the three-phase execution model (prepare / commit / publish), transaction boundaries, outbox-based post-hook delivery, dead-letter, and self-healing. Start there if you are adding a new trigger or debugging a webhook that "never fired."
+:::
+
 ## Overview
 
 AuthHero provides a flexible hooks system that allows you to execute custom logic at key points in the authentication lifecycle. Hooks can be implemented as:
@@ -57,7 +61,9 @@ When a user signs up, the following hooks are triggered in order:
 
 7. **Post-User Registration Webhook** (`postUserRegistrationWebhook`)
    - HTTP webhook invoked after user creation
-   - **Asynchronous**: Errors are logged but don't block the flow
+   - **Delivered via the outbox** — retried with exponential backoff, dead-lettered after `maxRetries` (see [Failed events](/customization/failed-events))
+   - **Idempotent by contract**: each POST carries `Idempotency-Key: {event.id}` so retries dedupe on the receiving side
+   - **Self-heals**: if delivery dead-letters, the user's next login re-enqueues the event until it succeeds
    - **Can modify**: Cannot modify user (already created)
 
 ### User Login Flow

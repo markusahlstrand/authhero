@@ -64,6 +64,14 @@ export const userInsertSchema = baseUserSchema.extend({
   provider: z.string().optional(),
   connection: z.string(),
   is_social: z.boolean().optional(),
+  /**
+   * Set when the post-user-registration outbox event has reached processed
+   * state (all post-hook destinations succeeded) or when the inline dispatch
+   * path delivered the webhooks without error. Used by `postUserLoginHook`
+   * to decide whether to re-enqueue the event on the user's next login —
+   * the self-healing mechanism for transient post-registration failures.
+   */
+  registration_completed_at: z.string().optional(),
   // Optional password for atomic user+password creation
   // When provided, user and password are created in a single transaction
   password: z

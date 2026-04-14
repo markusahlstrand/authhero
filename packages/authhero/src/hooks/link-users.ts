@@ -34,8 +34,10 @@ export function linkUsersHook(data: DataAdapters) {
           }
         }
 
-        // Create the user (with or without linked_to)
-        const createdUser = await trxData.users.create(tenant_id, user);
+        // Create the user (with or without linked_to). rawCreate bypasses
+        // decorator hooks — pre/post-registration hooks ran outside this
+        // transaction and must never re-enter via the commit path.
+        const createdUser = await trxData.users.rawCreate(tenant_id, user);
 
         // If linked to a primary user, return the primary with updated identities
         if (user.linked_to) {

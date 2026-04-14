@@ -126,6 +126,56 @@ const auth = init({
 3. **Custom Matching Logic**: Link based on phone number or other attributes
 4. **Override Automatic Linking**: Link to a different user than email would suggest
 
+### The `accountLinking` Template (post-login)
+
+Automatic linking at registration only helps new accounts. If two accounts with the same email already exist — one primary, one unlinked — they stay separate until someone intervenes. The `accountLinking` template fills that gap. It runs as a `post-user-login` hook on every login, and is fully idempotent: no-op when `linked_to` is already set, when the email is unverified, or when the user is already the primary.
+
+This is AuthHero's equivalent of [Auth0's "Account Linking" marketplace action](https://marketplace.auth0.com/integrations/account-link-extension). Enable it either per-tenant (preferred) or globally.
+
+**Per-tenant via the admin API / UI:**
+
+```typescript
+await data.hooks.create(tenantId, {
+  trigger_id: "post-user-login",
+  template_id: "account-linking",
+  enabled: true,
+});
+```
+
+**Globally via `init`:**
+
+```typescript
+import { init, preDefinedHooks } from "authhero";
+
+const auth = init({
+  dataAdapter,
+  hooks: {
+    onExecutePostLogin: preDefinedHooks.accountLinking(),
+  },
+});
+```
+
+#### Options
+
+```typescript
+preDefinedHooks.accountLinking({
+  // default: true. Disabling is almost never what you want — it enables
+  // account takeover via unverified email on an untrusted connection.
+  requireVerifiedEmail: true,
+});
+```
+
+#### When to use the template vs. the built-in
+
+| Scenario                                                                  | Use                                                                |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| New signups with matching verified email should auto-link                 | Built-in (no config)                                               |
+| Legacy unlinked accounts should merge when the user next logs in          | Template                                                           |
+| Custom matching rules (not just email)                                    | `setLinkedTo` in `pre-user-registration`                           |
+| Every login should re-check linking (e.g. after email verification flips) | Template (the built-in only runs at registration)                  |
+
+The template is safe to combine with either automatic linking or a custom `pre-user-registration` hook — all three resolve to the same `linked_to` field atomically via `users.update`.
+
 ## How Account Linking Works
 
 ### Data Model

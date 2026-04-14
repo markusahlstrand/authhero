@@ -7,9 +7,19 @@ description: Complete user creation flow in AuthHero with all hooks triggered du
 
 This document describes the complete user creation flow in AuthHero and all hooks that are triggered during the process.
 
+::: tip Pipeline architecture
+For the design rationale behind the three-phase (prepare / commit / publish) model, transaction boundaries, and how post-hooks are delivered via the outbox with retries and dead-letter, see the [Hooks & Outbox Pipeline](../architecture/hooks-pipeline.md) architecture doc. The guide below focuses on which hooks fire and in what order.
+:::
+
 ## Overview
 
 When a new user signs up or is created in AuthHero, whether through email/password, passwordless, social login, or the Management API, a series of validation checks and hooks are executed to ensure proper authorization and data integrity.
+
+Hook execution follows a strict three-phase model:
+
+1. **Prepare** — validation + blocking hooks (pre-registration, pre-update, pre-deletion). Outside any DB transaction so webhook calls and user-authored action code can take unbounded time.
+2. **Commit** — one short DB transaction that writes the user + password + outbox event atomically. No external I/O.
+3. **Publish** — post-hook dispatch via the outbox (webhooks, finalizers). Retried with exponential backoff; dead-lettered after exhaustion. Self-heals on the user's next login via `registration_completed_at`.
 
 ## User Creation Methods
 
@@ -87,21 +97,39 @@ Once the pre-registration hook passes, the actual user creation begins through `
 When a new user signs up through an authentication flow:
 
 ```
+PHASE 1 — Prepare (no DB transaction held)
+
 1. validateRegistrationUsername (optional, early check)
    ↓
 2. preUserRegistrationHook
    ├── validateRegistrationUsername (re-validation)
    ├── Log failed signup (if blocked)
-   └── preUserRegistrationWebhook
+   └── preUserRegistrationWebhook  ◀── HTTP, can take seconds
    ↓
-3. data.users.create (wrapped with hooks)
-   ├── Validate client_id and fetch client
-   ├── preUserRegistrationHook (redundant check, already done)
-   ├── onExecutePreUserRegistration (programmatic)
-   ├── linkUsersHook (automatic account linking)
-   ├── onExecutePostUserRegistration (programmatic)
-   └── postUserRegistrationWebhook
+3. onExecutePreUserRegistration (programmatic hook)
+   ↓
+4. pre-user-registration code hooks (Cloudflare Dispatch)
+
+PHASE 2 — Commit (single short DB transaction)
+
+5. linkUsersHook
+   ├── getPrimaryUserByEmail (verified-email lookup)
+   ├── users.rawCreate (bypasses the decorator; no hook re-entry)
+   └── linked_to resolution if a primary was found
+
+PHASE 3 — Publish (runs after the commit, never blocks it)
+
+6. onExecutePostUserRegistration (programmatic, inline for now)
+7. post-user-registration code hooks (inline for now — see roadmap)
+8. enqueuePostHookEvent("post-user-registration")
+   └── outbox relay → WebhookDestination + RegistrationFinalizerDestination
+       ├── POSTs to enabled webhooks with Idempotency-Key = event.id
+       ├── retries with exponential backoff on failure (max 5)
+       ├── moves to dead-letter after retry exhaustion
+       └── on success → sets user.registration_completed_at
 ```
+
+Self-healing: if `registration_completed_at` is still `null` on the user's next login, `postUserLoginHook` re-enqueues the `post-user-registration` event so a dead-lettered or lost delivery recovers automatically. Webhook consumers must be idempotent (enforced by the `Idempotency-Key` header).
 
 ## Signup Blocking with `disable_sign_ups`
 

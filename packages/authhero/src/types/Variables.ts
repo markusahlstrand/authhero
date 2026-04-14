@@ -33,8 +33,9 @@ export type Variables = {
   // Outbox event ID promises created during this request (for per-request processing).
   // Promises are pushed synchronously so that non-awaited logMessage calls are still captured.
   outboxEventPromises?: Promise<string>[];
-  // Functions to run after the current transaction commits.
-  // Used by user hooks to defer slow post-registration/update/deletion webhooks
-  // and code hooks so they don't hold the transaction connection open.
-  deferredPostHooks?: Array<() => Promise<void>>;
+  // Promises registered via `waitUntil` on non-Workers runtimes. The outbox
+  // middleware awaits these in its finally block so background work (log
+  // writes, outbox webhook dispatch) is observable by tests and completes
+  // before the process exits.
+  backgroundPromises?: Promise<void>[];
 };

@@ -124,6 +124,21 @@ const sqlHookSchema = z.object({
   code_id: z.string().optional().nullable(),
 });
 
+export const sqlActionSchema = z.object({
+  id: z.string(),
+  tenant_id: z.string(),
+  name: z.string(),
+  code: z.string(),
+  runtime: z.string().optional().nullable(),
+  status: z.string().optional().nullable(),
+  secrets: z.string().optional().nullable(),
+  dependencies: z.string().optional().nullable(),
+  supported_triggers: z.string().optional().nullable(),
+  deployed_at_ts: z.number().optional().nullable(),
+  created_at_ts: z.number(),
+  updated_at_ts: z.number(),
+});
+
 export const sqlHookCodeSchema = z.object({
   id: z.string(),
   tenant_id: z.string(),
@@ -399,6 +414,7 @@ export const sqlAuthenticationMethodSchema = z.object({
 });
 
 export interface Database {
+  actions: z.infer<typeof sqlActionSchema>;
   flows: z.infer<typeof sqlFlowSchema>;
   branding: z.infer<typeof sqlBrandingSchema>;
   clients: z.infer<typeof sqlClientSchema>;
@@ -446,5 +462,7 @@ export interface Database {
     error: string | null;
     claimed_by: string | null;
     claim_expires_at: string | null;
+    dead_lettered_at: string | null;
+    final_error: string | null;
   };
 }

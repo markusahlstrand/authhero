@@ -1,4 +1,5 @@
 import { Kysely } from "kysely";
+import { createActionsAdapter } from "./actions";
 import { createUsersAdapter } from "./users";
 import { createFlowsAdapter } from "./flows";
 import { createTenantsAdapter } from "./tenants";
@@ -45,6 +46,7 @@ export default function createAdapters(
   databaseOptions = { useTransactions: true },
 ): DataAdapters {
   const adapters: DataAdapters = {
+    actions: createActionsAdapter(db),
     branding: createBrandingAdapter(db),
     clients: createClientsAdapter(db),
     clientConnections: createClientConnectionsAdapter(db),

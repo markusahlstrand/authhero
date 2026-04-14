@@ -8,6 +8,13 @@ export interface ListUsersResponse extends Totals {
 export interface UserDataAdapter {
   get(tenant_id: string, id: string): Promise<User | null>;
   create(tenantId: string, user: UserInsert): Promise<User>;
+  /**
+   * Create a user without invoking any decorator-level hooks (pre/post
+   * registration hooks, linking, webhooks, etc.). Intended to be called from
+   * inside a registration pipeline that owns hook orchestration and transaction
+   * boundaries itself. The DB-level behavior is identical to `create`.
+   */
+  rawCreate(tenantId: string, user: UserInsert): Promise<User>;
   remove(tenantId: string, id: string): Promise<boolean>;
   list(tenantId: string, params?: ListParams): Promise<ListUsersResponse>;
   update(tenantId: string, id: string, user: Partial<User>): Promise<boolean>;

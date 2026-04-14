@@ -1,7 +1,7 @@
 import { Context, MiddlewareHandler } from "hono";
 import { OutboxAdapter } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
-import { waitUntil } from "../helpers/wait-until";
+import { waitUntil, flushBackgroundPromises } from "../helpers/wait-until";
 import { processOutboxEvents, EventDestination } from "../helpers/outbox-relay";
 
 type Ctx = Context<{ Bindings: Bindings; Variables: Variables }>;
@@ -24,6 +24,7 @@ export function outboxMiddleware(
 ): MiddlewareHandler<{ Bindings: Bindings; Variables: Variables }> {
   return async (ctx, next) => {
     ctx.set("outboxEventPromises", []);
+    ctx.set("backgroundPromises", []);
     let error: unknown;
     try {
       await next();
@@ -57,6 +58,17 @@ export function outboxMiddleware(
             ),
           );
         }
+      }
+      // Drain waitUntil-registered background promises ONLY under a test
+      // runner. In production Node we would otherwise pull webhook delivery
+      // latency (possibly seconds) onto the request critical path. On
+      // Cloudflare Workers `executionCtx.waitUntil` keeps the worker alive
+      // without blocking the response, so this branch is a no-op there.
+      if (
+        typeof process !== "undefined" &&
+        process.env?.NODE_ENV === "test"
+      ) {
+        await flushBackgroundPromises(ctx);
       }
     }
     if (error) throw error;

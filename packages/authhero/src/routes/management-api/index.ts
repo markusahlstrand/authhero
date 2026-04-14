@@ -1,6 +1,8 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { Context } from "hono";
 import { Bindings, Variables, AuthHeroConfig } from "../../types";
+import { actionsRoutes } from "./actions";
+import { actionTriggersRoutes } from "./action-triggers";
 import { brandingRoutes } from "./branding";
 import { userRoutes } from "./users";
 import { keyRoutes } from "./keys";
@@ -8,6 +10,7 @@ import { usersByEmailRoutes } from "./users-by-email";
 import { clientRoutes } from "./clients";
 import { tenantRoutes } from "./tenants";
 import { logRoutes } from "./logs";
+import { failedEventsRoutes } from "./failed-events";
 import { hooksRoutes } from "./hooks";
 import { hookCodeRoutes } from "./hook-code";
 import { connectionRoutes } from "./connections";
@@ -34,10 +37,12 @@ import { organizationRoutes } from "./organizations";
 import { statsRoutes } from "./stats";
 import { guardianRoutes } from "./guardian";
 import { authenticationMethodsRoutes } from "./authentication-methods";
-import { DataAdapters, LogTypes } from "@authhero/adapter-interfaces";
+import { DataAdapters } from "@authhero/adapter-interfaces";
 import { outboxMiddleware } from "../../middlewares/outbox";
 import { LogsDestination } from "../../helpers/outbox-destinations/logs";
-import { logMessage } from "../../helpers/logging";
+import { WebhookDestination } from "../../helpers/outbox-destinations/webhooks";
+import { RegistrationFinalizerDestination } from "../../helpers/outbox-destinations/registration-finalizer";
+import { createServiceToken } from "../../helpers/service-token";
 
 export default function create(config: AuthHeroConfig) {
   const app = new OpenAPIHono<{
@@ -182,69 +187,30 @@ export default function create(config: AuthHeroConfig) {
     return addTimingLogs(ctx, cachedData);
   };
 
-  const MUTATING_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"]);
-
   app.use(
     outboxMiddleware({
       getOutbox: () => managementAdapter.outbox,
-      getDestinations: () => [new LogsDestination(managementAdapter.logs)],
+      getDestinations: (ctx) => [
+        new LogsDestination(managementAdapter.logs),
+        new WebhookDestination(managementAdapter.hooks, async (tenantId) => {
+          const token = await createServiceToken(ctx, tenantId, "webhook");
+          return token.access_token;
+        }),
+        // Must come after delivery destinations so the flag only flips when
+        // the upstream hook destinations actually succeeded.
+        new RegistrationFinalizerDestination(managementAdapter.users),
+      ],
     }),
   );
 
   app.use(async (ctx, next) => {
-    const outboxEnabled = ctx.env.outbox?.enabled;
-    const isMutating = MUTATING_METHODS.has(ctx.req.method);
-
-    if (outboxEnabled && isMutating) {
-      // Wrap the request in a transaction so entity writes
-      // and outbox event writes are atomic.
-      // Slow post-hooks (webhooks, code hooks) are deferred
-      // to run after the transaction commits — see deferredPostHooks.
-      ctx.set("deferredPostHooks", []);
-      try {
-        await managementAdapter.transaction(async (trxAdapters) => {
-          ctx.env.data = applyDecorators(ctx, trxAdapters);
-          ctx.env.entityHooks = config.entityHooks;
-          await next();
-        });
-      } catch (err) {
-        // Transaction rolled back — any outbox events created inside are gone.
-        // Switch to non-transactional adapters and log the error so it persists.
-        ctx.env.data = applyDecorators(ctx, managementAdapter);
-        const tenantId = ctx.var?.tenant_id;
-        if (tenantId) {
-          try {
-            await logMessage(ctx, tenantId, {
-              type: LogTypes.FAILED_API_OPERATION,
-              description:
-                err instanceof Error ? err.message : "Transaction failed",
-            });
-          } catch {
-            // Best effort — don't mask the original error
-          }
-        }
-        throw err;
-      }
-
-      // Reset to non-transactional adapters now that the transaction
-      // has committed, so deferred hooks use a live adapter.
-      ctx.env.data = applyDecorators(ctx, managementAdapter);
-
-      // Run deferred post-hooks after the transaction has committed.
-      // These are fire-and-forget (failures are logged, not thrown).
-      const deferred = ctx.var.deferredPostHooks ?? [];
-      for (const fn of deferred) {
-        try {
-          await fn();
-        } catch (err) {
-          console.error("Deferred post-hook failed:", err);
-        }
-      }
-    } else {
-      ctx.env.data = applyDecorators(ctx, managementAdapter);
-      ctx.env.entityHooks = config.entityHooks;
-      await next();
-    }
+    // Write routes own their own transactional boundaries (see linkUsersHook,
+    // createUserUpdateHooks, createUserDeletionHooks). Holding a transaction
+    // across the full request would enclose external I/O — pre-registration
+    // webhooks and user-authored action code — which is unsafe on hosted DBs.
+    ctx.env.data = applyDecorators(ctx, managementAdapter);
+    ctx.env.entityHooks = config.entityHooks;
+    await next();
   });
 
   app
@@ -268,6 +234,8 @@ export default function create(config: AuthHeroConfig) {
   );
 
   const managementApp = app
+    .route("/actions/actions", actionsRoutes)
+    .route("/actions/triggers", actionTriggersRoutes)
     .route("/branding", brandingRoutes)
     .route("/custom-domains", customDomainRoutes)
     .route("/email/providers", emailProviderRoutes)
@@ -277,6 +245,7 @@ export default function create(config: AuthHeroConfig) {
     .route("/clients", clientRoutes)
     .route("/client-grants", clientGrantRoutes)
     .route("/logs", logRoutes)
+    .route("/failed-events", failedEventsRoutes)
     .route("/hooks", hooksRoutes)
     .route("/hook-code", hookCodeRoutes)
     .route("/connections", connectionRoutes)

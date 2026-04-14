@@ -60,6 +60,35 @@ export async function handleTemplateHook(
       const updatedUser = await ctx.env.data.users.get(tenant_id, user.user_id);
       return updatedUser || user;
     }
+    case "account-linking": {
+      const hookFn = preDefinedHooks.accountLinking();
+      await hookFn(
+        {
+          ctx,
+          user,
+          tenant: { id: tenant_id },
+          request: {
+            ip: ctx.get("ip") || "",
+            url: ctx.req.url,
+          },
+        } as any,
+        {
+          prompt: { render: () => {} },
+          redirect: {
+            sendUserTo: () => {},
+            encodeToken: () => "",
+            validateToken: () => null,
+          },
+          token: {
+            createServiceToken: async () => "",
+          },
+        },
+      );
+      // accountLinking may have set linked_to, re-fetch so downstream sees
+      // the primary user (the update adapter resolves linked_to chains).
+      const updatedUser = await ctx.env.data.users.get(tenant_id, user.user_id);
+      return updatedUser || user;
+    }
     default:
       console.warn(`[templatehooks] Unknown template_id: ${template_id}`);
       return user;
