@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import { DataAdapters } from "@authhero/adapter-interfaces";
+import { createActionsAdapter } from "./actions";
 import { createBrandingAdapter } from "./branding";
 import { createClientsAdapter } from "./clients";
 import { createClientConnectionsAdapter } from "./clientConnections";
@@ -45,6 +46,7 @@ export default function createAdapters(
   // Individual adapter factories use loose types internally for pragmatism.
   // The assembled object satisfies DataAdapters at the structural level.
   const adapters = {
+    actions: createActionsAdapter(),
     branding: createBrandingAdapter(db),
     clients: createClientsAdapter(db),
     clientConnections: createClientConnectionsAdapter(db),

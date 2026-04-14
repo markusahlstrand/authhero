@@ -28,6 +28,7 @@ import {
 import { BrandingList, BrandingEdit } from "./components/branding";
 import { PromptsList, PromptsEdit } from "./components/prompts";
 import { LogsList, LogShow } from "./components/logs";
+import { ActionCreate, ActionEdit, ActionList } from "./components/actions";
 import { HookEdit, HookList, HooksCreate } from "./components/hooks";
 import { SessionEdit } from "./components/sessions";
 import {
@@ -40,6 +41,7 @@ import {
   OrganizationEdit,
   OrganizationList,
 } from "./components/organizations";
+import CodeIcon from "@mui/icons-material/Code";
 import WebhookIcon from "@mui/icons-material/Webhook";
 import DnsIcon from "@mui/icons-material/Dns";
 import PaletteIcon from "@mui/icons-material/Palette";
@@ -219,6 +221,13 @@ export function App(props: AppProps) {
           create={DomainCreate}
           list={DomainList}
           edit={DomainEdit}
+        />
+        <Resource
+          icon={CodeIcon}
+          name="actions/actions"
+          list={ActionList}
+          create={ActionCreate}
+          edit={ActionEdit}
         />
         <Resource
           icon={WebhookIcon}

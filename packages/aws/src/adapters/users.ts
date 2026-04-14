@@ -111,115 +111,121 @@ function toUser(item: UserItem, linkedUsers: UserItem[] = []): User {
 }
 
 export function createUsersAdapter(ctx: DynamoDBContext): UserDataAdapter {
-  return {
-    async create(tenantId: string, user: UserInsert): Promise<User> {
-      const now = new Date().toISOString();
-      const userId = user.user_id || `${user.provider}|${nanoid()}`;
+  const createImpl = async (
+    tenantId: string,
+    user: UserInsert,
+  ): Promise<User> => {
+    const now = new Date().toISOString();
+    const userId = user.user_id || `${user.provider}|${nanoid()}`;
 
-      const item: UserItem = {
-        PK: userKeys.pk(tenantId),
-        SK: userKeys.sk(userId),
-        entityType: "USER",
-        tenant_id: tenantId,
-        user_id: userId,
-        email: user.email,
-        username: user.username,
-        phone_number: user.phone_number,
-        given_name: user.given_name,
-        family_name: user.family_name,
-        nickname: user.nickname,
-        name: user.name,
-        picture: user.picture,
-        locale: user.locale,
-        linked_to: user.linked_to,
-        profileData: user.profileData,
-        email_verified: user.email_verified ?? false,
-        last_ip: user.last_ip,
-        last_login: user.last_login,
-        provider: user.provider || "auth",
-        connection: user.connection,
-        is_social: user.is_social ?? false,
-        login_count: 0,
-        app_metadata: JSON.stringify(user.app_metadata || {}),
-        user_metadata: JSON.stringify(user.user_metadata || {}),
-        // OIDC profile claims
-        middle_name: user.middle_name,
-        preferred_username: user.preferred_username,
-        profile: user.profile,
-        website: user.website,
-        gender: user.gender,
-        birthdate: user.birthdate,
-        zoneinfo: user.zoneinfo,
-        created_at: now,
-        updated_at: now,
-      };
+    const item: UserItem = {
+      PK: userKeys.pk(tenantId),
+      SK: userKeys.sk(userId),
+      entityType: "USER",
+      tenant_id: tenantId,
+      user_id: userId,
+      email: user.email,
+      username: user.username,
+      phone_number: user.phone_number,
+      given_name: user.given_name,
+      family_name: user.family_name,
+      nickname: user.nickname,
+      name: user.name,
+      picture: user.picture,
+      locale: user.locale,
+      linked_to: user.linked_to,
+      profileData: user.profileData,
+      email_verified: user.email_verified ?? false,
+      last_ip: user.last_ip,
+      last_login: user.last_login,
+      provider: user.provider || "auth",
+      connection: user.connection,
+      is_social: user.is_social ?? false,
+      login_count: 0,
+      app_metadata: JSON.stringify(user.app_metadata || {}),
+      user_metadata: JSON.stringify(user.user_metadata || {}),
+      // OIDC profile claims
+      middle_name: user.middle_name,
+      preferred_username: user.preferred_username,
+      profile: user.profile,
+      website: user.website,
+      gender: user.gender,
+      birthdate: user.birthdate,
+      zoneinfo: user.zoneinfo,
+      created_at: now,
+      updated_at: now,
+    };
 
-      // Add GSI keys for email lookup if email exists
-      if (user.email) {
-        (item as any).GSI1PK = userKeys.gsi1pk(tenantId, user.email);
-        (item as any).GSI1SK = userKeys.gsi1sk();
-      }
+    // Add GSI keys for email lookup if email exists
+    if (user.email) {
+      (item as any).GSI1PK = userKeys.gsi1pk(tenantId, user.email);
+      (item as any).GSI1SK = userKeys.gsi1sk();
+    }
 
-      // Add GSI2 keys for connection lookup
-      (item as any).GSI2PK = userKeys.gsi2pk(tenantId, user.connection);
-      (item as any).GSI2SK = userKeys.gsi2sk(userId);
+    // Add GSI2 keys for connection lookup
+    (item as any).GSI2PK = userKeys.gsi2pk(tenantId, user.connection);
+    (item as any).GSI2SK = userKeys.gsi2sk(userId);
 
-      try {
-        // If password is provided, use a transaction for atomic user+password creation
-        if (user.password) {
-          const passwordId = nanoid();
-          const passwordItem: PasswordItem = {
-            PK: passwordKeys.pk(tenantId, userId),
-            SK: passwordKeys.sk(passwordId),
-            entityType: "PASSWORD",
-            id: passwordId,
-            tenant_id: tenantId,
-            user_id: userId,
-            password: user.password.hash,
-            algorithm: user.password.algorithm as "bcrypt" | "argon2id",
-            is_current: true,
-            created_at: now,
-            updated_at: now,
-          };
+    try {
+      // If password is provided, use a transaction for atomic user+password creation
+      if (user.password) {
+        const passwordId = nanoid();
+        const passwordItem: PasswordItem = {
+          PK: passwordKeys.pk(tenantId, userId),
+          SK: passwordKeys.sk(passwordId),
+          entityType: "PASSWORD",
+          id: passwordId,
+          tenant_id: tenantId,
+          user_id: userId,
+          password: user.password.hash,
+          algorithm: user.password.algorithm as "bcrypt" | "argon2id",
+          is_current: true,
+          created_at: now,
+          updated_at: now,
+        };
 
-          await transactWriteItems(ctx, [
-            {
-              type: "put",
-              item,
-              conditionExpression: "attribute_not_exists(PK)",
-            },
-            {
-              type: "put",
-              item: passwordItem,
-            },
-          ]);
-        } else {
-          await putItem(ctx, item, {
+        await transactWriteItems(ctx, [
+          {
+            type: "put",
+            item,
             conditionExpression: "attribute_not_exists(PK)",
-          });
-        }
-      } catch (err: any) {
-        if (err.name === "ConditionalCheckFailedException") {
+          },
+          {
+            type: "put",
+            item: passwordItem,
+          },
+        ]);
+      } else {
+        await putItem(ctx, item, {
+          conditionExpression: "attribute_not_exists(PK)",
+        });
+      }
+    } catch (err: any) {
+      if (err.name === "ConditionalCheckFailedException") {
+        throw new HTTPException(409, { message: "User already exists" });
+      }
+      if (err.name === "TransactionCanceledException") {
+        // Check if the cancellation was due to a conditional check failure
+        // TransactionCanceledException can also be raised for write conflicts,
+        // internal errors, or throttling - not just when attribute_not_exists fails
+        const reasons = err.CancellationReasons || [];
+        const isConditionalCheckFailed = reasons.some(
+          (reason: { Code?: string }) =>
+            reason?.Code === "ConditionalCheckFailed",
+        );
+        if (isConditionalCheckFailed) {
           throw new HTTPException(409, { message: "User already exists" });
         }
-        if (err.name === "TransactionCanceledException") {
-          // Check if the cancellation was due to a conditional check failure
-          // TransactionCanceledException can also be raised for write conflicts,
-          // internal errors, or throttling - not just when attribute_not_exists fails
-          const reasons = err.CancellationReasons || [];
-          const isConditionalCheckFailed = reasons.some(
-            (reason: { Code?: string }) =>
-              reason?.Code === "ConditionalCheckFailed",
-          );
-          if (isConditionalCheckFailed) {
-            throw new HTTPException(409, { message: "User already exists" });
-          }
-        }
-        throw err;
       }
+      throw err;
+    }
 
-      return toUser(item);
-    },
+    return toUser(item);
+  };
+
+  return {
+    create: createImpl,
+    rawCreate: createImpl,
 
     async get(tenantId: string, userId: string): Promise<User | null> {
       const [item, linkedUsersResult] = await Promise.all([

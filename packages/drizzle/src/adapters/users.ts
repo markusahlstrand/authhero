@@ -70,82 +70,88 @@ function sqlToUser(sqlUser: any, linkedUsers: any[] = []): User {
 }
 
 export function createUsersAdapter(db: DrizzleDb) {
-  return {
-    async create(tenant_id: string, params: any): Promise<User> {
-      const now = new Date().toISOString();
+  const createImpl = async (
+    tenant_id: string,
+    params: any,
+  ): Promise<User> => {
+    const now = new Date().toISOString();
 
-      const sqlData: any = {
-        user_id: params.user_id,
-        tenant_id,
-        email: params.email,
-        given_name: params.given_name,
-        family_name: params.family_name,
-        nickname: params.nickname,
-        name: params.name,
-        picture: params.picture,
-        tags: params.tags,
-        phone_number: params.phone_number,
-        phone_verified: params.phone_verified ?? false,
-        username: params.username,
-        linked_to: params.linked_to,
-        last_ip: params.last_ip,
-        login_count: params.login_count ?? 0,
-        last_login: params.last_login,
-        provider: params.provider,
-        connection: params.connection,
-        email_verified: params.email_verified ?? false,
-        is_social: params.is_social ?? false,
-        app_metadata: JSON.stringify(params.app_metadata || {}),
-        user_metadata: JSON.stringify(params.user_metadata || {}),
-        address: params.address ? JSON.stringify(params.address) : undefined,
-        profileData: params.profileData
-          ? JSON.stringify(params.profileData)
-          : undefined,
-        locale: params.locale,
-        middle_name: params.middle_name,
-        preferred_username: params.preferred_username,
-        profile: params.profile,
-        website: params.website,
-        gender: params.gender,
-        birthdate: params.birthdate,
-        zoneinfo: params.zoneinfo,
-        created_at: params.created_at || now,
-        updated_at: params.updated_at || now,
-      };
+    const sqlData: any = {
+      user_id: params.user_id,
+      tenant_id,
+      email: params.email,
+      given_name: params.given_name,
+      family_name: params.family_name,
+      nickname: params.nickname,
+      name: params.name,
+      picture: params.picture,
+      tags: params.tags,
+      phone_number: params.phone_number,
+      phone_verified: params.phone_verified ?? false,
+      username: params.username,
+      linked_to: params.linked_to,
+      last_ip: params.last_ip,
+      login_count: params.login_count ?? 0,
+      last_login: params.last_login,
+      provider: params.provider,
+      connection: params.connection,
+      email_verified: params.email_verified ?? false,
+      is_social: params.is_social ?? false,
+      app_metadata: JSON.stringify(params.app_metadata || {}),
+      user_metadata: JSON.stringify(params.user_metadata || {}),
+      address: params.address ? JSON.stringify(params.address) : undefined,
+      profileData: params.profileData
+        ? JSON.stringify(params.profileData)
+        : undefined,
+      locale: params.locale,
+      middle_name: params.middle_name,
+      preferred_username: params.preferred_username,
+      profile: params.profile,
+      website: params.website,
+      gender: params.gender,
+      birthdate: params.birthdate,
+      zoneinfo: params.zoneinfo,
+      created_at: params.created_at || now,
+      updated_at: params.updated_at || now,
+    };
 
-      const passwordId = params.password ? nanoid() : undefined;
+    const passwordId = params.password ? nanoid() : undefined;
 
-      try {
-        await db.insert(users).values(sqlData);
+    try {
+      await db.insert(users).values(sqlData);
 
-        // Insert password if provided
-        if (params.password && passwordId) {
-          await db.insert(passwords).values({
-            id: passwordId,
-            tenant_id,
-            user_id: params.user_id,
-            password: params.password.hash || params.password,
-            algorithm: params.password.algorithm || "bcrypt",
-            is_current: 1,
-            created_at: now,
-            updated_at: now,
-          });
-        }
-      } catch (error: any) {
-        if (
-          error?.message?.includes("UNIQUE constraint") ||
-          error?.message?.includes("AlreadyExists")
-        ) {
-          throw new HTTPException(409, { message: "User already exists" });
-        }
-        console.error("User upsert failed:", error?.code, error?.message);
-        throw new HTTPException(500, {
-          message: "Internal server error",
+      // Insert password if provided
+      if (params.password && passwordId) {
+        await db.insert(passwords).values({
+          id: passwordId,
+          tenant_id,
+          user_id: params.user_id,
+          password: params.password.hash || params.password,
+          algorithm: params.password.algorithm || "bcrypt",
+          is_current: 1,
+          created_at: now,
+          updated_at: now,
         });
       }
+    } catch (error: any) {
+      if (
+        error?.message?.includes("UNIQUE constraint") ||
+        error?.message?.includes("AlreadyExists")
+      ) {
+        throw new HTTPException(409, { message: "User already exists" });
+      }
+      console.error("User upsert failed:", error?.code, error?.message);
+      throw new HTTPException(500, {
+        message: "Internal server error",
+      });
+    }
 
-      return sqlToUser(sqlData);
-    },
+    return sqlToUser(sqlData);
+  };
+
+  return {
+    create: createImpl,
+    rawCreate: createImpl,
 
     async get(tenant_id: string, user_id: string): Promise<User | null> {
       const result = await db

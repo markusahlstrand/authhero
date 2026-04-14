@@ -183,9 +183,11 @@ function createUserHooks(
     // Check for existing user with the same email and if so link the users
     let result = await linkUsersHook(data)(tenant_id, user);
 
-    // Defer post-registration hooks so they run after the transaction commits.
-    // This keeps the transaction short (only DB writes + outbox events).
-    const postHookWork = async () => {
+    // Post-registration hooks run after the commit transaction inside
+    // linkUsersHook has closed. They must not be invoked while holding a
+    // transaction — webhook calls and user-authored action code can block
+    // for seconds.
+    const runPostHooks = async () => {
       if (ctx.env.hooks?.onExecutePostUserRegistration) {
         try {
           await ctx.env.hooks.onExecutePostUserRegistration(
@@ -242,13 +244,7 @@ function createUserHooks(
       await postUserRegistrationWebhook(ctx)(tenant_id, result);
     };
 
-    const deferred = ctx.var.deferredPostHooks;
-    if (deferred) {
-      deferred.push(postHookWork);
-    } else {
-      // Not inside a transaction — run immediately
-      await postHookWork();
-    }
+    await runPostHooks();
 
     return result;
   };
@@ -634,22 +630,27 @@ function createUserDeletionHooks(
       });
     }
 
-    // Unlink any secondary users that are linked to this primary user
-    // so they become standalone accounts again (matching Auth0 behavior)
-    const linkedUsers = await data.users.list(tenant_id, {
-      q: `linked_to:${user_id}`,
-    });
-    for (const linkedUser of linkedUsers.users) {
-      const [provider, ...rest] = linkedUser.user_id.split("|");
-      if (provider) {
-        await data.users.unlink(tenant_id, user_id, provider, rest.join("|"));
+    // Unlink secondary users + remove the primary atomically. No external
+    // I/O inside this transaction — webhooks and user code already ran in
+    // the pre-deletion phase above.
+    const result = await data.transaction(async (trxData) => {
+      const linkedUsers = await trxData.users.list(tenant_id, {
+        q: `linked_to:${user_id}`,
+      });
+      for (const linkedUser of linkedUsers.users) {
+        const [provider, ...rest] = linkedUser.user_id.split("|");
+        if (provider) {
+          await trxData.users.unlink(
+            tenant_id,
+            user_id,
+            provider,
+            rest.join("|"),
+          );
+        }
       }
-    }
+      return trxData.users.remove(tenant_id, user_id);
+    });
 
-    // Proceed with deletion
-    const result = await data.users.remove(tenant_id, user_id);
-
-    // Log the user deletion if successful (stays inside transaction for atomicity)
     if (result) {
       logMessage(ctx, tenant_id, {
         type: LogTypes.SUCCESS_USER_DELETION,
@@ -667,53 +668,41 @@ function createUserDeletionHooks(
       });
     }
 
-    // Defer post-deletion hooks so they run after the transaction commits.
+    // Post-deletion hooks run after the commit transaction has closed.
     if (result) {
-      const postHookWork = async () => {
-        // Invoke post-user-deletion webhooks
+      try {
+        await postUserDeletionWebhook(ctx)(tenant_id, userToDelete);
+      } catch (err) {
+        logMessage(ctx, tenant_id, {
+          type: LogTypes.FAILED_HOOK,
+          description: `Post user deletion webhook failed: ${err instanceof Error ? err.message : String(err)}`,
+        });
+        // Don't throw - user is already deleted
+      }
+
+      if (ctx.env.hooks?.onExecutePostUserDeletion) {
         try {
-          await postUserDeletionWebhook(ctx)(tenant_id, userToDelete);
+          await ctx.env.hooks.onExecutePostUserDeletion(
+            {
+              ctx,
+              user: userToDelete,
+              user_id,
+              request,
+              tenant: {
+                id: tenant_id,
+              },
+            },
+            {
+              token: createTokenAPI(ctx, tenant_id),
+            },
+          );
         } catch (err) {
           logMessage(ctx, tenant_id, {
             type: LogTypes.FAILED_HOOK,
-            description: `Post user deletion webhook failed: ${err instanceof Error ? err.message : String(err)}`,
+            description: `Post user deletion hook failed: ${err instanceof Error ? err.message : String(err)}`,
           });
           // Don't throw - user is already deleted
         }
-
-        // Call post-user-deletion hook if configured
-        if (ctx.env.hooks?.onExecutePostUserDeletion) {
-          try {
-            await ctx.env.hooks.onExecutePostUserDeletion(
-              {
-                ctx,
-                user: userToDelete,
-                user_id,
-                request,
-                tenant: {
-                  id: tenant_id,
-                },
-              },
-              {
-                token: createTokenAPI(ctx, tenant_id),
-              },
-            );
-          } catch (err) {
-            logMessage(ctx, tenant_id, {
-              type: LogTypes.FAILED_HOOK,
-              description: `Post user deletion hook failed: ${err instanceof Error ? err.message : String(err)}`,
-            });
-            // Don't throw - user is already deleted
-          }
-        }
-      };
-
-      const deferred = ctx.var.deferredPostHooks;
-      if (deferred) {
-        deferred.push(postHookWork);
-      } else {
-        // Not inside a transaction — run immediately
-        await postHookWork();
       }
     }
 

@@ -41,7 +41,7 @@ export interface PassthroughConfig<T> {
 
   /**
    * Methods that should be synced to secondaries.
-   * Default: ["create", "update", "remove", "delete", "set"]
+   * Default: ["create", "rawCreate", "update", "remove", "delete", "set"]
    */
   syncMethods?: string[];
 }
@@ -98,7 +98,7 @@ export function createPassthroughAdapter<T extends object>(
   const {
     primary,
     secondaries,
-    syncMethods = ["create", "update", "remove", "delete", "set"],
+    syncMethods = ["create", "rawCreate", "update", "remove", "delete", "set"],
   } = config;
 
   const handler: ProxyHandler<T> = {

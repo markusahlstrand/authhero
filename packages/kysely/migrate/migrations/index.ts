@@ -139,6 +139,7 @@ import * as o040_create_outbox_events from "./2026-04-03T10:00:00_create_outbox_
 import * as o041_add_outbox_claim_columns from "./2026-04-03T11:00:00_add_outbox_claim_columns";
 import * as o042_add_outbox_claim_index from "./2026-04-08T10:00:00_add_outbox_claim_index";
 import * as o043_add_code_hooks from "./2026-04-12T10:00:00_add_code_hooks";
+import * as o044_create_actions from "./2026-04-13T10:00:00_create_actions";
 
 // These need to be in alphabetic order
 export default {
@@ -283,4 +284,5 @@ export default {
   o041_add_outbox_claim_columns,
   o042_add_outbox_claim_index,
   o043_add_code_hooks,
+  o044_create_actions,
 };

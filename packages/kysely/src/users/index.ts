@@ -9,8 +9,10 @@ import { Database } from "../db";
 import { UserDataAdapter } from "@authhero/adapter-interfaces";
 
 export function createUsersAdapter(db: Kysely<Database>): UserDataAdapter {
+  const createFn = create(db);
   return {
-    create: create(db),
+    create: createFn,
+    rawCreate: createFn,
     remove: remove(db),
     get: get(db),
     list: list(db),
