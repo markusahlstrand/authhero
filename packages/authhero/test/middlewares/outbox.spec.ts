@@ -5,6 +5,7 @@ import { OutboxAdapter } from "@authhero/adapter-interfaces";
 
 vi.mock("../../src/helpers/wait-until", () => ({
   waitUntil: vi.fn(),
+  flushBackgroundPromises: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("../../src/helpers/outbox-relay", async (importOriginal) => {

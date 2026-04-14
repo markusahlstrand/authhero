@@ -1,7 +1,7 @@
 import { Context, MiddlewareHandler } from "hono";
 import { OutboxAdapter } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
-import { waitUntil } from "../helpers/wait-until";
+import { waitUntil, flushBackgroundPromises } from "../helpers/wait-until";
 import { processOutboxEvents, EventDestination } from "../helpers/outbox-relay";
 
 type Ctx = Context<{ Bindings: Bindings; Variables: Variables }>;
@@ -24,6 +24,7 @@ export function outboxMiddleware(
 ): MiddlewareHandler<{ Bindings: Bindings; Variables: Variables }> {
   return async (ctx, next) => {
     ctx.set("outboxEventPromises", []);
+    ctx.set("backgroundPromises", []);
     let error: unknown;
     try {
       await next();
@@ -58,6 +59,11 @@ export function outboxMiddleware(
           );
         }
       }
+      // Non-Workers runtimes: drain waitUntil-registered promises so tests
+      // can assert on the outcome of background work (outbox webhook
+      // dispatch, audit log writes, etc.). On Cloudflare Workers the
+      // executionCtx handles this and flushBackgroundPromises is a no-op.
+      await flushBackgroundPromises(ctx);
     }
     if (error) throw error;
   };

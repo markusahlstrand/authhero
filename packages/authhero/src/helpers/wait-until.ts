@@ -1,7 +1,19 @@
 import { Context } from "hono";
 import { getRuntimeKey } from "hono/adapter";
 
-// This function is used to do fire and forget calls that are executed after the response has been sent.
+/**
+ * Register a background promise tied to the current request.
+ *
+ * On Cloudflare Workers (`workerd`), this uses `executionCtx.waitUntil`, which
+ * holds the worker alive until the promise settles but does not block the
+ * response.
+ *
+ * On Node/Bun and in tests we instead collect the promise on the context so a
+ * surrounding middleware can await it before the response leaves. Without this
+ * the response can return before background work (audit log writes, outbox
+ * webhook dispatches) completes, producing flaky test behavior and requests
+ * that occasionally lose tail work if the process exits.
+ */
 export function waitUntil(ctx: Context, promise: Promise<unknown>) {
   if (getRuntimeKey() === "workerd") {
     try {
@@ -12,6 +24,24 @@ export function waitUntil(ctx: Context, promise: Promise<unknown>) {
     }
   }
 
-  // For non-workerd runtimes (Node, Bun, etc.), fire-and-forget with error logging
-  promise.catch((e) => console.error("waitUntil promise error:", e));
+  const safePromise = promise.catch((e) => {
+    console.error("waitUntil promise error:", e);
+  });
+
+  const bag = ctx.var.backgroundPromises;
+  if (Array.isArray(bag)) {
+    bag.push(safePromise);
+  }
+}
+
+/**
+ * Await any `waitUntil` promises registered during the current request. Invoke
+ * from a middleware's finally block (after `await next()`) so non-Workers
+ * runtimes flush background work before returning the response.
+ */
+export async function flushBackgroundPromises(ctx: Context): Promise<void> {
+  const bag = ctx.var.backgroundPromises;
+  if (!Array.isArray(bag) || bag.length === 0) return;
+  const pending = bag.splice(0, bag.length);
+  await Promise.all(pending);
 }

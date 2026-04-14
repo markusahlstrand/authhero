@@ -57,6 +57,14 @@ export class LogsDestination implements EventDestination {
     this.logs = logs;
   }
 
+  /**
+   * Only accept log-shaped events. `hook.*` events are dispatch tasks for
+   * webhook / code-hook destinations and are not audit log entries.
+   */
+  accepts(event: AuditEvent): boolean {
+    return !event.event_type.startsWith("hook.");
+  }
+
   transform(event: AuditEvent): { tenantId: string; log: LogInsert } {
     return {
       tenantId: event.tenant_id,

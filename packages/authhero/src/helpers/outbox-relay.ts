@@ -3,9 +3,15 @@ import { OutboxAdapter, AuditEvent } from "@authhero/adapter-interfaces";
 /**
  * Interface for outbox event destinations.
  * Each destination transforms audit events into its own format and delivers them.
+ *
+ * Destinations may implement `accepts(event)` to filter which events they
+ * handle (e.g. the logs destination only accepts log-shaped events, while a
+ * webhook destination only accepts `hook.*` events). If `accepts` is absent,
+ * the destination receives every event.
  */
 export interface EventDestination {
   name: string;
+  accepts?(event: AuditEvent): boolean;
   transform(event: AuditEvent): unknown;
   deliver(events: unknown[]): Promise<void>;
 }
@@ -62,6 +68,7 @@ export async function processOutboxEvents(
     let allSucceeded = true;
 
     for (const destination of destinations) {
+      if (destination.accepts && !destination.accepts(event)) continue;
       try {
         const transformed = destination.transform(event);
         await destination.deliver([transformed]);
@@ -138,6 +145,7 @@ export async function drainOutbox(
     let allSucceeded = true;
 
     for (const destination of destinations) {
+      if (destination.accepts && !destination.accepts(event)) continue;
       try {
         const transformed = destination.transform(event);
         await destination.deliver([transformed]);

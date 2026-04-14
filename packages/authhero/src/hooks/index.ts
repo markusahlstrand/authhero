@@ -11,12 +11,11 @@ import { EnrichedClient } from "../helpers/client";
 import { linkUsersHook } from "./link-users";
 import {
   invokeHooks,
-  postUserRegistrationWebhook,
   preUserRegistrationWebhook,
   getValidateRegistrationUsernameWebhook,
   preUserDeletionWebhook,
-  postUserDeletionWebhook,
 } from "./webhooks";
+import { enqueuePostHookEvent } from "../helpers/hook-events";
 import { Context } from "hono";
 import { Bindings, Variables } from "../types";
 import { getPrimaryUserByEmail } from "../helpers/users";
@@ -240,8 +239,10 @@ function createUserHooks(
         }
       }
 
-      // Invoke post-user-registration webhooks
-      await postUserRegistrationWebhook(ctx)(tenant_id, result);
+      // Hand post-user-registration webhook delivery to the outbox so it is
+      // retried with backoff instead of firing inline. Idempotent delivery is
+      // enforced via `Idempotency-Key: {event.id}` headers in WebhookDestination.
+      enqueuePostHookEvent(ctx, tenant_id, "post-user-registration", result);
     };
 
     await runPostHooks();
@@ -670,15 +671,9 @@ function createUserDeletionHooks(
 
     // Post-deletion hooks run after the commit transaction has closed.
     if (result) {
-      try {
-        await postUserDeletionWebhook(ctx)(tenant_id, userToDelete);
-      } catch (err) {
-        logMessage(ctx, tenant_id, {
-          type: LogTypes.FAILED_HOOK,
-          description: `Post user deletion webhook failed: ${err instanceof Error ? err.message : String(err)}`,
-        });
-        // Don't throw - user is already deleted
-      }
+      // Webhook delivery is enqueued via the outbox so it retries with backoff
+      // rather than firing inline.
+      enqueuePostHookEvent(ctx, tenant_id, "post-user-deletion", userToDelete);
 
       if (ctx.env.hooks?.onExecutePostUserDeletion) {
         try {

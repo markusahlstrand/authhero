@@ -39,6 +39,8 @@ import { authenticationMethodsRoutes } from "./authentication-methods";
 import { DataAdapters } from "@authhero/adapter-interfaces";
 import { outboxMiddleware } from "../../middlewares/outbox";
 import { LogsDestination } from "../../helpers/outbox-destinations/logs";
+import { WebhookDestination } from "../../helpers/outbox-destinations/webhooks";
+import { createServiceToken } from "../../helpers/service-token";
 
 export default function create(config: AuthHeroConfig) {
   const app = new OpenAPIHono<{
@@ -186,7 +188,13 @@ export default function create(config: AuthHeroConfig) {
   app.use(
     outboxMiddleware({
       getOutbox: () => managementAdapter.outbox,
-      getDestinations: () => [new LogsDestination(managementAdapter.logs)],
+      getDestinations: (ctx) => [
+        new LogsDestination(managementAdapter.logs),
+        new WebhookDestination(managementAdapter.hooks, async (tenantId) => {
+          const token = await createServiceToken(ctx, tenantId, "webhook");
+          return token.access_token;
+        }),
+      ],
     }),
   );
 
