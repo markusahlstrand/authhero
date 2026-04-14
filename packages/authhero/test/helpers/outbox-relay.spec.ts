@@ -180,6 +180,34 @@ describe("processOutboxEvents", () => {
     warnSpy.mockRestore();
   });
 
+  it("dead-letters events that no destination accepts (routing bug)", async () => {
+    const event = makeOutboxEvent({
+      id: "evt-orphan",
+      event_type: "hook.unknown-trigger",
+    });
+    const outbox = makeOutbox({
+      claimEvents: vi.fn().mockResolvedValue(["evt-orphan"]),
+      getByIds: vi.fn().mockResolvedValue([event]),
+    });
+    // Only one destination, and it rejects this event_type.
+    const destination = makeDestination({
+      name: "logs",
+      accepts: () => false,
+    });
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    await processOutboxEvents(outbox, ["evt-orphan"], [destination]);
+
+    expect(destination.deliver).not.toHaveBeenCalled();
+    expect(outbox.deadLetter).toHaveBeenCalledWith(
+      "evt-orphan",
+      expect.stringContaining("hook.unknown-trigger"),
+    );
+    expect(outbox.markProcessed).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalled();
+    warnSpy.mockRestore();
+  });
+
   it("stops trying destinations after the first failure for an event", async () => {
     const event = makeOutboxEvent({ id: "evt-1" });
     const outbox = makeOutbox({

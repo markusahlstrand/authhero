@@ -59,11 +59,17 @@ export function outboxMiddleware(
           );
         }
       }
-      // Non-Workers runtimes: drain waitUntil-registered promises so tests
-      // can assert on the outcome of background work (outbox webhook
-      // dispatch, audit log writes, etc.). On Cloudflare Workers the
-      // executionCtx handles this and flushBackgroundPromises is a no-op.
-      await flushBackgroundPromises(ctx);
+      // Drain waitUntil-registered background promises ONLY under a test
+      // runner. In production Node we would otherwise pull webhook delivery
+      // latency (possibly seconds) onto the request critical path. On
+      // Cloudflare Workers `executionCtx.waitUntil` keeps the worker alive
+      // without blocking the response, so this branch is a no-op there.
+      if (
+        typeof process !== "undefined" &&
+        process.env?.NODE_ENV === "test"
+      ) {
+        await flushBackgroundPromises(ctx);
+      }
     }
     if (error) throw error;
   };

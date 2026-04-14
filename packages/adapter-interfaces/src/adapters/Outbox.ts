@@ -59,9 +59,11 @@ export interface OutboxAdapter {
   /**
    * Reset a dead-lettered event so the relay retries it. Clears
    * `dead_lettered_at`, `final_error`, `processed_at`, `retry_count`, and
-   * `next_retry_at`.
+   * `next_retry_at`. Scoped to `tenantId` so operators cannot replay events
+   * from other tenants — returns false when no row matches both the id and
+   * the tenant.
    */
-  replay(id: string): Promise<boolean>;
+  replay(id: string, tenantId: string): Promise<boolean>;
   /** Delete processed events older than the given ISO date. Returns count deleted. */
   cleanup(olderThan: string): Promise<number>;
 }

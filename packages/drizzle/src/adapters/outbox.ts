@@ -239,7 +239,7 @@ export function createOutboxAdapter(db: DrizzleDb): OutboxAdapter {
       };
     },
 
-    async replay(id: string): Promise<boolean> {
+    async replay(id: string, tenantId: string): Promise<boolean> {
       const results = await db
         .update(outboxEvents)
         .set({
@@ -253,6 +253,7 @@ export function createOutboxAdapter(db: DrizzleDb): OutboxAdapter {
         .where(
           and(
             eq(outboxEvents.id, id),
+            eq(outboxEvents.tenant_id, tenantId),
             isNotNull(outboxEvents.dead_lettered_at),
           ),
         )

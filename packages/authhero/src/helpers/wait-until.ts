@@ -24,14 +24,30 @@ export function waitUntil(ctx: Context, promise: Promise<unknown>) {
     }
   }
 
-  const safePromise = promise.catch((e) => {
-    console.error("waitUntil promise error:", e);
-  });
+  const safePromise: Promise<void> = promise.then(
+    () => undefined,
+    (e) => {
+      console.error("waitUntil promise error:", e);
+    },
+  );
 
-  const bag = ctx.var.backgroundPromises;
-  if (Array.isArray(bag)) {
-    bag.push(safePromise);
+  // Self-initialize the bag if no upstream middleware set one up. This keeps
+  // `flushBackgroundPromises` useful in contexts that don't sit behind the
+  // outbox middleware (e.g. one-off scripts that still want a clean shutdown).
+  // Guard against ctx shapes without `set` (lightweight test mocks fall back
+  // to pure fire-and-forget — the `.catch` above still runs).
+  let bag: Promise<void>[] | undefined;
+  try {
+    bag = ctx.var?.backgroundPromises;
+  } catch {
+    bag = undefined;
   }
+  if (!Array.isArray(bag)) {
+    if (typeof ctx.set !== "function") return;
+    bag = [];
+    ctx.set("backgroundPromises", bag);
+  }
+  bag.push(safePromise);
 }
 
 /**

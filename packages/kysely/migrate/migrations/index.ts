@@ -142,6 +142,7 @@ import * as o043_add_code_hooks from "./2026-04-12T10:00:00_add_code_hooks";
 import * as o044_create_actions from "./2026-04-13T10:00:00_create_actions";
 import * as o045_outbox_dead_letter from "./2026-04-14T10:00:00_outbox_dead_letter";
 import * as o046_user_registration_completed_at from "./2026-04-14T11:00:00_user_registration_completed_at";
+import * as o047_outbox_dead_lettered_tenant_index from "./2026-04-14T12:00:00_outbox_dead_lettered_tenant_index";
 
 // These need to be in alphabetic order
 export default {
@@ -289,4 +290,5 @@ export default {
   o044_create_actions,
   o045_outbox_dead_letter,
   o046_user_registration_completed_at,
+  o047_outbox_dead_lettered_tenant_index,
 };

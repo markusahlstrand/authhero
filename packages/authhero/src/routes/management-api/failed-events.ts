@@ -107,7 +107,9 @@ export const failedEventsRoutes = new OpenAPIHono<{
       }
 
       const { id } = ctx.req.valid("param");
-      const replayed = await outbox.replay(id);
+      // Scope replay to the caller's tenant so a management-API token issued
+      // for tenant A can never reach into tenant B's dead-letter queue.
+      const replayed = await outbox.replay(id, ctx.var.tenant_id);
       if (!replayed) {
         throw new HTTPException(404, {
           message: "Dead-lettered event not found",

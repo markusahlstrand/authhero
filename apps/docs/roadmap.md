@@ -97,6 +97,47 @@ Then `deliver()` can fetch the code hook for the event's `trigger_id`, rebuild t
 
 **Likely next step.** Expose counters (`outbox_events_processed_total`, `outbox_events_dead_lettered_total`, `outbox_retry_delay_seconds_histogram`) behind an optional `observability` binding on `Bindings`. Cloudflare Workers analytics engine is a natural sink.
 
+## Deferred CodeRabbit findings (PR #721)
+
+CodeRabbit raised 36 findings on the refactor PR. The security-critical ones and the mistakes introduced by this session are already fixed. The remainder fall into two groups — **pre-existing logic that the file split surfaced** and **separate actions-feature WIP**. Listed here so a follow-up PR can pick them up without re-deriving them from the review.
+
+### Pre-existing behavior exposed by the file split (7)
+
+Logic I moved verbatim from the old `hooks/index.ts` into the split files. The code works the way it worked before the refactor, but CodeRabbit is right that these are smells. Worth a dedicated bug-fix PR.
+
+- 🔲 `packages/authhero/src/hooks/user-registration.ts:56-94` — `onExecutePreUserRegistration` fail-open: thrown errors are caught and logged; registration proceeds. A denial via `api.access.deny` still throws an `HTTPException` (re-raised correctly), but a bug in the user's hook code silently lets the signup through. Decide the policy: fail-closed, fail-closed-with-log, or keep fail-open and document it explicitly.
+- 🔲 `packages/authhero/src/hooks/user-registration.ts:49-54` — `request.ip` and `user_agent` are read from `ctx.req.query(...)` (URL query params the client can spoof) rather than from `ctx.var.ip` / `ctx.var.useragent` (which the `clientInfoMiddleware` sets from trusted headers). Fix by using the same fields as the other triggers (compare `user-update.ts:42-45` which uses `ctx.var.ip`).
+- 🔲 `packages/authhero/src/hooks/user-registration.ts:155-167` — The post-registration `env.hooks.onExecutePostUserRegistration` callback receives the `user` from the pre-registration closure, not the `result` returned from `linkUsersHook`. If the linking resolved to a primary, the post-hook sees the secondary's shape. Pass `result`.
+- 🔲 `packages/authhero/src/hooks/validate-signup.ts:111-124` — The `validate-registration-username` webhook `fetch(...)` has no `AbortController`. A slow upstream blocks every identifier-page GET. Mirror `WebhookDestination`'s 10s timeout.
+- 🔲 `packages/authhero/src/hooks/post-user-login.ts:255-258` — `login_count + 1` crashes when the persisted user has `login_count: undefined`. The in-memory `user` is also not updated after the `users.update`, so subsequent logic sees stale `last_login`. Guard with `?? 0` and either re-read or patch the local object.
+- 🔲 `packages/authhero/src/hooks/post-user-login.ts:292-300` — `redirect.sendUserTo` accepts a `query` option and merges it into the URL *after* setting `state`. A user-supplied `query.state` silently overwrites the login-session state. Set `state` last (or reject the key).
+- 🔲 `packages/authhero/src/hooks/post-user-login.ts:283-324` — `encodeToken`/`validateToken` are stub implementations that return placeholder output. They should throw `"Not implemented"` like `accessToken.setCustomClaim` does, so action code fails loudly instead of silently producing wrong tokens.
+- 🔲 `packages/authhero/src/hooks/user-update.ts:67-84` — The pre-update hook's `try/catch` logs and wraps every error — including `HTTPException`s thrown by `api.cancel()`. Match the pattern in `user-registration.ts` that re-throws `HTTPException` unchanged.
+
+### Actions feature work-in-progress (separate from this PR's scope)
+
+Not mine to change — belongs in the actions feature branch.
+
+- 🔲 `packages/adapter-interfaces/src/types/Action.ts:34-40` — response schema allows `value`, exposing secret contents.
+- 🔲 `packages/authhero/src/routes/management-api/actions.ts:119-143` + `:399-429` — redact secrets in the create response; deploy reports success without persisting state.
+- 🔲 `packages/authhero/src/routes/management-api/action-triggers.ts:93-96` + `:175-185` — sanitize trigger ID before interpolating into lucene query; PATCH lacks atomicity.
+- 🔲 `packages/aws/src/adapters/users.ts:119-142` — `user_id` and `provider` use different resolved strings.
+- 🔲 `packages/kysely/src/actions/list.ts:76-83` — pagination metadata inconsistent when `include_totals` is false.
+- 🔲 `apps/react-admin/src/App.tsx:225-231` — Admin `basename` prop for tenant-prefixed routes.
+- 🔲 `apps/react-admin/src/components/actions/create.tsx:18-21,55-56` — default code template + secret value should use password input.
+- 🔲 `apps/react-admin/src/components/actions/edit.tsx:79-95` — no `supported_triggers` → `trigger_id` reverse mapping so existing actions load with empty trigger.
+
+### Nitpicks worth batching into a cleanup PR (5)
+
+- 🔲 `packages/drizzle/src/adapters/actions.ts` + `packages/aws/src/adapters/actions.ts` — throw a typed `FeatureNotSupportedError` instead of plain `Error` so callers can map to 501.
+- 🔲 `packages/aws/src/index.ts:6` — re-export `createActionsAdapter` alongside the other adapter factories.
+- 🔲 `packages/authhero/src/hooks/templatehooks.ts:63-91` — the `account-linking` case duplicates the event-stub + refetch code from `ensure-username`; extract a `runTemplateHook` helper.
+- 🔲 `packages/authhero/src/routes/management-api/failed-events.ts:6-11` — replace `z.array(z.any())` with a concrete `failedEventSchema` so OpenAPI docs reflect the actual shape.
+- 🔲 `apps/docs/features/user-creation-flow.md:18-23` — new "three-phase model" block contradicts the earlier "User Creation Hook" paragraph it sits above; reconcile.
+- 🔲 `packages/authhero/test/hooks/account-linking-template.spec.ts:21-28` — `mockCtx` uses `any`; tighten to `Partial<Context>`.
+
+Direct links to the CodeRabbit comments live on [markusahlstrand/authhero#721](https://github.com/markusahlstrand/authhero/pull/721); each finding above comes with a `🤖 Prompt for AI Agents` block in the PR thread if you want a one-shot description.
+
 ## Discovered-during-refactor asides (not strictly loose ends)
 
 - The `actions` adapter field on `DataAdapters` was changed from optional to required during the drizzle/aws adapter shake-out. AWS + Drizzle now ship with throwing stubs (`Actions are not implemented in the AWS DynamoDB adapter`). Remove the stubs and ship real implementations if DynamoDB or the experimental Drizzle path ever becomes a production target for tenants that use actions.

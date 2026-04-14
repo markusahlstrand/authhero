@@ -17,7 +17,7 @@ Pre-registration webhooks, user-authored action code, and HTTP calls to customer
 
 Every write operation runs through three strict phases:
 
-```
+```text
    ┌─────────────┐    ┌────────────┐    ┌──────────────────┐
    │   Prepare   │───▶│   Commit   │───▶│      Publish     │
    └─────────────┘    └────────────┘    └──────────────────┘
@@ -146,7 +146,7 @@ The template is idempotent: it no-ops when `linked_to` is already set, when the 
 
 ## File organization
 
-```
+```text
 packages/authhero/src/hooks/
 ├── index.ts                    # re-exports only
 ├── addDataHooks.ts             # wraps users.{create,update,remove} with decorators
@@ -171,7 +171,7 @@ packages/authhero/src/hooks/
 
 Three sibling modules under `helpers/outbox-destinations/` own the publish phase:
 
-```
+```text
 packages/authhero/src/helpers/outbox-destinations/
 ├── logs.ts                    # LogsDestination (rejects hook.* events)
 ├── webhooks.ts                # WebhookDestination (hook.* events → HTTP POST)

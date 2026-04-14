@@ -47,7 +47,11 @@ describe("RegistrationFinalizerDestination", () => {
     expect(tenantId).toBe("tenant-a");
     expect(userId).toBe("user-xyz");
     expect(typeof updates.registration_completed_at).toBe("string");
-    expect(() => new Date(updates.registration_completed_at)).not.toThrow();
+    // `new Date(bad-string)` returns Invalid Date rather than throwing, so
+    // assert on the parsed-date validity + ISO round-trip instead.
+    const parsed = new Date(updates.registration_completed_at);
+    expect(Number.isNaN(parsed.getTime())).toBe(false);
+    expect(parsed.toISOString()).toBe(updates.registration_completed_at);
   });
 
   it("skips events with missing target id", async () => {

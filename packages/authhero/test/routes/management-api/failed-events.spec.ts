@@ -106,6 +106,39 @@ describe("management-api failed-events", () => {
     expect(listAfter.events.some((e: any) => e.id === id)).toBe(false);
   });
 
+  it("refuses to replay an event that belongs to a different tenant", async () => {
+    // Need a second tenant to cross-tenant probe. Seed it + an event there.
+    const { managementApp, env } = await getTestServer();
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    await env.data.tenants.create({
+      id: "otherTenant",
+      friendly_name: "Other Tenant",
+      audience: "https://other.example.com",
+      sender_email: "login@other.example.com",
+      sender_name: "Other",
+    });
+    const otherTenantEventId = await seedDeadLetteredEvent(env, "otherTenant");
+
+    // Call replay with tenant-id: tenantId but the other tenant's event id.
+    const retryResponse = await (managementClient["failed-events"] as any)[
+      ":id"
+    ].retry.$post(
+      {
+        param: { id: otherTenantEventId },
+        header: { "tenant-id": "tenantId" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+
+    expect(retryResponse.status).toBe(404);
+
+    // Event should still be dead-lettered in its own tenant — replay rejected.
+    const stillFailed = await env.data.outbox.listFailed("otherTenant", {});
+    expect(stillFailed.events.some((e: any) => e.id === otherTenantEventId)).toBe(true);
+  });
+
   it("returns 404 when replaying an unknown event id", async () => {
     const { managementApp, env } = await getTestServer();
     const managementClient = testClient(managementApp, env);

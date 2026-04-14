@@ -73,9 +73,11 @@ export async function processOutboxEvents(
     }
 
     let allSucceeded = true;
+    let anyDestinationAccepted = false;
 
     for (const destination of destinations) {
       if (destination.accepts && !destination.accepts(event)) continue;
+      anyDestinationAccepted = true;
       try {
         const transformed = destination.transform(event);
         await destination.deliver([transformed]);
@@ -94,6 +96,25 @@ export async function processOutboxEvents(
         }
         break;
       }
+    }
+
+    if (!anyDestinationAccepted) {
+      // Routing bug: an event made it into the outbox but no destination
+      // filters it in. Dead-lettering immediately surfaces the
+      // misconfiguration in `/api/v2/failed-events` instead of silently
+      // marking it processed.
+      console.warn(
+        `Outbox event ${event.id} (event_type=${event.event_type}) had no accepting destination — dead-lettering.`,
+      );
+      try {
+        await outbox.deadLetter(
+          event.id,
+          `No destination accepts event_type=${event.event_type}`,
+        );
+      } catch {
+        // Best effort — event stays in outbox if dead-letter write fails.
+      }
+      continue;
     }
 
     if (allSucceeded) {
@@ -158,9 +179,11 @@ export async function drainOutbox(
     }
 
     let allSucceeded = true;
+    let anyDestinationAccepted = false;
 
     for (const destination of destinations) {
       if (destination.accepts && !destination.accepts(event)) continue;
+      anyDestinationAccepted = true;
       try {
         const transformed = destination.transform(event);
         await destination.deliver([transformed]);
@@ -179,6 +202,21 @@ export async function drainOutbox(
         }
         break; // Don't try other destinations for this event
       }
+    }
+
+    if (!anyDestinationAccepted) {
+      console.warn(
+        `Outbox event ${event.id} (event_type=${event.event_type}) had no accepting destination — dead-lettering.`,
+      );
+      try {
+        await outbox.deadLetter(
+          event.id,
+          `No destination accepts event_type=${event.event_type}`,
+        );
+      } catch {
+        // Best effort
+      }
+      continue;
     }
 
     if (allSucceeded) {

@@ -25,19 +25,32 @@ export function listFailedOutboxEvents(db: Kysely<Database>) {
       .limit(per_page)
       .execute();
 
-    const events: OutboxEvent[] = rows.map((row) => {
-      const payload = JSON.parse(row.payload) as AuditEvent;
-      return {
-        ...payload,
-        id: row.id,
-        created_at: row.created_at,
-        processed_at: row.processed_at,
-        retry_count: row.retry_count,
-        next_retry_at: row.next_retry_at,
-        error: row.error,
-        dead_lettered_at: row.dead_lettered_at,
-        final_error: row.final_error,
-      };
+    const events: OutboxEvent[] = rows.flatMap((row) => {
+      let payload: AuditEvent;
+      try {
+        payload = JSON.parse(row.payload) as AuditEvent;
+      } catch (err) {
+        // A corrupt payload row shouldn't take down the whole failed-events
+        // list — skip it and log so the operator can investigate directly.
+        console.error(
+          `Failed to parse outbox payload for event ${row.id}`,
+          err,
+        );
+        return [];
+      }
+      return [
+        {
+          ...payload,
+          id: row.id,
+          created_at: row.created_at,
+          processed_at: row.processed_at,
+          retry_count: row.retry_count,
+          next_retry_at: row.next_retry_at,
+          error: row.error,
+          dead_lettered_at: row.dead_lettered_at,
+          final_error: row.final_error,
+        },
+      ];
     });
 
     let length = events.length;

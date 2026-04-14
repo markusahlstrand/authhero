@@ -27,5 +27,13 @@ export const outboxEvents = sqliteTable(
     index("idx_outbox_events_tenant_id").on(table.tenant_id),
     index("idx_outbox_events_processed_at").on(table.processed_at),
     index("idx_outbox_events_claimed_by").on(table.claimed_by),
+    // Composite index for the failed-events management endpoints
+    // (`listFailed` query: tenant_id equality + dead_lettered_at IS NOT NULL
+    // + ORDER BY dead_lettered_at DESC). Equality column first so the
+    // optimizer can seek directly to the tenant's dead-letter slice.
+    index("idx_outbox_events_tenant_dead_lettered").on(
+      table.tenant_id,
+      table.dead_lettered_at,
+    ),
   ],
 );
