@@ -146,6 +146,7 @@ gtag('config', 'G-DNZWG3PF2L');`,
         { text: "Getting Started", link: "/getting-started" },
         { text: "Architecture", link: "/architecture/" },
         { text: "API Reference", link: "/api/overview" },
+        { text: "Roadmap", link: "/roadmap" },
       ],
 
       sidebar: [
@@ -154,6 +155,7 @@ gtag('config', 'G-DNZWG3PF2L');`,
           items: [
             { text: "What is AuthHero?", link: "/" },
             { text: "Installation", link: "/getting-started" },
+            { text: "Roadmap", link: "/roadmap" },
           ],
         },
         {
@@ -175,6 +177,10 @@ gtag('config', 'G-DNZWG3PF2L');`,
             },
             { text: "Adapters", link: "/architecture/adapters" },
             { text: "Audit Events", link: "/architecture/audit-events" },
+            {
+              text: "Hooks & Outbox Pipeline",
+              link: "/architecture/hooks-pipeline",
+            },
             { text: "Multi-Tenancy", link: "/architecture/multi-tenancy" },
           ],
         },
@@ -328,6 +334,10 @@ gtag('config', 'G-DNZWG3PF2L');`,
             {
               text: "Outbox Adapter",
               link: "/customization/adapter-interfaces/outbox",
+            },
+            {
+              text: "Failed Events (Dead-letter)",
+              link: "/customization/failed-events",
             },
             {
               text: "Built-in Adapters",
