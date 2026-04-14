@@ -1,5 +1,17 @@
 # @authhero/react-admin
 
+## 0.62.0
+
+### Minor Changes
+
+- f662c3b: Add source maps
+
+### Patch Changes
+
+- f662c3b: Fix `Cannot read properties of undefined (reading 'mount')` crash on the Clients edit page.
+  - Collapsed the dual-registered `client_metadata` path: `email_validation` and `disable_sign_ups` are now rendered inside `ClientMetadataInput` instead of as separate `SelectInput` / `BooleanInput` at `client_metadata.*`, so react-hook-form no longer sees the same path as both a leaf and a parent.
+  - Added a `normalizeClient` `queryOptions.select` on the Edit view that defaults `client_metadata`, `addons`, and `addons.samlp` to empty objects when the stored record omits them or returns a non-object, keeping nested inputs (`addons.samlp.*`) safe.
+
 ## 0.61.0
 
 ### Minor Changes
