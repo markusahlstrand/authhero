@@ -7,7 +7,12 @@ import path from "path";
 export default defineConfig({
   plugins: [react()],
   define: {
-    "process.env": process.env,
+    "process.env.NODE_ENV": JSON.stringify(
+      process.env.NODE_ENV || "production",
+    ),
+  },
+  build: {
+    sourcemap: true,
   },
   server: {
     host: true,

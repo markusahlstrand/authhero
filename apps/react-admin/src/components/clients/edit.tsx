@@ -2,7 +2,6 @@ import {
   DateField,
   Edit,
   Labeled,
-  SelectInput,
   TextInput,
   BooleanInput,
   SimpleShowLayout,
@@ -17,6 +16,7 @@ import {
   useRecordContext,
   useRefresh,
   useInput,
+  type RaRecord,
 } from "react-admin";
 // @ts-ignore - React Admin components compatibility with React 19
 const PaginationComponent = Pagination as any;
@@ -45,6 +45,7 @@ import {
   ListItemText,
   ListItemSecondaryAction,
   Paper,
+  MenuItem,
 } from "@mui/material";
 import { useState, useEffect, useCallback } from "react";
 import AddIcon from "@mui/icons-material/Add";
@@ -770,7 +771,8 @@ const ClientMetadataInput = ({ source }: { source: string }) => {
   // Initialize metadata array from the current value
   useEffect(() => {
     if (value && typeof value === "object") {
-      // Fields managed by other inputs (BooleanInput, SelectInput, etc.)
+      // Reserved keys with dedicated controls above; keep them out of the
+      // free-form key/value list.
       const preservedFields = ["disable_sign_ups", "email_validation"];
 
       const array = Object.entries(value)
@@ -835,8 +837,52 @@ const ClientMetadataInput = ({ source }: { source: string }) => {
     onChange(newObject);
   };
 
+  const currentValue: Record<string, any> =
+    value && typeof value === "object" ? value : {};
+  const emailValidation =
+    typeof currentValue.email_validation === "string"
+      ? currentValue.email_validation
+      : "disabled";
+  const disableSignUps =
+    currentValue.disable_sign_ups === "true" ||
+    currentValue.disable_sign_ups === true;
+
+  const updatePreservedField = (key: string, newValue: unknown) => {
+    onChange({ ...currentValue, [key]: newValue });
+  };
+
   return (
     <Box sx={{ mt: 2 }}>
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mb: 3 }}>
+        <MuiTextField
+          select
+          label="Email validation"
+          value={emailValidation}
+          onChange={(e) =>
+            updatePreservedField("email_validation", e.target.value)
+          }
+          size="small"
+          sx={{ maxWidth: 320 }}
+        >
+          <MenuItem value="disabled">Disabled</MenuItem>
+          <MenuItem value="enabled">Enabled</MenuItem>
+          <MenuItem value="enforced">Enforced</MenuItem>
+        </MuiTextField>
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={disableSignUps}
+              onChange={(e) =>
+                updatePreservedField(
+                  "disable_sign_ups",
+                  e.target.checked ? "true" : "false",
+                )
+              }
+            />
+          }
+          label="Disable sign ups"
+        />
+      </Box>
       <Typography variant="h6" sx={{ mb: 1 }}>
         Application Metadata
       </Typography>
@@ -1240,6 +1286,25 @@ const ConnectionsTab = () => {
   );
 };
 
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+// Default structured containers so react-hook-form never sees a non-object at
+// a path used by nested inputs (e.g. addons.samlp.audience). Stored records
+// sometimes omit these or return null, which trips RHF's nested register().
+const normalizeClient = (record: RaRecord): RaRecord => {
+  const client_metadata = isPlainObject(record.client_metadata)
+    ? record.client_metadata
+    : {};
+  const addons = isPlainObject(record.addons) ? record.addons : {};
+  const samlp = isPlainObject(addons.samlp) ? addons.samlp : {};
+  return {
+    ...record,
+    client_metadata,
+    addons: { ...addons, samlp },
+  };
+};
+
 export function ClientEdit() {
   // Transform data before submission to ensure client_metadata values are strings
   const transformClientData = (data: Record<string, unknown>) => {
@@ -1268,7 +1333,10 @@ export function ClientEdit() {
   };
 
   return (
-    <Edit transform={transformClientData}>
+    <Edit
+      transform={transformClientData}
+      queryOptions={{ select: normalizeClient }}
+    >
       <SimpleShowLayout>
         <TextField source="name" />
         <TextField source="id" />
@@ -1278,19 +1346,6 @@ export function ClientEdit() {
           <TextInput source="id" />
           <TextInput source="name" />
           <SecretInput source="client_secret" />
-          <SelectInput
-            source="client_metadata.email_validation"
-            choices={[
-              { id: "disabled", name: "Disabled" },
-              { id: "enabled", name: "Enabled" },
-              { id: "enforced", name: "Enforced" },
-            ]}
-          />
-          <BooleanInput
-            source="client_metadata.disable_sign_ups"
-            format={(value) => value === "true" || value === true}
-            parse={(value) => (value ? "true" : "false")}
-          />
           <BooleanInput
             source="auth0_conformant"
             label="Auth0 Conformant Mode"
