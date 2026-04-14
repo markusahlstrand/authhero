@@ -934,6 +934,14 @@ export async function postUserLoginHook(
     scope: params?.authParams?.scope,
   });
 
+  // Self-healing: if the user was registered but the post-user-registration
+  // hook chain never reached completion (dead-lettered, lost on crash, etc.),
+  // re-enqueue it now so customer-authored post-registration logic eventually
+  // runs. Requires the destinations + the action code to be idempotent.
+  if (!(user as User).registration_completed_at) {
+    enqueuePostHookEvent(ctx, tenant_id, "post-user-registration", user);
+  }
+
   // Update the user's last login info
   await data.users.update(tenant_id, user.user_id, {
     last_login: new Date().toISOString(),

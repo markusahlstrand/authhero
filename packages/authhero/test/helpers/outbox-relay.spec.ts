@@ -36,6 +36,14 @@ function makeOutbox(overrides: Partial<OutboxAdapter> = {}): OutboxAdapter {
     claimEvents: vi.fn().mockResolvedValue([]),
     markProcessed: vi.fn().mockResolvedValue(undefined),
     markRetry: vi.fn().mockResolvedValue(undefined),
+    deadLetter: vi.fn().mockResolvedValue(undefined),
+    listFailed: vi.fn().mockResolvedValue({
+      events: [],
+      start: 0,
+      limit: 50,
+      length: 0,
+    }),
+    replay: vi.fn().mockResolvedValue(true),
     cleanup: vi.fn().mockResolvedValue(0),
     ...overrides,
   };
@@ -147,8 +155,12 @@ describe("processOutboxEvents", () => {
     expect(outbox.markProcessed).not.toHaveBeenCalled();
   });
 
-  it("marks exhausted events as processed when retry_count exceeds maxRetries", async () => {
-    const event = makeOutboxEvent({ id: "evt-1", retry_count: 5 });
+  it("dead-letters exhausted events when retry_count exceeds maxRetries", async () => {
+    const event = makeOutboxEvent({
+      id: "evt-1",
+      retry_count: 5,
+      error: "last error",
+    });
     const outbox = makeOutbox({
       claimEvents: vi.fn().mockResolvedValue(["evt-1"]),
       getByIds: vi.fn().mockResolvedValue([event]),
@@ -162,7 +174,8 @@ describe("processOutboxEvents", () => {
     });
 
     expect(destination.deliver).not.toHaveBeenCalled();
-    expect(outbox.markProcessed).toHaveBeenCalledWith(["evt-1"]);
+    expect(outbox.deadLetter).toHaveBeenCalledWith("evt-1", "last error");
+    expect(outbox.markProcessed).not.toHaveBeenCalled();
     expect(warnSpy).toHaveBeenCalled();
     warnSpy.mockRestore();
   });

@@ -22,6 +22,7 @@ import { clientInfoMiddleware } from "../../middlewares/client-info";
 import { outboxMiddleware } from "../../middlewares/outbox";
 import { LogsDestination } from "../../helpers/outbox-destinations/logs";
 import { WebhookDestination } from "../../helpers/outbox-destinations/webhooks";
+import { RegistrationFinalizerDestination } from "../../helpers/outbox-destinations/registration-finalizer";
 import { createServiceToken } from "../../helpers/service-token";
 
 export default function create(config: AuthHeroConfig) {
@@ -39,6 +40,9 @@ export default function create(config: AuthHeroConfig) {
           const token = await createServiceToken(ctx, tenantId, "webhook");
           return token.access_token;
         }),
+        // Must come after delivery destinations so the flag only flips when
+        // the upstream hook destinations actually succeeded.
+        new RegistrationFinalizerDestination(config.dataAdapter.users),
       ],
     }),
   );

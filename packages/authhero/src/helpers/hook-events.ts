@@ -81,10 +81,28 @@ async function dispatchInline(
   const filtered = hooks.filter(
     (h: any) => h.enabled && h.trigger_id === triggerId && "url" in h,
   );
-  if (filtered.length === 0) return;
-  await invokeHooks(ctx, filtered, {
-    tenant_id: tenantId,
-    user,
-    trigger_id: triggerId,
-  });
+  if (filtered.length > 0) {
+    await invokeHooks(ctx, filtered, {
+      tenant_id: tenantId,
+      user,
+      trigger_id: triggerId,
+    });
+  }
+
+  // Mirror the finalizer destination used by the outbox path: once the
+  // post-user-registration webhooks have been delivered (or there were none),
+  // flag the user as complete so `postUserLoginHook` doesn't re-enqueue the
+  // event on every subsequent login.
+  if (triggerId === "post-user-registration" && user.user_id) {
+    try {
+      await ctx.env.data.users.update(tenantId, user.user_id, {
+        registration_completed_at: new Date().toISOString(),
+      });
+    } catch (err) {
+      console.error(
+        "Failed to mark registration_completed_at on inline dispatch:",
+        err,
+      );
+    }
+  }
 }

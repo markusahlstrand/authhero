@@ -59,9 +59,16 @@ export async function processOutboxEvents(
   for (const event of events) {
     if (event.retry_count >= maxRetries) {
       console.warn(
-        `Outbox event ${event.id} exceeded max retries (${maxRetries}), marking as processed. Last error: ${event.error}`,
+        `Outbox event ${event.id} exceeded max retries (${maxRetries}), dead-lettering. Last error: ${event.error}`,
       );
-      processedIds.push(event.id);
+      try {
+        await outbox.deadLetter(
+          event.id,
+          event.error || `Exceeded max retries (${maxRetries})`,
+        );
+      } catch {
+        // Best effort — event stays in outbox if dead-letter write fails
+      }
       continue;
     }
 
@@ -133,12 +140,20 @@ export async function drainOutbox(
   const failedIds: string[] = [];
 
   for (const event of claimedEvents) {
-    // Mark exhausted events as processed so they don't block the queue
+    // Move exhausted events to dead-letter so they don't block the queue and
+    // are still visible via the failed-events management endpoints.
     if (event.retry_count >= maxRetries) {
       console.warn(
-        `Outbox event ${event.id} exceeded max retries (${maxRetries}), marking as processed. Last error: ${event.error}`,
+        `Outbox event ${event.id} exceeded max retries (${maxRetries}), dead-lettering. Last error: ${event.error}`,
       );
-      processedIds.push(event.id);
+      try {
+        await outbox.deadLetter(
+          event.id,
+          event.error || `Exceeded max retries (${maxRetries})`,
+        );
+      } catch {
+        // Best effort
+      }
       continue;
     }
 

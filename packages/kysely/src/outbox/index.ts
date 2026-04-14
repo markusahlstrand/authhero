@@ -7,6 +7,9 @@ import { getUnprocessedOutboxEvents } from "./getUnprocessed";
 import { claimOutboxEvents } from "./claimEvents";
 import { markOutboxEventsProcessed } from "./markProcessed";
 import { markOutboxEventRetry } from "./markRetry";
+import { deadLetterOutboxEvent } from "./deadLetter";
+import { listFailedOutboxEvents } from "./listFailed";
+import { replayOutboxEvent } from "./replay";
 import { cleanupOutboxEvents } from "./cleanup";
 
 export function createOutboxAdapter(db: Kysely<Database>): OutboxAdapter {
@@ -17,6 +20,9 @@ export function createOutboxAdapter(db: Kysely<Database>): OutboxAdapter {
     claimEvents: claimOutboxEvents(db),
     markProcessed: markOutboxEventsProcessed(db),
     markRetry: markOutboxEventRetry(db),
+    deadLetter: deadLetterOutboxEvent(db),
+    listFailed: listFailedOutboxEvents(db),
+    replay: replayOutboxEvent(db),
     cleanup: cleanupOutboxEvents(db),
   };
 }

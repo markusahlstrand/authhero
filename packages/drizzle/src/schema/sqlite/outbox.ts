@@ -20,6 +20,8 @@ export const outboxEvents = sqliteTable(
     error: text("error"),
     claimed_by: text("claimed_by", { length: 255 }),
     claim_expires_at: text("claim_expires_at", { length: 35 }),
+    dead_lettered_at: text("dead_lettered_at", { length: 35 }),
+    final_error: text("final_error"),
   },
   (table) => [
     index("idx_outbox_events_tenant_id").on(table.tenant_id),

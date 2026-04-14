@@ -140,6 +140,8 @@ import * as o041_add_outbox_claim_columns from "./2026-04-03T11:00:00_add_outbox
 import * as o042_add_outbox_claim_index from "./2026-04-08T10:00:00_add_outbox_claim_index";
 import * as o043_add_code_hooks from "./2026-04-12T10:00:00_add_code_hooks";
 import * as o044_create_actions from "./2026-04-13T10:00:00_create_actions";
+import * as o045_outbox_dead_letter from "./2026-04-14T10:00:00_outbox_dead_letter";
+import * as o046_user_registration_completed_at from "./2026-04-14T11:00:00_user_registration_completed_at";
 
 // These need to be in alphabetic order
 export default {
@@ -285,4 +287,6 @@ export default {
   o042_add_outbox_claim_index,
   o043_add_code_hooks,
   o044_create_actions,
+  o045_outbox_dead_letter,
+  o046_user_registration_completed_at,
 };

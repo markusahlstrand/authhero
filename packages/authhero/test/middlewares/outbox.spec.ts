@@ -29,6 +29,14 @@ function makeOutbox(overrides: Partial<OutboxAdapter> = {}): OutboxAdapter {
     claimEvents: vi.fn().mockResolvedValue([]),
     markProcessed: vi.fn().mockResolvedValue(undefined),
     markRetry: vi.fn().mockResolvedValue(undefined),
+    deadLetter: vi.fn().mockResolvedValue(undefined),
+    listFailed: vi.fn().mockResolvedValue({
+      events: [],
+      start: 0,
+      limit: 50,
+      length: 0,
+    }),
+    replay: vi.fn().mockResolvedValue(true),
     cleanup: vi.fn().mockResolvedValue(0),
     ...overrides,
   };

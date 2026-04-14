@@ -462,5 +462,7 @@ export interface Database {
     error: string | null;
     claimed_by: string | null;
     claim_expires_at: string | null;
+    dead_lettered_at: string | null;
+    final_error: string | null;
   };
 }

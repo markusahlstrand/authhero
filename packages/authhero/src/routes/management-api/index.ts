@@ -10,6 +10,7 @@ import { usersByEmailRoutes } from "./users-by-email";
 import { clientRoutes } from "./clients";
 import { tenantRoutes } from "./tenants";
 import { logRoutes } from "./logs";
+import { failedEventsRoutes } from "./failed-events";
 import { hooksRoutes } from "./hooks";
 import { hookCodeRoutes } from "./hook-code";
 import { connectionRoutes } from "./connections";
@@ -40,6 +41,7 @@ import { DataAdapters } from "@authhero/adapter-interfaces";
 import { outboxMiddleware } from "../../middlewares/outbox";
 import { LogsDestination } from "../../helpers/outbox-destinations/logs";
 import { WebhookDestination } from "../../helpers/outbox-destinations/webhooks";
+import { RegistrationFinalizerDestination } from "../../helpers/outbox-destinations/registration-finalizer";
 import { createServiceToken } from "../../helpers/service-token";
 
 export default function create(config: AuthHeroConfig) {
@@ -194,6 +196,9 @@ export default function create(config: AuthHeroConfig) {
           const token = await createServiceToken(ctx, tenantId, "webhook");
           return token.access_token;
         }),
+        // Must come after delivery destinations so the flag only flips when
+        // the upstream hook destinations actually succeeded.
+        new RegistrationFinalizerDestination(managementAdapter.users),
       ],
     }),
   );
@@ -240,6 +245,7 @@ export default function create(config: AuthHeroConfig) {
     .route("/clients", clientRoutes)
     .route("/client-grants", clientGrantRoutes)
     .route("/logs", logRoutes)
+    .route("/failed-events", failedEventsRoutes)
     .route("/hooks", hooksRoutes)
     .route("/hook-code", hookCodeRoutes)
     .route("/connections", connectionRoutes)

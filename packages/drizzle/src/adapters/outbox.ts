@@ -1,6 +1,21 @@
-import { eq, and, isNull, lte, or, sql, inArray } from "drizzle-orm";
+import {
+  eq,
+  and,
+  isNull,
+  isNotNull,
+  lte,
+  desc,
+  or,
+  sql,
+  inArray,
+  count as countFn,
+} from "drizzle-orm";
 import { nanoid } from "nanoid";
-import type { OutboxAdapter } from "@authhero/adapter-interfaces";
+import type {
+  ListFailedEventsResponse,
+  ListParams,
+  OutboxAdapter,
+} from "@authhero/adapter-interfaces";
 import { outboxEvents } from "../schema/sqlite";
 import { parseJsonIfString } from "../helpers/transform";
 import type { DrizzleDb } from "./types";
@@ -156,6 +171,94 @@ export function createOutboxAdapter(db: DrizzleDb): OutboxAdapter {
         .returning();
 
       return results.length;
+    },
+
+    async deadLetter(id: string, finalError: string): Promise<void> {
+      const now = new Date().toISOString();
+      await db
+        .update(outboxEvents)
+        .set({
+          processed_at: now,
+          dead_lettered_at: now,
+          final_error: finalError,
+        })
+        .where(eq(outboxEvents.id, id));
+    },
+
+    async listFailed(
+      tenantId: string,
+      params: ListParams = {},
+    ): Promise<ListFailedEventsResponse> {
+      const { page = 0, per_page = 50, include_totals = false } = params;
+
+      const rows = await db
+        .select()
+        .from(outboxEvents)
+        .where(
+          and(
+            eq(outboxEvents.tenant_id, tenantId),
+            isNotNull(outboxEvents.dead_lettered_at),
+          ),
+        )
+        .orderBy(desc(outboxEvents.dead_lettered_at), outboxEvents.id)
+        .offset(page * per_page)
+        .limit(per_page)
+        .all();
+
+      const events = rows.map((row) => ({
+        ...(parseJsonIfString(row.payload, {}) as Record<string, unknown>),
+        id: row.id,
+        created_at: row.created_at,
+        processed_at: row.processed_at,
+        retry_count: row.retry_count,
+        next_retry_at: row.next_retry_at,
+        error: row.error,
+        dead_lettered_at: row.dead_lettered_at,
+        final_error: row.final_error,
+      })) as ListFailedEventsResponse["events"];
+
+      let length = events.length;
+      if (include_totals) {
+        const [totals] = await db
+          .select({ total: countFn() })
+          .from(outboxEvents)
+          .where(
+            and(
+              eq(outboxEvents.tenant_id, tenantId),
+              isNotNull(outboxEvents.dead_lettered_at),
+            ),
+          );
+        length = Number(totals?.total ?? events.length);
+      }
+
+      return {
+        events,
+        start: page * per_page,
+        limit: per_page,
+        length,
+      };
+    },
+
+    async replay(id: string): Promise<boolean> {
+      const results = await db
+        .update(outboxEvents)
+        .set({
+          processed_at: null,
+          dead_lettered_at: null,
+          final_error: null,
+          retry_count: 0,
+          next_retry_at: null,
+          error: null,
+        })
+        .where(
+          and(
+            eq(outboxEvents.id, id),
+            isNotNull(outboxEvents.dead_lettered_at),
+          ),
+        )
+        .returning();
+
+      return results.length > 0;
     },
   };
 }
