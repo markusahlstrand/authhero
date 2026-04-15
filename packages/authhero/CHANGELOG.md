@@ -1,5 +1,18 @@
 # authhero
 
+## 4.96.0
+
+### Minor Changes
+
+- 2f6354d: Make session lifetime cofigurable
+- 2f6354d: Fix mfa view for phone numbers
+
+### Patch Changes
+
+- Updated dependencies [2f6354d]
+  - @authhero/adapter-interfaces@1.3.0
+  - @authhero/widget@0.31.3
+
 ## 4.95.0
 
 ### Minor Changes
