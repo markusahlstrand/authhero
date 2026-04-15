@@ -11,8 +11,18 @@ import { createTranslation } from "../../../i18n";
 import { sendMfaOtp } from "../../../authentication-flows/mfa";
 import { logMessage } from "../../../helpers/logging";
 import { HTTPException } from "hono/http-exception";
-import { parsePhoneNumberFromString } from "libphonenumber-js";
+import {
+  parsePhoneNumberFromString,
+  isSupportedCountry,
+} from "libphonenumber-js";
 import type { CountryCode } from "libphonenumber-js";
+
+function getValidCountryCode(raw: string | undefined): CountryCode {
+  if (raw && isSupportedCountry(raw)) {
+    return raw;
+  }
+  return "US";
+}
 
 /**
  * Create the mfa-phone-enrollment screen
@@ -39,7 +49,7 @@ export async function mfaPhoneEnrollmentScreen(
       label: m.placeholder(),
       config: {
         placeholder: m.placeholder(),
-        default_country: context.ctx.get("countryCode") || "US",
+        default_country: getValidCountryCode(context.ctx.get("countryCode")),
       },
       required: true,
       order: 0,
@@ -176,7 +186,7 @@ export const mfaPhoneEnrollmentScreenDefinition: ScreenDefinition = {
       }
 
       // Normalize phone number to E.164 format
-      const defaultCountry = (ctx.get("countryCode") || "US") as CountryCode;
+      const defaultCountry = getValidCountryCode(ctx.get("countryCode"));
       const parsed = parsePhoneNumberFromString(phoneNumber, {
         defaultCountry,
       });

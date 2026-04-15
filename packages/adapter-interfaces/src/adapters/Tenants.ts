@@ -7,6 +7,8 @@ export interface CreateTenantParams {
   sender_name: string;
   sender_email: string;
   id?: string;
+  session_lifetime?: number;
+  idle_session_lifetime?: number;
 }
 
 export interface TenantsDataAdapter {
