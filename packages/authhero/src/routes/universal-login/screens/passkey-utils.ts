@@ -3,9 +3,13 @@
  * passkey-challenge, and conditional mediation on identifier/login screens.
  */
 
-import { LogTypes, Strategy } from "@authhero/adapter-interfaces";
+import { LoginSessionState, LogTypes, Strategy } from "@authhero/adapter-interfaces";
 import { verifyAuthenticationResponse } from "@simplewebauthn/server";
 import { logMessage } from "../../../helpers/logging";
+import {
+  transitionLoginSession,
+  LoginSessionEventType,
+} from "../../../state-machines/login-session";
 import type { WebAuthnCeremony, ScreenContext } from "./types";
 
 export const PASSKEY_TYPES = [
@@ -431,20 +435,36 @@ export async function verifyPasskeyAuthentication(
       userId: primaryUser.user_id,
     });
 
-    // Set mfa_verified to bypass MFA - passkeys provide multi-factor assurance
-    await ctx.env.data.loginSessions.update(client.tenant.id, state, {
+    // Transition from AWAITING_MFA back to AUTHENTICATED if needed,
+    // and set mfa_verified so createFrontChannelAuthResponse won't re-trigger MFA.
+    const currentState = loginSession.state || LoginSessionState.PENDING;
+    const updateFields: Record<string, unknown> = {
       user_id: primaryUser.user_id,
       state_data: JSON.stringify({
         ...stateData,
         mfa_verified: true,
       }),
-    });
+    };
+    if (currentState === LoginSessionState.AWAITING_MFA) {
+      const { state: newState } = transitionLoginSession(
+        currentState as LoginSessionState,
+        { type: LoginSessionEventType.COMPLETE_MFA },
+      );
+      updateFields.state = newState;
+    }
+    await ctx.env.data.loginSessions.update(
+      client.tenant.id,
+      state,
+      updateFields,
+    );
+
+    const updatedLoginSession = { ...loginSession, ...updateFields };
 
     return {
       success: true,
       user,
       primaryUser,
-      loginSession,
+      loginSession: updatedLoginSession,
       authConnection: user.connection || Strategy.USERNAME_PASSWORD,
     };
   } catch (err) {

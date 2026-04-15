@@ -22,6 +22,7 @@ interface UniversalAuthParams {
   auth0Client?: string;
   connection?: string;
   login_hint?: string;
+  screen_hint?: string;
 }
 
 // Helper function to check if session has exceeded max_age
@@ -48,6 +49,7 @@ export async function universalAuth({
   authParams,
   connection,
   login_hint,
+  screen_hint,
 }: UniversalAuthParams) {
   const url = new URL(ctx.req.url);
   if (ctx.var.custom_domain) {
@@ -86,7 +88,7 @@ export async function universalAuth({
     client.client_metadata?.universal_login_version === "2" ? "/u2" : "/u";
 
   // Check if the user in the login_hint matches the user in the session
-  if (session && login_hint) {
+  if (session && login_hint && screen_hint !== "login") {
     const user = await ctx.env.data.users.get(
       client.tenant.id,
       session.user_id,
@@ -128,8 +130,9 @@ export async function universalAuth({
     );
   }
 
-  // If there is a session we redirect to the check-account page
-  if (session) {
+  // If there is a session we redirect to the check-account page,
+  // unless the caller explicitly asked for the login screen via screen_hint=login.
+  if (session && screen_hint !== "login") {
     return ctx.redirect(
       `${routePrefix}/check-account?state=${loginSession.id}`,
     );
