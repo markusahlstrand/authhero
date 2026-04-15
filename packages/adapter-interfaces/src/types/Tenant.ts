@@ -14,8 +14,8 @@ export const tenantInsertSchema = z.object({
 
   // Tenant Settings fields (merged from TenantSettings)
   // Session settings
-  session_lifetime: z.number().optional(),
-  idle_session_lifetime: z.number().optional(),
+  session_lifetime: z.number().default(168),
+  idle_session_lifetime: z.number().default(72),
   ephemeral_session_lifetime: z.number().optional(),
   idle_ephemeral_session_lifetime: z.number().optional(),
   session_cookie: z

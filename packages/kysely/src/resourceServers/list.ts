@@ -63,7 +63,7 @@ export function list(db: Kysely<Database>) {
         ...rest
       } = dbRow;
 
-      const resourceServer = {
+      const resourceServer: ResourceServer = removeNullProperties({
         ...rest,
         scopes: scopes ? JSON.parse(scopes) : [],
         options: options ? JSON.parse(options) : {},
@@ -74,9 +74,12 @@ export function list(db: Kysely<Database>) {
         metadata: metadata ? JSON.parse(metadata) : undefined,
         // Convert verification_key back to verificationKey for API
         verificationKey: verification_key,
-      };
+      });
 
-      return removeNullProperties(resourceServer);
+      resourceServer.token_lifetime ??= 86400;
+      resourceServer.token_lifetime_for_web ??= 7200;
+
+      return resourceServer;
     });
 
     if (!include_totals) {

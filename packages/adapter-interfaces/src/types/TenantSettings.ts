@@ -5,8 +5,8 @@ import { z } from "@hono/zod-openapi";
 
 export const tenantSettingsSchema = z.object({
   // Session settings
-  idle_session_lifetime: z.number().optional(),
-  session_lifetime: z.number().optional(),
+  idle_session_lifetime: z.number().default(72),
+  session_lifetime: z.number().default(168),
   session_cookie: z
     .object({
       mode: z.enum(["persistent", "non-persistent"]).optional(),

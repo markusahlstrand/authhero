@@ -19,7 +19,6 @@ import { pemToBuffer } from "../utils/crypto";
 import { Bindings, Variables } from "../types";
 import {
   AUTHORIZATION_CODE_EXPIRES_IN_SECONDS,
-  SILENT_AUTH_MAX_AGE_IN_SECONDS,
   TICKET_EXPIRATION_TIME,
   UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS,
 } from "../constants";
@@ -78,6 +77,8 @@ export interface CreateAuthTokensParams {
   auth_time?: number; // Unix timestamp of when the user was authenticated
   /** Custom claims to add to the access token payload (cannot override reserved claims) */
   customClaims?: Record<string, unknown>;
+  /** Access token lifetime in seconds, from resource server config */
+  token_lifetime?: number;
 }
 
 const RESERVED_CLAIMS = ["sub", "iss", "aud", "exp", "nbf", "iat", "jti"];
@@ -417,9 +418,14 @@ export async function createAuthTokens(
     );
   }
 
+  // Default: 86400s (24h), overridden by resource server config, 3600s (1h) for impersonation
+  const effectiveTokenLifetime = impersonatingUser
+    ? 3600
+    : (params.token_lifetime ?? 86400);
+
   const header = {
     includeIssuedTimestamp: true,
-    expiresIn: impersonatingUser ? new TimeSpan(1, "h") : new TimeSpan(1, "d"),
+    expiresIn: new TimeSpan(effectiveTokenLifetime, "s"),
     headers: {
       kid: signingKey.kid,
     },
@@ -441,7 +447,7 @@ export async function createAuthTokens(
     refresh_token: params.refresh_token,
     id_token,
     token_type: "Bearer",
-    expires_in: impersonatingUser ? 3600 : 86400, // 1 hour for impersonation, 24 hours for regular sessions
+    expires_in: effectiveTokenLifetime,
   };
 }
 
@@ -497,15 +503,17 @@ export async function createRefreshToken(
     login_id,
   } = params;
 
+  const idleSessionMs = client.tenant.idle_session_lifetime * 60 * 60 * 1000;
+  const absoluteSessionMs = client.tenant.session_lifetime * 60 * 60 * 1000;
+
   const refreshToken = await ctx.env.data.refreshTokens.create(
     client.tenant.id,
     {
       id: ulid(),
       login_id,
       client_id: client.client_id,
-      idle_expires_at: new Date(
-        Date.now() + SILENT_AUTH_MAX_AGE_IN_SECONDS * 1000,
-      ).toISOString(),
+      idle_expires_at: new Date(Date.now() + idleSessionMs).toISOString(),
+      expires_at: new Date(Date.now() + absoluteSessionMs).toISOString(),
       user_id: params.user.user_id,
       device: {
         last_ip: ctx.var.ip,
@@ -543,14 +551,16 @@ async function createNewSession(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   { user, client, loginSession }: CreateSessionParams,
 ) {
-  // Create a new session
+  // Create a new session with tenant-configured lifetimes
+  const idleSessionMs = client.tenant.idle_session_lifetime * 60 * 60 * 1000;
+  const absoluteSessionMs = client.tenant.session_lifetime * 60 * 60 * 1000;
+
   const session = await ctx.env.data.sessions.create(client.tenant.id, {
     id: ulid(),
     user_id: user.user_id,
     login_session_id: loginSession.id,
-    idle_expires_at: new Date(
-      Date.now() + SILENT_AUTH_MAX_AGE_IN_SECONDS * 1000,
-    ).toISOString(),
+    idle_expires_at: new Date(Date.now() + idleSessionMs).toISOString(),
+    expires_at: new Date(Date.now() + absoluteSessionMs).toISOString(),
     device: {
       last_ip: ctx.var.ip || "",
       initial_ip: ctx.var.ip || "",
@@ -1685,6 +1695,7 @@ export async function completeLogin(
   // This will throw a 403 error if user is not a member of the required organization
   let calculatedScopes = params.authParams.scope || "";
   let calculatedPermissions: string[] = [];
+  let calculatedTokenLifetime: number | undefined;
 
   if (params.authParams.audience) {
     try {
@@ -1732,6 +1743,12 @@ export async function completeLogin(
 
       calculatedScopes = scopesAndPermissions.scopes.join(" ");
       calculatedPermissions = scopesAndPermissions.permissions;
+
+      // Use token_lifetime_for_web for SPA clients, token_lifetime for all others
+      calculatedTokenLifetime =
+        params.client.app_type === "spa" && scopesAndPermissions.token_lifetime_for_web
+          ? scopesAndPermissions.token_lifetime_for_web
+          : scopesAndPermissions.token_lifetime;
     } catch (error) {
       // Re-throw HTTPExceptions (like 403 for organization membership)
       if (error instanceof HTTPException) {
@@ -1827,6 +1844,7 @@ export async function completeLogin(
       user,
       authParams: updatedAuthParams,
       permissions: calculatedPermissions,
+      token_lifetime: calculatedTokenLifetime,
     });
 
     // Mark login session as completed after successful token creation

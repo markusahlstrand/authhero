@@ -136,9 +136,9 @@ describe("silent", () => {
     const loginSessionExpiresAt = new Date(
       updatedLoginSession!.expires_at,
     ).getTime();
-    // Should be at least 29 days from now (30 days minus test execution time)
-    const twentyNineDaysFromNow = Date.now() + 29 * 24 * 60 * 60 * 1000;
-    expect(loginSessionExpiresAt).toBeGreaterThan(twentyNineDaysFromNow);
+    // Should be at least 2 days from now (default idle_session_lifetime is 72h minus test execution time)
+    const twoDaysFromNow = Date.now() + 2 * 24 * 60 * 60 * 1000;
+    expect(loginSessionExpiresAt).toBeGreaterThan(twoDaysFromNow);
   });
 
   it("should clear session cookie when silent auth fails with expired session", async () => {

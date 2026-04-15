@@ -45,6 +45,9 @@ import {
   ListItemText,
   ListItemSecondaryAction,
   Paper,
+  Card,
+  CardContent,
+  CardHeader,
   MenuItem,
 } from "@mui/material";
 import { useState, useEffect, useCallback } from "react";
@@ -1369,20 +1372,43 @@ export function ClientEdit() {
           </Labeled>
         </TabbedForm.Tab>
         <TabbedForm.Tab label="SSO">
-          <TextInput source="addons.samlp.audience" label="audience" />
-          <TextInput source="addons.samlp.destination" label="destination" />
-          <TextInput
-            multiline
-            source="addons.samlp.mappings"
-            format={(value) => (value ? JSON.stringify(value, null, 2) : "")}
-            parse={(value) => {
-              try {
-                return value ? JSON.parse(value) : {};
-              } catch {
-                throw new Error("Invalid JSON");
-              }
-            }}
-          />
+          <Card variant="outlined" sx={{ width: "100%", mb: 2 }}>
+            <CardHeader
+              title="SAML2 Web App"
+              subheader="Configure this client as a SAML 2.0 Service Provider. These settings control how SAML assertions are generated when this client initiates a SAML login flow."
+            />
+            <CardContent>
+              <TextInput
+                source="addons.samlp.audience"
+                label="Audience (Entity ID)"
+                helperText="The intended recipient of the SAML assertion. Typically the Service Provider's Entity ID or Issuer URI. Defaults to the client_id if not set."
+                fullWidth
+              />
+              <TextInput
+                source="addons.samlp.destination"
+                label="Destination (ACS URL)"
+                helperText="The Service Provider's Assertion Consumer Service URL where the SAML response will be POSTed."
+                fullWidth
+              />
+              <TextInput
+                multiline
+                source="addons.samlp.mappings"
+                label="Attribute Mappings"
+                helperText="JSON object mapping user profile fields to SAML attribute names. Example: {&quot;email&quot;: &quot;http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress&quot;}"
+                fullWidth
+                format={(value) =>
+                  value ? JSON.stringify(value, null, 2) : ""
+                }
+                parse={(value) => {
+                  try {
+                    return value ? JSON.parse(value) : {};
+                  } catch {
+                    throw new Error("Invalid JSON");
+                  }
+                }}
+              />
+            </CardContent>
+          </Card>
         </TabbedForm.Tab>
         <TabbedForm.Tab label="Client Grants">
           <AddClientGrantButton />

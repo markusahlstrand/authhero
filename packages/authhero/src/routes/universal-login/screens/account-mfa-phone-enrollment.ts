@@ -11,6 +11,8 @@ import { resolveAccountUser } from "./account-helpers";
 import { escapeHtml } from "../sanitization-utils";
 import { sendMfaOtp, verifyMfaOtp } from "../../../authentication-flows/mfa";
 import { logMessage } from "../../../helpers/logging";
+import { parsePhoneNumberFromString } from "libphonenumber-js";
+import type { CountryCode } from "libphonenumber-js";
 
 /**
  * Render the phone number input screen (step 1)
@@ -37,6 +39,7 @@ function phoneInputScreen(context: ScreenContext): ScreenResult {
       label: "Phone number",
       config: {
         placeholder: "+1 (555) 000-0000",
+        default_country: context.ctx.get("countryCode") || "US",
       },
       required: true,
       order: 1,
@@ -196,7 +199,12 @@ export const accountMfaPhoneEnrollmentScreenDefinition: ScreenDefinition = {
           };
         }
 
-        if (!/^\+?\d[\d\s\-()]{6,}$/.test(phoneNumber)) {
+        // Normalize phone number to E.164 format
+        const defaultCountry = (ctx.get("countryCode") || "US") as CountryCode;
+        const parsed = parsePhoneNumberFromString(phoneNumber, {
+          defaultCountry,
+        });
+        if (!parsed || !parsed.isValid()) {
           return {
             error: "Invalid phone number",
             screen: phoneInputScreen({
@@ -205,6 +213,7 @@ export const accountMfaPhoneEnrollmentScreenDefinition: ScreenDefinition = {
             }),
           };
         }
+        const normalizedPhone = parsed.number; // E.164 format
 
         const loginSession = await ctx.env.data.loginSessions.get(
           tenant.id,
@@ -230,7 +239,7 @@ export const accountMfaPhoneEnrollmentScreenDefinition: ScreenDefinition = {
             {
               user_id: user.user_id,
               type: "phone",
-              phone_number: phoneNumber,
+              phone_number: normalizedPhone,
               confirmed: false,
             },
           );
@@ -243,13 +252,13 @@ export const accountMfaPhoneEnrollmentScreenDefinition: ScreenDefinition = {
             state_data: JSON.stringify({
               ...stateData,
               authenticationMethodId: enrollment.id,
-              phoneNumber,
+              phoneNumber: normalizedPhone,
             }),
           });
 
           // Send OTP
           try {
-            await sendMfaOtp(ctx, client, loginSession, phoneNumber);
+            await sendMfaOtp(ctx, client, loginSession, normalizedPhone);
           } catch (otpErr) {
             // Roll back enrollment
             await ctx.env.data.authenticationMethods.remove(
@@ -263,7 +272,7 @@ export const accountMfaPhoneEnrollmentScreenDefinition: ScreenDefinition = {
           }
 
           return {
-            screen: codeInputScreen(context, maskPhone(phoneNumber)),
+            screen: codeInputScreen(context, maskPhone(normalizedPhone)),
           };
         } catch (err) {
           logMessage(ctx, tenant.id, {

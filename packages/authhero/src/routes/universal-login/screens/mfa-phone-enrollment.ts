@@ -11,6 +11,18 @@ import { createTranslation } from "../../../i18n";
 import { sendMfaOtp } from "../../../authentication-flows/mfa";
 import { logMessage } from "../../../helpers/logging";
 import { HTTPException } from "hono/http-exception";
+import {
+  parsePhoneNumberFromString,
+  isSupportedCountry,
+} from "libphonenumber-js";
+import type { CountryCode } from "libphonenumber-js";
+
+function getValidCountryCode(raw: string | undefined): CountryCode {
+  if (raw && isSupportedCountry(raw)) {
+    return raw;
+  }
+  return "US";
+}
 
 /**
  * Create the mfa-phone-enrollment screen
@@ -37,6 +49,7 @@ export async function mfaPhoneEnrollmentScreen(
       label: m.placeholder(),
       config: {
         placeholder: m.placeholder(),
+        default_country: getValidCountryCode(context.ctx.get("countryCode")),
       },
       required: true,
       order: 0,
@@ -131,31 +144,7 @@ export const mfaPhoneEnrollmentScreenDefinition: ScreenDefinition = {
         context.customText,
       );
 
-      // Validate phone number
-      if (!phoneNumber) {
-        const errorMessage = m["no-phone"]();
-        return {
-          error: errorMessage,
-          screen: await mfaPhoneEnrollmentScreen({
-            ...context,
-            errors: { phone_number: errorMessage },
-          }),
-        };
-      }
-
-      // Basic phone number validation
-      if (!/^\+?\d[\d\s\-()]{6,}$/.test(phoneNumber)) {
-        const errorMessage = m["invalid-phone"]();
-        return {
-          error: errorMessage,
-          screen: await mfaPhoneEnrollmentScreen({
-            ...context,
-            errors: { phone_number: errorMessage },
-          }),
-        };
-      }
-
-      // Get the login session
+      // Get the login session early so we can check enrollment status before validation
       const loginSession = await ctx.env.data.loginSessions.get(
         client.tenant.id,
         state,
@@ -184,6 +173,35 @@ export const mfaPhoneEnrollmentScreenDefinition: ScreenDefinition = {
         });
       }
 
+      // Validate phone number
+      if (!phoneNumber) {
+        const errorMessage = m["no-phone"]();
+        return {
+          error: errorMessage,
+          screen: await mfaPhoneEnrollmentScreen({
+            ...context,
+            errors: { phone_number: errorMessage },
+          }),
+        };
+      }
+
+      // Normalize phone number to E.164 format
+      const defaultCountry = getValidCountryCode(ctx.get("countryCode"));
+      const parsed = parsePhoneNumberFromString(phoneNumber, {
+        defaultCountry,
+      });
+      if (!parsed || !parsed.isValid()) {
+        const errorMessage = m["invalid-phone"]();
+        return {
+          error: errorMessage,
+          screen: await mfaPhoneEnrollmentScreen({
+            ...context,
+            errors: { phone_number: errorMessage },
+          }),
+        };
+      }
+      const normalizedPhone = parsed.number; // E.164 format
+
       try {
         logMessage(ctx, client.tenant.id, {
           type: LogTypes.MFA_ENROLL_STARTED,
@@ -197,7 +215,7 @@ export const mfaPhoneEnrollmentScreenDefinition: ScreenDefinition = {
           {
             user_id: loginSession.user_id,
             type: "phone",
-            phone_number: phoneNumber,
+            phone_number: normalizedPhone,
             confirmed: false,
           },
         );
@@ -216,7 +234,7 @@ export const mfaPhoneEnrollmentScreenDefinition: ScreenDefinition = {
 
         // Send OTP SMS only after the session is updated
         try {
-          await sendMfaOtp(ctx, client, loginSession, phoneNumber);
+          await sendMfaOtp(ctx, client, loginSession, normalizedPhone);
         } catch (otpErr) {
           // Roll back: delete the enrollment since OTP delivery failed
           await ctx.env.data.authenticationMethods.remove(

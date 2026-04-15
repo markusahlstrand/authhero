@@ -74,12 +74,12 @@ export function SettingsEdit() {
             <NumberInput
               source="idle_session_lifetime"
               label="Idle Session Lifetime (hours)"
-              helperText="Hours before an idle session expires"
+              helperText="Time in hours before an inactive session expires. The user must log in again after being idle for this long. Default: 72 (3 days)"
             />
             <NumberInput
               source="session_lifetime"
               label="Session Lifetime (hours)"
-              helperText="Maximum session duration in hours"
+              helperText="Maximum total session duration in hours, regardless of activity. After this time the user must log in again. Default: 168 (7 days)"
             />
             <TextInput
               source="session_cookie.mode"
