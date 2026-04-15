@@ -199,6 +199,7 @@ export const authorizeRoutes = new OpenAPIHono<{
         login_hint,
         ui_locales,
         organization,
+        screen_hint,
       } = { ...requestParams, ...queryParams };
 
       ctx.set("log", "authorize");
@@ -381,6 +382,7 @@ export const authorizeRoutes = new OpenAPIHono<{
         session: validSession || undefined,
         connection,
         login_hint,
+        screen_hint,
       });
 
       if (universalAuthResult instanceof Response) {

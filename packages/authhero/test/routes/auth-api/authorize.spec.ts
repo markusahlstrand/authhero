@@ -1106,4 +1106,116 @@ describe("authorize", () => {
       expect(body).toContain('"code":"');
     });
   });
+
+  describe("screen_hint", () => {
+    it("should skip check-account and go to login/identifier when screen_hint=login and a session exists", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const oauthClient = testClient(oauthApp, env);
+
+      const loginSession = await env.data.loginSessions.create("tenantId", {
+        expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+        csrf_token: "csrfToken",
+        authParams: {
+          client_id: "clientId",
+          username: "foo@example.com",
+          redirect_uri: "https://example.com/callback",
+        },
+      });
+
+      await env.data.sessions.create("tenantId", {
+        id: "screenHintSessionId",
+        user_id: "email|userId",
+        clients: ["clientId"],
+        idle_expires_at: new Date(Date.now() + 1000).toISOString(),
+        login_session_id: loginSession.id,
+        device: {
+          last_ip: "",
+          initial_ip: "",
+          last_user_agent: "",
+          initial_user_agent: "",
+          initial_asn: "",
+          last_asn: "",
+        },
+      });
+
+      const response = await oauthClient.authorize.$get(
+        {
+          query: {
+            client_id: "clientId",
+            redirect_uri: "https://example.com/callback",
+            state: "state",
+            nonce: "nonce",
+            scope: "openid email profile",
+            response_type: AuthorizationResponseType.CODE,
+            screen_hint: "login",
+          },
+        },
+        {
+          headers: {
+            origin: "https://example.com",
+            cookie: "tenantId-auth-token=screenHintSessionId",
+          },
+        },
+      );
+
+      expect(response.status).toEqual(302);
+      const location = response.headers.get("location");
+      expect(location).toContain("/u/login/identifier");
+      expect(location).not.toContain("/check-account");
+    });
+
+    it("should still redirect to check-account when a session exists and no screen_hint is provided", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const oauthClient = testClient(oauthApp, env);
+
+      const loginSession = await env.data.loginSessions.create("tenantId", {
+        expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+        csrf_token: "csrfToken",
+        authParams: {
+          client_id: "clientId",
+          username: "foo@example.com",
+          redirect_uri: "https://example.com/callback",
+        },
+      });
+
+      await env.data.sessions.create("tenantId", {
+        id: "checkAccountSessionId",
+        user_id: "email|userId",
+        clients: ["clientId"],
+        idle_expires_at: new Date(Date.now() + 1000).toISOString(),
+        login_session_id: loginSession.id,
+        device: {
+          last_ip: "",
+          initial_ip: "",
+          last_user_agent: "",
+          initial_user_agent: "",
+          initial_asn: "",
+          last_asn: "",
+        },
+      });
+
+      const response = await oauthClient.authorize.$get(
+        {
+          query: {
+            client_id: "clientId",
+            redirect_uri: "https://example.com/callback",
+            state: "state",
+            nonce: "nonce",
+            scope: "openid email profile",
+            response_type: AuthorizationResponseType.CODE,
+          },
+        },
+        {
+          headers: {
+            origin: "https://example.com",
+            cookie: "tenantId-auth-token=checkAccountSessionId",
+          },
+        },
+      );
+
+      expect(response.status).toEqual(302);
+      const location = response.headers.get("location");
+      expect(location).toContain("/u/check-account");
+    });
+  });
 });
