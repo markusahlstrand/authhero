@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.123.0
+
+### Minor Changes
+
+- 2f6354d: Make session lifetime cofigurable
+
+### Patch Changes
+
+- Updated dependencies [2f6354d]
+  - @authhero/adapter-interfaces@1.3.0
+
 ## 10.122.0
 
 ### Minor Changes

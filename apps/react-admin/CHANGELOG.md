@@ -1,5 +1,17 @@
 # @authhero/react-admin
 
+## 0.63.0
+
+### Minor Changes
+
+- 2f6354d: Make session lifetime cofigurable
+
+### Patch Changes
+
+- Updated dependencies [2f6354d]
+  - @authhero/adapter-interfaces@1.3.0
+  - @authhero/widget@0.31.3
+
 ## 0.62.0
 
 ### Minor Changes

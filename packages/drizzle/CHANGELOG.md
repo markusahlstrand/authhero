@@ -1,5 +1,16 @@
 # @authhero/drizzle
 
+## 0.36.0
+
+### Minor Changes
+
+- 2f6354d: Make session lifetime cofigurable
+
+### Patch Changes
+
+- Updated dependencies [2f6354d]
+  - @authhero/adapter-interfaces@1.3.0
+
 ## 0.35.0
 
 ### Minor Changes

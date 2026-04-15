@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 1.3.0
+
+### Minor Changes
+
+- 2f6354d: Make session lifetime cofigurable
+
 ## 1.2.0
 
 ### Minor Changes
