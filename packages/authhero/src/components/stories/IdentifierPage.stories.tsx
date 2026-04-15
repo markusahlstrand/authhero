@@ -122,6 +122,8 @@ const createMockClient = (connections: string[]): EnrichedClient => ({
     sender_email: "noreply@example.com",
     sender_name: "Mock App",
     support_url: "https://example.com/support",
+    session_lifetime: 168,
+    idle_session_lifetime: 72,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   },

@@ -48,13 +48,13 @@ export function ResourceServerCreate() {
         <Stack spacing={2} direction="row" sx={{ mt: 2 }}>
           <NumberInput
             source="token_lifetime"
-            defaultValue={1209600}
-            helperText="Token lifetime in seconds (default: 14 days)"
+            defaultValue={86400}
+            helperText="Access token lifetime in seconds (default: 86400 = 24 hours)"
           />
           <NumberInput
             source="token_lifetime_for_web"
             defaultValue={7200}
-            helperText="Web token lifetime in seconds (default: 2 hours)"
+            helperText="Access token lifetime in seconds for browser-based (SPA) clients (default: 7200 = 2 hours)"
           />
         </Stack>
 

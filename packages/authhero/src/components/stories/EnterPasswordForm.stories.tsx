@@ -214,6 +214,8 @@ const mockClient: EnrichedClient = {
     audience: "https://test-tenant.authhero.com",
     sender_email: "noreply@authhero.com",
     sender_name: "AuthHero",
+    session_lifetime: 168,
+    idle_session_lifetime: 72,
   },
   connections: [],
 };
