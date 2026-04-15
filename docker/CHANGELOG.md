@@ -1,5 +1,13 @@
 # @authhero/docker
 
+## 1.3.11
+
+### Patch Changes
+
+- Updated dependencies [d9415a0]
+- Updated dependencies [d9415a0]
+  - authhero@4.95.0
+
 ## 1.3.10
 
 ### Patch Changes

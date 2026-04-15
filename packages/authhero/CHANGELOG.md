@@ -1,5 +1,15 @@
 # authhero
 
+## 4.95.0
+
+### Minor Changes
+
+- d9415a0: Fix screen hint and passkeys mfa
+
+### Patch Changes
+
+- d9415a0: Honor `screen_hint=login` on `/authorize` to skip the check-account screen when an existing session is present, sending the user directly to the login/identifier page instead.
+
 ## 4.94.0
 
 ### Minor Changes
