@@ -144,6 +144,9 @@ packages/kysely/sql-migrations
 apps/docs/.vitepress/cache
 apps/docs/.vitepress/dist
 
+# HAR files (may contain sensitive data)
+*.har
+
 # Claude Code
 .claude/settings.json
 .claude/settings.local.json
