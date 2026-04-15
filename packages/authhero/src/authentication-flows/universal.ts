@@ -88,7 +88,7 @@ export async function universalAuth({
     client.client_metadata?.universal_login_version === "2" ? "/u2" : "/u";
 
   // Check if the user in the login_hint matches the user in the session
-  if (session && login_hint) {
+  if (session && login_hint && screen_hint !== "login") {
     const user = await ctx.env.data.users.get(
       client.tenant.id,
       session.user_id,

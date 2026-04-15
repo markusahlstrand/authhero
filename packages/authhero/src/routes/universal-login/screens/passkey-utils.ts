@@ -458,11 +458,13 @@ export async function verifyPasskeyAuthentication(
       updateFields,
     );
 
+    const updatedLoginSession = { ...loginSession, ...updateFields };
+
     return {
       success: true,
       user,
       primaryUser,
-      loginSession,
+      loginSession: updatedLoginSession,
       authConnection: user.connection || Strategy.USERNAME_PASSWORD,
     };
   } catch (err) {
