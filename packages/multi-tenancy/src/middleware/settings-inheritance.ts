@@ -130,11 +130,120 @@ function mergeClientWithFallback(
 }
 
 /**
+ * Wraps resourceServers adapter methods with is_system-gated scope inheritance.
+ * Only resource_servers with is_system === true get scopes merged from the
+ * control plane counterpart (looked up by id, since sync preserves the id).
+ */
+function wrapResourceServersWithSystemInheritance(
+  baseAdapters: DataAdapters,
+  controlPlaneTenantId: string | undefined,
+): DataAdapters["resourceServers"] {
+  return {
+    ...baseAdapters.resourceServers,
+
+    get: async (
+      tenantId: string,
+      id: string,
+    ): Promise<ResourceServer | null> => {
+      const resourceServer = await baseAdapters.resourceServers.get(
+        tenantId,
+        id,
+      );
+      if (!resourceServer || !controlPlaneTenantId) {
+        return resourceServer;
+      }
+
+      if (tenantId === controlPlaneTenantId) {
+        return resourceServer;
+      }
+
+      if (!resourceServer.is_system) {
+        return resourceServer;
+      }
+
+      const controlPlaneResourceServer =
+        await baseAdapters.resourceServers.get(controlPlaneTenantId, id);
+
+      return mergeResourceServerWithFallback(
+        resourceServer,
+        controlPlaneResourceServer,
+      );
+    },
+
+    list: async (tenantId: string, params?) => {
+      const result = await baseAdapters.resourceServers.list(
+        tenantId,
+        params,
+      );
+
+      if (!controlPlaneTenantId || tenantId === controlPlaneTenantId) {
+        return result;
+      }
+
+      const cpTenantId = controlPlaneTenantId;
+      const systemIds = result.resource_servers
+        .filter((rs): rs is ResourceServer & { id: string } =>
+          Boolean(rs.is_system && rs.id),
+        )
+        .map((rs) => rs.id);
+
+      if (systemIds.length === 0) {
+        return result;
+      }
+
+      const controlPlaneById = new Map<string, ResourceServer>();
+      await Promise.all(
+        systemIds.map(async (id) => {
+          const cp = await baseAdapters.resourceServers.get(cpTenantId, id);
+          if (cp) {
+            controlPlaneById.set(id, cp);
+          }
+        }),
+      );
+
+      const mergedResourceServers = result.resource_servers.map((rs) =>
+        rs.is_system && rs.id
+          ? mergeResourceServerWithFallback(
+              rs,
+              controlPlaneById.get(rs.id) ?? null,
+            )
+          : rs,
+      );
+
+      return {
+        ...result,
+        resource_servers: mergedResourceServers,
+      };
+    },
+  };
+}
+
+/**
+ * Wraps data adapters with is_system-gated resource server scope inheritance
+ * from a control plane tenant.
+ *
+ * This is a narrow wrapper intended for the management adapter: it only
+ * overrides resourceServers.get and resourceServers.list so that
+ * is_system resource servers show inherited scopes, without merging
+ * connections, clients, or email providers.
+ */
+export function withSystemResourceServerInheritance(
+  baseAdapters: DataAdapters,
+  config: { controlPlaneTenantId?: string },
+): DataAdapters {
+  return {
+    ...baseAdapters,
+    resourceServers: wrapResourceServersWithSystemInheritance(
+      baseAdapters,
+      config.controlPlaneTenantId,
+    ),
+  };
+}
+
+/**
  * Configuration for runtime settings fallback from a control plane tenant.
  *
  * Runtime fallback provides default values at query time without copying sensitive data.
- * This should only be used for auth flows, not for management API which should return
- * raw tenant data without any merging.
  */
 export interface RuntimeFallbackConfig {
   /**
@@ -382,74 +491,10 @@ export function createRuntimeFallbackAdapter(
       },
     },
 
-    resourceServers: {
-      ...baseAdapters.resourceServers,
-
-      get: async (
-        tenantId: string,
-        id: string,
-      ): Promise<ResourceServer | null> => {
-        const resourceServer = await baseAdapters.resourceServers.get(
-          tenantId,
-          id,
-        );
-        if (!resourceServer || !controlPlaneTenantId) {
-          return resourceServer;
-        }
-
-        // Skip fallback for control plane tenant itself
-        if (tenantId === controlPlaneTenantId) {
-          return resourceServer;
-        }
-
-        // Find matching control plane resource server by identifier for scope fallback
-        const controlPlaneResult = await baseAdapters.resourceServers.list(
-          controlPlaneTenantId,
-          { q: `identifier:${resourceServer.identifier}`, per_page: 1 },
-        );
-
-        const controlPlaneResourceServer =
-          controlPlaneResult.resource_servers[0] ?? null;
-
-        return mergeResourceServerWithFallback(
-          resourceServer,
-          controlPlaneResourceServer,
-        );
-      },
-
-      list: async (tenantId: string, params?) => {
-        const result = await baseAdapters.resourceServers.list(
-          tenantId,
-          params,
-        );
-
-        if (!controlPlaneTenantId || tenantId === controlPlaneTenantId) {
-          return result;
-        }
-
-        // Get all control plane resource servers for scope fallback
-        const controlPlaneResult =
-          await baseAdapters.resourceServers.list(controlPlaneTenantId);
-
-        // Create a map of control plane resource servers by identifier
-        const controlPlaneByIdentifier = new Map(
-          controlPlaneResult.resource_servers.map((rs) => [rs.identifier, rs]),
-        );
-
-        // Merge each resource server with its control plane counterpart
-        const mergedResourceServers = result.resource_servers.map((rs) =>
-          mergeResourceServerWithFallback(
-            rs,
-            controlPlaneByIdentifier.get(rs.identifier) ?? null,
-          ),
-        );
-
-        return {
-          ...result,
-          resource_servers: mergedResourceServers,
-        };
-      },
-    },
+    resourceServers: wrapResourceServersWithSystemInheritance(
+      baseAdapters,
+      controlPlaneTenantId,
+    ),
 
     // Note: Additional adapters can be extended here for runtime fallback:
     // - promptSettings: Fall back to control plane prompts
