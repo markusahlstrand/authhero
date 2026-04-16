@@ -3,7 +3,11 @@
  * passkey-challenge, and conditional mediation on identifier/login screens.
  */
 
-import { LoginSessionState, LogTypes, Strategy } from "@authhero/adapter-interfaces";
+import {
+  LoginSessionState,
+  LogTypes,
+  Strategy,
+} from "@authhero/adapter-interfaces";
 import { verifyAuthenticationResponse } from "@simplewebauthn/server";
 import { logMessage } from "../../../helpers/logging";
 import {

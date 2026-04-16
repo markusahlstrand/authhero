@@ -5,10 +5,7 @@ import { hookCode } from "../schema/sqlite";
 import { convertDatesToAdapter } from "../helpers/dates";
 import type { DrizzleDb } from "./types";
 
-const generateId = customAlphabet(
-  "0123456789abcdefghijklmnopqrstuvwxyz",
-  17,
-);
+const generateId = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 17);
 
 function generateHookCodeId(): string {
   return `hc_${generateId()}`;

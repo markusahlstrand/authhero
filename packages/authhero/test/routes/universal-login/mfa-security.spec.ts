@@ -559,9 +559,8 @@ describe("MFA security", () => {
       });
 
       // Verify checkMfaRequired detects the passkey enrollment
-      const { checkMfaRequired } = await import(
-        "../../../src/authentication-flows/mfa"
-      );
+      const { checkMfaRequired } =
+        await import("../../../src/authentication-flows/mfa");
       const mfaCheck = await checkMfaRequired(
         { env } as any,
         "tenantId",
@@ -574,9 +573,8 @@ describe("MFA security", () => {
       }
 
       // Drive the login session through createFrontChannelAuthResponse
-      const { createFrontChannelAuthResponse } = await import(
-        "../../../src/authentication-flows/common"
-      );
+      const { createFrontChannelAuthResponse } =
+        await import("../../../src/authentication-flows/common");
 
       const ctx = {
         env,
@@ -652,9 +650,8 @@ describe("MFA security", () => {
         confirmed: true,
       });
 
-      const { checkMfaRequired } = await import(
-        "../../../src/authentication-flows/mfa"
-      );
+      const { checkMfaRequired } =
+        await import("../../../src/authentication-flows/mfa");
 
       const mfaCheck = await checkMfaRequired(
         { env } as any,

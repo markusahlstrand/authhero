@@ -115,9 +115,9 @@ describe("WebhookDestination", () => {
     ]);
     const dest = new WebhookDestination(adapter, async () => "token");
 
-    await expect(
-      dest.deliver([dest.transform(makeEvent())]),
-    ).rejects.toThrow(/h1.*post-user-registration.*500/);
+    await expect(dest.deliver([dest.transform(makeEvent())])).rejects.toThrow(
+      /h1.*post-user-registration.*500/,
+    );
   });
 
   it("does nothing when no webhooks match the trigger_id", async () => {

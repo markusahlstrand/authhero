@@ -28,9 +28,7 @@ async function tryDeadLetter(
   eventId: string,
   error: string,
 ): Promise<void> {
-  console.warn(
-    `Outbox event ${eventId} dead-lettering: ${error}`,
-  );
+  console.warn(`Outbox event ${eventId} dead-lettering: ${error}`);
   try {
     await outbox.deadLetter(eventId, error);
   } catch {

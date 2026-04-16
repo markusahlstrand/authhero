@@ -13,7 +13,10 @@ function parseJsonField<T>(value: string | null | undefined): T | undefined {
 }
 
 export function get(db: Kysely<Database>) {
-  return async (tenant_id: string, action_id: string): Promise<Action | null> => {
+  return async (
+    tenant_id: string,
+    action_id: string,
+  ): Promise<Action | null> => {
     const row = await db
       .selectFrom("actions")
       .where("actions.tenant_id", "=", tenant_id)

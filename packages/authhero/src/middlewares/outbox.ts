@@ -64,10 +64,7 @@ export function outboxMiddleware(
       // latency (possibly seconds) onto the request critical path. On
       // Cloudflare Workers `executionCtx.waitUntil` keeps the worker alive
       // without blocking the response, so this branch is a no-op there.
-      if (
-        typeof process !== "undefined" &&
-        process.env?.NODE_ENV === "test"
-      ) {
+      if (typeof process !== "undefined" && process.env?.NODE_ENV === "test") {
         await flushBackgroundPromises(ctx);
       }
     }

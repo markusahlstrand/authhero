@@ -21,7 +21,12 @@ describe("accountLinking pre-defined hook", () => {
   function mockCtx(data: any): any {
     return {
       env: { data },
-      req: { method: "POST", url: "http://test", path: "/test", header: () => tenantId },
+      req: {
+        method: "POST",
+        url: "http://test",
+        path: "/test",
+        header: () => tenantId,
+      },
       var: { tenant_id: tenantId, ip: "127.0.0.1" },
       get: (key: string) => (key === "ip" ? "127.0.0.1" : undefined),
     };

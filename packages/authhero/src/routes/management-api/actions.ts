@@ -42,10 +42,7 @@ export const actionsRoutes = new OpenAPIHono<{
         200: {
           content: {
             "application/json": {
-              schema: z.union([
-                z.array(actionSchema),
-                actionsWithTotalsSchema,
-              ]),
+              schema: z.union([z.array(actionSchema), actionsWithTotalsSchema]),
             },
           },
           description: "List of actions",
@@ -116,10 +113,7 @@ export const actionsRoutes = new OpenAPIHono<{
     async (ctx) => {
       const body = ctx.req.valid("json");
 
-      const action = await ctx.env.data.actions.create(
-        ctx.var.tenant_id,
-        body,
-      );
+      const action = await ctx.env.data.actions.create(ctx.var.tenant_id, body);
 
       // Deploy to execution environment if supported
       if (ctx.env.codeExecutor?.deploy) {

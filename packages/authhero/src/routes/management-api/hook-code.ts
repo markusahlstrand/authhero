@@ -72,8 +72,7 @@ export const hookCodeRoutes = new OpenAPIHono<{
           deploymentStatus = "deployed";
         } catch (err) {
           deploymentStatus = "failed";
-          deploymentError =
-            err instanceof Error ? err.message : String(err);
+          deploymentError = err instanceof Error ? err.message : String(err);
           await logMessage(ctx, ctx.var.tenant_id, {
             type: LogTypes.FAILED_HOOK,
             description: `Failed to deploy hook code ${hookCode.id}: ${deploymentError}`,
@@ -212,8 +211,7 @@ export const hookCodeRoutes = new OpenAPIHono<{
           deploymentStatus = "deployed";
         } catch (err) {
           deploymentStatus = "failed";
-          deploymentError =
-            err instanceof Error ? err.message : String(err);
+          deploymentError = err instanceof Error ? err.message : String(err);
           await logMessage(ctx, ctx.var.tenant_id, {
             type: LogTypes.FAILED_HOOK,
             description: `Failed to deploy hook code ${id}: ${deploymentError}`,

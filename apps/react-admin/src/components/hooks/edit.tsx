@@ -71,8 +71,7 @@ function validateHookForm(values: Record<string, any>) {
       (c) => c.id === values.trigger_id,
     );
     if (!isValidCodeTrigger) {
-      errors.trigger_id =
-        "This trigger is not supported by code hooks";
+      errors.trigger_id = "This trigger is not supported by code hooks";
     }
   }
   return errors;

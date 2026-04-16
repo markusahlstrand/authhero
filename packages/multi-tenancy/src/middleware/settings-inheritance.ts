@@ -161,8 +161,10 @@ function wrapResourceServersWithSystemInheritance(
         return resourceServer;
       }
 
-      const controlPlaneResourceServer =
-        await baseAdapters.resourceServers.get(controlPlaneTenantId, id);
+      const controlPlaneResourceServer = await baseAdapters.resourceServers.get(
+        controlPlaneTenantId,
+        id,
+      );
 
       return mergeResourceServerWithFallback(
         resourceServer,
@@ -171,10 +173,7 @@ function wrapResourceServersWithSystemInheritance(
     },
 
     list: async (tenantId: string, params?) => {
-      const result = await baseAdapters.resourceServers.list(
-        tenantId,
-        params,
-      );
+      const result = await baseAdapters.resourceServers.list(tenantId, params);
 
       if (!controlPlaneTenantId || tenantId === controlPlaneTenantId) {
         return result;

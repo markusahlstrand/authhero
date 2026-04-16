@@ -1,9 +1,5 @@
 import { Context } from "hono";
-import {
-  AuditEventInsert,
-  LogTypes,
-  User,
-} from "@authhero/adapter-interfaces";
+import { AuditEventInsert, LogTypes, User } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
 import { waitUntil } from "./wait-until";
 import { invokeHooks } from "../hooks/webhooks";
@@ -45,7 +41,11 @@ export function enqueuePostHookEvent(
     description: `Enqueued ${triggerId} hook dispatch`,
     category: "system",
     actor: {
-      type: ctx.var.user_id ? "admin" : ctx.var.client_id ? "client_credentials" : "system",
+      type: ctx.var.user_id
+        ? "admin"
+        : ctx.var.client_id
+          ? "client_credentials"
+          : "system",
       id: ctx.var.user_id || undefined,
       client_id: ctx.var.client_id || undefined,
     },
