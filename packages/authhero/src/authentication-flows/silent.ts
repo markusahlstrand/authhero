@@ -277,10 +277,12 @@ export async function silentAuth({
       : await createAuthTokens(ctx, tokenResponseOptions);
 
   // Update session idle timeout using tenant settings
-  const idleSessionMs = client.tenant.idle_session_lifetime * 60 * 60 * 1000;
-  const newIdleExpiresAt = session.idle_expires_at
-    ? new Date(Date.now() + idleSessionMs).toISOString()
-    : undefined;
+  const newIdleExpiresAt =
+    session.idle_expires_at && client.tenant.idle_session_lifetime
+      ? new Date(
+          Date.now() + client.tenant.idle_session_lifetime * 60 * 60 * 1000,
+        ).toISOString()
+      : undefined;
 
   await env.data.sessions.update(client.tenant.id, session.id, {
     used_at: new Date().toISOString(),

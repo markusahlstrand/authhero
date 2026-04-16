@@ -182,9 +182,10 @@ export async function refreshTokenGrant(
   }
 
   // Update the idle_expires_at using tenant settings
-  if (refreshToken.idle_expires_at) {
-    const idleSessionMs = client.tenant.idle_session_lifetime * 60 * 60 * 1000;
-    const idleExpiresAt = new Date(Date.now() + idleSessionMs);
+  if (refreshToken.idle_expires_at && client.tenant.idle_session_lifetime) {
+    const idleExpiresAt = new Date(
+      Date.now() + client.tenant.idle_session_lifetime * 60 * 60 * 1000,
+    );
     await ctx.env.data.refreshTokens.update(client.tenant.id, refreshToken.id, {
       idle_expires_at: idleExpiresAt.toISOString(),
       last_exchanged_at: new Date().toISOString(),

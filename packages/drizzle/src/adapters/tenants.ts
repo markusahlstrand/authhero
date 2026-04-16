@@ -56,9 +56,6 @@ function sqlToTenant(row: any): Tenant {
     }
   }
 
-  tenant.session_lifetime ??= 168;
-  tenant.idle_session_lifetime ??= 72;
-
   return removeNullProperties(tenant);
 }
 

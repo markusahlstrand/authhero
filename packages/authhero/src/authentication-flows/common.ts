@@ -503,8 +503,16 @@ export async function createRefreshToken(
     login_id,
   } = params;
 
-  const idleSessionMs = client.tenant.idle_session_lifetime * 60 * 60 * 1000;
-  const absoluteSessionMs = client.tenant.session_lifetime * 60 * 60 * 1000;
+  const idleExpiresAt = client.tenant.idle_session_lifetime
+    ? new Date(
+        Date.now() + client.tenant.idle_session_lifetime * 60 * 60 * 1000,
+      ).toISOString()
+    : undefined;
+  const absoluteExpiresAt = client.tenant.session_lifetime
+    ? new Date(
+        Date.now() + client.tenant.session_lifetime * 60 * 60 * 1000,
+      ).toISOString()
+    : undefined;
 
   const refreshToken = await ctx.env.data.refreshTokens.create(
     client.tenant.id,
@@ -512,8 +520,8 @@ export async function createRefreshToken(
       id: ulid(),
       login_id,
       client_id: client.client_id,
-      idle_expires_at: new Date(Date.now() + idleSessionMs).toISOString(),
-      expires_at: new Date(Date.now() + absoluteSessionMs).toISOString(),
+      idle_expires_at: idleExpiresAt,
+      expires_at: absoluteExpiresAt,
       user_id: params.user.user_id,
       device: {
         last_ip: ctx.var.ip,
@@ -552,15 +560,23 @@ async function createNewSession(
   { user, client, loginSession }: CreateSessionParams,
 ) {
   // Create a new session with tenant-configured lifetimes
-  const idleSessionMs = client.tenant.idle_session_lifetime * 60 * 60 * 1000;
-  const absoluteSessionMs = client.tenant.session_lifetime * 60 * 60 * 1000;
+  const idleExpiresAt = client.tenant.idle_session_lifetime
+    ? new Date(
+        Date.now() + client.tenant.idle_session_lifetime * 60 * 60 * 1000,
+      ).toISOString()
+    : undefined;
+  const absoluteExpiresAt = client.tenant.session_lifetime
+    ? new Date(
+        Date.now() + client.tenant.session_lifetime * 60 * 60 * 1000,
+      ).toISOString()
+    : undefined;
 
   const session = await ctx.env.data.sessions.create(client.tenant.id, {
     id: ulid(),
     user_id: user.user_id,
     login_session_id: loginSession.id,
-    idle_expires_at: new Date(Date.now() + idleSessionMs).toISOString(),
-    expires_at: new Date(Date.now() + absoluteSessionMs).toISOString(),
+    idle_expires_at: idleExpiresAt,
+    expires_at: absoluteExpiresAt,
     device: {
       last_ip: ctx.var.ip || "",
       initial_ip: ctx.var.ip || "",
