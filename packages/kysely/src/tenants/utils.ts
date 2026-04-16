@@ -101,9 +101,6 @@ export function sqlTenantToTenant(sqlTenant: any): Tenant {
       sqlTenant.authorization_response_iss_parameter_supported === 1;
   }
 
-  tenant.session_lifetime ??= 168;
-  tenant.idle_session_lifetime ??= 72;
-
   return removeNullProperties(tenant);
 }
 

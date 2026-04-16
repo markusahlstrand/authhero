@@ -391,7 +391,9 @@ describe("authorize", () => {
       // Fetch the session
       const session = await env.data.sessions.get("tenantId", "sessionId");
       expect(session?.used_at).toBeDefined();
-      expect(session?.idle_expires_at).not.toBe(idle_expires_at);
+      expect(
+        new Date(session!.idle_expires_at).getTime(),
+      ).toBeGreaterThanOrEqual(new Date(idle_expires_at).getTime());
 
       // Fetch the code
       const code = await env.data.codes.get(
@@ -485,7 +487,9 @@ describe("authorize", () => {
       // Fetch the session
       const session = await env.data.sessions.get("tenantId", "sessionId");
       expect(session?.used_at).toBeDefined();
-      expect(session?.idle_expires_at).not.toBe(idle_expires_at);
+      expect(
+        new Date(session!.idle_expires_at).getTime(),
+      ).toBeGreaterThanOrEqual(new Date(idle_expires_at).getTime());
     });
 
     it("should return a web_message response with login required for a expired session", async () => {

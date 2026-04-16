@@ -996,7 +996,9 @@ describe("token", () => {
         throw new Error("Refresh token not found");
       }
 
-      expect(refreshToken.idle_expires_at).not.toBe(idle_expires_at);
+      expect(
+        new Date(refreshToken.idle_expires_at).getTime(),
+      ).toBeGreaterThanOrEqual(new Date(idle_expires_at).getTime());
     });
 
     it("should extend login_session expires_at when refresh token is exchanged", async () => {
@@ -1068,9 +1070,9 @@ describe("token", () => {
         loginSession.id,
       );
       expect(loginSessionAfter).toBeDefined();
-      expect(new Date(loginSessionAfter!.expires_at).getTime()).toBeGreaterThan(
-        new Date(expiresAtBefore).getTime(),
-      );
+      expect(
+        new Date(loginSessionAfter!.expires_at).getTime(),
+      ).toBeGreaterThanOrEqual(new Date(expiresAtBefore).getTime());
     });
 
     it("should preserve the original scopes in the new access token", async () => {

@@ -56,9 +56,6 @@ function sqlToTenant(row: any): Tenant {
     }
   }
 
-  tenant.session_lifetime ??= 168;
-  tenant.idle_session_lifetime ??= 72;
-
   return removeNullProperties(tenant);
 }
 
@@ -85,8 +82,6 @@ export function createTenantsAdapter(db: DrizzleDb) {
     async create(params: CreateTenantParams): Promise<Tenant> {
       const tenant: Tenant = {
         id: params.id || nanoid(),
-        session_lifetime: 168,
-        idle_session_lifetime: 72,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         ...params,
