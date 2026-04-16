@@ -320,6 +320,15 @@ const createMockAdapters = (): DataAdapters => ({
             created_at: "2023-01-01T00:00:00Z",
             updated_at: "2023-01-01T00:00:00Z",
           },
+          {
+            id: "non-system-match-rs",
+            name: "Non-system Match",
+            identifier: "https://api.example.com",
+            scopes: [],
+            token_lifetime: 3600,
+            created_at: "2023-01-01T00:00:00Z",
+            updated_at: "2023-01-01T00:00:00Z",
+          },
         ],
         "tenant-2": [
           {
@@ -835,7 +844,7 @@ describe("Runtime Fallback Adapter (Settings Inheritance)", () => {
     it("should list resource servers with merged scopes", async () => {
       const result = await fallbackAdapter.resourceServers.list("tenant-1");
 
-      expect(result.resource_servers).toHaveLength(2);
+      expect(result.resource_servers).toHaveLength(3);
 
       // Find the api-rs
       const apiRs = result.resource_servers.find(
@@ -941,6 +950,12 @@ describe("Runtime Fallback Adapter (Settings Inheritance)", () => {
         (rs) => rs.id === "tenant-specific-rs",
       );
       expect(tenantRs!.scopes).toHaveLength(1);
+
+      const nonSystemRs = result.resource_servers.find(
+        (rs) => rs.id === "non-system-match-rs",
+      );
+      expect(nonSystemRs).toBeDefined();
+      expect(nonSystemRs!.scopes).toHaveLength(0);
     });
 
     it("should not merge for control plane tenant itself", async () => {

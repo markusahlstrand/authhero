@@ -64,7 +64,7 @@ export function createResourceServersAdapter(
       params: ResourceServerInsert,
     ): Promise<ResourceServer> {
       const now = new Date().toISOString();
-      const id = nanoid();
+      const id = params.id || nanoid();
 
       const item: ResourceServerItem = {
         PK: resourceServerKeys.pk(tenantId),
