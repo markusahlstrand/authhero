@@ -28,6 +28,7 @@ type getEnvParams = {
   testTenantLanguage?: string;
   emailValidation?: "enabled" | "enforced" | "disabled";
   mockEmail?: boolean;
+  outbox?: boolean;
   hooks?: {
     onExecuteCredentialsExchange?: OnExecuteCredentialsExchange;
     onExecutePreUserRegistration?: OnExecutePreUserRegistration;
@@ -190,9 +191,16 @@ export async function getTestServer(
     SAML_SIGN_URL: "http://localhost:3000/saml/sign",
   };
 
+  if (args.outbox) {
+    env.outbox = { enabled: true, maxRetries: 1 };
+  }
+
   const apps = init({
     dataAdapter: dataWithServices,
     entityHooks: args.entityHooks,
+    ...(args.outbox
+      ? { outbox: { enabled: true, maxRetries: 1 } }
+      : {}),
   });
   return {
     ...apps,
