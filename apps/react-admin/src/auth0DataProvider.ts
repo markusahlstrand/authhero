@@ -61,6 +61,15 @@ function parseResource(resourcePath: string) {
   return resourcePath.split("/").pop() || resourcePath;
 }
 
+// Maps react-admin resource names to Auth0 API paths when they differ
+const API_PATH_MAP: Record<string, string> = {
+  actions: "actions/actions",
+};
+
+function getApiPath(resource: string): string {
+  return API_PATH_MAP[resource] || resource;
+}
+
 // Helper to normalize SDK response format variations
 function normalizeSDKResponse(
   result: any,
@@ -564,7 +573,7 @@ export default (
         q: params.filter?.q,
       };
 
-      const url = `${apiUrl}/api/v2/${resourcePath}?${stringify(query)}`;
+      const url = `${apiUrl}/api/v2/${getApiPath(resourcePath)}?${stringify(query)}`;
 
       try {
         const res = await httpClient(url, { headers });
@@ -806,7 +815,7 @@ export default (
 
       // HTTP for other resources
       const headers = createHeaders(tenantId);
-      return httpClient(`${apiUrl}/api/v2/${resource}/${params.id}`, {
+      return httpClient(`${apiUrl}/api/v2/${getApiPath(resource)}/${params.id}`, {
         headers,
       }).then(({ json }) => ({
         data: {
@@ -819,7 +828,7 @@ export default (
     getMany: (resourcePath, params) => {
       const query = `id:(${params.ids.join(" ")})`;
 
-      const url = `${apiUrl}/api/v2/${resourcePath}?q=${query}`;
+      const url = `${apiUrl}/api/v2/${getApiPath(resourcePath)}?q=${query}`;
       return httpClient(url).then(({ json }) => ({
         data: {
           id: json.id,
@@ -1066,7 +1075,7 @@ export default (
       // Default implementation for other resources - use HTTP fallback
       const headers = createHeaders(tenantId);
       const res = await httpClient(
-        `${apiUrl}/api/v2/${resource}?${stringify({
+        `${apiUrl}/api/v2/${getApiPath(resource)}?${stringify({
           include_totals: true,
           ...buildPaginationParams(),
           sort: `${field}:${order === "DESC" ? "-1" : "1"}`,
@@ -1287,7 +1296,7 @@ export default (
       }
 
       // HTTP fallback for other resources
-      return httpClient(`${apiUrl}/api/v2/${resource}/${params.id}`, {
+      return httpClient(`${apiUrl}/api/v2/${getApiPath(resource)}/${params.id}`, {
         headers,
         method: "PATCH",
         body: JSON.stringify(cleanParams.data),
@@ -1466,7 +1475,7 @@ export default (
       // Default create (for endpoints not in SDK)
       // Clean up null values from form data
       const cleanedData = removeNullValues(params.data);
-      const res = await post(resource, cleanedData);
+      const res = await post(getApiPath(resource), cleanedData);
       // Try singular form of resource name (e.g., hooks -> hook_id)
       const singularResource = resource.endsWith("s")
         ? resource.slice(0, -1)
@@ -1610,8 +1619,8 @@ export default (
         );
 
       const resourceUrl = shouldAppendId
-        ? `${resource}/${encodeURIComponent(String(params.id))}`
-        : resource;
+        ? `${getApiPath(resource)}/${encodeURIComponent(String(params.id))}`
+        : getApiPath(resource);
 
       let body: any = undefined;
 
@@ -1679,7 +1688,7 @@ export default (
       const deletedIds: typeof params.ids = [];
 
       for (const id of params.ids) {
-        const resourceUrl = `${resource}/${encodeURIComponent(String(id))}`;
+        const resourceUrl = `${getApiPath(resource)}/${encodeURIComponent(String(id))}`;
         await httpClient(`${apiUrl}/api/v2/${resourceUrl}`, {
           method: "DELETE",
           headers,
