@@ -1,5 +1,11 @@
 # @authhero/multi-tenancy
 
+## 14.19.1
+
+### Patch Changes
+
+- 0a3d5d3: Gate resource server scope inheritance on is_system flag and match by id instead of identifier. Apply scope inheritance to the management API adapter so is_system resource servers show their effective scopes from the control plane.
+
 ## 14.19.0
 
 ### Minor Changes
