@@ -13,6 +13,7 @@ import {
   createProtectSyncedMiddleware,
   createControlPlaneTenantMiddleware,
   withRuntimeFallback,
+  withSystemResourceServerInheritance,
 } from "./middleware";
 import { TenantEntityHooks, TenantHookContext } from "./types";
 
@@ -197,10 +198,12 @@ export function initMultiTenant(config: MultiTenantConfig): MultiTenantResult {
       controlPlaneClientId,
     });
 
-    // Management adapter needs multiTenancyConfig for tenant access control,
-    // but shouldn't merge control plane data into responses
+    // Management adapter gets is_system resource_server scope inheritance
+    // but no connection/client/email-provider merging (no secret leakage)
     managementDataAdapter = {
-      ...rawDataAdapter,
+      ...withSystemResourceServerInheritance(rawDataAdapter, {
+        controlPlaneTenantId,
+      }),
       multiTenancyConfig: {
         controlPlaneTenantId,
         controlPlaneClientId,

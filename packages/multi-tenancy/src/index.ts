@@ -42,6 +42,7 @@ export {
   createProtectSyncedMiddleware,
   createRuntimeFallbackAdapter,
   withRuntimeFallback,
+  withSystemResourceServerInheritance,
 } from "./middleware";
 export type { RuntimeFallbackConfig } from "./middleware";
 

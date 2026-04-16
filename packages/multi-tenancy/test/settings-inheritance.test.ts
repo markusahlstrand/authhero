@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import {
   createRuntimeFallbackAdapter,
   withRuntimeFallback,
+  withSystemResourceServerInheritance,
 } from "../src/middleware/settings-inheritance";
 import {
   DataAdapters,
@@ -236,9 +237,9 @@ const createMockAdapters = (): DataAdapters => ({
             id: "api-rs",
             name: "My API",
             identifier: "https://api.example.com",
-            // Tenant has no scopes - should inherit from control plane
+            is_system: true,
             scopes: [],
-            token_lifetime: 3600, // Different from control plane
+            token_lifetime: 3600,
             created_at: "2023-01-01T00:00:00Z",
             updated_at: "2023-01-01T00:00:00Z",
           },
@@ -251,13 +252,22 @@ const createMockAdapters = (): DataAdapters => ({
             created_at: "2023-01-01T00:00:00Z",
             updated_at: "2023-01-01T00:00:00Z",
           },
+          "non-system-match-rs": {
+            id: "non-system-match-rs",
+            name: "Non-system Match",
+            identifier: "https://api.example.com",
+            scopes: [],
+            token_lifetime: 3600,
+            created_at: "2023-01-01T00:00:00Z",
+            updated_at: "2023-01-01T00:00:00Z",
+          },
         },
         "tenant-2": {
           "api-rs": {
             id: "api-rs",
             name: "My API",
             identifier: "https://api.example.com",
-            // Tenant has some scopes that override control plane
+            is_system: true,
             scopes: [
               { value: "read:users", description: "Tenant-specific read" },
               { value: "custom:scope", description: "Custom scope" },
@@ -295,6 +305,7 @@ const createMockAdapters = (): DataAdapters => ({
             id: "api-rs",
             name: "My API",
             identifier: "https://api.example.com",
+            is_system: true,
             scopes: [],
             token_lifetime: 3600,
             created_at: "2023-01-01T00:00:00Z",
@@ -315,6 +326,7 @@ const createMockAdapters = (): DataAdapters => ({
             id: "api-rs",
             name: "My API",
             identifier: "https://api.example.com",
+            is_system: true,
             scopes: [
               { value: "read:users", description: "Tenant-specific read" },
               { value: "custom:scope", description: "Custom scope" },
@@ -854,6 +866,16 @@ describe("Runtime Fallback Adapter (Settings Inheritance)", () => {
       expect(rs!.scopes).toEqual([]); // No inheritance, tenant has empty scopes
     });
 
+    it("should not merge scopes for resource server without is_system", async () => {
+      const rs = await fallbackAdapter.resourceServers.get(
+        "tenant-1",
+        "non-system-match-rs",
+      );
+
+      expect(rs).toBeDefined();
+      expect(rs!.scopes).toEqual([]);
+    });
+
     it("should return null for non-existent resource server", async () => {
       const rs = await fallbackAdapter.resourceServers.get(
         "tenant-1",
@@ -861,6 +883,78 @@ describe("Runtime Fallback Adapter (Settings Inheritance)", () => {
       );
 
       expect(rs).toBeNull();
+    });
+  });
+
+  describe("withSystemResourceServerInheritance", () => {
+    it("should merge scopes for is_system resource server via get", async () => {
+      const adapter = withSystemResourceServerInheritance(mockAdapters, {
+        controlPlaneTenantId: "control-plane",
+      });
+
+      const rs = await adapter.resourceServers.get("tenant-1", "api-rs");
+      expect(rs).toBeDefined();
+      expect(rs!.scopes).toHaveLength(3);
+      expect(rs!.token_lifetime).toBe(3600);
+    });
+
+    it("should not merge scopes when is_system is not set", async () => {
+      const adapter = withSystemResourceServerInheritance(mockAdapters, {
+        controlPlaneTenantId: "control-plane",
+      });
+
+      const rs = await adapter.resourceServers.get(
+        "tenant-1",
+        "non-system-match-rs",
+      );
+      expect(rs).toBeDefined();
+      expect(rs!.scopes).toEqual([]);
+    });
+
+    it("should not wrap connections or clients", async () => {
+      const adapter = withSystemResourceServerInheritance(mockAdapters, {
+        controlPlaneTenantId: "control-plane",
+      });
+
+      const connection = await adapter.connections.get(
+        "tenant-1",
+        "email-connection",
+      );
+      expect(connection!.options?.client_secret).toBeUndefined();
+
+      const client = await adapter.clients.get("tenant-1", "tenant-client");
+      expect(client!.callbacks).toEqual([
+        "https://tenant.example.com/callback",
+      ]);
+    });
+
+    it("should merge scopes for is_system entries in list", async () => {
+      const adapter = withSystemResourceServerInheritance(mockAdapters, {
+        controlPlaneTenantId: "control-plane",
+      });
+
+      const result = await adapter.resourceServers.list("tenant-1");
+      const apiRs = result.resource_servers.find((rs) => rs.id === "api-rs");
+      expect(apiRs!.scopes).toHaveLength(3);
+
+      const tenantRs = result.resource_servers.find(
+        (rs) => rs.id === "tenant-specific-rs",
+      );
+      expect(tenantRs!.scopes).toHaveLength(1);
+    });
+
+    it("should not merge for control plane tenant itself", async () => {
+      const adapter = withSystemResourceServerInheritance(mockAdapters, {
+        controlPlaneTenantId: "control-plane",
+      });
+
+      const rs = await adapter.resourceServers.get("control-plane", "api-rs");
+      expect(rs!.scopes).toHaveLength(3);
+      expect(rs!.scopes).toEqual([
+        { value: "read:users", description: "Read users" },
+        { value: "write:users", description: "Write users" },
+        { value: "admin", description: "Admin access" },
+      ]);
     });
   });
 });
