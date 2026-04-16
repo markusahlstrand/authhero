@@ -4,7 +4,6 @@ import { Strategy } from "@authhero/adapter-interfaces";
 import { testClient } from "hono/testing";
 import { getAdminToken } from "../helpers/token";
 import http from "node:http";
-import bcryptjs from "bcryptjs";
 import { drainOutbox } from "../../src/helpers/outbox-relay";
 import { LogsDestination } from "../../src/helpers/outbox-destinations/logs";
 import { WebhookDestination } from "../../src/helpers/outbox-destinations/webhooks";

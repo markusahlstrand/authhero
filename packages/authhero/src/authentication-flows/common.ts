@@ -491,6 +491,11 @@ export interface CreateRefreshTokenParams {
   audience?: string;
 }
 
+function lifetimeToIso(lifetimeHours?: number): string | undefined {
+  if (!lifetimeHours) return undefined;
+  return new Date(Date.now() + lifetimeHours * 60 * 60 * 1000).toISOString();
+}
+
 export async function createRefreshToken(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: CreateRefreshTokenParams,
@@ -503,16 +508,8 @@ export async function createRefreshToken(
     login_id,
   } = params;
 
-  const idleExpiresAt = client.tenant.idle_session_lifetime
-    ? new Date(
-        Date.now() + client.tenant.idle_session_lifetime * 60 * 60 * 1000,
-      ).toISOString()
-    : undefined;
-  const absoluteExpiresAt = client.tenant.session_lifetime
-    ? new Date(
-        Date.now() + client.tenant.session_lifetime * 60 * 60 * 1000,
-      ).toISOString()
-    : undefined;
+  const idleExpiresAt = lifetimeToIso(client.tenant.idle_session_lifetime);
+  const absoluteExpiresAt = lifetimeToIso(client.tenant.session_lifetime);
 
   const refreshToken = await ctx.env.data.refreshTokens.create(
     client.tenant.id,
@@ -560,16 +557,8 @@ async function createNewSession(
   { user, client, loginSession }: CreateSessionParams,
 ) {
   // Create a new session with tenant-configured lifetimes
-  const idleExpiresAt = client.tenant.idle_session_lifetime
-    ? new Date(
-        Date.now() + client.tenant.idle_session_lifetime * 60 * 60 * 1000,
-      ).toISOString()
-    : undefined;
-  const absoluteExpiresAt = client.tenant.session_lifetime
-    ? new Date(
-        Date.now() + client.tenant.session_lifetime * 60 * 60 * 1000,
-      ).toISOString()
-    : undefined;
+  const idleExpiresAt = lifetimeToIso(client.tenant.idle_session_lifetime);
+  const absoluteExpiresAt = lifetimeToIso(client.tenant.session_lifetime);
 
   const session = await ctx.env.data.sessions.create(client.tenant.id, {
     id: ulid(),
