@@ -224,7 +224,7 @@ export function App(props: AppProps) {
         />
         <Resource
           icon={CodeIcon}
-          name="actions/actions"
+          name="actions"
           list={ActionList}
           create={ActionCreate}
           edit={ActionEdit}
