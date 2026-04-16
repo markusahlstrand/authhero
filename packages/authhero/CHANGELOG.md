@@ -1,5 +1,17 @@
 # authhero
 
+## 4.97.0
+
+### Minor Changes
+
+- d84cb2f: Complete the transaction fixes
+
+### Patch Changes
+
+- Updated dependencies [d84cb2f]
+  - @authhero/adapter-interfaces@1.4.0
+  - @authhero/widget@0.31.4
+
 ## 4.96.0
 
 ### Minor Changes

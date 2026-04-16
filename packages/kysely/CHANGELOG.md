@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.124.0
+
+### Minor Changes
+
+- d84cb2f: Complete the transaction fixes
+
+### Patch Changes
+
+- Updated dependencies [d84cb2f]
+  - @authhero/adapter-interfaces@1.4.0
+
 ## 10.123.0
 
 ### Minor Changes

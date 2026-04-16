@@ -1,5 +1,16 @@
 # @authhero/drizzle
 
+## 0.37.0
+
+### Minor Changes
+
+- d84cb2f: Complete the transaction fixes
+
+### Patch Changes
+
+- Updated dependencies [d84cb2f]
+  - @authhero/adapter-interfaces@1.4.0
+
 ## 0.36.0
 
 ### Minor Changes
