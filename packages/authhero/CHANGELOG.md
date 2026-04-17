@@ -1,5 +1,22 @@
 # authhero
 
+## 4.99.1
+
+### Patch Changes
+
+- 6503423: Fix `onExecutePreUserRegistration` (and all other `config.hooks`) not firing when a sub-app (`oauthApp`, `managementApp`, `universalApp`, `u2App`, `samlApp`) is mounted or served directly. `config.hooks` — along with `samlSigner`, `poweredByLogo`, `codeExecutor`, `webhookInvoker`, and `outbox` — was previously merged into `ctx.env` only by the outer `init()` app's middleware, so consumers who routed requests straight to a sub-app saw `ctx.env.hooks` stay `undefined` and the hook silently no-op. This surfaced most visibly as social-provider callbacks (Vipps, Google, etc.) creating a user row without invoking `onExecutePreUserRegistration` — no `api.access.deny`, no `api.user.setLinkedTo`, no consumer log — while email/password worked in setups that did go through the outer app.
+
+  The fix extracts the config-merge logic into a reusable `applyConfigMiddleware(config)` and wires it into each sub-app's own middleware chain, so hooks and other config values are available regardless of how the app is mounted. Merging is idempotent when the outer app is also used.
+
+- 6503423: Resolve `linked_to` in the refresh-token and authorization-code grants so tokens minted from a secondary (linked) user's credentials carry the primary user's `sub`. Previously only the password grant did this, leaving refresh tokens and session-resume flows issuing tokens in the secondary's name post-link.
+- 6503423: Fix cleanup deleting `login_sessions` while child `refresh_tokens` are still valid.
+
+  `refreshTokens.create` and `refreshTokens.update` now extend the parent
+  `login_sessions.expires_at_ts` to match the refresh token's longest expiry, in
+  the same DB transaction. Previously the initial token exchange never bumped
+  the login_session, so cleanup could delete the parent while its refresh tokens
+  were still valid.
+
 ## 4.99.0
 
 ### Minor Changes
