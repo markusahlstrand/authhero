@@ -9,6 +9,7 @@ import { logMessage } from "../helpers/logging";
 import { JSONHTTPException } from "../errors/json-http-exception";
 import { HookRequest } from "../types/Hooks";
 import { createTokenAPI } from "./helpers/token-api";
+import { stripInternalUserFields } from "../helpers/hook-user-payload";
 
 /**
  * Decorator applied by `addDataHooks` to `users.update`. Fires pre-update
@@ -54,7 +55,7 @@ export function createUserUpdateHooks(
             ctx,
             tenant: { id: tenant_id },
             user_id,
-            user,
+            user: stripInternalUserFields(user),
             updates,
             request,
           },

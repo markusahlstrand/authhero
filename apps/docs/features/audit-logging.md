@@ -99,6 +99,13 @@ import {
   cleanupSessions,
 } from "authhero";
 
+// Your event destinations — e.g. a logs writer, webhook dispatcher, or
+// Analytics Engine sink. Each must implement `{ name, transform, deliver }`
+// (see packages/authhero/src/helpers/outbox-relay.ts for the interface).
+const destinations = [
+  /* new LogsDestination(env.data.logs), ...custom destinations */
+];
+
 export default {
   fetch: app.fetch,
   async scheduled(_event, env, ctx) {

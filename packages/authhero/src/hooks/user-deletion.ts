@@ -12,6 +12,7 @@ import { HookRequest } from "../types/Hooks";
 import { enqueuePostHookEvent } from "../helpers/hook-events";
 import { preUserDeletionWebhook } from "./webhooks";
 import { createTokenAPI } from "./helpers/token-api";
+import { stripInternalUserFields } from "../helpers/hook-user-payload";
 
 /**
  * Decorator applied by `addDataHooks` to `users.remove`. Runs pre-deletion
@@ -47,7 +48,7 @@ export function createUserDeletionHooks(
         await ctx.env.hooks.onExecutePreUserDeletion(
           {
             ctx,
-            user: userToDelete,
+            user: stripInternalUserFields(userToDelete),
             user_id,
             request,
             tenant: {
@@ -139,7 +140,7 @@ export function createUserDeletionHooks(
           await ctx.env.hooks.onExecutePostUserDeletion(
             {
               ctx,
-              user: userToDelete,
+              user: stripInternalUserFields(userToDelete),
               user_id,
               request,
               tenant: {

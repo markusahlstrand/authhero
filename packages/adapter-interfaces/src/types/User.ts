@@ -99,4 +99,9 @@ export const userSchema = z.object({
 export type User = z.infer<typeof userSchema>;
 
 // TODO: Add the login_count and other properties
-export const auth0UserResponseSchema = userSchema;
+// `registration_completed_at` is strictly internal — used by the self-healing
+// post-user-registration re-enqueue logic — and must not be surfaced through
+// the management API or any customer-facing payload.
+export const auth0UserResponseSchema = userSchema.omit({
+  registration_completed_at: true,
+});

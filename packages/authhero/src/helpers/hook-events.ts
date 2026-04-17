@@ -3,6 +3,7 @@ import { AuditEventInsert, LogTypes, User } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
 import { waitUntil } from "./wait-until";
 import { invokeHooks } from "../hooks/webhooks";
+import { stripInternalUserFields } from "./hook-user-payload";
 
 /**
  * Enqueue a `hook.{triggerId}` event to the outbox so the `WebhookDestination`
@@ -52,7 +53,7 @@ export function enqueuePostHookEvent(
     target: {
       type: "user",
       id: user.user_id,
-      after: user as unknown as Record<string, unknown>,
+      after: stripInternalUserFields(user) as unknown as Record<string, unknown>,
     },
     request: {
       method: ctx.req.method,
@@ -84,7 +85,7 @@ async function dispatchInline(
   if (filtered.length > 0) {
     await invokeHooks(ctx, filtered, {
       tenant_id: tenantId,
-      user,
+      user: stripInternalUserFields(user),
       trigger_id: triggerId,
     });
   }

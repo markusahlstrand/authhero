@@ -22,6 +22,8 @@ const apiShapes = {
     accessToken: ["setCustomClaim"],
     idToken: ["setCustomClaim"],
     access: ["deny"],
+    prompt: ["render"],
+    redirect: ["sendUserTo"],
   },
   "credentials-exchange": {
     accessToken: ["setCustomClaim"],

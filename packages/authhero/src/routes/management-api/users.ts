@@ -216,7 +216,7 @@ export const userRoutes = new OpenAPIHono<{
         });
       }
 
-      return ctx.json(user);
+      return ctx.json(auth0UserResponseSchema.parse(user));
     },
   )
   // --------------------------------
@@ -641,7 +641,7 @@ export const userRoutes = new OpenAPIHono<{
         },
       });
 
-      return ctx.json(patchedUser);
+      return ctx.json(auth0UserResponseSchema.parse(patchedUser));
     },
   )
   // --------------------------------

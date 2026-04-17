@@ -11,6 +11,7 @@ import { Bindings, Variables } from "../types";
 import { EnrichedClient } from "../helpers/client";
 import { logMessage } from "../helpers/logging";
 import { enqueuePostHookEvent } from "../helpers/hook-events";
+import { stripInternalUserFields } from "../helpers/hook-user-payload";
 import { startLoginSessionHook } from "../authentication-flows/common";
 import { isFormHook, handleFormHook } from "./formhooks";
 import { isPageHook, handlePageHook } from "./pagehooks";
@@ -114,7 +115,7 @@ async function buildEnhancedEventObject(
 
     // Auth0 compatible properties
     client: params.client,
-    user,
+    user: stripInternalUserFields(user),
     request: {
       asn: undefined, // ASN not available in current context variables
       ip: ctx.get("ip") || "",

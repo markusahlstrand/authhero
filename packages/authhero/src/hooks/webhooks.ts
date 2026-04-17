@@ -8,12 +8,18 @@ import { logMessage } from "../helpers/logging";
 import { Context } from "hono";
 import { Variables, Bindings } from "../types";
 import { createServiceToken } from "../helpers/service-token";
+import { stripInternalUserFields } from "../helpers/hook-user-payload";
 
 export async function invokeHooks(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   hooks: Hook[],
   data: any & { tenant_id: string },
 ) {
+  // Sanitize the user payload once so every customer-facing webhook (and the
+  // logging/customInvoker paths below) sees the same stripped user.
+  if (data?.user) {
+    data = { ...data, user: stripInternalUserFields(data.user as User) };
+  }
   const customInvoker = ctx.env.webhookInvoker;
 
   const getServiceToken = async (scope = "webhook"): Promise<string> => {
