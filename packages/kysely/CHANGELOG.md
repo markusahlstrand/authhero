@@ -1,5 +1,16 @@
 # @authhero/kysely-adapter
 
+## 10.126.0
+
+### Minor Changes
+
+- b5f73bb: Add drain outbox
+
+### Patch Changes
+
+- Updated dependencies [1d15292]
+  - @authhero/adapter-interfaces@1.4.1
+
 ## 10.125.0
 
 ### Minor Changes

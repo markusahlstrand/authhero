@@ -1,5 +1,18 @@
 # @authhero/cloudflare-adapter
 
+## 2.24.0
+
+### Minor Changes
+
+- b5f73bb: Add drain outbox
+
+### Patch Changes
+
+- Updated dependencies [1d15292]
+- Updated dependencies [b5f73bb]
+  - @authhero/adapter-interfaces@1.4.1
+  - @authhero/kysely-adapter@10.126.0
+
 ## 2.23.0
 
 ### Minor Changes

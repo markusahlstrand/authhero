@@ -1,5 +1,19 @@
 # authhero
 
+## 4.99.0
+
+### Minor Changes
+
+- b5f73bb: Expose cron-style helpers for scheduled handlers: `drainOutbox`, `cleanupOutbox`, and a context-free `cleanupSessions`. These can be wired directly into a Cloudflare Worker `scheduled()` handler (or any cron) to process pending outbox events and delete events past the retention window.
+- b5f73bb: Add drain outbox
+
+### Patch Changes
+
+- 1d15292: Hide `registration_completed_at` from management API responses and hook payloads. The field is internal — used only by the self-healing post-user-registration re-enqueue logic — and is now stripped from `auth0UserResponseSchema`, the `GET/PATCH /users/:user_id` responses, all webhook bodies (via `invokeHooks`), the outbox `target.after` payload, and the `onExecutePostLogin` / `onExecutePreUserUpdate` / `onExecutePre|PostUserDeletion` event objects.
+- Updated dependencies [1d15292]
+  - @authhero/adapter-interfaces@1.4.1
+  - @authhero/widget@0.32.1
+
 ## 4.98.0
 
 ### Minor Changes
