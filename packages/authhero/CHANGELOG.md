@@ -1,5 +1,16 @@
 # authhero
 
+## 4.98.0
+
+### Minor Changes
+
+- d288b62: Add support for dynamic workers
+
+### Patch Changes
+
+- Updated dependencies [d288b62]
+  - @authhero/widget@0.32.0
+
 ## 4.97.0
 
 ### Minor Changes

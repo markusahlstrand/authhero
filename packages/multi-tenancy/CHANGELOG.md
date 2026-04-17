@@ -1,5 +1,16 @@
 # @authhero/multi-tenancy
 
+## 14.20.0
+
+### Minor Changes
+
+- d288b62: Add support for dynamic workers
+
+### Patch Changes
+
+- Updated dependencies [d288b62]
+  - authhero@4.98.0
+
 ## 14.19.1
 
 ### Patch Changes

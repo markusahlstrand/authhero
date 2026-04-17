@@ -1,5 +1,11 @@
 # @authhero/docs
 
+## 1.57.0
+
+### Minor Changes
+
+- d288b62: Add support for dynamic workers
+
 ## 1.56.0
 
 ### Minor Changes

@@ -1,5 +1,16 @@
 # @authhero/cloudflare-adapter
 
+## 2.23.0
+
+### Minor Changes
+
+- d288b62: Add support for dynamic workers
+
+### Patch Changes
+
+- Updated dependencies [d288b62]
+  - @authhero/kysely-adapter@10.125.0
+
 ## 2.22.4
 
 ### Patch Changes
