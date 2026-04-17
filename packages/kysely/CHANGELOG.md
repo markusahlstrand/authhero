@@ -1,5 +1,11 @@
 # @authhero/kysely-adapter
 
+## 10.125.0
+
+### Minor Changes
+
+- d288b62: Add support for dynamic workers
+
 ## 10.124.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # @authhero/drizzle
 
+## 0.38.0
+
+### Minor Changes
+
+- d288b62: Add support for dynamic workers
+
 ## 0.37.0
 
 ### Minor Changes

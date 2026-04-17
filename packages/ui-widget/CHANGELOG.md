@@ -1,5 +1,11 @@
 # @authhero/widget
 
+## 0.32.0
+
+### Minor Changes
+
+- d288b62: Add support for dynamic workers
+
 ## 0.31.4
 
 ### Patch Changes
