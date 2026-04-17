@@ -677,6 +677,117 @@ describe("callback", () => {
     expect(codeRecord!.user_id).toEqual("auth2|primary-user");
   });
 
+  it("fires onExecutePreUserRegistration on social callback for a new user with the correct event payload", async () => {
+    const hook = vi.fn(async () => {});
+    const { oauthApp, env } = await getTestServer({
+      hooks: {
+        onExecutePreUserRegistration: hook,
+      },
+    });
+    const oauthClient = testClient(oauthApp, env);
+
+    await env.data.connections.create("tenantId", {
+      id: "connectionId",
+      name: "mock-strategy",
+      strategy: "mock-strategy",
+      options: { client_id: "clientId", client_secret: "clientSecret" },
+    });
+
+    const loginSession = await env.data.loginSessions.create("tenantId", {
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      csrf_token: "csrfToken",
+      authParams: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+      },
+    });
+
+    const state = await env.data.codes.create("tenantId", {
+      code_id: nanoid(),
+      code_type: "oauth2_state",
+      login_id: loginSession.id,
+      connection_id: "connectionId",
+      code_verifier: "verifier",
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+    });
+
+    const response = await oauthClient.callback.$get({
+      query: { state: state.code_id, code: "vipps-user@example.com" },
+    });
+
+    expect(response.status).toEqual(302);
+    expect(hook).toHaveBeenCalledTimes(1);
+
+    const [event] = hook.mock.calls[0] as unknown as [
+      { user: any; ctx: unknown; request: { method: string; url: string } },
+    ];
+    expect(event.user.email).toEqual("vipps-user@example.com");
+    expect(event.user.provider).toEqual("mock-strategy");
+    expect(event.user.connection).toEqual("mock-strategy");
+    expect(event.user.is_social).toEqual(true);
+    expect(event.user.user_id).toEqual("mock-strategy|vipps-456");
+    expect(event.ctx).toBeTruthy();
+    expect(event.request.method).toEqual("GET");
+  });
+
+  it("access.deny in onExecutePreUserRegistration rejects a social-callback sign-up and persists no user row", async () => {
+    const { oauthApp, env } = await getTestServer({
+      hooks: {
+        onExecutePreUserRegistration: async (_event, api) => {
+          api.access.deny("unauthorized", "Registration not allowed");
+        },
+      },
+    });
+    const oauthClient = testClient(oauthApp, env);
+
+    await env.data.connections.create("tenantId", {
+      id: "connectionId",
+      name: "mock-strategy",
+      strategy: "mock-strategy",
+      options: { client_id: "clientId", client_secret: "clientSecret" },
+    });
+
+    const loginSession = await env.data.loginSessions.create("tenantId", {
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      csrf_token: "csrfToken",
+      authParams: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+      },
+    });
+
+    const state = await env.data.codes.create("tenantId", {
+      code_id: nanoid(),
+      code_type: "oauth2_state",
+      login_id: loginSession.id,
+      connection_id: "connectionId",
+      code_verifier: "verifier",
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+    });
+
+    const response = await oauthClient.callback.$get({
+      query: { state: state.code_id, code: "code" },
+    });
+
+    // callback.ts maps JSONHTTPException(400) from access.deny to a redirect
+    // back to the login page with error params — verify observable behavior.
+    expect(response.status).toEqual(302);
+    const location = response.headers.get("location");
+    expect(location).toBeTruthy();
+    const redirectUri = new URL(location!);
+    expect(redirectUri.searchParams.get("error")).toBeTruthy();
+    expect(redirectUri.searchParams.get("error_description")).toContain(
+      "Registration denied",
+    );
+
+    // No user row should have been persisted.
+    const blockedUser = await env.data.users.get(
+      "tenantId",
+      "mock-strategy|123",
+    );
+    expect(blockedUser).toBeNull();
+  });
+
   it("should redirect to the callback endpoint on the original domain when domain doesn't match the current request", async () => {
     const { oauthApp, env } = await getTestServer();
     const oauthClient = testClient(oauthApp, env);

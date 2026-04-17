@@ -69,8 +69,19 @@ function buildWhereConditions(filters: Record<string, string>): string[] {
   const conditions: string[] = [];
 
   for (const [key, value] of Object.entries(filters)) {
+    if (!value) continue;
+
+    if (key === "success") {
+      if (value === "true") {
+        conditions.push(`blob3 LIKE 's%'`);
+      } else if (value === "false") {
+        conditions.push(`blob3 LIKE 'f%'`);
+      }
+      continue;
+    }
+
     const blobField = mapFilterKeyToBlob(key);
-    if (blobField && value) {
+    if (blobField) {
       conditions.push(`${blobField} = ${escapeSQLString(value)}`);
     }
   }

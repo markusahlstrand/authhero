@@ -23,6 +23,7 @@ import { refreshTokensRoutes } from "./refresh_tokens";
 import { customDomainRoutes } from "./custom-domains";
 import { addDataHooks } from "../../hooks";
 import { addTimingLogs } from "../../helpers/server-timing";
+import { applyConfigMiddleware } from "../../middlewares/apply-config";
 import { tenantMiddleware } from "../../middlewares/tenant";
 import { clientInfoMiddleware } from "../../middlewares/client-info";
 import { addCaching } from "../../helpers/cache-wrapper";
@@ -52,6 +53,8 @@ export default function create(config: AuthHeroConfig) {
 
   // Use managementDataAdapter if provided, otherwise fall back to dataAdapter
   const managementAdapter = config.managementDataAdapter ?? config.dataAdapter;
+
+  app.use(applyConfigMiddleware(config));
 
   // Dynamic CORS middleware that fetches allowed origins from clients
   app.use(async (ctx, next) => {

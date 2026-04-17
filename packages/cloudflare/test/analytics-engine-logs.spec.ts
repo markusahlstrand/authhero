@@ -318,6 +318,66 @@ describe("Analytics Engine Logs Adapter", () => {
       expect(result.logs.length).toBe(1);
       expect(result.length).toBe(1);
     });
+
+    it("should filter by ip, type, and success via the q lucene string", async () => {
+      const capturedQueries: string[] = [];
+      server.use(
+        http.post(
+          "https://api.cloudflare.com/client/v4/accounts/test-account/analytics_engine/sql",
+          async ({ request }) => {
+            const query = await request.text();
+            capturedQueries.push(query);
+            return HttpResponse.json({ success: true, data: mockLogs });
+          },
+        ),
+      );
+
+      const adapter = createAnalyticsEngineLogsAdapter({
+        accountId: "test-account",
+        apiToken: "test-token",
+        dataset: "authhero_logs",
+      });
+
+      await adapter.list("tenant-1", {
+        page: 0,
+        per_page: 50,
+        q: "ip:192.168.1.1 type:s success:true",
+      });
+
+      expect(capturedQueries.length).toBeGreaterThan(0);
+      const sql = capturedQueries[0]!;
+      expect(sql).toContain("blob5 = '192.168.1.1'");
+      expect(sql).toContain("blob3 = 's'");
+      expect(sql).toContain("blob3 LIKE 's%'");
+    });
+
+    it("should translate success:false to a failure type prefix match", async () => {
+      const capturedQueries: string[] = [];
+      server.use(
+        http.post(
+          "https://api.cloudflare.com/client/v4/accounts/test-account/analytics_engine/sql",
+          async ({ request }) => {
+            const query = await request.text();
+            capturedQueries.push(query);
+            return HttpResponse.json({ success: true, data: mockLogs });
+          },
+        ),
+      );
+
+      const adapter = createAnalyticsEngineLogsAdapter({
+        accountId: "test-account",
+        apiToken: "test-token",
+        dataset: "authhero_logs",
+      });
+
+      await adapter.list("tenant-1", {
+        page: 0,
+        per_page: 50,
+        q: "success:false",
+      });
+
+      expect(capturedQueries[0]).toContain("blob3 LIKE 'f%'");
+    });
   });
 
   describe("getLogs", () => {

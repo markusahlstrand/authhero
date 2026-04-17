@@ -167,7 +167,6 @@ export async function getTestServer(
 
   const env: Bindings = {
     data: dataWithServices,
-    hooks: args.hooks,
     JWKS_SERVICE: {
       fetch: async () =>
         new Response(
@@ -197,6 +196,7 @@ export async function getTestServer(
 
   const apps = init({
     dataAdapter: dataWithServices,
+    hooks: args.hooks,
     entityHooks: args.entityHooks,
     ...(args.outbox ? { outbox: { enabled: true, maxRetries: 1 } } : {}),
   });

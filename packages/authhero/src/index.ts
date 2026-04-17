@@ -10,6 +10,7 @@ import createU2App from "./routes/universal-login/u2-index";
 import createSamlpApi from "./routes/saml";
 import createSetupApp from "./routes/setup";
 import { createX509Certificate } from "./utils/encryption";
+import { applyConfigMiddleware } from "./middlewares/apply-config";
 import { en, it, nb, sv, pl, cs, fi, da } from "./locales";
 
 export * from "@authhero/adapter-interfaces";
@@ -89,53 +90,7 @@ export function init(config: AuthHeroConfig) {
     return ctx.json({ message: "Internal Server Error" }, 500);
   });
 
-  // Add middleware to merge config into env bindings
-  app.use("*", async (ctx, next) => {
-    // Ensure ctx.env exists (it can be undefined when using app.request() without env)
-    if (!ctx.env) {
-      ctx.env = {} as Bindings;
-    }
-
-    // Set data adapter from config if not already provided via env bindings
-    if (!ctx.env.data && config.dataAdapter) {
-      ctx.env.data = config.dataAdapter;
-    }
-
-    // Merge config hooks with env hooks, giving precedence to env hooks for backwards compatibility
-    if (config.hooks) {
-      ctx.env.hooks = {
-        ...config.hooks,
-        ...(ctx.env.hooks || {}), // env hooks take precedence
-      };
-    }
-
-    // Add samlSigner from config if provided
-    if (config.samlSigner) {
-      ctx.env.samlSigner = config.samlSigner;
-    }
-
-    // Add poweredByLogo from config if provided
-    if (config.poweredByLogo) {
-      ctx.env.poweredByLogo = config.poweredByLogo;
-    }
-
-    // Add codeExecutor from config if provided, but don't overwrite an existing one
-    if (ctx.env.codeExecutor == null && config.codeExecutor) {
-      ctx.env.codeExecutor = config.codeExecutor;
-    }
-
-    // Add webhookInvoker from config if provided
-    if (config.webhookInvoker) {
-      ctx.env.webhookInvoker = config.webhookInvoker;
-    }
-
-    // Add outbox config if provided
-    if (config.outbox) {
-      ctx.env.outbox = config.outbox;
-    }
-
-    await next();
-  });
+  app.use("*", applyConfigMiddleware(config));
 
   // Setup wizard — must be mounted before auth middleware and other routes
   const setupApp = createSetupApp(config);

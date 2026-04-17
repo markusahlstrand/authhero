@@ -468,6 +468,12 @@ export default (
       // Handle logs with direct HTTP for full control over query params
       if (resource === "logs") {
         const headers = createHeaders(tenantId);
+        const { q: rawQ, from, to, ...filterPairs } = params.filter || {};
+        const extraLucene = Object.entries(filterPairs)
+          .filter(([, v]) => v !== undefined && v !== null && v !== "")
+          .map(([k, v]) => `${k}:${v}`)
+          .join(" ");
+        const mergedQ = [rawQ, extraLucene].filter(Boolean).join(" ") || undefined;
         const query: any = {
           include_totals: true,
           page: page - 1,
@@ -476,7 +482,9 @@ export default (
             field && order
               ? `${field}:${order === "DESC" ? "-1" : "1"}`
               : undefined,
-          ...params.filter, // Pass all filter params directly (q, from, etc.)
+          q: mergedQ,
+          from,
+          to,
         };
         const url = `${apiUrl}/api/v2/logs?${stringify(query)}`;
 

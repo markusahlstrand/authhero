@@ -118,7 +118,9 @@ export function createUsersAdapter(db: DrizzleDb) {
       if (params.password && passwordId) {
         // Wrap user + password inserts in a transaction so both
         // succeed or both rollback.
-        db.run(sql`BEGIN`);
+        // TODO: switch to db.batch() in a follow-up PR — interactive
+        // BEGIN/COMMIT does not provide atomicity on D1 (async driver).
+        await db.run(sql`BEGIN`);
         try {
           await db.insert(users).values(sqlData);
           await db.insert(passwords).values({
@@ -131,9 +133,9 @@ export function createUsersAdapter(db: DrizzleDb) {
             created_at: now,
             updated_at: now,
           });
-          db.run(sql`COMMIT`);
+          await db.run(sql`COMMIT`);
         } catch (e) {
-          db.run(sql`ROLLBACK`);
+          await db.run(sql`ROLLBACK`);
           throw e;
         }
       } else {
@@ -328,7 +330,9 @@ export function createUsersAdapter(db: DrizzleDb) {
     async remove(tenant_id: string, user_id: string): Promise<boolean> {
       // Use manual BEGIN/COMMIT/ROLLBACK because Drizzle's built-in
       // db.transaction() doesn't support async callbacks with better-sqlite3.
-      db.run(sql`BEGIN`);
+      // TODO: switch to db.batch() in a follow-up PR — interactive
+      // BEGIN/COMMIT does not provide atomicity on D1 (async driver).
+      await db.run(sql`BEGIN`);
       try {
         // Collect all user IDs to delete: primary + linked
         const linkedUsers = await db
@@ -374,10 +378,10 @@ export function createUsersAdapter(db: DrizzleDb) {
           )
           .returning();
 
-        db.run(sql`COMMIT`);
+        await db.run(sql`COMMIT`);
         return results.length > 0;
       } catch (e) {
-        db.run(sql`ROLLBACK`);
+        await db.run(sql`ROLLBACK`);
         throw e;
       }
     },

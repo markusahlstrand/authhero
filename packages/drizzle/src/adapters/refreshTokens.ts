@@ -1,7 +1,7 @@
-import { eq, and, count as countFn, asc, desc } from "drizzle-orm";
+import { eq, and, lt, count as countFn, asc, desc, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import type { RefreshToken, ListParams } from "@authhero/adapter-interfaces";
-import { refreshTokens } from "../schema/sqlite";
+import { refreshTokens, loginSessions } from "../schema/sqlite";
 import { removeNullProperties, parseJsonIfString } from "../helpers/transform";
 import { convertDatesToAdapter, isoToDbDate } from "../helpers/dates";
 import { buildLuceneFilter } from "../helpers/filter";
@@ -35,6 +35,13 @@ function sqlToRefreshToken(row: any): RefreshToken {
   });
 }
 
+function maxExpiry(
+  a: number | null | undefined,
+  b: number | null | undefined,
+): number {
+  return Math.max(a ?? 0, b ?? 0);
+}
+
 export function createRefreshTokensAdapter(db: DrizzleDb) {
   return {
     async create(tenant_id: string, token: any): Promise<RefreshToken> {
@@ -55,7 +62,39 @@ export function createRefreshTokensAdapter(db: DrizzleDb) {
         last_exchanged_at_ts: isoToDbDate(token.last_exchanged_at),
       };
 
-      await db.insert(refreshTokens).values(values);
+      // Use manual BEGIN/COMMIT/ROLLBACK because Drizzle's built-in
+      // db.transaction() doesn't support async callbacks with better-sqlite3.
+      // TODO: switch to db.batch() in a follow-up PR — interactive
+      // BEGIN/COMMIT does not provide atomicity on D1 (async driver).
+      await db.run(sql`BEGIN`);
+      try {
+        await db.insert(refreshTokens).values(values);
+
+        const newLoginSessionExpiry = maxExpiry(
+          values.expires_at_ts,
+          values.idle_expires_at_ts,
+        );
+        if (newLoginSessionExpiry > 0 && values.login_id) {
+          await db
+            .update(loginSessions)
+            .set({
+              expires_at_ts: newLoginSessionExpiry,
+              updated_at_ts: now,
+            })
+            .where(
+              and(
+                eq(loginSessions.tenant_id, tenant_id),
+                eq(loginSessions.id, values.login_id),
+                lt(loginSessions.expires_at_ts, newLoginSessionExpiry),
+              ),
+            );
+        }
+
+        await db.run(sql`COMMIT`);
+      } catch (err) {
+        await db.run(sql`ROLLBACK`);
+        throw err;
+      }
 
       return sqlToRefreshToken({ ...values, tenant_id });
     },
@@ -92,15 +131,72 @@ export function createRefreshTokensAdapter(db: DrizzleDb) {
       if (token.last_exchanged_at !== undefined)
         updateData.last_exchanged_at_ts = isoToDbDate(token.last_exchanged_at);
 
-      const results = await db
-        .update(refreshTokens)
-        .set(updateData)
-        .where(
-          and(eq(refreshTokens.tenant_id, tenant_id), eq(refreshTokens.id, id)),
-        )
-        .returning();
+      const expiryChanged =
+        updateData.expires_at_ts !== undefined ||
+        updateData.idle_expires_at_ts !== undefined;
 
-      return results.length > 0;
+      // TODO: switch to db.batch() in a follow-up PR — interactive
+      // BEGIN/COMMIT does not provide atomicity on D1 (async driver).
+      await db.run(sql`BEGIN`);
+      try {
+        const results = await db
+          .update(refreshTokens)
+          .set(updateData)
+          .where(
+            and(
+              eq(refreshTokens.tenant_id, tenant_id),
+              eq(refreshTokens.id, id),
+            ),
+          )
+          .returning();
+
+        const updated = results.length > 0;
+
+        if (updated && expiryChanged) {
+          const row = await db
+            .select({
+              login_id: refreshTokens.login_id,
+              expires_at_ts: refreshTokens.expires_at_ts,
+              idle_expires_at_ts: refreshTokens.idle_expires_at_ts,
+            })
+            .from(refreshTokens)
+            .where(
+              and(
+                eq(refreshTokens.tenant_id, tenant_id),
+                eq(refreshTokens.id, id),
+              ),
+            )
+            .get();
+
+          if (row?.login_id) {
+            const newLoginSessionExpiry = maxExpiry(
+              row.expires_at_ts,
+              row.idle_expires_at_ts,
+            );
+            if (newLoginSessionExpiry > 0) {
+              await db
+                .update(loginSessions)
+                .set({
+                  expires_at_ts: newLoginSessionExpiry,
+                  updated_at_ts: Date.now(),
+                })
+                .where(
+                  and(
+                    eq(loginSessions.tenant_id, tenant_id),
+                    eq(loginSessions.id, row.login_id),
+                    lt(loginSessions.expires_at_ts, newLoginSessionExpiry),
+                  ),
+                );
+            }
+          }
+        }
+
+        await db.run(sql`COMMIT`);
+        return updated;
+      } catch (err) {
+        await db.run(sql`ROLLBACK`);
+        throw err;
+      }
     },
 
     async list(tenant_id: string, params?: ListParams) {

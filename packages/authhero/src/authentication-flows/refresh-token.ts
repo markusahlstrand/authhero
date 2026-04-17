@@ -63,10 +63,17 @@ export async function refreshTokenGrant(
     });
   }
 
-  const user = await ctx.env.data.users.get(
+  const tokenUser = await ctx.env.data.users.get(
     client.tenant.id,
     refreshToken.user_id,
   );
+  if (!tokenUser) {
+    throw new JSONHTTPException(403, { message: "User not found" });
+  }
+
+  const user = tokenUser.linked_to
+    ? await ctx.env.data.users.get(client.tenant.id, tokenUser.linked_to)
+    : tokenUser;
   if (!user) {
     throw new JSONHTTPException(403, { message: "User not found" });
   }
@@ -186,6 +193,8 @@ export async function refreshTokenGrant(
     const idleExpiresAt = new Date(
       Date.now() + client.tenant.idle_session_lifetime * 60 * 60 * 1000,
     );
+    // The refreshTokens adapter also bumps the parent login_session's
+    // expires_at_ts in the same transaction.
     await ctx.env.data.refreshTokens.update(client.tenant.id, refreshToken.id, {
       idle_expires_at: idleExpiresAt.toISOString(),
       last_exchanged_at: new Date().toISOString(),
@@ -195,17 +204,6 @@ export async function refreshTokenGrant(
         last_user_agent: ctx.req.header["user-agent"] || "",
       },
     });
-
-    // Keep the login_session alive as long as its refresh tokens are active
-    if (refreshToken.login_id) {
-      await ctx.env.data.loginSessions.update(
-        client.tenant.id,
-        refreshToken.login_id,
-        {
-          expires_at: idleExpiresAt.toISOString(),
-        },
-      );
-    }
   }
 
   return {

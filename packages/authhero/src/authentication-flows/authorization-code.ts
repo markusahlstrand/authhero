@@ -162,7 +162,14 @@ export async function authorizationCodeGrantUser(
     throw new JSONHTTPException(403, { message: "Invalid redirect uri" });
   }
 
-  const user = await ctx.env.data.users.get(client.tenant.id, code.user_id);
+  const codeUser = await ctx.env.data.users.get(client.tenant.id, code.user_id);
+  if (!codeUser) {
+    throw new JSONHTTPException(403, { message: "User not found" });
+  }
+
+  const user = codeUser.linked_to
+    ? await ctx.env.data.users.get(client.tenant.id, codeUser.linked_to)
+    : codeUser;
   if (!user) {
     throw new JSONHTTPException(403, { message: "User not found" });
   }

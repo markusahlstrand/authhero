@@ -16,6 +16,7 @@ import { addDataHooks } from "../../hooks";
 import { addTimingLogs } from "../../helpers/server-timing";
 import { addCaching } from "../../helpers/cache-wrapper";
 import { createInMemoryCache } from "../../adapters/cache/in-memory";
+import { applyConfigMiddleware } from "../../middlewares/apply-config";
 import { preSignupRoutes } from "./pre-signup";
 import { invalidSessionRoutes } from "./invalid-session";
 import { infoRoutes } from "./info";
@@ -91,6 +92,7 @@ export default function create(config: AuthHeroConfig) {
   }
 
   app
+    .use(applyConfigMiddleware(config))
     .use(
       outboxMiddleware({
         getOutbox: () => config.dataAdapter.outbox,
