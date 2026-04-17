@@ -93,13 +93,17 @@ export default function createAdapters(
       // async callback before deciding whether to commit or roll back.
       // Drizzle's built-in db.transaction() runs the callback synchronously
       // for better-sqlite3, which means async throws don't trigger rollback.
-      db.run(sql`BEGIN`);
+      // NOTE: this pattern works for sync drivers only. For D1 support, the
+      // per-adapter call sites should migrate to db.batch() in a follow-up PR;
+      // this generic wrapper cannot be expressed as a batch because it takes
+      // an arbitrary async callback.
+      await db.run(sql`BEGIN`);
       try {
         const result = await fn(adapters);
-        db.run(sql`COMMIT`);
+        await db.run(sql`COMMIT`);
         return result;
       } catch (e) {
-        db.run(sql`ROLLBACK`);
+        await db.run(sql`ROLLBACK`);
         throw e;
       }
     },

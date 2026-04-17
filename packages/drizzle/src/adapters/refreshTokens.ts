@@ -64,7 +64,9 @@ export function createRefreshTokensAdapter(db: DrizzleDb) {
 
       // Use manual BEGIN/COMMIT/ROLLBACK because Drizzle's built-in
       // db.transaction() doesn't support async callbacks with better-sqlite3.
-      db.run(sql`BEGIN`);
+      // TODO: switch to db.batch() in a follow-up PR — interactive
+      // BEGIN/COMMIT does not provide atomicity on D1 (async driver).
+      await db.run(sql`BEGIN`);
       try {
         await db.insert(refreshTokens).values(values);
 
@@ -88,9 +90,9 @@ export function createRefreshTokensAdapter(db: DrizzleDb) {
             );
         }
 
-        db.run(sql`COMMIT`);
+        await db.run(sql`COMMIT`);
       } catch (err) {
-        db.run(sql`ROLLBACK`);
+        await db.run(sql`ROLLBACK`);
         throw err;
       }
 
@@ -133,7 +135,9 @@ export function createRefreshTokensAdapter(db: DrizzleDb) {
         updateData.expires_at_ts !== undefined ||
         updateData.idle_expires_at_ts !== undefined;
 
-      db.run(sql`BEGIN`);
+      // TODO: switch to db.batch() in a follow-up PR — interactive
+      // BEGIN/COMMIT does not provide atomicity on D1 (async driver).
+      await db.run(sql`BEGIN`);
       try {
         const results = await db
           .update(refreshTokens)
@@ -187,10 +191,10 @@ export function createRefreshTokensAdapter(db: DrizzleDb) {
           }
         }
 
-        db.run(sql`COMMIT`);
+        await db.run(sql`COMMIT`);
         return updated;
       } catch (err) {
-        db.run(sql`ROLLBACK`);
+        await db.run(sql`ROLLBACK`);
         throw err;
       }
     },
