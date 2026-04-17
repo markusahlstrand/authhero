@@ -11,7 +11,7 @@ import {
  */
 interface WorkerLoader {
   load(code: WorkerCode): WorkerStub;
-  get(id: string, callback: () => WorkerCode): WorkerStub;
+  get(id: string, callback: () => Promise<WorkerCode>): WorkerStub;
 }
 
 interface WorkerCode {
@@ -38,7 +38,13 @@ const TRIGGER_FN_NAMES: Record<string, string> = {
 };
 
 const API_SHAPES: Record<string, Record<string, string[]>> = {
-  "post-user-login": {},
+  "post-user-login": {
+    accessToken: ["setCustomClaim"],
+    idToken: ["setCustomClaim"],
+    access: ["deny"],
+    prompt: ["render"],
+    redirect: ["sendUserTo"],
+  },
   "credentials-exchange": {
     accessToken: ["setCustomClaim"],
     idToken: ["setCustomClaim"],
@@ -52,15 +58,18 @@ const API_SHAPES: Record<string, Record<string, string[]>> = {
 };
 
 /**
- * Simple string hash for cache key differentiation.
- * Not cryptographic — just needs to be deterministic.
+ * SHA-256 digest of the code, hex-encoded. Used as part of the worker cache key
+ * so any change to the code produces a distinct id and avoids stale worker reuse.
  */
-function simpleHash(str: string): string {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0;
+async function computeCodeDigest(str: string): Promise<string> {
+  const bytes = new TextEncoder().encode(str);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  const view = new Uint8Array(digest);
+  let hex = "";
+  for (const byte of view) {
+    hex += byte.toString(16).padStart(2, "0");
   }
-  return (hash >>> 0).toString(36);
+  return hex;
 }
 
 /**
@@ -170,6 +179,12 @@ export class CloudflareCodeExecutor implements CodeExecutor {
   }): Promise<CodeExecutionResult> {
     const start = Date.now();
 
+    if (params.timeoutMs !== undefined || params.cpuLimitMs !== undefined) {
+      throw new Error(
+        "Cloudflare executor does not support timeoutMs/cpuLimitMs",
+      );
+    }
+
     try {
       const workerScript = buildWorkerScript(params.code);
 
@@ -183,11 +198,11 @@ export class CloudflareCodeExecutor implements CodeExecutor {
       // Use get() with a hash-based cache key when hookCodeId is available,
       // so the same code stays warm. Falls back to load() for one-off execution.
       const cacheId = params.hookCodeId
-        ? `${params.hookCodeId}-${simpleHash(params.code)}`
+        ? `${params.hookCodeId}-${await computeCodeDigest(params.code)}`
         : null;
 
       const worker = cacheId
-        ? this.loader.get(cacheId, () => workerCode)
+        ? this.loader.get(cacheId, async () => workerCode)
         : this.loader.load(workerCode);
 
       const response = await worker.getEntrypoint().fetch(

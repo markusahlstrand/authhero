@@ -254,6 +254,22 @@ SELECT * FROM sessions WHERE user_id = 'email|user123';
 - **Multiple sessions**: User has multiple active sessions (normal for different devices)
 - **Session reuse failure**: Existing session not properly linked to new login session
 
+## Cleanup
+
+Expired `login_sessions`, `sessions`, and `refresh_tokens` can be swept two ways:
+
+- **Per-request** — call `cleanupUserSessions(ctx, { tenantId, userId })` via `waitUntil` after creating a login session. Scoped to one user, cheap to run often.
+- **Scheduled** — call `cleanupSessions(data, { tenantId?, userId? })` from a cron / Cloudflare Worker `scheduled()` handler. Omit both scopes to sweep everything.
+
+```typescript
+import { cleanupSessions } from "authhero";
+
+// inside scheduled()
+await cleanupSessions(env.data);
+```
+
+See [Audit Logging → Scheduled Jobs](/features/audit-logging#scheduled-jobs) for a full `scheduled()` handler example combining session and outbox cleanup.
+
 ## Best Practices
 
 1. **Always link sessions**: Every session should be created with a `login_session_id`

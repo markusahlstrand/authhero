@@ -1,40 +1,36 @@
 import { Context } from "hono";
+import { DataAdapters } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
 
-/**
- * Parameters for cleaning up expired sessions for a specific user
- */
 export interface UserSessionCleanupParams {
-  tenantId: string;
+  tenantId?: string;
   userId?: string;
 }
 
 /**
- * Cleanup expired login_sessions, sessions, and refresh_tokens.
- * Can be scoped to a specific user.
- * This is designed to be called with waitUntil after creating a new login session.
- *
- * Usage:
- * ```typescript
- * import { waitUntil } from "./wait-until";
- * import { cleanupUserSessions } from "./user-session-cleanup";
- *
- * // After creating a login session
- * waitUntil(ctx, cleanupUserSessions(ctx, { tenantId, userId }));
- * ```
+ * Context-free session cleanup for use in scheduled handlers / cron jobs.
+ * Deletes expired login_sessions, sessions, and refresh_tokens, optionally
+ * scoped to a tenant and/or user.
+ */
+export async function cleanupSessions(
+  data: DataAdapters,
+  params: UserSessionCleanupParams = {},
+): Promise<void> {
+  if (!data.sessionCleanup) return;
+
+  await data.sessionCleanup({
+    tenant_id: params.tenantId,
+    user_id: params.userId,
+  });
+}
+
+/**
+ * Per-request wrapper around cleanupSessions. Designed to be called with
+ * waitUntil after creating a new login session.
  */
 export async function cleanupUserSessions(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: UserSessionCleanupParams,
 ): Promise<void> {
-  const { tenantId, userId } = params;
-  const { data } = ctx.env;
-
-  // Use the adapter's sessionCleanup if available
-  if (data.sessionCleanup) {
-    await data.sessionCleanup({
-      tenant_id: tenantId,
-      user_id: userId,
-    });
-  }
+  await cleanupSessions(ctx.env.data, params);
 }

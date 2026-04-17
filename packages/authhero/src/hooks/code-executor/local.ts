@@ -16,7 +16,13 @@ function createRecordingApiProxy(triggerId: string): {
 
   // Define the API shape per trigger type
   const apiShapes: Record<string, Record<string, string[]>> = {
-    "post-user-login": {},
+    "post-user-login": {
+      accessToken: ["setCustomClaim"],
+      idToken: ["setCustomClaim"],
+      access: ["deny"],
+      prompt: ["render"],
+      redirect: ["sendUserTo"],
+    },
     "credentials-exchange": {
       accessToken: ["setCustomClaim"],
       idToken: ["setCustomClaim"],

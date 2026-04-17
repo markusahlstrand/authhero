@@ -78,6 +78,45 @@ Request Handler
 
 The management API `GET /api/v2/logs` endpoints work identically in both modes. When the outbox is enabled, the relay populates the same logs table via the `LogsDestination` transformer.
 
+## Scheduled Jobs
+
+For the per-request path, the outbox relay runs via `waitUntil` after each response. For resilience (retries, workers that crashed mid-delivery), run `drainOutbox` on a schedule as well — it claims events with a lease so it's safe to run concurrently with the per-request relay.
+
+`authhero` exposes three cron-style helpers you can wire into a Cloudflare Worker `scheduled()` handler or any cron runner:
+
+| Helper | Purpose |
+|--------|---------|
+| `drainOutbox(outbox, destinations, options?)` | Sweep pending outbox events, deliver to destinations, handle retries / dead-letter. Also runs cleanup inline. |
+| `cleanupOutbox(outbox, { retentionDays })` | Delete processed outbox events older than the retention window (default 7 days). Use when you want cleanup on a separate schedule from `drainOutbox`. |
+| `cleanupSessions(data, { tenantId?, userId? })` | Delete expired `login_sessions`, `sessions`, and `refresh_tokens`. Unscoped by default. |
+
+### Cloudflare Worker example
+
+```typescript
+import {
+  drainOutbox,
+  cleanupOutbox,
+  cleanupSessions,
+} from "authhero";
+
+export default {
+  fetch: app.fetch,
+  async scheduled(_event, env, ctx) {
+    ctx.waitUntil(
+      (async () => {
+        await drainOutbox(env.data.outbox, destinations);
+        await cleanupOutbox(env.data.outbox, { retentionDays: 7 });
+        await cleanupSessions(env.data);
+      })(),
+    );
+  },
+};
+```
+
+Wire up a `wrangler.toml` cron trigger (e.g. `crons = ["* * * * *"]`) to invoke `scheduled()` every minute.
+
+`drainOutbox` already calls cleanup inline each cycle, so `cleanupOutbox` is only needed if you want a different cadence, or want to run cleanup without processing.
+
 ## Related
 
 - [Architecture: Audit Events](/architecture/audit-events) — deep dive into the outbox pattern
