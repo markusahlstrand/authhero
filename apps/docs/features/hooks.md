@@ -1166,7 +1166,7 @@ Supported triggers and their export names:
 
 | Trigger | Export Function |
 |---------|----------------|
-| `post-login` | `exports.onExecutePostLogin` |
+| `post-user-login` | `exports.onExecutePostLogin` |
 | `credentials-exchange` | `exports.onExecuteCredentialsExchange` |
 | `pre-user-registration` | `exports.onExecutePreUserRegistration` |
 | `post-user-registration` | `exports.onExecutePostUserRegistration` |

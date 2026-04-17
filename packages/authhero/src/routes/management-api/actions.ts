@@ -405,9 +405,10 @@ export const actionsRoutes = new OpenAPIHono<{
         }
       }
 
-      // Update status and deployed_at
-      await ctx.env.data.actions.update(ctx.var.tenant_id, id, {});
-      // We need a way to set status/deployed_at - for now we update via the adapter
+      await ctx.env.data.actions.update(ctx.var.tenant_id, id, {
+        status: "built",
+        deployed_at: new Date().toISOString(),
+      });
 
       await logMessage(ctx, ctx.var.tenant_id, {
         type: LogTypes.SUCCESS_API_OPERATION,

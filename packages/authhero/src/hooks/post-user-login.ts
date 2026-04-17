@@ -415,29 +415,7 @@ export async function postUserLoginHook(
           tenant: { id: tenant_id },
         } as any,
         "post-user-login",
-        {
-          accessToken: {
-            setCustomClaim: () => {
-              throw new Error(
-                "accessToken.setCustomClaim is not supported in post-login hooks. Use the credentials-exchange hook to modify access tokens.",
-              );
-            },
-          },
-          idToken: {
-            setCustomClaim: () => {
-              throw new Error(
-                "idToken.setCustomClaim is not supported in post-login hooks. Use the credentials-exchange hook to modify ID tokens.",
-              );
-            },
-          },
-          access: {
-            deny: () => {
-              throw new Error(
-                "access.deny is not supported in post-login hooks. Use the pre-user-registration hook to deny access during signup.",
-              );
-            },
-          },
-        },
+        {},
       );
     } catch (err) {
       logMessage(ctx, tenant_id, {

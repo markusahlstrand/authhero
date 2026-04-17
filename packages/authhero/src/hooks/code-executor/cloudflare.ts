@@ -38,11 +38,7 @@ const TRIGGER_FN_NAMES: Record<string, string> = {
 };
 
 const API_SHAPES: Record<string, Record<string, string[]>> = {
-  "post-user-login": {
-    accessToken: ["setCustomClaim"],
-    idToken: ["setCustomClaim"],
-    access: ["deny"],
-  },
+  "post-user-login": {},
   "credentials-exchange": {
     accessToken: ["setCustomClaim"],
     idToken: ["setCustomClaim"],
@@ -89,7 +85,14 @@ function createRecordingApiProxy(triggerId) {
     }
     api[namespace] = nsObj;
   }
-  return { api, getCalls: () => calls };
+  return { api, getCalls: () => calls.map(function(c) { return { method: c.method, args: [].concat(c.args) }; }) };
+}
+
+// Load user code in its own scope so it cannot access recording internals
+function loadUserExports() {
+  const exports = {};
+  ${userCode}
+  return exports;
 }
 
 export default {
@@ -108,10 +111,7 @@ export default {
       }
 
       const { api, getCalls } = createRecordingApiProxy(triggerId);
-
-      // User code is embedded below. It uses exports.onExecuteXxx = ...
-      const exports = {};
-      ${userCode}
+      const exports = loadUserExports();
 
       if (typeof exports[fnName] !== "function") {
         return Response.json({
