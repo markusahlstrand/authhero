@@ -34,7 +34,10 @@ export function update(db: Kysely<Database>) {
       sqlValues.status = action.status;
     }
     if (action.deployed_at !== undefined) {
-      sqlValues.deployed_at_ts = new Date(action.deployed_at).getTime();
+      const parsedTs = new Date(action.deployed_at).getTime();
+      if (Number.isFinite(parsedTs)) {
+        sqlValues.deployed_at_ts = parsedTs;
+      }
     }
 
     const result = await db
