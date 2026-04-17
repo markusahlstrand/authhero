@@ -9,9 +9,11 @@ const GRACE_PERIOD_MS = 7 * 24 * 60 * 60 * 1000;
  * Create a scoped session cleanup function that can filter by tenant and/or user.
  * This is designed for lazy cleanup after login session creation.
  *
- * Since login_sessions.expires_at is extended whenever refresh tokens or sessions
- * are renewed, we can simply delete expired records independently without
- * expensive subqueries to check for active children.
+ * The refreshTokens.create and refreshTokens.update adapter methods bump the
+ * parent login_sessions.expires_at_ts in the same transaction whenever a refresh
+ * token's validity is extended. Likewise, silent auth bumps it when a session is
+ * refreshed. This invariant means we can delete expired login_sessions
+ * independently without expensive subqueries to check for active children.
  *
  * Records are deleted only after they have been expired for the grace period (1 week).
  */

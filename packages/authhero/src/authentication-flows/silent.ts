@@ -140,14 +140,26 @@ export async function silentAuth({
     return handleLoginRequired();
   }
 
-  ctx.set("user_id", session.user_id);
+  const sessionUser = await env.data.users.get(
+    client.tenant.id,
+    session.user_id,
+  );
 
-  const user = await env.data.users.get(client.tenant.id, session.user_id);
-
-  if (!user) {
+  if (!sessionUser) {
     console.error("User not found", session.user_id);
     return handleLoginRequired("User not found");
   }
+
+  const user = sessionUser.linked_to
+    ? await env.data.users.get(client.tenant.id, sessionUser.linked_to)
+    : sessionUser;
+
+  if (!user) {
+    console.error("Linked primary user not found", sessionUser.linked_to);
+    return handleLoginRequired("User not found");
+  }
+
+  ctx.set("user_id", user.user_id);
 
   ctx.set("username", user.email);
   ctx.set("connection", user.connection);

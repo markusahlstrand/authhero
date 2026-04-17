@@ -1,3 +1,4 @@
+export { applyConfigMiddleware } from "./apply-config";
 export { createAuthMiddleware } from "./authentication";
 export { clientInfoMiddleware } from "./client-info";
 export { outboxMiddleware } from "./outbox";

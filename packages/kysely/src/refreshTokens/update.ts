@@ -42,13 +42,50 @@ export function update(db: Kysely<Database>) {
           : undefined,
     };
 
-    const results = await db
-      .updateTable("refresh_tokens")
-      .set(updateData)
-      .where("tenant_id", "=", tenant_id)
-      .where("refresh_tokens.id", "=", id)
-      .execute();
+    return db.transaction().execute(async (trx) => {
+      const results = await trx
+        .updateTable("refresh_tokens")
+        .set(updateData)
+        .where("tenant_id", "=", tenant_id)
+        .where("refresh_tokens.id", "=", id)
+        .execute();
 
-    return !!results.length;
+      const updated = !!results.length;
+
+      // Only extend the parent login_session if the update actually changed an expiry.
+      const expiryChanged =
+        updateData.expires_at_ts !== undefined ||
+        updateData.idle_expires_at_ts !== undefined;
+
+      if (updated && expiryChanged) {
+        const row = await trx
+          .selectFrom("refresh_tokens")
+          .select(["login_id", "expires_at_ts", "idle_expires_at_ts"])
+          .where("tenant_id", "=", tenant_id)
+          .where("refresh_tokens.id", "=", id)
+          .executeTakeFirst();
+
+        if (row?.login_id) {
+          const newLoginSessionExpiry = Math.max(
+            row.expires_at_ts ?? 0,
+            row.idle_expires_at_ts ?? 0,
+          );
+          if (newLoginSessionExpiry > 0) {
+            await trx
+              .updateTable("login_sessions")
+              .set({
+                expires_at_ts: newLoginSessionExpiry,
+                updated_at_ts: Date.now(),
+              })
+              .where("tenant_id", "=", tenant_id)
+              .where("id", "=", row.login_id)
+              .where("expires_at_ts", "<", newLoginSessionExpiry)
+              .execute();
+          }
+        }
+      }
+
+      return updated;
+    });
   };
 }
