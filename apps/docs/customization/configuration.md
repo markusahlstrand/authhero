@@ -99,6 +99,36 @@ const config: AuthHeroConfig = {
 This option is different from `powered_by_logo_url` in the branding API. The `poweredByLogo` config option is set in code at initialization time and applies to all tenants, while the branding API field is stored in the database per tenant. Use this config option when you want to enforce a consistent powered-by logo across all tenants.
 :::
 
+### `codeExecutor` (optional)
+
+A code executor for running user-authored code hooks in a sandboxed environment. If not provided, code hooks are silently skipped.
+
+AuthHero ships two implementations:
+
+- **`LocalCodeExecutor`** — Uses `new Function()`, suitable for local development only (no isolation)
+- **`CloudflareCodeExecutor`** — Uses [Cloudflare Dynamic Workers](https://developers.cloudflare.com/dynamic-workers/) for isolated, sandboxed execution
+
+```typescript
+import { init, CloudflareCodeExecutor } from "authhero";
+
+// Cloudflare Workers environment
+const config: AuthHeroConfig = {
+  dataAdapter: adapter,
+  codeExecutor: new CloudflareCodeExecutor({
+    loader: env.LOADER, // Worker Loader binding
+  }),
+};
+```
+
+The executor requires a `worker_loaders` binding in your `wrangler.toml`:
+
+```toml
+[[worker_loaders]]
+binding = "LOADER"
+```
+
+For more details, see the [Hooks Guide — Code Executors](/features/hooks#code-executors).
+
 ### `webhookInvoker` (optional)
 
 A custom function that replaces the default webhook invocation logic. By default, AuthHero sends webhook requests as `POST` with a JSON body and a `Bearer` service token. Use this option to format the message differently, add your own authentication, set custom headers, or route webhooks through a proxy.

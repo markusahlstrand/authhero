@@ -14,10 +14,7 @@
  * through `addDataHooks`.
  */
 export { addDataHooks } from "./addDataHooks";
-export {
-  validateSignupEmail,
-  preUserSignupHook,
-} from "./validate-signup";
+export { validateSignupEmail, preUserSignupHook } from "./validate-signup";
 export { postUserLoginHook } from "./post-user-login";
 
 // Backwards compatibility aliases

@@ -275,7 +275,8 @@ export const tokenRoutes = new OpenAPIHono<{
           // Use token_lifetime_for_web for SPA clients, token_lifetime for all others
           tokenLifetime =
             grantResult.client.app_type === "spa"
-              ? (scopesAndPermissions.token_lifetime_for_web ?? scopesAndPermissions.token_lifetime)
+              ? (scopesAndPermissions.token_lifetime_for_web ??
+                scopesAndPermissions.token_lifetime)
               : scopesAndPermissions.token_lifetime;
         } catch (error) {
           // Re-throw HTTPExceptions (like 403 for organization membership)

@@ -18,11 +18,7 @@ const fnNames = {
 };
 
 const apiShapes = {
-  "post-user-login": {
-    accessToken: ["setCustomClaim"],
-    idToken: ["setCustomClaim"],
-    access: ["deny"],
-  },
+  "post-user-login": {},
   "credentials-exchange": {
     accessToken: ["setCustomClaim"],
     idToken: ["setCustomClaim"],

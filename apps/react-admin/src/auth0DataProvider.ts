@@ -815,9 +815,12 @@ export default (
 
       // HTTP for other resources
       const headers = createHeaders(tenantId);
-      return httpClient(`${apiUrl}/api/v2/${getApiPath(resource)}/${params.id}`, {
-        headers,
-      }).then(({ json }) => ({
+      return httpClient(
+        `${apiUrl}/api/v2/${getApiPath(resource)}/${params.id}`,
+        {
+          headers,
+        },
+      ).then(({ json }) => ({
         data: {
           id: json.id,
           ...json,
@@ -828,8 +831,9 @@ export default (
     getMany: (resourcePath, params) => {
       const query = `id:(${params.ids.join(" ")})`;
 
+      const headers = createHeaders(tenantId);
       const url = `${apiUrl}/api/v2/${getApiPath(resourcePath)}?q=${query}`;
-      return httpClient(url).then(({ json }) => ({
+      return httpClient(url, { headers }).then(({ json }) => ({
         data: {
           id: json.id,
           ...json,
@@ -1296,11 +1300,14 @@ export default (
       }
 
       // HTTP fallback for other resources
-      return httpClient(`${apiUrl}/api/v2/${getApiPath(resource)}/${params.id}`, {
-        headers,
-        method: "PATCH",
-        body: JSON.stringify(cleanParams.data),
-      }).then(({ json }) => {
+      return httpClient(
+        `${apiUrl}/api/v2/${getApiPath(resource)}/${params.id}`,
+        {
+          headers,
+          method: "PATCH",
+          body: JSON.stringify(cleanParams.data),
+        },
+      ).then(({ json }) => {
         if (!json.id) {
           // Try singular form of resource name (e.g., hooks -> hook_id)
           const singularResource = resource.endsWith("s")

@@ -224,9 +224,8 @@ setup(document);var w=document.querySelector('authhero-widget');if(w&&w.shadowRo
 })()`
       : undefined;
 
-  const combinedScript = [passkeyScript, extra?.extraScript]
-    .filter(Boolean)
-    .join("\n") || undefined;
+  const combinedScript =
+    [passkeyScript, extra?.extraScript].filter(Boolean).join("\n") || undefined;
 
   return {
     screen,

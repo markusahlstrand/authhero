@@ -1394,7 +1394,7 @@ export function ClientEdit() {
                 multiline
                 source="addons.samlp.mappings"
                 label="Attribute Mappings"
-                helperText="JSON object mapping user profile fields to SAML attribute names. Example: {&quot;email&quot;: &quot;http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress&quot;}"
+                helperText='JSON object mapping user profile fields to SAML attribute names. Example: {"email": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"}'
                 fullWidth
                 format={(value) =>
                   value ? JSON.stringify(value, null, 2) : ""

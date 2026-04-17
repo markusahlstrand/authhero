@@ -297,9 +297,7 @@ export const mfaTotpEnrollmentScreenDefinition: ScreenDefinition = {
         : {};
       const currentEnrollmentId = stateData.authenticationMethodId;
       if (
-        existingMethods.some(
-          (e) => e.confirmed && e.id !== currentEnrollmentId,
-        )
+        existingMethods.some((e) => e.confirmed && e.id !== currentEnrollmentId)
       ) {
         throw new HTTPException(403, {
           message:

@@ -31,7 +31,9 @@ export const users = sqliteTable(
     last_ip: text("last_ip", { length: 255 }),
     login_count: integer("login_count").notNull(),
     last_login: text("last_login", { length: 255 }),
-    registration_completed_at: text("registration_completed_at", { length: 35 }),
+    registration_completed_at: text("registration_completed_at", {
+      length: 35,
+    }),
     provider: text("provider", { length: 255 }).notNull(),
     connection: text("connection", { length: 255 }),
     email_verified: integer("email_verified", { mode: "boolean" }).notNull(),

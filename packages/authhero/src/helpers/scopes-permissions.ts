@@ -152,12 +152,22 @@ async function calculateClientCredentialsScopes(
 
   if (matchingResourceServers.length === 0) {
     // No matching resource servers found - return only default OIDC scopes
-    return { scopes: defaultOidcScopes, permissions: [], token_lifetime: 86400, token_lifetime_for_web: 7200 };
+    return {
+      scopes: defaultOidcScopes,
+      permissions: [],
+      token_lifetime: 86400,
+      token_lifetime_for_web: 7200,
+    };
   }
 
   const resourceServer = matchingResourceServers[0];
   if (!resourceServer) {
-    return { scopes: defaultOidcScopes, permissions: [], token_lifetime: 86400, token_lifetime_for_web: 7200 };
+    return {
+      scopes: defaultOidcScopes,
+      permissions: [],
+      token_lifetime: 86400,
+      token_lifetime_for_web: 7200,
+    };
   }
 
   const rbacEnabled = resourceServer.options?.enforce_policies === true;
@@ -175,7 +185,12 @@ async function calculateClientCredentialsScopes(
 
   if (!clientGrant) {
     // No client grant found for this client and audience
-    return { scopes: defaultOidcScopes, permissions: [], token_lifetime: resourceServer.token_lifetime, token_lifetime_for_web: resourceServer.token_lifetime_for_web };
+    return {
+      scopes: defaultOidcScopes,
+      permissions: [],
+      token_lifetime: resourceServer.token_lifetime,
+      token_lifetime_for_web: resourceServer.token_lifetime_for_web,
+    };
   }
 
   const grantedScopes = clientGrant.scope || [];
@@ -223,7 +238,11 @@ async function calculateClientCredentialsScopes(
     const allAllowedScopes = [
       ...new Set([...defaultOidcScopes, ...resultScopes]),
     ];
-    return { scopes: allAllowedScopes, permissions: [], ...tokenLifetimeFields };
+    return {
+      scopes: allAllowedScopes,
+      permissions: [],
+      ...tokenLifetimeFields,
+    };
   }
 
   // RBAC is enabled - permissions are added to the token when token_dialect is access_token_authz
@@ -235,7 +254,11 @@ async function calculateClientCredentialsScopes(
     const allAllowedScopes = [
       ...new Set([...defaultOidcScopes, ...resultScopes]),
     ];
-    return { scopes: allAllowedScopes, permissions: allowedPermissions, ...tokenLifetimeFields };
+    return {
+      scopes: allAllowedScopes,
+      permissions: allowedPermissions,
+      ...tokenLifetimeFields,
+    };
   }
 
   // For access_token dialect (default): scopes in scope claim, NO permissions claim
@@ -351,12 +374,22 @@ export async function calculateScopesAndPermissions(
   if (matchingResourceServers.length === 0) {
     // No matching resource servers found - return all requested scopes
     // When there's no resource server defined, we don't restrict scopes
-    return { scopes: requestedScopes, permissions: [], token_lifetime: 86400, token_lifetime_for_web: 7200 };
+    return {
+      scopes: requestedScopes,
+      permissions: [],
+      token_lifetime: 86400,
+      token_lifetime_for_web: 7200,
+    };
   }
 
   const resourceServer = matchingResourceServers[0];
   if (!resourceServer) {
-    return { scopes: requestedScopes, permissions: [], token_lifetime: 86400, token_lifetime_for_web: 7200 };
+    return {
+      scopes: requestedScopes,
+      permissions: [],
+      token_lifetime: 86400,
+      token_lifetime_for_web: 7200,
+    };
   }
 
   const definedScopes = (resourceServer.scopes || []).map(
@@ -463,7 +496,11 @@ export async function calculateScopesAndPermissions(
   // If token_dialect is access_token_authz, return permissions directly plus default OIDC scopes and undefined scopes
   if (tokenDialect === "access_token_authz") {
     const allScopes = [...new Set([...defaultOidcScopes, ...undefinedScopes])];
-    return { scopes: allScopes, permissions: allowedPermissions, ...tokenLifetimeFields };
+    return {
+      scopes: allScopes,
+      permissions: allowedPermissions,
+      ...tokenLifetimeFields,
+    };
   }
 
   // For access_token dialect (default):

@@ -1,12 +1,12 @@
 import { Kysely } from "kysely";
-import { ActionInsert } from "@authhero/adapter-interfaces";
+import { ActionUpdate } from "@authhero/adapter-interfaces";
 import { Database } from "../db";
 
 export function update(db: Kysely<Database>) {
   return async (
     tenant_id: string,
     action_id: string,
-    action: Partial<ActionInsert>,
+    action: ActionUpdate,
   ): Promise<boolean> => {
     const sqlValues: Record<string, unknown> = {
       updated_at_ts: Date.now(),
@@ -29,6 +29,12 @@ export function update(db: Kysely<Database>) {
     }
     if (action.supported_triggers !== undefined) {
       sqlValues.supported_triggers = JSON.stringify(action.supported_triggers);
+    }
+    if (action.status !== undefined) {
+      sqlValues.status = action.status;
+    }
+    if (action.deployed_at !== undefined) {
+      sqlValues.deployed_at_ts = new Date(action.deployed_at).getTime();
     }
 
     const result = await db

@@ -26,10 +26,12 @@ describe("scopes-permissions helper", () => {
       });
 
       // When no resource server is defined, all requested scopes are returned
-      expect(result).toEqual(expect.objectContaining({
-        scopes: ["read:users", "write:users"],
-        permissions: [],
-      }));
+      expect(result).toEqual(
+        expect.objectContaining({
+          scopes: ["read:users", "write:users"],
+          permissions: [],
+        }),
+      );
     });
 
     it("should return all requested scopes when RBAC is disabled", async () => {
@@ -66,10 +68,12 @@ describe("scopes-permissions helper", () => {
       });
 
       // When RBAC is disabled, all requested scopes are returned (Auth0 behavior)
-      expect(result).toEqual(expect.objectContaining({
-        scopes: ["read:users", "write:users", "invalid:scope"],
-        permissions: [],
-      }));
+      expect(result).toEqual(
+        expect.objectContaining({
+          scopes: ["read:users", "write:users", "invalid:scope"],
+          permissions: [],
+        }),
+      );
 
       // Clean up
       await env.data.resourceServers.remove("tenantId", resourceServer.id!);
@@ -121,10 +125,12 @@ describe("scopes-permissions helper", () => {
         requestedScopes: ["read:users", "write:users", "admin:all"],
       });
 
-      expect(result).toEqual(expect.objectContaining({
-        scopes: [],
-        permissions: ["read:users", "write:users"], // User has these permissions
-      }));
+      expect(result).toEqual(
+        expect.objectContaining({
+          scopes: [],
+          permissions: ["read:users", "write:users"], // User has these permissions
+        }),
+      );
 
       // Clean up
       await env.data.resourceServers.remove("tenantId", resourceServer.id!);
@@ -170,10 +176,12 @@ describe("scopes-permissions helper", () => {
         requestedScopes: ["read:users", "write:users", "admin:all"],
       });
 
-      expect(result).toEqual(expect.objectContaining({
-        scopes: ["read:users"], // Only the scope the user has permission for
-        permissions: [], // Auth0: permissions only included with access_token_authz dialect
-      })); // Clean up
+      expect(result).toEqual(
+        expect.objectContaining({
+          scopes: ["read:users"], // Only the scope the user has permission for
+          permissions: [], // Auth0: permissions only included with access_token_authz dialect
+        }),
+      ); // Clean up
       await env.data.resourceServers.remove("tenantId", resourceServer.id!);
     });
 
@@ -212,13 +220,15 @@ describe("scopes-permissions helper", () => {
         requestedScopes: ["openid", "impersonate", "entitlement"],
       });
 
-      expect(result).toEqual(expect.objectContaining({
-        // "openid" - OIDC scope, always allowed
-        // "impersonate" - defined on resource server but user lacks permission, NOT included
-        // "entitlement" - not defined on resource server, passes through
-        scopes: ["openid", "entitlement"],
-        permissions: [],
-      }));
+      expect(result).toEqual(
+        expect.objectContaining({
+          // "openid" - OIDC scope, always allowed
+          // "impersonate" - defined on resource server but user lacks permission, NOT included
+          // "entitlement" - not defined on resource server, passes through
+          scopes: ["openid", "entitlement"],
+          permissions: [],
+        }),
+      );
 
       // Clean up
       await env.data.resourceServers.remove("tenantId", resourceServer.id!);
@@ -265,13 +275,15 @@ describe("scopes-permissions helper", () => {
         requestedScopes: ["openid", "impersonate", "entitlement"],
       });
 
-      expect(result).toEqual(expect.objectContaining({
-        // "openid" - OIDC scope, always allowed
-        // "impersonate" - defined on resource server AND user has permission, included
-        // "entitlement" - not defined on resource server, passes through
-        scopes: ["openid", "impersonate", "entitlement"],
-        permissions: [], // Auth0: permissions only included with access_token_authz dialect
-      }));
+      expect(result).toEqual(
+        expect.objectContaining({
+          // "openid" - OIDC scope, always allowed
+          // "impersonate" - defined on resource server AND user has permission, included
+          // "entitlement" - not defined on resource server, passes through
+          scopes: ["openid", "impersonate", "entitlement"],
+          permissions: [], // Auth0: permissions only included with access_token_authz dialect
+        }),
+      );
 
       // Clean up
       await env.data.resourceServers.remove("tenantId", resourceServer.id!);
@@ -335,10 +347,12 @@ describe("scopes-permissions helper", () => {
         requestedScopes: ["read:users", "write:users", "admin:all"],
       });
 
-      expect(result).toEqual(expect.objectContaining({
-        scopes: [],
-        permissions: expect.arrayContaining(["read:users", "write:users"]),
-      }));
+      expect(result).toEqual(
+        expect.objectContaining({
+          scopes: [],
+          permissions: expect.arrayContaining(["read:users", "write:users"]),
+        }),
+      );
 
       // Clean up
       await env.data.resourceServers.remove("tenantId", resourceServer.id!);
@@ -397,10 +411,12 @@ describe("scopes-permissions helper", () => {
         requestedScopes: ["read:users"], // Only requesting read permission
       });
 
-      expect(result).toEqual(expect.objectContaining({
-        scopes: ["read:users"], // Only the requested scope
-        permissions: [], // Auth0: permissions only included with access_token_authz dialect
-      }));
+      expect(result).toEqual(
+        expect.objectContaining({
+          scopes: ["read:users"], // Only the requested scope
+          permissions: [], // Auth0: permissions only included with access_token_authz dialect
+        }),
+      );
 
       // Clean up
       await env.data.resourceServers.remove("tenantId", resourceServer.id!);
@@ -523,10 +539,12 @@ describe("scopes-permissions helper", () => {
         organizationId: organization.id,
       });
 
-      expect(result).toEqual(expect.objectContaining({
-        scopes: [],
-        permissions: expect.arrayContaining(["read:users", "write:users"]),
-      }));
+      expect(result).toEqual(
+        expect.objectContaining({
+          scopes: [],
+          permissions: expect.arrayContaining(["read:users", "write:users"]),
+        }),
+      );
 
       // Clean up
       await env.data.resourceServers.remove("tenantId", resourceServer.id!);
@@ -624,10 +642,12 @@ describe("scopes-permissions helper", () => {
         organizationId: organization.id,
       });
 
-      expect(result).toEqual(expect.objectContaining({
-        scopes: [],
-        permissions: expect.arrayContaining(["read:users", "write:users"]),
-      }));
+      expect(result).toEqual(
+        expect.objectContaining({
+          scopes: [],
+          permissions: expect.arrayContaining(["read:users", "write:users"]),
+        }),
+      );
 
       // Clean up
       await env.data.resourceServers.remove("tenantId", resourceServer.id!);
@@ -782,13 +802,15 @@ describe("scopes-permissions helper", () => {
           organizationId: organization.id,
         });
 
-        expect(result).toEqual(expect.objectContaining({
-          scopes: [],
-          permissions: expect.arrayContaining([
-            "admin:organizations",
-            "read:users",
-          ]),
-        }));
+        expect(result).toEqual(
+          expect.objectContaining({
+            scopes: [],
+            permissions: expect.arrayContaining([
+              "admin:organizations",
+              "read:users",
+            ]),
+          }),
+        );
 
         // Clean up
         await env.data.resourceServers.remove("tenantId", resourceServer.id!);
@@ -1100,10 +1122,12 @@ describe("scopes-permissions helper", () => {
 
         // Auth0 behavior: when scopes ARE requested, return intersection of requested and granted
         // Permissions are only included when token_dialect is access_token_authz
-        expect(result).toEqual(expect.objectContaining({
-          scopes: ["read:users"], // Only the requested scope (intersection)
-          permissions: [], // No permissions with default token_dialect (access_token)
-        }));
+        expect(result).toEqual(
+          expect.objectContaining({
+            scopes: ["read:users"], // Only the requested scope (intersection)
+            permissions: [], // No permissions with default token_dialect (access_token)
+          }),
+        );
 
         // Clean up
         await env.data.resourceServers.remove("tenantId", resourceServer.id!);
@@ -1159,10 +1183,12 @@ describe("scopes-permissions helper", () => {
         });
 
         // Auth0 behavior: when NO scopes are requested, return ALL granted scopes
-        expect(result).toEqual(expect.objectContaining({
-          scopes: ["read:users", "write:users", "delete:users"], // All granted scopes
-          permissions: [], // No permissions with default token_dialect (access_token)
-        }));
+        expect(result).toEqual(
+          expect.objectContaining({
+            scopes: ["read:users", "write:users", "delete:users"], // All granted scopes
+            permissions: [], // No permissions with default token_dialect (access_token)
+          }),
+        );
 
         // Clean up
         await env.data.resourceServers.remove("tenantId", resourceServer.id!);
@@ -1229,10 +1255,12 @@ describe("scopes-permissions helper", () => {
         });
 
         // Auth0 behavior: scopes go in scope claim, permissions go in permissions claim
-        expect(result).toEqual(expect.objectContaining({
-          scopes: ["read:data"], // Requested scope in scope claim
-          permissions: ["read:data"], // Permissions in permissions claim
-        }));
+        expect(result).toEqual(
+          expect.objectContaining({
+            scopes: ["read:data"], // Requested scope in scope claim
+            permissions: ["read:data"], // Permissions in permissions claim
+          }),
+        );
 
         // Clean up
         await env.data.resourceServers.remove("tenantId", resourceServer.id!);
@@ -1278,10 +1306,12 @@ describe("scopes-permissions helper", () => {
           requestedScopes: ["read:data"],
         });
 
-        expect(result).toEqual(expect.objectContaining({
-          scopes: [],
-          permissions: [],
-        }));
+        expect(result).toEqual(
+          expect.objectContaining({
+            scopes: [],
+            permissions: [],
+          }),
+        );
 
         // Clean up
         await env.data.resourceServers.remove("tenantId", resourceServer.id!);
@@ -1336,10 +1366,12 @@ describe("scopes-permissions helper", () => {
         });
 
         // Auth0 behavior: when scopes ARE requested, return intersection of requested and granted
-        expect(result).toEqual(expect.objectContaining({
-          scopes: ["read:data"], // Only the requested scope (intersection)
-          permissions: [], // No permissions when RBAC is disabled
-        }));
+        expect(result).toEqual(
+          expect.objectContaining({
+            scopes: ["read:data"], // Only the requested scope (intersection)
+            permissions: [], // No permissions when RBAC is disabled
+          }),
+        );
 
         // Clean up
         await env.data.resourceServers.remove("tenantId", resourceServer.id!);

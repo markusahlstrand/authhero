@@ -3,7 +3,11 @@ import { testClient } from "hono/testing";
 import { getAdminToken } from "../../helpers/token";
 import { getTestServer } from "../../helpers/test-server";
 
-async function seedDeadLetteredEvent(env: any, tenantId: string, eventId = "evt-dead-1") {
+async function seedDeadLetteredEvent(
+  env: any,
+  tenantId: string,
+  eventId = "evt-dead-1",
+) {
   // Create an outbox event, then dead-letter it so it appears in the
   // failed-events endpoint. We bypass the relay so the test can control the
   // exact state without simulating a full retry cycle.
@@ -136,7 +140,9 @@ describe("management-api failed-events", () => {
 
     // Event should still be dead-lettered in its own tenant — replay rejected.
     const stillFailed = await env.data.outbox.listFailed("otherTenant", {});
-    expect(stillFailed.events.some((e: any) => e.id === otherTenantEventId)).toBe(true);
+    expect(
+      stillFailed.events.some((e: any) => e.id === otherTenantEventId),
+    ).toBe(true);
   });
 
   it("returns 404 when replaying an unknown event id", async () => {

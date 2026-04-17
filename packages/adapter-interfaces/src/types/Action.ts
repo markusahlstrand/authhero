@@ -26,6 +26,12 @@ export const actionInsertSchema = z.object({
 });
 export type ActionInsert = z.infer<typeof actionInsertSchema>;
 
+export const actionUpdateSchema = actionInsertSchema.partial().extend({
+  status: z.enum(["draft", "built"]).optional(),
+  deployed_at: z.string().optional(),
+});
+export type ActionUpdate = z.infer<typeof actionUpdateSchema>;
+
 export const actionSchema = actionInsertSchema.extend({
   id: z.string(),
   tenant_id: z.string(),

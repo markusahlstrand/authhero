@@ -70,10 +70,7 @@ function sqlToUser(sqlUser: any, linkedUsers: any[] = []): User {
 }
 
 export function createUsersAdapter(db: DrizzleDb) {
-  const createImpl = async (
-    tenant_id: string,
-    params: any,
-  ): Promise<User> => {
+  const createImpl = async (tenant_id: string, params: any): Promise<User> => {
     const now = new Date().toISOString();
 
     const sqlData: any = {

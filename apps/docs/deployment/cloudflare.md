@@ -104,6 +104,10 @@ database_name = "authhero-db"
 database_id = "your-database-id"  # Replace with your D1 database ID
 migrations_dir = "node_modules/@authhero/drizzle/drizzle"
 
+# Dynamic Workers — required for user-authored code hooks (Actions)
+[[worker_loaders]]
+binding = "LOADER"
+
 # Optional: Custom domain
 # [route]
 # pattern = "auth.example.com"
@@ -130,9 +134,11 @@ Create `src/index.ts`:
 ```typescript
 import { initMultiTenant } from "@authhero/multi-tenancy";
 import { createCloudflareD1Adapter } from "@authhero/cloudflare";
+import { CloudflareCodeExecutor } from "authhero";
 
 interface Env {
   AUTH_DB: D1Database;
+  LOADER: any; // Worker Loader binding for Dynamic Workers
 }
 
 export default {
@@ -141,7 +147,10 @@ export default {
     
     const { app } = initMultiTenant({
       dataAdapter,
-      // No widgetHandler needed - Wrangler serves from [assets] config
+      // Enable user-authored code hooks via Dynamic Workers
+      codeExecutor: new CloudflareCodeExecutor({
+        loader: env.LOADER,
+      }),
     });
 
     return app.fetch(request, env, ctx);

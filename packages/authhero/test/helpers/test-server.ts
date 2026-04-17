@@ -198,9 +198,7 @@ export async function getTestServer(
   const apps = init({
     dataAdapter: dataWithServices,
     entityHooks: args.entityHooks,
-    ...(args.outbox
-      ? { outbox: { enabled: true, maxRetries: 1 } }
-      : {}),
+    ...(args.outbox ? { outbox: { enabled: true, maxRetries: 1 } } : {}),
   });
   return {
     ...apps,

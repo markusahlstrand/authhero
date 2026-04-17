@@ -42,10 +42,7 @@ export const actionsRoutes = new OpenAPIHono<{
         200: {
           content: {
             "application/json": {
-              schema: z.union([
-                z.array(actionSchema),
-                actionsWithTotalsSchema,
-              ]),
+              schema: z.union([z.array(actionSchema), actionsWithTotalsSchema]),
             },
           },
           description: "List of actions",
@@ -116,10 +113,7 @@ export const actionsRoutes = new OpenAPIHono<{
     async (ctx) => {
       const body = ctx.req.valid("json");
 
-      const action = await ctx.env.data.actions.create(
-        ctx.var.tenant_id,
-        body,
-      );
+      const action = await ctx.env.data.actions.create(ctx.var.tenant_id, body);
 
       // Deploy to execution environment if supported
       if (ctx.env.codeExecutor?.deploy) {
@@ -411,9 +405,10 @@ export const actionsRoutes = new OpenAPIHono<{
         }
       }
 
-      // Update status and deployed_at
-      await ctx.env.data.actions.update(ctx.var.tenant_id, id, {});
-      // We need a way to set status/deployed_at - for now we update via the adapter
+      await ctx.env.data.actions.update(ctx.var.tenant_id, id, {
+        status: "built",
+        deployed_at: new Date().toISOString(),
+      });
 
       await logMessage(ctx, ctx.var.tenant_id, {
         type: LogTypes.SUCCESS_API_OPERATION,

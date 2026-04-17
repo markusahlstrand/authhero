@@ -52,6 +52,7 @@ export type { EnsureUsernameOptions } from "./hooks/pre-defined";
 
 // Export code executor implementations
 export { LocalCodeExecutor } from "./hooks/code-executor/local";
+export { CloudflareCodeExecutor } from "./hooks/code-executor/cloudflare";
 
 i18next.init({
   supportedLngs: ["en", "it", "nb", "sv", "pl", "cs", "fi", "da"],

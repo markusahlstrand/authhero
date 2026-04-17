@@ -905,6 +905,29 @@ import type {
 } from "@authhero/cloudflare-adapter";
 ```
 
+## Code Executor (Dynamic Workers)
+
+For user-authored code hooks (Actions), AuthHero provides a `CloudflareCodeExecutor` in the core `authhero` package that uses [Cloudflare Dynamic Workers](https://developers.cloudflare.com/dynamic-workers/) for isolated code execution. This is separate from the cloudflare-adapter but typically used alongside it.
+
+```typescript
+import { CloudflareCodeExecutor, init } from "authhero";
+
+// Requires a worker_loaders binding in wrangler.toml:
+// [[worker_loaders]]
+// binding = "LOADER"
+
+const codeExecutor = new CloudflareCodeExecutor({
+  loader: env.LOADER,
+});
+
+const { app } = init({
+  dataAdapter,
+  codeExecutor,
+});
+```
+
+See the [Hooks Guide](https://www.authhero.net/features/hooks#code-executors) for details.
+
 ## Related Documentation
 
 - [Cloudflare API](https://developers.cloudflare.com/api/)

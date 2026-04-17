@@ -19,7 +19,5 @@ export async function up(db: Kysely<Database>): Promise<void> {
 }
 
 export async function down(db: Kysely<Database>): Promise<void> {
-  await db.schema
-    .dropIndex("idx_outbox_events_tenant_dead_lettered")
-    .execute();
+  await db.schema.dropIndex("idx_outbox_events_tenant_dead_lettered").execute();
 }

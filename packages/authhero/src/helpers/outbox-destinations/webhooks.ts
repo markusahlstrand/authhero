@@ -75,10 +75,7 @@ export class WebhookDestination implements EventDestination {
 
       for (const hook of webhooks as Array<{ hook_id: string; url: string }>) {
         const controller = new AbortController();
-        const timer = setTimeout(
-          () => controller.abort(),
-          this.timeoutMs,
-        );
+        const timer = setTimeout(() => controller.abort(), this.timeoutMs);
         try {
           const response = await fetch(hook.url, {
             method: "POST",

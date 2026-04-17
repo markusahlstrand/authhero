@@ -1751,7 +1751,8 @@ export async function completeLogin(
 
       // Use token_lifetime_for_web for SPA clients, token_lifetime for all others
       calculatedTokenLifetime =
-        params.client.app_type === "spa" && scopesAndPermissions.token_lifetime_for_web
+        params.client.app_type === "spa" &&
+        scopesAndPermissions.token_lifetime_for_web
           ? scopesAndPermissions.token_lifetime_for_web
           : scopesAndPermissions.token_lifetime;
     } catch (error) {

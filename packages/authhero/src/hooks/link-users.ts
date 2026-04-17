@@ -25,7 +25,10 @@ export function linkUsersHook(data: DataAdapters) {
 
         // Validate primary exists before creating secondary to avoid dangling linked_to
         if (user.linked_to) {
-          const primaryUser = await trxData.users.get(tenant_id, user.linked_to);
+          const primaryUser = await trxData.users.get(
+            tenant_id,
+            user.linked_to,
+          );
           if (!primaryUser) {
             throw new JSONHTTPException(400, {
               error: "invalid_request",
@@ -41,7 +44,10 @@ export function linkUsersHook(data: DataAdapters) {
 
         // If linked to a primary user, return the primary with updated identities
         if (user.linked_to) {
-          const primaryUser = await trxData.users.get(tenant_id, user.linked_to);
+          const primaryUser = await trxData.users.get(
+            tenant_id,
+            user.linked_to,
+          );
           if (!primaryUser) {
             throw new JSONHTTPException(500, {
               error: "server_error",

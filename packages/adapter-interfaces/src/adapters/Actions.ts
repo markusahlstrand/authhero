@@ -1,4 +1,4 @@
-import { Action, ActionInsert, Totals } from "../types";
+import { Action, ActionInsert, ActionUpdate, Totals } from "../types";
 import { ListParams } from "../types/ListParams";
 
 export interface ListActionsResponse extends Totals {
@@ -11,7 +11,7 @@ export interface ActionsAdapter {
   update: (
     tenant_id: string,
     action_id: string,
-    action: Partial<ActionInsert>,
+    action: ActionUpdate,
   ) => Promise<boolean>;
   remove: (tenant_id: string, action_id: string) => Promise<boolean>;
   list: (

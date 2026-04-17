@@ -942,10 +942,7 @@ screenApiRoutes.openapi(
         console.error(
           `getDatabaseScreen returned null for screenId=${screenId}, state=[REDACTED], nodeId=${dbResult.nodeId}`,
         );
-        return ctx.json(
-          { error: "Failed to render error screen" },
-          400,
-        );
+        return ctx.json({ error: "Failed to render error screen" }, 400);
       }
       return ctx.json(
         { screen: errorResult.screen, branding: screenContext.branding },
