@@ -2,13 +2,11 @@ import { describe, it, expect, afterEach } from "vitest";
 import { getTestServer } from "../helpers/test-server";
 import { Strategy } from "@authhero/adapter-interfaces";
 import { testClient } from "hono/testing";
-import { getAdminToken } from "../helpers/token";
 import http from "node:http";
 import { drainOutbox } from "../../src/helpers/outbox-relay";
 import { LogsDestination } from "../../src/helpers/outbox-destinations/logs";
 import { WebhookDestination } from "../../src/helpers/outbox-destinations/webhooks";
 import { RegistrationFinalizerDestination } from "../../src/helpers/outbox-destinations/registration-finalizer";
-import { USERNAME_PASSWORD_PROVIDER } from "../../src/constants";
 
 function createWebhookServer(
   handler: (req: http.IncomingMessage, res: http.ServerResponse) => void,
@@ -26,7 +24,7 @@ function createWebhookServer(
   });
 }
 
-describe("outbox self-healing pipeline", () => {
+describe("post-user-registration is only enqueued on creation", () => {
   let closeServer: (() => Promise<void>) | undefined;
 
   afterEach(async () => {
@@ -36,8 +34,14 @@ describe("outbox self-healing pipeline", () => {
     }
   });
 
-  it("signup with failing webhook → dead-letter → login re-enqueue → success → no-op", async () => {
-    // --- controllable webhook server ---
+  it("login does not re-enqueue post-user-registration, even after dead-letter", async () => {
+    // Delivery reliability for post-user-registration is owned by the outbox
+    // (retry + dead-letter). The login path must NOT re-enqueue on behalf of
+    // a failed registration — that would double-fire the hook on every first
+    // login while the original event is still pending in the outbox, and it
+    // conflates "pending delivery" with "lost delivery". Recovery of
+    // dead-lettered events is an explicit admin/cron concern.
+
     let webhookMode: "fail" | "succeed" = "fail";
     const webhookCalls: any[] = [];
 
@@ -61,14 +65,12 @@ describe("outbox self-healing pipeline", () => {
     });
     closeServer = close;
 
-    // --- test server with outbox enabled ---
-    const { env, oauthApp, managementApp } = await getTestServer({
+    const { env, oauthApp } = await getTestServer({
       mockEmail: true,
       outbox: true,
     });
     const oauthClient = testClient(oauthApp, env);
 
-    // Register a post-user-registration webhook hook
     await env.data.hooks.create("tenantId", {
       url,
       trigger_id: "post-user-registration",
@@ -76,11 +78,11 @@ describe("outbox self-healing pipeline", () => {
       synchronous: false,
     });
 
-    // --- 1. Signup (webhook will fail) ---
+    // Signup — webhook fails on delivery.
     const signupResponse = await oauthClient.dbconnections.signup.$post(
       {
         json: {
-          email: "self-heal@example.com",
+          email: "no-self-heal@example.com",
           password: "Test12345!",
           connection: Strategy.USERNAME_PASSWORD,
           client_id: "clientId",
@@ -93,25 +95,10 @@ describe("outbox self-healing pipeline", () => {
       },
     );
     expect(signupResponse.status).toBe(200);
-    const signupBody = (await signupResponse.json()) as { _id: string };
-    const userId = signupBody._id;
 
-    // Webhook was called but failed
-    const regCall = webhookCalls.find(
-      (c) => c.trigger_id === "post-user-registration",
-    );
-    expect(regCall).toBeDefined();
-
-    // User should NOT have registration_completed_at yet
-    const user1 = await env.data.users.get("tenantId", userId);
-    expect(user1).toBeTruthy();
-    expect(user1!.registration_completed_at).toBeFalsy();
-
-    // --- 2. Drain outbox → dead-letter (maxRetries=1) ---
-    // Wait for retry_at to pass (the backoff is 1s for retry_count=0 → 2s for retry_count=1)
+    // Drive the outbox to dead-letter (maxRetries=1).
     await new Promise((r) => setTimeout(r, 2200));
 
-    // Build destinations for draining
     const destinations = [
       new LogsDestination(env.data.logs),
       new WebhookDestination(env.data.hooks, async () => "dummy-token"),
@@ -120,19 +107,14 @@ describe("outbox self-healing pipeline", () => {
 
     await drainOutbox(env.data.outbox!, destinations, { maxRetries: 1 });
 
-    // Event should now be dead-lettered
     const failed = await env.data.outbox!.listFailed("tenantId");
-    expect(failed.events.length).toBeGreaterThanOrEqual(1);
     const deadEvent = failed.events.find(
       (e) => e.event_type === "hook.post-user-registration",
     );
     expect(deadEvent).toBeDefined();
 
-    // User still not finalized
-    const user2 = await env.data.users.get("tenantId", userId);
-    expect(user2!.registration_completed_at).toBeFalsy();
-
-    // --- 3. Switch webhook to succeed, login ---
+    // Login — even with the webhook now responsive, the login path must not
+    // re-enqueue. Re-driving the dead-lettered event is outside this flow.
     webhookMode = "succeed";
     webhookCalls.length = 0;
 
@@ -142,42 +124,17 @@ describe("outbox self-healing pipeline", () => {
         credential_type: "http://auth0.com/oauth/grant-type/password-realm",
         realm: Strategy.USERNAME_PASSWORD,
         password: "Test12345!",
-        username: "self-heal@example.com",
+        username: "no-self-heal@example.com",
       },
     });
     expect(loginResponse.status).toBe(200);
 
-    // The postUserLoginHook should have re-enqueued the post-user-registration
-    // event (because registration_completed_at was null). The per-request
-    // outbox processing (flushed by flushBackgroundPromises in test mode)
-    // should have delivered it successfully, and RegistrationFinalizerDestination
-    // should have set registration_completed_at.
+    // Drain the outbox so any event that the login path might have
+    // re-enqueued is actually delivered — without this, a regression that
+    // re-enqueues on login would sit pending and silently pass the
+    // assertion below.
+    await drainOutbox(env.data.outbox!, destinations, { maxRetries: 1 });
 
-    // --- 4. Assert registration completed ---
-    const user3 = await env.data.users.get("tenantId", userId);
-    expect(user3!.registration_completed_at).toBeTruthy();
-
-    // Webhook was called successfully
-    const successCall = webhookCalls.find(
-      (c) => c.trigger_id === "post-user-registration",
-    );
-    expect(successCall).toBeDefined();
-
-    // --- 5. Login again → no-op (no re-enqueue) ---
-    webhookCalls.length = 0;
-
-    const login2Response = await oauthClient.co.authenticate.$post({
-      json: {
-        client_id: "clientId",
-        credential_type: "http://auth0.com/oauth/grant-type/password-realm",
-        realm: Strategy.USERNAME_PASSWORD,
-        password: "Test12345!",
-        username: "self-heal@example.com",
-      },
-    });
-    expect(login2Response.status).toBe(200);
-
-    // No post-user-registration webhook should fire this time
     const noopCall = webhookCalls.find(
       (c) => c.trigger_id === "post-user-registration",
     );
