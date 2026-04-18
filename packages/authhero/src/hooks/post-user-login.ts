@@ -10,7 +10,6 @@ import {
 import { Bindings, Variables } from "../types";
 import { EnrichedClient } from "../helpers/client";
 import { logMessage } from "../helpers/logging";
-import { enqueuePostHookEvent } from "../helpers/hook-events";
 import { stripInternalUserFields } from "../helpers/hook-user-payload";
 import { startLoginSessionHook } from "../authentication-flows/common";
 import { isFormHook, handleFormHook } from "./formhooks";
@@ -203,10 +202,12 @@ async function buildEnhancedEventObject(
  * Checks for post-user-login hooks (form, page, template, code, or webhook)
  * and handles them in that order. Also:
  *  - logs the successful login,
- *  - increments the user's `login_count`,
- *  - re-enqueues the post-user-registration event if the user's
- *    `registration_completed_at` is still null (self-healing recovery for
- *    dead-lettered or lost post-registration events).
+ *  - increments the user's `login_count`.
+ *
+ * Delivery reliability for `post-user-registration` is the outbox's concern
+ * (retry + dead-letter), not the login path's. Recovery of dead-lettered
+ * events is a separate admin/cron responsibility so a user's first login
+ * can't double-enqueue while the original event is still pending.
  *
  * Returns either the (possibly updated) user or a `Response` when a hook
  * redirects, takes over the login, or renders a form.
@@ -243,14 +244,6 @@ export async function postUserLoginHook(
     audience: params?.authParams?.audience,
     scope: params?.authParams?.scope,
   });
-
-  // Self-healing: if the user was registered but the post-user-registration
-  // hook chain never reached completion (dead-lettered, lost on crash, etc.),
-  // re-enqueue it now so customer-authored post-registration logic eventually
-  // runs. Requires the destinations + the action code to be idempotent.
-  if (!(user as User).registration_completed_at) {
-    enqueuePostHookEvent(ctx, tenant_id, "post-user-registration", user);
-  }
 
   // Update the user's last login info
   await data.users.update(tenant_id, user.user_id, {

@@ -221,6 +221,8 @@ export async function getOrCreateUserByProvider(
     provider,
   });
 
+  let wasCreated = false;
+
   if (!user) {
     const userData = {
       user_id: `${provider}|${userId || userIdGenerate()}`,
@@ -245,10 +247,34 @@ export async function getOrCreateUserByProvider(
       profileData: JSON.stringify(profileData),
     };
 
-    user = await ctx.env.data.users.create(client.tenant.id, userData);
+    try {
+      user = await ctx.env.data.users.create(client.tenant.id, userData);
+      wasCreated = true;
+    } catch (err) {
+      // Concurrent social callback already created this user. Read back the
+      // winner's row and fall through to the existing-user branch so the
+      // login completes for both racers. createUserHooks threw before its
+      // post-registration hooks ran, so the winner's flow emits the single
+      // post-user-registration event.
+      if ((err as { status?: unknown })?.status !== 409) {
+        throw err;
+      }
+      const existing = await getPrimaryUserByProvider({
+        userAdapter: ctx.env.data.users,
+        tenant_id: client.tenant.id,
+        username,
+        provider,
+      });
+      if (!existing) {
+        throw err;
+      }
+      user = existing;
+    }
 
     ctx.set("user_id", user.user_id);
-  } else if (effectiveMode === "on_each_login") {
+  }
+
+  if (!wasCreated && effectiveMode === "on_each_login") {
     const updates: Record<string, unknown> = {
       ...rootAttrs,
       profileData: JSON.stringify(profileData),

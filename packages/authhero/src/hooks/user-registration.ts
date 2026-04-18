@@ -145,7 +145,19 @@ export function createUserHooks(
     }
 
     // Check for existing user with the same email and if so link the users
-    let result = await linkUsersHook(data)(tenant_id, user);
+    const linkResult = await linkUsersHook(data)(tenant_id, user);
+
+    // Race-loser: another concurrent create committed the row first.
+    // Throw 409 so management-API clients see a duplicate error; auth flows
+    // that want to recover (social callback) catch this in
+    // getOrCreateUserByProvider and read back the winner's user.
+    // Throwing here also skips post-registration hooks, preventing duplicate
+    // outbox events for a single real registration.
+    if (!linkResult.created) {
+      throw new JSONHTTPException(409, { message: "User already exists" });
+    }
+
+    const result = linkResult.user;
 
     // Post-registration hooks run after the commit transaction inside
     // linkUsersHook has closed. They must not be invoked while holding a

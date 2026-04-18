@@ -219,8 +219,8 @@ describe("account-linking-hook", () => {
     });
 
     // Should return the Google user (not linked)
-    expect(result.user_id).toBe("google-oauth2|unverified-google-user");
-    expect(result.linked_to).toBeUndefined();
+    expect(result.user.user_id).toBe("google-oauth2|unverified-google-user");
+    expect(result.user.linked_to).toBeUndefined();
 
     // Verify both users exist separately
     const allUsers = await env.data.users.list("tenantId", {
@@ -271,8 +271,8 @@ describe("account-linking-hook", () => {
     });
 
     // Should return the new user (not linked to tenantId user)
-    expect(result.user_id).toBe("google-oauth2|tenant-b-user");
-    expect(result.linked_to).toBeUndefined();
+    expect(result.user.user_id).toBe("google-oauth2|tenant-b-user");
+    expect(result.user.linked_to).toBeUndefined();
   });
 
   it("should handle case-insensitive email matching", async () => {
@@ -305,10 +305,10 @@ describe("account-linking-hook", () => {
     });
 
     // Should return the primary user (linked via case-insensitive match)
-    expect(result.user_id).toBe(
+    expect(result.user.user_id).toBe(
       `${USERNAME_PASSWORD_PROVIDER}|case-test-primary`,
     );
-    expect(result.identities).toHaveLength(2);
+    expect(result.user.identities).toHaveLength(2);
 
     // Verify the secondary user is linked to primary
     const secondaryUser = await env.data.users.get(
@@ -360,8 +360,8 @@ describe("account-linking-hook", () => {
     });
 
     // Should return the PRIMARY user, not the secondary
-    expect(result.user_id).toBe(`${USERNAME_PASSWORD_PROVIDER}|chain-primary`);
-    expect(result.identities).toHaveLength(3);
+    expect(result.user.user_id).toBe(`${USERNAME_PASSWORD_PROVIDER}|chain-primary`);
+    expect(result.user.identities).toHaveLength(3);
 
     // Verify the third user is linked to primary
     const thirdUser = await env.data.users.get(
@@ -401,8 +401,8 @@ describe("account-linking-hook", () => {
     });
 
     // Should return the new user (not linked)
-    expect(result.user_id).toBe("sms|no-email-user");
-    expect(result.linked_to).toBeUndefined();
+    expect(result.user.user_id).toBe("sms|no-email-user");
+    expect(result.user.linked_to).toBeUndefined();
   });
 
   it("should use setLinkedTo from hook when provided", async () => {
@@ -435,8 +435,8 @@ describe("account-linking-hook", () => {
     });
 
     // Should return primary user even though emails don't match
-    expect(result.user_id).toBe(`${USERNAME_PASSWORD_PROVIDER}|hook-primary`);
-    expect(result.identities).toHaveLength(2);
+    expect(result.user.user_id).toBe(`${USERNAME_PASSWORD_PROVIDER}|hook-primary`);
+    expect(result.user.identities).toHaveLength(2);
   });
 
   it("should prioritize setLinkedTo over email-based linking", async () => {
@@ -477,9 +477,9 @@ describe("account-linking-hook", () => {
     });
 
     // Should link to the manually specified user, NOT the email-matched user
-    expect(result.user_id).toBe(
+    expect(result.user.user_id).toBe(
       `${USERNAME_PASSWORD_PROVIDER}|priority-manual-target`,
     );
-    expect(result.identities).toHaveLength(2);
+    expect(result.user.identities).toHaveLength(2);
   });
 });

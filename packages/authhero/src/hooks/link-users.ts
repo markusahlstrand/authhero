@@ -1,12 +1,22 @@
 import { DataAdapters, User } from "@authhero/adapter-interfaces";
 import { getPrimaryUserByEmail } from "../helpers/users";
 import { JSONHTTPException } from "../errors/json-http-exception";
-import { HTTPException } from "hono/http-exception";
+
+export interface LinkUsersResult {
+  user: User;
+  // False when a concurrent request already created the same user and we
+  // returned the winner's row; callers use this to suppress duplicate
+  // post-user-registration side effects.
+  created: boolean;
+}
 
 export function linkUsersHook(data: DataAdapters) {
-  return async (tenant_id: string, user: User): Promise<User> => {
+  return async (
+    tenant_id: string,
+    user: User,
+  ): Promise<LinkUsersResult> => {
     try {
-      return await data.transaction(async (trxData) => {
+      const committed = await data.transaction(async (trxData) => {
         // If linked_to is not already set (e.g., from pre-user-registration hook),
         // check for email-based auto-linking
         // Normalize email to lowercase for case-insensitive matching
@@ -60,13 +70,17 @@ export function linkUsersHook(data: DataAdapters) {
         // No linking - return the created user
         return createdUser;
       });
+      return { user: committed, created: true };
     } catch (err) {
       // Race condition: another request created the same user simultaneously.
       // The transaction was rolled back, so look up the winner's user and return it.
-      if (err instanceof HTTPException && err.status === 409) {
+      // Duck-type the status check — HTTPException instances may not share a
+      // class identity across bundled adapter packages (minification can
+      // rename the class, breaking `instanceof`).
+      if ((err as { status?: unknown })?.status === 409) {
         const existingUser = await findExistingUser(data, tenant_id, user);
         if (existingUser) {
-          return existingUser;
+          return { user: existingUser, created: false };
         }
       }
       throw err;
