@@ -92,15 +92,23 @@ describe("on-post-user-registration-hook", () => {
       is_social: true,
     };
 
-    // Race-winner: the first create inserts the row and should fire the hook.
-    await dataWithHooks.users.create("tenantId", userPayload);
-
-    // Race-loser: a concurrent request with the same user_id. createUserHooks
-    // must surface this as 409 so strict management-API callers error out; the
-    // social-callback caller catches the 409 in getOrCreateUserByProvider.
-    await expect(
+    // Kick off both creates without awaiting so they truly race through
+    // createUserHooks concurrently. Exactly one should win the insert; the
+    // other must surface 409 (strict management-API callers error out; the
+    // social-callback caller catches the 409 in getOrCreateUserByProvider).
+    const results = await Promise.allSettled([
       dataWithHooks.users.create("tenantId", userPayload),
-    ).rejects.toMatchObject({ status: 409 });
+      dataWithHooks.users.create("tenantId", userPayload),
+    ]);
+
+    const fulfilled = results.filter((r) => r.status === "fulfilled");
+    const rejected = results.filter(
+      (r): r is PromiseRejectedResult => r.status === "rejected",
+    );
+
+    expect(fulfilled).toHaveLength(1);
+    expect(rejected).toHaveLength(1);
+    expect(rejected[0]?.reason).toMatchObject({ status: 409 });
 
     // Crucially, the race-loser must not re-fire the post-registration hook —
     // that was the production bug producing duplicate outbox events.

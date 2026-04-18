@@ -129,6 +129,12 @@ describe("post-user-registration is only enqueued on creation", () => {
     });
     expect(loginResponse.status).toBe(200);
 
+    // Drain the outbox so any event that the login path might have
+    // re-enqueued is actually delivered — without this, a regression that
+    // re-enqueues on login would sit pending and silently pass the
+    // assertion below.
+    await drainOutbox(env.data.outbox!, destinations, { maxRetries: 1 });
+
     const noopCall = webhookCalls.find(
       (c) => c.trigger_id === "post-user-registration",
     );

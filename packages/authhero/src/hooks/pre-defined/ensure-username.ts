@@ -1,15 +1,8 @@
-import { HTTPException } from "hono/http-exception";
 import { OnExecutePostLogin } from "../../types/Hooks";
 import { userIdGenerate } from "../../utils/user-id";
 import { USERNAME_PASSWORD_PROVIDER } from "../../constants";
 import { Strategy } from "@authhero/adapter-interfaces";
-
-/**
- * Check whether an error is a unique-constraint violation (HTTP 409).
- */
-function isUniqueConstraintError(err: unknown): boolean {
-  return err instanceof HTTPException && err.status === 409;
-}
+import { isUniqueConstraintError } from "../../errors/is-unique-constraint-error";
 
 export interface EnsureUsernameOptions {
   /**

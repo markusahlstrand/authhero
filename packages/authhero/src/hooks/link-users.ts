@@ -1,6 +1,7 @@
 import { DataAdapters, User } from "@authhero/adapter-interfaces";
 import { getPrimaryUserByEmail } from "../helpers/users";
 import { JSONHTTPException } from "../errors/json-http-exception";
+import { isUniqueConstraintError } from "../errors/is-unique-constraint-error";
 
 export interface LinkUsersResult {
   user: User;
@@ -74,10 +75,7 @@ export function linkUsersHook(data: DataAdapters) {
     } catch (err) {
       // Race condition: another request created the same user simultaneously.
       // The transaction was rolled back, so look up the winner's user and return it.
-      // Duck-type the status check — HTTPException instances may not share a
-      // class identity across bundled adapter packages (minification can
-      // rename the class, breaking `instanceof`).
-      if ((err as { status?: unknown })?.status === 409) {
+      if (isUniqueConstraintError(err)) {
         const existingUser = await findExistingUser(data, tenant_id, user);
         if (existingUser) {
           return { user: existingUser, created: false };
