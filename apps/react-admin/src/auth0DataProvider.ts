@@ -1054,21 +1054,22 @@ export default (
         };
       }
 
-      // Logs filtered by user_id - use direct HTTP for full control
+      // Logs filtered by user_id - includes logs from linked accounts
       if (resource === "logs" && params.target === "user_id") {
         const headers = createHeaders(tenantId);
         const query = {
           page: page - 1,
           per_page: perPage,
-          q: `user_id:${params.id}`,
           sort:
             field && order
               ? `${field}:${order === "DESC" ? "-1" : "1"}`
               : undefined,
           include_totals: true,
-          ...params.filter, // Allow additional filters to be passed through
+          ...params.filter,
         };
-        const url = `${apiUrl}/api/v2/logs?${stringify(query)}`;
+        const url = `${apiUrl}/api/v2/users/${encodeURIComponent(
+          String(params.id),
+        )}/logs?${stringify(query)}`;
 
         const res = await httpClient(url, { headers });
         const response = res.json;
@@ -1080,7 +1081,7 @@ export default (
             id: log.log_id || log.id,
             ...log,
           })),
-          total: response.total || logsArray.length,
+          total: response.length || logsArray.length,
         };
       }
 

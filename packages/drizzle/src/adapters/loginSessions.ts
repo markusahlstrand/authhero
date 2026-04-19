@@ -48,7 +48,7 @@ function sqlToLoginSession(row: any): LoginSession {
     ["created_at_ts", "updated_at_ts", "expires_at_ts"],
   );
 
-  const unflattened = unflattenObject(rest, ["authParams"]);
+  const unflattened = unflattenObject(rest, ["authParams", "auth_strategy"]);
 
   return removeNullProperties({
     ...unflattened,
@@ -86,6 +86,9 @@ export function createLoginSessionsAdapter(db: DrizzleDb) {
         failure_reason: session.failure_reason,
         user_id: session.user_id,
         auth_connection: session.auth_connection,
+        auth_strategy_strategy: session.auth_strategy?.strategy,
+        auth_strategy_strategy_type: session.auth_strategy?.strategy_type,
+        authenticated_at: session.authenticated_at,
         created_at_ts: now,
         updated_at_ts: now,
         expires_at_ts: session.expires_at
@@ -135,6 +138,13 @@ export function createLoginSessionsAdapter(db: DrizzleDb) {
       if (session.user_id !== undefined) updateData.user_id = session.user_id;
       if (session.auth_connection !== undefined)
         updateData.auth_connection = session.auth_connection;
+      if (session.auth_strategy !== undefined) {
+        updateData.auth_strategy_strategy = session.auth_strategy?.strategy;
+        updateData.auth_strategy_strategy_type =
+          session.auth_strategy?.strategy_type;
+      }
+      if (session.authenticated_at !== undefined)
+        updateData.authenticated_at = session.authenticated_at;
       if (session.authorization_url !== undefined)
         updateData.authorization_url = session.authorization_url?.substring(
           0,

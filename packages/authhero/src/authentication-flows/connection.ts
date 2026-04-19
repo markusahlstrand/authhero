@@ -16,7 +16,7 @@ import {
 import { getStrategy, getProviderFromConnection } from "../strategies";
 import { getEnrichedClient } from "../helpers/client";
 import { getOrCreateUserByProvider } from "../helpers/users";
-import { createFrontChannelAuthResponse } from "./common";
+import { finalizeAuthenticatedSession } from "./common";
 import { setTenantId } from "../helpers/set-tenant-id";
 import { nanoid } from "nanoid";
 
@@ -116,29 +116,10 @@ export async function connectionCallback(
     throw new JSONHTTPException(403, { message: "Session not found" });
   }
 
-  // Check if the login was initiated from a custom domain that doesn't match the current request
-  if (loginSession.authorization_url) {
-    const authorizationUrl = new URL(loginSession.authorization_url);
-    // Use .host (not .hostname) to include the port — ctx.var.host includes the port
-    const authorizationUrlHost = authorizationUrl.host;
-    const currentRequestHost = ctx.var.host || "";
-
-    // If the hosts don't match and we have a custom domain in the current tenant
-    if (authorizationUrlHost !== currentRequestHost && authorizationUrlHost) {
-      // Redirect to the same callback endpoint but on the original domain
-      // Use the origin to preserve protocol and port
-      const url = new URL(`${authorizationUrl.origin}/callback`);
-      url.searchParams.set("state", state);
-      url.searchParams.set("code", code);
-
-      return new Response("Redirecting", {
-        status: 307, // Temporary Redirect - preserves the HTTP method
-        headers: {
-          location: url.toString(),
-        },
-      });
-    }
-  }
+  // Cross-domain handling is owned by /authorize/resume — we unconditionally
+  // finalize the login session here and let the resume endpoint 302 the
+  // browser back to the original authorization host if needed. This avoids
+  // the fragile 307-POST re-dispatch the old code used.
 
   const client = await getEnrichedClient(
     env,
@@ -200,9 +181,8 @@ export async function connectionCallback(
     set_user_root_attributes: connection.options.set_user_root_attributes,
   });
 
-  return createFrontChannelAuthResponse(ctx, {
+  return finalizeAuthenticatedSession(ctx, {
     client,
-    authParams: loginSession.authParams,
     loginSession,
     user,
     authConnection: connection.name,

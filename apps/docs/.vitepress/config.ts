@@ -175,6 +175,10 @@ gtag('config', 'G-DNZWG3PF2L');`,
               text: "Universal Login",
               link: "/architecture/universal-login",
             },
+            {
+              text: "Login Flow (endpoints)",
+              link: "/architecture/login-flow",
+            },
             { text: "Adapters", link: "/architecture/adapters" },
             { text: "Audit Events", link: "/architecture/audit-events" },
             {

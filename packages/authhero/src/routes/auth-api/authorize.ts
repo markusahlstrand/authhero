@@ -17,6 +17,7 @@ import { universalAuth } from "../../authentication-flows/universal";
 import { ticketAuth } from "../../authentication-flows/ticket";
 import { silentAuth } from "../../authentication-flows/silent";
 import { connectionAuth } from "../../authentication-flows/connection";
+import { resumeLoginSession } from "../../authentication-flows/resume";
 import { getEnrichedClient } from "../../helpers/client";
 import { getIssuer, getUniversalLoginUrl } from "../../variables";
 import { setTenantId } from "../../helpers/set-tenant-id";
@@ -390,5 +391,61 @@ export const authorizeRoutes = new OpenAPIHono<{
       } else {
         return ctx.json(universalAuthResult);
       }
+    },
+  )
+  // --------------------------------
+  // GET /authorize/resume
+  // --------------------------------
+  // Terminal endpoint that sub-flows (social callback, UL password/OTP/
+  // signup, etc.) 302 to once they've persisted the authenticated user on
+  // the login session. Mirrors Auth0's /authorize/resume.
+  .openapi(
+    createRoute({
+      tags: ["oauth"],
+      method: "get",
+      path: "/resume",
+      request: {
+        query: z.object({
+          state: z.string(),
+        }),
+      },
+      responses: {
+        302: {
+          description:
+            "Redirect to the client's redirect_uri (with cookie set), to a MFA/continuation UL screen, or to the original authorization host when the browser is on the wrong custom domain.",
+          headers: z.object({
+            Location: z.string().url(),
+          }),
+        },
+        400: {
+          description:
+            "Login session is in PENDING, FAILED, or EXPIRED state.",
+          content: {
+            "application/json": {
+              schema: z.object({ message: z.string() }),
+            },
+          },
+        },
+        403: {
+          description: "Login session not found.",
+          content: {
+            "application/json": {
+              schema: z.object({ message: z.string() }),
+            },
+          },
+        },
+        409: {
+          description: "Login session has already been completed (replay).",
+          content: {
+            "application/json": {
+              schema: z.object({ message: z.string() }),
+            },
+          },
+        },
+      },
+    }),
+    async (ctx) => {
+      const { state } = ctx.req.valid("query");
+      return resumeLoginSession(ctx, state);
     },
   );

@@ -38,7 +38,7 @@ export function get(db: Kysely<Database>) {
           state_data: login.state_data,
           failure_reason: login.failure_reason,
         }),
-        ["authParams"],
+        ["authParams", "auth_strategy"],
       ),
     );
   };

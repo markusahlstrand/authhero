@@ -110,6 +110,50 @@ const dataAdapter = {
 const { app } = init({ dataAdapter });
 ```
 
+## Outbox: draining from a cron / scheduled handler
+
+Authhero uses a transactional outbox to deliver audit events and webhook
+dispatches. Events are delivered per-request by default, but you should also
+run `drainOutbox` on a schedule as a safety net for events that failed
+in-request delivery (e.g. a transient webhook 5xx).
+
+Use `createDefaultDestinations` to get the exact same set of destinations the
+in-request middleware uses — that way the cron drain and the per-request
+dispatcher stay in lock-step (hook.\* filtering, retry semantics, the
+`registration_completed_at` finalizer, etc.):
+
+```ts
+import {
+  createDefaultDestinations,
+  drainOutbox,
+  cleanupOutbox,
+} from "authhero";
+
+// Cloudflare Workers scheduled handler (one per cron trigger)
+export default {
+  async scheduled(_event, env) {
+    const destinations = createDefaultDestinations({
+      dataAdapter,
+      // Called per tenant when draining hook.* events. Return a Bearer
+      // access token that your webhook endpoints will accept.
+      getServiceToken: async (tenantId) =>
+        (await mintServiceToken(tenantId, "webhook")).access_token,
+    });
+
+    await drainOutbox(dataAdapter.outbox, destinations);
+    await cleanupOutbox(dataAdapter.outbox, { retentionDays: 7 });
+  },
+};
+```
+
+`getServiceToken` is optional: omit it if your cron only needs to sweep up
+log events. When omitted, `hook.*` events are left in the outbox for a later
+run that does provide a token.
+
+If you need something custom, the underlying classes are also exported:
+`LogsDestination`, `WebhookDestination`, `RegistrationFinalizerDestination`,
+and the `EventDestination` interface.
+
 ## Contributing
 
 Contributions are welcome! Feel free to open issues and submit pull requests to improve Authhero.
