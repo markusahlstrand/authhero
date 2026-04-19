@@ -30,9 +30,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
       `Found ${dupes.length} duplicate (username, provider, tenant_id) group(s) – cleaning up…`,
     );
     for (const d of dupes) {
-      migrationLog(
-        `  username=${d.username} provider=${d.provider} tenant_id=${d.tenant_id} count=${d.cnt}`,
-      );
+      migrationLog(`  provider=${d.provider} count=${d.cnt}`);
     }
 
     // 2. Delete duplicate rows, keeping the one with the smallest user_id per group.

@@ -1,7 +1,7 @@
 // @ts-nocheck - Migration modifies columns not in the Database type
 import { Kysely, sql } from "kysely";
 import { Database } from "../../src/db";
-import { migrationLog } from "../log";
+import { migrationLog, migrationWarn } from "../log";
 
 /**
  * Migration: Session Tables - Drop Old Date Columns and Increase ID Size for ULID
@@ -70,7 +70,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
     );
     migrationLog("  Dropped index login_sessions_state_updated_idx");
   } catch (error: unknown) {
-    migrationLog(
+    migrationWarn(
       `  Warning: Failed to drop index login_sessions_state_updated_idx: ${error instanceof Error ? error.message : String(error)}`,
     );
   }

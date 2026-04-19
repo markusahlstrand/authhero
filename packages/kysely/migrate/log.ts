@@ -9,3 +9,7 @@ export function migrationLog(...args: unknown[]): void {
     console.log(...args);
   }
 }
+
+export function migrationWarn(...args: unknown[]): void {
+  console.warn(...args);
+}
