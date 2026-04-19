@@ -13,6 +13,7 @@ import {
   Strategy,
   auth0UserResponseSchema,
   identitySchema,
+  logSchema,
   sessionSchema,
   totalsSchema,
   userInsertSchema,
@@ -53,6 +54,10 @@ const usersWithTotalsSchema = totalsSchema.extend({
 
 const sessionsWithTotalsSchema = totalsSchema.extend({
   sessions: z.array(sessionSchema),
+});
+
+const logsWithTotalsSchema = totalsSchema.extend({
+  logs: z.array(logSchema),
 });
 
 const userOrganizationsWithTotalsSchema = totalsSchema.extend({
@@ -839,6 +844,73 @@ export const userRoutes = new OpenAPIHono<{
       }
 
       return ctx.json(sessions);
+    },
+  )
+  // --------------------------------
+  // GET /users/:user_id/logs
+  // --------------------------------
+  .openapi(
+    createRoute({
+      tags: ["users"],
+      method: "get",
+      path: "/{user_id}/logs",
+      request: {
+        query: querySchema,
+        headers: z.object({
+          "tenant-id": z.string().optional(),
+        }),
+        params: z.object({
+          user_id: z.string(),
+        }),
+      },
+      security: [
+        {
+          Bearer: ["read:logs", "auth:read"],
+        },
+      ],
+      responses: {
+        200: {
+          content: {
+            "application/json": {
+              schema: z.union([z.array(logSchema), logsWithTotalsSchema]),
+            },
+          },
+          description: "List of logs across the user and any linked accounts",
+        },
+      },
+    }),
+    async (ctx) => {
+      const { user_id } = ctx.req.valid("param");
+      const { include_totals, page, per_page, sort } = ctx.req.valid("query");
+
+      const user = await ctx.env.data.users.get(ctx.var.tenant_id, user_id);
+      if (!user || user.linked_to) {
+        throw new HTTPException(404);
+      }
+
+      const linked = await ctx.env.data.users.list(ctx.var.tenant_id, {
+        page: 0,
+        per_page: 100,
+        include_totals: false,
+        q: `linked_to:${user_id}`,
+      });
+
+      const userIds = [user_id, ...linked.users.map((u) => u.user_id)];
+      const q = userIds.map((id) => `user_id:"${id}"`).join(" OR ");
+
+      const result = await ctx.env.data.logs.list(ctx.var.tenant_id, {
+        page,
+        per_page,
+        include_totals,
+        sort: parseSort(sort),
+        q,
+      });
+
+      if (!include_totals) {
+        return ctx.json(result.logs);
+      }
+
+      return ctx.json(result);
     },
   )
   // --------------------------------

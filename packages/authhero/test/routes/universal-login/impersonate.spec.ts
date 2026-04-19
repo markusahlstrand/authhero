@@ -710,11 +710,20 @@ describe("impersonation routes", () => {
         );
       }
 
-      // Should redirect to impersonation page instead of completing auth
+      // The callback hops to /authorize/resume; the impersonation hook fires
+      // during the resume step.
       expect(callbackResponse.status).toBe(302);
-      const callbackLocation = callbackResponse.headers.get("location");
-      expect(callbackLocation).toContain("/u/impersonate");
-      expect(callbackLocation).toContain(`state=${loginSession.id}`);
+      expect(callbackResponse.headers.get("location")).toEqual(
+        `/authorize/resume?state=${loginSession.id}`,
+      );
+
+      const resumeResponse = await oauthClient.authorize.resume.$get({
+        query: { state: loginSession.id },
+      });
+      expect(resumeResponse.status).toBe(302);
+      const resumeLocation = resumeResponse.headers.get("location");
+      expect(resumeLocation).toContain("/u/impersonate");
+      expect(resumeLocation).toContain(`state=${loginSession.id}`);
     });
 
     it("should complete social login normally when user does not have impersonation permission", async () => {
@@ -792,14 +801,23 @@ describe("impersonation routes", () => {
         },
       });
 
-      // Should complete auth normally (redirect to client callback with code)
+      // Callback hops to /authorize/resume, which then redirects to the
+      // client's redirect_uri with the authorization code.
       expect(callbackResponse.status).toBe(302);
-      const callbackLocation = callbackResponse.headers.get("location");
-      expect(callbackLocation).toContain("https://example.com/callback");
-      expect(callbackLocation).toContain("code=");
-      expect(callbackLocation).toContain("state=auth-state");
+      expect(callbackResponse.headers.get("location")).toEqual(
+        `/authorize/resume?state=${loginSession.id}`,
+      );
+
+      const resumeResponse = await oauthClient.authorize.resume.$get({
+        query: { state: loginSession.id },
+      });
+      expect(resumeResponse.status).toBe(302);
+      const resumeLocation = resumeResponse.headers.get("location");
+      expect(resumeLocation).toContain("https://example.com/callback");
+      expect(resumeLocation).toContain("code=");
+      expect(resumeLocation).toContain("state=auth-state");
       // Should NOT redirect to impersonation page
-      expect(callbackLocation).not.toContain("/u/impersonate");
+      expect(resumeLocation).not.toContain("/u/impersonate");
     });
 
     it("should work with linked social accounts and check permissions on primary user", async () => {
@@ -900,11 +918,19 @@ describe("impersonation routes", () => {
         },
       });
 
-      // Should redirect to impersonation page because PRIMARY user has permission
+      // Callback hops to /authorize/resume; the impersonation check runs there.
       expect(callbackResponse.status).toBe(302);
-      const callbackLocation = callbackResponse.headers.get("location");
-      expect(callbackLocation).toContain("/u/impersonate");
-      expect(callbackLocation).toContain(`state=${loginSession.id}`);
+      expect(callbackResponse.headers.get("location")).toEqual(
+        `/authorize/resume?state=${loginSession.id}`,
+      );
+
+      const resumeResponse = await oauthClient.authorize.resume.$get({
+        query: { state: loginSession.id },
+      });
+      expect(resumeResponse.status).toBe(302);
+      const resumeLocation = resumeResponse.headers.get("location");
+      expect(resumeLocation).toContain("/u/impersonate");
+      expect(resumeLocation).toContain(`state=${loginSession.id}`);
     });
   });
 

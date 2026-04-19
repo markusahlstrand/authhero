@@ -1,6 +1,7 @@
 // @ts-nocheck - Migration uses temporary columns not in the Database type
 import { Kysely, sql } from "kysely";
 import { Database } from "../../src/db";
+import { migrationLog } from "../log";
 
 /**
  * Migration: Hooks Table - Add template_id, timestamp columns, and fix column types (Part 1 of 2)
@@ -43,7 +44,7 @@ async function safeAddColumn(
       (error.message.includes("1060") ||
         error.message.includes("duplicate column"))
     ) {
-      console.log(
+      migrationLog(
         `  Column ${tableName}.${columnName} already exists, skipping`,
       );
       return;

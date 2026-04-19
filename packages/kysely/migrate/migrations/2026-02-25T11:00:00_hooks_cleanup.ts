@@ -1,6 +1,7 @@
 // @ts-nocheck - Migration modifies columns not in the Database type
 import { Kysely, sql } from "kysely";
 import { Database } from "../../src/db";
+import { migrationLog } from "../log";
 
 /**
  * Migration: Hooks Table - Drop old columns and fix column types (Part 2 of 2)
@@ -42,7 +43,7 @@ async function safeDropColumn(
       errorMessage.includes("1091") ||
       errorMessage.includes("no such column")
     ) {
-      console.log(
+      migrationLog(
         `  Column ${tableName}.${columnName} doesn't exist, skipping`,
       );
       return;
@@ -57,7 +58,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
   // ========================================
   // PREFLIGHT: Verify all rows have valid _ts columns before dropping legacy columns
   // ========================================
-  console.log(
+  migrationLog(
     "Running preflight integrity check on hooks timestamp columns...",
   );
 
@@ -80,13 +81,13 @@ export async function up(db: Kysely<Database>): Promise<void> {
     );
   }
 
-  console.log("  Preflight check passed — all _ts columns are populated.");
+  migrationLog("  Preflight check passed — all _ts columns are populated.");
 
   // ========================================
   // PREFLIGHT: Verify existing data fits within the narrower column sizes
   // ========================================
   if (dbType === "mysql") {
-    console.log("Running preflight length check on columns being narrowed...");
+    migrationLog("Running preflight length check on columns being narrowed...");
 
     const { rows: lengthCheck } = await sql<{
       long_hook_id: number;
@@ -124,7 +125,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
       );
     }
 
-    console.log(
+    migrationLog(
       "  Preflight length check passed — all values fit within new column sizes.",
     );
   }
@@ -132,7 +133,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
   // ========================================
   // STEP 1: Drop old varchar date columns
   // ========================================
-  console.log("Dropping old date columns from hooks...");
+  migrationLog("Dropping old date columns from hooks...");
   await safeDropColumn(db, "hooks", "created_at");
   await safeDropColumn(db, "hooks", "updated_at");
 
@@ -140,7 +141,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
   // STEP 2: Fix column types (MySQL only - SQLite doesn't support MODIFY COLUMN)
   // ========================================
   if (dbType === "mysql") {
-    console.log("Fixing hook column types...");
+    migrationLog("Fixing hook column types...");
 
     // hook_id: varchar(255) -> varchar(21) (nanoid with h_ prefix = 19 chars, 21 gives headroom)
     await db.schema

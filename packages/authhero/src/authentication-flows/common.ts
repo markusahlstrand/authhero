@@ -627,13 +627,18 @@ export async function authenticateLoginSession(
   const currentState = currentLoginSession.state || LoginSessionState.PENDING;
 
   // Guard against terminal states (EXPIRED is allowed — see createFrontChannelAuthResponse)
-  if (
-    currentState === LoginSessionState.FAILED ||
-    currentState === LoginSessionState.COMPLETED
-  ) {
+  if (currentState === LoginSessionState.FAILED) {
     throw new JSONHTTPException(400, {
       error: "access_denied",
-      error_description: `Cannot authenticate login session in ${currentState} state`,
+      error_description:
+        currentLoginSession.failure_reason ||
+        "Cannot authenticate login session in failed state",
+    });
+  }
+  if (currentState === LoginSessionState.COMPLETED) {
+    throw new JSONHTTPException(400, {
+      error: "access_denied",
+      error_description: "Login session has already been completed",
     });
   }
 
@@ -724,6 +729,69 @@ export async function authenticateLoginSession(
   });
 
   return session_id;
+}
+
+export interface FinalizeAuthenticatedSessionParams
+  extends AuthenticateLoginSessionParams {
+  /** Strategy metadata persisted so /authorize/resume can rehydrate it */
+  authStrategy?: { strategy: string; strategy_type: string };
+}
+
+/**
+ * Persist an authenticated identity onto the login session and 302 the browser
+ * to `/authorize/resume?state=…`. This is the terminal step for sub-flows
+ * (social callback, UL password/OTP/signup, SAML SP-ACS, etc.) — instead of
+ * issuing tokens and setting the session cookie inline, they persist enough
+ * state for the resume endpoint to do it on the correct domain.
+ *
+ * Mirrors Auth0's pattern where /u/login/{password,…} 302s to /authorize/resume.
+ */
+export async function finalizeAuthenticatedSession(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  params: FinalizeAuthenticatedSessionParams,
+): Promise<Response> {
+  const { user, client, loginSession, authStrategy, authConnection } = params;
+
+  await authenticateLoginSession(ctx, {
+    user,
+    client,
+    loginSession,
+    existingSessionId: params.existingSessionId,
+    authConnection,
+  });
+
+  // Persist strategy + timestamp so /authorize/resume can reconstruct the call
+  // to createFrontChannelAuthResponse without the sub-flow having to keep
+  // authStrategy in memory across the redirect.
+  await ctx.env.data.loginSessions.update(client.tenant.id, loginSession.id, {
+    ...(authStrategy ? { auth_strategy: authStrategy } : {}),
+    authenticated_at: new Date().toISOString(),
+  });
+
+  // If the authorize request came in on a different host (e.g. a tenant
+  // custom domain), send the browser to /authorize/resume on THAT host so the
+  // session cookie lands under the right wildcard. Falls back to a relative
+  // redirect otherwise.
+  const resumePath = `/authorize/resume?state=${encodeURIComponent(loginSession.id)}`;
+  let location = resumePath;
+  if (loginSession.authorization_url) {
+    try {
+      const authzUrl = new URL(loginSession.authorization_url);
+      const currentHost = ctx.var.host || "";
+      if (authzUrl.host && authzUrl.host !== currentHost) {
+        location = `${authzUrl.origin}${resumePath}`;
+      }
+    } catch {
+      // Malformed authorization_url — just use the relative path.
+    }
+  }
+
+  return new Response(null, {
+    status: 302,
+    headers: {
+      location,
+    },
+  });
 }
 
 /**

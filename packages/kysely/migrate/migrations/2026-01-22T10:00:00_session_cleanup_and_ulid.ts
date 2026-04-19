@@ -1,6 +1,7 @@
 // @ts-nocheck - Migration modifies columns not in the Database type
 import { Kysely, sql } from "kysely";
 import { Database } from "../../src/db";
+import { migrationLog, migrationWarn } from "../log";
 
 /**
  * Migration: Session Tables - Drop Old Date Columns and Increase ID Size for ULID
@@ -44,7 +45,7 @@ async function safeDropColumn(
       errorMessage.includes("1091") ||
       errorMessage.includes("no such column")
     ) {
-      console.log(
+      migrationLog(
         `  Column ${tableName}.${columnName} doesn't exist, skipping`,
       );
       return;
@@ -59,7 +60,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
   // ========================================
   // STEP 0: Drop indexes that depend on columns we're about to drop
   // ========================================
-  console.log("Dropping indexes that depend on old date columns...");
+  migrationLog("Dropping indexes that depend on old date columns...");
 
   // Drop the composite index on (state, updated_at) that was created in login_session_state migration
   try {
@@ -67,9 +68,9 @@ export async function up(db: Kysely<Database>): Promise<void> {
     await sql`DROP INDEX IF EXISTS login_sessions_state_updated_idx`.execute(
       db,
     );
-    console.log("  Dropped index login_sessions_state_updated_idx");
+    migrationLog("  Dropped index login_sessions_state_updated_idx");
   } catch (error: unknown) {
-    console.log(
+    migrationWarn(
       `  Warning: Failed to drop index login_sessions_state_updated_idx: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
@@ -77,7 +78,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
   // ========================================
   // STEP 1: Drop old varchar date columns
   // ========================================
-  console.log("Dropping old date columns...");
+  migrationLog("Dropping old date columns...");
 
   // --- refresh_tokens ---
   await safeDropColumn(db, "refresh_tokens", "created_at");
@@ -105,7 +106,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
   // Note: SQLite doesn't enforce varchar length, so we only need to do this for MySQL
   // ========================================
   if (dbType === "mysql") {
-    console.log("Increasing ID column sizes for ULID support...");
+    migrationLog("Increasing ID column sizes for ULID support...");
 
     // --- login_sessions ---
     await db.schema
@@ -142,7 +143,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
       .execute();
   }
 
-  console.log("Migration completed successfully");
+  migrationLog("Migration completed successfully");
 }
 
 export async function down(db: Kysely<Database>): Promise<void> {
@@ -153,7 +154,7 @@ export async function down(db: Kysely<Database>): Promise<void> {
   // Note: This may cause data loss if ULIDs longer than 21 chars exist
   // ========================================
   if (dbType === "mysql") {
-    console.log("Restoring ID column sizes to varchar(21)...");
+    migrationLog("Restoring ID column sizes to varchar(21)...");
 
     // --- login_sessions ---
     await db.schema
@@ -194,7 +195,7 @@ export async function down(db: Kysely<Database>): Promise<void> {
   // STEP 2: Re-add old varchar date columns
   // Note: Data cannot be restored automatically
   // ========================================
-  console.log("Re-adding old date columns (data will be empty)...");
+  migrationLog("Re-adding old date columns (data will be empty)...");
 
   // --- refresh_tokens ---
   await db.schema
@@ -262,5 +263,5 @@ export async function down(db: Kysely<Database>): Promise<void> {
     .addColumn("expires_at", "varchar(35)")
     .execute();
 
-  console.log("Rollback completed");
+  migrationLog("Rollback completed");
 }

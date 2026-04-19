@@ -1,4 +1,5 @@
 import { Kysely } from "kysely";
+import { migrationLog, migrationWarn } from "../log";
 
 /**
  * Add authParams_max_age and authParams_acr_values columns to login_sessions table
@@ -11,10 +12,10 @@ export async function up(db: Kysely<any>): Promise<void> {
       .alterTable("login_sessions")
       .addColumn("authParams_max_age", "integer")
       .execute();
-    console.log("  Added column authParams_max_age to login_sessions");
+    migrationLog("  Added column authParams_max_age to login_sessions");
   } catch (error) {
     // Column might already exist
-    console.log(
+    migrationWarn(
       `  Warning: Could not add authParams_max_age column: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
@@ -25,10 +26,10 @@ export async function up(db: Kysely<any>): Promise<void> {
       .alterTable("login_sessions")
       .addColumn("authParams_acr_values", "text")
       .execute();
-    console.log("  Added column authParams_acr_values to login_sessions");
+    migrationLog("  Added column authParams_acr_values to login_sessions");
   } catch (error) {
     // Column might already exist
-    console.log(
+    migrationWarn(
       `  Warning: Could not add authParams_acr_values column: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
@@ -41,7 +42,7 @@ export async function down(db: Kysely<any>): Promise<void> {
       .dropColumn("authParams_max_age")
       .execute();
   } catch (error) {
-    console.log(
+    migrationWarn(
       `  Warning: Could not drop authParams_max_age column: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
@@ -52,7 +53,7 @@ export async function down(db: Kysely<any>): Promise<void> {
       .dropColumn("authParams_acr_values")
       .execute();
   } catch (error) {
-    console.log(
+    migrationWarn(
       `  Warning: Could not drop authParams_acr_values column: ${error instanceof Error ? error.message : String(error)}`,
     );
   }

@@ -48,7 +48,20 @@ function sqlToLoginSession(row: any): LoginSession {
     ["created_at_ts", "updated_at_ts", "expires_at_ts"],
   );
 
-  const unflattened = unflattenObject(rest, ["authParams"]);
+  // Prune null/undefined flattened columns before unflattening so that e.g.
+  // auth_strategy_* being NULL doesn't produce a bogus empty auth_strategy
+  // object after unflatten.
+  const restPruned: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(rest)) {
+    if (value !== null && value !== undefined) {
+      restPruned[key] = value;
+    }
+  }
+
+  const unflattened = unflattenObject(restPruned, [
+    "authParams",
+    "auth_strategy",
+  ]);
 
   return removeNullProperties({
     ...unflattened,
@@ -86,6 +99,9 @@ export function createLoginSessionsAdapter(db: DrizzleDb) {
         failure_reason: session.failure_reason,
         user_id: session.user_id,
         auth_connection: session.auth_connection,
+        auth_strategy_strategy: session.auth_strategy?.strategy,
+        auth_strategy_strategy_type: session.auth_strategy?.strategy_type,
+        authenticated_at: session.authenticated_at,
         created_at_ts: now,
         updated_at_ts: now,
         expires_at_ts: session.expires_at
@@ -104,13 +120,13 @@ export function createLoginSessionsAdapter(db: DrizzleDb) {
     },
 
     async get(tenant_id: string, id: string): Promise<LoginSession | null> {
-      const result = await db
-        .select()
-        .from(loginSessions)
-        .where(
-          and(eq(loginSessions.tenant_id, tenant_id), eq(loginSessions.id, id)),
-        )
-        .get();
+      // /authorize/resume calls get() before the tenant is known, so accept
+      // an empty tenant_id and look up by id alone in that case.
+      const where = tenant_id
+        ? and(eq(loginSessions.tenant_id, tenant_id), eq(loginSessions.id, id))
+        : eq(loginSessions.id, id);
+
+      const result = await db.select().from(loginSessions).where(where).get();
 
       if (!result) return null;
       return sqlToLoginSession(result);
@@ -135,6 +151,13 @@ export function createLoginSessionsAdapter(db: DrizzleDb) {
       if (session.user_id !== undefined) updateData.user_id = session.user_id;
       if (session.auth_connection !== undefined)
         updateData.auth_connection = session.auth_connection;
+      if (session.auth_strategy !== undefined) {
+        updateData.auth_strategy_strategy = session.auth_strategy?.strategy;
+        updateData.auth_strategy_strategy_type =
+          session.auth_strategy?.strategy_type;
+      }
+      if (session.authenticated_at !== undefined)
+        updateData.authenticated_at = session.authenticated_at;
       if (session.authorization_url !== undefined)
         updateData.authorization_url = session.authorization_url?.substring(
           0,

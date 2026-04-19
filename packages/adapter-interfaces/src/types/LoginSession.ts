@@ -28,6 +28,20 @@ export const loginSessionStateSchema = z.nativeEnum(LoginSessionState);
 /** Continuation scope - which pages/actions are allowed during continuation */
 export type ContinuationScope = "change-email" | "account" | "custom";
 
+/**
+ * Strategy metadata persisted alongside the authenticated user so that
+ * `/authorize/resume` can re-hydrate everything `createFrontChannelAuthResponse`
+ * needs without the sub-flow having to keep that context in memory.
+ */
+export const loginSessionAuthStrategySchema = z.object({
+  strategy: z.string(),
+  strategy_type: z.string(),
+});
+
+export type LoginSessionAuthStrategy = z.infer<
+  typeof loginSessionAuthStrategySchema
+>;
+
 export const loginSessionInsertSchema = z
   .object({
     csrf_token: z.string(),
@@ -46,6 +60,8 @@ export const loginSessionInsertSchema = z
     failure_reason: z.string().optional(),
     user_id: z.string().optional(), // Set once user is authenticated
     auth_connection: z.string().optional(), // The connection used to authenticate (may differ from primary user's connection)
+    auth_strategy: loginSessionAuthStrategySchema.optional(),
+    authenticated_at: z.string().optional(), // ISO timestamp persisted for audit/metadata; not used to reject resumed sessions
   })
   .openapi({
     description: "This represents a login sesion",

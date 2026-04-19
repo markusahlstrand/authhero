@@ -1,5 +1,6 @@
 import { Kysely, sql } from "kysely";
 import { Database } from "../../src/db";
+import { migrationLog } from "../log";
 
 // Helper function to detect database type
 async function getDatabaseType(
@@ -63,7 +64,7 @@ async function upMySQL(db: Kysely<Database>): Promise<void> {
         await sql`ALTER TABLE ${sql.raw(tableName)} DROP FOREIGN KEY ${sql.raw(constraintName)}`.execute(
           trx,
         );
-        console.log(
+        migrationLog(
           `Dropped foreign key constraint ${constraintName} from ${tableName}`,
         );
       } catch (error) {

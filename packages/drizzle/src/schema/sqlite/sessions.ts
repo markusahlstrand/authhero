@@ -107,6 +107,11 @@ export const loginSessions = sqliteTable(
     failure_reason: text("failure_reason"),
     user_id: text("user_id", { length: 255 }),
     auth_connection: text("auth_connection", { length: 255 }),
+    auth_strategy_strategy: text("auth_strategy_strategy", { length: 64 }),
+    auth_strategy_strategy_type: text("auth_strategy_strategy_type", {
+      length: 64,
+    }),
+    authenticated_at: text("authenticated_at", { length: 35 }),
   },
   (table) => [
     primaryKey({
