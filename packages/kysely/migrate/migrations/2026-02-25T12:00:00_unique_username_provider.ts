@@ -1,5 +1,6 @@
 import { Kysely, sql } from "kysely";
 import { Database } from "../../src/db";
+import { migrationLog } from "../log";
 
 /**
  * Up migration: Add unique index on (username, provider, tenant_id)
@@ -25,11 +26,11 @@ export async function up(db: Kysely<Database>): Promise<void> {
   `.execute(db);
 
   if (dupes.length > 0) {
-    console.log(
+    migrationLog(
       `Found ${dupes.length} duplicate (username, provider, tenant_id) group(s) – cleaning up…`,
     );
     for (const d of dupes) {
-      console.log(
+      migrationLog(
         `  username=${d.username} provider=${d.provider} tenant_id=${d.tenant_id} count=${d.cnt}`,
       );
     }
@@ -54,7 +55,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
         )
     `.execute(db);
 
-    console.log("Duplicate rows removed.");
+    migrationLog("Duplicate rows removed.");
   }
 
   // 3. Now safe to create the unique index.

@@ -13,7 +13,11 @@ import {
   OAUTH2_CODE_EXPIRES_IN_SECONDS,
   UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS,
 } from "../constants";
-import { getStrategy, getProviderFromConnection } from "../strategies";
+import {
+  getStrategy,
+  getProviderFromConnection,
+  ENTERPRISE_STRATEGIES,
+} from "../strategies";
 import { getEnrichedClient } from "../helpers/client";
 import { getOrCreateUserByProvider } from "../helpers/users";
 import { finalizeAuthenticatedSession } from "./common";
@@ -169,6 +173,10 @@ export async function connectionCallback(
 
   ctx.set("username", email);
 
+  const isEnterprise = ENTERPRISE_STRATEGIES.has(connection.strategy);
+  const strategy_type = isEnterprise ? "enterprise" : StrategyType.SOCIAL;
+  const isSocial = !isEnterprise;
+
   const user = await getOrCreateUserByProvider(ctx, {
     client,
     username: email,
@@ -176,7 +184,7 @@ export async function connectionCallback(
     connection: connection.name,
     userId: sub,
     profileData,
-    isSocial: true,
+    isSocial,
     ip: ctx.var.ip,
     set_user_root_attributes: connection.options.set_user_root_attributes,
   });
@@ -188,7 +196,7 @@ export async function connectionCallback(
     authConnection: connection.name,
     authStrategy: {
       strategy: connection.strategy,
-      strategy_type: StrategyType.SOCIAL,
+      strategy_type,
     },
   });
 }

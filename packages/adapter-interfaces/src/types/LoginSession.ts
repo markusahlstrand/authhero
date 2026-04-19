@@ -61,7 +61,7 @@ export const loginSessionInsertSchema = z
     user_id: z.string().optional(), // Set once user is authenticated
     auth_connection: z.string().optional(), // The connection used to authenticate (may differ from primary user's connection)
     auth_strategy: loginSessionAuthStrategySchema.optional(),
-    authenticated_at: z.string().optional(), // ISO timestamp — /authorize/resume rejects sessions older than a short replay window
+    authenticated_at: z.string().optional(), // ISO timestamp persisted for audit/metadata; not used to reject resumed sessions
   })
   .openapi({
     description: "This represents a login sesion",

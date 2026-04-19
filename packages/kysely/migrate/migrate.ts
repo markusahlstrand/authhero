@@ -2,9 +2,11 @@ import { Kysely, Migrator } from "kysely";
 
 import ReferenceMigrationProvider from "./ReferenceMigrationProvider";
 import migrations from "./migrations";
+import { setMigrationDebug } from "./log";
 import { Database } from "../src/db";
 
 export async function migrateToLatest(db: Kysely<Database>, debug = false) {
+  setMigrationDebug(debug);
   if (debug) {
     console.log("migrating...");
   }
@@ -34,8 +36,11 @@ export async function migrateToLatest(db: Kysely<Database>, debug = false) {
   }
 }
 
-export async function migrateDown(db: Kysely<Database>) {
-  console.log("migrating...");
+export async function migrateDown(db: Kysely<Database>, debug = false) {
+  setMigrationDebug(debug);
+  if (debug) {
+    console.log("migrating...");
+  }
 
   const provider = new ReferenceMigrationProvider(migrations);
   const migrator = new Migrator({
@@ -45,7 +50,11 @@ export async function migrateDown(db: Kysely<Database>) {
   const { error, results } = await migrator.migrateDown();
   results?.forEach((it) => {
     if (it.status === "Success") {
-      console.log(`migration "${it.migrationName}" was reverted successfully`);
+      if (debug) {
+        console.log(
+          `migration "${it.migrationName}" was reverted successfully`,
+        );
+      }
     } else if (it.status === "Error") {
       console.error(`failed to execute migration "${it.migrationName}"`);
     }
