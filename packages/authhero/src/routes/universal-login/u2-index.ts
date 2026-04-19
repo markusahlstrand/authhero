@@ -28,6 +28,9 @@ import { tenantMiddleware } from "../../middlewares/tenant";
 import { clientInfoMiddleware } from "../../middlewares/client-info";
 import { outboxMiddleware } from "../../middlewares/outbox";
 import { LogsDestination } from "../../helpers/outbox-destinations/logs";
+import { WebhookDestination } from "../../helpers/outbox-destinations/webhooks";
+import { RegistrationFinalizerDestination } from "../../helpers/outbox-destinations/registration-finalizer";
+import { createServiceToken } from "../../helpers/service-token";
 import { screenApiRoutes } from "./screen-api";
 import { u2Routes } from "./u2-routes.tsx";
 import { u2FormNodeRoutes } from "./u2-form-node.tsx";
@@ -70,7 +73,17 @@ export default function createU2App(config: AuthHeroConfig) {
     .use(
       outboxMiddleware({
         getOutbox: () => config.dataAdapter.outbox,
-        getDestinations: () => [new LogsDestination(config.dataAdapter.logs)],
+        getDestinations: (ctx) => [
+          new LogsDestination(config.dataAdapter.logs),
+          new WebhookDestination(
+            config.dataAdapter.hooks,
+            async (tenantId) => {
+              const token = await createServiceToken(ctx, tenantId, "webhook");
+              return token.access_token;
+            },
+          ),
+          new RegistrationFinalizerDestination(config.dataAdapter.users),
+        ],
       }),
     )
     .use(async (ctx, next) => {
