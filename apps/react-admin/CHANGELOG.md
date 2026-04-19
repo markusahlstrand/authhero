@@ -1,5 +1,17 @@
 # @authhero/react-admin
 
+## 0.64.2
+
+### Patch Changes
+
+- 931f598: Add `GET /api/v2/users/{user_id}/logs` endpoint that returns log rows for the user and all of its linked secondary identities. Calling it with a secondary user_id returns 404, matching the convention used by the user PATCH endpoint.
+
+  The react-admin user **Logs** tab now hits this endpoint, so it surfaces login activity from linked accounts (which the previous `q=user_id:…` query against `/logs` silently missed, since linked accounts are stored as separate user rows and each retains its own `user_id` on log entries).
+
+- Updated dependencies [931f598]
+  - @authhero/adapter-interfaces@1.5.0
+  - @authhero/widget@0.32.2
+
 ## 0.64.1
 
 ### Patch Changes
