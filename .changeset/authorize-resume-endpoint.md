@@ -2,7 +2,7 @@
 "authhero": minor
 "@authhero/adapter-interfaces": minor
 "@authhero/kysely-adapter": minor
-"@authhero/drizzle-adapter": minor
+"@authhero/drizzle": minor
 ---
 
 Add `GET /authorize/resume` endpoint mirroring Auth0's terminal login-session resumption point.
