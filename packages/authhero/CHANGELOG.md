@@ -1,5 +1,31 @@
 # authhero
 
+## 4.101.0
+
+### Minor Changes
+
+- 931f598: Add `GET /authorize/resume` endpoint mirroring Auth0's terminal login-session resumption point.
+
+  Sub-flows now persist the authenticated identity onto the login session (new `auth_strategy` and `authenticated_at` columns on `login_sessions`) and 302 the browser to `/authorize/resume?state=…`. The resume endpoint owns (a) hopping back to the original authorization host when the browser is on the wrong custom domain so the session cookie lands under the right wildcard, and (b) dispatching based on the login-session state machine to the final token/code issuance or to the next MFA/continuation screen.
+
+  The social OAuth callback is migrated as the first consumer: the old 307-POST cross-domain re-dispatch in `connectionCallback` is replaced by a plain 302 to `/authorize/resume`, and the OAuth code exchange now always runs once on whichever host the provider called back to. Subsequent PRs will migrate the password / OTP / signup / SAML sub-flows to the same pattern, after which the ad-hoc `Set-Cookie` forwarding layers in Universal Login can be removed.
+
+- 931f598: Export `createDefaultDestinations` so consumers can call `drainOutbox` from a cron / scheduled handler with the same destination set the in-request middleware uses.
+
+  Previously the built-in `LogsDestination`, `WebhookDestination`, and `RegistrationFinalizerDestination` classes were private, so a consumer wanting to wire a cron-based outbox drain as a safety net would have had to reimplement all three to match the canonical hook.\* filtering, retry semantics, and post-registration finalization — and would drift any time authhero's internals changed. `createDefaultDestinations({ dataAdapter, getServiceToken })` returns the same array the per-request `outboxMiddleware` constructs, keeping the cron drain and the inline dispatcher in lock-step.
+
+  The destination classes themselves (`LogsDestination`, `WebhookDestination`, `RegistrationFinalizerDestination`) and the `EventDestination` interface are also exported now for consumers who want to customize the set.
+
+- 931f598: Add `GET /api/v2/users/{user_id}/logs` endpoint that returns log rows for the user and all of its linked secondary identities. Calling it with a secondary user_id returns 404, matching the convention used by the user PATCH endpoint.
+
+  The react-admin user **Logs** tab now hits this endpoint, so it surfaces login activity from linked accounts (which the previous `q=user_id:…` query against `/logs` silently missed, since linked accounts are stored as separate user rows and each retains its own `user_id` on log entries).
+
+### Patch Changes
+
+- Updated dependencies [931f598]
+  - @authhero/adapter-interfaces@1.5.0
+  - @authhero/widget@0.32.2
+
 ## 4.100.0
 
 ### Minor Changes
