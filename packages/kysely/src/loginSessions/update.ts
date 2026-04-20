@@ -13,6 +13,28 @@ export function update(db: Kysely<Database>) {
     // Extract date fields that need conversion (they come as ISO strings from the adapter interface)
     const { created_at, updated_at, expires_at, ...rest } = login;
 
+    // When authParams is updated, also merge it into the auth_params JSON blob
+    // so the blob stays in sync with the hoisted authParams_* columns that
+    // flattenObject() below writes. Pre-backfill rows (no blob yet) keep the
+    // blob NULL and continue to read via the hoisted-columns fallback in get.
+    let authParamsBlobSet: Record<string, unknown> = {};
+    if (rest.authParams !== undefined) {
+      const existing = await db
+        .selectFrom("login_sessions")
+        .where("login_sessions.id", "=", login_id)
+        .where("login_sessions.tenant_id", "=", tenant_id)
+        .select(["auth_params" as any])
+        .executeTakeFirst();
+      const existingBlob = (existing as { auth_params?: string | null } | undefined)
+        ?.auth_params;
+      if (typeof existingBlob === "string" && existingBlob.length > 0) {
+        const parsed = JSON.parse(existingBlob);
+        authParamsBlobSet = {
+          auth_params: JSON.stringify({ ...parsed, ...rest.authParams }),
+        };
+      }
+    }
+
     const flattened = flattenObject(rest) as Record<string, unknown>;
 
     // Remove any _ts fields that might have been passed through
@@ -27,6 +49,7 @@ export function update(db: Kysely<Database>) {
       .updateTable("login_sessions")
       .set({
         ...flattened,
+        ...authParamsBlobSet,
         updated_at_ts: Date.now(),
         // Only update expires_at_ts if a new expires_at was provided
         // Use !== undefined to preserve null values (which mean "doesn't expire")

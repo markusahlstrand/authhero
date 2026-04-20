@@ -39,6 +39,9 @@ export function create(db: Kysely<Database>) {
       .values({
         ...flattenedLogin,
         tenant_id,
+        // Dual-write: the hoisted authParams_* columns above are populated by
+        // flattenObject(); auth_params is the canonical JSON-serialized copy.
+        auth_params: JSON.stringify(createdLogin.authParams),
         created_at_ts: nowTs,
         updated_at_ts: nowTs,
         expires_at_ts: login.expires_at
