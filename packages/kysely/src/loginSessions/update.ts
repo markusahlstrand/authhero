@@ -11,28 +11,37 @@ export function update(db: Kysely<Database>) {
     login: Partial<LoginSession>,
   ) => {
     // Extract date fields that need conversion (they come as ISO strings from the adapter interface)
-    const { created_at, updated_at, expires_at, ...rest } = login;
+    // and pull authParams out before flattening so we don't emit legacy
+    // `authParams_*` columns — the JSON blob is the sole storage path.
+    const {
+      created_at,
+      updated_at,
+      expires_at,
+      authParams,
+      ...rest
+    } = login;
 
-    // When authParams is updated, also merge it into the auth_params JSON blob
-    // so the blob stays in sync with the hoisted authParams_* columns that
-    // flattenObject() below writes. Pre-backfill rows (no blob yet) keep the
-    // blob NULL and continue to read via the hoisted-columns fallback in get.
+    // When authParams is being updated, merge it into the existing blob so
+    // partial updates (e.g. `{ authParams: { username } }`) don't wipe sibling
+    // fields. Post-backfill every row has a blob; the `typeof` guard is a
+    // defensive no-op for the pathological case of a row the migration
+    // didn't touch.
     let authParamsBlobSet: Record<string, unknown> = {};
-    if (rest.authParams !== undefined) {
+    if (authParams !== undefined) {
       const existing = await db
         .selectFrom("login_sessions")
         .where("login_sessions.id", "=", login_id)
         .where("login_sessions.tenant_id", "=", tenant_id)
-        .select(["auth_params" as any])
+        .select(["auth_params"])
         .executeTakeFirst();
-      const existingBlob = (existing as { auth_params?: string | null } | undefined)
-        ?.auth_params;
-      if (typeof existingBlob === "string" && existingBlob.length > 0) {
-        const parsed = JSON.parse(existingBlob);
-        authParamsBlobSet = {
-          auth_params: JSON.stringify({ ...parsed, ...rest.authParams }),
-        };
-      }
+      const existingBlob = existing?.auth_params;
+      const parsed: Record<string, unknown> =
+        typeof existingBlob === "string" && existingBlob.length > 0
+          ? JSON.parse(existingBlob)
+          : {};
+      authParamsBlobSet = {
+        auth_params: JSON.stringify({ ...parsed, ...authParams }),
+      };
     }
 
     const flattened = flattenObject(rest) as Record<string, unknown>;

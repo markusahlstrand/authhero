@@ -186,29 +186,6 @@ describe("initJSXRoute", () => {
       }
     });
 
-    it("should throw HTTPException when creating login session with non-existent client", async () => {
-      // With the new foreign key constraints, we can't create a login session
-      // with a non-existent client, so this test should verify that the
-      // database constraint is properly enforced
-      const invalidTenantState = nanoid();
-      const invalidTenantLoginSession = {
-        ...mockLoginSession,
-        id: invalidTenantState,
-        authParams: {
-          ...mockLoginSession.authParams,
-          client_id: "non-existent-client",
-        },
-      };
-
-      // This should fail due to foreign key constraint
-      await expect(
-        testServer.env.data.loginSessions.create(
-          "tenantId",
-          invalidTenantLoginSession,
-        ),
-      ).rejects.toThrow();
-    });
-
     it("should throw RedirectException when login session is closed and allowSession is false", async () => {
       // First create a mock session
       const mockSession = await testServer.env.data.sessions.create(

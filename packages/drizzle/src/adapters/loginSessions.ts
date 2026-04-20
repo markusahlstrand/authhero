@@ -3,7 +3,6 @@ import type { LoginSession } from "@authhero/adapter-interfaces";
 import { loginSessions } from "../schema/sqlite";
 import {
   removeNullProperties,
-  flattenObject,
   unflattenObject,
   parseJsonIfString,
 } from "../helpers/transform";
@@ -40,6 +39,7 @@ function sqlToLoginSession(row: any): LoginSession {
     updated_at_ts,
     expires_at_ts,
     state_data,
+    auth_params,
     ...rest
   } = row;
 
@@ -48,7 +48,7 @@ function sqlToLoginSession(row: any): LoginSession {
     ["created_at_ts", "updated_at_ts", "expires_at_ts"],
   );
 
-  // Prune null/undefined flattened columns before unflattening so that e.g.
+  // Prune null/undefined hoisted columns before unflattening so that e.g.
   // auth_strategy_* being NULL doesn't produce a bogus empty auth_strategy
   // object after unflatten.
   const restPruned: Record<string, unknown> = {};
@@ -58,13 +58,14 @@ function sqlToLoginSession(row: any): LoginSession {
     }
   }
 
-  const unflattened = unflattenObject(restPruned, [
-    "authParams",
-    "auth_strategy",
-  ]);
+  const unflattened = unflattenObject(restPruned, ["auth_strategy"]);
 
   return removeNullProperties({
     ...unflattened,
+    authParams:
+      typeof auth_params === "string" && auth_params.length > 0
+        ? JSON.parse(auth_params)
+        : {},
     ...dates,
     state_data: parseJsonIfString(state_data),
   });
@@ -76,16 +77,12 @@ export function createLoginSessionsAdapter(db: DrizzleDb) {
       const now = Date.now();
       const id = ulid();
 
-      const flattened = flattenObject(
-        { authParams: session.authParams || {} },
-        "authParams",
-      );
-
       const values: any = {
         id,
         tenant_id,
         session_id: session.session_id,
         csrf_token: session.csrf_token,
+        auth_params: JSON.stringify(session.authParams || {}),
         authorization_url: session.authorization_url
           ? session.authorization_url.substring(0, 1024)
           : undefined,
@@ -108,11 +105,6 @@ export function createLoginSessionsAdapter(db: DrizzleDb) {
           ? isoToDbDate(session.expires_at)
           : now + 1000 * 60 * 60 * 24,
       };
-
-      // Add flattened authParams
-      for (const [key, value] of Object.entries(flattened)) {
-        values[key] = value;
-      }
 
       await db.insert(loginSessions).values(values);
 
@@ -166,13 +158,29 @@ export function createLoginSessionsAdapter(db: DrizzleDb) {
       if (session.expires_at !== undefined)
         updateData.expires_at_ts = isoToDbDate(session.expires_at);
 
-      // Flatten authParams if present
-      if (session.authParams) {
-        const flattened = flattenObject(
-          { authParams: session.authParams },
-          "authParams",
-        );
-        Object.assign(updateData, flattened);
+      // Merge authParams into the existing JSON blob so partial updates
+      // (e.g. `{ authParams: { username } }`) don't wipe sibling fields.
+      if (session.authParams !== undefined) {
+        const existing = await db
+          .select({ auth_params: loginSessions.auth_params })
+          .from(loginSessions)
+          .where(
+            and(
+              eq(loginSessions.tenant_id, tenant_id),
+              eq(loginSessions.id, id),
+            ),
+          )
+          .get();
+        const parsed: Record<string, unknown> =
+          existing?.auth_params &&
+          typeof existing.auth_params === "string" &&
+          existing.auth_params.length > 0
+            ? JSON.parse(existing.auth_params)
+            : {};
+        updateData.auth_params = JSON.stringify({
+          ...parsed,
+          ...session.authParams,
+        });
       }
 
       await db
