@@ -1,5 +1,11 @@
 # authhero
 
+## 4.102.0
+
+### Minor Changes
+
+- 31b0b62: Update the adapters
+
 ## 4.101.1
 
 ### Patch Changes
