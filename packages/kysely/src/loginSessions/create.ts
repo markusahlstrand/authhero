@@ -24,13 +24,13 @@ export function create(db: Kysely<Database>) {
       failure_reason: login.failure_reason,
     };
 
-    // Write to DB with bigint timestamps
+    // authParams is persisted exclusively in the `auth_params` JSON blob.
+    // Strip it before flattening so the adapter doesn't try to emit the
+    // legacy hoisted `authParams_*` columns — those were dropped in
+    // 2026-04-20T12:00:00_drop_login_sessions_hoisted_authparams.
+    const { authParams, ...rest } = createdLogin;
     const nowTs = Date.now();
-    const flattenedLogin = flattenObject(createdLogin) as Record<
-      string,
-      unknown
-    >;
-    // Remove date fields that are now stored as _ts columns
+    const flattenedLogin = flattenObject(rest) as Record<string, unknown>;
     delete flattenedLogin.created_at;
     delete flattenedLogin.updated_at;
     delete flattenedLogin.expires_at;
@@ -39,9 +39,7 @@ export function create(db: Kysely<Database>) {
       .values({
         ...flattenedLogin,
         tenant_id,
-        // Dual-write: the hoisted authParams_* columns above are populated by
-        // flattenObject(); auth_params is the canonical JSON-serialized copy.
-        auth_params: JSON.stringify(createdLogin.authParams),
+        auth_params: JSON.stringify(authParams),
         created_at_ts: nowTs,
         updated_at_ts: nowTs,
         expires_at_ts: login.expires_at

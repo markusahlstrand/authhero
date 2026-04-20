@@ -73,28 +73,9 @@ export const loginSessions = sqliteTable(
       .references(() => tenants.id, { onDelete: "cascade" }),
     session_id: text("session_id", { length: 21 }),
     csrf_token: text("csrf_token", { length: 21 }).notNull(),
-    authParams_client_id: text("authParams_client_id", {
-      length: 191,
-    }).notNull(),
-    authParams_vendor_id: text("authParams_vendor_id", { length: 255 }),
-    authParams_username: text("authParams_username", { length: 255 }),
-    authParams_response_type: text("authParams_response_type", { length: 255 }),
-    authParams_response_mode: text("authParams_response_mode", { length: 255 }),
-    authParams_audience: text("authParams_audience", { length: 255 }),
-    authParams_scope: text("authParams_scope"),
-    authParams_state: text("authParams_state"),
-    authParams_nonce: text("authParams_nonce", { length: 255 }),
-    authParams_code_challenge_method: text("authParams_code_challenge_method", {
-      length: 255,
-    }),
-    authParams_code_challenge: text("authParams_code_challenge", {
-      length: 255,
-    }),
-    authParams_redirect_uri: text("authParams_redirect_uri"),
-    authParams_organization: text("authParams_organization", { length: 255 }),
-    authParams_prompt: text("authParams_prompt", { length: 32 }),
-    authParams_act_as: text("authParams_act_as", { length: 256 }),
-    authParams_ui_locales: text("authParams_ui_locales", { length: 32 }),
+    // JSON-serialized authParams. Canonical source of truth. Replaces the
+    // legacy hoisted authParams_* columns, which were dropped.
+    auth_params: text("auth_params"),
     authorization_url: text("authorization_url"),
     created_at_ts: integer("created_at_ts").notNull(),
     updated_at_ts: integer("updated_at_ts").notNull(),

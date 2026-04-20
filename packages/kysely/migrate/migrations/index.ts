@@ -145,6 +145,8 @@ import * as o046_user_registration_completed_at from "./2026-04-14T11:00:00_user
 import * as o047_outbox_dead_lettered_tenant_index from "./2026-04-14T12:00:00_outbox_dead_lettered_tenant_index";
 import * as o048_add_auth_strategy_to_login_sessions from "./2026-04-18T10:00:00_add_auth_strategy_to_login_sessions";
 import * as o049_login_sessions_auth_params from "./2026-04-20T10:00:00_login_sessions_auth_params";
+import * as o050_login_sessions_auth_params_backfill from "./2026-04-20T11:00:00_login_sessions_auth_params_backfill";
+import * as o051_drop_login_sessions_hoisted_authparams from "./2026-04-20T12:00:00_drop_login_sessions_hoisted_authparams";
 
 // These need to be in alphabetic order
 export default {
@@ -295,4 +297,6 @@ export default {
   o047_outbox_dead_lettered_tenant_index,
   o048_add_auth_strategy_to_login_sessions,
   o049_login_sessions_auth_params,
+  o050_login_sessions_auth_params_backfill,
+  o051_drop_login_sessions_hoisted_authparams,
 };
