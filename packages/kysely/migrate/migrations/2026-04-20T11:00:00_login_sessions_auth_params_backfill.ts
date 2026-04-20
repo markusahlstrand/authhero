@@ -71,6 +71,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
             await db
               .updateTable("login_sessions")
               .set({ auth_params: JSON.stringify(authParams) })
+              .where("tenant_id", "=", row.tenant_id)
               .where("id", "=", row.id)
               .execute();
           }),

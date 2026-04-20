@@ -48,7 +48,10 @@ async function getDatabaseType(
   db: Kysely<Database>,
 ): Promise<"mysql" | "sqlite"> {
   try {
-    await sql`SELECT VERSION()`.execute(db);
+    // MySQL-specific probe: @@version_comment exists on MySQL/MariaDB but
+    // not on PostgreSQL or SQLite, so we avoid mis-classifying Postgres
+    // (which also supports SELECT VERSION()) as MySQL.
+    await sql`SELECT @@version_comment`.execute(db);
     return "mysql";
   } catch {
     return "sqlite";
