@@ -50,6 +50,9 @@ const sqlLoginSchema = flattenSchema(loginSessionSchema)
     auth_strategy_strategy: z.string().optional(),
     auth_strategy_strategy_type: z.string().optional(),
     authenticated_at: z.string().optional(),
+    // JSON-serialized authParams. Canonical source of truth; hoisted
+    // authParams_* columns above are dual-written for backwards compat.
+    auth_params: z.string().optional(),
     // Date fields - bigint timestamps with _ts suffix
     created_at_ts: z.number(),
     updated_at_ts: z.number(),
