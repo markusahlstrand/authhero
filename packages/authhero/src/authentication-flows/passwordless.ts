@@ -2,6 +2,7 @@ import { Context } from "hono";
 import { z } from "@hono/zod-openapi";
 import {
   authParamsSchema,
+  LogTypes,
   Strategy,
   StrategyType,
 } from "@authhero/adapter-interfaces";
@@ -15,6 +16,7 @@ import { t } from "i18next";
 import { createFrontChannelAuthResponse } from "./common";
 import { RedirectException } from "../errors/redirect-exception";
 import { getEnrichedClient } from "../helpers/client";
+import { logMessage } from "../helpers/logging";
 
 export const passwordlessGrantParamsSchema = z.object({
   client_id: z.string(),
@@ -60,6 +62,10 @@ export async function passwordlessGrantUser(
   const code = await env.data.codes.get(client.tenant.id, otp, "otp");
 
   if (!code) {
+    logMessage(ctx, client.tenant.id, {
+      type: LogTypes.FAILED_EXCHANGE_PASSWORD_OTP_FOR_ACCESS_TOKEN,
+      description: "Code invalid",
+    });
     throw new JSONHTTPException(400, {
       message: t("code_invalid"),
       userSafe: true,
@@ -67,6 +73,11 @@ export async function passwordlessGrantUser(
   }
 
   if (code.expires_at < new Date().toISOString()) {
+    logMessage(ctx, client.tenant.id, {
+      type: LogTypes.FAILED_EXCHANGE_PASSWORD_OTP_FOR_ACCESS_TOKEN,
+      description: "Code expired",
+      userId: code.user_id,
+    });
     throw new JSONHTTPException(400, {
       message: t("code_expired"),
       userSafe: true,
@@ -74,6 +85,11 @@ export async function passwordlessGrantUser(
   }
 
   if (code.used_at) {
+    logMessage(ctx, client.tenant.id, {
+      type: LogTypes.FAILED_EXCHANGE_PASSWORD_OTP_FOR_ACCESS_TOKEN,
+      description: "Code already used",
+      userId: code.user_id,
+    });
     throw new JSONHTTPException(400, {
       message: t("code_used"),
       userSafe: true,
@@ -86,6 +102,11 @@ export async function passwordlessGrantUser(
   );
 
   if (!loginSession || loginSession.authParams.username !== username) {
+    logMessage(ctx, client.tenant.id, {
+      type: LogTypes.FAILED_EXCHANGE_PASSWORD_OTP_FOR_ACCESS_TOKEN,
+      description: "Login session not found or username mismatch",
+      userId: code.user_id,
+    });
     throw new JSONHTTPException(400, {
       message: "Code not found or expired",
       userSafe: true,
@@ -131,6 +152,16 @@ export async function passwordlessGrant(
   params: z.input<typeof passwordlessGrantParamsSchema>,
 ) {
   const result = await passwordlessGrantUser(ctx, params);
+
+  logMessage(ctx, result.client.tenant.id, {
+    type: LogTypes.SUCCESS_EXCHANGE_PASSWORD_OTP_FOR_ACCESS_TOKEN,
+    userId: result.user.user_id,
+    connection: result.connectionType,
+    strategy: result.connectionType === "sms" ? Strategy.SMS : Strategy.EMAIL,
+    strategy_type: StrategyType.PASSWORDLESS,
+    scope: result.authParams.scope,
+    audience: result.authParams.audience,
+  });
 
   return createFrontChannelAuthResponse(ctx, {
     authParams: result.authParams,

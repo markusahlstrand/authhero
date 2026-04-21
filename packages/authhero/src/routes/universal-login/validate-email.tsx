@@ -1,8 +1,10 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
+import { LogTypes } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
 import { HTTPException } from "hono/http-exception";
 import { getUserByProvider, getUsersByEmail } from "../../helpers/users";
+import { logMessage } from "../../helpers/logging";
 import { USERNAME_PASSWORD_PROVIDER } from "../../constants";
 import EmailValidatedPage from "../../components/EmailValidatedPage";
 
@@ -46,6 +48,10 @@ export const validateEmailRoutes = new OpenAPIHono<{
 
       const { username } = loginSession.authParams;
       if (!username) {
+        logMessage(ctx, client.tenant.id, {
+          type: LogTypes.FAILED_VERIFICATION_EMAIL,
+          description: "Username not found in state",
+        });
         throw new HTTPException(400, {
           message: "Username not found in state",
         });
@@ -58,6 +64,10 @@ export const validateEmailRoutes = new OpenAPIHono<{
         provider: USERNAME_PASSWORD_PROVIDER,
       });
       if (!user) {
+        logMessage(ctx, client.tenant.id, {
+          type: LogTypes.FAILED_VERIFICATION_EMAIL,
+          description: "No user found",
+        });
         throw new HTTPException(500, { message: "No user found" });
       }
 
@@ -68,11 +78,21 @@ export const validateEmailRoutes = new OpenAPIHono<{
       );
 
       if (!foundCode) {
+        logMessage(ctx, client.tenant.id, {
+          type: LogTypes.FAILED_VERIFICATION_EMAIL,
+          description: "Code not found or expired",
+          userId: user.user_id,
+        });
         throw new HTTPException(400, { message: "Code not found or expired" });
       }
 
       await env.data.users.update(client.tenant.id, user.user_id, {
         email_verified: true,
+      });
+
+      logMessage(ctx, client.tenant.id, {
+        type: LogTypes.SUCCESS_VERIFICATION_EMAIL,
+        userId: user.user_id,
       });
 
       const usersWithSameEmail = await getUsersByEmail(

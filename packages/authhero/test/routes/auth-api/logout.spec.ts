@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
+import { LogTypes } from "@authhero/adapter-interfaces";
 import { getTestServer } from "../../helpers/test-server";
 import { createSessions } from "../../helpers/create-session";
 
@@ -119,6 +120,10 @@ describe("logout", () => {
     expect(refreshtokens.length).toBe(0);
 
     const { logs } = await env.data.logs.list("tenantId");
-    expect(logs.length).toBe(1);
+    expect(logs.length).toBe(2);
+    const logTypes = logs.map((l) => l.type).sort();
+    expect(logTypes).toEqual(
+      [LogTypes.SUCCESS_LOGOUT, LogTypes.SUCCESS_REVOCATION].sort(),
+    );
   });
 });

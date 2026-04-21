@@ -210,7 +210,6 @@ export const changeEmailVerifyRoutes = new OpenAPIHono<{
                 );
               }
 
-              // Redirect to confirmation page
               return ctx.redirect(
                 `/u/account/change-email-confirmation?state=${encodeURIComponent(state)}&email=${encodeURIComponent(email)}`,
               );

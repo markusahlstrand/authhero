@@ -71,6 +71,10 @@ export const logoutRoutes = new OpenAPIHono<{
           { allowPathWildcards: true, allowSubDomainWildcards: true },
         )
       ) {
+        logMessage(ctx, client.tenant.id, {
+          type: LogTypes.FAILED_LOGOUT,
+          description: "Invalid redirect uri",
+        });
         throw new HTTPException(400, {
           message: "Invalid redirect uri",
         });
@@ -116,6 +120,13 @@ export const logoutRoutes = new OpenAPIHono<{
                   ),
                 ),
               );
+
+              if (refreshTokens.refresh_tokens.length > 0) {
+                logMessage(ctx, client.tenant.id, {
+                  type: LogTypes.SUCCESS_REVOCATION,
+                  description: `Revoked ${refreshTokens.refresh_tokens.length} refresh token(s)`,
+                });
+              }
             }
 
             await ctx.env.data.sessions.update(client.tenant.id, tokenState, {

@@ -1,11 +1,12 @@
 import { JSONHTTPException } from "../errors/json-http-exception";
 import { Context } from "hono";
-import { AuthParams } from "@authhero/adapter-interfaces";
+import { AuthParams, LogTypes } from "@authhero/adapter-interfaces";
 import { z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../types";
 import { safeCompare } from "../utils/safe-compare";
 import { GrantFlowResult } from "../types/GrantFlowResult";
 import { getEnrichedClient } from "../helpers/client";
+import { logMessage } from "../helpers/logging";
 
 export const clientCredentialGrantParamsSchema = z.object({
   grant_type: z.literal("client_credentials"),
@@ -30,6 +31,10 @@ export async function clientCredentialsGrant(
     client.client_secret &&
     !safeCompare(client.client_secret, params.client_secret)
   ) {
+    logMessage(ctx, client.tenant.id, {
+      type: LogTypes.FAILED_EXCHANGE_ACCESS_TOKEN_FOR_CLIENT_CREDENTIALS,
+      description: "Invalid client credentials",
+    });
     throw new JSONHTTPException(403, { message: "Invalid client credentials" });
   }
 
@@ -41,6 +46,10 @@ export async function clientCredentialsGrant(
       params.organization,
     );
     if (!org) {
+      logMessage(ctx, client.tenant.id, {
+        type: LogTypes.FAILED_EXCHANGE_ACCESS_TOKEN_FOR_CLIENT_CREDENTIALS,
+        description: `Organization '${params.organization}' not found`,
+      });
       throw new JSONHTTPException(400, {
         error: "invalid_request",
         error_description: `Organization '${params.organization}' not found`,

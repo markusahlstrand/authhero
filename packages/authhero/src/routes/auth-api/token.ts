@@ -1,4 +1,10 @@
-import { GrantType, tokenResponseSchema } from "@authhero/adapter-interfaces";
+import {
+  GrantType,
+  LogType,
+  LogTypes,
+  tokenResponseSchema,
+} from "@authhero/adapter-interfaces";
+import { logMessage } from "../../helpers/logging";
 import { Bindings, Variables } from "../../types";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
@@ -69,6 +75,21 @@ const CreateRequestSchema = z.union([
     realm: z.enum(["email", "sms"]),
   }),
 ]);
+
+function successLogTypeForGrant(grantType: string): LogType | undefined {
+  switch (grantType) {
+    case GrantType.AuthorizationCode:
+      return LogTypes.SUCCESS_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN;
+    case GrantType.ClientCredential:
+      return LogTypes.SUCCESS_EXCHANGE_ACCESS_TOKEN_FOR_CLIENT_CREDENTIALS;
+    case GrantType.RefreshToken:
+      return LogTypes.SUCCESS_EXCHANGE_REFRESH_TOKEN_FOR_ACCESS_TOKEN;
+    case GrantType.OTP:
+      return LogTypes.SUCCESS_EXCHANGE_PASSWORD_OTP_FOR_ACCESS_TOKEN;
+    default:
+      return undefined;
+  }
+}
 
 function parseBasicAuthHeader(authHeader?: string) {
   if (!authHeader) {
@@ -295,6 +316,17 @@ export const tokenRoutes = new OpenAPIHono<{
           calculatedPermissions.length > 0 ? calculatedPermissions : undefined,
         token_lifetime: tokenLifetime,
       });
+
+      const successLogType = successLogTypeForGrant(body.grant_type);
+      if (successLogType) {
+        logMessage(ctx, grantResult.client.tenant.id, {
+          type: successLogType,
+          userId: grantResult.user?.user_id,
+          scope: grantResult.authParams.scope,
+          audience: grantResult.authParams.audience,
+        });
+      }
+
       return ctx.json(tokens, {
         headers: passwordlessHeaders,
       });
