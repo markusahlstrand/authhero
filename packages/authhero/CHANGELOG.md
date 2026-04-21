@@ -1,5 +1,17 @@
 # authhero
 
+## 4.103.0
+
+### Minor Changes
+
+- 0b3419b: Add `runOutboxRelay` — a one-call helper for draining the outbox from a cron / scheduled handler. Internally it builds the same destination array the inline dispatcher uses, mints per-tenant `auth-service` tokens via the same in-process path (`createServiceTokenCore`), and then runs `drainOutbox` followed by `cleanupOutbox`. Consumers no longer need to plumb `getServiceToken` themselves to sweep up `hook.*` events on a schedule.
+
+  `createDefaultDestinations` now accepts an optional `webhookInvoker` of the same shape as the `init()` option. The inline per-request outbox dispatcher now honors `config.webhookInvoker` too, so cron-drained and per-request deliveries no longer diverge silently when a consumer supplies a custom invoker. All existing exports (`drainOutbox`, `cleanupOutbox`, `createDefaultDestinations`) keep their prior signatures; the new `webhookInvoker` field and `runOutboxRelay` export are additive.
+
+- b4f4f15: Resolve the tenant `default_audience` at `/authorize` time and stamp it onto the `login_session` authParams, matching Auth0's behavior ("setting the Default Audience is equivalent to appending this audience to every authorization request"). Previously the fallback was applied at token issuance and incorrectly referenced `tenant.audience` (the tenant's own identifier) instead of `tenant.default_audience`. Downstream runtime fallbacks in `createFrontChannelAuthResponse`, `silentAuth`, and `createRefreshToken` have been removed — the audience flows through on the login session.
+
+  Behavior change: tenants that were relying on the undocumented fallback to `tenant.audience` will now need `default_audience` set (or to pass `audience` explicitly) to mint access tokens without an audience. Changing the tenant `default_audience` no longer retroactively affects in-flight login sessions; it only applies to new `/authorize` requests.
+
 ## 4.102.0
 
 ### Minor Changes
