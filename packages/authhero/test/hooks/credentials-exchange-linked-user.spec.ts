@@ -74,6 +74,7 @@ describe("credentials-exchange hook with linked users", () => {
         username: "linked-test@example.com",
         redirect_uri: "https://example.com/callback",
         scope: "openid",
+        audience: "https://example.com",
       },
       user_id: primaryUserId,
       auth_connection: Strategy.USERNAME_PASSWORD,

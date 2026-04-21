@@ -177,8 +177,9 @@ export async function silentAuth({
     }
   }
 
-  // Calculate scopes and permissions - also validates org membership
-  const effectiveAudience = audience || client.tenant.audience;
+  // Audience is pre-stamped on the /authorize request (tenant default_audience
+  // applied there, not here), so this is already the effective value.
+  const effectiveAudience = audience;
   let calculatedScopes = scope || "";
   let calculatedPermissions: string[] = [];
   let calculatedTokenLifetime: number | undefined;

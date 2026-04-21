@@ -7,6 +7,7 @@ export async function createSessions(data: DataAdapters) {
     csrf_token: "csrfToken",
     authParams: {
       client_id: "clientId",
+      audience: "https://example.com",
     },
   });
 

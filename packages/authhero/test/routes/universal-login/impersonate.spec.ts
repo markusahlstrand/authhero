@@ -1281,6 +1281,7 @@ describe("impersonation routes", () => {
           redirect_uri: "https://example.com/callback",
           response_type: AuthorizationResponseType.TOKEN_ID_TOKEN, // Implicit flow
           state: "original-state-implicit",
+          audience: "https://example.com",
         },
       });
 

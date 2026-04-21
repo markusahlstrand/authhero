@@ -121,6 +121,7 @@ export async function createServiceToken(
       client_id: AUTH_SERVICE_CLIENT_ID,
       response_type: AuthorizationResponseType.TOKEN,
       scope,
+      audience: tenant.audience,
     },
     customClaims,
   });

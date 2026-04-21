@@ -74,6 +74,7 @@ export async function getTestServer(
     id: "tenantId",
     friendly_name: "Test Tenant",
     audience: "https://example.com",
+    default_audience: "https://example.com",
     sender_email: "login@example.com",
     sender_name: "SenderName",
   });

@@ -247,13 +247,18 @@ export const authorizeRoutes = new OpenAPIHono<{
         });
       }
 
+      // Stamp the tenant's default_audience onto the request when the client
+      // didn't provide one — Auth0 parity: setting a tenant default_audience
+      // is "equivalent to appending this audience to every authorization
+      // request". Freezing the resolved value on the login_session makes
+      // later default_audience changes only affect new /authorize requests.
       const authParams: AuthParams = {
         redirect_uri: sanitizedRedirectUri,
         scope,
         state,
         client_id,
         vendor_id,
-        audience,
+        audience: audience ?? client.tenant.default_audience,
         nonce,
         prompt,
         response_type,
@@ -334,7 +339,7 @@ export const authorizeRoutes = new OpenAPIHono<{
           nonce,
           code_challenge_method,
           code_challenge,
-          audience,
+          audience: authParams.audience,
           scope,
           organization,
           max_age: max_age ? parseInt(max_age, 10) : undefined,
