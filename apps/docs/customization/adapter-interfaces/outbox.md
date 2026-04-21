@@ -145,5 +145,6 @@ The `outbox_events` table stores events with denormalized index columns:
 
 ## Related
 
+- [Outbox Relay (Cron)](/deployment/outbox-cron) — wiring `runOutboxRelay` from a scheduled handler
 - [Feature: Audit Logging](/features/audit-logging) — configuration guide
 - [Architecture: Audit Events](/architecture/audit-events) — design rationale

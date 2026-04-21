@@ -26,8 +26,11 @@ export function create(db: Kysely<Database>) {
 
     // authParams is persisted exclusively in the `auth_params` JSON blob.
     // Strip it before flattening so the adapter doesn't try to emit the
-    // legacy hoisted `authParams_*` columns — those were dropped in
-    // 2026-04-20T12:00:00_drop_login_sessions_hoisted_authparams.
+    // legacy hoisted `authParams_*` columns. The FK + NOT NULL on
+    // `authParams_client_id` are dropped by
+    // 2026-04-20T12:00:00_relax_login_sessions_authparams so inserts
+    // succeed pre-drop; the columns themselves are removed by
+    // 2026-04-21T10:00:00_drop_login_sessions_hoisted_authparams.
     const { authParams, ...rest } = createdLogin;
     const nowTs = Date.now();
     const flattenedLogin = flattenObject(rest) as Record<string, unknown>;

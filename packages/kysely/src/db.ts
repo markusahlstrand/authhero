@@ -51,8 +51,11 @@ const sqlLoginSchema = flattenSchema(loginSessionSchema)
     auth_strategy_strategy_type: z.string().optional(),
     authenticated_at: z.string().optional(),
     // JSON-serialized authParams. Sole storage for authParams — the legacy
-    // hoisted authParams_* columns were dropped in
-    // 2026-04-20T12:00:00_drop_login_sessions_hoisted_authparams.
+    // hoisted authParams_* columns are dropped in
+    // 2026-04-21T10:00:00_drop_login_sessions_hoisted_authparams (the
+    // preceding 2026-04-20T12:00:00_relax_login_sessions_authparams drops
+    // the FK and relaxes NOT NULL so the blob-only write path works on the
+    // pre-drop schema too).
     auth_params: z.string().optional(),
     // Date fields - bigint timestamps with _ts suffix
     created_at_ts: z.number(),

@@ -42,7 +42,9 @@ describe("loginSessions auth_params blob persistence", () => {
     });
 
     // The blob is the sole source of truth. Hoisted authParams_* columns
-    // were removed in 2026-04-20T12:00:00_drop_login_sessions_hoisted_authparams.
+    // are removed in 2026-04-21T10:00:00_drop_login_sessions_hoisted_authparams
+    // (preceded by 2026-04-20T12:00:00_relax_login_sessions_authparams, which
+    // drops the FK and relaxes NOT NULL so this code path works pre-drop).
     const row = await db
       .selectFrom("login_sessions")
       .selectAll()

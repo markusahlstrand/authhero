@@ -1,8 +1,12 @@
 import { DataAdapters } from "@authhero/adapter-interfaces";
 import { EventDestination } from "./outbox-relay";
 import { LogsDestination } from "./outbox-destinations/logs";
-import { WebhookDestination } from "./outbox-destinations/webhooks";
+import {
+  WebhookDestination,
+  type GetServiceToken,
+} from "./outbox-destinations/webhooks";
 import { RegistrationFinalizerDestination } from "./outbox-destinations/registration-finalizer";
+import type { WebhookInvoker } from "../types/AuthHeroConfig";
 
 export interface CreateDefaultDestinationsConfig {
   /**
@@ -18,10 +22,19 @@ export interface CreateDefaultDestinationsConfig {
    * Required if you want `hook.*` events to be drained. Omit for cron
    * drains that only need to sweep up log events.
    */
-  getServiceToken?: (tenantId: string) => Promise<string>;
+  getServiceToken?: GetServiceToken;
 
   /** Webhook HTTP request timeout in ms (default: 10_000). */
   webhookTimeoutMs?: number;
+
+  /**
+   * Custom webhook invoker — same shape as the `webhookInvoker` option on
+   * `init()`. When provided, `hook.*` events are dispatched by calling this
+   * function instead of issuing a raw `fetch` with a Bearer token. Use this
+   * to match a consumer-configured invoker exactly, so cron-drained
+   * deliveries don't diverge from inline per-request ones.
+   */
+  webhookInvoker?: WebhookInvoker;
 }
 
 /**
@@ -52,7 +65,8 @@ export interface CreateDefaultDestinationsConfig {
 export function createDefaultDestinations(
   config: CreateDefaultDestinationsConfig,
 ): EventDestination[] {
-  const { dataAdapter, getServiceToken, webhookTimeoutMs } = config;
+  const { dataAdapter, getServiceToken, webhookTimeoutMs, webhookInvoker } =
+    config;
 
   const destinations: EventDestination[] = [
     new LogsDestination(dataAdapter.logs),
@@ -62,6 +76,7 @@ export function createDefaultDestinations(
     destinations.push(
       new WebhookDestination(dataAdapter.hooks, getServiceToken, {
         timeoutMs: webhookTimeoutMs,
+        webhookInvoker,
       }),
     );
     // Must come AFTER WebhookDestination so the registration-completed flag
