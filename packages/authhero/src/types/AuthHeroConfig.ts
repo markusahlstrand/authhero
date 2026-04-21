@@ -28,6 +28,15 @@ export interface WebhookInvokerParams {
   /** The tenant ID */
   tenant_id: string;
   /**
+   * Outbox event id for this invocation. Matches the value the default
+   * invoker sends as the `Idempotency-Key` header — custom invokers should
+   * forward it as the same header (or an equivalent dedupe key) so
+   * downstream receivers can dedupe on outbox retries. Only set when the
+   * invocation originates from the transactional outbox; the legacy inline
+   * dispatcher has no stable event id to forward.
+   */
+  idempotency_key?: string;
+  /**
    * Lazily creates a service token for authenticating with the webhook endpoint.
    * Only creates the token when called — no overhead if you use your own auth.
    *

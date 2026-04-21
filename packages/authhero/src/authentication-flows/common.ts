@@ -150,11 +150,11 @@ export async function createAuthTokens(
 
   const { signingKeys } = await ctx.env.data.keys.list({
     q: "type:jwt_signing",
+    sort: { sort_by: "created_at", sort_order: "desc" },
   });
-  const validKeys = signingKeys.filter(
+  const signingKey = signingKeys.find(
     (key: any) => !key.revoked_at || new Date(key.revoked_at) > new Date(),
   );
-  const signingKey = validKeys[validKeys.length - 1];
 
   if (!signingKey?.pkcs7) {
     throw new JSONHTTPException(500, { message: "No signing key available" });
@@ -163,8 +163,10 @@ export async function createAuthTokens(
   const keyBuffer = pemToBuffer(signingKey.pkcs7);
   const iss = getIssuer(ctx.env, ctx.var.custom_domain);
 
-  // Determine audience with fallback to tenant default
-  const audience = authParams.audience || client.tenant.audience;
+  // Audience is stamped onto authParams at /authorize (or /oauth/token for
+  // client_credentials), so by the time we get here it's already the resolved
+  // value — no tenant fallback needed.
+  const audience = authParams.audience;
 
   if (!audience) {
     throw new JSONHTTPException(400, {
@@ -500,13 +502,15 @@ export async function createRefreshToken(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: CreateRefreshTokenParams,
 ) {
-  const {
-    client,
-    scope,
-    // fallback to the default audience on the client
-    audience = client.tenant.audience,
-    login_id,
-  } = params;
+  const { client, scope, audience, login_id } = params;
+
+  if (!audience) {
+    throw new JSONHTTPException(400, {
+      error: "invalid_request",
+      error_description:
+        "An audience must be specified in the request or configured as the tenant default_audience",
+    });
+  }
 
   const idleExpiresAt = lifetimeToIso(client.tenant.idle_session_lifetime);
   const absoluteExpiresAt = lifetimeToIso(client.tenant.session_lifetime);

@@ -351,6 +351,67 @@ describe("Analytics Engine Logs Adapter", () => {
       expect(sql).toContain("blob3 LIKE 's%'");
     });
 
+    it("should strip quotes from quoted q values (e.g. user_id with pipe)", async () => {
+      const capturedQueries: string[] = [];
+      server.use(
+        http.post(
+          "https://api.cloudflare.com/client/v4/accounts/test-account/analytics_engine/sql",
+          async ({ request }) => {
+            const query = await request.text();
+            capturedQueries.push(query);
+            return HttpResponse.json({ success: true, data: mockLogs });
+          },
+        ),
+      );
+
+      const adapter = createAnalyticsEngineLogsAdapter({
+        accountId: "test-account",
+        apiToken: "test-token",
+        dataset: "authhero_logs",
+      });
+
+      await adapter.list("tenant-1", {
+        page: 0,
+        per_page: 50,
+        q: `user_id:"smy|5b813ca3ec684001b8023df2"`,
+      });
+
+      const sql = capturedQueries[0]!;
+      expect(sql).toContain("blob7 = 'smy|5b813ca3ec684001b8023df2'");
+      expect(sql).not.toContain(`'"smy|`);
+    });
+
+    it("should OR multiple values for the same key into an IN clause", async () => {
+      const capturedQueries: string[] = [];
+      server.use(
+        http.post(
+          "https://api.cloudflare.com/client/v4/accounts/test-account/analytics_engine/sql",
+          async ({ request }) => {
+            const query = await request.text();
+            capturedQueries.push(query);
+            return HttpResponse.json({ success: true, data: mockLogs });
+          },
+        ),
+      );
+
+      const adapter = createAnalyticsEngineLogsAdapter({
+        accountId: "test-account",
+        apiToken: "test-token",
+        dataset: "authhero_logs",
+      });
+
+      await adapter.list("tenant-1", {
+        page: 0,
+        per_page: 50,
+        q: `user_id:"auth2|primary" OR user_id:"email|secondary"`,
+      });
+
+      const sql = capturedQueries[0]!;
+      expect(sql).toContain(
+        "blob7 IN ('auth2|primary', 'email|secondary')",
+      );
+    });
+
     it("should translate success:false to a failure type prefix match", async () => {
       const capturedQueries: string[] = [];
       server.use(

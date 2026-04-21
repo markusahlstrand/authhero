@@ -45,6 +45,7 @@ describe("common", () => {
         authParams: {
           client_id: "clientId",
           response_type: AuthorizationResponseType.TOKEN,
+          audience: "https://example.com",
         },
         client,
         user,
@@ -87,6 +88,7 @@ describe("common", () => {
           client_id: "clientId",
           response_type: AuthorizationResponseType.TOKEN_ID_TOKEN,
           scope: "openid",
+          audience: "https://example.com",
         },
         client,
         user,
@@ -129,6 +131,7 @@ describe("common", () => {
           client_id: "clientId",
           response_type: AuthorizationResponseType.TOKEN_ID_TOKEN,
           scope: "openid", // Only openid scope, no email scope
+          audience: "https://example.com",
         },
         client,
         user,
@@ -186,6 +189,7 @@ describe("common", () => {
           client_id: "clientId",
           response_type: AuthorizationResponseType.ID_TOKEN,
           scope: "openid email", // Request email scope
+          audience: "https://example.com",
         },
         client,
         user,
@@ -235,6 +239,7 @@ describe("common", () => {
           client_id: "clientId",
           response_type: AuthorizationResponseType.TOKEN_ID_TOKEN,
           scope: "openid email", // Request email scope
+          audience: "https://example.com",
         },
         client,
         user,
@@ -283,6 +288,7 @@ describe("common", () => {
           client_id: "clientId",
           response_type: AuthorizationResponseType.ID_TOKEN,
           scope: "openid profile", // Request profile scope
+          audience: "https://example.com",
         },
         client,
         user,
@@ -332,6 +338,7 @@ describe("common", () => {
           client_id: "clientId",
           response_type: AuthorizationResponseType.TOKEN_ID_TOKEN,
           scope: "openid profile", // Request profile scope
+          audience: "https://example.com",
         },
         client,
         user,
@@ -380,6 +387,7 @@ describe("common", () => {
           client_id: "clientId",
           response_type: AuthorizationResponseType.ID_TOKEN,
           scope: "openid profile email", // Request both scopes
+          audience: "https://example.com",
         },
         client,
         user,
@@ -427,6 +435,7 @@ describe("common", () => {
           client_id: "clientId",
           response_type: AuthorizationResponseType.TOKEN_ID_TOKEN,
           scope: "openid profile email", // Request both scopes
+          audience: "https://example.com",
         },
         client,
         user,
@@ -480,6 +489,7 @@ describe("common", () => {
           client_id: "clientId",
           response_type: AuthorizationResponseType.TOKEN_ID_TOKEN,
           scope: "openid profile email",
+          audience: "https://example.com",
         },
         client,
         user,
@@ -538,6 +548,7 @@ describe("common", () => {
           client_id: "clientId",
           response_type: AuthorizationResponseType.ID_TOKEN,
           scope: "openid profile email",
+          audience: "https://example.com",
         },
         client,
         user,
@@ -600,6 +611,7 @@ describe("common", () => {
           client_id: "clientId",
           response_type: AuthorizationResponseType.TOKEN_ID_TOKEN,
           scope: "openid",
+          audience: "https://example.com",
         },
         client,
         user,
@@ -655,6 +667,7 @@ describe("common", () => {
           client_id: "clientId",
           response_type: AuthorizationResponseType.TOKEN_ID_TOKEN,
           scope: "openid",
+          audience: "https://example.com",
         },
         client,
         user,
@@ -1023,6 +1036,7 @@ describe("common", () => {
         client_id: "clientId",
         response_type: AuthorizationResponseType.TOKEN,
         scope: "openid offline_access",
+        audience: "http://example.com",
         redirect_uri: "http://example.com/callback",
         response_mode: AuthorizationResponseMode.WEB_MESSAGE,
       },
@@ -1096,6 +1110,7 @@ describe("common", () => {
         client_id: "clientId",
         response_type: AuthorizationResponseType.TOKEN, // Implicit flow
         scope: "openid offline_access", // offline_access is requested
+        audience: "http://example.com",
         redirect_uri: "http://example.com/callback",
         // No response_mode: AuthorizationResponseMode.WEB_MESSAGE ensures implicit flow behavior (fragment)
       },
@@ -1721,6 +1736,7 @@ describe("common", () => {
         authParams: {
           client_id: "clientId",
           scope: "openid profile",
+          audience: "https://example.com",
         },
         client,
         user,

@@ -24,7 +24,8 @@ import { outboxMiddleware } from "../../middlewares/outbox";
 import { LogsDestination } from "../../helpers/outbox-destinations/logs";
 import { WebhookDestination } from "../../helpers/outbox-destinations/webhooks";
 import { RegistrationFinalizerDestination } from "../../helpers/outbox-destinations/registration-finalizer";
-import { createServiceToken } from "../../helpers/service-token";
+import { makeOutboxServiceTokenFactory } from "../../helpers/service-token";
+import { getIssuer } from "../../variables";
 
 export default function create(config: AuthHeroConfig) {
   const app = new OpenAPIHono<{
@@ -39,10 +40,15 @@ export default function create(config: AuthHeroConfig) {
       getOutbox: () => config.dataAdapter.outbox,
       getDestinations: (ctx) => [
         new LogsDestination(config.dataAdapter.logs),
-        new WebhookDestination(config.dataAdapter.hooks, async (tenantId) => {
-          const token = await createServiceToken(ctx, tenantId, "webhook");
-          return token.access_token;
-        }),
+        new WebhookDestination(
+          config.dataAdapter.hooks,
+          makeOutboxServiceTokenFactory({
+            tenants: ctx.env.data.tenants,
+            keys: ctx.env.data.keys,
+            issuer: getIssuer(ctx.env, ctx.var.custom_domain),
+          }),
+          { webhookInvoker: ctx.env.webhookInvoker },
+        ),
         // Must come after delivery destinations so the flag only flips when
         // the upstream hook destinations actually succeeded.
         new RegistrationFinalizerDestination(config.dataAdapter.users),

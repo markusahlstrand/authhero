@@ -62,10 +62,11 @@ When `useTransactions` is `false` in the database adapter options, the `transact
 
 ## Cleanup and Retention
 
-Processed events are deleted after a configurable retention period (default: 7 days). Cleanup runs automatically as part of each relay execution — no separate cron job needed.
+Processed events are deleted after a configurable retention period (default: 7 days). Cleanup runs inside every relay pass, so no dedicated cleanup job is required — but you do need a scheduled handler to run the relay itself as a safety net for events that failed inline delivery. See [Outbox Relay (Cron)](/deployment/outbox-cron) for the one-call `runOutboxRelay` helper and a Cloudflare Workers cron example.
 
 ## Related
 
+- [Outbox Relay (Cron)](/deployment/outbox-cron) — scheduled-handler wiring for retries and cleanup
 - [Feature: Audit Logging](/features/audit-logging) — configuration and usage guide
 - [Outbox Adapter](/customization/adapter-interfaces/outbox) — adapter interface reference
 - [Adapters](/architecture/adapters) — overview of the adapter pattern

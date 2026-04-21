@@ -110,49 +110,48 @@ const dataAdapter = {
 const { app } = init({ dataAdapter });
 ```
 
-## Outbox: draining from a cron / scheduled handler
+## Outbox relay in cron
 
 Authhero uses a transactional outbox to deliver audit events and webhook
 dispatches. Events are delivered per-request by default, but you should also
-run `drainOutbox` on a schedule as a safety net for events that failed
+sweep the outbox on a schedule as a safety net for events that failed
 in-request delivery (e.g. a transient webhook 5xx).
 
-Use `createDefaultDestinations` to get the exact same set of destinations the
-in-request middleware uses — that way the cron drain and the per-request
-dispatcher stay in lock-step (hook.\* filtering, retry semantics, the
-`registration_completed_at` finalizer, etc.):
+Use `runOutboxRelay` as the entire body of your scheduled handler — it
+builds the same destination array the inline dispatcher uses, mints
+per-tenant `auth-service` tokens via the same in-process path, runs
+`drainOutbox`, and then `cleanupOutbox`:
 
 ```ts
-import {
-  createDefaultDestinations,
-  drainOutbox,
-  cleanupOutbox,
-} from "authhero";
+import { runOutboxRelay } from "authhero";
 
 // Cloudflare Workers scheduled handler (one per cron trigger)
 export default {
   async scheduled(_event, env) {
-    const destinations = createDefaultDestinations({
+    await runOutboxRelay({
       dataAdapter,
-      // Called per tenant when draining hook.* events. Return a Bearer
-      // access token that your webhook endpoints will accept.
-      getServiceToken: async (tenantId) =>
-        (await mintServiceToken(tenantId, "webhook")).access_token,
+      issuer: env.ISSUER,
+      webhookInvoker, // same function passed to init()
+      retentionDays: 7,
     });
-
-    await drainOutbox(dataAdapter.outbox, destinations);
-    await cleanupOutbox(dataAdapter.outbox, { retentionDays: 7 });
   },
 };
 ```
 
-`getServiceToken` is optional: omit it if your cron only needs to sweep up
-log events. When omitted, `hook.*` events are left in the outbox for a later
-run that does provide a token.
+Passing the same `webhookInvoker` you pass to `init()` is important: without
+it, cron-drained `hook.*` events would bypass any custom payload shaping,
+auth headers, or non-HTTP transports your invoker implements, and diverge
+silently from per-request deliveries.
 
-If you need something custom, the underlying classes are also exported:
-`LogsDestination`, `WebhookDestination`, `RegistrationFinalizerDestination`,
-and the `EventDestination` interface.
+### Lower-level escape hatches
+
+If you need something custom, `drainOutbox`, `cleanupOutbox`, and
+`createDefaultDestinations` are also exported. `createDefaultDestinations`
+accepts the same optional `webhookInvoker` so you can wire up invoker
+parity without the full one-call wrapper. The underlying destination
+classes (`LogsDestination`, `WebhookDestination`,
+`RegistrationFinalizerDestination`) and the `EventDestination` interface
+are also public.
 
 ## Contributing
 

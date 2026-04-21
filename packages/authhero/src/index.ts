@@ -31,8 +31,14 @@ export { cleanupOutbox } from "./helpers/outbox-cleanup";
 export type { OutboxCleanupParams } from "./helpers/outbox-cleanup";
 export { createDefaultDestinations } from "./helpers/default-destinations";
 export type { CreateDefaultDestinationsConfig } from "./helpers/default-destinations";
+export { runOutboxRelay } from "./helpers/run-outbox-relay";
+export type { RunOutboxRelayConfig } from "./helpers/run-outbox-relay";
 export { LogsDestination } from "./helpers/outbox-destinations/logs";
-export { WebhookDestination } from "./helpers/outbox-destinations/webhooks";
+export {
+  WebhookDestination,
+  type WebhookDestinationOptions,
+  type GetServiceToken,
+} from "./helpers/outbox-destinations/webhooks";
 export { RegistrationFinalizerDestination } from "./helpers/outbox-destinations/registration-finalizer";
 export { addEntityHooks } from "./helpers/entity-hooks-wrapper";
 export { seed, MANAGEMENT_API_SCOPES } from "./seed";

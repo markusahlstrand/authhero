@@ -148,6 +148,7 @@ describe("authorize", () => {
       state: "state",
       ui_locales: "en",
       organization: "organization",
+      audience: "https://example.com",
     });
     expect(login.auth0Client).toBe("auth0-spa-js/2.1.3");
 

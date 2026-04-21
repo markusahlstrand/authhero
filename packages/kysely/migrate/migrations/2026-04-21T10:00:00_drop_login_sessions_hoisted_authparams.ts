@@ -1,26 +1,29 @@
 // @ts-nocheck - Migration touches columns not modeled in the Database type
 import { Kysely, sql } from "kysely";
 import { Database } from "../../src/db";
-import { migrationLog, migrationWarn } from "../log";
+import { migrationLog } from "../log";
 
 /**
- * Finalize the authParams blob migration. After this migration the JSON blob
- * `login_sessions.auth_params` is the sole storage for authParams.
+ * Finalize the authParams blob migration by removing the 18 hoisted
+ * `authParams_*` columns from login_sessions. After this runs, the JSON
+ * blob `login_sessions.auth_params` is the sole storage for authParams.
  *
- * Changes:
- *  - Drop the 18 hoisted `authParams_*` columns from login_sessions.
- *  - Drop `login_sessions_client_fk`, the FK that backed
- *    `authParams_client_id` to `clients(tenant_id, client_id)`. The client_id
- *    now lives only inside the JSON blob, which cannot be foreign-keyed.
+ * Split from the earlier 2026-04-20T12:00:00 migration so deployers can
+ * ship the blob-only adapter code (which requires 12:00:00's FK drop +
+ * nullable authParams_client_id) without waiting for the heavier column
+ * drop. Run this migration on your own cadence once the code release has
+ * stabilised.
  *
- * Prerequisites (both required):
+ * Prerequisites:
  *  - 2026-04-20T10:00:00_login_sessions_auth_params: added auth_params column
  *  - 2026-04-20T11:00:00_login_sessions_auth_params_backfill: guarantees every
  *    row has auth_params populated
+ *  - 2026-04-20T12:00:00_relax_login_sessions_authparams: dropped the FK and
+ *    relaxed NOT NULL on authParams_client_id
  *
- * On MySQL this is a simple DROP FOREIGN KEY + DROP COLUMN sequence.
- * On SQLite we recreate login_sessions because SQLite rejects DROP COLUMN
- * on an FK-referencing column.
+ * On MySQL this is a straight DROP COLUMN sequence. On SQLite the previous
+ * migration already rebuilt the table with authParams_client_id nullable and
+ * no FK; here we rebuild again to physically remove the hoisted columns.
  */
 
 const HOISTED_COLUMNS = [
@@ -48,9 +51,6 @@ async function getDatabaseType(
   db: Kysely<Database>,
 ): Promise<"mysql" | "sqlite"> {
   try {
-    // MySQL-specific probe: @@version_comment exists on MySQL/MariaDB but
-    // not on PostgreSQL or SQLite, so we avoid mis-classifying Postgres
-    // (which also supports SELECT VERSION()) as MySQL.
     await sql`SELECT @@version_comment`.execute(db);
     return "mysql";
   } catch {
@@ -85,24 +85,6 @@ export async function up(db: Kysely<Database>): Promise<void> {
 }
 
 async function upMySQL(db: Kysely<Database>): Promise<void> {
-  try {
-    await sql`ALTER TABLE login_sessions DROP FOREIGN KEY login_sessions_client_fk`.execute(
-      db,
-    );
-    migrationLog("  Dropped FK login_sessions_client_fk");
-  } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : String(error);
-    // 1091 = errno for "unknown constraint"; some MySQL variants surface it
-    // as the text below.
-    if (msg.includes("1091") || msg.includes("doesn't exist")) {
-      migrationLog("  FK login_sessions_client_fk already absent, skipping");
-    } else {
-      migrationWarn(
-        `  Warning: could not drop login_sessions_client_fk: ${msg}`,
-      );
-    }
-  }
-
   for (const col of HOISTED_COLUMNS) {
     await safeDropColumn(db, "login_sessions", col);
   }
@@ -170,6 +152,12 @@ async function upSQLite(db: Kysely<Database>): Promise<void> {
       .createIndex("login_sessions_id_index")
       .on("login_sessions")
       .column("id")
+      .execute();
+
+    await trx.schema
+      .createIndex("idx_login_sessions_session_id")
+      .on("login_sessions")
+      .column("session_id")
       .execute();
 
     await trx.schema

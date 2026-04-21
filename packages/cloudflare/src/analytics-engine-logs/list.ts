@@ -15,21 +15,22 @@ interface ListLogsResponse {
 }
 
 /**
- * Parse lucene-style filter query (simple implementation)
- * Supports: user_id:value, ip:value, type:value, client_id:value
+ * Parse lucene-style filter query (simple implementation).
+ * Supports key:value, key:"quoted value", and repeated keys joined with OR
+ * (e.g. `user_id:"a" OR user_id:"b"`) which are collected into a list.
  */
-function parseLuceneFilter(q: string): Record<string, string> {
-  const filters: Record<string, string> = {};
+function parseLuceneFilter(q: string): Record<string, string[]> {
+  const filters: Record<string, string[]> = {};
 
-  const parts = q.match(/(\w+):(\S+)/g) || [];
-  parts.forEach((part) => {
-    const colonIndex = part.indexOf(":");
-    const key = part.substring(0, colonIndex);
-    const value = part.substring(colonIndex + 1);
-    if (key && value) {
-      filters[key] = value;
-    }
-  });
+  const regex = /(\w+):(?:"([^"]*)"|(\S+))/g;
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(q)) !== null) {
+    const key = match[1];
+    const value = match[2] !== undefined ? match[2] : match[3];
+    if (!key || value === undefined) continue;
+    if (!filters[key]) filters[key] = [];
+    filters[key].push(value);
+  }
 
   return filters;
 }
@@ -65,24 +66,41 @@ function mapFilterKeyToBlob(key: string): string | null {
 /**
  * Build WHERE clause conditions from filters
  */
-function buildWhereConditions(filters: Record<string, string>): string[] {
+function buildWhereConditions(
+  filters: Record<string, string[]>,
+): string[] {
   const conditions: string[] = [];
 
-  for (const [key, value] of Object.entries(filters)) {
-    if (!value) continue;
+  for (const [key, rawValues] of Object.entries(filters)) {
+    const values = rawValues.filter((v) => v !== "");
+    if (values.length === 0) continue;
 
     if (key === "success") {
-      if (value === "true") {
-        conditions.push(`blob3 LIKE 's%'`);
-      } else if (value === "false") {
-        conditions.push(`blob3 LIKE 'f%'`);
+      const fragments: string[] = [];
+      const seen = new Set<string>();
+      for (const value of values) {
+        if (seen.has(value)) continue;
+        seen.add(value);
+        if (value === "true") {
+          fragments.push(`blob3 LIKE 's%'`);
+        } else if (value === "false") {
+          fragments.push(`blob3 LIKE 'f%'`);
+        }
+      }
+      if (fragments.length > 0) {
+        conditions.push(`(${fragments.join(" OR ")})`);
       }
       continue;
     }
 
     const blobField = mapFilterKeyToBlob(key);
-    if (blobField) {
-      conditions.push(`${blobField} = ${escapeSQLString(value)}`);
+    if (!blobField) continue;
+
+    if (values.length === 1) {
+      conditions.push(`${blobField} = ${escapeSQLString(values[0]!)}`);
+    } else {
+      const inList = values.map((v) => escapeSQLString(v)).join(", ");
+      conditions.push(`${blobField} IN (${inList})`);
     }
   }
 

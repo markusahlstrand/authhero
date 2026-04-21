@@ -85,6 +85,69 @@ describe("createDefaultDestinations", () => {
     // Must come after WebhookDestination so the flag only flips on success.
     expect(destinations[2]).toBeInstanceOf(RegistrationFinalizerDestination);
   });
+
+  it("routes hook.* events through a consumer-supplied webhookInvoker instead of raw fetch", async () => {
+    const hooks = {
+      list: vi.fn().mockResolvedValue({
+        hooks: [
+          {
+            hook_id: "h1",
+            url: "https://example.test/hook",
+            enabled: true,
+            trigger_id: "post-user-registration",
+          },
+        ],
+      }),
+    } as unknown as HooksAdapter;
+    const users = {
+      update: vi.fn().mockResolvedValue(undefined),
+    } as unknown as UserDataAdapter;
+
+    const webhookInvoker = vi.fn(async () => new Response("ok", { status: 200 }));
+
+    const receivedScopes: Array<string | undefined> = [];
+    const getServiceToken = vi.fn(async (_tenantId: string, scope?: string) => {
+      receivedScopes.push(scope);
+      return "svc-token";
+    });
+
+    const destinations = createDefaultDestinations({
+      dataAdapter: {
+        logs: {} as LogsDataAdapter,
+        hooks,
+        users,
+      },
+      getServiceToken,
+      webhookInvoker,
+    });
+
+    // Drive the WebhookDestination directly to prove the invoker is wired in.
+    const webhookDest = destinations.find(
+      (d) => d instanceof WebhookDestination,
+    ) as WebhookDestination;
+    const event = makeEvent({
+      event_type: "hook.post-user-registration",
+      target: { type: "user", id: "user-1" },
+    });
+    await webhookDest.deliver([webhookDest.transform(event)]);
+
+    expect(webhookInvoker).toHaveBeenCalledTimes(1);
+    const call = webhookInvoker.mock.calls[0][0];
+    expect(call.hook.hook_id).toBe("h1");
+    expect(call.tenant_id).toBe("tenant-1");
+    expect(call.data.trigger_id).toBe("post-user-registration");
+    expect(call.idempotency_key).toBe("evt-1");
+    expect(typeof call.createServiceToken).toBe("function");
+    expect(await call.createServiceToken()).toBe("svc-token");
+    expect(await call.createServiceToken("custom-scope")).toBe("svc-token");
+
+    // The wrapper must forward the requested scope to the underlying
+    // getServiceToken — otherwise a custom invoker asking for a non-default
+    // scope would silently get a "webhook"-scoped token.
+    expect(getServiceToken).toHaveBeenCalledWith("tenant-1", "webhook");
+    expect(getServiceToken).toHaveBeenCalledWith("tenant-1", "custom-scope");
+    expect(receivedScopes).toContain("custom-scope");
+  });
 });
 
 describe("drainOutbox with createDefaultDestinations", () => {
@@ -174,7 +237,8 @@ describe("drainOutbox with createDefaultDestinations", () => {
     expect(url).toBe("https://example.test/hook");
     expect(options.headers.Authorization).toBe("Bearer svc-token");
     expect(options.headers["Idempotency-Key"]).toBe("hook-evt");
-    expect(getServiceToken).toHaveBeenCalledWith("tenant-1");
+    // Default HTTP invoker always requests the "webhook" scope.
+    expect(getServiceToken).toHaveBeenCalledWith("tenant-1", "webhook");
 
     // LogsDestination filters out hook.* events.
     expect(logs.create).not.toHaveBeenCalled();

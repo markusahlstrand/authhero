@@ -50,6 +50,7 @@ describe("org_name in tokens", () => {
         authParams: {
           client_id: "clientId",
           response_type: AuthorizationResponseType.TOKEN,
+          audience: "https://example.com",
         },
         client,
         user,
@@ -111,6 +112,7 @@ describe("org_name in tokens", () => {
           client_id: "clientId",
           response_type: AuthorizationResponseType.TOKEN_ID_TOKEN,
           scope: "openid",
+          audience: "https://example.com",
         },
         client,
         user,
@@ -173,6 +175,7 @@ describe("org_name in tokens", () => {
         authParams: {
           client_id: "clientId",
           response_type: AuthorizationResponseType.TOKEN,
+          audience: "https://example.com",
         },
         client,
         user,
@@ -227,6 +230,7 @@ describe("org_name in tokens", () => {
           client_id: "clientId",
           response_type: AuthorizationResponseType.TOKEN_ID_TOKEN,
           scope: "openid",
+          audience: "https://example.com",
         },
         client,
         user,
@@ -277,6 +281,7 @@ describe("org_name in tokens", () => {
         authParams: {
           client_id: "clientId",
           response_type: AuthorizationResponseType.TOKEN,
+          audience: "https://example.com",
         },
         client,
         user,
@@ -335,6 +340,7 @@ describe("org_name in tokens", () => {
           client_id: "clientId",
           response_type: AuthorizationResponseType.TOKEN_ID_TOKEN,
           scope: "openid",
+          audience: "https://example.com",
         },
         client,
         user,
