@@ -105,13 +105,19 @@ describe("createDefaultDestinations", () => {
 
     const webhookInvoker = vi.fn(async () => new Response("ok", { status: 200 }));
 
+    const receivedScopes: Array<string | undefined> = [];
+    const getServiceToken = vi.fn(async (_tenantId: string, scope?: string) => {
+      receivedScopes.push(scope);
+      return "svc-token";
+    });
+
     const destinations = createDefaultDestinations({
       dataAdapter: {
         logs: {} as LogsDataAdapter,
         hooks,
         users,
       },
-      getServiceToken: async () => "svc-token",
+      getServiceToken,
       webhookInvoker,
     });
 
@@ -130,9 +136,17 @@ describe("createDefaultDestinations", () => {
     expect(call.hook.hook_id).toBe("h1");
     expect(call.tenant_id).toBe("tenant-1");
     expect(call.data.trigger_id).toBe("post-user-registration");
+    expect(call.idempotency_key).toBe("evt-1");
     expect(typeof call.createServiceToken).toBe("function");
     expect(await call.createServiceToken()).toBe("svc-token");
     expect(await call.createServiceToken("custom-scope")).toBe("svc-token");
+
+    // The wrapper must forward the requested scope to the underlying
+    // getServiceToken — otherwise a custom invoker asking for a non-default
+    // scope would silently get a "webhook"-scoped token.
+    expect(getServiceToken).toHaveBeenCalledWith("tenant-1", "webhook");
+    expect(getServiceToken).toHaveBeenCalledWith("tenant-1", "custom-scope");
+    expect(receivedScopes).toContain("custom-scope");
   });
 });
 

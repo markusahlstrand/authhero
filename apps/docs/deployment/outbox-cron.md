@@ -85,7 +85,8 @@ crons = ["*/5 * * * *"]  # Every 5 minutes
 Then in your worker entry:
 
 ```ts
-import { initMultiTenant, runOutboxRelay } from "authhero";
+import { initMultiTenant } from "@authhero/multi-tenancy";
+import { runOutboxRelay } from "authhero";
 import { webhookInvoker } from "./webhook-invoker";
 
 export default {

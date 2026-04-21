@@ -76,11 +76,19 @@ function buildWhereConditions(
     if (values.length === 0) continue;
 
     if (key === "success") {
-      const value = values[values.length - 1];
-      if (value === "true") {
-        conditions.push(`blob3 LIKE 's%'`);
-      } else if (value === "false") {
-        conditions.push(`blob3 LIKE 'f%'`);
+      const fragments: string[] = [];
+      const seen = new Set<string>();
+      for (const value of values) {
+        if (seen.has(value)) continue;
+        seen.add(value);
+        if (value === "true") {
+          fragments.push(`blob3 LIKE 's%'`);
+        } else if (value === "false") {
+          fragments.push(`blob3 LIKE 'f%'`);
+        }
+      }
+      if (fragments.length > 0) {
+        conditions.push(`(${fragments.join(" OR ")})`);
       }
       continue;
     }

@@ -12,7 +12,18 @@ import { pemToBuffer } from "../utils/crypto";
 
 const AUTH_SERVICE_CLIENT_ID = "auth-service";
 const DEFAULT_EXPIRES_IN_SECONDS = 3600;
-const RESERVED_CLAIMS = ["sub", "iss", "aud", "exp", "nbf", "iat", "jti"];
+const RESERVED_CLAIMS = [
+  "sub",
+  "iss",
+  "aud",
+  "exp",
+  "nbf",
+  "iat",
+  "jti",
+  "scope",
+  "azp",
+  "tenant_id",
+];
 
 export interface ServiceTokenResponse {
   access_token: string;
@@ -62,11 +73,13 @@ export async function createServiceTokenCore(
     }
   }
 
-  const { signingKeys } = await keys.list({ q: "type:jwt_signing" });
-  const validKeys = signingKeys.filter(
+  const { signingKeys } = await keys.list({
+    q: "type:jwt_signing",
+    sort: { sort_by: "created_at", sort_order: "desc" },
+  });
+  const signingKey = signingKeys.find(
     (key) => !key.revoked_at || new Date(key.revoked_at) > new Date(),
   );
-  const signingKey = validKeys[validKeys.length - 1];
   if (!signingKey?.pkcs7) {
     throw new Error("No signing key available");
   }

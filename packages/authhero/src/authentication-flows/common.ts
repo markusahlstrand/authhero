@@ -150,11 +150,11 @@ export async function createAuthTokens(
 
   const { signingKeys } = await ctx.env.data.keys.list({
     q: "type:jwt_signing",
+    sort: { sort_by: "created_at", sort_order: "desc" },
   });
-  const validKeys = signingKeys.filter(
+  const signingKey = signingKeys.find(
     (key: any) => !key.revoked_at || new Date(key.revoked_at) > new Date(),
   );
-  const signingKey = validKeys[validKeys.length - 1];
 
   if (!signingKey?.pkcs7) {
     throw new JSONHTTPException(500, { message: "No signing key available" });

@@ -116,12 +116,30 @@ export class WebhookDestination implements EventDestination {
     const boundCreateServiceToken = (scope: string = DEFAULT_SCOPE) =>
       this.getServiceToken(invocation.tenantId, scope);
 
-    const response = await invoker({
-      hook,
-      data: invocation.payload as unknown as Record<string, unknown>,
-      tenant_id: invocation.tenantId,
-      createServiceToken: boundCreateServiceToken,
+    // Enforce the same timeout as the default invoker — deliver() runs
+    // sequentially, so a hanging invoker would block the whole batch.
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(
+        () =>
+          reject(
+            new Error(
+              `Webhook ${hook.hook_id} (${invocation.triggerId}) timed out after ${this.timeoutMs}ms`,
+            ),
+          ),
+        this.timeoutMs,
+      );
     });
+
+    const response = await Promise.race([
+      invoker({
+        hook,
+        data: invocation.payload as unknown as Record<string, unknown>,
+        tenant_id: invocation.tenantId,
+        idempotency_key: invocation.eventId,
+        createServiceToken: boundCreateServiceToken,
+      }),
+      timeoutPromise,
+    ]);
 
     if (!response.ok) {
       const body = await response.text().catch(() => "");

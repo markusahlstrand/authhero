@@ -74,6 +74,9 @@ export const passwordlessRoutes = new OpenAPIHono<{
       // Convert structured auth0_client back to string for storage
       const auth0Client = stringifyAuth0Client(auth0_client);
 
+      const resolvedAudience =
+        authParams.audience ?? client.tenant.default_audience;
+
       const loginSession = await env.data.loginSessions.create(
         client.tenant.id,
         {
@@ -81,7 +84,7 @@ export const passwordlessRoutes = new OpenAPIHono<{
             ...authParams,
             client_id,
             username,
-            audience: authParams.audience ?? client.tenant.default_audience,
+            audience: resolvedAudience,
           },
           expires_at: new Date(Date.now() + OTP_EXPIRATION_TIME).toISOString(),
           csrf_token: nanoid(),
@@ -111,6 +114,7 @@ export const passwordlessRoutes = new OpenAPIHono<{
           authParams: {
             ...authParams,
             client_id,
+            audience: resolvedAudience,
           },
           language,
         });

@@ -97,11 +97,20 @@ export async function runOutboxRelay(
     webhookInvoker,
   });
 
-  await drainOutbox(dataAdapter.outbox, destinations, {
-    batchSize,
-    maxRetries,
-    retentionDays,
-  });
+  let drainError: unknown;
+  try {
+    await drainOutbox(dataAdapter.outbox, destinations, {
+      batchSize,
+      maxRetries,
+      retentionDays,
+    });
+  } catch (error) {
+    drainError = error;
+  }
 
   await cleanupOutbox(dataAdapter.outbox, { retentionDays });
+
+  if (drainError !== undefined) {
+    throw drainError;
+  }
 }
