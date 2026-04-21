@@ -1,5 +1,5 @@
 ---
-"@authhero/kysely": patch
+"@authhero/kysely-adapter": patch
 ---
 
 Split the `login_sessions` authParams column cleanup into two migrations so the blob-only adapter code can be deployed ahead of the heavier column drop.
