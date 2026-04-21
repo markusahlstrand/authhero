@@ -1,5 +1,16 @@
 # @authhero/cloudflare-adapter
 
+## 2.25.0
+
+### Minor Changes
+
+- b4f4f15: Fix the logs endpoint
+
+### Patch Changes
+
+- Updated dependencies [0b3419b]
+  - @authhero/kysely-adapter@10.128.1
+
 ## 2.24.4
 
 ### Patch Changes
