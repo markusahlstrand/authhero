@@ -156,5 +156,39 @@ export function createRefreshTokensAdapter(
         refreshTokenKeys.sk(id),
       );
     },
+
+    async revokeByLoginSession(
+      tenantId: string,
+      login_session_id: string,
+      revoked_at: string,
+    ): Promise<number> {
+      // DynamoDB has no GSI on login_id, so iterate tenant refresh tokens and
+      // soft-revoke the ones that match.
+      let count = 0;
+      let page = 0;
+      const per_page = 100;
+      for (;;) {
+        const result = await queryWithPagination<RefreshTokenItem>(
+          ctx,
+          refreshTokenKeys.pk(tenantId),
+          { page, per_page },
+          { skPrefix: "REFRESH_TOKEN#" },
+        );
+        for (const item of result.items) {
+          if (item.login_id !== login_session_id) continue;
+          if ((item as { revoked_at?: string }).revoked_at) continue;
+          const ok = await updateItem(
+            ctx,
+            refreshTokenKeys.pk(tenantId),
+            refreshTokenKeys.sk(item.id),
+            { revoked_at, updated_at: new Date().toISOString() },
+          );
+          if (ok) count++;
+        }
+        if (result.items.length < per_page) break;
+        page++;
+      }
+      return count;
+    },
   };
 }

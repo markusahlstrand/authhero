@@ -15,6 +15,7 @@ export function update(db: Kysely<Database>) {
       expires_at,
       idle_expires_at,
       last_exchanged_at,
+      revoked_at,
       device,
       resource_servers,
       rotating,
@@ -40,6 +41,8 @@ export function update(db: Kysely<Database>) {
         last_exchanged_at !== undefined
           ? isoToDbDate(last_exchanged_at)
           : undefined,
+      revoked_at_ts:
+        revoked_at !== undefined ? isoToDbDate(revoked_at) : undefined,
     };
 
     return db.transaction().execute(async (trx) => {

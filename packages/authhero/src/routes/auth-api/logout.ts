@@ -99,49 +99,36 @@ export const logoutRoutes = new OpenAPIHono<{
               ctx.set("connection", user.connection);
             }
 
-            // Find refresh tokens via login_session_id
-            const refreshTokensList = session.login_session_id
-              ? await ctx.env.data.refreshTokens.list(client.tenant.id, {
-                  q: `login_id=${session.login_session_id}`,
-                  page: 0,
-                  per_page: 100,
-                  include_totals: false,
-                })
-              : null;
-
-            const revokedCount =
-              refreshTokensList?.refresh_tokens.length ?? 0;
-
-            // Revoke refresh tokens + mark session revoked + write the
+            // Soft-revoke every refresh token bound to this login session in
+            // a single UPDATE + mark session revoked + write the
             // SUCCESS_REVOCATION audit event atomically. The outbox insert
             // commits with the state changes, so we never emit a success
             // event for tokens that weren't actually revoked.
-            const committedEventId = await ctx.env.data.transaction(
-              async (trx) => {
-                if (refreshTokensList && revokedCount > 0) {
-                  await Promise.all(
-                    refreshTokensList.refresh_tokens.map((refreshToken) =>
-                      trx.refreshTokens.remove(
-                        client.tenant.id,
-                        refreshToken.id,
-                      ),
-                    ),
-                  );
-                }
+            const revokedAt = new Date().toISOString();
+            const { revokedCount, committedEventId } =
+              await ctx.env.data.transaction(async (trx) => {
+                const count = session.login_session_id
+                  ? await trx.refreshTokens.revokeByLoginSession(
+                      client.tenant.id,
+                      session.login_session_id,
+                      revokedAt,
+                    )
+                  : 0;
 
                 await trx.sessions.update(client.tenant.id, tokenState, {
-                  revoked_at: new Date().toISOString(),
+                  revoked_at: revokedAt,
                 });
 
-                if (revokedCount > 0) {
-                  return logMessageInTx(ctx, trx, client.tenant.id, {
-                    type: LogTypes.SUCCESS_REVOCATION,
-                    description: `Revoked ${revokedCount} refresh token(s)`,
-                  });
-                }
-                return undefined;
-              },
-            );
+                const eventId =
+                  count > 0
+                    ? await logMessageInTx(ctx, trx, client.tenant.id, {
+                        type: LogTypes.SUCCESS_REVOCATION,
+                        description: `Revoked ${count} refresh token(s)`,
+                      })
+                    : undefined;
+
+                return { revokedCount: count, committedEventId: eventId };
+              });
 
             if (committedEventId) {
               // Feed the already-committed event id into the outbox middleware
@@ -149,9 +136,10 @@ export const logoutRoutes = new OpenAPIHono<{
               const promises = ctx.var.outboxEventPromises ?? [];
               promises.push(Promise.resolve(committedEventId));
               ctx.set("outboxEventPromises", promises);
-            } else if (revokedCount > 0 && !ctx.env.outbox?.enabled) {
-              // Outbox disabled: emit the legacy log so non-outbox deployments
-              // still see the revocation.
+            } else if (revokedCount > 0) {
+              // logMessageInTx returned undefined — either outbox is disabled
+              // or the transaction-scoped outbox adapter is unavailable. Emit
+              // the legacy log so the revocation is still recorded.
               logMessage(ctx, client.tenant.id, {
                 type: LogTypes.SUCCESS_REVOCATION,
                 description: `Revoked ${revokedCount} refresh token(s)`,

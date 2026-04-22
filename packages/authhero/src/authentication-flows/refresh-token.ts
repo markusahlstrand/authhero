@@ -62,6 +62,17 @@ export async function refreshTokenGrant(
       error: "invalid_grant",
       error_description: "Invalid refresh token",
     });
+  } else if (refreshToken.revoked_at) {
+    appendLog(ctx, `Refresh token has been revoked: ${params.refresh_token}`);
+    logMessage(ctx, client.tenant.id, {
+      type: LogTypes.FAILED_EXCHANGE_REFRESH_TOKEN_FOR_ACCESS_TOKEN,
+      description: "Refresh token has been revoked",
+      userId: refreshToken.user_id,
+    });
+    throw new JSONHTTPException(400, {
+      error: "invalid_grant",
+      error_description: "Refresh token has been revoked",
+    });
   } else if (
     (refreshToken.expires_at &&
       new Date(refreshToken.expires_at) < new Date()) ||

@@ -1456,6 +1456,13 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
+        },
+        "revoked_at_ts": {
+          "name": "revoked_at_ts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         }
       },
       "indexes": {

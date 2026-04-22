@@ -52,6 +52,7 @@ export const refreshTokens = sqliteTable(
     expires_at_ts: integer("expires_at_ts"),
     idle_expires_at_ts: integer("idle_expires_at_ts"),
     last_exchanged_at_ts: integer("last_exchanged_at_ts"),
+    revoked_at_ts: integer("revoked_at_ts"),
   },
   (table) => [
     primaryKey({

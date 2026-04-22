@@ -20,4 +20,9 @@ export interface RefreshTokensAdapter {
     refresh_token: Partial<RefreshToken>,
   ) => Promise<boolean>;
   remove: (tenant_id: string, id: string) => Promise<boolean>;
+  revokeByLoginSession: (
+    tenant_id: string,
+    login_session_id: string,
+    revoked_at: string,
+  ) => Promise<number>;
 }

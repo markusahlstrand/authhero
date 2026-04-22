@@ -117,7 +117,8 @@ describe("logout", () => {
       page: 0,
     });
 
-    expect(refreshtokensRes.refresh_tokens).toEqual([]);
+    expect(refreshtokensRes.refresh_tokens).toHaveLength(1);
+    expect(refreshtokensRes.refresh_tokens[0]?.revoked_at).toBeTypeOf("string");
 
     const { logs } = await env.data.logs.list("tenantId");
     expect(logs.length).toBe(2);

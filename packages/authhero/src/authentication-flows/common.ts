@@ -1777,7 +1777,10 @@ export async function completeLogin(
   let calculatedPermissions: string[] = [];
   let calculatedTokenLifetime: number | undefined;
 
-  if (params.authParams.audience) {
+  const resolvedAudience =
+    params.authParams.audience ?? params.client.tenant.default_audience;
+
+  if (resolvedAudience) {
     try {
       let scopesAndPermissions;
 
@@ -1790,7 +1793,7 @@ export async function completeLogin(
           grantType: GrantType.ClientCredential,
           tenantId: params.client.tenant.id,
           clientId: params.client.client_id,
-          audience: params.authParams.audience,
+          audience: resolvedAudience,
           requestedScopes: params.authParams.scope?.split(" ") || [],
           organizationId: params.organization?.id,
         });
@@ -1815,7 +1818,7 @@ export async function completeLogin(
           tenantId: params.client.tenant.id,
           userId: userId,
           clientId: params.client.client_id,
-          audience: params.authParams.audience,
+          audience: resolvedAudience,
           requestedScopes: params.authParams.scope?.split(" ") || [],
           organizationId: params.organization?.id,
         });

@@ -41,6 +41,7 @@ export function list(db: Kysely<Database>) {
         expires_at_ts,
         idle_expires_at_ts,
         last_exchanged_at_ts,
+        revoked_at_ts,
         ...rest
       } = refresh_token;
 
@@ -51,14 +52,21 @@ export function list(db: Kysely<Database>) {
           expires_at_ts,
           idle_expires_at_ts,
           last_exchanged_at_ts,
+          revoked_at_ts,
         },
         ["created_at_ts"],
-        ["expires_at_ts", "idle_expires_at_ts", "last_exchanged_at_ts"],
+        [
+          "expires_at_ts",
+          "idle_expires_at_ts",
+          "last_exchanged_at_ts",
+          "revoked_at_ts",
+        ],
       ) as {
         created_at: string;
         expires_at?: string;
         idle_expires_at?: string;
         last_exchanged_at?: string;
+        revoked_at?: string;
       };
 
       return {
