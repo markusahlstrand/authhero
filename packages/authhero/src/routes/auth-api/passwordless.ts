@@ -251,6 +251,7 @@ export const passwordlessRoutes = new OpenAPIHono<{
           authParams: {
             ...authParams,
             username: email,
+            audience: authParams.audience ?? client.tenant.default_audience,
           },
           expires_at: new Date(Date.now() + OTP_EXPIRATION_TIME).toISOString(),
           csrf_token: nanoid(),

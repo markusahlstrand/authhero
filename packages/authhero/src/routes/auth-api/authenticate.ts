@@ -89,6 +89,7 @@ export const authenticateRoutes = new OpenAPIHono<{
             authParams: {
               client_id,
               username: email,
+              audience: client.tenant.default_audience,
             },
             csrf_token: nanoid(),
             ip,

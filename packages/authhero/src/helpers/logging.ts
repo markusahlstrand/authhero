@@ -1,5 +1,6 @@
 import { Context } from "hono";
 import {
+  DataAdapters,
   LogInsert,
   LogType,
   AuditEventInsert,
@@ -292,4 +293,24 @@ export async function logMessage(
     // Otherwise, use waitUntil to execute in background without blocking
     waitUntil(ctx, createLogPromise());
   }
+}
+
+/**
+ * Transactional variant of {@link logMessage}. Writes the audit event to the
+ * outbox through the caller-provided `trxData` so the insert commits (or rolls
+ * back) with the surrounding business write. Returns the event id so the
+ * caller can hand it to the outbox middleware for destination delivery.
+ *
+ * Only intended for outbox-enabled deployments; callers should fall back to
+ * `logMessage` when `ctx.env.outbox?.enabled` is false.
+ */
+export async function logMessageInTx(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  trxData: DataAdapters,
+  tenantId: string,
+  params: LogParams,
+): Promise<string | undefined> {
+  if (!ctx.env.outbox?.enabled || !trxData.outbox) return undefined;
+  const event = buildAuditEvent(ctx, tenantId, params);
+  return trxData.outbox.create(tenantId, event);
 }

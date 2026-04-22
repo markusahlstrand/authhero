@@ -1,7 +1,7 @@
 import { LogTypes } from "@authhero/adapter-interfaces";
 import { HTTPException } from "hono/http-exception";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { logMessage } from "../../helpers/logging";
+import { logMessage, logMessageInTx } from "../../helpers/logging";
 import { Bindings, Variables } from "../../types";
 import { isValidRedirectUrl } from "../../utils/is-valid-redirect-url";
 import { clearAuthCookie, getAuthCookie } from "../../utils/cookies";
@@ -100,38 +100,63 @@ export const logoutRoutes = new OpenAPIHono<{
             }
 
             // Find refresh tokens via login_session_id
-            if (session.login_session_id) {
-              const refreshTokens = await ctx.env.data.refreshTokens.list(
-                client.tenant.id,
-                {
+            const refreshTokensList = session.login_session_id
+              ? await ctx.env.data.refreshTokens.list(client.tenant.id, {
                   q: `login_id=${session.login_session_id}`,
                   page: 0,
                   per_page: 100,
                   include_totals: false,
-                },
-              );
+                })
+              : null;
 
-              // Remove all refresh tokens
-              await Promise.all(
-                refreshTokens.refresh_tokens.map((refreshToken) =>
-                  ctx.env.data.refreshTokens.remove(
-                    client.tenant.id,
-                    refreshToken.id,
-                  ),
-                ),
-              );
+            const revokedCount =
+              refreshTokensList?.refresh_tokens.length ?? 0;
 
-              if (refreshTokens.refresh_tokens.length > 0) {
-                logMessage(ctx, client.tenant.id, {
-                  type: LogTypes.SUCCESS_REVOCATION,
-                  description: `Revoked ${refreshTokens.refresh_tokens.length} refresh token(s)`,
+            // Revoke refresh tokens + mark session revoked + write the
+            // SUCCESS_REVOCATION audit event atomically. The outbox insert
+            // commits with the state changes, so we never emit a success
+            // event for tokens that weren't actually revoked.
+            const committedEventId = await ctx.env.data.transaction(
+              async (trx) => {
+                if (refreshTokensList && revokedCount > 0) {
+                  await Promise.all(
+                    refreshTokensList.refresh_tokens.map((refreshToken) =>
+                      trx.refreshTokens.remove(
+                        client.tenant.id,
+                        refreshToken.id,
+                      ),
+                    ),
+                  );
+                }
+
+                await trx.sessions.update(client.tenant.id, tokenState, {
+                  revoked_at: new Date().toISOString(),
                 });
-              }
-            }
 
-            await ctx.env.data.sessions.update(client.tenant.id, tokenState, {
-              revoked_at: new Date().toISOString(),
-            });
+                if (revokedCount > 0) {
+                  return logMessageInTx(ctx, trx, client.tenant.id, {
+                    type: LogTypes.SUCCESS_REVOCATION,
+                    description: `Revoked ${revokedCount} refresh token(s)`,
+                  });
+                }
+                return undefined;
+              },
+            );
+
+            if (committedEventId) {
+              // Feed the already-committed event id into the outbox middleware
+              // so destination delivery is still scheduled.
+              const promises = ctx.var.outboxEventPromises ?? [];
+              promises.push(Promise.resolve(committedEventId));
+              ctx.set("outboxEventPromises", promises);
+            } else if (revokedCount > 0 && !ctx.env.outbox?.enabled) {
+              // Outbox disabled: emit the legacy log so non-outbox deployments
+              // still see the revocation.
+              logMessage(ctx, client.tenant.id, {
+                type: LogTypes.SUCCESS_REVOCATION,
+                description: `Revoked ${revokedCount} refresh token(s)`,
+              });
+            }
           }
         }
       }

@@ -153,17 +153,7 @@ export async function passwordlessGrant(
 ) {
   const result = await passwordlessGrantUser(ctx, params);
 
-  logMessage(ctx, result.client.tenant.id, {
-    type: LogTypes.SUCCESS_EXCHANGE_PASSWORD_OTP_FOR_ACCESS_TOKEN,
-    userId: result.user.user_id,
-    connection: result.connectionType,
-    strategy: result.connectionType === "sms" ? Strategy.SMS : Strategy.EMAIL,
-    strategy_type: StrategyType.PASSWORDLESS,
-    scope: result.authParams.scope,
-    audience: result.authParams.audience,
-  });
-
-  return createFrontChannelAuthResponse(ctx, {
+  const response = await createFrontChannelAuthResponse(ctx, {
     authParams: result.authParams,
     client: result.client,
     user: result.user,
@@ -174,4 +164,22 @@ export async function passwordlessGrant(
       strategy_type: StrategyType.PASSWORDLESS,
     },
   });
+
+  // Code flow returns an authorization code (no access token issued here), so
+  // SUCCESS_EXCHANGE_PASSWORD_OTP_FOR_ACCESS_TOKEN would misrepresent it. The
+  // /oauth/token leg later emits seacft when the code is exchanged.
+  const isCodeFlow = result.authParams.response_type === "code";
+  logMessage(ctx, result.client.tenant.id, {
+    type: isCodeFlow
+      ? LogTypes.SUCCESS_LOGIN
+      : LogTypes.SUCCESS_EXCHANGE_PASSWORD_OTP_FOR_ACCESS_TOKEN,
+    userId: result.user.user_id,
+    connection: result.connectionType,
+    strategy: result.connectionType === "sms" ? Strategy.SMS : Strategy.EMAIL,
+    strategy_type: StrategyType.PASSWORDLESS,
+    scope: result.authParams.scope,
+    audience: result.authParams.audience,
+  });
+
+  return response;
 }

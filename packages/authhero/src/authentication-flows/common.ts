@@ -52,6 +52,7 @@ export interface AuthTokenClient {
   client_id: string;
   tenant: {
     audience: string;
+    default_audience?: string;
     allow_organization_name_in_authentication_api?: boolean;
   };
   auth0_conformant?: boolean;
@@ -163,10 +164,11 @@ export async function createAuthTokens(
   const keyBuffer = pemToBuffer(signingKey.pkcs7);
   const iss = getIssuer(ctx.env, ctx.var.custom_domain);
 
-  // Audience is stamped onto authParams at /authorize (or /oauth/token for
-  // client_credentials), so by the time we get here it's already the resolved
-  // value — no tenant fallback needed.
-  const audience = authParams.audience;
+  // Audience is normally stamped onto authParams at /authorize (or
+  // /oauth/token for client_credentials). Fall back to the tenant's
+  // default_audience here as a safety net for callers that create login
+  // sessions without going through /authorize.
+  const audience = authParams.audience ?? client.tenant.default_audience;
 
   if (!audience) {
     throw new JSONHTTPException(400, {
@@ -502,7 +504,8 @@ export async function createRefreshToken(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: CreateRefreshTokenParams,
 ) {
-  const { client, scope, audience, login_id } = params;
+  const { client, scope, login_id } = params;
+  const audience = params.audience ?? client.tenant.default_audience;
 
   if (!audience) {
     throw new JSONHTTPException(400, {

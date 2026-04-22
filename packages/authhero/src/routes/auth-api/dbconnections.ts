@@ -202,6 +202,7 @@ export const dbConnectionRoutes = new OpenAPIHono<{
       const authParams: AuthParams = {
         client_id: client_id,
         username: email,
+        audience: client.tenant.default_audience,
       };
 
       const loginSession = await ctx.env.data.loginSessions.create(

@@ -110,14 +110,14 @@ describe("logout", () => {
     const sessionAfter = await env.data.sessions.get("tenantId", session.id);
     expect(sessionAfter?.revoked_at).toBeTypeOf("string");
 
-    const refreshtokens = await env.data.refreshTokens.list("tenantId", {
+    const refreshtokensRes = await env.data.refreshTokens.list("tenantId", {
       q: `login_id:${loginSession.id}`,
       include_totals: false,
       per_page: 1,
       page: 0,
     });
 
-    expect(refreshtokens.length).toBe(0);
+    expect(refreshtokensRes.refresh_tokens).toEqual([]);
 
     const { logs } = await env.data.logs.list("tenantId");
     expect(logs.length).toBe(2);
