@@ -60,6 +60,104 @@ describe("common", () => {
       });
     });
 
+    it("should fall back to tenant default_audience when authParams.audience is not set", async () => {
+      const { env } = await getTestServer();
+      const ctx = {
+        env,
+        var: {
+          tenant_id: "tenantId",
+        },
+      } as Context<{
+        Bindings: Bindings;
+        Variables: Variables;
+      }>;
+
+      const client = await getEnrichedClient(env, "clientId");
+      const user = await getPrimaryUserByEmail({
+        userAdapter: env.data.users,
+        tenant_id: "tenantId",
+        email: "foo@example.com",
+      });
+
+      if (!client || !user) {
+        throw new Error("Client or user not found");
+      }
+
+      const tokens = await createAuthTokens(ctx, {
+        authParams: {
+          client_id: "clientId",
+          response_type: AuthorizationResponseType.TOKEN,
+          // audience deliberately omitted — should fall back to tenant.default_audience
+        },
+        client,
+        user,
+        session_id: "session_id",
+      });
+
+      const parsed = parseJWT(tokens.access_token);
+      const payload = parsed?.payload as Record<string, unknown>;
+      expect(payload.aud).toBe("https://example.com");
+    });
+
+    it("should throw when neither authParams.audience nor tenant default_audience is set", async () => {
+      const { env } = await getTestServer();
+
+      // Create a separate tenant without default_audience — the kysely adapter
+      // strips undefined/null on update, so we can't clear it from the fixture.
+      await env.data.tenants.create({
+        id: "noAudienceTenant",
+        friendly_name: "No Audience Tenant",
+      });
+      await env.data.clients.create("noAudienceTenant", {
+        client_id: "noAudienceClient",
+        client_secret: "clientSecret",
+        name: "No Audience Client",
+        callbacks: ["https://example.com/callback"],
+        allowed_logout_urls: ["https://example.com/callback"],
+        web_origins: ["https://example.com"],
+      });
+
+      const ctx = {
+        env,
+        var: {
+          tenant_id: "noAudienceTenant",
+        },
+      } as Context<{
+        Bindings: Bindings;
+        Variables: Variables;
+      }>;
+
+      const client = await getEnrichedClient(
+        env,
+        "noAudienceClient",
+        "noAudienceTenant",
+      );
+      const user = await getPrimaryUserByEmail({
+        userAdapter: env.data.users,
+        tenant_id: "tenantId",
+        email: "foo@example.com",
+      });
+
+      if (!client || !user) {
+        throw new Error("Client or user not found");
+      }
+
+      // Sanity-check the fixture: no default_audience on this tenant
+      expect(client.tenant.default_audience).toBeUndefined();
+
+      await expect(
+        createAuthTokens(ctx, {
+          authParams: {
+            client_id: "noAudienceClient",
+            response_type: AuthorizationResponseType.TOKEN,
+          },
+          client,
+          user,
+          session_id: "session_id",
+        }),
+      ).rejects.toThrow(/audience/i);
+    });
+
     it("should create an access token and an id token when the response type is token id_token and the openid scope is requested", async () => {
       const { env } = await getTestServer();
       const ctx = {

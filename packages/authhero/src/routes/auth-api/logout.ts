@@ -1,7 +1,7 @@
 import { LogTypes } from "@authhero/adapter-interfaces";
 import { HTTPException } from "hono/http-exception";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { logMessage } from "../../helpers/logging";
+import { logMessage, logMessageInTx } from "../../helpers/logging";
 import { Bindings, Variables } from "../../types";
 import { isValidRedirectUrl } from "../../utils/is-valid-redirect-url";
 import { clearAuthCookie, getAuthCookie } from "../../utils/cookies";
@@ -71,6 +71,10 @@ export const logoutRoutes = new OpenAPIHono<{
           { allowPathWildcards: true, allowSubDomainWildcards: true },
         )
       ) {
+        logMessage(ctx, client.tenant.id, {
+          type: LogTypes.FAILED_LOGOUT,
+          description: "Invalid redirect uri",
+        });
         throw new HTTPException(400, {
           message: "Invalid redirect uri",
         });
@@ -95,32 +99,52 @@ export const logoutRoutes = new OpenAPIHono<{
               ctx.set("connection", user.connection);
             }
 
-            // Find refresh tokens via login_session_id
-            if (session.login_session_id) {
-              const refreshTokens = await ctx.env.data.refreshTokens.list(
-                client.tenant.id,
-                {
-                  q: `login_id=${session.login_session_id}`,
-                  page: 0,
-                  per_page: 100,
-                  include_totals: false,
-                },
-              );
+            // Soft-revoke every refresh token bound to this login session in
+            // a single UPDATE + mark session revoked + write the
+            // SUCCESS_REVOCATION audit event atomically. The outbox insert
+            // commits with the state changes, so we never emit a success
+            // event for tokens that weren't actually revoked.
+            const revokedAt = new Date().toISOString();
+            const { revokedCount, committedEventId } =
+              await ctx.env.data.transaction(async (trx) => {
+                const count = session.login_session_id
+                  ? await trx.refreshTokens.revokeByLoginSession(
+                      client.tenant.id,
+                      session.login_session_id,
+                      revokedAt,
+                    )
+                  : 0;
 
-              // Remove all refresh tokens
-              await Promise.all(
-                refreshTokens.refresh_tokens.map((refreshToken) =>
-                  ctx.env.data.refreshTokens.remove(
-                    client.tenant.id,
-                    refreshToken.id,
-                  ),
-                ),
-              );
+                await trx.sessions.update(client.tenant.id, tokenState, {
+                  revoked_at: revokedAt,
+                });
+
+                const eventId =
+                  count > 0
+                    ? await logMessageInTx(ctx, trx, client.tenant.id, {
+                        type: LogTypes.SUCCESS_REVOCATION,
+                        description: `Revoked ${count} refresh token(s)`,
+                      })
+                    : undefined;
+
+                return { revokedCount: count, committedEventId: eventId };
+              });
+
+            if (committedEventId) {
+              // Feed the already-committed event id into the outbox middleware
+              // so destination delivery is still scheduled.
+              const promises = ctx.var.outboxEventPromises ?? [];
+              promises.push(Promise.resolve(committedEventId));
+              ctx.set("outboxEventPromises", promises);
+            } else if (revokedCount > 0) {
+              // logMessageInTx returned undefined — either outbox is disabled
+              // or the transaction-scoped outbox adapter is unavailable. Emit
+              // the legacy log so the revocation is still recorded.
+              logMessage(ctx, client.tenant.id, {
+                type: LogTypes.SUCCESS_REVOCATION,
+                description: `Revoked ${revokedCount} refresh token(s)`,
+              });
             }
-
-            await ctx.env.data.sessions.update(client.tenant.id, tokenState, {
-              revoked_at: new Date().toISOString(),
-            });
           }
         }
       }

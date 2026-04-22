@@ -1,4 +1,13 @@
-import { eq, and, lt, count as countFn, asc, desc, sql } from "drizzle-orm";
+import {
+  eq,
+  and,
+  lt,
+  isNull,
+  count as countFn,
+  asc,
+  desc,
+  sql,
+} from "drizzle-orm";
 import { nanoid } from "nanoid";
 import type { RefreshToken, ListParams } from "@authhero/adapter-interfaces";
 import { refreshTokens, loginSessions } from "../schema/sqlite";
@@ -14,6 +23,7 @@ function sqlToRefreshToken(row: any): RefreshToken {
     expires_at_ts,
     idle_expires_at_ts,
     last_exchanged_at_ts,
+    revoked_at_ts,
     device,
     resource_servers,
     rotating,
@@ -21,9 +31,20 @@ function sqlToRefreshToken(row: any): RefreshToken {
   } = row;
 
   const dates = convertDatesToAdapter(
-    { created_at_ts, expires_at_ts, idle_expires_at_ts, last_exchanged_at_ts },
+    {
+      created_at_ts,
+      expires_at_ts,
+      idle_expires_at_ts,
+      last_exchanged_at_ts,
+      revoked_at_ts,
+    },
     ["created_at_ts"],
-    ["expires_at_ts", "idle_expires_at_ts", "last_exchanged_at_ts"],
+    [
+      "expires_at_ts",
+      "idle_expires_at_ts",
+      "last_exchanged_at_ts",
+      "revoked_at_ts",
+    ],
   );
 
   return removeNullProperties({
@@ -130,6 +151,8 @@ export function createRefreshTokensAdapter(db: DrizzleDb) {
         updateData.idle_expires_at_ts = isoToDbDate(token.idle_expires_at);
       if (token.last_exchanged_at !== undefined)
         updateData.last_exchanged_at_ts = isoToDbDate(token.last_exchanged_at);
+      if (token.revoked_at !== undefined)
+        updateData.revoked_at_ts = isoToDbDate(token.revoked_at);
 
       const expiryChanged =
         updateData.expires_at_ts !== undefined ||
@@ -260,6 +283,26 @@ export function createRefreshTokensAdapter(db: DrizzleDb) {
         .returning();
 
       return results.length > 0;
+    },
+
+    async revokeByLoginSession(
+      tenant_id: string,
+      login_session_id: string,
+      revoked_at: string,
+    ): Promise<number> {
+      const results = await db
+        .update(refreshTokens)
+        .set({ revoked_at_ts: isoToDbDate(revoked_at) })
+        .where(
+          and(
+            eq(refreshTokens.tenant_id, tenant_id),
+            eq(refreshTokens.login_id, login_session_id),
+            isNull(refreshTokens.revoked_at_ts),
+          ),
+        )
+        .returning();
+
+      return results.length;
     },
   };
 }

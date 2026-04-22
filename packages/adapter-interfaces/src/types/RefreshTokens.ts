@@ -38,6 +38,9 @@ export const refreshTokenSchema = z.object({
   // When the refresh token record was created.
   created_at: z.string(),
 
+  // When the token was explicitly revoked (null = still active).
+  revoked_at: z.string().optional(),
+
   // Spread in the rest of the refresh token properties.
   ...refreshTokenInsertSchema.shape,
 });

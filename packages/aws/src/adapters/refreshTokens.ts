@@ -6,6 +6,7 @@ import {
   ListParams,
   refreshTokenSchema,
 } from "@authhero/adapter-interfaces";
+import { UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
 import { refreshTokenKeys } from "../keys";
 import {
@@ -155,6 +156,65 @@ export function createRefreshTokensAdapter(
         refreshTokenKeys.pk(tenantId),
         refreshTokenKeys.sk(id),
       );
+    },
+
+    async revokeByLoginSession(
+      tenantId: string,
+      login_session_id: string,
+      revoked_at: string,
+    ): Promise<number> {
+      // DynamoDB has no GSI on login_id, so iterate tenant refresh tokens and
+      // soft-revoke the ones that match.
+      let count = 0;
+      let page = 0;
+      const per_page = 100;
+      for (;;) {
+        const result = await queryWithPagination<RefreshTokenItem>(
+          ctx,
+          refreshTokenKeys.pk(tenantId),
+          { page, per_page },
+          { skPrefix: "REFRESH_TOKEN#" },
+        );
+        for (const item of result.items) {
+          if (item.login_id !== login_session_id) continue;
+          if ((item as { revoked_at?: string }).revoked_at) continue;
+          try {
+            await ctx.client.send(
+              new UpdateCommand({
+                TableName: ctx.tableName,
+                Key: {
+                  PK: refreshTokenKeys.pk(tenantId),
+                  SK: refreshTokenKeys.sk(item.id),
+                },
+                UpdateExpression:
+                  "SET #revoked_at = :revoked_at, #updated_at = :updated_at",
+                ConditionExpression:
+                  "attribute_exists(PK) AND attribute_not_exists(#revoked_at)",
+                ExpressionAttributeNames: {
+                  "#revoked_at": "revoked_at",
+                  "#updated_at": "updated_at",
+                },
+                ExpressionAttributeValues: {
+                  ":revoked_at": revoked_at,
+                  ":updated_at": new Date().toISOString(),
+                },
+              }),
+            );
+            count++;
+          } catch (err: unknown) {
+            if (
+              (err as { name?: string })?.name ===
+              "ConditionalCheckFailedException"
+            ) {
+              continue;
+            }
+            throw err;
+          }
+        }
+        if (result.items.length < per_page) break;
+        page++;
+      }
+      return count;
     },
   };
 }

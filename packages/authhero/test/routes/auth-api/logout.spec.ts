@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
+import { LogTypes } from "@authhero/adapter-interfaces";
 import { getTestServer } from "../../helpers/test-server";
 import { createSessions } from "../../helpers/create-session";
 
@@ -109,16 +110,21 @@ describe("logout", () => {
     const sessionAfter = await env.data.sessions.get("tenantId", session.id);
     expect(sessionAfter?.revoked_at).toBeTypeOf("string");
 
-    const refreshtokens = await env.data.refreshTokens.list("tenantId", {
+    const refreshtokensRes = await env.data.refreshTokens.list("tenantId", {
       q: `login_id:${loginSession.id}`,
       include_totals: false,
       per_page: 1,
       page: 0,
     });
 
-    expect(refreshtokens.length).toBe(0);
+    expect(refreshtokensRes.refresh_tokens).toHaveLength(1);
+    expect(refreshtokensRes.refresh_tokens[0]?.revoked_at).toBeTypeOf("string");
 
     const { logs } = await env.data.logs.list("tenantId");
-    expect(logs.length).toBe(1);
+    expect(logs.length).toBe(2);
+    const logTypes = logs.map((l) => l.type).sort();
+    expect(logTypes).toEqual(
+      [LogTypes.SUCCESS_LOGOUT, LogTypes.SUCCESS_REVOCATION].sort(),
+    );
   });
 });

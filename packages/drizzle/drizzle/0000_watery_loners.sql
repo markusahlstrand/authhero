@@ -208,6 +208,7 @@ CREATE TABLE `refresh_tokens` (
 	`expires_at_ts` integer,
 	`idle_expires_at_ts` integer,
 	`last_exchanged_at_ts` integer,
+	`revoked_at_ts` integer,
 	PRIMARY KEY(`tenant_id`, `id`),
 	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade
 );

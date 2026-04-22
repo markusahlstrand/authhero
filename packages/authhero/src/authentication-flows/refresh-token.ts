@@ -1,11 +1,15 @@
 import { JSONHTTPException } from "../errors/json-http-exception";
 import { Context } from "hono";
 import { Bindings, Variables, GrantFlowUserResult } from "../types";
-import { AuthorizationResponseMode } from "@authhero/adapter-interfaces";
+import {
+  AuthorizationResponseMode,
+  LogTypes,
+} from "@authhero/adapter-interfaces";
 import { z } from "@hono/zod-openapi";
 import { safeCompare } from "../utils/safe-compare";
 import { appendLog } from "../utils/append-log";
 import { getEnrichedClient } from "../helpers/client";
+import { logMessage } from "../helpers/logging";
 
 export const refreshTokenParamsSchema = z.object({
   grant_type: z.literal("refresh_token"),
@@ -32,6 +36,10 @@ export async function refreshTokenGrant(
       client.client_secret &&
       !safeCompare(client.client_secret, params.client_secret)
     ) {
+      logMessage(ctx, client.tenant.id, {
+        type: LogTypes.FAILED_EXCHANGE_REFRESH_TOKEN_FOR_ACCESS_TOKEN,
+        description: "Client authentication failed",
+      });
       throw new JSONHTTPException(403, {
         error: "invalid_client",
         error_description: "Client authentication failed",
@@ -46,9 +54,24 @@ export async function refreshTokenGrant(
 
   if (!refreshToken) {
     appendLog(ctx, `Invalid refresh token: ${params.refresh_token}`);
+    logMessage(ctx, client.tenant.id, {
+      type: LogTypes.FAILED_EXCHANGE_REFRESH_TOKEN_FOR_ACCESS_TOKEN,
+      description: "Invalid refresh token",
+    });
     throw new JSONHTTPException(400, {
       error: "invalid_grant",
       error_description: "Invalid refresh token",
+    });
+  } else if (refreshToken.revoked_at) {
+    appendLog(ctx, `Refresh token has been revoked: ${refreshToken.id}`);
+    logMessage(ctx, client.tenant.id, {
+      type: LogTypes.FAILED_EXCHANGE_REFRESH_TOKEN_FOR_ACCESS_TOKEN,
+      description: "Refresh token has been revoked",
+      userId: refreshToken.user_id,
+    });
+    throw new JSONHTTPException(400, {
+      error: "invalid_grant",
+      error_description: "Refresh token has been revoked",
     });
   } else if (
     (refreshToken.expires_at &&
@@ -57,6 +80,11 @@ export async function refreshTokenGrant(
       new Date(refreshToken.idle_expires_at) < new Date())
   ) {
     appendLog(ctx, `Refresh token has expired: ${params.refresh_token}`);
+    logMessage(ctx, client.tenant.id, {
+      type: LogTypes.FAILED_EXCHANGE_REFRESH_TOKEN_FOR_ACCESS_TOKEN,
+      description: "Refresh token has expired",
+      userId: refreshToken.user_id,
+    });
     throw new JSONHTTPException(400, {
       error: "invalid_grant",
       error_description: "Refresh token has expired",
