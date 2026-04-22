@@ -63,7 +63,7 @@ export async function refreshTokenGrant(
       error_description: "Invalid refresh token",
     });
   } else if (refreshToken.revoked_at) {
-    appendLog(ctx, `Refresh token has been revoked: ${params.refresh_token}`);
+    appendLog(ctx, `Refresh token has been revoked: ${refreshToken.id}`);
     logMessage(ctx, client.tenant.id, {
       type: LogTypes.FAILED_EXCHANGE_REFRESH_TOKEN_FOR_ACCESS_TOKEN,
       description: "Refresh token has been revoked",

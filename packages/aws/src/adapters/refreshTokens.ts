@@ -6,6 +6,7 @@ import {
   ListParams,
   refreshTokenSchema,
 } from "@authhero/adapter-interfaces";
+import { UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
 import { refreshTokenKeys } from "../keys";
 import {
@@ -177,13 +178,38 @@ export function createRefreshTokensAdapter(
         for (const item of result.items) {
           if (item.login_id !== login_session_id) continue;
           if ((item as { revoked_at?: string }).revoked_at) continue;
-          const ok = await updateItem(
-            ctx,
-            refreshTokenKeys.pk(tenantId),
-            refreshTokenKeys.sk(item.id),
-            { revoked_at, updated_at: new Date().toISOString() },
-          );
-          if (ok) count++;
+          try {
+            await ctx.client.send(
+              new UpdateCommand({
+                TableName: ctx.tableName,
+                Key: {
+                  PK: refreshTokenKeys.pk(tenantId),
+                  SK: refreshTokenKeys.sk(item.id),
+                },
+                UpdateExpression:
+                  "SET #revoked_at = :revoked_at, #updated_at = :updated_at",
+                ConditionExpression:
+                  "attribute_exists(PK) AND attribute_not_exists(#revoked_at)",
+                ExpressionAttributeNames: {
+                  "#revoked_at": "revoked_at",
+                  "#updated_at": "updated_at",
+                },
+                ExpressionAttributeValues: {
+                  ":revoked_at": revoked_at,
+                  ":updated_at": new Date().toISOString(),
+                },
+              }),
+            );
+            count++;
+          } catch (err: unknown) {
+            if (
+              (err as { name?: string })?.name ===
+              "ConditionalCheckFailedException"
+            ) {
+              continue;
+            }
+            throw err;
+          }
         }
         if (result.items.length < per_page) break;
         page++;
