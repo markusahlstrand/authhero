@@ -1,5 +1,24 @@
 # authhero
 
+## 4.103.1
+
+### Patch Changes
+
+- 6fecd2d: Fill gaps in audit/log emission across auth flows:
+  - `/oauth/token` now emits success logs (`seacft`, `sertft`, `seccft`, `seotpft`) after tokens are minted, and failure logs (`fertft`, `feccft`, `feotpft`) on refresh-token, client-credentials, and passwordless-OTP exchange errors.
+  - Universal-login passwordless flow emits `seotpft` after OTP validation.
+  - `/u/validate-email` emits `sv` on success and `fv` on failure paths.
+  - Account email-change verification emits `sce` after the new email is set.
+  - Management API user deletion emits `sdu` alongside the existing `sapi` log.
+  - Logout emits `srrt` when refresh tokens are revoked and `flo` on invalid redirect_uri.
+
+- 2c3b543: Commit the `SUCCESS_REVOCATION` outbox event atomically with refresh-token removal and session revocation in the logout route. Adds a `logMessageInTx` helper for use inside `data.transaction()` callbacks so future auth flows can do the same.
+- 7d9f138: Soft-revoke refresh tokens instead of hard-deleting them. Adds a `revoked_at` field to the `RefreshToken` schema, a `revokeByLoginSession(tenant_id, login_session_id, revoked_at)` adapter method, and a `refresh_tokens.revoked_at_ts` column. The logout route now issues a single bulk UPDATE (fixing a pagination bug where sessions with >100 refresh tokens were not fully revoked), and the refresh-token grant rejects revoked tokens with an `invalid_grant` error.
+- 2c3b543: Fix regression where "no audience" errors were thrown when completing authentication. The authparams-refactor release removed the tenant-level audience fallback from token minting, but some loginSession creation paths (`/co/authenticate`, `/dbconnections`, passwordless error path) don't stamp audience upstream. Restore the `tenant.default_audience` fallback in `createAuthTokens` and `createRefreshToken`, and stamp `audience` at the remaining session creation sites.
+- Updated dependencies [7d9f138]
+  - @authhero/adapter-interfaces@1.6.0
+  - @authhero/widget@0.32.3
+
 ## 4.103.0
 
 ### Minor Changes
