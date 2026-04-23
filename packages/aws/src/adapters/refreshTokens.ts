@@ -9,7 +9,7 @@ import {
 } from "@authhero/adapter-interfaces";
 import { UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
-import { refreshTokenKeys } from "../keys";
+import { refreshTokenKeys, loginSessionKeys } from "../keys";
 import {
   getItem,
   putItem,
@@ -125,7 +125,7 @@ export function createRefreshTokensAdapter(
       tenantId: string,
       id: string,
       refreshToken: Partial<RefreshToken>,
-      _options?: UpdateRefreshTokenOptions,
+      options?: UpdateRefreshTokenOptions,
     ): Promise<boolean> {
       const updates: Record<string, unknown> = {
         ...refreshToken,
@@ -144,12 +144,33 @@ export function createRefreshTokensAdapter(
       // Remove id from updates
       delete updates.id;
 
-      return updateItem(
+      const result = await updateItem(
         ctx,
         refreshTokenKeys.pk(tenantId),
         refreshTokenKeys.sk(id),
         updates,
       );
+
+      if (result && options?.loginSessionBump) {
+        // Best-effort login_session bump. Idempotent and self-healing (the
+        // next refresh will re-bump on transient failure), so a failure here
+        // must not reject the refresh exchange.
+        try {
+          await updateItem(
+            ctx,
+            loginSessionKeys.pk(tenantId),
+            loginSessionKeys.sk(options.loginSessionBump.login_id),
+            {
+              expires_at: options.loginSessionBump.expires_at,
+              updated_at: new Date().toISOString(),
+            },
+          );
+        } catch {
+          // swallow
+        }
+      }
+
+      return result;
     },
 
     async remove(tenantId: string, id: string): Promise<boolean> {

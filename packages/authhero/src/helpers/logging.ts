@@ -48,6 +48,13 @@ export type LogParams = {
   type: LogType;
   description?: string;
   userId?: string;
+  /**
+   * Identifier of the actor when it differs from the subject `userId`
+   * (e.g. impersonation). When set, audit events attribute `actor.id` to
+   * this value and `target.id` to `userId`, and the event is categorised as
+   * `admin_action`.
+   */
+  actorUserId?: string;
   body?: unknown;
   strategy?: string;
   strategy_type?: string;
@@ -104,8 +111,11 @@ function inferCategory(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: LogParams,
 ): AuditCategory {
-  // If there's a user_id in context, it's likely an admin action via management API
+  // Admin action via management API (ctx.var.user_id is the admin)
   if (ctx.var.user_id) return "admin_action";
+  // Admin-like action outside the management API (e.g. impersonation) where
+  // the actor differs from the subject user
+  if (params.actorUserId) return "admin_action";
   // User-initiated action (login, signup, password change) — params.userId identifies the acting user
   if (params.userId) return "user_action";
   // Client credentials flow
@@ -136,14 +146,16 @@ function buildAuditEvent(
     category: inferCategory(ctx, params),
 
     actor: {
-      type: ctx.var.user_id
-        ? "admin"
-        : params.userId
-          ? "user"
-          : ctx.var.client_id
-            ? "client_credentials"
-            : "system",
-      id: ctx.var.user_id || params.userId || undefined,
+      type:
+        ctx.var.user_id || params.actorUserId
+          ? "admin"
+          : params.userId
+            ? "user"
+            : ctx.var.client_id
+              ? "client_credentials"
+              : "system",
+      id:
+        ctx.var.user_id || params.actorUserId || params.userId || undefined,
       email: ctx.var.username || undefined,
       org_id: ctx.var.organization_id || ctx.var.user?.org_id || undefined,
       org_name: ctx.var.org_name || ctx.var.user?.org_name || undefined,

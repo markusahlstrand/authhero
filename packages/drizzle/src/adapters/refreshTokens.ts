@@ -162,38 +162,40 @@ export function createRefreshTokensAdapter(db: DrizzleDb) {
       const bump = options?.loginSessionBump;
       const newLoginSessionExpiry = bump ? isoToDbDate(bump.expires_at) : null;
 
-      // The login_session bump is idempotent (WHERE expires_at_ts < new) and
-      // self-healing (next refresh re-bumps on transient failure) so we don't
-      // wrap this in a transaction. Avoids a triple round-trip on async
-      // drivers (D1/PlanetScale) and eliminates the hot-row lock window on
-      // login_sessions when multiple refresh tokens share a login_id.
-      const [results] = await Promise.all([
-        db
-          .update(refreshTokens)
-          .set(updateData)
+      const results = await db
+        .update(refreshTokens)
+        .set(updateData)
+        .where(
+          and(
+            eq(refreshTokens.tenant_id, tenant_id),
+            eq(refreshTokens.id, id),
+          ),
+        )
+        .returning();
+
+      // Best-effort login_session bump. Idempotent (WHERE expires_at_ts < new)
+      // and self-healing (next refresh re-bumps on transient failure), so a
+      // failure here must not reject the refresh exchange.
+      if (
+        bump?.login_id &&
+        newLoginSessionExpiry &&
+        newLoginSessionExpiry > 0
+      ) {
+        await db
+          .update(loginSessions)
+          .set({
+            expires_at_ts: newLoginSessionExpiry,
+            updated_at_ts: Date.now(),
+          })
           .where(
             and(
-              eq(refreshTokens.tenant_id, tenant_id),
-              eq(refreshTokens.id, id),
+              eq(loginSessions.tenant_id, tenant_id),
+              eq(loginSessions.id, bump.login_id),
+              lt(loginSessions.expires_at_ts, newLoginSessionExpiry),
             ),
           )
-          .returning(),
-        bump && newLoginSessionExpiry && newLoginSessionExpiry > 0
-          ? db
-              .update(loginSessions)
-              .set({
-                expires_at_ts: newLoginSessionExpiry,
-                updated_at_ts: Date.now(),
-              })
-              .where(
-                and(
-                  eq(loginSessions.tenant_id, tenant_id),
-                  eq(loginSessions.id, bump.login_id),
-                  lt(loginSessions.expires_at_ts, newLoginSessionExpiry),
-                ),
-              )
-          : Promise.resolve(),
-      ]);
+          .catch(() => {});
+      }
 
       return results.length > 0;
     },

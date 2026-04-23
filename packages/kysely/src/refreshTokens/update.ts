@@ -52,32 +52,29 @@ export function update(db: Kysely<Database>) {
     const bump = options?.loginSessionBump;
     const newLoginSessionExpiry = bump ? isoToDbDate(bump.expires_at) : null;
 
-    // Fire both UPDATEs concurrently. The login_session bump is idempotent
-    // (only extends, never shortens, and the next refresh will re-bump if a
-    // transient failure is hit) so we intentionally don't wrap this in a
-    // transaction — on the PlanetScale HTTP driver that would triple the
-    // wall-clock latency and serialise concurrent refreshes that share a
-    // login_session row.
-    const [tokenResult] = await Promise.all([
-      db
-        .updateTable("refresh_tokens")
-        .set(updateData)
+    const tokenResult = await db
+      .updateTable("refresh_tokens")
+      .set(updateData)
+      .where("tenant_id", "=", tenant_id)
+      .where("refresh_tokens.id", "=", id)
+      .executeTakeFirst();
+
+    // Best-effort login_session bump. Idempotent (only extends, never
+    // shortens, and the next refresh will re-bump on transient failure), so a
+    // failure here must not reject the refresh exchange.
+    if (bump?.login_id && newLoginSessionExpiry && newLoginSessionExpiry > 0) {
+      await db
+        .updateTable("login_sessions")
+        .set({
+          expires_at_ts: newLoginSessionExpiry,
+          updated_at_ts: Date.now(),
+        })
         .where("tenant_id", "=", tenant_id)
-        .where("refresh_tokens.id", "=", id)
-        .executeTakeFirst(),
-      bump && newLoginSessionExpiry && newLoginSessionExpiry > 0
-        ? db
-            .updateTable("login_sessions")
-            .set({
-              expires_at_ts: newLoginSessionExpiry,
-              updated_at_ts: Date.now(),
-            })
-            .where("tenant_id", "=", tenant_id)
-            .where("id", "=", bump.login_id)
-            .where("expires_at_ts", "<", newLoginSessionExpiry)
-            .execute()
-        : Promise.resolve(),
-    ]);
+        .where("id", "=", bump.login_id)
+        .where("expires_at_ts", "<", newLoginSessionExpiry)
+        .execute()
+        .catch(() => {});
+    }
 
     return (tokenResult?.numUpdatedRows ?? 0n) > 0n;
   };

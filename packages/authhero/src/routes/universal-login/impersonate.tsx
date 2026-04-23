@@ -312,6 +312,7 @@ export const impersonateRoutes = new OpenAPIHono<{
         type: LogTypes.SUCCESS_LOGIN,
         description: `${targetUser.email || targetUser.user_id} (impersonated by ${currentUser.email || currentUser.user_id})`,
         userId: targetUser.user_id,
+        actorUserId: currentUser.user_id,
         connection: targetUser.connection,
         strategy: targetUser.connection,
         strategy_type: targetUser.is_social
