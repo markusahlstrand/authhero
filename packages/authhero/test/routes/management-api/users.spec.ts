@@ -889,6 +889,78 @@ describe("users management API endpoint", () => {
         expect(isMatch).toBe(true);
       });
 
+      it("should route password update to the auth2 linked user when primary is Auth0-imported with Username-Password-Authentication connection", async () => {
+        // Scenario: a user imported from Auth0 has the primary identity with
+        // provider "auth0" and connection "Username-Password-Authentication".
+        // When they later sign in and a native auth2 user gets linked, the
+        // auth2 identity is the one login actually reads the password from.
+        // A PATCH with connection=Username-Password-Authentication must
+        // target the auth2 user, not the auth0 primary.
+        const token = await getAdminToken();
+        const { managementApp, env } = await getTestServer();
+        const managementClient = testClient(managementApp, env);
+
+        await env.data.users.create("tenantId", {
+          user_id: "auth0|primary-user",
+          email: "imported@example.com",
+          email_verified: true,
+          provider: "auth0",
+          connection: Strategy.USERNAME_PASSWORD,
+          is_social: false,
+        });
+
+        await env.data.users.create("tenantId", {
+          user_id: `${USERNAME_PASSWORD_PROVIDER}|linked-user`,
+          email: "imported@example.com",
+          email_verified: true,
+          provider: USERNAME_PASSWORD_PROVIDER,
+          connection: Strategy.USERNAME_PASSWORD,
+          is_social: false,
+          linked_to: "auth0|primary-user",
+        });
+
+        const updateResponse = await managementClient.users[":user_id"].$patch(
+          {
+            param: {
+              user_id: "auth0|primary-user",
+            },
+            json: {
+              password: "newPassword456",
+              connection: Strategy.USERNAME_PASSWORD,
+            },
+            header: {
+              "tenant-id": "tenantId",
+            },
+          },
+          {
+            headers: {
+              authorization: `Bearer ${token}`,
+            },
+          },
+        );
+
+        expect(updateResponse.status).toBe(200);
+
+        const auth2Password = await env.data.passwords.get(
+          "tenantId",
+          `${USERNAME_PASSWORD_PROVIDER}|linked-user`,
+        );
+        expect(auth2Password).toBeDefined();
+
+        const bcrypt = await import("bcryptjs");
+        const isMatch = await bcrypt.compare(
+          "newPassword456",
+          auth2Password!.password,
+        );
+        expect(isMatch).toBe(true);
+
+        const auth0Password = await env.data.passwords.get(
+          "tenantId",
+          "auth0|primary-user",
+        );
+        expect(auth0Password).toBeNull();
+      });
+
       it("should return 404 when trying to update non-existent connection on primary user", async () => {
         const token = await getAdminToken();
         const { managementApp, env } = await getTestServer();

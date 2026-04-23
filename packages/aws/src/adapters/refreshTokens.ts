@@ -4,6 +4,7 @@ import {
   RefreshTokenInsert,
   ListRefreshTokenResponse,
   ListParams,
+  UpdateRefreshTokenOptions,
   refreshTokenSchema,
 } from "@authhero/adapter-interfaces";
 import { UpdateCommand } from "@aws-sdk/lib-dynamodb";
@@ -124,6 +125,7 @@ export function createRefreshTokensAdapter(
       tenantId: string,
       id: string,
       refreshToken: Partial<RefreshToken>,
+      _options?: UpdateRefreshTokenOptions,
     ): Promise<boolean> {
       const updates: Record<string, unknown> = {
         ...refreshToken,

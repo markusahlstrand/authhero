@@ -102,11 +102,14 @@ function computeDiff(
 
 function inferCategory(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  params: LogParams,
 ): AuditCategory {
   // If there's a user_id in context, it's likely an admin action via management API
   if (ctx.var.user_id) return "admin_action";
+  // User-initiated action (login, signup, password change) — params.userId identifies the acting user
+  if (params.userId) return "user_action";
   // Client credentials flow
-  if (ctx.var.client_id && !ctx.var.user_id) return "api";
+  if (ctx.var.client_id) return "api";
   return "system";
 }
 
@@ -130,15 +133,17 @@ function buildAuditEvent(
       : params.type,
     log_type: params.type,
     description: params.description,
-    category: inferCategory(ctx),
+    category: inferCategory(ctx, params),
 
     actor: {
       type: ctx.var.user_id
         ? "admin"
-        : ctx.var.client_id
-          ? "client_credentials"
-          : "system",
-      id: ctx.var.user_id || undefined,
+        : params.userId
+          ? "user"
+          : ctx.var.client_id
+            ? "client_credentials"
+            : "system",
+      id: ctx.var.user_id || params.userId || undefined,
       email: ctx.var.username || undefined,
       org_id: ctx.var.organization_id || ctx.var.user?.org_id || undefined,
       org_name: ctx.var.org_name || ctx.var.user?.org_name || undefined,
@@ -180,6 +185,8 @@ function buildAuditEvent(
     connection: params.connection || ctx.var.connection || undefined,
     strategy: params.strategy || undefined,
     strategy_type: params.strategy_type || undefined,
+    audience: params.audience || undefined,
+    scope: params.scope || undefined,
 
     hostname: ctx.var.host || "",
     is_mobile: false,

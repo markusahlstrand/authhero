@@ -133,13 +133,56 @@ describe("refreshTokens adapter keeps parent login_session alive", () => {
       rotating: false,
     });
 
-    await data.refreshTokens.update("tenantId", "rt1", {
-      idle_expires_at: bumpedIdleExpiry,
-      last_exchanged_at: new Date().toISOString(),
-    });
+    await data.refreshTokens.update(
+      "tenantId",
+      "rt1",
+      {
+        idle_expires_at: bumpedIdleExpiry,
+        last_exchanged_at: new Date().toISOString(),
+      },
+      {
+        loginSessionBump: {
+          login_id: loginSession.id,
+          expires_at: bumpedIdleExpiry,
+        },
+      },
+    );
 
     const after = await data.loginSessions.get("tenantId", loginSession.id);
     expect(after?.expires_at).toEqual(bumpedIdleExpiry);
+  });
+
+  it("does not extend login_session when caller omits loginSessionBump", async () => {
+    const { data } = await getTestServer();
+    await seedTenantAndClient(data);
+
+    const initialExpiry = new Date(Date.now() + 1000 * 60 * 60).toISOString();
+    const bumpedIdleExpiry = new Date(
+      Date.now() + 1000 * 60 * 60 * 24 * 5,
+    ).toISOString();
+
+    const loginSession = await createLoginSession(data, initialExpiry);
+
+    await data.refreshTokens.create("tenantId", {
+      id: "rt1",
+      login_id: loginSession.id,
+      user_id: "email|userId",
+      client_id: "clientId",
+      expires_at: initialExpiry,
+      idle_expires_at: initialExpiry,
+      resource_servers: [{ audience: "http://example.com", scopes: "openid" }],
+      device: device(),
+      rotating: false,
+    });
+
+    // Caller chose not to bump — adapter must leave login_session alone even
+    // though the refresh token's idle_expires_at moved forward.
+    await data.refreshTokens.update("tenantId", "rt1", {
+      idle_expires_at: bumpedIdleExpiry,
+    });
+
+    const after = await data.loginSessions.get("tenantId", loginSession.id);
+    expect(after?.expires_at).toEqual(initialExpiry);
   });
 
   it("does not touch login_session on updates that don't change expiry", async () => {

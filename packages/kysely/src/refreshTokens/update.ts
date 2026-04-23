@@ -1,6 +1,9 @@
 import { Kysely } from "kysely";
 import { Database } from "../db";
-import { RefreshToken } from "@authhero/adapter-interfaces";
+import {
+  RefreshToken,
+  UpdateRefreshTokenOptions,
+} from "@authhero/adapter-interfaces";
 import { isoToDbDate } from "../utils/dateConversion";
 
 export function update(db: Kysely<Database>) {
@@ -8,6 +11,7 @@ export function update(db: Kysely<Database>) {
     tenant_id: string,
     id: string,
     refresh_token: Partial<RefreshToken>,
+    options?: UpdateRefreshTokenOptions,
   ) => {
     // Exclude old date fields from refresh token object
     const {
@@ -45,50 +49,36 @@ export function update(db: Kysely<Database>) {
         revoked_at !== undefined ? isoToDbDate(revoked_at) : undefined,
     };
 
-    return db.transaction().execute(async (trx) => {
-      const results = await trx
+    const bump = options?.loginSessionBump;
+    const newLoginSessionExpiry = bump ? isoToDbDate(bump.expires_at) : null;
+
+    // Fire both UPDATEs concurrently. The login_session bump is idempotent
+    // (only extends, never shortens, and the next refresh will re-bump if a
+    // transient failure is hit) so we intentionally don't wrap this in a
+    // transaction — on the PlanetScale HTTP driver that would triple the
+    // wall-clock latency and serialise concurrent refreshes that share a
+    // login_session row.
+    const [tokenResult] = await Promise.all([
+      db
         .updateTable("refresh_tokens")
         .set(updateData)
         .where("tenant_id", "=", tenant_id)
         .where("refresh_tokens.id", "=", id)
-        .execute();
+        .executeTakeFirst(),
+      bump && newLoginSessionExpiry && newLoginSessionExpiry > 0
+        ? db
+            .updateTable("login_sessions")
+            .set({
+              expires_at_ts: newLoginSessionExpiry,
+              updated_at_ts: Date.now(),
+            })
+            .where("tenant_id", "=", tenant_id)
+            .where("id", "=", bump.login_id)
+            .where("expires_at_ts", "<", newLoginSessionExpiry)
+            .execute()
+        : Promise.resolve(),
+    ]);
 
-      const updated = !!results.length;
-
-      // Only extend the parent login_session if the update actually changed an expiry.
-      const expiryChanged =
-        updateData.expires_at_ts !== undefined ||
-        updateData.idle_expires_at_ts !== undefined;
-
-      if (updated && expiryChanged) {
-        const row = await trx
-          .selectFrom("refresh_tokens")
-          .select(["login_id", "expires_at_ts", "idle_expires_at_ts"])
-          .where("tenant_id", "=", tenant_id)
-          .where("refresh_tokens.id", "=", id)
-          .executeTakeFirst();
-
-        if (row?.login_id) {
-          const newLoginSessionExpiry = Math.max(
-            row.expires_at_ts ?? 0,
-            row.idle_expires_at_ts ?? 0,
-          );
-          if (newLoginSessionExpiry > 0) {
-            await trx
-              .updateTable("login_sessions")
-              .set({
-                expires_at_ts: newLoginSessionExpiry,
-                updated_at_ts: Date.now(),
-              })
-              .where("tenant_id", "=", tenant_id)
-              .where("id", "=", row.login_id)
-              .where("expires_at_ts", "<", newLoginSessionExpiry)
-              .execute();
-          }
-        }
-      }
-
-      return updated;
-    });
+    return (tokenResult?.numUpdatedRows ?? 0n) > 0n;
   };
 }
