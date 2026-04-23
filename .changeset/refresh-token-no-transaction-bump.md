@@ -1,7 +1,7 @@
 ---
 "@authhero/adapter-interfaces": minor
 "@authhero/kysely-adapter": minor
-"@authhero/drizzle-adapter": minor
+"@authhero/drizzle": minor
 "@authhero/aws-adapter": minor
 "authhero": patch
 ---
