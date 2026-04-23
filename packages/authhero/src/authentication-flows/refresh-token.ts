@@ -221,17 +221,48 @@ export async function refreshTokenGrant(
     const idleExpiresAt = new Date(
       Date.now() + client.tenant.idle_session_lifetime * 60 * 60 * 1000,
     );
-    // The refreshTokens adapter also bumps the parent login_session's
-    // expires_at_ts in the same transaction.
-    await ctx.env.data.refreshTokens.update(client.tenant.id, refreshToken.id, {
-      idle_expires_at: idleExpiresAt.toISOString(),
-      last_exchanged_at: new Date().toISOString(),
-      device: {
-        ...refreshToken.device,
-        last_ip: ctx.req.header["x-real-ip"] || "",
-        last_user_agent: ctx.req.header["user-agent"] || "",
+
+    const nextLastIp = ctx.req.header("x-real-ip") || "";
+    const nextLastUa = ctx.req.header("user-agent") || "";
+    const deviceChanged =
+      nextLastIp !== refreshToken.device?.last_ip ||
+      nextLastUa !== refreshToken.device?.last_user_agent;
+
+    // The adapter extends the parent login_session's expires_at in parallel
+    // when loginSessionBump is provided. newLoginSessionExpiry is the larger
+    // of the token's absolute expiry and the just-bumped idle expiry, since
+    // the session needs to outlive whichever is further out.
+    const absoluteExpiryMs = refreshToken.expires_at
+      ? new Date(refreshToken.expires_at).getTime()
+      : 0;
+    const newLoginSessionExpiryMs = Math.max(
+      absoluteExpiryMs,
+      idleExpiresAt.getTime(),
+    );
+
+    await ctx.env.data.refreshTokens.update(
+      client.tenant.id,
+      refreshToken.id,
+      {
+        idle_expires_at: idleExpiresAt.toISOString(),
+        last_exchanged_at: new Date().toISOString(),
+        ...(deviceChanged && {
+          device: {
+            ...refreshToken.device,
+            last_ip: nextLastIp,
+            last_user_agent: nextLastUa,
+          },
+        }),
       },
-    });
+      refreshToken.login_id && newLoginSessionExpiryMs > 0
+        ? {
+            loginSessionBump: {
+              login_id: refreshToken.login_id,
+              expires_at: new Date(newLoginSessionExpiryMs).toISOString(),
+            },
+          }
+        : undefined,
+    );
   }
 
   return {

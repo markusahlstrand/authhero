@@ -22,6 +22,7 @@ import {
   organizationSchema,
 } from "@authhero/adapter-interfaces";
 import { getProviderFromConnection } from "../../strategies";
+import { USERNAME_PASSWORD_PROVIDER } from "../../constants";
 
 const IDENTITY_PICK_KEYS = [
   "email",
@@ -487,8 +488,19 @@ export const userRoutes = new OpenAPIHono<{
       let targetUser = userToPatch;
 
       if (connection) {
-        // Check if the primary user has this connection
-        if (userToPatch.connection === connection) {
+        // Passwords are only stored against users created by the native
+        // username-password provider (auth2). When an Auth0-imported user
+        // shares the Username-Password-Authentication connection with a
+        // linked auth2 user, we must target the auth2 one so the password
+        // row is readable by the login flow (which looks up by provider).
+        const isPasswordConnection = connection === Strategy.USERNAME_PASSWORD;
+
+        const matchesTarget = (u: { connection?: string; provider?: string }) =>
+          isPasswordConnection
+            ? u.provider === USERNAME_PASSWORD_PROVIDER
+            : u.connection === connection;
+
+        if (matchesTarget(userToPatch)) {
           // Target is the primary user
           targetUserId = user_id;
           targetUser = userToPatch;
@@ -501,9 +513,8 @@ export const userRoutes = new OpenAPIHono<{
             q: `linked_to:${user_id}`,
           });
 
-          const linkedUserWithConnection = linkedUsers.users.find(
-            (u) => u.connection === connection,
-          );
+          const linkedUserWithConnection =
+            linkedUsers.users.find(matchesTarget);
 
           if (!linkedUserWithConnection) {
             throw new HTTPException(404, {
@@ -581,10 +592,17 @@ export const userRoutes = new OpenAPIHono<{
             });
           }
         } else {
-          // Original behavior: find password identity in the primary user
-          passwordIdentity = userToPatch.identities?.find(
-            (i) => i.connection === Strategy.USERNAME_PASSWORD,
-          );
+          // Find the identity that actually owns the password row — login
+          // looks up passwords by the auth2 (USERNAME_PASSWORD_PROVIDER) user,
+          // so prefer that. Fall back to any Username-Password-Authentication
+          // identity for older rows where the provider wasn't auth2.
+          passwordIdentity =
+            userToPatch.identities?.find(
+              (i) => i.provider === USERNAME_PASSWORD_PROVIDER,
+            ) ??
+            userToPatch.identities?.find(
+              (i) => i.connection === Strategy.USERNAME_PASSWORD,
+            );
 
           if (!passwordIdentity) {
             throw new HTTPException(400, {

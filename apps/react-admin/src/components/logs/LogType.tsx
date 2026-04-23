@@ -32,6 +32,46 @@ export function LogType({ type: logType }: { type: LogTypes }) {
       return "Success Exchange Authorization Code for Access Token";
     case LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN:
       return "Failed Exchange Authorization Code for Access Token";
+    case LogTypes.SUCCESS_EXCHANGE_REFRESH_TOKEN_FOR_ACCESS_TOKEN:
+      return "Success Exchange Refresh Token for Access Token";
+    case LogTypes.FAILED_EXCHANGE_REFRESH_TOKEN_FOR_ACCESS_TOKEN:
+      return "Failed Exchange Refresh Token for Access Token";
+    case LogTypes.FAILED_EXCHANGE_ROTATING_REFRESH_TOKEN:
+      return "Failed Exchange Rotating Refresh Token";
+    case LogTypes.SUCCESS_EXCHANGE_PASSWORD_FOR_ACCESS_TOKEN:
+      return "Success Exchange Password for Access Token";
+    case LogTypes.FAILED_EXCHANGE_PASSWORD_FOR_ACCESS_TOKEN:
+      return "Failed Exchange Password for Access Token";
+    case LogTypes.SUCCESS_REVOCATION:
+      return "Success Revocation";
+    case LogTypes.CODE_SENT:
+      return "Code Sent";
+    case LogTypes.FAILED_API_OPERATION:
+      return "Failed API Operation";
+    case LogTypes.SUCCESS_CHANGE_EMAIL:
+      return "Success Change Email";
+    case LogTypes.FAILED_CHANGE_EMAIL:
+      return "Failed Change Email";
+    case LogTypes.SUCCESS_CHANGE_PASSWORD:
+      return "Success Change Password";
+    case LogTypes.FAILED_CHANGE_PASSWORD:
+      return "Failed Change Password";
+    case LogTypes.SUCCESS_CHANGE_PASSWORD_REQUEST:
+      return "Success Change Password Request";
+    case LogTypes.FAILED_CHANGE_PASSWORD_REQUEST:
+      return "Failed Change Password Request";
+    case LogTypes.SUCCESS_VERIFICATION_EMAIL:
+      return "Success Verification Email";
+    case LogTypes.FAILED_VERIFICATION_EMAIL:
+      return "Failed Verification Email";
+    case LogTypes.SUCCESS_VERIFICATION_EMAIL_REQUEST:
+      return "Success Verification Email Request";
+    case LogTypes.FAILED_VERIFICATION_EMAIL_REQUEST:
+      return "Failed Verification Email Request";
+    case LogTypes.SUCCESS_USER_DELETION:
+      return "Success User Deletion";
+    case LogTypes.FAILED_USER_DELETION:
+      return "Failed User Deletion";
     default:
       return `${logType}`;
   }
