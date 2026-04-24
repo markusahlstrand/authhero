@@ -325,10 +325,32 @@ CREATE TABLE `clients` (
 	`created_at` text(35) NOT NULL,
 	`updated_at` text(35) NOT NULL,
 	`connections` text DEFAULT '[]' NOT NULL,
+	`owner_user_id` text(255),
+	`registration_type` text(32),
+	`registration_metadata` text,
 	PRIMARY KEY(`tenant_id`, `client_id`),
 	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
+CREATE INDEX `idx_clients_owner_user_id` ON `clients` (`tenant_id`,`owner_user_id`);--> statement-breakpoint
+CREATE TABLE `client_registration_tokens` (
+	`id` text(255) PRIMARY KEY NOT NULL,
+	`tenant_id` text(191) NOT NULL,
+	`token_hash` text(64) NOT NULL,
+	`type` text(8) NOT NULL,
+	`client_id` text(191),
+	`sub` text(255),
+	`constraints` text,
+	`single_use` integer DEFAULT 0 NOT NULL,
+	`used_at_ts` integer,
+	`expires_at_ts` integer,
+	`created_at_ts` integer NOT NULL,
+	`revoked_at_ts` integer,
+	FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE INDEX `idx_client_registration_tokens_hash` ON `client_registration_tokens` (`tenant_id`,`token_hash`);--> statement-breakpoint
+CREATE INDEX `idx_client_registration_tokens_client` ON `client_registration_tokens` (`tenant_id`,`client_id`);--> statement-breakpoint
 CREATE TABLE `connections` (
 	`id` text(255) NOT NULL,
 	`tenant_id` text(191) NOT NULL,

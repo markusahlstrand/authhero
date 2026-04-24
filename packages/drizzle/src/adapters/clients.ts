@@ -53,6 +53,7 @@ const JSON_OBJECT_FIELDS = [
   "client_authentication_methods",
   "signed_request_object",
   "token_quota",
+  "registration_metadata",
 ] as const;
 
 function sqlToClient(row: any): Client {

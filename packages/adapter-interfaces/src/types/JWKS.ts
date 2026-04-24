@@ -33,7 +33,7 @@ export const openIDConfigurationSchema = z.object({
   userinfo_endpoint: z.string(),
   mfa_challenge_endpoint: z.string(),
   jwks_uri: z.string(),
-  registration_endpoint: z.string(),
+  registration_endpoint: z.string().optional(),
   revocation_endpoint: z.string(),
   scopes_supported: z.array(z.string()),
   response_types_supported: z.array(z.string()),

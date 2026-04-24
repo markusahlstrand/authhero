@@ -4,6 +4,7 @@ export * from "./Flow";
 export * from "./auth0";
 export * from "./Client";
 export * from "./ClientGrant";
+export * from "./ClientRegistrationToken";
 // Export Flows.ts with renamed types to avoid conflict with Forms.ts
 export {
   // Enums

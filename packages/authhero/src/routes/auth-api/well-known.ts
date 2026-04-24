@@ -71,6 +71,9 @@ export const wellKnownRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const customDomain = ctx.var.custom_domain;
+      const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
+      const dcrEnabled =
+        tenant?.flags?.enable_dynamic_client_registration === true;
       const result = openIDConfigurationSchema.parse({
         issuer: getIssuer(ctx.env, customDomain),
         authorization_endpoint: `${getAuthUrl(ctx.env, customDomain)}authorize`,
@@ -79,7 +82,11 @@ export const wellKnownRoutes = new OpenAPIHono<{
         userinfo_endpoint: `${getAuthUrl(ctx.env, customDomain)}userinfo`,
         mfa_challenge_endpoint: `${getAuthUrl(ctx.env, customDomain)}mfa/challenge`,
         jwks_uri: `${getAuthUrl(ctx.env, customDomain)}.well-known/jwks.json`,
-        registration_endpoint: `${getAuthUrl(ctx.env, customDomain)}oidc/register`,
+        ...(dcrEnabled
+          ? {
+              registration_endpoint: `${getAuthUrl(ctx.env, customDomain)}oidc/register`,
+            }
+          : {}),
         revocation_endpoint: `${getAuthUrl(ctx.env, customDomain)}oauth/revoke`,
         scopes_supported: [
           "openid",

@@ -145,6 +145,7 @@ gtag('config', 'G-DNZWG3PF2L');`,
         { text: "Home", link: "/" },
         { text: "Getting Started", link: "/getting-started" },
         { text: "Architecture", link: "/architecture/" },
+        { text: "Standards", link: "/standards/" },
         { text: "API Reference", link: "/api/overview" },
         { text: "Roadmap", link: "/roadmap" },
       ],
@@ -275,6 +276,69 @@ gtag('config', 'G-DNZWG3PF2L');`,
               link: "/features/multi-tenant-saas",
             },
             { text: "Audit Logging", link: "/features/audit-logging" },
+          ],
+        },
+        {
+          text: "Standards",
+          collapsed: false,
+          items: [
+            { text: "Overview", link: "/standards/" },
+            {
+              text: "OAuth 2.0",
+              collapsed: false,
+              items: [
+                {
+                  text: "RFC 6749 — Authorization Framework",
+                  link: "/standards/rfc-6749",
+                },
+                {
+                  text: "RFC 6750 — Bearer Tokens",
+                  link: "/standards/rfc-6750",
+                },
+                { text: "RFC 7636 — PKCE", link: "/standards/rfc-7636" },
+                {
+                  text: "RFC 7591 — Dynamic Client Registration",
+                  link: "/standards/rfc-7591",
+                },
+                {
+                  text: "RFC 7592 — DCR Management",
+                  link: "/standards/rfc-7592",
+                },
+              ],
+            },
+            {
+              text: "Tokens & Keys",
+              collapsed: false,
+              items: [
+                { text: "RFC 7517 — JWK", link: "/standards/rfc-7517" },
+                { text: "RFC 7519 — JWT", link: "/standards/rfc-7519" },
+              ],
+            },
+            {
+              text: "OpenID Connect",
+              collapsed: false,
+              items: [
+                {
+                  text: "OIDC Core 1.0",
+                  link: "/standards/openid-connect-core",
+                },
+                {
+                  text: "OIDC Discovery 1.0",
+                  link: "/standards/openid-connect-discovery",
+                },
+                {
+                  text: "Form Post Response Mode",
+                  link: "/standards/oauth2-form-post",
+                },
+              ],
+            },
+            {
+              text: "Federation",
+              collapsed: false,
+              items: [
+                { text: "SAML 2.0", link: "/standards/saml-2" },
+              ],
+            },
           ],
         },
         {

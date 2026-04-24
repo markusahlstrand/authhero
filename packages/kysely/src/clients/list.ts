@@ -2,6 +2,7 @@ import { Client, Totals } from "@authhero/adapter-interfaces";
 import { Kysely, sql } from "kysely";
 import { Database } from "../db";
 import { ListParams } from "@authhero/adapter-interfaces";
+import { removeNullProperties } from "../helpers/remove-nulls";
 
 export function list(db: Kysely<Database>) {
   return async (
@@ -78,7 +79,7 @@ export function list(db: Kysely<Database>) {
       total = Number(countResult?.count || 0);
     }
 
-    const clients: Client[] = results.map((result) => ({
+    const clients: Client[] = results.map((result) => removeNullProperties<Client>({
       ...result,
       // Convert integer fields back to booleans
       global: !!result.global,
@@ -117,7 +118,11 @@ export function list(db: Kysely<Database>) {
       ),
       signed_request_object: JSON.parse(result.signed_request_object),
       token_quota: JSON.parse(result.token_quota),
-    }));
+      registration_metadata: result.registration_metadata
+        ? JSON.parse(result.registration_metadata)
+        : {},
+    }),
+    );
 
     const perPage = params?.take || params?.per_page || 10;
     const start = params?.from

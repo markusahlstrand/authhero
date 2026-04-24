@@ -5,6 +5,7 @@ import { createBrandingAdapter } from "./branding";
 import { createClientsAdapter } from "./clients";
 import { createClientConnectionsAdapter } from "./clientConnections";
 import { createClientGrantsAdapter } from "./clientGrants";
+import { createClientRegistrationTokensAdapter } from "./clientRegistrationTokens";
 import { createCodesAdapter } from "./codes";
 import { createConnectionsAdapter } from "./connections";
 import { createCustomDomainsAdapter } from "./customDomains";
@@ -51,6 +52,7 @@ export default function createAdapters(
     clients: createClientsAdapter(db),
     clientConnections: createClientConnectionsAdapter(db),
     clientGrants: createClientGrantsAdapter(db),
+    clientRegistrationTokens: createClientRegistrationTokensAdapter(db),
     codes: createCodesAdapter(db),
     connections: createConnectionsAdapter(db),
     customDomains: createCustomDomainsAdapter(db),

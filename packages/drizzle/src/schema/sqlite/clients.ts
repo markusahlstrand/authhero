@@ -79,12 +79,46 @@ export const clients = sqliteTable(
     created_at: text("created_at", { length: 35 }).notNull(),
     updated_at: text("updated_at", { length: 35 }).notNull(),
     connections: text("connections").notNull().default("[]"),
+    owner_user_id: text("owner_user_id", { length: 255 }),
+    registration_type: text("registration_type", { length: 32 }),
+    registration_metadata: text("registration_metadata"),
   },
   (table) => [
     primaryKey({
       columns: [table.tenant_id, table.client_id],
       name: "clients_tenant_id_client_id",
     }),
+    index("idx_clients_owner_user_id").on(table.tenant_id, table.owner_user_id),
+  ],
+);
+
+export const clientRegistrationTokens = sqliteTable(
+  "client_registration_tokens",
+  {
+    id: text("id", { length: 255 }).primaryKey(),
+    tenant_id: text("tenant_id", { length: 191 })
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    token_hash: text("token_hash", { length: 64 }).notNull(),
+    type: text("type", { length: 8 }).notNull(),
+    client_id: text("client_id", { length: 191 }),
+    sub: text("sub", { length: 255 }),
+    constraints: text("constraints"),
+    single_use: integer("single_use").notNull().default(0),
+    used_at_ts: integer("used_at_ts"),
+    expires_at_ts: integer("expires_at_ts"),
+    created_at_ts: integer("created_at_ts").notNull(),
+    revoked_at_ts: integer("revoked_at_ts"),
+  },
+  (table) => [
+    index("idx_client_registration_tokens_hash").on(
+      table.tenant_id,
+      table.token_hash,
+    ),
+    index("idx_client_registration_tokens_client").on(
+      table.tenant_id,
+      table.client_id,
+    ),
   ],
 );
 
