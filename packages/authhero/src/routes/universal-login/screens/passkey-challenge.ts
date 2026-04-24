@@ -21,6 +21,7 @@ import { generateAuthenticationOptions } from "@simplewebauthn/server";
 import { createFrontChannelAuthResponse } from "../../../authentication-flows/common";
 import {
   getRpId,
+  listTenantPasskeys,
   buildWebAuthnAuthenticationScript,
   buildWebAuthnAuthenticationCeremony,
   verifyPasskeyAuthentication,
@@ -144,17 +145,30 @@ async function generateFreshAuthenticationOptions(
 
   const rpId = getRpId(ctx);
 
-  const options = await generateAuthenticationOptions({
-    rpID: rpId,
-    userVerification: "preferred",
-    timeout: 60000,
-  });
-
   const loginSession = await ctx.env.data.loginSessions.get(
     client.tenant.id,
     state,
   );
   if (!loginSession) return undefined;
+
+  // When the user is known, scope the picker to this tenant's credentials so
+  // passkeys registered under other tenants on the same rpId aren't offered.
+  const allowCredentials = loginSession.user_id
+    ? (await listTenantPasskeys(ctx, client.tenant.id, loginSession.user_id)).map(
+        (e) => ({
+          id: e.credential_id!,
+          transports: (e.transports || []) as AuthenticatorTransport[],
+          type: "public-key" as const,
+        }),
+      )
+    : undefined;
+
+  const options = await generateAuthenticationOptions({
+    rpID: rpId,
+    userVerification: "preferred",
+    timeout: 60000,
+    ...(allowCredentials ? { allowCredentials } : {}),
+  });
 
   const stateData = loginSession.state_data
     ? JSON.parse(loginSession.state_data)
