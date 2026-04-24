@@ -179,10 +179,13 @@ describe("Tenant Provisioning with User Organization Membership", () => {
       "Full access to all tenant management operations",
     );
 
-    // Verify the role has Management API permissions
+    // Verify the role has Management API permissions. The default per_page is
+    // 50 but MANAGEMENT_API_SCOPES contains hundreds of entries, so request a
+    // large page to get them all.
     const rolePermissions = await adapters.rolePermissions.list(
       "control_plane",
       adminRole!.id,
+      { per_page: 1000 },
     );
     expect(rolePermissions.length).toBeGreaterThan(0);
 
