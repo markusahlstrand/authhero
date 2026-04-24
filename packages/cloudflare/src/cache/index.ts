@@ -75,7 +75,23 @@ export class CloudflareCache implements CacheAdapter {
         return null;
       }
 
-      const data = await response.json();
+      // Read as text first: a matched cache entry can occasionally come back
+      // with an empty body (edge races, evictions mid-stream, 304-ish edge
+      // behavior). Parsing an empty string throws "Unexpected end of JSON
+      // input", which we'd rather treat as a cache miss.
+      const text = await response.text();
+      if (!text) {
+        await this.delete(key);
+        return null;
+      }
+
+      let data: { value?: unknown; expiresAt?: string };
+      try {
+        data = JSON.parse(text);
+      } catch {
+        await this.delete(key);
+        return null;
+      }
 
       // Check if expired
       if (data.expiresAt) {

@@ -4,16 +4,19 @@
  */
 
 import {
+  AuthenticationMethod,
   LoginSessionState,
   LogTypes,
   Strategy,
 } from "@authhero/adapter-interfaces";
+import { Context } from "hono";
 import { verifyAuthenticationResponse } from "@simplewebauthn/server";
 import { logMessage } from "../../../helpers/logging";
 import {
   transitionLoginSession,
   LoginSessionEventType,
 } from "../../../state-machines/login-session";
+import type { Bindings, Variables } from "../../../types";
 import type { WebAuthnCeremony, ScreenContext } from "./types";
 
 export const PASSKEY_TYPES = [
@@ -21,6 +24,29 @@ export const PASSKEY_TYPES = [
   "webauthn-roaming",
   "webauthn-platform",
 ] as const;
+
+/**
+ * List the tenant-scoped passkey authentication methods for a given user.
+ * Filters out non-passkey types and rows missing a credential_id.
+ * Used by the challenge screen (to build allowCredentials) and by the login
+ * screen (to gate the "Log in with passkey" link when the current tenant has
+ * no matching credential for the known user).
+ */
+export async function listTenantPasskeys(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  tenantId: string,
+  userId: string,
+): Promise<AuthenticationMethod[]> {
+  const methods = await ctx.env.data.authenticationMethods.list(
+    tenantId,
+    userId,
+  );
+  return methods.filter(
+    (m) =>
+      PASSKEY_TYPES.includes(m.type as (typeof PASSKEY_TYPES)[number]) &&
+      !!m.credential_id,
+  );
+}
 
 /**
  * Extract the RP ID from the host — strips port and uses the root domain.

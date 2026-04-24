@@ -29,6 +29,7 @@ import { generateAuthenticationOptions } from "@simplewebauthn/server";
 import { createFrontChannelAuthResponse } from "../../../authentication-flows/common";
 import {
   getRpId,
+  listTenantPasskeys,
   buildConditionalMediationScript,
   buildWebAuthnConditionalMediationCeremony,
   verifyPasskeyAuthentication,
@@ -244,6 +245,24 @@ export async function loginScreen(
     (c) => c.options?.authentication_methods?.passkey?.enabled,
   );
 
+  // When the tenant has passkeys enabled AND the session already has a resolved
+  // user_id (e.g. came from the identifier-first flow), fetch that user's
+  // tenant-scoped passkeys once. Used below to (a) gate the "Log in with
+  // passkey" link, and (b) scope conditional mediation via allowCredentials so
+  // passkeys registered under other tenants on the same rpId aren't offered.
+  const loginSessionForPasskeys = hasPasskeysEnabled
+    ? await context.ctx.env.data.loginSessions.get(client.tenant.id, state)
+    : null;
+  const tenantPasskeys =
+    hasPasskeysEnabled && loginSessionForPasskeys?.user_id
+      ? await listTenantPasskeys(
+          context.ctx,
+          client.tenant.id,
+          loginSessionForPasskeys.user_id,
+        )
+      : [];
+  const sessionUserKnown = !!loginSessionForPasskeys?.user_id;
+
   if (hasPasskeysEnabled) {
     // Add hidden fields for passkey credential submission
     components.push(
@@ -305,8 +324,14 @@ export async function loginScreen(
     const challengeUi =
       passkeyConnection?.options?.passkey_options?.challenge_ui;
 
-    // Show passkey link unless challenge_ui is explicitly "autofill" only
-    if (challengeUi !== "autofill") {
+    // Show passkey link unless challenge_ui is explicitly "autofill" only.
+    // When the session's user is already known, also require at least one
+    // tenant-scoped passkey for that user — otherwise the browser picker
+    // would only offer credentials from other tenants sharing this rpId.
+    const hasMatchingPasskey = sessionUserKnown
+      ? tenantPasskeys.length > 0
+      : true;
+    if (challengeUi !== "autofill" && hasMatchingPasskey) {
       links.push({
         id: "passkey-link",
         text: "",
@@ -350,20 +375,26 @@ export async function loginScreen(
   if (hasPasskeysEnabled) {
     const rpId = getRpId(context.ctx);
 
+    // Scope the picker to this tenant's credentials when the user is known.
+    const allowCredentials = sessionUserKnown
+      ? tenantPasskeys.map((e) => ({
+          id: e.credential_id!,
+          transports: (e.transports || []) as AuthenticatorTransport[],
+          type: "public-key" as const,
+        }))
+      : undefined;
+
     const options = await generateAuthenticationOptions({
       rpID: rpId,
       userVerification: "preferred",
       timeout: 60000,
+      ...(allowCredentials ? { allowCredentials } : {}),
     });
 
-    // Store the challenge in the login session
-    const loginSession = await context.ctx.env.data.loginSessions.get(
-      context.client.tenant.id,
-      state,
-    );
-    if (loginSession) {
-      const stateData = loginSession.state_data
-        ? JSON.parse(loginSession.state_data)
+    // Store the challenge in the login session (reuse the earlier fetch).
+    if (loginSessionForPasskeys) {
+      const stateData = loginSessionForPasskeys.state_data
+        ? JSON.parse(loginSessionForPasskeys.state_data)
         : {};
       await context.ctx.env.data.loginSessions.update(
         context.client.tenant.id,
