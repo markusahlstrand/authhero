@@ -9,6 +9,8 @@ import { extractBearerToken } from "../../../utils/auth-header";
 import type {
   Client,
   ClientRegistrationToken,
+  ClientRegistrationTokensAdapter,
+  DataAdapters,
   Tenant,
 } from "@authhero/adapter-interfaces";
 
@@ -39,6 +41,24 @@ export function assertDcrEnabled(tenant: Tenant) {
 }
 
 /**
+ * Resolve the `clientRegistrationTokens` adapter or fail with a clear
+ * server error. The adapter is optional on `DataAdapters` so that hosts not
+ * using DCR don't need to implement it, but DCR routes cannot run without it.
+ */
+export function requireClientRegistrationTokens(
+  data: DataAdapters,
+): ClientRegistrationTokensAdapter {
+  if (!data.clientRegistrationTokens) {
+    throw new JSONHTTPException(500, {
+      error: "server_error",
+      error_description:
+        "Dynamic Client Registration requires a clientRegistrationTokens adapter",
+    });
+  }
+  return data.clientRegistrationTokens;
+}
+
+/**
  * Authenticate a POST /oidc/register request. Returns the IAT record if
  * bearer auth was used and validated; returns `undefined` for valid open
  * DCR. Throws 401 if IAT is required/invalid.
@@ -52,7 +72,7 @@ export async function authenticateRegistrationRequest(
 
   if (bearer) {
     const result = await verifyRegistrationToken(
-      ctx.env.data.clientRegistrationTokens,
+      requireClientRegistrationTokens(ctx.env.data),
       ctx.var.tenant_id,
       bearer,
       "iat",
@@ -94,7 +114,7 @@ export async function authenticateManagementRequest(
   }
 
   const result = await verifyRegistrationToken(
-    ctx.env.data.clientRegistrationTokens,
+    requireClientRegistrationTokens(ctx.env.data),
     ctx.var.tenant_id,
     bearer,
     "rat",

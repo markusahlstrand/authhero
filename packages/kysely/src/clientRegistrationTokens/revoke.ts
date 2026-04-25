@@ -13,6 +13,7 @@ export function revoke(db: Kysely<Database>) {
       .set({ revoked_at_ts: isoToDbDate(revoked_at) })
       .where("tenant_id", "=", tenant_id)
       .where("id", "=", id)
+      .where("revoked_at_ts", "is", null)
       .executeTakeFirst();
 
     return result.numUpdatedRows > 0;

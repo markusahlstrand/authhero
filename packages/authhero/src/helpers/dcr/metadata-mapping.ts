@@ -46,6 +46,7 @@ export const dcrResponseSchema = z.object({
   client_name: z.string().optional(),
   redirect_uris: z.array(z.string()).optional(),
   grant_types: z.array(z.string()).optional(),
+  response_types: z.array(z.string()).optional(),
   token_endpoint_auth_method: z.string().optional(),
   logo_uri: z.string().optional(),
   client_uri: z.string().optional(),
@@ -149,6 +150,9 @@ export function dcrRequestToClient(req: DcrRequest): RegistrationMapping {
   if (req.jwks !== undefined) {
     extraMetadata.jwks = req.jwks;
   }
+  if (req.response_types !== undefined) {
+    extraMetadata.response_types = req.response_types;
+  }
 
   return { clientFields, extraMetadata };
 }
@@ -179,6 +183,15 @@ export function clientToDcrResponse(
   const contacts =
     contactsRaw && contactsRaw.length > 0 ? contactsRaw.split(",") : undefined;
 
+  const registrationMetadata: Record<string, unknown> =
+    client.registration_metadata ?? {};
+  const storedResponseTypes = registrationMetadata.response_types;
+  const response_types =
+    Array.isArray(storedResponseTypes) &&
+    storedResponseTypes.every((v): v is string => typeof v === "string")
+      ? storedResponseTypes
+      : undefined;
+
   const response: DcrResponse = {
     client_id: client.client_id,
     client_name: client.name,
@@ -200,6 +213,7 @@ export function clientToDcrResponse(
       client.grant_types && client.grant_types.length > 0
         ? client.grant_types
         : undefined,
+    response_types,
     token_endpoint_auth_method: client.token_endpoint_auth_method,
     logo_uri: client.logo_uri,
     client_uri: readMetadataString(metadata, "client_uri"),

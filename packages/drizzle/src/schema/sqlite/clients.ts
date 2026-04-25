@@ -4,6 +4,7 @@ import {
   integer,
   primaryKey,
   index,
+  uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 import { tenants } from "./tenants";
 
@@ -111,7 +112,7 @@ export const clientRegistrationTokens = sqliteTable(
     revoked_at_ts: integer("revoked_at_ts"),
   },
   (table) => [
-    index("idx_client_registration_tokens_hash").on(
+    uniqueIndex("idx_client_registration_tokens_hash").on(
       table.tenant_id,
       table.token_hash,
     ),

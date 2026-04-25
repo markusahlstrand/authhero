@@ -57,7 +57,7 @@ export interface DataAdapters {
   clients: ClientsAdapter;
   clientConnections: ClientConnectionsAdapter;
   clientGrants: ClientGrantsAdapter;
-  clientRegistrationTokens: ClientRegistrationTokensAdapter;
+  clientRegistrationTokens?: ClientRegistrationTokensAdapter;
   codes: CodesAdapter;
   connections: ConnectionsAdapter;
   customDomains: CustomDomainsAdapter;

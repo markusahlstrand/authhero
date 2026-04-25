@@ -22,6 +22,7 @@ import {
   isClientSoftDeleted,
   loadTenantOrFail,
   registrationClientUri,
+  requireClientRegistrationTokens,
 } from "./shared";
 
 function readIatConstraints(
@@ -161,8 +162,9 @@ export const registerRoutes = new OpenAPIHono<{
       let createdClient: Client | undefined;
 
       await ctx.env.data.transaction(async (trx) => {
+        const trxTokens = requireClientRegistrationTokens(trx);
         if (iat) {
-          const marked = await trx.clientRegistrationTokens.markUsed(
+          const marked = await trxTokens.markUsed(
             ctx.var.tenant_id,
             iat.id,
             new Date().toISOString(),
@@ -180,7 +182,7 @@ export const registerRoutes = new OpenAPIHono<{
           clientInsert,
         );
 
-        await trx.clientRegistrationTokens.create(ctx.var.tenant_id, {
+        await trxTokens.create(ctx.var.tenant_id, {
           id: rat.id,
           token_hash: rat.token_hash,
           type: "rat",
@@ -419,7 +421,7 @@ export const registerRoutes = new OpenAPIHono<{
         await trx.clients.update(ctx.var.tenant_id, client_id, {
           client_metadata: metadata,
         });
-        await trx.clientRegistrationTokens.revokeByClient(
+        await requireClientRegistrationTokens(trx).revokeByClient(
           ctx.var.tenant_id,
           client_id,
           new Date().toISOString(),

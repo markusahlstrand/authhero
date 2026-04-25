@@ -14,7 +14,8 @@ OpenID Connect Discovery lets clients dynamically learn an OP's endpoints and ca
 
 - **Discovery endpoint** — `GET /.well-known/openid-configuration`.
 - **JWKS endpoint advertisement** — `jwks_uri` points to [`/.well-known/jwks.json`](/standards/rfc-7517).
-- **Core endpoints** — `issuer`, `authorization_endpoint`, `token_endpoint`, `userinfo_endpoint`, `registration_endpoint`, `end_session_endpoint`.
+- **Core endpoints** — `issuer`, `authorization_endpoint`, `token_endpoint`, `userinfo_endpoint`, `end_session_endpoint` are always advertised.
+- **Conditional endpoints** — `registration_endpoint` is included in the discovery metadata only when the Dynamic Client Registration feature is enabled for the tenant.
 - **Supported response types** — `code`, `token`, `id_token`, `code token`, `code id_token`, `token id_token`, `code token id_token`.
 - **Supported response modes** — `query`, `fragment`, `form_post`.
 - **Supported grant types** — `authorization_code`, `client_credentials`, `refresh_token`, plus Auth0-compatible passwordless OTP grant.

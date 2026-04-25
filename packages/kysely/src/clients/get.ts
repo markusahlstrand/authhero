@@ -62,7 +62,7 @@ export function get(db: Kysely<Database>) {
       token_quota: JSON.parse(client.token_quota),
       registration_metadata: client.registration_metadata
         ? JSON.parse(client.registration_metadata)
-        : {},
+        : undefined,
     });
   };
 }

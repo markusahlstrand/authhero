@@ -33,7 +33,12 @@ function parseConstraints(
   raw: string | null | undefined,
 ): Record<string, unknown> | undefined {
   if (!raw) return undefined;
-  const parsed: unknown = JSON.parse(raw);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return undefined;
+  }
   return isPlainObject(parsed) ? parsed : undefined;
 }
 

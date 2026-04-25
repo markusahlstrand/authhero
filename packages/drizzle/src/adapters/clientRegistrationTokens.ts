@@ -148,6 +148,7 @@ export function createClientRegistrationTokensAdapter(
           and(
             eq(clientRegistrationTokens.tenant_id, tenant_id),
             eq(clientRegistrationTokens.id, id),
+            isNull(clientRegistrationTokens.revoked_at_ts),
           ),
         )
         .returning();

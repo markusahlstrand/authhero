@@ -120,7 +120,7 @@ export function list(db: Kysely<Database>) {
       token_quota: JSON.parse(result.token_quota),
       registration_metadata: result.registration_metadata
         ? JSON.parse(result.registration_metadata)
-        : {},
+        : undefined,
     }),
     );
 
