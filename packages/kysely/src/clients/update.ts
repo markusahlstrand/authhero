@@ -58,6 +58,7 @@ export function update(db: Kysely<Database>) {
         "client_authentication_methods",
         "signed_request_object",
         "token_quota",
+        "registration_metadata",
       ],
       updateData,
     );

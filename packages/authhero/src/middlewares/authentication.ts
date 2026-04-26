@@ -4,6 +4,7 @@ import { Bindings, Variables } from "../types";
 import { HTTPException } from "hono/http-exception";
 import { JSONHTTPException } from "../errors/json-http-exception";
 import { validateJwtToken } from "../utils/jwt";
+import { extractBearerToken } from "../utils/auth-header";
 
 /**
  * Management API audience for cross-tenant operations.
@@ -62,9 +63,8 @@ export function createAuthMiddleware(
         return await next();
       }
 
-      const authHeader = ctx.req.header("authorization") || "";
-      const [authType, bearer] = authHeader.split(" ");
-      if (authType?.toLowerCase() !== "bearer" || !bearer) {
+      const bearer = extractBearerToken(ctx.req.header("authorization"));
+      if (!bearer) {
         throw new JSONHTTPException(401, {
           message: "Missing bearer token",
         });

@@ -72,6 +72,11 @@ export function create(db: Kysely<Database>) {
       ),
       signed_request_object: JSON.stringify(params.signed_request_object || {}),
       token_quota: JSON.stringify(params.token_quota || {}),
+      owner_user_id: params.owner_user_id ?? null,
+      registration_type: params.registration_type ?? null,
+      registration_metadata: params.registration_metadata
+        ? JSON.stringify(params.registration_metadata)
+        : null,
     });
 
     await db.insertInto("clients").values(insertData).execute();

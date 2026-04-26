@@ -13,6 +13,7 @@ import { passwordlessRoutes } from "./passwordless";
 import { authenticateRoutes } from "./authenticate";
 import { authorizeRoutes } from "./authorize";
 import { accountRoutes } from "./account";
+import { registerRoutes } from "./register";
 import { addDataHooks } from "../../hooks";
 import { addTimingLogs } from "../../helpers/server-timing";
 import { addCaching } from "../../helpers/cache-wrapper";
@@ -133,6 +134,7 @@ export default function create(config: AuthHeroConfig) {
     .route("/co/authenticate", authenticateRoutes)
     .route("/authorize", authorizeRoutes)
     .route("/account", accountRoutes)
+    .route("/oidc/register", registerRoutes)
     .route("/callback", callbackRoutes);
 
   oauthApp.doc("/spec", {

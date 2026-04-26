@@ -405,6 +405,24 @@ const sqlClientSchema = z.object({
   client_authentication_methods: z.string(),
   signed_request_object: z.string(),
   token_quota: z.string(),
+  owner_user_id: z.string().optional().nullable(),
+  registration_type: z.string().optional().nullable(),
+  registration_metadata: z.string().optional().nullable(),
+});
+
+export const sqlClientRegistrationTokenSchema = z.object({
+  id: z.string(),
+  tenant_id: z.string(),
+  token_hash: z.string(),
+  type: z.string(),
+  client_id: z.string().optional().nullable(),
+  sub: z.string().optional().nullable(),
+  constraints: z.string().optional().nullable(),
+  single_use: z.number(),
+  used_at_ts: z.number().optional().nullable(),
+  expires_at_ts: z.number().optional().nullable(),
+  created_at_ts: z.number(),
+  revoked_at_ts: z.number().optional().nullable(),
 });
 
 export const sqlAuthenticationMethodSchema = z.object({
@@ -431,6 +449,7 @@ export interface Database {
   branding: z.infer<typeof sqlBrandingSchema>;
   clients: z.infer<typeof sqlClientSchema>;
   client_grants: z.infer<typeof sqlClientGrantSchema>;
+  client_registration_tokens: z.infer<typeof sqlClientRegistrationTokenSchema>;
   codes: Code & { tenant_id: string };
   connections: z.infer<typeof sqlConnectionSchema>;
   custom_domains: z.infer<typeof sqlCustomDomainSchema>;

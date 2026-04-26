@@ -235,6 +235,21 @@ export const clientInsertSchema = z.object({
       "Specifies how long, in seconds, a Pushed Authorization Request URI remains valid",
   }),
   token_quota: z.record(z.any()).default({}).optional(),
+  owner_user_id: z.string().optional().openapi({
+    description:
+      "User ID of the consenting user when this client was created via IAT-gated Dynamic Client Registration. NULL for clients created via the Management API or open DCR.",
+  }),
+  registration_type: z
+    .enum(["manual", "open_dcr", "iat_dcr"])
+    .optional()
+    .openapi({
+      description:
+        "Provenance of this client. `manual` = Management API; `open_dcr` = RFC 7591 without IAT; `iat_dcr` = RFC 7591 with an Initial Access Token.",
+    }),
+  registration_metadata: z.record(z.any()).default({}).optional().openapi({
+    description:
+      "Arbitrary metadata captured at Dynamic Client Registration time that isn't a first-class client field (e.g. integration_type, domain). Also stores `iat_constraints` for clients created via IAT so RFC 7592 PUT can enforce field immutability.",
+  }),
 });
 
 export type ClientInsert = z.input<typeof clientInsertSchema>;

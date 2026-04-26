@@ -149,7 +149,8 @@ import * as o050_login_sessions_auth_params_backfill from "./2026-04-20T11:00:00
 import * as o051_relax_login_sessions_authparams from "./2026-04-20T12:00:00_relax_login_sessions_authparams";
 import * as o052_drop_login_sessions_hoisted_authparams from "./2026-04-21T10:00:00_drop_login_sessions_hoisted_authparams";
 import * as o053_refresh_tokens_revoked_at from "./2026-04-22T10:00:00_refresh_tokens_revoked_at";
-import * as o054_planetscale_redundant_indexes_cleanup from "./2026-04-24T10:00:00_planetscale_redundant_indexes_cleanup";
+import * as o054_client_registration_tokens from "./2026-04-24T10:00:00_client_registration_tokens";
+import * as o055_planetscale_redundant_indexes_cleanup from "./2026-04-24T10:00:00_planetscale_redundant_indexes_cleanup";
 
 // These need to be in alphabetic order
 export default {
@@ -304,5 +305,6 @@ export default {
   o051_relax_login_sessions_authparams,
   o052_drop_login_sessions_hoisted_authparams,
   o053_refresh_tokens_revoked_at,
-  o054_planetscale_redundant_indexes_cleanup,
+  o054_client_registration_tokens,
+  o055_planetscale_redundant_indexes_cleanup,
 };

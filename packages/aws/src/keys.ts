@@ -274,6 +274,21 @@ export const authenticationMethodKeys = {
   gsi1skPrefix: () => "AUTHENTICATION_METHOD#",
 };
 
+// Client registration token keys
+export const clientRegistrationTokenKeys = {
+  pk: (tenantId: string) => `TENANT#${tenantId}`,
+  sk: (tokenId: string) => `CLIENT_REGISTRATION_TOKEN#${tokenId}`,
+  skPrefix: () => "CLIENT_REGISTRATION_TOKEN#",
+  // GSI1 for token_hash lookup
+  gsi1pk: (tenantId: string, tokenHash: string) =>
+    `TENANT#${tenantId}#CRT_HASH#${tokenHash}`,
+  gsi1sk: () => "CLIENT_REGISTRATION_TOKEN",
+  // GSI2 for client_id lookup
+  gsi2pk: (tenantId: string, clientId: string) =>
+    `TENANT#${tenantId}#CLIENT#${clientId}`,
+  gsi2sk: (tokenId: string) => `CLIENT_REGISTRATION_TOKEN#${tokenId}`,
+};
+
 // Custom text keys
 export const customTextKeys = {
   pk: (tenantId: string) => `TENANT#${tenantId}`,
