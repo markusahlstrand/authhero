@@ -4,7 +4,6 @@ import { Bindings, Variables } from "../../../types";
 import { JSONHTTPException } from "../../../errors/json-http-exception";
 import { getAuthUrl } from "../../../variables";
 import { verifyRegistrationToken } from "../../../helpers/dcr/verify-token";
-import { hashRegistrationToken } from "../../../helpers/dcr/mint-token";
 import { extractBearerToken } from "../../../utils/auth-header";
 import type {
   Client,
@@ -146,8 +145,4 @@ export function generateClientId(): string {
 
 export function generateClientSecret(): string {
   return nanoid(43);
-}
-
-export async function hashToken(token: string): Promise<string> {
-  return hashRegistrationToken(token);
 }

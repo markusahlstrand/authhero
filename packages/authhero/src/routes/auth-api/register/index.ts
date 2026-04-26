@@ -126,6 +126,19 @@ export const registerRoutes = new OpenAPIHono<{
         });
       }
       const mergedRequest = mergedRequestParse.data;
+      if (
+        mergedRequest.grant_types?.some(
+          (gt) => gt === "authorization_code" || gt === "implicit",
+        ) &&
+        (!mergedRequest.redirect_uris ||
+          mergedRequest.redirect_uris.length === 0)
+      ) {
+        throw new JSONHTTPException(400, {
+          error: "invalid_redirect_uri",
+          error_description:
+            "redirect_uris is required for authorization_code and implicit grant types",
+        });
+      }
       validateRedirectUris(mergedRequest.redirect_uris);
       validateGrantTypesAllowed(
         mergedRequest.grant_types,
@@ -139,7 +152,10 @@ export const registerRoutes = new OpenAPIHono<{
 
       const rat = await mintRegistrationToken();
 
-      const registration_metadata: Record<string, unknown> = { ...extraMetadata };
+      const registration_metadata: Record<string, unknown> = {
+        ...extraMetadata,
+      };
+      delete registration_metadata.iat_constraints;
       if (iat?.constraints) {
         registration_metadata.iat_constraints = iat.constraints;
       }
@@ -335,12 +351,24 @@ export const registerRoutes = new OpenAPIHono<{
         mergedMetadata.iat_constraints = iatConstraints;
       }
 
+      // RFC 7592 §2.2 replace semantics: set every standard registration
+      // field explicitly so omitted fields are reset to their RFC 7591
+      // default (or cleared) rather than carrying over the previous value.
+      // Fields mapped into client_metadata (client_uri, tos_uri, policy_uri,
+      // jwks_uri, contacts, scope, software_id, software_version) and
+      // registration_metadata (response_types, jwks) are replaced wholesale
+      // by the freshly-built objects below. client_secret is intentionally
+      // omitted — RFC 7592 PUT must not rotate it.
       const update: Partial<Client> = {
-        ...clientFields,
+        name: clientFields.name ?? `Client ${client_id.slice(0, 8)}`,
+        callbacks: clientFields.callbacks ?? [],
+        grant_types: clientFields.grant_types ?? ["authorization_code"],
+        token_endpoint_auth_method:
+          clientFields.token_endpoint_auth_method ?? "client_secret_basic",
+        logo_uri: clientFields.logo_uri,
+        client_metadata: clientFields.client_metadata ?? {},
         registration_metadata: mergedMetadata,
       };
-      // Never allow client_secret rotation via RFC 7592 PUT
-      delete (update as { client_secret?: string }).client_secret;
 
       const ok = await ctx.env.data.clients.update(
         ctx.var.tenant_id,

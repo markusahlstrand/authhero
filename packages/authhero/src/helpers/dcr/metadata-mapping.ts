@@ -82,6 +82,11 @@ const KNOWN_RFC_7591_FIELDS = new Set([
   "jwks",
   "software_id",
   "software_version",
+  // Server-issued credentials accepted by the schema for the RFC 7592 PUT
+  // path (URL/body client_id match, ignored client_secret rotation). Must
+  // never leak into registration_metadata if a caller sends them on POST.
+  "client_id",
+  "client_secret",
   // AuthHero-internal fields the /connect/start flow (Phase 4) may set
   // through IAT constraints but which are not RFC 7591 metadata.
   "domain",
