@@ -1,5 +1,43 @@
 # authhero
 
+## 4.105.0
+
+### Minor Changes
+
+- 078f2c6: Add control-plane mode to `/connect/start` so it can be used from a multi-tenancy control plane.
+
+  Previously the consent flow always minted the IAT on whichever tenant the request resolved to. That meant integrators had to point `/connect/start` at each child tenant's host directly — there was no way to start the flow on a shared control-plane host (e.g. `auth2.sesamy.com`) and have the IAT land on the user's chosen workspace.
+
+  The flow now branches based on the resolved tenant:
+  - **Direct-to-child (unchanged):** request resolves to a child tenant → mint the IAT there. No new behavior.
+  - **Control plane:** request resolves to the multi-tenancy control plane (detected via `data.multiTenancyConfig.controlPlaneTenantId`, set by `@authhero/multi-tenancy`'s `withRuntimeFallback`) → after login, the user is shown a new `/u2/connect/select-tenant` picker listing every organization they belong to on the control plane. Each organization name maps 1:1 to a child tenant id (the convention enforced by the provisioning hooks). The chosen child tenant is persisted on the login session and the IAT is minted against that tenant.
+
+  Membership is re-validated when consent is submitted, so a stale or tampered `target_tenant_id` cannot be used to mint on a workspace the user has lost access to.
+
+  When the IAT lives on a different tenant than the request resolved against, the success redirect adds `authhero_tenant=<child_tenant_id>` alongside `authhero_iat`. Pass it as the `tenant-id` header on `POST /oidc/register` so registration hits the correct tenant. Direct-to-child callers don't get this parameter.
+
+- 2578652: Allow http `return_to` on `/connect/start` for loopback hosts and tenant-allowlisted dev origins.
+
+  `GET /connect/start` previously required `return_to` to be `https://<domain>` and rejected all `http://` schemes. That broke local-dev integrators (e.g. WordPress under `wp-env` at `http://127.0.0.1:8888`).
+
+  The new rule:
+  - HTTPS is always permitted (no behavior change).
+  - HTTP is permitted iff:
+    1. The host is loopback — `localhost`, `127.0.0.1`, or `[::1]` (any port). Aligned with RFC 8252 §7.3.
+    2. The exact origin (scheme + host + port) appears in the new tenant flag `allow_http_return_to`.
+  - `0.0.0.0` is always rejected; `localhost.<anything>` is not pattern-matched; trailing dots and case variations are normalized.
+  - `domain` and `return_to` still must agree on scheme + host + port. `domain` may now be passed as a fully-qualified origin (`http://127.0.0.1:8888`); bare host[:port] continues to mean implicit `https://`.
+
+  The consent screen at `/u2/connect/start` shows a "Local development" badge when `domain` is loopback or matches the tenant allowlist, so a user can spot a phishing attempt that claims a `localhost` callback they didn't initiate.
+
+  A new `flags.allow_http_return_to: string[]` field is added to the tenant schema. Default `[]`. Each entry must be a fully-qualified `http://` origin with no path/query/fragment; malformed entries are rejected on write.
+
+### Patch Changes
+
+- Updated dependencies [2578652]
+  - @authhero/adapter-interfaces@1.9.0
+  - @authhero/widget@0.32.6
+
 ## 4.104.0
 
 ### Minor Changes
