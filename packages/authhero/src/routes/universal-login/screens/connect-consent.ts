@@ -5,7 +5,11 @@
  * Corresponds to: /u2/connect/start
  */
 
-import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
+import type {
+  UiScreen,
+  FormNodeComponent,
+  DataAdapters,
+} from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { getLoginPath } from "./types";
 import { getAuthCookie } from "../../../utils/cookies";
@@ -22,6 +26,26 @@ interface ConnectConsentData {
   return_to: string;
   scope?: string;
   caller_state: string;
+  is_local_dev?: boolean;
+  /**
+   * The tenant the IAT will be minted on. Set by the connect-tenant-select
+   * screen when the request was made against a multi-tenancy control plane.
+   * When unset, the request's resolved tenant is used directly.
+   */
+  target_tenant_id?: string;
+}
+
+/**
+ * Returns true when the resolved tenant is the multi-tenancy control plane
+ * and the consent flow therefore needs an explicit child-tenant pick before
+ * the IAT can be minted.
+ */
+function isControlPlaneTenant(
+  data: { multiTenancyConfig?: { controlPlaneTenantId?: string } },
+  tenantId: string,
+): boolean {
+  const cpId = data.multiTenancyConfig?.controlPlaneTenantId;
+  return Boolean(cpId) && cpId === tenantId;
 }
 
 function readConnectData(stateDataJson?: string): ConnectConsentData | null {
@@ -58,11 +82,41 @@ function buildReturn(
   return url.toString();
 }
 
+// The connect flow is registered exclusively under /u2 — there is no /u
+// counterpart. Hardcode the prefix so the screen does not pick up /u from
+// client metadata (which the generic route handler derives from
+// `universal_login_version`).
+const CONNECT_ROUTE_PREFIX = "/u2";
+
+async function isUserInOrganization(
+  data: DataAdapters,
+  tenantId: string,
+  userId: string,
+  organizationName: string,
+): Promise<boolean> {
+  const perPage = 100;
+  let page = 0;
+  while (true) {
+    const { organizations } = await data.userOrganizations.listUserOrganizations(
+      tenantId,
+      userId,
+      { per_page: perPage, page },
+    );
+    if (organizations.some((o) => o.name === organizationName)) {
+      return true;
+    }
+    if (organizations.length < perPage) {
+      return false;
+    }
+    page += 1;
+  }
+}
+
 export async function connectConsentScreen(
   context: ScreenContext,
 ): Promise<ScreenResult> {
-  const { ctx, tenant, branding, state, messages, routePrefix = "/u2" } =
-    context;
+  const { ctx, tenant, branding, state, messages } = context;
+  const routePrefix = CONNECT_ROUTE_PREFIX;
 
   // Resolve session — bounce to login if missing.
   const loginPath = await getLoginPath(context);
@@ -88,6 +142,17 @@ export async function connectConsentScreen(
     throw new RedirectException(`${routePrefix}/login/identifier?state=${encodeURIComponent(state)}`);
   }
 
+  // Control-plane mode: bounce to the tenant picker until a target child
+  // tenant has been chosen. Direct-to-child mode skips this branch entirely.
+  if (
+    isControlPlaneTenant(ctx.env.data, tenant.id) &&
+    !connect.target_tenant_id
+  ) {
+    throw new RedirectException(
+      `${routePrefix}/connect/select-tenant?state=${encodeURIComponent(state)}`,
+    );
+  }
+
   const stateParam = encodeURIComponent(state);
   const cancelUrl = buildReturn(connect.return_to, connect.caller_state, {
     authhero_error: "cancelled",
@@ -95,6 +160,25 @@ export async function connectConsentScreen(
 
   const scopeBlock = connect.scope
     ? `<div style="margin-top:12px;font-size:13px;color:#6b7280">Requested permissions: <span style="color:#111827;font-weight:500">${escapeHtml(connect.scope)}</span></div>`
+    : "";
+
+  const localDevBadge = connect.is_local_dev
+    ? `<span title="This site is a non-production local development origin. The connection will not work outside this machine or network." style="display:inline-block;margin-left:8px;padding:2px 8px;font-size:11px;font-weight:500;color:#92400e;background:#fef3c7;border:1px solid #fcd34d;border-radius:9999px;vertical-align:middle">Local development</span>`
+    : "";
+
+  // When a child tenant was selected on a control plane, surface its
+  // friendly name so the user understands which workspace they're granting
+  // access to. Falls back to the tenant id when no friendly_name is set.
+  let targetWorkspaceLabel: string | null = null;
+  if (connect.target_tenant_id && connect.target_tenant_id !== tenant.id) {
+    const targetTenant = await ctx.env.data.tenants.get(
+      connect.target_tenant_id,
+    );
+    targetWorkspaceLabel =
+      targetTenant?.friendly_name || connect.target_tenant_id;
+  }
+  const workspaceLine = targetWorkspaceLabel
+    ? `<div style="font-size:13px;color:#6b7280;margin-top:4px">Workspace: <span style="color:#111827;font-weight:500">${escapeHtml(targetWorkspaceLabel)}</span></div>`
     : "";
 
   const components: FormNodeComponent[] = [
@@ -107,8 +191,9 @@ export async function connectConsentScreen(
         content: `
           <div style="display:flex;flex-direction:column;gap:12px;padding:16px;border:1px solid #e5e7eb;border-radius:8px;background:#f9fafb">
             <div style="font-size:14px;color:#6b7280">${escapeHtml(connect.integration_type)}</div>
-            <div style="font-size:18px;font-weight:600;color:#111827">${escapeHtml(connect.domain)}</div>
+            <div style="font-size:18px;font-weight:600;color:#111827">${escapeHtml(connect.domain)}${localDevBadge}</div>
             <div style="font-size:14px;color:#374151">wants to connect to your ${escapeHtml(tenant.friendly_name)} account as <span style="font-weight:500">${escapeHtml(user.email || user.name || user.user_id)}</span>.</div>
+            ${workspaceLine}
             ${scopeBlock}
           </div>
         `,
@@ -186,6 +271,52 @@ async function handleConnectConsentSubmit(
     };
   }
 
+  // On the control plane the user MUST have picked a target tenant before
+  // we mint anything — guard against a direct POST that skipped the picker.
+  if (
+    isControlPlaneTenant(ctx.env.data, tenant.id) &&
+    !connect.target_tenant_id
+  ) {
+    return {
+      error: "Workspace selection required",
+      screen: await connectConsentScreen(context),
+    };
+  }
+
+  // Resolve the tenant the IAT will be minted on. Direct-to-child requests
+  // mint on the resolved request tenant; control-plane requests mint on the
+  // child tenant chosen in the picker step.
+  const targetTenantId = connect.target_tenant_id ?? tenant.id;
+
+  // For control-plane minting, re-validate that the consenting user actually
+  // has membership in the org corresponding to the chosen child tenant. The
+  // picker enforces this, but a stale or tampered state_data must not let a
+  // user mint on a tenant they don't belong to.
+  if (
+    connect.target_tenant_id &&
+    connect.target_tenant_id !== tenant.id
+  ) {
+    const allowed = await isUserInOrganization(
+      ctx.env.data,
+      tenant.id,
+      user.user_id,
+      connect.target_tenant_id,
+    );
+    if (!allowed) {
+      return {
+        error: "You don't have access to that workspace",
+        screen: await connectConsentScreen(context),
+      };
+    }
+    const targetTenant = await ctx.env.data.tenants.get(targetTenantId);
+    if (!targetTenant) {
+      return {
+        error: "Workspace not found",
+        screen: await connectConsentScreen(context),
+      };
+    }
+  }
+
   // POST always means confirm — the Cancel link already redirects to
   // return_to with `authhero_error=cancelled` without ever submitting.
   // Mint an IAT bound to the consenting user.
@@ -200,7 +331,7 @@ async function handleConnectConsentSubmit(
 
   const minted = await mintIat(
     requireClientRegistrationTokens(ctx.env.data),
-    tenant.id,
+    targetTenantId,
     {
       sub: user.user_id,
       constraints,
@@ -209,7 +340,7 @@ async function handleConnectConsentSubmit(
     },
   );
 
-  await logMessage(ctx, tenant.id, {
+  await logMessage(ctx, targetTenantId, {
     type: LogTypes.SUCCESS_API_OPERATION,
     description: "DCR Initial Access Token issued via /connect/start",
     targetType: "client_registration_token",
@@ -217,10 +348,16 @@ async function handleConnectConsentSubmit(
     userId: user.user_id,
   });
 
+  // Carry the target tenant id to the caller so it knows which tenant to
+  // POST /oidc/register against. Only set when it differs from the request
+  // tenant — direct-to-child callers already know the tenant from the host.
+  const extra: Record<string, string> = { authhero_iat: minted.token };
+  if (targetTenantId !== tenant.id) {
+    extra.authhero_tenant = targetTenantId;
+  }
+
   return {
-    redirect: buildReturn(connect.return_to, connect.caller_state, {
-      authhero_iat: minted.token,
-    }),
+    redirect: buildReturn(connect.return_to, connect.caller_state, extra),
   };
 }
 

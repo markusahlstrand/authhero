@@ -2,6 +2,7 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { nanoid } from "nanoid";
 import { Bindings, Variables } from "../../types";
 import { JSONHTTPException } from "../../errors/json-http-exception";
+import { validateConnectOrigin } from "../../helpers/dcr/validate-connect-origin";
 
 const UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS = 60 * 30; // 30 min
 
@@ -82,20 +83,28 @@ export const connectStartRoutes = new OpenAPIHono<{
       });
     }
 
-    const expectedOrigin = `https://${domain}`;
-    let returnUrl: URL;
-    try {
-      returnUrl = new URL(return_to);
-    } catch {
+    const allowHttp = tenant.flags?.allow_http_return_to ?? [];
+    // `domain` accepts either a bare host[:port] (legacy, implicit https) or a
+    // full origin like `http://127.0.0.1:8888` for non-https local-dev cases.
+    const domainRaw = /^https?:\/\//i.test(domain) ? domain : `https://${domain}`;
+    const domainCheck = validateConnectOrigin(domainRaw, allowHttp);
+    if (!domainCheck.ok) {
       throw new JSONHTTPException(400, {
         error: "invalid_request",
-        error_description: "return_to is not a valid URL",
+        error_description: `domain: ${domainCheck.reason}`,
       });
     }
-    if (returnUrl.origin !== expectedOrigin) {
+    const returnCheck = validateConnectOrigin(return_to, allowHttp);
+    if (!returnCheck.ok) {
       throw new JSONHTTPException(400, {
         error: "invalid_request",
-        error_description: "return_to origin must match domain (https only)",
+        error_description: `return_to: ${returnCheck.reason}`,
+      });
+    }
+    if (returnCheck.origin !== domainCheck.origin) {
+      throw new JSONHTTPException(400, {
+        error: "invalid_request",
+        error_description: "return_to origin must match domain",
       });
     }
 
@@ -131,6 +140,7 @@ export const connectStartRoutes = new OpenAPIHono<{
           return_to,
           scope,
           caller_state: state,
+          is_local_dev: returnCheck.isLoopback || returnCheck.isAllowlisted,
         },
       }),
     });

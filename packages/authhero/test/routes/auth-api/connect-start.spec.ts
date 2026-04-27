@@ -75,13 +75,129 @@ describe("GET /connect/start", () => {
     expect(response.status).toBe(400);
   });
 
-  it("rejects http return_to", async () => {
+  it("rejects http return_to for non-loopback host without allowlist", async () => {
     const { oauthApp, env } = await getTestServer();
     await enableConnectFlow(env);
     const qs = new URLSearchParams({
       integration_type: "wordpress",
       domain: "publisher.com",
       return_to: "http://publisher.com/cb",
+      state: "csrf-abc",
+    }).toString();
+    const response = await oauthApp.request(
+      `/connect/start?${qs}`,
+      { method: "GET", headers: { "tenant-id": "tenantId" } },
+      env,
+    );
+    expect(response.status).toBe(400);
+  });
+
+  it("accepts http return_to for loopback (127.0.0.1) without any allowlist", async () => {
+    const { oauthApp, env } = await getTestServer();
+    await enableConnectFlow(env);
+    const qs = new URLSearchParams({
+      integration_type: "wordpress",
+      domain: "http://127.0.0.1:8888",
+      return_to: "http://127.0.0.1:8888/wp-admin/connect-callback",
+      state: "csrf-abc",
+    }).toString();
+    const response = await oauthApp.request(
+      `/connect/start?${qs}`,
+      { method: "GET", headers: { "tenant-id": "tenantId" } },
+      env,
+    );
+    expect(response.status).toBe(302);
+    const location = response.headers.get("location");
+    const stateId = new URL(location!, "http://localhost").searchParams.get(
+      "state",
+    );
+    const session = await env.data.loginSessions.get("tenantId", stateId!);
+    const data = JSON.parse(session!.state_data!);
+    expect(data.connect.is_local_dev).toBe(true);
+    expect(data.connect.return_to).toBe(
+      "http://127.0.0.1:8888/wp-admin/connect-callback",
+    );
+  });
+
+  it("accepts http return_to for tenant-allowlisted origin", async () => {
+    const { oauthApp, env } = await getTestServer();
+    await enableConnectFlow(env);
+    await env.data.tenants.update("tenantId", {
+      flags: {
+        enable_dynamic_client_registration: true,
+        dcr_allowed_integration_types: ["wordpress"],
+        allow_http_return_to: ["http://dev.example.test:3000"],
+      },
+    });
+    const qs = new URLSearchParams({
+      integration_type: "wordpress",
+      domain: "http://dev.example.test:3000",
+      return_to: "http://dev.example.test:3000/cb",
+      state: "csrf-abc",
+    }).toString();
+    const response = await oauthApp.request(
+      `/connect/start?${qs}`,
+      { method: "GET", headers: { "tenant-id": "tenantId" } },
+      env,
+    );
+    expect(response.status).toBe(302);
+    const location = response.headers.get("location");
+    const stateId = new URL(location!, "http://localhost").searchParams.get(
+      "state",
+    );
+    const session = await env.data.loginSessions.get("tenantId", stateId!);
+    const data = JSON.parse(session!.state_data!);
+    expect(data.connect.is_local_dev).toBe(true);
+  });
+
+  it("rejects non-allowlisted http origin even when both domain and return_to agree", async () => {
+    const { oauthApp, env } = await getTestServer();
+    await enableConnectFlow(env);
+    const qs = new URLSearchParams({
+      integration_type: "wordpress",
+      domain: "http://192.168.1.10:3000",
+      return_to: "http://192.168.1.10:3000/cb",
+      state: "csrf-abc",
+    }).toString();
+    const response = await oauthApp.request(
+      `/connect/start?${qs}`,
+      { method: "GET", headers: { "tenant-id": "tenantId" } },
+      env,
+    );
+    expect(response.status).toBe(400);
+  });
+
+  it("rejects when domain is loopback but return_to is non-loopback http", async () => {
+    const { oauthApp, env } = await getTestServer();
+    await enableConnectFlow(env);
+    const qs = new URLSearchParams({
+      integration_type: "wordpress",
+      domain: "http://127.0.0.1:8888",
+      return_to: "http://attacker.com/cb",
+      state: "csrf-abc",
+    }).toString();
+    const response = await oauthApp.request(
+      `/connect/start?${qs}`,
+      { method: "GET", headers: { "tenant-id": "tenantId" } },
+      env,
+    );
+    expect(response.status).toBe(400);
+  });
+
+  it("rejects http://0.0.0.0 even with allowlist entry", async () => {
+    const { oauthApp, env } = await getTestServer();
+    await enableConnectFlow(env);
+    await env.data.tenants.update("tenantId", {
+      flags: {
+        enable_dynamic_client_registration: true,
+        dcr_allowed_integration_types: ["wordpress"],
+        allow_http_return_to: ["http://0.0.0.0:8888"],
+      },
+    });
+    const qs = new URLSearchParams({
+      integration_type: "wordpress",
+      domain: "http://0.0.0.0:8888",
+      return_to: "http://0.0.0.0:8888/cb",
       state: "csrf-abc",
     }).toString();
     const response = await oauthApp.request(

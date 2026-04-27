@@ -39,12 +39,39 @@ AuthHero → 201 { client_id, client_secret, registration_access_token, ... }
 
 If the user cancels: `302 return_to?authhero_error=cancelled&state=<csrf>`. No IAT is minted.
 
+### Control-plane mode (multi-tenancy)
+
+When `/connect/start` is hit on a [multi-tenancy](/customization/multi-tenancy/) control-plane tenant, the user must first pick which child tenant the IAT (and resulting client) belongs to. The flow inserts one extra step between login and consent:
+
+```
+Browser → GET /connect/start?...      ← request resolves to control plane
+AuthHero → 302 /u2/connect/start?state=<sid>
+        → user not signed in: 302 /u2/login/identifier?state=<sid>
+        → after login:        302 /u2/connect/select-tenant?state=<sid>
+        → user picks workspace: state_data.connect.target_tenant_id is set
+        → 302 /u2/connect/start?state=<sid>
+        → renders consent (showing the chosen workspace)
+User     → confirms
+AuthHero → mint IAT on the *child* tenant
+         → 302 return_to?authhero_iat=<token>
+                       &authhero_tenant=<child_tenant_id>
+                       &state=<csrf>
+```
+
+The picker lists every organization the signed-in user belongs to on the control plane — each organization name maps 1:1 to a child tenant id (this is the convention enforced by `@authhero/multi-tenancy`'s provisioning hooks). Membership is re-checked when consent is submitted, so a stale `target_tenant_id` cannot be used to mint on a workspace the user has lost access to.
+
+When the request already resolves to a child tenant directly (custom domain or subdomain), the picker is skipped and the IAT is minted on that child — the URL-shape and IAT contents are identical to the single-tenant flow.
+
+### `authhero_tenant` callback parameter
+
+Set on the `return_to` redirect only when the IAT was minted on a tenant *different* from the request's resolved tenant. Pass it as the `tenant-id` header on `POST /oidc/register` so the registration request hits the correct tenant. Direct-to-child flows (where the request already resolved to the right tenant) do not include this parameter.
+
 ## Query parameters
 
 | Parameter | Required | Description |
 | --- | --- | --- |
 | `integration_type` | yes | A caller-defined identifier. Tenant must allowlist it via `flags.dcr_allowed_integration_types`. |
-| `domain` | yes | Logical "thing being connected." `return_to`'s origin must be `https://<domain>`. |
+| `domain` | yes | Logical "thing being connected." May be a bare host[:port] (implicit `https://`) or a fully-qualified origin (`http://127.0.0.1:8888` for local dev). `return_to`'s origin must match. |
 | `return_to` | yes | Where the browser is redirected after consent (success or cancel). Origin must match `domain`. |
 | `state` | yes | Caller-supplied CSRF token. Round-tripped on the redirect unchanged. |
 | `scope` | no | Space-separated scope list, pre-bound to the IAT. |
@@ -57,12 +84,15 @@ Enable on the tenant:
 {
   "flags": {
     "enable_dynamic_client_registration": true,
-    "dcr_allowed_integration_types": ["wordpress", "ghost", "drupal"]
+    "dcr_allowed_integration_types": ["wordpress", "ghost", "drupal"],
+    "allow_http_return_to": ["http://dev.publisher.test:8080"]
   }
 }
 ```
 
 If `dcr_allowed_integration_types` is empty/unset, `/connect/start` returns 404 — the consent flow is disabled for the tenant.
+
+`allow_http_return_to` is a per-tenant allowlist of fully-qualified `http://` origins (scheme + host + port, no path) that may appear as `domain` / `return_to` despite not being loopback. Defaults to `[]`. Loopback origins (`localhost`, `127.0.0.1`, `[::1]`) are accepted regardless of this list.
 
 ## Pre-bound IAT constraints
 
@@ -89,12 +119,18 @@ If the registration request supplies any of those fields with a different value,
 
 ## Security
 
-- `return_to` origin must exactly match `https://<domain>` (scheme + host + port). HTTP is rejected.
+- `return_to` and `domain` must agree on scheme + host + port.
+- HTTPS is always permitted. HTTP is permitted only when:
+  1. The host is loopback — `localhost`, `127.0.0.1`, or `[::1]` (any port). Aligned with [RFC 8252 §7.3](https://datatracker.ietf.org/doc/html/rfc8252#section-7.3).
+  2. The exact origin (scheme + host + port) appears in the tenant's `allow_http_return_to` list.
+- `0.0.0.0` is always rejected (resolves differently across stacks). `localhost.<anything>` is rejected (suffixes are not pattern-matched). Trailing dots and case variations are normalized before comparison.
 - `integration_type` must appear in the per-tenant allowlist.
 - IAT is exposed as a query param on `return_to`. Single-use + 5-min TTL bound the exposure window. The receiving server should consume it immediately and not retain it.
+- When `domain` resolves to a loopback host or matches the tenant allowlist, the consent screen shows a "Local development" badge so users can spot a phishing attempt that claims a `localhost` callback they didn't initiate.
 - Cancel never mints a token.
 
 ## Related
 
 - [RFC 7591 — Dynamic Client Registration](/standards/rfc-7591)
 - [RFC 7592 — DCR Management](/standards/rfc-7592)
+- [Multi-tenancy: consent-mediated DCR](/customization/multi-tenancy/control-plane#consent-mediated-dcr-connect-start) — control-plane workspace picker, integrator callback handling, and choosing between control-plane and direct-to-child entry points.
