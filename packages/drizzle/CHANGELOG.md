@@ -1,5 +1,24 @@
 # @authhero/drizzle
 
+## 0.43.0
+
+### Minor Changes
+
+- 02cebf4: Add RFC 7591 Dynamic Client Registration and RFC 7592 Client Configuration endpoints with Initial Access Token support.
+  - `POST /oidc/register` (RFC 7591 §3): create a client, optionally gated by an Initial Access Token (IAT). Open DCR can be enabled by setting `tenant.flags.dcr_require_initial_access_token = false`.
+  - `GET/PUT/DELETE /oidc/register/:client_id` (RFC 7592): self-service client configuration using the registration access token returned at registration time.
+  - New `client_registration_tokens` table (kysely + drizzle) holding both IATs and RATs with SHA-256 hashed storage.
+  - New `clients` columns: `owner_user_id`, `registration_type`, `registration_metadata`.
+  - New tenant flags: `dcr_require_initial_access_token`, `dcr_allowed_grant_types`.
+  - Discovery (`.well-known/openid-configuration`) now only emits `registration_endpoint` when `flags.enable_dynamic_client_registration = true`.
+  - RFC 7591 `redirect_uris` is mapped to/from AuthHero's internal `callbacks` field at the wire boundary — the Management API continues to use `callbacks` unchanged.
+
+### Patch Changes
+
+- Updated dependencies [48eab09]
+- Updated dependencies [02cebf4]
+  - @authhero/adapter-interfaces@1.8.0
+
 ## 0.42.0
 
 ### Minor Changes
