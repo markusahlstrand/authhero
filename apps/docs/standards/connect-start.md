@@ -39,6 +39,33 @@ AuthHero → 201 { client_id, client_secret, registration_access_token, ... }
 
 If the user cancels: `302 return_to?authhero_error=cancelled&state=<csrf>`. No IAT is minted.
 
+### Control-plane mode (multi-tenancy)
+
+When `/connect/start` is hit on a [multi-tenancy](/packages/multi-tenancy/) control-plane tenant, the user must first pick which child tenant the IAT (and resulting client) belongs to. The flow inserts one extra step between login and consent:
+
+```
+Browser → GET /connect/start?...      ← request resolves to control plane
+AuthHero → 302 /u2/connect/start?state=<sid>
+        → user not signed in: 302 /u2/login/identifier?state=<sid>
+        → after login:        302 /u2/connect/select-tenant?state=<sid>
+        → user picks workspace: state_data.connect.target_tenant_id is set
+        → 302 /u2/connect/start?state=<sid>
+        → renders consent (showing the chosen workspace)
+User     → confirms
+AuthHero → mint IAT on the *child* tenant
+         → 302 return_to?authhero_iat=<token>
+                       &authhero_tenant=<child_tenant_id>
+                       &state=<csrf>
+```
+
+The picker lists every organization the signed-in user belongs to on the control plane — each organization name maps 1:1 to a child tenant id (this is the convention enforced by `@authhero/multi-tenancy`'s provisioning hooks). Membership is re-checked when consent is submitted, so a stale `target_tenant_id` cannot be used to mint on a workspace the user has lost access to.
+
+When the request already resolves to a child tenant directly (custom domain or subdomain), the picker is skipped and the IAT is minted on that child — the URL-shape and IAT contents are identical to the single-tenant flow.
+
+### `authhero_tenant` callback parameter
+
+Set on the `return_to` redirect only when the IAT was minted on a tenant *different* from the request's resolved tenant. Pass it as the `tenant-id` header on `POST /oidc/register` so the registration request hits the correct tenant. Direct-to-child flows (where the request already resolved to the right tenant) do not include this parameter.
+
 ## Query parameters
 
 | Parameter | Required | Description |

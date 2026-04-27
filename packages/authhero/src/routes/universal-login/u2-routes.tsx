@@ -91,6 +91,7 @@ const SCREEN_TO_PROMPT_MAP: Record<string, PromptScreen> = {
   status: "status",
   "device-flow": "device-flow",
   "connect-consent": "consent",
+  "connect-tenant-select": "consent",
   "email-verification": "email-verification",
   organizations: "organizations",
   invitation: "invitation",
@@ -1957,6 +1958,28 @@ export const u2Routes = new OpenAPIHono<{
       "Process connect-consent confirmation and mint IAT",
     ),
     createScreenPostHandler("connect-consent"),
+  )
+  // --------------------------------
+  // GET /u2/connect/select-tenant - Multi-tenancy control-plane workspace picker
+  // --------------------------------
+  .openapi(
+    createScreenRoute(
+      "connect-tenant-select",
+      "/connect/select-tenant",
+      "Pick the child tenant the consent-mediated IAT will be minted on",
+    ),
+    createScreenRouteHandler("connect-tenant-select"),
+  )
+  // --------------------------------
+  // POST /u2/connect/select-tenant
+  // --------------------------------
+  .openapi(
+    createScreenPostRoute(
+      "connect-tenant-select",
+      "/connect/select-tenant",
+      "Persist the chosen tenant id and continue to consent",
+    ),
+    createScreenPostHandler("connect-tenant-select"),
   )
   // --------------------------------
   // GET /u2/guardian/enroll - Guardian enrollment ticket redemption

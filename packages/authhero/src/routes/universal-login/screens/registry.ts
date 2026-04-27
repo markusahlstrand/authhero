@@ -32,6 +32,7 @@ import { passkeyEnrollmentScreenDefinition } from "./passkey-enrollment";
 import { passkeyChallengeScreenDefinition } from "./passkey-challenge";
 import { resetPasswordCodeScreenDefinition } from "./reset-password-code";
 import { connectConsentScreenDefinition } from "./connect-consent";
+import { connectTenantSelectScreenDefinition } from "./connect-tenant-select";
 
 /**
  * Registry of all built-in screens
@@ -69,6 +70,7 @@ export const screenRegistry: Map<string, ScreenDefinition> = new Map([
   ["passkey-challenge", passkeyChallengeScreenDefinition],
   ["reset-password-code", resetPasswordCodeScreenDefinition],
   ["connect-consent", connectConsentScreenDefinition],
+  ["connect-tenant-select", connectTenantSelectScreenDefinition],
 ]);
 
 /**
