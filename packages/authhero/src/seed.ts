@@ -61,6 +61,10 @@ export const MANAGEMENT_API_SCOPES = [
     description: "Create Client Credentials",
     value: "create:client_credentials",
   },
+  {
+    description: "Create Client Registration Tokens",
+    value: "create:client_registration_tokens",
+  },
   { description: "Read Connections", value: "read:connections" },
   { description: "Update Connections", value: "update:connections" },
   { description: "Delete Connections", value: "delete:connections" },

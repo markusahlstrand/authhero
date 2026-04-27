@@ -14,6 +14,7 @@ import { authenticateRoutes } from "./authenticate";
 import { authorizeRoutes } from "./authorize";
 import { accountRoutes } from "./account";
 import { registerRoutes } from "./register";
+import { connectStartRoutes } from "./connect-start";
 import { addDataHooks } from "../../hooks";
 import { addTimingLogs } from "../../helpers/server-timing";
 import { addCaching } from "../../helpers/cache-wrapper";
@@ -135,6 +136,7 @@ export default function create(config: AuthHeroConfig) {
     .route("/authorize", authorizeRoutes)
     .route("/account", accountRoutes)
     .route("/oidc/register", registerRoutes)
+    .route("/connect/start", connectStartRoutes)
     .route("/callback", callbackRoutes);
 
   oauthApp.doc("/spec", {
