@@ -70,6 +70,33 @@ export const tenantInsertSchema = z.object({
       // `/connect/start` consent-mediated IAT flow. Empty/undefined disables
       // the flow.
       dcr_allowed_integration_types: z.array(z.string()).optional(),
+      // Per-tenant allowlist of fully-qualified http origins (scheme + host
+      // + port, no path) that may be used as `return_to` / `domain` on
+      // `/connect/start` despite not being loopback. Off by default.
+      allow_http_return_to: z
+        .array(
+          z.string().refine(
+            (s) => {
+              try {
+                const u = new URL(s);
+                return (
+                  u.protocol === "http:" &&
+                  (u.pathname === "" || u.pathname === "/") &&
+                  !u.search &&
+                  !u.hash &&
+                  s === u.origin
+                );
+              } catch {
+                return false;
+              }
+            },
+            {
+              message:
+                "must be a fully-qualified http origin (scheme + host + port, no path)",
+            },
+          ),
+        )
+        .optional(),
       enable_idtoken_api2: z.boolean().optional(),
       enable_legacy_logs_search_v2: z.boolean().optional(),
       enable_legacy_profile: z.boolean().optional(),

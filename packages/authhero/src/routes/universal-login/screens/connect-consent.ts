@@ -22,6 +22,7 @@ interface ConnectConsentData {
   return_to: string;
   scope?: string;
   caller_state: string;
+  is_local_dev?: boolean;
 }
 
 function readConnectData(stateDataJson?: string): ConnectConsentData | null {
@@ -97,6 +98,10 @@ export async function connectConsentScreen(
     ? `<div style="margin-top:12px;font-size:13px;color:#6b7280">Requested permissions: <span style="color:#111827;font-weight:500">${escapeHtml(connect.scope)}</span></div>`
     : "";
 
+  const localDevBadge = connect.is_local_dev
+    ? `<span title="This site is a non-production local development origin. The connection will not work outside this machine or network." style="display:inline-block;margin-left:8px;padding:2px 8px;font-size:11px;font-weight:500;color:#92400e;background:#fef3c7;border:1px solid #fcd34d;border-radius:9999px;vertical-align:middle">Local development</span>`
+    : "";
+
   const components: FormNodeComponent[] = [
     {
       id: "connect-summary",
@@ -107,7 +112,7 @@ export async function connectConsentScreen(
         content: `
           <div style="display:flex;flex-direction:column;gap:12px;padding:16px;border:1px solid #e5e7eb;border-radius:8px;background:#f9fafb">
             <div style="font-size:14px;color:#6b7280">${escapeHtml(connect.integration_type)}</div>
-            <div style="font-size:18px;font-weight:600;color:#111827">${escapeHtml(connect.domain)}</div>
+            <div style="font-size:18px;font-weight:600;color:#111827">${escapeHtml(connect.domain)}${localDevBadge}</div>
             <div style="font-size:14px;color:#374151">wants to connect to your ${escapeHtml(tenant.friendly_name)} account as <span style="font-weight:500">${escapeHtml(user.email || user.name || user.user_id)}</span>.</div>
             ${scopeBlock}
           </div>
