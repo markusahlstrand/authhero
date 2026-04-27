@@ -304,6 +304,10 @@ gtag('config', 'G-DNZWG3PF2L');`,
                   text: "RFC 7592 — DCR Management",
                   link: "/standards/rfc-7592",
                 },
+                {
+                  text: "Connect Start (consent flow)",
+                  link: "/standards/connect-start",
+                },
               ],
             },
             {

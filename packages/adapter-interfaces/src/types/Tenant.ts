@@ -66,6 +66,10 @@ export const tenantInsertSchema = z.object({
       // access tokens and a per-tenant grant-type allowlist.
       dcr_require_initial_access_token: z.boolean().optional(),
       dcr_allowed_grant_types: z.array(z.string()).optional(),
+      // Allowlist of `integration_type` values accepted by the
+      // `/connect/start` consent-mediated IAT flow. Empty/undefined disables
+      // the flow.
+      dcr_allowed_integration_types: z.array(z.string()).optional(),
       enable_idtoken_api2: z.boolean().optional(),
       enable_legacy_logs_search_v2: z.boolean().optional(),
       enable_legacy_profile: z.boolean().optional(),

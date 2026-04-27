@@ -90,6 +90,7 @@ const SCREEN_TO_PROMPT_MAP: Record<string, PromptScreen> = {
   "account-passkeys": "common",
   status: "status",
   "device-flow": "device-flow",
+  "connect-consent": "consent",
   "email-verification": "email-verification",
   organizations: "organizations",
   invitation: "invitation",
@@ -1934,6 +1935,28 @@ export const u2Routes = new OpenAPIHono<{
       "Process passkey management form submission",
     ),
     createScreenPostHandler("account-passkeys"),
+  )
+  // --------------------------------
+  // GET /u2/connect/start - Consent-mediated DCR Initial Access Token issuance
+  // --------------------------------
+  .openapi(
+    createScreenRoute(
+      "connect-consent",
+      "/connect/start",
+      "Connect consent screen - mints an IAT bound to user consent",
+    ),
+    createScreenRouteHandler("connect-consent"),
+  )
+  // --------------------------------
+  // POST /u2/connect/start
+  // --------------------------------
+  .openapi(
+    createScreenPostRoute(
+      "connect-consent",
+      "/connect/start",
+      "Process connect-consent confirmation and mint IAT",
+    ),
+    createScreenPostHandler("connect-consent"),
   )
   // --------------------------------
   // GET /u2/guardian/enroll - Guardian enrollment ticket redemption
