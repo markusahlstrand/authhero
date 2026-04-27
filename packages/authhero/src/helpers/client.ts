@@ -74,6 +74,11 @@ export async function getEnrichedClient(
   if (!finalClient) {
     throw new JSONHTTPException(403, { message: "Client not found" });
   }
+  // Treat soft-deleted clients (DCR DELETE /oidc/register/:id) as if they
+  // were removed entirely — no token issuance, no /authorize, no resume.
+  if (finalClient.client_metadata?.status === "deleted") {
+    throw new JSONHTTPException(403, { message: "Client not found" });
+  }
   if (!tenant) {
     throw new JSONHTTPException(404, { message: "Tenant not found" });
   }
