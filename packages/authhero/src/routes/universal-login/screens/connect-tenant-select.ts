@@ -9,12 +9,17 @@
  * Corresponds to: /u2/connect/select-tenant
  */
 
-import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
+import type {
+  UiScreen,
+  FormNodeComponent,
+  Organization,
+} from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { getLoginPath } from "./types";
 import { getAuthCookie } from "../../../utils/cookies";
 import { RedirectException } from "../../../errors/redirect-exception";
 import { escapeHtml } from "../sanitization-utils";
+import { fetchAll } from "../../../utils/fetchAll";
 
 interface ConnectConsentData {
   integration_type: string;
@@ -70,24 +75,28 @@ async function listUserTenantOptions(
   userId: string,
 ): Promise<TenantOption[]> {
   const { ctx, tenant } = context;
-  const { organizations } =
-    await ctx.env.data.userOrganizations.listUserOrganizations(
-      tenant.id,
-      userId,
-      { per_page: 100 },
-    );
+  const organizations = await fetchAll<Organization>(
+    (params) =>
+      ctx.env.data.userOrganizations.listUserOrganizations(
+        tenant.id,
+        userId,
+        params,
+      ),
+    "organizations",
+  );
 
-  const options: TenantOption[] = [];
-  for (const org of organizations) {
-    // Org name maps 1:1 to a child tenant id (see provisioning hooks).
-    const childTenant = await ctx.env.data.tenants.get(org.name);
-    if (!childTenant) continue;
-    options.push({
-      id: org.name,
-      display_name: org.display_name || childTenant.friendly_name || org.name,
-    });
-  }
-  return options;
+  // Org name maps 1:1 to a child tenant id (see provisioning hooks).
+  const resolved = await Promise.all(
+    organizations.map(async (org): Promise<TenantOption | null> => {
+      const childTenant = await ctx.env.data.tenants.get(org.name);
+      if (!childTenant) return null;
+      return {
+        id: org.name,
+        display_name: org.display_name || childTenant.friendly_name || org.name,
+      };
+    }),
+  );
+  return resolved.filter((o): o is TenantOption => o !== null);
 }
 
 // The connect flow is registered exclusively under /u2 — there is no /u

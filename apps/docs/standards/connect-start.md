@@ -41,7 +41,7 @@ If the user cancels: `302 return_to?authhero_error=cancelled&state=<csrf>`. No I
 
 ### Control-plane mode (multi-tenancy)
 
-When `/connect/start` is hit on a [multi-tenancy](/packages/multi-tenancy/) control-plane tenant, the user must first pick which child tenant the IAT (and resulting client) belongs to. The flow inserts one extra step between login and consent:
+When `/connect/start` is hit on a [multi-tenancy](/customization/multi-tenancy/) control-plane tenant, the user must first pick which child tenant the IAT (and resulting client) belongs to. The flow inserts one extra step between login and consent:
 
 ```
 Browser → GET /connect/start?...      ← request resolves to control plane
@@ -133,3 +133,4 @@ If the registration request supplies any of those fields with a different value,
 
 - [RFC 7591 — Dynamic Client Registration](/standards/rfc-7591)
 - [RFC 7592 — DCR Management](/standards/rfc-7592)
+- [Multi-tenancy: consent-mediated DCR](/customization/multi-tenancy/control-plane#consent-mediated-dcr-connect-start) — control-plane workspace picker, integrator callback handling, and choosing between control-plane and direct-to-child entry points.

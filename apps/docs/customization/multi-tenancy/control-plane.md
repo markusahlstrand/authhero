@@ -483,6 +483,85 @@ const app = await init({
 });
 ```
 
+## Consent-mediated DCR (`/connect/start`)
+
+The [`/connect/start`](/standards/connect-start) endpoint mints an [RFC 7591 Initial Access Token](/standards/rfc-7591) bound to user consent — a third-party site (e.g. a WordPress publisher) sends the user's browser to AuthHero, the user confirms, and the resulting IAT can be exchanged for a registered client at `POST /oidc/register`.
+
+When the request resolves to a **control plane** tenant, the flow gains an extra workspace-picker step so the IAT (and the client it produces) lands on the right child tenant. When the request resolves to a child tenant directly, the picker is skipped.
+
+### Detecting the mode
+
+The connect screen branches on `data.multiTenancyConfig.controlPlaneTenantId`, which `withRuntimeFallback` (and therefore `initMultiTenant`) sets on the data adapter automatically. No extra wiring is required — if you initialised AuthHero with the multi-tenancy plugin, control-plane mode is already on.
+
+### How the picker works
+
+```
+Browser → GET /connect/start?…           ← request resolves to control plane
+AuthHero → 302 /u2/connect/start?state=<sid>
+        → no session: 302 /u2/login/identifier?state=<sid>
+        → after login: 302 /u2/connect/select-tenant?state=<sid>
+User    → picks workspace (one button per accessible org)
+        → state_data.connect.target_tenant_id is persisted
+        → 302 /u2/connect/start?state=<sid>
+        → consent screen renders, showing the chosen workspace
+User    → confirms
+AuthHero → mint IAT on the *child* tenant
+         → 302 return_to?authhero_iat=<token>
+                       &authhero_tenant=<child_tenant_id>
+                       &state=<csrf>
+```
+
+The picker enumerates the user's organizations on the control plane via `userOrganizations.listUserOrganizations`. Each organization name maps 1:1 to a child tenant id (the convention enforced by the [provisioning hooks](./tenant-lifecycle.md) — `org.name === tenant.id`), and any orgs that don't resolve to an existing tenant are filtered out.
+
+Membership is **re-validated when consent is submitted**, so a stale or tampered `target_tenant_id` cannot mint on a workspace the user has lost access to between picker and consent.
+
+### Direct-to-child mode
+
+If the request resolves to a child tenant — for example via a [custom domain](./subdomain-routing.md) like `acme.auth.example.com` that maps to the `acme` tenant — the picker step is bypassed entirely. The flow is identical to the single-tenant case: login → consent → IAT minted on the resolved tenant. No `authhero_tenant` parameter is added to the redirect because the integrator already knows the tenant from the URL it pointed at.
+
+### The `authhero_tenant` callback parameter
+
+When the IAT is minted on a tenant *different* from the request's resolved tenant (i.e. always in control-plane mode, never in direct-to-child mode), the success redirect appends `authhero_tenant=<child_tenant_id>` alongside `authhero_iat`. The integrator must use this value as the `tenant-id` header on `POST /oidc/register` so the registration call is routed to the correct tenant.
+
+```js
+// Example: a CMS handling the connect callback
+const url = new URL(window.location.href);
+const iat = url.searchParams.get("authhero_iat");
+const tenant = url.searchParams.get("authhero_tenant"); // present only in control-plane mode
+
+await fetch("https://auth2.example.com/oidc/register", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${iat}`,
+    "tenant-id": tenant ?? "", // omit entirely if not present (direct-to-child)
+    "content-type": "application/json",
+  },
+  body: JSON.stringify({
+    client_name: "My WordPress Site",
+    redirect_uris: ["https://publisher.com/wp-admin/callback"],
+    grant_types: ["client_credentials"],
+  }),
+});
+```
+
+The IAT itself enforces all the constraints captured at consent time (`domain`, `integration_type`, `grant_types`, optional `scope`) — those are not affected by which tenant minting happens on.
+
+### Choosing your entry point
+
+Pick the mode that matches the integrator's view of your system:
+
+| Entry point                             | Mode             | When to use                                                                                                                                                |
+| --------------------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Control plane host (`auth2.sesamy.com`) | Control plane    | A single canonical URL across all integrators. Users without a per-tenant subdomain. The picker is the natural place to disambiguate which workspace owns the connection. |
+| Child tenant host (`acme.auth…`)        | Direct-to-child  | The integrator already knows which tenant they're connecting to (e.g. white-label deployments, self-service sign-up that bakes the tenant into the install). |
+
+Both modes can coexist on the same AuthHero deployment — there is no global setting to flip.
+
+### Limitations
+
+- The picker assumes a **single shared database** or per-tenant databases reachable from the same data adapter. With strict [database isolation](./database-isolation.md), control-plane minting needs the runtime to swap adapters before calling `mintIat` against the chosen child — that wiring is not yet exposed.
+- Users with zero matching organizations see a "no workspaces available" message instead of the picker; they cannot complete the connect flow until invited.
+
 ## Best Practices
 
 ### 1. Use org_name for Tenant Access

@@ -5,7 +5,11 @@
  * Corresponds to: /u2/connect/start
  */
 
-import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
+import type {
+  UiScreen,
+  FormNodeComponent,
+  DataAdapters,
+} from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { getLoginPath } from "./types";
 import { getAuthCookie } from "../../../utils/cookies";
@@ -83,6 +87,30 @@ function buildReturn(
 // client metadata (which the generic route handler derives from
 // `universal_login_version`).
 const CONNECT_ROUTE_PREFIX = "/u2";
+
+async function isUserInOrganization(
+  data: DataAdapters,
+  tenantId: string,
+  userId: string,
+  organizationName: string,
+): Promise<boolean> {
+  const perPage = 100;
+  let page = 0;
+  while (true) {
+    const { organizations } = await data.userOrganizations.listUserOrganizations(
+      tenantId,
+      userId,
+      { per_page: perPage, page },
+    );
+    if (organizations.some((o) => o.name === organizationName)) {
+      return true;
+    }
+    if (organizations.length < perPage) {
+      return false;
+    }
+    page += 1;
+  }
+}
 
 export async function connectConsentScreen(
   context: ScreenContext,
@@ -268,14 +296,11 @@ async function handleConnectConsentSubmit(
     connect.target_tenant_id &&
     connect.target_tenant_id !== tenant.id
   ) {
-    const { organizations } =
-      await ctx.env.data.userOrganizations.listUserOrganizations(
-        tenant.id,
-        user.user_id,
-        { per_page: 100 },
-      );
-    const allowed = organizations.some(
-      (o) => o.name === connect.target_tenant_id,
+    const allowed = await isUserInOrganization(
+      ctx.env.data,
+      tenant.id,
+      user.user_id,
+      connect.target_tenant_id,
     );
     if (!allowed) {
       return {

@@ -47,6 +47,11 @@ describe("validateConnectOrigin", () => {
     expect(validateConnectOrigin("https://0.0.0.0/cb").ok).toBe(false);
   });
 
+  it("rejects IPv6 unspecified [::] even with port", () => {
+    expect(validateConnectOrigin("http://[::]:8888/cb").ok).toBe(false);
+    expect(validateConnectOrigin("https://[::]/cb").ok).toBe(false);
+  });
+
   it("does not pattern-match localhost suffix (rejects localhost.attacker.com)", () => {
     expect(
       validateConnectOrigin("http://localhost.attacker.com/cb").ok,

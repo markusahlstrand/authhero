@@ -41,8 +41,8 @@ export function validateConnectOrigin(
   if (!hostname) {
     return { ok: false, reason: "missing host" };
   }
-  if (hostname === "0.0.0.0") {
-    return { ok: false, reason: "0.0.0.0 is not a valid origin" };
+  if (hostname === "0.0.0.0" || hostname === "[::]") {
+    return { ok: false, reason: "unspecified address is not a valid origin" };
   }
 
   const port = url.port ? `:${url.port}` : "";
