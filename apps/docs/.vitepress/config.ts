@@ -316,6 +316,10 @@ gtag('config', 'G-DNZWG3PF2L');`,
               items: [
                 { text: "RFC 7517 — JWK", link: "/standards/rfc-7517" },
                 { text: "RFC 7519 — JWT", link: "/standards/rfc-7519" },
+                {
+                  text: "RFC 7638 — JWK Thumbprint",
+                  link: "/standards/rfc-7638",
+                },
               ],
             },
             {

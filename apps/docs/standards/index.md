@@ -29,6 +29,7 @@ AuthHero is built on open identity standards. This section tracks every spec Aut
 | -------- | ------ |
 | [RFC 7517 — JSON Web Key (JWK)](/standards/rfc-7517) | Full |
 | [RFC 7519 — JSON Web Token (JWT)](/standards/rfc-7519) | Full |
+| [RFC 7638 — JWK Thumbprint](/standards/rfc-7638) | Full |
 
 ## OpenID Connect
 
