@@ -347,6 +347,10 @@ gtag('config', 'G-DNZWG3PF2L');`,
                 { text: "SAML 2.0", link: "/standards/saml-2" },
               ],
             },
+            {
+              text: "Conformance Testing",
+              link: "/standards/conformance",
+            },
           ],
         },
         {
