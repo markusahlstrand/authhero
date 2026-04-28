@@ -49,9 +49,9 @@ When a user signs up, the following hooks are triggered in order:
 4. **User Creation**
    - User record is created in the database
 
-5. **Account Linking** (`linkUsersHook`)
-   - Checks for existing users with same verified email
-   - Automatically links accounts if found
+5. **Account Linking** (`commitUserHook` + `account-linking` template)
+   - Built-in path: when `userLinkingMode` resolves to `"builtin"` or `"template"`, `commitUserHook` looks up an existing primary by verified email inside the commit transaction and sets `linked_to` atomically with the `rawCreate`.
+   - Template path: any enabled `account-linking` template hook at `post-user-registration` runs after the commit. The template is a pre-defined function (not user code) — tenants enable it by creating a `TemplateHook` with `template_id: "account-linking"`. See [Account Linking](/auth0-comparison/account-linking) for the toggles.
 
 6. **Post-User Registration** (`onExecutePostUserRegistration`)
    - Code-based hook that runs after user creation
@@ -110,9 +110,11 @@ When a user is updated via the Management API:
 2. **User Update**
    - User record is updated in database
 
-3. **Email Verification Check**
-   - If email was updated or verified, checks for account linking
-   - Links to other verified accounts with same email
+3. **Email Verification Check** (built-in path, when enabled)
+   - If `userLinkingMode` resolves to `"builtin"` or `"template"` and the update touched `email` or `email_verified`, the same in-transaction lookup as user creation runs and sets `linked_to` to a matching primary if one exists.
+
+4. **Post-User-Update Template Hooks**
+   - Any enabled `account-linking` template hook at `post-user-update` runs after the commit closes. Useful when a tenant has set `userLinkingMode: "off"` and wants linking driven entirely by the template at all three triggers (login, registration, update).
 
 ### User Deletion Flow
 
