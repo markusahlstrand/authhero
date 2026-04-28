@@ -1,5 +1,17 @@
 # authhero
 
+## 4.106.0
+
+### Minor Changes
+
+- ba03e14: Drop `dcr_allowed_integration_types` tenant flag and per-tenant allowlist check on `/connect/start`. `integration_type` is now an optional free-form label — `enable_dynamic_client_registration` alone gates the connect flow. Existing callers that pass `integration_type` continue to work; the value still flows into the IAT constraints and consent screen when supplied.
+
+### Patch Changes
+
+- Updated dependencies [ba03e14]
+  - @authhero/adapter-interfaces@1.10.0
+  - @authhero/widget@0.32.7
+
 ## 4.105.0
 
 ### Minor Changes
