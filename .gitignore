@@ -147,6 +147,12 @@ apps/docs/.vitepress/dist
 # HAR files (may contain sensitive data)
 *.har
 
+# Playwright (conformance-runner)
+apps/conformance-runner/playwright-report/
+apps/conformance-runner/test-results/
+apps/conformance-runner/blob-report/
+apps/conformance-runner/playwright/.cache/
+
 # Claude Code
 .claude/settings.json
 .claude/settings.local.json

@@ -64,6 +64,18 @@ importers:
         specifier: ^3.38.0
         version: 3.114.16(@cloudflare/workers-types@4.20251225.0)
 
+  apps/conformance-runner:
+    devDependencies:
+      '@playwright/test':
+        specifier: ^1.49.0
+        version: 1.59.1
+      '@types/node':
+        specifier: ^20.14.9
+        version: 20.19.27
+      typescript:
+        specifier: ^5.5.2
+        version: 5.9.3
+
   apps/docs:
     dependencies:
       mermaid:
@@ -548,55 +560,6 @@ importers:
       vite:
         specifier: ^5.3.2
         version: 5.4.21(@types/node@20.19.27)(lightningcss@1.32.0)
-
-  packages/create-authhero/auth-server:
-    dependencies:
-      '@authhero/kysely-adapter':
-        specifier: workspace:*
-        version: link:../../kysely
-      '@authhero/multi-tenancy':
-        specifier: workspace:*
-        version: link:../../multi-tenancy
-      '@authhero/react-admin':
-        specifier: workspace:*
-        version: link:../../../apps/react-admin
-      '@authhero/widget':
-        specifier: workspace:*
-        version: link:../../ui-widget
-      '@hono/node-server':
-        specifier: latest
-        version: 1.19.13(hono@4.11.1)
-      '@hono/swagger-ui':
-        specifier: ^0.5.0
-        version: 0.5.3(hono@4.11.1)
-      '@hono/zod-openapi':
-        specifier: ^0.19.0
-        version: 0.19.10(hono@4.11.1)(zod@3.25.76)
-      authhero:
-        specifier: workspace:*
-        version: link:../../authhero
-      better-sqlite3:
-        specifier: latest
-        version: 12.8.0
-      hono:
-        specifier: ^4.6.0
-        version: 4.11.1
-      kysely:
-        specifier: latest
-        version: 0.28.15
-    devDependencies:
-      '@types/better-sqlite3':
-        specifier: ^7.6.0
-        version: 7.6.13
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.27
-      tsx:
-        specifier: ^4.0.0
-        version: 4.21.0
-      typescript:
-        specifier: ^5.5.0
-        version: 5.9.3
 
   packages/drizzle:
     dependencies:
@@ -3053,6 +3016,11 @@ packages:
   '@planetscale/database@1.19.0':
     resolution: {integrity: sha512-Tv4jcFUFAFjOWrGSio49H6R2ijALv0ZzVBfJKIdm+kl9X046Fh4LLawrF9OMsglVbK6ukqMJsUCeucGAFTBcMA==}
     engines: {node: '>=16'}
+
+  '@playwright/test@1.59.1':
+    resolution: {integrity: sha512-PG6q63nQg5c9rIi4/Z5lR5IVF7yU5MqmKaPOe0HSc0O2cX1fPi96sUQu5j7eo4gKCkB2AnNGoWt7y4/Xx3Kcqg==}
+    engines: {node: '>=18'}
+    hasBin: true
 
   '@popperjs/core@2.11.8':
     resolution: {integrity: sha512-P1st0aksCrn9sGZhp8GMYwBnQsbvAWsZAX44oXNNvLHGqAOcoVxmjZiohstwQ7SqKnbR47akdNi+uleWD8+g6A==}
@@ -6021,6 +5989,11 @@ packages:
   fs.realpath@1.0.0:
     resolution: {integrity: sha512-OO0pH2lK6a0hZnAdau5ItzHPI6pUlvI7jMVnxUQRtw4owF2wk8lOSabtGDCTP4Ggrg2MbGnWO9X8K1t4+fGMDw==}
 
+  fsevents@2.3.2:
+    resolution: {integrity: sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==}
+    engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
+    os: [darwin]
+
   fsevents@2.3.3:
     resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
@@ -7477,6 +7450,16 @@ packages:
 
   pkg-types@2.3.0:
     resolution: {integrity: sha512-SIqCzDRg0s9npO5XQ3tNZioRY1uK06lA41ynBC1YmFTmnY6FjUjVt6s4LoADmwoig1qqD0oK8h1p/8mlMx8Oig==}
+
+  playwright-core@1.59.1:
+    resolution: {integrity: sha512-HBV/RJg81z5BiiZ9yPzIiClYV/QMsDCKUyogwH9p3MCP6IYjUFu/MActgYAvK0oWyV9NlwM3GLBjADyWgydVyg==}
+    engines: {node: '>=18'}
+    hasBin: true
+
+  playwright@1.59.1:
+    resolution: {integrity: sha512-C8oWjPR3F81yljW9o5OxcWzfh6avkVwDD2VYdwIGqTkl+OGFISgypqzfu7dOe4QNLL2aqcWBmI3PMtLIK233lw==}
+    engines: {node: '>=18'}
+    hasBin: true
 
   pngjs@5.0.0:
     resolution: {integrity: sha512-40QW5YalBNfQo5yRYmiw7Yz6TKKVr3h6970B2YE+3fQpsWcrbj1PzJgxeJ19DRQjhMbKPIuMY8rFaXc8moolVw==}
@@ -12043,6 +12026,10 @@ snapshots:
 
   '@planetscale/database@1.19.0': {}
 
+  '@playwright/test@1.59.1':
+    dependencies:
+      playwright: 1.59.1
+
   '@popperjs/core@2.11.8': {}
 
   '@reduxjs/toolkit@2.11.2(react-redux@9.2.0(@types/react@19.2.14)(react@19.2.4)(redux@5.0.1))(react@19.2.4)':
@@ -15559,6 +15546,9 @@ snapshots:
 
   fs.realpath@1.0.0: {}
 
+  fsevents@2.3.2:
+    optional: true
+
   fsevents@2.3.3:
     optional: true
 
@@ -17282,6 +17272,14 @@ snapshots:
       confbox: 0.2.2
       exsolve: 1.0.8
       pathe: 2.0.3
+
+  playwright-core@1.59.1: {}
+
+  playwright@1.59.1:
+    dependencies:
+      playwright-core: 1.59.1
+    optionalDependencies:
+      fsevents: 2.3.2
 
   pngjs@5.0.0: {}
 
