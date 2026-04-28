@@ -21,7 +21,7 @@ import { logMessage } from "../../../helpers/logging";
 import { LogTypes } from "@authhero/adapter-interfaces";
 
 interface ConnectConsentData {
-  integration_type: string;
+  integration_type?: string;
   domain: string;
   return_to: string;
   scope?: string;
@@ -56,7 +56,8 @@ function readConnectData(stateDataJson?: string): ConnectConsentData | null {
     if (
       c &&
       typeof c === "object" &&
-      typeof c.integration_type === "string" &&
+      (c.integration_type === undefined ||
+        typeof c.integration_type === "string") &&
       typeof c.domain === "string" &&
       typeof c.return_to === "string" &&
       typeof c.caller_state === "string"
@@ -190,7 +191,7 @@ export async function connectConsentScreen(
       config: {
         content: `
           <div style="display:flex;flex-direction:column;gap:12px;padding:16px;border:1px solid #e5e7eb;border-radius:8px;background:#f9fafb">
-            <div style="font-size:14px;color:#6b7280">${escapeHtml(connect.integration_type)}</div>
+            ${connect.integration_type ? `<div style="font-size:14px;color:#6b7280">${escapeHtml(connect.integration_type)}</div>` : ""}
             <div style="font-size:18px;font-weight:600;color:#111827">${escapeHtml(connect.domain)}${localDevBadge}</div>
             <div style="font-size:14px;color:#374151">wants to connect to your ${escapeHtml(tenant.friendly_name)} account as <span style="font-weight:500">${escapeHtml(user.email || user.name || user.user_id)}</span>.</div>
             ${workspaceLine}
@@ -322,9 +323,11 @@ async function handleConnectConsentSubmit(
   // Mint an IAT bound to the consenting user.
   const constraints: Record<string, unknown> = {
     domain: connect.domain,
-    integration_type: connect.integration_type,
     grant_types: ["client_credentials"],
   };
+  if (connect.integration_type) {
+    constraints.integration_type = connect.integration_type;
+  }
   if (connect.scope) {
     constraints.scope = connect.scope;
   }

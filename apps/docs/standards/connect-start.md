@@ -21,15 +21,15 @@ For the canonical Sesamy-CMS use case ("a WordPress publisher connects their sit
 ## Flow
 
 ```
-Browser → GET /connect/start?integration_type=wordpress
-                            &domain=publisher.com
+Browser → GET /connect/start?domain=publisher.com
                             &return_to=https://publisher.com/wp-admin/...
                             &state=<csrf>
-                            &scope=...        ← optional
+                            &integration_type=wordpress  ← optional label
+                            &scope=...                   ← optional
 AuthHero → 302 /u2/connect/start?state=<login_session_id>
             (universal-login + Stencil widget renders the consent screen)
 User     → confirms
-AuthHero → mint IAT bound to {sub: user, domain, integration_type, scope}
+AuthHero → mint IAT bound to {sub: user, domain, integration_type?, scope?}
          → 302 return_to?authhero_iat=<token>&state=<csrf>
 CMS      → POST /oidc/register
              Authorization: Bearer <iat>
@@ -70,11 +70,24 @@ Set on the `return_to` redirect only when the IAT was minted on a tenant *differ
 
 | Parameter | Required | Description |
 | --- | --- | --- |
-| `integration_type` | yes | A caller-defined identifier. Tenant must allowlist it via `flags.dcr_allowed_integration_types`. |
+| `integration_type` | no | Optional caller-defined label (e.g. `wordpress`, `ghost`). Surfaced on the consent screen and pre-bound to the IAT/client metadata. Free-form — there is no per-tenant allowlist. |
 | `domain` | yes | Logical "thing being connected." May be a bare host[:port] (implicit `https://`) or a fully-qualified origin (`http://127.0.0.1:8888` for local dev). `return_to`'s origin must match. |
-| `return_to` | yes | Where the browser is redirected after consent (success or cancel). Origin must match `domain`. |
+| `return_to` | yes | Where the browser is redirected after consent (success or cancel). Origin must match `domain`. URL-encode the value if it contains its own query string. |
 | `state` | yes | Caller-supplied CSRF token. Round-tripped on the redirect unchanged. |
 | `scope` | no | Space-separated scope list, pre-bound to the IAT. |
+| `tenant_id` | no | Explicit tenant override. Used only when host-based resolution doesn't already pick a tenant — see [Tenant resolution](#tenant-resolution). |
+
+## Tenant resolution
+
+`/connect/start` uses AuthHero's standard [tenant-resolution chain](/customization/multi-tenancy/subdomain-routing#tenant-resolution-chain). The request must resolve to either the control-plane tenant (which triggers the workspace picker) or directly to a child tenant (which skips the picker).
+
+The most relevant rules for this endpoint, in priority order:
+
+1. Custom domain registered on the `host` / `x-forwarded-host` header (e.g. `auth.acme.com` → tenant `acme`).
+2. Subdomain matching a tenant id (e.g. `acme.auth.example.com` → tenant `acme`).
+3. Explicit `tenant_id` query parameter — the fallback used when neither of the above matches.
+
+If you're calling the default AuthHero URL (no per-tenant custom domain, no tenant subdomain), append `&tenant_id=<control-plane-id>` so the request resolves to the control plane and the workspace picker is shown. Integrators that already address a child tenant directly via custom domain or subdomain don't need to pass it.
 
 ## Tenant configuration
 
@@ -84,13 +97,12 @@ Enable on the tenant:
 {
   "flags": {
     "enable_dynamic_client_registration": true,
-    "dcr_allowed_integration_types": ["wordpress", "ghost", "drupal"],
     "allow_http_return_to": ["http://dev.publisher.test:8080"]
   }
 }
 ```
 
-If `dcr_allowed_integration_types` is empty/unset, `/connect/start` returns 404 — the consent flow is disabled for the tenant.
+`enable_dynamic_client_registration` is the only required flag. If it is unset, `/connect/start` returns 404 — the consent flow is disabled for the tenant.
 
 `allow_http_return_to` is a per-tenant allowlist of fully-qualified `http://` origins (scheme + host + port, no path) that may appear as `domain` / `return_to` despite not being loopback. Defaults to `[]`. Loopback origins (`localhost`, `127.0.0.1`, `[::1]`) are accepted regardless of this list.
 
@@ -101,9 +113,9 @@ When the user confirms, the issued IAT carries these constraints (enforced serve
 ```json
 {
   "domain": "publisher.com",
-  "integration_type": "wordpress",
+  "integration_type": "wordpress", // only if integration_type was supplied
   "grant_types": ["client_credentials"],
-  "scope": "..."          // only if scope was supplied
+  "scope": "..."                    // only if scope was supplied
 }
 ```
 
@@ -124,7 +136,6 @@ If the registration request supplies any of those fields with a different value,
   1. The host is loopback — `localhost`, `127.0.0.1`, or `[::1]` (any port). Aligned with [RFC 8252 §7.3](https://datatracker.ietf.org/doc/html/rfc8252#section-7.3).
   2. The exact origin (scheme + host + port) appears in the tenant's `allow_http_return_to` list.
 - `0.0.0.0` is always rejected (resolves differently across stacks). `localhost.<anything>` is rejected (suffixes are not pattern-matched). Trailing dots and case variations are normalized before comparison.
-- `integration_type` must appear in the per-tenant allowlist.
 - IAT is exposed as a query param on `return_to`. Single-use + 5-min TTL bound the exposure window. The receiving server should consume it immediately and not retain it.
 - When `domain` resolves to a loopback host or matches the tenant allowlist, the consent screen shows a "Local development" badge so users can spot a phishing attempt that claims a `localhost` callback they didn't initiate.
 - Cancel never mints a token.

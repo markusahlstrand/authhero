@@ -145,6 +145,42 @@ await adapters.rolePermissions.assign("main", adminRoleId, [
 // Permissions are synced to the same role on all child tenants
 ```
 
+### Opting Out of Sync
+
+To keep a resource server or role on the control plane only — without
+propagating it to child tenants — set `metadata.sync` to `false`:
+
+```typescript
+// Control-plane-only API; never synced to child tenants
+await adapters.resourceServers.create("main", {
+  name: "Internal Ops API",
+  identifier: "https://ops.internal.example.com",
+  metadata: { sync: false },
+});
+```
+
+The default sync filter checks `metadata.sync !== false` before mirroring
+to child tenants, and it applies in both directions:
+
+- New or updated entities on the control plane are not pushed out.
+- Newly created child tenants do not receive the entity at provisioning time.
+
+The same flag works for roles. For more elaborate rules, supply custom
+filters when constructing the hooks; they compose with the `metadata.sync`
+check rather than replacing it (an entity must pass both to be synced):
+
+```typescript
+const { entityHooks, tenantHooks } = createSyncHooks({
+  controlPlaneTenantId: "main",
+  getChildTenantIds,
+  getAdapters,
+  getControlPlaneAdapters,
+  filters: {
+    resourceServers: (rs) => !rs.identifier.startsWith("https://internal."),
+  },
+});
+```
+
 ### Configuration
 
 Enable entity synchronization when setting up multi-tenancy:

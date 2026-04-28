@@ -66,10 +66,6 @@ export const tenantInsertSchema = z.object({
       // access tokens and a per-tenant grant-type allowlist.
       dcr_require_initial_access_token: z.boolean().optional(),
       dcr_allowed_grant_types: z.array(z.string()).optional(),
-      // Allowlist of `integration_type` values accepted by the
-      // `/connect/start` consent-mediated IAT flow. Empty/undefined disables
-      // the flow.
-      dcr_allowed_integration_types: z.array(z.string()).optional(),
       // Per-tenant allowlist of fully-qualified http origins (scheme + host
       // + port, no path) that may be used as `return_to` / `domain` on
       // `/connect/start` despite not being loopback. Off by default.

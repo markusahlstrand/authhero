@@ -22,7 +22,7 @@ import { escapeHtml } from "../sanitization-utils";
 import { fetchAll } from "../../../utils/fetchAll";
 
 interface ConnectConsentData {
-  integration_type: string;
+  integration_type?: string;
   domain: string;
   return_to: string;
   scope?: string;
@@ -44,7 +44,8 @@ function readConnectData(stateDataJson?: string): ConnectConsentData | null {
     if (
       c &&
       typeof c === "object" &&
-      typeof c.integration_type === "string" &&
+      (c.integration_type === undefined ||
+        typeof c.integration_type === "string") &&
       typeof c.domain === "string" &&
       typeof c.return_to === "string" &&
       typeof c.caller_state === "string"

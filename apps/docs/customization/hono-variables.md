@@ -15,9 +15,9 @@ Variables in AuthHero are stored in the Hono context (`ctx.var`) and provide a t
 
 ### Core Variables
 
-| Variable        | Type      | Description                                 | Set By                 |
-| --------------- | --------- | ------------------------------------------- | ---------------------- |
-| `tenant_id`     | `string`  | The current tenant identifier               | `tenantMiddleware`     |
+| Variable        | Type      | Description                                                                                                            | Set By                 |
+| --------------- | --------- | ---------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| `tenant_id`     | `string`  | The current tenant identifier. Resolution order is documented in [Tenant Resolution Chain](/customization/multi-tenancy/subdomain-routing#tenant-resolution-chain). | `tenantMiddleware`     |
 | `ip`            | `string`  | Client IP address (from `x-real-ip` header) | `clientInfoMiddleware` |
 | `client_id`     | `string?` | OAuth client identifier                     | Various auth flows     |
 | `user_id`       | `string?` | Current user identifier                     | Auth middleware        |
