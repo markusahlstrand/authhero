@@ -27,7 +27,7 @@ For B2B SaaS applications where your customers need isolated environments, the `
 - **Per-tenant databases** — Each customer can have their own isolated database
 - **Subdomain routing** — Automatic `customer.auth.example.com` → tenant resolution
 - **Settings inheritance** — Child tenants inherit configuration from the control plane
-- **Entity sync** — Resource servers, roles, and connections can be synced from the control plane to child tenants
+- **Entity sync** — Resource servers, roles, and connections can be synced from the control plane to child tenants. Individual entities can opt out by setting `metadata: { sync: false }` (see [Control Plane — Opting Out of Sync](/customization/multi-tenancy/control-plane#opting-out-of-sync))
 - **Token-based access** — JWT tokens with `org_id` claims for organization context
 
 ### Organizations
