@@ -3,7 +3,7 @@ import { getPrimaryUserByEmail } from "../helpers/users";
 import { JSONHTTPException } from "../errors/json-http-exception";
 import { isUniqueConstraintError } from "../errors/is-unique-constraint-error";
 
-export interface LinkUsersResult {
+export interface CommitUserResult {
   user: User;
   // False when a concurrent request already created the same user and we
   // returned the winner's row; callers use this to suppress duplicate
@@ -11,26 +11,55 @@ export interface LinkUsersResult {
   created: boolean;
 }
 
-export function linkUsersHook(data: DataAdapters) {
+export interface CommitUserOptions {
+  /**
+   * When true, attempt the legacy email-based primary lookup inside the
+   * commit transaction. When the user has a verified email and no
+   * `linked_to` is already set (e.g. by a pre-user-registration hook), the
+   * commit will automatically point `linked_to` at the existing primary
+   * user with the same email.
+   *
+   * Disable this to make linking opt-in via the `account-linking` template
+   * hook (the current direction of travel — long-term the legacy lookup
+   * goes away entirely).
+   */
+  resolveEmailLinkedPrimary?: boolean;
+}
+
+/**
+ * Commits a new user inside a transaction. Validates `linked_to` (if set),
+ * runs `rawCreate`, and recovers from concurrent-create races.
+ *
+ * Optionally performs the legacy email→primary auto-link lookup inside the
+ * same transaction (see {@link CommitUserOptions.resolveEmailLinkedPrimary}).
+ * Whether it runs is decided by the caller via
+ * `builtInUserLinkingEnabled(ctx, tenant_id, client_id)`.
+ */
+export function commitUserHook(data: DataAdapters) {
   return async (
     tenant_id: string,
     user: User,
-  ): Promise<LinkUsersResult> => {
+    options: CommitUserOptions = {},
+  ): Promise<CommitUserResult> => {
+    const { resolveEmailLinkedPrimary = false } = options;
+
     try {
       const committed = await data.transaction(async (trxData) => {
-        // If linked_to is not already set (e.g., from pre-user-registration hook),
-        // check for email-based auto-linking
-        // Normalize email to lowercase for case-insensitive matching
-        const normalizedEmail = user.email?.toLowerCase();
-        if (!user.linked_to && normalizedEmail && user.email_verified) {
-          const primaryUser = await getPrimaryUserByEmail({
-            userAdapter: trxData.users,
-            tenant_id,
-            email: normalizedEmail,
-          });
+        // Optional legacy email-based linking. Runs inside the transaction so
+        // the lookup, decision, and write are atomic — no TOCTOU window
+        // against a concurrent create with the same email.
+        if (resolveEmailLinkedPrimary && !user.linked_to) {
+          const normalizedEmail = user.email?.toLowerCase();
+          if (normalizedEmail && user.email_verified) {
+            const primaryUser = await getPrimaryUserByEmail({
+              userAdapter: trxData.users,
+              tenant_id,
+              email: normalizedEmail,
+            });
 
-          if (primaryUser) {
-            user.linked_to = primaryUser.user_id;
+            if (primaryUser) {
+              user.linked_to = primaryUser.user_id;
+            }
           }
         }
 

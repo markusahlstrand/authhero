@@ -4,6 +4,7 @@ import { Hooks } from "./Hooks";
 import {
   EntityHooksConfig,
   OutboxConfig,
+  UserLinkingMode,
   WebhookInvoker,
 } from "./AuthHeroConfig";
 import { StrategyHandler } from "../strategies";
@@ -67,4 +68,9 @@ export type Bindings = {
   // Optional transactional outbox configuration
   // Set via init({ outbox: { enabled: true } })
   outbox?: OutboxConfig;
+
+  // Service-level default for the built-in email-based user-linking path.
+  // Set via init({ userLinkingMode: "off" }). A per-client `user_linking_mode`
+  // overrides this default. Defaults to "builtin" when unset.
+  userLinkingMode?: UserLinkingMode;
 };

@@ -6,6 +6,7 @@ const webHookAllowedTriggers = z.enum([
   "pre-user-registration",
   "post-user-registration",
   "post-user-login",
+  "post-user-update",
   "validate-registration-username",
   "pre-user-deletion",
   "post-user-deletion",
@@ -23,6 +24,8 @@ const formHookAllowedTriggers = z.enum([
 
 const templateHookAllowedTriggers = z.enum([
   "post-user-login",
+  "post-user-registration",
+  "post-user-update",
   "credentials-exchange",
 ]);
 
@@ -37,32 +40,45 @@ const codeHookAllowedTriggers = z.enum([
 export const hookTemplateId = z.enum([
   "ensure-username",
   "set-preferred-username",
+  "account-linking",
 ]);
 export type HookTemplateId = z.infer<typeof hookTemplateId>;
 
 /**
  * Registry of available hook templates.
- * Maps template IDs to their metadata and allowed triggers.
+ * Maps template IDs to their metadata and allowed triggers. Some templates
+ * (e.g. `account-linking`) can bind to more than one trigger; in that case
+ * `trigger_ids` lists every trigger the template supports.
  */
 export const hookTemplates: Record<
   HookTemplateId,
   {
     name: string;
     description: string;
-    trigger_id: string;
+    trigger_ids: string[];
   }
 > = {
   "ensure-username": {
     name: "Ensure Username",
     description:
       "Automatically assigns a username to users who sign in without one. Creates a linked username account for social/email users.",
-    trigger_id: "post-user-login",
+    trigger_ids: ["post-user-login"],
   },
   "set-preferred-username": {
     name: "Set Preferred Username",
     description:
       "Sets the preferred_username claim on tokens based on the username from the primary or linked user.",
-    trigger_id: "credentials-exchange",
+    trigger_ids: ["credentials-exchange"],
+  },
+  "account-linking": {
+    name: "Account Linking",
+    description:
+      "Links a user to an existing primary account with the same verified email. Idempotent — safe to run on every login, registration, and email update.",
+    trigger_ids: [
+      "post-user-login",
+      "post-user-registration",
+      "post-user-update",
+    ],
   },
 };
 

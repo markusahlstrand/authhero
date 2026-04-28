@@ -151,6 +151,7 @@ import * as o052_drop_login_sessions_hoisted_authparams from "./2026-04-21T10:00
 import * as o053_refresh_tokens_revoked_at from "./2026-04-22T10:00:00_refresh_tokens_revoked_at";
 import * as o054_client_registration_tokens from "./2026-04-24T10:00:00_client_registration_tokens";
 import * as o055_planetscale_redundant_indexes_cleanup from "./2026-04-24T10:00:00_planetscale_redundant_indexes_cleanup";
+import * as o056_client_user_linking_mode from "./2026-04-28T10:00:00_client_user_linking_mode";
 
 // These need to be in alphabetic order
 export default {
@@ -307,4 +308,5 @@ export default {
   o053_refresh_tokens_revoked_at,
   o054_client_registration_tokens,
   o055_planetscale_redundant_indexes_cleanup,
+  o056_client_user_linking_mode,
 };

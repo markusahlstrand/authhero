@@ -48,6 +48,10 @@ export function applyConfigMiddleware(
       ctx.env.outbox = config.outbox;
     }
 
+    if (config.userLinkingMode) {
+      ctx.env.userLinkingMode = config.userLinkingMode;
+    }
+
     return next();
   };
 }
