@@ -136,7 +136,6 @@ If the registration request supplies any of those fields with a different value,
   1. The host is loopback — `localhost`, `127.0.0.1`, or `[::1]` (any port). Aligned with [RFC 8252 §7.3](https://datatracker.ietf.org/doc/html/rfc8252#section-7.3).
   2. The exact origin (scheme + host + port) appears in the tenant's `allow_http_return_to` list.
 - `0.0.0.0` is always rejected (resolves differently across stacks). `localhost.<anything>` is rejected (suffixes are not pattern-matched). Trailing dots and case variations are normalized before comparison.
-- `integration_type` must appear in the per-tenant allowlist.
 - IAT is exposed as a query param on `return_to`. Single-use + 5-min TTL bound the exposure window. The receiving server should consume it immediately and not retain it.
 - When `domain` resolves to a loopback host or matches the tenant allowlist, the consent screen shows a "Local development" badge so users can spot a phishing attempt that claims a `localhost` callback they didn't initiate.
 - Cancel never mints a token.
