@@ -17,6 +17,24 @@ Subdomain routing allows you to:
 - Customize subdomain resolution logic
 - Support custom domains per tenant
 
+## Tenant Resolution Chain
+
+Subdomain routing is one signal in a broader chain. The core `tenantMiddleware` (in `packages/authhero`) populates `ctx.var.tenant_id` from the first signal that matches, in this order:
+
+| Order | Signal | Typical use |
+| --- | --- | --- |
+| 1 | Authenticated `user.tenant_id` claim | Session/JWT-bearing requests |
+| 2 | `tenant-id` request header | Server-to-server / management API calls |
+| 3 | Custom domain matching `x-forwarded-host` | Proxied requests (Cloudflare, ALB) |
+| 4 | Custom domain matching `host` | Direct requests with per-tenant domains |
+| 5 | Subdomain whose first label is a tenant id | `acme.auth.example.com` → tenant `acme` |
+| 6 | `tenant_id` query parameter | Enrollment tickets, integration callbacks (e.g. [`/connect/start`](/standards/connect-start#tenant-resolution)) |
+| 7 | Single-tenant auto-detection | Only triggers when exactly one tenant exists in the database |
+
+The first match wins — later rules don't run. When `@authhero/multi-tenancy` is installed, its subdomain middleware supplements step 5 with organization-based lookup (e.g. mapping `acme` to a sub-tenant via the organization registry on the control plane), as detailed in the rest of this page.
+
+If none of the rules match, `tenant_id` remains unset and routes that require a tenant respond with `404` or `400`.
+
 ## Basic Configuration
 
 ### Organization-Based Routing

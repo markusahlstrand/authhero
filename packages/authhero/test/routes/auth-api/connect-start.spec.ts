@@ -3,15 +3,11 @@ import { getTestServer } from "../../helpers/test-server";
 import { hashRegistrationToken } from "../../../src/helpers/dcr/mint-token";
 import type { Bindings } from "../../../src/types";
 
-async function enableConnectFlow(
-  env: Bindings,
-  integration_types: string[] = ["wordpress"],
-) {
+async function enableConnectFlow(env: Bindings) {
   await env.data.tenants.update("tenantId", {
     flags: {
       enable_dynamic_client_registration: true,
       dcr_require_initial_access_token: true,
-      dcr_allowed_integration_types: integration_types,
     },
   });
 }
@@ -34,28 +30,28 @@ describe("GET /connect/start", () => {
     expect(response.status).toBe(404);
   });
 
-  it("returns 404 when no integration types are allowlisted", async () => {
+  it("accepts request without integration_type (optional)", async () => {
     const { oauthApp, env } = await getTestServer();
-    await env.data.tenants.update("tenantId", {
-      flags: { enable_dynamic_client_registration: true },
-    });
+    await enableConnectFlow(env);
+    const qs = new URLSearchParams({
+      domain: "publisher.com",
+      return_to: "https://publisher.com/wp-admin/connect-callback",
+      state: "csrf-abc",
+    }).toString();
     const response = await oauthApp.request(
-      `/connect/start?${VALID_QS}`,
+      `/connect/start?${qs}`,
       { method: "GET", headers: { "tenant-id": "tenantId" } },
       env,
     );
-    expect(response.status).toBe(404);
-  });
-
-  it("rejects integration_type not in tenant allowlist", async () => {
-    const { oauthApp, env } = await getTestServer();
-    await enableConnectFlow(env, ["ghost"]);
-    const response = await oauthApp.request(
-      `/connect/start?${VALID_QS}`,
-      { method: "GET", headers: { "tenant-id": "tenantId" } },
-      env,
+    expect(response.status).toBe(302);
+    const location = response.headers.get("location");
+    const stateId = new URL(location!, "http://localhost").searchParams.get(
+      "state",
     );
-    expect(response.status).toBe(400);
+    const session = await env.data.loginSessions.get("tenantId", stateId!);
+    const data = JSON.parse(session!.state_data!);
+    expect(data.connect.integration_type).toBeUndefined();
+    expect(data.connect.domain).toBe("publisher.com");
   });
 
   it("rejects when return_to origin doesn't match domain", async () => {
@@ -125,7 +121,6 @@ describe("GET /connect/start", () => {
     await env.data.tenants.update("tenantId", {
       flags: {
         enable_dynamic_client_registration: true,
-        dcr_allowed_integration_types: ["wordpress"],
         allow_http_return_to: ["http://dev.example.test:3000"],
       },
     });
@@ -190,7 +185,6 @@ describe("GET /connect/start", () => {
     await env.data.tenants.update("tenantId", {
       flags: {
         enable_dynamic_client_registration: true,
-        dcr_allowed_integration_types: ["wordpress"],
         allow_http_return_to: ["http://0.0.0.0:8888"],
       },
     });

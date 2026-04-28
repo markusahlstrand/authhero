@@ -21,7 +21,6 @@ async function enableConnectFlow(env: Bindings) {
     flags: {
       enable_dynamic_client_registration: true,
       dcr_require_initial_access_token: true,
-      dcr_allowed_integration_types: ["wordpress"],
     },
   });
 }
@@ -356,7 +355,6 @@ describe("/u2/connect/start — control-plane mode (multi-tenancy)", () => {
       flags: {
         enable_dynamic_client_registration: true,
         dcr_require_initial_access_token: true,
-        dcr_allowed_integration_types: ["wordpress"],
       },
     });
 

@@ -7,8 +7,9 @@ import { validateConnectOrigin } from "../../helpers/dcr/validate-connect-origin
 const UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS = 60 * 30; // 30 min
 
 const connectStartQuerySchema = z.object({
-  integration_type: z.string().min(1).openapi({
-    description: "Caller-defined integration identifier; allowlisted per tenant",
+  integration_type: z.string().min(1).optional().openapi({
+    description:
+      "Optional caller-defined integration label. Surfaced on the consent screen and stored on the resulting client's IAT constraints. No validation beyond non-empty string.",
   }),
   domain: z.string().min(1).openapi({
     description: "The domain that will host the integration (origin must match return_to)",
@@ -68,20 +69,6 @@ export const connectStartRoutes = new OpenAPIHono<{
 
     const { integration_type, domain, return_to, state, scope } =
       ctx.req.valid("query");
-
-    const allowedTypes = tenant.flags?.dcr_allowed_integration_types;
-    if (!allowedTypes || allowedTypes.length === 0) {
-      throw new JSONHTTPException(404, {
-        error: "invalid_request",
-        error_description: "Connect flow is not enabled for this tenant",
-      });
-    }
-    if (!allowedTypes.includes(integration_type)) {
-      throw new JSONHTTPException(400, {
-        error: "invalid_request",
-        error_description: `integration_type "${integration_type}" is not allowed`,
-      });
-    }
 
     const allowHttp = tenant.flags?.allow_http_return_to ?? [];
     // `domain` accepts either a bare host[:port] (legacy, implicit https) or a
