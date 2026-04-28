@@ -1,5 +1,17 @@
 # @authhero/react-admin
 
+## 0.65.0
+
+### Minor Changes
+
+- b324f77: Add sync resource server toggle
+
+### Patch Changes
+
+- Updated dependencies [ba03e14]
+  - @authhero/adapter-interfaces@1.10.0
+  - @authhero/widget@0.32.7
+
 ## 0.64.2
 
 ### Patch Changes
