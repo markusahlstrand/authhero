@@ -33,9 +33,17 @@ function run(cmd: string, args: string[]): void {
     stdio: "inherit",
     shell: false,
   });
+  if (result.error) {
+    throw result.error;
+  }
+  if (result.signal) {
+    throw new Error(
+      `Command killed by signal ${result.signal}: ${cmd} ${args.join(" ")}`,
+    );
+  }
   if (result.status !== 0) {
     throw new Error(
-      `Command failed (${result.status}): ${cmd} ${args.join(" ")}`,
+      `Command failed (exit ${result.status}): ${cmd} ${args.join(" ")}`,
     );
   }
 }

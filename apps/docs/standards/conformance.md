@@ -85,7 +85,7 @@ The runner currently exercises one plan:
 
 ### `oidcc-basic-certification-test-plan`
 
-The OpenID Foundation's Basic OP certification suite. Variant: `{ server_metadata: "discovery", client_registration: "static_client" }`. As of writing, the live plan resolves to **35 modules** spanning:
+The OpenID Foundation's Basic OP certification suite. Variant: `{ server_metadata: "discovery", client_registration: "static_client" }`. The runner enumerates **38 modules statically** (one Playwright test per known module name); the live suite currently resolves the plan to **35 modules** for this variant, so 3 spec entries are skipped at runtime via `test.skip(!moduleEntry, …)`. The list below covers everything the runner emits:
 
 - **Core code flow** — `oidcc-server`, `oidcc-response-type-missing`, `oidcc-ensure-post-request-succeeds`
 - **ID token verification** — `oidcc-idtoken-signature`, `oidcc-idtoken-unsigned`
@@ -106,7 +106,7 @@ The OpenID Foundation's Basic OP certification suite. Variant: `{ server_metadat
 | Module | Status | Notes |
 | ------ | ------ | ----- |
 | `oidcc-server` | ✅ Passing | The happy-path code flow. End-to-end validated locally in ~3s. |
-| Remaining 34 modules | 🟡 Not yet exercised | Runner is wired and emits one Playwright test per module; landing the runner unblocks systematic verification. |
+| Other modules in the live plan | 🟡 Not yet exercised | Runner is wired and emits one Playwright test per module; landing the runner unblocks systematic verification. |
 
 ::: tip
 After running the suite, `pnpm conformance:report` opens the Playwright HTML report. Each row links to the suite's `log-detail.html` page for that test — useful for diagnosing failures where the suite caught a real conformance issue.
@@ -141,7 +141,7 @@ The hostname `localhost.emobix.co.uk` resolves to `127.0.0.1` via public DNS, so
 ### Running the suite
 
 ```bash
-pnpm conformance:run                       # full plan (38 tests)
+pnpm conformance:run                       # full plan
 pnpm conformance:run -- --grep oidcc-server # one module
 pnpm conformance:run -- --ui               # interactive Playwright UI
 pnpm conformance:report                    # open last HTML report

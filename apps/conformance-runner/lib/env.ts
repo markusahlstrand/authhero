@@ -7,6 +7,12 @@ export const env = {
   username: process.env.CONFORMANCE_USERNAME ?? "admin",
   password: process.env.CONFORMANCE_PASSWORD ?? "password2",
   alias: process.env.CONFORMANCE_ALIAS ?? "my-local-test",
-  allowWarning: Boolean(process.env.ALLOW_WARNING),
-  skipSetup: Boolean(process.env.SKIP_SETUP),
+  allowWarning: parseBool(process.env.ALLOW_WARNING),
+  skipSetup: parseBool(process.env.SKIP_SETUP),
 } as const;
+
+function parseBool(value: string | undefined): boolean {
+  if (!value) return false;
+  const v = value.toLowerCase();
+  return v !== "0" && v !== "false" && v !== "no";
+}
