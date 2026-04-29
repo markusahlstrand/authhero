@@ -83,6 +83,9 @@ jobs:
             git clone --depth 1 https://gitlab.com/openid/conformance-suite.git ~/conformance-suite
           fi
 
+      # The suite is cloned into ~/conformance-suite (outside $GITHUB_WORKSPACE),
+      # so hashFiles can't see its pom.xml. Use a static version tag instead and
+      # bump it manually when a fresh suite build is needed.
       - name: Cache conformance suite build
         id: suite-cache
         uses: actions/cache@v4
@@ -90,7 +93,7 @@ jobs:
           path: |
             ~/conformance-suite/target
             ~/.m2/repository
-          key: conformance-suite-${{ runner.os }}-${{ hashFiles('~/conformance-suite/pom.xml') }}
+          key: conformance-suite-${{ runner.os }}-v1
           restore-keys: |
             conformance-suite-${{ runner.os }}-
 
