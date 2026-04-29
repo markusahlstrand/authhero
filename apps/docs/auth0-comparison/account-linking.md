@@ -79,8 +79,9 @@ The service-level `userLinkingMode` option on `init()` controls the legacy path:
 | Mode        | Built-in path                          | Template path                                    |
 | ----------- | -------------------------------------- | ------------------------------------------------ |
 | `"builtin"` (default) | Runs at user creation and email update | Runs only if a tenant explicitly enables it      |
-| `"template"`          | Runs                                   | Runs (idempotent — safe to layer on the built-in) |
 | `"off"`               | Skipped entirely                       | Runs only if a tenant explicitly enables it      |
+
+The template hook is controlled independently per tenant and trigger via the management API, regardless of mode. A tenant on `"builtin"` mode can still enable the template at `post-user-login` (which the built-in never covers) to catch legacy unlinked accounts. Running both at the same trigger is harmless but redundant — the template no-ops once the built-in has set `linked_to`.
 
 ```typescript
 init({

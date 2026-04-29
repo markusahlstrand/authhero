@@ -251,11 +251,11 @@ export const clientInsertSchema = z.object({
       "Arbitrary metadata captured at Dynamic Client Registration time that isn't a first-class client field (e.g. integration_type, domain). Also stores `iat_constraints` for clients created via IAT so RFC 7592 PUT can enforce field immutability.",
   }),
   user_linking_mode: z
-    .enum(["builtin", "template", "off"])
+    .enum(["builtin", "off"])
     .optional()
     .openapi({
       description:
-        "Per-client override for the built-in email-based user-linking path. `builtin` runs the legacy in-process linking at user creation/email update. `template` runs the legacy path AND any enabled `account-linking` template hook. `off` disables the legacy path; linking only happens if the tenant has enabled the `account-linking` template hook. When unset, the service-level `userLinkingMode` default applies.",
+        "Per-client override for the built-in email-based user-linking path. `builtin` runs the legacy in-process linking at user creation/email update. `off` disables the legacy path; linking only happens if the tenant has enabled the `account-linking` template hook. When unset, the service-level `userLinkingMode` default applies.",
     }),
 });
 

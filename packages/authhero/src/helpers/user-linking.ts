@@ -39,5 +39,5 @@ export async function builtInUserLinkingEnabled(
   client_id?: string,
 ): Promise<boolean> {
   const mode = await resolveUserLinkingMode(ctx, tenant_id, client_id);
-  return mode === "builtin" || mode === "template";
+  return mode === "builtin";
 }

@@ -138,7 +138,7 @@ Linking is intentionally split into two paths that share the same matching rules
 
 1. **Customer-facing template (the canonical mechanism).** `hooks/pre-defined/account-linking.ts::accountLinking()` is a pre-defined function shipped with the library, dispatched from `templatehooks.ts::handleTemplateHook` when a tenant enables a `TemplateHook` row with `template_id: "account-linking"`. **It is not user-authored code** — there is no `CodeExecutor` invocation, no JavaScript blob in the database, and no secrets to manage. The runtime calls the registered function directly. The same idempotent body backs three triggers — `post-user-login`, `post-user-registration`, and `post-user-update` — so the template can fully cover signup, social-callback, and email-verification flows.
 
-2. **Legacy built-in path.** `hooks/link-users.ts::commitUserHook` performs the transactional commit of a new user. When `userLinkingMode` resolves to `"builtin"` or `"template"`, it also runs the email-based primary lookup inside the same transaction (atomic with `rawCreate`). When it resolves to `"off"`, the lookup is skipped and the commit only writes the row.
+2. **Legacy built-in path.** `hooks/link-users.ts::commitUserHook` performs the transactional commit of a new user. When `userLinkingMode` resolves to `"builtin"` (the default), it also runs the email-based primary lookup inside the same transaction (atomic with `rawCreate`). When it resolves to `"off"`, the lookup is skipped and the commit only writes the row.
 
 Path selection is decided by `helpers/user-linking.ts::builtInUserLinkingEnabled` per request, applying:
 

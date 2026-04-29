@@ -139,19 +139,23 @@ export interface OutboxConfig {
 /**
  * Mode for the built-in email-based user linking path.
  *
- * - `"builtin"` — `linkUsersHook` runs at user creation and email update,
- *   linking by verified email match. Default for backwards compatibility.
- * - `"template"` — built-in path runs AND any enabled `account-linking`
- *   template hook also runs. Use during validation; the template should be
- *   idempotent on top of the built-in.
- * - `"off"` — built-in path is skipped. Linking only happens if the tenant
- *   has enabled the `account-linking` template hook for the relevant
- *   trigger (`post-user-registration`, `post-user-update`, or
+ * - `"builtin"` — `commitUserHook` runs the email→primary lookup at user
+ *   creation and email update, linking by verified email match. Default
+ *   for backwards compatibility.
+ * - `"off"` — built-in lookup is skipped. Linking only happens if the
+ *   tenant has enabled the `account-linking` template hook for the
+ *   relevant trigger (`post-user-registration`, `post-user-update`, or
  *   `post-user-login`).
+ *
+ * The template hook is controlled independently via the management API,
+ * so a tenant on `"builtin"` mode can still enable the template at
+ * `post-user-login` to catch legacy unlinked accounts. Running both at
+ * the same trigger is harmless but redundant — the template no-ops once
+ * the built-in has set `linked_to`.
  *
  * A per-client `user_linking_mode` overrides this service-level default.
  */
-export type UserLinkingMode = "builtin" | "template" | "off";
+export type UserLinkingMode = "builtin" | "off";
 
 export interface AuthHeroConfig {
   dataAdapter: DataAdapters;

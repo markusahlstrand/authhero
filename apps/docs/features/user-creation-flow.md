@@ -116,7 +116,7 @@ PHASE 2 — Commit (single short DB transaction)
 
 5. commitUserHook
    ├── (optional) getPrimaryUserByEmail — only if userLinkingMode resolves
-   │   to "builtin" or "template" for the current client/tenant
+   │   to "builtin" for the current client/tenant
    ├── users.rawCreate (bypasses the decorator; no hook re-entry)
    └── linked_to resolution if a primary was found
 
