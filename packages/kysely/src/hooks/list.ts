@@ -1,5 +1,6 @@
 import { Kysely } from "kysely";
 import { removeNullProperties } from "../helpers/remove-nulls";
+import { parseJsonObjectIfDefined } from "../helpers/parse";
 import { luceneFilter } from "../helpers/filter";
 import { ListHooksResponse, ListParams } from "@authhero/adapter-interfaces";
 import { Database } from "../db";
@@ -49,7 +50,7 @@ export function list(db: Kysely<Database>) {
         ...dates,
         enabled: !!enabled,
         synchronous: !!synchronous,
-        metadata: metadata ? JSON.parse(metadata) : undefined,
+        metadata: parseJsonObjectIfDefined(metadata),
       });
     });
 

@@ -224,7 +224,23 @@ await data.hooks.create(tenantId, {
 });
 ```
 
-The `metadata` field is a generic property bag on every hook variant. It also reserves `inheritable: true` for the upcoming multi-tenancy sync — control-plane hooks marked inheritable will surface to sub-tenants once that work lands.
+The `metadata` field is a generic property bag on every hook variant.
+
+#### Inheriting templates from the control plane
+
+In a multi-tenant deployment using `@authhero/multi-tenancy`, a single hook on the control-plane tenant can be surfaced to every sub-tenant by setting `metadata.inheritable: true`. The runtime fallback in `withRuntimeFallback` merges those rows into each sub-tenant's `hooks.list` and `hooks.get` results. Inherited hooks are read-only from a sub-tenant's perspective — `hooks.update` / `hooks.remove` calls scoped to the sub-tenant's `tenant_id` cannot touch a row owned by the control plane.
+
+```typescript
+// On the control-plane tenant — applies to every sub-tenant.
+await data.hooks.create(controlPlaneTenantId, {
+  trigger_id: "post-user-registration",
+  template_id: "account-linking",
+  enabled: true,
+  metadata: { inheritable: true, copy_user_metadata: true },
+});
+```
+
+A sub-tenant can still create its own hook for the same trigger; both run.
 
 #### When to use the template vs. the built-in
 
