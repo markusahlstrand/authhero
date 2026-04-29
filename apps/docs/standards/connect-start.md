@@ -30,14 +30,19 @@ AuthHero → 302 /u2/connect/start?state=<login_session_id>
             (universal-login + Stencil widget renders the consent screen)
 User     → confirms
 AuthHero → mint IAT bound to {sub: user, domain, integration_type?, scope?}
-         → 302 return_to?authhero_iat=<token>&state=<csrf>
+         → 302 return_to?authhero_iat=<token>
+                       &authhero_tenant=<tenant_id>   ← only on control-plane flows
+                       &state=<csrf>
 CMS      → POST /oidc/register
              Authorization: Bearer <iat>
+             tenant-id: <authhero_tenant>             ← required if authhero_tenant was returned
              { client_name, redirect_uris, grant_types, ... }
 AuthHero → 201 { client_id, client_secret, registration_access_token, ... }
 ```
 
 If the user cancels: `302 return_to?authhero_error=cancelled&state=<csrf>`. No IAT is minted.
+
+> **Heads up — multi-tenant routing.** When the redirect-back includes `authhero_tenant`, you **must** forward that value as the `tenant-id` request header on `POST /oidc/register`. Without it, AuthHero cannot resolve the tenant the IAT was minted on and registration fails with `Tenant not found`. See [Callback parameters](#callback-parameters) below.
 
 ### Control-plane mode (multi-tenancy)
 
@@ -62,10 +67,6 @@ The picker lists every organization the signed-in user belongs to on the control
 
 When the request already resolves to a child tenant directly (custom domain or subdomain), the picker is skipped and the IAT is minted on that child — the URL-shape and IAT contents are identical to the single-tenant flow.
 
-### `authhero_tenant` callback parameter
-
-Set on the `return_to` redirect only when the IAT was minted on a tenant *different* from the request's resolved tenant. Pass it as the `tenant-id` header on `POST /oidc/register` so the registration request hits the correct tenant. Direct-to-child flows (where the request already resolved to the right tenant) do not include this parameter.
-
 ## Query parameters
 
 | Parameter | Required | Description |
@@ -76,6 +77,19 @@ Set on the `return_to` redirect only when the IAT was minted on a tenant *differ
 | `state` | yes | Caller-supplied CSRF token. Round-tripped on the redirect unchanged. |
 | `scope` | no | Space-separated scope list, pre-bound to the IAT. |
 | `tenant_id` | no | Explicit tenant override. Used only when host-based resolution doesn't already pick a tenant — see [Tenant resolution](#tenant-resolution). |
+
+## Callback parameters
+
+These appear on the `return_to` URL when AuthHero redirects the browser back. The caller's server-side handler should read them off the URL before performing the `POST /oidc/register` exchange.
+
+| Parameter | When set | Description |
+| --- | --- | --- |
+| `state` | always | The exact CSRF token the caller passed in on `/connect/start`. Verify it matches the one your handler issued before trusting any other parameter. |
+| `authhero_iat` | on success | The Initial Access Token. Send as `Authorization: Bearer <token>` on `POST /oidc/register`. Single-use, 5-minute TTL — consume immediately. |
+| `authhero_tenant` | on success, **control-plane flows only** | The child tenant the IAT was minted on. **Required** as the `tenant-id` request header on `POST /oidc/register` whenever this parameter is present, otherwise registration returns `Tenant not found`. Absent on direct-to-child flows (custom domain or subdomain already resolved to the right tenant) — in that case AuthHero resolves the tenant from the host and no header is needed. |
+| `authhero_error` | on cancel / failure | Currently only `cancelled`. No IAT is minted. |
+
+A robust caller treats `authhero_tenant` as optional-but-forward-if-present: read it off the redirect, persist it next to the IAT if your flow round-trips through storage, and unconditionally set the `tenant-id` header when forwarding it. Don't try to "guess" the tenant from your own configuration — the only authoritative source is whatever AuthHero put on the redirect.
 
 ## Tenant resolution
 
