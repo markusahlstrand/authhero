@@ -20,11 +20,16 @@ export function isTemplateHook(
  * Handles a template hook by executing the corresponding pre-defined hook function.
  * Template hooks map to code-level pre-defined hooks that can be enabled per-tenant
  * through the admin UI without requiring server configuration changes.
+ *
+ * `metadata` carries the configuring tenant's options for the template — see
+ * `hookBaseCommonProperties.metadata` in the adapter-interfaces Hook schema.
+ * Each template that takes options reads its keys from here.
  */
 export async function handleTemplateHook(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   template_id: string,
   user: User,
+  metadata?: Record<string, unknown>,
 ): Promise<User> {
   const tenant_id = ctx.var.tenant_id || ctx.req.header("tenant-id");
   if (!tenant_id) {
@@ -61,7 +66,9 @@ export async function handleTemplateHook(
       return updatedUser || user;
     }
     case "account-linking": {
-      const hookFn = preDefinedHooks.accountLinking();
+      const hookFn = preDefinedHooks.accountLinking({
+        copyUserMetadata: metadata?.copy_user_metadata === true,
+      });
       await hookFn(
         {
           ctx,

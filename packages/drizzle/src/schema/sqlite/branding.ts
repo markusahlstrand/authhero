@@ -256,6 +256,7 @@ export const hooks = sqliteTable(
     form_id: text("form_id", { length: 128 }), // only required for form type hooks
     template_id: text("template_id", { length: 64 }), // only required for template type hooks
     code_id: text("code_id", { length: 21 }), // only required for code type hooks
+    metadata: text("metadata"), // JSON property bag (inheritable flag, template options)
   },
   (table) => [index("hooks_tenant_id_idx").on(table.tenant_id)],
 );

@@ -8,7 +8,7 @@ export function update(db: Kysely<Database>) {
     hook_id: string,
     hook: Partial<HookInsert>,
   ): Promise<boolean> => {
-    const { hook_id: _hookId, ...rest } = hook;
+    const { hook_id: _hookId, metadata, ...rest } = hook;
 
     const sqlHook = {
       ...rest,
@@ -16,6 +16,9 @@ export function update(db: Kysely<Database>) {
       enabled: hook.enabled !== undefined ? (hook.enabled ? 1 : 0) : undefined,
       synchronous:
         hook.synchronous !== undefined ? (hook.synchronous ? 1 : 0) : undefined,
+      ...(metadata !== undefined
+        ? { metadata: metadata === null ? null : JSON.stringify(metadata) }
+        : {}),
     };
 
     await db

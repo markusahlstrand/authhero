@@ -377,7 +377,12 @@ export async function postUserLoginHook(
   for (const hook of templateHooks) {
     if (!isTemplateHook(hook)) continue;
     try {
-      user = await handleTemplateHook(ctx, hook.template_id, user);
+      user = await handleTemplateHook(
+        ctx,
+        hook.template_id,
+        user,
+        hook.metadata,
+      );
     } catch (err) {
       logMessage(ctx, tenant_id, {
         type: LogTypes.FAILED_HOOK,

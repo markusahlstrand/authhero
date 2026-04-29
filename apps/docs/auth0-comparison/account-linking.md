@@ -205,8 +205,26 @@ preDefinedHooks.accountLinking({
   // default: true. Disabling is almost never what you want — it enables
   // account takeover via unverified email on an untrusted connection.
   requireVerifiedEmail: true,
+
+  // default: false. When true, merges the secondary user's user_metadata
+  // into the primary's on link. Existing keys on the primary are NOT
+  // overwritten (primary wins on conflict). app_metadata is never copied.
+  copyUserMetadata: false,
 });
 ```
+
+When the template is enabled per-tenant via `data.hooks.create`, options are read from the hook's `metadata` field:
+
+```typescript
+await data.hooks.create(tenantId, {
+  trigger_id: "post-user-registration",
+  template_id: "account-linking",
+  enabled: true,
+  metadata: { copy_user_metadata: true },
+});
+```
+
+The `metadata` field is a generic property bag on every hook variant. It also reserves `inheritable: true` for the upcoming multi-tenancy sync — control-plane hooks marked inheritable will surface to sub-tenants once that work lands.
 
 #### When to use the template vs. the built-in
 

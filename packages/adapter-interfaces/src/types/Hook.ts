@@ -88,6 +88,18 @@ const hookBaseCommonProperties = {
   synchronous: z.boolean().default(false),
   priority: z.number().optional(),
   hook_id: z.string().optional(),
+  /**
+   * Free-form key/value bag for hook properties. Two well-known keys:
+   *
+   * - `inheritable: true` — when set on a hook on the control-plane tenant,
+   *   the multi-tenancy sync surfaces this hook to sub-tenants (Phase 2).
+   * - Template-specific options. Templates read their config here, e.g.
+   *   `account-linking` reads `copy_user_metadata: true` to merge secondary
+   *   user_metadata into the primary on link.
+   *
+   * Everything else is opaque to the runtime. Persisted as JSON.
+   */
+  metadata: z.record(z.unknown()).optional(),
 };
 
 const webHookInsertSchema = z.object({

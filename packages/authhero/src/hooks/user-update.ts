@@ -178,7 +178,12 @@ export function createUserUpdateHooks(
           for (const hook of enabledTemplateHooks) {
             if (!isTemplateHook(hook)) continue;
             try {
-              cursor = await handleTemplateHook(ctx, hook.template_id, cursor);
+              cursor = await handleTemplateHook(
+                ctx,
+                hook.template_id,
+                cursor,
+                hook.metadata,
+              );
             } catch (err) {
               logMessage(ctx, tenant_id, {
                 type: LogTypes.ACTIONS_EXECUTION_FAILED,
