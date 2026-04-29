@@ -56,7 +56,7 @@ What is NOT allowed inside this transaction:
 
 Implementation highlights:
 
-- `hooks/link-users.ts::linkUsersHook` opens its own `data.transaction(…)` and calls `trxData.users.rawCreate` rather than `create`. `rawCreate` is the sibling method on `UserDataAdapter` that bypasses the decorator layer so the commit path never re-enters `createUserHooks`.
+- `hooks/link-users.ts::commitUserHook` opens its own `data.transaction(…)` and calls `trxData.users.rawCreate` rather than `create`. `rawCreate` is the sibling method on `UserDataAdapter` that bypasses the decorator layer so the commit path never re-enters `createUserHooks`.
 - `hooks/user-update.ts::createUserUpdateHooks` wraps its `update` + email-match linking in a txn (lines ~85–130 of that file).
 - `hooks/user-deletion.ts::createUserDeletionHooks` wraps unlink-secondaries + remove-primary in a txn so the user graph is never left half-demolished.
 
@@ -132,17 +132,22 @@ On every successful login, if the registration event never reached `processed` (
 
 Self-healing requires post-registration action code to be idempotent. AuthHero enforces this by contract — webhook `Idempotency-Key` headers are the formal guarantee and code-hook authors are advised to check `app_metadata` before taking non-idempotent actions.
 
-## Account linking: two paths
+## Account linking: template-driven, with a legacy built-in path
 
-Linking is intentionally split:
+Linking is intentionally split into two paths that share the same matching rules but differ in how they're invoked.
 
-1. **Internal, transactional default.** `hooks/link-users.ts::linkUsersHook` runs inside the commit phase of `createUserHooks`. If the incoming user has a verified email that matches an existing primary, `linked_to` is set atomically with the `rawCreate`. No user code involved. This is the Auth0-equivalent of the "auto account linking" opt-in setting.
+1. **Customer-facing template (the canonical mechanism).** `hooks/pre-defined/account-linking.ts::accountLinking()` is a pre-defined function shipped with the library, dispatched from `templatehooks.ts::handleTemplateHook` when a tenant enables a `TemplateHook` row with `template_id: "account-linking"`. **It is not user-authored code** — there is no `CodeExecutor` invocation, no JavaScript blob in the database, and no secrets to manage. The runtime calls the registered function directly. The same idempotent body backs three triggers — `post-user-login`, `post-user-registration`, and `post-user-update` — so the template can fully cover signup, social-callback, and email-verification flows.
 
-2. **Customer-facing template.** `hooks/pre-defined/account-linking.ts::accountLinking()` is a post-login hook exposed as the `account-linking` template in `templatehooks.ts`. Customers can:
-    - Enable it per-tenant by creating a `post-user-login` template hook with `template_id: "account-linking"`.
-    - Wire it globally via `init({ hooks: { onExecutePostLogin: preDefinedHooks.accountLinking() } })`.
+2. **Legacy built-in path.** `hooks/link-users.ts::commitUserHook` performs the transactional commit of a new user. When `userLinkingMode` resolves to `"builtin"` (the default), it also runs the email-based primary lookup inside the same transaction (atomic with `rawCreate`). When it resolves to `"off"`, the lookup is skipped and the commit only writes the row.
 
-The template is idempotent: it no-ops when `linked_to` is already set, when the email is unverified (by default — configurable), or when the logged-in user is already the primary. Running it on every login is safe and lets customers mix in their own pre-login logic without losing linking behavior.
+Path selection is decided by `helpers/user-linking.ts::builtInUserLinkingEnabled` per request, applying:
+
+1. Per-client `user_linking_mode` (highest priority — overrides the service default for one application)
+2. Service-level `userLinkingMode` from `init()` (`"builtin"` default)
+
+The template is idempotent: it no-ops when `linked_to` is already set, when the email is unverified (by default — configurable), or when the user is already the primary. Running it on every trigger is safe, and layering it on top of the built-in path is also safe (the second invocation finds `linked_to` already set and exits).
+
+Long-term destination: `userLinkingMode` defaults to `"off"` and the legacy email-lookup block in `commitUserHook` is removed; only the transactional `rawCreate` and race recovery remain. Tenants opt in via the template alone.
 
 ## File organization
 
@@ -155,7 +160,7 @@ packages/authhero/src/hooks/
 ├── user-deletion.ts            # createUserDeletionHooks — pre-delete + txn
 ├── validate-signup.ts          # validateSignupEmail + preUserSignupHook
 ├── post-user-login.ts          # postUserLoginHook + Auth0-compat event object
-├── link-users.ts               # internal auto-linking (transactional, no user code)
+├── link-users.ts               # commitUserHook — transactional create + optional email auto-link
 ├── templatehooks.ts            # dispatch for pre-defined template hooks
 ├── codehooks.ts                # user-code execution (Cloudflare Dispatch)
 ├── formhooks.ts                # form-based post-login redirects
@@ -166,7 +171,9 @@ packages/authhero/src/hooks/
 └── pre-defined/
     ├── ensure-username.ts      # template: backfill username from profile
     ├── set-preferred-username.ts   # credentials-exchange template
-    └── account-linking.ts      # post-login linking template
+    └── account-linking.ts      # template: idempotent email→primary linking
+                                #   bound at post-user-login, post-user-registration,
+                                #   and post-user-update
 ```
 
 Three sibling modules under `helpers/outbox-destinations/` own the publish phase:

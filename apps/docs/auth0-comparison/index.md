@@ -45,14 +45,15 @@ Unlike Auth0 where multi-tenancy is an enterprise feature, AuthHero includes it 
 
 [Learn more about Multi-Tenancy →](./multi-tenant)
 
-### 3. Automatic Account Linking
+### 3. Account Linking via a Pre-Defined Template
 
-AuthHero provides built-in account linking that Auth0 requires custom Actions to implement:
+Auth0 makes you write and deploy a custom Action for account linking. AuthHero ships the same behaviour as a pre-defined template hook (`template_id: "account-linking"`) — no JavaScript blob, no code-executor, no secrets. A legacy built-in path that runs the same lookup transactionally inside `commitUserHook` is enabled by default and controlled by `userLinkingMode`.
 
-- **Automatic Email-Based Linking**: Users with the same verified email are automatically linked
-- **Simple Hook API**: Use `api.user.setLinkedTo()` for custom linking logic
+- **Template, not user code**: The runtime calls a registered function directly when a tenant enables the hook
+- **Three triggers**: `post-user-login`, `post-user-registration`, and `post-user-update`
+- **Simple Hook API for custom rules**: `api.user.setLinkedTo()` in a `pre-user-registration` hook for non-email matching
 - **Security Built-in**: Only verified emails trigger linking, preventing account takeover
-- **No Race Conditions**: Linking happens during registration, not after
+- **No Race Conditions**: The legacy built-in path links inside the commit transaction; the template is idempotent on top
 
 ```typescript
 // Custom linking via hook (optional - automatic linking works by default)

@@ -1,23 +1,25 @@
 ---
 title: Account Linking
-description: Compare account linking in AuthHero vs Auth0. Learn how AuthHero provides automatic email-based account linking and manual control via hooks.
+description: Compare account linking in AuthHero vs Auth0. Learn how AuthHero ships an `account-linking` template hook plus a legacy built-in path controlled by `userLinkingMode`.
 ---
 
 # Account Linking: AuthHero vs. Auth0
 
 Account linking allows multiple authentication identities (e.g., email/password, Google, Facebook) to be associated with a single user profile. This is essential for providing a seamless user experience when users sign in through different methods.
 
+In AuthHero, linking is driven by the `account-linking` **template hook** — a pre-defined, idempotent function shipped with the library and selected by `template_id`. It is **not** user-authored code (a CodeHook / Auth0 Action) — there is no JavaScript blob to write or deploy. Tenants enable it per trigger via the management API, and a service-level + per-client `userLinkingMode` toggle controls whether the legacy built-in path runs alongside it.
+
 ## Quick Comparison
 
-| Feature                         | Auth0                                      | AuthHero                              |
-| ------------------------------- | ------------------------------------------ | ------------------------------------- |
-| **Automatic Email Linking**     | ❌ Requires custom Action                  | ✅ Built-in                           |
-| **Manual Linking via Hook**     | Requires Management API calls              | ✅ Simple `setLinkedTo()` API         |
-| **Cross-Connection Linking**    | Complex setup required                     | ✅ Automatic when emails match        |
-| **Primary User Selection**      | Manual implementation                      | ✅ Automatic (first verified account) |
-| **Chain Linking Prevention**    | Manual implementation                      | ✅ Built-in                           |
-| **Tenant Isolation**            | N/A (single tenant)                        | ✅ Automatic per-tenant               |
-| **Case-Insensitive Matching**   | Manual implementation                      | ✅ Built-in                           |
+| Feature                         | Auth0                                      | AuthHero                                                |
+| ------------------------------- | ------------------------------------------ | ------------------------------------------------------- |
+| **Automatic Email Linking**     | ❌ Requires custom Action                  | ✅ `account-linking` template (or legacy built-in path) |
+| **Manual Linking via Hook**     | Requires Management API calls              | ✅ Simple `setLinkedTo()` API                           |
+| **Cross-Connection Linking**    | Complex setup required                     | ✅ Automatic when emails match                          |
+| **Primary User Selection**      | Manual implementation                      | ✅ Automatic (first verified account)                   |
+| **Chain Linking Prevention**    | Manual implementation                      | ✅ Built-in                                             |
+| **Tenant Isolation**            | N/A (single tenant)                        | ✅ Automatic per-tenant                                 |
+| **Case-Insensitive Matching**   | Manual implementation                      | ✅ Built-in                                             |
 
 ## The Problem with Auth0 Account Linking
 
@@ -66,30 +68,61 @@ exports.onExecutePostLogin = async (event, api) => {
 - **Error recovery**: Failed linking leaves orphan accounts
 - **No pre-registration hook**: Linking happens after user creation, not during
 
-## AuthHero's Built-in Account Linking
+## AuthHero's Account Linking
 
-AuthHero handles account linking automatically and provides simple hooks for custom control.
+AuthHero ships email-based linking as a pre-defined template hook called `account-linking`. The same idempotent function backs three triggers — `post-user-login`, `post-user-registration`, and `post-user-update` — so the template covers signup, social-callback, and email-verification flows. A legacy built-in path that runs the same lookup transactionally inside `commitUserHook` is enabled by default for backwards compatibility, and is controlled by `userLinkingMode`.
+
+### Configuring `userLinkingMode`
+
+The service-level `userLinkingMode` option on `init()` controls the legacy path:
+
+| Mode        | Built-in path                          | Template path                                    |
+| ----------- | -------------------------------------- | ------------------------------------------------ |
+| `"builtin"` (default) | Runs at user creation and email update | Runs only if a tenant explicitly enables it      |
+| `"off"`               | Skipped entirely                       | Runs only if a tenant explicitly enables it      |
+
+The template hook is controlled independently per tenant and trigger via the management API, regardless of mode. A tenant on `"builtin"` mode can still enable the template at `post-user-login` (which the built-in never covers) to catch legacy unlinked accounts. Running both at the same trigger is harmless but redundant — the template no-ops once the built-in has set `linked_to`.
+
+```typescript
+init({
+  dataAdapter,
+  userLinkingMode: "off", // long-term destination — template-only
+});
+```
+
+A per-client `user_linking_mode` field overrides the service-level default for a single application. This is useful when you want to validate the template-driven path on one app before flipping the whole tenant:
+
+```typescript
+await data.clients.update(tenantId, clientId, {
+  user_linking_mode: "off",
+});
+```
+
+Resolution order: per-client → service-level → `"builtin"` fallback.
 
 ### Automatic Email-Based Linking
 
-When a new user signs up with a verified email that matches an existing user, AuthHero automatically links the accounts:
+When a new user signs up with a verified email that matches an existing user, AuthHero links the accounts:
 
 ```typescript
-// This happens automatically in AuthHero!
-// No custom code required for basic email-based linking
-
-// Example: User signs in with Google
+// Default behaviour (userLinkingMode: "builtin"):
 // 1. Google returns verified email: user@example.com
-// 2. AuthHero finds existing user with same email
-// 3. New identity automatically linked to existing primary user
+// 2. commitUserHook finds the existing primary with the same email
+// 3. linked_to is set atomically inside the commit transaction
 // 4. Login returns the primary user with both identities
+
+// Template behaviour (userLinkingMode: "off" + account-linking template enabled):
+// 1. Google returns verified email: user@example.com
+// 2. commitUserHook commits the new user (no linking decision)
+// 3. The post-user-registration template hook runs
+// 4. account-linking sets linked_to via users.update — same end state
 ```
 
 ### Requirements for Automatic Linking
 
-Account linking occurs automatically when **all** of these conditions are met:
+Linking happens (via either path) when **all** of these conditions are met:
 
-1. ✅ The new account has a **verified email**
+1. ✅ The new or updated account has a **verified email**
 2. ✅ An existing account has the **same email** (case-insensitive)
 3. ✅ Both accounts are in the **same tenant**
 
@@ -126,23 +159,33 @@ const auth = init({
 3. **Custom Matching Logic**: Link based on phone number or other attributes
 4. **Override Automatic Linking**: Link to a different user than email would suggest
 
-### The `accountLinking` Template (post-login)
+### The `account-linking` Template
 
-Automatic linking at registration only helps new accounts. If two accounts with the same email already exist — one primary, one unlinked — they stay separate until someone intervenes. The `accountLinking` template fills that gap. It runs as a `post-user-login` hook on every login, and is fully idempotent: no-op when `linked_to` is already set, when the email is unverified, or when the user is already the primary.
+The template is AuthHero's equivalent of [Auth0's "Account Linking" Dashboard Extension](https://auth0.com/docs/extensions/account-link), but it is **not** user-authored code. It is a pre-defined function shipped with `authhero` and dispatched from `handleTemplateHook` when a tenant enables a `TemplateHook` row with `template_id: "account-linking"`. There is no JavaScript blob to deploy, no code-executor invocation, no secrets to manage — the runtime calls the registered function directly.
 
-This is AuthHero's equivalent of [Auth0's "Account Linking" marketplace action](https://marketplace.auth0.com/integrations/account-link-extension). Enable it either per-tenant (preferred) or globally.
+The same idempotent function backs three triggers:
+
+| Trigger                  | When it runs                                              | Replaces the built-in path at...                       |
+| ------------------------ | --------------------------------------------------------- | ------------------------------------------------------ |
+| `post-user-registration` | After a new user is committed                             | User creation (covers what `commitUserHook` does today) |
+| `post-user-update`       | After `users.update` commits an email or `email_verified` change | Email-update auto-link in `createUserUpdateHooks`     |
+| `post-user-login`        | After every successful login                              | Catches accounts that already exist and never linked   |
+
+It is fully idempotent: no-op when `linked_to` is already set, when the email is unverified, or when the user is already the primary. Running it on every trigger is safe.
 
 **Per-tenant via the admin API / UI:**
 
 ```typescript
 await data.hooks.create(tenantId, {
-  trigger_id: "post-user-login",
+  trigger_id: "post-user-registration",
   template_id: "account-linking",
   enabled: true,
 });
+
+// Repeat for post-user-update and/or post-user-login as needed.
 ```
 
-**Globally via `init`:**
+**Globally at the post-login trigger via `init`:**
 
 ```typescript
 import { init, preDefinedHooks } from "authhero";
@@ -167,14 +210,16 @@ preDefinedHooks.accountLinking({
 
 #### When to use the template vs. the built-in
 
-| Scenario                                                                  | Use                                                                |
-| ------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| New signups with matching verified email should auto-link                 | Built-in (no config)                                               |
-| Legacy unlinked accounts should merge when the user next logs in          | Template                                                           |
-| Custom matching rules (not just email)                                    | `setLinkedTo` in `pre-user-registration`                           |
-| Every login should re-check linking (e.g. after email verification flips) | Template (the built-in only runs at registration)                  |
+| Scenario                                                                  | Use                                                                              |
+| ------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Existing deployment, no migration desired                                 | Leave `userLinkingMode: "builtin"` (default); no config needed                   |
+| Validate the template path on one client before flipping the tenant       | Set `client.user_linking_mode = "off"` and enable the template for that trigger  |
+| Move the whole tenant to template-driven linking                          | `userLinkingMode: "off"` + enable the template at the triggers you care about    |
+| Legacy unlinked accounts should merge when the user next logs in          | Enable the template at `post-user-login`                                         |
+| Custom matching rules (not just email)                                    | `setLinkedTo` in `pre-user-registration`                                         |
+| Every login should re-check linking (e.g. after email verification flips) | Enable the template at `post-user-login`                                         |
 
-The template is safe to combine with either automatic linking or a custom `pre-user-registration` hook — all three resolve to the same `linked_to` field atomically via `users.update`.
+The template is safe to combine with either the built-in path or a custom `pre-user-registration` hook — all three resolve to the same `linked_to` field atomically via `users.update`.
 
 ## How Account Linking Works
 

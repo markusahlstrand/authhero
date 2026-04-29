@@ -10,6 +10,8 @@ import { JSONHTTPException } from "../errors/json-http-exception";
 import { HookRequest } from "../types/Hooks";
 import { createTokenAPI } from "./helpers/token-api";
 import { stripInternalUserFields } from "../helpers/hook-user-payload";
+import { isTemplateHook, handleTemplateHook } from "./templatehooks";
+import { builtInUserLinkingEnabled } from "../helpers/user-linking";
 
 /**
  * Decorator applied by `addDataHooks` to `users.update`. Fires pre-update
@@ -17,7 +19,7 @@ import { stripInternalUserFields } from "../helpers/hook-user-payload";
  * the write plus any follow-up email-based account linking are atomic.
  *
  * The single-field `linked_to` update fast-path at the top bypasses hooks to
- * avoid recursion when `linkUsersHook` or the account-linking template call
+ * avoid recursion when `commitUserHook` or the account-linking template call
  * back into `users.update`.
  */
 export function createUserUpdateHooks(
@@ -85,6 +87,15 @@ export function createUserUpdateHooks(
       }
     }
 
+    // Decide whether the built-in email→primary auto-link runs inside the
+    // commit transaction. With "off", linking on email update only happens
+    // via the `account-linking` template hook below.
+    const builtInLinkingEnabled = await builtInUserLinkingEnabled(
+      ctx,
+      tenant_id,
+      ctx.var.client_id,
+    );
+
     // Wrap the update and potential account linking in a transaction
     await data.transaction(async (trxData) => {
       // If we get here, proceed with the update
@@ -95,10 +106,13 @@ export function createUserUpdateHooks(
         });
       }
 
-      // Check if email was updated or verified - if so, check for account linking
-      // Uses the same matching approach as getPrimaryUserByEmail in linkUsersHook,
-      // but excludes the current user from candidates (since they're already in the DB)
-      if (updates.email || updates.email_verified) {
+      // Built-in path: when an email field changed and built-in linking is
+      // enabled, run the same lookup as commitUserHook, but excluding the
+      // current user (they're already in the DB).
+      if (
+        builtInLinkingEnabled &&
+        (updates.email || updates.email_verified)
+      ) {
         const updatedUser = await trxData.users.get(tenant_id, user_id);
         if (
           updatedUser &&
@@ -140,6 +154,42 @@ export function createUserUpdateHooks(
         }
       }
     });
+
+    // Template hooks at `post-user-update` run after the transaction commits.
+    // The `account-linking` template uses ctx-bound adapters for its own
+    // lookups; running it inside the trx would risk fighting the in-progress
+    // commit and would also nest data.transaction calls.
+    {
+      const { hooks: allHooks } = await data.hooks.list(tenant_id, {
+        q: "trigger_id:post-user-update",
+        page: 0,
+        per_page: 100,
+        include_totals: false,
+      });
+      const enabledTemplateHooks = allHooks.filter(
+        (h: unknown) =>
+          isTemplateHook(h) &&
+          (h as { enabled: boolean }).enabled === true,
+      );
+      if (enabledTemplateHooks.length > 0) {
+        const updatedUser = await data.users.get(tenant_id, user_id);
+        if (updatedUser) {
+          let cursor = updatedUser;
+          for (const hook of enabledTemplateHooks) {
+            if (!isTemplateHook(hook)) continue;
+            try {
+              cursor = await handleTemplateHook(ctx, hook.template_id, cursor);
+            } catch (err) {
+              logMessage(ctx, tenant_id, {
+                type: LogTypes.ACTIONS_EXECUTION_FAILED,
+                description: `Post user update template hook ${hook.template_id} failed`,
+                userId: user_id,
+              });
+            }
+          }
+        }
+      }
+    }
 
     if (updates.email) {
       logMessage(ctx, tenant_id, {

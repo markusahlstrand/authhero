@@ -88,9 +88,11 @@ Once the pre-registration hook passes, the actual user creation begins through `
 2. Fetches client configuration
 3. Executes `preUserRegistrationHook` (for auth flows with client_id)
 4. Invokes `onExecutePreUserRegistration` (programmatic hook)
-5. Performs account linking if applicable via `linkUsersHook`
-6. Invokes `onExecutePostUserRegistration` (programmatic hook)
-7. Invokes post-user-registration webhooks
+5. Resolves the effective `userLinkingMode` (per-client → service-level)
+6. Commits the user via `commitUserHook` — when the resolved mode allows it, the email→primary lookup runs inside the same transaction; otherwise the lookup is skipped and only the row is committed
+7. Dispatches enabled `post-user-registration` template hooks (e.g. `account-linking`)
+8. Invokes `onExecutePostUserRegistration` (programmatic hook)
+9. Invokes post-user-registration webhooks
 
 ## Complete Hook Execution Order
 
@@ -112,8 +114,9 @@ PHASE 1 — Prepare (no DB transaction held)
 
 PHASE 2 — Commit (single short DB transaction)
 
-5. linkUsersHook
-   ├── getPrimaryUserByEmail (verified-email lookup)
+5. commitUserHook
+   ├── (optional) getPrimaryUserByEmail — only if userLinkingMode resolves
+   │   to "builtin" for the current client/tenant
    ├── users.rawCreate (bypasses the decorator; no hook re-entry)
    └── linked_to resolution if a primary was found
 
@@ -121,7 +124,9 @@ PHASE 3 — Publish (runs after the commit, never blocks it)
 
 6. onExecutePostUserRegistration (programmatic, inline for now)
 7. post-user-registration code hooks (inline for now — see roadmap)
-8. enqueuePostHookEvent("post-user-registration")
+8. post-user-registration template hooks (e.g. account-linking)
+   └── pre-defined function dispatched by template_id; not user code
+9. enqueuePostHookEvent("post-user-registration")
    └── outbox relay → WebhookDestination + RegistrationFinalizerDestination
        ├── POSTs to enabled webhooks with Idempotency-Key = event.id
        ├── retries with exponential backoff on failure (max 5)

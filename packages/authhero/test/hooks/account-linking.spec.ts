@@ -1,6 +1,13 @@
 import { describe, it, expect } from "vitest";
 import { getTestServer } from "../helpers/test-server";
-import { linkUsersHook } from "../../src/hooks/link-users";
+import { commitUserHook } from "../../src/hooks/link-users";
+
+// These tests cover the legacy email-based auto-linking path. They opt into
+// it explicitly via `{ resolveEmailLinkedPrimary: true }` so the existing
+// behaviour is exercised regardless of the service-level `userLinkingMode`
+// default. Tests for the template-driven (opt-out) path live in
+// account-linking-template.spec.ts.
+const linkOpts = { resolveEmailLinkedPrimary: true } as const;
 import { addDataHooks } from "../../src/hooks";
 import { USERNAME_PASSWORD_PROVIDER } from "../../src/constants";
 import { Strategy } from "@authhero/adapter-interfaces";
@@ -10,7 +17,7 @@ describe("account-linking-hook", () => {
     const { env } = await getTestServer();
 
     // Add a test user. Creating the user will not trigger the hooks
-    await linkUsersHook(env.data)("tenantId", {
+    await commitUserHook(env.data)("tenantId", {
       email: "foo@example.com",
       email_verified: true,
       name: "Test Google User",
@@ -23,7 +30,7 @@ describe("account-linking-hook", () => {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       login_count: 0,
-    });
+    }, linkOpts);
 
     const originalUser = await env.data.users.get("tenantId", "email|userId");
     expect(originalUser?.identities?.length).toBe(2);
@@ -203,7 +210,7 @@ describe("account-linking-hook", () => {
     });
 
     // Create a Google user with same email but UNVERIFIED
-    const result = await linkUsersHook(env.data)("tenantId", {
+    const result = await commitUserHook(env.data)("tenantId", {
       email: "unverified-test@example.com",
       email_verified: false, // Not verified - should NOT link
       name: "Google User",
@@ -216,7 +223,7 @@ describe("account-linking-hook", () => {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       login_count: 0,
-    });
+    }, linkOpts);
 
     // Should return the Google user (not linked)
     expect(result.user.user_id).toBe("google-oauth2|unverified-google-user");
@@ -255,7 +262,7 @@ describe("account-linking-hook", () => {
     });
 
     // Create user with same email in tenant B - should NOT link to tenantId user
-    const result = await linkUsersHook(env.data)("tenantB", {
+    const result = await commitUserHook(env.data)("tenantB", {
       email: "cross-tenant@example.com",
       email_verified: true,
       name: "Tenant B User",
@@ -268,7 +275,7 @@ describe("account-linking-hook", () => {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       login_count: 0,
-    });
+    }, linkOpts);
 
     // Should return the new user (not linked to tenantId user)
     expect(result.user.user_id).toBe("google-oauth2|tenant-b-user");
@@ -288,8 +295,8 @@ describe("account-linking-hook", () => {
     });
 
     // Create user with same email in different case - should link
-    // The linkUsersHook normalizes email to lowercase for matching
-    const result = await linkUsersHook(env.data)("tenantId", {
+    // commitUserHook normalizes email to lowercase for matching
+    const result = await commitUserHook(env.data)("tenantId", {
       email: "CASE.TEST@EXAMPLE.COM", // Upper case - normalized for matching
       email_verified: true,
       name: "Case Test User",
@@ -302,7 +309,7 @@ describe("account-linking-hook", () => {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       login_count: 0,
-    });
+    }, linkOpts);
 
     // Should return the primary user (linked via case-insensitive match)
     expect(result.user.user_id).toBe(
@@ -344,7 +351,7 @@ describe("account-linking-hook", () => {
     });
 
     // Create a third user with same email - should link to primary, not secondary
-    const result = await linkUsersHook(env.data)("tenantId", {
+    const result = await commitUserHook(env.data)("tenantId", {
       email: "chain-test@example.com",
       email_verified: true,
       name: "Third User",
@@ -357,7 +364,7 @@ describe("account-linking-hook", () => {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       login_count: 0,
-    });
+    }, linkOpts);
 
     // Should return the PRIMARY user, not the secondary
     expect(result.user.user_id).toBe(`${USERNAME_PASSWORD_PROVIDER}|chain-primary`);
@@ -386,7 +393,7 @@ describe("account-linking-hook", () => {
     });
 
     // Create user without email - should NOT link
-    const result = await linkUsersHook(env.data)("tenantId", {
+    const result = await commitUserHook(env.data)("tenantId", {
       // No email field
       name: "No Email User",
       nickname: "No Email User",
@@ -398,7 +405,7 @@ describe("account-linking-hook", () => {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       login_count: 0,
-    });
+    }, linkOpts);
 
     // Should return the new user (not linked)
     expect(result.user.user_id).toBe("sms|no-email-user");
@@ -418,7 +425,7 @@ describe("account-linking-hook", () => {
     });
 
     // Create secondary user with linked_to already set (simulating setLinkedTo from hook)
-    const result = await linkUsersHook(env.data)("tenantId", {
+    const result = await commitUserHook(env.data)("tenantId", {
       email: "different-email@example.com", // Different email - normally wouldn't link
       email_verified: true,
       name: "Hook User",
@@ -432,7 +439,7 @@ describe("account-linking-hook", () => {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       login_count: 0,
-    });
+    }, linkOpts);
 
     // Should return primary user even though emails don't match
     expect(result.user.user_id).toBe(`${USERNAME_PASSWORD_PROVIDER}|hook-primary`);
@@ -460,7 +467,7 @@ describe("account-linking-hook", () => {
     });
 
     // Create user with email matching first user, but linked_to set to second user
-    const result = await linkUsersHook(env.data)("tenantId", {
+    const result = await commitUserHook(env.data)("tenantId", {
       email: "priority-test@example.com", // Matches first user
       email_verified: true,
       name: "Priority User",
@@ -474,7 +481,7 @@ describe("account-linking-hook", () => {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       login_count: 0,
-    });
+    }, linkOpts);
 
     // Should link to the manually specified user, NOT the email-matched user
     expect(result.user.user_id).toBe(

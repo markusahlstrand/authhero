@@ -7,10 +7,12 @@ import { logMessage } from "../helpers/logging";
 import { JSONHTTPException } from "../errors/json-http-exception";
 import { HookRequest } from "../types/Hooks";
 import { enqueuePostHookEvent } from "../helpers/hook-events";
-import { linkUsersHook } from "./link-users";
+import { commitUserHook } from "./link-users";
 import { isCodeHook, handleCodeHook } from "./codehooks";
+import { isTemplateHook, handleTemplateHook } from "./templatehooks";
 import { createTokenAPI } from "./helpers/token-api";
 import { preUserSignupHook } from "./validate-signup";
+import { builtInUserLinkingEnabled } from "../helpers/user-linking";
 
 /**
  * Decorator applied by `addDataHooks` to `users.create`. Runs the full
@@ -18,8 +20,10 @@ import { preUserSignupHook } from "./validate-signup";
  *
  *  1. Pre-registration blocking hooks (outside any transaction so webhook
  *     latency and user-authored code don't hold a DB connection).
- *  2. `linkUsersHook` — the internal transactional step that atomically
- *     writes the user row (via `rawCreate`) and any auto-linking.
+ *  2. `commitUserHook` — the internal transactional step that atomically
+ *     writes the user row (via `rawCreate`) and, when the built-in
+ *     email-based linking path is enabled, also resolves `linked_to` from
+ *     the existing primary inside the same transaction.
  *  3. Post-registration hooks — webhook delivery is handed to the outbox
  *     (`enqueuePostHookEvent`) for retryable / idempotent dispatch; code
  *     hooks currently still run inline with ctx.
@@ -144,8 +148,19 @@ export function createUserHooks(
       }
     }
 
-    // Check for existing user with the same email and if so link the users
-    const linkResult = await linkUsersHook(data)(tenant_id, user);
+    // Decide whether the built-in email→primary auto-link runs inside the
+    // commit transaction. Per-client `user_linking_mode` overrides the
+    // service-level `userLinkingMode`. With "off", linking only happens via
+    // the `account-linking` template hook below.
+    const resolveEmailLinkedPrimary = await builtInUserLinkingEnabled(
+      ctx,
+      tenant_id,
+      ctx.var.client_id,
+    );
+
+    const linkResult = await commitUserHook(data)(tenant_id, user, {
+      resolveEmailLinkedPrimary,
+    });
 
     // Race-loser: another concurrent create committed the row first.
     // Throw 409 so management-API clients see a duplicate error; auth flows
@@ -157,10 +172,10 @@ export function createUserHooks(
       throw new JSONHTTPException(409, { message: "User already exists" });
     }
 
-    const result = linkResult.user;
+    let result = linkResult.user;
 
     // Post-registration hooks run after the commit transaction inside
-    // linkUsersHook has closed. They must not be invoked while holding a
+    // commitUserHook has closed. They must not be invoked while holding a
     // transaction — webhook calls and user-authored action code can block
     // for seconds.
     const runPostHooks = async () => {
@@ -185,7 +200,7 @@ export function createUserHooks(
         }
       }
 
-      // Execute post-user-registration code hooks
+      // Execute post-user-registration code and template hooks
       {
         const { hooks: allHooks } = await ctx.env.data.hooks.list(tenant_id, {
           q: "trigger_id:post-user-registration",
@@ -211,6 +226,25 @@ export function createUserHooks(
             logMessage(ctx, tenant_id, {
               type: LogTypes.FAILED_SIGNUP,
               description: `Post user registration code hook ${hook.hook_id} failed`,
+            });
+          }
+        }
+
+        // Template hooks (e.g. `account-linking`) run after code hooks so
+        // they observe any user-metadata or linked_to updates the code
+        // hooks performed. Failures are logged but do not abort signup —
+        // the post-registration phase is best-effort, mirroring code hooks.
+        const postRegTemplateHooks = allHooks.filter(
+          (h: any) => h.enabled && isTemplateHook(h),
+        );
+        for (const hook of postRegTemplateHooks) {
+          if (!isTemplateHook(hook)) continue;
+          try {
+            result = await handleTemplateHook(ctx, hook.template_id, result);
+          } catch (err) {
+            logMessage(ctx, tenant_id, {
+              type: LogTypes.FAILED_SIGNUP,
+              description: `Post user registration template hook ${hook.template_id} failed`,
             });
           }
         }
