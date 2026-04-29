@@ -24,6 +24,12 @@ export function HookList() {
         <TextField source="trigger_id" />
         <BooleanField source="enabled" />
         <BooleanField source="synchronous" />
+        <FunctionField
+          label="Inheritable"
+          render={(record: any) =>
+            record?.metadata?.inheritable === true ? "✓" : ""
+          }
+        />
       </Datagrid>
     </List>
   );

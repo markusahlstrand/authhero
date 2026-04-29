@@ -221,6 +221,22 @@ export function HooksCreate() {
             return Number.isNaN(num) ? undefined : num;
           }}
         />
+        <BooleanInput
+          source="metadata.inheritable"
+          label="Publish to sub-tenants"
+          helperText="When enabled on a control-plane tenant, surfaces this hook on every sub-tenant via the multi-tenancy runtime fallback. Sub-tenants see it as read-only."
+        />
+        <FormDataConsumer>
+          {({ formData }) =>
+            formData?.template_id === "account-linking" ? (
+              <BooleanInput
+                source="metadata.copy_user_metadata"
+                label="Copy user metadata to primary on link"
+                helperText="When the secondary user is linked, merge its user_metadata into the primary's. Primary wins on key conflicts; app_metadata is never copied."
+              />
+            ) : null
+          }
+        </FormDataConsumer>
       </SimpleForm>
     </Create>
   );
