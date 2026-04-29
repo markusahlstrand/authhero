@@ -6,7 +6,9 @@ const REPO_ROOT = fileURLToPath(new URL("../../", import.meta.url));
 
 async function ping(url: string): Promise<boolean> {
   try {
-    const res = await fetch(url);
+    // Per-request timeout so a TCP-accepting-but-non-responding suite (e.g.
+    // mid-startup) doesn't stall waitFor's poll loop past its outer deadline.
+    const res = await fetch(url, { signal: AbortSignal.timeout(5_000) });
     return res.ok;
   } catch {
     return false;
