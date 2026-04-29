@@ -1,5 +1,14 @@
 # @authhero/react-admin
 
+## 0.65.1
+
+### Patch Changes
+
+- 6ddeedc: Render a human-readable label and success icon for the `seccft` (exchange access token for client credentials) log type.
+- Updated dependencies [3230b9b]
+  - @authhero/adapter-interfaces@1.10.2
+  - @authhero/widget@0.32.9
+
 ## 0.65.0
 
 ### Minor Changes
