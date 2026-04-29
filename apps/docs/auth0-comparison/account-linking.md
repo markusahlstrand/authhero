@@ -160,7 +160,7 @@ const auth = init({
 
 ### The `account-linking` Template
 
-The template is AuthHero's equivalent of [Auth0's "Account Linking" marketplace action](https://marketplace.auth0.com/integrations/account-link-extension), but it is **not** user-authored code. It is a pre-defined function shipped with `authhero` and dispatched from `handleTemplateHook` when a tenant enables a `TemplateHook` row with `template_id: "account-linking"`. There is no JavaScript blob to deploy, no code-executor invocation, no secrets to manage — the runtime calls the registered function directly.
+The template is AuthHero's equivalent of [Auth0's "Account Linking" Dashboard Extension](https://auth0.com/docs/extensions/account-link), but it is **not** user-authored code. It is a pre-defined function shipped with `authhero` and dispatched from `handleTemplateHook` when a tenant enables a `TemplateHook` row with `template_id: "account-linking"`. There is no JavaScript blob to deploy, no code-executor invocation, no secrets to manage — the runtime calls the registered function directly.
 
 The same idempotent function backs three triggers:
 
