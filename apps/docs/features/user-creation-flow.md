@@ -90,8 +90,8 @@ Once the pre-registration hook passes, the actual user creation begins through `
 4. Invokes `onExecutePreUserRegistration` (programmatic hook)
 5. Resolves the effective `userLinkingMode` (per-client → service-level)
 6. Commits the user via `commitUserHook` — when the resolved mode allows it, the email→primary lookup runs inside the same transaction; otherwise the lookup is skipped and only the row is committed
-7. Dispatches enabled `post-user-registration` template hooks (e.g. `account-linking`)
-8. Invokes `onExecutePostUserRegistration` (programmatic hook)
+7. Invokes `onExecutePostUserRegistration` (programmatic hook)
+8. Dispatches enabled `post-user-registration` template hooks (e.g. `account-linking`)
 9. Invokes post-user-registration webhooks
 
 ## Complete Hook Execution Order
