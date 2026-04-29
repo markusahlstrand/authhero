@@ -199,6 +199,83 @@ describe("account-linking template hook at post-user-registration", () => {
   });
 });
 
+describe("account-linking template hook with copy_user_metadata", () => {
+  it("merges secondary user_metadata into the primary on link, primary winning on conflict", async () => {
+    const { env } = await getTestServer();
+    env.userLinkingMode = "off";
+
+    // Seed the primary with some existing user_metadata.
+    await env.data.users.update("tenantId", "email|userId", {
+      user_metadata: { theme: "dark", referrer: "primary" } as any,
+    });
+
+    // Enable the template at post-user-registration with copy_user_metadata.
+    await env.data.hooks.create("tenantId", {
+      trigger_id: "post-user-registration",
+      template_id: "account-linking",
+      enabled: true,
+      metadata: { copy_user_metadata: true },
+    });
+
+    const ctx = mockCtx(env);
+    const dataWithHooks = addDataHooks(ctx, env.data);
+
+    const newId = `${USERNAME_PASSWORD_PROVIDER}|merge-meta`;
+    await dataWithHooks.users.create("tenantId", {
+      user_id: newId,
+      email: "foo@example.com",
+      email_verified: true,
+      provider: USERNAME_PASSWORD_PROVIDER,
+      connection: Strategy.USERNAME_PASSWORD,
+      is_social: false,
+      login_count: 0,
+      // Secondary brings a new key + a conflicting one.
+      user_metadata: { plan: "pro", referrer: "secondary" } as any,
+    });
+
+    const primary = await env.data.users.get("tenantId", "email|userId");
+    // Conflicting key kept primary's value, new key from secondary copied in.
+    expect(primary?.user_metadata).toEqual({
+      theme: "dark",
+      referrer: "primary",
+      plan: "pro",
+    });
+  });
+
+  it("does not copy user_metadata when copy_user_metadata is unset", async () => {
+    const { env } = await getTestServer();
+    env.userLinkingMode = "off";
+
+    await env.data.users.update("tenantId", "email|userId", {
+      user_metadata: { theme: "dark" } as any,
+    });
+
+    await env.data.hooks.create("tenantId", {
+      trigger_id: "post-user-registration",
+      template_id: "account-linking",
+      enabled: true,
+      // No metadata.copy_user_metadata
+    });
+
+    const ctx = mockCtx(env);
+    const dataWithHooks = addDataHooks(ctx, env.data);
+
+    await dataWithHooks.users.create("tenantId", {
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|no-merge`,
+      email: "foo@example.com",
+      email_verified: true,
+      provider: USERNAME_PASSWORD_PROVIDER,
+      connection: Strategy.USERNAME_PASSWORD,
+      is_social: false,
+      login_count: 0,
+      user_metadata: { plan: "pro" } as any,
+    });
+
+    const primary = await env.data.users.get("tenantId", "email|userId");
+    expect(primary?.user_metadata).toEqual({ theme: "dark" });
+  });
+});
+
 describe("account-linking template hook at post-user-update", () => {
   it("links a user to an existing primary when their email becomes verified and the template is enabled", async () => {
     const { env } = await getTestServer();

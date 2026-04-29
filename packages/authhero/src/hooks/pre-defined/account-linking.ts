@@ -1,6 +1,29 @@
 import { HookEvent, OnExecutePostLogin } from "../../types/Hooks";
 import { getPrimaryUserByEmail } from "../../helpers/users";
 
+/**
+ * Coerce a possibly-serialised `user_metadata` blob into a plain record.
+ * Some kysely-adapter code paths return the field still JSON-encoded;
+ * normalising at read time keeps the merge logic agnostic to that quirk.
+ */
+function parseMetadata(value: unknown): Record<string, unknown> {
+  if (!value) return {};
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+        ? (parsed as Record<string, unknown>)
+        : {};
+    } catch {
+      return {};
+    }
+  }
+  if (typeof value === "object" && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return {};
+}
+
 export interface AccountLinkingOptions {
   /**
    * Require `email_verified` on the logged-in user before attempting to link.
@@ -10,6 +33,19 @@ export interface AccountLinkingOptions {
    * @default true
    */
   requireVerifiedEmail?: boolean;
+
+  /**
+   * When the link is performed, merge the secondary user's `user_metadata`
+   * into the primary's. Existing keys on the primary are NOT overwritten —
+   * only keys absent from the primary are filled in from the secondary, so
+   * the primary remains the source of truth for any conflicting values.
+   *
+   * `app_metadata` is intentionally never copied to avoid auto-merging into
+   * the admin-only namespace.
+   *
+   * @default false
+   */
+  copyUserMetadata?: boolean;
 }
 
 /**
@@ -66,6 +102,7 @@ export function accountLinking(
   options?: AccountLinkingOptions,
 ): OnExecutePostLogin & AccountLinkingHandler {
   const requireVerifiedEmail = options?.requireVerifiedEmail ?? true;
+  const copyUserMetadata = options?.copyUserMetadata ?? false;
 
   const handler = async (event: HookEvent) => {
     const { ctx, user } = event;
@@ -98,6 +135,33 @@ export function accountLinking(
     await data.users.update(tenantId, user.user_id, {
       linked_to: primary.user_id,
     });
+
+    if (copyUserMetadata) {
+      // Some adapter `create` paths return user_metadata still serialised
+      // as JSON. Normalise both sides defensively so downstream spreads
+      // don't iterate string indexes.
+      const secondaryMetadata = parseMetadata(user.user_metadata);
+      const primaryMetadata = parseMetadata(primary.user_metadata);
+
+      if (secondaryMetadata && Object.keys(secondaryMetadata).length > 0) {
+        // Primary wins on conflict: merge secondary first, then overlay
+        // the primary's existing values so they stay authoritative.
+        const merged = {
+          ...secondaryMetadata,
+          ...primaryMetadata,
+        };
+        // Only write if the merge actually adds keys — a no-op update
+        // would still bump updated_at.
+        const changed = Object.keys(merged).some(
+          (k) => !(k in primaryMetadata) || primaryMetadata[k] !== merged[k],
+        );
+        if (changed) {
+          await data.users.update(tenantId, primary.user_id, {
+            user_metadata: merged,
+          });
+        }
+      }
+    }
   };
 
   // Cast to the dual signature so `init({ hooks: { onExecutePostLogin: ... } })`

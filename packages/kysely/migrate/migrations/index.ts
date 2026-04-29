@@ -152,6 +152,7 @@ import * as o053_refresh_tokens_revoked_at from "./2026-04-22T10:00:00_refresh_t
 import * as o054_client_registration_tokens from "./2026-04-24T10:00:00_client_registration_tokens";
 import * as o055_planetscale_redundant_indexes_cleanup from "./2026-04-24T10:00:00_planetscale_redundant_indexes_cleanup";
 import * as o056_client_user_linking_mode from "./2026-04-28T10:00:00_client_user_linking_mode";
+import * as o057_hooks_metadata from "./2026-04-29T10:00:00_hooks_metadata";
 
 // These need to be in alphabetic order
 export default {
@@ -309,4 +310,5 @@ export default {
   o054_client_registration_tokens,
   o055_planetscale_redundant_indexes_cleanup,
   o056_client_user_linking_mode,
+  o057_hooks_metadata,
 };

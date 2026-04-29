@@ -21,6 +21,7 @@ export function get(db: Kysely<Database>) {
       tenant_id: _tenantId,
       created_at_ts,
       updated_at_ts,
+      metadata,
       ...rest
     } = hook;
 
@@ -34,6 +35,7 @@ export function get(db: Kysely<Database>) {
       ...dates,
       enabled: !!rest.enabled,
       synchronous: !!rest.synchronous,
+      metadata: metadata ? JSON.parse(metadata) : undefined,
     });
   };
 }
