@@ -93,6 +93,17 @@ async function fillAuthHeroLoginIfPresent(
       page.locator('button[type="submit"]').first().click(),
     ]);
   }
+
+  // If we exhausted the loop and the page is *still* on a u/u2 path, the
+  // login flow is stuck (e.g. validation error we don't recognise, infinite
+  // redirect, or a screen with no submittable form). Surface this loudly
+  // instead of returning silently and letting the outer poll time out with
+  // a generic "Timed out" message.
+  if (isAuthHeroLoginUrl(page.url())) {
+    throw new Error(
+      `AuthHero universal-login still active after 4 submission attempts (current URL: ${page.url()})`,
+    );
+  }
 }
 
 function isAuthHeroLoginUrl(url: string): boolean {

@@ -1,7 +1,8 @@
 import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { env } from "./lib/env";
 
-const REPO_ROOT = new URL("../../", import.meta.url).pathname;
+const REPO_ROOT = fileURLToPath(new URL("../../", import.meta.url));
 
 async function ping(url: string): Promise<boolean> {
   try {

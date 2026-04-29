@@ -60,9 +60,9 @@ sequenceDiagram
 | `apps/conformance-runner/playwright.config.ts` | Playwright project config: `globalSetup`, `webServer` (auth-server), Chromium, `ignoreHTTPSErrors` for the suite's self-signed cert. |
 | `apps/conformance-runner/global-setup.ts` | Runs `pnpm conformance:start` + `pnpm conformance:seed`, then polls the suite API until ready. Set `SKIP_SETUP=1` to skip this when the stack is already up. |
 | `apps/conformance-runner/lib/conformance-api.ts` | Typed REST client for the suite (`createPlan`, `createTestFromPlan`, `getInfo`, `getBrowserStatus`, `waitForState`, `getTestLog`). |
-| `apps/conformance-runner/lib/run-browser-flow.ts` | Polls a test for `WAITING` state, opens browser URLs, fills the AuthHero universal-login form, and returns when the test is `FINISHED` or `INTERRUPTED`. |
+| `apps/conformance-runner/lib/run-browser-flow.ts` | Opens each browser URL the suite hands out, fills the AuthHero universal-login form, and returns when the test is `FINISHED` or `INTERRUPTED`. |
 | `apps/conformance-runner/lib/test-plan-config.ts` | The plan name, variant selection, and inline JSON config sent to the suite (issuer URL, client credentials, alias). |
-| `apps/conformance-runner/tests/oidcc-basic.spec.ts` | One Playwright test per module in the Basic plan. Each asserts `result === "PASSED"` (or `WARNING` if `ALLOW_WARNING=1`). |
+| `apps/conformance-runner/tests/oidcc-basic.spec.ts` | One Playwright test per module in the Basic plan. Drives the lifecycle (`createTestFromPlan` → `waitForState` for `WAITING` → `runBrowserFlow` → `waitForState` for terminal). Each asserts `result === "PASSED"` (or `WARNING` if `ALLOW_WARNING=1`). |
 
 ### Key configuration
 

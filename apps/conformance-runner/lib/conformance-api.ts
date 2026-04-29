@@ -124,6 +124,10 @@ export class ConformanceClient {
         console.log(`[conformance-runner] ${testId} -> ${info.status}`);
         last = info.status;
       }
+      // Order matters: callers can opt INTO accepting INTERRUPTED by passing
+      // it in `desired` (the spec does this so it can read the suite's first
+      // FAILURE log entry and surface it via a clean expect() message rather
+      // than crashing with a generic Error here).
       if (desired.includes(info.status)) return info.status;
       if (info.status === "INTERRUPTED") {
         throw new Error(
