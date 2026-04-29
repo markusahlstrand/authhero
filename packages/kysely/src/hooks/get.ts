@@ -1,5 +1,6 @@
 import { Kysely } from "kysely";
 import { removeNullProperties } from "../helpers/remove-nulls";
+import { parseJsonObjectIfDefined } from "../helpers/parse";
 import { Hook } from "@authhero/adapter-interfaces";
 import { Database } from "../db";
 import { convertDatesToAdapter } from "../utils/dateConversion";
@@ -35,7 +36,7 @@ export function get(db: Kysely<Database>) {
       ...dates,
       enabled: !!rest.enabled,
       synchronous: !!rest.synchronous,
-      metadata: metadata ? JSON.parse(metadata) : undefined,
+      metadata: parseJsonObjectIfDefined(metadata),
     });
   };
 }

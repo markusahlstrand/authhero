@@ -12,6 +12,25 @@ function generateHookId(): string {
   return `h_${generate()}`;
 }
 
+/**
+ * Parse a JSON metadata blob from the database. Returns the value only if
+ * it's a plain object — arrays, primitives, and parse errors all collapse
+ * to undefined so corruption or legacy rows don't crash hook retrieval.
+ */
+function parseMetadata(
+  value: unknown,
+): Record<string, unknown> | undefined {
+  if (typeof value !== "string" || !value) return undefined;
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function sqlToHook(row: any): Hook {
   const { tenant_id: _, created_at_ts, updated_at_ts, metadata, ...rest } = row;
 
@@ -24,7 +43,7 @@ function sqlToHook(row: any): Hook {
     ...rest,
     enabled: !!rest.enabled,
     synchronous: !!rest.synchronous,
-    metadata: metadata ? JSON.parse(metadata) : undefined,
+    metadata: parseMetadata(metadata),
     ...dates,
   });
 }
