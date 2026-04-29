@@ -32,6 +32,8 @@ export function LogType({ type: logType }: { type: LogTypes }) {
       return "Success Exchange Authorization Code for Access Token";
     case LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN:
       return "Failed Exchange Authorization Code for Access Token";
+    case LogTypes.SUCCESS_EXCHANGE_ACCESS_TOKEN_FOR_CLIENT_CREDENTIALS:
+      return "Success Exchange Access Token for Client Credentials";
     case LogTypes.SUCCESS_EXCHANGE_REFRESH_TOKEN_FOR_ACCESS_TOKEN:
       return "Success Exchange Refresh Token for Access Token";
     case LogTypes.FAILED_EXCHANGE_REFRESH_TOKEN_FOR_ACCESS_TOKEN:

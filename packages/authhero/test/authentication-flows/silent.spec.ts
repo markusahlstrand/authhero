@@ -443,6 +443,151 @@ describe("silent", () => {
     expect(payload.org_id).toEqual(organization.id);
   });
 
+  it("should propagate auth_connection from the original login session to the silent-auth login session", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const oauthClient = testClient(oauthApp, env);
+
+    // Original login session records the connection the user actually
+    // authenticated with (e.g. a social strategy named "vipps").
+    const loginSession = await env.data.loginSessions.create("tenantId", {
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      csrf_token: "csrfToken",
+      authParams: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+        response_type: AuthorizationResponseType.CODE,
+      },
+      auth_connection: "vipps",
+    });
+
+    const session = await env.data.sessions.create("tenantId", {
+      id: "sessionId",
+      user_id: "email|userId",
+      used_at: new Date().toISOString(),
+      login_session_id: loginSession.id,
+      device: {
+        last_ip: "",
+        initial_ip: "",
+        last_user_agent: "",
+        initial_user_agent: "",
+        initial_asn: "",
+        last_asn: "",
+      },
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      idle_expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      clients: ["clientId"],
+    });
+
+    const codeResponse = await oauthClient.authorize.$get(
+      {
+        query: {
+          client_id: "clientId",
+          redirect_uri: "https://example.com/callback",
+          state: "state",
+          prompt: "none",
+          response_type: AuthorizationResponseType.CODE,
+          response_mode: AuthorizationResponseMode.WEB_MESSAGE,
+          code_challenge: "ZLQ3m0EnuZ-kdlU1aRGNOPN_dTW8ewOVqEEfZd0cFZE",
+        },
+      },
+      {
+        headers: {
+          origin: "https://example.com",
+          cookie: `tenantId-auth-token=${session.id}`,
+        },
+      },
+    );
+
+    expect(codeResponse.status).toEqual(200);
+    const codeResponseHtmlBody = await codeResponse.text();
+    const codeMatch = codeResponseHtmlBody.match(/"code":"([^"]+)"/);
+    const code = await env.data.codes.get(
+      "tenantId",
+      codeMatch?.[1] || "",
+      "authorization_code",
+    );
+    expect(code).toBeDefined();
+    expect(code?.login_id).not.toEqual(loginSession.id);
+
+    const newLoginSession = await env.data.loginSessions.get(
+      "tenantId",
+      code?.login_id || "",
+    );
+    expect(newLoginSession?.auth_connection).toEqual("vipps");
+  });
+
+  it("should fall back to user.connection when the original login session has no auth_connection", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const oauthClient = testClient(oauthApp, env);
+
+    // Original login session does NOT carry auth_connection (older sessions,
+    // or flows that didn't persist it).
+    const loginSession = await env.data.loginSessions.create("tenantId", {
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      csrf_token: "csrfToken",
+      authParams: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+        response_type: AuthorizationResponseType.CODE,
+      },
+    });
+
+    const session = await env.data.sessions.create("tenantId", {
+      id: "sessionId",
+      user_id: "email|userId",
+      used_at: new Date().toISOString(),
+      login_session_id: loginSession.id,
+      device: {
+        last_ip: "",
+        initial_ip: "",
+        last_user_agent: "",
+        initial_user_agent: "",
+        initial_asn: "",
+        last_asn: "",
+      },
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      idle_expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      clients: ["clientId"],
+    });
+
+    const codeResponse = await oauthClient.authorize.$get(
+      {
+        query: {
+          client_id: "clientId",
+          redirect_uri: "https://example.com/callback",
+          state: "state",
+          prompt: "none",
+          response_type: AuthorizationResponseType.CODE,
+          response_mode: AuthorizationResponseMode.WEB_MESSAGE,
+          code_challenge: "ZLQ3m0EnuZ-kdlU1aRGNOPN_dTW8ewOVqEEfZd0cFZE",
+        },
+      },
+      {
+        headers: {
+          origin: "https://example.com",
+          cookie: `tenantId-auth-token=${session.id}`,
+        },
+      },
+    );
+
+    expect(codeResponse.status).toEqual(200);
+    const codeResponseHtmlBody = await codeResponse.text();
+    const codeMatch = codeResponseHtmlBody.match(/"code":"([^"]+)"/);
+    const code = await env.data.codes.get(
+      "tenantId",
+      codeMatch?.[1] || "",
+      "authorization_code",
+    );
+    expect(code).toBeDefined();
+
+    const newLoginSession = await env.data.loginSessions.get(
+      "tenantId",
+      code?.login_id || "",
+    );
+    // Test user is created with connection: "email" in test-server.ts.
+    expect(newLoginSession?.auth_connection).toEqual("email");
+  });
+
   it("should return login_required error when user is not a member of organization", async () => {
     const { oauthApp, env } = await getTestServer();
     const oauthClient = testClient(oauthApp, env);

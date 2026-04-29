@@ -230,6 +230,22 @@ export async function silentAuth({
     }
   }
 
+  // Propagate the auth_connection so downstream hooks (e.g.
+  // onExecuteCredentialsExchange triggered by the SPA's subsequent /oauth/token
+  // call) receive the connection the user originally authenticated with.
+  // Prefer the original login session's auth_connection (the exact value used
+  // at authentication time); fall back to the resolved primary user's
+  // connection, which silent auth always operates on.
+  let originalAuthConnection: string | undefined;
+  if (session.login_session_id) {
+    const originalLoginSession = await env.data.loginSessions.get(
+      client.tenant.id,
+      session.login_session_id,
+    );
+    originalAuthConnection = originalLoginSession?.auth_connection;
+  }
+  const auth_connection = originalAuthConnection || user.connection;
+
   // Create a new login session for this silent auth flow
   const loginSession = await env.data.loginSessions.create(client.tenant.id, {
     csrf_token: nanoid(),
@@ -246,6 +262,7 @@ export async function silentAuth({
     },
     expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(), // 5 minutes
     session_id: session.id,
+    ...(auth_connection ? { auth_connection } : {}),
     ip: ctx.var.ip,
     useragent: ctx.var.useragent,
   });
