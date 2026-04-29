@@ -251,7 +251,15 @@ function generateLocalSeedFileContent(
     ? `
   // Create OpenID Conformance Suite test clients and user
   console.log("Creating conformance test clients and user...");
-  
+
+  // The OIDCC basic test plan calls /token without an audience param. AuthHero
+  // requires either an explicit audience or a tenant default_audience to mint
+  // an access token, so set one here for the conformance setup.
+  await adapters.tenants.update("${tenantId}", {
+    default_audience: "urn:authhero:management",
+  });
+  console.log("✅ Set tenant default_audience for conformance");
+
   const conformanceCallbacks = [
     "https://localhost.emobix.co.uk:8443/test/a/${conformanceAlias}/callback",
     "https://localhost:8443/test/a/${conformanceAlias}/callback",
@@ -360,9 +368,51 @@ import Database from "better-sqlite3";
 import createAdapters from "@authhero/kysely-adapter";
 import { seed } from "authhero";
 
+interface ExtraClient {
+  client_id: string;
+  client_secret: string;
+  name?: string;
+  callbacks?: string[];
+  allowed_logout_urls?: string[];
+  web_origins?: string[];
+}
+
+function parseFlag(name: string): string | undefined {
+  const argv = process.argv.slice(2);
+  const eqPrefix = \`--\${name}=\`;
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i]!;
+    if (arg === \`--\${name}\`) return argv[i + 1];
+    if (arg.startsWith(eqPrefix)) return arg.slice(eqPrefix.length);
+  }
+  return undefined;
+}
+
+function positionalArgs(): string[] {
+  const out: string[] = [];
+  const argv = process.argv.slice(2);
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i]!;
+    if (arg.startsWith("--")) {
+      if (!arg.includes("=")) i++;
+      continue;
+    }
+    out.push(arg);
+  }
+  return out;
+}
+
 async function main() {
-  const adminUsername = process.argv[2] || process.env.ADMIN_USERNAME || "admin";
-  const adminPassword = process.argv[3] || process.env.ADMIN_PASSWORD || "admin";
+  const positional = positionalArgs();
+  const adminUsername = positional[0] || process.env.ADMIN_USERNAME || "admin";
+  const adminPassword = positional[1] || process.env.ADMIN_PASSWORD || "admin";
+
+  const clientsJson = parseFlag("clients");
+  const userProfileJson = parseFlag("user-profile");
+  const extraClients: ExtraClient[] = clientsJson ? JSON.parse(clientsJson) : [];
+  const userProfile: Record<string, unknown> = userProfileJson
+    ? JSON.parse(userProfileJson)
+    : {};
 
   const dialect = new SqliteDialect({
     database: new Database("db.sqlite"),
@@ -371,7 +421,7 @@ async function main() {
   const db = new Kysely<any>({ dialect });
   const adapters = createAdapters(db);
 
-  await seed(adapters, {
+  const seedResult = await seed(adapters, {
     adminUsername,
     adminPassword,
     tenantId: "${tenantId}",
@@ -381,11 +431,38 @@ async function main() {
     callbacks: ${JSON.stringify(callbacks)},
     allowedLogoutUrls: ${JSON.stringify(allowedLogoutUrls)},
   });
+
+  for (const c of extraClients) {
+    const existing = await adapters.clients.get(seedResult.tenantId, c.client_id);
+    if (existing) {
+      console.log(\`Client "\${c.client_id}" already exists, skipping...\`);
+      continue;
+    }
+    await adapters.clients.create(seedResult.tenantId, {
+      client_id: c.client_id,
+      client_secret: c.client_secret,
+      name: c.name ?? c.client_id,
+      callbacks: c.callbacks ?? [],
+      allowed_logout_urls: c.allowed_logout_urls ?? [],
+      web_origins: c.web_origins ?? [],
+      connections: ["Username-Password-Authentication"],
+      client_metadata: { universal_login_version: "2" },
+    });
+    console.log(\`✅ Created client "\${c.client_id}"\`);
+  }
+
+  if (Object.keys(userProfile).length > 0) {
+    await adapters.users.update(seedResult.tenantId, seedResult.userId, userProfile);
+    console.log(\`✅ Updated profile of user "\${seedResult.username}"\`);
+  }
 ${conformanceClientCode}
   await db.destroy();
 }
 
-main().catch(console.error);
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
 `;
 }
 

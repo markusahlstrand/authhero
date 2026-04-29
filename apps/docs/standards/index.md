@@ -45,6 +45,10 @@ AuthHero is built on open identity standards. This section tracks every spec Aut
 | -------- | ------ |
 | [SAML 2.0](/standards/saml-2) | Partial |
 
+## Conformance testing
+
+AuthHero is verified against the [OpenID Foundation conformance suite](https://gitlab.com/openid/conformance-suite) via an automated Playwright-driven runner. See [Conformance Testing](/standards/conformance) for which test plans are exercised, how to run the suite locally, and how to interpret failures.
+
 ## Notes on unimplemented endpoints
 
 A few endpoints are advertised in [`/.well-known/openid-configuration`](/standards/openid-connect-discovery) but are not yet wired up:

@@ -1,0 +1,74 @@
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import { env } from "./lib/env";
+
+const REPO_ROOT = fileURLToPath(new URL("../../", import.meta.url));
+
+async function ping(url: string): Promise<boolean> {
+  try {
+    // Per-request timeout so a TCP-accepting-but-non-responding suite (e.g.
+    // mid-startup) doesn't stall waitFor's poll loop past its outer deadline.
+    const res = await fetch(url, { signal: AbortSignal.timeout(5_000) });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function waitFor(
+  url: string,
+  label: string,
+  timeoutMs = 120_000,
+): Promise<void> {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    if (await ping(url)) return;
+    await new Promise((r) => setTimeout(r, 1000));
+  }
+  throw new Error(
+    `Timed out after ${timeoutMs}ms waiting for ${label} at ${url}. Is the conformance suite running and is /etc/hosts mapping localhost.emobix.co.uk to 127.0.0.1?`,
+  );
+}
+
+function run(cmd: string, args: string[]): void {
+  const result = spawnSync(cmd, args, {
+    cwd: REPO_ROOT,
+    stdio: "inherit",
+    shell: false,
+  });
+  if (result.error) {
+    throw result.error;
+  }
+  if (result.signal) {
+    throw new Error(
+      `Command killed by signal ${result.signal}: ${cmd} ${args.join(" ")}`,
+    );
+  }
+  if (result.status !== 0) {
+    throw new Error(
+      `Command failed (exit ${result.status}): ${cmd} ${args.join(" ")}`,
+    );
+  }
+}
+
+export default async function globalSetup(): Promise<void> {
+  // Allow Node fetch to talk to the suite's self-signed cert.
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+
+  if (env.skipSetup) {
+    console.log("[conformance-runner] SKIP_SETUP=1 — skipping docker + seed");
+  } else {
+    console.log("[conformance-runner] Starting conformance suite...");
+    run("pnpm", ["conformance:start"]);
+
+    console.log("[conformance-runner] Reseeding auth-server database...");
+    run("pnpm", ["conformance:seed"]);
+  }
+
+  console.log("[conformance-runner] Waiting for conformance suite API...");
+  await waitFor(
+    `${env.conformanceBaseUrl}/api/runner/available`,
+    "conformance suite",
+  );
+  console.log("[conformance-runner] Conformance suite is ready.");
+}

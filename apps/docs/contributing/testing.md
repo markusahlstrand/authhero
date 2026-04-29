@@ -70,6 +70,15 @@ Integration tests should test how different parts of the system work together.
 
 [End-to-end testing guidelines will be documented here]
 
+### OIDC Conformance Tests
+
+The `apps/conformance-runner` Playwright project drives the [OpenID Foundation conformance suite](https://gitlab.com/openid/conformance-suite) against a local AuthHero. See [Conformance Testing](/standards/conformance) for setup, what's covered, and how to interpret failures.
+
+```bash
+pnpm conformance:run                       # full Basic OP plan
+pnpm conformance:run -- --grep oidcc-server # one module
+```
+
 ## Mocking
 
 [Mocking guidelines will be documented here]

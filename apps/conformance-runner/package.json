@@ -1,0 +1,17 @@
+{
+  "name": "@authhero/conformance-runner",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "conformance": "playwright test",
+    "conformance:ui": "playwright test --ui",
+    "conformance:headed": "playwright test --headed",
+    "conformance:report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "@types/node": "^20.14.9",
+    "typescript": "^5.5.2"
+  }
+}
