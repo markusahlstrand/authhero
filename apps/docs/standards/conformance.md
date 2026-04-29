@@ -171,15 +171,25 @@ To stop the suite: `pnpm conformance:stop`.
 | `ALLOW_WARNING` | unset | When set, modules ending in `WARNING` count as pass |
 | `SKIP_SETUP` | unset | Skip Docker startup + reseed (useful when iterating) |
 
-## CI considerations
+## Running in CI
 
-The runner can in principle run on `ubuntu-latest` GitHub-hosted runners, but a few Linux-specific quirks apply:
+A manually-triggered GitHub Actions workflow lives at `.github/workflows/conformance.yml`. To run it: open the **Actions** tab → **OIDC Conformance** → **Run workflow**, optionally supplying a `--grep` filter and toggling `allow_warning`.
 
-- **`host.docker.internal`** does not resolve from inside containers on Linux Docker by default. Either patch the suite's compose file with `extra_hosts: ["host.docker.internal:host-gateway"]` or set `AUTHHERO_ISSUER` to the runner's IP.
-- **The conformance suite repo** is at `gitlab.com/openid/conformance-suite` — CI must clone (and ideally pin) it; the suite's dev compose pulls prebuilt images.
-- **Runtime** for the full plan is roughly 10–20 minutes. Better suited to a nightly job or `workflow_dispatch` than per-PR.
+What the workflow does:
 
-The repo does **not** currently run conformance in CI — the runner is local-only as of this writing.
+1. Checks out the repo and installs dependencies.
+2. Builds the workspace packages the auth-server consumes (`adapter-interfaces`, `kysely-adapter`, `multi-tenancy`, `widget`, `authhero`).
+3. Generates `packages/create-authhero/auth-server/` fresh via `pnpm tsx src/index.ts auth-server --conformance --workspace --skip-install --skip-start --yes`.
+4. Re-runs `pnpm install` to wire the generated package into the workspace, then runs `pnpm conformance:seed`.
+5. Clones `gitlab.com/openid/conformance-suite`, builds it via the OIDF's Maven builder image (`builder-compose.yml`), and caches `~/.m2/repository` + `~/conformance-suite/target` so subsequent runs skip the build.
+6. Starts the suite via `pnpm conformance:start` (the dev-mac compose file already includes `extra_hosts: ["host.docker.internal:host-gateway"]`, which is what makes the suite container reach the host auth-server on Linux Docker).
+7. Installs Playwright Chromium with system deps.
+8. Runs `pnpm conformance:run` with `SKIP_SETUP=1` (suite + DB are already prepared in steps 4–6).
+9. Uploads the Playwright HTML report (always) and traces (on failure) as artifacts. On failure, also dumps the suite container's tail logs.
+
+Approximate runtime: ~15–20 min cold cache (suite Maven build dominates), ~5–8 min warm cache. The job times out at 60 min.
+
+It is **not** wired to PRs — runtime is too high for per-PR signal. Use it on demand when changing OAuth/OIDC code or before tagging a release.
 
 ## When a test fails
 
