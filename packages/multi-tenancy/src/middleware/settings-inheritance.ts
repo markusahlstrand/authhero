@@ -495,9 +495,100 @@ export function createRuntimeFallbackAdapter(
       controlPlaneTenantId,
     ),
 
+    hooks: wrapHooksWithInheritance(baseAdapters, controlPlaneTenantId),
+
     // Note: Additional adapters can be extended here for runtime fallback:
     // - promptSettings: Fall back to control plane prompts
     // - branding: Fall back to control plane branding/themes
+  };
+}
+
+/**
+ * Returns true when a hook is marked as inheritable by the control plane.
+ * Inheritable hooks surface on every sub-tenant's `hooks.list` so a single
+ * control-plane row drives behaviour fleet-wide. Reads `metadata.inheritable`
+ * on any hook variant (web/form/template/code).
+ */
+function isInheritableHook(hook: unknown): boolean {
+  if (!hook || typeof hook !== "object") return false;
+  const metadata = (hook as { metadata?: unknown }).metadata;
+  if (!metadata || typeof metadata !== "object") return false;
+  return (metadata as Record<string, unknown>).inheritable === true;
+}
+
+/**
+ * Wraps the hooks adapter so child tenants see hooks the control plane
+ * marked as inheritable (`metadata.inheritable === true`) merged into their
+ * own list/get results. Inherited hooks are read-only from a sub-tenant's
+ * perspective: writes go through the base adapter's `tenant_id` clause and
+ * therefore can't touch a row owned by the control plane.
+ *
+ * Filter (`q`) and pagination params are applied to each side independently
+ * by the base adapter, then concatenated. For the `q` shapes the runtime
+ * uses (`trigger_id:foo`) this gives correct results because both sides
+ * filter consistently. The combined `length` for `include_totals: true`
+ * is the sum of both sides.
+ */
+function wrapHooksWithInheritance(
+  baseAdapters: DataAdapters,
+  controlPlaneTenantId?: string,
+): DataAdapters["hooks"] {
+  return {
+    ...baseAdapters.hooks,
+
+    list: async (tenantId: string, params?) => {
+      const result = await baseAdapters.hooks.list(tenantId, params);
+
+      if (!controlPlaneTenantId || tenantId === controlPlaneTenantId) {
+        return result;
+      }
+
+      const controlPlaneResult = await baseAdapters.hooks.list(
+        controlPlaneTenantId,
+        params,
+      );
+
+      const inherited = (controlPlaneResult.hooks || []).filter(
+        isInheritableHook,
+      );
+
+      if (inherited.length === 0) {
+        return result;
+      }
+
+      // Sub-tenant rows take precedence — if both sides somehow share the
+      // same hook_id (vanishingly unlikely with random ids) keep the local.
+      const localIds = new Set(
+        (result.hooks || []).map((h) => h.hook_id),
+      );
+      const additions = inherited.filter((h) => !localIds.has(h.hook_id));
+
+      return {
+        ...result,
+        hooks: [...(result.hooks || []), ...additions],
+        length:
+          typeof result.length === "number"
+            ? result.length + additions.length
+            : result.length,
+      };
+    },
+
+    get: async (tenantId: string, hookId: string) => {
+      const local = await baseAdapters.hooks.get(tenantId, hookId);
+      if (local) return local;
+
+      if (!controlPlaneTenantId || tenantId === controlPlaneTenantId) {
+        return local;
+      }
+
+      const controlPlaneHook = await baseAdapters.hooks.get(
+        controlPlaneTenantId,
+        hookId,
+      );
+      return controlPlaneHook && isInheritableHook(controlPlaneHook)
+        ? controlPlaneHook
+        : null;
+    },
   };
 }
 

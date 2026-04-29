@@ -35,6 +35,7 @@ export function list(db: Kysely<Database>) {
         synchronous,
         created_at_ts,
         updated_at_ts,
+        metadata,
         ...rest
       } = hook;
 
@@ -48,6 +49,7 @@ export function list(db: Kysely<Database>) {
         ...dates,
         enabled: !!enabled,
         synchronous: !!synchronous,
+        metadata: metadata ? JSON.parse(metadata) : undefined,
       });
     });
 

@@ -240,7 +240,12 @@ export function createUserHooks(
         for (const hook of postRegTemplateHooks) {
           if (!isTemplateHook(hook)) continue;
           try {
-            result = await handleTemplateHook(ctx, hook.template_id, result);
+            result = await handleTemplateHook(
+              ctx,
+              hook.template_id,
+              result,
+              hook.metadata,
+            );
           } catch (err) {
             logMessage(ctx, tenant_id, {
               type: LogTypes.FAILED_SIGNUP,

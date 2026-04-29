@@ -132,6 +132,7 @@ const sqlHookSchema = z.object({
   form_id: z.string().optional().nullable(),
   template_id: z.string().optional().nullable(),
   code_id: z.string().optional().nullable(),
+  metadata: z.string().optional().nullable(),
 });
 
 export const sqlActionSchema = z.object({

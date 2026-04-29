@@ -13,7 +13,7 @@ function generateHookId(): string {
 }
 
 function sqlToHook(row: any): Hook {
-  const { tenant_id: _, created_at_ts, updated_at_ts, ...rest } = row;
+  const { tenant_id: _, created_at_ts, updated_at_ts, metadata, ...rest } = row;
 
   const dates = convertDatesToAdapter({ created_at_ts, updated_at_ts }, [
     "created_at_ts",
@@ -24,6 +24,7 @@ function sqlToHook(row: any): Hook {
     ...rest,
     enabled: !!rest.enabled,
     synchronous: !!rest.synchronous,
+    metadata: metadata ? JSON.parse(metadata) : undefined,
     ...dates,
   });
 }
@@ -45,6 +46,7 @@ export function createHooksAdapter(db: DrizzleDb) {
         form_id: hook.form_id,
         template_id: hook.template_id,
         code_id: hook.code_id,
+        metadata: hook.metadata ? JSON.stringify(hook.metadata) : null,
         created_at_ts: now,
         updated_at_ts: now,
       };
@@ -85,6 +87,9 @@ export function createHooksAdapter(db: DrizzleDb) {
       if (params.template_id !== undefined)
         updateData.template_id = params.template_id;
       if (params.code_id !== undefined) updateData.code_id = params.code_id;
+      if (params.metadata !== undefined)
+        updateData.metadata =
+          params.metadata === null ? null : JSON.stringify(params.metadata);
 
       const results = await db
         .update(hooks)
