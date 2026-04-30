@@ -165,21 +165,22 @@ export async function passwordlessGrant(
     },
   });
 
-  // Code flow returns an authorization code (no access token issued here), so
-  // SUCCESS_EXCHANGE_PASSWORD_OTP_FOR_ACCESS_TOKEN would misrepresent it. The
-  // /oauth/token leg later emits seacft when the code is exchanged.
+  // For code flow, SUCCESS_LOGIN is already emitted by the post-login hook
+  // inside createFrontChannelAuthResponse — emitting it again here produces
+  // a duplicate "s" log. Only the implicit flow needs the dedicated
+  // OTP-exchange event since /oauth/token isn't called for it.
   const isCodeFlow = result.authParams.response_type === "code";
-  logMessage(ctx, result.client.tenant.id, {
-    type: isCodeFlow
-      ? LogTypes.SUCCESS_LOGIN
-      : LogTypes.SUCCESS_EXCHANGE_PASSWORD_OTP_FOR_ACCESS_TOKEN,
-    userId: result.user.user_id,
-    connection: result.connectionType,
-    strategy: result.connectionType === "sms" ? Strategy.SMS : Strategy.EMAIL,
-    strategy_type: StrategyType.PASSWORDLESS,
-    scope: result.authParams.scope,
-    audience: result.authParams.audience,
-  });
+  if (!isCodeFlow) {
+    logMessage(ctx, result.client.tenant.id, {
+      type: LogTypes.SUCCESS_EXCHANGE_PASSWORD_OTP_FOR_ACCESS_TOKEN,
+      userId: result.user.user_id,
+      connection: result.connectionType,
+      strategy: result.connectionType === "sms" ? Strategy.SMS : Strategy.EMAIL,
+      strategy_type: StrategyType.PASSWORDLESS,
+      scope: result.authParams.scope,
+      audience: result.authParams.audience,
+    });
+  }
 
   return response;
 }

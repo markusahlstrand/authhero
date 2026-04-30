@@ -4,6 +4,7 @@ import { getTestServer } from "../../helpers/test-server";
 import { getAdminToken } from "../../helpers/token";
 import {
   AuthorizationResponseType,
+  LogTypes,
   Strategy,
   TokenResponse,
 } from "@authhero/adapter-interfaces";
@@ -140,6 +141,89 @@ describe("passwordless", async () => {
       const redirectUrl = new URL(location);
       expect(redirectUrl.pathname).toBe("/callback");
       expect(redirectUrl.searchParams.get("code")).toBeTruthy();
+    });
+
+    it("should emit exactly one SUCCESS_LOGIN log for OTP code flow", async () => {
+      const { oauthApp, managementApp, env, getSentEmails } =
+        await getTestServer({
+          testTenantLanguage: "en",
+        });
+      const oauthClient = testClient(oauthApp, env);
+      const managementClient = testClient(managementApp, env);
+
+      const token = await getAdminToken();
+      await managementClient.email.providers.$post(
+        {
+          header: { "tenant-id": "tenantId" },
+          json: {
+            name: "mock-email",
+            credentials: { api_key: "apiKey" },
+          },
+        },
+        { headers: { authorization: `Bearer ${token}` } },
+      );
+
+      const startResponse = await oauthClient.passwordless.start.$post(
+        {
+          json: {
+            client_id: "clientId",
+            connection: "email",
+            email: "single-log@example.com",
+            send: "code",
+            authParams: {},
+          },
+        },
+        {
+          headers: {
+            "x-real-ip": "1.2.3.4",
+            "user-agent": "Mozilla/5.0",
+          },
+        },
+      );
+      expect(startResponse.status).toBe(200);
+
+      const emails = await getSentEmails();
+      const code = emails[emails.length - 1]?.data.code;
+      if (!code) {
+        throw new Error("No code found in email");
+      }
+
+      const loginResponse = await oauthClient.passwordless.verify_redirect.$get(
+        {
+          query: {
+            response_type: AuthorizationResponseType.CODE,
+            redirect_uri: "https://example.com/callback",
+            client_id: "clientId",
+            email: "single-log@example.com",
+            verification_code: code,
+            connection: "email",
+            state: "state",
+            scope: "openid",
+            audience: "https://example.com",
+          },
+        },
+        { headers: { "x-real-ip": "1.2.3.4" } },
+      );
+      expect(loginResponse.status).toBe(302);
+
+      const { logs } = await env.data.logs.list("tenantId", {
+        page: 0,
+        per_page: 100,
+        include_totals: true,
+      });
+      const successLoginLogs = logs.filter(
+        (log) => log.type === LogTypes.SUCCESS_LOGIN,
+      );
+      expect(successLoginLogs.length).toBe(1);
+      expect(successLoginLogs[0]!.description).toMatch(/^Successful login for/);
+
+      // The OTP-exchange event must NOT fire for code flow — the /oauth/token
+      // leg is what exchanges the authorization code, not the OTP itself.
+      const otpExchangeLogs = logs.filter(
+        (log) =>
+          log.type === LogTypes.SUCCESS_EXCHANGE_PASSWORD_OTP_FOR_ACCESS_TOKEN,
+      );
+      expect(otpExchangeLogs.length).toBe(0);
     });
   });
 
