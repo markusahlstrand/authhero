@@ -16,7 +16,12 @@ export function list(db: Kysely<Database>) {
     let query = db.selectFrom("users").where("users.tenant_id", "=", tenantId);
     if (q) {
       // NOTE - this isn't faithful to Auth0 as Auth0 does this in the dashboard - we can filter by any field on the Auth0 mgmt api
-      query = luceneFilter(db, query, q, ["email", "name", "phone_number"]);
+      query = luceneFilter(db, query, q, [
+        "email",
+        "name",
+        "phone_number",
+        "user_id",
+      ]);
     }
 
     if (sort && sort.sort_by) {

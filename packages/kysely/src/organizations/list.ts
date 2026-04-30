@@ -44,23 +44,31 @@ export function list(db: Kysely<Database>) {
       baseQuery = baseQuery.orderBy("created_at", "desc");
     }
 
-    // Handle checkpoint pagination (from/take)
+    // Clamp pagination inputs so negative or non-finite values cannot
+    // produce bad SQL. take wins over per_page when both are supplied.
+    const rawPerPage = params?.take ?? params?.per_page;
+    const perPage =
+      typeof rawPerPage === "number" && Number.isFinite(rawPerPage) && rawPerPage > 0
+        ? Math.floor(rawPerPage)
+        : 10;
+
+    let offset = 0;
     if (params?.from !== undefined) {
-      // from is an offset index as a string
-      const offset = parseInt(params.from, 10);
-      if (!isNaN(offset)) {
-        baseQuery = baseQuery.offset(offset);
+      const parsed = parseInt(params.from, 10);
+      if (!Number.isNaN(parsed)) {
+        offset = Math.max(0, parsed);
       }
-    } else if (params?.page !== undefined) {
-      // Handle page-based pagination
-      const perPage = params?.per_page || params?.take || 10;
-      const offset = params.page * perPage;
-      baseQuery = baseQuery.offset(offset);
+    } else if (
+      typeof params?.page === "number" &&
+      Number.isFinite(params.page)
+    ) {
+      offset = Math.max(0, Math.floor(params.page) * perPage);
     }
 
-    // Apply limit (take or per_page)
-    const limit = params?.take || params?.per_page || 10;
-    baseQuery = baseQuery.limit(limit);
+    if (offset > 0) {
+      baseQuery = baseQuery.offset(offset);
+    }
+    baseQuery = baseQuery.limit(perPage);
 
     const results = await baseQuery.selectAll().execute();
 
@@ -96,16 +104,9 @@ export function list(db: Kysely<Database>) {
       }),
     );
 
-    const perPage = params?.take || params?.per_page || 10;
-    const start = params?.from
-      ? parseInt(params.from, 10)
-      : params?.page
-        ? params.page * perPage
-        : 0;
-
     return {
       organizations,
-      start: isNaN(start) ? 0 : start,
+      start: offset,
       limit: perPage,
       length: organizations.length,
       total,

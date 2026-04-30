@@ -146,16 +146,11 @@ export function luceneFilter<TB extends keyof Database>(
       }
     } else if (value) {
       const { ref } = db.dynamic;
-      // Generic single-word search across specified columns
-      // Also check user_id if the search contains a pipe (e.g., "auth0|12345")
-      const columnsToSearch = value.includes("|")
-        ? [...searchableColumns, "user_id"]
-        : searchableColumns;
       qb = qb.where((eb) =>
         eb.or(
-          columnsToSearch.map((col) =>
+          searchableColumns.map((col) =>
             col === "user_id"
-              ? eb(ref(col), "=", value) // Exact match for user_id
+              ? eb(ref(col), "=", value) // Exact match for user_id (e.g. "auth0|12345")
               : eb(ref(col), "like", `%${value}%`),
           ),
         ),

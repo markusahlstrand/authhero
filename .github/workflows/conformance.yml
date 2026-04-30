@@ -45,9 +45,9 @@ jobs:
         run: |
           pnpm interfaces build
           pnpm kysely build
-          pnpm multi-tenancy build
           pnpm widget build
           pnpm authhero build
+          pnpm multi-tenancy build
 
       # Generate the auth-server fresh — it's gitignored. The --conformance
       # flag bakes in the test clients, conformance user, and tenant

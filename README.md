@@ -110,7 +110,7 @@ AuthHero is tested against the [OpenID Foundation conformance suite](https://git
 
 1. Clone the conformance suite into `~/conformance-suite` (the scripts expect this path).
 2. Add the suite's hostname to `/etc/hosts`:
-   ```
+   ```text
    127.0.0.1   localhost.emobix.co.uk
    ```
 3. Install Playwright's Chromium browser:

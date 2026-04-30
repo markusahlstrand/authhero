@@ -20,12 +20,21 @@ function getCookieName(tenant_id: string) {
  */
 function isInsecureDevHost(host: string | undefined): boolean {
   if (!host) return false;
-  const [hostname] = host.split(":");
+  // Handle IPv6 in brackets like [::1]:8080; otherwise strip the port.
+  let hostname: string;
+  if (host.startsWith("[")) {
+    const end = host.indexOf("]");
+    if (end === -1) return false;
+    hostname = host.slice(1, end);
+  } else {
+    hostname = host.split(":")[0] ?? "";
+  }
   if (!hostname) return false;
   return (
     hostname === "localhost" ||
     hostname === "host.docker.internal" ||
-    /^(\d{1,3}\.){3}\d{1,3}$/.test(hostname)
+    hostname === "::1" ||
+    /^127(?:\.\d{1,3}){3}$/.test(hostname)
   );
 }
 
