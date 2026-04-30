@@ -25,6 +25,14 @@ export function buildPlanConfig() {
       client_id: "test-client-id-2",
       client_secret: "test-client-secret-2",
     },
+    // oidcc-server-client-secret-post copies this slot into `client` at
+    // configureClient() time (see OIDCCServerTestClientSecretPost.java). The
+    // suite assumes servers restrict each client to one auth method, so it
+    // wants a separate client config per auth type — we use client-2.
+    client_secret_post: {
+      client_id: "test-client-id-2",
+      client_secret: "test-client-secret-2",
+    },
     consent: {},
     browser: [],
   };

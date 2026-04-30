@@ -672,6 +672,7 @@ describe("token", () => {
           {
             headers: {
               "tenant-id": "tenantId",
+              host: "auth.example.com",
             },
           },
         );
@@ -688,10 +689,10 @@ describe("token", () => {
         const cookies = response.headers.get("set-cookie");
         // Double-Clear: Should have non-partitioned clear and partitioned cookie with session
         expect(cookies).toContain(
-          "tenantId-auth-token=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=None",
+          "tenantId-auth-token=; Max-Age=0; Domain=.example.com; Path=/; HttpOnly; Secure; SameSite=None",
         );
         expect(cookies).toContain(
-          `tenantId-auth-token=${accessToken?.payload.sid}; Max-Age=2592000; Path=/; HttpOnly; Secure; Partitioned; SameSite=None`,
+          `tenantId-auth-token=${accessToken?.payload.sid}; Max-Age=2592000; Domain=.example.com; Path=/; HttpOnly; Secure; Partitioned; SameSite=None`,
         );
       });
 

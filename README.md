@@ -102,6 +102,34 @@ pnpm authhero      # Work with main package
 pnpm vitepress     # Work with docs
 ```
 
+### Running OIDC Conformance Tests
+
+AuthHero is tested against the [OpenID Foundation conformance suite](https://gitlab.com/openid/conformance-suite) via [`apps/conformance-runner`](apps/conformance-runner/), a Playwright-driven runner that boots the suite, seeds a local auth-server, and runs the `oidcc-basic-certification-test-plan`.
+
+**One-time setup:**
+
+1. Clone the conformance suite into `~/conformance-suite` (the scripts expect this path).
+2. Add the suite's hostname to `/etc/hosts`:
+   ```
+   127.0.0.1   localhost.emobix.co.uk
+   ```
+3. Install Playwright's Chromium browser:
+   ```bash
+   pnpm --filter @authhero/conformance-runner exec playwright install chromium
+   ```
+
+**Run the suite** from the repo root:
+
+```bash
+pnpm conformance:start          # bring up the suite via Docker
+pnpm conformance:run            # run the full plan
+pnpm conformance:run -- --grep "discovery"   # run a single module
+pnpm conformance:report         # open the last HTML report
+pnpm conformance:stop           # tear down the suite
+```
+
+See [apps/conformance-runner/README.md](apps/conformance-runner/README.md) for environment variables and advanced options.
+
 ## Contributing
 
 We welcome contributions! Here's how to get started:

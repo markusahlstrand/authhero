@@ -159,6 +159,20 @@ export const userinfoRoutes = new OpenAPIHono<{
         throw new HTTPException(400, { message: "Unable to determine tenant" });
       }
 
+      // RFC 6749 §4.1.2: tokens issued from a reused authorization code must
+      // be revoked. Access tokens are stateless JWTs, so we enforce
+      // revocation here by looking up the session referenced by the token's
+      // `sid` claim and rejecting if it's been marked revoked.
+      const sid = (ctx.var.user as { sid?: unknown }).sid;
+      if (typeof sid === "string" && sid.length > 0) {
+        const session = await ctx.env.data.sessions.get(tenant_id, sid);
+        if (session?.revoked_at) {
+          throw new HTTPException(401, {
+            message: "Session has been revoked",
+          });
+        }
+      }
+
       const user = await ctx.env.data.users.get(tenant_id, ctx.var.user.sub);
 
       if (!user) {
@@ -301,6 +315,20 @@ export const userinfoRoutes = new OpenAPIHono<{
       const tenant_id = tokenPayload.tenant_id || ctx.var.tenant_id;
       if (!tenant_id) {
         throw new HTTPException(400, { message: "Unable to determine tenant" });
+      }
+
+      // RFC 6749 §4.1.2: tokens issued from a reused authorization code must
+      // be revoked. Access tokens are stateless JWTs, so we enforce
+      // revocation here by looking up the session referenced by the token's
+      // `sid` claim and rejecting if it's been marked revoked.
+      const sidPost = (tokenPayload as { sid?: unknown }).sid;
+      if (typeof sidPost === "string" && sidPost.length > 0) {
+        const session = await ctx.env.data.sessions.get(tenant_id, sidPost);
+        if (session?.revoked_at) {
+          throw new HTTPException(401, {
+            message: "Session has been revoked",
+          });
+        }
       }
 
       const user = await ctx.env.data.users.get(tenant_id, tokenPayload.sub);

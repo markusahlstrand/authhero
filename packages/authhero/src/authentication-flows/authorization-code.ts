@@ -74,6 +74,36 @@ export async function authorizationCodeGrantUser(
     });
     throw new JSONHTTPException(403, { message: "Code expired" });
   } else if (code.used_at) {
+    // RFC 6749 §4.1.2: "If an authorization code is used more than once, the
+    // authorization server MUST deny the request and SHOULD revoke (when
+    // possible) all tokens previously issued based on that authorization
+    // code." Revoke the original session + refresh tokens so the bearer
+    // tokens issued from the first exchange stop working at userinfo etc.
+    const revokedAt = new Date().toISOString();
+    await ctx.env.data.refreshTokens
+      .revokeByLoginSession(client.tenant.id, code.login_id, revokedAt)
+      .catch((err) => {
+        console.error(
+          `Failed to revoke refresh tokens for login_id=${code.login_id}:`,
+          err,
+        );
+      });
+    const reusedLoginSession = await ctx.env.data.loginSessions
+      .get(client.tenant.id, code.login_id)
+      .catch(() => undefined);
+    if (reusedLoginSession?.session_id) {
+      await ctx.env.data.sessions
+        .update(client.tenant.id, reusedLoginSession.session_id, {
+          revoked_at: revokedAt,
+        })
+        .catch((err) => {
+          console.error(
+            `Failed to revoke session ${reusedLoginSession.session_id}:`,
+            err,
+          );
+        });
+    }
+
     logMessage(ctx, client.tenant.id, {
       type: LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN,
       description: "Invalid authorization code",
@@ -213,13 +243,14 @@ export async function authorizationCodeGrantUser(
     }
   }
 
-  // OIDC Core 2.1: When max_age was used in authorization request, auth_time is required in ID token
-  // Fetch the session to get the authenticated_at timestamp
+  // OIDC Core §2: auth_time is REQUIRED when max_age is used and OPTIONAL
+  // otherwise. We always compute it when a session is available so RPs can
+  // detect re-authentication (e.g. prompt=login flows). The conformance
+  // suite's oidcc-prompt-login test compares auth_time between two
+  // authorizations and silently fails ("auth_time cannot be checked") when
+  // either id_token omits it.
   let auth_time: number | undefined;
-  if (
-    loginSession.authParams.max_age !== undefined &&
-    loginSession.session_id
-  ) {
+  if (loginSession.session_id) {
     const session = await ctx.env.data.sessions.get(
       client.tenant.id,
       loginSession.session_id,

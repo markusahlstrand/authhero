@@ -5,25 +5,27 @@ import {
   ListParams,
 } from "@authhero/adapter-interfaces";
 import { removeNullProperties } from "../helpers/remove-nulls";
+import { luceneFilter } from "../helpers/filter";
 
 export function list(db: Kysely<Database>) {
   return async (
     tenantId: string,
     params?: ListParams,
   ): Promise<ListOrganizationsResponse> => {
-    let query = db
+    // luceneFilter widens the result-row type, so apply it first and only
+    // call .selectAll() / .select(count) at execution time.
+    let baseQuery = db
       .selectFrom("organizations")
-      .selectAll()
       .where("tenant_id", "=", tenantId);
 
-    // Apply search filter if q is provided
+    // Apply search filter if q is provided. luceneFilter supports both
+    // field-scoped queries (e.g. `name:control_plane`) and bare-string
+    // wildcard search across name/display_name.
     if (params?.q) {
-      query = query.where((eb) =>
-        eb.or([
-          eb("name", "like", `%${params.q}%`),
-          eb("display_name", "like", `%${params.q}%`),
-        ]),
-      );
+      baseQuery = luceneFilter(db, baseQuery, params.q, [
+        "name",
+        "display_name",
+      ]);
     }
 
     // Apply sorting
@@ -34,12 +36,12 @@ export function list(db: Kysely<Database>) {
         | "display_name"
         | "created_at";
       if (["name", "display_name", "created_at"].includes(sortBy)) {
-        query = query.orderBy(sortBy, sortOrder);
+        baseQuery = baseQuery.orderBy(sortBy, sortOrder);
       } else {
-        query = query.orderBy("created_at", "desc");
+        baseQuery = baseQuery.orderBy("created_at", "desc");
       }
     } else {
-      query = query.orderBy("created_at", "desc");
+      baseQuery = baseQuery.orderBy("created_at", "desc");
     }
 
     // Handle checkpoint pagination (from/take)
@@ -47,39 +49,38 @@ export function list(db: Kysely<Database>) {
       // from is an offset index as a string
       const offset = parseInt(params.from, 10);
       if (!isNaN(offset)) {
-        query = query.offset(offset);
+        baseQuery = baseQuery.offset(offset);
       }
     } else if (params?.page !== undefined) {
       // Handle page-based pagination
       const perPage = params?.per_page || params?.take || 10;
       const offset = params.page * perPage;
-      query = query.offset(offset);
+      baseQuery = baseQuery.offset(offset);
     }
 
     // Apply limit (take or per_page)
     const limit = params?.take || params?.per_page || 10;
-    query = query.limit(limit);
+    baseQuery = baseQuery.limit(limit);
 
-    const results = await query.execute();
+    const results = await baseQuery.selectAll().execute();
 
     // Get total count for include_totals
     let total = results.length;
     if (params?.include_totals) {
       let countQuery = db
         .selectFrom("organizations")
-        .select(sql<number>`count(*)`.as("count"))
         .where("tenant_id", "=", tenantId);
 
       if (params?.q) {
-        countQuery = countQuery.where((eb) =>
-          eb.or([
-            eb("name", "like", `%${params.q}%`),
-            eb("display_name", "like", `%${params.q}%`),
-          ]),
-        );
+        countQuery = luceneFilter(db, countQuery, params.q, [
+          "name",
+          "display_name",
+        ]);
       }
 
-      const countResult = await countQuery.executeTakeFirst();
+      const countResult = await countQuery
+        .select(sql<number>`count(*)`.as("count"))
+        .executeTakeFirst();
       total = Number(countResult?.count || 0);
     }
 

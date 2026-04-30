@@ -9,12 +9,19 @@ describe("logout", () => {
     const { oauthApp, env } = await getTestServer();
     const client = testClient(oauthApp, env);
 
-    const response = await client.v2.logout.$get({
-      query: {
-        client_id: "clientId",
-        returnTo: "https://example.com/callback",
+    const response = await client.v2.logout.$get(
+      {
+        query: {
+          client_id: "clientId",
+          returnTo: "https://example.com/callback",
+        },
       },
-    });
+      {
+        headers: {
+          host: "auth.example.com",
+        },
+      },
+    );
 
     expect(response.status).toBe(302);
 
@@ -24,10 +31,10 @@ describe("logout", () => {
     const cookies = response.headers.get("set-cookie");
     // Double-Clear: Should have both non-partitioned clear and partitioned clear
     expect(cookies).toContain(
-      "tenantId-auth-token=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=None",
+      "tenantId-auth-token=; Max-Age=0; Domain=.example.com; Path=/; HttpOnly; Secure; SameSite=None",
     );
     expect(cookies).toContain(
-      "tenantId-auth-token=; Max-Age=0; Path=/; HttpOnly; Secure; Partitioned; SameSite=None",
+      "tenantId-auth-token=; Max-Age=0; Domain=.example.com; Path=/; HttpOnly; Secure; Partitioned; SameSite=None",
     );
   });
 

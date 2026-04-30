@@ -143,7 +143,7 @@ export const wellKnownRoutes = new OpenAPIHono<{
           "sub",
         ],
         request_uri_parameter_supported: false,
-        request_parameter_supported: false,
+        request_parameter_supported: true,
         token_endpoint_auth_signing_alg_values_supported: [
           "RS256",
           "RS384",

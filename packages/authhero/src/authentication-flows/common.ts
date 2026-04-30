@@ -240,11 +240,12 @@ export async function createAuthTokens(
           iss,
           sid: session_id,
           nonce: authParams.nonce,
-          // OIDC Core 2.1: auth_time is REQUIRED when max_age was used in authorization request
-          // It's the time when the End-User authentication occurred (Unix timestamp)
-          ...(authParams.max_age !== undefined && auth_time !== undefined
-            ? { auth_time }
-            : {}),
+          // OIDC Core §2: auth_time is REQUIRED when max_age was used and
+          // OPTIONAL otherwise. Always emit when we have it — adding the
+          // claim is non-breaking (existing RPs ignore unknown claims), and
+          // it lets RPs verify re-authentication for prompt=login / max_age
+          // flows.
+          ...(auth_time !== undefined ? { auth_time } : {}),
           // OIDC Core 2.1: When acr_values is requested, the server SHOULD return
           // an acr claim with one of the requested values
           ...(authParams.acr_values
