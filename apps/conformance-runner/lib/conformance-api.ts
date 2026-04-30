@@ -129,7 +129,7 @@ export class ConformanceClient {
     const res = await fetch(url, {
       method: "POST",
       // Note: the suite's controller reads the body as a raw string, not JSON.
-      headers: { "Content-Type": "text/plain" },
+      headers: { ...this.headers, "Content-Type": "text/plain" },
       body: encodedDataUri,
       signal: AbortSignal.timeout(15_000),
     });

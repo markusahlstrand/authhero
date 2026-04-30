@@ -5,7 +5,9 @@ import {
   ListParams,
 } from "@authhero/adapter-interfaces";
 import { removeNullProperties } from "../helpers/remove-nulls";
-import { luceneFilter } from "../helpers/filter";
+import { luceneFilter, sanitizeLuceneQuery } from "../helpers/filter";
+
+const ALLOWED_Q_FIELDS = ["name", "display_name"];
 
 export function list(db: Kysely<Database>) {
   return async (
@@ -18,14 +20,14 @@ export function list(db: Kysely<Database>) {
       .selectFrom("organizations")
       .where("tenant_id", "=", tenantId);
 
-    // Apply search filter if q is provided. luceneFilter supports both
-    // field-scoped queries (e.g. `name:control_plane`) and bare-string
-    // wildcard search across name/display_name.
+    // Apply search filter if q is provided. Sanitize first so only
+    // whitelisted fields reach luceneFilter; otherwise a clause like
+    // `q=created_at:2020` would emit SQL against arbitrary columns.
     if (params?.q) {
-      baseQuery = luceneFilter(db, baseQuery, params.q, [
-        "name",
-        "display_name",
-      ]);
+      const sanitized = sanitizeLuceneQuery(params.q, ALLOWED_Q_FIELDS);
+      if (sanitized) {
+        baseQuery = luceneFilter(db, baseQuery, sanitized, ALLOWED_Q_FIELDS);
+      }
     }
 
     // Apply sorting
@@ -80,10 +82,15 @@ export function list(db: Kysely<Database>) {
         .where("tenant_id", "=", tenantId);
 
       if (params?.q) {
-        countQuery = luceneFilter(db, countQuery, params.q, [
-          "name",
-          "display_name",
-        ]);
+        const sanitized = sanitizeLuceneQuery(params.q, ALLOWED_Q_FIELDS);
+        if (sanitized) {
+          countQuery = luceneFilter(
+            db,
+            countQuery,
+            sanitized,
+            ALLOWED_Q_FIELDS,
+          );
+        }
       }
 
       const countResult = await countQuery

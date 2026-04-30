@@ -156,17 +156,21 @@ async function fillScreenshotPlaceholders(
   for (const placeholder of placeholders) {
     const key = `${testId}:${placeholder}`;
     if (filledPlaceholders.has(key)) continue;
-    filledPlaceholders.add(key);
     console.log(
       `[conformance-runner] filling screenshot placeholder ${placeholder} for ${testId}`,
     );
-    await client
-      .uploadPlaceholderImage(testId, placeholder, PLACEHOLDER_PNG)
-      .catch((err) => {
-        console.warn(
-          `[conformance-runner] placeholder upload failed: ${err instanceof Error ? err.message : err}`,
-        );
-      });
+    try {
+      await client.uploadPlaceholderImage(
+        testId,
+        placeholder,
+        PLACEHOLDER_PNG,
+      );
+      filledPlaceholders.add(key);
+    } catch (err) {
+      console.warn(
+        `[conformance-runner] placeholder upload failed: ${err instanceof Error ? err.message : err}`,
+      );
+    }
   }
 }
 

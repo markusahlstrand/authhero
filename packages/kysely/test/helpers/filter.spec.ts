@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Kysely } from "kysely";
-import { luceneFilter } from "../../src/helpers/filter";
+import { luceneFilter, sanitizeLuceneQuery } from "../../src/helpers/filter";
 
 describe("luceneFilter", () => {
   // Mock Kysely instance
@@ -310,5 +310,58 @@ describe("luceneFilter", () => {
       searchableColumns,
     );
     expect(mockQb.where).toHaveBeenCalledWith(expect.any(Function));
+  });
+});
+
+describe("sanitizeLuceneQuery", () => {
+  const allowed = ["name", "display_name"];
+
+  it("keeps clauses on allowed fields", () => {
+    expect(sanitizeLuceneQuery("name:foo", allowed)).toBe("name:foo");
+    expect(sanitizeLuceneQuery("display_name:foo", allowed)).toBe(
+      "display_name:foo",
+    );
+  });
+
+  it("drops clauses on disallowed fields", () => {
+    expect(sanitizeLuceneQuery("created_at:2020", allowed)).toBe("");
+    expect(sanitizeLuceneQuery("metadata:foo", allowed)).toBe("");
+  });
+
+  it("preserves bare-string tokens", () => {
+    expect(sanitizeLuceneQuery("acme", allowed)).toBe("acme");
+  });
+
+  it("drops disallowed fields but keeps allowed ones in mixed AND queries", () => {
+    expect(
+      sanitizeLuceneQuery("name:foo created_at:2020 acme", allowed),
+    ).toBe("name:foo acme");
+  });
+
+  it("handles negation, _exists_, and = syntax", () => {
+    expect(sanitizeLuceneQuery("-name:foo", allowed)).toBe("-name:foo");
+    expect(sanitizeLuceneQuery("-created_at:2020", allowed)).toBe("");
+    expect(sanitizeLuceneQuery("_exists_:name", allowed)).toBe("_exists_:name");
+    expect(sanitizeLuceneQuery("_exists_:tenant_id", allowed)).toBe("");
+    expect(sanitizeLuceneQuery("name=foo", allowed)).toBe("name=foo");
+    expect(sanitizeLuceneQuery("tenant_id=other", allowed)).toBe("");
+  });
+
+  it("filters OR parts independently", () => {
+    expect(
+      sanitizeLuceneQuery("name:foo OR tenant_id:other", allowed),
+    ).toBe("name:foo");
+    expect(
+      sanitizeLuceneQuery("evil:x OR another_evil:y", allowed),
+    ).toBe("");
+  });
+
+  it("respects quoted values when tokenizing", () => {
+    expect(sanitizeLuceneQuery('name:"John Doe"', allowed)).toBe(
+      'name:"John Doe"',
+    );
+    expect(
+      sanitizeLuceneQuery('tenant_id:"x" name:"John Doe"', allowed),
+    ).toBe('name:"John Doe"');
   });
 });
