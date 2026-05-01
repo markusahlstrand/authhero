@@ -84,11 +84,13 @@ test.describe("OIDCC Basic Certification", () => {
       // uploaded — for unattended runs we auto-fill those, so REVIEW means
       // "the suite finished and would normally need a human to verify the
       // screenshot." We treat it as PASSED.
+      // Per-module WARNING allowlist tracks known-missing features by their
+      // own issues. Drop entries from the set when the underlying feature
+      // lands. env.allowWarning is the global escape hatch for CI debugging.
       const acceptable: string[] = ["PASSED", "REVIEW"];
-      if (env.allowWarning) acceptable.push("WARNING");
-      // Per-module WARNING allowlist for known-missing features tracked by
-      // their own issues. Drop entries here when the underlying feature lands.
-      if (MODULES_ALLOWED_TO_WARN.has(moduleName)) acceptable.push("WARNING");
+      if (env.allowWarning || MODULES_ALLOWED_TO_WARN.has(moduleName)) {
+        acceptable.push("WARNING");
+      }
 
       let failureDetail = "";
       if (!acceptable.includes(result ?? "")) {

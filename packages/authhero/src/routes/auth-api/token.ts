@@ -327,6 +327,9 @@ export const tokenRoutes = new OpenAPIHono<{
         });
       }
 
+      passwordlessHeaders.set("Cache-Control", "no-store");
+      passwordlessHeaders.set("Pragma", "no-cache");
+
       return ctx.json(tokens, {
         headers: passwordlessHeaders,
       });

@@ -62,6 +62,20 @@ export async function refreshTokenGrant(
       error: "invalid_grant",
       error_description: "Invalid refresh token",
     });
+  } else if (refreshToken.client_id !== client.client_id) {
+    appendLog(
+      ctx,
+      `Refresh token client mismatch: token client=${refreshToken.client_id}, request client=${client.client_id}`,
+    );
+    logMessage(ctx, client.tenant.id, {
+      type: LogTypes.FAILED_EXCHANGE_REFRESH_TOKEN_FOR_ACCESS_TOKEN,
+      description: "Refresh token was not issued to this client",
+      userId: refreshToken.user_id,
+    });
+    throw new JSONHTTPException(400, {
+      error: "invalid_grant",
+      error_description: "Refresh token was not issued to this client",
+    });
   } else if (refreshToken.revoked_at) {
     appendLog(ctx, `Refresh token has been revoked: ${refreshToken.id}`);
     logMessage(ctx, client.tenant.id, {

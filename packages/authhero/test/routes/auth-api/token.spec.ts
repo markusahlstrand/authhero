@@ -24,6 +24,28 @@ interface ErrorResponse {
 }
 
 describe("token", () => {
+  it("should set Cache-Control: no-store and Pragma: no-cache on token responses (RFC 6749 §5.1)", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const client = testClient(oauthApp, env);
+
+    const response = await client.oauth.token.$post(
+      // @ts-expect-error - testClient type requires both form and json
+      {
+        form: {
+          grant_type: "client_credentials",
+          client_id: "clientId",
+          client_secret: "clientSecret",
+          audience: "https://example.com",
+        },
+      },
+      { headers: { "tenant-id": "tenantId" } },
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(response.headers.get("pragma")).toBe("no-cache");
+  });
+
   describe("client_credentials", () => {
     it("should return an access token", async () => {
       const { oauthApp, env } = await getTestServer();
@@ -1337,6 +1359,65 @@ describe("token", () => {
         refresh_token: expect.any(String),
         id_token: expect.any(String),
       });
+    });
+
+    it("should return 400 invalid_grant when the refresh token belongs to a different client (RFC 6749 §6)", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const client = testClient(oauthApp, env);
+
+      await env.data.clients.create("tenantId", {
+        client_id: "otherClient",
+        client_secret: "otherClientSecret",
+        name: "Other Client",
+        callbacks: ["https://example.com/callback"],
+        allowed_logout_urls: ["https://example.com/callback"],
+        web_origins: ["https://example.com"],
+      });
+
+      const idle_expires_at = new Date(
+        Date.now() + 1000 * 60 * 60,
+      ).toISOString();
+
+      await env.data.refreshTokens.create("tenantId", {
+        id: "refreshTokenForOtherClient",
+        login_id: "loginSessionId",
+        user_id: "email|userId",
+        client_id: "otherClient",
+        resource_servers: [
+          {
+            audience: "http://example.com",
+            scopes: "openid",
+          },
+        ],
+        device: {
+          last_ip: "",
+          initial_ip: "",
+          last_user_agent: "",
+          initial_user_agent: "",
+          initial_asn: "",
+          last_asn: "",
+        },
+        rotating: false,
+        idle_expires_at,
+        expires_at: idle_expires_at,
+      });
+
+      const response = await client.oauth.token.$post(
+        // @ts-expect-error - testClient type requires both form and json
+        {
+          form: {
+            grant_type: "refresh_token",
+            refresh_token: "refreshTokenForOtherClient",
+            client_id: "clientId",
+            client_secret: "clientSecret",
+          },
+        },
+        { headers: { "tenant-id": "tenantId" } },
+      );
+
+      expect(response.status).toBe(400);
+      const body = (await response.json()) as ErrorResponse;
+      expect(body.error).toBe("invalid_grant");
     });
 
     it("should return a 403 if the client_secret is wrong in refresh token request", async () => {
