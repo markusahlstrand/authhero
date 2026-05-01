@@ -74,7 +74,7 @@ export async function refreshTokenGrant(
     });
     throw new JSONHTTPException(400, {
       error: "invalid_grant",
-      error_description: "Refresh token was not issued to this client",
+      error_description: "Invalid grant",
     });
   } else if (refreshToken.revoked_at) {
     appendLog(ctx, `Refresh token has been revoked: ${refreshToken.id}`);

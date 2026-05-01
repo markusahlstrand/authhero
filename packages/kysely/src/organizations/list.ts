@@ -49,10 +49,11 @@ export function list(db: Kysely<Database>) {
     // Clamp pagination inputs so negative or non-finite values cannot
     // produce bad SQL. take wins over per_page when both are supplied.
     const rawPerPage = params?.take ?? params?.per_page;
-    const perPage =
-      typeof rawPerPage === "number" && Number.isFinite(rawPerPage) && rawPerPage > 0
+    const normalized =
+      typeof rawPerPage === "number" && Number.isFinite(rawPerPage)
         ? Math.floor(rawPerPage)
-        : 10;
+        : NaN;
+    const perPage = normalized >= 1 ? normalized : 10;
 
     let offset = 0;
     if (params?.from !== undefined) {
