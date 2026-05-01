@@ -1156,7 +1156,7 @@ describe("token", () => {
       expect(payload.scope).toBe(originalScopes);
     });
 
-    it("should return a 400 for a expired refresh token", async () => {
+    it("should return a 403 for a expired refresh token (auth0_conformant default)", async () => {
       const { oauthApp, env } = await getTestServer();
       const client = testClient(oauthApp, env);
 
@@ -1195,6 +1195,63 @@ describe("token", () => {
         { headers: { "tenant-id": "tenantId" } },
       );
 
+      expect(response.status).toBe(403);
+      const body = (await response.json()) as ErrorResponse;
+      expect(body).toEqual({
+        error: "invalid_grant",
+        error_description: "Refresh token has expired",
+      });
+    });
+
+    it("should return 400 invalid_grant for an expired refresh token when client.auth0_conformant=false (RFC 6749 §5.2)", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const client = testClient(oauthApp, env);
+
+      await env.data.clients.create("tenantId", {
+        client_id: "rfcClient",
+        client_secret: "rfcClientSecret",
+        name: "RFC Client",
+        callbacks: ["https://example.com/callback"],
+        allowed_logout_urls: ["https://example.com/callback"],
+        web_origins: ["https://example.com"],
+        auth0_conformant: false,
+      });
+
+      await env.data.refreshTokens.create("tenantId", {
+        id: "refreshTokenRfcExpired",
+        login_id: "loginSessionId",
+        user_id: "email|userId",
+        client_id: "rfcClient",
+        resource_servers: [
+          {
+            audience: "http://example.com",
+            scopes: "openid",
+          },
+        ],
+        device: {
+          last_ip: "",
+          initial_ip: "",
+          last_user_agent: "",
+          initial_user_agent: "",
+          initial_asn: "",
+          last_asn: "",
+        },
+        rotating: false,
+        expires_at: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+      });
+
+      const response = await client.oauth.token.$post(
+        // @ts-expect-error - testClient type requires both form and json
+        {
+          form: {
+            grant_type: "refresh_token",
+            refresh_token: "refreshTokenRfcExpired",
+            client_id: "rfcClient",
+          },
+        },
+        { headers: { "tenant-id": "tenantId" } },
+      );
+
       expect(response.status).toBe(400);
       const body = (await response.json()) as ErrorResponse;
       expect(body).toEqual({
@@ -1203,7 +1260,7 @@ describe("token", () => {
       });
     });
 
-    it("should return a 400 for a idle expired refresh token", async () => {
+    it("should return a 403 for a idle expired refresh token (auth0_conformant default)", async () => {
       const { oauthApp, env } = await getTestServer();
       const client = testClient(oauthApp, env);
 
@@ -1242,7 +1299,7 @@ describe("token", () => {
         { headers: { "tenant-id": "tenantId" } },
       );
 
-      expect(response.status).toBe(400);
+      expect(response.status).toBe(403);
       const body = (await response.json()) as ErrorResponse;
       expect(body).toEqual({
         error: "invalid_grant",
@@ -1361,7 +1418,7 @@ describe("token", () => {
       });
     });
 
-    it("should return 400 invalid_grant when the refresh token belongs to a different client (RFC 6749 §6)", async () => {
+    it("should return 403 invalid_grant when the refresh token belongs to a different client (auth0_conformant default)", async () => {
       const { oauthApp, env } = await getTestServer();
       const client = testClient(oauthApp, env);
 
@@ -1410,6 +1467,68 @@ describe("token", () => {
             refresh_token: "refreshTokenForOtherClient",
             client_id: "clientId",
             client_secret: "clientSecret",
+          },
+        },
+        { headers: { "tenant-id": "tenantId" } },
+      );
+
+      expect(response.status).toBe(403);
+      const body = (await response.json()) as ErrorResponse;
+      expect(body.error).toBe("invalid_grant");
+    });
+
+    it("should return 400 invalid_grant on cross-client refresh when requesting client.auth0_conformant=false (RFC 6749 §6)", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const client = testClient(oauthApp, env);
+
+      // Requesting client opts out of Auth0 behavior — expect strict RFC 400.
+      await env.data.clients.create("tenantId", {
+        client_id: "rfcClient",
+        client_secret: "rfcClientSecret",
+        name: "RFC Client",
+        callbacks: ["https://example.com/callback"],
+        allowed_logout_urls: ["https://example.com/callback"],
+        web_origins: ["https://example.com"],
+        auth0_conformant: false,
+      });
+
+      // Refresh token was issued to a different client (the default test client).
+      const idle_expires_at = new Date(
+        Date.now() + 1000 * 60 * 60,
+      ).toISOString();
+
+      await env.data.refreshTokens.create("tenantId", {
+        id: "refreshTokenForDefaultClient",
+        login_id: "loginSessionId",
+        user_id: "email|userId",
+        client_id: "clientId",
+        resource_servers: [
+          {
+            audience: "http://example.com",
+            scopes: "openid",
+          },
+        ],
+        device: {
+          last_ip: "",
+          initial_ip: "",
+          last_user_agent: "",
+          initial_user_agent: "",
+          initial_asn: "",
+          last_asn: "",
+        },
+        rotating: false,
+        idle_expires_at,
+        expires_at: idle_expires_at,
+      });
+
+      const response = await client.oauth.token.$post(
+        // @ts-expect-error - testClient type requires both form and json
+        {
+          form: {
+            grant_type: "refresh_token",
+            refresh_token: "refreshTokenForDefaultClient",
+            client_id: "rfcClient",
+            client_secret: "rfcClientSecret",
           },
         },
         { headers: { "tenant-id": "tenantId" } },

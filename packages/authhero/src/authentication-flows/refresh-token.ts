@@ -52,13 +52,17 @@ export async function refreshTokenGrant(
     params.refresh_token,
   );
 
+  // Auth0 returns 403 for invalid_grant on the token endpoint; RFC 6749 §5.2
+  // mandates 400. Gate on the client's auth0_conformant flag (default true).
+  const invalidGrantStatus = client.auth0_conformant === false ? 400 : 403;
+
   if (!refreshToken) {
     appendLog(ctx, `Invalid refresh token: ${params.refresh_token}`);
     logMessage(ctx, client.tenant.id, {
       type: LogTypes.FAILED_EXCHANGE_REFRESH_TOKEN_FOR_ACCESS_TOKEN,
       description: "Invalid refresh token",
     });
-    throw new JSONHTTPException(400, {
+    throw new JSONHTTPException(invalidGrantStatus, {
       error: "invalid_grant",
       error_description: "Invalid refresh token",
     });
@@ -72,7 +76,7 @@ export async function refreshTokenGrant(
       description: "Refresh token was not issued to this client",
       userId: refreshToken.user_id,
     });
-    throw new JSONHTTPException(400, {
+    throw new JSONHTTPException(invalidGrantStatus, {
       error: "invalid_grant",
       error_description: "Invalid grant",
     });
@@ -83,7 +87,7 @@ export async function refreshTokenGrant(
       description: "Refresh token has been revoked",
       userId: refreshToken.user_id,
     });
-    throw new JSONHTTPException(400, {
+    throw new JSONHTTPException(invalidGrantStatus, {
       error: "invalid_grant",
       error_description: "Refresh token has been revoked",
     });
@@ -99,7 +103,7 @@ export async function refreshTokenGrant(
       description: "Refresh token has expired",
       userId: refreshToken.user_id,
     });
-    throw new JSONHTTPException(400, {
+    throw new JSONHTTPException(invalidGrantStatus, {
       error: "invalid_grant",
       error_description: "Refresh token has expired",
     });
