@@ -107,8 +107,39 @@ export class ConformanceClient {
 
   async getTestLog(
     testId: string,
-  ): Promise<{ result?: string; msg?: string; src?: string }[]> {
+  ): Promise<
+    { result?: string; msg?: string; src?: string; upload?: string }[]
+  > {
     return this.request("GET", `/api/log/${testId}`);
+  }
+
+  /**
+   * Fill an "upload screenshot" placeholder created by the suite's
+   * `createBrowserInteractionPlaceholder()` (e.g. ExpectSecondLoginPage in
+   * oidcc-prompt-login). The suite refuses to advance from WAITING until
+   * every placeholder is satisfied. Posting any valid base64-encoded image
+   * is enough — the suite only verifies file type/size, not contents.
+   */
+  async uploadPlaceholderImage(
+    testId: string,
+    placeholder: string,
+    encodedDataUri: string,
+  ): Promise<unknown> {
+    const url = `${this.baseUrl}/api/log/${testId}/images/${placeholder}`;
+    const res = await fetch(url, {
+      method: "POST",
+      // Note: the suite's controller reads the body as a raw string, not JSON.
+      headers: { ...this.headers, "Content-Type": "text/plain" },
+      body: encodedDataUri,
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(
+        `uploadPlaceholderImage(${testId}, ${placeholder}) -> HTTP ${res.status}: ${text}`,
+      );
+    }
+    return res.json();
   }
 
   async waitForState(

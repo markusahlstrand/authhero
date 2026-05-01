@@ -113,6 +113,13 @@ export const wellKnownRoutes = new OpenAPIHono<{
           "token id_token",
           "code token id_token",
         ],
+        grant_types_supported: [
+          "authorization_code",
+          "client_credentials",
+          "refresh_token",
+          "implicit",
+          "http://auth0.com/oauth/grant-type/passwordless/otp",
+        ],
         code_challenge_methods_supported: ["S256", "plain"],
         response_modes_supported: ["query", "fragment", "form_post"],
         subject_types_supported: ["public"],
@@ -143,7 +150,7 @@ export const wellKnownRoutes = new OpenAPIHono<{
           "sub",
         ],
         request_uri_parameter_supported: false,
-        request_parameter_supported: false,
+        request_parameter_supported: true,
         token_endpoint_auth_signing_alg_values_supported: [
           "RS256",
           "RS384",

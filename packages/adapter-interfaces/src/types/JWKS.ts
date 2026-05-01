@@ -37,6 +37,7 @@ export const openIDConfigurationSchema = z.object({
   revocation_endpoint: z.string(),
   scopes_supported: z.array(z.string()),
   response_types_supported: z.array(z.string()),
+  grant_types_supported: z.array(z.string()).optional(),
   code_challenge_methods_supported: z.array(z.string()),
   response_modes_supported: z.array(z.string()),
   subject_types_supported: z.array(z.string()),

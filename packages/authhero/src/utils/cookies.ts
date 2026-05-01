@@ -8,6 +8,36 @@ function getCookieName(tenant_id: string) {
   return `${tenant_id}-${SILENT_COOKIE_NAME}`;
 }
 
+/**
+ * Detect dev-mode hostnames where Secure cookies should be skipped.
+ *
+ * Browsers reject `Secure` cookies over plain HTTP, and `SameSite=None`
+ * requires `Secure`, so on `localhost` / `host.docker.internal` / loopback IPs
+ * we degrade to `Secure=false` + `SameSite=Lax`. Without this, the OIDC
+ * conformance suite (which talks to AuthHero over `http://host.docker.internal:3000`)
+ * cannot persist a session cookie between the two `/authorize` calls in
+ * `oidcc-prompt-none-logged-in`.
+ */
+function isInsecureDevHost(host: string | undefined): boolean {
+  if (!host) return false;
+  // Handle IPv6 in brackets like [::1]:8080; otherwise strip the port.
+  let hostname: string;
+  if (host.startsWith("[")) {
+    const end = host.indexOf("]");
+    if (end === -1) return false;
+    hostname = host.slice(1, end);
+  } else {
+    hostname = host.split(":")[0] ?? "";
+  }
+  if (!hostname) return false;
+  return (
+    hostname === "localhost" ||
+    hostname === "host.docker.internal" ||
+    hostname === "::1" ||
+    /^127(?:\.\d{1,3}){3}$/.test(hostname)
+  );
+}
+
 function getWildcardDomain(host: string) {
   // Return undefined for empty hostnames
   if (!host) {
@@ -92,16 +122,21 @@ export function getAuthCookie(
  */
 export function clearAuthCookie(tenant_id: string, hostname?: string) {
   const cookieName = getCookieName(tenant_id);
+  const insecure = isInsecureDevHost(hostname);
   const baseOptions = {
     path: "/",
     httpOnly: true,
-    secure: true,
+    secure: !insecure,
     maxAge: 0,
-    sameSite: "none" as const,
+    sameSite: (insecure ? "lax" : "none") as "lax" | "none",
     domain: hostname ? getWildcardDomain(hostname) : undefined,
   };
 
   // Double-Clear: First clear non-partitioned cookie, then partitioned
+  // (skip the partitioned variant on insecure hosts where it would be rejected).
+  if (insecure) {
+    return [serialize(cookieName, "", baseOptions)];
+  }
   return [
     serialize(cookieName, "", baseOptions),
     serialize(cookieName, "", { ...baseOptions, partitioned: true }),
@@ -121,15 +156,26 @@ export function serializeAuthCookie(
   hostname?: string,
 ) {
   const cookieName = getCookieName(tenant_id);
+  const insecure = isInsecureDevHost(hostname);
   const baseOptions = {
     path: "/",
     httpOnly: true,
-    secure: true,
-    sameSite: "none" as const,
+    secure: !insecure,
+    sameSite: (insecure ? "lax" : "none") as "lax" | "none",
     domain: hostname ? getWildcardDomain(hostname) : undefined,
   };
 
-  // Double-Clear: First clear non-partitioned cookie, then set partitioned
+  // On insecure dev hosts, browsers reject Secure/Partitioned cookies — set
+  // a single non-partitioned cookie. In production keep the Double-Clear +
+  // Partitioned migration behaviour.
+  if (insecure) {
+    return [
+      serialize(cookieName, value, {
+        ...baseOptions,
+        maxAge: SILENT_AUTH_MAX_AGE_IN_SECONDS,
+      }),
+    ];
+  }
   return [
     serialize(cookieName, "", { ...baseOptions, maxAge: 0 }),
     serialize(cookieName, value, {

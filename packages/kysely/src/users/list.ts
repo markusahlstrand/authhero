@@ -1,10 +1,41 @@
 import { Kysely } from "kysely";
-import { luceneFilter } from "../helpers/filter";
+import { luceneFilter, sanitizeLuceneQuery } from "../helpers/filter";
 import { removeNullProperties } from "../helpers/remove-nulls";
 import { userToIdentity } from "./user-to-identity";
 import { Database } from "../db";
 import { ListParams, ListUsersResponse } from "@authhero/adapter-interfaces";
 import getCountAsInt from "../utils/getCountAsInt";
+
+// Fields users.list() accepts in `q`. Excludes `tenant_id` so a clause like
+// `q=tenant_id:other` cannot cross tenant boundaries; everything else here
+// maps to a real column on the users table.
+const ALLOWED_Q_FIELDS = [
+  "user_id",
+  "email",
+  "email_verified",
+  "username",
+  "phone_number",
+  "phone_verified",
+  "name",
+  "given_name",
+  "family_name",
+  "nickname",
+  "picture",
+  "locale",
+  "linked_to",
+  "provider",
+  "connection",
+  "is_social",
+  "last_ip",
+  "last_login",
+  "login_count",
+  "created_at",
+  "updated_at",
+];
+
+// luceneFilter routes bare-string tokens through this list (LIKE search).
+// Keep narrow — every column here is publicly searchable via `q`.
+const SEARCHABLE_COLUMNS = ["email", "name", "phone_number", "user_id"];
 
 export function list(db: Kysely<Database>) {
   return async (
@@ -15,8 +46,13 @@ export function list(db: Kysely<Database>) {
 
     let query = db.selectFrom("users").where("users.tenant_id", "=", tenantId);
     if (q) {
-      // NOTE - this isn't faithful to Auth0 as Auth0 does this in the dashboard - we can filter by any field on the Auth0 mgmt api
-      query = luceneFilter(db, query, q, ["email", "name", "phone_number"]);
+      // Sanitize first so only whitelisted fields reach luceneFilter;
+      // otherwise a clause like `q=tenant_id:other` would emit SQL against
+      // arbitrary columns and could cross tenant boundaries.
+      const sanitized = sanitizeLuceneQuery(q, ALLOWED_Q_FIELDS);
+      if (sanitized) {
+        query = luceneFilter(db, query, sanitized, SEARCHABLE_COLUMNS);
+      }
     }
 
     if (sort && sort.sort_by) {

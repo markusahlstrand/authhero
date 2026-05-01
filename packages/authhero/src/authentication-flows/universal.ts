@@ -67,6 +67,13 @@ export async function universalAuth({
     session = undefined;
   }
 
+  // OIDC Core 3.1.2.1: prompt=login forces re-authentication, even when a
+  // session exists. The prompt parameter is space-delimited and may contain
+  // multiple values (e.g. "login consent").
+  if (authParams.prompt?.split(" ").includes("login")) {
+    session = undefined;
+  }
+
   const loginSession = await ctx.env.data.loginSessions.create(
     client.tenant.id,
     {
