@@ -7,13 +7,21 @@ export const PLAN_VARIANT = {
   client_registration: "static_client",
 } as const;
 
-export function buildPlanConfig() {
+export const LOGOUT_PLAN_NAME =
+  "oidcc-rp-initiated-logout-certification-test-plan";
+
+export const LOGOUT_PLAN_VARIANT = {
+  client_registration: "static_client",
+  response_type: "code",
+} as const;
+
+function buildSharedClientConfig(label: string) {
   const issuer = env.authheroIssuer.endsWith("/")
     ? env.authheroIssuer
     : `${env.authheroIssuer}/`;
   return {
     alias: env.alias,
-    description: `AuthHero local OIDC Basic — ${env.alias}`,
+    description: `AuthHero local ${label} — ${env.alias}`,
     server: {
       discoveryUrl: `${issuer}.well-known/openid-configuration`,
     },
@@ -36,4 +44,12 @@ export function buildPlanConfig() {
     consent: {},
     browser: [],
   };
+}
+
+export function buildPlanConfig() {
+  return buildSharedClientConfig("OIDC Basic");
+}
+
+export function buildLogoutPlanConfig() {
+  return buildSharedClientConfig("OIDC RP-Initiated Logout");
 }

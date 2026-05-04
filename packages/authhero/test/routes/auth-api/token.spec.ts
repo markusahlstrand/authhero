@@ -956,6 +956,176 @@ describe("token", () => {
         expect(body).toEqual({ message: "Invalid client credentials" });
       });
     });
+
+    // RFC 7636 / OAuth 2.1: confidential clients MAY (and OAuth 2.1
+    // RECOMMENDS) layer PKCE on top of client_secret authentication. See
+    // GitHub issue #785.
+    describe("authorization_code with client_secret + PKCE (RFC 7636 / OAuth 2.1)", () => {
+      it("should accept client_secret and code_verifier in the same request for a confidential client", async () => {
+        const { oauthApp, env } = await getTestServer();
+        const client = testClient(oauthApp, env);
+
+        const codeVerifier =
+          "code_verifier,code_verifier,code_verifier,code_verifier";
+        const codeChallenge = await computeCodeChallenge(codeVerifier, "S256");
+
+        const loginSesssion = await env.data.loginSessions.create("tenantId", {
+          expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+          csrf_token: "csrfToken",
+          authParams: {
+            client_id: "clientId",
+            username: "foo@example.com",
+            scope: "",
+            audience: "http://example.com",
+          },
+        });
+
+        await env.data.codes.create("tenantId", {
+          code_type: "authorization_code",
+          user_id: "email|userId",
+          code_id: "pkce-confidential-success",
+          login_id: loginSesssion.id,
+          expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+          code_challenge: codeChallenge,
+          code_challenge_method: CodeChallengeMethod.S256,
+        });
+
+        const response = await client.oauth.token.$post(
+          // @ts-expect-error - testClient type requires both form and json
+          {
+            form: {
+              grant_type: "authorization_code",
+              code: "pkce-confidential-success",
+              redirect_uri: "http://localhost:3000/callback",
+              client_id: "clientId",
+              client_secret: "clientSecret",
+              code_verifier: codeVerifier,
+            },
+          },
+          {
+            headers: {
+              "tenant-id": "tenantId",
+            },
+          },
+        );
+
+        expect(response.status).toBe(200);
+        const body = (await response.json()) as TokenResponse;
+
+        const accessToken = parseJWT(body.access_token);
+        expect(accessToken?.payload).toMatchObject({
+          sub: "email|userId",
+          iss: "http://localhost:3000/",
+          aud: "http://example.com",
+        });
+      });
+
+      it("should reject the request when client_secret is wrong even if code_verifier is correct", async () => {
+        const { oauthApp, env } = await getTestServer();
+        const client = testClient(oauthApp, env);
+
+        const codeVerifier =
+          "code_verifier,code_verifier,code_verifier,code_verifier";
+        const codeChallenge = await computeCodeChallenge(codeVerifier, "S256");
+
+        const loginSesssion = await env.data.loginSessions.create("tenantId", {
+          expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+          csrf_token: "csrfToken",
+          authParams: {
+            client_id: "clientId",
+            username: "foo@example.com",
+            scope: "",
+            audience: "http://example.com",
+          },
+        });
+
+        await env.data.codes.create("tenantId", {
+          code_type: "authorization_code",
+          user_id: "email|userId",
+          code_id: "pkce-confidential-bad-secret",
+          login_id: loginSesssion.id,
+          expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+          code_challenge: codeChallenge,
+          code_challenge_method: CodeChallengeMethod.S256,
+        });
+
+        const response = await client.oauth.token.$post(
+          // @ts-expect-error - testClient type requires both form and json
+          {
+            form: {
+              grant_type: "authorization_code",
+              code: "pkce-confidential-bad-secret",
+              redirect_uri: "http://localhost:3000/callback",
+              client_id: "clientId",
+              client_secret: "wrongSecret",
+              code_verifier: codeVerifier,
+            },
+          },
+          {
+            headers: {
+              "tenant-id": "tenantId",
+            },
+          },
+        );
+
+        expect(response.status).toBe(403);
+        const body = await response.json();
+        expect(body).toEqual({ message: "Invalid client credentials" });
+      });
+
+      it("should reject the request when code_verifier is wrong even if client_secret is correct", async () => {
+        const { oauthApp, env } = await getTestServer();
+        const client = testClient(oauthApp, env);
+
+        const codeVerifier =
+          "code_verifier,code_verifier,code_verifier,code_verifier";
+        const codeChallenge = await computeCodeChallenge(codeVerifier, "S256");
+
+        const loginSesssion = await env.data.loginSessions.create("tenantId", {
+          expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+          csrf_token: "csrfToken",
+          authParams: {
+            client_id: "clientId",
+            username: "foo@example.com",
+            scope: "",
+            audience: "http://example.com",
+          },
+        });
+
+        await env.data.codes.create("tenantId", {
+          code_type: "authorization_code",
+          user_id: "email|userId",
+          code_id: "pkce-confidential-bad-verifier",
+          login_id: loginSesssion.id,
+          expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+          code_challenge: codeChallenge,
+          code_challenge_method: CodeChallengeMethod.S256,
+        });
+
+        const response = await client.oauth.token.$post(
+          // @ts-expect-error - testClient type requires both form and json
+          {
+            form: {
+              grant_type: "authorization_code",
+              code: "pkce-confidential-bad-verifier",
+              redirect_uri: "http://localhost:3000/callback",
+              client_id: "clientId",
+              client_secret: "clientSecret",
+              code_verifier: "wrong_verifier_wrong_verifier_wrong_verifier_xx",
+            },
+          },
+          {
+            headers: {
+              "tenant-id": "tenantId",
+            },
+          },
+        );
+
+        expect(response.status).toBe(403);
+        const body = await response.json();
+        expect(body).toEqual({ message: "Invalid client credentials" });
+      });
+    });
   });
 
   describe("refresh_token", () => {

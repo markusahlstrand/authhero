@@ -20,6 +20,7 @@ AuthHero is built on open identity standards. This section tracks every spec Aut
 | [RFC 6749 — OAuth 2.0 Authorization Framework](/standards/rfc-6749) | Partial |
 | [RFC 6750 — Bearer Token Usage](/standards/rfc-6750) | Full |
 | [RFC 7636 — PKCE](/standards/rfc-7636) | Full |
+| [RFC 7009 — Token Revocation](/standards/rfc-7009) | Partial |
 | [RFC 7591 — Dynamic Client Registration](/standards/rfc-7591) | Partial |
 | [RFC 7592 — Dynamic Client Registration Management](/standards/rfc-7592) | Full |
 
@@ -53,7 +54,6 @@ AuthHero is verified against the [OpenID Foundation conformance suite](https://g
 
 A few endpoints are advertised in [`/.well-known/openid-configuration`](/standards/openid-connect-discovery) but are not yet wired up:
 
-- **RFC 7009 — Token Revocation** — `revocation_endpoint` is advertised but not yet routed.
 - **RFC 8628 — Device Authorization Grant** — `device_authorization_endpoint` is advertised but not yet routed.
 - **RFC 8693 — Token Exchange** — `act`-claim based impersonation exists internally, but no `urn:ietf:params:oauth:grant-type:token-exchange` endpoint is exposed.
 

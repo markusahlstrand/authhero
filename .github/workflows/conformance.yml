@@ -44,6 +44,7 @@ jobs:
       - name: Build workspace packages
         run: |
           pnpm interfaces build
+          pnpm saml build
           pnpm kysely build
           pnpm widget build
           pnpm authhero build

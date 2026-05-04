@@ -134,6 +134,88 @@ describe("jwks", () => {
     );
   });
 
+  it("should NOT advertise end_session_endpoint by default (OIDC RP-Initiated Logout discovery flag off)", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const client = testClient(oauthApp, env);
+
+    const response = await client[".well-known"]["openid-configuration"].$get(
+      {
+        param: {},
+      },
+      {
+        headers: {
+          "tenant-id": "tenantId",
+        },
+      },
+    );
+
+    expect(response.status).toBe(200);
+
+    const body = openIDConfigurationSchema.parse(await response.json());
+    expect(body.end_session_endpoint).toBeUndefined();
+  });
+
+  it("should advertise end_session_endpoint when oidc_logout.rp_logout_end_session_endpoint_discovery is enabled", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const client = testClient(oauthApp, env);
+
+    await env.data.tenants.update("tenantId", {
+      oidc_logout: {
+        rp_logout_end_session_endpoint_discovery: true,
+      },
+    });
+
+    const response = await client[".well-known"]["openid-configuration"].$get(
+      {
+        param: {},
+      },
+      {
+        headers: {
+          "tenant-id": "tenantId",
+        },
+      },
+    );
+
+    expect(response.status).toBe(200);
+
+    const body = openIDConfigurationSchema.parse(await response.json());
+    expect(body.end_session_endpoint).toBe("http://localhost:3000/oidc/logout");
+  });
+
+  it("should advertise end_session_endpoint with the custom-domain host when the flag is enabled", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const client = testClient(oauthApp, env);
+
+    await env.data.tenants.update("tenantId", {
+      oidc_logout: {
+        rp_logout_end_session_endpoint_discovery: true,
+      },
+    });
+    await env.data.customDomains.create("tenantId", {
+      domain: "login.example.com",
+      custom_domain_id: "custom-domain-id",
+      type: "auth0_managed_certs",
+    });
+
+    const response = await client[".well-known"]["openid-configuration"].$get(
+      {
+        param: {},
+      },
+      {
+        headers: {
+          host: "login.example.com",
+        },
+      },
+    );
+
+    expect(response.status).toBe(200);
+
+    const body = openIDConfigurationSchema.parse(await response.json());
+    expect(body.end_session_endpoint).toBe(
+      "https://login.example.com/oidc/logout",
+    );
+  });
+
   it("should return openid-configuration with custom domain URLs when accessed via custom domain", async () => {
     const { oauthApp, env } = await getTestServer();
     const client = testClient(oauthApp, env);

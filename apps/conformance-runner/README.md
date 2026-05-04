@@ -42,10 +42,25 @@ pnpm conformance:run -- --grep "discovery"
 | Var | Default | Notes |
 |---|---|---|
 | `CONFORMANCE_BASE_URL` | `https://localhost.emobix.co.uk:8443` | Suite URL |
-| `AUTHHERO_BASE_URL` | `http://localhost:3000` | Auth-server URL (host-side) |
-| `AUTHHERO_ISSUER` | `http://host.docker.internal:3000/` | Issuer published to the suite — must be reachable from inside the suite's Docker container |
+| `AUTHHERO_BASE_URL` | `https://localhost:3000` (or `http://localhost:3000` when `HTTPS_ENABLED=false`) | Auth-server URL (host-side) |
+| `AUTHHERO_ISSUER` | `https://host.docker.internal:3000/` (or `http://...` when `HTTPS_ENABLED=false`) | Issuer published to the suite — must be reachable from inside the suite's Docker container |
+| `HTTPS_ENABLED` | `true` | If `true` (the default), runs the auth-server over HTTPS using a self-signed cert generated into `packages/create-authhero/auth-server/.certs/`. Required by stricter plans (e.g. RP-initiated logout) that mandate `https://` for every endpoint in the discovery document. globalSetup automatically imports the cert into the conformance suite container's JRE truststore (alias `authhero-local`) and restarts the suite container so it trusts the chain. Set to `false` to fall back to plain HTTP. |
 | `CONFORMANCE_USERNAME` | `admin` | Seeded user |
 | `CONFORMANCE_PASSWORD` | `password2` | Seeded password |
 | `CONFORMANCE_ALIAS` | `my-local-test` | Plan alias matching seeded callback URLs |
 | `ALLOW_WARNING` | unset | If set, modules finishing with `WARNING` pass instead of fail |
-| `SKIP_SETUP` | unset | If set, globalSetup skips `conformance:start`/`conformance:seed` (assumes already running) |
+| `SKIP_SETUP` | unset | If set, globalSetup skips `conformance:start`/`conformance:seed` (assumes already running). The cert-import step still runs when `HTTPS_ENABLED=true`. |
+
+### HTTPS mode (default)
+
+HTTPS is on by default. The first run generates a self-signed cert, imports it into the suite container's truststore, and restarts the suite container; subsequent runs are idempotent.
+
+```sh
+# Default — HTTPS enabled:
+pnpm conformance:run
+
+# Opt out (only the OIDC Basic plan; RP-initiated logout plans will fail):
+HTTPS_ENABLED=false pnpm conformance:run
+```
+
+Regenerate the cert by deleting `packages/create-authhero/auth-server/.certs/` (and removing the `authhero-local` alias from the suite's truststore: `docker exec conformance-suite-server-1 keytool -delete -alias authhero-local -keystore /opt/java/openjdk/lib/security/cacerts -storepass changeit`).

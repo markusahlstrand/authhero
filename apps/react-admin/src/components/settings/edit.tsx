@@ -92,7 +92,9 @@ export function SettingsEdit() {
         <TabbedForm.Tab label="Sessions Management">
           <BooleanInput
             source="sessions.oidc_logout_prompt_enabled"
-            label="Enable OIDC Logout Prompt"
+            label="RP-Initiated Logout End-User Confirmation"
+            helperText="Show an interstitial 'Are you sure you want to log out?' page when an RP redirects to end_session_endpoint. When off, users are logged out without confirmation. On by default."
+            defaultValue={true}
           />
         </TabbedForm.Tab>
 
@@ -326,6 +328,12 @@ export function SettingsEdit() {
 
         <TabbedForm.Tab label="Advanced">
           <Stack spacing={2}>
+            <BooleanInput
+              source="oidc_logout.rp_logout_end_session_endpoint_discovery"
+              label="RP-Initiated Logout End Session Endpoint Discovery"
+              helperText="Advertise end_session_endpoint in /.well-known/openid-configuration. Required for RP-Initiated Logout (OpenID Connect Session Management). Off by default."
+              defaultValue={false}
+            />
             <TextInput
               source="sandbox_version"
               label="Sandbox Version"

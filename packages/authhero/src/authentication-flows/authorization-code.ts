@@ -15,29 +15,16 @@ import { GrantFlowUserResult } from "src/types/GrantFlowResult";
 import { logMessage } from "../helpers/logging";
 import { getEnrichedClient } from "../helpers/client";
 
-export const authorizationCodeGrantParamsSchema = z
-  .object({
-    grant_type: z.literal("authorization_code"),
-    client_id: z.string(),
-    code: z.string(),
-    redirect_uri: z.string().optional(),
-    client_secret: z.string().optional(),
-    code_verifier: z.string().optional(),
-    organization: z.string().optional(),
-  })
-  .refine(
-    (data) => {
-      // Must have either client_secret (standard) or code_verifier (PKCE)
-      return (
-        ("client_secret" in data && !("code_verifier" in data)) ||
-        (!("client_secret" in data) && "code_verifier" in data)
-      );
-    },
-    {
-      message:
-        "Must provide either client_secret (standard flow) or code_verifier/code_verifier_mode (PKCE flow), but not both",
-    },
-  );
+// OAuth 2.1 / RFC 7636: client_secret and code_verifier are independent and may co-exist.
+export const authorizationCodeGrantParamsSchema = z.object({
+  grant_type: z.literal("authorization_code"),
+  client_id: z.string(),
+  code: z.string(),
+  redirect_uri: z.string().optional(),
+  client_secret: z.string().optional(),
+  code_verifier: z.string().optional(),
+  organization: z.string().optional(),
+});
 
 export type AuthorizationCodeGrantTypeParams = z.infer<
   typeof authorizationCodeGrantParamsSchema
@@ -136,8 +123,8 @@ export async function authorizationCodeGrantUser(
     }
   }
 
-  // Validate the secret or PKCE
-  if ("client_secret" in params) {
+  // OAuth 2.1 / RFC 7636: validate client_secret and PKCE independently — both may be present.
+  if (params.client_secret !== undefined) {
     // A temporary solution to handle cross tenant clients
     let defaultClient;
     try {
@@ -146,7 +133,6 @@ export async function authorizationCodeGrantUser(
       // DEFAULT_CLIENT may not exist
     }
 
-    // Code flow
     if (
       !safeCompare(client.client_secret, params.client_secret) &&
       !safeCompare(defaultClient?.client_secret, params.client_secret)
@@ -160,12 +146,20 @@ export async function authorizationCodeGrantUser(
         message: "Invalid client credentials",
       });
     }
-  } else if (
-    code.code_challenge &&
-    code.code_challenge_method &&
-    params.code_verifier
-  ) {
-    // PKCE flow
+  }
+
+  if (code.code_challenge && code.code_challenge_method) {
+    // RFC 7636 §4.5: if code_challenge was sent at /authorize, code_verifier is required.
+    if (!params.code_verifier) {
+      logMessage(ctx, client.tenant.id, {
+        type: LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN,
+        description: "Missing code_verifier",
+        userId: code.user_id,
+      });
+      throw new JSONHTTPException(403, {
+        message: "Invalid client credentials",
+      });
+    }
     const challenge = await computeCodeChallenge(
       params.code_verifier,
       code.code_challenge_method,
