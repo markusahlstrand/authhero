@@ -810,6 +810,8 @@ describe("token", () => {
           code_id: "123456",
           login_id: loginSesssion.id,
           expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+          code_challenge: codeChallenge,
+          code_challenge_method: CodeChallengeMethod.Plain,
         });
 
         const response = await client.oauth.token.$post(
@@ -849,6 +851,10 @@ describe("token", () => {
 
         const codeChallenge =
           "code_verifier,code_verifier,code_verifier,code_verifier";
+        const hashedChallenge = await computeCodeChallenge(
+          codeChallenge,
+          "S256",
+        );
 
         // Create the login session and code
         const loginSesssion = await env.data.loginSessions.create("tenantId", {
@@ -859,7 +865,7 @@ describe("token", () => {
             username: "foo@exampl.com",
             scope: "",
             audience: "http://example.com",
-            code_challenge: await computeCodeChallenge(codeChallenge, "S256"),
+            code_challenge: hashedChallenge,
             code_challenge_method: CodeChallengeMethod.S256,
           },
         });
@@ -870,6 +876,8 @@ describe("token", () => {
           code_id: "123456",
           login_id: loginSesssion.id,
           expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+          code_challenge: hashedChallenge,
+          code_challenge_method: CodeChallengeMethod.S256,
         });
 
         const response = await client.oauth.token.$post(
@@ -954,6 +962,58 @@ describe("token", () => {
         const body = await response.json();
 
         expect(body).toEqual({ message: "Invalid client credentials" });
+      });
+
+      it("should reject with 401 when code has no code_challenge and only code_verifier is supplied", async () => {
+        // Regression: a bare code_verifier is not proof of possession when the
+        // stored code carries no code_challenge — a public client must not be
+        // able to redeem a non-PKCE code without client_secret.
+        const { oauthApp, env } = await getTestServer();
+        const client = testClient(oauthApp, env);
+
+        const loginSesssion = await env.data.loginSessions.create("tenantId", {
+          expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+          csrf_token: "csrfToken",
+          authParams: {
+            client_id: "clientId",
+            username: "foo@example.com",
+            scope: "",
+            audience: "http://example.com",
+          },
+        });
+
+        await env.data.codes.create("tenantId", {
+          code_type: "authorization_code",
+          user_id: "email|userId",
+          code_id: "no-pkce-code",
+          login_id: loginSesssion.id,
+          expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+        });
+
+        const response = await client.oauth.token.$post(
+          // @ts-expect-error - testClient type requires both form and json
+          {
+            form: {
+              grant_type: "authorization_code",
+              code: "no-pkce-code",
+              redirect_uri: "http://localhost:3000/callback",
+              client_id: "clientId",
+              code_verifier:
+                "code_verifier,code_verifier,code_verifier,code_verifier",
+            },
+          },
+          {
+            headers: {
+              "tenant-id": "tenantId",
+            },
+          },
+        );
+
+        expect(response.status).toBe(401);
+        const body = await response.json();
+        expect(body).toEqual({
+          message: "client_secret or code_verifier is required",
+        });
       });
     });
 

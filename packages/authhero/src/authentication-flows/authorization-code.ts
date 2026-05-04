@@ -129,9 +129,14 @@ export async function authorizationCodeGrantUser(
     }
   }
 
-  // Belt-and-suspenders: the schema refine already enforces this, but guard the handler
-  // too so the invariant survives any future caller that skips schema parsing.
-  if (!params.client_secret && !params.code_verifier) {
+  // Reject exchanges with no verifiable proof of possession: a confidential client
+  // must supply client_secret; a public client must supply code_verifier AND the
+  // stored code must carry a code_challenge issued at /authorize. A bare
+  // code_verifier against a non-PKCE code is not proof and must not authenticate.
+  if (
+    !params.client_secret &&
+    !(params.code_verifier && code.code_challenge)
+  ) {
     logMessage(ctx, client.tenant.id, {
       type: LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN,
       description: "Missing client_secret and code_verifier",
