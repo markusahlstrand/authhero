@@ -74,11 +74,25 @@ export const revokeRoutes = new OpenAPIHono<{
       });
     }
 
-    const client = await getEnrichedClient(
-      ctx.env,
-      params.client_id,
-      ctx.var.tenant_id,
-    );
+    // Mask "client not found" (403 from getEnrichedClient) as 401 invalid_client
+    // so an unknown client_id is indistinguishable from a wrong client_secret —
+    // otherwise the response codes form an existence oracle.
+    let client;
+    try {
+      client = await getEnrichedClient(
+        ctx.env,
+        params.client_id,
+        ctx.var.tenant_id,
+      );
+    } catch (err) {
+      if (err instanceof JSONHTTPException && err.status === 403) {
+        throw new JSONHTTPException(401, {
+          error: "invalid_client",
+          error_description: "Client authentication failed",
+        });
+      }
+      throw err;
+    }
 
     // RFC 7009 §2.1 — confidential clients MUST authenticate. Mirror the token
     // endpoint: reject only when a wrong secret is supplied; missing secret is

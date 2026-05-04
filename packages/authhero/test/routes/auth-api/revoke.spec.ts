@@ -123,6 +123,27 @@ describe("/oauth/revoke", () => {
     expect(response.status).toBe(200);
   });
 
+  it("returns 401 invalid_client when client_id is unknown (no existence oracle)", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const client = testClient(oauthApp, env);
+
+    const response = await client.oauth.revoke.$post(
+      // @ts-expect-error - testClient type requires both form and json
+      {
+        form: {
+          token: "anything",
+          client_id: "doesNotExist",
+          client_secret: "whatever",
+        },
+      },
+      { headers: { "tenant-id": "tenantId" } },
+    );
+
+    expect(response.status).toBe(401);
+    const body = (await response.json()) as ErrorResponse;
+    expect(body.error).toBe("invalid_client");
+  });
+
   it("returns 401 invalid_client when client_secret is wrong", async () => {
     const { oauthApp, env } = await getTestServer();
     const client = testClient(oauthApp, env);

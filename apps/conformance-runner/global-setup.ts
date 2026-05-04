@@ -61,9 +61,17 @@ function run(cmd: string, args: string[]): void {
   }
 }
 
+function parseSha256(output: string): string | null {
+  const match = output.match(/SHA-?256:\s*([0-9A-Fa-f:]+)/);
+  const captured = match?.[1];
+  return captured ? captured.toUpperCase() : null;
+}
+
 // Ensure the suite's JRE truststore trusts the auth-server's self-signed
-// cert. Idempotent: skips when the alias already exists. The suite is
-// restarted afterwards so the running JVM picks up the new entry.
+// cert. Compares the SHA-256 fingerprint of the alias to the on-disk pem so
+// a regenerated localhost.pem replaces the stale entry instead of being
+// silently shadowed by it. The suite is restarted whenever the truststore
+// changes so the running JVM picks up the new entry.
 function trustAuthHeroCertInSuite(): void {
   if (!fs.existsSync(AUTHHERO_CERT_PATH)) {
     throw new Error(
@@ -89,6 +97,37 @@ function trustAuthHeroCertInSuite(): void {
     );
   }
 
+  // Stage the pem in the container so keytool can fingerprint it.
+  run("docker", [
+    "cp",
+    AUTHHERO_CERT_PATH,
+    `${SUITE_SERVER_CONTAINER}:/tmp/authhero-local.pem`,
+  ]);
+
+  const printcert = spawnSync(
+    "docker",
+    [
+      "exec",
+      SUITE_SERVER_CONTAINER,
+      "keytool",
+      "-printcert",
+      "-file",
+      "/tmp/authhero-local.pem",
+    ],
+    { encoding: "utf-8" },
+  );
+  if (printcert.status !== 0) {
+    throw new Error(
+      `Failed to read fingerprint of staged pem: ${printcert.stderr || printcert.stdout}`,
+    );
+  }
+  const pemFingerprint = parseSha256(printcert.stdout);
+  if (!pemFingerprint) {
+    throw new Error(
+      `Could not parse SHA-256 from keytool -printcert output: ${printcert.stdout}`,
+    );
+  }
+
   const list = spawnSync(
     "docker",
     [
@@ -96,6 +135,7 @@ function trustAuthHeroCertInSuite(): void {
       SUITE_SERVER_CONTAINER,
       "keytool",
       "-list",
+      "-v",
       "-alias",
       SUITE_TRUST_ALIAS,
       "-keystore",
@@ -105,21 +145,37 @@ function trustAuthHeroCertInSuite(): void {
     ],
     { encoding: "utf-8" },
   );
-  if (list.status === 0) {
+  const storedFingerprint =
+    list.status === 0 ? parseSha256(list.stdout) : null;
+
+  if (storedFingerprint === pemFingerprint) {
     console.log(
-      `[conformance-runner] Suite already trusts authhero-local cert — skipping import.`,
+      `[conformance-runner] Suite already trusts authhero-local cert (SHA-256 match) — skipping import.`,
     );
     return;
+  }
+
+  if (storedFingerprint !== null) {
+    console.log(
+      `[conformance-runner] Stale authhero-local cert in suite truststore — deleting old alias.`,
+    );
+    run("docker", [
+      "exec",
+      SUITE_SERVER_CONTAINER,
+      "keytool",
+      "-delete",
+      "-alias",
+      SUITE_TRUST_ALIAS,
+      "-keystore",
+      SUITE_TRUSTSTORE,
+      "-storepass",
+      SUITE_TRUSTSTORE_PASSWORD,
+    ]);
   }
 
   console.log(
     `[conformance-runner] Importing authhero-local cert into suite truststore...`,
   );
-  run("docker", [
-    "cp",
-    AUTHHERO_CERT_PATH,
-    `${SUITE_SERVER_CONTAINER}:/tmp/authhero-local.pem`,
-  ]);
   run("docker", [
     "exec",
     SUITE_SERVER_CONTAINER,

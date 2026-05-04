@@ -25,6 +25,11 @@ export function parseBasicAuthHeader(authHeader?: string): {
   if (!authHeader) return {};
   const [scheme, token] = authHeader.split(" ");
   if (scheme?.toLowerCase() !== "basic" || !token) return {};
-  const [client_id, client_secret] = atob(token).split(":");
-  return { client_id, client_secret };
+  try {
+    const [client_id, client_secret] = atob(token).split(":");
+    if (!client_id || !client_secret) return {};
+    return { client_id, client_secret };
+  } catch {
+    return {};
+  }
 }

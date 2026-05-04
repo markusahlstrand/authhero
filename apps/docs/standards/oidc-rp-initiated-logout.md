@@ -12,7 +12,7 @@ RP-Initiated Logout lets a Relying Party (RP) ask the OpenID Provider (OP) to te
 
 ## Endpoint
 
-```
+```http
 GET /oidc/logout
   ?id_token_hint=<signed id_token>
   &client_id=<client-id>
@@ -91,5 +91,5 @@ Both endpoints use the same `allowed_logout_urls` registration list on the clien
 
 - [OpenID Connect Discovery](/standards/openid-connect-discovery)
 - [OpenID Connect Core](/standards/openid-connect-core)
-- [Sessions](/entities/identity/sessions)
+- [Session Management](/features/session-management)
 - [Conformance Testing](/standards/conformance)

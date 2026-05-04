@@ -16,15 +16,21 @@ import { logMessage } from "../helpers/logging";
 import { getEnrichedClient } from "../helpers/client";
 
 // OAuth 2.1 / RFC 7636: client_secret and code_verifier are independent and may co-exist.
-export const authorizationCodeGrantParamsSchema = z.object({
-  grant_type: z.literal("authorization_code"),
-  client_id: z.string(),
-  code: z.string(),
-  redirect_uri: z.string().optional(),
-  client_secret: z.string().optional(),
-  code_verifier: z.string().optional(),
-  organization: z.string().optional(),
-});
+// At least one MUST be supplied so an authorization code cannot be redeemed without proof
+// (confidential client → client_secret; public client → code_verifier; both is also valid).
+export const authorizationCodeGrantParamsSchema = z
+  .object({
+    grant_type: z.literal("authorization_code"),
+    client_id: z.string(),
+    code: z.string(),
+    redirect_uri: z.string().optional(),
+    client_secret: z.string().optional(),
+    code_verifier: z.string().optional(),
+    organization: z.string().optional(),
+  })
+  .refine((data) => !!data.client_secret || !!data.code_verifier, {
+    message: "client_secret or code_verifier is required",
+  });
 
 export type AuthorizationCodeGrantTypeParams = z.infer<
   typeof authorizationCodeGrantParamsSchema
@@ -121,6 +127,19 @@ export async function authorizationCodeGrantUser(
           "Organization parameter does not match login session organization",
       });
     }
+  }
+
+  // Belt-and-suspenders: the schema refine already enforces this, but guard the handler
+  // too so the invariant survives any future caller that skips schema parsing.
+  if (!params.client_secret && !params.code_verifier) {
+    logMessage(ctx, client.tenant.id, {
+      type: LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN,
+      description: "Missing client_secret and code_verifier",
+      userId: code.user_id,
+    });
+    throw new JSONHTTPException(401, {
+      message: "client_secret or code_verifier is required",
+    });
   }
 
   // OAuth 2.1 / RFC 7636: validate client_secret and PKCE independently — both may be present.
