@@ -81,35 +81,114 @@ The conformance suite's `/token` request follows OIDC Core verbatim — no `audi
 
 ## What's covered today
 
-The runner currently exercises one plan:
+The runner currently drives two plans against AuthHero. Each module below maps 1-to-1 with an upstream conformance suite test (linked from the suite's web UI as `log-detail.html?log=…` on a run).
+
+::: tip
+The status column is the on-the-record outcome from the most recent green CI run. The lists are kept in sync with the spec files themselves — entries removed from a plan's `getStaticModulesForPlan()` should also disappear here, and new entries should land with a one-liner.
+:::
 
 ### `oidcc-basic-certification-test-plan`
 
-The OpenID Foundation's Basic OP certification suite. Variant: `{ server_metadata: "discovery", client_registration: "static_client" }`. The runner enumerates **38 modules statically** (one Playwright test per known module name); the live suite currently resolves the plan to **35 modules** for this variant, so 3 spec entries are skipped at runtime via `test.skip(!moduleEntry, …)`. The list below covers everything the runner emits:
+The OpenID Foundation's Basic OP certification suite. Variant: `{ server_metadata: "discovery", client_registration: "static_client" }`. The runner enumerates 38 modules statically; the live suite resolves the plan to 35 for this variant, so 3 spec entries are skipped at runtime via `test.skip(!moduleEntry, …)`.
 
-- **Core code flow** — `oidcc-server`, `oidcc-response-type-missing`, `oidcc-ensure-post-request-succeeds`
-- **ID token verification** — `oidcc-idtoken-signature`, `oidcc-idtoken-unsigned`
-- **UserInfo** — `oidcc-userinfo-get`, `oidcc-userinfo-post-header`, `oidcc-userinfo-post-body`
-- **Scopes** — `oidcc-scope-profile`, `oidcc-scope-email`, `oidcc-scope-address`, `oidcc-scope-phone`, `oidcc-scope-all`, `oidcc-ensure-other-scope-order-succeeds`
-- **Display & prompt** — `oidcc-display-page`, `oidcc-display-popup`, `oidcc-prompt-login`, `oidcc-prompt-none-not-logged-in`, `oidcc-prompt-none-logged-in`
-- **`max_age`** — `oidcc-max-age-1`, `oidcc-max-age-10000`
-- **Hints & locales** — `oidcc-id-token-hint`, `oidcc-login-hint`, `oidcc-ui-locales`, `oidcc-claims-locales`, `oidcc-ensure-request-with-acr-values-succeeds`
-- **Code reuse** — `oidcc-codereuse`, `oidcc-codereuse-30seconds`
-- **Redirect URI / nonce** — `oidcc-ensure-registered-redirect-uri`, `oidcc-ensure-request-without-nonce-succeeds-for-code-flow`, `oidcc-ensure-request-with-unknown-parameter-succeeds`
-- **`client_secret_post`** — `oidcc-server-client-secret-post`
-- **Request objects** — `oidcc-request-uri-unsigned`, `oidcc-unsigned-request-object-supported-correctly-or-rejected-as-unsupported`, `oidcc-ensure-request-object-with-redirect-uri`
-- **Claims & PKCE** — `oidcc-claims-essential`, `oidcc-ensure-request-with-valid-pkce-succeeds`
-- **Refresh** — `oidcc-refresh-token`
+#### Core code flow
 
-### Currently validated
+| Module | What it tests | Status |
+| ------ | ------------- | ------ |
+| `oidcc-server` | Happy-path authorization-code flow end-to-end (authorize → callback → token → userinfo). | ✅ |
+| `oidcc-response-type-missing` | Authorize without `response_type` is rejected. | ✅ |
+| `oidcc-ensure-post-request-succeeds` | Authorize accepts `POST` form-encoded as well as `GET`. | ✅ |
+| `oidcc-ensure-request-with-unknown-parameter-succeeds` | Unknown query parameters are ignored, not errored on. | ✅ |
+| `oidcc-ensure-registered-redirect-uri` | Token request with an unregistered `redirect_uri` is rejected. | ✅ |
+| `oidcc-ensure-request-without-nonce-succeeds-for-code-flow` | Code flow works without `nonce` (only required for implicit/hybrid). | ✅ |
+| `oidcc-ensure-other-scope-order-succeeds` | Scope ordering doesn't matter (`profile email openid` works). | ✅ |
+| `oidcc-ensure-request-with-acr-values-succeeds` | `acr_values` parameter is accepted (even when not acted on). | ✅ |
+| `oidcc-server-client-secret-post` | Token endpoint accepts `client_secret_post` auth, not just `client_secret_basic`. | ✅ |
 
-| Module | Status | Notes |
-| ------ | ------ | ----- |
-| `oidcc-server` | ✅ Passing | The happy-path code flow. End-to-end validated locally in ~3s. |
-| Other modules in the live plan | 🟡 Not yet exercised | Runner is wired and emits one Playwright test per module; landing the runner unblocks systematic verification. |
+#### ID token & userinfo
+
+| Module | What it tests | Status |
+| ------ | ------------- | ------ |
+| `oidcc-idtoken-signature` | ID token's RS256 signature is valid and verifiable via the JWKS. | ✅ |
+| `oidcc-idtoken-unsigned` | Server rejects requests asking for an unsigned (`alg=none`) ID token. | ✅ |
+| `oidcc-userinfo-get` | `GET /userinfo` with bearer token returns claims. | ✅ |
+| `oidcc-userinfo-post-header` | `POST /userinfo` with `Authorization: Bearer …` returns claims. | ✅ |
+| `oidcc-userinfo-post-body` | `POST /userinfo` with `access_token` in form body returns claims. | ✅ |
+| `oidcc-claims-essential` | `claims` parameter with `essential: true` claims is honored. | 🟡 WARNING (tracked in [#781](https://github.com/markusahlstrand/authhero/issues/781)) |
+
+#### Scopes
+
+| Module | What it tests | Status |
+| ------ | ------------- | ------ |
+| `oidcc-scope-profile` | `profile` scope returns name/given_name/family_name/etc. | ✅ |
+| `oidcc-scope-email` | `email` scope returns `email` and `email_verified`. | ✅ |
+| `oidcc-scope-address` | `address` scope returns the structured `address` claim. | ✅ |
+| `oidcc-scope-phone` | `phone` scope returns `phone_number` and `phone_number_verified`. | ✅ |
+| `oidcc-scope-all` | All standard scopes together return the full claim set. | ✅ |
+
+#### Display, prompt, and re-auth
+
+| Module | What it tests | Status |
+| ------ | ------------- | ------ |
+| `oidcc-display-page` | `display=page` is accepted (default behavior). | ✅ |
+| `oidcc-display-popup` | `display=popup` is accepted. | ✅ |
+| `oidcc-prompt-login` | `prompt=login` forces re-auth even with an active session. | ✅ |
+| `oidcc-prompt-none-not-logged-in` | `prompt=none` returns `login_required` when no session exists. | ✅ |
+| `oidcc-prompt-none-logged-in` | `prompt=none` succeeds silently when a session exists. | ✅ |
+| `oidcc-max-age-1` | `max_age=1` triggers re-auth (auth_time refreshes). | ✅ |
+| `oidcc-max-age-10000` | `max_age=10000` reuses the existing session. | ✅ |
+
+#### Hints & locales
+
+| Module | What it tests | Status |
+| ------ | ------------- | ------ |
+| `oidcc-id-token-hint` | `id_token_hint` is accepted on `/authorize`. | ✅ |
+| `oidcc-login-hint` | `login_hint` pre-populates the universal-login form. | ✅ |
+| `oidcc-ui-locales` | `ui_locales` is accepted (even if not localized). | ✅ |
+| `oidcc-claims-locales` | `claims_locales` is accepted on `/authorize`. | ✅ |
+
+#### Code reuse / replay
+
+| Module | What it tests | Status |
+| ------ | ------------- | ------ |
+| `oidcc-codereuse` | A second token exchange with the same authorization code is rejected. | ✅ |
+| `oidcc-codereuse-30seconds` | Code reuse is rejected even within a short window. | ✅ |
+
+#### Request objects & PKCE
+
+| Module | What it tests | Status |
+| ------ | ------------- | ------ |
+| `oidcc-request-uri-unsigned` | Server correctly rejects or supports `request_uri` with an unsigned object per its declared metadata. | ✅ |
+| `oidcc-unsigned-request-object-supported-correctly-or-rejected-as-unsupported` | Unsigned `request` objects are either supported correctly or rejected (no half-state). | ✅ |
+| `oidcc-ensure-request-object-with-redirect-uri` | `redirect_uri` inside a request object is honored. | ✅ |
+| `oidcc-ensure-request-with-valid-pkce-succeeds` | Code flow with `S256` PKCE verifier succeeds end-to-end. | ✅ |
+
+#### Refresh tokens
+
+| Module | What it tests | Status |
+| ------ | ------------- | ------ |
+| `oidcc-refresh-token` | `offline_access` issues a refresh token; `grant_type=refresh_token` mints a new access/ID token pair. | ✅ |
+
+### `oidcc-rp-initiated-logout-certification-test-plan`
+
+The OIDC RP-Initiated Logout 1.0 plan. Variant: `{ client_registration: "static_client", response_type: "code" }`. Requires the per-tenant flag `oidc_logout.rp_logout_end_session_endpoint_discovery` to advertise `end_session_endpoint` — see [OIDC RP-Initiated Logout 1.0](/standards/oidc-rp-initiated-logout).
+
+| Module | What it tests | Status |
+| ------ | ------------- | ------ |
+| `oidcc-rp-initiated-logout-discovery-endpoint-verification` | `end_session_endpoint` is advertised in `/.well-known/openid-configuration`. | ✅ |
+| `oidcc-rp-initiated-logout` | Happy-path logout: redirect to `post_logout_redirect_uri` with `state` echoed back. | ✅ |
+| `oidcc-rp-initiated-logout-bad-post-logout-redirect-uri` | An unregistered `post_logout_redirect_uri` is rejected (no redirect). | ✅ |
+| `oidcc-rp-initiated-logout-modified-id-token-hint` | A tampered `id_token_hint` (signature broken) is rejected. | ✅ |
+| `oidcc-rp-initiated-logout-bad-id-token-hint` | A malformed (non-JWT) `id_token_hint` is rejected. | ✅ |
+| `oidcc-rp-initiated-logout-no-id-token-hint` | Logout still proceeds when only `client_id` (and not `id_token_hint`) is supplied. | ✅ |
+| `oidcc-rp-initiated-logout-no-params` | Bare `GET /oidc/logout` with no params renders a confirmation page. | ✅ |
+| `oidcc-rp-initiated-logout-no-post-logout-redirect-uri` | With `id_token_hint` only, the OP renders the signed-out page (no redirect). | ✅ |
+| `oidcc-rp-initiated-logout-no-state` | Logout works when `state` is omitted (no `state` on the redirect). | ✅ |
+| `oidcc-rp-initiated-logout-only-state` | `state` without `post_logout_redirect_uri` is accepted; no redirect occurs. | ✅ |
+| `oidcc-rp-initiated-logout-query-added-to-post-logout-redirect-uri` | A registered URI with extra query parameters added is rejected (Simple String Comparison per RFC 3986 §6.2.1). | ✅ |
 
 ::: tip
-After running the suite, `pnpm conformance:report` opens the Playwright HTML report. Each row links to the suite's `log-detail.html` page for that test — useful for diagnosing failures where the suite caught a real conformance issue.
+`pnpm conformance:report` opens the Playwright HTML report. Each row links to the suite's `log-detail.html` page for that test — useful for diagnosing failures where the suite caught a real conformance issue.
 :::
 
 ### Out of scope (for now)
@@ -119,6 +198,7 @@ The runner is structured so adding more plans is just a new spec file with a dif
 - `oidcc-implicit-certification-test-plan` (implicit flow)
 - `oidcc-hybrid-certification-test-plan` (hybrid flow)
 - `oidcc-comprehensive-certification-test-plan` (full OP)
+- `oidcc-frontchannel-rp-initiated-logout-certification-test-plan` and `oidcc-backchannel-rp-initiated-logout-certification-test-plan` (front/back-channel logout — AuthHero only ships RP-Initiated Logout today)
 - FAPI plans (require mTLS, DPoP, or signed request objects beyond the current AuthHero surface)
 
 ## Running it locally
