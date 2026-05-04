@@ -339,6 +339,10 @@ gtag('config', 'G-DNZWG3PF2L');`,
                   link: "/standards/openid-connect-discovery",
                 },
                 {
+                  text: "OIDC RP-Initiated Logout 1.0",
+                  link: "/standards/oidc-rp-initiated-logout",
+                },
+                {
                   text: "Form Post Response Mode",
                   link: "/standards/oauth2-form-post",
                 },

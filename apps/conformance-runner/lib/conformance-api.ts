@@ -180,20 +180,22 @@ export class ConformanceClient {
   ): Promise<T> {
     const url = `${this.baseUrl}${path}`;
     // Bounded per-request timeout so a hung suite doesn't freeze waitForState's
-    // poll loop until Playwright's outer test timeout fires. 15s is generous —
-    // suite calls normally return in well under a second.
+    // poll loop until Playwright's outer test timeout fires. Most calls return
+    // in well under a second, but module-creation (POST /api/runner) can take
+    // 15–25s the first time the suite spins up a new module class — hence 30s.
+    const timeoutMs = 30_000;
     let res: Response;
     try {
       res = await fetch(url, {
         method,
         headers: this.headers,
         body,
-        signal: AbortSignal.timeout(15_000),
+        signal: AbortSignal.timeout(timeoutMs),
       });
     } catch (err) {
       if (err instanceof Error && err.name === "TimeoutError") {
         throw new Error(
-          `Conformance API ${method} ${path} -> timed out after 15s`,
+          `Conformance API ${method} ${path} -> timed out after ${timeoutMs}ms`,
         );
       }
       throw err;

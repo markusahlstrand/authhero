@@ -25,13 +25,16 @@ function buildSharedClientConfig(label: string) {
     server: {
       discoveryUrl: `${issuer}.well-known/openid-configuration`,
     },
+    // Secrets MUST be ≥32 bytes — the conformance suite derives an HS256 key
+    // from client_secret for some negative tests (e.g. bad-id-token-hint
+    // signature handling) and refuses to run when the secret is shorter.
     client: {
       client_id: "test-client-id",
-      client_secret: "test-client-secret",
+      client_secret: "test-client-secret-at-least-32-bytes-long",
     },
     client2: {
       client_id: "test-client-id-2",
-      client_secret: "test-client-secret-2",
+      client_secret: "test-client-secret-2-at-least-32-bytes-long",
     },
     // oidcc-server-client-secret-post copies this slot into `client` at
     // configureClient() time (see OIDCCServerTestClientSecretPost.java). The
@@ -39,7 +42,7 @@ function buildSharedClientConfig(label: string) {
     // wants a separate client config per auth type — we use client-2.
     client_secret_post: {
       client_id: "test-client-id-2",
-      client_secret: "test-client-secret-2",
+      client_secret: "test-client-secret-2-at-least-32-bytes-long",
     },
     consent: {},
     browser: [],

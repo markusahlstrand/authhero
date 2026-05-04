@@ -5,6 +5,7 @@ import { registerComponent } from "../../middlewares/register-component";
 import { createAuthMiddleware } from "../../middlewares/authentication";
 import { callbackRoutes } from "./callback";
 import { logoutRoutes } from "./logout";
+import { oidcLogoutRoutes } from "./oidc-logout";
 import { userinfoRoutes } from "./userinfo";
 import { wellKnownRoutes } from "./well-known";
 import { tokenRoutes } from "./token";
@@ -127,6 +128,7 @@ export default function create(config: AuthHeroConfig) {
 
   const oauthApp = app
     .route("/v2/logout", logoutRoutes)
+    .route("/oidc/logout", oidcLogoutRoutes)
     .route("/userinfo", userinfoRoutes)
     .route("/.well-known", wellKnownRoutes)
     .route("/oauth/token", tokenRoutes)

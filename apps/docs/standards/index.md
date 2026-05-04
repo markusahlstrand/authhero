@@ -38,6 +38,7 @@ AuthHero is built on open identity standards. This section tracks every spec Aut
 | -------- | ------ |
 | [OpenID Connect Core 1.0](/standards/openid-connect-core) | Partial |
 | [OpenID Connect Discovery 1.0](/standards/openid-connect-discovery) | Full |
+| [OpenID Connect RP-Initiated Logout 1.0](/standards/oidc-rp-initiated-logout) | Partial |
 | [OAuth 2.0 Form Post Response Mode](/standards/oauth2-form-post) | Full |
 
 ## Federation

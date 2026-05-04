@@ -61,18 +61,34 @@ test.describe("OIDCC RP-Initiated Logout Certification", () => {
         `[conformance-runner] ${moduleName} -> ${client.baseUrl}/log-detail.html?log=${testId}`,
       );
 
+      // Accept INTERRUPTED here too — some negative modules (e.g.
+      // bad-id-token-hint) drive the failure path entirely from the suite's
+      // configuration phase and never enter WAITING. Letting the result
+      // assertion below decide instead of throwing gives a much cleaner
+      // signal than "moved to INTERRUPTED: no detail".
       const initial = await client.waitForState(testId, [
         "CONFIGURED",
         "WAITING",
         "FINISHED",
+        "INTERRUPTED",
       ]);
       if (initial === "CONFIGURED") {
         await client.startTest(testId);
-        await client.waitForState(testId, ["WAITING", "FINISHED"]);
+        await client.waitForState(testId, [
+          "WAITING",
+          "FINISHED",
+          "INTERRUPTED",
+        ]);
       }
 
-      await runBrowserFlow({ testId, page, client });
-      await client.waitForState(testId, ["FINISHED", "INTERRUPTED"]);
+      const preBrowserInfo = await client.getInfo(testId);
+      if (
+        preBrowserInfo.status !== "FINISHED" &&
+        preBrowserInfo.status !== "INTERRUPTED"
+      ) {
+        await runBrowserFlow({ testId, page, client });
+        await client.waitForState(testId, ["FINISHED", "INTERRUPTED"]);
+      }
 
       const info = await client.getInfo(testId);
       const result = info.result;
