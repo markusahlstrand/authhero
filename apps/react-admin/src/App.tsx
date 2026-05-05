@@ -196,7 +196,7 @@ export function App(props: AppProps) {
             element={<ScopeCreate />}
           />
           <Route
-            path="/resource-servers/:id/scopes/:scopeId"
+            path="/resource-servers/:id/scopes/:scopeId/edit"
             element={<ScopeEdit />}
           />
         </CustomRoutes>

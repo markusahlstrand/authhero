@@ -41,7 +41,7 @@ function ScopesPanelBody({
   readOnly: boolean;
 }) {
   const editPath = (record: { value: string }) =>
-    `/resource-servers/${rsId}/scopes/${encodeURIComponent(record.value)}`;
+    `/resource-servers/${rsId}/scopes/${encodeURIComponent(record.value)}/edit`;
 
   return (
     <Card>
