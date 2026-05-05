@@ -17,9 +17,7 @@ function generateHookId(): string {
  * it's a plain object — arrays, primitives, and parse errors all collapse
  * to undefined so corruption or legacy rows don't crash hook retrieval.
  */
-function parseMetadata(
-  value: unknown,
-): Record<string, unknown> | undefined {
+function parseMetadata(value: unknown): Record<string, unknown> | undefined {
   if (typeof value !== "string" || !value) return undefined;
   try {
     const parsed = JSON.parse(value);

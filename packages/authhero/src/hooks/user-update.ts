@@ -109,10 +109,7 @@ export function createUserUpdateHooks(
       // Built-in path: when an email field changed and built-in linking is
       // enabled, run the same lookup as commitUserHook, but excluding the
       // current user (they're already in the DB).
-      if (
-        builtInLinkingEnabled &&
-        (updates.email || updates.email_verified)
-      ) {
+      if (builtInLinkingEnabled && (updates.email || updates.email_verified)) {
         const updatedUser = await trxData.users.get(tenant_id, user_id);
         if (
           updatedUser &&
@@ -168,8 +165,7 @@ export function createUserUpdateHooks(
       });
       const enabledTemplateHooks = allHooks.filter(
         (h: unknown) =>
-          isTemplateHook(h) &&
-          (h as { enabled: boolean }).enabled === true,
+          isTemplateHook(h) && (h as { enabled: boolean }).enabled === true,
       );
       if (enabledTemplateHooks.length > 0) {
         const updatedUser = await data.users.get(tenant_id, user_id);

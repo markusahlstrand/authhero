@@ -407,9 +407,7 @@ describe("Analytics Engine Logs Adapter", () => {
       });
 
       const sql = capturedQueries[0]!;
-      expect(sql).toContain(
-        "blob7 IN ('auth2|primary', 'email|secondary')",
-      );
+      expect(sql).toContain("blob7 IN ('auth2|primary', 'email|secondary')");
     });
 
     it("should translate success:false to a failure type prefix match", async () => {

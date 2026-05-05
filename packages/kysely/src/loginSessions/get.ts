@@ -21,8 +21,13 @@ export function get(db: Kysely<Database>) {
 
     if (!login) return null;
 
-    const { created_at_ts, updated_at_ts, expires_at_ts, auth_params, ...rest } =
-      login as typeof login & { auth_params?: string | null };
+    const {
+      created_at_ts,
+      updated_at_ts,
+      expires_at_ts,
+      auth_params,
+      ...rest
+    } = login as typeof login & { auth_params?: string | null };
 
     // Convert dates from DB format (bigint) to ISO strings
     const dates = convertDatesToAdapter(

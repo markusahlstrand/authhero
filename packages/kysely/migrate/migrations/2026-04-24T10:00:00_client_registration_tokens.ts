@@ -70,8 +70,5 @@ export async function down(db: Kysely<Database>): Promise<void> {
     .dropColumn("registration_type")
     .execute();
 
-  await db.schema
-    .alterTable("clients")
-    .dropColumn("owner_user_id")
-    .execute();
+  await db.schema.alterTable("clients").dropColumn("owner_user_id").execute();
 }

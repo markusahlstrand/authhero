@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { getTestServer } from "../helpers/test-server";
 import { AuthorizationResponseType } from "@authhero/adapter-interfaces";
 
-async function seedTenantAndClient(data: Awaited<
-  ReturnType<typeof getTestServer>
->["data"]) {
+async function seedTenantAndClient(
+  data: Awaited<ReturnType<typeof getTestServer>>["data"],
+) {
   await data.tenants.create({
     id: "tenantId",
     friendly_name: "Test Tenant",

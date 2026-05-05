@@ -129,7 +129,9 @@ describe("users", () => {
       expect(match.users).toHaveLength(1);
       expect(match.users[0].user_id).toBe("email|t1user");
 
-      const miss = await data.users.list("t1", { q: "email:other@example.com" });
+      const miss = await data.users.list("t1", {
+        q: "email:other@example.com",
+      });
       expect(miss.users).toHaveLength(0);
     });
 
@@ -159,7 +161,9 @@ describe("users", () => {
       });
 
       const byProvider = await data.users.list("t1", { q: "provider:auth2" });
-      expect(byProvider.users.map((u) => u.user_id)).toEqual(["email|t1linked"]);
+      expect(byProvider.users.map((u) => u.user_id)).toEqual([
+        "email|t1linked",
+      ]);
 
       const byLinkedTo = await data.users.list("t1", {
         q: "linked_to:email|t1user",

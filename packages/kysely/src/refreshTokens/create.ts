@@ -27,7 +27,9 @@ export function create(db: Kysely<Database>) {
     } = refreshToken;
     const nowTs = Date.now();
     const expiresAtTs = isoToDbDate(expires_at);
-    const idleExpiresAtTs = idle_expires_at ? isoToDbDate(idle_expires_at) : null;
+    const idleExpiresAtTs = idle_expires_at
+      ? isoToDbDate(idle_expires_at)
+      : null;
     const newLoginSessionExpiry = Math.max(
       expiresAtTs ?? 0,
       idleExpiresAtTs ?? 0,

@@ -558,9 +558,7 @@ function wrapHooksWithInheritance(
 
       // Sub-tenant rows take precedence — if both sides somehow share the
       // same hook_id (vanishingly unlikely with random ids) keep the local.
-      const localIds = new Set(
-        (result.hooks || []).map((h) => h.hook_id),
-      );
+      const localIds = new Set((result.hooks || []).map((h) => h.hook_id));
       const additions = inherited.filter((h) => !localIds.has(h.hook_id));
 
       return {

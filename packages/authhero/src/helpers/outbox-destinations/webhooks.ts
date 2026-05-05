@@ -93,8 +93,7 @@ export class WebhookDestination implements EventDestination {
     for (const invocation of events) {
       const { hooks } = await this.hooks.list(invocation.tenantId);
       const webhooks = hooks.filter(
-        (h) =>
-          h.enabled && h.trigger_id === invocation.triggerId && "url" in h,
+        (h) => h.enabled && h.trigger_id === invocation.triggerId && "url" in h,
       ) as Array<Hook & { url: string }>;
       if (webhooks.length === 0) continue;
 

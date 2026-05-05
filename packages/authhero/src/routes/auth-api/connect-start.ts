@@ -12,10 +12,12 @@ const connectStartQuerySchema = z.object({
       "Optional caller-defined integration label. Surfaced on the consent screen and stored on the resulting client's IAT constraints. No validation beyond non-empty string.",
   }),
   domain: z.string().min(1).openapi({
-    description: "The domain that will host the integration (origin must match return_to)",
+    description:
+      "The domain that will host the integration (origin must match return_to)",
   }),
   return_to: z.string().url().openapi({
-    description: "Where the browser is redirected after consent (success or cancel)",
+    description:
+      "Where the browser is redirected after consent (success or cancel)",
   }),
   state: z.string().min(1).openapi({
     description: "Caller-supplied CSRF token round-tripped on the redirect",
@@ -38,7 +40,8 @@ export const connectStartRoutes = new OpenAPIHono<{
     },
     responses: {
       302: {
-        description: "Redirect to /u2/connect/start with a fresh login_session id",
+        description:
+          "Redirect to /u2/connect/start with a fresh login_session id",
         headers: z.object({ Location: z.string() }),
       },
       400: {
@@ -73,7 +76,9 @@ export const connectStartRoutes = new OpenAPIHono<{
     const allowHttp = tenant.flags?.allow_http_return_to ?? [];
     // `domain` accepts either a bare host[:port] (legacy, implicit https) or a
     // full origin like `http://127.0.0.1:8888` for non-https local-dev cases.
-    const domainRaw = /^https?:\/\//i.test(domain) ? domain : `https://${domain}`;
+    const domainRaw = /^https?:\/\//i.test(domain)
+      ? domain
+      : `https://${domain}`;
     const domainCheck = validateConnectOrigin(domainRaw, allowHttp);
     if (!domainCheck.ok) {
       throw new JSONHTTPException(400, {

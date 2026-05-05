@@ -26,7 +26,11 @@ async function getDatabaseType(
   }
 }
 
-const REDUNDANT_INDEXES: Array<{ index: string; table: string; reason: string }> = [
+const REDUNDANT_INDEXES: Array<{
+  index: string;
+  table: string;
+  reason: string;
+}> = [
   {
     index: "connections_tenant_id_idx",
     table: "connections",
@@ -72,13 +76,17 @@ async function dropIndexSafe(
 ): Promise<void> {
   try {
     if (dbType === "mysql") {
-      await sql.raw(`DROP INDEX IF EXISTS \`${index}\` ON \`${table}\``).execute(db);
+      await sql
+        .raw(`DROP INDEX IF EXISTS \`${index}\` ON \`${table}\``)
+        .execute(db);
     } else {
       await sql.raw(`DROP INDEX IF EXISTS "${index}"`).execute(db);
     }
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);
-    migrationWarn(`  Warning: failed to drop index ${index} on ${table}: ${msg}`);
+    migrationWarn(
+      `  Warning: failed to drop index ${index} on ${table}: ${msg}`,
+    );
   }
 }
 

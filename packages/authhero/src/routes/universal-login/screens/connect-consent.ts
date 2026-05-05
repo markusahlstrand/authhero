@@ -98,11 +98,11 @@ async function isUserInOrganization(
   const perPage = 100;
   let page = 0;
   while (true) {
-    const { organizations } = await data.userOrganizations.listUserOrganizations(
-      tenantId,
-      userId,
-      { per_page: perPage, page },
-    );
+    const { organizations } =
+      await data.userOrganizations.listUserOrganizations(tenantId, userId, {
+        per_page: perPage,
+        page,
+      });
     if (organizations.some((o) => o.name === organizationName)) {
       return true;
     }
@@ -140,7 +140,9 @@ export async function connectConsentScreen(
   const loginSession = await ctx.env.data.loginSessions.get(tenant.id, state);
   const connect = readConnectData(loginSession?.state_data);
   if (!connect) {
-    throw new RedirectException(`${routePrefix}/login/identifier?state=${encodeURIComponent(state)}`);
+    throw new RedirectException(
+      `${routePrefix}/login/identifier?state=${encodeURIComponent(state)}`,
+    );
   }
 
   // Control-plane mode: bounce to the tenant picker until a target child
@@ -293,10 +295,7 @@ async function handleConnectConsentSubmit(
   // has membership in the org corresponding to the chosen child tenant. The
   // picker enforces this, but a stale or tampered state_data must not let a
   // user mint on a tenant they don't belong to.
-  if (
-    connect.target_tenant_id &&
-    connect.target_tenant_id !== tenant.id
-  ) {
+  if (connect.target_tenant_id && connect.target_tenant_id !== tenant.id) {
     const allowed = await isUserInOrganization(
       ctx.env.data,
       tenant.id,

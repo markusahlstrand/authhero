@@ -8,12 +8,7 @@ export type TestStatus =
   | "FINISHED"
   | "INTERRUPTED";
 
-export type TestResult =
-  | "PASSED"
-  | "WARNING"
-  | "FAILED"
-  | "SKIPPED"
-  | "REVIEW";
+export type TestResult = "PASSED" | "WARNING" | "FAILED" | "SKIPPED" | "REVIEW";
 
 export interface TestPlanModule {
   testModule: string;

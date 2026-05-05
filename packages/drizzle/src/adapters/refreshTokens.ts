@@ -166,10 +166,7 @@ export function createRefreshTokensAdapter(db: DrizzleDb) {
         .update(refreshTokens)
         .set(updateData)
         .where(
-          and(
-            eq(refreshTokens.tenant_id, tenant_id),
-            eq(refreshTokens.id, id),
-          ),
+          and(eq(refreshTokens.tenant_id, tenant_id), eq(refreshTokens.id, id)),
         )
         .returning();
 

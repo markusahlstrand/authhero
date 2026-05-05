@@ -85,7 +85,8 @@ export async function createServiceTokenCore(
   }
 
   const keyBuffer = pemToBuffer(signingKey.pkcs7);
-  const expiresInSeconds = params.expiresInSeconds ?? DEFAULT_EXPIRES_IN_SECONDS;
+  const expiresInSeconds =
+    params.expiresInSeconds ?? DEFAULT_EXPIRES_IN_SECONDS;
 
   const accessTokenPayload: Record<string, unknown> = {
     aud: audience,

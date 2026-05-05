@@ -13,13 +13,7 @@ export function update(db: Kysely<Database>) {
     // Extract date fields that need conversion (they come as ISO strings from the adapter interface)
     // and pull authParams out before flattening so we don't emit legacy
     // `authParams_*` columns — the JSON blob is the sole storage path.
-    const {
-      created_at,
-      updated_at,
-      expires_at,
-      authParams,
-      ...rest
-    } = login;
+    const { created_at, updated_at, expires_at, authParams, ...rest } = login;
 
     // When authParams is being updated, merge it into the existing blob so
     // partial updates (e.g. `{ authParams: { username } }`) don't wipe sibling

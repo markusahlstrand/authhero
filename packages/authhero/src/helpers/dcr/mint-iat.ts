@@ -26,8 +26,7 @@ export async function mintIat(
   opts: MintIatOptions = {},
 ): Promise<MintedIat> {
   const generated = await mintRegistrationToken();
-  const expires_in =
-    opts.expires_in_seconds ?? DEFAULT_EXPIRES_IN_SECONDS;
+  const expires_in = opts.expires_in_seconds ?? DEFAULT_EXPIRES_IN_SECONDS;
   const expires_at = new Date(Date.now() + expires_in * 1000).toISOString();
 
   const record = await adapter.create(tenant_id, {

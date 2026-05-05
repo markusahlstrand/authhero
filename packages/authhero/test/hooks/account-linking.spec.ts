@@ -17,20 +17,24 @@ describe("account-linking-hook", () => {
     const { env } = await getTestServer();
 
     // Add a test user. Creating the user will not trigger the hooks
-    await commitUserHook(env.data)("tenantId", {
-      email: "foo@example.com",
-      email_verified: true,
-      name: "Test Google User",
-      nickname: "Test User",
-      picture: "https://example.com/test.png",
-      connection: "google-oauth2",
-      provider: "google-oauth2",
-      is_social: false,
-      user_id: "google-oauth2|userId",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      login_count: 0,
-    }, linkOpts);
+    await commitUserHook(env.data)(
+      "tenantId",
+      {
+        email: "foo@example.com",
+        email_verified: true,
+        name: "Test Google User",
+        nickname: "Test User",
+        picture: "https://example.com/test.png",
+        connection: "google-oauth2",
+        provider: "google-oauth2",
+        is_social: false,
+        user_id: "google-oauth2|userId",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        login_count: 0,
+      },
+      linkOpts,
+    );
 
     const originalUser = await env.data.users.get("tenantId", "email|userId");
     expect(originalUser?.identities?.length).toBe(2);
@@ -210,20 +214,24 @@ describe("account-linking-hook", () => {
     });
 
     // Create a Google user with same email but UNVERIFIED
-    const result = await commitUserHook(env.data)("tenantId", {
-      email: "unverified-test@example.com",
-      email_verified: false, // Not verified - should NOT link
-      name: "Google User",
-      nickname: "Google User",
-      picture: "https://example.com/pic.png",
-      connection: "google-oauth2",
-      provider: "google-oauth2",
-      is_social: true,
-      user_id: "google-oauth2|unverified-google-user",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      login_count: 0,
-    }, linkOpts);
+    const result = await commitUserHook(env.data)(
+      "tenantId",
+      {
+        email: "unverified-test@example.com",
+        email_verified: false, // Not verified - should NOT link
+        name: "Google User",
+        nickname: "Google User",
+        picture: "https://example.com/pic.png",
+        connection: "google-oauth2",
+        provider: "google-oauth2",
+        is_social: true,
+        user_id: "google-oauth2|unverified-google-user",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        login_count: 0,
+      },
+      linkOpts,
+    );
 
     // Should return the Google user (not linked)
     expect(result.user.user_id).toBe("google-oauth2|unverified-google-user");
@@ -262,20 +270,24 @@ describe("account-linking-hook", () => {
     });
 
     // Create user with same email in tenant B - should NOT link to tenantId user
-    const result = await commitUserHook(env.data)("tenantB", {
-      email: "cross-tenant@example.com",
-      email_verified: true,
-      name: "Tenant B User",
-      nickname: "Tenant B User",
-      picture: "https://example.com/pic.png",
-      connection: "google-oauth2",
-      provider: "google-oauth2",
-      is_social: true,
-      user_id: "google-oauth2|tenant-b-user",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      login_count: 0,
-    }, linkOpts);
+    const result = await commitUserHook(env.data)(
+      "tenantB",
+      {
+        email: "cross-tenant@example.com",
+        email_verified: true,
+        name: "Tenant B User",
+        nickname: "Tenant B User",
+        picture: "https://example.com/pic.png",
+        connection: "google-oauth2",
+        provider: "google-oauth2",
+        is_social: true,
+        user_id: "google-oauth2|tenant-b-user",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        login_count: 0,
+      },
+      linkOpts,
+    );
 
     // Should return the new user (not linked to tenantId user)
     expect(result.user.user_id).toBe("google-oauth2|tenant-b-user");
@@ -296,20 +308,24 @@ describe("account-linking-hook", () => {
 
     // Create user with same email in different case - should link
     // commitUserHook normalizes email to lowercase for matching
-    const result = await commitUserHook(env.data)("tenantId", {
-      email: "CASE.TEST@EXAMPLE.COM", // Upper case - normalized for matching
-      email_verified: true,
-      name: "Case Test User",
-      nickname: "Case Test User",
-      picture: "https://example.com/pic.png",
-      connection: "google-oauth2",
-      provider: "google-oauth2",
-      is_social: true,
-      user_id: "google-oauth2|case-test-secondary",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      login_count: 0,
-    }, linkOpts);
+    const result = await commitUserHook(env.data)(
+      "tenantId",
+      {
+        email: "CASE.TEST@EXAMPLE.COM", // Upper case - normalized for matching
+        email_verified: true,
+        name: "Case Test User",
+        nickname: "Case Test User",
+        picture: "https://example.com/pic.png",
+        connection: "google-oauth2",
+        provider: "google-oauth2",
+        is_social: true,
+        user_id: "google-oauth2|case-test-secondary",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        login_count: 0,
+      },
+      linkOpts,
+    );
 
     // Should return the primary user (linked via case-insensitive match)
     expect(result.user.user_id).toBe(
@@ -351,23 +367,29 @@ describe("account-linking-hook", () => {
     });
 
     // Create a third user with same email - should link to primary, not secondary
-    const result = await commitUserHook(env.data)("tenantId", {
-      email: "chain-test@example.com",
-      email_verified: true,
-      name: "Third User",
-      nickname: "Third User",
-      picture: "https://example.com/pic.png",
-      connection: "facebook",
-      provider: "facebook",
-      is_social: true,
-      user_id: "facebook|chain-tertiary",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      login_count: 0,
-    }, linkOpts);
+    const result = await commitUserHook(env.data)(
+      "tenantId",
+      {
+        email: "chain-test@example.com",
+        email_verified: true,
+        name: "Third User",
+        nickname: "Third User",
+        picture: "https://example.com/pic.png",
+        connection: "facebook",
+        provider: "facebook",
+        is_social: true,
+        user_id: "facebook|chain-tertiary",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        login_count: 0,
+      },
+      linkOpts,
+    );
 
     // Should return the PRIMARY user, not the secondary
-    expect(result.user.user_id).toBe(`${USERNAME_PASSWORD_PROVIDER}|chain-primary`);
+    expect(result.user.user_id).toBe(
+      `${USERNAME_PASSWORD_PROVIDER}|chain-primary`,
+    );
     expect(result.user.identities).toHaveLength(3);
 
     // Verify the third user is linked to primary
@@ -393,19 +415,23 @@ describe("account-linking-hook", () => {
     });
 
     // Create user without email - should NOT link
-    const result = await commitUserHook(env.data)("tenantId", {
-      // No email field
-      name: "No Email User",
-      nickname: "No Email User",
-      picture: "https://example.com/pic.png",
-      connection: "sms",
-      provider: "sms",
-      is_social: false,
-      user_id: "sms|no-email-user",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      login_count: 0,
-    }, linkOpts);
+    const result = await commitUserHook(env.data)(
+      "tenantId",
+      {
+        // No email field
+        name: "No Email User",
+        nickname: "No Email User",
+        picture: "https://example.com/pic.png",
+        connection: "sms",
+        provider: "sms",
+        is_social: false,
+        user_id: "sms|no-email-user",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        login_count: 0,
+      },
+      linkOpts,
+    );
 
     // Should return the new user (not linked)
     expect(result.user.user_id).toBe("sms|no-email-user");
@@ -425,24 +451,30 @@ describe("account-linking-hook", () => {
     });
 
     // Create secondary user with linked_to already set (simulating setLinkedTo from hook)
-    const result = await commitUserHook(env.data)("tenantId", {
-      email: "different-email@example.com", // Different email - normally wouldn't link
-      email_verified: true,
-      name: "Hook User",
-      nickname: "Hook User",
-      picture: "https://example.com/pic.png",
-      connection: "google-oauth2",
-      provider: "google-oauth2",
-      is_social: true,
-      user_id: "google-oauth2|hook-secondary",
-      linked_to: primary.user_id, // Pre-set by setLinkedTo
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      login_count: 0,
-    }, linkOpts);
+    const result = await commitUserHook(env.data)(
+      "tenantId",
+      {
+        email: "different-email@example.com", // Different email - normally wouldn't link
+        email_verified: true,
+        name: "Hook User",
+        nickname: "Hook User",
+        picture: "https://example.com/pic.png",
+        connection: "google-oauth2",
+        provider: "google-oauth2",
+        is_social: true,
+        user_id: "google-oauth2|hook-secondary",
+        linked_to: primary.user_id, // Pre-set by setLinkedTo
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        login_count: 0,
+      },
+      linkOpts,
+    );
 
     // Should return primary user even though emails don't match
-    expect(result.user.user_id).toBe(`${USERNAME_PASSWORD_PROVIDER}|hook-primary`);
+    expect(result.user.user_id).toBe(
+      `${USERNAME_PASSWORD_PROVIDER}|hook-primary`,
+    );
     expect(result.user.identities).toHaveLength(2);
   });
 
@@ -467,21 +499,25 @@ describe("account-linking-hook", () => {
     });
 
     // Create user with email matching first user, but linked_to set to second user
-    const result = await commitUserHook(env.data)("tenantId", {
-      email: "priority-test@example.com", // Matches first user
-      email_verified: true,
-      name: "Priority User",
-      nickname: "Priority User",
-      picture: "https://example.com/pic.png",
-      connection: "google-oauth2",
-      provider: "google-oauth2",
-      is_social: true,
-      user_id: "google-oauth2|priority-user",
-      linked_to: manualPrimary.user_id, // Manually set to second user
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      login_count: 0,
-    }, linkOpts);
+    const result = await commitUserHook(env.data)(
+      "tenantId",
+      {
+        email: "priority-test@example.com", // Matches first user
+        email_verified: true,
+        name: "Priority User",
+        nickname: "Priority User",
+        picture: "https://example.com/pic.png",
+        connection: "google-oauth2",
+        provider: "google-oauth2",
+        is_social: true,
+        user_id: "google-oauth2|priority-user",
+        linked_to: manualPrimary.user_id, // Manually set to second user
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        login_count: 0,
+      },
+      linkOpts,
+    );
 
     // Should link to the manually specified user, NOT the email-matched user
     expect(result.user.user_id).toBe(

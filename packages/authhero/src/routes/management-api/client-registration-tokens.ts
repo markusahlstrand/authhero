@@ -23,7 +23,8 @@ const mintBodySchema = z.object({
       description: "Token TTL in seconds. Default 300 (5 minutes).",
     }),
   single_use: z.boolean().optional().openapi({
-    description: "Whether the IAT is invalidated after first use. Default true.",
+    description:
+      "Whether the IAT is invalidated after first use. Default true.",
   }),
 });
 

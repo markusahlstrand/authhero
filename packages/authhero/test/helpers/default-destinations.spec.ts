@@ -103,7 +103,9 @@ describe("createDefaultDestinations", () => {
       update: vi.fn().mockResolvedValue(undefined),
     } as unknown as UserDataAdapter;
 
-    const webhookInvoker = vi.fn(async () => new Response("ok", { status: 200 }));
+    const webhookInvoker = vi.fn(
+      async () => new Response("ok", { status: 200 }),
+    );
 
     const receivedScopes: Array<string | undefined> = [];
     const getServiceToken = vi.fn(async (_tenantId: string, scope?: string) => {

@@ -36,6 +36,7 @@ import {
   ResourceServerEdit,
   ResourceServerList,
 } from "./components/resource-servers";
+import { ScopeCreate, ScopeEdit } from "./components/resource-server-scopes";
 import {
   OrganizationCreate,
   OrganizationEdit,
@@ -190,6 +191,14 @@ export function App(props: AppProps) {
       >
         <CustomRoutes>
           <Route path="/activity" element={<ActivityDashboard />} />
+          <Route
+            path="/resource-servers/:id/scopes/create"
+            element={<ScopeCreate />}
+          />
+          <Route
+            path="/resource-servers/:id/scopes/:scopeId/edit"
+            element={<ScopeEdit />}
+          />
         </CustomRoutes>
         <Resource
           icon={DnsIcon}
@@ -283,6 +292,7 @@ export function App(props: AppProps) {
           edit={ResourceServerEdit}
           show={ShowGuesser}
         />
+        <Resource name="resource-server-scopes" />
         <Resource name="permissions" />
         <Resource
           icon={SecurityIcon}
