@@ -28,12 +28,14 @@ export async function runBrowserFlow({
   username = env.username,
   password = env.password,
   pollIntervalMs = 500,
-  // The suite's screenshot-placeholder poller backs off exponentially up to
-  // 30s, so we need ≥30s after filling for it to fire FINISHED. Most modules
-  // complete in <5s; this only matters when WAITING-with-placeholders.
+  // Budget for "no progress" — reset whenever we visit a URL or fill a
+  // placeholder. Sized for the suite's screenshot-placeholder poller, which
+  // backs off exponentially up to 30s. Modules that re-auth (oidcc-max-age-1)
+  // or split login across screens get a fresh 35s window per step instead of
+  // sharing a single wall-clock budget.
   timeoutMs = 35_000,
 }: RunBrowserFlowOptions): Promise<void> {
-  const deadline = Date.now() + timeoutMs;
+  let deadline = Date.now() + timeoutMs;
   const visited = new Set<string>();
 
   let lastLogged = "";
@@ -55,6 +57,7 @@ export async function runBrowserFlow({
       console.log(`[conformance-runner] visiting ${url}`);
       await page.goto(url, { waitUntil: "load", timeout: 5_000 });
       await fillAuthHeroLoginIfPresent(page, username, password);
+      deadline = Date.now() + timeoutMs;
       // Once Playwright lands on the suite's callback page, the suite picks up
       // the result asynchronously — polling resumes below.
     }
@@ -67,7 +70,8 @@ export async function runBrowserFlow({
       pendingUrls.length === 0 &&
       browser.urls.length > 0
     ) {
-      await fillScreenshotPlaceholders(client, testId);
+      const filled = await fillScreenshotPlaceholders(client, testId);
+      if (filled > 0) deadline = Date.now() + timeoutMs;
     }
 
     await new Promise((r) => setTimeout(r, pollIntervalMs));
@@ -80,7 +84,7 @@ export async function runBrowserFlow({
     .getBrowserStatus(testId)
     .catch(() => undefined);
   throw new Error(
-    `Timed out after ${timeoutMs}ms running browser flow for test ${testId}. ` +
+    `Timed out after ${timeoutMs}ms (no-progress) running browser flow for test ${testId}. ` +
       `Suite status=${finalInfo?.status ?? "?"} result=${finalInfo?.result ?? "(none)"}. ` +
       `Page URL: ${page.url()}. Visited ${visited.size}/${finalBrowser?.urls.length ?? "?"} URL(s).`,
   );
@@ -147,12 +151,13 @@ const filledPlaceholders = new Set<string>();
 async function fillScreenshotPlaceholders(
   client: ConformanceClient,
   testId: string,
-): Promise<void> {
+): Promise<number> {
   const log = await client.getTestLog(testId).catch(() => []);
   const placeholders = log
     .map((entry) => entry.upload)
     .filter((p): p is string => typeof p === "string");
 
+  let filled = 0;
   for (const placeholder of placeholders) {
     const key = `${testId}:${placeholder}`;
     if (filledPlaceholders.has(key)) continue;
@@ -166,12 +171,14 @@ async function fillScreenshotPlaceholders(
         PLACEHOLDER_PNG,
       );
       filledPlaceholders.add(key);
+      filled += 1;
     } catch (err) {
       console.warn(
         `[conformance-runner] placeholder upload failed: ${err instanceof Error ? err.message : err}`,
       );
     }
   }
+  return filled;
 }
 
 function isAuthHeroLoginUrl(url: string): boolean {

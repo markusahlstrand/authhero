@@ -10,3 +10,26 @@ export function extractBearerToken(authHeader?: string): string | undefined {
   if (!scheme || scheme.toLowerCase() !== "bearer") return undefined;
   return token?.trim() || undefined;
 }
+
+/**
+ * Parse an HTTP `Authorization: Basic` header into `{ client_id, client_secret }`
+ * for OAuth 2.0 client_secret_basic authentication (RFC 6749 §2.3.1).
+ *
+ * Returns an empty object when the header is missing, uses a non-Basic scheme,
+ * or fails to decode.
+ */
+export function parseBasicAuthHeader(authHeader?: string): {
+  client_id?: string;
+  client_secret?: string;
+} {
+  if (!authHeader) return {};
+  const [scheme, token] = authHeader.split(" ");
+  if (scheme?.toLowerCase() !== "basic" || !token) return {};
+  try {
+    const [client_id, client_secret] = atob(token).split(":");
+    if (!client_id || !client_secret) return {};
+    return { client_id, client_secret };
+  } catch {
+    return {};
+  }
+}

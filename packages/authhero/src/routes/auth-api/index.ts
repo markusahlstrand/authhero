@@ -5,9 +5,11 @@ import { registerComponent } from "../../middlewares/register-component";
 import { createAuthMiddleware } from "../../middlewares/authentication";
 import { callbackRoutes } from "./callback";
 import { logoutRoutes } from "./logout";
+import { oidcLogoutRoutes } from "./oidc-logout";
 import { userinfoRoutes } from "./userinfo";
 import { wellKnownRoutes } from "./well-known";
 import { tokenRoutes } from "./token";
+import { revokeRoutes } from "./revoke";
 import { dbConnectionRoutes } from "./dbconnections";
 import { passwordlessRoutes } from "./passwordless";
 import { authenticateRoutes } from "./authenticate";
@@ -103,22 +105,21 @@ export default function create(config: AuthHeroConfig) {
     return next();
   });
 
-  app.use(
-    "/oauth/token",
-    cors({
-      origin: (origin) => {
-        return origin || "";
-      },
-      allowHeaders: [
-        "Tenant-Id",
-        "Content-Type",
-        "Auth0-Client",
-        "Upgrade-Insecure-Requests",
-      ],
-      allowMethods: ["POST"],
-      maxAge: 600,
-    }),
-  );
+  const oauthCors = cors({
+    origin: (origin) => {
+      return origin || "";
+    },
+    allowHeaders: [
+      "Tenant-Id",
+      "Content-Type",
+      "Auth0-Client",
+      "Upgrade-Insecure-Requests",
+    ],
+    allowMethods: ["POST"],
+    maxAge: 600,
+  });
+  app.use("/oauth/token", oauthCors);
+  app.use("/oauth/revoke", oauthCors);
 
   app
     .use(clientInfoMiddleware)
@@ -127,9 +128,11 @@ export default function create(config: AuthHeroConfig) {
 
   const oauthApp = app
     .route("/v2/logout", logoutRoutes)
+    .route("/oidc/logout", oidcLogoutRoutes)
     .route("/userinfo", userinfoRoutes)
     .route("/.well-known", wellKnownRoutes)
     .route("/oauth/token", tokenRoutes)
+    .route("/oauth/revoke", revokeRoutes)
     .route("/dbconnections", dbConnectionRoutes)
     .route("/passwordless", passwordlessRoutes)
     .route("/co/authenticate", authenticateRoutes)

@@ -15,6 +15,9 @@ import { GrantFlowUserResult } from "src/types/GrantFlowResult";
 import { logMessage } from "../helpers/logging";
 import { getEnrichedClient } from "../helpers/client";
 
+// OAuth 2.1 / RFC 7636: client_secret and code_verifier are independent and may co-exist.
+// At least one MUST be supplied so an authorization code cannot be redeemed without proof
+// (confidential client → client_secret; public client → code_verifier; both is also valid).
 export const authorizationCodeGrantParamsSchema = z
   .object({
     grant_type: z.literal("authorization_code"),
@@ -25,19 +28,9 @@ export const authorizationCodeGrantParamsSchema = z
     code_verifier: z.string().optional(),
     organization: z.string().optional(),
   })
-  .refine(
-    (data) => {
-      // Must have either client_secret (standard) or code_verifier (PKCE)
-      return (
-        ("client_secret" in data && !("code_verifier" in data)) ||
-        (!("client_secret" in data) && "code_verifier" in data)
-      );
-    },
-    {
-      message:
-        "Must provide either client_secret (standard flow) or code_verifier/code_verifier_mode (PKCE flow), but not both",
-    },
-  );
+  .refine((data) => !!data.client_secret || !!data.code_verifier, {
+    message: "client_secret or code_verifier is required",
+  });
 
 export type AuthorizationCodeGrantTypeParams = z.infer<
   typeof authorizationCodeGrantParamsSchema
@@ -136,8 +129,26 @@ export async function authorizationCodeGrantUser(
     }
   }
 
-  // Validate the secret or PKCE
-  if ("client_secret" in params) {
+  // Reject exchanges with no verifiable proof of possession: a confidential client
+  // must supply client_secret; a public client must supply code_verifier AND the
+  // stored code must carry a code_challenge issued at /authorize. A bare
+  // code_verifier against a non-PKCE code is not proof and must not authenticate.
+  if (
+    !params.client_secret &&
+    !(params.code_verifier && code.code_challenge)
+  ) {
+    logMessage(ctx, client.tenant.id, {
+      type: LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN,
+      description: "Missing client_secret and code_verifier",
+      userId: code.user_id,
+    });
+    throw new JSONHTTPException(401, {
+      message: "client_secret or code_verifier is required",
+    });
+  }
+
+  // OAuth 2.1 / RFC 7636: validate client_secret and PKCE independently — both may be present.
+  if (params.client_secret !== undefined) {
     // A temporary solution to handle cross tenant clients
     let defaultClient;
     try {
@@ -146,7 +157,6 @@ export async function authorizationCodeGrantUser(
       // DEFAULT_CLIENT may not exist
     }
 
-    // Code flow
     if (
       !safeCompare(client.client_secret, params.client_secret) &&
       !safeCompare(defaultClient?.client_secret, params.client_secret)
@@ -160,15 +170,24 @@ export async function authorizationCodeGrantUser(
         message: "Invalid client credentials",
       });
     }
-  } else if (
-    code.code_challenge &&
-    code.code_challenge_method &&
-    params.code_verifier
-  ) {
-    // PKCE flow
+  }
+
+  if (code.code_challenge) {
+    // RFC 7636 §4.5: if code_challenge was sent at /authorize, code_verifier is required.
+    if (!params.code_verifier) {
+      logMessage(ctx, client.tenant.id, {
+        type: LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN,
+        description: "Missing code_verifier",
+        userId: code.user_id,
+      });
+      throw new JSONHTTPException(403, {
+        message: "Invalid client credentials",
+      });
+    }
+    const method = code.code_challenge_method || "plain";
     const challenge = await computeCodeChallenge(
       params.code_verifier,
-      code.code_challenge_method,
+      method,
     );
     if (!safeCompare(challenge, code.code_challenge)) {
       logMessage(ctx, client.tenant.id, {

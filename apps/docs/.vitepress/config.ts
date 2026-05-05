@@ -297,6 +297,10 @@ gtag('config', 'G-DNZWG3PF2L');`,
                 },
                 { text: "RFC 7636 — PKCE", link: "/standards/rfc-7636" },
                 {
+                  text: "RFC 7009 — Token Revocation",
+                  link: "/standards/rfc-7009",
+                },
+                {
                   text: "RFC 7591 — Dynamic Client Registration",
                   link: "/standards/rfc-7591",
                 },
@@ -333,6 +337,10 @@ gtag('config', 'G-DNZWG3PF2L');`,
                 {
                   text: "OIDC Discovery 1.0",
                   link: "/standards/openid-connect-discovery",
+                },
+                {
+                  text: "OIDC RP-Initiated Logout 1.0",
+                  link: "/standards/oidc-rp-initiated-logout",
                 },
                 {
                   text: "Form Post Response Mode",

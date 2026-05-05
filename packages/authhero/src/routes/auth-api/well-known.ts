@@ -74,6 +74,8 @@ export const wellKnownRoutes = new OpenAPIHono<{
       const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
       const dcrEnabled =
         tenant?.flags?.enable_dynamic_client_registration === true;
+      const endSessionEndpointDiscovery =
+        tenant?.oidc_logout?.rp_logout_end_session_endpoint_discovery === true;
       const result = openIDConfigurationSchema.parse({
         issuer: getIssuer(ctx.env, customDomain),
         authorization_endpoint: `${getAuthUrl(ctx.env, customDomain)}authorize`,
@@ -88,6 +90,11 @@ export const wellKnownRoutes = new OpenAPIHono<{
             }
           : {}),
         revocation_endpoint: `${getAuthUrl(ctx.env, customDomain)}oauth/revoke`,
+        ...(endSessionEndpointDiscovery
+          ? {
+              end_session_endpoint: `${getAuthUrl(ctx.env, customDomain)}oidc/logout`,
+            }
+          : {}),
         scopes_supported: [
           "openid",
           "profile",

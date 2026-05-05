@@ -35,6 +35,7 @@ export const openIDConfigurationSchema = z.object({
   jwks_uri: z.string(),
   registration_endpoint: z.string().optional(),
   revocation_endpoint: z.string(),
+  end_session_endpoint: z.string().optional(),
   scopes_supported: z.array(z.string()),
   response_types_supported: z.array(z.string()),
   grant_types_supported: z.array(z.string()).optional(),

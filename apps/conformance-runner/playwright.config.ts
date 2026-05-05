@@ -26,6 +26,7 @@ export default defineConfig({
     command: "npm run dev",
     cwd: "../../packages/create-authhero/auth-server",
     url: `${env.authheroBaseUrl}/.well-known/openid-configuration`,
+    ignoreHTTPSErrors: true,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
     stdout: "pipe",
@@ -33,6 +34,7 @@ export default defineConfig({
     env: {
       PORT: "3000",
       ISSUER: env.authheroIssuer,
+      HTTPS_ENABLED: env.httpsEnabled ? "true" : "false",
     },
   },
 });

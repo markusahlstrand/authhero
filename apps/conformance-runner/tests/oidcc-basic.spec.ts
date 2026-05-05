@@ -61,18 +61,33 @@ test.describe("OIDCC Basic Certification", () => {
       );
 
       // Most OP tests auto-start; some need an explicit start when CONFIGURED.
+      // INTERRUPTED is allowed at every stage so negative modules that move
+      // straight to a terminal state don't crash the runner with a generic
+      // "moved to INTERRUPTED: no detail" — let the result assertion below
+      // surface the actual outcome instead.
       const initial = await client.waitForState(testId, [
         "CONFIGURED",
         "WAITING",
         "FINISHED",
+        "INTERRUPTED",
       ]);
       if (initial === "CONFIGURED") {
         await client.startTest(testId);
-        await client.waitForState(testId, ["WAITING", "FINISHED"]);
+        await client.waitForState(testId, [
+          "WAITING",
+          "FINISHED",
+          "INTERRUPTED",
+        ]);
       }
 
-      await runBrowserFlow({ testId, page, client });
-      await client.waitForState(testId, ["FINISHED", "INTERRUPTED"]);
+      const preBrowserInfo = await client.getInfo(testId);
+      if (
+        preBrowserInfo.status !== "FINISHED" &&
+        preBrowserInfo.status !== "INTERRUPTED"
+      ) {
+        await runBrowserFlow({ testId, page, client });
+        await client.waitForState(testId, ["FINISHED", "INTERRUPTED"]);
+      }
 
       const info = await client.getInfo(testId);
       const result = info.result;

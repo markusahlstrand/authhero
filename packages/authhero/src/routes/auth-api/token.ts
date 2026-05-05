@@ -30,6 +30,7 @@ import { calculateScopesAndPermissions } from "../../helpers/scopes-permissions"
 import { GrantFlowResult } from "src/types/GrantFlowResult";
 import { JSONHTTPException } from "../../errors/json-http-exception";
 import { setTenantId } from "../../helpers/set-tenant-id";
+import { parseBasicAuthHeader } from "../../utils/auth-header";
 
 const optionalClientCredentials = z.object({
   client_id: z.string().optional(),
@@ -40,20 +41,12 @@ const optionalClientCredentials = z.object({
 const CreateRequestSchema = z.union([
   // Client credentials
   clientCredentialGrantParamsSchema.extend(optionalClientCredentials.shape),
-  // PKCE. This needs to be before the normal code grant as the client_secret is optional here
-  z.object({
-    grant_type: z.literal("authorization_code"),
-    client_id: z.string(),
-    code: z.string(),
-    redirect_uri: z.string(),
-    code_verifier: z.string().min(43).max(128),
-    organization: z.string().optional(),
-  }),
-  // Code grant
+  // Authorization code (with optional PKCE). OAuth 2.1 / RFC 7636 allow client_secret + code_verifier together.
   z.object({
     grant_type: z.literal("authorization_code"),
     code: z.string(),
     redirect_uri: z.string().optional(),
+    code_verifier: z.string().min(43).max(128).optional(),
     organization: z.string().optional(),
     ...optionalClientCredentials.shape,
   }),
@@ -89,19 +82,6 @@ function successLogTypeForGrant(grantType: string): LogType | undefined {
     default:
       return undefined;
   }
-}
-
-function parseBasicAuthHeader(authHeader?: string) {
-  if (!authHeader) {
-    return {};
-  }
-
-  const [type, token] = authHeader.split(" ");
-  if (type?.toLowerCase() === "basic" && token) {
-    const [client_id, client_secret] = atob(token).split(":");
-    return { client_id, client_secret };
-  }
-  return {};
 }
 
 export const tokenRoutes = new OpenAPIHono<{
