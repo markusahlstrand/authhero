@@ -423,8 +423,7 @@ export const authorizeRoutes = new OpenAPIHono<{
           }),
         },
         400: {
-          description:
-            "Login session is in PENDING, FAILED, or EXPIRED state.",
+          description: "Login session is in PENDING, FAILED, or EXPIRED state.",
           content: {
             "application/json": {
               schema: z.object({ message: z.string() }),

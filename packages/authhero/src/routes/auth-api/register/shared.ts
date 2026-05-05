@@ -128,7 +128,8 @@ export async function authenticateManagementRequest(
   if (result.token.client_id !== client_id) {
     throw new JSONHTTPException(401, {
       error: "invalid_token",
-      error_description: "Registration access token is not bound to this client",
+      error_description:
+        "Registration access token is not bound to this client",
     });
   }
 

@@ -71,10 +71,7 @@ export async function resumeLoginSession(
   // registrable domain of the current host. Anything else falls through
   // and is served on the current host (no redirect).
   const rawAuthUrl = loginSession.authorization_url;
-  if (
-    rawAuthUrl &&
-    rawAuthUrl.length <= AUTHORIZATION_URL_MAX_LENGTH
-  ) {
+  if (rawAuthUrl && rawAuthUrl.length <= AUTHORIZATION_URL_MAX_LENGTH) {
     let authzUrl: URL | null = null;
     try {
       authzUrl = new URL(rawAuthUrl);

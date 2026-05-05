@@ -53,7 +53,10 @@ export function enqueuePostHookEvent(
     target: {
       type: "user",
       id: user.user_id,
-      after: stripInternalUserFields(user) as unknown as Record<string, unknown>,
+      after: stripInternalUserFields(user) as unknown as Record<
+        string,
+        unknown
+      >,
     },
     request: {
       method: ctx.req.method,

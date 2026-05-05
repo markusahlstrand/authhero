@@ -156,8 +156,10 @@ describe("/u2/connect/start — direct-to-child mode (no multi-tenancy)", () => 
 
     // The IAT is stored on the request tenant.
     const hash = await hashRegistrationToken(iat!);
-    const stored =
-      await env.data.clientRegistrationTokens!.getByHash("tenantId", hash);
+    const stored = await env.data.clientRegistrationTokens!.getByHash(
+      "tenantId",
+      hash,
+    );
     expect(stored).toBeTruthy();
     expect(stored!.sub).toBe("email|userId");
   });
@@ -293,11 +295,15 @@ describe("/u2/connect/start — control-plane mode (multi-tenancy)", () => {
 
     // IAT is stored on the child tenant, not the control plane.
     const hash = await hashRegistrationToken(iat!);
-    const onChild =
-      await env.data.clientRegistrationTokens!.getByHash("child_tenant", hash);
+    const onChild = await env.data.clientRegistrationTokens!.getByHash(
+      "child_tenant",
+      hash,
+    );
     expect(onChild).toBeTruthy();
-    const onCp =
-      await env.data.clientRegistrationTokens!.getByHash("tenantId", hash);
+    const onCp = await env.data.clientRegistrationTokens!.getByHash(
+      "tenantId",
+      hash,
+    );
     expect(onCp).toBeNull();
   });
 

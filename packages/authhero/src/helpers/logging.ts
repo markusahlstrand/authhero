@@ -154,8 +154,7 @@ function buildAuditEvent(
             : ctx.var.client_id
               ? "client_credentials"
               : "system",
-      id:
-        ctx.var.user_id || params.actorUserId || params.userId || undefined,
+      id: ctx.var.user_id || params.actorUserId || params.userId || undefined,
       email: ctx.var.username || undefined,
       org_id: ctx.var.organization_id || ctx.var.user?.org_id || undefined,
       org_name: ctx.var.org_name || ctx.var.user?.org_name || undefined,

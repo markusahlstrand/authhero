@@ -53,9 +53,9 @@ describe("validateConnectOrigin", () => {
   });
 
   it("does not pattern-match localhost suffix (rejects localhost.attacker.com)", () => {
-    expect(
-      validateConnectOrigin("http://localhost.attacker.com/cb").ok,
-    ).toBe(false);
+    expect(validateConnectOrigin("http://localhost.attacker.com/cb").ok).toBe(
+      false,
+    );
   });
 
   it("normalizes trailing dot (Localhost. is loopback)", () => {
@@ -72,9 +72,7 @@ describe("validateConnectOrigin", () => {
   });
 
   it("rejects private IPv4 ranges without allowlist entry", () => {
-    expect(validateConnectOrigin("http://192.168.1.10:3000/cb").ok).toBe(
-      false,
-    );
+    expect(validateConnectOrigin("http://192.168.1.10:3000/cb").ok).toBe(false);
   });
 
   it("accepts private IPv4 when allowlisted", () => {

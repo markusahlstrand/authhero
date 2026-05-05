@@ -160,11 +160,7 @@ async function fillScreenshotPlaceholders(
       `[conformance-runner] filling screenshot placeholder ${placeholder} for ${testId}`,
     );
     try {
-      await client.uploadPlaceholderImage(
-        testId,
-        placeholder,
-        PLACEHOLDER_PNG,
-      );
+      await client.uploadPlaceholderImage(testId, placeholder, PLACEHOLDER_PNG);
       filledPlaceholders.add(key);
     } catch (err) {
       console.warn(

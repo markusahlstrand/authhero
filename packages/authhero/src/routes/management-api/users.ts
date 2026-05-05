@@ -512,7 +512,10 @@ export const userRoutes = new OpenAPIHono<{
         // row is readable by the login flow (which looks up by provider).
         const isPasswordConnection = connection === Strategy.USERNAME_PASSWORD;
 
-        const matchesTarget = (u: { connection?: string; provider?: string }) =>
+        const matchesTarget = (u: {
+          connection?: string;
+          provider?: string;
+        }) =>
           isPasswordConnection
             ? u.provider === USERNAME_PASSWORD_PROVIDER
             : u.connection === connection;

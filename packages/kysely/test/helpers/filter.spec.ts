@@ -333,9 +333,9 @@ describe("sanitizeLuceneQuery", () => {
   });
 
   it("drops disallowed fields but keeps allowed ones in mixed AND queries", () => {
-    expect(
-      sanitizeLuceneQuery("name:foo created_at:2020 acme", allowed),
-    ).toBe("name:foo acme");
+    expect(sanitizeLuceneQuery("name:foo created_at:2020 acme", allowed)).toBe(
+      "name:foo acme",
+    );
   });
 
   it("handles negation, _exists_, and = syntax", () => {
@@ -348,20 +348,18 @@ describe("sanitizeLuceneQuery", () => {
   });
 
   it("filters OR parts independently", () => {
-    expect(
-      sanitizeLuceneQuery("name:foo OR tenant_id:other", allowed),
-    ).toBe("name:foo");
-    expect(
-      sanitizeLuceneQuery("evil:x OR another_evil:y", allowed),
-    ).toBe("");
+    expect(sanitizeLuceneQuery("name:foo OR tenant_id:other", allowed)).toBe(
+      "name:foo",
+    );
+    expect(sanitizeLuceneQuery("evil:x OR another_evil:y", allowed)).toBe("");
   });
 
   it("respects quoted values when tokenizing", () => {
     expect(sanitizeLuceneQuery('name:"John Doe"', allowed)).toBe(
       'name:"John Doe"',
     );
-    expect(
-      sanitizeLuceneQuery('tenant_id:"x" name:"John Doe"', allowed),
-    ).toBe('name:"John Doe"');
+    expect(sanitizeLuceneQuery('tenant_id:"x" name:"John Doe"', allowed)).toBe(
+      'name:"John Doe"',
+    );
   });
 });

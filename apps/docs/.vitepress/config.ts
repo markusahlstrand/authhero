@@ -343,9 +343,7 @@ gtag('config', 'G-DNZWG3PF2L');`,
             {
               text: "Federation",
               collapsed: false,
-              items: [
-                { text: "SAML 2.0", link: "/standards/saml-2" },
-              ],
+              items: [{ text: "SAML 2.0", link: "/standards/saml-2" }],
             },
             {
               text: "Conformance Testing",

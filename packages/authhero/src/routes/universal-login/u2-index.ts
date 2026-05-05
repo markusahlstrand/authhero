@@ -75,13 +75,10 @@ export default function createU2App(config: AuthHeroConfig) {
         getOutbox: () => config.dataAdapter.outbox,
         getDestinations: (ctx) => [
           new LogsDestination(config.dataAdapter.logs),
-          new WebhookDestination(
-            config.dataAdapter.hooks,
-            async (tenantId) => {
-              const token = await createServiceToken(ctx, tenantId, "webhook");
-              return token.access_token;
-            },
-          ),
+          new WebhookDestination(config.dataAdapter.hooks, async (tenantId) => {
+            const token = await createServiceToken(ctx, tenantId, "webhook");
+            return token.access_token;
+          }),
           new RegistrationFinalizerDestination(config.dataAdapter.users),
         ],
       }),

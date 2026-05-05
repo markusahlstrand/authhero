@@ -154,13 +154,13 @@ async function generateFreshAuthenticationOptions(
   // When the user is known, scope the picker to this tenant's credentials so
   // passkeys registered under other tenants on the same rpId aren't offered.
   const allowCredentials = loginSession.user_id
-    ? (await listTenantPasskeys(ctx, client.tenant.id, loginSession.user_id)).map(
-        (e) => ({
-          id: e.credential_id!,
-          transports: (e.transports || []) as AuthenticatorTransport[],
-          type: "public-key" as const,
-        }),
-      )
+    ? (
+        await listTenantPasskeys(ctx, client.tenant.id, loginSession.user_id)
+      ).map((e) => ({
+        id: e.credential_id!,
+        transports: (e.transports || []) as AuthenticatorTransport[],
+        type: "public-key" as const,
+      }))
     : undefined;
 
   const options = await generateAuthenticationOptions({

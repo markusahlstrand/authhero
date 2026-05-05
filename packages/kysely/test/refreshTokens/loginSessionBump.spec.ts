@@ -112,9 +112,7 @@ describe("refreshTokens adapter keeps parent login_session alive", () => {
     await seedTenantAndClient(data);
 
     const initialExpiry = new Date(Date.now() + 1000 * 60 * 60).toISOString(); // 1h
-    const rtExpiry = new Date(
-      Date.now() + 1000 * 60 * 60 * 24,
-    ).toISOString(); // 1d
+    const rtExpiry = new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(); // 1d
     const bumpedIdleExpiry = new Date(
       Date.now() + 1000 * 60 * 60 * 24 * 5,
     ).toISOString(); // 5d
@@ -189,9 +187,7 @@ describe("refreshTokens adapter keeps parent login_session alive", () => {
     const { data } = await getTestServer();
     await seedTenantAndClient(data);
 
-    const rtExpiry = new Date(
-      Date.now() + 1000 * 60 * 60 * 24,
-    ).toISOString();
+    const rtExpiry = new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString();
 
     const loginSession = await createLoginSession(data, rtExpiry);
 

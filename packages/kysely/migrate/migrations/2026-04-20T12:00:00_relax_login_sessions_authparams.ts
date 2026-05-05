@@ -79,9 +79,7 @@ async function upMySQL(db: Kysely<Database>): Promise<void> {
     // Don't swallow: a silent warn here would let the migration record as
     // applied while the NOT NULL change never actually happened, leaving
     // inserts from the new adapter broken.
-    migrationWarn(
-      `  Failed to relax authParams_client_id NOT NULL: ${msg}`,
-    );
+    migrationWarn(`  Failed to relax authParams_client_id NOT NULL: ${msg}`);
     throw error;
   }
 }

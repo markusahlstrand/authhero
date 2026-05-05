@@ -739,8 +739,7 @@ export async function authenticateLoginSession(
   return session_id;
 }
 
-export interface FinalizeAuthenticatedSessionParams
-  extends AuthenticateLoginSessionParams {
+export interface FinalizeAuthenticatedSessionParams extends AuthenticateLoginSessionParams {
   /** Strategy metadata persisted so /authorize/resume can rehydrate it */
   authStrategy?: { strategy: string; strategy_type: string };
 }

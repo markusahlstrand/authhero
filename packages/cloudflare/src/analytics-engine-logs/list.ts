@@ -66,9 +66,7 @@ function mapFilterKeyToBlob(key: string): string | null {
 /**
  * Build WHERE clause conditions from filters
  */
-function buildWhereConditions(
-  filters: Record<string, string[]>,
-): string[] {
+function buildWhereConditions(filters: Record<string, string[]>): string[] {
   const conditions: string[] = [];
 
   for (const [key, rawValues] of Object.entries(filters)) {

@@ -70,6 +70,27 @@ function getApiPath(resource: string): string {
   return API_PATH_MAP[resource] || resource;
 }
 
+// Virtual sub-resource: scopes nested under resource-servers.
+// Stored as an array on the parent resource server, but exposed to react-admin
+// as its own resource so standard List/Create/Edit components work.
+const SCOPE_RES = "resource-server-scopes";
+
+function splitScopeId(id: string | number): readonly [string, string] {
+  const s = String(id);
+  const i = s.indexOf(":");
+  if (i === -1) return ["", ""] as const;
+  return [s.slice(0, i), s.slice(i + 1)] as const;
+}
+
+async function fetchResourceServerScopes(
+  managementClient: ManagementClient,
+  rsId: string,
+): Promise<{ scopes: any[] }> {
+  const result = await managementClient.resourceServers.get(rsId);
+  const rs = (result as any).response || result;
+  return { scopes: Array.isArray(rs.scopes) ? rs.scopes : [] };
+}
+
 // Helper to normalize SDK response format variations
 function normalizeSDKResponse(
   result: any,
@@ -302,6 +323,30 @@ export default (
         },
       };
 
+      // Virtual scopes-as-list under resource servers
+      if (resource === SCOPE_RES) {
+        const rsId = params.filter?.resource_server_id;
+        if (!rsId) return { data: [], total: 0 };
+        const { scopes } = await fetchResourceServerScopes(
+          managementClient,
+          rsId,
+        );
+        return clientSideListHandler({
+          data: scopes.map((s: any) => ({
+            id: `${rsId}:${s.value}`,
+            resource_server_id: rsId,
+            value: s.value,
+            description: s.description,
+          })),
+          page,
+          perPage: perPage || 25,
+          sortField: field,
+          sortOrder: order,
+          searchQuery: params.filter?.q,
+          searchFields: ["value", "description"],
+        });
+      }
+
       // Handle SDK resources (only for top-level resources, not nested paths like users/{id}/roles)
       const handler = sdkHandlers[resource];
       if (handler && !resourcePath.includes("/")) {
@@ -473,7 +518,8 @@ export default (
           .filter(([, v]) => v !== undefined && v !== null && v !== "")
           .map(([k, v]) => `${k}:${v}`)
           .join(" ");
-        const mergedQ = [rawQ, extraLucene].filter(Boolean).join(" ") || undefined;
+        const mergedQ =
+          [rawQ, extraLucene].filter(Boolean).join(" ") || undefined;
         const query: any = {
           include_totals: true,
           page: page - 1,
@@ -614,6 +660,30 @@ export default (
 
     getOne: async (resource, params) => {
       const managementClient = await getManagementClient();
+
+      // Virtual scopes-as-one under resource servers
+      if (resource === SCOPE_RES) {
+        const [rsId, value] = splitScopeId(params.id);
+        if (!rsId) throw new Error(`Invalid scope id: ${params.id}`);
+        const { scopes } = await fetchResourceServerScopes(
+          managementClient,
+          rsId,
+        );
+        const scope = scopes.find((s: any) => s.value === value);
+        if (!scope) {
+          throw new Error(
+            `Scope "${value}" not found on resource server ${rsId}`,
+          );
+        }
+        return {
+          data: {
+            id: params.id,
+            resource_server_id: rsId,
+            value: scope.value,
+            description: scope.description,
+          },
+        };
+      }
 
       // SDK resource handlers for getOne
       const sdkGetHandlers: Record<
@@ -1111,6 +1181,43 @@ export default (
       const managementClient = await getManagementClient();
       const headers = createHeaders(tenantId);
 
+      // Virtual scope update: read-modify-write the parent's scopes array
+      if (resource === SCOPE_RES) {
+        const [rsId, originalValue] = splitScopeId(params.id);
+        if (!rsId) throw new Error(`Invalid scope id: ${params.id}`);
+        const { scopes } = await fetchResourceServerScopes(
+          managementClient,
+          rsId,
+        );
+        const idx = scopes.findIndex((s: any) => s.value === originalValue);
+        if (idx === -1) {
+          throw new Error(`Scope "${originalValue}" no longer exists`);
+        }
+        const newValue = cleanParams.data.value || originalValue;
+        const newDescription =
+          cleanParams.data.description ?? scopes[idx].description ?? "";
+        if (
+          newValue !== originalValue &&
+          scopes.some((s: any, i: number) => i !== idx && s.value === newValue)
+        ) {
+          throw new Error(`Scope "${newValue}" already exists`);
+        }
+        const newScopes = scopes.map((s: any, i: number) =>
+          i === idx ? { value: newValue, description: newDescription } : s,
+        );
+        await managementClient.resourceServers.update(rsId, {
+          scopes: newScopes,
+        });
+        return {
+          data: {
+            id: `${rsId}:${newValue}`,
+            resource_server_id: rsId,
+            value: newValue,
+            description: newDescription,
+          },
+        };
+      }
+
       // Handle singleton resources
       if (resource === "settings") {
         const result = await managementClient.tenants.settings.update(
@@ -1336,6 +1443,33 @@ export default (
       if (tenantId) headers.set("tenant-id", tenantId);
       const managementClient = await getManagementClient();
 
+      // Virtual scope create: append to the parent's scopes array
+      if (resource === SCOPE_RES) {
+        const { resource_server_id: rsId, value, description } = params.data;
+        if (!rsId || !value) {
+          throw new Error("resource_server_id and value are required");
+        }
+        const { scopes } = await fetchResourceServerScopes(
+          managementClient,
+          rsId,
+        );
+        if (scopes.some((s: any) => s.value === value)) {
+          throw new Error(`Scope "${value}" already exists`);
+        }
+        const newScope = { value, description: description || "" };
+        await managementClient.resourceServers.update(rsId, {
+          scopes: [...scopes, newScope],
+        });
+        return {
+          data: {
+            id: `${rsId}:${value}`,
+            resource_server_id: rsId,
+            value,
+            description: newScope.description,
+          },
+        };
+      }
+
       // Handle custom-text resource
       if (resource === "custom-text") {
         const { prompt, language, texts } = params.data;
@@ -1511,6 +1645,21 @@ export default (
       const managementClient = await getManagementClient();
       const headers = new Headers({ "content-type": "application/json" });
       if (tenantId) headers.set("tenant-id", tenantId);
+
+      // Virtual scope delete: filter out from the parent's scopes array
+      if (resource === SCOPE_RES) {
+        const [rsId, value] = splitScopeId(params.id);
+        if (!rsId) throw new Error(`Invalid scope id: ${params.id}`);
+        const { scopes } = await fetchResourceServerScopes(
+          managementClient,
+          rsId,
+        );
+        const newScopes = scopes.filter((s: any) => s.value !== value);
+        await managementClient.resourceServers.update(rsId, {
+          scopes: newScopes,
+        });
+        return { data: { id: params.id } };
+      }
 
       // Handle custom-text resource
       if (resource === "custom-text") {
