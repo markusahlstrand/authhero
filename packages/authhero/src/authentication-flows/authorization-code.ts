@@ -172,7 +172,7 @@ export async function authorizationCodeGrantUser(
     }
   }
 
-  if (code.code_challenge && code.code_challenge_method) {
+  if (code.code_challenge) {
     // RFC 7636 §4.5: if code_challenge was sent at /authorize, code_verifier is required.
     if (!params.code_verifier) {
       logMessage(ctx, client.tenant.id, {
@@ -184,9 +184,10 @@ export async function authorizationCodeGrantUser(
         message: "Invalid client credentials",
       });
     }
+    const method = code.code_challenge_method || "plain";
     const challenge = await computeCodeChallenge(
       params.code_verifier,
-      code.code_challenge_method,
+      method,
     );
     if (!safeCompare(challenge, code.code_challenge)) {
       logMessage(ctx, client.tenant.id, {
