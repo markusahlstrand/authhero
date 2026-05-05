@@ -1,5 +1,18 @@
 # @authhero/react-admin
 
+## 0.66.0
+
+### Minor Changes
+
+- 97454aa: Updated the listing of scopes in the resource server
+
+### Patch Changes
+
+- Updated dependencies [e5cbfe7]
+- Updated dependencies [dd071e0]
+  - @authhero/adapter-interfaces@1.10.3
+  - @authhero/widget@0.32.10
+
 ## 0.65.1
 
 ### Patch Changes

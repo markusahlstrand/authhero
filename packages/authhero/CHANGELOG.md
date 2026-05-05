@@ -1,5 +1,22 @@
 # authhero
 
+## 4.108.0
+
+### Minor Changes
+
+- a99f0ad: Implement OIDC RP-Initiated Logout 1.0 endpoint at `GET /oidc/logout`. Validates `id_token_hint` signature, enforces `client_id`/`aud` agreement, refuses unregistered `post_logout_redirect_uri`s, echoes `state` on the redirect, and atomically revokes the session + bound refresh tokens with `SUCCESS_LOGOUT` / `SUCCESS_REVOCATION` audit events. Renders a static signed-out page when no redirect URI is supplied.
+
+### Patch Changes
+
+- e5cbfe7: Allow `client_secret` and `code_verifier` in the same `grant_type=authorization_code` request, as required by OAuth 2.1 and recommended by RFC 7636 / RFC 9700 §2.1.1. The `/oauth/token` schema previously rejected the combination as a discriminated-union mismatch; both fields are now optional and validated independently — `client_secret` against the registered client, `code_verifier` against the stored `code_challenge`.
+- 43c5276: Stop emitting a duplicate `SUCCESS_LOGIN` ("s") log on passwordless OTP completions with `response_type=code`. The canonical login event is owned by the post-login hook; the OTP-exchange event now only fires for the implicit flow, where /oauth/token is not called.
+- e5cbfe7: Advertise `end_session_endpoint` in `/.well-known/openid-configuration` when the tenant flag `oidc_logout.rp_logout_end_session_endpoint_discovery` is enabled (off by default, matching Auth0). Required for OIDC RP-Initiated Logout. Also adds the optional `end_session_endpoint` field to the `openIDConfigurationSchema`.
+- dd071e0: Add `Cache-Control: no-store` and `Pragma: no-cache` headers to the token endpoint response (per RFC 6749 §5.1) and advertise `grant_types_supported` in the OpenID Connect discovery document. Reject refresh-token exchanges where the refresh token's `client_id` does not match the authenticating client. Implement `POST /oauth/revoke` per RFC 7009 (refresh-token revocation, with `client_secret_basic` and `client_secret_post` client authentication).
+- Updated dependencies [e5cbfe7]
+- Updated dependencies [dd071e0]
+  - @authhero/adapter-interfaces@1.10.3
+  - @authhero/widget@0.32.10
+
 ## 4.107.0
 
 ### Minor Changes
