@@ -40,9 +40,12 @@ export class MailgunEmailService implements EmailServiceAdapter {
     body.append("from", params.from);
     body.append("to", params.to);
     body.append("subject", params.subject);
-    body.append("template", params.template);
     body.append("h:X-Mailgun-Variables", JSON.stringify(params.data));
-    if (params.html) body.append("html", params.html);
+    if (params.html) {
+      body.append("html", params.html);
+    } else {
+      body.append("template", params.template);
+    }
     if (params.text) body.append("text", params.text);
 
     const auth = btoa(`api:${credentials.api_key}`);

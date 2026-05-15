@@ -84,7 +84,7 @@ describe("MailgunEmailService", () => {
     expect(url).toBe("https://api.mailgun.net/v3/mg.example.com/messages");
   });
 
-  it("sends Basic auth, form body, template, variables, and html/text", async () => {
+  it("sends Basic auth, form body, variables, html, and text; omits template when html is set", async () => {
     const fetchImpl = vi.fn().mockResolvedValue(okResponse());
     const service = new MailgunEmailService({ fetchImpl });
 
@@ -99,7 +99,7 @@ describe("MailgunEmailService", () => {
     expect(body.get("from")).toBe("noreply@example.com");
     expect(body.get("to")).toBe("user@example.com");
     expect(body.get("subject")).toBe("Hello");
-    expect(body.get("template")).toBe("auth-code");
+    expect(body.has("template")).toBe(false);
     expect(JSON.parse(body.get("h:X-Mailgun-Variables") ?? "")).toEqual({
       code: "123456",
       vendorName: "Acme",
@@ -108,7 +108,7 @@ describe("MailgunEmailService", () => {
     expect(body.get("text")).toBe("Click here");
   });
 
-  it("omits html/text when not provided", async () => {
+  it("falls back to template when html is not provided", async () => {
     const fetchImpl = vi.fn().mockResolvedValue(okResponse());
     const service = new MailgunEmailService({ fetchImpl });
 
@@ -118,6 +118,7 @@ describe("MailgunEmailService", () => {
     const body = new URLSearchParams(init.body as string);
     expect(body.has("html")).toBe(false);
     expect(body.has("text")).toBe(false);
+    expect(body.get("template")).toBe("auth-code");
   });
 
   it("rejects credentials missing api_key without calling fetch", async () => {
