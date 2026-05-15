@@ -16,9 +16,13 @@ import { getConnectionFromIdentifier } from "../utils/username";
 import { getEnrichedClient } from "../helpers/client";
 import { renderEmailTemplate } from "./render";
 import { MailgunEmailService } from "../email-services/mailgun";
+import { ResendEmailService } from "../email-services/resend";
+import { PostmarkEmailService } from "../email-services/postmark";
 
 const BUILT_IN_EMAIL_SERVICES: Record<string, () => EmailServiceAdapter> = {
   mailgun: () => new MailgunEmailService(),
+  resend: () => new ResendEmailService(),
+  postmark: () => new PostmarkEmailService(),
 };
 
 export type SendEmailParams = {
