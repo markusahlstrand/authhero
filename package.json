@@ -8,6 +8,7 @@
     "test": "echo \"Error: no test specified\" && exit 0",
     "format": "prettier --write \"./**/*.{js,jsx,ts,tsx,json}\"",
     "manage": "pnpm --filter @authhero/manage",
+    "admin": "pnpm --filter @authhero/admin",
     "react-admin": "pnpm --filter @authhero/react-admin",
     "authhero": "pnpm --filter authhero",
     "proxy": "pnpm --filter @authhero/auth0-proxy",
