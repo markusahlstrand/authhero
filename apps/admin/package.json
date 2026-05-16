@@ -10,7 +10,7 @@
     "type-check": "tsc --noEmit",
     "lint": "eslint --fix --ext .js,.jsx,.ts,.tsx ./src",
     "format": "prettier --write ./src",
-    "test": "vitest"
+    "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
     "@auth0/auth0-spa-js": "^2.17.1",

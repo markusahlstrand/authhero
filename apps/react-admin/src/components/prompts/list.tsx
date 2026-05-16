@@ -1,14 +1,7 @@
-import { useEffect } from "react";
-import { useRedirect, useBasename } from "react-admin";
+import { PromptsEdit } from "./edit";
 
+// Singleton resource — render the edit form at the list URL
+// so the path stays /prompts instead of /prompts/prompts.
 export function PromptsList() {
-  const redirect = useRedirect();
-  const basename = useBasename();
-
-  useEffect(() => {
-    // For singleton resources, redirect to edit with "prompts" as the ID
-    redirect(`${basename}/prompts/prompts`);
-  }, [redirect, basename]);
-
-  return null;
+  return <PromptsEdit id="prompts" />;
 }

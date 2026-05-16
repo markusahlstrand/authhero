@@ -16,9 +16,9 @@ const shieldChoices = [
   { id: "admin_notification", name: "Admin Notification" },
 ];
 
-export function AttackProtectionEdit() {
+export function AttackProtectionEdit({ id }: { id?: string } = {}) {
   return (
-    <Edit>
+    <Edit id={id} resource="attack-protection">
       <TabbedForm>
         <TabbedForm.Tab label="Brute-force Protection">
           <Stack spacing={2}>

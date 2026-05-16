@@ -32,13 +32,13 @@ function removeNullValues(
   return result;
 }
 
-export function SettingsEdit() {
+export function SettingsEdit({ id }: { id?: string } = {}) {
   const transform = (data: Record<string, unknown>) => {
     return removeNullValues(data);
   };
 
   return (
-    <Edit transform={transform}>
+    <Edit transform={transform} id={id} resource="settings">
       <TabbedForm>
         <TabbedForm.Tab label="General">
           <Stack spacing={2}>

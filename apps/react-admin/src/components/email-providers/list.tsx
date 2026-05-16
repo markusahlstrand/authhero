@@ -1,14 +1,7 @@
-import { useEffect } from "react";
-import { useRedirect, useBasename } from "react-admin";
+import { EmailProvidersEdit } from "./edit";
 
+// Singleton resource — render the edit form at the list URL
+// so the path stays /email-providers instead of /email-providers/email-providers.
 export function EmailProvidersList() {
-  const redirect = useRedirect();
-  const basename = useBasename();
-
-  useEffect(() => {
-    // Singleton resource: redirect to edit with the resource name as the ID.
-    redirect(`${basename}/email-providers/email-providers`);
-  }, [redirect, basename]);
-
-  return null;
+  return <EmailProvidersEdit id="email-providers" />;
 }

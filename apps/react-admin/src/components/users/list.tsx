@@ -12,6 +12,14 @@ import { DateAgo } from "../common";
 export function UsersList() {
   const postFilters = [
     <TextInput key="search" label="Search" source="q" alwaysOn />,
+    <TextInput key="email" label="Email" source="email" />,
+    <TextInput key="name" label="Name" source="name" />,
+    <TextInput key="connection" label="Connection" source="connection" />,
+    <TextInput
+      key="phone_number"
+      label="Phone number"
+      source="phone_number"
+    />,
   ];
 
   return (

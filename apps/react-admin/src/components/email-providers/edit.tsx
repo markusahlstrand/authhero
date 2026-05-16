@@ -71,12 +71,14 @@ const transform = (data: Record<string, unknown>) => {
   return { ...rest, credentials };
 };
 
-export function EmailProvidersEdit() {
+export function EmailProvidersEdit({ id }: { id?: string } = {}) {
   return (
     <Edit
       transform={transform}
       mutationMode="pessimistic"
       title="Email Provider"
+      id={id}
+      resource="email-providers"
     >
       <TabbedForm>
         <TabbedForm.Tab label="General">

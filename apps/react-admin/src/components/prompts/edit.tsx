@@ -982,13 +982,13 @@ function CustomTextTab() {
   );
 }
 
-export function PromptsEdit() {
+export function PromptsEdit({ id }: { id?: string } = {}) {
   const transform = (data: Record<string, unknown>) => {
     return removeNullValues(data);
   };
 
   return (
-    <Edit transform={transform}>
+    <Edit transform={transform} id={id} resource="prompts">
       <TabbedForm>
         <TabbedForm.Tab label="Settings">
           <Typography variant="h6" gutterBottom>
