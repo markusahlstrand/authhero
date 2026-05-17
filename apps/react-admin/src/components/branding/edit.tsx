@@ -239,9 +239,9 @@ function BrandingFormContent() {
   );
 }
 
-export function BrandingEdit() {
+export function BrandingEdit({ id }: { id?: string } = {}) {
   return (
-    <Edit transform={transformBranding}>
+    <Edit transform={transformBranding} id={id} resource="branding">
       <BrandingFormContent />
     </Edit>
   );

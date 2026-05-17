@@ -1,13 +1,7 @@
-import { useEffect } from "react";
-import { useRedirect, useBasename } from "react-admin";
+import { AttackProtectionEdit } from "./edit";
 
+// Singleton resource — render the edit form at the list URL
+// so the path stays /attack-protection instead of /attack-protection/attack-protection.
 export function AttackProtectionList() {
-  const redirect = useRedirect();
-  const basename = useBasename();
-
-  useEffect(() => {
-    redirect(`${basename}/attack-protection/attack-protection`);
-  }, [redirect, basename]);
-
-  return null;
+  return <AttackProtectionEdit id="attack-protection" />;
 }

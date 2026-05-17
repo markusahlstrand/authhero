@@ -1,14 +1,7 @@
-import { useEffect } from "react";
-import { useRedirect, useBasename } from "react-admin";
+import { SettingsEdit } from "./edit";
 
+// Singleton resource — render the edit form at the list URL
+// so the path stays /settings instead of /settings/settings.
 export function SettingsList() {
-  const redirect = useRedirect();
-  const basename = useBasename();
-
-  useEffect(() => {
-    // For singleton resources, redirect to edit with "settings" as the ID
-    redirect(`${basename}/settings/settings`);
-  }, [redirect, basename]);
-
-  return null;
+  return <SettingsEdit id="settings" />;
 }

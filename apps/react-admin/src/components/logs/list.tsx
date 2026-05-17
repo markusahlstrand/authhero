@@ -1,6 +1,6 @@
 import {
   List,
-  Datagrid,
+  DatagridConfigurable,
   TextField,
   TextInput,
   SelectInput,
@@ -117,11 +117,28 @@ export function LogsList() {
 
   return (
     <List
-      actions={<PostListActions create={false} />}
+      actions={<PostListActions create={false} selectColumns />}
       filters={postFilters}
       sort={{ field: "date", order: "DESC" }}
     >
-      <Datagrid bulkActionButtons={false} rowClick="show">
+      <DatagridConfigurable
+        bulkActionButtons={false}
+        rowClick="show"
+        omit={[
+          "user_id",
+          "user_name",
+          "ip",
+          "client_id",
+          "client_name",
+          "connection",
+          "strategy",
+          "strategy_type",
+          "hostname",
+          "user_agent",
+          "audience",
+          "scope",
+        ]}
+      >
         <FunctionField
           source="success"
           render={(record: any) => <LogIcon type={record.type} />}
@@ -135,7 +152,19 @@ export function LogsList() {
           render={(record: any) => <DateAgo date={record.date} />}
         />
         <TextField source="description" />
-      </Datagrid>
+        <TextField source="user_id" />
+        <TextField source="user_name" />
+        <TextField source="ip" />
+        <TextField source="client_id" />
+        <TextField source="client_name" />
+        <TextField source="connection" />
+        <TextField source="strategy" />
+        <TextField source="strategy_type" />
+        <TextField source="hostname" />
+        <TextField source="user_agent" />
+        <TextField source="audience" />
+        <TextField source="scope" />
+      </DatagridConfigurable>
     </List>
   );
 }

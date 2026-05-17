@@ -1,12 +1,7 @@
-import { useEffect } from "react";
-import { useRedirect, useBasename } from "react-admin";
+import { BrandingEdit } from "./edit";
 
+// Branding is a singleton resource — render the edit form at the list URL
+// so the path stays /branding instead of /branding/branding.
 export function BrandingList() {
-  const redirect = useRedirect();
-  const basename = useBasename();
-  useEffect(() => {
-    // For singleton resources, redirect to edit with "branding" as the ID
-    redirect(`${basename}/branding/branding`);
-  }, [redirect, basename]);
-  return null;
+  return <BrandingEdit id="branding" />;
 }
