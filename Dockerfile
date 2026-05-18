@@ -17,7 +17,7 @@ COPY packages/drizzle/package.json packages/drizzle/
 COPY packages/aws/package.json packages/aws/
 COPY packages/create-authhero/package.json packages/create-authhero/
 COPY packages/ui-widget/package.json packages/ui-widget/
-COPY apps/react-admin/package.json apps/react-admin/
+COPY apps/admin/package.json apps/admin/
 COPY apps/auth0-proxy/package.json apps/auth0-proxy/
 COPY apps/conformance-runner/package.json apps/conformance-runner/
 COPY apps/docs/package.json apps/docs/
@@ -29,7 +29,7 @@ RUN pnpm install --frozen-lockfile
 # Copy source code
 COPY tsconfig.json tsconfig.node.json ./
 COPY packages/ packages/
-COPY apps/react-admin/ apps/react-admin/
+COPY apps/admin/ apps/admin/
 COPY docker/ docker/
 
 # Build packages in dependency order
@@ -37,7 +37,7 @@ RUN pnpm --filter @authhero/adapter-interfaces build
 RUN pnpm --filter @authhero/kysely-adapter build
 RUN pnpm --filter @authhero/widget build
 RUN NODE_OPTIONS="--max-old-space-size=4096" pnpm --filter authhero build
-RUN pnpm --filter @authhero/react-admin exec vite build
+RUN pnpm --filter @authhero/admin exec vite build
 
 # Create non-root user and prepare runtime directories
 RUN groupadd --system authhero && useradd --system --gid authhero authhero

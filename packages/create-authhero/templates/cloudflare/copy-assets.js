@@ -86,12 +86,12 @@ try {
     );
   }
 
-  // Copy admin UI files from @authhero/react-admin package
+  // Copy admin UI files from @authhero/admin package
   const adminSourceDir = path.join(
     __dirname,
     "node_modules",
     "@authhero",
-    "react-admin",
+    "admin",
     "dist",
   );
 

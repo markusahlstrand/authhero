@@ -1,0 +1,17 @@
+{
+  "rewrites": [
+    {
+      "source": "/(.*)manifest.json",
+      "destination": "/manifest.json"
+    },
+    {
+      "source": "/favicon.ico",
+      "destination": "/favicon.ico"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "installCommand": "corepack enable && corepack prepare pnpm@10.32.1 --activate && pnpm install --no-frozen-lockfile"
+}

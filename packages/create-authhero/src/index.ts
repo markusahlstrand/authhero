@@ -67,7 +67,7 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
         },
         dependencies: {
           "@authhero/kysely-adapter": v,
-          ...(adminUi && { "@authhero/react-admin": v }),
+          ...(adminUi && { "@authhero/admin": v }),
           "@authhero/widget": v,
           "@hono/swagger-ui": "^0.5.0",
           "@hono/zod-openapi": "^0.19.0",
@@ -126,7 +126,7 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
         dependencies: {
           "@authhero/drizzle": v,
           "@authhero/kysely-adapter": v,
-          ...(adminUi && { "@authhero/react-admin": v }),
+          ...(adminUi && { "@authhero/admin": v }),
           "@authhero/widget": v,
           "@hono/swagger-ui": "^0.5.0",
           "@hono/zod-openapi": "^0.19.0",
@@ -173,7 +173,7 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
         },
         dependencies: {
           "@authhero/aws": v,
-          ...(adminUi && { "@authhero/react-admin": v }),
+          ...(adminUi && { "@authhero/admin": v }),
           "@authhero/widget": v,
           "@aws-sdk/client-dynamodb": "^3.0.0",
           "@aws-sdk/lib-dynamodb": "^3.0.0",
@@ -498,7 +498,7 @@ function generateLocalAppFileContent(
     ? `
 const adminDistPath = path.resolve(
   __dirname,
-  "../node_modules/@authhero/react-admin/dist",
+  "../node_modules/@authhero/admin/dist",
 );
 const adminIndexPath = path.join(adminDistPath, "index.html");
 `

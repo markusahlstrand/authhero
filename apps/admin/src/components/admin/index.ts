@@ -13,6 +13,7 @@ export * from "./bulk-actions-toolbar";
 export * from "./bulk-delete-button";
 export * from "./bulk-export-button";
 export * from "./cancel-button";
+export * from "./code-input";
 export * from "./columns-button";
 export * from "./count";
 export * from "./create-button";

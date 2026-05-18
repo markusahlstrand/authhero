@@ -126,7 +126,7 @@ const widgetPath = path.join(
 );
 
 const adminDistPath = path.join(
-  resolvePackageDir("@authhero/react-admin"),
+  resolvePackageDir("@authhero/admin"),
   "dist",
 );
 const adminIndexPath = path.join(adminDistPath, "index.html");
