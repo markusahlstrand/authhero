@@ -15,6 +15,7 @@ import { Error } from "@/components/admin/error";
 import { Loading } from "@/components/admin/loading";
 import { TenantSwitcher } from "@/components/admin/tenant-switcher";
 import { GlobalSearch } from "@/components/admin/global-search";
+import { getAppName, getConfigValue } from "@/utils/runtimeConfig";
 
 /**
  * AuthHero admin layout.
@@ -30,23 +31,42 @@ export const Layout = (props: CoreLayoutProps) => {
   const handleError = (_: unknown, info: ErrorInfo) => {
     setErrorInfo(info);
   };
+  const appName = getAppName();
+  const logoUrl = getConfigValue("logoUrl");
+  const initials = appName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
   return (
     <SidebarProvider>
       <div className="flex h-svh w-full flex-col">
         {/* ============= TOP BAR (full-width) ============= */}
         <header className="relative z-20 flex h-14 shrink-0 items-center gap-2 border-b bg-background px-3 sm:px-4">
-          {/* Brand: wordmark by default, glyph at narrow widths. */}
+          {/* Brand: configured logo if provided, otherwise wordmark/glyph. */}
           <Link
             to="/"
             className="flex items-center gap-2 px-1 hover:opacity-80 transition-opacity"
-            aria-label="AuthHero — Dashboard"
+            aria-label={`${appName} — Dashboard`}
           >
-            <span className="flex size-7 items-center justify-center rounded-md bg-brand text-brand-foreground text-[11px] font-bold tracking-tight sm:hidden">
-              AH
-            </span>
-            <span className="hidden sm:inline text-base font-bold tracking-tight">
-              AuthHero
-            </span>
+            {logoUrl ? (
+              <img
+                src={logoUrl}
+                alt={appName}
+                className="h-7 w-auto max-w-[160px] object-contain"
+              />
+            ) : (
+              <>
+                <span className="flex size-7 items-center justify-center rounded-md bg-brand text-brand-foreground text-[11px] font-bold tracking-tight sm:hidden">
+                  {initials || "AH"}
+                </span>
+                <span className="hidden sm:inline text-base font-bold tracking-tight">
+                  {appName}
+                </span>
+              </>
+            )}
           </Link>
 
           <span

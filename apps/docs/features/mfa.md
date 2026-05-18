@@ -208,7 +208,7 @@ Share the `ticket_url` with the user. When they open it, they are redirected to 
 - **Factor selection** — If both OTP and SMS factors are enabled, the user is shown a factor selection screen. If only one factor is enabled, they go directly to that enrollment.
 - **No login required** — The ticket creates its own session; the user does not need to authenticate first.
 
-### Create a Ticket via React Admin
+### Create a Ticket via the Admin UI
 
 1. Navigate to a user's detail page
 2. Go to the **MFA** tab
@@ -219,7 +219,7 @@ Share the `ticket_url` with the user. When they open it, they are redirected to 
 
 1. Enable MFA factors (OTP, SMS, or both) — leave the policy set to `never`
 2. Send enrollment tickets to users so they can set up MFA at their own pace
-3. Monitor authentication methods via the API or the user MFA tab in React Admin
+3. Monitor authentication methods via the API or the user MFA tab in the Admin UI
 4. Once enough users are enrolled, set the policy to `always` to enforce MFA for all logins
 
 ## Disabling MFA
@@ -233,9 +233,9 @@ curl -X PUT /api/v2/guardian/policies \
   -d '[]'
 ```
 
-## Using React Admin
+## Using the Admin UI
 
-You can also configure MFA via the React Admin UI:
+You can also configure MFA via the [Admin UI](/apps/admin/):
 
 1. Navigate to **Settings** > **MFA Factors** tab
 2. Set **MFA Policy** to "Always (require for all logins)"
@@ -362,7 +362,7 @@ AuthHero's MFA implementation is compatible with Auth0's Guardian API:
 
 ### SMS not being received
 
-- Verify Twilio credentials are correct (check the **SMS Provider** tab in React Admin)
+- Verify Twilio credentials are correct (check the **SMS Provider** tab in the Admin UI)
 - Ensure the `from` phone number is a valid Twilio number
 - Check that the SMS factor is enabled (`GET /api/v2/guardian/factors/sms`)
 - Verify the MFA policy is set to "always" (`GET /api/v2/guardian/policies`)
@@ -381,4 +381,4 @@ curl -X DELETE /api/v2/users/{user_id}/authentication-methods/{method_id} \
   -H "Authorization: Bearer $TOKEN"
 ```
 
-Or use the **MFA** tab on the user detail page in React Admin.
+Or use the **MFA** tab on the user detail page in the Admin UI.

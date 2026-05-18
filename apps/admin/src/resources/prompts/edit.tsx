@@ -8,7 +8,8 @@ import {
 import { useWatch, useFormContext } from "react-hook-form";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { Edit, SelectInput, SimpleForm } from "@/components/admin";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { UrlTabs } from "@/components/ui/url-tabs";
 import {
   Accordion,
   AccordionContent,
@@ -940,7 +941,7 @@ function SettingsTab() {
 
 function PromptsFormContent() {
   return (
-    <Tabs defaultValue="settings" className="w-full">
+    <UrlTabs defaultValue="settings" className="w-full">
       <TabsList>
         <TabsTrigger value="settings">Settings</TabsTrigger>
         <TabsTrigger value="custom-text">Custom Text</TabsTrigger>
@@ -951,7 +952,7 @@ function PromptsFormContent() {
       <TabsContent value="custom-text" className="mt-4">
         <CustomTextTab />
       </TabsContent>
-    </Tabs>
+    </UrlTabs>
   );
 }
 

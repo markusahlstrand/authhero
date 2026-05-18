@@ -20,7 +20,7 @@ AuthHero implements the Auth0 Management API v2 and Authentication API, which me
 
 ### Self-Hosted
 
-AuthHero runs in your infrastructure. You control the database, the deployment, and the data. There is no hosted dashboard — use the React Admin UI or the Management API directly.
+AuthHero runs in your infrastructure. You control the database, the deployment, and the data. There is no hosted dashboard — use the [Admin UI](/apps/admin/) or the Management API directly.
 
 ### Hooks Instead of Actions
 

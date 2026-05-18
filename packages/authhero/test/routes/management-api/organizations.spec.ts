@@ -222,5 +222,91 @@ describe("organizations management API endpoint", () => {
       const org = (await response.json()) as any;
       expect(org.name).toBe("org-123_test");
     });
+
+    it("should honor a client-supplied id", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      const tenantId = `create-test-${Date.now()}`;
+
+      const response = await managementClient.organizations.$post(
+        {
+          json: {
+            id: "acme",
+            name: "acme",
+            display_name: "Acme",
+          },
+          header: {
+            "tenant-id": tenantId,
+          },
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      expect(response.status).toBe(201);
+      const org = (await response.json()) as any;
+      expect(org.id).toBe("acme");
+
+      // Fetching by the supplied id should return the same organization.
+      const fetched = await managementClient.organizations[":id"].$get(
+        {
+          param: { id: "acme" },
+          header: { "tenant-id": tenantId },
+        },
+        { headers: { authorization: `Bearer ${token}` } },
+      );
+      expect(fetched.status).toBe(200);
+      const fetchedOrg = (await fetched.json()) as any;
+      expect(fetchedOrg.id).toBe("acme");
+    });
+  });
+
+  describe("POST /api/v2/organizations/:id/members", () => {
+    it("should return 404 when the organization does not exist", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      const tenantId = `members-404-${Date.now()}`;
+
+      const response = await managementClient.organizations[":id"].members.$post(
+        {
+          param: { id: "does-not-exist" },
+          json: { members: ["auth0|user1"] },
+          header: { "tenant-id": tenantId },
+        },
+        { headers: { authorization: `Bearer ${token}` } },
+      );
+
+      expect(response.status).toBe(404);
+    });
+  });
+
+  describe("DELETE /api/v2/organizations/:id/members", () => {
+    it("should return 404 when the organization does not exist", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      const tenantId = `members-del-404-${Date.now()}`;
+
+      const response = await managementClient.organizations[
+        ":id"
+      ].members.$delete(
+        {
+          param: { id: "does-not-exist" },
+          json: { members: ["auth0|user1"] },
+          header: { "tenant-id": tenantId },
+        },
+        { headers: { authorization: `Bearer ${token}` } },
+      );
+
+      expect(response.status).toBe(404);
+    });
   });
 });

@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import { Edit, SimpleForm } from "@/components/admin";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { UrlTabs } from "@/components/ui/url-tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DetailsTab } from "./tabs/details-tab";
 import { RawJsonTab } from "./tabs/raw-json-tab";
@@ -13,7 +14,7 @@ export function FormEdit() {
   return (
     <Edit mutationMode="pessimistic">
       <SimpleForm className="max-w-none">
-        <Tabs defaultValue="details" className="w-full">
+        <UrlTabs defaultValue="details" className="w-full">
           <TabsList>
             <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="designer">Designer</TabsTrigger>
@@ -30,7 +31,7 @@ export function FormEdit() {
           <TabsContent value="raw" className="mt-4">
             <RawJsonTab />
           </TabsContent>
-        </Tabs>
+        </UrlTabs>
       </SimpleForm>
     </Edit>
   );

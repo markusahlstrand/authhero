@@ -123,9 +123,9 @@ Not mine to change — belongs in the actions feature branch.
 - 🔲 `packages/authhero/src/routes/management-api/action-triggers.ts:93-96` + `:175-185` — sanitize trigger ID before interpolating into lucene query; PATCH lacks atomicity.
 - 🔲 `packages/aws/src/adapters/users.ts:119-142` — `user_id` and `provider` use different resolved strings.
 - 🔲 `packages/kysely/src/actions/list.ts:76-83` — pagination metadata inconsistent when `include_totals` is false.
-- 🔲 `apps/react-admin/src/App.tsx:225-231` — Admin `basename` prop for tenant-prefixed routes.
-- 🔲 `apps/react-admin/src/components/actions/create.tsx:18-21,55-56` — default code template + secret value should use password input.
-- 🔲 `apps/react-admin/src/components/actions/edit.tsx:79-95` — no `supported_triggers` → `trigger_id` reverse mapping so existing actions load with empty trigger.
+- 🔲 `apps/admin/src/App.tsx` — Admin `basename` prop for tenant-prefixed routes.
+- 🔲 `apps/admin/src/resources/actions/create.tsx` — default code template + secret value should use password input.
+- 🔲 `apps/admin/src/resources/actions/edit.tsx` — no `supported_triggers` → `trigger_id` reverse mapping so existing actions load with empty trigger.
 
 ### Nitpicks worth batching into a cleanup PR (5)
 

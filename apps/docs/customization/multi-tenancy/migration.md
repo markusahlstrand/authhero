@@ -180,7 +180,7 @@ export default app;
 
 ### Step 6: Update Client Applications
 
-#### React Admin Changes
+#### Admin UI Changes
 
 **Before:**
 

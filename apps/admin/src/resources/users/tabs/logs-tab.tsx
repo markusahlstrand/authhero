@@ -1,12 +1,17 @@
 import {
   DataTable,
+  FilterButton,
+  FilterForm,
   ListPagination,
   ReferenceManyField,
+  SelectInput,
   TextField,
+  TextInput,
 } from "@/components/admin";
 import { useRecordContext } from "ra-core";
 import { LogIcon } from "../../logs/LogIcon";
 import { LogType } from "../../logs/LogType";
+import { LogTypes } from "@/lib/logs";
 import { DateAgo } from "@/common/DateAgo";
 
 interface LogRecord {
@@ -15,6 +20,45 @@ interface LogRecord {
   date?: string;
   description?: string;
 }
+
+const typeChoices = Object.entries({
+  [LogTypes.SUCCESS_LOGIN]: "Success Login",
+  [LogTypes.FAILED_LOGIN]: "Failed Login",
+  [LogTypes.SUCCESS_SIGNUP]: "Success Signup",
+  [LogTypes.FAILED_SIGNUP]: "Failed Signup",
+  [LogTypes.SUCCESS_LOGOUT]: "Success Logout",
+  [LogTypes.SUCCESS_SILENT_AUTH]: "Success Silent Auth",
+  [LogTypes.FAILED_SILENT_AUTH]: "Failed Silent Auth",
+  [LogTypes.SUCCESS_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN]:
+    "Success Code Exchange",
+  [LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN]:
+    "Failed Code Exchange",
+  [LogTypes.SUCCESS_API_OPERATION]: "Success API Operation",
+  [LogTypes.FAILED_API_OPERATION]: "Failed API Operation",
+  [LogTypes.CODE_LINK_SENT]: "Code/Link Sent",
+  [LogTypes.SUCCESS_CHANGE_EMAIL]: "Success Change Email",
+  [LogTypes.FAILED_CHANGE_EMAIL]: "Failed Change Email",
+  [LogTypes.SUCCESS_CHANGE_PASSWORD]: "Success Change Password",
+  [LogTypes.FAILED_CHANGE_PASSWORD]: "Failed Change Password",
+}).map(([id, name]) => ({ id, name }));
+
+const statusChoices = [
+  { id: "true", name: "Success" },
+  { id: "false", name: "Failed" },
+];
+
+const logFilters = [
+  <TextInput
+    key="q"
+    source="q"
+    placeholder="Search"
+    label="Search"
+    alwaysOn
+  />,
+  <TextInput key="ip" source="ip" placeholder="IP" label="IP" />,
+  <SelectInput key="success" source="success" choices={statusChoices} />,
+  <SelectInput key="type" source="type" choices={typeChoices} />,
+];
 
 function LogIconCell() {
   const record = useRecordContext<LogRecord>();
@@ -45,6 +89,10 @@ export function LogsTab() {
         <p className="text-sm text-muted-foreground py-4">No logs found</p>
       }
     >
+      <div className="flex flex-row items-end gap-2 mb-2 flex-wrap">
+        <FilterForm filters={logFilters} />
+        <FilterButton filters={logFilters} resource="logs" />
+      </div>
       <DataTable rowClick="show" bulkActionButtons={false}>
         <DataTable.Col label="">
           <LogIconCell />

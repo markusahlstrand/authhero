@@ -6,8 +6,14 @@ import { TenantsApp } from "./TenantsApp";
 import { AuthCallback } from "./AuthCallback";
 import { DomainSelector } from "./components/DomainSelector";
 import { getSelectedDomainFromStorage } from "./utils/domainUtils";
-import { getConfigValue, getBasePath } from "./utils/runtimeConfig";
+import {
+  getConfigValue,
+  getBasePath,
+  applyBranding,
+} from "./utils/runtimeConfig";
 import "./styles/globals.css";
+
+applyBranding();
 
 const envDomain = getConfigValue("domain");
 

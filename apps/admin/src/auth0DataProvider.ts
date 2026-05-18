@@ -439,6 +439,13 @@ export default (
         };
       }
 
+      // MFA singleton: a focused view of tenant settings (mfa + guardian_mfa_page)
+      if (resource === "mfa") {
+        return fetchSingleton(resource, () =>
+          managementClient.tenants.settings.get(),
+        );
+      }
+
       // Handle prompts singleton resource
       if (resource === "prompts") {
         const headers = createHeaders(tenantId);
@@ -932,6 +939,13 @@ export default (
         };
       }
 
+      if (resource === "mfa") {
+        const result = await managementClient.tenants.settings.get();
+        return {
+          data: { ...result, id: resource },
+        };
+      }
+
       // Handle prompts singleton resource
       if (resource === "prompts") {
         const headers = createHeaders(tenantId);
@@ -1325,6 +1339,13 @@ export default (
       // Logs filtered by user_id - includes logs from linked accounts
       if (resource === "logs" && params.target === "user_id") {
         const headers = createHeaders(tenantId);
+        const { q: rawQ, from, to, ...filterPairs } = params.filter || {};
+        const extraLucene = Object.entries(filterPairs)
+          .filter(([, v]) => v !== undefined && v !== null && v !== "")
+          .map(([k, v]) => `${k}:"${escapeLuceneValue(v)}"`)
+          .join(" ");
+        const mergedQ =
+          [rawQ, extraLucene].filter(Boolean).join(" ") || undefined;
         const query = {
           page: page - 1,
           per_page: perPage,
@@ -1333,7 +1354,9 @@ export default (
               ? `${field}:${order === "DESC" ? "-1" : "1"}`
               : undefined,
           include_totals: true,
-          ...params.filter,
+          q: mergedQ,
+          from,
+          to,
         };
         const url = `${apiUrl}/api/v2/users/${encodeURIComponent(
           String(params.id),
@@ -1424,6 +1447,20 @@ export default (
         return {
           data: { ...result, id: resource },
         };
+      }
+
+      if (resource === "mfa") {
+        // The MFA form only edits mfa.* and guardian_mfa_page.*; everything
+        // else on `tenants.settings` is left untouched by sending only those
+        // keys. Drop synthetic id before submitting.
+        const { id: _id, ...rest } = cleanParams.data;
+        const patch: Record<string, unknown> = {};
+        if (rest.mfa !== undefined) patch.mfa = rest.mfa;
+        if (rest.guardian_mfa_page !== undefined) {
+          patch.guardian_mfa_page = rest.guardian_mfa_page;
+        }
+        const result = await managementClient.tenants.settings.update(patch);
+        return { data: { ...result, id: resource } };
       }
 
       if (resource === "attack-protection") {

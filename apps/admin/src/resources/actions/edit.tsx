@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { Edit, SimpleForm } from "@/components/admin";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { UrlTabs } from "@/components/ui/url-tabs";
 import { DetailsTab } from "./tabs/details-tab";
 import { TestTab } from "./tabs/test-tab";
 import { VersionsTab } from "./tabs/versions-tab";
@@ -71,7 +72,7 @@ export function ActionEdit() {
       }}
     >
       <SimpleForm className="max-w-none">
-        <Tabs defaultValue="details" className="w-full">
+        <UrlTabs defaultValue="details" className="w-full">
           <TabsList>
             <TabsTrigger value="details">Settings</TabsTrigger>
             <TabsTrigger value="test">Test</TabsTrigger>
@@ -86,7 +87,7 @@ export function ActionEdit() {
           <TabsContent value="versions" className="mt-4">
             <VersionsTab />
           </TabsContent>
-        </Tabs>
+        </UrlTabs>
       </SimpleForm>
     </Edit>
   );
