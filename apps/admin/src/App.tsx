@@ -236,6 +236,9 @@ export function App({ tenantId, initialDomain, onAuthComplete }: AppProps) {
           icon={ScrollText}
           list={LogsList}
           show={LogShow}
+          recordRepresentation={(record) =>
+            record?.description || record?.type || `Log ${record?.id ?? ""}`
+          }
           options={{ menuGroup: "Observability" }}
         />
         <Resource name="sessions" edit={SessionEdit} show={SessionShow} />
@@ -279,6 +282,7 @@ export function App({ tenantId, initialDomain, onAuthComplete }: AppProps) {
         />
         <Resource name="resource-server-scopes" />
         <Resource name="permissions" />
+        <Resource name="client-grants" />
         <Resource
           name="roles"
           icon={Shield}

@@ -318,10 +318,13 @@ export const SelectInput = (props: SelectInputProps) => {
 
 export type SelectInputProps = ChoicesProps &
   // Source is optional as SelectInput can be used inside a ReferenceInput that already defines the source
-  Partial<InputProps> &
+  Omit<Partial<InputProps>, "onChange"> &
   Omit<SupportCreateSuggestionOptions, "handleChange"> & {
     emptyText?: string | ReactElement;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     emptyValue?: any;
     onChange?: (value: string) => void;
-  } & Omit<ComponentProps<typeof FormField>, "id" | "name" | "children">;
+  } & Omit<
+    ComponentProps<typeof FormField>,
+    "id" | "name" | "children" | "onChange"
+  >;

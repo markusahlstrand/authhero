@@ -10,6 +10,7 @@ import { useParams } from "react-router-dom";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -63,6 +64,7 @@ function AddPermissionButton() {
   >([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState("");
 
   const selectedServer = resourceServers.find(
     (s) => s.identifier === selectedServerId,
@@ -72,6 +74,7 @@ function AddPermissionButton() {
     setSelectedServerId("");
     setAvailable([]);
     setSelected(new Set());
+    setSearch("");
   };
 
   const handleOpen = async () => {
@@ -106,6 +109,7 @@ function AddPermissionButton() {
     );
     if (!server) return;
     setSelected(new Set());
+    setSearch("");
     setLoading(true);
     (async () => {
       try {
@@ -171,7 +175,7 @@ function AddPermissionButton() {
 
   return (
     <>
-      <Button onClick={handleOpen}>
+      <Button type="button" onClick={handleOpen}>
         <Plus className="h-4 w-4 mr-1" />
         Add permission
       </Button>
@@ -202,42 +206,75 @@ function AddPermissionButton() {
               </Select>
             </div>
             {selectedServerId && (
-              <div className="max-h-72 overflow-auto border rounded-md">
-                {loading ? (
-                  <p className="p-4 text-sm text-muted-foreground">
-                    Loading…
-                  </p>
-                ) : available.length === 0 ? (
-                  <p className="p-4 text-sm text-muted-foreground">
-                    This user already has all available scopes.
-                  </p>
-                ) : (
-                  <ul className="divide-y">
-                    {available.map((p) => (
-                      <li key={p.permission_name} className="flex items-start gap-2 p-2">
-                        <Checkbox
-                          id={`perm-${p.permission_name}`}
-                          checked={selected.has(p.permission_name)}
-                          onCheckedChange={() => toggle(p.permission_name)}
-                        />
-                        <label
-                          htmlFor={`perm-${p.permission_name}`}
-                          className="flex-1 cursor-pointer"
-                        >
-                          <div className="text-sm font-medium">
-                            {p.permission_name}
-                          </div>
-                          {p.description && (
-                            <div className="text-xs text-muted-foreground">
-                              {p.description}
-                            </div>
-                          )}
-                        </label>
-                      </li>
-                    ))}
-                  </ul>
+              <>
+                {available.length > 5 && (
+                  <Input
+                    placeholder="Search permissions"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
                 )}
-              </div>
+                <div className="max-h-72 overflow-auto border rounded-md">
+                  {loading ? (
+                    <p className="p-4 text-sm text-muted-foreground">
+                      Loading…
+                    </p>
+                  ) : available.length === 0 ? (
+                    <p className="p-4 text-sm text-muted-foreground">
+                      This user already has all available scopes.
+                    </p>
+                  ) : (
+                    (() => {
+                      const q = search.trim().toLowerCase();
+                      const filtered = q
+                        ? available.filter((p) =>
+                            [p.permission_name, p.description].some((v) =>
+                              v.toLowerCase().includes(q),
+                            ),
+                          )
+                        : available;
+                      if (filtered.length === 0) {
+                        return (
+                          <p className="p-4 text-sm text-muted-foreground">
+                            No matches
+                          </p>
+                        );
+                      }
+                      return (
+                        <ul className="divide-y">
+                          {filtered.map((p) => (
+                            <li
+                              key={p.permission_name}
+                              className="flex items-start gap-2 p-2"
+                            >
+                              <Checkbox
+                                id={`perm-${p.permission_name}`}
+                                checked={selected.has(p.permission_name)}
+                                onCheckedChange={() =>
+                                  toggle(p.permission_name)
+                                }
+                              />
+                              <label
+                                htmlFor={`perm-${p.permission_name}`}
+                                className="flex-1 cursor-pointer"
+                              >
+                                <div className="text-sm font-medium">
+                                  {p.permission_name}
+                                </div>
+                                {p.description && (
+                                  <div className="text-xs text-muted-foreground">
+                                    {p.description}
+                                  </div>
+                                )}
+                              </label>
+                            </li>
+                          ))}
+                        </ul>
+                      );
+                    })()
+                  )}
+                </div>
+              </>
             )}
           </div>
           <DialogFooter>
@@ -285,6 +322,7 @@ function RemovePermissionCell() {
   return (
     <>
       <Button
+        type="button"
         variant="ghost"
         size="icon"
         aria-label="Remove permission"

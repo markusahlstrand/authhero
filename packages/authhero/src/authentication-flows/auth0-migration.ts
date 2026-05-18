@@ -16,6 +16,7 @@ interface Auth0SourceCredentials {
   userinfoEndpoint: string;
   clientId: string;
   clientSecret: string;
+  realm?: string;
 }
 
 function readString(value: unknown): string | undefined {
@@ -44,11 +45,12 @@ export function readAuth0SourceCredentials(
   const userinfoEndpoint = readString(c.userinfo_endpoint);
   const clientId = readString(c.client_id);
   const clientSecret = readString(c.client_secret);
+  const realm = readString(c.realm);
 
   if (!tokenEndpoint || !userinfoEndpoint || !clientId || !clientSecret) {
     return null;
   }
-  return { tokenEndpoint, userinfoEndpoint, clientId, clientSecret };
+  return { tokenEndpoint, userinfoEndpoint, clientId, clientSecret, realm };
 }
 
 interface AttemptUpstreamPasswordParams {
@@ -58,9 +60,9 @@ interface AttemptUpstreamPasswordParams {
   password: string;
   /**
    * The local DB connection the login is targeting. Its `name` is sent as
-   * `realm` to upstream Auth0, and its `options.configuration` carries the
-   * upstream credentials. Must have `options.import_mode: true` to be
-   * eligible.
+   * `realm` to upstream Auth0 (unless `options.configuration.realm` overrides
+   * it), and its `options.configuration` carries the upstream credentials.
+   * Must have `options.import_mode: true` to be eligible.
    */
   dbConnection: Connection;
   /**
@@ -102,7 +104,7 @@ export async function attemptUpstreamPasswordFallback(
       tokenEndpoint: credentials.tokenEndpoint,
       clientId: credentials.clientId,
       clientSecret: credentials.clientSecret,
-      realm: dbConnection.name,
+      realm: credentials.realm ?? dbConnection.name,
       username,
       password,
     });

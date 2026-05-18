@@ -42,16 +42,31 @@ import getToken from "@/utils/tokenUtils";
 
 type Tenant = { id: string; name?: string };
 
+const SEARCH_THRESHOLD = 5;
+const PAGE_SIZE = 100;
+
+function useDebounced<T>(value: T, delayMs: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const t = window.setTimeout(() => setDebounced(value), delayMs);
+    return () => window.clearTimeout(t);
+  }, [value, delayMs]);
+  return debounced;
+}
+
 export function TenantSwitcher() {
   const tenantId = useTenantId();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [tenants, setTenants] = useState<Tenant[] | null>(null);
+  const [total, setTotal] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounced(search.trim(), 200);
 
   useEffect(() => {
-    if (!open || tenants !== null || loading) return;
+    if (!open) return;
     let cancelled = false;
     setLoading(true);
     (async () => {
@@ -73,12 +88,20 @@ export function TenantSwitcher() {
         // through getNonOrgAccessToken so the tenants list isn't filtered to
         // a single org.
         const token = await getToken(domainConfig, auth0);
-        const res = await fetch(`${apiUrl}/api/v2/tenants?per_page=100`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
+        const params = new URLSearchParams({
+          per_page: String(PAGE_SIZE),
+          include_totals: "true",
         });
+        if (debouncedSearch) params.set("q", debouncedSearch);
+        const res = await fetch(
+          `${apiUrl}/api/v2/tenants?${params.toString()}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          },
+        );
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data: unknown = await res.json();
         if (cancelled) return;
@@ -88,6 +111,18 @@ export function TenantSwitcher() {
             ? data.tenants
             : [];
         setTenants(list);
+        setError(null);
+        if (
+          !Array.isArray(data) &&
+          isTenantsEnvelope(data) &&
+          typeof data.length === "number" &&
+          // Only update the total when there's no active search; otherwise we'd
+          // overwrite the unfiltered total with the filtered result count and
+          // hide the search input on the next open.
+          !debouncedSearch
+        ) {
+          setTotal(data.length);
+        }
       } catch (e) {
         if (cancelled) return;
         setError(e instanceof Error ? e.message : "Failed to load tenants");
@@ -98,10 +133,14 @@ export function TenantSwitcher() {
     return () => {
       cancelled = true;
     };
-    // `tenants`/`loading` are intentionally not deps: setLoading(true) below
-    // would re-trigger the effect, the cleanup would set cancelled=true, and
-    // the in-flight result would be discarded.
+  }, [open, debouncedSearch]);
+
+  useEffect(() => {
+    if (!open) setSearch("");
   }, [open]);
+
+  const showSearch =
+    (total ?? tenants?.length ?? 0) > SEARCH_THRESHOLD || search.length > 0;
 
   const current = tenants?.find((t) => t.id === tenantId);
   const label = current?.name ?? tenantId ?? "Select tenant";
@@ -125,8 +164,14 @@ export function TenantSwitcher() {
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-72 p-0" align="start">
-        <Command>
-          <CommandInput placeholder="Search tenants…" />
+        <Command shouldFilter={false}>
+          {showSearch && (
+            <CommandInput
+              placeholder="Search tenants…"
+              value={search}
+              onValueChange={setSearch}
+            />
+          )}
           <CommandList>
             {loading && (
               <div className="py-6 text-center text-sm text-muted-foreground">
@@ -196,7 +241,9 @@ export function TenantSwitcher() {
   );
 }
 
-function isTenantsEnvelope(v: unknown): v is { tenants: Tenant[] } {
+function isTenantsEnvelope(
+  v: unknown,
+): v is { tenants: Tenant[]; length?: number } {
   return (
     typeof v === "object" &&
     v !== null &&

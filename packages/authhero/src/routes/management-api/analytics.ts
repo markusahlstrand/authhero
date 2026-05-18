@@ -336,7 +336,7 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions = {}) {
         query: querySchema,
         headers: z.object({ "tenant-id": z.string().optional() }),
       },
-      security: [{ Bearer: ["read:analytics", "auth:read"] }],
+      security: [{ Bearer: ["read:stats", "auth:read"] }],
       responses: {
         200: {
           content: {

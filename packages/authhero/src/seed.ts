@@ -108,7 +108,6 @@ export const MANAGEMENT_API_SCOPES = [
   { description: "Blacklist Tokens", value: "blacklist:tokens" },
   { description: "Read Stats", value: "read:stats" },
   { description: "Read Insights", value: "read:insights" },
-  { description: "Read Analytics", value: "read:analytics" },
   { description: "Read Tenant Settings", value: "read:tenant_settings" },
   { description: "Update Tenant Settings", value: "update:tenant_settings" },
   { description: "Read Logs", value: "read:logs" },

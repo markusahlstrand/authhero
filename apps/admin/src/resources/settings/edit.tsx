@@ -1,76 +1,95 @@
-import {
-  Edit,
-  SimpleForm,
-  TextInput,
-  SelectInput,
-  BooleanInput,
-  NumberInput,
-  ArrayInput,
-  SimpleFormIterator,
-} from "@/components/admin";
+import { Edit, SimpleForm } from "@/components/admin";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { GeneralTab } from "./tabs/general-tab";
+import { SessionTab } from "./tabs/session-tab";
+import { SessionsManagementTab } from "./tabs/sessions-management-tab";
+import { LocalizationTab } from "./tabs/localization-tab";
+import { ErrorPageTab } from "./tabs/error-page-tab";
+import { ChangePasswordTab } from "./tabs/change-password-tab";
+import { GuardianMfaTab } from "./tabs/guardian-mfa-tab";
+import { MfaFactorsTab } from "./tabs/mfa-factors-tab";
+import { SmsProviderTab } from "./tabs/sms-provider-tab";
+import { FeatureFlagsTab } from "./tabs/feature-flags-tab";
+import { AdvancedTab } from "./tabs/advanced-tab";
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function removeNullValues(
+  obj: Record<string, unknown>,
+): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value === null || value === undefined) continue;
+    if (isPlainObject(value)) {
+      const cleaned = removeNullValues(value);
+      if (Object.keys(cleaned).length > 0) result[key] = cleaned;
+    } else {
+      result[key] = value;
+    }
+  }
+  return result;
+}
 
 export function SettingsEdit() {
   return (
-    <Edit mutationMode="pessimistic" redirect={false}>
-      <SimpleForm>
-        <TextInput source="friendly_name" label="Friendly Name" />
-        <TextInput source="picture_url" label="Picture URL" />
-        <TextInput source="support_email" label="Support Email" />
-        <TextInput source="support_url" label="Support URL" />
-        <TextInput source="default_directory" label="Default Directory" />
-        <TextInput source="default_audience" label="Default Audience" />
-        <TextInput source="default_organization" label="Default Organization" />
-        <TextInput source="default_redirection_uri" label="Default Redirection URI" />
-
-        <NumberInput source="idle_session_lifetime" label="Idle Session Lifetime (s)" />
-        <NumberInput source="session_lifetime" label="Session Lifetime (s)" />
-        <SelectInput
-          source="session_cookie.mode"
-          label="Session Cookie Mode"
-          choices={[
-            { id: "persistent", name: "Persistent" },
-            { id: "non-persistent", name: "Non-persistent" },
-          ]}
-        />
-
-        <BooleanInput
-          source="sessions.oidc_logout_prompt_enabled"
-          label="OIDC Logout Prompt"
-          defaultValue={true}
-        />
-
-        <ArrayInput source="enabled_locales" label="Enabled Locales">
-          <SimpleFormIterator inline>
-            <TextInput source="" label="" />
-          </SimpleFormIterator>
-        </ArrayInput>
-
-        <TextInput source="error_page.url" label="Error Page URL" />
-        <TextInput source="error_page.html" label="Error Page HTML" multiline />
-        <BooleanInput source="error_page.show_log_link" label="Error Page: show log link" />
-
-        <BooleanInput source="change_password.enabled" label="Change password enabled" />
-        <TextInput source="change_password.html" label="Change password HTML" multiline />
-
-        <BooleanInput source="guardian_mfa_page.enabled" label="Guardian MFA enabled" />
-        <TextInput source="guardian_mfa_page.html" label="Guardian MFA HTML" multiline />
-
-        <SelectInput
-          source="mfa.policy"
-          label="MFA Policy"
-          defaultValue="never"
-          choices={[
-            { id: "never", name: "Never" },
-            { id: "all-applications", name: "All applications" },
-            { id: "confidence-score", name: "Confidence score" },
-          ]}
-        />
-        <BooleanInput source="mfa.factors.sms" label="MFA: SMS" />
-        <BooleanInput source="mfa.factors.otp" label="MFA: OTP" />
-        <BooleanInput source="mfa.factors.email" label="MFA: Email" />
-        <BooleanInput source="mfa.factors.push_notification" label="MFA: Push notification" />
-        <BooleanInput source="mfa.factors.webauthn_roaming" label="MFA: WebAuthn (roaming)" />
-        <BooleanInput source="mfa.factors.webauthn_platform" label="MFA: WebAuthn (platform)" />
+    <Edit
+      mutationMode="pessimistic"
+      redirect={false}
+      transform={removeNullValues as never}
+    >
+      <SimpleForm className="max-w-none">
+        <Tabs defaultValue="general" className="w-full">
+          <TabsList>
+            <TabsTrigger value="general">General</TabsTrigger>
+            <TabsTrigger value="session">Session</TabsTrigger>
+            <TabsTrigger value="sessions-management">
+              Sessions Management
+            </TabsTrigger>
+            <TabsTrigger value="localization">Localization</TabsTrigger>
+            <TabsTrigger value="error-page">Error Page</TabsTrigger>
+            <TabsTrigger value="change-password">Change Password</TabsTrigger>
+            <TabsTrigger value="guardian-mfa">Guardian MFA</TabsTrigger>
+            <TabsTrigger value="mfa-factors">MFA Factors</TabsTrigger>
+            <TabsTrigger value="sms-provider">SMS Provider</TabsTrigger>
+            <TabsTrigger value="feature-flags">Feature Flags</TabsTrigger>
+            <TabsTrigger value="advanced">Advanced</TabsTrigger>
+          </TabsList>
+          <TabsContent value="general" className="mt-4">
+            <GeneralTab />
+          </TabsContent>
+          <TabsContent value="session" className="mt-4">
+            <SessionTab />
+          </TabsContent>
+          <TabsContent value="sessions-management" className="mt-4">
+            <SessionsManagementTab />
+          </TabsContent>
+          <TabsContent value="localization" className="mt-4">
+            <LocalizationTab />
+          </TabsContent>
+          <TabsContent value="error-page" className="mt-4">
+            <ErrorPageTab />
+          </TabsContent>
+          <TabsContent value="change-password" className="mt-4">
+            <ChangePasswordTab />
+          </TabsContent>
+          <TabsContent value="guardian-mfa" className="mt-4">
+            <GuardianMfaTab />
+          </TabsContent>
+          <TabsContent value="mfa-factors" className="mt-4">
+            <MfaFactorsTab />
+          </TabsContent>
+          <TabsContent value="sms-provider" className="mt-4">
+            <SmsProviderTab />
+          </TabsContent>
+          <TabsContent value="feature-flags" className="mt-4">
+            <FeatureFlagsTab />
+          </TabsContent>
+          <TabsContent value="advanced" className="mt-4">
+            <AdvancedTab />
+          </TabsContent>
+        </Tabs>
       </SimpleForm>
     </Edit>
   );

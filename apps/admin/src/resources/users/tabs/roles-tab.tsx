@@ -4,6 +4,7 @@ import { useParams } from "react-router-dom";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -141,11 +142,13 @@ function AddRoleDialog({ userId, onAdded }: AddRoleDialogProps) {
   const [available, setAvailable] = useState<RoleRecord[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState("");
 
   const handleOpen = async () => {
     setOpen(true);
     setOrgId(GLOBAL_ID);
     setSelected(new Set());
+    setSearch("");
     try {
       const res = await dataProvider.getList<OrganizationRecord>(
         `users/${userId}/organizations`,
@@ -166,6 +169,7 @@ function AddRoleDialog({ userId, onAdded }: AddRoleDialogProps) {
     setOrgId(GLOBAL_ID);
     setSelected(new Set());
     setAvailable([]);
+    setSearch("");
   };
 
   useEffect(() => {
@@ -257,7 +261,7 @@ function AddRoleDialog({ userId, onAdded }: AddRoleDialogProps) {
 
   return (
     <>
-      <Button onClick={handleOpen}>
+      <Button type="button" onClick={handleOpen}>
         <Plus className="h-4 w-4 mr-1" />
         Add role
       </Button>
@@ -267,22 +271,34 @@ function AddRoleDialog({ userId, onAdded }: AddRoleDialogProps) {
             <DialogTitle>Add roles</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-3">
-            {userOrgs.length > 0 && (
-              <Select value={orgId} onValueChange={setOrgId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select organization" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={GLOBAL_ID}>
-                    Global (No organization)
+            <Select
+              value={orgId}
+              onValueChange={(v) => {
+                setOrgId(v);
+                setSelected(new Set());
+                setSearch("");
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select organization" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={GLOBAL_ID}>
+                  Global (No organization)
+                </SelectItem>
+                {userOrgs.map((o) => (
+                  <SelectItem key={o.id} value={o.id}>
+                    {o.display_name || o.name || o.id}
                   </SelectItem>
-                  {userOrgs.map((o) => (
-                    <SelectItem key={o.id} value={o.id}>
-                      {o.display_name || o.name || o.id}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                ))}
+              </SelectContent>
+            </Select>
+            {available.length > 5 && (
+              <Input
+                placeholder="Search roles"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
             )}
             <div className="max-h-72 overflow-auto border rounded-md">
               {loading ? (
@@ -293,30 +309,52 @@ function AddRoleDialog({ userId, onAdded }: AddRoleDialogProps) {
                   {orgId === GLOBAL_ID ? " globally" : " in this organization"}.
                 </p>
               ) : (
-                <ul className="divide-y">
-                  {available.map((r) => (
-                    <li key={r.id} className="flex items-start gap-2 p-2">
-                      <Checkbox
-                        id={`role-${r.id}`}
-                        checked={selected.has(r.id)}
-                        onCheckedChange={() => toggle(r.id)}
-                      />
-                      <label
-                        htmlFor={`role-${r.id}`}
-                        className="flex-1 cursor-pointer"
-                      >
-                        <div className="text-sm font-medium">
-                          {r.name || r.id}
-                        </div>
-                        {r.description && (
-                          <div className="text-xs text-muted-foreground">
-                            {r.description}
-                          </div>
-                        )}
-                      </label>
-                    </li>
-                  ))}
-                </ul>
+                (() => {
+                  const q = search.trim().toLowerCase();
+                  const filtered = q
+                    ? available.filter((r) =>
+                        [r.name, r.description, r.id]
+                          .filter((v): v is string => Boolean(v))
+                          .some((v) => v.toLowerCase().includes(q)),
+                      )
+                    : available;
+                  if (filtered.length === 0) {
+                    return (
+                      <p className="p-4 text-sm text-muted-foreground">
+                        No matches
+                      </p>
+                    );
+                  }
+                  return (
+                    <ul className="divide-y">
+                      {filtered.map((r) => (
+                        <li
+                          key={r.id}
+                          className="flex items-start gap-2 p-2"
+                        >
+                          <Checkbox
+                            id={`role-${r.id}`}
+                            checked={selected.has(r.id)}
+                            onCheckedChange={() => toggle(r.id)}
+                          />
+                          <label
+                            htmlFor={`role-${r.id}`}
+                            className="flex-1 cursor-pointer"
+                          >
+                            <div className="text-sm font-medium">
+                              {r.name || r.id}
+                            </div>
+                            {r.description && (
+                              <div className="text-xs text-muted-foreground">
+                                {r.description}
+                              </div>
+                            )}
+                          </label>
+                        </li>
+                      ))}
+                    </ul>
+                  );
+                })()
               )}
             </div>
           </div>
@@ -403,6 +441,7 @@ export function RolesTab() {
                 <TableCell className="font-mono text-xs">{row.id}</TableCell>
                 <TableCell>
                   <Button
+                    type="button"
                     variant="ghost"
                     size="icon"
                     aria-label="Remove role"

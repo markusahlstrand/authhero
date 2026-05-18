@@ -103,6 +103,7 @@ export function MfaTab() {
     <div className="flex flex-col gap-4">
       <div>
         <Button
+          type="button"
           variant="outline"
           onClick={handleCreateTicket}
           disabled={sendingTicket}
@@ -136,6 +137,7 @@ export function MfaTab() {
                 </span>
               </div>
               <Button
+                type="button"
                 variant="ghost"
                 size="icon"
                 aria-label="Delete enrollment"

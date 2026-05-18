@@ -278,6 +278,7 @@ export function BrandingPreview() {
           {(["login", "password", "signup"] as PreviewScreen[]).map((s) => (
             <Button
               key={s}
+              type="button"
               size="sm"
               variant={previewScreen === s ? "default" : "outline"}
               onClick={() => setPreviewScreen(s)}

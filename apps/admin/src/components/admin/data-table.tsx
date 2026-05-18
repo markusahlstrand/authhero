@@ -42,6 +42,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Tooltip,
   TooltipContent,
@@ -104,11 +105,18 @@ export function DataTable<RecordType extends RaRecord = RaRecord>(
   const columns = columnRanks
     ? reorderChildren(children, columnRanks)
     : children;
+  const columnCount = Children.toArray(columns).filter(isValidElement).length;
 
   return (
     <DataTableBase<RecordType>
       hasBulkActions={hasBulkActions}
-      loading={null}
+      loading={
+        <DataTableSkeleton
+          columnCount={columnCount}
+          hasBulkActions={hasBulkActions}
+          className={className}
+        />
+      }
       empty={<DataTableEmpty />}
       {...rest}
     >
@@ -290,6 +298,47 @@ const DataTableEmpty = () => {
     <Alert>
       <AlertDescription>No results found.</AlertDescription>
     </Alert>
+  );
+};
+
+const SKELETON_ROW_COUNT = 8;
+
+const DataTableSkeleton = ({
+  columnCount,
+  hasBulkActions,
+  className,
+}: {
+  columnCount: number;
+  hasBulkActions: boolean;
+  className?: string;
+}) => {
+  const totalColumns = Math.max(columnCount, 1) + (hasBulkActions ? 1 : 0);
+  return (
+    <div className={cn("rounded-md border", className)}>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            {hasBulkActions ? <TableHead className="w-8" /> : null}
+            {Array.from({ length: Math.max(columnCount, 1) }).map((_, i) => (
+              <TableHead key={i}>
+                <Skeleton className="h-4 w-24" />
+              </TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {Array.from({ length: SKELETON_ROW_COUNT }).map((_, rowIndex) => (
+            <TableRow key={rowIndex}>
+              {Array.from({ length: totalColumns }).map((_, colIndex) => (
+                <TableCell key={colIndex} className="py-2">
+                  <Skeleton className="h-4 w-full max-w-[160px]" />
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 };
 

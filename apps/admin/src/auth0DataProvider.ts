@@ -61,6 +61,14 @@ function parseResource(resourcePath: string) {
   return resourcePath.split("/").pop() || resourcePath;
 }
 
+// Escape user-supplied filter values before interpolating them into a Lucene
+// query string. Escapes backslashes, double quotes, and Lucene reserved
+// operators to prevent injection via quote-breaking or special syntax.
+function escapeLuceneValue(value: unknown): string {
+  const str = String(value);
+  return str.replace(/[\\"+\-!(){}\[\]^~*?:/]|&&|\|\|/g, (match) => `\\${match}`);
+}
+
 // Maps react-admin resource names to Auth0 API paths when they differ
 const API_PATH_MAP: Record<string, string> = {
   actions: "actions/actions",
@@ -263,17 +271,25 @@ export default (
         }
       > = {
         users: {
-          fetch: (client) =>
-            client.users.list({
+          fetch: (client) => {
+            const { q: rawQ, ...filterPairs } = params.filter || {};
+            const extraLucene = Object.entries(filterPairs)
+              .filter(([, v]) => v !== undefined && v !== null && v !== "")
+              .map(([k, v]) => `${k}:"${escapeLuceneValue(v)}"`)
+              .join(" ");
+            const mergedQ =
+              [rawQ, extraLucene].filter(Boolean).join(" ") || undefined;
+            return client.users.list({
               page: page - 1,
               per_page: perPage,
               sort:
                 field && order
                   ? `${field}:${order === "DESC" ? "-1" : "1"}`
                   : undefined,
-              q: params.filter?.q,
+              q: mergedQ,
               include_totals: true,
-            }),
+            });
+          },
           resourceKey: "users",
           idKey: "user_id",
         },
@@ -645,7 +661,7 @@ export default (
         const { q: rawQ, from, to, ...filterPairs } = params.filter || {};
         const extraLucene = Object.entries(filterPairs)
           .filter(([, v]) => v !== undefined && v !== null && v !== "")
-          .map(([k, v]) => `${k}:${v}`)
+          .map(([k, v]) => `${k}:"${escapeLuceneValue(v)}"`)
           .join(" ");
         const mergedQ =
           [rawQ, extraLucene].filter(Boolean).join(" ") || undefined;
@@ -1056,6 +1072,21 @@ export default (
             },
           };
         }
+      }
+
+      // Logs use log_id as their identifier, not id.
+      if (resource === "logs") {
+        const headers = createHeaders(tenantId);
+        const { json } = await httpClient(
+          `${apiUrl}/api/v2/logs/${params.id}`,
+          { headers },
+        );
+        return {
+          data: {
+            ...json,
+            id: json.log_id || json.id || params.id,
+          },
+        };
       }
 
       // HTTP for other resources

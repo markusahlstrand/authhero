@@ -28,9 +28,55 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { TextInput } from "@/components/admin";
 import { Strategy } from "@/utils/Strategy";
 import type { UserIdentity, UserRecord } from "./types";
+
+function getInitials(record: UserRecord): string {
+  const name =
+    record.name ||
+    [record.given_name, record.family_name].filter(Boolean).join(" ") ||
+    record.nickname ||
+    record.email ||
+    record.username ||
+    "";
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function UserHeader() {
+  const record = useRecordContext<UserRecord>();
+  if (!record) return null;
+  const displayName =
+    record.name ||
+    [record.given_name, record.family_name].filter(Boolean).join(" ") ||
+    record.nickname ||
+    record.email ||
+    record.username ||
+    String(record.id);
+  const subtitle =
+    record.email && record.email !== displayName ? record.email : undefined;
+
+  return (
+    <div className="flex items-center gap-4">
+      <Avatar className="size-20">
+        {record.picture && <AvatarImage src={record.picture} alt={displayName} />}
+        <AvatarFallback className="text-xl">
+          {getInitials(record)}
+        </AvatarFallback>
+      </Avatar>
+      <div className="flex flex-col">
+        <h2 className="text-xl font-semibold">{displayName}</h2>
+        {subtitle && (
+          <p className="text-sm text-muted-foreground">{subtitle}</p>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function jsonFormat(value: unknown): string {
   if (value === undefined || value === null) return "{}";
@@ -178,6 +224,7 @@ function IdentityRow({
         )}
         {onEdit && (
           <Button
+            type="button"
             variant="ghost"
             size="icon"
             className="h-6 w-6"
@@ -315,6 +362,7 @@ function UnlinkIdentityButton({ identity }: { identity: UserIdentity }) {
   return (
     <>
       <Button
+        type="button"
         variant="ghost"
         size="icon"
         aria-label="Unlink identity"
@@ -432,7 +480,7 @@ function LinkUserButton() {
 
   return (
     <>
-      <Button variant="outline" onClick={() => setOpen(true)}>
+      <Button type="button" variant="outline" onClick={() => setOpen(true)}>
         <Link2 className="h-4 w-4 mr-2" />
         Link user
       </Button>
@@ -572,7 +620,7 @@ function PasswordChangeSection() {
           here.
         </p>
         <div>
-          <Button variant="outline" onClick={() => setOpen(true)}>
+          <Button type="button" variant="outline" onClick={() => setOpen(true)}>
             Change password
           </Button>
         </div>
@@ -643,6 +691,7 @@ function PasswordChangeSection() {
 export function DetailsTab() {
   return (
     <div className="flex flex-col gap-6">
+      <UserHeader />
       <IdentityCard />
 
       <Card>

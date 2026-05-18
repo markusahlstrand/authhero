@@ -81,6 +81,9 @@ export const connectionOptionsSchema = z.object({
       userinfo_endpoint: z.string().optional(),
       client_id: z.string().optional(),
       client_secret: z.string().optional(),
+      // Optional override for the `realm` sent in the password-realm grant.
+      // Defaults to the connection name when omitted.
+      realm: z.string().optional(),
     })
     .optional(),
   // Flexible Identifiers: attributes schema (replaces legacy requires_username)
