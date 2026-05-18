@@ -16,7 +16,7 @@ const widgetPath = path.resolve(
 
 const adminDistPath = path.resolve(
   __dirname,
-  "../node_modules/@authhero/react-admin/dist",
+  "../node_modules/@authhero/admin/dist",
 );
 const adminIndexPath = path.join(adminDistPath, "index.html");
 

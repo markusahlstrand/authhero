@@ -133,7 +133,7 @@ export function FlowDesigner({
   );
 
   return (
-    <div className="relative h-[720px] w-full overflow-hidden rounded-lg border bg-muted/30">
+    <div className="relative h-[calc(100vh-12rem)] min-h-[480px] w-full overflow-hidden rounded-lg border bg-muted/30">
       <ReactFlow
         nodes={canvasNodesWithSelection}
         edges={canvasEdges}
