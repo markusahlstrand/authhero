@@ -1,5 +1,15 @@
 # create-authhero
 
+## 0.42.0
+
+### Minor Changes
+
+- 5e35511: Update for the new UI
+
+### Patch Changes
+
+- b8213fb: Make `@authhero/admin` publishable and swap it in for `@authhero/react-admin` in the Docker image and `create-authhero` templates (local + cloudflare). The shadcn-based admin is now the default UI mounted at `/admin`. `@authhero/react-admin` remains in the workspace for now but is no longer wired into Docker or generated projects.
+
 ## 0.41.2
 
 ### Patch Changes
