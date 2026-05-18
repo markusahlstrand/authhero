@@ -16,6 +16,7 @@ function PasswordHistorySize() {
     <NumberInput
       source="options.password_history.size"
       label="Password History Size"
+      min={1}
     />
   );
 }
@@ -52,6 +53,7 @@ export function PasswordPolicyTab() {
       <NumberInput
         source="options.password_complexity_options.min_length"
         label="Minimum Password Length"
+        min={1}
       />
 
       <Separator className="my-4" />

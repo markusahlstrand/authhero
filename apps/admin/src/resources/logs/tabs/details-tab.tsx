@@ -130,7 +130,7 @@ export function DetailsTab() {
               <ReferenceField
                 source="user_id"
                 reference="users"
-                link="show"
+                link="edit"
               >
                 <TextField source="email" />
               </ReferenceField>
@@ -163,7 +163,7 @@ export function DetailsTab() {
               <ReferenceField
                 source="client_id"
                 reference="clients"
-                link="show"
+                link="edit"
               >
                 <TextField source="name" />
               </ReferenceField>

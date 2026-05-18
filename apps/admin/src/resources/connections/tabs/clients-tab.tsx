@@ -1,4 +1,4 @@
-import { useCreatePath, useGetList, useRecordContext } from "ra-core";
+import { useCreatePath, useGetMany, useRecordContext } from "ra-core";
 import { Link } from "react-router";
 import { Badge } from "@/components/ui/badge";
 
@@ -17,12 +17,9 @@ export function ClientsTab() {
   const createPath = useCreatePath();
   const enabledIds = record?.enabled_clients ?? [];
 
-  const { data: clients, isLoading } = useGetList<ClientRecord>(
+  const { data: clients, isLoading } = useGetMany<ClientRecord>(
     "clients",
-    {
-      pagination: { page: 1, perPage: 100 },
-      sort: { field: "name", order: "ASC" },
-    },
+    { ids: enabledIds },
     { enabled: enabledIds.length > 0 },
   );
 

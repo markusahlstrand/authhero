@@ -6,4 +6,4 @@
 "@authhero/docker": minor
 ---
 
-Udpdate for the new UI
+Update for the new UI

@@ -36,6 +36,7 @@ const EMAIL_VALIDATION_CHOICES = [
 // old records don't show it twice during a partial migration.
 function ClientMetadataInput() {
   const { field } = useInput({ source: "client_metadata" });
+  const record = useRecordContext();
   const value: Record<string, unknown> =
     field.value && typeof field.value === "object" ? field.value : {};
 
@@ -51,7 +52,7 @@ function ClientMetadataInput() {
     // value is intentionally not in deps — we only seed the local rows from the
     // form state once per record load; subsequent edits flow through commit().
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [field.name]);
+  }, [field.name, record?.id]);
 
   const commit = (next: Array<{ key: string; value: string }>) => {
     const out: Record<string, unknown> = {};

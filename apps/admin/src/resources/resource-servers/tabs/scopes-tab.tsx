@@ -74,10 +74,18 @@ function RemoveScopeCell() {
             Remove the scope <strong>{record.value}</strong>?
           </p>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+            >
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleRemove}>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleRemove}
+            >
               Remove
             </Button>
           </DialogFooter>

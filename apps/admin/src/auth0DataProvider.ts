@@ -61,6 +61,14 @@ function parseResource(resourcePath: string) {
   return resourcePath.split("/").pop() || resourcePath;
 }
 
+// Escape user-supplied filter values before interpolating them into a Lucene
+// query string. Escapes backslashes, double quotes, and Lucene reserved
+// operators to prevent injection via quote-breaking or special syntax.
+function escapeLuceneValue(value: unknown): string {
+  const str = String(value);
+  return str.replace(/[\\"+\-!(){}\[\]^~*?:/]|&&|\|\|/g, (match) => `\\${match}`);
+}
+
 // Maps react-admin resource names to Auth0 API paths when they differ
 const API_PATH_MAP: Record<string, string> = {
   actions: "actions/actions",
@@ -267,7 +275,7 @@ export default (
             const { q: rawQ, ...filterPairs } = params.filter || {};
             const extraLucene = Object.entries(filterPairs)
               .filter(([, v]) => v !== undefined && v !== null && v !== "")
-              .map(([k, v]) => `${k}:"${v}"`)
+              .map(([k, v]) => `${k}:"${escapeLuceneValue(v)}"`)
               .join(" ");
             const mergedQ =
               [rawQ, extraLucene].filter(Boolean).join(" ") || undefined;
@@ -653,7 +661,7 @@ export default (
         const { q: rawQ, from, to, ...filterPairs } = params.filter || {};
         const extraLucene = Object.entries(filterPairs)
           .filter(([, v]) => v !== undefined && v !== null && v !== "")
-          .map(([k, v]) => `${k}:${v}`)
+          .map(([k, v]) => `${k}:"${escapeLuceneValue(v)}"`)
           .join(" ");
         const mergedQ =
           [rawQ, extraLucene].filter(Boolean).join(" ") || undefined;

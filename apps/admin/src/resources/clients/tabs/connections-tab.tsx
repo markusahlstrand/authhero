@@ -371,6 +371,7 @@ export function ConnectionsTab() {
           </Select>
           <DialogFooter>
             <Button
+              type="button"
               variant="outline"
               onClick={() => {
                 setAddOpen(false);
@@ -379,7 +380,11 @@ export function ConnectionsTab() {
             >
               Cancel
             </Button>
-            <Button onClick={handleAdd} disabled={!addSelectionId || saving}>
+            <Button
+              type="button"
+              onClick={handleAdd}
+              disabled={!addSelectionId || saving}
+            >
               Add connection
             </Button>
           </DialogFooter>

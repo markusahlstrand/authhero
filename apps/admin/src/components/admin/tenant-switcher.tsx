@@ -139,7 +139,8 @@ export function TenantSwitcher() {
     if (!open) setSearch("");
   }, [open]);
 
-  const showSearch = (total ?? tenants?.length ?? 0) > SEARCH_THRESHOLD;
+  const showSearch =
+    (total ?? tenants?.length ?? 0) > SEARCH_THRESHOLD || search.length > 0;
 
   const current = tenants?.find((t) => t.id === tenantId);
   const label = current?.name ?? tenantId ?? "Select tenant";
