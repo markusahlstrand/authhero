@@ -1,56 +1,80 @@
-import {
-  Edit,
-  SimpleForm,
-  TextInput,
-  BooleanInput,
-  ArrayInput,
-  SimpleFormIterator,
-  TextArrayInput,
-} from "@/components/admin";
-import { SecretInput } from "@/common/SecretInput";
+import { Edit, SimpleForm } from "@/components/admin";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DetailsTab } from "./tabs/details-tab";
+import { SsoTab } from "./tabs/sso-tab";
+import { ClientGrantsTab } from "./tabs/client-grants-tab";
+import { ConnectionsTab } from "./tabs/connections-tab";
+import { AdvancedTab } from "./tabs/advanced-tab";
+import { RefreshTokensTab } from "./tabs/refresh-tokens-tab";
+import { RawJsonTab } from "./tabs/raw-json-tab";
+
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+// Drop top-level/legacy `disable_sign_ups` (now on connection.options.disable_signup)
+// and strip null values from refresh_token.* so cleared NumberInputs don't
+// round-trip null into .optional() schema fields.
+function transformClient(data: Record<string, unknown>) {
+  const out: Record<string, unknown> = { ...data };
+
+  if (isPlainObject(out.client_metadata)) {
+    const stringified: Record<string, string> = {};
+    for (const [k, v] of Object.entries(out.client_metadata)) {
+      if (k === "disable_sign_ups") continue;
+      if (typeof v === "boolean") stringified[k] = v ? "true" : "false";
+      else if (v != null) stringified[k] = String(v);
+    }
+    out.client_metadata = stringified;
+  }
+  if ("disable_sign_ups" in out) delete out.disable_sign_ups;
+
+  if (isPlainObject(out.refresh_token)) {
+    const cleaned: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(out.refresh_token)) {
+      if (v !== null) cleaned[k] = v;
+    }
+    out.refresh_token = cleaned;
+  }
+
+  return out;
+}
 
 export function ClientEdit() {
   return (
-    <Edit>
-      <SimpleForm>
-        <TextInput source="id" readOnly />
-        <TextInput source="name" />
-        <SecretInput source="client_secret" />
-
-        <BooleanInput
-          source="auth0_conformant"
-          label="Auth0 Conformant Mode"
-          helperText="Enable Auth0-compatible behavior. Disable for strict OIDC compliance."
-          defaultValue={true}
-        />
-        <BooleanInput
-          source="hide_sign_up_disabled_error"
-          label="Hide sign-up-disabled error (enumeration-safe)"
-        />
-
-        <TextArrayInput source="callbacks" label="Callbacks" />
-        <TextArrayInput source="allowed_logout_urls" label="Allowed Logout URLs" />
-        <TextArrayInput source="web_origins" label="Web Origins" />
-        <TextArrayInput source="allowed_clients" label="Allowed Clients" />
-
-        <ArrayInput source="grant_types" label="Grant Types">
-          <SimpleFormIterator inline>
-            <TextInput source="" label="" />
-          </SimpleFormIterator>
-        </ArrayInput>
-
-        <TextInput
-          source="addons.samlp.audience"
-          label="SAML Audience (Entity ID)"
-        />
-        <TextInput
-          source="addons.samlp.destination"
-          label="SAML Destination (ACS URL)"
-        />
-
-        <BooleanInput source="oidc_conformant" label="OIDC Conformant" />
-        <BooleanInput source="is_first_party" label="First Party Application" />
-        <BooleanInput source="sso_disabled" label="SSO Disabled" />
+    <Edit mutationMode="pessimistic" transform={transformClient as never}>
+      <SimpleForm className="max-w-none">
+        <Tabs defaultValue="details" className="w-full">
+          <TabsList>
+            <TabsTrigger value="details">Details</TabsTrigger>
+            <TabsTrigger value="sso">SSO</TabsTrigger>
+            <TabsTrigger value="grants">Client Grants</TabsTrigger>
+            <TabsTrigger value="connections">Connections</TabsTrigger>
+            <TabsTrigger value="advanced">Advanced</TabsTrigger>
+            <TabsTrigger value="refresh">Refresh Tokens</TabsTrigger>
+            <TabsTrigger value="raw">Raw JSON</TabsTrigger>
+          </TabsList>
+          <TabsContent value="details" className="mt-4">
+            <DetailsTab />
+          </TabsContent>
+          <TabsContent value="sso" className="mt-4">
+            <SsoTab />
+          </TabsContent>
+          <TabsContent value="grants" className="mt-4">
+            <ClientGrantsTab />
+          </TabsContent>
+          <TabsContent value="connections" className="mt-4">
+            <ConnectionsTab />
+          </TabsContent>
+          <TabsContent value="advanced" className="mt-4">
+            <AdvancedTab />
+          </TabsContent>
+          <TabsContent value="refresh" className="mt-4">
+            <RefreshTokensTab />
+          </TabsContent>
+          <TabsContent value="raw" className="mt-4">
+            <RawJsonTab />
+          </TabsContent>
+        </Tabs>
       </SimpleForm>
     </Edit>
   );

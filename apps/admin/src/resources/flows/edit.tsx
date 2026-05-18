@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   useController,
   useFieldArray,
+  useFormContext,
   useWatch,
 } from "react-hook-form";
 import {
@@ -160,7 +161,8 @@ interface JsonInputProps {
 }
 
 function JsonInput({ source, label, helperText, rows = 6 }: JsonInputProps) {
-  const { field } = useController({ name: source });
+  const { field, fieldState } = useController({ name: source });
+  const { setError: setFormError, clearErrors } = useFormContext();
 
   const initial = useMemo(() => {
     if (field.value === undefined || field.value === null) return "{}";
@@ -173,7 +175,6 @@ function JsonInput({ source, label, helperText, rows = 6 }: JsonInputProps) {
   }, []); // snapshot on mount; avoids fighting user input on re-renders
 
   const [text, setText] = useState(initial);
-  const [error, setError] = useState<string | null>(null);
   const lastSerializedRef = useRef(initial);
 
   // If the form is reset externally (e.g. record reload), resync the textarea.
@@ -187,9 +188,14 @@ function JsonInput({ source, label, helperText, rows = 6 }: JsonInputProps) {
     if (serialized !== lastSerializedRef.current) {
       lastSerializedRef.current = serialized;
       setText(serialized);
-      setError(null);
+      clearErrors(source);
     }
-  }, [field.value]);
+  }, [field.value, clearErrors, source]);
+
+  const errorMessage =
+    typeof fieldState.error?.message === "string"
+      ? fieldState.error.message
+      : null;
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -203,23 +209,29 @@ function JsonInput({ source, label, helperText, rows = 6 }: JsonInputProps) {
           if (!next.trim()) {
             lastSerializedRef.current = "{}";
             field.onChange({});
-            setError(null);
+            clearErrors(source);
             return;
           }
           try {
             const parsed: unknown = JSON.parse(next);
             lastSerializedRef.current = next;
             field.onChange(parsed);
-            setError(null);
+            clearErrors(source);
           } catch (err) {
-            setError(err instanceof Error ? err.message : "Invalid JSON");
+            // Mark the field invalid at the form level so submit is blocked
+            // until the JSON is valid. Don't propagate the unparseable text
+            // into the form value.
+            setFormError(source, {
+              type: "validate",
+              message: err instanceof Error ? err.message : "Invalid JSON",
+            });
           }
         }}
         className="font-mono text-sm min-h-[140px]"
         rows={rows}
       />
-      {error ? (
-        <p className="text-sm text-red-500">{error}</p>
+      {errorMessage ? (
+        <p className="text-sm text-red-500">{errorMessage}</p>
       ) : helperText ? (
         <p className="text-sm text-muted-foreground">{helperText}</p>
       ) : null}
@@ -325,6 +337,35 @@ function ActionCard({
   const base = `actions.${index}`;
   const type = useWatch({ name: `${base}.type` });
   const action = useWatch({ name: `${base}.action` });
+  const { getValues, setValue } = useFormContext();
+
+  // Called after field.onChange has already written the new `type` into the
+  // form, so we read alias/allow_failure here and overwrite the whole step
+  // with a fresh factory output to clear stale `action`/`params`.
+  const handleTypeChange = (nextType: string) => {
+    let factory: () => FlowActionStep;
+    if (nextType === "REDIRECT") factory = newRedirect;
+    else if (nextType === "AUTH0") factory = newAuth0UpdateUser;
+    else if (nextType === "EMAIL") factory = newEmailVerify;
+    else return;
+
+    const current = (getValues(base) ?? {}) as {
+      alias?: string;
+      allow_failure?: boolean;
+    };
+    const fresh = factory();
+    setValue(
+      base,
+      {
+        ...fresh,
+        ...(current.alias !== undefined ? { alias: current.alias } : {}),
+        ...(current.allow_failure !== undefined
+          ? { allow_failure: current.allow_failure }
+          : {}),
+      },
+      { shouldDirty: true, shouldValidate: false },
+    );
+  };
 
   return (
     <Card>
@@ -377,6 +418,7 @@ function ActionCard({
           source={`${base}.type`}
           label="Type"
           choices={ACTION_TYPE_CHOICES}
+          onChange={handleTypeChange}
         />
         {type === "REDIRECT" && <RedirectFields base={base} />}
         {type === "AUTH0" && <Auth0Fields base={base} action={action} />}

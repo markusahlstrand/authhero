@@ -1,10 +1,9 @@
+import { useRef } from "react";
 import { Edit, SimpleForm } from "@/components/admin";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DetailsTab } from "./tabs/details-tab";
 import { TestTab } from "./tabs/test-tab";
 import { VersionsTab } from "./tabs/versions-tab";
-
-const SECRET_PLACEHOLDER = "******";
 
 type Secret = { name: string; value?: string };
 type Trigger = { id?: string };
@@ -22,6 +21,15 @@ type ActionRecord = {
 } & Record<string, unknown>;
 
 export function ActionEdit() {
+  // Per-mount sentinel that a user cannot reproduce as a real secret value, so
+  // unchanged-secret detection in `transform` only matches values we ourselves
+  // wrote in `select`.
+  const sentinelRef = useRef<string>("");
+  if (!sentinelRef.current) {
+    sentinelRef.current = `__authhero_unchanged_secret_${crypto.randomUUID()}__`;
+  }
+  const sentinel = sentinelRef.current;
+
   return (
     <Edit
       mutationMode="pessimistic"
@@ -31,7 +39,7 @@ export function ActionEdit() {
           trigger_id: data.supported_triggers?.[0]?.id,
           secrets: data.secrets?.map((s) => ({
             name: s.name,
-            value: SECRET_PLACEHOLDER,
+            value: sentinel,
           })),
         }),
       }}
@@ -49,7 +57,7 @@ export function ActionEdit() {
         const cleanedSecrets = (rest.secrets ?? [])
           .filter((s): s is Secret => !!s?.name)
           .map((s) =>
-            s.value === SECRET_PLACEHOLDER
+            s.value === sentinel
               ? { name: s.name }
               : { name: s.name, value: s.value },
           );

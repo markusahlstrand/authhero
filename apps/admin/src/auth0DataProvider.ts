@@ -263,17 +263,25 @@ export default (
         }
       > = {
         users: {
-          fetch: (client) =>
-            client.users.list({
+          fetch: (client) => {
+            const { q: rawQ, ...filterPairs } = params.filter || {};
+            const extraLucene = Object.entries(filterPairs)
+              .filter(([, v]) => v !== undefined && v !== null && v !== "")
+              .map(([k, v]) => `${k}:"${v}"`)
+              .join(" ");
+            const mergedQ =
+              [rawQ, extraLucene].filter(Boolean).join(" ") || undefined;
+            return client.users.list({
               page: page - 1,
               per_page: perPage,
               sort:
                 field && order
                   ? `${field}:${order === "DESC" ? "-1" : "1"}`
                   : undefined,
-              q: params.filter?.q,
+              q: mergedQ,
               include_totals: true,
-            }),
+            });
+          },
           resourceKey: "users",
           idKey: "user_id",
         },
@@ -1056,6 +1064,21 @@ export default (
             },
           };
         }
+      }
+
+      // Logs use log_id as their identifier, not id.
+      if (resource === "logs") {
+        const headers = createHeaders(tenantId);
+        const { json } = await httpClient(
+          `${apiUrl}/api/v2/logs/${params.id}`,
+          { headers },
+        );
+        return {
+          data: {
+            ...json,
+            id: json.log_id || json.id || params.id,
+          },
+        };
       }
 
       // HTTP for other resources

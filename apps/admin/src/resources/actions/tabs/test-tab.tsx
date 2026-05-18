@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNotify, useRecordContext } from "ra-core";
 import { Loader2, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -142,6 +142,13 @@ export function TestTab() {
   );
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<TestResult | null>(null);
+
+  // Record loads asynchronously; resync defaults once `initialTrigger`
+  // reflects the loaded record instead of the fallback.
+  useEffect(() => {
+    setTrigger(initialTrigger);
+    setPayload(JSON.stringify(EXAMPLE_EVENTS[initialTrigger] ?? {}, null, 2));
+  }, [initialTrigger]);
 
   const handleTriggerChange = (next: string) => {
     setTrigger(next);

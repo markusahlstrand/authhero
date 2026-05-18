@@ -171,7 +171,7 @@ function AddPermissionButton() {
 
   return (
     <>
-      <Button onClick={handleOpen}>
+      <Button type="button" onClick={handleOpen}>
         <Plus className="h-4 w-4 mr-1" />
         Add permission
       </Button>
@@ -285,6 +285,7 @@ function RemovePermissionCell() {
   return (
     <>
       <Button
+        type="button"
         variant="ghost"
         size="icon"
         aria-label="Remove permission"

@@ -270,6 +270,7 @@ export function UniversalLoginTab() {
 
       <div className="flex flex-wrap gap-2">
         <Button
+          type="button"
           onClick={handleSave}
           disabled={saving || !template || !hasChanges}
         >
@@ -283,12 +284,13 @@ export function UniversalLoginTab() {
           )}
         </Button>
         {!template && (
-          <Button variant="outline" onClick={handleUseDefault}>
+          <Button type="button" variant="outline" onClick={handleUseDefault}>
             Use Default Template
           </Button>
         )}
         {hasTemplate && (
           <Button
+            type="button"
             variant="destructive"
             onClick={handleDelete}
             disabled={saving}
@@ -298,6 +300,7 @@ export function UniversalLoginTab() {
         )}
         {hasChanges && (
           <Button
+            type="button"
             variant="ghost"
             onClick={() => setTemplate(originalTemplate)}
             disabled={saving}

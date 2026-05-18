@@ -225,6 +225,7 @@ export function VersionsTab() {
                     <TableRow>
                       <TableCell>
                         <Button
+                          type="button"
                           variant="ghost"
                           size="icon"
                           aria-label={expanded ? "Collapse" : "Expand"}

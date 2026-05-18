@@ -805,7 +805,7 @@ function CustomTextTab() {
           the Universal Login screens. Fields you leave blank fall back to the
           shipped defaults.
         </p>
-        <Button onClick={() => setCreateOpen(true)}>
+        <Button type="button" onClick={() => setCreateOpen(true)}>
           <Plus className="h-4 w-4 mr-1" />
           Add custom text
         </Button>
@@ -832,6 +832,7 @@ function CustomTextTab() {
                   <TableCell>{getLanguageName(entry.language)}</TableCell>
                   <TableCell className="text-right">
                     <Button
+                      type="button"
                       variant="ghost"
                       size="icon"
                       aria-label="Edit"
@@ -843,6 +844,7 @@ function CustomTextTab() {
                       <Pencil className="h-4 w-4" />
                     </Button>
                     <Button
+                      type="button"
                       variant="ghost"
                       size="icon"
                       aria-label="Delete"

@@ -257,7 +257,7 @@ function AddRoleDialog({ userId, onAdded }: AddRoleDialogProps) {
 
   return (
     <>
-      <Button onClick={handleOpen}>
+      <Button type="button" onClick={handleOpen}>
         <Plus className="h-4 w-4 mr-1" />
         Add role
       </Button>
@@ -267,23 +267,21 @@ function AddRoleDialog({ userId, onAdded }: AddRoleDialogProps) {
             <DialogTitle>Add roles</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-3">
-            {userOrgs.length > 0 && (
-              <Select value={orgId} onValueChange={setOrgId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select organization" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={GLOBAL_ID}>
-                    Global (No organization)
+            <Select value={orgId} onValueChange={setOrgId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select organization" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={GLOBAL_ID}>
+                  Global (No organization)
+                </SelectItem>
+                {userOrgs.map((o) => (
+                  <SelectItem key={o.id} value={o.id}>
+                    {o.display_name || o.name || o.id}
                   </SelectItem>
-                  {userOrgs.map((o) => (
-                    <SelectItem key={o.id} value={o.id}>
-                      {o.display_name || o.name || o.id}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
+                ))}
+              </SelectContent>
+            </Select>
             <div className="max-h-72 overflow-auto border rounded-md">
               {loading ? (
                 <p className="p-4 text-sm text-muted-foreground">Loading…</p>
@@ -403,6 +401,7 @@ export function RolesTab() {
                 <TableCell className="font-mono text-xs">{row.id}</TableCell>
                 <TableCell>
                   <Button
+                    type="button"
                     variant="ghost"
                     size="icon"
                     aria-label="Remove role"

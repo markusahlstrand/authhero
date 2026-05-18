@@ -1,46 +1,83 @@
-import {
-  Edit,
-  SimpleForm,
-  TextInput,
-  BooleanInput,
-  SelectInput,
-} from "@/components/admin";
-import { SecretInput } from "@/common/SecretInput";
+import { Edit, SimpleForm } from "@/components/admin";
+import { useRecordContext } from "ra-core";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Strategy } from "@/utils/Strategy";
+import { DetailsTab } from "./tabs/details-tab";
+import { AttributesTab } from "./tabs/attributes-tab";
+import { AuthenticationMethodsTab } from "./tabs/authentication-methods-tab";
+import { PasswordPolicyTab } from "./tabs/password-policy-tab";
+import { ClientsTab } from "./tabs/clients-tab";
+import { RawJsonTab } from "./tabs/raw-json-tab";
+
+// Recursively strip null values so cleared inputs don't send "null" to the API.
+function stripNulls(value: unknown): unknown {
+  if (value === null) return undefined;
+  if (Array.isArray(value)) {
+    return value
+      .map(stripNulls)
+      .filter((v) => v !== undefined);
+  }
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .map(([k, v]) => [k, stripNulls(v)])
+        .filter(([, v]) => v !== undefined),
+    );
+  }
+  return value;
+}
+
+function ConnectionTabs() {
+  const record = useRecordContext();
+  const isDb = record?.strategy === Strategy.USERNAME_PASSWORD;
+
+  return (
+    <Tabs defaultValue="details" className="w-full">
+      <TabsList>
+        <TabsTrigger value="details">Details</TabsTrigger>
+        {isDb && <TabsTrigger value="attributes">Attributes</TabsTrigger>}
+        {isDb && (
+          <TabsTrigger value="auth-methods">Authentication Methods</TabsTrigger>
+        )}
+        {isDb && (
+          <TabsTrigger value="password-policy">Password Policy</TabsTrigger>
+        )}
+        <TabsTrigger value="clients">Clients</TabsTrigger>
+        <TabsTrigger value="raw">Raw JSON</TabsTrigger>
+      </TabsList>
+      <TabsContent value="details" className="mt-4">
+        <DetailsTab />
+      </TabsContent>
+      {isDb && (
+        <TabsContent value="attributes" className="mt-4">
+          <AttributesTab />
+        </TabsContent>
+      )}
+      {isDb && (
+        <TabsContent value="auth-methods" className="mt-4">
+          <AuthenticationMethodsTab />
+        </TabsContent>
+      )}
+      {isDb && (
+        <TabsContent value="password-policy" className="mt-4">
+          <PasswordPolicyTab />
+        </TabsContent>
+      )}
+      <TabsContent value="clients" className="mt-4">
+        <ClientsTab />
+      </TabsContent>
+      <TabsContent value="raw" className="mt-4">
+        <RawJsonTab />
+      </TabsContent>
+    </Tabs>
+  );
+}
 
 export function ConnectionEdit() {
   return (
-    <Edit>
-      <SimpleForm>
-        <TextInput source="id" readOnly />
-        <TextInput source="name" />
-        <SelectInput
-          source="strategy"
-          choices={[
-            { id: "email", name: "Email" },
-            { id: "google-oauth2", name: "Google" },
-            { id: "facebook", name: "Facebook" },
-            { id: "apple", name: "Apple" },
-            { id: "github", name: "GitHub" },
-            { id: "windowslive", name: "Microsoft" },
-            { id: "vipps", name: "Vipps" },
-            { id: "oauth2", name: "OAuth2" },
-            { id: "oidc", name: "OpenID Connect" },
-            { id: "auth2", name: "Password" },
-            { id: "sms", name: "SMS" },
-            { id: "samlp", name: "SAML" },
-          ]}
-        />
-        <TextInput source="options.client_id" label="Client ID" />
-        <SecretInput source="options.client_secret" label="Client Secret" />
-        <TextInput source="options.scope" label="Scope" multiline />
-        <TextInput
-          source="options.authorization_endpoint"
-          label="Authorization Endpoint"
-        />
-        <TextInput source="options.token_endpoint" label="Token Endpoint" />
-        <TextInput source="options.userinfo_endpoint" label="Userinfo Endpoint" />
-        <TextInput source="options.jwks_uri" label="JWKS URI" />
-        <BooleanInput source="options.disable_signup" label="Disable Signup" />
+    <Edit mutationMode="pessimistic" transform={stripNulls as never}>
+      <SimpleForm className="max-w-none">
+        <ConnectionTabs />
       </SimpleForm>
     </Edit>
   );
