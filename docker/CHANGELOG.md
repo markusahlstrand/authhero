@@ -1,5 +1,21 @@
 # @authhero/docker
 
+## 1.4.0
+
+### Minor Changes
+
+- 5e35511: Update for the new UI
+
+### Patch Changes
+
+- Updated dependencies [b8213fb]
+- Updated dependencies [5e35511]
+- Updated dependencies [5e35511]
+  - @authhero/admin@0.1.0
+  - authhero@5.3.0
+  - @authhero/kysely-adapter@11.1.2
+  - @authhero/widget@0.32.23
+
 ## 1.3.46
 
 ### Patch Changes

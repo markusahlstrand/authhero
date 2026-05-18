@@ -1,5 +1,19 @@
 # authhero
 
+## 5.3.0
+
+### Minor Changes
+
+- 5e35511: Update for the new UI
+
+### Patch Changes
+
+- 5e35511: Add optional `options.configuration.realm` to connections. When set on an import-mode DB connection, it overrides the `realm` sent in the upstream password-realm grant (which previously always defaulted to the connection name). Exposed in the admin UI under the Import Mode credentials section.
+- Updated dependencies [5e35511]
+- Updated dependencies [5e35511]
+  - @authhero/adapter-interfaces@2.2.0
+  - @authhero/widget@0.32.23
+
 ## 5.2.0
 
 ### Minor Changes
