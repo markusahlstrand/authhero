@@ -102,7 +102,7 @@ async function loadCodeForHook(
     // configured, so tenants that opted out of inheritance don't pull in
     // upstream code.
     let inheritFromTenantId = data.multiTenancyConfig?.controlPlaneTenantId;
-    if (data.multiTenancyConfig?.resolveControlPlane) {
+    if (action.inherit && data.multiTenancyConfig?.resolveControlPlane) {
       const resolved = await data.multiTenancyConfig.resolveControlPlane({
         tenant_id,
       });
