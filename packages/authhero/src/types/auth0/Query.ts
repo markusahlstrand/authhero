@@ -49,4 +49,20 @@ export const querySchema = z.object({
   q: z.string().optional().openapi({
     description: "A lucene query string used to filter the results",
   }),
+  from_date: z
+    .string()
+    .optional()
+    .transform((v) => (v ? parseInt(v, 10) : undefined))
+    .openapi({
+      description:
+        "Start of date range as a Unix timestamp in seconds (inclusive). Only applies to log queries.",
+    }),
+  to_date: z
+    .string()
+    .optional()
+    .transform((v) => (v ? parseInt(v, 10) : undefined))
+    .openapi({
+      description:
+        "End of date range as a Unix timestamp in seconds (inclusive). Only applies to log queries.",
+    }),
 });

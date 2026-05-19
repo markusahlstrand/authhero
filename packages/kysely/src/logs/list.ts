@@ -7,12 +7,35 @@ import getCountAsInt from "../utils/getCountAsInt";
 
 export function listLogs(db: Kysely<Database>) {
   return async (tenant_id: string, params: ListParams = {}) => {
-    const { page = 0, per_page = 50, include_totals = false, sort, q } = params;
+    const {
+      page = 0,
+      per_page = 50,
+      include_totals = false,
+      sort,
+      q,
+      from_date,
+      to_date,
+    } = params;
 
     let query = db.selectFrom("logs").where("logs.tenant_id", "=", tenant_id);
 
     if (q) {
       query = luceneFilter(db, query, q, ["user_id", "ip"]);
+    }
+
+    if (typeof from_date === "number" && Number.isFinite(from_date)) {
+      query = query.where(
+        "logs.date",
+        ">=",
+        new Date(Math.floor(from_date) * 1000).toISOString(),
+      );
+    }
+    if (typeof to_date === "number" && Number.isFinite(to_date)) {
+      query = query.where(
+        "logs.date",
+        "<=",
+        new Date(Math.floor(to_date) * 1000).toISOString(),
+      );
     }
 
     let filteredQuery = query;

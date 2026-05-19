@@ -5,6 +5,7 @@ import {
   TextInput,
   SelectInput,
   FunctionField,
+  NumberInput,
 } from "react-admin";
 import { PostListActions } from "../listActions/PostListActions";
 import { LogType, LogIcon } from "../logs";
@@ -113,6 +114,12 @@ export function LogsList() {
       source="success"
       choices={statusChoices}
     />,
+    <NumberInput
+      key="from_date"
+      label="From (Unix seconds)"
+      source="from_date"
+    />,
+    <NumberInput key="to_date" label="To (Unix seconds)" source="to_date" />,
   ];
 
   return (

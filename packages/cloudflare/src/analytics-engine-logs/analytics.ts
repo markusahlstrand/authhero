@@ -54,19 +54,19 @@ const METRIC_BY_RESOURCE: Record<
 };
 
 function timeBucketExpr(interval: string, tz: string): string {
-  // ClickHouse functions take an optional timezone arg.
-  const tzArg = `, ${escapeSQLString(tz)}`;
-  const ts = `toDateTime(double2 / 1000)`;
+  // Cloudflare Analytics Engine's toStartOf* functions don't accept a tz arg;
+  // apply the timezone by constructing the DateTime in that zone first.
+  const ts = `toDateTime(intDiv(double2, 1000), ${escapeSQLString(tz)})`;
   switch (interval) {
     case "hour":
-      return `toStartOfHour(${ts}${tzArg})`;
+      return `toStartOfHour(${ts})`;
     case "week":
-      return `toStartOfWeek(${ts}${tzArg})`;
+      return `toStartOfWeek(${ts})`;
     case "month":
-      return `toStartOfMonth(${ts}${tzArg})`;
+      return `toStartOfMonth(${ts})`;
     case "day":
     default:
-      return `toStartOfDay(${ts}${tzArg})`;
+      return `toStartOfDay(${ts})`;
   }
 }
 

@@ -10,4 +10,7 @@ export interface ListParams {
   // Checkpoint pagination (alternative to page/per_page)
   from?: string;
   take?: number;
+  // Optional date range (Unix timestamp in seconds, inclusive)
+  from_date?: number;
+  to_date?: number;
 }

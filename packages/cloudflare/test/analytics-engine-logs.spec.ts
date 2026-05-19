@@ -410,6 +410,38 @@ describe("Analytics Engine Logs Adapter", () => {
       expect(sql).toContain("blob7 IN ('auth2|primary', 'email|secondary')");
     });
 
+    it("should filter by from_date and to_date as Unix seconds", async () => {
+      const capturedQueries: string[] = [];
+      server.use(
+        http.post(
+          "https://api.cloudflare.com/client/v4/accounts/test-account/analytics_engine/sql",
+          async ({ request }) => {
+            const query = await request.text();
+            capturedQueries.push(query);
+            return HttpResponse.json({ success: true, data: mockLogs });
+          },
+        ),
+      );
+
+      const adapter = createAnalyticsEngineLogsAdapter({
+        accountId: "test-account",
+        apiToken: "test-token",
+        dataset: "authhero_logs",
+      });
+
+      await adapter.list("tenant-1", {
+        page: 0,
+        per_page: 50,
+        from_date: 1705312800,
+        to_date: 1705399200,
+      });
+
+      const sql = capturedQueries[0]!;
+      // Stored as epoch ms in double2
+      expect(sql).toContain("double2 >= 1705312800000");
+      expect(sql).toContain("double2 <= 1705399200000");
+    });
+
     it("should translate success:false to a failure type prefix match", async () => {
       const capturedQueries: string[] = [];
       server.use(

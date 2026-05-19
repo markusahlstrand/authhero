@@ -1,4 +1,4 @@
-import { eq, and, count as countFn, asc, desc } from "drizzle-orm";
+import { eq, and, count as countFn, asc, desc, gte, lte } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import type { Log, ListParams } from "@authhero/adapter-interfaces";
 import { logs } from "../schema/sqlite";
@@ -105,13 +105,11 @@ export function createLogsAdapter(db: DrizzleDb) {
         include_totals = false,
         sort,
         q,
+        from_date,
+        to_date,
       } = params || {};
 
-      let query = db
-        .select()
-        .from(logs)
-        .where(eq(logs.tenant_id, tenant_id))
-        .$dynamic();
+      const baseConditions = [eq(logs.tenant_id, tenant_id)];
 
       if (q) {
         const filter = buildLuceneFilter(logs, q, [
@@ -120,9 +118,29 @@ export function createLogsAdapter(db: DrizzleDb) {
           "type",
           "client_id",
         ]);
-        if (filter)
-          query = query.where(and(eq(logs.tenant_id, tenant_id), filter));
+        if (filter) baseConditions.push(filter);
       }
+
+      if (typeof from_date === "number" && Number.isFinite(from_date)) {
+        baseConditions.push(
+          gte(
+            logs.date,
+            new Date(Math.floor(from_date) * 1000).toISOString(),
+          ),
+        );
+      }
+      if (typeof to_date === "number" && Number.isFinite(to_date)) {
+        baseConditions.push(
+          lte(
+            logs.date,
+            new Date(Math.floor(to_date) * 1000).toISOString(),
+          ),
+        );
+      }
+
+      const whereClause = and(...baseConditions);
+
+      let query = db.select().from(logs).where(whereClause).$dynamic();
 
       if (sort?.sort_by) {
         const col = (logs as any)[sort.sort_by];
@@ -145,7 +163,7 @@ export function createLogsAdapter(db: DrizzleDb) {
       const [countResult] = await db
         .select({ count: countFn() })
         .from(logs)
-        .where(eq(logs.tenant_id, tenant_id));
+        .where(whereClause);
 
       return {
         logs: mapped,

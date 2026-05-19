@@ -128,7 +128,15 @@ export function listLogs(config: AnalyticsEngineLogsAdapterConfig) {
     tenantId: string,
     params: ListParams = {},
   ): Promise<ListLogsResponse> => {
-    const { page = 0, per_page = 50, include_totals = false, sort, q } = params;
+    const {
+      page = 0,
+      per_page = 50,
+      include_totals = false,
+      sort,
+      q,
+      from_date,
+      to_date,
+    } = params;
 
     const dataset = config.dataset || "authhero_logs";
 
@@ -139,6 +147,14 @@ export function listLogs(config: AnalyticsEngineLogsAdapterConfig) {
     if (q) {
       const filters = parseLuceneFilter(q);
       whereConditions.push(...buildWhereConditions(filters));
+    }
+
+    // Date range filter (Unix seconds → epoch ms stored in double2)
+    if (typeof from_date === "number" && Number.isFinite(from_date)) {
+      whereConditions.push(`double2 >= ${Math.floor(from_date) * 1000}`);
+    }
+    if (typeof to_date === "number" && Number.isFinite(to_date)) {
+      whereConditions.push(`double2 <= ${Math.floor(to_date) * 1000}`);
     }
 
     const whereClause = whereConditions.join(" AND ");
