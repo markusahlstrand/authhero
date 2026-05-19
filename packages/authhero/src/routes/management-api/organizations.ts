@@ -1594,7 +1594,7 @@ export const organizationRoutes = new OpenAPIHono<{
         type: LogTypes.SUCCESS_API_OPERATION,
         description: "Update an Organization Connection",
         targetType: "organization_connection",
-        targetId: `${organization_id}:${connection_id}`,
+        targetId: `${organization.id}:${connection_id}`,
       });
 
       return ctx.json(updated);
@@ -1651,7 +1651,7 @@ export const organizationRoutes = new OpenAPIHono<{
         type: LogTypes.SUCCESS_API_OPERATION,
         description: "Disable an Organization Connection",
         targetType: "organization_connection",
-        targetId: `${organization_id}:${connection_id}`,
+        targetId: `${organization.id}:${connection_id}`,
       });
 
       return ctx.body(null, { status: 204 });

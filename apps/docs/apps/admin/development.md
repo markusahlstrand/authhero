@@ -15,7 +15,7 @@ description: Development guide for the AuthHero Admin Dashboard — project stru
 
 ## Project Structure
 
-```
+```text
 apps/admin/
 ├── public/
 │   └── favicon.svg            # default bundled favicon

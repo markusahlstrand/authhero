@@ -226,12 +226,12 @@ function RemoveMemberCell() {
     setBusy(true);
     try {
       await dataProvider.delete("organization-members", {
-        id: record.id,
+        id: organizationId,
         previousData: {
-          id: record.id,
+          id: organizationId,
           organization_id: organizationId,
+          user_id: record.user_id,
           user_ids: [record.user_id],
-          members: [record.user_id],
         },
       });
       notify(`Removed ${label}`, { type: "success" });

@@ -74,8 +74,10 @@ Inject before the bundle to swap settings without rebuilding:
     faviconUrl: "https://cdn.example.com/acme-favicon.svg",
   };
 </script>
-<script type="module" src="/admin/assets/index.js"></script>
+<script type="module" src="/admin/assets/index-<hash>.js"></script>
 ```
+
+The bundle entry filename is fingerprinted by Vite at build time (e.g. `index-Ab12Cd.js`), so substitute the real filename from your build output — or use `window.__AUTHHERO_ADMIN_CONFIG__.basePath` to construct it from the configured base path.
 
 If neither source provides a `domain`, the admin shows a domain picker on first load and stores the choice in a cookie via [`src/utils/domainUtils.ts`](src/utils/domainUtils.ts).
 

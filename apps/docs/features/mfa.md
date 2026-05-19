@@ -237,10 +237,10 @@ curl -X PUT /api/v2/guardian/policies \
 
 You can also configure MFA via the [Admin UI](/apps/admin/):
 
-1. Navigate to **Settings** > **MFA Factors** tab
-2. Set **MFA Policy** to "Always (require for all logins)"
-3. Enable the **OTP** toggle (for authenticator apps) or the **SMS** toggle (for text messages)
-4. If using SMS, go to the **SMS Provider** tab and enter your Twilio credentials
+1. Navigate to **Security** > **MFA**
+2. On the **Factors & policy** tab, set **MFA policy** to "Always (required for all logins)"
+3. Enable the **One-time password (OTP)** toggle (for authenticator apps) or the **SMS** toggle (for text messages)
+4. If using SMS, switch to the **SMS provider** tab and enter your Twilio credentials
 
 ## Managing Authentication Methods
 
