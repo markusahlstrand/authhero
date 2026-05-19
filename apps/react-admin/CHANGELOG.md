@@ -1,5 +1,13 @@
 # @authhero/react-admin
 
+## 0.67.7
+
+### Patch Changes
+
+- 3b086bc: Add `from_date` / `to_date` (Unix seconds) query params to the `GET /api/v2/logs` endpoint and propagate them through the kysely, drizzle, and Cloudflare Analytics Engine adapters. The admin UI now exposes these as filter inputs and reads `length` as the total count, fixing pagination beyond the first page when the backend reports `length` instead of `total`.
+- Updated dependencies [3b086bc]
+  - @authhero/adapter-interfaces@2.3.0
+
 ## 0.67.6
 
 ### Patch Changes

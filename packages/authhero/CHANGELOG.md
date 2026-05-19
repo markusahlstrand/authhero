@@ -1,5 +1,18 @@
 # authhero
 
+## 5.4.0
+
+### Minor Changes
+
+- 3b086bc: Add `from_date` / `to_date` (Unix seconds) query params to the `GET /api/v2/logs` endpoint and propagate them through the kysely, drizzle, and Cloudflare Analytics Engine adapters. The admin UI now exposes these as filter inputs and reads `length` as the total count, fixing pagination beyond the first page when the backend reports `length` instead of `total`.
+
+### Patch Changes
+
+- d15fd30: Fix login on `import_mode: true` connections when the user hasn't been migrated yet. The identifier screen now lets an unknown email through to the password challenge (so the upstream credentials can be verified) instead of failing with "User account does not exist", and `validateSignupEmail` no longer treats a missing local user on an import-mode connection as a blocked signup.
+- Updated dependencies [3b086bc]
+  - @authhero/adapter-interfaces@2.3.0
+  - @authhero/widget@0.32.24
+
 ## 5.3.1
 
 ### Patch Changes
