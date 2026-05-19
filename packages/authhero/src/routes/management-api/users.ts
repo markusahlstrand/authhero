@@ -1047,6 +1047,10 @@ export const userRoutes = new OpenAPIHono<{
 
       const userIds = [user_id, ...linked.users.map((u) => u.user_id)];
       const userIdClause = userIds.map((id) => `user_id:"${id}"`).join(" OR ");
+      // luceneFilter has no parentheses / precedence support: it splits on
+      // " OR " globally. Don't wrap the user_id clause in parens — the parser
+      // would treat `(user_id` as a column name. callerQ, when present, is
+      // appended raw; combining it with the multi-id OR is best-effort.
       const q = callerQ ? `${userIdClause} ${callerQ}` : userIdClause;
 
       const result = await ctx.env.data.logs.list(ctx.var.tenant_id, {

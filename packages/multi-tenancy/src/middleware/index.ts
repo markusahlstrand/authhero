@@ -319,5 +319,9 @@ export {
   createRuntimeFallbackAdapter,
   withRuntimeFallback,
   withSystemResourceServerInheritance,
+  mergeClientWithFallback,
 } from "./settings-inheritance";
-export type { RuntimeFallbackConfig } from "./settings-inheritance";
+export type {
+  RuntimeFallbackConfig,
+  ControlPlaneResolver,
+} from "./settings-inheritance";

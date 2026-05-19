@@ -39,6 +39,7 @@ export const LogTypes = {
   FAILED_VERIFICATION_EMAIL_REQUEST: "fvr",
   SUCCESS_USER_DELETION: "sdu",
   FAILED_USER_DELETION: "fdu",
+  SUCCESS_PASSWORD_MIGRATION: "spm",
 } as const;
 
 export type LogTypes = (typeof LogTypes)[keyof typeof LogTypes];

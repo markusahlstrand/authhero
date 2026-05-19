@@ -37,7 +37,6 @@ export function ActionEdit() {
       queryOptions={{
         select: (data: ActionRecord) => ({
           ...data,
-          trigger_id: data.supported_triggers?.[0]?.id,
           secrets: data.secrets?.map((s) => ({
             name: s.name,
             value: sentinel,
@@ -52,7 +51,7 @@ export function ActionEdit() {
           updated_at: _updated_at,
           status: _status,
           deployed_at: _deployed_at,
-          trigger_id,
+          trigger_id: _trigger_id,
           ...rest
         } = data;
         const cleanedSecrets = (rest.secrets ?? [])
@@ -64,9 +63,6 @@ export function ActionEdit() {
           );
         return {
           ...rest,
-          supported_triggers: trigger_id
-            ? [{ id: trigger_id }]
-            : rest.supported_triggers,
           secrets: cleanedSecrets,
         };
       }}

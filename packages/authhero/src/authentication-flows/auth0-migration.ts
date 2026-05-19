@@ -1,5 +1,5 @@
 import { Context } from "hono";
-import { Connection, User } from "@authhero/adapter-interfaces";
+import { Connection, LogTypes, User } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
 import { EnrichedClient } from "../helpers/client";
 import {
@@ -10,6 +10,7 @@ import {
 import { hashPassword } from "../helpers/password-policy";
 import { userIdGenerate } from "../utils/user-id";
 import { resolveUsernamePasswordProvider } from "../utils/username-password-provider";
+import { logMessage } from "../helpers/logging";
 
 interface Auth0SourceCredentials {
   tokenEndpoint: string;
@@ -195,6 +196,13 @@ export async function attemptUpstreamPasswordFallback(
     password: hash,
     algorithm,
     is_current: true,
+  });
+
+  logMessage(ctx, client.tenant.id, {
+    type: LogTypes.SUCCESS_PASSWORD_MIGRATION,
+    description: `Imported password from upstream for ${user.user_id}`,
+    userId: user.user_id,
+    connection: dbConnection.name,
   });
 
   return user;

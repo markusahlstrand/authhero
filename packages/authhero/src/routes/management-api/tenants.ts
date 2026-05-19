@@ -51,7 +51,10 @@ export const tenantRoutes = new OpenAPIHono<{
         });
       }
 
-      return ctx.json(tenant);
+      return ctx.json({
+        ...tenant,
+        is_control_plane: isControlPlaneTenant(ctx, ctx.var.tenant_id),
+      });
     },
   )
   // --------------------------------
@@ -129,6 +132,22 @@ export const tenantRoutes = new OpenAPIHono<{
         afterState: updatedTenant as Record<string, unknown>,
       });
 
-      return ctx.json(updatedTenant);
+      return ctx.json({
+        ...updatedTenant,
+        is_control_plane: isControlPlaneTenant(ctx, ctx.var.tenant_id),
+      });
     },
   );
+
+// True when the current tenant is the deployment's control plane. In
+// multi-tenant deployments `multiTenancyConfig.controlPlaneTenantId` names the
+// designated tenant; when no config is set we treat the deployment as
+// single-tenant, which is effectively a control plane.
+function isControlPlaneTenant(
+  ctx: { env: { data: { multiTenancyConfig?: { controlPlaneTenantId?: string } } } },
+  tenantId: string,
+): boolean {
+  const cpId = ctx.env.data.multiTenancyConfig?.controlPlaneTenantId;
+  if (!cpId) return true;
+  return cpId === tenantId;
+}

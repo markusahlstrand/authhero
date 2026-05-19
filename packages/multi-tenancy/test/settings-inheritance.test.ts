@@ -3,6 +3,7 @@ import {
   createRuntimeFallbackAdapter,
   withRuntimeFallback,
   withSystemResourceServerInheritance,
+  mergeClientWithFallback,
 } from "../src/middleware/settings-inheritance";
 import {
   DataAdapters,
@@ -476,7 +477,13 @@ describe("Runtime Fallback Adapter (Settings Inheritance)", () => {
   });
 
   describe("clients", () => {
-    it("should merge callbacks from control plane client", async () => {
+    // The runtime fallback wrapper intentionally does NOT merge client URLs.
+    // Storage reads must return the tenant's stored values so that the
+    // management API and DCR don't echo inherited URLs back on update. The
+    // URL merge for auth flows happens in authhero's `getEnrichedClient`
+    // helper, which calls `mergeClientWithFallback` directly.
+
+    it("returns the tenant's raw stored callbacks (no merging)", async () => {
       const client = await fallbackAdapter.clients.get(
         "tenant-1",
         "tenant-client",
@@ -484,176 +491,99 @@ describe("Runtime Fallback Adapter (Settings Inheritance)", () => {
 
       expect(client).toBeDefined();
       expect(client!.callbacks).toEqual([
-        "http://localhost:3000/callback", // from control plane
-        "https://dev.example.com/callback", // from control plane
-        "https://tenant.example.com/callback", // from tenant
+        "https://tenant.example.com/callback",
       ]);
-    });
-
-    it("should merge web_origins from control plane client", async () => {
-      const client = await fallbackAdapter.clients.get(
-        "tenant-1",
-        "tenant-client",
-      );
-
-      expect(client).toBeDefined();
-      expect(client!.web_origins).toEqual([
-        "http://localhost:3000", // from control plane
-        "https://dev.example.com", // from control plane
-        "https://tenant.example.com", // from tenant
-      ]);
-    });
-
-    it("should merge allowed_logout_urls from control plane client", async () => {
-      const client = await fallbackAdapter.clients.get(
-        "tenant-1",
-        "tenant-client",
-      );
-
-      expect(client).toBeDefined();
+      expect(client!.web_origins).toEqual(["https://tenant.example.com"]);
       expect(client!.allowed_logout_urls).toEqual([
-        "http://localhost:3000", // from control plane
-        "https://dev.example.com", // from control plane
-        "https://tenant.example.com", // from tenant
+        "https://tenant.example.com",
       ]);
+      expect(client!.allowed_origins).toBeUndefined();
     });
 
-    it("should merge allowed_origins from control plane client", async () => {
-      const client = await fallbackAdapter.clients.get(
-        "tenant-1",
-        "tenant-client",
-      );
-
-      expect(client).toBeDefined();
-      expect(client!.allowed_origins).toEqual([
-        "http://localhost:3000", // from control plane (tenant has none)
-      ]);
-    });
-
-    it("should deduplicate URLs when merging", async () => {
-      // Create a mock where tenant has same URL as control plane
-      const tenantWithDuplicateUrls = {
-        ...mockAdapters,
-        clients: {
-          ...mockAdapters.clients,
-          get: async (
-            tenantId: string,
-            clientId: string,
-          ): Promise<Client | null> => {
-            if (tenantId === "tenant-1" && clientId === "tenant-client") {
-              return {
-                client_id: "tenant-client",
-                name: "Tenant Client",
-                callbacks: [
-                  "http://localhost:3000/callback", // same as control plane
-                  "https://tenant.example.com/callback",
-                ],
-                web_origins: ["https://tenant.example.com"],
-                allowed_logout_urls: ["https://tenant.example.com"],
-                created_at: "2023-01-01T00:00:00Z",
-                updated_at: "2023-01-01T00:00:00Z",
-              };
-            }
-            return mockAdapters.clients.get(tenantId, clientId);
-          },
-        },
-      };
-
-      const adapterWithDuplicates = createRuntimeFallbackAdapter(
-        tenantWithDuplicateUrls as DataAdapters,
-        {
-          controlPlaneTenantId: "control-plane",
-          controlPlaneClientId: "control-plane-client",
-        },
-      );
-
-      const client = await adapterWithDuplicates.clients.get(
-        "tenant-1",
-        "tenant-client",
-      );
-
-      expect(client).toBeDefined();
-      // Should have deduplicated the localhost callback
-      expect(client!.callbacks).toEqual([
-        "http://localhost:3000/callback",
-        "https://dev.example.com/callback",
-        "https://tenant.example.com/callback",
-      ]);
-    });
-
-    it("should not merge for control plane client itself", async () => {
-      const client = await fallbackAdapter.clients.get(
-        "control-plane",
-        "control-plane-client",
-      );
-
-      expect(client).toBeDefined();
-      expect(client!.callbacks).toEqual([
-        "http://localhost:3000/callback",
-        "https://dev.example.com/callback",
-      ]);
-    });
-
-    it("should merge URLs for other clients in control plane tenant", async () => {
-      const client = await fallbackAdapter.clients.get(
-        "control-plane",
-        "other-cp-client",
-      );
-
-      expect(client).toBeDefined();
-      // Other clients in control plane tenant should get merged URLs
-      expect(client!.callbacks).toEqual([
-        "http://localhost:3000/callback", // from control plane client
-        "https://dev.example.com/callback", // from control plane client
-        "https://other-app.example.com/callback", // from other-cp-client
-      ]);
-      expect(client!.web_origins).toEqual([
-        "http://localhost:3000", // from control plane client
-        "https://dev.example.com", // from control plane client
-        "https://other-app.example.com", // from other-cp-client
-      ]);
-    });
-
-    it("should return original client when no control plane configured", async () => {
-      const adapterWithoutControlPlane = createRuntimeFallbackAdapter(
-        mockAdapters,
-        {},
-      );
-      const client = await adapterWithoutControlPlane.clients.get(
-        "tenant-1",
-        "tenant-client",
-      );
-
-      expect(client).toBeDefined();
-      expect(client!.callbacks).toEqual([
-        "https://tenant.example.com/callback",
-      ]);
-    });
-
-    it("should work with getByClientId", async () => {
+    it("returns the raw client via getByClientId (no merging)", async () => {
       const client =
         await fallbackAdapter.clients.getByClientId("tenant-client");
 
       expect(client).toBeDefined();
       expect(client!.tenant_id).toBe("tenant-1");
       expect(client!.callbacks).toEqual([
-        "http://localhost:3000/callback", // from control plane
-        "https://dev.example.com/callback", // from control plane
-        "https://tenant.example.com/callback", // from tenant
+        "https://tenant.example.com/callback",
+      ]);
+    });
+  });
+
+  describe("mergeClientWithFallback", () => {
+    // The auth flow uses this helper directly (via getEnrichedClient in
+    // authhero) so that runtime callbacks include the control plane's URLs.
+    const cpClient: Client = {
+      client_id: "control-plane-client",
+      name: "Control Plane Client",
+      callbacks: [
+        "http://localhost:3000/callback",
+        "https://dev.example.com/callback",
+      ],
+      web_origins: ["http://localhost:3000", "https://dev.example.com"],
+      allowed_logout_urls: [
+        "http://localhost:3000",
+        "https://dev.example.com",
+      ],
+      allowed_origins: ["http://localhost:3000"],
+      created_at: "2023-01-01T00:00:00Z",
+      updated_at: "2023-01-01T00:00:00Z",
+    };
+
+    const tenantClient: Client = {
+      client_id: "tenant-client",
+      name: "Tenant Client",
+      callbacks: ["https://tenant.example.com/callback"],
+      web_origins: ["https://tenant.example.com"],
+      allowed_logout_urls: ["https://tenant.example.com"],
+      created_at: "2023-01-01T00:00:00Z",
+      updated_at: "2023-01-01T00:00:00Z",
+    };
+
+    it("merges all URL arrays from control plane client", () => {
+      const merged = mergeClientWithFallback(tenantClient, cpClient);
+
+      expect(merged.callbacks).toEqual([
+        "http://localhost:3000/callback",
+        "https://dev.example.com/callback",
+        "https://tenant.example.com/callback",
+      ]);
+      expect(merged.web_origins).toEqual([
+        "http://localhost:3000",
+        "https://dev.example.com",
+        "https://tenant.example.com",
+      ]);
+      expect(merged.allowed_logout_urls).toEqual([
+        "http://localhost:3000",
+        "https://dev.example.com",
+        "https://tenant.example.com",
+      ]);
+      expect(merged.allowed_origins).toEqual(["http://localhost:3000"]);
+    });
+
+    it("deduplicates URLs that exist on both sides", () => {
+      const withDup: Client = {
+        ...tenantClient,
+        callbacks: [
+          "http://localhost:3000/callback", // same as control plane
+          "https://tenant.example.com/callback",
+        ],
+      };
+
+      const merged = mergeClientWithFallback(withDup, cpClient);
+
+      expect(merged.callbacks).toEqual([
+        "http://localhost:3000/callback",
+        "https://dev.example.com/callback",
+        "https://tenant.example.com/callback",
       ]);
     });
 
-    it("should not merge getByClientId for control plane client itself", async () => {
-      const client = await fallbackAdapter.clients.getByClientId(
-        "control-plane-client",
-      );
-
-      expect(client).toBeDefined();
-      expect(client!.tenant_id).toBe("control-plane");
-      expect(client!.callbacks).toEqual([
-        "http://localhost:3000/callback",
-        "https://dev.example.com/callback",
-      ]);
+    it("returns the client unchanged when control plane client is null", () => {
+      const merged = mergeClientWithFallback(tenantClient, null);
+      expect(merged).toEqual(tenantClient);
     });
   });
 
@@ -734,21 +664,21 @@ describe("Runtime Fallback Adapter (Settings Inheritance)", () => {
       ]);
     });
 
-    it("should contrast with auth adapter which does merge data", async () => {
+    it("should contrast with auth adapter which merges connection data", async () => {
       // Auth adapter uses withRuntimeFallback
       const authAdapter = withRuntimeFallback(mockAdapters, {
         controlPlaneTenantId: "control-plane",
         controlPlaneClientId: "control-plane-client",
       });
 
-      // Management adapter: raw data
+      // Management adapter: raw connection options
       const mgmtConnection = await managementAdapter.connections.get(
         "tenant-1",
         "email-connection",
       );
       expect(mgmtConnection!.options?.client_secret).toBeUndefined();
 
-      // Auth adapter: merged data
+      // Auth adapter: merged connection options
       const authConnection = await authAdapter.connections.get(
         "tenant-1",
         "email-connection",
@@ -757,19 +687,20 @@ describe("Runtime Fallback Adapter (Settings Inheritance)", () => {
         "control-plane-api-key",
       );
 
-      // Management adapter: raw client URLs
+      // Both adapters return the tenant's raw client URLs — the auth-flow
+      // URL merge happens in authhero's getEnrichedClient helper, not in
+      // the adapter wrapper.
       const mgmtClient = await managementAdapter.clients.get(
         "tenant-1",
         "tenant-client",
       );
       expect(mgmtClient!.callbacks).toHaveLength(1);
 
-      // Auth adapter: merged client URLs
       const authClient = await authAdapter.clients.get(
         "tenant-1",
         "tenant-client",
       );
-      expect(authClient!.callbacks).toHaveLength(3);
+      expect(authClient!.callbacks).toHaveLength(1);
     });
   });
 

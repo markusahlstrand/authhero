@@ -43,8 +43,12 @@ export {
   createRuntimeFallbackAdapter,
   withRuntimeFallback,
   withSystemResourceServerInheritance,
+  mergeClientWithFallback,
 } from "./middleware";
-export type { RuntimeFallbackConfig } from "./middleware";
+export type {
+  RuntimeFallbackConfig,
+  ControlPlaneResolver,
+} from "./middleware";
 
 export { createMultiTenancyPlugin } from "./plugin";
 export type { AuthHeroPlugin } from "./plugin";

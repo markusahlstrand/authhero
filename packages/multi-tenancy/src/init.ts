@@ -15,6 +15,7 @@ import {
   withRuntimeFallback,
   withSystemResourceServerInheritance,
 } from "./middleware";
+import type { ControlPlaneResolver } from "./middleware";
 import { TenantEntityHooks, TenantHookContext } from "./types";
 
 /**
@@ -48,6 +49,34 @@ export interface MultiTenantConfig extends Omit<
    * - Automatic organization creation when tenants are created
    */
   controlPlane?: ControlPlaneConfig;
+
+  /**
+   * Optional per-tenant override for runtime inheritance lookups
+   * (connections, hooks, resource servers, email providers). When provided,
+   * this resolver replaces `controlPlane` as the source for inheritance:
+   * every wrapped adapter read passes the tenant being read, and the
+   * resolver decides which control plane (if any) it inherits from.
+   * Return `undefined` to opt a specific tenant out of inheritance.
+   *
+   * Access control, sync direction, and tenant management routing always
+   * use the static `controlPlane.tenantId` and are not affected by this
+   * resolver.
+   *
+   * @example
+   * ```typescript
+   * const INHERITANCE_OFF = new Set(["isolated_tenant_id"]);
+   *
+   * initMultiTenant({
+   *   dataAdapter,
+   *   controlPlane: { tenantId: "main", clientId: "default" },
+   *   resolveControlPlane: ({ tenant_id }) =>
+   *     INHERITANCE_OFF.has(tenant_id)
+   *       ? undefined
+   *       : { tenantId: "main", clientId: "default" },
+   * });
+   * ```
+   */
+  resolveControlPlane?: ControlPlaneResolver;
 
   /**
    * Control which entities to sync from control plane to child tenants.
@@ -176,6 +205,7 @@ export function initMultiTenant(config: MultiTenantConfig): MultiTenantResult {
       tenantId: controlPlaneTenantId = "control_plane",
       clientId: controlPlaneClientId,
     } = {},
+    resolveControlPlane,
     sync = { resourceServers: true, roles: true },
     defaultPermissions = ["tenant:admin"],
     requireOrganizationMatch = false,
@@ -196,6 +226,7 @@ export function initMultiTenant(config: MultiTenantConfig): MultiTenantResult {
     dataAdapter = withRuntimeFallback(rawDataAdapter, {
       controlPlaneTenantId,
       controlPlaneClientId,
+      resolveControlPlane,
     });
 
     // Management adapter gets is_system resource_server scope inheritance
@@ -203,6 +234,7 @@ export function initMultiTenant(config: MultiTenantConfig): MultiTenantResult {
     managementDataAdapter = {
       ...withSystemResourceServerInheritance(rawDataAdapter, {
         controlPlaneTenantId,
+        resolveControlPlane,
       }),
       multiTenancyConfig: {
         controlPlaneTenantId,

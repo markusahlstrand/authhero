@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useInput, useRecordContext } from "ra-core";
 import { Plus, Trash2 } from "lucide-react";
 import {
-  AutocompleteArrayInput,
   BooleanInput,
   DateField,
   SelectInput,
@@ -11,6 +10,7 @@ import {
 } from "@/components/admin";
 import { SecretInput } from "@/common/SecretInput";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -124,6 +124,43 @@ function ClientMetadataInput() {
   );
 }
 
+function GrantTypesInput() {
+  const { field } = useInput({ source: "grant_types" });
+  const selected: string[] = Array.isArray(field.value) ? field.value : [];
+
+  const toggle = (id: string, checked: boolean) => {
+    const next = checked
+      ? [...selected, id]
+      : selected.filter((g) => g !== id);
+    field.onChange(next);
+  };
+
+  return (
+    <div className="flex flex-col gap-2">
+      <Label>Grant Types</Label>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {GRANT_TYPE_CHOICES.map((choice) => {
+          const id = `grant-type-${choice.id}`;
+          return (
+            <label
+              key={choice.id}
+              htmlFor={id}
+              className="flex items-center gap-2 text-sm"
+            >
+              <Checkbox
+                id={id}
+                checked={selected.includes(choice.id)}
+                onCheckedChange={(v) => toggle(choice.id, v === true)}
+              />
+              {choice.name}
+            </label>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function Timestamps() {
   const record = useRecordContext();
   if (!record) return null;
@@ -169,11 +206,7 @@ export function DetailsTab() {
         defaultValue="disabled"
       />
       <ClientMetadataInput />
-      <AutocompleteArrayInput
-        source="grant_types"
-        label="Grant Types"
-        choices={GRANT_TYPE_CHOICES}
-      />
+      <GrantTypesInput />
       <TextArrayInput source="callbacks" label="Callbacks" />
       <TextArrayInput source="allowed_logout_urls" label="Allowed Logout URLs" />
       <TextArrayInput source="web_origins" label="Web Origins" />

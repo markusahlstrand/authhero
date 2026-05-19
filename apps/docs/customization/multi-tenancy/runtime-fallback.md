@@ -308,8 +308,46 @@ Configuration interface for runtime fallback:
 interface RuntimeFallbackConfig {
   controlPlaneTenantId?: string; // Control plane tenant ID for connection fallbacks
   controlPlaneClientId?: string; // Control plane client ID for client fallbacks
+  resolveControlPlane?: ControlPlaneResolver; // Per-tenant override (see below)
 }
+
+type ControlPlaneResolver = (params: { tenant_id: string }) =>
+  | { tenantId: string; clientId?: string }
+  | undefined
+  | Promise<{ tenantId: string; clientId?: string } | undefined>;
 ```
+
+### Per-Tenant Control of Inheritance
+
+When `resolveControlPlane` is provided, it replaces the static
+`controlPlaneTenantId` / `controlPlaneClientId` fields **for inheritance
+lookups only**. Every wrapped adapter read (connections, hooks, resource
+servers, email providers) calls the resolver with the tenant being read,
+and the returned `{tenantId, clientId}` decides which tenant to fall back
+to. Returning `undefined` opts a specific tenant out of inheritance
+entirely — its reads see only its own rows.
+
+```typescript
+import { withRuntimeFallback } from "@authhero/multi-tenancy";
+
+const ISOLATED_TENANTS = new Set(["partner_a", "partner_b"]);
+
+const adapters = withRuntimeFallback(baseAdapters, {
+  controlPlaneTenantId: "main",
+  controlPlaneClientId: "main-client",
+  resolveControlPlane: ({ tenant_id }) =>
+    ISOLATED_TENANTS.has(tenant_id)
+      ? undefined
+      : { tenantId: "main", clientId: "main-client" },
+});
+```
+
+::: tip Access control is unaffected
+The static `controlPlaneTenantId` is still used by the tenants management
+API to validate cross-tenant access. Only inheritance lookups (connection
+secrets, inheritable hooks, `is_system` resource server scopes, email
+providers) consult the resolver.
+:::
 
 ## Migration from @authhero/authhero
 
