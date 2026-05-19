@@ -72,10 +72,11 @@ export async function sendEmail(
     );
     await logMessage(ctx, ctx.var.tenant_id, {
       type: LogTypes.FAILED_SENDING_NOTIFICATION,
-      description: `email send failed via ${emailProvider.name}: ${errorMessage}`.slice(
-        0,
-        500,
-      ),
+      description:
+        `email send failed via ${emailProvider.name}: ${errorMessage}`.slice(
+          0,
+          500,
+        ),
       details: {
         provider: emailProvider.name,
         template: params.template,
@@ -138,10 +139,11 @@ export async function sendSms(
     );
     await logMessage(ctx, ctx.var.tenant_id, {
       type: LogTypes.FAILED_SENDING_NOTIFICATION,
-      description: `sms send failed via ${smsProvider.name}: ${errorMessage}`.slice(
-        0,
-        500,
-      ),
+      description:
+        `sms send failed via ${smsProvider.name}: ${errorMessage}`.slice(
+          0,
+          500,
+        ),
       details: {
         connection: smsProvider.name,
         to: params.to,
@@ -267,6 +269,8 @@ export async function sendResetPassword(
   const passwordResetUrl = `${getUniversalLoginUrl(ctx.env)}reset-password?state=${state}&code=${code}`;
 
   const data: Record<string, string> = {
+    tenantId: tenant.id,
+    language: language || "en",
     vendorName: tenant.friendly_name,
     logo,
     passwordResetUrl,
@@ -290,7 +294,6 @@ export async function sendResetPassword(
     contactUs: t("contact_us", options),
     copyright: t("copyright", options),
     tenantName: tenant.friendly_name,
-    tenantId: tenant.id,
   };
 
   await sendTemplatedEmail(ctx, {
@@ -324,6 +327,8 @@ export async function sendResetPasswordCode(
   );
 
   const data: Record<string, string> = {
+    tenantId: tenant.id,
+    language: language || "en",
     code,
     vendorName: tenant.friendly_name,
     logo,
@@ -406,6 +411,8 @@ export async function sendCode(
 
   if (connectionType === "email") {
     const data: Record<string, string> = {
+      tenantId: tenant.id,
+      language: language || "en",
       code,
       vendorName: tenant.friendly_name,
       logo,
@@ -514,6 +521,8 @@ export async function sendLink(
 
   if (connectionType === "email") {
     const data: Record<string, string> = {
+      tenantId: tenant.id,
+      language: language || "en",
       code,
       vendorName: tenant.friendly_name,
       logo,
@@ -596,6 +605,8 @@ export async function sendValidateEmailAddress(
   const emailValidationUrl = `${getUniversalLoginUrl(ctx.env)}validate-email`;
 
   const data: Record<string, string> = {
+    tenantId: tenant.id,
+    language: language || "en",
     vendorName: tenant.friendly_name,
     logo,
     emailValidationUrl,
@@ -651,6 +662,8 @@ export async function sendSignupValidateEmailAddress(
   const signupUrl = `${getUniversalLoginUrl(ctx.env)}signup?state=${state}&code=${code}`;
 
   const data: Record<string, string> = {
+    tenantId: tenant.id,
+    language: language || "en",
     vendorName: tenant.friendly_name,
     logo,
     signupUrl,
