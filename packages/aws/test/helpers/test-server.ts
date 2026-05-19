@@ -36,15 +36,20 @@ export async function getTestServer(): Promise<{
     return { data, client: currentServer.docClient, tableName: TABLE_NAME };
   }
 
-  // Generate random port to avoid conflicts in parallel tests
-  const port = 4567 + Math.floor(Math.random() * 10000);
-
+  // Bind to port 0 so the OS assigns a free port — avoids collisions when
+  // vitest runs multiple test files in parallel workers.
   const server = dynalite({ createTableMs: 0 });
 
   await new Promise<void>((resolve, reject) => {
     server.on("error", reject);
-    server.listen(port, () => resolve());
+    server.listen(0, () => resolve());
   });
+
+  const address = server.address();
+  if (!address || typeof address === "string") {
+    throw new Error("dynalite server did not return an address object");
+  }
+  const port = address.port;
 
   const client = new DynamoDBClient({
     endpoint: `http://localhost:${port}`,

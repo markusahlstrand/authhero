@@ -589,12 +589,21 @@ export const identifierScreenDefinition: ScreenDefinition = {
       // generically, hiding the signal that the email is unknown.
       let silentSignupStub = false;
       if (!user) {
+        // When we accept the email via the password-connection fallback above,
+        // resolve to that connection's name so the gate runs on the right
+        // record (the literal "email" strategy may not exist on this client).
+        const effectiveConnection =
+          connectionType === "email" && passwordConnection && requiresEmail
+            ? passwordConnection.name
+            : connectionType;
+
         const validation = await validateSignupEmail(
           ctx,
           client,
           ctx.env.data,
           normalized,
-          connectionType,
+          effectiveConnection,
+          { identifierPreflight: true },
         );
 
         if (!validation.allowed) {
