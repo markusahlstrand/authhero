@@ -1,5 +1,24 @@
 # @authhero/multi-tenancy
 
+## 14.21.0
+
+### Minor Changes
+
+- 063910b: Add a `resolveControlPlane` option to `initMultiTenant` and `withRuntimeFallback` for per-tenant runtime inheritance. The resolver receives `{ tenant_id }` and returns the control plane (`{ tenantId, clientId? }`) to inherit from, or `undefined` to opt that tenant out of inheritance entirely. Mirrors the shape of `signingKeyMode` / `userLinkingMode` in authhero so isolated tenants can be excluded from connection, hook, resource-server, and email-provider fallback without forking the adapter setup.
+
+  Access control, sync direction, and tenant management routing continue to use the static `controlPlane.tenantId` and are not affected by the resolver. Existing static `controlPlaneTenantId` / `controlPlaneClientId` usage is unchanged.
+
+### Patch Changes
+
+- 063910b: Stop merging control-plane client URLs into `clients.get`/`getByClientId` at the adapter layer. The merge previously surfaced inherited `callbacks`, `web_origins`, `allowed_logout_urls`, and `allowed_origins` everywhere the adapter was read — including the management API, which caused the admin UI to display (and on save, persist) URLs that actually belonged to the control-plane client. The URL merge now happens in authhero's `getEnrichedClient` helper, which only auth-flow code paths use; storage reads from the management API and DCR see the tenant's raw stored values.
+
+  The `mergeClientWithFallback` helper is now exported from `@authhero/multi-tenancy` so external runtimes can apply the merge themselves if they bypass `getEnrichedClient`.
+
+- Updated dependencies [063910b]
+- Updated dependencies [9a57e8f]
+- Updated dependencies [9a57e8f]
+  - authhero@5.3.1
+
 ## 14.20.3
 
 ### Patch Changes

@@ -1,5 +1,19 @@
 # authhero
 
+## 5.3.1
+
+### Patch Changes
+
+- 063910b: Stop merging control-plane client URLs into `clients.get`/`getByClientId` at the adapter layer. The merge previously surfaced inherited `callbacks`, `web_origins`, `allowed_logout_urls`, and `allowed_origins` everywhere the adapter was read — including the management API, which caused the admin UI to display (and on save, persist) URLs that actually belonged to the control-plane client. The URL merge now happens in authhero's `getEnrichedClient` helper, which only auth-flow code paths use; storage reads from the management API and DCR see the tenant's raw stored values.
+
+  The `mergeClientWithFallback` helper is now exported from `@authhero/multi-tenancy` so external runtimes can apply the merge themselves if they bypass `getEnrichedClient`.
+
+- 9a57e8f: Management API `/api/v2/organizations/{id}/...` subpaths now return `404 Not Found` (instead of `500 Internal Server Error`) when the organization in the path doesn't exist. Adds the missing parent-existence check on `DELETE /{id}/members`, on the three `/{id}/enabled_connections/{connection_id}` GET/PATCH/DELETE handlers, and on `GET`/`DELETE /{id}/invitations/{invitation_id}`.
+
+  Membership, invitation, and enabled-connection writes also now resolve the organization first and persist via `organization.id` (never the raw path segment), so when a caller addresses the organization by name (Auth0-compat name lookup), the stored rows stay consistent and remain findable by the canonical id.
+
+- 9a57e8f: `GET /api/v2/users/{user_id}/logs` now honors the `q` query parameter. The caller-supplied Lucene query is ANDed with the user-id constraint (which already expands to include linked accounts), so admin UIs can filter a user's logs by `type`, `ip`, etc. Previously `q` was silently ignored and the endpoint always returned all logs for the user.
+
 ## 5.3.0
 
 ### Minor Changes
