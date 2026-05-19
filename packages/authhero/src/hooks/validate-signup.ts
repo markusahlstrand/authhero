@@ -28,6 +28,7 @@ export async function validateSignupEmail(
   data: DataAdapters,
   email: string,
   connection: string = "email",
+  options: { identifierPreflight?: boolean } = {},
 ): Promise<{ allowed: boolean; reason?: string }> {
   // Check the disable_signup flag on the connection being used. The connection
   // is resolved by name; falling back to strategy lets the caller pass a bare
@@ -54,7 +55,15 @@ export async function validateSignupEmail(
       );
     }
   }
-  if (connectionRecord?.options?.disable_signup) {
+  // On the identifier preflight, skip the gate for import_mode connections:
+  // a missing local user there means "not migrated yet", not "new signup",
+  // and the upstream password challenge is the real gate. The non-preflight
+  // path (e.g. preUserSignupHook right before user creation) must always
+  // enforce disable_signup.
+  const skipForImportMode =
+    options.identifierPreflight === true &&
+    connectionRecord?.options?.import_mode === true;
+  if (connectionRecord?.options?.disable_signup && !skipForImportMode) {
     const authorizeUrl = ctx.var.loginSession?.authorization_url;
 
     // Check if screen_hint=signup was specified in the authorization URL

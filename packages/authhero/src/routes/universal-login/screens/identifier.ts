@@ -431,6 +431,7 @@ export const identifierScreenDefinition: ScreenDefinition = {
       const identifierConfig =
         getConnectionIdentifierConfig(passwordConnection);
       const requiresUsername = identifierConfig.usernameIdentifierActive;
+      const requiresEmail = identifierConfig.emailIdentifierActive;
 
       // Initialize i18n once for all error branches
       const locale = context.language || "en";
@@ -560,9 +561,13 @@ export const identifierScreenDefinition: ScreenDefinition = {
 
       // Check if connection is allowed
       // For "username" connectionType, allow if password connection has username identifier active
+      // For "email" connectionType, also allow if a USERNAME_PASSWORD connection accepts email
+      // as its identifier — the email may belong to a not-yet-imported user on an import_mode
+      // connection, so we must let the flow reach the password screen.
       const hasValidConnection =
         client.connections.find((c) => c.strategy === connectionType) ||
         (connectionType === "username" && requiresUsername) ||
+        (connectionType === "email" && passwordConnection && requiresEmail) ||
         user;
 
       if (!hasValidConnection) {
@@ -584,12 +589,21 @@ export const identifierScreenDefinition: ScreenDefinition = {
       // generically, hiding the signal that the email is unknown.
       let silentSignupStub = false;
       if (!user) {
+        // When we accept the email via the password-connection fallback above,
+        // resolve to that connection's name so the gate runs on the right
+        // record (the literal "email" strategy may not exist on this client).
+        const effectiveConnection =
+          connectionType === "email" && passwordConnection && requiresEmail
+            ? passwordConnection.name
+            : connectionType;
+
         const validation = await validateSignupEmail(
           ctx,
           client,
           ctx.env.data,
           normalized,
-          connectionType,
+          effectiveConnection,
+          { identifierPreflight: true },
         );
 
         if (!validation.allowed) {

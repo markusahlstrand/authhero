@@ -44,7 +44,7 @@ export const logRoutes = new OpenAPIHono<{
       },
     }),
     async (ctx) => {
-      const { page, per_page, include_totals, sort, q } =
+      const { page, per_page, include_totals, sort, q, from_date, to_date } =
         ctx.req.valid("query");
 
       const result = await ctx.env.data.logs.list(ctx.var.tenant_id, {
@@ -53,6 +53,8 @@ export const logRoutes = new OpenAPIHono<{
         include_totals,
         sort: parseSort(sort),
         q,
+        from_date,
+        to_date,
       });
 
       if (include_totals) {

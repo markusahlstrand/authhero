@@ -72,7 +72,6 @@ export const enterCodeRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { state, style } = ctx.req.valid("query");
-      let theme, branding, loginSession, client;
 
       // Set cookie if style is explicitly provided in query param
       if (style) {
@@ -85,59 +84,13 @@ export const enterCodeRoutes = new OpenAPIHono<{
         });
       }
 
-      try {
-        ({ theme, branding, loginSession, client } = await initJSXRoute(
-          ctx,
-          state,
-        ));
+      const { theme, branding, loginSession, client } = await initJSXRoute(
+        ctx,
+        state,
+      );
 
-        if (!loginSession.authParams.username) {
-          // Render an error page if username is not found
-          return ctx.html(
-            <MessagePage
-              theme={theme}
-              branding={branding} // branding might be partially initialized
-              client={client}
-              state={state}
-              pageTitle={i18next.t("error_page_title") || "Error"}
-              message={
-                i18next.t("username_not_found_error") ||
-                "Username not found in session."
-              }
-            />,
-            400,
-          );
-        }
-
-        const passwordUser = await getPrimaryUsernamePasswordUser({
-          env: ctx.env,
-          tenant_id: client.tenant.id,
-          username: loginSession.authParams.username,
-        });
-
-        // Classic style
-        return ctx.html(
-          <EnterCodePage
-            theme={theme}
-            branding={branding}
-            email={loginSession.authParams.username}
-            state={state}
-            client={client}
-            hasPasswordLogin={!!passwordUser}
-          />,
-        );
-      } catch (err: unknown) {
-        console.error("Error in GET /u/enter-code:", err);
-        // Fallback for branding if initJSXRoute failed
-        if (!branding) {
-          branding = null; // Use null as fallback for branding
-        }
-        if (!theme) {
-          theme = null; // Use null as fallback for theme
-        }
-        if (!client) {
-          client = null; // Use null as fallback for client
-        }
+      if (!loginSession.authParams.username) {
+        // Render an error page if username is not found
         return ctx.html(
           <MessagePage
             theme={theme}
@@ -146,13 +99,36 @@ export const enterCodeRoutes = new OpenAPIHono<{
             state={state}
             pageTitle={i18next.t("error_page_title") || "Error"}
             message={
-              i18next.t("unexpected_error_try_again") ||
-              "An unexpected error occurred. Please try again."
+              i18next.t("username_not_found_error") ||
+              "Username not found in session."
             }
           />,
-          500,
+          400,
         );
       }
+
+      let hasPasswordLogin = false;
+      try {
+        const passwordUser = await getPrimaryUsernamePasswordUser({
+          env: ctx.env,
+          tenant_id: client.tenant.id,
+          username: loginSession.authParams.username,
+        });
+        hasPasswordLogin = !!passwordUser;
+      } catch {
+        hasPasswordLogin = false;
+      }
+
+      return ctx.html(
+        <EnterCodePage
+          theme={theme}
+          branding={branding}
+          email={loginSession.authParams.username}
+          state={state}
+          client={client}
+          hasPasswordLogin={hasPasswordLogin}
+        />,
+      );
     },
   )
   // --------------------------------
