@@ -587,6 +587,70 @@ describe("Runtime Fallback Adapter (Settings Inheritance)", () => {
     });
   });
 
+  describe("resolveControlPlane resolver", () => {
+    // The resolver replaces the static control-plane IDs for inheritance
+    // lookups, letting callers opt individual tenants out of inheritance
+    // (`undefined`) or point them at an alternate control plane.
+    it("opts a tenant out of connection inheritance when resolver returns undefined", async () => {
+      const adapter = createRuntimeFallbackAdapter(mockAdapters, {
+        controlPlaneTenantId: "control-plane",
+        controlPlaneClientId: "control-plane-client",
+        resolveControlPlane: () => undefined,
+      });
+
+      const connection = await adapter.connections.get(
+        "tenant-1",
+        "email-connection",
+      );
+
+      expect(connection).toBeDefined();
+      expect(connection!.options).toEqual({
+        from: "tenant@example.com",
+        // client_secret stays missing — no inheritance from control plane
+      });
+    });
+
+    it("exposes the resolver on multiTenancyConfig for runtime consumers", () => {
+      const resolver = () => undefined;
+      const adapter = createRuntimeFallbackAdapter(mockAdapters, {
+        controlPlaneTenantId: "control-plane",
+        controlPlaneClientId: "control-plane-client",
+        resolveControlPlane: resolver,
+      });
+
+      // Static IDs still drive access control, and the resolver is exposed
+      // so helpers like getEnrichedClient can consult it.
+      expect(adapter.multiTenancyConfig?.controlPlaneTenantId).toBe(
+        "control-plane",
+      );
+      expect(adapter.multiTenancyConfig?.resolveControlPlane).toBe(resolver);
+    });
+
+    it("uses the resolver-returned tenant for system resource-server inheritance", async () => {
+      // tenant-1's api-rs is is_system with empty scopes; control-plane has
+      // the scopes. When the resolver points tenant-1 at "tenant-2" instead,
+      // we should pull scopes from tenant-2 (which also has is_system api-rs)
+      // rather than from the static control-plane.
+      const adapter = withSystemResourceServerInheritance(mockAdapters, {
+        controlPlaneTenantId: "control-plane",
+        resolveControlPlane: ({ tenant_id }) =>
+          tenant_id === "tenant-1"
+            ? { tenantId: "tenant-2" }
+            : { tenantId: "control-plane" },
+      });
+
+      const rs = await adapter.resourceServers.get("tenant-1", "api-rs");
+
+      expect(rs).toBeDefined();
+      // Scopes come from tenant-2 (the resolver-chosen control plane), not
+      // from the static control-plane tenant.
+      expect(rs!.scopes?.map((s) => s.value)).toEqual([
+        "read:users",
+        "custom:scope",
+      ]);
+    });
+  });
+
   describe("management adapter pattern (raw adapter with multiTenancyConfig)", () => {
     // This tests the pattern used by the management API where we want:
     // 1. Raw data without control plane merging

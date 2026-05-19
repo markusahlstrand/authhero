@@ -104,6 +104,7 @@ function useIsControlPlane(): boolean | undefined {
   );
 
   useEffect(() => {
+    setIsControlPlane(undefined);
     if (!tenantId) return;
     let cancelled = false;
     (async () => {

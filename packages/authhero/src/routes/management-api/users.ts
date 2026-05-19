@@ -1048,10 +1048,23 @@ export const userRoutes = new OpenAPIHono<{
       const userIds = [user_id, ...linked.users.map((u) => u.user_id)];
       const userIdClause = userIds.map((id) => `user_id:"${id}"`).join(" OR ");
       // luceneFilter has no parentheses / precedence support: it splits on
-      // " OR " globally. Don't wrap the user_id clause in parens — the parser
-      // would treat `(user_id` as a column name. callerQ, when present, is
-      // appended raw; combining it with the multi-id OR is best-effort.
-      const q = callerQ ? `${userIdClause} ${callerQ}` : userIdClause;
+      // " OR " globally. Without sanitization, callerQ containing " OR ..."
+      // (or a leading boolean operator) could escape the user_id grouping
+      // and broaden the result to other users' logs. Strip leading AND/OR
+      // and reject any callerQ that still contains a top-level OR — what
+      // remains is AND-joined onto the user_id clause.
+      let q = userIdClause;
+      if (callerQ) {
+        const trimmed = callerQ.trim().replace(/^(AND|OR)\s+/i, "");
+        if (/\sOR\s/i.test(trimmed)) {
+          throw new HTTPException(400, {
+            message: "q must not contain top-level OR",
+          });
+        }
+        if (trimmed) {
+          q = `${userIdClause} ${trimmed}`;
+        }
+      }
 
       const result = await ctx.env.data.logs.list(ctx.var.tenant_id, {
         page,

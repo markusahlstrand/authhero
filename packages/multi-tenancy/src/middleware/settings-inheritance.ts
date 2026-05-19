@@ -392,11 +392,14 @@ export function createRuntimeFallbackAdapter(
     ...baseAdapters,
 
     // Store the static config for use by tenants route access control.
-    // Per-tenant inheritance overrides do NOT affect this — access control
-    // intentionally uses a single global control plane id.
+    // Per-tenant inheritance overrides do NOT affect access-control values —
+    // those intentionally use a single global control plane id. The resolver
+    // is exposed here so runtime helpers (e.g. `getEnrichedClient`) can
+    // consult it before merging control-plane URLs.
     multiTenancyConfig: {
       controlPlaneTenantId,
       controlPlaneClientId,
+      resolveControlPlane,
     },
 
     connections: {

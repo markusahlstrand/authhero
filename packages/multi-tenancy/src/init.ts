@@ -216,6 +216,15 @@ export function initMultiTenant(config: MultiTenantConfig): MultiTenantResult {
     ...restConfig
   } = config;
 
+  if (resolveControlPlane && !controlPlane) {
+    throw new Error(
+      "initMultiTenant: `resolveControlPlane` requires `controlPlane` to be set. " +
+        "The static `controlPlane.tenantId` is used for access control, sync direction, " +
+        "and tenant management routing; the resolver only overrides per-tenant runtime " +
+        "inheritance lookups on top of it.",
+    );
+  }
+
   // Wrap adapters with runtime fallback from control plane (only if controlPlane is configured)
   // - dataAdapter: Full fallback with secrets (for auth flows)
   // - managementDataAdapter: Raw adapter with multiTenancyConfig for access control (no fallback merging)
@@ -239,6 +248,7 @@ export function initMultiTenant(config: MultiTenantConfig): MultiTenantResult {
       multiTenancyConfig: {
         controlPlaneTenantId,
         controlPlaneClientId,
+        resolveControlPlane,
       },
     };
   }

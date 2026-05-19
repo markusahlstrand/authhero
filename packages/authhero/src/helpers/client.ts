@@ -85,13 +85,25 @@ export async function getEnrichedClient(
     resolvedTenantId = tenant_id;
   }
 
-  // Resolve control-plane fallback config once so we can fetch the control
-  // plane client in parallel with the rest. The URL merge has to happen here
-  // (not in the adapter wrapper) so storage reads from the management API
-  // and DCR don't see — and then write back — inherited callbacks.
+  // Resolve control-plane fallback config so we can fetch the control plane
+  // client in parallel with the rest. The URL merge has to happen here (not
+  // in the adapter wrapper) so storage reads from the management API and DCR
+  // don't see — and then write back — inherited callbacks.
+  //
+  // If `resolveControlPlane` is configured, it takes precedence over the
+  // static IDs: tenants the resolver returns `undefined` for opt out of URL
+  // inheritance entirely, and the resolver may point different tenants at
+  // different control planes.
   const fallbackConfig = env.data.multiTenancyConfig;
-  const controlPlaneTenantId = fallbackConfig?.controlPlaneTenantId;
-  const controlPlaneClientId = fallbackConfig?.controlPlaneClientId;
+  let controlPlaneTenantId = fallbackConfig?.controlPlaneTenantId;
+  let controlPlaneClientId = fallbackConfig?.controlPlaneClientId;
+  if (fallbackConfig?.resolveControlPlane) {
+    const resolved = await fallbackConfig.resolveControlPlane({
+      tenant_id: resolvedTenantId,
+    });
+    controlPlaneTenantId = resolved?.tenantId;
+    controlPlaneClientId = resolved?.clientId ?? controlPlaneClientId;
+  }
   const shouldFetchControlPlaneClient =
     !!controlPlaneTenantId &&
     !!controlPlaneClientId &&
