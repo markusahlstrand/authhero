@@ -1,6 +1,7 @@
 import { List, DataTable, TextInput } from "@/components/admin";
 import { useRecordContext } from "ra-core";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getUserAvatarColor, getUserAvatarSeed } from "@/utils/userAvatar";
 
 const filters = [
   <TextInput key="email" source="email" label="Email" />,
@@ -13,28 +14,6 @@ const filters = [
   />,
 ];
 
-const AVATAR_COLORS = [
-  "#1F77B4",
-  "#FF7F0E",
-  "#2CA02C",
-  "#D62728",
-  "#9467BD",
-  "#8C564B",
-  "#E377C2",
-  "#17BECF",
-  "#BCBD22",
-  "#7F7F7F",
-];
-
-function hashString(value: string): number {
-  let hash = 0;
-  for (let i = 0; i < value.length; i++) {
-    hash = (hash << 5) - hash + value.charCodeAt(i);
-    hash |= 0;
-  }
-  return Math.abs(hash);
-}
-
 function UserAvatarCell() {
   const record = useRecordContext<{
     picture?: string;
@@ -43,9 +22,9 @@ function UserAvatarCell() {
     user_id?: string;
   }>();
   if (!record) return null;
-  const seed = record.email || record.name || record.user_id || "?";
+  const seed = getUserAvatarSeed(record);
   const initial = seed.charAt(0).toUpperCase();
-  const bg = AVATAR_COLORS[hashString(seed) % AVATAR_COLORS.length];
+  const bg = getUserAvatarColor(seed);
   return (
     <Avatar>
       {record.picture ? (

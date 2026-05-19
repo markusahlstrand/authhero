@@ -484,7 +484,7 @@ export const organizationRoutes = new OpenAPIHono<{
           per_page,
           include_totals,
           sort: parseSort(sort),
-          q: `organization_id:${organizationId}`,
+          q: `organization_id:${organization.id}`,
         },
       );
 
@@ -560,7 +560,9 @@ export const organizationRoutes = new OpenAPIHono<{
       const { id: organizationId } = ctx.req.valid("param");
       const { members } = ctx.req.valid("json");
 
-      // First verify organization exists
+      // First verify organization exists. `organizations.get` falls back to
+      // name lookup for Auth0 compat, so always use the resolved `.id` below
+      // — never the path param — when persisting user-organization rows.
       const organization = await ctx.env.data.organizations.get(
         tenant_id,
         organizationId,
@@ -578,13 +580,13 @@ export const organizationRoutes = new OpenAPIHono<{
         });
 
         const alreadyMember = existing.userOrganizations.some(
-          (uo) => uo.organization_id === organizationId,
+          (uo) => uo.organization_id === organization.id,
         );
 
         if (!alreadyMember) {
           await ctx.env.data.userOrganizations.create(tenant_id, {
             user_id: userId,
-            organization_id: organizationId,
+            organization_id: organization.id,
           });
         }
       }
@@ -593,7 +595,7 @@ export const organizationRoutes = new OpenAPIHono<{
         type: LogTypes.SUCCESS_API_OPERATION,
         description: "Add Members to an Organization",
         targetType: "organization_member",
-        targetId: organizationId,
+        targetId: organization.id,
       });
 
       return new Response(null, { status: 204 });
@@ -638,6 +640,14 @@ export const organizationRoutes = new OpenAPIHono<{
       const { id: organizationId } = ctx.req.valid("param");
       const { members } = ctx.req.valid("json");
 
+      const organization = await ctx.env.data.organizations.get(
+        tenant_id,
+        organizationId,
+      );
+      if (!organization) {
+        throw new HTTPException(404, { message: "Organization not found" });
+      }
+
       // Remove each user from the organization
       for (const userId of members) {
         const userOrgs = await ctx.env.data.userOrganizations.list(tenant_id, {
@@ -646,7 +656,7 @@ export const organizationRoutes = new OpenAPIHono<{
         });
 
         const membershipToRemove = userOrgs.userOrganizations.find(
-          (uo) => uo.organization_id === organizationId,
+          (uo) => uo.organization_id === organization.id,
         );
 
         if (membershipToRemove) {
@@ -661,7 +671,7 @@ export const organizationRoutes = new OpenAPIHono<{
         type: LogTypes.SUCCESS_API_OPERATION,
         description: "Remove Members from an Organization",
         targetType: "organization_member",
-        targetId: organizationId,
+        targetId: organization.id,
       });
 
       return ctx.json({ message: "Members removed successfully" });
@@ -1028,7 +1038,7 @@ export const organizationRoutes = new OpenAPIHono<{
 
       // Filter by organization_id
       let filteredInvites = result.invites.filter(
-        (invite) => invite.organization_id === organization_id,
+        (invite) => invite.organization_id === organization.id,
       );
 
       // Apply sorting
@@ -1123,9 +1133,17 @@ export const organizationRoutes = new OpenAPIHono<{
       const tenant_id = ctx.var.tenant_id;
       const { id: organization_id, invitation_id } = ctx.req.valid("param");
 
+      const organization = await ctx.env.data.organizations.get(
+        tenant_id,
+        organization_id,
+      );
+      if (!organization) {
+        throw new HTTPException(404, { message: "Organization not found" });
+      }
+
       const invite = await ctx.env.data.invites.get(tenant_id, invitation_id);
 
-      if (!invite || invite.organization_id !== organization_id) {
+      if (!invite || invite.organization_id !== organization.id) {
         throw new HTTPException(404, { message: "Invitation not found" });
       }
 
@@ -1194,7 +1212,7 @@ export const organizationRoutes = new OpenAPIHono<{
 
       const inviteData = {
         ...body,
-        organization_id,
+        organization_id: organization.id,
         invitation_url: invitationUrl,
       };
 
@@ -1252,9 +1270,17 @@ export const organizationRoutes = new OpenAPIHono<{
       const tenant_id = ctx.var.tenant_id;
       const { id: organization_id, invitation_id } = ctx.req.valid("param");
 
+      const organization = await ctx.env.data.organizations.get(
+        tenant_id,
+        organization_id,
+      );
+      if (!organization) {
+        throw new HTTPException(404, { message: "Organization not found" });
+      }
+
       // Verify the invitation exists and belongs to the organization
       const invite = await ctx.env.data.invites.get(tenant_id, invitation_id);
-      if (!invite || invite.organization_id !== organization_id) {
+      if (!invite || invite.organization_id !== organization.id) {
         throw new HTTPException(404, { message: "Invitation not found" });
       }
 
@@ -1340,7 +1366,7 @@ export const organizationRoutes = new OpenAPIHono<{
 
       const connections = await ctx.env.data.organizationConnections.list(
         tenant_id,
-        organization_id,
+        organization.id,
       );
       // Adapter returns the full unpaginated list; slice in memory.
       const start = page * per_page;
@@ -1418,7 +1444,7 @@ export const organizationRoutes = new OpenAPIHono<{
 
       const existing = await ctx.env.data.organizationConnections.get(
         tenant_id,
-        organization_id,
+        organization.id,
         body.connection_id,
       );
       if (existing) {
@@ -1429,7 +1455,7 @@ export const organizationRoutes = new OpenAPIHono<{
 
       const created = await ctx.env.data.organizationConnections.create(
         tenant_id,
-        organization_id,
+        organization.id,
         body,
       );
 
@@ -1437,7 +1463,7 @@ export const organizationRoutes = new OpenAPIHono<{
         type: LogTypes.SUCCESS_API_OPERATION,
         description: "Enable an Organization Connection",
         targetType: "organization_connection",
-        targetId: `${organization_id}:${body.connection_id}`,
+        targetId: `${organization.id}:${body.connection_id}`,
       });
 
       return ctx.json(created, { status: 201 });
@@ -1478,9 +1504,17 @@ export const organizationRoutes = new OpenAPIHono<{
       const tenant_id = ctx.var.tenant_id;
       const { id: organization_id, connection_id } = ctx.req.valid("param");
 
-      const orgConn = await ctx.env.data.organizationConnections.get(
+      const organization = await ctx.env.data.organizations.get(
         tenant_id,
         organization_id,
+      );
+      if (!organization) {
+        throw new HTTPException(404, { message: "Organization not found" });
+      }
+
+      const orgConn = await ctx.env.data.organizationConnections.get(
+        tenant_id,
+        organization.id,
         connection_id,
       );
       if (!orgConn) {
@@ -1536,9 +1570,17 @@ export const organizationRoutes = new OpenAPIHono<{
       const { id: organization_id, connection_id } = ctx.req.valid("param");
       const body = ctx.req.valid("json");
 
-      const updated = await ctx.env.data.organizationConnections.update(
+      const organization = await ctx.env.data.organizations.get(
         tenant_id,
         organization_id,
+      );
+      if (!organization) {
+        throw new HTTPException(404, { message: "Organization not found" });
+      }
+
+      const updated = await ctx.env.data.organizationConnections.update(
+        tenant_id,
+        organization.id,
         connection_id,
         body,
       );
@@ -1552,7 +1594,7 @@ export const organizationRoutes = new OpenAPIHono<{
         type: LogTypes.SUCCESS_API_OPERATION,
         description: "Update an Organization Connection",
         targetType: "organization_connection",
-        targetId: `${organization_id}:${connection_id}`,
+        targetId: `${organization.id}:${connection_id}`,
       });
 
       return ctx.json(updated);
@@ -1586,9 +1628,17 @@ export const organizationRoutes = new OpenAPIHono<{
       const tenant_id = ctx.var.tenant_id;
       const { id: organization_id, connection_id } = ctx.req.valid("param");
 
-      const removed = await ctx.env.data.organizationConnections.remove(
+      const organization = await ctx.env.data.organizations.get(
         tenant_id,
         organization_id,
+      );
+      if (!organization) {
+        throw new HTTPException(404, { message: "Organization not found" });
+      }
+
+      const removed = await ctx.env.data.organizationConnections.remove(
+        tenant_id,
+        organization.id,
         connection_id,
       );
       if (!removed) {
@@ -1601,7 +1651,7 @@ export const organizationRoutes = new OpenAPIHono<{
         type: LogTypes.SUCCESS_API_OPERATION,
         description: "Disable an Organization Connection",
         targetType: "organization_connection",
-        targetId: `${organization_id}:${connection_id}`,
+        targetId: `${organization.id}:${connection_id}`,
       });
 
       return ctx.body(null, { status: 204 });

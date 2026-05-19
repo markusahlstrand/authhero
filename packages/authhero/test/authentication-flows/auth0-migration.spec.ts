@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { testClient } from "hono/testing";
 import bcryptjs from "bcryptjs";
-import { Strategy } from "@authhero/adapter-interfaces";
+import { LogTypes, Strategy } from "@authhero/adapter-interfaces";
 import { getTestServer } from "../helpers/test-server";
 import { USERNAME_PASSWORD_PROVIDER } from "../../src/constants";
 
@@ -140,6 +140,21 @@ describe("auth0 migration: password fallback", () => {
     expect(
       await bcryptjs.compare("UpstreamPassword!", passwordRow!.password),
     ).toBe(true);
+
+    const { logs } = await env.data.logs.list(TENANT_ID, {
+      page: 0,
+      per_page: 100,
+      include_totals: false,
+    });
+    const migrationLog = logs.find(
+      (log) => log.type === LogTypes.SUCCESS_PASSWORD_MIGRATION,
+    );
+    expect(migrationLog).toBeDefined();
+    expect(migrationLog?.user_id).toBe(migratedUser!.user_id);
+    expect(migrationLog?.connection).toBe(Strategy.USERNAME_PASSWORD);
+    // The raw password must never appear in any log field.
+    const serialised = JSON.stringify(logs);
+    expect(serialised).not.toContain("UpstreamPassword!");
   });
 
   it("serves the second login entirely locally (no upstream calls)", async () => {
@@ -308,5 +323,50 @@ describe("auth0 migration: password fallback", () => {
     );
     expect(passwordRow).toBeDefined();
     expect(await bcryptjs.compare("Pwd1!", passwordRow!.password)).toBe(true);
+
+    const { logs } = await env.data.logs.list(TENANT_ID, {
+      page: 0,
+      per_page: 100,
+      include_totals: false,
+    });
+    const migrationLog = logs.find(
+      (log) => log.type === LogTypes.SUCCESS_PASSWORD_MIGRATION,
+    );
+    expect(migrationLog).toBeDefined();
+    expect(migrationLog?.user_id).toBe(
+      `${USERNAME_PASSWORD_PROVIDER}|preexisting`,
+    );
+  });
+
+  it("does NOT emit SUCCESS_PASSWORD_MIGRATION when upstream rejects", async () => {
+    fetchSpy.mockResolvedValueOnce(
+      jsonResponse(403, {
+        error: "invalid_grant",
+        error_description: "Wrong email or password.",
+      }),
+    );
+
+    const { oauthApp, env } = await makeMigrationServer();
+    const oauthClient = testClient(oauthApp, env);
+
+    await oauthClient.co.authenticate.$post({
+      json: {
+        client_id: CLIENT_ID,
+        credential_type: "http://auth0.com/oauth/grant-type/password-realm",
+        realm: REALM,
+        username: "nobody@example.com",
+        password: "wrong",
+      },
+    });
+
+    const { logs } = await env.data.logs.list(TENANT_ID, {
+      page: 0,
+      per_page: 100,
+      include_totals: false,
+    });
+    const migrationLog = logs.find(
+      (log) => log.type === LogTypes.SUCCESS_PASSWORD_MIGRATION,
+    );
+    expect(migrationLog).toBeUndefined();
   });
 });

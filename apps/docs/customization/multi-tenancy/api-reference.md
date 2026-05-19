@@ -52,6 +52,13 @@ interface MultiTenantConfig extends Omit<AuthHeroConfig, "entityHooks" | "manage
   // Control plane configuration (optional but recommended)
   controlPlane?: ControlPlaneConfig;
 
+  // Optional per-tenant override for runtime inheritance lookups. When set,
+  // replaces `controlPlane` as the source for connection / hook / resource
+  // server / email provider fallbacks on a per-tenant basis. Return
+  // `undefined` to opt a specific tenant out of inheritance.
+  // Access control and sync direction always use the static `controlPlane`.
+  resolveControlPlane?: ControlPlaneResolver;
+
   // Entity sync configuration (default: { resourceServers: true, roles: true })
   sync?: { resourceServers?: boolean; roles?: boolean } | false;
 
@@ -106,6 +113,40 @@ When `controlPlane` is configured:
 - **Runtime Fallback**: Connection secrets, OAuth credentials, and client settings fallback to control plane without copying
 - **Access Control**: `/api/v2/tenants` endpoint filters based on user's organization memberships
 - **Organization Sync**: Organizations are automatically created on control plane when tenants are created
+
+### ControlPlaneResolver
+
+Per-tenant resolver for runtime inheritance. Mirrors the shape of
+`signingKeyMode` / `userLinkingMode` in authhero. When supplied to
+`initMultiTenant`'s `resolveControlPlane` (or to
+`withRuntimeFallback`'s `resolveControlPlane`), it is invoked for every
+wrapped adapter read with the tenant being read.
+
+```typescript
+type ControlPlaneResolver = (params: { tenant_id: string }) =>
+  | { tenantId: string; clientId?: string }
+  | undefined
+  | Promise<{ tenantId: string; clientId?: string } | undefined>;
+```
+
+**Example — disable inheritance for selected tenants:**
+
+```typescript
+const ISOLATED_TENANTS = new Set(["partner_a", "partner_b"]);
+
+initMultiTenant({
+  dataAdapter,
+  controlPlane: { tenantId: "main", clientId: "default" },
+  resolveControlPlane: ({ tenant_id }) =>
+    ISOLATED_TENANTS.has(tenant_id)
+      ? undefined
+      : { tenantId: "main", clientId: "default" },
+});
+```
+
+The resolver only affects inheritance reads (connections, hooks,
+resource servers, email providers). Access control, sync, and tenant
+management routing continue to use the static `controlPlane.tenantId`.
 
 ## Lower-Level APIs
 
@@ -203,6 +244,10 @@ interface RuntimeFallbackConfig {
 
   // Control plane client ID for client setting fallbacks
   controlPlaneClientId?: string;
+
+  // Optional per-tenant resolver. When set, replaces the static fields
+  // for inheritance lookups; return `undefined` to opt a tenant out.
+  resolveControlPlane?: ControlPlaneResolver;
 }
 ```
 

@@ -414,6 +414,77 @@ function ManageRolesCell() {
   );
 }
 
+function RemoveOrganizationCell() {
+  const record = useRecordContext<OrganizationRecord>();
+  const { id: userId } = useParams();
+  const dataProvider = useDataProvider();
+  const notify = useNotify();
+  const refresh = useRefresh();
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  if (!record || !userId) return null;
+
+  const orgLabel = record.display_name || record.name || record.id;
+
+  const handleRemove = async () => {
+    setBusy(true);
+    try {
+      await dataProvider.delete("user-organizations", {
+        id: record.id,
+        previousData: { user_id: userId, organization_id: record.id },
+      });
+      notify(`Removed user from ${orgLabel}`, { type: "success" });
+      setOpen(false);
+      refresh();
+    } catch {
+      notify("Error removing user from organization", { type: "error" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        aria-label="Remove from organization"
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen(true);
+        }}
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent onClick={(e) => e.stopPropagation()}>
+          <DialogHeader>
+            <DialogTitle>Remove from {orgLabel}?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            The user will lose access to this organization and any roles
+            assigned within it.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleRemove}
+              disabled={busy}
+            >
+              Remove
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 function MetadataCell() {
   const record = useRecordContext<OrganizationRecord>();
   const count = record?.metadata ? Object.keys(record.metadata).length : 0;
@@ -457,7 +528,10 @@ export function OrganizationsTab() {
             <JoinedCell />
           </DataTable.Col>
           <DataTable.Col label="">
-            <ManageRolesCell />
+            <div className="flex items-center justify-end gap-1">
+              <ManageRolesCell />
+              <RemoveOrganizationCell />
+            </div>
           </DataTable.Col>
         </DataTable>
       </ReferenceManyField>

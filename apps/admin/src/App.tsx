@@ -17,6 +17,7 @@ import {
   ScrollText,
   Settings,
   Shield,
+  ShieldCheck,
   Type,
   UserCog,
   Users,
@@ -59,6 +60,7 @@ import {
   AttackProtectionList,
   AttackProtectionEdit,
 } from "./resources/attack-protection";
+import { MfaList, MfaEdit } from "./resources/mfa";
 import { SigningKeysList } from "./resources/signing-keys";
 import { EmailProvidersList, EmailProvidersEdit } from "./resources/email-providers";
 import { SettingsList, SettingsEdit } from "./resources/settings";
@@ -305,6 +307,13 @@ export function App({ tenantId, initialDomain, onAuthComplete }: AppProps) {
           list={AttackProtectionList}
           edit={AttackProtectionEdit}
           options={{ hasSingle: true, label: "Attack Protection", menuGroup: "Security" }}
+        />
+        <Resource
+          name="mfa"
+          icon={ShieldCheck}
+          list={MfaList}
+          edit={MfaEdit}
+          options={{ hasSingle: true, label: "MFA", menuGroup: "Security" }}
         />
         <Resource
           name="signing-keys"

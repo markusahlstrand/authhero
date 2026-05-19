@@ -1,12 +1,13 @@
 import { Show } from "@/components/admin";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { UrlTabs } from "@/components/ui/url-tabs";
 import { DetailsTab } from "./tabs/details-tab";
 import { RawTab } from "./tabs/raw-tab";
 
 export function LogShow() {
   return (
     <Show>
-      <Tabs defaultValue="details" className="w-full">
+      <UrlTabs defaultValue="details" className="w-full">
         <TabsList>
           <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="raw">Raw</TabsTrigger>
@@ -17,7 +18,7 @@ export function LogShow() {
         <TabsContent value="raw" className="mt-4">
           <RawTab />
         </TabsContent>
-      </Tabs>
+      </UrlTabs>
     </Show>
   );
 }

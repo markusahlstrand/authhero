@@ -1,14 +1,12 @@
 import { Edit, SimpleForm } from "@/components/admin";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { UrlTabs } from "@/components/ui/url-tabs";
 import { GeneralTab } from "./tabs/general-tab";
 import { SessionTab } from "./tabs/session-tab";
 import { SessionsManagementTab } from "./tabs/sessions-management-tab";
 import { LocalizationTab } from "./tabs/localization-tab";
 import { ErrorPageTab } from "./tabs/error-page-tab";
 import { ChangePasswordTab } from "./tabs/change-password-tab";
-import { GuardianMfaTab } from "./tabs/guardian-mfa-tab";
-import { MfaFactorsTab } from "./tabs/mfa-factors-tab";
-import { SmsProviderTab } from "./tabs/sms-provider-tab";
 import { FeatureFlagsTab } from "./tabs/feature-flags-tab";
 import { AdvancedTab } from "./tabs/advanced-tab";
 
@@ -40,7 +38,7 @@ export function SettingsEdit() {
       transform={removeNullValues as never}
     >
       <SimpleForm className="max-w-none">
-        <Tabs defaultValue="general" className="w-full">
+        <UrlTabs defaultValue="general" className="w-full">
           <TabsList>
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="session">Session</TabsTrigger>
@@ -50,9 +48,6 @@ export function SettingsEdit() {
             <TabsTrigger value="localization">Localization</TabsTrigger>
             <TabsTrigger value="error-page">Error Page</TabsTrigger>
             <TabsTrigger value="change-password">Change Password</TabsTrigger>
-            <TabsTrigger value="guardian-mfa">Guardian MFA</TabsTrigger>
-            <TabsTrigger value="mfa-factors">MFA Factors</TabsTrigger>
-            <TabsTrigger value="sms-provider">SMS Provider</TabsTrigger>
             <TabsTrigger value="feature-flags">Feature Flags</TabsTrigger>
             <TabsTrigger value="advanced">Advanced</TabsTrigger>
           </TabsList>
@@ -74,22 +69,13 @@ export function SettingsEdit() {
           <TabsContent value="change-password" className="mt-4">
             <ChangePasswordTab />
           </TabsContent>
-          <TabsContent value="guardian-mfa" className="mt-4">
-            <GuardianMfaTab />
-          </TabsContent>
-          <TabsContent value="mfa-factors" className="mt-4">
-            <MfaFactorsTab />
-          </TabsContent>
-          <TabsContent value="sms-provider" className="mt-4">
-            <SmsProviderTab />
-          </TabsContent>
           <TabsContent value="feature-flags" className="mt-4">
             <FeatureFlagsTab />
           </TabsContent>
           <TabsContent value="advanced" className="mt-4">
             <AdvancedTab />
           </TabsContent>
-        </Tabs>
+        </UrlTabs>
       </SimpleForm>
     </Edit>
   );

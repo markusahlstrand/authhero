@@ -19,7 +19,7 @@ AuthHero is designed around a simple idea: **authentication should be easy to ru
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                    Your Application                      │
-│           (or React Admin / Auth0 Proxy / Demo)          │
+│            (or Admin UI / Auth0 Proxy / Demo)            │
 └─────────────────────────────────────────────────────────┘
                            │
 ┌─────────────────────────────────────────────────────────┐

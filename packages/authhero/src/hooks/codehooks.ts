@@ -97,10 +97,21 @@ async function loadCodeForHook(
     // matches by name. Local secrets win; upstream secrets fill in any names
     // the tenant hasn't overridden. If the upstream lookup fails, the local
     // `code` (which may be a stale snapshot or empty) is used as-is.
+    //
+    // The control-plane tenant is resolved per-tenant when a resolver is
+    // configured, so tenants that opted out of inheritance don't pull in
+    // upstream code.
+    let inheritFromTenantId = data.multiTenancyConfig?.controlPlaneTenantId;
+    if (action.inherit && data.multiTenancyConfig?.resolveControlPlane) {
+      const resolved = await data.multiTenancyConfig.resolveControlPlane({
+        tenant_id,
+      });
+      inheritFromTenantId = resolved?.tenantId;
+    }
     if (
       action.inherit &&
-      data.multiTenancyConfig?.controlPlaneTenantId &&
-      data.multiTenancyConfig.controlPlaneTenantId !== tenant_id
+      inheritFromTenantId &&
+      inheritFromTenantId !== tenant_id
     ) {
       // Escape backslashes and quotes so the quoted phrase survives names
       // containing punctuation (colons, parens, etc. are fine inside a
@@ -108,7 +119,7 @@ async function loadCodeForHook(
       // exact-match the result client-side as a defensive backstop.
       const quoted = action.name.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
       const { actions: matches } = await data.actions.list(
-        data.multiTenancyConfig.controlPlaneTenantId,
+        inheritFromTenantId,
         { q: `name:"${quoted}"`, per_page: 5 },
       );
       const upstream = matches.find(

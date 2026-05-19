@@ -1,19 +1,12 @@
 import {
+  ArrayInput,
+  CodeInput,
   Create,
   SimpleForm,
-  TextInput,
-  SelectInput,
-  BooleanInput,
-  ArrayInput,
   SimpleFormIterator,
+  TextInput,
 } from "@/components/admin";
-
-const triggerChoices = [
-  { id: "post-login", name: "Post Login" },
-  { id: "credentials-exchange", name: "Credentials Exchange" },
-  { id: "pre-user-registration", name: "Pre User Registration" },
-  { id: "post-user-registration", name: "Post User Registration" },
-];
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const defaultCode = `exports.onExecutePostLogin = async (event, api) => {
   // Add your custom logic here
@@ -21,7 +14,6 @@ const defaultCode = `exports.onExecutePostLogin = async (event, api) => {
 `;
 
 interface ActionPayload {
-  trigger_id?: string;
   supported_triggers?: Array<{ id: string }>;
   secrets?: Array<{ name?: string; value?: string }>;
   [key: string]: unknown;
@@ -32,39 +24,64 @@ export function ActionCreate() {
     <Create
       transform={(data: ActionPayload) => ({
         ...data,
-        supported_triggers: data.trigger_id
-          ? [{ id: data.trigger_id }]
-          : undefined,
-        trigger_id: undefined,
+        supported_triggers: data.supported_triggers ?? [{ id: "post-login" }],
         secrets: data.secrets?.filter((s) => s?.name),
       })}
     >
-      <SimpleForm>
-        <TextInput source="name" required />
-        <SelectInput source="trigger_id" label="Trigger" choices={triggerChoices} />
-        <TextInput
-          source="code"
-          multiline
-          defaultValue={defaultCode}
-          inputClassName="font-mono text-sm"
-        />
-        <TextInput source="runtime" defaultValue="webworker" />
-        <BooleanInput source="is_system" label="System action" />
-        <BooleanInput source="inherit" label="Inherit from defaults" />
+      <SimpleForm className="max-w-none">
+        <div className="flex flex-col gap-6 w-full">
+          <Card>
+            <CardHeader>
+              <CardTitle>Settings</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <TextInput source="name" required />
+              <TextInput source="runtime" defaultValue="webworker" />
+            </CardContent>
+          </Card>
 
-        <ArrayInput source="secrets" label="Secrets">
-          <SimpleFormIterator inline>
-            <TextInput source="name" label="Name" />
-            <TextInput source="value" label="Value" type="password" />
-          </SimpleFormIterator>
-        </ArrayInput>
+          <Card>
+            <CardHeader>
+              <CardTitle>Code</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CodeInput
+                source="code"
+                language="javascript"
+                height={420}
+                defaultValue={defaultCode}
+              />
+            </CardContent>
+          </Card>
 
-        <ArrayInput source="dependencies" label="Dependencies">
-          <SimpleFormIterator inline>
-            <TextInput source="name" label="Package" />
-            <TextInput source="version" label="Version" />
-          </SimpleFormIterator>
-        </ArrayInput>
+          <Card>
+            <CardHeader>
+              <CardTitle>Secrets</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ArrayInput source="secrets" label={false}>
+                <SimpleFormIterator inline>
+                  <TextInput source="name" label="Name" />
+                  <TextInput source="value" label="Value" type="password" />
+                </SimpleFormIterator>
+              </ArrayInput>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Dependencies</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ArrayInput source="dependencies" label={false}>
+                <SimpleFormIterator inline>
+                  <TextInput source="name" label="Package" />
+                  <TextInput source="version" label="Version" />
+                </SimpleFormIterator>
+              </ArrayInput>
+            </CardContent>
+          </Card>
+        </div>
       </SimpleForm>
     </Create>
   );

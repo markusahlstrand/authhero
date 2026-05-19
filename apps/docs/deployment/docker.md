@@ -183,5 +183,5 @@ docker run -p 3000:3000 \
 ## Next Steps
 
 - [Configure widget assets](./widget-assets)
-- [Set up the React Admin UI](/apps/react-admin/)
+- [Set up the Admin UI](/apps/admin/)
 - [Security best practices](/security/)

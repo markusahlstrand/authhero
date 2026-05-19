@@ -23,6 +23,32 @@ export const enrichedClientSchema = z.object({
 
 export type EnrichedClient = z.infer<typeof enrichedClientSchema>;
 
+type ClientLike = {
+  callbacks?: string[];
+  web_origins?: string[];
+  allowed_logout_urls?: string[];
+  allowed_origins?: string[];
+};
+
+function dedupeUrls(a?: string[], b?: string[]): string[] {
+  return [...new Set([...(b || []), ...(a || [])])];
+}
+
+// Mirrors `mergeClientWithFallback` in @authhero/multi-tenancy. Kept local
+// to avoid a circular dep (multi-tenancy already imports from authhero).
+function mergeClientUrls<T extends ClientLike>(client: T, cp: ClientLike): T {
+  return {
+    ...client,
+    callbacks: dedupeUrls(client.callbacks, cp.callbacks),
+    web_origins: dedupeUrls(client.web_origins, cp.web_origins),
+    allowed_logout_urls: dedupeUrls(
+      client.allowed_logout_urls,
+      cp.allowed_logout_urls,
+    ),
+    allowed_origins: dedupeUrls(client.allowed_origins, cp.allowed_origins),
+  };
+}
+
 /**
  * Fetches a client along with its tenant and connections by making separate
  * adapter calls. This composites the data into an EnrichedClient.
@@ -59,8 +85,35 @@ export async function getEnrichedClient(
     resolvedTenantId = tenant_id;
   }
 
+  // Resolve control-plane fallback config so we can fetch the control plane
+  // client in parallel with the rest. The URL merge has to happen here (not
+  // in the adapter wrapper) so storage reads from the management API and DCR
+  // don't see — and then write back — inherited callbacks.
+  //
+  // If `resolveControlPlane` is configured, it takes precedence over the
+  // static IDs: tenants the resolver returns `undefined` for opt out of URL
+  // inheritance entirely, and the resolver may point different tenants at
+  // different control planes.
+  const fallbackConfig = env.data.multiTenancyConfig;
+  let controlPlaneTenantId = fallbackConfig?.controlPlaneTenantId;
+  let controlPlaneClientId = fallbackConfig?.controlPlaneClientId;
+  if (fallbackConfig?.resolveControlPlane) {
+    const resolved = await fallbackConfig.resolveControlPlane({
+      tenant_id: resolvedTenantId,
+    });
+    controlPlaneTenantId = resolved?.tenantId;
+    controlPlaneClientId = resolved?.clientId ?? controlPlaneClientId;
+  }
+  const shouldFetchControlPlaneClient =
+    !!controlPlaneTenantId &&
+    !!controlPlaneClientId &&
+    !(
+      resolvedTenantId === controlPlaneTenantId &&
+      clientId === controlPlaneClientId
+    );
+
   // Fetch all data in parallel, including fallback connections
-  const [fetchedClient, tenant, clientConnections, allConnections] =
+  const [fetchedClient, tenant, clientConnections, allConnections, cpClient] =
     await Promise.all([
       client
         ? Promise.resolve(client)
@@ -68,12 +121,18 @@ export async function getEnrichedClient(
       env.data.tenants.get(resolvedTenantId),
       env.data.clientConnections.listByClient(resolvedTenantId, clientId),
       env.data.connections.list(resolvedTenantId),
+      shouldFetchControlPlaneClient
+        ? env.data.clients.get(controlPlaneTenantId!, controlPlaneClientId!)
+        : Promise.resolve(null),
     ]);
 
-  const finalClient = client || fetchedClient;
-  if (!finalClient) {
+  const baseClient = client || fetchedClient;
+  if (!baseClient) {
     throw new JSONHTTPException(403, { message: "Client not found" });
   }
+  const finalClient = cpClient
+    ? mergeClientUrls(baseClient, cpClient)
+    : baseClient;
   // Treat soft-deleted clients (DCR DELETE /oidc/register/:id) as if they
   // were removed entirely — no token issuance, no /authorize, no resume.
   if (finalClient.client_metadata?.status === "deleted") {

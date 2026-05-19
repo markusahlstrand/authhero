@@ -168,6 +168,7 @@ export const LogTypes = {
   BREACHED_PASSWORD_ON_SIGNUP: "signup_pwd_leak",
   SUCCESS_LOGOUT: "slo",
   SUCCESS_HOOK: "sh", // Custom AuthHero-specific
+  SUCCESS_PASSWORD_MIGRATION: "spm", // Custom AuthHero-specific: upstream password successfully imported
   SUCCESS_REVOCATION: "srrt",
   SUCCESS_SIGNUP: "ss",
   FAILED_SS_SSO_OPERATION: "ss_sso_failure",

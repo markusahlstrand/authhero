@@ -270,6 +270,11 @@ export const tenantSchema = z.object({
     .transform((val) => val ?? ""),
   ...tenantInsertSchema.shape,
   id: z.string(),
+  // Computed server-side: true when this tenant is the deployment's control
+  // plane (either `multiTenancyConfig.controlPlaneTenantId` matches the
+  // tenant id, or no multi-tenancy config is set — i.e. single-tenant
+  // deployment). Not persisted; ignored on writes.
+  is_control_plane: z.boolean().optional(),
 });
 
 export type Tenant = z.infer<typeof tenantSchema>;

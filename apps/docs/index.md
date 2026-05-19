@@ -121,4 +121,4 @@ AuthHero is built as a modular system:
 [Learn more about the architecture →](/architecture/)
 
 - [API Reference](./api/overview.md) - Complete API documentation
-- [Applications](./apps/react-admin/) - Explore the included applications
+- [Applications](./apps/admin/) - Explore the included applications

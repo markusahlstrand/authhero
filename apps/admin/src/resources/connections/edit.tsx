@@ -1,6 +1,7 @@
 import { Edit, SimpleForm } from "@/components/admin";
 import { useRecordContext } from "ra-core";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { UrlTabs } from "@/components/ui/url-tabs";
 import { Strategy } from "@/utils/Strategy";
 import { DetailsTab } from "./tabs/details-tab";
 import { AttributesTab } from "./tabs/attributes-tab";
@@ -32,7 +33,7 @@ function ConnectionTabs() {
   const isDb = record?.strategy === Strategy.USERNAME_PASSWORD;
 
   return (
-    <Tabs defaultValue="details" className="w-full">
+    <UrlTabs defaultValue="details" className="w-full">
       <TabsList>
         <TabsTrigger value="details">Details</TabsTrigger>
         {isDb && <TabsTrigger value="attributes">Attributes</TabsTrigger>}
@@ -69,7 +70,7 @@ function ConnectionTabs() {
       <TabsContent value="raw" className="mt-4">
         <RawJsonTab />
       </TabsContent>
-    </Tabs>
+    </UrlTabs>
   );
 }
 

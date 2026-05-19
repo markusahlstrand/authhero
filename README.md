@@ -17,7 +17,7 @@ AuthHero is a multi-tenant authentication system that provides identity and acce
 
 ## Applications
 
-- **react-admin** - Admin interface for managing tenants, users, applications, and more
+- **admin** - Admin interface (shadcn/ui + ra-core) for managing tenants, users, applications, and more
 - **auth0-proxy** - Proxy service for Auth0 compatibility
 - **demo** - Demo authentication server using the kysely adapter and SQLite
 - **docs** - Documentation site powered by VitePress
@@ -87,7 +87,7 @@ pnpm dev
 This starts:
 
 - Demo auth server
-- React admin interface
+- Admin interface
 - Documentation site
 - All other apps in parallel
 
@@ -97,7 +97,7 @@ Use these shortcuts to work with individual apps:
 
 ```bash
 pnpm demo          # Work with demo app
-pnpm react-admin   # Work with admin interface
+pnpm admin         # Work with admin interface
 pnpm authhero      # Work with main package
 pnpm vitepress     # Work with docs
 ```
@@ -204,10 +204,10 @@ Releases are automated via GitHub Actions when changesets are merged to the main
 ```
 authhero/
 ├── apps/
+│   ├── admin/            # Admin interface (shadcn/ui + ra-core)
 │   ├── auth0-proxy/      # Auth0 compatibility proxy
 │   ├── demo/             # Demo auth server
-│   ├── docs/             # Documentation site
-│   └── react-admin/      # Admin interface
+│   └── docs/             # Documentation site
 ├── packages/
 │   ├── adapter-interfaces/
 │   ├── authhero/         # Main package

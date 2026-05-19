@@ -5,7 +5,8 @@ import {
   SimpleForm,
   TextInput,
 } from "@/components/admin";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { UrlTabs } from "@/components/ui/url-tabs";
 import { ColorInput } from "./color-input";
 import { ThemesTab } from "./themes-tab";
 import { UniversalLoginTab } from "./universal-login-tab";
@@ -115,7 +116,7 @@ function BrandingFormContent() {
   return (
     <div className="flex w-full gap-6">
       <div className="min-w-0 flex-1">
-        <Tabs defaultValue="style">
+        <UrlTabs defaultValue="style">
           <TabsList>
             <TabsTrigger value="style">Style</TabsTrigger>
             <TabsTrigger value="themes">Themes</TabsTrigger>
@@ -130,7 +131,7 @@ function BrandingFormContent() {
           <TabsContent value="universal-login" className="mt-4">
             <UniversalLoginTab />
           </TabsContent>
-        </Tabs>
+        </UrlTabs>
       </div>
       <aside className="hidden w-[380px] shrink-0 lg:block">
         <div className="sticky top-4 h-[calc(100vh-6rem)]">

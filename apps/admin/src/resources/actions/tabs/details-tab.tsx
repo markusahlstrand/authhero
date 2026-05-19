@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNotify, useRecordContext } from "ra-core";
 import { useWatch } from "react-hook-form";
 import { Rocket } from "lucide-react";
@@ -6,7 +6,6 @@ import {
   ArrayInput,
   BooleanInput,
   CodeInput,
-  SelectInput,
   SimpleFormIterator,
   TextInput,
 } from "@/components/admin";
@@ -25,13 +24,6 @@ import {
   getSelectedDomainFromStorage,
 } from "@/utils/domainUtils";
 import { getConfigValue } from "@/utils/runtimeConfig";
-
-const triggerChoices = [
-  { id: "post-login", name: "Post Login" },
-  { id: "credentials-exchange", name: "Credentials Exchange" },
-  { id: "pre-user-registration", name: "Pre User Registration" },
-  { id: "post-user-registration", name: "Post User Registration" },
-];
 
 function getApiUrl(): string {
   const domains = getDomainFromStorage();
@@ -105,6 +97,40 @@ function DeployButton() {
   );
 }
 
+function useIsControlPlane(): boolean | undefined {
+  const tenantId = useTenantId() ?? "";
+  const [isControlPlane, setIsControlPlane] = useState<boolean | undefined>(
+    undefined,
+  );
+
+  useEffect(() => {
+    setIsControlPlane(undefined);
+    if (!tenantId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const apiUrl = getApiUrl();
+        const httpClient = getHttpClient(tenantId);
+        const response = await httpClient(`${apiUrl}/api/v2/tenants/settings`, {
+          headers: new Headers({ "tenant-id": tenantId }),
+        });
+        const body =
+          response && typeof response === "object" && "json" in response
+            ? (response as { json?: { is_control_plane?: boolean } }).json
+            : undefined;
+        if (!cancelled) setIsControlPlane(!!body?.is_control_plane);
+      } catch {
+        if (!cancelled) setIsControlPlane(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [tenantId]);
+
+  return isControlPlane;
+}
+
 function CodeField() {
   const inherit = useWatch({ name: "inherit" }) as boolean | undefined;
   return (
@@ -123,6 +149,7 @@ function CodeField() {
 }
 
 export function DetailsTab() {
+  const isControlPlane = useIsControlPlane();
   return (
     <div className="flex flex-col gap-6">
       <Card>
@@ -132,22 +159,14 @@ export function DetailsTab() {
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <TextInput source="name" />
-          <SelectInput
-            source="trigger_id"
-            label="Trigger"
-            choices={triggerChoices}
-          />
           <TextInput source="runtime" />
-          <BooleanInput
-            source="is_system"
-            label="Is system action"
-            helperText="Mark this action as a shared template owned by the control-plane tenant. Other tenants can opt in by creating a row with the same name and turning on `Inherit`."
-          />
-          <BooleanInput
-            source="inherit"
-            label="Inherit from control-plane"
-            helperText="Read `code` at execute time from the control-plane action with the same name. Local secrets still override upstream secrets by name."
-          />
+          {isControlPlane && (
+            <BooleanInput
+              source="inherit"
+              label="Inherit to child tenants"
+              helperText="When enabled, child tenants that create an action with this same name will read `code` from this control-plane action at execute time."
+            />
+          )}
         </CardContent>
       </Card>
 

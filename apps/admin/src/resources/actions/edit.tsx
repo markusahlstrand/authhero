@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { Edit, SimpleForm } from "@/components/admin";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { UrlTabs } from "@/components/ui/url-tabs";
 import { DetailsTab } from "./tabs/details-tab";
 import { TestTab } from "./tabs/test-tab";
 import { VersionsTab } from "./tabs/versions-tab";
@@ -36,7 +37,6 @@ export function ActionEdit() {
       queryOptions={{
         select: (data: ActionRecord) => ({
           ...data,
-          trigger_id: data.supported_triggers?.[0]?.id,
           secrets: data.secrets?.map((s) => ({
             name: s.name,
             value: sentinel,
@@ -51,7 +51,7 @@ export function ActionEdit() {
           updated_at: _updated_at,
           status: _status,
           deployed_at: _deployed_at,
-          trigger_id,
+          trigger_id: _trigger_id,
           ...rest
         } = data;
         const cleanedSecrets = (rest.secrets ?? [])
@@ -63,15 +63,12 @@ export function ActionEdit() {
           );
         return {
           ...rest,
-          supported_triggers: trigger_id
-            ? [{ id: trigger_id }]
-            : rest.supported_triggers,
           secrets: cleanedSecrets,
         };
       }}
     >
       <SimpleForm className="max-w-none">
-        <Tabs defaultValue="details" className="w-full">
+        <UrlTabs defaultValue="details" className="w-full">
           <TabsList>
             <TabsTrigger value="details">Settings</TabsTrigger>
             <TabsTrigger value="test">Test</TabsTrigger>
@@ -86,7 +83,7 @@ export function ActionEdit() {
           <TabsContent value="versions" className="mt-4">
             <VersionsTab />
           </TabsContent>
-        </Tabs>
+        </UrlTabs>
       </SimpleForm>
     </Edit>
   );

@@ -78,6 +78,8 @@ export function LogType({ type: logType }: { type: LogTypes }) {
       return "Success User Deletion";
     case LogTypes.FAILED_USER_DELETION:
       return "Failed User Deletion";
+    case LogTypes.SUCCESS_PASSWORD_MIGRATION:
+      return "Success Password Migration";
     default:
       return `${logType}`;
   }

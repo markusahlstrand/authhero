@@ -139,11 +139,26 @@ export interface DataAdapters {
   sessionCleanup?: (params?: SessionCleanupParams) => Promise<void>;
   /**
    * Multi-tenancy configuration set by withRuntimeFallback.
-   * Used by the tenants route for access control.
+   * Used by the tenants route for access control and by runtime helpers
+   * (e.g. `getEnrichedClient`) to decide which control plane to inherit from.
    */
   multiTenancyConfig?: {
     controlPlaneTenantId?: string;
     controlPlaneClientId?: string;
+    /**
+     * Per-tenant override for runtime inheritance lookups. When defined,
+     * runtime helpers must consult it for the tenant being read instead of
+     * relying on the static `controlPlaneTenantId` / `controlPlaneClientId`.
+     * Return `undefined` to opt that tenant out of inheritance.
+     *
+     * Access control, sync direction, and tenant management routing always
+     * use the static `controlPlaneTenantId` and are not affected by this
+     * resolver.
+     */
+    resolveControlPlane?: (params: { tenant_id: string }) =>
+      | { tenantId: string; clientId?: string }
+      | undefined
+      | Promise<{ tenantId: string; clientId?: string } | undefined>;
   };
 }
 

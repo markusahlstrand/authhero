@@ -1,5 +1,6 @@
 import { Edit, SimpleForm } from "@/components/admin";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { UrlTabs } from "@/components/ui/url-tabs";
 import { DetailsTab } from "./tabs/details-tab";
 import { RbacTab } from "./tabs/rbac-tab";
 import { ScopesTab } from "./tabs/scopes-tab";
@@ -8,7 +9,7 @@ export function ResourceServerEdit() {
   return (
     <Edit mutationMode="pessimistic">
       <SimpleForm className="max-w-none">
-        <Tabs defaultValue="details" className="w-full">
+        <UrlTabs defaultValue="details" className="w-full">
           <TabsList>
             <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="rbac">RBAC</TabsTrigger>
@@ -23,7 +24,7 @@ export function ResourceServerEdit() {
           <TabsContent value="scopes" className="mt-4">
             <ScopesTab />
           </TabsContent>
-        </Tabs>
+        </UrlTabs>
       </SimpleForm>
     </Edit>
   );

@@ -71,7 +71,7 @@ Key configuration options for applications:
 
 ## Creating an Application
 
-Applications can be created through the Management API or React Admin interface:
+Applications can be created through the Management API or the [Admin UI](/apps/admin/):
 
 ```typescript
 POST /api/v2/clients

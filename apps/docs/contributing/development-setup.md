@@ -52,7 +52,7 @@ pnpm <project-name>
 For example:
 
 ```bash
-pnpm react-admin
+pnpm admin
 ```
 
 ## Building

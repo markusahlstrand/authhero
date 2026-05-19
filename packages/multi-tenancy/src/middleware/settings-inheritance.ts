@@ -102,8 +102,17 @@ function mergeResourceServerWithFallback(
 
 /**
  * Merges a client with control plane fallback URLs.
+ *
+ * Returns a new Client whose callbacks, web_origins, allowed_logout_urls and
+ * allowed_origins include both the tenant client's own values and the control
+ * plane client's values (deduplicated, tenant values take precedence). Other
+ * fields are taken verbatim from the tenant client.
+ *
+ * This is intended for runtime auth flows (e.g. `/authorize`, token issuance)
+ * that need to accept the control plane's URLs. Storage reads (management API,
+ * DCR) must NOT use this — the merged URLs would be written back on update.
  */
-function mergeClientWithFallback(
+export function mergeClientWithFallback(
   client: Client,
   controlPlaneClient: Client | null,
 ): Client {
@@ -130,13 +139,62 @@ function mergeClientWithFallback(
 }
 
 /**
+ * Resolved inheritance target for a single tenant. `undefined` means the
+ * tenant opts out of inheritance entirely.
+ */
+type ResolvedControlPlane =
+  | { tenantId: string; clientId?: string }
+  | undefined;
+
+/**
+ * Per-tenant resolver for the inheritance control plane. Receives the
+ * tenant currently being read and returns which control plane it should
+ * inherit from, or `undefined` to disable inheritance for that tenant.
+ *
+ * Mirrors the shape of `SigningKeyModeResolver` in authhero so callers can
+ * write `({ tenant_id }) => DISABLED.has(tenant_id) ? undefined : {...}`.
+ */
+export type ControlPlaneResolver = (params: { tenant_id: string }) =>
+  | ResolvedControlPlane
+  | Promise<ResolvedControlPlane>;
+
+/**
+ * Builds a single resolver from either a static `{tenantId, clientId}` pair
+ * or a user-supplied resolver. The user-supplied resolver, when present,
+ * fully replaces the static fallback — that's the lever a caller uses to
+ * disable inheritance for individual tenants by returning `undefined`.
+ */
+function buildResolver(config: {
+  controlPlaneTenantId?: string;
+  controlPlaneClientId?: string;
+  resolveControlPlane?: ControlPlaneResolver;
+}): (tenantId: string) => Promise<ResolvedControlPlane> {
+  const { controlPlaneTenantId, controlPlaneClientId, resolveControlPlane } =
+    config;
+
+  if (resolveControlPlane) {
+    return async (tenantId) => resolveControlPlane({ tenant_id: tenantId });
+  }
+
+  if (!controlPlaneTenantId) {
+    return async () => undefined;
+  }
+
+  const staticResult: ResolvedControlPlane = {
+    tenantId: controlPlaneTenantId,
+    clientId: controlPlaneClientId,
+  };
+  return async () => staticResult;
+}
+
+/**
  * Wraps resourceServers adapter methods with is_system-gated scope inheritance.
  * Only resource_servers with is_system === true get scopes merged from the
  * control plane counterpart (looked up by id, since sync preserves the id).
  */
 function wrapResourceServersWithSystemInheritance(
   baseAdapters: DataAdapters,
-  controlPlaneTenantId: string | undefined,
+  resolve: (tenantId: string) => Promise<ResolvedControlPlane>,
 ): DataAdapters["resourceServers"] {
   return {
     ...baseAdapters.resourceServers,
@@ -149,11 +207,12 @@ function wrapResourceServersWithSystemInheritance(
         tenantId,
         id,
       );
-      if (!resourceServer || !controlPlaneTenantId) {
+      if (!resourceServer) {
         return resourceServer;
       }
 
-      if (tenantId === controlPlaneTenantId) {
+      const cp = await resolve(tenantId);
+      if (!cp || tenantId === cp.tenantId) {
         return resourceServer;
       }
 
@@ -162,7 +221,7 @@ function wrapResourceServersWithSystemInheritance(
       }
 
       const controlPlaneResourceServer = await baseAdapters.resourceServers.get(
-        controlPlaneTenantId,
+        cp.tenantId,
         id,
       );
 
@@ -175,11 +234,12 @@ function wrapResourceServersWithSystemInheritance(
     list: async (tenantId: string, params?) => {
       const result = await baseAdapters.resourceServers.list(tenantId, params);
 
-      if (!controlPlaneTenantId || tenantId === controlPlaneTenantId) {
+      const cp = await resolve(tenantId);
+      if (!cp || tenantId === cp.tenantId) {
         return result;
       }
 
-      const cpTenantId = controlPlaneTenantId;
+      const cpTenantId = cp.tenantId;
       const systemIds = result.resource_servers
         .filter((rs): rs is ResourceServer & { id: string } =>
           Boolean(rs.is_system && rs.id),
@@ -228,13 +288,20 @@ function wrapResourceServersWithSystemInheritance(
  */
 export function withSystemResourceServerInheritance(
   baseAdapters: DataAdapters,
-  config: { controlPlaneTenantId?: string },
+  config: {
+    controlPlaneTenantId?: string;
+    resolveControlPlane?: ControlPlaneResolver;
+  },
 ): DataAdapters {
+  const resolve = buildResolver({
+    controlPlaneTenantId: config.controlPlaneTenantId,
+    resolveControlPlane: config.resolveControlPlane,
+  });
   return {
     ...baseAdapters,
     resourceServers: wrapResourceServersWithSystemInheritance(
       baseAdapters,
-      config.controlPlaneTenantId,
+      resolve,
     ),
   };
 }
@@ -258,6 +325,20 @@ export interface RuntimeFallbackConfig {
    * be merged with child tenant clients at runtime.
    */
   controlPlaneClientId?: string;
+
+  /**
+   * Optional per-tenant resolver. When provided, replaces the static
+   * `controlPlaneTenantId` / `controlPlaneClientId` fields for inheritance
+   * lookups: every wrapped adapter read calls this with the tenant being
+   * read, and the returned `{tenantId, clientId}` decides which tenant to
+   * fall back to. Return `undefined` to opt a specific tenant out of
+   * inheritance entirely.
+   *
+   * The static fields are still exposed via `multiTenancyConfig` on the
+   * wrapped adapter for access-control checks that need a single global
+   * control plane id.
+   */
+  resolveControlPlane?: ControlPlaneResolver;
 }
 
 /**
@@ -299,15 +380,26 @@ export function createRuntimeFallbackAdapter(
   baseAdapters: DataAdapters,
   config: RuntimeFallbackConfig,
 ): DataAdapters {
-  const { controlPlaneTenantId, controlPlaneClientId } = config;
+  const { controlPlaneTenantId, controlPlaneClientId, resolveControlPlane } =
+    config;
+  const resolve = buildResolver({
+    controlPlaneTenantId,
+    controlPlaneClientId,
+    resolveControlPlane,
+  });
 
   return {
     ...baseAdapters,
 
-    // Store config for use by tenants route access control
+    // Store the static config for use by tenants route access control.
+    // Per-tenant inheritance overrides do NOT affect access-control values —
+    // those intentionally use a single global control plane id. The resolver
+    // is exposed here so runtime helpers (e.g. `getEnrichedClient`) can
+    // consult it before merging control-plane URLs.
     multiTenancyConfig: {
       controlPlaneTenantId,
       controlPlaneClientId,
+      resolveControlPlane,
     },
 
     connections: {
@@ -321,18 +413,19 @@ export function createRuntimeFallbackAdapter(
           tenantId,
           connectionId,
         );
-        if (!connection || !controlPlaneTenantId) {
+        if (!connection) {
           return connection;
         }
 
-        // Skip fallback for control plane tenant itself
-        if (tenantId === controlPlaneTenantId) {
+        const cp = await resolve(tenantId);
+        if (!cp || tenantId === cp.tenantId) {
           return connection;
         }
 
         // Find control plane connection by strategy for fallback
-        const controlPlaneResult =
-          await baseAdapters.connections.list(controlPlaneTenantId);
+        const controlPlaneResult = await baseAdapters.connections.list(
+          cp.tenantId,
+        );
 
         return mergeConnectionWithFallback(
           connection,
@@ -343,13 +436,15 @@ export function createRuntimeFallbackAdapter(
       list: async (tenantId: string, params?) => {
         const result = await baseAdapters.connections.list(tenantId, params);
 
-        if (!controlPlaneTenantId || tenantId === controlPlaneTenantId) {
+        const cp = await resolve(tenantId);
+        if (!cp || tenantId === cp.tenantId) {
           return result;
         }
 
         // Get control plane connections for fallback
-        const controlPlaneResult =
-          await baseAdapters.connections.list(controlPlaneTenantId);
+        const controlPlaneResult = await baseAdapters.connections.list(
+          cp.tenantId,
+        );
 
         // Merge connections with control plane fallbacks (matched by strategy)
         const mergedConnections = result.connections.map((connection) =>
@@ -383,13 +478,15 @@ export function createRuntimeFallbackAdapter(
           connections = tenantConnections.connections || [];
         }
 
-        if (!controlPlaneTenantId || tenantId === controlPlaneTenantId) {
+        const cp = await resolve(tenantId);
+        if (!cp || tenantId === cp.tenantId) {
           return connections;
         }
 
         // Get control plane connections for fallback
-        const controlPlaneResult =
-          await baseAdapters.connections.list(controlPlaneTenantId);
+        const controlPlaneResult = await baseAdapters.connections.list(
+          cp.tenantId,
+        );
 
         // Merge connections with control plane fallbacks (matched by strategy)
         return connections.map((connection) =>
@@ -401,73 +498,11 @@ export function createRuntimeFallbackAdapter(
       },
     },
 
-    clients: {
-      ...baseAdapters.clients,
-
-      get: async (
-        tenantId: string,
-        clientId: string,
-      ): Promise<Client | null> => {
-        const client = await baseAdapters.clients.get(tenantId, clientId);
-        if (!client) {
-          return null;
-        }
-
-        // Skip fallback if no control plane configured
-        if (!controlPlaneTenantId || !controlPlaneClientId) {
-          return client;
-        }
-
-        // Skip fallback for the control plane client itself (avoid circular lookup)
-        if (
-          tenantId === controlPlaneTenantId &&
-          clientId === controlPlaneClientId
-        ) {
-          return client;
-        }
-
-        // Get control plane client for URL merging
-        const controlPlaneClient = await baseAdapters.clients.get(
-          controlPlaneTenantId,
-          controlPlaneClientId,
-        );
-
-        return mergeClientWithFallback(client, controlPlaneClient);
-      },
-
-      getByClientId: async (
-        clientId: string,
-      ): Promise<(Client & { tenant_id: string }) | null> => {
-        const client = await baseAdapters.clients.getByClientId(clientId);
-        if (!client) {
-          return null;
-        }
-
-        // Skip fallback if no control plane configured
-        if (!controlPlaneTenantId || !controlPlaneClientId) {
-          return client;
-        }
-
-        // Skip fallback for the control plane client itself (avoid circular lookup)
-        if (
-          client.tenant_id === controlPlaneTenantId &&
-          client.client_id === controlPlaneClientId
-        ) {
-          return client;
-        }
-
-        // Get control plane client for URL merging
-        const controlPlaneClient = await baseAdapters.clients.get(
-          controlPlaneTenantId,
-          controlPlaneClientId,
-        );
-
-        return {
-          ...mergeClientWithFallback(client, controlPlaneClient),
-          tenant_id: client.tenant_id,
-        };
-      },
-    },
+    // Note: clients.get / getByClientId are intentionally NOT wrapped here.
+    // Storage reads must return the tenant's own stored URLs so that the
+    // management API and DCR don't echo control-plane callbacks back on
+    // update. Runtime URL merging for auth flows happens in
+    // `getEnrichedClient` (packages/authhero/src/helpers/client.ts).
 
     emailProviders: {
       ...baseAdapters.emailProviders,
@@ -480,22 +515,22 @@ export function createRuntimeFallbackAdapter(
           return emailProvider;
         }
 
-        // Skip fallback for control plane tenant itself or if no control plane configured
-        if (!controlPlaneTenantId || tenantId === controlPlaneTenantId) {
+        const cp = await resolve(tenantId);
+        if (!cp || tenantId === cp.tenantId) {
           return null;
         }
 
         // Fall back to control plane email provider
-        return baseAdapters.emailProviders.get(controlPlaneTenantId);
+        return baseAdapters.emailProviders.get(cp.tenantId);
       },
     },
 
     resourceServers: wrapResourceServersWithSystemInheritance(
       baseAdapters,
-      controlPlaneTenantId,
+      resolve,
     ),
 
-    hooks: wrapHooksWithInheritance(baseAdapters, controlPlaneTenantId),
+    hooks: wrapHooksWithInheritance(baseAdapters, resolve),
 
     // Note: Additional adapters can be extended here for runtime fallback:
     // - promptSettings: Fall back to control plane prompts
@@ -531,7 +566,7 @@ function isInheritableHook(hook: unknown): boolean {
  */
 function wrapHooksWithInheritance(
   baseAdapters: DataAdapters,
-  controlPlaneTenantId?: string,
+  resolve: (tenantId: string) => Promise<ResolvedControlPlane>,
 ): DataAdapters["hooks"] {
   return {
     ...baseAdapters.hooks,
@@ -539,12 +574,13 @@ function wrapHooksWithInheritance(
     list: async (tenantId: string, params?) => {
       const result = await baseAdapters.hooks.list(tenantId, params);
 
-      if (!controlPlaneTenantId || tenantId === controlPlaneTenantId) {
+      const cp = await resolve(tenantId);
+      if (!cp || tenantId === cp.tenantId) {
         return result;
       }
 
       const controlPlaneResult = await baseAdapters.hooks.list(
-        controlPlaneTenantId,
+        cp.tenantId,
         params,
       );
 
@@ -575,12 +611,13 @@ function wrapHooksWithInheritance(
       const local = await baseAdapters.hooks.get(tenantId, hookId);
       if (local) return local;
 
-      if (!controlPlaneTenantId || tenantId === controlPlaneTenantId) {
+      const cp = await resolve(tenantId);
+      if (!cp || tenantId === cp.tenantId) {
         return local;
       }
 
       const controlPlaneHook = await baseAdapters.hooks.get(
-        controlPlaneTenantId,
+        cp.tenantId,
         hookId,
       );
       return controlPlaneHook && isInheritableHook(controlPlaneHook)
