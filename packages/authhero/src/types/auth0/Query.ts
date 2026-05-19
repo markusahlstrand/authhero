@@ -50,17 +50,19 @@ export const querySchema = z.object({
     description: "A lucene query string used to filter the results",
   }),
   from_date: z
-    .string()
-    .optional()
-    .transform((v) => (v ? parseInt(v, 10) : undefined))
+    .preprocess(
+      (v) => (typeof v === "string" && /^\d+$/.test(v) ? Number(v) : v),
+      z.number().int().optional(),
+    )
     .openapi({
       description:
         "Start of date range as a Unix timestamp in seconds (inclusive). Only applies to log queries.",
     }),
   to_date: z
-    .string()
-    .optional()
-    .transform((v) => (v ? parseInt(v, 10) : undefined))
+    .preprocess(
+      (v) => (typeof v === "string" && /^\d+$/.test(v) ? Number(v) : v),
+      z.number().int().optional(),
+    )
     .openapi({
       description:
         "End of date range as a Unix timestamp in seconds (inclusive). Only applies to log queries.",

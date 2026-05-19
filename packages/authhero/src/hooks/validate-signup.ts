@@ -54,7 +54,14 @@ export async function validateSignupEmail(
       );
     }
   }
-  if (connectionRecord?.options?.disable_signup) {
+  // Skip the disable_signup gate on import_mode connections: a missing local
+  // user there means "not migrated yet", not "new signup". The password
+  // challenge upstream is the real gate; an unknown email simply fails as
+  // wrong credentials.
+  if (
+    connectionRecord?.options?.disable_signup &&
+    !connectionRecord?.options?.import_mode
+  ) {
     const authorizeUrl = ctx.var.loginSession?.authorization_url;
 
     // Check if screen_hint=signup was specified in the authorization URL

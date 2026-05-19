@@ -345,6 +345,89 @@ describe("login identifier page", () => {
     expect(existingUserResponse.status).toBe(302);
   });
 
+  it("should reach enter-password (not block with 'account does not exist') for an unknown email on an import_mode connection with disable_signup", async () => {
+    const { universalApp, oauthApp, env } = await getTestServer({
+      mockEmail: true,
+    });
+
+    const oauthClient = testClient(oauthApp, env);
+    const universalClient = testClient(universalApp, env);
+
+    // Start the OAuth flow first while the client still has its default
+    // connections — authorize's single-connection auto-redirect path
+    // (authorize.ts UI_STRATEGIES check) would 500 if we restricted to just
+    // the password connection up front.
+    const authorizeResponse = await oauthClient.authorize.$get({
+      query: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+        state: "state",
+        nonce: "nonce",
+        scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
+      },
+    });
+    expect(authorizeResponse.status).toBe(302);
+
+    const location = authorizeResponse.headers.get("location");
+    const universalUrl = new URL(`https://example.com${location}`);
+    const state = universalUrl.searchParams.get("state");
+    if (!state) {
+      throw new Error("No state found");
+    }
+
+    // Now scope the client to just the Username-Password-Authentication
+    // connection so the email connectionType has no matching email-strategy
+    // connection; the fix must accept the email via the password connection
+    // instead. initJSXRoute reloads the client on the identifier POST, so the
+    // restriction applies at the assertion point.
+    await env.data.clientConnections.updateByClient("tenantId", "clientId", [
+      "Username-Password-Authentication",
+    ]);
+
+    // Configure the password connection as an import_mode Auth0 migration:
+    // disable_signup is set, but unknown users are still expected to reach
+    // the password challenge so we can verify against upstream.
+    await env.data.connections.update(
+      "tenantId",
+      "Username-Password-Authentication",
+      {
+        // Seed strategy is "auth2" (USERNAME_PASSWORD_PROVIDER); the
+        // lazy-migration check matches against Strategy.USERNAME_PASSWORD
+        // ("Username-Password-Authentication"), so align them here — same
+        // pattern as auth0-migration.spec.ts.
+        strategy: Strategy.USERNAME_PASSWORD,
+        options: {
+          import_mode: true,
+          disable_signup: true,
+          configuration: {
+            client_id: "upstream-cid",
+            client_secret: "upstream-csecret",
+            token_endpoint: "https://upstream.example.auth0.com/oauth/token",
+            userinfo_endpoint: "https://upstream.example.auth0.com/userinfo",
+          },
+        },
+      },
+    );
+
+    // Belt-and-suspenders: even without hide_sign_up_disabled_error this
+    // should pass, but mirror the real-world config from the bug report.
+    await env.data.clients.update("tenantId", "clientId", {
+      hide_sign_up_disabled_error: true,
+    });
+
+    const identifierResponse = await universalClient.login.identifier.$post({
+      query: { state },
+      form: { username: "not-yet-imported@example.com" },
+    });
+
+    // Must NOT 400 with "User account does not exist" — the password
+    // challenge is the real gate when import_mode is on.
+    expect(identifierResponse.status).toBe(302);
+    const redirectLocation = identifierResponse.headers.get("location");
+    expect(redirectLocation).toContain("/u/enter-password");
+  });
+
   it("should redirect to enter-password page when user has password strategy (auth2 provider)", async () => {
     const { universalApp, oauthApp, env } = await getTestServer({
       mockEmail: true,

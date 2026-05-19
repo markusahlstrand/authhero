@@ -138,7 +138,7 @@ function GrantTypesInput() {
   return (
     <div className="flex flex-col gap-2">
       <Label>Grant Types</Label>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+      <div className="flex flex-wrap gap-x-6 gap-y-2">
         {GRANT_TYPE_CHOICES.map((choice) => {
           const id = `grant-type-${choice.id}`;
           return (

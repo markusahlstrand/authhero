@@ -119,7 +119,7 @@ export const Layout = (props: CoreLayoutProps) => {
               )}
             >
               <Suspense fallback={<Loading />}>
-                <div className="flex flex-1 flex-col px-4 py-3">
+                <div className="flex flex-1 flex-col px-4 py-3 sm:px-6 lg:px-8">
                   {props.children}
                 </div>
               </Suspense>

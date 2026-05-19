@@ -107,11 +107,17 @@ export const enterCodeRoutes = new OpenAPIHono<{
         );
       }
 
-      const passwordUser = await getPrimaryUsernamePasswordUser({
-        env: ctx.env,
-        tenant_id: client.tenant.id,
-        username: loginSession.authParams.username,
-      });
+      let hasPasswordLogin = false;
+      try {
+        const passwordUser = await getPrimaryUsernamePasswordUser({
+          env: ctx.env,
+          tenant_id: client.tenant.id,
+          username: loginSession.authParams.username,
+        });
+        hasPasswordLogin = !!passwordUser;
+      } catch {
+        hasPasswordLogin = false;
+      }
 
       return ctx.html(
         <EnterCodePage
@@ -120,7 +126,7 @@ export const enterCodeRoutes = new OpenAPIHono<{
           email={loginSession.authParams.username}
           state={state}
           client={client}
-          hasPasswordLogin={!!passwordUser}
+          hasPasswordLogin={hasPasswordLogin}
         />,
       );
     },

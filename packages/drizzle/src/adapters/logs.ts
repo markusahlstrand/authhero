@@ -1,4 +1,12 @@
-import { eq, and, count as countFn, asc, desc, gte, lte } from "drizzle-orm";
+import {
+  eq,
+  and,
+  count as countFn,
+  asc,
+  desc,
+  gte,
+  lt,
+} from "drizzle-orm";
 import { nanoid } from "nanoid";
 import type { Log, ListParams } from "@authhero/adapter-interfaces";
 import { logs } from "../schema/sqlite";
@@ -131,9 +139,9 @@ export function createLogsAdapter(db: DrizzleDb) {
       }
       if (typeof to_date === "number" && Number.isFinite(to_date)) {
         baseConditions.push(
-          lte(
+          lt(
             logs.date,
-            new Date(Math.floor(to_date) * 1000).toISOString(),
+            new Date((Math.floor(to_date) + 1) * 1000).toISOString(),
           ),
         );
       }

@@ -34,7 +34,7 @@ export function listLogs(db: Kysely<Database>) {
       query = query.where(
         "logs.date",
         "<=",
-        new Date(Math.floor(to_date) * 1000).toISOString(),
+        new Date(Math.floor(to_date) * 1000 + 999).toISOString(),
       );
     }
 
