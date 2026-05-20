@@ -48,4 +48,11 @@ export type Variables = {
   // execution IDs are discovered via tenant logs, then fetched with
   // GET /api/v2/actions/executions/:id.
   action_execution_id?: string;
+  // Set by `attemptUpstreamPasswordFallback` around its `users.create` call so
+  // the signup gates (preUserSignupHook / validateSignupEmail) treat the
+  // creation as a migration import rather than a fresh signup. Without this,
+  // a connection that has both `disable_signup: true` and `import_mode: true`
+  // would let users through the identifier step (correctly) only to be
+  // rejected at user-creation time.
+  is_lazy_migration?: boolean;
 };

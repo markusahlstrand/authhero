@@ -111,6 +111,9 @@ export const LogTypes = {
   BLOCKED_ACCOUNT_IP: "limit_sul",
   BLOCKED_ACCOUNT_EMAIL: "limit_wc",
 
+  // Generic information
+  INFORMATION: "i",
+
   // MFA & My Account
   MFA_REQUIRED: "mfar",
   MANAGEMENT_API_READ_OPERATION: "mgmt_api_read",
@@ -200,6 +203,289 @@ const LogType = z
   );
 
 export type LogType = (typeof LogTypes)[keyof typeof LogTypes];
+
+export type LogCategory =
+  | "success"
+  | "failure"
+  | "warning"
+  | "info"
+  | "code_sent"
+  | "other";
+
+// Human-readable descriptions for each log type code. Keyed by the code
+// (the string value), so consumers that already have a raw `log.type` string
+// can look up a label without importing the enum.
+export const logTypeDescriptions: Record<string, string> = {
+  [LogTypes.ACLS_SUMMARY]: "ACLs Summary",
+  [LogTypes.ACTIONS_EXECUTION_FAILED]: "Actions Execution Failed",
+  [LogTypes.API_LIMIT]: "API Rate Limit Reached",
+  [LogTypes.API_LIMIT_WARNING]: "API Rate Limit Warning",
+  [LogTypes.APPI]: "API Operation",
+  [LogTypes.CIBA_EXCHANGE_FAILED]: "CIBA Exchange Failed",
+  [LogTypes.CIBA_EXCHANGE_SUCCEEDED]: "CIBA Exchange Succeeded",
+  [LogTypes.CIBA_START_FAILED]: "CIBA Start Failed",
+  [LogTypes.CIBA_START_SUCCEEDED]: "CIBA Start Succeeded",
+  [LogTypes.CODE_LINK_SENT]: "Code/Link Sent",
+  [LogTypes.CODE_SENT]: "Code Sent",
+  [LogTypes.DEPRECATION_NOTICE]: "Deprecation Notice",
+  [LogTypes.FAILED_LOGIN]: "Failed Login",
+  [LogTypes.FAILED_BY_CONNECTOR]: "Failed by Connector",
+  [LogTypes.FAILED_CHANGE_EMAIL]: "Failed Change Email",
+  [LogTypes.FAILED_BY_CORS]: "Failed by CORS",
+  [LogTypes.FAILED_CROSS_ORIGIN_AUTHENTICATION]:
+    "Failed Cross Origin Authentication",
+  [LogTypes.FAILED_CHANGE_PASSWORD]: "Failed Change Password",
+  [LogTypes.FAILED_POST_CHANGE_PASSWORD_HOOK]: "Failed Post-Change Password Hook",
+  [LogTypes.FAILED_CHANGE_PHONE_NUMBER]: "Failed Change Phone Number",
+  [LogTypes.FAILED_CHANGE_PASSWORD_REQUEST]: "Failed Change Password Request",
+  [LogTypes.FAILED_CONNECTOR_PROVISIONING]: "Failed Connector Provisioning",
+  [LogTypes.FAILED_CHANGE_USERNAME]: "Failed Change Username",
+  [LogTypes.FAILED_DELEGATION]: "Failed Delegation",
+  [LogTypes.FAILED_DEVICE_ACTIVATION]: "Failed Device Activation",
+  [LogTypes.FAILED_DEVICE_AUTHORIZATION_REQUEST]:
+    "Failed Device Authorization Request",
+  [LogTypes.USER_CANCELED_DEVICE_CONFIRMATION]:
+    "User Canceled Device Confirmation",
+  [LogTypes.FAILED_USER_DELETION]: "Failed User Deletion",
+  [LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN]:
+    "Failed Exchange Authorization Code for Access Token",
+  [LogTypes.FAILED_EXCHANGE_ACCESS_TOKEN_FOR_CLIENT_CREDENTIALS]:
+    "Failed Exchange Access Token for Client Credentials",
+  [LogTypes.FAILED_EXCHANGE_CUSTOM_TOKEN]: "Failed Exchange Custom Token",
+  [LogTypes.FAILED_EXCHANGE_DEVICE_CODE_FOR_ACCESS_TOKEN]:
+    "Failed Exchange Device Code for Access Token",
+  [LogTypes.FAILED_FEDERATED_LOGOUT]: "Failed Federated Logout",
+  [LogTypes.FAILED_EXCHANGE_NATIVE_SOCIAL_LOGIN]:
+    "Failed Exchange Native Social Login",
+  [LogTypes.FAILED_EXCHANGE_PASSWORD_OOB_FOR_ACCESS_TOKEN]:
+    "Failed Exchange Password OOB for Access Token",
+  [LogTypes.FAILED_EXCHANGE_PASSWORD_OTP_FOR_ACCESS_TOKEN]:
+    "Failed Exchange Password OTP for Access Token",
+  [LogTypes.FAILED_EXCHANGE_PASSWORD_FOR_ACCESS_TOKEN]:
+    "Failed Exchange Password for Access Token",
+  [LogTypes.FAILED_EXCHANGE_PASSWORDLESS_OTP_FOR_ACCESS_TOKEN]:
+    "Failed Exchange Passwordless OTP for Access Token",
+  [LogTypes.FAILED_EXCHANGE_PASSWORD_MFA_RECOVERY_FOR_ACCESS_TOKEN]:
+    "Failed Exchange Password MFA Recovery for Access Token",
+  [LogTypes.FAILED_EXCHANGE_ROTATING_REFRESH_TOKEN]:
+    "Failed Exchange Rotating Refresh Token",
+  [LogTypes.FAILED_EXCHANGE_REFRESH_TOKEN_FOR_ACCESS_TOKEN]:
+    "Failed Exchange Refresh Token for Access Token",
+  [LogTypes.FAILED_HOOK]: "Failed Hook",
+  [LogTypes.FAILED_IMPERSONATION]: "Failed Impersonation",
+  [LogTypes.FAILED_INVITE_ACCEPT]: "Failed Invite Accept",
+  [LogTypes.FAILED_LOGOUT]: "Failed Logout",
+  [LogTypes.FLOWS_EXECUTION_COMPLETED]: "Flows Execution Completed",
+  [LogTypes.FLOWS_EXECUTION_FAILED]: "Flows Execution Failed",
+  [LogTypes.FAILED_SENDING_NOTIFICATION]: "Failed Sending Notification",
+  [LogTypes.FORMS_SUBMISSION_FAILED]: "Forms Submission Failed",
+  [LogTypes.FORMS_SUBMISSION_SUCCEEDED]: "Forms Submission Succeeded",
+  [LogTypes.FAILED_LOGIN_INCORRECT_PASSWORD]: "Failed Login - Incorrect Password",
+  [LogTypes.FAILED_PUSHED_AUTHORIZATION_REQUEST]:
+    "Failed Pushed Authorization Request",
+  [LogTypes.FAILED_POST_USER_REGISTRATION_HOOK]:
+    "Failed Post-User Registration Hook",
+  [LogTypes.FAILED_SIGNUP]: "Failed Signup",
+  [LogTypes.FAILED_SILENT_AUTH]: "Failed Silent Auth",
+  [LogTypes.FAILED_LOGIN_INVALID_EMAIL_USERNAME]:
+    "Failed Login - Invalid Email/Username",
+  [LogTypes.FAILED_USERS_IMPORT]: "Failed Users Import",
+  [LogTypes.FAILED_VERIFICATION_EMAIL]: "Failed Verification Email",
+  [LogTypes.FAILED_VERIFICATION_EMAIL_REQUEST]:
+    "Failed Verification Email Request",
+  [LogTypes.EMAIL_VERIFICATION_CONFIRMED]: "Email Verification Confirmed",
+  [LogTypes.EMAIL_VERIFICATION_FAILED]: "Email Verification Failed",
+  [LogTypes.MFA_AUTH_FAILED]: "MFA Auth Failed",
+  [LogTypes.MFA_AUTH_REJECTED]: "MFA Auth Rejected",
+  [LogTypes.MFA_AUTH_SUCCESS]: "MFA Auth Success",
+  [LogTypes.MFA_ENROLLMENT_COMPLETE]: "MFA Enrollment Complete",
+  [LogTypes.TOO_MANY_MFA_FAILURES]: "Too Many MFA Failures",
+  [LogTypes.MFA_RECOVERY_FAILED]: "MFA Recovery Failed",
+  [LogTypes.MFA_RECOVERY_RATE_LIMIT_EXCEED]: "MFA Recovery Rate Limit Exceeded",
+  [LogTypes.MFA_RECOVERY_SUCCESS]: "MFA Recovery Success",
+  [LogTypes.MFA_EMAIL_SENT]: "MFA Email Sent",
+  [LogTypes.EMAIL_VERIFICATION_SENT]: "Email Verification Sent",
+  [LogTypes.EMAIL_VERIFICATION_SEND_FAILURE]: "Email Verification Send Failure",
+  [LogTypes.PUSH_NOTIFICATION_SENT]: "Push Notification Sent",
+  [LogTypes.ERROR_SENDING_MFA_PUSH_NOTIFICATION]:
+    "Error Sending MFA Push Notification",
+  [LogTypes.MFA_SMS_SENT]: "MFA SMS Sent",
+  [LogTypes.ERROR_SENDING_MFA_SMS]: "Error Sending MFA SMS",
+  [LogTypes.MFA_VOICE_CALL_SUCCESS]: "MFA Voice Call Success",
+  [LogTypes.MFA_VOICE_CALL_FAILED]: "MFA Voice Call Failed",
+  [LogTypes.SECOND_FACTOR_STARTED]: "Second Factor Started",
+  [LogTypes.MFA_ENROLL_STARTED]: "MFA Enroll Started",
+  [LogTypes.MFA_ENROLLMENT_FAILED]: "MFA Enrollment Failed",
+  [LogTypes.GUARDIAN_TENANT_UPDATE]: "Guardian Tenant Update",
+  [LogTypes.UNENROLL_DEVICE_ACCOUNT]: "Unenroll Device Account",
+  [LogTypes.UPDATE_DEVICE_ACCOUNT]: "Update Device Account",
+  [LogTypes.WEBAUTHN_CHALLENGE_FAILED]: "WebAuthn Challenge Failed",
+  [LogTypes.WEBAUTHN_ENROLLMENT_FAILED]: "WebAuthn Enrollment Failed",
+  [LogTypes.FAILED_KMS_API_OPERATION]: "Failed KMS API Operation",
+  [LogTypes.SUCCESS_KMS_API_OPERATION]: "Success KMS API Operation",
+  [LogTypes.KMS_KEY_STATE_CHANGED]: "KMS Key State Changed",
+  [LogTypes.TOO_MANY_CALLS_TO_DELEGATION]: "Too Many Calls to Delegation",
+  [LogTypes.BLOCKED_IP_ADDRESS]: "Blocked IP Address",
+  [LogTypes.BLOCKED_ACCOUNT_IP]: "Blocked Account (IP)",
+  [LogTypes.BLOCKED_ACCOUNT_EMAIL]: "Blocked Account (Email)",
+  [LogTypes.INFORMATION]: "Information",
+  [LogTypes.MFA_REQUIRED]: "MFA Required",
+  [LogTypes.MANAGEMENT_API_READ_OPERATION]: "Management API Read Operation",
+  [LogTypes.FAILED_AUTHENTICATION_METHOD_OPERATION_MY_ACCOUNT]:
+    "Failed Authentication Method Operation (My Account)",
+  [LogTypes.SUCCESSFUL_AUTHENTICATION_METHOD_OPERATION_MY_ACCOUNT]:
+    "Successful Authentication Method Operation (My Account)",
+  [LogTypes.FAILED_OIDC_BACKCHANNEL_LOGOUT]: "Failed OIDC Backchannel Logout",
+  [LogTypes.SUCCESSFUL_OIDC_BACKCHANNEL_LOGOUT]:
+    "Successful OIDC Backchannel Logout",
+  [LogTypes.ORGANIZATION_MEMBER_ADDED]: "Organization Member Added",
+  [LogTypes.PASSKEY_CHALLENGE_FAILED]: "Passkey Challenge Failed",
+  [LogTypes.PASSKEY_CHALLENGE_STARTED]: "Passkey Challenge Started",
+  [LogTypes.PRE_LOGIN_ASSESSMENT]: "Pre-Login Assessment",
+  [LogTypes.BREACHED_PASSWORD]: "Breached Password",
+  [LogTypes.BREACHED_PASSWORD_ON_RESET]: "Breached Password on Reset",
+  [LogTypes.SUCCESS_RESOURCE_CLEANUP]: "Success Resource Cleanup",
+  [LogTypes.RICH_CONSENTS_ACCESS_ERROR]: "Rich Consents Access Error",
+  [LogTypes.SUCCESS_LOGIN]: "Success Login",
+  [LogTypes.SUCCESS_API_OPERATION]: "Success API Operation",
+  [LogTypes.FAILED_API_OPERATION]: "Failed API Operation",
+  [LogTypes.SUCCESS_CHANGE_EMAIL]: "Success Change Email",
+  [LogTypes.SUCCESS_CROSS_ORIGIN_AUTHENTICATION]:
+    "Success Cross Origin Authentication",
+  [LogTypes.SUCCESS_CHANGE_PASSWORD]: "Success Change Password",
+  [LogTypes.SUCCESS_CHANGE_PHONE_NUMBER]: "Success Change Phone Number",
+  [LogTypes.SUCCESS_CHANGE_PASSWORD_REQUEST]: "Success Change Password Request",
+  [LogTypes.SUCCESS_CHANGE_USERNAME]: "Success Change Username",
+  [LogTypes.SUCCESS_CREDENTIAL_VALIDATION]: "Success Credential Validation",
+  [LogTypes.SUCCESS_DELEGATION]: "Success Delegation",
+  [LogTypes.SUCCESS_USER_DELETION]: "Success User Deletion",
+  [LogTypes.SUCCESS_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN]:
+    "Success Exchange Authorization Code for Access Token",
+  [LogTypes.SUCCESS_EXCHANGE_ACCESS_TOKEN_FOR_CLIENT_CREDENTIALS]:
+    "Success Exchange Access Token for Client Credentials",
+  [LogTypes.SUCCESS_EXCHANGE_CUSTOM_TOKEN]: "Success Exchange Custom Token",
+  [LogTypes.SUCCESS_EXCHANGE_DEVICE_CODE_FOR_ACCESS_TOKEN]:
+    "Success Exchange Device Code for Access Token",
+  [LogTypes.SUCCESS_EXCHANGE_NATIVE_SOCIAL_LOGIN]:
+    "Success Exchange Native Social Login",
+  [LogTypes.SUCCESS_EXCHANGE_PASSWORD_OOB_FOR_ACCESS_TOKEN]:
+    "Success Exchange Password OOB for Access Token",
+  [LogTypes.SUCCESS_EXCHANGE_PASSWORD_OTP_FOR_ACCESS_TOKEN]:
+    "Success Exchange Password OTP for Access Token",
+  [LogTypes.SUCCESS_EXCHANGE_PASSWORD_FOR_ACCESS_TOKEN]:
+    "Success Exchange Password for Access Token",
+  [LogTypes.SUCCESS_EXCHANGE_PASSKEY_OOB_FOR_ACCESS_TOKEN]:
+    "Success Exchange Passkey OOB for Access Token",
+  [LogTypes.SUCCESS_EXCHANGE_PASSKEY_OTP_FOR_ACCESS_TOKEN]:
+    "Success Exchange Passkey OTP for Access Token",
+  [LogTypes.SUCCESS_EXCHANGE_PASSKEY_MFA_RECOVERY_FOR_ACCESS_TOKEN]:
+    "Success Exchange Passkey MFA Recovery for Access Token",
+  [LogTypes.SUCCESS_EXCHANGE_PASSWORD_MFA_RECOVERY_FOR_ACCESS_TOKEN]:
+    "Success Exchange Password MFA Recovery for Access Token",
+  [LogTypes.SUCCESS_EXCHANGE_REFRESH_TOKEN_FOR_ACCESS_TOKEN]:
+    "Success Exchange Refresh Token for Access Token",
+  [LogTypes.SUCCESS_IMPERSONATION]: "Success Impersonation",
+  [LogTypes.SUCCESSFULLY_ACCEPTED_USER_INVITE]: "Successfully Accepted User Invite",
+  [LogTypes.BREACHED_PASSWORD_ON_SIGNUP]: "Breached Password on Signup",
+  [LogTypes.SUCCESS_LOGOUT]: "Success Logout",
+  [LogTypes.SUCCESS_HOOK]: "Success Hook",
+  [LogTypes.SUCCESS_PASSWORD_MIGRATION]: "Success Password Migration",
+  [LogTypes.SUCCESS_REVOCATION]: "Success Revocation",
+  [LogTypes.SUCCESS_SIGNUP]: "Success Signup",
+  [LogTypes.FAILED_SS_SSO_OPERATION]: "Failed SS SSO Operation",
+  [LogTypes.INFORMATION_FROM_SS_SSO_OPERATION]: "Information from SS SSO Operation",
+  [LogTypes.SUCCESS_SS_SSO_OPERATION]: "Success SS SSO Operation",
+  [LogTypes.SUCCESS_SILENT_AUTH]: "Success Silent Auth",
+  [LogTypes.SUCCESSFUL_SCIM_OPERATION]: "Successful SCIM Operation",
+  [LogTypes.SUCCESSFULLY_IMPORTED_USERS]: "Successfully Imported Users",
+  [LogTypes.SUCCESS_VERIFICATION_EMAIL]: "Success Verification Email",
+  [LogTypes.SUCCESS_VERIFICATION_EMAIL_REQUEST]:
+    "Success Verification Email Request",
+  [LogTypes.MAX_AMOUNT_OF_AUTHENTICATORS]: "Max Amount of Authenticators",
+  [LogTypes.USER_LOGIN_BLOCK_RELEASED]: "User Login Block Released",
+  [LogTypes.FAILED_UNIVERSAL_LOGOUT]: "Failed Universal Logout",
+  [LogTypes.SUCCESSFUL_UNIVERSAL_LOGOUT]: "Successful Universal Logout",
+  [LogTypes.WARNING_DURING_LOGIN]: "Warning During Login",
+  [LogTypes.WARNING_SENDING_NOTIFICATION]: "Warning Sending Notification",
+  [LogTypes.WARNING_USER_MANAGEMENT]: "Warning User Management",
+};
+
+// Category derived from the LogTypes key name, so adding a new SUCCESS_* /
+// FAILED_* / WARNING_* code is automatically classified.
+export const logTypeCategories: Record<string, LogCategory> = (() => {
+  const result: Record<string, LogCategory> = {};
+  for (const [name, code] of Object.entries(LogTypes)) {
+    if (
+      name.startsWith("SUCCESS_") ||
+      name.startsWith("SUCCESSFUL_") ||
+      name.startsWith("SUCCESSFULLY_")
+    ) {
+      result[code] = "success";
+    } else if (
+      name.startsWith("FAILED_") ||
+      name.startsWith("ERROR_") ||
+      name.startsWith("BREACHED_") ||
+      name.startsWith("BLOCKED_") ||
+      name === "MFA_AUTH_FAILED" ||
+      name === "MFA_AUTH_REJECTED" ||
+      name === "MFA_RECOVERY_FAILED" ||
+      name === "MFA_ENROLLMENT_FAILED" ||
+      name === "EMAIL_VERIFICATION_FAILED" ||
+      name === "WEBAUTHN_CHALLENGE_FAILED" ||
+      name === "WEBAUTHN_ENROLLMENT_FAILED" ||
+      name === "PASSKEY_CHALLENGE_FAILED" ||
+      name === "FLOWS_EXECUTION_FAILED" ||
+      name === "FORMS_SUBMISSION_FAILED" ||
+      name === "CIBA_EXCHANGE_FAILED" ||
+      name === "CIBA_START_FAILED" ||
+      name === "ACTIONS_EXECUTION_FAILED" ||
+      name === "RICH_CONSENTS_ACCESS_ERROR" ||
+      name === "USER_CANCELED_DEVICE_CONFIRMATION" ||
+      name === "TOO_MANY_MFA_FAILURES" ||
+      name === "MFA_RECOVERY_RATE_LIMIT_EXCEED" ||
+      name === "API_LIMIT" ||
+      name === "MAX_AMOUNT_OF_AUTHENTICATORS"
+    ) {
+      result[code] = "failure";
+    } else if (
+      name.startsWith("WARNING_") ||
+      name === "API_LIMIT_WARNING" ||
+      name === "DEPRECATION_NOTICE" ||
+      name === "PRE_LOGIN_ASSESSMENT"
+    ) {
+      result[code] = "warning";
+    } else if (
+      name === "CODE_SENT" ||
+      name === "CODE_LINK_SENT" ||
+      name === "MFA_EMAIL_SENT" ||
+      name === "MFA_SMS_SENT" ||
+      name === "EMAIL_VERIFICATION_SENT" ||
+      name === "PUSH_NOTIFICATION_SENT"
+    ) {
+      result[code] = "code_sent";
+    } else if (
+      name === "INFORMATION" ||
+      name === "INFORMATION_FROM_SS_SSO_OPERATION" ||
+      name === "MANAGEMENT_API_READ_OPERATION" ||
+      name === "APPI" ||
+      name === "ACLS_SUMMARY" ||
+      name === "ORGANIZATION_MEMBER_ADDED"
+    ) {
+      result[code] = "info";
+    } else {
+      result[code] = "other";
+    }
+  }
+  return result;
+})();
+
+export function getLogTypeDescription(type: string): string {
+  return logTypeDescriptions[type] ?? type;
+}
+
+export function getLogTypeCategory(type: string): LogCategory {
+  return logTypeCategories[type] ?? "other";
+}
 
 export const Auth0Client = z.object({
   name: z.string(),
