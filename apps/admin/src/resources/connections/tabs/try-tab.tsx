@@ -136,6 +136,7 @@ export function TryTab() {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<TryResult | null>(null);
   const popupRef = useRef<Window | null>(null);
+  const popupOriginRef = useRef<string | null>(null);
 
   const isDb = record?.strategy === Strategy.USERNAME_PASSWORD;
 
@@ -207,6 +208,11 @@ export function TryTab() {
     try {
       const body = await callTry();
       if (body && "mode" in body && body.mode === "redirect") {
+        try {
+          popupOriginRef.current = new URL(body.result_url).origin;
+        } catch {
+          popupOriginRef.current = null;
+        }
         popupRef.current = window.open(
           body.authorize_url,
           "authhero-try-connection",
@@ -227,10 +233,16 @@ export function TryTab() {
 
   useEffect(() => {
     function onMessage(e: MessageEvent) {
+      if (!popupRef.current || e.source !== popupRef.current) return;
+      if (!popupOriginRef.current || e.origin !== popupOriginRef.current) {
+        return;
+      }
       const data = e.data as { type?: string; result?: TryResult } | null;
       if (data && data.type === "authhero:try-connection" && data.result) {
         setResult(data.result);
         popupRef.current?.close();
+        popupRef.current = null;
+        popupOriginRef.current = null;
       }
     }
     window.addEventListener("message", onMessage);

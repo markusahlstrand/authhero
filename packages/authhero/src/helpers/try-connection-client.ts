@@ -37,16 +37,25 @@ export async function ensureTryConnectionClient(
   }
 
   const resultUrl = getTryConnectionResultUrl(env);
-  await env.data.clients.create(tenantId, {
-    client_id: clientId,
-    name: "AuthHero Try Connection",
-    callbacks: [resultUrl],
-    allowed_logout_urls: [],
-    web_origins: [],
-    connections: [],
-    client_metadata: {
-      system_purpose: "try_connection",
-    },
-  });
+  try {
+    await env.data.clients.create(tenantId, {
+      client_id: clientId,
+      name: "AuthHero Try Connection",
+      callbacks: [resultUrl],
+      allowed_logout_urls: [],
+      web_origins: [],
+      connections: [],
+      client_metadata: {
+        system_purpose: "try_connection",
+      },
+    });
+  } catch (err) {
+    // Concurrent /try requests can both observe a missing client and race to
+    // create it. If the row now exists, treat as success; otherwise rethrow.
+    const concurrent = await env.data.clients.get(tenantId, clientId);
+    if (!concurrent) {
+      throw err;
+    }
+  }
   return clientId;
 }

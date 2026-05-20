@@ -689,7 +689,21 @@ export const connectionRoutes = new OpenAPIHono<{
       // connection and the internal test client. The state is generated
       // here so the portal can correlate the popup result.
       const state = nanoid();
-      const resultUrl = getTryConnectionResultUrl(ctx.env);
+      const resultUrlObj = new URL(getTryConnectionResultUrl(ctx.env));
+      // Propagate the caller's origin so the result screen can post the
+      // outcome back to the exact opener instead of broadcasting with '*'.
+      const requestOrigin = ctx.req.header("origin");
+      if (requestOrigin) {
+        try {
+          const parsedOrigin = new URL(requestOrigin);
+          if (parsedOrigin.origin === requestOrigin) {
+            resultUrlObj.searchParams.set("opener_origin", requestOrigin);
+          }
+        } catch {
+          // ignore malformed Origin header
+        }
+      }
+      const resultUrl = resultUrlObj.toString();
       const authUrl = getAuthUrl(ctx.env);
       const authorizeUrl = new URL(`${authUrl}authorize`);
       authorizeUrl.searchParams.set("client_id", clientId);

@@ -59,9 +59,26 @@ export async function tryConnectionResultScreen(
     `;
   })();
 
-  const postMessageScript = result
-    ? `<script>try{window.opener&&window.opener.postMessage({type:'authhero:try-connection',result:${JSON.stringify(result).replace(/</g, "\\u003c")}},'*')}catch(_){}</script>`
-    : "";
+  // Only post the result back to the opener if we have a validated origin
+  // for it — broadcasting with '*' would leak the profile/raw payload to any
+  // page that managed to become window.opener.
+  const openerOriginRaw = ctx.req.query("opener_origin");
+  let trustedOpenerOrigin = "";
+  if (openerOriginRaw) {
+    try {
+      const parsed = new URL(openerOriginRaw);
+      if (parsed.origin === openerOriginRaw) {
+        trustedOpenerOrigin = parsed.origin;
+      }
+    } catch {
+      // ignore invalid opener_origin
+    }
+  }
+
+  const postMessageScript =
+    result && trustedOpenerOrigin
+      ? `<script>try{window.opener&&window.opener.postMessage({type:'authhero:try-connection',result:${JSON.stringify(result).replace(/</g, "\\u003c")}},${JSON.stringify(trustedOpenerOrigin)})}catch(_){}</script>`
+      : "";
 
   const components: FormNodeComponent[] = [
     {

@@ -92,6 +92,10 @@ export async function invokeHooks(
           waitForCompletion: true,
         });
       } else {
+        // No `waitForCompletion: true` here on purpose — success logs are
+        // allowed to finish asynchronously to avoid adding latency on the
+        // happy path; the failure branches above/below stay synchronous so
+        // operators can rely on failure logs being durable before we move on.
         await logMessage(ctx, data.tenant_id, {
           type: LogTypes.SUCCESS_HOOK,
           description: `Invoked hook ${hook.hook_id} - ${response.status}`,
