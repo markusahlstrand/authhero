@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 2.4.0
+
+### Minor Changes
+
+- b6e628b: Add shared `logTypeDescriptions`, `logTypeCategories`, `getLogTypeDescription`, `getLogTypeCategory`, and `LogCategory` exports so admin UIs can render log type labels and pick icons without duplicating the lookup tables. Also added the missing `INFORMATION` ("i") log type code.
+
 ## 2.3.0
 
 ### Minor Changes
