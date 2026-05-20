@@ -25,6 +25,8 @@ const FILTER_TYPES: readonly string[] = [
   LogTypes.FAILED_CHANGE_EMAIL,
   LogTypes.SUCCESS_CHANGE_PASSWORD,
   LogTypes.FAILED_CHANGE_PASSWORD,
+  LogTypes.SUCCESS_HOOK,
+  LogTypes.FAILED_HOOK,
 ];
 
 const typeChoices = FILTER_TYPES.map((id) => ({

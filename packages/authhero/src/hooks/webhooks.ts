@@ -91,6 +91,25 @@ export async function invokeHooks(
           connection: data.user?.connection,
           waitForCompletion: true,
         });
+      } else {
+        await logMessage(ctx, data.tenant_id, {
+          type: LogTypes.SUCCESS_HOOK,
+          description: `Invoked hook ${hook.hook_id} - ${response.status}`,
+          userId: data.user?.user_id,
+          details: {
+            trigger_id: data.trigger_id,
+            hook_id: hook.hook_id,
+            hook_url: hook.url,
+            user_id: data.user?.user_id,
+            user_name: data.user?.name || data.user?.email,
+            connection: data.user?.connection,
+            duration_ms: Math.round(duration),
+            response: {
+              statusCode: responseStatus,
+            },
+          },
+          connection: data.user?.connection,
+        });
       }
     } catch (error) {
       const errorDescription = `Failed to invoke hook ${hook.hook_id} - ${error instanceof Error ? error.message : "Unknown error"}`;
