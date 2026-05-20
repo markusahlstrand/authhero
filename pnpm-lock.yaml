@@ -51,8 +51,8 @@ importers:
         specifier: ^2.17.1
         version: 2.17.1
       '@authhero/adapter-interfaces':
-        specifier: ^0.144.0
-        version: 0.144.0(@hono/zod-openapi@0.19.10(hono@4.11.1)(zod@3.25.76))
+        specifier: workspace:*
+        version: link:../../packages/adapter-interfaces
       '@monaco-editor/react':
         specifier: ^4.7.0
         version: 4.7.0(monaco-editor@0.55.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)

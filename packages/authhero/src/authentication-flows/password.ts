@@ -143,11 +143,22 @@ export async function passwordGrant(
     // login is targeting), not "any import_mode connection in the tenant".
     // This prevents a login for realm A from being verified against realm
     // B's upstream just because B happens to have import_mode enabled.
-    const realmDbConnection = await findConnectionByName(
+    let realmDbConnection = await findConnectionByName(
       ctx,
       client.tenant.id,
       realm,
     );
+    // Universal-login callers (enter-password, login) don't know the tenant's
+    // specific connection name and pass the default `Strategy.USERNAME_PASSWORD`
+    // string as the realm. Connections named anything other than that literal
+    // (e.g. "Password") would never resolve, so fall back to matching by
+    // strategy on the client's connections in that case.
+    if (!realmDbConnection && realm === Strategy.USERNAME_PASSWORD) {
+      realmDbConnection =
+        client.connections.find(
+          (c) => c.strategy === Strategy.USERNAME_PASSWORD,
+        ) ?? null;
+    }
     if (realmDbConnection?.options?.import_mode === true) {
       const migrated = await attemptUpstreamPasswordFallback({
         ctx,

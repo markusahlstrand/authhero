@@ -39,7 +39,8 @@ const METRIC_BY_RESOURCE: Record<
   { expr: string; alias: string; type: string }
 > = {
   "active-users": {
-    expr: "uniqExact(blob7)",
+    // CF Analytics Engine SQL doesn't support uniq/uniqExact; COUNT(DISTINCT) is.
+    expr: "count(DISTINCT blob7)",
     alias: "active_users",
     type: "UInt64",
   },

@@ -58,10 +58,13 @@ export async function validateSignupEmail(
   // On the identifier preflight, skip the gate for import_mode connections:
   // a missing local user there means "not migrated yet", not "new signup",
   // and the upstream password challenge is the real gate. The non-preflight
-  // path (e.g. preUserSignupHook right before user creation) must always
-  // enforce disable_signup.
+  // path (e.g. preUserSignupHook right before user creation) normally enforces
+  // disable_signup, but when the create is driven by lazy migration
+  // (`attemptUpstreamPasswordFallback` sets ctx.is_lazy_migration), the user
+  // already exists upstream — treat it like a preflight skip.
   const skipForImportMode =
-    options.identifierPreflight === true &&
+    (options.identifierPreflight === true ||
+      ctx.var.is_lazy_migration === true) &&
     connectionRecord?.options?.import_mode === true;
   if (connectionRecord?.options?.disable_signup && !skipForImportMode) {
     const authorizeUrl = ctx.var.loginSession?.authorization_url;

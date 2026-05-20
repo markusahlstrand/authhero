@@ -1,45 +1,12 @@
-// Subset of LogTypes used in react-admin app
-// Values match those defined in @authhero/adapter-interfaces
-export const LogTypes = {
-  SUCCESS_API_OPERATION: "sapi",
-  SUCCESS_SILENT_AUTH: "ssa",
-  FAILED_SILENT_AUTH: "fsa",
-  SUCCESS_SIGNUP: "ss",
-  FAILED_SIGNUP: "fs",
-  SUCCESS_LOGIN: "s",
-  FAILED_LOGIN_INCORRECT_PASSWORD: "fp",
-  FAILED_LOGIN_INVALID_EMAIL_USERNAME: "fu",
-  SUCCESS_LOGOUT: "slo",
-  SUCCESS_CROSS_ORIGIN_AUTHENTICATION: "scoa",
-  FAILED_CROSS_ORIGIN_AUTHENTICATION: "fcoa",
-  CODE_LINK_SENT: "cls", // Updated to match the main schema
-  FAILED_LOGIN: "f",
-  SUCCESS_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN: "seacft",
-  FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN: "feacft",
-  SUCCESS_EXCHANGE_ACCESS_TOKEN_FOR_CLIENT_CREDENTIALS: "seccft",
-  SUCCESS_EXCHANGE_REFRESH_TOKEN_FOR_ACCESS_TOKEN: "sertft",
-  FAILED_EXCHANGE_REFRESH_TOKEN_FOR_ACCESS_TOKEN: "fertft",
-  FAILED_EXCHANGE_ROTATING_REFRESH_TOKEN: "ferrt",
-  SUCCESS_EXCHANGE_PASSWORD_FOR_ACCESS_TOKEN: "sepft",
-  FAILED_EXCHANGE_PASSWORD_FOR_ACCESS_TOKEN: "fepft",
-  SUCCESS_EXCHANGE_PASSWORD_OTP_FOR_ACCESS_TOKEN: "seotpft",
-  INFORMATION: "i",
-  SUCCESS_REVOCATION: "srrt",
-  CODE_SENT: "cs",
-  FAILED_API_OPERATION: "fapi",
-  SUCCESS_CHANGE_EMAIL: "sce",
-  FAILED_CHANGE_EMAIL: "fce",
-  SUCCESS_CHANGE_PASSWORD: "scp",
-  FAILED_CHANGE_PASSWORD: "fcp",
-  SUCCESS_CHANGE_PASSWORD_REQUEST: "scpr",
-  FAILED_CHANGE_PASSWORD_REQUEST: "fcpr",
-  SUCCESS_VERIFICATION_EMAIL: "sv",
-  FAILED_VERIFICATION_EMAIL: "fv",
-  SUCCESS_VERIFICATION_EMAIL_REQUEST: "svr",
-  FAILED_VERIFICATION_EMAIL_REQUEST: "fvr",
-  SUCCESS_USER_DELETION: "sdu",
-  FAILED_USER_DELETION: "fdu",
-  SUCCESS_PASSWORD_MIGRATION: "spm",
-} as const;
+export {
+  LogTypes,
+  logTypeDescriptions,
+  logTypeCategories,
+  getLogTypeDescription,
+  getLogTypeCategory,
+} from "@authhero/adapter-interfaces";
+export type { LogType, LogCategory } from "@authhero/adapter-interfaces";
 
-export type LogTypes = (typeof LogTypes)[keyof typeof LogTypes];
+import type { LogType } from "@authhero/adapter-interfaces";
+// Keep backward-compatible alias: existing code imports `LogTypes` as a type.
+export type LogTypes = LogType;

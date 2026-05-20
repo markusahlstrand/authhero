@@ -148,29 +148,40 @@ export async function attemptUpstreamPasswordFallback(
     );
     const userId = `${provider}|${userIdGenerate()}`;
 
-    user = await data.users.create(client.tenant.id, {
-      user_id: userId,
-      email: profileEmail ?? (usernameLooksLikeEmail ? username : undefined),
-      username: usernameLooksLikeEmail ? undefined : username,
-      name: typeof profile.name === "string" ? profile.name : username,
-      given_name:
-        typeof profile.given_name === "string" ? profile.given_name : undefined,
-      family_name:
-        typeof profile.family_name === "string"
-          ? profile.family_name
-          : undefined,
-      nickname:
-        typeof profile.nickname === "string" ? profile.nickname : undefined,
-      picture:
-        typeof profile.picture === "string" ? profile.picture : undefined,
-      email_verified: profile.email_verified === true,
-      provider,
-      connection: dbConnection.name,
-      is_social: false,
-      last_ip: ctx.var.ip ?? "",
-      last_login: new Date().toISOString(),
-      profileData: JSON.stringify(profile),
-    });
+    // Signal to the signup gates that this users.create is a lazy-migration
+    // import. With `disable_signup: true` set on an import_mode connection
+    // (the Auth0 pattern for "no new signups, but migrate existing upstream
+    // users") preUserSignupHook would otherwise reject the creation.
+    ctx.set("is_lazy_migration", true);
+    try {
+      user = await data.users.create(client.tenant.id, {
+        user_id: userId,
+        email: profileEmail ?? (usernameLooksLikeEmail ? username : undefined),
+        username: usernameLooksLikeEmail ? undefined : username,
+        name: typeof profile.name === "string" ? profile.name : username,
+        given_name:
+          typeof profile.given_name === "string"
+            ? profile.given_name
+            : undefined,
+        family_name:
+          typeof profile.family_name === "string"
+            ? profile.family_name
+            : undefined,
+        nickname:
+          typeof profile.nickname === "string" ? profile.nickname : undefined,
+        picture:
+          typeof profile.picture === "string" ? profile.picture : undefined,
+        email_verified: profile.email_verified === true,
+        provider,
+        connection: dbConnection.name,
+        is_social: false,
+        last_ip: ctx.var.ip ?? "",
+        last_login: new Date().toISOString(),
+        profileData: JSON.stringify(profile),
+      });
+    } finally {
+      ctx.set("is_lazy_migration", false);
+    }
   }
 
   const { hash, algorithm } = await hashPassword(password);
