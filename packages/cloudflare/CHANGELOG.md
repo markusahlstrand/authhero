@@ -1,5 +1,14 @@
 # @authhero/cloudflare-adapter
 
+## 2.29.1
+
+### Patch Changes
+
+- b6e628b: Fix 500 on `/api/v2/analytics/active-users` against Cloudflare Analytics Engine. AE SQL doesn't support `uniqExact`; switched to `COUNT(DISTINCT blob7)`.
+- Updated dependencies [b6e628b]
+  - @authhero/adapter-interfaces@2.4.0
+  - @authhero/kysely-adapter@11.2.1
+
 ## 2.29.0
 
 ### Minor Changes
