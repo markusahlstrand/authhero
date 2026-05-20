@@ -1275,6 +1275,17 @@ export const u2Routes = new OpenAPIHono<{
     createScreenRouteHandler("connect-tenant-select"),
   )
   // --------------------------------
+  // GET /u2/try-connection-result - Diagnostic result page for /try
+  // --------------------------------
+  .openapi(
+    createScreenRoute(
+      "try-connection-result",
+      "/try-connection-result",
+      "Renders the outcome of a connection test (Try Connection)",
+    ),
+    createScreenRouteHandler("try-connection-result"),
+  )
+  // --------------------------------
   // POST /u2/connect/select-tenant
   // --------------------------------
   .openapi(

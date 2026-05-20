@@ -9,9 +9,29 @@ import {
   connectionSchema,
   totalsSchema,
   LogTypes,
+  Strategy,
 } from "@authhero/adapter-interfaces";
 import { parseSort } from "../../utils/sort";
 import { generateConnectionId } from "../../utils/entity-id";
+import {
+  ensureTryConnectionClient,
+  getTryConnectionResultUrl,
+} from "../../helpers/try-connection-client";
+import { getEnrichedClient } from "../../helpers/client";
+import { getAuthUrl } from "../../variables";
+import { passwordGrant } from "../../authentication-flows/password";
+import { USERNAME_PASSWORD_PROVIDER } from "../../constants";
+import { nanoid } from "nanoid";
+
+// Some tenants persist database connections with the strategy field set to
+// the provider literal ("auth2") rather than the canonical Auth0 strategy
+// name. Treat both as a database connection for the try-flow.
+function isDatabaseConnection(strategy: string): boolean {
+  return (
+    strategy === Strategy.USERNAME_PASSWORD ||
+    strategy === USERNAME_PASSWORD_PROVIDER
+  );
+}
 
 const connectionsWithTotalsSchema = totalsSchema.extend({
   connections: z.array(connectionSchema),
@@ -527,5 +547,169 @@ export const connectionRoutes = new OpenAPIHono<{
       });
 
       return ctx.body(null, 204);
+    },
+  )
+  // --------------------------------
+  // POST /api/v2/connections/:id/try
+  // --------------------------------
+  // Diagnostic endpoint: exercises a single connection end-to-end against
+  // an internal test client, in isolation from any registered application.
+  // For database connections this runs the genuine password pipeline and
+  // returns the result inline. For anything that requires a browser
+  // round-trip (social, oidc, oauth2, saml) it returns the /authorize URL
+  // that drives the test — see /u2/try-connection-result for the result UI.
+  .openapi(
+    createRoute({
+      tags: ["connections"],
+      method: "post",
+      path: "/{id}/try",
+      request: {
+        params: z.object({ id: z.string() }),
+        headers: z.object({ "tenant-id": z.string().optional() }),
+        body: {
+          content: {
+            "application/json": {
+              schema: z
+                .object({
+                  username: z.string().optional(),
+                  password: z.string().optional(),
+                })
+                .optional(),
+            },
+          },
+        },
+      },
+      security: [{ Bearer: ["update:connections", "auth:write"] }],
+      responses: {
+        200: {
+          content: {
+            "application/json": {
+              schema: z.union([
+                z.object({
+                  mode: z.literal("redirect"),
+                  authorize_url: z.string(),
+                  state: z.string(),
+                  result_url: z.string(),
+                  client_id: z.string(),
+                  connection: z.object({
+                    id: z.string(),
+                    name: z.string(),
+                    strategy: z.string(),
+                  }),
+                }),
+                z.object({
+                  mode: z.literal("inline"),
+                  status: z.enum(["success", "error"]),
+                  connection_id: z.string(),
+                  connection_name: z.string(),
+                  strategy: z.string(),
+                  userinfo: z.record(z.unknown()).optional(),
+                  raw: z.record(z.unknown()).nullable().optional(),
+                  error: z.string().optional(),
+                  error_description: z.string().optional(),
+                }),
+              ]),
+            },
+          },
+          description: "Test outcome (inline) or how to drive the test (redirect)",
+        },
+      },
+    }),
+    async (ctx) => {
+      const { id } = ctx.req.valid("param");
+      const tenantId = ctx.var.tenant_id;
+
+      const connection = await ctx.env.data.connections.get(tenantId, id);
+      if (!connection) {
+        throw new HTTPException(404, { message: "Connection not found" });
+      }
+      const connectionId: string = connection.id ?? id;
+
+      const clientId = await ensureTryConnectionClient(ctx.env, tenantId);
+
+      await logMessage(ctx, tenantId, {
+        type: LogTypes.SUCCESS_API_OPERATION,
+        description: "Try Connection initiated",
+        targetType: "connection",
+        targetId: id,
+      });
+
+      // Database connections complete inline — no browser round-trip needed.
+      if (isDatabaseConnection(connection.strategy)) {
+        const body = ctx.req.valid("json") ?? {};
+        if (!body.username || !body.password) {
+          throw new HTTPException(400, {
+            message: "username and password are required for database connections",
+          });
+        }
+
+        const client = await getEnrichedClient(ctx.env, clientId, tenantId);
+        try {
+          const result = await passwordGrant(
+            ctx,
+            client,
+            {
+              username: body.username,
+              password: body.password,
+              client_id: clientId,
+            },
+            undefined,
+            connection.name,
+          );
+          const { user } = result;
+          return ctx.json({
+            mode: "inline" as const,
+            status: "success" as const,
+            connection_id: connectionId,
+            connection_name: connection.name,
+            strategy: connection.strategy,
+            userinfo: user as unknown as Record<string, unknown>,
+            raw: user as unknown as Record<string, unknown>,
+          });
+        } catch (err) {
+          const message =
+            err instanceof Error ? err.message : "Password login failed";
+          const code =
+            err && typeof err === "object" && "code" in err
+              ? String((err as { code: unknown }).code)
+              : "error";
+          return ctx.json({
+            mode: "inline" as const,
+            status: "error" as const,
+            connection_id: connectionId,
+            connection_name: connection.name,
+            strategy: connection.strategy,
+            error: code,
+            error_description: message,
+          });
+        }
+      }
+
+      // Browser-driven flow: build the /authorize URL pinned to this
+      // connection and the internal test client. The state is generated
+      // here so the portal can correlate the popup result.
+      const state = nanoid();
+      const resultUrl = getTryConnectionResultUrl(ctx.env);
+      const authUrl = getAuthUrl(ctx.env);
+      const authorizeUrl = new URL(`${authUrl}authorize`);
+      authorizeUrl.searchParams.set("client_id", clientId);
+      authorizeUrl.searchParams.set("response_type", "code");
+      authorizeUrl.searchParams.set("scope", "openid profile email");
+      authorizeUrl.searchParams.set("connection", connection.name);
+      authorizeUrl.searchParams.set("redirect_uri", resultUrl);
+      authorizeUrl.searchParams.set("state", state);
+
+      return ctx.json({
+        mode: "redirect" as const,
+        authorize_url: authorizeUrl.toString(),
+        state,
+        result_url: resultUrl,
+        client_id: clientId,
+        connection: {
+          id: connectionId,
+          name: connection.name,
+          strategy: connection.strategy,
+        },
+      });
     },
   );

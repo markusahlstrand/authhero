@@ -418,7 +418,9 @@ export const logTypeCategories: Record<string, LogCategory> = (() => {
     if (
       name.startsWith("SUCCESS_") ||
       name.startsWith("SUCCESSFUL_") ||
-      name.startsWith("SUCCESSFULLY_")
+      name.startsWith("SUCCESSFULLY_") ||
+      name.endsWith("_SUCCEEDED") ||
+      name.endsWith("_COMPLETED")
     ) {
       result[code] = "success";
     } else if (

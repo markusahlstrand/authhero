@@ -154,10 +154,16 @@ export async function passwordGrant(
     // (e.g. "Password") would never resolve, so fall back to matching by
     // strategy on the client's connections in that case.
     if (!realmDbConnection && realm === Strategy.USERNAME_PASSWORD) {
-      realmDbConnection =
-        client.connections.find(
-          (c) => c.strategy === Strategy.USERNAME_PASSWORD,
-        ) ?? null;
+      const usernamePasswordConnections = client.connections.filter(
+        (c) => c.strategy === Strategy.USERNAME_PASSWORD,
+      );
+      if (usernamePasswordConnections.length > 1) {
+        throw new JSONHTTPException(400, {
+          message:
+            "Multiple username-password connections configured for this client; specify an explicit realm.",
+        });
+      }
+      realmDbConnection = usernamePasswordConnections[0] ?? null;
     }
     if (realmDbConnection?.options?.import_mode === true) {
       const migrated = await attemptUpstreamPasswordFallback({

@@ -56,12 +56,21 @@ export async function getRedirect(
   };
 }
 
-export async function validateAuthorizationCodeAndGetUser(
+async function validateAuthorizationCodeAndGetUserInternal(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   connection: Connection,
   code: string,
   codeVerifier?: string,
-) {
+): Promise<{
+  userinfo: {
+    sub: string;
+    email?: string;
+    given_name?: string;
+    family_name?: string;
+    name?: string;
+  };
+  raw: Record<string, unknown> | null;
+}> {
   const { options } = connection;
 
   if (!options?.client_id || !options.token_endpoint) {
@@ -97,23 +106,53 @@ export async function validateAuthorizationCodeAndGetUser(
     throw new Error("Failed to fetch user info");
   }
 
-  const user = await userResponse.json();
+  const user = (await userResponse.json()) as Record<string, unknown>;
 
   // OAuth2 responses can vary, try to extract common fields
-  const sub = user.sub || user.id || user.user_id;
-  if (!sub) {
+  const subVal = user.sub ?? user.id ?? user.user_id;
+  if (typeof subVal !== "string" && typeof subVal !== "number") {
     throw new Error(
       "Unable to get user identifier: response missing sub, id, or user_id",
     );
   }
+  const sub = String(subVal);
+
+  const givenName =
+    (typeof user.given_name === "string" ? user.given_name : undefined) ||
+    (typeof user.first_name === "string" ? user.first_name : undefined);
+  const familyName =
+    (typeof user.family_name === "string" ? user.family_name : undefined) ||
+    (typeof user.last_name === "string" ? user.last_name : undefined);
 
   return {
-    sub,
-    email: user.email,
-    given_name: user.given_name || user.first_name,
-    family_name: user.family_name || user.last_name,
-    name:
-      user.name ||
-      `${user.given_name || user.first_name || ""} ${user.family_name || user.last_name || ""}`.trim(),
+    userinfo: {
+      sub,
+      email: typeof user.email === "string" ? user.email : undefined,
+      given_name: givenName,
+      family_name: familyName,
+      name:
+        typeof user.name === "string"
+          ? user.name
+          : `${givenName || ""} ${familyName || ""}`.trim() || undefined,
+    },
+    raw: user,
   };
 }
+
+export async function validateAuthorizationCodeAndGetUser(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  connection: Connection,
+  code: string,
+  codeVerifier?: string,
+) {
+  const { userinfo } = await validateAuthorizationCodeAndGetUserInternal(
+    ctx,
+    connection,
+    code,
+    codeVerifier,
+  );
+  return userinfo;
+}
+
+export const validateAuthorizationCodeAndGetUserWithRaw =
+  validateAuthorizationCodeAndGetUserInternal;
