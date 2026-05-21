@@ -14,6 +14,7 @@ import {
   Mail,
   Palette,
   PlayCircle,
+  Rss,
   ScrollText,
   Settings,
   Shield,
@@ -44,6 +45,11 @@ import { ActionList, ActionCreate, ActionEdit } from "./resources/actions";
 import { ActionTriggersList } from "./resources/action-triggers";
 import { HookList, HooksCreate, HookEdit } from "./resources/hooks";
 import { LogsList, LogShow } from "./resources/logs";
+import {
+  LogStreamsList,
+  LogStreamCreate,
+  LogStreamEdit,
+} from "./resources/log-streams";
 import { SessionEdit, SessionShow } from "./resources/sessions";
 import { FormsList, FormCreate, FormEdit } from "./resources/forms";
 import { FlowsList, FlowCreate, FlowEdit } from "./resources/flows";
@@ -242,6 +248,14 @@ export function App({ tenantId, initialDomain, onAuthComplete }: AppProps) {
             record?.description || record?.type || `Log ${record?.id ?? ""}`
           }
           options={{ menuGroup: "Observability" }}
+        />
+        <Resource
+          name="log-streams"
+          icon={Rss}
+          list={LogStreamsList}
+          create={LogStreamCreate}
+          edit={LogStreamEdit}
+          options={{ label: "Log Streams", menuGroup: "Observability" }}
         />
         <Resource name="sessions" edit={SessionEdit} show={SessionShow} />
         <Resource

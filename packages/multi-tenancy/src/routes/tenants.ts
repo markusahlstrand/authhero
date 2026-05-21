@@ -412,7 +412,7 @@ export function createTenantsOpenAPIRouter(
       },
       security: [
         {
-          Bearer: ["read:tenants", "auth:read"],
+          Bearer: ["read:tenants"],
         },
       ],
       responses: {
@@ -461,7 +461,7 @@ export function createTenantsOpenAPIRouter(
       },
       security: [
         {
-          Bearer: ["update:tenants", "auth:write"],
+          Bearer: ["update:tenants"],
         },
       ],
       responses: {

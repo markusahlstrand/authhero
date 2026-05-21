@@ -7,7 +7,7 @@ description: Web-based management interface for AuthHero built with shadcn/ui an
 
 The AuthHero Admin is a web-based management interface for AuthHero. It lets administrators manage tenants, applications, connections, domains, users, roles, branding and more — across one or many AuthHero deployments.
 
-It is a single-page app built with **Vite + React 19**, **[shadcn/ui](https://ui.shadcn.com/)** components, **Tailwind v4** and **`ra-core`** (the headless half of react-admin). It lives in [`apps/admin`](https://github.com/markusahlstrand/authhero/tree/main/apps/admin) in the monorepo, and replaces the older `apps/react-admin`.
+It is a single-page app built with **Vite + React 19**, **[shadcn/ui](https://ui.shadcn.com/)** components, **Tailwind v4** and **`ra-core`** (the headless half of react-admin). It lives in [`apps/admin`](https://github.com/markusahlstrand/authhero/tree/main/apps/admin) in the monorepo.
 
 ## Features
 

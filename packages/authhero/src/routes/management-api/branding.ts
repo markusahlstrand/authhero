@@ -33,7 +33,7 @@ export const brandingRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:branding", "auth:read"],
+          Bearer: ["read:branding"],
         },
       ],
       responses: {
@@ -79,7 +79,7 @@ export const brandingRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["update:branding", "auth:write"],
+          Bearer: ["update:branding"],
         },
       ],
       responses: {
@@ -128,7 +128,7 @@ export const brandingRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:branding", "auth:read"],
+          Bearer: ["read:branding"],
         },
       ],
       responses: {
@@ -177,7 +177,7 @@ export const brandingRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["update:branding", "auth:write"],
+          Bearer: ["update:branding"],
         },
       ],
       responses: {
@@ -230,7 +230,7 @@ export const brandingRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["delete:branding", "auth:write"],
+          Bearer: ["delete:branding"],
         },
       ],
       responses: {

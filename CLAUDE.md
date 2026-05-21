@@ -8,19 +8,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Install dependencies
 pnpm install
 
-# Run all apps in parallel (demo, react-admin, docs)
+# Run all apps in parallel (demo, admin, docs)
 pnpm dev
 
 # Run specific app/package
 pnpm demo dev          # Demo auth server at http://localhost:8787
-pnpm react-admin dev   # Admin UI
+pnpm admin dev         # Admin UI
 pnpm authhero dev      # Main package
 pnpm vitepress dev     # Docs site
 
 # Tests
 pnpm test                    # All tests across configured packages
 pnpm authhero test           # Main package tests only
-pnpm react-admin test        # Admin UI tests only
+pnpm admin test              # Admin UI tests only
 pnpm kysely test             # Kysely adapter tests only
 
 # Run a single test file (from within a package)
@@ -52,7 +52,7 @@ This is a **pnpm monorepo** implementing a multi-tenant authentication/IAM syste
 ### Applications
 
 - **`apps/demo`** — Local development server (Hono + Kysely + better-sqlite3). Entry point for testing the full auth stack locally at `http://localhost:8787`.
-- **`apps/react-admin`** — Admin UI built with react-admin + React Router v7. Uses Auth0 SPA JS for its own authentication to the admin API.
+- **`apps/admin`** — Admin UI built on `ra-core` (the headless half of react-admin) with shadcn/ui and Tailwind v4. Uses Auth0 SPA JS for its own authentication to the admin API.
 - **`apps/auth0-proxy`** — Proxy that forwards requests to an Auth0 tenant for migration/compatibility.
 - **`apps/docs`** — VitePress documentation site.
 
@@ -68,7 +68,7 @@ This is a **pnpm monorepo** implementing a multi-tenant authentication/IAM syste
 - `src/routes/universal-login/` — Server-rendered login/signup/MFA UI
 - `src/routes/saml/` — SAML SSO endpoints
 
-**React Admin dual-router**:
+**Admin UI dual-router** (`apps/admin`):
 - Outer router (`src/index.tsx`): domain selection → `/`, tenant management → `/tenants/*`, per-tenant admin → `/:tenantId/*`, auth callback → `/auth-callback`
 - Inner router (`src/App.tsx`): react-admin Router with `basename="/:tenantId"` for all resource routes
 - Domain config (URL, clientId, API URL) stored in cookies via `src/utils/domainUtils.ts`

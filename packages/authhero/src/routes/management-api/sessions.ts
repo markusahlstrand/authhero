@@ -27,7 +27,7 @@ export const sessionsRoutes = new OpenAPIHono<{
 
       security: [
         {
-          Bearer: ["read:sessions", "auth:read"],
+          Bearer: ["read:sessions"],
         },
       ],
       responses: {
@@ -71,7 +71,7 @@ export const sessionsRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["delete:sessions", "auth:write"],
+          Bearer: ["delete:sessions"],
         },
       ],
       responses: {
@@ -118,7 +118,7 @@ export const sessionsRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["update:sessions", "auth:write"],
+          Bearer: ["update:sessions"],
         },
       ],
       responses: {

@@ -8,7 +8,7 @@ AuthHero is a multi-tenant authentication system that provides identity and acce
 
 ## Key Applications
 
-- **react-admin**: Admin interface for managing tenants, users, applications, and more
+- **admin**: Admin interface for managing tenants, users, applications, and more (built on `ra-core` with shadcn/ui and Tailwind v4)
 - **auth0-proxy**: Proxy service for Auth0 compatibility
 - **demo**: Demo application showcasing AuthHero functionality
 
@@ -23,9 +23,9 @@ The system is designed to support multiple tenants (organizations/customers) whe
 - Custom branding options
 - Potentially custom domains
 
-### React Admin Dual Router Architecture
+### Admin Dual Router Architecture
 
-The React Admin application has a unique dual-router setup:
+The Admin application (`apps/admin`) has a unique dual-router setup:
 
 1. **Outer Router**: Handles top-level routing based on domain selection and tenant ID
 

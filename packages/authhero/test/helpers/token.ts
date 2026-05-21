@@ -67,8 +67,6 @@ export async function createToken(params?: CreateTokenParams) {
 }
 
 const ADMIN_PERMISSIONS = [
-  "auth:read",
-  "auth:write",
   "create:actions",
   "create:client_grants",
   "create:client_registration_tokens",

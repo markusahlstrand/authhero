@@ -558,15 +558,6 @@ export const MANAGEMENT_API_SCOPES = [
   { description: "Create Tenants", value: "create:tenants" },
   { description: "Update Tenants", value: "update:tenants" },
   { description: "Delete Tenants", value: "delete:tenants" },
-  // Simplified auth scopes used by management API endpoints
-  {
-    description: "Read access to authentication resources",
-    value: "auth:read",
-  },
-  {
-    description: "Write access to authentication resources",
-    value: "auth:write",
-  },
 ];
 
 export interface SeedOptions {
@@ -845,7 +836,7 @@ export async function seed(
 
   // Create Management API resource server
   // Always use urn:authhero:management as the identifier for the Management API
-  // This ensures react-admin can use the same audience for both single and multi-tenant modes
+  // This ensures the admin UI can use the same audience for both single and multi-tenant modes
   const managementApiIdentifier = "urn:authhero:management";
   const existingResourceServers = await adapters.resourceServers.list(
     tenantId,

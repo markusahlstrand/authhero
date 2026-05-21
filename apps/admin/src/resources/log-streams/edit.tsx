@@ -1,14 +1,10 @@
 import {
-  DateField,
   Edit,
-  FieldTitle,
-  Labeled,
-  SelectInput,
   SimpleForm,
   TextInput,
-  required,
-  regex,
-} from "react-admin";
+  SelectInput,
+} from "@/components/admin";
+import { regex, required } from "ra-core";
 import {
   contentFormatChoices,
   statusChoices,
@@ -17,9 +13,9 @@ import {
 
 export function LogStreamEdit() {
   return (
-    <Edit>
+    <Edit mutationMode="pessimistic">
       <SimpleForm>
-        <TextInput source="name" validate={[required()]} fullWidth />
+        <TextInput source="name" validate={[required()]} />
         <SelectInput
           source="type"
           choices={typeChoices}
@@ -39,13 +35,11 @@ export function LogStreamEdit() {
             required(),
             regex(/^https?:\/\/[^\s]+$/i, "Must be a valid http(s) URL"),
           ]}
-          fullWidth
         />
         <TextInput
           source="sink.http_authorization"
           label="Authorization header"
           helperText='Sent verbatim as the Authorization header (e.g. "Basic …" or "Bearer …")'
-          fullWidth
         />
         <TextInput source="sink.http_content_type" label="Content-Type" />
         <SelectInput
@@ -53,12 +47,6 @@ export function LogStreamEdit() {
           label="Content format"
           choices={contentFormatChoices}
         />
-        <Labeled label={<FieldTitle source="created_at" />}>
-          <DateField source="created_at" showTime />
-        </Labeled>
-        <Labeled label={<FieldTitle source="updated_at" />}>
-          <DateField source="updated_at" showTime />
-        </Labeled>
       </SimpleForm>
     </Edit>
   );

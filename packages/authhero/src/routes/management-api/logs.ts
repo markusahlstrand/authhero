@@ -29,7 +29,7 @@ export const logRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:logs", "auth:read"],
+          Bearer: ["read:logs"],
         },
       ],
       responses: {
@@ -83,7 +83,7 @@ export const logRoutes = new OpenAPIHono<{
 
       security: [
         {
-          Bearer: ["read:logs", "auth:read"],
+          Bearer: ["read:logs"],
         },
       ],
       responses: {

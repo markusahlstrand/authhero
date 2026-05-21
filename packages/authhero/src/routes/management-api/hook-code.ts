@@ -39,7 +39,7 @@ export const hookCodeRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["create:hooks", "auth:write"],
+          Bearer: ["create:hooks"],
         },
       ],
       responses: {
@@ -111,7 +111,7 @@ export const hookCodeRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:hooks", "auth:read"],
+          Bearer: ["read:hooks"],
         },
       ],
       responses: {
@@ -165,7 +165,7 @@ export const hookCodeRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["update:hooks", "auth:write"],
+          Bearer: ["update:hooks"],
         },
       ],
       responses: {
@@ -247,7 +247,7 @@ export const hookCodeRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["delete:hooks", "auth:write"],
+          Bearer: ["delete:hooks"],
         },
       ],
       responses: {

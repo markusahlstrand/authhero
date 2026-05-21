@@ -41,7 +41,7 @@ export const roleRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:roles", "auth:read"],
+          Bearer: ["read:roles"],
         },
       ],
       responses: {
@@ -99,7 +99,7 @@ export const roleRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:roles", "auth:read"],
+          Bearer: ["read:roles"],
         },
       ],
       responses: {
@@ -154,7 +154,7 @@ export const roleRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["create:roles", "auth:write"],
+          Bearer: ["create:roles"],
         },
       ],
       responses: {
@@ -215,7 +215,7 @@ export const roleRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["update:roles", "auth:write"],
+          Bearer: ["update:roles"],
         },
       ],
       responses: {
@@ -276,7 +276,7 @@ export const roleRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["delete:roles", "auth:write"],
+          Bearer: ["delete:roles"],
         },
       ],
       responses: {
@@ -329,7 +329,7 @@ export const roleRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:roles", "auth:read"],
+          Bearer: ["read:roles"],
         },
       ],
       responses: {
@@ -439,7 +439,7 @@ export const roleRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["update:roles", "auth:write"],
+          Bearer: ["update:roles"],
         },
       ],
       responses: {
@@ -529,7 +529,7 @@ export const roleRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["update:roles", "auth:write"],
+          Bearer: ["update:roles"],
         },
       ],
       responses: {

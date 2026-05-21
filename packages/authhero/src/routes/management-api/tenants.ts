@@ -28,7 +28,7 @@ export const tenantRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:tenants", "auth:read"],
+          Bearer: ["read:tenants"],
         },
       ],
       responses: {
@@ -79,7 +79,7 @@ export const tenantRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["update:tenants", "auth:write"],
+          Bearer: ["update:tenants"],
         },
       ],
       responses: {

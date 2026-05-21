@@ -96,7 +96,7 @@ export const authenticationMethodsRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:users", "auth:read"],
+          Bearer: ["read:users"],
         },
       ],
       responses: {
@@ -160,7 +160,7 @@ export const authenticationMethodsRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["update:users", "auth:write"],
+          Bearer: ["update:users"],
         },
       ],
       responses: {
@@ -242,7 +242,7 @@ export const authenticationMethodsRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:users", "auth:read"],
+          Bearer: ["read:users"],
         },
       ],
       responses: {
@@ -304,7 +304,7 @@ export const authenticationMethodsRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["update:users", "auth:write"],
+          Bearer: ["update:users"],
         },
       ],
       responses: {

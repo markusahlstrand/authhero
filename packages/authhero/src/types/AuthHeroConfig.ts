@@ -376,13 +376,13 @@ export interface AuthHeroConfig {
    * Handler for serving admin UI static files (JS, CSS, images) at /admin/*.
    *
    * This must be a platform-specific static file handler, similar to widgetHandler.
-   * The handler serves the built assets from @authhero/react-admin/dist.
+   * The handler serves the built assets from @authhero/admin/dist.
    *
    * @example Node.js with @hono/node-server:
    * ```typescript
    * import { serveStatic } from "@hono/node-server/serve-static";
    *
-   * const adminDistPath = path.resolve(__dirname, "../node_modules/@authhero/react-admin/dist");
+   * const adminDistPath = path.resolve(__dirname, "../node_modules/@authhero/admin/dist");
    *
    * const { app } = init({
    *   dataAdapter,
@@ -399,7 +399,7 @@ export interface AuthHeroConfig {
   /**
    * Pre-configured index.html string for the admin UI SPA fallback.
    *
-   * Read from @authhero/react-admin/dist/index.html with runtime config
+   * Read from @authhero/admin/dist/index.html with runtime config
    * injected via a `<script>window.__AUTHHERO_ADMIN_CONFIG__=...</script>` tag.
    *
    * When provided, all non-asset requests to /admin/* will return this HTML,

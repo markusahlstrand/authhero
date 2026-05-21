@@ -26,7 +26,7 @@ export const usersByEmailRoutes = new OpenAPIHono<{
 
       security: [
         {
-          Bearer: ["read:users", "auth:read"],
+          Bearer: ["read:users"],
         },
       ],
       responses: {

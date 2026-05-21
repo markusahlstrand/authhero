@@ -50,7 +50,7 @@ export const clientRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:clients", "auth:read"],
+          Bearer: ["read:clients"],
         },
       ],
       responses: {
@@ -110,7 +110,7 @@ export const clientRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:clients", "auth:read"],
+          Bearer: ["read:clients"],
         },
       ],
       responses: {
@@ -155,7 +155,7 @@ export const clientRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["delete:clients", "auth:write"],
+          Bearer: ["delete:clients"],
         },
       ],
       responses: {
@@ -208,7 +208,7 @@ export const clientRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["update:clients", "auth:write"],
+          Bearer: ["update:clients"],
         },
       ],
       responses: {
@@ -272,7 +272,7 @@ export const clientRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["create:clients", "auth:write"],
+          Bearer: ["create:clients"],
         },
       ],
       responses: {
@@ -327,7 +327,7 @@ export const clientRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:clients", "auth:read"],
+          Bearer: ["read:clients"],
         },
       ],
       responses: {
@@ -414,7 +414,7 @@ export const clientRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["update:clients", "auth:write"],
+          Bearer: ["update:clients"],
         },
       ],
       responses: {

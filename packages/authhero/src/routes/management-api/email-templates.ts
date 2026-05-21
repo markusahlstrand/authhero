@@ -39,7 +39,7 @@ export const emailTemplatesRoutes = new OpenAPIHono<{
           },
         },
       },
-      security: [{ Bearer: ["create:email_templates", "auth:write"] }],
+      security: [{ Bearer: ["create:email_templates"] }],
       responses: {
         201: {
           content: { "application/json": { schema: emailTemplateSchema } },
@@ -88,7 +88,7 @@ export const emailTemplatesRoutes = new OpenAPIHono<{
         headers,
         params: templateNameParam,
       },
-      security: [{ Bearer: ["read:email_templates", "auth:read"] }],
+      security: [{ Bearer: ["read:email_templates"] }],
       responses: {
         200: {
           content: { "application/json": { schema: emailTemplateSchema } },
@@ -129,7 +129,7 @@ export const emailTemplatesRoutes = new OpenAPIHono<{
           },
         },
       },
-      security: [{ Bearer: ["update:email_templates", "auth:write"] }],
+      security: [{ Bearer: ["update:email_templates"] }],
       responses: {
         200: {
           content: { "application/json": { schema: emailTemplateSchema } },
@@ -198,7 +198,7 @@ export const emailTemplatesRoutes = new OpenAPIHono<{
           },
         },
       },
-      security: [{ Bearer: ["update:email_templates", "auth:write"] }],
+      security: [{ Bearer: ["update:email_templates"] }],
       responses: {
         200: {
           content: { "application/json": { schema: emailTemplateSchema } },

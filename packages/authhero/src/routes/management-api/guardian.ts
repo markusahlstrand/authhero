@@ -77,7 +77,7 @@ export const guardianRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:guardian_factors", "auth:read"],
+          Bearer: ["read:guardian_factors"],
         },
       ],
       responses: {
@@ -127,7 +127,7 @@ export const guardianRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:guardian_factors", "auth:read"],
+          Bearer: ["read:guardian_factors"],
         },
       ],
       responses: {
@@ -170,7 +170,7 @@ export const guardianRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["update:guardian_factors", "auth:write"],
+          Bearer: ["update:guardian_factors"],
         },
       ],
       responses: {
@@ -226,7 +226,7 @@ export const guardianRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:guardian_factors", "auth:read"],
+          Bearer: ["read:guardian_factors"],
         },
       ],
       responses: {
@@ -276,7 +276,7 @@ export const guardianRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["update:guardian_factors", "auth:write"],
+          Bearer: ["update:guardian_factors"],
         },
       ],
       responses: {
@@ -347,7 +347,7 @@ export const guardianRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:guardian_factors", "auth:read"],
+          Bearer: ["read:guardian_factors"],
         },
       ],
       responses: {
@@ -384,7 +384,7 @@ export const guardianRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:guardian_factors", "auth:read"],
+          Bearer: ["read:guardian_factors"],
         },
       ],
       responses: {
@@ -431,7 +431,7 @@ export const guardianRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["update:guardian_factors", "auth:write"],
+          Bearer: ["update:guardian_factors"],
         },
       ],
       responses: {
@@ -499,7 +499,7 @@ export const guardianRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["create:guardian_enrollment_tickets", "auth:write"],
+          Bearer: ["create:guardian_enrollment_tickets"],
         },
       ],
       responses: {
@@ -626,7 +626,7 @@ export const guardianRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:guardian_factors", "auth:read"],
+          Bearer: ["read:guardian_factors"],
         },
       ],
       responses: {
@@ -680,7 +680,7 @@ export const guardianRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["update:guardian_factors", "auth:write"],
+          Bearer: ["update:guardian_factors"],
         },
       ],
       responses: {

@@ -57,7 +57,7 @@ export const clientRegistrationTokenRoutes = new OpenAPIHono<{
     },
     security: [
       {
-        Bearer: ["create:client_registration_tokens", "auth:write"],
+        Bearer: ["create:client_registration_tokens"],
       },
     ],
     responses: {

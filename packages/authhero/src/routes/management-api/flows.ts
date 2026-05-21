@@ -35,7 +35,7 @@ export const flowsRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:flows", "auth:read"],
+          Bearer: ["read:flows"],
         },
       ],
       responses: {
@@ -92,7 +92,7 @@ export const flowsRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:flows", "auth:read"],
+          Bearer: ["read:flows"],
         },
       ],
       responses: {
@@ -136,7 +136,7 @@ export const flowsRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["delete:flows", "auth:write"],
+          Bearer: ["delete:flows"],
         },
       ],
       responses: {
@@ -191,7 +191,7 @@ export const flowsRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["update:flows", "auth:write"],
+          Bearer: ["update:flows"],
         },
       ],
       responses: {
@@ -250,7 +250,7 @@ export const flowsRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["create:flows", "auth:write"],
+          Bearer: ["create:flows"],
         },
       ],
       responses: {
