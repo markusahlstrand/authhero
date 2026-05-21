@@ -40,7 +40,7 @@ export function LogStreamCreate() {
           label="HTTP endpoint"
           validate={[
             required(),
-            regex(/^https?:\/\/.+/, "Must be a valid http(s) URL"),
+            regex(/^https?:\/\/[^\s]+$/i, "Must be a valid http(s) URL"),
           ]}
           fullWidth
         />

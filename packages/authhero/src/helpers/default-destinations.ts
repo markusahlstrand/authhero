@@ -11,8 +11,8 @@ import type { WebhookInvoker } from "../types/AuthHeroConfig";
 
 export interface CreateDefaultDestinationsConfig {
   /**
-   * Data adapter — only the `logs`, `hooks`, and `users` adapters are used
-   * by the built-in destinations.
+   * Data adapter — only the `logs`, `hooks`, `users`, and `logStreams`
+   * adapters are used by the built-in destinations.
    */
   dataAdapter: Pick<DataAdapters, "logs" | "hooks" | "users" | "logStreams">;
 

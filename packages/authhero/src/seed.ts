@@ -111,6 +111,7 @@ export const MANAGEMENT_API_SCOPES = [
   { description: "Read Tenant Settings", value: "read:tenant_settings" },
   { description: "Update Tenant Settings", value: "update:tenant_settings" },
   { description: "Read Logs", value: "read:logs" },
+  { description: "Update Logs", value: "update:logs" },
   { description: "Read logs relating to users", value: "read:logs_users" },
   { description: "Read Shields", value: "read:shields" },
   { description: "Create Shields", value: "create:shields" },
