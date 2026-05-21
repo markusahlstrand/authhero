@@ -72,7 +72,7 @@ export const actionsRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:actions", "auth:read"],
+          Bearer: ["read:actions"],
         },
       ],
       responses: {
@@ -133,7 +133,7 @@ export const actionsRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["create:actions", "auth:write"],
+          Bearer: ["create:actions"],
         },
       ],
       responses: {
@@ -207,7 +207,7 @@ export const actionsRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:actions", "auth:read"],
+          Bearer: ["read:actions"],
         },
       ],
       responses: {
@@ -265,7 +265,7 @@ export const actionsRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["update:actions", "auth:write"],
+          Bearer: ["update:actions"],
         },
       ],
       responses: {
@@ -353,7 +353,7 @@ export const actionsRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["delete:actions", "auth:write"],
+          Bearer: ["delete:actions"],
         },
       ],
       responses: {
@@ -429,7 +429,7 @@ export const actionsRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["update:actions", "auth:write"],
+          Bearer: ["update:actions"],
         },
       ],
       responses: {
@@ -515,7 +515,7 @@ export const actionsRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:actions", "auth:read"],
+          Bearer: ["read:actions"],
         },
       ],
       responses: {
@@ -589,7 +589,7 @@ export const actionsRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:actions", "auth:read"],
+          Bearer: ["read:actions"],
         },
       ],
       responses: {
@@ -648,7 +648,7 @@ export const actionsRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["update:actions", "auth:write"],
+          Bearer: ["update:actions"],
         },
       ],
       responses: {
@@ -761,7 +761,7 @@ export const actionsRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["update:actions", "auth:write"],
+          Bearer: ["update:actions"],
         },
       ],
       responses: {

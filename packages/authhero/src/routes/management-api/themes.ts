@@ -24,7 +24,7 @@ export const themesRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:branding", "auth:read"],
+          Bearer: ["read:branding"],
         },
       ],
       responses: {
@@ -70,7 +70,7 @@ export const themesRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["update:branding", "auth:write"],
+          Bearer: ["update:branding"],
         },
       ],
       responses: {

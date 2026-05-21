@@ -156,7 +156,7 @@ export const organizationRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:organizations", "auth:read"],
+          Bearer: ["read:organizations"],
         },
       ],
       responses: {
@@ -213,7 +213,7 @@ export const organizationRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:organizations", "auth:read"],
+          Bearer: ["read:organizations"],
         },
       ],
       responses: {
@@ -258,7 +258,7 @@ export const organizationRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["delete:organizations", "auth:write"],
+          Bearer: ["delete:organizations"],
         },
       ],
       responses: {
@@ -311,7 +311,7 @@ export const organizationRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["update:organizations", "auth:write"],
+          Bearer: ["update:organizations"],
         },
       ],
       responses: {
@@ -386,7 +386,7 @@ export const organizationRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["create:organizations", "auth:write"],
+          Bearer: ["create:organizations"],
         },
       ],
       responses: {
@@ -444,7 +444,7 @@ export const organizationRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:organizations", "auth:read"],
+          Bearer: ["read:organizations"],
         },
       ],
       responses: {
@@ -546,7 +546,7 @@ export const organizationRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["update:organizations", "auth:write"],
+          Bearer: ["update:organizations"],
         },
       ],
       responses: {
@@ -626,7 +626,7 @@ export const organizationRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["update:organizations", "auth:write"],
+          Bearer: ["update:organizations"],
         },
       ],
       responses: {
@@ -697,7 +697,7 @@ export const organizationRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:organizations", "auth:read"],
+          Bearer: ["read:organizations"],
         },
       ],
       responses: {
@@ -771,7 +771,7 @@ export const organizationRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["update:organizations", "auth:write"],
+          Bearer: ["update:organizations"],
         },
       ],
       responses: {
@@ -864,7 +864,7 @@ export const organizationRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["update:organizations", "auth:write"],
+          Bearer: ["update:organizations"],
         },
       ],
       responses: {
@@ -937,7 +937,7 @@ export const organizationRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:organizations", "auth:read"],
+          Bearer: ["read:organizations"],
         },
       ],
       responses: {
@@ -999,7 +999,7 @@ export const organizationRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:organizations", "auth:read"],
+          Bearer: ["read:organizations"],
         },
       ],
       responses: {
@@ -1112,7 +1112,7 @@ export const organizationRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:organizations", "auth:read"],
+          Bearer: ["read:organizations"],
         },
       ],
       responses: {
@@ -1178,7 +1178,7 @@ export const organizationRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["update:organizations", "auth:write"],
+          Bearer: ["update:organizations"],
         },
       ],
       responses: {
@@ -1254,7 +1254,7 @@ export const organizationRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["update:organizations", "auth:write"],
+          Bearer: ["update:organizations"],
         },
       ],
       responses: {
@@ -1335,7 +1335,7 @@ export const organizationRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:organization_connections", "auth:read"],
+          Bearer: ["read:organization_connections"],
         },
       ],
       responses: {
@@ -1405,7 +1405,7 @@ export const organizationRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["create:organization_connections", "auth:write"],
+          Bearer: ["create:organization_connections"],
         },
       ],
       responses: {
@@ -1486,7 +1486,7 @@ export const organizationRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:organization_connections", "auth:read"],
+          Bearer: ["read:organization_connections"],
         },
       ],
       responses: {
@@ -1551,7 +1551,7 @@ export const organizationRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["update:organization_connections", "auth:write"],
+          Bearer: ["update:organization_connections"],
         },
       ],
       responses: {
@@ -1617,7 +1617,7 @@ export const organizationRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["delete:organization_connections", "auth:write"],
+          Bearer: ["delete:organization_connections"],
         },
       ],
       responses: {

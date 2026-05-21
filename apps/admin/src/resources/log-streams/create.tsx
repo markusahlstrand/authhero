@@ -1,21 +1,30 @@
 import {
   Create,
-  SelectInput,
   SimpleForm,
   TextInput,
-  required,
-  regex,
-} from "react-admin";
+  SelectInput,
+} from "@/components/admin";
+import { regex, required } from "ra-core";
 import {
   contentFormatChoices,
   statusChoices,
   typeChoices,
 } from "./logStreamConstants";
 
+type LogStreamFormValues = {
+  status?: string;
+  sink?: {
+    http_endpoint?: string;
+    http_authorization?: string;
+    http_content_type?: string;
+    http_content_format?: string;
+  };
+};
+
 export function LogStreamCreate() {
   return (
     <Create
-      transform={(data: any) => ({
+      transform={(data: LogStreamFormValues) => ({
         ...data,
         status: data.status ?? "active",
         sink: {
@@ -27,7 +36,7 @@ export function LogStreamCreate() {
       })}
     >
       <SimpleForm defaultValues={{ type: "http", status: "active" }}>
-        <TextInput source="name" validate={[required()]} fullWidth />
+        <TextInput source="name" validate={[required()]} />
         <SelectInput
           source="type"
           choices={typeChoices}
@@ -42,13 +51,11 @@ export function LogStreamCreate() {
             required(),
             regex(/^https?:\/\/[^\s]+$/i, "Must be a valid http(s) URL"),
           ]}
-          fullWidth
         />
         <TextInput
           source="sink.http_authorization"
           label="Authorization header"
           helperText='Sent verbatim as the Authorization header (e.g. "Basic …" or "Bearer …")'
-          fullWidth
         />
         <TextInput
           source="sink.http_content_type"

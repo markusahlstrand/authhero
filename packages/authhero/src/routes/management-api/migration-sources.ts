@@ -47,7 +47,7 @@ export const migrationSourcesRoutes = new OpenAPIHono<{
       request: {
         headers: z.object({ "tenant-id": z.string().optional() }),
       },
-      security: [{ Bearer: ["read:migration_sources", "auth:read"] }],
+      security: [{ Bearer: ["read:migration_sources"] }],
       responses: {
         200: {
           content: {
@@ -75,7 +75,7 @@ export const migrationSourcesRoutes = new OpenAPIHono<{
         params: z.object({ id: z.string() }),
         headers: z.object({ "tenant-id": z.string().optional() }),
       },
-      security: [{ Bearer: ["read:migration_sources", "auth:read"] }],
+      security: [{ Bearer: ["read:migration_sources"] }],
       responses: {
         200: {
           content: {
@@ -111,7 +111,7 @@ export const migrationSourcesRoutes = new OpenAPIHono<{
         },
         headers: z.object({ "tenant-id": z.string().optional() }),
       },
-      security: [{ Bearer: ["create:migration_sources", "auth:write"] }],
+      security: [{ Bearer: ["create:migration_sources"] }],
       responses: {
         201: {
           content: {
@@ -154,7 +154,7 @@ export const migrationSourcesRoutes = new OpenAPIHono<{
         },
         headers: z.object({ "tenant-id": z.string().optional() }),
       },
-      security: [{ Bearer: ["update:migration_sources", "auth:write"] }],
+      security: [{ Bearer: ["update:migration_sources"] }],
       responses: {
         200: {
           content: {
@@ -198,7 +198,7 @@ export const migrationSourcesRoutes = new OpenAPIHono<{
         params: z.object({ id: z.string() }),
         headers: z.object({ "tenant-id": z.string().optional() }),
       },
-      security: [{ Bearer: ["delete:migration_sources", "auth:write"] }],
+      security: [{ Bearer: ["delete:migration_sources"] }],
       responses: {
         204: { description: "Migration source deleted" },
       },

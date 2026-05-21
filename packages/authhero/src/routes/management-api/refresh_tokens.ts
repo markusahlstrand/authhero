@@ -30,7 +30,7 @@ export const refreshTokensRoutes = new OpenAPIHono<{
 
       security: [
         {
-          Bearer: ["read:refresh_tokens", "auth:read"],
+          Bearer: ["read:refresh_tokens"],
         },
       ],
       responses: {
@@ -77,7 +77,7 @@ export const refreshTokensRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["delete:refresh_tokens", "auth:write"],
+          Bearer: ["delete:refresh_tokens"],
         },
       ],
       responses: {

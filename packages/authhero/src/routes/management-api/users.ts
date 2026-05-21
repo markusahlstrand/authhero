@@ -103,7 +103,7 @@ export const userRoutes = new OpenAPIHono<{
 
       security: [
         {
-          Bearer: ["read:users", "auth:read"],
+          Bearer: ["read:users"],
         },
       ],
       responses: {
@@ -210,7 +210,7 @@ export const userRoutes = new OpenAPIHono<{
 
       security: [
         {
-          Bearer: ["read:users", "auth:read"],
+          Bearer: ["read:users"],
         },
       ],
       responses: {
@@ -260,7 +260,7 @@ export const userRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["delete:users", "auth:write"],
+          Bearer: ["delete:users"],
         },
       ],
       responses: {
@@ -327,7 +327,7 @@ export const userRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["create:users", "auth:write"],
+          Bearer: ["create:users"],
         },
       ],
       responses: {
@@ -470,7 +470,7 @@ export const userRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["update:users", "auth:write"],
+          Bearer: ["update:users"],
         },
       ],
       responses: {
@@ -752,7 +752,7 @@ export const userRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["update:users"],
         },
       ],
       responses: {
@@ -830,7 +830,7 @@ export const userRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["auth:write"],
+          Bearer: ["update:users"],
         },
       ],
       responses: {
@@ -894,7 +894,7 @@ export const userRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:clients", "read:users", "auth:read"],
+          Bearer: ["read:clients", "read:users"],
         },
       ],
       responses: {
@@ -960,7 +960,7 @@ export const userRoutes = new OpenAPIHono<{
 
       security: [
         {
-          Bearer: ["read:users", "auth:read"],
+          Bearer: ["read:users"],
         },
       ],
       responses: {
@@ -1014,7 +1014,7 @@ export const userRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:logs", "auth:read"],
+          Bearer: ["read:logs"],
         },
       ],
       responses: {
@@ -1100,7 +1100,7 @@ export const userRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:users", "auth:read"],
+          Bearer: ["read:users"],
         },
       ],
       responses: {
@@ -1175,7 +1175,7 @@ export const userRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["update:users", "auth:write"],
+          Bearer: ["update:users"],
         },
       ],
       responses: {
@@ -1260,7 +1260,7 @@ export const userRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["update:users", "auth:write"],
+          Bearer: ["update:users"],
         },
       ],
       responses: {
@@ -1318,7 +1318,7 @@ export const userRoutes = new OpenAPIHono<{
         params: z.object({ user_id: z.string() }),
         headers: z.object({ "tenant-id": z.string() }),
       },
-      security: [{ Bearer: ["read:users", "auth:read"] }],
+      security: [{ Bearer: ["read:users"] }],
       responses: {
         200: {
           content: { "application/json": { schema: roleListSchema } },
@@ -1360,7 +1360,7 @@ export const userRoutes = new OpenAPIHono<{
           },
         },
       },
-      security: [{ Bearer: ["update:users", "auth:write"] }],
+      security: [{ Bearer: ["update:users"] }],
       responses: { 201: { description: "Roles assigned to user" } },
     }),
     async (ctx) => {
@@ -1417,7 +1417,7 @@ export const userRoutes = new OpenAPIHono<{
           },
         },
       },
-      security: [{ Bearer: ["update:users", "auth:write"] }],
+      security: [{ Bearer: ["update:users"] }],
       responses: { 200: { description: "Roles removed from user" } },
     }),
     async (ctx) => {
@@ -1469,7 +1469,7 @@ export const userRoutes = new OpenAPIHono<{
           "tenant-id": z.string().optional(),
         }),
       },
-      security: [{ Bearer: ["read:users", "auth:read"] }],
+      security: [{ Bearer: ["read:users"] }],
       responses: {
         200: {
           content: {
@@ -1534,7 +1534,7 @@ export const userRoutes = new OpenAPIHono<{
           "tenant-id": z.string().optional(),
         }),
       },
-      security: [{ Bearer: ["update:users", "auth:write"] }],
+      security: [{ Bearer: ["update:users"] }],
       responses: {
         200: {
           description: "User removed from organization successfully",

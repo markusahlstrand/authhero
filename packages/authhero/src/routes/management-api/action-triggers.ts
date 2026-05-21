@@ -76,7 +76,7 @@ export const actionTriggersRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:actions", "auth:read"],
+          Bearer: ["read:actions"],
         },
       ],
       responses: {
@@ -158,7 +158,7 @@ export const actionTriggersRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["update:actions", "auth:write"],
+          Bearer: ["update:actions"],
         },
       ],
       responses: {

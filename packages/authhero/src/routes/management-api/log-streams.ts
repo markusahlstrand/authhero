@@ -31,7 +31,7 @@ export const logStreamsRoutes = new OpenAPIHono<{
       request: {
         headers: z.object({ "tenant-id": z.string().optional() }),
       },
-      security: [{ Bearer: ["read:log_streams", "auth:read"] }],
+      security: [{ Bearer: ["read:log_streams"] }],
       responses: {
         200: {
           content: {
@@ -57,7 +57,7 @@ export const logStreamsRoutes = new OpenAPIHono<{
         params: z.object({ id: z.string() }),
         headers: z.object({ "tenant-id": z.string().optional() }),
       },
-      security: [{ Bearer: ["read:log_streams", "auth:read"] }],
+      security: [{ Bearer: ["read:log_streams"] }],
       responses: {
         200: {
           content: { "application/json": { schema: logStreamSchema } },
@@ -91,7 +91,7 @@ export const logStreamsRoutes = new OpenAPIHono<{
         },
         headers: z.object({ "tenant-id": z.string().optional() }),
       },
-      security: [{ Bearer: ["create:log_streams", "auth:write"] }],
+      security: [{ Bearer: ["create:log_streams"] }],
       responses: {
         201: {
           content: { "application/json": { schema: logStreamSchema } },
@@ -132,7 +132,7 @@ export const logStreamsRoutes = new OpenAPIHono<{
         },
         headers: z.object({ "tenant-id": z.string().optional() }),
       },
-      security: [{ Bearer: ["update:log_streams", "auth:write"] }],
+      security: [{ Bearer: ["update:log_streams"] }],
       responses: {
         200: {
           content: { "application/json": { schema: logStreamSchema } },
@@ -174,7 +174,7 @@ export const logStreamsRoutes = new OpenAPIHono<{
         params: z.object({ id: z.string() }),
         headers: z.object({ "tenant-id": z.string().optional() }),
       },
-      security: [{ Bearer: ["delete:log_streams", "auth:write"] }],
+      security: [{ Bearer: ["delete:log_streams"] }],
       responses: {
         204: { description: "Log stream deleted" },
       },

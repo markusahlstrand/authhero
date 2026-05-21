@@ -57,7 +57,7 @@ export const resourceServerRoutes = new OpenAPIHono<{
 
       security: [
         {
-          Bearer: ["read:resource_servers", "auth:read"],
+          Bearer: ["read:resource_servers"],
         },
       ],
       responses: {
@@ -119,7 +119,7 @@ export const resourceServerRoutes = new OpenAPIHono<{
 
       security: [
         {
-          Bearer: ["read:resource_servers", "auth:read"],
+          Bearer: ["read:resource_servers"],
         },
       ],
       responses: {
@@ -164,7 +164,7 @@ export const resourceServerRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["delete:resource_servers", "auth:write"],
+          Bearer: ["delete:resource_servers"],
         },
       ],
       responses: {
@@ -229,7 +229,7 @@ export const resourceServerRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["update:resource_servers", "auth:write"],
+          Bearer: ["update:resource_servers"],
         },
       ],
       responses: {
@@ -317,7 +317,7 @@ export const resourceServerRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["create:resource_servers", "auth:write"],
+          Bearer: ["create:resource_servers"],
         },
       ],
       responses: {

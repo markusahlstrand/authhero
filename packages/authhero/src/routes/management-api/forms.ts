@@ -35,7 +35,7 @@ export const formsRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:forms", "auth:read"],
+          Bearer: ["read:forms"],
         },
       ],
       responses: {
@@ -89,7 +89,7 @@ export const formsRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:forms", "auth:read"],
+          Bearer: ["read:forms"],
         },
       ],
       responses: {
@@ -131,7 +131,7 @@ export const formsRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["delete:forms", "auth:write"],
+          Bearer: ["delete:forms"],
         },
       ],
       responses: {
@@ -185,7 +185,7 @@ export const formsRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["update:forms", "auth:write"],
+          Bearer: ["update:forms"],
         },
       ],
       responses: {
@@ -249,7 +249,7 @@ export const formsRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["create:forms", "auth:write"],
+          Bearer: ["create:forms"],
         },
       ],
       responses: {

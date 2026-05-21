@@ -43,7 +43,7 @@ export const actionExecutionsRoutes = new OpenAPIHono<{
         }),
         params: z.object({ id: z.string() }),
       },
-      security: [{ Bearer: ["read:actions", "auth:read"] }],
+      security: [{ Bearer: ["read:actions"] }],
       responses: {
         200: {
           content: {
@@ -93,7 +93,7 @@ export const actionExecutionsRoutes = new OpenAPIHono<{
         }),
         params: z.object({ id: z.string() }),
       },
-      security: [{ Bearer: ["read:actions", "auth:read"] }],
+      security: [{ Bearer: ["read:actions"] }],
       responses: {
         200: {
           content: {

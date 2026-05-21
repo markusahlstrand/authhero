@@ -2,7 +2,7 @@
 
 The AuthHero admin UI — a Vite + React 19 SPA for managing tenants, users, applications, connections, roles, branding and more across one or many AuthHero deployments.
 
-Built on `ra-core` (the headless half of react-admin) with [shadcn/ui](https://ui.shadcn.com/) and Tailwind v4. This app replaces the older `apps/react-admin`.
+Built on `ra-core` (the headless half of react-admin) with [shadcn/ui](https://ui.shadcn.com/) and Tailwind v4.
 
 ## Quick start
 

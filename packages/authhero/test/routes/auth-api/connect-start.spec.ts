@@ -376,7 +376,7 @@ describe("GET /connect/start", () => {
 });
 
 describe("POST /api/v2/client-registration-tokens (Mgmt-API IAT mint)", () => {
-  it("rejects request without create:client_registration_tokens (or auth:write) scope", async () => {
+  it("rejects request without create:client_registration_tokens scope", async () => {
     const { managementApp, env } = await getTestServer();
     const { createToken } = await import("../../helpers/token");
     const limitedToken = await createToken({

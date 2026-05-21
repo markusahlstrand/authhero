@@ -83,7 +83,7 @@ export const attackProtectionRoutes = new OpenAPIHono<{
       method: "get",
       path: "/breached-password-detection",
       request: { headers: z.object({ "tenant-id": z.string().optional() }) },
-      security: [{ Bearer: ["read:attack_protection", "auth:read"] }],
+      security: [{ Bearer: ["read:attack_protection"] }],
       responses: {
         200: {
           content: {
@@ -110,7 +110,7 @@ export const attackProtectionRoutes = new OpenAPIHono<{
         },
         headers: z.object({ "tenant-id": z.string().optional() }),
       },
-      security: [{ Bearer: ["update:attack_protection", "auth:write"] }],
+      security: [{ Bearer: ["update:attack_protection"] }],
       responses: {
         200: {
           content: {
@@ -134,7 +134,7 @@ export const attackProtectionRoutes = new OpenAPIHono<{
       method: "get",
       path: "/brute-force-protection",
       request: { headers: z.object({ "tenant-id": z.string().optional() }) },
-      security: [{ Bearer: ["read:attack_protection", "auth:read"] }],
+      security: [{ Bearer: ["read:attack_protection"] }],
       responses: {
         200: {
           content: {
@@ -160,7 +160,7 @@ export const attackProtectionRoutes = new OpenAPIHono<{
         },
         headers: z.object({ "tenant-id": z.string().optional() }),
       },
-      security: [{ Bearer: ["update:attack_protection", "auth:write"] }],
+      security: [{ Bearer: ["update:attack_protection"] }],
       responses: {
         200: {
           content: {
@@ -182,7 +182,7 @@ export const attackProtectionRoutes = new OpenAPIHono<{
       method: "get",
       path: "/suspicious-ip-throttling",
       request: { headers: z.object({ "tenant-id": z.string().optional() }) },
-      security: [{ Bearer: ["read:attack_protection", "auth:read"] }],
+      security: [{ Bearer: ["read:attack_protection"] }],
       responses: {
         200: {
           content: {
@@ -208,7 +208,7 @@ export const attackProtectionRoutes = new OpenAPIHono<{
         },
         headers: z.object({ "tenant-id": z.string().optional() }),
       },
-      security: [{ Bearer: ["update:attack_protection", "auth:write"] }],
+      security: [{ Bearer: ["update:attack_protection"] }],
       responses: {
         200: {
           content: {

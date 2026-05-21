@@ -74,7 +74,7 @@ export const statsRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:stats", "auth:read"],
+          Bearer: ["read:stats"],
         },
       ],
       responses: {
@@ -127,7 +127,7 @@ export const statsRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:stats", "auth:read"],
+          Bearer: ["read:stats"],
         },
       ],
       responses: {

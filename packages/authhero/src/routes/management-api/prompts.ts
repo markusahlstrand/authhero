@@ -29,7 +29,7 @@ export const promptsRoutes = new OpenAPIHono<{
 
       security: [
         {
-          Bearer: ["read:prompts", "auth:read"],
+          Bearer: ["read:prompts"],
         },
       ],
       responses: {
@@ -78,7 +78,7 @@ export const promptsRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["update:prompts", "auth:write"],
+          Bearer: ["update:prompts"],
         },
       ],
       responses: {
@@ -127,7 +127,7 @@ export const promptsRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:prompts", "auth:read"],
+          Bearer: ["read:prompts"],
         },
       ],
       responses: {
@@ -172,7 +172,7 @@ export const promptsRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:prompts", "auth:read"],
+          Bearer: ["read:prompts"],
         },
       ],
       responses: {
@@ -218,7 +218,7 @@ export const promptsRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:prompts", "auth:read"],
+          Bearer: ["read:prompts"],
         },
       ],
       responses: {
@@ -270,7 +270,7 @@ export const promptsRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["update:prompts", "auth:write"],
+          Bearer: ["update:prompts"],
         },
       ],
       responses: {
@@ -326,7 +326,7 @@ export const promptsRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["delete:prompts", "auth:write"],
+          Bearer: ["delete:prompts"],
         },
       ],
       responses: {

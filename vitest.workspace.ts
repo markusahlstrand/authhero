@@ -2,7 +2,7 @@ import { defineWorkspace } from "vitest/config";
 
 export default defineWorkspace([
   // Reference vite.config.ts files to inherit their test configs
-  "./apps/react-admin/vite.config.ts",
+  "./apps/admin/vite.config.ts",
   "./packages/kysely/vite.config.ts",
   "./packages/cloudflare/vite.config.ts",
   "./packages/authhero/vite.config.ts",

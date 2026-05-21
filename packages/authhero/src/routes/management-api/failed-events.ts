@@ -41,7 +41,7 @@ export const failedEventsRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:logs", "auth:read"],
+          Bearer: ["read:logs"],
         },
       ],
       responses: {
@@ -94,7 +94,7 @@ export const failedEventsRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["update:logs", "auth:write"],
+          Bearer: ["update:logs"],
         },
       ],
       responses: {

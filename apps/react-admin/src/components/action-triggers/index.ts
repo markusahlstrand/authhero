@@ -1,1 +1,0 @@
-export { ActionTriggersList } from "./list";

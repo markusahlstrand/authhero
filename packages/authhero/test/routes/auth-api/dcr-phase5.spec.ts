@@ -199,7 +199,7 @@ describe("Phase 5 — GET /api/v2/users/:user_id/connected-clients", () => {
     expect(body).toEqual([]);
   });
 
-  it("rejects request without read:clients/read:users/auth:read scope", async () => {
+  it("rejects request without read:clients/read:users scope", async () => {
     const { managementApp, env } = await getTestServer();
     const { createToken } = await import("../../helpers/token");
     const limited = await createToken({ permissions: ["delete:users"] });
