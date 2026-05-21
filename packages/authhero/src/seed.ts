@@ -906,7 +906,7 @@ export async function seed(
     console.log(`Organization "${tenantId}" already exists, skipping...`);
   }
 
-  // Create admin role with auth:read and auth:write permissions
+  // Create admin role granted every management API permission
   const adminRoleName = "Tenant Admin";
   const existingRoles = await adapters.roles.list(tenantId, {});
   let adminRole = existingRoles.roles.find((r) => r.name === adminRoleName);

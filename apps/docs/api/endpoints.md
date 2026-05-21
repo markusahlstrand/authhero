@@ -25,8 +25,7 @@ tenant-id: <your-tenant-id>
 
 **Scopes:**
 
-- `auth:read` - Read access to resources
-- `auth:write` - Write access to resources
+Each endpoint requires a specific Auth0-style scope (e.g. `read:users`, `create:clients`, `update:connections`). See the OpenAPI document at `GET /api/v2/spec` for the exact scope required by each route.
 
 ## Auth API Endpoints
 

@@ -23,7 +23,7 @@ export const emailProviderRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["read:emails", "auth:read"],
+          Bearer: ["read:email_provider"],
         },
       ],
       responses: {
@@ -68,7 +68,7 @@ export const emailProviderRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["create:emails", "auth:write"],
+          Bearer: ["create:email_provider"],
         },
       ],
       responses: {
@@ -135,7 +135,7 @@ export const emailProviderRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["update:emails", "auth:write"],
+          Bearer: ["update:email_provider"],
         },
       ],
       responses: {
@@ -184,7 +184,7 @@ export const emailProviderRoutes = new OpenAPIHono<{
       },
       security: [
         {
-          Bearer: ["delete:emails", "auth:write"],
+          Bearer: ["delete:email_provider"],
         },
       ],
       responses: {

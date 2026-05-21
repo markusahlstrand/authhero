@@ -49,6 +49,7 @@ import { authenticationMethodsRoutes } from "./authentication-methods";
 import { DataAdapters } from "@authhero/adapter-interfaces";
 import { outboxMiddleware } from "../../middlewares/outbox";
 import { LogsDestination } from "../../helpers/outbox-destinations/logs";
+import { LogStreamDestination } from "../../helpers/outbox-destinations/log-streams";
 import { WebhookDestination } from "../../helpers/outbox-destinations/webhooks";
 import { RegistrationFinalizerDestination } from "../../helpers/outbox-destinations/registration-finalizer";
 import { createServiceToken } from "../../helpers/service-token";
@@ -302,6 +303,9 @@ export default function create(config: AuthHeroConfig) {
       getOutbox: () => managementAdapter.outbox,
       getDestinations: (ctx) => [
         new LogsDestination(managementAdapter.logs),
+        ...(managementAdapter.logStreams
+          ? [new LogStreamDestination(managementAdapter.logStreams)]
+          : []),
         new WebhookDestination(managementAdapter.hooks, async (tenantId) => {
           const token = await createServiceToken(ctx, tenantId, "webhook");
           return token.access_token;

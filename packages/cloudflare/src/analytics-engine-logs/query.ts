@@ -14,10 +14,20 @@ interface AnalyticsEngineQueryResponse {
 }
 
 /**
+ * Minimal shape the SQL API call needs. Both the logs adapter config and the
+ * action-executions adapter config satisfy it, so the helper is shared.
+ */
+export interface AnalyticsEngineSqlConfig {
+  accountId: string;
+  apiToken: string;
+  timeout?: number;
+}
+
+/**
  * Execute a SQL query against Analytics Engine
  */
 export async function executeAnalyticsEngineQuery(
-  config: AnalyticsEngineLogsAdapterConfig,
+  config: AnalyticsEngineSqlConfig | AnalyticsEngineLogsAdapterConfig,
   query: string,
 ): Promise<Record<string, any>[]> {
   const timeout = config.timeout || 30000;
