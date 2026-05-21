@@ -1,52 +1,25 @@
-import {
-  Edit,
-  SimpleForm,
-  TextInput,
-  SelectInput,
-  BooleanInput,
-  NumberInput,
-} from "@/components/admin";
-import { useRecordContext } from "ra-core";
-import { triggerChoices, getTemplateChoicesForTrigger } from "./hookConstants";
-
-function TypeSpecificFields() {
-  const record = useRecordContext<{
-    url?: string;
-    form_id?: string;
-    template_id?: string;
-    code_id?: string;
-    trigger_id?: string;
-  }>();
-  if (!record) return null;
-  if (record.url) return <TextInput source="url" label="Webhook URL" />;
-  if (record.form_id) return <TextInput source="form_id" label="Form ID" />;
-  if (record.template_id) {
-    return (
-      <SelectInput
-        source="template_id"
-        label="Template"
-        choices={getTemplateChoicesForTrigger(record.trigger_id)}
-      />
-    );
-  }
-  if (record.code_id) return <TextInput source="code_id" label="Code ID" />;
-  return null;
-}
+import { Edit, SimpleForm } from "@/components/admin";
+import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { UrlTabs } from "@/components/ui/url-tabs";
+import { DetailsTab } from "./tabs/details-tab";
+import { RawJsonTab } from "./tabs/raw-json-tab";
 
 export function HookEdit() {
   return (
-    <Edit>
-      <SimpleForm>
-        <TypeSpecificFields />
-        <SelectInput source="trigger_id" label="Trigger" choices={triggerChoices} />
-        <BooleanInput source="enabled" />
-        <BooleanInput source="synchronous" />
-        <NumberInput source="priority" />
-        <BooleanInput source="metadata.inheritable" label="Inheritable" />
-        <BooleanInput
-          source="metadata.copy_user_metadata"
-          label="Copy user metadata"
-        />
+    <Edit mutationMode="pessimistic">
+      <SimpleForm className="max-w-none">
+        <UrlTabs defaultValue="details" className="w-full">
+          <TabsList>
+            <TabsTrigger value="details">Details</TabsTrigger>
+            <TabsTrigger value="raw">Raw JSON</TabsTrigger>
+          </TabsList>
+          <TabsContent value="details" className="mt-4">
+            <DetailsTab />
+          </TabsContent>
+          <TabsContent value="raw" className="mt-4">
+            <RawJsonTab />
+          </TabsContent>
+        </UrlTabs>
       </SimpleForm>
     </Edit>
   );

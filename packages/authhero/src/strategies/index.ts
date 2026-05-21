@@ -37,6 +37,17 @@ export type UserInfo = {
   name?: string;
 };
 
+/**
+ * Verified result returned by strategies that also expose the unmodified
+ * upstream payload (id_token payload, userinfo response, etc.). Used by the
+ * "Try Connection" diagnostic flow to surface raw provider claims to the
+ * caller — production flows only consume `userinfo`.
+ */
+export type UserInfoWithRaw = {
+  userinfo: UserInfo;
+  raw: Record<string, unknown> | null;
+};
+
 export type StrategyHandler = {
   displayName: string;
   logoDataUri: string;
@@ -51,6 +62,16 @@ export type StrategyHandler = {
     code: string,
     codeVerifier?: string,
   ) => Promise<UserInfo>;
+  // Optional variant returning the raw upstream payload alongside the
+  // normalized `UserInfo`. When unimplemented, the try-connection flow
+  // falls back to `validateAuthorizationCodeAndGetUser` and surfaces
+  // `raw: null` — strategies are expected to add this incrementally.
+  validateAuthorizationCodeAndGetUserWithRaw?: (
+    ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+    connection: Connection,
+    code: string,
+    codeVerifier?: string,
+  ) => Promise<UserInfoWithRaw>;
   disableEmbeddedBrowsers?: boolean;
 };
 

@@ -53,12 +53,23 @@ export async function getRedirect(
   };
 }
 
-export async function validateAuthorizationCodeAndGetUser(
+async function validateAuthorizationCodeAndGetUserInternal(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   connection: Connection,
   code: string,
   code_verifier?: string,
-) {
+): Promise<{
+  userinfo: {
+    sub: string;
+    email?: string;
+    given_name?: string;
+    family_name?: string;
+    name?: string;
+    picture?: string;
+    locale?: string;
+  };
+  raw: Record<string, unknown> | null;
+}> {
   const { options } = connection;
 
   if (!options?.client_id || !options.client_secret || !code_verifier) {
@@ -80,14 +91,39 @@ export async function validateAuthorizationCodeAndGetUser(
   }
 
   const payload = idTokenSchema.parse(idToken.payload);
+  const picture =
+    typeof payload.picture === "string" ? payload.picture : undefined;
+  const locale =
+    typeof payload.locale === "string" ? payload.locale : undefined;
 
   return {
-    sub: payload.sub,
-    email: payload.email,
-    given_name: payload.given_name,
-    family_name: payload.family_name,
-    name: payload.name,
-    picture: payload.picture,
-    locale: payload.locale,
+    userinfo: {
+      sub: payload.sub,
+      email: payload.email,
+      given_name: payload.given_name,
+      family_name: payload.family_name,
+      name: payload.name,
+      picture,
+      locale,
+    },
+    raw: { ...idToken.payload } as Record<string, unknown>,
   };
 }
+
+export async function validateAuthorizationCodeAndGetUser(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  connection: Connection,
+  code: string,
+  code_verifier?: string,
+) {
+  const { userinfo } = await validateAuthorizationCodeAndGetUserInternal(
+    ctx,
+    connection,
+    code,
+    code_verifier,
+  );
+  return userinfo;
+}
+
+export const validateAuthorizationCodeAndGetUserWithRaw =
+  validateAuthorizationCodeAndGetUserInternal;

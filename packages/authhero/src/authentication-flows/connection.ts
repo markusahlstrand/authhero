@@ -12,6 +12,7 @@ import { Bindings, Variables } from "../types";
 import {
   OAUTH2_CODE_EXPIRES_IN_SECONDS,
   UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS,
+  isTryConnectionClientId,
 } from "../constants";
 import {
   getStrategy,
@@ -22,6 +23,7 @@ import { getEnrichedClient } from "../helpers/client";
 import { getOrCreateUserByProvider } from "../helpers/users";
 import { finalizeAuthenticatedSession } from "./common";
 import { setTenantId } from "../helpers/set-tenant-id";
+import { writeTryConnectionResult } from "./try-connection";
 import { nanoid } from "nanoid";
 
 export async function connectionAuth(
@@ -137,15 +139,25 @@ export async function connectionCallback(
   ctx.set("client_id", client.client_id);
   setTenantId(ctx, client.tenant.id);
 
-  const connection = client.connections.find(
-    (p) => p.id === auth0state.connection_id,
-  );
+  const isTryMode = isTryConnectionClientId(client.client_id);
+  const connectionId: string = auth0state.connection_id;
+
+  const connection = client.connections.find((p) => p.id === connectionId);
 
   if (!connection) {
     await logMessage(ctx, client.tenant.id, {
       type: LogTypes.FAILED_LOGIN,
       description: "Connection not found",
     });
+    if (isTryMode) {
+      return writeTryConnectionResult(ctx, client.tenant.id, loginSession, {
+        status: "error",
+        connection_id: connectionId,
+        error: "connection_not_found",
+        error_description: "Connection not found",
+        completed_at: new Date().toISOString(),
+      });
+    }
     throw new JSONHTTPException(403, { message: "Connection not found" });
   }
 
@@ -160,6 +172,54 @@ export async function connectionCallback(
   }
 
   const strategy = getStrategy(ctx, connection.strategy);
+
+  if (isTryMode) {
+    const completedAt = new Date().toISOString();
+    try {
+      const withRaw = strategy.validateAuthorizationCodeAndGetUserWithRaw
+        ? await strategy.validateAuthorizationCodeAndGetUserWithRaw(
+            ctx,
+            connection,
+            code,
+            auth0state.code_verifier,
+          )
+        : {
+            userinfo: await strategy.validateAuthorizationCodeAndGetUser(
+              ctx,
+              connection,
+              code,
+              auth0state.code_verifier,
+            ),
+            raw: null,
+          };
+      ctx.set("user_id", withRaw.userinfo.sub);
+      return writeTryConnectionResult(ctx, client.tenant.id, loginSession, {
+        status: "success",
+        connection_id: connectionId,
+        connection_name: connection.name,
+        strategy: connection.strategy,
+        userinfo: withRaw.userinfo as Record<string, unknown>,
+        raw: withRaw.raw,
+        completed_at: completedAt,
+      });
+    } catch (err) {
+      const description =
+        err instanceof Error ? err.message : "Strategy validation failed";
+      await logMessage(ctx, client.tenant.id, {
+        type: LogTypes.FAILED_LOGIN,
+        description: `Try connection failed: ${description}`,
+      });
+      return writeTryConnectionResult(ctx, client.tenant.id, loginSession, {
+        status: "error",
+        connection_id: connectionId,
+        connection_name: connection.name,
+        strategy: connection.strategy,
+        error: "strategy_error",
+        error_description: description,
+        completed_at: completedAt,
+      });
+    }
+  }
 
   const userinfo = await strategy.validateAuthorizationCodeAndGetUser(
     ctx,

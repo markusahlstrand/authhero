@@ -9,6 +9,7 @@ import { AuthenticationMethodsTab } from "./tabs/authentication-methods-tab";
 import { PasswordPolicyTab } from "./tabs/password-policy-tab";
 import { ClientsTab } from "./tabs/clients-tab";
 import { RawJsonTab } from "./tabs/raw-json-tab";
+import { TryTab } from "./tabs/try-tab";
 
 // Recursively strip null values so cleared inputs don't send "null" to the API.
 function stripNulls(value: unknown): unknown {
@@ -44,6 +45,7 @@ function ConnectionTabs() {
           <TabsTrigger value="password-policy">Password Policy</TabsTrigger>
         )}
         <TabsTrigger value="clients">Clients</TabsTrigger>
+        <TabsTrigger value="try">Try</TabsTrigger>
         <TabsTrigger value="raw">Raw JSON</TabsTrigger>
       </TabsList>
       <TabsContent value="details" className="mt-4">
@@ -66,6 +68,9 @@ function ConnectionTabs() {
       )}
       <TabsContent value="clients" className="mt-4">
         <ClientsTab />
+      </TabsContent>
+      <TabsContent value="try" className="mt-4">
+        <TryTab />
       </TabsContent>
       <TabsContent value="raw" className="mt-4">
         <RawJsonTab />

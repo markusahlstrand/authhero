@@ -59,12 +59,21 @@ export async function getRedirect(
   };
 }
 
-export async function validateAuthorizationCodeAndGetUser(
+async function validateAuthorizationCodeAndGetUserInternal(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   connection: Connection,
   code: string,
   codeVerifier?: string,
-) {
+): Promise<{
+  userinfo: {
+    sub: string;
+    email?: string;
+    given_name?: string;
+    family_name?: string;
+    name?: string;
+  };
+  raw: Record<string, unknown> | null;
+}> {
   const { options } = connection;
 
   if (!options?.client_id || !options.token_endpoint) {
@@ -93,11 +102,14 @@ export async function validateAuthorizationCodeAndGetUser(
     if (idToken?.payload) {
       const payload = idTokenSchema.passthrough().parse(idToken.payload);
       return {
-        sub: payload.sub,
-        email: payload.email,
-        given_name: payload.given_name,
-        family_name: payload.family_name,
-        name: payload.name,
+        userinfo: {
+          sub: payload.sub,
+          email: payload.email,
+          given_name: payload.given_name,
+          family_name: payload.family_name,
+          name: payload.name,
+        },
+        raw: { ...idToken.payload } as Record<string, unknown>,
       };
     }
   }
@@ -114,20 +126,25 @@ export async function validateAuthorizationCodeAndGetUser(
       throw new Error("Failed to fetch user info");
     }
 
-    const user = await userResponse.json();
+    const user = (await userResponse.json()) as Record<string, unknown>;
 
-    if (!user.sub) {
+    if (!user.sub || typeof user.sub !== "string") {
       throw new Error(
         "Unable to get user identifier: userinfo response missing sub",
       );
     }
 
     return {
-      sub: user.sub,
-      email: user.email,
-      given_name: user.given_name,
-      family_name: user.family_name,
-      name: user.name,
+      userinfo: {
+        sub: user.sub,
+        email: typeof user.email === "string" ? user.email : undefined,
+        given_name:
+          typeof user.given_name === "string" ? user.given_name : undefined,
+        family_name:
+          typeof user.family_name === "string" ? user.family_name : undefined,
+        name: typeof user.name === "string" ? user.name : undefined,
+      },
+      raw: user,
     };
   }
 
@@ -135,3 +152,21 @@ export async function validateAuthorizationCodeAndGetUser(
     "Unable to get user information: no ID token or userinfo endpoint",
   );
 }
+
+export async function validateAuthorizationCodeAndGetUser(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  connection: Connection,
+  code: string,
+  codeVerifier?: string,
+) {
+  const { userinfo } = await validateAuthorizationCodeAndGetUserInternal(
+    ctx,
+    connection,
+    code,
+    codeVerifier,
+  );
+  return userinfo;
+}
+
+export const validateAuthorizationCodeAndGetUserWithRaw =
+  validateAuthorizationCodeAndGetUserInternal;
