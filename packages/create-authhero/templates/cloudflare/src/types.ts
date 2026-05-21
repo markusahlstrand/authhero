@@ -11,6 +11,7 @@ export interface Env {
   // Uncomment to enable:
   // ──────────────────────────────────────────────────────────────────────────
   // AUTH_LOGS: AnalyticsEngineDataset;
+  // AUTH_ACTION_EXECUTIONS: AnalyticsEngineDataset; // Optional: separate dataset for action executions
   // CLOUDFLARE_ACCOUNT_ID: string;
   // CLOUDFLARE_API_TOKEN: string;
   // ANALYTICS_ENGINE_API_TOKEN?: string; // Optional: separate token for Analytics Engine

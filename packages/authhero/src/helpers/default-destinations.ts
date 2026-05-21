@@ -1,6 +1,7 @@
 import { DataAdapters } from "@authhero/adapter-interfaces";
 import { EventDestination } from "./outbox-relay";
 import { LogsDestination } from "./outbox-destinations/logs";
+import { LogStreamDestination } from "./outbox-destinations/log-streams";
 import {
   WebhookDestination,
   type GetServiceToken,
@@ -10,10 +11,10 @@ import type { WebhookInvoker } from "../types/AuthHeroConfig";
 
 export interface CreateDefaultDestinationsConfig {
   /**
-   * Data adapter — only the `logs`, `hooks`, and `users` adapters are used
-   * by the built-in destinations.
+   * Data adapter — only the `logs`, `hooks`, `users`, and `logStreams`
+   * adapters are used by the built-in destinations.
    */
-  dataAdapter: Pick<DataAdapters, "logs" | "hooks" | "users">;
+  dataAdapter: Pick<DataAdapters, "logs" | "hooks" | "users" | "logStreams">;
 
   /**
    * Produces a Bearer access token for the given tenant, used when POSTing
@@ -71,6 +72,10 @@ export function createDefaultDestinations(
   const destinations: EventDestination[] = [
     new LogsDestination(dataAdapter.logs),
   ];
+
+  if (dataAdapter.logStreams) {
+    destinations.push(new LogStreamDestination(dataAdapter.logStreams));
+  }
 
   if (getServiceToken) {
     destinations.push(

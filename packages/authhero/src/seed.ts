@@ -111,6 +111,7 @@ export const MANAGEMENT_API_SCOPES = [
   { description: "Read Tenant Settings", value: "read:tenant_settings" },
   { description: "Update Tenant Settings", value: "update:tenant_settings" },
   { description: "Read Logs", value: "read:logs" },
+  { description: "Update Logs", value: "update:logs" },
   { description: "Read logs relating to users", value: "read:logs_users" },
   { description: "Read Shields", value: "read:shields" },
   { description: "Create Shields", value: "create:shields" },
@@ -906,7 +907,7 @@ export async function seed(
     console.log(`Organization "${tenantId}" already exists, skipping...`);
   }
 
-  // Create admin role with auth:read and auth:write permissions
+  // Create admin role granted every management API permission
   const adminRoleName = "Tenant Admin";
   const existingRoles = await adapters.roles.list(tenantId, {});
   let adminRole = existingRoles.roles.find((r) => r.name === adminRoleName);

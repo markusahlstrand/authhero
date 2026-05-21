@@ -240,17 +240,13 @@ export async function postUserLoginHook(
       : StrategyType.DATABASE;
   const strategy = params?.authStrategy?.strategy || user.connection || "";
 
-  // Log successful login
-  logMessage(ctx, tenant_id, {
-    type: LogTypes.SUCCESS_LOGIN,
-    description: `Successful login for ${user.user_id}`,
-    userId: user.user_id,
-    strategy_type,
-    strategy,
-    connection: strategy, // Use the same value for both strategy and connection
-    audience: params?.authParams?.audience,
-    scope: params?.authParams?.scope,
-  });
+  // SUCCESS_LOGIN is emitted in the `finally` below — deferred so we can embed
+  // `details.execution_id` when post-login actions ran (matches Auth0's model
+  // of reaching executions via tenant logs). The try/finally guarantees the
+  // log still fires for early returns (form/page/env-hook redirects) and even
+  // if a hook throws, preserving the prior unconditional-emission behavior.
+  let executionId: string | null = null;
+  try {
 
   // Update the user's last login info
   await data.users.update(tenant_id, user.user_id, {
@@ -441,14 +437,15 @@ export async function postUserLoginHook(
         });
       }
     }
-    const executionId = await persistActionExecution(
+    const persistedExecutionId = await persistActionExecution(
       data,
       tenant_id,
       "post-user-login",
       outcomes,
     );
-    if (executionId) {
-      ctx.set("action_execution_id", executionId);
+    if (persistedExecutionId) {
+      executionId = persistedExecutionId;
+      ctx.set("action_execution_id", persistedExecutionId);
     }
   }
 
@@ -462,4 +459,17 @@ export async function postUserLoginHook(
 
   // If no form hook, just return the user
   return user;
+  } finally {
+    logMessage(ctx, tenant_id, {
+      type: LogTypes.SUCCESS_LOGIN,
+      description: `Successful login for ${user.user_id}`,
+      userId: user.user_id,
+      strategy_type,
+      strategy,
+      connection: strategy,
+      audience: params?.authParams?.audience,
+      scope: params?.authParams?.scope,
+      ...(executionId ? { details: { execution_id: executionId } } : {}),
+    });
+  }
 }

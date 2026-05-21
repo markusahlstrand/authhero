@@ -35,6 +35,15 @@ export default {
     //     apiToken: env.ANALYTICS_ENGINE_API_TOKEN || env.CLOUDFLARE_API_TOKEN,
     //     dataset: "authhero_logs",
     //   },
+    //   // Persist Auth0-style action execution records into a dedicated AE
+    //   // dataset so the executions referenced by login logs live alongside
+    //   // them. Requires a separate analytics_engine_datasets binding.
+    //   analyticsEngineActionExecutions: {
+    //     analyticsEngineBinding: env.AUTH_ACTION_EXECUTIONS,
+    //     accountId: env.CLOUDFLARE_ACCOUNT_ID,
+    //     apiToken: env.ANALYTICS_ENGINE_API_TOKEN || env.CLOUDFLARE_API_TOKEN,
+    //     dataset: "authhero_action_executions",
+    //   },
     // });
 
     // ────────────────────────────────────────────────────────────────────────

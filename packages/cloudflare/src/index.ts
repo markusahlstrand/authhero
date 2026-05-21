@@ -5,6 +5,7 @@ import {
   GeoAdapter,
   RateLimitAdapter,
   AnalyticsAdapter,
+  ActionExecutionsAdapter,
 } from "@authhero/adapter-interfaces";
 import { createCustomDomainsAdapter } from "./customDomains";
 import { createCloudflareCache } from "./cache";
@@ -18,6 +19,10 @@ import {
   type AnalyticsEngineLogsAdapterConfig,
   type AnalyticsEngineDataset,
 } from "./analytics-engine-logs";
+import {
+  createAnalyticsEngineActionExecutionsAdapter,
+  type AnalyticsEngineActionExecutionsAdapterConfig,
+} from "./analytics-engine-action-executions";
 import { createCloudflareGeoAdapter } from "./geo";
 import {
   createCloudflareRateLimitAdapter,
@@ -30,6 +35,7 @@ import { CloudflareConfig } from "./types/CloudflareConfig";
 export type { R2SQLLogsAdapterConfig };
 // Re-export Analytics Engine config types for convenience
 export type { AnalyticsEngineLogsAdapterConfig, AnalyticsEngineDataset };
+export type { AnalyticsEngineActionExecutionsAdapterConfig };
 // Re-export rate-limit types so consumers can type their wrangler bindings
 export type { CloudflareRateLimitBinding, CloudflareRateLimitBindings };
 export { createCloudflareRateLimitAdapter } from "./rate-limit";
@@ -55,6 +61,7 @@ export { WorkerLoaderCodeExecutor } from "./code-executor/worker-loader";
 export { createAnalyticsEngineLogsAdapter } from "./analytics-engine-logs";
 export { createAnalyticsEngineStatsAdapter } from "./analytics-engine-logs";
 export { createAnalyticsEngineAnalyticsAdapter } from "./analytics-engine-logs";
+export { createAnalyticsEngineActionExecutionsAdapter } from "./analytics-engine-action-executions";
 export { createR2SQLLogsAdapter } from "./r2-sql-logs";
 export { createR2SQLStatsAdapter } from "./r2-sql-logs";
 
@@ -65,6 +72,7 @@ export interface CloudflareAdapters {
   analytics?: AnalyticsAdapter;
   geo?: GeoAdapter;
   rateLimit?: RateLimitAdapter;
+  actionExecutions?: ActionExecutionsAdapter;
 }
 
 export default function createAdapters(
@@ -98,6 +106,12 @@ export default function createAdapters(
   if (config.analyticsEngineLogs) {
     adapters.analytics = createAnalyticsEngineAnalyticsAdapter(
       config.analyticsEngineLogs,
+    );
+  }
+
+  if (config.analyticsEngineActionExecutions) {
+    adapters.actionExecutions = createAnalyticsEngineActionExecutionsAdapter(
+      config.analyticsEngineActionExecutions,
     );
   }
 

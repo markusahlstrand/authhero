@@ -8,10 +8,10 @@ All organization endpoints are under `/api/v2/organizations` in the Management A
 
 ## Authentication
 
-All endpoints require a Bearer token with appropriate scopes:
+All endpoints require a Bearer token with the appropriate Auth0-style scope:
 
-- Read operations: `auth:read`
-- Write operations: `auth:write`
+- Read operations: `read:organizations` (and `read:organization_connections` for connection sub-resources)
+- Write operations: `create:organizations`, `update:organizations`, `delete:organizations` (and the matching `*:organization_connections` for connection sub-resources)
 
 ## Headers
 

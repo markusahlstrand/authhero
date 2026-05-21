@@ -1,6 +1,7 @@
 import { CustomDomainsAdapter } from "@authhero/adapter-interfaces";
 import type { R2SQLLogsAdapterConfig } from "../r2-sql-logs";
 import type { AnalyticsEngineLogsAdapterConfig } from "../analytics-engine-logs";
+import type { AnalyticsEngineActionExecutionsAdapterConfig } from "../analytics-engine-action-executions";
 import type { CloudflareRateLimitBindings } from "../rate-limit";
 
 export interface CloudflareConfig {
@@ -31,6 +32,12 @@ export interface CloudflareConfig {
    * Use this for low-latency log writes with Cloudflare Analytics Engine
    */
   analyticsEngineLogs?: AnalyticsEngineLogsAdapterConfig;
+  /**
+   * Analytics Engine action_executions adapter configuration (optional).
+   * Stores Auth0-shaped action execution records in a dedicated AE dataset
+   * so logs and the executions they reference can both live in AE.
+   */
+  analyticsEngineActionExecutions?: AnalyticsEngineActionExecutionsAdapterConfig;
   /**
    * Cloudflare Workers Rate Limiter bindings, keyed by logical scope.
    * Each binding's `limit` and `period` are baked in at deploy time; this

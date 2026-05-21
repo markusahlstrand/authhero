@@ -4,6 +4,7 @@ import Group from "@mui/icons-material/Group";
 import CloudQueue from "@mui/icons-material/CloudQueue";
 import Layers from "@mui/icons-material/Layers";
 import HistoryIcon from "@mui/icons-material/History";
+import RssFeedIcon from "@mui/icons-material/RssFeed";
 import FormatAlignLeftIcon from "@mui/icons-material/FormatAlignLeft";
 import BusinessIcon from "@mui/icons-material/Business";
 import SettingsIcon from "@mui/icons-material/Settings";
@@ -36,6 +37,11 @@ import { LogsList, LogShow } from "./components/logs";
 import { ActionCreate, ActionEdit, ActionList } from "./components/actions";
 import { ActionTriggersList } from "./components/action-triggers";
 import { HookEdit, HookList, HooksCreate } from "./components/hooks";
+import {
+  LogStreamCreate,
+  LogStreamEdit,
+  LogStreamsList,
+} from "./components/log-streams";
 import { SessionEdit } from "./components/sessions";
 import {
   ResourceServerCreate,
@@ -280,6 +286,14 @@ export function App(props: AppProps) {
           name="logs"
           list={LogsList}
           show={LogShow}
+        />
+        <Resource
+          icon={RssFeedIcon}
+          name="log-streams"
+          list={LogStreamsList}
+          create={LogStreamCreate}
+          edit={LogStreamEdit}
+          options={{ label: "Log Streams" }}
         />
         <Resource name="sessions" edit={SessionEdit} show={ShowGuesser} />
         <Resource

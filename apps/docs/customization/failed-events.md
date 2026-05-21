@@ -104,7 +104,7 @@ After replay, the event behaves identically to a freshly-enqueued one. Destinati
 - **Alerting**. The relay calls `console.warn(...)` on dead-letter. Wire that to your log aggregation for noisy-neighbor visibility, or poll `GET /failed-events` from an operator dashboard.
 - **Bulk replay**. Not yet exposed as a single endpoint — iterate the list and POST each id individually. See the [Roadmap](../roadmap.md) if this becomes painful.
 - **Manual discard**. Not yet exposed — dead-lettered events age out via the `cleanup` retention sweep along with normally-processed events.
-- **Auth scopes**. `GET` requires `read:logs` / `auth:read`. `POST` requires `update:logs` / `auth:write`. Both are tenant-scoped — dead-lettered events from other tenants are invisible.
+- **Auth scopes**. `GET` requires `read:logs`. `POST` requires `update:logs`. Both are tenant-scoped — dead-lettered events from other tenants are invisible.
 
 ## When to suspect the dead-letter queue
 
