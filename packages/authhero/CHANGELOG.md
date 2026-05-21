@@ -1,5 +1,17 @@
 # authhero
 
+## 5.6.0
+
+### Minor Changes
+
+- 30233a7: Deliver audit events to tenant-configured HTTP log streams. The new `LogStreamDestination` is wired into the outbox pipeline (both inline and via `createDefaultDestinations`) and POSTs each event to every active HTTP log stream for the tenant. The sink shape mirrors Auth0's (`http_endpoint`, `http_authorization`, `http_content_type`, `http_content_format`, `http_custom_headers`), and `filters` are honored against `log_type`. Admin UI gains a Log Streams resource for managing HTTP sinks.
+
+### Patch Changes
+
+- 30233a7: Add an Analytics Engine-backed `actionExecutions` adapter and decorate the post-login tenant log with the executed action's `execution_id`.
+  - `@authhero/cloudflare-adapter` exposes `createAnalyticsEngineActionExecutionsAdapter` and a new `analyticsEngineActionExecutions` option on `createCloudflareAdapters`, so action execution records can live in the same AE store as logs. One row per execution, blob layout documented inline; default dataset name `authhero_action_executions`.
+  - `authhero` now embeds `details.execution_id` on the `SUCCESS_LOGIN` log when post-login code actions ran, matching the existing token-exchange log decoration and Auth0's model of reaching executions via tenant logs. The success-login log is now emitted via a `try/finally` so it still fires on early-return / throw paths.
+
 ## 5.5.0
 
 ### Minor Changes
