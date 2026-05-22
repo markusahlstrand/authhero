@@ -63,7 +63,7 @@ export async function passwordlessGrantUser(
 
   if (!code) {
     logMessage(ctx, client.tenant.id, {
-      type: LogTypes.FAILED_EXCHANGE_PASSWORD_OTP_FOR_ACCESS_TOKEN,
+      type: LogTypes.FAILED_EXCHANGE_PASSWORDLESS_OTP_FOR_ACCESS_TOKEN,
       description: "Code invalid",
     });
     throw new JSONHTTPException(400, {
@@ -74,7 +74,7 @@ export async function passwordlessGrantUser(
 
   if (code.expires_at < new Date().toISOString()) {
     logMessage(ctx, client.tenant.id, {
-      type: LogTypes.FAILED_EXCHANGE_PASSWORD_OTP_FOR_ACCESS_TOKEN,
+      type: LogTypes.FAILED_EXCHANGE_PASSWORDLESS_OTP_FOR_ACCESS_TOKEN,
       description: "Code expired",
       userId: code.user_id,
     });
@@ -86,7 +86,7 @@ export async function passwordlessGrantUser(
 
   if (code.used_at) {
     logMessage(ctx, client.tenant.id, {
-      type: LogTypes.FAILED_EXCHANGE_PASSWORD_OTP_FOR_ACCESS_TOKEN,
+      type: LogTypes.FAILED_EXCHANGE_PASSWORDLESS_OTP_FOR_ACCESS_TOKEN,
       description: "Code already used",
       userId: code.user_id,
     });
@@ -103,7 +103,7 @@ export async function passwordlessGrantUser(
 
   if (!loginSession || loginSession.authParams.username !== username) {
     logMessage(ctx, client.tenant.id, {
-      type: LogTypes.FAILED_EXCHANGE_PASSWORD_OTP_FOR_ACCESS_TOKEN,
+      type: LogTypes.FAILED_EXCHANGE_PASSWORDLESS_OTP_FOR_ACCESS_TOKEN,
       description: "Login session not found or username mismatch",
       userId: code.user_id,
     });
@@ -172,7 +172,7 @@ export async function passwordlessGrant(
   const isCodeFlow = result.authParams.response_type === "code";
   if (!isCodeFlow) {
     logMessage(ctx, result.client.tenant.id, {
-      type: LogTypes.SUCCESS_EXCHANGE_PASSWORD_OTP_FOR_ACCESS_TOKEN,
+      type: LogTypes.SUCCESS_EXCHANGE_PASSWORDLESS_OTP_FOR_ACCESS_TOKEN,
       userId: result.user.user_id,
       connection: result.connectionType,
       strategy: result.connectionType === "sms" ? Strategy.SMS : Strategy.EMAIL,

@@ -262,6 +262,10 @@ gtag('config', 'G-DNZWG3PF2L');`,
               link: "/features/mfa",
             },
             { text: "Hooks", link: "/features/hooks" },
+            {
+              text: "Invitations & Tickets",
+              link: "/features/invitations-and-tickets",
+            },
             { text: "Account Linking", link: "/features/account-linking" },
             { text: "Impersonation", link: "/features/impersonation" },
             {

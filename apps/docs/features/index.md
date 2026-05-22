@@ -9,6 +9,7 @@ description: AuthHero features — authentication flows, MFA, hooks, account lin
 - **[SPA Authentication](/features/spa-authentication)** — Patterns for securing single-page applications
 - **[Multi-Factor Authentication](/features/mfa)** — TOTP, email, and SMS second factors
 - **[Hooks](/features/hooks)** — Customize the authentication lifecycle with code hooks, webhooks, and form hooks
+- **[Invitations & Tickets](/features/invitations-and-tickets)** — Send Auth0-compatible organization invitations and issue email-verification / password-change tickets
 - **[Account Linking](/features/account-linking)** — Consolidate multiple identities into a single user profile
 - **[Impersonation](/features/impersonation)** — Allow admins to sign in as another user
 - **[Session Management](/features/session-management)** — Login sessions, user sessions, and session configuration

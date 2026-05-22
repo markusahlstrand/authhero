@@ -296,17 +296,25 @@ export async function sendResetPassword(
     tenantName: tenant.friendly_name,
   };
 
-  await sendTemplatedEmail(ctx, {
-    to,
-    templateName: "reset_email",
-    legacyTemplate: "auth-password-reset",
-    fallbackSubject: t("reset_password_title", options),
-    fallbackHtml: `Click here to reset your password: ${passwordResetUrl}`,
-    tenant,
-    branding: { logo, primary_color: buttonColor },
-    url: passwordResetUrl,
-    data,
-  });
+  try {
+    await sendTemplatedEmail(ctx, {
+      to,
+      templateName: "reset_email",
+      legacyTemplate: "auth-password-reset",
+      fallbackSubject: t("reset_password_title", options),
+      fallbackHtml: `Click here to reset your password: ${passwordResetUrl}`,
+      tenant,
+      branding: { logo, primary_color: buttonColor },
+      url: passwordResetUrl,
+      data,
+    });
+  } catch (err) {
+    logMessage(ctx, tenant.id, {
+      type: LogTypes.FAILED_CHANGE_PASSWORD_REQUEST,
+      description: to,
+    });
+    throw err;
+  }
 
   // Log the password reset request
   logMessage(ctx, tenant.id, {
@@ -356,17 +364,25 @@ export async function sendResetPasswordCode(
     copyright: t("copyright", options),
   };
 
-  await sendTemplatedEmail(ctx, {
-    to,
-    templateName: "reset_email_by_code",
-    legacyTemplate: "auth-code",
-    fallbackSubject: t("reset_password_title", options),
-    fallbackHtml: `Your password reset code is: ${code}`,
-    tenant,
-    branding: { logo, primary_color: buttonColor },
-    code,
-    data,
-  });
+  try {
+    await sendTemplatedEmail(ctx, {
+      to,
+      templateName: "reset_email_by_code",
+      legacyTemplate: "auth-code",
+      fallbackSubject: t("reset_password_title", options),
+      fallbackHtml: `Your password reset code is: ${code}`,
+      tenant,
+      branding: { logo, primary_color: buttonColor },
+      code,
+      data,
+    });
+  } catch (err) {
+    logMessage(ctx, tenant.id, {
+      type: LogTypes.FAILED_CHANGE_PASSWORD_REQUEST,
+      description: to,
+    });
+    throw err;
+  }
 
   logMessage(ctx, tenant.id, {
     type: LogTypes.SUCCESS_CHANGE_PASSWORD_REQUEST,
@@ -625,16 +641,31 @@ export async function sendValidateEmailAddress(
     copyright: t("copyright", options),
   };
 
-  await sendTemplatedEmail(ctx, {
-    to: user.email,
-    templateName: "verify_email",
-    legacyTemplate: "auth-verify-email",
-    fallbackSubject: t("welcome_to_your_account", options),
-    fallbackHtml: `Click here to validate your email: ${emailValidationUrl}`,
-    tenant,
-    branding: { logo, primary_color: buttonColor },
-    url: emailValidationUrl,
-    data,
+  try {
+    await sendTemplatedEmail(ctx, {
+      to: user.email,
+      templateName: "verify_email",
+      legacyTemplate: "auth-verify-email",
+      fallbackSubject: t("welcome_to_your_account", options),
+      fallbackHtml: `Click here to validate your email: ${emailValidationUrl}`,
+      tenant,
+      branding: { logo, primary_color: buttonColor },
+      url: emailValidationUrl,
+      data,
+    });
+  } catch (err) {
+    logMessage(ctx, tenant.id, {
+      type: LogTypes.FAILED_VERIFICATION_EMAIL_REQUEST,
+      description: user.email,
+      userId: user.user_id,
+    });
+    throw err;
+  }
+
+  logMessage(ctx, tenant.id, {
+    type: LogTypes.SUCCESS_VERIFICATION_EMAIL_REQUEST,
+    description: user.email,
+    userId: user.user_id,
   });
 }
 
@@ -694,6 +725,88 @@ export async function sendSignupValidateEmailAddress(
     tenant,
     branding: { logo, primary_color: buttonColor },
     url: signupUrl,
+    data,
+  });
+}
+
+export interface SendInvitationParams {
+  to: string;
+  invitationUrl: string;
+  inviterName?: string;
+  organizationName: string;
+  ttlSec: number;
+  language?: string;
+}
+
+export async function sendInvitation(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  {
+    to,
+    invitationUrl,
+    inviterName,
+    organizationName,
+    ttlSec,
+    language,
+  }: SendInvitationParams,
+) {
+  const { tenant, logo, buttonColor, options } = await buildEmailContext(
+    ctx,
+    language,
+  );
+
+  const ttlDays = String(Math.max(1, Math.round(ttlSec / 86400)));
+  const resolvedInviterName = inviterName || tenant.friendly_name;
+
+  const tOpts = {
+    ...options,
+    inviterName: resolvedInviterName,
+    organizationName,
+    ttlDays,
+  };
+
+  const data: Record<string, string> = {
+    tenantId: tenant.id,
+    language: language || "en",
+    vendorName: tenant.friendly_name,
+    organizationName,
+    inviterName: resolvedInviterName,
+    logo,
+    invitationUrl,
+    supportUrl: tenant.support_url || "",
+    buttonColor,
+    ttlDays,
+    invitation_email_subject: t("invitation_email_subject", tOpts),
+    invitationEmailSubject: t("invitation_email_subject", tOpts),
+    invitation_email_intro: t("invitation_email_intro", tOpts),
+    invitationEmailIntro: t("invitation_email_intro", tOpts),
+    invitation_email_click_to_accept: t(
+      "invitation_email_click_to_accept",
+      tOpts,
+    ),
+    invitationEmailClickToAccept: t("invitation_email_click_to_accept", tOpts),
+    invitation_email_accept_button: t(
+      "invitation_email_accept_button",
+      tOpts,
+    ),
+    invitationEmailAcceptButton: t("invitation_email_accept_button", tOpts),
+    invitation_expires_in: t("invitation_expires_in", tOpts),
+    invitationExpiresIn: t("invitation_expires_in", tOpts),
+    supportInfo: t("support_info", tOpts),
+    support_info: t("support_info", tOpts),
+    contactUs: t("contact_us", tOpts),
+    contact_us: t("contact_us", tOpts),
+    copyright: t("copyright", tOpts),
+  };
+
+  await sendTemplatedEmail(ctx, {
+    to,
+    templateName: "user_invitation",
+    legacyTemplate: "auth-invitation",
+    fallbackSubject: t("invitation_email_subject", tOpts),
+    fallbackHtml: `You've been invited to ${organizationName}. Accept your invitation: ${invitationUrl}`,
+    tenant,
+    branding: { logo, primary_color: buttonColor },
+    url: invitationUrl,
     data,
   });
 }

@@ -7,12 +7,11 @@ import { EventDestination } from "../outbox-relay";
 
 const DEFAULT_DELIVERY_TIMEOUT_MS = 10_000;
 
-interface LogStreamPayload {
-  log_id: string;
+interface LogStreamData {
   date: string;
   type: string;
   description?: string;
-  tenant_id: string;
+  tenant_name: string;
   ip: string;
   user_agent?: string;
   user_id?: string;
@@ -37,6 +36,15 @@ interface LogStreamPayload {
   };
 }
 
+// Auth0-compatible wire shape: top-level log_id + description, with the
+// remaining fields nested under `data`. Logstash/Datadog pipelines built for
+// Auth0 use `%{[data]}` to extract the body, so the nesting is load-bearing.
+interface LogStreamPayload {
+  log_id: string;
+  description?: string;
+  data: LogStreamData;
+}
+
 interface StreamDelivery {
   tenantId: string;
   logType: string;
@@ -46,36 +54,39 @@ interface StreamDelivery {
 function toPayload(event: AuditEvent): LogStreamPayload {
   return {
     log_id: event.id,
-    date: event.timestamp,
-    type: event.log_type,
     description: event.description,
-    tenant_id: event.tenant_id,
-    ip: event.request.ip,
-    user_agent: event.request.user_agent,
-    user_id: event.actor.id,
-    user_name: event.actor.email,
-    client_id: event.actor.client_id,
-    connection: event.connection,
-    strategy: event.strategy,
-    strategy_type: event.strategy_type,
-    audience: event.audience,
-    scope: event.scope || event.actor.scopes?.join(" "),
-    hostname: event.hostname,
-    auth0_client: event.auth0_client,
-    location_info: event.location,
-    details: {
-      request: {
-        method: event.request.method,
-        path: event.request.path,
-        qs: event.request.query,
-        body: event.request.body,
-      },
-      ...(event.response && {
-        response: {
-          statusCode: event.response.status_code,
-          body: event.response.body,
+    data: {
+      date: event.timestamp,
+      type: event.log_type,
+      description: event.description,
+      tenant_name: event.tenant_id,
+      ip: event.request.ip,
+      user_agent: event.request.user_agent,
+      user_id: event.actor.id,
+      user_name: event.actor.email,
+      client_id: event.actor.client_id,
+      connection: event.connection,
+      strategy: event.strategy,
+      strategy_type: event.strategy_type,
+      audience: event.audience,
+      scope: event.scope || event.actor.scopes?.join(" "),
+      hostname: event.hostname,
+      auth0_client: event.auth0_client,
+      location_info: event.location,
+      details: {
+        request: {
+          method: event.request.method,
+          path: event.request.path,
+          qs: event.request.query,
+          body: event.request.body,
         },
-      }),
+        ...(event.response && {
+          response: {
+            statusCode: event.response.status_code,
+            body: event.response.body,
+          },
+        }),
+      },
     },
   };
 }

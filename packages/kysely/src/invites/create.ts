@@ -7,7 +7,7 @@ import { stringifyProperties } from "../helpers/stringify";
 
 export function create(db: Kysely<Database>) {
   return async (tenantId: string, invite: InviteInsert): Promise<Invite> => {
-    const inviteId = generateInviteId();
+    const inviteId = invite.id || generateInviteId();
     const createdAt = new Date().toISOString();
 
     // Calculate expires_at based on ttl_sec (default 7 days)

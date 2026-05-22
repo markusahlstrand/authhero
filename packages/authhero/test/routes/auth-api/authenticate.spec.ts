@@ -48,15 +48,21 @@ describe("authenticate", () => {
     const ticket = await env.data.codes.get("tenantId", login_ticket, "ticket");
     expect(ticket).toBeTypeOf("object");
 
-    // Check the logs
+    // Check the logs — SUCCESS_LOGIN from the post-login hook plus the
+    // outer SUCCESS_CROSS_ORIGIN_AUTHENTICATION ("scoa") emitted by /co/authenticate.
     const logsResults = await env.data.logs.list("tenantId");
-    expect(logsResults.logs).toHaveLength(1);
+    expect(logsResults.logs).toHaveLength(2);
 
     const successfulLoginLog = logsResults.logs[0];
     if (successfulLoginLog) {
       expect(successfulLoginLog.type).toBe("s");
       expect(successfulLoginLog.description).toContain("Successful login");
     }
+
+    expect(logsResults.logs[1]).toMatchObject({
+      type: "scoa",
+      description: "Successful cross-origin authentication",
+    });
   });
 
   it("should create a log message for a login attempt for a non-existing user", async () => {
@@ -75,14 +81,17 @@ describe("authenticate", () => {
 
     expect(loginResponse.status).toEqual(403);
 
+    // Inner FAILED_LOGIN_INCORRECT_PASSWORD plus the outer
+    // FAILED_CROSS_ORIGIN_AUTHENTICATION ("fcoa") from /co/authenticate.
     const { logs } = await env.data.logs.list("tenantId");
-    expect(logs).toHaveLength(1);
+    expect(logs).toHaveLength(2);
 
     const [failedLoginLog] = logs;
     expect(failedLoginLog).toMatchObject({
       type: "fp",
       description: "Invalid user",
     });
+    expect(logs[1]).toMatchObject({ type: "fcoa" });
   });
 
   it("should create a log message for a login attempt for incorrect password", async () => {
@@ -178,8 +187,10 @@ describe("authenticate", () => {
 
     expect(loginResponse.status).toEqual(403);
 
+    // 4 attempts × 2 entries each (inner failure + outer
+    // FAILED_CROSS_ORIGIN_AUTHENTICATION) = 8 logs.
     const { logs } = await env.data.logs.list("tenantId");
-    expect(logs).toHaveLength(4);
+    expect(logs).toHaveLength(8);
 
     expect(logs[0]).toMatchObject({
       type: "fp",

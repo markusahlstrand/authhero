@@ -97,8 +97,8 @@ describe("LogStreamDestination", () => {
     const body = JSON.parse(init.body);
     expect(Array.isArray(body)).toBe(true);
     expect(body[0].log_id).toBe("evt-1");
-    expect(body[0].tenant_id).toBe("tenant-1");
-    expect(body[0].type).toBe("sapi");
+    expect(body[0].data.tenant_name).toBe("tenant-1");
+    expect(body[0].data.type).toBe("sapi");
   });
 
   it("encodes JSONLINES format with trailing newline", async () => {

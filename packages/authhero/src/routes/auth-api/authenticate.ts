@@ -5,10 +5,15 @@ import { loginWithPassword } from "../../authentication-flows/password";
 import { passwordlessGrant } from "../../authentication-flows/passwordless";
 import { UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS } from "../../constants";
 import { nanoid } from "nanoid";
-import { Strategy, TokenResponse } from "@authhero/adapter-interfaces";
+import {
+  LogTypes,
+  Strategy,
+  TokenResponse,
+} from "@authhero/adapter-interfaces";
 import { stringifyAuth0Client } from "../../utils/client-info";
 import { setTenantId } from "../../helpers/set-tenant-id";
 import { getEnrichedClient } from "../../helpers/client";
+import { logMessage } from "../../helpers/logging";
 
 export const authenticateRoutes = new OpenAPIHono<{
   Bindings: Bindings;
@@ -73,47 +78,65 @@ export const authenticateRoutes = new OpenAPIHono<{
 
       let response: Response | TokenResponse;
 
-      if ("otp" in body) {
-        response = await passwordlessGrant(ctx, {
-          client_id,
-          username: email,
-          otp: body.otp,
-        });
-      } else if ("password" in body) {
-        const loginSession = await ctx.env.data.loginSessions.create(
-          client.tenant.id,
-          {
-            expires_at: new Date(
-              Date.now() + UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS * 1000,
-            ).toISOString(),
-            authParams: {
-              client_id,
-              username: email,
-              audience: client.tenant.default_audience,
-            },
-            csrf_token: nanoid(),
-            ip,
-            useragent,
-            auth0Client: stringifyAuth0Client(auth0_client),
-          },
-        );
-
-        // This will throw if the login fails
-        response = await loginWithPassword(
-          ctx,
-          client,
-          {
-            username: email,
-            password: body.password,
+      try {
+        if ("otp" in body) {
+          response = await passwordlessGrant(ctx, {
             client_id,
-          },
-          loginSession,
-          true,
-          body.realm,
-        );
-      } else {
-        throw new HTTPException(400, { message: "Code or password required" });
+            username: email,
+            otp: body.otp,
+          });
+        } else if ("password" in body) {
+          const loginSession = await ctx.env.data.loginSessions.create(
+            client.tenant.id,
+            {
+              expires_at: new Date(
+                Date.now() + UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS * 1000,
+              ).toISOString(),
+              authParams: {
+                client_id,
+                username: email,
+                audience: client.tenant.default_audience,
+              },
+              csrf_token: nanoid(),
+              ip,
+              useragent,
+              auth0Client: stringifyAuth0Client(auth0_client),
+            },
+          );
+
+          // This will throw if the login fails
+          response = await loginWithPassword(
+            ctx,
+            client,
+            {
+              username: email,
+              password: body.password,
+              client_id,
+            },
+            loginSession,
+            true,
+            body.realm,
+          );
+        } else {
+          throw new HTTPException(400, {
+            message: "Code or password required",
+          });
+        }
+      } catch (err) {
+        await logMessage(ctx, client.tenant.id, {
+          type: LogTypes.FAILED_CROSS_ORIGIN_AUTHENTICATION,
+          description:
+            err instanceof Error ? err.message : "Cross-origin auth failed",
+          connection: body.realm,
+        });
+        throw err;
       }
+
+      await logMessage(ctx, client.tenant.id, {
+        type: LogTypes.SUCCESS_CROSS_ORIGIN_AUTHENTICATION,
+        description: "Successful cross-origin authentication",
+        connection: body.realm,
+      });
 
       return response;
     },
