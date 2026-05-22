@@ -42,6 +42,7 @@ import {
 import { UsersList, UserCreate, UserEdit } from "./resources/users";
 import { DomainList, DomainCreate, DomainEdit } from "./resources/custom-domains";
 import { ActionList, ActionCreate, ActionEdit } from "./resources/actions";
+import { ActionExecutionShow } from "./resources/action-executions";
 import { ActionTriggersList } from "./resources/action-triggers";
 import { HookList, HooksCreate, HookEdit } from "./resources/hooks";
 import { LogsList, LogShow } from "./resources/logs";
@@ -258,6 +259,7 @@ export function App({ tenantId, initialDomain, onAuthComplete }: AppProps) {
           options={{ label: "Log Streams", menuGroup: "Observability" }}
         />
         <Resource name="sessions" edit={SessionEdit} show={SessionShow} />
+        <Resource name="action-executions" show={ActionExecutionShow} />
         <Resource
           name="forms"
           icon={Layout}

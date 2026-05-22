@@ -26,6 +26,10 @@ interface LogRecord {
   hostname?: string;
   audience?: string;
   scope?: string | string[];
+  details?: {
+    execution_id?: string;
+    [key: string]: unknown;
+  };
 }
 
 function FilterLink({
@@ -49,6 +53,22 @@ function FilterLink({
       className="text-primary hover:underline"
     >
       {children}
+    </Link>
+  );
+}
+
+function ActionExecutionLink({ executionId }: { executionId: string }) {
+  const createPath = useCreatePath();
+  return (
+    <Link
+      to={createPath({
+        resource: "action-executions",
+        type: "show",
+        id: executionId,
+      })}
+      className="text-primary hover:underline font-mono text-xs"
+    >
+      {executionId}
     </Link>
   );
 }
@@ -220,6 +240,19 @@ export function DetailsTab() {
           </Row>
         </CardContent>
       </Card>
+
+      {record.details?.execution_id && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Actions</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col">
+            <Row label="Execution ID">
+              <ActionExecutionLink executionId={record.details.execution_id} />
+            </Row>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

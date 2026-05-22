@@ -72,6 +72,7 @@ function escapeLuceneValue(value: unknown): string {
 // Maps react-admin resource names to Auth0 API paths when they differ
 const API_PATH_MAP: Record<string, string> = {
   actions: "actions/actions",
+  "action-executions": "actions/executions",
 };
 
 function getApiPath(resource: string): string {
@@ -1086,6 +1087,26 @@ export default (
             },
           };
         }
+      }
+
+      // Action executions also need the per-action captured console output,
+      // which lives at a sibling path (/logs) rather than on the main record.
+      if (resource === "action-executions") {
+        const headers = createHeaders(tenantId);
+        const base = `${apiUrl}/api/v2/actions/executions/${params.id}`;
+        const [execRes, logsRes] = await Promise.all([
+          httpClient(base, { headers }),
+          httpClient(`${base}/logs`, { headers }).catch(() => ({
+            json: { logs: [] },
+          })),
+        ]);
+        return {
+          data: {
+            ...execRes.json,
+            id: execRes.json.id || params.id,
+            execution_logs: logsRes.json?.logs ?? [],
+          },
+        };
       }
 
       // Logs use log_id as their identifier, not id.
