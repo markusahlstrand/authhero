@@ -1,5 +1,17 @@
 # @authhero/multi-tenancy
 
+## 14.22.0
+
+### Minor Changes
+
+- 14a66d6: Remove the `auth:read` / `auth:write` super-scopes. Every management-api route now requires its specific Auth0-style scope (e.g. `read:users`, `create:clients`, `update:connections`). Tokens that previously relied on `auth:read` or `auth:write` must be reissued with the granular scopes for each endpoint they call.
+
+### Patch Changes
+
+- Updated dependencies [667681b]
+- Updated dependencies [14a66d6]
+  - authhero@5.7.0
+
 ## 14.21.0
 
 ### Minor Changes
