@@ -11,6 +11,7 @@ import { tenantMiddleware } from "../../middlewares/tenant";
 import { clientInfoMiddleware } from "../../middlewares/client-info";
 import { outboxMiddleware } from "../../middlewares/outbox";
 import { LogsDestination } from "../../helpers/outbox-destinations/logs";
+import { LogStreamDestination } from "../../helpers/outbox-destinations/log-streams";
 import { samlpRoutes } from "./samlp";
 
 export default function create(config: AuthHeroConfig) {
@@ -24,7 +25,12 @@ export default function create(config: AuthHeroConfig) {
   app.use(
     outboxMiddleware({
       getOutbox: () => config.dataAdapter.outbox,
-      getDestinations: () => [new LogsDestination(config.dataAdapter.logs)],
+      getDestinations: () => [
+        new LogsDestination(config.dataAdapter.logs),
+        ...(config.dataAdapter.logStreams
+          ? [new LogStreamDestination(config.dataAdapter.logStreams)]
+          : []),
+      ],
     }),
   );
 
