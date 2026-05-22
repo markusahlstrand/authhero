@@ -26,6 +26,7 @@ import { tenantMiddleware } from "../../middlewares/tenant";
 import { clientInfoMiddleware } from "../../middlewares/client-info";
 import { outboxMiddleware } from "../../middlewares/outbox";
 import { LogsDestination } from "../../helpers/outbox-destinations/logs";
+import { LogStreamDestination } from "../../helpers/outbox-destinations/log-streams";
 import { WebhookDestination } from "../../helpers/outbox-destinations/webhooks";
 import { RegistrationFinalizerDestination } from "../../helpers/outbox-destinations/registration-finalizer";
 import { makeOutboxServiceTokenFactory } from "../../helpers/service-token";
@@ -44,6 +45,9 @@ export default function create(config: AuthHeroConfig) {
       getOutbox: () => config.dataAdapter.outbox,
       getDestinations: (ctx) => [
         new LogsDestination(config.dataAdapter.logs),
+        ...(config.dataAdapter.logStreams
+          ? [new LogStreamDestination(config.dataAdapter.logStreams)]
+          : []),
         new WebhookDestination(
           config.dataAdapter.hooks,
           makeOutboxServiceTokenFactory({
