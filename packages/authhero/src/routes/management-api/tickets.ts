@@ -175,8 +175,22 @@ export const ticketsRoutes = new OpenAPIHono<{
             message: "user_id or email is required",
           });
         }
+        let connectionName: string | undefined;
+        if (body.connection_id) {
+          const connection = await ctx.env.data.connections.get(
+            tenantId,
+            body.connection_id,
+          );
+          if (!connection) {
+            throw new HTTPException(404, { message: "User not found" });
+          }
+          connectionName = connection.name;
+        }
+        const q = connectionName
+          ? `email:${body.email.toLowerCase()} connection:${connectionName}`
+          : `email:${body.email.toLowerCase()}`;
         const { users } = await ctx.env.data.users.list(tenantId, {
-          q: `email:${body.email.toLowerCase()}`,
+          q,
           per_page: 1,
         });
         const user = users[0];

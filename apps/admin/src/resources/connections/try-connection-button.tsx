@@ -220,13 +220,30 @@ export function TryConnectionButton() {
         try {
           popupOriginRef.current = new URL(body.result_url).origin;
         } catch {
-          popupOriginRef.current = null;
+          setResult({
+            status: "error",
+            error: "invalid_result_url",
+            error_description: `Could not parse result_url: ${body.result_url}`,
+            completed_at: new Date().toISOString(),
+          });
+          return;
         }
         popupRef.current = window.open(
           body.authorize_url,
           "authhero-try-connection",
           "width=520,height=720",
         );
+        if (!popupRef.current) {
+          popupOriginRef.current = null;
+          setResult({
+            status: "error",
+            error: "popup_blocked",
+            error_description:
+              "Popup was blocked by the browser. Allow popups for this site and try again.",
+            completed_at: new Date().toISOString(),
+          });
+          return;
+        }
       }
     } catch (err) {
       setResult({
@@ -261,7 +278,16 @@ export function TryConnectionButton() {
   if (!record) return null;
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(value) => {
+        setOpen(value);
+        if (!value) {
+          setPassword("");
+          setResult(null);
+        }
+      }}
+    >
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" type="button">
           <PlayCircle className="mr-2 h-4 w-4" />

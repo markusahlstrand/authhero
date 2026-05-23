@@ -1600,16 +1600,9 @@ u2Routes.openapi(
       });
       throw new HTTPException(400, { message: "Ticket already consumed" });
     }
-    const consumed = await ctx.env.data.codes.consume(tenantId, ticket);
-    if (!consumed) {
-      await logMessage(ctx, tenantId, {
-        type: LogTypes.FAILED_VERIFICATION_EMAIL,
-        description: "Ticket already consumed",
-        userId: code.user_id || undefined,
-      });
-      throw new HTTPException(400, { message: "Ticket already consumed" });
-    }
 
+    // Validate ticket purpose BEFORE consuming so non-email-verification
+    // tickets (e.g. password-change) presented to this endpoint aren't burned.
     let meta: { purpose?: string; result_url?: string } = {};
     try {
       meta = code.state ? JSON.parse(code.state) : {};
@@ -1630,6 +1623,16 @@ u2Routes.openapi(
         description: "Ticket has no user",
       });
       throw new HTTPException(400, { message: "Ticket has no user" });
+    }
+
+    const consumed = await ctx.env.data.codes.consume(tenantId, ticket);
+    if (!consumed) {
+      await logMessage(ctx, tenantId, {
+        type: LogTypes.FAILED_VERIFICATION_EMAIL,
+        description: "Ticket already consumed",
+        userId: code.user_id || undefined,
+      });
+      throw new HTTPException(400, { message: "Ticket already consumed" });
     }
 
     await ctx.env.data.users.update(tenantId, code.user_id, {
@@ -1679,14 +1682,14 @@ u2Routes.openapi(
     if (!code || new Date(code.expires_at).getTime() < Date.now()) {
       await logMessage(ctx, tenantId, {
         type: LogTypes.FAILED_CHANGE_PASSWORD,
-        description: `Ticket invalid or expired (ticket=${ticket})`,
+        description: "Ticket invalid or expired",
       });
       throw new HTTPException(400, { message: "Ticket invalid or expired" });
     }
     if (code.used_at) {
       await logMessage(ctx, tenantId, {
         type: LogTypes.FAILED_CHANGE_PASSWORD,
-        description: `Ticket already consumed (ticket=${ticket})`,
+        description: "Ticket already consumed",
         userId: code.user_id || undefined,
       });
       throw new HTTPException(400, { message: "Ticket already consumed" });
@@ -1706,7 +1709,7 @@ u2Routes.openapi(
     if (meta.purpose !== "password_change") {
       await logMessage(ctx, tenantId, {
         type: LogTypes.FAILED_CHANGE_PASSWORD,
-        description: `Wrong ticket type (ticket=${ticket}, purpose=${meta.purpose})`,
+        description: `Wrong ticket type (purpose=${meta.purpose})`,
         userId: code.user_id || undefined,
       });
       throw new HTTPException(400, { message: "Wrong ticket type" });
@@ -1714,7 +1717,7 @@ u2Routes.openapi(
     if (!code.user_id) {
       await logMessage(ctx, tenantId, {
         type: LogTypes.FAILED_CHANGE_PASSWORD,
-        description: `Ticket has no user (ticket=${ticket})`,
+        description: "Ticket has no user",
       });
       throw new HTTPException(400, { message: "Ticket has no user" });
     }
@@ -1723,7 +1726,7 @@ u2Routes.openapi(
     if (!user) {
       await logMessage(ctx, tenantId, {
         type: LogTypes.FAILED_CHANGE_PASSWORD,
-        description: `User not found (ticket=${ticket}, user_id=${code.user_id})`,
+        description: `User not found (user_id=${code.user_id})`,
         userId: code.user_id,
       });
       throw new HTTPException(404, { message: "User not found" });
@@ -1737,7 +1740,7 @@ u2Routes.openapi(
     if (!clientId) {
       await logMessage(ctx, tenantId, {
         type: LogTypes.FAILED_CHANGE_PASSWORD,
-        description: `No client available for ticket (ticket=${ticket})`,
+        description: "No client available for ticket",
         userId: user.user_id,
       });
       throw new HTTPException(400, {
@@ -1750,7 +1753,7 @@ u2Routes.openapi(
     if (!redirectUri) {
       await logMessage(ctx, tenantId, {
         type: LogTypes.FAILED_CHANGE_PASSWORD,
-        description: `Ticket client has no callback URL (ticket=${ticket}, client_id=${clientId})`,
+        description: `Ticket client has no callback URL (client_id=${clientId})`,
         userId: user.user_id,
       });
       throw new HTTPException(400, {
@@ -1764,7 +1767,7 @@ u2Routes.openapi(
     if (!consumed) {
       await logMessage(ctx, tenantId, {
         type: LogTypes.FAILED_CHANGE_PASSWORD,
-        description: `Ticket already consumed (ticket=${ticket})`,
+        description: "Ticket already consumed",
         userId: user.user_id,
       });
       throw new HTTPException(400, { message: "Ticket already consumed" });

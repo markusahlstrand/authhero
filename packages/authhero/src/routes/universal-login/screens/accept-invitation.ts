@@ -55,8 +55,14 @@ export async function acceptInvitationScreen(
 
   const locale = context.language || "en";
   // Reuse signup translations for the form labels; the screen-specific copy
-  // (title/description) is sourced from the email keys we ship as fallbacks.
+  // (title/description) is sourced from the `invitation.invitation` prompt.
   const { m } = createTranslation("signup", "signup", locale, customText);
+  const { m: invitationM } = createTranslation(
+    "invitation",
+    "invitation",
+    locale,
+    customText,
+  );
 
   const orgName =
     (context.data?.organization_name as string | undefined) ||
@@ -134,8 +140,12 @@ export async function acceptInvitationScreen(
     name: "accept-invitation",
     action: `${routePrefix}/accept-invitation?state=${encodeURIComponent(state)}`,
     method: "POST",
-    title: `Accept invitation`,
-    description: `You've been invited to ${orgName}. Set a password to finish creating your account.`,
+    title: invitationM.title(),
+    description: invitationM.description({
+      inviterName: (context.data?.inviter_name as string | undefined) ?? "",
+      organizationName: orgName,
+      clientName: (context.data?.client_name as string | undefined) ?? "",
+    }),
     components,
     links: [],
   };
@@ -331,10 +341,52 @@ export const acceptInvitationScreenDefinition: ScreenDefinition = {
             }),
           };
         }
-      } else if (!user.email_verified) {
-        await ctx.env.data.users.update(client.tenant.id, user.user_id, {
-          email_verified: true,
-        });
+      } else {
+        // Existing user: persist the password they just set so the post-invite
+        // auto-login below succeeds, and mark the email verified since the
+        // invite proves ownership.
+        try {
+          const { hash, algorithm } = await hashPassword(password);
+          const existingPassword = await ctx.env.data.passwords.get(
+            client.tenant.id,
+            user.user_id,
+          );
+          if (existingPassword) {
+            await ctx.env.data.passwords.update(client.tenant.id, {
+              id: existingPassword.id,
+              user_id: user.user_id,
+              password: existingPassword.password,
+              algorithm: existingPassword.algorithm,
+              is_current: false,
+            });
+          }
+          await ctx.env.data.passwords.create(client.tenant.id, {
+            user_id: user.user_id,
+            password: hash,
+            algorithm,
+            is_current: true,
+          });
+          if (!user.email_verified) {
+            await ctx.env.data.users.update(client.tenant.id, user.user_id, {
+              email_verified: true,
+            });
+          }
+        } catch (err) {
+          const reason = err instanceof Error ? err.message : String(err);
+          await logMessage(ctx, client.tenant.id, {
+            type: LogTypes.FAILED_INVITE_ACCEPT,
+            description: `Failed to update user: ${reason}`,
+            connection,
+          });
+          return {
+            error: "Failed to create user",
+            screen: await acceptInvitationScreen({
+              ...context,
+              prefill: { email },
+              errors: { email: "Failed to create user" },
+            }),
+          };
+        }
       }
 
       // Add to organization (idempotent).
