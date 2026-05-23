@@ -41,6 +41,9 @@ import {
   resolveDarkMode,
 } from "./u2-widget-page";
 import { locales } from "../../i18n";
+import { nanoid } from "nanoid";
+import { getEnrichedClient } from "../../helpers/client";
+import { UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS } from "../../constants";
 
 // Mutable copy of the readonly `locales` tuple — handlers expect string[].
 const availableLocales: string[] = [...locales];
@@ -92,6 +95,7 @@ const SCREEN_TO_PROMPT_MAP: Record<string, PromptScreen> = {
   "email-verification": "email-verification",
   organizations: "organizations",
   invitation: "invitation",
+  "accept-invitation": "invitation",
 };
 
 /**
@@ -273,6 +277,22 @@ function createScreenRouteHandler(screenId: string) {
     const screenData: Record<string, unknown> = {
       email: loginSession.authParams.username,
     };
+
+    // For accept-invitation, surface the org/inviter metadata from state_data
+    // so the screen can render them in the title/description.
+    if (screenId === "accept-invitation" && loginSession?.state_data) {
+      try {
+        const stateData = JSON.parse(loginSession.state_data);
+        if (stateData.organization_name) {
+          screenData.organization_name = stateData.organization_name;
+        }
+        if (stateData.inviter_name) {
+          screenData.inviter_name = stateData.inviter_name;
+        }
+      } catch {
+        // ignore malformed state_data
+      }
+    }
 
     // For mfa-phone-challenge screen, load the phone number from the MFA enrollment
     if (screenId === "mfa-phone-challenge" && loginSession) {
@@ -1421,6 +1441,322 @@ export const u2Routes = new OpenAPIHono<{
       });
     },
   );
+
+// --------------------------------
+// GET /u2/accept-invitation
+// --------------------------------
+// Two entry modes:
+//   1. Bootstrap (no `state`): looks up the invite, creates a login session
+//      stamped with the invitation metadata, then redirects to the same route
+//      with `state` so the standard screen handler can render the form.
+//   2. Render (`state` present): falls through to the registry-driven handler.
+u2Routes.openapi(
+  createRoute({
+    tags: ["u2"],
+    method: "get",
+    path: "/accept-invitation",
+    request: {
+      query: z.object({
+        invitation: z.string().optional(),
+        organization: z.string().optional(),
+        state: z.string().optional(),
+        error: z.string().optional(),
+        error_description: z.string().optional(),
+        ui_locales: z.string().optional(),
+      }),
+    },
+    responses: {
+      200: {
+        description: "Accept invitation screen",
+        content: { "text/html": { schema: z.string() } },
+      },
+      302: { description: "Redirect to bootstrapped session" },
+    },
+  }),
+  async (ctx: any) => {
+    const query = ctx.req.valid("query");
+    if (query.state) {
+      // Reuse the standard screen handler for the rendered form.
+      return createScreenRouteHandler("accept-invitation")(ctx);
+    }
+
+    if (!query.invitation || !query.organization) {
+      throw new HTTPException(400, {
+        message: "Missing invitation or organization parameter",
+      });
+    }
+
+    // We don't know the tenant yet — the invite lookup is per-tenant. The
+    // tenant resolution middleware sets ctx.var.tenant_id from the host or
+    // header before this handler runs.
+    const tenantId = ctx.var.tenant_id;
+    const invite = await ctx.env.data.invites.get(tenantId, query.invitation);
+    if (
+      !invite ||
+      invite.organization_id !== query.organization ||
+      new Date(invite.expires_at).getTime() < Date.now()
+    ) {
+      throw new HTTPException(404, {
+        message: "Invitation invalid or expired",
+      });
+    }
+
+    const organization = await ctx.env.data.organizations.get(
+      tenantId,
+      invite.organization_id,
+    );
+    if (!organization) {
+      throw new HTTPException(404, { message: "Organization not found" });
+    }
+
+    const enriched = await getEnrichedClient(ctx.env, invite.client_id);
+    const redirectUri = enriched.callbacks?.[0];
+    if (!redirectUri) {
+      throw new HTTPException(400, {
+        message: "Invitation client has no callback URL configured",
+      });
+    }
+
+    const loginSession = await ctx.env.data.loginSessions.create(
+      enriched.tenant.id,
+      {
+        expires_at: new Date(
+          Date.now() + UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS * 1000,
+        ).toISOString(),
+        csrf_token: nanoid(),
+        authorization_url: ctx.req.url,
+        authParams: {
+          client_id: invite.client_id,
+          redirect_uri: redirectUri,
+          response_type: "code",
+          scope: "openid profile email",
+          username: invite.invitee?.email,
+        },
+        state_data: JSON.stringify({
+          invitation_id: invite.id,
+          organization_id: invite.organization_id,
+          organization_name:
+            organization.display_name || organization.name || organization.id,
+          inviter_name: invite.inviter?.name,
+          roles: invite.roles || [],
+        }),
+      },
+    );
+
+    return ctx.redirect(
+      `/u2/accept-invitation?state=${encodeURIComponent(loginSession.id)}`,
+    );
+  },
+);
+
+u2Routes.openapi(
+  createScreenPostRoute(
+    "accept-invitation",
+    "/accept-invitation",
+    "Process accept-invitation form submission",
+  ),
+  createScreenPostHandler("accept-invitation"),
+);
+
+// --------------------------------
+// GET /u2/tickets/email-verification?ticket=<id>
+// --------------------------------
+// Consumes a management-API-issued email-verification ticket: marks the
+// user's email_verified flag and redirects to the caller's result_url or a
+// generic success page.
+u2Routes.openapi(
+  createRoute({
+    tags: ["u2"],
+    method: "get",
+    path: "/tickets/email-verification",
+    request: {
+      query: z.object({
+        ticket: z.string(),
+        tenant_id: z.string().optional(),
+      }),
+    },
+    responses: {
+      302: { description: "Redirect to result_url" },
+      200: {
+        description: "Verification complete",
+        content: { "text/html": { schema: z.string() } },
+      },
+    },
+  }),
+  async (ctx: any) => {
+    const { ticket } = ctx.req.valid("query");
+    const tenantId = ctx.var.tenant_id;
+
+    const code = await ctx.env.data.codes.get(tenantId, ticket, "ticket");
+    if (!code || new Date(code.expires_at).getTime() < Date.now()) {
+      await logMessage(ctx, tenantId, {
+        type: LogTypes.FAILED_VERIFICATION_EMAIL,
+        description: "Ticket invalid or expired",
+      });
+      throw new HTTPException(400, { message: "Ticket invalid or expired" });
+    }
+    if (code.used_at) {
+      await logMessage(ctx, tenantId, {
+        type: LogTypes.FAILED_VERIFICATION_EMAIL,
+        description: "Ticket already consumed",
+        userId: code.user_id || undefined,
+      });
+      throw new HTTPException(400, { message: "Ticket already consumed" });
+    }
+    const consumed = await ctx.env.data.codes.consume(tenantId, ticket);
+    if (!consumed) {
+      await logMessage(ctx, tenantId, {
+        type: LogTypes.FAILED_VERIFICATION_EMAIL,
+        description: "Ticket already consumed",
+        userId: code.user_id || undefined,
+      });
+      throw new HTTPException(400, { message: "Ticket already consumed" });
+    }
+
+    let meta: { purpose?: string; result_url?: string } = {};
+    try {
+      meta = code.state ? JSON.parse(code.state) : {};
+    } catch {
+      // ignore
+    }
+    if (meta.purpose !== "email_verification") {
+      await logMessage(ctx, tenantId, {
+        type: LogTypes.FAILED_VERIFICATION_EMAIL,
+        description: "Wrong ticket type",
+        userId: code.user_id || undefined,
+      });
+      throw new HTTPException(400, { message: "Wrong ticket type" });
+    }
+    if (!code.user_id) {
+      await logMessage(ctx, tenantId, {
+        type: LogTypes.FAILED_VERIFICATION_EMAIL,
+        description: "Ticket has no user",
+      });
+      throw new HTTPException(400, { message: "Ticket has no user" });
+    }
+
+    await ctx.env.data.users.update(tenantId, code.user_id, {
+      email_verified: true,
+    });
+
+    await logMessage(ctx, tenantId, {
+      type: LogTypes.SUCCESS_VERIFICATION_EMAIL,
+      description: "Successful email verification",
+      userId: code.user_id,
+    });
+
+    if (meta.result_url) {
+      return ctx.redirect(meta.result_url);
+    }
+    return ctx.html(
+      "<!doctype html><html><body><p>Email verified.</p></body></html>",
+    );
+  },
+);
+
+// --------------------------------
+// GET /u2/tickets/password-change?ticket=<id>
+// --------------------------------
+// Consumes a password-change ticket by creating a fresh login session bound
+// to the user and redirecting into the existing reset-password screen.
+u2Routes.openapi(
+  createRoute({
+    tags: ["u2"],
+    method: "get",
+    path: "/tickets/password-change",
+    request: {
+      query: z.object({
+        ticket: z.string(),
+        tenant_id: z.string().optional(),
+      }),
+    },
+    responses: {
+      302: { description: "Redirect to reset-password screen" },
+    },
+  }),
+  async (ctx: any) => {
+    const { ticket } = ctx.req.valid("query");
+    const tenantId = ctx.var.tenant_id;
+
+    const code = await ctx.env.data.codes.get(tenantId, ticket, "ticket");
+    if (!code || new Date(code.expires_at).getTime() < Date.now()) {
+      throw new HTTPException(400, { message: "Ticket invalid or expired" });
+    }
+    if (code.used_at) {
+      throw new HTTPException(400, { message: "Ticket already consumed" });
+    }
+
+    let meta: {
+      purpose?: string;
+      client_id?: string;
+      result_url?: string;
+      mark_email_as_verified?: boolean;
+    } = {};
+    try {
+      meta = code.state ? JSON.parse(code.state) : {};
+    } catch {
+      // ignore
+    }
+    if (meta.purpose !== "password_change") {
+      throw new HTTPException(400, { message: "Wrong ticket type" });
+    }
+    if (!code.user_id) {
+      throw new HTTPException(400, { message: "Ticket has no user" });
+    }
+
+    const user = await ctx.env.data.users.get(tenantId, code.user_id);
+    if (!user) {
+      throw new HTTPException(404, { message: "User not found" });
+    }
+
+    let clientId = meta.client_id;
+    if (!clientId) {
+      const { clients } = await ctx.env.data.clients.list(tenantId);
+      clientId = clients[0]?.client_id;
+    }
+    if (!clientId) {
+      throw new HTTPException(400, {
+        message: "No client available for ticket",
+      });
+    }
+
+    const enriched = await getEnrichedClient(ctx.env, clientId);
+    const redirectUri = meta.result_url || enriched.callbacks?.[0];
+    if (!redirectUri) {
+      throw new HTTPException(400, {
+        message: "Ticket client has no callback URL",
+      });
+    }
+
+    if (meta.mark_email_as_verified && !user.email_verified) {
+      await ctx.env.data.users.update(tenantId, user.user_id, {
+        email_verified: true,
+      });
+    }
+
+    const loginSession = await ctx.env.data.loginSessions.create(tenantId, {
+      expires_at: new Date(
+        Date.now() + UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS * 1000,
+      ).toISOString(),
+      csrf_token: nanoid(),
+      authorization_url: ctx.req.url,
+      authParams: {
+        client_id: clientId,
+        redirect_uri: redirectUri,
+        response_type: "code",
+        scope: "openid profile email",
+        username: user.email,
+      },
+      user_id: user.user_id,
+    });
+
+    await ctx.env.data.codes.consume(tenantId, ticket);
+
+    return ctx.redirect(
+      `/u2/reset-password?state=${encodeURIComponent(loginSession.id)}`,
+    );
+  },
+);
 
 // OpenAPI documentation
 u2Routes.doc("/spec", {

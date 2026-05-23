@@ -179,6 +179,86 @@ describe("organization invitations management API endpoint", () => {
 
       expect(createResponse.status).toBe(401);
     });
+
+    it("should send an invitation email by default with an /u2/accept-invitation link", async () => {
+      const { managementApp, env, getSentEmails } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      const orgResponse = await managementClient.organizations.$post(
+        {
+          json: { name: "invite-org", display_name: "Invite Org" },
+          header: { "tenant-id": "tenantId" },
+        },
+        { headers: { authorization: `Bearer ${token}` } },
+      );
+      const org = await orgResponse.json();
+
+      const response = await managementClient.organizations[
+        ":id"
+      ].invitations.$post(
+        {
+          param: { id: org.id },
+          json: {
+            inviter: { name: "Alice Inviter" },
+            invitee: { email: "newuser@example.com" },
+            client_id: "client123",
+          },
+          header: { "tenant-id": "tenantId" },
+        },
+        { headers: { authorization: `Bearer ${token}` } },
+      );
+      expect(response.status).toBe(201);
+      const invite = await response.json();
+
+      expect(invite.invitation_url).toContain("/u2/accept-invitation");
+      expect(invite.invitation_url).toContain(`invitation=${invite.id}`);
+      expect(invite.invitation_url).toContain(`organization=${org.id}`);
+
+      const sent = getSentEmails();
+      const invitationEmail = sent.find(
+        (e) => e.to === "newuser@example.com",
+      );
+      expect(invitationEmail).toBeDefined();
+      expect(invitationEmail!.html).toContain(invite.invitation_url);
+    });
+
+    it("should not send an email when send_invitation_email is false", async () => {
+      const { managementApp, env, getSentEmails } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      const orgResponse = await managementClient.organizations.$post(
+        {
+          json: { name: "no-email-org" },
+          header: { "tenant-id": "tenantId" },
+        },
+        { headers: { authorization: `Bearer ${token}` } },
+      );
+      const org = await orgResponse.json();
+
+      const before = getSentEmails().length;
+
+      const response = await managementClient.organizations[
+        ":id"
+      ].invitations.$post(
+        {
+          param: { id: org.id },
+          json: {
+            inviter: { name: "Silent" },
+            invitee: { email: "silent@example.com" },
+            client_id: "client123",
+            send_invitation_email: false,
+          },
+          header: { "tenant-id": "tenantId" },
+        },
+        { headers: { authorization: `Bearer ${token}` } },
+      );
+      expect(response.status).toBe(201);
+
+      const after = getSentEmails();
+      expect(after.length).toBe(before);
+    });
   });
 
   describe("GET /organizations/:id/invitations", () => {

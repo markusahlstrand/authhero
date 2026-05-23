@@ -19,6 +19,8 @@ import {
 import { querySchema } from "../../types/auth0/Query";
 import { parseSort } from "../../utils/sort";
 import { logMessage } from "../../helpers/logging";
+import { getIssuer } from "../../variables";
+import { sendInvitation } from "../../emails";
 
 // Query schema for invitations list endpoint
 const invitationsQuerySchema = z.object({
@@ -1208,10 +1210,12 @@ export const organizationRoutes = new OpenAPIHono<{
 
       // Generate invitation ID and URL
       const inviteId = generateInviteId();
-      const invitationUrl = `https://invite.placeholder/${inviteId}`;
+      const issuer = getIssuer(ctx.env, ctx.var.custom_domain);
+      const invitationUrl = `${issuer}u2/accept-invitation?invitation=${inviteId}&organization=${organization.id}`;
 
       const inviteData = {
         ...body,
+        id: inviteId,
         organization_id: organization.id,
         invitation_url: invitationUrl,
       };
@@ -1225,6 +1229,27 @@ export const organizationRoutes = new OpenAPIHono<{
         targetId: invite.id,
         afterState: invite as unknown as Record<string, unknown>,
       });
+
+      // Send the invitation email if requested. Defaults to true per schema.
+      // Failures here must not fail the create — Auth0 returns the invite even
+      // when delivery fails. Errors are already logged via sendEmail's hook.
+      if (body.send_invitation_email !== false && body.invitee?.email) {
+        try {
+          await sendInvitation(ctx, {
+            to: body.invitee.email,
+            invitationUrl,
+            inviterName: body.inviter?.name,
+            organizationName:
+              organization.display_name || organization.name || organization.id,
+            ttlSec: body.ttl_sec ?? 604800,
+          });
+        } catch (err) {
+          console.error(
+            `[invitations] failed to send invitation email for ${invite.id}:`,
+            err,
+          );
+        }
+      }
 
       return ctx.json(invite, { status: 201 });
     },

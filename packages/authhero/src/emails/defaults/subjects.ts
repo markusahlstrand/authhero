@@ -6,4 +6,5 @@ export const defaultSubjects: Partial<Record<EmailTemplateName, string>> = {
   verify_email: "{{ welcome_to_your_account }}",
   verify_email_by_code: "{{ code_email_subject }}",
   welcome_email: "{{ welcome_to_your_account }}",
+  user_invitation: "{{ invitation_email_subject }}",
 };

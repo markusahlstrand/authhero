@@ -90,6 +90,34 @@ The three branding settings (`appName`, `logoUrl`, `faviconUrl`) are read in thr
 
 To replace the default mark, set `VITE_APP_FAVICON_URL` to your own asset; the bundled default lives at [`public/favicon.svg`](public/favicon.svg).
 
+## Deploying to Cloudflare Pages
+
+The admin is a static SPA, so any static host works. Cloudflare Pages is the recommended target.
+
+In the Cloudflare dashboard, **Workers & Pages → Create → Pages → Connect to Git**, then:
+
+| Setting | Value |
+| --- | --- |
+| Build command | `pnpm install --no-frozen-lockfile && pnpm --filter "@authhero/admin..." build` |
+| Build output directory | `dist` |
+| Root directory (advanced) | `apps/admin` |
+| Environment variables | `NODE_VERSION=20`, `ENABLE_EXPERIMENTAL_COREPACK=1`, plus the `VITE_*` settings from the table above |
+
+The trailing `...` on the pnpm filter is required — it builds admin's workspace dependencies (notably `@authhero/adapter-interfaces`) before admin itself. Without it, vite fails to resolve `@authhero/adapter-interfaces` because the symlinked package has no built `dist/`.
+
+For SPA client-side routing, add [`public/_redirects`](public/_redirects):
+
+```
+/*    /index.html   200
+```
+
+### Multiple Cloudflare accounts
+
+Cloudflare's Git integration binds a repo to a single Cloudflare account. To deploy the same codebase to several accounts, you have two options:
+
+1. **GitHub Actions + Wrangler** — disconnect the Pages Git integration and deploy from CI with `cloudflare/wrangler-action`, supplying each account's `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` as separate GitHub secrets. Build once, deploy N times via a matrix job. Per-account `VITE_*` values can be set as workflow env at build time, or use the runtime `window.__AUTHHERO_ADMIN_CONFIG__` to ship a single artifact.
+2. **Fork per environment** — fork the repo into each Cloudflare account's organisation and connect each fork's Pages project to its own fork. Lower setup cost, at the price of having to merge changes upstream and keep forks in sync.
+
 ## Architecture notes
 
 - **Dual router**: the outer router in [`src/index.tsx`](src/index.tsx) handles domain selection (`/`), tenant management (`/tenants/*`), per-tenant admin (`/:tenantId/*`) and the OAuth callback (`/auth-callback`). The inner router in [`src/App.tsx`](src/App.tsx) is the react-admin router mounted with `basename="/:tenantId"`.

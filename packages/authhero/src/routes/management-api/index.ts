@@ -46,6 +46,7 @@ import { statsRoutes } from "./stats";
 import { createAnalyticsRoutes } from "./analytics";
 import { guardianRoutes } from "./guardian";
 import { authenticationMethodsRoutes } from "./authentication-methods";
+import { ticketsRoutes } from "./tickets";
 import { DataAdapters } from "@authhero/adapter-interfaces";
 import { outboxMiddleware } from "../../middlewares/outbox";
 import { LogsDestination } from "../../helpers/outbox-destinations/logs";
@@ -382,6 +383,7 @@ export default function create(config: AuthHeroConfig) {
     .route("/stats", statsRoutes)
     .route("/analytics", createAnalyticsRoutes({ cache: cacheAdapter }))
     .route("/guardian", guardianRoutes)
+    .route("/tickets", ticketsRoutes)
     .route(
       "/users/:user_id/authentication-methods",
       authenticationMethodsRoutes,

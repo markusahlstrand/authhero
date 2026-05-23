@@ -33,6 +33,7 @@ import { resetPasswordCodeScreenDefinition } from "./reset-password-code";
 import { connectConsentScreenDefinition } from "./connect-consent";
 import { connectTenantSelectScreenDefinition } from "./connect-tenant-select";
 import { tryConnectionResultScreenDefinition } from "./try-connection-result";
+import { acceptInvitationScreenDefinition } from "./accept-invitation";
 
 /**
  * Registry of all built-in screens
@@ -71,6 +72,7 @@ export const screenRegistry: Map<string, ScreenDefinition> = new Map([
   ["connect-consent", connectConsentScreenDefinition],
   ["connect-tenant-select", connectTenantSelectScreenDefinition],
   ["try-connection-result", tryConnectionResultScreenDefinition],
+  ["accept-invitation", acceptInvitationScreenDefinition],
 ]);
 
 /**

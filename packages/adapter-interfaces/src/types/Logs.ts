@@ -160,6 +160,7 @@ export const LogTypes = {
   SUCCESS_EXCHANGE_NATIVE_SOCIAL_LOGIN: "sens",
   SUCCESS_EXCHANGE_PASSWORD_OOB_FOR_ACCESS_TOKEN: "seoobft",
   SUCCESS_EXCHANGE_PASSWORD_OTP_FOR_ACCESS_TOKEN: "seotpft",
+  SUCCESS_EXCHANGE_PASSWORDLESS_OTP_FOR_ACCESS_TOKEN: "sepotpft",
   SUCCESS_EXCHANGE_PASSWORD_FOR_ACCESS_TOKEN: "sepft",
   SUCCESS_EXCHANGE_PASSKEY_OOB_FOR_ACCESS_TOKEN: "sepkoobft",
   SUCCESS_EXCHANGE_PASSKEY_OTP_FOR_ACCESS_TOKEN: "sepkotpft",
@@ -372,6 +373,8 @@ export const logTypeDescriptions: Record<string, string> = {
     "Success Exchange Password OOB for Access Token",
   [LogTypes.SUCCESS_EXCHANGE_PASSWORD_OTP_FOR_ACCESS_TOKEN]:
     "Success Exchange Password OTP for Access Token",
+  [LogTypes.SUCCESS_EXCHANGE_PASSWORDLESS_OTP_FOR_ACCESS_TOKEN]:
+    "Success Exchange Passwordless OTP for Access Token",
   [LogTypes.SUCCESS_EXCHANGE_PASSWORD_FOR_ACCESS_TOKEN]:
     "Success Exchange Password for Access Token",
   [LogTypes.SUCCESS_EXCHANGE_PASSKEY_OOB_FOR_ACCESS_TOKEN]:

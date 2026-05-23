@@ -111,3 +111,30 @@ pnpm admin build
 ```
 
 This emits `apps/admin/dist/`, which any static host (Cloudflare Pages, S3, Vercel, Netlify, Nginx) can serve. If you serve it from a sub-path, set `VITE_BASE_PATH` accordingly at build time, or set `basePath` on `window.__AUTHHERO_ADMIN_CONFIG__` at runtime.
+
+## Deploying to Cloudflare Pages
+
+Cloudflare Pages is the recommended host. In the Cloudflare dashboard, **Workers & Pages → Create → Pages → Connect to Git**, then:
+
+| Setting | Value |
+| --- | --- |
+| Build command | `pnpm install --no-frozen-lockfile && pnpm --filter "@authhero/admin..." build` |
+| Build output directory | `dist` |
+| Root directory (advanced) | `apps/admin` |
+| Environment variables | `NODE_VERSION=20`, `ENABLE_EXPERIMENTAL_COREPACK=1`, plus the `VITE_*` settings from the table above |
+
+The trailing `...` on the pnpm filter is required — it builds admin's workspace dependencies (notably `@authhero/adapter-interfaces`) in topological order before admin itself. Without it, vite fails to resolve `@authhero/adapter-interfaces` because the symlinked workspace package has no built `dist/`.
+
+For SPA client-side routing, add `apps/admin/public/_redirects`:
+
+```
+/*    /index.html   200
+```
+
+### Deploying to multiple Cloudflare accounts
+
+Cloudflare's Git integration binds a repo to a single Cloudflare account. For multi-account deployments:
+
+1. **GitHub Actions + Wrangler** — disconnect the Pages Git integration and deploy from CI with `cloudflare/wrangler-action`, supplying each account's `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` as separate GitHub secrets. Build once, deploy N times via a matrix job. Per-account `VITE_*` values can be set as workflow env at build time, or use the runtime `window.__AUTHHERO_ADMIN_CONFIG__` to ship a single artifact.
+
+2. **Fork per environment** — fork the repo into each Cloudflare account's organisation and connect each fork's Pages project to its own fork. The simpler workaround, at the cost of keeping forks in sync (typically via a scheduled `git push` from upstream).

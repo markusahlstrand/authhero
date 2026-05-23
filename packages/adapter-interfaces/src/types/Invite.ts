@@ -13,6 +13,7 @@ export const inviteeSchema = z.object({
 export type Invitee = z.infer<typeof inviteeSchema>;
 
 export const inviteInsertSchema = z.object({
+  id: z.string().optional(),
   organization_id: z.string().max(50),
   inviter: inviterSchema,
   invitee: inviteeSchema,
@@ -36,6 +37,10 @@ export const inviteSchema = z
     expires_at: z.string().datetime(),
     ticket_id: z.string().optional(),
   })
-  .extend(inviteInsertSchema.shape);
+  // Omit `id` from the insert-schema shape so the persisted invite keeps the
+  // required `id: string` from the base object. Without this, the optional
+  // `id` on `inviteInsertSchema` overrides it and the response type widens to
+  // `string | undefined`.
+  .extend(inviteInsertSchema.omit({ id: true }).shape);
 
 export type Invite = z.infer<typeof inviteSchema>;

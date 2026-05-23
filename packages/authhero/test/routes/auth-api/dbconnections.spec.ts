@@ -39,8 +39,10 @@ describe("dbconnections", () => {
       });
       expect(createdUser._id).toBeTypeOf("string");
 
+      // SUCCESS_SIGNUP plus SUCCESS_VERIFICATION_EMAIL_REQUEST ("svr") for the
+      // verification email triggered as part of signup.
       const { logs } = await env.data.logs.list("tenantId");
-      expect(logs.length).toBe(1);
+      expect(logs.length).toBe(2);
 
       const emails = getSentEmails();
       expect(emails.length).toBe(1);

@@ -9,6 +9,7 @@ import { ResetEmailByCode } from "../src/emails/defaults/ResetEmailByCode";
 import { VerifyEmail } from "../src/emails/defaults/VerifyEmail";
 import { VerifyEmailByCode } from "../src/emails/defaults/VerifyEmailByCode";
 import { WelcomeEmail } from "../src/emails/defaults/WelcomeEmail";
+import { UserInvitation } from "../src/emails/defaults/UserInvitation";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const outPath = resolve(here, "..", "src", "emails", "defaults", "compiled.ts");
@@ -19,6 +20,7 @@ const templates: Array<[EmailTemplateName, () => JSX.Element]> = [
   ["verify_email", VerifyEmail],
   ["verify_email_by_code", VerifyEmailByCode],
   ["welcome_email", WelcomeEmail],
+  ["user_invitation", UserInvitation],
 ];
 
 async function main() {

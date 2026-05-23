@@ -86,6 +86,7 @@ const ADMIN_PERMISSIONS = [
   "create:resource_servers",
   "create:roles",
   "create:signing_keys",
+  "create:user_tickets",
   "create:users",
   "delete:actions",
   "delete:branding",
