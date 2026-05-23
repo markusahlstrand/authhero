@@ -91,7 +91,7 @@ curl -X PUT https://your-tenant.example.com/api/v2/email-templates/user_invitati
     "from":    "invites@your-company.com",
     "subject": "You'\''ve been invited to {{ organizationName }}",
     "syntax":  "liquid",
-    "body":    "<html><body><h1>Hi,</h1><p>{{ inviterName }} invited you to {{ organizationName }}.</p><a href=\"{{ invitation_url }}\">Accept invitation</a><p>This link expires in {{ ttlDays }} days.</p></body></html>"
+    "body":    "<html><body><h1>Hi,</h1><p>{{ inviterName }} invited you to {{ organizationName }}.</p><a href=\"{{ invitationUrl }}\">Accept invitation</a><p>This link expires in {{ ttlDays }} days.</p></body></html>"
   }'
 ```
 

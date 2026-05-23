@@ -15,6 +15,14 @@ import {
 } from "@/utils/domainUtils";
 import { getConfigValue } from "@/utils/runtimeConfig";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Strategy } from "@/utils/Strategy";
 
@@ -128,9 +136,10 @@ function ResultPanel({ result }: { result: TryResult }) {
   );
 }
 
-export function TryTab() {
+export function TryConnectionButton() {
   const record = useRecordContext<ConnectionRecord>();
   const tenantId = useTenantId();
+  const [open, setOpen] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -252,55 +261,66 @@ export function TryTab() {
   if (!record) return null;
 
   return (
-    <div className="max-w-2xl space-y-4">
-      <div className="text-sm text-muted-foreground">
-        Run this connection end-to-end against an internal test client.
-        Successful logins are not persisted as users; errors surface the real
-        cause for debugging.
-      </div>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" type="button">
+          <PlayCircle className="mr-2 h-4 w-4" />
+          Try connection
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Try connection</DialogTitle>
+          <DialogDescription>
+            Run this connection end-to-end against an internal test client.
+            Successful logins are not persisted as users; errors surface the
+            real cause for debugging.
+          </DialogDescription>
+        </DialogHeader>
 
-      {isDb ? (
-        <form onSubmit={handleDbSubmit} className="space-y-3">
-          <div className="space-y-1">
-            <label className="text-xs font-medium">Username / Email</label>
-            <Input
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              autoComplete="off"
-              required
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs font-medium">Password</label>
-            <Input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="off"
-              required
-            />
-          </div>
-          <Button type="submit" disabled={busy}>
+        {isDb ? (
+          <form onSubmit={handleDbSubmit} className="space-y-3">
+            <div className="space-y-1">
+              <label className="text-xs font-medium">Username / Email</label>
+              <Input
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                autoComplete="off"
+                required
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium">Password</label>
+              <Input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="off"
+                required
+              />
+            </div>
+            <Button type="submit" disabled={busy}>
+              {busy ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <PlayCircle className="mr-2 h-4 w-4" />
+              )}
+              Try connection
+            </Button>
+          </form>
+        ) : (
+          <Button type="button" onClick={handleBrowserStart} disabled={busy}>
             {busy ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
               <PlayCircle className="mr-2 h-4 w-4" />
             )}
-            Try connection
+            Try connection in popup
           </Button>
-        </form>
-      ) : (
-        <Button onClick={handleBrowserStart} disabled={busy}>
-          {busy ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <PlayCircle className="mr-2 h-4 w-4" />
-          )}
-          Try connection in popup
-        </Button>
-      )}
+        )}
 
-      {result && <ResultPanel result={result} />}
-    </div>
+        {result && <ResultPanel result={result} />}
+      </DialogContent>
+    </Dialog>
   );
 }

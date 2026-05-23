@@ -254,8 +254,7 @@ export const acceptInvitationScreenDefinition: ScreenDefinition = {
       const passwordConnection = client.connections.find(
         (c) => c.strategy === Strategy.USERNAME_PASSWORD,
       );
-      const connection =
-        passwordConnection?.name || Strategy.USERNAME_PASSWORD;
+      const connection = passwordConnection?.name || Strategy.USERNAME_PASSWORD;
 
       const policy = await getPasswordPolicy(
         ctx.env.data,
@@ -316,10 +315,11 @@ export const acceptInvitationScreenDefinition: ScreenDefinition = {
             app_metadata: invite.app_metadata || {},
             user_metadata: invite.user_metadata || {},
           });
-        } catch {
+        } catch (err) {
+          const reason = err instanceof Error ? err.message : String(err);
           await logMessage(ctx, client.tenant.id, {
             type: LogTypes.FAILED_INVITE_ACCEPT,
-            description: "Failed to create user",
+            description: `Failed to create user: ${reason}`,
             connection,
           });
           return {
@@ -394,11 +394,18 @@ export const acceptInvitationScreenDefinition: ScreenDefinition = {
           return { redirect: location, cookies };
         }
         return { response: result };
-      } catch {
+      } catch (err) {
+        const reason = err instanceof Error ? err.message : String(err);
+        await logMessage(ctx, client.tenant.id, {
+          type: LogTypes.FAILED_LOGIN,
+          description: `Post-invite auto-login failed: ${reason}`,
+          userId: user.user_id,
+          connection,
+        });
         return {
           screen: await acceptInvitationScreen({
             ...context,
-            messages: [{ text: m.verifyEmailText(), type: "success" }],
+            errors: { password: m.sessionExpired() },
           }),
         };
       }
