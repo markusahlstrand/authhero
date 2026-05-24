@@ -1,4 +1,5 @@
 import { Edit, SimpleForm } from "@/components/admin";
+import { DeleteButton } from "@/components/admin/delete-button";
 import { useRecordContext } from "ra-core";
 import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UrlTabs } from "@/components/ui/url-tabs";
@@ -9,7 +10,7 @@ import { AuthenticationMethodsTab } from "./tabs/authentication-methods-tab";
 import { PasswordPolicyTab } from "./tabs/password-policy-tab";
 import { ClientsTab } from "./tabs/clients-tab";
 import { RawJsonTab } from "./tabs/raw-json-tab";
-import { TryTab } from "./tabs/try-tab";
+import { TryConnectionButton } from "./try-connection-button";
 
 // Recursively strip null values so cleared inputs don't send "null" to the API.
 function stripNulls(value: unknown): unknown {
@@ -45,7 +46,6 @@ function ConnectionTabs() {
           <TabsTrigger value="password-policy">Password Policy</TabsTrigger>
         )}
         <TabsTrigger value="clients">Clients</TabsTrigger>
-        <TabsTrigger value="try">Try</TabsTrigger>
         <TabsTrigger value="raw">Raw JSON</TabsTrigger>
       </TabsList>
       <TabsContent value="details" className="mt-4">
@@ -69,9 +69,6 @@ function ConnectionTabs() {
       <TabsContent value="clients" className="mt-4">
         <ClientsTab />
       </TabsContent>
-      <TabsContent value="try" className="mt-4">
-        <TryTab />
-      </TabsContent>
       <TabsContent value="raw" className="mt-4">
         <RawJsonTab />
       </TabsContent>
@@ -81,7 +78,16 @@ function ConnectionTabs() {
 
 export function ConnectionEdit() {
   return (
-    <Edit mutationMode="pessimistic" transform={stripNulls as never}>
+    <Edit
+      mutationMode="pessimistic"
+      transform={stripNulls as never}
+      actions={
+        <div className="flex justify-end items-center gap-2">
+          <TryConnectionButton />
+          <DeleteButton />
+        </div>
+      }
+    >
       <SimpleForm className="max-w-none">
         <ConnectionTabs />
       </SimpleForm>

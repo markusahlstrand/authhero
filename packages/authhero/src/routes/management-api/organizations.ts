@@ -1211,7 +1211,10 @@ export const organizationRoutes = new OpenAPIHono<{
       // Generate invitation ID and URL
       const inviteId = generateInviteId();
       const issuer = getIssuer(ctx.env, ctx.var.custom_domain);
-      const invitationUrl = `${issuer}u2/accept-invitation?invitation=${inviteId}&organization=${organization.id}`;
+      const invitationUrlObj = new URL("u2/accept-invitation", issuer);
+      invitationUrlObj.searchParams.set("invitation", inviteId);
+      invitationUrlObj.searchParams.set("organization", organization.id);
+      const invitationUrl = invitationUrlObj.toString();
 
       const inviteData = {
         ...body,

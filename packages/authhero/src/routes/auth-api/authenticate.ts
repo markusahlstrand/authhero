@@ -123,20 +123,34 @@ export const authenticateRoutes = new OpenAPIHono<{
           });
         }
       } catch (err) {
-        await logMessage(ctx, client.tenant.id, {
-          type: LogTypes.FAILED_CROSS_ORIGIN_AUTHENTICATION,
-          description:
-            err instanceof Error ? err.message : "Cross-origin auth failed",
-          connection: body.realm,
-        });
+        try {
+          await logMessage(ctx, client.tenant.id, {
+            type: LogTypes.FAILED_CROSS_ORIGIN_AUTHENTICATION,
+            description:
+              err instanceof Error ? err.message : "Cross-origin auth failed",
+            connection: body.realm,
+          });
+        } catch (logErr) {
+          console.error(
+            "[co/authenticate] failed to log FAILED_CROSS_ORIGIN_AUTHENTICATION:",
+            logErr,
+          );
+        }
         throw err;
       }
 
-      await logMessage(ctx, client.tenant.id, {
-        type: LogTypes.SUCCESS_CROSS_ORIGIN_AUTHENTICATION,
-        description: "Successful cross-origin authentication",
-        connection: body.realm,
-      });
+      try {
+        await logMessage(ctx, client.tenant.id, {
+          type: LogTypes.SUCCESS_CROSS_ORIGIN_AUTHENTICATION,
+          description: "Successful cross-origin authentication",
+          connection: body.realm,
+        });
+      } catch (logErr) {
+        console.error(
+          "[co/authenticate] failed to log SUCCESS_CROSS_ORIGIN_AUTHENTICATION:",
+          logErr,
+        );
+      }
 
       return response;
     },

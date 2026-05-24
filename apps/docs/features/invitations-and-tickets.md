@@ -91,7 +91,7 @@ curl -X PUT https://your-tenant.example.com/api/v2/email-templates/user_invitati
     "from":    "invites@your-company.com",
     "subject": "You'\''ve been invited to {{ organizationName }}",
     "syntax":  "liquid",
-    "body":    "<html><body><h1>Hi,</h1><p>{{ inviterName }} invited you to {{ organizationName }}.</p><a href=\"{{ invitation_url }}\">Accept invitation</a><p>This link expires in {{ ttlDays }} days.</p></body></html>"
+    "body":    "<html><body><h1>Hi,</h1><p>{{ inviterName }} invited you to {{ organizationName }}.</p><a href=\"{{ invitationUrl }}\">Accept invitation</a><p>This link expires in {{ ttlDays }} days.</p></body></html>"
   }'
 ```
 
@@ -100,7 +100,7 @@ Available Liquid variables in the `user_invitation` template:
 | Variable                            | Description                                                                |
 | ----------------------------------- | -------------------------------------------------------------------------- |
 | `{{ url }}` / `{{ invitationUrl }}` | The full accept-invitation URL (button target).                            |
-| `{{ inviterName }}`                 | `inviter.name` from the request body, or the tenant friendly name as a fallback. |
+| `{{ inviterName }}`                 | `inviter.name` from the request body, or the tenant-friendly name as a fallback. |
 | `{{ organizationName }}`            | Resolved from `display_name`, falling back to `name`, then `id`.           |
 | `{{ ttlDays }}`                     | `ttl_sec` rounded to whole days, minimum 1.                                |
 | `{{ tenant.friendly_name }}`        | Tenant display name.                                                       |

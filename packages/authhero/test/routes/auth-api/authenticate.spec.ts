@@ -53,16 +53,18 @@ describe("authenticate", () => {
     const logsResults = await env.data.logs.list("tenantId");
     expect(logsResults.logs).toHaveLength(2);
 
-    const successfulLoginLog = logsResults.logs[0];
-    if (successfulLoginLog) {
-      expect(successfulLoginLog.type).toBe("s");
-      expect(successfulLoginLog.description).toContain("Successful login");
-    }
-
-    expect(logsResults.logs[1]).toMatchObject({
-      type: "scoa",
-      description: "Successful cross-origin authentication",
-    });
+    expect(logsResults.logs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "s",
+          description: expect.stringContaining("Successful login"),
+        }),
+        expect.objectContaining({
+          type: "scoa",
+          description: "Successful cross-origin authentication",
+        }),
+      ]),
+    );
   });
 
   it("should create a log message for a login attempt for a non-existing user", async () => {
@@ -86,12 +88,12 @@ describe("authenticate", () => {
     const { logs } = await env.data.logs.list("tenantId");
     expect(logs).toHaveLength(2);
 
-    const [failedLoginLog] = logs;
-    expect(failedLoginLog).toMatchObject({
-      type: "fp",
-      description: "Invalid user",
-    });
-    expect(logs[1]).toMatchObject({ type: "fcoa" });
+    expect(logs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: "fp", description: "Invalid user" }),
+        expect.objectContaining({ type: "fcoa" }),
+      ]),
+    );
   });
 
   it("should create a log message for a login attempt for incorrect password", async () => {

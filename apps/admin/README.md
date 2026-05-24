@@ -107,7 +107,7 @@ The trailing `...` on the pnpm filter is required — it builds admin's workspac
 
 For SPA client-side routing, add [`public/_redirects`](public/_redirects):
 
-```
+```text
 /*    /index.html   200
 ```
 

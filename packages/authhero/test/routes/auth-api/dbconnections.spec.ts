@@ -43,6 +43,7 @@ describe("dbconnections", () => {
       // verification email triggered as part of signup.
       const { logs } = await env.data.logs.list("tenantId");
       expect(logs.length).toBe(2);
+      expect(logs.some((l) => l.type === "svr")).toBe(true);
 
       const emails = getSentEmails();
       expect(emails.length).toBe(1);

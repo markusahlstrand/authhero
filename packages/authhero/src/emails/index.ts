@@ -309,7 +309,7 @@ export async function sendResetPassword(
       data,
     });
   } catch (err) {
-    logMessage(ctx, tenant.id, {
+    await logMessage(ctx, tenant.id, {
       type: LogTypes.FAILED_CHANGE_PASSWORD_REQUEST,
       description: to,
     });
@@ -377,7 +377,7 @@ export async function sendResetPasswordCode(
       data,
     });
   } catch (err) {
-    logMessage(ctx, tenant.id, {
+    await logMessage(ctx, tenant.id, {
       type: LogTypes.FAILED_CHANGE_PASSWORD_REQUEST,
       description: to,
     });
@@ -654,7 +654,7 @@ export async function sendValidateEmailAddress(
       data,
     });
   } catch (err) {
-    logMessage(ctx, tenant.id, {
+    await logMessage(ctx, tenant.id, {
       type: LogTypes.FAILED_VERIFICATION_EMAIL_REQUEST,
       description: user.email,
       userId: user.user_id,

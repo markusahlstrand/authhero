@@ -1517,31 +1517,28 @@ u2Routes.openapi(
       });
     }
 
-    const loginSession = await ctx.env.data.loginSessions.create(
-      enriched.tenant.id,
-      {
-        expires_at: new Date(
-          Date.now() + UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS * 1000,
-        ).toISOString(),
-        csrf_token: nanoid(),
-        authorization_url: ctx.req.url,
-        authParams: {
-          client_id: invite.client_id,
-          redirect_uri: redirectUri,
-          response_type: "code",
-          scope: "openid profile email",
-          username: invite.invitee?.email,
-        },
-        state_data: JSON.stringify({
-          invitation_id: invite.id,
-          organization_id: invite.organization_id,
-          organization_name:
-            organization.display_name || organization.name || organization.id,
-          inviter_name: invite.inviter?.name,
-          roles: invite.roles || [],
-        }),
+    const loginSession = await ctx.env.data.loginSessions.create(tenantId, {
+      expires_at: new Date(
+        Date.now() + UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS * 1000,
+      ).toISOString(),
+      csrf_token: nanoid(),
+      authorization_url: ctx.req.url,
+      authParams: {
+        client_id: invite.client_id,
+        redirect_uri: redirectUri,
+        response_type: "code",
+        scope: "openid profile email",
+        username: invite.invitee?.email,
       },
-    );
+      state_data: JSON.stringify({
+        invitation_id: invite.id,
+        organization_id: invite.organization_id,
+        organization_name:
+          organization.display_name || organization.name || organization.id,
+        inviter_name: invite.inviter?.name,
+        roles: invite.roles || [],
+      }),
+    });
 
     return ctx.redirect(
       `/u2/accept-invitation?state=${encodeURIComponent(loginSession.id)}`,
@@ -1603,16 +1600,9 @@ u2Routes.openapi(
       });
       throw new HTTPException(400, { message: "Ticket already consumed" });
     }
-    const consumed = await ctx.env.data.codes.consume(tenantId, ticket);
-    if (!consumed) {
-      await logMessage(ctx, tenantId, {
-        type: LogTypes.FAILED_VERIFICATION_EMAIL,
-        description: "Ticket already consumed",
-        userId: code.user_id || undefined,
-      });
-      throw new HTTPException(400, { message: "Ticket already consumed" });
-    }
 
+    // Validate ticket purpose BEFORE consuming so non-email-verification
+    // tickets (e.g. password-change) presented to this endpoint aren't burned.
     let meta: { purpose?: string; result_url?: string } = {};
     try {
       meta = code.state ? JSON.parse(code.state) : {};
@@ -1633,6 +1623,16 @@ u2Routes.openapi(
         description: "Ticket has no user",
       });
       throw new HTTPException(400, { message: "Ticket has no user" });
+    }
+
+    const consumed = await ctx.env.data.codes.consume(tenantId, ticket);
+    if (!consumed) {
+      await logMessage(ctx, tenantId, {
+        type: LogTypes.FAILED_VERIFICATION_EMAIL,
+        description: "Ticket already consumed",
+        userId: code.user_id || undefined,
+      });
+      throw new HTTPException(400, { message: "Ticket already consumed" });
     }
 
     await ctx.env.data.users.update(tenantId, code.user_id, {
@@ -1680,9 +1680,18 @@ u2Routes.openapi(
 
     const code = await ctx.env.data.codes.get(tenantId, ticket, "ticket");
     if (!code || new Date(code.expires_at).getTime() < Date.now()) {
+      await logMessage(ctx, tenantId, {
+        type: LogTypes.FAILED_CHANGE_PASSWORD,
+        description: "Ticket invalid or expired",
+      });
       throw new HTTPException(400, { message: "Ticket invalid or expired" });
     }
     if (code.used_at) {
+      await logMessage(ctx, tenantId, {
+        type: LogTypes.FAILED_CHANGE_PASSWORD,
+        description: "Ticket already consumed",
+        userId: code.user_id || undefined,
+      });
       throw new HTTPException(400, { message: "Ticket already consumed" });
     }
 
@@ -1698,14 +1707,28 @@ u2Routes.openapi(
       // ignore
     }
     if (meta.purpose !== "password_change") {
+      await logMessage(ctx, tenantId, {
+        type: LogTypes.FAILED_CHANGE_PASSWORD,
+        description: `Wrong ticket type (purpose=${meta.purpose})`,
+        userId: code.user_id || undefined,
+      });
       throw new HTTPException(400, { message: "Wrong ticket type" });
     }
     if (!code.user_id) {
+      await logMessage(ctx, tenantId, {
+        type: LogTypes.FAILED_CHANGE_PASSWORD,
+        description: "Ticket has no user",
+      });
       throw new HTTPException(400, { message: "Ticket has no user" });
     }
 
     const user = await ctx.env.data.users.get(tenantId, code.user_id);
     if (!user) {
+      await logMessage(ctx, tenantId, {
+        type: LogTypes.FAILED_CHANGE_PASSWORD,
+        description: `User not found (user_id=${code.user_id})`,
+        userId: code.user_id,
+      });
       throw new HTTPException(404, { message: "User not found" });
     }
 
@@ -1715,6 +1738,11 @@ u2Routes.openapi(
       clientId = clients[0]?.client_id;
     }
     if (!clientId) {
+      await logMessage(ctx, tenantId, {
+        type: LogTypes.FAILED_CHANGE_PASSWORD,
+        description: "No client available for ticket",
+        userId: user.user_id,
+      });
       throw new HTTPException(400, {
         message: "No client available for ticket",
       });
@@ -1723,9 +1751,26 @@ u2Routes.openapi(
     const enriched = await getEnrichedClient(ctx.env, clientId);
     const redirectUri = meta.result_url || enriched.callbacks?.[0];
     if (!redirectUri) {
+      await logMessage(ctx, tenantId, {
+        type: LogTypes.FAILED_CHANGE_PASSWORD,
+        description: `Ticket client has no callback URL (client_id=${clientId})`,
+        userId: user.user_id,
+      });
       throw new HTTPException(400, {
         message: "Ticket client has no callback URL",
       });
+    }
+
+    // Consume the ticket atomically before any mutations so a failed consume
+    // (already-used, race) doesn't leave the user partially updated.
+    const consumed = await ctx.env.data.codes.consume(tenantId, ticket);
+    if (!consumed) {
+      await logMessage(ctx, tenantId, {
+        type: LogTypes.FAILED_CHANGE_PASSWORD,
+        description: "Ticket already consumed",
+        userId: user.user_id,
+      });
+      throw new HTTPException(400, { message: "Ticket already consumed" });
     }
 
     if (meta.mark_email_as_verified && !user.email_verified) {
@@ -1749,8 +1794,6 @@ u2Routes.openapi(
       },
       user_id: user.user_id,
     });
-
-    await ctx.env.data.codes.consume(tenantId, ticket);
 
     return ctx.redirect(
       `/u2/reset-password?state=${encodeURIComponent(loginSession.id)}`,

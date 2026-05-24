@@ -221,13 +221,14 @@ export function DetailsTab() {
         </ArrayInput>
       )}
 
+      <BooleanInput
+        source="options.disable_signup"
+        label="Disable Sign Ups"
+        helperText="Prevent new user sign ups from this connection"
+      />
+
       {isDb && (
         <>
-          <BooleanInput
-            source="options.disable_signup"
-            label="Disable Sign Ups"
-            helperText="Prevent new user sign ups from this connection"
-          />
           <BooleanInput
             source="options.brute_force_protection"
             label="Brute Force Protection"
