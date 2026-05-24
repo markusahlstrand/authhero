@@ -31,7 +31,7 @@
   },
   "scripts": {
     "dev": "bun --watch src/bun.ts",
-    "build": "pnpm build:i18n && pnpm build:emails && pnpm build:tailwind && pnpm build:client && tsc && vite build && dts-bundle-generator --config ./dts-bundle-generator.config.ts && pnpm build:assets",
+    "build": "export NODE_OPTIONS=--max-old-space-size=8192 && pnpm build:i18n && pnpm build:emails && pnpm build:tailwind && pnpm build:client && tsc && vite build && dts-bundle-generator --config ./dts-bundle-generator.config.ts && pnpm build:assets",
     "build:i18n": "node scripts/generate-locale-types.js",
     "build:emails": "tsx scripts/build-emails.tsx",
     "build:tailwind": "node build-tailwind.js",
