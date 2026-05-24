@@ -1,5 +1,41 @@
 # authhero
 
+## 5.8.0
+
+### Minor Changes
+
+- 1bcf864: Add Auth0-compatible invitation email flow and ticket endpoints.
+  - `POST /api/v2/organizations/:id/invitations` now sends a styled invitation email when `send_invitation_email` is true (default) and `invitee.email` is set. Ships a `user_invitation` default email template (override via `PUT /api/v2/email-templates/user_invitation` with Liquid syntax).
+  - New `GET /u2/accept-invitation` screen consumes the invite link, captures a password, creates the user with `email_verified: true`, adds them to the organization with the invite's roles, then signs them in.
+  - New `POST /api/v2/tickets/email-verification` and `POST /api/v2/tickets/password-change` endpoints that return one-time Auth0-compatible ticket URLs, consumed at `/u2/tickets/email-verification` and `/u2/tickets/password-change`.
+
+- 1bcf864: Match Auth0's log-stream wire shape and emit additional Auth0-compatible audit events.
+  - HTTP log-stream payloads now wrap the event body under a `data` key (with `log_id` and `description` at the top level), matching Auth0's wire format. Logstash/Datadog pipelines using `%{[data]}` templates will now resolve correctly instead of producing literal `_split_type_failure` tags.
+  - New audit events emitted: `si`/`fi` (invite accept), `sv`/`fv` (email verification ticket), `svr`/`fvr` (verification email sent), `fcpr` (failed change-password request), `scoa`/`fcoa` (cross-origin authentication).
+  - Passwordless OTP exchange now emits `sepotpft`/`fepotpft` instead of the password-OTP (MFA) codes `seotpft`/`feotpft`. Adds the new `SUCCESS_EXCHANGE_PASSWORDLESS_OTP_FOR_ACCESS_TOKEN` log type to the catalog.
+
+### Patch Changes
+
+- cfd88a2: Improve invitation/ticket flow robustness:
+  - Build organization invitation URLs via `URL` + `searchParams` so invite/organization ids are encoded correctly.
+  - Capture and log failure reasons in the `accept-invitation` screen's user-creation and post-accept auto-login paths instead of silently swallowing them, and show an explicit error to the user when the auto-login step fails.
+  - Log meaningful failure details (ticket, user, client, redirect) in the `/u2/tickets/password-change` handler before throwing on invalid/expired/consumed tickets or missing user/client/callback.
+
+- 53abec1: Security: enforce audience binding on the management API and stop minting tokens with arbitrary scopes for unregistered audiences.
+
+  Previously, any authenticated user could call `/authorize` with an `audience` value that did not match a registered resource server and request arbitrary scopes (e.g. `update:users`). The token endpoint passed those scopes through unchanged, and the management API middleware accepted the resulting token because it checked the `scope` claim without validating `aud`. This allowed a logged-in user to grant themselves management-API access.
+
+  Two changes close the gap:
+  - `calculateScopesAndPermissions` now rejects non-OIDC scopes when the requested audience does not match a registered resource server (`Service not found: <audience>`). OIDC default scopes (`openid`, `profile`, `email`, `address`, `phone`, `offline_access`) still pass through so plain login flows continue to work.
+  - The management API authentication middleware now requires the access token's `aud` claim to include the management API identifier (`urn:authhero:management`). Tokens issued for any other audience are rejected with 403.
+
+  Tokens minted through the normal `/authorize` or `/oauth/token` flow against the seeded management API resource server are unaffected.
+
+- 53abec1: Accept legacy `auth:read`/`auth:write` scopes on management-api users routes alongside the granular `read:users`/`update:users`/`create:users`/`delete:users` scopes. Transitional measure until all clients are updated.
+- Updated dependencies [1bcf864]
+  - @authhero/adapter-interfaces@2.5.0
+  - @authhero/widget@0.32.26
+
 ## 5.7.0
 
 ### Minor Changes
