@@ -27,10 +27,15 @@ variable "client_secret" {
   sensitive = true
 }
 
+variable "audience" {
+  type = string
+}
+
 provider "auth0" {
   domain        = var.domain
   client_id     = var.client_id
   client_secret = var.client_secret
+  audience      = var.audience
   debug         = true
 }
 

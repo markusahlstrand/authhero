@@ -15,6 +15,7 @@ import { serve, type ServerType } from "@hono/node-server";
 import type { AddressInfo } from "node:net";
 import { getTestServer } from "../helpers/test-server";
 import { MANAGEMENT_API_SCOPES } from "../../src/seed";
+import { MANAGEMENT_API_AUDIENCE } from "../../src/middlewares/authentication";
 
 const FIXTURE_DIR = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -139,7 +140,7 @@ describeIfReady("terraform-provider-auth0 smoke test", () => {
     const baseUrl = `https://127.0.0.1:${addr.port}`;
     ts.env.ISSUER = `${baseUrl}/`;
 
-    const audience = `${baseUrl}/api/v2/`;
+    const audience = MANAGEMENT_API_AUDIENCE;
 
     await ts.env.data.resourceServers.create("tenantId", {
       name: "Authhero Management API (test)",
@@ -177,6 +178,7 @@ describeIfReady("terraform-provider-auth0 smoke test", () => {
         `domain        = "127.0.0.1:${addr.port}"`,
         `client_id     = "tf-provider"`,
         `client_secret = "tf-provider-secret"`,
+        `audience      = "${audience}"`,
       ].join("\n"),
     );
 

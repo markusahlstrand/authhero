@@ -182,7 +182,9 @@ export const ticketsRoutes = new OpenAPIHono<{
             body.connection_id,
           );
           if (!connection) {
-            throw new HTTPException(404, { message: "User not found" });
+            throw new HTTPException(404, {
+              message: `Connection not found (connection_id=${body.connection_id})`,
+            });
           }
           connectionName = connection.name;
         }

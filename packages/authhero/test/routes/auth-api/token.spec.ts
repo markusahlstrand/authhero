@@ -1336,7 +1336,14 @@ describe("token", () => {
         Date.now() + 1000 * 60 * 60,
       ).toISOString();
 
-      // Create a refresh token with specific scopes (no resource server needed when RBAC is disabled)
+      // Register a resource server so the non-OIDC `read:users` scope is
+      // recognized when calculateScopesAndPermissions re-evaluates on refresh.
+      await env.data.resourceServers.create("tenantId", {
+        name: "Example API",
+        identifier: "http://example.com",
+        scopes: [{ value: "read:users", description: "Read users" }],
+      });
+
       const originalScopes = "openid profile email read:users";
       await env.data.refreshTokens.create("tenantId", {
         id: "refreshTokenWithScopes",

@@ -72,6 +72,20 @@ export function createAuthMiddleware(
 
       try {
         const tokenPayload = await validateJwtToken(ctx, bearer);
+
+        // Defense in depth: require the token's audience to be the
+        // management API resource server. Without this check a token issued
+        // for any other audience — including one minted with attacker-chosen
+        // scopes via an unregistered audience — would be accepted as long as
+        // it carried a matching scope/permission string.
+        const aud = tokenPayload.aud;
+        const tokenAudiences = Array.isArray(aud) ? aud : aud ? [aud] : [];
+        if (!tokenAudiences.includes(MANAGEMENT_API_AUDIENCE)) {
+          throw new JSONHTTPException(403, {
+            message: "Invalid audience",
+          });
+        }
+
         ctx.set("user_id", tokenPayload.sub);
         ctx.set("user", tokenPayload);
 

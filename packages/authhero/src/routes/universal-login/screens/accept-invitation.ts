@@ -379,11 +379,11 @@ export const acceptInvitationScreenDefinition: ScreenDefinition = {
             connection,
           });
           return {
-            error: "Failed to create user",
+            error: "Failed to update user",
             screen: await acceptInvitationScreen({
               ...context,
               prefill: { email },
-              errors: { email: "Failed to create user" },
+              errors: { email: "Failed to update user" },
             }),
           };
         }
