@@ -223,14 +223,17 @@ async function calculateClientCredentialsScopes(
   );
 
   // Auth0 behavior:
-  // - If NO scopes requested: return ALL granted scopes
-  // - If scopes ARE requested: return intersection of requested and granted scopes
+  // - If NO scopes requested at all: return ALL granted scopes
+  // - If scopes ARE requested (including OIDC-only): return intersection of
+  //   requested non-OIDC scopes and granted scopes. An OIDC-only request such
+  //   as `offline_access` must NOT cause the full granted API surface to be
+  //   returned.
   const resultScopes =
-    nonOidcRequestedScopes.length === 0
+    requestedScopes.length === 0
       ? allGrantedScopes // No scopes requested - return all granted
       : nonOidcRequestedScopes.filter((scope) =>
           allGrantedScopes.includes(scope),
-        ); // Intersection
+        ); // Intersection (may be empty when only OIDC scopes were requested)
 
   const tokenLifetimeFields = {
     token_lifetime: resourceServer.token_lifetime,

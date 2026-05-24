@@ -378,6 +378,23 @@ async function buildScreenContext(
     }
   }
 
+  // For accept-invitation, surface the org/inviter metadata from state_data
+  // so the screen renders the correct title/description on both GET and POST
+  // validation failures.
+  if (screenId === "accept-invitation" && loginSession?.state_data) {
+    try {
+      const stateData = JSON.parse(loginSession.state_data);
+      if (stateData.organization_name) {
+        data.organization_name = stateData.organization_name;
+      }
+      if (stateData.inviter_name) {
+        data.inviter_name = stateData.inviter_name;
+      }
+    } catch {
+      // ignore malformed state_data
+    }
+  }
+
   // For mfa-phone-challenge screen, load the phone number from the MFA enrollment
   if (screenId === "mfa-phone-challenge" && loginSession) {
     const stateData = loginSession.state_data
