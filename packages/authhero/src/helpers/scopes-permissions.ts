@@ -42,13 +42,17 @@ export interface ScopesAndPermissionsResult {
   token_lifetime_for_web: number;
 }
 
-// Standard OIDC scopes that are available by default
+// Standard OIDC scopes that are available without a registered resource server.
+// `offline_access` is included per OIDC Core 1.0 § 11 — it's a request for a
+// refresh token, not tied to any resource server, so it must pass through even
+// when the audience has no matching resource server.
 const DEFAULT_OIDC_SCOPES = [
   "openid", // Required for OIDC; returns sub claim (user identifier) in ID token
   "profile", // Returns standard profile claims: name, family_name, given_name, nickname, picture, locale, updated_at
   "email", // Returns email and email_verified
   "address", // Returns address claim
   "phone", // Returns phone_number and phone_number_verified
+  "offline_access", // OIDC Core § 11 — requests a refresh token
 ];
 
 interface ClientCredentialsScopesParams {
@@ -219,14 +223,17 @@ async function calculateClientCredentialsScopes(
   );
 
   // Auth0 behavior:
-  // - If NO scopes requested: return ALL granted scopes
-  // - If scopes ARE requested: return intersection of requested and granted scopes
+  // - If NO scopes requested at all: return ALL granted scopes
+  // - If scopes ARE requested (including OIDC-only): return intersection of
+  //   requested non-OIDC scopes and granted scopes. An OIDC-only request such
+  //   as `offline_access` must NOT cause the full granted API surface to be
+  //   returned.
   const resultScopes =
-    nonOidcRequestedScopes.length === 0
+    requestedScopes.length === 0
       ? allGrantedScopes // No scopes requested - return all granted
       : nonOidcRequestedScopes.filter((scope) =>
           allGrantedScopes.includes(scope),
-        ); // Intersection
+        ); // Intersection (may be empty when only OIDC scopes were requested)
 
   const tokenLifetimeFields = {
     token_lifetime: resourceServer.token_lifetime,
@@ -371,21 +378,28 @@ export async function calculateScopesAndPermissions(
       (rs: ResourceServer) => rs.identifier === audience,
     );
 
-  if (matchingResourceServers.length === 0) {
-    // No matching resource servers found - return all requested scopes
-    // When there's no resource server defined, we don't restrict scopes
-    return {
-      scopes: requestedScopes,
-      permissions: [],
-      token_lifetime: 86400,
-      token_lifetime_for_web: 7200,
-    };
-  }
-
   const resourceServer = matchingResourceServers[0];
+
   if (!resourceServer) {
+    // SECURITY: Without a matching resource server we cannot validate that
+    // the caller is authorized for the requested non-OIDC scopes. Returning
+    // them unchanged let any authenticated user mint a token carrying
+    // arbitrary scopes (e.g. `update:users`) by choosing an unregistered
+    // audience — which the management API then accepted via its scope check.
+    // OIDC default scopes still flow through so plain login flows that omit
+    // a resource server (or rely on tenant.default_audience without one)
+    // keep working.
+    const nonOidcRequested = requestedScopes.filter(
+      (scope) => scope && !DEFAULT_OIDC_SCOPES.includes(scope),
+    );
+    if (nonOidcRequested.length > 0) {
+      throw new JSONHTTPException(403, {
+        error: "access_denied",
+        error_description: `Service not found: ${audience}`,
+      });
+    }
     return {
-      scopes: requestedScopes,
+      scopes: defaultOidcScopes,
       permissions: [],
       token_lifetime: 86400,
       token_lifetime_for_web: 7200,

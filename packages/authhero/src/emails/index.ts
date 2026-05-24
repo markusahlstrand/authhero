@@ -70,21 +70,25 @@ export async function sendEmail(
       `[sendEmail] tenant=${ctx.var.tenant_id} provider=${emailProvider.name} template=${params.template} to=${params.to}: ${errorMessage}`,
       err,
     );
-    await logMessage(ctx, ctx.var.tenant_id, {
-      type: LogTypes.FAILED_SENDING_NOTIFICATION,
-      description:
-        `email send failed via ${emailProvider.name}: ${errorMessage}`.slice(
-          0,
-          500,
-        ),
-      details: {
-        provider: emailProvider.name,
-        template: params.template,
-        to: params.to,
-        error: errorMessage,
-      },
-      waitForCompletion: true,
-    });
+    try {
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.FAILED_SENDING_NOTIFICATION,
+        description:
+          `email send failed via ${emailProvider.name}: ${errorMessage}`.slice(
+            0,
+            500,
+          ),
+        details: {
+          provider: emailProvider.name,
+          template: params.template,
+          to: params.to,
+          error: errorMessage,
+        },
+        waitForCompletion: true,
+      });
+    } catch (logErr) {
+      console.error("[sendEmail] failed to record log entry", logErr);
+    }
     throw err;
   }
 }
@@ -137,20 +141,24 @@ export async function sendSms(
       `[sendSms] tenant=${ctx.var.tenant_id} connection=${smsProvider.name} to=${params.to}: ${errorMessage}`,
       err,
     );
-    await logMessage(ctx, ctx.var.tenant_id, {
-      type: LogTypes.FAILED_SENDING_NOTIFICATION,
-      description:
-        `sms send failed via ${smsProvider.name}: ${errorMessage}`.slice(
-          0,
-          500,
-        ),
-      details: {
-        connection: smsProvider.name,
-        to: params.to,
-        error: errorMessage,
-      },
-      waitForCompletion: true,
-    });
+    try {
+      await logMessage(ctx, ctx.var.tenant_id, {
+        type: LogTypes.FAILED_SENDING_NOTIFICATION,
+        description:
+          `sms send failed via ${smsProvider.name}: ${errorMessage}`.slice(
+            0,
+            500,
+          ),
+        details: {
+          connection: smsProvider.name,
+          to: params.to,
+          error: errorMessage,
+        },
+        waitForCompletion: true,
+      });
+    } catch (logErr) {
+      console.error("[sendSms] failed to record log entry", logErr);
+    }
     throw err;
   }
 }
@@ -309,10 +317,17 @@ export async function sendResetPassword(
       data,
     });
   } catch (err) {
-    await logMessage(ctx, tenant.id, {
-      type: LogTypes.FAILED_CHANGE_PASSWORD_REQUEST,
-      description: to,
-    });
+    try {
+      await logMessage(ctx, tenant.id, {
+        type: LogTypes.FAILED_CHANGE_PASSWORD_REQUEST,
+        description: to,
+      });
+    } catch (logErr) {
+      console.error(
+        "[sendResetPassword] failed to record log entry",
+        logErr,
+      );
+    }
     throw err;
   }
 
@@ -377,10 +392,17 @@ export async function sendResetPasswordCode(
       data,
     });
   } catch (err) {
-    await logMessage(ctx, tenant.id, {
-      type: LogTypes.FAILED_CHANGE_PASSWORD_REQUEST,
-      description: to,
-    });
+    try {
+      await logMessage(ctx, tenant.id, {
+        type: LogTypes.FAILED_CHANGE_PASSWORD_REQUEST,
+        description: to,
+      });
+    } catch (logErr) {
+      console.error(
+        "[sendResetPasswordCode] failed to record log entry",
+        logErr,
+      );
+    }
     throw err;
   }
 
@@ -654,11 +676,18 @@ export async function sendValidateEmailAddress(
       data,
     });
   } catch (err) {
-    await logMessage(ctx, tenant.id, {
-      type: LogTypes.FAILED_VERIFICATION_EMAIL_REQUEST,
-      description: user.email,
-      userId: user.user_id,
-    });
+    try {
+      await logMessage(ctx, tenant.id, {
+        type: LogTypes.FAILED_VERIFICATION_EMAIL_REQUEST,
+        description: user.email,
+        userId: user.user_id,
+      });
+    } catch (logErr) {
+      console.error(
+        "[sendValidateEmailAddress] failed to record log entry",
+        logErr,
+      );
+    }
     throw err;
   }
 

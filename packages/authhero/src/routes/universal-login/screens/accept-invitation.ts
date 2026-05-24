@@ -346,6 +346,37 @@ export const acceptInvitationScreenDefinition: ScreenDefinition = {
         // auto-login below succeeds, and mark the email verified since the
         // invite proves ownership.
         try {
+          // Re-run the password policy with the real user_id so user-bound
+          // checks (notably password history) are enforced before we rotate
+          // password rows. The first validation above runs with an empty
+          // user_id because we don't yet know whether the user exists.
+          try {
+            await validatePasswordPolicy(policy, {
+              tenantId: client.tenant.id,
+              userId: user.user_id,
+              newPassword: password,
+              data: ctx.env.data,
+            });
+          } catch (policyError: unknown) {
+            const message =
+              policyError instanceof Error
+                ? policyError.message
+                : passwordM["password-too-weak"]();
+            await logMessage(ctx, client.tenant.id, {
+              type: LogTypes.FAILED_INVITE_ACCEPT,
+              description: message,
+              connection,
+            });
+            return {
+              error: message,
+              screen: await acceptInvitationScreen({
+                ...context,
+                prefill: { email },
+                errors: { password: message },
+              }),
+            };
+          }
+
           const { hash, algorithm } = await hashPassword(password);
           const existingPassword = await ctx.env.data.passwords.get(
             client.tenant.id,
@@ -379,11 +410,11 @@ export const acceptInvitationScreenDefinition: ScreenDefinition = {
             connection,
           });
           return {
-            error: "Failed to create user",
+            error: "Failed to update user",
             screen: await acceptInvitationScreen({
               ...context,
               prefill: { email },
-              errors: { email: "Failed to create user" },
+              errors: { email: "Failed to update user" },
             }),
           };
         }

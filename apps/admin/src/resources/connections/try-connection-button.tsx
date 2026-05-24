@@ -259,6 +259,7 @@ export function TryConnectionButton() {
 
   useEffect(() => {
     function onMessage(e: MessageEvent) {
+      if (!open) return;
       if (!popupRef.current || e.source !== popupRef.current) return;
       if (!popupOriginRef.current || e.origin !== popupOriginRef.current) {
         return;
@@ -273,7 +274,7 @@ export function TryConnectionButton() {
     }
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, []);
+  }, [open]);
 
   if (!record) return null;
 
@@ -285,6 +286,13 @@ export function TryConnectionButton() {
         if (!value) {
           setPassword("");
           setResult(null);
+          // Tear down any in-flight popup so late postMessages don't update
+          // state after the dialog has been dismissed.
+          if (popupRef.current && !popupRef.current.closed) {
+            popupRef.current.close();
+          }
+          popupRef.current = null;
+          popupOriginRef.current = null;
         }
       }}
     >

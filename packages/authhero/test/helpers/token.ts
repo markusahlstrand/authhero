@@ -2,6 +2,7 @@ import { createJWT } from "oslo/jwt";
 import { TimeSpan } from "oslo";
 import { createX509Certificate } from "../../src/utils/encryption";
 import { SigningKey } from "@authhero/adapter-interfaces";
+import { MANAGEMENT_API_AUDIENCE } from "../../src/middlewares/authentication";
 
 let signingKey: SigningKey | null = null;
 
@@ -33,6 +34,7 @@ export interface CreateTokenParams {
   tenantId?: string;
   scope?: string;
   permissions?: string[];
+  aud?: string;
   // OIDC Core 5.5 — list of claim names the original /authorize request
   // asked for under `claims.userinfo`. Tests use this to exercise the
   // `requested_userinfo_claims` access-token slot end-to-end.
@@ -46,7 +48,7 @@ export async function createToken(params?: CreateTokenParams) {
     "RS256",
     pemToBuffer(certificate.pkcs7!),
     {
-      aud: "example.com",
+      aud: params?.aud ?? MANAGEMENT_API_AUDIENCE,
       scope: params?.scope ?? "openid email profile",
       permissions: params?.permissions || [],
       sub: params?.userId || "userId",
@@ -165,5 +167,6 @@ const ADMIN_PERMISSIONS = [
 export async function getAdminToken() {
   return createToken({
     permissions: ADMIN_PERMISSIONS,
+    aud: MANAGEMENT_API_AUDIENCE,
   });
 }

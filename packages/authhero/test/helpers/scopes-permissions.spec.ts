@@ -7,7 +7,32 @@ import { GrantType } from "@authhero/adapter-interfaces";
 
 describe("scopes-permissions helper", () => {
   describe("calculateScopesAndPermissions", () => {
-    it("should return all requested scopes when no resource server matches the audience", async () => {
+    it("should reject non-OIDC scopes when no resource server matches the audience", async () => {
+      const { env } = await getTestServer();
+      const ctx = {
+        env,
+        var: {},
+      } as Context<{
+        Bindings: Bindings;
+        Variables: Variables;
+      }>;
+
+      // SECURITY regression: previously any authenticated user could mint a
+      // token with arbitrary scopes by picking an unregistered audience,
+      // since the helper returned `requestedScopes` unchanged. The management
+      // API then granted access based on the `scope` claim. Reject instead.
+      await expect(
+        calculateScopesAndPermissions(ctx, {
+          tenantId: "tenantId",
+          clientId: "test-client-id",
+          userId: "userId",
+          audience: "https://nonexistent-api.example.com",
+          requestedScopes: ["read:users", "write:users"],
+        }),
+      ).rejects.toThrow(/Service not found/);
+    });
+
+    it("should still allow OIDC-only scopes when no resource server matches the audience", async () => {
       const { env } = await getTestServer();
       const ctx = {
         env,
@@ -22,13 +47,12 @@ describe("scopes-permissions helper", () => {
         clientId: "test-client-id",
         userId: "userId",
         audience: "https://nonexistent-api.example.com",
-        requestedScopes: ["read:users", "write:users"],
+        requestedScopes: ["openid", "profile", "email"],
       });
 
-      // When no resource server is defined, all requested scopes are returned
       expect(result).toEqual(
         expect.objectContaining({
-          scopes: ["read:users", "write:users"],
+          scopes: ["openid", "profile", "email"],
           permissions: [],
         }),
       );
