@@ -331,7 +331,7 @@ export default function create(config: AuthHeroConfig) {
   app
     .use(clientInfoMiddleware)
     .use(tenantMiddleware)
-    .use(createAuthMiddleware(app))
+    .use(createAuthMiddleware(app, { requireManagementAudience: true }))
     // Add entity hooks after tenant is known
     .use(async (ctx, next) => {
       if (config.entityHooks && ctx.var.tenant_id) {

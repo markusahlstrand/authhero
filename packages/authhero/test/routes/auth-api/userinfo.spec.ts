@@ -37,6 +37,39 @@ describe("userinfo", () => {
       });
     });
 
+    // Regression: /userinfo must accept any access token issued by this
+    // tenant, regardless of `aud`. The management-API audience check used to
+    // be applied to every auth-api route, which 403'd normal user access
+    // tokens here.
+    it("should accept an access token whose audience is not the management API", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const client = testClient(oauthApp, env);
+
+      const accessToken = await createToken({
+        userId: "email|userId",
+        tenantId: "tenantId",
+        scope: "openid email",
+        aud: "https://example.com/api",
+      });
+
+      const response = await client.userinfo.$get(
+        {},
+        {
+          headers: {
+            authorization: `Bearer ${accessToken}`,
+          },
+        },
+      );
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+      expect(body).toEqual({
+        email: "foo@example.com",
+        email_verified: true,
+        sub: "email|userId",
+      });
+    });
+
     it("should return 401 if there is no bearer token", async () => {
       const { oauthApp, env } = await getTestServer();
       const client = testClient(oauthApp, env);

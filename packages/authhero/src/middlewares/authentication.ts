@@ -18,11 +18,21 @@ function convertRouteSyntax(route: string) {
 
 /**
  * This registeres the authentication middleware. As it needs to read the OpenAPI definition, it needs to have a reference to the app.
- * @param app
+ *
+ * `requireManagementAudience` enables the defense-in-depth check that the
+ * token's `aud` includes the management API audience. It must be enabled
+ * for the management API and left off for everything else (the `/userinfo`
+ * endpoint, for example, takes any access token issued by this tenant).
  */
+export interface AuthMiddlewareOptions {
+  requireManagementAudience?: boolean;
+}
+
 export function createAuthMiddleware(
   app: OpenAPIHono<{ Bindings: Bindings; Variables: Variables }>,
+  options: AuthMiddlewareOptions = {},
 ) {
+  const requireManagementAudience = options.requireManagementAudience ?? false;
   return async (
     ctx: Context<{ Bindings: Bindings; Variables }>,
     next: Next,
@@ -73,17 +83,19 @@ export function createAuthMiddleware(
       try {
         const tokenPayload = await validateJwtToken(ctx, bearer);
 
-        // Defense in depth: require the token's audience to be the
-        // management API resource server. Without this check a token issued
-        // for any other audience — including one minted with attacker-chosen
-        // scopes via an unregistered audience — would be accepted as long as
-        // it carried a matching scope/permission string.
-        const aud = tokenPayload.aud;
-        const tokenAudiences = Array.isArray(aud) ? aud : aud ? [aud] : [];
-        if (!tokenAudiences.includes(MANAGEMENT_API_AUDIENCE)) {
-          throw new JSONHTTPException(403, {
-            message: "Invalid audience",
-          });
+        if (requireManagementAudience) {
+          // Defense in depth: require the token's audience to be the
+          // management API resource server. Without this check a token issued
+          // for any other audience — including one minted with attacker-chosen
+          // scopes via an unregistered audience — would be accepted as long as
+          // it carried a matching scope/permission string.
+          const aud = tokenPayload.aud;
+          const tokenAudiences = Array.isArray(aud) ? aud : aud ? [aud] : [];
+          if (!tokenAudiences.includes(MANAGEMENT_API_AUDIENCE)) {
+            throw new JSONHTTPException(403, {
+              message: "Invalid audience",
+            });
+          }
         }
 
         ctx.set("user_id", tokenPayload.sub);
