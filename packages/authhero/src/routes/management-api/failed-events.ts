@@ -4,6 +4,7 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { querySchema } from "../../types/auth0/Query";
 import { auditEventSchema } from "@authhero/adapter-interfaces";
 
+import { defineRoute } from "../../utils/define-route";
 const outboxEventSchema = auditEventSchema.extend({
   created_at: z.string(),
   processed_at: z.string().nullable(),
@@ -20,16 +21,8 @@ const listFailedEventsResponseSchema = z.object({
   limit: z.number(),
   length: z.number(),
 });
-
-export const failedEventsRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /failed-events
-  // --------------------------------
-  .openapi(
-    createRoute({
+const getRoot = defineRoute({
+  route: createRoute({
       tags: ["failed-events"],
       method: "get",
       path: "/",
@@ -55,7 +48,7 @@ export const failedEventsRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const outbox = ctx.env.data.outbox;
       if (!outbox) {
         throw new HTTPException(501, {
@@ -77,12 +70,10 @@ export const failedEventsRoutes = new OpenAPIHono<{
         length: result.length,
       });
     },
-  )
-  // --------------------------------
-  // POST /failed-events/:id/retry
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postByIdRetry = defineRoute({
+  route: createRoute({
       tags: ["failed-events"],
       method: "post",
       path: "/{id}/retry",
@@ -109,7 +100,7 @@ export const failedEventsRoutes = new OpenAPIHono<{
         404: { description: "Not found" },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const outbox = ctx.env.data.outbox;
       if (!outbox) {
         throw new HTTPException(501, {
@@ -128,4 +119,11 @@ export const failedEventsRoutes = new OpenAPIHono<{
       }
       return ctx.json({ id, replayed: true });
     },
-  );
+});
+
+
+export const failedEventsRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot, postByIdRetry] as const);

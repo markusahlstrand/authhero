@@ -4,16 +4,9 @@ import { initJSXRoute } from "./common";
 import ForgotPasswordPage from "../../components/ForgotPasswordPage";
 import ForgotPasswordSentPage from "../../components/ForgotPasswordSentPage";
 import { requestPasswordReset } from "../../authentication-flows/password";
-
-export const forgotPasswordRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /u/forgot-password
-  // --------------------------------
-  .openapi(
-    createRoute({
+import { defineRoute } from "../../utils/define-route";
+const getRoot = defineRoute({
+  route: createRoute({
       tags: ["login"],
       method: "get",
       path: "/",
@@ -30,7 +23,7 @@ export const forgotPasswordRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { state } = ctx.req.valid("query");
 
       const { theme, branding, client, loginSession } = await initJSXRoute(
@@ -48,12 +41,10 @@ export const forgotPasswordRoutes = new OpenAPIHono<{
         />,
       );
     },
-  )
-  // -------------------------------
-  // POST /u/forgot-password
-  // -------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postRoot = defineRoute({
+  route: createRoute({
       tags: ["login"],
       method: "post",
       path: "/",
@@ -70,7 +61,7 @@ export const forgotPasswordRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { state } = ctx.req.valid("query");
 
       const { theme, branding, client, loginSession } = await initJSXRoute(
@@ -94,4 +85,11 @@ export const forgotPasswordRoutes = new OpenAPIHono<{
         />,
       );
     },
-  );
+});
+
+
+export const forgotPasswordRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot, postRoot] as const);

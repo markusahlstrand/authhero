@@ -10,19 +10,12 @@ import {
 } from "../universal-login/universal-login-template";
 import { HTTPException } from "hono/http-exception";
 
+import { defineRoute } from "../../utils/define-route";
 const universalLoginTemplateSchema = z.object({
   body: z.string(),
 });
-
-export const brandingRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /api/v2/branding
-  // --------------------------------
-  .openapi(
-    createRoute({
+const getRoot = defineRoute({
+  route: createRoute({
       tags: ["branding"],
       method: "get",
       path: "/",
@@ -47,7 +40,7 @@ export const brandingRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const branding = await ctx.env.data.branding.get(ctx.var.tenant_id);
 
       if (!branding) {
@@ -56,12 +49,10 @@ export const brandingRoutes = new OpenAPIHono<{
 
       return ctx.json(branding);
     },
-  )
-  // --------------------------------
-  // PATCH /api/v2/branding
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const patchRoot = defineRoute({
+  route: createRoute({
       tags: ["branding"],
       method: "patch",
       path: "/",
@@ -93,7 +84,7 @@ export const brandingRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const branding = ctx.req.valid("json");
 
       await ctx.env.data.branding.set(ctx.var.tenant_id, branding);
@@ -112,12 +103,10 @@ export const brandingRoutes = new OpenAPIHono<{
 
       return ctx.json(updatedBranding || DEFAULT_BRANDING);
     },
-  )
-  // --------------------------------
-  // GET /api/v2/branding/templates/universal-login
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getTemplatesUniversalLogin = defineRoute({
+  route: createRoute({
       tags: ["branding"],
       method: "get",
       path: "/templates/universal-login",
@@ -143,7 +132,7 @@ export const brandingRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const template = await ctx.env.data.universalLoginTemplates.get(
         ctx.var.tenant_id,
       );
@@ -154,12 +143,10 @@ export const brandingRoutes = new OpenAPIHono<{
 
       return ctx.json({ body: DEFAULT_UNIVERSAL_LOGIN_TEMPLATE });
     },
-  )
-  // --------------------------------
-  // PUT /api/v2/branding/templates/universal-login
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const putTemplatesUniversalLogin = defineRoute({
+  route: createRoute({
       tags: ["branding"],
       method: "put",
       path: "/templates/universal-login",
@@ -189,7 +176,7 @@ export const brandingRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const template = ctx.req.valid("json");
 
       // Body must mount the widget. Chip slots are optional — omitting one
@@ -214,12 +201,10 @@ export const brandingRoutes = new OpenAPIHono<{
 
       return ctx.body(null, 204);
     },
-  )
-  // --------------------------------
-  // DELETE /api/v2/branding/templates/universal-login
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const deleteTemplatesUniversalLogin = defineRoute({
+  route: createRoute({
       tags: ["branding"],
       method: "delete",
       path: "/templates/universal-login",
@@ -239,7 +224,7 @@ export const brandingRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       await ctx.env.data.universalLoginTemplates.delete(ctx.var.tenant_id);
 
       await logMessage(ctx, ctx.var.tenant_id, {
@@ -251,8 +236,12 @@ export const brandingRoutes = new OpenAPIHono<{
 
       return ctx.body(null, 204);
     },
-  )
-  // --------------------------------
-  // Themes sub-routes
-  // --------------------------------
+});
+
+
+export const brandingRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot, patchRoot, getTemplatesUniversalLogin, putTemplatesUniversalLogin, deleteTemplatesUniversalLogin] as const)
   .route("/themes", themesRoutes);

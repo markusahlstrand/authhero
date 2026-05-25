@@ -9,21 +9,14 @@ import ResetPasswordPage from "../../components/ResetPasswordPage";
 import MessagePage from "../../components/MessagePage";
 import { getUsernamePasswordUser } from "../../utils/username-password-provider";
 import { logMessage } from "../../helpers/logging";
+import { defineRoute } from "../../utils/define-route";
 import {
   getPasswordPolicy,
   validatePasswordPolicy,
   PasswordPolicyError,
 } from "../../helpers/password-policy";
-
-export const resetPasswordRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /u/reset-password
-  // --------------------------------
-  .openapi(
-    createRoute({
+const getRoot = defineRoute({
+  route: createRoute({
       tags: ["login"],
       method: "get",
       path: "/",
@@ -43,7 +36,7 @@ export const resetPasswordRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { state } = ctx.req.valid("query");
 
       const { theme, branding, client, loginSession } = await initJSXRoute(
@@ -64,12 +57,10 @@ export const resetPasswordRoutes = new OpenAPIHono<{
         />,
       );
     },
-  )
-  // --------------------------------
-  // POST /u/reset-password
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postRoot = defineRoute({
+  route: createRoute({
       tags: ["login"],
       method: "post",
       path: "/",
@@ -99,7 +90,7 @@ export const resetPasswordRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { state, code } = ctx.req.valid("query");
       const { password, "re-enter-password": reEnterPassword } =
         ctx.req.valid("form");
@@ -301,4 +292,11 @@ export const resetPasswordRoutes = new OpenAPIHono<{
         />,
       );
     },
-  );
+});
+
+
+export const resetPasswordRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot, postRoot] as const);

@@ -9,16 +9,9 @@ import { nanoid } from "nanoid";
 import { EMAIL_VERIFICATION_EXPIRATION_TIME } from "../../constants";
 import { logMessage } from "../../helpers/logging";
 import { LogTypes } from "@authhero/adapter-interfaces";
-
-export const accountChangeEmailRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /u/account/change-email
-  // --------------------------------
-  .openapi(
-    createRoute({
+import { defineRoute } from "../../utils/define-route";
+const getRoot = defineRoute({
+  route: createRoute({
       tags: ["login"],
       method: "get",
       path: "/",
@@ -49,7 +42,7 @@ export const accountChangeEmailRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { state } = ctx.req.valid("query");
 
       // Get theme, branding and user from initJSXRoute
@@ -70,12 +63,10 @@ export const accountChangeEmailRoutes = new OpenAPIHono<{
         />,
       );
     },
-  )
-  // --------------------------------
-  // POST /u/account/change-email
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postRoot = defineRoute({
+  route: createRoute({
       tags: ["login"],
       method: "post",
       path: "/",
@@ -115,7 +106,7 @@ export const accountChangeEmailRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { env } = ctx;
       const { state } = ctx.req.valid("query");
       const { email } = ctx.req.valid("form");
@@ -201,4 +192,11 @@ export const accountChangeEmailRoutes = new OpenAPIHono<{
         `/u/account/change-email-verify?state=${encodeURIComponent(state)}&email=${encodeURIComponent(email)}&change_id=${changeId}`,
       );
     },
-  );
+});
+
+
+export const accountChangeEmailRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot, postRoot] as const);

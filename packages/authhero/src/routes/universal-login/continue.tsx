@@ -6,17 +6,9 @@ import {
   completeLoginSessionContinuation,
 } from "../../authentication-flows/common";
 import { LoginSessionState } from "@authhero/adapter-interfaces";
-
-export const continueRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /u/continue
-  // Resumes the login flow after a redirect to an account page (e.g., change-email)
-  // --------------------------------
-  .openapi(
-    createRoute({
+import { defineRoute } from "../../utils/define-route";
+const getRoot = defineRoute({
+  route: createRoute({
       tags: ["login"],
       method: "get",
       path: "/",
@@ -43,7 +35,7 @@ export const continueRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { state } = ctx.req.valid("query");
 
       const { client, loginSession } = await initJSXRoute(ctx, state, true);
@@ -112,4 +104,11 @@ export const continueRoutes = new OpenAPIHono<{
 
       return result;
     },
-  );
+});
+
+
+export const continueRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot] as const);

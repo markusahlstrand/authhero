@@ -5,6 +5,7 @@ import { ErrorPage } from "./error-page";
 import { extractBrandingProps, resolveDarkMode } from "./u2-widget-page";
 import { DEFAULT_THEME } from "../../constants/defaultTheme";
 
+import { defineRoute } from "../../utils/define-route";
 function mapErrorToMessage(error?: string, errorDescription?: string): string {
   if (errorDescription) {
     return errorDescription;
@@ -19,12 +20,8 @@ function mapErrorToMessage(error?: string, errorDescription?: string): string {
       return "An unexpected error occurred. Please try again later.";
   }
 }
-
-export const errorRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>().openapi(
-  createRoute({
+const getRoot = defineRoute({
+  route: createRoute({
     tags: ["universal-login"],
     method: "get",
     path: "/",
@@ -40,7 +37,7 @@ export const errorRoutes = new OpenAPIHono<{
       },
     },
   }),
-  async (ctx) => {
+  handler: async (ctx) => {
     const { error, error_description } = ctx.req.valid("query");
 
     const tenantId = ctx.var.tenant_id;
@@ -82,4 +79,11 @@ export const errorRoutes = new OpenAPIHono<{
       400,
     );
   },
-);
+});
+
+
+export const errorRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot] as const);

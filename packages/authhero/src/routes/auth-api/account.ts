@@ -11,16 +11,9 @@ import { verifyRequestOrigin } from "oslo/request";
 import { HTTPException } from "hono/http-exception";
 import { isValidRedirectUrl } from "../../utils/is-valid-redirect-url";
 import { setTenantId } from "../../helpers/set-tenant-id";
-
-export const accountRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /account
-  // --------------------------------
-  .openapi(
-    createRoute({
+import { defineRoute } from "../../utils/define-route";
+const getRoot = defineRoute({
+  route: createRoute({
       tags: ["oauth"],
       method: "get",
       path: "/",
@@ -61,7 +54,7 @@ export const accountRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { env } = ctx;
       const { client_id, redirect_url, login_hint, screen_hint } =
         ctx.req.valid("query");
@@ -191,4 +184,11 @@ export const accountRoutes = new OpenAPIHono<{
         `${getUniversalLoginUrl(ctx.env, ctx.var.custom_domain)}login/identifier?state=${encodeURIComponent(loginSession.id)}`,
       );
     },
-  );
+});
+
+
+export const accountRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot] as const);

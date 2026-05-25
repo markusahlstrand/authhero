@@ -3,16 +3,9 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { emailProviderSchema, LogTypes } from "@authhero/adapter-interfaces";
 import { logMessage } from "../../helpers/logging";
 import { HTTPException } from "hono/http-exception";
-
-export const emailProviderRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /api/v2/emails/provider
-  // --------------------------------
-  .openapi(
-    createRoute({
+import { defineRoute } from "../../utils/define-route";
+const getRoot = defineRoute({
+  route: createRoute({
       tags: ["emails"],
       method: "get",
       path: "/",
@@ -37,7 +30,7 @@ export const emailProviderRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const emailProvider = await ctx.env.data.emailProviders.get(
         ctx.var.tenant_id,
       );
@@ -45,12 +38,10 @@ export const emailProviderRoutes = new OpenAPIHono<{
       // Auth0 returns 200 with an empty object when no provider is configured.
       return ctx.json(emailProvider ?? {});
     },
-  )
-  // --------------------------------
-  // POST /api/v2/emails/provider
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postRoot = defineRoute({
+  route: createRoute({
       tags: ["emails"],
       method: "post",
       path: "/",
@@ -85,7 +76,7 @@ export const emailProviderRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const emailProvider = ctx.req.valid("json");
 
       // Match Auth0: POST is strict create. If the singleton already exists,
@@ -112,12 +103,10 @@ export const emailProviderRoutes = new OpenAPIHono<{
       const stored = await ctx.env.data.emailProviders.get(ctx.var.tenant_id);
       return ctx.json(stored ?? emailProvider, { status: 201 });
     },
-  )
-  // --------------------------------
-  // PATCH /api/v2/emails/provider
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const patchRoot = defineRoute({
+  route: createRoute({
       tags: ["emails"],
       method: "patch",
       path: "/",
@@ -149,7 +138,7 @@ export const emailProviderRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const patch = ctx.req.valid("json");
 
       await ctx.env.data.emailProviders.update(ctx.var.tenant_id, patch);
@@ -168,12 +157,10 @@ export const emailProviderRoutes = new OpenAPIHono<{
 
       return ctx.json(updated);
     },
-  )
-  // --------------------------------
-  // DELETE /api/v2/emails/provider
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const deleteRoot = defineRoute({
+  route: createRoute({
       tags: ["emails"],
       method: "delete",
       path: "/",
@@ -196,7 +183,7 @@ export const emailProviderRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const existing = await ctx.env.data.emailProviders.get(ctx.var.tenant_id);
       if (!existing) {
         throw new HTTPException(404, { message: "Email provider not found" });
@@ -213,4 +200,11 @@ export const emailProviderRoutes = new OpenAPIHono<{
 
       return ctx.body(null, 204);
     },
-  );
+});
+
+
+export const emailProviderRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot, postRoot, patchRoot, deleteRoot] as const);

@@ -23,6 +23,7 @@ import { passwordGrant } from "../../authentication-flows/password";
 import { USERNAME_PASSWORD_PROVIDER } from "../../constants";
 import { nanoid } from "nanoid";
 
+import { defineRoute } from "../../utils/define-route";
 // Some tenants persist database connections with the strategy field set to
 // the provider literal ("auth2") rather than the canonical Auth0 strategy
 // name. Treat both as a database connection for the try-flow.
@@ -71,16 +72,8 @@ const updateConnectionClientsSchema = z.array(
     status: z.boolean(),
   }),
 );
-
-export const connectionRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /api/v2/connections
-  // --------------------------------
-  .openapi(
-    createRoute({
+const getRoot = defineRoute({
+  route: createRoute({
       tags: ["connections"],
       method: "get",
       path: "/",
@@ -106,11 +99,11 @@ export const connectionRoutes = new OpenAPIHono<{
               ]),
             },
           },
-          description: "List of connectionss",
+          description: "List of connections",
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const {
         page,
         per_page,
@@ -135,12 +128,10 @@ export const connectionRoutes = new OpenAPIHono<{
 
       return ctx.json({ ...result, connections });
     },
-  )
-  // --------------------------------
-  // GET /api/v2/connections/:id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getById = defineRoute({
+  route: createRoute({
       tags: ["connections"],
       method: "get",
       path: "/{id}",
@@ -169,7 +160,7 @@ export const connectionRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { id } = ctx.req.valid("param");
 
       const connection = await ctx.env.data.connections.get(
@@ -183,12 +174,10 @@ export const connectionRoutes = new OpenAPIHono<{
 
       return ctx.json(stripConnectionSecrets(connection));
     },
-  )
-  // --------------------------------
-  // DELETE /api/v2/connections/:id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const deleteById = defineRoute({
+  route: createRoute({
       tags: ["connections"],
       method: "delete",
       path: "/{id}",
@@ -211,7 +200,7 @@ export const connectionRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { id } = ctx.req.valid("param");
       const tenantId = ctx.var.tenant_id;
 
@@ -231,12 +220,10 @@ export const connectionRoutes = new OpenAPIHono<{
 
       return ctx.text("OK");
     },
-  )
-  // --------------------------------
-  // PATCH /api/v2/connections/:id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const patchById = defineRoute({
+  route: createRoute({
       tags: ["connections"],
       method: "patch",
       path: "/{id}",
@@ -271,7 +258,7 @@ export const connectionRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { id } = ctx.req.valid("param");
       const body = ctx.req.valid("json");
       const tenantId = ctx.var.tenant_id;
@@ -328,12 +315,10 @@ export const connectionRoutes = new OpenAPIHono<{
 
       return ctx.json(stripConnectionSecrets(connection));
     },
-  )
-  // --------------------------------
-  // POST /api/v2/connections
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postRoot = defineRoute({
+  route: createRoute({
       tags: ["connections"],
       method: "post",
       path: "/",
@@ -365,7 +350,7 @@ export const connectionRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const body = ctx.req.valid("json");
       const tenantId = ctx.var.tenant_id;
 
@@ -387,12 +372,10 @@ export const connectionRoutes = new OpenAPIHono<{
 
       return ctx.json(stripConnectionSecrets(connection), { status: 201 });
     },
-  )
-  // --------------------------------
-  // GET /api/v2/connections/:id/clients
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getByIdClients = defineRoute({
+  route: createRoute({
       tags: ["connections"],
       method: "get",
       path: "/{id}/clients",
@@ -420,7 +403,7 @@ export const connectionRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { id } = ctx.req.valid("param");
 
       // First verify the connection exists
@@ -450,12 +433,10 @@ export const connectionRoutes = new OpenAPIHono<{
 
       return ctx.json({ enabled_clients: enabledClients });
     },
-  )
-  // --------------------------------
-  // PATCH /api/v2/connections/:id/clients
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const patchByIdClients = defineRoute({
+  route: createRoute({
       tags: ["connections"],
       method: "patch",
       path: "/{id}/clients",
@@ -485,7 +466,7 @@ export const connectionRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { id } = ctx.req.valid("param");
       const body = ctx.req.valid("json");
 
@@ -548,18 +529,10 @@ export const connectionRoutes = new OpenAPIHono<{
 
       return ctx.body(null, 204);
     },
-  )
-  // --------------------------------
-  // POST /api/v2/connections/:id/try
-  // --------------------------------
-  // Diagnostic endpoint: exercises a single connection end-to-end against
-  // an internal test client, in isolation from any registered application.
-  // For database connections this runs the genuine password pipeline and
-  // returns the result inline. For anything that requires a browser
-  // round-trip (social, oidc, oauth2, saml) it returns the /authorize URL
-  // that drives the test — see /u2/try-connection-result for the result UI.
-  .openapi(
-    createRoute({
+});
+
+const postByIdTry = defineRoute({
+  route: createRoute({
       tags: ["connections"],
       method: "post",
       path: "/{id}/try",
@@ -615,7 +588,7 @@ export const connectionRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { id } = ctx.req.valid("param");
       const tenantId = ctx.var.tenant_id;
 
@@ -726,4 +699,11 @@ export const connectionRoutes = new OpenAPIHono<{
         },
       });
     },
-  );
+});
+
+
+export const connectionRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot, getById, deleteById, patchById, postRoot, getByIdClients, patchByIdClients, postByIdTry] as const);

@@ -12,19 +12,12 @@ import { parseSort } from "../../utils/sort";
 import { HTTPException } from "hono/http-exception";
 import { generateHookId } from "../../utils/entity-id";
 
+import { defineRoute } from "../../utils/define-route";
 const hopoksWithTotalsSchema = totalsSchema.extend({
   hooks: z.array(hookSchema),
 });
-
-export const hooksRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /api/v2/hooks
-  // --------------------------------
-  .openapi(
-    createRoute({
+const getRoot = defineRoute({
+  route: createRoute({
       tags: ["hooks"],
       method: "get",
       path: "/",
@@ -51,7 +44,7 @@ export const hooksRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { page, per_page, include_totals, sort, q } =
         ctx.req.valid("query");
 
@@ -69,12 +62,10 @@ export const hooksRoutes = new OpenAPIHono<{
 
       return ctx.json(hooks);
     },
-  )
-  // --------------------------------
-  // POST /api/v2/hooks
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postRoot = defineRoute({
+  route: createRoute({
       tags: ["hooks"],
       method: "post",
       path: "/",
@@ -106,7 +97,7 @@ export const hooksRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const hook = ctx.req.valid("json");
 
       const hookData = {
@@ -129,12 +120,10 @@ export const hooksRoutes = new OpenAPIHono<{
 
       return ctx.json(hooks, { status: 201 });
     },
-  )
-  // --------------------------------
-  // PATCH /api/v2/hooks/:hook_id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const patchByHook_id = defineRoute({
+  route: createRoute({
       tags: ["hooks"],
       method: "patch",
       path: "/{hook_id}",
@@ -177,7 +166,7 @@ export const hooksRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { hook_id } = ctx.req.valid("param");
       // Zod 4 widens the per-member `.options` array's inferred element type
       // to `unknown` when the members are produced via a runtime `.map`; the
@@ -204,12 +193,10 @@ export const hooksRoutes = new OpenAPIHono<{
 
       return ctx.json(result);
     },
-  )
-  // --------------------------------
-  // GET /api/v2/hooks/:hook_id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getByHook_id = defineRoute({
+  route: createRoute({
       tags: ["hooks"],
       method: "get",
       path: "/{hook_id}",
@@ -241,7 +228,7 @@ export const hooksRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { hook_id } = ctx.req.valid("param");
 
       const hook = await ctx.env.data.hooks.get(ctx.var.tenant_id, hook_id);
@@ -252,12 +239,10 @@ export const hooksRoutes = new OpenAPIHono<{
 
       return ctx.json(hook);
     },
-  )
-  // --------------------------------
-  // DELETE /api/v2/hooks/:hook_id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const deleteByHook_id = defineRoute({
+  route: createRoute({
       tags: ["hooks"],
       method: "delete",
       path: "/{hook_id}",
@@ -281,7 +266,7 @@ export const hooksRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { hook_id } = ctx.req.valid("param");
 
       const result = await ctx.env.data.hooks.remove(
@@ -302,4 +287,11 @@ export const hooksRoutes = new OpenAPIHono<{
 
       return ctx.text("OK");
     },
-  );
+});
+
+
+export const hooksRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot, postRoot, patchByHook_id, getByHook_id, deleteByHook_id] as const);

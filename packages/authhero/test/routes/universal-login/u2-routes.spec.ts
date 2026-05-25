@@ -4,6 +4,7 @@ import { getTestServer } from "../../helpers/test-server";
 import { getAdminToken } from "../../helpers/token";
 import { AuthorizationResponseType } from "@authhero/adapter-interfaces";
 
+import { u2Screen } from "../../helpers/u2-screen";
 describe("u2 routes", () => {
   describe("liquid template rendering", () => {
     it("should render identifier page with default template", async () => {
@@ -35,7 +36,7 @@ describe("u2 routes", () => {
       }
 
       // GET u2 identifier page
-      const response = await u2Client.login.identifier.$get({
+      const response = await u2Screen(u2App, env, "login/identifier").$get({
         query: { state },
       });
 
@@ -111,7 +112,7 @@ describe("u2 routes", () => {
       }
 
       // GET u2 identifier page
-      const response = await u2Client.login.identifier.$get({
+      const response = await u2Screen(u2App, env, "login/identifier").$get({
         query: { state },
       });
 
@@ -188,7 +189,7 @@ describe("u2 routes", () => {
       }
 
       // Verify custom template is applied
-      const customResponse = await u2Client.login.identifier.$get({
+      const customResponse = await u2Screen(u2App, env, "login/identifier").$get({
         query: { state },
       });
       const customHtml = await customResponse.text();
@@ -229,7 +230,7 @@ describe("u2 routes", () => {
       }
 
       // Verify default template is now used
-      const defaultResponse = await u2Client.login.identifier.$get({
+      const defaultResponse = await u2Screen(u2App, env, "login/identifier").$get({
         query: { state: state2 },
       });
       const defaultHtml = await defaultResponse.text();

@@ -2,16 +2,9 @@ import { getUsersByEmail } from "../../helpers/users";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
 import { userSchema } from "@authhero/adapter-interfaces";
-
-export const usersByEmailRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /api/v2/users-by-email
-  // --------------------------------
-  .openapi(
-    createRoute({
+import { defineRoute } from "../../utils/define-route";
+const getRoot = defineRoute({
+  route: createRoute({
       tags: ["users"],
       method: "get",
       path: "/",
@@ -32,7 +25,7 @@ export const usersByEmailRoutes = new OpenAPIHono<{
       responses: {
         200: {
           content: {
-            "tenant/json": {
+            "application/json": {
               schema: z.array(userSchema),
             },
           },
@@ -40,7 +33,7 @@ export const usersByEmailRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { email } = ctx.req.valid("query");
       const users = await getUsersByEmail(
         ctx.env.data.users,
@@ -52,4 +45,11 @@ export const usersByEmailRoutes = new OpenAPIHono<{
 
       return ctx.json(primarySqlUsers);
     },
-  );
+});
+
+
+export const usersByEmailRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot] as const);

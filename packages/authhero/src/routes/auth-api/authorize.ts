@@ -24,6 +24,7 @@ import { getEnrichedClient } from "../../helpers/client";
 import { getIssuer, getUniversalLoginUrl } from "../../variables";
 import { formPostResponse } from "../../utils/form-post";
 import { setTenantId } from "../../helpers/set-tenant-id";
+import { defineRoute } from "../../utils/define-route";
 import {
   verifyRequestObject,
   RequestObjectVerificationError,
@@ -162,16 +163,8 @@ async function fetchRequestUri(
   }
   return trimmed;
 }
-
-export const authorizeRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /authorize
-  // --------------------------------
-  .openapi(
-    createRoute({
+const getRoot = defineRoute({
+  route: createRoute({
       tags: ["oauth"],
       method: "get",
       path: "/",
@@ -249,7 +242,7 @@ export const authorizeRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { env } = ctx;
       const queryParams = ctx.req.valid("query");
 
@@ -642,15 +635,10 @@ export const authorizeRoutes = new OpenAPIHono<{
         return ctx.json(universalAuthResult);
       }
     },
-  )
-  // --------------------------------
-  // GET /authorize/resume
-  // --------------------------------
-  // Terminal endpoint that sub-flows (social callback, UL password/OTP/
-  // signup, etc.) 302 to once they've persisted the authenticated user on
-  // the login session. Mirrors Auth0's /authorize/resume.
-  .openapi(
-    createRoute({
+});
+
+const getResume = defineRoute({
+  route: createRoute({
       tags: ["oauth"],
       method: "get",
       path: "/resume",
@@ -693,8 +681,15 @@ export const authorizeRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { state } = ctx.req.valid("query");
       return resumeLoginSession(ctx, state);
     },
-  );
+});
+
+
+export const authorizeRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot, getResume] as const);

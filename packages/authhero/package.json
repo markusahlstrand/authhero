@@ -31,7 +31,7 @@
   },
   "scripts": {
     "dev": "bun --watch src/bun.ts",
-    "build": "export NODE_OPTIONS=--max-old-space-size=8192 && pnpm build:i18n && pnpm build:emails && pnpm build:tailwind && pnpm build:client && tsc -p tsconfig.types.json && vite build && rollup -c rollup.dts.config.mjs && pnpm build:assets",
+    "build": "pnpm build:i18n && pnpm build:emails && pnpm build:tailwind && pnpm build:client && tsc -p tsconfig.types.json && vite build && rollup -c rollup.dts.config.mjs && pnpm build:assets",
     "build:i18n": "node scripts/generate-locale-types.js",
     "build:emails": "tsx scripts/build-emails.tsx",
     "build:tailwind": "node build-tailwind.js",

@@ -9,6 +9,7 @@ import {
 } from "@authhero/adapter-interfaces";
 import { logMessage } from "../../helpers/logging";
 
+import { defineRoute } from "../../utils/define-route";
 // Auth0-compatible query schema for client grants
 const clientGrantsQuerySchema = z.object({
   per_page: z
@@ -73,16 +74,8 @@ const clientGrantsQuerySchema = z.object({
 const clientGrantsWithTotalsSchema = totalsSchema.extend({
   client_grants: z.array(clientGrantSchema),
 });
-
-export const clientGrantRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /api/v2/client-grants
-  // --------------------------------
-  .openapi(
-    createRoute({
+const getRoot = defineRoute({
+  route: createRoute({
       tags: ["client-grants"],
       method: "get",
       path: "/",
@@ -112,7 +105,7 @@ export const clientGrantRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
 
       const {
@@ -169,12 +162,10 @@ export const clientGrantRoutes = new OpenAPIHono<{
 
       return ctx.json(result);
     },
-  )
-  // --------------------------------
-  // GET /api/v2/client-grants/:id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getById = defineRoute({
+  route: createRoute({
       tags: ["client-grants"],
       method: "get",
       path: "/{id}",
@@ -203,7 +194,7 @@ export const clientGrantRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
       const { id } = ctx.req.valid("param");
 
@@ -217,12 +208,10 @@ export const clientGrantRoutes = new OpenAPIHono<{
 
       return ctx.json(clientGrant);
     },
-  )
-  // --------------------------------
-  // DELETE /api/v2/client-grants/:id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const deleteById = defineRoute({
+  route: createRoute({
       tags: ["client-grants"],
       method: "delete",
       path: "/{id}",
@@ -245,7 +234,7 @@ export const clientGrantRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
       const { id } = ctx.req.valid("param");
 
@@ -265,12 +254,10 @@ export const clientGrantRoutes = new OpenAPIHono<{
 
       return ctx.text("OK");
     },
-  )
-  // --------------------------------
-  // PATCH /api/v2/client-grants/:id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const patchById = defineRoute({
+  route: createRoute({
       tags: ["client-grants"],
       method: "patch",
       path: "/{id}",
@@ -305,7 +292,7 @@ export const clientGrantRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
       const { id } = ctx.req.valid("param");
       const body = ctx.req.valid("json");
@@ -347,12 +334,10 @@ export const clientGrantRoutes = new OpenAPIHono<{
 
       return ctx.json(clientGrant);
     },
-  )
-  // --------------------------------
-  // POST /api/v2/client-grants
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postRoot = defineRoute({
+  route: createRoute({
       tags: ["client-grants"],
       method: "post",
       path: "/",
@@ -384,7 +369,7 @@ export const clientGrantRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
       const body = ctx.req.valid("json");
 
@@ -403,4 +388,11 @@ export const clientGrantRoutes = new OpenAPIHono<{
 
       return ctx.json(clientGrant, { status: 201 });
     },
-  );
+});
+
+
+export const clientGrantRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot, getById, deleteById, patchById, postRoot] as const);

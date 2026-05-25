@@ -24,6 +24,7 @@ import {
 import { getProviderFromConnection } from "../../strategies";
 import { isUsernamePasswordProvider } from "../../utils/username-password-provider";
 
+import { defineRoute } from "../../utils/define-route";
 const IDENTITY_PICK_KEYS = [
   "email",
   "email_verified",
@@ -81,16 +82,8 @@ const connectedClientSchema = z.object({
 const connectedClientsWithTotalsSchema = totalsSchema.extend({
   connected_clients: z.array(connectedClientSchema),
 });
-
-export const userRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /api/v2/users
-  // --------------------------------
-  .openapi(
-    createRoute({
+const getRoot = defineRoute({
+  route: createRoute({
       tags: ["users"],
       method: "get",
       path: "/",
@@ -120,7 +113,7 @@ export const userRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { page, per_page, include_totals, sort, q } =
         ctx.req.valid("query");
 
@@ -190,12 +183,10 @@ export const userRoutes = new OpenAPIHono<{
 
       return ctx.json(z.array(auth0UserResponseSchema).parse(primarySqlUsers));
     },
-  )
-  // --------------------------------
-  // GET /users/:user_id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getByUser_id = defineRoute({
+  route: createRoute({
       tags: ["users"],
       method: "get",
       path: "/{user_id}",
@@ -224,7 +215,7 @@ export const userRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { user_id } = ctx.req.valid("param");
 
       const user = await ctx.env.data.users.get(ctx.var.tenant_id, user_id);
@@ -241,12 +232,10 @@ export const userRoutes = new OpenAPIHono<{
 
       return ctx.json(auth0UserResponseSchema.parse(user));
     },
-  )
-  // --------------------------------
-  // DELETE /users/:user_id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const deleteByUser_id = defineRoute({
+  route: createRoute({
       tags: ["users"],
       method: "delete",
       path: "/{user_id}",
@@ -269,7 +258,7 @@ export const userRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { user_id } = ctx.req.valid("param");
 
       const userToDelete = await ctx.env.data.users.get(
@@ -301,12 +290,10 @@ export const userRoutes = new OpenAPIHono<{
 
       return ctx.body(null, 204);
     },
-  )
-  // --------------------------------
-  // POST /users
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postRoot = defineRoute({
+  route: createRoute({
       tags: ["users"],
       method: "post",
       path: "/",
@@ -340,7 +327,7 @@ export const userRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const body = ctx.req.valid("json");
       ctx.set("body", body);
 
@@ -437,12 +424,10 @@ export const userRoutes = new OpenAPIHono<{
         throw err;
       }
     },
-  )
-  // --------------------------------
-  // PATCH /users/:user_id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const patchByUser_id = defineRoute({
+  route: createRoute({
       tags: ["users"],
       method: "patch",
       path: "/{user_id}",
@@ -476,7 +461,7 @@ export const userRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { data } = ctx.env;
       const body = ctx.req.valid("json");
       const { user_id } = ctx.req.valid("param");
@@ -716,12 +701,10 @@ export const userRoutes = new OpenAPIHono<{
 
       return ctx.json(auth0UserResponseSchema.parse(patchedUser));
     },
-  )
-  // --------------------------------
-  // POST /users/:user_id/identities
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postByUser_idIdentities = defineRoute({
+  route: createRoute({
       tags: ["users"],
       method: "post",
       path: "/{user_id}/identities",
@@ -763,7 +746,7 @@ export const userRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const body = ctx.req.valid("json");
       const { user_id } = ctx.req.valid("param");
 
@@ -806,12 +789,10 @@ export const userRoutes = new OpenAPIHono<{
         status: 201,
       });
     },
-  )
-  // --------------------------------
-  // DELETE /api/v2/users/{user_id}/identities/{provider}/{linked_user_id}
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const deleteByUser_idIdentitiesByProviderByLinked_user_id = defineRoute({
+  route: createRoute({
       tags: ["users"],
       method: "delete",
       path: "/{user_id}/identities/{provider}/{linked_user_id}",
@@ -841,7 +822,7 @@ export const userRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { user_id, provider, linked_user_id } = ctx.req.valid("param");
 
       await ctx.env.data.users.unlink(
@@ -865,18 +846,10 @@ export const userRoutes = new OpenAPIHono<{
 
       return ctx.json([auth0UserResponseSchema.parse(user)]);
     },
-  )
-  // --------------------------------
-  // GET /users/:user_id/connected-clients
-  //
-  // Returns clients that this user owns — i.e. clients created via the
-  // RFC 7591 IAT-gated Dynamic Client Registration flow where the IAT was
-  // bound to this user (`owner_user_id = user_id`). Excludes soft-deleted
-  // clients (DELETE /oidc/register/:id), so this is a live "connected apps"
-  // listing safe for end-user UIs.
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getByUser_idConnectedClients = defineRoute({
+  route: createRoute({
       tags: ["users"],
       method: "get",
       path: "/{user_id}/connected-clients",
@@ -909,7 +882,7 @@ export const userRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { user_id } = ctx.req.valid("param");
       const { include_totals, page, per_page } = ctx.req.valid("query");
 
@@ -937,11 +910,10 @@ export const userRoutes = new OpenAPIHono<{
         length: connectedClients.length,
       });
     },
-  ) // --------------------------------
-  // GET /users/:user_id/sessions
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getByUser_idSessions = defineRoute({
+  route: createRoute({
       tags: ["users"],
       method: "get",
       path: "/{user_id}/sessions",
@@ -974,7 +946,7 @@ export const userRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { user_id } = ctx.req.valid("param");
       const { include_totals, page, per_page } = ctx.req.valid("query");
 
@@ -991,12 +963,10 @@ export const userRoutes = new OpenAPIHono<{
 
       return ctx.json(sessions);
     },
-  )
-  // --------------------------------
-  // GET /users/:user_id/logs
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getByUser_idLogs = defineRoute({
+  route: createRoute({
       tags: ["users"],
       method: "get",
       path: "/{user_id}/logs",
@@ -1025,7 +995,7 @@ export const userRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { user_id } = ctx.req.valid("param");
       const { include_totals, page, per_page, sort, q: callerQ } =
         ctx.req.valid("query");
@@ -1077,12 +1047,10 @@ export const userRoutes = new OpenAPIHono<{
 
       return ctx.json(result);
     },
-  )
-  // --------------------------------
-  // GET /api/v2/users/:user_id/permissions
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getByUser_idPermissions = defineRoute({
+  route: createRoute({
       tags: ["users"],
       method: "get",
       path: "/{user_id}/permissions",
@@ -1111,7 +1079,7 @@ export const userRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { user_id } = ctx.req.valid("param");
 
       const { page, per_page, sort, q } = ctx.req.valid("query");
@@ -1139,12 +1107,10 @@ export const userRoutes = new OpenAPIHono<{
 
       return ctx.json(permissions);
     },
-  )
-  // --------------------------------
-  // POST /api/v2/users/:user_id/permissions
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postByUser_idPermissions = defineRoute({
+  route: createRoute({
       tags: ["users"],
       method: "post",
       path: "/{user_id}/permissions",
@@ -1181,7 +1147,7 @@ export const userRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { user_id } = ctx.req.valid("param");
       const { permissions } = ctx.req.valid("json");
 
@@ -1224,12 +1190,10 @@ export const userRoutes = new OpenAPIHono<{
         { status: 201 },
       );
     },
-  )
-  // --------------------------------
-  // DELETE /api/v2/users/:user_id/permissions
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const deleteByUser_idPermissions = defineRoute({
+  route: createRoute({
       tags: ["users"],
       method: "delete",
       path: "/{user_id}/permissions",
@@ -1266,7 +1230,7 @@ export const userRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { user_id } = ctx.req.valid("param");
       const { permissions } = ctx.req.valid("json");
 
@@ -1302,12 +1266,10 @@ export const userRoutes = new OpenAPIHono<{
 
       return ctx.json({ message: "Permissions removed successfully" });
     },
-  )
-  // --------------------------------
-  // GET /api/v2/users/:user_id/roles
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getByUser_idRoles = defineRoute({
+  route: createRoute({
       tags: ["users"],
       method: "get",
       path: "/{user_id}/roles",
@@ -1323,7 +1285,7 @@ export const userRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { user_id } = ctx.req.valid("param");
 
       const user = await ctx.env.data.users.get(ctx.var.tenant_id, user_id);
@@ -1337,12 +1299,10 @@ export const userRoutes = new OpenAPIHono<{
       );
       return ctx.json(roles);
     },
-  )
-  // --------------------------------
-  // POST /api/v2/users/:user_id/roles
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postByUser_idRoles = defineRoute({
+  route: createRoute({
       tags: ["users"],
       method: "post",
       path: "/{user_id}/roles",
@@ -1360,7 +1320,7 @@ export const userRoutes = new OpenAPIHono<{
       security: [{ Bearer: ["update:users", "auth:write"] }],
       responses: { 201: { description: "Roles assigned to user" } },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { user_id } = ctx.req.valid("param");
       const { roles } = ctx.req.valid("json");
 
@@ -1394,12 +1354,10 @@ export const userRoutes = new OpenAPIHono<{
         { status: 201 },
       );
     },
-  )
-  // --------------------------------
-  // DELETE /api/v2/users/:user_id/roles
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const deleteByUser_idRoles = defineRoute({
+  route: createRoute({
       tags: ["users"],
       method: "delete",
       path: "/{user_id}/roles",
@@ -1417,7 +1375,7 @@ export const userRoutes = new OpenAPIHono<{
       security: [{ Bearer: ["update:users", "auth:write"] }],
       responses: { 200: { description: "Roles removed from user" } },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { user_id } = ctx.req.valid("param");
       const { roles } = ctx.req.valid("json");
 
@@ -1448,12 +1406,10 @@ export const userRoutes = new OpenAPIHono<{
 
       return ctx.json({ message: "Roles removed successfully" });
     },
-  )
-  // --------------------------------
-  // GET /api/v2/users/:user_id/organizations
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getByUser_idOrganizations = defineRoute({
+  route: createRoute({
       tags: ["users"],
       method: "get",
       path: "/{user_id}/organizations",
@@ -1481,7 +1437,7 @@ export const userRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { user_id } = ctx.req.valid("param");
       const { page, per_page, include_totals, sort } = ctx.req.valid("query");
 
@@ -1513,12 +1469,10 @@ export const userRoutes = new OpenAPIHono<{
 
       return ctx.json(result.organizations);
     },
-  )
-  // --------------------------------
-  // DELETE /api/v2/users/:user_id/organizations/:organization_id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const deleteByUser_idOrganizationsByOrganization_id = defineRoute({
+  route: createRoute({
       tags: ["users"],
       method: "delete",
       path: "/{user_id}/organizations/{organization_id}",
@@ -1538,7 +1492,7 @@ export const userRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { user_id, organization_id } = ctx.req.valid("param");
 
       // First verify user exists
@@ -1582,4 +1536,11 @@ export const userRoutes = new OpenAPIHono<{
         message: "User removed from organization successfully",
       });
     },
-  );
+});
+
+
+export const userRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot, getByUser_id, deleteByUser_id, postRoot, patchByUser_id, postByUser_idIdentities, deleteByUser_idIdentitiesByProviderByLinked_user_id, getByUser_idConnectedClients, getByUser_idSessions, getByUser_idLogs, getByUser_idPermissions, postByUser_idPermissions, deleteByUser_idPermissions, getByUser_idRoles, postByUser_idRoles, deleteByUser_idRoles, getByUser_idOrganizations, deleteByUser_idOrganizationsByOrganization_id] as const);

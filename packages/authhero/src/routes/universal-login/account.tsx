@@ -5,16 +5,9 @@ import AccountPage from "../../components/AccountPage";
 import MessagePage from "../../components/MessagePage";
 import i18next from "i18next";
 import { nanoid } from "nanoid";
-
-export const accountRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /u/account
-  // --------------------------------
-  .openapi(
-    createRoute({
+import { defineRoute } from "../../utils/define-route";
+const getRoot = defineRoute({
+  route: createRoute({
       tags: ["login"],
       method: "get",
       path: "/",
@@ -45,7 +38,7 @@ export const accountRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { env } = ctx;
       const { state } = ctx.req.valid("query");
 
@@ -93,12 +86,10 @@ export const accountRoutes = new OpenAPIHono<{
         />,
       );
     },
-  )
-  // --------------------------------
-  // POST /u/account
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postRoot = defineRoute({
+  route: createRoute({
       tags: ["login"],
       method: "post",
       path: "/",
@@ -141,7 +132,7 @@ export const accountRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { env } = ctx;
       const { state } = ctx.req.valid("query");
       const body = ctx.req.valid("form");
@@ -203,4 +194,11 @@ export const accountRoutes = new OpenAPIHono<{
         />,
       );
     },
-  );
+});
+
+
+export const accountRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot, postRoot] as const);

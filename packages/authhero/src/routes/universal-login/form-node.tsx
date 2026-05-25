@@ -17,6 +17,7 @@ import {
   resolveTemplateField,
 } from "../../hooks/formhooks";
 import { FORM_FIELD_TYPES } from "@authhero/adapter-interfaces";
+import { defineRoute } from "../../utils/define-route";
 import type {
   Form,
   FormNodeComponent,
@@ -54,16 +55,8 @@ function resolveComponents(
     return comp;
   });
 }
-
-export const formNodeRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /u/forms/:formId/nodes/:nodeId
-  // --------------------------------
-  .openapi(
-    createRoute({
+const getFormIdNodesNodeId = defineRoute({
+  route: createRoute({
       tags: ["forms"],
       method: "get",
       path: "/:formId/nodes/:nodeId",
@@ -81,7 +74,7 @@ export const formNodeRoutes = new OpenAPIHono<{
         404: { description: "Form or node not found" },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { formId, nodeId } = ctx.req.valid("param");
       const { state } = ctx.req.valid("query");
 
@@ -150,12 +143,10 @@ export const formNodeRoutes = new OpenAPIHono<{
         />,
       );
     },
-  )
-  // --------------------------------
-  // POST /u/forms/:formId/nodes/:nodeId
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postFormIdNodesNodeId = defineRoute({
+  route: createRoute({
       tags: ["forms"],
       method: "post",
       path: "/:formId/nodes/:nodeId",
@@ -180,7 +171,7 @@ export const formNodeRoutes = new OpenAPIHono<{
         404: { description: "Form or node not found" },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { formId, nodeId } = ctx.req.valid("param");
       const { state } = ctx.req.valid("query");
       const { theme, branding, client, loginSession } = await initJSXRoute(
@@ -411,4 +402,11 @@ export const formNodeRoutes = new OpenAPIHono<{
         );
       }
     },
-  );
+});
+
+
+export const formNodeRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getFormIdNodesNodeId, postFormIdNodesNodeId] as const);

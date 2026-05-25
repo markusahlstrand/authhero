@@ -6,6 +6,7 @@ import { LoginSessionState, LogTypes } from "@authhero/adapter-interfaces";
 import { getIssuer } from "../../variables";
 import { logMessage } from "../../helpers/logging";
 
+import { defineRoute } from "../../utils/define-route";
 // Auth0-compatible Guardian MFA factor types
 const factorNames = [
   "sms",
@@ -57,16 +58,8 @@ const twilioProviderSchema = z.object({
 const messageTypeSchema = z.object({
   message_type: z.enum(["sms", "voice"]),
 });
-
-export const guardianRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /api/v2/guardian/factors
-  // --------------------------------
-  .openapi(
-    createRoute({
+const getFactors = defineRoute({
+  route: createRoute({
       tags: ["guardian"],
       method: "get",
       path: "/factors",
@@ -91,7 +84,7 @@ export const guardianRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
       const factors = tenant?.mfa?.factors;
 
@@ -109,14 +102,10 @@ export const guardianRoutes = new OpenAPIHono<{
 
       return ctx.json(result);
     },
-  )
-  // --------------------------------
-  // SPECIFIC ROUTES MUST COME BEFORE PARAMETERIZED ROUTES
-  // --------------------------------
-  // GET /api/v2/guardian/factors/sms/selected-provider
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getFactorsSmsSelectedProvider = defineRoute({
+  route: createRoute({
       tags: ["guardian"],
       method: "get",
       path: "/factors/sms/selected-provider",
@@ -141,18 +130,16 @@ export const guardianRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
       const provider = tenant?.mfa?.sms_provider?.provider || "twilio";
 
       return ctx.json({ provider });
     },
-  )
-  // --------------------------------
-  // PUT /api/v2/guardian/factors/sms/selected-provider
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const putFactorsSmsSelectedProvider = defineRoute({
+  route: createRoute({
       tags: ["guardian"],
       method: "put",
       path: "/factors/sms/selected-provider",
@@ -184,7 +171,7 @@ export const guardianRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { provider } = ctx.req.valid("json");
 
       const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
@@ -210,12 +197,10 @@ export const guardianRoutes = new OpenAPIHono<{
 
       return ctx.json({ provider });
     },
-  )
-  // --------------------------------
-  // GET /api/v2/guardian/factors/sms/providers/twilio
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getFactorsSmsProvidersTwilio = defineRoute({
+  route: createRoute({
       tags: ["guardian"],
       method: "get",
       path: "/factors/sms/providers/twilio",
@@ -240,7 +225,7 @@ export const guardianRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
       const twilio = tenant?.mfa?.twilio || {};
 
@@ -253,12 +238,10 @@ export const guardianRoutes = new OpenAPIHono<{
         messaging_service_sid: twilio.messaging_service_sid,
       });
     },
-  )
-  // --------------------------------
-  // PUT /api/v2/guardian/factors/sms/providers/twilio
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const putFactorsSmsProvidersTwilio = defineRoute({
+  route: createRoute({
       tags: ["guardian"],
       method: "put",
       path: "/factors/sms/providers/twilio",
@@ -290,7 +273,7 @@ export const guardianRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const twilioConfig = ctx.req.valid("json");
 
       const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
@@ -331,12 +314,10 @@ export const guardianRoutes = new OpenAPIHono<{
         messaging_service_sid: updatedTwilio.messaging_service_sid,
       });
     },
-  )
-  // --------------------------------
-  // GET /api/v2/guardian/factors/phone/message-types
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getFactorsPhoneMessageTypes = defineRoute({
+  route: createRoute({
       tags: ["guardian"],
       method: "get",
       path: "/factors/phone/message-types",
@@ -361,19 +342,17 @@ export const guardianRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       // For now, only SMS is supported
       const result: { message_type: "sms" | "voice" }[] = [
         { message_type: "sms" },
       ];
       return ctx.json(result);
     },
-  )
-  // --------------------------------
-  // GET /api/v2/guardian/policies
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getPolicies = defineRoute({
+  route: createRoute({
       tags: ["guardian"],
       method: "get",
       path: "/policies",
@@ -398,7 +377,7 @@ export const guardianRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
       const policy = tenant?.mfa?.policy;
 
@@ -408,12 +387,10 @@ export const guardianRoutes = new OpenAPIHono<{
       }
       return ctx.json([]);
     },
-  )
-  // --------------------------------
-  // PUT /api/v2/guardian/policies
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const putPolicies = defineRoute({
+  route: createRoute({
       tags: ["guardian"],
       method: "put",
       path: "/policies",
@@ -445,7 +422,7 @@ export const guardianRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const policies = ctx.req.valid("json");
 
       const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
@@ -472,12 +449,10 @@ export const guardianRoutes = new OpenAPIHono<{
 
       return ctx.json(policy === "always" ? ["all-applications"] : []);
     },
-  )
-  // --------------------------------
-  // POST /api/v2/guardian/enrollments/ticket
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postEnrollmentsTicket = defineRoute({
+  route: createRoute({
       tags: ["guardian"],
       method: "post",
       path: "/enrollments/ticket",
@@ -516,7 +491,7 @@ export const guardianRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { user_id, email } = ctx.req.valid("json");
       const tenantId = ctx.var.tenant_id;
 
@@ -605,14 +580,10 @@ export const guardianRoutes = new OpenAPIHono<{
         201,
       );
     },
-  )
-  // --------------------------------
-  // PARAMETERIZED ROUTES MUST COME LAST
-  // --------------------------------
-  // GET /api/v2/guardian/factors/:factor_name
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getFactorsByFactor_name = defineRoute({
+  route: createRoute({
       tags: ["guardian"],
       method: "get",
       path: "/factors/{factor_name}",
@@ -640,7 +611,7 @@ export const guardianRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { factor_name } = ctx.req.valid("param");
       const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
       const factors = tenant?.mfa?.factors;
@@ -654,12 +625,10 @@ export const guardianRoutes = new OpenAPIHono<{
         trial_expired: false,
       });
     },
-  )
-  // --------------------------------
-  // PUT /api/v2/guardian/factors/:factor_name
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const putFactorsByFactor_name = defineRoute({
+  route: createRoute({
       tags: ["guardian"],
       method: "put",
       path: "/factors/{factor_name}",
@@ -694,7 +663,7 @@ export const guardianRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { factor_name } = ctx.req.valid("param");
       const { enabled } = ctx.req.valid("json");
       const internalKey = toInternalKey(factor_name);
@@ -737,4 +706,11 @@ export const guardianRoutes = new OpenAPIHono<{
         trial_expired: false,
       });
     },
-  );
+});
+
+
+export const guardianRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getFactors, getFactorsSmsSelectedProvider, putFactorsSmsSelectedProvider, getFactorsSmsProvidersTwilio, putFactorsSmsProvidersTwilio, getFactorsPhoneMessageTypes, getPolicies, putPolicies, postEnrollmentsTicket, getFactorsByFactor_name, putFactorsByFactor_name] as const);

@@ -10,16 +10,9 @@ import {
   isUsernamePasswordProvider,
 } from "../../utils/username-password-provider";
 import EmailValidatedPage from "../../components/EmailValidatedPage";
-
-export const validateEmailRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /u/validate-email
-  // --------------------------------
-  .openapi(
-    createRoute({
+import { defineRoute } from "../../utils/define-route";
+const getRoot = defineRoute({
+  route: createRoute({
       tags: ["login"],
       method: "get",
       path: "/",
@@ -39,7 +32,7 @@ export const validateEmailRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { state, code } = ctx.req.valid("query");
 
       const { env } = ctx;
@@ -141,4 +134,11 @@ export const validateEmailRoutes = new OpenAPIHono<{
         />,
       );
     },
-  );
+});
+
+
+export const validateEmailRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot] as const);

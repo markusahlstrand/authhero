@@ -9,16 +9,9 @@ import { createSamlMetadata, parseSamlRequestQuery } from "../../helpers/saml";
 import { stringifyAuth0Client } from "../../utils/client-info";
 import { setTenantId } from "../../helpers/set-tenant-id";
 import { getEnrichedClient } from "../../helpers/client";
-
-export const samlpRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /samlp/metadata/{client_id}
-  // --------------------------------
-  .openapi(
-    createRoute({
+import { defineRoute } from "../../utils/define-route";
+const getMetadataByClient_id = defineRoute({
+  route: createRoute({
       tags: ["saml"],
       method: "get",
       path: "/metadata/{client_id}",
@@ -41,7 +34,7 @@ export const samlpRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { client_id } = ctx.req.valid("param");
 
       const client = await getEnrichedClient(ctx.env, client_id);
@@ -75,12 +68,10 @@ export const samlpRoutes = new OpenAPIHono<{
         },
       });
     },
-  )
-  // --------------------------------
-  // GET /samlp/{client_id}
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getByClient_id = defineRoute({
+  route: createRoute({
       tags: ["saml"],
       method: "get",
       path: "/{client_id}",
@@ -109,7 +100,7 @@ export const samlpRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { client_id } = ctx.req.valid("param");
       const { SAMLRequest, RelayState } = ctx.req.valid("query");
 
@@ -152,4 +143,11 @@ export const samlpRoutes = new OpenAPIHono<{
 
       return ctx.redirect(`/u/login/identifier?state=${loginSession.id}`);
     },
-  );
+});
+
+
+export const samlpRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getMetadataByClient_id, getByClient_id] as const);

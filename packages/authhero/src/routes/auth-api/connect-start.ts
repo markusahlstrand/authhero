@@ -4,6 +4,7 @@ import { Bindings, Variables } from "../../types";
 import { JSONHTTPException } from "../../errors/json-http-exception";
 import { validateConnectOrigin } from "../../helpers/dcr/validate-connect-origin";
 
+import { defineRoute } from "../../utils/define-route";
 const UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS = 60 * 30; // 30 min
 
 const connectStartQuerySchema = z.object({
@@ -30,12 +31,8 @@ const connectStartQuerySchema = z.object({
       "Optional API identifier the registered client should be granted access to. When set, the resulting client receives a `client_grants` row binding (client_id, audience, scope[]) so it can mint access tokens for that API via client_credentials.",
   }),
 });
-
-export const connectStartRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>().openapi(
-  createRoute({
+const getRoot = defineRoute({
+  route: createRoute({
     tags: ["connect"],
     method: "get",
     path: "/",
@@ -58,7 +55,7 @@ export const connectStartRoutes = new OpenAPIHono<{
       },
     },
   }),
-  async (ctx) => {
+  handler: async (ctx) => {
     const tenant_id = ctx.var.tenant_id;
     const tenant = await ctx.env.data.tenants.get(tenant_id);
     if (!tenant) {
@@ -194,4 +191,11 @@ export const connectStartRoutes = new OpenAPIHono<{
       302,
     );
   },
-);
+});
+
+
+export const connectStartRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot] as const);

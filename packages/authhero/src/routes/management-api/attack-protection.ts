@@ -10,6 +10,7 @@ import {
 import { Bindings, Variables } from "../../types";
 import { logMessage } from "../../helpers/logging";
 
+import { defineRoute } from "../../utils/define-route";
 type Section = keyof AttackProtection;
 
 function isPlainObject(v: unknown): v is Record<string, unknown> {
@@ -71,14 +72,8 @@ async function patchSection<S extends Section>(
 
   return next[section] as NonNullable<AttackProtection[S]>;
 }
-
-export const attackProtectionRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // GET /attack-protection/breached-password-detection
-  .openapi(
-    createRoute({
+const getBreachedPasswordDetection = defineRoute({
+  route: createRoute({
       tags: ["attack-protection"],
       method: "get",
       path: "/breached-password-detection",
@@ -93,12 +88,12 @@ export const attackProtectionRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) =>
+  handler: async (ctx) =>
       ctx.json(await getSection(ctx, "breached_password_detection")),
-  )
-  // PATCH /attack-protection/breached-password-detection
-  .openapi(
-    createRoute({
+});
+
+const patchBreachedPasswordDetection = defineRoute({
+  route: createRoute({
       tags: ["attack-protection"],
       method: "patch",
       path: "/breached-password-detection",
@@ -120,16 +115,16 @@ export const attackProtectionRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const body = breachedPasswordDetectionSchema.parse(await ctx.req.json());
       return ctx.json(
         await patchSection(ctx, "breached_password_detection", body),
       );
     },
-  )
-  // GET /attack-protection/brute-force-protection
-  .openapi(
-    createRoute({
+});
+
+const getBruteForceProtection = defineRoute({
+  route: createRoute({
       tags: ["attack-protection"],
       method: "get",
       path: "/brute-force-protection",
@@ -144,11 +139,11 @@ export const attackProtectionRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => ctx.json(await getSection(ctx, "brute_force_protection")),
-  )
-  // PATCH /attack-protection/brute-force-protection
-  .openapi(
-    createRoute({
+  handler: async (ctx) => ctx.json(await getSection(ctx, "brute_force_protection")),
+});
+
+const patchBruteForceProtection = defineRoute({
+  route: createRoute({
       tags: ["attack-protection"],
       method: "patch",
       path: "/brute-force-protection",
@@ -170,14 +165,14 @@ export const attackProtectionRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const body = bruteForceProtectionSchema.parse(await ctx.req.json());
       return ctx.json(await patchSection(ctx, "brute_force_protection", body));
     },
-  )
-  // GET /attack-protection/suspicious-ip-throttling
-  .openapi(
-    createRoute({
+});
+
+const getSuspiciousIpThrottling = defineRoute({
+  route: createRoute({
       tags: ["attack-protection"],
       method: "get",
       path: "/suspicious-ip-throttling",
@@ -192,11 +187,11 @@ export const attackProtectionRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => ctx.json(await getSection(ctx, "suspicious_ip_throttling")),
-  )
-  // PATCH /attack-protection/suspicious-ip-throttling
-  .openapi(
-    createRoute({
+  handler: async (ctx) => ctx.json(await getSection(ctx, "suspicious_ip_throttling")),
+});
+
+const patchSuspiciousIpThrottling = defineRoute({
+  route: createRoute({
       tags: ["attack-protection"],
       method: "patch",
       path: "/suspicious-ip-throttling",
@@ -218,10 +213,17 @@ export const attackProtectionRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const body = suspiciousIpThrottlingSchema.parse(await ctx.req.json());
       return ctx.json(
         await patchSection(ctx, "suspicious_ip_throttling", body),
       );
     },
-  );
+});
+
+
+export const attackProtectionRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getBreachedPasswordDetection, patchBreachedPasswordDetection, getBruteForceProtection, patchBruteForceProtection, getSuspiciousIpThrottling, patchSuspiciousIpThrottling] as const);

@@ -21,16 +21,9 @@ import { sendValidateEmailAddress } from "../../emails";
 import { passwordGrant } from "../../authentication-flows/password";
 import { AuthError } from "../../types/AuthError";
 import { createFrontChannelAuthResponse } from "../../authentication-flows/common";
-
-export const signupRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /u/signup
-  // --------------------------------
-  .openapi(
-    createRoute({
+import { defineRoute } from "../../utils/define-route";
+const getRoot = defineRoute({
+  route: createRoute({
       tags: ["login"],
       method: "get",
       path: "/",
@@ -50,7 +43,7 @@ export const signupRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { state, code } = ctx.req.valid("query");
       const { theme, branding, client, loginSession } = await initJSXRoute(
         ctx,
@@ -86,12 +79,10 @@ export const signupRoutes = new OpenAPIHono<{
         />,
       );
     },
-  )
-  // --------------------------------
-  // POST /u/signup
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postRoot = defineRoute({
+  route: createRoute({
       tags: ["login"],
       method: "post",
       path: "/",
@@ -136,7 +127,7 @@ export const signupRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { state } = ctx.req.valid("query");
       const loginParams = ctx.req.valid("form");
       const { env } = ctx;
@@ -337,4 +328,11 @@ export const signupRoutes = new OpenAPIHono<{
         );
       }
     },
-  );
+});
+
+
+export const signupRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot, postRoot] as const);

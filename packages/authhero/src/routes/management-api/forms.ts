@@ -10,272 +10,220 @@ import {
 } from "@authhero/adapter-interfaces";
 import { logMessage } from "../../helpers/logging";
 import { parseSort } from "../../utils/sort";
+import { defineRoute } from "../../utils/define-route";
 
 const formsWithTotalsSchema = totalsSchema.extend({
   forms: z.array(formSchema),
 });
 
+// GET /api/v2/forms
+const listForms = defineRoute({
+  route: createRoute({
+    tags: ["forms"],
+    method: "get",
+    path: "/",
+    request: {
+      query: querySchema,
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
+    },
+    security: [{ Bearer: ["read:forms"] }],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: z.union([z.array(formSchema), formsWithTotalsSchema]),
+          },
+        },
+        description: "List of forms",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenant_id = ctx.var.tenant_id;
+    const {
+      page,
+      per_page,
+      include_totals = false,
+      sort,
+      q,
+    } = ctx.req.valid("query");
+    const result = await ctx.env.data.forms.list(tenant_id, {
+      page,
+      per_page,
+      include_totals,
+      sort: parseSort(sort),
+      q,
+    });
+    if (!include_totals) {
+      return ctx.json(result.forms);
+    }
+    return ctx.json(result);
+  },
+});
+
+// GET /api/v2/forms/:id
+const getForm = defineRoute({
+  route: createRoute({
+    tags: ["forms"],
+    method: "get",
+    path: "/{id}",
+    request: {
+      params: z.object({ id: z.string() }),
+      headers: z.object({ "tenant-id": z.string().optional() }),
+    },
+    security: [{ Bearer: ["read:forms"] }],
+    responses: {
+      200: {
+        content: { "application/json": { schema: formSchema } },
+        description: "A form",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenant_id = ctx.var.tenant_id;
+    const { id } = ctx.req.valid("param");
+    const form = await ctx.env.data.forms.get(tenant_id, id);
+    if (!form) {
+      throw new HTTPException(404);
+    }
+    return ctx.json(form);
+  },
+});
+
+// DELETE /api/v2/forms/:id
+const deleteForm = defineRoute({
+  route: createRoute({
+    tags: ["forms"],
+    method: "delete",
+    path: "/{id}",
+    request: {
+      params: z.object({ id: z.string() }),
+      headers: z.object({ "tenant-id": z.string().optional() }),
+    },
+    security: [{ Bearer: ["delete:forms"] }],
+    responses: {
+      200: { description: "Status" },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenant_id = ctx.var.tenant_id;
+    const { id } = ctx.req.valid("param");
+    const result = await ctx.env.data.forms.remove(tenant_id, id);
+    if (!result) {
+      throw new HTTPException(404, { message: "Form not found" });
+    }
+
+    await logMessage(ctx, ctx.var.tenant_id, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: "Delete a Form",
+      targetType: "form",
+      targetId: id,
+    });
+
+    return ctx.text("OK");
+  },
+});
+
+// PATCH /api/v2/forms/:id
+const patchForm = defineRoute({
+  route: createRoute({
+    tags: ["forms"],
+    method: "patch",
+    path: "/{id}",
+    request: {
+      body: {
+        content: {
+          "application/json": {
+            schema: formInsertSchema.partial(),
+          },
+        },
+      },
+      params: z.object({ id: z.string() }),
+      headers: z.object({ "tenant-id": z.string().optional() }),
+    },
+    security: [{ Bearer: ["update:forms"] }],
+    responses: {
+      200: {
+        content: { "application/json": { schema: formSchema } },
+        description: "The updated form",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenant_id = ctx.var.tenant_id;
+    const { id } = ctx.req.valid("param");
+    const body = ctx.req.valid("json");
+    const result = await ctx.env.data.forms.update(tenant_id, id, body);
+    if (!result) {
+      throw new HTTPException(404, { message: "Form not found" });
+    }
+    const form = await ctx.env.data.forms.get(tenant_id, id);
+    if (!form) {
+      throw new HTTPException(404, { message: "Form not found" });
+    }
+
+    await logMessage(ctx, ctx.var.tenant_id, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: "Update a Form",
+      targetType: "form",
+      targetId: id,
+      afterState: form as Record<string, unknown>,
+    });
+
+    return ctx.json(form);
+  },
+});
+
+// POST /api/v2/forms
+const createForm = defineRoute({
+  route: createRoute({
+    tags: ["forms"],
+    method: "post",
+    path: "/",
+    request: {
+      body: {
+        content: {
+          "application/json": {
+            schema: formInsertSchema,
+          },
+        },
+      },
+      headers: z.object({ "tenant-id": z.string().optional() }),
+    },
+    security: [{ Bearer: ["create:forms"] }],
+    responses: {
+      201: {
+        content: { "application/json": { schema: formSchema } },
+        description: "A form",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenant_id = ctx.var.tenant_id;
+    const body = ctx.req.valid("json");
+    const form = await ctx.env.data.forms.create(tenant_id, body);
+
+    await logMessage(ctx, ctx.var.tenant_id, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: "Create a Form",
+      targetType: "form",
+      targetId: form.id,
+      afterState: form as Record<string, unknown>,
+    });
+
+    return ctx.json(form, { status: 201 });
+  },
+});
+
 export const formsRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /api/v2/forms
-  // --------------------------------
-  .openapi(
-    createRoute({
-      tags: ["forms"],
-      method: "get",
-      path: "/",
-      request: {
-        query: querySchema,
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-      },
-      security: [
-        {
-          Bearer: ["read:forms"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: z.union([z.array(formSchema), formsWithTotalsSchema]),
-            },
-          },
-          description: "List of forms",
-        },
-      },
-    }),
-    async (ctx) => {
-      const tenant_id = ctx.var.tenant_id;
-      const {
-        page,
-        per_page,
-        include_totals = false,
-        sort,
-        q,
-      } = ctx.req.valid("query");
-      const result = await ctx.env.data.forms.list(tenant_id, {
-        page,
-        per_page,
-        include_totals,
-        sort: parseSort(sort),
-        q,
-      });
-      if (!include_totals) {
-        return ctx.json(result.forms);
-      }
-      return ctx.json(result);
-    },
-  )
-  // --------------------------------
-  // GET /api/v2/forms/:id
-  // --------------------------------
-  .openapi(
-    createRoute({
-      tags: ["forms"],
-      method: "get",
-      path: "/{id}",
-      request: {
-        params: z.object({
-          id: z.string(),
-        }),
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-      },
-      security: [
-        {
-          Bearer: ["read:forms"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: formSchema,
-            },
-          },
-          description: "A form",
-        },
-      },
-    }),
-    async (ctx) => {
-      const tenant_id = ctx.var.tenant_id;
-      const { id } = ctx.req.valid("param");
-      const form = await ctx.env.data.forms.get(tenant_id, id);
-      if (!form) {
-        throw new HTTPException(404);
-      }
-      return ctx.json(form);
-    },
-  )
-  // --------------------------------
-  // DELETE /api/v2/forms/:id
-  // --------------------------------
-  .openapi(
-    createRoute({
-      tags: ["forms"],
-      method: "delete",
-      path: "/{id}",
-      request: {
-        params: z.object({
-          id: z.string(),
-        }),
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-      },
-      security: [
-        {
-          Bearer: ["delete:forms"],
-        },
-      ],
-      responses: {
-        200: {
-          description: "Status",
-        },
-      },
-    }),
-    async (ctx) => {
-      const tenant_id = ctx.var.tenant_id;
-      const { id } = ctx.req.valid("param");
-      const result = await ctx.env.data.forms.remove(tenant_id, id);
-      if (!result) {
-        throw new HTTPException(404, {
-          message: "Form not found",
-        });
-      }
-
-      await logMessage(ctx, ctx.var.tenant_id, {
-        type: LogTypes.SUCCESS_API_OPERATION,
-        description: "Delete a Form",
-        targetType: "form",
-        targetId: id,
-      });
-
-      return ctx.text("OK");
-    },
-  )
-  // --------------------------------
-  // PATCH /api/v2/forms/:id
-  // --------------------------------
-  .openapi(
-    createRoute({
-      tags: ["forms"],
-      method: "patch",
-      path: "/{id}",
-      request: {
-        body: {
-          content: {
-            "application/json": {
-              schema: z.object(formInsertSchema.shape).partial(),
-            },
-          },
-        },
-        params: z.object({
-          id: z.string(),
-        }),
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-      },
-      security: [
-        {
-          Bearer: ["update:forms"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: formSchema,
-            },
-          },
-          description: "The updated form",
-        },
-      },
-    }),
-    async (ctx) => {
-      const tenant_id = ctx.var.tenant_id;
-      const { id } = ctx.req.valid("param");
-      const body = ctx.req.valid("json");
-      const result = await ctx.env.data.forms.update(tenant_id, id, body);
-      if (!result) {
-        throw new HTTPException(404, {
-          message: "Form not found",
-        });
-      }
-      const form = await ctx.env.data.forms.get(tenant_id, id);
-      if (!form) {
-        throw new HTTPException(404, {
-          message: "Form not found",
-        });
-      }
-
-      await logMessage(ctx, ctx.var.tenant_id, {
-        type: LogTypes.SUCCESS_API_OPERATION,
-        description: "Update a Form",
-        targetType: "form",
-        targetId: id,
-        afterState: form as Record<string, unknown>,
-      });
-
-      return ctx.json(form);
-    },
-  )
-  // --------------------------------
-  // POST /api/v2/forms
-  // --------------------------------
-  .openapi(
-    createRoute({
-      tags: ["forms"],
-      method: "post",
-      path: "/",
-      request: {
-        body: {
-          content: {
-            "application/json": {
-              schema: z.object(formInsertSchema.shape),
-            },
-          },
-        },
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-      },
-      security: [
-        {
-          Bearer: ["create:forms"],
-        },
-      ],
-      responses: {
-        201: {
-          content: {
-            "application/json": {
-              schema: formSchema,
-            },
-          },
-          description: "A form",
-        },
-      },
-    }),
-    async (ctx) => {
-      const tenant_id = ctx.var.tenant_id;
-      const body = ctx.req.valid("json");
-      const form = await ctx.env.data.forms.create(tenant_id, body);
-
-      await logMessage(ctx, ctx.var.tenant_id, {
-        type: LogTypes.SUCCESS_API_OPERATION,
-        description: "Create a Form",
-        targetType: "form",
-        targetId: form.id,
-        afterState: form as Record<string, unknown>,
-      });
-
-      return ctx.json(form, { status: 201 });
-    },
-  );
+}>().openapiRoutes([
+  listForms,
+  getForm,
+  deleteForm,
+  patchForm,
+  createForm,
+] as const);

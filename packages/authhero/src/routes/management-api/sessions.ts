@@ -3,16 +3,9 @@ import { Bindings, Variables } from "../../types";
 import { HTTPException } from "hono/http-exception";
 import { sessionSchema, LogTypes } from "@authhero/adapter-interfaces";
 import { logMessage } from "../../helpers/logging";
-
-export const sessionsRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /api/v2/sessions/:id
-  // --------------------------------
-  .openapi(
-    createRoute({
+import { defineRoute } from "../../utils/define-route";
+const getById = defineRoute({
+  route: createRoute({
       tags: ["sessions"],
       method: "get",
       path: "/{id}",
@@ -41,7 +34,7 @@ export const sessionsRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { id } = ctx.req.valid("param");
 
       const session = await ctx.env.data.sessions.get(ctx.var.tenant_id, id);
@@ -52,12 +45,10 @@ export const sessionsRoutes = new OpenAPIHono<{
 
       return ctx.json(session);
     },
-  )
-  // --------------------------------
-  // DELETE /api/v2/sessions/:id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const deleteById = defineRoute({
+  route: createRoute({
       tags: ["sessions"],
       method: "delete",
       path: "/{id}",
@@ -80,7 +71,7 @@ export const sessionsRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { id } = ctx.req.valid("param");
 
       const result = await ctx.env.data.sessions.remove(ctx.var.tenant_id, id);
@@ -99,12 +90,10 @@ export const sessionsRoutes = new OpenAPIHono<{
 
       return ctx.text("OK");
     },
-  )
-  // --------------------------------
-  // POST /api/v2/sessions/:id/revoke
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postByIdRevoke = defineRoute({
+  route: createRoute({
       tags: ["sessions"],
       method: "post",
       path: "/{id}/revoke",
@@ -123,11 +112,11 @@ export const sessionsRoutes = new OpenAPIHono<{
       ],
       responses: {
         202: {
-          description: "Sesssion deletion status",
+          description: "Session deletion status",
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { id } = ctx.req.valid("param");
 
       const result = await ctx.env.data.sessions.update(ctx.var.tenant_id, id, {
@@ -148,4 +137,11 @@ export const sessionsRoutes = new OpenAPIHono<{
 
       return ctx.text("Session deletion request accepted.", { status: 202 });
     },
-  );
+});
+
+
+export const sessionsRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getById, deleteById, postByIdRevoke] as const);

@@ -45,6 +45,7 @@ import { nanoid } from "nanoid";
 import { getEnrichedClient } from "../../helpers/client";
 import { UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS } from "../../constants";
 
+import { defineRoute } from "../../utils/define-route";
 // Mutable copy of the readonly `locales` tuple — handlers expect string[].
 const availableLocales: string[] = [...locales];
 
@@ -456,72 +457,6 @@ const screenQuerySchema = z.object({
 });
 
 /**
- * Create GET route definition
- */
-function createScreenRoute(
-  _screenId: string,
-  path: string,
-  description: string,
-) {
-  return createRoute({
-    tags: ["u2"],
-    method: "get" as const,
-    path,
-    request: {
-      query: screenQuerySchema,
-    },
-    responses: {
-      200: {
-        description,
-        content: {
-          "text/html": {
-            schema: z.string(),
-          },
-        },
-      },
-    },
-  });
-}
-
-/**
- * Create POST route definition for no-JS form submissions
- */
-function createScreenPostRoute(
-  _screenId: string,
-  path: string,
-  description: string,
-) {
-  return createRoute({
-    tags: ["u2"],
-    method: "post" as const,
-    path,
-    request: {
-      query: screenQuerySchema,
-      body: {
-        content: {
-          "application/x-www-form-urlencoded": {
-            schema: z.record(z.string(), z.string()),
-          },
-        },
-      },
-    },
-    responses: {
-      200: {
-        description,
-        content: {
-          "text/html": {
-            schema: z.string(),
-          },
-        },
-      },
-      302: {
-        description: "Redirect to next screen or external URL",
-      },
-    },
-  });
-}
-
-/**
  * Create a POST handler for no-JS form submissions
  * Processes form data, calls the screen's POST handler, and returns full HTML page
  */
@@ -703,624 +638,157 @@ function createScreenPostHandler(screenId: string) {
     });
   };
 }
+// ============================================================================
+// Screen registry + catch-all dispatcher routes
+// ============================================================================
+// Every URL path served by u2 maps to a screenId consumed by the screen
+// handler in ./screens/registry. The path is the externally-visible URL
+// contract — linked from authentication flows, emails, etc. — and must
+// remain stable. The screenId is internal and only changes the dispatch
+// target.
+//
+// Two enums (one per HTTP method) gate the catch-all `:screen{.+}` routes —
+// Zod rejects unknown values with 400. The OpenAPI spec exposes the full
+// list of valid screens via the enum, so external consumers can still
+// discover what's supported.
+//
+// Paths are written without a leading slash because Hono's `:screen{.+}`
+// capture excludes it; the dispatcher prepends nothing when looking up the
+// screenId.
 
-export const u2Routes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /u2/login - Combined identifier + password screen (identifier + password flow)
-  // --------------------------------
-  .openapi(
-    createScreenRoute(
-      "login",
-      "/login",
-      "Login screen - combined email, password, and social login",
-    ),
-    createScreenRouteHandler("login"),
-  )
-  // --------------------------------
-  // GET /u2/login/identifier - First screen of login flow
-  // --------------------------------
-  .openapi(
-    createScreenRoute(
-      "identifier",
-      "/login/identifier",
-      "Identifier screen - collects email/username",
-    ),
-    createScreenRouteHandler("identifier"),
-  )
-  // --------------------------------
-  // GET /u2/login/login-passwordless-identifier - Passwordless identifier
-  // --------------------------------
-  .openapi(
-    createScreenRoute(
-      "login-passwordless-identifier",
-      "/login/login-passwordless-identifier",
-      "Login passwordless identifier - collects email/phone for code login",
-    ),
-    createScreenRouteHandler("login-passwordless-identifier"),
-  )
-  // --------------------------------
-  // GET /u2/login/email-otp-challenge - Email OTP code verification
-  // --------------------------------
-  .openapi(
-    createScreenRoute(
-      "email-otp-challenge",
-      "/login/email-otp-challenge",
-      "Email OTP challenge screen - email code verification",
-    ),
-    createScreenRouteHandler("email-otp-challenge"),
-  )
-  // --------------------------------
-  // GET /u2/login/sms-otp-challenge - SMS OTP code verification
-  // --------------------------------
-  .openapi(
-    createScreenRoute(
-      "sms-otp-challenge",
-      "/login/sms-otp-challenge",
-      "SMS OTP challenge screen - SMS code verification",
-    ),
-    createScreenRouteHandler("sms-otp-challenge"),
-  )
-  // --------------------------------
-  // GET /u2/enter-password - Password authentication
-  // --------------------------------
-  .openapi(
-    createScreenRoute(
-      "enter-password",
-      "/enter-password",
-      "Enter password screen",
-    ),
-    createScreenRouteHandler("enter-password"),
-  )
-  // --------------------------------
-  // GET /u2/signup - New user registration
-  // --------------------------------
-  .openapi(
-    createScreenRoute(
-      "signup",
-      "/signup",
-      "Signup screen - new user registration",
-    ),
-    createScreenRouteHandler("signup"),
-  )
-  // --------------------------------
-  // GET /u2/reset-password/request - Password reset request
-  // --------------------------------
-  .openapi(
-    createScreenRoute(
-      "forgot-password",
-      "/reset-password/request",
-      "Forgot password screen",
-    ),
-    createScreenRouteHandler("forgot-password"),
-  )
-  // --------------------------------
-  // GET /u2/reset-password - Set new password
-  // --------------------------------
-  .openapi(
-    createScreenRoute(
-      "reset-password",
-      "/reset-password",
-      "Reset password screen",
-    ),
-    createScreenRouteHandler("reset-password"),
-  )
-  // --------------------------------
-  // GET /u2/reset-password/code - Enter reset code + new password
-  // --------------------------------
-  .openapi(
-    createScreenRoute(
-      "reset-password-code",
-      "/reset-password/code",
-      "Reset password code entry screen",
-    ),
-    createScreenRouteHandler("reset-password-code"),
-  )
-  // --------------------------------
-  // GET /u2/impersonate - User impersonation
-  // --------------------------------
-  .openapi(
-    createScreenRoute(
-      "impersonate",
-      "/impersonate",
-      "Impersonate screen - allows users with permission to impersonate other users",
-    ),
-    createScreenRouteHandler("impersonate"),
-  )
-  // --------------------------------
-  // POST handlers for no-JS form submissions
-  // --------------------------------
-  .openapi(
-    createScreenPostRoute(
-      "login",
-      "/login",
-      "Process login form submission (no-JS fallback)",
-    ),
-    createScreenPostHandler("login"),
-  )
-  .openapi(
-    createScreenPostRoute(
-      "identifier",
-      "/login/identifier",
-      "Process identifier form submission (no-JS fallback)",
-    ),
-    createScreenPostHandler("identifier"),
-  )
-  .openapi(
-    createScreenPostRoute(
-      "login-passwordless-identifier",
-      "/login/login-passwordless-identifier",
-      "Process login-passwordless-identifier form submission (no-JS fallback)",
-    ),
-    createScreenPostHandler("login-passwordless-identifier"),
-  )
-  .openapi(
-    createScreenPostRoute(
-      "email-otp-challenge",
-      "/login/email-otp-challenge",
-      "Process email-otp-challenge form submission (no-JS fallback)",
-    ),
-    createScreenPostHandler("email-otp-challenge"),
-  )
-  .openapi(
-    createScreenPostRoute(
-      "sms-otp-challenge",
-      "/login/sms-otp-challenge",
-      "Process sms-otp-challenge form submission (no-JS fallback)",
-    ),
-    createScreenPostHandler("sms-otp-challenge"),
-  )
-  .openapi(
-    createScreenPostRoute(
-      "enter-password",
-      "/enter-password",
-      "Process enter-password form submission (no-JS fallback)",
-    ),
-    createScreenPostHandler("enter-password"),
-  )
-  .openapi(
-    createScreenPostRoute(
-      "signup",
-      "/signup",
-      "Process signup form submission (no-JS fallback)",
-    ),
-    createScreenPostHandler("signup"),
-  )
-  .openapi(
-    createScreenPostRoute(
-      "forgot-password",
-      "/reset-password/request",
-      "Process forgot-password form submission (no-JS fallback)",
-    ),
-    createScreenPostHandler("forgot-password"),
-  )
-  .openapi(
-    createScreenPostRoute(
-      "reset-password",
-      "/reset-password",
-      "Process reset-password form submission (no-JS fallback)",
-    ),
-    createScreenPostHandler("reset-password"),
-  )
-  .openapi(
-    createScreenPostRoute(
-      "reset-password-code",
-      "/reset-password/code",
-      "Process reset-password-code form submission (no-JS fallback)",
-    ),
-    createScreenPostHandler("reset-password-code"),
-  )
-  .openapi(
-    createScreenPostRoute(
-      "impersonate",
-      "/impersonate",
-      "Process impersonate form submission (no-JS fallback)",
-    ),
-    createScreenPostHandler("impersonate"),
-  )
-  // --------------------------------
-  // GET /u2/mfa/phone-enrollment - MFA phone enrollment
-  // --------------------------------
-  .openapi(
-    createScreenRoute(
-      "mfa-phone-enrollment",
-      "/mfa/phone-enrollment",
-      "MFA phone enrollment screen - enter phone number for SMS MFA",
-    ),
-    createScreenRouteHandler("mfa-phone-enrollment"),
-  )
-  // --------------------------------
-  // POST /u2/mfa/phone-enrollment
-  // --------------------------------
-  .openapi(
-    createScreenPostRoute(
-      "mfa-phone-enrollment",
-      "/mfa/phone-enrollment",
-      "Process MFA phone enrollment form submission",
-    ),
-    createScreenPostHandler("mfa-phone-enrollment"),
-  )
-  // --------------------------------
-  // GET /u2/mfa/phone-challenge - MFA phone challenge
-  // --------------------------------
-  .openapi(
-    createScreenRoute(
-      "mfa-phone-challenge",
-      "/mfa/phone-challenge",
-      "MFA phone challenge screen - enter verification code",
-    ),
-    createScreenRouteHandler("mfa-phone-challenge"),
-  )
-  // --------------------------------
-  // POST /u2/mfa/phone-challenge
-  // --------------------------------
-  .openapi(
-    createScreenPostRoute(
-      "mfa-phone-challenge",
-      "/mfa/phone-challenge",
-      "Process MFA phone challenge form submission",
-    ),
-    createScreenPostHandler("mfa-phone-challenge"),
-  )
-  // --------------------------------
-  // GET /u2/mfa/totp-enrollment - MFA TOTP enrollment
-  // --------------------------------
-  .openapi(
-    createScreenRoute(
-      "mfa-totp-enrollment",
-      "/mfa/totp-enrollment",
-      "MFA TOTP enrollment screen - set up authenticator app",
-    ),
-    createScreenRouteHandler("mfa-totp-enrollment"),
-  )
-  // --------------------------------
-  // POST /u2/mfa/totp-enrollment
-  // --------------------------------
-  .openapi(
-    createScreenPostRoute(
-      "mfa-totp-enrollment",
-      "/mfa/totp-enrollment",
-      "Process MFA TOTP enrollment form submission",
-    ),
-    createScreenPostHandler("mfa-totp-enrollment"),
-  )
-  // --------------------------------
-  // GET /u2/mfa/totp-challenge - MFA TOTP challenge
-  // --------------------------------
-  .openapi(
-    createScreenRoute(
-      "mfa-totp-challenge",
-      "/mfa/totp-challenge",
-      "MFA TOTP challenge screen - enter authenticator app code",
-    ),
-    createScreenRouteHandler("mfa-totp-challenge"),
-  )
-  // --------------------------------
-  // POST /u2/mfa/totp-challenge
-  // --------------------------------
-  .openapi(
-    createScreenPostRoute(
-      "mfa-totp-challenge",
-      "/mfa/totp-challenge",
-      "Process MFA TOTP challenge form submission",
-    ),
-    createScreenPostHandler("mfa-totp-challenge"),
-  )
-  // --------------------------------
-  // GET /u2/mfa/login-options - MFA factor selection
-  // --------------------------------
-  .openapi(
-    createScreenRoute(
-      "mfa-login-options",
-      "/mfa/login-options",
-      "MFA factor selection screen - choose verification method",
-    ),
-    createScreenRouteHandler("mfa-login-options"),
-  )
-  // --------------------------------
-  // POST /u2/mfa/login-options
-  // --------------------------------
-  .openapi(
-    createScreenPostRoute(
-      "mfa-login-options",
-      "/mfa/login-options",
-      "Process MFA factor selection",
-    ),
-    createScreenPostHandler("mfa-login-options"),
-  )
-  // --------------------------------
-  // GET /u2/passkey/enrollment-nudge - Passkey enrollment nudge
-  // --------------------------------
-  .openapi(
-    createScreenRoute(
-      "passkey-enrollment-nudge",
-      "/passkey/enrollment-nudge",
-      "Passkey enrollment nudge - asks user to set up a passkey",
-    ),
-    createScreenRouteHandler("passkey-enrollment-nudge"),
-  )
-  // --------------------------------
-  // POST /u2/passkey/enrollment-nudge
-  // --------------------------------
-  .openapi(
-    createScreenPostRoute(
-      "passkey-enrollment-nudge",
-      "/passkey/enrollment-nudge",
-      "Process passkey enrollment nudge response",
-    ),
-    createScreenPostHandler("passkey-enrollment-nudge"),
-  )
-  // --------------------------------
-  // GET /u2/passkey/enrollment - Passkey registration ceremony
-  // --------------------------------
-  .openapi(
-    createScreenRoute(
-      "passkey-enrollment",
-      "/passkey/enrollment",
-      "Passkey enrollment screen - WebAuthn registration ceremony",
-    ),
-    createScreenRouteHandler("passkey-enrollment"),
-  )
-  // --------------------------------
-  // POST /u2/passkey/enrollment
-  // --------------------------------
-  .openapi(
-    createScreenPostRoute(
-      "passkey-enrollment",
-      "/passkey/enrollment",
-      "Process passkey enrollment form submission",
-    ),
-    createScreenPostHandler("passkey-enrollment"),
-  )
-  // --------------------------------
-  // GET /u2/passkey/challenge - Passkey authentication challenge
-  // --------------------------------
-  .openapi(
-    createScreenRoute(
-      "passkey-challenge",
-      "/passkey/challenge",
-      "Passkey authentication challenge - sign in with a passkey",
-    ),
-    createScreenRouteHandler("passkey-challenge"),
-  )
-  // --------------------------------
-  // POST /u2/passkey/challenge
-  // --------------------------------
-  .openapi(
-    createScreenPostRoute(
-      "passkey-challenge",
-      "/passkey/challenge",
-      "Process passkey authentication response",
-    ),
-    createScreenPostHandler("passkey-challenge"),
-  )
-  // --------------------------------
-  // GET /u2/account - Account management hub
-  // --------------------------------
-  .openapi(
-    createScreenRoute(
-      "account",
-      "/account",
-      "Account management hub - view profile and settings",
-    ),
-    createScreenRouteHandler("account"),
-  )
-  // --------------------------------
-  // GET /u2/account/profile - Edit profile
-  // --------------------------------
-  .openapi(
-    createScreenRoute(
-      "account-profile",
-      "/account/profile",
-      "Edit personal information",
-    ),
-    createScreenRouteHandler("account-profile"),
-  )
-  // --------------------------------
-  // POST /u2/account/profile
-  // --------------------------------
-  .openapi(
-    createScreenPostRoute(
-      "account-profile",
-      "/account/profile",
-      "Process profile update form submission",
-    ),
-    createScreenPostHandler("account-profile"),
-  )
-  // --------------------------------
-  // GET /u2/account/security - MFA management
-  // --------------------------------
-  .openapi(
-    createScreenRoute(
-      "account-security",
-      "/account/security",
-      "Security settings - manage two-factor authentication",
-    ),
-    createScreenRouteHandler("account-security"),
-  )
-  // --------------------------------
-  // POST /u2/account/security
-  // --------------------------------
-  .openapi(
-    createScreenPostRoute(
-      "account-security",
-      "/account/security",
-      "Process security settings form submission",
-    ),
-    createScreenPostHandler("account-security"),
-  )
-  // --------------------------------
-  // GET /u2/account/security/totp-enrollment - TOTP enrollment from account
-  // --------------------------------
-  .openapi(
-    createScreenRoute(
-      "account-mfa-totp-enrollment",
-      "/account/security/totp-enrollment",
-      "Set up authenticator app MFA from account settings",
-    ),
-    createScreenRouteHandler("account-mfa-totp-enrollment"),
-  )
-  // --------------------------------
-  // POST /u2/account/security/totp-enrollment
-  // --------------------------------
-  .openapi(
-    createScreenPostRoute(
-      "account-mfa-totp-enrollment",
-      "/account/security/totp-enrollment",
-      "Process authenticator app enrollment form submission",
-    ),
-    createScreenPostHandler("account-mfa-totp-enrollment"),
-  )
-  // --------------------------------
-  // GET /u2/account/security/phone-enrollment - Phone enrollment from account
-  // --------------------------------
-  .openapi(
-    createScreenRoute(
-      "account-mfa-phone-enrollment",
-      "/account/security/phone-enrollment",
-      "Set up SMS MFA from account settings",
-    ),
-    createScreenRouteHandler("account-mfa-phone-enrollment"),
-  )
-  // --------------------------------
-  // POST /u2/account/security/phone-enrollment
-  // --------------------------------
-  .openapi(
-    createScreenPostRoute(
-      "account-mfa-phone-enrollment",
-      "/account/security/phone-enrollment",
-      "Process phone enrollment form submission",
-    ),
-    createScreenPostHandler("account-mfa-phone-enrollment"),
-  )
-  // --------------------------------
-  // GET /u2/account/linked - Linked accounts
-  // --------------------------------
-  .openapi(
-    createScreenRoute(
-      "account-linked",
-      "/account/linked",
-      "Linked accounts management",
-    ),
-    createScreenRouteHandler("account-linked"),
-  )
-  // --------------------------------
-  // POST /u2/account/linked
-  // --------------------------------
-  .openapi(
-    createScreenPostRoute(
-      "account-linked",
-      "/account/linked",
-      "Process linked accounts form submission",
-    ),
-    createScreenPostHandler("account-linked"),
-  )
-  // --------------------------------
-  // GET /u2/account/delete - Delete account
-  // --------------------------------
-  .openapi(
-    createScreenRoute(
-      "account-delete",
-      "/account/delete",
-      "Delete account confirmation",
-    ),
-    createScreenRouteHandler("account-delete"),
-  )
-  // --------------------------------
-  // POST /u2/account/delete
-  // --------------------------------
-  .openapi(
-    createScreenPostRoute(
-      "account-delete",
-      "/account/delete",
-      "Process account deletion",
-    ),
-    createScreenPostHandler("account-delete"),
-  )
-  // --------------------------------
-  // GET /u2/account/passkeys - Passkey management
-  // --------------------------------
-  .openapi(
-    createScreenRoute(
-      "account-passkeys",
-      "/account/passkeys",
-      "Passkey management - view, add, rename, remove passkeys",
-    ),
-    createScreenRouteHandler("account-passkeys"),
-  )
-  // --------------------------------
-  // POST /u2/account/passkeys
-  // --------------------------------
-  .openapi(
-    createScreenPostRoute(
-      "account-passkeys",
-      "/account/passkeys",
-      "Process passkey management form submission",
-    ),
-    createScreenPostHandler("account-passkeys"),
-  )
-  // --------------------------------
-  // GET /u2/connect/start - Consent-mediated DCR Initial Access Token issuance
-  // --------------------------------
-  .openapi(
-    createScreenRoute(
-      "connect-consent",
-      "/connect/start",
-      "Connect consent screen - mints an IAT bound to user consent",
-    ),
-    createScreenRouteHandler("connect-consent"),
-  )
-  // --------------------------------
-  // POST /u2/connect/start
-  // --------------------------------
-  .openapi(
-    createScreenPostRoute(
-      "connect-consent",
-      "/connect/start",
-      "Process connect-consent confirmation and mint IAT",
-    ),
-    createScreenPostHandler("connect-consent"),
-  )
-  // --------------------------------
-  // GET /u2/connect/select-tenant - Multi-tenancy control-plane workspace picker
-  // --------------------------------
-  .openapi(
-    createScreenRoute(
-      "connect-tenant-select",
-      "/connect/select-tenant",
-      "Pick the child tenant the consent-mediated IAT will be minted on",
-    ),
-    createScreenRouteHandler("connect-tenant-select"),
-  )
-  // --------------------------------
-  // GET /u2/try-connection-result - Diagnostic result page for /try
-  // --------------------------------
-  .openapi(
-    createScreenRoute(
-      "try-connection-result",
-      "/try-connection-result",
-      "Renders the outcome of a connection test (Try Connection)",
-    ),
-    createScreenRouteHandler("try-connection-result"),
-  )
-  // --------------------------------
-  // POST /u2/connect/select-tenant
-  // --------------------------------
-  .openapi(
-    createScreenPostRoute(
-      "connect-tenant-select",
-      "/connect/select-tenant",
-      "Persist the chosen tenant id and continue to consent",
-    ),
-    createScreenPostHandler("connect-tenant-select"),
-  )
-  // --------------------------------
-  // GET /u2/guardian/enroll - Guardian enrollment ticket redemption
-  // --------------------------------
-  .openapi(
-    createRoute({
+const SCREEN_GET_PATHS = {
+  "login": "login",
+  "login/identifier": "identifier",
+  "login/email-otp-challenge": "email-otp-challenge",
+  "login/sms-otp-challenge": "sms-otp-challenge",
+  "login/login-passwordless-identifier": "login-passwordless-identifier",
+  "signup": "signup",
+  "enter-password": "enter-password",
+  "reset-password": "reset-password",
+  "reset-password/code": "reset-password-code",
+  "reset-password/request": "forgot-password",
+  "mfa/login-options": "mfa-login-options",
+  "mfa/totp-challenge": "mfa-totp-challenge",
+  "mfa/totp-enrollment": "mfa-totp-enrollment",
+  "mfa/phone-challenge": "mfa-phone-challenge",
+  "mfa/phone-enrollment": "mfa-phone-enrollment",
+  "passkey/challenge": "passkey-challenge",
+  "passkey/enrollment": "passkey-enrollment",
+  "passkey/enrollment-nudge": "passkey-enrollment-nudge",
+  "impersonate": "impersonate",
+  "account": "account",
+  "account/profile": "account-profile",
+  "account/security": "account-security",
+  "account/security/totp-enrollment": "account-mfa-totp-enrollment",
+  "account/security/phone-enrollment": "account-mfa-phone-enrollment",
+  "account/linked": "account-linked",
+  "account/delete": "account-delete",
+  "account/passkeys": "account-passkeys",
+  "connect/start": "connect-consent",
+  "connect/select-tenant": "connect-tenant-select",
+  "try-connection-result": "try-connection-result",
+} as const;
+
+// Subset that also accepts POST (form submissions). All entries here also
+// appear in SCREEN_GET_PATHS — this map just narrows the valid POST values.
+const SCREEN_POST_PATHS = {
+  "login": "login",
+  "login/identifier": "identifier",
+  "login/email-otp-challenge": "email-otp-challenge",
+  "login/sms-otp-challenge": "sms-otp-challenge",
+  "login/login-passwordless-identifier": "login-passwordless-identifier",
+  "signup": "signup",
+  "enter-password": "enter-password",
+  "reset-password": "reset-password",
+  "reset-password/code": "reset-password-code",
+  "reset-password/request": "forgot-password",
+  "mfa/login-options": "mfa-login-options",
+  "mfa/totp-challenge": "mfa-totp-challenge",
+  "mfa/totp-enrollment": "mfa-totp-enrollment",
+  "mfa/phone-challenge": "mfa-phone-challenge",
+  "mfa/phone-enrollment": "mfa-phone-enrollment",
+  "passkey/challenge": "passkey-challenge",
+  "passkey/enrollment": "passkey-enrollment",
+  "passkey/enrollment-nudge": "passkey-enrollment-nudge",
+  "impersonate": "impersonate",
+  "account/profile": "account-profile",
+  "account/security": "account-security",
+  "account/security/totp-enrollment": "account-mfa-totp-enrollment",
+  "account/security/phone-enrollment": "account-mfa-phone-enrollment",
+  "account/linked": "account-linked",
+  "account/delete": "account-delete",
+  "account/passkeys": "account-passkeys",
+  "connect/start": "connect-consent",
+  "connect/select-tenant": "connect-tenant-select",
+} as const;
+
+type GetScreenPath = keyof typeof SCREEN_GET_PATHS;
+type PostScreenPath = keyof typeof SCREEN_POST_PATHS;
+
+const getScreenEnum = z.enum(
+  Object.keys(SCREEN_GET_PATHS) as [GetScreenPath, ...GetScreenPath[]],
+);
+const postScreenEnum = z.enum(
+  Object.keys(SCREEN_POST_PATHS) as [PostScreenPath, ...PostScreenPath[]],
+);
+
+const getScreenRoute = defineRoute({
+  route: createRoute({
+    tags: ["u2"],
+    method: "get",
+    path: "/:screen{.+}",
+    request: {
+      params: z.object({ screen: getScreenEnum }),
+      query: screenQuerySchema,
+    },
+    responses: {
+      200: {
+        description: "Universal-login screen",
+        content: { "text/html": { schema: z.string() } },
+      },
+      302: { description: "Redirect to next screen" },
+      400: { description: "Unknown screen path" },
+    },
+  }),
+  handler: async (ctx) => {
+    const { screen } = ctx.req.valid("param");
+    return createScreenRouteHandler(SCREEN_GET_PATHS[screen])(ctx);
+  },
+});
+
+const postScreenRoute = defineRoute({
+  route: createRoute({
+    tags: ["u2"],
+    method: "post",
+    path: "/:screen{.+}",
+    request: {
+      params: z.object({ screen: postScreenEnum }),
+      query: screenQuerySchema,
+      body: {
+        content: {
+          "application/x-www-form-urlencoded": {
+            schema: z.record(z.string(), z.string()),
+          },
+        },
+      },
+    },
+    responses: {
+      200: {
+        description: "Screen HTML",
+        content: { "text/html": { schema: z.string() } },
+      },
+      302: { description: "Redirect to next screen or external URL" },
+      400: { description: "Unknown screen path" },
+    },
+  }),
+  handler: async (ctx) => {
+    const { screen } = ctx.req.valid("param");
+    return createScreenPostHandler(SCREEN_POST_PATHS[screen])(ctx);
+  },
+});
+
+const getGuardianEnroll = defineRoute({
+  route: createRoute({
       tags: ["u2"],
       method: "get",
       path: "/guardian/enroll",
@@ -1343,7 +811,7 @@ export const u2Routes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { ticket } = ctx.req.valid("query");
       const tenantId = ctx.var.tenant_id;
 
@@ -1440,18 +908,16 @@ export const u2Routes = new OpenAPIHono<{
         message: "No MFA factors enabled for this tenant",
       });
     },
-  );
+});
 
-// --------------------------------
-// GET /u2/accept-invitation
-// --------------------------------
-// Two entry modes:
-//   1. Bootstrap (no `state`): looks up the invite, creates a login session
-//      stamped with the invitation metadata, then redirects to the same route
-//      with `state` so the standard screen handler can render the form.
-//   2. Render (`state` present): falls through to the registry-driven handler.
-u2Routes.openapi(
-  createRoute({
+
+// ----------------------------------------------------------------------------
+// Special routes: paths with custom logic that don't fit the screen dispatcher.
+// Registered before the catch-all `:screen{.+}` so trie matching reaches them.
+// ----------------------------------------------------------------------------
+
+const getAcceptInvitation = defineRoute({
+  route: createRoute({
     tags: ["u2"],
     method: "get",
     path: "/accept-invitation",
@@ -1473,7 +939,7 @@ u2Routes.openapi(
       302: { description: "Redirect to bootstrapped session" },
     },
   }),
-  async (ctx: any) => {
+  handler: async (ctx: any) => {
     const query = ctx.req.valid("query");
     if (query.state) {
       // Reuse the standard screen handler for the rendered form.
@@ -1544,25 +1010,36 @@ u2Routes.openapi(
       `/u2/accept-invitation?state=${encodeURIComponent(loginSession.id)}`,
     );
   },
-);
+});
 
-u2Routes.openapi(
-  createScreenPostRoute(
-    "accept-invitation",
-    "/accept-invitation",
-    "Process accept-invitation form submission",
-  ),
-  createScreenPostHandler("accept-invitation"),
-);
+const postAcceptInvitation = defineRoute({
+  route: createRoute({
+    tags: ["u2"],
+    method: "post",
+    path: "/accept-invitation",
+    request: {
+      query: screenQuerySchema,
+      body: {
+        content: {
+          "application/x-www-form-urlencoded": {
+            schema: z.record(z.string(), z.string()),
+          },
+        },
+      },
+    },
+    responses: {
+      200: {
+        description: "Process accept-invitation form submission",
+        content: { "text/html": { schema: z.string() } },
+      },
+      302: { description: "Redirect to next screen or external URL" },
+    },
+  }),
+  handler: createScreenPostHandler("accept-invitation"),
+});
 
-// --------------------------------
-// GET /u2/tickets/email-verification?ticket=<id>
-// --------------------------------
-// Consumes a management-API-issued email-verification ticket: marks the
-// user's email_verified flag and redirects to the caller's result_url or a
-// generic success page.
-u2Routes.openapi(
-  createRoute({
+const getEmailVerificationTicket = defineRoute({
+  route: createRoute({
     tags: ["u2"],
     method: "get",
     path: "/tickets/email-verification",
@@ -1580,7 +1057,7 @@ u2Routes.openapi(
       },
     },
   }),
-  async (ctx: any) => {
+  handler: async (ctx: any) => {
     const { ticket } = ctx.req.valid("query");
     const tenantId = ctx.var.tenant_id;
 
@@ -1652,15 +1129,10 @@ u2Routes.openapi(
       "<!doctype html><html><body><p>Email verified.</p></body></html>",
     );
   },
-);
+});
 
-// --------------------------------
-// GET /u2/tickets/password-change?ticket=<id>
-// --------------------------------
-// Consumes a password-change ticket by creating a fresh login session bound
-// to the user and redirecting into the existing reset-password screen.
-u2Routes.openapi(
-  createRoute({
+const getPasswordChangeTicket = defineRoute({
+  route: createRoute({
     tags: ["u2"],
     method: "get",
     path: "/tickets/password-change",
@@ -1674,7 +1146,7 @@ u2Routes.openapi(
       302: { description: "Redirect to reset-password screen" },
     },
   }),
-  async (ctx: any) => {
+  handler: async (ctx: any) => {
     const { ticket } = ctx.req.valid("query");
     const tenantId = ctx.var.tenant_id;
 
@@ -1799,9 +1271,15 @@ u2Routes.openapi(
       `/u2/reset-password?state=${encodeURIComponent(loginSession.id)}`,
     );
   },
-);
+});
 
-// OpenAPI documentation
+export const u2Routes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>().openapiRoutes([
+  getGuardianEnroll, getAcceptInvitation, postAcceptInvitation, getEmailVerificationTicket, getPasswordChangeTicket, getScreenRoute, postScreenRoute,
+] as const);
+
 u2Routes.doc("/spec", {
   openapi: "3.0.0",
   info: {

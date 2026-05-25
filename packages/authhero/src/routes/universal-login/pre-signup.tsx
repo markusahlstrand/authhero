@@ -6,16 +6,9 @@ import PreSignupPage from "../../components/PreSignUpPage";
 import { EMAIL_VERIFICATION_EXPIRATION_TIME } from "../../constants";
 import generateOTP from "../../utils/otp";
 import { sendSignupValidateEmailAddress } from "../../emails";
-
-export const preSignupRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /u/pre-signup
-  // --------------------------------
-  .openapi(
-    createRoute({
+import { defineRoute } from "../../utils/define-route";
+const getRoot = defineRoute({
+  route: createRoute({
       tags: ["login"],
       method: "get",
       path: "/",
@@ -32,7 +25,7 @@ export const preSignupRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { state } = ctx.req.valid("query");
       const { theme, branding, client, loginSession } = await initJSXRoute(
         ctx,
@@ -55,12 +48,10 @@ export const preSignupRoutes = new OpenAPIHono<{
         />,
       );
     },
-  )
-  // --------------------------------
-  // POST /u/pre-signup
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postRoot = defineRoute({
+  route: createRoute({
       tags: ["login"],
       method: "post",
       path: "/",
@@ -77,7 +68,7 @@ export const preSignupRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { state } = ctx.req.valid("query");
       const { loginSession, client } = await initJSXRoute(ctx, state);
 
@@ -105,4 +96,11 @@ export const preSignupRoutes = new OpenAPIHono<{
 
       return ctx.redirect(`/u/pre-signup-sent?state=${state}`);
     },
-  );
+});
+
+
+export const preSignupRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot, postRoot] as const);

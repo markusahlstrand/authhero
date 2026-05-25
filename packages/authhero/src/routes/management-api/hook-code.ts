@@ -8,20 +8,13 @@ import {
 import { logMessage } from "../../helpers/logging";
 import { HTTPException } from "hono/http-exception";
 
+import { defineRoute } from "../../utils/define-route";
 const hookCodeResponseSchema = hookCodeSchema.extend({
   deploymentStatus: z.enum(["deployed", "failed", "not_required"]),
   deploymentError: z.string().optional(),
 });
-
-export const hookCodeRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // POST /api/v2/hook-code
-  // --------------------------------
-  .openapi(
-    createRoute({
+const postRoot = defineRoute({
+  route: createRoute({
       tags: ["hook-code"],
       method: "post",
       path: "/",
@@ -53,7 +46,7 @@ export const hookCodeRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const body = ctx.req.valid("json");
 
       const hookCode = await ctx.env.data.hookCode.create(
@@ -92,12 +85,10 @@ export const hookCodeRoutes = new OpenAPIHono<{
         { status: 201 },
       );
     },
-  )
-  // --------------------------------
-  // GET /api/v2/hook-code/:id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getById = defineRoute({
+  route: createRoute({
       tags: ["hook-code"],
       method: "get",
       path: "/{id}",
@@ -128,7 +119,7 @@ export const hookCodeRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { id } = ctx.req.valid("param");
 
       const hookCode = await ctx.env.data.hookCode.get(ctx.var.tenant_id, id);
@@ -139,12 +130,10 @@ export const hookCodeRoutes = new OpenAPIHono<{
 
       return ctx.json(hookCode);
     },
-  )
-  // --------------------------------
-  // PUT /api/v2/hook-code/:id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const putById = defineRoute({
+  route: createRoute({
       tags: ["hook-code"],
       method: "put",
       path: "/{id}",
@@ -182,7 +171,7 @@ export const hookCodeRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { id } = ctx.req.valid("param");
       const body = ctx.req.valid("json");
 
@@ -228,12 +217,10 @@ export const hookCodeRoutes = new OpenAPIHono<{
 
       return ctx.json({ ...hookCode, deploymentStatus, deploymentError });
     },
-  )
-  // --------------------------------
-  // DELETE /api/v2/hook-code/:id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const deleteById = defineRoute({
+  route: createRoute({
       tags: ["hook-code"],
       method: "delete",
       path: "/{id}",
@@ -256,7 +243,7 @@ export const hookCodeRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { id } = ctx.req.valid("param");
 
       const result = await ctx.env.data.hookCode.remove(ctx.var.tenant_id, id);
@@ -286,4 +273,11 @@ export const hookCodeRoutes = new OpenAPIHono<{
 
       return ctx.text("OK");
     },
-  );
+});
+
+
+export const hookCodeRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([postRoot, getById, putById, deleteById] as const);

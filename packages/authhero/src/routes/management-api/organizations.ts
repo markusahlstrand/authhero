@@ -22,6 +22,7 @@ import { logMessage } from "../../helpers/logging";
 import { getIssuer } from "../../variables";
 import { sendInvitation } from "../../emails";
 
+import { defineRoute } from "../../utils/define-route";
 // Query schema for invitations list endpoint
 const invitationsQuerySchema = z.object({
   page: z
@@ -137,16 +138,8 @@ const removeMembersRequestSchema = z.object({
     description: "Array of user IDs to remove from the organization",
   }),
 });
-
-export const organizationRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /api/v2/organizations
-  // --------------------------------
-  .openapi(
-    createRoute({
+const getRoot = defineRoute({
+  route: createRoute({
       tags: ["organizations"],
       method: "get",
       path: "/",
@@ -175,7 +168,7 @@ export const organizationRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
       const { page, per_page, include_totals, sort, q, from, take } =
         ctx.req.valid("query");
@@ -196,12 +189,10 @@ export const organizationRoutes = new OpenAPIHono<{
 
       return ctx.json(result.organizations);
     },
-  )
-  // --------------------------------
-  // GET /api/v2/organizations/:id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getById = defineRoute({
+  route: createRoute({
       tags: ["organizations"],
       method: "get",
       path: "/{id}",
@@ -229,7 +220,7 @@ export const organizationRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
       const { id } = ctx.req.valid("param");
 
@@ -241,12 +232,10 @@ export const organizationRoutes = new OpenAPIHono<{
 
       return ctx.json(organization);
     },
-  )
-  // --------------------------------
-  // DELETE /api/v2/organizations/:id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const deleteById = defineRoute({
+  route: createRoute({
       tags: ["organizations"],
       method: "delete",
       path: "/{id}",
@@ -269,7 +258,7 @@ export const organizationRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
       const { id } = ctx.req.valid("param");
 
@@ -287,12 +276,10 @@ export const organizationRoutes = new OpenAPIHono<{
 
       return ctx.text("OK");
     },
-  )
-  // --------------------------------
-  // PATCH /api/v2/organizations/:id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const patchById = defineRoute({
+  route: createRoute({
       tags: ["organizations"],
       method: "patch",
       path: "/{id}",
@@ -327,7 +314,7 @@ export const organizationRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
       const { id } = ctx.req.valid("param");
       const body = ctx.req.valid("json");
@@ -365,12 +352,10 @@ export const organizationRoutes = new OpenAPIHono<{
 
       return ctx.json(organization);
     },
-  )
-  // --------------------------------
-  // POST /api/v2/organizations
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postRoot = defineRoute({
+  route: createRoute({
       tags: ["organizations"],
       method: "post",
       path: "/",
@@ -402,7 +387,7 @@ export const organizationRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
       const body = ctx.req.valid("json");
 
@@ -426,12 +411,10 @@ export const organizationRoutes = new OpenAPIHono<{
 
       return ctx.json(organization, { status: 201 });
     },
-  )
-  // --------------------------------
-  // GET /api/v2/organizations/:id/members
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getByIdMembers = defineRoute({
+  route: createRoute({
       tags: ["organizations"],
       method: "get",
       path: "/{id}/members",
@@ -464,7 +447,7 @@ export const organizationRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
       const { id: organizationId } = ctx.req.valid("param");
       const { page, per_page, include_totals, sort } = ctx.req.valid("query");
@@ -522,12 +505,10 @@ export const organizationRoutes = new OpenAPIHono<{
       // Return simple array
       return ctx.json(members);
     },
-  )
-  // --------------------------------
-  // POST /api/v2/organizations/:id/members
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postByIdMembers = defineRoute({
+  route: createRoute({
       tags: ["organizations"],
       method: "post",
       path: "/{id}/members",
@@ -557,7 +538,7 @@ export const organizationRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
       const { id: organizationId } = ctx.req.valid("param");
       const { members } = ctx.req.valid("json");
@@ -602,12 +583,10 @@ export const organizationRoutes = new OpenAPIHono<{
 
       return new Response(null, { status: 204 });
     },
-  )
-  // --------------------------------
-  // DELETE /api/v2/organizations/:id/members
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const deleteByIdMembers = defineRoute({
+  route: createRoute({
       tags: ["organizations"],
       method: "delete",
       path: "/{id}/members",
@@ -637,7 +616,7 @@ export const organizationRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
       const { id: organizationId } = ctx.req.valid("param");
       const { members } = ctx.req.valid("json");
@@ -678,12 +657,10 @@ export const organizationRoutes = new OpenAPIHono<{
 
       return ctx.json({ message: "Members removed successfully" });
     },
-  )
-  // --------------------------------
-  // GET /api/v2/organizations/:id/members/:user_id/roles
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getByIdMembersByUser_idRoles = defineRoute({
+  route: createRoute({
       tags: ["organizations"],
       method: "get",
       path: "/{id}/members/{user_id}/roles",
@@ -713,7 +690,7 @@ export const organizationRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
       const { id: organizationId, user_id } = ctx.req.valid("param");
 
@@ -737,17 +714,15 @@ export const organizationRoutes = new OpenAPIHono<{
         tenant_id,
         user_id,
         undefined,
-        organizationId,
+        organization.id,
       );
 
       return ctx.json(roles);
     },
-  )
-  // --------------------------------
-  // POST /api/v2/organizations/:id/members/:user_id/roles
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postByIdMembersByUser_idRoles = defineRoute({
+  route: createRoute({
       tags: ["organizations"],
       method: "post",
       path: "/{id}/members/{user_id}/roles",
@@ -782,7 +757,7 @@ export const organizationRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
       const { id: organizationId, user_id } = ctx.req.valid("param");
       const { roles } = ctx.req.valid("json");
@@ -814,7 +789,7 @@ export const organizationRoutes = new OpenAPIHono<{
           tenant_id,
           user_id,
           roleId,
-          organizationId,
+          organization.id,
         );
         if (!success) {
           throw new HTTPException(500, {
@@ -835,12 +810,10 @@ export const organizationRoutes = new OpenAPIHono<{
         { status: 201 },
       );
     },
-  )
-  // --------------------------------
-  // DELETE /api/v2/organizations/:id/members/:user_id/roles
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const deleteByIdMembersByUser_idRoles = defineRoute({
+  route: createRoute({
       tags: ["organizations"],
       method: "delete",
       path: "/{id}/members/{user_id}/roles",
@@ -875,7 +848,7 @@ export const organizationRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
       const { id: organizationId, user_id } = ctx.req.valid("param");
       const { roles } = ctx.req.valid("json");
@@ -901,7 +874,7 @@ export const organizationRoutes = new OpenAPIHono<{
           tenant_id,
           user_id,
           roleId,
-          organizationId,
+          organization.id,
         );
         if (!success) {
           throw new HTTPException(500, {
@@ -919,12 +892,10 @@ export const organizationRoutes = new OpenAPIHono<{
 
       return ctx.json({ message: "Roles removed successfully" });
     },
-  )
-  // --------------------------------
-  // GET /api/v2/organizations/:id/roles
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getByIdRoles = defineRoute({
+  route: createRoute({
       tags: ["organizations"],
       method: "get",
       path: "/{id}/roles",
@@ -953,7 +924,7 @@ export const organizationRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
       const { id: organizationId } = ctx.req.valid("param");
       const { page, per_page, sort, q } = ctx.req.valid("query");
@@ -978,12 +949,10 @@ export const organizationRoutes = new OpenAPIHono<{
 
       return ctx.json(result.roles);
     },
-  )
-  // --------------------------------
-  // GET /api/v2/organizations/:id/invitations
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getByIdInvitations = defineRoute({
+  route: createRoute({
       tags: ["organizations"],
       method: "get",
       path: "/{id}/invitations",
@@ -1018,7 +987,7 @@ export const organizationRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
       const { id: organization_id } = ctx.req.valid("param");
       const { page, per_page, include_totals, fields, include_fields, sort } =
@@ -1088,12 +1057,10 @@ export const organizationRoutes = new OpenAPIHono<{
 
       return ctx.json(filteredInvites);
     },
-  )
-  // --------------------------------
-  // GET /api/v2/organizations/:id/invitations/:invitation_id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getByIdInvitationsByInvitation_id = defineRoute({
+  route: createRoute({
       tags: ["organizations"],
       method: "get",
       path: "/{id}/invitations/{invitation_id}",
@@ -1131,7 +1098,7 @@ export const organizationRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
       const { id: organization_id, invitation_id } = ctx.req.valid("param");
 
@@ -1151,12 +1118,10 @@ export const organizationRoutes = new OpenAPIHono<{
 
       return ctx.json(invite);
     },
-  )
-  // --------------------------------
-  // POST /api/v2/organizations/:id/invitations
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postByIdInvitations = defineRoute({
+  route: createRoute({
       tags: ["organizations"],
       method: "post",
       path: "/{id}/invitations",
@@ -1194,7 +1159,7 @@ export const organizationRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
       const { id: organization_id } = ctx.req.valid("param");
       const body = ctx.req.valid("json");
@@ -1256,12 +1221,10 @@ export const organizationRoutes = new OpenAPIHono<{
 
       return ctx.json(invite, { status: 201 });
     },
-  )
-  // --------------------------------
-  // DELETE /api/v2/organizations/:id/invitations/:invitation_id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const deleteByIdInvitationsByInvitation_id = defineRoute({
+  route: createRoute({
       tags: ["organizations"],
       method: "delete",
       path: "/{id}/invitations/{invitation_id}",
@@ -1294,7 +1257,7 @@ export const organizationRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
       const { id: organization_id, invitation_id } = ctx.req.valid("param");
 
@@ -1329,12 +1292,10 @@ export const organizationRoutes = new OpenAPIHono<{
 
       return ctx.body(null, { status: 204 });
     },
-  )
-  // --------------------------------
-  // GET /api/v2/organizations/:id/enabled_connections
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getByIdEnabledConnections = defineRoute({
+  route: createRoute({
       tags: ["organizations"],
       method: "get",
       path: "/{id}/enabled_connections",
@@ -1379,7 +1340,7 @@ export const organizationRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
       const { id: organization_id } = ctx.req.valid("param");
       const { include_totals, page, per_page } = ctx.req.valid("query");
@@ -1411,12 +1372,10 @@ export const organizationRoutes = new OpenAPIHono<{
         length: paginated.length,
       });
     },
-  )
-  // --------------------------------
-  // POST /api/v2/organizations/:id/enabled_connections
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postByIdEnabledConnections = defineRoute({
+  route: createRoute({
       tags: ["organizations"],
       method: "post",
       path: "/{id}/enabled_connections",
@@ -1447,7 +1406,7 @@ export const organizationRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
       const { id: organization_id } = ctx.req.valid("param");
       const body = ctx.req.valid("json");
@@ -1496,12 +1455,10 @@ export const organizationRoutes = new OpenAPIHono<{
 
       return ctx.json(created, { status: 201 });
     },
-  )
-  // --------------------------------
-  // GET /api/v2/organizations/:id/enabled_connections/:connection_id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getByIdEnabledConnectionsByConnection_id = defineRoute({
+  route: createRoute({
       tags: ["organizations"],
       method: "get",
       path: "/{id}/enabled_connections/{connection_id}",
@@ -1528,7 +1485,7 @@ export const organizationRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
       const { id: organization_id, connection_id } = ctx.req.valid("param");
 
@@ -1552,12 +1509,10 @@ export const organizationRoutes = new OpenAPIHono<{
       }
       return ctx.json(orgConn);
     },
-  )
-  // --------------------------------
-  // PATCH /api/v2/organizations/:id/enabled_connections/:connection_id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const patchByIdEnabledConnectionsByConnection_id = defineRoute({
+  route: createRoute({
       tags: ["organizations"],
       method: "patch",
       path: "/{id}/enabled_connections/{connection_id}",
@@ -1593,7 +1548,7 @@ export const organizationRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
       const { id: organization_id, connection_id } = ctx.req.valid("param");
       const body = ctx.req.valid("json");
@@ -1627,12 +1582,10 @@ export const organizationRoutes = new OpenAPIHono<{
 
       return ctx.json(updated);
     },
-  )
-  // --------------------------------
-  // DELETE /api/v2/organizations/:id/enabled_connections/:connection_id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const deleteByIdEnabledConnectionsByConnection_id = defineRoute({
+  route: createRoute({
       tags: ["organizations"],
       method: "delete",
       path: "/{id}/enabled_connections/{connection_id}",
@@ -1652,7 +1605,7 @@ export const organizationRoutes = new OpenAPIHono<{
         204: { description: "Connection disabled" },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
       const { id: organization_id, connection_id } = ctx.req.valid("param");
 
@@ -1684,4 +1637,11 @@ export const organizationRoutes = new OpenAPIHono<{
 
       return ctx.body(null, { status: 204 });
     },
-  );
+});
+
+
+export const organizationRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot, getById, deleteById, patchById, postRoot, getByIdMembers, postByIdMembers, deleteByIdMembers, getByIdMembersByUser_idRoles, postByIdMembersByUser_idRoles, deleteByIdMembersByUser_idRoles, getByIdRoles, getByIdInvitations, getByIdInvitationsByInvitation_id, postByIdInvitations, deleteByIdInvitationsByInvitation_id, getByIdEnabledConnections, postByIdEnabledConnections, getByIdEnabledConnectionsByConnection_id, patchByIdEnabledConnectionsByConnection_id, deleteByIdEnabledConnectionsByConnection_id] as const);

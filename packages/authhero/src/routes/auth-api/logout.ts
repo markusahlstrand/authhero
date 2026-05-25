@@ -7,16 +7,9 @@ import { isValidRedirectUrl } from "../../utils/is-valid-redirect-url";
 import { clearAuthCookie, getAuthCookie } from "../../utils/cookies";
 import { setTenantId } from "../../helpers/set-tenant-id";
 import { getEnrichedClient } from "../../helpers/client";
-
-export const logoutRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /v2/logout
-  // --------------------------------
-  .openapi(
-    createRoute({
+import { defineRoute } from "../../utils/define-route";
+const getRoot = defineRoute({
+  route: createRoute({
       tags: ["oauth2"],
       method: "get",
       path: "/",
@@ -35,7 +28,7 @@ export const logoutRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { client_id, returnTo } = ctx.req.valid("query");
 
       let client;
@@ -165,4 +158,11 @@ export const logoutRoutes = new OpenAPIHono<{
         headers,
       });
     },
-  );
+});
+
+
+export const logoutRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot] as const);

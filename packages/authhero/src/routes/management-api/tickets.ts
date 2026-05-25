@@ -20,6 +20,7 @@ import { HTTPException } from "hono/http-exception";
 import { logMessage } from "../../helpers/logging";
 import { getIssuer } from "../../variables";
 
+import { defineRoute } from "../../utils/define-route";
 const DEFAULT_TTL_SEC = 432000; // 5 days, matches Auth0 default
 
 const emailVerificationTicketBodySchema = z.object({
@@ -55,16 +56,8 @@ const ticketResponseSchema = z.object({
     description: "A URL representing the ticket. Single-use, time-limited.",
   }),
 });
-
-export const ticketsRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // POST /api/v2/tickets/email-verification
-  // --------------------------------
-  .openapi(
-    createRoute({
+const postEmailVerification = defineRoute({
+  route: createRoute({
       tags: ["tickets"],
       method: "post",
       path: "/email-verification",
@@ -88,7 +81,7 @@ export const ticketsRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenantId = ctx.var.tenant_id;
       const body = ctx.req.valid("json");
 
@@ -134,12 +127,10 @@ export const ticketsRoutes = new OpenAPIHono<{
 
       return ctx.json({ ticket: url.toString() }, { status: 201 });
     },
-  )
-  // --------------------------------
-  // POST /api/v2/tickets/password-change
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postPasswordChange = defineRoute({
+  route: createRoute({
       tags: ["tickets"],
       method: "post",
       path: "/password-change",
@@ -163,7 +154,7 @@ export const ticketsRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenantId = ctx.var.tenant_id;
       const body = ctx.req.valid("json");
 
@@ -240,4 +231,11 @@ export const ticketsRoutes = new OpenAPIHono<{
 
       return ctx.json({ ticket: url.toString() }, { status: 201 });
     },
-  );
+});
+
+
+export const ticketsRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([postEmailVerification, postPasswordChange] as const);

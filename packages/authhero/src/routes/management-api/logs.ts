@@ -5,19 +5,12 @@ import { querySchema } from "../../types/auth0/Query";
 import { parseSort } from "../../utils/sort";
 import { logSchema, totalsSchema } from "@authhero/adapter-interfaces";
 
+import { defineRoute } from "../../utils/define-route";
 const logsWithTotalsSchema = totalsSchema.extend({
   logs: z.array(logSchema),
 });
-
-export const logRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /logs
-  // --------------------------------
-  .openapi(
-    createRoute({
+const getRoot = defineRoute({
+  route: createRoute({
       tags: ["logs"],
       method: "get",
       path: "/",
@@ -43,7 +36,7 @@ export const logRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { page, per_page, include_totals, sort, q, from_date, to_date } =
         ctx.req.valid("query");
 
@@ -63,12 +56,10 @@ export const logRoutes = new OpenAPIHono<{
 
       return ctx.json(result.logs);
     },
-  )
-  // --------------------------------
-  // GET /logs/:id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getById = defineRoute({
+  route: createRoute({
       tags: ["logs"],
       method: "get",
       path: "/{id}",
@@ -97,7 +88,7 @@ export const logRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { id } = ctx.req.valid("param");
 
       const log = await ctx.env.data.logs.get(ctx.var.tenant_id, id);
@@ -108,4 +99,11 @@ export const logRoutes = new OpenAPIHono<{
 
       return ctx.json(log);
     },
-  );
+});
+
+
+export const logRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot, getById] as const);

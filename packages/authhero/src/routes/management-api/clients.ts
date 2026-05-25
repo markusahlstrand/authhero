@@ -13,6 +13,7 @@ import { nanoid } from "nanoid";
 import { querySchema } from "../../types/auth0/Query";
 import { parseSort } from "../../utils/sort";
 
+import { defineRoute } from "../../utils/define-route";
 const clientWithTotalsSchema = totalsSchema.extend({
   clients: z.array(clientSchema),
 });
@@ -29,16 +30,8 @@ const clientConnectionsResponseSchema = z.object({
 
 // Schema for updating client connections - ordered array of connection IDs
 const updateClientConnectionsSchema = z.array(z.string());
-
-export const clientRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /clients
-  // --------------------------------
-  .openapi(
-    createRoute({
+const getRoot = defineRoute({
+  route: createRoute({
       tags: ["clients"],
       method: "get",
       path: "/",
@@ -64,7 +57,7 @@ export const clientRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
       const { page, per_page, include_totals, sort, q } =
         ctx.req.valid("query");
@@ -91,12 +84,10 @@ export const clientRoutes = new OpenAPIHono<{
 
       return ctx.json(clients);
     },
-  )
-  // --------------------------------
-  // GET /clients/:id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getById = defineRoute({
+  route: createRoute({
       tags: ["clients"],
       method: "get",
       path: "/{id}",
@@ -124,7 +115,7 @@ export const clientRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
       const { id } = ctx.req.valid("param");
 
@@ -136,12 +127,10 @@ export const clientRoutes = new OpenAPIHono<{
 
       return ctx.json(client);
     },
-  )
-  // --------------------------------
-  // DELETE /clients/:id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const deleteById = defineRoute({
+  route: createRoute({
       tags: ["clients"],
       method: "delete",
       path: "/{id}",
@@ -164,7 +153,7 @@ export const clientRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
       const { id } = ctx.req.valid("param");
 
@@ -182,12 +171,10 @@ export const clientRoutes = new OpenAPIHono<{
 
       return ctx.text("OK");
     },
-  )
-  // --------------------------------
-  // PATCH /clients/:id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const patchById = defineRoute({
+  route: createRoute({
       tags: ["clients"],
       method: "patch",
       path: "/{id}",
@@ -222,7 +209,7 @@ export const clientRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
       const { id } = ctx.req.valid("param");
       const body = ctx.req.valid("json");
@@ -249,12 +236,10 @@ export const clientRoutes = new OpenAPIHono<{
 
       return ctx.json(client);
     },
-  )
-  // --------------------------------
-  // POST /clients
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postRoot = defineRoute({
+  route: createRoute({
       tags: ["clients"],
       method: "post",
       path: "/",
@@ -286,7 +271,7 @@ export const clientRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
       const body = ctx.req.valid("json");
 
@@ -308,12 +293,10 @@ export const clientRoutes = new OpenAPIHono<{
 
       return ctx.json(client, { status: 201 });
     },
-  )
-  // --------------------------------
-  // GET /clients/:id/connections
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getByIdConnections = defineRoute({
+  route: createRoute({
       tags: ["clients"],
       method: "get",
       path: "/{id}/connections",
@@ -341,7 +324,7 @@ export const clientRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
       const { id } = ctx.req.valid("param");
 
@@ -388,12 +371,10 @@ export const clientRoutes = new OpenAPIHono<{
 
       return ctx.json({ enabled_connections: enabledConnections });
     },
-  )
-  // --------------------------------
-  // PATCH /clients/:id/connections
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const patchByIdConnections = defineRoute({
+  route: createRoute({
       tags: ["clients"],
       method: "patch",
       path: "/{id}/connections",
@@ -428,7 +409,7 @@ export const clientRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
       const { id } = ctx.req.valid("param");
       const connectionIds = ctx.req.valid("json");
@@ -485,4 +466,11 @@ export const clientRoutes = new OpenAPIHono<{
 
       return ctx.json({ enabled_connections: enabledConnections });
     },
-  );
+});
+
+
+export const clientRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot, getById, deleteById, patchById, postRoot, getByIdConnections, patchByIdConnections] as const);

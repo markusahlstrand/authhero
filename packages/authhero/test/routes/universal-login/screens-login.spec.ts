@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
 import { getTestServer } from "../../helpers/test-server";
+import { u2Screen } from "../../helpers/u2-screen";
 import {
   AuthorizationResponseType,
   Strategy,
@@ -177,7 +178,7 @@ describe("login screen - passwordless button", () => {
     const state = await getLoginState(oauthClient);
 
     // GET the login page (SSR HTML)
-    const response = await u2Client.login.$get({
+    const response = await u2Screen(u2App, env, "login").$get({
       query: { state },
     });
 

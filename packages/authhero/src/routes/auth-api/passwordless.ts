@@ -14,16 +14,9 @@ import { nanoid } from "nanoid";
 import { stringifyAuth0Client } from "../../utils/client-info";
 import { getUniversalLoginUrl } from "../../variables";
 import { setTenantId } from "../../helpers/set-tenant-id";
-
-export const passwordlessRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // POST /passwordless/start
-  // --------------------------------
-  .openapi(
-    createRoute({
+import { defineRoute } from "../../utils/define-route";
+const postStart = defineRoute({
+  route: createRoute({
       tags: ["passwordless"],
       method: "post",
       path: "/start",
@@ -57,7 +50,7 @@ export const passwordlessRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const body = ctx.req.valid("json");
       const { env } = ctx;
       const { client_id, send, authParams, connection } = body;
@@ -128,12 +121,10 @@ export const passwordlessRoutes = new OpenAPIHono<{
 
       return ctx.html("OK");
     },
-  )
-  // --------------------------------
-  // GET /passwordless/verify_redirect
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getVerifyRedirect = defineRoute({
+  route: createRoute({
       tags: ["passwordless"],
       method: "get",
       path: "/verify_redirect",
@@ -181,7 +172,7 @@ export const passwordlessRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { env } = ctx;
       const {
         client_id,
@@ -266,4 +257,11 @@ export const passwordlessRoutes = new OpenAPIHono<{
         302,
       );
     },
-  );
+});
+
+
+export const passwordlessRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([postStart, getVerifyRedirect] as const);

@@ -6,7 +6,7 @@ import { z } from "@hono/zod-openapi";
 // shape from the chain, or simply use the returned schema for parsing.
 export function flattenSchema(
   schema: z.ZodObject<z.ZodRawShape>,
-  prefix = "_",
+  prefix = "",
 ): z.ZodObject<z.ZodRawShape> {
   const result: Record<string, z.ZodTypeAny> = {};
 

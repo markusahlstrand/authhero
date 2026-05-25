@@ -8,6 +8,7 @@ import { setTenantId } from "../../helpers/set-tenant-id";
 import { getEnrichedClient } from "../../helpers/client";
 import { validateJwtToken } from "../../utils/jwt";
 
+import { defineRoute } from "../../utils/define-route";
 // OIDC RP-Initiated Logout 1.0
 // https://openid.net/specs/openid-connect-rpinitiated-1_0.html
 //
@@ -48,12 +49,8 @@ const LOGGED_OUT_HTML = `<!DOCTYPE html>
     </main>
   </body>
 </html>`;
-
-export const oidcLogoutRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>().openapi(
-  createRoute({
+const getRoot = defineRoute({
+  route: createRoute({
     tags: ["oauth2"],
     method: "get",
     path: "/",
@@ -69,7 +66,7 @@ export const oidcLogoutRoutes = new OpenAPIHono<{
       400: { description: "Invalid request" },
     },
   }),
-  async (ctx) => {
+  handler: async (ctx) => {
     const {
       id_token_hint,
       client_id: clientIdParam,
@@ -250,4 +247,11 @@ export const oidcLogoutRoutes = new OpenAPIHono<{
     headers.set("cache-control", "no-store");
     return new Response(LOGGED_OUT_HTML, { status: 200, headers });
   },
-);
+});
+
+
+export const oidcLogoutRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot] as const);

@@ -5,16 +5,9 @@ import i18next from "i18next";
 import ChangeEmailPage from "../../components/ChangeEmailPage";
 import { logMessage } from "../../helpers/logging";
 import { LogTypes } from "@authhero/adapter-interfaces";
-
-export const changeEmailVerifyRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /u/account/change-email-verify
-  // --------------------------------
-  .openapi(
-    createRoute({
+import { defineRoute } from "../../utils/define-route";
+const getRoot = defineRoute({
+  route: createRoute({
       tags: ["login"],
       method: "get",
       path: "/",
@@ -47,7 +40,7 @@ export const changeEmailVerifyRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { state, email, change_id } = ctx.req.valid("query");
 
       // Get theme, branding and user from initJSXRoute
@@ -79,12 +72,10 @@ export const changeEmailVerifyRoutes = new OpenAPIHono<{
         />,
       );
     },
-  )
-  // --------------------------------
-  // POST /u/change-email-verify
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postRoot = defineRoute({
+  route: createRoute({
       tags: ["login"],
       method: "post",
       path: "/",
@@ -126,7 +117,7 @@ export const changeEmailVerifyRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { env } = ctx;
       const { state, email, change_id } = ctx.req.valid("query");
       const { code } = ctx.req.valid("form");
@@ -236,4 +227,11 @@ export const changeEmailVerifyRoutes = new OpenAPIHono<{
         />,
       );
     },
-  );
+});
+
+
+export const changeEmailVerifyRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot, postRoot] as const);

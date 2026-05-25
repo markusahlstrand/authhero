@@ -8,6 +8,7 @@ import {
 import { Bindings, Variables } from "../../types";
 import { logMessage } from "../../helpers/logging";
 
+import { defineRoute } from "../../utils/define-route";
 function getAdapter(ctx: { env: Bindings }) {
   const adapter = ctx.env.data.logStreams;
   if (!adapter) {
@@ -17,14 +18,8 @@ function getAdapter(ctx: { env: Bindings }) {
   }
   return adapter;
 }
-
-export const logStreamsRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // GET /api/v2/log-streams
-  .openapi(
-    createRoute({
+const getRoot = defineRoute({
+  route: createRoute({
       tags: ["log-streams"],
       method: "get",
       path: "/",
@@ -41,15 +36,15 @@ export const logStreamsRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const adapter = getAdapter(ctx);
       const result = await adapter.list(ctx.var.tenant_id);
       return ctx.json(result);
     },
-  )
-  // GET /api/v2/log-streams/:id
-  .openapi(
-    createRoute({
+});
+
+const getById = defineRoute({
+  route: createRoute({
       tags: ["log-streams"],
       method: "get",
       path: "/{id}",
@@ -65,7 +60,7 @@ export const logStreamsRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const adapter = getAdapter(ctx);
       const { id } = ctx.req.valid("param");
       const stream = await adapter.get(ctx.var.tenant_id, id);
@@ -74,10 +69,10 @@ export const logStreamsRoutes = new OpenAPIHono<{
       }
       return ctx.json(stream);
     },
-  )
-  // POST /api/v2/log-streams
-  .openapi(
-    createRoute({
+});
+
+const postRoot = defineRoute({
+  route: createRoute({
       tags: ["log-streams"],
       method: "post",
       path: "/",
@@ -99,7 +94,7 @@ export const logStreamsRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const adapter = getAdapter(ctx);
       const body = ctx.req.valid("json");
       const stream = await adapter.create(ctx.var.tenant_id, body);
@@ -114,10 +109,10 @@ export const logStreamsRoutes = new OpenAPIHono<{
 
       return ctx.json(stream, { status: 201 });
     },
-  )
-  // PATCH /api/v2/log-streams/:id
-  .openapi(
-    createRoute({
+});
+
+const patchById = defineRoute({
+  route: createRoute({
       tags: ["log-streams"],
       method: "patch",
       path: "/{id}",
@@ -140,7 +135,7 @@ export const logStreamsRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const adapter = getAdapter(ctx);
       const { id } = ctx.req.valid("param");
       const body = ctx.req.valid("json");
@@ -163,10 +158,10 @@ export const logStreamsRoutes = new OpenAPIHono<{
 
       return ctx.json(stream);
     },
-  )
-  // DELETE /api/v2/log-streams/:id
-  .openapi(
-    createRoute({
+});
+
+const deleteById = defineRoute({
+  route: createRoute({
       tags: ["log-streams"],
       method: "delete",
       path: "/{id}",
@@ -179,7 +174,7 @@ export const logStreamsRoutes = new OpenAPIHono<{
         204: { description: "Log stream deleted" },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const adapter = getAdapter(ctx);
       const { id } = ctx.req.valid("param");
       const ok = await adapter.remove(ctx.var.tenant_id, id);
@@ -196,4 +191,11 @@ export const logStreamsRoutes = new OpenAPIHono<{
 
       return ctx.body(null, 204);
     },
-  );
+});
+
+
+export const logStreamsRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot, getById, postRoot, patchById, deleteById] as const);

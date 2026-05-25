@@ -7,16 +7,9 @@ import EnterPasswordPage from "../../components/EnterPasswordPage";
 import i18next from "i18next";
 import { loginWithPassword } from "../../authentication-flows/password";
 import { AuthError } from "../../types/AuthError";
-
-export const enterPasswordRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /u/enter-password
-  // --------------------------------
-  .openapi(
-    createRoute({
+import { defineRoute } from "../../utils/define-route";
+const getRoot = defineRoute({
+  route: createRoute({
       tags: ["login"],
       method: "get",
       path: "/",
@@ -33,7 +26,7 @@ export const enterPasswordRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { state } = ctx.req.valid("query");
 
       const { theme, branding, client, loginSession } = await initJSXRoute(
@@ -55,12 +48,10 @@ export const enterPasswordRoutes = new OpenAPIHono<{
         />,
       );
     },
-  )
-  // --------------------------------
-  // POST /u/enter-password
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postRoot = defineRoute({
+  route: createRoute({
       tags: ["login"],
       method: "post",
       path: "/",
@@ -103,7 +94,7 @@ export const enterPasswordRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { state } = ctx.req.valid("query");
       const body = ctx.req.valid("form");
       const { password } = body;
@@ -175,4 +166,11 @@ export const enterPasswordRoutes = new OpenAPIHono<{
         );
       }
     },
-  );
+});
+
+
+export const enterPasswordRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot, postRoot] as const);

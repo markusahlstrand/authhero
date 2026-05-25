@@ -8,16 +8,9 @@ import {
 } from "@authhero/adapter-interfaces";
 import { deepMergePatch } from "../../utils/deep-merge";
 import { logMessage } from "../../helpers/logging";
-
-export const tenantRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /api/v2/tenants/settings - Get current tenant (from header/subdomain)
-  // --------------------------------
-  .openapi(
-    createRoute({
+import { defineRoute } from "../../utils/define-route";
+const getSettings = defineRoute({
+  route: createRoute({
       tags: ["tenants", "settings"],
       method: "get",
       path: "/settings",
@@ -42,7 +35,7 @@ export const tenantRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
 
       if (!tenant) {
@@ -56,12 +49,10 @@ export const tenantRoutes = new OpenAPIHono<{
         is_control_plane: isControlPlaneTenant(ctx, ctx.var.tenant_id),
       });
     },
-  )
-  // --------------------------------
-  // PATCH /api/v2/tenants/settings - Update current tenant (from header/subdomain)
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const patchSettings = defineRoute({
+  route: createRoute({
       tags: ["tenants", "settings"],
       method: "patch",
       path: "/settings",
@@ -93,7 +84,7 @@ export const tenantRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const updates = ctx.req.valid("json");
 
       // Strip protected system fields that should not be modified
@@ -137,7 +128,14 @@ export const tenantRoutes = new OpenAPIHono<{
         is_control_plane: isControlPlaneTenant(ctx, ctx.var.tenant_id),
       });
     },
-  );
+});
+
+
+export const tenantRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getSettings, patchSettings] as const);
 
 // True when the current tenant is the deployment's control plane. In
 // multi-tenant deployments `multiTenancyConfig.controlPlaneTenantId` names the

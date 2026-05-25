@@ -8,16 +8,9 @@ import {
 } from "@authhero/adapter-interfaces";
 import { logMessage } from "../../helpers/logging";
 import { getAllLocaleDefaults } from "../../i18n";
-
-export const promptsRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /api/v2/propmpts
-  // --------------------------------
-  .openapi(
-    createRoute({
+import { defineRoute } from "../../utils/define-route";
+const getRoot = defineRoute({
+  route: createRoute({
       tags: ["prompts"],
       method: "get",
       path: "/",
@@ -43,7 +36,7 @@ export const promptsRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const promptSetting = await ctx.env.data.promptSettings.get(
         ctx.var.tenant_id,
       );
@@ -55,12 +48,10 @@ export const promptsRoutes = new OpenAPIHono<{
 
       return ctx.json(promptSetting);
     },
-  )
-  // --------------------------------
-  // PATCH /api/v2/prompts
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const patchRoot = defineRoute({
+  route: createRoute({
       tags: ["prompts"],
       method: "patch",
       path: "/",
@@ -87,7 +78,7 @@ export const promptsRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const promptSettings = ctx.req.valid("json");
 
       const existing = await ctx.env.data.promptSettings.get(ctx.var.tenant_id);
@@ -108,13 +99,10 @@ export const promptsRoutes = new OpenAPIHono<{
         await ctx.env.data.promptSettings.get(ctx.var.tenant_id),
       );
     },
-  )
-  // --------------------------------
-  // GET /api/v2/prompts/custom-text
-  // List all custom text entries for a tenant
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getCustomText = defineRoute({
+  route: createRoute({
       tags: ["prompts"],
       method: "get",
       path: "/custom-text",
@@ -144,18 +132,14 @@ export const promptsRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const entries = await ctx.env.data.customText.list(ctx.var.tenant_id);
       return ctx.json(entries);
     },
-  )
-  // --------------------------------
-  // GET /api/v2/prompts/custom-text/defaults
-  // Return the bundled default text so the admin UI can render placeholders
-  // and discover which prompt/screen/key forms exist. Auth0 has no equivalent.
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getCustomTextDefaults = defineRoute({
+  route: createRoute({
       tags: ["prompts"],
       method: "get",
       path: "/custom-text/defaults",
@@ -191,17 +175,14 @@ export const promptsRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { language, prompt } = ctx.req.valid("query");
       return ctx.json(getAllLocaleDefaults({ language, prompt }));
     },
-  )
-  // --------------------------------
-  // GET /api/v2/prompts/:prompt/custom-text/:language
-  // Get custom text for a specific prompt and language
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getByPromptCustomTextByLanguage = defineRoute({
+  route: createRoute({
       tags: ["prompts"],
       method: "get",
       path: "/{prompt}/custom-text/{language}",
@@ -230,7 +211,7 @@ export const promptsRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { prompt, language } = ctx.req.valid("param");
       const customText = await ctx.env.data.customText.get(
         ctx.var.tenant_id,
@@ -240,13 +221,10 @@ export const promptsRoutes = new OpenAPIHono<{
 
       return ctx.json(customText ?? {});
     },
-  )
-  // --------------------------------
-  // PUT /api/v2/prompts/:prompt/custom-text/:language
-  // Set custom text for a specific prompt and language
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const putByPromptCustomTextByLanguage = defineRoute({
+  route: createRoute({
       tags: ["prompts"],
       method: "put",
       path: "/{prompt}/custom-text/{language}",
@@ -282,7 +260,7 @@ export const promptsRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { prompt, language } = ctx.req.valid("param");
       const body = await ctx.req.json();
       const customText = customTextSchema.parse(body);
@@ -303,13 +281,10 @@ export const promptsRoutes = new OpenAPIHono<{
 
       return ctx.json(customText);
     },
-  )
-  // --------------------------------
-  // DELETE /api/v2/prompts/:prompt/custom-text/:language
-  // Delete custom text for a specific prompt and language
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const deleteByPromptCustomTextByLanguage = defineRoute({
+  route: createRoute({
       tags: ["prompts"],
       method: "delete",
       path: "/{prompt}/custom-text/{language}",
@@ -333,7 +308,7 @@ export const promptsRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { prompt, language } = ctx.req.valid("param");
 
       await ctx.env.data.customText.delete(ctx.var.tenant_id, prompt, language);
@@ -347,4 +322,11 @@ export const promptsRoutes = new OpenAPIHono<{
 
       return ctx.body(null, 204);
     },
-  );
+});
+
+
+export const promptsRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot, patchRoot, getCustomText, getCustomTextDefaults, getByPromptCustomTextByLanguage, putByPromptCustomTextByLanguage, deleteByPromptCustomTextByLanguage] as const);

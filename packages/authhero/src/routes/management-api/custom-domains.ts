@@ -8,16 +8,9 @@ import {
   LogTypes,
 } from "@authhero/adapter-interfaces";
 import { logMessage } from "../../helpers/logging";
-
-export const customDomainRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /api/v2/custom-domains
-  // --------------------------------
-  .openapi(
-    createRoute({
+import { defineRoute } from "../../utils/define-route";
+const getRoot = defineRoute({
+  route: createRoute({
       tags: ["custom-domains"],
       method: "get",
       path: "/",
@@ -44,17 +37,15 @@ export const customDomainRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const result = await ctx.env.data.customDomains.list(ctx.var.tenant_id);
 
       return ctx.json(result);
     },
-  )
-  // --------------------------------
-  // GET /api/v2/custom-domains/:id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getById = defineRoute({
+  route: createRoute({
       tags: ["custom-domains"],
       method: "get",
       path: "/{id}",
@@ -83,7 +74,7 @@ export const customDomainRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { id } = ctx.req.valid("param");
 
       const customDomain = await ctx.env.data.customDomains.get(
@@ -97,12 +88,10 @@ export const customDomainRoutes = new OpenAPIHono<{
 
       return ctx.json(customDomain);
     },
-  )
-  // --------------------------------
-  // DELETE /api/v2/custom-domains/:id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const deleteById = defineRoute({
+  route: createRoute({
       tags: ["custom-domains"],
       method: "delete",
       path: "/{id}",
@@ -125,7 +114,7 @@ export const customDomainRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { id } = ctx.req.valid("param");
 
       const result = await ctx.env.data.customDomains.remove(
@@ -147,12 +136,10 @@ export const customDomainRoutes = new OpenAPIHono<{
 
       return ctx.text("OK");
     },
-  )
-  // --------------------------------
-  // PATCH /api/v2/custom-domains/:id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const patchById = defineRoute({
+  route: createRoute({
       tags: ["custom-domains"],
       method: "patch",
       path: "/{id}",
@@ -187,7 +174,7 @@ export const customDomainRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { id } = ctx.req.valid("param");
       const body = ctx.req.valid("json");
 
@@ -219,12 +206,10 @@ export const customDomainRoutes = new OpenAPIHono<{
 
       return ctx.json(customDomain);
     },
-  )
-  // --------------------------------
-  // POST /api/v2/custom-domains
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postRoot = defineRoute({
+  route: createRoute({
       tags: ["custom-domains"],
       method: "post",
       path: "/",
@@ -256,7 +241,7 @@ export const customDomainRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const body = ctx.req.valid("json");
 
       const customDomain = await ctx.env.data.customDomains.create(
@@ -274,12 +259,10 @@ export const customDomainRoutes = new OpenAPIHono<{
 
       return ctx.json(customDomain, { status: 201 });
     },
-  )
-  // --------------------------------
-  // POST /api/v2/custom-domains/:id/verify
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postByIdVerify = defineRoute({
+  route: createRoute({
       tags: ["custom-domains"],
       method: "post",
       path: "/{id}/verify",
@@ -307,9 +290,16 @@ export const customDomainRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async () => {
+  handler: async () => {
       throw new HTTPException(501, {
         message: "Not implemented",
       });
     },
-  );
+});
+
+
+export const customDomainRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot, getById, deleteById, patchById, postRoot, postByIdVerify] as const);

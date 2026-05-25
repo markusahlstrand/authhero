@@ -7,6 +7,7 @@ import {
 } from "@authhero/adapter-interfaces";
 import { HTTPException } from "hono/http-exception";
 
+import { defineRoute } from "../../utils/define-route";
 // Public response shape mirrors Auth0 (no internal fields like tenant_id or
 // captured console logs). See:
 // https://auth0.com/docs/api/management/v2/actions/get-execution
@@ -22,18 +23,8 @@ const auth0ActionExecutionResponseSchema = z.object({
 const executionLogsResponseSchema = z.object({
   logs: actionExecutionLogsSchema,
 });
-
-export const actionExecutionsRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /api/v2/actions/executions/:id
-  // Auth0-compatible. Logs are NOT included — fetch them separately from
-  // /api/v2/actions/executions/:id/logs (AuthHero-specific).
-  // --------------------------------
-  .openapi(
-    createRoute({
+const getById = defineRoute({
+  route: createRoute({
       tags: ["actions"],
       method: "get",
       path: "/{id}",
@@ -56,7 +47,7 @@ export const actionExecutionsRoutes = new OpenAPIHono<{
         404: { description: "Execution not found" },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { id } = ctx.req.valid("param");
       const execution = await ctx.env.data.actionExecutions.get(
         ctx.var.tenant_id,
@@ -74,16 +65,10 @@ export const actionExecutionsRoutes = new OpenAPIHono<{
         updated_at: execution.updated_at,
       });
     },
-  )
-  // --------------------------------
-  // GET /api/v2/actions/executions/:id/logs
-  // AuthHero-specific: returns captured console output per action. Auth0
-  // exposes the same data through a separate real-time logs stream rather
-  // than the executions API; we keep it close to the execution so the admin
-  // UI has one place to look.
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getByIdLogs = defineRoute({
+  route: createRoute({
       tags: ["actions"],
       method: "get",
       path: "/{id}/logs",
@@ -106,7 +91,7 @@ export const actionExecutionsRoutes = new OpenAPIHono<{
         404: { description: "Execution not found" },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { id } = ctx.req.valid("param");
       const execution = await ctx.env.data.actionExecutions.get(
         ctx.var.tenant_id,
@@ -117,4 +102,11 @@ export const actionExecutionsRoutes = new OpenAPIHono<{
       }
       return ctx.json({ logs: execution.logs ?? [] });
     },
-  );
+});
+
+
+export const actionExecutionsRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getById, getByIdLogs] as const);

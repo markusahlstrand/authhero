@@ -5,6 +5,7 @@ import { logMessage } from "../../helpers/logging";
 import { HTTPException } from "hono/http-exception";
 import { generateHookId } from "../../utils/entity-id";
 
+import { defineRoute } from "../../utils/define-route";
 // Map Auth0 trigger IDs to internal trigger IDs
 const TRIGGER_ID_MAP: Record<string, string> = {
   "post-login": "post-user-login",
@@ -53,16 +54,8 @@ const bindingResponseSchema = z.object({
 const bindingsResponseSchema = z.object({
   bindings: z.array(bindingResponseSchema),
 });
-
-export const actionTriggersRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /api/v2/actions/triggers/:triggerId/bindings
-  // --------------------------------
-  .openapi(
-    createRoute({
+const getByTriggerIdBindings = defineRoute({
+  route: createRoute({
       tags: ["actions"],
       method: "get",
       path: "/{triggerId}/bindings",
@@ -90,7 +83,7 @@ export const actionTriggersRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { triggerId } = ctx.req.valid("param");
       const internalTriggerId = toInternalTriggerId(triggerId);
 
@@ -130,12 +123,10 @@ export const actionTriggersRoutes = new OpenAPIHono<{
 
       return ctx.json({ bindings });
     },
-  )
-  // --------------------------------
-  // PATCH /api/v2/actions/triggers/:triggerId/bindings
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const patchByTriggerIdBindings = defineRoute({
+  route: createRoute({
       tags: ["actions"],
       method: "patch",
       path: "/{triggerId}/bindings",
@@ -172,26 +163,21 @@ export const actionTriggersRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { triggerId } = ctx.req.valid("param");
       const { bindings } = ctx.req.valid("json");
       const internalTriggerId = toInternalTriggerId(triggerId);
 
-      // Remove existing code hooks for this trigger
-      const existingHooks = await ctx.env.data.hooks.list(ctx.var.tenant_id, {
-        q: `trigger_id:"${internalTriggerId}"`,
-        per_page: 100,
-      });
-
-      for (const hook of existingHooks.hooks) {
-        if ("code_id" in hook && hook.code_id) {
-          await ctx.env.data.hooks.remove(ctx.var.tenant_id, hook.hook_id);
-        }
-      }
-
-      // Create new hooks for each binding. Resolve actionId from either
-      // Auth0's { type, value } shape or our legacy { id, name } shape.
-      const resultBindings: any[] = [];
+      // Resolve and validate every binding (action exists, ref shape valid)
+      // before mutating any state — partial removal of existing hooks
+      // followed by a 4xx would leave the trigger in an inconsistent state.
+      const resolved: Array<{
+        binding: (typeof bindings)[number];
+        actionId: string;
+        action: NonNullable<
+          Awaited<ReturnType<typeof ctx.env.data.actions.get>>
+        >;
+      }> = [];
       for (let i = 0; i < bindings.length; i++) {
         const binding = bindings[i]!;
         let actionId = binding.ref.id;
@@ -235,7 +221,6 @@ export const actionTriggersRoutes = new OpenAPIHono<{
           });
         }
 
-        // Verify the action exists
         const action = await ctx.env.data.actions.get(
           ctx.var.tenant_id,
           actionId,
@@ -246,6 +231,25 @@ export const actionTriggersRoutes = new OpenAPIHono<{
           });
         }
 
+        resolved.push({ binding, actionId, action });
+      }
+
+      // All bindings valid — safe to swap out existing code hooks.
+      const existingHooks = await ctx.env.data.hooks.list(ctx.var.tenant_id, {
+        q: `trigger_id:"${internalTriggerId}"`,
+        per_page: 100,
+      });
+
+      for (const hook of existingHooks.hooks) {
+        if ("code_id" in hook && hook.code_id) {
+          await ctx.env.data.hooks.remove(ctx.var.tenant_id, hook.hook_id);
+        }
+      }
+
+      const resultBindings: any[] = [];
+      for (let i = 0; i < resolved.length; i++) {
+        const { binding, actionId, action } = resolved[i]!;
+
         // Create a hook binding with priority based on array position
         // Higher index = lower priority (first in array executes first)
         const hook = await ctx.env.data.hooks.create(ctx.var.tenant_id, {
@@ -254,7 +258,7 @@ export const actionTriggersRoutes = new OpenAPIHono<{
           code_id: actionId,
           enabled: true,
           synchronous: true,
-          priority: bindings.length - i,
+          priority: resolved.length - i,
         });
 
         resultBindings.push({
@@ -278,4 +282,11 @@ export const actionTriggersRoutes = new OpenAPIHono<{
 
       return ctx.json({ bindings: resultBindings });
     },
-  );
+});
+
+
+export const actionTriggersRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getByTriggerIdBindings, patchByTriggerIdBindings] as const);

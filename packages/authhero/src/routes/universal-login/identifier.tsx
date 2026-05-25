@@ -25,6 +25,7 @@ import { HTTPException } from "hono/http-exception";
 
 import { DefaultUserAgentDetector } from "../../client/user-agent-detector";
 
+import { defineRoute } from "../../utils/define-route";
 export type SendType = "link" | "code";
 
 /**
@@ -41,16 +42,8 @@ function detectEmbeddedBrowser(userAgent: string): {
     browserName: userAgentInfo.browser?.name,
   };
 }
-
-export const identifierRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /u/login/identifier
-  // --------------------------------
-  .openapi(
-    createRoute({
+const getRoot = defineRoute({
+  route: createRoute({
       tags: ["login"],
       method: "get",
       path: "/",
@@ -74,7 +67,7 @@ export const identifierRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { state, error, error_description } = ctx.req.valid("query");
 
       const { theme, branding, loginSession, client } = await initJSXRoute(
@@ -102,12 +95,10 @@ export const identifierRoutes = new OpenAPIHono<{
         />,
       );
     },
-  )
-  // --------------------------------
-  // POST /u/login/identifier
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postRoot = defineRoute({
+  route: createRoute({
       tags: ["login"],
       method: "post",
       path: "/",
@@ -137,7 +128,7 @@ export const identifierRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { env } = ctx;
       const { state } = ctx.req.valid("query");
       const params = ctx.req.valid("form");
@@ -412,4 +403,11 @@ export const identifierRoutes = new OpenAPIHono<{
         connectionType === "sms" ? "sms-otp-challenge" : "email-otp-challenge";
       return ctx.redirect(`/u/login/${otpScreen}?state=${state}`);
     },
-  );
+});
+
+
+export const identifierRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot, postRoot] as const);

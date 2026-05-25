@@ -13,6 +13,7 @@ import {
 } from "@authhero/adapter-interfaces";
 import { logMessage } from "../../helpers/logging";
 
+import { defineRoute } from "../../utils/define-route";
 const rolesWithTotalsSchema = totalsSchema.extend({
   roles: z.array(roleSchema),
 });
@@ -20,16 +21,8 @@ const rolesWithTotalsSchema = totalsSchema.extend({
 const rolePermissionsWithTotalsSchema = totalsSchema.extend({
   permissions: z.array(rolePermissionSchema),
 });
-
-export const roleRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /api/v2/roles
-  // --------------------------------
-  .openapi(
-    createRoute({
+const getRoot = defineRoute({
+  route: createRoute({
       tags: ["roles"],
       method: "get",
       path: "/",
@@ -55,7 +48,7 @@ export const roleRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { page, per_page, include_totals, sort, q } =
         ctx.req.valid("query");
 
@@ -80,12 +73,10 @@ export const roleRoutes = new OpenAPIHono<{
 
       return ctx.json(result.roles);
     },
-  )
-  // --------------------------------
-  // GET /api/v2/roles/:id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getById = defineRoute({
+  route: createRoute({
       tags: ["roles"],
       method: "get",
       path: "/{id}",
@@ -113,7 +104,7 @@ export const roleRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { id } = ctx.req.valid("param");
 
       const tenantId = ctx.var.tenant_id;
@@ -131,12 +122,10 @@ export const roleRoutes = new OpenAPIHono<{
 
       return ctx.json(role);
     },
-  )
-  // --------------------------------
-  // POST /api/v2/roles
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postRoot = defineRoute({
+  route: createRoute({
       tags: ["roles"],
       method: "post",
       path: "/",
@@ -168,7 +157,7 @@ export const roleRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const body = ctx.req.valid("json");
       const tenantId = ctx.var.tenant_id;
       if (!tenantId) {
@@ -189,12 +178,10 @@ export const roleRoutes = new OpenAPIHono<{
 
       return ctx.json(role, { status: 201 });
     },
-  )
-  // --------------------------------
-  // PATCH /api/v2/roles/:id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const patchById = defineRoute({
+  route: createRoute({
       tags: ["roles"],
       method: "patch",
       path: "/{id}",
@@ -229,7 +216,7 @@ export const roleRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { id } = ctx.req.valid("param");
       const body = ctx.req.valid("json");
       const tenantId = ctx.var.tenant_id;
@@ -257,12 +244,10 @@ export const roleRoutes = new OpenAPIHono<{
 
       return ctx.json(role!);
     },
-  )
-  // --------------------------------
-  // DELETE /api/v2/roles/:id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const deleteById = defineRoute({
+  route: createRoute({
       tags: ["roles"],
       method: "delete",
       path: "/{id}",
@@ -285,7 +270,7 @@ export const roleRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { id } = ctx.req.valid("param");
       const tenantId = ctx.var.tenant_id;
       if (!tenantId) {
@@ -309,12 +294,10 @@ export const roleRoutes = new OpenAPIHono<{
 
       return ctx.text("OK");
     },
-  )
-  // --------------------------------
-  // GET /api/v2/roles/:id/permissions
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getByIdPermissions = defineRoute({
+  route: createRoute({
       tags: ["roles"],
       method: "get",
       path: "/{id}/permissions",
@@ -346,7 +329,7 @@ export const roleRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { id } = ctx.req.valid("param");
 
       const { page, per_page, include_totals, sort, q } =
@@ -406,12 +389,10 @@ export const roleRoutes = new OpenAPIHono<{
       );
       return ctx.json(permissions);
     },
-  )
-  // --------------------------------
-  // POST /api/v2/roles/:id/permissions
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postByIdPermissions = defineRoute({
+  route: createRoute({
       tags: ["roles"],
       method: "post",
       path: "/{id}/permissions",
@@ -448,7 +429,7 @@ export const roleRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { id } = ctx.req.valid("param");
       const { permissions } = ctx.req.valid("json");
       const tenantId = ctx.var.tenant_id;
@@ -496,12 +477,10 @@ export const roleRoutes = new OpenAPIHono<{
       // it lets SDKs (e.g. go-auth0) skip body decoding.
       return ctx.body(null, 204);
     },
-  )
-  // --------------------------------
-  // DELETE /api/v2/roles/:id/permissions
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const deleteByIdPermissions = defineRoute({
+  route: createRoute({
       tags: ["roles"],
       method: "delete",
       path: "/{id}/permissions",
@@ -538,7 +517,7 @@ export const roleRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { id } = ctx.req.valid("param");
       const { permissions } = ctx.req.valid("json");
       const tenantId = ctx.var.tenant_id;
@@ -578,4 +557,11 @@ export const roleRoutes = new OpenAPIHono<{
 
       return ctx.json({ message: "Permissions removed successfully" });
     },
-  );
+});
+
+
+export const roleRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot, getById, postRoot, patchById, deleteById, getByIdPermissions, postByIdPermissions, deleteByIdPermissions] as const);

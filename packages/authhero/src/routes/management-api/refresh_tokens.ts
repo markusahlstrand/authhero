@@ -6,16 +6,9 @@ import {
   LogTypes,
 } from "@authhero/adapter-interfaces";
 import { logMessage } from "../../helpers/logging";
-
-export const refreshTokensRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /api/v2/refresh_tokens/:id
-  // --------------------------------
-  .openapi(
-    createRoute({
+import { defineRoute } from "../../utils/define-route";
+const getById = defineRoute({
+  route: createRoute({
       tags: ["refresh_tokens"],
       method: "get",
       path: "/{id}",
@@ -44,7 +37,7 @@ export const refreshTokensRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { id } = ctx.req.valid("param");
 
       const session = await ctx.env.data.refreshTokens.get(
@@ -58,12 +51,10 @@ export const refreshTokensRoutes = new OpenAPIHono<{
 
       return ctx.json(session);
     },
-  )
-  // --------------------------------
-  // DELETE /api/v2/refresh_tokens/:id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const deleteById = defineRoute({
+  route: createRoute({
       tags: ["refresh_tokens"],
       method: "delete",
       path: "/{id}",
@@ -86,7 +77,7 @@ export const refreshTokensRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { id } = ctx.req.valid("param");
 
       // Resolve the row first so we know its family. Removing a refresh token
@@ -132,4 +123,11 @@ export const refreshTokensRoutes = new OpenAPIHono<{
 
       return ctx.text("OK");
     },
-  );
+});
+
+
+export const refreshTokensRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getById, deleteById] as const);
