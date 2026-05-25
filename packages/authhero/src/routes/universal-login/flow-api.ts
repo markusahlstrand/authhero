@@ -17,6 +17,7 @@ import {
 } from "../../hooks/formhooks";
 import type { User } from "@authhero/adapter-interfaces";
 
+import { defineRoute } from "../../utils/define-route";
 /**
  * Local types for the flow API
  * These are simplified versions that work with the data adapter output
@@ -580,17 +581,8 @@ async function handlePostScreen(
   // Default completion response
   return ctx.json({ complete: true });
 }
-
-export const flowApiRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /u/flow/screen (SPA mode)
-  // Returns the current screen with form in querystring
-  // --------------------------------
-  .openapi(
-    createRoute({
+const getScreen = defineRoute({
+  route: createRoute({
       tags: ["flow-api"],
       method: "get",
       path: "/screen",
@@ -613,17 +605,14 @@ export const flowApiRoutes = new OpenAPIHono<{
         404: { description: "Form not found" },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { form: formId, state, screen: nodeId } = ctx.req.valid("query");
       return handleGetScreen(ctx, formId, state, nodeId, "spa");
     },
-  )
-  // --------------------------------
-  // GET /u/flow/:formId/screen (Hosted mode)
-  // Returns the current screen for widget rendering
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getFormIdScreen = defineRoute({
+  route: createRoute({
       tags: ["flow-api"],
       method: "get",
       path: "/:formId/screen",
@@ -648,18 +637,15 @@ export const flowApiRoutes = new OpenAPIHono<{
         404: { description: "Form not found" },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { formId } = ctx.req.valid("param");
       const { state, nodeId } = ctx.req.valid("query");
       return handleGetScreen(ctx, formId, state, nodeId, "hosted");
     },
-  )
-  // --------------------------------
-  // POST /u/flow/screen (SPA mode)
-  // Handles form submission and returns next screen or redirect
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postScreen = defineRoute({
+  route: createRoute({
       tags: ["flow-api"],
       method: "post",
       path: "/screen",
@@ -707,18 +693,15 @@ export const flowApiRoutes = new OpenAPIHono<{
         404: { description: "Form not found" },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { form: formId, state, screen: nodeId } = ctx.req.valid("query");
       const { data } = ctx.req.valid("json");
       return handlePostScreen(ctx, formId, state, nodeId, data, "spa");
     },
-  )
-  // --------------------------------
-  // POST /u/flow/:formId/screen (Hosted mode)
-  // Handles form submission and returns next screen or redirect
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postFormIdScreen = defineRoute({
+  route: createRoute({
       tags: ["flow-api"],
       method: "post",
       path: "/:formId/screen",
@@ -768,10 +751,17 @@ export const flowApiRoutes = new OpenAPIHono<{
         404: { description: "Form not found" },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { formId } = ctx.req.valid("param");
       const { state, nodeId } = ctx.req.valid("query");
       const { data } = ctx.req.valid("json");
       return handlePostScreen(ctx, formId, state, nodeId, data, "hosted");
     },
-  );
+});
+
+
+export const flowApiRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getScreen, getFormIdScreen, postScreen, postFormIdScreen] as const);

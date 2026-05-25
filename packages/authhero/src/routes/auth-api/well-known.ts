@@ -8,16 +8,9 @@ import { Bindings, Variables } from "../../types";
 import { getAuthUrl, getIssuer } from "../../variables";
 import { getJwksForPublication } from "../../utils/jwks";
 import { SUPPORTED_ID_TOKEN_SIGNING_ALGS } from "../../utils/jwk-alg";
-
-export const wellKnownRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /.well-known/jwks.json
-  // --------------------------------
-  .openapi(
-    createRoute({
+import { defineRoute } from "../../utils/define-route";
+const getJwksJson = defineRoute({
+  route: createRoute({
       tags: ["well known"],
       method: "get",
       path: "/jwks.json",
@@ -33,7 +26,7 @@ export const wellKnownRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const keys = await getJwksForPublication(
         ctx.env.data,
         ctx.var.tenant_id,
@@ -53,12 +46,10 @@ export const wellKnownRoutes = new OpenAPIHono<{
         },
       );
     },
-  )
-  // --------------------------------
-  // GET /.well-known/openid-configuration
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getOpenidConfiguration = defineRoute({
+  route: createRoute({
       tags: ["well known"],
       method: "get",
       path: "/openid-configuration",
@@ -74,7 +65,7 @@ export const wellKnownRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const customDomain = ctx.var.custom_domain;
       const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
       const dcrEnabled =
@@ -202,10 +193,14 @@ export const wellKnownRoutes = new OpenAPIHono<{
         },
       });
     },
-  )
-  // --------------------------------
-  // GET /.well-known/* (HTTP domain validation)
-  // --------------------------------
+});
+
+
+export const wellKnownRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getJwksJson, getOpenidConfiguration] as const)
   .get("/*", async (ctx) => {
     const domain = ctx.var.custom_domain || ctx.req.header("x-forwarded-host");
     if (!domain) return ctx.text("Not Found", 404);

@@ -20,16 +20,9 @@ import { nanoid } from "nanoid";
 import { stringifyAuth0Client } from "../../utils/client-info";
 import { setTenantId } from "../../helpers/set-tenant-id";
 import { getEnrichedClient } from "../../helpers/client";
-
-export const dbConnectionRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // POST /dbconnections/signup
-  // --------------------------------
-  .openapi(
-    createRoute({
+import { defineRoute } from "../../utils/define-route";
+const postSignup = defineRoute({
+  route: createRoute({
       tags: ["dbconnections"],
       method: "post",
       path: "/signup",
@@ -64,7 +57,7 @@ export const dbConnectionRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { email, password, client_id } = ctx.req.valid("json");
 
       const client = await getEnrichedClient(ctx.env, client_id);
@@ -155,11 +148,10 @@ export const dbConnectionRoutes = new OpenAPIHono<{
         user_metadata: {},
       });
     },
-  ) // --------------------------------
-  // POST /dbconnections/change_password
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postChangePassword = defineRoute({
+  route: createRoute({
       tags: ["dbconnections"],
       method: "post",
       path: "/change_password",
@@ -182,7 +174,7 @@ export const dbConnectionRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { email, client_id } = ctx.req.valid("json");
 
       const client = await getEnrichedClient(ctx.env, client_id);
@@ -233,4 +225,11 @@ export const dbConnectionRoutes = new OpenAPIHono<{
         "If an account with that email exists, we've sent instructions to reset your password.",
       );
     },
-  );
+});
+
+
+export const dbConnectionRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([postSignup, postChangePassword] as const);

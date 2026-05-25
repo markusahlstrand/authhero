@@ -5,6 +5,7 @@ import { DEFAULT_THEME } from "../../constants/defaultTheme";
 import { deepMergePatch } from "../../utils/deep-merge";
 import { logMessage } from "../../helpers/logging";
 
+import { defineRoute } from "../../utils/define-route";
 // Zod 4 removed `.deepPartial()` (the API was unsound in several edge cases).
 // PATCH /branding/themes/default accepts an arbitrary subset of the theme
 // tree, so we recursively wrap each nested object in `.partial()`. Runtime
@@ -26,16 +27,8 @@ function deepPartialRuntime(schema: z.ZodTypeAny): z.ZodTypeAny {
 function deepPartial<T extends z.ZodTypeAny>(schema: T): T {
   return deepPartialRuntime(schema) as unknown as T;
 }
-
-export const themesRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /api/v2/branding/themes/default
-  // --------------------------------
-  .openapi(
-    createRoute({
+const getDefault = defineRoute({
+  route: createRoute({
       tags: ["branding"],
       method: "get",
       path: "/default",
@@ -60,7 +53,7 @@ export const themesRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const theme = await ctx.env.data.themes.get(ctx.var.tenant_id, "default");
 
       if (!theme) {
@@ -69,12 +62,10 @@ export const themesRoutes = new OpenAPIHono<{
 
       return ctx.json(theme);
     },
-  )
-  // --------------------------------
-  // PATCH /api/v2/branding/themes/default
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const patchDefault = defineRoute({
+  route: createRoute({
       tags: ["branding"],
       method: "patch",
       path: "/default",
@@ -106,7 +97,7 @@ export const themesRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const themeData = ctx.req.valid("json");
 
       // Get existing theme from database
@@ -149,4 +140,11 @@ export const themesRoutes = new OpenAPIHono<{
       // Return the merged theme (what we just saved)
       return ctx.json({ ...mergedTheme, themeId: "default" });
     },
-  );
+});
+
+
+export const themesRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getDefault, patchDefault] as const);

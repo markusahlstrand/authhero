@@ -5,6 +5,7 @@ import { logMessage } from "../../helpers/logging";
 import { mintIat } from "../../helpers/dcr/mint-iat";
 import { requireClientRegistrationTokens } from "../auth-api/register/shared";
 
+import { defineRoute } from "../../utils/define-route";
 const mintBodySchema = z.object({
   sub: z.string().optional().openapi({
     description: "User ID to bind the IAT to (optional)",
@@ -36,12 +37,8 @@ const mintResponseSchema = z.object({
   constraints: z.record(z.string(), z.unknown()).optional(),
   single_use: z.boolean(),
 });
-
-export const clientRegistrationTokenRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>().openapi(
-  createRoute({
+const postRoot = defineRoute({
+  route: createRoute({
     tags: ["client-registration-tokens"],
     method: "post",
     path: "/",
@@ -68,7 +65,7 @@ export const clientRegistrationTokenRoutes = new OpenAPIHono<{
       },
     },
   }),
-  async (ctx) => {
+  handler: async (ctx) => {
     const tenant_id = ctx.var.tenant_id;
     const body = ctx.req.valid("json");
 
@@ -103,4 +100,11 @@ export const clientRegistrationTokenRoutes = new OpenAPIHono<{
       201,
     );
   },
-);
+});
+
+
+export const clientRegistrationTokenRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([postRoot] as const);

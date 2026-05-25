@@ -8,6 +8,7 @@ import {
 import { logMessage } from "../../helpers/logging";
 import { HTTPException } from "hono/http-exception";
 
+import { defineRoute } from "../../utils/define-route";
 const headers = z.object({ "tenant-id": z.string().optional() });
 
 const templateNameParam = z.object({
@@ -15,17 +16,8 @@ const templateNameParam = z.object({
 });
 
 const partialBodySchema = emailTemplateSchema.partial();
-
-export const emailTemplatesRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // POST /api/v2/email-templates
-  // Auth0: 201 on create, 409 if templateName already configured.
-  // --------------------------------
-  .openapi(
-    createRoute({
+const postRoot = defineRoute({
+  route: createRoute({
       tags: ["email-templates"],
       method: "post",
       path: "/",
@@ -48,7 +40,7 @@ export const emailTemplatesRoutes = new OpenAPIHono<{
         409: { description: "Template already exists" },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const body = ctx.req.valid("json");
 
       const existing = await ctx.env.data.emailTemplates.get(
@@ -75,12 +67,10 @@ export const emailTemplatesRoutes = new OpenAPIHono<{
 
       return ctx.json(created, { status: 201 });
     },
-  )
-  // --------------------------------
-  // GET /api/v2/email-templates/:templateName
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getByTemplateName = defineRoute({
+  route: createRoute({
       tags: ["email-templates"],
       method: "get",
       path: "/{templateName}",
@@ -97,7 +87,7 @@ export const emailTemplatesRoutes = new OpenAPIHono<{
         404: { description: "Template not found" },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { templateName } = ctx.req.valid("param");
       const template = await ctx.env.data.emailTemplates.get(
         ctx.var.tenant_id,
@@ -108,13 +98,10 @@ export const emailTemplatesRoutes = new OpenAPIHono<{
       }
       return ctx.json(template);
     },
-  )
-  // --------------------------------
-  // PUT /api/v2/email-templates/:templateName
-  // Auth0 PUT is upsert (full replace).
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const putByTemplateName = defineRoute({
+  route: createRoute({
       tags: ["email-templates"],
       method: "put",
       path: "/{templateName}",
@@ -137,7 +124,7 @@ export const emailTemplatesRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { templateName } = ctx.req.valid("param");
       const body = ctx.req.valid("json");
 
@@ -180,12 +167,10 @@ export const emailTemplatesRoutes = new OpenAPIHono<{
 
       return ctx.json(stored);
     },
-  )
-  // --------------------------------
-  // PATCH /api/v2/email-templates/:templateName
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const patchByTemplateName = defineRoute({
+  route: createRoute({
       tags: ["email-templates"],
       method: "patch",
       path: "/{templateName}",
@@ -207,7 +192,7 @@ export const emailTemplatesRoutes = new OpenAPIHono<{
         404: { description: "Template not found" },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { templateName } = ctx.req.valid("param");
       const patch = ctx.req.valid("json");
 
@@ -237,4 +222,11 @@ export const emailTemplatesRoutes = new OpenAPIHono<{
 
       return ctx.json(stored);
     },
-  );
+});
+
+
+export const emailTemplatesRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([postRoot, getByTemplateName, putByTemplateName, patchByTemplateName] as const);

@@ -12,6 +12,7 @@ import {
 } from "../../utils/refresh-token-format";
 import { RefreshToken } from "@authhero/adapter-interfaces";
 
+import { defineRoute } from "../../utils/define-route";
 // RFC 7009 §2.1 — only refresh_token is currently revocable. Access tokens
 // are stateless JWTs and are not tracked server-side, so the hint is accepted
 // but ignored for access_token; the server still responds 200 per §2.2.
@@ -21,12 +22,8 @@ const revokeRequestSchema = z.object({
   client_id: z.string().optional(),
   client_secret: z.string().optional(),
 });
-
-export const revokeRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>().openapi(
-  createRoute({
+const postRoot = defineRoute({
+  route: createRoute({
     tags: ["oauth2"],
     method: "post",
     path: "/",
@@ -64,7 +61,7 @@ export const revokeRoutes = new OpenAPIHono<{
       },
     },
   }),
-  async (ctx) => {
+  handler: async (ctx) => {
     const contentType = ctx.req.header("Content-Type") || "";
     const body = contentType.includes("application/json")
       ? ctx.req.valid("json")
@@ -162,4 +159,11 @@ export const revokeRoutes = new OpenAPIHono<{
       Pragma: "no-cache",
     });
   },
-);
+});
+
+
+export const revokeRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([postRoot] as const);

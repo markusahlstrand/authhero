@@ -2,6 +2,7 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
 import { buildHash } from "../../build-hash";
+import { defineRoute } from "../../utils/define-route";
 import {
   escapeHtml,
   escapeJs,
@@ -9,12 +10,8 @@ import {
   sanitizeCssColor,
   buildThemePageBackground,
 } from "./sanitization-utils";
-
-export const flowWidgetRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>().openapi(
-  createRoute({
+const getFormId = defineRoute({
+  route: createRoute({
     tags: ["flow-widget"],
     method: "get",
     path: "/:formId",
@@ -37,7 +34,7 @@ export const flowWidgetRoutes = new OpenAPIHono<{
       },
     },
   }),
-  async (ctx) => {
+  handler: async (ctx) => {
     const { formId } = ctx.req.valid("param");
     const { state } = ctx.req.valid("query");
 
@@ -248,4 +245,11 @@ export const flowWidgetRoutes = new OpenAPIHono<{
 
     return ctx.html(html);
   },
-);
+});
+
+
+export const flowWidgetRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getFormId] as const);

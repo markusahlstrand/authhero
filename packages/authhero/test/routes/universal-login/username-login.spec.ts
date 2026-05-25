@@ -8,6 +8,7 @@ import {
 import { getTestServer } from "../../helpers/test-server";
 import { USERNAME_PASSWORD_PROVIDER } from "../../../src/constants";
 
+import { u2Screen } from "../../helpers/u2-screen";
 /**
  * Helper to start an OAuth authorize flow and return the state parameter
  */
@@ -299,7 +300,7 @@ describe("username login - combined login flow (u2/login)", () => {
 
     const state = await startAuthorizeFlow(oauthClient);
 
-    const loginPage = await u2Client.login.$get({
+    const loginPage = await u2Screen(u2App, env, "login").$get({
       query: { state },
     });
     expect(loginPage.status).toBe(200);
@@ -346,7 +347,7 @@ describe("username login - combined login flow (u2/login)", () => {
     const state = await startAuthorizeFlow(oauthClient);
 
     // POST username + password to the u2 login HTML form route
-    const loginResponse = await u2Client.login.$post({
+    const loginResponse = await u2Screen(u2App, env, "login").$post({
       query: { state },
       form: { username: "janedoe", password: "Password1!" },
     });
@@ -375,7 +376,7 @@ describe("username login - combined login flow (u2/login)", () => {
     const state = await startAuthorizeFlow(oauthClient);
 
     // POST username + password - should be rejected since username identifier is not active
-    const loginResponse = await u2Client.login.$post({
+    const loginResponse = await u2Screen(u2App, env, "login").$post({
       query: { state },
       form: { username: "johndoe", password: "Password1!" },
     });
@@ -404,7 +405,7 @@ describe("username login - combined login flow (u2/login)", () => {
     const state = await startAuthorizeFlow(oauthClient);
 
     // Username too short
-    const shortResponse = await u2Client.login.$post({
+    const shortResponse = await u2Screen(u2App, env, "login").$post({
       query: { state },
       form: { username: "ab", password: "Password1!" },
     });

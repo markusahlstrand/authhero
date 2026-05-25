@@ -2,16 +2,9 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
 import InvalidSessionPage from "../../components/InvalidSessionPage";
-
-export const invalidSessionRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /u/invalid-session
-  // --------------------------------
-  .openapi(
-    createRoute({
+import { defineRoute } from "../../utils/define-route";
+const getRoot = defineRoute({
+  route: createRoute({
       tags: ["login"],
       method: "get",
       path: "/",
@@ -26,7 +19,7 @@ export const invalidSessionRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { state } = ctx.req.valid("query");
       const { theme, branding, client, loginSession } = await initJSXRoute(
         ctx,
@@ -57,4 +50,11 @@ export const invalidSessionRoutes = new OpenAPIHono<{
         />,
       );
     },
-  );
+});
+
+
+export const invalidSessionRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot] as const);

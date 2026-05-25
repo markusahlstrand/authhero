@@ -4,6 +4,7 @@ import { HTTPException } from "hono/http-exception";
 import { LogTypes } from "@authhero/adapter-interfaces";
 import { logMessage } from "../../helpers/logging";
 
+import { defineRoute } from "../../utils/define-route";
 // Auth0-compatible authentication method response schema
 const authenticationMethodSchema = z.object({
   id: z.string(),
@@ -76,16 +77,8 @@ const createAuthenticationMethodSchema = z
       }
     }
   });
-
-export const authenticationMethodsRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /api/v2/users/:user_id/authentication-methods
-  // --------------------------------
-  .openapi(
-    createRoute({
+const getRoot = defineRoute({
+  route: createRoute({
       tags: ["users"],
       method: "get",
       path: "/",
@@ -110,7 +103,7 @@ export const authenticationMethodsRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const userId = ctx.req.param("user_id");
       if (!userId) {
         throw new HTTPException(400, { message: "user_id is required" });
@@ -137,12 +130,10 @@ export const authenticationMethodsRoutes = new OpenAPIHono<{
 
       return ctx.json(result);
     },
-  )
-  // --------------------------------
-  // POST /api/v2/users/:user_id/authentication-methods
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postRoot = defineRoute({
+  route: createRoute({
       tags: ["users"],
       method: "post",
       path: "/",
@@ -174,7 +165,7 @@ export const authenticationMethodsRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const userId = ctx.req.param("user_id");
       if (!userId) {
         throw new HTTPException(400, { message: "user_id is required" });
@@ -223,12 +214,10 @@ export const authenticationMethodsRoutes = new OpenAPIHono<{
         201,
       );
     },
-  )
-  // --------------------------------
-  // GET /api/v2/users/:user_id/authentication-methods/:method_id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getByMethod_id = defineRoute({
+  route: createRoute({
       tags: ["users"],
       method: "get",
       path: "/{method_id}",
@@ -256,7 +245,7 @@ export const authenticationMethodsRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { method_id } = ctx.req.valid("param");
       const userId = ctx.req.param("user_id");
 
@@ -285,12 +274,10 @@ export const authenticationMethodsRoutes = new OpenAPIHono<{
         created_at: enrollment.created_at,
       });
     },
-  )
-  // --------------------------------
-  // DELETE /api/v2/users/:user_id/authentication-methods/:method_id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const deleteByMethod_id = defineRoute({
+  route: createRoute({
       tags: ["users"],
       method: "delete",
       path: "/{method_id}",
@@ -313,7 +300,7 @@ export const authenticationMethodsRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { method_id } = ctx.req.valid("param");
       const userId = ctx.req.param("user_id");
 
@@ -348,4 +335,11 @@ export const authenticationMethodsRoutes = new OpenAPIHono<{
 
       return ctx.body(null, 204);
     },
-  );
+});
+
+
+export const authenticationMethodsRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot, postRoot, getByMethod_id, deleteByMethod_id] as const);

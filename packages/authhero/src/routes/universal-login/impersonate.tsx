@@ -11,16 +11,9 @@ import MessagePage from "../../components/MessagePage";
 import { logMessage } from "../../helpers/logging";
 
 import { LogTypes, StrategyType } from "@authhero/adapter-interfaces";
-
-export const impersonateRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /u/impersonate
-  // --------------------------------
-  .openapi(
-    createRoute({
+import { defineRoute } from "../../utils/define-route";
+const getRoot = defineRoute({
+  route: createRoute({
       tags: ["impersonation"],
       method: "get",
       path: "/",
@@ -40,7 +33,7 @@ export const impersonateRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { state } = ctx.req.valid("query");
       const { theme, branding, client, loginSession } = await initJSXRoute(
         ctx,
@@ -107,12 +100,10 @@ export const impersonateRoutes = new OpenAPIHono<{
         />,
       );
     },
-  )
-  // --------------------------------
-  // POST /u/impersonate/continue
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postContinue = defineRoute({
+  route: createRoute({
       tags: ["impersonation"],
       method: "post",
       path: "/continue",
@@ -130,7 +121,7 @@ export const impersonateRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { state } = ctx.req.valid("query");
       const { client, loginSession } = await initJSXRoute(ctx, state, true);
 
@@ -188,12 +179,10 @@ export const impersonateRoutes = new OpenAPIHono<{
         skipHooks: true, // Skip post-login hooks during impersonation
       });
     },
-  )
-  // --------------------------------
-  // POST /u/impersonate/switch
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postSwitch = defineRoute({
+  route: createRoute({
       tags: ["impersonation"],
       method: "post",
       path: "/switch",
@@ -224,7 +213,7 @@ export const impersonateRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { state } = ctx.req.valid("query");
       const { user_id } = ctx.req.valid("form");
       const { theme, branding, client, loginSession } = await initJSXRoute(
@@ -335,4 +324,11 @@ export const impersonateRoutes = new OpenAPIHono<{
         impersonatingUser: currentUser, // Set the act claim to identify the original user
       });
     },
-  );
+});
+
+
+export const impersonateRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot, postContinue, postSwitch] as const);

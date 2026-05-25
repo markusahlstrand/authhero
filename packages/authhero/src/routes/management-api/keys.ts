@@ -6,6 +6,7 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { signingKeySchema } from "@authhero/adapter-interfaces";
 import { resolveSigningKeyMode } from "../../helpers/signing-keys";
 
+import { defineRoute } from "../../utils/define-route";
 const DAY = 1000 * 60 * 60 * 24;
 
 type KeyScope = "control-plane" | { tenantId: string };
@@ -34,16 +35,8 @@ function scopedKeysQuery(scope: KeyScope): string {
   }
   return `type:jwt_signing AND tenant_id:${scope.tenantId}`;
 }
-
-export const keyRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /keys
-  // --------------------------------
-  .openapi(
-    createRoute({
+const getSigning = defineRoute({
+  route: createRoute({
       tags: ["keys"],
       method: "get",
       path: "/signing",
@@ -68,7 +61,7 @@ export const keyRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const scope = await resolveKeyScope(ctx);
       const { signingKeys } = await ctx.env.data.keys.list({
         q: scopedKeysQuery(scope),
@@ -82,12 +75,10 @@ export const keyRoutes = new OpenAPIHono<{
 
       return ctx.json(keys);
     },
-  )
-  // --------------------------------
-  // GET /keys/signing/:kid
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getSigningByKid = defineRoute({
+  route: createRoute({
       tags: ["keys"],
       method: "get",
       path: "/signing/{kid}",
@@ -119,7 +110,7 @@ export const keyRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { kid } = ctx.req.valid("param");
 
       const { signingKeys } = await ctx.env.data.keys.list({
@@ -144,12 +135,10 @@ export const keyRoutes = new OpenAPIHono<{
 
       return ctx.json(key);
     },
-  )
-  // --------------------------------
-  // POST /keys/signing/rotate
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postSigningRotate = defineRoute({
+  route: createRoute({
       tags: ["keys"],
       method: "post",
       path: "/signing/rotate",
@@ -169,7 +158,7 @@ export const keyRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const scope = await resolveKeyScope(ctx);
       // Only revoke keys in the same scope we're rotating into; otherwise
       // rotating tenant X would also wipe the shared control-plane keys
@@ -211,12 +200,10 @@ export const keyRoutes = new OpenAPIHono<{
 
       return ctx.text("OK", { status: 201 });
     },
-  )
-  // --------------------------------
-  // PUT /signing/:kid/revoke
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const putSigningByKidRevoke = defineRoute({
+  route: createRoute({
       tags: ["keys"],
       method: "put",
       path: "/signing/{kid}/revoke",
@@ -243,7 +230,7 @@ export const keyRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { kid } = ctx.req.valid("param");
       const tenantId = ctx.var.tenant_id;
 
@@ -283,4 +270,11 @@ export const keyRoutes = new OpenAPIHono<{
 
       return ctx.text("OK");
     },
-  );
+});
+
+
+export const keyRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getSigning, getSigningByKid, postSigningRotate, putSigningByKidRevoke] as const);

@@ -3,6 +3,7 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { dailyStatsSchema, DailyStats } from "@authhero/adapter-interfaces";
 import { HTTPException } from "hono/http-exception";
 
+import { defineRoute } from "../../utils/define-route";
 function parseYYYYMMDD(dateStr: string): string {
   return `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`;
 }
@@ -42,16 +43,8 @@ function zeroFillDailyStats(
   }
   return out;
 }
-
-export const statsRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /stats/daily
-  // --------------------------------
-  .openapi(
-    createRoute({
+const getDaily = defineRoute({
+  route: createRoute({
       tags: ["stats"],
       method: "get",
       path: "/daily",
@@ -89,7 +82,7 @@ export const statsRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { from, to } = ctx.req.valid("query");
 
       if (!ctx.env.data.stats) {
@@ -111,12 +104,10 @@ export const statsRoutes = new OpenAPIHono<{
 
       return ctx.json(zeroFillDailyStats(stats, fromDate, toDate));
     },
-  )
-  // --------------------------------
-  // GET /stats/active-users
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getActiveUsers = defineRoute({
+  route: createRoute({
       tags: ["stats"],
       method: "get",
       path: "/active-users",
@@ -144,7 +135,7 @@ export const statsRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       if (!ctx.env.data.stats) {
         throw new HTTPException(501, {
           message: "Stats adapter not configured",
@@ -157,4 +148,11 @@ export const statsRoutes = new OpenAPIHono<{
 
       return ctx.json(activeUsers);
     },
-  );
+});
+
+
+export const statsRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getDaily, getActiveUsers] as const);

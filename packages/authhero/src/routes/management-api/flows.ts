@@ -11,19 +11,12 @@ import {
 import { logMessage } from "../../helpers/logging";
 import { parseSort } from "../../utils/sort";
 
+import { defineRoute } from "../../utils/define-route";
 const flowsWithTotalsSchema = totalsSchema.extend({
   flows: z.array(flowSchema),
 });
-
-export const flowsRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /api/v2/flows
-  // --------------------------------
-  .openapi(
-    createRoute({
+const getRoot = defineRoute({
+  route: createRoute({
       tags: ["flows"],
       method: "get",
       path: "/",
@@ -49,7 +42,7 @@ export const flowsRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
       const {
         page,
@@ -73,12 +66,10 @@ export const flowsRoutes = new OpenAPIHono<{
 
       return ctx.json(result);
     },
-  )
-  // --------------------------------
-  // GET /api/v2/flows/:id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getById = defineRoute({
+  route: createRoute({
       tags: ["flows"],
       method: "get",
       path: "/{id}",
@@ -106,7 +97,7 @@ export const flowsRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
       const { id } = ctx.req.valid("param");
 
@@ -117,12 +108,10 @@ export const flowsRoutes = new OpenAPIHono<{
 
       return ctx.json(flow);
     },
-  )
-  // --------------------------------
-  // DELETE /api/v2/flows/:id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const deleteById = defineRoute({
+  route: createRoute({
       tags: ["flows"],
       method: "delete",
       path: "/{id}",
@@ -145,7 +134,7 @@ export const flowsRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
       const { id } = ctx.req.valid("param");
 
@@ -165,12 +154,10 @@ export const flowsRoutes = new OpenAPIHono<{
 
       return ctx.text("OK");
     },
-  )
-  // --------------------------------
-  // PATCH /api/v2/flows/:id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const patchById = defineRoute({
+  route: createRoute({
       tags: ["flows"],
       method: "patch",
       path: "/{id}",
@@ -205,7 +192,7 @@ export const flowsRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
       const { id } = ctx.req.valid("param");
       const body = ctx.req.valid("json");
@@ -227,12 +214,10 @@ export const flowsRoutes = new OpenAPIHono<{
 
       return ctx.json(flow);
     },
-  )
-  // --------------------------------
-  // POST /api/v2/flows
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postRoot = defineRoute({
+  route: createRoute({
       tags: ["flows"],
       method: "post",
       path: "/",
@@ -264,7 +249,7 @@ export const flowsRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
       const body = ctx.req.valid("json");
 
@@ -280,4 +265,11 @@ export const flowsRoutes = new OpenAPIHono<{
 
       return ctx.json(flow, { status: 201 });
     },
-  );
+});
+
+
+export const flowsRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot, getById, deleteById, patchById, postRoot] as const);

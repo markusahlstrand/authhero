@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
 import { getTestServer } from "../../helpers/test-server";
+import { u2Screen } from "../../helpers/u2-screen";
 import {
   AuthorizationResponseType,
   Strategy,
@@ -71,7 +72,7 @@ describe("identifier screen - social buttons with provider details", () => {
     }
 
     // GET u2 identifier page - this should render the SSR widget with social buttons
-    const response = await u2Client.login.identifier.$get({
+    const response = await u2Screen(u2App, env, "login/identifier").$get({
       query: { state },
     });
 
@@ -155,7 +156,7 @@ describe("identifier screen - social buttons with provider details", () => {
     }
 
     // GET u2 identifier page
-    const response = await u2Client.login.identifier.$get({
+    const response = await u2Screen(u2App, env, "login/identifier").$get({
       query: { state },
     });
 
@@ -253,7 +254,7 @@ describe("identifier screen - social buttons with provider details", () => {
     }
 
     // GET u2 identifier page
-    const response = await u2Client.login.identifier.$get({
+    const response = await u2Screen(u2App, env, "login/identifier").$get({
       query: { state },
     });
 

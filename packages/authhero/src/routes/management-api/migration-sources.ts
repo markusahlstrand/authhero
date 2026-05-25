@@ -9,6 +9,7 @@ import {
 import { Bindings, Variables } from "../../types";
 import { logMessage } from "../../helpers/logging";
 
+import { defineRoute } from "../../utils/define-route";
 const REDACTED = "***";
 
 const migrationSourceResponseSchema = migrationSourceSchema.extend({
@@ -33,14 +34,8 @@ function getAdapter(ctx: { env: Bindings }) {
   }
   return adapter;
 }
-
-export const migrationSourcesRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // GET /api/v2/migration-sources
-  .openapi(
-    createRoute({
+const getRoot = defineRoute({
+  route: createRoute({
       tags: ["migration-sources"],
       method: "get",
       path: "/",
@@ -59,15 +54,15 @@ export const migrationSourcesRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const adapter = getAdapter(ctx);
       const result = await adapter.list(ctx.var.tenant_id);
       return ctx.json(result.map(redact));
     },
-  )
-  // GET /api/v2/migration-sources/:id
-  .openapi(
-    createRoute({
+});
+
+const getById = defineRoute({
+  route: createRoute({
       tags: ["migration-sources"],
       method: "get",
       path: "/{id}",
@@ -85,7 +80,7 @@ export const migrationSourcesRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const adapter = getAdapter(ctx);
       const { id } = ctx.req.valid("param");
       const source = await adapter.get(ctx.var.tenant_id, id);
@@ -94,10 +89,10 @@ export const migrationSourcesRoutes = new OpenAPIHono<{
       }
       return ctx.json(redact(source));
     },
-  )
-  // POST /api/v2/migration-sources
-  .openapi(
-    createRoute({
+});
+
+const postRoot = defineRoute({
+  route: createRoute({
       tags: ["migration-sources"],
       method: "post",
       path: "/",
@@ -121,7 +116,7 @@ export const migrationSourcesRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const adapter = getAdapter(ctx);
       const body = ctx.req.valid("json");
       const source = await adapter.create(ctx.var.tenant_id, body);
@@ -136,10 +131,10 @@ export const migrationSourcesRoutes = new OpenAPIHono<{
 
       return ctx.json(redact(source), { status: 201 });
     },
-  )
-  // PATCH /api/v2/migration-sources/:id
-  .openapi(
-    createRoute({
+});
+
+const patchById = defineRoute({
+  route: createRoute({
       tags: ["migration-sources"],
       method: "patch",
       path: "/{id}",
@@ -164,7 +159,7 @@ export const migrationSourcesRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const adapter = getAdapter(ctx);
       const { id } = ctx.req.valid("param");
       const body = ctx.req.valid("json");
@@ -187,10 +182,10 @@ export const migrationSourcesRoutes = new OpenAPIHono<{
 
       return ctx.json(redact(source));
     },
-  )
-  // DELETE /api/v2/migration-sources/:id
-  .openapi(
-    createRoute({
+});
+
+const deleteById = defineRoute({
+  route: createRoute({
       tags: ["migration-sources"],
       method: "delete",
       path: "/{id}",
@@ -203,7 +198,7 @@ export const migrationSourcesRoutes = new OpenAPIHono<{
         204: { description: "Migration source deleted" },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const adapter = getAdapter(ctx);
       const { id } = ctx.req.valid("param");
       const ok = await adapter.remove(ctx.var.tenant_id, id);
@@ -220,4 +215,11 @@ export const migrationSourcesRoutes = new OpenAPIHono<{
 
       return ctx.body(null, 204);
     },
-  );
+});
+
+
+export const migrationSourcesRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot, getById, postRoot, patchById, deleteById] as const);

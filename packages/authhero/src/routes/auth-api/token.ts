@@ -40,6 +40,7 @@ import { getEnrichedClient, EnrichedClient } from "../../helpers/client";
 import { getAuthUrl, getIssuer } from "../../variables";
 import { base64url } from "oslo/encoding";
 
+import { defineRoute } from "../../utils/define-route";
 const optionalClientCredentials = z.object({
   client_id: z.string().optional(),
   client_secret: z.string().optional(),
@@ -111,16 +112,8 @@ function successLogTypeForGrant(grantType: string): LogType | undefined {
       return undefined;
   }
 }
-
-export const tokenRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // POST /oauth/token
-  // --------------------------------
-  .openapi(
-    createRoute({
+const postRoot = defineRoute({
+  route: createRoute({
       tags: ["oauth2"],
       method: "post",
       path: "/",
@@ -186,7 +179,7 @@ export const tokenRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const contentType = ctx.req.header("Content-Type") || "";
       const body = contentType.includes("application/json")
         ? ctx.req.valid("json")
@@ -470,4 +463,11 @@ export const tokenRoutes = new OpenAPIHono<{
         headers: passwordlessHeaders,
       });
     },
-  );
+});
+
+
+export const tokenRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([postRoot] as const);

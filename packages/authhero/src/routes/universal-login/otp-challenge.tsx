@@ -9,6 +9,7 @@ import i18next from "i18next";
 import { HTTPException } from "hono/http-exception";
 import { setCookie } from "hono/cookie";
 
+import { defineRoute } from "../../utils/define-route";
 type Auth0Client = {
   name: string;
   version: string;
@@ -31,16 +32,8 @@ export function getSendParamFromAuth0ClientHeader(
 
   return isAppClient ? "code" : "link";
 }
-
-export const enterCodeRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /u/enter-code
-  // --------------------------------
-  .openapi(
-    createRoute({
+const getRoot = defineRoute({
+  route: createRoute({
       tags: ["login"],
       method: "get",
       path: "/",
@@ -70,7 +63,7 @@ export const enterCodeRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { state, style } = ctx.req.valid("query");
 
       // Set cookie if style is explicitly provided in query param
@@ -130,12 +123,10 @@ export const enterCodeRoutes = new OpenAPIHono<{
         />,
       );
     },
-  )
-  // --------------------------------
-  // POST /u/enter-code
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postRoot = defineRoute({
+  route: createRoute({
       tags: ["login"],
       method: "post",
       path: "/",
@@ -175,7 +166,7 @@ export const enterCodeRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { state, style } = ctx.req.valid("query");
       const { code } = ctx.req.valid("form");
 
@@ -250,4 +241,11 @@ export const enterCodeRoutes = new OpenAPIHono<{
         );
       }
     },
-  );
+});
+
+
+export const enterCodeRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot, postRoot] as const);

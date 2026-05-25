@@ -5,6 +5,7 @@ import { logMessage } from "../../helpers/logging";
 import { HTTPException } from "hono/http-exception";
 import { generateHookId } from "../../utils/entity-id";
 
+import { defineRoute } from "../../utils/define-route";
 // Map Auth0 trigger IDs to internal trigger IDs
 const TRIGGER_ID_MAP: Record<string, string> = {
   "post-login": "post-user-login",
@@ -53,16 +54,8 @@ const bindingResponseSchema = z.object({
 const bindingsResponseSchema = z.object({
   bindings: z.array(bindingResponseSchema),
 });
-
-export const actionTriggersRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /api/v2/actions/triggers/:triggerId/bindings
-  // --------------------------------
-  .openapi(
-    createRoute({
+const getByTriggerIdBindings = defineRoute({
+  route: createRoute({
       tags: ["actions"],
       method: "get",
       path: "/{triggerId}/bindings",
@@ -90,7 +83,7 @@ export const actionTriggersRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { triggerId } = ctx.req.valid("param");
       const internalTriggerId = toInternalTriggerId(triggerId);
 
@@ -130,12 +123,10 @@ export const actionTriggersRoutes = new OpenAPIHono<{
 
       return ctx.json({ bindings });
     },
-  )
-  // --------------------------------
-  // PATCH /api/v2/actions/triggers/:triggerId/bindings
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const patchByTriggerIdBindings = defineRoute({
+  route: createRoute({
       tags: ["actions"],
       method: "patch",
       path: "/{triggerId}/bindings",
@@ -172,7 +163,7 @@ export const actionTriggersRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { triggerId } = ctx.req.valid("param");
       const { bindings } = ctx.req.valid("json");
       const internalTriggerId = toInternalTriggerId(triggerId);
@@ -278,4 +269,11 @@ export const actionTriggersRoutes = new OpenAPIHono<{
 
       return ctx.json({ bindings: resultBindings });
     },
-  );
+});
+
+
+export const actionTriggersRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getByTriggerIdBindings, patchByTriggerIdBindings] as const);

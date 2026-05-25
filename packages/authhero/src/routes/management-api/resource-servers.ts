@@ -13,6 +13,7 @@ import {
 import { parseSort } from "../../utils/sort";
 import { logMessage } from "../../helpers/logging";
 
+import { defineRoute } from "../../utils/define-route";
 const resourceServersWithTotalsSchema = totalsSchema.extend({
   resource_servers: z.array(resourceServerSchema),
 });
@@ -35,16 +36,8 @@ async function resolveResourceServer(
     list.resource_servers.find((rs) => rs.identifier === idOrIdentifier) ?? null
   );
 }
-
-export const resourceServerRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /api/v2/resource-servers
-  // --------------------------------
-  .openapi(
-    createRoute({
+const getRoot = defineRoute({
+  route: createRoute({
       tags: ["resource-servers"],
       method: "get",
       path: "/",
@@ -74,7 +67,7 @@ export const resourceServerRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
 
       const {
@@ -99,12 +92,10 @@ export const resourceServerRoutes = new OpenAPIHono<{
 
       return ctx.json(result);
     },
-  )
-  // --------------------------------
-  // GET /api/v2/resource-servers/:id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getById = defineRoute({
+  route: createRoute({
       tags: ["resource-servers"],
       method: "get",
       path: "/{id}",
@@ -133,7 +124,7 @@ export const resourceServerRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
       const { id } = ctx.req.valid("param");
 
@@ -145,12 +136,10 @@ export const resourceServerRoutes = new OpenAPIHono<{
 
       return ctx.json(resourceServer);
     },
-  )
-  // --------------------------------
-  // DELETE /api/v2/resource-servers/:id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const deleteById = defineRoute({
+  route: createRoute({
       tags: ["resource-servers"],
       method: "delete",
       path: "/{id}",
@@ -173,7 +162,7 @@ export const resourceServerRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
       const { id } = ctx.req.valid("param");
 
@@ -203,12 +192,10 @@ export const resourceServerRoutes = new OpenAPIHono<{
 
       return ctx.text("OK");
     },
-  )
-  // --------------------------------
-  // PATCH /api/v2/resource-servers/:id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const patchById = defineRoute({
+  route: createRoute({
       tags: ["resource-servers"],
       method: "patch",
       path: "/{id}",
@@ -243,7 +230,7 @@ export const resourceServerRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
       const { id } = ctx.req.valid("param");
       const body = ctx.req.valid("json");
@@ -294,12 +281,10 @@ export const resourceServerRoutes = new OpenAPIHono<{
 
       return ctx.json(resourceServer);
     },
-  )
-  // --------------------------------
-  // POST /api/v2/resource-servers
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postRoot = defineRoute({
+  route: createRoute({
       tags: ["resource-servers"],
       method: "post",
       path: "/",
@@ -331,7 +316,7 @@ export const resourceServerRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const tenant_id = ctx.var.tenant_id;
       const body = ctx.req.valid("json");
 
@@ -350,4 +335,11 @@ export const resourceServerRoutes = new OpenAPIHono<{
 
       return ctx.json(resourceServer, { status: 201 });
     },
-  );
+});
+
+
+export const resourceServerRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot, getById, deleteById, patchById, postRoot] as const);

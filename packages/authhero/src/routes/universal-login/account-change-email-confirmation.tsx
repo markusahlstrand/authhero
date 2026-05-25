@@ -4,16 +4,9 @@ import { initJSXRouteWithSession } from "./common";
 import MessagePage from "../../components/MessagePage";
 import i18next from "i18next";
 import ChangeEmailPage from "../../components/ChangeEmailPage";
-
-export const changeEmailConfirmationRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /u/account/change-email-confirmation
-  // --------------------------------
-  .openapi(
-    createRoute({
+import { defineRoute } from "../../utils/define-route";
+const getRoot = defineRoute({
+  route: createRoute({
       tags: ["login"],
       method: "get",
       path: "/",
@@ -45,7 +38,7 @@ export const changeEmailConfirmationRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { state, email } = ctx.req.valid("query");
 
       // Get theme, branding and user from initJSXRoute
@@ -110,4 +103,11 @@ export const changeEmailConfirmationRoutes = new OpenAPIHono<{
         />,
       );
     },
-  );
+});
+
+
+export const changeEmailConfirmationRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot] as const);

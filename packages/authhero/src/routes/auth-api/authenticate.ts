@@ -14,16 +14,9 @@ import { stringifyAuth0Client } from "../../utils/client-info";
 import { setTenantId } from "../../helpers/set-tenant-id";
 import { getEnrichedClient } from "../../helpers/client";
 import { logMessage } from "../../helpers/logging";
-
-export const authenticateRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // POST /co/authenticate
-  // --------------------------------
-  .openapi(
-    createRoute({
+import { defineRoute } from "../../utils/define-route";
+const postRoot = defineRoute({
+  route: createRoute({
       tags: ["oauth"],
       method: "post",
       path: "/",
@@ -63,7 +56,7 @@ export const authenticateRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const body = ctx.req.valid("json");
       const { client_id, username } = body;
       ctx.set("username", username);
@@ -154,4 +147,11 @@ export const authenticateRoutes = new OpenAPIHono<{
 
       return response;
     },
-  );
+});
+
+
+export const authenticateRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([postRoot] as const);

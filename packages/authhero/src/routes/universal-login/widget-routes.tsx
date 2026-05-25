@@ -30,16 +30,9 @@ import {
 import type { ScreenContext } from "./screens/types";
 import { HTTPException } from "hono/http-exception";
 import { sanitizeUrl } from "./sanitization-utils";
-
-export const widgetRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /u/widget/:screenId - Serve widget page with built-in screen
-  // --------------------------------
-  .openapi(
-    createRoute({
+import { defineRoute } from "../../utils/define-route";
+const getScreenId = defineRoute({
+  route: createRoute({
       tags: ["widget"],
       method: "get",
       path: "/:screenId",
@@ -69,7 +62,7 @@ export const widgetRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { screenId } = ctx.req.valid("param");
       const { state } = ctx.req.valid("query");
 
@@ -153,12 +146,10 @@ export const widgetRoutes = new OpenAPIHono<{
         darkMode,
       });
     },
-  )
-  // --------------------------------
-  // POST /u/widget/:screenId - Handle form submission
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postScreenId = defineRoute({
+  route: createRoute({
       tags: ["widget"],
       method: "post",
       path: "/:screenId",
@@ -199,7 +190,7 @@ export const widgetRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { screenId } = ctx.req.valid("param");
       const { state } = ctx.req.valid("query");
       const { data } = ctx.req.valid("json");
@@ -355,4 +346,11 @@ export const widgetRoutes = new OpenAPIHono<{
         branding: result.branding,
       });
     },
-  );
+});
+
+
+export const widgetRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getScreenId, postScreenId] as const);

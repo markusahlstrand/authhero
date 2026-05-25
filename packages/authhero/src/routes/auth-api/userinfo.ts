@@ -9,6 +9,7 @@ import {
 } from "../../helpers/scope-claims";
 import type { User } from "@authhero/adapter-interfaces";
 
+import { defineRoute } from "../../utils/define-route";
 // OIDC Address Claim schema per OIDC Core 5.1.1
 const addressClaimSchema = z
   .object({
@@ -83,16 +84,8 @@ function buildUserInfoResponse(
 const postBodySchema = z.object({
   access_token: z.string().optional(),
 });
-
-export const userinfoRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /userinfo
-  // --------------------------------
-  .openapi(
-    createRoute({
+const getRoot = defineRoute({
+  route: createRoute({
       tags: ["oauth2"],
       method: "get",
       path: "/",
@@ -113,7 +106,7 @@ export const userinfoRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       if (!ctx.var.user) {
         throw new HTTPException(404, { message: "User not found" });
       }
@@ -180,12 +173,10 @@ export const userinfoRoutes = new OpenAPIHono<{
 
       return ctx.json(baseUserInfo as UserInfoResponse);
     },
-  )
-  // --------------------------------
-  // POST /userinfo
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postRoot = defineRoute({
+  route: createRoute({
       tags: ["oauth2"],
       method: "post",
       path: "/",
@@ -209,7 +200,7 @@ export const userinfoRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       let tokenPayload: JwtPayload | null = null;
 
       // Step 1: Check if auth middleware already set the user (from Authorization header with security defined)
@@ -338,4 +329,11 @@ export const userinfoRoutes = new OpenAPIHono<{
 
       return ctx.json(baseUserInfo as UserInfoResponse);
     },
-  );
+});
+
+
+export const userinfoRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot, postRoot] as const);

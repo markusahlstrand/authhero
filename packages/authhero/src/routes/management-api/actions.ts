@@ -15,6 +15,7 @@ import { querySchema } from "../../types/auth0/Query";
 import { parseSort } from "../../utils/sort";
 import { HTTPException } from "hono/http-exception";
 
+import { defineRoute } from "../../utils/define-route";
 const actionsWithTotalsSchema = totalsSchema.extend({
   actions: z.array(actionSchema),
 });
@@ -51,16 +52,8 @@ function snapshotActionVersion(
     deployed,
   });
 }
-
-export const actionsRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /api/v2/actions/actions
-  // --------------------------------
-  .openapi(
-    createRoute({
+const getRoot = defineRoute({
+  route: createRoute({
       tags: ["actions"],
       method: "get",
       path: "/",
@@ -86,7 +79,7 @@ export const actionsRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { page, per_page, include_totals, sort, q } =
         ctx.req.valid("query");
 
@@ -110,12 +103,10 @@ export const actionsRoutes = new OpenAPIHono<{
 
       return ctx.json({ ...result, actions });
     },
-  )
-  // --------------------------------
-  // POST /api/v2/actions/actions
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postRoot = defineRoute({
+  route: createRoute({
       tags: ["actions"],
       method: "post",
       path: "/",
@@ -147,7 +138,7 @@ export const actionsRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const body = ctx.req.valid("json");
 
       const action = await ctx.env.data.actions.create(ctx.var.tenant_id, body);
@@ -188,12 +179,10 @@ export const actionsRoutes = new OpenAPIHono<{
 
       return ctx.json(action, { status: 201 });
     },
-  )
-  // --------------------------------
-  // GET /api/v2/actions/actions/:id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getById = defineRoute({
+  route: createRoute({
       tags: ["actions"],
       method: "get",
       path: "/{id}",
@@ -224,7 +213,7 @@ export const actionsRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { id } = ctx.req.valid("param");
 
       const action = await ctx.env.data.actions.get(ctx.var.tenant_id, id);
@@ -239,12 +228,10 @@ export const actionsRoutes = new OpenAPIHono<{
         secrets: action.secrets?.map((s) => ({ name: s.name })),
       });
     },
-  )
-  // --------------------------------
-  // PATCH /api/v2/actions/actions/:id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const patchById = defineRoute({
+  route: createRoute({
       tags: ["actions"],
       method: "patch",
       path: "/{id}",
@@ -282,7 +269,7 @@ export const actionsRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { id } = ctx.req.valid("param");
       const body = ctx.req.valid("json");
 
@@ -334,12 +321,10 @@ export const actionsRoutes = new OpenAPIHono<{
         secrets: action.secrets?.map((s) => ({ name: s.name })),
       });
     },
-  )
-  // --------------------------------
-  // DELETE /api/v2/actions/actions/:id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const deleteById = defineRoute({
+  route: createRoute({
       tags: ["actions"],
       method: "delete",
       path: "/{id}",
@@ -368,7 +353,7 @@ export const actionsRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { id } = ctx.req.valid("param");
 
       // Check if action is bound to any triggers via hooks
@@ -410,12 +395,10 @@ export const actionsRoutes = new OpenAPIHono<{
 
       return ctx.text("OK");
     },
-  )
-  // --------------------------------
-  // POST /api/v2/actions/actions/:id/deploy
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postByIdDeploy = defineRoute({
+  route: createRoute({
       tags: ["actions"],
       method: "post",
       path: "/{id}/deploy",
@@ -446,7 +429,7 @@ export const actionsRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { id } = ctx.req.valid("param");
 
       const action = await ctx.env.data.actions.get(ctx.var.tenant_id, id);
@@ -495,12 +478,10 @@ export const actionsRoutes = new OpenAPIHono<{
         secrets: action.secrets?.map((s) => ({ name: s.name })),
       });
     },
-  )
-  // --------------------------------
-  // GET /api/v2/actions/actions/:actionId/versions
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getByActionIdVersions = defineRoute({
+  route: createRoute({
       tags: ["actions"],
       method: "get",
       path: "/{actionId}/versions",
@@ -535,7 +516,7 @@ export const actionsRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { actionId } = ctx.req.valid("param");
       const { page, per_page, include_totals, sort } = ctx.req.valid("query");
 
@@ -569,12 +550,10 @@ export const actionsRoutes = new OpenAPIHono<{
 
       return ctx.json({ ...result, versions });
     },
-  )
-  // --------------------------------
-  // GET /api/v2/actions/actions/:actionId/versions/:id
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const getByActionIdVersionsById = defineRoute({
+  route: createRoute({
       tags: ["actions"],
       method: "get",
       path: "/{actionId}/versions/{id}",
@@ -606,7 +585,7 @@ export const actionsRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { actionId, id } = ctx.req.valid("param");
 
       const version = await ctx.env.data.actionVersions.get(
@@ -625,15 +604,10 @@ export const actionsRoutes = new OpenAPIHono<{
         secrets: version.secrets?.map((s) => ({ name: s.name })),
       });
     },
-  )
-  // --------------------------------
-  // POST /api/v2/actions/actions/:actionId/versions/:id/deploy
-  // --------------------------------
-  // Rolls the action back to the contents of an earlier version. The version
-  // is re-deployed to the executor and a fresh snapshot is taken so the
-  // history shows the rollback as a new version.
-  .openapi(
-    createRoute({
+});
+
+const postByActionIdVersionsByIdDeploy = defineRoute({
+  route: createRoute({
       tags: ["actions"],
       method: "post",
       path: "/{actionId}/versions/{id}/deploy",
@@ -665,7 +639,7 @@ export const actionsRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { actionId, id } = ctx.req.valid("param");
 
       const version = await ctx.env.data.actionVersions.get(
@@ -730,16 +704,10 @@ export const actionsRoutes = new OpenAPIHono<{
         secrets: updated.secrets?.map((s) => ({ name: s.name })),
       });
     },
-  )
-  // --------------------------------
-  // POST /api/v2/actions/actions/:id/test
-  // AuthHero-specific. Runs the action's current code through the executor
-  // with the caller-supplied `event` payload and returns the result. Does
-  // NOT replay api calls, does NOT persist an execution record. Used by the
-  // admin UI to validate an action before deploying.
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postByIdTest = defineRoute({
+  route: createRoute({
       tags: ["actions"],
       method: "post",
       path: "/{id}/test",
@@ -793,7 +761,7 @@ export const actionsRoutes = new OpenAPIHono<{
         503: { description: "Code executor not configured" },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { id } = ctx.req.valid("param");
       const body = ctx.req.valid("json");
 
@@ -837,4 +805,11 @@ export const actionsRoutes = new OpenAPIHono<{
         logs: result.logs ?? [],
       });
     },
-  );
+});
+
+
+export const actionsRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot, postRoot, getById, patchById, deleteById, postByIdDeploy, getByActionIdVersions, getByActionIdVersionsById, postByActionIdVersionsByIdDeploy, postByIdTest] as const);

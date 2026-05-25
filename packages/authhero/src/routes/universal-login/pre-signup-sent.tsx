@@ -3,16 +3,9 @@ import { HTTPException } from "hono/http-exception";
 import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
 import PreSignUpConfirmationPage from "../../components/PreSignUpConfirmationPage";
-
-export const preSignupSentRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /u/pre-signup-sent
-  // --------------------------------
-  .openapi(
-    createRoute({
+import { defineRoute } from "../../utils/define-route";
+const getRoot = defineRoute({
+  route: createRoute({
       tags: ["login"],
       method: "get",
       path: "/",
@@ -29,7 +22,7 @@ export const preSignupSentRoutes = new OpenAPIHono<{
         },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { state } = ctx.req.valid("query");
       const { theme, branding, client, loginSession } = await initJSXRoute(
         ctx,
@@ -52,4 +45,11 @@ export const preSignupSentRoutes = new OpenAPIHono<{
         />,
       );
     },
-  );
+});
+
+
+export const preSignupSentRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getRoot] as const);

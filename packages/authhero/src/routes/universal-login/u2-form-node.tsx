@@ -37,6 +37,7 @@ import type {
 import { renderWidgetPageResponse, resolveDarkMode } from "./u2-widget-page";
 import { sanitizeUrl } from "./sanitization-utils";
 
+import { defineRoute } from "../../utils/define-route";
 /**
  * Convert form node components to UiScreen format for the widget
  */
@@ -156,16 +157,8 @@ async function renderFormNodeWidgetPage(
     darkMode,
   });
 }
-
-export const u2FormNodeRoutes = new OpenAPIHono<{
-  Bindings: Bindings;
-  Variables: Variables;
-}>()
-  // --------------------------------
-  // GET /u2/forms/:formId/nodes/:nodeId
-  // --------------------------------
-  .openapi(
-    createRoute({
+const getFormIdNodesNodeId = defineRoute({
+  route: createRoute({
       tags: ["u2-forms"],
       method: "get",
       path: "/:formId/nodes/:nodeId",
@@ -183,7 +176,7 @@ export const u2FormNodeRoutes = new OpenAPIHono<{
         404: { description: "Form or node not found" },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { formId, nodeId } = ctx.req.valid("param");
       const { state } = ctx.req.valid("query");
 
@@ -257,12 +250,10 @@ export const u2FormNodeRoutes = new OpenAPIHono<{
         sanitizeUrl(client.client_metadata?.termsAndConditionsUrl),
       );
     },
-  )
-  // --------------------------------
-  // POST /u2/forms/:formId/nodes/:nodeId
-  // --------------------------------
-  .openapi(
-    createRoute({
+});
+
+const postFormIdNodesNodeId = defineRoute({
+  route: createRoute({
       tags: ["u2-forms"],
       method: "post",
       path: "/:formId/nodes/:nodeId",
@@ -302,7 +293,7 @@ export const u2FormNodeRoutes = new OpenAPIHono<{
         404: { description: "Form or node not found" },
       },
     }),
-    async (ctx) => {
+  handler: async (ctx) => {
       const { formId, nodeId } = ctx.req.valid("param");
       const { state } = ctx.req.valid("query");
       const { branding, client, loginSession } = await initJSXRoute(
@@ -552,4 +543,11 @@ export const u2FormNodeRoutes = new OpenAPIHono<{
         });
       }
     },
-  );
+});
+
+
+export const u2FormNodeRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>()
+  .openapiRoutes([getFormIdNodesNodeId, postFormIdNodesNodeId] as const);
