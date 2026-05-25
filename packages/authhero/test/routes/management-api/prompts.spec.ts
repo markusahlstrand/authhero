@@ -45,7 +45,6 @@ describe("prompts", () => {
       {
         headers: {
           authorization: `Bearer ${token}`,
-          "content-type": "application/json",
         },
       },
     );

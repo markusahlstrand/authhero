@@ -14,8 +14,7 @@ export type OrganizationConnectionInsert = z.input<
   typeof organizationConnectionInsertSchema
 >;
 
-export const organizationConnectionSchema = z.object({
-  ...organizationConnectionInsertSchema.shape,
+export const organizationConnectionSchema = organizationConnectionInsertSchema.extend({
   // Auth0 includes the embedded connection in GET responses.
   connection: z
     .object({
@@ -24,7 +23,7 @@ export const organizationConnectionSchema = z.object({
     })
     .optional(),
   created_at: z.string().optional(),
-  updated_at: z.string().optional(),
+  updated_at: z.string().optional()
 });
 export type OrganizationConnection = z.infer<
   typeof organizationConnectionSchema

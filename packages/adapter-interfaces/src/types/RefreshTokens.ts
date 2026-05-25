@@ -52,15 +52,12 @@ export const refreshTokenInsertSchema = z.object({
 export type RefreshTokenInsert = z.infer<typeof refreshTokenInsertSchema>;
 
 // Full refresh token schema with creation metadata.
-export const refreshTokenSchema = z.object({
+export const refreshTokenSchema = refreshTokenInsertSchema.extend({
   // When the refresh token record was created.
   created_at: z.string(),
 
   // When the token was explicitly revoked (null = still active).
   revoked_at: z.string().optional(),
-
-  // Spread in the rest of the refresh token properties.
-  ...refreshTokenInsertSchema.shape,
 });
 
 export type RefreshToken = z.infer<typeof refreshTokenSchema>;

@@ -194,7 +194,7 @@ const formComponentSchema = z.object({
   id: z.string(),
   type: z.string(),
   category: z.string().optional(),
-  config: z.record(z.any()).optional(),
+  config: z.record(z.string(), z.any()).optional(),
   order: z.number().optional(),
   visible: z.boolean().optional(),
   required: z.boolean().optional(),

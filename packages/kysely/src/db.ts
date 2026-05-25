@@ -67,6 +67,9 @@ const sqlConnectionSchema = flattenSchema(connectionSchema).extend({
   tenant_id: z.string(),
   // Store booleans as integers in SQL
   is_system: z.number().optional(),
+  // `options` is persisted as a JSON-encoded string; the in-memory schema
+  // types it as a parsed object, so override here for the DB row shape.
+  options: z.string(),
 });
 
 const sqlBrandingSchema = flattenSchema(brandingSchema).extend({
@@ -89,12 +92,11 @@ const sqlCustomTextSchema = z.object({
   updated_at_ts: z.number(),
 });
 
-const sqlPromptSettingSchema = z.object({
-  ...promptSettingSchema.shape,
+const sqlPromptSettingSchema = promptSettingSchema.extend({
   identifier_first: z.number(),
   password_first: z.number(),
   webauthn_platform_first_factor: z.number(),
-  tenant_id: z.string(),
+  tenant_id: z.string()
 });
 
 const sqlPasswordSchema = z.object({
@@ -108,15 +110,14 @@ const sqlPasswordSchema = z.object({
   is_current: z.number(),
 });
 
-export const sqlUserSchema = z.object({
-  ...userSchema.shape,
+export const sqlUserSchema = userSchema.extend({
   email_verified: z.number(),
   phone_verified: z.number().optional().nullable(),
   is_social: z.number(),
   app_metadata: z.string(),
   user_metadata: z.string(),
   address: z.string().optional().nullable(),
-  tenant_id: z.string(),
+  tenant_id: z.string()
 });
 
 const sqlHookSchema = z.object({
@@ -187,14 +188,13 @@ export const sqlHookCodeSchema = z.object({
   updated_at_ts: z.number(),
 });
 
-const sqlEmailProvidersSchema = z.object({
-  ...emailProviderSchema.shape,
+const sqlEmailProvidersSchema = emailProviderSchema.extend({
   tenant_id: z.string(),
   credentials: z.string(),
   settings: z.string(),
   enabled: z.number(),
   created_at: z.string(),
-  updated_at: z.string(),
+  updated_at: z.string()
 });
 
 const sqlEmailTemplatesSchema = z.object({
@@ -266,33 +266,29 @@ const sqlRefreshTokensSchema = refreshTokenSchema
     rotated_at_ts: z.number().nullable().optional(),
   });
 
-const sqlCustomDomainSchema = z.object({
-  ...customDomainSchema.shape,
+const sqlCustomDomainSchema = customDomainSchema.extend({
   primary: z.number(),
   tenant_id: z.string(),
   domain_metadata: z.string().optional(),
   created_at: z.string(),
-  updated_at: z.string(),
+  updated_at: z.string()
 });
 
-const sqlFormSchema = z.object({
-  ...formSchema.shape,
+const sqlFormSchema = formSchema.extend({
   tenant_id: z.string(),
   // Store complex data as JSON strings
   nodes: z.string().optional().default("[]"),
   start: z.string().optional().default("{}"),
-  ending: z.string().optional().default("{}"),
+  ending: z.string().optional().default("{}")
 });
 
-const sqlFlowSchema = z.object({
-  ...flowSchema.shape,
+const sqlFlowSchema = flowSchema.extend({
   tenant_id: z.string(),
   // Store complex data as JSON strings
-  actions: z.string().optional().default("[]"),
+  actions: z.string().optional().default("[]")
 });
 
-const sqlLogSchema = z.object({
-  ...logSchema.shape,
+const sqlLogSchema = logSchema.extend({
   id: z.string().optional(), // Legacy field, will be dropped
   tenant_id: z.string(),
   // Override fields that need different types in SQL
@@ -307,12 +303,10 @@ const sqlLogSchema = z.object({
   latitude: z.string().optional(),
   longitude: z.string().optional(),
   time_zone: z.string().optional(),
-  continent_code: z.string().optional(),
+  continent_code: z.string().optional()
 });
 
-export const sqlResourceServerSchema = z
-  .object({
-    ...resourceServerSchema.shape,
+export const sqlResourceServerSchema = resourceServerSchema.extend({
     tenant_id: z.string(),
     scopes: z.string().optional().default("[]"),
     options: z.string().optional().default("{}"),
@@ -326,12 +320,11 @@ export const sqlResourceServerSchema = z
     verification_key: z.string().optional(),
     // Timestamp fields
     created_at: z.string(),
-    updated_at: z.string(),
-  })
+    updated_at: z.string()
+})
   .omit({ verificationKey: true });
 
-export const sqlRoleSchema = z.object({
-  ...roleSchema.shape,
+export const sqlRoleSchema = roleSchema.extend({
   tenant_id: z.string(),
   // Store booleans as integers in SQL
   is_system: z.number().optional(),
@@ -339,13 +332,11 @@ export const sqlRoleSchema = z.object({
   metadata: z.string().optional(),
   // Timestamp fields
   created_at: z.string(),
-  updated_at: z.string(),
+  updated_at: z.string()
 });
 
 // Tenant schema now includes settings fields (merged from tenant_settings)
-export const sqlTenantSchema = z.object({
-  ...tenantSchema.shape,
-});
+export const sqlTenantSchema = tenantSchema.extend({});
 
 export const sqlClientGrantSchema = z.object({
   id: z.string(),
@@ -362,28 +353,22 @@ export const sqlClientGrantSchema = z.object({
   updated_at: z.string(),
 });
 
-export const sqlRolePermissionSchema = z.object({
-  ...rolePermissionSchema.shape,
-  tenant_id: z.string(),
+export const sqlRolePermissionSchema = rolePermissionSchema.extend({
+  tenant_id: z.string()
 });
 
-export const sqlUserPermissionSchema = z.object({
-  ...userPermissionSchema.shape,
-});
+export const sqlUserPermissionSchema = userPermissionSchema.extend({});
 
-export const sqlUserRoleSchema = z.object({
-  ...userRoleSchema.shape,
-});
+export const sqlUserRoleSchema = userRoleSchema.extend({});
 
-export const sqlOrganizationSchema = z.object({
-  ...organizationSchema.shape,
+export const sqlOrganizationSchema = organizationSchema.extend({
   tenant_id: z.string(),
   branding: z.string().optional().default("{}"),
   metadata: z.string().optional().default("{}"),
   enabled_connections: z.string().optional().default("[]"),
   token_quota: z.string().optional().default("{}"),
   created_at: z.string(),
-  updated_at: z.string(),
+  updated_at: z.string()
 });
 
 export const sqlUserOrganizationSchema = z.object({
@@ -414,8 +399,7 @@ export const sqlInviteSchema = z.object({
   send_invitation_email: z.number().optional().default(1), // boolean as int
 });
 
-const sqlClientSchema = z.object({
-  ...clientSchema.shape,
+const sqlClientSchema = clientSchema.extend({
   // The DB column is NOT NULL even though the API insert schema makes it
   // optional (server-generated). Override here so the row type is `string`.
   client_id: z.string(),
@@ -457,7 +441,7 @@ const sqlClientSchema = z.object({
   token_quota: z.string(),
   owner_user_id: z.string().optional().nullable(),
   registration_type: z.string().optional().nullable(),
-  registration_metadata: z.string().optional().nullable(),
+  registration_metadata: z.string().optional().nullable()
 });
 
 export const sqlClientRegistrationTokenSchema = z.object({

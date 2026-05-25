@@ -9,7 +9,7 @@ const mintBodySchema = z.object({
   sub: z.string().optional().openapi({
     description: "User ID to bind the IAT to (optional)",
   }),
-  constraints: z.record(z.unknown()).optional().openapi({
+  constraints: z.record(z.string(), z.unknown()).optional().openapi({
     description:
       "Pre-bound metadata that the registration request must match exactly (or omit, in which case the value is filled in from this map)",
   }),
@@ -33,7 +33,7 @@ const mintResponseSchema = z.object({
   token: z.string(),
   expires_at: z.string(),
   sub: z.string().optional(),
-  constraints: z.record(z.unknown()).optional(),
+  constraints: z.record(z.string(), z.unknown()).optional(),
   single_use: z.boolean(),
 });
 

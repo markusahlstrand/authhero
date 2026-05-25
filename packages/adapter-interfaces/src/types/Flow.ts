@@ -137,12 +137,13 @@ export type FlowInsert = z.infer<typeof flowInsertSchema>;
 /**
  * Full flow schema including system fields
  */
-export const flowSchema = flowInsertSchema.extend({
-  ...baseEntitySchema.shape,
-  id: z.string().openapi({
-    description: "Unique identifier for the flow",
-    example: "af_12tMpdJ3iek7svMyZkSh5M",
-  }),
-});
+export const flowSchema = flowInsertSchema
+  .extend(baseEntitySchema.shape)
+  .extend({
+    id: z.string().openapi({
+      description: "Unique identifier for the flow",
+      example: "af_12tMpdJ3iek7svMyZkSh5M",
+    }),
+  });
 
 export type Flow = z.infer<typeof flowSchema>;

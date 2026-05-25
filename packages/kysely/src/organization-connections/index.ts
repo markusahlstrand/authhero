@@ -37,9 +37,13 @@ async function loadConnection(
     .where("tenant_id", "=", tenantId)
     .where("id", "=", connectionId)
     .executeTakeFirst();
-  return conn
-    ? { name: conn.name, strategy: conn.strategy ?? undefined }
-    : undefined;
+  if (!conn) return undefined;
+  // The flatten/extend chain in db.ts widens these to `unknown` at the type
+  // level even though the DB columns are varchar.
+  return {
+    name: conn.name as string,
+    strategy: typeof conn.strategy === "string" ? conn.strategy : undefined,
+  };
 }
 
 export function createOrganizationConnectionsAdapter(

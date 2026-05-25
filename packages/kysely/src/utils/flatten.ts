@@ -1,18 +1,27 @@
 import { z } from "@hono/zod-openapi";
 
-export function flattenSchema(schema: any, prefix = "_") {
-  let result: any = {};
+// Returns a `z.ZodObject<z.ZodRawShape>` whose precise key/value map only
+// exists at runtime. Call sites that need the flattened fields available on
+// the inferred type chain it with `.extend({...})` and then re-derive the
+// shape from the chain, or simply use the returned schema for parsing.
+export function flattenSchema(
+  schema: z.ZodObject<z.ZodRawShape>,
+  prefix = "_",
+): z.ZodObject<z.ZodRawShape> {
+  const result: Record<string, z.ZodTypeAny> = {};
 
-  for (const key in schema.shape) {
-    const field = schema.shape[key];
-    const fullPath = prefix ? `${prefix}_${key}` : key;
-
-    if (field instanceof z.ZodObject) {
-      result = { ...result, ...flattenSchema(field, fullPath) };
-    } else {
-      result[fullPath] = field;
+  function walk(s: z.ZodObject<z.ZodRawShape>, p: string) {
+    for (const key in s.shape) {
+      const field = s.shape[key] as z.ZodTypeAny;
+      const fullPath = p ? `${p}_${key}` : key;
+      if (field instanceof z.ZodObject) {
+        walk(field as z.ZodObject<z.ZodRawShape>, fullPath);
+      } else {
+        result[fullPath] = field;
+      }
     }
   }
+  walk(schema, prefix);
 
   return z.object(result);
 }

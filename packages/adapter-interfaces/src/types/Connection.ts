@@ -236,7 +236,7 @@ export const connectionInsertSchema = z.object({
   response_mode: z.custom<AuthorizationResponseMode>().optional(),
   is_domain_connection: z.boolean().optional(),
   show_as_button: z.boolean().optional(),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
   is_system: z.boolean().optional(),
 });
 export type ConnectionInsert = z.infer<typeof connectionInsertSchema>;

@@ -11,7 +11,7 @@ export const clientRegistrationTokenInsertSchema = z.object({
   type: clientRegistrationTokenTypeSchema,
   client_id: z.string().optional(),
   sub: z.string().optional(),
-  constraints: z.record(z.unknown()).optional(),
+  constraints: z.record(z.string(), z.unknown()).optional(),
   single_use: z.boolean().default(false),
   expires_at: z.string().optional(),
 });
@@ -23,9 +23,8 @@ export type ClientRegistrationTokenInsert = z.infer<
 export const clientRegistrationTokenSchema = z.object({
   created_at: z.string(),
   used_at: z.string().optional(),
-  revoked_at: z.string().optional(),
-  ...clientRegistrationTokenInsertSchema.shape,
-});
+  revoked_at: z.string().optional()
+}).extend(clientRegistrationTokenInsertSchema.shape);
 
 export type ClientRegistrationToken = z.infer<
   typeof clientRegistrationTokenSchema

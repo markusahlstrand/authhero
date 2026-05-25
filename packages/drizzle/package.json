@@ -43,7 +43,7 @@
     "nanoid": "^5.0.8"
   },
   "devDependencies": {
-    "@hono/zod-openapi": "^0.19.2",
+    "@hono/zod-openapi": "^1.4.0",
     "@rollup/plugin-commonjs": "^26.0.1",
     "@rollup/plugin-node-resolve": "^15.2.3",
     "@types/better-sqlite3": "^7.6.0",

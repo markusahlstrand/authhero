@@ -73,7 +73,7 @@ const connectedClientSchema = z.object({
   name: z.string(),
   logo_uri: z.string().optional(),
   registration_type: z.enum(["manual", "open_dcr", "iat_dcr"]).optional(),
-  registration_metadata: z.record(z.any()).optional(),
+  registration_metadata: z.record(z.string(), z.any()).optional(),
   created_at: z.string().optional(),
   updated_at: z.string().optional(),
 });
@@ -317,10 +317,9 @@ export const userRoutes = new OpenAPIHono<{
         body: {
           content: {
             "application/json": {
-              schema: z.object({
-                ...userInsertSchema.shape,
-                password: z.string().optional(),
-              }),
+              schema: userInsertSchema.extend({
+                password: z.string().optional()
+}),
             },
           },
         },
@@ -454,12 +453,10 @@ export const userRoutes = new OpenAPIHono<{
         body: {
           content: {
             "application/json": {
-              schema: z
-                .object({
-                  ...userInsertSchema.shape,
+              schema: userInsertSchema.extend({
                   verify_email: z.boolean(),
-                  password: z.string(),
-                })
+                  password: z.string()
+})
                 .partial(),
             },
           },

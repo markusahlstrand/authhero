@@ -93,7 +93,7 @@ const enData = LOCALE_DATA[baseLocale];
 if (enData) {
   for (const [prompt, screens] of Object.entries(enData)) {
     for (const [screen, translations] of Object.entries(screens)) {
-      const shape: z.ZodRawShape = {};
+      const shape: Record<string, z.ZodString> = {};
       for (const key of Object.keys(translations)) {
         shape[key] = z.string();
       }

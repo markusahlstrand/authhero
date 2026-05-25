@@ -202,8 +202,8 @@ const customField = fieldComponentBase.extend({
   type: z.literal("CUSTOM"),
   config: z.object({
     component: z.string().optional(),
-    props: z.record(z.any()).optional(),
-    schema: z.record(z.any()).optional(),
+    props: z.record(z.string(), z.any()).optional(),
+    schema: z.record(z.string(), z.any()).optional(),
     code: z.string().optional(),
   }),
 });
@@ -639,10 +639,8 @@ export type FormInsert = z.input<typeof formInsertSchema>;
 /**
  * Schema for complete form with base entity properties
  */
-export const formSchema = z.object({
-  ...baseEntitySchema.shape,
-  ...formInsertSchema.shape,
-  id: z.string(),
+export const formSchema = baseEntitySchema.extend(formInsertSchema.shape).extend({
+  id: z.string()
 });
 
 export type Form = z.infer<typeof formSchema>;

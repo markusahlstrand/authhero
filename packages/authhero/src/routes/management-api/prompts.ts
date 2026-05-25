@@ -90,16 +90,12 @@ export const promptsRoutes = new OpenAPIHono<{
     async (ctx) => {
       const promptSettings = ctx.req.valid("json");
 
-      const updatedPromptSettings = await ctx.env.data.promptSettings.get(
-        ctx.var.tenant_id,
-      );
+      const existing = await ctx.env.data.promptSettings.get(ctx.var.tenant_id);
 
-      Object.assign(updatedPromptSettings, promptSettings);
-
-      await ctx.env.data.promptSettings.set(
-        ctx.var.tenant_id,
-        updatedPromptSettings,
-      );
+      await ctx.env.data.promptSettings.set(ctx.var.tenant_id, {
+        ...existing,
+        ...promptSettings,
+      });
 
       await logMessage(ctx, ctx.var.tenant_id, {
         type: LogTypes.SUCCESS_API_OPERATION,
@@ -108,7 +104,9 @@ export const promptsRoutes = new OpenAPIHono<{
         targetId: ctx.var.tenant_id,
       });
 
-      return ctx.json(updatedPromptSettings);
+      return ctx.json(
+        await ctx.env.data.promptSettings.get(ctx.var.tenant_id),
+      );
     },
   )
   // --------------------------------

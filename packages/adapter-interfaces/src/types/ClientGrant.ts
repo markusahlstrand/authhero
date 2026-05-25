@@ -36,10 +36,10 @@ export type ClientGrantInsert = z.input<typeof clientGrantInsertSchema>;
 export const clientGrantSchema = z.object({
   id: z.string().openapi({
     description: "ID of the client grant.",
-  }),
-  ...clientGrantInsertSchema.shape,
+  })
+}).extend(clientGrantInsertSchema.shape).extend({
   created_at: z.string().optional(),
-  updated_at: z.string().optional(),
+  updated_at: z.string().optional()
 });
 export type ClientGrant = z.infer<typeof clientGrantSchema>;
 

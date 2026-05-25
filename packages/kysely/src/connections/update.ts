@@ -9,6 +9,8 @@ export function update(db: Kysely<Database>) {
     connection: Partial<ConnectionInsert>,
   ): Promise<boolean> => {
     const { is_system, ...rest } = connection;
+    // `enabled_clients` is virtual (join-table backed) and not a column.
+    delete rest.enabled_clients;
 
     const sqlConnection = {
       ...rest,

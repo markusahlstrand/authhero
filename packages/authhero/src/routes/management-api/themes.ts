@@ -5,6 +5,28 @@ import { DEFAULT_THEME } from "../../constants/defaultTheme";
 import { deepMergePatch } from "../../utils/deep-merge";
 import { logMessage } from "../../helpers/logging";
 
+// Zod 4 removed `.deepPartial()` (the API was unsound in several edge cases).
+// PATCH /branding/themes/default accepts an arbitrary subset of the theme
+// tree, so we recursively wrap each nested object in `.partial()`. Runtime
+// behavior matches Zod 3's `themeSchema.deepPartial()`.
+//
+// The output is typed back to the input schema so downstream `valid("json")`
+// inference produces the right shape — without this, the validated body
+// would resolve to `unknown` and callers couldn't index it.
+function deepPartialRuntime(schema: z.ZodTypeAny): z.ZodTypeAny {
+  if (schema instanceof z.ZodObject) {
+    const newShape: Record<string, z.ZodTypeAny> = {};
+    for (const [key, value] of Object.entries(schema.shape)) {
+      newShape[key] = deepPartialRuntime(value as z.ZodTypeAny).optional();
+    }
+    return z.object(newShape);
+  }
+  return schema;
+}
+function deepPartial<T extends z.ZodTypeAny>(schema: T): T {
+  return deepPartialRuntime(schema) as unknown as T;
+}
+
 export const themesRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
@@ -60,7 +82,7 @@ export const themesRoutes = new OpenAPIHono<{
         body: {
           content: {
             "application/json": {
-              schema: themeSchema.deepPartial(),
+              schema: deepPartial(themeSchema),
             },
           },
         },

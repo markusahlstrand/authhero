@@ -170,7 +170,7 @@ export const formNodeRoutes = new OpenAPIHono<{
         body: {
           content: {
             "application/x-www-form-urlencoded": {
-              schema: z.record(z.string()),
+              schema: z.record(z.string(), z.string()),
             },
           },
         },

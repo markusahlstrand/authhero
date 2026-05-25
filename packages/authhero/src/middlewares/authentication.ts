@@ -28,6 +28,19 @@ export interface AuthMiddlewareOptions {
   requireManagementAudience?: boolean;
 }
 
+// For a scope of the form `verb:resource` (e.g. `read:users`) also accept the
+// reversed `resource:verb` form (`users:read`). Auth0 uses the former; some
+// clients in the wild use the latter, so we treat them as equivalent rather
+// than forcing every caller to reissue tokens.
+function scopeForms(scope: string): string[] {
+  const parts = scope.split(":");
+  if (parts.length !== 2 || !parts[0] || !parts[1]) {
+    return [scope];
+  }
+  const reversed = `${parts[1]}:${parts[0]}`;
+  return reversed === scope ? [scope] : [scope, reversed];
+}
+
 export function createAuthMiddleware(
   app: OpenAPIHono<{ Bindings: Bindings; Variables: Variables }>,
   options: AuthMiddlewareOptions = {},
@@ -124,18 +137,14 @@ export function createAuthMiddleware(
               ? tokenPayload.scope
               : [];
 
-        if (
-          requiredPermissions.length &&
-          !(
-            // Should we check both?
-            (
-              requiredPermissions.some((scope) =>
-                permissions.includes(scope),
-              ) || requiredPermissions.some((scope) => scopes.includes(scope))
-            )
-          )
-        ) {
-          throw new JSONHTTPException(403, { message: "Unauthorized" });
+        if (requiredPermissions.length) {
+          const acceptedForms = requiredPermissions.flatMap(scopeForms);
+          const hasMatch =
+            acceptedForms.some((scope) => permissions.includes(scope)) ||
+            acceptedForms.some((scope) => scopes.includes(scope));
+          if (!hasMatch) {
+            throw new JSONHTTPException(403, { message: "Unauthorized" });
+          }
         }
       } catch (error) {
         if (error instanceof HTTPException) {

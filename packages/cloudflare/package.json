@@ -30,7 +30,7 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "@hono/zod-openapi": "^0.19.10",
+    "@hono/zod-openapi": "^1.4.0",
     "@rollup/plugin-commonjs": "^29.0.0",
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@types/node": "^24.10.0",
@@ -44,7 +44,7 @@
     "vitest": "^4.0.7"
   },
   "peerDependencies": {
-    "@hono/zod-openapi": "^0.19.10",
+    "@hono/zod-openapi": "^1.4.0",
     "hono": "^4.6.8"
   },
   "dependencies": {

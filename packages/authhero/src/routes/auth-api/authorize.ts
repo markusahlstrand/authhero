@@ -86,7 +86,7 @@ const authorizeParamsSchema = z.object({
   // OIDC Core 5.5 — JSON-encoded `claims` request parameter. Inside a signed
   // Request Object (RFC 9101 §4) the value is a JSON object, not a string —
   // accept both shapes so verified request payloads pass schema validation.
-  claims: z.union([z.string(), z.record(z.any())]).optional(),
+  claims: z.union([z.string(), z.record(z.string(), z.any())]).optional(),
 });
 
 // Parse + validate the raw `claims` value. Accepts either a JSON-encoded

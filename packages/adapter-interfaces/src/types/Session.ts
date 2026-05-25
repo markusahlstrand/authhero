@@ -23,8 +23,7 @@ export const sessionSchema = z.object({
   created_at: z.string(),
   updated_at: z.string(),
   authenticated_at: z.string(),
-  last_interaction_at: z.string(),
-  ...sessionInsertSchema.shape,
-});
+  last_interaction_at: z.string()
+}).extend(sessionInsertSchema.shape);
 
 export type Session = z.infer<typeof sessionSchema>;

@@ -537,9 +537,8 @@ export const logInsertSchema = z.object({
 
 export type LogInsert = z.infer<typeof logInsertSchema>;
 
-export const logSchema = z.object({
-  ...logInsertSchema.shape,
-  log_id: z.string(),
+export const logSchema = logInsertSchema.extend({
+  log_id: z.string()
 });
 
 export type Log = z.infer<typeof logSchema>;

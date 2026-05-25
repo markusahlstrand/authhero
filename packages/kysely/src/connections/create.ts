@@ -9,6 +9,9 @@ export function create(db: Kysely<Database>) {
     params: ConnectionInsert,
   ): Promise<Connection> => {
     const { is_system, ...rest } = params;
+    // `enabled_clients` is a virtual field surfaced via the join table; it has
+    // no column on `connections` and would break the SQL insert.
+    delete rest.enabled_clients;
 
     const connection: Connection = {
       id: rest.id || generateConnectionId(),
