@@ -1,5 +1,19 @@
 # authhero
 
+## 5.9.0
+
+### Minor Changes
+
+- dcc6501: Migrate to Zod 4 and `@hono/zod-openapi` v1. The `@hono/zod-openapi` peer dependency now requires `^1.4.0` — consumers must upgrade alongside this release.
+
+### Patch Changes
+
+- 1fd754b: Management API auth middleware now also accepts the reversed `resource:verb` scope form (e.g. `users:read`, `users:write`) alongside the canonical Auth0 `verb:resource` form (`read:users`, `update:users`). Tokens minted by upstream systems that use either convention will be accepted without requiring per-route changes.
+- Updated dependencies [dcc6501]
+  - @authhero/adapter-interfaces@2.6.0
+  - @authhero/saml@0.4.0
+  - @authhero/widget@0.32.27
+
 ## 5.8.1
 
 ### Patch Changes

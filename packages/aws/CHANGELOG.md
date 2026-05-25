@@ -1,5 +1,16 @@
 # @authhero/aws-adapter
 
+## 0.35.0
+
+### Minor Changes
+
+- dcc6501: Migrate to Zod 4 and `@hono/zod-openapi` v1. The `@hono/zod-openapi` peer dependency now requires `^1.4.0` — consumers must upgrade alongside this release.
+
+### Patch Changes
+
+- Updated dependencies [dcc6501]
+  - @authhero/adapter-interfaces@2.6.0
+
 ## 0.34.9
 
 ### Patch Changes
