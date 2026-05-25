@@ -226,6 +226,7 @@ export function TryConnectionButton() {
             error_description: `Could not parse result_url: ${body.result_url}`,
             completed_at: new Date().toISOString(),
           });
+          setBusy(false);
           return;
         }
         popupRef.current = window.open(
@@ -242,9 +243,14 @@ export function TryConnectionButton() {
               "Popup was blocked by the browser. Allow popups for this site and try again.",
             completed_at: new Date().toISOString(),
           });
+          setBusy(false);
           return;
         }
+        // Keep busy=true while the popup is open; cleared when a result
+        // arrives via postMessage or the dialog is closed.
+        return;
       }
+      setBusy(false);
     } catch (err) {
       setResult({
         status: "error",
@@ -252,7 +258,6 @@ export function TryConnectionButton() {
         error_description: err instanceof Error ? err.message : String(err),
         completed_at: new Date().toISOString(),
       });
-    } finally {
       setBusy(false);
     }
   }, [callTry]);
@@ -267,6 +272,7 @@ export function TryConnectionButton() {
       const data = e.data as { type?: string; result?: TryResult } | null;
       if (data && data.type === "authhero:try-connection" && data.result) {
         setResult(data.result);
+        setBusy(false);
         popupRef.current?.close();
         popupRef.current = null;
         popupOriginRef.current = null;
@@ -286,6 +292,7 @@ export function TryConnectionButton() {
         if (!value) {
           setPassword("");
           setResult(null);
+          setBusy(false);
           // Tear down any in-flight popup so late postMessages don't update
           // state after the dialog has been dismissed.
           if (popupRef.current && !popupRef.current.closed) {

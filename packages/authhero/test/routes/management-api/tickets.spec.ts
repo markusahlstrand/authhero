@@ -71,7 +71,7 @@ describe("management API: /api/v2/tickets", () => {
       expect(body.ticket).toContain("/u2/tickets/password-change");
     });
 
-    it("accepts email + connection_id as an alternative to user_id", async () => {
+    it("accepts email as an alternative to user_id", async () => {
       const { managementApp, env } = await getTestServer();
       const client = testClient(managementApp, env);
       const token = await getAdminToken();
