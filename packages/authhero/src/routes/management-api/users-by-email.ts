@@ -25,7 +25,7 @@ const getRoot = defineRoute({
       responses: {
         200: {
           content: {
-            "tenant/json": {
+            "application/json": {
               schema: z.array(userSchema),
             },
           },

@@ -714,7 +714,7 @@ const getByIdMembersByUser_idRoles = defineRoute({
         tenant_id,
         user_id,
         undefined,
-        organizationId,
+        organization.id,
       );
 
       return ctx.json(roles);
@@ -789,7 +789,7 @@ const postByIdMembersByUser_idRoles = defineRoute({
           tenant_id,
           user_id,
           roleId,
-          organizationId,
+          organization.id,
         );
         if (!success) {
           throw new HTTPException(500, {
@@ -874,7 +874,7 @@ const deleteByIdMembersByUser_idRoles = defineRoute({
           tenant_id,
           user_id,
           roleId,
-          organizationId,
+          organization.id,
         );
         if (!success) {
           throw new HTTPException(500, {

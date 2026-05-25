@@ -36,6 +36,24 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.PACKAGE_READ_TOKEN }}
 
+      # Restore TypeScript's incremental output (`.tsbuildinfo`) and the
+      # `dist/types/` per-file `.d.ts` tree that `rollup-plugin-dts` bundles.
+      # On a cache hit, `tsc -p tsconfig.types.json` skips type-checking and
+      # re-emit for unchanged files, dropping authhero's cold build from
+      # ~21 s to ~11 s. Cache must include both: tsbuildinfo alone gives no
+      # speedup because tsc still re-emits when the `.d.ts` files are absent.
+      - name: Restore TypeScript build cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            packages/*/tsconfig.tsbuildinfo
+            packages/authhero/dist/tsconfig.types.tsbuildinfo
+            packages/authhero/dist/types
+          key: ${{ runner.os }}-ts-${{ hashFiles('packages/*/tsconfig*.json', 'pnpm-lock.yaml') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-ts-${{ hashFiles('packages/*/tsconfig*.json', 'pnpm-lock.yaml') }}-
+            ${{ runner.os }}-ts-
+
       - name: Build packages
         run: |
           pnpm interfaces build

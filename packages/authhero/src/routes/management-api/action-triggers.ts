@@ -168,21 +168,16 @@ const patchByTriggerIdBindings = defineRoute({
       const { bindings } = ctx.req.valid("json");
       const internalTriggerId = toInternalTriggerId(triggerId);
 
-      // Remove existing code hooks for this trigger
-      const existingHooks = await ctx.env.data.hooks.list(ctx.var.tenant_id, {
-        q: `trigger_id:"${internalTriggerId}"`,
-        per_page: 100,
-      });
-
-      for (const hook of existingHooks.hooks) {
-        if ("code_id" in hook && hook.code_id) {
-          await ctx.env.data.hooks.remove(ctx.var.tenant_id, hook.hook_id);
-        }
-      }
-
-      // Create new hooks for each binding. Resolve actionId from either
-      // Auth0's { type, value } shape or our legacy { id, name } shape.
-      const resultBindings: any[] = [];
+      // Resolve and validate every binding (action exists, ref shape valid)
+      // before mutating any state — partial removal of existing hooks
+      // followed by a 4xx would leave the trigger in an inconsistent state.
+      const resolved: Array<{
+        binding: (typeof bindings)[number];
+        actionId: string;
+        action: NonNullable<
+          Awaited<ReturnType<typeof ctx.env.data.actions.get>>
+        >;
+      }> = [];
       for (let i = 0; i < bindings.length; i++) {
         const binding = bindings[i]!;
         let actionId = binding.ref.id;
@@ -226,7 +221,6 @@ const patchByTriggerIdBindings = defineRoute({
           });
         }
 
-        // Verify the action exists
         const action = await ctx.env.data.actions.get(
           ctx.var.tenant_id,
           actionId,
@@ -237,6 +231,25 @@ const patchByTriggerIdBindings = defineRoute({
           });
         }
 
+        resolved.push({ binding, actionId, action });
+      }
+
+      // All bindings valid — safe to swap out existing code hooks.
+      const existingHooks = await ctx.env.data.hooks.list(ctx.var.tenant_id, {
+        q: `trigger_id:"${internalTriggerId}"`,
+        per_page: 100,
+      });
+
+      for (const hook of existingHooks.hooks) {
+        if ("code_id" in hook && hook.code_id) {
+          await ctx.env.data.hooks.remove(ctx.var.tenant_id, hook.hook_id);
+        }
+      }
+
+      const resultBindings: any[] = [];
+      for (let i = 0; i < resolved.length; i++) {
+        const { binding, actionId, action } = resolved[i]!;
+
         // Create a hook binding with priority based on array position
         // Higher index = lower priority (first in array executes first)
         const hook = await ctx.env.data.hooks.create(ctx.var.tenant_id, {
@@ -245,7 +258,7 @@ const patchByTriggerIdBindings = defineRoute({
           code_id: actionId,
           enabled: true,
           synchronous: true,
-          priority: bindings.length - i,
+          priority: resolved.length - i,
         });
 
         resultBindings.push({

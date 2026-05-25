@@ -99,7 +99,7 @@ const getRoot = defineRoute({
               ]),
             },
           },
-          description: "List of connectionss",
+          description: "List of connections",
         },
       },
     }),

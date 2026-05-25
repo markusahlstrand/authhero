@@ -112,7 +112,7 @@ const postByIdRevoke = defineRoute({
       ],
       responses: {
         202: {
-          description: "Sesssion deletion status",
+          description: "Session deletion status",
         },
       },
     }),
