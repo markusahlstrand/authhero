@@ -1,5 +1,11 @@
 # @authhero/saml
 
+## 0.4.0
+
+### Minor Changes
+
+- dcc6501: Migrate to Zod 4 and `@hono/zod-openapi` v1. The `@hono/zod-openapi` peer dependency now requires `^1.4.0` — consumers must upgrade alongside this release.
+
 ## 0.3.0
 
 ### Minor Changes

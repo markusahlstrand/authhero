@@ -1,5 +1,18 @@
 # @authhero/multi-tenancy
 
+## 14.23.0
+
+### Minor Changes
+
+- dcc6501: Migrate to Zod 4 and `@hono/zod-openapi` v1. The `@hono/zod-openapi` peer dependency now requires `^1.4.0` — consumers must upgrade alongside this release.
+
+### Patch Changes
+
+- Updated dependencies [1fd754b]
+- Updated dependencies [dcc6501]
+  - authhero@5.9.0
+  - @authhero/adapter-interfaces@2.6.0
+
 ## 14.22.0
 
 ### Minor Changes
