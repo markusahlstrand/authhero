@@ -3,6 +3,7 @@ import { OpenAPIHono } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
 import { createAuthMiddleware } from "../../src/middlewares/authentication";
 import { createToken, getCertificate } from "../helpers/token";
+import { MANAGEMENT_API_AUDIENCE } from "../../src/middlewares/authentication";
 import { Bindings, Variables } from "../../src/types";
 import * as x509 from "@peculiar/x509";
 
@@ -387,6 +388,81 @@ describe("createAuthMiddleware", () => {
         HTTPException,
       );
       expect(mockNext).not.toHaveBeenCalled();
+    });
+  });
+
+  // The management-audience check is opt-in via
+  // `requireManagementAudience: true`. The default must remain off so that
+  // auth-api routes like /userinfo accept normal user access tokens. These
+  // tests pin both directions of the option.
+  describe("requireManagementAudience option", () => {
+    beforeEach(() => {
+      app.openapi(
+        {
+          method: "get",
+          path: "/api/users",
+          security: [{ Bearer: ["read:users"] }],
+          responses: {
+            200: {
+              description: "Success",
+            },
+          },
+        },
+        async (c) => c.json({ message: "success" }),
+      );
+    });
+
+    it("accepts a non-management audience by default", async () => {
+      const token = await createToken({
+        userId: "user123",
+        permissions: ["read:users"],
+        aud: "https://example.com/api",
+      });
+
+      mockCtx.req.header.mockReturnValue(`Bearer ${token}`);
+
+      const result = await authMiddleware(mockCtx, mockNext);
+
+      expect(mockNext).toHaveBeenCalled();
+      expect(result).toBe("next-response");
+    });
+
+    it("rejects a non-management audience when requireManagementAudience is true", async () => {
+      const strictMiddleware = createAuthMiddleware(app, {
+        requireManagementAudience: true,
+      });
+
+      const token = await createToken({
+        userId: "user123",
+        permissions: ["read:users"],
+        aud: "https://example.com/api",
+      });
+
+      mockCtx.req.header.mockReturnValue(`Bearer ${token}`);
+
+      await expect(strictMiddleware(mockCtx, mockNext)).rejects.toThrow(
+        "Invalid audience",
+      );
+      expect(mockNext).not.toHaveBeenCalled();
+    });
+
+    it("accepts the management audience when requireManagementAudience is true", async () => {
+      const strictMiddleware = createAuthMiddleware(app, {
+        requireManagementAudience: true,
+      });
+
+      const token = await createToken({
+        userId: "user123",
+        permissions: ["read:users"],
+        aud: MANAGEMENT_API_AUDIENCE,
+      });
+
+      mockCtx.req.header.mockReturnValue(`Bearer ${token}`);
+
+      const result = await strictMiddleware(mockCtx, mockNext);
+
+      expect(mockNext).toHaveBeenCalled();
+      expect(result).toBe("next-response");
     });
   });
 });
