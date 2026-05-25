@@ -42,20 +42,21 @@ export const actionUpdateSchema = actionInsertSchema.partial().extend({
 });
 export type ActionUpdate = z.infer<typeof actionUpdateSchema>;
 
-export const actionSchema = actionInsertSchema.extend({
-  id: z.string(),
-  tenant_id: z.string(),
-  status: z.enum(["draft", "built"]).default("built"),
-  deployed_at: z.string().optional(),
-  // Override secrets to return names only (no values) in responses
-  secrets: z
-    .array(
-      z.object({
-        name: z.string(),
-        value: z.string().optional(),
-      }),
-    )
-    .optional(),
-  ...baseEntitySchema.shape,
-});
+export const actionSchema = actionInsertSchema
+  .extend({
+    id: z.string(),
+    tenant_id: z.string(),
+    status: z.enum(["draft", "built"]).default("built"),
+    deployed_at: z.string().optional(),
+    // Override secrets to return names only (no values) in responses
+    secrets: z
+      .array(
+        z.object({
+          name: z.string(),
+          value: z.string().optional(),
+        }),
+      )
+      .optional(),
+  })
+  .extend(baseEntitySchema.shape);
 export type Action = z.infer<typeof actionSchema>;

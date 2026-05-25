@@ -35,14 +35,13 @@ export const resourceServerInsertSchema = z.object({
   verificationKey: z.string().optional(),
   options: resourceServerOptionsSchema.optional(),
   is_system: z.boolean().optional(),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
 });
 export type ResourceServerInsert = z.input<typeof resourceServerInsertSchema>;
 
-export const resourceServerSchema = z.object({
-  ...resourceServerInsertSchema.shape,
+export const resourceServerSchema = resourceServerInsertSchema.extend({
   created_at: z.string().optional(),
-  updated_at: z.string().optional(),
+  updated_at: z.string().optional()
 });
 export type ResourceServer = z.infer<typeof resourceServerSchema>;
 

@@ -17,10 +17,11 @@ export const actionVersionInsertSchema = z.object({
 });
 export type ActionVersionInsert = z.infer<typeof actionVersionInsertSchema>;
 
-export const actionVersionSchema = actionVersionInsertSchema.extend({
-  id: z.string(),
-  tenant_id: z.string(),
-  number: z.number().int(),
-  ...baseEntitySchema.shape,
-});
+export const actionVersionSchema = actionVersionInsertSchema
+  .extend({
+    id: z.string(),
+    tenant_id: z.string(),
+    number: z.number().int(),
+  })
+  .extend(baseEntitySchema.shape);
 export type ActionVersion = z.infer<typeof actionVersionSchema>;

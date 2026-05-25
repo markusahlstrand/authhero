@@ -8,9 +8,8 @@ export const rolePermissionInsertSchema = z.object({
 });
 export type RolePermissionInsert = z.infer<typeof rolePermissionInsertSchema>;
 
-export const rolePermissionSchema = z.object({
-  ...rolePermissionInsertSchema.shape,
-  created_at: z.string(),
+export const rolePermissionSchema = rolePermissionInsertSchema.extend({
+  created_at: z.string()
 });
 export type RolePermission = z.infer<typeof rolePermissionSchema>;
 

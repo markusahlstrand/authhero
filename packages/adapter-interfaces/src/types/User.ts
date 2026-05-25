@@ -17,10 +17,14 @@ export const addressSchema = z
 export type Address = z.infer<typeof addressSchema>;
 
 export const baseUserSchema = z.object({
+  // Apply the lowercase transform *before* `.optional()` so the key remains
+  // optional (`email?: string`) in inference. Zod 4 strips the optional-key
+  // marker when a transform runs over an `.optional()` schema, which made
+  // User/UserInsert types diverge.
   email: z
     .string()
-    .optional()
-    .transform((val) => (val ? val.toLowerCase() : val)),
+    .transform((val) => val.toLowerCase())
+    .optional(),
   username: z
     .string()
     .refine((val) => !val.includes("@"), {
@@ -84,17 +88,20 @@ export const userInsertSchema = baseUserSchema.extend({
 
 export type UserInsert = z.infer<typeof userInsertSchema>;
 
-// User schema omits the password field - password is only used during creation
-export const userSchema = z.object({
-  ...userInsertSchema.omit({ password: true }).shape,
-  ...baseEntitySchema.shape,
-  user_id: z.string(),
-  provider: z.string(),
-  is_social: z.boolean(),
-  email: z.string().optional(),
-  login_count: z.number().default(0),
-  identities: z.array(identitySchema).optional(),
-});
+// User schema omits the password field - password is only used during creation.
+// Use chained .extend() (the Zod 4 idiom) rather than `{ ...shape }` spread so
+// optionality and `.default()` semantics propagate correctly through inference.
+export const userSchema = userInsertSchema
+  .omit({ password: true })
+  .extend(baseEntitySchema.shape)
+  .extend({
+    user_id: z.string(),
+    provider: z.string(),
+    is_social: z.boolean(),
+    email: z.string().optional(),
+    login_count: z.number().default(0),
+    identities: z.array(identitySchema).optional(),
+  });
 
 export type User = z.infer<typeof userSchema>;
 

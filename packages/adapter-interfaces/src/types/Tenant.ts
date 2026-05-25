@@ -160,12 +160,12 @@ export const tenantInsertSchema = z.object({
     .object({
       clients: z
         .object({
-          client_credentials: z.record(z.any()).optional(),
+          client_credentials: z.record(z.string(), z.any()).optional(),
         })
         .optional(),
       organizations: z
         .object({
-          client_credentials: z.record(z.any()).optional(),
+          client_credentials: z.record(z.string(), z.any()).optional(),
         })
         .optional(),
     })
@@ -267,14 +267,14 @@ export const tenantSchema = z.object({
   updated_at: z
     .string()
     .nullable()
-    .transform((val) => val ?? ""),
-  ...tenantInsertSchema.shape,
+    .transform((val) => val ?? "")
+}).extend(tenantInsertSchema.shape).extend({
   id: z.string(),
   // Computed server-side: true when this tenant is the deployment's control
   // plane (either `multiTenancyConfig.controlPlaneTenantId` matches the
   // tenant id, or no multi-tenancy config is set — i.e. single-tenant
   // deployment). Not persisted; ignored on writes.
-  is_control_plane: z.boolean().optional(),
+  is_control_plane: z.boolean().optional()
 });
 
 export type Tenant = z.infer<typeof tenantSchema>;

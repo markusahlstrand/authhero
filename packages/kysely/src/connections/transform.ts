@@ -17,7 +17,10 @@ export function transformConnection(dbConnection: DbConnection): Connection {
   return removeNullProperties({
     ...rest,
     is_system: is_system ? true : undefined,
-    options: JSON.parse(dbConnection.options),
+    options:
+      typeof dbConnection.options === "string"
+        ? JSON.parse(dbConnection.options)
+        : {},
   });
 }
 

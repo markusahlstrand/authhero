@@ -15,7 +15,7 @@ export const customDomainInsertSchema = z.object({
       "null",
     ])
     .optional(),
-  domain_metadata: z.record(z.string().max(255)).optional(),
+  domain_metadata: z.record(z.string(), z.string().max(255)).optional(),
 });
 
 export type CustomDomainInsert = z.infer<typeof customDomainInsertSchema>;
@@ -35,8 +35,7 @@ export const verificationMethodsSchema = z.discriminatedUnion("name", [
 
 export type VerificationMethods = z.infer<typeof verificationMethodsSchema>;
 
-export const customDomainSchema = z.object({
-  ...customDomainInsertSchema.shape,
+export const customDomainSchema = customDomainInsertSchema.extend({
   custom_domain_id: z.string(),
   primary: z.boolean(),
   status: z.enum(["disabled", "pending", "pending_verification", "ready"]),
@@ -46,7 +45,7 @@ export const customDomainSchema = z.object({
       methods: z.array(verificationMethodsSchema),
     })
     .optional(),
-  tls_policy: z.string().optional(),
+  tls_policy: z.string().optional()
 });
 
 export default customDomainSchema;

@@ -33,7 +33,7 @@ export const dcrRequestSchema = z.object({
     ])
     .optional(),
   jwks_uri: z.string().url().optional(),
-  jwks: z.record(z.unknown()).optional(),
+  jwks: z.record(z.string(), z.unknown()).optional(),
   software_id: z.string().optional(),
   software_version: z.string().optional(),
   client_id: z.string().optional(),

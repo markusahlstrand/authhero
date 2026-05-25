@@ -15,8 +15,7 @@ import { getUniversalLoginUrl } from "../variables";
  * use the getEnrichedClient helper function which fetches the entities
  * separately and composes them.
  */
-export const enrichedClientSchema = z.object({
-  ...clientSchema.shape,
+export const enrichedClientSchema = clientSchema.extend({
   tenant: tenantSchema,
   connections: z.array(connectionSchema),
 });

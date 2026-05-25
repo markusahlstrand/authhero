@@ -61,7 +61,7 @@ const resultSchema = z.object({
   id: z.string(),
   ssl: SslSchema,
   hostname: z.string(),
-  custom_metadata: z.record(z.string()).optional(),
+  custom_metadata: z.record(z.string(), z.string()).optional(),
   custom_origin_server: z.string().optional(),
   custom_origin_sni: z.string().optional(),
   ownership_verification: OwnershipVerificationSchema.optional(),

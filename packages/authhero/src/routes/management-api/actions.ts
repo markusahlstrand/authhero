@@ -753,7 +753,7 @@ export const actionsRoutes = new OpenAPIHono<{
             "application/json": {
               schema: z.object({
                 trigger_id: z.string().optional(),
-                event: z.record(z.unknown()).optional(),
+                event: z.record(z.string(), z.unknown()).optional(),
               }),
             },
           },

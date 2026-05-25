@@ -69,13 +69,12 @@ export const loginSessionInsertSchema = z
 
 export type LoginSessionInsert = z.input<typeof loginSessionInsertSchema>;
 
-export const loginSessionSchema = z.object({
-  ...loginSessionInsertSchema.shape,
+export const loginSessionSchema = loginSessionInsertSchema.extend({
   id: z.string().openapi({
     description: "This is is used as the state in the universal login",
   }),
   created_at: z.string(),
-  updated_at: z.string(),
+  updated_at: z.string()
 });
 
 export type LoginSession = z.infer<typeof loginSessionSchema>;

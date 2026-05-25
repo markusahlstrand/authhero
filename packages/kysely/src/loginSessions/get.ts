@@ -7,7 +7,7 @@ import {
 import { Database } from "../db";
 import { unflattenObject } from "../utils/flatten";
 import { removeNullProperties } from "../helpers/remove-nulls";
-import { convertDatesToAdapter } from "../utils/dateConversion";
+import { convertDatesToAdapter, DbDateField } from "../utils/dateConversion";
 
 export function get(db: Kysely<Database>) {
   return async (_: string, login_id: string): Promise<LoginSession | null> => {
@@ -29,9 +29,16 @@ export function get(db: Kysely<Database>) {
       ...rest
     } = login as typeof login & { auth_params?: string | null };
 
-    // Convert dates from DB format (bigint) to ISO strings
+    // Convert dates from DB format (bigint) to ISO strings.
+    // The flatten/extend chain in db.ts widens these to `unknown` at the type
+    // level, but at runtime they're whatever the SQLite driver returns
+    // (number | string | null) — the same shape DbDateField allows.
     const dates = convertDatesToAdapter(
-      { created_at_ts, updated_at_ts, expires_at_ts },
+      {
+        created_at_ts: created_at_ts as DbDateField,
+        updated_at_ts: updated_at_ts as DbDateField,
+        expires_at_ts: expires_at_ts as DbDateField,
+      },
       ["created_at_ts", "updated_at_ts", "expires_at_ts"],
     );
 

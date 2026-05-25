@@ -179,7 +179,13 @@ export const hooksRoutes = new OpenAPIHono<{
     }),
     async (ctx) => {
       const { hook_id } = ctx.req.valid("param");
-      const hook = ctx.req.valid("json");
+      // Zod 4 widens the per-member `.options` array's inferred element type
+      // to `unknown` when the members are produced via a runtime `.map`; the
+      // validator at the route boundary already enforces the schema, so the
+      // shape matches `Partial<HookInsert>` at runtime.
+      const hook = ctx.req.valid("json") as Parameters<
+        typeof ctx.env.data.hooks.update
+      >[2];
 
       await ctx.env.data.hooks.update(ctx.var.tenant_id, hook_id, hook);
       const result = await ctx.env.data.hooks.get(ctx.var.tenant_id, hook_id);

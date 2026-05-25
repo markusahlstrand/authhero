@@ -24,9 +24,9 @@ export type Actor = z.infer<typeof actorSchema>;
 export const targetSchema = z.object({
   type: z.string(),
   id: z.string(),
-  before: z.record(z.unknown()).optional(),
-  after: z.record(z.unknown()).optional(),
-  diff: z.record(z.object({ old: z.unknown(), new: z.unknown() })).optional(),
+  before: z.record(z.string(), z.unknown()).optional(),
+  after: z.record(z.string(), z.unknown()).optional(),
+  diff: z.record(z.string(), z.object({ old: z.unknown(), new: z.unknown() })).optional(),
 });
 
 export type Target = z.infer<typeof targetSchema>;
@@ -34,7 +34,7 @@ export type Target = z.infer<typeof targetSchema>;
 export const requestContextSchema = z.object({
   method: z.string(),
   path: z.string(),
-  query: z.record(z.string()).optional(),
+  query: z.record(z.string(), z.string()).optional(),
   body: z.unknown().optional(),
   ip: z.string(),
   user_agent: z.string().optional(),
@@ -62,7 +62,7 @@ export const locationInfoSchema = z.object({
 export const auth0ClientSchema = z.object({
   name: z.string(),
   version: z.string(),
-  env: z.record(z.string()).optional(),
+  env: z.record(z.string(), z.string()).optional(),
 });
 
 export const auditEventInsertSchema = z.object({

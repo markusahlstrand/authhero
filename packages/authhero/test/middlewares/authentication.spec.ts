@@ -246,6 +246,36 @@ describe("createAuthMiddleware", () => {
       expect(result).toBe("next-response");
     });
 
+    it("should allow request when token uses reversed scope form", async () => {
+      const token = await createToken({
+        userId: "user123",
+        permissions: ["users:read"],
+        scope: "openid email",
+      });
+
+      mockCtx.req.header.mockReturnValue(`Bearer ${token}`);
+
+      const result = await authMiddleware(mockCtx, mockNext);
+
+      expect(mockNext).toHaveBeenCalled();
+      expect(result).toBe("next-response");
+    });
+
+    it("should allow request when token scope claim uses reversed form", async () => {
+      const token = await createToken({
+        userId: "user123",
+        permissions: [],
+        scope: "openid email users:read",
+      });
+
+      mockCtx.req.header.mockReturnValue(`Bearer ${token}`);
+
+      const result = await authMiddleware(mockCtx, mockNext);
+
+      expect(mockNext).toHaveBeenCalled();
+      expect(result).toBe("next-response");
+    });
+
     it("should allow request when user has additional permissions", async () => {
       const token = await createToken({
         userId: "user123",

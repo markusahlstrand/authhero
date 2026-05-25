@@ -13,7 +13,7 @@ export const roleInsertSchema = z.object({
     description: "The description of the role",
   }),
   is_system: z.boolean().optional(),
-  metadata: z.record(z.any()).optional().openapi({
+  metadata: z.record(z.string(), z.any()).optional().openapi({
     description:
       "Metadata associated with the role. Can be used to control sync behavior in multi-tenancy scenarios.",
   }),
