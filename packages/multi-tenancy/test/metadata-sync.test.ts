@@ -1,18 +1,12 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { Kysely, SqliteDialect } from "kysely";
-import SQLite from "better-sqlite3";
+import { Kysely } from "kysely";
 import { Hono } from "hono";
 import { Database } from "@authhero/kysely-adapter";
 import createAdapters, { migrateToLatest } from "@authhero/kysely-adapter";
-import {
-  setupMultiTenancy,
-  createSyncHooks,
-  createTenantsOpenAPIRouter,
-  MultiTenancyConfig,
-  MultiTenancyHooks,
-} from "../src/index";
+import { setupMultiTenancy, createSyncHooks, createTenantsOpenAPIRouter, MultiTenancyConfig, MultiTenancyHooks } from "../src/index";
 import { Role, ResourceServer } from "@authhero/adapter-interfaces";
 
+import { createMigratedDb } from "./helpers/migrated-db";
 /**
  * Helper to find a resource server by identifier using the list query
  */
@@ -51,14 +45,7 @@ describe("Metadata Sync Filter", () => {
   const controlPlaneTenantId = "control_plane";
 
   beforeEach(async () => {
-    // Create in-memory SQLite database
-    const dialect = new SqliteDialect({
-      database: new SQLite(":memory:"),
-    });
-    db = new Kysely<Database>({ dialect });
-
-    // Run migrations
-    await migrateToLatest(db, false);
+    db = await createMigratedDb();
 
     // Create adapters
     adapters = createAdapters(db);

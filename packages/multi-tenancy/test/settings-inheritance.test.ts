@@ -1,16 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import {
-  createRuntimeFallbackAdapter,
-  withRuntimeFallback,
-  withSystemResourceServerInheritance,
-  mergeClientWithFallback,
-} from "../src/middleware/settings-inheritance";
-import {
-  DataAdapters,
-  Connection,
-  Client,
-  ResourceServer,
-} from "@authhero/adapter-interfaces";
+import { createRuntimeFallbackAdapter, withRuntimeFallback, withSystemResourceServerInheritance, mergeClientWithFallback } from "../src/middleware/settings-inheritance";
+import { DataAdapters, Connection, Client, ResourceServer } from "@authhero/adapter-interfaces";
 
 // Mock data adapters for testing
 const createMockAdapters = (): DataAdapters => ({

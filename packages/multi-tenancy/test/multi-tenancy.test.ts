@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { Hono } from "hono";
-import { Kysely, SqliteDialect } from "kysely";
-import SQLite from "better-sqlite3";
+import { Kysely } from "kysely";
 import { Database } from "@authhero/kysely-adapter";
 import createAdapters, { migrateToLatest } from "@authhero/kysely-adapter";
 import { setupMultiTenancy } from "../src/index";
 
+import { createMigratedDb } from "./helpers/migrated-db";
 describe("Multi-Tenancy", () => {
   let app: Hono<{
     Bindings: { data: ReturnType<typeof createAdapters> };
@@ -17,14 +17,7 @@ describe("Multi-Tenancy", () => {
   const testUserId = "auth0|test-user-123";
 
   beforeEach(async () => {
-    // Create in-memory SQLite database
-    const dialect = new SqliteDialect({
-      database: new SQLite(":memory:"),
-    });
-    db = new Kysely<Database>({ dialect });
-
-    // Run migrations
-    await migrateToLatest(db, false);
+    db = await createMigratedDb();
 
     // Create adapters
     adapters = createAdapters(db);

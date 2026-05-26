@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { Kysely, SqliteDialect } from "kysely";
-import SQLite from "better-sqlite3";
+import { Kysely } from "kysely";
 import createAdapters, {
   Database,
   migrateToLatest,
 } from "@authhero/kysely-adapter";
 import { withRuntimeFallback } from "../src/middleware/settings-inheritance";
 
+import { createMigratedDb } from "./helpers/migrated-db";
 const controlPlaneTenantId = "control_plane";
 const subTenantId = "tenant-1";
 
@@ -16,10 +16,7 @@ describe("Hook inheritance from control plane", () => {
   let adapters: ReturnType<typeof createAdapters>;
 
   beforeEach(async () => {
-    db = new Kysely<Database>({
-      dialect: new SqliteDialect({ database: new SQLite(":memory:") }),
-    });
-    await migrateToLatest(db, false);
+    db = await createMigratedDb();
     baseAdapters = createAdapters(db);
     adapters = withRuntimeFallback(baseAdapters, {
       controlPlaneTenantId,

@@ -26,14 +26,14 @@
     }
   },
   "scripts": {
-    "build": "tsc && vite build && dts-bundle-generator --config ./dts-bundle-generator.config.ts"
+    "build": "vite build && tsc -p tsconfig.types.json && rollup -c rollup.dts.config.mjs"
   },
   "devDependencies": {
     "@hono/zod-openapi": "^1.4.0",
     "@rollup/plugin-commonjs": "^28.0.1",
     "@rollup/plugin-node-resolve": "^15.3.0",
     "@types/node": "^22.9.1",
-    "dts-bundle-generator": "^9.5.1",
+    "rollup-plugin-dts": "^6.4.1",
     "typescript": "^5.6.3",
     "vite": "^5.4.11"
   },
