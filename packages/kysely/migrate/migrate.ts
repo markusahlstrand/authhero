@@ -1,4 +1,5 @@
-import { Kysely, Migrator } from "kysely";
+import { Kysely } from "kysely";
+import { Migrator } from "kysely/migration";
 
 import ReferenceMigrationProvider from "./ReferenceMigrationProvider";
 import migrations from "./migrations";

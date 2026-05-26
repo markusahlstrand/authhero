@@ -55,7 +55,13 @@ export {
   type CloudflareCodeExecutorConfig,
 } from "./code-executor";
 export { generateWorkerScript } from "./code-executor/worker-template";
-export { WorkerLoaderCodeExecutor } from "./code-executor/worker-loader";
+export {
+  WorkerLoaderCodeExecutor,
+  type WorkerLoader,
+  type WorkerCode,
+  type WorkerStub,
+  type WorkerLoaderCodeExecutorOptions,
+} from "./code-executor/worker-loader";
 
 // Re-export adapters for direct usage
 export { createAnalyticsEngineLogsAdapter } from "./analytics-engine-logs";

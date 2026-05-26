@@ -25,10 +25,10 @@
     "@rollup/plugin-commonjs": "^26.0.1",
     "@rollup/plugin-node-resolve": "^15.2.3",
     "@types/inquirer": "^9.0.7",
-    "@types/node": "^20.14.9",
-    "tsx": "^4.19.4",
+    "@types/node": "^20.19.41",
+    "tsx": "^4.22.3",
     "typescript": "^5.5.2",
-    "vite": "^5.3.2"
+    "vite": "^8.0.14"
   },
   "dependencies": {
     "commander": "^12.1.0",

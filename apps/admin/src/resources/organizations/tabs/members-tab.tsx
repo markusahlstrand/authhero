@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   useDataProvider,
   useNotify,
@@ -6,7 +6,8 @@ import {
   useRefresh,
 } from "ra-core";
 import { useParams } from "react-router-dom";
-import { Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -35,6 +36,12 @@ interface UserSummary {
   phone_number?: string;
 }
 
+interface RoleSummary {
+  id: string;
+  name?: string;
+  description?: string;
+}
+
 interface MemberRecord {
   id: string;
   organization_id: string;
@@ -42,6 +49,7 @@ interface MemberRecord {
   email?: string;
   name?: string;
   picture?: string;
+  roles?: RoleSummary[];
 }
 
 function AddMemberButton() {
@@ -285,6 +293,172 @@ function RemoveMemberCell() {
   );
 }
 
+function MemberRolesCell() {
+  const record = useRecordContext<MemberRecord>();
+  if (!record) return null;
+  const roles = record.roles ?? [];
+  if (roles.length === 0) {
+    return <span className="text-xs text-muted-foreground">No roles</span>;
+  }
+  return (
+    <div className="flex flex-wrap gap-1">
+      {roles.map((role) => (
+        <Badge key={role.id} variant="secondary" title={role.description}>
+          {role.name || role.id}
+        </Badge>
+      ))}
+    </div>
+  );
+}
+
+function EditMemberRolesCell() {
+  const record = useRecordContext<MemberRecord>();
+  const { id: organizationId } = useParams();
+  const dataProvider = useDataProvider();
+  const notify = useNotify();
+  const refresh = useRefresh();
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [allRoles, setAllRoles] = useState<RoleSummary[]>([]);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [initial, setInitial] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!open || !organizationId) return;
+    setLoading(true);
+    (async () => {
+      try {
+        const res = await dataProvider.getList<RoleSummary>(
+          `organizations/${organizationId}/roles`,
+          {
+            pagination: { page: 1, perPage: 1000 },
+            sort: { field: "name", order: "ASC" },
+            filter: {},
+          },
+        );
+        setAllRoles(res.data);
+        const current = new Set((record?.roles ?? []).map((r) => r.id));
+        setSelected(new Set(current));
+        setInitial(current);
+      } catch {
+        notify("Error loading roles", { type: "error" });
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [open, organizationId, dataProvider, notify, record]);
+
+  if (!record || !organizationId) return null;
+
+  const toggle = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleSave = async () => {
+    setBusy(true);
+    try {
+      const toAdd = Array.from(selected).filter((id) => !initial.has(id));
+      const toRemove = Array.from(initial).filter((id) => !selected.has(id));
+      if (toAdd.length > 0) {
+        await dataProvider.create(
+          `organizations/${organizationId}/members/${record.user_id}/roles`,
+          { data: { roles: toAdd } },
+        );
+      }
+      for (const roleId of toRemove) {
+        await dataProvider.delete(
+          `organizations/${organizationId}/members/${record.user_id}/roles`,
+          { id: roleId, previousData: { id: roleId, roles: [roleId] } },
+        );
+      }
+      notify("Roles updated", { type: "success" });
+      setOpen(false);
+      refresh();
+    } catch {
+      notify("Error updating roles", { type: "error" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        aria-label="Edit roles"
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen(true);
+        }}
+      >
+        <Pencil className="h-4 w-4" />
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent
+          className="max-w-lg"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <DialogHeader>
+            <DialogTitle>
+              Edit roles for {record.email || record.name || record.user_id}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="max-h-80 overflow-auto border rounded-md">
+            {loading ? (
+              <p className="p-4 text-sm text-muted-foreground">Loading…</p>
+            ) : allRoles.length === 0 ? (
+              <p className="p-4 text-sm text-muted-foreground">
+                No roles defined in this tenant
+              </p>
+            ) : (
+              <ul className="divide-y">
+                {allRoles.map((r) => (
+                  <li key={r.id} className="flex items-start gap-2 p-2">
+                    <Checkbox
+                      id={`org-member-role-${r.id}`}
+                      checked={selected.has(r.id)}
+                      onCheckedChange={() => toggle(r.id)}
+                    />
+                    <label
+                      htmlFor={`org-member-role-${r.id}`}
+                      className="flex-1 cursor-pointer"
+                    >
+                      <div className="text-sm font-medium">
+                        {r.name || r.id}
+                      </div>
+                      {r.description && (
+                        <div className="text-xs text-muted-foreground">
+                          {r.description}
+                        </div>
+                      )}
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave} disabled={busy || loading}>
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 export function MembersTab() {
   return (
     <div className="flex flex-col gap-4">
@@ -312,8 +486,12 @@ export function MembersTab() {
           <DataTable.Col source="email" />
           <DataTable.Col source="name" />
           <DataTable.Col source="user_id" label="User ID" />
+          <DataTable.Col label="Roles">
+            <MemberRolesCell />
+          </DataTable.Col>
           <DataTable.Col label="">
             <div className="flex items-center justify-end gap-1">
+              <EditMemberRolesCell />
               <RemoveMemberCell />
             </div>
           </DataTable.Col>

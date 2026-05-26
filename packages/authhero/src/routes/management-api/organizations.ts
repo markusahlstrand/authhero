@@ -6,6 +6,7 @@ import {
   organizationConnectionInsertSchema,
   totalsSchema,
   roleListSchema,
+  roleSchema,
   inviteSchema,
   inviteInsertSchema,
   LogTypes,
@@ -96,7 +97,13 @@ const organizationMemberSchema = z.object({
     description: "Email address of this user",
     format: "email",
   }),
-  roles: z.array(z.object({})).default([]).openapi({
+  name: z.string().optional().openapi({
+    description: "Name of this user",
+  }),
+  picture: z.string().optional().openapi({
+    description: "Picture URL for this user",
+  }),
+  roles: z.array(roleSchema).default([]).openapi({
     description: "Array of roles assigned to this user in the organization",
   }),
 });
@@ -473,23 +480,26 @@ const getByIdMembers = defineRoute({
         },
       );
 
-      // Get user details for each member
-      const members: Array<{
-        user_id: string;
-        email?: string;
-        roles: Array<any>;
-      }> = [];
-
-      for (const userOrg of userOrgsResult.userOrganizations) {
-        const user = await ctx.env.data.users.get(tenant_id, userOrg.user_id);
-        if (user) {
-          members.push({
+      // Get user details and org-scoped roles for each member
+      const members = await Promise.all(
+        userOrgsResult.userOrganizations.map(async (userOrg) => {
+          const user = await ctx.env.data.users.get(tenant_id, userOrg.user_id);
+          if (!user) return null;
+          const roles = await ctx.env.data.userRoles.list(
+            tenant_id,
+            user.user_id,
+            undefined,
+            organization.id,
+          );
+          return {
             user_id: user.user_id,
             email: user.email || undefined,
-            roles: [], // TODO: Implement roles when organization roles are available
-          });
-        }
-      }
+            name: user.name || undefined,
+            picture: user.picture || undefined,
+            roles,
+          };
+        }),
+      ).then((rows) => rows.filter((r): r is NonNullable<typeof r> => r !== null));
 
       // Return different formats based on query parameters
       if (include_totals) {

@@ -5,10 +5,10 @@
  * It contains typing information for all components that exist in this project.
  */
 import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
-import { FormNodeComponent as FormComponent, RuntimeComponent, UiScreen } from "./types/components";
+import { FormComponent, RuntimeComponent, UiScreen } from "./types/components";
 import { AuthParams, ButtonClickEventDetail, CompleteEventDetail, ErrorEventDetail, LinkClickEventDetail, NavigateEventDetail, StatePersistence, SubmitEventDetail } from "./components/authhero-widget/authhero-widget";
 import { WidgetBranding, WidgetTheme } from "./utils/branding";
-export { FormNodeComponent as FormComponent, RuntimeComponent, UiScreen } from "./types/components";
+export { FormComponent, RuntimeComponent, UiScreen } from "./types/components";
 export { AuthParams, ButtonClickEventDetail, CompleteEventDetail, ErrorEventDetail, LinkClickEventDetail, NavigateEventDetail, StatePersistence, SubmitEventDetail } from "./components/authhero-widget/authhero-widget";
 export { WidgetBranding, WidgetTheme } from "./utils/branding";
 export namespace Components {
@@ -261,17 +261,38 @@ declare namespace LocalJSX {
          */
         "theme"?: WidgetTheme | string;
     }
+
+    interface AuthheroNodeAttributes {
+        "value": string;
+        "disabled": boolean;
+    }
+    interface AuthheroWidgetAttributes {
+        "screen": UiScreen | string;
+        "apiUrl": string;
+        "baseUrl": string;
+        "state": string;
+        "screenId": string;
+        "authParams": AuthParams | string;
+        "statePersistence": StatePersistence;
+        "storageKey": string;
+        "branding": WidgetBranding | string;
+        "theme": WidgetTheme | string;
+        "loading": boolean;
+        "autoSubmit": boolean;
+        "autoNavigate": boolean;
+    }
+
     interface IntrinsicElements {
-        "authhero-node": AuthheroNode;
-        "authhero-widget": AuthheroWidget;
+        "authhero-node": Omit<AuthheroNode, keyof AuthheroNodeAttributes> & { [K in keyof AuthheroNode & keyof AuthheroNodeAttributes]?: AuthheroNode[K] } & { [K in keyof AuthheroNode & keyof AuthheroNodeAttributes as `attr:${K}`]?: AuthheroNodeAttributes[K] } & { [K in keyof AuthheroNode & keyof AuthheroNodeAttributes as `prop:${K}`]?: AuthheroNode[K] };
+        "authhero-widget": Omit<AuthheroWidget, keyof AuthheroWidgetAttributes> & { [K in keyof AuthheroWidget & keyof AuthheroWidgetAttributes]?: AuthheroWidget[K] } & { [K in keyof AuthheroWidget & keyof AuthheroWidgetAttributes as `attr:${K}`]?: AuthheroWidgetAttributes[K] } & { [K in keyof AuthheroWidget & keyof AuthheroWidgetAttributes as `prop:${K}`]?: AuthheroWidget[K] };
     }
 }
 export { LocalJSX as JSX };
 declare module "@stencil/core" {
     export namespace JSX {
         interface IntrinsicElements {
-            "authhero-node": LocalJSX.AuthheroNode & JSXBase.HTMLAttributes<HTMLAuthheroNodeElement>;
-            "authhero-widget": LocalJSX.AuthheroWidget & JSXBase.HTMLAttributes<HTMLAuthheroWidgetElement>;
+            "authhero-node": LocalJSX.IntrinsicElements["authhero-node"] & JSXBase.HTMLAttributes<HTMLAuthheroNodeElement>;
+            "authhero-widget": LocalJSX.IntrinsicElements["authhero-widget"] & JSXBase.HTMLAttributes<HTMLAuthheroWidgetElement>;
         }
     }
 }

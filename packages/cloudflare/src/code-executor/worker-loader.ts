@@ -9,22 +9,22 @@ import {
  *   [[worker_loaders]]
  *   binding = "LOADER"
  */
-interface WorkerLoader {
+export interface WorkerLoader {
   load(code: WorkerCode): WorkerStub;
   get(id: string, callback: () => Promise<WorkerCode>): WorkerStub;
 }
 
-interface WorkerCode {
+export interface WorkerCode {
   compatibilityDate: string;
   mainModule: string;
   modules: Record<string, string>;
 }
 
-interface WorkerStub {
+export interface WorkerStub {
   getEntrypoint(): { fetch(request: Request): Promise<Response> };
 }
 
-interface WorkerLoaderCodeExecutorOptions {
+export interface WorkerLoaderCodeExecutorOptions {
   loader: WorkerLoader;
   compatibilityDate?: string;
 }
