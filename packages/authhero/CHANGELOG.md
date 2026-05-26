@@ -1,5 +1,22 @@
 # authhero
 
+## 5.10.0
+
+### Minor Changes
+
+- 30d564b: Validate `audience` at `/authorize` and allow audience-less requests.
+  - `/authorize` now rejects with `access_denied` / `Service not found: <audience>` when the requested `audience` (or tenant `default_audience`) doesn't match a registered resource server. Previously the request proceeded through the full login UI and only failed at token issuance time. Auth0 parity.
+  - Audience is no longer required: requests without `audience` (and no tenant `default_audience`) mint a JWT with `aud = ${issuer}userinfo` instead of returning `400 invalid_request`. The token is only useful for `/userinfo`, matching Auth0's no-audience semantics (though authhero's variant is JWT-verifiable, not opaque).
+  - `completeLogin` now runs scope validation against the userinfo fallback audience, so requests omitting `audience` can no longer pass arbitrary non-OIDC scopes through unchecked.
+
+### Patch Changes
+
+- 30d564b: Temporarily exempt `/api/v2/users*` and `/api/v2/users-by-email*` from the management API audience check (added in the previous "validate audience" change). External callers using the legacy audience were hitting 403s on these endpoints. Scope and JWT signature/expiry checks still run as before — only the `aud === urn:authhero:management` equality check is skipped for these prefixes. To be removed once those callers migrate to the new audience.
+- Updated dependencies [528e196]
+  - @authhero/adapter-interfaces@2.6.1
+  - @authhero/saml@0.4.1
+  - @authhero/widget@0.32.28
+
 ## 5.9.1
 
 ### Patch Changes
