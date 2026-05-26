@@ -495,4 +495,120 @@ describe("createAuthMiddleware", () => {
       expect(result).toBe("next-response");
     });
   });
+
+  // TODO(audience-migration): Remove once external callers migrate to the
+  // urn:authhero:management audience. Mirrors AUDIENCE_EXEMPT_PREFIXES in
+  // authentication.ts — keep in sync.
+  // Note: middleware strips /api/v2 before looking up the route in the
+  // OpenAPI registry, so we register routes here with their relative paths
+  // (e.g. /users) while matchedRoutes carries the full /api/v2/... path.
+  describe("audience-exempt /api/v2/users* paths", () => {
+    const exemptCases: Array<{ full: string; relative: string }> = [
+      { full: "/api/v2/users", relative: "/users" },
+      { full: "/api/v2/users/", relative: "/users/" },
+      { full: "/api/v2/users/{user_id}", relative: "/users/{user_id}" },
+      {
+        full: "/api/v2/users/{user_id}/identities",
+        relative: "/users/{user_id}/identities",
+      },
+      { full: "/api/v2/users-by-email", relative: "/users-by-email" },
+      { full: "/api/v2/users-by-email/", relative: "/users-by-email/" },
+    ];
+
+    for (const { full, relative } of exemptCases) {
+      it(`accepts a non-management audience for ${full}`, async () => {
+        app.openapi(
+          {
+            method: "get",
+            path: relative,
+            security: [{ Bearer: ["read:users"] }],
+            responses: { 200: { description: "Success" } },
+          },
+          async (c) => c.json({ message: "success" }),
+        );
+
+        const strictMiddleware = createAuthMiddleware(app, {
+          requireManagementAudience: true,
+        });
+
+        const token = await createToken({
+          userId: "user123",
+          permissions: ["read:users"],
+          aud: "https://example.com/api",
+        });
+
+        mockCtx.req.matchedRoutes = [{ method: "GET", path: full }];
+        mockCtx.req.header.mockReturnValue(`Bearer ${token}`);
+
+        const result = await strictMiddleware(mockCtx, mockNext);
+
+        expect(mockNext).toHaveBeenCalled();
+        expect(result).toBe("next-response");
+      });
+    }
+
+    it("still enforces scope on exempt paths", async () => {
+      app.openapi(
+        {
+          method: "get",
+          path: "/users",
+          security: [{ Bearer: ["read:users"] }],
+          responses: { 200: { description: "Success" } },
+        },
+        async (c) => c.json({ message: "success" }),
+      );
+
+      const strictMiddleware = createAuthMiddleware(app, {
+        requireManagementAudience: true,
+      });
+
+      const token = await createToken({
+        userId: "user123",
+        permissions: ["read:posts"],
+        aud: "https://example.com/api",
+      });
+
+      mockCtx.req.matchedRoutes = [
+        { method: "GET", path: "/api/v2/users" },
+      ];
+      mockCtx.req.header.mockReturnValue(`Bearer ${token}`);
+
+      await expect(strictMiddleware(mockCtx, mockNext)).rejects.toThrow(
+        "Unauthorized",
+      );
+      expect(mockNext).not.toHaveBeenCalled();
+    });
+
+    it("does not exempt sibling paths like /api/v2/userinfo", async () => {
+      app.openapi(
+        {
+          method: "get",
+          path: "/userinfo",
+          security: [{ Bearer: ["read:users"] }],
+          responses: { 200: { description: "Success" } },
+        },
+        async (c) => c.json({ message: "success" }),
+      );
+
+      const strictMiddleware = createAuthMiddleware(app, {
+        requireManagementAudience: true,
+      });
+
+      const token = await createToken({
+        userId: "user123",
+        permissions: ["read:users"],
+        aud: "https://example.com/api",
+      });
+
+      mockCtx.req.matchedRoutes = [
+        { method: "GET", path: "/api/v2/userinfo" },
+      ];
+      mockCtx.req.header.mockReturnValue(`Bearer ${token}`);
+
+      await expect(strictMiddleware(mockCtx, mockNext)).rejects.toThrow(
+        "Invalid audience",
+      );
+      expect(mockNext).not.toHaveBeenCalled();
+    });
+  });
 });

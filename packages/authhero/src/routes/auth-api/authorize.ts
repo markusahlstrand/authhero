@@ -532,6 +532,44 @@ const getRoot = defineRoute({
         }
       }
 
+      // Auth0 parity: reject /authorize when the audience doesn't match a
+      // registered resource server, so the user sees the error before the
+      // login UI rather than after entering credentials. An undefined
+      // audience is allowed — it produces a userinfo-only JWT downstream.
+      if (authParams.audience) {
+        const { resource_servers } = await env.data.resourceServers.list(
+          client.tenant.id,
+        );
+        const audienceMatches = resource_servers.some(
+          (rs) => rs.identifier === authParams.audience,
+        );
+        if (!audienceMatches) {
+          const errorParams: Record<string, string> = {
+            error: "access_denied",
+            error_description: `Service not found: ${authParams.audience}`,
+          };
+          if (state) errorParams.state = state;
+
+          if (sanitizedRedirectUri) {
+            if (response_mode === AuthorizationResponseMode.FORM_POST) {
+              return formPostResponse(
+                sanitizedRedirectUri,
+                errorParams,
+                new Headers(),
+              );
+            }
+            const redirectUrl = new URL(sanitizedRedirectUri);
+            for (const [k, v] of Object.entries(errorParams)) {
+              redirectUrl.searchParams.set(k, v);
+            }
+            return ctx.redirect(redirectUrl.toString());
+          }
+          throw new HTTPException(403, {
+            message: `Service not found: ${authParams.audience}`,
+          });
+        }
+      }
+
       // Fetch the session from cookies
       // Users may have multiple cookies with the same name due to domain/path conflicts,
       // partitioned vs non-partitioned cookies, or browser quirks. Try all cookie values
