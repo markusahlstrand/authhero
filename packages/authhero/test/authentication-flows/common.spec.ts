@@ -99,7 +99,7 @@ describe("common", () => {
       expect(payload.aud).toBe("https://example.com");
     });
 
-    it("should throw when neither authParams.audience nor tenant default_audience is set", async () => {
+    it("falls back to the userinfo aud when neither authParams.audience nor tenant default_audience is set", async () => {
       const { env } = await getTestServer();
 
       // Create a separate tenant without default_audience — the kysely adapter
@@ -145,17 +145,22 @@ describe("common", () => {
       // Sanity-check the fixture: no default_audience on this tenant
       expect(client.tenant.default_audience).toBeUndefined();
 
-      await expect(
-        createAuthTokens(ctx, {
-          authParams: {
-            client_id: "noAudienceClient",
-            response_type: AuthorizationResponseType.TOKEN,
-          },
-          client,
-          user,
-          session_id: "session_id",
-        }),
-      ).rejects.toThrow(/audience/i);
+      const tokens = await createAuthTokens(ctx, {
+        authParams: {
+          client_id: "noAudienceClient",
+          response_type: AuthorizationResponseType.TOKEN,
+        },
+        client,
+        user,
+        session_id: "session_id",
+      });
+
+      // Auth0 parity: no audience yields a JWT scoped to /userinfo.
+      const payload = parseJWT(tokens.access_token!)!.payload as {
+        aud: string;
+        iss: string;
+      };
+      expect(payload.aud).toBe(`${payload.iss}userinfo`);
     });
 
     it("should create an access token and an id token when the response type is token id_token and the openid scope is requested", async () => {

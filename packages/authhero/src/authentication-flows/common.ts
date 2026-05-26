@@ -212,17 +212,11 @@ export async function createAuthTokens(
 
   // Audience is normally stamped onto authParams at /authorize (or
   // /oauth/token for client_credentials). Fall back to the tenant's
-  // default_audience here as a safety net for callers that create login
-  // sessions without going through /authorize.
-  const audience = authParams.audience ?? client.tenant.default_audience;
-
-  if (!audience) {
-    throw new JSONHTTPException(400, {
-      error: "invalid_request",
-      error_description:
-        "An audience must be specified in the request or configured as the tenant default_audience",
-    });
-  }
+  // default_audience for callers that create login sessions without going
+  // through /authorize, then to `${iss}userinfo` so audience-less requests
+  // still produce a JWT — Auth0 parity for "I just want login + /userinfo".
+  const audience =
+    authParams.audience ?? client.tenant.default_audience ?? `${iss}userinfo`;
 
   // OIDC Core 5.5 — when the original /authorize request carried a `claims`
   // parameter with a `userinfo` member, the requested claim names need to
@@ -609,15 +603,11 @@ export async function createRefreshToken(
   params: CreateRefreshTokenParams,
 ): Promise<CreatedRefreshToken> {
   const { client, scope, login_id } = params;
-  const audience = params.audience ?? client.tenant.default_audience;
-
-  if (!audience) {
-    throw new JSONHTTPException(400, {
-      error: "invalid_request",
-      error_description:
-        "An audience must be specified in the request or configured as the tenant default_audience",
-    });
-  }
+  // Mirror createAuthTokens: fall back to default_audience, then to the
+  // userinfo aud so audience-less flows can still mint a refresh token.
+  const iss = getIssuer(ctx.env, ctx.var.custom_domain);
+  const audience =
+    params.audience ?? client.tenant.default_audience ?? `${iss}userinfo`;
 
   const idleExpiresAt = lifetimeToIso(client.tenant.idle_session_lifetime);
   const absoluteExpiresAt = lifetimeToIso(client.tenant.session_lifetime);
@@ -1919,8 +1909,15 @@ export async function completeLogin(
   let calculatedPermissions: string[] = [];
   let calculatedTokenLifetime: number | undefined;
 
+  // Fall back to the userinfo aud so the scopes-permissions security check
+  // (which rejects non-OIDC scopes when no resource server matches) still
+  // runs for audience-less requests. Without this fallback, omitting
+  // audience would silently bypass scope validation.
+  const iss = getIssuer(ctx.env, ctx.var.custom_domain);
   const resolvedAudience =
-    params.authParams.audience ?? params.client.tenant.default_audience;
+    params.authParams.audience ??
+    params.client.tenant.default_audience ??
+    `${iss}userinfo`;
 
   if (resolvedAudience) {
     try {

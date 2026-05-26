@@ -159,6 +159,13 @@ export async function getTestServer(
     },
   });
 
+  // Register the tenant's default audience as a resource server so /authorize
+  // doesn't reject test requests with "Service not found".
+  await data.resourceServers.create("tenantId", {
+    name: "Example API",
+    identifier: "https://example.com",
+  });
+
   // Add a test user with OIDC profile claims for testing
   await data.users.create("tenantId", {
     email: "foo@example.com",
