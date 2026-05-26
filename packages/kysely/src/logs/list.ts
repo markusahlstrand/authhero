@@ -20,7 +20,7 @@ export function listLogs(db: Kysely<Database>) {
     let query = db.selectFrom("logs").where("logs.tenant_id", "=", tenant_id);
 
     if (q) {
-      query = luceneFilter(db, query, q, ["user_id", "ip"]);
+      query = luceneFilter(db, query, q, ["user_id", "ip"], ["description"]);
     }
 
     if (typeof from_date === "number" && Number.isFinite(from_date)) {

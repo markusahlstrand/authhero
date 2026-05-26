@@ -1,57 +1,31 @@
-import {
-  Edit,
-  SimpleForm,
-  TextInput,
-  SelectInput,
-} from "@/components/admin";
-import { SecretInput } from "@/common/SecretInput";
+import { Edit, SimpleForm } from "@/components/admin";
+import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { UrlTabs } from "@/components/ui/url-tabs";
 import { flattenDomainMetadata } from "@/components/custom-domains/domainMetadataUtils";
+import { DetailsTab } from "./tabs/details-tab";
+import { ProxyTab } from "./tabs/proxy-tab";
+import { RawJsonTab } from "./tabs/raw-json-tab";
 
 export function DomainEdit() {
   return (
     <Edit transform={flattenDomainMetadata} mutationMode="pessimistic">
-      <SimpleForm>
-        <TextInput source="domain" />
-        <TextInput source="status" readOnly />
-
-        <SelectInput
-          source="domain_metadata.ssl.certificate_authority"
-          label="Certificate Authority"
-          choices={[
-            { id: "google", name: "Google Trust Services" },
-            { id: "lets_encrypt", name: "Let's Encrypt" },
-            { id: "sectigo", name: "Sectigo" },
-            { id: "digicert", name: "DigiCert (Enterprise)" },
-          ]}
-        />
-        <SelectInput
-          source="domain_metadata.ssl.method"
-          label="SSL Verification Method"
-          choices={[
-            { id: "txt", name: "TXT" },
-            { id: "http", name: "HTTP" },
-            { id: "email", name: "Email" },
-          ]}
-        />
-
-        <SelectInput
-          source="email_service"
-          choices={[
-            { id: "mailchannels", name: "Mailchannels" },
-            { id: "mailgun", name: "Mailgun" },
-          ]}
-        />
-        <SecretInput
-          source="dkim_private_key"
-          label="DKIM Private Key (PEM)"
-          multiline
-        />
-        <SecretInput
-          source="dkim_public_key"
-          label="DKIM Public Key (PEM)"
-          multiline
-        />
-        <SecretInput source="email_api_key" label="Email API Key" />
+      <SimpleForm className="max-w-none">
+        <UrlTabs defaultValue="details" className="w-full">
+          <TabsList>
+            <TabsTrigger value="details">Details</TabsTrigger>
+            <TabsTrigger value="proxy">Proxy</TabsTrigger>
+            <TabsTrigger value="raw">Raw</TabsTrigger>
+          </TabsList>
+          <TabsContent value="details" className="mt-4">
+            <DetailsTab />
+          </TabsContent>
+          <TabsContent value="proxy" className="mt-4">
+            <ProxyTab />
+          </TabsContent>
+          <TabsContent value="raw" className="mt-4">
+            <RawJsonTab />
+          </TabsContent>
+        </UrlTabs>
       </SimpleForm>
     </Edit>
   );

@@ -401,12 +401,6 @@ importers:
       '@hono/zod-openapi':
         specifier: ^1.4.0
         version: 1.4.0(hono@4.12.23)(zod@4.4.3)
-      '@rollup/plugin-commonjs':
-        specifier: ^28.0.1
-        version: 28.0.9(rollup@4.54.0)
-      '@rollup/plugin-node-resolve':
-        specifier: ^15.3.0
-        version: 15.3.1(rollup@4.54.0)
       '@types/node':
         specifier: ^22.19.19
         version: 22.19.19
@@ -598,12 +592,6 @@ importers:
       '@hono/zod-openapi':
         specifier: ^1.4.0
         version: 1.4.0(hono@4.12.23)(zod@4.4.3)
-      '@rollup/plugin-commonjs':
-        specifier: ^29.0.2
-        version: 29.0.2(rollup@4.54.0)
-      '@rollup/plugin-node-resolve':
-        specifier: ^16.0.3
-        version: 16.0.3(rollup@4.54.0)
       '@types/node':
         specifier: ^24.12.4
         version: 24.12.4
@@ -644,12 +632,6 @@ importers:
       '@hono/zod-openapi':
         specifier: ^1.4.0
         version: 1.4.0(hono@4.12.23)(zod@4.4.3)
-      '@rollup/plugin-commonjs':
-        specifier: ^29.0.2
-        version: 29.0.2(rollup@4.54.0)
-      '@rollup/plugin-node-resolve':
-        specifier: ^16.0.3
-        version: 16.0.3(rollup@4.54.0)
       '@types/node':
         specifier: ^24.12.4
         version: 24.12.4
@@ -767,12 +749,6 @@ importers:
       '@hono/zod-openapi':
         specifier: ^1.4.0
         version: 1.4.0(hono@4.12.23)(zod@4.4.3)
-      '@rollup/plugin-commonjs':
-        specifier: ^28.0.1
-        version: 28.0.9(rollup@4.54.0)
-      '@rollup/plugin-node-resolve':
-        specifier: ^15.3.0
-        version: 15.3.1(rollup@4.54.0)
       '@types/node':
         specifier: ^22.19.19
         version: 22.19.19
@@ -843,6 +819,40 @@ importers:
       vitest:
         specifier: ^4.1.7
         version: 4.1.7(@types/node@22.19.19)(jsdom@29.1.1)(msw@2.14.6(@types/node@22.19.19)(typescript@5.9.3))(vite@8.0.14(@types/node@22.19.19)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.3)(yaml@2.9.0))
+
+  packages/proxy:
+    dependencies:
+      nanoid:
+        specifier: ^5.1.11
+        version: 5.1.11
+    devDependencies:
+      '@hono/zod-openapi':
+        specifier: ^1.4.0
+        version: 1.4.0(hono@4.12.23)(zod@4.4.3)
+      '@types/node':
+        specifier: ^24.12.4
+        version: 24.12.4
+      better-sqlite3:
+        specifier: ^12.4.1
+        version: 12.10.0
+      hono:
+        specifier: ^4.12.23
+        version: 4.12.23
+      kysely:
+        specifier: ^0.29.2
+        version: 0.29.2
+      rollup-plugin-dts:
+        specifier: ^6.4.1
+        version: 6.4.1(rollup@4.54.0)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vite:
+        specifier: ^8.0.14
+        version: 8.0.14(@types/node@24.12.4)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.3)(yaml@2.9.0)
+      vitest:
+        specifier: ^4.1.7
+        version: 4.1.7(@types/node@24.12.4)(jsdom@29.1.1)(msw@2.14.6(@types/node@24.12.4)(typescript@5.9.3))(vite@8.0.14(@types/node@24.12.4)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.3)(yaml@2.9.0))
 
   packages/saml:
     dependencies:
@@ -1251,10 +1261,6 @@ packages:
 
   '@babel/helper-string-parser@7.29.7':
     resolution: {integrity: sha512-Pb5ijPrZ89GDH8223L4UP8i6QApWxs04RbPQJTeWDV0/keR2E36MeKnyr6LYmUUvqRRI+Iv87SuF1W6ErINzYw==}
-    engines: {node: '>=6.9.0'}
-
-  '@babel/helper-validator-identifier@7.28.5':
-    resolution: {integrity: sha512-qSs4ifwzKJSV39ucNjsvc6WVHs6b7S03sOh2OcHF9UHfVPqWWALUsNUVzhSBiItjRZoLHx7nIarVjqKVusUZ1Q==}
     engines: {node: '>=6.9.0'}
 
   '@babel/helper-validator-identifier@7.29.7':
@@ -4554,35 +4560,8 @@ packages:
       rollup:
         optional: true
 
-  '@rollup/plugin-commonjs@28.0.9':
-    resolution: {integrity: sha512-PIR4/OHZ79romx0BVVll/PkwWpJ7e5lsqFa3gFfcrFPWwLXLV39JVUzQV9RKjWerE7B845Hqjj9VYlQeieZ2dA==}
-    engines: {node: '>=16.0.0 || 14 >= 14.17'}
-    peerDependencies:
-      rollup: ^2.68.0||^3.0.0||^4.0.0
-    peerDependenciesMeta:
-      rollup:
-        optional: true
-
-  '@rollup/plugin-commonjs@29.0.2':
-    resolution: {integrity: sha512-S/ggWH1LU7jTyi9DxZOKyxpVd4hF/OZ0JrEbeLjXk/DFXwRny0tjD2c992zOUYQobLrVkRVMDdmHP16HKP7GRg==}
-    engines: {node: '>=16.0.0 || 14 >= 14.17'}
-    peerDependencies:
-      rollup: ^2.68.0||^3.0.0||^4.0.0
-    peerDependenciesMeta:
-      rollup:
-        optional: true
-
   '@rollup/plugin-node-resolve@15.3.1':
     resolution: {integrity: sha512-tgg6b91pAybXHJQMAAwW9VuWBO6Thi+q7BCNARLwSqlmsHz0XYURtGvh/AuwSADXSI4h/2uHbs7s4FzlZDGSGA==}
-    engines: {node: '>=14.0.0'}
-    peerDependencies:
-      rollup: ^2.78.0||^3.0.0||^4.0.0
-    peerDependenciesMeta:
-      rollup:
-        optional: true
-
-  '@rollup/plugin-node-resolve@16.0.3':
-    resolution: {integrity: sha512-lUYM3UBGuM93CnMPG1YocWu7X802BrNF3jW2zny5gQyLQgRFJhV1Sq0Zi74+dh/6NBx1DxFC4b4GXg9wUCG5Qg==}
     engines: {node: '>=14.0.0'}
     peerDependencies:
       rollup: ^2.78.0||^3.0.0||^4.0.0
@@ -11327,7 +11306,7 @@ snapshots:
 
   '@babel/code-frame@7.27.1':
     dependencies:
-      '@babel/helper-validator-identifier': 7.28.5
+      '@babel/helper-validator-identifier': 7.29.7
       js-tokens: 4.0.0
       picocolors: 1.1.1
 
@@ -11435,7 +11414,7 @@ snapshots:
     dependencies:
       '@babel/core': 7.28.5
       '@babel/helper-module-imports': 7.27.1
-      '@babel/helper-validator-identifier': 7.28.5
+      '@babel/helper-validator-identifier': 7.29.7
       '@babel/traverse': 7.28.5
     transitivePeerDependencies:
       - supports-color
@@ -11454,8 +11433,6 @@ snapshots:
   '@babel/helper-string-parser@7.27.1': {}
 
   '@babel/helper-string-parser@7.29.7': {}
-
-  '@babel/helper-validator-identifier@7.28.5': {}
 
   '@babel/helper-validator-identifier@7.29.7': {}
 
@@ -11574,7 +11551,7 @@ snapshots:
 
   '@babel/template@7.27.2':
     dependencies:
-      '@babel/code-frame': 7.27.1
+      '@babel/code-frame': 7.29.7
       '@babel/parser': 7.28.5
       '@babel/types': 7.28.5
 
@@ -11586,7 +11563,7 @@ snapshots:
 
   '@babel/traverse@7.28.5':
     dependencies:
-      '@babel/code-frame': 7.27.1
+      '@babel/code-frame': 7.29.7
       '@babel/generator': 7.28.5
       '@babel/helper-globals': 7.28.0
       '@babel/parser': 7.28.5
@@ -11611,7 +11588,7 @@ snapshots:
   '@babel/types@7.28.5':
     dependencies:
       '@babel/helper-string-parser': 7.27.1
-      '@babel/helper-validator-identifier': 7.28.5
+      '@babel/helper-validator-identifier': 7.29.7
 
   '@babel/types@7.29.7':
     dependencies:
@@ -12388,7 +12365,7 @@ snapshots:
     dependencies:
       '@eslint/object-schema': 3.0.3
       debug: 4.4.3
-      minimatch: 10.2.4
+      minimatch: 10.2.5
     transitivePeerDependencies:
       - supports-color
 
@@ -12977,7 +12954,7 @@ snapshots:
       diff: 8.0.2
       lodash: 4.17.21
       minimatch: 10.0.3
-      resolve: 1.22.11
+      resolve: 1.22.12
       semver: 7.5.4
       source-map: 0.6.1
       typescript: 5.8.2
@@ -12989,7 +12966,7 @@ snapshots:
       '@microsoft/tsdoc': 0.16.0
       ajv: 8.12.0
       jju: 1.4.0
-      resolve: 1.22.11
+      resolve: 1.22.12
 
   '@microsoft/tsdoc@0.16.0': {}
 
@@ -14481,41 +14458,7 @@ snapshots:
     optionalDependencies:
       rollup: 4.54.0
 
-  '@rollup/plugin-commonjs@28.0.9(rollup@4.54.0)':
-    dependencies:
-      '@rollup/pluginutils': 5.3.0(rollup@4.54.0)
-      commondir: 1.0.1
-      estree-walker: 2.0.2
-      fdir: 6.5.0(picomatch@4.0.3)
-      is-reference: 1.2.1
-      magic-string: 0.30.21
-      picomatch: 4.0.3
-    optionalDependencies:
-      rollup: 4.54.0
-
-  '@rollup/plugin-commonjs@29.0.2(rollup@4.54.0)':
-    dependencies:
-      '@rollup/pluginutils': 5.3.0(rollup@4.54.0)
-      commondir: 1.0.1
-      estree-walker: 2.0.2
-      fdir: 6.5.0(picomatch@4.0.4)
-      is-reference: 1.2.1
-      magic-string: 0.30.21
-      picomatch: 4.0.4
-    optionalDependencies:
-      rollup: 4.54.0
-
   '@rollup/plugin-node-resolve@15.3.1(rollup@4.54.0)':
-    dependencies:
-      '@rollup/pluginutils': 5.3.0(rollup@4.54.0)
-      '@types/resolve': 1.20.2
-      deepmerge: 4.3.1
-      is-module: 1.0.0
-      resolve: 1.22.11
-    optionalDependencies:
-      rollup: 4.54.0
-
-  '@rollup/plugin-node-resolve@16.0.3(rollup@4.54.0)':
     dependencies:
       '@rollup/pluginutils': 5.3.0(rollup@4.54.0)
       '@types/resolve': 1.20.2
@@ -14631,7 +14574,7 @@ snapshots:
       fs-extra: 11.3.3
       import-lazy: 4.0.0
       jju: 1.4.0
-      resolve: 1.22.11
+      resolve: 1.22.12
       semver: 7.5.4
     optionalDependencies:
       '@types/node': 24.12.4
@@ -14642,7 +14585,7 @@ snapshots:
 
   '@rushstack/rig-package@0.6.0':
     dependencies:
-      resolve: 1.22.11
+      resolve: 1.22.12
       strip-json-comments: 3.1.1
 
   '@rushstack/terminal@0.19.5(@types/node@24.12.4)':
@@ -15611,7 +15554,7 @@ snapshots:
 
   '@types/qrcode@1.5.6':
     dependencies:
-      '@types/node': 24.12.4
+      '@types/node': 25.9.1
 
   '@types/react-dom@19.2.3(@types/react@19.2.15)':
     dependencies:
@@ -15631,7 +15574,7 @@ snapshots:
 
   '@types/set-cookie-parser@2.4.10':
     dependencies:
-      '@types/node': 24.12.4
+      '@types/node': 25.9.1
 
   '@types/stack-utils@2.0.3': {}
 
@@ -15639,7 +15582,7 @@ snapshots:
 
   '@types/through@0.0.33':
     dependencies:
-      '@types/node': 20.19.41
+      '@types/node': 25.9.1
 
   '@types/trusted-types@2.0.7':
     optional: true
@@ -17846,10 +17789,6 @@ snapshots:
     dependencies:
       bser: 2.1.1
 
-  fdir@6.5.0(picomatch@4.0.3):
-    optionalDependencies:
-      picomatch: 4.0.3
-
   fdir@6.5.0(picomatch@4.0.4):
     optionalDependencies:
       picomatch: 4.0.4
@@ -18452,7 +18391,7 @@ snapshots:
       '@babel/parser': 7.28.5
       '@istanbuljs/schema': 0.1.3
       istanbul-lib-coverage: 3.2.2
-      semver: 7.7.3
+      semver: 7.8.1
     transitivePeerDependencies:
       - supports-color
 
@@ -18631,7 +18570,7 @@ snapshots:
 
   jest-message-util@29.7.0:
     dependencies:
-      '@babel/code-frame': 7.27.1
+      '@babel/code-frame': 7.29.7
       '@jest/types': 29.6.3
       '@types/stack-utils': 2.0.3
       chalk: 4.1.2
@@ -18668,7 +18607,7 @@ snapshots:
       jest-pnp-resolver: 1.2.3(jest-resolve@29.7.0)
       jest-util: 29.7.0
       jest-validate: 29.7.0
-      resolve: 1.22.11
+      resolve: 1.22.12
       resolve.exports: 2.0.3
       slash: 3.0.0
 
@@ -18746,7 +18685,7 @@ snapshots:
       jest-util: 29.7.0
       natural-compare: 1.4.0
       pretty-format: 29.7.0
-      semver: 7.7.3
+      semver: 7.8.1
     transitivePeerDependencies:
       - supports-color
 
@@ -19094,7 +19033,7 @@ snapshots:
 
   make-dir@4.0.0:
     dependencies:
-      semver: 7.7.3
+      semver: 7.8.1
 
   makeerror@1.0.12:
     dependencies:
@@ -19418,7 +19357,7 @@ snapshots:
 
   node-abi@3.85.0:
     dependencies:
-      semver: 7.7.3
+      semver: 7.8.1
 
   node-fetch@2.7.0:
     dependencies:
@@ -19661,7 +19600,7 @@ snapshots:
 
   parse-json@5.2.0:
     dependencies:
-      '@babel/code-frame': 7.27.1
+      '@babel/code-frame': 7.29.7
       error-ex: 1.3.4
       json-parse-even-better-errors: 2.3.1
       lines-and-columns: 1.2.4
@@ -19802,7 +19741,7 @@ snapshots:
       postcss: 8.5.15
       postcss-value-parser: 4.2.0
       read-cache: 1.0.0
-      resolve: 1.22.11
+      resolve: 1.22.12
 
   postcss-js@4.1.0(postcss@8.5.15):
     dependencies:

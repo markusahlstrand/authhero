@@ -4,12 +4,12 @@ import type {
   EmailServiceSendParams,
 } from "@authhero/adapter-interfaces";
 
-// Matches Auth0's Management API Mailgun credentials shape:
-// EmailMailgunRegionEnum is "eu" | null; api_key required; domain min 4 chars.
+// Auth0's Management API documents region as "eu" | null (null = US), but
+// customers commonly send explicit "us" too — accept both.
 export const mailgunCredentialsSchema = z.object({
   api_key: z.string().min(1),
   domain: z.string().min(4),
-  region: z.enum(["eu"]).nullish(),
+  region: z.enum(["eu", "us"]).nullish(),
 });
 
 export type MailgunCredentials = z.infer<typeof mailgunCredentialsSchema>;

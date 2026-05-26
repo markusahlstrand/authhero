@@ -63,7 +63,9 @@ export function luceneFilter<TB extends keyof Database>(
   qb: SelectQueryBuilder<Database, TB, {}>,
   query: string,
   searchableColumns: string[],
+  likeFields: string[] = [],
 ) {
+  const likeSet = new Set(likeFields);
   // Split by OR first to handle OR queries
   const orParts = query.split(/ OR /i);
 
@@ -186,6 +188,14 @@ export function luceneFilter<TB extends keyof Database>(
         } else {
           qb = qb.where(key as any, "is not", null);
         }
+      } else if (likeSet.has(key) && operator === "=") {
+        // Substring match for free-text fields (e.g. log descriptions),
+        // where exact-match is rarely useful.
+        qb = qb.where(
+          key as any,
+          isNegation ? "not like" : "like",
+          `%${value}%`,
+        );
       } else {
         if (isNegation) {
           switch (operator) {

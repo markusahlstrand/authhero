@@ -44,4 +44,5 @@ mainApp.route("/auth", app);
 - **[UI Widget](/customization/ui-widget/)** — Integrate, customize, and extend the login widget
 - **[SAML Package](/customization/saml/)** — SAML 2.0 support with pluggable signing strategies
 - **[Multi-Tenancy Package](/customization/multi-tenancy/)** — Advanced multi-tenant features for B2B SaaS
+- **[Proxy Package](/customization/proxy/)** — Reverse proxy that fans out paths on a custom domain to multiple upstreams (AuthHero, Vercel apps, etc.)
 - **[Core Configuration](/customization/configuration)** — Hono variables, hooks, and initialization options

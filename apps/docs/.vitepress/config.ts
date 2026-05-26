@@ -539,6 +539,10 @@ gtag('config', 'G-DNZWG3PF2L');`,
               ],
             },
             {
+              text: "Proxy Package",
+              link: "/customization/proxy/",
+            },
+            {
               text: "Core Configuration",
               link: "/customization/configuration",
             },

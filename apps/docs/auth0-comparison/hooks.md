@@ -614,6 +614,8 @@ The token API is available in all hooks via `api.token.createServiceToken()`:
 ```typescript
 api.token.createServiceToken({
   scope: string;                            // The scope(s) for the token (space-separated)
+  clientId?: string;                        // Optional: mint a grant-bounded token for a DB-registered M2M client
+  audience?: string;                        // Used only with `clientId` — must match an existing `client_grant`
   expiresInSeconds?: number;                // Optional expiration time (default: 3600 = 1 hour)
   customClaims?: Record<string, unknown>;   // Optional custom claims to include in the token
 }): Promise<string>
@@ -621,9 +623,11 @@ api.token.createServiceToken({
 
 The service token is a JWT signed with your AuthHero instance's private key and includes:
 
-- **client_id**: Always set to `"auth-service"` (hardcoded for security)
-- **scope**: The requested scope(s)
+- **client_id** (`sub`/`azp`): `"auth-service"` by default, or the value of `clientId` when provided
+- **aud**: tenant's default audience by default, or the resolved audience when `clientId`/`audience` is provided
+- **scope**: The requested scope(s) (must be a subset of the client's `client_grant` when `clientId` is set)
 - **tenant_id**: Your tenant ID
+- **gty**: `"client_credentials"` (when `clientId` is provided)
 - **exp**: Expiration timestamp
 - Any additional **custom claims** you pass via `customClaims`
 

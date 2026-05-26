@@ -10,6 +10,7 @@ import { Bindings, Variables } from "../types";
 import { EnrichedClient } from "../helpers/client";
 import generateOTP from "../utils/otp";
 import { logMessage } from "../helpers/logging";
+import { createClientServiceToken } from "../helpers/service-token";
 import { TOTPController } from "oslo/otp";
 import { createTOTPKeyURI } from "oslo/otp";
 import { base32 } from "oslo/encoding";
@@ -140,6 +141,10 @@ export async function sendMfaOtp(
         code,
         tenantName: tenant.friendly_name || "",
         tenantId: tenant.id,
+      },
+      createServiceToken: async (p) => {
+        const token = await createClientServiceToken(ctx, tenant.id, p);
+        return token.access_token;
       },
     });
 
