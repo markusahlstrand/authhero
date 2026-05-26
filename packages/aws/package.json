@@ -26,7 +26,7 @@
     }
   },
   "scripts": {
-    "build": "tsc && vite build && dts-bundle-generator --config ./dts-bundle-generator.config.ts",
+    "build": "vite build && tsc -p tsconfig.types.json && rollup -c rollup.dts.config.mjs",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -35,9 +35,9 @@
     "@rollup/plugin-commonjs": "^29.0.0",
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@types/node": "^24.10.0",
-    "dts-bundle-generator": "^9.5.1",
     "dynalite": "^3.2.2",
     "hono": "^4.10.4",
+    "rollup-plugin-dts": "^6.4.1",
     "typescript": "^5.9.3",
     "vite": "^7.2.2",
     "vitest": "^4.0.7"

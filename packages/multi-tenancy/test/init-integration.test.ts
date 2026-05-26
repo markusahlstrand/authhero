@@ -18,6 +18,7 @@ import {
 } from "@authhero/adapter-interfaces";
 import { EntityHookContext } from "authhero";
 
+import { createMigratedDb } from "./helpers/migrated-db";
 /**
  * Helper to find a resource server by identifier using the list query
  */
@@ -553,11 +554,7 @@ describe("initMultiTenant", () => {
   const controlPlaneTenantId = "control_plane";
 
   beforeEach(async () => {
-    const dialect = new SqliteDialect({
-      database: new SQLite(":memory:"),
-    });
-    db = new Kysely<Database>({ dialect });
-    await migrateToLatest(db, false);
+    db = await createMigratedDb();
     adapters = createAdapters(db);
 
     // Create control plane tenant

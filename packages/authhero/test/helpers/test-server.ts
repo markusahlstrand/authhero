@@ -55,17 +55,38 @@ export type TestServer = {
   getSentSms: () => any[];
 } & ReturnType<typeof init>;
 
+// Cache the schema-only SQLite image so the 171 migrations only run once per
+// worker process. Each `getTestServer()` then instantiates an in-memory DB
+// directly from the serialized buffer (microseconds) rather than re-running
+// the full migration chain (~340 ms per call).
+//
+// Vitest workers each get their own module instance, so the cache is
+// per-worker. With 8 workers and 905 setups, this turns ~5 minutes of pure
+// migration overhead per CI run into ~3 seconds.
+let cachedSchemaImage: Buffer | null = null;
+
+async function getMigratedSchemaImage(): Promise<Buffer> {
+  if (cachedSchemaImage) return cachedSchemaImage;
+  const sqlite = new SQLite(":memory:");
+  const db = new Kysely<Database>({
+    dialect: new SqliteDialect({ database: sqlite }),
+  });
+  await migrateToLatest(db, false);
+  // Serialize BEFORE destroying the Kysely wrapper — Kysely.destroy() closes
+  // the underlying SQLite connection, after which serialize() throws
+  // "database connection is not open".
+  cachedSchemaImage = sqlite.serialize();
+  await db.destroy();
+  return cachedSchemaImage;
+}
+
 export async function getTestServer(
   args: getEnvParams = {},
 ): Promise<TestServer> {
-  const dialect = new SqliteDialect({
-    database: new SQLite(":memory:"),
-  });
-
-  // Don't use getDb here as it will reuse the connection
-  const db = new Kysely<Database>({ dialect: dialect });
-
-  await migrateToLatest(db, false);
+  const sqlite = new SQLite(await getMigratedSchemaImage());
+  const dialect = new SqliteDialect({ database: sqlite });
+  const db = new Kysely<Database>({ dialect });
+  // Schema is already present from the cached image — no migration call.
 
   const data: DataAdapters = createAdapters(db);
 

@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { Hono } from "hono";
-import { Kysely, SqliteDialect } from "kysely";
-import SQLite from "better-sqlite3";
+import { Kysely } from "kysely";
 import { Database } from "@authhero/kysely-adapter";
 import createAdapters, { migrateToLatest } from "@authhero/kysely-adapter";
 import { setupMultiTenancy, MANAGEMENT_API_SCOPES } from "../src/index";
 import { USERNAME_PASSWORD_PROVIDER } from "../../authhero/src/constants";
 
+import { createMigratedDb } from "./helpers/migrated-db";
 describe("Tenant Provisioning with User Organization Membership", () => {
   let app: Hono<{
     Bindings: { data: ReturnType<typeof createAdapters> };
@@ -21,14 +21,7 @@ describe("Tenant Provisioning with User Organization Membership", () => {
   const TEST_USER_ID = "auth0|user123";
 
   beforeEach(async () => {
-    // Create in-memory SQLite database
-    const dialect = new SqliteDialect({
-      database: new SQLite(":memory:"),
-    });
-    db = new Kysely<Database>({ dialect });
-
-    // Run migrations
-    await migrateToLatest(db, false);
+    db = await createMigratedDb();
 
     // Create adapters
     adapters = createAdapters(db);
@@ -377,14 +370,7 @@ describe("Tenant Provisioning without issuer (no admin role)", () => {
   const TEST_USER_ID = "auth0|user456";
 
   beforeEach(async () => {
-    // Create in-memory SQLite database
-    const dialect = new SqliteDialect({
-      database: new SQLite(":memory:"),
-    });
-    db = new Kysely<Database>({ dialect });
-
-    // Run migrations
-    await migrateToLatest(db, false);
+    db = await createMigratedDb();
 
     // Create adapters
     adapters = createAdapters(db);
@@ -501,14 +487,7 @@ describe("Tenant Provisioning with addCreatorToOrganization disabled", () => {
   const TEST_USER_ID = "auth0|user789";
 
   beforeEach(async () => {
-    // Create in-memory SQLite database
-    const dialect = new SqliteDialect({
-      database: new SQLite(":memory:"),
-    });
-    db = new Kysely<Database>({ dialect });
-
-    // Run migrations
-    await migrateToLatest(db, false);
+    db = await createMigratedDb();
 
     // Create adapters
     adapters = createAdapters(db);
@@ -620,14 +599,7 @@ describe("Tenant Provisioning with admin:organizations permission", () => {
   const GLOBAL_ADMIN_USER_ID = "auth0|global-admin";
 
   beforeEach(async () => {
-    // Create in-memory SQLite database
-    const dialect = new SqliteDialect({
-      database: new SQLite(":memory:"),
-    });
-    db = new Kysely<Database>({ dialect });
-
-    // Run migrations
-    await migrateToLatest(db, false);
+    db = await createMigratedDb();
 
     // Create adapters
     adapters = createAdapters(db);

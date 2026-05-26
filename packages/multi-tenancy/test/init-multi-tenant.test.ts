@@ -1,19 +1,14 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { Hono } from "hono";
-import { Kysely, SqliteDialect } from "kysely";
-import SQLite from "better-sqlite3";
+import { Kysely } from "kysely";
 import { Database } from "@authhero/kysely-adapter";
 import createAdapters, { migrateToLatest } from "@authhero/kysely-adapter";
-import {
-  MANAGEMENT_API_SCOPES,
-  CreateTenantParams,
-  Tenant,
-  USERNAME_PASSWORD_PROVIDER,
-} from "authhero";
+import { MANAGEMENT_API_SCOPES, CreateTenantParams, Tenant, USERNAME_PASSWORD_PROVIDER } from "authhero";
 import { createProvisioningHooks, createSyncHooks } from "../src/hooks";
 import { createTenantsOpenAPIRouter } from "../src/routes";
 import { TenantEntityHooks, TenantHookContext } from "../src/types";
 
+import { createMigratedDb } from "./helpers/migrated-db";
 /**
  * This test verifies that the hook composition used by initMultiTenant correctly
  * chains provisioning hooks (organization creation) with sync hooks (entity syncing).
@@ -36,11 +31,7 @@ describe("initMultiTenant hook chaining - organization creation", () => {
   const controlPlaneTenantId = "control_plane";
 
   beforeEach(async () => {
-    const dialect = new SqliteDialect({
-      database: new SQLite(":memory:"),
-    });
-    db = new Kysely<Database>({ dialect });
-    await migrateToLatest(db, false);
+    db = await createMigratedDb();
     adapters = createAdapters(db);
     env = { data: adapters };
 
