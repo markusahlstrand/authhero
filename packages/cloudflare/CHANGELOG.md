@@ -1,5 +1,16 @@
 # @authhero/cloudflare-adapter
 
+## 2.31.2
+
+### Patch Changes
+
+- 154ba22: Export `Database` type from `@authhero/kysely-adapter` and `WorkerLoader` (plus `WorkerCode`, `WorkerStub`, `WorkerLoaderCodeExecutorOptions`) from `@authhero/cloudflare-adapter`. These were reachable as parameter types but missing from the public `.d.ts` export list, forcing consumers to recover them via `Parameters<typeof ...>`.
+- Updated dependencies [154ba22]
+- Updated dependencies [28a6135]
+- Updated dependencies [28a6135]
+  - @authhero/kysely-adapter@11.4.1
+  - @authhero/adapter-interfaces@2.7.0
+
 ## 2.31.1
 
 ### Patch Changes

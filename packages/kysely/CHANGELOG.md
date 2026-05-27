@@ -1,5 +1,14 @@
 # @authhero/kysely-adapter
 
+## 11.4.1
+
+### Patch Changes
+
+- 154ba22: Export `Database` type from `@authhero/kysely-adapter` and `WorkerLoader` (plus `WorkerCode`, `WorkerStub`, `WorkerLoaderCodeExecutorOptions`) from `@authhero/cloudflare-adapter`. These were reachable as parameter types but missing from the public `.d.ts` export list, forcing consumers to recover them via `Parameters<typeof ...>`.
+- 28a6135: Add a Description filter to the logs list. The kysely Lucene filter helper now accepts a `likeFields` option so configured fields (currently `description` on logs) match with `LIKE %value%` instead of exact equality, making free-text searches against log descriptions actually useful.
+- Updated dependencies [28a6135]
+  - @authhero/adapter-interfaces@2.7.0
+
 ## 11.4.0
 
 ### Minor Changes

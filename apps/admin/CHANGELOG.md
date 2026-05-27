@@ -1,5 +1,14 @@
 # @authhero/admin
 
+## 0.4.4
+
+### Patch Changes
+
+- 28a6135: Add a Description filter to the logs list. The kysely Lucene filter helper now accepts a `likeFields` option so configured fields (currently `description` on logs) match with `LIKE %value%` instead of exact equality, making free-text searches against log descriptions actually useful.
+- 154ba22: Show organization-scoped roles for each member in the organization members list. The `/api/v2/organizations/{id}/members` endpoint now populates each member's `roles`, `name`, and `picture` fields instead of always returning `roles: []`. The admin UI's organization Members tab gains a Roles column and a per-row edit dialog to assign/remove roles within that organization.
+- Updated dependencies [28a6135]
+  - @authhero/adapter-interfaces@2.7.0
+
 ## 0.4.3
 
 ### Patch Changes
