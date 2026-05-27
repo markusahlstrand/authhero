@@ -1,4 +1,4 @@
-import { ProxyRoute, MiddlewareConfig } from "../types";
+import { ProxyRoute, MiddlewareConfig, middlewareConfigSchema } from "../types";
 import { ProxyRouteRow } from "./schema";
 
 export function rowToProxyRoute(row: ProxyRouteRow): ProxyRoute {
@@ -10,7 +10,7 @@ export function rowToProxyRoute(row: ProxyRouteRow): ProxyRoute {
     path_pattern: row.path_pattern,
     upstream_type: row.upstream_type,
     upstream_url: row.upstream_url,
-    preserve_host: row.preserve_host === true || row.preserve_host === 1,
+    preserve_host: row.preserve_host !== 0,
     middleware: parseMiddleware(row.middleware),
     created_at: row.created_at,
     updated_at: row.updated_at,
@@ -22,7 +22,12 @@ function parseMiddleware(raw: string | null | undefined): MiddlewareConfig[] {
   try {
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed as MiddlewareConfig[];
+    const result: MiddlewareConfig[] = [];
+    for (const entry of parsed) {
+      const validated = middlewareConfigSchema.safeParse(entry);
+      if (validated.success) result.push(validated.data);
+    }
+    return result;
   } catch {
     return [];
   }

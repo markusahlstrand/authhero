@@ -12,5 +12,9 @@ export async function dispatchUpstream(
     case "http":
     case "authhero":
       return dispatchHttp(route, req);
+    default: {
+      const _exhaustive: never = route.upstream_type;
+      throw new Error(`Unhandled upstream type: ${String(_exhaustive)}`);
+    }
   }
 }

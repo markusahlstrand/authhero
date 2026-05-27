@@ -32,10 +32,11 @@ function buildCorsHeaders(
   const headers = new Headers();
   const origin = req.headers.get("origin");
   const allowedOrigins = config.origins ?? ["*"];
+  const wildcard = allowedOrigins.includes("*");
 
-  if (allowedOrigins.includes("*")) {
+  if (wildcard && !config.allow_credentials) {
     headers.set("Access-Control-Allow-Origin", "*");
-  } else if (origin && allowedOrigins.includes(origin)) {
+  } else if (origin && (wildcard || allowedOrigins.includes(origin))) {
     headers.set("Access-Control-Allow-Origin", origin);
     headers.append("Vary", "Origin");
   }

@@ -11,11 +11,11 @@ export function checkBasicAuth(
 
   if (header === `Basic ${expected}`) return null;
 
-  const realm = config.realm ?? "Restricted";
+  const realm = (config.realm ?? "Restricted").replace(/["\\\r\n]/g, "");
   return new Response("Unauthorized", {
     status: 401,
     headers: {
-      "WWW-Authenticate": `Basic realm="${realm.replace(/"/g, "")}"`,
+      "WWW-Authenticate": `Basic realm="${realm}"`,
     },
   });
 }

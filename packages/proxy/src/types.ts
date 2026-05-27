@@ -1,15 +1,20 @@
 import { z } from "@hono/zod-openapi";
 
 export const middlewareConfigSchema = z.discriminatedUnion("type", [
-  z.object({
-    type: z.literal("cors"),
-    origins: z.array(z.string()).optional(),
-    allow_credentials: z.boolean().optional(),
-    allow_headers: z.array(z.string()).optional(),
-    allow_methods: z.array(z.string()).optional(),
-    expose_headers: z.array(z.string()).optional(),
-    max_age: z.number().int().optional(),
-  }),
+  z
+    .object({
+      type: z.literal("cors"),
+      origins: z.array(z.string()).optional(),
+      allow_credentials: z.boolean().optional(),
+      allow_headers: z.array(z.string()).optional(),
+      allow_methods: z.array(z.string()).optional(),
+      expose_headers: z.array(z.string()).optional(),
+      max_age: z.number().int().optional(),
+    })
+    .refine(
+      (data) => !(data.allow_credentials && data.origins?.includes("*")),
+      { message: "Cannot use wildcard origin (*) with allow_credentials" },
+    ),
   z.object({
     type: z.literal("headers"),
     request: z.record(z.string(), z.string()).optional(),

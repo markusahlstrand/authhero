@@ -8,7 +8,7 @@ export interface ProxyRoutesTable {
   path_pattern: string;
   upstream_type: "http" | "authhero" | "redirect";
   upstream_url: string;
-  preserve_host: number | boolean;
+  preserve_host: number;
   middleware: string;
   created_at: string;
   updated_at: string;
