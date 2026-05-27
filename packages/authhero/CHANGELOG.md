@@ -1,5 +1,21 @@
 # authhero
 
+## 5.11.0
+
+### Minor Changes
+
+- 28a6135: Add in-process minting of grant-bounded service tokens for named M2M clients.
+  - `@authhero/adapter-interfaces`: `EmailServiceSendParams` and `SmsServiceSendParams` now accept an optional `createServiceToken({ clientId, scope, audience?, expiresInSeconds?, customClaims? })` callback. Custom service adapters can use it to obtain a Bearer token for a DB-registered client without a stored secret or round-trip to the token endpoint.
+  - `authhero`: new `createClientServiceToken` helper signs a `client_credentials`-shaped JWT locally, rejecting any audience or scope not covered by the client's existing `client_grant` records. The hook `api.token.createServiceToken` now accepts an optional `clientId` (and `audience`) to opt into the named-client path; without `clientId` the legacy `auth-service` minter is unchanged. The built-in email and SMS dispatch sites pass a tenant-bound minter into the adapter.
+
+### Patch Changes
+
+- 28a6135: Accept `"us"` as an explicit Mailgun region in addition to `"eu"` and null. Previously the schema rejected `region: "us"` with a Zod validation error even though it's a value some clients send.
+- 154ba22: Show organization-scoped roles for each member in the organization members list. The `/api/v2/organizations/{id}/members` endpoint now populates each member's `roles`, `name`, and `picture` fields instead of always returning `roles: []`. The admin UI's organization Members tab gains a Roles column and a per-row edit dialog to assign/remove roles within that organization.
+- Updated dependencies [28a6135]
+  - @authhero/adapter-interfaces@2.7.0
+  - @authhero/widget@0.32.29
+
 ## 5.10.0
 
 ### Minor Changes
