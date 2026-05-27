@@ -16,19 +16,23 @@ interface ListLogsResponse {
 }
 
 /**
- * Parse lucene-style filter query (simple implementation)
- * Supports: user_id:value, ip:value, type:value
+ * Parse lucene-style filter query (simple implementation).
+ * Supports `key:value` and `key:"quoted value"`. The naive `split(":")`
+ * approach breaks for values that themselves contain colons (e.g. IPv6
+ * addresses written `ip:"2001\:678\:…"`) and produced unbalanced SQL
+ * strings that R2 SQL rejected with a parse error.
  */
 function parseLuceneFilter(q: string): Record<string, string> {
   const filters: Record<string, string> = {};
 
-  const parts = q.match(/(\w+):(\S+)/g) || [];
-  parts.forEach((part) => {
-    const [key, value] = part.split(":");
-    if (key && value) {
-      filters[key] = value;
-    }
-  });
+  const regex = /(\w+):(?:"([^"]*)"|(\S+))/g;
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(q)) !== null) {
+    const key = match[1];
+    const value = match[2] !== undefined ? match[2] : match[3];
+    if (!key || value === undefined) continue;
+    filters[key] = value;
+  }
 
   return filters;
 }
