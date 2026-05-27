@@ -66,6 +66,24 @@ describe("MailgunEmailService", () => {
     expect(url).toBe("https://api.eu.mailgun.net/v3/mg.example.com/messages");
   });
 
+  it("posts to the US host when region is us", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(okResponse());
+    const service = new MailgunEmailService({ fetchImpl });
+
+    await service.send(
+      makeParams({
+        emailProvider: makeProvider({
+          api_key: "key-secret",
+          domain: "mg.example.com",
+          region: "us",
+        }),
+      }),
+    );
+
+    const [url] = fetchImpl.mock.calls[0];
+    expect(url).toBe("https://api.mailgun.net/v3/mg.example.com/messages");
+  });
+
   it("treats null region as US", async () => {
     const fetchImpl = vi.fn().mockResolvedValue(okResponse());
     const service = new MailgunEmailService({ fetchImpl });

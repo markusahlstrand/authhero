@@ -40,6 +40,12 @@ const statusChoices = [
 ];
 
 export const logFilters = [
+  <TextInput
+    key="description"
+    source="description"
+    label="Description"
+    placeholder="Contains…"
+  />,
   <TextInput key="ip" source="ip" placeholder="IP" label="IP" />,
   <SelectInput key="type" source="type" choices={typeChoices} />,
   <SelectInput key="success" source="success" choices={statusChoices} />,

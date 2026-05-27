@@ -48,6 +48,7 @@ import { createLogStreamsAdapter } from "./log-streams";
 import { createMigrationSourcesAdapter } from "./migrationSources";
 
 export { migrateToLatest, migrateDown } from "../migrate/migrate";
+export type { Database } from "./db";
 
 export default function createAdapters(
   db: Kysely<Database>,

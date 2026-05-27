@@ -614,6 +614,8 @@ The token API is available in all hooks via `api.token.createServiceToken()`:
 ```typescript
 api.token.createServiceToken({
   scope: string;                            // The scope(s) for the token (space-separated)
+  clientId?: string;                        // Optional: mint a grant-bounded token for a DB-registered M2M client
+  audience?: string;                        // Used only with `clientId` — must match an existing `client_grant`
   expiresInSeconds?: number;                // Optional expiration time (default: 3600 = 1 hour)
   customClaims?: Record<string, unknown>;   // Optional custom claims to include in the token
 }): Promise<string>
@@ -621,9 +623,11 @@ api.token.createServiceToken({
 
 The service token is a JWT signed with your AuthHero instance's private key and includes:
 
-- **client_id**: Always set to `"auth-service"` (hardcoded for security)
-- **scope**: The requested scope(s)
+- **client_id** (`sub`/`azp`): `"auth-service"` by default, or the value of `clientId` when provided
+- **aud**: tenant's default audience by default, or the resolved audience when `clientId`/`audience` is provided
+- **scope**: The requested scope(s) (must be a subset of the client's `client_grant` when `clientId` is set)
 - **tenant_id**: Your tenant ID
+- **gty**: `"client_credentials"` (when `clientId` is provided)
 - **exp**: Expiration timestamp
 - Any additional **custom claims** you pass via `customClaims`
 
@@ -656,7 +660,15 @@ onExecutePostLogin: async (event, api) => {
 
 #### Security Considerations
 
-The `client_id` is hardcoded to `"auth-service"` to prevent potential spoofing attacks where malicious hook code could try to generate tokens with arbitrary client IDs. This ensures that service tokens are clearly identifiable and can be validated by your external services.
+By default the `client_id` (and `azp`/`sub`) is `"auth-service"` so hook-minted tokens are clearly identifiable and easy to validate. When you pass an explicit `clientId`, those claims will instead equal the value you provided — the token is then bounded to a DB-registered M2M client and its existing `client_grant`.
+
+When validating these tokens at external services:
+
+- **`aud`**: equals the tenant's default audience by default, or the resolved audience when `clientId` (and optionally `audience`) is supplied.
+- **`scope`**: must be a subset of the client's `client_grant` when `clientId` is provided.
+- **`gty`**: is `"client_credentials"` when `clientId` is used.
+
+`tenant_id` always identifies the originating tenant.
 
 #### Available in All Hooks
 

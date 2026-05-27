@@ -97,6 +97,8 @@ curl -X PUT https://your-tenant.example.com/api/v2/email-templates/user_invitati
 
 Available Liquid variables in the `user_invitation` template:
 
+<div v-pre>
+
 | Variable                            | Description                                                                |
 | ----------------------------------- | -------------------------------------------------------------------------- |
 | `{{ url }}` / `{{ invitationUrl }}` | The full accept-invitation URL (button target).                            |
@@ -107,6 +109,8 @@ Available Liquid variables in the `user_invitation` template:
 | `{{ branding.logo }}`               | Tenant logo URL.                                                           |
 | `{{ branding.primary_color }}`      | Tenant primary color (used for the default button).                        |
 | `{{ support_info }}` / `{{ contact_us }}` / `{{ copyright }}` | Standard localized footer strings.              |
+
+</div>
 
 Omit the `PUT` and tenants fall back to AuthHero's bundled default — a clean, branded HTML template that respects the tenant's logo and primary color.
 

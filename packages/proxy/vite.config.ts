@@ -2,7 +2,7 @@ import path from "path";
 import { defineConfig } from "vite";
 
 const getPackageName = () => {
-  return "saml";
+  return "proxy";
 };
 
 const getPackageNameCamelCase = () => {
@@ -22,7 +22,7 @@ const fileName = {
 
 const formats = Object.keys(fileName) as Array<keyof typeof fileName>;
 
-module.exports = defineConfig({
+export default defineConfig({
   base: "./",
   build: {
     outDir: "./dist",
@@ -33,7 +33,7 @@ module.exports = defineConfig({
       fileName: (format) => fileName[format],
     },
     rollupOptions: {
-      external: ["@hono/zod-openapi", "xml-crypto"],
+      external: ["@hono/zod-openapi", "hono", "kysely", "nanoid"],
     },
   },
   resolve: {

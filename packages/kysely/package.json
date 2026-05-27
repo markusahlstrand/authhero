@@ -35,28 +35,24 @@
   },
   "devDependencies": {
     "@hono/zod-openapi": "^1.4.0",
-    "@rollup/plugin-commonjs": "^28.0.1",
-    "@rollup/plugin-node-resolve": "^15.3.0",
-    "@types/node": "^22.9.1",
+    "@types/node": "^22.19.19",
     "better-sqlite3": "^11.10.0",
-    "hono": "^4.6.11",
-    "kysely": "^0.27.4",
-    "kysely-bun-sqlite": "^0.3.2",
+    "hono": "^4.12.23",
+    "kysely": "^0.29.2",
     "kysely-planetscale": "^1.5.0",
     "rollup-plugin-dts": "^6.4.1",
     "typescript": "^5.6.3",
-    "vite": "^5.4.11",
-    "vitest": "^2.1.5"
+    "vite": "^8.0.14",
+    "vitest": "^4.1.7"
   },
   "dependencies": {
     "@authhero/adapter-interfaces": "workspace:*",
-    "nanoid": "^5.0.8"
+    "nanoid": "^5.1.11"
   },
   "peerDependencies": {
     "@hono/zod-openapi": "^1.4.0",
     "hono": "^4.6.8",
-    "kysely": "^0.27.4",
-    "kysely-bun-sqlite": "^0.3.2",
+    "kysely": "^0.29.0",
     "kysely-planetscale": "^1.5.0"
   }
 }

@@ -1,4 +1,4 @@
-import { Migration, MigrationProvider } from "kysely";
+import { Migration, MigrationProvider } from "kysely/migration";
 
 export default class ReferenceMigrationProvider implements MigrationProvider {
   migrations: Record<string, Migration>;

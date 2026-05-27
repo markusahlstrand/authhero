@@ -12,12 +12,12 @@
     "secret:set:api-key2": "wrangler secret put API_KEY2"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20240515.1",
-    "@types/node": "^20.14.9",
+    "@cloudflare/workers-types": "^4.20260526.1",
+    "@types/node": "^20.19.41",
     "typescript": "^5.5.2",
     "wrangler": "^3.38.0"
   },
   "dependencies": {
-    "hono": "^4.4.10"
+    "hono": "^4.12.23"
   }
 }

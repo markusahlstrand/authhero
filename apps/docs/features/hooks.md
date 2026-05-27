@@ -770,6 +770,8 @@ Validates if an email can be used for signup.
   token: {
     createServiceToken: (params: {
       scope: string,
+      clientId?: string,                       // Optional: mint a grant-bounded token for a DB-registered M2M client
+      audience?: string,                       // Used only when `clientId` is set (must match a granted audience)
       expiresInSeconds?: number,
       customClaims?: Record<string, unknown>
     }) => Promise<string>
@@ -1044,6 +1046,20 @@ api.token.createServiceToken({
     tenant_type: 'enterprise'
   }
 }): Promise<string>
+```
+
+By default the token is issued for the built-in `auth-service` client and the
+tenant's default audience. Pass `clientId` (and optionally `audience`) to mint
+a token for a DB-registered M2M client instead — the requested `scope` and
+`audience` must be authorized by an existing `client_grant`, otherwise the
+call throws:
+
+```typescript
+const token = await api.token.createServiceToken({
+  clientId: "auth-email-sender",
+  scope: "email:queue",
+  audience: "urn:sesamy",
+});
 ```
 
 ### User API (Pre-Registration, Pre-Update)

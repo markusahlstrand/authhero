@@ -40,20 +40,20 @@
   "dependencies": {
     "@authhero/adapter-interfaces": "workspace:*",
     "drizzle-orm": "^0.44.2",
-    "nanoid": "^5.0.8"
+    "nanoid": "^5.1.11"
   },
   "devDependencies": {
     "@hono/zod-openapi": "^1.4.0",
     "@rollup/plugin-commonjs": "^26.0.1",
     "@rollup/plugin-node-resolve": "^15.2.3",
     "@types/better-sqlite3": "^7.6.0",
-    "@types/node": "^20.14.9",
+    "@types/node": "^20.19.41",
     "better-sqlite3": "^11.10.0",
     "drizzle-kit": "^0.31.4",
-    "hono": "^4.6.11",
+    "hono": "^4.12.23",
     "typescript": "^5.5.2",
-    "vite": "^5.3.2",
-    "vitest": "^2.1.5"
+    "vite": "^8.0.14",
+    "vitest": "^4.1.7"
   },
   "peerDependencies": {
     "hono": "^4.6.8"

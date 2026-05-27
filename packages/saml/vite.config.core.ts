@@ -5,7 +5,7 @@ export default defineConfig({
   base: "./",
   build: {
     outDir: "./dist",
-    emptyOutDir: false, // Don't clear dist folder
+    emptyOutDir: false,
     lib: {
       entry: path.resolve(__dirname, "src/core.ts"),
       name: "samlCore",

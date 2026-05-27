@@ -3,6 +3,7 @@ import { t } from "i18next";
 import { Bindings, Variables } from "../types";
 import {
   AuthParams,
+  CreateServiceTokenFn,
   EmailServiceAdapter,
   EmailTemplateName,
   LogTypes,
@@ -11,6 +12,7 @@ import {
 } from "@authhero/adapter-interfaces";
 import { HTTPException } from "hono/http-exception";
 import { logMessage } from "../helpers/logging";
+import { createClientServiceToken } from "../helpers/service-token";
 import { getAuthUrl, getUniversalLoginUrl } from "../variables";
 import { getConnectionFromIdentifier } from "../utils/username";
 import { getEnrichedClient } from "../helpers/client";
@@ -18,6 +20,16 @@ import { renderEmailTemplate } from "./render";
 import { MailgunEmailService } from "../email-services/mailgun";
 import { ResendEmailService } from "../email-services/resend";
 import { PostmarkEmailService } from "../email-services/postmark";
+
+function buildCreateServiceToken(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  tenantId: string,
+): CreateServiceTokenFn {
+  return async (p) => {
+    const token = await createClientServiceToken(ctx, tenantId, p);
+    return token.access_token;
+  };
+}
 
 const BUILT_IN_EMAIL_SERVICES: Record<string, () => EmailServiceAdapter> = {
   mailgun: () => new MailgunEmailService(),
@@ -63,6 +75,7 @@ export async function sendEmail(
         params.from ||
         emailProvider.default_from_address ||
         `login@${ctx.env.ISSUER}`,
+      createServiceToken: buildCreateServiceToken(ctx, ctx.var.tenant_id),
     });
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
@@ -134,6 +147,7 @@ export async function sendSms(
         tenantName: client.tenant.friendly_name,
         tenantId: client.tenant.id,
       },
+      createServiceToken: buildCreateServiceToken(ctx, ctx.var.tenant_id),
     });
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);

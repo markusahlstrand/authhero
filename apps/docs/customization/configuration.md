@@ -298,8 +298,46 @@ interface EmailServiceAdapter {
     text?: string;
     template: string;
     data: Record<string, string>;
+    // Optional. Lazily mints a Bearer token for a DB-registered M2M client,
+    // bounded by that client's existing `client_grant`. Use it when your
+    // adapter needs to call an internal API that requires authentication —
+    // no stored client secret, no round-trip to the token endpoint.
+    createServiceToken?: (params: {
+      clientId: string;
+      scope: string;
+      audience?: string;
+      expiresInSeconds?: number;
+      customClaims?: Record<string, unknown>;
+    }) => Promise<string>;
   }): Promise<void>;
 }
+```
+
+Example using `createServiceToken` in a custom email adapter:
+
+```typescript
+const emailService: EmailServiceAdapter = {
+  async send({ to, subject, html, createServiceToken }) {
+    if (!createServiceToken) {
+      throw new Error(
+        "createServiceToken is required: register an M2M client and a client_grant for `email:queue`.",
+      );
+    }
+    const token = await createServiceToken({
+      clientId: "auth-email-sender",
+      scope: "email:queue",
+      audience: "urn:sesamy",
+    });
+    await fetch("https://email.internal/send", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ to, subject, html }),
+    });
+  },
+};
 ```
 
 #### Built-in: `MailgunEmailService`
@@ -367,6 +405,15 @@ interface SmsServiceAdapter {
     template: string;
     options: Record<string, unknown>;
     data: Record<string, string>;
+    // Optional. Same shape as `EmailServiceAdapter.send`'s `createServiceToken`
+    // — mints a grant-bounded Bearer for a DB-registered M2M client.
+    createServiceToken?: (params: {
+      clientId: string;
+      scope: string;
+      audience?: string;
+      expiresInSeconds?: number;
+      customClaims?: Record<string, unknown>;
+    }) => Promise<string>;
   }): Promise<void>;
 }
 ```
