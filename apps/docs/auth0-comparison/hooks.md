@@ -660,7 +660,15 @@ onExecutePostLogin: async (event, api) => {
 
 #### Security Considerations
 
-The `client_id` is hardcoded to `"auth-service"` to prevent potential spoofing attacks where malicious hook code could try to generate tokens with arbitrary client IDs. This ensures that service tokens are clearly identifiable and can be validated by your external services.
+By default the `client_id` (and `azp`/`sub`) is `"auth-service"` so hook-minted tokens are clearly identifiable and easy to validate. When you pass an explicit `clientId`, those claims will instead equal the value you provided — the token is then bounded to a DB-registered M2M client and its existing `client_grant`.
+
+When validating these tokens at external services:
+
+- **`aud`**: equals the tenant's default audience by default, or the resolved audience when `clientId` (and optionally `audience`) is supplied.
+- **`scope`**: must be a subset of the client's `client_grant` when `clientId` is provided.
+- **`gty`**: is `"client_credentials"` when `clientId` is used.
+
+`tenant_id` always identifies the originating tenant.
 
 #### Available in All Hooks
 

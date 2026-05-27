@@ -9,7 +9,7 @@ import { spawn } from "child_process";
 
 const program = new Command();
 
-type SetupType = "local" | "cloudflare" | "aws-sst";
+type SetupType = "local" | "cloudflare" | "aws-sst" | "proxy";
 type PackageManager = "npm" | "yarn" | "pnpm" | "bun";
 
 interface CliOptions {
@@ -147,6 +147,35 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
       };
     },
     seedFile: "seed.ts",
+  },
+  proxy: {
+    name: "Proxy (Cloudflare Workers)",
+    description:
+      "Host-based reverse proxy on Cloudflare Workers — static config, no DB",
+    templateDir: "proxy",
+    packageJson: (projectName, _multiTenant, _conformance, workspace) => {
+      const v = workspace ? "workspace:*" : "latest";
+      return {
+        name: projectName,
+        version: "1.0.0",
+        type: "module",
+        scripts: {
+          dev: "wrangler dev --port 8787",
+          deploy: "wrangler deploy",
+          logs: "wrangler tail",
+        },
+        dependencies: {
+          "@authhero/proxy": v,
+          hono: "^4.6.0",
+        },
+        devDependencies: {
+          "@cloudflare/workers-types": "^4.0.0",
+          "@types/node": "^20.0.0",
+          typescript: "^5.5.0",
+          wrangler: "^3.0.0",
+        },
+      };
+    },
   },
   "aws-sst": {
     name: "AWS SST (Lambda + DynamoDB)",
@@ -1184,6 +1213,17 @@ function printCloudflareSuccessMessage(): void {
 }
 
 /**
+ * Prints nice output at the end of setup for the proxy template
+ */
+function printProxySuccessMessage(): void {
+  console.log("\n" + "─".repeat(50));
+  console.log("🛰️  AuthHero proxy running at http://localhost:8787");
+  console.log("✏️  Edit src/proxy.config.ts to add hosts and routes");
+  console.log("📖 See README.md for deployment instructions");
+  console.log("─".repeat(50) + "\n");
+}
+
+/**
  * Prints nice output at the end of setup for local/sqlite
  */
 function printLocalSuccessMessage(): void {
@@ -1200,7 +1240,10 @@ program
   .version("1.0.0")
   .description("Create a new AuthHero project")
   .argument("[project-name]", "name of the project")
-  .option("-t, --template <type>", "template type: local or cloudflare")
+  .option(
+    "-t, --template <type>",
+    "template type: local, cloudflare, aws-sst, or proxy",
+  )
   .option(
     "--package-manager <pm>",
     "package manager to use: npm, yarn, pnpm, or bun",
@@ -1258,9 +1301,11 @@ program
     // Validate template option if provided
     let setupType: SetupType;
     if (options.template) {
-      if (!["local", "cloudflare", "aws-sst"].includes(options.template)) {
+      if (
+        !["local", "cloudflare", "aws-sst", "proxy"].includes(options.template)
+      ) {
         console.error(`❌ Invalid template: ${options.template}`);
-        console.error("Valid options: local, cloudflare, aws-sst");
+        console.error("Valid options: local, cloudflare, aws-sst, proxy");
         process.exit(1);
       }
       setupType = options.template;
@@ -1287,15 +1332,22 @@ program
               value: "aws-sst",
               short: setupConfigs["aws-sst"].name,
             },
+            {
+              name: `${setupConfigs.proxy.name}\n     ${setupConfigs.proxy.description}`,
+              value: "proxy",
+              short: setupConfigs.proxy.name,
+            },
           ],
         },
       ]);
       setupType = answer.setupType;
     }
 
-    // Multi-tenant mode
+    // Multi-tenant mode (not applicable to proxy template)
     let multiTenant: boolean;
-    if (options.multiTenant !== undefined) {
+    if (setupType === "proxy") {
+      multiTenant = false;
+    } else if (options.multiTenant !== undefined) {
       multiTenant = options.multiTenant;
     } else if (isNonInteractive) {
       multiTenant = false;
@@ -1618,6 +1670,8 @@ program
             printCloudflareSuccessMessage();
           } else if (setupType === "aws-sst") {
             printAwsSstSuccessMessage();
+          } else if (setupType === "proxy") {
+            printProxySuccessMessage();
           } else {
             printLocalSuccessMessage();
           }
@@ -1635,6 +1689,8 @@ program
             printCloudflareSuccessMessage();
           } else if (setupType === "aws-sst") {
             printAwsSstSuccessMessage();
+          } else if (setupType === "proxy") {
+            printProxySuccessMessage();
           } else {
             printLocalSuccessMessage();
           }
@@ -1669,9 +1725,14 @@ program
         console.log("  npm install");
         console.log("  npm run dev  # Deploys to AWS in development mode");
         console.log("\nOpen your server URL /setup to complete initial setup");
+      } else if (setupType === "proxy") {
+        console.log("  npm install");
+        console.log("  npm run dev");
+        console.log("\nEdit src/proxy.config.ts to add hosts and routes");
       }
 
-      console.log("\nServer will be available at: http://localhost:3000");
+      const port = setupType === "proxy" ? 8787 : 3000;
+      console.log(`\nServer will be available at: http://localhost:${port}`);
 
       if (conformance) {
         console.log("\n🧪 OpenID Conformance Suite Testing:");

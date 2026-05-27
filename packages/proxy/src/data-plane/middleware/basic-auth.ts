@@ -9,7 +9,14 @@ export function checkBasicAuth(
   const header = req.headers.get("authorization");
   const expected = encodeCredentials(config.username, config.password);
 
-  if (header === `Basic ${expected}`) return null;
+  if (header) {
+    const spaceIdx = header.indexOf(" ");
+    if (spaceIdx > 0) {
+      const scheme = header.slice(0, spaceIdx);
+      const creds = header.slice(spaceIdx + 1);
+      if (scheme.toLowerCase() === "basic" && creds === expected) return null;
+    }
+  }
 
   const realm = (config.realm ?? "Restricted").replace(/["\\\r\n]/g, "");
   return new Response("Unauthorized", {

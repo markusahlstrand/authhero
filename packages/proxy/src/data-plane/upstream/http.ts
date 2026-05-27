@@ -11,9 +11,12 @@ const HOP_HEADERS = new Set([
   "upgrade",
 ]);
 
+const DEFAULT_UPSTREAM_TIMEOUT_MS = 30_000;
+
 export async function dispatchHttp(
   route: ProxyRoute,
   req: Request,
+  upstreamTimeoutMs: number = DEFAULT_UPSTREAM_TIMEOUT_MS,
 ): Promise<Response> {
   const inUrl = new URL(req.url);
   const target = new URL(route.upstream_url);
@@ -29,12 +32,24 @@ export async function dispatchHttp(
   }
   appendForwardedFor(headers, req);
 
-  return fetch(target.toString(), {
-    method: req.method,
-    headers,
-    body: bodyAllowed(req.method) ? req.body : undefined,
-    redirect: "manual",
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), upstreamTimeoutMs);
+  try {
+    return await fetch(target.toString(), {
+      method: req.method,
+      headers,
+      body: bodyAllowed(req.method) ? req.body : undefined,
+      redirect: "manual",
+      signal: controller.signal,
+    });
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      return new Response("Upstream timeout", { status: 504 });
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 function combinePaths(base: string, request: string): string {

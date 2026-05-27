@@ -1,0 +1,22 @@
+# ════════════════════════════════════════════════════════════════════════════
+# AuthHero Proxy — Cloudflare Worker Configuration
+# ════════════════════════════════════════════════════════════════════════════
+
+name = "authhero-proxy"
+main = "src/index.ts"
+compatibility_date = "2025-05-23"
+compatibility_flags = ["nodejs_compat"]
+
+# ════════════════════════════════════════════════════════════════════════════
+# OPTIONAL: Custom Domains
+# ════════════════════════════════════════════════════════════════════════════
+# Route the public hostnames you configured in src/proxy.config.ts to this
+# worker. Each host should be a custom domain (or have a route added) in your
+# Cloudflare account.
+#
+# [[routes]]
+# pattern = "id.example.com"
+# custom_domain = true
+
+[observability]
+enabled = true

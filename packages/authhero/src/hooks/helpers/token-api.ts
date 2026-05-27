@@ -27,7 +27,13 @@ export function createTokenAPI(
       expiresInSeconds?: number;
       customClaims?: Record<string, unknown>;
     }) => {
-      if (params.clientId) {
+      const hasClientId = "clientId" in params && params.clientId !== undefined;
+      if (hasClientId) {
+        if (typeof params.clientId !== "string" || params.clientId.length === 0) {
+          throw new Error(
+            "createServiceToken: `clientId` must be a non-empty string.",
+          );
+        }
         const tokenResponse = await createClientServiceToken(ctx, tenant_id, {
           clientId: params.clientId,
           scope: params.scope,
@@ -36,6 +42,11 @@ export function createTokenAPI(
           customClaims: params.customClaims,
         });
         return tokenResponse.access_token;
+      }
+      if (params.audience !== undefined) {
+        throw new Error(
+          "createServiceToken: `audience` is only valid together with `clientId`.",
+        );
       }
       const tokenResponse = await createServiceToken(
         ctx,

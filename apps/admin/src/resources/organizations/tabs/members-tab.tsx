@@ -325,7 +325,12 @@ function EditMemberRolesCell() {
   const [initial, setInitial] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    if (!open || !organizationId) return;
+    if (!open || !organizationId) {
+      setAllRoles([]);
+      setSelected(new Set());
+      setInitial(new Set());
+      return;
+    }
     setLoading(true);
     (async () => {
       try {
@@ -342,6 +347,9 @@ function EditMemberRolesCell() {
         setSelected(new Set(current));
         setInitial(current);
       } catch {
+        setAllRoles([]);
+        setSelected(new Set());
+        setInitial(new Set());
         notify("Error loading roles", { type: "error" });
       } finally {
         setLoading(false);

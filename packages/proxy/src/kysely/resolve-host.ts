@@ -7,9 +7,12 @@ export async function resolveHostFromKysely(
   db: Kysely<ProxyDatabase>,
   host: string,
 ): Promise<ResolvedHost | null> {
+  // Hostnames are case-insensitive (RFC 4343), so normalize the Host header
+  // before lookup. Domains are expected to be stored lowercase.
+  const normalizedHost = host.toLowerCase();
   const domainRow = await db
     .selectFrom("custom_domains")
-    .where("domain", "=", host)
+    .where("domain", "=", normalizedHost)
     .select(["custom_domain_id", "tenant_id", "domain"])
     .executeTakeFirst();
 

@@ -318,7 +318,12 @@ Example using `createServiceToken` in a custom email adapter:
 ```typescript
 const emailService: EmailServiceAdapter = {
   async send({ to, subject, html, createServiceToken }) {
-    const token = await createServiceToken!({
+    if (!createServiceToken) {
+      throw new Error(
+        "createServiceToken is required: register an M2M client and a client_grant for `email:queue`.",
+      );
+    }
+    const token = await createServiceToken({
       clientId: "auth-email-sender",
       scope: "email:queue",
       audience: "urn:sesamy",

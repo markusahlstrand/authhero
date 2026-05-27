@@ -13,12 +13,7 @@ export function applyHeadersRequest(
       headers.set(key, value);
     }
   }
-  return new Request(req.url, {
-    method: req.method,
-    headers,
-    body: req.body,
-    redirect: "manual",
-  });
+  return new Request(req, { headers });
 }
 
 export function applyHeadersResponse(

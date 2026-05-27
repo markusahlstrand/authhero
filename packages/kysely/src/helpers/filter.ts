@@ -80,8 +80,12 @@ export function luceneFilter<TB extends keyof Database>(
           if (match) {
             const [, field, value] = match;
             if (!field || !value) return null;
-            const cleanValue = value.replace(/^"(.*)"$/, "$1"); // Remove quotes
-            return eb(field.trim() as any, "=", cleanValue.trim());
+            const fieldName = field.trim();
+            const cleanValue = value.replace(/^"(.*)"$/, "$1").trim();
+            if (likeSet.has(fieldName)) {
+              return eb(fieldName as any, "like", `%${cleanValue}%`);
+            }
+            return eb(fieldName as any, "=", cleanValue);
           }
           return null;
         })

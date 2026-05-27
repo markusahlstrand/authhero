@@ -1,25 +1,35 @@
 import { Hono } from "hono";
 import type { Context } from "hono";
 import { ProxyDataAdapter } from "../adapter";
-import { createInMemoryHostCache, HostResolverCache } from "./cache";
+import {
+  createInMemoryHostCache,
+  HostCacheOptions,
+  HostResolverCache,
+} from "./cache";
 import { matchRoute } from "./matcher";
 import { runRoute } from "./pipeline";
 
 export interface ProxyDataPlaneOptions {
   data: ProxyDataAdapter;
+  // Legacy shorthand for { freshTtlMs: cacheTtlMs }.
   cacheTtlMs?: number;
+  cache?: HostCacheOptions;
   resolver?: HostResolverCache;
+}
+
+function buildResolver(options: ProxyDataPlaneOptions): HostResolverCache {
+  if (options.resolver) return options.resolver;
+  if (options.cache) return createInMemoryHostCache(options.data, options.cache);
+  return createInMemoryHostCache(options.data, options.cacheTtlMs ?? 30_000);
 }
 
 export function createProxyDataPlaneHandler(
   options: ProxyDataPlaneOptions,
 ): (c: Context) => Promise<Response> {
-  const ttl = options.cacheTtlMs ?? 30_000;
-  const resolver =
-    options.resolver ?? createInMemoryHostCache(options.data, ttl);
+  const resolver = buildResolver(options);
 
   return async (c) => {
-    const host = c.req.header("x-forwarded-host") ?? c.req.header("host");
+    const host = c.req.header("host") ?? c.req.header("x-forwarded-host");
     if (!host) return c.text("Missing host", 400);
 
     const resolved = await resolver.resolveHost(host);

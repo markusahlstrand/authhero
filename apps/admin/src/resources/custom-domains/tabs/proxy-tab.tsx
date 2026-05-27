@@ -83,10 +83,11 @@ function AddProxyRouteButton({
     }
     setSubmitting(true);
     try {
+      const parsedPriority = Number(priority);
       await dataProvider.create("proxy-routes", {
         data: {
           custom_domain_id: customDomainId,
-          priority: Number(priority) || 100,
+          priority: Number.isFinite(parsedPriority) ? parsedPriority : 100,
           path_pattern: pathPattern,
           upstream_type: upstreamType,
           upstream_url: upstreamUrl,
