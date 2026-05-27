@@ -156,6 +156,9 @@ apps/conformance-runner/blob-report/
 apps/conformance-runner/playwright/.cache/
 apps/conformance-runner/conformance-reports/
 
+# Wrangler local state and build artifacts
+.wrangler/
+
 # Claude Code
 .claude/settings.json
 .claude/settings.local.json

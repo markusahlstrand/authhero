@@ -57,7 +57,6 @@ export function createInMemoryHostCache(
   function evict(now: number): void {
     for (const [key, entry] of cache) {
       if (entry.stale_until <= now && !entry.refreshing) cache.delete(key);
-      else break;
     }
     while (cache.size >= maxEntries) {
       const oldest = cache.keys().next().value;
