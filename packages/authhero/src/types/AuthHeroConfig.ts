@@ -316,6 +316,23 @@ export interface AuthHeroConfig {
   managementApiExtensions?: ManagementApiExtension[];
 
   /**
+   * Optional privileged control-plane endpoint for the `@authhero/proxy`
+   * data plane. When set, mounts `GET /api/v2/proxy/control-plane/hosts/:host`
+   * which returns the cross-tenant `ResolvedHost` for the given hostname.
+   *
+   * This endpoint is read by remote proxy deployments via
+   * `createHttpProxyAdapter`. It is **cross-tenant** — gate it with a
+   * dedicated credential (shared secret, mTLS, or a JWT scoped to
+   * `proxy:resolve_host`), never with a tenant token.
+   */
+  proxyControlPlane?: {
+    resolveHost: (
+      host: string,
+    ) => Promise<import("@authhero/proxy").ResolvedHost | null>;
+    authenticate: (request: Request) => Promise<boolean> | boolean;
+  };
+
+  /**
    * Optional powered-by logo to display at the bottom left of the login widget.
    * This is only configurable in code, not stored in the database.
    *

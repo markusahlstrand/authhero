@@ -4,6 +4,7 @@ import { HTTPException } from "hono/http-exception";
 import i18next from "i18next";
 import { Bindings, Variables, AuthHeroConfig } from "./types";
 import createManagementApi from "./routes/management-api";
+import { createProxyControlPlaneApp } from "./routes/proxy-control-plane";
 import createOauthApi from "./routes/auth-api";
 import createUniversalLogin from "./routes/universal-login";
 import createU2App from "./routes/universal-login/u2-index";
@@ -128,6 +129,13 @@ export function init(config: AuthHeroConfig) {
 
   const managementApp = createManagementApi(config);
   app.route("/api/v2", managementApp);
+
+  if (config.proxyControlPlane) {
+    app.route(
+      "/api/v2/proxy/control-plane",
+      createProxyControlPlaneApp(config.proxyControlPlane),
+    );
+  }
 
   const universalApp = createUniversalLogin(config);
   app.route("/u", universalApp);

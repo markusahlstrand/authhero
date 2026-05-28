@@ -1,7 +1,5 @@
 export * from "./types";
 export * from "./adapter";
-export { createKyselyProxyDataAdapter } from "./kysely";
-export type { ProxyDatabase, ProxyRoutesTable } from "./kysely/schema";
 export { createProxyApp } from "./app";
 export type { ProxyAppOptions } from "./app";
 export {
@@ -14,12 +12,45 @@ export type {
   HostCacheOptions,
   HostResolverCache,
 } from "./data-plane/cache";
-export { createStaticProxyAdapter } from "./static";
+export {
+  createCacheApiHostCache,
+  buildCacheApiKey,
+} from "./data-plane/cache-api-cache";
+export type { CacheApiHostCacheOptions } from "./data-plane/cache-api-cache";
+export { HandlerRegistry, defineHandler } from "./data-plane/registry";
+export type {
+  HandlerDefinition,
+  HandlerBuildContext,
+} from "./data-plane/registry";
+export {
+  registerBuiltinHandlers,
+  corsHandler,
+  basicAuthHandler,
+  headersHandler,
+  cacheHandler,
+  forwardedHeadersHandler,
+  rewriteCookiesHandler,
+  rewriteLocationHandler,
+  httpHandler,
+  serviceBindingHandler,
+  redirectHandler,
+  staticHandler,
+} from "./data-plane/handlers";
+export { compileHostApp } from "./data-plane/compile";
+export {
+  sortRoutes,
+  matchesHost,
+  matchesAnyHost,
+  buildMatchFilter,
+} from "./data-plane/matcher";
+export {
+  createStaticProxyAdapter,
+  httpRoute,
+} from "./static";
 export type {
   StaticProxyAdapterOptions,
   StaticHostConfig,
   StaticRouteInput,
 } from "./static";
-export { createProxyManagementRouter } from "./management/router";
-export type { ProxyManagementOptions } from "./management/router";
-export { runMigrations, migrateDown } from "./migrate";
+export { createHttpProxyAdapter } from "./http-adapter";
+export type { HttpProxyAdapterOptions } from "./http-adapter";

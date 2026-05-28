@@ -566,4 +566,14 @@ export interface Database {
     dead_lettered_at: string | null;
     final_error: string | null;
   };
+  proxy_routes: {
+    id: string;
+    tenant_id: string;
+    custom_domain_id: string;
+    priority: number;
+    match: string; // JSON-encoded RouteMatch
+    handlers: string; // JSON-encoded HandlerConfig[]
+    created_at: string;
+    updated_at: string;
+  };
 }

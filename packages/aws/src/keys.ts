@@ -122,6 +122,16 @@ export const customDomainKeys = {
   gsi1sk: () => "CUSTOM_DOMAIN",
 };
 
+// Proxy route keys
+export const proxyRouteKeys = {
+  pk: (tenantId: string) => `TENANT#${tenantId}`,
+  sk: (proxyRouteId: string) => `PROXY_ROUTE#${proxyRouteId}`,
+  // GSI1 for listing routes by custom_domain_id within a tenant
+  gsi1pk: (tenantId: string, customDomainId: string) =>
+    `TENANT#${tenantId}#CUSTOM_DOMAIN#${customDomainId}`,
+  gsi1sk: (proxyRouteId: string) => `PROXY_ROUTE#${proxyRouteId}`,
+};
+
 // Log keys
 export const logKeys = {
   pk: (tenantId: string) => `TENANT#${tenantId}`,

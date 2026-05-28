@@ -259,25 +259,6 @@ importers:
         specifier: ^4.1.7
         version: 4.1.7(@types/node@25.9.1)(jsdom@29.1.1)(msw@2.14.6(@types/node@25.9.1)(typescript@5.9.3))(vite@8.0.14(@types/node@25.9.1)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.3)(yaml@2.9.0))
 
-  apps/auth0-proxy:
-    dependencies:
-      hono:
-        specifier: ^4.12.23
-        version: 4.12.23
-    devDependencies:
-      '@cloudflare/workers-types':
-        specifier: ^4.20260526.1
-        version: 4.20260526.1
-      '@types/node':
-        specifier: ^20.19.41
-        version: 20.19.41
-      typescript:
-        specifier: ^5.5.2
-        version: 5.9.3
-      wrangler:
-        specifier: ^3.38.0
-        version: 3.114.16(@cloudflare/workers-types@4.20260526.1)
-
   apps/conformance-auth-server:
     dependencies:
       '@authhero/kysely-adapter':
@@ -441,6 +422,9 @@ importers:
       '@authhero/adapter-interfaces':
         specifier: workspace:*
         version: link:../adapter-interfaces
+      '@authhero/proxy':
+        specifier: workspace:*
+        version: link:../proxy
       '@authhero/saml':
         specifier: workspace:*
         version: link:../saml
@@ -601,6 +585,9 @@ importers:
       '@authhero/adapter-interfaces':
         specifier: workspace:*
         version: link:../adapter-interfaces
+      '@authhero/proxy':
+        specifier: workspace:*
+        version: link:../proxy
       '@aws-sdk/client-dynamodb':
         specifier: ^3.700.0
         version: 3.958.0
@@ -718,6 +705,9 @@ importers:
       '@authhero/adapter-interfaces':
         specifier: workspace:*
         version: link:../adapter-interfaces
+      '@authhero/proxy':
+        specifier: workspace:*
+        version: link:../proxy
       drizzle-orm:
         specifier: ^0.44.2
         version: 0.44.7(@cloudflare/workers-types@4.20260526.1)(@planetscale/database@1.19.0)(@types/better-sqlite3@7.6.13)(better-sqlite3@11.10.0)(bun-types@1.3.5)(kysely@0.29.2)
@@ -764,6 +754,9 @@ importers:
       '@authhero/adapter-interfaces':
         specifier: workspace:*
         version: link:../adapter-interfaces
+      '@authhero/proxy':
+        specifier: workspace:*
+        version: link:../proxy
       nanoid:
         specifier: ^5.1.11
         version: 5.1.11
@@ -844,9 +837,9 @@ importers:
 
   packages/proxy:
     dependencies:
-      nanoid:
-        specifier: ^5.1.11
-        version: 5.1.11
+      '@authhero/adapter-interfaces':
+        specifier: workspace:*
+        version: link:../adapter-interfaces
     devDependencies:
       '@hono/zod-openapi':
         specifier: ^1.4.0
@@ -854,15 +847,9 @@ importers:
       '@types/node':
         specifier: ^24.12.4
         version: 24.12.4
-      better-sqlite3:
-        specifier: ^12.4.1
-        version: 12.10.0
       hono:
         specifier: ^4.12.23
         version: 4.12.23
-      kysely:
-        specifier: ^0.29.2
-        version: 0.29.2
       rollup-plugin-dts:
         specifier: ^6.4.1
         version: 6.4.1(rollup@4.54.0)(typescript@5.9.3)

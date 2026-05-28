@@ -46,9 +46,14 @@ import { createAuthenticationMethodsAdapter } from "./authenticationMethods";
 import { createOutboxAdapter } from "./outbox";
 import { createLogStreamsAdapter } from "./log-streams";
 import { createMigrationSourcesAdapter } from "./migrationSources";
+import { createProxyRoutesAdapter } from "./proxyRoutes";
 
 export { migrateToLatest, migrateDown } from "../migrate/migrate";
 export type { Database } from "./db";
+export {
+  createProxyRoutesAdapter,
+  createProxyDataAdapter,
+} from "./proxyRoutes";
 
 export default function createAdapters(
   db: Kysely<Database>,
@@ -81,6 +86,7 @@ export default function createAdapters(
     authenticationMethods: createAuthenticationMethodsAdapter(db),
     passwords: createPasswordAdapter(db),
     promptSettings: createPromptSettingsAdapter(db),
+    proxyRoutes: createProxyRoutesAdapter(db),
     refreshTokens: createRefreshTokensAdapter(db),
     resourceServers: createResourceServersAdapter(db),
     rolePermissions: rolePermissions(db),

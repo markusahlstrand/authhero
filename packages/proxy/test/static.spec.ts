@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { createStaticProxyAdapter } from "../src/static";
+import { createStaticProxyAdapter, httpRoute } from "../src/static";
 import { createProxyApp } from "../src/app";
 
 describe("static proxy adapter", () => {
@@ -12,13 +12,7 @@ describe("static proxy adapter", () => {
       hosts: {
         "id.ahlstrand.es": {
           tenant_id: "ahlstrand",
-          routes: [
-            {
-              path_pattern: "/*",
-              upstream_type: "http",
-              upstream_url: "https://auth.example",
-            },
-          ],
+          routes: [httpRoute("https://auth.example")],
         },
       },
     });
@@ -26,20 +20,14 @@ describe("static proxy adapter", () => {
     const resolved = await adapter.resolveHost("id.ahlstrand.es");
     expect(resolved?.tenant_id).toBe("ahlstrand");
     expect(resolved?.routes).toHaveLength(1);
-    expect(resolved?.routes[0]?.upstream_url).toBe("https://auth.example");
+    expect(resolved?.routes[0]?.handlers[0]?.type).toBe("http");
   });
 
   it("normalizes host case", async () => {
     const adapter = createStaticProxyAdapter({
       hosts: {
         "Example.COM": {
-          routes: [
-            {
-              path_pattern: "/*",
-              upstream_type: "http",
-              upstream_url: "https://x.example",
-            },
-          ],
+          routes: [httpRoute("https://x.example")],
         },
       },
     });
@@ -55,13 +43,7 @@ describe("static proxy adapter", () => {
   it("accepts routes-array shorthand", async () => {
     const adapter = createStaticProxyAdapter({
       hosts: {
-        "x.example": [
-          {
-            path_pattern: "/*",
-            upstream_type: "http",
-            upstream_url: "https://up.example",
-          },
-        ],
+        "x.example": [httpRoute("https://up.example")],
       },
     });
     const resolved = await adapter.resolveHost("x.example");
@@ -74,11 +56,10 @@ describe("static proxy adapter", () => {
       adapter.proxyRoutes.create("t", {
         custom_domain_id: "cd",
         priority: 100,
-        path_pattern: "/*",
-        upstream_type: "http",
-        upstream_url: "https://x",
-        preserve_host: false,
-        middleware: [],
+        match: { path: "/*" },
+        handlers: [
+          { type: "http", options: { upstream_url: "https://x" } },
+        ],
       }),
     ).rejects.toThrow(/read-only/);
   });
@@ -91,13 +72,7 @@ describe("static proxy adapter", () => {
     const app = createProxyApp({
       data: createStaticProxyAdapter({
         hosts: {
-          "id.ahlstrand.es": [
-            {
-              path_pattern: "/*",
-              upstream_type: "http",
-              upstream_url: "https://auth.example",
-            },
-          ],
+          "id.ahlstrand.es": [httpRoute("https://auth.example")],
         },
       }),
     });

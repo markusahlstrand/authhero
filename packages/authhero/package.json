@@ -83,6 +83,7 @@
   },
   "dependencies": {
     "@authhero/adapter-interfaces": "workspace:*",
+    "@authhero/proxy": "workspace:*",
     "@authhero/saml": "workspace:*",
     "@peculiar/x509": "^1.14.0",
     "@simplewebauthn/server": "^13.0.0",

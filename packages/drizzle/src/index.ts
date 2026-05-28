@@ -10,3 +10,7 @@ export { default } from "./adapters";
 
 // SQLite/D1 schema
 export * as sqlite from "./schema/sqlite";
+
+// Standalone proxy adapter (CRUD + resolveHost) for a separate proxy worker
+export { createProxyRoutesAdapter } from "./adapters/proxyRoutes";
+export { createProxyDataAdapter } from "./adapters/proxyData";

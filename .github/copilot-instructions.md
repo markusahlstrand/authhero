@@ -9,8 +9,8 @@ AuthHero is a multi-tenant authentication system that provides identity and acce
 ## Key Applications
 
 - **admin**: Admin interface for managing tenants, users, applications, and more (built on `ra-core` with shadcn/ui and Tailwind v4)
-- **auth0-proxy**: Proxy service for Auth0 compatibility
 - **demo**: Demo application showcasing AuthHero functionality
+- **proxy-dev**: Cloudflare Worker harness for the `@authhero/proxy` reverse-proxy library
 
 ## Architectural Notes
 

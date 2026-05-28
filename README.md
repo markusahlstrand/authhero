@@ -8,6 +8,7 @@ AuthHero is a multi-tenant authentication system that provides identity and acce
 
 - **authhero** - The main package for AuthHero that handles authentication and API requests
 - **create-authhero** - A CLI for creating new AuthHero projects
+- **proxy** - Multi-tenant reverse proxy for fronting customer custom domains with path-based routing
 - **Adapters:**
   - `adapter-interfaces` - Interfaces for creating adapters for AuthHero
   - `kysely` - ORM adapter for SQL databases
@@ -18,8 +19,8 @@ AuthHero is a multi-tenant authentication system that provides identity and acce
 ## Applications
 
 - **admin** - Admin interface (shadcn/ui + ra-core) for managing tenants, users, applications, and more
-- **auth0-proxy** - Proxy service for Auth0 compatibility
 - **demo** - Demo authentication server using the kysely adapter and SQLite
+- **proxy-dev** - Cloudflare Worker harness for developing/deploying `@authhero/proxy`
 - **docs** - Documentation site powered by VitePress
 
 ## Quick Start
@@ -205,8 +206,8 @@ Releases are automated via GitHub Actions when changesets are merged to the main
 authhero/
 ├── apps/
 │   ├── admin/            # Admin interface (shadcn/ui + ra-core)
-│   ├── auth0-proxy/      # Auth0 compatibility proxy
 │   ├── demo/             # Demo auth server
+│   ├── proxy-dev/        # Worker harness for @authhero/proxy
 │   └── docs/             # Documentation site
 ├── packages/
 │   ├── adapter-interfaces/
@@ -215,6 +216,7 @@ authhero/
 │   ├── create-authhero/  # Project generator CLI
 │   ├── drizzle/
 │   ├── kysely/
+│   ├── proxy/            # Multi-tenant reverse proxy library
 │   └── saml/
 └── test/                 # Integration tests
 ```

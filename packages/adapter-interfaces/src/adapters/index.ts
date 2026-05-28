@@ -24,6 +24,7 @@ import { HookCodeAdapter } from "./HookCode";
 import { ThemesAdapter } from "./Themes";
 import { LoginSessionsAdapter } from "./LoginSessions";
 import { PromptSettingsAdapter } from "./PromptSettings";
+import { ProxyRoutesAdapter } from "./ProxyRoutes";
 import { EmailProvidersAdapter } from "./EmailProviders";
 import { EmailTemplatesAdapter } from "./EmailTemplates";
 import { RefreshTokensAdapter } from "./RefreshTokens";
@@ -91,6 +92,13 @@ export interface DataAdapters {
   migrationSources?: MigrationSourcesAdapter;
   passwords: PasswordsAdapter;
   promptSettings: PromptSettingsAdapter;
+  /**
+   * Optional adapter for managing reverse-proxy route configuration per tenant.
+   * When set, AuthHero mounts the `/api/v2/proxy-routes` management API. A
+   * separate proxy worker (see `@authhero/proxy`) reads the same data either
+   * directly from the database or by calling this management API.
+   */
+  proxyRoutes?: ProxyRoutesAdapter;
   refreshTokens: RefreshTokensAdapter;
   resourceServers: ResourceServersAdapter;
   rolePermissions: RolePermissionsAdapter;
@@ -206,6 +214,7 @@ export * from "./LoginSessions";
 export * from "./Logs";
 export * from "./Passwords";
 export * from "./PromptSettings";
+export * from "./ProxyRoutes";
 export * from "./ResourceServers";
 export * from "./Roles";
 export * from "./Sessions";

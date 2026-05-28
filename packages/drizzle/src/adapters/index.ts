@@ -26,6 +26,7 @@ import { createAuthenticationMethodsAdapter } from "./authenticationMethods";
 import { createOrganizationsAdapter } from "./organizations";
 import { createPasswordsAdapter } from "./passwords";
 import { createPromptSettingsAdapter } from "./promptSettings";
+import { createProxyRoutesAdapter } from "./proxyRoutes";
 import { createRefreshTokensAdapter } from "./refreshTokens";
 import { createResourceServersAdapter } from "./resourceServers";
 import { createRolePermissionsAdapter } from "./rolePermissions";
@@ -77,6 +78,7 @@ export default function createAdapters(
     organizations: createOrganizationsAdapter(db),
     passwords: createPasswordsAdapter(db),
     promptSettings: createPromptSettingsAdapter(db),
+    proxyRoutes: createProxyRoutesAdapter(db),
     refreshTokens: createRefreshTokensAdapter(db),
     resourceServers: createResourceServersAdapter(db),
     rolePermissions: createRolePermissionsAdapter(db),

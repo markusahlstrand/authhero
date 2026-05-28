@@ -11,7 +11,7 @@ Move traffic from an Auth0 tenant to AuthHero one user at a time, without forcin
 
 **Refresh-token re-mint** — when a client presents a refresh token that didn't originate from AuthHero, the configured tenant-level **Migration Source** redeems it at the upstream `/oauth/token` and `/userinfo`, resolves or lazily creates the local user (matched by upstream `sub`), and mints fresh AuthHero tokens. The client keeps using `grant_type=refresh_token` — no SDK change. After one exchange per user, that user is fully on the AuthHero side.
 
-Bulk import via `/api/v2/users-imports` and the [Auth0 proxy app](/apps/auth0-proxy/) remain useful for other migration shapes; this page covers the lazy/just-in-time approach that needs no client SDK changes.
+Bulk import via `/api/v2/users-imports` remains useful for other migration shapes; this page covers the lazy/just-in-time approach that needs no client SDK changes.
 
 ## Migrating from a version that proxied refresh tokens
 
@@ -122,8 +122,8 @@ Once the upstream password-fallback traffic drops to a handful per day you can f
 
 ## Comparison with the other migration mechanisms
 
-- **[Auth0 proxy app](/apps/auth0-proxy/)** — a thin reverse proxy that exposes an Auth0-shaped surface to legacy clients during the cutover. Use when clients can't be repointed to AuthHero yet, or to keep refresh tokens working for long-tail clients while you wait for them to re-authenticate.
+- **Bulk import via `/api/v2/users-imports`** — pre-seeds users (with password hashes if you can extract them) so AuthHero owns the records upfront. Use when you want to flip DNS in one shot rather than draining the upstream incrementally.
 - **[Token Exchange (RFC 8693)](https://github.com/markusahlstrand/authhero/issues/807)** — proposed: an explicit `grant_type=token-exchange` surface for callers that prefer signalling the migration in the request rather than relying on transparent fallback. Not yet shipped.
 - **Lazy migration (this page)** — no client changes for password logins or refresh tokens; users and refresh tokens are migrated transparently on first use.
 
-These are complementary — most production migrations use lazy migration as the foundation and add the Auth0 proxy app for the small number of clients that need an Auth0-shaped HTTP surface or that cannot tolerate a forced re-authentication.
+These are complementary — most production migrations use lazy migration as the foundation and add bulk import for the long tail of users who never sign in during the migration window.

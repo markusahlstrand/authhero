@@ -32,9 +32,7 @@
   "devDependencies": {
     "@hono/zod-openapi": "^1.4.0",
     "@types/node": "^24.12.4",
-    "better-sqlite3": "^12.4.1",
     "hono": "^4.12.23",
-    "kysely": "^0.29.2",
     "rollup-plugin-dts": "^6.4.1",
     "typescript": "^5.9.3",
     "vite": "^8.0.14",
@@ -42,10 +40,9 @@
   },
   "peerDependencies": {
     "@hono/zod-openapi": "^1.4.0",
-    "hono": "^4.6.8",
-    "kysely": "^0.29.0"
+    "hono": "^4.6.8"
   },
   "dependencies": {
-    "nanoid": "^5.1.11"
+    "@authhero/adapter-interfaces": "workspace:*"
   }
 }

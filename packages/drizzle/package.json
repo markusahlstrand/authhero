@@ -39,6 +39,7 @@
   },
   "dependencies": {
     "@authhero/adapter-interfaces": "workspace:*",
+    "@authhero/proxy": "workspace:*",
     "drizzle-orm": "^0.44.2",
     "nanoid": "^5.1.11"
   },
