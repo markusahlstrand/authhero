@@ -58,6 +58,7 @@ jobs:
         run: |
           pnpm interfaces build
           pnpm saml build
+          pnpm proxy build
           pnpm kysely build
           pnpm drizzle build
           pnpm cloudflare build

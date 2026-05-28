@@ -51,6 +51,9 @@ jobs:
       - name: Build saml
         run: pnpm saml build
 
+      - name: Build proxy
+        run: pnpm proxy build
+
       - name: Build kysely
         run: pnpm kysely build
 
