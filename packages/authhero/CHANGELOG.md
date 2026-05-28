@@ -1,5 +1,23 @@
 # authhero
 
+## 5.12.0
+
+### Minor Changes
+
+- 1b7a39b: Add a `/api/v2/proxy-routes` management API for CRUD over proxy routes (per tenant) when the data adapter exposes a `proxyRoutes` adapter. Returns 501 if the adapter doesn't implement it. A separate proxy worker can then read from the same database via `createProxyDataAdapter` (from `@authhero/kysely-adapter`, `@authhero/drizzle`, or `@authhero/aws`) or fetch over HTTP with a service token.
+- 1b7a39b: Proxy v2: replace the legacy `path_pattern` + `upstream_type` + fixed two-phase middleware model with a JSON-configured route schema (`match` + ordered `handlers`) and a Hono-native execution model. Routes now match on path **plus** method, host pattern (`*.example.com`), request headers, and query params. Handlers are composable `(c, next) => Response` middleware compiled into a per-host Hono sub-app — they can short-circuit, reorder (e.g. `cache` before `basic_auth`), and post-process responses. Built-in handlers cover the legacy custom-domains proxy: `http`, `service_binding` (Cloudflare bindings via the new `bindings` option on `createProxyApp`), `redirect`, `static`, `cors`, `basic_auth`, `headers`, `cache`, `forwarded_headers` (X-Real-IP / X-Original-URL / X-Forwarded-\*), `rewrite_cookies` (upstream `Domain=`), and `rewrite_location` (3xx Location origin). New `createHttpProxyAdapter` reads route config from a remote AuthHero control plane over `client_credentials`, with an optional `createCacheApiHostCache` layer that uses `caches.default` for per-colo warmth (no KV needed). AuthHero exposes the privileged `GET /api/v2/proxy/control-plane/hosts/:host` endpoint via the new `proxyControlPlane` config option. Kysely and Drizzle adapters ship forward migrations that backfill existing rows; the legacy `path_pattern`/`upstream_type`/`upstream_url`/`preserve_host`/`middleware` columns are replaced with JSON `match` and `handlers`.
+
+### Patch Changes
+
+- 1b7a39b: Fix account-linking direction so the older account always stays primary. When two users shared the same email and linking was triggered from the older user's side (e.g. its email was updated to match a newer duplicate, or the `account-linking` template hook ran for the older user at post-login/post-update), the older account was incorrectly demoted to a secondary of the newer one. The auto-link path in `users.update` and the `accountLinking` template hook now compare `created_at` and repoint the newer primary (and its existing secondaries) instead. `getPrimaryUserByEmail` also returns the oldest primary deterministically, so callers see a stable canonical account even when race-condition duplicates exist.
+- b41f45e: Validate `tenant.default_audience` against existing resource servers. Setting `default_audience` to an identifier that has no matching resource server is now rejected with 400 on `PATCH /tenants/settings`, and deleting a resource server that is still referenced as the tenant's `default_audience` is rejected with 409. Previously such mismatches put the tenant in a broken state where every `/authorize` request was rejected with `Service not found`. Tenants already in that state are not auto-fixed — operators should clear `default_audience` or create a resource server with the matching identifier.
+- Updated dependencies [1b7a39b]
+- Updated dependencies [1b7a39b]
+- Updated dependencies [1b7a39b]
+  - @authhero/adapter-interfaces@2.8.0
+  - @authhero/proxy@0.3.0
+  - @authhero/widget@0.32.30
+
 ## 5.11.0
 
 ### Minor Changes

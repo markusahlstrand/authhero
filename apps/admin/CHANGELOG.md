@@ -1,5 +1,13 @@
 # @authhero/admin
 
+## 0.4.5
+
+### Patch Changes
+
+- Updated dependencies [1b7a39b]
+- Updated dependencies [1b7a39b]
+  - @authhero/adapter-interfaces@2.8.0
+
 ## 0.4.4
 
 ### Patch Changes
