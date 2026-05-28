@@ -770,6 +770,7 @@ describe("resource-servers", () => {
       const referenced = resource_servers.find(
         (rs) => rs.identifier === "https://example.com",
       );
+      expect(referenced?.id).toBeDefined();
 
       const existingTenant = await env.data.tenants.get("tenantId");
       await env.data.tenants.update("tenantId", {

@@ -175,10 +175,22 @@ export function createUserUpdateHooks(
             const seen = new Set<string>();
             for (const u of otherUsers) {
               if (!u.linked_to) continue;
-              const r = await trxData.users.get(tenant_id, u.linked_to);
-              if (r && r.user_id !== user_id && !seen.has(r.user_id)) {
-                seen.add(r.user_id);
-                roots.push(r);
+              const visited = new Set<string>([u.user_id]);
+              let current = await trxData.users.get(tenant_id, u.linked_to);
+              while (current && current.linked_to) {
+                if (visited.has(current.user_id)) {
+                  current = null;
+                  break;
+                }
+                visited.add(current.user_id);
+                current = await trxData.users.get(
+                  tenant_id,
+                  current.linked_to,
+                );
+              }
+              if (current && current.user_id !== user_id && !seen.has(current.user_id)) {
+                seen.add(current.user_id);
+                roots.push(current);
               }
             }
             const resolvedPrimary =

@@ -30,42 +30,47 @@ interface ProxyRouteRow {
   updated_at: string;
 }
 
-function parseMatch(raw: string | null | undefined): RouteMatch {
-  if (!raw) return { path: "/*" };
+function parseMatch(raw: string | null | undefined): RouteMatch | null {
+  if (!raw) return null;
+  let parsed: unknown;
   try {
-    const parsed: unknown = JSON.parse(raw);
-    const validated = matchSchema.safeParse(parsed);
-    if (validated.success) return validated.data;
+    parsed = JSON.parse(raw);
   } catch {
-    /* fall through */
+    return null;
   }
-  return { path: "/*" };
+  const validated = matchSchema.safeParse(parsed);
+  return validated.success ? validated.data : null;
 }
 
-function parseHandlers(raw: string | null | undefined): HandlerConfig[] {
-  if (!raw) return [];
+function parseHandlers(raw: string | null | undefined): HandlerConfig[] | null {
+  if (!raw) return null;
+  let parsed: unknown;
   try {
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    const result: HandlerConfig[] = [];
-    for (const entry of parsed) {
-      const validated = handlerConfigSchema.safeParse(entry);
-      if (validated.success) result.push(validated.data);
-    }
-    return result;
+    parsed = JSON.parse(raw);
   } catch {
-    return [];
+    return null;
   }
+  if (!Array.isArray(parsed) || parsed.length === 0) return null;
+  const result: HandlerConfig[] = [];
+  for (const entry of parsed) {
+    const validated = handlerConfigSchema.safeParse(entry);
+    if (!validated.success) return null;
+    result.push(validated.data);
+  }
+  return result;
 }
 
-function rowToProxyRoute(row: ProxyRouteRow): ProxyRoute {
+function rowToProxyRoute(row: ProxyRouteRow): ProxyRoute | null {
+  const match = parseMatch(row.match);
+  const handlers = parseHandlers(row.handlers);
+  if (match === null || handlers === null) return null;
   return {
     id: row.id,
     tenant_id: row.tenant_id,
     custom_domain_id: row.custom_domain_id,
     priority: row.priority,
-    match: parseMatch(row.match),
-    handlers: parseHandlers(row.handlers),
+    match,
+    handlers,
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
@@ -99,6 +104,7 @@ async function resolveHostFromDynamo(
 
   const routes = routeItems
     .map(rowToProxyRoute)
+    .filter((route): route is ProxyRoute => route !== null)
     .sort((a, b) => {
       if (a.priority !== b.priority) return a.priority - b.priority;
       return a.created_at.localeCompare(b.created_at);

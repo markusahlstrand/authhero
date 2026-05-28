@@ -2,7 +2,17 @@ import { z } from "@hono/zod-openapi";
 import { defineHandler } from "../registry";
 
 const optionsSchema = z.object({
-  upstream_url: z.string(),
+  upstream_url: z.string().refine(
+    (val) => {
+      try {
+        const u = new URL(val);
+        return (u.protocol === "http:" || u.protocol === "https:") && !!u.hostname;
+      } catch {
+        return false;
+      }
+    },
+    { message: "upstream_url must be a valid http(s) URL with a hostname" },
+  ),
   status: z.union([z.literal(301), z.literal(302), z.literal(307), z.literal(308)])
     .default(302),
   preserve_path: z.boolean().default(true),
