@@ -158,7 +158,7 @@ export const ListView = <RecordType extends RaRecord = RaRecord>(
           searchPlaceholder={searchPlaceholder}
           searchSource={searchSource}
         />
-        <FilterForm />
+        <FilterForm searchSource={disableSearch ? undefined : searchSource} />
 
         <div className={cn("my-2", props.className)}>{children}</div>
         {pagination}

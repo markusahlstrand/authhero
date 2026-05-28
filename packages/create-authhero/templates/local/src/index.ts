@@ -3,6 +3,7 @@ import { SqliteDialect } from "kysely";
 import { Kysely } from "kysely";
 import Database from "better-sqlite3";
 import createAdapters from "@authhero/kysely-adapter";
+import { createEncryptedDataAdapter, loadEncryptionKey } from "authhero";
 import createApp from "./app";
 import fs from "fs";
 import path from "path";
@@ -102,7 +103,14 @@ try {
   process.exit(1);
 }
 
-const dataAdapter = createAdapters(db);
+let dataAdapter = createAdapters(db);
+
+// Encrypt sensitive credential fields at rest when ENCRYPTION_KEY is set
+// (generated into .env at scaffold time). Without it, behavior is unchanged.
+if (process.env.ENCRYPTION_KEY) {
+  const encryptionKey = await loadEncryptionKey(process.env.ENCRYPTION_KEY);
+  dataAdapter = createEncryptedDataAdapter(dataAdapter, encryptionKey);
+}
 
 // Create the AuthHero app
 const app = createApp({

@@ -553,6 +553,11 @@ export const MANAGEMENT_API_SCOPES = [
   { description: "Read connection keys", value: "read:connections_keys" },
   { description: "Update connection keys", value: "update:connections_keys" },
   { description: "Create connection keys", value: "create:connections_keys" },
+  // Proxy routes scopes
+  { description: "Read proxy routes", value: "read:proxy_routes" },
+  { description: "Create proxy routes", value: "create:proxy_routes" },
+  { description: "Update proxy routes", value: "update:proxy_routes" },
+  { description: "Delete proxy routes", value: "delete:proxy_routes" },
   // Tenant management scopes
   { description: "Read Tenants", value: "read:tenants" },
   { description: "Create Tenants", value: "create:tenants" },

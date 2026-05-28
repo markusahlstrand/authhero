@@ -216,6 +216,9 @@ export function App({ tenantId, initialDomain, onAuthComplete }: AppProps) {
           list={DomainList}
           create={DomainCreate}
           edit={DomainEdit}
+          recordRepresentation={(record) =>
+            record?.domain || record?.custom_domain_id || ""
+          }
           options={{ menuGroup: "Applications" }}
         />
         <Resource

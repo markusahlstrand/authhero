@@ -3,7 +3,11 @@ import { Kysely } from "kysely";
 import createAdapters from "@authhero/kysely-adapter";
 import createApp from "./app";
 import { Env } from "./types";
-import { AuthHeroConfig } from "authhero";
+import {
+  AuthHeroConfig,
+  createEncryptedDataAdapter,
+  loadEncryptionKey,
+} from "authhero";
 
 // ──────────────────────────────────────────────────────────────────────────────
 // OPTIONAL: Uncomment to enable Cloudflare adapters (Analytics Engine, etc.)
@@ -20,7 +24,15 @@ export default {
 
     const dialect = new D1Dialect({ database: env.AUTH_DB });
     const db = new Kysely<any>({ dialect });
-    const dataAdapter = createAdapters(db, { useTransactions: false });
+    let dataAdapter = createAdapters(db, { useTransactions: false });
+
+    // Encrypt sensitive credential fields at rest when ENCRYPTION_KEY is set.
+    // In local dev it comes from .dev.vars; in production set it with
+    // `wrangler secret put ENCRYPTION_KEY`. Without it, behavior is unchanged.
+    if (env.ENCRYPTION_KEY) {
+      const encryptionKey = await loadEncryptionKey(env.ENCRYPTION_KEY);
+      dataAdapter = createEncryptedDataAdapter(dataAdapter, encryptionKey);
+    }
 
     // ────────────────────────────────────────────────────────────────────────
     // OPTIONAL: Cloudflare Analytics Engine for centralized logging

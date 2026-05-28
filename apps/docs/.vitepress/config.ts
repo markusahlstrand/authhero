@@ -388,6 +388,10 @@ gtag('config', 'G-DNZWG3PF2L');`,
               text: "Multi-Tenancy & Organizations",
               link: "/security/multi-tenancy",
             },
+            {
+              text: "Encryption at Rest",
+              link: "/security/encryption-at-rest",
+            },
           ],
         },
         {

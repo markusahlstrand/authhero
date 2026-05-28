@@ -4,8 +4,16 @@ import { Command } from "commander";
 import inquirer from "inquirer";
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 import { fileURLToPath } from "url";
 import { spawn } from "child_process";
+
+// Generate a base64-encoded 32-byte (AES-256) key for at-rest encryption of
+// sensitive credential fields. Written into the scaffolded project's dev env
+// file so encryption is enabled out of the box for local development.
+function generateEncryptionKey(): string {
+  return crypto.randomBytes(32).toString("base64");
+}
 
 const program = new Command();
 
@@ -60,10 +68,10 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
         version: "1.0.0",
         type: "module",
         scripts: {
-          dev: "npx tsx watch src/index.ts",
-          start: "npx tsx src/index.ts",
+          dev: "npx tsx watch --env-file=.env src/index.ts",
+          start: "npx tsx --env-file=.env src/index.ts",
           migrate: "npx tsx src/migrate.ts",
-          seed: "npx tsx src/seed.ts",
+          seed: "npx tsx --env-file=.env src/seed.ts",
         },
         dependencies: {
           "@authhero/kysely-adapter": v,
@@ -197,7 +205,7 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
           dev: "sst dev",
           deploy: "sst deploy --stage production",
           remove: "sst remove",
-          seed: "npx tsx src/seed.ts",
+          seed: "npx tsx --env-file=.env src/seed.ts",
           "copy-assets": "node copy-assets.js",
         },
         dependencies: {
@@ -414,7 +422,7 @@ function generateLocalSeedFileContent(
   return `import { SqliteDialect, Kysely } from "kysely";
 import Database from "better-sqlite3";
 import createAdapters from "@authhero/kysely-adapter";
-import { seed${conformance ? ", USERNAME_PASSWORD_PROVIDER" : ""} } from "authhero";
+import { seed, createEncryptedDataAdapter, loadEncryptionKey${conformance ? ", USERNAME_PASSWORD_PROVIDER" : ""} } from "authhero";
 
 interface ExtraClient {
   client_id: string;
@@ -468,7 +476,13 @@ async function main() {
   });
 
   const db = new Kysely<any>({ dialect });
-  const adapters = createAdapters(db);
+  let adapters = createAdapters(db);
+
+  // Match the server: encrypt seeded secrets at rest when a key is configured.
+  if (process.env.ENCRYPTION_KEY) {
+    const encryptionKey = await loadEncryptionKey(process.env.ENCRYPTION_KEY);
+    adapters = createEncryptedDataAdapter(adapters, encryptionKey);
+  }
 
   const seedResult = await seed(adapters, {
     adminUsername,
@@ -679,10 +693,11 @@ function generateCloudflareSeedFileContent(
   return `import { D1Dialect } from "kysely-d1";
 import { Kysely } from "kysely";
 import createAdapters from "@authhero/kysely-adapter";
-import { seed } from "authhero";
+import { seed, createEncryptedDataAdapter, loadEncryptionKey } from "authhero";
 
 interface Env {
   AUTH_DB: D1Database;
+  ENCRYPTION_KEY?: string;
 }
 
 export default {
@@ -696,7 +711,12 @@ export default {
     try {
       const dialect = new D1Dialect({ database: env.AUTH_DB });
       const db = new Kysely<any>({ dialect });
-      const adapters = createAdapters(db, { useTransactions: false });
+      let adapters = createAdapters(db, { useTransactions: false });
+
+      if (env.ENCRYPTION_KEY) {
+        const encryptionKey = await loadEncryptionKey(env.ENCRYPTION_KEY);
+        adapters = createEncryptedDataAdapter(adapters, encryptionKey);
+      }
 
       const result = await seed(adapters, {
         adminUsername,
@@ -954,7 +974,7 @@ function generateAwsSstSeedFileContent(
   return `import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import createAdapters from "@authhero/aws";
-import { seed } from "authhero";
+import { seed, createEncryptedDataAdapter, loadEncryptionKey } from "authhero";
 
 async function main() {
   const adminUsername = process.argv[2] || process.env.ADMIN_USERNAME || "admin";
@@ -974,7 +994,12 @@ async function main() {
     },
   });
 
-  const adapters = createAdapters(docClient, { tableName });
+  let adapters = createAdapters(docClient, { tableName });
+
+  if (process.env.ENCRYPTION_KEY) {
+    const encryptionKey = await loadEncryptionKey(process.env.ENCRYPTION_KEY);
+    adapters = createEncryptedDataAdapter(adapters, encryptionKey);
+  }
 
   await seed(adapters, {
     adminUsername,
@@ -1007,6 +1032,17 @@ function generateAwsSstFiles(
   fs.writeFileSync(
     path.join(srcDir, "seed.ts"),
     generateAwsSstSeedFileContent(multiTenant),
+  );
+
+  // Generate .env with a random encryption key. SST loads .env into the
+  // config's process.env, which forwards ENCRYPTION_KEY to the Lambda. Keep
+  // this key stable and use a separate one per deployment stage.
+  fs.writeFileSync(
+    path.join(projectPath, ".env"),
+    `# At-rest encryption key for sensitive credentials. Generated automatically.
+# Keep this stable and secret — losing it makes encrypted data unrecoverable.
+ENCRYPTION_KEY=${generateEncryptionKey()}
+`,
   );
 }
 
@@ -1458,11 +1494,17 @@ program
         fs.copyFileSync(wranglerPath, wranglerLocalPath);
       }
 
-      // Copy .dev.vars.example to .dev.vars
+      // Copy .dev.vars.example to .dev.vars and inject a generated encryption
+      // key so sensitive credentials are encrypted at rest in local dev.
       const devVarsExamplePath = path.join(projectPath, ".dev.vars.example");
       const devVarsPath = path.join(projectPath, ".dev.vars");
       if (fs.existsSync(devVarsExamplePath)) {
         fs.copyFileSync(devVarsExamplePath, devVarsPath);
+        fs.appendFileSync(
+          devVarsPath,
+          `\n# Generated at-rest encryption key (local dev). Use a separate secret in production.\nENCRYPTION_KEY=${generateEncryptionKey()}\n`,
+        );
+        console.log("🔒 Added a generated ENCRYPTION_KEY to .dev.vars");
       }
 
       console.log(
@@ -1510,6 +1552,17 @@ program
 
       const appContent = generateLocalAppFileContent(multiTenant, adminUi);
       fs.writeFileSync(path.join(projectPath, "src/app.ts"), appContent);
+
+      // Generate .env with a random encryption key so sensitive credential
+      // fields are encrypted at rest out of the box. Keep this key stable —
+      // rotating or losing it makes existing encrypted values unrecoverable.
+      const envContent = `# Encryption key for at-rest encryption of sensitive credentials.
+# Generated automatically. Keep this stable and secret — losing it makes
+# existing encrypted data unrecoverable. Use a separate key in production.
+ENCRYPTION_KEY=${generateEncryptionKey()}
+`;
+      fs.writeFileSync(path.join(projectPath, ".env"), envContent);
+      console.log("🔒 Generated .env with an at-rest encryption key");
     }
 
     // Generate seed.ts and app.ts for AWS SST setup

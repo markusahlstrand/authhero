@@ -55,6 +55,10 @@ export default $config({
       environment: {
         TABLE_NAME: table.name,
         WIDGET_URL: assets.url,
+        // At-rest encryption key for sensitive credentials. Sourced from the
+        // environment (e.g. a generated .env loaded by SST, or your CI/secret
+        // store). Encryption is skipped when this is empty.
+        ENCRYPTION_KEY: process.env.ENCRYPTION_KEY ?? "",
       },
       nodejs: {
         install: ["@authhero/aws"],

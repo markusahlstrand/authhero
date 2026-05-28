@@ -18,8 +18,10 @@ import {
 } from "@/components/ui/dialog";
 import {
   DataTable,
+  FilterForm,
   ListPagination,
   ReferenceManyField,
+  SearchInput,
 } from "@/components/admin";
 
 interface ScopeRecord extends RaRecord {
@@ -128,6 +130,7 @@ export function ScopesTab() {
           </p>
         }
       >
+        <FilterForm filters={[<SearchInput key="q" source="q" alwaysOn />]} />
         <DataTable
           rowClick={(_id, _r, scope) => editPath(scope as ScopeRecord)}
           bulkActionButtons={false}

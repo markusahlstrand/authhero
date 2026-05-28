@@ -24,6 +24,11 @@ export type Bindings = {
   UNIVERSAL_LOGIN_URL?: string;
   OAUTH_API_URL?: string;
 
+  // Optional base64-encoded 32-byte key (AES-256) for at-rest encryption of
+  // sensitive credential fields. When set, wrap the data adapter with
+  // `createEncryptedDataAdapter`. Generate with: openssl rand -base64 32
+  ENCRYPTION_KEY?: string;
+
   data: DataAdapters;
 
   hooks?: Hooks;

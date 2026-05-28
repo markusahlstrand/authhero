@@ -18,6 +18,7 @@ import {
   getTryConnectionResultUrl,
 } from "../../helpers/try-connection-client";
 import { getEnrichedClient } from "../../helpers/client";
+import { getTenantCustomDomain } from "../../helpers/custom-domain";
 import { getAuthUrl } from "../../variables";
 import { passwordGrant } from "../../authentication-flows/password";
 import { USERNAME_PASSWORD_PROVIDER } from "../../constants";
@@ -661,8 +662,15 @@ const postByIdTry = defineRoute({
       // Browser-driven flow: build the /authorize URL pinned to this
       // connection and the internal test client. The state is generated
       // here so the portal can correlate the popup result.
+      // Prefer the tenant's custom domain so the whole popup flow — including
+      // the result page that posts back to the opener — runs on the same
+      // origin the end user's real logins use.
+      const customDomain = await getTenantCustomDomain(ctx.env, tenantId);
+
       const state = nanoid();
-      const resultUrlObj = new URL(getTryConnectionResultUrl(ctx.env));
+      const resultUrlObj = new URL(
+        getTryConnectionResultUrl(ctx.env, customDomain),
+      );
       // Propagate the caller's origin so the result screen can post the
       // outcome back to the exact opener instead of broadcasting with '*'.
       const requestOrigin = ctx.req.header("origin");
@@ -677,7 +685,7 @@ const postByIdTry = defineRoute({
         }
       }
       const resultUrl = resultUrlObj.toString();
-      const authUrl = getAuthUrl(ctx.env);
+      const authUrl = getAuthUrl(ctx.env, customDomain);
       const authorizeUrl = new URL(`${authUrl}authorize`);
       authorizeUrl.searchParams.set("client_id", clientId);
       authorizeUrl.searchParams.set("response_type", "code");
