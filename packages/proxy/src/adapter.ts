@@ -1,4 +1,15 @@
-import { ProxyRoute, ProxyRouteInsert, ProxyRouteUpdate } from "./types";
+import type {
+  ProxyRoute,
+  ProxyRoutesAdapter,
+  ListProxyRoutesParams,
+  ListProxyRoutesResult,
+} from "@authhero/adapter-interfaces";
+
+export type {
+  ProxyRoutesAdapter,
+  ListProxyRoutesParams,
+  ListProxyRoutesResult,
+};
 
 export interface ResolvedHost {
   tenant_id: string;
@@ -7,34 +18,14 @@ export interface ResolvedHost {
   routes: ProxyRoute[];
 }
 
-export interface ListProxyRoutesParams {
-  page?: number;
-  per_page?: number;
-  custom_domain_id?: string;
-}
-
-export interface ListProxyRoutesResult {
-  proxy_routes: ProxyRoute[];
-  start: number;
-  limit: number;
-  length: number;
-}
-
-export interface ProxyRoutesAdapter {
-  create(tenant_id: string, route: ProxyRouteInsert): Promise<ProxyRoute>;
-  get(tenant_id: string, id: string): Promise<ProxyRoute | null>;
-  list(
-    tenant_id: string,
-    params?: ListProxyRoutesParams,
-  ): Promise<ListProxyRoutesResult>;
-  update(
-    tenant_id: string,
-    id: string,
-    route: ProxyRouteUpdate,
-  ): Promise<boolean>;
-  remove(tenant_id: string, id: string): Promise<boolean>;
-}
-
+/**
+ * Data adapter consumed by the proxy data plane.
+ *
+ * `proxyRoutes` mirrors the tenant-scoped CRUD adapter that AuthHero uses for
+ * its management API. `resolveHost` is the cross-tenant lookup the proxy data
+ * plane needs on every incoming request — it maps a request `Host` header to
+ * the owning tenant, custom domain, and route set.
+ */
 export interface ProxyDataAdapter {
   proxyRoutes: ProxyRoutesAdapter;
   resolveHost(host: string): Promise<ResolvedHost | null>;

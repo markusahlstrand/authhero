@@ -167,6 +167,8 @@ import * as o068_move_disable_signup_to_connection from "./2026-05-13T10:00:00_m
 import * as o069_actions_is_system_inherit from "./2026-05-13T11:00:00_actions_is_system_inherit";
 import * as o070_collapse_auth0_source_into_db_connection from "./2026-05-13T12:00:00_collapse_auth0_source_into_db_connection";
 import * as o071_migration_sources from "./2026-05-14T10:00:00_migration_sources";
+import * as o072_proxy_routes from "./2026-05-26T00:00:00_create_proxy_routes";
+import * as o073_proxy_routes_v2 from "./2026-05-28T00:00:00_proxy_routes_v2";
 
 // These need to be in alphabetic order
 export default {
@@ -339,4 +341,6 @@ export default {
   o069_actions_is_system_inherit,
   o070_collapse_auth0_source_into_db_connection,
   o071_migration_sources,
+  o072_proxy_routes,
+  o073_proxy_routes_v2,
 };

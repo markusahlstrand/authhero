@@ -1,22 +1,23 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { createProxyDataPlaneRouter } from "../src/data-plane/router";
 import { ProxyDataAdapter, ResolvedHost } from "../src/adapter";
-import { ProxyRoute } from "../src/types";
+import { ProxyRoute, HandlerConfig } from "../src/types";
 
-function route(partial: Partial<ProxyRoute>): ProxyRoute {
+function route(partial: {
+  id?: string;
+  priority?: number;
+  match?: ProxyRoute["match"];
+  handlers: HandlerConfig[];
+}): ProxyRoute {
   return {
     id: partial.id ?? "r",
     tenant_id: "t1",
     custom_domain_id: "cd1",
-    priority: 100,
-    path_pattern: "/",
-    upstream_type: "http",
-    upstream_url: "https://upstream.example.com",
-    preserve_host: false,
-    middleware: [],
+    priority: partial.priority ?? 100,
+    match: partial.match ?? { path: "/*" },
+    handlers: partial.handlers,
     created_at: "2026-05-26T00:00:00.000Z",
     updated_at: "2026-05-26T00:00:00.000Z",
-    ...partial,
   };
 }
 
@@ -46,7 +47,14 @@ describe("data plane router", () => {
         tenant_id: "t1",
         custom_domain_id: "cd1",
         domain: "customer.com",
-        routes: [route({ path_pattern: "/account/*" })],
+        routes: [
+          route({
+            match: { path: "/account/*" },
+            handlers: [
+              { type: "http", options: { upstream_url: "https://x" } },
+            ],
+          }),
+        ],
       }),
     });
     const res = await app.request("https://customer.com/checkout", {
@@ -67,8 +75,13 @@ describe("data plane router", () => {
         domain: "customer.com",
         routes: [
           route({
-            path_pattern: "/account/*",
-            upstream_url: "https://account.vercel.app",
+            match: { path: "/account/*" },
+            handlers: [
+              {
+                type: "http",
+                options: { upstream_url: "https://account.vercel.app" },
+              },
+            ],
           }),
         ],
       }),
@@ -104,9 +117,16 @@ describe("data plane router", () => {
         domain: "customer.com",
         routes: [
           route({
-            path_pattern: "/",
-            upstream_url: "https://authhero.example",
-            preserve_host: true,
+            match: { path: "/*" },
+            handlers: [
+              {
+                type: "http",
+                options: {
+                  upstream_url: "https://authhero.example",
+                  preserve_host: true,
+                },
+              },
+            ],
           }),
         ],
       }),
@@ -121,7 +141,7 @@ describe("data plane router", () => {
     expect((calledInit.headers as Headers).get("host")).toBe("customer.com");
   });
 
-  it("redirects when route type is redirect", async () => {
+  it("redirects via redirect terminal handler", async () => {
     const app = createProxyDataPlaneRouter({
       data: makeAdapter({
         tenant_id: "t1",
@@ -129,9 +149,13 @@ describe("data plane router", () => {
         domain: "customer.com",
         routes: [
           route({
-            path_pattern: "/old/*",
-            upstream_type: "redirect",
-            upstream_url: "https://new.example.com",
+            match: { path: "/old/*" },
+            handlers: [
+              {
+                type: "redirect",
+                options: { upstream_url: "https://new.example.com" },
+              },
+            ],
           }),
         ],
       }),
@@ -155,12 +179,18 @@ describe("data plane router", () => {
         domain: "customer.com",
         routes: [
           route({
-            path_pattern: "/api/*",
-            middleware: [
+            match: { path: "/api/*" },
+            handlers: [
               {
                 type: "cors",
-                origins: ["https://app.example"],
-                allow_methods: ["GET", "POST"],
+                options: {
+                  origins: ["https://app.example"],
+                  allow_methods: ["GET", "POST"],
+                },
+              },
+              {
+                type: "http",
+                options: { upstream_url: "https://up.example" },
               },
             ],
           }),
@@ -172,6 +202,7 @@ describe("data plane router", () => {
       headers: {
         host: "customer.com",
         origin: "https://app.example",
+        "access-control-request-method": "POST",
       },
     });
     expect(res.status).toBe(204);
@@ -189,9 +220,16 @@ describe("data plane router", () => {
         domain: "customer.com",
         routes: [
           route({
-            path_pattern: "/admin/*",
-            middleware: [
-              { type: "basic_auth", username: "u", password: "p" },
+            match: { path: "/admin/*" },
+            handlers: [
+              {
+                type: "basic_auth",
+                options: { username: "u", password: "p" },
+              },
+              {
+                type: "http",
+                options: { upstream_url: "https://up.example" },
+              },
             ],
           }),
         ],
@@ -202,5 +240,210 @@ describe("data plane router", () => {
     });
     expect(res.status).toBe(401);
     expect(res.headers.get("WWW-Authenticate")).toContain("Basic");
+  });
+
+  it("filters by request method", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response("ok"));
+    const app = createProxyDataPlaneRouter({
+      data: makeAdapter({
+        tenant_id: "t1",
+        custom_domain_id: "cd1",
+        domain: "customer.com",
+        routes: [
+          route({
+            match: { path: "/api/*", methods: ["POST"] },
+            handlers: [
+              {
+                type: "http",
+                options: { upstream_url: "https://up.example" },
+              },
+            ],
+          }),
+        ],
+      }),
+    });
+    const get = await app.request("https://customer.com/api/u", {
+      method: "GET",
+      headers: { host: "customer.com" },
+    });
+    expect(get.status).toBe(404);
+    const post = await app.request("https://customer.com/api/u", {
+      method: "POST",
+      headers: { host: "customer.com" },
+    });
+    expect(post.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("filters by request header", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response("ok"));
+    const app = createProxyDataPlaneRouter({
+      data: makeAdapter({
+        tenant_id: "t1",
+        custom_domain_id: "cd1",
+        domain: "customer.com",
+        routes: [
+          route({
+            match: { path: "/*", headers: { "x-api-version": "^v2$" } },
+            handlers: [
+              {
+                type: "http",
+                options: { upstream_url: "https://up.example" },
+              },
+            ],
+          }),
+        ],
+      }),
+    });
+    const missing = await app.request("https://customer.com/", {
+      headers: { host: "customer.com" },
+    });
+    expect(missing.status).toBe(404);
+    const present = await app.request("https://customer.com/", {
+      headers: { host: "customer.com", "x-api-version": "v2" },
+    });
+    expect(present.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns a static body", async () => {
+    const app = createProxyDataPlaneRouter({
+      data: makeAdapter({
+        tenant_id: "t1",
+        custom_domain_id: "cd1",
+        domain: "customer.com",
+        routes: [
+          route({
+            match: { path: "/healthz" },
+            handlers: [
+              {
+                type: "static",
+                options: { status: 200, json: { ok: true } },
+              },
+            ],
+          }),
+        ],
+      }),
+    });
+    const res = await app.request("https://customer.com/healthz", {
+      headers: { host: "customer.com" },
+    });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true });
+  });
+
+  it("dispatches via a service binding", async () => {
+    const bindingFetch = vi.fn(async () => new Response("from binding"));
+    const app = createProxyDataPlaneRouter({
+      data: makeAdapter({
+        tenant_id: "t1",
+        custom_domain_id: "cd1",
+        domain: "customer.com",
+        routes: [
+          route({
+            match: { path: "/*" },
+            handlers: [
+              {
+                type: "service_binding",
+                options: { binding: "API2" },
+              },
+            ],
+          }),
+        ],
+      }),
+      bindings: { API2: { fetch: bindingFetch } },
+    });
+    const res = await app.request("https://customer.com/foo", {
+      headers: { host: "customer.com" },
+    });
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe("from binding");
+    expect(bindingFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("rewrites Set-Cookie Domain from upstream host to request host", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response("ok", {
+        status: 200,
+        headers: {
+          "Set-Cookie": "sid=abc; Path=/; Domain=upstream.example.com; HttpOnly",
+        },
+      }),
+    );
+
+    const app = createProxyDataPlaneRouter({
+      data: makeAdapter({
+        tenant_id: "t1",
+        custom_domain_id: "cd1",
+        domain: "customer.com",
+        routes: [
+          route({
+            match: { path: "/*" },
+            handlers: [
+              {
+                type: "rewrite_cookies",
+                options: { upstream_host: "upstream.example.com" },
+              },
+              {
+                type: "http",
+                options: { upstream_url: "https://upstream.example.com" },
+              },
+            ],
+          }),
+        ],
+      }),
+      cacheTtlMs: 0,
+    });
+
+    const res = await app.request("https://customer.com/", {
+      headers: { host: "customer.com" },
+    });
+    const cookie =
+      res.headers.getSetCookie?.()[0] ?? res.headers.get("set-cookie");
+    expect(cookie).toContain("Domain=customer.com");
+    expect(cookie).not.toContain("Domain=upstream.example.com");
+  });
+
+  it("rewrites Location header on 3xx responses", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(null, {
+        status: 302,
+        headers: { Location: "https://upstream.example.com/dest" },
+      }),
+    );
+
+    const app = createProxyDataPlaneRouter({
+      data: makeAdapter({
+        tenant_id: "t1",
+        custom_domain_id: "cd1",
+        domain: "customer.com",
+        routes: [
+          route({
+            match: { path: "/*" },
+            handlers: [
+              {
+                type: "rewrite_location",
+                options: { upstream_origin: "https://upstream.example.com" },
+              },
+              {
+                type: "http",
+                options: { upstream_url: "https://upstream.example.com" },
+              },
+            ],
+          }),
+        ],
+      }),
+      cacheTtlMs: 0,
+    });
+
+    const res = await app.request("https://customer.com/foo", {
+      headers: { host: "customer.com" },
+      redirect: "manual",
+    });
+    expect(res.headers.get("location")).toBe("https://customer.com/dest");
   });
 });

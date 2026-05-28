@@ -61,6 +61,27 @@ export async function getUserByProvider({
   return users[0] || null;
 }
 
+/**
+ * Order users by age (oldest first). When account-linking has to choose
+ * which of two matching users should remain primary, the older account
+ * wins — it has the longer history, accrued sessions, and is most likely
+ * the canonical identity the user expects to keep.
+ *
+ * Falls back to `user_id` so the ordering is fully deterministic when
+ * `created_at` is missing or identical (e.g. fixture rows seeded in the
+ * same millisecond).
+ */
+export function compareUsersByAge(a: User, b: User): number {
+  const aTime = a.created_at
+    ? new Date(a.created_at).getTime()
+    : Number.MAX_SAFE_INTEGER;
+  const bTime = b.created_at
+    ? new Date(b.created_at).getTime()
+    : Number.MAX_SAFE_INTEGER;
+  if (aTime !== bTime) return aTime - bTime;
+  return (a.user_id || "").localeCompare(b.user_id || "");
+}
+
 interface GetPrimaryUserByEmailParams {
   userAdapter: UserDataAdapter;
   tenant_id: string;
@@ -90,7 +111,11 @@ export async function getPrimaryUserByEmail({
       console.error("More than one primary user found for same email");
     }
 
-    return primaryUsers[0];
+    // Return the OLDEST primary so callers see the canonical account when
+    // the data contains race-condition duplicates. Without this, the
+    // returned primary depended on adapter list ordering and could flip
+    // between calls, causing account-linking to pick the wrong direction.
+    return [...primaryUsers].sort(compareUsersByAge)[0];
   }
 
   const primaryAccount = await userAdapter.get(tenant_id, users[0]?.linked_to!);
@@ -100,6 +125,59 @@ export async function getPrimaryUserByEmail({
   }
 
   return primaryAccount;
+}
+
+interface RepointPrimaryParams {
+  userAdapter: UserDataAdapter;
+  tenant_id: string;
+  formerPrimary: User;
+  newPrimaryId: string;
+}
+
+/**
+ * Demote `formerPrimary` to a secondary of `newPrimaryId`. Any users
+ * currently linked to `formerPrimary` are repointed first so the resulting
+ * graph remains a single hop deep — `getPrimaryUserByProvider` and similar
+ * resolvers only follow one `linked_to` step.
+ *
+ * Each write is a single-field `linked_to` update so the user-update
+ * decorator's fast-path bypasses the pre/post hooks and we don't re-enter
+ * the linking logic recursively.
+ */
+export async function repointPrimary({
+  userAdapter,
+  tenant_id,
+  formerPrimary,
+  newPrimaryId,
+}: RepointPrimaryParams): Promise<void> {
+  if (formerPrimary.user_id === newPrimaryId) return;
+
+  // Paginate over every secondary — without this, primaries with >100 linked
+  // accounts would leave the overflow pointing at formerPrimary after it gets
+  // demoted, producing 2-hop chains that getPrimaryUserByProvider can't follow.
+  const pageSize = 100;
+  let page = 0;
+  while (true) {
+    const { users: secondaries } = await userAdapter.list(tenant_id, {
+      page,
+      per_page: pageSize,
+      include_totals: false,
+      q: `linked_to:${formerPrimary.user_id}`,
+    });
+    if (secondaries.length === 0) break;
+    for (const sec of secondaries) {
+      if (sec.user_id === newPrimaryId) continue;
+      await userAdapter.update(tenant_id, sec.user_id, {
+        linked_to: newPrimaryId,
+      });
+    }
+    if (secondaries.length < pageSize) break;
+    page++;
+  }
+
+  await userAdapter.update(tenant_id, formerPrimary.user_id, {
+    linked_to: newPrimaryId,
+  });
 }
 
 interface GetPrimaryUserByProviderParams {

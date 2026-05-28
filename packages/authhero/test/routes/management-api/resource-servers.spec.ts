@@ -731,4 +731,62 @@ describe("resource-servers", () => {
 
     expect(deleteResponse.status).toBe(200);
   });
+
+  describe("delete while referenced as default_audience", () => {
+    it("returns 409 when deleting a resource server still set as the tenant's default_audience", async () => {
+      const { managementApp, env } = await getTestServer();
+      const localClient = testClient(managementApp, env);
+      const localToken = await getAdminToken();
+
+      // The seed creates a resource server with identifier "https://example.com"
+      // and the tenant's default_audience points at it.
+      const { resource_servers } = await env.data.resourceServers.list(
+        "tenantId",
+      );
+      const referenced = resource_servers.find(
+        (rs) => rs.identifier === "https://example.com",
+      );
+      expect(referenced?.id).toBeDefined();
+
+      const response = await localClient["resource-servers"][":id"].$delete(
+        {
+          param: { id: referenced!.id! },
+          header: { "tenant-id": "tenantId" },
+        },
+        { headers: { authorization: `Bearer ${localToken}` } },
+      );
+
+      expect(response.status).toBe(409);
+    });
+
+    it("allows deletion after the tenant's default_audience is cleared", async () => {
+      const { managementApp, env } = await getTestServer();
+      const localClient = testClient(managementApp, env);
+      const localToken = await getAdminToken();
+
+      const { resource_servers } = await env.data.resourceServers.list(
+        "tenantId",
+      );
+      const referenced = resource_servers.find(
+        (rs) => rs.identifier === "https://example.com",
+      );
+      expect(referenced?.id).toBeDefined();
+
+      const existingTenant = await env.data.tenants.get("tenantId");
+      await env.data.tenants.update("tenantId", {
+        ...existingTenant!,
+        default_audience: "",
+      });
+
+      const response = await localClient["resource-servers"][":id"].$delete(
+        {
+          param: { id: referenced!.id! },
+          header: { "tenant-id": "tenantId" },
+        },
+        { headers: { authorization: `Bearer ${localToken}` } },
+      );
+
+      expect(response.status).toBe(200);
+    });
+  });
 });

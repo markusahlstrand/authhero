@@ -17,31 +17,65 @@ As a bonus, all surfaces share the same origin, so session cookies can be shared
 
 - 🧭 **Path-prefix routing** — one custom domain, many upstreams, priority-ordered
 - 🧩 **Middleware chain** — CORS, header rewrite, basic auth, response cache headers
-- 🔌 **Pluggable data adapter** — kysely implementation included; swap in your own (e.g. HTTP-fetch) for cross-database deployments
-- 🗄️ **Own migrations** — uses a `kysely_migration_proxy` log table so it can share a database with AuthHero without colliding
+- 🔌 **Pluggable data adapter** — static (in-memory) and SQL (via [`@authhero/kysely-adapter`](https://npmjs.com/package/@authhero/kysely-adapter)); swap in your own (e.g. HTTP-fetch) for cross-database deployments
+- 🗄️ **Shared schema** — the `proxy_routes` table is part of the standard AuthHero migrations, so a proxy worker sharing the AuthHero database has nothing extra to migrate
+- ⚡ **Built-in host cache** — stale-while-revalidate so `resolveHost` doesn't hit the database on the hot path
 - 🚀 **Library-first** — both the data plane and the management API are exposed as Hono router factories you can mount wherever fits your deploy topology
 
 ## Installation
 
 ```bash
-pnpm add @authhero/proxy
+pnpm add @authhero/proxy hono @hono/zod-openapi
 ```
+
+For a SQL-backed data adapter, also install:
+
+```bash
+pnpm add @authhero/kysely-adapter kysely
+```
+
+`hono`, `@hono/zod-openapi` (and `kysely` for the SQL adapter) are peer dependencies.
 
 ## Quick start
 
-`@authhero/proxy` is a library, not a service. You write a thin Cloudflare Worker (or any Hono entry) that wires up the data adapter and mounts the routers — the same way you wrap `authhero` in your own app today.
+`@authhero/proxy` is a library, not a service. You write a thin Cloudflare Worker (or any Hono entry) that wires up a data adapter and mounts the app — the same way you wrap `authhero` in your own app today.
 
-### Minimal Worker
+The [`apps/proxy-dev`](https://github.com/markusahlstrand/authhero/tree/main/apps/proxy-dev) Worker in this monorepo is a runnable starting point you can copy from.
+
+### Static configuration (no database)
+
+For development or simple deployments, define hosts inline:
+
+```typescript
+import { createProxyApp, createStaticProxyAdapter } from "@authhero/proxy";
+
+const data = createStaticProxyAdapter({
+  hosts: {
+    "acme.example.com": {
+      tenant_id: "acme",
+      routes: [
+        {
+          path_pattern: "/*",
+          upstream_type: "http",
+          upstream_url: "https://acme.vercel.app",
+        },
+      ],
+    },
+  },
+});
+
+export default createProxyApp({ data });
+```
+
+### Database-backed (production)
 
 ```typescript
 // worker.ts
 import { Kysely } from "kysely";
 import { PlanetScaleDialect } from "kysely-planetscale";
-import {
-  createKyselyProxyDataAdapter,
-  createProxyApp,
-  type ProxyDatabase,
-} from "@authhero/proxy";
+import { createProxyApp } from "@authhero/proxy";
+import { createProxyDataAdapter } from "@authhero/kysely-adapter";
+import type { Database } from "@authhero/kysely-adapter";
 
 interface Env {
   DATABASE_URL: string;
@@ -49,25 +83,42 @@ interface Env {
 
 export default {
   fetch(req: Request, env: Env, ctx: ExecutionContext) {
-    const db = new Kysely<ProxyDatabase>({
+    const db = new Kysely<Database>({
       dialect: new PlanetScaleDialect({ url: env.DATABASE_URL }),
     });
     const app = createProxyApp({
-      data: createKyselyProxyDataAdapter(db),
-      cacheTtlMs: 30_000,
-      management: { auth: yourAuthMiddleware },
+      data: createProxyDataAdapter(db),
+      cache: { freshTtlMs: 5 * 60_000, staleTtlMs: 60 * 60_000 },
     });
     return app.fetch(req, env, ctx);
   },
 };
 ```
 
-That's the whole deploy artifact. `createProxyApp` returns a configured Hono app that handles the data plane on `/*` and (optionally) the management API at `/__proxy/routes`.
+That's the whole deploy artifact. `createProxyApp` returns a configured Hono app that handles the data plane on `/*`. Route CRUD is exposed by your AuthHero server at `/api/v2/proxy-routes`.
+
+### Host cache
+
+`resolveHost` runs on every request. The built-in stale-while-revalidate cache keeps it off the hot path:
+
+```typescript
+createProxyApp({
+  data,
+  cache: {
+    freshTtlMs: 5 * 60_000,    // serve cached for 5 min
+    staleTtlMs: 60 * 60_000,   // then SWR for 1 hr
+    negativeTtlMs: 30_000,     // cache "not found" briefly
+    waitUntil: (p) => ctx.waitUntil(p), // optional, for background refresh
+  },
+});
+```
+
+On Cloudflare Workers, thread `ExecutionContext.waitUntil` through (e.g. via `AsyncLocalStorage`) so background refreshes survive the response.
 
 ## How a request is handled
 
 1. The proxy reads the `Host` (or `x-forwarded-host`) header.
-2. It calls `ProxyDataAdapter.resolveHost(host)` to find the matching `custom_domain` and its ordered list of `proxy_routes`. Results are cached in-memory with a configurable TTL (default 30s).
+2. It calls `ProxyDataAdapter.resolveHost(host)` to find the matching `custom_domain` and its ordered list of `proxy_routes`. The built-in stale-while-revalidate cache wraps this so the database is off the hot path.
 3. It picks the first route whose `path_pattern` matches the request path. Patterns support exact match, `/prefix`, `/prefix/*`, and `/*` (catch-all).
 4. It runs the route's middleware chain — CORS preflight handling, basic auth, request header rewriting.
 5. It dispatches to the configured upstream:
@@ -103,62 +154,56 @@ Each `proxy_route` is a row scoped to a tenant and a custom domain:
 ]
 ```
 
-Add new middleware types by extending the `MiddlewareConfig` discriminated union in `@authhero/proxy/types` and registering a handler in the data-plane pipeline.
+Add new middleware types by extending the `MiddlewareConfig` discriminated union in `@authhero/adapter-interfaces` and registering a handler in the data-plane pipeline.
 
-## Mounting topology
+## Where the management API lives
 
-The data plane and the management API are **separate routers**, so you can host them however fits your deploy.
+`@authhero/proxy` is **data-plane only**. CRUD over proxy routes is handled by the regular AuthHero management API at `/api/v2/proxy-routes` (per tenant), and is automatically exposed whenever your AuthHero data adapter provides a `proxyRoutes` adapter — which is the default for `@authhero/kysely-adapter`, `@authhero/drizzle`, and `@authhero/aws`.
 
-### Recommended: split deployment
+This means the admin UI, your scripts, and any other consumer manage routes through the same auth context and CORS rules they already use for the rest of the AuthHero API. There's no separate management router to mount.
 
-For most setups, the management API belongs on your **AuthHero deploy** (one admin API surface, one auth context, one set of CORS rules), while the **data plane runs on its own domain** so it can be operated, scaled, and even owned by a different Cloudflare account.
+## Deployment topology
+
+Because the data plane and the management API are decoupled by the database, you have two natural deploy shapes:
+
+### Split (recommended)
 
 ```typescript
-// In your AuthHero worker — admins call /api/v2/proxy-routes
-import { createProxyManagementRouter, createKyselyProxyDataAdapter } from "@authhero/proxy";
+// AuthHero worker (your existing deploy)
+import { init } from "authhero";
+import createAdapters from "@authhero/kysely-adapter";
 
-const proxyData = createKyselyProxyDataAdapter(db);
-authheroApp.route(
-  "/api/v2/proxy-routes",
-  createProxyManagementRouter({ data: proxyData, auth: yourAdminAuth }),
-);
+export default init({
+  dataAdapter: createAdapters(db),
+});
+// → /api/v2/proxy-routes is served here
 ```
 
 ```typescript
-// In your proxy worker (e.g. behind sesamy-dns.com) — no management API exposed
-import { createProxyApp, createKyselyProxyDataAdapter } from "@authhero/proxy";
+// Proxy worker (e.g. behind sesamy-dns.com — separate deploy, possibly a different Cloudflare account)
+import { createProxyApp } from "@authhero/proxy";
+import { createProxyDataAdapter } from "@authhero/kysely-adapter";
 
 export default {
   fetch(req, env, ctx) {
-    const data = createKyselyProxyDataAdapter(makeDb(env.DATABASE_URL));
-    return createProxyApp({ data, cacheTtlMs: 30_000 }).fetch(req, env, ctx);
+    const data = createProxyDataAdapter(makeDb(env.DATABASE_URL));
+    return createProxyApp({ data }).fetch(req, env, ctx);
   },
 };
+// → handles customer traffic on /*
 ```
 
-Both workers can talk to the same database (the proxy needs read-only access to `custom_domains` and read/write on `proxy_routes`), or you can give the proxy its own DB and sync `custom_domains` via webhook.
+Both workers point at the same database. The proxy needs read access to `custom_domains` and `proxy_routes`; CRUD writes happen through the AuthHero worker.
 
 ### All-in-one
 
-Pass `management: { auth }` to `createProxyApp` and both run in the same worker — convenient for local dev or single-customer deploys.
-
-### Standalone admin
-
-Mount only `createProxyManagementRouter` in any Hono app — useful if your admin lives outside AuthHero.
+Run the proxy data plane in the same worker as AuthHero by composing them in a single Hono app — convenient for local dev or single-customer deploys.
 
 ## Database setup
 
-The proxy owns the `proxy_routes` table and runs its own migrations. It reads from the existing `custom_domains` table that AuthHero already manages — so when you share a database with AuthHero, no extra setup is needed for the lookup side.
+The `proxy_routes` table is part of the standard AuthHero schema and is created by the regular adapter migrations (`migrateToLatest` for `@authhero/kysely-adapter`, the equivalent step for `@authhero/drizzle` and `@authhero/aws`). The proxy reads from the existing `custom_domains` table that AuthHero already manages — so when you share a database with AuthHero, no extra setup is needed at all.
 
-```typescript
-import { runMigrations } from "@authhero/proxy";
-
-await runMigrations(db, { debug: true });
-```
-
-Migrations are tracked in a separate log table (`kysely_migration_proxy`) so they don't collide with AuthHero's own migrator.
-
-For deployments that **cannot** share a database with AuthHero (e.g. a different Cloudflare account with a locked-down DB), implement a custom `ProxyDataAdapter` that fetches routes over HTTP from an AuthHero-mounted management endpoint. The router code does not change — only the adapter implementation.
+For deployments that **cannot** share a database with AuthHero (e.g. a different Cloudflare account with a locked-down DB), implement a custom `ProxyDataAdapter` that fetches routes over HTTP from `/api/v2/proxy-routes` on your AuthHero server. The router code does not change — only the adapter implementation.
 
 ## Deployment
 
@@ -175,43 +220,70 @@ compatibility_flags = ["nodejs_compat"]
 enabled = true
 ```
 
-Secrets and vars:
+Secrets:
 
-- `DATABASE_URL` — secret, PlanetScale (or other Kysely-supported) connection string
-- `ROUTE_CACHE_TTL_SECONDS` — optional var
+- `DATABASE_URL` — PlanetScale (or other Kysely-supported) connection string
 
-To run migrations against your database, expose a tiny script:
+All cache tuning happens in code via the `cache` option on `createProxyApp` (see [Host cache](#host-cache) above).
 
-```typescript
-// migrate.ts
-import { runMigrations } from "@authhero/proxy";
-import { createDb } from "./db";
-const db = createDb(process.env.DATABASE_URL!);
-await runMigrations(db, { debug: true });
-await db.destroy();
-```
+Migrations are owned by your AuthHero server — when it runs `migrateToLatest`, the `proxy_routes` table is created alongside the rest of the AuthHero schema. There's no separate proxy migration step.
+
+For a runnable reference deployment, see [`apps/proxy-dev`](https://github.com/markusahlstrand/authhero/tree/main/apps/proxy-dev) in the monorepo. It shows the canonical Cloudflare Workers setup, including threading `ExecutionContext.waitUntil` through `AsyncLocalStorage` so background SWR refreshes survive the response.
 
 ## API exports
 
+### From `@authhero/proxy`
+
 ```typescript
-// Types
-export type { ProxyRoute, ProxyRouteInsert, ProxyRouteUpdate, MiddlewareConfig } from "@authhero/proxy";
-
-// Adapter interface + types
-export type { ProxyDataAdapter, ProxyRoutesAdapter, ResolvedHost } from "@authhero/proxy";
-
-// Kysely implementation
-export { createKyselyProxyDataAdapter } from "@authhero/proxy";
-export type { ProxyDatabase, ProxyRoutesTable } from "@authhero/proxy";
-
-// App factory (mounts data plane + optional management API)
+// App factory — main entry point
 export { createProxyApp } from "@authhero/proxy";
+export type { ProxyAppOptions } from "@authhero/proxy";
 
-// Routers (use directly if you need fine-grained control)
-export { createProxyDataPlaneRouter } from "@authhero/proxy";
-export { createProxyDataPlaneHandler } from "@authhero/proxy";
-export { createProxyManagementRouter } from "@authhero/proxy";
+// Adapter interface
+export type {
+  ProxyDataAdapter,
+  ProxyRoutesAdapter,
+  ResolvedHost,
+} from "@authhero/proxy";
 
-// Migrations
-export { runMigrations, migrateDown } from "@authhero/proxy";
+// In-memory adapter for static configuration / dev
+export { createStaticProxyAdapter } from "@authhero/proxy";
+export type {
+  StaticProxyAdapterOptions,
+  StaticHostConfig,
+  StaticRouteInput,
+} from "@authhero/proxy";
+
+// Data-plane primitives (use directly when embedding in a larger Hono app)
+export {
+  createProxyDataPlaneRouter,
+  createProxyDataPlaneHandler,
+} from "@authhero/proxy";
+
+// Host cache (also wired into createProxyApp via the `cache` option)
+export { createInMemoryHostCache } from "@authhero/proxy";
+export type { HostCacheOptions, HostResolverCache } from "@authhero/proxy";
+
+// Re-exported types and Zod schemas (originally from @authhero/adapter-interfaces)
+export type {
+  ProxyRoute,
+  ProxyRouteInsert,
+  ProxyRouteUpdate,
+  MiddlewareConfig,
+} from "@authhero/proxy";
+export {
+  proxyRouteSchema,
+  proxyRouteInsertSchema,
+  proxyRouteUpdateSchema,
+  middlewareConfigSchema,
+} from "@authhero/proxy";
 ```
+
+### From `@authhero/kysely-adapter`
+
+```typescript
+// Kysely implementation of ProxyDataAdapter (CRUD + resolveHost)
+export { createProxyDataAdapter } from "@authhero/kysely-adapter";
+```
+
+`@authhero/drizzle` and `@authhero/aws` expose an equivalent `createProxyDataAdapter` against their own schemas.

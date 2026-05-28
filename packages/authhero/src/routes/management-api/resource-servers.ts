@@ -180,6 +180,14 @@ const deleteById = defineRoute({
         });
       }
 
+      const tenant = await ctx.env.data.tenants.get(tenant_id);
+      if (tenant?.default_audience === resourceServer.identifier) {
+        throw new HTTPException(409, {
+          message:
+            "Resource server is set as the tenant's default_audience; clear it before deleting",
+        });
+      }
+
       await ctx.env.data.resourceServers.remove(tenant_id, resourceServer.id!);
 
       await logMessage(ctx, ctx.var.tenant_id, {

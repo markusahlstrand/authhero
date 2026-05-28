@@ -47,6 +47,7 @@
   },
   "dependencies": {
     "@authhero/adapter-interfaces": "workspace:*",
+    "@authhero/proxy": "workspace:*",
     "nanoid": "^5.1.11"
   },
   "peerDependencies": {

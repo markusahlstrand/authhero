@@ -38,3 +38,6 @@ export * from "./logs";
 
 // Outbox
 export * from "./outbox";
+
+// Proxy routes (used by @authhero/proxy)
+export * from "./proxyRoutes";

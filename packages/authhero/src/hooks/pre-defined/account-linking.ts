@@ -1,5 +1,6 @@
+import { User } from "@authhero/adapter-interfaces";
 import { HookEvent, OnExecutePostLogin } from "../../types/Hooks";
-import { getPrimaryUserByEmail } from "../../helpers/users";
+import { compareUsersByAge, repointPrimary } from "../../helpers/users";
 
 /**
  * Coerce a possibly-serialised `user_metadata` blob into a plain record.
@@ -121,27 +122,87 @@ export function accountLinking(
 
     const data = ctx.env.data;
 
-    const primary = await getPrimaryUserByEmail({
-      userAdapter: data.users,
-      tenant_id: tenantId,
-      email: user.email,
+    // List all users with the same email and pick a candidate that is NOT
+    // the current user. Using getPrimaryUserByEmail here would return the
+    // oldest primary — which may be the current user itself — and then
+    // miss any newer duplicate primaries that should be demoted.
+    const normalizedEmail = user.email.toLowerCase();
+    const { users: matchingUsers } = await data.users.list(tenantId, {
+      page: 0,
+      per_page: 10,
+      include_totals: false,
+      q: `email:${normalizedEmail}`,
     });
 
-    if (!primary) return;
+    const otherUsers = matchingUsers.filter(
+      (u) => u.user_id !== user.user_id,
+    );
+    if (otherUsers.length === 0) return;
 
-    // The user is themselves the primary — no one else to link to.
-    if (primary.user_id === user.user_id) return;
+    // Prefer the OLDEST unlinked primary so duplicate-primary races converge
+    // in a single pass — picking the first match from adapter list ordering
+    // can demote the older canonical account if the newer duplicate happens
+    // to come first.
+    const directPrimaries = otherUsers.filter((u) => !u.linked_to);
+    let candidate: User | undefined =
+      directPrimaries.length > 0
+        ? [...directPrimaries].sort(compareUsersByAge)[0]
+        : undefined;
 
-    await data.users.update(tenantId, user.user_id, {
-      linked_to: primary.user_id,
-    });
+    if (!candidate) {
+      // No direct primaries — resolve every secondary's linked_to chain to
+      // its root and pick the oldest root so multiple chains for the same
+      // email collapse onto a single primary.
+      const roots: User[] = [];
+      const seen = new Set<string>();
+      for (const u of otherUsers) {
+        if (!u.linked_to) continue;
+        const resolved = await data.users.get(tenantId, u.linked_to);
+        if (
+          resolved &&
+          resolved.user_id !== user.user_id &&
+          !seen.has(resolved.user_id)
+        ) {
+          seen.add(resolved.user_id);
+          roots.push(resolved);
+        }
+      }
+      if (roots.length > 0) {
+        candidate = roots.sort(compareUsersByAge)[0];
+      }
+    }
+
+    if (!candidate) return;
+
+    // Older account wins. If the currently logging-in user pre-dates the
+    // candidate (e.g. they registered first and a duplicate primary was
+    // created later via a race), we must demote the candidate rather than
+    // turning the existing user into a secondary of the newer duplicate.
+    let primaryUser: User;
+    let secondaryUser: User;
+    if (compareUsersByAge(user, candidate) < 0) {
+      primaryUser = user;
+      secondaryUser = candidate;
+      await repointPrimary({
+        userAdapter: data.users,
+        tenant_id: tenantId,
+        formerPrimary: candidate,
+        newPrimaryId: user.user_id,
+      });
+    } else {
+      primaryUser = candidate;
+      secondaryUser = user;
+      await data.users.update(tenantId, user.user_id, {
+        linked_to: candidate.user_id,
+      });
+    }
 
     if (copyUserMetadata) {
       // Some adapter `create` paths return user_metadata still serialised
       // as JSON. Normalise both sides defensively so downstream spreads
       // don't iterate string indexes.
-      const secondaryMetadata = parseMetadata(user.user_metadata);
-      const primaryMetadata = parseMetadata(primary.user_metadata);
+      const secondaryMetadata = parseMetadata(secondaryUser.user_metadata);
+      const primaryMetadata = parseMetadata(primaryUser.user_metadata);
 
       if (secondaryMetadata && Object.keys(secondaryMetadata).length > 0) {
         // Primary wins on conflict: merge secondary first, then overlay
@@ -156,7 +217,7 @@ export function accountLinking(
           (k) => !(k in primaryMetadata) || primaryMetadata[k] !== merged[k],
         );
         if (changed) {
-          await data.users.update(tenantId, primary.user_id, {
+          await data.users.update(tenantId, primaryUser.user_id, {
             user_metadata: merged,
           });
         }

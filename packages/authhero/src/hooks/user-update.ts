@@ -12,6 +12,7 @@ import { createTokenAPI } from "./helpers/token-api";
 import { stripInternalUserFields } from "../helpers/hook-user-payload";
 import { isTemplateHook, handleTemplateHook } from "./templatehooks";
 import { builtInUserLinkingEnabled } from "../helpers/user-linking";
+import { compareUsersByAge, repointPrimary } from "../helpers/users";
 
 /**
  * Decorator applied by `addDataHooks` to `users.update`. Fires pre-update
@@ -138,24 +139,76 @@ export function createUserUpdateHooks(
           // Exclude the current user from candidates
           const otherUsers = matchingUsers.filter((u) => u.user_id !== user_id);
 
-          // Find an unlinked primary user (consistent with getPrimaryUserByEmail)
-          const primaryCandidate = otherUsers.find((u) => !u.linked_to);
+          // Pick the OLDEST unlinked primary so duplicate-primary races
+          // converge in a single pass — adapter list ordering can otherwise
+          // return a newer duplicate first and flip the wrong direction.
+          const directPrimaries = otherUsers.filter((u) => !u.linked_to);
+          const primaryCandidate =
+            directPrimaries.length > 0
+              ? [...directPrimaries].sort(compareUsersByAge)[0]
+              : undefined;
 
           if (primaryCandidate) {
-            await trxData.users.update(tenant_id, user_id, {
-              linked_to: primaryCandidate.user_id,
-            });
-          } else if (otherUsers[0]?.linked_to) {
-            // All other matching users are already linked — follow the chain
-            // to find the actual primary (same as getPrimaryUserByEmail fallback)
-            const resolvedPrimary = await trxData.users.get(
-              tenant_id,
-              otherUsers[0].linked_to,
-            );
-            if (resolvedPrimary) {
-              await trxData.users.update(tenant_id, user_id, {
-                linked_to: resolvedPrimary.user_id,
+            // Older account stays primary. If the user being updated
+            // pre-dates the candidate, the candidate is the duplicate and
+            // gets demoted; otherwise the current user becomes secondary.
+            // Without this comparison, the "current user is always the
+            // secondary" rule could flip an existing primary into a
+            // secondary of a newer duplicate.
+            if (compareUsersByAge(updatedUser, primaryCandidate) < 0) {
+              await repointPrimary({
+                userAdapter: trxData.users,
+                tenant_id,
+                formerPrimary: primaryCandidate,
+                newPrimaryId: user_id,
               });
+            } else {
+              await trxData.users.update(tenant_id, user_id, {
+                linked_to: primaryCandidate.user_id,
+              });
+            }
+          } else if (otherUsers.some((u) => u.linked_to)) {
+            // All other matching users are already linked — resolve each
+            // chain to its root and pick the OLDEST root so multiple chains
+            // for the same email converge onto one primary.
+            const roots: typeof otherUsers = [];
+            const seen = new Set<string>();
+            for (const u of otherUsers) {
+              if (!u.linked_to) continue;
+              const visited = new Set<string>([u.user_id]);
+              let current = await trxData.users.get(tenant_id, u.linked_to);
+              while (current && current.linked_to) {
+                if (visited.has(current.user_id)) {
+                  current = null;
+                  break;
+                }
+                visited.add(current.user_id);
+                current = await trxData.users.get(
+                  tenant_id,
+                  current.linked_to,
+                );
+              }
+              if (current && current.user_id !== user_id && !seen.has(current.user_id)) {
+                seen.add(current.user_id);
+                roots.push(current);
+              }
+            }
+            const resolvedPrimary =
+              roots.length > 0 ? roots.sort(compareUsersByAge)[0] : undefined;
+            if (resolvedPrimary) {
+              // Same age check as the primary-candidate branch above.
+              if (compareUsersByAge(updatedUser, resolvedPrimary) < 0) {
+                await repointPrimary({
+                  userAdapter: trxData.users,
+                  tenant_id,
+                  formerPrimary: resolvedPrimary,
+                  newPrimaryId: user_id,
+                });
+              } else {
+                await trxData.users.update(tenant_id, user_id, {
+                  linked_to: resolvedPrimary.user_id,
+                });
+              }
             }
           }
         }

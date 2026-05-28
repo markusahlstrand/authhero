@@ -57,9 +57,8 @@ See [Auth0 Comparison — Redirect URLs](/auth0-comparison/redirect-urls) for de
 To migrate from Auth0 to AuthHero:
 
 1. Set up an AuthHero instance
-2. Use the `auth0-proxy` app to forward traffic during migration
-3. Migrate users, clients, and connections via the Management API
-4. Update your application's Auth0 configuration to point to AuthHero
-5. Auth0 SDKs continue to work — just change the domain
+2. Migrate users, clients, and connections via the Management API (or lazily — see [Lazy Migration](/auth0-comparison/lazy-migration))
+3. Update your application's Auth0 configuration to point to AuthHero
+4. Auth0 SDKs continue to work — just change the domain
 
 See the [Auth0 Comparison](/auth0-comparison/) section for detailed migration guides.

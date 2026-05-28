@@ -33,7 +33,7 @@ export default defineConfig({
       fileName: (format) => fileName[format],
     },
     rollupOptions: {
-      external: ["@hono/zod-openapi", "hono", "kysely", "nanoid"],
+      external: ["@hono/zod-openapi", "hono"],
     },
   },
   resolve: {

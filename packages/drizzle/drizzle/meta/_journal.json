@@ -29,6 +29,20 @@
       "when": 1778890000000,
       "tag": "0003_move_disable_signup_to_connection",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1779000000000,
+      "tag": "0004_proxy_routes",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1779200000000,
+      "tag": "0005_proxy_routes_v2",
+      "breakpoints": true
     }
   ]
 }

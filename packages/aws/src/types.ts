@@ -49,7 +49,8 @@ export type EntityType =
   | "CUSTOM_TEXT"
   | "AUTHENTICATION_METHOD"
   | "HOOK_CODE"
-  | "CLIENT_REGISTRATION_TOKEN";
+  | "CLIENT_REGISTRATION_TOKEN"
+  | "PROXY_ROUTE";
 
 /**
  * Base DynamoDB item structure for single-table design

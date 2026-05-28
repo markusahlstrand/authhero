@@ -3,19 +3,21 @@ import {
   ProxyRoutesAdapter,
   ResolvedHost,
 } from "../adapter";
-import { ProxyRoute, ProxyRouteInsert } from "../types";
-
-export type StaticRouteInput = Omit<
+import {
+  HandlerConfig,
+  ProxyRoute,
   ProxyRouteInsert,
-  "custom_domain_id" | "priority" | "middleware" | "preserve_host"
-> & {
+  RouteMatch,
+} from "../types";
+
+export interface StaticRouteInput {
   id?: string;
   priority?: number;
-  preserve_host?: boolean;
-  middleware?: ProxyRouteInsert["middleware"];
+  match: RouteMatch;
+  handlers: HandlerConfig[];
   created_at?: string;
   updated_at?: string;
-};
+}
 
 export interface StaticHostConfig {
   tenant_id?: string;
@@ -47,11 +49,8 @@ function normalizeRoute(
     tenant_id,
     custom_domain_id,
     priority: input.priority ?? 100,
-    path_pattern: input.path_pattern,
-    upstream_type: input.upstream_type,
-    upstream_url: input.upstream_url,
-    preserve_host: input.preserve_host ?? false,
-    middleware: input.middleware ?? [],
+    match: { ...input.match, path: input.match.path || "/*" },
+    handlers: input.handlers,
     created_at: input.created_at ?? timestamp,
     updated_at: input.updated_at ?? timestamp,
   };
@@ -141,3 +140,28 @@ export function createStaticProxyAdapter(
     },
   };
 }
+
+/**
+ * Sugar for building a single HTTP-forwarding route in static configs.
+ * Equivalent to `{ match: { path: "/*" }, handlers: [{ type: "http", options: { upstream_url, preserve_host } }] }`.
+ */
+export function httpRoute(
+  upstream_url: string,
+  options: { path?: string; preserve_host?: boolean; priority?: number } = {},
+): StaticRouteInput {
+  return {
+    priority: options.priority,
+    match: { path: options.path ?? "/*" },
+    handlers: [
+      {
+        type: "http",
+        options: {
+          upstream_url,
+          preserve_host: options.preserve_host ?? false,
+        },
+      },
+    ],
+  };
+}
+
+export type { ProxyRouteInsert };

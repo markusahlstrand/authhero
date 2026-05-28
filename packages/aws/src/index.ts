@@ -42,8 +42,11 @@ import { createUserOrganizationsAdapter } from "./adapters/userOrganizations";
 import { createInvitesAdapter } from "./adapters/invites";
 import { createCustomTextAdapter } from "./adapters/customText";
 import { createAuthenticationMethodsAdapter } from "./adapters/authenticationMethods";
+import { createProxyRoutesAdapter } from "./adapters/proxyRoutes";
 
 export type { DynamoDBConfig, DynamoDBContext } from "./types";
+export { createProxyRoutesAdapter } from "./adapters/proxyRoutes";
+export { createProxyDataAdapter } from "./adapters/proxyData";
 
 /**
  * Create all DynamoDB adapters for AuthHero
@@ -102,6 +105,7 @@ export default function createAdapters(
     organizationConnections: createOrganizationConnectionsAdapter(ctx),
     passwords: createPasswordsAdapter(ctx),
     promptSettings: createPromptSettingsAdapter(ctx),
+    proxyRoutes: createProxyRoutesAdapter(ctx),
     refreshTokens: createRefreshTokensAdapter(ctx),
     resourceServers: createResourceServersAdapter(ctx),
     rolePermissions: createRolePermissionsAdapter(ctx),

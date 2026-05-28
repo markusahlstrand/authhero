@@ -79,6 +79,7 @@ export * from "./Token";
 export * from "./User";
 export * from "./Theme";
 export * from "./PromptSetting";
+export * from "./ProxyRoute";
 export * from "./EmailProvider";
 export * from "./EmailTemplate";
 export * from "./RefreshTokens";

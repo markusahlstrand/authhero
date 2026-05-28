@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { createProxyApp } from "../src/app";
-import { createStaticProxyAdapter } from "../src/static";
+import { createStaticProxyAdapter, httpRoute } from "../src/static";
 
 // End-to-end-ish test: a proxy configured with the static adapter forwards
 // `acme.example.com` to a Vercel preview deployment, rewriting the host header
@@ -19,13 +19,7 @@ describe("proxy → Vercel preview upstream", () => {
         hosts: {
           [PUBLIC_HOST]: {
             tenant_id: "acme",
-            routes: [
-              {
-                path_pattern: "/*",
-                upstream_type: "http",
-                upstream_url: UPSTREAM,
-              },
-            ],
+            routes: [httpRoute(UPSTREAM)],
           },
         },
       }),
@@ -38,9 +32,10 @@ describe("proxy → Vercel preview upstream", () => {
       .mockResolvedValue(new Response("ok", { status: 200 }));
 
     const app = buildApp();
-    const res = await app.request(`https://${PUBLIC_HOST}/login?return_to=/home`, {
-      headers: { host: PUBLIC_HOST },
-    });
+    const res = await app.request(
+      `https://${PUBLIC_HOST}/login?return_to=/home`,
+      { headers: { host: PUBLIC_HOST } },
+    );
 
     expect(res.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -50,8 +45,6 @@ describe("proxy → Vercel preview upstream", () => {
 
     const calledInit = fetchMock.mock.calls[0]![1] as RequestInit;
     const headers = calledInit.headers as Headers;
-    // Default behavior rewrites Host to the upstream hostname and records the
-    // original public host in X-Forwarded-Host.
     expect(headers.get("host")).toBe(
       "acme---account2-git-feat-account3.vercel.sesamy.dev",
     );

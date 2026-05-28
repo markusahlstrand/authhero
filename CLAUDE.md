@@ -48,12 +48,13 @@ This is a **pnpm monorepo** implementing a multi-tenant authentication/IAM syste
 - **`packages/cloudflare`** — Cloudflare-specific adapter for custom domain support.
 - **`packages/saml`** — SAML 2.0 authentication strategy.
 - **`packages/multi-tenancy`** — Multi-tenancy utilities shared across packages.
+- **`packages/proxy`** — Hono-based multi-tenant reverse proxy library. Resolves the `Host` header to a tenant via `custom_domains`, then dispatches each request to one of multiple upstreams based on path-prefix routes with per-route middleware (CORS, headers, basic auth, cache).
 
 ### Applications
 
 - **`apps/demo`** — Local development server (Hono + Kysely + better-sqlite3). Entry point for testing the full auth stack locally at `http://localhost:8787`.
 - **`apps/admin`** — Admin UI built on `ra-core` (the headless half of react-admin) with shadcn/ui and Tailwind v4. Uses Auth0 SPA JS for its own authentication to the admin API.
-- **`apps/auth0-proxy`** — Proxy that forwards requests to an Auth0 tenant for migration/compatibility.
+- **`apps/proxy-dev`** — Cloudflare Worker harness for developing/deploying `@authhero/proxy`.
 - **`apps/docs`** — VitePress documentation site.
 
 ### Key Architectural Patterns

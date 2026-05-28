@@ -47,6 +47,7 @@ import { createAnalyticsRoutes } from "./analytics";
 import { guardianRoutes } from "./guardian";
 import { authenticationMethodsRoutes } from "./authentication-methods";
 import { ticketsRoutes } from "./tickets";
+import { proxyRoutesRoutes } from "./proxy-routes";
 import { DataAdapters } from "@authhero/adapter-interfaces";
 import { outboxMiddleware } from "../../middlewares/outbox";
 import { LogsDestination } from "../../helpers/outbox-destinations/logs";
@@ -392,6 +393,15 @@ export default function create(config: AuthHeroConfig) {
   // Only mount core tenant routes if no extension overrides /tenants
   if (!extensionPaths.has("/tenants")) {
     managementApp.route("/tenants", tenantRoutes);
+  }
+
+  // Mount proxy-routes management when the data adapter exposes one. The
+  // adapter is optional on DataAdapters; without it the routes return 501.
+  if (
+    !extensionPaths.has("/proxy-routes") &&
+    managementAdapter.proxyRoutes
+  ) {
+    managementApp.route("/proxy-routes", proxyRoutesRoutes);
   }
 
   // Mount any additional route extensions from config

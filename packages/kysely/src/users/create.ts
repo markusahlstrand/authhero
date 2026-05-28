@@ -9,11 +9,12 @@ export function create(db: Kysely<Database>) {
     const { identities, phone_verified, password, ...rest } = user as User &
       Pick<UserInsert, "password">;
 
+    const now = new Date().toISOString();
     const sqlUser = {
       ...rest,
       login_count: rest.login_count ?? 0,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      created_at: rest.created_at ?? now,
+      updated_at: rest.updated_at ?? now,
       tenant_id: tenantId,
       email_verified: user.email_verified ? 1 : 0,
       phone_verified:

@@ -6,15 +6,17 @@ import {
   HostCacheOptions,
   HostResolverCache,
 } from "./cache";
-import { matchRoute } from "./matcher";
-import { runRoute } from "./pipeline";
+import { HandlerRegistry } from "./registry";
+import { registerBuiltinHandlers } from "./handlers";
+import { compileHostApp } from "./compile";
 
 export interface ProxyDataPlaneOptions {
   data: ProxyDataAdapter;
-  // Legacy shorthand for { freshTtlMs: cacheTtlMs }.
   cacheTtlMs?: number;
   cache?: HostCacheOptions;
   resolver?: HostResolverCache;
+  registry?: HandlerRegistry;
+  bindings?: Record<string, unknown>;
 }
 
 function buildResolver(options: ProxyDataPlaneOptions): HostResolverCache {
@@ -23,10 +25,19 @@ function buildResolver(options: ProxyDataPlaneOptions): HostResolverCache {
   return createInMemoryHostCache(options.data, options.cacheTtlMs ?? 30_000);
 }
 
+function buildRegistry(options: ProxyDataPlaneOptions): HandlerRegistry {
+  if (options.registry) return options.registry;
+  const registry = new HandlerRegistry(options.bindings ?? {});
+  registerBuiltinHandlers(registry);
+  return registry;
+}
+
 export function createProxyDataPlaneHandler(
   options: ProxyDataPlaneOptions,
 ): (c: Context) => Promise<Response> {
   const resolver = buildResolver(options);
+  const registry = buildRegistry(options);
+  const compiled = new WeakMap<object, Hono>();
 
   return async (c) => {
     const host = c.req.header("host") ?? c.req.header("x-forwarded-host");
@@ -35,11 +46,13 @@ export function createProxyDataPlaneHandler(
     const resolved = await resolver.resolveHost(host);
     if (!resolved) return c.text("Unknown host", 404);
 
-    const url = new URL(c.req.url);
-    const route = matchRoute(resolved.routes, url.pathname);
-    if (!route) return c.text("No matching route", 404);
+    let hostApp = compiled.get(resolved);
+    if (!hostApp) {
+      hostApp = compileHostApp(resolved.routes, registry);
+      compiled.set(resolved, hostApp);
+    }
 
-    return runRoute(route, c.req.raw);
+    return hostApp.fetch(c.req.raw);
   };
 }
 
