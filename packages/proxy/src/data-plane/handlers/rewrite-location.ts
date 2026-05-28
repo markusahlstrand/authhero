@@ -22,13 +22,25 @@ export const rewriteLocationHandler = defineHandler<Options>({
       const upstreamOrigin =
         options.upstream_origin ??
         (c.get("__proxy_upstream_origin__" as never) as string | undefined);
-      if (!upstreamOrigin || !location.startsWith(upstreamOrigin)) return;
+      if (!upstreamOrigin) return;
+
+      // Parse the Location URL and require an exact origin match — a plain
+      // `startsWith` accepts sibling hosts (e.g. upstreamOrigin
+      // "https://example.com" against "https://example.com.evil.com/...").
+      let parsedLocation: URL;
+      try {
+        parsedLocation = new URL(location);
+      } catch {
+        return;
+      }
+      if (parsedLocation.origin !== upstreamOrigin) return;
 
       const requestUrl = new URL(c.req.url);
       const requestOrigin = `${requestUrl.protocol}//${requestUrl.host}`;
+      const updatedLocation = `${requestOrigin}${parsedLocation.pathname}${parsedLocation.search}${parsedLocation.hash}`;
       // Mutate headers in place — Hono's `c.res = …` setter merges old
       // headers over new ones, which would clobber our rewrite.
-      c.res.headers.set("location", location.replace(upstreamOrigin, requestOrigin));
+      c.res.headers.set("location", updatedLocation);
     };
   },
 });

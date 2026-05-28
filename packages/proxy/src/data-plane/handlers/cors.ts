@@ -57,7 +57,15 @@ export const corsHandler = defineHandler<Options>({
     return async (c, next) => {
       const origin = c.req.header("origin") ?? null;
 
-      if (c.req.method === "OPTIONS") {
+      // Only intercept real CORS preflight requests (must include both Origin
+      // and Access-Control-Request-Method) — non-CORS OPTIONS calls should
+      // fall through so the upstream can serve them.
+      const isPreflight =
+        c.req.method === "OPTIONS" &&
+        origin !== null &&
+        c.req.header("access-control-request-method") !== undefined;
+
+      if (isPreflight) {
         const headers = buildCorsHeaders(options, origin);
         return new Response(null, { status: 204, headers });
       }

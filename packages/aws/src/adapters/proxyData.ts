@@ -75,7 +75,14 @@ async function resolveHostFromDynamo(
   ctx: DynamoDBContext,
   host: string,
 ): Promise<ResolvedHost | null> {
-  const normalizedHost = host.toLowerCase();
+  // Strip an optional :port and trailing dot before lowercasing so values like
+  // "Example.com:443" or "example.com." hit the GSI's canonical entry.
+  const portIdx = host.indexOf(":");
+  const hostWithoutPort = portIdx === -1 ? host : host.slice(0, portIdx);
+  const hostWithoutTrailingDot = hostWithoutPort.endsWith(".")
+    ? hostWithoutPort.slice(0, -1)
+    : hostWithoutPort;
+  const normalizedHost = hostWithoutTrailingDot.toLowerCase();
   const { items: domainItems } = await queryItems<CustomDomainGsiItem>(
     ctx,
     customDomainKeys.gsi1pk(normalizedHost),

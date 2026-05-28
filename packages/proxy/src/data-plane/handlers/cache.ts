@@ -14,9 +14,12 @@ export const cacheHandler = defineHandler<Options>({
     return async (c, next) => {
       await next();
       if (!c.res.headers.has("Cache-Control")) {
+        // Responses that set cookies are per-user and must not be cached by
+        // shared caches; downgrade to `private` so the CDN/edge skips them.
+        const visibility = c.res.headers.has("set-cookie") ? "private" : "public";
         c.res.headers.set(
           "Cache-Control",
-          `public, max-age=${options.ttl_seconds}`,
+          `${visibility}, max-age=${options.ttl_seconds}`,
         );
       }
     };

@@ -18,6 +18,9 @@ export interface HttpProxyAdapterOptions {
   resolveHostPath?: string;
   // Token cache: how many seconds to refresh before expiry. Defaults to 60.
   tokenRefreshSkewSeconds?: number;
+  // Per-request timeout (ms) applied to both the token fetch and the
+  // resolveHost fetch. Defaults to 5000.
+  timeoutMs?: number;
   // Optional fetch override (handy for tests).
   fetch?: typeof fetch;
 }
@@ -76,21 +79,33 @@ export function createHttpProxyAdapter(
     options.resolveHostPath ?? "/api/v2/proxy/control-plane/hosts/";
   const audience = options.audience ?? `${baseUrl}/api/v2/`;
   const skewSeconds = options.tokenRefreshSkewSeconds ?? 60;
+  const timeoutMs = options.timeoutMs ?? 5000;
+
+  function withTimeout<T>(
+    op: (signal: AbortSignal) => Promise<T>,
+  ): Promise<T> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    return op(controller.signal).finally(() => clearTimeout(timer));
+  }
 
   let token: { value: string; expires_at: number } | null = null;
   let pending: Promise<string> | null = null;
 
   async function fetchToken(): Promise<string> {
-    const res = await fetchFn(`${baseUrl}/oauth/token`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        grant_type: "client_credentials",
-        client_id: options.clientId,
-        client_secret: options.clientSecret,
-        audience,
+    const res = await withTimeout((signal) =>
+      fetchFn(`${baseUrl}/oauth/token`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          grant_type: "client_credentials",
+          client_id: options.clientId,
+          client_secret: options.clientSecret,
+          audience,
+        }),
+        signal,
       }),
-    });
+    );
     if (!res.ok) {
       throw new Error(
         `Proxy adapter token request failed: ${res.status} ${await res.text().catch(() => "")}`,
@@ -119,9 +134,12 @@ export function createHttpProxyAdapter(
     async resolveHost(host: string): Promise<ResolvedHost | null> {
       const accessToken = await getToken();
       const url = `${baseUrl}${resolvePath}${encodeURIComponent(host.toLowerCase())}`;
-      const res = await fetchFn(url, {
-        headers: { authorization: `Bearer ${accessToken}` },
-      });
+      const res = await withTimeout((signal) =>
+        fetchFn(url, {
+          headers: { authorization: `Bearer ${accessToken}` },
+          signal,
+        }),
+      );
       if (res.status === 404) return null;
       if (!res.ok) {
         throw new Error(

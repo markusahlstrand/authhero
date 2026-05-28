@@ -52,7 +52,7 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 
   await db.schema
     .alterTable("proxy_routes")
-    .addColumn("handlers", "varchar(16384)", (col) =>
+    .addColumn("handlers", "text", (col) =>
       col.notNull().defaultTo("[]"),
     )
     .execute();

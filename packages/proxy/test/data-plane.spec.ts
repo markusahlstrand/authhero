@@ -202,6 +202,7 @@ describe("data plane router", () => {
       headers: {
         host: "customer.com",
         origin: "https://app.example",
+        "access-control-request-method": "POST",
       },
     });
     expect(res.status).toBe(204);

@@ -36,8 +36,16 @@ export const forwardedHeadersHandler = defineHandler<Options>({
         const immediateClientIp =
           cfIp ?? xffParts[xffParts.length - 1] ?? "127.0.0.1";
 
+        // Only append immediateClientIp when it differs from the last entry —
+        // without this check, missing CF-Connecting-IP causes us to duplicate
+        // the tail of an upstream-supplied X-Forwarded-For chain.
+        const shouldAppend =
+          xffParts.length === 0 ||
+          xffParts[xffParts.length - 1] !== immediateClientIp;
         const newXff = xffParts.length
-          ? `${xffParts.join(", ")}, ${immediateClientIp}`
+          ? shouldAppend
+            ? `${xffParts.join(", ")}, ${immediateClientIp}`
+            : xffParts.join(", ")
           : immediateClientIp;
         headers.set("x-forwarded-for", newXff);
 

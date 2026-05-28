@@ -99,6 +99,24 @@ const patchSettings = defineRoute({
         });
       }
 
+      // Only validate default_audience when the field is in the incoming
+      // payload — leaves grandfathered tenants able to PATCH unrelated fields.
+      if ("default_audience" in sanitizedUpdates) {
+        const next = sanitizedUpdates.default_audience;
+        if (typeof next === "string" && next.length > 0) {
+          const { resource_servers } =
+            await ctx.env.data.resourceServers.list(ctx.var.tenant_id);
+          const exists = resource_servers.some(
+            (rs) => rs.identifier === next,
+          );
+          if (!exists) {
+            throw new HTTPException(400, {
+              message: `Resource server with identifier '${next}' not found`,
+            });
+          }
+        }
+      }
+
       // Deep merge with updates to preserve nested object properties
       // Note: created_at and updated_at are not in the update payload, they're only in the full tenant schema
       const mergedTenant = deepMergePatch(existingTenant, sanitizedUpdates);

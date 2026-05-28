@@ -152,18 +152,27 @@ export async function repointPrimary({
 }: RepointPrimaryParams): Promise<void> {
   if (formerPrimary.user_id === newPrimaryId) return;
 
-  const { users: secondaries } = await userAdapter.list(tenant_id, {
-    page: 0,
-    per_page: 100,
-    include_totals: false,
-    q: `linked_to:${formerPrimary.user_id}`,
-  });
-
-  for (const sec of secondaries) {
-    if (sec.user_id === newPrimaryId) continue;
-    await userAdapter.update(tenant_id, sec.user_id, {
-      linked_to: newPrimaryId,
+  // Paginate over every secondary — without this, primaries with >100 linked
+  // accounts would leave the overflow pointing at formerPrimary after it gets
+  // demoted, producing 2-hop chains that getPrimaryUserByProvider can't follow.
+  const pageSize = 100;
+  let page = 0;
+  while (true) {
+    const { users: secondaries } = await userAdapter.list(tenant_id, {
+      page,
+      per_page: pageSize,
+      include_totals: false,
+      q: `linked_to:${formerPrimary.user_id}`,
     });
+    if (secondaries.length === 0) break;
+    for (const sec of secondaries) {
+      if (sec.user_id === newPrimaryId) continue;
+      await userAdapter.update(tenant_id, sec.user_id, {
+        linked_to: newPrimaryId,
+      });
+    }
+    if (secondaries.length < pageSize) break;
+    page++;
   }
 
   await userAdapter.update(tenant_id, formerPrimary.user_id, {

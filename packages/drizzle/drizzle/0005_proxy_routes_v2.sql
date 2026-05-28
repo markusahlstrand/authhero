@@ -26,7 +26,9 @@ SET
         ELSE value
       END
     )
-    FROM json_each(`middleware`)
+    FROM json_each(
+      CASE WHEN json_valid(`middleware`) THEN `middleware` ELSE '[]' END
+    )
   ) || ''
 ;
 --> statement-breakpoint

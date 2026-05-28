@@ -47,7 +47,9 @@ export const serviceBindingHandler = defineHandler<Options>({
         req,
       );
 
-      c.set("__proxy_upstream_host__" as never, target.host);
+      // `hostname` (no port) so `rewrite_cookies` can match against the
+      // upstream cookie's `Domain=` attribute, which never carries a port.
+      c.set("__proxy_upstream_host__" as never, target.hostname);
       c.set(
         "__proxy_upstream_origin__" as never,
         `${target.protocol}//${target.host}`,

@@ -139,13 +139,36 @@ export function accountLinking(
     );
     if (otherUsers.length === 0) return;
 
-    // Prefer an unlinked primary; fall back to following a linked_to chain
-    // so chains converge onto a single primary.
-    let candidate: User | undefined = otherUsers.find((u) => !u.linked_to);
-    if (!candidate && otherUsers[0]?.linked_to) {
-      const resolved = await data.users.get(tenantId, otherUsers[0].linked_to);
-      if (resolved && resolved.user_id !== user.user_id) {
-        candidate = resolved;
+    // Prefer the OLDEST unlinked primary so duplicate-primary races converge
+    // in a single pass — picking the first match from adapter list ordering
+    // can demote the older canonical account if the newer duplicate happens
+    // to come first.
+    const directPrimaries = otherUsers.filter((u) => !u.linked_to);
+    let candidate: User | undefined =
+      directPrimaries.length > 0
+        ? [...directPrimaries].sort(compareUsersByAge)[0]
+        : undefined;
+
+    if (!candidate) {
+      // No direct primaries — resolve every secondary's linked_to chain to
+      // its root and pick the oldest root so multiple chains for the same
+      // email collapse onto a single primary.
+      const roots: User[] = [];
+      const seen = new Set<string>();
+      for (const u of otherUsers) {
+        if (!u.linked_to) continue;
+        const resolved = await data.users.get(tenantId, u.linked_to);
+        if (
+          resolved &&
+          resolved.user_id !== user.user_id &&
+          !seen.has(resolved.user_id)
+        ) {
+          seen.add(resolved.user_id);
+          roots.push(resolved);
+        }
+      }
+      if (roots.length > 0) {
+        candidate = roots.sort(compareUsersByAge)[0];
       }
     }
 

@@ -139,8 +139,14 @@ export function createUserUpdateHooks(
           // Exclude the current user from candidates
           const otherUsers = matchingUsers.filter((u) => u.user_id !== user_id);
 
-          // Find an unlinked primary user (consistent with getPrimaryUserByEmail)
-          const primaryCandidate = otherUsers.find((u) => !u.linked_to);
+          // Pick the OLDEST unlinked primary so duplicate-primary races
+          // converge in a single pass — adapter list ordering can otherwise
+          // return a newer duplicate first and flip the wrong direction.
+          const directPrimaries = otherUsers.filter((u) => !u.linked_to);
+          const primaryCandidate =
+            directPrimaries.length > 0
+              ? [...directPrimaries].sort(compareUsersByAge)[0]
+              : undefined;
 
           if (primaryCandidate) {
             // Older account stays primary. If the user being updated
@@ -161,13 +167,22 @@ export function createUserUpdateHooks(
                 linked_to: primaryCandidate.user_id,
               });
             }
-          } else if (otherUsers[0]?.linked_to) {
-            // All other matching users are already linked — follow the chain
-            // to find the actual primary (same as getPrimaryUserByEmail fallback)
-            const resolvedPrimary = await trxData.users.get(
-              tenant_id,
-              otherUsers[0].linked_to,
-            );
+          } else if (otherUsers.some((u) => u.linked_to)) {
+            // All other matching users are already linked — resolve each
+            // chain to its root and pick the OLDEST root so multiple chains
+            // for the same email converge onto one primary.
+            const roots: typeof otherUsers = [];
+            const seen = new Set<string>();
+            for (const u of otherUsers) {
+              if (!u.linked_to) continue;
+              const r = await trxData.users.get(tenant_id, u.linked_to);
+              if (r && r.user_id !== user_id && !seen.has(r.user_id)) {
+                seen.add(r.user_id);
+                roots.push(r);
+              }
+            }
+            const resolvedPrimary =
+              roots.length > 0 ? roots.sort(compareUsersByAge)[0] : undefined;
             if (resolvedPrimary) {
               // Same age check as the primary-candidate branch above.
               if (compareUsersByAge(updatedUser, resolvedPrimary) < 0) {

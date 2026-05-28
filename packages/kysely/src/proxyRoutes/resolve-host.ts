@@ -7,8 +7,15 @@ export async function resolveHostFromKysely(
   db: Kysely<Database>,
   host: string,
 ): Promise<ResolvedHost | null> {
-  // Hostnames are case-insensitive (RFC 4343), so normalize before lookup.
-  const normalizedHost = host.toLowerCase();
+  // Hostnames are case-insensitive (RFC 4343). Strip an optional port and a
+  // trailing dot before lowercasing so callers that pass e.g.
+  // "Example.com:443" or "example.com." match the stored canonical form.
+  const portIdx = host.indexOf(":");
+  const hostWithoutPort = portIdx === -1 ? host : host.slice(0, portIdx);
+  const hostWithoutTrailingDot = hostWithoutPort.endsWith(".")
+    ? hostWithoutPort.slice(0, -1)
+    : hostWithoutPort;
+  const normalizedHost = hostWithoutTrailingDot.toLowerCase();
   const domainRow = await db
     .selectFrom("custom_domains")
     .where("domain", "=", normalizedHost)

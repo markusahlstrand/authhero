@@ -57,15 +57,19 @@ export function buildUpstreamRequest(
     headers.set("x-forwarded-proto", inUrl.protocol.replace(":", ""));
   }
 
-  return {
-    target,
-    init: {
-      method: req.method,
-      headers,
-      body: bodyAllowed(req.method) ? req.body : undefined,
-      redirect: "manual",
-    },
+  const body = bodyAllowed(req.method) ? req.body : undefined;
+  const init: RequestInit & { duplex?: "half" } = {
+    method: req.method,
+    headers,
+    body,
+    redirect: "manual",
   };
+  // Node/undici require `duplex: "half"` whenever a streamed request body is
+  // forwarded to fetch; without it the call throws before the request is sent.
+  if (body instanceof ReadableStream) {
+    init.duplex = "half";
+  }
+  return { target, init };
 }
 
 export const httpHandler = defineHandler<Options>({
@@ -78,8 +82,10 @@ export const httpHandler = defineHandler<Options>({
       const { target, init } = buildUpstreamRequest(options, req);
 
       // Stash upstream context for downstream rewrite handlers run on the
-      // response phase of earlier middleware in the chain.
-      c.set("__proxy_upstream_host__" as never, target.host);
+      // response phase of earlier middleware in the chain. Use `hostname`
+      // (no port) so `rewrite_cookies` can match it against the `Domain=`
+      // attribute, which never includes a port.
+      c.set("__proxy_upstream_host__" as never, target.hostname);
       c.set(
         "__proxy_upstream_origin__" as never,
         `${target.protocol}//${target.host}`,

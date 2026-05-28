@@ -286,7 +286,7 @@ describe("settings", () => {
       default_redirection_uri: "https://example.com/callback",
       enabled_locales: ["en", "es"],
       default_directory: Strategy.USERNAME_PASSWORD,
-      default_audience: "https://api.example.com",
+      default_audience: "https://example.com",
       default_organization: "org_123",
       flags: {
         enable_client_connections: true,
@@ -331,7 +331,7 @@ describe("settings", () => {
     );
     expect(updated.enabled_locales).toEqual(["en", "es"]);
     expect(updated.default_directory).toBe(Strategy.USERNAME_PASSWORD);
-    expect(updated.default_audience).toBe("https://api.example.com");
+    expect(updated.default_audience).toBe("https://example.com");
     expect(updated.default_organization).toBe("org_123");
     expect(updated.flags).toEqual({
       enable_client_connections: true,
@@ -473,5 +473,90 @@ describe("settings", () => {
     const updated = await updateResponse.json();
     expect(updated.sandbox_version).toBe("12");
     expect(updated.sandbox_versions_available).toEqual(["8", "12", "16", "18"]);
+  });
+
+  describe("default_audience validation", () => {
+    it("rejects default_audience that does not match any resource server", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      const response = await managementClient.tenants.settings.$patch(
+        {
+          header: { "tenant-id": "tenantId" },
+          json: { default_audience: "https://does-not-exist.example.com" },
+        },
+        { headers: { authorization: `Bearer ${token}` } },
+      );
+
+      expect(response.status).toBe(400);
+    });
+
+    it("accepts default_audience that matches a resource server", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      await env.data.resourceServers.create("tenantId", {
+        name: "Another API",
+        identifier: "https://another.example.com",
+      });
+
+      const response = await managementClient.tenants.settings.$patch(
+        {
+          header: { "tenant-id": "tenantId" },
+          json: { default_audience: "https://another.example.com" },
+        },
+        { headers: { authorization: `Bearer ${token}` } },
+      );
+
+      expect(response.status).toBe(200);
+      const updated = await response.json();
+      expect(updated.default_audience).toBe("https://another.example.com");
+    });
+
+    it("allows clearing default_audience with an empty string", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      const response = await managementClient.tenants.settings.$patch(
+        {
+          header: { "tenant-id": "tenantId" },
+          json: { default_audience: "" },
+        },
+        { headers: { authorization: `Bearer ${token}` } },
+      );
+
+      expect(response.status).toBe(200);
+    });
+
+    it("does not validate default_audience on PATCHes that don't include it", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      // Forcibly put the tenant in a legacy broken state — default_audience
+      // points at an identifier that has no resource server. Unrelated PATCHes
+      // must still succeed.
+      const existing = await env.data.tenants.get("tenantId");
+      await env.data.tenants.update("tenantId", {
+        ...existing!,
+        default_audience: "https://orphaned.example.com",
+      });
+
+      const response = await managementClient.tenants.settings.$patch(
+        {
+          header: { "tenant-id": "tenantId" },
+          json: { friendly_name: "Renamed" },
+        },
+        { headers: { authorization: `Bearer ${token}` } },
+      );
+
+      expect(response.status).toBe(200);
+      const updated = await response.json();
+      expect(updated.friendly_name).toBe("Renamed");
+      expect(updated.default_audience).toBe("https://orphaned.example.com");
+    });
   });
 });
