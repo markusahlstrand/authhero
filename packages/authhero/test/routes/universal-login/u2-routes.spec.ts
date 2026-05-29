@@ -6,6 +6,37 @@ import { AuthorizationResponseType } from "@authhero/adapter-interfaces";
 
 import { u2Screen } from "../../helpers/u2-screen";
 describe("u2 routes", () => {
+  describe("info landing page", () => {
+    it("renders a branded info page when the redirect carries an auth code", async () => {
+      const { u2App, env } = await getTestServer({ mockEmail: true });
+
+      const response = await u2App.request(
+        "http://localhost/info?state=1234&code=abc123",
+        { method: "GET" },
+        env,
+      );
+
+      expect(response.status).toBe(200);
+      const html = await response.text();
+      expect(html).toContain("Signed in");
+      expect(html).toContain("abc123");
+    });
+
+    it("renders an error page when the redirect carries an OAuth error", async () => {
+      const { u2App, env } = await getTestServer({ mockEmail: true });
+
+      const response = await u2App.request(
+        "http://localhost/info?state=1234&error=access_denied&error_description=Login%20session%20closed",
+        { method: "GET" },
+        env,
+      );
+
+      expect(response.status).toBe(400);
+      const html = await response.text();
+      expect(html).toContain("Login session closed");
+    });
+  });
+
   describe("liquid template rendering", () => {
     it("should render identifier page with default template", async () => {
       const { u2App, oauthApp, env } = await getTestServer({

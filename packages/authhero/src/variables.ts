@@ -7,11 +7,20 @@ export function getIssuer(env: Bindings, customDomain?: string) {
   return env.ISSUER;
 }
 
-export function getUniversalLoginUrl(env: Bindings, customDomain?: string) {
+export function getUniversalLoginUrl(
+  env: Bindings,
+  customDomain?: string,
+  routePrefix: string = "u",
+) {
+  // Accept "/u2", "u2/" etc. and normalize to a bare path segment.
+  const prefix = routePrefix.replace(/^\/+|\/+$/g, "") || "u";
   if (customDomain) {
-    return `https://${customDomain}/u/`;
+    return `https://${customDomain}/${prefix}/`;
   }
-  return env.UNIVERSAL_LOGIN_URL || `${env.ISSUER}u/`;
+  if (env.UNIVERSAL_LOGIN_URL) {
+    return env.UNIVERSAL_LOGIN_URL;
+  }
+  return `${env.ISSUER}${prefix}/`;
 }
 
 export function getAuthUrl(env: Bindings, customDomain?: string) {

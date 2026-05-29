@@ -34,12 +34,20 @@ import { HTTPException } from "hono/http-exception";
 import { LogTypes } from "@authhero/adapter-interfaces";
 import { logMessage } from "../../helpers/logging";
 import { sanitizeUrl } from "./sanitization-utils";
-import type { PromptScreen, CustomText } from "@authhero/adapter-interfaces";
+import type {
+  PromptScreen,
+  CustomText,
+  Branding,
+  Theme,
+} from "@authhero/adapter-interfaces";
 import {
   derivePageLogoPlacement,
+  extractBrandingProps,
   renderWidgetPageResponse,
   resolveDarkMode,
 } from "./u2-widget-page";
+import { ErrorPage } from "./error-page";
+import { DEFAULT_THEME } from "../../constants/defaultTheme";
 import { locales } from "../../i18n";
 import { nanoid } from "nanoid";
 import { getEnrichedClient } from "../../helpers/client";
@@ -914,6 +922,79 @@ const getGuardianEnroll = defineRoute({
 // Registered before the catch-all `:screen{.+}` so trie matching reaches them.
 // ----------------------------------------------------------------------------
 
+// Landing page used as a redirect_uri target (e.g. the admin "Login" link).
+// `state` here is the client's OAuth state, not a login session id, so we
+// render a branded info page from tenant branding rather than a screen.
+const getInfo = defineRoute({
+  route: createRoute({
+    tags: ["u2"],
+    method: "get",
+    path: "/info",
+    request: {
+      query: z.object({
+        state: z.string().optional(),
+        code: z.string().optional(),
+        error: z.string().optional(),
+        error_description: z.string().optional(),
+      }),
+    },
+    responses: {
+      200: {
+        description: "Info page",
+        content: { "text/html": { schema: z.string() } },
+      },
+    },
+  }),
+  handler: async (ctx: any) => {
+    const { code, error, error_description } = ctx.req.valid("query");
+
+    const tenantId = ctx.var.tenant_id;
+    let branding: Branding | null = null;
+    let theme: Theme | null = null;
+    try {
+      if (tenantId && ctx.env.data) {
+        [theme, branding] = await Promise.all([
+          ctx.env.data.themes.get(tenantId, "default"),
+          ctx.env.data.branding.get(tenantId),
+        ]);
+      }
+    } catch {
+      // Fall back to default styling if branding fetch fails
+    }
+
+    const resolvedTheme = theme ?? DEFAULT_THEME;
+    const brandingWithFavicon = branding
+      ? {
+          ...branding,
+          favicon_url: ctx.var?.custom_domain
+            ? branding.favicon_url
+            : undefined,
+        }
+      : null;
+    const darkMode = resolveDarkMode(ctx, brandingWithFavicon);
+
+    const isError = Boolean(error || error_description);
+    const message = isError
+      ? error_description || error
+      : code
+        ? `You have signed in successfully. Authorization code: ${code}`
+        : "You have signed in successfully.";
+
+    return ctx.html(
+      <ErrorPage
+        variant={isError ? "error" : "info"}
+        title={isError ? "Sign-in failed" : "Signed in"}
+        message={message}
+        statusCode={isError ? 400 : 200}
+        branding={extractBrandingProps(brandingWithFavicon)}
+        theme={resolvedTheme}
+        darkMode={darkMode}
+      />,
+      isError ? 400 : 200,
+    );
+  },
+});
+
 const getAcceptInvitation = defineRoute({
   route: createRoute({
     tags: ["u2"],
@@ -1275,6 +1356,7 @@ export const u2Routes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
 }>().openapiRoutes([
+  getInfo,
   getGuardianEnroll,
   getAcceptInvitation,
   postAcceptInvitation,

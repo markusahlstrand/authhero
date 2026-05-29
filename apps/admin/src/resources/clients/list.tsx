@@ -28,7 +28,7 @@ function ClientLoginLink({ baseUrl }: { baseUrl: string }) {
   if (!record) return null;
   return (
     <a
-      href={`${baseUrl}/authorize?client_id=${record.id}&redirect_uri=${baseUrl}/u/info&scope=profile%20email%20openid&state=1234&response_type=code`}
+      href={`${baseUrl}/authorize?client_id=${record.id}&redirect_uri=${baseUrl}/u2/info&scope=profile%20email%20openid&state=1234&response_type=code&screen_hint=login`}
       target="_blank"
       rel="noopener noreferrer"
       onClick={(e) => e.stopPropagation()}

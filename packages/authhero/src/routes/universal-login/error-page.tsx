@@ -17,6 +17,7 @@ export type ErrorPageProps = {
   title?: string;
   message: string;
   statusCode: number;
+  variant?: "error" | "info";
   branding?: {
     colors?: {
       primary?: string;
@@ -33,13 +34,16 @@ export type ErrorPageProps = {
 };
 
 export function ErrorPage({
-  title = "Something went wrong",
+  title,
   message,
   statusCode,
+  variant = "error",
   branding,
   theme,
   darkMode = "auto",
 }: ErrorPageProps) {
+  const isInfo = variant === "info";
+  const resolvedTitle = title ?? (isInfo ? "Information" : "Something went wrong");
   const pageBackground = buildThemePageBackground(
     theme?.page_background,
     branding?.colors?.page_background,
@@ -53,6 +57,11 @@ export function ErrorPage({
   const widgetCornerRadius = theme?.borders?.widget_corner_radius ?? 16;
   const showWidgetShadow = theme?.borders?.show_widget_shadow !== false;
   const errorColor = sanitizeCssColor(theme?.colors?.error) || "#DC2626";
+  const infoColor =
+    sanitizeCssColor(theme?.colors?.primary_button) ||
+    sanitizeCssColor(branding?.colors?.primary) ||
+    "#2563EB";
+  const iconColor = isInfo ? infoColor : errorColor;
 
   const htmlClass =
     darkMode === "dark"
@@ -66,7 +75,7 @@ export function ErrorPage({
       <head>
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Error - {statusCode}</title>
+        <title>{isInfo ? resolvedTitle : `Error - ${statusCode}`}</title>
         {faviconUrl && <link rel="icon" href={faviconUrl} />}
         {fontUrl && <link rel="stylesheet" href={fontUrl} />}
         <style
@@ -149,17 +158,26 @@ export function ErrorPage({
               height="48"
               viewBox="0 0 24 24"
               fill="none"
-              stroke={errorColor}
+              stroke={iconColor}
               stroke-width="1.5"
               stroke-linecap="round"
               stroke-linejoin="round"
             >
               <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="8" x2="12" y2="12" />
-              <line x1="12" y1="16" x2="12.01" y2="16" />
+              {isInfo ? (
+                <>
+                  <line x1="12" y1="16" x2="12" y2="12" />
+                  <line x1="12" y1="8" x2="12.01" y2="8" />
+                </>
+              ) : (
+                <>
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </>
+              )}
             </svg>
           </div>
-          <div class="error-title">{title}</div>
+          <div class="error-title">{resolvedTitle}</div>
           <div class="error-message">{message}</div>
         </div>
         <script
