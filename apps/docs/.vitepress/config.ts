@@ -313,6 +313,18 @@ gtag('config', 'G-DNZWG3PF2L');`,
                   link: "/standards/rfc-7592",
                 },
                 {
+                  text: "RFC 8414 — Authorization Server Metadata",
+                  link: "/standards/rfc-8414",
+                },
+                {
+                  text: "Client ID Metadata Documents (CIMD)",
+                  link: "/standards/cimd",
+                },
+                {
+                  text: "RFC 9728 — Protected Resource Metadata",
+                  link: "/standards/rfc-9728",
+                },
+                {
                   text: "RFC 7523 — JWT Client Authentication",
                   link: "/standards/rfc-7523",
                 },

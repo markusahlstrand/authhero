@@ -8,10 +8,7 @@ export {
 } from "./data-plane/router";
 export type { ProxyDataPlaneOptions } from "./data-plane/router";
 export { createInMemoryHostCache } from "./data-plane/cache";
-export type {
-  HostCacheOptions,
-  HostResolverCache,
-} from "./data-plane/cache";
+export type { HostCacheOptions, HostResolverCache } from "./data-plane/cache";
 export {
   createCacheApiHostCache,
   buildCacheApiKey,
@@ -43,10 +40,7 @@ export {
   matchesAnyHost,
   buildMatchFilter,
 } from "./data-plane/matcher";
-export {
-  createStaticProxyAdapter,
-  httpRoute,
-} from "./static";
+export { createStaticProxyAdapter, httpRoute } from "./static";
 export type {
   StaticProxyAdapterOptions,
   StaticHostConfig,

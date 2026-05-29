@@ -34,218 +34,216 @@ export function getSendParamFromAuth0ClientHeader(
 }
 const getRoot = defineRoute({
   route: createRoute({
-      tags: ["login"],
-      method: "get",
-      path: "/",
-      request: {
-        query: z.object({
-          state: z.string().openapi({
-            description: "The state",
-          }),
-          style: z.enum(["classic", "shadcn"]).optional().openapi({
-            description: "UI style to use for the enter code page",
-          }),
+    tags: ["login"],
+    method: "get",
+    path: "/",
+    request: {
+      query: z.object({
+        state: z.string().openapi({
+          description: "The state",
         }),
+        style: z.enum(["classic", "shadcn"]).optional().openapi({
+          description: "UI style to use for the enter code page",
+        }),
+      }),
+    },
+    responses: {
+      200: {
+        description: "HTML page to enter verification code.",
+        content: { "text/html": { schema: z.string() } },
       },
-      responses: {
-        200: {
-          description: "HTML page to enter verification code.",
-          content: { "text/html": { schema: z.string() } },
-        },
-        400: {
-          description:
-            "Bad Request - HTML error page if username is missing in state.",
-          content: { "text/html": { schema: z.string() } },
-        },
-        500: {
-          description: "Internal Server Error - HTML error page.",
-          content: { "text/html": { schema: z.string() } },
-        },
+      400: {
+        description:
+          "Bad Request - HTML error page if username is missing in state.",
+        content: { "text/html": { schema: z.string() } },
       },
-    }),
+      500: {
+        description: "Internal Server Error - HTML error page.",
+        content: { "text/html": { schema: z.string() } },
+      },
+    },
+  }),
   handler: async (ctx) => {
-      const { state, style } = ctx.req.valid("query");
+    const { state, style } = ctx.req.valid("query");
 
-      // Set cookie if style is explicitly provided in query param
-      if (style) {
-        setCookie(ctx, "auth_ui_style", style, {
-          path: "/",
-          maxAge: 60 * 60 * 24 * 365, // 1 year
-          httpOnly: true,
-          secure: true,
-          sameSite: "Lax",
-        });
-      }
+    // Set cookie if style is explicitly provided in query param
+    if (style) {
+      setCookie(ctx, "auth_ui_style", style, {
+        path: "/",
+        maxAge: 60 * 60 * 24 * 365, // 1 year
+        httpOnly: true,
+        secure: true,
+        sameSite: "Lax",
+      });
+    }
 
-      const { theme, branding, loginSession, client } = await initJSXRoute(
-        ctx,
-        state,
-      );
+    const { theme, branding, loginSession, client } = await initJSXRoute(
+      ctx,
+      state,
+    );
 
-      if (!loginSession.authParams.username) {
-        // Render an error page if username is not found
-        return ctx.html(
-          <MessagePage
-            theme={theme}
-            branding={branding}
-            client={client}
-            state={state}
-            pageTitle={i18next.t("error_page_title") || "Error"}
-            message={
-              i18next.t("username_not_found_error") ||
-              "Username not found in session."
-            }
-          />,
-          400,
-        );
-      }
-
-      let hasPasswordLogin = false;
-      try {
-        const passwordUser = await getPrimaryUsernamePasswordUser({
-          env: ctx.env,
-          tenant_id: client.tenant.id,
-          username: loginSession.authParams.username,
-        });
-        hasPasswordLogin = !!passwordUser;
-      } catch {
-        hasPasswordLogin = false;
-      }
-
+    if (!loginSession.authParams.username) {
+      // Render an error page if username is not found
       return ctx.html(
-        <EnterCodePage
+        <MessagePage
           theme={theme}
           branding={branding}
-          email={loginSession.authParams.username}
-          state={state}
           client={client}
-          hasPasswordLogin={hasPasswordLogin}
+          state={state}
+          pageTitle={i18next.t("error_page_title") || "Error"}
+          message={
+            i18next.t("username_not_found_error") ||
+            "Username not found in session."
+          }
         />,
+        400,
       );
-    },
+    }
+
+    let hasPasswordLogin = false;
+    try {
+      const passwordUser = await getPrimaryUsernamePasswordUser({
+        env: ctx.env,
+        tenant_id: client.tenant.id,
+        username: loginSession.authParams.username,
+      });
+      hasPasswordLogin = !!passwordUser;
+    } catch {
+      hasPasswordLogin = false;
+    }
+
+    return ctx.html(
+      <EnterCodePage
+        theme={theme}
+        branding={branding}
+        email={loginSession.authParams.username}
+        state={state}
+        client={client}
+        hasPasswordLogin={hasPasswordLogin}
+      />,
+    );
+  },
 });
 
 const postRoot = defineRoute({
   route: createRoute({
-      tags: ["login"],
-      method: "post",
-      path: "/",
-      request: {
-        query: z.object({
-          state: z.string().openapi({
-            description: "The state",
-          }),
-          style: z.enum(["classic", "shadcn"]).optional().openapi({
-            description: "UI style to use for the enter code page",
-          }),
+    tags: ["login"],
+    method: "post",
+    path: "/",
+    request: {
+      query: z.object({
+        state: z.string().openapi({
+          description: "The state",
         }),
-        body: {
-          content: {
-            "application/x-www-form-urlencoded": {
-              schema: z.object({
-                code: z.string(),
-              }),
-            },
+        style: z.enum(["classic", "shadcn"]).optional().openapi({
+          description: "UI style to use for the enter code page",
+        }),
+      }),
+      body: {
+        content: {
+          "application/x-www-form-urlencoded": {
+            schema: z.object({
+              code: z.string(),
+            }),
           },
         },
       },
-      responses: {
-        302: {
-          description: "Redirect to continue authentication flow.",
-          headers: z.object({ Location: z.string().url() }),
-        },
-        400: {
-          description:
-            "Bad Request - HTML page with an error message (e.g., invalid code, username missing).",
-          content: { "text/html": { schema: z.string() } },
-        },
-        500: {
-          description:
-            "Internal Server Error - HTML error page for unexpected issues.",
-          content: { "text/html": { schema: z.string() } },
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const { state, style } = ctx.req.valid("query");
-      const { code } = ctx.req.valid("form");
-
-      // Set cookie if style is explicitly provided in query param
-      if (style) {
-        setCookie(ctx, "auth_ui_style", style, {
-          path: "/",
-          maxAge: 60 * 60 * 24 * 365, // 1 year
-          httpOnly: true,
-          secure: true,
-          sameSite: "Lax",
-        });
-      }
-
-      const { theme, branding, client, loginSession } = await initJSXRoute(
-        ctx,
-        state,
-      );
-
-      if (!loginSession.authParams.username) {
-        // Render an error page if username is not found
-        throw new HTTPException(400, {
-          message:
-            i18next.t("username_not_found_error") ||
-            "Username not found in session.",
-        });
-      }
-
-      try {
-        ctx.set("client_id", client.client_id);
-
-        const result = await passwordlessGrant(ctx, {
-          client_id: client.client_id,
-          authParams: loginSession.authParams,
-          username: loginSession.authParams.username,
-          otp: code,
-        });
-
-        if (result instanceof Response) {
-          return result;
-        } else {
-          throw new HTTPException(500, {
-            message:
-              i18next.t("unexpected_error_try_again") ||
-              "An unexpected error occurred. Please try again.",
-          });
-        }
-      } catch (e: unknown) {
-        let passwordUser;
-        try {
-          passwordUser = await getPrimaryUsernamePasswordUser({
-            env: ctx.env,
-            tenant_id: client.tenant.id,
-            username: loginSession.authParams.username,
-          });
-        } catch {
-          passwordUser = null;
-        }
-
-        // Classic style
-        return ctx.html(
-          <EnterCodePage
-            theme={theme}
-            branding={branding}
-            email={loginSession.authParams?.username}
-            state={state}
-            client={client}
-            error={(e as Error).message}
-            hasPasswordLogin={!!passwordUser}
-          />,
-          400,
-        );
-      }
     },
-});
+    responses: {
+      302: {
+        description: "Redirect to continue authentication flow.",
+        headers: z.object({ Location: z.string().url() }),
+      },
+      400: {
+        description:
+          "Bad Request - HTML page with an error message (e.g., invalid code, username missing).",
+        content: { "text/html": { schema: z.string() } },
+      },
+      500: {
+        description:
+          "Internal Server Error - HTML error page for unexpected issues.",
+        content: { "text/html": { schema: z.string() } },
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const { state, style } = ctx.req.valid("query");
+    const { code } = ctx.req.valid("form");
 
+    // Set cookie if style is explicitly provided in query param
+    if (style) {
+      setCookie(ctx, "auth_ui_style", style, {
+        path: "/",
+        maxAge: 60 * 60 * 24 * 365, // 1 year
+        httpOnly: true,
+        secure: true,
+        sameSite: "Lax",
+      });
+    }
+
+    const { theme, branding, client, loginSession } = await initJSXRoute(
+      ctx,
+      state,
+    );
+
+    if (!loginSession.authParams.username) {
+      // Render an error page if username is not found
+      throw new HTTPException(400, {
+        message:
+          i18next.t("username_not_found_error") ||
+          "Username not found in session.",
+      });
+    }
+
+    try {
+      ctx.set("client_id", client.client_id);
+
+      const result = await passwordlessGrant(ctx, {
+        client_id: client.client_id,
+        authParams: loginSession.authParams,
+        username: loginSession.authParams.username,
+        otp: code,
+      });
+
+      if (result instanceof Response) {
+        return result;
+      } else {
+        throw new HTTPException(500, {
+          message:
+            i18next.t("unexpected_error_try_again") ||
+            "An unexpected error occurred. Please try again.",
+        });
+      }
+    } catch (e: unknown) {
+      let passwordUser;
+      try {
+        passwordUser = await getPrimaryUsernamePasswordUser({
+          env: ctx.env,
+          tenant_id: client.tenant.id,
+          username: loginSession.authParams.username,
+        });
+      } catch {
+        passwordUser = null;
+      }
+
+      // Classic style
+      return ctx.html(
+        <EnterCodePage
+          theme={theme}
+          branding={branding}
+          email={loginSession.authParams?.username}
+          state={state}
+          client={client}
+          error={(e as Error).message}
+          hasPasswordLogin={!!passwordUser}
+        />,
+        400,
+      );
+    }
+  },
+});
 
 export const enterCodeRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
-}>()
-  .openapiRoutes([getRoot, postRoot] as const);
+}>().openapiRoutes([getRoot, postRoot] as const);

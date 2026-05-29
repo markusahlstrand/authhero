@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { createAccessControlHooks, validateTenantAccess } from "../src/hooks/access-control";
+import {
+  createAccessControlHooks,
+  validateTenantAccess,
+} from "../src/hooks/access-control";
 
 describe("Access Control", () => {
   describe("createAccessControlHooks", () => {

@@ -201,8 +201,8 @@ describe("LogStreamDestination", () => {
         },
       ]),
     );
-    await expect(
-      dest.deliver([dest.transform(makeEvent())]),
-    ).rejects.toThrow(/500/);
+    await expect(dest.deliver([dest.transform(makeEvent())])).rejects.toThrow(
+      /500/,
+    );
   });
 });

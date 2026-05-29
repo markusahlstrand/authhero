@@ -72,12 +72,15 @@ export function createCacheApiHostCache(
 
       const value = await options.upstream.resolveHost(host);
       const ttl = value === null ? negativeTtl : positiveTtl;
-      const cached = new Response(JSON.stringify({ value } satisfies CachedPayload), {
-        headers: {
-          "content-type": "application/json",
-          "cache-control": `public, max-age=${ttl}`,
+      const cached = new Response(
+        JSON.stringify({ value } satisfies CachedPayload),
+        {
+          headers: {
+            "content-type": "application/json",
+            "cache-control": `public, max-age=${ttl}`,
+          },
         },
-      });
+      );
       const put = cache.put(key, cached);
       if (waitUntil) waitUntil(put);
       else await put.catch(() => undefined);

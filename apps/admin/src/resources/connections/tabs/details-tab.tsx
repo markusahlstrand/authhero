@@ -41,11 +41,10 @@ function ImportModeConfiguration() {
       <CardHeader>
         <CardTitle>Upstream Auth Server (migration)</CardTitle>
         <CardDescription>
-          Credentials of the upstream OIDC auth server (Auth0, Cognito, etc.)
-          to verify passwords against when Import Mode is enabled. The
-          connection's name is sent as the <code>realm</code> in the
-          password-realm grant — the upstream client must have the password
-          grant type enabled.
+          Credentials of the upstream OIDC auth server (Auth0, Cognito, etc.) to
+          verify passwords against when Import Mode is enabled. The connection's
+          name is sent as the <code>realm</code> in the password-realm grant —
+          the upstream client must have the password grant type enabled.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
@@ -92,10 +91,7 @@ export function DetailsTab() {
       {!isDb && (
         <>
           <TextInput source="options.client_id" label="Client ID" />
-          <SecretInput
-            source="options.client_secret"
-            label="Client Secret"
-          />
+          <SecretInput source="options.client_secret" label="Client Secret" />
           <TextInput
             source="options.callback_url"
             label="Callback URL Override"
@@ -179,10 +175,7 @@ export function DetailsTab() {
             source="options.userinfo_endpoint"
             label="Userinfo Endpoint"
           />
-          <TextInput
-            source="options.token_endpoint"
-            label="Token Endpoint"
-          />
+          <TextInput source="options.token_endpoint" label="Token Endpoint" />
           <TextInput source="options.icon_url" label="Icon URL" />
         </>
       )}

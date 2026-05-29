@@ -179,7 +179,10 @@ function AddPermissionButton() {
         <Plus className="h-4 w-4 mr-1" />
         Add permission
       </Button>
-      <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : handleClose())}>
+      <Dialog
+        open={open}
+        onOpenChange={(o) => (o ? setOpen(true) : handleClose())}
+      >
         <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>Add permissions</DialogTitle>
@@ -195,10 +198,7 @@ function AddPermissionButton() {
                 </SelectTrigger>
                 <SelectContent>
                   {resourceServers.map((s) => (
-                    <SelectItem
-                      key={s.identifier}
-                      value={s.identifier}
-                    >
+                    <SelectItem key={s.identifier} value={s.identifier}>
                       {s.name || s.identifier}
                     </SelectItem>
                   ))}
@@ -385,10 +385,7 @@ export function PermissionsTab() {
             source="resource_server_identifier"
             label="Resource server"
           />
-          <DataTable.Col
-            source="resource_server_name"
-            label="Resource name"
-          />
+          <DataTable.Col source="resource_server_name" label="Resource name" />
           <DataTable.Col source="permission_name" label="Permission" />
           <DataTable.Col label="Description">
             <TextField source="description" />

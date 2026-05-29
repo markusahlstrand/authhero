@@ -56,215 +56,58 @@ const bindingsResponseSchema = z.object({
 });
 const getByTriggerIdBindings = defineRoute({
   route: createRoute({
-      tags: ["actions"],
-      method: "get",
-      path: "/{triggerId}/bindings",
-      request: {
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-        params: z.object({
-          triggerId: z.string(),
-        }),
-      },
-      security: [
-        {
-          Bearer: ["read:actions"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: bindingsResponseSchema,
-            },
-          },
-          description: "Trigger bindings",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const { triggerId } = ctx.req.valid("param");
-      const internalTriggerId = toInternalTriggerId(triggerId);
-
-      // Get all hooks for this trigger that are code hooks
-      const hooks = await ctx.env.data.hooks.list(ctx.var.tenant_id, {
-        q: `trigger_id:"${internalTriggerId}"`,
-        per_page: 100,
-      });
-
-      // Filter to code hooks only and sort by priority (higher priority first)
-      const codeHooks = hooks.hooks
-        .filter((h: any) => "code_id" in h && h.code_id)
-        .sort((a: any, b: any) => (b.priority || 0) - (a.priority || 0));
-
-      // Fetch the action for each code hook
-      const bindings: any[] = [];
-      for (const hook of codeHooks) {
-        const codeId = (hook as any).code_id;
-        const action = await ctx.env.data.actions.get(
-          ctx.var.tenant_id,
-          codeId,
-        );
-        if (action) {
-          bindings.push({
-            id: hook.hook_id,
-            trigger_id: toAuth0TriggerId(hook.trigger_id),
-            display_name: action.name,
-            action: {
-              ...action,
-              secrets: action.secrets?.map((s) => ({ name: s.name })),
-            },
-            created_at: hook.created_at,
-            updated_at: hook.updated_at,
-          });
-        }
-      }
-
-      return ctx.json({ bindings });
+    tags: ["actions"],
+    method: "get",
+    path: "/{triggerId}/bindings",
+    request: {
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
+      params: z.object({
+        triggerId: z.string(),
+      }),
     },
-});
-
-const patchByTriggerIdBindings = defineRoute({
-  route: createRoute({
-      tags: ["actions"],
-      method: "patch",
-      path: "/{triggerId}/bindings",
-      request: {
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-        params: z.object({
-          triggerId: z.string(),
-        }),
-        body: {
-          content: {
-            "application/json": {
-              schema: z.object({
-                bindings: z.array(bindingInputSchema),
-              }),
-            },
+    security: [
+      {
+        Bearer: ["read:actions"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: bindingsResponseSchema,
           },
         },
+        description: "Trigger bindings",
       },
-      security: [
-        {
-          Bearer: ["update:actions"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: bindingsResponseSchema,
-            },
-          },
-          description: "Updated trigger bindings",
-        },
-      },
-    }),
+    },
+  }),
   handler: async (ctx) => {
-      const { triggerId } = ctx.req.valid("param");
-      const { bindings } = ctx.req.valid("json");
-      const internalTriggerId = toInternalTriggerId(triggerId);
+    const { triggerId } = ctx.req.valid("param");
+    const internalTriggerId = toInternalTriggerId(triggerId);
 
-      // Resolve and validate every binding (action exists, ref shape valid)
-      // before mutating any state — partial removal of existing hooks
-      // followed by a 4xx would leave the trigger in an inconsistent state.
-      const resolved: Array<{
-        binding: (typeof bindings)[number];
-        actionId: string;
-        action: NonNullable<
-          Awaited<ReturnType<typeof ctx.env.data.actions.get>>
-        >;
-      }> = [];
-      for (let i = 0; i < bindings.length; i++) {
-        const binding = bindings[i]!;
-        let actionId = binding.ref.id;
-        if (
-          !actionId &&
-          binding.ref.type === "action_id" &&
-          binding.ref.value
-        ) {
-          actionId = binding.ref.value;
-        } else if (
-          !actionId &&
-          binding.ref.type === "action_name" &&
-          binding.ref.value
-        ) {
-          // Look up action by exact name. The lucene-style q parser used by
-          // actions.list doesn't support escapes, so a name containing `"`
-          // would unbalance tokenization. Page through actions and filter in
-          // JS for an exact match.
-          const refName = binding.ref.value;
-          const per_page = 100;
-          let lookupPage = 0;
-          while (true) {
-            const matches = await ctx.env.data.actions.list(ctx.var.tenant_id, {
-              page: lookupPage,
-              per_page,
-              include_totals: false,
-            });
-            const found = matches.actions.find((a) => a.name === refName);
-            if (found) {
-              actionId = found.id;
-              break;
-            }
-            if (matches.actions.length < per_page) break;
-            lookupPage++;
-          }
-        }
+    // Get all hooks for this trigger that are code hooks
+    const hooks = await ctx.env.data.hooks.list(ctx.var.tenant_id, {
+      q: `trigger_id:"${internalTriggerId}"`,
+      per_page: 100,
+    });
 
-        if (!actionId) {
-          throw new HTTPException(400, {
-            message: `Binding at index ${i} must reference an action via ref.id or ref.value`,
-          });
-        }
+    // Filter to code hooks only and sort by priority (higher priority first)
+    const codeHooks = hooks.hooks
+      .filter((h: any) => "code_id" in h && h.code_id)
+      .sort((a: any, b: any) => (b.priority || 0) - (a.priority || 0));
 
-        const action = await ctx.env.data.actions.get(
-          ctx.var.tenant_id,
-          actionId,
-        );
-        if (!action) {
-          throw new HTTPException(404, {
-            message: `Action ${actionId} not found`,
-          });
-        }
-
-        resolved.push({ binding, actionId, action });
-      }
-
-      // All bindings valid — safe to swap out existing code hooks.
-      const existingHooks = await ctx.env.data.hooks.list(ctx.var.tenant_id, {
-        q: `trigger_id:"${internalTriggerId}"`,
-        per_page: 100,
-      });
-
-      for (const hook of existingHooks.hooks) {
-        if ("code_id" in hook && hook.code_id) {
-          await ctx.env.data.hooks.remove(ctx.var.tenant_id, hook.hook_id);
-        }
-      }
-
-      const resultBindings: any[] = [];
-      for (let i = 0; i < resolved.length; i++) {
-        const { binding, actionId, action } = resolved[i]!;
-
-        // Create a hook binding with priority based on array position
-        // Higher index = lower priority (first in array executes first)
-        const hook = await ctx.env.data.hooks.create(ctx.var.tenant_id, {
-          hook_id: generateHookId(),
-          trigger_id: internalTriggerId as any,
-          code_id: actionId,
-          enabled: true,
-          synchronous: true,
-          priority: resolved.length - i,
-        });
-
-        resultBindings.push({
+    // Fetch the action for each code hook
+    const bindings: any[] = [];
+    for (const hook of codeHooks) {
+      const codeId = (hook as any).code_id;
+      const action = await ctx.env.data.actions.get(ctx.var.tenant_id, codeId);
+      if (action) {
+        bindings.push({
           id: hook.hook_id,
           trigger_id: toAuth0TriggerId(hook.trigger_id),
-          display_name: binding.display_name || action.name,
+          display_name: action.name,
           action: {
             ...action,
             secrets: action.secrets?.map((s) => ({ name: s.name })),
@@ -273,20 +116,166 @@ const patchByTriggerIdBindings = defineRoute({
           updated_at: hook.updated_at,
         });
       }
+    }
 
-      await logMessage(ctx, ctx.var.tenant_id, {
-        type: LogTypes.SUCCESS_API_OPERATION,
-        description: `Update trigger bindings for ${triggerId}`,
-        targetType: "action",
-      });
-
-      return ctx.json({ bindings: resultBindings });
-    },
+    return ctx.json({ bindings });
+  },
 });
 
+const patchByTriggerIdBindings = defineRoute({
+  route: createRoute({
+    tags: ["actions"],
+    method: "patch",
+    path: "/{triggerId}/bindings",
+    request: {
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
+      params: z.object({
+        triggerId: z.string(),
+      }),
+      body: {
+        content: {
+          "application/json": {
+            schema: z.object({
+              bindings: z.array(bindingInputSchema),
+            }),
+          },
+        },
+      },
+    },
+    security: [
+      {
+        Bearer: ["update:actions"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: bindingsResponseSchema,
+          },
+        },
+        description: "Updated trigger bindings",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const { triggerId } = ctx.req.valid("param");
+    const { bindings } = ctx.req.valid("json");
+    const internalTriggerId = toInternalTriggerId(triggerId);
+
+    // Resolve and validate every binding (action exists, ref shape valid)
+    // before mutating any state — partial removal of existing hooks
+    // followed by a 4xx would leave the trigger in an inconsistent state.
+    const resolved: Array<{
+      binding: (typeof bindings)[number];
+      actionId: string;
+      action: NonNullable<Awaited<ReturnType<typeof ctx.env.data.actions.get>>>;
+    }> = [];
+    for (let i = 0; i < bindings.length; i++) {
+      const binding = bindings[i]!;
+      let actionId = binding.ref.id;
+      if (!actionId && binding.ref.type === "action_id" && binding.ref.value) {
+        actionId = binding.ref.value;
+      } else if (
+        !actionId &&
+        binding.ref.type === "action_name" &&
+        binding.ref.value
+      ) {
+        // Look up action by exact name. The lucene-style q parser used by
+        // actions.list doesn't support escapes, so a name containing `"`
+        // would unbalance tokenization. Page through actions and filter in
+        // JS for an exact match.
+        const refName = binding.ref.value;
+        const per_page = 100;
+        let lookupPage = 0;
+        while (true) {
+          const matches = await ctx.env.data.actions.list(ctx.var.tenant_id, {
+            page: lookupPage,
+            per_page,
+            include_totals: false,
+          });
+          const found = matches.actions.find((a) => a.name === refName);
+          if (found) {
+            actionId = found.id;
+            break;
+          }
+          if (matches.actions.length < per_page) break;
+          lookupPage++;
+        }
+      }
+
+      if (!actionId) {
+        throw new HTTPException(400, {
+          message: `Binding at index ${i} must reference an action via ref.id or ref.value`,
+        });
+      }
+
+      const action = await ctx.env.data.actions.get(
+        ctx.var.tenant_id,
+        actionId,
+      );
+      if (!action) {
+        throw new HTTPException(404, {
+          message: `Action ${actionId} not found`,
+        });
+      }
+
+      resolved.push({ binding, actionId, action });
+    }
+
+    // All bindings valid — safe to swap out existing code hooks.
+    const existingHooks = await ctx.env.data.hooks.list(ctx.var.tenant_id, {
+      q: `trigger_id:"${internalTriggerId}"`,
+      per_page: 100,
+    });
+
+    for (const hook of existingHooks.hooks) {
+      if ("code_id" in hook && hook.code_id) {
+        await ctx.env.data.hooks.remove(ctx.var.tenant_id, hook.hook_id);
+      }
+    }
+
+    const resultBindings: any[] = [];
+    for (let i = 0; i < resolved.length; i++) {
+      const { binding, actionId, action } = resolved[i]!;
+
+      // Create a hook binding with priority based on array position
+      // Higher index = lower priority (first in array executes first)
+      const hook = await ctx.env.data.hooks.create(ctx.var.tenant_id, {
+        hook_id: generateHookId(),
+        trigger_id: internalTriggerId as any,
+        code_id: actionId,
+        enabled: true,
+        synchronous: true,
+        priority: resolved.length - i,
+      });
+
+      resultBindings.push({
+        id: hook.hook_id,
+        trigger_id: toAuth0TriggerId(hook.trigger_id),
+        display_name: binding.display_name || action.name,
+        action: {
+          ...action,
+          secrets: action.secrets?.map((s) => ({ name: s.name })),
+        },
+        created_at: hook.created_at,
+        updated_at: hook.updated_at,
+      });
+    }
+
+    await logMessage(ctx, ctx.var.tenant_id, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: `Update trigger bindings for ${triggerId}`,
+      targetType: "action",
+    });
+
+    return ctx.json({ bindings: resultBindings });
+  },
+});
 
 export const actionTriggersRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
-}>()
-  .openapiRoutes([getByTriggerIdBindings, patchByTriggerIdBindings] as const);
+}>().openapiRoutes([getByTriggerIdBindings, patchByTriggerIdBindings] as const);

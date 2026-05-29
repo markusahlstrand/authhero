@@ -142,10 +142,7 @@ function sqliteTimeBucket(
   }
 }
 
-function mysqlTimeBucket(
-  interval: string,
-  offset: string,
-): RawBuilder<string> {
+function mysqlTimeBucket(interval: string, offset: string): RawBuilder<string> {
   // logs.date is stored as a VARCHAR ISO 8601 string in UTC. For the
   // UTC-offset case we can avoid parsing entirely and just slice the prefix.
   if (offset === "+00:00") {
@@ -214,9 +211,7 @@ function dimensionColumn(dim: AnalyticsGroupBy): string {
   }
 }
 
-export function createAnalyticsAdapter(
-  db: Kysely<Database>,
-): AnalyticsAdapter {
+export function createAnalyticsAdapter(db: Kysely<Database>): AnalyticsAdapter {
   let dialectPromise: Promise<SqlDialect> | null = null;
   const getDialect = () => {
     if (!dialectPromise) dialectPromise = detectDialect(db);
@@ -316,9 +311,7 @@ export function createAnalyticsAdapter(
 
       selectQb = selectQb.limit(params.limit).offset(params.offset);
 
-      const rows = (await selectQb.execute()) as Array<
-        Record<string, unknown>
-      >;
+      const rows = (await selectQb.execute()) as Array<Record<string, unknown>>;
 
       const data = rows.map((row) => {
         const out: Record<string, unknown> = {};

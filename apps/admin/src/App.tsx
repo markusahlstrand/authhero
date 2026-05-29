@@ -40,7 +40,11 @@ import {
   ConnectionEdit,
 } from "./resources/connections";
 import { UsersList, UserCreate, UserEdit } from "./resources/users";
-import { DomainList, DomainCreate, DomainEdit } from "./resources/custom-domains";
+import {
+  DomainList,
+  DomainCreate,
+  DomainEdit,
+} from "./resources/custom-domains";
 import { ActionList, ActionCreate, ActionEdit } from "./resources/actions";
 import { ActionExecutionShow } from "./resources/action-executions";
 import { ActionTriggersList } from "./resources/action-triggers";
@@ -62,14 +66,21 @@ import {
   ResourceServerEdit,
 } from "./resources/resource-servers";
 import { ScopeCreate, ScopeEdit } from "./resources/resource-server-scopes";
-import { OrganizationList, OrganizationCreate, OrganizationEdit } from "./resources/organizations";
+import {
+  OrganizationList,
+  OrganizationCreate,
+  OrganizationEdit,
+} from "./resources/organizations";
 import {
   AttackProtectionList,
   AttackProtectionEdit,
 } from "./resources/attack-protection";
 import { MfaList, MfaEdit } from "./resources/mfa";
 import { SigningKeysList } from "./resources/signing-keys";
-import { EmailProvidersList, EmailProvidersEdit } from "./resources/email-providers";
+import {
+  EmailProvidersList,
+  EmailProvidersEdit,
+} from "./resources/email-providers";
 import { SettingsList, SettingsEdit } from "./resources/settings";
 import { RoleList, RoleCreate, RoleEdit } from "./resources/roles";
 import { Dashboard } from "./resources/dashboard/Dashboard";
@@ -88,7 +99,8 @@ export function App({ tenantId, initialDomain, onAuthComplete }: AppProps) {
   const storedFlag = sessionStorage.getItem("isSingleTenant");
   const sepIdx = storedFlag?.lastIndexOf("|") ?? -1;
   const storedDomain = sepIdx > -1 ? storedFlag!.substring(0, sepIdx) : null;
-  const storedValue = sepIdx > -1 ? storedFlag!.substring(sepIdx + 1) : storedFlag;
+  const storedValue =
+    sepIdx > -1 ? storedFlag!.substring(sepIdx + 1) : storedFlag;
   const [isSingleTenantChecked, setIsSingleTenantChecked] = useState<boolean>(
     storedDomain === selectedDomain && storedValue !== null,
   );
@@ -325,7 +337,11 @@ export function App({ tenantId, initialDomain, onAuthComplete }: AppProps) {
           icon={AlertTriangle}
           list={AttackProtectionList}
           edit={AttackProtectionEdit}
-          options={{ hasSingle: true, label: "Attack Protection", menuGroup: "Security" }}
+          options={{
+            hasSingle: true,
+            label: "Attack Protection",
+            menuGroup: "Security",
+          }}
         />
         <Resource
           name="mfa"
@@ -345,7 +361,11 @@ export function App({ tenantId, initialDomain, onAuthComplete }: AppProps) {
           icon={Mail}
           list={EmailProvidersList}
           edit={EmailProvidersEdit}
-          options={{ hasSingle: true, label: "Email Provider", menuGroup: "Branding" }}
+          options={{
+            hasSingle: true,
+            label: "Email Provider",
+            menuGroup: "Branding",
+          }}
         />
         <Resource
           name="settings"

@@ -17,259 +17,263 @@ const flowsWithTotalsSchema = totalsSchema.extend({
 });
 const getRoot = defineRoute({
   route: createRoute({
-      tags: ["flows"],
-      method: "get",
-      path: "/",
-      request: {
-        query: querySchema,
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-      },
-      security: [
-        {
-          Bearer: ["read:flows"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: z.union([z.array(flowSchema), flowsWithTotalsSchema]),
-            },
-          },
-          description: "List of flows",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const tenant_id = ctx.var.tenant_id;
-      const {
-        page,
-        per_page,
-        include_totals = false,
-        sort,
-        q,
-      } = ctx.req.valid("query");
-
-      const result = await ctx.env.data.flows.list(tenant_id, {
-        page,
-        per_page,
-        include_totals,
-        sort: parseSort(sort),
-        q,
-      });
-
-      if (!include_totals) {
-        return ctx.json(result.flows);
-      }
-
-      return ctx.json(result);
+    tags: ["flows"],
+    method: "get",
+    path: "/",
+    request: {
+      query: querySchema,
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
     },
+    security: [
+      {
+        Bearer: ["read:flows"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: z.union([z.array(flowSchema), flowsWithTotalsSchema]),
+          },
+        },
+        description: "List of flows",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenant_id = ctx.var.tenant_id;
+    const {
+      page,
+      per_page,
+      include_totals = false,
+      sort,
+      q,
+    } = ctx.req.valid("query");
+
+    const result = await ctx.env.data.flows.list(tenant_id, {
+      page,
+      per_page,
+      include_totals,
+      sort: parseSort(sort),
+      q,
+    });
+
+    if (!include_totals) {
+      return ctx.json(result.flows);
+    }
+
+    return ctx.json(result);
+  },
 });
 
 const getById = defineRoute({
   route: createRoute({
-      tags: ["flows"],
-      method: "get",
-      path: "/{id}",
-      request: {
-        params: z.object({
-          id: z.string(),
-        }),
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-      },
-      security: [
-        {
-          Bearer: ["read:flows"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: flowSchema,
-            },
-          },
-          description: "A flow",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const tenant_id = ctx.var.tenant_id;
-      const { id } = ctx.req.valid("param");
-
-      const flow = await ctx.env.data.flows.get(tenant_id, id);
-      if (!flow) {
-        throw new HTTPException(404);
-      }
-
-      return ctx.json(flow);
+    tags: ["flows"],
+    method: "get",
+    path: "/{id}",
+    request: {
+      params: z.object({
+        id: z.string(),
+      }),
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
     },
+    security: [
+      {
+        Bearer: ["read:flows"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: flowSchema,
+          },
+        },
+        description: "A flow",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenant_id = ctx.var.tenant_id;
+    const { id } = ctx.req.valid("param");
+
+    const flow = await ctx.env.data.flows.get(tenant_id, id);
+    if (!flow) {
+      throw new HTTPException(404);
+    }
+
+    return ctx.json(flow);
+  },
 });
 
 const deleteById = defineRoute({
   route: createRoute({
-      tags: ["flows"],
-      method: "delete",
-      path: "/{id}",
-      request: {
-        params: z.object({
-          id: z.string(),
-        }),
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-      },
-      security: [
-        {
-          Bearer: ["delete:flows"],
-        },
-      ],
-      responses: {
-        200: {
-          description: "Status",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const tenant_id = ctx.var.tenant_id;
-      const { id } = ctx.req.valid("param");
-
-      const result = await ctx.env.data.flows.remove(tenant_id, id);
-      if (!result) {
-        throw new HTTPException(404, {
-          message: "Flow not found",
-        });
-      }
-
-      await logMessage(ctx, ctx.var.tenant_id, {
-        type: LogTypes.SUCCESS_API_OPERATION,
-        description: "Delete a Flow",
-        targetType: "flow",
-        targetId: id,
-      });
-
-      return ctx.text("OK");
+    tags: ["flows"],
+    method: "delete",
+    path: "/{id}",
+    request: {
+      params: z.object({
+        id: z.string(),
+      }),
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
     },
+    security: [
+      {
+        Bearer: ["delete:flows"],
+      },
+    ],
+    responses: {
+      200: {
+        description: "Status",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenant_id = ctx.var.tenant_id;
+    const { id } = ctx.req.valid("param");
+
+    const result = await ctx.env.data.flows.remove(tenant_id, id);
+    if (!result) {
+      throw new HTTPException(404, {
+        message: "Flow not found",
+      });
+    }
+
+    await logMessage(ctx, ctx.var.tenant_id, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: "Delete a Flow",
+      targetType: "flow",
+      targetId: id,
+    });
+
+    return ctx.text("OK");
+  },
 });
 
 const patchById = defineRoute({
   route: createRoute({
-      tags: ["flows"],
-      method: "patch",
-      path: "/{id}",
-      request: {
-        body: {
-          content: {
-            "application/json": {
-              schema: z.object(flowInsertSchema.shape).partial(),
-            },
+    tags: ["flows"],
+    method: "patch",
+    path: "/{id}",
+    request: {
+      body: {
+        content: {
+          "application/json": {
+            schema: z.object(flowInsertSchema.shape).partial(),
           },
         },
-        params: z.object({
-          id: z.string(),
-        }),
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
       },
-      security: [
-        {
-          Bearer: ["update:flows"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: flowSchema,
-            },
-          },
-          description: "The updated flow",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const tenant_id = ctx.var.tenant_id;
-      const { id } = ctx.req.valid("param");
-      const body = ctx.req.valid("json");
-
-      const flow = await ctx.env.data.flows.update(tenant_id, id, body);
-      if (!flow) {
-        throw new HTTPException(404, {
-          message: "Flow not found",
-        });
-      }
-
-      await logMessage(ctx, ctx.var.tenant_id, {
-        type: LogTypes.SUCCESS_API_OPERATION,
-        description: "Update a Flow",
-        targetType: "flow",
-        targetId: id,
-        afterState: flow as Record<string, unknown>,
-      });
-
-      return ctx.json(flow);
+      params: z.object({
+        id: z.string(),
+      }),
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
     },
+    security: [
+      {
+        Bearer: ["update:flows"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: flowSchema,
+          },
+        },
+        description: "The updated flow",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenant_id = ctx.var.tenant_id;
+    const { id } = ctx.req.valid("param");
+    const body = ctx.req.valid("json");
+
+    const flow = await ctx.env.data.flows.update(tenant_id, id, body);
+    if (!flow) {
+      throw new HTTPException(404, {
+        message: "Flow not found",
+      });
+    }
+
+    await logMessage(ctx, ctx.var.tenant_id, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: "Update a Flow",
+      targetType: "flow",
+      targetId: id,
+      afterState: flow as Record<string, unknown>,
+    });
+
+    return ctx.json(flow);
+  },
 });
 
 const postRoot = defineRoute({
   route: createRoute({
-      tags: ["flows"],
-      method: "post",
-      path: "/",
-      request: {
-        body: {
-          content: {
-            "application/json": {
-              schema: z.object(flowInsertSchema.shape),
-            },
+    tags: ["flows"],
+    method: "post",
+    path: "/",
+    request: {
+      body: {
+        content: {
+          "application/json": {
+            schema: z.object(flowInsertSchema.shape),
           },
         },
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
       },
-      security: [
-        {
-          Bearer: ["create:flows"],
-        },
-      ],
-      responses: {
-        201: {
-          content: {
-            "application/json": {
-              schema: flowSchema,
-            },
-          },
-          description: "The created flow",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const tenant_id = ctx.var.tenant_id;
-      const body = ctx.req.valid("json");
-
-      const flow = await ctx.env.data.flows.create(tenant_id, body);
-
-      await logMessage(ctx, ctx.var.tenant_id, {
-        type: LogTypes.SUCCESS_API_OPERATION,
-        description: "Create a Flow",
-        targetType: "flow",
-        targetId: flow.id,
-        afterState: flow as Record<string, unknown>,
-      });
-
-      return ctx.json(flow, { status: 201 });
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
     },
-});
+    security: [
+      {
+        Bearer: ["create:flows"],
+      },
+    ],
+    responses: {
+      201: {
+        content: {
+          "application/json": {
+            schema: flowSchema,
+          },
+        },
+        description: "The created flow",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenant_id = ctx.var.tenant_id;
+    const body = ctx.req.valid("json");
 
+    const flow = await ctx.env.data.flows.create(tenant_id, body);
+
+    await logMessage(ctx, ctx.var.tenant_id, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: "Create a Flow",
+      targetType: "flow",
+      targetId: flow.id,
+      afterState: flow as Record<string, unknown>,
+    });
+
+    return ctx.json(flow, { status: 201 });
+  },
+});
 
 export const flowsRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
-}>()
-  .openapiRoutes([getRoot, getById, deleteById, patchById, postRoot] as const);
+}>().openapiRoutes([
+  getRoot,
+  getById,
+  deleteById,
+  patchById,
+  postRoot,
+] as const);

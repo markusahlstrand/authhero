@@ -56,7 +56,8 @@ function ClientMetadataInput() {
 
   const commit = (next: Array<{ key: string; value: string }>) => {
     const out: Record<string, unknown> = {};
-    if ("email_validation" in value) out.email_validation = value.email_validation;
+    if ("email_validation" in value)
+      out.email_validation = value.email_validation;
     for (const row of next) {
       const k = row.key.trim();
       if (k) out[k] = row.value;
@@ -129,9 +130,7 @@ function GrantTypesInput() {
   const selected: string[] = Array.isArray(field.value) ? field.value : [];
 
   const toggle = (id: string, checked: boolean) => {
-    const next = checked
-      ? [...selected, id]
-      : selected.filter((g) => g !== id);
+    const next = checked ? [...selected, id] : selected.filter((g) => g !== id);
     field.onChange(next);
   };
 
@@ -208,7 +207,10 @@ export function DetailsTab() {
       <ClientMetadataInput />
       <GrantTypesInput />
       <TextArrayInput source="callbacks" label="Callbacks" />
-      <TextArrayInput source="allowed_logout_urls" label="Allowed Logout URLs" />
+      <TextArrayInput
+        source="allowed_logout_urls"
+        label="Allowed Logout URLs"
+      />
       <TextArrayInput source="web_origins" label="Web Origins" />
       <TextArrayInput source="allowed_clients" label="Allowed Clients" />
       <Timestamps />

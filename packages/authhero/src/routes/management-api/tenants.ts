@@ -11,156 +11,155 @@ import { logMessage } from "../../helpers/logging";
 import { defineRoute } from "../../utils/define-route";
 const getSettings = defineRoute({
   route: createRoute({
-      tags: ["tenants", "settings"],
-      method: "get",
-      path: "/settings",
-      request: {
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-      },
-      security: [
-        {
-          Bearer: ["read:tenants"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: tenantSchema,
-            },
-          },
-          description: "Current tenant settings",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
-
-      if (!tenant) {
-        throw new HTTPException(404, {
-          message: "Tenant not found",
-        });
-      }
-
-      return ctx.json({
-        ...tenant,
-        is_control_plane: isControlPlaneTenant(ctx, ctx.var.tenant_id),
-      });
+    tags: ["tenants", "settings"],
+    method: "get",
+    path: "/settings",
+    request: {
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
     },
+    security: [
+      {
+        Bearer: ["read:tenants"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: tenantSchema,
+          },
+        },
+        description: "Current tenant settings",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
+
+    if (!tenant) {
+      throw new HTTPException(404, {
+        message: "Tenant not found",
+      });
+    }
+
+    return ctx.json({
+      ...tenant,
+      is_control_plane: isControlPlaneTenant(ctx, ctx.var.tenant_id),
+    });
+  },
 });
 
 const patchSettings = defineRoute({
   route: createRoute({
-      tags: ["tenants", "settings"],
-      method: "patch",
-      path: "/settings",
-      request: {
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-        body: {
-          content: {
-            "application/json": {
-              schema: z.object(tenantInsertSchema.shape).partial(),
-            },
+    tags: ["tenants", "settings"],
+    method: "patch",
+    path: "/settings",
+    request: {
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
+      body: {
+        content: {
+          "application/json": {
+            schema: z.object(tenantInsertSchema.shape).partial(),
           },
         },
       },
-      security: [
-        {
-          Bearer: ["update:tenants"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: tenantSchema,
-            },
-          },
-          description: "Updated tenant settings",
-        },
+    },
+    security: [
+      {
+        Bearer: ["update:tenants"],
       },
-    }),
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: tenantSchema,
+          },
+        },
+        description: "Updated tenant settings",
+      },
+    },
+  }),
   handler: async (ctx) => {
-      const updates = ctx.req.valid("json");
+    const updates = ctx.req.valid("json");
 
-      // Strip protected system fields that should not be modified
-      const { id, ...sanitizedUpdates } = updates;
+    // Strip protected system fields that should not be modified
+    const { id, ...sanitizedUpdates } = updates;
 
-      // Get existing tenant
-      const existingTenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
+    // Get existing tenant
+    const existingTenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
 
-      if (!existingTenant) {
-        throw new HTTPException(404, {
-          message: "Tenant not found",
-        });
-      }
+    if (!existingTenant) {
+      throw new HTTPException(404, {
+        message: "Tenant not found",
+      });
+    }
 
-      // Only validate default_audience when the field is in the incoming
-      // payload — leaves grandfathered tenants able to PATCH unrelated fields.
-      if ("default_audience" in sanitizedUpdates) {
-        const next = sanitizedUpdates.default_audience;
-        if (typeof next === "string" && next.length > 0) {
-          const { resource_servers } =
-            await ctx.env.data.resourceServers.list(ctx.var.tenant_id);
-          const exists = resource_servers.some(
-            (rs) => rs.identifier === next,
-          );
-          if (!exists) {
-            throw new HTTPException(400, {
-              message: `Resource server with identifier '${next}' not found`,
-            });
-          }
+    // Only validate default_audience when the field is in the incoming
+    // payload — leaves grandfathered tenants able to PATCH unrelated fields.
+    if ("default_audience" in sanitizedUpdates) {
+      const next = sanitizedUpdates.default_audience;
+      if (typeof next === "string" && next.length > 0) {
+        const { resource_servers } = await ctx.env.data.resourceServers.list(
+          ctx.var.tenant_id,
+        );
+        const exists = resource_servers.some((rs) => rs.identifier === next);
+        if (!exists) {
+          throw new HTTPException(400, {
+            message: `Resource server with identifier '${next}' not found`,
+          });
         }
       }
+    }
 
-      // Deep merge with updates to preserve nested object properties
-      // Note: created_at and updated_at are not in the update payload, they're only in the full tenant schema
-      const mergedTenant = deepMergePatch(existingTenant, sanitizedUpdates);
+    // Deep merge with updates to preserve nested object properties
+    // Note: created_at and updated_at are not in the update payload, they're only in the full tenant schema
+    const mergedTenant = deepMergePatch(existingTenant, sanitizedUpdates);
 
-      await ctx.env.data.tenants.update(ctx.var.tenant_id, mergedTenant);
+    await ctx.env.data.tenants.update(ctx.var.tenant_id, mergedTenant);
 
-      // Return the updated tenant
-      const updatedTenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
+    // Return the updated tenant
+    const updatedTenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
 
-      if (!updatedTenant) {
-        throw new HTTPException(500, {
-          message: "Failed to retrieve updated tenant",
-        });
-      }
-
-      await logMessage(ctx, ctx.var.tenant_id, {
-        type: LogTypes.SUCCESS_API_OPERATION,
-        description: "Update tenant settings",
-        targetType: "tenant",
-        targetId: ctx.var.tenant_id,
-        beforeState: existingTenant as Record<string, unknown>,
-        afterState: updatedTenant as Record<string, unknown>,
+    if (!updatedTenant) {
+      throw new HTTPException(500, {
+        message: "Failed to retrieve updated tenant",
       });
+    }
 
-      return ctx.json({
-        ...updatedTenant,
-        is_control_plane: isControlPlaneTenant(ctx, ctx.var.tenant_id),
-      });
-    },
+    await logMessage(ctx, ctx.var.tenant_id, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: "Update tenant settings",
+      targetType: "tenant",
+      targetId: ctx.var.tenant_id,
+      beforeState: existingTenant as Record<string, unknown>,
+      afterState: updatedTenant as Record<string, unknown>,
+    });
+
+    return ctx.json({
+      ...updatedTenant,
+      is_control_plane: isControlPlaneTenant(ctx, ctx.var.tenant_id),
+    });
+  },
 });
-
 
 export const tenantRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
-}>()
-  .openapiRoutes([getSettings, patchSettings] as const);
+}>().openapiRoutes([getSettings, patchSettings] as const);
 
 // True when the current tenant is the deployment's control plane. In
 // multi-tenant deployments `multiTenancyConfig.controlPlaneTenantId` names the
 // designated tenant; when no config is set we treat the deployment as
 // single-tenant, which is effectively a control plane.
 function isControlPlaneTenant(
-  ctx: { env: { data: { multiTenancyConfig?: { controlPlaneTenantId?: string } } } },
+  ctx: {
+    env: { data: { multiTenancyConfig?: { controlPlaneTenantId?: string } } };
+  },
   tenantId: string,
 ): boolean {
   const cpId = ctx.env.data.multiTenancyConfig?.controlPlaneTenantId;

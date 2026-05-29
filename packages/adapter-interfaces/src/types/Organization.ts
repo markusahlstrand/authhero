@@ -85,12 +85,14 @@ export const organizationInsertSchema = z.object({
 
 export type OrganizationInsert = z.infer<typeof organizationInsertSchema>;
 
-export const organizationSchema = organizationInsertSchema.extend(baseEntitySchema.shape).extend({
-  id: z.string(),
-  // Override name to be lenient when reading from database (to support existing uppercase names)
-  name: z.string().min(1).openapi({
-    description: "The name of the organization",
-  })
-});
+export const organizationSchema = organizationInsertSchema
+  .extend(baseEntitySchema.shape)
+  .extend({
+    id: z.string(),
+    // Override name to be lenient when reading from database (to support existing uppercase names)
+    name: z.string().min(1).openapi({
+      description: "The name of the organization",
+    }),
+  });
 
 export type Organization = z.infer<typeof organizationSchema>;

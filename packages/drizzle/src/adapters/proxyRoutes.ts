@@ -10,10 +10,7 @@ import type {
   ProxyRoutesAdapter,
   RouteMatch,
 } from "@authhero/adapter-interfaces";
-import {
-  handlerConfigSchema,
-  matchSchema,
-} from "@authhero/adapter-interfaces";
+import { handlerConfigSchema, matchSchema } from "@authhero/adapter-interfaces";
 import { proxyRoutes as proxyRoutesTable } from "../schema/sqlite";
 import type { DrizzleDb } from "./types";
 
@@ -45,7 +42,9 @@ function parseHandlers(raw: string | null | undefined): HandlerConfig[] {
   }
 }
 
-function rowToProxyRoute(row: typeof proxyRoutesTable.$inferSelect): ProxyRoute {
+function rowToProxyRoute(
+  row: typeof proxyRoutesTable.$inferSelect,
+): ProxyRoute {
   return {
     id: row.id,
     tenant_id: row.tenant_id,
@@ -122,7 +121,10 @@ export function createProxyRoutesAdapter(db: DrizzleDb): ProxyRoutesAdapter {
         .select()
         .from(proxyRoutesTable)
         .where(and(...conditions))
-        .orderBy(asc(proxyRoutesTable.priority), asc(proxyRoutesTable.created_at))
+        .orderBy(
+          asc(proxyRoutesTable.priority),
+          asc(proxyRoutesTable.created_at),
+        )
         .offset(page * per_page)
         .limit(per_page);
 

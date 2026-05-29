@@ -74,7 +74,7 @@ export const loginSessionSchema = loginSessionInsertSchema.extend({
     description: "This is is used as the state in the universal login",
   }),
   created_at: z.string(),
-  updated_at: z.string()
+  updated_at: z.string(),
 });
 
 export type LoginSession = z.infer<typeof loginSessionSchema>;

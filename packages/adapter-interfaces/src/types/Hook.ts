@@ -134,37 +134,49 @@ export const hookInsertSchema = z.union([
 ]);
 export type HookInsert = z.infer<typeof hookInsertSchema>;
 
-const webHookSchema = z.object({
-  ...hookBaseCommonProperties,
-  trigger_id: webHookAllowedTriggers
-}).extend(baseEntitySchema.shape).extend({
-  hook_id: z.string(),
-  url: z.string()
-});
+const webHookSchema = z
+  .object({
+    ...hookBaseCommonProperties,
+    trigger_id: webHookAllowedTriggers,
+  })
+  .extend(baseEntitySchema.shape)
+  .extend({
+    hook_id: z.string(),
+    url: z.string(),
+  });
 
-const formHookSchema = z.object({
-  ...hookBaseCommonProperties,
-  trigger_id: formHookAllowedTriggers
-}).extend(baseEntitySchema.shape).extend({
-  hook_id: z.string(),
-  form_id: z.string()
-});
+const formHookSchema = z
+  .object({
+    ...hookBaseCommonProperties,
+    trigger_id: formHookAllowedTriggers,
+  })
+  .extend(baseEntitySchema.shape)
+  .extend({
+    hook_id: z.string(),
+    form_id: z.string(),
+  });
 
-const templateHookSchema = z.object({
-  ...hookBaseCommonProperties,
-  trigger_id: templateHookAllowedTriggers
-}).extend(baseEntitySchema.shape).extend({
-  hook_id: z.string(),
-  template_id: hookTemplateId
-});
+const templateHookSchema = z
+  .object({
+    ...hookBaseCommonProperties,
+    trigger_id: templateHookAllowedTriggers,
+  })
+  .extend(baseEntitySchema.shape)
+  .extend({
+    hook_id: z.string(),
+    template_id: hookTemplateId,
+  });
 
-const codeHookSchema = z.object({
-  ...hookBaseCommonProperties,
-  trigger_id: codeHookAllowedTriggers
-}).extend(baseEntitySchema.shape).extend({
-  hook_id: z.string(),
-  code_id: z.string()
-});
+const codeHookSchema = z
+  .object({
+    ...hookBaseCommonProperties,
+    trigger_id: codeHookAllowedTriggers,
+  })
+  .extend(baseEntitySchema.shape)
+  .extend({
+    hook_id: z.string(),
+    code_id: z.string(),
+  });
 
 export const hookSchema = z.union([
   webHookSchema,

@@ -253,8 +253,8 @@ function AddClientGrantButton() {
                     </p>
                   ) : available.length === 0 ? (
                     <p className="p-4 text-sm text-muted-foreground">
-                      This client already has access to all available scopes
-                      for the selected resource server.
+                      This client already has access to all available scopes for
+                      the selected resource server.
                     </p>
                   ) : (
                     (() => {
@@ -510,9 +510,7 @@ function EditClientGrantCell() {
                             htmlFor={`edit-scope-${s.value}`}
                             className="flex-1 cursor-pointer"
                           >
-                            <div className="text-sm font-medium">
-                              {s.value}
-                            </div>
+                            <div className="text-sm font-medium">{s.value}</div>
                             {s.description && (
                               <div className="text-xs text-muted-foreground">
                                 {s.description}
@@ -594,11 +592,7 @@ function RemoveClientGrantCell() {
             >
               Cancel
             </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={handleRemove}
-            >
+            <Button type="button" variant="destructive" onClick={handleRemove}>
               Remove
             </Button>
           </DialogFooter>

@@ -64,13 +64,7 @@ export const logFilters = [
 ];
 
 export const logFiltersWithSearch = [
-  <TextInput
-    key="q"
-    source="q"
-    placeholder="Search"
-    label="Search"
-    alwaysOn
-  />,
+  <TextInput key="q" source="q" placeholder="Search" label="Search" alwaysOn />,
   ...logFilters,
 ];
 

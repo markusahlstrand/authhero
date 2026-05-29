@@ -1,10 +1,5 @@
 import { useWatch } from "react-hook-form";
-import {
-  Edit,
-  SelectInput,
-  SimpleForm,
-  TextInput,
-} from "@/components/admin";
+import { Edit, SelectInput, SimpleForm, TextInput } from "@/components/admin";
 import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UrlTabs } from "@/components/ui/url-tabs";
 import { ColorInput } from "./color-input";
@@ -18,11 +13,7 @@ function cleanObject(obj: Record<string, unknown>): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
     if (value === null || value === undefined) continue;
-    if (
-      typeof value === "object" &&
-      !Array.isArray(value) &&
-      value !== null
-    ) {
+    if (typeof value === "object" && !Array.isArray(value) && value !== null) {
       const cleaned = cleanObject(value as Record<string, unknown>);
       if (Object.keys(cleaned).length > 0) result[key] = cleaned;
     } else {
@@ -67,10 +58,7 @@ function PageBackgroundFields() {
       />
       {isGradient && (
         <>
-          <ColorInput
-            source="colors.page_background.end"
-            label="End color"
-          />
+          <ColorInput source="colors.page_background.end" label="End color" />
           <TextInput
             source="colors.page_background.angle_deg"
             label="Gradient angle (deg)"
@@ -92,11 +80,7 @@ function StyleTab() {
         label="Favicon URL"
         parse={keepEmptyString}
       />
-      <TextInput
-        source="logo_url"
-        label="Logo URL"
-        parse={keepEmptyString}
-      />
+      <TextInput source="logo_url" label="Logo URL" parse={keepEmptyString} />
       <TextInput source="font.url" label="Font URL" parse={keepEmptyString} />
       <SelectInput
         source="dark_mode"

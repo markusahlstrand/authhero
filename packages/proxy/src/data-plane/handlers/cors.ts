@@ -10,10 +10,9 @@ const optionsSchema = z
     expose_headers: z.array(z.string()).optional(),
     max_age: z.number().int().optional(),
   })
-  .refine(
-    (data) => !(data.allow_credentials && data.origins?.includes("*")),
-    { message: "Cannot use wildcard origin (*) with allow_credentials" },
-  );
+  .refine((data) => !(data.allow_credentials && data.origins?.includes("*")), {
+    message: "Cannot use wildcard origin (*) with allow_credentials",
+  });
 
 type Options = z.infer<typeof optionsSchema>;
 
@@ -33,10 +32,16 @@ function buildCorsHeaders(config: Options, origin: string | null): Headers {
     headers.set("Access-Control-Allow-Credentials", "true");
   }
   if (config.allow_methods?.length) {
-    headers.set("Access-Control-Allow-Methods", config.allow_methods.join(", "));
+    headers.set(
+      "Access-Control-Allow-Methods",
+      config.allow_methods.join(", "),
+    );
   }
   if (config.allow_headers?.length) {
-    headers.set("Access-Control-Allow-Headers", config.allow_headers.join(", "));
+    headers.set(
+      "Access-Control-Allow-Headers",
+      config.allow_headers.join(", "),
+    );
   }
   if (config.expose_headers?.length) {
     headers.set(

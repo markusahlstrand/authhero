@@ -7,7 +7,11 @@ import {
   EmailProvidersAdapter,
   MigrationSourcesAdapter,
 } from "@authhero/adapter-interfaces";
-import { decryptField, encryptField, isEncrypted } from "../utils/field-encryption";
+import {
+  decryptField,
+  encryptField,
+  isEncrypted,
+} from "../utils/field-encryption";
 
 type Transform = (value: string, key: CryptoKey) => Promise<string>;
 
@@ -25,7 +29,10 @@ async function mapClientSecret<T extends { client_secret?: string }>(
   transform: Transform,
 ): Promise<T> {
   if (typeof entity.client_secret !== "string") return entity;
-  return { ...entity, client_secret: await transform(entity.client_secret, key) };
+  return {
+    ...entity,
+    client_secret: await transform(entity.client_secret, key),
+  };
 }
 
 async function mapTotpSecret<T extends { totp_secret?: string }>(
@@ -53,7 +60,10 @@ async function mapConnectionOptions(
   if (typeof next.twilio_token === "string") {
     next.twilio_token = await transform(next.twilio_token, key);
   }
-  if (next.configuration && typeof next.configuration.client_secret === "string") {
+  if (
+    next.configuration &&
+    typeof next.configuration.client_secret === "string"
+  ) {
     next.configuration = {
       ...next.configuration,
       client_secret: await transform(next.configuration.client_secret, key),
@@ -68,7 +78,10 @@ async function mapConnection<T extends { options?: Connection["options"] }>(
   transform: Transform,
 ): Promise<T> {
   if (!entity.options) return entity;
-  return { ...entity, options: await mapConnectionOptions(entity.options, key, transform) };
+  return {
+    ...entity,
+    options: await mapConnectionOptions(entity.options, key, transform),
+  };
 }
 
 async function mapCredentialsRecord(
@@ -86,20 +99,25 @@ async function mapCredentialsRecord(
   return next;
 }
 
-async function mapEmailProvider<T extends { credentials?: Record<string, unknown> }>(
-  entity: T,
-  key: CryptoKey,
-  transform: Transform,
-): Promise<T> {
+async function mapEmailProvider<
+  T extends { credentials?: Record<string, unknown> },
+>(entity: T, key: CryptoKey, transform: Transform): Promise<T> {
   if (!entity.credentials) return entity;
-  const credentials = await mapCredentialsRecord(entity.credentials, key, transform);
+  const credentials = await mapCredentialsRecord(
+    entity.credentials,
+    key,
+    transform,
+  );
   return { ...entity, credentials };
 }
 
 async function mapMigrationSource<
   T extends { credentials?: { client_secret?: string } },
 >(entity: T, key: CryptoKey, transform: Transform): Promise<T> {
-  if (!entity.credentials || typeof entity.credentials.client_secret !== "string") {
+  if (
+    !entity.credentials ||
+    typeof entity.credentials.client_secret !== "string"
+  ) {
     return entity;
   }
   return {
@@ -115,7 +133,10 @@ function wrapClients(base: ClientsAdapter, key: CryptoKey): ClientsAdapter {
   return {
     create: async (tenant_id, params) =>
       mapClientSecret(
-        await base.create(tenant_id, await mapClientSecret(params, key, encrypt)),
+        await base.create(
+          tenant_id,
+          await mapClientSecret(params, key, encrypt),
+        ),
         key,
         decrypt,
       ),
@@ -138,7 +159,11 @@ function wrapClients(base: ClientsAdapter, key: CryptoKey): ClientsAdapter {
       };
     },
     update: async (tenant_id, client_id, client) =>
-      base.update(tenant_id, client_id, await mapClientSecret(client, key, encrypt)),
+      base.update(
+        tenant_id,
+        client_id,
+        await mapClientSecret(client, key, encrypt),
+      ),
   };
 }
 
@@ -159,7 +184,11 @@ function wrapConnections(
       return connection ? mapConnection(connection, key, decrypt) : connection;
     },
     update: async (tenant_id, connection_id, params) =>
-      base.update(tenant_id, connection_id, await mapConnection(params, key, encrypt)),
+      base.update(
+        tenant_id,
+        connection_id,
+        await mapConnection(params, key, encrypt),
+      ),
     list: async (tenant_id, params) => {
       const result = await base.list(tenant_id, params);
       return {
@@ -180,9 +209,15 @@ function wrapEmailProviders(
 ): EmailProvidersAdapter {
   return {
     create: async (tenant_id, emailProvider) =>
-      base.create(tenant_id, await mapEmailProvider(emailProvider, key, encrypt)),
+      base.create(
+        tenant_id,
+        await mapEmailProvider(emailProvider, key, encrypt),
+      ),
     update: async (tenant_id, emailProvider) =>
-      base.update(tenant_id, await mapEmailProvider(emailProvider, key, encrypt)),
+      base.update(
+        tenant_id,
+        await mapEmailProvider(emailProvider, key, encrypt),
+      ),
     get: async (tenant_id) => {
       const provider = await base.get(tenant_id);
       return provider ? mapEmailProvider(provider, key, decrypt) : provider;
@@ -218,7 +253,11 @@ function wrapAuthenticationMethods(
     },
     update: async (tenant_id, method_id, data) =>
       mapTotpSecret(
-        await base.update(tenant_id, method_id, await mapTotpSecret(data, key, encrypt)),
+        await base.update(
+          tenant_id,
+          method_id,
+          await mapTotpSecret(data, key, encrypt),
+        ),
         key,
         decrypt,
       ),
@@ -233,7 +272,10 @@ function wrapMigrationSources(
   return {
     create: async (tenant_id, migration_source) =>
       mapMigrationSource(
-        await base.create(tenant_id, await mapMigrationSource(migration_source, key, encrypt)),
+        await base.create(
+          tenant_id,
+          await mapMigrationSource(migration_source, key, encrypt),
+        ),
         key,
         decrypt,
       ),
@@ -249,7 +291,11 @@ function wrapMigrationSources(
     },
     remove: (tenant_id, id) => base.remove(tenant_id, id),
     update: async (tenant_id, id, migration_source) =>
-      base.update(tenant_id, id, await mapMigrationSource(migration_source, key, encrypt)),
+      base.update(
+        tenant_id,
+        id,
+        await mapMigrationSource(migration_source, key, encrypt),
+      ),
   };
 }
 

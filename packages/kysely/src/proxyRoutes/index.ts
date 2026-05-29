@@ -12,9 +12,7 @@ export { createProxyRoutesAdapter } from "./adapter";
  * surfaced via `createAdapters(db).proxyRoutes`; a separate proxy worker
  * process uses this helper when reading directly from the same database.
  */
-export function createProxyDataAdapter(
-  db: Kysely<Database>,
-): ProxyDataAdapter {
+export function createProxyDataAdapter(db: Kysely<Database>): ProxyDataAdapter {
   return {
     proxyRoutes: createProxyRoutesAdapter(db),
     resolveHost: (host) => resolveHostFromKysely(db, host),

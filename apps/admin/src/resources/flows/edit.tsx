@@ -5,13 +5,7 @@ import {
   useFormContext,
   useWatch,
 } from "react-hook-form";
-import {
-  ArrowDown,
-  ArrowUp,
-  Info,
-  Plus,
-  Trash2,
-} from "lucide-react";
+import { ArrowDown, ArrowUp, Info, Plus, Trash2 } from "lucide-react";
 
 import {
   BooleanInput,
@@ -45,13 +39,9 @@ const ACTION_TYPE_CHOICES = [
   { id: "EMAIL", name: "Email" },
 ];
 
-const AUTH0_ACTION_CHOICES = [
-  { id: "UPDATE_USER", name: "Update user" },
-];
+const AUTH0_ACTION_CHOICES = [{ id: "UPDATE_USER", name: "Update user" }];
 
-const EMAIL_ACTION_CHOICES = [
-  { id: "VERIFY_EMAIL", name: "Verify email" },
-];
+const EMAIL_ACTION_CHOICES = [{ id: "VERIFY_EMAIL", name: "Verify email" }];
 
 const REDIRECT_TARGET_CHOICES = [
   { id: "change-email", name: "Change email" },
@@ -104,9 +94,11 @@ function newEmailVerify(): EmailVerifyAction {
 
 function actionLabel(type: unknown, action: unknown): string {
   if (type === "REDIRECT") return "Redirect";
-  if (type === "EMAIL" && action === "VERIFY_EMAIL") return "Email · Verify email";
+  if (type === "EMAIL" && action === "VERIFY_EMAIL")
+    return "Email · Verify email";
   if (type === "EMAIL") return "Email";
-  if (type === "AUTH0" && typeof action === "string") return `Auth0 · ${action}`;
+  if (type === "AUTH0" && typeof action === "string")
+    return `Auth0 · ${action}`;
   if (type === "AUTH0") return "Auth0";
   return typeof type === "string" ? type : "Unknown";
 }

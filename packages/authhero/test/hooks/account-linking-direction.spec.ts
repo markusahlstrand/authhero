@@ -166,10 +166,7 @@ describe("account-linking direction", () => {
 
     const older = await env.data.users.get(tenantId, olderId);
     const newerPrimary = await env.data.users.get(tenantId, newerPrimaryId);
-    const newerSecondary = await env.data.users.get(
-      tenantId,
-      newerSecondaryId,
-    );
+    const newerSecondary = await env.data.users.get(tenantId, newerSecondaryId);
 
     expect(older?.linked_to).toBeFalsy();
     expect(newerPrimary?.linked_to).toBe(olderId);

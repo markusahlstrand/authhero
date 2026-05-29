@@ -52,14 +52,14 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 
   await db.schema
     .alterTable("proxy_routes")
-    .addColumn("handlers", "text", (col) =>
-      col.notNull().defaultTo("[]"),
-    )
+    .addColumn("handlers", "text", (col) => col.notNull().defaultTo("[]"))
     .execute();
 
-  const rows = await (db as unknown as Kysely<{
-    proxy_routes: LegacyRow;
-  }>)
+  const rows = await (
+    db as unknown as Kysely<{
+      proxy_routes: LegacyRow;
+    }>
+  )
     .selectFrom("proxy_routes")
     .select([
       "id",
@@ -74,9 +74,11 @@ export async function up(db: Kysely<unknown>): Promise<void> {
   for (const row of rows) {
     const match = { path: row.path_pattern || "/*" };
     const handlers = buildHandlers(row);
-    await (db as unknown as Kysely<{
-      proxy_routes: { id: string; match: string; handlers: string };
-    }>)
+    await (
+      db as unknown as Kysely<{
+        proxy_routes: { id: string; match: string; handlers: string };
+      }>
+    )
       .updateTable("proxy_routes")
       .set({
         match: JSON.stringify(match),
@@ -86,10 +88,22 @@ export async function up(db: Kysely<unknown>): Promise<void> {
       .execute();
   }
 
-  await db.schema.alterTable("proxy_routes").dropColumn("path_pattern").execute();
-  await db.schema.alterTable("proxy_routes").dropColumn("upstream_type").execute();
-  await db.schema.alterTable("proxy_routes").dropColumn("upstream_url").execute();
-  await db.schema.alterTable("proxy_routes").dropColumn("preserve_host").execute();
+  await db.schema
+    .alterTable("proxy_routes")
+    .dropColumn("path_pattern")
+    .execute();
+  await db.schema
+    .alterTable("proxy_routes")
+    .dropColumn("upstream_type")
+    .execute();
+  await db.schema
+    .alterTable("proxy_routes")
+    .dropColumn("upstream_url")
+    .execute();
+  await db.schema
+    .alterTable("proxy_routes")
+    .dropColumn("preserve_host")
+    .execute();
   await db.schema.alterTable("proxy_routes").dropColumn("middleware").execute();
 
   // Silence the noisy unused import.

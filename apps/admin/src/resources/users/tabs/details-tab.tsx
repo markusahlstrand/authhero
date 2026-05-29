@@ -66,7 +66,9 @@ function UserHeader() {
   return (
     <div className="flex items-center gap-4">
       <Avatar className="size-20">
-        {record.picture && <AvatarImage src={record.picture} alt={displayName} />}
+        {record.picture && (
+          <AvatarImage src={record.picture} alt={displayName} />
+        )}
         <AvatarFallback
           className="text-xl"
           style={{ backgroundColor: bg, color: "white" }}
@@ -286,9 +288,7 @@ function IdentityCard() {
             <IdentityRow
               label="Phone Number"
               value={record.phone_number}
-              verified={
-                record.phone_number ? !!record.phone_verified : null
-              }
+              verified={record.phone_number ? !!record.phone_verified : null}
               onEdit={() =>
                 setEditing({
                   field: "phone_number",
@@ -297,7 +297,10 @@ function IdentityCard() {
                 })
               }
             />
-            <IdentityRow label="User ID" value={record.user_id ?? String(record.id)} />
+            <IdentityRow
+              label="User ID"
+              value={record.user_id ?? String(record.id)}
+            />
             <IdentityRow
               label="Signed Up"
               value={
@@ -490,7 +493,10 @@ function LinkUserButton() {
         <Link2 className="h-4 w-4 mr-2" />
         Link user
       </Button>
-      <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : handleClose())}>
+      <Dialog
+        open={open}
+        onOpenChange={(o) => (o ? setOpen(true) : handleClose())}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Link user</DialogTitle>
@@ -632,7 +638,10 @@ function PasswordChangeSection() {
         </div>
       </CardContent>
 
-      <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : handleClose())}>
+      <Dialog
+        open={open}
+        onOpenChange={(o) => (o ? setOpen(true) : handleClose())}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Change password</DialogTitle>
@@ -755,4 +764,3 @@ export function DetailsTab() {
     </div>
   );
 }
-

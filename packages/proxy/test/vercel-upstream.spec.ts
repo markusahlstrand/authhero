@@ -7,7 +7,8 @@ import { createStaticProxyAdapter, httpRoute } from "../src/static";
 // to the upstream's hostname and preserving the original path + query.
 describe("proxy → Vercel preview upstream", () => {
   const PUBLIC_HOST = "acme.example.com";
-  const UPSTREAM = "https://acme---account2-git-feat-account3.vercel.sesamy.dev";
+  const UPSTREAM =
+    "https://acme---account2-git-feat-account3.vercel.sesamy.dev";
 
   afterEach(() => {
     vi.restoreAllMocks();

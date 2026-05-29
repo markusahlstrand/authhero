@@ -142,9 +142,7 @@ export function mergeClientWithFallback(
  * Resolved inheritance target for a single tenant. `undefined` means the
  * tenant opts out of inheritance entirely.
  */
-type ResolvedControlPlane =
-  | { tenantId: string; clientId?: string }
-  | undefined;
+type ResolvedControlPlane = { tenantId: string; clientId?: string } | undefined;
 
 /**
  * Per-tenant resolver for the inheritance control plane. Receives the
@@ -154,9 +152,9 @@ type ResolvedControlPlane =
  * Mirrors the shape of `SigningKeyModeResolver` in authhero so callers can
  * write `({ tenant_id }) => DISABLED.has(tenant_id) ? undefined : {...}`.
  */
-export type ControlPlaneResolver = (params: { tenant_id: string }) =>
-  | ResolvedControlPlane
-  | Promise<ResolvedControlPlane>;
+export type ControlPlaneResolver = (params: {
+  tenant_id: string;
+}) => ResolvedControlPlane | Promise<ResolvedControlPlane>;
 
 /**
  * Builds a single resolver from either a static `{tenantId, clientId}` pair

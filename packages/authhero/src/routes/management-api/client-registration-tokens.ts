@@ -102,9 +102,7 @@ const postRoot = defineRoute({
   },
 });
 
-
 export const clientRegistrationTokenRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
-}>()
-  .openapiRoutes([postRoot] as const);
+}>().openapiRoutes([postRoot] as const);

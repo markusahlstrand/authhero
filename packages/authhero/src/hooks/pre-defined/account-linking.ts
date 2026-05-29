@@ -134,9 +134,7 @@ export function accountLinking(
       q: `email:${normalizedEmail}`,
     });
 
-    const otherUsers = matchingUsers.filter(
-      (u) => u.user_id !== user.user_id,
-    );
+    const otherUsers = matchingUsers.filter((u) => u.user_id !== user.user_id);
     if (otherUsers.length === 0) return;
 
     // Prefer the OLDEST unlinked primary so duplicate-primary races converge

@@ -56,6 +56,11 @@ export const tenantInsertSchema = z.object({
       allow_legacy_ro_grant_types: z.boolean().optional(),
       allow_legacy_tokeninfo_endpoint: z.boolean().optional(),
       change_pwd_flow_v1: z.boolean().optional(),
+      // Auth0 tenant flag. When enabled, the authorization server accepts
+      // Client ID Metadata Documents (CIMD): an https URL as `client_id`,
+      // fetched and validated at request time. Advertised via
+      // `client_id_metadata_document_supported` in the AS metadata.
+      client_id_metadata_document_registration: z.boolean().optional(),
       custom_domains_provisioning: z.boolean().optional(),
       dashboard_insights_view: z.boolean().optional(),
       dashboard_log_streams_next: z.boolean().optional(),
@@ -259,22 +264,25 @@ export const tenantInsertSchema = z.object({
     .optional(),
 });
 
-export const tenantSchema = z.object({
-  created_at: z
-    .string()
-    .nullable()
-    .transform((val) => val ?? ""),
-  updated_at: z
-    .string()
-    .nullable()
-    .transform((val) => val ?? "")
-}).extend(tenantInsertSchema.shape).extend({
-  id: z.string(),
-  // Computed server-side: true when this tenant is the deployment's control
-  // plane (either `multiTenancyConfig.controlPlaneTenantId` matches the
-  // tenant id, or no multi-tenancy config is set — i.e. single-tenant
-  // deployment). Not persisted; ignored on writes.
-  is_control_plane: z.boolean().optional()
-});
+export const tenantSchema = z
+  .object({
+    created_at: z
+      .string()
+      .nullable()
+      .transform((val) => val ?? ""),
+    updated_at: z
+      .string()
+      .nullable()
+      .transform((val) => val ?? ""),
+  })
+  .extend(tenantInsertSchema.shape)
+  .extend({
+    id: z.string(),
+    // Computed server-side: true when this tenant is the deployment's control
+    // plane (either `multiTenancyConfig.controlPlaneTenantId` matches the
+    // tenant id, or no multi-tenancy config is set — i.e. single-tenant
+    // deployment). Not persisted; ignored on writes.
+    is_control_plane: z.boolean().optional(),
+  });
 
 export type Tenant = z.infer<typeof tenantSchema>;

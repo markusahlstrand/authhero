@@ -13,11 +13,7 @@ import {
 } from "@/components/ui/select";
 
 import { OPERATOR_OPTIONS, VALUELESS_OPERATORS } from "../constants";
-import type {
-  Operator,
-  RouterCondition,
-  RouterConditionGroup,
-} from "../types";
+import type { Operator, RouterCondition, RouterConditionGroup } from "../types";
 import { FieldCombobox } from "./FieldCombobox";
 
 interface RouterConditionBuilderProps {
@@ -26,8 +22,9 @@ interface RouterConditionBuilderProps {
 
 export function RouterConditionBuilder({ name }: RouterConditionBuilderProps) {
   const { field } = useController({ name });
-  const value =
-    (field.value as RouterConditionGroup | undefined) ?? { conditions: [] };
+  const value = (field.value as RouterConditionGroup | undefined) ?? {
+    conditions: [],
+  };
   const conditions = value.conditions ?? [];
 
   const update = (next: RouterCondition[]) =>

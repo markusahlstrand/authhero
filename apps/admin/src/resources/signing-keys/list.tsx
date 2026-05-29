@@ -114,9 +114,8 @@ function RevokeKeyCell() {
             <DialogTitle>Revoke signing key</DialogTitle>
           </DialogHeader>
           <p className="text-sm">
-            Revoke key{" "}
-            <span className="font-mono text-xs">{record.kid}</span>? A
-            replacement key will be created and used to sign new tokens.
+            Revoke key <span className="font-mono text-xs">{record.kid}</span>?
+            A replacement key will be created and used to sign new tokens.
             Tokens signed by the revoked key will no longer validate.
           </p>
           <DialogFooter>
@@ -176,9 +175,9 @@ function RotateSigningKeyButton() {
             <DialogTitle>Rotate signing key</DialogTitle>
           </DialogHeader>
           <p className="text-sm">
-            Create a new signing key and schedule revocation of the current
-            key. New tokens will be signed with the new key immediately;
-            existing keys remain valid during a 24-hour grace period.
+            Create a new signing key and schedule revocation of the current key.
+            New tokens will be signed with the new key immediately; existing
+            keys remain valid during a 24-hour grace period.
           </p>
           <DialogFooter>
             <Button

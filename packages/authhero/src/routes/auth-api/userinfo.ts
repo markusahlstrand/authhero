@@ -86,135 +86,158 @@ const postBodySchema = z.object({
 });
 const getRoot = defineRoute({
   route: createRoute({
-      tags: ["oauth2"],
-      method: "get",
-      path: "/",
-      request: {},
-      security: [
-        {
-          Bearer: ["openid"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: userInfoSchema,
-            },
-          },
-          description: "Userinfo",
-        },
+    tags: ["oauth2"],
+    method: "get",
+    path: "/",
+    request: {},
+    security: [
+      {
+        Bearer: ["openid"],
       },
-    }),
-  handler: async (ctx) => {
-      if (!ctx.var.user) {
-        throw new HTTPException(404, { message: "User not found" });
-      }
-
-      // Get tenant_id from token or fallback to context (from tenant middleware)
-      const tenant_id = ctx.var.user.tenant_id || ctx.var.tenant_id;
-      if (!tenant_id) {
-        throw new HTTPException(400, { message: "Unable to determine tenant" });
-      }
-
-      // RFC 6749 §4.1.2: tokens issued from a reused authorization code must
-      // be revoked. Access tokens are stateless JWTs, so we enforce
-      // revocation here by looking up the session referenced by the token's
-      // `sid` claim and rejecting if it's been marked revoked.
-      const sid = (ctx.var.user as { sid?: unknown }).sid;
-      if (typeof sid === "string" && sid.length > 0) {
-        const session = await ctx.env.data.sessions.get(tenant_id, sid);
-        if (session?.revoked_at) {
-          throw new HTTPException(401, {
-            message: "Session has been revoked",
-          });
-        }
-      }
-
-      const user = await ctx.env.data.users.get(tenant_id, ctx.var.user.sub);
-
-      if (!user) {
-        throw new HTTPException(404, { message: "User not found" });
-      }
-
-      // Get scope from token payload (ctx.var.user contains full JWT payload)
-      const tokenPayload = ctx.var.user;
-      const scopes = tokenPayload?.scope?.split(" ") || [];
-      const requestedClaims = extractRequestedUserinfoClaims(tokenPayload);
-
-      // Build initial userinfo response based on scopes + requested claims
-      const baseUserInfo = buildUserInfoResponse(user, scopes, requestedClaims);
-
-      // Call onFetchUserInfo hook if configured
-      const onFetchUserInfo = ctx.env.hooks?.onFetchUserInfo;
-      if (onFetchUserInfo) {
-        const customClaims: Record<string, unknown> = {};
-
-        await onFetchUserInfo(
-          {
-            ctx,
-            user,
-            tenant_id,
-            scopes,
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: userInfoSchema,
           },
-          {
-            setCustomClaim: (claim: string, value: unknown) => {
-              customClaims[claim] = value;
-            },
-          },
-        );
-
-        // Merge custom claims into userinfo (custom claims override base)
-        return ctx.json({
-          ...baseUserInfo,
-          ...customClaims,
-        } as UserInfoResponse);
-      }
-
-      return ctx.json(baseUserInfo as UserInfoResponse);
+        },
+        description: "Userinfo",
+      },
     },
+  }),
+  handler: async (ctx) => {
+    if (!ctx.var.user) {
+      throw new HTTPException(404, { message: "User not found" });
+    }
+
+    // Get tenant_id from token or fallback to context (from tenant middleware)
+    const tenant_id = ctx.var.user.tenant_id || ctx.var.tenant_id;
+    if (!tenant_id) {
+      throw new HTTPException(400, { message: "Unable to determine tenant" });
+    }
+
+    // RFC 6749 §4.1.2: tokens issued from a reused authorization code must
+    // be revoked. Access tokens are stateless JWTs, so we enforce
+    // revocation here by looking up the session referenced by the token's
+    // `sid` claim and rejecting if it's been marked revoked.
+    const sid = (ctx.var.user as { sid?: unknown }).sid;
+    if (typeof sid === "string" && sid.length > 0) {
+      const session = await ctx.env.data.sessions.get(tenant_id, sid);
+      if (session?.revoked_at) {
+        throw new HTTPException(401, {
+          message: "Session has been revoked",
+        });
+      }
+    }
+
+    const user = await ctx.env.data.users.get(tenant_id, ctx.var.user.sub);
+
+    if (!user) {
+      throw new HTTPException(404, { message: "User not found" });
+    }
+
+    // Get scope from token payload (ctx.var.user contains full JWT payload)
+    const tokenPayload = ctx.var.user;
+    const scopes = tokenPayload?.scope?.split(" ") || [];
+    const requestedClaims = extractRequestedUserinfoClaims(tokenPayload);
+
+    // Build initial userinfo response based on scopes + requested claims
+    const baseUserInfo = buildUserInfoResponse(user, scopes, requestedClaims);
+
+    // Call onFetchUserInfo hook if configured
+    const onFetchUserInfo = ctx.env.hooks?.onFetchUserInfo;
+    if (onFetchUserInfo) {
+      const customClaims: Record<string, unknown> = {};
+
+      await onFetchUserInfo(
+        {
+          ctx,
+          user,
+          tenant_id,
+          scopes,
+        },
+        {
+          setCustomClaim: (claim: string, value: unknown) => {
+            customClaims[claim] = value;
+          },
+        },
+      );
+
+      // Merge custom claims into userinfo (custom claims override base)
+      return ctx.json({
+        ...baseUserInfo,
+        ...customClaims,
+      } as UserInfoResponse);
+    }
+
+    return ctx.json(baseUserInfo as UserInfoResponse);
+  },
 });
 
 const postRoot = defineRoute({
   route: createRoute({
-      tags: ["oauth2"],
-      method: "post",
-      path: "/",
-      request: {
-        body: {
-          content: {
-            "application/x-www-form-urlencoded": {
-              schema: postBodySchema,
-            },
+    tags: ["oauth2"],
+    method: "post",
+    path: "/",
+    request: {
+      body: {
+        content: {
+          "application/x-www-form-urlencoded": {
+            schema: postBodySchema,
           },
         },
       },
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: userInfoSchema,
-            },
+    },
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: userInfoSchema,
           },
-          description: "Userinfo",
         },
+        description: "Userinfo",
       },
-    }),
+    },
+  }),
   handler: async (ctx) => {
-      let tokenPayload: JwtPayload | null = null;
+    let tokenPayload: JwtPayload | null = null;
 
-      // Step 1: Check if auth middleware already set the user (from Authorization header with security defined)
-      if (ctx.var.user) {
-        tokenPayload = ctx.var.user as JwtPayload;
+    // Step 1: Check if auth middleware already set the user (from Authorization header with security defined)
+    if (ctx.var.user) {
+      tokenPayload = ctx.var.user as JwtPayload;
+    }
+
+    // Step 2: If not, manually check Authorization header
+    if (!tokenPayload) {
+      const authHeader = ctx.req.header("authorization") || "";
+      const [authType, bearer] = authHeader.split(" ");
+
+      if (authType?.toLowerCase() === "bearer" && bearer) {
+        tokenPayload = await validateJwtToken(ctx, bearer);
+
+        // Check for openid scope
+        const scopes = tokenPayload?.scope?.split(" ") || [];
+        if (!scopes.includes("openid")) {
+          throw new JSONHTTPException(403, {
+            message: "openid scope required",
+          });
+        }
+
+        ctx.set("user", tokenPayload as Variables["user"]);
       }
+    }
 
-      // Step 2: If not, manually check Authorization header
-      if (!tokenPayload) {
-        const authHeader = ctx.req.header("authorization") || "";
-        const [authType, bearer] = authHeader.split(" ");
+    // Step 3: If still no token, check POST body for access_token (optional per OIDC spec)
+    if (!tokenPayload) {
+      try {
+        // Use parseBody() which works with form data
+        const body = await ctx.req.parseBody();
+        const accessToken =
+          typeof body.access_token === "string" ? body.access_token : undefined;
 
-        if (authType?.toLowerCase() === "bearer" && bearer) {
-          tokenPayload = await validateJwtToken(ctx, bearer);
+        if (accessToken) {
+          tokenPayload = await validateJwtToken(ctx, accessToken);
 
           // Check for openid scope
           const scopes = tokenPayload?.scope?.split(" ") || [];
@@ -226,114 +249,87 @@ const postRoot = defineRoute({
 
           ctx.set("user", tokenPayload as Variables["user"]);
         }
-      }
-
-      // Step 3: If still no token, check POST body for access_token (optional per OIDC spec)
-      if (!tokenPayload) {
-        try {
-          // Use parseBody() which works with form data
-          const body = await ctx.req.parseBody();
-          const accessToken =
-            typeof body.access_token === "string"
-              ? body.access_token
-              : undefined;
-
-          if (accessToken) {
-            tokenPayload = await validateJwtToken(ctx, accessToken);
-
-            // Check for openid scope
-            const scopes = tokenPayload?.scope?.split(" ") || [];
-            if (!scopes.includes("openid")) {
-              throw new JSONHTTPException(403, {
-                message: "openid scope required",
-              });
-            }
-
-            ctx.set("user", tokenPayload as Variables["user"]);
-          }
-        } catch (error) {
-          // If body parsing fails or token validation fails, we'll handle it below
-          if (
-            error instanceof HTTPException ||
-            error instanceof JSONHTTPException
-          ) {
-            throw error;
-          }
-          // Otherwise, token is just not in body, which is fine
+      } catch (error) {
+        // If body parsing fails or token validation fails, we'll handle it below
+        if (
+          error instanceof HTTPException ||
+          error instanceof JSONHTTPException
+        ) {
+          throw error;
         }
+        // Otherwise, token is just not in body, which is fine
       }
+    }
 
-      // Step 4: At this point, if we still don't have a token, return 401
-      if (!tokenPayload) {
-        throw new HTTPException(401, { message: "No access token provided" });
+    // Step 4: At this point, if we still don't have a token, return 401
+    if (!tokenPayload) {
+      throw new HTTPException(401, { message: "No access token provided" });
+    }
+
+    // Get tenant_id from token or fallback to context (from tenant middleware)
+    const tenant_id = tokenPayload.tenant_id || ctx.var.tenant_id;
+    if (!tenant_id) {
+      throw new HTTPException(400, { message: "Unable to determine tenant" });
+    }
+
+    // RFC 6749 §4.1.2: tokens issued from a reused authorization code must
+    // be revoked. Access tokens are stateless JWTs, so we enforce
+    // revocation here by looking up the session referenced by the token's
+    // `sid` claim and rejecting if it's been marked revoked.
+    const sidPost = (tokenPayload as { sid?: unknown }).sid;
+    if (typeof sidPost === "string" && sidPost.length > 0) {
+      const session = await ctx.env.data.sessions.get(tenant_id, sidPost);
+      if (session?.revoked_at) {
+        throw new HTTPException(401, {
+          message: "Session has been revoked",
+        });
       }
+    }
 
-      // Get tenant_id from token or fallback to context (from tenant middleware)
-      const tenant_id = tokenPayload.tenant_id || ctx.var.tenant_id;
-      if (!tenant_id) {
-        throw new HTTPException(400, { message: "Unable to determine tenant" });
-      }
+    const user = await ctx.env.data.users.get(tenant_id, tokenPayload.sub);
 
-      // RFC 6749 §4.1.2: tokens issued from a reused authorization code must
-      // be revoked. Access tokens are stateless JWTs, so we enforce
-      // revocation here by looking up the session referenced by the token's
-      // `sid` claim and rejecting if it's been marked revoked.
-      const sidPost = (tokenPayload as { sid?: unknown }).sid;
-      if (typeof sidPost === "string" && sidPost.length > 0) {
-        const session = await ctx.env.data.sessions.get(tenant_id, sidPost);
-        if (session?.revoked_at) {
-          throw new HTTPException(401, {
-            message: "Session has been revoked",
-          });
-        }
-      }
+    if (!user) {
+      throw new HTTPException(404, { message: "User not found" });
+    }
 
-      const user = await ctx.env.data.users.get(tenant_id, tokenPayload.sub);
+    // Get scopes from the token
+    const scopes = tokenPayload?.scope?.split(" ") || [];
+    const requestedClaims = extractRequestedUserinfoClaims(tokenPayload);
 
-      if (!user) {
-        throw new HTTPException(404, { message: "User not found" });
-      }
+    // Build initial userinfo response based on scopes + requested claims
+    const baseUserInfo = buildUserInfoResponse(user, scopes, requestedClaims);
 
-      // Get scopes from the token
-      const scopes = tokenPayload?.scope?.split(" ") || [];
-      const requestedClaims = extractRequestedUserinfoClaims(tokenPayload);
+    // Call onFetchUserInfo hook if configured
+    const onFetchUserInfo = ctx.env.hooks?.onFetchUserInfo;
+    if (onFetchUserInfo) {
+      const customClaims: Record<string, unknown> = {};
 
-      // Build initial userinfo response based on scopes + requested claims
-      const baseUserInfo = buildUserInfoResponse(user, scopes, requestedClaims);
-
-      // Call onFetchUserInfo hook if configured
-      const onFetchUserInfo = ctx.env.hooks?.onFetchUserInfo;
-      if (onFetchUserInfo) {
-        const customClaims: Record<string, unknown> = {};
-
-        await onFetchUserInfo(
-          {
-            ctx,
-            user,
-            tenant_id,
-            scopes,
+      await onFetchUserInfo(
+        {
+          ctx,
+          user,
+          tenant_id,
+          scopes,
+        },
+        {
+          setCustomClaim: (claim: string, value: unknown) => {
+            customClaims[claim] = value;
           },
-          {
-            setCustomClaim: (claim: string, value: unknown) => {
-              customClaims[claim] = value;
-            },
-          },
-        );
+        },
+      );
 
-        // Merge custom claims into userinfo (custom claims override base)
-        return ctx.json({
-          ...baseUserInfo,
-          ...customClaims,
-        } as UserInfoResponse);
-      }
+      // Merge custom claims into userinfo (custom claims override base)
+      return ctx.json({
+        ...baseUserInfo,
+        ...customClaims,
+      } as UserInfoResponse);
+    }
 
-      return ctx.json(baseUserInfo as UserInfoResponse);
-    },
+    return ctx.json(baseUserInfo as UserInfoResponse);
+  },
 });
-
 
 export const userinfoRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
-}>()
-  .openapiRoutes([getRoot, postRoot] as const);
+}>().openapiRoutes([getRoot, postRoot] as const);

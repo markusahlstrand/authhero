@@ -66,7 +66,10 @@ function parseResource(resourcePath: string) {
 // operators to prevent injection via quote-breaking or special syntax.
 function escapeLuceneValue(value: unknown): string {
   const str = String(value);
-  return str.replace(/[\\"+\-!(){}\[\]^~*?:/]|&&|\|\|/g, (match) => `\\${match}`);
+  return str.replace(
+    /[\\"+\-!(){}\[\]^~*?:/]|&&|\|\|/g,
+    (match) => `\\${match}`,
+  );
 }
 
 // Maps react-admin resource names to Auth0 API paths when they differ

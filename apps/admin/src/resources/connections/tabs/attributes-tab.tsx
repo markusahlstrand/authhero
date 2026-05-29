@@ -1,8 +1,4 @@
-import {
-  BooleanInput,
-  SelectInput,
-  NumberInput,
-} from "@/components/admin";
+import { BooleanInput, SelectInput, NumberInput } from "@/components/admin";
 import { useWatch } from "react-hook-form";
 import { Separator } from "@/components/ui/separator";
 

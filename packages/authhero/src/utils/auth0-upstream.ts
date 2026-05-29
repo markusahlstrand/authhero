@@ -223,11 +223,7 @@ export async function upstreamRefreshTokenGrant(
     });
   } catch (err) {
     if (controller.signal.aborted) {
-      throw new Auth0UpstreamError(
-        0,
-        "network_error",
-        "request_timed_out",
-      );
+      throw new Auth0UpstreamError(0, "network_error", "request_timed_out");
     }
     const message = err instanceof Error ? err.message : "fetch failed";
     throw new Auth0UpstreamError(0, "network_error", message);

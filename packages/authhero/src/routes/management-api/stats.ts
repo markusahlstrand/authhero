@@ -45,114 +45,112 @@ function zeroFillDailyStats(
 }
 const getDaily = defineRoute({
   route: createRoute({
-      tags: ["stats"],
-      method: "get",
-      path: "/daily",
-      request: {
-        query: z.object({
-          from: z.string().optional().openapi({
-            description:
-              "Optional first day of the date range (inclusive) in YYYYMMDD format",
-            example: "20251120",
-          }),
-          to: z.string().optional().openapi({
-            description:
-              "Optional last day of the date range (inclusive) in YYYYMMDD format",
-            example: "20251219",
-          }),
-        }),
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-      },
-      security: [
-        {
-          Bearer: ["read:stats"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: z.array(dailyStatsSchema),
-            },
-          },
+    tags: ["stats"],
+    method: "get",
+    path: "/daily",
+    request: {
+      query: z.object({
+        from: z.string().optional().openapi({
           description:
-            "Daily statistics including logins, signups, and leaked passwords",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const { from, to } = ctx.req.valid("query");
-
-      if (!ctx.env.data.stats) {
-        throw new HTTPException(501, {
-          message: "Stats adapter not configured",
-        });
-      }
-
-      const now = new Date();
-      const thirtyDaysAgo = new Date(now);
-      thirtyDaysAgo.setUTCDate(thirtyDaysAgo.getUTCDate() - 30);
-      const fromDate = from ? parseYYYYMMDD(from) : toDateString(thirtyDaysAgo);
-      const toDate = to ? parseYYYYMMDD(to) : toDateString(now);
-
-      const stats = await ctx.env.data.stats.getDaily(ctx.var.tenant_id, {
-        from: fromDate,
-        to: toDate,
-      });
-
-      return ctx.json(zeroFillDailyStats(stats, fromDate, toDate));
+            "Optional first day of the date range (inclusive) in YYYYMMDD format",
+          example: "20251120",
+        }),
+        to: z.string().optional().openapi({
+          description:
+            "Optional last day of the date range (inclusive) in YYYYMMDD format",
+          example: "20251219",
+        }),
+      }),
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
     },
+    security: [
+      {
+        Bearer: ["read:stats"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: z.array(dailyStatsSchema),
+          },
+        },
+        description:
+          "Daily statistics including logins, signups, and leaked passwords",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const { from, to } = ctx.req.valid("query");
+
+    if (!ctx.env.data.stats) {
+      throw new HTTPException(501, {
+        message: "Stats adapter not configured",
+      });
+    }
+
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now);
+    thirtyDaysAgo.setUTCDate(thirtyDaysAgo.getUTCDate() - 30);
+    const fromDate = from ? parseYYYYMMDD(from) : toDateString(thirtyDaysAgo);
+    const toDate = to ? parseYYYYMMDD(to) : toDateString(now);
+
+    const stats = await ctx.env.data.stats.getDaily(ctx.var.tenant_id, {
+      from: fromDate,
+      to: toDate,
+    });
+
+    return ctx.json(zeroFillDailyStats(stats, fromDate, toDate));
+  },
 });
 
 const getActiveUsers = defineRoute({
   route: createRoute({
-      tags: ["stats"],
-      method: "get",
-      path: "/active-users",
-      request: {
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-      },
-      security: [
-        {
-          Bearer: ["read:stats"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: z.number().openapi({
-                description: "Number of active users in the last 30 days",
-                example: 1234,
-              }),
-            },
-          },
-          description: "Number of active users in the last 30 days",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      if (!ctx.env.data.stats) {
-        throw new HTTPException(501, {
-          message: "Stats adapter not configured",
-        });
-      }
-
-      const activeUsers = await ctx.env.data.stats.getActiveUsers(
-        ctx.var.tenant_id,
-      );
-
-      return ctx.json(activeUsers);
+    tags: ["stats"],
+    method: "get",
+    path: "/active-users",
+    request: {
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
     },
-});
+    security: [
+      {
+        Bearer: ["read:stats"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: z.number().openapi({
+              description: "Number of active users in the last 30 days",
+              example: 1234,
+            }),
+          },
+        },
+        description: "Number of active users in the last 30 days",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    if (!ctx.env.data.stats) {
+      throw new HTTPException(501, {
+        message: "Stats adapter not configured",
+      });
+    }
 
+    const activeUsers = await ctx.env.data.stats.getActiveUsers(
+      ctx.var.tenant_id,
+    );
+
+    return ctx.json(activeUsers);
+  },
+});
 
 export const statsRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
-}>()
-  .openapiRoutes([getDaily, getActiveUsers] as const);
+}>().openapiRoutes([getDaily, getActiveUsers] as const);

@@ -20,11 +20,13 @@ export type ClientRegistrationTokenInsert = z.infer<
   typeof clientRegistrationTokenInsertSchema
 >;
 
-export const clientRegistrationTokenSchema = z.object({
-  created_at: z.string(),
-  used_at: z.string().optional(),
-  revoked_at: z.string().optional()
-}).extend(clientRegistrationTokenInsertSchema.shape);
+export const clientRegistrationTokenSchema = z
+  .object({
+    created_at: z.string(),
+    used_at: z.string().optional(),
+    revoked_at: z.string().optional(),
+  })
+  .extend(clientRegistrationTokenInsertSchema.shape);
 
 export type ClientRegistrationToken = z.infer<
   typeof clientRegistrationTokenSchema

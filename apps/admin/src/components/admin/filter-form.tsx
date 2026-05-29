@@ -90,8 +90,7 @@ export const FilterFormBase = (props: FilterFormBaseProps) => {
     return filters
       .filter((filterElement) => isValidElement(filterElement))
       .filter(
-        (filterElement) =>
-          (filterElement.props as any).source !== searchSource,
+        (filterElement) => (filterElement.props as any).source !== searchSource,
       )
       .filter((filterElement) => {
         const filterValue = get(values, (filterElement.props as any).source);

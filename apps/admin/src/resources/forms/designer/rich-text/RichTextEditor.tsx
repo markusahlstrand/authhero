@@ -125,7 +125,12 @@ export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
           isActive={editor.isActive("link")}
           initialHref={editor.getAttributes("link").href as string | undefined}
           onApply={(href) =>
-            editor.chain().focus().extendMarkRange("link").setLink({ href }).run()
+            editor
+              .chain()
+              .focus()
+              .extendMarkRange("link")
+              .setLink({ href })
+              .run()
           }
           onClear={() =>
             editor.chain().focus().extendMarkRange("link").unsetLink().run()

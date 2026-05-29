@@ -7,107 +7,105 @@ import ChangeEmailPage from "../../components/ChangeEmailPage";
 import { defineRoute } from "../../utils/define-route";
 const getRoot = defineRoute({
   route: createRoute({
-      tags: ["login"],
-      method: "get",
-      path: "/",
-      request: {
-        query: z.object({
-          state: z.string().openapi({
-            description: "The state parameter from the authorization request",
-          }),
-          email: z.string().email(),
+    tags: ["login"],
+    method: "get",
+    path: "/",
+    request: {
+      query: z.object({
+        state: z.string().openapi({
+          description: "The state parameter from the authorization request",
         }),
+        email: z.string().email(),
+      }),
+    },
+    responses: {
+      200: {
+        description: "HTML page showing email change confirmation",
+        content: { "text/html": { schema: z.string() } },
       },
-      responses: {
-        200: {
-          description: "HTML page showing email change confirmation",
-          content: { "text/html": { schema: z.string() } },
-        },
-        302: {
-          description: "Redirect to login if no session",
-          headers: z.object({ Location: z.string().url() }),
-        },
-        400: {
-          description:
-            "Bad Request - HTML error page if state is missing or other input error.",
-          content: { "text/html": { schema: z.string() } },
-        },
-        500: {
-          description: "Internal Server Error - HTML error page.",
-          content: { "text/html": { schema: z.string() } },
-        },
+      302: {
+        description: "Redirect to login if no session",
+        headers: z.object({ Location: z.string().url() }),
       },
-    }),
+      400: {
+        description:
+          "Bad Request - HTML error page if state is missing or other input error.",
+        content: { "text/html": { schema: z.string() } },
+      },
+      500: {
+        description: "Internal Server Error - HTML error page.",
+        content: { "text/html": { schema: z.string() } },
+      },
+    },
+  }),
   handler: async (ctx) => {
-      const { state, email } = ctx.req.valid("query");
+    const { state, email } = ctx.req.valid("query");
 
-      // Get theme, branding and user from initJSXRoute
-      // Pass continuationScope to allow mid-login access
-      const { theme, branding, client, loginSession, isContinuation } =
-        await initJSXRouteWithSession(ctx, state, {
-          continuationScope: "change-email",
-        });
+    // Get theme, branding and user from initJSXRoute
+    // Pass continuationScope to allow mid-login access
+    const { theme, branding, client, loginSession, isContinuation } =
+      await initJSXRouteWithSession(ctx, state, {
+        continuationScope: "change-email",
+      });
 
-      if (!client || !client.tenant?.id) {
-        console.error(
-          "Client or tenant ID missing in GET /u/change-email-confirmation after initJSXRoute",
-        );
-        return ctx.html(
-          <MessagePage
-            theme={theme}
-            branding={branding}
-            client={client}
-            state={state}
-            pageTitle={i18next.t("error_page_title") || "Error"}
-            message={
-              i18next.t("configuration_error_message") ||
-              "A configuration error occurred."
-            }
-          />,
-          500,
-        );
-      }
-
-      // Determine the redirect URL based on context
-      let redirectUrl = `/u/account?state=${encodeURIComponent(state)}`;
-
-      // If this is a continuation session (mid-login), get the return URL from state_data
-      // Don't complete the continuation here - let /u/continue handle the state transition
-      if (isContinuation && loginSession.state_data) {
-        try {
-          const stateData = JSON.parse(loginSession.state_data);
-          if (stateData.continuationReturnUrl) {
-            redirectUrl = stateData.continuationReturnUrl;
-          }
-        } catch {
-          // Ignore parse errors, use default redirect
-        }
-      } else if (loginSession?.authorization_url) {
-        // Check if the authorization_url contains screen_hint=change-email
-        const authUrl = new URL(loginSession.authorization_url);
-        if (authUrl.searchParams.get("screen_hint") === "change-email") {
-          // User came directly to change-email, redirect to original redirect_uri
-          redirectUrl = loginSession.authParams?.redirect_uri || redirectUrl;
-        }
-      }
-
+    if (!client || !client.tenant?.id) {
+      console.error(
+        "Client or tenant ID missing in GET /u/change-email-confirmation after initJSXRoute",
+      );
       return ctx.html(
-        <ChangeEmailPage
+        <MessagePage
           theme={theme}
           branding={branding}
           client={client}
-          email={email}
-          success={true}
           state={state}
-          redirectUrl={redirectUrl}
+          pageTitle={i18next.t("error_page_title") || "Error"}
+          message={
+            i18next.t("configuration_error_message") ||
+            "A configuration error occurred."
+          }
         />,
+        500,
       );
-    },
-});
+    }
 
+    // Determine the redirect URL based on context
+    let redirectUrl = `/u/account?state=${encodeURIComponent(state)}`;
+
+    // If this is a continuation session (mid-login), get the return URL from state_data
+    // Don't complete the continuation here - let /u/continue handle the state transition
+    if (isContinuation && loginSession.state_data) {
+      try {
+        const stateData = JSON.parse(loginSession.state_data);
+        if (stateData.continuationReturnUrl) {
+          redirectUrl = stateData.continuationReturnUrl;
+        }
+      } catch {
+        // Ignore parse errors, use default redirect
+      }
+    } else if (loginSession?.authorization_url) {
+      // Check if the authorization_url contains screen_hint=change-email
+      const authUrl = new URL(loginSession.authorization_url);
+      if (authUrl.searchParams.get("screen_hint") === "change-email") {
+        // User came directly to change-email, redirect to original redirect_uri
+        redirectUrl = loginSession.authParams?.redirect_uri || redirectUrl;
+      }
+    }
+
+    return ctx.html(
+      <ChangeEmailPage
+        theme={theme}
+        branding={branding}
+        client={client}
+        email={email}
+        success={true}
+        state={state}
+        redirectUrl={redirectUrl}
+      />,
+    );
+  },
+});
 
 export const changeEmailConfirmationRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
-}>()
-  .openapiRoutes([getRoot] as const);
+}>().openapiRoutes([getRoot] as const);

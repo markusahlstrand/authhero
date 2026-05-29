@@ -42,10 +42,12 @@ describe("matchesAnyHost", () => {
     expect(matchesAnyHost([], "anything.com")).toBe(true);
   });
   it("matches when any pattern matches", () => {
-    expect(matchesAnyHost(["*.example.com", "api.foo.com"], "api.foo.com"))
-      .toBe(true);
-    expect(matchesAnyHost(["*.example.com", "api.foo.com"], "other.com"))
-      .toBe(false);
+    expect(
+      matchesAnyHost(["*.example.com", "api.foo.com"], "api.foo.com"),
+    ).toBe(true);
+    expect(matchesAnyHost(["*.example.com", "api.foo.com"], "other.com")).toBe(
+      false,
+    );
   });
 });
 

@@ -247,9 +247,7 @@ const getFormId = defineRoute({
   },
 });
 
-
 export const flowWidgetRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
-}>()
-  .openapiRoutes([getFormId] as const);
+}>().openapiRoutes([getFormId] as const);

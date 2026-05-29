@@ -214,11 +214,7 @@ export function GlobalSearch() {
         </kbd>
       </Button>
 
-      <CommandDialog
-        open={open}
-        onOpenChange={setOpen}
-        shouldFilter={false}
-      >
+      <CommandDialog open={open} onOpenChange={setOpen} shouldFilter={false}>
         <CommandInput
           placeholder="Search users, applications, connections…"
           value={query}

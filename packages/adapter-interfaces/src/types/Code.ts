@@ -52,7 +52,7 @@ export const codeInsertSchema = z.object({
 export type CodeInsert = z.infer<typeof codeInsertSchema>;
 
 export const codeSchema = codeInsertSchema.extend({
-  created_at: z.string()
+  created_at: z.string(),
 });
 
 export type Code = z.infer<typeof codeSchema>;

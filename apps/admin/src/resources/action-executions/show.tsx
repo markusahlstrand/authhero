@@ -63,7 +63,10 @@ function ExecutionDetails() {
   if (!record) return null;
 
   const logsByAction = new Map(
-    (record.execution_logs ?? []).map((entry) => [entry.action_name, entry.lines]),
+    (record.execution_logs ?? []).map((entry) => [
+      entry.action_name,
+      entry.lines,
+    ]),
   );
 
   return (
@@ -81,7 +84,9 @@ function ExecutionDetails() {
           </Row>
           <Row label="Status">
             {record.status ? (
-              <Badge variant={statusVariant(record.status)}>{record.status}</Badge>
+              <Badge variant={statusVariant(record.status)}>
+                {record.status}
+              </Badge>
             ) : (
               <PlainOrDash />
             )}

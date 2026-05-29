@@ -81,9 +81,7 @@ export function createHttpProxyAdapter(
   const skewSeconds = options.tokenRefreshSkewSeconds ?? 60;
   const timeoutMs = options.timeoutMs ?? 5000;
 
-  function withTimeout<T>(
-    op: (signal: AbortSignal) => Promise<T>,
-  ): Promise<T> {
+  function withTimeout<T>(op: (signal: AbortSignal) => Promise<T>): Promise<T> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     return op(controller.signal).finally(() => clearTimeout(timer));

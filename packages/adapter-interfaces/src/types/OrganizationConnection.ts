@@ -14,17 +14,18 @@ export type OrganizationConnectionInsert = z.input<
   typeof organizationConnectionInsertSchema
 >;
 
-export const organizationConnectionSchema = organizationConnectionInsertSchema.extend({
-  // Auth0 includes the embedded connection in GET responses.
-  connection: z
-    .object({
-      name: z.string().optional(),
-      strategy: z.string().optional(),
-    })
-    .optional(),
-  created_at: z.string().optional(),
-  updated_at: z.string().optional()
-});
+export const organizationConnectionSchema =
+  organizationConnectionInsertSchema.extend({
+    // Auth0 includes the embedded connection in GET responses.
+    connection: z
+      .object({
+        name: z.string().optional(),
+        strategy: z.string().optional(),
+      })
+      .optional(),
+    created_at: z.string().optional(),
+    updated_at: z.string().optional(),
+  });
 export type OrganizationConnection = z.infer<
   typeof organizationConnectionSchema
 >;

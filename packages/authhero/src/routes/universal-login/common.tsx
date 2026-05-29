@@ -12,6 +12,7 @@ import { Strategy } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../../types";
 import { getAuthCookie } from "../../utils/cookies";
 import { setTenantId } from "../../helpers/set-tenant-id";
+import { ssrfFetchOptionsFromEnv } from "../../utils/ssrf-fetch";
 import { hasValidContinuationScope } from "../../authentication-flows/common";
 import { DEFAULT_THEME } from "../../constants/defaultTheme";
 
@@ -35,6 +36,8 @@ export async function initJSXRoute(
   const client = await getEnrichedClient(
     env,
     loginSession.authParams.client_id,
+    ctx.var.tenant_id,
+    ssrfFetchOptionsFromEnv(env),
   );
   ctx.set("client_id", client.client_id);
   setTenantId(ctx, client.tenant.id);

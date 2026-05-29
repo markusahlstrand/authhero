@@ -191,7 +191,11 @@ describe("POST /api/v2/connections/:id/try", () => {
     // The `code` value persisted on the codes row is also the upstream state
     // (see strategies/index.ts contract). Recover it from the codes table —
     // mock-strategy uses the hardcoded string "code" so we look that up.
-    const codeRow = await env.data.codes.get("tenantId", "code", "oauth2_state");
+    const codeRow = await env.data.codes.get(
+      "tenantId",
+      "code",
+      "oauth2_state",
+    );
     expect(codeRow).toBeTruthy();
 
     // 3. Replay the IdP callback. The mock-strategy returns hello@example.com
@@ -233,6 +237,8 @@ describe("POST /api/v2/connections/:id/try", () => {
     const usersForSub = await env.data.users.list("tenantId", {
       q: "user_id:mock-strategy*",
     });
-    expect(usersForSub.users.find((u) => u.user_id === "mock-strategy|foo")).toBeUndefined();
+    expect(
+      usersForSub.users.find((u) => u.user_id === "mock-strategy|foo"),
+    ).toBeUndefined();
   });
 });

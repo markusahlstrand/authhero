@@ -10,6 +10,7 @@ import { z } from "@hono/zod-openapi";
 import { safeCompare } from "../utils/safe-compare";
 import { appendLog } from "../utils/append-log";
 import { getEnrichedClient } from "../helpers/client";
+import { ssrfFetchOptionsFromEnv } from "../utils/ssrf-fetch";
 import { logMessage } from "../helpers/logging";
 import {
   formatRefreshToken,
@@ -38,6 +39,7 @@ export async function refreshTokenGrant(
     ctx.env,
     params.client_id,
     ctx.var.tenant_id,
+    ssrfFetchOptionsFromEnv(ctx.env),
   );
 
   // Validate client_secret if provided

@@ -87,7 +87,12 @@ const sampleScreen: UiScreen = {
     },
   ],
   links: [
-    { id: "signup", text: "Don't have an account?", linkText: "Sign up", href: "#" },
+    {
+      id: "signup",
+      text: "Don't have an account?",
+      linkText: "Sign up",
+      href: "#",
+    },
   ],
 };
 
@@ -122,7 +127,12 @@ const screenConfigs: Record<PreviewScreen, UiScreen> = {
       },
     ],
     links: [
-      { id: "login", text: "Already have an account?", linkText: "Sign in", href: "#" },
+      {
+        id: "login",
+        text: "Already have an account?",
+        linkText: "Sign in",
+        href: "#",
+      },
     ],
   },
   password: {
@@ -152,7 +162,12 @@ const screenConfigs: Record<PreviewScreen, UiScreen> = {
       },
     ],
     links: [
-      { id: "forgot", text: "Forgot your password?", linkText: "Reset it", href: "#" },
+      {
+        id: "forgot",
+        text: "Forgot your password?",
+        linkText: "Reset it",
+        href: "#",
+      },
     ],
   },
 };
@@ -239,9 +254,16 @@ export function BrandingPreview() {
     const bg = branding.colors?.page_background;
     if (!bg) return { background: "#f5f5f5" };
     if (typeof bg === "string") return { background: bg };
-    if (isPageBackgroundObject(bg) && bg.type === "linear-gradient" && bg.start && bg.end) {
+    if (
+      isPageBackgroundObject(bg) &&
+      bg.type === "linear-gradient" &&
+      bg.start &&
+      bg.end
+    ) {
       const angle = bg.angle_deg ?? 180;
-      return { background: `linear-gradient(${angle}deg, ${bg.start}, ${bg.end})` };
+      return {
+        background: `linear-gradient(${angle}deg, ${bg.start}, ${bg.end})`,
+      };
     }
     if (isPageBackgroundObject(bg) && bg.start) return { background: bg.start };
     return { background: "#f5f5f5" };

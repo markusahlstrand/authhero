@@ -73,13 +73,7 @@ function ActionExecutionLink({ executionId }: { executionId: string }) {
   );
 }
 
-function Row({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactNode;
-}) {
+function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-1 md:gap-4 py-2 border-b last:border-b-0">
       <div className="text-sm font-medium text-muted-foreground">{label}</div>
@@ -147,11 +141,7 @@ export function DetailsTab() {
         <CardContent className="flex flex-col">
           <Row label="User">
             {record.user_id ? (
-              <ReferenceField
-                source="user_id"
-                reference="users"
-                link="edit"
-              >
+              <ReferenceField source="user_id" reference="users" link="edit">
                 <TextField source="email" />
               </ReferenceField>
             ) : (

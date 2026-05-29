@@ -1,10 +1,12 @@
 import { Fragment, useCallback, useEffect, useState } from "react";
+import { useNotify, useRecordContext, useRefresh } from "ra-core";
 import {
-  useNotify,
-  useRecordContext,
-  useRefresh,
-} from "ra-core";
-import { ChevronDown, ChevronUp, Loader2, RefreshCw, Undo2 } from "lucide-react";
+  ChevronDown,
+  ChevronUp,
+  Loader2,
+  RefreshCw,
+  Undo2,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -182,8 +184,8 @@ export function VersionsTab() {
         <div className="flex flex-col gap-1">
           <CardTitle>Versions</CardTitle>
           <p className="text-sm text-muted-foreground max-w-2xl">
-            Every save and deploy creates a new version. Pick an earlier
-            version to roll back to its code, runtime, secrets and dependencies.
+            Every save and deploy creates a new version. Pick an earlier version
+            to roll back to its code, runtime, secrets and dependencies.
           </p>
         </div>
         <Button
@@ -229,9 +231,7 @@ export function VersionsTab() {
                           variant="ghost"
                           size="icon"
                           aria-label={expanded ? "Collapse" : "Expand"}
-                          onClick={() =>
-                            setExpandedId(expanded ? null : v.id)
-                          }
+                          onClick={() => setExpandedId(expanded ? null : v.id)}
                         >
                           {expanded ? (
                             <ChevronUp className="h-4 w-4" />

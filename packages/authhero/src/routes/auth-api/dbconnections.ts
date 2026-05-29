@@ -23,213 +23,211 @@ import { getEnrichedClient } from "../../helpers/client";
 import { defineRoute } from "../../utils/define-route";
 const postSignup = defineRoute({
   route: createRoute({
-      tags: ["dbconnections"],
-      method: "post",
-      path: "/signup",
-      request: {
-        body: {
-          content: {
-            "application/json": {
-              schema: z.object({
-                client_id: z.string(),
-                connection: z.literal(Strategy.USERNAME_PASSWORD),
-                email: z.string().transform((u) => u.toLowerCase()),
-                password: z.string(),
-              }),
-            },
+    tags: ["dbconnections"],
+    method: "post",
+    path: "/signup",
+    request: {
+      body: {
+        content: {
+          "application/json": {
+            schema: z.object({
+              client_id: z.string(),
+              connection: z.literal(Strategy.USERNAME_PASSWORD),
+              email: z.string().transform((u) => u.toLowerCase()),
+              password: z.string(),
+            }),
           },
         },
       },
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: z.object({
-                _id: z.string(),
-                email: z.string().optional(),
-                email_verified: z.boolean(),
-                app_metadata: z.object({}),
-                user_metadata: z.object({}),
-              }),
-            },
-          },
-          description: "Created user",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const { email, password, client_id } = ctx.req.valid("json");
-
-      const client = await getEnrichedClient(ctx.env, client_id);
-      ctx.set("client_id", client.client_id);
-      setTenantId(ctx, client.tenant.id);
-
-      // Find the password connection from the client's connections to get the correct password policy
-      const passwordConnection = client.connections.find(
-        (c) => c.strategy === Strategy.USERNAME_PASSWORD,
-      );
-      const connectionName =
-        passwordConnection?.name || Strategy.USERNAME_PASSWORD;
-
-      // Validate password against connection policy
-      const policy = await getPasswordPolicy(
-        ctx.env.data,
-        client.tenant.id,
-        connectionName,
-      );
-
-      try {
-        await validatePasswordPolicy(policy, {
-          tenantId: client.tenant.id,
-          userId: "", // No user yet for signup
-          newPassword: password,
-          data: ctx.env.data,
-        });
-      } catch (policyError: any) {
-        throw new HTTPException(400, {
-          message:
-            policyError?.message || "Password does not meet the requirements",
-        });
-      }
-
-      const existingUser = await getPrimaryUsernamePasswordUser({
-        env: ctx.env,
-        tenant_id: client.tenant.id,
-        username: email,
-      });
-
-      if (existingUser) {
-        // Auth0 doesn't inform that the user already exists
-        throw new HTTPException(400, { message: "Invalid sign up" });
-      }
-
-      // Hash password first
-      const { hash, algorithm } = await hashPassword(password);
-
-      const provider = await resolveUsernamePasswordProvider(
-        ctx.env,
-        client.tenant.id,
-      );
-
-      // Create the new user with password atomically in a single transaction
-      const newUser = await ctx.env.data.users.create(client.tenant.id, {
-        user_id: `${provider}|${userIdGenerate()}`,
-        email,
-        email_verified: false,
-        provider,
-        connection: Strategy.USERNAME_PASSWORD,
-        is_social: false,
-        password: { hash, algorithm },
-      });
-
-      ctx.set("user_id", newUser.user_id);
-      ctx.set("username", newUser.email);
-      ctx.set("connection", newUser.connection);
-
-      // Send verification email - wrapped in try/catch to prevent signup failure
-      // if email sending fails. User can always re-request verification later.
-      try {
-        await sendValidateEmailAddress(ctx, newUser);
-      } catch (emailError) {
-        console.error("Failed to send verification email:", emailError);
-        // Continue with signup - email verification can be retried later
-      }
-
-      logMessage(ctx, client.tenant.id, {
-        type: LogTypes.SUCCESS_SIGNUP,
-        description: "Successful signup",
-      });
-
-      return ctx.json({
-        _id: newUser.user_id,
-        email: newUser.email,
-        email_verified: false,
-        app_metadata: {},
-        user_metadata: {},
-      });
     },
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: z.object({
+              _id: z.string(),
+              email: z.string().optional(),
+              email_verified: z.boolean(),
+              app_metadata: z.object({}),
+              user_metadata: z.object({}),
+            }),
+          },
+        },
+        description: "Created user",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const { email, password, client_id } = ctx.req.valid("json");
+
+    const client = await getEnrichedClient(ctx.env, client_id);
+    ctx.set("client_id", client.client_id);
+    setTenantId(ctx, client.tenant.id);
+
+    // Find the password connection from the client's connections to get the correct password policy
+    const passwordConnection = client.connections.find(
+      (c) => c.strategy === Strategy.USERNAME_PASSWORD,
+    );
+    const connectionName =
+      passwordConnection?.name || Strategy.USERNAME_PASSWORD;
+
+    // Validate password against connection policy
+    const policy = await getPasswordPolicy(
+      ctx.env.data,
+      client.tenant.id,
+      connectionName,
+    );
+
+    try {
+      await validatePasswordPolicy(policy, {
+        tenantId: client.tenant.id,
+        userId: "", // No user yet for signup
+        newPassword: password,
+        data: ctx.env.data,
+      });
+    } catch (policyError: any) {
+      throw new HTTPException(400, {
+        message:
+          policyError?.message || "Password does not meet the requirements",
+      });
+    }
+
+    const existingUser = await getPrimaryUsernamePasswordUser({
+      env: ctx.env,
+      tenant_id: client.tenant.id,
+      username: email,
+    });
+
+    if (existingUser) {
+      // Auth0 doesn't inform that the user already exists
+      throw new HTTPException(400, { message: "Invalid sign up" });
+    }
+
+    // Hash password first
+    const { hash, algorithm } = await hashPassword(password);
+
+    const provider = await resolveUsernamePasswordProvider(
+      ctx.env,
+      client.tenant.id,
+    );
+
+    // Create the new user with password atomically in a single transaction
+    const newUser = await ctx.env.data.users.create(client.tenant.id, {
+      user_id: `${provider}|${userIdGenerate()}`,
+      email,
+      email_verified: false,
+      provider,
+      connection: Strategy.USERNAME_PASSWORD,
+      is_social: false,
+      password: { hash, algorithm },
+    });
+
+    ctx.set("user_id", newUser.user_id);
+    ctx.set("username", newUser.email);
+    ctx.set("connection", newUser.connection);
+
+    // Send verification email - wrapped in try/catch to prevent signup failure
+    // if email sending fails. User can always re-request verification later.
+    try {
+      await sendValidateEmailAddress(ctx, newUser);
+    } catch (emailError) {
+      console.error("Failed to send verification email:", emailError);
+      // Continue with signup - email verification can be retried later
+    }
+
+    logMessage(ctx, client.tenant.id, {
+      type: LogTypes.SUCCESS_SIGNUP,
+      description: "Successful signup",
+    });
+
+    return ctx.json({
+      _id: newUser.user_id,
+      email: newUser.email,
+      email_verified: false,
+      app_metadata: {},
+      user_metadata: {},
+    });
+  },
 });
 
 const postChangePassword = defineRoute({
   route: createRoute({
-      tags: ["dbconnections"],
-      method: "post",
-      path: "/change_password",
-      request: {
-        body: {
-          content: {
-            "application/json": {
-              schema: z.object({
-                client_id: z.string(),
-                connection: z.literal(Strategy.USERNAME_PASSWORD),
-                email: z.string().transform((u) => u.toLowerCase()),
-              }),
-            },
+    tags: ["dbconnections"],
+    method: "post",
+    path: "/change_password",
+    request: {
+      body: {
+        content: {
+          "application/json": {
+            schema: z.object({
+              client_id: z.string(),
+              connection: z.literal(Strategy.USERNAME_PASSWORD),
+              email: z.string().transform((u) => u.toLowerCase()),
+            }),
           },
         },
       },
-      responses: {
-        200: {
-          description: "Redirect to the client's redirect uri",
-        },
+    },
+    responses: {
+      200: {
+        description: "Redirect to the client's redirect uri",
       },
-    }),
+    },
+  }),
   handler: async (ctx) => {
-      const { email, client_id } = ctx.req.valid("json");
+    const { email, client_id } = ctx.req.valid("json");
 
-      const client = await getEnrichedClient(ctx.env, client_id);
-      ctx.set("client_id", client.client_id);
-      setTenantId(ctx, client.tenant.id);
+    const client = await getEnrichedClient(ctx.env, client_id);
+    ctx.set("client_id", client.client_id);
+    setTenantId(ctx, client.tenant.id);
 
-      const existingUser = await getUsernamePasswordUser({
-        env: ctx.env,
-        tenant_id: client.tenant.id,
-        username: email,
-      });
+    const existingUser = await getUsernamePasswordUser({
+      env: ctx.env,
+      tenant_id: client.tenant.id,
+      username: email,
+    });
 
-      if (!existingUser) {
-        // To prevent account enumeration, respond with a generic message
-        return ctx.html(
-          "If an account with that email exists, we've sent instructions to reset your password.",
-        );
-      }
-
-      const authParams: AuthParams = {
-        client_id: client_id,
-        username: email,
-        audience: client.tenant.default_audience,
-      };
-
-      const loginSession = await ctx.env.data.loginSessions.create(
-        client.tenant.id,
-        {
-          expires_at: new Date(
-            Date.now() + UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS * 1000,
-          ).toISOString(),
-          authParams,
-          csrf_token: nanoid(),
-          ip: ctx.get("ip"),
-          useragent: ctx.get("useragent"),
-          auth0Client: stringifyAuth0Client(ctx.get("auth0_client")),
-        },
-      );
-
-      await sendResetPassword(
-        ctx,
-        email,
-        loginSession.id,
-        loginSession.authParams.state,
-      );
-
+    if (!existingUser) {
+      // To prevent account enumeration, respond with a generic message
       return ctx.html(
         "If an account with that email exists, we've sent instructions to reset your password.",
       );
-    },
-});
+    }
 
+    const authParams: AuthParams = {
+      client_id: client_id,
+      username: email,
+      audience: client.tenant.default_audience,
+    };
+
+    const loginSession = await ctx.env.data.loginSessions.create(
+      client.tenant.id,
+      {
+        expires_at: new Date(
+          Date.now() + UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS * 1000,
+        ).toISOString(),
+        authParams,
+        csrf_token: nanoid(),
+        ip: ctx.get("ip"),
+        useragent: ctx.get("useragent"),
+        auth0Client: stringifyAuth0Client(ctx.get("auth0_client")),
+      },
+    );
+
+    await sendResetPassword(
+      ctx,
+      email,
+      loginSession.id,
+      loginSession.authParams.state,
+    );
+
+    return ctx.html(
+      "If an account with that email exists, we've sent instructions to reset your password.",
+    );
+  },
+});
 
 export const dbConnectionRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
-}>()
-  .openapiRoutes([postSignup, postChangePassword] as const);
+}>().openapiRoutes([postSignup, postChangePassword] as const);

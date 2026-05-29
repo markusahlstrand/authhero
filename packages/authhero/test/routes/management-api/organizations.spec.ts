@@ -274,7 +274,9 @@ describe("organizations management API endpoint", () => {
 
       const tenantId = `members-404-${Date.now()}`;
 
-      const response = await managementClient.organizations[":id"].members.$post(
+      const response = await managementClient.organizations[
+        ":id"
+      ].members.$post(
         {
           param: { id: "does-not-exist" },
           json: { members: ["auth0|user1"] },

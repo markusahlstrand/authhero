@@ -17,15 +17,16 @@ import "@xyflow/react/dist/style.css";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Layers, GitBranch, RefreshCw, AlertTriangle } from "lucide-react";
+import {
+  Plus,
+  Layers,
+  GitBranch,
+  RefreshCw,
+  AlertTriangle,
+} from "lucide-react";
 
 import { FLOW_CONFIG } from "./constants";
-import type {
-  CanvasNodeData,
-  EndingNode,
-  FormNode,
-  StartNode,
-} from "./types";
+import type { CanvasNodeData, EndingNode, FormNode, StartNode } from "./types";
 import { useFlowGraph } from "./hooks/useFlowGraph";
 import { useNodeOperations } from "./hooks/useNodeOperations";
 
@@ -59,13 +60,8 @@ export function FlowDesigner({
   onSelect,
 }: FlowDesignerProps) {
   const { flowNodes, edges, warnings } = useFlowGraph({ nodes, start, ending });
-  const {
-    updateNodeCoordinates,
-    setNextNode,
-    addStep,
-    addFlow,
-    addRouter,
-  } = useNodeOperations({ nodes, start, ending });
+  const { updateNodeCoordinates, setNextNode, addStep, addFlow, addRouter } =
+    useNodeOperations({ nodes, start, ending });
 
   const [canvasNodes, setCanvasNodes, onNodesChange] =
     useNodesState<Node<CanvasNodeData>>(flowNodes);

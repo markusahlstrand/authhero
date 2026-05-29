@@ -57,12 +57,13 @@ export function ScopeEdit() {
         redirect={false}
       >
         <SimpleForm>
-          <TextInput source="value" label="Scope" required readOnly={isSystem} />
           <TextInput
-            source="description"
-            multiline
+            source="value"
+            label="Scope"
+            required
             readOnly={isSystem}
           />
+          <TextInput source="description" multiline readOnly={isSystem} />
         </SimpleForm>
       </Edit>
     </div>

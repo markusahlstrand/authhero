@@ -4,11 +4,7 @@ import { useWatch } from "react-hook-form";
 
 import { FlowDesigner } from "../designer/FlowDesigner";
 import { NodeSheet } from "../designer/NodeSheet";
-import type {
-  EndingNode,
-  FormNode,
-  StartNode,
-} from "../designer/types";
+import type { EndingNode, FormNode, StartNode } from "../designer/types";
 
 export function DesignerTab() {
   const nodes = (useWatch({ name: "nodes" }) as FormNode[] | undefined) ?? [];

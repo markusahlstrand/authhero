@@ -112,8 +112,16 @@ function TriggerSection({
     const newBPrio = aPrio === bPrio ? aPrio - 1 : aPrio;
     try {
       await Promise.all([
-        update("hooks", { id: hookId(a), data: { priority: newAPrio }, previousData: a }),
-        update("hooks", { id: hookId(b), data: { priority: newBPrio }, previousData: b }),
+        update("hooks", {
+          id: hookId(a),
+          data: { priority: newAPrio },
+          previousData: a,
+        }),
+        update("hooks", {
+          id: hookId(b),
+          data: { priority: newBPrio },
+          previousData: b,
+        }),
       ]);
       refresh();
     } catch (err) {
@@ -303,7 +311,7 @@ export function ActionTriggersList() {
     [hookData],
   );
   const actions: ActionRecord[] = useMemo(
-    () => ((actionData ?? []) as ActionRecord[]),
+    () => (actionData ?? []) as ActionRecord[],
     [actionData],
   );
 
@@ -316,7 +324,8 @@ export function ActionTriggersList() {
       <div>
         <h2 className="text-2xl font-semibold">Triggers</h2>
         <p className="text-sm text-muted-foreground">
-          Attach deployed actions to triggers. Higher-priority actions run first.
+          Attach deployed actions to triggers. Higher-priority actions run
+          first.
         </p>
       </div>
       {codeHookTriggerChoices.map((t) => (

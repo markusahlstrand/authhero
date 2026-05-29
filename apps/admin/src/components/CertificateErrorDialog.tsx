@@ -58,8 +58,9 @@ export function CertificateErrorDialog({
               </a>
             </li>
             <li>
-              When you see the security warning, click <strong>"Advanced"</strong>{" "}
-              and then <strong>"Proceed to localhost (unsafe)"</strong>
+              When you see the security warning, click{" "}
+              <strong>"Advanced"</strong> and then{" "}
+              <strong>"Proceed to localhost (unsafe)"</strong>
             </li>
             <li>Return to this page and refresh</li>
           </ol>

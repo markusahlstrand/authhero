@@ -14,8 +14,10 @@ export type UserOrganizationInsert = z.infer<
   typeof userOrganizationInsertSchema
 >;
 
-export const userOrganizationSchema = userOrganizationInsertSchema.extend(baseEntitySchema.shape).extend({
-  id: z.string()
-});
+export const userOrganizationSchema = userOrganizationInsertSchema
+  .extend(baseEntitySchema.shape)
+  .extend({
+    id: z.string(),
+  });
 
 export type UserOrganization = z.infer<typeof userOrganizationSchema>;

@@ -397,10 +397,7 @@ export default function create(config: AuthHeroConfig) {
 
   // Mount proxy-routes management when the data adapter exposes one. The
   // adapter is optional on DataAdapters; without it the routes return 501.
-  if (
-    !extensionPaths.has("/proxy-routes") &&
-    managementAdapter.proxyRoutes
-  ) {
+  if (!extensionPaths.has("/proxy-routes") && managementAdapter.proxyRoutes) {
     managementApp.route("/proxy-routes", proxyRoutesRoutes);
   }
 

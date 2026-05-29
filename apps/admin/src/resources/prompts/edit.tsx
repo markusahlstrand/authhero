@@ -45,10 +45,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  ToggleGroup,
-  ToggleGroupItem,
-} from "@/components/ui/toggle-group";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 const PROMPT_SCREENS = [
   { id: "login", name: "Login" },
@@ -163,7 +160,11 @@ function LoginFlowInput() {
   return (
     <div className="flex flex-col gap-2">
       <Label className="text-sm font-medium">Login Flow</Label>
-      <RadioGroup value={current} onValueChange={handleChange} className="gap-2">
+      <RadioGroup
+        value={current}
+        onValueChange={handleChange}
+        className="gap-2"
+      >
         {LOGIN_FLOW_OPTIONS.map((option) => {
           const selected = current === option.value;
           return (
@@ -520,10 +521,7 @@ function CustomTextEditDialog({
       const screenDefaults = defaults[screen] ?? {};
       const screenTexts = texts[screen] ?? {};
       const keys = Array.from(
-        new Set([
-          ...Object.keys(screenDefaults),
-          ...Object.keys(screenTexts),
-        ]),
+        new Set([...Object.keys(screenDefaults), ...Object.keys(screenTexts)]),
       );
       const categories = new Map<string, Array<[string, string]>>();
       for (const key of keys) {

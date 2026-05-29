@@ -6,13 +6,7 @@ import type {
   StepNode,
 } from "@authhero/adapter-interfaces";
 
-export type {
-  FormNode,
-  FormNodeComponent,
-  FlowNode,
-  RouterNode,
-  StepNode,
-};
+export type { FormNode, FormNodeComponent, FlowNode, RouterNode, StepNode };
 
 export interface Coordinates {
   x: number;

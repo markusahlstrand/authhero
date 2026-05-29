@@ -124,7 +124,10 @@ function AddMemberButton() {
         <Plus className="h-4 w-4 mr-1" />
         Add member
       </Button>
-      <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : handleClose())}>
+      <Dialog
+        open={open}
+        onOpenChange={(o) => (o ? setOpen(true) : handleClose())}
+      >
         <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>Add members</DialogTitle>

@@ -168,9 +168,7 @@ export function AppSidebar() {
             aria-label={
               state === "expanded" ? "Collapse sidebar" : "Expand sidebar"
             }
-            title={
-              state === "expanded" ? "Collapse sidebar" : "Expand sidebar"
-            }
+            title={state === "expanded" ? "Collapse sidebar" : "Expand sidebar"}
           >
             {state === "expanded" ? (
               <PanelLeftClose className="size-3.5" />
