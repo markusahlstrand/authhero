@@ -1,5 +1,24 @@
 # authhero
 
+## 5.14.0
+
+### Minor Changes
+
+- 8b9ef23: Add support for Client ID Metadata Documents (CIMD)
+
+  The authorization server can now accept an https URL as the `client_id`, fetching and validating the client's metadata document at request time instead of requiring pre-registration or DCR. This is the preferred MCP client-registration mechanism (SEP-991) and mirrors Auth0's CIMD support.
+  - New per-tenant flag `client_id_metadata_document_registration` (matches Auth0). When enabled, the AS metadata advertises `client_id_metadata_document_supported: true`.
+  - Added the RFC 8414 `.well-known/oauth-authorization-server` metadata endpoint alongside `.well-known/openid-configuration`.
+  - CIMD clients are resolved ephemerally (no DB record), validated against Auth0's ruleset (URL constraints, document `client_id` must match the URL, supported grant types / auth methods), fetched over SSRF-safe HTTPS, and required to use PKCE (S256) for code flows.
+
+### Patch Changes
+
+- 30fc4c5: `event.connection` is now reliably populated in the `onExecuteCredentialsExchange` hook. Previously it was derived only from the request-scoped connection, so on token-exchange flows that don't carry it (authorization_code → token, refresh_token, `/authorize/resume`) the hook received `connection: undefined` even when the user's connection was known — causing consumers that branch on `event.connection?.name` to take the wrong path. The connection is now resolved from the login session's recorded `auth_connection` first, then the request connection, and finally the user's own connection as a last resort, matching Auth0's contract. The refresh_token grant additionally carries the original session's `auth_connection` through so linked users report the connection they actually authenticated with. Connection-resolution logic that was duplicated across the auth flows is consolidated into a single helper.
+- Updated dependencies [8b9ef23]
+  - @authhero/adapter-interfaces@2.9.0
+  - @authhero/proxy@0.3.1
+  - @authhero/widget@0.32.31
+
 ## 5.13.1
 
 ### Patch Changes
