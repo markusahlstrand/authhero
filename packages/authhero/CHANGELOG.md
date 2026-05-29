@@ -1,5 +1,18 @@
 # authhero
 
+## 5.13.0
+
+### Minor Changes
+
+- ed6e2bc: Add optional at-rest encryption for sensitive credential fields. Set the `ENCRYPTION_KEY` binding (base64-encoded 32 bytes) and wrap the data adapter with the new `createEncryptedDataAdapter` to transparently AES-256-GCM-encrypt `clients.client_secret`, upstream secrets in `connections.options`, `email_providers.credentials`, `authentication_methods.totp_secret`, and `migration_sources.credentials`. Existing plaintext rows keep working via an `enc:v1:` version prefix and migrate lazily on write. When `ENCRYPTION_KEY` is unset, behavior is unchanged.
+
+  `create-authhero` now enables this by default: scaffolded projects (local, cloudflare, aws-sst) generate a random `ENCRYPTION_KEY` into their dev env file (`.env` / `.dev.vars`) and wire `createEncryptedDataAdapter` into both the server entry and the seed script. Production deployments should set their own key (`wrangler secret put ENCRYPTION_KEY` for Cloudflare, a stage env/secret for AWS).
+
+### Patch Changes
+
+- ed6e2bc: Register the `read:proxy_routes`, `create:proxy_routes`, `update:proxy_routes`, and `delete:proxy_routes` scopes on the management API resource server so they can be granted to roles and appear in access tokens (previously the proxy-routes endpoints were unreachable because the scopes were never defined). The admin role edit view now has Details, Permissions, and Raw JSON tabs, letting role permissions be managed from the UI.
+- ed6e2bc: Try Connection now runs the popup flow on the tenant's primary custom domain when one is verified, so the authorize and result URLs match the domain used by real logins.
+
 ## 5.12.0
 
 ### Minor Changes
