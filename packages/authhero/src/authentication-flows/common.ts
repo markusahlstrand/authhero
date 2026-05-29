@@ -55,7 +55,11 @@ import {
 } from "../state-machines/login-session";
 import { createServiceToken } from "../helpers/service-token";
 import { redactUrlForLogging } from "../utils/url";
-import { HookEvent, OnExecuteCredentialsExchangeAPI } from "../types/Hooks";
+import { OnExecuteCredentialsExchangeAPI } from "../types/Hooks";
+import {
+  resolveConnectionName,
+  getConnectionInfo,
+} from "../helpers/connection";
 
 /**
  * Minimal client properties actually used by createAuthTokens.
@@ -348,42 +352,22 @@ export async function createAuthTokens(
         }
       : undefined;
 
-  // Look up connection info for hooks
-  // Prefer the login session's connection (the actual auth method used) over user.connection
-  // Do NOT fall back to user.connection — for linked users, user is the primary
-  // user whose connection may differ from the one actually used for authentication
-  const connectionName =
-    params.loginSession?.auth_connection ||
-    params.authConnection ||
-    ctx.var.connection;
-  let connectionInfo: HookEvent["connection"] | undefined;
-  if (connectionName) {
-    try {
-      const connections = await ctx.env.data.connections.list(
-        ctx.var.tenant_id,
-        {
-          page: 0,
-          per_page: 100,
-          include_totals: false,
-        },
-      );
-      const connection =
-        connections.connections.find((c) => c.name === connectionName) ??
-        connections.connections.find(
-          (c) => c.name.toLowerCase() === connectionName.toLowerCase(),
-        );
-      if (connection) {
-        connectionInfo = {
-          id: connection.id || connection.name,
-          name: connection.name,
-          strategy: connection.strategy || user?.provider || "auth0",
-          metadata: connection.options || {},
-        };
-      }
-    } catch (error) {
-      console.error("Error fetching connection info:", error);
-    }
-  }
+  // Resolve the connection for hooks. Session sources win (correct even for
+  // linked users); `user` is passed as the last-resort fallback so
+  // event.connection is still populated on token-exchange / refresh requests
+  // that carry no session connection — matching Auth0's contract.
+  const connectionName = resolveConnectionName({
+    loginSession: params.loginSession,
+    authConnection: params.authConnection,
+    ctxConnection: ctx.var.connection,
+    user,
+  });
+  const connectionInfo = await getConnectionInfo(
+    ctx,
+    ctx.var.tenant_id,
+    connectionName,
+    user,
+  );
 
   if (ctx.env.hooks?.onExecuteCredentialsExchange) {
     await ctx.env.hooks.onExecuteCredentialsExchange(
@@ -813,8 +797,13 @@ export async function authenticateLoginSession(
     userId: user.user_id,
   });
 
-  // Resolve the connection used for authentication
-  const resolvedConnection = authConnection || ctx.var.connection;
+  // Resolve the connection used for authentication. No user fallback here: this
+  // value is persisted as the session's authoritative auth_connection, so we
+  // only ever store a real auth signal — never a guess from the user record.
+  const resolvedConnection = resolveConnectionName({
+    authConnection,
+    ctxConnection: ctx.var.connection,
+  });
 
   // Update the login session with session_id, user_id, new state, and auth_connection
   // auth_connection is stored early so it survives hook redirects (new HTTP requests)
@@ -2027,14 +2016,16 @@ export async function completeLogin(
     user = hookResult;
   }
 
-  // Resolve the connection used for authentication
-  // Prefer the login session's stored connection, then explicit param, then context variable
-  // Do NOT fall back to user.connection — for linked users, user is the primary
-  // user whose connection may differ from the one actually used for authentication
-  const authConnection =
-    params.loginSession?.auth_connection ||
-    params.authConnection ||
-    ctx.var.connection;
+  // Resolve the connection used for authentication. No user fallback: this
+  // feeds completeLoginSession, which persists the session's authoritative
+  // auth_connection — we never store a guess from the user record. The
+  // user-record fallback is applied only at the hook-event layer in
+  // createAuthTokens.
+  const authConnection = resolveConnectionName({
+    loginSession: params.loginSession,
+    authConnection: params.authConnection,
+    ctxConnection: ctx.var.connection,
+  });
 
   // Return code, tokens, or both (hybrid) based on response_type.
   // Note: completeLoginSession is called AFTER successful creation to avoid
