@@ -111,6 +111,7 @@ function AddPermissionButton() {
     setSelected(new Set());
     setSearch("");
     setLoading(true);
+    let cancelled = false;
     (async () => {
       try {
         const allScopes = (server.scopes ?? []).map((s) => ({
@@ -127,6 +128,7 @@ function AddPermissionButton() {
             filter: {},
           },
         );
+        if (cancelled) return;
         const existingNames = new Set(
           existing.data
             .filter((p) => p.resource_server_identifier === server.identifier)
@@ -138,11 +140,14 @@ function AddPermissionButton() {
           ),
         );
       } catch {
-        notify("Error loading permissions", { type: "error" });
+        if (!cancelled) notify("Error loading permissions", { type: "error" });
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [selectedServerId, roleId, resourceServers, dataProvider, notify]);
 
   const toggle = (name: string) => {
