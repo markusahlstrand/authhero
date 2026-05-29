@@ -7,7 +7,7 @@ import { AuthorizationResponseType } from "@authhero/adapter-interfaces";
 import { u2Screen } from "../../helpers/u2-screen";
 describe("u2 routes", () => {
   describe("info landing page", () => {
-    it("renders a branded info page when the redirect carries an auth code", async () => {
+    it("renders a branded info page without leaking the auth code", async () => {
       const { u2App, env } = await getTestServer({ mockEmail: true });
 
       const response = await u2App.request(
@@ -19,7 +19,8 @@ describe("u2 routes", () => {
       expect(response.status).toBe(200);
       const html = await response.text();
       expect(html).toContain("Signed in");
-      expect(html).toContain("abc123");
+      expect(html).toContain("You have signed in successfully.");
+      expect(html).not.toContain("abc123");
     });
 
     it("renders an error page when the redirect carries an OAuth error", async () => {

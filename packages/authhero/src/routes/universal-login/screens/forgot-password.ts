@@ -228,7 +228,7 @@ export const forgotPasswordScreenDefinition: ScreenDefinition = {
         email,
         state,
         verificationMethod,
-        context.routePrefix,
+        context.routePrefix ?? "/u2",
       );
 
       if (verificationMethod === "code") {

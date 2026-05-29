@@ -18,7 +18,11 @@ export function getUniversalLoginUrl(
     return `https://${customDomain}/${prefix}/`;
   }
   if (env.UNIVERSAL_LOGIN_URL) {
-    return env.UNIVERSAL_LOGIN_URL;
+    // Treat the configured value as a base and inject the route prefix so
+    // callers passing a routePrefix (e.g. "u2") target the right base instead
+    // of the legacy path baked into UNIVERSAL_LOGIN_URL.
+    const base = new URL(env.UNIVERSAL_LOGIN_URL);
+    return `${base.origin}/${prefix}/`;
   }
   return `${env.ISSUER}${prefix}/`;
 }

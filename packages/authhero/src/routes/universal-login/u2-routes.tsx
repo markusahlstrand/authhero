@@ -946,7 +946,7 @@ const getInfo = defineRoute({
     },
   }),
   handler: async (ctx: any) => {
-    const { code, error, error_description } = ctx.req.valid("query");
+    const { error, error_description } = ctx.req.valid("query");
 
     const tenantId = ctx.var.tenant_id;
     let branding: Branding | null = null;
@@ -976,9 +976,7 @@ const getInfo = defineRoute({
     const isError = Boolean(error || error_description);
     const message = isError
       ? error_description || error
-      : code
-        ? `You have signed in successfully. Authorization code: ${code}`
-        : "You have signed in successfully.";
+      : "You have signed in successfully.";
 
     return ctx.html(
       <ErrorPage
