@@ -26,7 +26,9 @@ function buildCreateServiceToken(
   tenantId: string,
 ): CreateServiceTokenFn {
   return async (p) => {
-    const token = await createClientServiceToken(ctx, tenantId, p);
+    const token = await createClientServiceToken(ctx, tenantId, p, {
+      allowControlPlaneFallback: true,
+    });
     return token.access_token;
   };
 }

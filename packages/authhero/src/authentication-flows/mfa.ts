@@ -143,7 +143,9 @@ export async function sendMfaOtp(
         tenantId: tenant.id,
       },
       createServiceToken: async (p) => {
-        const token = await createClientServiceToken(ctx, tenant.id, p);
+        const token = await createClientServiceToken(ctx, tenant.id, p, {
+          allowControlPlaneFallback: true,
+        });
         return token.access_token;
       },
     });

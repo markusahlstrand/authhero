@@ -192,6 +192,35 @@ export interface CreateClientServiceTokenParams {
 }
 
 /**
+ * Resolve the control-plane tenant for a given request tenant, honoring a
+ * per-tenant `resolveControlPlane` resolver when configured and falling back to
+ * the static `controlPlaneTenantId`. Returns `undefined` when the tenant opts
+ * out of control-plane inheritance or no control plane is configured.
+ */
+async function resolveControlPlaneTenantId(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  tenantId: string,
+): Promise<string | undefined> {
+  const config = ctx.env.data.multiTenancyConfig;
+  if (config?.resolveControlPlane) {
+    const resolved = await config.resolveControlPlane({ tenant_id: tenantId });
+    return resolved?.tenantId;
+  }
+  return config?.controlPlaneTenantId;
+}
+
+export interface CreateClientServiceTokenOptions {
+  /**
+   * When the client isn't found in the request tenant, resolve it against the
+   * configured control-plane tenant and mint there instead. Off by default so
+   * that the hook-facing token API (`createTokenAPI`) cannot reach across the
+   * tenant boundary into control-plane clients — only trusted internal callers
+   * (e.g. the auth service's own email/SMS senders) opt in.
+   */
+  allowControlPlaneFallback?: boolean;
+}
+
+/**
  * In-process mint of a grant-bounded access token for a DB-registered M2M
  * client. The caller is trusted (running inside the Worker) so no client
  * secret is required — authorization is governed by the client's
@@ -205,6 +234,7 @@ export async function createClientServiceToken(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   tenantId: string,
   params: CreateClientServiceTokenParams,
+  options?: CreateClientServiceTokenOptions,
 ): Promise<ServiceTokenResponse> {
   const { clientId, scope } = params;
 
@@ -213,14 +243,42 @@ export async function createClientServiceToken(
     throw new Error(`Tenant not found: ${tenantId}`);
   }
 
-  const client = await ctx.env.data.clients.get(tenantId, clientId);
+  // M2M service clients (e.g. the auth service's own email sender) are
+  // registered once in the control-plane tenant, not per request-tenant. The
+  // multi-tenancy adapter deliberately does not control-plane-wrap `clients.get`
+  // for storage reads, so when the client isn't found in the request tenant we
+  // resolve it against the control plane and mint there: grants, signing key,
+  // and the `tenant_id` claim all follow the tenant where the client lives.
+  // Gated behind `allowControlPlaneFallback` so only trusted internal callers
+  // can cross the tenant boundary; hook-originated calls never reach it.
+  let effectiveTenantId = tenantId;
+  let client = await ctx.env.data.clients.get(tenantId, clientId);
+  if (!client && options?.allowControlPlaneFallback) {
+    const controlPlaneTenantId = await resolveControlPlaneTenantId(
+      ctx,
+      tenantId,
+    );
+    if (controlPlaneTenantId && controlPlaneTenantId !== tenantId) {
+      const controlPlaneClient = await ctx.env.data.clients.get(
+        controlPlaneTenantId,
+        clientId,
+      );
+      if (controlPlaneClient) {
+        client = controlPlaneClient;
+        effectiveTenantId = controlPlaneTenantId;
+      }
+    }
+  }
   if (!client) {
     throw new Error(`Client not found: ${clientId}`);
   }
 
-  const clientGrantsResponse = await ctx.env.data.clientGrants.list(tenantId, {
-    q: `client_id:"${clientId}"`,
-  });
+  const clientGrantsResponse = await ctx.env.data.clientGrants.list(
+    effectiveTenantId,
+    {
+      q: `client_id:"${clientId}"`,
+    },
+  );
   const grants = clientGrantsResponse.client_grants;
   if (grants.length === 0) {
     throw new Error(`Client has no client_grant: ${clientId}`);
@@ -266,7 +324,7 @@ export async function createClientServiceToken(
 
   const resolvedKeys = await resolveSigningKeys(
     ctx.env.data.keys,
-    tenantId,
+    effectiveTenantId,
     ctx.env.signingKeyMode,
     { purpose: "sign" },
   );
@@ -287,7 +345,7 @@ export async function createClientServiceToken(
     sub: clientId,
     azp: clientId,
     iss: getIssuer(ctx.env),
-    tenant_id: tenantId,
+    tenant_id: effectiveTenantId,
     gty: "client_credentials",
   };
 

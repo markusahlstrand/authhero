@@ -105,6 +105,139 @@ describe("createClientServiceToken", () => {
     ).rejects.toThrow(/Client not found/);
   });
 
+  it("resolves a control-plane client when absent from the request tenant", async () => {
+    const CONTROL_PLANE_TENANT_ID = "control-plane";
+    const { env } = await getTestServer();
+    await env.data.tenants.create({
+      id: CONTROL_PLANE_TENANT_ID,
+      friendly_name: "Control Plane",
+      audience: "https://control-plane.example.com",
+      default_audience: "https://control-plane.example.com",
+      sender_email: "login@example.com",
+      sender_name: "SenderName",
+    });
+    await env.data.clients.create(CONTROL_PLANE_TENANT_ID, {
+      client_id: "auth-email-sender",
+      client_secret: "secret",
+      name: "auth-email-sender",
+      callbacks: [],
+      allowed_logout_urls: [],
+      web_origins: [],
+    });
+    await env.data.clientGrants.create(CONTROL_PLANE_TENANT_ID, {
+      client_id: "auth-email-sender",
+      audience: "urn:sesamy",
+      scope: ["email:queue"],
+    });
+    env.data.multiTenancyConfig = {
+      controlPlaneTenantId: CONTROL_PLANE_TENANT_ID,
+    };
+    // Request tenant is `tenantId`, which has no `auth-email-sender` client.
+    const ctx = makeCtx(env);
+
+    const result = await createClientServiceToken(
+      ctx,
+      TENANT_ID,
+      {
+        clientId: "auth-email-sender",
+        scope: "email:queue",
+        audience: "urn:sesamy",
+      },
+      { allowControlPlaneFallback: true },
+    );
+
+    const payload = parseJWT(result.access_token)!.payload as Record<
+      string,
+      unknown
+    >;
+    expect(payload.sub).toBe("auth-email-sender");
+    expect(payload.aud).toBe("urn:sesamy");
+    expect(payload.scope).toBe("email:queue");
+    // The token is minted in the tenant where the client actually lives.
+    expect(payload.tenant_id).toBe(CONTROL_PLANE_TENANT_ID);
+  });
+
+  it("does not resolve a control-plane client without allowControlPlaneFallback", async () => {
+    // Guards the hook-facing token API: a caller that does not opt in must
+    // never reach across the tenant boundary into control-plane clients, even
+    // when a control plane is configured and holds the named client.
+    const CONTROL_PLANE_TENANT_ID = "control-plane";
+    const { env } = await getTestServer();
+    await env.data.tenants.create({
+      id: CONTROL_PLANE_TENANT_ID,
+      friendly_name: "Control Plane",
+      audience: "https://control-plane.example.com",
+      default_audience: "https://control-plane.example.com",
+      sender_email: "login@example.com",
+      sender_name: "SenderName",
+    });
+    await env.data.clients.create(CONTROL_PLANE_TENANT_ID, {
+      client_id: "auth-email-sender",
+      client_secret: "secret",
+      name: "auth-email-sender",
+      callbacks: [],
+      allowed_logout_urls: [],
+      web_origins: [],
+    });
+    await env.data.clientGrants.create(CONTROL_PLANE_TENANT_ID, {
+      client_id: "auth-email-sender",
+      audience: "urn:sesamy",
+      scope: ["email:queue"],
+    });
+    env.data.multiTenancyConfig = {
+      controlPlaneTenantId: CONTROL_PLANE_TENANT_ID,
+    };
+    const ctx = makeCtx(env);
+
+    await expect(
+      createClientServiceToken(ctx, TENANT_ID, {
+        clientId: "auth-email-sender",
+        scope: "email:queue",
+        audience: "urn:sesamy",
+      }),
+    ).rejects.toThrow(/Client not found/);
+  });
+
+  it("honors a resolveControlPlane opt-out (resolver returns undefined)", async () => {
+    const { env } = await getTestServer();
+    // Client exists in a would-be control plane, but the resolver opts this
+    // request tenant out, so the fallback must not reach it.
+    await env.data.tenants.create({
+      id: "control-plane",
+      friendly_name: "Control Plane",
+      audience: "https://control-plane.example.com",
+      default_audience: "https://control-plane.example.com",
+      sender_email: "login@example.com",
+      sender_name: "SenderName",
+    });
+    await env.data.clients.create("control-plane", {
+      client_id: "auth-email-sender",
+      client_secret: "secret",
+      name: "auth-email-sender",
+      callbacks: [],
+      allowed_logout_urls: [],
+      web_origins: [],
+    });
+    env.data.multiTenancyConfig = {
+      controlPlaneTenantId: "control-plane",
+      resolveControlPlane: async () => undefined,
+    };
+    const ctx = makeCtx(env);
+
+    await expect(
+      createClientServiceToken(
+        ctx,
+        TENANT_ID,
+        {
+          clientId: "auth-email-sender",
+          scope: "email:queue",
+          audience: "urn:sesamy",
+        },
+        { allowControlPlaneFallback: true },
+      ),
+    ).rejects.toThrow(/Client not found/);
+  });
+
   it("rejects when the client has no client_grant at all", async () => {
     const { env } = await getTestServer();
     await env.data.clients.create(TENANT_ID, {
