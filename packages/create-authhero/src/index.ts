@@ -72,6 +72,8 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
           start: "npx tsx --env-file=.env src/index.ts",
           migrate: "npx tsx src/migrate.ts",
           seed: "npx tsx --env-file=.env src/seed.ts",
+          "gen:key": "node scripts/generate-encryption-key.mjs",
+          decrypt: "node --env-file=.env scripts/decrypt-field.mjs",
         },
         dependencies: {
           "@authhero/kysely-adapter": v,
@@ -130,6 +132,8 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
           seed: "node seed-helper.js",
           setup:
             "cp wrangler.toml wrangler.local.toml && cp .dev.vars.example .dev.vars && echo '✅ Created wrangler.local.toml and .dev.vars - update with your IDs'",
+          "gen:key": "node scripts/generate-encryption-key.mjs",
+          decrypt: "node --env-file=.dev.vars scripts/decrypt-field.mjs",
         },
         dependencies: {
           "@authhero/drizzle": v,
@@ -207,6 +211,8 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
           remove: "sst remove",
           seed: "npx tsx --env-file=.env src/seed.ts",
           "copy-assets": "node copy-assets.js",
+          "gen:key": "node scripts/generate-encryption-key.mjs",
+          decrypt: "node --env-file=.env scripts/decrypt-field.mjs",
         },
         dependencies: {
           "@authhero/aws": v,
