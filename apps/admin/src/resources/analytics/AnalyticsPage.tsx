@@ -68,7 +68,11 @@ const RESOURCES: Array<{
   },
 ];
 
-const PRESETS: Array<{ label: string; days: number; interval: AnalyticsInterval }> = [
+const PRESETS: Array<{
+  label: string;
+  days: number;
+  interval: AnalyticsInterval;
+}> = [
   { label: "Last 24h", days: 1, interval: "hour" },
   { label: "Last 7d", days: 7, interval: "day" },
   { label: "Last 30d", days: 30, interval: "day" },
@@ -250,10 +254,7 @@ export function AnalyticsPage() {
                   />
                   <YAxis tick={{ fontSize: 11 }} width={32} />
                   <Tooltip />
-                  <Bar
-                    dataKey={seriesKeys[0]}
-                    fill={CHART_COLORS[0]}
-                  />
+                  <Bar dataKey={seriesKeys[0]} fill={CHART_COLORS[0]} />
                 </BarChart>
               ) : (
                 <LineChart data={rows}>

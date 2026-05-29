@@ -1,8 +1,4 @@
-import {
-  ProxyDataAdapter,
-  ProxyRoutesAdapter,
-  ResolvedHost,
-} from "../adapter";
+import { ProxyDataAdapter, ProxyRoutesAdapter, ResolvedHost } from "../adapter";
 import {
   HandlerConfig,
   ProxyRoute,

@@ -1,9 +1,4 @@
-import {
-  Create,
-  SimpleForm,
-  TextInput,
-  SelectInput,
-} from "@/components/admin";
+import { Create, SimpleForm, TextInput, SelectInput } from "@/components/admin";
 import { flattenDomainMetadata } from "@/components/custom-domains/domainMetadataUtils";
 
 export function DomainCreate() {

@@ -12,7 +12,7 @@ OpenID Connect Discovery lets clients dynamically learn an OP's endpoints and ca
 
 ## Implemented
 
-- **Discovery endpoint** — `GET /.well-known/openid-configuration`.
+- **Discovery endpoint** — `GET /.well-known/openid-configuration`. The same document is also served at [`/.well-known/oauth-authorization-server`](/standards/rfc-8414) (RFC 8414).
 - **JWKS endpoint advertisement** — `jwks_uri` points to [`/.well-known/jwks.json`](/standards/rfc-7517).
 - **Core endpoints** — `issuer`, `authorization_endpoint`, `token_endpoint`, `userinfo_endpoint`, `jwks_uri`, `revocation_endpoint`, `device_authorization_endpoint`, `mfa_challenge_endpoint` are always advertised.
 - **Conditional endpoints** — `registration_endpoint` is included only when Dynamic Client Registration is enabled for the tenant; `end_session_endpoint` is included by default and can be hidden by setting `oidc_logout.rp_logout_end_session_endpoint_discovery` to `false` (see [OIDC RP-Initiated Logout](/standards/oidc-rp-initiated-logout)).

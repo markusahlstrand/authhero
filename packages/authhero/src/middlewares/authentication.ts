@@ -46,10 +46,7 @@ function scopeForms(scope: string): string[] {
 // tokens with the urn:authhero:management audience. The scope/JWT checks
 // still run — only the audience equality check is skipped for these paths.
 // Remove once those callers have rolled out the new audience config.
-const AUDIENCE_EXEMPT_PREFIXES = [
-  "/api/v2/users",
-  "/api/v2/users-by-email",
-];
+const AUDIENCE_EXEMPT_PREFIXES = ["/api/v2/users", "/api/v2/users-by-email"];
 
 function isAudienceExempt(matchedPath: string): boolean {
   return AUDIENCE_EXEMPT_PREFIXES.some(

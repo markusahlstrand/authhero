@@ -5,11 +5,11 @@ import type {
   ProxyRoute,
   RouteMatch,
 } from "@authhero/adapter-interfaces";
+import { handlerConfigSchema, matchSchema } from "@authhero/adapter-interfaces";
 import {
-  handlerConfigSchema,
-  matchSchema,
-} from "@authhero/adapter-interfaces";
-import { customDomains, proxyRoutes as proxyRoutesTable } from "../schema/sqlite";
+  customDomains,
+  proxyRoutes as proxyRoutesTable,
+} from "../schema/sqlite";
 import type { DrizzleDb } from "./types";
 
 function parseMatch(raw: string | null | undefined): RouteMatch {

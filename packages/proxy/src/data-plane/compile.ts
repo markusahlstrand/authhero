@@ -4,7 +4,15 @@ import type { ProxyRoute } from "../types";
 import { HandlerRegistry } from "./registry";
 import { buildMatchFilter, sortRoutes } from "./matcher";
 
-const ALL_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"];
+const ALL_METHODS = [
+  "GET",
+  "POST",
+  "PUT",
+  "PATCH",
+  "DELETE",
+  "OPTIONS",
+  "HEAD",
+];
 
 /**
  * Build a Hono app whose route table mirrors the configured proxy routes for

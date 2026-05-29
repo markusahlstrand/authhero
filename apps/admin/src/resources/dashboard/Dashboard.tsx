@@ -59,7 +59,12 @@ interface ChartCardProps {
   color?: string;
 }
 
-function ChartCard({ title, data, loading, color = "#2563eb" }: ChartCardProps) {
+function ChartCard({
+  title,
+  data,
+  loading,
+  color = "#2563eb",
+}: ChartCardProps) {
   const total = data.reduce((sum, d) => sum + d.value, 0);
   return (
     <Card>
@@ -70,9 +75,7 @@ function ChartCard({ title, data, loading, color = "#2563eb" }: ChartCardProps) 
         {loading ? (
           <Skeleton className="h-7 w-20" />
         ) : (
-          <div className="text-2xl font-semibold">
-            {total.toLocaleString()}
-          </div>
+          <div className="text-2xl font-semibold">{total.toLocaleString()}</div>
         )}
       </CardHeader>
       <CardContent>

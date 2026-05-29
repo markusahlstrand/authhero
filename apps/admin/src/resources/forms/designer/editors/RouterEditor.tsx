@@ -21,9 +21,9 @@ export function RouterEditor({ index }: RouterEditorProps) {
   const { field: alias } = useController({ name: `${base}.alias` });
   const { field: rulesField } = useController({ name: `${base}.config.rules` });
 
-  const rules = (useWatch({ name: `${base}.config.rules` }) as
-    | RouterRule[]
-    | undefined) ?? [];
+  const rules =
+    (useWatch({ name: `${base}.config.rules` }) as RouterRule[] | undefined) ??
+    [];
 
   const updateRules = (next: RouterRule[]) => rulesField.onChange(next);
 

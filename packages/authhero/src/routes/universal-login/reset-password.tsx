@@ -17,286 +17,284 @@ import {
 } from "../../helpers/password-policy";
 const getRoot = defineRoute({
   route: createRoute({
-      tags: ["login"],
-      method: "get",
-      path: "/",
-      request: {
-        query: z.object({
-          state: z.string().openapi({
-            description: "The state parameter from the authorization request",
-          }),
-          code: z.string().openapi({
-            description: "The code parameter from the authorization request",
-          }),
+    tags: ["login"],
+    method: "get",
+    path: "/",
+    request: {
+      query: z.object({
+        state: z.string().openapi({
+          description: "The state parameter from the authorization request",
         }),
+        code: z.string().openapi({
+          description: "The code parameter from the authorization request",
+        }),
+      }),
+    },
+    responses: {
+      200: {
+        description: "Response",
       },
-      responses: {
-        200: {
-          description: "Response",
+    },
+  }),
+  handler: async (ctx) => {
+    const { state } = ctx.req.valid("query");
+
+    const { theme, branding, client, loginSession } = await initJSXRoute(
+      ctx,
+      state,
+    );
+
+    if (!loginSession.authParams.username) {
+      throw new HTTPException(400, { message: "Username required" });
+    }
+
+    return ctx.html(
+      <ResetPasswordPage
+        theme={theme}
+        branding={branding}
+        client={client}
+        email={loginSession.authParams.username}
+      />,
+    );
+  },
+});
+
+const postRoot = defineRoute({
+  route: createRoute({
+    tags: ["login"],
+    method: "post",
+    path: "/",
+    request: {
+      query: z.object({
+        state: z.string().openapi({
+          description: "The state parameter from the authorization request",
+        }),
+        code: z.string().openapi({
+          description: "The code parameter from the authorization request",
+        }),
+      }),
+      body: {
+        content: {
+          "application/x-www-form-urlencoded": {
+            schema: z.object({
+              password: z.string(),
+              "re-enter-password": z.string(),
+            }),
+          },
         },
       },
-    }),
+    },
+    responses: {
+      200: {
+        description: "Response",
+      },
+    },
+  }),
   handler: async (ctx) => {
-      const { state } = ctx.req.valid("query");
+    const { state, code } = ctx.req.valid("query");
+    const { password, "re-enter-password": reEnterPassword } =
+      ctx.req.valid("form");
 
-      const { theme, branding, client, loginSession } = await initJSXRoute(
-        ctx,
-        state,
-      );
+    const { env } = ctx;
 
-      if (!loginSession.authParams.username) {
-        throw new HTTPException(400, { message: "Username required" });
-      }
+    const { theme, branding, client, loginSession } = await initJSXRoute(
+      ctx,
+      state,
+    );
 
+    if (!loginSession.authParams.username) {
+      throw new HTTPException(400, { message: "Username required" });
+    }
+
+    if (password !== reEnterPassword) {
       return ctx.html(
         <ResetPasswordPage
+          error={i18next.t("create_account_passwords_didnt_match")}
           theme={theme}
           branding={branding}
           client={client}
           email={loginSession.authParams.username}
         />,
+        400,
       );
-    },
-});
+    }
 
-const postRoot = defineRoute({
-  route: createRoute({
-      tags: ["login"],
-      method: "post",
-      path: "/",
-      request: {
-        query: z.object({
-          state: z.string().openapi({
-            description: "The state parameter from the authorization request",
-          }),
-          code: z.string().openapi({
-            description: "The code parameter from the authorization request",
-          }),
-        }),
-        body: {
-          content: {
-            "application/x-www-form-urlencoded": {
-              schema: z.object({
-                password: z.string(),
-                "re-enter-password": z.string(),
-              }),
-            },
-          },
-        },
-      },
-      responses: {
-        200: {
-          description: "Response",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const { state, code } = ctx.req.valid("query");
-      const { password, "re-enter-password": reEnterPassword } =
-        ctx.req.valid("form");
+    // Note! we don't use the primary user here. Something to be careful of
+    // this means the primary user could have a totally different email address
+    const user = await getUsernamePasswordUser({
+      env,
+      tenant_id: client.tenant.id,
+      username: loginSession.authParams.username,
+    });
 
-      const { env } = ctx;
+    if (!user) {
+      throw new HTTPException(400, { message: "User not found" });
+    }
 
-      const { theme, branding, client, loginSession } = await initJSXRoute(
-        ctx,
-        state,
+    // Find the password connection by strategy to get the correct connection name
+    // This is needed because user.connection may contain "Username-Password-Authentication"
+    // (a hardcoded fallback) instead of the actual connection name
+    const passwordConnection = client.connections.find(
+      (c) => c.strategy === Strategy.USERNAME_PASSWORD,
+    );
+    const connectionName = passwordConnection?.name || user.connection;
+
+    // Validate password against connection policy
+    const policy = await getPasswordPolicy(
+      env.data,
+      client.tenant.id,
+      connectionName,
+    );
+
+    try {
+      await validatePasswordPolicy(policy, {
+        tenantId: client.tenant.id,
+        userId: user.user_id,
+        newPassword: password,
+        userData: user,
+        data: env.data,
+      });
+    } catch (policyError: any) {
+      const errorMessage =
+        policyError?.message || i18next.t("create_account_weak_password");
+
+      return ctx.html(
+        <ResetPasswordPage
+          error={errorMessage}
+          theme={theme}
+          branding={branding}
+          client={client}
+          email={loginSession.authParams.username}
+        />,
+        400,
+      );
+    }
+
+    const username = loginSession.authParams.username;
+    const renderCodeExpired = () =>
+      ctx.html(
+        <ResetPasswordPage
+          error={i18next.t(
+            "password_reset_code_expired",
+            "Code not found or expired",
+          )}
+          theme={theme}
+          branding={branding}
+          client={client}
+          email={username}
+        />,
+        400,
       );
 
-      if (!loginSession.authParams.username) {
-        throw new HTTPException(400, { message: "Username required" });
+    try {
+      const foundCode = await env.data.codes.get(
+        client.tenant.id,
+        code,
+        "password_reset",
+      );
+
+      if (!foundCode) {
+        // surely we should check this on the GET rather than have the user waste time entering a new password?
+        // THEN we can assume here it works and throw a hono exception if it doesn't... because it's an issue with our system
+        // ALTHOUGH the user could have taken a long time to enter the password...
+        return renderCodeExpired();
       }
 
-      if (password !== reEnterPassword) {
-        return ctx.html(
-          <ResetPasswordPage
-            error={i18next.t("create_account_passwords_didnt_match")}
-            theme={theme}
-            branding={branding}
-            client={client}
-            email={loginSession.authParams.username}
-          />,
-          400,
-        );
+      // Atomically claim the code so it cannot be reused.
+      const consumed = await env.data.codes.consume(
+        client.tenant.id,
+        foundCode.code_id,
+      );
+      if (!consumed) {
+        return renderCodeExpired();
       }
 
-      // Note! we don't use the primary user here. Something to be careful of
-      // this means the primary user could have a totally different email address
-      const user = await getUsernamePasswordUser({
-        env,
-        tenant_id: client.tenant.id,
-        username: loginSession.authParams.username,
+      // Mark old password as not current (for password history)
+      const existingPassword = await env.data.passwords.get(
+        client.tenant.id,
+        user.user_id,
+      );
+      if (existingPassword) {
+        await env.data.passwords.update(client.tenant.id, {
+          id: existingPassword.id,
+          user_id: user.user_id,
+          password: existingPassword.password,
+          algorithm: existingPassword.algorithm,
+          is_current: false,
+        });
+      }
+
+      // Create new password
+      await env.data.passwords.create(client.tenant.id, {
+        user_id: user.user_id,
+        password: await bcryptjs.hash(password, 10),
+        algorithm: "bcrypt",
+        is_current: true,
       });
 
-      if (!user) {
-        throw new HTTPException(400, { message: "User not found" });
+      if (!user.email_verified) {
+        await env.data.users.update(client.tenant.id, user.user_id, {
+          email_verified: true,
+        });
       }
 
-      // Find the password connection by strategy to get the correct connection name
-      // This is needed because user.connection may contain "Username-Password-Authentication"
-      // (a hardcoded fallback) instead of the actual connection name
-      const passwordConnection = client.connections.find(
-        (c) => c.strategy === Strategy.USERNAME_PASSWORD,
-      );
-      const connectionName = passwordConnection?.name || user.connection;
+      // Log the successful password change
+      await logMessage(ctx, client.tenant.id, {
+        type: LogTypes.SUCCESS_CHANGE_PASSWORD,
+        description: `Password changed for ${user.email}`,
+        userId: user.user_id,
+      });
+    } catch (err) {
+      // Log the actual error for debugging
+      console.error("Password reset failed:", err);
+      const errorDetails =
+        err instanceof Error ? err.message : JSON.stringify(err);
+      await logMessage(ctx, client.tenant.id, {
+        type: LogTypes.FAILED_CHANGE_PASSWORD,
+        description: `Password reset failed for ${user.email}: ${errorDetails}`,
+        userId: user.user_id,
+      });
 
-      // Validate password against connection policy
-      const policy = await getPasswordPolicy(
-        env.data,
-        client.tenant.id,
-        connectionName,
-      );
-
-      try {
-        await validatePasswordPolicy(policy, {
-          tenantId: client.tenant.id,
-          userId: user.user_id,
-          newPassword: password,
-          userData: user,
-          data: env.data,
+      // Use translated error message with interpolation for policy errors
+      let resetErrorMessage: string;
+      if (err instanceof PasswordPolicyError) {
+        // Try to get translated message, fall back to error message
+        resetErrorMessage = i18next.t(err.code, {
+          defaultValue: err.message,
+          ...err.params,
         });
-      } catch (policyError: any) {
-        const errorMessage =
-          policyError?.message || i18next.t("create_account_weak_password");
-
-        return ctx.html(
-          <ResetPasswordPage
-            error={errorMessage}
-            theme={theme}
-            branding={branding}
-            client={client}
-            email={loginSession.authParams.username}
-          />,
-          400,
-        );
-      }
-
-      const username = loginSession.authParams.username;
-      const renderCodeExpired = () =>
-        ctx.html(
-          <ResetPasswordPage
-            error={i18next.t(
-              "password_reset_code_expired",
-              "Code not found or expired",
-            )}
-            theme={theme}
-            branding={branding}
-            client={client}
-            email={username}
-          />,
-          400,
-        );
-
-      try {
-        const foundCode = await env.data.codes.get(
-          client.tenant.id,
-          code,
-          "password_reset",
-        );
-
-        if (!foundCode) {
-          // surely we should check this on the GET rather than have the user waste time entering a new password?
-          // THEN we can assume here it works and throw a hono exception if it doesn't... because it's an issue with our system
-          // ALTHOUGH the user could have taken a long time to enter the password...
-          return renderCodeExpired();
-        }
-
-        // Atomically claim the code so it cannot be reused.
-        const consumed = await env.data.codes.consume(
-          client.tenant.id,
-          foundCode.code_id,
-        );
-        if (!consumed) {
-          return renderCodeExpired();
-        }
-
-        // Mark old password as not current (for password history)
-        const existingPassword = await env.data.passwords.get(
-          client.tenant.id,
-          user.user_id,
-        );
-        if (existingPassword) {
-          await env.data.passwords.update(client.tenant.id, {
-            id: existingPassword.id,
-            user_id: user.user_id,
-            password: existingPassword.password,
-            algorithm: existingPassword.algorithm,
-            is_current: false,
-          });
-        }
-
-        // Create new password
-        await env.data.passwords.create(client.tenant.id, {
-          user_id: user.user_id,
-          password: await bcryptjs.hash(password, 10),
-          algorithm: "bcrypt",
-          is_current: true,
-        });
-
-        if (!user.email_verified) {
-          await env.data.users.update(client.tenant.id, user.user_id, {
-            email_verified: true,
-          });
-        }
-
-        // Log the successful password change
-        await logMessage(ctx, client.tenant.id, {
-          type: LogTypes.SUCCESS_CHANGE_PASSWORD,
-          description: `Password changed for ${user.email}`,
-          userId: user.user_id,
-        });
-      } catch (err) {
-        // Log the actual error for debugging
-        console.error("Password reset failed:", err);
-        const errorDetails =
-          err instanceof Error ? err.message : JSON.stringify(err);
-        await logMessage(ctx, client.tenant.id, {
-          type: LogTypes.FAILED_CHANGE_PASSWORD,
-          description: `Password reset failed for ${user.email}: ${errorDetails}`,
-          userId: user.user_id,
-        });
-
-        // Use translated error message with interpolation for policy errors
-        let resetErrorMessage: string;
-        if (err instanceof PasswordPolicyError) {
-          // Try to get translated message, fall back to error message
-          resetErrorMessage = i18next.t(err.code, {
-            defaultValue: err.message,
-            ...err.params,
-          });
-        } else {
-          resetErrorMessage = i18next.t(
-            "password_reset_failed",
-            "The password could not be reset",
-          );
-        }
-
-        return ctx.html(
-          <ResetPasswordPage
-            error={resetErrorMessage}
-            theme={theme}
-            branding={branding}
-            client={client}
-            email={loginSession.authParams.username}
-          />,
-          400,
+      } else {
+        resetErrorMessage = i18next.t(
+          "password_reset_failed",
+          "The password could not be reset",
         );
       }
 
       return ctx.html(
-        <MessagePage
-          message={i18next.t("password_has_been_reset")}
+        <ResetPasswordPage
+          error={resetErrorMessage}
           theme={theme}
           branding={branding}
           client={client}
-          state={state}
+          email={loginSession.authParams.username}
         />,
+        400,
       );
-    },
-});
+    }
 
+    return ctx.html(
+      <MessagePage
+        message={i18next.t("password_has_been_reset")}
+        theme={theme}
+        branding={branding}
+        client={client}
+        state={state}
+      />,
+    );
+  },
+});
 
 export const resetPasswordRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
-}>()
-  .openapiRoutes([getRoot, postRoot] as const);
+}>().openapiRoutes([getRoot, postRoot] as const);

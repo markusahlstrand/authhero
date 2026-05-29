@@ -32,7 +32,15 @@ function resolveMonacoTheme(themeMode: string | undefined): "vs" | "vs-dark" {
 
 export const CodeInput = (props: CodeInputProps) => {
   const resource = useResourceContext(props);
-  const { label, source, helperText, language = "javascript", height = 420, readOnly, className } = props;
+  const {
+    label,
+    source,
+    helperText,
+    language = "javascript",
+    height = 420,
+    readOnly,
+    className,
+  } = props;
   const { id, field, isRequired } = useInput(props);
   const { theme } = useTheme();
   const [monacoTheme, setMonacoTheme] = useState<"vs" | "vs-dark">(() =>

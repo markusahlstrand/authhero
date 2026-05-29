@@ -58,184 +58,182 @@ const ticketResponseSchema = z.object({
 });
 const postEmailVerification = defineRoute({
   route: createRoute({
-      tags: ["tickets"],
-      method: "post",
-      path: "/email-verification",
-      request: {
-        headers: z.object({ "tenant-id": z.string().optional() }),
-        body: {
-          content: {
-            "application/json": {
-              schema: emailVerificationTicketBodySchema,
-            },
+    tags: ["tickets"],
+    method: "post",
+    path: "/email-verification",
+    request: {
+      headers: z.object({ "tenant-id": z.string().optional() }),
+      body: {
+        content: {
+          "application/json": {
+            schema: emailVerificationTicketBodySchema,
           },
         },
       },
-      security: [{ Bearer: ["create:user_tickets"] }],
-      responses: {
-        201: {
-          description: "Email verification ticket created",
-          content: {
-            "application/json": { schema: ticketResponseSchema },
-          },
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const tenantId = ctx.var.tenant_id;
-      const body = ctx.req.valid("json");
-
-      const user = await ctx.env.data.users.get(tenantId, body.user_id);
-      if (!user) {
-        throw new HTTPException(404, { message: "User not found" });
-      }
-
-      const ticketId = nanoid();
-      const ttl = body.ttl_sec ?? DEFAULT_TTL_SEC;
-      const expiresAt = new Date(Date.now() + ttl * 1000).toISOString();
-
-      await ctx.env.data.codes.create(tenantId, {
-        code_id: ticketId,
-        code_type: "ticket",
-        login_id: ticketId,
-        user_id: user.user_id,
-        expires_at: expiresAt,
-        redirect_uri: body.result_url,
-        state: JSON.stringify({
-          purpose: "email_verification",
-          client_id: body.client_id,
-          organization_id: body.organization_id,
-          result_url: body.result_url,
-          includeEmailInRedirect: body.includeEmailInRedirect,
-        }),
-      });
-
-      const issuer = getIssuer(ctx.env, ctx.var.custom_domain);
-      const url = new URL("u2/tickets/email-verification", issuer);
-      url.searchParams.set("ticket", ticketId);
-      if (!ctx.var.custom_domain) {
-        url.searchParams.set("tenant_id", tenantId);
-      }
-
-      await logMessage(ctx, tenantId, {
-        type: LogTypes.SUCCESS_API_OPERATION,
-        description: "Create Email Verification Ticket",
-        targetType: "ticket",
-        targetId: ticketId,
-        userId: user.user_id,
-      });
-
-      return ctx.json({ ticket: url.toString() }, { status: 201 });
     },
+    security: [{ Bearer: ["create:user_tickets"] }],
+    responses: {
+      201: {
+        description: "Email verification ticket created",
+        content: {
+          "application/json": { schema: ticketResponseSchema },
+        },
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenantId = ctx.var.tenant_id;
+    const body = ctx.req.valid("json");
+
+    const user = await ctx.env.data.users.get(tenantId, body.user_id);
+    if (!user) {
+      throw new HTTPException(404, { message: "User not found" });
+    }
+
+    const ticketId = nanoid();
+    const ttl = body.ttl_sec ?? DEFAULT_TTL_SEC;
+    const expiresAt = new Date(Date.now() + ttl * 1000).toISOString();
+
+    await ctx.env.data.codes.create(tenantId, {
+      code_id: ticketId,
+      code_type: "ticket",
+      login_id: ticketId,
+      user_id: user.user_id,
+      expires_at: expiresAt,
+      redirect_uri: body.result_url,
+      state: JSON.stringify({
+        purpose: "email_verification",
+        client_id: body.client_id,
+        organization_id: body.organization_id,
+        result_url: body.result_url,
+        includeEmailInRedirect: body.includeEmailInRedirect,
+      }),
+    });
+
+    const issuer = getIssuer(ctx.env, ctx.var.custom_domain);
+    const url = new URL("u2/tickets/email-verification", issuer);
+    url.searchParams.set("ticket", ticketId);
+    if (!ctx.var.custom_domain) {
+      url.searchParams.set("tenant_id", tenantId);
+    }
+
+    await logMessage(ctx, tenantId, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: "Create Email Verification Ticket",
+      targetType: "ticket",
+      targetId: ticketId,
+      userId: user.user_id,
+    });
+
+    return ctx.json({ ticket: url.toString() }, { status: 201 });
+  },
 });
 
 const postPasswordChange = defineRoute({
   route: createRoute({
-      tags: ["tickets"],
-      method: "post",
-      path: "/password-change",
-      request: {
-        headers: z.object({ "tenant-id": z.string().optional() }),
-        body: {
-          content: {
-            "application/json": {
-              schema: passwordChangeTicketBodySchema,
-            },
+    tags: ["tickets"],
+    method: "post",
+    path: "/password-change",
+    request: {
+      headers: z.object({ "tenant-id": z.string().optional() }),
+      body: {
+        content: {
+          "application/json": {
+            schema: passwordChangeTicketBodySchema,
           },
         },
       },
-      security: [{ Bearer: ["create:user_tickets"] }],
-      responses: {
-        201: {
-          description: "Password change ticket created",
-          content: {
-            "application/json": { schema: ticketResponseSchema },
-          },
+    },
+    security: [{ Bearer: ["create:user_tickets"] }],
+    responses: {
+      201: {
+        description: "Password change ticket created",
+        content: {
+          "application/json": { schema: ticketResponseSchema },
         },
       },
-    }),
+    },
+  }),
   handler: async (ctx) => {
-      const tenantId = ctx.var.tenant_id;
-      const body = ctx.req.valid("json");
+    const tenantId = ctx.var.tenant_id;
+    const body = ctx.req.valid("json");
 
-      // Resolve user from user_id, or email + connection_id (Auth0 alternative).
-      let userId = body.user_id;
-      if (!userId) {
-        if (!body.email) {
-          throw new HTTPException(400, {
-            message: "user_id or email is required",
+    // Resolve user from user_id, or email + connection_id (Auth0 alternative).
+    let userId = body.user_id;
+    if (!userId) {
+      if (!body.email) {
+        throw new HTTPException(400, {
+          message: "user_id or email is required",
+        });
+      }
+      let connectionName: string | undefined;
+      if (body.connection_id) {
+        const connection = await ctx.env.data.connections.get(
+          tenantId,
+          body.connection_id,
+        );
+        if (!connection) {
+          throw new HTTPException(404, {
+            message: `Connection not found (connection_id=${body.connection_id})`,
           });
         }
-        let connectionName: string | undefined;
-        if (body.connection_id) {
-          const connection = await ctx.env.data.connections.get(
-            tenantId,
-            body.connection_id,
-          );
-          if (!connection) {
-            throw new HTTPException(404, {
-              message: `Connection not found (connection_id=${body.connection_id})`,
-            });
-          }
-          connectionName = connection.name;
-        }
-        const q = connectionName
-          ? `email:${body.email.toLowerCase()} connection:${connectionName}`
-          : `email:${body.email.toLowerCase()}`;
-        const { users } = await ctx.env.data.users.list(tenantId, {
-          q,
-          per_page: 1,
-        });
-        const user = users[0];
-        if (!user) {
-          throw new HTTPException(404, { message: "User not found" });
-        }
-        userId = user.user_id;
+        connectionName = connection.name;
       }
-
-      const ticketId = nanoid();
-      const ttl = body.ttl_sec ?? DEFAULT_TTL_SEC;
-      const expiresAt = new Date(Date.now() + ttl * 1000).toISOString();
-
-      await ctx.env.data.codes.create(tenantId, {
-        code_id: ticketId,
-        code_type: "ticket",
-        login_id: ticketId,
-        user_id: userId,
-        expires_at: expiresAt,
-        redirect_uri: body.result_url,
-        state: JSON.stringify({
-          purpose: "password_change",
-          client_id: body.client_id,
-          organization_id: body.organization_id,
-          connection_id: body.connection_id,
-          result_url: body.result_url,
-          mark_email_as_verified: body.mark_email_as_verified,
-        }),
+      const q = connectionName
+        ? `email:${body.email.toLowerCase()} connection:${connectionName}`
+        : `email:${body.email.toLowerCase()}`;
+      const { users } = await ctx.env.data.users.list(tenantId, {
+        q,
+        per_page: 1,
       });
-
-      const issuer = getIssuer(ctx.env, ctx.var.custom_domain);
-      const url = new URL("u2/tickets/password-change", issuer);
-      url.searchParams.set("ticket", ticketId);
-      if (!ctx.var.custom_domain) {
-        url.searchParams.set("tenant_id", tenantId);
+      const user = users[0];
+      if (!user) {
+        throw new HTTPException(404, { message: "User not found" });
       }
+      userId = user.user_id;
+    }
 
-      await logMessage(ctx, tenantId, {
-        type: LogTypes.SUCCESS_API_OPERATION,
-        description: "Create Password Change Ticket",
-        targetType: "ticket",
-        targetId: ticketId,
-        userId,
-      });
+    const ticketId = nanoid();
+    const ttl = body.ttl_sec ?? DEFAULT_TTL_SEC;
+    const expiresAt = new Date(Date.now() + ttl * 1000).toISOString();
 
-      return ctx.json({ ticket: url.toString() }, { status: 201 });
-    },
+    await ctx.env.data.codes.create(tenantId, {
+      code_id: ticketId,
+      code_type: "ticket",
+      login_id: ticketId,
+      user_id: userId,
+      expires_at: expiresAt,
+      redirect_uri: body.result_url,
+      state: JSON.stringify({
+        purpose: "password_change",
+        client_id: body.client_id,
+        organization_id: body.organization_id,
+        connection_id: body.connection_id,
+        result_url: body.result_url,
+        mark_email_as_verified: body.mark_email_as_verified,
+      }),
+    });
+
+    const issuer = getIssuer(ctx.env, ctx.var.custom_domain);
+    const url = new URL("u2/tickets/password-change", issuer);
+    url.searchParams.set("ticket", ticketId);
+    if (!ctx.var.custom_domain) {
+      url.searchParams.set("tenant_id", tenantId);
+    }
+
+    await logMessage(ctx, tenantId, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: "Create Password Change Ticket",
+      targetType: "ticket",
+      targetId: ticketId,
+      userId,
+    });
+
+    return ctx.json({ ticket: url.toString() }, { status: 201 });
+  },
 });
-
 
 export const ticketsRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
-}>()
-  .openapiRoutes([postEmailVerification, postPasswordChange] as const);
+}>().openapiRoutes([postEmailVerification, postPasswordChange] as const);

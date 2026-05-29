@@ -1,8 +1,4 @@
-import {
-  ArrayInput,
-  SimpleFormIterator,
-  TextInput,
-} from "@/components/admin";
+import { ArrayInput, SimpleFormIterator, TextInput } from "@/components/admin";
 
 export function LocalizationTab() {
   return (

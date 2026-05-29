@@ -60,7 +60,9 @@ export function DropdownChoiceCustomEditor({
             rows={10}
             className="font-mono text-xs"
             value={v.config?.code ?? ""}
-            onChange={(e) => updateConfig({ code: e.target.value || undefined })}
+            onChange={(e) =>
+              updateConfig({ code: e.target.value || undefined })
+            }
           />
         </div>
       </div>
@@ -112,7 +114,9 @@ export function DropdownChoiceCustomEditor({
           <Label className="text-sm">Searchable</Label>
           <Switch
             checked={!!v.config?.searchable}
-            onCheckedChange={(c) => updateConfig({ searchable: c || undefined })}
+            onCheckedChange={(c) =>
+              updateConfig({ searchable: c || undefined })
+            }
           />
         </div>
       )}

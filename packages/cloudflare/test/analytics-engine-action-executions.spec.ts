@@ -9,9 +9,7 @@ import {
 } from "vitest";
 import { setupServer } from "msw/node";
 import { http, HttpResponse } from "msw";
-import {
-  createAnalyticsEngineActionExecutionsAdapter,
-} from "../src/analytics-engine-action-executions";
+import { createAnalyticsEngineActionExecutionsAdapter } from "../src/analytics-engine-action-executions";
 import type { AnalyticsEngineDataset } from "../src/analytics-engine-logs";
 
 const createMockBinding = (): AnalyticsEngineDataset & {
@@ -187,7 +185,9 @@ describe("Analytics Engine ActionExecutions Adapter", () => {
       expect(execution?.trigger_id).toBe("post-login");
       expect(execution?.status).toBe("final");
       expect(execution?.results).toHaveLength(1);
-      expect(execution?.logs?.[0]?.lines?.[0]?.message).toBe("added role admin");
+      expect(execution?.logs?.[0]?.lines?.[0]?.message).toBe(
+        "added role admin",
+      );
     });
 
     it("returns null when no row matches", async () => {

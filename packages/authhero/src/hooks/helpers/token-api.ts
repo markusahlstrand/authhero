@@ -29,7 +29,10 @@ export function createTokenAPI(
     }) => {
       const hasClientId = "clientId" in params && params.clientId !== undefined;
       if (hasClientId) {
-        if (typeof params.clientId !== "string" || params.clientId.length === 0) {
+        if (
+          typeof params.clientId !== "string" ||
+          params.clientId.length === 0
+        ) {
           throw new Error(
             "createServiceToken: `clientId` must be a non-empty string.",
           );

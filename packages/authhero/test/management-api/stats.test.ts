@@ -26,8 +26,18 @@ describe("GET /stats/daily", () => {
     const token = await getAdminToken();
 
     // Two real logins on the same day
-    await seedLog(env, LogTypes.SUCCESS_LOGIN, "2026-05-10T08:00:00.000Z", "u1");
-    await seedLog(env, LogTypes.SUCCESS_LOGIN, "2026-05-10T09:00:00.000Z", "u2");
+    await seedLog(
+      env,
+      LogTypes.SUCCESS_LOGIN,
+      "2026-05-10T08:00:00.000Z",
+      "u1",
+    );
+    await seedLog(
+      env,
+      LogTypes.SUCCESS_LOGIN,
+      "2026-05-10T09:00:00.000Z",
+      "u2",
+    );
     // A token exchange and a silent auth on the same day — these must NOT
     // count as logins (Auth0 parity).
     await seedLog(
@@ -70,9 +80,21 @@ describe("GET /stats/daily", () => {
       "2026-05-11",
       "2026-05-12",
     ]);
-    expect(body[0]).toMatchObject({ logins: 2, signups: 0, leaked_passwords: 0 });
-    expect(body[1]).toMatchObject({ logins: 0, signups: 1, leaked_passwords: 0 });
-    expect(body[2]).toMatchObject({ logins: 0, signups: 0, leaked_passwords: 1 });
+    expect(body[0]).toMatchObject({
+      logins: 2,
+      signups: 0,
+      leaked_passwords: 0,
+    });
+    expect(body[1]).toMatchObject({
+      logins: 0,
+      signups: 1,
+      leaked_passwords: 0,
+    });
+    expect(body[2]).toMatchObject({
+      logins: 0,
+      signups: 0,
+      leaked_passwords: 1,
+    });
   });
 
   it("zero-fills days that have no logs across the requested range", async () => {
@@ -81,7 +103,12 @@ describe("GET /stats/daily", () => {
     const token = await getAdminToken();
 
     // Only one event on the middle day of a 5-day range
-    await seedLog(env, LogTypes.SUCCESS_LOGIN, "2026-05-03T12:00:00.000Z", "u1");
+    await seedLog(
+      env,
+      LogTypes.SUCCESS_LOGIN,
+      "2026-05-03T12:00:00.000Z",
+      "u1",
+    );
 
     const res = await client.stats.daily.$get(
       {
@@ -106,9 +133,21 @@ describe("GET /stats/daily", () => {
       "2026-05-04",
       "2026-05-05",
     ]);
-    expect(body[0]).toMatchObject({ logins: 0, signups: 0, leaked_passwords: 0 });
-    expect(body[2]).toMatchObject({ logins: 1, signups: 0, leaked_passwords: 0 });
-    expect(body[4]).toMatchObject({ logins: 0, signups: 0, leaked_passwords: 0 });
+    expect(body[0]).toMatchObject({
+      logins: 0,
+      signups: 0,
+      leaked_passwords: 0,
+    });
+    expect(body[2]).toMatchObject({
+      logins: 1,
+      signups: 0,
+      leaked_passwords: 0,
+    });
+    expect(body[4]).toMatchObject({
+      logins: 0,
+      signups: 0,
+      leaked_passwords: 0,
+    });
   });
 });
 
@@ -119,9 +158,7 @@ describe("GET /stats/active-users", () => {
     const token = await getAdminToken();
 
     const recent = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString();
-    const old = new Date(
-      Date.now() - 40 * 24 * 60 * 60 * 1000,
-    ).toISOString();
+    const old = new Date(Date.now() - 40 * 24 * 60 * 60 * 1000).toISOString();
 
     // Two distinct users with recent logins
     await seedLog(env, LogTypes.SUCCESS_LOGIN, recent, "user-a");

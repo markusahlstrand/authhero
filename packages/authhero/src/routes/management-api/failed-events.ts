@@ -23,107 +23,105 @@ const listFailedEventsResponseSchema = z.object({
 });
 const getRoot = defineRoute({
   route: createRoute({
-      tags: ["failed-events"],
-      method: "get",
-      path: "/",
-      request: {
-        query: querySchema,
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-      },
-      security: [
-        {
-          Bearer: ["read:logs"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: listFailedEventsResponseSchema,
-            },
-          },
-          description: "Dead-lettered outbox events",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const outbox = ctx.env.data.outbox;
-      if (!outbox) {
-        throw new HTTPException(501, {
-          message: "Outbox is not configured for this adapter",
-        });
-      }
-
-      const { page, per_page, include_totals } = ctx.req.valid("query");
-      const result = await outbox.listFailed(ctx.var.tenant_id, {
-        page,
-        per_page,
-        include_totals,
-      });
-
-      return ctx.json({
-        events: result.events,
-        start: result.start,
-        limit: result.limit,
-        length: result.length,
-      });
+    tags: ["failed-events"],
+    method: "get",
+    path: "/",
+    request: {
+      query: querySchema,
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
     },
+    security: [
+      {
+        Bearer: ["read:logs"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: listFailedEventsResponseSchema,
+          },
+        },
+        description: "Dead-lettered outbox events",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const outbox = ctx.env.data.outbox;
+    if (!outbox) {
+      throw new HTTPException(501, {
+        message: "Outbox is not configured for this adapter",
+      });
+    }
+
+    const { page, per_page, include_totals } = ctx.req.valid("query");
+    const result = await outbox.listFailed(ctx.var.tenant_id, {
+      page,
+      per_page,
+      include_totals,
+    });
+
+    return ctx.json({
+      events: result.events,
+      start: result.start,
+      limit: result.limit,
+      length: result.length,
+    });
+  },
 });
 
 const postByIdRetry = defineRoute({
   route: createRoute({
-      tags: ["failed-events"],
-      method: "post",
-      path: "/{id}/retry",
-      request: {
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-        params: z.object({ id: z.string() }),
-      },
-      security: [
-        {
-          Bearer: ["update:logs"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: z.object({ id: z.string(), replayed: z.boolean() }),
-            },
-          },
-          description: "Event queued for retry",
-        },
-        404: { description: "Not found" },
-      },
-    }),
-  handler: async (ctx) => {
-      const outbox = ctx.env.data.outbox;
-      if (!outbox) {
-        throw new HTTPException(501, {
-          message: "Outbox is not configured for this adapter",
-        });
-      }
-
-      const { id } = ctx.req.valid("param");
-      // Scope replay to the caller's tenant so a management-API token issued
-      // for tenant A can never reach into tenant B's dead-letter queue.
-      const replayed = await outbox.replay(id, ctx.var.tenant_id);
-      if (!replayed) {
-        throw new HTTPException(404, {
-          message: "Dead-lettered event not found",
-        });
-      }
-      return ctx.json({ id, replayed: true });
+    tags: ["failed-events"],
+    method: "post",
+    path: "/{id}/retry",
+    request: {
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
+      params: z.object({ id: z.string() }),
     },
-});
+    security: [
+      {
+        Bearer: ["update:logs"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: z.object({ id: z.string(), replayed: z.boolean() }),
+          },
+        },
+        description: "Event queued for retry",
+      },
+      404: { description: "Not found" },
+    },
+  }),
+  handler: async (ctx) => {
+    const outbox = ctx.env.data.outbox;
+    if (!outbox) {
+      throw new HTTPException(501, {
+        message: "Outbox is not configured for this adapter",
+      });
+    }
 
+    const { id } = ctx.req.valid("param");
+    // Scope replay to the caller's tenant so a management-API token issued
+    // for tenant A can never reach into tenant B's dead-letter queue.
+    const replayed = await outbox.replay(id, ctx.var.tenant_id);
+    if (!replayed) {
+      throw new HTTPException(404, {
+        message: "Dead-lettered event not found",
+      });
+    }
+    return ctx.json({ id, replayed: true });
+  },
+});
 
 export const failedEventsRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
-}>()
-  .openapiRoutes([getRoot, postByIdRetry] as const);
+}>().openapiRoutes([getRoot, postByIdRetry] as const);

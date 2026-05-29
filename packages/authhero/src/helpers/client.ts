@@ -1,12 +1,17 @@
 import { z } from "@hono/zod-openapi";
 import { JSONHTTPException } from "../errors/json-http-exception";
 import {
+  Client,
   clientSchema,
+  Connection,
   connectionSchema,
+  Tenant,
   tenantSchema,
 } from "@authhero/adapter-interfaces";
 import { Bindings } from "../types";
 import { getUniversalLoginUrl } from "../variables";
+import { isCimdClientId, resolveCimdClient } from "./cimd";
+import { SsrfFetchOptions } from "../utils/ssrf-fetch";
 
 /**
  * EnrichedClient combines a Client with its associated Tenant and Connections.
@@ -65,11 +70,55 @@ function mergeClientUrls<T extends ClientLike>(client: T, cp: ClientLike): T {
  * @returns EnrichedClient with client, tenant, and connections data
  * @throws JSONHTTPException if client or tenant is not found
  */
+/**
+ * Composes a base Client with its tenant and connections into an EnrichedClient,
+ * augmenting the URL lists with the universal-login URLs every auth flow needs.
+ */
+function enrichClient(
+  env: Bindings,
+  client: Client,
+  tenant: Tenant,
+  connections: Connection[],
+): EnrichedClient {
+  const universalLoginUrl = getUniversalLoginUrl(env);
+  return {
+    ...client,
+    web_origins: [...(client.web_origins || []), `${universalLoginUrl}login`],
+    allowed_logout_urls: [...(client.allowed_logout_urls || []), env.ISSUER],
+    callbacks: [...(client.callbacks || []), `${universalLoginUrl}info`],
+    tenant,
+    connections,
+  };
+}
+
 export async function getEnrichedClient(
   env: Bindings,
   clientId: string,
   tenantId?: string,
+  fetchOpts?: SsrfFetchOptions,
 ): Promise<EnrichedClient> {
+  // CIMD: the client_id is an https URL hosting the client metadata document.
+  // Requires the tenant to be known (resolved from the request host/domain) and
+  // the per-tenant flag to be enabled. The document is fetched and validated on
+  // every request — no DB record is created.
+  if (isCimdClientId(clientId)) {
+    if (!tenantId) {
+      throw new JSONHTTPException(400, {
+        message: "tenant_id is required to resolve a CIMD client",
+      });
+    }
+    const tenant = await env.data.tenants.get(tenantId);
+    if (!tenant) {
+      throw new JSONHTTPException(404, { message: "Tenant not found" });
+    }
+    if (tenant.flags?.client_id_metadata_document_registration !== true) {
+      throw new JSONHTTPException(403, { message: "Client not found" });
+    }
+    const synthesized = await resolveCimdClient(clientId, fetchOpts);
+    const allConnections = await env.data.connections.list(tenantId);
+    return enrichClient(env, synthesized, tenant, allConnections.connections);
+  }
+
   // If we don't have tenant_id, fetch the client first to get it
   let client;
   let resolvedTenantId = tenantId;
@@ -147,21 +196,5 @@ export async function getEnrichedClient(
       ? clientConnections
       : allConnections.connections || [];
 
-  const universalLoginUrl = getUniversalLoginUrl(env);
-
-  return {
-    ...finalClient,
-    // Always include universal login URLs required for auth flows
-    web_origins: [
-      ...(finalClient.web_origins || []),
-      `${universalLoginUrl}login`,
-    ],
-    allowed_logout_urls: [
-      ...(finalClient.allowed_logout_urls || []),
-      env.ISSUER,
-    ],
-    callbacks: [...(finalClient.callbacks || []), `${universalLoginUrl}info`],
-    tenant,
-    connections,
-  };
+  return enrichClient(env, finalClient, tenant, connections);
 }

@@ -1,9 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-  useDataProvider,
-  useNotify,
-  useRecordContext,
-} from "ra-core";
+import { useDataProvider, useNotify, useRecordContext } from "ra-core";
 import {
   ArrowDown,
   ArrowUp,

@@ -13,6 +13,7 @@ import {
 import { GrantFlowUserResult } from "src/types/GrantFlowResult";
 import { logMessage } from "../helpers/logging";
 import { getEnrichedClient } from "../helpers/client";
+import { ssrfFetchOptionsFromEnv } from "../utils/ssrf-fetch";
 
 // OAuth 2.1 / RFC 7636: client_secret and code_verifier are independent and may co-exist.
 // Proof-of-possession (one of client_secret, code_verifier, or RFC 7523 client_assertion)
@@ -41,6 +42,7 @@ export async function authorizationCodeGrantUser(
     ctx.env,
     params.client_id,
     ctx.var.tenant_id,
+    ssrfFetchOptionsFromEnv(ctx.env),
   );
 
   const code = await ctx.env.data.codes.get(

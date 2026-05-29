@@ -60,7 +60,10 @@ function ProviderCredentials() {
     return (
       <>
         <TextInput source="credentials.accessKeyId" label="Access Key ID" />
-        <SecretInput source="credentials.secretAccessKey" label="Secret Access Key" />
+        <SecretInput
+          source="credentials.secretAccessKey"
+          label="Secret Access Key"
+        />
         <TextInput source="credentials.region" label="Region" />
       </>
     );
@@ -81,7 +84,10 @@ function ProviderCredentials() {
         <TextInput source="credentials.tenantId" label="Tenant ID" />
         <TextInput source="credentials.clientId" label="Client ID" />
         <SecretInput source="credentials.clientSecret" label="Client Secret" />
-        <TextInput source="credentials.connectionString" label="Connection String" />
+        <TextInput
+          source="credentials.connectionString"
+          label="Connection String"
+        />
       </>
     );
   }
@@ -104,7 +110,11 @@ export function EmailProvidersEdit() {
   return (
     <Edit mutationMode="pessimistic" redirect={false} title="Email Provider">
       <SimpleForm>
-        <SelectInput source="name" label="Provider" choices={PROVIDER_CHOICES} />
+        <SelectInput
+          source="name"
+          label="Provider"
+          choices={PROVIDER_CHOICES}
+        />
         <ProviderFields />
       </SimpleForm>
     </Edit>

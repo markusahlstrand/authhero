@@ -171,9 +171,7 @@ export class LogStreamDestination implements EventDestination {
     };
 
     if (!sink.http_endpoint) {
-      throw new Error(
-        `Log stream ${stream.id} is missing sink.http_endpoint`,
-      );
+      throw new Error(`Log stream ${stream.id} is missing sink.http_endpoint`);
     }
 
     const headers: Record<string, string> = {
@@ -212,4 +210,3 @@ export class LogStreamDestination implements EventDestination {
     }
   }
 }
-

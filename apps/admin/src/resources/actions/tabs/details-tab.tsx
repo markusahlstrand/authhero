@@ -64,17 +64,14 @@ function DeployButton() {
     try {
       const apiUrl = getApiUrl();
       const httpClient = getHttpClient(tenantId);
-      await httpClient(
-        `${apiUrl}/api/v2/actions/actions/${record.id}/deploy`,
-        {
-          method: "POST",
-          body: JSON.stringify({}),
-          headers: new Headers({
-            "tenant-id": tenantId,
-            "content-type": "application/json",
-          }),
-        },
-      );
+      await httpClient(`${apiUrl}/api/v2/actions/actions/${record.id}/deploy`, {
+        method: "POST",
+        body: JSON.stringify({}),
+        headers: new Headers({
+          "tenant-id": tenantId,
+          "content-type": "application/json",
+        }),
+      });
       notify("Action deployed", { type: "success" });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);

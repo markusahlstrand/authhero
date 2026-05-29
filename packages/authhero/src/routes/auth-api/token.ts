@@ -114,360 +114,356 @@ function successLogTypeForGrant(grantType: string): LogType | undefined {
 }
 const postRoot = defineRoute({
   route: createRoute({
-      tags: ["oauth2"],
-      method: "post",
-      path: "/",
-      request: {
-        body: {
-          content: {
-            "application/x-www-form-urlencoded": {
-              schema: CreateRequestSchema,
-            },
-            "application/json": {
-              schema: CreateRequestSchema,
-            },
+    tags: ["oauth2"],
+    method: "post",
+    path: "/",
+    request: {
+      body: {
+        content: {
+          "application/x-www-form-urlencoded": {
+            schema: CreateRequestSchema,
+          },
+          "application/json": {
+            schema: CreateRequestSchema,
           },
         },
       },
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: tokenResponseSchema,
-            },
-          },
-          description: "Tokens",
-        },
-        302: {
-          description:
-            "Redirect for further user interaction (e.g., MFA, consent).",
-          headers: z.object({ Location: z.string().url() }).openapi({}),
-        },
-        400: {
-          description: "Bad Request - The request was malformed or invalid.",
-          content: {
-            "application/json": {
-              schema: z.object({
-                error: z.string(),
-                error_description: z.string().optional(),
-              }),
-            },
+    },
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: tokenResponseSchema,
           },
         },
-        401: {
-          description: "Unauthorized - Client authentication failed.",
-          content: {
-            "application/json": {
-              schema: z.object({
-                error: z.string(),
-                error_description: z.string().optional(),
-              }),
-            },
-          },
-        },
-        403: {
-          description:
-            "Forbidden - User is not a member of the required organization.",
-          content: {
-            "application/json": {
-              schema: z.object({
-                error: z.string(),
-                error_description: z.string().optional(),
-              }),
-            },
+        description: "Tokens",
+      },
+      302: {
+        description:
+          "Redirect for further user interaction (e.g., MFA, consent).",
+        headers: z.object({ Location: z.string().url() }).openapi({}),
+      },
+      400: {
+        description: "Bad Request - The request was malformed or invalid.",
+        content: {
+          "application/json": {
+            schema: z.object({
+              error: z.string(),
+              error_description: z.string().optional(),
+            }),
           },
         },
       },
-    }),
+      401: {
+        description: "Unauthorized - Client authentication failed.",
+        content: {
+          "application/json": {
+            schema: z.object({
+              error: z.string(),
+              error_description: z.string().optional(),
+            }),
+          },
+        },
+      },
+      403: {
+        description:
+          "Forbidden - User is not a member of the required organization.",
+        content: {
+          "application/json": {
+            schema: z.object({
+              error: z.string(),
+              error_description: z.string().optional(),
+            }),
+          },
+        },
+      },
+    },
+  }),
   handler: async (ctx) => {
-      const contentType = ctx.req.header("Content-Type") || "";
-      const body = contentType.includes("application/json")
-        ? ctx.req.valid("json")
-        : ctx.req.valid("form");
+    const contentType = ctx.req.header("Content-Type") || "";
+    const body = contentType.includes("application/json")
+      ? ctx.req.valid("json")
+      : ctx.req.valid("form");
 
-      const basicAuth = parseBasicAuthHeader(ctx.req.header("Authorization"));
-      const params: Record<string, unknown> = { ...body, ...basicAuth };
+    const basicAuth = parseBasicAuthHeader(ctx.req.header("Authorization"));
+    const params: Record<string, unknown> = { ...body, ...basicAuth };
 
-      // RFC 7523 client authentication: clients registered with
-      // `private_key_jwt` or `client_secret_jwt` send a signed JWT in
-      // `client_assertion`. We verify it before the grant switch so the
-      // grant handlers can skip their client_secret comparison.
-      const clientAssertion =
-        typeof params.client_assertion === "string"
-          ? params.client_assertion
-          : undefined;
-      const clientAssertionType =
-        typeof params.client_assertion_type === "string"
-          ? params.client_assertion_type
-          : undefined;
+    // RFC 7523 client authentication: clients registered with
+    // `private_key_jwt` or `client_secret_jwt` send a signed JWT in
+    // `client_assertion`. We verify it before the grant switch so the
+    // grant handlers can skip their client_secret comparison.
+    const clientAssertion =
+      typeof params.client_assertion === "string"
+        ? params.client_assertion
+        : undefined;
+    const clientAssertionType =
+      typeof params.client_assertion_type === "string"
+        ? params.client_assertion_type
+        : undefined;
 
-      if (clientAssertion) {
-        if (clientAssertionType !== CLIENT_ASSERTION_TYPE) {
-          throw new JSONHTTPException(400, {
-            error: "invalid_request",
-            error_description: `client_assertion_type must be ${CLIENT_ASSERTION_TYPE}`,
-          });
-        }
-        // RFC 6749 §2.3: a client MUST NOT use more than one auth method.
-        if (
-          typeof params.client_secret === "string" ||
-          basicAuth?.client_secret
-        ) {
-          throw new JSONHTTPException(400, {
-            error: "invalid_request",
-            error_description:
-              "client_secret and client_assertion are mutually exclusive",
-          });
-        }
+    if (clientAssertion) {
+      if (clientAssertionType !== CLIENT_ASSERTION_TYPE) {
+        throw new JSONHTTPException(400, {
+          error: "invalid_request",
+          error_description: `client_assertion_type must be ${CLIENT_ASSERTION_TYPE}`,
+        });
+      }
+      // RFC 6749 §2.3: a client MUST NOT use more than one auth method.
+      if (
+        typeof params.client_secret === "string" ||
+        basicAuth?.client_secret
+      ) {
+        throw new JSONHTTPException(400, {
+          error: "invalid_request",
+          error_description:
+            "client_secret and client_assertion are mutually exclusive",
+        });
+      }
 
-        const explicitClientId =
-          typeof params.client_id === "string" ? params.client_id : undefined;
-        const assertionClientId =
-          explicitClientId ?? peekAssertionClientId(clientAssertion);
-        if (!assertionClientId) {
-          throw new JSONHTTPException(400, {
-            error: "invalid_request",
-            error_description:
-              "client_id could not be determined from client_assertion",
-          });
-        }
+      const explicitClientId =
+        typeof params.client_id === "string" ? params.client_id : undefined;
+      const assertionClientId =
+        explicitClientId ?? peekAssertionClientId(clientAssertion);
+      if (!assertionClientId) {
+        throw new JSONHTTPException(400, {
+          error: "invalid_request",
+          error_description:
+            "client_id could not be determined from client_assertion",
+        });
+      }
 
-        let assertionClient: EnrichedClient;
-        try {
-          assertionClient = await getEnrichedClient(
-            ctx.env,
-            assertionClientId,
-            ctx.var.tenant_id,
-          );
-        } catch {
+      let assertionClient: EnrichedClient;
+      try {
+        assertionClient = await getEnrichedClient(
+          ctx.env,
+          assertionClientId,
+          ctx.var.tenant_id,
+        );
+      } catch {
+        throw new JSONHTTPException(401, {
+          error: "invalid_client",
+          error_description: "client not found",
+        });
+      }
+
+      const tokenEndpoint = `${getAuthUrl(ctx.env, ctx.var.custom_domain)}oauth/token`;
+      const issuer = getIssuer(ctx.env, ctx.var.custom_domain);
+
+      try {
+        const verified = await verifyClientAssertion(
+          clientAssertion,
+          assertionClient,
+          { acceptedAudiences: [tokenEndpoint, issuer] },
+        );
+        // RFC 7521 §4.2: the assertion authentication method MUST match the
+        // method the client registered. Block clients that registered with a
+        // non-assertion method (or `none`) from authenticating via assertion.
+        const registered = assertionClient.token_endpoint_auth_method;
+        if (registered === "none") {
           throw new JSONHTTPException(401, {
             error: "invalid_client",
-            error_description: "client not found",
+            error_description:
+              "public clients must not authenticate with client_assertion",
+          });
+        }
+        if (
+          (registered === "client_secret_jwt" ||
+            registered === "private_key_jwt") &&
+          registered !== verified.method
+        ) {
+          throw new JSONHTTPException(401, {
+            error: "invalid_client",
+            error_description: `client_assertion method ${verified.method} does not match registered token_endpoint_auth_method ${registered}`,
+          });
+        }
+        params.client_id = verified.clientId;
+        ctx.set("client_authenticated_via_assertion", true);
+      } catch (e) {
+        if (e instanceof ClientAssertionError) {
+          // RFC 6749 §5.2 enumerates the valid `error` values for the token
+          // endpoint. Translate internal assertion error codes to those.
+          const error =
+            e.code === "unsupported_alg" ? "invalid_request" : "invalid_client";
+          throw new JSONHTTPException(401, {
+            error,
+            error_description: e.message,
+          });
+        }
+        throw e;
+      }
+    }
+
+    if (typeof params.client_id !== "string" || !params.client_id) {
+      throw new HTTPException(400, { message: "client_id is required" });
+    }
+    ctx.set("client_id", params.client_id);
+
+    let grantResult: GrantFlowResult;
+
+    switch (body.grant_type) {
+      case GrantType.AuthorizationCode:
+        grantResult = await authorizationCodeGrantUser(
+          ctx,
+          authorizationCodeGrantParamsSchema.parse(params),
+        );
+        break;
+      case GrantType.ClientCredential:
+        grantResult = await clientCredentialsGrant(
+          ctx,
+          clientCredentialGrantParamsSchema.parse(params),
+        );
+        break;
+      case GrantType.RefreshToken:
+        grantResult = await refreshTokenGrant(
+          ctx,
+          refreshTokenParamsSchema.parse(params),
+        );
+        break;
+      case GrantType.OTP:
+        grantResult = await passwordlessGrantUser(
+          ctx,
+          passwordlessGrantParamsSchema.parse(params),
+        );
+        break;
+      default:
+        return ctx.json(
+          {
+            error: "unsupported_grant_type",
+            error_description: "Grant type not implemented",
+          },
+          400,
+        );
+    }
+
+    // RFC 6749 §5.2: reject grants the client is not registered for. Only
+    // enforced when the client explicitly lists `grant_types` — clients with
+    // an empty/undefined list (legacy / unconfigured) keep working as before.
+    const allowedGrantTypes = grantResult.client.grant_types;
+    if (
+      allowedGrantTypes &&
+      allowedGrantTypes.length > 0 &&
+      !allowedGrantTypes.includes(body.grant_type)
+    ) {
+      logMessage(ctx, grantResult.client.tenant.id, {
+        type: LogTypes.FAILED_LOGIN,
+        description: `Grant type "${body.grant_type}" is not allowed for this client`,
+      });
+      throw new JSONHTTPException(400, {
+        error: "unauthorized_client",
+        error_description: `The grant type "${body.grant_type}" is not allowed for this client`,
+      });
+    }
+
+    // Set tenant_id in context (or validate it matches if already set)
+    setTenantId(ctx, grantResult.client.tenant.id);
+
+    const passwordlessHeaders = new Headers();
+
+    if (grantResult.session_id) {
+      const passwordlessAuthCookies = serializeAuthCookie(
+        grantResult.client.tenant.id,
+        grantResult.session_id,
+        ctx.var.host || "",
+      );
+
+      passwordlessAuthCookies.forEach((cookie) => {
+        passwordlessHeaders.append("Set-Cookie", cookie);
+      });
+    }
+
+    // Calculate scopes and permissions before creating tokens
+    // This will throw a 403 error if user is not a member of the required organization
+    let calculatedPermissions: string[] = [];
+    let tokenLifetime: number | undefined;
+
+    if (grantResult.authParams.audience) {
+      try {
+        let scopesAndPermissions;
+
+        if (body.grant_type === GrantType.ClientCredential) {
+          scopesAndPermissions = await calculateScopesAndPermissions(ctx, {
+            grantType: GrantType.ClientCredential,
+            tenantId: grantResult.client.tenant.id,
+            clientId: grantResult.client.client_id,
+            audience: grantResult.authParams.audience,
+            requestedScopes: grantResult.authParams.scope?.split(" ") || [],
+            organizationId: grantResult.organization?.id,
+          });
+        } else {
+          // For user-based grants, userId is required
+          if (!grantResult.user?.user_id) {
+            throw new JSONHTTPException(400, {
+              error: "invalid_request",
+              error_description: "User ID is required for user-based grants",
+            });
+          }
+
+          scopesAndPermissions = await calculateScopesAndPermissions(ctx, {
+            grantType: body.grant_type as
+              | GrantType.AuthorizationCode
+              | GrantType.RefreshToken
+              | GrantType.Password
+              | GrantType.Passwordless
+              | GrantType.OTP,
+            tenantId: grantResult.client.tenant.id,
+            userId: grantResult.user.user_id,
+            clientId: grantResult.client.client_id,
+            audience: grantResult.authParams.audience,
+            requestedScopes: grantResult.authParams.scope?.split(" ") || [],
+            organizationId: grantResult.organization?.id,
           });
         }
 
-        const tokenEndpoint = `${getAuthUrl(ctx.env, ctx.var.custom_domain)}oauth/token`;
-        const issuer = getIssuer(ctx.env, ctx.var.custom_domain);
+        // Update the authParams with calculated scopes and store permissions
+        grantResult.authParams.scope = scopesAndPermissions.scopes.join(" ");
+        calculatedPermissions = scopesAndPermissions.permissions;
 
-        try {
-          const verified = await verifyClientAssertion(
-            clientAssertion,
-            assertionClient,
-            { acceptedAudiences: [tokenEndpoint, issuer] },
-          );
-          // RFC 7521 §4.2: the assertion authentication method MUST match the
-          // method the client registered. Block clients that registered with a
-          // non-assertion method (or `none`) from authenticating via assertion.
-          const registered = assertionClient.token_endpoint_auth_method;
-          if (registered === "none") {
-            throw new JSONHTTPException(401, {
-              error: "invalid_client",
-              error_description:
-                "public clients must not authenticate with client_assertion",
-            });
-          }
-          if (
-            (registered === "client_secret_jwt" ||
-              registered === "private_key_jwt") &&
-            registered !== verified.method
-          ) {
-            throw new JSONHTTPException(401, {
-              error: "invalid_client",
-              error_description: `client_assertion method ${verified.method} does not match registered token_endpoint_auth_method ${registered}`,
-            });
-          }
-          params.client_id = verified.clientId;
-          ctx.set("client_authenticated_via_assertion", true);
-        } catch (e) {
-          if (e instanceof ClientAssertionError) {
-            // RFC 6749 §5.2 enumerates the valid `error` values for the token
-            // endpoint. Translate internal assertion error codes to those.
-            const error =
-              e.code === "unsupported_alg"
-                ? "invalid_request"
-                : "invalid_client";
-            throw new JSONHTTPException(401, {
-              error,
-              error_description: e.message,
-            });
-          }
-          throw e;
+        // Use token_lifetime_for_web for SPA clients, token_lifetime for all others
+        tokenLifetime =
+          grantResult.client.app_type === "spa"
+            ? (scopesAndPermissions.token_lifetime_for_web ??
+              scopesAndPermissions.token_lifetime)
+            : scopesAndPermissions.token_lifetime;
+      } catch (error) {
+        // Re-throw HTTPExceptions (like 403 for organization membership)
+        if (error instanceof HTTPException) {
+          throw error;
         }
+        // For other errors, log and continue with original scopes
+        console.error("Error calculating scopes and permissions:", error);
       }
+    }
 
-      if (typeof params.client_id !== "string" || !params.client_id) {
-        throw new HTTPException(400, { message: "client_id is required" });
-      }
-      ctx.set("client_id", params.client_id);
+    const tokens = await createAuthTokens(ctx, {
+      ...grantResult,
+      grantType: body.grant_type as GrantType,
+      permissions:
+        calculatedPermissions.length > 0 ? calculatedPermissions : undefined,
+      token_lifetime: tokenLifetime,
+    });
 
-      let grantResult: GrantFlowResult;
-
-      switch (body.grant_type) {
-        case GrantType.AuthorizationCode:
-          grantResult = await authorizationCodeGrantUser(
-            ctx,
-            authorizationCodeGrantParamsSchema.parse(params),
-          );
-          break;
-        case GrantType.ClientCredential:
-          grantResult = await clientCredentialsGrant(
-            ctx,
-            clientCredentialGrantParamsSchema.parse(params),
-          );
-          break;
-        case GrantType.RefreshToken:
-          grantResult = await refreshTokenGrant(
-            ctx,
-            refreshTokenParamsSchema.parse(params),
-          );
-          break;
-        case GrantType.OTP:
-          grantResult = await passwordlessGrantUser(
-            ctx,
-            passwordlessGrantParamsSchema.parse(params),
-          );
-          break;
-        default:
-          return ctx.json(
-            {
-              error: "unsupported_grant_type",
-              error_description: "Grant type not implemented",
-            },
-            400,
-          );
-      }
-
-      // RFC 6749 §5.2: reject grants the client is not registered for. Only
-      // enforced when the client explicitly lists `grant_types` — clients with
-      // an empty/undefined list (legacy / unconfigured) keep working as before.
-      const allowedGrantTypes = grantResult.client.grant_types;
-      if (
-        allowedGrantTypes &&
-        allowedGrantTypes.length > 0 &&
-        !allowedGrantTypes.includes(body.grant_type)
-      ) {
-        logMessage(ctx, grantResult.client.tenant.id, {
-          type: LogTypes.FAILED_LOGIN,
-          description: `Grant type "${body.grant_type}" is not allowed for this client`,
-        });
-        throw new JSONHTTPException(400, {
-          error: "unauthorized_client",
-          error_description: `The grant type "${body.grant_type}" is not allowed for this client`,
-        });
-      }
-
-      // Set tenant_id in context (or validate it matches if already set)
-      setTenantId(ctx, grantResult.client.tenant.id);
-
-      const passwordlessHeaders = new Headers();
-
-      if (grantResult.session_id) {
-        const passwordlessAuthCookies = serializeAuthCookie(
-          grantResult.client.tenant.id,
-          grantResult.session_id,
-          ctx.var.host || "",
-        );
-
-        passwordlessAuthCookies.forEach((cookie) => {
-          passwordlessHeaders.append("Set-Cookie", cookie);
-        });
-      }
-
-      // Calculate scopes and permissions before creating tokens
-      // This will throw a 403 error if user is not a member of the required organization
-      let calculatedPermissions: string[] = [];
-      let tokenLifetime: number | undefined;
-
-      if (grantResult.authParams.audience) {
-        try {
-          let scopesAndPermissions;
-
-          if (body.grant_type === GrantType.ClientCredential) {
-            scopesAndPermissions = await calculateScopesAndPermissions(ctx, {
-              grantType: GrantType.ClientCredential,
-              tenantId: grantResult.client.tenant.id,
-              clientId: grantResult.client.client_id,
-              audience: grantResult.authParams.audience,
-              requestedScopes: grantResult.authParams.scope?.split(" ") || [],
-              organizationId: grantResult.organization?.id,
-            });
-          } else {
-            // For user-based grants, userId is required
-            if (!grantResult.user?.user_id) {
-              throw new JSONHTTPException(400, {
-                error: "invalid_request",
-                error_description: "User ID is required for user-based grants",
-              });
-            }
-
-            scopesAndPermissions = await calculateScopesAndPermissions(ctx, {
-              grantType: body.grant_type as
-                | GrantType.AuthorizationCode
-                | GrantType.RefreshToken
-                | GrantType.Password
-                | GrantType.Passwordless
-                | GrantType.OTP,
-              tenantId: grantResult.client.tenant.id,
-              userId: grantResult.user.user_id,
-              clientId: grantResult.client.client_id,
-              audience: grantResult.authParams.audience,
-              requestedScopes: grantResult.authParams.scope?.split(" ") || [],
-              organizationId: grantResult.organization?.id,
-            });
-          }
-
-          // Update the authParams with calculated scopes and store permissions
-          grantResult.authParams.scope = scopesAndPermissions.scopes.join(" ");
-          calculatedPermissions = scopesAndPermissions.permissions;
-
-          // Use token_lifetime_for_web for SPA clients, token_lifetime for all others
-          tokenLifetime =
-            grantResult.client.app_type === "spa"
-              ? (scopesAndPermissions.token_lifetime_for_web ??
-                scopesAndPermissions.token_lifetime)
-              : scopesAndPermissions.token_lifetime;
-        } catch (error) {
-          // Re-throw HTTPExceptions (like 403 for organization membership)
-          if (error instanceof HTTPException) {
-            throw error;
-          }
-          // For other errors, log and continue with original scopes
-          console.error("Error calculating scopes and permissions:", error);
-        }
-      }
-
-      const tokens = await createAuthTokens(ctx, {
-        ...grantResult,
-        grantType: body.grant_type as GrantType,
-        permissions:
-          calculatedPermissions.length > 0 ? calculatedPermissions : undefined,
-        token_lifetime: tokenLifetime,
+    const successLogType = successLogTypeForGrant(body.grant_type);
+    if (successLogType) {
+      const executionId = ctx.var.action_execution_id;
+      logMessage(ctx, grantResult.client.tenant.id, {
+        type: successLogType,
+        userId: grantResult.user?.user_id,
+        scope: grantResult.authParams.scope,
+        audience: grantResult.authParams.audience,
+        ...(executionId ? { details: { execution_id: executionId } } : {}),
       });
+    }
 
-      const successLogType = successLogTypeForGrant(body.grant_type);
-      if (successLogType) {
-        const executionId = ctx.var.action_execution_id;
-        logMessage(ctx, grantResult.client.tenant.id, {
-          type: successLogType,
-          userId: grantResult.user?.user_id,
-          scope: grantResult.authParams.scope,
-          audience: grantResult.authParams.audience,
-          ...(executionId ? { details: { execution_id: executionId } } : {}),
-        });
-      }
+    passwordlessHeaders.set("Cache-Control", "no-store");
+    passwordlessHeaders.set("Pragma", "no-cache");
 
-      passwordlessHeaders.set("Cache-Control", "no-store");
-      passwordlessHeaders.set("Pragma", "no-cache");
-
-      return ctx.json(tokens, {
-        headers: passwordlessHeaders,
-      });
-    },
+    return ctx.json(tokens, {
+      headers: passwordlessHeaders,
+    });
+  },
 });
-
 
 export const tokenRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
-}>()
-  .openapiRoutes([postRoot] as const);
+}>().openapiRoutes([postRoot] as const);

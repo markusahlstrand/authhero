@@ -79,188 +79,126 @@ const createAuthenticationMethodSchema = z
   });
 const getRoot = defineRoute({
   route: createRoute({
-      tags: ["users"],
-      method: "get",
-      path: "/",
-      request: {
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-      },
-      security: [
-        {
-          Bearer: ["read:users"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: authenticationMethodsListSchema,
-            },
-          },
-          description: "List of authentication methods for the user",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const userId = ctx.req.param("user_id");
-      if (!userId) {
-        throw new HTTPException(400, { message: "user_id is required" });
-      }
-
-      const enrollments = await ctx.env.data.authenticationMethods.list(
-        ctx.var.tenant_id,
-        userId,
-      );
-
-      const result = enrollments.map((e) => ({
-        id: e.id,
-        type: e.type,
-        confirmed: e.confirmed,
-        phone_number: e.phone_number,
-        credential_id: e.credential_id,
-        public_key: e.public_key,
-        sign_count: e.sign_count,
-        credential_backed_up: e.credential_backed_up,
-        transports: e.transports,
-        friendly_name: e.friendly_name,
-        created_at: e.created_at,
-      }));
-
-      return ctx.json(result);
+    tags: ["users"],
+    method: "get",
+    path: "/",
+    request: {
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
     },
+    security: [
+      {
+        Bearer: ["read:users"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: authenticationMethodsListSchema,
+          },
+        },
+        description: "List of authentication methods for the user",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const userId = ctx.req.param("user_id");
+    if (!userId) {
+      throw new HTTPException(400, { message: "user_id is required" });
+    }
+
+    const enrollments = await ctx.env.data.authenticationMethods.list(
+      ctx.var.tenant_id,
+      userId,
+    );
+
+    const result = enrollments.map((e) => ({
+      id: e.id,
+      type: e.type,
+      confirmed: e.confirmed,
+      phone_number: e.phone_number,
+      credential_id: e.credential_id,
+      public_key: e.public_key,
+      sign_count: e.sign_count,
+      credential_backed_up: e.credential_backed_up,
+      transports: e.transports,
+      friendly_name: e.friendly_name,
+      created_at: e.created_at,
+    }));
+
+    return ctx.json(result);
+  },
 });
 
 const postRoot = defineRoute({
   route: createRoute({
-      tags: ["users"],
-      method: "post",
-      path: "/",
-      request: {
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-        body: {
-          content: {
-            "application/json": {
-              schema: createAuthenticationMethodSchema,
-            },
+    tags: ["users"],
+    method: "post",
+    path: "/",
+    request: {
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
+      body: {
+        content: {
+          "application/json": {
+            schema: createAuthenticationMethodSchema,
           },
         },
       },
-      security: [
-        {
-          Bearer: ["update:users"],
-        },
-      ],
-      responses: {
-        201: {
-          content: {
-            "application/json": {
-              schema: authenticationMethodSchema,
-            },
-          },
-          description: "Created authentication method",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const userId = ctx.req.param("user_id");
-      if (!userId) {
-        throw new HTTPException(400, { message: "user_id is required" });
-      }
-
-      const body = ctx.req.valid("json");
-
-      const enrollment = await ctx.env.data.authenticationMethods.create(
-        ctx.var.tenant_id,
-        {
-          user_id: userId,
-          type: body.type,
-          phone_number: body.phone_number,
-          totp_secret: body.totp_secret,
-          credential_id: body.credential_id,
-          public_key: body.public_key,
-          sign_count: body.sign_count,
-          credential_backed_up: body.credential_backed_up,
-          transports: body.transports,
-          friendly_name: body.friendly_name,
-          confirmed: body.confirmed ?? true,
-        },
-      );
-
-      await logMessage(ctx, ctx.var.tenant_id, {
-        type: LogTypes.SUCCESS_API_OPERATION,
-        description: "Create Authentication Method",
-        targetType: "authentication_method",
-        targetId: enrollment.id,
-      });
-
-      return ctx.json(
-        {
-          id: enrollment.id,
-          type: enrollment.type,
-          confirmed: enrollment.confirmed,
-          phone_number: enrollment.phone_number,
-          credential_id: enrollment.credential_id,
-          public_key: enrollment.public_key,
-          sign_count: enrollment.sign_count,
-          credential_backed_up: enrollment.credential_backed_up,
-          transports: enrollment.transports,
-          friendly_name: enrollment.friendly_name,
-          created_at: enrollment.created_at,
-        },
-        201,
-      );
     },
-});
-
-const getByMethod_id = defineRoute({
-  route: createRoute({
-      tags: ["users"],
-      method: "get",
-      path: "/{method_id}",
-      request: {
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-        params: z.object({
-          method_id: z.string(),
-        }),
+    security: [
+      {
+        Bearer: ["update:users"],
       },
-      security: [
-        {
-          Bearer: ["read:users"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: authenticationMethodSchema,
-            },
+    ],
+    responses: {
+      201: {
+        content: {
+          "application/json": {
+            schema: authenticationMethodSchema,
           },
-          description: "Authentication method details",
         },
+        description: "Created authentication method",
       },
-    }),
+    },
+  }),
   handler: async (ctx) => {
-      const { method_id } = ctx.req.valid("param");
-      const userId = ctx.req.param("user_id");
+    const userId = ctx.req.param("user_id");
+    if (!userId) {
+      throw new HTTPException(400, { message: "user_id is required" });
+    }
 
-      const enrollment = await ctx.env.data.authenticationMethods.get(
-        ctx.var.tenant_id,
-        method_id,
-      );
+    const body = ctx.req.valid("json");
 
-      if (!enrollment || enrollment.user_id !== userId) {
-        throw new HTTPException(404, {
-          message: "Authentication method not found",
-        });
-      }
+    const enrollment = await ctx.env.data.authenticationMethods.create(
+      ctx.var.tenant_id,
+      {
+        user_id: userId,
+        type: body.type,
+        phone_number: body.phone_number,
+        totp_secret: body.totp_secret,
+        credential_id: body.credential_id,
+        public_key: body.public_key,
+        sign_count: body.sign_count,
+        credential_backed_up: body.credential_backed_up,
+        transports: body.transports,
+        friendly_name: body.friendly_name,
+        confirmed: body.confirmed ?? true,
+      },
+    );
 
-      return ctx.json({
+    await logMessage(ctx, ctx.var.tenant_id, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: "Create Authentication Method",
+      targetType: "authentication_method",
+      targetId: enrollment.id,
+    });
+
+    return ctx.json(
+      {
         id: enrollment.id,
         type: enrollment.type,
         confirmed: enrollment.confirmed,
@@ -272,74 +210,139 @@ const getByMethod_id = defineRoute({
         transports: enrollment.transports,
         friendly_name: enrollment.friendly_name,
         created_at: enrollment.created_at,
-      });
+      },
+      201,
+    );
+  },
+});
+
+const getByMethod_id = defineRoute({
+  route: createRoute({
+    tags: ["users"],
+    method: "get",
+    path: "/{method_id}",
+    request: {
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
+      params: z.object({
+        method_id: z.string(),
+      }),
     },
+    security: [
+      {
+        Bearer: ["read:users"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: authenticationMethodSchema,
+          },
+        },
+        description: "Authentication method details",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const { method_id } = ctx.req.valid("param");
+    const userId = ctx.req.param("user_id");
+
+    const enrollment = await ctx.env.data.authenticationMethods.get(
+      ctx.var.tenant_id,
+      method_id,
+    );
+
+    if (!enrollment || enrollment.user_id !== userId) {
+      throw new HTTPException(404, {
+        message: "Authentication method not found",
+      });
+    }
+
+    return ctx.json({
+      id: enrollment.id,
+      type: enrollment.type,
+      confirmed: enrollment.confirmed,
+      phone_number: enrollment.phone_number,
+      credential_id: enrollment.credential_id,
+      public_key: enrollment.public_key,
+      sign_count: enrollment.sign_count,
+      credential_backed_up: enrollment.credential_backed_up,
+      transports: enrollment.transports,
+      friendly_name: enrollment.friendly_name,
+      created_at: enrollment.created_at,
+    });
+  },
 });
 
 const deleteByMethod_id = defineRoute({
   route: createRoute({
-      tags: ["users"],
-      method: "delete",
-      path: "/{method_id}",
-      request: {
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-        params: z.object({
-          method_id: z.string(),
-        }),
-      },
-      security: [
-        {
-          Bearer: ["update:users"],
-        },
-      ],
-      responses: {
-        204: {
-          description: "Authentication method deleted",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const { method_id } = ctx.req.valid("param");
-      const userId = ctx.req.param("user_id");
-
-      const enrollment = await ctx.env.data.authenticationMethods.get(
-        ctx.var.tenant_id,
-        method_id,
-      );
-
-      if (!enrollment || enrollment.user_id !== userId) {
-        throw new HTTPException(404, {
-          message: "Authentication method not found",
-        });
-      }
-
-      const deleted = await ctx.env.data.authenticationMethods.remove(
-        ctx.var.tenant_id,
-        method_id,
-      );
-
-      if (!deleted) {
-        throw new HTTPException(404, {
-          message: "Authentication method not found",
-        });
-      }
-
-      await logMessage(ctx, ctx.var.tenant_id, {
-        type: LogTypes.SUCCESS_API_OPERATION,
-        description: "Delete Authentication Method",
-        targetType: "authentication_method",
-        targetId: method_id,
-      });
-
-      return ctx.body(null, 204);
+    tags: ["users"],
+    method: "delete",
+    path: "/{method_id}",
+    request: {
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
+      params: z.object({
+        method_id: z.string(),
+      }),
     },
-});
+    security: [
+      {
+        Bearer: ["update:users"],
+      },
+    ],
+    responses: {
+      204: {
+        description: "Authentication method deleted",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const { method_id } = ctx.req.valid("param");
+    const userId = ctx.req.param("user_id");
 
+    const enrollment = await ctx.env.data.authenticationMethods.get(
+      ctx.var.tenant_id,
+      method_id,
+    );
+
+    if (!enrollment || enrollment.user_id !== userId) {
+      throw new HTTPException(404, {
+        message: "Authentication method not found",
+      });
+    }
+
+    const deleted = await ctx.env.data.authenticationMethods.remove(
+      ctx.var.tenant_id,
+      method_id,
+    );
+
+    if (!deleted) {
+      throw new HTTPException(404, {
+        message: "Authentication method not found",
+      });
+    }
+
+    await logMessage(ctx, ctx.var.tenant_id, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: "Delete Authentication Method",
+      targetType: "authentication_method",
+      targetId: method_id,
+    });
+
+    return ctx.body(null, 204);
+  },
+});
 
 export const authenticationMethodsRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
-}>()
-  .openapiRoutes([getRoot, postRoot, getByMethod_id, deleteByMethod_id] as const);
+}>().openapiRoutes([
+  getRoot,
+  postRoot,
+  getByMethod_id,
+  deleteByMethod_id,
+] as const);

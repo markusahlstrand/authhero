@@ -4,10 +4,7 @@ import type {
   ProxyRoute,
   RouteMatch,
 } from "@authhero/adapter-interfaces";
-import {
-  handlerConfigSchema,
-  matchSchema,
-} from "@authhero/adapter-interfaces";
+import { handlerConfigSchema, matchSchema } from "@authhero/adapter-interfaces";
 import { DynamoDBContext } from "../types";
 import { customDomainKeys, proxyRouteKeys } from "../keys";
 import { queryItems } from "../utils";
@@ -118,9 +115,7 @@ async function resolveHostFromDynamo(
   };
 }
 
-export function createProxyDataAdapter(
-  ctx: DynamoDBContext,
-): ProxyDataAdapter {
+export function createProxyDataAdapter(ctx: DynamoDBContext): ProxyDataAdapter {
   return {
     proxyRoutes: createProxyRoutesAdapter(ctx),
     resolveHost: (host) => resolveHostFromDynamo(ctx, host),

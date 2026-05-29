@@ -125,10 +125,7 @@ const widgetPath = path.join(
   "dist/authhero-widget",
 );
 
-const adminDistPath = path.join(
-  resolvePackageDir("@authhero/admin"),
-  "dist",
-);
+const adminDistPath = path.join(resolvePackageDir("@authhero/admin"), "dist");
 const adminIndexPath = path.join(adminDistPath, "index.html");
 
 let adminHandler: ReturnType<typeof serveStatic> | undefined;

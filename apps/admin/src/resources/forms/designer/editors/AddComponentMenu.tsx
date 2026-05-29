@@ -9,10 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Plus } from "lucide-react";
 
-import {
-  COMPONENT_CATEGORIES,
-  COMPONENT_TYPE_OPTIONS,
-} from "../constants";
+import { COMPONENT_CATEGORIES, COMPONENT_TYPE_OPTIONS } from "../constants";
 
 interface AddComponentMenuProps {
   onAdd: (componentType: string) => void;
@@ -37,7 +34,10 @@ export function AddComponentMenu({ onAdd }: AddComponentMenuProps) {
           Add component
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="max-h-[420px] overflow-auto">
+      <DropdownMenuContent
+        align="start"
+        className="max-h-[420px] overflow-auto"
+      >
         {grouped.map((group, idx) => (
           <div key={group.categoryKey}>
             {idx > 0 && <DropdownMenuSeparator />}

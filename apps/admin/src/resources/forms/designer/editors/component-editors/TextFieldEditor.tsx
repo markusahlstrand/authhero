@@ -54,7 +54,9 @@ export function TextFieldEditor({ value, onChange }: TextFieldEditorProps) {
         <Label className="text-xs">Placeholder</Label>
         <Input
           value={v.config?.placeholder ?? ""}
-          onChange={(e) => updateConfig({ placeholder: e.target.value || undefined })}
+          onChange={(e) =>
+            updateConfig({ placeholder: e.target.value || undefined })
+          }
         />
       </div>
       <div className="flex flex-col gap-1.5">
@@ -73,7 +75,9 @@ export function TextFieldEditor({ value, onChange }: TextFieldEditorProps) {
             <Label className="text-sm">Multiline</Label>
             <Switch
               checked={!!v.config?.multiline}
-              onCheckedChange={(c) => updateConfig({ multiline: c || undefined })}
+              onCheckedChange={(c) =>
+                updateConfig({ multiline: c || undefined })
+              }
             />
           </div>
           <div className="flex flex-col gap-1.5">
@@ -102,7 +106,8 @@ export function TextFieldEditor({ value, onChange }: TextFieldEditorProps) {
               value={v.config?.min ?? ""}
               onChange={(e) =>
                 updateConfig({
-                  min: e.target.value === "" ? undefined : Number(e.target.value),
+                  min:
+                    e.target.value === "" ? undefined : Number(e.target.value),
                 })
               }
             />
@@ -114,7 +119,8 @@ export function TextFieldEditor({ value, onChange }: TextFieldEditorProps) {
               value={v.config?.max ?? ""}
               onChange={(e) =>
                 updateConfig({
-                  max: e.target.value === "" ? undefined : Number(e.target.value),
+                  max:
+                    e.target.value === "" ? undefined : Number(e.target.value),
                 })
               }
             />
@@ -126,7 +132,8 @@ export function TextFieldEditor({ value, onChange }: TextFieldEditorProps) {
               value={v.config?.step ?? ""}
               onChange={(e) =>
                 updateConfig({
-                  step: e.target.value === "" ? undefined : Number(e.target.value),
+                  step:
+                    e.target.value === "" ? undefined : Number(e.target.value),
                 })
               }
             />

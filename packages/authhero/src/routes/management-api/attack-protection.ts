@@ -74,156 +74,161 @@ async function patchSection<S extends Section>(
 }
 const getBreachedPasswordDetection = defineRoute({
   route: createRoute({
-      tags: ["attack-protection"],
-      method: "get",
-      path: "/breached-password-detection",
-      request: { headers: z.object({ "tenant-id": z.string().optional() }) },
-      security: [{ Bearer: ["read:attack_protection"] }],
-      responses: {
-        200: {
-          content: {
-            "application/json": { schema: breachedPasswordDetectionSchema },
-          },
-          description: "Breached password detection settings",
+    tags: ["attack-protection"],
+    method: "get",
+    path: "/breached-password-detection",
+    request: { headers: z.object({ "tenant-id": z.string().optional() }) },
+    security: [{ Bearer: ["read:attack_protection"] }],
+    responses: {
+      200: {
+        content: {
+          "application/json": { schema: breachedPasswordDetectionSchema },
         },
+        description: "Breached password detection settings",
       },
-    }),
+    },
+  }),
   handler: async (ctx) =>
-      ctx.json(await getSection(ctx, "breached_password_detection")),
+    ctx.json(await getSection(ctx, "breached_password_detection")),
 });
 
 const patchBreachedPasswordDetection = defineRoute({
   route: createRoute({
-      tags: ["attack-protection"],
-      method: "patch",
-      path: "/breached-password-detection",
-      request: {
-        body: {
-          content: {
-            "application/json": { schema: breachedPasswordDetectionSchema },
-          },
-        },
-        headers: z.object({ "tenant-id": z.string().optional() }),
-      },
-      security: [{ Bearer: ["update:attack_protection"] }],
-      responses: {
-        200: {
-          content: {
-            "application/json": { schema: breachedPasswordDetectionSchema },
-          },
-          description: "Updated settings",
+    tags: ["attack-protection"],
+    method: "patch",
+    path: "/breached-password-detection",
+    request: {
+      body: {
+        content: {
+          "application/json": { schema: breachedPasswordDetectionSchema },
         },
       },
-    }),
-  handler: async (ctx) => {
-      const body = breachedPasswordDetectionSchema.parse(await ctx.req.json());
-      return ctx.json(
-        await patchSection(ctx, "breached_password_detection", body),
-      );
+      headers: z.object({ "tenant-id": z.string().optional() }),
     },
+    security: [{ Bearer: ["update:attack_protection"] }],
+    responses: {
+      200: {
+        content: {
+          "application/json": { schema: breachedPasswordDetectionSchema },
+        },
+        description: "Updated settings",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const body = breachedPasswordDetectionSchema.parse(await ctx.req.json());
+    return ctx.json(
+      await patchSection(ctx, "breached_password_detection", body),
+    );
+  },
 });
 
 const getBruteForceProtection = defineRoute({
   route: createRoute({
-      tags: ["attack-protection"],
-      method: "get",
-      path: "/brute-force-protection",
-      request: { headers: z.object({ "tenant-id": z.string().optional() }) },
-      security: [{ Bearer: ["read:attack_protection"] }],
-      responses: {
-        200: {
-          content: {
-            "application/json": { schema: bruteForceProtectionSchema },
-          },
-          description: "Brute force protection settings",
+    tags: ["attack-protection"],
+    method: "get",
+    path: "/brute-force-protection",
+    request: { headers: z.object({ "tenant-id": z.string().optional() }) },
+    security: [{ Bearer: ["read:attack_protection"] }],
+    responses: {
+      200: {
+        content: {
+          "application/json": { schema: bruteForceProtectionSchema },
         },
+        description: "Brute force protection settings",
       },
-    }),
-  handler: async (ctx) => ctx.json(await getSection(ctx, "brute_force_protection")),
+    },
+  }),
+  handler: async (ctx) =>
+    ctx.json(await getSection(ctx, "brute_force_protection")),
 });
 
 const patchBruteForceProtection = defineRoute({
   route: createRoute({
-      tags: ["attack-protection"],
-      method: "patch",
-      path: "/brute-force-protection",
-      request: {
-        body: {
-          content: {
-            "application/json": { schema: bruteForceProtectionSchema },
-          },
-        },
-        headers: z.object({ "tenant-id": z.string().optional() }),
-      },
-      security: [{ Bearer: ["update:attack_protection"] }],
-      responses: {
-        200: {
-          content: {
-            "application/json": { schema: bruteForceProtectionSchema },
-          },
-          description: "Updated settings",
+    tags: ["attack-protection"],
+    method: "patch",
+    path: "/brute-force-protection",
+    request: {
+      body: {
+        content: {
+          "application/json": { schema: bruteForceProtectionSchema },
         },
       },
-    }),
-  handler: async (ctx) => {
-      const body = bruteForceProtectionSchema.parse(await ctx.req.json());
-      return ctx.json(await patchSection(ctx, "brute_force_protection", body));
+      headers: z.object({ "tenant-id": z.string().optional() }),
     },
+    security: [{ Bearer: ["update:attack_protection"] }],
+    responses: {
+      200: {
+        content: {
+          "application/json": { schema: bruteForceProtectionSchema },
+        },
+        description: "Updated settings",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const body = bruteForceProtectionSchema.parse(await ctx.req.json());
+    return ctx.json(await patchSection(ctx, "brute_force_protection", body));
+  },
 });
 
 const getSuspiciousIpThrottling = defineRoute({
   route: createRoute({
-      tags: ["attack-protection"],
-      method: "get",
-      path: "/suspicious-ip-throttling",
-      request: { headers: z.object({ "tenant-id": z.string().optional() }) },
-      security: [{ Bearer: ["read:attack_protection"] }],
-      responses: {
-        200: {
-          content: {
-            "application/json": { schema: suspiciousIpThrottlingSchema },
-          },
-          description: "Suspicious IP throttling settings",
+    tags: ["attack-protection"],
+    method: "get",
+    path: "/suspicious-ip-throttling",
+    request: { headers: z.object({ "tenant-id": z.string().optional() }) },
+    security: [{ Bearer: ["read:attack_protection"] }],
+    responses: {
+      200: {
+        content: {
+          "application/json": { schema: suspiciousIpThrottlingSchema },
         },
+        description: "Suspicious IP throttling settings",
       },
-    }),
-  handler: async (ctx) => ctx.json(await getSection(ctx, "suspicious_ip_throttling")),
+    },
+  }),
+  handler: async (ctx) =>
+    ctx.json(await getSection(ctx, "suspicious_ip_throttling")),
 });
 
 const patchSuspiciousIpThrottling = defineRoute({
   route: createRoute({
-      tags: ["attack-protection"],
-      method: "patch",
-      path: "/suspicious-ip-throttling",
-      request: {
-        body: {
-          content: {
-            "application/json": { schema: suspiciousIpThrottlingSchema },
-          },
-        },
-        headers: z.object({ "tenant-id": z.string().optional() }),
-      },
-      security: [{ Bearer: ["update:attack_protection"] }],
-      responses: {
-        200: {
-          content: {
-            "application/json": { schema: suspiciousIpThrottlingSchema },
-          },
-          description: "Updated settings",
+    tags: ["attack-protection"],
+    method: "patch",
+    path: "/suspicious-ip-throttling",
+    request: {
+      body: {
+        content: {
+          "application/json": { schema: suspiciousIpThrottlingSchema },
         },
       },
-    }),
-  handler: async (ctx) => {
-      const body = suspiciousIpThrottlingSchema.parse(await ctx.req.json());
-      return ctx.json(
-        await patchSection(ctx, "suspicious_ip_throttling", body),
-      );
+      headers: z.object({ "tenant-id": z.string().optional() }),
     },
+    security: [{ Bearer: ["update:attack_protection"] }],
+    responses: {
+      200: {
+        content: {
+          "application/json": { schema: suspiciousIpThrottlingSchema },
+        },
+        description: "Updated settings",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const body = suspiciousIpThrottlingSchema.parse(await ctx.req.json());
+    return ctx.json(await patchSection(ctx, "suspicious_ip_throttling", body));
+  },
 });
-
 
 export const attackProtectionRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
-}>()
-  .openapiRoutes([getBreachedPasswordDetection, patchBreachedPasswordDetection, getBruteForceProtection, patchBruteForceProtection, getSuspiciousIpThrottling, patchSuspiciousIpThrottling] as const);
+}>().openapiRoutes([
+  getBreachedPasswordDetection,
+  patchBreachedPasswordDetection,
+  getBruteForceProtection,
+  patchBruteForceProtection,
+  getSuspiciousIpThrottling,
+  patchSuspiciousIpThrottling,
+] as const);

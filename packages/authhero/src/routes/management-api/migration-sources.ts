@@ -36,190 +36,194 @@ function getAdapter(ctx: { env: Bindings }) {
 }
 const getRoot = defineRoute({
   route: createRoute({
-      tags: ["migration-sources"],
-      method: "get",
-      path: "/",
-      request: {
-        headers: z.object({ "tenant-id": z.string().optional() }),
-      },
-      security: [{ Bearer: ["read:migration_sources"] }],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: z.array(migrationSourceResponseSchema),
-            },
-          },
-          description: "List of migration sources",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const adapter = getAdapter(ctx);
-      const result = await adapter.list(ctx.var.tenant_id);
-      return ctx.json(result.map(redact));
+    tags: ["migration-sources"],
+    method: "get",
+    path: "/",
+    request: {
+      headers: z.object({ "tenant-id": z.string().optional() }),
     },
+    security: [{ Bearer: ["read:migration_sources"] }],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: z.array(migrationSourceResponseSchema),
+          },
+        },
+        description: "List of migration sources",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const adapter = getAdapter(ctx);
+    const result = await adapter.list(ctx.var.tenant_id);
+    return ctx.json(result.map(redact));
+  },
 });
 
 const getById = defineRoute({
   route: createRoute({
-      tags: ["migration-sources"],
-      method: "get",
-      path: "/{id}",
-      request: {
-        params: z.object({ id: z.string() }),
-        headers: z.object({ "tenant-id": z.string().optional() }),
-      },
-      security: [{ Bearer: ["read:migration_sources"] }],
-      responses: {
-        200: {
-          content: {
-            "application/json": { schema: migrationSourceResponseSchema },
-          },
-          description: "A migration source",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const adapter = getAdapter(ctx);
-      const { id } = ctx.req.valid("param");
-      const source = await adapter.get(ctx.var.tenant_id, id);
-      if (!source) {
-        throw new HTTPException(404);
-      }
-      return ctx.json(redact(source));
+    tags: ["migration-sources"],
+    method: "get",
+    path: "/{id}",
+    request: {
+      params: z.object({ id: z.string() }),
+      headers: z.object({ "tenant-id": z.string().optional() }),
     },
+    security: [{ Bearer: ["read:migration_sources"] }],
+    responses: {
+      200: {
+        content: {
+          "application/json": { schema: migrationSourceResponseSchema },
+        },
+        description: "A migration source",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const adapter = getAdapter(ctx);
+    const { id } = ctx.req.valid("param");
+    const source = await adapter.get(ctx.var.tenant_id, id);
+    if (!source) {
+      throw new HTTPException(404);
+    }
+    return ctx.json(redact(source));
+  },
 });
 
 const postRoot = defineRoute({
   route: createRoute({
-      tags: ["migration-sources"],
-      method: "post",
-      path: "/",
-      request: {
-        body: {
-          content: {
-            "application/json": {
-              schema: z.object(migrationSourceInsertSchema.shape),
-            },
+    tags: ["migration-sources"],
+    method: "post",
+    path: "/",
+    request: {
+      body: {
+        content: {
+          "application/json": {
+            schema: z.object(migrationSourceInsertSchema.shape),
           },
         },
-        headers: z.object({ "tenant-id": z.string().optional() }),
       },
-      security: [{ Bearer: ["create:migration_sources"] }],
-      responses: {
-        201: {
-          content: {
-            "application/json": { schema: migrationSourceResponseSchema },
-          },
-          description: "The created migration source",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const adapter = getAdapter(ctx);
-      const body = ctx.req.valid("json");
-      const source = await adapter.create(ctx.var.tenant_id, body);
-
-      await logMessage(ctx, ctx.var.tenant_id, {
-        type: LogTypes.SUCCESS_API_OPERATION,
-        description: "Create a Migration Source",
-        targetType: "migration_source",
-        targetId: source.id,
-        afterState: redact(source) as Record<string, unknown>,
-      });
-
-      return ctx.json(redact(source), { status: 201 });
+      headers: z.object({ "tenant-id": z.string().optional() }),
     },
+    security: [{ Bearer: ["create:migration_sources"] }],
+    responses: {
+      201: {
+        content: {
+          "application/json": { schema: migrationSourceResponseSchema },
+        },
+        description: "The created migration source",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const adapter = getAdapter(ctx);
+    const body = ctx.req.valid("json");
+    const source = await adapter.create(ctx.var.tenant_id, body);
+
+    await logMessage(ctx, ctx.var.tenant_id, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: "Create a Migration Source",
+      targetType: "migration_source",
+      targetId: source.id,
+      afterState: redact(source) as Record<string, unknown>,
+    });
+
+    return ctx.json(redact(source), { status: 201 });
+  },
 });
 
 const patchById = defineRoute({
   route: createRoute({
-      tags: ["migration-sources"],
-      method: "patch",
-      path: "/{id}",
-      request: {
-        params: z.object({ id: z.string() }),
-        body: {
-          content: {
-            "application/json": {
-              schema: z.object(migrationSourceInsertSchema.shape).partial(),
-            },
+    tags: ["migration-sources"],
+    method: "patch",
+    path: "/{id}",
+    request: {
+      params: z.object({ id: z.string() }),
+      body: {
+        content: {
+          "application/json": {
+            schema: z.object(migrationSourceInsertSchema.shape).partial(),
           },
         },
-        headers: z.object({ "tenant-id": z.string().optional() }),
       },
-      security: [{ Bearer: ["update:migration_sources"] }],
-      responses: {
-        200: {
-          content: {
-            "application/json": { schema: migrationSourceResponseSchema },
-          },
-          description: "The updated migration source",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const adapter = getAdapter(ctx);
-      const { id } = ctx.req.valid("param");
-      const body = ctx.req.valid("json");
-      const ok = await adapter.update(ctx.var.tenant_id, id, body);
-      if (!ok) {
-        throw new HTTPException(404);
-      }
-      const source = await adapter.get(ctx.var.tenant_id, id);
-      if (!source) {
-        throw new HTTPException(404);
-      }
-
-      await logMessage(ctx, ctx.var.tenant_id, {
-        type: LogTypes.SUCCESS_API_OPERATION,
-        description: "Update a Migration Source",
-        targetType: "migration_source",
-        targetId: id,
-        afterState: redact(source) as Record<string, unknown>,
-      });
-
-      return ctx.json(redact(source));
+      headers: z.object({ "tenant-id": z.string().optional() }),
     },
+    security: [{ Bearer: ["update:migration_sources"] }],
+    responses: {
+      200: {
+        content: {
+          "application/json": { schema: migrationSourceResponseSchema },
+        },
+        description: "The updated migration source",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const adapter = getAdapter(ctx);
+    const { id } = ctx.req.valid("param");
+    const body = ctx.req.valid("json");
+    const ok = await adapter.update(ctx.var.tenant_id, id, body);
+    if (!ok) {
+      throw new HTTPException(404);
+    }
+    const source = await adapter.get(ctx.var.tenant_id, id);
+    if (!source) {
+      throw new HTTPException(404);
+    }
+
+    await logMessage(ctx, ctx.var.tenant_id, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: "Update a Migration Source",
+      targetType: "migration_source",
+      targetId: id,
+      afterState: redact(source) as Record<string, unknown>,
+    });
+
+    return ctx.json(redact(source));
+  },
 });
 
 const deleteById = defineRoute({
   route: createRoute({
-      tags: ["migration-sources"],
-      method: "delete",
-      path: "/{id}",
-      request: {
-        params: z.object({ id: z.string() }),
-        headers: z.object({ "tenant-id": z.string().optional() }),
-      },
-      security: [{ Bearer: ["delete:migration_sources"] }],
-      responses: {
-        204: { description: "Migration source deleted" },
-      },
-    }),
-  handler: async (ctx) => {
-      const adapter = getAdapter(ctx);
-      const { id } = ctx.req.valid("param");
-      const ok = await adapter.remove(ctx.var.tenant_id, id);
-      if (!ok) {
-        throw new HTTPException(404);
-      }
-
-      await logMessage(ctx, ctx.var.tenant_id, {
-        type: LogTypes.SUCCESS_API_OPERATION,
-        description: "Delete a Migration Source",
-        targetType: "migration_source",
-        targetId: id,
-      });
-
-      return ctx.body(null, 204);
+    tags: ["migration-sources"],
+    method: "delete",
+    path: "/{id}",
+    request: {
+      params: z.object({ id: z.string() }),
+      headers: z.object({ "tenant-id": z.string().optional() }),
     },
-});
+    security: [{ Bearer: ["delete:migration_sources"] }],
+    responses: {
+      204: { description: "Migration source deleted" },
+    },
+  }),
+  handler: async (ctx) => {
+    const adapter = getAdapter(ctx);
+    const { id } = ctx.req.valid("param");
+    const ok = await adapter.remove(ctx.var.tenant_id, id);
+    if (!ok) {
+      throw new HTTPException(404);
+    }
 
+    await logMessage(ctx, ctx.var.tenant_id, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: "Delete a Migration Source",
+      targetType: "migration_source",
+      targetId: id,
+    });
+
+    return ctx.body(null, 204);
+  },
+});
 
 export const migrationSourcesRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
-}>()
-  .openapiRoutes([getRoot, getById, postRoot, patchById, deleteById] as const);
+}>().openapiRoutes([
+  getRoot,
+  getById,
+  postRoot,
+  patchById,
+  deleteById,
+] as const);

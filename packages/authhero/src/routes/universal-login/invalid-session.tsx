@@ -5,56 +5,51 @@ import InvalidSessionPage from "../../components/InvalidSessionPage";
 import { defineRoute } from "../../utils/define-route";
 const getRoot = defineRoute({
   route: createRoute({
-      tags: ["login"],
-      method: "get",
-      path: "/",
-      request: {
-        query: z.object({
-          state: z.string(),
-        }),
-      },
-      responses: {
-        200: {
-          description: "Response",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const { state } = ctx.req.valid("query");
-      const { theme, branding, client, loginSession } = await initJSXRoute(
-        ctx,
-        state,
-      );
-
-      let redirectUrl: URL | undefined;
-
-      if (
-        loginSession.authParams.redirect_uri &&
-        loginSession.authParams.state
-      ) {
-        redirectUrl = new URL(loginSession.authParams.redirect_uri);
-        redirectUrl.searchParams.set("state", loginSession.authParams.state);
-        redirectUrl.searchParams.set("error", "invalid_session");
-        redirectUrl.searchParams.set(
-          "error_description",
-          loginSession.authParams.username || "",
-        );
-      }
-
-      return ctx.html(
-        <InvalidSessionPage
-          redirectUrl={redirectUrl?.href}
-          theme={theme}
-          branding={branding}
-          client={client}
-        />,
-      );
+    tags: ["login"],
+    method: "get",
+    path: "/",
+    request: {
+      query: z.object({
+        state: z.string(),
+      }),
     },
-});
+    responses: {
+      200: {
+        description: "Response",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const { state } = ctx.req.valid("query");
+    const { theme, branding, client, loginSession } = await initJSXRoute(
+      ctx,
+      state,
+    );
 
+    let redirectUrl: URL | undefined;
+
+    if (loginSession.authParams.redirect_uri && loginSession.authParams.state) {
+      redirectUrl = new URL(loginSession.authParams.redirect_uri);
+      redirectUrl.searchParams.set("state", loginSession.authParams.state);
+      redirectUrl.searchParams.set("error", "invalid_session");
+      redirectUrl.searchParams.set(
+        "error_description",
+        loginSession.authParams.username || "",
+      );
+    }
+
+    return ctx.html(
+      <InvalidSessionPage
+        redirectUrl={redirectUrl?.href}
+        theme={theme}
+        branding={branding}
+        client={client}
+      />,
+    );
+  },
+});
 
 export const invalidSessionRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
-}>()
-  .openapiRoutes([getRoot] as const);
+}>().openapiRoutes([getRoot] as const);

@@ -32,420 +32,320 @@ const clientConnectionsResponseSchema = z.object({
 const updateClientConnectionsSchema = z.array(z.string());
 const getRoot = defineRoute({
   route: createRoute({
-      tags: ["clients"],
-      method: "get",
-      path: "/",
-      request: {
-        query: querySchema,
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-      },
-      security: [
-        {
-          Bearer: ["read:clients"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: z.union([clientWithTotalsSchema, z.array(clientSchema)]),
-            },
-          },
-          description: "List of clients",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const tenant_id = ctx.var.tenant_id;
-      const { page, per_page, include_totals, sort, q } =
-        ctx.req.valid("query");
-
-      const result = await ctx.env.data.clients.list(tenant_id, {
-        page,
-        per_page,
-        include_totals,
-        sort: parseSort(sort),
-        q,
-      });
-
-      const clients = result.clients;
-
-      if (include_totals) {
-        return ctx.json({
-          clients,
-          start: result.totals?.start ?? 0,
-          limit: result.totals?.limit ?? per_page,
-          length: result.totals?.length ?? clients.length,
-          total: result.totals?.total,
-        });
-      }
-
-      return ctx.json(clients);
+    tags: ["clients"],
+    method: "get",
+    path: "/",
+    request: {
+      query: querySchema,
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
     },
+    security: [
+      {
+        Bearer: ["read:clients"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: z.union([clientWithTotalsSchema, z.array(clientSchema)]),
+          },
+        },
+        description: "List of clients",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenant_id = ctx.var.tenant_id;
+    const { page, per_page, include_totals, sort, q } = ctx.req.valid("query");
+
+    const result = await ctx.env.data.clients.list(tenant_id, {
+      page,
+      per_page,
+      include_totals,
+      sort: parseSort(sort),
+      q,
+    });
+
+    const clients = result.clients;
+
+    if (include_totals) {
+      return ctx.json({
+        clients,
+        start: result.totals?.start ?? 0,
+        limit: result.totals?.limit ?? per_page,
+        length: result.totals?.length ?? clients.length,
+        total: result.totals?.total,
+      });
+    }
+
+    return ctx.json(clients);
+  },
 });
 
 const getById = defineRoute({
   route: createRoute({
-      tags: ["clients"],
-      method: "get",
-      path: "/{id}",
-      request: {
-        params: z.object({
-          id: z.string(),
-        }),
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-      },
-      security: [
-        {
-          Bearer: ["read:clients"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: clientSchema,
-            },
-          },
-          description: "A client",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const tenant_id = ctx.var.tenant_id;
-      const { id } = ctx.req.valid("param");
-
-      const client = await ctx.env.data.clients.get(tenant_id, id);
-
-      if (!client) {
-        throw new HTTPException(404);
-      }
-
-      return ctx.json(client);
+    tags: ["clients"],
+    method: "get",
+    path: "/{id}",
+    request: {
+      params: z.object({
+        id: z.string(),
+      }),
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
     },
+    security: [
+      {
+        Bearer: ["read:clients"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: clientSchema,
+          },
+        },
+        description: "A client",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenant_id = ctx.var.tenant_id;
+    const { id } = ctx.req.valid("param");
+
+    const client = await ctx.env.data.clients.get(tenant_id, id);
+
+    if (!client) {
+      throw new HTTPException(404);
+    }
+
+    return ctx.json(client);
+  },
 });
 
 const deleteById = defineRoute({
   route: createRoute({
-      tags: ["clients"],
-      method: "delete",
-      path: "/{id}",
-      request: {
-        params: z.object({
-          id: z.string(),
-        }),
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-      },
-      security: [
-        {
-          Bearer: ["delete:clients"],
-        },
-      ],
-      responses: {
-        200: {
-          description: "Status",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const tenant_id = ctx.var.tenant_id;
-      const { id } = ctx.req.valid("param");
-
-      const result = await ctx.env.data.clients.remove(tenant_id, id);
-      if (!result) {
-        throw new HTTPException(404, { message: "Client not found" });
-      }
-
-      await logMessage(ctx, ctx.var.tenant_id, {
-        type: LogTypes.SUCCESS_API_OPERATION,
-        description: "Delete a Client",
-        targetType: "client",
-        targetId: id,
-      });
-
-      return ctx.text("OK");
+    tags: ["clients"],
+    method: "delete",
+    path: "/{id}",
+    request: {
+      params: z.object({
+        id: z.string(),
+      }),
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
     },
+    security: [
+      {
+        Bearer: ["delete:clients"],
+      },
+    ],
+    responses: {
+      200: {
+        description: "Status",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenant_id = ctx.var.tenant_id;
+    const { id } = ctx.req.valid("param");
+
+    const result = await ctx.env.data.clients.remove(tenant_id, id);
+    if (!result) {
+      throw new HTTPException(404, { message: "Client not found" });
+    }
+
+    await logMessage(ctx, ctx.var.tenant_id, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: "Delete a Client",
+      targetType: "client",
+      targetId: id,
+    });
+
+    return ctx.text("OK");
+  },
 });
 
 const patchById = defineRoute({
   route: createRoute({
-      tags: ["clients"],
-      method: "patch",
-      path: "/{id}",
-      request: {
-        body: {
-          content: {
-            "application/json": {
-              schema: z.object(clientInsertSchema.shape).partial(),
-            },
+    tags: ["clients"],
+    method: "patch",
+    path: "/{id}",
+    request: {
+      body: {
+        content: {
+          "application/json": {
+            schema: z.object(clientInsertSchema.shape).partial(),
           },
         },
-        params: z.object({
-          id: z.string(),
-        }),
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
       },
-      security: [
-        {
-          Bearer: ["update:clients"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: clientSchema,
-            },
-          },
-          description: "The updated client",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const tenant_id = ctx.var.tenant_id;
-      const { id } = ctx.req.valid("param");
-      const body = ctx.req.valid("json");
-
-      const clientUpdate = body;
-
-      const clientBefore = await ctx.env.data.clients.get(tenant_id, id);
-      await ctx.env.data.clients.update(tenant_id, id, clientUpdate);
-      const client = await ctx.env.data.clients.get(tenant_id, id);
-
-      if (!client) {
-        throw new HTTPException(404, { message: "Client not found" });
-      }
-
-      await logMessage(ctx, ctx.var.tenant_id, {
-        type: LogTypes.SUCCESS_API_OPERATION,
-        description: "Update a Client",
-        beforeState: clientBefore as Record<string, unknown>,
-        afterState: client as Record<string, unknown>,
-        targetType: "client",
-        targetId: id,
-        body,
-      });
-
-      return ctx.json(client);
+      params: z.object({
+        id: z.string(),
+      }),
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
     },
+    security: [
+      {
+        Bearer: ["update:clients"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: clientSchema,
+          },
+        },
+        description: "The updated client",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenant_id = ctx.var.tenant_id;
+    const { id } = ctx.req.valid("param");
+    const body = ctx.req.valid("json");
+
+    const clientUpdate = body;
+
+    const clientBefore = await ctx.env.data.clients.get(tenant_id, id);
+    await ctx.env.data.clients.update(tenant_id, id, clientUpdate);
+    const client = await ctx.env.data.clients.get(tenant_id, id);
+
+    if (!client) {
+      throw new HTTPException(404, { message: "Client not found" });
+    }
+
+    await logMessage(ctx, ctx.var.tenant_id, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: "Update a Client",
+      beforeState: clientBefore as Record<string, unknown>,
+      afterState: client as Record<string, unknown>,
+      targetType: "client",
+      targetId: id,
+      body,
+    });
+
+    return ctx.json(client);
+  },
 });
 
 const postRoot = defineRoute({
   route: createRoute({
-      tags: ["clients"],
-      method: "post",
-      path: "/",
-      request: {
-        body: {
-          content: {
-            "application/json": {
-              schema: z.object(clientInsertSchema.shape),
-            },
+    tags: ["clients"],
+    method: "post",
+    path: "/",
+    request: {
+      body: {
+        content: {
+          "application/json": {
+            schema: z.object(clientInsertSchema.shape),
           },
         },
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
       },
-      security: [
-        {
-          Bearer: ["create:clients"],
-        },
-      ],
-      responses: {
-        201: {
-          content: {
-            "application/json": {
-              schema: z.object(clientSchema.shape),
-            },
-          },
-          description: "A client",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const tenant_id = ctx.var.tenant_id;
-      const body = ctx.req.valid("json");
-
-      const clientCreate = {
-        ...body,
-        client_id: body.client_id || nanoid(),
-        client_secret: body.client_secret || nanoid(),
-      };
-
-      const client = await ctx.env.data.clients.create(tenant_id, clientCreate);
-
-      await logMessage(ctx, ctx.var.tenant_id, {
-        type: LogTypes.SUCCESS_API_OPERATION,
-        description: "Create a Client",
-        afterState: client as Record<string, unknown>,
-        targetType: "client",
-        targetId: client.client_id,
-      });
-
-      return ctx.json(client, { status: 201 });
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
     },
+    security: [
+      {
+        Bearer: ["create:clients"],
+      },
+    ],
+    responses: {
+      201: {
+        content: {
+          "application/json": {
+            schema: z.object(clientSchema.shape),
+          },
+        },
+        description: "A client",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenant_id = ctx.var.tenant_id;
+    const body = ctx.req.valid("json");
+
+    const clientCreate = {
+      ...body,
+      client_id: body.client_id || nanoid(),
+      client_secret: body.client_secret || nanoid(),
+    };
+
+    const client = await ctx.env.data.clients.create(tenant_id, clientCreate);
+
+    await logMessage(ctx, ctx.var.tenant_id, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: "Create a Client",
+      afterState: client as Record<string, unknown>,
+      targetType: "client",
+      targetId: client.client_id,
+    });
+
+    return ctx.json(client, { status: 201 });
+  },
 });
 
 const getByIdConnections = defineRoute({
   route: createRoute({
-      tags: ["clients"],
-      method: "get",
-      path: "/{id}/connections",
-      request: {
-        params: z.object({
-          id: z.string(),
-        }),
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-      },
-      security: [
-        {
-          Bearer: ["read:clients"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: clientConnectionsResponseSchema,
-            },
-          },
-          description: "List of connections enabled for this client",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const tenant_id = ctx.var.tenant_id;
-      const { id } = ctx.req.valid("param");
-
-      const client = await ctx.env.data.clients.get(tenant_id, id);
-
-      if (!client) {
-        throw new HTTPException(404, { message: "Client not found" });
-      }
-
-      // If no connections are defined, return all available connections
-      const hasDefinedConnections =
-        client.connections && client.connections.length > 0;
-
-      let enabledConnections: Array<{
-        connection_id: string;
-        connection?: (typeof connectionSchema)["_output"];
-      }>;
-
-      if (hasDefinedConnections) {
-        // Fetch full connection details for each enabled connection
-        enabledConnections = await Promise.all(
-          client.connections!.map(async (connectionId) => {
-            const connection = await ctx.env.data.connections.get(
-              tenant_id,
-              connectionId,
-            );
-            return {
-              connection_id: connectionId,
-              connection: connection || undefined,
-            };
-          }),
-        );
-      } else {
-        // No connections defined - return all available connections
-        const { connections: allConnections } =
-          await ctx.env.data.connections.list(tenant_id, {});
-        enabledConnections = allConnections
-          .filter((connection) => connection.id)
-          .map((connection) => ({
-            connection_id: connection.id!,
-            connection,
-          }));
-      }
-
-      return ctx.json({ enabled_connections: enabledConnections });
+    tags: ["clients"],
+    method: "get",
+    path: "/{id}/connections",
+    request: {
+      params: z.object({
+        id: z.string(),
+      }),
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
     },
-});
-
-const patchByIdConnections = defineRoute({
-  route: createRoute({
-      tags: ["clients"],
-      method: "patch",
-      path: "/{id}/connections",
-      request: {
-        body: {
-          content: {
-            "application/json": {
-              schema: updateClientConnectionsSchema,
-            },
+    security: [
+      {
+        Bearer: ["read:clients"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: clientConnectionsResponseSchema,
           },
         },
-        params: z.object({
-          id: z.string(),
-        }),
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
+        description: "List of connections enabled for this client",
       },
-      security: [
-        {
-          Bearer: ["update:clients"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: clientConnectionsResponseSchema,
-            },
-          },
-          description: "Updated list of connections for this client",
-        },
-      },
-    }),
+    },
+  }),
   handler: async (ctx) => {
-      const tenant_id = ctx.var.tenant_id;
-      const { id } = ctx.req.valid("param");
-      const connectionIds = ctx.req.valid("json");
+    const tenant_id = ctx.var.tenant_id;
+    const { id } = ctx.req.valid("param");
 
-      const client = await ctx.env.data.clients.get(tenant_id, id);
+    const client = await ctx.env.data.clients.get(tenant_id, id);
 
-      if (!client) {
-        throw new HTTPException(404, { message: "Client not found" });
-      }
+    if (!client) {
+      throw new HTTPException(404, { message: "Client not found" });
+    }
 
-      // Validate all connection IDs exist and filter out invalid ones
-      const validConnectionIds: string[] = [];
-      for (const connectionId of connectionIds) {
-        const connection = await ctx.env.data.connections.get(
-          tenant_id,
-          connectionId,
-        );
-        if (connection) {
-          validConnectionIds.push(connectionId);
-        }
-      }
+    // If no connections are defined, return all available connections
+    const hasDefinedConnections =
+      client.connections && client.connections.length > 0;
 
-      // Update the client with the new ordered connections array
-      // Use clientConnections.updateByClient which also invalidates the
-      // clientConnections cache (clients.update alone only invalidates the
-      // clients cache, not clientConnections — important on Cloudflare where
-      // deleteByPrefix is a no-op).
-      await ctx.env.data.clientConnections.updateByClient(
-        tenant_id,
-        id,
-        validConnectionIds,
-      );
+    let enabledConnections: Array<{
+      connection_id: string;
+      connection?: (typeof connectionSchema)["_output"];
+    }>;
 
-      // Fetch and return the updated connections
-      const enabledConnections = await Promise.all(
-        validConnectionIds.map(async (connectionId) => {
+    if (hasDefinedConnections) {
+      // Fetch full connection details for each enabled connection
+      enabledConnections = await Promise.all(
+        client.connections!.map(async (connectionId) => {
           const connection = await ctx.env.data.connections.get(
             tenant_id,
             connectionId,
@@ -456,21 +356,126 @@ const patchByIdConnections = defineRoute({
           };
         }),
       );
+    } else {
+      // No connections defined - return all available connections
+      const { connections: allConnections } =
+        await ctx.env.data.connections.list(tenant_id, {});
+      enabledConnections = allConnections
+        .filter((connection) => connection.id)
+        .map((connection) => ({
+          connection_id: connection.id!,
+          connection,
+        }));
+    }
 
-      await logMessage(ctx, ctx.var.tenant_id, {
-        type: LogTypes.SUCCESS_API_OPERATION,
-        description: "Update Client Connections",
-        targetType: "client_connection",
-        targetId: id,
-      });
-
-      return ctx.json({ enabled_connections: enabledConnections });
-    },
+    return ctx.json({ enabled_connections: enabledConnections });
+  },
 });
 
+const patchByIdConnections = defineRoute({
+  route: createRoute({
+    tags: ["clients"],
+    method: "patch",
+    path: "/{id}/connections",
+    request: {
+      body: {
+        content: {
+          "application/json": {
+            schema: updateClientConnectionsSchema,
+          },
+        },
+      },
+      params: z.object({
+        id: z.string(),
+      }),
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
+    },
+    security: [
+      {
+        Bearer: ["update:clients"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: clientConnectionsResponseSchema,
+          },
+        },
+        description: "Updated list of connections for this client",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenant_id = ctx.var.tenant_id;
+    const { id } = ctx.req.valid("param");
+    const connectionIds = ctx.req.valid("json");
+
+    const client = await ctx.env.data.clients.get(tenant_id, id);
+
+    if (!client) {
+      throw new HTTPException(404, { message: "Client not found" });
+    }
+
+    // Validate all connection IDs exist and filter out invalid ones
+    const validConnectionIds: string[] = [];
+    for (const connectionId of connectionIds) {
+      const connection = await ctx.env.data.connections.get(
+        tenant_id,
+        connectionId,
+      );
+      if (connection) {
+        validConnectionIds.push(connectionId);
+      }
+    }
+
+    // Update the client with the new ordered connections array
+    // Use clientConnections.updateByClient which also invalidates the
+    // clientConnections cache (clients.update alone only invalidates the
+    // clients cache, not clientConnections — important on Cloudflare where
+    // deleteByPrefix is a no-op).
+    await ctx.env.data.clientConnections.updateByClient(
+      tenant_id,
+      id,
+      validConnectionIds,
+    );
+
+    // Fetch and return the updated connections
+    const enabledConnections = await Promise.all(
+      validConnectionIds.map(async (connectionId) => {
+        const connection = await ctx.env.data.connections.get(
+          tenant_id,
+          connectionId,
+        );
+        return {
+          connection_id: connectionId,
+          connection: connection || undefined,
+        };
+      }),
+    );
+
+    await logMessage(ctx, ctx.var.tenant_id, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: "Update Client Connections",
+      targetType: "client_connection",
+      targetId: id,
+    });
+
+    return ctx.json({ enabled_connections: enabledConnections });
+  },
+});
 
 export const clientRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
-}>()
-  .openapiRoutes([getRoot, getById, deleteById, patchById, postRoot, getByIdConnections, patchByIdConnections] as const);
+}>().openapiRoutes([
+  getRoot,
+  getById,
+  deleteById,
+  patchById,
+  postRoot,
+  getByIdConnections,
+  patchByIdConnections,
+] as const);

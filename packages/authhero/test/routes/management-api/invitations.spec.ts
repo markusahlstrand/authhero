@@ -216,9 +216,7 @@ describe("organization invitations management API endpoint", () => {
       expect(invite.invitation_url).toContain(`organization=${org.id}`);
 
       const sent = getSentEmails();
-      const invitationEmail = sent.find(
-        (e) => e.to === "newuser@example.com",
-      );
+      const invitationEmail = sent.find((e) => e.to === "newuser@example.com");
       expect(invitationEmail).toBeDefined();
       expect(invitationEmail!.html).toContain(invite.invitation_url);
     });

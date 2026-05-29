@@ -39,8 +39,7 @@ export function FallbackJsonEditor({
             setError(null);
             onChange(parsed, true);
           } catch (err) {
-            const message =
-              err instanceof Error ? err.message : "Invalid JSON";
+            const message = err instanceof Error ? err.message : "Invalid JSON";
             setError(message);
             onChange(value, false);
           }

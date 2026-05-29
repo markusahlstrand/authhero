@@ -1,8 +1,5 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import {
-  createProxyApp,
-  createStaticProxyAdapter,
-} from "@authhero/proxy";
+import { createProxyApp, createStaticProxyAdapter } from "@authhero/proxy";
 import { proxyConfig } from "./proxy.config";
 
 // AsyncLocalStorage threads each request's ExecutionContext through to the
@@ -32,9 +29,8 @@ const app = createProxyApp({
 
 export default {
   fetch(request: Request, _env: unknown, ctx: ExecutionContext) {
-    return requestCtx.run(
-      { waitUntil: ctx.waitUntil.bind(ctx) },
-      () => app.fetch(request),
+    return requestCtx.run({ waitUntil: ctx.waitUntil.bind(ctx) }, () =>
+      app.fetch(request),
     );
   },
 };

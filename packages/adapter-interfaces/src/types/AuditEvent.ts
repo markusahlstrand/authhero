@@ -26,7 +26,9 @@ export const targetSchema = z.object({
   id: z.string(),
   before: z.record(z.string(), z.unknown()).optional(),
   after: z.record(z.string(), z.unknown()).optional(),
-  diff: z.record(z.string(), z.object({ old: z.unknown(), new: z.unknown() })).optional(),
+  diff: z
+    .record(z.string(), z.object({ old: z.unknown(), new: z.unknown() }))
+    .optional(),
 });
 
 export type Target = z.infer<typeof targetSchema>;

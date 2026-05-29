@@ -147,1511 +147,1530 @@ const removeMembersRequestSchema = z.object({
 });
 const getRoot = defineRoute({
   route: createRoute({
-      tags: ["organizations"],
-      method: "get",
-      path: "/",
-      request: {
-        query: querySchema,
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-      },
-      security: [
-        {
-          Bearer: ["read:organizations"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: z.union([
-                organizationsWithTotalsSchema,
-                z.array(organizationSchema),
-              ]),
-            },
-          },
-          description: "List of organizations",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const tenant_id = ctx.var.tenant_id;
-      const { page, per_page, include_totals, sort, q, from, take } =
-        ctx.req.valid("query");
-
-      const result = await ctx.env.data.organizations.list(tenant_id, {
-        page,
-        per_page,
-        include_totals,
-        sort: parseSort(sort),
-        q,
-        from,
-        take,
-      });
-
-      if (include_totals) {
-        return ctx.json(result);
-      }
-
-      return ctx.json(result.organizations);
+    tags: ["organizations"],
+    method: "get",
+    path: "/",
+    request: {
+      query: querySchema,
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
     },
+    security: [
+      {
+        Bearer: ["read:organizations"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: z.union([
+              organizationsWithTotalsSchema,
+              z.array(organizationSchema),
+            ]),
+          },
+        },
+        description: "List of organizations",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenant_id = ctx.var.tenant_id;
+    const { page, per_page, include_totals, sort, q, from, take } =
+      ctx.req.valid("query");
+
+    const result = await ctx.env.data.organizations.list(tenant_id, {
+      page,
+      per_page,
+      include_totals,
+      sort: parseSort(sort),
+      q,
+      from,
+      take,
+    });
+
+    if (include_totals) {
+      return ctx.json(result);
+    }
+
+    return ctx.json(result.organizations);
+  },
 });
 
 const getById = defineRoute({
   route: createRoute({
-      tags: ["organizations"],
-      method: "get",
-      path: "/{id}",
-      request: {
-        params: z.object({
-          id: z.string(),
-        }),
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-      },
-      security: [
-        {
-          Bearer: ["read:organizations"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: organizationSchema,
-            },
-          },
-          description: "An organization",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const tenant_id = ctx.var.tenant_id;
-      const { id } = ctx.req.valid("param");
-
-      const organization = await ctx.env.data.organizations.get(tenant_id, id);
-
-      if (!organization) {
-        throw new HTTPException(404, { message: "Organization not found" });
-      }
-
-      return ctx.json(organization);
+    tags: ["organizations"],
+    method: "get",
+    path: "/{id}",
+    request: {
+      params: z.object({
+        id: z.string(),
+      }),
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
     },
+    security: [
+      {
+        Bearer: ["read:organizations"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: organizationSchema,
+          },
+        },
+        description: "An organization",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenant_id = ctx.var.tenant_id;
+    const { id } = ctx.req.valid("param");
+
+    const organization = await ctx.env.data.organizations.get(tenant_id, id);
+
+    if (!organization) {
+      throw new HTTPException(404, { message: "Organization not found" });
+    }
+
+    return ctx.json(organization);
+  },
 });
 
 const deleteById = defineRoute({
   route: createRoute({
-      tags: ["organizations"],
-      method: "delete",
-      path: "/{id}",
-      request: {
-        params: z.object({
-          id: z.string(),
-        }),
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-      },
-      security: [
-        {
-          Bearer: ["delete:organizations"],
-        },
-      ],
-      responses: {
-        200: {
-          description: "Organization deleted successfully",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const tenant_id = ctx.var.tenant_id;
-      const { id } = ctx.req.valid("param");
-
-      const result = await ctx.env.data.organizations.remove(tenant_id, id);
-      if (!result) {
-        throw new HTTPException(404, { message: "Organization not found" });
-      }
-
-      await logMessage(ctx, ctx.var.tenant_id, {
-        type: LogTypes.SUCCESS_API_OPERATION,
-        description: "Delete an Organization",
-        targetType: "organization",
-        targetId: id,
-      });
-
-      return ctx.text("OK");
+    tags: ["organizations"],
+    method: "delete",
+    path: "/{id}",
+    request: {
+      params: z.object({
+        id: z.string(),
+      }),
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
     },
+    security: [
+      {
+        Bearer: ["delete:organizations"],
+      },
+    ],
+    responses: {
+      200: {
+        description: "Organization deleted successfully",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenant_id = ctx.var.tenant_id;
+    const { id } = ctx.req.valid("param");
+
+    const result = await ctx.env.data.organizations.remove(tenant_id, id);
+    if (!result) {
+      throw new HTTPException(404, { message: "Organization not found" });
+    }
+
+    await logMessage(ctx, ctx.var.tenant_id, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: "Delete an Organization",
+      targetType: "organization",
+      targetId: id,
+    });
+
+    return ctx.text("OK");
+  },
 });
 
 const patchById = defineRoute({
   route: createRoute({
-      tags: ["organizations"],
-      method: "patch",
-      path: "/{id}",
-      request: {
-        body: {
-          content: {
-            "application/json": {
-              schema: organizationInsertSchema.partial(),
-            },
+    tags: ["organizations"],
+    method: "patch",
+    path: "/{id}",
+    request: {
+      body: {
+        content: {
+          "application/json": {
+            schema: organizationInsertSchema.partial(),
           },
         },
-        params: z.object({
-          id: z.string(),
-        }),
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
       },
-      security: [
-        {
-          Bearer: ["update:organizations"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: organizationSchema,
-            },
-          },
-          description: "The updated organization",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const tenant_id = ctx.var.tenant_id;
-      const { id } = ctx.req.valid("param");
-      const body = ctx.req.valid("json");
-
-      const beforeOrg = await ctx.env.data.organizations.get(tenant_id, id);
-
-      if (!beforeOrg) {
-        throw new HTTPException(404, { message: "Organization not found" });
-      }
-
-      const updated = await ctx.env.data.organizations.update(
-        tenant_id,
-        id,
-        body,
-      );
-
-      if (!updated) {
-        throw new HTTPException(404, { message: "Organization not found" });
-      }
-
-      const organization = await ctx.env.data.organizations.get(tenant_id, id);
-
-      if (!organization) {
-        throw new HTTPException(404, { message: "Organization not found" });
-      }
-
-      await logMessage(ctx, ctx.var.tenant_id, {
-        type: LogTypes.SUCCESS_API_OPERATION,
-        description: "Update an Organization",
-        targetType: "organization",
-        targetId: id,
-        beforeState: beforeOrg as unknown as Record<string, unknown>,
-        afterState: organization as unknown as Record<string, unknown>,
-      });
-
-      return ctx.json(organization);
+      params: z.object({
+        id: z.string(),
+      }),
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
     },
+    security: [
+      {
+        Bearer: ["update:organizations"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: organizationSchema,
+          },
+        },
+        description: "The updated organization",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenant_id = ctx.var.tenant_id;
+    const { id } = ctx.req.valid("param");
+    const body = ctx.req.valid("json");
+
+    const beforeOrg = await ctx.env.data.organizations.get(tenant_id, id);
+
+    if (!beforeOrg) {
+      throw new HTTPException(404, { message: "Organization not found" });
+    }
+
+    const updated = await ctx.env.data.organizations.update(
+      tenant_id,
+      id,
+      body,
+    );
+
+    if (!updated) {
+      throw new HTTPException(404, { message: "Organization not found" });
+    }
+
+    const organization = await ctx.env.data.organizations.get(tenant_id, id);
+
+    if (!organization) {
+      throw new HTTPException(404, { message: "Organization not found" });
+    }
+
+    await logMessage(ctx, ctx.var.tenant_id, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: "Update an Organization",
+      targetType: "organization",
+      targetId: id,
+      beforeState: beforeOrg as unknown as Record<string, unknown>,
+      afterState: organization as unknown as Record<string, unknown>,
+    });
+
+    return ctx.json(organization);
+  },
 });
 
 const postRoot = defineRoute({
   route: createRoute({
-      tags: ["organizations"],
-      method: "post",
-      path: "/",
-      request: {
-        body: {
-          content: {
-            "application/json": {
-              schema: organizationInsertSchema,
-            },
+    tags: ["organizations"],
+    method: "post",
+    path: "/",
+    request: {
+      body: {
+        content: {
+          "application/json": {
+            schema: organizationInsertSchema,
           },
         },
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
       },
-      security: [
-        {
-          Bearer: ["create:organizations"],
-        },
-      ],
-      responses: {
-        201: {
-          content: {
-            "application/json": {
-              schema: organizationSchema,
-            },
-          },
-          description: "The created organization",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const tenant_id = ctx.var.tenant_id;
-      const body = ctx.req.valid("json");
-
-      const organizationData = {
-        ...body,
-        id: body.id || generateOrganizationId(),
-      };
-
-      const organization = await ctx.env.data.organizations.create(
-        tenant_id,
-        organizationData,
-      );
-
-      await logMessage(ctx, ctx.var.tenant_id, {
-        type: LogTypes.SUCCESS_API_OPERATION,
-        description: "Create an Organization",
-        targetType: "organization",
-        targetId: organization.id,
-        afterState: organization as unknown as Record<string, unknown>,
-      });
-
-      return ctx.json(organization, { status: 201 });
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
     },
+    security: [
+      {
+        Bearer: ["create:organizations"],
+      },
+    ],
+    responses: {
+      201: {
+        content: {
+          "application/json": {
+            schema: organizationSchema,
+          },
+        },
+        description: "The created organization",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenant_id = ctx.var.tenant_id;
+    const body = ctx.req.valid("json");
+
+    const organizationData = {
+      ...body,
+      id: body.id || generateOrganizationId(),
+    };
+
+    const organization = await ctx.env.data.organizations.create(
+      tenant_id,
+      organizationData,
+    );
+
+    await logMessage(ctx, ctx.var.tenant_id, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: "Create an Organization",
+      targetType: "organization",
+      targetId: organization.id,
+      afterState: organization as unknown as Record<string, unknown>,
+    });
+
+    return ctx.json(organization, { status: 201 });
+  },
 });
 
 const getByIdMembers = defineRoute({
   route: createRoute({
-      tags: ["organizations"],
-      method: "get",
-      path: "/{id}/members",
-      request: {
-        params: z.object({
-          id: z.string(),
-        }),
-        query: querySchema,
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-      },
-      security: [
-        {
-          Bearer: ["read:organizations"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: z.union([
-                z.array(organizationMemberSchema),
-                organizationMembersWithPaginationSchema,
-                organizationMembersWithNextSchema,
-              ]),
-            },
-          },
-          description: "List of organization members",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const tenant_id = ctx.var.tenant_id;
-      const { id: organizationId } = ctx.req.valid("param");
-      const { page, per_page, include_totals, sort } = ctx.req.valid("query");
-
-      // First verify organization exists
-      const organization = await ctx.env.data.organizations.get(
-        tenant_id,
-        organizationId,
-      );
-      if (!organization) {
-        throw new HTTPException(404, { message: "Organization not found" });
-      }
-
-      // Get user-organization relationships
-      const userOrgsResult = await ctx.env.data.userOrganizations.list(
-        tenant_id,
-        {
-          page,
-          per_page,
-          include_totals,
-          sort: parseSort(sort),
-          q: `organization_id:${organization.id}`,
-        },
-      );
-
-      // Get user details and org-scoped roles for each member
-      const members = await Promise.all(
-        userOrgsResult.userOrganizations.map(async (userOrg) => {
-          const user = await ctx.env.data.users.get(tenant_id, userOrg.user_id);
-          if (!user) return null;
-          const roles = await ctx.env.data.userRoles.list(
-            tenant_id,
-            user.user_id,
-            undefined,
-            organization.id,
-          );
-          return {
-            user_id: user.user_id,
-            email: user.email || undefined,
-            name: user.name || undefined,
-            picture: user.picture || undefined,
-            roles,
-          };
-        }),
-      ).then((rows) => rows.filter((r): r is NonNullable<typeof r> => r !== null));
-
-      // Return different formats based on query parameters
-      if (include_totals) {
-        // Return with pagination info
-        return ctx.json({
-          start: userOrgsResult.start,
-          limit: userOrgsResult.limit,
-          total: userOrgsResult.length,
-          members,
-        });
-      }
-
-      // Return simple array
-      return ctx.json(members);
+    tags: ["organizations"],
+    method: "get",
+    path: "/{id}/members",
+    request: {
+      params: z.object({
+        id: z.string(),
+      }),
+      query: querySchema,
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
     },
+    security: [
+      {
+        Bearer: ["read:organizations"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: z.union([
+              z.array(organizationMemberSchema),
+              organizationMembersWithPaginationSchema,
+              organizationMembersWithNextSchema,
+            ]),
+          },
+        },
+        description: "List of organization members",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenant_id = ctx.var.tenant_id;
+    const { id: organizationId } = ctx.req.valid("param");
+    const { page, per_page, include_totals, sort } = ctx.req.valid("query");
+
+    // First verify organization exists
+    const organization = await ctx.env.data.organizations.get(
+      tenant_id,
+      organizationId,
+    );
+    if (!organization) {
+      throw new HTTPException(404, { message: "Organization not found" });
+    }
+
+    // Get user-organization relationships
+    const userOrgsResult = await ctx.env.data.userOrganizations.list(
+      tenant_id,
+      {
+        page,
+        per_page,
+        include_totals,
+        sort: parseSort(sort),
+        q: `organization_id:${organization.id}`,
+      },
+    );
+
+    // Get user details and org-scoped roles for each member
+    const members = await Promise.all(
+      userOrgsResult.userOrganizations.map(async (userOrg) => {
+        const user = await ctx.env.data.users.get(tenant_id, userOrg.user_id);
+        if (!user) return null;
+        const roles = await ctx.env.data.userRoles.list(
+          tenant_id,
+          user.user_id,
+          undefined,
+          organization.id,
+        );
+        return {
+          user_id: user.user_id,
+          email: user.email || undefined,
+          name: user.name || undefined,
+          picture: user.picture || undefined,
+          roles,
+        };
+      }),
+    ).then((rows) =>
+      rows.filter((r): r is NonNullable<typeof r> => r !== null),
+    );
+
+    // Return different formats based on query parameters
+    if (include_totals) {
+      // Return with pagination info
+      return ctx.json({
+        start: userOrgsResult.start,
+        limit: userOrgsResult.limit,
+        total: userOrgsResult.length,
+        members,
+      });
+    }
+
+    // Return simple array
+    return ctx.json(members);
+  },
 });
 
 const postByIdMembers = defineRoute({
   route: createRoute({
-      tags: ["organizations"],
-      method: "post",
-      path: "/{id}/members",
-      request: {
-        params: z.object({
-          id: z.string(),
-        }),
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-        body: {
-          content: {
-            "application/json": {
-              schema: addMembersRequestSchema,
-            },
+    tags: ["organizations"],
+    method: "post",
+    path: "/{id}/members",
+    request: {
+      params: z.object({
+        id: z.string(),
+      }),
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
+      body: {
+        content: {
+          "application/json": {
+            schema: addMembersRequestSchema,
           },
         },
       },
-      security: [
-        {
-          Bearer: ["update:organizations"],
-        },
-      ],
-      responses: {
-        204: {
-          description: "Members added successfully",
-        },
+    },
+    security: [
+      {
+        Bearer: ["update:organizations"],
       },
-    }),
+    ],
+    responses: {
+      204: {
+        description: "Members added successfully",
+      },
+    },
+  }),
   handler: async (ctx) => {
-      const tenant_id = ctx.var.tenant_id;
-      const { id: organizationId } = ctx.req.valid("param");
-      const { members } = ctx.req.valid("json");
+    const tenant_id = ctx.var.tenant_id;
+    const { id: organizationId } = ctx.req.valid("param");
+    const { members } = ctx.req.valid("json");
 
-      // First verify organization exists. `organizations.get` falls back to
-      // name lookup for Auth0 compat, so always use the resolved `.id` below
-      // — never the path param — when persisting user-organization rows.
-      const organization = await ctx.env.data.organizations.get(
-        tenant_id,
-        organizationId,
-      );
-      if (!organization) {
-        throw new HTTPException(404, { message: "Organization not found" });
-      }
+    // First verify organization exists. `organizations.get` falls back to
+    // name lookup for Auth0 compat, so always use the resolved `.id` below
+    // — never the path param — when persisting user-organization rows.
+    const organization = await ctx.env.data.organizations.get(
+      tenant_id,
+      organizationId,
+    );
+    if (!organization) {
+      throw new HTTPException(404, { message: "Organization not found" });
+    }
 
-      // Add each user to the organization
-      for (const userId of members) {
-        // Check if relationship already exists
-        const existing = await ctx.env.data.userOrganizations.list(tenant_id, {
-          q: `user_id:${userId}`,
-          per_page: 1,
-        });
-
-        const alreadyMember = existing.userOrganizations.some(
-          (uo) => uo.organization_id === organization.id,
-        );
-
-        if (!alreadyMember) {
-          await ctx.env.data.userOrganizations.create(tenant_id, {
-            user_id: userId,
-            organization_id: organization.id,
-          });
-        }
-      }
-
-      await logMessage(ctx, ctx.var.tenant_id, {
-        type: LogTypes.SUCCESS_API_OPERATION,
-        description: "Add Members to an Organization",
-        targetType: "organization_member",
-        targetId: organization.id,
+    // Add each user to the organization
+    for (const userId of members) {
+      // Check if relationship already exists
+      const existing = await ctx.env.data.userOrganizations.list(tenant_id, {
+        q: `user_id:${userId}`,
+        per_page: 1,
       });
 
-      return new Response(null, { status: 204 });
-    },
+      const alreadyMember = existing.userOrganizations.some(
+        (uo) => uo.organization_id === organization.id,
+      );
+
+      if (!alreadyMember) {
+        await ctx.env.data.userOrganizations.create(tenant_id, {
+          user_id: userId,
+          organization_id: organization.id,
+        });
+      }
+    }
+
+    await logMessage(ctx, ctx.var.tenant_id, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: "Add Members to an Organization",
+      targetType: "organization_member",
+      targetId: organization.id,
+    });
+
+    return new Response(null, { status: 204 });
+  },
 });
 
 const deleteByIdMembers = defineRoute({
   route: createRoute({
-      tags: ["organizations"],
-      method: "delete",
-      path: "/{id}/members",
-      request: {
-        params: z.object({
-          id: z.string(),
-        }),
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-        body: {
-          content: {
-            "application/json": {
-              schema: removeMembersRequestSchema,
-            },
+    tags: ["organizations"],
+    method: "delete",
+    path: "/{id}/members",
+    request: {
+      params: z.object({
+        id: z.string(),
+      }),
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
+      body: {
+        content: {
+          "application/json": {
+            schema: removeMembersRequestSchema,
           },
         },
       },
-      security: [
-        {
-          Bearer: ["update:organizations"],
-        },
-      ],
-      responses: {
-        200: {
-          description: "Members removed successfully",
-        },
+    },
+    security: [
+      {
+        Bearer: ["update:organizations"],
       },
-    }),
+    ],
+    responses: {
+      200: {
+        description: "Members removed successfully",
+      },
+    },
+  }),
   handler: async (ctx) => {
-      const tenant_id = ctx.var.tenant_id;
-      const { id: organizationId } = ctx.req.valid("param");
-      const { members } = ctx.req.valid("json");
+    const tenant_id = ctx.var.tenant_id;
+    const { id: organizationId } = ctx.req.valid("param");
+    const { members } = ctx.req.valid("json");
 
-      const organization = await ctx.env.data.organizations.get(
-        tenant_id,
-        organizationId,
-      );
-      if (!organization) {
-        throw new HTTPException(404, { message: "Organization not found" });
-      }
+    const organization = await ctx.env.data.organizations.get(
+      tenant_id,
+      organizationId,
+    );
+    if (!organization) {
+      throw new HTTPException(404, { message: "Organization not found" });
+    }
 
-      // Remove each user from the organization
-      for (const userId of members) {
-        const userOrgs = await ctx.env.data.userOrganizations.list(tenant_id, {
-          q: `user_id:${userId}`,
-          per_page: 100, // Should be enough for most cases
-        });
-
-        const membershipToRemove = userOrgs.userOrganizations.find(
-          (uo) => uo.organization_id === organization.id,
-        );
-
-        if (membershipToRemove) {
-          await ctx.env.data.userOrganizations.remove(
-            tenant_id,
-            membershipToRemove.id,
-          );
-        }
-      }
-
-      await logMessage(ctx, ctx.var.tenant_id, {
-        type: LogTypes.SUCCESS_API_OPERATION,
-        description: "Remove Members from an Organization",
-        targetType: "organization_member",
-        targetId: organization.id,
+    // Remove each user from the organization
+    for (const userId of members) {
+      const userOrgs = await ctx.env.data.userOrganizations.list(tenant_id, {
+        q: `user_id:${userId}`,
+        per_page: 100, // Should be enough for most cases
       });
 
-      return ctx.json({ message: "Members removed successfully" });
-    },
+      const membershipToRemove = userOrgs.userOrganizations.find(
+        (uo) => uo.organization_id === organization.id,
+      );
+
+      if (membershipToRemove) {
+        await ctx.env.data.userOrganizations.remove(
+          tenant_id,
+          membershipToRemove.id,
+        );
+      }
+    }
+
+    await logMessage(ctx, ctx.var.tenant_id, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: "Remove Members from an Organization",
+      targetType: "organization_member",
+      targetId: organization.id,
+    });
+
+    return ctx.json({ message: "Members removed successfully" });
+  },
 });
 
 const getByIdMembersByUser_idRoles = defineRoute({
   route: createRoute({
-      tags: ["organizations"],
-      method: "get",
-      path: "/{id}/members/{user_id}/roles",
-      request: {
-        params: z.object({
-          id: z.string(),
-          user_id: z.string(),
-        }),
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-        query: querySchema,
-      },
-      security: [
-        {
-          Bearer: ["read:organizations"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: roleListSchema,
-            },
-          },
-          description: "User roles in organization",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const tenant_id = ctx.var.tenant_id;
-      const { id: organizationId, user_id } = ctx.req.valid("param");
-
-      // First verify organization exists
-      const organization = await ctx.env.data.organizations.get(
-        tenant_id,
-        organizationId,
-      );
-      if (!organization) {
-        throw new HTTPException(404, { message: "Organization not found" });
-      }
-
-      // Verify user exists
-      const user = await ctx.env.data.users.get(tenant_id, user_id);
-      if (!user) {
-        throw new HTTPException(404, { message: "User not found" });
-      }
-
-      // Get user roles in this organization
-      const roles = await ctx.env.data.userRoles.list(
-        tenant_id,
-        user_id,
-        undefined,
-        organization.id,
-      );
-
-      return ctx.json(roles);
+    tags: ["organizations"],
+    method: "get",
+    path: "/{id}/members/{user_id}/roles",
+    request: {
+      params: z.object({
+        id: z.string(),
+        user_id: z.string(),
+      }),
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
+      query: querySchema,
     },
+    security: [
+      {
+        Bearer: ["read:organizations"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: roleListSchema,
+          },
+        },
+        description: "User roles in organization",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenant_id = ctx.var.tenant_id;
+    const { id: organizationId, user_id } = ctx.req.valid("param");
+
+    // First verify organization exists
+    const organization = await ctx.env.data.organizations.get(
+      tenant_id,
+      organizationId,
+    );
+    if (!organization) {
+      throw new HTTPException(404, { message: "Organization not found" });
+    }
+
+    // Verify user exists
+    const user = await ctx.env.data.users.get(tenant_id, user_id);
+    if (!user) {
+      throw new HTTPException(404, { message: "User not found" });
+    }
+
+    // Get user roles in this organization
+    const roles = await ctx.env.data.userRoles.list(
+      tenant_id,
+      user_id,
+      undefined,
+      organization.id,
+    );
+
+    return ctx.json(roles);
+  },
 });
 
 const postByIdMembersByUser_idRoles = defineRoute({
   route: createRoute({
-      tags: ["organizations"],
-      method: "post",
-      path: "/{id}/members/{user_id}/roles",
-      request: {
-        params: z.object({
-          id: z.string(),
-          user_id: z.string(),
-        }),
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-        body: {
-          content: {
-            "application/json": {
-              schema: z.object({
-                roles: z.array(z.string()).openapi({
-                  description: "List of role IDs to associate with the user",
-                }),
+    tags: ["organizations"],
+    method: "post",
+    path: "/{id}/members/{user_id}/roles",
+    request: {
+      params: z.object({
+        id: z.string(),
+        user_id: z.string(),
+      }),
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
+      body: {
+        content: {
+          "application/json": {
+            schema: z.object({
+              roles: z.array(z.string()).openapi({
+                description: "List of role IDs to associate with the user",
               }),
-            },
+            }),
           },
         },
       },
-      security: [
-        {
-          Bearer: ["update:organizations"],
-        },
-      ],
-      responses: {
-        201: {
-          description: "Roles assigned successfully",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const tenant_id = ctx.var.tenant_id;
-      const { id: organizationId, user_id } = ctx.req.valid("param");
-      const { roles } = ctx.req.valid("json");
-
-      // First verify organization exists
-      const organization = await ctx.env.data.organizations.get(
-        tenant_id,
-        organizationId,
-      );
-      if (!organization) {
-        throw new HTTPException(404, { message: "Organization not found" });
-      }
-
-      // Verify user exists
-      const user = await ctx.env.data.users.get(tenant_id, user_id);
-      if (!user) {
-        throw new HTTPException(404, { message: "User not found" });
-      }
-
-      // Assign roles to user in this organization
-      for (const roleId of roles) {
-        // Verify role exists
-        const role = await ctx.env.data.roles.get(tenant_id, roleId);
-        if (!role) {
-          throw new HTTPException(400, { message: `Role ${roleId} not found` });
-        }
-
-        const success = await ctx.env.data.userRoles.create(
-          tenant_id,
-          user_id,
-          roleId,
-          organization.id,
-        );
-        if (!success) {
-          throw new HTTPException(500, {
-            message: `Failed to assign role ${roleId} to user`,
-          });
-        }
-      }
-
-      await logMessage(ctx, ctx.var.tenant_id, {
-        type: LogTypes.SUCCESS_API_OPERATION,
-        description: "Assign Roles to an Organization Member",
-        targetType: "organization_member_role",
-        targetId: user_id,
-      });
-
-      return ctx.json(
-        { message: "Roles assigned successfully" },
-        { status: 201 },
-      );
     },
+    security: [
+      {
+        Bearer: ["update:organizations"],
+      },
+    ],
+    responses: {
+      201: {
+        description: "Roles assigned successfully",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenant_id = ctx.var.tenant_id;
+    const { id: organizationId, user_id } = ctx.req.valid("param");
+    const { roles } = ctx.req.valid("json");
+
+    // First verify organization exists
+    const organization = await ctx.env.data.organizations.get(
+      tenant_id,
+      organizationId,
+    );
+    if (!organization) {
+      throw new HTTPException(404, { message: "Organization not found" });
+    }
+
+    // Verify user exists
+    const user = await ctx.env.data.users.get(tenant_id, user_id);
+    if (!user) {
+      throw new HTTPException(404, { message: "User not found" });
+    }
+
+    // Assign roles to user in this organization
+    for (const roleId of roles) {
+      // Verify role exists
+      const role = await ctx.env.data.roles.get(tenant_id, roleId);
+      if (!role) {
+        throw new HTTPException(400, { message: `Role ${roleId} not found` });
+      }
+
+      const success = await ctx.env.data.userRoles.create(
+        tenant_id,
+        user_id,
+        roleId,
+        organization.id,
+      );
+      if (!success) {
+        throw new HTTPException(500, {
+          message: `Failed to assign role ${roleId} to user`,
+        });
+      }
+    }
+
+    await logMessage(ctx, ctx.var.tenant_id, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: "Assign Roles to an Organization Member",
+      targetType: "organization_member_role",
+      targetId: user_id,
+    });
+
+    return ctx.json(
+      { message: "Roles assigned successfully" },
+      { status: 201 },
+    );
+  },
 });
 
 const deleteByIdMembersByUser_idRoles = defineRoute({
   route: createRoute({
-      tags: ["organizations"],
-      method: "delete",
-      path: "/{id}/members/{user_id}/roles",
-      request: {
-        params: z.object({
-          id: z.string(),
-          user_id: z.string(),
-        }),
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-        body: {
-          content: {
-            "application/json": {
-              schema: z.object({
-                roles: z.array(z.string()).openapi({
-                  description: "List of role IDs to remove from the user",
-                }),
+    tags: ["organizations"],
+    method: "delete",
+    path: "/{id}/members/{user_id}/roles",
+    request: {
+      params: z.object({
+        id: z.string(),
+        user_id: z.string(),
+      }),
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
+      body: {
+        content: {
+          "application/json": {
+            schema: z.object({
+              roles: z.array(z.string()).openapi({
+                description: "List of role IDs to remove from the user",
               }),
-            },
+            }),
           },
         },
       },
-      security: [
-        {
-          Bearer: ["update:organizations"],
-        },
-      ],
-      responses: {
-        200: {
-          description: "Roles removed successfully",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const tenant_id = ctx.var.tenant_id;
-      const { id: organizationId, user_id } = ctx.req.valid("param");
-      const { roles } = ctx.req.valid("json");
-
-      // First verify organization exists
-      const organization = await ctx.env.data.organizations.get(
-        tenant_id,
-        organizationId,
-      );
-      if (!organization) {
-        throw new HTTPException(404, { message: "Organization not found" });
-      }
-
-      // Verify user exists
-      const user = await ctx.env.data.users.get(tenant_id, user_id);
-      if (!user) {
-        throw new HTTPException(404, { message: "User not found" });
-      }
-
-      // Remove roles from user in this organization
-      for (const roleId of roles) {
-        const success = await ctx.env.data.userRoles.remove(
-          tenant_id,
-          user_id,
-          roleId,
-          organization.id,
-        );
-        if (!success) {
-          throw new HTTPException(500, {
-            message: `Failed to remove role ${roleId} from user`,
-          });
-        }
-      }
-
-      await logMessage(ctx, ctx.var.tenant_id, {
-        type: LogTypes.SUCCESS_API_OPERATION,
-        description: "Remove Roles from an Organization Member",
-        targetType: "organization_member_role",
-        targetId: user_id,
-      });
-
-      return ctx.json({ message: "Roles removed successfully" });
     },
+    security: [
+      {
+        Bearer: ["update:organizations"],
+      },
+    ],
+    responses: {
+      200: {
+        description: "Roles removed successfully",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenant_id = ctx.var.tenant_id;
+    const { id: organizationId, user_id } = ctx.req.valid("param");
+    const { roles } = ctx.req.valid("json");
+
+    // First verify organization exists
+    const organization = await ctx.env.data.organizations.get(
+      tenant_id,
+      organizationId,
+    );
+    if (!organization) {
+      throw new HTTPException(404, { message: "Organization not found" });
+    }
+
+    // Verify user exists
+    const user = await ctx.env.data.users.get(tenant_id, user_id);
+    if (!user) {
+      throw new HTTPException(404, { message: "User not found" });
+    }
+
+    // Remove roles from user in this organization
+    for (const roleId of roles) {
+      const success = await ctx.env.data.userRoles.remove(
+        tenant_id,
+        user_id,
+        roleId,
+        organization.id,
+      );
+      if (!success) {
+        throw new HTTPException(500, {
+          message: `Failed to remove role ${roleId} from user`,
+        });
+      }
+    }
+
+    await logMessage(ctx, ctx.var.tenant_id, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: "Remove Roles from an Organization Member",
+      targetType: "organization_member_role",
+      targetId: user_id,
+    });
+
+    return ctx.json({ message: "Roles removed successfully" });
+  },
 });
 
 const getByIdRoles = defineRoute({
   route: createRoute({
-      tags: ["organizations"],
-      method: "get",
-      path: "/{id}/roles",
-      request: {
-        params: z.object({
-          id: z.string(),
-        }),
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-        query: querySchema,
-      },
-      security: [
-        {
-          Bearer: ["read:organizations"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: roleListSchema,
-            },
-          },
-          description: "List of roles available in organization",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const tenant_id = ctx.var.tenant_id;
-      const { id: organizationId } = ctx.req.valid("param");
-      const { page, per_page, sort, q } = ctx.req.valid("query");
-
-      // First verify organization exists
-      const organization = await ctx.env.data.organizations.get(
-        tenant_id,
-        organizationId,
-      );
-      if (!organization) {
-        throw new HTTPException(404, { message: "Organization not found" });
-      }
-
-      // For now, return all roles in the tenant
-      // TODO: In the future, organizations might have their own roles
-      const result = await ctx.env.data.roles.list(tenant_id, {
-        page,
-        per_page,
-        sort: parseSort(sort),
-        q,
-      });
-
-      return ctx.json(result.roles);
+    tags: ["organizations"],
+    method: "get",
+    path: "/{id}/roles",
+    request: {
+      params: z.object({
+        id: z.string(),
+      }),
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
+      query: querySchema,
     },
+    security: [
+      {
+        Bearer: ["read:organizations"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: roleListSchema,
+          },
+        },
+        description: "List of roles available in organization",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenant_id = ctx.var.tenant_id;
+    const { id: organizationId } = ctx.req.valid("param");
+    const { page, per_page, sort, q } = ctx.req.valid("query");
+
+    // First verify organization exists
+    const organization = await ctx.env.data.organizations.get(
+      tenant_id,
+      organizationId,
+    );
+    if (!organization) {
+      throw new HTTPException(404, { message: "Organization not found" });
+    }
+
+    // For now, return all roles in the tenant
+    // TODO: In the future, organizations might have their own roles
+    const result = await ctx.env.data.roles.list(tenant_id, {
+      page,
+      per_page,
+      sort: parseSort(sort),
+      q,
+    });
+
+    return ctx.json(result.roles);
+  },
 });
 
 const getByIdInvitations = defineRoute({
   route: createRoute({
-      tags: ["organizations"],
-      method: "get",
-      path: "/{id}/invitations",
-      request: {
-        params: z.object({
-          id: z.string().openapi({
-            description: "Organization ID",
-            param: { name: "id", in: "path" },
-          }),
+    tags: ["organizations"],
+    method: "get",
+    path: "/{id}/invitations",
+    request: {
+      params: z.object({
+        id: z.string().openapi({
+          description: "Organization ID",
+          param: { name: "id", in: "path" },
         }),
-        query: invitationsQuerySchema,
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-      },
-      security: [
-        {
-          Bearer: ["read:organizations"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: z.union([
-                z.array(inviteSchema),
-                invitationsListWithTotalsSchema,
-              ]),
-            },
-          },
-          description: "List of organization invitations",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const tenant_id = ctx.var.tenant_id;
-      const { id: organization_id } = ctx.req.valid("param");
-      const { page, per_page, include_totals, fields, include_fields, sort } =
-        ctx.req.valid("query");
-
-      // Verify organization exists
-      const organization = await ctx.env.data.organizations.get(
-        tenant_id,
-        organization_id,
-      );
-      if (!organization) {
-        throw new HTTPException(404, { message: "Organization not found" });
-      }
-
-      const result = await ctx.env.data.invites.list(tenant_id, {
-        page,
-        per_page,
-      });
-
-      // Filter by organization_id
-      let filteredInvites = result.invites.filter(
-        (invite) => invite.organization_id === organization.id,
-      );
-
-      // Apply sorting
-      if (sort) {
-        const sortConfig = parseSort(sort);
-        if (sortConfig) {
-          const { sort_by, sort_order } = sortConfig;
-          filteredInvites.sort((a, b) => {
-            const aValue = a[sort_by as keyof typeof a];
-            const bValue = b[sort_by as keyof typeof b];
-            if (aValue === undefined || bValue === undefined) return 0;
-            if (aValue === bValue) return 0;
-            const comparison = aValue < bValue ? -1 : 1;
-            return sort_order === "asc" ? comparison : -comparison;
-          });
-        }
-      }
-
-      // Apply field filtering
-      if (fields) {
-        const fieldList = fields.split(",").map((f) => f.trim());
-        filteredInvites = filteredInvites.map((invite) => {
-          const filtered: any = {};
-          for (const key of Object.keys(invite)) {
-            const shouldInclude = include_fields
-              ? fieldList.includes(key)
-              : !fieldList.includes(key);
-            if (shouldInclude) {
-              filtered[key] = invite[key as keyof typeof invite];
-            }
-          }
-          return filtered;
-        });
-      }
-
-      // Return with totals if requested
-      if (include_totals) {
-        return ctx.json({
-          invitations: filteredInvites,
-          start: page * per_page,
-          limit: per_page,
-          length: filteredInvites.length,
-        });
-      }
-
-      return ctx.json(filteredInvites);
+      }),
+      query: invitationsQuerySchema,
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
     },
+    security: [
+      {
+        Bearer: ["read:organizations"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: z.union([
+              z.array(inviteSchema),
+              invitationsListWithTotalsSchema,
+            ]),
+          },
+        },
+        description: "List of organization invitations",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenant_id = ctx.var.tenant_id;
+    const { id: organization_id } = ctx.req.valid("param");
+    const { page, per_page, include_totals, fields, include_fields, sort } =
+      ctx.req.valid("query");
+
+    // Verify organization exists
+    const organization = await ctx.env.data.organizations.get(
+      tenant_id,
+      organization_id,
+    );
+    if (!organization) {
+      throw new HTTPException(404, { message: "Organization not found" });
+    }
+
+    const result = await ctx.env.data.invites.list(tenant_id, {
+      page,
+      per_page,
+    });
+
+    // Filter by organization_id
+    let filteredInvites = result.invites.filter(
+      (invite) => invite.organization_id === organization.id,
+    );
+
+    // Apply sorting
+    if (sort) {
+      const sortConfig = parseSort(sort);
+      if (sortConfig) {
+        const { sort_by, sort_order } = sortConfig;
+        filteredInvites.sort((a, b) => {
+          const aValue = a[sort_by as keyof typeof a];
+          const bValue = b[sort_by as keyof typeof b];
+          if (aValue === undefined || bValue === undefined) return 0;
+          if (aValue === bValue) return 0;
+          const comparison = aValue < bValue ? -1 : 1;
+          return sort_order === "asc" ? comparison : -comparison;
+        });
+      }
+    }
+
+    // Apply field filtering
+    if (fields) {
+      const fieldList = fields.split(",").map((f) => f.trim());
+      filteredInvites = filteredInvites.map((invite) => {
+        const filtered: any = {};
+        for (const key of Object.keys(invite)) {
+          const shouldInclude = include_fields
+            ? fieldList.includes(key)
+            : !fieldList.includes(key);
+          if (shouldInclude) {
+            filtered[key] = invite[key as keyof typeof invite];
+          }
+        }
+        return filtered;
+      });
+    }
+
+    // Return with totals if requested
+    if (include_totals) {
+      return ctx.json({
+        invitations: filteredInvites,
+        start: page * per_page,
+        limit: per_page,
+        length: filteredInvites.length,
+      });
+    }
+
+    return ctx.json(filteredInvites);
+  },
 });
 
 const getByIdInvitationsByInvitation_id = defineRoute({
   route: createRoute({
-      tags: ["organizations"],
-      method: "get",
-      path: "/{id}/invitations/{invitation_id}",
-      request: {
-        params: z.object({
-          id: z.string().openapi({
-            description: "Organization ID",
-            param: { name: "id", in: "path" },
-          }),
-          invitation_id: z.string().openapi({
-            description: "Invitation ID",
-            param: { name: "invitation_id", in: "path" },
-          }),
+    tags: ["organizations"],
+    method: "get",
+    path: "/{id}/invitations/{invitation_id}",
+    request: {
+      params: z.object({
+        id: z.string().openapi({
+          description: "Organization ID",
+          param: { name: "id", in: "path" },
         }),
-        headers: z.object({
-          "tenant-id": z.string().optional(),
+        invitation_id: z.string().openapi({
+          description: "Invitation ID",
+          param: { name: "invitation_id", in: "path" },
         }),
-      },
-      security: [
-        {
-          Bearer: ["read:organizations"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: inviteSchema,
-            },
-          },
-          description: "An invitation",
-        },
-        404: {
-          description: "Invitation not found",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const tenant_id = ctx.var.tenant_id;
-      const { id: organization_id, invitation_id } = ctx.req.valid("param");
-
-      const organization = await ctx.env.data.organizations.get(
-        tenant_id,
-        organization_id,
-      );
-      if (!organization) {
-        throw new HTTPException(404, { message: "Organization not found" });
-      }
-
-      const invite = await ctx.env.data.invites.get(tenant_id, invitation_id);
-
-      if (!invite || invite.organization_id !== organization.id) {
-        throw new HTTPException(404, { message: "Invitation not found" });
-      }
-
-      return ctx.json(invite);
+      }),
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
     },
+    security: [
+      {
+        Bearer: ["read:organizations"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: inviteSchema,
+          },
+        },
+        description: "An invitation",
+      },
+      404: {
+        description: "Invitation not found",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenant_id = ctx.var.tenant_id;
+    const { id: organization_id, invitation_id } = ctx.req.valid("param");
+
+    const organization = await ctx.env.data.organizations.get(
+      tenant_id,
+      organization_id,
+    );
+    if (!organization) {
+      throw new HTTPException(404, { message: "Organization not found" });
+    }
+
+    const invite = await ctx.env.data.invites.get(tenant_id, invitation_id);
+
+    if (!invite || invite.organization_id !== organization.id) {
+      throw new HTTPException(404, { message: "Invitation not found" });
+    }
+
+    return ctx.json(invite);
+  },
 });
 
 const postByIdInvitations = defineRoute({
   route: createRoute({
-      tags: ["organizations"],
-      method: "post",
-      path: "/{id}/invitations",
-      request: {
-        params: z.object({
-          id: z.string().openapi({
-            description: "Organization ID",
-            param: { name: "id", in: "path" },
-          }),
+    tags: ["organizations"],
+    method: "post",
+    path: "/{id}/invitations",
+    request: {
+      params: z.object({
+        id: z.string().openapi({
+          description: "Organization ID",
+          param: { name: "id", in: "path" },
         }),
-        body: {
-          content: {
-            "application/json": {
-              schema: inviteCreateRequestSchema,
-            },
+      }),
+      body: {
+        content: {
+          "application/json": {
+            schema: inviteCreateRequestSchema,
           },
         },
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
       },
-      security: [
-        {
-          Bearer: ["update:organizations"],
-        },
-      ],
-      responses: {
-        201: {
-          content: {
-            "application/json": {
-              schema: inviteSchema,
-            },
-          },
-          description: "The created invitation",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const tenant_id = ctx.var.tenant_id;
-      const { id: organization_id } = ctx.req.valid("param");
-      const body = ctx.req.valid("json");
-
-      // Verify organization exists
-      const organization = await ctx.env.data.organizations.get(
-        tenant_id,
-        organization_id,
-      );
-      if (!organization) {
-        throw new HTTPException(404, { message: "Organization not found" });
-      }
-
-      // Generate invitation ID and URL
-      const inviteId = generateInviteId();
-      const issuer = getIssuer(ctx.env, ctx.var.custom_domain);
-      const invitationUrlObj = new URL("u2/accept-invitation", issuer);
-      invitationUrlObj.searchParams.set("invitation", inviteId);
-      invitationUrlObj.searchParams.set("organization", organization.id);
-      const invitationUrl = invitationUrlObj.toString();
-
-      const inviteData = {
-        ...body,
-        id: inviteId,
-        organization_id: organization.id,
-        invitation_url: invitationUrl,
-      };
-
-      const invite = await ctx.env.data.invites.create(tenant_id, inviteData);
-
-      await logMessage(ctx, ctx.var.tenant_id, {
-        type: LogTypes.SUCCESS_API_OPERATION,
-        description: "Create an Organization Invitation",
-        targetType: "invitation",
-        targetId: invite.id,
-        afterState: invite as unknown as Record<string, unknown>,
-      });
-
-      // Send the invitation email if requested. Defaults to true per schema.
-      // Failures here must not fail the create — Auth0 returns the invite even
-      // when delivery fails. Errors are already logged via sendEmail's hook.
-      if (body.send_invitation_email !== false && body.invitee?.email) {
-        try {
-          await sendInvitation(ctx, {
-            to: body.invitee.email,
-            invitationUrl,
-            inviterName: body.inviter?.name,
-            organizationName:
-              organization.display_name || organization.name || organization.id,
-            ttlSec: body.ttl_sec ?? 604800,
-          });
-        } catch (err) {
-          console.error(
-            `[invitations] failed to send invitation email for ${invite.id}:`,
-            err,
-          );
-        }
-      }
-
-      return ctx.json(invite, { status: 201 });
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
     },
+    security: [
+      {
+        Bearer: ["update:organizations"],
+      },
+    ],
+    responses: {
+      201: {
+        content: {
+          "application/json": {
+            schema: inviteSchema,
+          },
+        },
+        description: "The created invitation",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenant_id = ctx.var.tenant_id;
+    const { id: organization_id } = ctx.req.valid("param");
+    const body = ctx.req.valid("json");
+
+    // Verify organization exists
+    const organization = await ctx.env.data.organizations.get(
+      tenant_id,
+      organization_id,
+    );
+    if (!organization) {
+      throw new HTTPException(404, { message: "Organization not found" });
+    }
+
+    // Generate invitation ID and URL
+    const inviteId = generateInviteId();
+    const issuer = getIssuer(ctx.env, ctx.var.custom_domain);
+    const invitationUrlObj = new URL("u2/accept-invitation", issuer);
+    invitationUrlObj.searchParams.set("invitation", inviteId);
+    invitationUrlObj.searchParams.set("organization", organization.id);
+    const invitationUrl = invitationUrlObj.toString();
+
+    const inviteData = {
+      ...body,
+      id: inviteId,
+      organization_id: organization.id,
+      invitation_url: invitationUrl,
+    };
+
+    const invite = await ctx.env.data.invites.create(tenant_id, inviteData);
+
+    await logMessage(ctx, ctx.var.tenant_id, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: "Create an Organization Invitation",
+      targetType: "invitation",
+      targetId: invite.id,
+      afterState: invite as unknown as Record<string, unknown>,
+    });
+
+    // Send the invitation email if requested. Defaults to true per schema.
+    // Failures here must not fail the create — Auth0 returns the invite even
+    // when delivery fails. Errors are already logged via sendEmail's hook.
+    if (body.send_invitation_email !== false && body.invitee?.email) {
+      try {
+        await sendInvitation(ctx, {
+          to: body.invitee.email,
+          invitationUrl,
+          inviterName: body.inviter?.name,
+          organizationName:
+            organization.display_name || organization.name || organization.id,
+          ttlSec: body.ttl_sec ?? 604800,
+        });
+      } catch (err) {
+        console.error(
+          `[invitations] failed to send invitation email for ${invite.id}:`,
+          err,
+        );
+      }
+    }
+
+    return ctx.json(invite, { status: 201 });
+  },
 });
 
 const deleteByIdInvitationsByInvitation_id = defineRoute({
   route: createRoute({
-      tags: ["organizations"],
-      method: "delete",
-      path: "/{id}/invitations/{invitation_id}",
-      request: {
-        params: z.object({
-          id: z.string().openapi({
-            description: "Organization ID",
-            param: { name: "id", in: "path" },
-          }),
-          invitation_id: z.string().openapi({
-            description: "Invitation ID",
-            param: { name: "invitation_id", in: "path" },
-          }),
+    tags: ["organizations"],
+    method: "delete",
+    path: "/{id}/invitations/{invitation_id}",
+    request: {
+      params: z.object({
+        id: z.string().openapi({
+          description: "Organization ID",
+          param: { name: "id", in: "path" },
         }),
-        headers: z.object({
-          "tenant-id": z.string().optional(),
+        invitation_id: z.string().openapi({
+          description: "Invitation ID",
+          param: { name: "invitation_id", in: "path" },
         }),
-      },
-      security: [
-        {
-          Bearer: ["update:organizations"],
-        },
-      ],
-      responses: {
-        204: {
-          description: "Invitation deleted successfully",
-        },
-        404: {
-          description: "Invitation not found",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const tenant_id = ctx.var.tenant_id;
-      const { id: organization_id, invitation_id } = ctx.req.valid("param");
-
-      const organization = await ctx.env.data.organizations.get(
-        tenant_id,
-        organization_id,
-      );
-      if (!organization) {
-        throw new HTTPException(404, { message: "Organization not found" });
-      }
-
-      // Verify the invitation exists and belongs to the organization
-      const invite = await ctx.env.data.invites.get(tenant_id, invitation_id);
-      if (!invite || invite.organization_id !== organization.id) {
-        throw new HTTPException(404, { message: "Invitation not found" });
-      }
-
-      const result = await ctx.env.data.invites.remove(
-        tenant_id,
-        invitation_id,
-      );
-      if (!result) {
-        throw new HTTPException(404, { message: "Invitation not found" });
-      }
-
-      await logMessage(ctx, ctx.var.tenant_id, {
-        type: LogTypes.SUCCESS_API_OPERATION,
-        description: "Delete an Organization Invitation",
-        targetType: "invitation",
-        targetId: invitation_id,
-      });
-
-      return ctx.body(null, { status: 204 });
+      }),
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
     },
+    security: [
+      {
+        Bearer: ["update:organizations"],
+      },
+    ],
+    responses: {
+      204: {
+        description: "Invitation deleted successfully",
+      },
+      404: {
+        description: "Invitation not found",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenant_id = ctx.var.tenant_id;
+    const { id: organization_id, invitation_id } = ctx.req.valid("param");
+
+    const organization = await ctx.env.data.organizations.get(
+      tenant_id,
+      organization_id,
+    );
+    if (!organization) {
+      throw new HTTPException(404, { message: "Organization not found" });
+    }
+
+    // Verify the invitation exists and belongs to the organization
+    const invite = await ctx.env.data.invites.get(tenant_id, invitation_id);
+    if (!invite || invite.organization_id !== organization.id) {
+      throw new HTTPException(404, { message: "Invitation not found" });
+    }
+
+    const result = await ctx.env.data.invites.remove(tenant_id, invitation_id);
+    if (!result) {
+      throw new HTTPException(404, { message: "Invitation not found" });
+    }
+
+    await logMessage(ctx, ctx.var.tenant_id, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: "Delete an Organization Invitation",
+      targetType: "invitation",
+      targetId: invitation_id,
+    });
+
+    return ctx.body(null, { status: 204 });
+  },
 });
 
 const getByIdEnabledConnections = defineRoute({
   route: createRoute({
-      tags: ["organizations"],
-      method: "get",
-      path: "/{id}/enabled_connections",
-      request: {
-        params: z.object({ id: z.string() }),
-        headers: z.object({ "tenant-id": z.string().optional() }),
-        query: z.object({
-          include_totals: z
-            .string()
-            .optional()
-            .transform((v) => v === "true")
-            .openapi({
-              deprecated: true,
-              description:
-                "Ignored for compatibility; the connections/total/start/limit/length wrapper is always returned.",
-            }),
-          page: z
-            .string()
-            .optional()
-            .transform((v) => (v ? parseInt(v, 10) : 0)),
-          per_page: z
-            .string()
-            .optional()
-            .transform((v) => (v ? parseInt(v, 10) : 50)),
-        }),
-      },
-      security: [
-        {
-          Bearer: ["read:organization_connections"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: totalsSchema.extend({
-                connections: z.array(organizationConnectionSchema),
-              }),
-            },
-          },
-          description: "Connections enabled for the organization",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const tenant_id = ctx.var.tenant_id;
-      const { id: organization_id } = ctx.req.valid("param");
-      const { include_totals, page, per_page } = ctx.req.valid("query");
-
-      const organization = await ctx.env.data.organizations.get(
-        tenant_id,
-        organization_id,
-      );
-      if (!organization) {
-        throw new HTTPException(404, { message: "Organization not found" });
-      }
-
-      const connections = await ctx.env.data.organizationConnections.list(
-        tenant_id,
-        organization.id,
-      );
-      // Adapter returns the full unpaginated list; slice in memory.
-      const start = page * per_page;
-      const paginated = connections.slice(start, start + per_page);
-      // Auth0 wraps this list endpoint by default — the go-auth0 SDK decodes
-      // into an OrganizationConnectionList struct which always expects the
-      // `connections` key, regardless of the include_totals flag. Always wrap.
-      void include_totals;
-      return ctx.json({
-        connections: paginated,
-        total: connections.length,
-        start,
-        limit: per_page,
-        length: paginated.length,
-      });
+    tags: ["organizations"],
+    method: "get",
+    path: "/{id}/enabled_connections",
+    request: {
+      params: z.object({ id: z.string() }),
+      headers: z.object({ "tenant-id": z.string().optional() }),
+      query: z.object({
+        include_totals: z
+          .string()
+          .optional()
+          .transform((v) => v === "true")
+          .openapi({
+            deprecated: true,
+            description:
+              "Ignored for compatibility; the connections/total/start/limit/length wrapper is always returned.",
+          }),
+        page: z
+          .string()
+          .optional()
+          .transform((v) => (v ? parseInt(v, 10) : 0)),
+        per_page: z
+          .string()
+          .optional()
+          .transform((v) => (v ? parseInt(v, 10) : 50)),
+      }),
     },
+    security: [
+      {
+        Bearer: ["read:organization_connections"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: totalsSchema.extend({
+              connections: z.array(organizationConnectionSchema),
+            }),
+          },
+        },
+        description: "Connections enabled for the organization",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenant_id = ctx.var.tenant_id;
+    const { id: organization_id } = ctx.req.valid("param");
+    const { include_totals, page, per_page } = ctx.req.valid("query");
+
+    const organization = await ctx.env.data.organizations.get(
+      tenant_id,
+      organization_id,
+    );
+    if (!organization) {
+      throw new HTTPException(404, { message: "Organization not found" });
+    }
+
+    const connections = await ctx.env.data.organizationConnections.list(
+      tenant_id,
+      organization.id,
+    );
+    // Adapter returns the full unpaginated list; slice in memory.
+    const start = page * per_page;
+    const paginated = connections.slice(start, start + per_page);
+    // Auth0 wraps this list endpoint by default — the go-auth0 SDK decodes
+    // into an OrganizationConnectionList struct which always expects the
+    // `connections` key, regardless of the include_totals flag. Always wrap.
+    void include_totals;
+    return ctx.json({
+      connections: paginated,
+      total: connections.length,
+      start,
+      limit: per_page,
+      length: paginated.length,
+    });
+  },
 });
 
 const postByIdEnabledConnections = defineRoute({
   route: createRoute({
-      tags: ["organizations"],
-      method: "post",
-      path: "/{id}/enabled_connections",
-      request: {
-        params: z.object({ id: z.string() }),
-        headers: z.object({ "tenant-id": z.string().optional() }),
-        body: {
-          content: {
-            "application/json": {
-              schema: organizationConnectionInsertSchema,
-            },
+    tags: ["organizations"],
+    method: "post",
+    path: "/{id}/enabled_connections",
+    request: {
+      params: z.object({ id: z.string() }),
+      headers: z.object({ "tenant-id": z.string().optional() }),
+      body: {
+        content: {
+          "application/json": {
+            schema: organizationConnectionInsertSchema,
           },
         },
       },
-      security: [
-        {
-          Bearer: ["create:organization_connections"],
-        },
-      ],
-      responses: {
-        201: {
-          content: {
-            "application/json": {
-              schema: organizationConnectionSchema,
-            },
-          },
-          description: "Connection enabled for the organization",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const tenant_id = ctx.var.tenant_id;
-      const { id: organization_id } = ctx.req.valid("param");
-      const body = ctx.req.valid("json");
-
-      const organization = await ctx.env.data.organizations.get(
-        tenant_id,
-        organization_id,
-      );
-      if (!organization) {
-        throw new HTTPException(404, { message: "Organization not found" });
-      }
-
-      const connection = await ctx.env.data.connections.get(
-        tenant_id,
-        body.connection_id,
-      );
-      if (!connection) {
-        throw new HTTPException(400, {
-          message: `Connection ${body.connection_id} not found`,
-        });
-      }
-
-      const existing = await ctx.env.data.organizationConnections.get(
-        tenant_id,
-        organization.id,
-        body.connection_id,
-      );
-      if (existing) {
-        throw new HTTPException(409, {
-          message: "Connection already enabled for this organization",
-        });
-      }
-
-      const created = await ctx.env.data.organizationConnections.create(
-        tenant_id,
-        organization.id,
-        body,
-      );
-
-      await logMessage(ctx, tenant_id, {
-        type: LogTypes.SUCCESS_API_OPERATION,
-        description: "Enable an Organization Connection",
-        targetType: "organization_connection",
-        targetId: `${organization.id}:${body.connection_id}`,
-      });
-
-      return ctx.json(created, { status: 201 });
     },
+    security: [
+      {
+        Bearer: ["create:organization_connections"],
+      },
+    ],
+    responses: {
+      201: {
+        content: {
+          "application/json": {
+            schema: organizationConnectionSchema,
+          },
+        },
+        description: "Connection enabled for the organization",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenant_id = ctx.var.tenant_id;
+    const { id: organization_id } = ctx.req.valid("param");
+    const body = ctx.req.valid("json");
+
+    const organization = await ctx.env.data.organizations.get(
+      tenant_id,
+      organization_id,
+    );
+    if (!organization) {
+      throw new HTTPException(404, { message: "Organization not found" });
+    }
+
+    const connection = await ctx.env.data.connections.get(
+      tenant_id,
+      body.connection_id,
+    );
+    if (!connection) {
+      throw new HTTPException(400, {
+        message: `Connection ${body.connection_id} not found`,
+      });
+    }
+
+    const existing = await ctx.env.data.organizationConnections.get(
+      tenant_id,
+      organization.id,
+      body.connection_id,
+    );
+    if (existing) {
+      throw new HTTPException(409, {
+        message: "Connection already enabled for this organization",
+      });
+    }
+
+    const created = await ctx.env.data.organizationConnections.create(
+      tenant_id,
+      organization.id,
+      body,
+    );
+
+    await logMessage(ctx, tenant_id, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: "Enable an Organization Connection",
+      targetType: "organization_connection",
+      targetId: `${organization.id}:${body.connection_id}`,
+    });
+
+    return ctx.json(created, { status: 201 });
+  },
 });
 
 const getByIdEnabledConnectionsByConnection_id = defineRoute({
   route: createRoute({
-      tags: ["organizations"],
-      method: "get",
-      path: "/{id}/enabled_connections/{connection_id}",
-      request: {
-        params: z.object({
-          id: z.string(),
-          connection_id: z.string(),
-        }),
-        headers: z.object({ "tenant-id": z.string().optional() }),
-      },
-      security: [
-        {
-          Bearer: ["read:organization_connections"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: organizationConnectionSchema,
-            },
-          },
-          description: "An enabled organization connection",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const tenant_id = ctx.var.tenant_id;
-      const { id: organization_id, connection_id } = ctx.req.valid("param");
-
-      const organization = await ctx.env.data.organizations.get(
-        tenant_id,
-        organization_id,
-      );
-      if (!organization) {
-        throw new HTTPException(404, { message: "Organization not found" });
-      }
-
-      const orgConn = await ctx.env.data.organizationConnections.get(
-        tenant_id,
-        organization.id,
-        connection_id,
-      );
-      if (!orgConn) {
-        throw new HTTPException(404, {
-          message: "Organization connection not found",
-        });
-      }
-      return ctx.json(orgConn);
+    tags: ["organizations"],
+    method: "get",
+    path: "/{id}/enabled_connections/{connection_id}",
+    request: {
+      params: z.object({
+        id: z.string(),
+        connection_id: z.string(),
+      }),
+      headers: z.object({ "tenant-id": z.string().optional() }),
     },
+    security: [
+      {
+        Bearer: ["read:organization_connections"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: organizationConnectionSchema,
+          },
+        },
+        description: "An enabled organization connection",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenant_id = ctx.var.tenant_id;
+    const { id: organization_id, connection_id } = ctx.req.valid("param");
+
+    const organization = await ctx.env.data.organizations.get(
+      tenant_id,
+      organization_id,
+    );
+    if (!organization) {
+      throw new HTTPException(404, { message: "Organization not found" });
+    }
+
+    const orgConn = await ctx.env.data.organizationConnections.get(
+      tenant_id,
+      organization.id,
+      connection_id,
+    );
+    if (!orgConn) {
+      throw new HTTPException(404, {
+        message: "Organization connection not found",
+      });
+    }
+    return ctx.json(orgConn);
+  },
 });
 
 const patchByIdEnabledConnectionsByConnection_id = defineRoute({
   route: createRoute({
-      tags: ["organizations"],
-      method: "patch",
-      path: "/{id}/enabled_connections/{connection_id}",
-      request: {
-        params: z.object({
-          id: z.string(),
-          connection_id: z.string(),
-        }),
-        headers: z.object({ "tenant-id": z.string().optional() }),
-        body: {
-          content: {
-            "application/json": {
-              schema: organizationConnectionInsertSchema
-                .omit({ connection_id: true })
-                .partial(),
-            },
+    tags: ["organizations"],
+    method: "patch",
+    path: "/{id}/enabled_connections/{connection_id}",
+    request: {
+      params: z.object({
+        id: z.string(),
+        connection_id: z.string(),
+      }),
+      headers: z.object({ "tenant-id": z.string().optional() }),
+      body: {
+        content: {
+          "application/json": {
+            schema: organizationConnectionInsertSchema
+              .omit({ connection_id: true })
+              .partial(),
           },
         },
       },
-      security: [
-        {
-          Bearer: ["update:organization_connections"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: organizationConnectionSchema,
-            },
-          },
-          description: "Updated organization connection",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const tenant_id = ctx.var.tenant_id;
-      const { id: organization_id, connection_id } = ctx.req.valid("param");
-      const body = ctx.req.valid("json");
-
-      const organization = await ctx.env.data.organizations.get(
-        tenant_id,
-        organization_id,
-      );
-      if (!organization) {
-        throw new HTTPException(404, { message: "Organization not found" });
-      }
-
-      const updated = await ctx.env.data.organizationConnections.update(
-        tenant_id,
-        organization.id,
-        connection_id,
-        body,
-      );
-      if (!updated) {
-        throw new HTTPException(404, {
-          message: "Organization connection not found",
-        });
-      }
-
-      await logMessage(ctx, tenant_id, {
-        type: LogTypes.SUCCESS_API_OPERATION,
-        description: "Update an Organization Connection",
-        targetType: "organization_connection",
-        targetId: `${organization.id}:${connection_id}`,
-      });
-
-      return ctx.json(updated);
     },
+    security: [
+      {
+        Bearer: ["update:organization_connections"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: organizationConnectionSchema,
+          },
+        },
+        description: "Updated organization connection",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenant_id = ctx.var.tenant_id;
+    const { id: organization_id, connection_id } = ctx.req.valid("param");
+    const body = ctx.req.valid("json");
+
+    const organization = await ctx.env.data.organizations.get(
+      tenant_id,
+      organization_id,
+    );
+    if (!organization) {
+      throw new HTTPException(404, { message: "Organization not found" });
+    }
+
+    const updated = await ctx.env.data.organizationConnections.update(
+      tenant_id,
+      organization.id,
+      connection_id,
+      body,
+    );
+    if (!updated) {
+      throw new HTTPException(404, {
+        message: "Organization connection not found",
+      });
+    }
+
+    await logMessage(ctx, tenant_id, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: "Update an Organization Connection",
+      targetType: "organization_connection",
+      targetId: `${organization.id}:${connection_id}`,
+    });
+
+    return ctx.json(updated);
+  },
 });
 
 const deleteByIdEnabledConnectionsByConnection_id = defineRoute({
   route: createRoute({
-      tags: ["organizations"],
-      method: "delete",
-      path: "/{id}/enabled_connections/{connection_id}",
-      request: {
-        params: z.object({
-          id: z.string(),
-          connection_id: z.string(),
-        }),
-        headers: z.object({ "tenant-id": z.string().optional() }),
-      },
-      security: [
-        {
-          Bearer: ["delete:organization_connections"],
-        },
-      ],
-      responses: {
-        204: { description: "Connection disabled" },
-      },
-    }),
-  handler: async (ctx) => {
-      const tenant_id = ctx.var.tenant_id;
-      const { id: organization_id, connection_id } = ctx.req.valid("param");
-
-      const organization = await ctx.env.data.organizations.get(
-        tenant_id,
-        organization_id,
-      );
-      if (!organization) {
-        throw new HTTPException(404, { message: "Organization not found" });
-      }
-
-      const removed = await ctx.env.data.organizationConnections.remove(
-        tenant_id,
-        organization.id,
-        connection_id,
-      );
-      if (!removed) {
-        throw new HTTPException(404, {
-          message: "Organization connection not found",
-        });
-      }
-
-      await logMessage(ctx, tenant_id, {
-        type: LogTypes.SUCCESS_API_OPERATION,
-        description: "Disable an Organization Connection",
-        targetType: "organization_connection",
-        targetId: `${organization.id}:${connection_id}`,
-      });
-
-      return ctx.body(null, { status: 204 });
+    tags: ["organizations"],
+    method: "delete",
+    path: "/{id}/enabled_connections/{connection_id}",
+    request: {
+      params: z.object({
+        id: z.string(),
+        connection_id: z.string(),
+      }),
+      headers: z.object({ "tenant-id": z.string().optional() }),
     },
-});
+    security: [
+      {
+        Bearer: ["delete:organization_connections"],
+      },
+    ],
+    responses: {
+      204: { description: "Connection disabled" },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenant_id = ctx.var.tenant_id;
+    const { id: organization_id, connection_id } = ctx.req.valid("param");
 
+    const organization = await ctx.env.data.organizations.get(
+      tenant_id,
+      organization_id,
+    );
+    if (!organization) {
+      throw new HTTPException(404, { message: "Organization not found" });
+    }
+
+    const removed = await ctx.env.data.organizationConnections.remove(
+      tenant_id,
+      organization.id,
+      connection_id,
+    );
+    if (!removed) {
+      throw new HTTPException(404, {
+        message: "Organization connection not found",
+      });
+    }
+
+    await logMessage(ctx, tenant_id, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: "Disable an Organization Connection",
+      targetType: "organization_connection",
+      targetId: `${organization.id}:${connection_id}`,
+    });
+
+    return ctx.body(null, { status: 204 });
+  },
+});
 
 export const organizationRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
-}>()
-  .openapiRoutes([getRoot, getById, deleteById, patchById, postRoot, getByIdMembers, postByIdMembers, deleteByIdMembers, getByIdMembersByUser_idRoles, postByIdMembersByUser_idRoles, deleteByIdMembersByUser_idRoles, getByIdRoles, getByIdInvitations, getByIdInvitationsByInvitation_id, postByIdInvitations, deleteByIdInvitationsByInvitation_id, getByIdEnabledConnections, postByIdEnabledConnections, getByIdEnabledConnectionsByConnection_id, patchByIdEnabledConnectionsByConnection_id, deleteByIdEnabledConnectionsByConnection_id] as const);
+}>().openapiRoutes([
+  getRoot,
+  getById,
+  deleteById,
+  patchById,
+  postRoot,
+  getByIdMembers,
+  postByIdMembers,
+  deleteByIdMembers,
+  getByIdMembersByUser_idRoles,
+  postByIdMembersByUser_idRoles,
+  deleteByIdMembersByUser_idRoles,
+  getByIdRoles,
+  getByIdInvitations,
+  getByIdInvitationsByInvitation_id,
+  postByIdInvitations,
+  deleteByIdInvitationsByInvitation_id,
+  getByIdEnabledConnections,
+  postByIdEnabledConnections,
+  getByIdEnabledConnectionsByConnection_id,
+  patchByIdEnabledConnectionsByConnection_id,
+  deleteByIdEnabledConnectionsByConnection_id,
+] as const);

@@ -128,7 +128,10 @@ function AddOrganizationButton() {
         <Plus className="h-4 w-4 mr-1" />
         Add to organization
       </Button>
-      <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : handleClose())}>
+      <Dialog
+        open={open}
+        onOpenChange={(o) => (o ? setOpen(true) : handleClose())}
+      >
         <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>Add to organizations</DialogTitle>
@@ -196,7 +199,8 @@ function AddOrganizationButton() {
               Cancel
             </Button>
             <Button onClick={handleAdd} disabled={selected.size === 0}>
-              Add to {selected.size > 0 ? `${selected.size} ` : ""}organization(s)
+              Add to {selected.size > 0 ? `${selected.size} ` : ""}
+              organization(s)
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -313,7 +317,10 @@ function ManageRolesCell() {
         <Shield className="h-4 w-4" />
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-xl" onClick={(e) => e.stopPropagation()}>
+        <DialogContent
+          className="max-w-xl"
+          onClick={(e) => e.stopPropagation()}
+        >
           <DialogHeader>
             <DialogTitle>Manage roles in {orgLabel}</DialogTitle>
           </DialogHeader>
@@ -330,10 +337,7 @@ function ManageRolesCell() {
                 ) : (
                   <ul className="divide-y">
                     {assigned.map((r) => (
-                      <li
-                        key={r.id}
-                        className="flex items-center gap-2 p-2"
-                      >
+                      <li key={r.id} className="flex items-center gap-2 p-2">
                         <div className="flex-1">
                           <div className="text-sm font-medium">
                             {r.name || r.id}
@@ -371,10 +375,7 @@ function ManageRolesCell() {
                 ) : (
                   <ul className="divide-y">
                     {available.map((r) => (
-                      <li
-                        key={r.id}
-                        className="flex items-start gap-2 p-2"
-                      >
+                      <li key={r.id} className="flex items-start gap-2 p-2">
                         <Checkbox
                           id={`orgrole-${orgId}-${r.id}`}
                           checked={selected.has(r.id)}

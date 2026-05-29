@@ -60,657 +60,667 @@ const messageTypeSchema = z.object({
 });
 const getFactors = defineRoute({
   route: createRoute({
-      tags: ["guardian"],
-      method: "get",
-      path: "/factors",
-      request: {
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-      },
-      security: [
-        {
-          Bearer: ["read:guardian_factors"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: factorsListSchema,
-            },
-          },
-          description: "List of MFA factors",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
-      const factors = tenant?.mfa?.factors;
-
-      // Return all factors with their current state
-      const result = factorNames.map((name) => {
-        const internalKey = toInternalKey(name) as keyof NonNullable<
-          typeof factors
-        >;
-        return {
-          name,
-          enabled: Boolean(factors?.[internalKey]),
-          trial_expired: false,
-        };
-      });
-
-      return ctx.json(result);
+    tags: ["guardian"],
+    method: "get",
+    path: "/factors",
+    request: {
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
     },
+    security: [
+      {
+        Bearer: ["read:guardian_factors"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: factorsListSchema,
+          },
+        },
+        description: "List of MFA factors",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
+    const factors = tenant?.mfa?.factors;
+
+    // Return all factors with their current state
+    const result = factorNames.map((name) => {
+      const internalKey = toInternalKey(name) as keyof NonNullable<
+        typeof factors
+      >;
+      return {
+        name,
+        enabled: Boolean(factors?.[internalKey]),
+        trial_expired: false,
+      };
+    });
+
+    return ctx.json(result);
+  },
 });
 
 const getFactorsSmsSelectedProvider = defineRoute({
   route: createRoute({
-      tags: ["guardian"],
-      method: "get",
-      path: "/factors/sms/selected-provider",
-      request: {
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-      },
-      security: [
-        {
-          Bearer: ["read:guardian_factors"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: smsSelectedProviderSchema,
-            },
-          },
-          description: "Selected SMS provider",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
-      const provider = tenant?.mfa?.sms_provider?.provider || "twilio";
-
-      return ctx.json({ provider });
+    tags: ["guardian"],
+    method: "get",
+    path: "/factors/sms/selected-provider",
+    request: {
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
     },
+    security: [
+      {
+        Bearer: ["read:guardian_factors"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: smsSelectedProviderSchema,
+          },
+        },
+        description: "Selected SMS provider",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
+    const provider = tenant?.mfa?.sms_provider?.provider || "twilio";
+
+    return ctx.json({ provider });
+  },
 });
 
 const putFactorsSmsSelectedProvider = defineRoute({
   route: createRoute({
-      tags: ["guardian"],
-      method: "put",
-      path: "/factors/sms/selected-provider",
-      request: {
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-        body: {
-          content: {
-            "application/json": {
-              schema: smsSelectedProviderSchema,
-            },
+    tags: ["guardian"],
+    method: "put",
+    path: "/factors/sms/selected-provider",
+    request: {
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
+      body: {
+        content: {
+          "application/json": {
+            schema: smsSelectedProviderSchema,
           },
         },
       },
-      security: [
-        {
-          Bearer: ["update:guardian_factors"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: smsSelectedProviderSchema,
-            },
-          },
-          description: "Updated SMS provider selection",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const { provider } = ctx.req.valid("json");
-
-      const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
-      if (!tenant) {
-        throw new HTTPException(404, { message: "Tenant not found" });
-      }
-
-      await ctx.env.data.tenants.update(ctx.var.tenant_id, {
-        mfa: {
-          ...tenant.mfa,
-          sms_provider: {
-            provider,
-          },
-        },
-      });
-
-      await logMessage(ctx, ctx.var.tenant_id, {
-        type: LogTypes.SUCCESS_API_OPERATION,
-        description: "Set SMS Provider",
-        targetType: "guardian",
-        targetId: ctx.var.tenant_id,
-      });
-
-      return ctx.json({ provider });
     },
+    security: [
+      {
+        Bearer: ["update:guardian_factors"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: smsSelectedProviderSchema,
+          },
+        },
+        description: "Updated SMS provider selection",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const { provider } = ctx.req.valid("json");
+
+    const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
+    if (!tenant) {
+      throw new HTTPException(404, { message: "Tenant not found" });
+    }
+
+    await ctx.env.data.tenants.update(ctx.var.tenant_id, {
+      mfa: {
+        ...tenant.mfa,
+        sms_provider: {
+          provider,
+        },
+      },
+    });
+
+    await logMessage(ctx, ctx.var.tenant_id, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: "Set SMS Provider",
+      targetType: "guardian",
+      targetId: ctx.var.tenant_id,
+    });
+
+    return ctx.json({ provider });
+  },
 });
 
 const getFactorsSmsProvidersTwilio = defineRoute({
   route: createRoute({
-      tags: ["guardian"],
-      method: "get",
-      path: "/factors/sms/providers/twilio",
-      request: {
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-      },
-      security: [
-        {
-          Bearer: ["read:guardian_factors"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: twilioProviderSchema,
-            },
-          },
-          description: "Twilio provider configuration",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
-      const twilio = tenant?.mfa?.twilio || {};
-
-      // Don't return the auth_token in full for security
-      return ctx.json({
-        sid: twilio.sid,
-        // Mask the auth token if it exists
-        auth_token: twilio.auth_token ? "********" : undefined,
-        from: twilio.from,
-        messaging_service_sid: twilio.messaging_service_sid,
-      });
+    tags: ["guardian"],
+    method: "get",
+    path: "/factors/sms/providers/twilio",
+    request: {
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
     },
+    security: [
+      {
+        Bearer: ["read:guardian_factors"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: twilioProviderSchema,
+          },
+        },
+        description: "Twilio provider configuration",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
+    const twilio = tenant?.mfa?.twilio || {};
+
+    // Don't return the auth_token in full for security
+    return ctx.json({
+      sid: twilio.sid,
+      // Mask the auth token if it exists
+      auth_token: twilio.auth_token ? "********" : undefined,
+      from: twilio.from,
+      messaging_service_sid: twilio.messaging_service_sid,
+    });
+  },
 });
 
 const putFactorsSmsProvidersTwilio = defineRoute({
   route: createRoute({
-      tags: ["guardian"],
-      method: "put",
-      path: "/factors/sms/providers/twilio",
-      request: {
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-        body: {
-          content: {
-            "application/json": {
-              schema: twilioProviderSchema,
-            },
+    tags: ["guardian"],
+    method: "put",
+    path: "/factors/sms/providers/twilio",
+    request: {
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
+      body: {
+        content: {
+          "application/json": {
+            schema: twilioProviderSchema,
           },
         },
       },
-      security: [
-        {
-          Bearer: ["update:guardian_factors"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: twilioProviderSchema,
-            },
-          },
-          description: "Updated Twilio configuration",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const twilioConfig = ctx.req.valid("json");
-
-      const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
-      if (!tenant) {
-        throw new HTTPException(404, { message: "Tenant not found" });
-      }
-
-      // Merge with existing config (don't overwrite auth_token if not provided)
-      const existingTwilio = tenant.mfa?.twilio || {};
-      const updatedTwilio = {
-        ...existingTwilio,
-        ...twilioConfig,
-        // Only update auth_token if a new one is provided (not masked)
-        auth_token:
-          twilioConfig.auth_token && twilioConfig.auth_token !== "********"
-            ? twilioConfig.auth_token
-            : existingTwilio.auth_token,
-      };
-
-      await ctx.env.data.tenants.update(ctx.var.tenant_id, {
-        mfa: {
-          ...tenant.mfa,
-          twilio: updatedTwilio,
-        },
-      });
-
-      await logMessage(ctx, ctx.var.tenant_id, {
-        type: LogTypes.SUCCESS_API_OPERATION,
-        description: "Configure Twilio Provider",
-        targetType: "guardian",
-        targetId: ctx.var.tenant_id,
-      });
-
-      return ctx.json({
-        sid: updatedTwilio.sid,
-        auth_token: updatedTwilio.auth_token ? "********" : undefined,
-        from: updatedTwilio.from,
-        messaging_service_sid: updatedTwilio.messaging_service_sid,
-      });
     },
+    security: [
+      {
+        Bearer: ["update:guardian_factors"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: twilioProviderSchema,
+          },
+        },
+        description: "Updated Twilio configuration",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const twilioConfig = ctx.req.valid("json");
+
+    const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
+    if (!tenant) {
+      throw new HTTPException(404, { message: "Tenant not found" });
+    }
+
+    // Merge with existing config (don't overwrite auth_token if not provided)
+    const existingTwilio = tenant.mfa?.twilio || {};
+    const updatedTwilio = {
+      ...existingTwilio,
+      ...twilioConfig,
+      // Only update auth_token if a new one is provided (not masked)
+      auth_token:
+        twilioConfig.auth_token && twilioConfig.auth_token !== "********"
+          ? twilioConfig.auth_token
+          : existingTwilio.auth_token,
+    };
+
+    await ctx.env.data.tenants.update(ctx.var.tenant_id, {
+      mfa: {
+        ...tenant.mfa,
+        twilio: updatedTwilio,
+      },
+    });
+
+    await logMessage(ctx, ctx.var.tenant_id, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: "Configure Twilio Provider",
+      targetType: "guardian",
+      targetId: ctx.var.tenant_id,
+    });
+
+    return ctx.json({
+      sid: updatedTwilio.sid,
+      auth_token: updatedTwilio.auth_token ? "********" : undefined,
+      from: updatedTwilio.from,
+      messaging_service_sid: updatedTwilio.messaging_service_sid,
+    });
+  },
 });
 
 const getFactorsPhoneMessageTypes = defineRoute({
   route: createRoute({
-      tags: ["guardian"],
-      method: "get",
-      path: "/factors/phone/message-types",
-      request: {
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-      },
-      security: [
-        {
-          Bearer: ["read:guardian_factors"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: z.array(messageTypeSchema),
-            },
-          },
-          description: "Available message types",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      // For now, only SMS is supported
-      const result: { message_type: "sms" | "voice" }[] = [
-        { message_type: "sms" },
-      ];
-      return ctx.json(result);
+    tags: ["guardian"],
+    method: "get",
+    path: "/factors/phone/message-types",
+    request: {
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
     },
+    security: [
+      {
+        Bearer: ["read:guardian_factors"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: z.array(messageTypeSchema),
+          },
+        },
+        description: "Available message types",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    // For now, only SMS is supported
+    const result: { message_type: "sms" | "voice" }[] = [
+      { message_type: "sms" },
+    ];
+    return ctx.json(result);
+  },
 });
 
 const getPolicies = defineRoute({
   route: createRoute({
-      tags: ["guardian"],
-      method: "get",
-      path: "/policies",
-      request: {
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-      },
-      security: [
-        {
-          Bearer: ["read:guardian_factors"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: z.array(z.string()),
-            },
-          },
-          description: "Current MFA policies",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
-      const policy = tenant?.mfa?.policy;
-
-      // Auth0 format: ["all-applications"] for "always", [] for "never"
-      if (policy === "always") {
-        return ctx.json(["all-applications"]);
-      }
-      return ctx.json([]);
+    tags: ["guardian"],
+    method: "get",
+    path: "/policies",
+    request: {
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
     },
+    security: [
+      {
+        Bearer: ["read:guardian_factors"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: z.array(z.string()),
+          },
+        },
+        description: "Current MFA policies",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
+    const policy = tenant?.mfa?.policy;
+
+    // Auth0 format: ["all-applications"] for "always", [] for "never"
+    if (policy === "always") {
+      return ctx.json(["all-applications"]);
+    }
+    return ctx.json([]);
+  },
 });
 
 const putPolicies = defineRoute({
   route: createRoute({
-      tags: ["guardian"],
-      method: "put",
-      path: "/policies",
-      request: {
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-        body: {
-          content: {
-            "application/json": {
-              schema: z.array(z.string()),
-            },
+    tags: ["guardian"],
+    method: "put",
+    path: "/policies",
+    request: {
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
+      body: {
+        content: {
+          "application/json": {
+            schema: z.array(z.string()),
           },
         },
       },
-      security: [
-        {
-          Bearer: ["update:guardian_factors"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: z.array(z.string()),
-            },
-          },
-          description: "Updated MFA policies",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const policies = ctx.req.valid("json");
-
-      const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
-      if (!tenant) {
-        throw new HTTPException(404, { message: "Tenant not found" });
-      }
-
-      // Map Auth0 format to internal: ["all-applications"] = "always", [] = "never"
-      const policy = policies.includes("all-applications") ? "always" : "never";
-
-      await ctx.env.data.tenants.update(ctx.var.tenant_id, {
-        mfa: {
-          ...tenant.mfa,
-          policy,
-        },
-      });
-
-      await logMessage(ctx, ctx.var.tenant_id, {
-        type: LogTypes.SUCCESS_API_OPERATION,
-        description: "Set Guardian Policies",
-        targetType: "guardian",
-        targetId: ctx.var.tenant_id,
-      });
-
-      return ctx.json(policy === "always" ? ["all-applications"] : []);
     },
+    security: [
+      {
+        Bearer: ["update:guardian_factors"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: z.array(z.string()),
+          },
+        },
+        description: "Updated MFA policies",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const policies = ctx.req.valid("json");
+
+    const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
+    if (!tenant) {
+      throw new HTTPException(404, { message: "Tenant not found" });
+    }
+
+    // Map Auth0 format to internal: ["all-applications"] = "always", [] = "never"
+    const policy = policies.includes("all-applications") ? "always" : "never";
+
+    await ctx.env.data.tenants.update(ctx.var.tenant_id, {
+      mfa: {
+        ...tenant.mfa,
+        policy,
+      },
+    });
+
+    await logMessage(ctx, ctx.var.tenant_id, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: "Set Guardian Policies",
+      targetType: "guardian",
+      targetId: ctx.var.tenant_id,
+    });
+
+    return ctx.json(policy === "always" ? ["all-applications"] : []);
+  },
 });
 
 const postEnrollmentsTicket = defineRoute({
   route: createRoute({
-      tags: ["guardian"],
-      method: "post",
-      path: "/enrollments/ticket",
-      request: {
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-        body: {
-          content: {
-            "application/json": {
-              schema: z.object({
-                user_id: z.string(),
-                send_mail: z.boolean().optional(),
-                email: z.string().email().optional(),
-              }),
-            },
+    tags: ["guardian"],
+    method: "post",
+    path: "/enrollments/ticket",
+    request: {
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
+      body: {
+        content: {
+          "application/json": {
+            schema: z.object({
+              user_id: z.string(),
+              send_mail: z.boolean().optional(),
+              email: z.string().email().optional(),
+            }),
           },
         },
       },
-      security: [
-        {
-          Bearer: ["create:guardian_enrollment_tickets"],
-        },
-      ],
-      responses: {
-        201: {
-          content: {
-            "application/json": {
-              schema: z.object({
-                ticket_id: z.string(),
-                ticket_url: z.string(),
-              }),
-            },
-          },
-          description: "Enrollment ticket created",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const { user_id, email } = ctx.req.valid("json");
-      const tenantId = ctx.var.tenant_id;
-
-      // Validate the tenant exists and has MFA factors enabled
-      const tenant = await ctx.env.data.tenants.get(tenantId);
-      if (!tenant) {
-        throw new HTTPException(404, { message: "Tenant not found" });
-      }
-
-      const hasSupportedFactor =
-        tenant.mfa?.factors?.sms === true ||
-        tenant.mfa?.factors?.otp === true ||
-        tenant.mfa?.factors?.webauthn_roaming === true ||
-        tenant.mfa?.factors?.webauthn_platform === true;
-
-      if (!hasSupportedFactor) {
-        throw new HTTPException(400, {
-          message:
-            "At least one MFA factor (SMS, OTP, or WebAuthn) must be enabled before creating enrollment tickets.",
-        });
-      }
-
-      // Validate the user exists
-      const user = await ctx.env.data.users.get(tenantId, user_id);
-      if (!user) {
-        throw new HTTPException(404, { message: "User not found" });
-      }
-
-      // Get a client for the login session (use the first available client)
-      const { clients } = await ctx.env.data.clients.list(tenantId);
-      if (!clients.length) {
-        throw new HTTPException(400, {
-          message: "No clients configured for this tenant",
-        });
-      }
-      const clientId = clients[0]!.client_id;
-
-      const FIVE_DAYS_MS = 5 * 24 * 60 * 60 * 1000;
-      const expiresAt = new Date(Date.now() + FIVE_DAYS_MS).toISOString();
-
-      // Create a login session for the enrollment flow
-      // Set state to AWAITING_MFA so MFA screens accept the session
-      const loginSession = await ctx.env.data.loginSessions.create(tenantId, {
-        expires_at: expiresAt,
-        authParams: {
-          client_id: clientId,
-          username: email || user.email,
-        },
-        csrf_token: nanoid(),
-        user_id,
-        state: LoginSessionState.AWAITING_MFA,
-        state_data: JSON.stringify({ guardian_enrollment: true }),
-      });
-
-      // Create the ticket code
-      const ticketId = nanoid();
-      await ctx.env.data.codes.create(tenantId, {
-        code_id: ticketId,
-        code_type: "ticket",
-        login_id: loginSession.id,
-        user_id,
-        expires_at: expiresAt,
-      });
-
-      // Build the ticket URL using the trusted issuer, not the request host header
-      const issuer = getIssuer(ctx.env, ctx.var.custom_domain);
-      const url = new URL("u2/guardian/enroll", issuer);
-      url.searchParams.append("ticket", ticketId);
-      if (!ctx.var.custom_domain) {
-        url.searchParams.append("tenant_id", tenantId);
-      }
-      const ticketUrl = url.toString();
-
-      await logMessage(ctx, ctx.var.tenant_id, {
-        type: LogTypes.SUCCESS_API_OPERATION,
-        description: "Create Enrollment Ticket",
-        targetType: "guardian",
-        targetId: ctx.var.tenant_id,
-      });
-
-      return ctx.json(
-        {
-          ticket_id: ticketId,
-          ticket_url: ticketUrl,
-        },
-        201,
-      );
     },
+    security: [
+      {
+        Bearer: ["create:guardian_enrollment_tickets"],
+      },
+    ],
+    responses: {
+      201: {
+        content: {
+          "application/json": {
+            schema: z.object({
+              ticket_id: z.string(),
+              ticket_url: z.string(),
+            }),
+          },
+        },
+        description: "Enrollment ticket created",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const { user_id, email } = ctx.req.valid("json");
+    const tenantId = ctx.var.tenant_id;
+
+    // Validate the tenant exists and has MFA factors enabled
+    const tenant = await ctx.env.data.tenants.get(tenantId);
+    if (!tenant) {
+      throw new HTTPException(404, { message: "Tenant not found" });
+    }
+
+    const hasSupportedFactor =
+      tenant.mfa?.factors?.sms === true ||
+      tenant.mfa?.factors?.otp === true ||
+      tenant.mfa?.factors?.webauthn_roaming === true ||
+      tenant.mfa?.factors?.webauthn_platform === true;
+
+    if (!hasSupportedFactor) {
+      throw new HTTPException(400, {
+        message:
+          "At least one MFA factor (SMS, OTP, or WebAuthn) must be enabled before creating enrollment tickets.",
+      });
+    }
+
+    // Validate the user exists
+    const user = await ctx.env.data.users.get(tenantId, user_id);
+    if (!user) {
+      throw new HTTPException(404, { message: "User not found" });
+    }
+
+    // Get a client for the login session (use the first available client)
+    const { clients } = await ctx.env.data.clients.list(tenantId);
+    if (!clients.length) {
+      throw new HTTPException(400, {
+        message: "No clients configured for this tenant",
+      });
+    }
+    const clientId = clients[0]!.client_id;
+
+    const FIVE_DAYS_MS = 5 * 24 * 60 * 60 * 1000;
+    const expiresAt = new Date(Date.now() + FIVE_DAYS_MS).toISOString();
+
+    // Create a login session for the enrollment flow
+    // Set state to AWAITING_MFA so MFA screens accept the session
+    const loginSession = await ctx.env.data.loginSessions.create(tenantId, {
+      expires_at: expiresAt,
+      authParams: {
+        client_id: clientId,
+        username: email || user.email,
+      },
+      csrf_token: nanoid(),
+      user_id,
+      state: LoginSessionState.AWAITING_MFA,
+      state_data: JSON.stringify({ guardian_enrollment: true }),
+    });
+
+    // Create the ticket code
+    const ticketId = nanoid();
+    await ctx.env.data.codes.create(tenantId, {
+      code_id: ticketId,
+      code_type: "ticket",
+      login_id: loginSession.id,
+      user_id,
+      expires_at: expiresAt,
+    });
+
+    // Build the ticket URL using the trusted issuer, not the request host header
+    const issuer = getIssuer(ctx.env, ctx.var.custom_domain);
+    const url = new URL("u2/guardian/enroll", issuer);
+    url.searchParams.append("ticket", ticketId);
+    if (!ctx.var.custom_domain) {
+      url.searchParams.append("tenant_id", tenantId);
+    }
+    const ticketUrl = url.toString();
+
+    await logMessage(ctx, ctx.var.tenant_id, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: "Create Enrollment Ticket",
+      targetType: "guardian",
+      targetId: ctx.var.tenant_id,
+    });
+
+    return ctx.json(
+      {
+        ticket_id: ticketId,
+        ticket_url: ticketUrl,
+      },
+      201,
+    );
+  },
 });
 
 const getFactorsByFactor_name = defineRoute({
   route: createRoute({
-      tags: ["guardian"],
-      method: "get",
-      path: "/factors/{factor_name}",
-      request: {
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-        params: z.object({
-          factor_name: z.enum(factorNames),
-        }),
-      },
-      security: [
-        {
-          Bearer: ["read:guardian_factors"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: factorSchema,
-            },
-          },
-          description: "MFA factor details",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const { factor_name } = ctx.req.valid("param");
-      const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
-      const factors = tenant?.mfa?.factors;
-      const internalKey = toInternalKey(factor_name) as keyof NonNullable<
-        typeof factors
-      >;
-
-      return ctx.json({
-        name: factor_name,
-        enabled: Boolean(factors?.[internalKey]),
-        trial_expired: false,
-      });
+    tags: ["guardian"],
+    method: "get",
+    path: "/factors/{factor_name}",
+    request: {
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
+      params: z.object({
+        factor_name: z.enum(factorNames),
+      }),
     },
+    security: [
+      {
+        Bearer: ["read:guardian_factors"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: factorSchema,
+          },
+        },
+        description: "MFA factor details",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const { factor_name } = ctx.req.valid("param");
+    const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
+    const factors = tenant?.mfa?.factors;
+    const internalKey = toInternalKey(factor_name) as keyof NonNullable<
+      typeof factors
+    >;
+
+    return ctx.json({
+      name: factor_name,
+      enabled: Boolean(factors?.[internalKey]),
+      trial_expired: false,
+    });
+  },
 });
 
 const putFactorsByFactor_name = defineRoute({
   route: createRoute({
-      tags: ["guardian"],
-      method: "put",
-      path: "/factors/{factor_name}",
-      request: {
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-        params: z.object({
-          factor_name: z.enum(factorNames),
-        }),
-        body: {
-          content: {
-            "application/json": {
-              schema: updateFactorSchema,
-            },
+    tags: ["guardian"],
+    method: "put",
+    path: "/factors/{factor_name}",
+    request: {
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
+      params: z.object({
+        factor_name: z.enum(factorNames),
+      }),
+      body: {
+        content: {
+          "application/json": {
+            schema: updateFactorSchema,
           },
         },
       },
-      security: [
-        {
-          Bearer: ["update:guardian_factors"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: factorSchema,
-            },
-          },
-          description: "Updated MFA factor",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const { factor_name } = ctx.req.valid("param");
-      const { enabled } = ctx.req.valid("json");
-      const internalKey = toInternalKey(factor_name);
-
-      // Get current tenant
-      const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
-      if (!tenant) {
-        throw new HTTPException(404, { message: "Tenant not found" });
-      }
-
-      // Update the factor state - merge with existing factors
-      const existingFactors = tenant.mfa?.factors;
-      await ctx.env.data.tenants.update(ctx.var.tenant_id, {
-        mfa: {
-          ...tenant.mfa,
-          factors: {
-            sms: existingFactors?.sms ?? false,
-            otp: existingFactors?.otp ?? false,
-            email: existingFactors?.email ?? false,
-            push_notification: existingFactors?.push_notification ?? false,
-            webauthn_roaming: existingFactors?.webauthn_roaming ?? false,
-            webauthn_platform: existingFactors?.webauthn_platform ?? false,
-            recovery_code: existingFactors?.recovery_code ?? false,
-            duo: existingFactors?.duo ?? false,
-            [internalKey]: enabled,
-          },
-        },
-      });
-
-      await logMessage(ctx, ctx.var.tenant_id, {
-        type: LogTypes.SUCCESS_API_OPERATION,
-        description: "Update Guardian Factor",
-        targetType: "guardian",
-        targetId: ctx.var.tenant_id,
-      });
-
-      return ctx.json({
-        name: factor_name,
-        enabled,
-        trial_expired: false,
-      });
     },
-});
+    security: [
+      {
+        Bearer: ["update:guardian_factors"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: factorSchema,
+          },
+        },
+        description: "Updated MFA factor",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const { factor_name } = ctx.req.valid("param");
+    const { enabled } = ctx.req.valid("json");
+    const internalKey = toInternalKey(factor_name);
 
+    // Get current tenant
+    const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
+    if (!tenant) {
+      throw new HTTPException(404, { message: "Tenant not found" });
+    }
+
+    // Update the factor state - merge with existing factors
+    const existingFactors = tenant.mfa?.factors;
+    await ctx.env.data.tenants.update(ctx.var.tenant_id, {
+      mfa: {
+        ...tenant.mfa,
+        factors: {
+          sms: existingFactors?.sms ?? false,
+          otp: existingFactors?.otp ?? false,
+          email: existingFactors?.email ?? false,
+          push_notification: existingFactors?.push_notification ?? false,
+          webauthn_roaming: existingFactors?.webauthn_roaming ?? false,
+          webauthn_platform: existingFactors?.webauthn_platform ?? false,
+          recovery_code: existingFactors?.recovery_code ?? false,
+          duo: existingFactors?.duo ?? false,
+          [internalKey]: enabled,
+        },
+      },
+    });
+
+    await logMessage(ctx, ctx.var.tenant_id, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: "Update Guardian Factor",
+      targetType: "guardian",
+      targetId: ctx.var.tenant_id,
+    });
+
+    return ctx.json({
+      name: factor_name,
+      enabled,
+      trial_expired: false,
+    });
+  },
+});
 
 export const guardianRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
-}>()
-  .openapiRoutes([getFactors, getFactorsSmsSelectedProvider, putFactorsSmsSelectedProvider, getFactorsSmsProvidersTwilio, putFactorsSmsProvidersTwilio, getFactorsPhoneMessageTypes, getPolicies, putPolicies, postEnrollmentsTicket, getFactorsByFactor_name, putFactorsByFactor_name] as const);
+}>().openapiRoutes([
+  getFactors,
+  getFactorsSmsSelectedProvider,
+  putFactorsSmsSelectedProvider,
+  getFactorsSmsProvidersTwilio,
+  putFactorsSmsProvidersTwilio,
+  getFactorsPhoneMessageTypes,
+  getPolicies,
+  putPolicies,
+  postEnrollmentsTicket,
+  getFactorsByFactor_name,
+  putFactorsByFactor_name,
+] as const);

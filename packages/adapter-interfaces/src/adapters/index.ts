@@ -163,7 +163,9 @@ export interface DataAdapters {
      * use the static `controlPlaneTenantId` and are not affected by this
      * resolver.
      */
-    resolveControlPlane?: (params: { tenant_id: string }) =>
+    resolveControlPlane?: (params: {
+      tenant_id: string;
+    }) =>
       | { tenantId: string; clientId?: string }
       | undefined
       | Promise<{ tenantId: string; clientId?: string } | undefined>;

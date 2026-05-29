@@ -3,7 +3,12 @@ import { Hono } from "hono";
 import { Kysely } from "kysely";
 import { Database } from "@authhero/kysely-adapter";
 import createAdapters, { migrateToLatest } from "@authhero/kysely-adapter";
-import { MANAGEMENT_API_SCOPES, CreateTenantParams, Tenant, USERNAME_PASSWORD_PROVIDER } from "authhero";
+import {
+  MANAGEMENT_API_SCOPES,
+  CreateTenantParams,
+  Tenant,
+  USERNAME_PASSWORD_PROVIDER,
+} from "authhero";
 import { createProvisioningHooks, createSyncHooks } from "../src/hooks";
 import { createTenantsOpenAPIRouter } from "../src/routes";
 import { TenantEntityHooks, TenantHookContext } from "../src/types";

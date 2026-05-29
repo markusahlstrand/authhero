@@ -7,11 +7,7 @@ const filters = [
   <TextInput key="email" source="email" label="Email" />,
   <TextInput key="name" source="name" label="Name" />,
   <TextInput key="connection" source="connection" label="Connection" />,
-  <TextInput
-    key="phone_number"
-    source="phone_number"
-    label="Phone number"
-  />,
+  <TextInput key="phone_number" source="phone_number" label="Phone number" />,
 ];
 
 function UserAvatarCell() {

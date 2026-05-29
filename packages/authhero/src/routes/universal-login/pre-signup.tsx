@@ -9,98 +9,96 @@ import { sendSignupValidateEmailAddress } from "../../emails";
 import { defineRoute } from "../../utils/define-route";
 const getRoot = defineRoute({
   route: createRoute({
-      tags: ["login"],
-      method: "get",
-      path: "/",
-      request: {
-        query: z.object({
-          state: z.string().openapi({
-            description: "The state parameter from the authorization request",
-          }),
+    tags: ["login"],
+    method: "get",
+    path: "/",
+    request: {
+      query: z.object({
+        state: z.string().openapi({
+          description: "The state parameter from the authorization request",
         }),
-      },
-      responses: {
-        200: {
-          description: "Response",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const { state } = ctx.req.valid("query");
-      const { theme, branding, client, loginSession } = await initJSXRoute(
-        ctx,
-        state,
-      );
-
-      const { username } = loginSession.authParams;
-
-      if (!username) {
-        throw new HTTPException(400, { message: "Username required" });
-      }
-
-      return ctx.html(
-        <PreSignupPage
-          state={state}
-          theme={theme}
-          branding={branding}
-          client={client}
-          email={username}
-        />,
-      );
+      }),
     },
+    responses: {
+      200: {
+        description: "Response",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const { state } = ctx.req.valid("query");
+    const { theme, branding, client, loginSession } = await initJSXRoute(
+      ctx,
+      state,
+    );
+
+    const { username } = loginSession.authParams;
+
+    if (!username) {
+      throw new HTTPException(400, { message: "Username required" });
+    }
+
+    return ctx.html(
+      <PreSignupPage
+        state={state}
+        theme={theme}
+        branding={branding}
+        client={client}
+        email={username}
+      />,
+    );
+  },
 });
 
 const postRoot = defineRoute({
   route: createRoute({
-      tags: ["login"],
-      method: "post",
-      path: "/",
-      request: {
-        query: z.object({
-          state: z.string().openapi({
-            description: "The state parameter from the authorization request",
-          }),
+    tags: ["login"],
+    method: "post",
+    path: "/",
+    request: {
+      query: z.object({
+        state: z.string().openapi({
+          description: "The state parameter from the authorization request",
         }),
-      },
-      responses: {
-        200: {
-          description: "Response",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const { state } = ctx.req.valid("query");
-      const { loginSession, client } = await initJSXRoute(ctx, state);
-
-      const { username } = loginSession.authParams;
-
-      if (!username) {
-        throw new HTTPException(400, { message: "Username required" });
-      }
-
-      const otpCode = await ctx.env.data.codes.create(client.tenant.id, {
-        code_id: generateOTP(),
-        code_type: "email_verification",
-        login_id: loginSession.id,
-        expires_at: new Date(
-          Date.now() + EMAIL_VERIFICATION_EXPIRATION_TIME,
-        ).toISOString(),
-      });
-
-      await sendSignupValidateEmailAddress(
-        ctx,
-        username,
-        otpCode.code_id,
-        loginSession.id,
-      );
-
-      return ctx.redirect(`/u/pre-signup-sent?state=${state}`);
+      }),
     },
-});
+    responses: {
+      200: {
+        description: "Response",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const { state } = ctx.req.valid("query");
+    const { loginSession, client } = await initJSXRoute(ctx, state);
 
+    const { username } = loginSession.authParams;
+
+    if (!username) {
+      throw new HTTPException(400, { message: "Username required" });
+    }
+
+    const otpCode = await ctx.env.data.codes.create(client.tenant.id, {
+      code_id: generateOTP(),
+      code_type: "email_verification",
+      login_id: loginSession.id,
+      expires_at: new Date(
+        Date.now() + EMAIL_VERIFICATION_EXPIRATION_TIME,
+      ).toISOString(),
+    });
+
+    await sendSignupValidateEmailAddress(
+      ctx,
+      username,
+      otpCode.code_id,
+      loginSession.id,
+    );
+
+    return ctx.redirect(`/u/pre-signup-sent?state=${state}`);
+  },
+});
 
 export const preSignupRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
-}>()
-  .openapiRoutes([getRoot, postRoot] as const);
+}>().openapiRoutes([getRoot, postRoot] as const);

@@ -145,7 +145,9 @@ export function UniversalLoginTab() {
       notify("Template saved successfully", { type: "success" });
     } catch (err: unknown) {
       const msg =
-        isHttpError(err) && err.message ? err.message : "Failed to save template";
+        isHttpError(err) && err.message
+          ? err.message
+          : "Failed to save template";
       setError(msg);
       notify("Failed to save template", { type: "error" });
     } finally {

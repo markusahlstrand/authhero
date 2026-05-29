@@ -247,218 +247,219 @@ export async function postUserLoginHook(
   // if a hook throws, preserving the prior unconditional-emission behavior.
   let executionId: string | null = null;
   try {
-
-  // Update the user's last login info
-  await data.users.update(tenant_id, user.user_id, {
-    last_login: new Date().toISOString(),
-    last_ip: ctx.var.ip || "",
-    login_count: user.login_count + 1,
-  });
-
-  // Build the Auth0-compatible event once. Reused by both the env-hook
-  // (ctx.env.hooks.onExecutePostLogin) and the code-hook loop below so user
-  // actions see the same `event.client`, `event.connection`, `event.transaction`
-  // etc. that Auth0 exposes.
-  const enhancedEvent =
-    params?.client && params?.authParams && loginSession
-      ? await buildEnhancedEventObject(
-          ctx,
-          data,
-          tenant_id,
-          user,
-          loginSession,
-          {
-            client: params.client,
-            authParams: params.authParams,
-          },
-        )
-      : null;
-
-  // Trigger any onExecutePostLogin hooks defined in ctx.env.hooks
-  if (ctx.env.hooks?.onExecutePostLogin && enhancedEvent && loginSession) {
-    let redirectUrl: string | null = null;
-
-    await ctx.env.hooks.onExecutePostLogin(enhancedEvent, {
-      prompt: {
-        render: (_formId: string) => {},
-      },
-      redirect: {
-        sendUserTo: (
-          url: string,
-          options?: { query?: Record<string, string> },
-        ) => {
-          // Add state parameter automatically for AuthHero compatibility
-          const urlObj = new URL(url, ctx.req.url);
-          urlObj.searchParams.set("state", loginSession.id);
-
-          // Add any additional query parameters
-          if (options?.query) {
-            Object.entries(options.query).forEach(([key, value]) => {
-              urlObj.searchParams.set(key, value);
-            });
-          }
-
-          redirectUrl = urlObj.toString();
-        },
-        encodeToken: (options: {
-          secret: string;
-          payload: Record<string, any>;
-          expiresInSeconds?: number;
-        }) => {
-          // Implement JWT token encoding here
-          // For now, return a placeholder - you'd implement proper JWT signing
-          return JSON.stringify({
-            payload: options.payload,
-            exp: Date.now() + (options.expiresInSeconds || 900) * 1000,
-          });
-        },
-        validateToken: (_options: {
-          secret: string;
-          tokenParameterName?: string;
-        }) => {
-          // Implement JWT token validation here
-          // For now, return null - you'd implement proper JWT verification
-          return null;
-        },
-      },
-      token: createTokenAPI(ctx, tenant_id),
+    // Update the user's last login info
+    await data.users.update(tenant_id, user.user_id, {
+      last_login: new Date().toISOString(),
+      last_ip: ctx.var.ip || "",
+      login_count: user.login_count + 1,
     });
 
-    // If a redirect was requested, mark session as awaiting hook and return redirect
-    if (redirectUrl) {
-      await startLoginSessionHook(
-        ctx,
-        tenant_id,
-        loginSession,
-        "onExecutePostLogin",
-      );
-      return new Response(null, {
-        status: 302,
-        headers: { location: redirectUrl },
-      });
-    }
-  }
+    // Build the Auth0-compatible event once. Reused by both the env-hook
+    // (ctx.env.hooks.onExecutePostLogin) and the code-hook loop below so user
+    // actions see the same `event.client`, `event.connection`, `event.transaction`
+    // etc. that Auth0 exposes.
+    const enhancedEvent =
+      params?.client && params?.authParams && loginSession
+        ? await buildEnhancedEventObject(
+            ctx,
+            data,
+            tenant_id,
+            user,
+            loginSession,
+            {
+              client: params.client,
+              authParams: params.authParams,
+            },
+          )
+        : null;
 
-  const { hooks } = await data.hooks.list(tenant_id);
-  const postLoginHooks = hooks.filter(
-    (h: any) => h.trigger_id === "post-user-login",
-  );
+    // Trigger any onExecutePostLogin hooks defined in ctx.env.hooks
+    if (ctx.env.hooks?.onExecutePostLogin && enhancedEvent && loginSession) {
+      let redirectUrl: string | null = null;
 
-  // Handle form hook (redirect) if we have a login session
-  if (loginSession) {
-    const formHook = postLoginHooks.find(
-      (h: any) => h.enabled && isFormHook(h),
-    );
-    if (formHook && isFormHook(formHook)) {
-      return handleFormHook(
-        ctx,
-        formHook.form_id,
-        loginSession,
-        user,
-        params?.client,
-      );
-    }
-
-    // Handle page hook (redirect) if we have a login session
-    const pageHook = postLoginHooks.find(
-      (h: any) => h.enabled && isPageHook(h),
-    );
-    if (pageHook && isPageHook(pageHook)) {
-      return handlePageHook(
-        ctx,
-        pageHook.page_id,
-        loginSession,
-        user,
-        pageHook.permission_required,
-      );
-    }
-  }
-
-  // Handle template hooks (execute pre-defined hook functions)
-  const templateHooks = postLoginHooks.filter(
-    (h: any) => h.enabled && isTemplateHook(h),
-  );
-  for (const hook of templateHooks) {
-    if (!isTemplateHook(hook)) continue;
-    try {
-      user = await handleTemplateHook(
-        ctx,
-        hook.template_id,
-        user,
-        hook.metadata,
-      );
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      logMessage(ctx, tenant_id, {
-        type: LogTypes.FAILED_HOOK,
-        description: `Failed to execute template hook ${hook.template_id}: ${message}`,
-        details: {
-          template_id: hook.template_id,
-          trigger_id: "post-user-login",
-          error: message,
+      await ctx.env.hooks.onExecutePostLogin(enhancedEvent, {
+        prompt: {
+          render: (_formId: string) => {},
         },
-      });
-    }
-  }
+        redirect: {
+          sendUserTo: (
+            url: string,
+            options?: { query?: Record<string, string> },
+          ) => {
+            // Add state parameter automatically for AuthHero compatibility
+            const urlObj = new URL(url, ctx.req.url);
+            urlObj.searchParams.set("state", loginSession.id);
 
-  // Handle code hooks (execute user-authored code). Code hooks need the full
-  // Auth0-compatible event (client, transaction, connection, session, …).
-  // If the prerequisites aren't available we skip — same behaviour as
-  // ctx.env.hooks.onExecutePostLogin above, and matches Auth0 which won't
-  // fire post-login actions without a client and session context.
-  const codeHooks = postLoginHooks.filter(
-    (h: any) => h.enabled && isCodeHook(h),
-  );
-  if (enhancedEvent && codeHooks.length > 0) {
-    const outcomes: HandleCodeHookOutcome[] = [];
-    for (const hook of codeHooks) {
-      if (!isCodeHook(hook)) continue;
-      try {
-        const outcome = await handleCodeHook(
-          ctx,
-          data,
-          hook,
-          enhancedEvent,
-          "post-user-login",
-          {},
-        );
-        if (outcome) outcomes.push(outcome);
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        outcomes.push({
-          result: {
-            action_name: hook.code_id,
-            error: { id: "execution_threw", msg: message },
-            started_at: new Date().toISOString(),
-            ended_at: new Date().toISOString(),
+            // Add any additional query parameters
+            if (options?.query) {
+              Object.entries(options.query).forEach(([key, value]) => {
+                urlObj.searchParams.set(key, value);
+              });
+            }
+
+            redirectUrl = urlObj.toString();
           },
-          logs: [],
-          denied: false,
+          encodeToken: (options: {
+            secret: string;
+            payload: Record<string, any>;
+            expiresInSeconds?: number;
+          }) => {
+            // Implement JWT token encoding here
+            // For now, return a placeholder - you'd implement proper JWT signing
+            return JSON.stringify({
+              payload: options.payload,
+              exp: Date.now() + (options.expiresInSeconds || 900) * 1000,
+            });
+          },
+          validateToken: (_options: {
+            secret: string;
+            tokenParameterName?: string;
+          }) => {
+            // Implement JWT token validation here
+            // For now, return null - you'd implement proper JWT verification
+            return null;
+          },
+        },
+        token: createTokenAPI(ctx, tenant_id),
+      });
+
+      // If a redirect was requested, mark session as awaiting hook and return redirect
+      if (redirectUrl) {
+        await startLoginSessionHook(
+          ctx,
+          tenant_id,
+          loginSession,
+          "onExecutePostLogin",
+        );
+        return new Response(null, {
+          status: 302,
+          headers: { location: redirectUrl },
         });
       }
     }
-    const persistedExecutionId = await persistActionExecution(
-      data,
-      tenant_id,
-      "post-user-login",
-      outcomes,
+
+    const { hooks } = await data.hooks.list(tenant_id);
+    const postLoginHooks = hooks.filter(
+      (h: any) => h.trigger_id === "post-user-login",
     );
-    if (persistedExecutionId) {
-      executionId = persistedExecutionId;
-      ctx.set("action_execution_id", persistedExecutionId);
+
+    // Handle form hook (redirect) if we have a login session
+    if (loginSession) {
+      const formHook = postLoginHooks.find(
+        (h: any) => h.enabled && isFormHook(h),
+      );
+      if (formHook && isFormHook(formHook)) {
+        return handleFormHook(
+          ctx,
+          formHook.form_id,
+          loginSession,
+          user,
+          params?.client,
+        );
+      }
+
+      // Handle page hook (redirect) if we have a login session
+      const pageHook = postLoginHooks.find(
+        (h: any) => h.enabled && isPageHook(h),
+      );
+      if (pageHook && isPageHook(pageHook)) {
+        return handlePageHook(
+          ctx,
+          pageHook.page_id,
+          loginSession,
+          user,
+          pageHook.permission_required,
+        );
+      }
     }
-  }
 
-  // Handle webhook hooks (invoke all enabled webhooks)
-  const webHooks = postLoginHooks.filter((h: any) => h.enabled && isWebHook(h));
-  await invokeHooks(ctx, webHooks, {
-    tenant_id,
-    user,
-    trigger_id: "post-user-login",
-  });
+    // Handle template hooks (execute pre-defined hook functions)
+    const templateHooks = postLoginHooks.filter(
+      (h: any) => h.enabled && isTemplateHook(h),
+    );
+    for (const hook of templateHooks) {
+      if (!isTemplateHook(hook)) continue;
+      try {
+        user = await handleTemplateHook(
+          ctx,
+          hook.template_id,
+          user,
+          hook.metadata,
+        );
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        logMessage(ctx, tenant_id, {
+          type: LogTypes.FAILED_HOOK,
+          description: `Failed to execute template hook ${hook.template_id}: ${message}`,
+          details: {
+            template_id: hook.template_id,
+            trigger_id: "post-user-login",
+            error: message,
+          },
+        });
+      }
+    }
 
-  // If no form hook, just return the user
-  return user;
+    // Handle code hooks (execute user-authored code). Code hooks need the full
+    // Auth0-compatible event (client, transaction, connection, session, …).
+    // If the prerequisites aren't available we skip — same behaviour as
+    // ctx.env.hooks.onExecutePostLogin above, and matches Auth0 which won't
+    // fire post-login actions without a client and session context.
+    const codeHooks = postLoginHooks.filter(
+      (h: any) => h.enabled && isCodeHook(h),
+    );
+    if (enhancedEvent && codeHooks.length > 0) {
+      const outcomes: HandleCodeHookOutcome[] = [];
+      for (const hook of codeHooks) {
+        if (!isCodeHook(hook)) continue;
+        try {
+          const outcome = await handleCodeHook(
+            ctx,
+            data,
+            hook,
+            enhancedEvent,
+            "post-user-login",
+            {},
+          );
+          if (outcome) outcomes.push(outcome);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          outcomes.push({
+            result: {
+              action_name: hook.code_id,
+              error: { id: "execution_threw", msg: message },
+              started_at: new Date().toISOString(),
+              ended_at: new Date().toISOString(),
+            },
+            logs: [],
+            denied: false,
+          });
+        }
+      }
+      const persistedExecutionId = await persistActionExecution(
+        data,
+        tenant_id,
+        "post-user-login",
+        outcomes,
+      );
+      if (persistedExecutionId) {
+        executionId = persistedExecutionId;
+        ctx.set("action_execution_id", persistedExecutionId);
+      }
+    }
+
+    // Handle webhook hooks (invoke all enabled webhooks)
+    const webHooks = postLoginHooks.filter(
+      (h: any) => h.enabled && isWebHook(h),
+    );
+    await invokeHooks(ctx, webHooks, {
+      tenant_id,
+      user,
+      trigger_id: "post-user-login",
+    });
+
+    // If no form hook, just return the user
+    return user;
   } finally {
     logMessage(ctx, tenant_id, {
       type: LogTypes.SUCCESS_LOGIN,

@@ -1,8 +1,4 @@
-import {
-  BooleanInput,
-  NumberInput,
-  SelectInput,
-} from "@/components/admin";
+import { BooleanInput, NumberInput, SelectInput } from "@/components/admin";
 
 // API schema marks refresh_token.* numeric fields as .optional() (accepts
 // undefined, not null). NumberInput's default parse returns null for cleared

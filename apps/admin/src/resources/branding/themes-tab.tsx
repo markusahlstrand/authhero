@@ -10,9 +10,18 @@ const keepEmptyString = (v: string | null | undefined) => v ?? "";
 
 const colorFields: { source: string; label: string }[] = [
   { source: "themes.colors.primary_button", label: "Primary Button" },
-  { source: "themes.colors.primary_button_label", label: "Primary Button Label" },
-  { source: "themes.colors.secondary_button_border", label: "Secondary Button Border" },
-  { source: "themes.colors.secondary_button_label", label: "Secondary Button Label" },
+  {
+    source: "themes.colors.primary_button_label",
+    label: "Primary Button Label",
+  },
+  {
+    source: "themes.colors.secondary_button_border",
+    label: "Secondary Button Border",
+  },
+  {
+    source: "themes.colors.secondary_button_label",
+    label: "Secondary Button Label",
+  },
   { source: "themes.colors.base_focus_color", label: "Base Focus Color" },
   { source: "themes.colors.base_hover_color", label: "Base Hover Color" },
   { source: "themes.colors.body_text", label: "Body Text" },
@@ -22,8 +31,14 @@ const colorFields: { source: string; label: string }[] = [
   { source: "themes.colors.input_background", label: "Input Background" },
   { source: "themes.colors.input_border", label: "Input Border" },
   { source: "themes.colors.input_filled_text", label: "Input Filled Text" },
-  { source: "themes.colors.input_labels_placeholders", label: "Input Labels/Placeholders" },
-  { source: "themes.colors.links_focused_components", label: "Links/Focused Components" },
+  {
+    source: "themes.colors.input_labels_placeholders",
+    label: "Input Labels/Placeholders",
+  },
+  {
+    source: "themes.colors.links_focused_components",
+    label: "Links/Focused Components",
+  },
   { source: "themes.colors.success", label: "Success" },
   { source: "themes.colors.widget_background", label: "Widget Background" },
   { source: "themes.colors.widget_border", label: "Widget Border" },
@@ -197,10 +212,7 @@ export function ThemesTab() {
               { id: "right", name: "Right" },
             ]}
           />
-          <NumberInput
-            source="themes.widget.logo_height"
-            label="Logo Height"
-          />
+          <NumberInput source="themes.widget.logo_height" label="Logo Height" />
           <SelectInput
             source="themes.widget.logo_position"
             label="Logo Position"

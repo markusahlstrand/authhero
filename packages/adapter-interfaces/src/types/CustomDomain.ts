@@ -45,7 +45,7 @@ export const customDomainSchema = customDomainInsertSchema.extend({
       methods: z.array(verificationMethodsSchema),
     })
     .optional(),
-  tls_policy: z.string().optional()
+  tls_policy: z.string().optional(),
 });
 
 export default customDomainSchema;

@@ -1,6 +1,16 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { createRuntimeFallbackAdapter, withRuntimeFallback, withSystemResourceServerInheritance, mergeClientWithFallback } from "../src/middleware/settings-inheritance";
-import { DataAdapters, Connection, Client, ResourceServer } from "@authhero/adapter-interfaces";
+import {
+  createRuntimeFallbackAdapter,
+  withRuntimeFallback,
+  withSystemResourceServerInheritance,
+  mergeClientWithFallback,
+} from "../src/middleware/settings-inheritance";
+import {
+  DataAdapters,
+  Connection,
+  Client,
+  ResourceServer,
+} from "@authhero/adapter-interfaces";
 
 // Mock data adapters for testing
 const createMockAdapters = (): DataAdapters => ({
@@ -513,10 +523,7 @@ describe("Runtime Fallback Adapter (Settings Inheritance)", () => {
         "https://dev.example.com/callback",
       ],
       web_origins: ["http://localhost:3000", "https://dev.example.com"],
-      allowed_logout_urls: [
-        "http://localhost:3000",
-        "https://dev.example.com",
-      ],
+      allowed_logout_urls: ["http://localhost:3000", "https://dev.example.com"],
       allowed_origins: ["http://localhost:3000"],
       created_at: "2023-01-01T00:00:00Z",
       updated_at: "2023-01-01T00:00:00Z",

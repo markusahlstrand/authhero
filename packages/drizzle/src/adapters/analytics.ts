@@ -147,9 +147,7 @@ export function createAnalyticsAdapter(db: DrizzleDb): AnalyticsAdapter {
       // ORDER BY — only allow columns that appear in the SELECT list. The
       // route already validates order_by, but defend in depth so a raw call
       // to the adapter can't inject SQL via the identifier.
-      const allowedOrderCols = new Set<string>([
-        ...Object.keys(selectShape),
-      ]);
+      const allowedOrderCols = new Set<string>([...Object.keys(selectShape)]);
       if (params.order_by) {
         const desc = params.order_by.startsWith("-");
         const col = desc ? params.order_by.slice(1) : params.order_by;

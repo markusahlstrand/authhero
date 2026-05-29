@@ -9,10 +9,7 @@ import type {
   ProxyRoutesAdapter,
   RouteMatch,
 } from "@authhero/adapter-interfaces";
-import {
-  handlerConfigSchema,
-  matchSchema,
-} from "@authhero/adapter-interfaces";
+import { handlerConfigSchema, matchSchema } from "@authhero/adapter-interfaces";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
 import { proxyRouteKeys } from "../keys";
 import {

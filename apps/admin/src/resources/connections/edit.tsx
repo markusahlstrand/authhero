@@ -16,9 +16,7 @@ import { TryConnectionButton } from "./try-connection-button";
 function stripNulls(value: unknown): unknown {
   if (value === null) return undefined;
   if (Array.isArray(value)) {
-    return value
-      .map(stripNulls)
-      .filter((v) => v !== undefined);
+    return value.map(stripNulls).filter((v) => v !== undefined);
   }
   if (value && typeof value === "object") {
     return Object.fromEntries(

@@ -17,10 +17,7 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
-import {
-  ROUTER_FIELD_OPTIONS,
-  type RouterFieldOption,
-} from "../constants";
+import { ROUTER_FIELD_OPTIONS, type RouterFieldOption } from "../constants";
 
 interface FieldComboboxProps {
   value: string | undefined;
@@ -50,7 +47,9 @@ export function FieldCombobox({ value, onChange }: FieldComboboxProps) {
           aria-expanded={open}
           className="h-9 w-full justify-between font-normal"
         >
-          <span className={cn("truncate", !selected && "text-muted-foreground")}>
+          <span
+            className={cn("truncate", !selected && "text-muted-foreground")}
+          >
             {selected ? selected.label : value || "Select or type field"}
           </span>
           <ChevronsUpDown className="h-3.5 w-3.5 opacity-50" />

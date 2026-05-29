@@ -80,11 +80,12 @@ export type AuthenticationMethodUpdate = Partial<
   Omit<AuthenticationMethodInsert, "user_id" | "type">
 >;
 
-export const authenticationMethodSchema = authenticationMethodBaseSchema.extend({
+export const authenticationMethodSchema = authenticationMethodBaseSchema
+  .extend({
     id: z.string(),
     created_at: z.string(),
-    updated_at: z.string()
-})
+    updated_at: z.string(),
+  })
   .superRefine(refineAuthenticationMethod);
 
 export type AuthenticationMethod = z.infer<typeof authenticationMethodSchema>;

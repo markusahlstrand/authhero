@@ -76,6 +76,21 @@ export interface SsrfFetchOptions {
   allowPrivateHosts?: boolean;
 }
 
+/**
+ * Build SSRF fetch options from the environment. In production only https and
+ * public hosts are allowed; the `ALLOW_PRIVATE_OUTBOUND_FETCH` override (tests
+ * and local dev) relaxes this so loopback/http targets can be reached.
+ */
+export function ssrfFetchOptionsFromEnv(env: {
+  ALLOW_PRIVATE_OUTBOUND_FETCH?: boolean;
+}): SsrfFetchOptions {
+  const allowPrivate = env.ALLOW_PRIVATE_OUTBOUND_FETCH === true;
+  return {
+    allowPrivateHosts: allowPrivate,
+    allowedSchemes: allowPrivate ? ["http:", "https:"] : ["https:"],
+  };
+}
+
 export class SsrfBlockedError extends Error {
   constructor(reason: string) {
     super(`SSRF check failed: ${reason}`);

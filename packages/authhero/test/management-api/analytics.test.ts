@@ -189,9 +189,7 @@ describe("/analytics validation", () => {
     const recent = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
     await seedLog(env, LogTypes.SUCCESS_LOGIN, recent, { user_id: "u1" });
 
-    const from = new Date(
-      Date.now() - 45 * 24 * 60 * 60 * 1000,
-    ).toISOString();
+    const from = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString();
     const to = new Date().toISOString();
 
     const res = await client.analytics.logins.$get(
@@ -234,9 +232,7 @@ describe("/analytics validation", () => {
     const client = testClient(managementApp, env);
     const token = await getAdminToken();
 
-    const from = new Date(
-      Date.now() - 60 * 24 * 60 * 60 * 1000,
-    ).toISOString();
+    const from = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString();
     const to = new Date().toISOString();
 
     const res = await client.analytics.logins.$get(

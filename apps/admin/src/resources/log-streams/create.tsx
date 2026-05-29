@@ -1,9 +1,4 @@
-import {
-  Create,
-  SimpleForm,
-  TextInput,
-  SelectInput,
-} from "@/components/admin";
+import { Create, SimpleForm, TextInput, SelectInput } from "@/components/admin";
 import { regex, required } from "ra-core";
 import {
   contentFormatChoices,
@@ -30,7 +25,8 @@ export function LogStreamCreate() {
         sink: {
           http_endpoint: data?.sink?.http_endpoint,
           http_authorization: data?.sink?.http_authorization,
-          http_content_type: data?.sink?.http_content_type || "application/json",
+          http_content_type:
+            data?.sink?.http_content_type || "application/json",
           http_content_format: data?.sink?.http_content_format || "JSONARRAY",
         },
       })}

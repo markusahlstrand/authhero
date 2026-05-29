@@ -370,7 +370,8 @@ describe("data plane router", () => {
       new Response("ok", {
         status: 200,
         headers: {
-          "Set-Cookie": "sid=abc; Path=/; Domain=upstream.example.com; HttpOnly",
+          "Set-Cookie":
+            "sid=abc; Path=/; Domain=upstream.example.com; HttpOnly",
         },
       }),
     );

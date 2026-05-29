@@ -7,10 +7,7 @@ import {
   NumberInput,
 } from "@/components/admin";
 import { useWatch } from "react-hook-form";
-import {
-  getTemplateChoicesForTrigger,
-  triggerChoices,
-} from "./hookConstants";
+import { getTemplateChoicesForTrigger, triggerChoices } from "./hookConstants";
 
 const typeChoices = [
   { id: "url", name: "Webhook" },

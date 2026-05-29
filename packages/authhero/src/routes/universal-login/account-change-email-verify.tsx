@@ -8,230 +8,228 @@ import { LogTypes } from "@authhero/adapter-interfaces";
 import { defineRoute } from "../../utils/define-route";
 const getRoot = defineRoute({
   route: createRoute({
-      tags: ["login"],
-      method: "get",
-      path: "/",
-      request: {
-        query: z.object({
-          state: z.string().openapi({
-            description: "The state parameter from the authorization request",
-          }),
-          email: z.string().email(),
-          change_id: z.string(),
+    tags: ["login"],
+    method: "get",
+    path: "/",
+    request: {
+      query: z.object({
+        state: z.string().openapi({
+          description: "The state parameter from the authorization request",
         }),
+        email: z.string().email(),
+        change_id: z.string(),
+      }),
+    },
+    responses: {
+      200: {
+        description: "HTML page for email change verification",
+        content: { "text/html": { schema: z.string() } },
       },
-      responses: {
-        200: {
-          description: "HTML page for email change verification",
-          content: { "text/html": { schema: z.string() } },
-        },
-        302: {
-          description: "Redirect to account or login if no session",
-          headers: z.object({ Location: z.string().url() }),
-        },
-        400: {
-          description:
-            "Bad Request - HTML error page if state is missing or other input error.",
-          content: { "text/html": { schema: z.string() } },
-        },
-        500: {
-          description: "Internal Server Error - HTML error page.",
-          content: { "text/html": { schema: z.string() } },
-        },
+      302: {
+        description: "Redirect to account or login if no session",
+        headers: z.object({ Location: z.string().url() }),
       },
-    }),
+      400: {
+        description:
+          "Bad Request - HTML error page if state is missing or other input error.",
+        content: { "text/html": { schema: z.string() } },
+      },
+      500: {
+        description: "Internal Server Error - HTML error page.",
+        content: { "text/html": { schema: z.string() } },
+      },
+    },
+  }),
   handler: async (ctx) => {
-      const { state, email, change_id } = ctx.req.valid("query");
+    const { state, email, change_id } = ctx.req.valid("query");
 
-      // Get theme, branding and user from initJSXRoute
-      // Pass continuationScope to allow mid-login access
-      const { theme, branding, client, user } = await initJSXRouteWithSession(
-        ctx,
-        state,
-        { continuationScope: "change-email" },
-      );
+    // Get theme, branding and user from initJSXRoute
+    // Pass continuationScope to allow mid-login access
+    const { theme, branding, client, user } = await initJSXRouteWithSession(
+      ctx,
+      state,
+      { continuationScope: "change-email" },
+    );
 
-      // Verify the change_id belongs to this user
-      const changeRequest = await ctx.env.data.codes.get(
+    // Verify the change_id belongs to this user
+    const changeRequest = await ctx.env.data.codes.get(
+      client.tenant.id,
+      change_id,
+      "email_verification",
+    );
+
+    if (!changeRequest || changeRequest.user_id !== user.user_id) {
+      return ctx.redirect(`/u/account?state=${state}`);
+    }
+
+    return ctx.html(
+      <ChangeEmailPage
+        theme={theme}
+        branding={branding}
+        client={client}
+        email={email}
+        state={state}
+      />,
+    );
+  },
+});
+
+const postRoot = defineRoute({
+  route: createRoute({
+    tags: ["login"],
+    method: "post",
+    path: "/",
+    request: {
+      query: z.object({
+        state: z.string().openapi({
+          description: "The state parameter from the authorization request",
+        }),
+        email: z.string().toLowerCase(),
+        change_id: z.string(),
+      }),
+      body: {
+        content: {
+          "application/x-www-form-urlencoded": {
+            schema: z.object({
+              code: z.string(),
+            }),
+          },
+        },
+      },
+    },
+    responses: {
+      200: {
+        description: "HTML response with verification result",
+        content: { "text/html": { schema: z.string() } },
+      },
+      302: {
+        description: "Redirect to confirmation page on success",
+        headers: z.object({ Location: z.string().url() }),
+      },
+      400: {
+        description:
+          "Bad Request - HTML error page if state is missing or other input error.",
+        content: { "text/html": { schema: z.string() } },
+      },
+      500: {
+        description: "Internal Server Error - HTML error page.",
+        content: { "text/html": { schema: z.string() } },
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const { env } = ctx;
+    const { state, email, change_id } = ctx.req.valid("query");
+    const { code } = ctx.req.valid("form");
+
+    // Get theme, branding and user from initJSXRoute
+    // Pass continuationScope to allow mid-login access
+    const { theme, branding, client, user } = await initJSXRouteWithSession(
+      ctx,
+      state,
+      { continuationScope: "change-email" },
+    );
+
+    let error: string | undefined;
+
+    try {
+      // Find the change request
+      const changeRequest = await env.data.codes.get(
         client.tenant.id,
         change_id,
         "email_verification",
       );
 
-      if (!changeRequest || changeRequest.user_id !== user.user_id) {
-        return ctx.redirect(`/u/account?state=${state}`);
-      }
-
-      return ctx.html(
-        <ChangeEmailPage
-          theme={theme}
-          branding={branding}
-          client={client}
-          email={email}
-          state={state}
-        />,
-      );
-    },
-});
-
-const postRoot = defineRoute({
-  route: createRoute({
-      tags: ["login"],
-      method: "post",
-      path: "/",
-      request: {
-        query: z.object({
-          state: z.string().openapi({
-            description: "The state parameter from the authorization request",
-          }),
-          email: z.string().toLowerCase(),
-          change_id: z.string(),
-        }),
-        body: {
-          content: {
-            "application/x-www-form-urlencoded": {
-              schema: z.object({
-                code: z.string(),
-              }),
-            },
-          },
-        },
-      },
-      responses: {
-        200: {
-          description: "HTML response with verification result",
-          content: { "text/html": { schema: z.string() } },
-        },
-        302: {
-          description: "Redirect to confirmation page on success",
-          headers: z.object({ Location: z.string().url() }),
-        },
-        400: {
-          description:
-            "Bad Request - HTML error page if state is missing or other input error.",
-          content: { "text/html": { schema: z.string() } },
-        },
-        500: {
-          description: "Internal Server Error - HTML error page.",
-          content: { "text/html": { schema: z.string() } },
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const { env } = ctx;
-      const { state, email, change_id } = ctx.req.valid("query");
-      const { code } = ctx.req.valid("form");
-
-      // Get theme, branding and user from initJSXRoute
-      // Pass continuationScope to allow mid-login access
-      const { theme, branding, client, user } = await initJSXRouteWithSession(
-        ctx,
-        state,
-        { continuationScope: "change-email" },
-      );
-
-      let error: string | undefined;
-
-      try {
-        // Find the change request
-        const changeRequest = await env.data.codes.get(
+      if (!changeRequest) {
+        error = i18next.t("invalid_request");
+      } else if (changeRequest.user_id !== user.user_id) {
+        error = i18next.t("invalid_request");
+      } else if (changeRequest.used_at) {
+        error = i18next.t("code_already_used");
+      } else if (new Date(changeRequest.expires_at) < new Date()) {
+        error = i18next.t("code_expired");
+      } else {
+        // Find the actual verification code
+        const verificationCode = await env.data.codes.get(
           client.tenant.id,
-          change_id,
+          code,
           "email_verification",
         );
 
-        if (!changeRequest) {
-          error = i18next.t("invalid_request");
-        } else if (changeRequest.user_id !== user.user_id) {
-          error = i18next.t("invalid_request");
-        } else if (changeRequest.used_at) {
+        if (!verificationCode) {
+          error = i18next.t("invalid_code");
+        } else if (verificationCode.used_at) {
           error = i18next.t("code_already_used");
-        } else if (new Date(changeRequest.expires_at) < new Date()) {
+        } else if (new Date(verificationCode.expires_at) < new Date()) {
           error = i18next.t("code_expired");
+        } else if (verificationCode.user_id !== user.user_id) {
+          error = i18next.t("invalid_code");
         } else {
-          // Find the actual verification code
-          const verificationCode = await env.data.codes.get(
+          // Mark both codes as used
+          await env.data.codes.used(client.tenant.id, change_id);
+          await env.data.codes.used(client.tenant.id, code);
+
+          // Update user's email and set it as verified
+          const userUpdated = await env.data.users.update(
             client.tenant.id,
-            code,
-            "email_verification",
+            user.user_id,
+            {
+              email,
+              email_verified: true,
+            },
           );
 
-          if (!verificationCode) {
-            error = i18next.t("invalid_code");
-          } else if (verificationCode.used_at) {
-            error = i18next.t("code_already_used");
-          } else if (new Date(verificationCode.expires_at) < new Date()) {
-            error = i18next.t("code_expired");
-          } else if (verificationCode.user_id !== user.user_id) {
-            error = i18next.t("invalid_code");
+          if (!userUpdated) {
+            error = i18next.t("user_not_found") || "User not found";
           } else {
-            // Mark both codes as used
-            await env.data.codes.used(client.tenant.id, change_id);
-            await env.data.codes.used(client.tenant.id, code);
+            // Also update all linked users' emails
+            const linkedUsers = await env.data.users.list(client.tenant.id, {
+              page: 0,
+              per_page: 100,
+              include_totals: false,
+              q: `linked_to:${user.user_id}`,
+            });
 
-            // Update user's email and set it as verified
-            const userUpdated = await env.data.users.update(
-              client.tenant.id,
-              user.user_id,
-              {
-                email,
-                email_verified: true,
-              },
-            );
-
-            if (!userUpdated) {
-              error = i18next.t("user_not_found") || "User not found";
-            } else {
-              // Also update all linked users' emails
-              const linkedUsers = await env.data.users.list(client.tenant.id, {
-                page: 0,
-                per_page: 100,
-                include_totals: false,
-                q: `linked_to:${user.user_id}`,
-              });
-
-              for (const linkedUser of linkedUsers.users) {
-                await env.data.users.update(
-                  client.tenant.id,
-                  linkedUser.user_id,
-                  {
-                    email,
-                    email_verified: true,
-                  },
-                );
-              }
-
-              return ctx.redirect(
-                `/u/account/change-email-confirmation?state=${encodeURIComponent(state)}&email=${encodeURIComponent(email)}`,
+            for (const linkedUser of linkedUsers.users) {
+              await env.data.users.update(
+                client.tenant.id,
+                linkedUser.user_id,
+                {
+                  email,
+                  email_verified: true,
+                },
               );
             }
+
+            return ctx.redirect(
+              `/u/account/change-email-confirmation?state=${encodeURIComponent(state)}&email=${encodeURIComponent(email)}`,
+            );
           }
         }
-      } catch (err) {
-        logMessage(ctx, client.tenant.id, {
-          type: LogTypes.FAILED_CHANGE_EMAIL,
-          description: `Change email failed: ${err instanceof Error ? err.message : "Unknown error"}`,
-          userId: user.user_id,
-        });
-        error = i18next.t("operation_failed");
       }
+    } catch (err) {
+      logMessage(ctx, client.tenant.id, {
+        type: LogTypes.FAILED_CHANGE_EMAIL,
+        description: `Change email failed: ${err instanceof Error ? err.message : "Unknown error"}`,
+        userId: user.user_id,
+      });
+      error = i18next.t("operation_failed");
+    }
 
-      return ctx.html(
-        <ChangeEmailPage
-          theme={theme}
-          branding={branding}
-          client={client}
-          email={email}
-          error={error}
-          state={state}
-        />,
-      );
-    },
+    return ctx.html(
+      <ChangeEmailPage
+        theme={theme}
+        branding={branding}
+        client={client}
+        email={email}
+        error={error}
+        state={state}
+      />,
+    );
+  },
 });
-
 
 export const changeEmailVerifyRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
-}>()
-  .openapiRoutes([getRoot, postRoot] as const);
+}>().openapiRoutes([getRoot, postRoot] as const);

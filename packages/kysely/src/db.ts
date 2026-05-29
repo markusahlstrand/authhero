@@ -96,7 +96,7 @@ const sqlPromptSettingSchema = promptSettingSchema.extend({
   identifier_first: z.number(),
   password_first: z.number(),
   webauthn_platform_first_factor: z.number(),
-  tenant_id: z.string()
+  tenant_id: z.string(),
 });
 
 const sqlPasswordSchema = z.object({
@@ -117,7 +117,7 @@ export const sqlUserSchema = userSchema.extend({
   app_metadata: z.string(),
   user_metadata: z.string(),
   address: z.string().optional().nullable(),
-  tenant_id: z.string()
+  tenant_id: z.string(),
 });
 
 const sqlHookSchema = z.object({
@@ -194,7 +194,7 @@ const sqlEmailProvidersSchema = emailProviderSchema.extend({
   settings: z.string(),
   enabled: z.number(),
   created_at: z.string(),
-  updated_at: z.string()
+  updated_at: z.string(),
 });
 
 const sqlEmailTemplatesSchema = z.object({
@@ -271,7 +271,7 @@ const sqlCustomDomainSchema = customDomainSchema.extend({
   tenant_id: z.string(),
   domain_metadata: z.string().optional(),
   created_at: z.string(),
-  updated_at: z.string()
+  updated_at: z.string(),
 });
 
 const sqlFormSchema = formSchema.extend({
@@ -279,13 +279,13 @@ const sqlFormSchema = formSchema.extend({
   // Store complex data as JSON strings
   nodes: z.string().optional().default("[]"),
   start: z.string().optional().default("{}"),
-  ending: z.string().optional().default("{}")
+  ending: z.string().optional().default("{}"),
 });
 
 const sqlFlowSchema = flowSchema.extend({
   tenant_id: z.string(),
   // Store complex data as JSON strings
-  actions: z.string().optional().default("[]")
+  actions: z.string().optional().default("[]"),
 });
 
 const sqlLogSchema = logSchema.extend({
@@ -303,10 +303,11 @@ const sqlLogSchema = logSchema.extend({
   latitude: z.string().optional(),
   longitude: z.string().optional(),
   time_zone: z.string().optional(),
-  continent_code: z.string().optional()
+  continent_code: z.string().optional(),
 });
 
-export const sqlResourceServerSchema = resourceServerSchema.extend({
+export const sqlResourceServerSchema = resourceServerSchema
+  .extend({
     tenant_id: z.string(),
     scopes: z.string().optional().default("[]"),
     options: z.string().optional().default("{}"),
@@ -320,8 +321,8 @@ export const sqlResourceServerSchema = resourceServerSchema.extend({
     verification_key: z.string().optional(),
     // Timestamp fields
     created_at: z.string(),
-    updated_at: z.string()
-})
+    updated_at: z.string(),
+  })
   .omit({ verificationKey: true });
 
 export const sqlRoleSchema = roleSchema.extend({
@@ -332,7 +333,7 @@ export const sqlRoleSchema = roleSchema.extend({
   metadata: z.string().optional(),
   // Timestamp fields
   created_at: z.string(),
-  updated_at: z.string()
+  updated_at: z.string(),
 });
 
 // Tenant schema now includes settings fields (merged from tenant_settings)
@@ -354,7 +355,7 @@ export const sqlClientGrantSchema = z.object({
 });
 
 export const sqlRolePermissionSchema = rolePermissionSchema.extend({
-  tenant_id: z.string()
+  tenant_id: z.string(),
 });
 
 export const sqlUserPermissionSchema = userPermissionSchema.extend({});
@@ -368,7 +369,7 @@ export const sqlOrganizationSchema = organizationSchema.extend({
   enabled_connections: z.string().optional().default("[]"),
   token_quota: z.string().optional().default("{}"),
   created_at: z.string(),
-  updated_at: z.string()
+  updated_at: z.string(),
 });
 
 export const sqlUserOrganizationSchema = z.object({
@@ -441,7 +442,7 @@ const sqlClientSchema = clientSchema.extend({
   token_quota: z.string(),
   owner_user_id: z.string().optional().nullable(),
   registration_type: z.string().optional().nullable(),
-  registration_metadata: z.string().optional().nullable()
+  registration_metadata: z.string().optional().nullable(),
 });
 
 export const sqlClientRegistrationTokenSchema = z.object({

@@ -223,7 +223,9 @@ function AddPermissionButton() {
                 )}
                 <div className="max-h-72 overflow-auto border rounded-md">
                   {loading ? (
-                    <p className="p-4 text-sm text-muted-foreground">Loading…</p>
+                    <p className="p-4 text-sm text-muted-foreground">
+                      Loading…
+                    </p>
                   ) : available.length === 0 ? (
                     <p className="p-4 text-sm text-muted-foreground">
                       This role already has all available scopes.

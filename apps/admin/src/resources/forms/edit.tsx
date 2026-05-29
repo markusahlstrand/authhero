@@ -24,7 +24,11 @@ export function FormEdit() {
             <DetailsTab />
           </TabsContent>
           <TabsContent value="designer" className="mt-4">
-            <Suspense fallback={<Skeleton className="h-[calc(100vh-12rem)] min-h-[480px] w-full" />}>
+            <Suspense
+              fallback={
+                <Skeleton className="h-[calc(100vh-12rem)] min-h-[480px] w-full" />
+              }
+            >
               <DesignerTab />
             </Suspense>
           </TabsContent>

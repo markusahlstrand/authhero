@@ -29,122 +29,120 @@ function deepPartial<T extends z.ZodTypeAny>(schema: T): T {
 }
 const getDefault = defineRoute({
   route: createRoute({
-      tags: ["branding"],
-      method: "get",
-      path: "/default",
-      request: {
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
-      },
-      security: [
-        {
-          Bearer: ["read:branding"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: themeSchema,
-            },
-          },
-          description: "Default theme settings",
-        },
-      },
-    }),
-  handler: async (ctx) => {
-      const theme = await ctx.env.data.themes.get(ctx.var.tenant_id, "default");
-
-      if (!theme) {
-        return ctx.json(DEFAULT_THEME);
-      }
-
-      return ctx.json(theme);
+    tags: ["branding"],
+    method: "get",
+    path: "/default",
+    request: {
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
     },
+    security: [
+      {
+        Bearer: ["read:branding"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: themeSchema,
+          },
+        },
+        description: "Default theme settings",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const theme = await ctx.env.data.themes.get(ctx.var.tenant_id, "default");
+
+    if (!theme) {
+      return ctx.json(DEFAULT_THEME);
+    }
+
+    return ctx.json(theme);
+  },
 });
 
 const patchDefault = defineRoute({
   route: createRoute({
-      tags: ["branding"],
-      method: "patch",
-      path: "/default",
-      request: {
-        body: {
-          content: {
-            "application/json": {
-              schema: deepPartial(themeSchema),
-            },
+    tags: ["branding"],
+    method: "patch",
+    path: "/default",
+    request: {
+      body: {
+        content: {
+          "application/json": {
+            schema: deepPartial(themeSchema),
           },
         },
-        headers: z.object({
-          "tenant-id": z.string().optional(),
-        }),
       },
-      security: [
-        {
-          Bearer: ["update:branding"],
-        },
-      ],
-      responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: themeSchema,
-            },
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
+    },
+    security: [
+      {
+        Bearer: ["update:branding"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: themeSchema,
           },
-          description: "Updated theme settings",
         },
+        description: "Updated theme settings",
       },
-    }),
+    },
+  }),
   handler: async (ctx) => {
-      const themeData = ctx.req.valid("json");
+    const themeData = ctx.req.valid("json");
 
-      // Get existing theme from database
-      const existingTheme = await ctx.env.data.themes.get(
+    // Get existing theme from database
+    const existingTheme = await ctx.env.data.themes.get(
+      ctx.var.tenant_id,
+      "default",
+    );
+
+    // Always merge with DEFAULT_THEME to ensure all required fields exist
+    const baseTheme = existingTheme || DEFAULT_THEME;
+    const mergedTheme = deepMergePatch(baseTheme, themeData);
+
+    if (existingTheme) {
+      // Update existing theme
+      await ctx.env.data.themes.update(
         ctx.var.tenant_id,
         "default",
+        mergedTheme,
       );
+    } else {
+      // Create new theme
+      await ctx.env.data.themes.create(
+        ctx.var.tenant_id,
+        mergedTheme,
+        "default",
+      );
+    }
 
-      // Always merge with DEFAULT_THEME to ensure all required fields exist
-      const baseTheme = existingTheme || DEFAULT_THEME;
-      const mergedTheme = deepMergePatch(baseTheme, themeData);
+    await logMessage(ctx, ctx.var.tenant_id, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: "Update Theme",
+      targetType: "theme",
+      targetId: "default",
+      ...(existingTheme
+        ? { beforeState: existingTheme as Record<string, unknown> }
+        : {}),
+      afterState: mergedTheme as Record<string, unknown>,
+    });
 
-      if (existingTheme) {
-        // Update existing theme
-        await ctx.env.data.themes.update(
-          ctx.var.tenant_id,
-          "default",
-          mergedTheme,
-        );
-      } else {
-        // Create new theme
-        await ctx.env.data.themes.create(
-          ctx.var.tenant_id,
-          mergedTheme,
-          "default",
-        );
-      }
-
-      await logMessage(ctx, ctx.var.tenant_id, {
-        type: LogTypes.SUCCESS_API_OPERATION,
-        description: "Update Theme",
-        targetType: "theme",
-        targetId: "default",
-        ...(existingTheme
-          ? { beforeState: existingTheme as Record<string, unknown> }
-          : {}),
-        afterState: mergedTheme as Record<string, unknown>,
-      });
-
-      // Return the merged theme (what we just saved)
-      return ctx.json({ ...mergedTheme, themeId: "default" });
-    },
+    // Return the merged theme (what we just saved)
+    return ctx.json({ ...mergedTheme, themeId: "default" });
+  },
 });
-
 
 export const themesRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
-}>()
-  .openapiRoutes([getDefault, patchDefault] as const);
+}>().openapiRoutes([getDefault, patchDefault] as const);

@@ -1,7 +1,4 @@
-import {
-  Breadcrumb,
-  BreadcrumbPage,
-} from "@/components/admin/breadcrumb";
+import { Breadcrumb, BreadcrumbPage } from "@/components/admin/breadcrumb";
 import type { ListBaseProps, ListControllerResult, RaRecord } from "ra-core";
 import {
   FilterContext,
@@ -208,11 +205,7 @@ const ListToolbar = ({
         </div>
       )}
       <div className="flex items-center gap-2 ml-auto">
-        {hasToggleableFilters ? (
-          <FilterButton />
-        ) : (
-          <AddFilterPlaceholder />
-        )}
+        {hasToggleableFilters ? <FilterButton /> : <AddFilterPlaceholder />}
         {!disableColumns ? <ColumnsButton /> : null}
       </div>
     </div>

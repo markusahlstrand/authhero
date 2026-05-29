@@ -657,12 +657,12 @@ function createScreenPostHandler(screenId: string) {
 // screenId.
 
 const SCREEN_GET_PATHS = {
-  "login": "login",
+  login: "login",
   "login/identifier": "identifier",
   "login/email-otp-challenge": "email-otp-challenge",
   "login/sms-otp-challenge": "sms-otp-challenge",
   "login/login-passwordless-identifier": "login-passwordless-identifier",
-  "signup": "signup",
+  signup: "signup",
   "enter-password": "enter-password",
   "reset-password": "reset-password",
   "reset-password/code": "reset-password-code",
@@ -675,8 +675,8 @@ const SCREEN_GET_PATHS = {
   "passkey/challenge": "passkey-challenge",
   "passkey/enrollment": "passkey-enrollment",
   "passkey/enrollment-nudge": "passkey-enrollment-nudge",
-  "impersonate": "impersonate",
-  "account": "account",
+  impersonate: "impersonate",
+  account: "account",
   "account/profile": "account-profile",
   "account/security": "account-security",
   "account/security/totp-enrollment": "account-mfa-totp-enrollment",
@@ -692,12 +692,12 @@ const SCREEN_GET_PATHS = {
 // Subset that also accepts POST (form submissions). All entries here also
 // appear in SCREEN_GET_PATHS — this map just narrows the valid POST values.
 const SCREEN_POST_PATHS = {
-  "login": "login",
+  login: "login",
   "login/identifier": "identifier",
   "login/email-otp-challenge": "email-otp-challenge",
   "login/sms-otp-challenge": "sms-otp-challenge",
   "login/login-passwordless-identifier": "login-passwordless-identifier",
-  "signup": "signup",
+  signup: "signup",
   "enter-password": "enter-password",
   "reset-password": "reset-password",
   "reset-password/code": "reset-password-code",
@@ -710,7 +710,7 @@ const SCREEN_POST_PATHS = {
   "passkey/challenge": "passkey-challenge",
   "passkey/enrollment": "passkey-enrollment",
   "passkey/enrollment-nudge": "passkey-enrollment-nudge",
-  "impersonate": "impersonate",
+  impersonate: "impersonate",
   "account/profile": "account-profile",
   "account/security": "account-security",
   "account/security/totp-enrollment": "account-mfa-totp-enrollment",
@@ -789,127 +789,125 @@ const postScreenRoute = defineRoute({
 
 const getGuardianEnroll = defineRoute({
   route: createRoute({
-      tags: ["u2"],
-      method: "get",
-      path: "/guardian/enroll",
-      request: {
-        query: z.object({
-          ticket: z.string(),
-        }),
+    tags: ["u2"],
+    method: "get",
+    path: "/guardian/enroll",
+    request: {
+      query: z.object({
+        ticket: z.string(),
+      }),
+    },
+    responses: {
+      302: {
+        description: "Redirect to MFA enrollment screen",
       },
-      responses: {
-        302: {
-          description: "Redirect to MFA enrollment screen",
-        },
-        403: {
-          description: "Invalid or expired ticket",
-          content: {
-            "text/html": {
-              schema: z.string(),
-            },
+      403: {
+        description: "Invalid or expired ticket",
+        content: {
+          "text/html": {
+            schema: z.string(),
           },
         },
       },
-    }),
-  handler: async (ctx) => {
-      const { ticket } = ctx.req.valid("query");
-      const tenantId = ctx.var.tenant_id;
-
-      // Validate the ticket
-      const code = await ctx.env.data.codes.get(tenantId, ticket, "ticket");
-      if (!code) {
-        logMessage(ctx, tenantId, {
-          type: LogTypes.MFA_ENROLLMENT_FAILED,
-          description: "Enrollment ticket not found",
-        });
-        throw new HTTPException(403, {
-          message: "Enrollment ticket not found",
-        });
-      }
-
-      if (code.used_at) {
-        logMessage(ctx, tenantId, {
-          type: LogTypes.MFA_ENROLLMENT_FAILED,
-          description: "Enrollment ticket has already been used",
-          userId: code.user_id,
-        });
-        throw new HTTPException(403, {
-          message: "Enrollment ticket has already been used",
-        });
-      }
-
-      if (new Date(code.expires_at) < new Date()) {
-        logMessage(ctx, tenantId, {
-          type: LogTypes.MFA_ENROLLMENT_FAILED,
-          description: "Enrollment ticket has expired",
-          userId: code.user_id,
-        });
-        throw new HTTPException(403, {
-          message: "Enrollment ticket has expired",
-        });
-      }
-
-      // Atomically consume the ticket (prevents race conditions)
-      const consumed = await ctx.env.data.codes.consume(tenantId, ticket);
-      if (!consumed) {
-        logMessage(ctx, tenantId, {
-          type: LogTypes.MFA_ENROLLMENT_FAILED,
-          description: "Enrollment ticket has already been used",
-          userId: code.user_id,
-        });
-        throw new HTTPException(403, {
-          message: "Enrollment ticket has already been used",
-        });
-      }
-
-      // Get the login session
-      const loginSession = await ctx.env.data.loginSessions.get(
-        tenantId,
-        code.login_id,
-      );
-      if (!loginSession || !loginSession.user_id) {
-        logMessage(ctx, tenantId, {
-          type: LogTypes.MFA_ENROLLMENT_FAILED,
-          description: "Invalid enrollment session",
-          userId: code.user_id,
-        });
-        throw new HTTPException(403, {
-          message: "Invalid enrollment session",
-        });
-      }
-
-      // Determine which MFA factor to enroll based on tenant config
-      const tenant = await ctx.env.data.tenants.get(tenantId);
-      const factors = tenant?.mfa?.factors;
-
-      const state = encodeURIComponent(loginSession.id);
-
-      const hasOtp = factors?.otp === true;
-      const hasSms = factors?.sms === true;
-      const hasWebauthn =
-        factors?.webauthn_roaming === true ||
-        factors?.webauthn_platform === true;
-
-      const factorCount =
-        (hasOtp ? 1 : 0) + (hasSms ? 1 : 0) + (hasWebauthn ? 1 : 0);
-
-      if (factorCount > 1) {
-        // Multiple factors enabled - let user choose
-        return ctx.redirect(`/u2/mfa/login-options?state=${state}`);
-      } else if (hasOtp) {
-        return ctx.redirect(`/u2/mfa/totp-enrollment?state=${state}`);
-      } else if (hasSms) {
-        return ctx.redirect(`/u2/mfa/phone-enrollment?state=${state}`);
-      } else if (hasWebauthn) {
-        return ctx.redirect(`/u2/passkey/enrollment?state=${state}`);
-      }
-
-      throw new HTTPException(400, {
-        message: "No MFA factors enabled for this tenant",
-      });
     },
-});
+  }),
+  handler: async (ctx) => {
+    const { ticket } = ctx.req.valid("query");
+    const tenantId = ctx.var.tenant_id;
 
+    // Validate the ticket
+    const code = await ctx.env.data.codes.get(tenantId, ticket, "ticket");
+    if (!code) {
+      logMessage(ctx, tenantId, {
+        type: LogTypes.MFA_ENROLLMENT_FAILED,
+        description: "Enrollment ticket not found",
+      });
+      throw new HTTPException(403, {
+        message: "Enrollment ticket not found",
+      });
+    }
+
+    if (code.used_at) {
+      logMessage(ctx, tenantId, {
+        type: LogTypes.MFA_ENROLLMENT_FAILED,
+        description: "Enrollment ticket has already been used",
+        userId: code.user_id,
+      });
+      throw new HTTPException(403, {
+        message: "Enrollment ticket has already been used",
+      });
+    }
+
+    if (new Date(code.expires_at) < new Date()) {
+      logMessage(ctx, tenantId, {
+        type: LogTypes.MFA_ENROLLMENT_FAILED,
+        description: "Enrollment ticket has expired",
+        userId: code.user_id,
+      });
+      throw new HTTPException(403, {
+        message: "Enrollment ticket has expired",
+      });
+    }
+
+    // Atomically consume the ticket (prevents race conditions)
+    const consumed = await ctx.env.data.codes.consume(tenantId, ticket);
+    if (!consumed) {
+      logMessage(ctx, tenantId, {
+        type: LogTypes.MFA_ENROLLMENT_FAILED,
+        description: "Enrollment ticket has already been used",
+        userId: code.user_id,
+      });
+      throw new HTTPException(403, {
+        message: "Enrollment ticket has already been used",
+      });
+    }
+
+    // Get the login session
+    const loginSession = await ctx.env.data.loginSessions.get(
+      tenantId,
+      code.login_id,
+    );
+    if (!loginSession || !loginSession.user_id) {
+      logMessage(ctx, tenantId, {
+        type: LogTypes.MFA_ENROLLMENT_FAILED,
+        description: "Invalid enrollment session",
+        userId: code.user_id,
+      });
+      throw new HTTPException(403, {
+        message: "Invalid enrollment session",
+      });
+    }
+
+    // Determine which MFA factor to enroll based on tenant config
+    const tenant = await ctx.env.data.tenants.get(tenantId);
+    const factors = tenant?.mfa?.factors;
+
+    const state = encodeURIComponent(loginSession.id);
+
+    const hasOtp = factors?.otp === true;
+    const hasSms = factors?.sms === true;
+    const hasWebauthn =
+      factors?.webauthn_roaming === true || factors?.webauthn_platform === true;
+
+    const factorCount =
+      (hasOtp ? 1 : 0) + (hasSms ? 1 : 0) + (hasWebauthn ? 1 : 0);
+
+    if (factorCount > 1) {
+      // Multiple factors enabled - let user choose
+      return ctx.redirect(`/u2/mfa/login-options?state=${state}`);
+    } else if (hasOtp) {
+      return ctx.redirect(`/u2/mfa/totp-enrollment?state=${state}`);
+    } else if (hasSms) {
+      return ctx.redirect(`/u2/mfa/phone-enrollment?state=${state}`);
+    } else if (hasWebauthn) {
+      return ctx.redirect(`/u2/passkey/enrollment?state=${state}`);
+    }
+
+    throw new HTTPException(400, {
+      message: "No MFA factors enabled for this tenant",
+    });
+  },
+});
 
 // ----------------------------------------------------------------------------
 // Special routes: paths with custom logic that don't fit the screen dispatcher.
@@ -1277,7 +1275,13 @@ export const u2Routes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
 }>().openapiRoutes([
-  getGuardianEnroll, getAcceptInvitation, postAcceptInvitation, getEmailVerificationTicket, getPasswordChangeTicket, getScreenRoute, postScreenRoute,
+  getGuardianEnroll,
+  getAcceptInvitation,
+  postAcceptInvitation,
+  getEmailVerificationTicket,
+  getPasswordChangeTicket,
+  getScreenRoute,
+  postScreenRoute,
 ] as const);
 
 u2Routes.doc("/spec", {

@@ -236,7 +236,8 @@ export const logTypeDescriptions: Record<string, string> = {
   [LogTypes.FAILED_CROSS_ORIGIN_AUTHENTICATION]:
     "Failed Cross Origin Authentication",
   [LogTypes.FAILED_CHANGE_PASSWORD]: "Failed Change Password",
-  [LogTypes.FAILED_POST_CHANGE_PASSWORD_HOOK]: "Failed Post-Change Password Hook",
+  [LogTypes.FAILED_POST_CHANGE_PASSWORD_HOOK]:
+    "Failed Post-Change Password Hook",
   [LogTypes.FAILED_CHANGE_PHONE_NUMBER]: "Failed Change Phone Number",
   [LogTypes.FAILED_CHANGE_PASSWORD_REQUEST]: "Failed Change Password Request",
   [LogTypes.FAILED_CONNECTOR_PROVISIONING]: "Failed Connector Provisioning",
@@ -281,7 +282,8 @@ export const logTypeDescriptions: Record<string, string> = {
   [LogTypes.FAILED_SENDING_NOTIFICATION]: "Failed Sending Notification",
   [LogTypes.FORMS_SUBMISSION_FAILED]: "Forms Submission Failed",
   [LogTypes.FORMS_SUBMISSION_SUCCEEDED]: "Forms Submission Succeeded",
-  [LogTypes.FAILED_LOGIN_INCORRECT_PASSWORD]: "Failed Login - Incorrect Password",
+  [LogTypes.FAILED_LOGIN_INCORRECT_PASSWORD]:
+    "Failed Login - Incorrect Password",
   [LogTypes.FAILED_PUSHED_AUTHORIZATION_REQUEST]:
     "Failed Pushed Authorization Request",
   [LogTypes.FAILED_POST_USER_REGISTRATION_HOOK]:
@@ -388,7 +390,8 @@ export const logTypeDescriptions: Record<string, string> = {
   [LogTypes.SUCCESS_EXCHANGE_REFRESH_TOKEN_FOR_ACCESS_TOKEN]:
     "Success Exchange Refresh Token for Access Token",
   [LogTypes.SUCCESS_IMPERSONATION]: "Success Impersonation",
-  [LogTypes.SUCCESSFULLY_ACCEPTED_USER_INVITE]: "Successfully Accepted User Invite",
+  [LogTypes.SUCCESSFULLY_ACCEPTED_USER_INVITE]:
+    "Successfully Accepted User Invite",
   [LogTypes.BREACHED_PASSWORD_ON_SIGNUP]: "Breached Password on Signup",
   [LogTypes.SUCCESS_LOGOUT]: "Success Logout",
   [LogTypes.SUCCESS_HOOK]: "Success Hook",
@@ -396,7 +399,8 @@ export const logTypeDescriptions: Record<string, string> = {
   [LogTypes.SUCCESS_REVOCATION]: "Success Revocation",
   [LogTypes.SUCCESS_SIGNUP]: "Success Signup",
   [LogTypes.FAILED_SS_SSO_OPERATION]: "Failed SS SSO Operation",
-  [LogTypes.INFORMATION_FROM_SS_SSO_OPERATION]: "Information from SS SSO Operation",
+  [LogTypes.INFORMATION_FROM_SS_SSO_OPERATION]:
+    "Information from SS SSO Operation",
   [LogTypes.SUCCESS_SS_SSO_OPERATION]: "Success SS SSO Operation",
   [LogTypes.SUCCESS_SILENT_AUTH]: "Success Silent Auth",
   [LogTypes.SUCCESSFUL_SCIM_OPERATION]: "Successful SCIM Operation",
@@ -538,7 +542,7 @@ export const logInsertSchema = z.object({
 export type LogInsert = z.infer<typeof logInsertSchema>;
 
 export const logSchema = logInsertSchema.extend({
-  log_id: z.string()
+  log_id: z.string(),
 });
 
 export type Log = z.infer<typeof logSchema>;

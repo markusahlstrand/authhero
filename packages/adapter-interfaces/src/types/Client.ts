@@ -102,9 +102,13 @@ export const clientInsertSchema = z.object({
     description:
       "Comma-separated list of URLs that are valid to redirect to after logout from Auth0. Wildcards are allowed for subdomains.",
   }),
-  session_transfer: z.record(z.string(), z.any()).default({}).optional().openapi({
-    description: "Native to Web SSO Configuration",
-  }),
+  session_transfer: z
+    .record(z.string(), z.any())
+    .default({})
+    .optional()
+    .openapi({
+      description: "Native to Web SSO Configuration",
+    }),
   oidc_logout: z.record(z.string(), z.any()).default({}).optional().openapi({
     description: "Configuration for OIDC backchannel logout",
   }),
@@ -112,12 +116,20 @@ export const clientInsertSchema = z.object({
     description:
       "List of grant types supported for this application. Can include authorization_code, implicit, refresh_token, client_credentials, password, http://auth0.com/oauth/grant-type/password-realm, http://auth0.com/oauth/grant-type/mfa-oob, http://auth0.com/oauth/grant-type/mfa-otp, http://auth0.com/oauth/grant-type/mfa-recovery-code, urn:openid:params:grant-type:ciba, and urn:ietf:params:oauth:grant-type:device_code.",
   }),
-  jwt_configuration: z.record(z.string(), z.any()).default({}).optional().openapi({
-    description: "Configuration related to JWTs for the client.",
-  }),
-  signing_keys: z.array(z.record(z.string(), z.any())).default([]).optional().openapi({
-    description: "Signing certificates associated with this client.",
-  }),
+  jwt_configuration: z
+    .record(z.string(), z.any())
+    .default({})
+    .optional()
+    .openapi({
+      description: "Configuration related to JWTs for the client.",
+    }),
+  signing_keys: z
+    .array(z.record(z.string(), z.any()))
+    .default([])
+    .optional()
+    .openapi({
+      description: "Signing certificates associated with this client.",
+    }),
   encryption_key: z.record(z.string(), z.any()).default({}).optional().openapi({
     description: "Encryption used for WsFed responses with this client.",
   }),
@@ -169,7 +181,8 @@ export const clientInsertSchema = z.object({
       description:
         "Defines the requested authentication method for the token endpoint. `none` (public client), `client_secret_post` / `client_secret_basic` (HTTP POST / Basic), `client_secret_jwt` (RFC 7523 HMAC assertion using client_secret), or `private_key_jwt` (RFC 7523 asymmetric assertion verified against the client's `jwks` / `jwks_uri`).",
     }),
-  client_metadata: z.record(z.string(), z.string().max(255))
+  client_metadata: z
+    .record(z.string(), z.string().max(255))
     .default({})
     .optional()
     .openapi({
@@ -227,9 +240,13 @@ export const clientInsertSchema = z.object({
     .openapi({
       description: "Refresh token configuration",
     }),
-  default_organization: z.record(z.string(), z.any()).default({}).optional().openapi({
-    description: "Defines the default Organization ID and flows",
-  }),
+  default_organization: z
+    .record(z.string(), z.any())
+    .default({})
+    .optional()
+    .openapi({
+      description: "Defines the default Organization ID and flows",
+    }),
   organization_usage: z
     .enum(["deny", "allow", "require"])
     .default("deny")
@@ -246,7 +263,8 @@ export const clientInsertSchema = z.object({
       description:
         "Defines how to proceed during an authentication transaction when client.organization_usage: 'require'. Can be no_prompt (default), pre_login_prompt or post_login_prompt. post_login_prompt requires oidc_conformant: true.",
     }),
-  client_authentication_methods: z.record(z.string(), z.any())
+  client_authentication_methods: z
+    .record(z.string(), z.any())
     .default({})
     .optional()
     .openapi({
@@ -260,9 +278,13 @@ export const clientInsertSchema = z.object({
     description:
       "Makes the use of Proof-of-Possession mandatory for this client",
   }),
-  signed_request_object: z.record(z.string(), z.any()).default({}).optional().openapi({
-    description: "JWT-secured Authorization Requests (JAR) settings.",
-  }),
+  signed_request_object: z
+    .record(z.string(), z.any())
+    .default({})
+    .optional()
+    .openapi({
+      description: "JWT-secured Authorization Requests (JAR) settings.",
+    }),
   compliance_level: z
     .enum([
       "none",
@@ -292,10 +314,14 @@ export const clientInsertSchema = z.object({
       description:
         "Provenance of this client. `manual` = Management API; `open_dcr` = RFC 7591 without IAT; `iat_dcr` = RFC 7591 with an Initial Access Token.",
     }),
-  registration_metadata: z.record(z.string(), z.any()).default({}).optional().openapi({
-    description:
-      "Arbitrary metadata captured at Dynamic Client Registration time that isn't a first-class client field (e.g. integration_type, domain). Also stores `iat_constraints` for clients created via IAT so RFC 7592 PUT can enforce field immutability.",
-  }),
+  registration_metadata: z
+    .record(z.string(), z.any())
+    .default({})
+    .optional()
+    .openapi({
+      description:
+        "Arbitrary metadata captured at Dynamic Client Registration time that isn't a first-class client field (e.g. integration_type, domain). Also stores `iat_constraints` for clients created via IAT so RFC 7592 PUT can enforce field immutability.",
+    }),
   user_linking_mode: z.enum(["builtin", "off"]).optional().openapi({
     description:
       "Per-client override for the built-in email-based user-linking path. `builtin` runs the legacy in-process linking at user creation/email update. `off` disables the legacy path; linking only happens if the tenant has enabled the `account-linking` template hook. When unset, the service-level `userLinkingMode` default applies.",
@@ -304,13 +330,16 @@ export const clientInsertSchema = z.object({
 
 export type ClientInsert = z.input<typeof clientInsertSchema>;
 
-export const clientSchema = z.object({
-  created_at: z.string(),
-  updated_at: z.string()
-}).extend(clientInsertSchema.shape).extend({
-  // Insert allows omitting (server-generated to match Auth0). The read schema
-  // always has it — the row in storage is non-null.
-  client_id: z.string()
-});
+export const clientSchema = z
+  .object({
+    created_at: z.string(),
+    updated_at: z.string(),
+  })
+  .extend(clientInsertSchema.shape)
+  .extend({
+    // Insert allows omitting (server-generated to match Auth0). The read schema
+    // always has it — the row in storage is non-null.
+    client_id: z.string(),
+  });
 
 export type Client = z.infer<typeof clientSchema>;

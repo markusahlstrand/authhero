@@ -1,10 +1,6 @@
 import { useEffect, useState } from "react";
 import type { RaRecord } from "ra-core";
-import {
-  useDataProvider,
-  useNotify,
-  useRecordContext,
-} from "ra-core";
+import { useDataProvider, useNotify, useRecordContext } from "ra-core";
 import { ArrowDown, ArrowUp, GripVertical, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -84,7 +80,7 @@ function buildHandlers(
 ): HandlerConfig[] {
   const handlers = existing ? [...existing] : [];
   const index = handlers.findIndex((h) => UPSTREAM_TYPES.has(h.type));
-  const prevOptions = index >= 0 ? handlers[index].options ?? {} : {};
+  const prevOptions = index >= 0 ? (handlers[index].options ?? {}) : {};
 
   const options: Record<string, unknown> = {
     ...prevOptions,
@@ -324,8 +320,10 @@ function RemoveRouteButton({
           <p className="text-sm">
             Remove the route <strong>{route.match?.path ?? "/*"}</strong> →{" "}
             <strong>
-              {getStringOption(getUpstreamHandler(route)?.options, "upstream_url") ??
-                "—"}
+              {getStringOption(
+                getUpstreamHandler(route)?.options,
+                "upstream_url",
+              ) ?? "—"}
             </strong>
             ?
           </p>
@@ -337,11 +335,7 @@ function RemoveRouteButton({
             >
               Cancel
             </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={handleRemove}
-            >
+            <Button type="button" variant="destructive" onClick={handleRemove}>
               Remove
             </Button>
           </DialogFooter>
@@ -361,9 +355,9 @@ export function ProxyTab() {
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingRoute, setEditingRoute] = useState<ProxyRouteRecord | undefined>(
-    undefined,
-  );
+  const [editingRoute, setEditingRoute] = useState<
+    ProxyRouteRecord | undefined
+  >(undefined);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
 
   useEffect(() => {
@@ -454,10 +448,9 @@ export function ProxyTab() {
       );
       notify("Route order updated", { type: "success" });
     } catch (err) {
-      notify(
-        err instanceof Error ? err.message : "Failed to reorder routes",
-        { type: "error" },
-      );
+      notify(err instanceof Error ? err.message : "Failed to reorder routes", {
+        type: "error",
+      });
       refresh();
     } finally {
       setSaving(false);
@@ -609,7 +602,9 @@ export function ProxyTab() {
                     <td className="px-3 py-2">
                       <Badge variant="secondary">{upstream?.type ?? "—"}</Badge>
                     </td>
-                    <td className="px-3 py-2 break-all">{upstreamUrl ?? "—"}</td>
+                    <td className="px-3 py-2 break-all">
+                      {upstreamUrl ?? "—"}
+                    </td>
                     <td className="px-3 py-2 text-muted-foreground">
                       {upstream?.type === "http"
                         ? preserveHost

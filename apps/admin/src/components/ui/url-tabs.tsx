@@ -5,7 +5,10 @@ import { Tabs } from "@/components/ui/tabs";
 
 type TabsProps = React.ComponentProps<typeof Tabs>;
 
-export interface UrlTabsProps extends Omit<TabsProps, "value" | "onValueChange"> {
+export interface UrlTabsProps extends Omit<
+  TabsProps,
+  "value" | "onValueChange"
+> {
   param?: string;
 }
 
@@ -15,7 +18,8 @@ export function UrlTabs({
   ...props
 }: UrlTabsProps) {
   const [searchParams, setSearchParams] = useSearchParams();
-  const current = searchParams.get(param) ?? (defaultValue as string | undefined);
+  const current =
+    searchParams.get(param) ?? (defaultValue as string | undefined);
 
   const handleChange = React.useCallback(
     (value: string) => {

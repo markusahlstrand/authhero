@@ -740,9 +740,8 @@ describe("resource-servers", () => {
 
       // The seed creates a resource server with identifier "https://example.com"
       // and the tenant's default_audience points at it.
-      const { resource_servers } = await env.data.resourceServers.list(
-        "tenantId",
-      );
+      const { resource_servers } =
+        await env.data.resourceServers.list("tenantId");
       const referenced = resource_servers.find(
         (rs) => rs.identifier === "https://example.com",
       );
@@ -764,9 +763,8 @@ describe("resource-servers", () => {
       const localClient = testClient(managementApp, env);
       const localToken = await getAdminToken();
 
-      const { resource_servers } = await env.data.resourceServers.list(
-        "tenantId",
-      );
+      const { resource_servers } =
+        await env.data.resourceServers.list("tenantId");
       const referenced = resource_servers.find(
         (rs) => rs.identifier === "https://example.com",
       );

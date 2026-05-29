@@ -639,9 +639,11 @@ export type FormInsert = z.input<typeof formInsertSchema>;
 /**
  * Schema for complete form with base entity properties
  */
-export const formSchema = baseEntitySchema.extend(formInsertSchema.shape).extend({
-  id: z.string()
-});
+export const formSchema = baseEntitySchema
+  .extend(formInsertSchema.shape)
+  .extend({
+    id: z.string(),
+  });
 
 export type Form = z.infer<typeof formSchema>;
 

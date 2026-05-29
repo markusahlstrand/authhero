@@ -339,10 +339,7 @@ export async function sendResetPassword(
         description: to,
       });
     } catch (logErr) {
-      console.error(
-        "[sendResetPassword] failed to record log entry",
-        logErr,
-      );
+      console.error("[sendResetPassword] failed to record log entry", logErr);
     }
     throw err;
   }
@@ -829,10 +826,7 @@ export async function sendInvitation(
       tOpts,
     ),
     invitationEmailClickToAccept: t("invitation_email_click_to_accept", tOpts),
-    invitation_email_accept_button: t(
-      "invitation_email_accept_button",
-      tOpts,
-    ),
+    invitation_email_accept_button: t("invitation_email_accept_button", tOpts),
     invitationEmailAcceptButton: t("invitation_email_accept_button", tOpts),
     invitation_expires_in: t("invitation_expires_in", tOpts),
     invitationExpiresIn: t("invitation_expires_in", tOpts),

@@ -568,9 +568,7 @@ describe("createAuthMiddleware", () => {
         aud: "https://example.com/api",
       });
 
-      mockCtx.req.matchedRoutes = [
-        { method: "GET", path: "/api/v2/users" },
-      ];
+      mockCtx.req.matchedRoutes = [{ method: "GET", path: "/api/v2/users" }];
       mockCtx.req.header.mockReturnValue(`Bearer ${token}`);
 
       await expect(strictMiddleware(mockCtx, mockNext)).rejects.toThrow(
@@ -600,9 +598,7 @@ describe("createAuthMiddleware", () => {
         aud: "https://example.com/api",
       });
 
-      mockCtx.req.matchedRoutes = [
-        { method: "GET", path: "/api/v2/userinfo" },
-      ];
+      mockCtx.req.matchedRoutes = [{ method: "GET", path: "/api/v2/userinfo" }];
       mockCtx.req.header.mockReturnValue(`Bearer ${token}`);
 
       await expect(strictMiddleware(mockCtx, mockNext)).rejects.toThrow(

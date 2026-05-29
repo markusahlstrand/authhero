@@ -183,12 +183,13 @@ export function createUserUpdateHooks(
                   break;
                 }
                 visited.add(current.user_id);
-                current = await trxData.users.get(
-                  tenant_id,
-                  current.linked_to,
-                );
+                current = await trxData.users.get(tenant_id, current.linked_to);
               }
-              if (current && current.user_id !== user_id && !seen.has(current.user_id)) {
+              if (
+                current &&
+                current.user_id !== user_id &&
+                !seen.has(current.user_id)
+              ) {
                 seen.add(current.user_id);
                 roots.push(current);
               }

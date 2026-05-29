@@ -3,7 +3,13 @@ import { Kysely } from "kysely";
 import { Hono } from "hono";
 import { Database } from "@authhero/kysely-adapter";
 import createAdapters, { migrateToLatest } from "@authhero/kysely-adapter";
-import { setupMultiTenancy, createSyncHooks, createTenantsOpenAPIRouter, MultiTenancyConfig, MultiTenancyHooks } from "../src/index";
+import {
+  setupMultiTenancy,
+  createSyncHooks,
+  createTenantsOpenAPIRouter,
+  MultiTenancyConfig,
+  MultiTenancyHooks,
+} from "../src/index";
 import { Role, ResourceServer } from "@authhero/adapter-interfaces";
 
 import { createMigratedDb } from "./helpers/migrated-db";

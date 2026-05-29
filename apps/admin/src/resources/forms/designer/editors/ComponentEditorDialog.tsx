@@ -53,16 +53,27 @@ export function ComponentEditorDialog({
     if (!draft) return null;
     if (draft.type === "RICH_TEXT") {
       return (
-        <RichTextComponentEditor value={draft} onChange={(next) => setDraft(next)} />
+        <RichTextComponentEditor
+          value={draft}
+          onChange={(next) => setDraft(next)}
+        />
       );
     }
     if (draft.type === "NEXT_BUTTON") {
-      return <NextButtonEditor value={draft} onChange={(next) => setDraft(next)} />;
+      return (
+        <NextButtonEditor value={draft} onChange={(next) => setDraft(next)} />
+      );
     }
     if (TEXT_LIKE.includes(draft.type)) {
-      return <TextFieldEditor value={draft} onChange={(next) => setDraft(next)} />;
+      return (
+        <TextFieldEditor value={draft} onChange={(next) => setDraft(next)} />
+      );
     }
-    if (draft.type === "DROPDOWN" || draft.type === "CHOICE" || draft.type === "CUSTOM") {
+    if (
+      draft.type === "DROPDOWN" ||
+      draft.type === "CHOICE" ||
+      draft.type === "CUSTOM"
+    ) {
       return (
         <DropdownChoiceCustomEditor
           value={draft}

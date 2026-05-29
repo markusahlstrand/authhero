@@ -52,10 +52,7 @@ export function FeatureFlagsTab() {
         source="flags.enable_legacy_profile"
         label="Enable Legacy Profile"
       />
-      <BooleanInput
-        source="flags.enable_pipeline2"
-        label="Enable Pipeline 2"
-      />
+      <BooleanInput source="flags.enable_pipeline2" label="Enable Pipeline 2" />
       <BooleanInput
         source="flags.enable_public_signup_user_exists_error"
         label="Enable Public Signup User Exists Error"

@@ -13,7 +13,9 @@ type ColorInputProps = InputProps & {
 };
 
 function isHexColor(value: unknown): value is string {
-  return typeof value === "string" && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value);
+  return (
+    typeof value === "string" && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value)
+  );
 }
 
 export function ColorInput(props: ColorInputProps) {

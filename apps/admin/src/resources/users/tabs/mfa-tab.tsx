@@ -1,9 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-  useDataProvider,
-  useNotify,
-  useRecordContext,
-} from "ra-core";
+import { useDataProvider, useNotify, useRecordContext } from "ra-core";
 import { useParams } from "react-router-dom";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -120,13 +116,10 @@ export function MfaTab() {
       ) : (
         <ul className="divide-y border rounded-md">
           {enrollments.map((e) => (
-            <li
-              key={e.id}
-              className="flex items-center justify-between p-3"
-            >
+            <li key={e.id} className="flex items-center justify-between p-3">
               <div className="flex flex-col">
                 <span className="text-sm font-medium">
-                  {(e.type === "phone" ? "SMS" : e.type.toUpperCase())} —{" "}
+                  {e.type === "phone" ? "SMS" : e.type.toUpperCase()} —{" "}
                   {e.phone_number || "N/A"}
                 </span>
                 <span className="text-xs text-muted-foreground">
@@ -166,7 +159,9 @@ export function MfaTab() {
                 if (!ticketUrl) return;
                 navigator.clipboard
                   .writeText(ticketUrl)
-                  .then(() => notify("Copied to clipboard", { type: "success" }))
+                  .then(() =>
+                    notify("Copied to clipboard", { type: "success" }),
+                  )
                   .catch(() =>
                     notify("Failed to copy to clipboard", { type: "warning" }),
                   );

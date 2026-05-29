@@ -583,185 +583,188 @@ async function handlePostScreen(
 }
 const getScreen = defineRoute({
   route: createRoute({
-      tags: ["flow-api"],
-      method: "get",
-      path: "/screen",
-      request: {
-        query: z.object({
-          form: z.string(),
-          state: z.string(),
-          screen: z.string().optional(),
-        }),
-      },
-      responses: {
-        200: {
-          description: "Current screen for widget rendering (SPA mode)",
-          content: {
-            "application/json": {
-              schema: flowScreenResponseSchema,
-            },
+    tags: ["flow-api"],
+    method: "get",
+    path: "/screen",
+    request: {
+      query: z.object({
+        form: z.string(),
+        state: z.string(),
+        screen: z.string().optional(),
+      }),
+    },
+    responses: {
+      200: {
+        description: "Current screen for widget rendering (SPA mode)",
+        content: {
+          "application/json": {
+            schema: flowScreenResponseSchema,
           },
         },
-        404: { description: "Form not found" },
       },
-    }),
-  handler: async (ctx) => {
-      const { form: formId, state, screen: nodeId } = ctx.req.valid("query");
-      return handleGetScreen(ctx, formId, state, nodeId, "spa");
+      404: { description: "Form not found" },
     },
+  }),
+  handler: async (ctx) => {
+    const { form: formId, state, screen: nodeId } = ctx.req.valid("query");
+    return handleGetScreen(ctx, formId, state, nodeId, "spa");
+  },
 });
 
 const getFormIdScreen = defineRoute({
   route: createRoute({
-      tags: ["flow-api"],
-      method: "get",
-      path: "/:formId/screen",
-      request: {
-        params: z.object({
-          formId: z.string(),
-        }),
-        query: z.object({
-          state: z.string(),
-          nodeId: z.string().optional(),
-        }),
-      },
-      responses: {
-        200: {
-          description: "Current screen for widget rendering (hosted mode)",
-          content: {
-            "application/json": {
-              schema: flowScreenResponseSchema,
-            },
+    tags: ["flow-api"],
+    method: "get",
+    path: "/:formId/screen",
+    request: {
+      params: z.object({
+        formId: z.string(),
+      }),
+      query: z.object({
+        state: z.string(),
+        nodeId: z.string().optional(),
+      }),
+    },
+    responses: {
+      200: {
+        description: "Current screen for widget rendering (hosted mode)",
+        content: {
+          "application/json": {
+            schema: flowScreenResponseSchema,
           },
         },
-        404: { description: "Form not found" },
       },
-    }),
-  handler: async (ctx) => {
-      const { formId } = ctx.req.valid("param");
-      const { state, nodeId } = ctx.req.valid("query");
-      return handleGetScreen(ctx, formId, state, nodeId, "hosted");
+      404: { description: "Form not found" },
     },
+  }),
+  handler: async (ctx) => {
+    const { formId } = ctx.req.valid("param");
+    const { state, nodeId } = ctx.req.valid("query");
+    return handleGetScreen(ctx, formId, state, nodeId, "hosted");
+  },
 });
 
 const postScreen = defineRoute({
   route: createRoute({
-      tags: ["flow-api"],
-      method: "post",
-      path: "/screen",
-      request: {
-        query: z.object({
-          form: z.string(),
-          state: z.string(),
-          screen: z.string().optional(),
-        }),
-        body: {
-          content: {
-            "application/json": {
-              schema: z.object({
-                data: z.record(z.string(), z.any()),
-              }),
-            },
+    tags: ["flow-api"],
+    method: "post",
+    path: "/screen",
+    request: {
+      query: z.object({
+        form: z.string(),
+        state: z.string(),
+        screen: z.string().optional(),
+      }),
+      body: {
+        content: {
+          "application/json": {
+            schema: z.object({
+              data: z.record(z.string(), z.any()),
+            }),
           },
         },
       },
-      responses: {
-        200: {
-          description: "Next screen or completion response (SPA mode)",
-          content: {
-            "application/json": {
-              schema: z.union([
-                flowScreenResponseSchema,
-                z.object({
-                  redirect: z.string(),
-                }),
-                z.object({
-                  complete: z.boolean(),
-                  tokens: z
-                    .object({
-                      access_token: z.string().optional(),
-                      id_token: z.string().optional(),
-                      refresh_token: z.string().optional(),
-                    })
-                    .optional(),
-                }),
-              ]),
-            },
-          },
-        },
-        400: { description: "Validation error" },
-        404: { description: "Form not found" },
-      },
-    }),
-  handler: async (ctx) => {
-      const { form: formId, state, screen: nodeId } = ctx.req.valid("query");
-      const { data } = ctx.req.valid("json");
-      return handlePostScreen(ctx, formId, state, nodeId, data, "spa");
     },
+    responses: {
+      200: {
+        description: "Next screen or completion response (SPA mode)",
+        content: {
+          "application/json": {
+            schema: z.union([
+              flowScreenResponseSchema,
+              z.object({
+                redirect: z.string(),
+              }),
+              z.object({
+                complete: z.boolean(),
+                tokens: z
+                  .object({
+                    access_token: z.string().optional(),
+                    id_token: z.string().optional(),
+                    refresh_token: z.string().optional(),
+                  })
+                  .optional(),
+              }),
+            ]),
+          },
+        },
+      },
+      400: { description: "Validation error" },
+      404: { description: "Form not found" },
+    },
+  }),
+  handler: async (ctx) => {
+    const { form: formId, state, screen: nodeId } = ctx.req.valid("query");
+    const { data } = ctx.req.valid("json");
+    return handlePostScreen(ctx, formId, state, nodeId, data, "spa");
+  },
 });
 
 const postFormIdScreen = defineRoute({
   route: createRoute({
-      tags: ["flow-api"],
-      method: "post",
-      path: "/:formId/screen",
-      request: {
-        params: z.object({
-          formId: z.string(),
-        }),
-        query: z.object({
-          state: z.string(),
-          nodeId: z.string().optional(),
-        }),
-        body: {
-          content: {
-            "application/json": {
-              schema: z.object({
-                data: z.record(z.string(), z.any()),
-              }),
-            },
+    tags: ["flow-api"],
+    method: "post",
+    path: "/:formId/screen",
+    request: {
+      params: z.object({
+        formId: z.string(),
+      }),
+      query: z.object({
+        state: z.string(),
+        nodeId: z.string().optional(),
+      }),
+      body: {
+        content: {
+          "application/json": {
+            schema: z.object({
+              data: z.record(z.string(), z.any()),
+            }),
           },
         },
       },
-      responses: {
-        200: {
-          description: "Next screen or completion response (hosted mode)",
-          content: {
-            "application/json": {
-              schema: z.union([
-                flowScreenResponseSchema,
-                z.object({
-                  redirect: z.string(),
-                }),
-                z.object({
-                  complete: z.boolean(),
-                  tokens: z
-                    .object({
-                      access_token: z.string().optional(),
-                      id_token: z.string().optional(),
-                      refresh_token: z.string().optional(),
-                    })
-                    .optional(),
-                }),
-              ]),
-            },
-          },
-        },
-        400: { description: "Validation error" },
-        404: { description: "Form not found" },
-      },
-    }),
-  handler: async (ctx) => {
-      const { formId } = ctx.req.valid("param");
-      const { state, nodeId } = ctx.req.valid("query");
-      const { data } = ctx.req.valid("json");
-      return handlePostScreen(ctx, formId, state, nodeId, data, "hosted");
     },
+    responses: {
+      200: {
+        description: "Next screen or completion response (hosted mode)",
+        content: {
+          "application/json": {
+            schema: z.union([
+              flowScreenResponseSchema,
+              z.object({
+                redirect: z.string(),
+              }),
+              z.object({
+                complete: z.boolean(),
+                tokens: z
+                  .object({
+                    access_token: z.string().optional(),
+                    id_token: z.string().optional(),
+                    refresh_token: z.string().optional(),
+                  })
+                  .optional(),
+              }),
+            ]),
+          },
+        },
+      },
+      400: { description: "Validation error" },
+      404: { description: "Form not found" },
+    },
+  }),
+  handler: async (ctx) => {
+    const { formId } = ctx.req.valid("param");
+    const { state, nodeId } = ctx.req.valid("query");
+    const { data } = ctx.req.valid("json");
+    return handlePostScreen(ctx, formId, state, nodeId, data, "hosted");
+  },
 });
-
 
 export const flowApiRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
-}>()
-  .openapiRoutes([getScreen, getFormIdScreen, postScreen, postFormIdScreen] as const);
+}>().openapiRoutes([
+  getScreen,
+  getFormIdScreen,
+  postScreen,
+  postFormIdScreen,
+] as const);

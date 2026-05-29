@@ -1,4 +1,18 @@
-import { CircleDot, MailCheck, Hash, Phone, Globe, Lock, ListChecks, ListTree, Calendar, FileCheck, Code2, Text, Sparkles } from "lucide-react";
+import {
+  CircleDot,
+  MailCheck,
+  Hash,
+  Phone,
+  Globe,
+  Lock,
+  ListChecks,
+  ListTree,
+  Calendar,
+  FileCheck,
+  Code2,
+  Text,
+  Sparkles,
+} from "lucide-react";
 import type { FormNodeComponent } from "../types";
 
 const truncate = (text: string, max = 60) => {
@@ -48,17 +62,27 @@ export function ComponentPreview({
     return (
       <div className="flex items-start gap-1.5 text-xs text-muted-foreground">
         <FileCheck className="mt-0.5 h-3 w-3 shrink-0" />
-        <span>{component.config?.text ? truncate(component.config.text, 70) : "Legal"}</span>
+        <span>
+          {component.config?.text
+            ? truncate(component.config.text, 70)
+            : "Legal"}
+        </span>
       </div>
     );
   }
 
   const Icon = ICONS[component.type] ?? CircleDot;
   const label = (() => {
-    if ("label" in component && typeof component.label === "string" && component.label) {
+    if (
+      "label" in component &&
+      typeof component.label === "string" &&
+      component.label
+    ) {
       return component.label;
     }
-    const config = component.config as { placeholder?: string; label?: string } | undefined;
+    const config = component.config as
+      | { placeholder?: string; label?: string }
+      | undefined;
     return config?.label || config?.placeholder || component.type;
   })();
 

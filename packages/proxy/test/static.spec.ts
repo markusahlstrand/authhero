@@ -57,9 +57,7 @@ describe("static proxy adapter", () => {
         custom_domain_id: "cd",
         priority: 100,
         match: { path: "/*" },
-        handlers: [
-          { type: "http", options: { upstream_url: "https://x" } },
-        ],
+        handlers: [{ type: "http", options: { upstream_url: "https://x" } }],
       }),
     ).rejects.toThrow(/read-only/);
   });

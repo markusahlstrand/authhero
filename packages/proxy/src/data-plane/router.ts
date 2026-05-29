@@ -21,7 +21,8 @@ export interface ProxyDataPlaneOptions {
 
 function buildResolver(options: ProxyDataPlaneOptions): HostResolverCache {
   if (options.resolver) return options.resolver;
-  if (options.cache) return createInMemoryHostCache(options.data, options.cache);
+  if (options.cache)
+    return createInMemoryHostCache(options.data, options.cache);
   return createInMemoryHostCache(options.data, options.cacheTtlMs ?? 30_000);
 }
 

@@ -81,9 +81,7 @@ const getRoot = defineRoute({
   },
 });
 
-
 export const errorRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
-}>()
-  .openapiRoutes([getRoot] as const);
+}>().openapiRoutes([getRoot] as const);

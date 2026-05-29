@@ -265,7 +265,10 @@ function AddRoleDialog({ userId, onAdded }: AddRoleDialogProps) {
         <Plus className="h-4 w-4 mr-1" />
         Add role
       </Button>
-      <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : handleClose())}>
+      <Dialog
+        open={open}
+        onOpenChange={(o) => (o ? setOpen(true) : handleClose())}
+      >
         <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>Add roles</DialogTitle>
@@ -328,10 +331,7 @@ function AddRoleDialog({ userId, onAdded }: AddRoleDialogProps) {
                   return (
                     <ul className="divide-y">
                       {filtered.map((r) => (
-                        <li
-                          key={r.id}
-                          className="flex items-start gap-2 p-2"
-                        >
+                        <li key={r.id} className="flex items-start gap-2 p-2">
                           <Checkbox
                             id={`role-${r.id}`}
                             checked={selected.has(r.id)}

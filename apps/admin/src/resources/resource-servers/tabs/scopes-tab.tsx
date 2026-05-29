@@ -83,11 +83,7 @@ function RemoveScopeCell() {
             >
               Cancel
             </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={handleRemove}
-            >
+            <Button type="button" variant="destructive" onClick={handleRemove}>
               Remove
             </Button>
           </DialogFooter>

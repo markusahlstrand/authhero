@@ -19,13 +19,25 @@ function makeNewComponent(type: string): FormNodeComponent {
   const id = randomId(type.toLowerCase());
   const base = { id, type } as unknown as FormNodeComponent;
   if (type === "NEXT_BUTTON") {
-    return { ...base, category: "BLOCK", config: { text: "Continue" } } as FormNodeComponent;
+    return {
+      ...base,
+      category: "BLOCK",
+      config: { text: "Continue" },
+    } as FormNodeComponent;
   }
   if (type === "RICH_TEXT") {
-    return { ...base, category: "BLOCK", config: { content: "" } } as FormNodeComponent;
+    return {
+      ...base,
+      category: "BLOCK",
+      config: { content: "" },
+    } as FormNodeComponent;
   }
   if (type === "LEGAL") {
-    return { ...base, category: "FIELD", config: { text: "" } } as FormNodeComponent;
+    return {
+      ...base,
+      category: "FIELD",
+      config: { text: "" },
+    } as FormNodeComponent;
   }
   if (["TEXT", "EMAIL", "NUMBER", "TEL", "URL", "PASSWORD"].includes(type)) {
     return {
@@ -87,8 +99,7 @@ export function ComponentList({ nodeIndex }: ComponentListProps) {
     update(next);
   };
 
-  const remove = (id: string) =>
-    update(components.filter((c) => c.id !== id));
+  const remove = (id: string) => update(components.filter((c) => c.id !== id));
 
   const replace = (next: FormNodeComponent) =>
     update(components.map((c) => (c.id === next.id ? next : c)));

@@ -24,6 +24,9 @@ AuthHero is built on open identity standards. This section tracks every spec Aut
 | [RFC 7009 — Token Revocation](/standards/rfc-7009) | Partial |
 | [RFC 7591 — Dynamic Client Registration](/standards/rfc-7591) | Partial |
 | [RFC 7592 — Dynamic Client Registration Management](/standards/rfc-7592) | Full |
+| [RFC 8414 — Authorization Server Metadata](/standards/rfc-8414) | Full |
+| [Client ID Metadata Documents (CIMD)](/standards/cimd) | Full |
+| [RFC 9728 — Protected Resource Metadata](/standards/rfc-9728) | Planned |
 | [RFC 9101 — JWT-Secured Authorization Request (JAR)](/standards/rfc-9101) | Full |
 
 ## Tokens & keys

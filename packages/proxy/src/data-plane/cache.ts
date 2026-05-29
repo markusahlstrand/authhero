@@ -71,8 +71,7 @@ export function createInMemoryHostCache(
     now: number,
   ): CacheEntry {
     const fresh_until = now + (value === null ? negativeTtl : freshTtl);
-    const stale_until =
-      value === null ? fresh_until : fresh_until + staleTtl;
+    const stale_until = value === null ? fresh_until : fresh_until + staleTtl;
     const entry: CacheEntry = { value, fresh_until, stale_until };
     cache.delete(host);
     evict(now);

@@ -31,10 +31,7 @@ export function LegalEditor({ value, onChange }: LegalEditorProps) {
       </div>
       <div className="flex items-center justify-between rounded-md border p-2">
         <Label className="text-sm">Render as HTML</Label>
-        <Switch
-          checked={html}
-          onCheckedChange={(c) => emit(text, c)}
-        />
+        <Switch checked={html} onCheckedChange={(c) => emit(text, c)} />
       </div>
     </div>
   );

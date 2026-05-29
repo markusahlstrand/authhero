@@ -41,7 +41,7 @@ export type ResourceServerInsert = z.input<typeof resourceServerInsertSchema>;
 
 export const resourceServerSchema = resourceServerInsertSchema.extend({
   created_at: z.string().optional(),
-  updated_at: z.string().optional()
+  updated_at: z.string().optional(),
 });
 export type ResourceServer = z.infer<typeof resourceServerSchema>;
 
