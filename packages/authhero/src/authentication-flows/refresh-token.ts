@@ -414,6 +414,13 @@ export async function refreshTokenGrant(
     refresh_token: outgoingWireToken,
     session_id: sessionId,
     login_id: refreshToken.login_id,
+    // Carry the connection the user originally authenticated with so the
+    // credentials-exchange hook sees it. We pass it via authConnection (not
+    // loginSession) because the original session is already COMPLETED and
+    // re-attaching it would trip the terminal-state guard in
+    // createFrontChannelAuthResponse. When the session never recorded one,
+    // createAuthTokens falls back to the user's connection.
+    authConnection: loginSession?.auth_connection,
     organization,
     authParams: {
       client_id: client.client_id,

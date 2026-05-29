@@ -4,6 +4,7 @@ import {
   AuthorizationResponseMode,
   CodeChallengeMethod,
   LogTypes,
+  LoginSession,
   Session,
 } from "@authhero/adapter-interfaces";
 import { EnrichedClient } from "../helpers/client";
@@ -13,6 +14,7 @@ import { serializeAuthCookie, clearAuthCookie } from "../utils/cookies";
 import renderAuthIframe from "../utils/authIframe";
 import { formPostResponse } from "../utils/form-post";
 import { createAuthTokens, createCodeData } from "./common";
+import { resolveConnectionName } from "../helpers/connection";
 
 import { nanoid } from "nanoid";
 import { calculateScopesAndPermissions } from "../helpers/scopes-permissions";
@@ -255,15 +257,19 @@ export async function silentAuth({
   // Prefer the original login session's auth_connection (the exact value used
   // at authentication time); fall back to the resolved primary user's
   // connection, which silent auth always operates on.
-  let originalAuthConnection: string | undefined;
+  let originalLoginSession: LoginSession | null | undefined;
   if (session.login_session_id) {
-    const originalLoginSession = await env.data.loginSessions.get(
+    originalLoginSession = await env.data.loginSessions.get(
       client.tenant.id,
       session.login_session_id,
     );
-    originalAuthConnection = originalLoginSession?.auth_connection;
   }
-  const auth_connection = originalAuthConnection || user.connection;
+  // Silent auth always operates on the resolved primary user, so user.connection
+  // is an acceptable fallback when the original session didn't record one.
+  const auth_connection = resolveConnectionName({
+    loginSession: originalLoginSession,
+    user,
+  });
 
   // Create a new login session for this silent auth flow
   const loginSession = await env.data.loginSessions.create(client.tenant.id, {
