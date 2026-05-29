@@ -6,6 +6,16 @@
 # ============================================================================
 
 # ============================================================================
+# Encryption at rest
+# ============================================================================
+# Base64-encoded 32-byte key used to encrypt sensitive credential fields
+# (client secrets, connection secrets, email credentials, TOTP secrets, etc.).
+# `create-authhero` writes a generated key into .dev.vars for local dev.
+# In production, set it as a secret instead: `wrangler secret put ENCRYPTION_KEY`.
+# Generate one with: openssl rand -base64 32
+# ENCRYPTION_KEY=
+
+# ============================================================================
 # OPTIONAL: Analytics Engine Configuration
 # ============================================================================
 # Required for Analytics Engine logging. Get these from your Cloudflare Dashboard:

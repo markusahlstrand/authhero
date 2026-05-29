@@ -47,12 +47,12 @@ import {
  * @see {@link https://marmelab.com/shadcn-admin-kit/docs/list/#filter-button--form-combo FilterForm documentation}
  */
 export const FilterForm = (inProps: FilterFormProps) => {
-  const { filters: filtersProps, ...rest } = inProps;
+  const { filters: filtersProps, searchSource, ...rest } = inProps;
   const filters = useFilterContext() || filtersProps;
 
   return (
     <FilterLiveForm formComponent={StyledForm} {...sanitizeRestProps(rest)}>
-      <FilterFormBase filters={filters} />
+      <FilterFormBase filters={filters} searchSource={searchSource} />
     </FilterLiveForm>
   );
 };
@@ -64,7 +64,7 @@ export interface FilterFormProps extends FilterFormBaseProps {}
  * @deprecated Use FilterFormBase from `ra-core` once available.
  */
 export const FilterFormBase = (props: FilterFormBaseProps) => {
-  const { filters } = props;
+  const { filters, searchSource } = props;
   const resource = useResourceContext(props);
   const { displayedFilters = {}, filterValues, hideFilter } = useListContext();
 
@@ -89,6 +89,10 @@ export const FilterFormBase = (props: FilterFormBaseProps) => {
     const values = filterValues;
     return filters
       .filter((filterElement) => isValidElement(filterElement))
+      .filter(
+        (filterElement) =>
+          (filterElement.props as any).source !== searchSource,
+      )
       .filter((filterElement) => {
         const filterValue = get(values, (filterElement.props as any).source);
         return (
@@ -132,6 +136,11 @@ export type FilterFormBaseProps = Omit<
   className?: string;
   resource?: string;
   filters?: ReactNode[];
+  /**
+   * Source already rendered by the list toolbar's search input. Excluded from
+   * the filter chips to avoid showing the search term twice.
+   */
+  searchSource?: string;
 };
 
 const StyledForm = (props: React.FormHTMLAttributes<HTMLFormElement>) => {

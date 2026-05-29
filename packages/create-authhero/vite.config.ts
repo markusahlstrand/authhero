@@ -12,7 +12,15 @@ export default defineConfig({
       fileName: "create-authhero",
     },
     rollupOptions: {
-      external: ["commander", "inquirer", "fs", "path", "url", "child_process"],
+      external: [
+        "commander",
+        "inquirer",
+        "fs",
+        "path",
+        "crypto",
+        "url",
+        "child_process",
+      ],
       plugins: [
         nodeResolve({
           preferBuiltins: true,

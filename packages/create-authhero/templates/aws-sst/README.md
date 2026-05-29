@@ -133,6 +133,28 @@ Enable auto-scaling or increase provisioned capacity in `sst.config.ts`.
 
 Ensure the S3 bucket and CloudFront are properly configured. Check browser console for CORS errors.
 
+## Encryption at rest
+
+Sensitive credential fields (client secrets, connection secrets, email
+credentials, TOTP secrets, migration-source secrets) are encrypted at rest.
+A random `ENCRYPTION_KEY` was generated into `.env` when this project was
+created. `sst.config.ts` forwards it to the Lambda, and `src/index.ts` enables
+encryption whenever the key is present.
+
+> **The key is load-bearing.** If you delete, rotate, or lose `ENCRYPTION_KEY`,
+> any values already encrypted with it become unreadable. Treat the key as a
+> long-lived secret, back it up, and use a separate key per deployment stage.
+
+For production, set `ENCRYPTION_KEY` in your deploy environment / secret store
+rather than reusing the generated dev key.
+
+Helper scripts:
+
+```bash
+npm run gen:key                   # print a fresh base64 key
+npm run decrypt -- "enc:v1:..."   # decrypt a stored value using ENCRYPTION_KEY from .env
+```
+
 ## Learn More
 
 - [SST Documentation](https://sst.dev/docs)

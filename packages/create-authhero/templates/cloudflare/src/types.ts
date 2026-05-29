@@ -6,6 +6,11 @@
 export interface Env {
   AUTH_DB: D1Database;
 
+  // Base64-encoded 32-byte key for at-rest encryption of sensitive credential
+  // fields. Set in .dev.vars locally and via `wrangler secret put ENCRYPTION_KEY`
+  // in production. Optional — encryption is skipped when unset.
+  ENCRYPTION_KEY?: string;
+
   // ──────────────────────────────────────────────────────────────────────────
   // OPTIONAL: Analytics Engine for centralized logging
   // Uncomment to enable:

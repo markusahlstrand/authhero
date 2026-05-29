@@ -14,6 +14,7 @@ The security model has three main aspects:
 - **[RBAC, Scopes & Permissions](/security/rbac)** — How resource servers, scopes, roles, and permissions work together to control API access
 - **[Management API Security](/security/management-api)** — How the Management API is authenticated and authorized
 - **[Multi-Tenancy & Organizations](/security/multi-tenancy)** — How tenant isolation and organization-level authorization work
+- **[Encryption at Rest](/security/encryption-at-rest)** — Optional application-level encryption of sensitive credential fields
 
 ## Quick Reference
 

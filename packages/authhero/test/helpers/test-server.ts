@@ -10,7 +10,10 @@ import createAdapters, {
   migrateToLatest,
 } from "@authhero/kysely-adapter";
 import * as x509 from "@peculiar/x509";
+import { base64 } from "oslo/encoding";
 import {
+  createEncryptedDataAdapter,
+  loadEncryptionKey,
   init,
   OnExecuteCredentialsExchange,
   OnExecutePostUserRegistration,
@@ -47,6 +50,9 @@ type getEnvParams = {
     tenant_id: string;
   }) => "auth0" | "auth2";
   codeExecutor?: CodeExecutor;
+  // When true, wrap the data adapter with at-rest encryption so all fixtures
+  // and request handling exercise the encrypted path.
+  encryption?: boolean;
 };
 
 export type TestServer = {
@@ -88,7 +94,14 @@ export async function getTestServer(
   const db = new Kysely<Database>({ dialect });
   // Schema is already present from the cached image — no migration call.
 
-  const data: DataAdapters = createAdapters(db);
+  let data: DataAdapters = createAdapters(db);
+
+  if (args.encryption) {
+    const key = await loadEncryptionKey(
+      base64.encode(crypto.getRandomValues(new Uint8Array(32))),
+    );
+    data = createEncryptedDataAdapter(data, key);
+  }
 
   // ----------------------------------------
   // Create fixtures

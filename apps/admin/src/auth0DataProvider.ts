@@ -765,6 +765,7 @@ export default (
       // Use HTTP client for all other list operations
       const headers = createHeaders(tenantId);
 
+      const { q, ...filterFields } = params.filter || {};
       const query: any = {
         include_totals: true,
         page: page - 1,
@@ -773,7 +774,8 @@ export default (
           field && order
             ? `${field}:${order === "DESC" ? "-1" : "1"}`
             : undefined,
-        q: params.filter?.q,
+        q,
+        ...filterFields,
       };
 
       const url = `${apiUrl}/api/v2/${getApiPath(resourcePath)}?${stringify(query)}`;
@@ -792,10 +794,14 @@ export default (
           };
         }
 
-        // Handle standard case where API returns an object with a property named after the resource
+        // Handle standard case where API returns an object with a property
+        // named after the resource. The response key is snake_cased (e.g.
+        // `proxy_routes`) while the resource path is hyphenated.
+        const list =
+          res.json[resource] ?? res.json[resource.replace(/-/g, "_")];
         return {
           data:
-            res.json[resource]?.map((item: any) => ({
+            list?.map((item: any) => ({
               id: item.id,
               ...item,
             })) || [],
@@ -1162,6 +1168,29 @@ export default (
         page: page - 1,
         per_page: perPage,
       });
+
+      // Virtual scopes nested under a resource server
+      if (resource === SCOPE_RES && params.target === "resource_server_id") {
+        const rsId = String(params.id);
+        const { scopes } = await fetchResourceServerScopes(
+          managementClient,
+          rsId,
+        );
+        return clientSideListHandler({
+          data: scopes.map((s: any) => ({
+            id: `${rsId}:${s.value}`,
+            resource_server_id: rsId,
+            value: s.value,
+            description: s.description,
+          })),
+          page,
+          perPage: perPage || 25,
+          sortField: field,
+          sortOrder: order,
+          searchQuery: params.filter?.q,
+          searchFields: ["value", "description"],
+        });
+      }
 
       // Sessions nested under users
       if (resource === "sessions") {

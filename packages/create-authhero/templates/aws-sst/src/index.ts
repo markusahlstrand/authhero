@@ -2,6 +2,11 @@ import { handle } from "hono/aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import createAdapters from "@authhero/aws";
+import {
+  DataAdapters,
+  createEncryptedDataAdapter,
+  loadEncryptionKey,
+} from "authhero";
 import createApp from "./app";
 import type { APIGatewayProxyEventV2, Context } from "aws-lambda";
 
@@ -22,6 +27,22 @@ const docClient = DynamoDBDocumentClient.from(client, {
 const dataAdapter = createAdapters(docClient, {
   tableName: process.env.TABLE_NAME,
 });
+
+// Encrypt sensitive credential fields at rest when ENCRYPTION_KEY is set.
+// The wrapped adapter is built once and cached across warm invocations.
+let encryptedAdapterPromise: Promise<DataAdapters> | null = null;
+async function getDataAdapter(): Promise<DataAdapters> {
+  if (!process.env.ENCRYPTION_KEY) {
+    return dataAdapter;
+  }
+  if (!encryptedAdapterPromise) {
+    const rawKey = process.env.ENCRYPTION_KEY;
+    encryptedAdapterPromise = loadEncryptionKey(rawKey).then((key) =>
+      createEncryptedDataAdapter(dataAdapter, key),
+    );
+  }
+  return encryptedAdapterPromise;
+}
 
 export async function handler(event: APIGatewayProxyEventV2, context: Context) {
   // Compute issuer from the request
@@ -51,7 +72,7 @@ export async function handler(event: APIGatewayProxyEventV2, context: Context) {
   // Create app instance per request to avoid issuer contamination
   // Lambda containers are reused, so we can't mutate process.env.ISSUER globally
   const appWithIssuer = createApp({
-    dataAdapter,
+    dataAdapter: await getDataAdapter(),
     allowedOrigins,
     widgetUrl,
   });

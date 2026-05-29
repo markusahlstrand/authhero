@@ -1,10 +1,26 @@
-import { useRecordContext } from "ra-core";
+import { useGetList, useRecordContext } from "ra-core";
 import { List, DataTable } from "@/components/admin";
 import { useTenantId } from "@/TenantContext";
+
+interface CustomDomainRecord {
+  id: string;
+  domain: string;
+  primary?: boolean;
+  status?: string;
+}
 
 function getTokenBaseUrl(tenantId: string): string {
   const tld = window.location.hostname.endsWith(".com") ? "com" : "dev";
   return `https://${tenantId}.token.sesamy.${tld}`;
+}
+
+function pickCustomDomain(
+  domains: CustomDomainRecord[] | undefined,
+): string | null {
+  if (!domains) return null;
+  const ready = domains.filter((d) => d.status === "ready");
+  const chosen = ready.find((d) => d.primary) ?? ready[0];
+  return chosen ? `https://${chosen.domain}` : null;
 }
 
 function ClientLoginLink({ baseUrl }: { baseUrl: string }) {
@@ -25,7 +41,16 @@ function ClientLoginLink({ baseUrl }: { baseUrl: string }) {
 
 export function ClientList() {
   const tenantId = useTenantId();
-  const baseUrl = tenantId ? getTokenBaseUrl(tenantId) : null;
+  const { data: customDomains } = useGetList<CustomDomainRecord>(
+    "custom-domains",
+    {
+      pagination: { page: 1, perPage: 100 },
+      sort: { field: "domain", order: "ASC" },
+    },
+  );
+  const customBaseUrl = pickCustomDomain(customDomains);
+  const baseUrl =
+    customBaseUrl ?? (tenantId ? getTokenBaseUrl(tenantId) : null);
 
   return (
     <List>
