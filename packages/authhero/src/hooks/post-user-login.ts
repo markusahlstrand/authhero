@@ -23,6 +23,7 @@ import {
 } from "./codehooks";
 import { invokeHooks } from "./webhooks";
 import { createTokenAPI } from "./helpers/token-api";
+import { getConnectionInfo } from "../helpers/connection";
 
 // Type guard for webhook hooks
 function isWebHook(hook: any): hook is { url: string; enabled: boolean } {
@@ -58,29 +59,12 @@ async function buildEnhancedEventObject(
   }
 
   // Get connection information
-  let connectionInfo: any = {};
-  if (user.connection) {
-    try {
-      const connections = await data.connections.list(tenant_id, {
-        page: 0,
-        per_page: 100,
-        include_totals: false,
-      });
-      const connection = connections.connections.find(
-        (c) => c.name === user.connection,
-      );
-      if (connection) {
-        connectionInfo = {
-          id: connection.id,
-          name: connection.name,
-          strategy: connection.strategy || user.provider,
-          metadata: connection.options || {},
-        };
-      }
-    } catch (error) {
-      console.error("Error fetching connection info:", error);
-    }
-  }
+  const connectionInfo = await getConnectionInfo(
+    ctx,
+    tenant_id,
+    user.connection,
+    user,
+  );
 
   // Get organization information if available
   let organizationInfo:
@@ -166,14 +150,11 @@ async function buildEnhancedEventObject(
     authorization: {
       roles: userRoles,
     },
-    connection:
-      Object.keys(connectionInfo).length > 0
-        ? connectionInfo
-        : {
-            id: user.connection || Strategy.USERNAME_PASSWORD,
-            name: user.connection || Strategy.USERNAME_PASSWORD,
-            strategy: user.provider || "auth0",
-          },
+    connection: connectionInfo ?? {
+      id: user.connection || Strategy.USERNAME_PASSWORD,
+      name: user.connection || Strategy.USERNAME_PASSWORD,
+      strategy: user.provider || "auth0",
+    },
     organization: organizationInfo,
     resource_server: params.authParams?.audience
       ? {
