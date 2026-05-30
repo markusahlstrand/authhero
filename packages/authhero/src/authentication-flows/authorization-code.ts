@@ -100,7 +100,11 @@ export async function authorizationCodeGrantUser(
       description: "Invalid authorization code",
       userId: code.user_id,
     });
-    throw new JSONHTTPException(400, {
+    // Auth0 returns 403 for invalid_grant; RFC 6749 §5.2 mandates 400. Gate
+    // on the client's auth0_conformant flag (default true) — mirrors the
+    // pattern in refresh-token.ts so both grants agree.
+    const invalidGrantStatus = client.auth0_conformant === false ? 400 : 403;
+    throw new JSONHTTPException(invalidGrantStatus, {
       error: "invalid_grant",
       error_description: "Invalid authorization code",
     });
@@ -113,6 +117,30 @@ export async function authorizationCodeGrantUser(
 
   if (!loginSession) {
     throw new JSONHTTPException(403, { message: "Invalid login" });
+  }
+
+  // RFC 6749 §10.5 / OIDC Core §3.1.3.2: the code MUST be redeemed by the
+  // same client it was issued to. Without this check a code minted for
+  // ClientA can be exchanged using ClientB's credentials, swapping the
+  // azp/aud on the resulting token while keeping the original user, scope
+  // and audience — a textbook code-injection vector when any code leaks.
+  if (
+    !loginSession.authParams.client_id ||
+    loginSession.authParams.client_id !== client.client_id
+  ) {
+    // Auth0 returns 403 for invalid_grant; RFC 6749 §5.2 mandates 400. Gate
+    // on the client's auth0_conformant flag (default true) — mirrors the
+    // pattern in refresh-token.ts so both grants agree.
+    const invalidGrantStatus = client.auth0_conformant === false ? 400 : 403;
+    logMessage(ctx, client.tenant.id, {
+      type: LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN,
+      description: "Authorization code was not issued to this client",
+      userId: code.user_id,
+    });
+    throw new JSONHTTPException(invalidGrantStatus, {
+      error: "invalid_grant",
+      error_description: "Authorization code was not issued to this client",
+    });
   }
 
   // Validate organization parameter matches login session organization
@@ -152,18 +180,7 @@ export async function authorizationCodeGrantUser(
 
   // OAuth 2.1 / RFC 7636: validate client_secret and PKCE independently — both may be present.
   if (!authenticatedViaAssertion && params.client_secret !== undefined) {
-    // A temporary solution to handle cross tenant clients
-    let defaultClient;
-    try {
-      defaultClient = await getEnrichedClient(ctx.env, "DEFAULT_CLIENT");
-    } catch {
-      // DEFAULT_CLIENT may not exist
-    }
-
-    if (
-      !safeCompare(client.client_secret, params.client_secret) &&
-      !safeCompare(defaultClient?.client_secret, params.client_secret)
-    ) {
+    if (!safeCompare(client.client_secret, params.client_secret)) {
       logMessage(ctx, client.tenant.id, {
         type: LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN,
         description: "Invalid client credentials",

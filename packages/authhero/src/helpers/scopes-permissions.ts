@@ -303,14 +303,17 @@ export async function calculateScopesAndPermissions(
   const { tenantId, userId, audience, requestedScopes, organizationId } =
     params;
 
+  // Fetch the tenant once — its flags drive both the org-permission-inheritance
+  // check below and the scope-filtering posture further down.
+  const currentTenant = await ctx.env.data.tenants.get(tenantId);
+  const restrictUndefinedScopes =
+    currentTenant?.flags?.restrict_undefined_scopes === true;
+
   // Check if user has admin:organizations permission at global level
   // This allows org admins to get tokens for any organization without membership
   let hasGlobalOrgAdminPermission = false;
 
   if (organizationId) {
-    // Get the current tenant to check if permission inheritance is enabled
-    const currentTenant = await ctx.env.data.tenants.get(tenantId);
-
     if (currentTenant?.flags?.inherit_global_permissions_in_organizations) {
       // Check if user has admin:organizations permission at the global level
       const globalRoles = await ctx.env.data.userRoles.list(
@@ -417,11 +420,26 @@ export async function calculateScopesAndPermissions(
     token_lifetime_for_web: resourceServer.token_lifetime_for_web,
   };
 
-  // If RBAC is not enabled, return all requested scopes
-  // Per Auth0: "When RBAC is disabled, an application can request any permission
-  // defined for the API, and the scope claim includes all requested permissions."
+  // If RBAC is not enabled, Auth0's documented default is to echo every
+  // requested scope back into the access token's `scope` claim verbatim:
+  // "When RBAC is disabled, an application can request any permission
+  // defined for the API, and the scope claim includes all requested
+  // permissions." Tenants that prefer defense-in-depth can opt into strict
+  // filtering — drop scopes not defined on the resource server — via the
+  // `restrict_undefined_scopes` flag.
   if (!rbacEnabled) {
-    return { scopes: requestedScopes, permissions: [], ...tokenLifetimeFields };
+    const allowedScopes = restrictUndefinedScopes
+      ? requestedScopes.filter(
+          (scope) =>
+            definedScopes.includes(scope) ||
+            DEFAULT_OIDC_SCOPES.includes(scope),
+        )
+      : requestedScopes;
+    return {
+      scopes: [...new Set(allowedScopes)],
+      permissions: [],
+      ...tokenLifetimeFields,
+    };
   }
 
   // RBAC is enabled - get user's permissions
@@ -501,11 +519,17 @@ export async function calculateScopesAndPermissions(
     definedScopes.includes(permission),
   );
 
-  // Scopes NOT defined on the resource server pass through (the API doesn't restrict them)
-  const undefinedScopes = requestedScopes.filter(
-    (scope) =>
-      !definedScopes.includes(scope) && !DEFAULT_OIDC_SCOPES.includes(scope),
-  );
+  // Scopes NOT defined on the resource server pass through by default — the
+  // API doesn't restrict them, matching Auth0's behavior. Tenants that opt
+  // into `restrict_undefined_scopes` get them dropped here too, so the
+  // posture stays consistent across RBAC-on and RBAC-off.
+  const undefinedScopes = restrictUndefinedScopes
+    ? []
+    : requestedScopes.filter(
+        (scope) =>
+          !definedScopes.includes(scope) &&
+          !DEFAULT_OIDC_SCOPES.includes(scope),
+      );
 
   // If token_dialect is access_token_authz, return permissions directly plus default OIDC scopes and undefined scopes
   if (tokenDialect === "access_token_authz") {

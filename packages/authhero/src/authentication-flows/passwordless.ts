@@ -3,11 +3,13 @@ import { z } from "@hono/zod-openapi";
 import {
   authParamsSchema,
   LogTypes,
+  RateLimitDecision,
   Strategy,
   StrategyType,
 } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
 import { JSONHTTPException } from "../errors/json-http-exception";
+import { AuthError } from "../types/AuthError";
 import { getOrCreateUserByProvider } from "../helpers/users";
 import { getConnectionFromIdentifier } from "../utils/username";
 import { getUniversalLoginUrl } from "../variables";
@@ -17,6 +19,15 @@ import { createFrontChannelAuthResponse } from "./common";
 import { RedirectException } from "../errors/redirect-exception";
 import { getEnrichedClient } from "../helpers/client";
 import { logMessage } from "../helpers/logging";
+
+function isRateLimitDecision(value: unknown): value is RateLimitDecision {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "allowed" in value &&
+    typeof (value as { allowed: unknown }).allowed === "boolean"
+  );
+}
 
 export const passwordlessGrantParamsSchema = z.object({
   client_id: z.string(),
@@ -59,6 +70,56 @@ export async function passwordlessGrantUser(
   const client = await getEnrichedClient(ctx.env, client_id, ctx.var.tenant_id);
 
   const { env } = ctx;
+
+  // Brute-force throttling: a 6-digit OTP is only ~20 bits of entropy and the
+  // /verify_redirect + OTP grant accept any code value. Without a per-victim
+  // quota, an attacker can sweep the 10^6 keyspace within the 10-minute window.
+  // Consume one unit before the code lookup so failed guesses count too.
+  if (env.data.rateLimit) {
+    let decision: RateLimitDecision = { allowed: true };
+    try {
+      const result: unknown = await env.data.rateLimit.consume(
+        "brute-force",
+        `passwordless:${client.tenant.id}:${normalized}`,
+      );
+      if (isRateLimitDecision(result)) {
+        decision = result;
+      }
+    } catch (error) {
+      // Fail open: a misbehaving rate-limit adapter must not lock users out.
+      console.error("Passwordless rate limit consume failed:", error);
+    }
+    if (!decision.allowed) {
+      logMessage(ctx, client.tenant.id, {
+        type: LogTypes.FAILED_EXCHANGE_PASSWORDLESS_OTP_FOR_ACCESS_TOKEN,
+        description: "Rate limit exceeded for passwordless OTP",
+      });
+      const retryAfterSeconds = decision.retryAfterSeconds;
+      const body: { message: string; code: string; retryAfterSeconds?: number } =
+        {
+          message: "Too many requests",
+          code: "TOO_MANY_REQUESTS",
+        };
+      if (typeof retryAfterSeconds === "number") {
+        body.retryAfterSeconds = retryAfterSeconds;
+      }
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (typeof retryAfterSeconds === "number") {
+        headers["Retry-After"] = String(retryAfterSeconds);
+      }
+      throw new AuthError(429, {
+        message: "Too many requests",
+        code: "TOO_MANY_REQUESTS",
+        res: new Response(JSON.stringify(body), {
+          status: 429,
+          headers,
+        }),
+      });
+    }
+  }
+
   const code = await env.data.codes.get(client.tenant.id, otp, "otp");
 
   if (!code) {

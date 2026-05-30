@@ -424,4 +424,135 @@ describe("passwordless", async () => {
       expect(loginResponseBody.token_type).toBe("Bearer");
     });
   });
+
+  describe("OTP brute-force rate limiting", () => {
+    it("returns 429 from /oauth/token (OTP grant) when the rateLimit adapter denies the attempt", async () => {
+      let consumed: Array<{ scope: string; key: string }> = [];
+      const denyingRateLimit = {
+        consume: async (scope: string, key: string) => {
+          consumed.push({ scope, key });
+          return { allowed: false, retryAfterSeconds: 60 };
+        },
+      };
+
+      const { oauthApp, env } = await getTestServer({
+        rateLimit: denyingRateLimit,
+      });
+      const oauthClient = testClient(oauthApp, env);
+
+      // Try to exchange an arbitrary OTP — the rate limit fires before the
+      // code lookup, so we don't need to seed a real code. The whole point of
+      // this guard is to deny attackers iterating over the 10^6 OTP keyspace.
+      const response = await oauthClient.oauth.token.$post(
+        {
+          form: {
+            grant_type: "http://auth0.com/oauth/grant-type/passwordless/otp",
+            otp: "000000",
+            client_id: "clientId",
+            realm: "email",
+            username: "victim@example.com",
+          },
+        },
+        {
+          headers: {
+            "tenant-id": "tenantId",
+          },
+        },
+      );
+
+      expect(response.status).toBe(429);
+      expect(consumed).toHaveLength(1);
+      expect(consumed[0]?.scope).toBe("brute-force");
+      // Keyed by (tenant, username) — a distributed attack on one victim
+      // converges on the same bucket no matter the source IP.
+      expect(consumed[0]?.key).toBe("passwordless:tenantId:victim@example.com");
+    });
+
+    it("allows the attempt to proceed when the rateLimit adapter permits it", async () => {
+      const allowingRateLimit = {
+        consume: async () => ({ allowed: true as const }),
+      };
+
+      const { oauthApp, env } = await getTestServer({
+        rateLimit: allowingRateLimit,
+      });
+      const oauthClient = testClient(oauthApp, env);
+
+      // No real OTP — we expect a 400 ("Invalid code") rather than 429,
+      // proving the rate-limit gate let us through to the code lookup.
+      const response = await oauthClient.oauth.token.$post(
+        {
+          form: {
+            grant_type: "http://auth0.com/oauth/grant-type/passwordless/otp",
+            otp: "000000",
+            client_id: "clientId",
+            realm: "email",
+            username: "victim@example.com",
+          },
+        },
+        {
+          headers: {
+            "tenant-id": "tenantId",
+          },
+        },
+      );
+
+      expect(response.status).toBe(400);
+      const body: unknown = await response.json();
+      if (
+        typeof body !== "object" ||
+        body === null ||
+        !("message" in body) ||
+        !("userSafe" in body)
+      ) {
+        throw new Error("Unexpected response body shape");
+      }
+      expect(body.message).toBe("Invalid code");
+      expect(body.userSafe).toBe(true);
+    });
+
+    it("fails open when the rateLimit adapter throws", async () => {
+      const throwingRateLimit = {
+        consume: async () => {
+          throw new Error("rate-limit backend exploded");
+        },
+      };
+
+      const { oauthApp, env } = await getTestServer({
+        rateLimit: throwingRateLimit,
+      });
+      const oauthClient = testClient(oauthApp, env);
+
+      const response = await oauthClient.oauth.token.$post(
+        {
+          form: {
+            grant_type: "http://auth0.com/oauth/grant-type/passwordless/otp",
+            otp: "000000",
+            client_id: "clientId",
+            realm: "email",
+            username: "victim@example.com",
+          },
+        },
+        {
+          headers: {
+            "tenant-id": "tenantId",
+          },
+        },
+      );
+
+      // Misbehaving rate-limit backends must NEVER lock real users out.
+      expect(response.status).toBe(400);
+      const body: unknown = await response.json();
+      if (
+        typeof body !== "object" ||
+        body === null ||
+        !("message" in body) ||
+        !("userSafe" in body)
+      ) {
+        throw new Error("Unexpected response body shape");
+      }
+      expect(body.message).toBe("Invalid code");
+      expect(body.userSafe).toBe(true);
+    });
+  });
 });

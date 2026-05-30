@@ -454,6 +454,10 @@ gtag('config', 'G-DNZWG3PF2L');`,
               link: "/customization/adapter-interfaces/outbox",
             },
             {
+              text: "Rate Limit Adapter",
+              link: "/customization/adapter-interfaces/rate-limit",
+            },
+            {
               text: "Failed Events (Dead-letter)",
               link: "/customization/failed-events",
             },

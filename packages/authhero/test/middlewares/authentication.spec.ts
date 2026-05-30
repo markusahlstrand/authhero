@@ -496,14 +496,15 @@ describe("createAuthMiddleware", () => {
     });
   });
 
-  // TODO(audience-migration): Remove once external callers migrate to the
-  // urn:authhero:management audience. Mirrors AUDIENCE_EXEMPT_PREFIXES in
-  // authentication.ts — keep in sync.
+  // The previous `AUDIENCE_EXEMPT_PREFIXES` carve-out for `/api/v2/users*`
+  // and `/api/v2/users-by-email*` was a temporary migration aid for external
+  // callers issuing tokens with the legacy audience. It has been removed —
+  // all management-API routes now require `urn:authhero:management` in `aud`.
   // Note: middleware strips /api/v2 before looking up the route in the
   // OpenAPI registry, so we register routes here with their relative paths
   // (e.g. /users) while matchedRoutes carries the full /api/v2/... path.
-  describe("audience-exempt /api/v2/users* paths", () => {
-    const exemptCases: Array<{ full: string; relative: string }> = [
+  describe("audience enforcement on /api/v2/users* paths (no exemption)", () => {
+    const userPaths: Array<{ full: string; relative: string }> = [
       { full: "/api/v2/users", relative: "/users" },
       { full: "/api/v2/users/", relative: "/users/" },
       { full: "/api/v2/users/{user_id}", relative: "/users/{user_id}" },
@@ -515,8 +516,8 @@ describe("createAuthMiddleware", () => {
       { full: "/api/v2/users-by-email/", relative: "/users-by-email/" },
     ];
 
-    for (const { full, relative } of exemptCases) {
-      it(`accepts a non-management audience for ${full}`, async () => {
+    for (const { full, relative } of userPaths) {
+      it(`rejects a non-management audience on ${full}`, async () => {
         app.openapi(
           {
             method: "get",
@@ -540,14 +541,14 @@ describe("createAuthMiddleware", () => {
         mockCtx.req.matchedRoutes = [{ method: "GET", path: full }];
         mockCtx.req.header.mockReturnValue(`Bearer ${token}`);
 
-        const result = await strictMiddleware(mockCtx, mockNext);
-
-        expect(mockNext).toHaveBeenCalled();
-        expect(result).toBe("next-response");
+        await expect(strictMiddleware(mockCtx, mockNext)).rejects.toThrow(
+          "Invalid audience",
+        );
+        expect(mockNext).not.toHaveBeenCalled();
       });
     }
 
-    it("still enforces scope on exempt paths", async () => {
+    it("accepts the management audience on /api/v2/users", async () => {
       app.openapi(
         {
           method: "get",
@@ -564,17 +565,17 @@ describe("createAuthMiddleware", () => {
 
       const token = await createToken({
         userId: "user123",
-        permissions: ["read:posts"],
-        aud: "https://example.com/api",
+        permissions: ["read:users"],
+        aud: MANAGEMENT_API_AUDIENCE,
       });
 
       mockCtx.req.matchedRoutes = [{ method: "GET", path: "/api/v2/users" }];
       mockCtx.req.header.mockReturnValue(`Bearer ${token}`);
 
-      await expect(strictMiddleware(mockCtx, mockNext)).rejects.toThrow(
-        "Unauthorized",
-      );
-      expect(mockNext).not.toHaveBeenCalled();
+      const result = await strictMiddleware(mockCtx, mockNext);
+
+      expect(mockNext).toHaveBeenCalled();
+      expect(result).toBe("next-response");
     });
 
     it("does not exempt sibling paths like /api/v2/userinfo", async () => {
