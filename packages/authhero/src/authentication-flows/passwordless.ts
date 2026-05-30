@@ -94,9 +94,28 @@ export async function passwordlessGrantUser(
         type: LogTypes.FAILED_EXCHANGE_PASSWORDLESS_OTP_FOR_ACCESS_TOKEN,
         description: "Rate limit exceeded for passwordless OTP",
       });
+      const retryAfterSeconds = decision.retryAfterSeconds;
+      const body: { message: string; code: string; retryAfterSeconds?: number } =
+        {
+          message: "Too many requests",
+          code: "TOO_MANY_REQUESTS",
+        };
+      if (typeof retryAfterSeconds === "number") {
+        body.retryAfterSeconds = retryAfterSeconds;
+      }
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (typeof retryAfterSeconds === "number") {
+        headers["Retry-After"] = String(retryAfterSeconds);
+      }
       throw new AuthError(429, {
         message: "Too many requests",
         code: "TOO_MANY_REQUESTS",
+        res: new Response(JSON.stringify(body), {
+          status: 429,
+          headers,
+        }),
       });
     }
   }

@@ -478,7 +478,7 @@ describe("passwordless", async () => {
       });
       const oauthClient = testClient(oauthApp, env);
 
-      // No real OTP — we expect a 400 ("Code invalid") rather than 429,
+      // No real OTP — we expect a 400 ("Invalid code") rather than 429,
       // proving the rate-limit gate let us through to the code lookup.
       const response = await oauthClient.oauth.token.$post(
         {
@@ -497,7 +497,18 @@ describe("passwordless", async () => {
         },
       );
 
-      expect(response.status).not.toBe(429);
+      expect(response.status).toBe(400);
+      const body: unknown = await response.json();
+      if (
+        typeof body !== "object" ||
+        body === null ||
+        !("message" in body) ||
+        !("userSafe" in body)
+      ) {
+        throw new Error("Unexpected response body shape");
+      }
+      expect(body.message).toBe("Invalid code");
+      expect(body.userSafe).toBe(true);
     });
 
     it("fails open when the rateLimit adapter throws", async () => {
@@ -530,7 +541,18 @@ describe("passwordless", async () => {
       );
 
       // Misbehaving rate-limit backends must NEVER lock real users out.
-      expect(response.status).not.toBe(429);
+      expect(response.status).toBe(400);
+      const body: unknown = await response.json();
+      if (
+        typeof body !== "object" ||
+        body === null ||
+        !("message" in body) ||
+        !("userSafe" in body)
+      ) {
+        throw new Error("Unexpected response body shape");
+      }
+      expect(body.message).toBe("Invalid code");
+      expect(body.userSafe).toBe(true);
     });
   });
 });

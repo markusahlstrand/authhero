@@ -263,6 +263,234 @@ describe("scopes-permissions helper", () => {
       });
     });
 
+    describe("restrict_undefined_scopes tenant flag with access_token_authz dialect", () => {
+      it("drops undefined scopes with access_token_authz dialect when flag is on and RBAC disabled", async () => {
+        const { env } = await getTestServer();
+        const ctx = {
+          env,
+          var: {},
+        } as Context<{
+          Bindings: Bindings;
+          Variables: Variables;
+        }>;
+
+        await env.data.tenants.update("tenantId", {
+          flags: {
+            restrict_undefined_scopes: true,
+          },
+        });
+
+        const resourceServer = await env.data.resourceServers.create(
+          "tenantId",
+          {
+            name: "Strict Authz API (RBAC off)",
+            identifier: "https://strict-authz-rbac-off.example.com",
+            scopes: [
+              { value: "read:users", description: "Read users" },
+              { value: "write:users", description: "Write users" },
+            ],
+            options: {
+              enforce_policies: false,
+              token_dialect: "access_token_authz",
+            },
+          },
+        );
+
+        const result = await calculateScopesAndPermissions(ctx, {
+          tenantId: "tenantId",
+          clientId: "test-client-id",
+          userId: "userId",
+          audience: "https://strict-authz-rbac-off.example.com",
+          requestedScopes: [
+            "openid",
+            "read:users",
+            "fake:scope",
+            "admin:everything",
+          ],
+        });
+
+        expect(result.scopes.sort()).toEqual(["openid", "read:users"].sort());
+        expect(result.scopes).not.toContain("fake:scope");
+        expect(result.scopes).not.toContain("admin:everything");
+
+        await env.data.resourceServers.remove("tenantId", resourceServer.id!);
+        await env.data.tenants.update("tenantId", { flags: {} });
+      });
+
+      it("drops undefined scopes with access_token_authz dialect when flag is on and RBAC enabled", async () => {
+        const { env } = await getTestServer();
+        const ctx = {
+          env,
+          var: {},
+        } as Context<{
+          Bindings: Bindings;
+          Variables: Variables;
+        }>;
+
+        await env.data.tenants.update("tenantId", {
+          flags: {
+            restrict_undefined_scopes: true,
+          },
+        });
+
+        const resourceServer = await env.data.resourceServers.create(
+          "tenantId",
+          {
+            name: "Strict Authz API (RBAC on)",
+            identifier: "https://strict-authz-rbac-on.example.com",
+            scopes: [
+              { value: "read:users", description: "Read users" },
+              { value: "write:users", description: "Write users" },
+            ],
+            options: {
+              enforce_policies: true,
+              token_dialect: "access_token_authz",
+            },
+          },
+        );
+
+        await env.data.userPermissions.create(
+          "tenantId",
+          "strictAuthzUser",
+          {
+            user_id: "strictAuthzUser",
+            resource_server_identifier:
+              "https://strict-authz-rbac-on.example.com",
+            permission_name: "read:users",
+          },
+        );
+
+        const result = await calculateScopesAndPermissions(ctx, {
+          tenantId: "tenantId",
+          clientId: "test-client-id",
+          userId: "strictAuthzUser",
+          audience: "https://strict-authz-rbac-on.example.com",
+          requestedScopes: [
+            "openid",
+            "read:users",
+            "fake:scope",
+            "admin:everything",
+          ],
+        });
+
+        // access_token_authz dialect puts user permissions in the permissions
+        // claim and only OIDC + undefined scopes in the scope claim. With the
+        // flag on, undefined scopes are dropped from the scope claim.
+        expect(result.scopes).toEqual(["openid"]);
+        expect(result.scopes).not.toContain("fake:scope");
+        expect(result.scopes).not.toContain("admin:everything");
+        expect(result.permissions).toEqual(["read:users"]);
+
+        await env.data.resourceServers.remove("tenantId", resourceServer.id!);
+        await env.data.tenants.update("tenantId", { flags: {} });
+      });
+
+      it("preserves undefined scopes with access_token_authz dialect when flag is off and RBAC disabled", async () => {
+        const { env } = await getTestServer();
+        const ctx = {
+          env,
+          var: {},
+        } as Context<{
+          Bindings: Bindings;
+          Variables: Variables;
+        }>;
+
+        await env.data.tenants.update("tenantId", {
+          flags: {
+            restrict_undefined_scopes: false,
+          },
+        });
+
+        const resourceServer = await env.data.resourceServers.create(
+          "tenantId",
+          {
+            name: "Loose Authz API (RBAC off)",
+            identifier: "https://loose-authz-rbac-off.example.com",
+            scopes: [{ value: "read:users", description: "Read users" }],
+            options: {
+              enforce_policies: false,
+              token_dialect: "access_token_authz",
+            },
+          },
+        );
+
+        const result = await calculateScopesAndPermissions(ctx, {
+          tenantId: "tenantId",
+          clientId: "test-client-id",
+          userId: "userId",
+          audience: "https://loose-authz-rbac-off.example.com",
+          requestedScopes: ["read:users", "fake:scope"],
+        });
+
+        expect(result.scopes).toContain("fake:scope");
+
+        await env.data.resourceServers.remove("tenantId", resourceServer.id!);
+        await env.data.tenants.update("tenantId", { flags: {} });
+      });
+
+      it("preserves undefined scopes with access_token_authz dialect when flag is off and RBAC enabled", async () => {
+        const { env } = await getTestServer();
+        const ctx = {
+          env,
+          var: {},
+        } as Context<{
+          Bindings: Bindings;
+          Variables: Variables;
+        }>;
+
+        await env.data.tenants.update("tenantId", {
+          flags: {
+            restrict_undefined_scopes: false,
+          },
+        });
+
+        const resourceServer = await env.data.resourceServers.create(
+          "tenantId",
+          {
+            name: "Loose Authz API (RBAC on)",
+            identifier: "https://loose-authz-rbac-on.example.com",
+            scopes: [
+              { value: "read:users", description: "Read users" },
+              { value: "write:users", description: "Write users" },
+            ],
+            options: {
+              enforce_policies: true,
+              token_dialect: "access_token_authz",
+            },
+          },
+        );
+
+        await env.data.userPermissions.create(
+          "tenantId",
+          "looseAuthzUser",
+          {
+            user_id: "looseAuthzUser",
+            resource_server_identifier:
+              "https://loose-authz-rbac-on.example.com",
+            permission_name: "read:users",
+          },
+        );
+
+        const result = await calculateScopesAndPermissions(ctx, {
+          tenantId: "tenantId",
+          clientId: "test-client-id",
+          userId: "looseAuthzUser",
+          audience: "https://loose-authz-rbac-on.example.com",
+          requestedScopes: ["openid", "read:users", "fake:scope"],
+        });
+
+        // access_token_authz dialect puts user permissions in the permissions
+        // claim. With the flag off, undefined scopes pass through into the
+        // scope claim alongside the OIDC scopes.
+        expect(result.scopes).toContain("fake:scope");
+        expect(result.scopes).toContain("openid");
+        expect(result.permissions).toEqual(["read:users"]);
+
+        await env.data.resourceServers.remove("tenantId", resourceServer.id!);
+        await env.data.tenants.update("tenantId", { flags: {} });
+      });
+    });
+
     it("should return permissions when RBAC is enabled and token_dialect is access_token_authz", async () => {
       const { env } = await getTestServer();
       const ctx = {

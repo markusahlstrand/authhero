@@ -219,6 +219,52 @@ describe("/oauth/revoke", () => {
     expect(stored?.revoked_at).toBeTruthy();
   });
 
+  it("rejects when a public client incorrectly sends a client_secret", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const client = testClient(oauthApp, env);
+
+    // Create a public client (no client_secret)
+    await env.data.clients.create("tenantId", {
+      client_id: "publicClientWithBadSecret",
+      name: "Public Client",
+      callbacks: ["https://example.com/callback"],
+      allowed_logout_urls: ["https://example.com/callback"],
+      web_origins: ["https://example.com"],
+    });
+
+    const expires = futureIso();
+    await env.data.refreshTokens.create("tenantId", {
+      ...baseRefreshTokenFields,
+      id: "rtForPublicWithSecret",
+      client_id: "publicClientWithBadSecret",
+      idle_expires_at: expires,
+      expires_at: expires,
+    });
+
+    const response = await client.oauth.revoke.$post(
+      // @ts-expect-error - testClient type requires both form and json
+      {
+        form: {
+          token: "rtForPublicWithSecret",
+          client_id: "publicClientWithBadSecret",
+          client_secret: "should_not_provide_this",
+        },
+      },
+      { headers: { "tenant-id": "tenantId" } },
+    );
+
+    expect(response.status).toBe(401);
+    const body = (await response.json()) as ErrorResponse;
+    expect(body.error).toBe("invalid_client");
+
+    // The token must NOT have been revoked
+    const stored = await env.data.refreshTokens.get(
+      "tenantId",
+      "rtForPublicWithSecret",
+    );
+    expect(stored?.revoked_at).toBeFalsy();
+  });
+
   it("returns 401 invalid_client when client_secret is wrong", async () => {
     const { oauthApp, env } = await getTestServer();
     const client = testClient(oauthApp, env);

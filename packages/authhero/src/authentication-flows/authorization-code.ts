@@ -125,7 +125,7 @@ export async function authorizationCodeGrantUser(
   // azp/aud on the resulting token while keeping the original user, scope
   // and audience — a textbook code-injection vector when any code leaks.
   if (
-    loginSession.authParams.client_id &&
+    !loginSession.authParams.client_id ||
     loginSession.authParams.client_id !== client.client_id
   ) {
     // Auth0 returns 403 for invalid_grant; RFC 6749 §5.2 mandates 400. Gate

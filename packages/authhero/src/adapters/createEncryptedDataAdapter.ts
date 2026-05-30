@@ -209,13 +209,20 @@ function wrapClientConnections(
   key: CryptoKey,
 ): ClientConnectionsAdapter {
   return {
-    ...base,
     listByClient: async (tenant_id, client_id) => {
       const connections = await base.listByClient(tenant_id, client_id);
       return Promise.all(
         connections.map((connection) => mapConnection(connection, key, decrypt)),
       );
     },
+    updateByClient: (tenant_id, client_id, connection_ids) =>
+      base.updateByClient(tenant_id, client_id, connection_ids),
+    listByConnection: (tenant_id, connection_id) =>
+      base.listByConnection(tenant_id, connection_id),
+    addClientToConnection: (tenant_id, connection_id, client_id) =>
+      base.addClientToConnection(tenant_id, connection_id, client_id),
+    removeClientFromConnection: (tenant_id, connection_id, client_id) =>
+      base.removeClientFromConnection(tenant_id, connection_id, client_id),
   };
 }
 

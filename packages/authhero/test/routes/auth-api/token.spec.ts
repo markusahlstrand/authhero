@@ -665,6 +665,86 @@ describe("token", () => {
         expect(secondResponse.status).toBe(403);
       });
 
+      it("should return 400 invalid_grant if the code is used twice when client.auth0_conformant=false (RFC 6749 §5.2)", async () => {
+        const { oauthApp, env } = await getTestServer();
+        const client = testClient(oauthApp, env);
+
+        // Requesting client opts out of Auth0 behavior — expect strict RFC 400.
+        await env.data.clients.create("tenantId", {
+          client_id: "rfcClient",
+          client_secret: "rfcClientSecret",
+          name: "RFC Client",
+          callbacks: ["http://localhost:3000/callback"],
+          allowed_logout_urls: ["http://localhost:3000/callback"],
+          web_origins: ["http://localhost:3000"],
+          auth0_conformant: false,
+        });
+
+        const loginSession = await env.data.loginSessions.create("tenantId", {
+          expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+          csrf_token: "csrfToken",
+          authParams: {
+            client_id: "rfcClient",
+            audience: "https://example.com",
+          },
+        });
+
+        await env.data.codes.create("tenantId", {
+          code_type: "authorization_code",
+          user_id: "email|userId",
+          code_id: "123456",
+          login_id: loginSession.id,
+          expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+        });
+
+        // First request
+        const firstResponse = await client.oauth.token.$post(
+          // @ts-expect-error - testClient type requires both form and json
+          {
+            form: {
+              grant_type: "authorization_code",
+              code: "123456",
+              redirect_uri: "http://localhost:3000/callback",
+              client_id: "rfcClient",
+              client_secret: "rfcClientSecret",
+            },
+          },
+          {
+            headers: {
+              "tenant-id": "tenantId",
+            },
+          },
+        );
+
+        expect(firstResponse.status).toBe(200);
+
+        // Second request with the same code
+        const secondResponse = await client.oauth.token.$post(
+          // @ts-expect-error - testClient type requires both form and json
+          {
+            form: {
+              grant_type: "authorization_code",
+              code: "123456",
+              redirect_uri: "http://localhost:3000/callback",
+              client_id: "rfcClient",
+              client_secret: "rfcClientSecret",
+            },
+          },
+          {
+            headers: {
+              "tenant-id": "tenantId",
+            },
+          },
+        );
+
+        expect(secondResponse.status).toBe(400);
+        const secondBody = (await secondResponse.json()) as ErrorResponse;
+        expect(secondBody).toEqual({
+          error: "invalid_grant",
+          error_description: "Invalid authorization code",
+        });
+      });
+
       it("should set a silent authentication token", async () => {
         const { oauthApp, env } = await getTestServer();
         const client = testClient(oauthApp, env);
@@ -831,6 +911,61 @@ describe("token", () => {
         );
 
         expect(response.status).toBe(403);
+        const body = (await response.json()) as ErrorResponse;
+        expect(body.error).toBe("invalid_grant");
+      });
+
+      it("returns 400 invalid_grant when exchanging a code with a different client and the requesting client.auth0_conformant=false (RFC 6749 §10.5)", async () => {
+        const { oauthApp, env } = await getTestServer();
+        const client = testClient(oauthApp, env);
+
+        // Requesting client opts out of Auth0 behavior — expect strict RFC 400.
+        await env.data.clients.create("tenantId", {
+          client_id: "rfcClient",
+          client_secret: "rfcClientSecret",
+          name: "RFC Client",
+          callbacks: ["http://example.com/callback"],
+          allowed_logout_urls: ["http://example.com/callback"],
+          web_origins: ["http://example.com"],
+          auth0_conformant: false,
+        });
+
+        // Mint a code bound to the default client via its login session
+        const loginSession = await env.data.loginSessions.create("tenantId", {
+          expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+          csrf_token: "csrfToken",
+          authParams: {
+            client_id: "clientId",
+            username: "foo@example.com",
+            scope: "openid",
+            audience: "http://example.com",
+            redirect_uri: "http://example.com/callback",
+          },
+        });
+        await env.data.codes.create("tenantId", {
+          code_type: "authorization_code",
+          user_id: "email|userId",
+          code_id: "code-issued-to-clientId",
+          login_id: loginSession.id,
+          expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+        });
+
+        // Try to redeem with the non-conformant client's valid credentials
+        const response = await client.oauth.token.$post(
+          // @ts-expect-error - testClient type requires both form and json
+          {
+            form: {
+              grant_type: "authorization_code",
+              code: "code-issued-to-clientId",
+              redirect_uri: "http://example.com/callback",
+              client_id: "rfcClient",
+              client_secret: "rfcClientSecret",
+            },
+          },
+          { headers: { "tenant-id": "tenantId" } },
+        );
+
+        expect(response.status).toBe(400);
         const body = (await response.json()) as ErrorResponse;
         expect(body.error).toBe("invalid_grant");
       });
