@@ -1,5 +1,6 @@
 import {
   AuthenticationMethodsAdapter,
+  ClientConnectionsAdapter,
   ClientsAdapter,
   Connection,
   ConnectionsAdapter,
@@ -203,6 +204,21 @@ function wrapConnections(
   };
 }
 
+function wrapClientConnections(
+  base: ClientConnectionsAdapter,
+  key: CryptoKey,
+): ClientConnectionsAdapter {
+  return {
+    ...base,
+    listByClient: async (tenant_id, client_id) => {
+      const connections = await base.listByClient(tenant_id, client_id);
+      return Promise.all(
+        connections.map((connection) => mapConnection(connection, key, decrypt)),
+      );
+    },
+  };
+}
+
 function wrapEmailProviders(
   base: EmailProvidersAdapter,
   key: CryptoKey,
@@ -309,6 +325,10 @@ function wrapMigrationSources(
  * email_providers.credentials, authentication_methods.totp_secret,
  * migration_sources.credentials.client_secret.
  *
+ * clientConnections.listByClient is also wrapped so its returned Connection
+ * objects are decrypted — getEnrichedClient uses this path to load connections
+ * for the OAuth strategies.
+ *
  * Private keys (keys.pkcs7, dkim_private_key) are intentionally NOT covered.
  */
 export function createEncryptedDataAdapter(
@@ -319,6 +339,7 @@ export function createEncryptedDataAdapter(
     ...data,
     clients: wrapClients(data.clients, key),
     connections: wrapConnections(data.connections, key),
+    clientConnections: wrapClientConnections(data.clientConnections, key),
     emailProviders: wrapEmailProviders(data.emailProviders, key),
     authenticationMethods: wrapAuthenticationMethods(
       data.authenticationMethods,

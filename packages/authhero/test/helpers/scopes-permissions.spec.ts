@@ -103,6 +103,166 @@ describe("scopes-permissions helper", () => {
       await env.data.resourceServers.remove("tenantId", resourceServer.id!);
     });
 
+    describe("restrict_undefined_scopes tenant flag", () => {
+      it("drops undefined scopes from the scope claim when RBAC is disabled and the flag is on", async () => {
+        const { env } = await getTestServer();
+        const ctx = {
+          env,
+          var: {},
+        } as Context<{
+          Bindings: Bindings;
+          Variables: Variables;
+        }>;
+
+        await env.data.tenants.update("tenantId", {
+          flags: {
+            restrict_undefined_scopes: true,
+          },
+        });
+
+        const resourceServer = await env.data.resourceServers.create(
+          "tenantId",
+          {
+            name: "Strict API (RBAC off)",
+            identifier: "https://strict-rbac-off.example.com",
+            scopes: [
+              { value: "read:users", description: "Read users" },
+              { value: "write:users", description: "Write users" },
+            ],
+            options: {
+              enforce_policies: false,
+              token_dialect: "access_token",
+            },
+          },
+        );
+
+        const result = await calculateScopesAndPermissions(ctx, {
+          tenantId: "tenantId",
+          clientId: "test-client-id",
+          userId: "userId",
+          audience: "https://strict-rbac-off.example.com",
+          requestedScopes: [
+            "openid",
+            "read:users",
+            "fake:scope",
+            "admin:everything",
+          ],
+        });
+
+        expect(result.scopes.sort()).toEqual(["openid", "read:users"].sort());
+        expect(result.scopes).not.toContain("fake:scope");
+        expect(result.scopes).not.toContain("admin:everything");
+
+        await env.data.resourceServers.remove("tenantId", resourceServer.id!);
+        await env.data.tenants.update("tenantId", { flags: {} });
+      });
+
+      it("drops undefined scopes from the scope claim when RBAC is enabled and the flag is on", async () => {
+        const { env } = await getTestServer();
+        const ctx = {
+          env,
+          var: {},
+        } as Context<{
+          Bindings: Bindings;
+          Variables: Variables;
+        }>;
+
+        await env.data.tenants.update("tenantId", {
+          flags: {
+            restrict_undefined_scopes: true,
+          },
+        });
+
+        const resourceServer = await env.data.resourceServers.create(
+          "tenantId",
+          {
+            name: "Strict API (RBAC on)",
+            identifier: "https://strict-rbac-on.example.com",
+            scopes: [
+              { value: "read:users", description: "Read users" },
+              { value: "write:users", description: "Write users" },
+            ],
+            options: {
+              enforce_policies: true,
+              token_dialect: "access_token",
+            },
+          },
+        );
+
+        await env.data.userPermissions.create("tenantId", "strictUser", {
+          user_id: "strictUser",
+          resource_server_identifier: "https://strict-rbac-on.example.com",
+          permission_name: "read:users",
+        });
+
+        const result = await calculateScopesAndPermissions(ctx, {
+          tenantId: "tenantId",
+          clientId: "test-client-id",
+          userId: "strictUser",
+          audience: "https://strict-rbac-on.example.com",
+          requestedScopes: [
+            "openid",
+            "read:users",
+            "fake:scope",
+            "admin:everything",
+          ],
+        });
+
+        expect(result.scopes.sort()).toEqual(["openid", "read:users"].sort());
+        expect(result.scopes).not.toContain("fake:scope");
+        expect(result.scopes).not.toContain("admin:everything");
+
+        await env.data.resourceServers.remove("tenantId", resourceServer.id!);
+        await env.data.tenants.update("tenantId", { flags: {} });
+      });
+
+      it("keeps undefined scopes (Auth0 default) when the flag is off", async () => {
+        const { env } = await getTestServer();
+        const ctx = {
+          env,
+          var: {},
+        } as Context<{
+          Bindings: Bindings;
+          Variables: Variables;
+        }>;
+
+        // Explicitly set the flag to false; the default `restrict_undefined_scopes`
+        // case is already covered by the "should return all requested scopes when
+        // RBAC is disabled" test further up.
+        await env.data.tenants.update("tenantId", {
+          flags: {
+            restrict_undefined_scopes: false,
+          },
+        });
+
+        const resourceServer = await env.data.resourceServers.create(
+          "tenantId",
+          {
+            name: "Loose API (RBAC off)",
+            identifier: "https://loose-rbac-off.example.com",
+            scopes: [{ value: "read:users", description: "Read users" }],
+            options: {
+              enforce_policies: false,
+              token_dialect: "access_token",
+            },
+          },
+        );
+
+        const result = await calculateScopesAndPermissions(ctx, {
+          tenantId: "tenantId",
+          clientId: "test-client-id",
+          userId: "userId",
+          audience: "https://loose-rbac-off.example.com",
+          requestedScopes: ["read:users", "fake:scope"],
+        });
+
+        expect(result.scopes).toContain("fake:scope");
+
+        await env.data.resourceServers.remove("tenantId", resourceServer.id!);
+        await env.data.tenants.update("tenantId", { flags: {} });
+      });
+    });
+
     it("should return permissions when RBAC is enabled and token_dialect is access_token_authz", async () => {
       const { env } = await getTestServer();
       const ctx = {

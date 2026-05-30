@@ -3,6 +3,7 @@ import SQLite from "better-sqlite3";
 import {
   CodeExecutor,
   DataAdapters,
+  RateLimitAdapter,
   Strategy,
 } from "@authhero/adapter-interfaces";
 import createAdapters, {
@@ -53,6 +54,9 @@ type getEnvParams = {
   // When true, wrap the data adapter with at-rest encryption so all fixtures
   // and request handling exercise the encrypted path.
   encryption?: boolean;
+  // Optional rate-limit adapter injected into `env.data.rateLimit` so tests
+  // can exercise the opt-in throttling paths (passwordless OTP, pre-login).
+  rateLimit?: RateLimitAdapter;
 };
 
 export type TestServer = {
@@ -212,6 +216,7 @@ export async function getTestServer(
     ...data,
     emailService: mockEmailService,
     smsService: mockSmsService,
+    ...(args.rateLimit ? { rateLimit: args.rateLimit } : {}),
   };
 
   const env: Bindings = {

@@ -350,6 +350,40 @@ describe("createEncryptedDataAdapter", () => {
     expect(await ctx.data.clients.get("t1", "nosecret")).toBeTruthy();
   });
 
+  it("decrypts connection options returned by clientConnections.listByClient", async () => {
+    await ctx.data.connections.create("t1", {
+      id: "google",
+      name: "google-oauth2",
+      strategy: "google-oauth2",
+      options: {
+        client_id: "google-cid",
+        client_secret: "google-shh",
+      },
+    });
+
+    await ctx.data.clients.create("t1", {
+      client_id: "app",
+      name: "App",
+    });
+    await ctx.data.clientConnections.updateByClient("t1", "app", ["google"]);
+
+    const raw = await ctx.db
+      .selectFrom("connections")
+      .select("options")
+      .where("id", "=", "google")
+      .executeTakeFirst();
+    expect(String(raw?.options)).toContain(ENC_PREFIX);
+    expect(String(raw?.options)).not.toContain("google-shh");
+
+    const connections = await ctx.data.clientConnections.listByClient(
+      "t1",
+      "app",
+    );
+    expect(connections).toHaveLength(1);
+    expect(connections[0].options.client_secret).toBe("google-shh");
+    expect(connections[0].options.client_id).toBe("google-cid");
+  });
+
   it("leaves non-string credential values untouched", async () => {
     await ctx.data.emailProviders.create("t1", {
       name: "smtp",

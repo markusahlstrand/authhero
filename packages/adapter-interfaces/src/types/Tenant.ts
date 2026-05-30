@@ -128,6 +128,13 @@ export const tenantInsertSchema = z.object({
       // organization-scoped tokens. This allows users with tenant-level roles to maintain
       // their permissions when accessing resources in an organization context.
       inherit_global_permissions_in_organizations: z.boolean().optional(),
+      // AuthHero extension — not part of Auth0. When enabled, the access
+      // token's `scope` claim is restricted to scopes actually defined on
+      // the targeted resource server (plus standard OIDC scopes). Default
+      // (false/undefined) preserves Auth0's legacy passthrough: every
+      // requested scope is echoed into the token verbatim. Opt in for
+      // tenants that want defense-in-depth against scope-string forgery.
+      restrict_undefined_scopes: z.boolean().optional(),
     })
     .optional(),
 

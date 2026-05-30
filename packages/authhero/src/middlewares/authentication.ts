@@ -41,19 +41,6 @@ function scopeForms(scope: string): string[] {
   return reversed === scope ? [scope] : [scope, reversed];
 }
 
-// TODO(audience-migration): Temporary exemption while external callers
-// (e.g. the checkout service hitting /api/v2/users) migrate to issuing
-// tokens with the urn:authhero:management audience. The scope/JWT checks
-// still run — only the audience equality check is skipped for these paths.
-// Remove once those callers have rolled out the new audience config.
-const AUDIENCE_EXEMPT_PREFIXES = ["/api/v2/users", "/api/v2/users-by-email"];
-
-function isAudienceExempt(matchedPath: string): boolean {
-  return AUDIENCE_EXEMPT_PREFIXES.some(
-    (prefix) => matchedPath === prefix || matchedPath.startsWith(`${prefix}/`),
-  );
-}
-
 export function createAuthMiddleware(
   app: OpenAPIHono<{ Bindings: Bindings; Variables: Variables }>,
   options: AuthMiddlewareOptions = {},
@@ -109,7 +96,7 @@ export function createAuthMiddleware(
       try {
         const tokenPayload = await validateJwtToken(ctx, bearer);
 
-        if (requireManagementAudience && !isAudienceExempt(matchedPath)) {
+        if (requireManagementAudience) {
           // Defense in depth: require the token's audience to be the
           // management API resource server. Without this check a token issued
           // for any other audience — including one minted with attacker-chosen

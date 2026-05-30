@@ -97,12 +97,22 @@ const postRoot = defineRoute({
       throw err;
     }
 
-    // RFC 7009 §2.1 — confidential clients MUST authenticate. Mirror the token
-    // endpoint: reject only when a wrong secret is supplied; missing secret is
-    // tolerated for public clients.
+    // RFC 7009 §2.1 — confidential clients MUST authenticate. A client is
+    // considered confidential when it has a registered `client_secret` (the
+    // `token_endpoint_auth_method` of `none` corresponds to a public client
+    // with no secret). For those we require a matching secret on the request;
+    // public clients are allowed through without one. Wrong secrets always
+    // reject regardless of client type.
+    const isConfidential = !!client.client_secret;
+    if (isConfidential && !params.client_secret) {
+      throw new JSONHTTPException(401, {
+        error: "invalid_client",
+        error_description: "Client authentication required",
+      });
+    }
     if (params.client_secret) {
       if (
-        client.client_secret &&
+        !client.client_secret ||
         !safeCompare(client.client_secret, params.client_secret)
       ) {
         throw new JSONHTTPException(401, {

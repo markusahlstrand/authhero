@@ -159,7 +159,7 @@ describe("authorization_code grant - failed exchange logging", () => {
         },
       },
     );
-    expect(secondResponse.status).toBe(400);
+    expect(secondResponse.status).toBe(403);
     const secondBody = (await secondResponse.json()) as ErrorResponse;
     expect(secondBody).toEqual({
       error: "invalid_grant",

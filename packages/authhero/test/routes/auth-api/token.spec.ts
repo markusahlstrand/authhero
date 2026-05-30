@@ -662,7 +662,7 @@ describe("token", () => {
           },
         );
 
-        expect(secondResponse.status).toBe(400);
+        expect(secondResponse.status).toBe(403);
       });
 
       it("should set a silent authentication token", async () => {
@@ -773,12 +773,119 @@ describe("token", () => {
             },
           },
         );
-        expect(secondResponse.status).toBe(400);
+        expect(secondResponse.status).toBe(403);
         const secondBody = (await secondResponse.json()) as ErrorResponse;
         expect(secondBody).toEqual({
           error: "invalid_grant",
           error_description: "Invalid authorization code",
         });
+      });
+
+      it("rejects exchanging a code with a different client than the one that initiated /authorize (RFC 6749 §10.5)", async () => {
+        const { oauthApp, env } = await getTestServer();
+        const client = testClient(oauthApp, env);
+
+        // Register a second confidential client in the same tenant
+        await env.data.clients.create("tenantId", {
+          client_id: "secondClient",
+          client_secret: "secondSecret",
+          name: "Second Client",
+          callbacks: ["http://example.com/callback"],
+          allowed_logout_urls: ["http://example.com/callback"],
+          web_origins: ["http://example.com"],
+        });
+
+        // Mint a code bound to the first client via its login session
+        const loginSession = await env.data.loginSessions.create("tenantId", {
+          expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+          csrf_token: "csrfToken",
+          authParams: {
+            client_id: "clientId",
+            username: "foo@example.com",
+            scope: "openid",
+            audience: "http://example.com",
+            redirect_uri: "http://example.com/callback",
+          },
+        });
+        await env.data.codes.create("tenantId", {
+          code_type: "authorization_code",
+          user_id: "email|userId",
+          code_id: "code-issued-to-clientId",
+          login_id: loginSession.id,
+          expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+        });
+
+        // Try to redeem with the second client's valid credentials
+        const response = await client.oauth.token.$post(
+          // @ts-expect-error - testClient type requires both form and json
+          {
+            form: {
+              grant_type: "authorization_code",
+              code: "code-issued-to-clientId",
+              redirect_uri: "http://example.com/callback",
+              client_id: "secondClient",
+              client_secret: "secondSecret",
+            },
+          },
+          { headers: { "tenant-id": "tenantId" } },
+        );
+
+        expect(response.status).toBe(403);
+        const body = (await response.json()) as ErrorResponse;
+        expect(body.error).toBe("invalid_grant");
+      });
+
+      it("does NOT accept a DEFAULT_CLIENT client_secret as a substitute for a different client's secret", async () => {
+        const { oauthApp, env } = await getTestServer();
+        const client = testClient(oauthApp, env);
+
+        // Register a DEFAULT_CLIENT row — the pre-fix code accepted its secret
+        // as a fallback when validating any other client's secret.
+        await env.data.clients.create("tenantId", {
+          client_id: "DEFAULT_CLIENT",
+          client_secret: "default-secret",
+          name: "Default Client",
+          callbacks: ["http://example.com/callback"],
+          allowed_logout_urls: ["http://example.com/callback"],
+          web_origins: ["http://example.com"],
+        });
+
+        const loginSession = await env.data.loginSessions.create("tenantId", {
+          expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+          csrf_token: "csrfToken",
+          authParams: {
+            client_id: "clientId",
+            username: "foo@example.com",
+            scope: "openid",
+            audience: "http://example.com",
+            redirect_uri: "http://example.com/callback",
+          },
+        });
+        await env.data.codes.create("tenantId", {
+          code_type: "authorization_code",
+          user_id: "email|userId",
+          code_id: "code-for-default-bypass",
+          login_id: loginSession.id,
+          expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+        });
+
+        const response = await client.oauth.token.$post(
+          // @ts-expect-error - testClient type requires both form and json
+          {
+            form: {
+              grant_type: "authorization_code",
+              code: "code-for-default-bypass",
+              redirect_uri: "http://example.com/callback",
+              client_id: "clientId",
+              client_secret: "default-secret", // DEFAULT_CLIENT's secret, not clientId's
+            },
+          },
+          { headers: { "tenant-id": "tenantId" } },
+        );
+
+        expect(response.status).toBe(403);
+        const body = await response.json();
+        expect(body).toEqual({ message: "Invalid client credentials" });
       });
     });
 
