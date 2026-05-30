@@ -1,5 +1,15 @@
 # authhero
 
+## 5.14.1
+
+### Patch Changes
+
+- 764c709: Fix a raw JSON error on the reset-password request page when signups are disabled and the email has no existing user. The forgot-password flow no longer eagerly creates a user (which threw the signup-disabled hook); instead it only creates one when signups are still permitted, and otherwise silently renders the same screen so the request can't be used to enumerate accounts.
+- 764c709: Add a `/u2/info` landing route that renders a branded info screen instead of a 400 error. It's intended as a `redirect_uri` target (e.g. the admin "Login" link) and renders from tenant branding since the `state` it receives is the client's OAuth state rather than a login session. When the redirect carries an OAuth error it renders a branded error page instead.
+- 764c709: Fix the u2 password reset flow:
+  - Default to the "code" verification method when the password connection has no explicit `verification_method`, keeping the user on-page instead of relying on an emailed link.
+  - When the "link" method is used from the u2 routes, the reset email link now points at `/u2/reset-password` instead of the legacy `/u/reset-password`. The originating route prefix is threaded through `requestPasswordReset` → `sendResetPassword`.
+
 ## 5.14.0
 
 ### Minor Changes
