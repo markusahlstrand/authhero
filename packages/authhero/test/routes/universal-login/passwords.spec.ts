@@ -7,6 +7,7 @@ import {
   Strategy,
 } from "@authhero/adapter-interfaces";
 import { getTestServer } from "../../helpers/test-server";
+import { u2Screen } from "../../helpers/u2-screen";
 import { USERNAME_PASSWORD_PROVIDER } from "../../../src/constants";
 
 describe("passwords", () => {
@@ -794,5 +795,52 @@ describe("passwords", () => {
     });
 
     expect(loginWithNewPassword.status).toBe(302);
+  });
+
+  it("renders the reset screen instead of a JSON error when signups are disabled and the user does not exist", async () => {
+    const { u2App, oauthApp, env, getSentEmails } = await getTestServer({
+      mockEmail: true,
+      testTenantLanguage: "en",
+    });
+    const oauthClient = testClient(oauthApp, env);
+
+    // Disable signups on the password connection.
+    await env.data.connections.update(
+      "tenantId",
+      "Username-Password-Authentication",
+      { options: { disable_signup: true } },
+    );
+
+    const authorizeResponse = await oauthClient.authorize.$get({
+      query: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+        state: "state",
+        nonce: "nonce",
+        scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
+      },
+    });
+    const location = authorizeResponse.headers.get("location");
+    const state = new URL(
+      `https://example.com${location}`,
+    ).searchParams.get("state");
+    if (!state) throw new Error("No state found");
+
+    const response = await u2Screen(u2App, env, "reset-password/request").$post(
+      {
+        query: { state },
+        form: { email: "does-not-exist@example.com" },
+      },
+    );
+
+    // Previously the signup hook threw JSONHTTPException(400) here, surfacing
+    // a raw JSON error on the page. The request should now succeed silently.
+    expect(response.status).toBe(200);
+    const body = await response.text();
+    expect(body).not.toContain("Signups are disabled");
+
+    // No reset email should be sent for an account that doesn't exist.
+    expect(getSentEmails().length).toBe(0);
   });
 });

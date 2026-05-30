@@ -212,14 +212,24 @@ export const forgotPasswordScreenDefinition: ScreenDefinition = {
         });
       }
 
-      // Check the connection's verification_method
+      // Check the connection's verification_method. In the u2 flow we default
+      // to "code" when unset, so the user stays on-page instead of relying on
+      // an emailed link (the link points at the legacy /u routes).
       const passwordConnection = context.client.connections.find(
         (c) => c.strategy === Strategy.USERNAME_PASSWORD,
       );
       const verificationMethod =
-        passwordConnection?.options?.attributes?.email?.verification_method;
+        passwordConnection?.options?.attributes?.email?.verification_method ??
+        "code";
 
-      await requestPasswordReset(ctx, client, email, state, verificationMethod);
+      await requestPasswordReset(
+        ctx,
+        client,
+        email,
+        state,
+        verificationMethod,
+        context.routePrefix ?? "/u2",
+      );
 
       if (verificationMethod === "code") {
         return {

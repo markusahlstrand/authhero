@@ -16,6 +16,7 @@ import {
   getOrCreateUsernamePasswordUser,
   getUsernamePasswordUser,
 } from "../utils/username-password-provider";
+import { validateSignupEmail } from "../hooks/validate-signup";
 import { AuthError } from "../types/AuthError";
 import {
   sendResetPassword,
@@ -416,14 +417,41 @@ export async function requestPasswordReset(
   email: string,
   state: string,
   verification_method?: "link" | "code",
+  routePrefix?: string,
 ) {
-  // Create the user if if doesn't exist. We probably want to wait with this until the user resets the password?
-  await getOrCreateUsernamePasswordUser(ctx, {
-    client,
+  // A reset request lazily creates the native user so the emailed link has a
+  // user to update. When the user doesn't exist yet, only create one if the
+  // connection still permits signups — otherwise creation would throw (signup
+  // disabled) and surface a raw error on the page. Stopping silently keeps the
+  // UX identical whether or not the account exists, avoiding enumeration.
+  const existingUser = await getUsernamePasswordUser({
+    env: ctx.env,
+    tenant_id: client.tenant.id,
     username: email,
-    connection: Strategy.USERNAME_PASSWORD,
-    ip: ctx.var.ip,
   });
+
+  if (!existingUser) {
+    const passwordConnection = client.connections.find(
+      (c) => c.strategy === Strategy.USERNAME_PASSWORD,
+    );
+    const validation = await validateSignupEmail(
+      ctx,
+      client,
+      ctx.env.data,
+      email,
+      passwordConnection?.name ?? Strategy.USERNAME_PASSWORD,
+    );
+    if (!validation.allowed) {
+      return;
+    }
+
+    await getOrCreateUsernamePasswordUser(ctx, {
+      client,
+      username: email,
+      connection: Strategy.USERNAME_PASSWORD,
+      ip: ctx.var.ip,
+    });
+  }
 
   let code_id = generateOTP();
   let existingCode = await ctx.env.data.codes.get(
@@ -490,6 +518,13 @@ export async function requestPasswordReset(
   if (verification_method === "code") {
     await sendResetPasswordCode(ctx, email, createdCode.code_id);
   } else {
-    await sendResetPassword(ctx, email, createdCode.code_id, loginSessionId);
+    await sendResetPassword(
+      ctx,
+      email,
+      createdCode.code_id,
+      loginSessionId,
+      undefined,
+      routePrefix,
+    );
   }
 }

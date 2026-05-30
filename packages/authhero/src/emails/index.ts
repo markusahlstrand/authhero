@@ -283,6 +283,7 @@ export async function sendResetPassword(
   code: string,
   state?: string,
   language?: string,
+  routePrefix?: string,
 ) {
   const { tenant, logo, buttonColor, options } = await buildEmailContext(
     ctx,
@@ -290,7 +291,7 @@ export async function sendResetPassword(
   );
 
   // the auth0 link looks like this:  https://auth.sesamy.dev/u/reset-verify?ticket={ticket}#
-  const passwordResetUrl = `${getUniversalLoginUrl(ctx.env)}reset-password?state=${state}&code=${code}`;
+  const passwordResetUrl = `${getUniversalLoginUrl(ctx.env, undefined, routePrefix)}reset-password?state=${state}&code=${code}`;
 
   const data: Record<string, string> = {
     tenantId: tenant.id,
