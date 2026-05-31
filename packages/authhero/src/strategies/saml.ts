@@ -6,13 +6,30 @@ import { JSONHTTPException } from "../errors/json-http-exception";
 // Use core import to avoid xml-crypto dependency
 import { createSamlResponse, HttpSamlSigner } from "@authhero/saml/core";
 
+// Escape values destined for an HTML attribute value (double-quoted). Without
+// this, an attacker-controlled `RelayState` like `" autofocus onfocus="alert(1)`
+// breaks out of the attribute and executes JS when the auto-submit form
+// renders. Covers the five characters that matter inside a double-quoted attr.
+function escapeHtmlAttribute(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
 export function samlResponseForm(
   postUrl: string,
   base64EncodedSaml: string,
   relayState?: string,
 ) {
+  const safePostUrl = escapeHtmlAttribute(postUrl);
+  // SAMLResponse is already base64 — its charset can't break HTML — but
+  // escape defensively in case upstream encoding ever changes.
+  const safeSamlResponse = escapeHtmlAttribute(base64EncodedSaml);
   const relayStateInput = relayState
-    ? `<input type="hidden" name="RelayState" value="${relayState}" />`
+    ? `<input type="hidden" name="RelayState" value="${escapeHtmlAttribute(relayState)}" />`
     : "";
 
   const samlResponseTempate = `
@@ -23,9 +40,9 @@ export function samlResponseForm(
           <p>Your browser has JavaScript disabled. Please click the button below to continue:</p>
           <input type="submit" value="Continue">
       </noscript>
-      <form method="post" action="${postUrl}">
-          <input type="hidden" name="SAMLResponse" value="${base64EncodedSaml}" />  
-          ${relayStateInput}      
+      <form method="post" action="${safePostUrl}">
+          <input type="hidden" name="SAMLResponse" value="${safeSamlResponse}" />
+          ${relayStateInput}
       </form>
       <script>
       window.onload = function() {{

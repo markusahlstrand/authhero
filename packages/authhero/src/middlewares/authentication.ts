@@ -109,6 +109,36 @@ export function createAuthMiddleware(
               message: "Invalid audience",
             });
           }
+
+          // Cross-tenant guard: the management API resolves `tenant_id` from
+          // the `tenant-id` request header (tenantMiddleware runs first). If
+          // an authenticated token belongs to tenant A and the request targets
+          // tenant B, only tokens issued by the deployment's control-plane
+          // tenant may make that hop. Without this check, any admin token from
+          // any tenant could be used to operate on any other tenant by
+          // setting the `tenant-id` header.
+          const tokenTenantId =
+            typeof tokenPayload.tenant_id === "string"
+              ? tokenPayload.tenant_id
+              : undefined;
+          const requestTenantId = ctx.var.tenant_id;
+          if (
+            tokenTenantId &&
+            requestTenantId &&
+            tokenTenantId !== requestTenantId
+          ) {
+            const cpId =
+              ctx.env.data?.multiTenancyConfig?.controlPlaneTenantId;
+            // Multi-tenant deployments must configure a control plane.
+            // Single-tenant deployments shouldn't see this branch in practice
+            // (there's only one tenant) — fail closed if we land here without
+            // a configured control plane.
+            if (!cpId || tokenTenantId !== cpId) {
+              throw new JSONHTTPException(403, {
+                message: "Cross-tenant management requires a control-plane token",
+              });
+            }
+          }
         }
 
         ctx.set("user_id", tokenPayload.sub);

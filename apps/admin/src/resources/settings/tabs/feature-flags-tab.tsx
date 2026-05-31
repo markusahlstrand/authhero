@@ -41,6 +41,11 @@ export function FeatureFlagsTab() {
         label="Enable Dynamic Client Registration"
       />
       <BooleanInput
+        source="flags.dcr_require_initial_access_token"
+        label="Require Initial Access Token for DCR"
+        helperText="AuthHero extension (no Auth0 equivalent). When off, /oidc/register is open and any caller can register a client — matches Auth0's behavior. When on, callers must present a valid RFC 7591 Initial Access Token (minted via the management API or the consent flow). Turn this on for self-hosted deployments without rate-limiting in front of /oidc/register."
+      />
+      <BooleanInput
         source="flags.enable_idtoken_api2"
         label="Enable ID Token API v2"
       />

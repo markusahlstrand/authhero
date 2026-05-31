@@ -253,6 +253,71 @@ describe("jwks", () => {
     );
   });
 
+  it("should advertise 'none' in token_endpoint_auth_methods_supported (matches Auth0)", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const client = testClient(oauthApp, env);
+
+    const response = await client[".well-known"]["openid-configuration"].$get(
+      {
+        param: {},
+      },
+      {
+        headers: {
+          "tenant-id": "tenantId",
+        },
+      },
+    );
+
+    expect(response.status).toBe(200);
+
+    const body = openIDConfigurationSchema.parse(await response.json());
+    expect(body.token_endpoint_auth_methods_supported).toEqual(
+      expect.arrayContaining([
+        "none",
+        "client_secret_basic",
+        "client_secret_post",
+        "private_key_jwt",
+      ]),
+    );
+  });
+
+  it("should advertise client_id_metadata_document_supported=false by default and =true when the tenant flag is set", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const client = testClient(oauthApp, env);
+
+    const before = await client[".well-known"]["oauth-authorization-server"].$get(
+      {
+        param: {},
+      },
+      {
+        headers: {
+          "tenant-id": "tenantId",
+        },
+      },
+    );
+    expect(before.status).toBe(200);
+    const beforeBody = openIDConfigurationSchema.parse(await before.json());
+    expect(beforeBody.client_id_metadata_document_supported).toBe(false);
+
+    await env.data.tenants.update("tenantId", {
+      flags: { client_id_metadata_document_registration: true },
+    });
+
+    const after = await client[".well-known"]["oauth-authorization-server"].$get(
+      {
+        param: {},
+      },
+      {
+        headers: {
+          "tenant-id": "tenantId",
+        },
+      },
+    );
+    expect(after.status).toBe(200);
+    const afterBody = openIDConfigurationSchema.parse(await after.json());
+    expect(afterBody.client_id_metadata_document_supported).toBe(true);
+  });
+
   it("should return openid-configuration with custom domain URLs when accessed via custom domain", async () => {
     const { oauthApp, env } = await getTestServer();
     const client = testClient(oauthApp, env);

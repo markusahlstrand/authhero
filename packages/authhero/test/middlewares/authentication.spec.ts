@@ -496,6 +496,142 @@ describe("createAuthMiddleware", () => {
     });
   });
 
+  // Cross-tenant access via `tenant-id` header: the management API resolves
+  // tenant from the header (tenantMiddleware runs first). Without this guard
+  // any admin token from any tenant could be used to manage any other tenant
+  // by setting `tenant-id`. The auth middleware enforces that mismatched
+  // request/token tenant_ids are only allowed when the token comes from the
+  // configured control-plane tenant.
+  describe("cross-tenant management guard", () => {
+    beforeEach(() => {
+      app.openapi(
+        {
+          method: "get",
+          path: "/users",
+          security: [{ Bearer: ["read:users"] }],
+          responses: { 200: { description: "Success" } },
+        },
+        async (c) => c.json({ message: "success" }),
+      );
+      mockCtx.req.matchedRoutes = [{ method: "GET", path: "/api/v2/users" }];
+    });
+
+    it("rejects when the token's tenant_id does not match the request tenant_id (no control plane configured)", async () => {
+      const strictMiddleware = createAuthMiddleware(app, {
+        requireManagementAudience: true,
+      });
+
+      const token = await createToken({
+        userId: "user123",
+        permissions: ["read:users"],
+        aud: MANAGEMENT_API_AUDIENCE,
+        tenantId: "tenantA",
+      });
+
+      mockCtx.req.header.mockReturnValue(`Bearer ${token}`);
+      // Simulate tenantMiddleware having already set tenant_id from the
+      // request header.
+      mockCtx.var.tenant_id = "tenantB";
+
+      await expect(strictMiddleware(mockCtx, mockNext)).rejects.toThrow(
+        /Cross-tenant management/i,
+      );
+      expect(mockNext).not.toHaveBeenCalled();
+    });
+
+    it("allows the same tenant in token and request", async () => {
+      const strictMiddleware = createAuthMiddleware(app, {
+        requireManagementAudience: true,
+      });
+
+      const token = await createToken({
+        userId: "user123",
+        permissions: ["read:users"],
+        aud: MANAGEMENT_API_AUDIENCE,
+        tenantId: "tenantA",
+      });
+
+      mockCtx.req.header.mockReturnValue(`Bearer ${token}`);
+      mockCtx.var.tenant_id = "tenantA";
+
+      const result = await strictMiddleware(mockCtx, mockNext);
+
+      expect(mockNext).toHaveBeenCalled();
+      expect(result).toBe("next-response");
+    });
+
+    it("allows cross-tenant when the token is from the configured control plane", async () => {
+      const strictMiddleware = createAuthMiddleware(app, {
+        requireManagementAudience: true,
+      });
+
+      const token = await createToken({
+        userId: "user123",
+        permissions: ["read:users"],
+        aud: MANAGEMENT_API_AUDIENCE,
+        tenantId: "controlPlane",
+      });
+
+      // Wire the control-plane tenant id into the mock env.
+      mockCtx.env = {
+        ...mockEnv,
+        data: { multiTenancyConfig: { controlPlaneTenantId: "controlPlane" } },
+      };
+      mockCtx.req.header.mockReturnValue(`Bearer ${token}`);
+      mockCtx.var.tenant_id = "tenantB";
+
+      const result = await strictMiddleware(mockCtx, mockNext);
+
+      expect(mockNext).toHaveBeenCalled();
+      expect(result).toBe("next-response");
+    });
+
+    it("rejects when token tenant differs from request tenant and is not the control plane", async () => {
+      const strictMiddleware = createAuthMiddleware(app, {
+        requireManagementAudience: true,
+      });
+
+      const token = await createToken({
+        userId: "user123",
+        permissions: ["read:users"],
+        aud: MANAGEMENT_API_AUDIENCE,
+        tenantId: "tenantA",
+      });
+
+      mockCtx.env = {
+        ...mockEnv,
+        data: { multiTenancyConfig: { controlPlaneTenantId: "controlPlane" } },
+      };
+      mockCtx.req.header.mockReturnValue(`Bearer ${token}`);
+      mockCtx.var.tenant_id = "tenantB";
+
+      await expect(strictMiddleware(mockCtx, mockNext)).rejects.toThrow(
+        /Cross-tenant management/i,
+      );
+      expect(mockNext).not.toHaveBeenCalled();
+    });
+
+    it("does not enforce the cross-tenant rule when the token has no tenant_id claim", async () => {
+      const strictMiddleware = createAuthMiddleware(app, {
+        requireManagementAudience: true,
+      });
+
+      const token = await createToken({
+        userId: "user123",
+        permissions: ["read:users"],
+        aud: MANAGEMENT_API_AUDIENCE,
+        // no tenantId — token is not tenant-scoped (e.g. legacy)
+      });
+
+      mockCtx.req.header.mockReturnValue(`Bearer ${token}`);
+      mockCtx.var.tenant_id = "tenantB";
+
+      const result = await strictMiddleware(mockCtx, mockNext);
+      expect(mockNext).toHaveBeenCalled();
+      expect(result).toBe("next-response");
+    });
+  });
+
   // The previous `AUDIENCE_EXEMPT_PREFIXES` carve-out for `/api/v2/users*`
   // and `/api/v2/users-by-email*` was a temporary migration aid for external
   // callers issuing tokens with the legacy audience. It has been removed —
