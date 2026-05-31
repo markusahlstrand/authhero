@@ -11,6 +11,8 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
+    env:
+      HUSKY: 0
     permissions:
       contents: write
       pull-requests: write
