@@ -1,5 +1,6 @@
 import {
   CustomDomain,
+  CustomDomainCertificateUpload,
   CustomDomainInsert,
   CustomDomainsAdapter,
   VerificationMethods,
@@ -326,6 +327,42 @@ export function createCustomDomainsAdapter(
         domain_id,
         custom_domain,
       );
+    },
+    uploadCertificate: async (
+      tenant_id: string,
+      domain_id: string,
+      cert: CustomDomainCertificateUpload,
+    ) => {
+      const existing = await config.customDomainAdapter.get(
+        tenant_id,
+        domain_id,
+      );
+      if (!existing) {
+        throw new HTTPException(404);
+      }
+
+      const response = await getClient(config)
+        .patch(
+          {
+            ssl: {
+              custom_certificate: cert.certificate,
+              custom_key: cert.private_key,
+            },
+          },
+          `/custom_hostnames/${encodeURIComponent(domain_id)}`,
+        )
+        .json();
+
+      const { result, errors, success } =
+        customDomainResponseSchema.parse(response);
+
+      if (!success) {
+        throw new HTTPException(503, {
+          message: JSON.stringify(errors),
+        });
+      }
+
+      return mapCustomDomainResponse({ ...existing, ...result });
     },
   };
 }

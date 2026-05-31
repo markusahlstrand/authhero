@@ -1,5 +1,6 @@
 import { z } from "@hono/zod-openapi";
 import { defineHandler } from "../registry";
+import { ensureMutableResponseHeaders } from "./util";
 
 const optionsSchema = z.object({
   upstream_origin: z.string().optional(),
@@ -38,8 +39,7 @@ export const rewriteLocationHandler = defineHandler<Options>({
       const requestUrl = new URL(c.req.url);
       const requestOrigin = `${requestUrl.protocol}//${requestUrl.host}`;
       const updatedLocation = `${requestOrigin}${parsedLocation.pathname}${parsedLocation.search}${parsedLocation.hash}`;
-      // Mutate headers in place — Hono's `c.res = …` setter merges old
-      // headers over new ones, which would clobber our rewrite.
+      ensureMutableResponseHeaders(c);
       c.res.headers.set("location", updatedLocation);
     };
   },

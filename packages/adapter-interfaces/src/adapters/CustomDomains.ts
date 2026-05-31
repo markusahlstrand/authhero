@@ -1,5 +1,6 @@
 import {
   CustomDomain,
+  CustomDomainCertificateUpload,
   CustomDomainInsert,
   CustomDomainWithTenantId,
 } from "../types/CustomDomain";
@@ -19,4 +20,13 @@ export interface CustomDomainsAdapter {
     id: string,
     custom_domain: Partial<CustomDomain>,
   ) => Promise<boolean>;
+  // Optional. Implemented by adapters whose edge can terminate TLS with a
+  // customer-supplied certificate (e.g. Cloudflare Custom Hostnames BYOC).
+  // The certificate and key are forwarded to the edge and never persisted
+  // by authhero.
+  uploadCertificate?: (
+    tenant_id: string,
+    id: string,
+    cert: CustomDomainCertificateUpload,
+  ) => Promise<CustomDomain>;
 }

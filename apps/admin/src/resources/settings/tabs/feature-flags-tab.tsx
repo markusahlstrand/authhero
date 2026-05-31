@@ -46,6 +46,11 @@ export function FeatureFlagsTab() {
         helperText="AuthHero extension (no Auth0 equivalent). When off, /oidc/register is open and any caller can register a client — matches Auth0's behavior. When on, callers must present a valid RFC 7591 Initial Access Token (minted via the management API or the consent flow). Turn this on for self-hosted deployments without rate-limiting in front of /oidc/register."
       />
       <BooleanInput
+        source="flags.client_id_metadata_document_registration"
+        label="Client ID Metadata Document Registration"
+        helperText="Enables Client ID Metadata Documents (CIMD): clients pass an https URL as `client_id`; the authorization server fetches it at request time to discover their metadata, with no pre-registration. Advertised as `client_id_metadata_document_supported` in the OAuth AS metadata. Off by default."
+      />
+      <BooleanInput
         source="flags.enable_idtoken_api2"
         label="Enable ID Token API v2"
       />

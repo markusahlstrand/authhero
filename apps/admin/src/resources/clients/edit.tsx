@@ -8,6 +8,7 @@ import { ConnectionsTab } from "./tabs/connections-tab";
 import { AdvancedTab } from "./tabs/advanced-tab";
 import { RefreshTokensTab } from "./tabs/refresh-tokens-tab";
 import { RawJsonTab } from "./tabs/raw-json-tab";
+import { CimdBanner } from "./cimd";
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -44,6 +45,7 @@ export function ClientEdit() {
   return (
     <Edit mutationMode="pessimistic" transform={transformClient as never}>
       <SimpleForm className="max-w-none">
+        <CimdBanner />
         <UrlTabs defaultValue="details" className="w-full">
           <TabsList>
             <TabsTrigger value="details">Details</TabsTrigger>

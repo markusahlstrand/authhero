@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getClientShape } from "../shape";
 
 const GRANT_TYPE_CHOICES = [
   { id: "implicit", name: "Implicit" },
@@ -182,11 +183,17 @@ function Timestamps() {
 }
 
 export function DetailsTab() {
+  const record = useRecordContext<{
+    id: string;
+    app_type?: string;
+    client_metadata?: Record<string, unknown> | null;
+  }>();
+  const shape = getClientShape(record);
   return (
     <div className="flex flex-col gap-3">
       <TextInput source="id" readOnly />
       <TextInput source="name" />
-      <SecretInput source="client_secret" />
+      {shape.showSecret && <SecretInput source="client_secret" />}
       <BooleanInput
         source="auth0_conformant"
         label="Auth0 Conformant Mode"
@@ -206,12 +213,16 @@ export function DetailsTab() {
       />
       <ClientMetadataInput />
       <GrantTypesInput />
-      <TextArrayInput source="callbacks" label="Callbacks" />
-      <TextArrayInput
-        source="allowed_logout_urls"
-        label="Allowed Logout URLs"
-      />
-      <TextArrayInput source="web_origins" label="Web Origins" />
+      {shape.showCallbacks && (
+        <>
+          <TextArrayInput source="callbacks" label="Callbacks" />
+          <TextArrayInput
+            source="allowed_logout_urls"
+            label="Allowed Logout URLs"
+          />
+          <TextArrayInput source="web_origins" label="Web Origins" />
+        </>
+      )}
       <TextArrayInput source="allowed_clients" label="Allowed Clients" />
       <Timestamps />
     </div>

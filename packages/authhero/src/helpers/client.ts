@@ -91,6 +91,37 @@ function enrichClient(
   };
 }
 
+/**
+ * Idempotently insert a minimal `clients` row for a CIMD client so the
+ * `refresh_tokens` / `login_sessions` foreign keys to `clients` are satisfied.
+ * The row is an FK anchor only — runtime values come from the freshly-fetched
+ * metadata document each request. The `client_metadata.cimd: true` marker
+ * identifies stub rows for admin tooling and future cleanup.
+ */
+async function ensureCimdStubClient(
+  env: Bindings,
+  tenantId: string,
+  synthesized: Client,
+): Promise<void> {
+  const existing = await env.data.clients.get(tenantId, synthesized.client_id);
+  if (existing) return;
+  try {
+    await env.data.clients.create(tenantId, {
+      client_id: synthesized.client_id,
+      name: synthesized.name,
+      app_type: synthesized.app_type,
+      is_first_party: false,
+      token_endpoint_auth_method: synthesized.token_endpoint_auth_method,
+      grant_types: synthesized.grant_types,
+      client_metadata: { cimd: "true" },
+    });
+  } catch {
+    // Two concurrent CIMD requests can race the get/create. Either won — the
+    // FK anchor exists. Treat any insert error as benign; if it wasn't a
+    // duplicate, the FK insert later will surface a clearer error.
+  }
+}
+
 export async function getEnrichedClient(
   env: Bindings,
   clientId: string,
@@ -100,7 +131,10 @@ export async function getEnrichedClient(
   // CIMD: the client_id is an https URL hosting the client metadata document.
   // Requires the tenant to be known (resolved from the request host/domain) and
   // the per-tenant flag to be enabled. The document is fetched and validated on
-  // every request — no DB record is created.
+  // every request — the synthesized client is what callers see. A stub row in
+  // `clients` is upserted on first use as an FK anchor for `refresh_tokens` /
+  // `login_sessions` (see migration 2025-09-16T12:30:00); runtime values still
+  // come from the freshly-fetched document, not the stub.
   if (isCimdClientId(clientId)) {
     if (!tenantId) {
       throw new JSONHTTPException(400, {
@@ -116,6 +150,7 @@ export async function getEnrichedClient(
     }
     const synthesized = await resolveCimdClient(clientId, fetchOpts);
     const allConnections = await env.data.connections.list(tenantId);
+    await ensureCimdStubClient(env, tenantId, synthesized);
     return enrichClient(env, synthesized, tenant, allConnections.connections);
   }
 

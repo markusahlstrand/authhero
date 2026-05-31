@@ -448,3 +448,241 @@ describe("data plane router", () => {
     expect(res.headers.get("location")).toBe("https://customer.com/dest");
   });
 });
+
+// Cloudflare Workers / Miniflare hand back `Response` objects from `fetch()`
+// whose headers are immutable — any `set`/`append`/`delete` throws
+// `TypeError: Can't modify immutable headers.` Hono's own `app.request(...)`
+// path (used above) creates Response objects in-process with mutable headers,
+// so the rest of the suite can't catch this. These tests simulate the Workers
+// constraint by wrapping the fetch-returned Response so its header mutators
+// throw, then run each response-phase handler through the chain and assert
+// the rewrite lands (i.e. the handler hit `ensureMutableResponseHeaders` first
+// instead of crashing the worker).
+function freezeResponseHeaders(res: Response): Response {
+  const throwImmutable = () => {
+    throw new TypeError("Can't modify immutable headers.");
+  };
+  for (const method of ["set", "append", "delete"] as const) {
+    Object.defineProperty(res.headers, method, {
+      value: throwImmutable,
+      configurable: true,
+      writable: false,
+    });
+  }
+  return res;
+}
+
+describe("data plane router — Workers immutable response headers", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("rewrite_location does not crash when upstream headers are immutable", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      freezeResponseHeaders(
+        new Response(null, {
+          status: 302,
+          headers: { Location: "https://upstream.example.com/dest" },
+        }),
+      ),
+    );
+
+    const app = createProxyDataPlaneRouter({
+      data: makeAdapter({
+        tenant_id: "t1",
+        custom_domain_id: "cd1",
+        domain: "customer.com",
+        routes: [
+          route({
+            match: { path: "/*" },
+            handlers: [
+              {
+                type: "rewrite_location",
+                options: { upstream_origin: "https://upstream.example.com" },
+              },
+              {
+                type: "http",
+                options: { upstream_url: "https://upstream.example.com" },
+              },
+            ],
+          }),
+        ],
+      }),
+      cacheTtlMs: 0,
+    });
+
+    const res = await app.request("https://customer.com/foo", {
+      headers: { host: "customer.com" },
+      redirect: "manual",
+    });
+    expect(res.status).toBe(302);
+    expect(res.headers.get("location")).toBe("https://customer.com/dest");
+  });
+
+  it("rewrite_cookies does not crash when upstream headers are immutable", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      freezeResponseHeaders(
+        new Response("ok", {
+          status: 200,
+          headers: {
+            "Set-Cookie":
+              "sid=abc; Path=/; Domain=upstream.example.com; HttpOnly",
+          },
+        }),
+      ),
+    );
+
+    const app = createProxyDataPlaneRouter({
+      data: makeAdapter({
+        tenant_id: "t1",
+        custom_domain_id: "cd1",
+        domain: "customer.com",
+        routes: [
+          route({
+            match: { path: "/*" },
+            handlers: [
+              {
+                type: "rewrite_cookies",
+                options: { upstream_host: "upstream.example.com" },
+              },
+              {
+                type: "http",
+                options: { upstream_url: "https://upstream.example.com" },
+              },
+            ],
+          }),
+        ],
+      }),
+      cacheTtlMs: 0,
+    });
+
+    const res = await app.request("https://customer.com/", {
+      headers: { host: "customer.com" },
+    });
+    expect(res.status).toBe(200);
+    const cookie =
+      res.headers.getSetCookie?.()[0] ?? res.headers.get("set-cookie");
+    expect(cookie).toContain("Domain=customer.com");
+    expect(cookie).not.toContain("Domain=upstream.example.com");
+  });
+
+  it("headers (response branch) does not crash when upstream headers are immutable", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      freezeResponseHeaders(
+        new Response("ok", {
+          status: 200,
+          headers: { "X-Powered-By": "leak", "X-Keep": "yes" },
+        }),
+      ),
+    );
+
+    const app = createProxyDataPlaneRouter({
+      data: makeAdapter({
+        tenant_id: "t1",
+        custom_domain_id: "cd1",
+        domain: "customer.com",
+        routes: [
+          route({
+            match: { path: "/*" },
+            handlers: [
+              {
+                type: "headers",
+                options: {
+                  response: { "X-Frame-Options": "DENY" },
+                  remove_response: ["X-Powered-By"],
+                },
+              },
+              {
+                type: "http",
+                options: { upstream_url: "https://upstream.example.com" },
+              },
+            ],
+          }),
+        ],
+      }),
+      cacheTtlMs: 0,
+    });
+
+    const res = await app.request("https://customer.com/", {
+      headers: { host: "customer.com" },
+    });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("x-frame-options")).toBe("DENY");
+    expect(res.headers.get("x-powered-by")).toBeNull();
+    expect(res.headers.get("x-keep")).toBe("yes");
+  });
+
+  it("cors (response branch) does not crash when upstream headers are immutable", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      freezeResponseHeaders(new Response("ok", { status: 200 })),
+    );
+
+    const app = createProxyDataPlaneRouter({
+      data: makeAdapter({
+        tenant_id: "t1",
+        custom_domain_id: "cd1",
+        domain: "customer.com",
+        routes: [
+          route({
+            match: { path: "/*" },
+            handlers: [
+              {
+                type: "cors",
+                options: { origins: ["https://app.example"] },
+              },
+              {
+                type: "http",
+                options: { upstream_url: "https://upstream.example.com" },
+              },
+            ],
+          }),
+        ],
+      }),
+      cacheTtlMs: 0,
+    });
+
+    const res = await app.request("https://customer.com/", {
+      headers: { host: "customer.com", origin: "https://app.example" },
+    });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("access-control-allow-origin")).toBe(
+      "https://app.example",
+    );
+  });
+
+  it("cache does not crash when upstream headers are immutable", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      freezeResponseHeaders(new Response("ok", { status: 200 })),
+    );
+
+    const app = createProxyDataPlaneRouter({
+      data: makeAdapter({
+        tenant_id: "t1",
+        custom_domain_id: "cd1",
+        domain: "customer.com",
+        routes: [
+          route({
+            match: { path: "/*" },
+            handlers: [
+              {
+                type: "cache",
+                options: { ttl_seconds: 60 },
+              },
+              {
+                type: "http",
+                options: { upstream_url: "https://upstream.example.com" },
+              },
+            ],
+          }),
+        ],
+      }),
+      cacheTtlMs: 0,
+    });
+
+    const res = await app.request("https://customer.com/", {
+      headers: { host: "customer.com" },
+    });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("cache-control")).toBe("public, max-age=60");
+  });
+});

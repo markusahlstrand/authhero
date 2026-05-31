@@ -228,6 +228,10 @@ async function fetchSingleton(
 export interface AuthHeroDataProvider extends DataProvider {
   rotateSigningKeys: () => Promise<void>;
   revokeSigningKey: (kid: string) => Promise<void>;
+  uploadCustomDomainCertificate: (
+    id: string,
+    cert: { certificate: string; private_key: string },
+  ) => Promise<void>;
 }
 
 /**
@@ -2283,6 +2287,17 @@ export default (
         {
           method: "PUT",
           headers: createHeaders(tenantId),
+        },
+      );
+    },
+
+    uploadCustomDomainCertificate: async (id, cert) => {
+      await httpClient(
+        `${apiUrl}/api/v2/custom-domains/${encodeURIComponent(id)}/certificate`,
+        {
+          method: "PUT",
+          headers: createHeaders(tenantId),
+          body: JSON.stringify(cert),
         },
       );
     },

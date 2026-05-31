@@ -341,7 +341,7 @@ AuthHero provides a per-client `auth0_conformant` flag (default: `true`) to ensu
 | User Management      | ✅              | ✅              |
 | Logs & Analytics     | ✅              | ✅              |
 | Geo Location Data    | ⚠️ Country only | ✅ Full details |
-| Custom Domains       | ✅ Enterprise   | ✅ All plans    |
+| Custom Domains       | ✅ Enterprise   | ✅ All plans, with edge cert upload |
 | Branding             | ✅ Limited      | ✅ Full control |
 | Email Templates      | ✅              | ✅              |
 | Multi-tenant Support | ✅ Enterprise   | ✅ Built-in     |
@@ -508,6 +508,31 @@ GET /api/v2/prompts/custom-text/defaults?language=en&prompt=login
 - `language` is matched on the base locale (e.g. `en-US` resolves to `en`)
 - The response payload is identical across tenants, so it's safe to cache aggressively in the UI
 - The per-tenant `GET /api/v2/prompts/{prompt}/custom-text/{language}` endpoint still returns overrides only (preserving PUT/GET symmetry for Terraform's `auth0/auth0` provider) — the new endpoint is a separate, read-only manifest
+
+This is an AuthHero extension and is not present in Auth0.
+
+### Custom Domain Certificate Upload
+
+**Auth0 Limitation**: Auth0's custom domain feature has two modes — Auth0-managed certificates (issued automatically via Let's Encrypt or Google Trust Services) and self-managed certificates. Critically, neither mode lets you upload your own certificate to Auth0. "Self-managed" means *you* run a reverse proxy (CloudFront, Cloudflare, Akamai, NGINX, …) in front of Auth0 and terminate TLS there — Auth0 never sees the certificate. This has been a [recurring community request](https://community.auth0.com/t/certificate-upload-for-custom-domain/10242) since 2018 and is still not supported.
+
+**AuthHero Solution**: When deployed with the `@authhero/cloudflare-adapter`, AuthHero accepts a PEM-encoded certificate and private key for any custom domain and installs them at the Cloudflare edge via the Custom Hostnames BYOC API. The customer doesn't need to operate a separate reverse proxy.
+
+```http
+PUT /api/v2/custom-domains/{id}/certificate
+Content-Type: application/json
+
+{
+  "certificate": "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----",
+  "private_key": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
+}
+```
+
+**Key properties**:
+
+- **Edge terminates TLS**: The cert and key are forwarded to Cloudflare and installed on the custom hostname's SSL record. AuthHero does not persist them.
+- **PEM-only**: For a PFX file, convert with `openssl pkcs12 -in cert.pfx -nodes -out cert.pem`. Keeping the upload format narrow avoids shipping a PKCS#12 parser with its legacy-cipher footguns.
+- **Optional capability**: The route returns `501 Not Implemented` if the configured custom-domain adapter doesn't support certificate upload (e.g. running AuthHero without an edge that can terminate TLS for you).
+- **Scope**: Same `update:custom_domains` scope as the other custom-domain management endpoints.
 
 This is an AuthHero extension and is not present in Auth0.
 

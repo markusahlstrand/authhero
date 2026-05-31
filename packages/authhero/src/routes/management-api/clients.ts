@@ -12,8 +12,82 @@ import { logMessage } from "../../helpers/logging";
 import { nanoid } from "nanoid";
 import { querySchema } from "../../types/auth0/Query";
 import { parseSort } from "../../utils/sort";
+import { isCimdClientId } from "../../helpers/cimd";
 
 import { defineRoute } from "../../utils/define-route";
+
+// CIMD clients are managed via their metadata document URL, not the management
+// API. Any locally-stored fields the document controls (name, callbacks,
+// grant_types, token_endpoint_auth_method, jwks_uri) get overwritten on the
+// next /authorize, so accepting writes here would be misleading. Detect via
+// the `client_metadata.cimd === "true"` marker set by ensureCimdStubClient.
+function isCimdClient(client: {
+  client_metadata?: Record<string, string> | null;
+} | null): boolean {
+  return client?.client_metadata?.cimd === "true";
+}
+
+// Auth0-parity defaults: when a client is created with an `app_type` but no
+// explicit `token_endpoint_auth_method` / `grant_types`, derive them from the
+// type. Native and SPA are public (PKCE-only, no secret); Regular Web is
+// confidential with code+refresh; Machine-to-Machine (non_interactive) is
+// confidential with client_credentials only. Explicit values from the caller
+// always win — defaults only fill gaps.
+const APP_TYPE_DEFAULTS: Record<
+  string,
+  {
+    token_endpoint_auth_method:
+      | "none"
+      | "client_secret_post"
+      | "client_secret_basic"
+      | "client_secret_jwt"
+      | "private_key_jwt";
+    grant_types: string[];
+  }
+> = {
+  native: {
+    token_endpoint_auth_method: "none",
+    grant_types: ["authorization_code", "refresh_token"],
+  },
+  spa: {
+    token_endpoint_auth_method: "none",
+    grant_types: ["authorization_code", "refresh_token"],
+  },
+  regular_web: {
+    token_endpoint_auth_method: "client_secret_basic",
+    grant_types: ["authorization_code", "refresh_token"],
+  },
+  non_interactive: {
+    token_endpoint_auth_method: "client_secret_basic",
+    grant_types: ["client_credentials"],
+  },
+};
+
+// Zod fills `app_type`, `token_endpoint_auth_method`, and `grant_types` with
+// schema defaults before we see the body, so we can't tell from the validated
+// value whether the caller meant it. Inspect the raw JSON keys to detect
+// explicit intent, and only derive from app_type when the caller chose one.
+function applyAppTypeDefaults<
+  T extends {
+    app_type?: string;
+    token_endpoint_auth_method?: string;
+    grant_types?: string[];
+  },
+>(body: T, raw: Record<string, unknown>): T {
+  const rawAppType = raw.app_type;
+  if (typeof rawAppType !== "string") return body;
+  const defaults = APP_TYPE_DEFAULTS[rawAppType];
+  if (!defaults) return body;
+  return {
+    ...body,
+    token_endpoint_auth_method:
+      "token_endpoint_auth_method" in raw
+        ? body.token_endpoint_auth_method
+        : defaults.token_endpoint_auth_method,
+    grant_types:
+      "grant_types" in raw ? body.grant_types : defaults.grant_types,
+  };
+}
 const clientWithTotalsSchema = totalsSchema.extend({
   clients: z.array(clientSchema),
 });
@@ -216,6 +290,11 @@ const patchById = defineRoute({
     const clientUpdate = body;
 
     const clientBefore = await ctx.env.data.clients.get(tenant_id, id);
+    if (isCimdClient(clientBefore)) {
+      throw new HTTPException(400, {
+        message: `Client is managed via its Client ID Metadata Document at ${id}. Update the document instead.`,
+      });
+    }
     await ctx.env.data.clients.update(tenant_id, id, clientUpdate);
     const client = await ctx.env.data.clients.get(tenant_id, id);
 
@@ -273,11 +352,29 @@ const postRoot = defineRoute({
   handler: async (ctx) => {
     const tenant_id = ctx.var.tenant_id;
     const body = ctx.req.valid("json");
+    const rawBody = (await ctx.req.json().catch(() => ({}))) as Record<
+      string,
+      unknown
+    >;
+
+    if (body.client_id && isCimdClientId(body.client_id)) {
+      throw new HTTPException(400, {
+        message:
+          "Cannot create a Client ID Metadata Document client via the management API. CIMD clients are registered automatically on first /authorize.",
+      });
+    }
+
+    const withDefaults = applyAppTypeDefaults(body, rawBody);
+    const isPublic = withDefaults.token_endpoint_auth_method === "none";
 
     const clientCreate = {
-      ...body,
-      client_id: body.client_id || nanoid(),
-      client_secret: body.client_secret || nanoid(),
+      ...withDefaults,
+      client_id: withDefaults.client_id || nanoid(),
+      // Public clients (SPA, Native) authenticate via PKCE and have no secret.
+      // Only generate a secret when the caller will actually use it.
+      client_secret: isPublic
+        ? undefined
+        : withDefaults.client_secret || nanoid(),
     };
 
     const client = await ctx.env.data.clients.create(tenant_id, clientCreate);

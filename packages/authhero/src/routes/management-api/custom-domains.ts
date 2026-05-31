@@ -3,6 +3,7 @@ import { Bindings, Variables } from "../../types";
 import { HTTPException } from "hono/http-exception";
 import { querySchema } from "../../types";
 import {
+  customDomainCertificateUploadSchema,
   customDomainInsertSchema,
   customDomainSchema,
   LogTypes,
@@ -261,6 +262,68 @@ const postRoot = defineRoute({
   },
 });
 
+const putByIdCertificate = defineRoute({
+  route: createRoute({
+    tags: ["custom-domains"],
+    method: "put",
+    path: "/{id}/certificate",
+    request: {
+      body: {
+        content: {
+          "application/json": {
+            schema: customDomainCertificateUploadSchema,
+          },
+        },
+      },
+      params: z.object({
+        id: z.string(),
+      }),
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
+    },
+    security: [
+      {
+        Bearer: ["update:custom_domains"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: customDomainSchema,
+          },
+        },
+        description:
+          "The custom domain with the uploaded certificate installed at the edge",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const { id } = ctx.req.valid("param");
+    const body = ctx.req.valid("json");
+
+    const { uploadCertificate } = ctx.env.data.customDomains;
+    if (!uploadCertificate) {
+      throw new HTTPException(501, {
+        message:
+          "The configured custom-domain adapter does not support certificate upload",
+      });
+    }
+
+    const customDomain = await uploadCertificate(ctx.var.tenant_id, id, body);
+
+    await logMessage(ctx, ctx.var.tenant_id, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: "Upload a Custom Domain Certificate",
+      targetType: "custom_domain",
+      targetId: id,
+    });
+
+    return ctx.json(customDomain);
+  },
+});
+
 const postByIdVerify = defineRoute({
   route: createRoute({
     tags: ["custom-domains"],
@@ -306,5 +369,6 @@ export const customDomainRoutes = new OpenAPIHono<{
   deleteById,
   patchById,
   postRoot,
+  putByIdCertificate,
   postByIdVerify,
 ] as const);
