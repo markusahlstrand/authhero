@@ -85,8 +85,9 @@ export async function authenticateRegistrationRequest(
     return result.token;
   }
 
-  if (tenant.flags?.dcr_require_initial_access_token !== false) {
-    // Default is require-IAT unless explicitly opted out.
+  if (tenant.flags?.dcr_require_initial_access_token === true) {
+    // Default is open DCR (matches Auth0). Tenants opt into IAT-gating
+    // by setting the flag to `true`.
     throw new JSONHTTPException(401, {
       error: "invalid_token",
       error_description: "Initial access token required",

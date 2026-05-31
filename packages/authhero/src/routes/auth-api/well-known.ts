@@ -125,6 +125,7 @@ async function buildAuthServerMetadata(ctx: {
     subject_types_supported: ["public"],
     id_token_signing_alg_values_supported: SUPPORTED_ID_TOKEN_SIGNING_ALGS,
     token_endpoint_auth_methods_supported: [
+      "none",
       "client_secret_basic",
       "client_secret_post",
       "client_secret_jwt",
@@ -176,7 +177,7 @@ async function buildAuthServerMetadata(ctx: {
       "HS384",
       "HS512",
     ],
-    ...(cimdEnabled ? { client_id_metadata_document_supported: true } : {}),
+    client_id_metadata_document_supported: cimdEnabled,
   });
 
   return result;

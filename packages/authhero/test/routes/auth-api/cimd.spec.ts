@@ -166,7 +166,7 @@ describe("resolveCimdClient", () => {
 });
 
 describe("authorization server metadata advertises CIMD", () => {
-  it("omits the flag when the tenant setting is off", async () => {
+  it("advertises the flag as false when the tenant setting is off", async () => {
     const { oauthApp, env } = await getTestServer();
     const client = testClient(oauthApp, env);
 
@@ -176,7 +176,7 @@ describe("authorization server metadata advertises CIMD", () => {
     );
 
     const body = openIDConfigurationSchema.parse(await response.json());
-    expect(body.client_id_metadata_document_supported).toBeUndefined();
+    expect(body.client_id_metadata_document_supported).toBe(false);
   });
 
   it("advertises the flag on both metadata endpoints when enabled", async () => {

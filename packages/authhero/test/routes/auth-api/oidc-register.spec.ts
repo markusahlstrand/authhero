@@ -66,11 +66,15 @@ describe("POST /oidc/register (RFC 7591)", () => {
     expect(response.status).toBe(404);
   });
 
-  it("rejects unauthenticated request when IAT is required (default)", async () => {
+  it("rejects unauthenticated request when IAT is explicitly required by tenant flag", async () => {
     const { oauthApp, env } = await getTestServer();
-    // Default: enable_dynamic_client_registration=true, require IAT true
+    // Default is open DCR (matches Auth0); tenants must explicitly opt into
+    // IAT-gating by setting `dcr_require_initial_access_token: true`.
     await env.data.tenants.update("tenantId", {
-      flags: { enable_dynamic_client_registration: true },
+      flags: {
+        enable_dynamic_client_registration: true,
+        dcr_require_initial_access_token: true,
+      },
     });
 
     const response = await oauthApp.request(
