@@ -1,5 +1,41 @@
 # authhero
 
+## 5.15.0
+
+### Minor Changes
+
+- 8b8fe4d: **DCR default flipped to open registration to match Auth0.** The `dcr_require_initial_access_token` tenant flag previously defaulted to "require IAT" — turning on `enable_dynamic_client_registration` would advertise `/oidc/register` in discovery but reject every anonymous POST with 401. That contradicted Auth0's semantics, where enabling DCR means open registration.
+
+  After this change, the default is open: enabling `enable_dynamic_client_registration` makes `/oidc/register` accept anonymous RFC 7591 calls (same as Auth0). Tenants that need the stricter behavior — typically self-hosted deployments without rate-limiting in front of the endpoint — must explicitly set `flags.dcr_require_initial_access_token = true`.
+
+  The flag is now also exposed as a toggle in the admin UI's Feature Flags tab with helper text explaining the AuthHero-specific semantics.
+
+  **Migration**: tenants that today rely on the implicit IAT requirement (flag unset, with DCR enabled) will start accepting anonymous registrations after upgrading. Set `flags.dcr_require_initial_access_token = true` on those tenants before deploying if you want to preserve the old behavior.
+
+### Patch Changes
+
+- 8b8fe4d: Second round of security hardening on the auth-api / management-api surface:
+  - **Management API cross-tenant guard**: when `requireManagementAudience` is enabled (the management API), the auth middleware now rejects requests where the bearer token's `tenant_id` claim differs from the request's resolved `tenant_id` (typically taken from the `tenant-id` header), UNLESS the token belongs to the deployment's control-plane tenant (`multiTenancyConfig.controlPlaneTenantId`). Previously any admin token from any tenant could be used to operate on any other tenant by setting the `tenant-id` header — the tenant middleware sets `ctx.var.tenant_id` from the header before the auth middleware runs, and the auth middleware did not override it from the token claim. Tokens that don't carry a `tenant_id` claim (legacy / non-tenant-scoped) are unaffected.
+  - **SAML SP-initiated AuthnRequest — ACS URL validation**: the `/samlp/{client_id}` route previously trusted the `AssertionConsumerServiceURL` from the inbound SAMLRequest verbatim (marked `// TODO: validate this URL against the saml settings`). It's now validated against the client's `callbacks` list via the same matcher used for OAuth `redirect_uri`. A forged SAMLRequest pointing at an attacker-controlled ACS URL is rejected with `400 invalid_request`. Requests with no ACS URL at all are also rejected.
+  - **SAML SP-initiated AuthnRequest — signed-request gate**: added a new optional `client.addons.samlp.require_signed_requests` flag. When `true`, requests without a `Signature` query param are rejected with `400 invalid_request`. Full XML-signature verification is not yet implemented in this package — the flag is a defense-in-depth gate so deployments that require signed requests fail closed instead of silently accepting unsigned ones.
+  - **SAML auto-submit form — HTML escaping**: `samlResponseForm` previously interpolated `RelayState`, the form action URL, and the base64 SAMLResponse straight into HTML attributes. A `RelayState` value like `" autofocus onfocus="alert(1)` could break out of the attribute and execute JS in the SAML callback page. All three values are now HTML-attribute-escaped before interpolation.
+
+- 1fb1bd1: Security hardening across the auth-api token paths. Defaults stay Auth0-faithful; stricter behavior is opt-in.
+  - **authorization_code grant**: removed the `DEFAULT_CLIENT` secret fallback in `/oauth/token`. Anyone holding that one secret could previously substitute it for any other client's `client_secret` when exchanging a code. The "temporary" cross-tenant workaround is gone — cross-tenant scenarios must be modeled explicitly.
+  - **authorization_code grant**: the code is now bound to the client it was issued to (RFC 6749 §10.5 / OIDC Core §3.1.3.2). Exchanging a code with a different `client_id` than the one that initiated `/authorize` is rejected with `invalid_grant`. Status code follows the existing `client.auth0_conformant` pattern from `refresh-token.ts` — `403` by default (Auth0 behavior), `400` when `auth0_conformant === false` (RFC behavior).
+  - **authorization_code grant**: aligned the existing code-reuse rejection on the same `auth0_conformant` gate. Previously returned `400 invalid_grant` unconditionally; now `403` by default (matching Auth0) and `400` only when the client opts out.
+  - **passwordless OTP**: added a per-(tenant, username) `brute-force` rate-limit check at the start of `passwordlessGrantUser`. Covers both `/passwordless/verify_redirect` and the `/oauth/token` OTP grant. Opt-in — only active when `data.rateLimit` is configured. A 6-digit numeric OTP is ~20 bits of entropy and was previously brute-forceable inside the 10-minute window. See [Rate Limit Adapter](/customization/adapter-interfaces/rate-limit) for the integration contract.
+  - **/oauth/revoke**: confidential clients (those with a registered `client_secret`) MUST now authenticate per RFC 7009 §2.1. A missing secret on a confidential client returns `401 invalid_client` rather than silently no-op'ing. Public clients (no registered secret) continue to revoke without authenticating.
+  - **management-api middleware**: removed the `AUDIENCE_EXEMPT_PREFIXES` carve-out for `/api/v2/users` and `/api/v2/users-by-email`. Tokens hitting these routes must now carry `urn:authhero:management` in `aud`. External callers still issuing tokens with the legacy audience need to migrate.
+  - **scope filtering**: new tenant flag `flags.restrict_undefined_scopes` (default `false`). When `false` or absent the token's `scope` claim preserves Auth0's legacy behavior — every requested scope, defined on the API or not, is echoed verbatim. When `true`, the claim is restricted to scopes defined on the targeted resource server plus the standard OIDC scopes. Applies symmetrically to RBAC-enabled and RBAC-disabled APIs so the posture is consistent. Opt in for defense-in-depth against scope-string forgery.
+
+- 1fb1bd1: Fix social/enterprise login when field encryption is enabled. `createEncryptedDataAdapter` now also wraps `clientConnections.listByClient`, so connections loaded via `getEnrichedClient` come back with decrypted `options.client_secret`. Previously the encrypted ciphertext was passed straight to the upstream IdP's token endpoint, breaking every login through a client with explicitly-assigned connections.
+- 8b8fe4d: Advertise `none` in `token_endpoint_auth_methods_supported` on `/.well-known/openid-configuration` and `/.well-known/oauth-authorization-server`. The token endpoint already accepts public clients registered with `token_endpoint_auth_method = "none"` (e.g. PKCE-only flows, CIMD clients), but the discovery document did not list it — so RFC 8414-conformant clients (including MCP clients using CIMD) would assume the AS rejected unauthenticated token calls and refuse to send them.
+- Updated dependencies [1fb1bd1]
+  - @authhero/adapter-interfaces@2.9.1
+  - @authhero/proxy@0.3.2
+  - @authhero/widget@0.32.32
+
 ## 5.14.1
 
 ### Patch Changes
