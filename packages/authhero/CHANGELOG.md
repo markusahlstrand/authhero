@@ -1,5 +1,43 @@
 # authhero
 
+## 5.16.0
+
+### Minor Changes
+
+- 3bef633: Add custom domain certificate upload (PEM) for adapters that can terminate TLS at the edge.
+  - `@authhero/adapter-interfaces`: new `customDomainCertificateUploadSchema` (`{ certificate, private_key }` PEM-validated) and an optional `uploadCertificate(tenant_id, id, cert)` method on `CustomDomainsAdapter`.
+  - `@authhero/cloudflare-adapter`: implements `uploadCertificate`, forwarding `custom_certificate` and `custom_key` to Cloudflare's Custom Hostnames API (BYOC). Cert and key are not persisted by authhero.
+  - `authhero`: new `PUT /custom-domains/{id}/certificate` management-api route, scoped to `update:custom_domains`. Returns 501 if the configured adapter doesn't implement `uploadCertificate`.
+
+  This is an authhero extension beyond Auth0's API surface — Auth0's `self_managed_certs` mode requires customers to run their own reverse proxy. Here we let the Cloudflare edge terminate TLS with a customer-supplied cert.
+
+### Patch Changes
+
+- 3bef633: Fix two issues that broke the CIMD (Client ID Metadata Document) flow end-to-end on Cloudflare Workers + PlanetScale:
+  - **`ssrfSafeFetch` threw `TypeError` on Workers.** The helper passed `redirect: "error"` to `fetch`, which Workers rejects ("must be one of follow or manual"). Switched to `redirect: "manual"` and reject 3xx responses explicitly so the no-redirect security property is preserved. This unblocks CIMD (`client_id` as a metadata URL) and `request_uri` request objects on Workers — both surfaced as 500s on `/authorize`.
+  - **CIMD token issuance failed FK constraint.** `refresh_tokens.client_id` (and `login_sessions.authParams_client_id`) have a FK to `clients` (added 2025-09-16), but CIMD synthesizes the client in memory only. `getEnrichedClient` now idempotently upserts a minimal `clients` row keyed by the CIMD URL as an FK anchor on first use, marked with `client_metadata.cimd: "true"`. Runtime values still come from the freshly-fetched document each request — the stub row is only there to satisfy referential integrity.
+
+- 3bef633: Auth0-style typed clients: pick an app type up front, get the right defaults, see the right fields.
+
+  **Backend (`authhero`)**
+  - `POST /api/v2/clients` now derives `token_endpoint_auth_method` and `grant_types` from `app_type` when the caller doesn't supply them:
+    - `spa`, `native` → `token_endpoint_auth_method: "none"`, `grant_types: ["authorization_code", "refresh_token"]`, no `client_secret` generated (PKCE-only).
+    - `regular_web` → `token_endpoint_auth_method: "client_secret_basic"`, `grant_types: ["authorization_code", "refresh_token"]`, secret generated.
+    - `non_interactive` → `token_endpoint_auth_method: "client_secret_basic"`, `grant_types: ["client_credentials"]`, secret generated.
+    - Explicit caller values always win.
+  - `PATCH /api/v2/clients/:id` rejects with 400 when the target is a CIMD-marked client (`client_metadata.cimd === "true"`) — those are managed via the metadata document.
+  - `POST /api/v2/clients` rejects with 400 when `client_id` is a URL — CIMD clients are registered automatically on first `/authorize`.
+
+  **Admin UI (`@authhero/admin`)**
+  - Client create is now a two-step picker: choose app type (Regular Web / SPA / Native / Machine-to-Machine), then a small form scoped to that type. The selected `app_type` is sent with the create request so the backend defaults kick in.
+  - Client edit hides the `client_secret` field for public types (SPA, Native) and CIMD clients; hides Callbacks / Logout URLs / Web Origins for Machine-to-Machine clients.
+
+- Updated dependencies [3bef633]
+- Updated dependencies [3bef633]
+  - @authhero/adapter-interfaces@2.10.0
+  - @authhero/proxy@0.3.3
+  - @authhero/widget@0.32.33
+
 ## 5.15.0
 
 ### Minor Changes
