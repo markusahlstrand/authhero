@@ -104,7 +104,7 @@ const getByClient_id = defineRoute({
   }),
   handler: async (ctx) => {
     const { client_id } = ctx.req.valid("param");
-    const { SAMLRequest, RelayState, Signature } = ctx.req.valid("query");
+    const { SAMLRequest, RelayState } = ctx.req.valid("query");
 
     const client = await getEnrichedClient(ctx.env, client_id);
     ctx.set("client_id", client.client_id);
@@ -112,20 +112,20 @@ const getByClient_id = defineRoute({
 
     const samlRequest = await parseSamlRequestQuery(SAMLRequest);
 
-    // Defense in depth: an unsigned SAMLRequest is only acceptable when the
-    // client config has not declared that requests must be signed. We don't
-    // (yet) verify the signature itself — that requires xml-crypto and the
-    // SP's public key — but if the deployer has flagged this client as
-    // expecting signed requests, refuse rather than silently accept unsigned
-    // input. Better to fail closed than create the illusion of authentication.
+    // Fail closed when the deployer has flagged this client as requiring
+    // signed requests. Redirect-binding signature verification (xml-crypto
+    // against the SP's public key from the client's SAML metadata) is not
+    // yet implemented, so we cannot prove a Signature query value is valid —
+    // accepting its mere presence would create the illusion of
+    // authentication. Until verification lands, refuse the request entirely.
     const samlpAddon = client.addons?.samlp as
       | { require_signed_requests?: boolean }
       | undefined;
-    if (samlpAddon?.require_signed_requests && !Signature) {
+    if (samlpAddon?.require_signed_requests) {
       throw new JSONHTTPException(400, {
         error: "invalid_request",
         error_description:
-          "SAMLRequest must be signed for this client (require_signed_requests is enabled)",
+          "SAMLRequest signature verification is not implemented; require_signed_requests cannot be honored",
       });
     }
 

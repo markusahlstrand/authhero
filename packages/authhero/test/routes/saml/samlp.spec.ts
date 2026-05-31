@@ -122,6 +122,38 @@ describe("/samlp/{client_id} — SP-initiated SAML AuthnRequest", () => {
 
     expect(response.status).toBe(400);
     const body = (await response.json()) as ErrorBody;
-    expect(body.error_description).toMatch(/must be signed/);
+    expect(body.error_description).toMatch(/signature verification/);
+  });
+
+  it("rejects a request with a Signature param when require_signed_requests is enabled (verification not implemented)", async () => {
+    const { samlApp, env } = await getTestServer();
+
+    await env.data.clients.update("tenantId", "clientId", {
+      addons: {
+        samlp: { require_signed_requests: true },
+      },
+    });
+
+    const client = testClient(samlApp, env);
+
+    const samlRequest = buildSamlRequest({
+      issuer: "https://sp.example/sp",
+      assertionConsumerServiceURL: "https://example.com/callback",
+    });
+
+    // Attacker supplies a Signature value but no verification is performed —
+    // server must still fail closed rather than treat mere presence as proof.
+    const response = await client[":client_id"].$get({
+      param: { client_id: "clientId" },
+      query: {
+        SAMLRequest: samlRequest,
+        SigAlg: "http://www.w3.org/2000/09/xmldsig#rsa-sha1",
+        Signature: "not-a-real-signature",
+      },
+    });
+
+    expect(response.status).toBe(400);
+    const body = (await response.json()) as ErrorBody;
+    expect(body.error_description).toMatch(/signature verification/);
   });
 });
