@@ -1,6 +1,7 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import {
   assertSsrfSafeUrl,
+  ssrfSafeFetch,
   SsrfBlockedError,
 } from "../../src/utils/ssrf-fetch";
 
@@ -93,5 +94,24 @@ describe("assertSsrfSafeUrl", () => {
 
   it("rejects malformed URLs", () => {
     expect(() => assertSsrfSafeUrl("not-a-url")).toThrow(SsrfBlockedError);
+  });
+});
+
+describe("ssrfSafeFetch", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("throws SsrfBlockedError on a 3xx redirect response", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(null, {
+        status: 302,
+        headers: { location: "https://example.com" },
+      }),
+    );
+
+    await expect(
+      ssrfSafeFetch("https://example.com/.well-known/jwks.json"),
+    ).rejects.toThrow(SsrfBlockedError);
   });
 });

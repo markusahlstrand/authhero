@@ -21,10 +21,25 @@ import { defineRoute } from "../../utils/define-route";
 // grant_types, token_endpoint_auth_method, jwks_uri) get overwritten on the
 // next /authorize, so accepting writes here would be misleading. Detect via
 // the `client_metadata.cimd === "true"` marker set by ensureCimdStubClient.
-function isCimdClient(client: {
-  client_metadata?: Record<string, string> | null;
-} | null): boolean {
-  return client?.client_metadata?.cimd === "true";
+function isCimdClient(
+  client: {
+    client_id?: string;
+    client_metadata?: Record<string, string> | null;
+  } | null,
+): boolean {
+  if (client?.client_metadata?.cimd !== "true") return false;
+  if (!client.client_id) return false;
+  return isCimdClientId(client.client_id);
+}
+
+// External callers must not be able to forge the CIMD marker via
+// client_metadata.cimd. Only ensureCimdStubClient (internal) should set it.
+function stripCimdMetadata<
+  T extends { client_metadata?: Record<string, string> | null },
+>(body: T): T {
+  if (!body.client_metadata) return body;
+  const { cimd: _cimd, ...rest } = body.client_metadata;
+  return { ...body, client_metadata: rest };
 }
 
 // Auth0-parity defaults: when a client is created with an `app_type` but no
@@ -84,8 +99,7 @@ function applyAppTypeDefaults<
       "token_endpoint_auth_method" in raw
         ? body.token_endpoint_auth_method
         : defaults.token_endpoint_auth_method,
-    grant_types:
-      "grant_types" in raw ? body.grant_types : defaults.grant_types,
+    grant_types: "grant_types" in raw ? body.grant_types : defaults.grant_types,
   };
 }
 const clientWithTotalsSchema = totalsSchema.extend({
@@ -287,7 +301,7 @@ const patchById = defineRoute({
     const { id } = ctx.req.valid("param");
     const body = ctx.req.valid("json");
 
-    const clientUpdate = body;
+    const clientUpdate = stripCimdMetadata(body);
 
     const clientBefore = await ctx.env.data.clients.get(tenant_id, id);
     if (isCimdClient(clientBefore)) {
@@ -351,7 +365,7 @@ const postRoot = defineRoute({
   }),
   handler: async (ctx) => {
     const tenant_id = ctx.var.tenant_id;
-    const body = ctx.req.valid("json");
+    const body = stripCimdMetadata(ctx.req.valid("json"));
     const rawBody = (await ctx.req.json().catch(() => ({}))) as Record<
       string,
       unknown

@@ -115,10 +115,12 @@ async function ensureCimdStubClient(
       grant_types: synthesized.grant_types,
       client_metadata: { cimd: "true" },
     });
-  } catch {
-    // Two concurrent CIMD requests can race the get/create. Either won — the
-    // FK anchor exists. Treat any insert error as benign; if it wasn't a
-    // duplicate, the FK insert later will surface a clearer error.
+  } catch (err) {
+    // Two concurrent CIMD requests can race the get/create. If the row now
+    // exists, the other request won — swallow. Otherwise this was a real
+    // adapter/validation failure and must surface.
+    const raced = await env.data.clients.get(tenantId, synthesized.client_id);
+    if (!raced) throw err;
   }
 }
 

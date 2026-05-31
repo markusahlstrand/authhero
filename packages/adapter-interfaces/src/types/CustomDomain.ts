@@ -64,13 +64,13 @@ export const customDomainCertificateUploadSchema = z.object({
   certificate: z
     .string()
     .regex(
-      /-----BEGIN CERTIFICATE-----[\s\S]+-----END CERTIFICATE-----\s*$/,
+      /^-----BEGIN CERTIFICATE-----[\s\S]+-----END CERTIFICATE-----\s*$/,
       "must be PEM-encoded; include the full certificate chain in leaf-first order",
     ),
   private_key: z
     .string()
     .regex(
-      /-----BEGIN (?:RSA |EC |ENCRYPTED )?PRIVATE KEY-----[\s\S]+-----END (?:RSA |EC |ENCRYPTED )?PRIVATE KEY-----\s*$/,
+      /-----BEGIN (RSA |EC |ENCRYPTED )?PRIVATE KEY-----[\s\S]+-----END \1PRIVATE KEY-----\s*$/,
       "must be a PEM-encoded private key",
     ),
 });

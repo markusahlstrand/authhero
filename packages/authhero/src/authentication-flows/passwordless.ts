@@ -95,11 +95,14 @@ export async function passwordlessGrantUser(
         description: "Rate limit exceeded for passwordless OTP",
       });
       const retryAfterSeconds = decision.retryAfterSeconds;
-      const body: { message: string; code: string; retryAfterSeconds?: number } =
-        {
-          message: "Too many requests",
-          code: "TOO_MANY_REQUESTS",
-        };
+      const body: {
+        message: string;
+        code: string;
+        retryAfterSeconds?: number;
+      } = {
+        message: "Too many requests",
+        code: "TOO_MANY_REQUESTS",
+      };
       if (typeof retryAfterSeconds === "number") {
         body.retryAfterSeconds = retryAfterSeconds;
       }

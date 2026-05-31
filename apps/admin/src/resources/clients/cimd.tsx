@@ -19,7 +19,8 @@ export function CimdBanner() {
       <Info />
       <AlertTitle>Managed via Client ID Metadata Document</AlertTitle>
       <AlertDescription>
-        Configuration is fetched on every request from{" "}
+        This client configuration is read-only. Configuration is fetched on
+        every request from{" "}
         <a
           href={record!.client_id}
           target="_blank"
@@ -28,7 +29,9 @@ export function CimdBanner() {
         >
           {record!.client_id}
         </a>
-        . Edits made here may be overwritten by the document.
+        . PATCH /clients/{"{id}"} is rejected with a 400 — update the document
+        instead. Connections are updated via PATCH /clients/{"{id}"}
+        /connections.
       </AlertDescription>
     </Alert>
   );

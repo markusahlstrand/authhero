@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { useDataProvider, useNotify, useRecordContext, useRefresh } from "ra-core";
+import {
+  useDataProvider,
+  useNotify,
+  useRecordContext,
+  useRefresh,
+} from "ra-core";
 import { ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,7 +15,8 @@ interface CustomDomainRecord {
   custom_domain_id?: string;
 }
 
-const PEM_CERT = /-----BEGIN CERTIFICATE-----[\s\S]+-----END CERTIFICATE-----\s*$/;
+const PEM_CERT =
+  /-----BEGIN CERTIFICATE-----[\s\S]+-----END CERTIFICATE-----\s*$/;
 const PEM_KEY =
   /-----BEGIN (?:RSA |EC |ENCRYPTED )?PRIVATE KEY-----[\s\S]+-----END (?:RSA |EC |ENCRYPTED )?PRIVATE KEY-----\s*$/;
 
@@ -76,7 +82,9 @@ export function CertificateTab() {
           rows={10}
           spellCheck={false}
           className="font-mono text-xs"
-          placeholder={"-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"}
+          placeholder={
+            "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"
+          }
           value={certificate}
           onChange={(e) => setCertificate(e.target.value)}
         />
@@ -96,7 +104,9 @@ export function CertificateTab() {
           rows={10}
           spellCheck={false}
           className="font-mono text-xs"
-          placeholder={"-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"}
+          placeholder={
+            "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
+          }
           value={privateKey}
           onChange={(e) => setPrivateKey(e.target.value)}
         />

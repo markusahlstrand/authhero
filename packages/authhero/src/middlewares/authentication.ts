@@ -127,15 +127,15 @@ export function createAuthMiddleware(
             requestTenantId &&
             tokenTenantId !== requestTenantId
           ) {
-            const cpId =
-              ctx.env.data?.multiTenancyConfig?.controlPlaneTenantId;
+            const cpId = ctx.env.data?.multiTenancyConfig?.controlPlaneTenantId;
             // Multi-tenant deployments must configure a control plane.
             // Single-tenant deployments shouldn't see this branch in practice
             // (there's only one tenant) — fail closed if we land here without
             // a configured control plane.
             if (!cpId || tokenTenantId !== cpId) {
               throw new JSONHTTPException(403, {
-                message: "Cross-tenant management requires a control-plane token",
+                message:
+                  "Cross-tenant management requires a control-plane token",
               });
             }
           }

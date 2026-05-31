@@ -822,9 +822,9 @@ describe("passwords", () => {
       },
     });
     const location = authorizeResponse.headers.get("location");
-    const state = new URL(
-      `https://example.com${location}`,
-    ).searchParams.get("state");
+    const state = new URL(`https://example.com${location}`).searchParams.get(
+      "state",
+    );
     if (!state) throw new Error("No state found");
 
     const response = await u2Screen(u2App, env, "reset-password/request").$post(

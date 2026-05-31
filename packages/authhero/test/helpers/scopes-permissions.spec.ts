@@ -349,16 +349,12 @@ describe("scopes-permissions helper", () => {
           },
         );
 
-        await env.data.userPermissions.create(
-          "tenantId",
-          "strictAuthzUser",
-          {
-            user_id: "strictAuthzUser",
-            resource_server_identifier:
-              "https://strict-authz-rbac-on.example.com",
-            permission_name: "read:users",
-          },
-        );
+        await env.data.userPermissions.create("tenantId", "strictAuthzUser", {
+          user_id: "strictAuthzUser",
+          resource_server_identifier:
+            "https://strict-authz-rbac-on.example.com",
+          permission_name: "read:users",
+        });
 
         const result = await calculateScopesAndPermissions(ctx, {
           tenantId: "tenantId",
@@ -460,16 +456,11 @@ describe("scopes-permissions helper", () => {
           },
         );
 
-        await env.data.userPermissions.create(
-          "tenantId",
-          "looseAuthzUser",
-          {
-            user_id: "looseAuthzUser",
-            resource_server_identifier:
-              "https://loose-authz-rbac-on.example.com",
-            permission_name: "read:users",
-          },
-        );
+        await env.data.userPermissions.create("tenantId", "looseAuthzUser", {
+          user_id: "looseAuthzUser",
+          resource_server_identifier: "https://loose-authz-rbac-on.example.com",
+          permission_name: "read:users",
+        });
 
         const result = await calculateScopesAndPermissions(ctx, {
           tenantId: "tenantId",

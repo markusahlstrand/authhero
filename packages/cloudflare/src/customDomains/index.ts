@@ -53,6 +53,7 @@ function extractSslFromMetadata(metadata?: Record<string, string>): {
 function mapCustomDomainResponse(
   result: CustomDomainResult & {
     primary: boolean;
+    type?: CustomDomain["type"];
     domain_metadata?: Record<string, string>;
   },
 ): CustomDomain {
@@ -115,7 +116,7 @@ function mapCustomDomainResponse(
     domain: result.hostname,
     primary: result.primary,
     status: result.status === "active" ? "ready" : "pending",
-    type: "auth0_managed_certs",
+    type: result.type ?? "auth0_managed_certs",
     verification: {
       methods: z.array(verificationMethodsSchema).parse(methods),
     },
@@ -160,6 +161,7 @@ export function createCustomDomainsAdapter(
       const customDomain = mapCustomDomainResponse({
         ...result,
         primary: false,
+        type: domain.type,
         domain_metadata: rest,
       });
 
