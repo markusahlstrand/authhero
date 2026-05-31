@@ -212,7 +212,9 @@ function wrapClientConnections(
     listByClient: async (tenant_id, client_id) => {
       const connections = await base.listByClient(tenant_id, client_id);
       return Promise.all(
-        connections.map((connection) => mapConnection(connection, key, decrypt)),
+        connections.map((connection) =>
+          mapConnection(connection, key, decrypt),
+        ),
       );
     },
     updateByClient: (tenant_id, client_id, connection_ids) =>

@@ -402,4 +402,85 @@ describe("customDomains", () => {
       },
     });
   });
+
+  it("uploadCertificate forwards custom_certificate and custom_key to Cloudflare", async () => {
+    const { data } = await getTestServer();
+
+    const { customDomains } = createAdapters({
+      zoneId: "zoneId",
+      authKey: "authKey",
+      authEmail: "authEmail",
+      enterprise: false,
+      customDomainAdapter: data.customDomains,
+    });
+
+    await data.tenants.create({
+      id: "tenantId",
+      friendly_name: "Test Tenant",
+      audience: "https://example.com",
+      sender_email: "login@example.com",
+      sender_name: "SenderName",
+    });
+
+    const created = await customDomains.create("tenantId", {
+      domain: "example.com",
+      type: "self_managed_certs",
+    });
+
+    const pem_cert =
+      "-----BEGIN CERTIFICATE-----\nMIIBfake\n-----END CERTIFICATE-----\n";
+    const pem_key =
+      "-----BEGIN PRIVATE KEY-----\nMIIBfake\n-----END PRIVATE KEY-----\n";
+
+    const result = await customDomains.uploadCertificate!(
+      "tenantId",
+      created.custom_domain_id,
+      { certificate: pem_cert, private_key: pem_key },
+    );
+
+    expect(lastUpdatePayload).toEqual({
+      ssl: {
+        custom_certificate: pem_cert,
+        custom_key: pem_key,
+      },
+    });
+
+    expect(result).toMatchObject({
+      custom_domain_id: created.custom_domain_id,
+      domain: "example.com",
+    });
+  });
+
+  it("uploadCertificate throws 404 when the domain isn't in the tenant's DB", async () => {
+    const { data } = await getTestServer();
+
+    const { customDomains } = createAdapters({
+      zoneId: "zoneId",
+      authKey: "authKey",
+      authEmail: "authEmail",
+      enterprise: false,
+      customDomainAdapter: data.customDomains,
+    });
+
+    await data.tenants.create({
+      id: "tenantId",
+      friendly_name: "Test Tenant",
+      audience: "https://example.com",
+      sender_email: "login@example.com",
+      sender_name: "SenderName",
+    });
+
+    try {
+      await customDomains.uploadCertificate!("tenantId", "customHostnameId", {
+        certificate:
+          "-----BEGIN CERTIFICATE-----\nfake\n-----END CERTIFICATE-----\n",
+        private_key:
+          "-----BEGIN PRIVATE KEY-----\nfake\n-----END PRIVATE KEY-----\n",
+      });
+      throw new Error("should have thrown");
+    } catch (err) {
+      if (!(err instanceof HTTPException)) throw err;
+      expect(err.status).toBe(404);
+    }
+  });
 });

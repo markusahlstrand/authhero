@@ -29,6 +29,7 @@ The custom domains adapter provides the following methods:
 - `list(tenantId, params)` - List custom domains with pagination
 - `remove(tenantId, domainId)` - Remove a custom domain
 - `update(tenantId, domainId, data)` - Update a custom domain
+- `uploadCertificate(tenantId, domainId, { certificate, private_key })` - Install a customer-supplied PEM certificate and private key on the Cloudflare custom hostname (BYOC)
 
 ## Usage Example
 
@@ -50,7 +51,27 @@ const { domains, total } = await customDomains.list("tenant-123", {
 
 // Remove a domain
 await customDomains.remove("tenant-123", "domain-id-456");
+
+// Upload a customer-supplied certificate (Cloudflare BYOC)
+await customDomains.uploadCertificate!("tenant-123", "domain-id-456", {
+  certificate: "-----BEGIN CERTIFICATE-----\n...",
+  private_key: "-----BEGIN PRIVATE KEY-----\n...",
+});
 ```
+
+## Bring Your Own Certificate (BYOC)
+
+The adapter exposes an optional `uploadCertificate` method that forwards a PEM-encoded certificate and private key to Cloudflare's Custom Hostnames API. The cert and key are installed at the edge and are never persisted by AuthHero.
+
+The management API exposes this as `PUT /api/v2/custom-domains/{id}/certificate` (scope: `update:custom_domains`). If the configured custom-domain adapter doesn't implement `uploadCertificate`, the route returns `501 Not Implemented`.
+
+To convert a PFX file to the expected PEM format:
+
+```sh
+openssl pkcs12 -in cert.pfx -nodes -out cert.pem
+```
+
+Then split `cert.pem` into the certificate chain (everything between `BEGIN CERTIFICATE` / `END CERTIFICATE` blocks, leaf first) and the private key block.
 
 ## Environment Variables
 

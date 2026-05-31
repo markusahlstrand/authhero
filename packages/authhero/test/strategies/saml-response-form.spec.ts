@@ -9,7 +9,11 @@ describe("samlResponseForm — auto-submit HTML escaping", () => {
   it("escapes a RelayState payload that tries to break out of the attribute", async () => {
     const malicious = `" autofocus onfocus="alert(1)`;
     const html = await bodyText(
-      samlResponseForm("https://sp.example.com/acs", "BASE64SAMLRESPONSE", malicious),
+      samlResponseForm(
+        "https://sp.example.com/acs",
+        "BASE64SAMLRESPONSE",
+        malicious,
+      ),
     );
 
     // The raw payload must NOT appear unescaped in the HTML.

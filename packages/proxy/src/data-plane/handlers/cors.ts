@@ -1,5 +1,6 @@
 import { z } from "@hono/zod-openapi";
 import { defineHandler } from "../registry";
+import { ensureMutableResponseHeaders } from "./util";
 
 const optionsSchema = z
   .object({
@@ -77,9 +78,8 @@ export const corsHandler = defineHandler<Options>({
 
       await next();
 
-      // Mutate headers in place — Hono's c.res setter merges old headers
-      // over new ones, which would clobber any reassignment.
       const corsHeaders = buildCorsHeaders(options, origin);
+      ensureMutableResponseHeaders(c);
       corsHeaders.forEach((value, key) => {
         if (key.toLowerCase() === "vary") c.res.headers.append(key, value);
         else c.res.headers.set(key, value);

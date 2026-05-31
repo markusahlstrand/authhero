@@ -1,5 +1,6 @@
 import {
   CustomDomain,
+  CustomDomainCertificateUpload,
   CustomDomainInsert,
   CustomDomainsAdapter,
   VerificationMethods,
@@ -52,6 +53,7 @@ function extractSslFromMetadata(metadata?: Record<string, string>): {
 function mapCustomDomainResponse(
   result: CustomDomainResult & {
     primary: boolean;
+    type?: CustomDomain["type"];
     domain_metadata?: Record<string, string>;
   },
 ): CustomDomain {
@@ -114,7 +116,7 @@ function mapCustomDomainResponse(
     domain: result.hostname,
     primary: result.primary,
     status: result.status === "active" ? "ready" : "pending",
-    type: "auth0_managed_certs",
+    type: result.type ?? "auth0_managed_certs",
     verification: {
       methods: z.array(verificationMethodsSchema).parse(methods),
     },
@@ -159,6 +161,7 @@ export function createCustomDomainsAdapter(
       const customDomain = mapCustomDomainResponse({
         ...result,
         primary: false,
+        type: domain.type,
         domain_metadata: rest,
       });
 
@@ -326,6 +329,42 @@ export function createCustomDomainsAdapter(
         domain_id,
         custom_domain,
       );
+    },
+    uploadCertificate: async (
+      tenant_id: string,
+      domain_id: string,
+      cert: CustomDomainCertificateUpload,
+    ) => {
+      const existing = await config.customDomainAdapter.get(
+        tenant_id,
+        domain_id,
+      );
+      if (!existing) {
+        throw new HTTPException(404);
+      }
+
+      const response = await getClient(config)
+        .patch(
+          {
+            ssl: {
+              custom_certificate: cert.certificate,
+              custom_key: cert.private_key,
+            },
+          },
+          `/custom_hostnames/${encodeURIComponent(domain_id)}`,
+        )
+        .json();
+
+      const { result, errors, success } =
+        customDomainResponseSchema.parse(response);
+
+      if (!success) {
+        throw new HTTPException(503, {
+          message: JSON.stringify(errors),
+        });
+      }
+
+      return mapCustomDomainResponse({ ...existing, ...result });
     },
   };
 }

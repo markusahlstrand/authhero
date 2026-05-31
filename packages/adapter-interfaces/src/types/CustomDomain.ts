@@ -59,3 +59,22 @@ export const customDomainWithTenantIdSchema = customDomainSchema.extend({
 export type CustomDomainWithTenantId = z.infer<
   typeof customDomainWithTenantIdSchema
 >;
+
+export const customDomainCertificateUploadSchema = z.object({
+  certificate: z
+    .string()
+    .regex(
+      /^-----BEGIN CERTIFICATE-----[\s\S]+-----END CERTIFICATE-----\s*$/,
+      "must be PEM-encoded; include the full certificate chain in leaf-first order",
+    ),
+  private_key: z
+    .string()
+    .regex(
+      /-----BEGIN (RSA |EC |ENCRYPTED )?PRIVATE KEY-----[\s\S]+-----END \1PRIVATE KEY-----\s*$/,
+      "must be a PEM-encoded private key",
+    ),
+});
+
+export type CustomDomainCertificateUpload = z.infer<
+  typeof customDomainCertificateUploadSchema
+>;

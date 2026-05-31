@@ -290,4 +290,31 @@ describe("/authorize with a CIMD client_id", () => {
     expect(response.status).toBe(400);
     expect(await response.text()).toMatch(/does not match/);
   });
+
+  it("upserts a stub client row so refresh_token FK is satisfied", async () => {
+    const { oauthApp, env } = await getTestServer();
+    await enableCimd(env);
+    env.ALLOW_PRIVATE_OUTBOUND_FETCH = true;
+    mockFetchJson(validDocument());
+
+    expect(await env.data.clients.get("tenantId", CIMD_URL)).toBeNull();
+
+    const oauthClient = testClient(oauthApp, env);
+    await oauthClient.authorize.$get({
+      query: {
+        client_id: CIMD_URL,
+        redirect_uri: "https://rp.example.com/callback",
+        response_type: "code",
+        scope: "openid",
+        code_challenge: "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM",
+        code_challenge_method: "S256",
+        state: "xyz",
+      },
+    });
+
+    const stub = await env.data.clients.get("tenantId", CIMD_URL);
+    expect(stub).not.toBeNull();
+    expect(stub?.name).toBe("Example MCP Client");
+    expect(stub?.client_metadata?.cimd).toBe("true");
+  });
 });

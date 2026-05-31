@@ -404,4 +404,119 @@ describe("clients", () => {
       conn2.id,
     );
   });
+
+  describe("app_type defaults on create", () => {
+    async function create(json: Record<string, unknown>) {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+      const response = await managementClient.clients.$post(
+        { json: json as never, header: { "tenant-id": "tenantId" } },
+        { headers: { authorization: `Bearer ${token}` } },
+      );
+      expect(response.status).toBe(201);
+      return (await response.json()) as Client;
+    }
+
+    it("derives PKCE/no-secret defaults for SPA", async () => {
+      const client = await create({ name: "spa-app", app_type: "spa" });
+      expect(client.token_endpoint_auth_method).toBe("none");
+      expect(client.client_secret).toBeFalsy();
+      expect(client.grant_types).toEqual([
+        "authorization_code",
+        "refresh_token",
+      ]);
+    });
+
+    it("derives PKCE/no-secret defaults for Native", async () => {
+      const client = await create({
+        name: "native-app",
+        app_type: "native",
+      });
+      expect(client.token_endpoint_auth_method).toBe("none");
+      expect(client.client_secret).toBeFalsy();
+    });
+
+    it("derives confidential defaults for Regular Web", async () => {
+      const client = await create({
+        name: "rw-app",
+        app_type: "regular_web",
+      });
+      expect(client.token_endpoint_auth_method).toBe("client_secret_basic");
+      expect(client.client_secret).toBeTruthy();
+      expect(client.grant_types).toEqual([
+        "authorization_code",
+        "refresh_token",
+      ]);
+    });
+
+    it("derives client_credentials defaults for M2M", async () => {
+      const client = await create({
+        name: "m2m-app",
+        app_type: "non_interactive",
+      });
+      expect(client.token_endpoint_auth_method).toBe("client_secret_basic");
+      expect(client.client_secret).toBeTruthy();
+      expect(client.grant_types).toEqual(["client_credentials"]);
+    });
+
+    it("preserves explicit grant_types over the default", async () => {
+      const client = await create({
+        name: "custom",
+        app_type: "spa",
+        grant_types: ["authorization_code"],
+      });
+      expect(client.grant_types).toEqual(["authorization_code"]);
+    });
+  });
+
+  describe("CIMD client management API restrictions", () => {
+    const CIMD_URL = "https://rp.example.com/cimd.json";
+
+    it("rejects POST with a URL-shaped client_id", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      const response = await managementClient.clients.$post(
+        {
+          json: { client_id: CIMD_URL, name: "Claude" },
+          header: { "tenant-id": "tenantId" },
+        },
+        { headers: { authorization: `Bearer ${token}` } },
+      );
+
+      expect(response.status).toBe(400);
+      expect(await response.text()).toMatch(/CIMD/);
+    });
+
+    it("rejects PATCH on a CIMD-marked client", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      // Seed a CIMD-marked client directly via the adapter so we don't have to
+      // drive the /authorize flow just to populate the row.
+      await env.data.clients.create("tenantId", {
+        client_id: CIMD_URL,
+        name: "Claude",
+        client_metadata: { cimd: "true" },
+      });
+
+      // Hono's RPC test client substitutes path params verbatim (no
+      // encoding), so a URL-shaped id needs to be pre-encoded — otherwise its
+      // embedded slashes split the segment and `/clients/:id` never matches.
+      const response = await managementClient.clients[":id"].$patch(
+        {
+          param: { id: encodeURIComponent(CIMD_URL) },
+          json: { name: "Renamed" },
+          header: { "tenant-id": "tenantId" },
+        },
+        { headers: { authorization: `Bearer ${token}` } },
+      );
+
+      expect(response.status).toBe(400);
+      expect(await response.text()).toMatch(/metadata document/i);
+    });
+  });
 });

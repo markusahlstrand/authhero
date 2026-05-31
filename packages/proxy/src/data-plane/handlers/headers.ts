@@ -1,6 +1,6 @@
 import { z } from "@hono/zod-openapi";
 import { defineHandler } from "../registry";
-import { mutateRequestHeaders } from "./util";
+import { ensureMutableResponseHeaders, mutateRequestHeaders } from "./util";
 
 const optionsSchema = z.object({
   request: z.record(z.string(), z.string()).optional(),
@@ -30,6 +30,7 @@ export const headersHandler = defineHandler<Options>({
       await next();
 
       if (options.response || options.remove_response) {
+        ensureMutableResponseHeaders(c);
         options.remove_response?.forEach((k) => c.res.headers.delete(k));
         if (options.response) {
           for (const [k, v] of Object.entries(options.response)) {

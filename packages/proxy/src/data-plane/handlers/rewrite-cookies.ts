@@ -1,5 +1,6 @@
 import { z } from "@hono/zod-openapi";
 import { defineHandler } from "../registry";
+import { ensureMutableResponseHeaders } from "./util";
 
 const optionsSchema = z.object({
   // Hostname on the upstream whose Domain= attribute should be rewritten.
@@ -46,8 +47,7 @@ export const rewriteCookiesHandler = defineHandler<Options>({
         "i",
       );
 
-      // Mutate c.res.headers in place — reassigning c.res would trigger
-      // Hono's header-merge behavior and clobber the rewrite.
+      ensureMutableResponseHeaders(c);
       c.res.headers.delete("set-cookie");
       for (const cookie of setCookies) {
         c.res.headers.append(

@@ -43,7 +43,8 @@ export function ErrorPage({
   darkMode = "auto",
 }: ErrorPageProps) {
   const isInfo = variant === "info";
-  const resolvedTitle = title ?? (isInfo ? "Information" : "Something went wrong");
+  const resolvedTitle =
+    title ?? (isInfo ? "Information" : "Something went wrong");
   const pageBackground = buildThemePageBackground(
     theme?.page_background,
     branding?.colors?.page_background,

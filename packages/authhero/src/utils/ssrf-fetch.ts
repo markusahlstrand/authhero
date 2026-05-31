@@ -160,12 +160,21 @@ export async function ssrfSafeFetch(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
+    // Cloudflare Workers' fetch only accepts "follow" or "manual" for
+    // `redirect`; passing "error" throws TypeError at runtime. Use "manual"
+    // and reject 3xx ourselves so the no-redirect property still holds.
     const response = await fetch(url, {
       method: "GET",
-      redirect: "error",
+      redirect: "manual",
       signal: controller.signal,
       headers: { accept: "application/json, application/jwt, text/plain" },
     });
+
+    if (response.status >= 300 && response.status < 400) {
+      throw new SsrfBlockedError(
+        `redirect (status ${response.status}) not allowed`,
+      );
+    }
 
     if (!response.body) {
       return {

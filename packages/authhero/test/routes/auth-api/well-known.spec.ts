@@ -285,7 +285,9 @@ describe("jwks", () => {
     const { oauthApp, env } = await getTestServer();
     const client = testClient(oauthApp, env);
 
-    const before = await client[".well-known"]["oauth-authorization-server"].$get(
+    const before = await client[".well-known"][
+      "oauth-authorization-server"
+    ].$get(
       {
         param: {},
       },
@@ -303,7 +305,9 @@ describe("jwks", () => {
       flags: { client_id_metadata_document_registration: true },
     });
 
-    const after = await client[".well-known"]["oauth-authorization-server"].$get(
+    const after = await client[".well-known"][
+      "oauth-authorization-server"
+    ].$get(
       {
         param: {},
       },
