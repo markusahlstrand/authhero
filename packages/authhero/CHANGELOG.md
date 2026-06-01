@@ -1,5 +1,20 @@
 # authhero
 
+## 5.17.0
+
+### Minor Changes
+
+- 662186c: Add `additionalManagementAudiences` resolver on `init()` to extend the audiences accepted by the management API beyond the built-in `urn:authhero:management`. The resolver receives the token's `tenant_id` and returns the list of accepted audiences, so a per-tenant identifier (e.g. `https://${tenant_id}.token.example.com/v2/api/`) can be constructed at request time alongside any global legacy identifiers. The default audience is always accepted; the resolver is purely additive.
+- 662186c: Add `relaxManagementAudience` flag on `init()` to downgrade the management API audience check from a hard 403 to a `console.warn`. Use during a client migration: tokens issued for any other audience are still accepted as long as they carry a matching scope, but every accepted token logs a warning with `sub`/`aud` so operators can identify the remaining offenders. Flip back off once warnings stop — the audience check is a defense-in-depth control against tokens minted with attacker-chosen scopes for an unregistered audience.
+
+### Patch Changes
+
+- 662186c: Log management API failures as `fapi` (Failed API Operation) entries in the tenant's log stream, matching Auth0's behavior. Previously a 4xx/5xx response from the management API was returned to the SDK but no log entry was written, so operators could see successful operations (`sapi`) but had no visibility into rejected ones. Now any management API request whose response status is 400-599 produces a `fapi` log entry with the status code and response body, regardless of whether the route threw or returned the error.
+
+  The auth middleware now populates principal context (`user_id`, `client_id`, `org_id`, etc.) from the validated JWT before evaluating audience and scope, so failed-authorization `fapi` entries are attributed to the actual caller instead of being anonymous.
+
+- 662186c: Fix the post-password-reset redirect on the u2 universal-login flow. After a successful password reset, both `reset-password` and `reset-password/code` screens redirected to `/u2/identifier?...`, but the registered route is `/u2/login/identifier` — the catch-all screen dispatcher rejected `identifier` with a Zod validation error and the user was shown an error page instead of being returned to the identifier screen.
+
 ## 5.16.0
 
 ### Minor Changes
