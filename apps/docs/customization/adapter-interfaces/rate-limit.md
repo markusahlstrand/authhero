@@ -47,43 +47,89 @@ These vectors are intentionally **not** rate-limited by `RateLimitAdapter` insid
 - **`/passwordless/start`** — anyone can request an OTP code to be sent to an arbitrary email or phone. AuthHero does not throttle this in-band because the realistic abuse vector (an attacker spraying delivery costs onto your account) is better addressed by an upstream rate limiter that can see total request volume per IP/ASN, not just per `(tenant, identifier)`.
 - **`/oauth/authorize`, `/oauth/token` (non-OTP grants), `/userinfo`** — standard OAuth endpoints. Use your edge layer (Cloudflare WAF, AWS WAF, an ingress rate limiter) for blanket request-rate protection.
 
-## Implementing the adapter
+## Tenant `attack_protection` settings
 
-A typical Cloudflare Workers implementation wires each `RateLimitScope` to a distinct Rate Limiter binding so the limit/period can differ per scope at deploy time:
+The `pre-login` check is gated by the tenant's `attack_protection.suspicious_ip_throttling` setting (manageable via the management API or the admin UI). When `enabled: false`, AuthHero skips the `consume()` call entirely — the binding is bypassed even if configured. IPs in the `allowlist` are also skipped. So enabling throttling end-to-end requires **both** a configured `RateLimitAdapter` and `suspicious_ip_throttling.enabled = true` on the tenant.
+
+## Wiring it up on Cloudflare Workers
+
+The `@authhero/cloudflare-adapter` package ships a built-in factory — you don't need to implement `RateLimitAdapter` by hand. Setup is three steps.
+
+### 1. Declare the bindings in `wrangler.toml`
+
+Each scope gets its own binding so limit and period can differ per scope. The Workers Rate Limiter only supports `period: 10` or `period: 60`.
+
+```toml
+[[unsafe.bindings]]
+name = "RATE_LIMIT_PRE_LOGIN"
+type = "ratelimit"
+namespace_id = "1001"
+simple = { limit = 30, period = 60 }
+
+[[unsafe.bindings]]
+name = "RATE_LIMIT_BRUTE_FORCE"
+type = "ratelimit"
+namespace_id = "1002"
+simple = { limit = 10, period = 60 }
+
+[[unsafe.bindings]]
+name = "RATE_LIMIT_PRE_REGISTRATION"
+type = "ratelimit"
+namespace_id = "1003"
+simple = { limit = 10, period = 60 }
+```
+
+Any scope you omit returns a permissive (`allowed: true`) decision — you can roll out one scope at a time.
+
+### 2. Pass `rateLimitBindings` to `createAdapters`
+
+`createAdapters` from `@authhero/cloudflare-adapter` accepts a `rateLimitBindings` field. When at least one binding is present it attaches a `rateLimit` adapter to the returned object; otherwise it stays `undefined`.
 
 ```typescript
-// wrangler.toml
-// [[unsafe.bindings]]
-// name = "RATE_LIMIT_BRUTE_FORCE"
-// type = "ratelimit"
-// namespace_id = "1001"
-// simple = { limit = 10, period = 60 }
-//
-// [[unsafe.bindings]]
-// name = "RATE_LIMIT_PRE_LOGIN"
-// type = "ratelimit"
-// namespace_id = "1002"
-// simple = { limit = 30, period = 60 }
+import createCloudflareAdapters from "@authhero/cloudflare-adapter";
 
-const rateLimit: RateLimitAdapter = {
-  async consume(scope, key) {
-    const binding =
-      scope === "brute-force"
-        ? env.RATE_LIMIT_BRUTE_FORCE
-        : scope === "pre-login"
-          ? env.RATE_LIMIT_PRE_LOGIN
-          : undefined;
-    if (!binding) return { allowed: true };
-
-    const { success } = await binding.limit({ key });
-    return { allowed: success };
+const cloudflare = createCloudflareAdapters({
+  // ...other cloudflare config (customDomains, cache, logs, ...)
+  rateLimitBindings: {
+    "pre-login": env.RATE_LIMIT_PRE_LOGIN,
+    "brute-force": env.RATE_LIMIT_BRUTE_FORCE,
+    "pre-user-registration": env.RATE_LIMIT_PRE_REGISTRATION,
   },
+});
+```
+
+### 3. Merge `rateLimit` into the data adapter passed to `app.fetch`
+
+The auth flows read `env.data.rateLimit`, so the field needs to be on the data object you hand to `app.fetch(request, { ISSUER, data })`:
+
+```typescript
+import createKyselyAdapters from "@authhero/kysely-adapter";
+
+const data = {
+  ...createKyselyAdapters(db),
+  ...cloudflare, // contributes rateLimit, customDomains, cache, ...
+};
+
+export default {
+  fetch: (request: Request, env: Env) =>
+    app.fetch(request, { ISSUER: env.ISSUER, data }),
 };
 ```
 
-When wiring the adapter into your `DataAdapters` instance, set the optional `rateLimit` field:
+Without this merge, `data.rateLimit` is `undefined` and the flows fail open silently.
+
+## Implementing a custom backend
+
+For non-Cloudflare deployments (Redis, an upstream WAF API, a Durable Object, etc.), implement `RateLimitAdapter` directly:
 
 ```typescript
+const rateLimit: RateLimitAdapter = {
+  async consume(scope, key) {
+    // Look up your per-scope limit/window, increment your counter,
+    // return { allowed, retryAfterSeconds? }.
+  },
+};
+
 const data: DataAdapters = {
   ...createAdapters(db),
   rateLimit,
