@@ -23,9 +23,27 @@ function convertRouteSyntax(route: string) {
  * token's `aud` includes the management API audience. It must be enabled
  * for the management API and left off for everything else (the `/userinfo`
  * endpoint, for example, takes any access token issued by this tenant).
+ *
+ * `relaxManagementAudience` downgrades that audience check from a hard
+ * rejection to a `console.warn`, letting tokens issued for other audiences
+ * still pass. TRANSITIONAL: use only while migrating clients to request
+ * the management audience; flip back off once warnings stop appearing.
+ *
+ * `additionalManagementAudiences` extends the set of accepted audiences
+ * beyond the built-in `urn:authhero:management`. The resolver receives the
+ * token's `tenant_id` and returns the list of audiences accepted for that
+ * token, so a per-tenant identifier (e.g.
+ * `https://${tenant_id}.token.example.com/v2/api/`) can be constructed at
+ * request time alongside any global legacy identifiers.
  */
+export type ManagementAudienceResolver = (params: {
+  tenant_id?: string;
+}) => string[] | Promise<string[]>;
+
 export interface AuthMiddlewareOptions {
   requireManagementAudience?: boolean;
+  relaxManagementAudience?: boolean;
+  additionalManagementAudiences?: ManagementAudienceResolver;
 }
 
 // For a scope of the form `verb:resource` (e.g. `read:users`) also accept the
@@ -46,6 +64,8 @@ export function createAuthMiddleware(
   options: AuthMiddlewareOptions = {},
 ) {
   const requireManagementAudience = options.requireManagementAudience ?? false;
+  const relaxManagementAudience = options.relaxManagementAudience ?? false;
+  const additionalManagementAudiences = options.additionalManagementAudiences;
   return async (
     ctx: Context<{ Bindings: Bindings; Variables }>,
     next: Next,
@@ -96,6 +116,27 @@ export function createAuthMiddleware(
       try {
         const tokenPayload = await validateJwtToken(ctx, bearer);
 
+        // Populate principal context from the validated token before any
+        // authorization checks below. The token is cryptographically valid by
+        // this point; the checks that follow gate access, not authenticity.
+        // Setting these here lets audit logs attribute failed authorizations
+        // (Invalid audience, cross-tenant denial, missing scope) to the actual
+        // calling principal instead of recording an anonymous failure.
+        ctx.set("user_id", tokenPayload.sub);
+        ctx.set("user", tokenPayload);
+        if (tokenPayload.azp) {
+          ctx.set("client_id", tokenPayload.azp);
+        }
+        if (tokenPayload.org_name) {
+          ctx.set("org_name", tokenPayload.org_name);
+        }
+        if (tokenPayload.org_id) {
+          ctx.set("organization_id", tokenPayload.org_id);
+        }
+        if (!ctx.var.tenant_id && tokenPayload.tenant_id) {
+          ctx.set("tenant_id", tokenPayload.tenant_id);
+        }
+
         if (requireManagementAudience) {
           // Defense in depth: require the token's audience to be the
           // management API resource server. Without this check a token issued
@@ -104,10 +145,32 @@ export function createAuthMiddleware(
           // it carried a matching scope/permission string.
           const aud = tokenPayload.aud;
           const tokenAudiences = Array.isArray(aud) ? aud : aud ? [aud] : [];
-          if (!tokenAudiences.includes(MANAGEMENT_API_AUDIENCE)) {
-            throw new JSONHTTPException(403, {
-              message: "Invalid audience",
-            });
+          const tokenTenantIdForAud =
+            typeof tokenPayload.tenant_id === "string"
+              ? tokenPayload.tenant_id
+              : undefined;
+          const extraAudiences = additionalManagementAudiences
+            ? await additionalManagementAudiences({
+                tenant_id: tokenTenantIdForAud,
+              })
+            : [];
+          const acceptedAudiences = new Set<string>([
+            MANAGEMENT_API_AUDIENCE,
+            ...extraAudiences,
+          ]);
+          if (!tokenAudiences.some((a) => acceptedAudiences.has(a))) {
+            if (relaxManagementAudience) {
+              // TRANSITIONAL: client hasn't been updated to request the
+              // management audience yet. Log so operators can identify the
+              // remaining offenders and eventually flip the flag back off.
+              console.warn(
+                `[authhero] management API accepted token without management audience (relaxManagementAudience=true): sub=${tokenPayload.sub ?? "unknown"} aud=${JSON.stringify(aud)}`,
+              );
+            } else {
+              throw new JSONHTTPException(403, {
+                message: "Invalid audience",
+              });
+            }
           }
 
           // Cross-tenant guard: the management API resolves `tenant_id` from
@@ -139,22 +202,6 @@ export function createAuthMiddleware(
               });
             }
           }
-        }
-
-        ctx.set("user_id", tokenPayload.sub);
-        ctx.set("user", tokenPayload);
-
-        // Set org context from token claims (for downstream use by multi-tenancy package)
-        if (tokenPayload.org_name) {
-          ctx.set("org_name", tokenPayload.org_name);
-        }
-        if (tokenPayload.org_id) {
-          ctx.set("organization_id", tokenPayload.org_id);
-        }
-
-        // Set tenant_id from token claim if not already set by tenant middleware
-        if (!ctx.var.tenant_id && tokenPayload.tenant_id) {
-          ctx.set("tenant_id", tokenPayload.tenant_id);
         }
 
         const permissions = Array.isArray(tokenPayload.permissions)

@@ -15,6 +15,7 @@ import type { RolePermissionHooks, Hooks } from "./Hooks";
 import type { SamlSigner } from "@authhero/saml/core";
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import type { Handler } from "hono";
+import type { ManagementAudienceResolver } from "../middlewares/authentication";
 import { EntityHooks } from "./Hooks";
 
 /**
@@ -477,4 +478,38 @@ export interface AuthHeroConfig {
    * @default "control-plane"
    */
   signingKeyMode?: SigningKeyModeOption;
+
+  /**
+   * Relax the management API audience check from a hard 403 to a
+   * `console.warn`. Tokens issued for any other audience will still be
+   * accepted as long as they carry a matching scope/permission string.
+   *
+   * TRANSITIONAL: enable only while migrating clients to request the
+   * `urn:authhero:management` audience. Watch the warn logs to identify
+   * the remaining offenders, then flip this back off — the audience check
+   * is a defense-in-depth control against tokens minted with
+   * attacker-chosen scopes for an unregistered audience.
+   *
+   * @default false
+   */
+  relaxManagementAudience?: boolean;
+
+  /**
+   * Resolver returning the list of audiences accepted by the management
+   * API audience check **in addition to** the built-in
+   * `urn:authhero:management`. The token's `tenant_id` is passed in, so a
+   * per-tenant identifier can be constructed at request time alongside any
+   * global legacy identifiers.
+   *
+   * The default audience is always accepted; the resolver is purely additive.
+   *
+   * @example
+   * ```ts
+   * additionalManagementAudiences: ({ tenant_id }) => [
+   *   "https://token.example.com/v2/api/",
+   *   `https://${tenant_id}.token.example.com/v2/api/`,
+   * ];
+   * ```
+   */
+  additionalManagementAudiences?: ManagementAudienceResolver;
 }
