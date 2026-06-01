@@ -292,7 +292,7 @@ export const resetPasswordCodeScreenDefinition: ScreenDefinition = {
       });
 
       if ("success" in result) {
-        const redirectUrl = `/u2/login/identifier?state=${encodeURIComponent(state)}&message=password_reset_success`;
+        const redirectUrl = `${context.routePrefix}/login/identifier?state=${encodeURIComponent(state)}&message=password_reset_success`;
         return { redirect: redirectUrl };
       }
 
