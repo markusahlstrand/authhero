@@ -51,6 +51,7 @@ export {
   createAuthMiddleware,
   MANAGEMENT_API_AUDIENCE,
 } from "./middlewares/authentication";
+export type { ManagementAudienceResolver } from "./middlewares/authentication";
 export { tenantMiddleware } from "./middlewares/tenant";
 export { clientInfoMiddleware } from "./middlewares/client-info";
 

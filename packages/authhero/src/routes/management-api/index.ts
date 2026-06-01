@@ -1,7 +1,9 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
+import { LogTypes } from "@authhero/adapter-interfaces";
 import { Bindings, Variables, AuthHeroConfig } from "../../types";
+import { logMessage } from "../../helpers/logging";
 import { actionsRoutes } from "./actions";
 import { actionExecutionsRoutes } from "./action-executions";
 import { actionTriggersRoutes } from "./action-triggers";
@@ -329,10 +331,89 @@ export default function create(config: AuthHeroConfig) {
     await next();
   });
 
+  // Mirror Auth0's `fapi` (failed API operation) log entries: any management
+  // API request that ends with a 4xx/5xx response writes a log to the tenant's
+  // log stream so callers can see failures alongside successes. Positioned
+  // inside the outbox middleware (so background log writes get drained) and
+  // outside the auth/tenant middlewares (so we catch their throws and still
+  // have tenant_id available from the request header / tenantMiddleware).
+  app.use(async (ctx, next) => {
+    let thrown: unknown;
+    try {
+      await next();
+    } catch (err) {
+      thrown = err;
+    }
+
+    let status: number;
+    let body: unknown;
+    if (thrown instanceof HTTPException) {
+      status = thrown.status;
+      const res = thrown.getResponse();
+      if (res.headers.get("content-type")?.includes("application/json")) {
+        try {
+          body = await res.clone().json();
+        } catch {
+          // ignore unparseable body
+        }
+      }
+    } else if (thrown) {
+      status = 500;
+    } else {
+      status = ctx.res.status;
+      if (
+        status >= 400 &&
+        ctx.res.headers.get("content-type")?.includes("application/json")
+      ) {
+        try {
+          body = await ctx.res.clone().json();
+        } catch {
+          // ignore unparseable body
+        }
+      }
+    }
+
+    if (status >= 400 && status < 600) {
+      const tenantId = ctx.var.tenant_id || ctx.req.header("tenant-id");
+      if (tenantId && ctx.env.data?.logs) {
+        try {
+          // Include the presented audience in the description so operators
+          // can immediately see which `aud` caused a 403 (and tell apart
+          // "Invalid audience" vs missing-scope failures from the request
+          // log). Falls through gracefully when no token was attached.
+          const tokenAud = ctx.var.user?.aud;
+          const audStr = Array.isArray(tokenAud)
+            ? tokenAud.join(",")
+            : typeof tokenAud === "string"
+              ? tokenAud
+              : undefined;
+          const description = audStr
+            ? `${ctx.req.method} ${ctx.req.path} (aud: ${audStr})`
+            : `${ctx.req.method} ${ctx.req.path}`;
+          await logMessage(ctx, tenantId, {
+            type: LogTypes.FAILED_API_OPERATION,
+            description,
+            response: { statusCode: status, body },
+          });
+        } catch (err) {
+          console.warn("Failed to write fapi log:", err);
+        }
+      }
+    }
+
+    if (thrown) throw thrown;
+  });
+
   app
     .use(clientInfoMiddleware)
     .use(tenantMiddleware)
-    .use(createAuthMiddleware(app, { requireManagementAudience: true }))
+    .use(
+      createAuthMiddleware(app, {
+        requireManagementAudience: true,
+        relaxManagementAudience: config.relaxManagementAudience,
+        additionalManagementAudiences: config.additionalManagementAudiences,
+      }),
+    )
     // Add entity hooks after tenant is known
     .use(async (ctx, next) => {
       if (config.entityHooks && ctx.var.tenant_id) {

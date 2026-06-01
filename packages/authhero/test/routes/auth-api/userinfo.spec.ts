@@ -10,8 +10,8 @@ describe("userinfo", () => {
       const client = testClient(oauthApp, env);
 
       const accessToken = await createToken({
-        userId: "email|userId",
-        tenantId: "tenantId",
+        user_id: "email|userId",
+        tenant_id: "tenantId",
         scope: "openid email",
       });
 
@@ -46,8 +46,8 @@ describe("userinfo", () => {
       const client = testClient(oauthApp, env);
 
       const accessToken = await createToken({
-        userId: "email|userId",
-        tenantId: "tenantId",
+        user_id: "email|userId",
+        tenant_id: "tenantId",
         scope: "openid email",
         aud: "https://example.com/api",
       });
@@ -83,8 +83,8 @@ describe("userinfo", () => {
       const { oauthApp, env } = await getTestServer();
       const client = testClient(oauthApp, env);
       const accessToken = await createToken({
-        userId: "email|userId",
-        tenantId: "tenantId",
+        user_id: "email|userId",
+        tenant_id: "tenantId",
         scope: "",
       });
 
@@ -108,10 +108,10 @@ describe("userinfo", () => {
       const client = testClient(oauthApp, env);
 
       const accessToken = await createToken({
-        userId: "email|userId",
-        tenantId: "tenantId",
+        user_id: "email|userId",
+        tenant_id: "tenantId",
         scope: "openid", // no `profile` scope — `name` only comes via claims param
-        requestedUserinfoClaims: ["name"],
+        requested_userinfo_claims: ["name"],
       });
 
       const response = await client.userinfo.$get(
@@ -136,10 +136,10 @@ describe("userinfo", () => {
       const client = testClient(oauthApp, env);
 
       const accessToken = await createToken({
-        userId: "email|userId",
-        tenantId: "tenantId",
+        user_id: "email|userId",
+        tenant_id: "tenantId",
         scope: "openid",
-        requestedUserinfoClaims: ["not_a_standard_claim"],
+        requested_userinfo_claims: ["not_a_standard_claim"],
       });
 
       const response = await client.userinfo.$get(
@@ -163,8 +163,8 @@ describe("userinfo", () => {
       const client = testClient(oauthApp, env);
 
       const accessToken = await createToken({
-        userId: "email|userId",
-        tenantId: "tenantId",
+        user_id: "email|userId",
+        tenant_id: "tenantId",
         scope: "openid email",
       });
 
@@ -203,8 +203,8 @@ describe("userinfo", () => {
       const { oauthApp, env } = await getTestServer();
       const client = testClient(oauthApp, env);
       const accessToken = await createToken({
-        userId: "email|userId",
-        tenantId: "tenantId",
+        user_id: "email|userId",
+        tenant_id: "tenantId",
         scope: "",
       });
 
@@ -225,8 +225,8 @@ describe("userinfo", () => {
       const client = testClient(oauthApp, env);
 
       const accessToken = await createToken({
-        userId: "email|userId",
-        tenantId: "tenantId",
+        user_id: "email|userId",
+        tenant_id: "tenantId",
         scope: "openid profile email",
       });
 
@@ -262,8 +262,8 @@ describe("userinfo", () => {
       const client = testClient(oauthApp, env);
 
       const accessToken = await createToken({
-        userId: "email|userId",
-        tenantId: "tenantId",
+        user_id: "email|userId",
+        tenant_id: "tenantId",
         scope: "openid profile email",
       });
 
@@ -307,8 +307,8 @@ describe("userinfo", () => {
       const client = testClient(oauthApp, env);
 
       const accessToken = await createToken({
-        userId: "email|userId",
-        tenantId: "tenantId",
+        user_id: "email|userId",
+        tenant_id: "tenantId",
         scope: "openid",
       });
 
@@ -347,8 +347,8 @@ describe("userinfo", () => {
       const client = testClient(oauthApp, env);
 
       const accessToken = await createToken({
-        userId: "email|userId",
-        tenantId: "tenantId",
+        user_id: "email|userId",
+        tenant_id: "tenantId",
         scope: "profile email", // Missing openid scope
       });
 
@@ -368,8 +368,8 @@ describe("userinfo", () => {
       const client = testClient(oauthApp, env);
 
       const accessToken = await createToken({
-        userId: "email|userId",
-        tenantId: "tenantId",
+        user_id: "email|userId",
+        tenant_id: "tenantId",
         scope: "openid",
       });
 
@@ -396,8 +396,8 @@ describe("userinfo", () => {
       const client = testClient(oauthApp, env);
 
       const accessToken = await createToken({
-        userId: "email|userId",
-        tenantId: "tenantId",
+        user_id: "email|userId",
+        tenant_id: "tenantId",
         scope: "openid profile",
       });
 
@@ -438,8 +438,8 @@ describe("userinfo", () => {
       const client = testClient(oauthApp, env);
 
       const accessToken = await createToken({
-        userId: "email|userId",
-        tenantId: "tenantId",
+        user_id: "email|userId",
+        tenant_id: "tenantId",
         scope: "openid email",
       });
 
@@ -468,8 +468,8 @@ describe("userinfo", () => {
       const client = testClient(oauthApp, env);
 
       const accessToken = await createToken({
-        userId: "email|userId",
-        tenantId: "tenantId",
+        user_id: "email|userId",
+        tenant_id: "tenantId",
         scope: "openid profile email",
       });
 
@@ -532,8 +532,8 @@ describe("userinfo", () => {
       });
 
       const accessToken = await createToken({
-        userId: "email|addressUserId",
-        tenantId: "tenantId",
+        user_id: "email|addressUserId",
+        tenant_id: "tenantId",
         scope: "openid address",
       });
 
@@ -583,8 +583,8 @@ describe("userinfo", () => {
       });
 
       const accessToken = await createToken({
-        userId: "email|noAddressUserId",
-        tenantId: "tenantId",
+        user_id: "email|noAddressUserId",
+        tenant_id: "tenantId",
         scope: "openid email", // No address scope
       });
 
@@ -627,8 +627,8 @@ describe("userinfo", () => {
       });
 
       const accessToken = await createToken({
-        userId: "email|phoneUserId",
-        tenantId: "tenantId",
+        user_id: "email|phoneUserId",
+        tenant_id: "tenantId",
         scope: "openid phone",
       });
 
@@ -671,8 +671,8 @@ describe("userinfo", () => {
       });
 
       const accessToken = await createToken({
-        userId: "email|noPhoneUserId",
-        tenantId: "tenantId",
+        user_id: "email|noPhoneUserId",
+        tenant_id: "tenantId",
         scope: "openid email", // No phone scope
       });
 

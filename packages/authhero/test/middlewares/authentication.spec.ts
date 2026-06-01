@@ -166,7 +166,7 @@ describe("createAuthMiddleware", () => {
 
     it("should reject request when user lacks required permissions", async () => {
       const token = await createToken({
-        userId: "user123",
+        user_id: "user123",
         permissions: ["read:posts"], // Different permission than required
         scope: "openid email",
       });
@@ -184,7 +184,7 @@ describe("createAuthMiddleware", () => {
 
     it("should reject request when user lacks required scopes", async () => {
       const token = await createToken({
-        userId: "user123",
+        user_id: "user123",
         permissions: [],
         scope: "openid email", // Missing read:users scope
       });
@@ -202,7 +202,7 @@ describe("createAuthMiddleware", () => {
 
     it("should allow request when user has required permissions", async () => {
       const token = await createToken({
-        userId: "user123",
+        user_id: "user123",
         permissions: ["read:users"], // Matching required permission
         scope: "openid email",
       });
@@ -225,7 +225,7 @@ describe("createAuthMiddleware", () => {
 
     it("should allow request when user has required scopes", async () => {
       const token = await createToken({
-        userId: "user123",
+        user_id: "user123",
         permissions: [],
         scope: "openid email read:users", // Including required scope
       });
@@ -248,7 +248,7 @@ describe("createAuthMiddleware", () => {
 
     it("should allow request when token uses reversed scope form", async () => {
       const token = await createToken({
-        userId: "user123",
+        user_id: "user123",
         permissions: ["users:read"],
         scope: "openid email",
       });
@@ -263,7 +263,7 @@ describe("createAuthMiddleware", () => {
 
     it("should allow request when token scope claim uses reversed form", async () => {
       const token = await createToken({
-        userId: "user123",
+        user_id: "user123",
         permissions: [],
         scope: "openid email users:read",
       });
@@ -278,7 +278,7 @@ describe("createAuthMiddleware", () => {
 
     it("should allow request when user has additional permissions", async () => {
       const token = await createToken({
-        userId: "user123",
+        user_id: "user123",
         permissions: ["read:users", "write:users", "admin"], // More than required
         scope: "openid email",
       });
@@ -322,7 +322,7 @@ describe("createAuthMiddleware", () => {
     it("should allow when user has any one of the required permissions", async () => {
       // Note: The current implementation uses `some()` which means ANY of the permissions is sufficient
       const token = await createToken({
-        userId: "user123",
+        user_id: "user123",
         permissions: ["write:users"], // Has one of the required permissions
         scope: "openid email",
       });
@@ -392,7 +392,7 @@ describe("createAuthMiddleware", () => {
       });
 
       const token = await createToken({
-        userId: "user123",
+        user_id: "user123",
         permissions: ["read:users"],
       });
 
@@ -408,7 +408,7 @@ describe("createAuthMiddleware", () => {
       mockJwksService.fetch.mockRejectedValue(new Error("Network error"));
 
       const token = await createToken({
-        userId: "user123",
+        user_id: "user123",
         permissions: ["read:users"],
       });
 
@@ -444,7 +444,7 @@ describe("createAuthMiddleware", () => {
 
     it("accepts a non-management audience by default", async () => {
       const token = await createToken({
-        userId: "user123",
+        user_id: "user123",
         permissions: ["read:users"],
         aud: "https://example.com/api",
       });
@@ -463,7 +463,7 @@ describe("createAuthMiddleware", () => {
       });
 
       const token = await createToken({
-        userId: "user123",
+        user_id: "user123",
         permissions: ["read:users"],
         aud: "https://example.com/api",
       });
@@ -482,7 +482,7 @@ describe("createAuthMiddleware", () => {
       });
 
       const token = await createToken({
-        userId: "user123",
+        user_id: "user123",
         permissions: ["read:users"],
         aud: MANAGEMENT_API_AUDIENCE,
       });
@@ -493,6 +493,141 @@ describe("createAuthMiddleware", () => {
 
       expect(mockNext).toHaveBeenCalled();
       expect(result).toBe("next-response");
+    });
+
+    it("accepts an additional management audience returned by the resolver", async () => {
+      const middleware = createAuthMiddleware(app, {
+        requireManagementAudience: true,
+        additionalManagementAudiences: () => ["https://example.com/api"],
+      });
+
+      const token = await createToken({
+        user_id: "user123",
+        permissions: ["read:users"],
+        aud: "https://example.com/api",
+      });
+
+      mockCtx.req.header.mockReturnValue(`Bearer ${token}`);
+
+      const result = await middleware(mockCtx, mockNext);
+
+      expect(mockNext).toHaveBeenCalled();
+      expect(result).toBe("next-response");
+    });
+
+    it("still rejects audiences not returned by the resolver", async () => {
+      const middleware = createAuthMiddleware(app, {
+        requireManagementAudience: true,
+        additionalManagementAudiences: () => ["https://example.com/api"],
+      });
+
+      const token = await createToken({
+        user_id: "user123",
+        permissions: ["read:users"],
+        aud: "https://other.example.com/api",
+      });
+
+      mockCtx.req.header.mockReturnValue(`Bearer ${token}`);
+
+      await expect(middleware(mockCtx, mockNext)).rejects.toThrow(
+        "Invalid audience",
+      );
+      expect(mockNext).not.toHaveBeenCalled();
+    });
+
+    it("still accepts the default management audience when a resolver is set", async () => {
+      const middleware = createAuthMiddleware(app, {
+        requireManagementAudience: true,
+        additionalManagementAudiences: () => ["https://example.com/api"],
+      });
+
+      const token = await createToken({
+        user_id: "user123",
+        permissions: ["read:users"],
+        aud: MANAGEMENT_API_AUDIENCE,
+      });
+
+      mockCtx.req.header.mockReturnValue(`Bearer ${token}`);
+
+      const result = await middleware(mockCtx, mockNext);
+
+      expect(mockNext).toHaveBeenCalled();
+      expect(result).toBe("next-response");
+    });
+
+    it("passes the token's tenant_id to the resolver for per-tenant audiences", async () => {
+      const resolver = vi.fn(({ tenant_id }: { tenant_id?: string }) => [
+        "https://token.example.com/v2/api/",
+        `https://${tenant_id}.token.example.com/v2/api/`,
+      ]);
+      const middleware = createAuthMiddleware(app, {
+        requireManagementAudience: true,
+        additionalManagementAudiences: resolver,
+      });
+
+      const token = await createToken({
+        user_id: "user123",
+        permissions: ["read:users"],
+        aud: "https://sesamy.token.example.com/v2/api/",
+        tenant_id: "sesamy",
+      });
+
+      mockCtx.req.header.mockReturnValue(`Bearer ${token}`);
+
+      const result = await middleware(mockCtx, mockNext);
+
+      expect(resolver).toHaveBeenCalledWith({ tenant_id: "sesamy" });
+      expect(mockNext).toHaveBeenCalled();
+      expect(result).toBe("next-response");
+    });
+
+    it("supports an async resolver", async () => {
+      const middleware = createAuthMiddleware(app, {
+        requireManagementAudience: true,
+        additionalManagementAudiences: async () => ["https://example.com/api"],
+      });
+
+      const token = await createToken({
+        user_id: "user123",
+        permissions: ["read:users"],
+        aud: "https://example.com/api",
+      });
+
+      mockCtx.req.header.mockReturnValue(`Bearer ${token}`);
+
+      const result = await middleware(mockCtx, mockNext);
+
+      expect(mockNext).toHaveBeenCalled();
+      expect(result).toBe("next-response");
+    });
+
+    it("accepts a non-management audience when relaxManagementAudience is true and warns", async () => {
+      const relaxedMiddleware = createAuthMiddleware(app, {
+        requireManagementAudience: true,
+        relaxManagementAudience: true,
+      });
+
+      const token = await createToken({
+        user_id: "user123",
+        permissions: ["read:users"],
+        aud: "https://example.com/api",
+      });
+
+      mockCtx.req.header.mockReturnValue(`Bearer ${token}`);
+
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      try {
+        const result = await relaxedMiddleware(mockCtx, mockNext);
+
+        expect(mockNext).toHaveBeenCalled();
+        expect(result).toBe("next-response");
+        expect(warnSpy).toHaveBeenCalledTimes(1);
+        expect(warnSpy.mock.calls[0][0]).toContain(
+          "relaxManagementAudience=true",
+        );
+      } finally {
+        warnSpy.mockRestore();
+      }
     });
   });
 
@@ -522,10 +657,10 @@ describe("createAuthMiddleware", () => {
       });
 
       const token = await createToken({
-        userId: "user123",
+        user_id: "user123",
         permissions: ["read:users"],
         aud: MANAGEMENT_API_AUDIENCE,
-        tenantId: "tenantA",
+        tenant_id: "tenantA",
       });
 
       mockCtx.req.header.mockReturnValue(`Bearer ${token}`);
@@ -545,10 +680,10 @@ describe("createAuthMiddleware", () => {
       });
 
       const token = await createToken({
-        userId: "user123",
+        user_id: "user123",
         permissions: ["read:users"],
         aud: MANAGEMENT_API_AUDIENCE,
-        tenantId: "tenantA",
+        tenant_id: "tenantA",
       });
 
       mockCtx.req.header.mockReturnValue(`Bearer ${token}`);
@@ -566,10 +701,10 @@ describe("createAuthMiddleware", () => {
       });
 
       const token = await createToken({
-        userId: "user123",
+        user_id: "user123",
         permissions: ["read:users"],
         aud: MANAGEMENT_API_AUDIENCE,
-        tenantId: "controlPlane",
+        tenant_id: "controlPlane",
       });
 
       // Wire the control-plane tenant id into the mock env.
@@ -592,10 +727,10 @@ describe("createAuthMiddleware", () => {
       });
 
       const token = await createToken({
-        userId: "user123",
+        user_id: "user123",
         permissions: ["read:users"],
         aud: MANAGEMENT_API_AUDIENCE,
-        tenantId: "tenantA",
+        tenant_id: "tenantA",
       });
 
       mockCtx.env = {
@@ -617,7 +752,7 @@ describe("createAuthMiddleware", () => {
       });
 
       const token = await createToken({
-        userId: "user123",
+        user_id: "user123",
         permissions: ["read:users"],
         aud: MANAGEMENT_API_AUDIENCE,
         // no tenantId — token is not tenant-scoped (e.g. legacy)
@@ -669,7 +804,7 @@ describe("createAuthMiddleware", () => {
         });
 
         const token = await createToken({
-          userId: "user123",
+          user_id: "user123",
           permissions: ["read:users"],
           aud: "https://example.com/api",
         });
@@ -700,7 +835,7 @@ describe("createAuthMiddleware", () => {
       });
 
       const token = await createToken({
-        userId: "user123",
+        user_id: "user123",
         permissions: ["read:users"],
         aud: MANAGEMENT_API_AUDIENCE,
       });
@@ -730,7 +865,7 @@ describe("createAuthMiddleware", () => {
       });
 
       const token = await createToken({
-        userId: "user123",
+        user_id: "user123",
         permissions: ["read:users"],
         aud: "https://example.com/api",
       });

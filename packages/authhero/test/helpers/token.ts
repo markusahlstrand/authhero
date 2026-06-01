@@ -30,15 +30,15 @@ export async function getCertificate() {
 }
 
 export interface CreateTokenParams {
-  userId?: string;
-  tenantId?: string;
+  user_id?: string;
+  tenant_id?: string;
   scope?: string;
   permissions?: string[];
   aud?: string;
   // OIDC Core 5.5 — list of claim names the original /authorize request
   // asked for under `claims.userinfo`. Tests use this to exercise the
   // `requested_userinfo_claims` access-token slot end-to-end.
-  requestedUserinfoClaims?: string[];
+  requested_userinfo_claims?: string[];
 }
 
 export async function createToken(params?: CreateTokenParams) {
@@ -51,11 +51,11 @@ export async function createToken(params?: CreateTokenParams) {
       aud: params?.aud ?? MANAGEMENT_API_AUDIENCE,
       scope: params?.scope ?? "openid email profile",
       permissions: params?.permissions || [],
-      sub: params?.userId || "userId",
+      sub: params?.user_id || "userId",
       iss: "test.example.com",
-      tenant_id: params?.tenantId,
-      ...(params?.requestedUserinfoClaims
-        ? { requested_userinfo_claims: params.requestedUserinfoClaims }
+      tenant_id: params?.tenant_id,
+      ...(params?.requested_userinfo_claims
+        ? { requested_userinfo_claims: params.requested_userinfo_claims }
         : {}),
     },
     {
