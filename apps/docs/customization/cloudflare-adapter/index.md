@@ -11,6 +11,7 @@ The Cloudflare adapter provides Cloudflare-specific integrations for AuthHero, i
 
 - **[Custom Domains](./custom-domains)**: Manage custom domains via Cloudflare API with automatic SSL certificates
 - **[Cache](./cache)**: Cloudflare Cache API integration for high-performance caching
+- **[Rate Limit](/customization/adapter-interfaces/rate-limit)** (optional): Workers Rate Limiter bindings wired into AuthHero's `pre-login`, `brute-force`, and `pre-user-registration` scopes
 - **Logs** (optional): Two options for authentication logs:
   - **[Analytics Engine](./analytics-engine)**: Low-latency writes with SQL querying (90-day retention)
   - **[R2 SQL](./r2-sql)**: Long-term storage with unlimited retention
@@ -41,6 +42,15 @@ const adapters = createAdapters({
   cacheName: "default",
   defaultTtlSeconds: 3600,
   keyPrefix: "authhero:",
+
+  // Rate limit bindings (optional — see Rate Limit Adapter docs)
+  // Bindings are declared in wrangler.toml under [[unsafe.bindings]] with
+  // type = "ratelimit". Any scope you omit fails open.
+  rateLimitBindings: {
+    "pre-login": env.RATE_LIMIT_PRE_LOGIN,
+    "brute-force": env.RATE_LIMIT_BRUTE_FORCE,
+    "pre-user-registration": env.RATE_LIMIT_PRE_REGISTRATION,
+  },
 
   // Analytics Engine logs configuration (optional, recommended for Workers)
   analyticsEngineLogs: {
@@ -89,6 +99,18 @@ High-performance caching using Cloudflare's Cache API for fast data retrieval at
 - Simple get/set/delete operations
 
 [Learn more about Cache →](./cache)
+
+### Rate Limit (Optional)
+
+Wire AuthHero's `pre-login`, `brute-force`, and `pre-user-registration` scopes to Cloudflare Workers Rate Limiter bindings. Pass `rateLimitBindings` to `createAdapters` and the returned object will include a `rateLimit` field that you merge into your data adapter. The `pre-login` scope is additionally gated by the tenant's `attack_protection.suspicious_ip_throttling.enabled` flag.
+
+**Key Features:**
+
+- Short-window abuse protection at the edge (10s or 60s windows)
+- Per-scope binding so limits differ by abuse vector
+- Fails open if a binding is misconfigured or absent
+
+[Learn more about the Rate Limit adapter →](/customization/adapter-interfaces/rate-limit)
 
 ### Logs (Optional)
 
@@ -160,6 +182,7 @@ export const dataAdapters = {
   cache: cloudflareAdapters.cache,
   customDomains: cloudflareAdapters.customDomains,
   logs: cloudflareAdapters.logs,
+  rateLimit: cloudflareAdapters.rateLimit, // optional — undefined if no bindings configured
 };
 ```
 
