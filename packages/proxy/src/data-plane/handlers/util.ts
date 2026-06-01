@@ -1,6 +1,9 @@
 import type { Context } from "hono";
 
 const PROXY_REQ_KEY = "__authhero_proxy_request__";
+const PROXY_TENANT_ID_KEY = "__authhero_proxy_tenant_id__";
+const PROXY_CUSTOM_DOMAIN_ID_KEY = "__authhero_proxy_custom_domain_id__";
+const PROXY_DOMAIN_KEY = "__authhero_proxy_domain__";
 const MUTABILITY_PROBE = "x-authhero-proxy-mutability-probe";
 
 export function setProxyRequest(c: Context, req: Request): void {
@@ -10,6 +13,30 @@ export function setProxyRequest(c: Context, req: Request): void {
 export function getProxyRequest(c: Context): Request {
   const stashed = c.get(PROXY_REQ_KEY as never) as Request | undefined;
   return stashed ?? c.req.raw;
+}
+
+export interface ProxyHostContext {
+  tenant_id: string;
+  custom_domain_id: string;
+  domain: string;
+}
+
+export function setProxyHostContext(c: Context, ctx: ProxyHostContext): void {
+  c.set(PROXY_TENANT_ID_KEY as never, ctx.tenant_id);
+  c.set(PROXY_CUSTOM_DOMAIN_ID_KEY as never, ctx.custom_domain_id);
+  c.set(PROXY_DOMAIN_KEY as never, ctx.domain);
+}
+
+export function getProxyTenantId(c: Context): string | undefined {
+  return c.get(PROXY_TENANT_ID_KEY as never) as string | undefined;
+}
+
+export function getProxyCustomDomainId(c: Context): string | undefined {
+  return c.get(PROXY_CUSTOM_DOMAIN_ID_KEY as never) as string | undefined;
+}
+
+export function getProxyDomain(c: Context): string | undefined {
+  return c.get(PROXY_DOMAIN_KEY as never) as string | undefined;
 }
 
 export function mutateRequestHeaders(

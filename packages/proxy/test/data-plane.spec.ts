@@ -365,6 +365,173 @@ describe("data plane router", () => {
     expect(bindingFetch).toHaveBeenCalledTimes(1);
   });
 
+  it("dispatches via a dispatch namespace with a static script name", async () => {
+    const workerFetch = vi.fn(async () => new Response("from worker"));
+    const dispatcherGet = vi.fn(() => ({ fetch: workerFetch }));
+    const app = createProxyDataPlaneRouter({
+      data: makeAdapter({
+        tenant_id: "acme",
+        custom_domain_id: "cd1",
+        domain: "auth.acme.com",
+        routes: [
+          route({
+            match: { path: "/*" },
+            handlers: [
+              {
+                type: "dispatch_namespace",
+                options: {
+                  binding: "DISPATCHER",
+                  script_name: "tenant-acme-auth",
+                },
+              },
+            ],
+          }),
+        ],
+      }),
+      bindings: { DISPATCHER: { get: dispatcherGet } },
+    });
+    const res = await app.request("https://auth.acme.com/authorize", {
+      headers: { host: "auth.acme.com" },
+    });
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe("from worker");
+    expect(dispatcherGet).toHaveBeenCalledWith(
+      "tenant-acme-auth",
+      undefined,
+      undefined,
+    );
+    expect(workerFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("substitutes {tenant_id} in dispatch_namespace script_name", async () => {
+    const workerFetch = vi.fn(async () => new Response("ok"));
+    const dispatcherGet = vi.fn(() => ({ fetch: workerFetch }));
+    const app = createProxyDataPlaneRouter({
+      data: makeAdapter({
+        tenant_id: "acme",
+        custom_domain_id: "cd1",
+        domain: "auth.acme.com",
+        routes: [
+          route({
+            handlers: [
+              {
+                type: "dispatch_namespace",
+                options: {
+                  binding: "DISPATCHER",
+                  script_name: "tenant-{tenant_id}-auth",
+                },
+              },
+            ],
+          }),
+        ],
+      }),
+      bindings: { DISPATCHER: { get: dispatcherGet } },
+    });
+    const res = await app.request("https://auth.acme.com/", {
+      headers: { host: "auth.acme.com" },
+    });
+    expect(res.status).toBe(200);
+    expect(dispatcherGet).toHaveBeenCalledWith(
+      "tenant-acme-auth",
+      undefined,
+      undefined,
+    );
+  });
+
+  it("substitutes {host} in dispatch_namespace script_name", async () => {
+    const workerFetch = vi.fn(async () => new Response("ok"));
+    const dispatcherGet = vi.fn(() => ({ fetch: workerFetch }));
+    const app = createProxyDataPlaneRouter({
+      data: makeAdapter({
+        tenant_id: "t1",
+        custom_domain_id: "cd1",
+        domain: "auth.bob.example",
+        routes: [
+          route({
+            handlers: [
+              {
+                type: "dispatch_namespace",
+                options: {
+                  binding: "DISPATCHER",
+                  script_name: "worker-{host}",
+                },
+              },
+            ],
+          }),
+        ],
+      }),
+      bindings: { DISPATCHER: { get: dispatcherGet } },
+    });
+    await app.request("https://auth.bob.example/", {
+      headers: { host: "auth.bob.example" },
+    });
+    expect(dispatcherGet).toHaveBeenCalledWith(
+      "worker-auth.bob.example",
+      undefined,
+      undefined,
+    );
+  });
+
+  it("forwards cpu_ms and subrequests as init limits to dispatcher.get", async () => {
+    const workerFetch = vi.fn(async () => new Response("ok"));
+    const dispatcherGet = vi.fn(() => ({ fetch: workerFetch }));
+    const app = createProxyDataPlaneRouter({
+      data: makeAdapter({
+        tenant_id: "t1",
+        custom_domain_id: "cd1",
+        domain: "auth.example.com",
+        routes: [
+          route({
+            handlers: [
+              {
+                type: "dispatch_namespace",
+                options: {
+                  binding: "DISPATCHER",
+                  script_name: "fixed",
+                  cpu_ms: 50,
+                  subrequests: 10,
+                },
+              },
+            ],
+          }),
+        ],
+      }),
+      bindings: { DISPATCHER: { get: dispatcherGet } },
+    });
+    await app.request("https://auth.example.com/", {
+      headers: { host: "auth.example.com" },
+    });
+    expect(dispatcherGet).toHaveBeenCalledWith("fixed", undefined, {
+      limits: { cpuMs: 50, subrequests: 10 },
+    });
+  });
+
+  it("returns 500 when dispatch_namespace binding is missing", async () => {
+    const adapter = makeAdapter({
+      tenant_id: "t1",
+      custom_domain_id: "cd1",
+      domain: "auth.example.com",
+      routes: [
+        route({
+          handlers: [
+            {
+              type: "dispatch_namespace",
+              options: {
+                binding: "MISSING",
+                script_name: "fixed",
+              },
+            },
+          ],
+        }),
+      ],
+    });
+    const app = createProxyDataPlaneRouter({ data: adapter, bindings: {} });
+    const res = await app.request("https://auth.example.com/", {
+      headers: { host: "auth.example.com" },
+    });
+    expect(res.status).toBe(500);
+  });
+
   it("rewrites Set-Cookie Domain from upstream host to request host", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response("ok", {
