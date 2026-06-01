@@ -137,22 +137,19 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
         },
         dependencies: {
           "@authhero/drizzle": v,
-          "@authhero/kysely-adapter": v,
           ...(adminUi && { "@authhero/admin": v }),
           "@authhero/widget": v,
           "@hono/swagger-ui": "^0.5.0",
           "@hono/zod-openapi": "^0.19.0",
           authhero: v,
+          "drizzle-orm": "^0.44.0",
           hono: "^4.6.0",
-          kysely: "latest",
-          "kysely-d1": "latest",
           ...(multiTenant && { "@authhero/multi-tenancy": v }),
           ...(conformance && { bcryptjs: "latest" }),
         },
         devDependencies: {
           "@cloudflare/workers-types": "^4.0.0",
           "drizzle-kit": "^0.31.0",
-          "drizzle-orm": "^0.44.0",
           typescript: "^5.5.0",
           wrangler: "^3.0.0",
         },
@@ -696,9 +693,9 @@ function generateCloudflareSeedFileContent(
   const tenantId = multiTenant ? "control_plane" : "main";
   const tenantName = multiTenant ? "Control Plane" : "Main";
 
-  return `import { D1Dialect } from "kysely-d1";
-import { Kysely } from "kysely";
-import createAdapters from "@authhero/kysely-adapter";
+  return `import { drizzle } from "drizzle-orm/d1";
+import createAdapters from "@authhero/drizzle";
+import * as schema from "@authhero/drizzle/schema/sqlite";
 import { seed, createEncryptedDataAdapter, loadEncryptionKey } from "authhero";
 
 interface Env {
@@ -715,8 +712,7 @@ export default {
     const issuer = \`\${url.protocol}//\${url.host}/\`;
 
     try {
-      const dialect = new D1Dialect({ database: env.AUTH_DB });
-      const db = new Kysely<any>({ dialect });
+      const db = drizzle(env.AUTH_DB, { schema });
       let adapters = createAdapters(db, { useTransactions: false });
 
       if (env.ENCRYPTION_KEY) {

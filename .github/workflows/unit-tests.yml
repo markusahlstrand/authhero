@@ -63,5 +63,36 @@ jobs:
       - name: Build authhero
         run: pnpm authhero build
 
+      # Smoke-test the Cloudflare Workers deployment path: scaffold a fresh
+      # multi-tenant project via create-authhero, then run `wrangler deploy
+      # --dry-run` against it. Catches drift between published packages
+      # (drizzle adapter, widget, admin, authhero core) before users hit it.
+      - name: Build drizzle
+        run: pnpm drizzle build
+
+      - name: Build multi-tenancy
+        run: pnpm --filter @authhero/multi-tenancy build
+
+      - name: Build admin
+        run: pnpm admin build
+
+      - name: Build create-authhero
+        run: pnpm create-authhero build
+
+      - name: Scaffold cloudflare worker
+        working-directory: apps
+        run: |
+          node ../packages/create-authhero/index.js worker-smoke \
+            --template=cloudflare \
+            --workspace --multi-tenant --admin-ui \
+            --skip-install --skip-migrate --skip-start --yes
+
+      - name: Link workspace deps for scaffolded worker
+        run: pnpm install
+
+      - name: Validate worker bundles
+        working-directory: apps/worker-smoke
+        run: pnpm exec wrangler deploy --dry-run --outdir=/tmp/worker-out
+
       - name: Run tests
         run: pnpm -r test

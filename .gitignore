@@ -159,6 +159,9 @@ apps/conformance-runner/conformance-reports/
 # Wrangler local state and build artifacts
 .wrangler/
 
+# CI smoke scaffold produced by create-authhero (see .github/workflows/unit-tests.yml)
+apps/worker-smoke/
+
 # Claude Code
 .claude/settings.json
 .claude/settings.local.json
