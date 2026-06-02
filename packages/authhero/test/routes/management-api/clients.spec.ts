@@ -442,7 +442,7 @@ describe("clients", () => {
         name: "rw-app",
         app_type: "regular_web",
       });
-      expect(client.token_endpoint_auth_method).toBe("client_secret_basic");
+      expect(client.token_endpoint_auth_method).toBe("client_secret_post");
       expect(client.client_secret).toBeTruthy();
       expect(client.grant_types).toEqual([
         "authorization_code",
@@ -455,7 +455,7 @@ describe("clients", () => {
         name: "m2m-app",
         app_type: "non_interactive",
       });
-      expect(client.token_endpoint_auth_method).toBe("client_secret_basic");
+      expect(client.token_endpoint_auth_method).toBe("client_secret_post");
       expect(client.client_secret).toBeTruthy();
       expect(client.grant_types).toEqual(["client_credentials"]);
     });

@@ -94,5 +94,23 @@ jobs:
         working-directory: apps/worker-smoke
         run: pnpm exec wrangler deploy --dry-run --outdir=/tmp/worker-out
 
+      # Smoke-test the WFP dispatcher template (#902) — scaffold the
+      # dispatcher worker and dry-run deploy. The dispatcher only depends on
+      # @authhero/proxy and @authhero/drizzle, both already built above.
+      - name: Scaffold WFP dispatcher
+        working-directory: apps
+        run: |
+          node ../packages/create-authhero/index.js wfp-dispatcher-smoke \
+            --template=cloudflare-wfp-dispatcher \
+            --workspace \
+            --skip-install --skip-migrate --skip-start --yes
+
+      - name: Link workspace deps for WFP dispatcher
+        run: pnpm install
+
+      - name: Validate WFP dispatcher bundles
+        working-directory: apps/wfp-dispatcher-smoke
+        run: pnpm exec wrangler deploy --dry-run --outdir=/tmp/wfp-out
+
       - name: Run tests
         run: pnpm -r test

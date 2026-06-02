@@ -69,11 +69,11 @@ const APP_TYPE_DEFAULTS: Record<
     grant_types: ["authorization_code", "refresh_token"],
   },
   regular_web: {
-    token_endpoint_auth_method: "client_secret_basic",
+    token_endpoint_auth_method: "client_secret_post",
     grant_types: ["authorization_code", "refresh_token"],
   },
   non_interactive: {
-    token_endpoint_auth_method: "client_secret_basic",
+    token_endpoint_auth_method: "client_secret_post",
     grant_types: ["client_credentials"],
   },
 };

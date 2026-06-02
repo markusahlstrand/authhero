@@ -17,7 +17,12 @@ function generateEncryptionKey(): string {
 
 const program = new Command();
 
-type SetupType = "local" | "cloudflare" | "aws-sst" | "proxy";
+type SetupType =
+  | "local"
+  | "cloudflare"
+  | "cloudflare-wfp-dispatcher"
+  | "aws-sst"
+  | "proxy";
 type PackageManager = "npm" | "yarn" | "pnpm" | "bun";
 
 interface CliOptions {
@@ -156,6 +161,44 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
       };
     },
     seedFile: "seed.ts",
+  },
+  "cloudflare-wfp-dispatcher": {
+    name: "Cloudflare Workers for Platforms — Dispatcher",
+    description:
+      "Thin dispatcher worker that routes per-publisher custom domains to tenant auth workers in a dispatch namespace (pair with the `cloudflare` template for tenant workers)",
+    templateDir: "cloudflare-wfp-dispatcher",
+    packageJson: (projectName, _multiTenant, _conformance, workspace) => {
+      const v = workspace ? "workspace:*" : "latest";
+      return {
+        name: projectName,
+        version: "1.0.0",
+        type: "module",
+        scripts: {
+          dev: "wrangler dev --port 3001 --local-protocol https",
+          "dev:remote":
+            "wrangler dev --port 3001 --local-protocol https --remote --config wrangler.local.toml",
+          deploy: "wrangler deploy --config wrangler.local.toml",
+          "db:migrate:local": "wrangler d1 migrations apply AUTH_DB --local",
+          "db:migrate:remote":
+            "wrangler d1 migrations apply AUTH_DB --remote --config wrangler.local.toml",
+          migrate: "wrangler d1 migrations apply AUTH_DB --local",
+          setup:
+            "cp wrangler.toml wrangler.local.toml && echo '✅ Created wrangler.local.toml - update with your IDs'",
+        },
+        dependencies: {
+          "@authhero/drizzle": v,
+          "@authhero/proxy": v,
+          "drizzle-orm": "^0.44.0",
+          hono: "^4.6.0",
+        },
+        devDependencies: {
+          "@cloudflare/workers-types": "^4.0.0",
+          "drizzle-kit": "^0.31.0",
+          typescript: "^5.5.0",
+          wrangler: "^3.0.0",
+        },
+      };
+    },
   },
   proxy: {
     name: "Proxy (Cloudflare Workers)",
@@ -1251,6 +1294,22 @@ function printCloudflareSuccessMessage(): void {
 }
 
 /**
+ * Prints nice output at the end of setup for the WFP dispatcher template
+ */
+function printCloudflareWfpDispatcherSuccessMessage(): void {
+  console.log("\n" + "─".repeat(50));
+  console.log("🛰️  WFP dispatcher running at https://localhost:3001");
+  console.log(
+    "📦 Pair with the `cloudflare` template to deploy tenant workers:",
+  );
+  console.log(
+    "   wrangler deploy --dispatch-namespace=authhero-tenants --name=tenant-<id>-auth",
+  );
+  console.log("📖 See README.md for the full onboarding workflow");
+  console.log("─".repeat(50) + "\n");
+}
+
+/**
  * Prints nice output at the end of setup for the proxy template
  */
 function printProxySuccessMessage(): void {
@@ -1340,10 +1399,18 @@ program
     let setupType: SetupType;
     if (options.template) {
       if (
-        !["local", "cloudflare", "aws-sst", "proxy"].includes(options.template)
+        ![
+          "local",
+          "cloudflare",
+          "cloudflare-wfp-dispatcher",
+          "aws-sst",
+          "proxy",
+        ].includes(options.template)
       ) {
         console.error(`❌ Invalid template: ${options.template}`);
-        console.error("Valid options: local, cloudflare, aws-sst, proxy");
+        console.error(
+          "Valid options: local, cloudflare, cloudflare-wfp-dispatcher, aws-sst, proxy",
+        );
         process.exit(1);
       }
       setupType = options.template;
@@ -1366,6 +1433,11 @@ program
               short: setupConfigs.cloudflare.name,
             },
             {
+              name: `${setupConfigs["cloudflare-wfp-dispatcher"].name}\n     ${setupConfigs["cloudflare-wfp-dispatcher"].description}`,
+              value: "cloudflare-wfp-dispatcher",
+              short: setupConfigs["cloudflare-wfp-dispatcher"].name,
+            },
+            {
               name: `${setupConfigs["aws-sst"].name}\n     ${setupConfigs["aws-sst"].description}`,
               value: "aws-sst",
               short: setupConfigs["aws-sst"].name,
@@ -1381,9 +1453,13 @@ program
       setupType = answer.setupType;
     }
 
-    // Multi-tenant mode (not applicable to proxy template)
+    // Multi-tenant mode (not applicable to proxy or wfp-dispatcher templates,
+    // which don't run authhero themselves)
     let multiTenant: boolean;
-    if (setupType === "proxy") {
+    if (
+      setupType === "proxy" ||
+      setupType === "cloudflare-wfp-dispatcher"
+    ) {
       multiTenant = false;
     } else if (options.multiTenant !== undefined) {
       multiTenant = options.multiTenant;
@@ -1488,7 +1564,10 @@ program
     }
 
     // For Cloudflare setups, create local config files
-    if (setupType === "cloudflare") {
+    if (
+      setupType === "cloudflare" ||
+      setupType === "cloudflare-wfp-dispatcher"
+    ) {
       // Copy wrangler.toml to wrangler.local.toml for local development
       const wranglerPath = path.join(projectPath, "wrangler.toml");
       const wranglerLocalPath = path.join(projectPath, "wrangler.local.toml");
@@ -1496,22 +1575,25 @@ program
         fs.copyFileSync(wranglerPath, wranglerLocalPath);
       }
 
-      // Copy .dev.vars.example to .dev.vars and inject a generated encryption
-      // key so sensitive credentials are encrypted at rest in local dev.
-      const devVarsExamplePath = path.join(projectPath, ".dev.vars.example");
-      const devVarsPath = path.join(projectPath, ".dev.vars");
-      if (fs.existsSync(devVarsExamplePath)) {
-        fs.copyFileSync(devVarsExamplePath, devVarsPath);
-        fs.appendFileSync(
-          devVarsPath,
-          `\n# Generated at-rest encryption key (local dev). Use a separate secret in production.\nENCRYPTION_KEY=${generateEncryptionKey()}\n`,
+      // .dev.vars + ENCRYPTION_KEY only apply to the auth-server template;
+      // the dispatcher doesn't store or encrypt anything itself.
+      if (setupType === "cloudflare") {
+        const devVarsExamplePath = path.join(projectPath, ".dev.vars.example");
+        const devVarsPath = path.join(projectPath, ".dev.vars");
+        if (fs.existsSync(devVarsExamplePath)) {
+          fs.copyFileSync(devVarsExamplePath, devVarsPath);
+          fs.appendFileSync(
+            devVarsPath,
+            `\n# Generated at-rest encryption key (local dev). Use a separate secret in production.\nENCRYPTION_KEY=${generateEncryptionKey()}\n`,
+          );
+          console.log("🔒 Added a generated ENCRYPTION_KEY to .dev.vars");
+        }
+        console.log(
+          "📁 Created wrangler.local.toml and .dev.vars for local development",
         );
-        console.log("🔒 Added a generated ENCRYPTION_KEY to .dev.vars");
+      } else {
+        console.log("📁 Created wrangler.local.toml for local development");
       }
-
-      console.log(
-        "📁 Created wrangler.local.toml and .dev.vars for local development",
-      );
     }
 
     // Ask about GitHub CI for cloudflare setups
@@ -1676,7 +1758,9 @@ ENCRYPTION_KEY=${generateEncryptionKey()}
 
         console.log("\n✅ Dependencies installed successfully!\n");
 
-        // For local and cloudflare setups, run migrations
+        // For local and cloudflare setups, run migrations (the wfp dispatcher
+        // shares D1 with the auth-server template, so it doesn't initialize
+        // the schema itself).
         if (setupType === "local" || setupType === "cloudflare") {
           if (!options.skipMigrate) {
             let shouldMigrate: boolean;
@@ -1723,6 +1807,8 @@ ENCRYPTION_KEY=${generateEncryptionKey()}
           // Print nice success message before starting
           if (setupType === "cloudflare") {
             printCloudflareSuccessMessage();
+          } else if (setupType === "cloudflare-wfp-dispatcher") {
+            printCloudflareWfpDispatcherSuccessMessage();
           } else if (setupType === "aws-sst") {
             printAwsSstSuccessMessage();
           } else if (setupType === "proxy") {
@@ -1742,6 +1828,8 @@ ENCRYPTION_KEY=${generateEncryptionKey()}
           console.log(`  npm run dev`);
           if (setupType === "cloudflare") {
             printCloudflareSuccessMessage();
+          } else if (setupType === "cloudflare-wfp-dispatcher") {
+            printCloudflareWfpDispatcherSuccessMessage();
           } else if (setupType === "aws-sst") {
             printAwsSstSuccessMessage();
           } else if (setupType === "proxy") {
@@ -1776,6 +1864,21 @@ ENCRYPTION_KEY=${generateEncryptionKey()}
         console.log(
           "\nOpen https://localhost:3000/setup to complete initial setup",
         );
+      } else if (setupType === "cloudflare-wfp-dispatcher") {
+        console.log("  npm install");
+        console.log(
+          "  npm run setup  # creates wrangler.local.toml — paste your database_id",
+        );
+        console.log(
+          "  npx wrangler dispatch-namespace create authhero-tenants",
+        );
+        console.log("  npm run dev  # or npm run dev:remote for production");
+        console.log(
+          "\nDeploy tenant workers separately (`cloudflare` template):",
+        );
+        console.log(
+          "  wrangler deploy --dispatch-namespace=authhero-tenants --name=tenant-<id>-auth",
+        );
       } else if (setupType === "aws-sst") {
         console.log("  npm install");
         console.log("  npm run dev  # Deploys to AWS in development mode");
@@ -1786,7 +1889,12 @@ ENCRYPTION_KEY=${generateEncryptionKey()}
         console.log("\nEdit src/proxy.config.ts to add hosts and routes");
       }
 
-      const port = setupType === "proxy" ? 8787 : 3000;
+      const port =
+        setupType === "proxy"
+          ? 8787
+          : setupType === "cloudflare-wfp-dispatcher"
+            ? 3001
+            : 3000;
       console.log(`\nServer will be available at: http://localhost:${port}`);
 
       if (conformance) {

@@ -161,6 +161,7 @@ apps/conformance-runner/conformance-reports/
 
 # CI smoke scaffold produced by create-authhero (see .github/workflows/unit-tests.yml)
 apps/worker-smoke/
+apps/wfp-dispatcher-smoke/
 
 # Claude Code
 .claude/settings.json

@@ -1,0 +1,56 @@
+# ════════════════════════════════════════════════════════════════════════════
+# AuthHero WFP Dispatcher Configuration
+# ════════════════════════════════════════════════════════════════════════════
+# Thin Cloudflare Worker that resolves a request's Host header to a tenant
+# (via the shared platform D1) and dispatches to that tenant's full
+# authhero auth server, deployed as a script in the `authhero-tenants`
+# dispatch namespace.
+#
+# Tenant workers are deployed separately via the `cloudflare` template,
+# using `wrangler deploy --dispatch-namespace=authhero-tenants
+# --name=tenant-<id>-auth`.
+#
+# Sensitive IDs (database_id) go in wrangler.local.toml (gitignored) or
+# GitHub Secrets, not this file.
+# ════════════════════════════════════════════════════════════════════════════
+
+name = "authhero-wfp-dispatcher"
+main = "src/index.ts"
+compatibility_date = "2026-05-01"
+compatibility_flags = ["nodejs_compat"]
+
+# ════════════════════════════════════════════════════════════════════════════
+# Dispatch namespace binding
+# ════════════════════════════════════════════════════════════════════════════
+# Create the namespace once before the first deploy:
+#   npx wrangler dispatch-namespace create authhero-tenants
+[[dispatch_namespaces]]
+binding = "DISPATCHER"
+namespace = "authhero-tenants"
+
+# ════════════════════════════════════════════════════════════════════════════
+# Shared platform D1 database
+# ════════════════════════════════════════════════════════════════════════════
+# Same D1 that the tenant workers read/write. Holds custom_domains and
+# proxy_routes that drive the dispatcher's host -> tenant resolution.
+[[d1_databases]]
+binding = "AUTH_DB"
+database_name = "authhero-db"
+database_id = "local"  # Use "local" for local dev, or your actual ID in wrangler.local.toml
+migrations_dir = "node_modules/@authhero/drizzle/drizzle"
+
+# ════════════════════════════════════════════════════════════════════════════
+# OPTIONAL: Custom Domain
+# ════════════════════════════════════════════════════════════════════════════
+# Point your platform's wildcard or per-publisher custom domains at this
+# worker. The publishers' subdomains must resolve here so the dispatcher
+# can route into the namespace.
+#
+# [[routes]]
+# pattern = "*.auth.yourplatform.com/*"
+# zone_name = "yourplatform.com"
+
+# Optional: Enable observability for `wrangler tail` insight into dispatch
+# decisions and namespace invocation latency.
+# [observability]
+# enabled = true
