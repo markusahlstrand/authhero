@@ -11,6 +11,39 @@ Cloudflare Workers is a serverless platform that runs JavaScript at the edge in 
 - **Pay-per-use pricing** - Free tier includes 100,000 requests/day
 - **Zero cold starts** - Instant execution (when warm)
 
+## Two deployment shapes
+
+- **Single Worker (this page)** — one Worker serves all tenants. Tenant resolution happens inside the Worker via the `Host` header → `custom_domains` lookup. Best for most deployments.
+- **Workers for Platforms** — a thin dispatcher Worker fronts a dispatch namespace; each tenant gets their own deployed `authhero` Worker for strong isolation. See [Workers for Platforms](./cloudflare-wfp). Pick this if you need per-tenant code customization, per-tenant CPU/memory limits, or true tenant isolation.
+
+## Quickstart with `create-authhero` (recommended)
+
+The fastest way to get a production-ready Worker is to scaffold from the official template:
+
+```bash
+npm create authhero@latest my-auth -- \
+  --template=cloudflare \
+  --multi-tenant \
+  --admin-ui
+cd my-auth
+npm install
+npm run setup     # creates wrangler.local.toml + .dev.vars with a generated ENCRYPTION_KEY
+npm run migrate   # applies D1 migrations locally
+npm run seed      # creates an admin user
+npm run dev       # https://localhost:3000
+```
+
+The scaffold sets up D1 (via Drizzle), Workers Assets for the widget and admin UI, an at-rest encryption key, and `wrangler` config. To deploy:
+
+```bash
+wrangler d1 create authhero-db                    # one-time
+# paste the database_id into wrangler.local.toml
+npm run db:migrate:remote                          # apply migrations remotely
+npm run deploy
+```
+
+The rest of this page covers the **manual setup** if you want to assemble the pieces yourself or integrate authhero into an existing Worker.
+
 ## Key Differences from Other Platforms
 
 **Static Assets:** Cloudflare Workers cannot serve files directly from `node_modules`. You must:
@@ -25,7 +58,7 @@ This is the most common setup issue - see [Widget Assets](./widget-assets) for d
 - Wrangler CLI: `npm install -g wrangler`
 - Node.js 18+ (for build tools)
 
-## Setup
+## Manual setup
 
 ### 1. Create Copy Assets Script
 
@@ -91,7 +124,8 @@ chmod +x copy-assets.js
 ```toml
 name = "authhero-server"
 main = "src/index.ts"
-compatibility_date = "2024-11-20"
+compatibility_date = "2026-05-01"
+compatibility_flags = ["nodejs_compat"]
 
 # Serve static assets from dist/assets
 [assets]
@@ -132,31 +166,50 @@ binding = "LOADER"
 Create `src/index.ts`:
 
 ```typescript
+import { drizzle } from "drizzle-orm/d1";
+import createAdapters from "@authhero/drizzle";
+import * as schema from "@authhero/drizzle/schema/sqlite";
+import {
+  createEncryptedDataAdapter,
+  loadEncryptionKey,
+} from "authhero";
 import { initMultiTenant } from "@authhero/multi-tenancy";
-import { createCloudflareD1Adapter } from "@authhero/cloudflare";
 import { WorkerLoaderCodeExecutor } from "@authhero/cloudflare-adapter";
 
 interface Env {
   AUTH_DB: D1Database;
-  LOADER: any; // Worker Loader binding for Dynamic Workers
+  ENCRYPTION_KEY?: string;
+  LOADER?: any; // Worker Loader binding — only needed for code hooks (Actions)
 }
 
 export default {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext) {
-    const dataAdapter = createCloudflareD1Adapter(env.AUTH_DB);
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const url = new URL(request.url);
+    const issuer = `${url.protocol}//${url.host}/`;
+
+    const db = drizzle(env.AUTH_DB, { schema });
+    let dataAdapter = createAdapters(db, { useTransactions: false });
+
+    // Encrypt sensitive credential fields at rest when ENCRYPTION_KEY is set.
+    if (env.ENCRYPTION_KEY) {
+      const encryptionKey = await loadEncryptionKey(env.ENCRYPTION_KEY);
+      dataAdapter = createEncryptedDataAdapter(dataAdapter, encryptionKey);
+    }
 
     const { app } = initMultiTenant({
       dataAdapter,
-      // Enable user-authored code hooks via Dynamic Workers
-      codeExecutor: new WorkerLoaderCodeExecutor({
-        loader: env.LOADER,
+      // Optional: enable user-authored code hooks (Actions) via Dynamic Workers
+      ...(env.LOADER && {
+        codeExecutor: new WorkerLoaderCodeExecutor({ loader: env.LOADER }),
       }),
     });
 
-    return app.fetch(request, env, ctx);
+    return app.fetch(request, { ...env, ISSUER: issuer });
   },
 };
 ```
+
+This is the same shape the `create-authhero --template=cloudflare` template generates. See [packages/create-authhero/templates/cloudflare/src/index.ts](https://github.com/markusahlstrand/authhero/blob/main/packages/create-authhero/templates/cloudflare/src/index.ts) for the canonical version.
 
 ## Database Setup
 
@@ -258,16 +311,25 @@ Access in Cloudflare Dashboard:
 
 ### Caching
 
+The Cloudflare adapter ships a Cache API integration. Wire it up via `createCloudflareAdapters` and pass the `cache` adapter alongside your `dataAdapter`:
+
 ```typescript
-// Enable caching in data adapter
-const dataAdapter = createCloudflareD1Adapter(env.AUTH_DB, {
-  cache: {
-    tenants: 3600,      // Cache tenants for 1 hour
-    clients: 1800,      // Cache clients for 30 minutes
-    connections: 3600,  // Cache connections for 1 hour
-  },
+import createCloudflareAdapters from "@authhero/cloudflare-adapter";
+
+const { cache } = createCloudflareAdapters({
+  cacheName: "default",
+  defaultTtlSeconds: 3600,
+  keyPrefix: "authhero:",
+  // ... other Cloudflare adapter options
+});
+
+const { app } = initMultiTenant({
+  dataAdapter,
+  cache,
 });
 ```
+
+See [Cloudflare Adapter → Cache](/customization/cloudflare-adapter/cache) for details.
 
 ### Reduce Cold Starts
 
@@ -344,6 +406,7 @@ Very cost-effective for authentication workloads!
 
 ## Next Steps
 
+- [Workers for Platforms (per-tenant workers)](./cloudflare-wfp)
 - [Configure widget assets](./widget-assets)
 - [Set up custom domains](/deployment/custom-domain-setup)
 - [Multi-cloud deployment](./multi-cloud)
