@@ -54,7 +54,7 @@ describe("clients", () => {
       default_organization: {},
       encryption_key: {},
       global: false,
-      grant_types: [],
+      grant_types: ["authorization_code", "refresh_token"],
       hide_sign_up_disabled_error: false,
       is_first_party: false,
       jwt_configuration: {},
@@ -74,7 +74,7 @@ describe("clients", () => {
       signing_keys: [],
       sso: false,
       sso_disabled: false,
-      token_endpoint_auth_method: "client_secret_basic",
+      token_endpoint_auth_method: "client_secret_post",
       token_quota: {},
       web_origins: [],
     });
@@ -442,6 +442,16 @@ describe("clients", () => {
         name: "rw-app",
         app_type: "regular_web",
       });
+      expect(client.token_endpoint_auth_method).toBe("client_secret_post");
+      expect(client.client_secret).toBeTruthy();
+      expect(client.grant_types).toEqual([
+        "authorization_code",
+        "refresh_token",
+      ]);
+    });
+
+    it("derives confidential defaults when app_type is omitted", async () => {
+      const client = await create({ name: "no-app-type" });
       expect(client.token_endpoint_auth_method).toBe("client_secret_post");
       expect(client.client_secret).toBeTruthy();
       expect(client.grant_types).toEqual([

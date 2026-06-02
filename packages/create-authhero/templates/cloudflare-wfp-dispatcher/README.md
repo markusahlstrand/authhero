@@ -38,14 +38,19 @@ npx wrangler d1 create authhero-db
 
 # 3. Copy wrangler.toml -> wrangler.local.toml and paste the database_id
 
-# 4. Apply migrations to the shared D1
+# 4. Install project dependencies (provides the local wrangler used by the
+#    db:migrate:* scripts)
+npm install
+
+# 5. Apply migrations to the shared D1
 npm run db:migrate:remote
+# Or, without installing dependencies first:
+#   npx wrangler d1 migrations apply AUTH_DB --remote --config wrangler.local.toml
 ```
 
 ## Deploy the dispatcher
 
 ```bash
-npm install
 npm run deploy
 ```
 

@@ -1568,10 +1568,12 @@ program
       setupType === "cloudflare" ||
       setupType === "cloudflare-wfp-dispatcher"
     ) {
-      // Copy wrangler.toml to wrangler.local.toml for local development
+      // Copy wrangler.toml to wrangler.local.toml for local development.
+      // Skip if a wrangler.local.toml is already present so re-runs of the
+      // scaffolder over an existing directory don't overwrite local edits.
       const wranglerPath = path.join(projectPath, "wrangler.toml");
       const wranglerLocalPath = path.join(projectPath, "wrangler.local.toml");
-      if (fs.existsSync(wranglerPath)) {
+      if (fs.existsSync(wranglerPath) && !fs.existsSync(wranglerLocalPath)) {
         fs.copyFileSync(wranglerPath, wranglerLocalPath);
       }
 

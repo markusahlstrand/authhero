@@ -88,7 +88,7 @@ jobs:
             --skip-install --skip-migrate --skip-start --yes
 
       - name: Link workspace deps for scaffolded worker
-        run: pnpm install
+        run: pnpm install --no-frozen-lockfile
 
       - name: Validate worker bundles
         working-directory: apps/worker-smoke
@@ -106,7 +106,7 @@ jobs:
             --skip-install --skip-migrate --skip-start --yes
 
       - name: Link workspace deps for WFP dispatcher
-        run: pnpm install
+        run: pnpm install --no-frozen-lockfile
 
       - name: Validate WFP dispatcher bundles
         working-directory: apps/wfp-dispatcher-smoke
