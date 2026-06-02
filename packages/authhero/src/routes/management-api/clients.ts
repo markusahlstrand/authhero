@@ -69,11 +69,11 @@ const APP_TYPE_DEFAULTS: Record<
     grant_types: ["authorization_code", "refresh_token"],
   },
   regular_web: {
-    token_endpoint_auth_method: "client_secret_basic",
+    token_endpoint_auth_method: "client_secret_post",
     grant_types: ["authorization_code", "refresh_token"],
   },
   non_interactive: {
-    token_endpoint_auth_method: "client_secret_basic",
+    token_endpoint_auth_method: "client_secret_post",
     grant_types: ["client_credentials"],
   },
 };
@@ -90,8 +90,13 @@ function applyAppTypeDefaults<
   },
 >(body: T, raw: Record<string, unknown>): T {
   const rawAppType = raw.app_type;
-  if (typeof rawAppType !== "string") return body;
-  const defaults = APP_TYPE_DEFAULTS[rawAppType];
+  // Treat an absent app_type as the implicit "regular_web" default so callers
+  // who omit it get the same token_endpoint_auth_method / grant_types as
+  // callers who pass it explicitly — otherwise Zod's per-field defaults
+  // (client_secret_basic, []) win and the two paths diverge.
+  const appTypeKey =
+    typeof rawAppType === "string" ? rawAppType : "regular_web";
+  const defaults = APP_TYPE_DEFAULTS[appTypeKey];
   if (!defaults) return body;
   return {
     ...body,

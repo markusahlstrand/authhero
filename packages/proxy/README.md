@@ -32,6 +32,7 @@ Built-in handlers:
 | `rewrite_location` | middleware | Rewrites the `Location` header on 3xx responses from upstream origin to request origin. |
 | `http` | terminal | Forwards to an HTTP upstream via `fetch`. |
 | `service_binding` | terminal | Forwards to a Cloudflare service binding (`env.MY_API.fetch`). |
+| `dispatch_namespace` | terminal | Dispatches to a Cloudflare Workers for Platforms namespace (`env.DISPATCHER.get(scriptName).fetch`). `script_name` accepts `{tenant_id}`, `{custom_domain_id}`, `{domain}`, `{host}` placeholders. |
 | `redirect` | terminal | Returns a 301/302/307/308 redirect. |
 | `static` | terminal | Returns a static body (great for healthchecks). |
 
@@ -94,6 +95,30 @@ Then a route can use:
     { type: "service_binding", options: { binding: "API2" } },
 ] }
 ```
+
+## Dispatching to Workers for Platforms
+
+Route to a per-tenant worker deployed into a Cloudflare dispatch namespace. The script name supports placeholders that are substituted at request time from the resolved host:
+
+```toml
+# wrangler.toml
+[[dispatch_namespaces]]
+binding = "DISPATCHER"
+namespace = "authhero-tenants"
+```
+
+```ts
+// One catch-all route per host dispatches to that tenant's worker.
+{ match: { path: "/*" }, handlers: [
+    { type: "dispatch_namespace", options: {
+        binding: "DISPATCHER",
+        script_name: "tenant-{tenant_id}-auth",  // e.g. "tenant-acme-auth"
+        // Optional: cpu_ms, subrequests — forwarded to dispatcher.get(...)
+    }},
+] }
+```
+
+Available placeholders: `{tenant_id}`, `{custom_domain_id}`, `{domain}`, `{host}`. The first three come from the resolved host record; `{host}` is the request `Host` header.
 
 ## Replacing the upstream-origin in cookies and redirects
 

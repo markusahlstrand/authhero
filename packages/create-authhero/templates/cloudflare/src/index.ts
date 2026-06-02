@@ -1,6 +1,6 @@
-import { D1Dialect } from "kysely-d1";
-import { Kysely } from "kysely";
-import createAdapters from "@authhero/kysely-adapter";
+import { drizzle } from "drizzle-orm/d1";
+import createAdapters from "@authhero/drizzle";
+import * as schema from "@authhero/drizzle/schema/sqlite";
 import createApp from "./app";
 import { Env } from "./types";
 import {
@@ -22,8 +22,7 @@ export default {
     // Get the origin from the request for dynamic CORS
     const origin = request.headers.get("Origin") || "";
 
-    const dialect = new D1Dialect({ database: env.AUTH_DB });
-    const db = new Kysely<any>({ dialect });
+    const db = drizzle(env.AUTH_DB, { schema });
     let dataAdapter = createAdapters(db, { useTransactions: false });
 
     // Encrypt sensitive credential fields at rest when ENCRYPTION_KEY is set.

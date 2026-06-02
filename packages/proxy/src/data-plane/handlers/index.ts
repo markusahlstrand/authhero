@@ -8,6 +8,7 @@ import { rewriteCookiesHandler } from "./rewrite-cookies";
 import { rewriteLocationHandler } from "./rewrite-location";
 import { httpHandler } from "./http";
 import { serviceBindingHandler } from "./service-binding";
+import { dispatchNamespaceHandler } from "./dispatch-namespace";
 import { redirectHandler } from "./redirect";
 import { staticHandler } from "./static";
 
@@ -22,6 +23,7 @@ export function registerBuiltinHandlers(registry: HandlerRegistry): void {
     .add(rewriteLocationHandler)
     .add(httpHandler)
     .add(serviceBindingHandler)
+    .add(dispatchNamespaceHandler)
     .add(redirectHandler)
     .add(staticHandler);
 }
@@ -35,5 +37,6 @@ export { rewriteCookiesHandler } from "./rewrite-cookies";
 export { rewriteLocationHandler } from "./rewrite-location";
 export { httpHandler } from "./http";
 export { serviceBindingHandler } from "./service-binding";
+export { dispatchNamespaceHandler } from "./dispatch-namespace";
 export { redirectHandler } from "./redirect";
 export { staticHandler } from "./static";

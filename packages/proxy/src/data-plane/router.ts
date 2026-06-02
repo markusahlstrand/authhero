@@ -49,7 +49,11 @@ export function createProxyDataPlaneHandler(
 
     let hostApp = compiled.get(resolved);
     if (!hostApp) {
-      hostApp = compileHostApp(resolved.routes, registry);
+      hostApp = compileHostApp(resolved.routes, registry, {
+        tenant_id: resolved.tenant_id,
+        custom_domain_id: resolved.custom_domain_id,
+        domain: resolved.domain,
+      });
       compiled.set(resolved, hostApp);
     }
 

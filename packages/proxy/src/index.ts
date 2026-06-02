@@ -30,6 +30,7 @@ export {
   rewriteLocationHandler,
   httpHandler,
   serviceBindingHandler,
+  dispatchNamespaceHandler,
   redirectHandler,
   staticHandler,
 } from "./data-plane/handlers";
