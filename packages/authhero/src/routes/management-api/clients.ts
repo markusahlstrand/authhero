@@ -410,6 +410,12 @@ const postRoot = defineRoute({
           "Cannot create a Client ID Metadata Document client via the management API. CIMD clients are registered automatically on first /authorize.",
       });
     }
+    if (body.client_id && isTryConnectionClientId(body.client_id)) {
+      throw new HTTPException(400, {
+        message:
+          "Cannot create a client with a reserved 'authhero-try-connection-' prefix.",
+      });
+    }
 
     const withDefaults = applyAppTypeDefaults(body, rawBody);
     const isPublic = withDefaults.token_endpoint_auth_method === "none";
@@ -560,6 +566,9 @@ const patchByIdConnections = defineRoute({
     const client = await ctx.env.data.clients.get(tenant_id, id);
 
     if (!client) {
+      throw new HTTPException(404, { message: "Client not found" });
+    }
+    if (isSystemClient(client)) {
       throw new HTTPException(404, { message: "Client not found" });
     }
 

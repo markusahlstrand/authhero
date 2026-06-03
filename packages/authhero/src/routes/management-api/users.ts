@@ -224,9 +224,13 @@ const getByUser_id = defineRoute({
     }
 
     if (user.linked_to) {
-      throw new HTTPException(404, {
-        message: "User is linked to another user",
-      });
+      if (ctx.var.prefer?.has("include-linked")) {
+        ctx.var.prefer.applied("include-linked");
+      } else {
+        throw new HTTPException(404, {
+          message: "User is linked to another user",
+        });
+      }
     }
 
     return ctx.json(auth0UserResponseSchema.parse(user));

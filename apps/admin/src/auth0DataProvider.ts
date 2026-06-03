@@ -560,7 +560,15 @@ export default (
             fetchEmailTemplateRecord(managementClient, def.name),
           ),
         );
-        return { data: records, total: records.length };
+        const sortField = field ?? "label";
+        const sortOrder = order ?? "ASC";
+        const sorted = [...records].sort((a, b) => {
+          const av = String((a as Record<string, unknown>)[sortField] ?? "");
+          const bv = String((b as Record<string, unknown>)[sortField] ?? "");
+          const cmp = av.localeCompare(bv);
+          return sortOrder === "DESC" ? -cmp : cmp;
+        });
+        return { data: sorted, total: sorted.length };
       }
 
       // Handle custom-text resource (for individual custom text entries)

@@ -18,7 +18,12 @@ export function WelcomeEmail() {
         {"{{ link_email_fallback_intro }}"}
       </Text>
       <Text className="break-all m-0 text-[13px]">
-        <Link href={"{{ url }}"}>{"{{ url }}"}</Link>
+        <Link
+          href={"{{ url }}"}
+          style={{ color: "{{ branding.primary_color }}" }}
+        >
+          {"{{ url }}"}
+        </Link>
       </Text>
       {`{% endif %}`}
     </Layout>

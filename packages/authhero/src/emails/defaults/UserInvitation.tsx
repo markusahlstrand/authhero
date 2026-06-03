@@ -20,7 +20,12 @@ export function UserInvitation() {
         {"{{ link_email_fallback_intro }}"}
       </Text>
       <Text className="break-all m-0 text-[13px]">
-        <Link href={"{{ url }}"}>{"{{ url }}"}</Link>
+        <Link
+          href={"{{ url }}"}
+          style={{ color: "{{ branding.primary_color }}" }}
+        >
+          {"{{ url }}"}
+        </Link>
       </Text>
       <Text className="text-xs text-zinc-500 text-center mt-6 mb-0">
         {"{{ invitation_expires_in }}"}

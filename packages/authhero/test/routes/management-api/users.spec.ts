@@ -2097,6 +2097,175 @@ describe("users management API endpoint", () => {
       // auth0 does not return linked accounts
       expect(secondaryUserResponse.status).toBe(404);
     });
+
+    describe("Prefer: include-linked", () => {
+      it("returns the secondary user with Prefer: include-linked and sets Preference-Applied", async () => {
+        const token = await getAdminToken();
+        const { managementApp, env } = await getTestServer();
+        const managementClient = testClient(managementApp, env);
+
+        await managementClient.users.$post(
+          {
+            json: {
+              user_id: "userId1",
+              email: "foo1@example.com",
+              connection: "email",
+            },
+            header: { "tenant-id": "tenantId" },
+          },
+          { headers: { authorization: `Bearer ${token}` } },
+        );
+        await managementClient.users.$post(
+          {
+            json: {
+              user_id: "userId2",
+              email: "foo2@example.com",
+              connection: "email",
+            },
+            header: { "tenant-id": "tenantId" },
+          },
+          { headers: { authorization: `Bearer ${token}` } },
+        );
+
+        const linkUserResponse = await managementClient.users[
+          ":user_id"
+        ].identities.$post(
+          {
+            param: { user_id: "email|userId1" },
+            json: { link_with: "email|userId2" },
+            header: { "tenant-id": "tenantId" },
+          },
+          { headers: { authorization: `Bearer ${token}` } },
+        );
+        expect(linkUserResponse.status).toBe(201);
+
+        const secondaryUserResponse = await managementClient.users[
+          ":user_id"
+        ].$get(
+          {
+            param: { user_id: "email|userId2" },
+            header: { "tenant-id": "tenantId" },
+          },
+          {
+            headers: {
+              authorization: `Bearer ${token}`,
+              prefer: "include-linked",
+            },
+          },
+        );
+
+        expect(secondaryUserResponse.status).toBe(200);
+        expect(secondaryUserResponse.headers.get("preference-applied")).toBe(
+          "include-linked",
+        );
+
+        const secondary = await secondaryUserResponse.json();
+        expect(secondary.email).toBe("foo2@example.com");
+        expect(secondary.linked_to).toBe("email|userId1");
+      });
+
+      it("does not set Preference-Applied when fetching a non-linked user with Prefer: include-linked", async () => {
+        const token = await getAdminToken();
+        const { managementApp, env } = await getTestServer();
+        const managementClient = testClient(managementApp, env);
+
+        await managementClient.users.$post(
+          {
+            json: {
+              user_id: "soloId",
+              email: "solo@example.com",
+              connection: "email",
+            },
+            header: { "tenant-id": "tenantId" },
+          },
+          { headers: { authorization: `Bearer ${token}` } },
+        );
+
+        const response = await managementClient.users[":user_id"].$get(
+          {
+            param: { user_id: "email|soloId" },
+            header: { "tenant-id": "tenantId" },
+          },
+          {
+            headers: {
+              authorization: `Bearer ${token}`,
+              prefer: "include-linked",
+            },
+          },
+        );
+
+        expect(response.status).toBe(200);
+        expect(response.headers.get("preference-applied")).toBeNull();
+      });
+
+      it("ignores unknown Prefer tokens", async () => {
+        const token = await getAdminToken();
+        const { managementApp, env } = await getTestServer();
+        const managementClient = testClient(managementApp, env);
+
+        await managementClient.users.$post(
+          {
+            json: {
+              user_id: "userId1",
+              email: "foo1@example.com",
+              connection: "email",
+            },
+            header: { "tenant-id": "tenantId" },
+          },
+          { headers: { authorization: `Bearer ${token}` } },
+        );
+        await managementClient.users.$post(
+          {
+            json: {
+              user_id: "userId2",
+              email: "foo2@example.com",
+              connection: "email",
+            },
+            header: { "tenant-id": "tenantId" },
+          },
+          { headers: { authorization: `Bearer ${token}` } },
+        );
+        await managementClient.users[":user_id"].identities.$post(
+          {
+            param: { user_id: "email|userId1" },
+            json: { link_with: "email|userId2" },
+            header: { "tenant-id": "tenantId" },
+          },
+          { headers: { authorization: `Bearer ${token}` } },
+        );
+
+        // bogus-only: still 404
+        const bogusOnly = await managementClient.users[":user_id"].$get(
+          {
+            param: { user_id: "email|userId2" },
+            header: { "tenant-id": "tenantId" },
+          },
+          {
+            headers: {
+              authorization: `Bearer ${token}`,
+              prefer: "bogus-token",
+            },
+          },
+        );
+        expect(bogusOnly.status).toBe(404);
+
+        // mixed: include-linked still honored
+        const mixed = await managementClient.users[":user_id"].$get(
+          {
+            param: { user_id: "email|userId2" },
+            header: { "tenant-id": "tenantId" },
+          },
+          {
+            headers: {
+              authorization: `Bearer ${token}`,
+              prefer: "bogus, include-linked",
+            },
+          },
+        );
+        expect(mixed.status).toBe(200);
+        expect(mixed.headers.get("preference-applied")).toBe("include-linked");
+      });
+    });
   });
 
   describe("User Permissions Management", () => {

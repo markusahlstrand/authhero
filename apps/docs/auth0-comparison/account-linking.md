@@ -430,3 +430,7 @@ AuthHero significantly simplifies account linking compared to Auth0:
 | **Customization**   | Complex                   | Simple `setLinkedTo()` |
 
 For most applications, AuthHero's automatic email-based linking works out of the box with no configuration required.
+
+## Fetching a Linked Secondary User
+
+Like Auth0, `GET /api/v2/users/{id}` returns `404` when called with a secondary identity's ID — only the primary user is addressable. AuthHero adds an opt-in escape hatch: send `Prefer: include-linked` to fetch the secondary record (it will carry a `linked_to` field pointing at the primary). See the [Prefer Header](../api/prefer-header) docs for details.
