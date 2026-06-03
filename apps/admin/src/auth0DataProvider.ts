@@ -2,6 +2,51 @@ import { fetchUtils, type DataProvider, type UpdateParams } from "ra-core";
 import { createManagementClient } from "./authProvider";
 import { ManagementClient } from "auth0";
 import { unflattenDomainMetadata } from "./components/custom-domains/domainMetadataUtils";
+import {
+  EMAIL_TEMPLATE_DEFINITIONS,
+  getTemplateLabel,
+} from "./resources/email-templates/template-names";
+
+function isNotFoundError(err: unknown): boolean {
+  return (
+    !!err &&
+    typeof err === "object" &&
+    "statusCode" in err &&
+    (err as { statusCode?: number }).statusCode === 404
+  );
+}
+
+async function fetchEmailTemplateRecord(
+  client: ManagementClient,
+  name: string,
+): Promise<Record<string, unknown>> {
+  try {
+    const tpl = await client.emailTemplates.get(
+      name as Parameters<typeof client.emailTemplates.get>[0],
+    );
+    return {
+      ...tpl,
+      id: name,
+      template: name,
+      label: getTemplateLabel(name),
+      is_override: true,
+    };
+  } catch (err) {
+    if (isNotFoundError(err)) {
+      return {
+        id: name,
+        template: name,
+        label: getTemplateLabel(name),
+        is_override: false,
+        enabled: true,
+        subject: "",
+        body: "",
+        from: "",
+      };
+    }
+    throw err;
+  }
+}
 
 // Add this at the top of the file with other imports
 function stringify(obj: Record<string, any>): string {
@@ -504,6 +549,18 @@ export default (
           }
           throw err;
         }
+      }
+
+      // Handle email-templates resource. No list endpoint upstream — fan out
+      // to GET /{templateName} for each known template, treating 404 as
+      // "still on bundled default".
+      if (resource === "email-templates") {
+        const records = await Promise.all(
+          EMAIL_TEMPLATE_DEFINITIONS.map((def) =>
+            fetchEmailTemplateRecord(managementClient, def.name),
+          ),
+        );
+        return { data: records, total: records.length };
       }
 
       // Handle custom-text resource (for individual custom text entries)
@@ -1010,6 +1067,16 @@ export default (
           }
           throw err;
         }
+      }
+
+      // Handle email-templates: fetch the tenant override, fall back to a
+      // blank record on 404 so the form can render with defaults.
+      if (resource === "email-templates") {
+        const record = await fetchEmailTemplateRecord(
+          managementClient,
+          String(params.id),
+        );
+        return { data: record };
       }
 
       // Handle custom-text resource (individual entries)
@@ -1582,6 +1649,30 @@ export default (
             data: { ...created, id: resource },
           };
         }
+      }
+
+      // Handle email-templates: PUT upserts by template name, so we always
+      // call `set` regardless of override existence.
+      if (resource === "email-templates") {
+        const templateName = String(params.id);
+        const body = cleanParams.data as Parameters<
+          typeof managementClient.emailTemplates.set
+        >[1];
+        const updated = await managementClient.emailTemplates.set(
+          templateName as Parameters<
+            typeof managementClient.emailTemplates.set
+          >[0],
+          body,
+        );
+        return {
+          data: {
+            ...updated,
+            id: templateName,
+            template: templateName,
+            label: getTemplateLabel(templateName),
+            is_override: true,
+          },
+        };
       }
 
       // Handle custom-text resource

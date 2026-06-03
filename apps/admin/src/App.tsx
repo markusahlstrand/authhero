@@ -81,6 +81,10 @@ import {
   EmailProvidersList,
   EmailProvidersEdit,
 } from "./resources/email-providers";
+import {
+  EmailTemplatesList,
+  EmailTemplatesEdit,
+} from "./resources/email-templates";
 import { SettingsList, SettingsEdit } from "./resources/settings";
 import { RoleList, RoleCreate, RoleEdit } from "./resources/roles";
 import { Dashboard } from "./resources/dashboard/Dashboard";
@@ -364,6 +368,16 @@ export function App({ tenantId, initialDomain, onAuthComplete }: AppProps) {
           options={{
             hasSingle: true,
             label: "Email Provider",
+            menuGroup: "Branding",
+          }}
+        />
+        <Resource
+          name="email-templates"
+          icon={Mail}
+          list={EmailTemplatesList}
+          edit={EmailTemplatesEdit}
+          options={{
+            label: "Email Templates",
             menuGroup: "Branding",
           }}
         />

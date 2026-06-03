@@ -146,6 +146,9 @@ importers:
       inflection:
         specifier: ^3.0.2
         version: 3.0.2
+      liquidjs:
+        specifier: ^10.27.0
+        version: 10.27.0
       lodash:
         specifier: ^4.18.1
         version: 4.18.1
