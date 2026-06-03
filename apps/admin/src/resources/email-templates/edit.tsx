@@ -26,10 +26,16 @@ function transformEmailTemplate(data: Record<string, unknown>) {
   return {
     template: data.id ?? data.template,
     syntax: "liquid" as const,
-    body: typeof data.body === "string" ? data.body : "",
-    subject: typeof data.subject === "string" ? data.subject : "",
-    from: typeof data.from === "string" ? data.from : "",
-    enabled: data.enabled !== false,
+    ...(typeof data.body === "string" && data.body.trim() !== ""
+      ? { body: data.body }
+      : {}),
+    ...(typeof data.subject === "string" && data.subject.trim() !== ""
+      ? { subject: data.subject }
+      : {}),
+    ...(typeof data.from === "string" && data.from.trim() !== ""
+      ? { from: data.from }
+      : {}),
+    ...(typeof data.enabled === "boolean" ? { enabled: data.enabled } : {}),
     ...(data.resultUrl ? { resultUrl: data.resultUrl } : {}),
     ...(typeof data.urlLifetimeInSeconds === "number"
       ? { urlLifetimeInSeconds: data.urlLifetimeInSeconds }

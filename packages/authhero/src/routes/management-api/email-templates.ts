@@ -4,9 +4,11 @@ import {
   emailTemplateNameSchema,
   emailTemplateSchema,
   LogTypes,
+  type EmailTemplateName,
 } from "@authhero/adapter-interfaces";
 import { logMessage } from "../../helpers/logging";
 import { HTTPException } from "hono/http-exception";
+import { getDefaultTemplate } from "../../emails/defaults";
 
 import { defineRoute } from "../../utils/define-route";
 const headers = z.object({ "tenant-id": z.string().optional() });
@@ -66,6 +68,41 @@ const postRoot = defineRoute({
     });
 
     return ctx.json(created, { status: 201 });
+  },
+});
+
+const defaultsItemSchema = z.object({
+  name: emailTemplateNameSchema,
+  body: z.string(),
+  subject: z.string(),
+});
+
+const getDefaults = defineRoute({
+  route: createRoute({
+    tags: ["email-templates"],
+    method: "get",
+    path: "/defaults",
+    request: { headers },
+    security: [{ Bearer: ["read:email_templates"] }],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: z.array(defaultsItemSchema),
+          },
+        },
+        description:
+          "Bundled default email templates shipped with authhero. authhero extension; not available in Auth0.",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const out: { name: EmailTemplateName; body: string; subject: string }[] = [];
+    for (const name of emailTemplateNameSchema.options) {
+      const def = getDefaultTemplate(name);
+      if (def) out.push({ name, body: def.body, subject: def.subject });
+    }
+    return ctx.json(out);
   },
 });
 
@@ -229,6 +266,7 @@ export const emailTemplatesRoutes = new OpenAPIHono<{
   Variables: Variables;
 }>().openapiRoutes([
   postRoot,
+  getDefaults,
   getByTemplateName,
   putByTemplateName,
   patchByTemplateName,

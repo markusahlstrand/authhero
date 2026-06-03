@@ -16,10 +16,37 @@ function isNotFoundError(err: unknown): boolean {
   );
 }
 
+type EmailTemplateDefaults = Record<string, { body: string; subject: string }>;
+
+async function fetchEmailTemplateDefaults(
+  apiUrl: string,
+  httpClient: typeof fetchUtils.fetchJson,
+  tenantId?: string,
+): Promise<EmailTemplateDefaults> {
+  const headers = new Headers();
+  if (tenantId) headers.set("tenant-id", tenantId);
+  try {
+    const res = await httpClient(`${apiUrl}/api/v2/email-templates/defaults`, {
+      headers,
+    });
+    const entries: Array<{ name: string; body: string; subject: string }> =
+      res.json ?? [];
+    const out: EmailTemplateDefaults = {};
+    for (const e of entries) {
+      out[e.name] = { body: e.body, subject: e.subject };
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
 async function fetchEmailTemplateRecord(
   client: ManagementClient,
   name: string,
+  defaults: EmailTemplateDefaults = {},
 ): Promise<Record<string, unknown>> {
+  const def = defaults[name];
   try {
     const tpl = await client.emailTemplates.get(
       name as Parameters<typeof client.emailTemplates.get>[0],
@@ -30,6 +57,7 @@ async function fetchEmailTemplateRecord(
       template: name,
       label: getTemplateLabel(name),
       is_override: true,
+      default_html: def?.body ?? "",
     };
   } catch (err) {
     if (isNotFoundError(err)) {
@@ -42,6 +70,7 @@ async function fetchEmailTemplateRecord(
         subject: "",
         body: "",
         from: "",
+        default_html: def?.body ?? "",
       };
     }
     throw err;
@@ -555,9 +584,14 @@ export default (
       // to GET /{templateName} for each known template, treating 404 as
       // "still on bundled default".
       if (resource === "email-templates") {
+        const defaults = await fetchEmailTemplateDefaults(
+          apiUrl,
+          httpClient,
+          tenantId,
+        );
         const records = await Promise.all(
           EMAIL_TEMPLATE_DEFINITIONS.map((def) =>
-            fetchEmailTemplateRecord(managementClient, def.name),
+            fetchEmailTemplateRecord(managementClient, def.name, defaults),
           ),
         );
         const sortField = field ?? "label";
@@ -1080,9 +1114,15 @@ export default (
       // Handle email-templates: fetch the tenant override, fall back to a
       // blank record on 404 so the form can render with defaults.
       if (resource === "email-templates") {
+        const defaults = await fetchEmailTemplateDefaults(
+          apiUrl,
+          httpClient,
+          tenantId,
+        );
         const record = await fetchEmailTemplateRecord(
           managementClient,
           String(params.id),
+          defaults,
         );
         return { data: record };
       }
