@@ -1,5 +1,12 @@
 # @authhero/drizzle
 
+## 0.52.4
+
+### Patch Changes
+
+- Updated dependencies [6f4477f]
+  - @authhero/proxy@0.4.0
+
 ## 0.52.3
 
 ### Patch Changes

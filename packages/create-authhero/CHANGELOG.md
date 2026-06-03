@@ -1,5 +1,19 @@
 # create-authhero
 
+## 0.46.0
+
+### Minor Changes
+
+- 0ed5f14: Switch the Cloudflare Workers template to `@authhero/drizzle` (with `drizzle-orm/d1`) as the runtime adapter. Drops the `kysely-d1`, `kysely`, and `@authhero/kysely-adapter` runtime dependencies in favor of drizzle's native D1 driver, which avoids the community shim and aligns the runtime adapter with the migration source-of-truth (drizzle migrations were already used). Local and AWS-SST templates are unchanged and continue to use Kysely.
+
+  Also bumps the template's `compatibility_date` to `2026-05-01`.
+
+- 930f365: Add a `cloudflare-wfp-dispatcher` template that scaffolds a thin Cloudflare Worker for routing per-publisher custom domains to per-tenant authhero workers deployed in a Cloudflare Workers for Platforms dispatch namespace.
+
+  The dispatcher uses `@authhero/proxy`'s new `dispatch_namespace` handler to resolve incoming `Host` headers against the shared platform D1 (`custom_domains` table) and forward to `tenant-<id>-auth` scripts in the `authhero-tenants` namespace. Tenant workers are deployed separately via the existing `cloudflare` template using `wrangler deploy --dispatch-namespace=authhero-tenants --name=tenant-<id>-auth`.
+
+  Scaffold via `create-authhero --template=cloudflare-wfp-dispatcher`. See the generated `README.md` for the full onboarding workflow.
+
 ## 0.45.0
 
 ### Minor Changes
