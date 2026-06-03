@@ -688,7 +688,7 @@ const getByIdMembersByUser_idRoles = defineRoute({
     },
     security: [
       {
-        Bearer: ["read:organizations"],
+        Bearer: ["read:organization_member_roles"],
       },
     ],
     responses: {
@@ -760,7 +760,7 @@ const postByIdMembersByUser_idRoles = defineRoute({
     },
     security: [
       {
-        Bearer: ["update:organizations"],
+        Bearer: ["create:organization_member_roles"],
       },
     ],
     responses: {
@@ -851,7 +851,7 @@ const deleteByIdMembersByUser_idRoles = defineRoute({
     },
     security: [
       {
-        Bearer: ["update:organizations"],
+        Bearer: ["delete:organization_member_roles"],
       },
     ],
     responses: {

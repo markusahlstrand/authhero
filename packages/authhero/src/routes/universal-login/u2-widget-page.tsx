@@ -955,18 +955,23 @@ export async function renderWidgetSSR(params: {
       (globalThis as any).window = globalThis;
     }
     const { renderToString } = await import("@authhero/widget/hydrate");
+    // JSON is delivered as <script type="application/json"> children rather
+    // than as HTML attributes. The HTML parser does NOT decode character
+    // references inside <script> content, so the JSON round-trips verbatim
+    // — including any HTML entities embedded by inner-context escapers
+    // (e.g. escapeHtml on the userinfo dump in the try-connection-result
+    // screen). The only sequence that could close the script early is a
+    // literal "</script" — neutralize it by inserting a backslash.
+    const jsonScript = (key: string, json: string): string =>
+      `<script type="application/json" data-authhero="${key}">${json.replace(/<\/script/gi, "<\\/script")}</script>`;
     const result = await renderToString(
       `<authhero-widget
         id="widget"
         data-screen="${escapeHtml(screenId)}"
-        screen='${screenJson.replace(/'/g, "&#39;")}'
-        ${brandingJson ? `branding='${brandingJson.replace(/'/g, "&#39;")}'` : ""}
-        ${themeJson ? `theme='${themeJson.replace(/'/g, "&#39;")}'` : ""}
         state="${escapeHtml(state)}"
-        auth-params='${authParamsJson.replace(/'/g, "&#39;")}'
         auto-submit="true"
         auto-navigate="true"
-      ></authhero-widget>`,
+      >${jsonScript("screen", screenJson)}${brandingJson ? jsonScript("branding", brandingJson) : ""}${themeJson ? jsonScript("theme", themeJson) : ""}${jsonScript("auth-params", authParamsJson)}</authhero-widget>`,
       {
         fullDocument: false,
         serializeShadowRoot: "declarative-shadow-dom",

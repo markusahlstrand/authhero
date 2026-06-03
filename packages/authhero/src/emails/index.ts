@@ -249,6 +249,11 @@ async function sendTemplatedEmail(
     branding: {
       logo: params.branding.logo,
       primary_color: params.branding.primary_color,
+      // Resolve here, not via Liquid `| default:` — React Email escapes
+      // single quotes in inline styles to `&#x27;`, which liquidjs then
+      // can't parse as a string literal.
+      button_text_color: "#ffffff",
+      button_border_radius: "4px",
     },
     signature: { enabled: true },
     footer: { address: "" },

@@ -13,8 +13,22 @@ import { nanoid } from "nanoid";
 import { querySchema } from "../../types/auth0/Query";
 import { parseSort } from "../../utils/sort";
 import { isCimdClientId } from "../../helpers/cimd";
+import { isTryConnectionClientId } from "../../constants";
 
 import { defineRoute } from "../../utils/define-route";
+
+// Platform-managed clients with no business meaning to admins (e.g. the
+// per-tenant "AuthHero Try Connection" stub created by ensureTryConnectionClient).
+// Hide from the listing and block destructive writes — the row is recreated
+// on demand and admins can't usefully manage it.
+function isSystemClient(client: {
+  client_id?: string;
+  client_metadata?: Record<string, string> | null;
+} | null): boolean {
+  if (!client?.client_id) return false;
+  if (client.client_metadata?.system_purpose === "try_connection") return true;
+  return isTryConnectionClientId(client.client_id);
+}
 
 // CIMD clients are managed via their metadata document URL, not the management
 // API. Any locally-stored fields the document controls (name, callbacks,
@@ -162,14 +176,20 @@ const getRoot = defineRoute({
       q,
     });
 
-    const clients = result.clients;
+    // Strip platform-managed clients (e.g. the try-connection stub) from the
+    // admin-facing listing. Totals are intentionally left as the adapter
+    // reported them — we don't know how many system rows exist across all
+    // pages without a separate query, and the inflation is at most ~1 per
+    // tenant. `length` reflects the filtered page so the client can render
+    // the slice it received.
+    const clients = result.clients.filter((c) => !isSystemClient(c));
 
     if (include_totals) {
       return ctx.json({
         clients,
         start: result.totals?.start ?? 0,
         limit: result.totals?.limit ?? per_page,
-        length: result.totals?.length ?? clients.length,
+        length: clients.length,
         total: result.totals?.total,
       });
     }
@@ -249,6 +269,11 @@ const deleteById = defineRoute({
     const tenant_id = ctx.var.tenant_id;
     const { id } = ctx.req.valid("param");
 
+    const existing = await ctx.env.data.clients.get(tenant_id, id);
+    if (existing && isSystemClient(existing)) {
+      throw new HTTPException(404, { message: "Client not found" });
+    }
+
     const result = await ctx.env.data.clients.remove(tenant_id, id);
     if (!result) {
       throw new HTTPException(404, { message: "Client not found" });
@@ -313,6 +338,9 @@ const patchById = defineRoute({
       throw new HTTPException(400, {
         message: `Client is managed via its Client ID Metadata Document at ${id}. Update the document instead.`,
       });
+    }
+    if (clientBefore && isSystemClient(clientBefore)) {
+      throw new HTTPException(404, { message: "Client not found" });
     }
     await ctx.env.data.clients.update(tenant_id, id, clientUpdate);
     const client = await ctx.env.data.clients.get(tenant_id, id);
