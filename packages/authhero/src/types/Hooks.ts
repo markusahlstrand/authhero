@@ -138,7 +138,7 @@ export type HookEvent = {
   organization?: {
     id: string;
     name: string;
-    display_name: string;
+    display_name?: string;
     metadata?: Record<string, unknown>;
   };
   resource_server?: {

@@ -55,6 +55,51 @@ describe("client-credentials-hooks", () => {
     });
   });
 
+  it("should expose grant_type and organization on the event for client_credentials", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const oauthClient = testClient(oauthApp, env);
+
+    const organization = await env.data.organizations.create("tenantId", {
+      name: "cc-org",
+      display_name: "Client Credentials Org",
+    });
+
+    let capturedEvent: HookEvent | undefined;
+    env.hooks = {
+      onExecuteCredentialsExchange: async (
+        event: HookEvent,
+        _api: OnExecuteCredentialsExchangeAPI,
+      ) => {
+        capturedEvent = event;
+      },
+    };
+
+    const response = await oauthClient.oauth.token.$post(
+      {
+        form: {
+          grant_type: "client_credentials",
+          client_id: "clientId",
+          client_secret: "clientSecret",
+          audience: "https://example.com",
+          organization: organization.id,
+        },
+      },
+      {
+        headers: {
+          "tenant-id": "tenantId",
+        },
+      },
+    );
+
+    expect(response.status).toBe(200);
+    expect(capturedEvent).toBeDefined();
+    expect(capturedEvent!.grant_type).toBe("client_credentials");
+    expect(capturedEvent!.organization).toMatchObject({
+      id: organization.id,
+      name: organization.name,
+    });
+  });
+
   it("should include connection info in the event for user-based flows", async () => {
     const { oauthApp, env, getSentEmails } = await getTestServer({
       testTenantLanguage: "en",

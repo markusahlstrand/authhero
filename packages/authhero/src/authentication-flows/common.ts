@@ -170,6 +170,7 @@ export async function createAuthTokens(
     organization,
     permissions,
     impersonatingUser,
+    grantType,
   } = params;
 
   // OIDC Core §2: auth_time is REQUIRED in the ID Token whenever max_age was
@@ -382,7 +383,8 @@ export async function createAuthTokens(
           url: ctx.req.url,
         },
         scope: authParams.scope || "",
-        grant_type: "",
+        grant_type: grantType ?? "",
+        organization,
         connection:
           connectionInfo ||
           (connectionName
@@ -460,7 +462,8 @@ export async function createAuthTokens(
           url: ctx.req?.url || "",
         },
         scope: authParams.scope || "",
-        grant_type: "",
+        grant_type: grantType ?? "",
+        organization,
         connection:
           connectionInfo ||
           (connectionName
