@@ -1,5 +1,38 @@
 # authhero
 
+## 5.18.0
+
+### Minor Changes
+
+- de79245: Add RFC 7240 `Prefer` request header support on the management API. Callers can opt into relaxed-default behaviors per request and the server echoes which preferences were honored via `Preference-Applied`. First token: `Prefer: include-linked` on `GET /api/v2/users/{id}` returns a linked secondary user (instead of the default Auth0-compatible 404). Unknown tokens are silently ignored. The default response shape is unchanged, so existing Auth0 SDK callers are unaffected.
+
+### Patch Changes
+
+- 0afed19: Restructure the bundled email layout to match Auth0's structure: larger centered logo, signature block ("Kind Regards, / The {Tenant} Team") defaulted on, italic muted disclaimer with inline contact-us link, and an optional outside-card address slot.
+
+  All visual tokens are emitted as Liquid placeholders so tenants can re-skin without editing the template body: `{{ branding.button_text_color }}` and `{{ branding.button_border_radius }}` are now picked up by `PrimaryButton` (default values are supplied at render time by `sendTemplatedEmail`, since React Email's HTML escaping prevents inline `| default:` filters from parsing), `{{ signature.enabled }}` toggles the signature block, and `{{ footer.address }}` renders the address block when set.
+
+  Link-mode templates (verify, reset, welcome, user invitation) now include a "If you prefer, copy this link" fallback paragraph with the plain URL — matching Auth0 link emails. Code-mode templates mirror the same frame.
+
+  Adds three new i18n keys across all 8 locales: `kind_regards`, `team_signature` ("The {{vendorName}} Team"), and `link_email_fallback_intro`. `SendTemplatedEmailParams` now accepts an optional `language` so the central renderer resolves these strings once.
+
+  No breaking changes — existing tenant template overrides stored via the management API continue to render unchanged.
+
+- e9c1c1e: Align the organization member-role management-api endpoints with Auth0.
+
+  Scopes now match Auth0's dedicated permissions: `GET /organizations/{id}/members/{user_id}/roles` requires `read:organization_member_roles` (was `read:organizations`), `POST` requires `create:organization_member_roles` (was `update:organizations`), and `DELETE` requires `delete:organization_member_roles` (was `update:organizations`). The new scopes are already in the seeded permission catalog.
+
+  `POST .../roles` is now idempotent and returns `204 No Content` (was `201` with a JSON body). Roles the member already has are skipped before insert, so retries and "ensure these N roles" batch calls no longer 500 on the underlying unique-constraint collision.
+
+- e9c1c1e: Fix the "Try Connection" result screen rendering as "No screen configuration provided" after an OIDC/SAML connection test completes. The universal-login SSR was embedding the screen config as a JSON-stringified HTML attribute (`screen='…'`); HTML attribute parsing decodes character references, which broke any payload whose inner content had been HTML-escaped for an innerHTML context (`&quot;` → `"` mid-JSON). The try-connection-result screen was the first to embed an HTML-escaped JSON dump (the upstream userinfo), so it tripped the bug.
+
+  The widget's SSR transport now ships screen/branding/theme/auth-params as `<script type="application/json">` children of the widget — script content is opaque to HTML entity decoding, so the JSON round-trips verbatim. The widget falls back through prop → script tag → legacy attribute.
+
+  Also hide the per-tenant `authhero-try-connection-<tenantId>` stub client (created by `POST /api/v2/connections/:id/try`) from the management API's clients list, and reject `PATCH`/`DELETE` against it. Admins shouldn't see or be able to break the platform-managed row.
+
+- Updated dependencies [e9c1c1e]
+  - @authhero/widget@0.32.34
+
 ## 5.17.1
 
 ### Patch Changes
