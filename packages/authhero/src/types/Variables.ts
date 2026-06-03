@@ -1,6 +1,7 @@
 import { LoginSession } from "@authhero/adapter-interfaces";
 import { CountryCode } from "libphonenumber-js";
 import { Auth0Client } from "./Auth0Client";
+import type { PreferState } from "../middlewares/prefer";
 
 export type Variables = {
   tenant_id: string;
@@ -31,6 +32,10 @@ export type Variables = {
   auth0_client?: Auth0Client;
   useragent?: string;
   countryCode?: CountryCode;
+  // Parsed RFC 7240 Prefer header tokens, populated by preferMiddleware on the
+  // management API. Handlers call `applied(token)` to make the response include
+  // a corresponding `Preference-Applied` header.
+  prefer?: PreferState;
   // Outbox event ID promises created during this request (for per-request processing).
   // Promises are pushed synchronously so that non-awaited logMessage calls are still captured.
   outboxEventPromises?: Promise<string>[];

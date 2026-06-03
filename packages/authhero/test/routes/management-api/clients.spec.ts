@@ -480,6 +480,83 @@ describe("clients", () => {
     });
   });
 
+  describe("try-connection system client", () => {
+    it("hides the try-connection stub from the clients list", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      await env.data.clients.create("tenantId", {
+        client_id: "authhero-try-connection-tenantId",
+        name: "AuthHero Try Connection",
+        client_metadata: { system_purpose: "try_connection" },
+      });
+
+      const response = await managementClient.clients.$get(
+        { query: {}, header: { "tenant-id": "tenantId" } },
+        { headers: { authorization: `Bearer ${token}` } },
+      );
+
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as Array<{ client_id: string }>;
+      expect(
+        body.find((c) => c.client_id === "authhero-try-connection-tenantId"),
+      ).toBeUndefined();
+    });
+
+    it("returns 404 when an admin tries to delete the try-connection stub", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      await env.data.clients.create("tenantId", {
+        client_id: "authhero-try-connection-tenantId",
+        name: "AuthHero Try Connection",
+        client_metadata: { system_purpose: "try_connection" },
+      });
+
+      const response = await managementClient.clients[":id"].$delete(
+        {
+          param: { id: "authhero-try-connection-tenantId" },
+          header: { "tenant-id": "tenantId" },
+        },
+        { headers: { authorization: `Bearer ${token}` } },
+      );
+
+      expect(response.status).toBe(404);
+      // Row still exists — delete was a no-op.
+      expect(
+        await env.data.clients.get(
+          "tenantId",
+          "authhero-try-connection-tenantId",
+        ),
+      ).toBeTruthy();
+    });
+
+    it("returns 404 when an admin tries to patch the try-connection stub", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      await env.data.clients.create("tenantId", {
+        client_id: "authhero-try-connection-tenantId",
+        name: "AuthHero Try Connection",
+        client_metadata: { system_purpose: "try_connection" },
+      });
+
+      const response = await managementClient.clients[":id"].$patch(
+        {
+          param: { id: "authhero-try-connection-tenantId" },
+          json: { name: "Renamed" },
+          header: { "tenant-id": "tenantId" },
+        },
+        { headers: { authorization: `Bearer ${token}` } },
+      );
+
+      expect(response.status).toBe(404);
+    });
+  });
+
   describe("CIMD client management API restrictions", () => {
     const CIMD_URL = "https://rp.example.com/cimd.json";
 

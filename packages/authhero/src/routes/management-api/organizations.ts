@@ -688,7 +688,7 @@ const getByIdMembersByUser_idRoles = defineRoute({
     },
     security: [
       {
-        Bearer: ["read:organizations"],
+        Bearer: ["read:organization_member_roles"],
       },
     ],
     responses: {
@@ -760,11 +760,11 @@ const postByIdMembersByUser_idRoles = defineRoute({
     },
     security: [
       {
-        Bearer: ["update:organizations"],
+        Bearer: ["create:organization_member_roles"],
       },
     ],
     responses: {
-      201: {
+      204: {
         description: "Roles assigned successfully",
       },
     },
@@ -789,8 +789,19 @@ const postByIdMembersByUser_idRoles = defineRoute({
       throw new HTTPException(404, { message: "User not found" });
     }
 
-    // Assign roles to user in this organization
+    // Idempotent like Auth0: skip roles the member already has so retries and
+    // "ensure these N roles" batch calls don't race on the unique constraint.
+    const existing = await ctx.env.data.userRoles.list(
+      tenant_id,
+      user_id,
+      undefined,
+      organization.id,
+    );
+    const alreadyAssigned = new Set(existing.map((r) => r.id));
+
     for (const roleId of roles) {
+      if (alreadyAssigned.has(roleId)) continue;
+
       // Verify role exists
       const role = await ctx.env.data.roles.get(tenant_id, roleId);
       if (!role) {
@@ -817,10 +828,7 @@ const postByIdMembersByUser_idRoles = defineRoute({
       targetId: user_id,
     });
 
-    return ctx.json(
-      { message: "Roles assigned successfully" },
-      { status: 201 },
-    );
+    return ctx.body(null, 204);
   },
 });
 
@@ -851,7 +859,7 @@ const deleteByIdMembersByUser_idRoles = defineRoute({
     },
     security: [
       {
-        Bearer: ["update:organizations"],
+        Bearer: ["delete:organization_member_roles"],
       },
     ],
     responses: {

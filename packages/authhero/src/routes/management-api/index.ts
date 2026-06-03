@@ -34,6 +34,7 @@ import { addTimingLogs } from "../../helpers/server-timing";
 import { applyConfigMiddleware } from "../../middlewares/apply-config";
 import { tenantMiddleware } from "../../middlewares/tenant";
 import { clientInfoMiddleware } from "../../middlewares/client-info";
+import { preferMiddleware } from "../../middlewares/prefer";
 import { addCaching } from "../../helpers/cache-wrapper";
 import { addEntityHooks } from "../../helpers/entity-hooks-wrapper";
 import { createInMemoryCache } from "../../adapters/cache/in-memory";
@@ -406,6 +407,7 @@ export default function create(config: AuthHeroConfig) {
 
   app
     .use(clientInfoMiddleware)
+    .use(preferMiddleware)
     .use(tenantMiddleware)
     .use(
       createAuthMiddleware(app, {

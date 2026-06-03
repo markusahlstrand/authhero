@@ -581,23 +581,49 @@ export class AuthheroWidget {
     this.conditionalMediationAbort = undefined;
   }
 
+  /**
+   * Read a JSON blob delivered as a child <script type="application/json">.
+   * SSR uses this transport for screen/branding/theme/auth-params so the
+   * payload doesn't get HTML-attribute-decoded (which would re-decode any
+   * HTML entities the server embedded for inner innerHTML contexts and
+   * break JSON.parse).
+   */
+  private readJsonScript(key: string): string | undefined {
+    if (!this.el) return undefined;
+    // Note: `:scope >` would be more precise, but Stencil's hydrate runtime
+    // (used during SSR) treats `:scope` as unsupported and the selector
+    // throws/returns null — leaving the widget without any screen data.
+    // Without `:scope` the widget host's only matching descendants in the
+    // light DOM are the data scripts we emit ourselves, so the unscoped
+    // selector remains unambiguous in practice.
+    const node = this.el.querySelector(
+      `script[type="application/json"][data-authhero="${key}"]`,
+    );
+    return node?.textContent ?? undefined;
+  }
+
   async componentWillLoad() {
     // Parse initial props - this prevents unnecessary state changes during hydration that cause flashes
-    // Also check the element attribute as a fallback for hydration scenarios
+    // Fallback order: explicit prop → SSR <script> child → legacy attribute
     if (!this._screen) {
-      const screenValue = this.screen || this.el?.getAttribute("screen");
+      const screenValue =
+        this.screen ||
+        this.readJsonScript("screen") ||
+        this.el?.getAttribute("screen");
       if (screenValue) {
         this.watchScreen(screenValue);
       }
     }
     if (!this._branding) {
-      this.watchBranding(this.branding);
+      this.watchBranding(this.branding ?? this.readJsonScript("branding"));
     }
     if (!this._theme) {
-      this.watchTheme(this.theme);
+      this.watchTheme(this.theme ?? this.readJsonScript("theme"));
     }
     if (!this._authParams) {
-      this.watchAuthParams(this.authParams);
+      this.watchAuthParams(
+        this.authParams ?? this.readJsonScript("auth-params"),
+      );
     }
 
     // Load persisted state if available

@@ -553,13 +553,12 @@ describe("/u2/connect/start — picker permission gating", () => {
     );
     expect(response.status).toBe(200);
     const body = await response.text();
-    // The widget serializes screen components as JSON inside an HTML
-    // attribute, so component ids appear entity-encoded.
+    // The widget serializes screen components as JSON inside a
+    // <script type="application/json" data-authhero="screen"> child, so
+    // quotes are raw — no HTML entity encoding.
     // The Tenant Admin org is shown, the viewer-only org is not.
-    expect(body).toContain("&quot;id&quot;:&quot;tenant_child_tenant&quot;");
-    expect(body).not.toContain(
-      "&quot;id&quot;:&quot;tenant_viewer_tenant&quot;",
-    );
+    expect(body).toContain('"id":"tenant_child_tenant"');
+    expect(body).not.toContain('"id":"tenant_viewer_tenant"');
   });
 
   it("hides the control plane self-org even if the user is a member with create:clients", async () => {
@@ -595,8 +594,8 @@ describe("/u2/connect/start — picker permission gating", () => {
     );
     expect(response.status).toBe(200);
     const body = await response.text();
-    expect(body).not.toContain("&quot;id&quot;:&quot;tenant_tenantId&quot;");
-    expect(body).toContain("&quot;id&quot;:&quot;tenant_child_tenant&quot;");
+    expect(body).not.toContain('"id":"tenant_tenantId"');
+    expect(body).toContain('"id":"tenant_child_tenant"');
   });
 
   it("rejects POST for a tenant the user has membership but no create:clients on", async () => {
@@ -699,9 +698,9 @@ describe("/u2/connect/start — picker permission gating", () => {
     );
     expect(response.status).toBe(200);
     const body = await response.text();
-    expect(body).toContain("&quot;id&quot;:&quot;tenant_child_tenant&quot;");
-    expect(body).toContain("&quot;id&quot;:&quot;tenant_stranger_tenant&quot;");
+    expect(body).toContain('"id":"tenant_child_tenant"');
+    expect(body).toContain('"id":"tenant_stranger_tenant"');
     // Control plane itself is still excluded.
-    expect(body).not.toContain("&quot;id&quot;:&quot;tenant_tenantId&quot;");
+    expect(body).not.toContain('"id":"tenant_tenantId"');
   });
 });

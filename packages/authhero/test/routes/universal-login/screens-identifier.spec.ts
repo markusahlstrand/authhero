@@ -86,18 +86,15 @@ describe("identifier screen - social buttons with provider details", () => {
     // Check that "Vipps Login" connection is included
     expect(html).toContain("Vipps Login");
 
-    // Check that the screen JSON includes provider_details with strategy
-    // The screen is passed as a JSON attribute to the widget (HTML-encoded)
+    // The widget receives its screen JSON as raw text inside a
+    // <script type="application/json" data-authhero="screen"> child, so
+    // quotes are not HTML-entity-encoded.
     expect(html).toContain("provider_details");
-    // Check for HTML-encoded JSON (quotes become &quot;)
-    expect(html).toContain("&quot;strategy&quot;:&quot;oidc&quot;");
+    expect(html).toContain('"strategy":"oidc"');
     expect(html).toContain(
-      "&quot;icon_url&quot;:&quot;https://example.com/vipps-icon.svg&quot;",
+      '"icon_url":"https://example.com/vipps-icon.svg"',
     );
-    // display_name now contains the full button text with i18n
-    expect(html).toContain(
-      "&quot;display_name&quot;:&quot;Continue with Vipps&quot;",
-    );
+    expect(html).toContain('"display_name":"Continue with Vipps"');
 
     // Also verify the widget rendered the icon correctly
     expect(html).toContain('<img class="social-icon');
@@ -163,13 +160,12 @@ describe("identifier screen - social buttons with provider details", () => {
     expect(response.status).toBe(200);
     const html = await response.text();
 
-    // Verify the provider_details includes the oidc strategy and Vipps display name (HTML-encoded)
+    // Verify the provider_details includes the oidc strategy and Vipps
+    // display name. The widget receives screen JSON as raw text inside a
+    // <script type="application/json"> child — no HTML entity encoding.
     expect(html).toContain("provider_details");
-    expect(html).toContain("&quot;strategy&quot;:&quot;oidc&quot;");
-    // display_name now contains the full button text with i18n
-    expect(html).toContain(
-      "&quot;display_name&quot;:&quot;Continue with Vipps&quot;",
-    );
+    expect(html).toContain('"strategy":"oidc"');
+    expect(html).toContain('"display_name":"Continue with Vipps"');
 
     // Even without a custom icon_url, the widget should recognize "Vipps" in the name
     // and use the built-in Vipps icon (or fallback gracefully)
@@ -261,17 +257,12 @@ describe("identifier screen - social buttons with provider details", () => {
     expect(response.status).toBe(200);
     const html = await response.text();
 
-    // Check that providers are in the correct order in the HTML (HTML-encoded)
-    // We expect First to appear before Second, and Second before Third
-    const firstIndex = html.indexOf(
-      "&quot;name&quot;:&quot;First Provider&quot;",
-    );
-    const secondIndex = html.indexOf(
-      "&quot;name&quot;:&quot;Second Provider&quot;",
-    );
-    const thirdIndex = html.indexOf(
-      "&quot;name&quot;:&quot;Third Provider&quot;",
-    );
+    // Check that providers are in the correct order in the HTML.
+    // The screen JSON is delivered as a <script type="application/json">
+    // child, so quotes are raw — no HTML entity encoding.
+    const firstIndex = html.indexOf('"name":"First Provider"');
+    const secondIndex = html.indexOf('"name":"Second Provider"');
+    const thirdIndex = html.indexOf('"name":"Third Provider"');
 
     expect(firstIndex).toBeGreaterThan(-1);
     expect(secondIndex).toBeGreaterThan(-1);
