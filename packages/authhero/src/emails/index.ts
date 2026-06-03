@@ -215,6 +215,7 @@ interface SendTemplatedEmailParams {
   branding: { logo: string; primary_color: string };
   url?: string;
   code?: string;
+  language?: string;
   data: Record<string, string>;
 }
 
@@ -233,6 +234,11 @@ async function sendTemplatedEmail(
   const fallbackFrom =
     provider?.default_from_address || `login@${ctx.env.ISSUER}`;
 
+  const tOpts = {
+    vendorName: params.tenant.friendly_name,
+    lng: params.language || "en",
+  };
+
   const vars: Record<string, unknown> = {
     ...params.data,
     tenant: {
@@ -244,6 +250,11 @@ async function sendTemplatedEmail(
       logo: params.branding.logo,
       primary_color: params.branding.primary_color,
     },
+    signature: { enabled: true },
+    footer: { address: "" },
+    kind_regards: t("kind_regards", tOpts),
+    team_signature: t("team_signature", tOpts),
+    link_email_fallback_intro: t("link_email_fallback_intro", tOpts),
     url: params.url,
     code: params.code,
   };
@@ -331,6 +342,7 @@ export async function sendResetPassword(
       tenant,
       branding: { logo, primary_color: buttonColor },
       url: passwordResetUrl,
+      language,
       data,
     });
   } catch (err) {
@@ -403,6 +415,7 @@ export async function sendResetPasswordCode(
       tenant,
       branding: { logo, primary_color: buttonColor },
       code,
+      language,
       data,
     });
   } catch (err) {
@@ -497,6 +510,7 @@ export async function sendCode(
       tenant,
       branding: { logo, primary_color: buttonColor },
       code,
+      language,
       data,
     });
   } else if (connectionType === "sms") {
@@ -609,6 +623,7 @@ export async function sendLink(
       branding: { logo, primary_color: buttonColor },
       url: magicLink.toString(),
       code,
+      language,
       data,
     });
   } else if (connectionType === "sms") {
@@ -687,6 +702,7 @@ export async function sendValidateEmailAddress(
       tenant,
       branding: { logo, primary_color: buttonColor },
       url: emailValidationUrl,
+      language,
       data,
     });
   } catch (err) {
@@ -768,6 +784,7 @@ export async function sendSignupValidateEmailAddress(
     tenant,
     branding: { logo, primary_color: buttonColor },
     url: signupUrl,
+    language,
     data,
   });
 }
@@ -847,6 +864,7 @@ export async function sendInvitation(
     tenant,
     branding: { logo, primary_color: buttonColor },
     url: invitationUrl,
+    language,
     data,
   });
 }

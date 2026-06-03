@@ -3,7 +3,6 @@ import {
   Body,
   Container,
   Head,
-  Hr,
   Html,
   Img,
   Link,
@@ -20,9 +19,9 @@ interface LayoutProps {
 }
 
 /**
- * Shared frame for all built-in email defaults. Liquid placeholders
- * (`{{ branding.logo }}`, `{{ tenant.support_url }}`, etc.) are emitted as
- * raw strings; the runtime Liquid pass interpolates them per-send.
+ * Shared frame for all built-in email defaults. Every visual token
+ * (logo, colors, signature, address) is emitted as a raw Liquid placeholder
+ * and resolved at send time from the tenant's branding + per-send vars.
  */
 export function Layout({ preview, children }: LayoutProps) {
   return (
@@ -30,36 +29,60 @@ export function Layout({ preview, children }: LayoutProps) {
       <Head />
       {preview ? <Preview>{preview}</Preview> : null}
       <Tailwind>
-        <Body className="bg-zinc-100 font-sans">
+        <Body className="bg-zinc-100 font-sans m-0">
           <Container className="bg-white max-w-[560px] my-8 mx-auto rounded-md overflow-hidden">
-            <Section className="px-6 pt-6 pb-2 text-center">
+            <Section className="px-6 pt-10 pb-8 text-center">
               {`{% if branding.logo %}`}
               <Img
                 src={"{{ branding.logo }}"}
                 alt={"{{ tenant.friendly_name }}"}
-                width={120}
+                width={140}
                 className="mx-auto"
               />
               {`{% endif %}`}
             </Section>
-            <Section className="px-6 pb-6 text-zinc-800">{children}</Section>
-            <Hr className="border-zinc-200 m-0" />
-            <Section className="px-6 py-4 text-center">
-              <Text className="text-xs text-zinc-500 m-0">
+
+            <Section className="px-6 text-zinc-800 text-[15px] leading-relaxed">
+              {children}
+            </Section>
+
+            {`{% unless signature.enabled == false %}`}
+            <Section className="px-6 pt-6 pb-2 text-zinc-800 text-[15px]">
+              <Text className="m-0">{"{{ kind_regards }}"}</Text>
+              <Text className="font-semibold mt-1 mb-0">
+                {"{{ team_signature }}"}
+              </Text>
+            </Section>
+            {`{% endunless %}`}
+
+            <Section className="px-6 pt-4 pb-8">
+              <Text className="text-xs text-zinc-500 italic m-0">
                 {"{{ support_info }}"} {`{% if tenant.support_url %}`}
                 <Link
                   href={"{{ tenant.support_url }}"}
-                  className="text-zinc-500 underline"
+                  style={{ color: "{{ branding.primary_color }}" }}
+                  className="italic underline"
                 >
                   {"{{ contact_us }}"}
                 </Link>
-                {`{% endif %}`}
-              </Text>
-              <Text className="text-xs text-zinc-500 mt-2 mb-0">
-                {"{{ copyright }}"}
+                {`{% endif %}`}.
               </Text>
             </Section>
           </Container>
+
+          {`{% if footer.address %}`}
+          <Section className="max-w-[560px] mx-auto px-6 pb-2 text-center">
+            <Text className="text-xs text-zinc-500 m-0 whitespace-pre-line">
+              {"{{ footer.address }}"}
+            </Text>
+          </Section>
+          {`{% endif %}`}
+
+          <Section className="max-w-[560px] mx-auto px-6 pb-8 text-center">
+            <Text className="text-xs text-zinc-400 m-0">
+              {"{{ copyright }}"}
+            </Text>
+          </Section>
         </Body>
       </Tailwind>
     </Html>
