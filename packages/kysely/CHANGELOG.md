@@ -1,5 +1,12 @@
 # @authhero/kysely-adapter
 
+## 11.5.4
+
+### Patch Changes
+
+- Updated dependencies [6f4477f]
+  - @authhero/proxy@0.4.0
+
 ## 11.5.3
 
 ### Patch Changes
