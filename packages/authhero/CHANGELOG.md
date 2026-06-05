@@ -1,5 +1,36 @@
 # authhero
 
+## 5.19.0
+
+### Minor Changes
+
+- b195d31: Outbox-driven replication of `custom_domains` and `proxy_routes` mutations to a global proxy control plane.
+  - New `ControlPlaneSyncDestination` and `controlPlaneSync` config block on `AuthHeroConfig`. When configured, every successful create/update/delete on the tenant shard enqueues a `controlplane.sync.*` outbox event that POSTs to `${baseUrl}/api/v2/proxy/control-plane/sync` on the control-plane instance. No-op for single-DB deployments.
+  - New `POST /api/v2/proxy/control-plane/sync` endpoint mounted when `proxyControlPlane.applySyncEvents` is provided. New `createApplySyncEvents({ customDomains, proxyRoutes })` factory wires an idempotent adapter-backed receiver — handles duplicate creates, out-of-order updates, and deletes of already-removed rows.
+  - `proxyRouteInsertSchema` gains an optional `id` field so the receiver can preserve the source-shard id; the `@authhero/kysely-adapter` and `@authhero/drizzle` `proxyRoutes.create` adapters now use `input.id` when supplied (falling back to `nanoid()`).
+  - `LogsDestination` and `LogStreamDestination` filters extended to exclude `controlplane.sync.*` events so replication tasks don't pollute audit logs.
+
+- 9149210: Enforce OAuth consent for third-party clients on both silent and interactive auth flows.
+  - `client.is_first_party` now defaults to `true`. A new kysely migration flips existing clients to `is_first_party = true`, preserving today's no-consent UX. Clients that should be treated as third-party must now set `is_first_party = false` explicitly.
+  - New `grants` table and `GrantsAdapter` interface store granted scope per `(tenant, user, clientID, audience)`. Wire shape matches Auth0's `/api/v2/grants` exactly — including the `clientID` (camelCase) field name.
+  - Silent auth (`prompt=none`) for a third-party client returns the OIDC `consent_required` error when the requested scopes are not covered by a stored grant. Basic OIDC scopes (`openid`, `profile`, `email`) are exempt.
+  - Interactive auth for a third-party client redirects to a new `/u2/consent` screen before issuing a code. Approving the screen records the grant and resumes the original flow.
+  - New `LoginSessionState.AWAITING_CONSENT` with `REQUIRE_CONSENT` / `COMPLETE_CONSENT` transitions.
+  - Management API: `GET /api/v2/grants`, `DELETE /api/v2/grants/{id}`, and `DELETE /api/v2/grants?user_id=...` — mirrors Auth0's surface. The earlier `/users/{id}/consents` endpoint has been removed.
+  - Admin UI: new read-only "Grants" tab on the user detail page.
+
+### Patch Changes
+
+- b195d31: Extend the legacy refresh-token format cutoff from 2026-06-05 to 2026-08-04, and upgrade legacy rows in place on first non-rotating refresh.
+
+  Non-rotating clients never went through the rotation path, so rows minted before the 2026-05-05 rotation migration kept being served back as the same id-only wire token forever — `token_lookup`/`token_hash` stayed null and the cutoff would have logged them out. The non-rotating branch now mints a fresh `(lookup, secret)` on the next refresh of any legacy row, stamps the row, and returns the new `rt_<lookup>.<secret>` wire token to the client.
+
+- Updated dependencies [b195d31]
+- Updated dependencies [9149210]
+  - @authhero/adapter-interfaces@2.11.0
+  - @authhero/proxy@0.4.1
+  - @authhero/widget@0.32.35
+
 ## 5.18.0
 
 ### Minor Changes
