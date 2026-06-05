@@ -58,6 +58,7 @@ async function fetchEmailTemplateRecord(
       label: getTemplateLabel(name),
       is_override: true,
       default_html: def?.body ?? "",
+      default_subject: def?.subject ?? "",
     };
   } catch (err) {
     if (isNotFoundError(err)) {
@@ -67,10 +68,11 @@ async function fetchEmailTemplateRecord(
         label: getTemplateLabel(name),
         is_override: false,
         enabled: true,
-        subject: "",
-        body: "",
+        subject: def?.subject ?? "",
+        body: def?.body ?? "",
         from: "",
         default_html: def?.body ?? "",
+        default_subject: def?.subject ?? "",
       };
     }
     throw err;
@@ -305,6 +307,16 @@ export interface AuthHeroDataProvider extends DataProvider {
   uploadCustomDomainCertificate: (
     id: string,
     cert: { certificate: string; private_key: string },
+  ) => Promise<void>;
+  sendTestEmailTemplate: (
+    templateName: string,
+    payload: {
+      to: string;
+      body?: string;
+      subject?: string;
+      from?: string;
+      language?: string;
+    },
   ) => Promise<void>;
 }
 
@@ -2220,6 +2232,22 @@ export default (
           body: body ? JSON.stringify(body) : undefined,
         });
 
+      // Email templates: DELETE the tenant override (reverts to bundled
+      // default). authhero extension; not in Auth0's contract.
+      if (resource === "email-templates") {
+        try {
+          await del(`email-templates/${encodeURIComponent(String(params.id))}`);
+        } catch (err: unknown) {
+          const e = err as
+            | { status?: number; statusCode?: number }
+            | undefined;
+          const status = e?.status ?? e?.statusCode;
+          // 404 means no override existed — already at default, treat as success.
+          if (status !== 404) throw err;
+        }
+        return { data: { id: params.id } };
+      }
+
       // Handle email-providers singleton resource — DELETE returns 204.
       if (resource === "email-providers") {
         try {
@@ -2456,6 +2484,17 @@ export default (
           method: "PUT",
           headers: createHeaders(tenantId),
           body: JSON.stringify(cert),
+        },
+      );
+    },
+
+    sendTestEmailTemplate: async (templateName, payload) => {
+      await httpClient(
+        `${apiUrl}/api/v2/email-templates/${encodeURIComponent(templateName)}/try`,
+        {
+          method: "POST",
+          headers: createHeaders(tenantId),
+          body: JSON.stringify(payload),
         },
       );
     },

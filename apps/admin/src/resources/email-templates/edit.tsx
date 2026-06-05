@@ -9,6 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useRecordContext, useResourceContext } from "ra-core";
 import { Info } from "lucide-react";
 import { EmailTemplatePreview } from "./preview";
+import { SendTestButton } from "./send-test-button";
 import { getTemplateDescription, getTemplateLabel } from "./template-names";
 
 interface EmailTemplateRecord {
@@ -16,22 +17,25 @@ interface EmailTemplateRecord {
   template: string;
   is_override: boolean;
   default_html?: string;
+  default_subject?: string;
   body?: string;
   subject?: string;
   from?: string;
   enabled?: boolean;
 }
 
+function pickString(value: unknown, fallback: unknown): string {
+  if (typeof value === "string" && value.trim() !== "") return value;
+  if (typeof fallback === "string") return fallback;
+  return "";
+}
+
 function transformEmailTemplate(data: Record<string, unknown>) {
   return {
     template: data.id ?? data.template,
     syntax: "liquid" as const,
-    ...(typeof data.body === "string" && data.body.trim() !== ""
-      ? { body: data.body }
-      : {}),
-    ...(typeof data.subject === "string" && data.subject.trim() !== ""
-      ? { subject: data.subject }
-      : {}),
+    body: pickString(data.body, data.default_html),
+    subject: pickString(data.subject, data.default_subject),
     ...(typeof data.from === "string" && data.from.trim() !== ""
       ? { from: data.from }
       : {}),
@@ -54,19 +58,22 @@ function EmailTemplateHeader() {
 
   return (
     <div className="flex flex-col gap-2">
-      <div>
-        <h2 className="text-lg font-semibold">{label}</h2>
-        {description ? (
-          <p className="text-sm text-muted-foreground">{description}</p>
-        ) : null}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-semibold">{label}</h2>
+          {description ? (
+            <p className="text-sm text-muted-foreground">{description}</p>
+          ) : null}
+        </div>
+        <SendTestButton templateName={record.template} />
       </div>
       {!record.is_override ? (
         <Alert>
           <Info className="size-4" />
-          <AlertTitle>Using bundled default</AlertTitle>
+          <AlertTitle>Pre-filled from bundled default</AlertTitle>
           <AlertDescription>
-            No tenant override yet. Saving this form creates one — the bundled
-            default is shown on the right until then.
+            No tenant override yet. The fields below are pre-filled from the
+            bundled default — save to create an override.
           </AlertDescription>
         </Alert>
       ) : null}
@@ -76,6 +83,9 @@ function EmailTemplateHeader() {
 
 function EmailTemplateFormContent() {
   const record = useRecordContext<EmailTemplateRecord>();
+  const subjectPlaceholder = record?.default_subject
+    ? `Default: ${record.default_subject}`
+    : undefined;
 
   return (
     <div className="flex w-full flex-col gap-4">
@@ -90,12 +100,14 @@ function EmailTemplateFormContent() {
           <TextInput
             source="from"
             label="From"
+            placeholder="Defaults to the email provider's from-address"
             helperText="Defaults to the email provider's from-address when empty."
           />
           <TextInput
             source="subject"
             label="Subject"
-            helperText="Liquid syntax supported, e.g. {{ tenant.friendly_name }}."
+            placeholder={subjectPlaceholder}
+            helperText="Liquid syntax supported. Leave empty to use the bundled default (localized via Liquid variables)."
           />
           <CodeInput
             source="body"

@@ -28,6 +28,7 @@ AuthHero is built on open identity standards. This section tracks every spec Aut
 | [Client ID Metadata Documents (CIMD)](/standards/cimd) | Full |
 | [RFC 9728 — Protected Resource Metadata](/standards/rfc-9728) | Planned |
 | [RFC 9101 — JWT-Secured Authorization Request (JAR)](/standards/rfc-9101) | Full |
+| [RFC 8693 — OAuth 2.0 Token Exchange](/standards/rfc-8693) | Partial |
 
 ## Tokens & keys
 
@@ -61,6 +62,5 @@ AuthHero is verified against the [OpenID Foundation conformance suite](https://g
 A few endpoints are advertised in [`/.well-known/openid-configuration`](/standards/openid-connect-discovery) but are not yet wired up:
 
 - **RFC 8628 — Device Authorization Grant** — `device_authorization_endpoint` is advertised but not yet routed.
-- **RFC 8693 — Token Exchange** — `act`-claim based impersonation exists internally, but no `urn:ietf:params:oauth:grant-type:token-exchange` endpoint is exposed.
 
 These will be documented as dedicated pages once implemented.

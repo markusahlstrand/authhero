@@ -32,12 +32,12 @@ export async function up(db: Kysely<Database>): Promise<void> {
   }
 
   migrationLog(
-    "Widening user_permissions.resource_server_identifier from varchar(21) to varchar(191)...",
+    "Widening user_permissions.resource_server_identifier from varchar(21) to varchar(100)...",
   );
 
   await db.schema
     .alterTable("user_permissions")
-    .modifyColumn("resource_server_identifier", "varchar(191)", (col) =>
+    .modifyColumn("resource_server_identifier", "varchar(100)", (col) =>
       col.notNull(),
     )
     .execute();

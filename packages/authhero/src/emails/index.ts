@@ -16,7 +16,9 @@ import { createClientServiceToken } from "../helpers/service-token";
 import { getAuthUrl, getUniversalLoginUrl } from "../variables";
 import { getConnectionFromIdentifier } from "../utils/username";
 import { getEnrichedClient } from "../helpers/client";
+import { Liquid } from "liquidjs";
 import { renderEmailTemplate } from "./render";
+import { getDefaultTemplate } from "./defaults";
 import { MailgunEmailService } from "../email-services/mailgun";
 import { ResendEmailService } from "../email-services/resend";
 import { PostmarkEmailService } from "../email-services/postmark";
@@ -871,5 +873,137 @@ export async function sendInvitation(
     url: invitationUrl,
     language,
     data,
+  });
+}
+
+const testLiquid = new Liquid({
+  cache: true,
+  strictVariables: false,
+  strictFilters: false,
+});
+
+export interface SendTestEmailParams {
+  to: string;
+  templateName: EmailTemplateName;
+  /** Optional override for the body — defaults to stored override or bundled default. */
+  body?: string;
+  /** Optional override for the subject — defaults to stored override or bundled default. */
+  subject?: string;
+  /** Optional override for the from address. */
+  from?: string;
+  language?: string;
+}
+
+/**
+ * Send a test email using the provided body/subject (or the stored / bundled
+ * default), with realistic-looking sample data. Used by the admin UI's
+ * "Send test" button so customizations can be validated before saving.
+ */
+export async function sendTestEmail(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  params: SendTestEmailParams,
+): Promise<void> {
+  const { tenant, logo, buttonColor, options } = await buildEmailContext(
+    ctx,
+    params.language,
+  );
+
+  const provider = await ctx.env.data.emailProviders.get(ctx.var.tenant_id);
+  const fallbackFrom =
+    provider?.default_from_address || `login@${ctx.env.ISSUER}`;
+
+  let bodySource = params.body;
+  let subjectSource = params.subject;
+  if (!bodySource || !subjectSource) {
+    const stored = await ctx.env.data.emailTemplates.get(
+      ctx.var.tenant_id,
+      params.templateName,
+    );
+    const fallback = stored ?? getDefaultTemplate(params.templateName);
+    if (!fallback) {
+      throw new HTTPException(404, {
+        message: `No template body/subject available for ${params.templateName}`,
+      });
+    }
+    if (!bodySource) bodySource = fallback.body;
+    if (!subjectSource) subjectSource = fallback.subject;
+  }
+
+  const sampleCode = "123456";
+  const sampleUrl = `${getAuthUrl(ctx.env)}u/preview?code=${sampleCode}`;
+
+  const vars: Record<string, unknown> = {
+    tenant: {
+      id: tenant.id,
+      friendly_name: tenant.friendly_name,
+      support_url: tenant.support_url || "",
+    },
+    branding: {
+      logo,
+      primary_color: buttonColor,
+      button_text_color: "#ffffff",
+      button_border_radius: "4px",
+    },
+    signature: { enabled: true },
+    footer: { address: "" },
+    url: sampleUrl,
+    code: sampleCode,
+    kind_regards: t("kind_regards", options),
+    team_signature: t("team_signature", options),
+    link_email_fallback_intro: t("link_email_fallback_intro", options),
+    password_reset_title: t("password_reset_title", options),
+    reset_password_email_click_to_reset: t(
+      "reset_password_email_click_to_reset",
+      options,
+    ),
+    reset_password_email_reset: t("reset_password_email_reset", options),
+    welcome_to_your_account: t("welcome_to_your_account", options),
+    code_email_subject: t("code_email_subject", options),
+    code_valid_30_minutes: t("code_valid_30_minutes", options),
+    link_email_click_to_login: t("link_email_click_to_login", options),
+    link_email_login: t("link_email_login", options),
+    link_email_or_enter_code: t("link_email_or_enter_code", {
+      ...options,
+      code: sampleCode,
+    }),
+    invitation_email_subject: t("invitation_email_subject", {
+      ...options,
+      inviterName: "Test User",
+      organizationName: "Test Org",
+    }),
+    invitation_email_intro: t("invitation_email_intro", {
+      ...options,
+      inviterName: "Test User",
+      organizationName: "Test Org",
+    }),
+    invitation_email_click_to_accept: t(
+      "invitation_email_click_to_accept",
+      options,
+    ),
+    invitation_email_accept_button: t(
+      "invitation_email_accept_button",
+      options,
+    ),
+    invitation_expires_in: t("invitation_expires_in", {
+      ...options,
+      ttlDays: 7,
+    }),
+    support_info: t("support_info", options),
+    contact_us: t("contact_us", options),
+    copyright: t("copyright", options),
+  };
+
+  const [renderedSubject, renderedHtml] = await Promise.all([
+    testLiquid.parseAndRender(subjectSource, vars),
+    testLiquid.parseAndRender(bodySource, vars),
+  ]);
+
+  await sendEmail(ctx, {
+    to: params.to,
+    subject: `[TEST] ${renderedSubject}`,
+    html: renderedHtml,
+    template: params.templateName,
+    data: {},
+    from: params.from || fallbackFrom,
   });
 }

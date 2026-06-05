@@ -20,6 +20,8 @@ export interface JwtPayload {
   tenant_id?: string;
   org_id?: string;
   org_name?: string;
+  // RFC 8693 §4.1 — present on tokens minted via a delegated flow.
+  act?: { sub: string; client_id?: string };
 }
 
 async function getJwks(bindings: Bindings) {

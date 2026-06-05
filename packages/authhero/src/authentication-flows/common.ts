@@ -93,6 +93,12 @@ export interface CreateAuthTokensParams {
   permissions?: string[];
   grantType?: GrantType;
   impersonatingUser?: User; // The original user who is impersonating
+  /**
+   * RFC 8693 §4.1 — when the token was minted via a delegated flow (e.g.
+   * token-exchange) where the *acting party* is a client rather than a user,
+   * pass its client_id here so the `act` claim records the actor.
+   */
+  actClient?: { client_id: string };
   // OIDC Core 2.1: auth_time is required when max_age is used in authorization request
   auth_time?: number; // Unix timestamp of when the user was authenticated
   /** Custom claims to add to the access token payload (cannot override reserved claims) */
@@ -171,8 +177,29 @@ export async function createAuthTokens(
     organization,
     permissions,
     impersonatingUser,
+    actClient,
     grantType,
   } = params;
+
+  // RFC 8693 §4.1 — `act.sub` identifies the acting party. For user
+  // impersonation we use the impersonator's user_id; for client-delegated
+  // exchanges (token-exchange grant) we use the acting client_id. When both
+  // are present the client_id is layered alongside the user sub.
+  const actClaim: { sub: string; client_id?: string } | undefined = (() => {
+    if (impersonatingUser && actClient) {
+      return {
+        sub: impersonatingUser.user_id,
+        client_id: actClient.client_id,
+      };
+    }
+    if (impersonatingUser) {
+      return { sub: impersonatingUser.user_id };
+    }
+    if (actClient) {
+      return { sub: actClient.client_id, client_id: actClient.client_id };
+    }
+    return undefined;
+  })();
 
   // OIDC Core §2: auth_time is REQUIRED in the ID Token whenever max_age was
   // used in the authorization request, and OPTIONAL otherwise. Code-flow and
@@ -233,6 +260,15 @@ export async function createAuthTokens(
     ? Object.keys(authParams.claims.userinfo)
     : undefined;
 
+  // Strip `act` from custom claims so callers can't override the actor
+  // recorded by the grant flow (RFC 8693). RESERVED_CLAIMS already protects
+  // the JWT-spec reserved set above; `act` is enforced here too.
+  const sanitizedCustomClaims = params.customClaims
+    ? Object.fromEntries(
+        Object.entries(params.customClaims).filter(([key]) => key !== "act"),
+      )
+    : undefined;
+
   const accessTokenPayload: Record<string, unknown> = {
     aud: audience,
     scope: authParams.scope || "",
@@ -240,7 +276,7 @@ export async function createAuthTokens(
     iss,
     tenant_id: ctx.var.tenant_id,
     sid: session_id,
-    act: impersonatingUser ? { sub: impersonatingUser.user_id } : undefined, // RFC 8693 act claim for impersonation
+    act: actClaim, // RFC 8693 act claim — user impersonation and/or client delegation
     org_id: organization ? organization.id : undefined,
     // Surface requested userinfo claims so /userinfo can additively emit
     // them. Omitted when no `claims` param was sent (keeps tokens small for
@@ -256,7 +292,7 @@ export async function createAuthTokens(
         : undefined,
     permissions,
     // Spread custom claims last so they can add new fields but not override reserved ones above
-    ...params.customClaims,
+    ...sanitizedCustomClaims,
   };
 
   // Validate that custom claims don't override reserved JWT claims
@@ -345,9 +381,7 @@ export async function createAuthTokens(
                 Object.keys(authParams.claims.userinfo),
               )
             : {}),
-          act: impersonatingUser
-            ? { sub: impersonatingUser.user_id }
-            : undefined,
+          act: actClaim,
           org_id: organization?.id,
           // Auth0 SDK validates org_name case-insensitively, so we lowercase it
           org_name: organization?.name.toLowerCase(),

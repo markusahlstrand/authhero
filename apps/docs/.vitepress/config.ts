@@ -266,6 +266,10 @@ gtag('config', 'G-DNZWG3PF2L');`,
               text: "Invitations & Tickets",
               link: "/features/invitations-and-tickets",
             },
+            {
+              text: "Email Templates",
+              link: "/features/email-templates",
+            },
             { text: "Account Linking", link: "/features/account-linking" },
             { text: "Impersonation", link: "/features/impersonation" },
             {
@@ -327,6 +331,10 @@ gtag('config', 'G-DNZWG3PF2L');`,
                 {
                   text: "RFC 7523 — JWT Client Authentication",
                   link: "/standards/rfc-7523",
+                },
+                {
+                  text: "RFC 8693 — Token Exchange",
+                  link: "/standards/rfc-8693",
                 },
                 {
                   text: "Connect Start (consent flow)",
@@ -584,6 +592,10 @@ gtag('config', 'G-DNZWG3PF2L');`,
             {
               text: "Account Linking",
               link: "/auth0-comparison/account-linking",
+            },
+            {
+              text: "Email Templates",
+              link: "/auth0-comparison/email-templates",
             },
             { text: "Hooks", link: "/auth0-comparison/hooks" },
             {

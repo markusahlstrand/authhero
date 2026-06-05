@@ -511,6 +511,40 @@ GET /api/v2/prompts/custom-text/defaults?language=en&prompt=login
 
 This is an AuthHero extension and is not present in Auth0.
 
+### Token Exchange (RFC 8693)
+
+**Auth0 Behavior**: Auth0 exposes [RFC 8693](https://datatracker.ietf.org/doc/html/rfc8693) through several named, narrowly scoped features rather than as a general-purpose STS endpoint:
+
+- **Native-to-web SSO** — exchanges a native app's refresh token for a `session_transfer_token` to bridge a session into a webview.
+- **Token Vault** — exchanges an Auth0 token for an upstream federated IdP's token.
+- **Custom Token Exchange** (GA 2025) — accepts a foreign `subject_token` (e.g. from a legacy IdP) and runs a per-tenant Action that validates it and resolves an Auth0 user. **Critically, the standard IETF `subject_token_type` values (`urn:ietf:params:oauth:token-type:access_token`, `id_token`, `jwt`, `refresh_token`, `saml1`, `saml2`) are reserved and rejected** — every Custom Token Exchange profile must use a tenant-defined custom URN like `urn:acme:legacy-token`.
+
+The effect is that Auth0-issued access tokens cannot be presented back to Auth0's `/oauth/token` for any kind of downscoping, audience switching, or organization switching. There is no built-in path to mint a derived Auth0 token from an existing Auth0 token.
+
+**AuthHero Behavior**: AuthHero implements the token-exchange grant for a single concrete use case — exchanging a self-issued access token for one scoped to a different organization (and optionally a narrower scope set). It **accepts the standard `urn:ietf:params:oauth:token-type:access_token` subject token type**, which Auth0 does not.
+
+```http
+POST /oauth/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=urn:ietf:params:oauth:grant-type:token-exchange&
+subject_token=<self-issued access token>&
+subject_token_type=urn:ietf:params:oauth:token-type:access_token&
+organization=target-org-id&
+client_id=exchange-service&
+client_secret=<...>
+```
+
+The new token records the exchanging client in the RFC 8693 `act` claim (`{ sub, client_id }`) for audit. No refresh token is issued — the flow is meant to be re-run, not refreshed.
+
+**Why the difference?**
+
+- **Different scope of risk.** Auth0 blocks standard token types because they host arbitrary tenants and can't make assumptions about what a token means across them — letting customer code accept "any Auth0 access token" would create a privilege-escalation primitive. AuthHero only ever issues tokens for its own tenants and applies a fixed set of checks (issuer match, no chained `act`, member-of-target-org, downscope-only), so accepting its own access tokens as subject tokens is safe.
+- **Different primary use case.** Auth0's Custom Token Exchange exists to migrate users off legacy IdPs (foreign token in → Auth0 token out). AuthHero's exchange exists to switch organization context within one IdP (own token in → own token out with different `org_id`). Each tool solves what its host customers actually need.
+- **Multi-step safety net.** The exchange is opt-in at three layers — the exchanging client must authenticate as confidential, must have `organization_usage` ≠ `deny` (the default for new and DCR'd clients), and must list the grant in its `grant_types`. A misconfigured tenant cannot accidentally enable the exchange for every client.
+
+**What's not implemented vs. RFC 8693**: Foreign `subject_token_type` values, `actor_token`, `requested_token_type`, RFC 8707 resource indicators, and chained re-exchange are all omitted. These will be added if a real use case appears; for now the surface stays small. See [RFC 8693 — Token Exchange](/standards/rfc-8693) for full details.
+
 ### Custom Domain Certificate Upload
 
 **Auth0 Limitation**: Auth0's custom domain feature has two modes — Auth0-managed certificates (issued automatically via Let's Encrypt or Google Trust Services) and self-managed certificates. Critically, neither mode lets you upload your own certificate to Auth0. "Self-managed" means *you* run a reverse proxy (CloudFront, Cloudflare, Akamai, NGINX, …) in front of Auth0 and terminate TLS there — Auth0 never sees the certificate. This has been a [recurring community request](https://community.auth0.com/t/certificate-upload-for-custom-domain/10242) since 2018 and is still not supported.
