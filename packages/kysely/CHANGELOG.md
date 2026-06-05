@@ -1,5 +1,17 @@
 # @authhero/kysely-adapter
 
+## 11.7.0
+
+### Minor Changes
+
+- 64e5f01: Update migrations to match planetscale
+
+### Patch Changes
+
+- Updated dependencies [64e5f01]
+  - @authhero/adapter-interfaces@2.12.0
+  - @authhero/proxy@0.4.2
+
 ## 11.6.0
 
 ### Minor Changes
