@@ -130,6 +130,7 @@
   "reset_password_description": "Skriv inn det nye passordet for e-postkontoen nedenfor: ",
   "reset_password_email_click_to_reset": "Klikk på knappen for å tilbakestille passordet ditt",
   "reset_password_email_cta": "Klikk på knappen for å tilbakestille passordet ditt",
+  "reset_password_email_enter_code": "Skriv inn koden under for å tilbakestille passordet ditt",
   "reset_password_email_reset": "Tilbakestill passordet ditt",
   "reset_password_subject": "Endre passord for {{vendorName}} -kontoen din",
   "reset_password_title": "Tilbakestill passord",

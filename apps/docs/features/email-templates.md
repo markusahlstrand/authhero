@@ -95,7 +95,7 @@ You can still use inline conditionals if you need locale-specific HTML structure
 | Method | Path | Purpose |
 |--------|------|---------|
 | `GET` | `/api/v2/email-templates/defaults` | Returns the bundled defaults for every template (subject + body). The admin UI uses this to pre-fill the editor when no override exists. |
-| `DELETE` | `/api/v2/email-templates/{template}` | Removes the tenant override; subsequent sends fall back to the bundled default. Idempotent (404 already-at-default is treated as success on the client). Requires `delete:email_templates`. |
+| `DELETE` | `/api/v2/email-templates/{template}` | Removes the tenant override; subsequent sends fall back to the bundled default. Idempotent (404 already-at-default is treated as success on the client). Requires `update:email_templates` (revert is semantically an update, not a delete). |
 | `POST` | `/api/v2/email-templates/{template}/try` | Renders the current subject + body with realistic sample data and dispatches a test email via the tenant's email provider. Subject is prefixed with `[TEST]`. Useful for validating customizations before saving. Requires `update:email_templates`. |
 
 ### Sending a test email

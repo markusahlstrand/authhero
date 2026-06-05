@@ -240,6 +240,10 @@ export const registerRoutes = new OpenAPIHono<{
         owner_user_id: iat?.sub,
         registration_type: iat ? "iat_dcr" : "open_dcr",
         registration_metadata,
+        // DCR clients are RFC-compliant by definition — no Auth0-SDK quirks
+        // to preserve. Opt out of Auth0-compat token-endpoint behaviors
+        // (e.g. 403 for invalid_grant) so we return RFC 6749 §5.2's 400.
+        auth0_conformant: false,
       };
 
       let createdClient: Client | undefined;

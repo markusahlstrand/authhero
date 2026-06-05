@@ -39,7 +39,7 @@ export default defineConfig({
     // .certs/ touches), and a mid-test restart causes the suite to see
     // "Connection refused" against the host gateway. Plain tsx is enough
     // for a one-shot conformance run.
-    command: "npx tsx src/index.ts",
+    command: "npx tsx --env-file=.env src/index.ts",
     cwd: "../conformance-auth-server",
     url: `${env.authheroBaseUrl}/.well-known/openid-configuration`,
     ignoreHTTPSErrors: true,

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { InputProps } from "ra-core";
 import { useInput, useResourceContext, FieldTitle } from "ra-core";
-import Editor from "@monaco-editor/react";
+import Editor, { type EditorProps } from "@monaco-editor/react";
 import {
   FormControl,
   FormError,
@@ -16,6 +16,8 @@ export type CodeInputProps = InputProps & {
   height?: number | string;
   readOnly?: boolean;
   className?: string;
+  editorOptions?: EditorProps["options"];
+  onEditorMount?: EditorProps["onMount"];
 };
 
 function resolveMonacoTheme(themeMode: string | undefined): "vs" | "vs-dark" {
@@ -40,6 +42,8 @@ export const CodeInput = (props: CodeInputProps) => {
     height = 420,
     readOnly,
     className,
+    editorOptions,
+    onEditorMount,
   } = props;
   const { id, field, isRequired } = useInput(props);
   const { theme } = useTheme();
@@ -78,6 +82,7 @@ export const CodeInput = (props: CodeInputProps) => {
             theme={monacoTheme}
             value={typeof field.value === "string" ? field.value : ""}
             onChange={(value) => field.onChange(value ?? "")}
+            onMount={onEditorMount}
             options={{
               minimap: { enabled: false },
               fontSize: 13,
@@ -87,6 +92,7 @@ export const CodeInput = (props: CodeInputProps) => {
               tabSize: 2,
               wordWrap: "on",
               readOnly,
+              ...editorOptions,
             }}
           />
         </div>

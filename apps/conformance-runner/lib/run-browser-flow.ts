@@ -49,6 +49,13 @@ export async function runBrowserFlow({
     if (summary !== lastLogged) {
       console.log(`[conformance-runner] ${testId} ${summary}`);
       lastLogged = summary;
+      // Suite-side progress (status flip, new pending URL, new visited URL)
+      // extends the no-progress budget. Some modules (e.g.
+      // oidcc-ensure-request-with-unknown-parameter-succeeds) run the full
+      // token → userinfo → id_token check chain after the callback with no
+      // client interaction; without this we'd time out mid-chain even though
+      // the suite is actively working.
+      deadline = Date.now() + timeoutMs;
     }
     const pendingUrls = browser.urls.filter((u) => !visited.has(u));
 

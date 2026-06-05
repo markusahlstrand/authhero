@@ -13,7 +13,7 @@ export const jwksSchema = z
       "HS384",
       "HS512",
     ]),
-    kid: z.string(),
+    kid: z.string().optional(),
     kty: z.enum(["RSA", "EC", "oct"]),
     use: z.enum(["sig", "enc"]).optional(),
     // RSA-specific public-key members (RFC 7518 §6.3.1).

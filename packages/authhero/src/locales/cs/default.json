@@ -130,6 +130,7 @@
   "reset_password_description": "Níže zadejte nové heslo k e-mailovému účtu: ",
   "reset_password_email_click_to_reset": "Kliknutím na tlačítko obnovíte své heslo",
   "reset_password_email_cta": "Kliknutím na tlačítko obnovíte své heslo",
+  "reset_password_email_enter_code": "Pro obnovení hesla zadejte níže uvedený kód",
   "reset_password_email_reset": "Obnovení hesla",
   "reset_password_subject": "Změna hesla k účtu {{vendorName}} ",
   "reset_password_title": "Obnovení hesla",
