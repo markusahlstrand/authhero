@@ -7,6 +7,7 @@ export enum GrantType {
   Passwordless = "passwordless",
   Password = "password",
   OTP = "http://auth0.com/oauth/grant-type/passwordless/otp",
+  TokenExchange = "urn:ietf:params:oauth:grant-type:token-exchange",
 }
 
 export const tokenResponseSchema = z.object({

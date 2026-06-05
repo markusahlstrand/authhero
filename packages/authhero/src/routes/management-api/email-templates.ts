@@ -9,6 +9,7 @@ import {
 import { logMessage } from "../../helpers/logging";
 import { HTTPException } from "hono/http-exception";
 import { getDefaultTemplate } from "../../emails/defaults";
+import { sendTestEmail } from "../../emails";
 
 import { defineRoute } from "../../utils/define-route";
 const headers = z.object({ "tenant-id": z.string().optional() });
@@ -18,6 +19,12 @@ const templateNameParam = z.object({
 });
 
 const partialBodySchema = emailTemplateSchema.partial();
+// `from` is optional in the API: at send time we fall back to the email
+// provider's default_from_address when it's blank. This is an authhero
+// extension to Auth0's contract, where `from` is required.
+const putBodySchema = emailTemplateSchema.extend({
+  from: emailTemplateSchema.shape.from.optional(),
+});
 const postRoot = defineRoute({
   route: createRoute({
     tags: ["email-templates"],
@@ -148,7 +155,7 @@ const putByTemplateName = defineRoute({
       body: {
         content: {
           "application/json": {
-            schema: emailTemplateSchema,
+            schema: putBodySchema,
           },
         },
       },
@@ -171,6 +178,8 @@ const putByTemplateName = defineRoute({
       });
     }
 
+    const normalized = { ...body, from: body.from ?? "" };
+
     const existing = await ctx.env.data.emailTemplates.get(
       ctx.var.tenant_id,
       templateName,
@@ -179,10 +188,10 @@ const putByTemplateName = defineRoute({
       await ctx.env.data.emailTemplates.update(
         ctx.var.tenant_id,
         templateName,
-        body,
+        normalized,
       );
     } else {
-      await ctx.env.data.emailTemplates.create(ctx.var.tenant_id, body);
+      await ctx.env.data.emailTemplates.create(ctx.var.tenant_id, normalized);
     }
 
     const stored = await ctx.env.data.emailTemplates.get(
@@ -261,6 +270,105 @@ const patchByTemplateName = defineRoute({
   },
 });
 
+const deleteByTemplateName = defineRoute({
+  route: createRoute({
+    tags: ["email-templates"],
+    method: "delete",
+    path: "/{templateName}",
+    request: {
+      headers,
+      params: templateNameParam,
+    },
+    security: [{ Bearer: ["delete:email_templates"] }],
+    responses: {
+      204: {
+        description:
+          "Tenant override removed; subsequent sends use the bundled default. authhero extension; not available in Auth0.",
+      },
+      404: { description: "Template override not found" },
+    },
+  }),
+  handler: async (ctx) => {
+    const { templateName } = ctx.req.valid("param");
+
+    const removed = await ctx.env.data.emailTemplates.remove(
+      ctx.var.tenant_id,
+      templateName,
+    );
+    if (!removed) {
+      throw new HTTPException(404, { message: "Email template not found" });
+    }
+
+    await logMessage(ctx, ctx.var.tenant_id, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: "Delete Email Template",
+      targetType: "email_template",
+      targetId: templateName,
+    });
+
+    return ctx.body(null, 204);
+  },
+});
+
+const tryBodySchema = z.object({
+  to: z.string().email(),
+  body: z.string().optional(),
+  subject: z.string().optional(),
+  from: z.string().optional(),
+  language: z.string().optional(),
+});
+
+const tryByTemplateName = defineRoute({
+  route: createRoute({
+    tags: ["email-templates"],
+    method: "post",
+    path: "/{templateName}/try",
+    request: {
+      headers,
+      params: templateNameParam,
+      body: {
+        content: {
+          "application/json": { schema: tryBodySchema },
+        },
+      },
+    },
+    security: [{ Bearer: ["update:email_templates"] }],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: z.object({ sent: z.boolean() }),
+          },
+        },
+        description:
+          "Sends a test email rendered with sample data. authhero extension; not available in Auth0.",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const { templateName } = ctx.req.valid("param");
+    const body = ctx.req.valid("json");
+
+    await sendTestEmail(ctx, {
+      to: body.to,
+      templateName,
+      body: body.body,
+      subject: body.subject,
+      from: body.from,
+      language: body.language,
+    });
+
+    await logMessage(ctx, ctx.var.tenant_id, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: `Test Email Sent (${templateName})`,
+      targetType: "email_template",
+      targetId: templateName,
+    });
+
+    return ctx.json({ sent: true });
+  },
+});
+
 export const emailTemplatesRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
@@ -270,4 +378,6 @@ export const emailTemplatesRoutes = new OpenAPIHono<{
   getByTemplateName,
   putByTemplateName,
   patchByTemplateName,
+  deleteByTemplateName,
+  tryByTemplateName,
 ] as const);

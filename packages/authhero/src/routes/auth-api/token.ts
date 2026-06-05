@@ -24,6 +24,11 @@ import {
   passwordlessGrantParamsSchema,
   passwordlessGrantUser,
 } from "../../authentication-flows/passwordless";
+import {
+  tokenExchangeGrant,
+  tokenExchangeParamsSchema,
+  TOKEN_EXCHANGE_GRANT_TYPE,
+} from "../../authentication-flows/token-exchange";
 import { createAuthTokens } from "../../authentication-flows/common";
 import { serializeAuthCookie } from "../../utils/cookies";
 import { calculateScopesAndPermissions } from "../../helpers/scopes-permissions";
@@ -96,6 +101,9 @@ const CreateRequestSchema = z.union([
     otp: z.string(),
     realm: z.enum(["email", "sms"]),
   }),
+  // RFC 8693 token exchange — downscope / org-switch a self-issued access
+  // token. Only `urn:ietf:params:oauth:token-type:access_token` accepted.
+  tokenExchangeParamsSchema.extend(optionalClientCredentials.shape),
 ]);
 
 function successLogTypeForGrant(grantType: string): LogType | undefined {
@@ -108,6 +116,8 @@ function successLogTypeForGrant(grantType: string): LogType | undefined {
       return LogTypes.SUCCESS_EXCHANGE_REFRESH_TOKEN_FOR_ACCESS_TOKEN;
     case GrantType.OTP:
       return LogTypes.SUCCESS_EXCHANGE_PASSWORD_OTP_FOR_ACCESS_TOKEN;
+    case GrantType.TokenExchange:
+      return LogTypes.SUCCESS_EXCHANGE_SUBJECT_TOKEN_FOR_ACCESS_TOKEN;
     default:
       return undefined;
   }
@@ -325,6 +335,12 @@ const postRoot = defineRoute({
           passwordlessGrantParamsSchema.parse(params),
         );
         break;
+      case TOKEN_EXCHANGE_GRANT_TYPE:
+        grantResult = await tokenExchangeGrant(
+          ctx,
+          tokenExchangeParamsSchema.parse(params),
+        );
+        break;
       default:
         return ctx.json(
           {
@@ -404,7 +420,8 @@ const postRoot = defineRoute({
               | GrantType.RefreshToken
               | GrantType.Password
               | GrantType.Passwordless
-              | GrantType.OTP,
+              | GrantType.OTP
+              | GrantType.TokenExchange,
             tenantId: grantResult.client.tenant.id,
             userId: grantResult.user.user_id,
             clientId: grantResult.client.client_id,

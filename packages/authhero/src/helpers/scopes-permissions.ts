@@ -26,6 +26,7 @@ interface UserBasedScopesAndPermissionsParams extends BaseScopesAndPermissionsPa
     | GrantType.Password
     | GrantType.Passwordless
     | GrantType.OTP
+    | GrantType.TokenExchange
     | undefined;
   userId: string; // Required for user-based grants
 }

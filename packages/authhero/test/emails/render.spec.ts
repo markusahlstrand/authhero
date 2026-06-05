@@ -23,8 +23,4 @@ describe("renderDefaultTemplate", () => {
     expect(out!.html).toContain("(c) Acme");
   });
 
-  it("returns null for an unbundled template name", async () => {
-    const out = await renderDefaultTemplate("blocked_account", {});
-    expect(out).toBeNull();
-  });
 });

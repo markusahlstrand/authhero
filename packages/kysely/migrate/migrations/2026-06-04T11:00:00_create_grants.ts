@@ -15,9 +15,9 @@ export async function up(db: Kysely<unknown>): Promise<void> {
       ["user_id", "tenant_id"],
       (cb) => cb.onDelete("cascade"),
     )
-    .addColumn("client_id", "varchar(255)", (col) => col.notNull())
-    .addColumn("audience", "varchar(255)", (col) => col.notNull().defaultTo(""))
-    .addColumn("scope", "varchar(4096)", (col) =>
+    .addColumn("client_id", "varchar(191)", (col) => col.notNull())
+    .addColumn("audience", "varchar(100)", (col) => col.notNull().defaultTo(""))
+    .addColumn("scope", "text", (col) =>
       col.notNull().defaultTo("[]"),
     )
     .addColumn("created_at", "varchar(35)", (col) => col.notNull())

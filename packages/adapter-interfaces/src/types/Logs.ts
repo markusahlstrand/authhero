@@ -52,6 +52,7 @@ export const LogTypes = {
   FAILED_EXCHANGE_PASSWORD_MFA_RECOVERY_FOR_ACCESS_TOKEN: "fercft",
   FAILED_EXCHANGE_ROTATING_REFRESH_TOKEN: "ferrt",
   FAILED_EXCHANGE_REFRESH_TOKEN_FOR_ACCESS_TOKEN: "fertft",
+  FAILED_EXCHANGE_SUBJECT_TOKEN_FOR_ACCESS_TOKEN: "festft",
   FAILED_HOOK: "fh", // Custom AuthHero-specific
   FAILED_IMPERSONATION: "fimp", // Custom AuthHero-specific
   FAILED_INVITE_ACCEPT: "fi",
@@ -167,6 +168,7 @@ export const LogTypes = {
   SUCCESS_EXCHANGE_PASSKEY_MFA_RECOVERY_FOR_ACCESS_TOKEN: "sepkrcft",
   SUCCESS_EXCHANGE_PASSWORD_MFA_RECOVERY_FOR_ACCESS_TOKEN: "sercft",
   SUCCESS_EXCHANGE_REFRESH_TOKEN_FOR_ACCESS_TOKEN: "sertft",
+  SUCCESS_EXCHANGE_SUBJECT_TOKEN_FOR_ACCESS_TOKEN: "sestft",
   SUCCESS_IMPERSONATION: "simp", // Custom AuthHero-specific
   SUCCESSFULLY_ACCEPTED_USER_INVITE: "si",
   BREACHED_PASSWORD_ON_SIGNUP: "signup_pwd_leak",
@@ -273,6 +275,8 @@ export const logTypeDescriptions: Record<string, string> = {
     "Failed Exchange Rotating Refresh Token",
   [LogTypes.FAILED_EXCHANGE_REFRESH_TOKEN_FOR_ACCESS_TOKEN]:
     "Failed Exchange Refresh Token for Access Token",
+  [LogTypes.FAILED_EXCHANGE_SUBJECT_TOKEN_FOR_ACCESS_TOKEN]:
+    "Failed Exchange Subject Token for Access Token",
   [LogTypes.FAILED_HOOK]: "Failed Hook",
   [LogTypes.FAILED_IMPERSONATION]: "Failed Impersonation",
   [LogTypes.FAILED_INVITE_ACCEPT]: "Failed Invite Accept",
@@ -389,6 +393,8 @@ export const logTypeDescriptions: Record<string, string> = {
     "Success Exchange Password MFA Recovery for Access Token",
   [LogTypes.SUCCESS_EXCHANGE_REFRESH_TOKEN_FOR_ACCESS_TOKEN]:
     "Success Exchange Refresh Token for Access Token",
+  [LogTypes.SUCCESS_EXCHANGE_SUBJECT_TOKEN_FOR_ACCESS_TOKEN]:
+    "Success Exchange Subject Token for Access Token",
   [LogTypes.SUCCESS_IMPERSONATION]: "Success Impersonation",
   [LogTypes.SUCCESSFULLY_ACCEPTED_USER_INVITE]:
     "Successfully Accepted User Invite",
