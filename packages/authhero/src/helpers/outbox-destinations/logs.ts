@@ -60,9 +60,14 @@ export class LogsDestination implements EventDestination {
   /**
    * Only accept log-shaped events. `hook.*` events are dispatch tasks for
    * webhook / code-hook destinations and are not audit log entries.
+   * `controlplane.sync.*` events are replication tasks for the
+   * ControlPlaneSyncDestination and likewise shouldn't appear in audit logs.
    */
   accepts(event: AuditEvent): boolean {
-    return !event.event_type.startsWith("hook.");
+    return (
+      !event.event_type.startsWith("hook.") &&
+      !event.event_type.startsWith("controlplane.sync.")
+    );
   }
 
   transform(event: AuditEvent): { tenantId: string; log: LogInsert } {

@@ -42,6 +42,20 @@ export {
   type GetServiceToken,
 } from "./helpers/outbox-destinations/webhooks";
 export { RegistrationFinalizerDestination } from "./helpers/outbox-destinations/registration-finalizer";
+export {
+  ControlPlaneSyncDestination,
+  type ControlPlaneSyncDestinationOptions,
+} from "./helpers/outbox-destinations/control-plane-sync";
+export {
+  type SyncEvent,
+  type SyncEntity,
+  type SyncOp,
+  CONTROL_PLANE_SYNC_EVENT_PREFIX,
+} from "./helpers/control-plane-sync-events";
+export {
+  createApplySyncEvents,
+  type CreateApplySyncEventsOptions,
+} from "./routes/proxy-control-plane";
 export { addEntityHooks } from "./helpers/entity-hooks-wrapper";
 export { seed, MANAGEMENT_API_SCOPES } from "./seed";
 export type { SeedOptions, SeedResult } from "./seed";

@@ -132,7 +132,10 @@ export class LogStreamDestination implements EventDestination {
   }
 
   accepts(event: AuditEvent): boolean {
-    return !event.event_type.startsWith("hook.");
+    return (
+      !event.event_type.startsWith("hook.") &&
+      !event.event_type.startsWith("controlplane.sync.")
+    );
   }
 
   transform(event: AuditEvent): StreamDelivery {

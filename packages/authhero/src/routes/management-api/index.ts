@@ -57,6 +57,7 @@ import { LogsDestination } from "../../helpers/outbox-destinations/logs";
 import { LogStreamDestination } from "../../helpers/outbox-destinations/log-streams";
 import { WebhookDestination } from "../../helpers/outbox-destinations/webhooks";
 import { RegistrationFinalizerDestination } from "../../helpers/outbox-destinations/registration-finalizer";
+import { ControlPlaneSyncDestination } from "../../helpers/outbox-destinations/control-plane-sync";
 import { createServiceToken } from "../../helpers/service-token";
 
 export default function create(config: AuthHeroConfig) {
@@ -315,6 +316,22 @@ export default function create(config: AuthHeroConfig) {
           const token = await createServiceToken(ctx, tenantId, "webhook");
           return token.access_token;
         }),
+        ...(config.controlPlaneSync
+          ? [
+              new ControlPlaneSyncDestination({
+                baseUrl: config.controlPlaneSync.baseUrl,
+                timeoutMs: config.controlPlaneSync.timeoutMs,
+                getServiceToken: async (tenantId, scope) => {
+                  const token = await createServiceToken(
+                    ctx,
+                    tenantId,
+                    scope ?? "controlplane:sync",
+                  );
+                  return token.access_token;
+                },
+              }),
+            ]
+          : []),
         // Must come after delivery destinations so the flag only flips when
         // the upstream hook destinations actually succeeded.
         new RegistrationFinalizerDestination(managementAdapter.users),

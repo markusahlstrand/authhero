@@ -7,6 +7,7 @@ import {
   type GetServiceToken,
 } from "./outbox-destinations/webhooks";
 import { RegistrationFinalizerDestination } from "./outbox-destinations/registration-finalizer";
+import { ControlPlaneSyncDestination } from "./outbox-destinations/control-plane-sync";
 import type { WebhookInvoker } from "../types/AuthHeroConfig";
 
 export interface CreateDefaultDestinationsConfig {
@@ -27,6 +28,18 @@ export interface CreateDefaultDestinationsConfig {
 
   /** Webhook HTTP request timeout in ms (default: 10_000). */
   webhookTimeoutMs?: number;
+
+  /**
+   * When set, drains `controlplane.sync.*` events to the control-plane
+   * authhero instance at the given base URL. Mirrors the per-request
+   * `ControlPlaneSyncDestination` wired in the management API, so cron-drain
+   * deliveries don't lose events that missed per-request processing.
+   * Requires `getServiceToken`.
+   */
+  controlPlaneSync?: {
+    baseUrl: string;
+    timeoutMs?: number;
+  };
 
   /**
    * Custom webhook invoker — same shape as the `webhookInvoker` option on
@@ -66,8 +79,13 @@ export interface CreateDefaultDestinationsConfig {
 export function createDefaultDestinations(
   config: CreateDefaultDestinationsConfig,
 ): EventDestination[] {
-  const { dataAdapter, getServiceToken, webhookTimeoutMs, webhookInvoker } =
-    config;
+  const {
+    dataAdapter,
+    getServiceToken,
+    webhookTimeoutMs,
+    webhookInvoker,
+    controlPlaneSync,
+  } = config;
 
   const destinations: EventDestination[] = [
     new LogsDestination(dataAdapter.logs),
@@ -84,6 +102,15 @@ export function createDefaultDestinations(
         webhookInvoker,
       }),
     );
+    if (controlPlaneSync) {
+      destinations.push(
+        new ControlPlaneSyncDestination({
+          baseUrl: controlPlaneSync.baseUrl,
+          timeoutMs: controlPlaneSync.timeoutMs,
+          getServiceToken,
+        }),
+      );
+    }
     // Must come AFTER WebhookDestination so the registration-completed flag
     // only flips once webhook delivery has actually succeeded.
     destinations.push(new RegistrationFinalizerDestination(dataAdapter.users));
