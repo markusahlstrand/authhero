@@ -49,16 +49,16 @@ export async function getMissingConsentScopes(
     requestedScopes: string[];
   },
 ): Promise<string[]> {
-  if (!ctx.env.data.userConsents) {
+  if (!ctx.env.data.grants) {
     return computeMissingConsentScopes(params.requestedScopes, []);
   }
-  const record = await ctx.env.data.userConsents.get(
+  const record = await ctx.env.data.grants.get(
     params.tenantId,
     params.userId,
     params.clientId,
   );
   return computeMissingConsentScopes(
     params.requestedScopes,
-    record?.scopes ?? [],
+    record?.scope ?? [],
   );
 }

@@ -598,6 +598,99 @@ Both modes can coexist on the same AuthHero deployment — there is no global se
 - The picker assumes a **single shared database** or per-tenant databases reachable from the same data adapter. With strict [database isolation](./database-isolation.md), control-plane minting needs the runtime to swap adapters before calling `mintIat` against the chosen child — that wiring is not yet exposed.
 - Users with zero matching organizations see a "no workspaces available" message instead of the picker; they cannot complete the connect flow until invited.
 
+## Proxy entity sync
+
+When the [`@authhero/proxy`](/customization/proxy/) data plane lives in a separate database from your tenant shards, AuthHero can replicate `custom_domains` and `proxy_routes` mutations to a control-plane instance that owns the proxy's database. The pipeline rides on the existing outbox, so writes never block on the network.
+
+### Wire shape
+
+Every successful create/update/delete on a tenant shard enqueues a `controlplane.sync.{entity}.{op}` outbox event. `ControlPlaneSyncDestination` POSTs each event to:
+
+```http
+POST /api/v2/proxy/control-plane/sync
+Authorization: Bearer <service token, scope=controlplane:sync>
+Idempotency-Key: <event_id>
+Content-Type: application/json
+
+{
+  "events": [
+    {
+      "event_id": "...",
+      "tenant_id": "acme",
+      "entity": "custom_domain",        // or "proxy_route"
+      "op": "created",                  // or "updated" / "deleted"
+      "aggregate_id": "...",
+      "payload": { /* full row */ },
+      "occurred_at": "2026-06-05T12:34:56.789Z"
+    }
+  ]
+}
+```
+
+The receiver responds `204 No Content` on success.
+
+### Receiver configuration
+
+The control-plane instance opts in to `/sync` by providing `proxyControlPlane.applySyncEvents`. `createApplySyncEvents` wires an idempotent adapter-backed receiver:
+
+```typescript
+import { init, createApplySyncEvents } from "authhero";
+import createAdapters from "@authhero/kysely-adapter";
+
+const proxyAdapters = createAdapters(proxyDb);
+
+export default init({
+  dataAdapter: proxyAdapters,
+  proxyControlPlane: {
+    resolveHost: (host) =>
+      proxyAdapters.customDomains.resolveHost?.(host) ?? null,
+    authenticate: (req) => verifyControlPlaneBearer(req),
+    applySyncEvents: createApplySyncEvents({
+      customDomains: proxyAdapters.customDomains,
+      proxyRoutes: proxyAdapters.proxyRoutes,
+    }),
+  },
+});
+```
+
+The endpoint is **cross-tenant**. Gate `authenticate` with a dedicated proxy-sync credential (shared secret, mTLS, or a JWT scoped to `controlplane:sync` / `proxy:resolve_host`), never with a tenant token.
+
+### Idempotency
+
+The outbox retries on network failure, so the receiver MUST be safe to call multiple times. `createApplySyncEvents` handles the three retry shapes:
+
+- **Duplicate `created`** — falls back to `update` on the existing row.
+- **`updated` for a row that doesn't exist locally yet** — falls back to `create` (the source-shard `id` is preserved when the adapter supports it).
+- **`deleted` for a row that's already gone** — no-op success.
+
+Adapters that don't preserve the source-shard `id` will diverge over time; the kysely and drizzle adapters both use `input.id` when supplied (`proxyRouteInsertSchema` carries it as optional).
+
+### Tenant shard configuration
+
+Each tenant shard opts into replication with the `controlPlaneSync` block on `AuthHeroConfig` (requires the outbox to be enabled):
+
+```typescript
+import { init } from "authhero";
+
+export default init({
+  dataAdapter,
+  outbox: { enabled: true },
+  controlPlaneSync: {
+    baseUrl: "https://controlplane.example.com",
+  },
+});
+```
+
+The same destination is also wired into `createDefaultDestinations({ controlPlaneSync })` so cron-drained deliveries don't lose events that missed per-request processing.
+
+### Audit-log filtering
+
+`controlplane.sync.*` events are filtered out of `LogsDestination` and `LogStreamDestination` by event-type prefix, so replication traffic does not pollute audit logs or downstream log streams.
+
+### When to skip it
+
+Single-database deployments — where the proxy reads from the same database the management API writes to — leave `controlPlaneSync` and `proxyControlPlane.applySyncEvents` unset. No replication is needed.
+
 ## Best Practices
 
 ### 1. Use org_name for Tenant Access

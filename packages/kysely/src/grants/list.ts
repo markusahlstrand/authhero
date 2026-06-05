@@ -1,6 +1,6 @@
 import {
   ListParams,
-  ListUserConsentsResponse,
+  ListGrantsResponse,
 } from "@authhero/adapter-interfaces";
 import { Kysely } from "kysely";
 import { luceneFilter } from "../helpers/filter";
@@ -11,15 +11,15 @@ export function list(db: Kysely<Database>) {
   return async (
     tenant_id: string,
     params: ListParams = {},
-  ): Promise<ListUserConsentsResponse> => {
+  ): Promise<ListGrantsResponse> => {
     const { page = 0, per_page = 50, include_totals = false, sort, q } = params;
 
     let query = db
-      .selectFrom("user_consents")
-      .where("user_consents.tenant_id", "=", tenant_id);
+      .selectFrom("grants")
+      .where("grants.tenant_id", "=", tenant_id);
 
     if (q) {
-      query = luceneFilter(db, query, q, ["user_id", "client_id"]);
+      query = luceneFilter(db, query, q, ["user_id", "client_id", "audience"]);
     }
 
     let filteredQuery = query;
@@ -30,17 +30,16 @@ export function list(db: Kysely<Database>) {
     filteredQuery = filteredQuery.offset(page * per_page).limit(per_page);
 
     const rows = await filteredQuery.selectAll().execute();
-    const user_consents = rows.map((row) => ({
+    const grants = rows.map((row) => ({
       id: row.id,
       user_id: row.user_id,
-      client_id: row.client_id,
-      scopes: row.scopes ? JSON.parse(row.scopes) : [],
-      created_at: row.created_at,
-      updated_at: row.updated_at,
+      clientID: row.client_id,
+      audience: row.audience || undefined,
+      scope: row.scope ? JSON.parse(row.scope) : [],
     }));
 
     if (!include_totals) {
-      return { user_consents, start: 0, limit: 0, length: 0 };
+      return { grants, start: 0, limit: 0, length: 0 };
     }
 
     const { count } = await query
@@ -48,7 +47,7 @@ export function list(db: Kysely<Database>) {
       .executeTakeFirstOrThrow();
 
     return {
-      user_consents,
+      grants,
       start: page * per_page,
       limit: per_page,
       length: getCountAsInt(count),

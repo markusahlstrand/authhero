@@ -122,8 +122,34 @@ export function createProxyControlPlaneApp(
         );
       }
 
-      await applySyncEvents(parsed.data.events);
-      return c.body(null, 204);
+      try {
+        await applySyncEvents(parsed.data.events);
+        return c.body(null, 204);
+      } catch (err) {
+        // Retryable errors propagate so the outbox can back off and retry.
+        // Non-retryable failures return a structured 500 — the sender's
+        // outbox will retry, and a persistent failure surfaces in the
+        // body for ops.
+        const retryable =
+          err !== null &&
+          typeof err === "object" &&
+          (err as { retryable?: unknown }).retryable === true;
+        if (retryable) throw err;
+        const e = err instanceof Error ? err : new Error(String(err));
+        console.error(
+          "[proxy/control-plane/sync] applySyncEvents failed:",
+          e,
+        );
+        return c.json(
+          {
+            error: "Failed to apply sync events",
+            message: e.message,
+            kind: e.name,
+            retryable: false,
+          },
+          500,
+        );
+      }
     });
   }
 

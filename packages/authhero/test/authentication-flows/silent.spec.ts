@@ -748,10 +748,10 @@ describe("silent", () => {
       const { oauthApp, env, session, clientId } = await makeThirdPartyClient();
       const oauthClient = testClient(oauthApp, env);
 
-      await env.data.userConsents.create("tenantId", {
+      await env.data.grants.create("tenantId", {
         user_id: "email|userId",
-        client_id: clientId,
-        scopes: ["read:billing"],
+        clientID: clientId,
+        scope: ["read:billing"],
       });
 
       const response = await oauthClient.authorize.$get(

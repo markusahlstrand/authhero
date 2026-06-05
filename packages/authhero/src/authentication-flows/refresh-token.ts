@@ -367,47 +367,76 @@ export async function refreshTokenGrant(
     });
 
     outgoingWireToken = formatRefreshToken(childLookup, childSecret);
-  } else if (
-    refreshToken.idle_expires_at &&
-    client.tenant.idle_session_lifetime
-  ) {
-    // Non-rotating path: slide the parent's idle window forward and let the
-    // client keep using the same wire token they sent.
-    const idleExpiresAt = new Date(
-      Date.now() + client.tenant.idle_session_lifetime * 60 * 60 * 1000,
-    );
+  } else {
+    // Non-rotating path: keep the client on the same row but slide its idle
+    // window forward. Legacy rows (token_lookup unset because they pre-date
+    // the rotation migration) get a one-time in-place upgrade: mint a fresh
+    // (lookup, secret) pair, stamp the row, and hand the client the new
+    // wire format. After this they never hit the legacy parser again.
+    // Concurrent refreshes on the same legacy token race on the upgrade;
+    // the loser's wire token won't match the persisted hash, so its next
+    // refresh fails and the user re-authenticates. Acceptable for a
+    // one-time migration.
+    let upgrade:
+      | { token_lookup: string; token_hash: string; family_id: string }
+      | undefined;
+    if (!refreshToken.token_lookup) {
+      const { lookup, secret } = generateRefreshTokenParts();
+      upgrade = {
+        token_lookup: lookup,
+        token_hash: await hashRefreshTokenSecret(secret),
+        family_id: refreshToken.family_id ?? refreshToken.id,
+      };
+      outgoingWireToken = formatRefreshToken(lookup, secret);
+    }
 
-    const absoluteExpiryMs = refreshToken.expires_at
-      ? new Date(refreshToken.expires_at).getTime()
-      : 0;
-    const newLoginSessionExpiryMs = Math.max(
-      absoluteExpiryMs,
-      idleExpiresAt.getTime(),
-    );
+    if (
+      refreshToken.idle_expires_at &&
+      client.tenant.idle_session_lifetime
+    ) {
+      const idleExpiresAt = new Date(
+        Date.now() + client.tenant.idle_session_lifetime * 60 * 60 * 1000,
+      );
 
-    await ctx.env.data.refreshTokens.update(
-      client.tenant.id,
-      refreshToken.id,
-      {
-        idle_expires_at: idleExpiresAt.toISOString(),
-        last_exchanged_at: new Date().toISOString(),
-        ...(deviceChanged && {
-          device: {
-            ...refreshToken.device,
-            last_ip: nextLastIp,
-            last_user_agent: nextLastUa,
-          },
-        }),
-      },
-      refreshToken.login_id && newLoginSessionExpiryMs > 0
-        ? {
-            loginSessionBump: {
-              login_id: refreshToken.login_id,
-              expires_at: new Date(newLoginSessionExpiryMs).toISOString(),
+      const absoluteExpiryMs = refreshToken.expires_at
+        ? new Date(refreshToken.expires_at).getTime()
+        : 0;
+      const newLoginSessionExpiryMs = Math.max(
+        absoluteExpiryMs,
+        idleExpiresAt.getTime(),
+      );
+
+      await ctx.env.data.refreshTokens.update(
+        client.tenant.id,
+        refreshToken.id,
+        {
+          idle_expires_at: idleExpiresAt.toISOString(),
+          last_exchanged_at: new Date().toISOString(),
+          ...(deviceChanged && {
+            device: {
+              ...refreshToken.device,
+              last_ip: nextLastIp,
+              last_user_agent: nextLastUa,
             },
-          }
-        : undefined,
-    );
+          }),
+          ...upgrade,
+        },
+        refreshToken.login_id && newLoginSessionExpiryMs > 0
+          ? {
+              loginSessionBump: {
+                login_id: refreshToken.login_id,
+                expires_at: new Date(newLoginSessionExpiryMs).toISOString(),
+              },
+            }
+          : undefined,
+      );
+    } else if (upgrade) {
+      await ctx.env.data.refreshTokens.update(
+        client.tenant.id,
+        refreshToken.id,
+        upgrade,
+      );
+    }
   }
 
   return {

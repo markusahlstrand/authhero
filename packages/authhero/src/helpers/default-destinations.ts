@@ -87,6 +87,12 @@ export function createDefaultDestinations(
     controlPlaneSync,
   } = config;
 
+  if (controlPlaneSync && !getServiceToken) {
+    throw new Error(
+      "createDefaultDestinations: controlPlaneSync requires getServiceToken",
+    );
+  }
+
   const destinations: EventDestination[] = [
     new LogsDestination(dataAdapter.logs),
   ];

@@ -57,11 +57,22 @@ export async function consentScreen(
 ): Promise<ScreenResult> {
   const { ctx, tenant, client, branding, state, messages } = context;
 
-  // Resolve session — bounce to login if missing.
   const loginPath = await getLoginPath(context);
+  const loginSession = await ctx.env.data.loginSessions.get(tenant.id, state);
+  if (!loginSession) {
+    throw new RedirectException(
+      `${ROUTE_PREFIX}/login/identifier?state=${encodeURIComponent(state)}`,
+    );
+  }
+
+  // Prefer the auth cookie; fall back to the session_id persisted on the
+  // login session. The cookie isn't set yet on the FIRST navigation from the
+  // post-authenticate consent redirect (createFrontChannelAuthResponse only
+  // attaches Set-Cookie to its terminal redirect, not to interstitial ones).
   const authCookie = getAuthCookie(tenant.id, ctx.req.header("cookie"));
-  const session = authCookie
-    ? await ctx.env.data.sessions.get(tenant.id, authCookie)
+  const sessionId = authCookie ?? loginSession.session_id;
+  const session = sessionId
+    ? await ctx.env.data.sessions.get(tenant.id, sessionId)
     : null;
   if (!session || session.revoked_at) {
     throw new RedirectException(
@@ -72,13 +83,6 @@ export async function consentScreen(
   if (!user) {
     throw new RedirectException(
       `${loginPath}?state=${encodeURIComponent(state)}`,
-    );
-  }
-
-  const loginSession = await ctx.env.data.loginSessions.get(tenant.id, state);
-  if (!loginSession) {
-    throw new RedirectException(
-      `${ROUTE_PREFIX}/login/identifier?state=${encodeURIComponent(state)}`,
     );
   }
 
@@ -119,18 +123,38 @@ export async function consentScreen(
     );
   }
 
+  // Without a grants adapter we cannot persist an approval, so the GET
+  // would render a consent form whose POST silently no-ops and bounces back
+  // here via /authorize/resume — an infinite loop. Fail-closed with an
+  // access_denied to the client instead.
+  if (!ctx.env.data.grants) {
+    const errorParams: Record<string, string> = {
+      error: "access_denied",
+      error_description: "Consent storage is not configured",
+    };
+    if (loginSession.authParams.state) {
+      errorParams.state = loginSession.authParams.state;
+    }
+    throw new RedirectException(
+      buildErrorRedirectUrl(
+        loginSession.authParams.redirect_uri ?? "",
+        loginSession.authParams.response_type,
+        loginSession.authParams.response_mode,
+        errorParams,
+      ),
+    );
+  }
+
   const requestedScopes =
     loginSession.authParams.scope?.split(" ").filter(Boolean) ?? [];
-  const stored = ctx.env.data.userConsents
-    ? await ctx.env.data.userConsents.get(
-        tenant.id,
-        user.user_id,
-        client.client_id,
-      )
-    : null;
+  const stored = await ctx.env.data.grants.get(
+    tenant.id,
+    user.user_id,
+    client.client_id,
+  );
   const missing = computeMissingConsentScopes(
     requestedScopes,
-    stored?.scopes ?? [],
+    stored?.scope ?? [],
   );
 
   // Nothing to consent to (basic scopes only or already covered) — let the
@@ -205,9 +229,20 @@ async function handleConsentSubmit(
 > {
   const { ctx, tenant, client, state } = context;
 
+  const loginSession = await ctx.env.data.loginSessions.get(tenant.id, state);
+  if (!loginSession) {
+    return {
+      error: "Consent session expired",
+      screen: await consentScreen(context),
+    };
+  }
+
+  // Same cookie-vs-loginSession fallback as the GET handler — the auth cookie
+  // may not be present on the first POST after a fresh login.
   const authCookie = getAuthCookie(tenant.id, ctx.req.header("cookie"));
-  const session = authCookie
-    ? await ctx.env.data.sessions.get(tenant.id, authCookie)
+  const sessionId = authCookie ?? loginSession.session_id;
+  const session = sessionId
+    ? await ctx.env.data.sessions.get(tenant.id, sessionId)
     : null;
   if (!session || session.revoked_at) {
     return { error: "Not authenticated", screen: await consentScreen(context) };
@@ -217,24 +252,22 @@ async function handleConsentSubmit(
     return { error: "Not authenticated", screen: await consentScreen(context) };
   }
 
-  const loginSession = await ctx.env.data.loginSessions.get(tenant.id, state);
-  if (!loginSession) {
-    return {
-      error: "Consent session expired",
-      screen: await consentScreen(context),
-    };
+  // POST = approve. The Deny link goes back through GET with ?deny=1 so we
+  // never have a POST-deny case here. The GET path already fails-closed when
+  // the grants adapter is missing, but guard again so a direct POST can't
+  // bypass it.
+  if (!ctx.env.data.grants) {
+    return { error: "Consent storage is not configured", screen: await consentScreen(context) };
   }
 
-  // POST = approve. The Deny link goes back through GET with ?deny=1 so we
-  // never have a POST-deny case here.
   const requestedScopes =
     loginSession.authParams.scope?.split(" ").filter(Boolean) ?? [];
 
-  if (requestedScopes.length > 0 && ctx.env.data.userConsents) {
-    await ctx.env.data.userConsents.create(tenant.id, {
+  if (requestedScopes.length > 0) {
+    await ctx.env.data.grants.create(tenant.id, {
       user_id: user.user_id,
-      client_id: client.client_id,
-      scopes: requestedScopes,
+      clientID: client.client_id,
+      scope: requestedScopes,
     });
   }
 

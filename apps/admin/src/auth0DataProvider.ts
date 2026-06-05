@@ -1335,21 +1335,22 @@ export default (
         };
       }
 
-      // OAuth consents nested under users
-      if (resource === "consents" && params.target === "user_id") {
+      // OAuth grants (Auth0-style /api/v2/grants?user_id=...)
+      if (resource === "grants" && params.target === "user_id") {
         const headers = createHeaders(tenantId);
         const res = await httpClient(
-          `${apiUrl}/api/v2/users/${params.id}/consents?${stringify({
+          `${apiUrl}/api/v2/grants?${stringify({
+            user_id: params.id,
             include_totals: true,
             ...buildPaginationParams(),
             sort: `${field}:${order === "DESC" ? "-1" : "1"}`,
           })}`,
           { headers },
         );
-        const consents = res.json.user_consents || [];
+        const grants = res.json.grants || [];
         return {
-          data: consents.map((item: any) => ({ id: item.id, ...item })),
-          total: res.json.length || consents.length || 0,
+          data: grants.map((item: any) => ({ id: item.id, ...item })),
+          total: res.json.length || grants.length || 0,
         };
       }
 

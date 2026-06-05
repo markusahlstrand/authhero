@@ -231,6 +231,8 @@ return createFrontChannelAuthResponse(ctx, {
 3. No user interaction required
 4. Tokens issued based on existing session
 
+For [third-party clients](/features/authentication-flows#third-party-client-consent), silent auth additionally checks the stored OAuth consents. If the requested scopes are not covered, the silent flow returns the OIDC error `consent_required` instead of issuing tokens — the SPA must fall back to an interactive `/authorize` redirect so the user can grant consent through the universal-login screen.
+
 ## Debugging Tips
 
 ### Finding Related Sessions

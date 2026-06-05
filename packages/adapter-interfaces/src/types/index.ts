@@ -86,7 +86,7 @@ export * from "./RefreshTokens";
 export * from "./SmsProvider";
 export * from "./ResourceServer";
 export * from "./RolePermission";
-export * from "./UserConsent";
+export * from "./Grant";
 export * from "./UserPermission";
 export * from "./UserRole";
 export * from "./Role";

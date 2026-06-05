@@ -89,6 +89,40 @@ When retrieving a primary user, all linked identities are included in the `ident
 }
 ```
 
+## OAuth Grants
+
+When a user authorizes a [third-party client](/features/authentication-flows#third-party-client-consent), AuthHero stores the granted scopes in a `grants` row keyed by `(tenant_id, user_id, client_id, audience)`. Re-authorizing the same client/audience unions the new scopes into the existing row, so the screen only re-appears when a client asks for something genuinely new.
+
+First-party clients (the default, `is_first_party: true`) and the OIDC basic scopes (`openid`, `profile`, `email`) never produce a grant — they're exempt from the gate.
+
+### Schema (Auth0 wire shape)
+
+| Field      | Type     | Notes                                              |
+|------------|----------|----------------------------------------------------|
+| `id`       | string   | nanoid                                             |
+| `user_id`  | string   | references the granting user                       |
+| `clientID` | string   | references the client (Auth0 camelCase oddity)     |
+| `audience` | string?  | target audience the grant applies to               |
+| `scope`    | string[] | unioned set of granted OAuth scopes                |
+
+### List grants
+
+```http
+GET /api/v2/grants?user_id={user_id}
+Authorization: Bearer <token with read:grants or auth:read>
+```
+
+Supports `user_id`, `client_id`, and `audience` query filters plus `include_totals` for the paginated envelope.
+
+When the adapter doesn't implement `grants`, the endpoint returns an empty array — the feature degrades to "all clients behave as first-party" rather than failing.
+
+### Delete grants
+
+```http
+DELETE /api/v2/grants/{id}
+DELETE /api/v2/grants?user_id={user_id}
+```
+
 ## API Reference
 
 - [GET /api/v2/users](/api/endpoints#get-users)
@@ -96,3 +130,5 @@ When retrieving a primary user, all linked identities are included in the `ident
 - [PATCH /api/v2/users/:id](/api/endpoints#update-user)
 - [DELETE /api/v2/users/:id](/api/endpoints#delete-user)
 - [POST /api/v2/users/:id/identities](/api/endpoints#link-user-account)
+- [GET /api/v2/grants?user_id=:id](/api/endpoints#list-grants)
+- [DELETE /api/v2/grants/:id](/api/endpoints#delete-grant)

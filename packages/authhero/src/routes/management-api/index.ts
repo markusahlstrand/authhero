@@ -43,6 +43,7 @@ import { flowsRoutes } from "./flows";
 import { roleRoutes } from "./roles";
 import { resourceServerRoutes } from "./resource-servers";
 import { clientGrantRoutes } from "./client-grants";
+import { grantRoutes } from "./grants";
 import { clientRegistrationTokenRoutes } from "./client-registration-tokens";
 import { organizationRoutes } from "./organizations";
 import { statsRoutes } from "./stats";
@@ -464,6 +465,7 @@ export default function create(config: AuthHeroConfig) {
     .route("/users-by-email", usersByEmailRoutes)
     .route("/clients", clientRoutes)
     .route("/client-grants", clientGrantRoutes)
+    .route("/grants", grantRoutes)
     .route("/client-registration-tokens", clientRegistrationTokenRoutes)
     .route("/logs", logRoutes)
     .route("/log-streams", logStreamsRoutes)
