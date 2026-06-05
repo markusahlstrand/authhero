@@ -2238,8 +2238,10 @@ export default (
         try {
           await del(`email-templates/${encodeURIComponent(String(params.id))}`);
         } catch (err: unknown) {
-          const status = (err as { statusCode?: number } | undefined)
-            ?.statusCode;
+          const e = err as
+            | { status?: number; statusCode?: number }
+            | undefined;
+          const status = e?.status ?? e?.statusCode;
           // 404 means no override existed — already at default, treat as success.
           if (status !== 404) throw err;
         }

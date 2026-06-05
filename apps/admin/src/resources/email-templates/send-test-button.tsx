@@ -38,19 +38,24 @@ export function SendTestButton({ templateName }: SendTestButtonProps) {
   };
 
   const handleSend = async () => {
-    if (!to) return;
+    const trimmedTo = String(to).trim();
+    if (!trimmedTo) return;
     setSending(true);
     try {
       const values = getValues();
+      const trimmedBody =
+        typeof values.body === "string" ? values.body.trim() : "";
+      const trimmedSubject =
+        typeof values.subject === "string" ? values.subject.trim() : "";
+      const trimmedFrom =
+        typeof values.from === "string" ? values.from.trim() : "";
       await dataProvider.sendTestEmailTemplate(templateName, {
-        to,
-        body: typeof values.body === "string" ? values.body : undefined,
-        subject: typeof values.subject === "string" ? values.subject : undefined,
-        from: typeof values.from === "string" && values.from.trim() !== ""
-          ? values.from
-          : undefined,
+        to: trimmedTo,
+        body: trimmedBody !== "" ? trimmedBody : undefined,
+        subject: trimmedSubject !== "" ? trimmedSubject : undefined,
+        from: trimmedFrom !== "" ? trimmedFrom : undefined,
       });
-      notify(`Test email sent to ${to}`, { type: "success" });
+      notify(`Test email sent to ${trimmedTo}`, { type: "success" });
       setOpen(false);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Send failed";

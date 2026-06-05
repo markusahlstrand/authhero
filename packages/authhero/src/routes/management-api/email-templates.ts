@@ -178,7 +178,8 @@ const putByTemplateName = defineRoute({
       });
     }
 
-    const normalized = { ...body, from: body.from ?? "" };
+    const normalizedFrom = body.from?.trim() ?? "";
+    const normalized = { ...body, from: normalizedFrom };
 
     const existing = await ctx.env.data.emailTemplates.get(
       ctx.var.tenant_id,
@@ -349,12 +350,13 @@ const tryByTemplateName = defineRoute({
     const { templateName } = ctx.req.valid("param");
     const body = ctx.req.valid("json");
 
+    const trimmedFrom = body.from?.trim();
     await sendTestEmail(ctx, {
       to: body.to,
       templateName,
       body: body.body,
       subject: body.subject,
-      from: body.from,
+      from: trimmedFrom !== "" ? trimmedFrom : undefined,
       language: body.language,
     });
 

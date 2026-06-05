@@ -260,6 +260,15 @@ export async function createAuthTokens(
     ? Object.keys(authParams.claims.userinfo)
     : undefined;
 
+  // Strip `act` from custom claims so callers can't override the actor
+  // recorded by the grant flow (RFC 8693). RESERVED_CLAIMS already protects
+  // the JWT-spec reserved set above; `act` is enforced here too.
+  const sanitizedCustomClaims = params.customClaims
+    ? Object.fromEntries(
+        Object.entries(params.customClaims).filter(([key]) => key !== "act"),
+      )
+    : undefined;
+
   const accessTokenPayload: Record<string, unknown> = {
     aud: audience,
     scope: authParams.scope || "",
@@ -283,7 +292,7 @@ export async function createAuthTokens(
         : undefined,
     permissions,
     // Spread custom claims last so they can add new fields but not override reserved ones above
-    ...params.customClaims,
+    ...sanitizedCustomClaims,
   };
 
   // Validate that custom claims don't override reserved JWT claims

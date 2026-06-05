@@ -98,10 +98,15 @@ export async function tokenExchangeGrant(
   // accepts was issued by this authhero instance.
   const subjectPayload = await validateJwtToken(ctx, params.subject_token);
 
+  // Auth0 returns 403 for invalid_grant on the token endpoint; RFC 6749 §5.2
+  // mandates 400. Gate on the client's auth0_conformant flag (default true) —
+  // mirrors the pattern in refresh-token.ts so all grants agree.
+  const invalidGrantStatus = client.auth0_conformant === false ? 400 : 403;
+
   const expectedIssuer = getIssuer(ctx.env, ctx.var.custom_domain);
   if (subjectPayload.iss !== expectedIssuer) {
     failLog("Subject token was not issued by this server");
-    throw new JSONHTTPException(400, {
+    throw new JSONHTTPException(invalidGrantStatus, {
       error: "invalid_grant",
       error_description: "Subject token issuer mismatch",
     });
@@ -112,7 +117,7 @@ export async function tokenExchangeGrant(
     subjectPayload.exp * 1000 < Date.now()
   ) {
     failLog("Subject token expired");
-    throw new JSONHTTPException(400, {
+    throw new JSONHTTPException(invalidGrantStatus, {
       error: "invalid_grant",
       error_description: "Subject token has expired",
     });
@@ -123,7 +128,7 @@ export async function tokenExchangeGrant(
   // tokens. Prevents privilege amplification by repeated exchanges.
   if (subjectPayload.act !== undefined) {
     failLog("Subject token already represents a delegated session");
-    throw new JSONHTTPException(400, {
+    throw new JSONHTTPException(invalidGrantStatus, {
       error: "invalid_grant",
       error_description: "Subject token is not exchangeable",
     });
@@ -131,7 +136,7 @@ export async function tokenExchangeGrant(
 
   if (!subjectPayload.sub) {
     failLog("Subject token missing sub");
-    throw new JSONHTTPException(400, {
+    throw new JSONHTTPException(invalidGrantStatus, {
       error: "invalid_grant",
       error_description: "Subject token has no subject",
     });
@@ -143,7 +148,7 @@ export async function tokenExchangeGrant(
   );
   if (!tokenUser) {
     failLog("User not found");
-    throw new JSONHTTPException(400, {
+    throw new JSONHTTPException(invalidGrantStatus, {
       error: "invalid_grant",
       error_description: "Subject token subject is not a known user",
     });
@@ -153,7 +158,7 @@ export async function tokenExchangeGrant(
     : tokenUser;
   if (!user) {
     failLog("Linked user not found");
-    throw new JSONHTTPException(400, {
+    throw new JSONHTTPException(invalidGrantStatus, {
       error: "invalid_grant",
       error_description: "Subject token subject is not a known user",
     });
@@ -178,6 +183,21 @@ export async function tokenExchangeGrant(
   // Resolve the target audience. Defaults to the subject token's audience —
   // for the typical authhero shape (one inherited resource server per
   // tenant), this means the only thing changing is `org_id`.
+  // If the subject token carries multiple audiences and the caller didn't
+  // disambiguate via params.audience, refuse — silently picking aud[0] could
+  // mint a token for the wrong resource server.
+  if (
+    params.audience === undefined &&
+    Array.isArray(subjectPayload.aud) &&
+    subjectPayload.aud.length > 1
+  ) {
+    failLog("Subject token has multiple audiences and none was requested");
+    throw new JSONHTTPException(400, {
+      error: "invalid_request",
+      error_description:
+        "audience is required when subject token has multiple audiences",
+    });
+  }
   const requestedAudience =
     params.audience ??
     (typeof subjectPayload.aud === "string"

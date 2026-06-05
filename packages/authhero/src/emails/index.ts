@@ -966,8 +966,16 @@ export async function sendTestEmail(
       ...options,
       code: sampleCode,
     }),
-    invitation_email_subject: t("invitation_email_subject", options),
-    invitation_email_intro: t("invitation_email_intro", options),
+    invitation_email_subject: t("invitation_email_subject", {
+      ...options,
+      inviterName: "Test User",
+      organizationName: "Test Org",
+    }),
+    invitation_email_intro: t("invitation_email_intro", {
+      ...options,
+      inviterName: "Test User",
+      organizationName: "Test Org",
+    }),
     invitation_email_click_to_accept: t(
       "invitation_email_click_to_accept",
       options,
@@ -976,7 +984,10 @@ export async function sendTestEmail(
       "invitation_email_accept_button",
       options,
     ),
-    invitation_expires_in: t("invitation_expires_in", options),
+    invitation_expires_in: t("invitation_expires_in", {
+      ...options,
+      ttlDays: 7,
+    }),
     support_info: t("support_info", options),
     contact_us: t("contact_us", options),
     copyright: t("copyright", options),

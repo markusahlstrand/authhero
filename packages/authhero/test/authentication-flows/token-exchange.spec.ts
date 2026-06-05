@@ -92,7 +92,9 @@ async function mintSubjectToken(
 
 function decodeAccessToken(token: string): Record<string, unknown> {
   const [, payload] = token.split(".");
-  return JSON.parse(atob(payload));
+  const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
+  return JSON.parse(atob(padded));
 }
 
 describe("token-exchange grant (RFC 8693)", () => {
@@ -198,7 +200,7 @@ describe("token-exchange grant (RFC 8693)", () => {
       { headers: { "tenant-id": TENANT_ID } },
     );
 
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(403);
     const body = (await response.json()) as ErrorResponse;
     expect(body.error).toBe("invalid_grant");
   });
@@ -232,7 +234,7 @@ describe("token-exchange grant (RFC 8693)", () => {
       { headers: { "tenant-id": TENANT_ID } },
     );
 
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(403);
     const body = (await response.json()) as ErrorResponse;
     expect(body.error).toBe("invalid_grant");
   });
