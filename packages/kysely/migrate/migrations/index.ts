@@ -169,6 +169,9 @@ import * as o070_collapse_auth0_source_into_db_connection from "./2026-05-13T12:
 import * as o071_migration_sources from "./2026-05-14T10:00:00_migration_sources";
 import * as o072_proxy_routes from "./2026-05-26T00:00:00_create_proxy_routes";
 import * as o073_proxy_routes_v2 from "./2026-05-28T00:00:00_proxy_routes_v2";
+import * as o074_widen_user_permissions_resource_server_identifier from "./2026-06-04T10:00:00_widen_user_permissions_resource_server_identifier";
+import * as o075_create_grants from "./2026-06-04T11:00:00_create_grants";
+import * as o076_default_first_party_true from "./2026-06-04T11:01:00_default_first_party_true";
 
 // These need to be in alphabetic order
 export default {
@@ -343,4 +346,7 @@ export default {
   o071_migration_sources,
   o072_proxy_routes,
   o073_proxy_routes_v2,
+  o074_widen_user_permissions_resource_server_identifier,
+  o075_create_grants,
+  o076_default_first_party_true,
 };

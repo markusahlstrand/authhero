@@ -1335,6 +1335,25 @@ export default (
         };
       }
 
+      // OAuth grants (Auth0-style /api/v2/grants?user_id=...)
+      if (resource === "grants" && params.target === "user_id") {
+        const headers = createHeaders(tenantId);
+        const res = await httpClient(
+          `${apiUrl}/api/v2/grants?${stringify({
+            user_id: params.id,
+            include_totals: true,
+            ...buildPaginationParams(),
+            sort: `${field}:${order === "DESC" ? "-1" : "1"}`,
+          })}`,
+          { headers },
+        );
+        const grants = res.json.grants || [];
+        return {
+          data: grants.map((item: any) => ({ id: item.id, ...item })),
+          total: res.json.length || grants.length || 0,
+        };
+      }
+
       // Permissions nested under users
       if (resource === "permissions" && params.target === "user_id") {
         const result = await managementClient.users.permissions.list(

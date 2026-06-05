@@ -331,6 +331,35 @@ export interface AuthHeroConfig {
       host: string,
     ) => Promise<import("@authhero/proxy").ResolvedHost | null>;
     authenticate: (request: Request) => Promise<boolean> | boolean;
+    /**
+     * Optional receiver for `POST /sync` events emitted by tenant shards via
+     * the `ControlPlaneSyncDestination`. Mount on the control-plane authhero
+     * instance only. Implementations MUST be idempotent — the outbox retries
+     * on transient failures. Use `createApplySyncEvents({ customDomains,
+     * proxyRoutes })` (exported from `authhero`) for the default
+     * adapter-backed implementation.
+     */
+    applySyncEvents?: (
+      events: import("../helpers/control-plane-sync-events").SyncEvent[],
+    ) => Promise<void>;
+  };
+
+  /**
+   * Optional outbox-driven replication of `custom_domains` and `proxy_routes`
+   * mutations to a global proxy control plane. When set, every successful
+   * write on this tenant shard enqueues a `controlplane.sync.*` outbox event;
+   * the `ControlPlaneSyncDestination` POSTs each event to
+   * `${baseUrl}/api/v2/proxy/control-plane/sync`. Requires the outbox to be
+   * enabled (`outbox: { enabled: true }`).
+   *
+   * Leave unset for single-DB deployments — the proxy reads the same database
+   * the management API writes to, so replication is unnecessary.
+   */
+  controlPlaneSync?: {
+    /** Base URL of the control-plane authhero instance. */
+    baseUrl: string;
+    /** Per-request timeout for the sync POST (default: 10_000ms). */
+    timeoutMs?: number;
   };
 
   /**

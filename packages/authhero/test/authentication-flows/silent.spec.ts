@@ -641,4 +641,142 @@ describe("silent", () => {
       "User is not a member of the specified organization",
     );
   });
+
+  describe("third-party consent gate", () => {
+    async function makeThirdPartyClient() {
+      const { oauthApp, env } = await getTestServer();
+      const client = await env.data.clients.create("tenantId", {
+        client_id: "third-party-client",
+        client_secret: "secret",
+        name: "Third Party",
+        is_first_party: false,
+        callbacks: ["https://example.com/callback"],
+        web_origins: ["https://example.com"],
+      });
+
+      const loginSession = await env.data.loginSessions.create("tenantId", {
+        expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+        csrf_token: "csrfToken",
+        authParams: {
+          client_id: client.client_id,
+          redirect_uri: "https://example.com/callback",
+          response_type: AuthorizationResponseType.CODE,
+        },
+      });
+
+      const session = await env.data.sessions.create("tenantId", {
+        id: "sessionIdTP",
+        user_id: "email|userId",
+        used_at: new Date().toISOString(),
+        login_session_id: loginSession.id,
+        device: {
+          last_ip: "",
+          initial_ip: "",
+          last_user_agent: "",
+          initial_user_agent: "",
+          initial_asn: "",
+          last_asn: "",
+        },
+        expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+        idle_expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+        clients: [client.client_id],
+      });
+
+      return { oauthApp, env, session, clientId: client.client_id };
+    }
+
+    it("passes silent auth when only basic OIDC scopes are requested", async () => {
+      const { oauthApp, env, session, clientId } = await makeThirdPartyClient();
+      const oauthClient = testClient(oauthApp, env);
+
+      const response = await oauthClient.authorize.$get(
+        {
+          query: {
+            client_id: clientId,
+            redirect_uri: "https://example.com/callback",
+            state: "state",
+            prompt: "none",
+            scope: "openid profile email",
+            response_type: AuthorizationResponseType.CODE,
+            response_mode: AuthorizationResponseMode.WEB_MESSAGE,
+          },
+        },
+        {
+          headers: {
+            origin: "https://example.com",
+            cookie: `tenantId-auth-token=${session.id}`,
+          },
+        },
+      );
+
+      expect(response.status).toEqual(200);
+      const htmlBody = await response.text();
+      expect(htmlBody).not.toContain("consent_required");
+      expect(htmlBody).toContain("code");
+    });
+
+    it("returns consent_required when a non-basic scope is requested and not previously consented", async () => {
+      const { oauthApp, env, session, clientId } = await makeThirdPartyClient();
+      const oauthClient = testClient(oauthApp, env);
+
+      const response = await oauthClient.authorize.$get(
+        {
+          query: {
+            client_id: clientId,
+            redirect_uri: "https://example.com/callback",
+            state: "state",
+            prompt: "none",
+            scope: "openid read:billing",
+            response_type: AuthorizationResponseType.CODE,
+            response_mode: AuthorizationResponseMode.WEB_MESSAGE,
+          },
+        },
+        {
+          headers: {
+            origin: "https://example.com",
+            cookie: `tenantId-auth-token=${session.id}`,
+          },
+        },
+      );
+
+      expect(response.status).toEqual(200);
+      const htmlBody = await response.text();
+      expect(htmlBody).toContain("consent_required");
+    });
+
+    it("passes silent auth when the user has previously consented to the requested scopes", async () => {
+      const { oauthApp, env, session, clientId } = await makeThirdPartyClient();
+      const oauthClient = testClient(oauthApp, env);
+
+      await env.data.grants.create("tenantId", {
+        user_id: "email|userId",
+        clientID: clientId,
+        scope: ["read:billing"],
+      });
+
+      const response = await oauthClient.authorize.$get(
+        {
+          query: {
+            client_id: clientId,
+            redirect_uri: "https://example.com/callback",
+            state: "state",
+            prompt: "none",
+            scope: "openid read:billing",
+            response_type: AuthorizationResponseType.CODE,
+            response_mode: AuthorizationResponseMode.WEB_MESSAGE,
+          },
+        },
+        {
+          headers: {
+            origin: "https://example.com",
+            cookie: `tenantId-auth-token=${session.id}`,
+          },
+        },
+      );
+
+      expect(response.status).toEqual(200);
+      const htmlBody = await response.text();
+      expect(htmlBody).not.toContain("consent_required");
+    });
+  });
 });

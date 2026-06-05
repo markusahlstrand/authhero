@@ -58,6 +58,7 @@ const sessionsWithTotalsSchema = totalsSchema.extend({
   sessions: z.array(sessionSchema),
 });
 
+
 const logsWithTotalsSchema = totalsSchema.extend({
   logs: z.array(logSchema),
 });

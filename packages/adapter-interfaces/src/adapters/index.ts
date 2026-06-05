@@ -31,6 +31,7 @@ import { RefreshTokensAdapter } from "./RefreshTokens";
 import { FormsAdapter } from "./Forms";
 import { ResourceServersAdapter } from "./ResourceServers";
 import { RolePermissionsAdapter } from "./RolePermissions";
+import { GrantsAdapter } from "./Grants";
 import { UserPermissionsAdapter } from "./UserPermissions";
 import { RolesAdapter } from "./Roles";
 import { UserRolesAdapter } from "./UserRoles";
@@ -102,6 +103,19 @@ export interface DataAdapters {
   refreshTokens: RefreshTokensAdapter;
   resourceServers: ResourceServersAdapter;
   rolePermissions: RolePermissionsAdapter;
+  /**
+   * Optional store for per-(user, client) OAuth grants. When set,
+   * third-party clients (`is_first_party=false`) must have a grant
+   * covering the requested non-basic scopes; without it, silent auth returns
+   * `consent_required` and interactive auth redirects to the consent screen.
+   * When undefined, the consent gate fails closed for third-party clients —
+   * deployments that don't ship this adapter effectively can't run third-party
+   * clients through the standard authorize flow.
+   *
+   * Auth0 parity: surfaced as `/api/v2/grants` (distinct from M2M
+   * `/api/v2/client-grants`, which is `clientGrants` above).
+   */
+  grants?: GrantsAdapter;
   userPermissions: UserPermissionsAdapter;
   roles: RolesAdapter;
   sessions: SessionsAdapter;
@@ -223,4 +237,5 @@ export * from "./Sessions";
 export * from "./TenantSettings";
 export * from "./Tenants";
 export * from "./Themes";
+export * from "./Grants";
 export * from "./Users";

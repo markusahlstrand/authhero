@@ -199,6 +199,62 @@ Both workers point at the same database. The proxy needs read access to `custom_
 
 Run the proxy data plane in the same worker as AuthHero by composing them in a single Hono app — convenient for local dev or single-customer deploys.
 
+### Split databases (control-plane sync)
+
+When the proxy worker **cannot** share a database with each tenant shard — for example, the proxy lives in a separate Cloudflare account fronting many AuthHero instances — AuthHero can replicate `custom_domains` and `proxy_routes` mutations over HTTP to a dedicated control-plane instance that owns the proxy's database.
+
+The pipeline is outbox-driven, so writes never block on the network:
+
+1. A tenant-shard write to `custom_domains` or `proxy_routes` enqueues a `controlplane.sync.{entity}.{op}` event into the outbox.
+2. `ControlPlaneSyncDestination` POSTs each event to `${baseUrl}/api/v2/proxy/control-plane/sync` with `Idempotency-Key: {event_id}` and a bearer token from `getServiceToken(tenantId, "controlplane:sync")`.
+3. The control-plane instance applies the event to its own `customDomains` / `proxyRoutes` adapters via `createApplySyncEvents`. The proxy data plane reads from that same database.
+
+**Tenant shard** (the AuthHero deploy each customer hits):
+
+```typescript
+import { init, ControlPlaneSyncDestination } from "authhero";
+
+export default init({
+  dataAdapter,
+  outbox: { enabled: true },
+  controlPlaneSync: {
+    baseUrl: "https://controlplane.example.com",
+    // timeoutMs defaults to 10_000
+  },
+});
+```
+
+**Control plane** (a separate AuthHero instance fronting the proxy's database):
+
+```typescript
+import { init, createApplySyncEvents } from "authhero";
+import createAdapters from "@authhero/kysely-adapter";
+
+const proxyAdapters = createAdapters(proxyDb);
+
+export default init({
+  dataAdapter: proxyAdapters, // owns the proxy's custom_domains + proxy_routes
+  proxyControlPlane: {
+    resolveHost: (host) => proxyAdapters.customDomains.resolveHost?.(host) ?? null,
+    authenticate: (req) => verifyControlPlaneBearer(req),
+    applySyncEvents: createApplySyncEvents({
+      customDomains: proxyAdapters.customDomains,
+      proxyRoutes: proxyAdapters.proxyRoutes,
+    }),
+  },
+});
+```
+
+The receiver is idempotent by construction — it handles the three retry shapes the outbox can produce: duplicate `created` (falls back to `update`), `updated` for a row that doesn't exist locally yet (falls back to `create`), and `deleted` for a row that's already gone (no-op).
+
+The `proxyRouteInsertSchema` accepts an optional `id` field so the receiver preserves the source-shard id when creating the replicated row; the kysely and drizzle adapters use `input.id` when supplied, falling back to `nanoid()` otherwise.
+
+`controlplane.sync.*` events are filtered out by `LogsDestination` and `LogStreamDestination`, so replication traffic does not pollute audit logs or log streams.
+
+Single-DB deployments leave `controlPlaneSync` unset — the proxy reads the same database the management API writes to, so no replication is needed.
+
+For the receiver-side config wiring and idempotency semantics in full, see [Control Plane → Proxy entity sync](/customization/multi-tenancy/control-plane#proxy-entity-sync).
+
 ## Database setup
 
 The `proxy_routes` table is part of the standard AuthHero schema and is created by the regular adapter migrations (`migrateToLatest` for `@authhero/kysely-adapter`, the equivalent step for `@authhero/drizzle` and `@authhero/aws`). The proxy reads from the existing `custom_domains` table that AuthHero already manages — so when you share a database with AuthHero, no extra setup is needed at all.

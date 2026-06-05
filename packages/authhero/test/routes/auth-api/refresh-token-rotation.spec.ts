@@ -307,6 +307,76 @@ describe("refresh token rotation", () => {
     expect(res.status).toBe(200);
   });
 
+  it("non-rotating legacy rows upgrade in place to the new wire format on first refresh", async () => {
+    const { oauthApp, env } = await getTestServer();
+    // Seed a legacy row exactly as prod has them: rotating=false, no
+    // token_lookup/token_hash, no family_id.
+    await env.data.refreshTokens.create("tenantId", {
+      ...baseTokenFields,
+      id: "legacyUpgradeRow",
+      rotating: false,
+      expires_at: idleHour(),
+      idle_expires_at: idleHour(),
+    });
+    const client = testClient(oauthApp, env);
+
+    const first = await client.oauth.token.$post(
+      // @ts-expect-error
+      {
+        form: {
+          grant_type: "refresh_token",
+          refresh_token: "legacyUpgradeRow",
+          client_id: "clientId",
+        },
+      },
+      { headers: { "tenant-id": "tenantId" } },
+    );
+    expect(first.status).toBe(200);
+    const firstBody = (await first.json()) as TokenResponse;
+
+    // Client receives the new wire format, not the id they sent in.
+    expect(firstBody.refresh_token).toBeDefined();
+    expect(firstBody.refresh_token!.startsWith(REFRESH_TOKEN_PREFIX)).toBe(
+      true,
+    );
+    expect(firstBody.refresh_token).not.toBe("legacyUpgradeRow");
+
+    // Row is stamped with lookup/hash matching the issued wire token, and
+    // family_id is anchored to the row id.
+    const stored = await env.data.refreshTokens.get(
+      "tenantId",
+      "legacyUpgradeRow",
+    );
+    expect(stored?.token_lookup).toBeTruthy();
+    expect(stored?.token_hash).toBeTruthy();
+    expect(stored?.family_id).toBe("legacyUpgradeRow");
+    const parsed = parseRefreshToken(firstBody.refresh_token!);
+    expect(parsed.kind).toBe("new");
+    if (parsed.kind === "new") {
+      expect(parsed.lookup).toBe(stored?.token_lookup);
+      expect(await hashRefreshTokenSecret(parsed.secret)).toBe(
+        stored?.token_hash,
+      );
+    }
+
+    // Subsequent refresh using the new wire token resolves through the
+    // lookup path and continues to echo the same row (non-rotating).
+    const second = await client.oauth.token.$post(
+      // @ts-expect-error
+      {
+        form: {
+          grant_type: "refresh_token",
+          refresh_token: firstBody.refresh_token!,
+          client_id: "clientId",
+        },
+      },
+      { headers: { "tenant-id": "tenantId" } },
+    );
+    expect(second.status).toBe(200);
+    const secondBody = (await second.json()) as TokenResponse;
+    expect(secondBody.refresh_token).toBe(firstBody.refresh_token);
+  });
+
   it("admin DELETE on a single token revokes the entire family", async () => {
     const { managementApp, env } = await getTestServer();
     const seeded = await seedNewFormatToken(env, { rotating: true });

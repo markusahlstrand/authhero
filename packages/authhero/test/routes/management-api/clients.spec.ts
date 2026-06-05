@@ -56,7 +56,7 @@ describe("clients", () => {
       global: false,
       grant_types: ["authorization_code", "refresh_token"],
       hide_sign_up_disabled_error: false,
-      is_first_party: false,
+      is_first_party: true,
       jwt_configuration: {},
       mobile: {},
       name: "app",

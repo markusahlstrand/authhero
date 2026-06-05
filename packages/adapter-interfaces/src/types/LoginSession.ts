@@ -15,6 +15,8 @@ export enum LoginSessionState {
   AWAITING_HOOK = "awaiting_hook",
   /** Waiting for user to complete action on continuation page (change-email, account, etc.) */
   AWAITING_CONTINUATION = "awaiting_continuation",
+  /** Waiting for user to approve OAuth consent for a third-party client */
+  AWAITING_CONSENT = "awaiting_consent",
   /** Tokens issued successfully */
   COMPLETED = "completed",
   /** Authentication failed (wrong password, blocked, etc.) */

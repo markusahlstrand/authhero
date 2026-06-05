@@ -562,9 +562,12 @@ async function handleAuthCallback() {
     } catch (error) {
       // prompt=none failures arrive here as errors
       // Common errors: 'login_required', 'consent_required', 'interaction_required'
-      if (error.error === 'login_required' || 
+      if (error.error === 'login_required' ||
+          error.error === 'consent_required' ||
           error.error === 'interaction_required') {
-        // No existing session on auth server - need interactive login
+        // No existing session, or a third-party client needs consent —
+        // either way, fall back to an interactive login that can render
+        // the universal-login screens.
         await auth0.loginWithRedirect();
       }
     }

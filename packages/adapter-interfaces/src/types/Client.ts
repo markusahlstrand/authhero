@@ -62,9 +62,9 @@ export const clientInsertSchema = z.object({
     description:
       "URL of the logo to display for this client. Recommended size is 150x150 pixels.",
   }),
-  is_first_party: z.boolean().default(false).openapi({
+  is_first_party: z.boolean().default(true).openapi({
     description:
-      "Whether this client a first party client (true) or not (false).",
+      "Whether this client is a first party client (true) or not (false). First-party clients skip the consent screen; third-party clients require explicit user consent for non-basic scopes.",
   }),
   oidc_conformant: z.boolean().default(true).openapi({
     description:

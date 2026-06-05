@@ -65,7 +65,7 @@ export function createProxyRoutesAdapter(db: DrizzleDb): ProxyRoutesAdapter {
     ): Promise<ProxyRoute> {
       const now = new Date().toISOString();
       const route: ProxyRoute = {
-        id: nanoid(),
+        id: input.id || nanoid(),
         tenant_id,
         custom_domain_id: input.custom_domain_id,
         priority: input.priority,

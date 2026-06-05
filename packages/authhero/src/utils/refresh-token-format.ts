@@ -6,9 +6,13 @@ export const LOOKUP_BYTES = 7;
 export const SECRET_BYTES = 32;
 
 // After this date the legacy (un-prefixed, id-only) refresh-token format is
-// rejected. New format has been the default since 2026-05-05; the ~30 day
-// window covers a full max-age refresh-token lifetime.
-export const LEGACY_CUTOFF = new Date("2026-06-05T00:00:00.000Z");
+// rejected on the wire. Originally 2026-06-05; pushed to 2026-08-04 when
+// the first cutoff fired and prod still had non-rotating legacy rows that
+// the rotation migration never touched. Those rows are now upgraded in
+// place on first refresh (see refresh-token.ts non-rotating branch), so the
+// window only needs to cover one full max-age cycle for active clients to
+// trigger the upgrade.
+export const LEGACY_CUTOFF = new Date("2026-08-04T00:00:00.000Z");
 
 export type ParsedRefreshToken =
   | { kind: "new"; lookup: string; secret: string }

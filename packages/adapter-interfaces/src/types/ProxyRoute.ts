@@ -18,6 +18,10 @@ export const handlerConfigSchema = z.object({
 export type HandlerConfig = z.infer<typeof handlerConfigSchema>;
 
 export const proxyRouteInsertSchema = z.object({
+  // Optional caller-supplied id. When omitted the adapter generates one.
+  // Used by the control-plane sync receiver to preserve the source-shard id
+  // so subsequent updates/deletes land on the same row.
+  id: z.string().optional(),
   custom_domain_id: z.string(),
   priority: z.number().int().default(100),
   match: matchSchema,
@@ -36,6 +40,7 @@ export const proxyRouteSchema = proxyRouteInsertSchema.extend({
 export type ProxyRoute = z.infer<typeof proxyRouteSchema>;
 
 export const proxyRouteUpdateSchema = proxyRouteInsertSchema.partial().omit({
+  id: true,
   custom_domain_id: true,
 });
 

@@ -15,7 +15,7 @@ export function create(db: Kysely<Database>) {
       client_id,
       // Ensure required boolean fields have defaults
       global: params.global ?? false,
-      is_first_party: params.is_first_party ?? false,
+      is_first_party: params.is_first_party ?? true,
       oidc_conformant: params.oidc_conformant ?? true,
       auth0_conformant: params.auth0_conformant ?? true,
       sso: params.sso ?? false,

@@ -694,6 +694,7 @@ const SCREEN_GET_PATHS = {
   "account/passkeys": "account-passkeys",
   "connect/start": "connect-consent",
   "connect/select-tenant": "connect-tenant-select",
+  consent: "consent",
   "try-connection-result": "try-connection-result",
 } as const;
 
@@ -728,6 +729,7 @@ const SCREEN_POST_PATHS = {
   "account/passkeys": "account-passkeys",
   "connect/start": "connect-consent",
   "connect/select-tenant": "connect-tenant-select",
+  consent: "consent",
 } as const;
 
 type GetScreenPath = keyof typeof SCREEN_GET_PATHS;

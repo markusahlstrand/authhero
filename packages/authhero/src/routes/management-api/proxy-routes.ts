@@ -7,6 +7,7 @@ import {
   proxyRouteUpdateSchema,
 } from "@authhero/adapter-interfaces";
 import { defineRoute } from "../../utils/define-route";
+import { enqueueControlPlaneSyncEvent } from "../../helpers/control-plane-sync-events";
 
 const listResponseSchema = z.object({
   proxy_routes: z.array(proxyRouteSchema),
@@ -116,6 +117,13 @@ const postRoot = defineRoute({
     const proxyRoutes = requireProxyRoutes(ctx);
     const body = ctx.req.valid("json");
     const route = await proxyRoutes.create(ctx.var.tenant_id, body);
+    enqueueControlPlaneSyncEvent(ctx, {
+      tenantId: ctx.var.tenant_id,
+      entity: "proxy_route",
+      op: "created",
+      aggregateId: route.id,
+      payload: route,
+    });
     return ctx.json(route, { status: 201 });
   },
 });
@@ -152,6 +160,13 @@ const patchById = defineRoute({
     if (!ok) throw new HTTPException(404);
     const updated = await proxyRoutes.get(ctx.var.tenant_id, id);
     if (!updated) throw new HTTPException(404);
+    enqueueControlPlaneSyncEvent(ctx, {
+      tenantId: ctx.var.tenant_id,
+      entity: "proxy_route",
+      op: "updated",
+      aggregateId: id,
+      payload: updated,
+    });
     return ctx.json(updated);
   },
 });
@@ -173,8 +188,19 @@ const deleteById = defineRoute({
   handler: async (ctx) => {
     const proxyRoutes = requireProxyRoutes(ctx);
     const { id } = ctx.req.valid("param");
+    // Snapshot before delete so the sync event carries the pre-delete payload.
+    const beforeDelete = await proxyRoutes.get(ctx.var.tenant_id, id);
     const ok = await proxyRoutes.remove(ctx.var.tenant_id, id);
     if (!ok) throw new HTTPException(404);
+    if (beforeDelete) {
+      enqueueControlPlaneSyncEvent(ctx, {
+        tenantId: ctx.var.tenant_id,
+        entity: "proxy_route",
+        op: "deleted",
+        aggregateId: id,
+        payload: beforeDelete,
+      });
+    }
     return ctx.body(null, 204);
   },
 });
