@@ -18,6 +18,7 @@ import {
   SigningKey,
   tenantSchema,
   themeSchema,
+  userConsentSchema,
   userPermissionSchema,
   userRoleSchema,
   userSchema,
@@ -358,6 +359,11 @@ export const sqlRolePermissionSchema = rolePermissionSchema.extend({
   tenant_id: z.string(),
 });
 
+export const sqlUserConsentSchema = userConsentSchema.extend({
+  tenant_id: z.string(),
+  scopes: z.string(),
+});
+
 export const sqlUserPermissionSchema = userPermissionSchema.extend({});
 
 export const sqlUserRoleSchema = userRoleSchema.extend({});
@@ -507,6 +513,7 @@ export interface Database {
   themes: z.infer<typeof sqlThemeSchema>;
   resource_servers: z.infer<typeof sqlResourceServerSchema>;
   role_permissions: z.infer<typeof sqlRolePermissionSchema>;
+  user_consents: z.infer<typeof sqlUserConsentSchema>;
   user_permissions: z.infer<typeof sqlUserPermissionSchema>;
   user_roles: z.infer<typeof sqlUserRoleSchema>;
   roles: z.infer<typeof sqlRoleSchema>;

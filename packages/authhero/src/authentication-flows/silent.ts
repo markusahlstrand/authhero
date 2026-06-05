@@ -18,6 +18,7 @@ import { resolveConnectionName } from "../helpers/connection";
 
 import { nanoid } from "nanoid";
 import { calculateScopesAndPermissions } from "../helpers/scopes-permissions";
+import { getMissingConsentScopes } from "../helpers/consent";
 
 // OAuth 2.0 Multiple Response Type Encoding Practices §3: the default
 // response_mode is `query` only for `response_type=code`; every other
@@ -143,6 +144,47 @@ export async function silentAuth({
     });
   }
 
+  // OIDC Core 3.1.2.6: emit a consent_required error in the same response
+  // mode the client requested. Does not clear the session cookie — the
+  // session itself is still valid; only the per-client consent is missing.
+  function handleConsentRequired(description: string = "Consent required") {
+    if (useIframeResponse) {
+      return renderAuthIframe(
+        ctx,
+        originUrl,
+        JSON.stringify({
+          error: "consent_required",
+          error_description: description,
+          state,
+        }),
+      );
+    }
+
+    const errorParams: Record<string, string> = {
+      error: "consent_required",
+      error_description: description,
+    };
+    if (state) errorParams.state = state;
+
+    if (response_mode === AuthorizationResponseMode.FORM_POST) {
+      return formPostResponse(redirect_uri, errorParams, new Headers());
+    }
+
+    const errorUrl = new URL(redirect_uri);
+    if (shouldUseFragment(response_type, response_mode)) {
+      errorUrl.hash = new URLSearchParams(errorParams).toString();
+    } else {
+      for (const [k, v] of Object.entries(errorParams)) {
+        errorUrl.searchParams.set(k, v);
+      }
+    }
+
+    return new Response(null, {
+      status: 302,
+      headers: { Location: errorUrl.toString() },
+    });
+  }
+
   // Check if session is valid
   const isSessionExpired =
     !session ||
@@ -247,6 +289,25 @@ export async function silentAuth({
     if (!isMember) {
       return handleLoginRequired(
         "User is not a member of the specified organization",
+      );
+    }
+  }
+
+  // Third-party consent gate: silent auth must not silently upgrade scopes
+  // for a third-party client. If the user has not previously consented to
+  // every non-basic requested scope, return consent_required so the SPA
+  // can fall back to an interactive flow that surfaces the consent screen.
+  if (!client.is_first_party) {
+    const requestedScopes = scope?.split(" ").filter(Boolean) ?? [];
+    const missing = await getMissingConsentScopes(ctx, {
+      tenantId: client.tenant.id,
+      userId: user.user_id,
+      clientId: client.client_id,
+      requestedScopes,
+    });
+    if (missing.length > 0) {
+      return handleConsentRequired(
+        `Consent required for scope(s): ${missing.join(" ")}`,
       );
     }
   }

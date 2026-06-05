@@ -42,6 +42,7 @@ import { handleCredentialsExchangeCodeHooks } from "../hooks/codehooks";
 import renderAuthIframe from "../utils/authIframe";
 import { formPostResponse } from "../utils/form-post";
 import { calculateScopesAndPermissions } from "../helpers/scopes-permissions";
+import { getMissingConsentScopes } from "../helpers/consent";
 import {
   buildScopeClaims,
   buildRequestedClaims,
@@ -1610,6 +1611,73 @@ export async function createFrontChannelAuthResponse(
               },
             });
           }
+        }
+      }
+    }
+  }
+
+  // ============================================================================
+  // THIRD-PARTY CONSENT GATE
+  // ============================================================================
+  // For third-party clients, require explicit user consent for any non-basic
+  // scope before issuing tokens. First-party clients (the default) skip this.
+  // Silent auth (web_message) is handled separately by silent.ts which emits
+  // an OIDC `consent_required` error.
+  // ============================================================================
+  if (
+    params.loginSession &&
+    user &&
+    !client.is_first_party &&
+    responseMode !== AuthorizationResponseMode.WEB_MESSAGE
+  ) {
+    const currentLoginSession = await ctx.env.data.loginSessions.get(
+      client.tenant.id,
+      params.loginSession.id,
+    );
+
+    if (currentLoginSession) {
+      const currentState =
+        currentLoginSession.state || LoginSessionState.PENDING;
+
+      // If we're already waiting on consent, redirect to the screen.
+      if (currentState === LoginSessionState.AWAITING_CONSENT) {
+        return new Response(null, {
+          status: 302,
+          headers: {
+            location: `/u2/consent?state=${encodeURIComponent(params.loginSession.id)}`,
+          },
+        });
+      }
+
+      // From AUTHENTICATED, check whether requested scopes are covered.
+      if (currentState === LoginSessionState.AUTHENTICATED) {
+        const requestedScopes =
+          currentLoginSession.authParams.scope?.split(" ").filter(Boolean) ??
+          [];
+        const missing = await getMissingConsentScopes(ctx, {
+          tenantId: client.tenant.id,
+          userId: user.user_id,
+          clientId: client.client_id,
+          requestedScopes,
+        });
+
+        if (missing.length > 0) {
+          const { state: newState } = transitionLoginSession(
+            LoginSessionState.AUTHENTICATED,
+            { type: LoginSessionEventType.REQUIRE_CONSENT },
+          );
+          await ctx.env.data.loginSessions.update(
+            client.tenant.id,
+            params.loginSession.id,
+            { state: newState },
+          );
+
+          return new Response(null, {
+            status: 302,
+            headers: {
+              location: `/u2/consent?state=${encodeURIComponent(params.loginSession.id)}`,
+            },
+          });
         }
       }
     }

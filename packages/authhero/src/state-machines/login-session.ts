@@ -25,6 +25,8 @@ export enum LoginSessionEventType {
   REQUIRE_EMAIL_VERIFICATION = "REQUIRE_EMAIL_VERIFICATION",
   REQUIRE_MFA = "REQUIRE_MFA",
   COMPLETE_MFA = "COMPLETE_MFA",
+  REQUIRE_CONSENT = "REQUIRE_CONSENT",
+  COMPLETE_CONSENT = "COMPLETE_CONSENT",
   START_HOOK = "START_HOOK",
   COMPLETE_HOOK = "COMPLETE_HOOK",
   START_CONTINUATION = "START_CONTINUATION",
@@ -42,6 +44,8 @@ export type LoginSessionEvent =
   | { type: LoginSessionEventType.REQUIRE_EMAIL_VERIFICATION }
   | { type: LoginSessionEventType.REQUIRE_MFA }
   | { type: LoginSessionEventType.COMPLETE_MFA }
+  | { type: LoginSessionEventType.REQUIRE_CONSENT }
+  | { type: LoginSessionEventType.COMPLETE_CONSENT }
   | { type: LoginSessionEventType.START_HOOK; hookId?: string }
   | { type: LoginSessionEventType.COMPLETE_HOOK }
   | { type: LoginSessionEventType.START_CONTINUATION; scope: string[] }
@@ -146,6 +150,9 @@ export const loginSessionMachine = setup({
         REQUIRE_MFA: {
           target: "awaiting_mfa",
         },
+        REQUIRE_CONSENT: {
+          target: "awaiting_consent",
+        },
         START_HOOK: {
           target: "awaiting_hook",
           actions: "setHookId",
@@ -186,6 +193,21 @@ export const loginSessionMachine = setup({
       on: {
         // Return to AUTHENTICATED hub after MFA verification
         COMPLETE_MFA: {
+          target: "authenticated",
+        },
+        FAIL: {
+          target: "failed",
+          actions: "setFailureReason",
+        },
+        EXPIRE: {
+          target: "expired",
+        },
+      },
+    },
+    awaiting_consent: {
+      on: {
+        // Return to AUTHENTICATED hub after consent is granted
+        COMPLETE_CONSENT: {
           target: "authenticated",
         },
         FAIL: {

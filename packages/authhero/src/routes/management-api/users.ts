@@ -16,6 +16,7 @@ import {
   logSchema,
   sessionSchema,
   totalsSchema,
+  userConsentSchema,
   userInsertSchema,
   userPermissionWithDetailsListSchema,
   roleListSchema,
@@ -56,6 +57,10 @@ const usersWithTotalsSchema = totalsSchema.extend({
 
 const sessionsWithTotalsSchema = totalsSchema.extend({
   sessions: z.array(sessionSchema),
+});
+
+const userConsentsWithTotalsSchema = totalsSchema.extend({
+  user_consents: z.array(userConsentSchema),
 });
 
 const logsWithTotalsSchema = totalsSchema.extend({
@@ -960,6 +965,70 @@ const getByUser_idSessions = defineRoute({
   },
 });
 
+const getByUser_idConsents = defineRoute({
+  route: createRoute({
+    tags: ["users"],
+    method: "get",
+    path: "/{user_id}/consents",
+    request: {
+      query: querySchema,
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
+      params: z.object({
+        user_id: z.string(),
+      }),
+    },
+    security: [
+      {
+        Bearer: ["read:users", "auth:read"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: z.union([
+              z.array(userConsentSchema),
+              userConsentsWithTotalsSchema,
+            ]),
+          },
+        },
+        description: "List of OAuth consents granted by the user",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const { user_id } = ctx.req.valid("param");
+    const { include_totals, page, per_page } = ctx.req.valid("query");
+
+    if (!ctx.env.data.userConsents) {
+      const empty = {
+        user_consents: [],
+        start: 0,
+        limit: 0,
+        length: 0,
+      };
+      if (!include_totals) {
+        return ctx.json(empty.user_consents);
+      }
+      return ctx.json(empty);
+    }
+
+    const result = await ctx.env.data.userConsents.list(ctx.var.tenant_id, {
+      page,
+      per_page,
+      include_totals,
+      q: `user_id:${user_id}`,
+    });
+
+    if (!include_totals) {
+      return ctx.json(result.user_consents);
+    }
+    return ctx.json(result);
+  },
+});
+
 const getByUser_idLogs = defineRoute({
   route: createRoute({
     tags: ["users"],
@@ -1551,6 +1620,7 @@ export const userRoutes = new OpenAPIHono<{
   deleteByUser_idIdentitiesByProviderByLinked_user_id,
   getByUser_idConnectedClients,
   getByUser_idSessions,
+  getByUser_idConsents,
   getByUser_idLogs,
   getByUser_idPermissions,
   postByUser_idPermissions,

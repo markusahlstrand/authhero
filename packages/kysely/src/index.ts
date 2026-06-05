@@ -33,6 +33,7 @@ import { createFormsAdapter } from "./forms";
 import { createResourceServersAdapter } from "./resourceServers";
 import { createRolesAdapter } from "./roles";
 import { rolePermissions } from "./role-permissions";
+import { createUserConsentsAdapter } from "./user-consents";
 import { createUserPermissionsAdapter } from "./user-permissions/adapter";
 import { createUserRolesAdapter } from "./user-roles/adapter";
 import { createOrganizationsAdapter } from "./organizations";
@@ -90,6 +91,7 @@ export default function createAdapters(
     refreshTokens: createRefreshTokensAdapter(db),
     resourceServers: createResourceServersAdapter(db),
     rolePermissions: rolePermissions(db),
+    userConsents: createUserConsentsAdapter(db),
     userPermissions: createUserPermissionsAdapter(db),
     userRoles: createUserRolesAdapter(db),
     roles: createRolesAdapter(db),

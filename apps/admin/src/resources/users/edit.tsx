@@ -3,6 +3,7 @@ import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UrlTabs } from "@/components/ui/url-tabs";
 import { DetailsTab } from "./tabs/details-tab";
 import { SessionsTab } from "./tabs/sessions-tab";
+import { ConsentsTab } from "./tabs/consents-tab";
 import { LogsTab } from "./tabs/logs-tab";
 import { PermissionsTab } from "./tabs/permissions-tab";
 import { RolesTab } from "./tabs/roles-tab";
@@ -18,6 +19,7 @@ export function UserEdit() {
           <TabsList>
             <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="sessions">Sessions</TabsTrigger>
+            <TabsTrigger value="consents">Consents</TabsTrigger>
             <TabsTrigger value="logs">Logs</TabsTrigger>
             <TabsTrigger value="permissions">Permissions</TabsTrigger>
             <TabsTrigger value="roles">Roles</TabsTrigger>
@@ -30,6 +32,9 @@ export function UserEdit() {
           </TabsContent>
           <TabsContent value="sessions" className="mt-4">
             <SessionsTab />
+          </TabsContent>
+          <TabsContent value="consents" className="mt-4">
+            <ConsentsTab />
           </TabsContent>
           <TabsContent value="logs" className="mt-4">
             <LogsTab />

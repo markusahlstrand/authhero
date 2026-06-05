@@ -1335,6 +1335,24 @@ export default (
         };
       }
 
+      // OAuth consents nested under users
+      if (resource === "consents" && params.target === "user_id") {
+        const headers = createHeaders(tenantId);
+        const res = await httpClient(
+          `${apiUrl}/api/v2/users/${params.id}/consents?${stringify({
+            include_totals: true,
+            ...buildPaginationParams(),
+            sort: `${field}:${order === "DESC" ? "-1" : "1"}`,
+          })}`,
+          { headers },
+        );
+        const consents = res.json.user_consents || [];
+        return {
+          data: consents.map((item: any) => ({ id: item.id, ...item })),
+          total: res.json.length || consents.length || 0,
+        };
+      }
+
       // Permissions nested under users
       if (resource === "permissions" && params.target === "user_id") {
         const result = await managementClient.users.permissions.list(
