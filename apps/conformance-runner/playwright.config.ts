@@ -39,7 +39,7 @@ export default defineConfig({
     // .certs/ touches), and a mid-test restart causes the suite to see
     // "Connection refused" against the host gateway. Plain tsx is enough
     // for a one-shot conformance run.
-    command: "npx tsx src/index.ts",
+    command: "npx tsx --env-file=.env src/index.ts",
     cwd: "../conformance-auth-server",
     url: `${env.authheroBaseUrl}/.well-known/openid-configuration`,
     ignoreHTTPSErrors: true,
@@ -51,6 +51,12 @@ export default defineConfig({
       PORT: "3000",
       ISSUER: env.authheroIssuer,
       HTTPS_ENABLED: env.httpsEnabled ? "true" : "false",
+      // The auth-server fetches client-published jwks_uri values during
+      // private_key_jwt verification. The OIDF suite hosts those at
+      // https://localhost.emobix.co.uk:8443/... behind a self-signed cert
+      // that isn't in Node's trust store — disable TLS verification for
+      // the conformance auth-server only.
+      NODE_TLS_REJECT_UNAUTHORIZED: "0",
     },
   },
 });

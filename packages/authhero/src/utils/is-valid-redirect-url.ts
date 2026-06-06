@@ -46,6 +46,17 @@ function matchUrl(
     return false;
   }
 
+  // If the registered URL pins specific query parameters, every one of them
+  // must appear unchanged on the incoming URL. Extras on the incoming URL
+  // are tolerated (matches Auth0 behaviour and the test in authorize.spec).
+  if (allowedUrl.search) {
+    for (const [key, value] of allowedUrl.searchParams) {
+      if (url.searchParams.get(key) !== value) {
+        return false;
+      }
+    }
+  }
+
   // Wildcard domain matching (only if enabled)
   if (
     options.allowSubDomainWildcards &&

@@ -130,6 +130,7 @@
   "reset_password_description": "Ange ditt nya lösenord nedan för e-postkontot: ",
   "reset_password_email_click_to_reset": "Klicka på knappen för att återställa ditt lösenord",
   "reset_password_email_cta": "Klicka på knappen för att återställa ditt lösenord",
+  "reset_password_email_enter_code": "Ange koden nedan för att återställa ditt lösenord",
   "reset_password_email_reset": "Återställ ditt lösenord",
   "reset_password_subject": "Byt lösenord för ditt {{vendorName}} konto",
   "reset_password_title": "Återställ lösenord",

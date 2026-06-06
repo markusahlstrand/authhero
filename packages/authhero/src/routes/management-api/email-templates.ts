@@ -280,7 +280,11 @@ const deleteByTemplateName = defineRoute({
       headers,
       params: templateNameParam,
     },
-    security: [{ Bearer: ["delete:email_templates"] }],
+    // authhero extension: DELETE clears the tenant override and reverts to the
+    // bundled default — semantically an update, not a destructive delete — so
+    // it piggybacks on update:email_templates rather than introducing a
+    // delete:email_templates scope that Auth0 doesn't define.
+    security: [{ Bearer: ["update:email_templates"] }],
     responses: {
       204: {
         description:

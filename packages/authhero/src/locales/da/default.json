@@ -130,6 +130,7 @@
   "reset_password_description": "Indtast din nye adgangskode til e-mailkontoen nedenfor: ",
   "reset_password_email_click_to_reset": "Klik på knappen for at nulstille din adgangskode",
   "reset_password_email_cta": "Klik på knappen for at nulstille din adgangskode",
+  "reset_password_email_enter_code": "Indtast koden nedenfor for at nulstille din adgangskode",
   "reset_password_email_reset": "Nulstil din adgangskode",
   "reset_password_subject": "Skift adgangskode til din {{vendorName}} -konto",
   "reset_password_title": "Nulstil adgangskode",

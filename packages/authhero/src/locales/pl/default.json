@@ -130,6 +130,7 @@
   "reset_password_description": "Wprowadź poniżej nowe hasło do konta e-mail: ",
   "reset_password_email_click_to_reset": "Kliknij przycisk, aby zresetować hasło",
   "reset_password_email_cta": "Kliknij przycisk, aby zresetować hasło",
+  "reset_password_email_enter_code": "Wpisz poniższy kod, aby zresetować hasło",
   "reset_password_email_reset": "Zmień hasło",
   "reset_password_subject": "Zmiana hasła do konta {{vendorName}} ",
   "reset_password_title": "Resetowanie hasła",

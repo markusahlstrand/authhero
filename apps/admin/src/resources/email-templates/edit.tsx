@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   BooleanInput,
   CodeInput,
@@ -5,12 +6,56 @@ import {
   SimpleForm,
   TextInput,
 } from "@/components/admin";
+import type { EditorProps } from "@monaco-editor/react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { useRecordContext, useResourceContext } from "ra-core";
 import { Info } from "lucide-react";
 import { EmailTemplatePreview } from "./preview";
+import { ResetToDefaultButton } from "./reset-to-default-button";
 import { SendTestButton } from "./send-test-button";
 import { getTemplateDescription, getTemplateLabel } from "./template-names";
+
+type MountedEditor = Parameters<NonNullable<EditorProps["onMount"]>>[0];
+
+interface MonacoRange {
+  startLineNumber: number;
+  startColumn: number;
+  endLineNumber: number;
+  endColumn: number;
+}
+
+/**
+ * Monaco's `setHiddenAreas` removes line ranges from the editor view without
+ * touching the underlying model — used here to fully hide the React Email
+ * inbox-preview padding block. The method is real at runtime but not in the
+ * public type defs, so we declare it as an optional overlay.
+ */
+type EditorWithHiddenAreas = MountedEditor & {
+  setHiddenAreas?: (ranges: MonacoRange[], source?: unknown) => void;
+};
+
+const PREVIEW_PADDING_CHAR = /[\u00A0\u200B-\u200F\u2060\uFEFF]/g;
+const HIDDEN_AREA_SOURCE = "email-template-preview-padding";
+
+function findPreviewPaddingRanges(value: string): MonacoRange[] {
+  const lines = value.split("\n");
+  const ranges: MonacoRange[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const padCount = line.match(PREVIEW_PADDING_CHAR)?.length ?? 0;
+    if (padCount >= 20) {
+      ranges.push({
+        startLineNumber: i + 1,
+        startColumn: 1,
+        endLineNumber: i + 1,
+        endColumn: line.length + 1,
+      });
+    }
+  }
+  return ranges;
+}
 
 interface EmailTemplateRecord {
   id: string;
@@ -86,6 +131,36 @@ function EmailTemplateFormContent() {
   const subjectPlaceholder = record?.default_subject
     ? `Default: ${record.default_subject}`
     : undefined;
+  const [hideInvisibleChars, setHideInvisibleChars] = useState(true);
+  const editorRef = useRef<EditorWithHiddenAreas | null>(null);
+  const hideRef = useRef(hideInvisibleChars);
+  useEffect(() => {
+    hideRef.current = hideInvisibleChars;
+  }, [hideInvisibleChars]);
+
+  const applyHiddenAreas = useCallback(() => {
+    const ed = editorRef.current;
+    if (!ed || typeof ed.setHiddenAreas !== "function") return;
+    if (!hideRef.current) {
+      ed.setHiddenAreas([], HIDDEN_AREA_SOURCE);
+      return;
+    }
+    const value = ed.getModel()?.getValue() ?? "";
+    ed.setHiddenAreas(
+      findPreviewPaddingRanges(value),
+      HIDDEN_AREA_SOURCE,
+    );
+  }, []);
+
+  useEffect(() => {
+    applyHiddenAreas();
+  }, [applyHiddenAreas, hideInvisibleChars]);
+
+  const handleEditorMount: NonNullable<EditorProps["onMount"]> = (ed) => {
+    editorRef.current = ed;
+    ed.onDidChangeModelContent(() => applyHiddenAreas());
+    applyHiddenAreas();
+  };
 
   return (
     <div className="flex w-full flex-col gap-4">
@@ -109,12 +184,36 @@ function EmailTemplateFormContent() {
             placeholder={subjectPlaceholder}
             helperText="Liquid syntax supported. Leave empty to use the bundled default (localized via Liquid variables)."
           />
-          <CodeInput
-            source="body"
-            label="Body (HTML + Liquid)"
-            language="html"
-            height={520}
-          />
+          <div className="flex flex-col gap-2">
+            <CodeInput
+              source="body"
+              label="Body (HTML + Liquid)"
+              language="html"
+              height={520}
+              onEditorMount={handleEditorMount}
+            />
+            <div className="flex items-center justify-between gap-4">
+              <p className="text-xs text-muted-foreground">
+                Templates contain zero-width Unicode characters that pad the
+                inbox preview text so email clients don't leak unrelated body
+                content into the preview line. They look odd in the editor but
+                should not be removed.
+              </p>
+              <div className="flex shrink-0 items-center gap-2">
+                <Switch
+                  id="hide-invisible"
+                  checked={hideInvisibleChars}
+                  onCheckedChange={setHideInvisibleChars}
+                />
+                <Label
+                  htmlFor="hide-invisible"
+                  className="text-xs text-muted-foreground"
+                >
+                  Hide invisible characters
+                </Label>
+              </div>
+            </div>
+          </div>
         </div>
         <aside className="hidden w-[420px] shrink-0 lg:block">
           <div className="sticky top-4 h-[calc(100vh-6rem)]">
@@ -143,6 +242,7 @@ export function EmailTemplatesEdit() {
       redirect={false}
       title={<EmailTemplateTitle />}
       transform={transformEmailTemplate}
+      actions={<ResetToDefaultButton />}
     >
       <SimpleForm className="max-w-none">
         <EmailTemplateFormContent />
