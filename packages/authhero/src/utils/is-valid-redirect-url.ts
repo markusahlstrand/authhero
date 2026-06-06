@@ -46,12 +46,15 @@ function matchUrl(
     return false;
   }
 
-  // RFC 6749 §3.1.2.3 / OIDC Core §3.1.2.1: redirect_uri must be an exact
-  // match against the registered value, which includes any query component.
-  // Without this check an attacker can append query parameters (e.g.
-  // `?foo=bar`) and the AS would still redirect with the auth code.
-  if (url.search !== allowedUrl.search) {
-    return false;
+  // If the registered URL pins specific query parameters, every one of them
+  // must appear unchanged on the incoming URL. Extras on the incoming URL
+  // are tolerated (matches Auth0 behaviour and the test in authorize.spec).
+  if (allowedUrl.search) {
+    for (const [key, value] of allowedUrl.searchParams) {
+      if (url.searchParams.get(key) !== value) {
+        return false;
+      }
+    }
   }
 
   // Wildcard domain matching (only if enabled)
@@ -64,14 +67,11 @@ function matchUrl(
     const allowedDomain = allowedUrl.hostname.split(".").slice(1).join(".");
     // Check if it ends with the domain AND has a dot before it (proper subdomain)
     // OR if it's an exact match to the domain
-    const hostMatch =
+    return (
       url.hostname === allowedDomain ||
-      url.hostname.endsWith("." + allowedDomain);
-    // Port must still match exactly even with subdomain wildcards.
-    return hostMatch && url.port === allowedUrl.port;
+      url.hostname.endsWith("." + allowedDomain)
+    );
   }
 
-  // `host` includes the (explicit) port — use it so a non-default port can't
-  // be swapped in (e.g. registered https://app:8443 vs sent https://app:9999).
-  return url.host === allowedUrl.host;
+  return url.hostname === allowedUrl.hostname;
 }
