@@ -43,6 +43,13 @@
       "when": 1779200000000,
       "tag": "0005_proxy_routes_v2",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1780000000000,
+      "tag": "0006_tenant_deployment_fields",
+      "breakpoints": true
     }
   ]
 }

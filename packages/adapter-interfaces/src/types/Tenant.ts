@@ -223,6 +223,35 @@ export const tenantInsertSchema = z.object({
   pushed_authorization_requests_supported: z.boolean().optional(),
   authorization_response_iss_parameter_supported: z.boolean().optional(),
 
+  // Deployment / provisioning. Identifies how the tenant runs.
+  //
+  // `shared` — the tenant runs on the same authhero deployment as every other
+  // shared tenant (the historical default).
+  //
+  // `wfp` — the tenant is provisioned as its own Cloudflare Worker in a
+  // dispatch namespace, fronted by the proxy dispatcher. `bundle_configuration`
+  // identifies the worker image (e.g. `authhero-drizzle-d1`),
+  // `worker_version` pins the release within that configuration, and
+  // `storage_kind` plus `d1_database_id` determine the data backend the
+  // tenant worker is bound to.
+  //
+  // `provisioning_state` tracks the async provision flow for `wfp` tenants.
+  // Shared tenants are `ready` immediately.
+  deployment_type: z.enum(["shared", "wfp"]).default("shared").optional(),
+  provisioning_state: z
+    .enum(["pending", "ready", "failed"])
+    .default("ready")
+    .optional(),
+  provisioning_error: z.string().optional(),
+  provisioning_state_changed_at: z.string().optional(),
+  bundle_configuration: z.string().optional(),
+  worker_version: z.string().optional(),
+  worker_script_name: z.string().optional(),
+  storage_kind: z
+    .enum(["own_d1", "existing_d1", "shared_planetscale"])
+    .optional(),
+  d1_database_id: z.string().optional(),
+
   // Attack-protection config (singleton, exposed via /api/v2/attack-protection)
   attack_protection: attackProtectionSchema.optional(),
 

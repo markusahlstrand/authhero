@@ -172,6 +172,7 @@ import * as o073_proxy_routes_v2 from "./2026-05-28T00:00:00_proxy_routes_v2";
 import * as o074_widen_user_permissions_resource_server_identifier from "./2026-06-04T10:00:00_widen_user_permissions_resource_server_identifier";
 import * as o075_create_grants from "./2026-06-04T11:00:00_create_grants";
 import * as o076_default_first_party_true from "./2026-06-04T11:01:00_default_first_party_true";
+import * as o077_tenant_deployment_fields from "./2026-06-06T12:00:00_tenant_deployment_fields";
 
 // These need to be in alphabetic order
 export default {
@@ -349,4 +350,5 @@ export default {
   o074_widen_user_permissions_resource_server_identifier,
   o075_create_grants,
   o076_default_first_party_true,
+  o077_tenant_deployment_fields,
 };
