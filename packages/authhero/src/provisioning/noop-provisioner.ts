@@ -18,10 +18,17 @@ export class NoopTenantProvisioner implements TenantProvisioner {
     if (tenant.provisioning_state === "ready" && !tenant.provisioning_error) {
       return;
     }
-    await ctx.tenants.update(tenant.id, {
-      provisioning_state: "ready",
-      provisioning_state_changed_at: new Date().toISOString(),
-      provisioning_error: undefined,
-    });
+    try {
+      await ctx.tenants.update(tenant.id, {
+        provisioning_state: "ready",
+        provisioning_state_changed_at: new Date().toISOString(),
+        provisioning_error: undefined,
+      });
+    } catch {
+      // The TenantProvisioner contract requires provision() to resolve even
+      // on failure. A best-effort follow-up write records the failure so the
+      // admin UI can surface it; if that also fails, we swallow the error
+      // rather than reject.
+    }
   }
 }

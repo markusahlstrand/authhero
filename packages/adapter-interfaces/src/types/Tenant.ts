@@ -242,15 +242,15 @@ export const tenantInsertSchema = z.object({
     .enum(["pending", "ready", "failed"])
     .default("ready")
     .optional(),
-  provisioning_error: z.string().optional(),
+  provisioning_error: z.string().max(2048).optional(),
   provisioning_state_changed_at: z.string().optional(),
-  bundle_configuration: z.string().optional(),
-  worker_version: z.string().optional(),
-  worker_script_name: z.string().optional(),
+  bundle_configuration: z.string().max(64).optional(),
+  worker_version: z.string().max(64).optional(),
+  worker_script_name: z.string().max(255).optional(),
   storage_kind: z
     .enum(["own_d1", "existing_d1", "shared_planetscale"])
     .optional(),
-  d1_database_id: z.string().optional(),
+  d1_database_id: z.string().max(64).optional(),
 
   // Attack-protection config (singleton, exposed via /api/v2/attack-protection)
   attack_protection: attackProtectionSchema.optional(),

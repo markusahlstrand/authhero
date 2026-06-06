@@ -22,7 +22,7 @@ In both cases, all surfaces share the same origin so session cookies can be shar
 ## Features
 
 - 🧭 **Structured route matching** — match on `path`, `methods`, `hosts`, `headers`, `query`; priority-ordered
-- 🧩 **Composable handler chain** — 12 built-in handlers covering CORS, auth, header rewrite, caching, and four dispatch modes (`http`, `service_binding`, `dispatch_namespace`, `redirect`, `static`)
+- 🧩 **Composable handler chain** — 12 built-in handlers covering CORS, auth, header rewrite, caching, and five dispatch modes (`http`, `service_binding`, `dispatch_namespace`, `redirect`, `static`)
 - 🔌 **Pluggable data adapter** — static (in-memory), SQL (via `@authhero/kysely-adapter` or `@authhero/drizzle`), or HTTP (via `createHttpProxyAdapter` for cross-account control planes)
 - 🗄️ **Shared schema** — the `proxy_routes` table is part of the standard AuthHero migrations
 - ⚡ **Built-in host cache** — stale-while-revalidate so `resolveHost` doesn't hit the database on the hot path; also a Cloudflare Cache API variant for cross-instance hits
@@ -276,7 +276,7 @@ Example row (illustrative JSON):
 
 ## Built-in handlers
 
-12 handlers ship in `@authhero/proxy` and are registered by `registerBuiltinHandlers(registry)`. Each handler's options are validated against a Zod schema at compile time — typos in the JSON fail loudly, not at runtime.
+12 handlers ship in `@authhero/proxy` and are registered by `registerBuiltinHandlers(registry)`. Each handler's options are validated against a Zod schema when routes are built (during `HandlerRegistry.build(...)`, called as the per-host route list is compiled) — typos in the JSON fail loudly at route build time, before any request is served.
 
 ### Middleware handlers
 

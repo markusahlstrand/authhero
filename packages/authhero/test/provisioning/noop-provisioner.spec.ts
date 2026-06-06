@@ -104,4 +104,20 @@ describe("NoopTenantProvisioner", () => {
       }),
     );
   });
+
+  it("resolves even when tenants.update rejects", async () => {
+    const tenants = mockTenantsAdapter();
+    (tenants.update as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
+      new Error("DB down"),
+    );
+    const provisioner = new NoopTenantProvisioner();
+
+    await expect(
+      provisioner.provision(
+        tenantFixture({ provisioning_state: "pending" }),
+        { tenants },
+      ),
+    ).resolves.toBeUndefined();
+    expect(tenants.update).toHaveBeenCalledTimes(1);
+  });
 });

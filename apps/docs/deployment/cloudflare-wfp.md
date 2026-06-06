@@ -24,7 +24,7 @@ The trade-off is operational cost: every tenant has its own deployment lifecycle
 
 ## Architecture
 
-```
+```text
 Internet
    │
    ▼
@@ -506,7 +506,7 @@ The end state:
 
 The R2 bundle layout:
 
-```
+```text
 tenant-bundles/
   authhero-drizzle-d1/
     v1.2.3/
