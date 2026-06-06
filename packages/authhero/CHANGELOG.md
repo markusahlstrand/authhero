@@ -1,5 +1,22 @@
 # authhero
 
+## 5.21.0
+
+### Minor Changes
+
+- 7a0606f: Add tenant deployment / provisioning fields (`deployment_type`, `provisioning_state`, `bundle_configuration`, `worker_version`, `worker_script_name`, `storage_kind`, `d1_database_id`, plus `provisioning_error` and `provisioning_state_changed_at`). Existing tenants default to `shared` / `ready` via DB-level defaults; no behavior change.
+
+  Adds a `TenantProvisioner` adapter interface (`packages/authhero/src/provisioning`) and a `NoopTenantProvisioner` implementation, exposed via `AuthHeroConfig.provisioner`. Lays the groundwork for provisioning per-tenant Cloudflare Workers from the control-plane API; the noop is correct for `shared` tenants and stands in until the WFP provisioner is wired in.
+
+### Patch Changes
+
+- cea9675: Include previous email in the `sce` (change email) log description, e.g. "Email updated from old@example.com to new@example.com"
+- cea9675: Fix the reset-password code email so it no longer reads "Click the button to reset your password" (there is no button — the email contains a code). The `reset_email_by_code` template now uses a new `reset_password_email_enter_code` string ("Enter the code below to reset your password"), translated across all bundled locales.
+- Updated dependencies [7a0606f]
+  - @authhero/adapter-interfaces@2.13.0
+  - @authhero/proxy@0.4.3
+  - @authhero/widget@0.32.37
+
 ## 5.20.0
 
 ### Minor Changes
