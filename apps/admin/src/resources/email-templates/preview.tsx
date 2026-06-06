@@ -179,7 +179,7 @@ export function EmailTemplatePreview({
           <iframe
             title="Email preview"
             srcDoc={rendered}
-            sandbox=""
+            sandbox="allow-same-origin"
             className="h-full w-full border-0 bg-white"
           />
         )}

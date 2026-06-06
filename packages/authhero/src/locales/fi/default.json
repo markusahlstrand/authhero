@@ -130,6 +130,7 @@
   "reset_password_description": "Kirjoita alla oleva uusi salasanasi sähköpostitiliä varten: ",
   "reset_password_email_click_to_reset": "Napsauta painiketta salasanasi palauttamiseksi",
   "reset_password_email_cta": "Napsauta painiketta salasanasi palauttamiseksi",
+  "reset_password_email_enter_code": "Anna alla oleva koodi salasanasi palauttamiseksi",
   "reset_password_email_reset": "Nollaa salasanasi",
   "reset_password_subject": "Vaihda salasana tilillesi {{vendorName}} ",
   "reset_password_title": "Nollaa salasana",

@@ -269,7 +269,7 @@ export function createUserUpdateHooks(
     if (updates.email) {
       logMessage(ctx, tenant_id, {
         type: LogTypes.SUCCESS_CHANGE_EMAIL,
-        description: `Email updated to ${updates.email}`,
+        description: `Email updated from ${user.email ?? "(none)"} to ${updates.email}`,
         userId: user_id,
       });
     }

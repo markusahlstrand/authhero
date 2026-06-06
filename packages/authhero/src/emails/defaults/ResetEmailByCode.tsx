@@ -8,7 +8,7 @@ export function ResetEmailByCode() {
       <Heading className="text-lg font-semibold mt-0 mb-3">
         {"{{ password_reset_title }}"}
       </Heading>
-      <Text className="mt-0">{"{{ reset_password_email_click_to_reset }}"}</Text>
+      <Text className="mt-0">{"{{ reset_password_email_enter_code }}"}</Text>
       <Text className="text-3xl font-bold text-center my-6 tracking-[0.25em]">
         {"{{ code }}"}
       </Text>

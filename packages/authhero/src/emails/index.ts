@@ -392,9 +392,12 @@ export async function sendResetPasswordCode(
     buttonColor,
     welcomeToYourAccount: t("password_reset_title", options),
     password_reset_title: t("password_reset_title", options),
-    linkEmailClickToLogin: t("reset_password_email_click_to_reset", options),
-    reset_password_email_click_to_reset: t(
-      "reset_password_email_click_to_reset",
+    reset_password_email_enter_code: t(
+      "reset_password_email_enter_code",
+      options,
+    ),
+    resetPasswordEmailEnterCode: t(
+      "reset_password_email_enter_code",
       options,
     ),
     linkEmailLogin: t("reset_password_email_reset", options),
