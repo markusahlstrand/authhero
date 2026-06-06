@@ -17,6 +17,7 @@ import type { OpenAPIHono } from "@hono/zod-openapi";
 import type { Handler } from "hono";
 import type { ManagementAudienceResolver } from "../middlewares/authentication";
 import { EntityHooks } from "./Hooks";
+import type { TenantProvisioner } from "../provisioning";
 
 /**
  * Parameters passed to a custom webhook invoker function.
@@ -361,6 +362,18 @@ export interface AuthHeroConfig {
     /** Per-request timeout for the sync POST (default: 10_000ms). */
     timeoutMs?: number;
   };
+
+  /**
+   * Optional tenant provisioner. Drives a tenant from
+   * `provisioning_state: "pending"` to `"ready"` or `"failed"` whenever a
+   * tenant is created or re-provisioned via the management API. For shared
+   * tenants this is effectively a no-op; for `wfp` tenants the provisioner
+   * uploads the worker to a Cloudflare dispatch namespace, creates any
+   * per-tenant D1, and wires bindings. When omitted, `NoopTenantProvisioner`
+   * is used — adequate for single-deployment installs where every tenant is
+   * `shared`.
+   */
+  provisioner?: TenantProvisioner;
 
   /**
    * Optional powered-by logo to display at the bottom left of the login widget.

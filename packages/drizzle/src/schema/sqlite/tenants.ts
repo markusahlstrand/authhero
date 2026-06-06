@@ -53,4 +53,19 @@ export const tenants = sqliteTable("tenants", {
   authorization_response_iss_parameter_supported: integer(
     "authorization_response_iss_parameter_supported",
   ),
+  deployment_type: text("deployment_type", { length: 16 })
+    .notNull()
+    .default("shared"),
+  provisioning_state: text("provisioning_state", { length: 16 })
+    .notNull()
+    .default("ready"),
+  provisioning_error: text("provisioning_error"),
+  provisioning_state_changed_at: text("provisioning_state_changed_at", {
+    length: 35,
+  }),
+  bundle_configuration: text("bundle_configuration", { length: 64 }),
+  worker_version: text("worker_version", { length: 64 }),
+  worker_script_name: text("worker_script_name", { length: 255 }),
+  storage_kind: text("storage_kind", { length: 32 }),
+  d1_database_id: text("d1_database_id", { length: 64 }),
 });
