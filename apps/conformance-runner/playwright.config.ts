@@ -51,6 +51,12 @@ export default defineConfig({
       PORT: "3000",
       ISSUER: env.authheroIssuer,
       HTTPS_ENABLED: env.httpsEnabled ? "true" : "false",
+      // The auth-server fetches client-published jwks_uri values during
+      // private_key_jwt verification. The OIDF suite hosts those at
+      // https://localhost.emobix.co.uk:8443/... behind a self-signed cert
+      // that isn't in Node's trust store — disable TLS verification for
+      // the conformance auth-server only.
+      NODE_TLS_REJECT_UNAUTHORIZED: "0",
     },
   },
 });

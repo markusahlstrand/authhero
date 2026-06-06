@@ -39,6 +39,7 @@ export async function runBrowserFlow({
   const visited = new Set<string>();
 
   let lastLogged = "";
+  let lastLogCount = 0;
   while (Date.now() < deadline) {
     const info = await client.getInfo(testId);
 
@@ -55,6 +56,20 @@ export async function runBrowserFlow({
       // token → userinfo → id_token check chain after the callback with no
       // client interaction; without this we'd time out mid-chain even though
       // the suite is actively working.
+      deadline = Date.now() + timeoutMs;
+    }
+
+    // Suite-internal phases (e.g. the post-callback token → userinfo chain
+    // in oidcc-id-token-hint) don't change status / urls but DO append log
+    // entries at every step. New log entries = the suite is still making
+    // progress, so extend the deadline. Without this the runner times out
+    // mid-chain, moves on to the next test, and the next test claims the
+    // shared alias — the suite then aborts the still-running prior test
+    // with "alias conflict" (surfaces as a misleading "Connect failed" on
+    // the in-flight token call).
+    const log = await client.getTestLog(testId).catch(() => []);
+    if (log.length > lastLogCount) {
+      lastLogCount = log.length;
       deadline = Date.now() + timeoutMs;
     }
     const pendingUrls = browser.urls.filter((u) => !visited.has(u));
