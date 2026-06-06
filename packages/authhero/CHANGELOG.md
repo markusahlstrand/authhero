@@ -1,5 +1,44 @@
 # authhero
 
+## 5.20.0
+
+### Minor Changes
+
+- 64e5f01: Add `POST /api/v2/email-templates/{templateName}/try` endpoint and a "Send test" button in the admin UI. Renders the current (saved or in-progress) subject and body with sample data and dispatches via the tenant's email provider so customizations can be verified before saving.
+
+  Pre-fill the admin email-template edit form with the bundled default subject and body when no tenant override exists, so users can see and edit the starting point directly instead of an empty form. The subject input also shows the bundled default as a placeholder when the field is cleared.
+
+  Clearing the subject or body in the admin form now reverts to the bundled default on save instead of returning a 400. The PUT body's `from` field is now optional — at send time it falls back to the email provider's `default_from_address`. (Auth0 requires `from`; this is an authhero extension.)
+
+  The admin preview now uses the current tenant's `friendly_name`/`support_url` and `branding.logo_url`/`colors.primary` so the rendered HTML matches what real recipients will see. The bundled default HTML is also emitted pretty-printed at build time so the editor pre-fill is human-readable instead of a single minified line.
+
+  Add `DELETE /api/v2/email-templates/{templateName}` to remove a tenant's override and revert subsequent sends to the bundled default. (Auth0 has no DELETE; their pattern is `PATCH { enabled: false }` to disable. authhero keeps that toggle and adds DELETE as a clean "reset to default" affordance.) Requires `delete:email_templates`. Wired up to the admin's standard Delete button — clicking Delete on an override now reverts to the default instead of 404'ing.
+
+  Add bundled defaults for the remaining six email template names so every template in the admin UI has a non-empty starting point: `blocked_account`, `stolen_credentials`, `enrollment_email`, `mfa_oob_code`, `change_password` (legacy), `password_reset` (legacy). authhero itself does not send these — they exist for Auth0-import compatibility and so tenants can pre-configure overrides.
+
+  Documentation: new pages at `features/email-templates` and `auth0-comparison/email-templates` describing the lifecycle, available variables, server-side localization, the management API surface, and the deltas vs Auth0.
+
+- 64e5f01: Add support for the RFC 8693 token-exchange grant (`urn:ietf:params:oauth:grant-type:token-exchange`) at `/oauth/token`. Lets a confidential client exchange a self-issued access token for a new access token scoped to a different organization (and optionally downscoped). The new token records the acting client in the RFC 8693 `act` claim for audit.
+
+  The exchange enforces, in order:
+  - Client authentication (`client_secret` or `client_assertion`). Public clients are rejected.
+  - The exchanging client's `organization_usage` must not be `deny` (the default for new/DCR'd clients), so token-exchange is opt-in per client.
+  - The client's `grant_types` allowlist must include the token-exchange grant (existing OAuth check).
+  - The `subject_token` must be a JWT issued by this server (verified against the tenant JWKS), unexpired, and not already carrying an `act` claim (no re-exchange).
+  - The target `organization` must exist and the user must be a member — or hold the global `admin:organizations` permission on the target resource server when the tenant has `inherit_global_permissions_in_organizations` enabled (same bypass the refresh-token grant uses).
+  - Requested `scope` must be a subset of the subject token's scopes (downscope only).
+
+  Only `subject_token_type=urn:ietf:params:oauth:token-type:access_token` is accepted today. Foreign token types would require a per-tenant registration flow and are not in scope.
+
+  Adds `GrantType.TokenExchange` and `LogTypes.SUCCESS_EXCHANGE_SUBJECT_TOKEN_FOR_ACCESS_TOKEN` / `FAILED_EXCHANGE_SUBJECT_TOKEN_FOR_ACCESS_TOKEN` to `@authhero/adapter-interfaces`.
+
+### Patch Changes
+
+- Updated dependencies [64e5f01]
+  - @authhero/adapter-interfaces@2.12.0
+  - @authhero/proxy@0.4.2
+  - @authhero/widget@0.32.36
+
 ## 5.19.0
 
 ### Minor Changes
