@@ -433,7 +433,11 @@ function RemoveOrganizationCell() {
     try {
       await dataProvider.delete("user-organizations", {
         id: record.id,
-        previousData: { user_id: userId, organization_id: record.id },
+        previousData: {
+          id: record.id,
+          user_id: userId,
+          organization_id: record.id,
+        },
       });
       notify(`Removed user from ${orgLabel}`, { type: "success" });
       setOpen(false);
