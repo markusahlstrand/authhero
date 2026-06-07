@@ -6,6 +6,11 @@ export default withMermaid(
   defineConfig({
     title: "AuthHero",
     description: "Multi-tenant authentication system built on modern standards",
+    vite: {
+      optimizeDeps: {
+        include: ["dayjs", "mermaid"],
+      },
+    },
     mermaid: {
       theme: "neutral",
       themeVariables: {
