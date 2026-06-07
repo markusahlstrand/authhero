@@ -9,9 +9,10 @@ import {
   AuthorizationResponseMode,
   TokenResponse,
   LogTypes,
+  LoginSession,
 } from "@authhero/adapter-interfaces";
 import { GrantFlowUserResult } from "src/types/GrantFlowResult";
-import { logMessage } from "../helpers/logging";
+import { logMessage, LogParams } from "../helpers/logging";
 import { getEnrichedClient } from "../helpers/client";
 import { ssrfFetchOptionsFromEnv } from "../utils/ssrf-fetch";
 
@@ -33,6 +34,48 @@ export type AuthorizationCodeGrantTypeParams = z.infer<
   typeof authorizationCodeGrantParamsSchema
 >;
 
+/**
+ * Build a `feacft` log payload enriched with whatever context the failure path
+ * has resolved so far. Auth0 surfaces these fields (username, connection,
+ * scope, audience) on the failed-exchange log; populating them lets operators
+ * triage without re-running the request. Secrets in `params` are redacted by
+ * the logging helper before they reach storage.
+ */
+async function buildFailedExchangeLogParams(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  tenantId: string,
+  params: AuthorizationCodeGrantTypeParams,
+  code?: { user_id?: string } | null,
+  loginSession?: LoginSession | null,
+): Promise<Omit<LogParams, "type">> {
+  const enrichment: Omit<LogParams, "type"> = { body: params };
+
+  if (code?.user_id) {
+    enrichment.userId = code.user_id;
+    const user = await ctx.env.data.users
+      .get(tenantId, code.user_id)
+      .catch(() => undefined);
+    if (user) {
+      enrichment.username =
+        user.email || user.phone_number || user.name || undefined;
+      enrichment.connection = user.connection || undefined;
+    }
+  }
+
+  if (loginSession) {
+    enrichment.scope = loginSession.authParams.scope;
+    enrichment.audience = loginSession.authParams.audience;
+    if (loginSession.auth_connection) {
+      enrichment.connection = loginSession.auth_connection;
+    }
+    if (!enrichment.username && loginSession.authParams.username) {
+      enrichment.username = loginSession.authParams.username;
+    }
+  }
+
+  return enrichment;
+}
+
 // This is a new version that just returns the user
 export async function authorizationCodeGrantUser(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
@@ -53,15 +96,25 @@ export async function authorizationCodeGrantUser(
 
   if (!code || !code.user_id) {
     logMessage(ctx, client.tenant.id, {
+      ...(await buildFailedExchangeLogParams(ctx, client.tenant.id, params)),
       type: LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN,
       description: "Invalid client credentials",
     });
     throw new JSONHTTPException(403, { message: "Invalid client credentials" });
   } else if (new Date(code.expires_at) < new Date()) {
+    const expiredLoginSession = await ctx.env.data.loginSessions
+      .get(client.tenant.id, code.login_id)
+      .catch(() => undefined);
     logMessage(ctx, client.tenant.id, {
+      ...(await buildFailedExchangeLogParams(
+        ctx,
+        client.tenant.id,
+        params,
+        code,
+        expiredLoginSession,
+      )),
       type: LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN,
       description: "Code expired",
-      userId: code.user_id,
     });
     throw new JSONHTTPException(403, { message: "Code expired" });
   } else if (code.used_at) {
@@ -96,9 +149,15 @@ export async function authorizationCodeGrantUser(
     }
 
     logMessage(ctx, client.tenant.id, {
+      ...(await buildFailedExchangeLogParams(
+        ctx,
+        client.tenant.id,
+        params,
+        code,
+        reusedLoginSession,
+      )),
       type: LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN,
       description: "Invalid authorization code",
-      userId: code.user_id,
     });
     // Auth0 returns 403 for invalid_grant; RFC 6749 §5.2 mandates 400. Gate
     // on the client's auth0_conformant flag (default true) — mirrors the
@@ -133,9 +192,15 @@ export async function authorizationCodeGrantUser(
     // pattern in refresh-token.ts so both grants agree.
     const invalidGrantStatus = client.auth0_conformant === false ? 400 : 403;
     logMessage(ctx, client.tenant.id, {
+      ...(await buildFailedExchangeLogParams(
+        ctx,
+        client.tenant.id,
+        params,
+        code,
+        loginSession,
+      )),
       type: LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN,
       description: "Authorization code was not issued to this client",
-      userId: code.user_id,
     });
     throw new JSONHTTPException(invalidGrantStatus, {
       error: "invalid_grant",
@@ -169,9 +234,15 @@ export async function authorizationCodeGrantUser(
     !(params.code_verifier && code.code_challenge)
   ) {
     logMessage(ctx, client.tenant.id, {
+      ...(await buildFailedExchangeLogParams(
+        ctx,
+        client.tenant.id,
+        params,
+        code,
+        loginSession,
+      )),
       type: LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN,
       description: "Missing client_secret and code_verifier",
-      userId: code.user_id,
     });
     throw new JSONHTTPException(401, {
       message: "client_secret or code_verifier is required",
@@ -182,9 +253,15 @@ export async function authorizationCodeGrantUser(
   if (!authenticatedViaAssertion && params.client_secret !== undefined) {
     if (!safeCompare(client.client_secret, params.client_secret)) {
       logMessage(ctx, client.tenant.id, {
+        ...(await buildFailedExchangeLogParams(
+          ctx,
+          client.tenant.id,
+          params,
+          code,
+          loginSession,
+        )),
         type: LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN,
         description: "Invalid client credentials",
-        userId: code.user_id,
       });
       throw new JSONHTTPException(403, {
         message: "Invalid client credentials",
@@ -196,9 +273,15 @@ export async function authorizationCodeGrantUser(
     // RFC 7636 §4.5: if code_challenge was sent at /authorize, code_verifier is required.
     if (!params.code_verifier) {
       logMessage(ctx, client.tenant.id, {
+        ...(await buildFailedExchangeLogParams(
+          ctx,
+          client.tenant.id,
+          params,
+          code,
+          loginSession,
+        )),
         type: LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN,
         description: "Missing code_verifier",
-        userId: code.user_id,
       });
       throw new JSONHTTPException(403, {
         message: "Invalid client credentials",
@@ -208,9 +291,15 @@ export async function authorizationCodeGrantUser(
     const challenge = await computeCodeChallenge(params.code_verifier, method);
     if (!safeCompare(challenge, code.code_challenge)) {
       logMessage(ctx, client.tenant.id, {
+        ...(await buildFailedExchangeLogParams(
+          ctx,
+          client.tenant.id,
+          params,
+          code,
+          loginSession,
+        )),
         type: LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN,
         description: "Invalid client credentials",
-        userId: code.user_id,
       });
       throw new JSONHTTPException(403, {
         message: "Invalid client credentials",
@@ -221,9 +310,15 @@ export async function authorizationCodeGrantUser(
   // Validate the redirect_uri (RFC 6749 requires exact string comparison)
   if (code.redirect_uri && code.redirect_uri !== params.redirect_uri) {
     logMessage(ctx, client.tenant.id, {
+      ...(await buildFailedExchangeLogParams(
+        ctx,
+        client.tenant.id,
+        params,
+        code,
+        loginSession,
+      )),
       type: LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN,
       description: "Invalid redirect uri",
-      userId: code.user_id,
     });
     throw new JSONHTTPException(403, { message: "Invalid redirect uri" });
   }

@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import type { CoreLayoutProps } from "ra-core";
 import { ErrorBoundary } from "react-error-boundary";
 import { Link } from "react-router-dom";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { UserMenu } from "@/components/admin/user-menu";
 import { ThemeModeToggle } from "@/components/admin/theme-mode-toggle";
 import { Notification } from "@/components/admin/notification";
@@ -45,6 +45,12 @@ export const Layout = (props: CoreLayoutProps) => {
       <div className="flex h-svh w-full flex-col">
         {/* ============= TOP BAR (full-width) ============= */}
         <header className="relative z-20 flex h-14 shrink-0 items-center gap-2 border-b bg-background px-3 sm:px-4">
+          {/* Hamburger: opens the sidebar as a slide-out sheet on mobile.
+              Hidden on md+ where the sidebar is always present. Without this
+              there's no way to reach the nav on a phone — Cmd/Ctrl+B is the
+              only other trigger and that doesn't exist on touch devices. */}
+          <SidebarTrigger className="md:hidden -ml-1" />
+
           {/* Brand: configured logo if provided, otherwise wordmark/glyph. */}
           <Link
             to="/"

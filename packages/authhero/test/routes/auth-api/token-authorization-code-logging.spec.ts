@@ -350,4 +350,60 @@ describe("authorization_code grant - failed exchange logging", () => {
     expect(failedExchangeLog?.client_id).toBe("clientId");
     expect(failedExchangeLog?.user_id).toBe("email|userId");
   });
+
+  it("should enrich feacft logs with redacted body, user_name and connection", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const client = testClient(oauthApp, env);
+
+    const { loginSession } = await createSessions(env.data);
+
+    await env.data.codes.create("tenantId", {
+      code_type: "authorization_code",
+      user_id: "email|userId",
+      code_id: "enrichment-code",
+      login_id: loginSession.id,
+      expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+    });
+
+    const response = await client.oauth.token.$post(
+      {
+        form: {
+          grant_type: "authorization_code",
+          code: "enrichment-code",
+          redirect_uri: "http://example.com/callback",
+          client_id: "clientId",
+          client_secret: "wrong-secret-supersecret",
+        },
+      },
+      { headers: { "tenant-id": "tenantId" } },
+    );
+    expect(response.status).toBe(403);
+
+    const { logs } = await env.data.logs.list("tenantId", {
+      page: 0,
+      per_page: 100,
+      include_totals: false,
+    });
+
+    const failedExchangeLog = logs.find(
+      (log) =>
+        log.type ===
+        LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN,
+    );
+
+    expect(failedExchangeLog).toBeDefined();
+    expect(failedExchangeLog?.user_name).toBe("foo@example.com");
+    expect(failedExchangeLog?.connection).toBe("email");
+    expect(failedExchangeLog?.audience).toBe("https://example.com");
+
+    const requestBody = (
+      failedExchangeLog?.details as { request?: { body?: unknown } }
+    )?.request?.body as Record<string, unknown> | undefined;
+    expect(requestBody).toBeDefined();
+    expect(requestBody?.grant_type).toBe("authorization_code");
+    expect(requestBody?.redirect_uri).toBe("http://example.com/callback");
+    expect(requestBody?.client_id).toBe("clientId");
+    expect(requestBody?.client_secret).toBe("[REDACTED]");
+    expect(requestBody?.code).toMatch(/^\*+ode$/);
+  });
 });

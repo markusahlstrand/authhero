@@ -10,16 +10,36 @@ import { Variables, Bindings } from "../types";
 import { waitUntil } from "./wait-until";
 import { instanceToJson } from "../utils/instance-to-json";
 
-/** Fields to strip from before/after entity state */
+/** Fields fully replaced with [REDACTED] in entity state and request bodies. */
 const SENSITIVE_FIELDS = new Set([
   "password",
   "password_hash",
   "client_secret",
+  "client_assertion",
+  "code_verifier",
+  "otp",
   "signing_keys",
   "credentials",
   "encryption_key",
   "otp_secret",
 ]);
+
+/**
+ * Fields masked tail-style (e.g. `******I8G`) in request bodies — matches the
+ * way Auth0 surfaces authorization codes and refresh tokens in tenant logs so
+ * operators can cross-reference an issued credential without exposing it.
+ */
+const TAIL_MASKED_FIELDS = new Set([
+  "code",
+  "refresh_token",
+  "subject_token",
+  "actor_token",
+]);
+
+function maskTail(value: string, visible = 3): string {
+  if (value.length <= visible) return "*".repeat(value.length);
+  return "*".repeat(value.length - visible) + value.slice(-visible);
+}
 
 function redactSensitiveFields(
   obj: Record<string, unknown> | undefined,
@@ -29,6 +49,8 @@ function redactSensitiveFields(
   for (const [key, value] of Object.entries(obj)) {
     if (SENSITIVE_FIELDS.has(key)) {
       result[key] = "[REDACTED]";
+    } else if (TAIL_MASKED_FIELDS.has(key) && typeof value === "string") {
+      result[key] = maskTail(value);
     } else {
       result[key] = value;
     }
@@ -48,6 +70,13 @@ export type LogParams = {
   type: LogType;
   description?: string;
   userId?: string;
+  /**
+   * Human-readable identifier for the subject user (email / phone / name).
+   * Populates the legacy `user_name` field and the audit event's `actor.email`
+   * when `ctx.var.username` is not set — useful for failure logs where the
+   * route handler couldn't authenticate but the caller has resolved the user.
+   */
+  username?: string;
   /**
    * Identifier of the actor when it differs from the subject `userId`
    * (e.g. impersonation). When set, audit events attribute `actor.id` to
@@ -155,7 +184,7 @@ function buildAuditEvent(
               ? "client_credentials"
               : "system",
       id: ctx.var.user_id || params.actorUserId || params.userId || undefined,
-      email: ctx.var.username || undefined,
+      email: ctx.var.username || params.username || undefined,
       org_id: ctx.var.organization_id || ctx.var.user?.org_id || undefined,
       org_name: ctx.var.org_name || ctx.var.user?.org_name || undefined,
       scopes: ctx.var.user?.scope ? ctx.var.user.scope.split(" ") : undefined,
@@ -290,7 +319,7 @@ export async function logMessage(
       client_name: "",
       user_id: params.userId || ctx.var.user_id || "",
       hostname: ctx.var.host || "",
-      user_name: ctx.var.username || "",
+      user_name: ctx.var.username || params.username || "",
       connection_id: "",
       connection: params.connection || ctx.var.connection || "",
       strategy: params.strategy || "",
