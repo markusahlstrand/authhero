@@ -3,9 +3,9 @@ import { ListParams } from "../types/ListParams";
 
 export interface CreateTenantParams {
   friendly_name: string;
-  audience: string;
-  sender_name: string;
-  sender_email: string;
+  audience?: string;
+  sender_name?: string;
+  sender_email?: string;
   id?: string;
   session_lifetime?: number;
   idle_session_lifetime?: number;

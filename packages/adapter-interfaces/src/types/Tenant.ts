@@ -5,13 +5,13 @@ export const tenantInsertSchema = z.object({
   id: z.string().optional(),
 
   // Basic settings
-  audience: z.string(),
+  audience: z.string().optional(),
   friendly_name: z.string(), // Required - replaces the old 'name' field
   picture_url: z.string().optional(),
   support_email: z.string().optional(),
   support_url: z.string().optional(),
-  sender_email: z.string().email(),
-  sender_name: z.string(),
+  sender_email: z.string().email().optional(),
+  sender_name: z.string().optional(),
 
   // Tenant Settings fields (merged from TenantSettings)
   // Session settings
