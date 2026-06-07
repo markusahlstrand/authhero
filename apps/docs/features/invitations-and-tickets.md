@@ -48,7 +48,7 @@ The response includes the persisted invite, including the `invitation_url` that 
 
 | Field                   | Required | Notes                                                                                          |
 | ----------------------- | -------- | ---------------------------------------------------------------------------------------------- |
-| `inviter.name`          |          | Surfaced as `{{ inviterName }}` in the email template.                                         |
+| `inviter.name`          |          | Surfaced as <code v-pre>{{ inviterName }}</code> in the email template.                        |
 | `invitee.email`         |          | Recipient of the email. If omitted, no email is sent regardless of `send_invitation_email`.    |
 | `client_id`             | ✅       | The app the invitee lands in after signing up.                                                 |
 | `connection_id`         |          | Reserved for future per-connection scoping; v1 uses the client's Username-Password connection. |
@@ -97,20 +97,14 @@ curl -X PUT https://your-tenant.example.com/api/v2/email-templates/user_invitati
 
 Available Liquid variables in the `user_invitation` template:
 
-<div v-pre>
-
-| Variable                            | Description                                                                |
-| ----------------------------------- | -------------------------------------------------------------------------- |
-| `{{ url }}` / `{{ invitationUrl }}` | The full accept-invitation URL (button target).                            |
-| `{{ inviterName }}`                 | `inviter.name` from the request body, or the tenant-friendly name as a fallback. |
-| `{{ organizationName }}`            | Resolved from `display_name`, falling back to `name`, then `id`.           |
-| `{{ ttlDays }}`                     | `ttl_sec` rounded to whole days, minimum 1.                                |
-| `{{ tenant.friendly_name }}`        | Tenant display name.                                                       |
-| `{{ branding.logo }}`               | Tenant logo URL.                                                           |
-| `{{ branding.primary_color }}`      | Tenant primary color (used for the default button).                        |
-| `{{ support_info }}` / `{{ contact_us }}` / `{{ copyright }}` | Standard localized footer strings.              |
-
-</div>
+- <code v-pre>{{ url }}</code> / <code v-pre>{{ invitationUrl }}</code>: The full accept-invitation URL (button target).
+- <code v-pre>{{ inviterName }}</code>: `inviter.name` from the request body, or the tenant-friendly name as a fallback.
+- <code v-pre>{{ organizationName }}</code>: Resolved from `display_name`, falling back to `name`, then `id`.
+- <code v-pre>{{ ttlDays }}</code>: `ttl_sec` rounded to whole days, minimum 1.
+- <code v-pre>{{ tenant.friendly_name }}</code>: Tenant display name.
+- <code v-pre>{{ branding.logo }}</code>: Tenant logo URL.
+- <code v-pre>{{ branding.primary_color }}</code>: Tenant primary color (used for the default button).
+- <code v-pre>{{ support_info }}</code> / <code v-pre>{{ contact_us }}</code> / <code v-pre>{{ copyright }}</code>: Standard localized footer strings.
 
 Omit the `PUT` and tenants fall back to AuthHero's bundled default — a clean, branded HTML template that respects the tenant's logo and primary color.
 
