@@ -26,7 +26,6 @@ const NON_HRD_STRATEGIES = new Set<string>([
   Strategy.EMAIL,
   Strategy.SMS,
   Strategy.SAMLP,
-  Strategy.WAAD,
   Strategy.ADFS,
 ]);
 
@@ -118,12 +117,20 @@ export function DetailsTab() {
         />
       )}
 
-      {strategy === "microsoft" && (
+      {strategy === "windowslive" && (
+        <TextInput
+          source="options.scope"
+          label="Scope"
+          helperText="Space-separated scopes (e.g., openid profile email)"
+        />
+      )}
+
+      {strategy === "waad" && (
         <>
           <TextInput
             source="options.realms"
             label="Tenant ID"
-            helperText="Use 'common', 'organizations', 'consumers', or your tenant ID"
+            helperText="Azure AD tenant GUID, 'organizations', or 'common'"
           />
           <TextInput
             source="options.scope"
@@ -133,7 +140,7 @@ export function DetailsTab() {
         </>
       )}
 
-      {strategy === "oidc" && (
+      {(strategy === "oidc" || strategy === "okta") && (
         <SelectInput
           source="options.token_endpoint_auth_method"
           label="Token Endpoint Auth Method"
@@ -146,7 +153,9 @@ export function DetailsTab() {
         />
       )}
 
-      {(strategy === "oauth2" || strategy === "oidc") && (
+      {(strategy === "oauth2" ||
+        strategy === "oidc" ||
+        strategy === "okta") && (
         <>
           <SelectInput
             source="response_type"

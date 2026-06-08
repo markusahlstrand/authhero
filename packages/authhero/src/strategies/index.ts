@@ -5,7 +5,8 @@ import * as facebook from "./facebook";
 import * as google from "./google-oauth2";
 import * as vipps from "./vipps";
 import * as github from "./github";
-import * as microsoft from "./microsoft";
+import * as windowslive from "./windowslive";
+import * as waad from "./waad";
 import * as oidc from "./oidc";
 import * as oauth2 from "./oauth2";
 import { Bindings, Variables } from "../types";
@@ -82,9 +83,13 @@ export const BUILTIN_STRATEGIES: Record<string, StrategyHandler> = {
   [Strategy.GOOGLE_OAUTH2]: google,
   [Strategy.VIPPS]: vipps,
   [Strategy.GITHUB]: github,
-  [Strategy.MICROSOFT]: microsoft,
+  [Strategy.WINDOWSLIVE]: windowslive,
+  [Strategy.WAAD]: waad,
   [Strategy.OIDC]: oidc,
   [Strategy.OAUTH2]: oauth2,
+  // Okta enterprise connections are OIDC under the hood; aliasing the OIDC
+  // handler keeps the wire-level `okta|<sub>` user_id prefix that Auth0 emits.
+  [Strategy.OKTA]: oidc,
 };
 
 export function getStrategy(
@@ -106,22 +111,23 @@ export function getStrategy(
   return strategy;
 }
 
-// Enterprise strategies where provider = connection name (not strategy name)
+// Enterprise strategies (used for classifying the auth session, not for
+// provider-prefix resolution — Auth0 prefixes user_ids with the strategy
+// name regardless of social/enterprise; the connection name is embedded
+// elsewhere in the id body for samlp/oidc).
 export const ENTERPRISE_STRATEGIES = new Set<string>([
   Strategy.OIDC,
   Strategy.SAMLP,
   Strategy.WAAD,
   Strategy.ADFS,
   Strategy.OAUTH2,
+  Strategy.OKTA,
 ]);
 
-// Get provider name from a connection (Auth0 compatible)
-// For enterprise connections (oidc, samlp, etc.), provider = connection.name
-// For everything else (social, database, passwordless), provider = strategy name
+// Get provider name from a connection (Auth0 compatible).
+// Auth0 always prefixes user_ids with the strategy name:
+//   windowslive|<sub>, waad|<oid>, samlp|<conn>|<nameid>, oidc|<conn>|<sub>.
 export function getProviderFromConnection(connection: Connection): string {
-  if (ENTERPRISE_STRATEGIES.has(connection.strategy)) {
-    return connection.name;
-  }
   return connection.strategy;
 }
 

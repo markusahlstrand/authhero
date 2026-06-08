@@ -14,7 +14,8 @@ const PROVIDER_LABELS: Record<string, string> = {
   github: "GitHub",
   facebook: "Facebook",
   apple: "Apple",
-  microsoft: "Microsoft",
+  windowslive: "Microsoft Account",
+  waad: "Microsoft Azure AD",
   linkedin: "LinkedIn",
   twitter: "Twitter",
 };

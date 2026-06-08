@@ -1,17 +1,1 @@
-export const Strategy = {
-  EMAIL: "email",
-  SMS: "sms",
-  USERNAME_PASSWORD: "Username-Password-Authentication",
-  GOOGLE_OAUTH2: "google-oauth2",
-  APPLE: "apple",
-  FACEBOOK: "facebook",
-  GITHUB: "github",
-  MICROSOFT: "microsoft",
-  VIPPS: "vipps",
-  OIDC: "oidc",
-  OAUTH2: "oauth2",
-  SAMLP: "samlp",
-  WAAD: "waad",
-  ADFS: "adfs",
-  AUTH0: "auth0",
-} as const;
+export { Strategy } from "@authhero/adapter-interfaces";
