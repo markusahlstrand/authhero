@@ -70,7 +70,7 @@ import {
 export interface AuthTokenClient {
   client_id: string;
   tenant: {
-    audience: string;
+    audience?: string;
     default_audience?: string;
     allow_organization_name_in_authentication_api?: boolean;
   };

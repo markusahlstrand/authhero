@@ -19,6 +19,7 @@ import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
 import { renderWidgetPageResponse, resolveDarkMode } from "./u2-widget-page";
 import { sanitizeUrl } from "./sanitization-utils";
+import { isValidEmail } from "../../utils/email";
 import {
   getScreen,
   getScreenDefinition,
@@ -927,8 +928,7 @@ screenApiRoutes.openapi(
       }
 
       if (comp.type === "EMAIL" && data[comp.id]) {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(String(data[comp.id]))) {
+        if (!isValidEmail(String(data[comp.id]))) {
           fieldErrors[comp.id] = "Please enter a valid email address";
         }
       }

@@ -18,6 +18,7 @@ import {
 import type { User } from "@authhero/adapter-interfaces";
 
 import { defineRoute } from "../../utils/define-route";
+import { isValidEmail } from "../../utils/email";
 /**
  * Local types for the flow API
  * These are simplified versions that work with the data adapter output
@@ -375,8 +376,7 @@ async function handlePostScreen(
 
     // Email validation
     if (comp.type === "EMAIL" && data[comp.id]) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(String(data[comp.id]))) {
+      if (!isValidEmail(String(data[comp.id]))) {
         fieldErrors[comp.id] = "Please enter a valid email address";
       }
     }
