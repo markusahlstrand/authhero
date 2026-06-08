@@ -19,10 +19,16 @@
 -- ENTERPRISE HEURISTIC (must match across all steps)
 --   A 'windowslive' connection is treated as misclassified-waad when:
 --     - options.realms is set AND not in ('consumers', 'null'), OR
---     - options.realms is absent AND options.domain_aliases is a non-empty array.
+--     - options.realms is absent (NULL or the literal 'null') AND
+--       options.domain_aliases is a non-empty array.
+--   Note: rows with realms = 'consumers' are NEVER reclassified, even when
+--   they also carry a domain_aliases array.
 --
 -- ORDER MATTERS. Same as the original: flip connections first (step 1) so
--- steps 2-4 can join via c.strategy = 'waad'.
+-- steps 2-4 can join via c.strategy = 'waad'. Step 2 (users.linked_to) is
+-- merged into step 3's FOREIGN_KEY_CHECKS = 0 block and must execute before
+-- the parent users UPDATE there, since it joins on the still-prefixed
+-- primary user_id.
 --
 -- IDEMPOTENCE: each step is gated by the heuristic + a 'windowslive' filter,
 -- so re-running after success is a no-op.
@@ -35,10 +41,11 @@
 -- FOREIGN KEY NOTE
 --   Same situation as the original script: users.user_id is referenced by
 --   FK constraints from passwords, codes, sessions, login_sessions,
---   refresh_tokens, password_history, grants, and users.linked_to. Step 3
---   disables FOREIGN_KEY_CHECKS for the session and rewrites the prefix on
---   the parent + every child table in lockstep. Run all of step 3's
---   statements in the same connection.
+--   refresh_tokens, password_history, grants, and users.linked_to.
+--   Rewriting users.linked_to before users.user_id catches up violates the
+--   self-referential FK, so steps 2 and 3 share a single
+--   FOREIGN_KEY_CHECKS = 0 block. Run every statement in that block in the
+--   same connection.
 
 -- ──────────────────────────────────────────────────────────────────────────
 -- Preview: which 'windowslive' connections will be re-flipped to 'waad'?
@@ -52,7 +59,11 @@
 --   AND (
 --     (JSON_UNQUOTE(JSON_EXTRACT(c.options, '$.realms')) IS NOT NULL
 --      AND JSON_UNQUOTE(JSON_EXTRACT(c.options, '$.realms')) NOT IN ('consumers', 'null'))
---     OR COALESCE(JSON_LENGTH(JSON_EXTRACT(c.options, '$.domain_aliases')), 0) > 0
+--     OR (
+--       (JSON_UNQUOTE(JSON_EXTRACT(c.options, '$.realms')) IS NULL
+--        OR JSON_UNQUOTE(JSON_EXTRACT(c.options, '$.realms')) = 'null')
+--       AND COALESCE(JSON_LENGTH(JSON_EXTRACT(c.options, '$.domain_aliases')), 0) > 0
+--     )
 --   );
 
 -- Affected user counts:
@@ -64,7 +75,11 @@
 --   AND (
 --     (JSON_UNQUOTE(JSON_EXTRACT(c.options, '$.realms')) IS NOT NULL
 --      AND JSON_UNQUOTE(JSON_EXTRACT(c.options, '$.realms')) NOT IN ('consumers', 'null'))
---     OR COALESCE(JSON_LENGTH(JSON_EXTRACT(c.options, '$.domain_aliases')), 0) > 0
+--     OR (
+--       (JSON_UNQUOTE(JSON_EXTRACT(c.options, '$.realms')) IS NULL
+--        OR JSON_UNQUOTE(JSON_EXTRACT(c.options, '$.realms')) = 'null')
+--       AND COALESCE(JSON_LENGTH(JSON_EXTRACT(c.options, '$.domain_aliases')), 0) > 0
+--     )
 --   );
 
 
@@ -77,14 +92,31 @@ WHERE strategy = 'windowslive'
   AND (
     (JSON_UNQUOTE(JSON_EXTRACT(options, '$.realms')) IS NOT NULL
      AND JSON_UNQUOTE(JSON_EXTRACT(options, '$.realms')) NOT IN ('consumers', 'null'))
-    OR COALESCE(JSON_LENGTH(JSON_EXTRACT(options, '$.domain_aliases')), 0) > 0
+    OR (
+      (JSON_UNQUOTE(JSON_EXTRACT(options, '$.realms')) IS NULL
+       OR JSON_UNQUOTE(JSON_EXTRACT(options, '$.realms')) = 'null')
+      AND COALESCE(JSON_LENGTH(JSON_EXTRACT(options, '$.domain_aliases')), 0) > 0
+    )
   );
 
 
 -- ──────────────────────────────────────────────────────────────────────────
--- Step 2: users.linked_to  'windowslive|<sub>' → 'waad|<sub>'
--- (Must run BEFORE step 3 — uses the still-prefixed primary user_id to join.)
+-- Step 2 + Step 3: rewrite users.linked_to and users.user_id (+ child tables)
+--
+-- These must run under FOREIGN_KEY_CHECKS = 0 in the same session:
+--   * Step 2 changes child.linked_to to 'waad|<sub>' while the primary
+--     user's user_id is still 'windowslive|<sub>' — a transient violation
+--     of the self-referential FK from users.linked_to → users.user_id.
+--   * Step 3 then rewrites users.user_id and every FK-referencing child
+--     table (passwords, codes, sessions, login_sessions, refresh_tokens,
+--     password_history, grants).
+-- Step 2 MUST execute before the parent users UPDATE in Step 3, because it
+-- joins on the still-prefixed primary user_id to find the right rows.
+-- Run every statement below in the same connection.
 -- ──────────────────────────────────────────────────────────────────────────
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- Step 2: users.linked_to  'windowslive|<sub>' → 'waad|<sub>'
 UPDATE users child
 JOIN users primary_u
   ON primary_u.tenant_id = child.tenant_id
@@ -99,15 +131,7 @@ SET child.linked_to = CONCAT(
 WHERE child.linked_to LIKE 'windowslive|%'
   AND c.strategy = 'waad';
 
-
--- ──────────────────────────────────────────────────────────────────────────
--- Step 3: users.provider / user_id / is_social + child tables
---
--- Rewrites the 'windowslive|<sub>' prefix on users.user_id AND on every
--- child table that has an FK to users(user_id, tenant_id). Run all of
--- these statements in the same connection.
--- ──────────────────────────────────────────────────────────────────────────
-SET FOREIGN_KEY_CHECKS = 0;
+-- Step 3: child tables + users.provider / user_id / is_social
 
 UPDATE passwords p
 JOIN users u        ON u.tenant_id = p.tenant_id AND u.user_id = p.user_id
@@ -200,7 +224,11 @@ WHERE m.provider = 'windowslive'
 --   AND (
 --     (JSON_UNQUOTE(JSON_EXTRACT(options, '$.realms')) IS NOT NULL
 --      AND JSON_UNQUOTE(JSON_EXTRACT(options, '$.realms')) NOT IN ('consumers', 'null'))
---     OR COALESCE(JSON_LENGTH(JSON_EXTRACT(options, '$.domain_aliases')), 0) > 0
+--     OR (
+--       (JSON_UNQUOTE(JSON_EXTRACT(options, '$.realms')) IS NULL
+--        OR JSON_UNQUOTE(JSON_EXTRACT(options, '$.realms')) = 'null')
+--       AND COALESCE(JSON_LENGTH(JSON_EXTRACT(options, '$.domain_aliases')), 0) > 0
+--     )
 --   );
 
 -- Any users still on 'windowslive' whose connection is now 'waad'?

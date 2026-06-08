@@ -14,9 +14,11 @@
 --   4. migration_sources with provider = 'microsoft' updated the same way as
 --      users (provider only — no user_id rewrite needed).
 --
--- ORDER MATTERS. Run the steps top-to-bottom. Step 2 must run before step 3
--- because it joins on the still-prefixed primary user_id to find the right
--- new prefix; step 3 then overwrites those primary user_ids.
+-- ORDER MATTERS. Run the steps top-to-bottom. Step 2 (rewriting
+-- users.linked_to) and step 3 (rewriting users.user_id + children) share the
+-- same FOREIGN_KEY_CHECKS = 0 session and step 2 must run before the parent
+-- users UPDATE in step 3, because it joins on the still-prefixed primary
+-- user_id to find the right new prefix.
 --
 -- IDEMPOTENCE: each step is gated by `WHERE provider = 'microsoft'` or
 -- `WHERE strategy = 'microsoft'`, so re-running after success is a no-op.
@@ -31,9 +33,12 @@
 --   users.user_id is referenced by FK constraints from passwords, codes,
 --   sessions, login_sessions, refresh_tokens, password_history, grants, and
 --   users.linked_to. None of them are ON UPDATE CASCADE, so rewriting the
---   prefix on users.user_id will violate those FKs. Step 3 disables
---   FOREIGN_KEY_CHECKS for the session and rewrites the same prefix on every
---   child table in lockstep. Run all of step 3's statements in one session.
+--   prefix on users.user_id will violate those FKs — and rewriting
+--   users.linked_to to the new prefix before users.user_id catches up
+--   violates the same self-referential FK. Steps 2 and 3 both run inside a
+--   single FOREIGN_KEY_CHECKS = 0 block so the parent + child + linked_to
+--   updates can land without referential violations. Run all of those
+--   statements in one session.
 
 -- ──────────────────────────────────────────────────────────────────────────
 -- Preview: how many rows will be touched?
@@ -75,9 +80,23 @@ WHERE strategy = 'microsoft';
 
 
 -- ──────────────────────────────────────────────────────────────────────────
--- Step 2: users.linked_to  'microsoft|<sub>' → '<new-strategy>|<sub>'
--- (Must run BEFORE step 3 — uses the still-prefixed primary user_id to join.)
+-- Step 2 + Step 3: rewrite users.linked_to and users.user_id (+ child tables)
+--
+-- These must run under FOREIGN_KEY_CHECKS = 0 in the same session:
+--   * Step 2 changes child.linked_to to '<new-strategy>|<sub>' while the
+--     primary user's user_id is still 'microsoft|<sub>' — a transient
+--     violation of the self-referential FK from users.linked_to →
+--     users.user_id.
+--   * Step 3 then rewrites users.user_id and every FK-referencing child
+--     table (passwords, codes, sessions, login_sessions, refresh_tokens,
+--     password_history, grants).
+-- Step 2 MUST execute before the parent users UPDATE in Step 3, because it
+-- joins on the still-prefixed primary user_id to find the right rows.
+-- Run every statement below in the same connection.
 -- ──────────────────────────────────────────────────────────────────────────
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- Step 2: users.linked_to  'microsoft|<sub>' → '<new-strategy>|<sub>'
 UPDATE users child
 JOIN users primary_u
   ON primary_u.tenant_id = child.tenant_id
@@ -92,21 +111,10 @@ SET child.linked_to = CONCAT(
 WHERE child.linked_to LIKE 'microsoft|%'
   AND c.strategy IN ('windowslive', 'waad');
 
-
--- ──────────────────────────────────────────────────────────────────────────
--- Step 3: users.provider / user_id / is_social  + child tables
---
--- Rewrites the 'microsoft|<sub>' prefix on users.user_id AND on every child
--- table that has an FK to users(user_id, tenant_id). FOREIGN_KEY_CHECKS is
--- disabled for this session so the parent + child updates can land without
--- a momentary referential violation. Run all of these statements in the
--- same connection.
--- ──────────────────────────────────────────────────────────────────────────
-SET FOREIGN_KEY_CHECKS = 0;
-
--- 3a. Child tables: rewrite their user_id prefix to match the new strategy.
---     Each is gated by the parent users row still being a 'microsoft|...' user
---     whose connection has been flipped to windowslive/waad.
+-- Step 3a. Child tables: rewrite their user_id prefix to match the new
+--   strategy. Each is gated by the parent users row still being a
+--   'microsoft|...' user whose connection has been flipped to
+--   windowslive/waad.
 
 UPDATE passwords p
 JOIN users u        ON u.tenant_id = p.tenant_id AND u.user_id = p.user_id

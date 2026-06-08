@@ -199,22 +199,22 @@ export function createCustomDomainsAdapter(
         throw new HTTPException(404);
       }
 
+      // Fall back to the DB-authoritative record when Cloudflare is
+      // unreachable or returns an unparseable response. status, verification,
+      // and domain_metadata are mirrored on every create/update, so the DB
+      // row is enough to render this domain.
       let body: unknown;
       try {
         body = await getClient(config)
           .get(`/custom_hostnames/${encodeURIComponent(domain_id)}`)
           .json();
-      } catch (err) {
-        throw new HTTPException(503, {
-          message: `Failed to fetch custom hostname from Cloudflare: ${err instanceof Error ? err.message : String(err)}`,
-        });
+      } catch {
+        return customDomain;
       }
 
       const parsed = customDomainResponseSchema.safeParse(body);
       if (!parsed.success || !parsed.data.success) {
-        throw new HTTPException(503, {
-          message: `Failed to parse custom hostname response: ${JSON.stringify(parsed.success ? parsed.data.errors : parsed.error.issues)}`,
-        });
+        return customDomain;
       }
 
       const { result } = parsed.data;
