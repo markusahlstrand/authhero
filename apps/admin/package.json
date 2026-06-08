@@ -1,6 +1,6 @@
 {
   "name": "@authhero/admin",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "private": false,
   "packageManager": "pnpm@10.32.1",
   "files": [
