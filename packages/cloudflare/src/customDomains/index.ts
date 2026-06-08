@@ -165,13 +165,26 @@ export function createCustomDomainsAdapter(
         domain_metadata: rest,
       });
 
-      // Store the custom domain in the database as well
+      // Persist the row, then mirror the Cloudflare-derived state
+      // (status, verification) so list() and get() can render without
+      // calling Cloudflare. domain_metadata is intentionally left at
+      // whatever the caller supplied — the ssl.* echo from CF is
+      // informational and surfacing it in the live response only.
       await config.customDomainAdapter.create(tenant_id, {
         custom_domain_id: customDomain.custom_domain_id,
         domain: customDomain.domain,
         type: customDomain.type,
         domain_metadata: domain.domain_metadata,
       });
+      await config.customDomainAdapter.update(
+        tenant_id,
+        customDomain.custom_domain_id,
+        {
+          status: customDomain.status,
+          primary: customDomain.primary,
+          verification: customDomain.verification,
+        },
+      );
 
       return customDomain;
     },
@@ -221,42 +234,11 @@ export function createCustomDomainsAdapter(
       return config.customDomainAdapter.getByDomain(domain);
     },
     list: async (tenant_id: string) => {
-      const customDomains = await config.customDomainAdapter.list(tenant_id);
-
-      // Fetch each custom domain from Cloudflare by ID
-      const results = await Promise.all(
-        customDomains.map(async (customDomain) => {
-          try {
-            const body = await getClient(config)
-              .get(
-                `/custom_hostnames/${encodeURIComponent(customDomain.custom_domain_id)}`,
-              )
-              .json();
-
-            const { result, success } = customDomainResponseSchema.parse(body);
-
-            if (!success) {
-              return null;
-            }
-
-            if (
-              config.enterprise &&
-              result.custom_metadata?.tenant_id !== tenant_id
-            ) {
-              return null;
-            }
-
-            return mapCustomDomainResponse({
-              ...customDomain,
-              ...result,
-            });
-          } catch {
-            return null;
-          }
-        }),
-      );
-
-      return results.filter((r): r is CustomDomain => r !== null);
+      // Read straight from the DB — Cloudflare state is mirrored on every
+      // create/update/verify, so this stays fast (no N+1 to the CF API)
+      // and the admin UI is no longer empty when CF is unreachable or has
+      // drifted out of sync.
+      return config.customDomainAdapter.list(tenant_id);
     },
     remove: async (tenant_id: string, domain_id: string) => {
       if (config.enterprise) {
@@ -381,7 +363,16 @@ export function createCustomDomainsAdapter(
         });
       }
 
-      return mapCustomDomainResponse({ ...existing, ...result });
+      const customDomain = mapCustomDomainResponse({ ...existing, ...result });
+
+      // Mirror the new Cloudflare state so list()/get() reflect the upload
+      // without having to call Cloudflare again.
+      await config.customDomainAdapter.update(tenant_id, domain_id, {
+        status: customDomain.status,
+        verification: customDomain.verification,
+      });
+
+      return customDomain;
     },
   };
 }
