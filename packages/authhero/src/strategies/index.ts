@@ -87,6 +87,9 @@ export const BUILTIN_STRATEGIES: Record<string, StrategyHandler> = {
   [Strategy.WAAD]: waad,
   [Strategy.OIDC]: oidc,
   [Strategy.OAUTH2]: oauth2,
+  // Okta enterprise connections are OIDC under the hood; aliasing the OIDC
+  // handler keeps the wire-level `okta|<sub>` user_id prefix that Auth0 emits.
+  [Strategy.OKTA]: oidc,
 };
 
 export function getStrategy(
@@ -118,6 +121,7 @@ export const ENTERPRISE_STRATEGIES = new Set<string>([
   Strategy.WAAD,
   Strategy.ADFS,
   Strategy.OAUTH2,
+  Strategy.OKTA,
 ]);
 
 // Get provider name from a connection (Auth0 compatible).

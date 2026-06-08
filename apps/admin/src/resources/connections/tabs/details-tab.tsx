@@ -140,7 +140,7 @@ export function DetailsTab() {
         </>
       )}
 
-      {strategy === "oidc" && (
+      {(strategy === "oidc" || strategy === "okta") && (
         <SelectInput
           source="options.token_endpoint_auth_method"
           label="Token Endpoint Auth Method"
@@ -153,7 +153,9 @@ export function DetailsTab() {
         />
       )}
 
-      {(strategy === "oauth2" || strategy === "oidc") && (
+      {(strategy === "oauth2" ||
+        strategy === "oidc" ||
+        strategy === "okta") && (
         <>
           <SelectInput
             source="response_type"

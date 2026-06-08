@@ -13,6 +13,7 @@ export const Strategy = {
   SAMLP: "samlp",
   WAAD: "waad",
   ADFS: "adfs",
+  OKTA: "okta",
 } as const;
 
 export const StrategyType = {

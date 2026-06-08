@@ -12,6 +12,7 @@ const strategyChoices = [
   { id: Strategy.VIPPS, name: "Vipps" },
   { id: Strategy.OAUTH2, name: "OAuth2" },
   { id: Strategy.OIDC, name: "OpenID Connect" },
+  { id: Strategy.OKTA, name: "Okta" },
   { id: Strategy.USERNAME_PASSWORD, name: "Password" },
   { id: Strategy.SMS, name: "SMS" },
   { id: Strategy.SAMLP, name: "SAML" },
