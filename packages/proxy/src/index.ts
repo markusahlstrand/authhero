@@ -14,6 +14,11 @@ export {
   buildCacheApiKey,
 } from "./data-plane/cache-api-cache";
 export type { CacheApiHostCacheOptions } from "./data-plane/cache-api-cache";
+export {
+  createCacheAdapterHostCache,
+  buildCacheAdapterKey,
+} from "./data-plane/cache-adapter-cache";
+export type { CacheAdapterHostCacheOptions } from "./data-plane/cache-adapter-cache";
 export { HandlerRegistry, defineHandler } from "./data-plane/registry";
 export type {
   HandlerDefinition,
@@ -49,3 +54,4 @@ export type {
 } from "./static";
 export { createHttpProxyAdapter } from "./http-adapter";
 export type { HttpProxyAdapterOptions } from "./http-adapter";
+export { PROXY_RESOLVE_HOST_SCOPE } from "./constants";

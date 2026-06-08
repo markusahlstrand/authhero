@@ -644,7 +644,8 @@ export default init({
   proxyControlPlane: {
     resolveHost: (host) =>
       proxyAdapters.customDomains.resolveHost?.(host) ?? null,
-    authenticate: (req) => verifyControlPlaneBearer(req),
+    jwksUrl: `${env.ISSUER}/.well-known/jwks.json`,
+    // jwksFetch: (url) => env.JWKS_SERVICE.fetch(url), // optional, Workers
     applySyncEvents: createApplySyncEvents({
       customDomains: proxyAdapters.customDomains,
       proxyRoutes: proxyAdapters.proxyRoutes,
@@ -653,7 +654,11 @@ export default init({
 });
 ```
 
-The endpoint is **cross-tenant**. Gate `authenticate` with a dedicated proxy-sync credential (shared secret, mTLS, or a JWT scoped to `controlplane:sync` / `proxy:resolve_host`), never with a tenant token.
+The endpoint is **cross-tenant**. Authhero authenticates the bearer JWT
+internally: tokens must be signed by a key in `jwksUrl`, carry an `iss`
+matching `env.ISSUER`, and include the `proxy:resolve_host` scope. Never
+issue tenant tokens to the proxy — mint a dedicated M2M client whose grant
+includes the `proxy:resolve_host` scope.
 
 ### Idempotency
 

@@ -5,11 +5,33 @@ import type {
   ProxyRoute,
   ProxyRoutesAdapter,
 } from "@authhero/adapter-interfaces";
+import { PROXY_RESOLVE_HOST_SCOPE } from "@authhero/proxy";
 import {
   createApplySyncEvents,
   createProxyControlPlaneApp,
 } from "../../../src/routes/proxy-control-plane";
 import type { SyncEvent } from "../../../src/helpers/control-plane-sync-events";
+import { createTestKeyset, type TestKeyset } from "./jwt-fixture";
+
+const ISSUER = "https://issuer.example.test/";
+
+async function bearer(
+  keyset: TestKeyset,
+  overrides: { scope?: string; iss?: string } = {},
+): Promise<string> {
+  const token = await keyset.sign({
+    payload: {
+      iss: overrides.iss ?? ISSUER,
+      sub: "client-proxy",
+      scope: overrides.scope ?? PROXY_RESOLVE_HOST_SCOPE,
+    },
+  });
+  return `Bearer ${token}`;
+}
+
+function envWithIssuer(): { ISSUER: string } {
+  return { ISSUER };
+}
 
 function customDomain(overrides: Partial<CustomDomain> = {}): CustomDomain {
   return {
@@ -205,72 +227,170 @@ describe("createApplySyncEvents", () => {
 });
 
 describe("POST /sync route", () => {
-  function buildApp(applySyncEvents?: (events: SyncEvent[]) => Promise<void>) {
-    return createProxyControlPlaneApp({
+  async function setup(
+    applySyncEvents?: (events: SyncEvent[]) => Promise<void>,
+  ) {
+    const keyset = await createTestKeyset();
+    const app = createProxyControlPlaneApp({
       resolveHost: async () => null,
-      authenticate: () => true,
+      jwksUrl: keyset.jwksUrl,
+      jwksFetch: keyset.jwksFetch,
       applySyncEvents,
     });
+    return { app, keyset };
   }
 
   it("returns 404 when applySyncEvents is not configured (route not mounted)", async () => {
-    const app = buildApp();
-    const res = await app.request("/sync", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ events: [syncEvent()] }),
-    });
+    const { app, keyset } = await setup();
+    const auth = await bearer(keyset);
+    const res = await app.request(
+      "/sync",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", authorization: auth },
+        body: JSON.stringify({ events: [syncEvent()] }),
+      },
+      envWithIssuer(),
+    );
     expect(res.status).toBe(404);
   });
 
-  it("returns 401 when authenticate rejects", async () => {
-    const app = createProxyControlPlaneApp({
-      resolveHost: async () => null,
-      authenticate: () => false,
-      applySyncEvents: async () => {},
-    });
-    const res = await app.request("/sync", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ events: [syncEvent()] }),
-    });
+  it("returns 401 when the bearer token is missing", async () => {
+    const { app } = await setup(async () => {});
+    const res = await app.request(
+      "/sync",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ events: [syncEvent()] }),
+      },
+      envWithIssuer(),
+    );
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 401 when the bearer token has the wrong issuer", async () => {
+    const { app, keyset } = await setup(async () => {});
+    const auth = await bearer(keyset, { iss: "https://evil.example.test/" });
+    const res = await app.request(
+      "/sync",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", authorization: auth },
+        body: JSON.stringify({ events: [syncEvent()] }),
+      },
+      envWithIssuer(),
+    );
     expect(res.status).toBe(401);
   });
 
   it("returns 400 on invalid JSON", async () => {
-    const app = buildApp(async () => {});
-    const res = await app.request("/sync", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: "not json",
-    });
+    const { app, keyset } = await setup(async () => {});
+    const auth = await bearer(keyset);
+    const res = await app.request(
+      "/sync",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", authorization: auth },
+        body: "not json",
+      },
+      envWithIssuer(),
+    );
     expect(res.status).toBe(400);
   });
 
   it("returns 400 when the body fails schema validation", async () => {
-    const app = buildApp(async () => {});
-    const res = await app.request("/sync", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ events: [{ event_id: "x" }] }),
-    });
+    const { app, keyset } = await setup(async () => {});
+    const auth = await bearer(keyset);
+    const res = await app.request(
+      "/sync",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", authorization: auth },
+        body: JSON.stringify({ events: [{ event_id: "x" }] }),
+      },
+      envWithIssuer(),
+    );
     expect(res.status).toBe(400);
   });
 
   it("invokes applySyncEvents and returns 204 on success", async () => {
-    const apply = vi.fn(async () => {});
-    const app = buildApp(apply);
-    const res = await app.request("/sync", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ events: [syncEvent()] }),
-    });
+    const apply = vi.fn<(events: SyncEvent[]) => Promise<void>>(
+      async () => {},
+    );
+    const { app, keyset } = await setup(apply);
+    const auth = await bearer(keyset);
+    const res = await app.request(
+      "/sync",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", authorization: auth },
+        body: JSON.stringify({ events: [syncEvent()] }),
+      },
+      envWithIssuer(),
+    );
     expect(res.status).toBe(204);
     expect(apply).toHaveBeenCalledTimes(1);
-    expect(apply.mock.calls[0][0][0]).toMatchObject({
+    expect(apply.mock.calls[0]?.[0]?.[0]).toMatchObject({
       event_id: "evt-1",
       entity: "custom_domain",
       op: "created",
     });
+  });
+});
+
+describe("GET /hosts/:host route", () => {
+  it("returns 401 without a bearer token", async () => {
+    const keyset = await createTestKeyset();
+    const app = createProxyControlPlaneApp({
+      resolveHost: async () => null,
+      jwksUrl: keyset.jwksUrl,
+      jwksFetch: keyset.jwksFetch,
+    });
+    const res = await app.request(
+      "/hosts/auth.example.com",
+      {},
+      envWithIssuer(),
+    );
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 404 when resolveHost returns null", async () => {
+    const keyset = await createTestKeyset();
+    const app = createProxyControlPlaneApp({
+      resolveHost: async () => null,
+      jwksUrl: keyset.jwksUrl,
+      jwksFetch: keyset.jwksFetch,
+    });
+    const auth = await bearer(keyset);
+    const res = await app.request(
+      "/hosts/auth.example.com",
+      { headers: { authorization: auth } },
+      envWithIssuer(),
+    );
+    expect(res.status).toBe(404);
+  });
+
+  it("returns the resolved host as JSON with a valid token", async () => {
+    const keyset = await createTestKeyset();
+    const resolved = {
+      tenant_id: "tenant-1",
+      custom_domain_id: "cd-1",
+      domain: "auth.example.com",
+      routes: [],
+    };
+    const app = createProxyControlPlaneApp({
+      resolveHost: async () => resolved,
+      jwksUrl: keyset.jwksUrl,
+      jwksFetch: keyset.jwksFetch,
+    });
+    const auth = await bearer(keyset);
+    const res = await app.request(
+      "/hosts/auth.example.com",
+      { headers: { authorization: auth } },
+      envWithIssuer(),
+    );
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual(resolved);
   });
 });

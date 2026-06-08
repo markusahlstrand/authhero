@@ -1,18 +1,23 @@
 import type { ProxyDataAdapter, ResolvedHost } from "../adapter";
 import type { ProxyRoutesAdapter } from "../adapter";
+import { PROXY_RESOLVE_HOST_SCOPE } from "../constants";
 
 export interface HttpProxyAdapterOptions {
   // Base URL of the AuthHero control plane, without trailing slash.
   // e.g. `https://auth.example.com`.
   baseUrl: string;
   // Client credentials issued for the proxy. The token endpoint is assumed
-  // to live at `${baseUrl}/oauth/token` and to issue a token with the
-  // `proxy:resolve_host` scope.
+  // to live at `${baseUrl}/oauth/token` and the issued token must carry the
+  // `proxy:resolve_host` scope (`PROXY_RESOLVE_HOST_SCOPE`).
   clientId: string;
   clientSecret: string;
   // Optional audience for the client credentials grant. Defaults to
   // `${baseUrl}/api/v2/`.
   audience?: string;
+  // Override the scope requested when minting the bearer. Defaults to
+  // `PROXY_RESOLVE_HOST_SCOPE` — the value the control-plane verifier
+  // requires.
+  scope?: string;
   // Override the resolve-host endpoint. Defaults to
   // `/api/v2/proxy/control-plane/hosts/:host`.
   resolveHostPath?: string;
@@ -78,6 +83,7 @@ export function createHttpProxyAdapter(
   const resolvePath =
     options.resolveHostPath ?? "/api/v2/proxy/control-plane/hosts/";
   const audience = options.audience ?? `${baseUrl}/api/v2/`;
+  const scope = options.scope ?? PROXY_RESOLVE_HOST_SCOPE;
   const skewSeconds = options.tokenRefreshSkewSeconds ?? 60;
   const timeoutMs = options.timeoutMs ?? 5000;
 
@@ -100,6 +106,7 @@ export function createHttpProxyAdapter(
           client_id: options.clientId,
           client_secret: options.clientSecret,
           audience,
+          scope,
         }),
         signal,
       }),

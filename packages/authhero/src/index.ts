@@ -56,6 +56,13 @@ export {
   createApplySyncEvents,
   type CreateApplySyncEventsOptions,
 } from "./routes/proxy-control-plane";
+export {
+  PROXY_RESOLVE_HOST_SCOPE,
+  verifyControlPlaneToken,
+  isAllowedIssuer,
+  type VerifyControlPlaneTokenOptions,
+  type VerifyControlPlaneTokenResult,
+} from "./routes/proxy-control-plane/verify";
 export { addEntityHooks } from "./helpers/entity-hooks-wrapper";
 export { seed, MANAGEMENT_API_SCOPES } from "./seed";
 export type { SeedOptions, SeedResult } from "./seed";
