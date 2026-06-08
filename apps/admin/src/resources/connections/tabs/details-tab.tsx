@@ -26,7 +26,6 @@ const NON_HRD_STRATEGIES = new Set<string>([
   Strategy.EMAIL,
   Strategy.SMS,
   Strategy.SAMLP,
-  Strategy.WAAD,
   Strategy.ADFS,
 ]);
 

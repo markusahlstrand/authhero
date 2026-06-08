@@ -1,6 +1,6 @@
 import { generateCodeVerifier, MicrosoftEntraId } from "arctic";
 import { Context } from "hono";
-import { Connection } from "@authhero/adapter-interfaces";
+import { Connection, Strategy } from "@authhero/adapter-interfaces";
 import { nanoid } from "nanoid";
 import { Bindings, Variables } from "../types";
 import { parseJWT } from "oslo/jwt";
@@ -21,7 +21,13 @@ function createClient(
   if (!options?.client_id || !options.client_secret) {
     throw new Error("Missing required Microsoft authentication parameters");
   }
-  const tenant = options.realms || defaultTenant;
+  // windowslive is consumer-only — ignore options.realms so an enterprise
+  // tenant id can't accidentally turn a consumer connection into a work/school
+  // one. waad and any other caller keep the realms-override behavior.
+  const tenant =
+    connection.strategy === Strategy.WINDOWSLIVE
+      ? "consumers"
+      : options.realms || defaultTenant;
   return new MicrosoftEntraId(
     tenant,
     options.client_id,
@@ -41,10 +47,15 @@ export async function microsoftEntraRedirect(
   const code = nanoid();
   const code_verifier = generateCodeVerifier();
 
+  const trimmedScope = connection.options?.scope?.trim();
+  const scopes = trimmedScope
+    ? trimmedScope.split(/\s+/)
+    : ["openid", "profile", "email"];
+
   const authorizationUrl = client.createAuthorizationURL(
     code,
     code_verifier,
-    connection.options?.scope?.split(" ") || ["openid", "profile", "email"],
+    scopes,
   );
 
   if (loginHint) {
