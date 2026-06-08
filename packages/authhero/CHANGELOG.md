@@ -1,5 +1,16 @@
 # authhero
 
+## 5.21.1
+
+### Patch Changes
+
+- 761ce78: Tighten email validation. A shared `isValidEmail` helper replaces the loose `/^[^\s@]+@[^\s@]+\.[^\s@]+$/` regex at three call sites (`flow-api`, `screen-api`, identifier-classification in `username.ts`); it rejects leading/trailing/consecutive dots and requires a 2+ character alphabetic TLD, catching common typos like `gmail..com` and `.user@x.com` that downstream senders reject. The IdentifierPage now also renders `<input type="email">` when email is the only accepted identifier so the browser blocks malformed addresses before submission; mixed phone/username flows stay on `type="text"`.
+- d45a6b6: Loosen `audience`, `sender_email`, and `sender_name` to optional on `tenantInsertSchema` and `CreateTenantParams`. The admin UI tenant-create form now only asks for `id` and `friendly_name` plus the deployment fields; the omitted fields can be set later via tenant settings. Matches Auth0's model where tenant-level audience isn't required (per-token `aud` comes from resource servers / client grants). The legacy service-token path still errors clearly if it's asked to mint a token for a tenant without an `audience`.
+- Updated dependencies [d45a6b6]
+  - @authhero/adapter-interfaces@2.13.1
+  - @authhero/proxy@0.4.4
+  - @authhero/widget@0.32.38
+
 ## 5.21.0
 
 ### Minor Changes
