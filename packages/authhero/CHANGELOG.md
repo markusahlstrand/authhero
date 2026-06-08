@@ -1,5 +1,42 @@
 # authhero
 
+## 6.0.0
+
+### Major Changes
+
+- 3482bd3: Split the `microsoft` strategy into Auth0's two canonical strategies:
+  `windowslive` (Microsoft Account / consumer) and `waad` (Azure AD / enterprise).
+  `Strategy.MICROSOFT` is removed from the enum.
+
+  Both strategies share the same Microsoft Identity Platform v2.0 OAuth handler
+  internally but register under distinct strategy names so user_ids match Auth0's
+  wire format: `windowslive|<sub>` for consumer logins, `waad|<oid>` for
+  enterprise. `getProviderFromConnection` now always returns the strategy name —
+  previously enterprise strategies (`oidc`, `samlp`, `waad`, `adfs`, `oauth2`)
+  returned the connection name, which diverged from Auth0's
+  `<strategy>|<conn>|<sub>` user_id format.
+
+  **Breaking**: existing connection rows with `strategy = 'microsoft'` and any
+  users with `<connection-name>|...` ids on enterprise connections will need a
+  one-time DB migration.
+
+### Minor Changes
+
+- 8b8b117: Add `okta` as a first-class enterprise strategy. Okta connections use the
+  shared OIDC handler internally but register under the `okta` strategy name so
+  user_ids match Auth0's wire format (`okta|<sub>`). Required for migrations
+  from Auth0 tenants that have Okta enterprise connections — without this the
+  connection couldn't be created and `getStrategy` would throw `Strategy okta
+not found` at login.
+
+### Patch Changes
+
+- Updated dependencies [3482bd3]
+- Updated dependencies [8b8b117]
+  - @authhero/adapter-interfaces@3.0.0
+  - @authhero/proxy@0.4.5
+  - @authhero/widget@0.32.39
+
 ## 5.21.1
 
 ### Patch Changes
