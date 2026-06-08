@@ -1,5 +1,59 @@
 # @authhero/proxy
 
+## 0.5.0
+
+### Minor Changes
+
+- ac8a7a2: Add `createCacheAdapterHostCache` — a generic stale-while-revalidate wrapper around any `CacheAdapter` from `@authhero/adapter-interfaces`. Pair with `createCloudflareCache` from `@authhero/cloudflare-adapter` (or any other `CacheAdapter` implementation) to share host-resolution cache across Worker isolates / colos with proper SWR semantics.
+
+  ```ts
+  import {
+    createCacheAdapterHostCache,
+    createInMemoryHostCache,
+  } from "@authhero/proxy";
+  import { createCloudflareCache } from "@authhero/cloudflare-adapter";
+
+  const resolver = createCacheAdapterHostCache({
+    upstream: createInMemoryHostCache(data, { freshTtlMs: 60_000 }),
+    cache: createCloudflareCache({ cacheName: "authhero-proxy-hosts" }),
+    freshTtlMs: 60 * 60_000, // 1 hour fresh
+    staleTtlMs: 23 * 60 * 60_000, // SWR for 23 more hours (24h total)
+    waitUntil: (p) => ctx.waitUntil(p),
+  });
+
+  createProxyApp({ data, resolver });
+  ```
+
+  Also adds the missing `resolver?: HostResolverCache` field to `ProxyAppOptions` so it can be passed through `createProxyApp` (was already accepted by the lower-level `createProxyDataPlaneHandler`).
+
+  `createCacheApiHostCache` is now marked `@deprecated` in favor of the new wrapper — it remains exported for now and continues to work, but new code should use `createCacheAdapterHostCache(createCloudflareCache(...))`.
+
+- ac8a7a2: Make `proxyControlPlane` authentication opinionated. The host callback
+  (`authenticate: (request: Request) => Promise<boolean> | boolean`) is removed;
+  authhero now verifies the bearer JWT internally.
+
+  **Breaking** — `AuthHeroConfig.proxyControlPlane` shape changed:
+
+  ```diff
+   proxyControlPlane: {
+     resolveHost,
+  -  authenticate: (req) => { /* host-supplied JWKS+iss+scope check */ },
+  +  jwksUrl: `${env.ISSUER}/.well-known/jwks.json`,
+  +  jwksFetch: (url) => env.JWKS_SERVICE.fetch(url), // optional
+     applySyncEvents,
+   }
+  ```
+
+  Verifier behavior: accepts RS256/384/512 and ES256/384/512; requires the
+  `proxy:resolve_host` scope; matches `iss` against the runtime `env.ISSUER`
+  via strict URL equality after trailing-slash normalization (no host-only or
+  subdomain match — `https://issuer.example.com/` is _not_ equivalent to
+  `https://other.example.com/` or `https://issuer.example.com/path/`).
+
+  `@authhero/proxy` now exports `PROXY_RESOLVE_HOST_SCOPE` so client and server
+  share the constant, and `createHttpProxyAdapter` requests this scope in its
+  `client_credentials` grant (overridable via the new `scope` option).
+
 ## 0.4.5
 
 ### Patch Changes
