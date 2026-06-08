@@ -118,12 +118,20 @@ export function DetailsTab() {
         />
       )}
 
-      {strategy === "microsoft" && (
+      {strategy === "windowslive" && (
+        <TextInput
+          source="options.scope"
+          label="Scope"
+          helperText="Space-separated scopes (e.g., openid profile email)"
+        />
+      )}
+
+      {strategy === "waad" && (
         <>
           <TextInput
             source="options.realms"
             label="Tenant ID"
-            helperText="Use 'common', 'organizations', 'consumers', or your tenant ID"
+            helperText="Azure AD tenant GUID, 'organizations', or 'common'"
           />
           <TextInput
             source="options.scope"

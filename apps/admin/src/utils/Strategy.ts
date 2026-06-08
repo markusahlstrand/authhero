@@ -6,7 +6,7 @@ export const Strategy = {
   APPLE: "apple",
   FACEBOOK: "facebook",
   GITHUB: "github",
-  MICROSOFT: "microsoft",
+  WINDOWSLIVE: "windowslive",
   VIPPS: "vipps",
   OIDC: "oidc",
   OAUTH2: "oauth2",

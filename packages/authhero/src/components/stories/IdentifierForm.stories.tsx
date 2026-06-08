@@ -389,7 +389,7 @@ export const MultipleSocialConnections: Story = {
       "facebook",
       "apple",
       "github",
-      "microsoft",
+      "windowslive",
     ]),
   },
   parameters: {
@@ -411,7 +411,7 @@ export const DeveloperSocialLogins: Story = {
     theme: mockTheme,
     branding: mockBranding,
     loginSession: mockLoginSession,
-    client: createMockClient(["email", "github", "microsoft"]),
+    client: createMockClient(["email", "github", "windowslive"]),
   },
   parameters: {
     docs: {
