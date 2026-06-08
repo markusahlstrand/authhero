@@ -186,18 +186,25 @@ export function createCustomDomainsAdapter(
         throw new HTTPException(404);
       }
 
-      const body = await getClient(config)
-        .get(`/custom_hostnames/${encodeURIComponent(domain_id)}`)
-        .json();
-
-      const { result, errors, success } =
-        customDomainResponseSchema.parse(body);
-
-      if (!success) {
+      let body: unknown;
+      try {
+        body = await getClient(config)
+          .get(`/custom_hostnames/${encodeURIComponent(domain_id)}`)
+          .json();
+      } catch (err) {
         throw new HTTPException(503, {
-          message: JSON.stringify(errors),
+          message: `Failed to fetch custom hostname from Cloudflare: ${err instanceof Error ? err.message : String(err)}`,
         });
       }
+
+      const parsed = customDomainResponseSchema.safeParse(body);
+      if (!parsed.success || !parsed.data.success) {
+        throw new HTTPException(503, {
+          message: `Failed to parse custom hostname response: ${JSON.stringify(parsed.success ? parsed.data.errors : parsed.error.issues)}`,
+        });
+      }
+
+      const { result } = parsed.data;
 
       if (
         config.enterprise &&
@@ -288,23 +295,28 @@ export function createCustomDomainsAdapter(
       // If there are ssl.* overrides, fetch the current SSL state from
       // Cloudflare and merge so we always send a complete ssl object
       if (Object.keys(sslOverrides).length > 0) {
-        const currentBody = await getClient(config)
-          .get(`/custom_hostnames/${encodeURIComponent(domain_id)}`)
-          .json();
-
-        const { result: currentResult, success: currentSuccess } =
-          customDomainResponseSchema.parse(currentBody);
-
-        if (!currentSuccess) {
+        let currentBody: unknown;
+        try {
+          currentBody = await getClient(config)
+            .get(`/custom_hostnames/${encodeURIComponent(domain_id)}`)
+            .json();
+        } catch (err) {
           throw new HTTPException(503, {
-            message: "Failed to fetch current custom hostname state",
+            message: `Failed to fetch current custom hostname state: ${err instanceof Error ? err.message : String(err)}`,
+          });
+        }
+
+        const parsed = customDomainResponseSchema.safeParse(currentBody);
+        if (!parsed.success || !parsed.data.success) {
+          throw new HTTPException(503, {
+            message: `Failed to parse current custom hostname state: ${JSON.stringify(parsed.success ? parsed.data.errors : parsed.error.issues)}`,
           });
         }
 
         cfPayload.ssl = {
-          method: currentResult.ssl.method,
-          type: currentResult.ssl.type,
-          certificate_authority: currentResult.ssl.certificate_authority,
+          method: parsed.data.result.ssl.method,
+          type: parsed.data.result.ssl.type,
+          certificate_authority: parsed.data.result.ssl.certificate_authority,
           ...sslOverrides,
         };
       }
@@ -315,7 +327,12 @@ export function createCustomDomainsAdapter(
             cfPayload,
             `/custom_hostnames/${encodeURIComponent(domain_id)}`,
           )
-          .res();
+          .res()
+          .catch((err: unknown) => {
+            throw new HTTPException(503, {
+              message: `Failed to update custom hostname: ${err instanceof Error ? err.message : String(err)}`,
+            });
+          });
 
         if (!response.ok) {
           throw new HTTPException(503, {

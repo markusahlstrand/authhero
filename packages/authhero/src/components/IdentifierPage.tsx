@@ -100,8 +100,12 @@ const IdentifierPage: FC<Props> = ({
   // Determine if any auth form should be shown
   const showForm = showEmailInput || showPhoneInput;
 
-  // Configure input type and placeholder based on available connections
-  let inputType = "text";
+  // Configure input type and placeholder based on available connections.
+  // Use type="email" only when email is the sole accepted identifier so the
+  // browser blocks malformed addresses (e.g. `gmail..com`) before submission.
+  // Mixed cases (phone or username also allowed) must stay type="text".
+  const emailOnly = showEmailInput && !showPhoneInput && !requiresUsername;
+  let inputType = emailOnly ? "email" : "text";
   let inputName = "username"; // Always use username as the input name
 
   // Determine which auth method text to use

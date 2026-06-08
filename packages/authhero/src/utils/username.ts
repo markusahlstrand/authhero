@@ -1,5 +1,6 @@
 import { parsePhoneNumberFromString, CountryCode } from "libphonenumber-js";
 import { USERNAME_PASSWORD_PROVIDER } from "../constants";
+import { isValidEmail } from "./email";
 
 type ConnectionType = "email" | "sms" | "username";
 
@@ -22,7 +23,7 @@ export function getConnectionFromIdentifier(
   // therefore safe to classify as an email identifier.
   if (username.includes("@")) {
     const normalized = username.toLowerCase();
-    const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized);
+    const isValid = isValidEmail(normalized);
     return {
       connectionType: "email",
       normalized: isValid ? normalized : null,

@@ -133,18 +133,18 @@ export const ListPagination = ({
         </Select>
       </div>
       <div className="text-sm text-muted-foreground">
-        <Translate
-          i18nKey="ra.navigation.page_range_info"
-          options={{
-            offsetBegin: pageStart,
-            offsetEnd: pageEnd,
-            total: total === -1 ? pageEnd : total,
-          }}
-        >
-          {total != null
-            ? `${pageStart}-${pageEnd} of ${total === -1 ? pageEnd : total}`
-            : null}
-        </Translate>
+        {total != null ? (
+          <Translate
+            i18nKey="ra.navigation.page_range_info"
+            options={{
+              offsetBegin: pageStart,
+              offsetEnd: pageEnd,
+              total: total === -1 ? pageEnd : total,
+            }}
+          >
+            {`${pageStart}-${pageEnd} of ${total === -1 ? pageEnd : total}`}
+          </Translate>
+        ) : null}
       </div>
       <Pagination className="-w-full -mx-auto">
         <PaginationContent>
