@@ -322,16 +322,28 @@ export interface AuthHeroConfig {
    * data plane. When set, mounts `GET /api/v2/proxy/control-plane/hosts/:host`
    * which returns the cross-tenant `ResolvedHost` for the given hostname.
    *
-   * This endpoint is read by remote proxy deployments via
-   * `createHttpProxyAdapter`. It is **cross-tenant** — gate it with a
-   * dedicated credential (shared secret, mTLS, or a JWT scoped to
-   * `proxy:resolve_host`), never with a tenant token.
+   * Authentication is opinionated and built in: incoming requests must
+   * carry a `Bearer` JWT signed by a key in `jwksUrl`, with `iss` matching
+   * the runtime `env.ISSUER` (strict URL equality after trailing-slash
+   * normalization) and the `proxy:resolve_host` scope. The matching
+   * client-side helper is `createHttpProxyAdapter` in `@authhero/proxy`.
    */
   proxyControlPlane?: {
     resolveHost: (
       host: string,
     ) => Promise<import("@authhero/proxy").ResolvedHost | null>;
-    authenticate: (request: Request) => Promise<boolean> | boolean;
+    /**
+     * JWKS document URL used to verify the bearer token. On a single-shard
+     * deployment this is typically `${env.ISSUER}/.well-known/jwks.json`.
+     */
+    jwksUrl: string;
+    /**
+     * Optional fetch override for `jwksUrl`. Defaults to global `fetch`.
+     * Hosts on Cloudflare Workers can pass
+     * `(url) => env.JWKS_SERVICE.fetch(url)` to route through a service
+     * binding instead of the public network.
+     */
+    jwksFetch?: (url: string) => Promise<Response>;
     /**
      * Optional receiver for `POST /sync` events emitted by tenant shards via
      * the `ControlPlaneSyncDestination`. Mount on the control-plane authhero

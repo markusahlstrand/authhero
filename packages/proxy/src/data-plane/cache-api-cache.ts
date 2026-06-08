@@ -43,6 +43,11 @@ function getDefaultCache(): Cache | undefined {
  * Invalidation is the caller's responsibility — typically the control plane
  * issues `cache.delete(syntheticKey(...))` on every proxy_route mutation,
  * and each colo's cache expires on its own TTL otherwise.
+ *
+ * @deprecated Prefer `createCacheAdapterHostCache` with `createCloudflareCache`
+ * from `@authhero/cloudflare-adapter`. The adapter-based wrapper supports
+ * stale-while-revalidate and works with any `CacheAdapter` (Cloudflare,
+ * Redis, in-memory, …).
  */
 export function createCacheApiHostCache(
   options: CacheApiHostCacheOptions,

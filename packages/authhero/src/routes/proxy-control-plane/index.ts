@@ -11,6 +11,11 @@ import {
 } from "@authhero/adapter-interfaces";
 import { z } from "@hono/zod-openapi";
 import { SyncEvent } from "../../helpers/control-plane-sync-events";
+import { Bindings } from "../../types";
+import {
+  PROXY_RESOLVE_HOST_SCOPE,
+  verifyControlPlaneToken,
+} from "./verify";
 
 const syncEventSchema = z.discriminatedUnion("entity", [
   z.object({
@@ -45,13 +50,21 @@ export interface ProxyControlPlaneOptions {
   resolveHost: (host: string) => Promise<ResolvedHost | null>;
 
   /**
-   * Authentication check for incoming requests. Return `true` to allow,
-   * `false` to reject with 401. The control-plane endpoint is cross-tenant
-   * and must not be exposed to regular tenant tokens — use a dedicated
-   * proxy-reader credential (shared secret, mTLS, JWT with `proxy:resolve_host`
-   * scope, …).
+   * URL of the JWKS document used to verify control-plane bearer tokens.
+   *
+   * Tokens MUST be signed by a key in this JWKS, carry an `iss` matching
+   * the runtime `env.ISSUER` (strict URL equality after trailing-slash
+   * normalization), and include the `proxy:resolve_host` scope.
    */
-  authenticate: (request: Request) => Promise<boolean> | boolean;
+  jwksUrl: string;
+
+  /**
+   * Optional fetch override for `jwksUrl`. Defaults to global `fetch`.
+   * Hosts on Cloudflare Workers can pass
+   * `(url) => env.JWKS_SERVICE.fetch(url)` to route through a service
+   * binding instead of the public network.
+   */
+  jwksFetch?: (url: string) => Promise<Response>;
 
   /**
    * Optional handler for `POST /sync` — receives `controlplane.sync.*` events
@@ -67,20 +80,49 @@ export interface ProxyControlPlaneOptions {
   applySyncEvents?: (events: SyncEvent[]) => Promise<void>;
 }
 
+function extractBearerToken(request: Request): string | null {
+  const header = request.headers.get("authorization");
+  if (!header) return null;
+  const match = /^Bearer\s+(\S+)$/i.exec(header);
+  return match?.[1] ?? null;
+}
+
 /**
  * Returns a Hono app exposing the privileged proxy control-plane endpoint
  * `GET /hosts/:host`. When `applySyncEvents` is provided, also exposes
  * `POST /sync` for tenant shards to replicate custom_domains / proxy_routes
  * mutations. Mount under `/api/v2/proxy/control-plane`.
+ *
+ * Authentication is built in: requests must carry a `Bearer` JWT signed by
+ * a key published at `options.jwksUrl`, with `iss` matching the runtime
+ * `env.ISSUER` and scope `proxy:resolve_host`.
  */
 export function createProxyControlPlaneApp(
   options: ProxyControlPlaneOptions,
-): Hono {
-  const app = new Hono();
+): Hono<{ Bindings: Bindings }> {
+  const app = new Hono<{ Bindings: Bindings }>();
 
-  const resolveHandler: Handler = async (c) => {
-    const ok = await options.authenticate(c.req.raw);
-    if (!ok) {
+  async function authenticate(c: {
+    req: { raw: Request };
+    env: Bindings;
+  }): Promise<{ ok: true } | { ok: false; reason: string }> {
+    const token = extractBearerToken(c.req.raw);
+    if (!token) return { ok: false, reason: "missing bearer token" };
+    return verifyControlPlaneToken({
+      token,
+      jwksUrl: options.jwksUrl,
+      jwksFetch: options.jwksFetch,
+      expectedIssuer: c.env.ISSUER,
+      requiredScope: PROXY_RESOLVE_HOST_SCOPE,
+    });
+  }
+
+  const resolveHandler: Handler<{ Bindings: Bindings }> = async (c) => {
+    const result = await authenticate(c);
+    if (!result.ok) {
+      console.warn(
+        `[proxy/control-plane] authentication failed: ${result.reason}`,
+      );
       return c.text("Unauthorized", 401, {
         "WWW-Authenticate": "Bearer",
       });
@@ -100,8 +142,11 @@ export function createProxyControlPlaneApp(
   if (options.applySyncEvents) {
     const applySyncEvents = options.applySyncEvents;
     app.post("/sync", async (c) => {
-      const ok = await options.authenticate(c.req.raw);
-      if (!ok) {
+      const result = await authenticate(c);
+      if (!result.ok) {
+        console.warn(
+          `[proxy/control-plane/sync] authentication failed: ${result.reason}`,
+        );
         return c.text("Unauthorized", 401, {
           "WWW-Authenticate": "Bearer",
         });

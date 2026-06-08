@@ -25,7 +25,7 @@ In both cases, all surfaces share the same origin so session cookies can be shar
 - 🧩 **Composable handler chain** — 12 built-in handlers covering CORS, auth, header rewrite, caching, and five dispatch modes (`http`, `service_binding`, `dispatch_namespace`, `redirect`, `static`)
 - 🔌 **Pluggable data adapter** — static (in-memory), SQL (via `@authhero/kysely-adapter` or `@authhero/drizzle`), or HTTP (via `createHttpProxyAdapter` for cross-account control planes)
 - 🗄️ **Shared schema** — the `proxy_routes` table is part of the standard AuthHero migrations
-- ⚡ **Built-in host cache** — stale-while-revalidate so `resolveHost` doesn't hit the database on the hot path; also a Cloudflare Cache API variant for cross-instance hits
+- ⚡ **Built-in host cache** — stale-while-revalidate so `resolveHost` doesn't hit the database on the hot path; layer in any `CacheAdapter` (Cloudflare, Redis, …) for cross-instance hits
 - 🚀 **Library-first** — both the data plane and the management API are exposed as Hono router factories you can mount wherever fits your deploy topology
 
 ## Installation
@@ -200,30 +200,40 @@ createProxyApp({
 
 On Cloudflare Workers, thread `ExecutionContext.waitUntil` through (e.g. via `AsyncLocalStorage`) so background refreshes survive the response.
 
-### Cloudflare Cache API (cross-instance)
+### Pluggable `CacheAdapter` (cross-instance, stale-while-revalidate)
 
-For larger deployments where you want cache hits across Worker isolates:
+For larger deployments where you want cache hits across Worker isolates, wrap any `CacheAdapter` (the generic key/value cache interface from `@authhero/adapter-interfaces`) with `createCacheAdapterHostCache`. It adds stale-while-revalidate on top of whatever backing cache you plug in — Cloudflare's Cache API, Redis, in-memory, anything.
 
 ```typescript
 import {
   createProxyApp,
-  createCacheApiHostCache,
-  buildCacheApiKey,
+  createCacheAdapterHostCache,
+  createInMemoryHostCache,
 } from "@authhero/proxy";
+import { createCloudflareCache } from "@authhero/cloudflare-adapter";
 
-const resolver = createCacheApiHostCache(data, {
-  freshTtlMs: 5 * 60_000,
-  staleTtlMs: 60 * 60_000,
-  negativeTtlMs: 30_000,
-  cacheName: "authhero-proxy-hosts",
-  buildKey: buildCacheApiKey,        // default — `https://__proxy-hosts__/<host>`
+const inMemory = createInMemoryHostCache(data, {
+  freshTtlMs: 60_000,
+  staleTtlMs: 5 * 60_000,
+});
+
+const resolver = createCacheAdapterHostCache({
+  upstream: inMemory,
+  cache: createCloudflareCache({ cacheName: "authhero-proxy-hosts" }),
+  freshTtlMs: 60 * 60_000,           // 1 hour fresh
+  staleTtlMs: 23 * 60 * 60_000,      // SWR for 23 more hours (24h total)
+  negativeTtlMs: 60_000,             // cache "not found" briefly
   waitUntil: (p) => ctx.waitUntil(p),
 });
 
 createProxyApp({ data, resolver });
 ```
 
-Uses Cloudflare's [Cache API](https://developers.cloudflare.com/workers/runtime-apis/cache/) under the hood, so hits are shared across all instances of the proxy in a given Cloudflare colocation.
+Two-tier shape: in-memory (per-isolate) → `CacheAdapter` (per-colo / cross-isolate) → DB. The adapter wrapper handles SWR — stale entries are served immediately while a background refresh updates the cache.
+
+When you control the proxy upstream and want hits shared across colos, pair this with `@authhero/cloudflare-adapter`'s `createCloudflareCache` (Cloudflare [Cache API](https://developers.cloudflare.com/workers/runtime-apis/cache/) under the hood).
+
+> The earlier `createCacheApiHostCache` helper is still exported but **deprecated** — it only does TTL caching without SWR. Migrate to `createCacheAdapterHostCache(createCloudflareCache(...))` for the same Cloudflare-backed cache plus SWR.
 
 ## How a request is handled
 
@@ -686,6 +696,15 @@ export type { HttpProxyAdapterOptions } from "@authhero/proxy";
 // Host caches
 export { createInMemoryHostCache } from "@authhero/proxy";
 export type { HostCacheOptions, HostResolverCache } from "@authhero/proxy";
+// Generic CacheAdapter wrapper with stale-while-revalidate (preferred).
+// Pair with createCloudflareCache from @authhero/cloudflare-adapter, a Redis
+// adapter, or any other CacheAdapter implementation.
+export {
+  createCacheAdapterHostCache,
+  buildCacheAdapterKey,
+} from "@authhero/proxy";
+export type { CacheAdapterHostCacheOptions } from "@authhero/proxy";
+// Deprecated: use createCacheAdapterHostCache instead.
 export {
   createCacheApiHostCache,
   buildCacheApiKey,

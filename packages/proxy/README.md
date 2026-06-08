@@ -161,7 +161,13 @@ The `proxy_routes` table comes with the standard AuthHero migrations — running
 If the proxy runs separately from the AuthHero control plane (different worker, different VPC, different region), use `createHttpProxyAdapter` to read route config over HTTP:
 
 ```ts
-import { createProxyApp, createHttpProxyAdapter, createCacheApiHostCache, createInMemoryHostCache } from "@authhero/proxy";
+import {
+  createProxyApp,
+  createHttpProxyAdapter,
+  createCacheAdapterHostCache,
+  createInMemoryHostCache,
+} from "@authhero/proxy";
+import { createCloudflareCache } from "@authhero/cloudflare-adapter";
 
 const httpAdapter = createHttpProxyAdapter({
   baseUrl: "https://auth.example.com",
@@ -171,9 +177,11 @@ const httpAdapter = createHttpProxyAdapter({
 
 // Three-tier cache: in-memory (per-isolate) → Cloudflare Cache API (per-colo) → control plane.
 const inMemory = createInMemoryHostCache(httpAdapter, { freshTtlMs: 60_000, staleTtlMs: 600_000 });
-const resolver = createCacheApiHostCache({
+const resolver = createCacheAdapterHostCache({
   upstream: inMemory,
-  cacheTtlSeconds: 60,
+  cache: createCloudflareCache({ cacheName: "authhero-proxy-hosts" }),
+  freshTtlMs: 60 * 60_000,           // 1 hour fresh
+  staleTtlMs: 23 * 60 * 60_000,      // SWR for 23 more hours (24h total)
   waitUntil: (p) => ctx.waitUntil(p),
 });
 
@@ -188,7 +196,10 @@ The HTTP adapter exchanges `client_id` + `client_secret` for an access token at 
 
 ## Control-plane endpoint (server side)
 
-In your AuthHero server, opt in by wiring the resolver and an auth check:
+In your AuthHero server, opt in by wiring the resolver and pointing at the
+JWKS that signs control-plane bearer tokens. Authentication is built in —
+authhero verifies the bearer JWT (RS/ES algs, `iss === env.ISSUER`, scope
+`proxy:resolve_host`):
 
 ```ts
 import { init } from "authhero";
@@ -200,11 +211,10 @@ const { app } = init({
   dataAdapter,
   proxyControlPlane: {
     resolveHost: proxyData.resolveHost,
-    authenticate: async (req) => {
-      // Verify a proxy-scoped JWT / mTLS / shared secret — never a tenant token.
-      const auth = req.headers.get("authorization") ?? "";
-      return auth === `Bearer ${PROXY_TOKEN}`;
-    },
+    jwksUrl: `${env.ISSUER}/.well-known/jwks.json`,
+    // On Workers, route through a service binding to keep the request
+    // off the public network:
+    // jwksFetch: (url) => env.JWKS_SERVICE.fetch(url),
   },
 });
 ```
@@ -266,7 +276,7 @@ All schemas are re-exported as Zod schemas (`proxyRouteSchema`, `matchSchema`, `
 - `createProxyDataPlaneRouter` / `createProxyDataPlaneHandler` — data plane plumbing
 - `createStaticProxyAdapter` / `httpRoute` — static config helpers
 - `createHttpProxyAdapter` — HTTP control-plane adapter
-- `createInMemoryHostCache` / `createCacheApiHostCache` — cache layers
+- `createInMemoryHostCache` / `createCacheAdapterHostCache` — cache layers (`createCacheApiHostCache` is also exported but deprecated in favor of the adapter-based wrapper)
 - `HandlerRegistry` / `defineHandler` / `registerBuiltinHandlers` + each builtin handler
 - `compileHostApp`, `sortRoutes`, `matchesHost`, `matchesAnyHost`, `buildMatchFilter`
 

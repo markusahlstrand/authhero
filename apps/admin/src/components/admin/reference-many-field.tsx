@@ -102,9 +102,10 @@ const ReferenceManyFieldView = <
         hasPreviousPage === false &&
         hasNextPage === false &&
         // @ts-expect-error FIXME total may be undefined when using partial pagination but the ListControllerResult type is wrong about it
-        data.length === 0 &&
-        // the user didn't set any filters
-        !Object.keys(filterValues).length)) &&
+        data.length === 0)) &&
+    // the user didn't set any filters — otherwise keep children mounted so
+    // the FilterForm doesn't disappear when a search yields zero results
+    !Object.keys(filterValues).length &&
     empty !== false
   ) {
     return empty;
