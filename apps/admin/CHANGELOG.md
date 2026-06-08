@@ -1,5 +1,11 @@
 # @authhero/admin
 
+## 0.6.4
+
+### Patch Changes
+
+- ac8a7a2: Fix `ReferenceManyField` hiding its `FilterForm` when a filter search returned zero results. The empty state now only renders when no filters are active, so users can keep refining their search instead of the form disappearing on them.
+
 ## 0.6.3
 
 ### Patch Changes
