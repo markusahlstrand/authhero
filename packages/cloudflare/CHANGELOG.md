@@ -1,5 +1,14 @@
 # @authhero/cloudflare-adapter
 
+## 2.32.5
+
+### Patch Changes
+
+- 761ce78: Make the custom-domains adapter resilient to Cloudflare API failures. `get` and `update` now wrap the `/custom_hostnames/...` fetch and response parsing in try/catch and use `safeParse`, throwing `HTTPException(503)` with a diagnostic message instead of letting unparsed errors bubble as opaque 500s. The PATCH path also catches network errors on the actual update call.
+- Updated dependencies [d45a6b6]
+  - @authhero/adapter-interfaces@2.13.1
+  - @authhero/kysely-adapter@11.8.1
+
 ## 2.32.4
 
 ### Patch Changes
