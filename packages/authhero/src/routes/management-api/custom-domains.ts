@@ -6,6 +6,7 @@ import {
   customDomainCertificateUploadSchema,
   customDomainInsertSchema,
   customDomainSchema,
+  customDomainUpdateSchema,
   LogTypes,
 } from "@authhero/adapter-interfaces";
 import { logMessage } from "../../helpers/logging";
@@ -166,7 +167,7 @@ const patchById = defineRoute({
       body: {
         content: {
           "application/json": {
-            schema: z.object(customDomainSchema.shape).partial(),
+            schema: customDomainUpdateSchema,
           },
         },
       },

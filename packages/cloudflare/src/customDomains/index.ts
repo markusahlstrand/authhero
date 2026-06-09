@@ -202,18 +202,30 @@ export function createCustomDomainsAdapter(
       // Fall back to the DB-authoritative record when Cloudflare is
       // unreachable or returns an unparseable response. status, verification,
       // and domain_metadata are mirrored on every create/update, so the DB
-      // row is enough to render this domain.
+      // row is enough to render this domain. We log the reason loudly so
+      // stale-data symptoms can be traced via `wrangler tail` instead of
+      // silently rotting in production.
       let body: unknown;
       try {
         body = await getClient(config)
           .get(`/custom_hostnames/${encodeURIComponent(domain_id)}`)
           .json();
-      } catch {
+      } catch (err) {
+        console.warn(
+          `[custom-domains] CF fetch failed for ${domain_id} (tenant=${tenant_id}); returning stale DB row:`,
+          err instanceof Error ? err.message : err,
+        );
         return customDomain;
       }
 
       const parsed = customDomainResponseSchema.safeParse(body);
       if (!parsed.success || !parsed.data.success) {
+        console.warn(
+          `[custom-domains] CF response unparseable for ${domain_id} (tenant=${tenant_id}); returning stale DB row.`,
+          parsed.success
+            ? { cfErrors: parsed.data.errors }
+            : { zodIssues: parsed.error.issues, body },
+        );
         return customDomain;
       }
 
@@ -226,8 +238,23 @@ export function createCustomDomainsAdapter(
         throw new HTTPException(404);
       }
 
-      // Merge the database data with the Cloudflare data
-      return mapCustomDomainResponse({ ...customDomain, ...result });
+      const merged = mapCustomDomainResponse({ ...customDomain, ...result });
+
+      // Mirror the fresh Cloudflare state back to the DB so list() and the
+      // next get() reflect reality. Only write if something actually changed
+      // to avoid pointless updated_at churn.
+      if (
+        merged.status !== customDomain.status ||
+        JSON.stringify(merged.verification) !==
+          JSON.stringify(customDomain.verification)
+      ) {
+        await config.customDomainAdapter.update(tenant_id, domain_id, {
+          status: merged.status,
+          verification: merged.verification,
+        });
+      }
+
+      return merged;
     },
     getByDomain: async (domain: string) => {
       // This is used for tenant id resolution and needs to be fast

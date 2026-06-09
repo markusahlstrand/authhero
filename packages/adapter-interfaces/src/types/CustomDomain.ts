@@ -52,6 +52,22 @@ export default customDomainSchema;
 
 export type CustomDomain = z.infer<typeof customDomainSchema>;
 
+/**
+ * Body schema for PATCH /custom-domains/{id}. Matches Auth0: only the
+ * mutable fields are accepted (tls_policy, custom_client_ip_header), plus
+ * authhero's domain_metadata extension used to drive SSL method / CA on
+ * the underlying CDN adapter.
+ */
+export const customDomainUpdateSchema = customDomainInsertSchema
+  .pick({
+    tls_policy: true,
+    custom_client_ip_header: true,
+    domain_metadata: true,
+  })
+  .strict();
+
+export type CustomDomainUpdate = z.infer<typeof customDomainUpdateSchema>;
+
 export const customDomainWithTenantIdSchema = customDomainSchema.extend({
   tenant_id: z.string(),
 });
