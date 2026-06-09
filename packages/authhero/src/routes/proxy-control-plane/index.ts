@@ -50,19 +50,10 @@ export interface ProxyControlPlaneOptions {
   resolveHost: (host: string) => Promise<ResolvedHost | null>;
 
   /**
-   * URL of the JWKS document used to verify control-plane bearer tokens.
-   *
-   * Tokens MUST be signed by a key in this JWKS, carry an `iss` matching
-   * the runtime `env.ISSUER` (strict URL equality after trailing-slash
-   * normalization), and include the `proxy:resolve_host` scope.
-   */
-  jwksUrl: string;
-
-  /**
-   * Optional fetch override for `jwksUrl`. Defaults to global `fetch`.
-   * Hosts on Cloudflare Workers can pass
-   * `(url) => env.JWKS_SERVICE.fetch(url)` to route through a service
-   * binding instead of the public network.
+   * Optional fetch override for the per-issuer JWKS document. Called with
+   * the derived URL (`<iss>/.well-known/jwks.json`); defaults to global
+   * `fetch`. Hosts on Cloudflare Workers can route specific hosts through a
+   * service binding by inspecting the URL and dispatching accordingly.
    */
   jwksFetch?: (url: string) => Promise<Response>;
 
@@ -93,9 +84,12 @@ function extractBearerToken(request: Request): string | null {
  * `POST /sync` for tenant shards to replicate custom_domains / proxy_routes
  * mutations. Mount under `/api/v2/proxy/control-plane`.
  *
- * Authentication is built in: requests must carry a `Bearer` JWT signed by
- * a key published at `options.jwksUrl`, with `iss` matching the runtime
- * `env.ISSUER` and scope `proxy:resolve_host`.
+ * Authentication is built in: requests must carry a `Bearer` JWT whose `iss`
+ * is either the runtime `env.ISSUER` or the host the request actually
+ * arrived on (`x-forwarded-host` or the request URL's host). The verifier
+ * then fetches `<iss>/.well-known/jwks.json` to validate the signature, so
+ * each accepted host must publish its own JWKS at that path. Tokens must
+ * also carry the `proxy:resolve_host` scope.
  */
 export function createProxyControlPlaneApp(
   options: ProxyControlPlaneOptions,
@@ -103,16 +97,29 @@ export function createProxyControlPlaneApp(
   const app = new Hono<{ Bindings: Bindings }>();
 
   async function authenticate(c: {
-    req: { raw: Request };
+    req: { raw: Request; header(name: string): string | undefined; url: string };
     env: Bindings;
   }): Promise<{ ok: true } | { ok: false; reason: string }> {
     const token = extractBearerToken(c.req.raw);
     if (!token) return { ok: false, reason: "missing bearer token" };
+
+    // Accept either the canonical ISSUER (legacy callers) or the host the
+    // request actually landed on. The latter covers both tenant subdomains
+    // (e.g. `sesamy.token.sesamy.com`) and registered custom domains
+    // fronted by `@authhero/proxy` (e.g. `login.parcferme.no`) — both
+    // collapse to "iss equals the request host" because only authhero can
+    // mint tokens signed by a key in that host's JWKS.
+    const inboundHost =
+      c.req.header("x-forwarded-host") ?? new URL(c.req.url).host;
+    const inboundIssuer = `https://${inboundHost}/`;
+    const expectedIssuers = Array.from(
+      new Set([c.env.ISSUER, inboundIssuer]),
+    );
+
     return verifyControlPlaneToken({
       token,
-      jwksUrl: options.jwksUrl,
       jwksFetch: options.jwksFetch,
-      expectedIssuer: c.env.ISSUER,
+      expectedIssuers,
       requiredScope: PROXY_RESOLVE_HOST_SCOPE,
     });
   }

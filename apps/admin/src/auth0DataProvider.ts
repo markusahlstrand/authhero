@@ -1913,9 +1913,32 @@ export default (
       }
 
       if (resource === "custom-domains") {
+        // Auth0 PATCH /custom-domains/{id} only accepts tls_policy and
+        // custom_client_ip_header; domain_metadata is authhero's extension.
+        // Everything else (custom_domain_id, domain, primary, status, type,
+        // origin_domain_name, verification) is read-only and the server
+        // rejects the body if those are present alongside null sentinels.
+        const data = cleanParams.data as Record<string, unknown>;
+        const patch: Record<string, unknown> = {};
+        if (typeof data.tls_policy === "string" && data.tls_policy !== "") {
+          patch.tls_policy = data.tls_policy;
+        }
+        if (
+          typeof data.custom_client_ip_header === "string" &&
+          data.custom_client_ip_header !== ""
+        ) {
+          patch.custom_client_ip_header = data.custom_client_ip_header;
+        }
+        if (
+          data.domain_metadata !== undefined &&
+          data.domain_metadata !== null
+        ) {
+          patch.domain_metadata = data.domain_metadata;
+        }
+
         const result = await (managementClient as any).customDomains.update(
           params.id as string,
-          cleanParams.data,
+          patch,
         );
         return {
           data: {

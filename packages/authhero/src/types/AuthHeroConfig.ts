@@ -323,25 +323,23 @@ export interface AuthHeroConfig {
    * which returns the cross-tenant `ResolvedHost` for the given hostname.
    *
    * Authentication is opinionated and built in: incoming requests must
-   * carry a `Bearer` JWT signed by a key in `jwksUrl`, with `iss` matching
-   * the runtime `env.ISSUER` (strict URL equality after trailing-slash
-   * normalization) and the `proxy:resolve_host` scope. The matching
-   * client-side helper is `createHttpProxyAdapter` in `@authhero/proxy`.
+   * carry a `Bearer` JWT whose `iss` is either the runtime `env.ISSUER`
+   * or the host the request landed on (tenant subdomain or registered
+   * custom domain). The verifier fetches `<iss>/.well-known/jwks.json` to
+   * validate the signature, so each accepted host must publish its own
+   * JWKS at that path. Tokens must also carry the `proxy:resolve_host`
+   * scope. The matching client-side helper is `createHttpProxyAdapter`
+   * in `@authhero/proxy`.
    */
   proxyControlPlane?: {
     resolveHost: (
       host: string,
     ) => Promise<import("@authhero/proxy").ResolvedHost | null>;
     /**
-     * JWKS document URL used to verify the bearer token. On a single-shard
-     * deployment this is typically `${env.ISSUER}/.well-known/jwks.json`.
-     */
-    jwksUrl: string;
-    /**
-     * Optional fetch override for `jwksUrl`. Defaults to global `fetch`.
-     * Hosts on Cloudflare Workers can pass
-     * `(url) => env.JWKS_SERVICE.fetch(url)` to route through a service
-     * binding instead of the public network.
+     * Optional fetch override for the per-issuer JWKS document. Called
+     * with the derived URL (`<iss>/.well-known/jwks.json`); defaults to
+     * global `fetch`. Hosts on Cloudflare Workers can route specific
+     * hosts through a service binding by inspecting the URL.
      */
     jwksFetch?: (url: string) => Promise<Response>;
     /**

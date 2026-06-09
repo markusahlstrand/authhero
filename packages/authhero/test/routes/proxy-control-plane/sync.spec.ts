@@ -233,7 +233,6 @@ describe("POST /sync route", () => {
     const keyset = await createTestKeyset();
     const app = createProxyControlPlaneApp({
       resolveHost: async () => null,
-      jwksUrl: keyset.jwksUrl,
       jwksFetch: keyset.jwksFetch,
       applySyncEvents,
     });
@@ -344,7 +343,6 @@ describe("GET /hosts/:host route", () => {
     const keyset = await createTestKeyset();
     const app = createProxyControlPlaneApp({
       resolveHost: async () => null,
-      jwksUrl: keyset.jwksUrl,
       jwksFetch: keyset.jwksFetch,
     });
     const res = await app.request(
@@ -359,7 +357,6 @@ describe("GET /hosts/:host route", () => {
     const keyset = await createTestKeyset();
     const app = createProxyControlPlaneApp({
       resolveHost: async () => null,
-      jwksUrl: keyset.jwksUrl,
       jwksFetch: keyset.jwksFetch,
     });
     const auth = await bearer(keyset);
@@ -381,7 +378,6 @@ describe("GET /hosts/:host route", () => {
     };
     const app = createProxyControlPlaneApp({
       resolveHost: async () => resolved,
-      jwksUrl: keyset.jwksUrl,
       jwksFetch: keyset.jwksFetch,
     });
     const auth = await bearer(keyset);
@@ -392,5 +388,83 @@ describe("GET /hosts/:host route", () => {
     );
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual(resolved);
+  });
+
+  it("accepts a token whose iss matches a tenant-subdomain x-forwarded-host", async () => {
+    // Caller proxies through to the control plane on a tenant subdomain.
+    // The token was minted by that subdomain (iss = subdomain), so the
+    // verifier must accept it even though it doesn't match env.ISSUER.
+    const tenantHost = "sesamy.token.sesamy.com";
+    const tenantIssuer = `https://${tenantHost}/`;
+    const tenantKeyset = await createTestKeyset({
+      jwksUrl: `https://${tenantHost}/.well-known/jwks.json`,
+    });
+    const app = createProxyControlPlaneApp({
+      resolveHost: async () => ({
+        tenant_id: "sesamy",
+        custom_domain_id: "cd-1",
+        domain: "login.parcferme.no",
+        routes: [],
+      }),
+      jwksFetch: tenantKeyset.jwksFetch,
+    });
+    const auth = await bearer(tenantKeyset, { iss: tenantIssuer });
+    const res = await app.request(
+      "/hosts/login.parcferme.no",
+      {
+        headers: { authorization: auth, "x-forwarded-host": tenantHost },
+      },
+      envWithIssuer(),
+    );
+    expect(res.status).toBe(200);
+  });
+
+  it("accepts a token whose iss matches a custom-domain x-forwarded-host", async () => {
+    // End-user-visible custom domain (e.g. a publisher's login host) fronts
+    // the proxy → control plane call. The token's iss is the custom domain,
+    // its JWKS lives there, and the verifier should accept it.
+    const customHost = "login.parcferme.no";
+    const customIssuer = `https://${customHost}/`;
+    const customKeyset = await createTestKeyset({
+      jwksUrl: `https://${customHost}/.well-known/jwks.json`,
+    });
+    const app = createProxyControlPlaneApp({
+      resolveHost: async () => ({
+        tenant_id: "tenant-1",
+        custom_domain_id: "cd-1",
+        domain: customHost,
+        routes: [],
+      }),
+      jwksFetch: customKeyset.jwksFetch,
+    });
+    const auth = await bearer(customKeyset, { iss: customIssuer });
+    const res = await app.request(
+      `/hosts/${customHost}`,
+      {
+        headers: { authorization: auth, "x-forwarded-host": customHost },
+      },
+      envWithIssuer(),
+    );
+    expect(res.status).toBe(200);
+  });
+
+  it("rejects a token whose iss matches neither env.ISSUER nor the inbound host", async () => {
+    const keyset = await createTestKeyset();
+    const app = createProxyControlPlaneApp({
+      resolveHost: async () => null,
+      jwksFetch: keyset.jwksFetch,
+    });
+    const auth = await bearer(keyset, { iss: "https://attacker.example/" });
+    const res = await app.request(
+      "/hosts/auth.example.com",
+      {
+        headers: {
+          authorization: auth,
+          "x-forwarded-host": "sesamy.token.sesamy.com",
+        },
+      },
+      envWithIssuer(),
+    );
+    expect(res.status).toBe(401);
   });
 });

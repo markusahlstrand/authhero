@@ -47,14 +47,21 @@ export type VerifyControlPlaneTokenResult =
 export interface VerifyControlPlaneTokenOptions {
   /** Compact JWS to verify. */
   token: string;
-  /** JWKS document URL. */
-  jwksUrl: string;
   /** Optional fetch override — defaults to global `fetch`. */
   jwksFetch?: (url: string) => Promise<Response>;
-  /** Expected `iss` claim (compared via {@link isAllowedIssuer}). */
-  expectedIssuer: string;
+  /**
+   * Set of acceptable `iss` claim values. Comparison is strict URL equality
+   * (after trailing-slash normalization) via {@link isAllowedIssuer}. The
+   * verifier fetches the per-issuer JWKS from `<iss>/.well-known/jwks.json`,
+   * so any host you list here must publish its own JWKS at that path.
+   */
+  expectedIssuers: string[];
   /** Required `scope` (space-separated). Defaults to `proxy:resolve_host`. */
   requiredScope?: string;
+}
+
+function deriveJwksUrl(iss: string): string {
+  return new URL("/.well-known/jwks.json", iss).href;
 }
 
 /**
@@ -65,17 +72,22 @@ export interface VerifyControlPlaneTokenOptions {
  * Accepted algs: RS256/384/512, ES256/384/512. The JWK's `alg` must match
  * the token header's `alg`. The token must carry the configured required
  * scope (`proxy:resolve_host` by default) and an `iss` that strictly equals
- * `expectedIssuer` after URL normalization.
+ * one of `expectedIssuers` after URL normalization. The JWKS document is
+ * fetched from `<iss>/.well-known/jwks.json` AFTER the `iss` is allow-listed,
+ * so an attacker cannot redirect the verifier to a JWKS they control.
  */
 export async function verifyControlPlaneToken(
   options: VerifyControlPlaneTokenOptions,
 ): Promise<VerifyControlPlaneTokenResult> {
-  const { token, jwksUrl, jwksFetch, expectedIssuer } = options;
+  const { token, jwksFetch, expectedIssuers } = options;
   const requiredScope = options.requiredScope ?? PROXY_RESOLVE_HOST_SCOPE;
 
   let header: { alg?: unknown; kid?: unknown };
+  let unverifiedPayload: { iss?: unknown };
   try {
-    header = decode(token).header as { alg?: unknown; kid?: unknown };
+    const decoded = decode(token);
+    header = decoded.header as { alg?: unknown; kid?: unknown };
+    unverifiedPayload = decoded.payload as { iss?: unknown };
   } catch {
     return { ok: false, reason: "malformed token" };
   }
@@ -86,6 +98,19 @@ export async function verifyControlPlaneToken(
     return { ok: false, reason: "missing kid" };
   }
 
+  // Allow-list the issuer BEFORE fetching anything: this is what prevents a
+  // forged token from steering the JWKS fetch to an attacker-controlled host.
+  if (
+    typeof unverifiedPayload.iss !== "string" ||
+    !expectedIssuers.some((expected) =>
+      isAllowedIssuer(unverifiedPayload.iss as string, expected),
+    )
+  ) {
+    return { ok: false, reason: "issuer mismatch" };
+  }
+  const iss = unverifiedPayload.iss;
+
+  const jwksUrl = deriveJwksUrl(iss);
   const fetchFn = jwksFetch ?? fetch;
   let jwksRes: Response;
   try {
@@ -128,21 +153,13 @@ export async function verifyControlPlaneToken(
     return { ok: false, reason: "key import failed" };
   }
 
-  let verifiedPayload: { iss?: unknown; scope?: unknown };
+  let verifiedPayload: { scope?: unknown };
   try {
     verifiedPayload = (await verify(token, cryptoKey, alg)) as {
-      iss?: unknown;
       scope?: unknown;
     };
   } catch {
     return { ok: false, reason: "signature verification failed" };
-  }
-
-  if (
-    typeof verifiedPayload.iss !== "string" ||
-    !isAllowedIssuer(verifiedPayload.iss, expectedIssuer)
-  ) {
-    return { ok: false, reason: "issuer mismatch" };
   }
 
   const scopeClaim = verifiedPayload.scope;
