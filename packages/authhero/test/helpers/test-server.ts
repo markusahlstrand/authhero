@@ -10,7 +10,6 @@ import createAdapters, {
   Database,
   migrateToLatest,
 } from "@authhero/kysely-adapter";
-import * as x509 from "@peculiar/x509";
 import { base64 } from "oslo/encoding";
 import {
   createEncryptedDataAdapter,
@@ -206,9 +205,6 @@ export async function getTestServer(
     user_id: "email|userId",
   });
 
-  const certificate = new x509.X509Certificate(signingKey.cert);
-  const publicKey = await certificate.publicKey.export();
-  const jwkKey = await crypto.subtle.exportKey("jwk", publicKey);
   const mockEmailService = new MockEmailService();
   const mockSmsService = new MockSmsService();
 
@@ -221,18 +217,6 @@ export async function getTestServer(
 
   const env: Bindings = {
     data: dataWithServices,
-    JWKS_SERVICE: {
-      fetch: async () =>
-        new Response(
-          JSON.stringify({
-            keys: [{ ...jwkKey, kid: signingKey.kid }],
-          }),
-          {
-            headers: { "Content-Type": "application/json" },
-          },
-        ),
-    },
-    JWKS_URL: "http://localhost:3000/.well-known/jwks.json",
     AUTH_URL: "http://localhost:3000",
     ISSUER: "http://localhost:3000/",
     ENVIRONMENT: "test",

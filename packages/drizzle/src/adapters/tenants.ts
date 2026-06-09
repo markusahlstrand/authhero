@@ -92,10 +92,17 @@ export function createTenantsAdapter(db: DrizzleDb) {
       try {
         await db.insert(tenants).values(sqlTenant);
       } catch (error: any) {
+        const message: string = error?.message ?? "";
         if (
-          error?.message?.includes("UNIQUE constraint failed") ||
-          error?.message?.includes("duplicate key") ||
-          error?.code === "SQLITE_CONSTRAINT"
+          message.includes("UNIQUE constraint failed") ||
+          message.includes("Duplicate entry") ||
+          message.includes("duplicate key") ||
+          message.includes("AlreadyExists") ||
+          error?.code === "SQLITE_CONSTRAINT" ||
+          error?.code === "SQLITE_CONSTRAINT_UNIQUE" ||
+          error?.code === "SQLITE_CONSTRAINT_PRIMARYKEY" ||
+          error?.code === "ER_DUP_ENTRY" ||
+          error?.code === "23505"
         ) {
           throw new HTTPException(409, {
             message: `Tenant with ID '${tenant.id}' already exists`,

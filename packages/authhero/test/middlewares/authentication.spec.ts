@@ -5,23 +5,13 @@ import { createAuthMiddleware } from "../../src/middlewares/authentication";
 import { createToken, getCertificate } from "../helpers/token";
 import { MANAGEMENT_API_AUDIENCE } from "../../src/middlewares/authentication";
 import { Bindings, Variables } from "../../src/types";
-import * as x509 from "@peculiar/x509";
-
-// Mock JWKS service
-const mockJwksService = {
-  fetch: vi.fn(),
-};
-
-const mockEnv: Bindings = {
-  JWKS_SERVICE: mockJwksService,
-  JWKS_URL: "https://example.com/.well-known/jwks.json",
-} as any;
 
 describe("createAuthMiddleware", () => {
   let app: OpenAPIHono<{ Bindings: Bindings; Variables: Variables }>;
   let mockCtx: any;
   let mockNext: any;
   let authMiddleware: any;
+  let mockEnv: Bindings;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -30,6 +20,25 @@ describe("createAuthMiddleware", () => {
     authMiddleware = createAuthMiddleware(app);
 
     mockNext = vi.fn().mockResolvedValue("next-response");
+
+    // Seed the verification path with the same control-plane signing key the
+    // test tokens are minted from. With no tenant_id on ctx.var, validateJwt
+    // takes the control-plane branch (`-_exists_:tenant_id`); the mock returns
+    // the same record regardless of the query, which is fine for these tests.
+    const signingKey = await getCertificate();
+    mockEnv = {
+      ISSUER: "http://localhost:3000/",
+      data: {
+        keys: {
+          list: async () => ({
+            signingKeys: [signingKey],
+            length: 1,
+            start: 0,
+            limit: 100,
+          }),
+        },
+      },
+    } as any;
 
     mockCtx = {
       req: {
@@ -46,41 +55,6 @@ describe("createAuthMiddleware", () => {
       set: vi.fn(),
       var: {},
     };
-
-    // Get the actual certificate used by createToken and extract JWK from it
-    const certificate = await getCertificate();
-
-    // Parse the PEM certificate to extract the public key
-    const cert = new x509.X509Certificate(certificate.cert);
-    const publicKey = await cert.publicKey.export();
-    const jwkKey = (await crypto.subtle.exportKey(
-      "jwk",
-      publicKey,
-    )) as JsonWebKey;
-
-    mockJwksService.fetch.mockResolvedValue({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          keys: [
-            {
-              alg: "RS256",
-              kty: "RSA",
-              use: "sig",
-              n: jwkKey.n,
-              e: jwkKey.e,
-              kid: certificate.kid,
-              x5t: certificate.thumbprint,
-              x5c: [
-                certificate.cert.replace(
-                  /-----BEGIN CERTIFICATE-----|\r\n|\n|-----END CERTIFICATE-----/g,
-                  "",
-                ),
-              ],
-            },
-          ],
-        }),
-    });
   });
 
   describe("when route has no security requirements", () => {
@@ -368,7 +342,7 @@ describe("createAuthMiddleware", () => {
     });
   });
 
-  describe("JWKS service failures", () => {
+  describe("JWKS lookup failures", () => {
     beforeEach(() => {
       app.openapi(
         {
@@ -385,11 +359,20 @@ describe("createAuthMiddleware", () => {
       );
     });
 
-    it("should reject when JWKS service is unavailable", async () => {
-      mockJwksService.fetch.mockResolvedValue({
-        ok: false,
-        status: 500,
-      });
+    it("should reject when no signing keys are available", async () => {
+      mockCtx.env = {
+        ...mockEnv,
+        data: {
+          keys: {
+            list: async () => ({
+              signingKeys: [],
+              length: 0,
+              start: 0,
+              limit: 100,
+            }),
+          },
+        },
+      };
 
       const token = await createToken({
         user_id: "user123",
@@ -404,8 +387,17 @@ describe("createAuthMiddleware", () => {
       expect(mockNext).not.toHaveBeenCalled();
     });
 
-    it("should reject when JWKS service throws an error", async () => {
-      mockJwksService.fetch.mockRejectedValue(new Error("Network error"));
+    it("should reject when the keys adapter throws", async () => {
+      mockCtx.env = {
+        ...mockEnv,
+        data: {
+          keys: {
+            list: async () => {
+              throw new Error("Database unavailable");
+            },
+          },
+        },
+      };
 
       const token = await createToken({
         user_id: "user123",
@@ -710,7 +702,10 @@ describe("createAuthMiddleware", () => {
       // Wire the control-plane tenant id into the mock env.
       mockCtx.env = {
         ...mockEnv,
-        data: { multiTenancyConfig: { controlPlaneTenantId: "controlPlane" } },
+        data: {
+          ...mockEnv.data,
+          multiTenancyConfig: { controlPlaneTenantId: "controlPlane" },
+        },
       };
       mockCtx.req.header.mockReturnValue(`Bearer ${token}`);
       mockCtx.var.tenant_id = "tenantB";
@@ -735,7 +730,10 @@ describe("createAuthMiddleware", () => {
 
       mockCtx.env = {
         ...mockEnv,
-        data: { multiTenancyConfig: { controlPlaneTenantId: "controlPlane" } },
+        data: {
+          ...mockEnv.data,
+          multiTenancyConfig: { controlPlaneTenantId: "controlPlane" },
+        },
       };
       mockCtx.req.header.mockReturnValue(`Bearer ${token}`);
       mockCtx.var.tenant_id = "tenantB";

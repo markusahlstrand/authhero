@@ -107,7 +107,7 @@ export function DetailsTab() {
     <div className="flex flex-col gap-4 max-w-2xl">
       <VerificationSection />
       <div className="flex flex-col gap-3">
-        <TextInput source="domain" />
+        <TextInput source="domain" readOnly />
         <TextInput source="status" readOnly />
 
         <SelectInput

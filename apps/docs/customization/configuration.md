@@ -254,7 +254,6 @@ When deploying AuthHero, additional configuration is provided through environmen
 ### Optional Environment Variables
 
 - `SAML_SIGN_URL`: URL for the SAML signing service (used if `samlSigner` not provided in config)
-- `JWKS_URL`: Custom JWKS endpoint URL
 - `UNIVERSAL_LOGIN_URL`: Custom universal login page URL
 - `OAUTH_API_URL`: Custom OAuth API URL
 - `ENVIRONMENT`: Environment name (e.g., "production", "development")

@@ -52,7 +52,7 @@ export async function createToken(params?: CreateTokenParams) {
       scope: params?.scope ?? "openid email profile",
       permissions: params?.permissions || [],
       sub: params?.user_id || "userId",
-      iss: "test.example.com",
+      iss: "http://localhost:3000/",
       tenant_id: params?.tenant_id,
       ...(params?.requested_userinfo_claims
         ? { requested_userinfo_claims: params.requested_userinfo_claims }

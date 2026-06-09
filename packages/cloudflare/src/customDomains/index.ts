@@ -238,20 +238,38 @@ export function createCustomDomainsAdapter(
         throw new HTTPException(404);
       }
 
-      const merged = mapCustomDomainResponse({ ...customDomain, ...result });
+      let merged: CustomDomain;
+      try {
+        merged = mapCustomDomainResponse({ ...customDomain, ...result });
+      } catch (err) {
+        console.warn(
+          `[custom-domains] mapCustomDomainResponse failed for ${domain_id} (tenant=${tenant_id}); returning stale DB row.`,
+          err instanceof Error ? err.message : err,
+        );
+        return customDomain;
+      }
 
       // Mirror the fresh Cloudflare state back to the DB so list() and the
       // next get() reflect reality. Only write if something actually changed
-      // to avoid pointless updated_at churn.
+      // to avoid pointless updated_at churn. Failures here (e.g. varchar
+      // overflow on the verification column during method switch) must not
+      // poison the response — the merged object is still correct to return.
       if (
         merged.status !== customDomain.status ||
         JSON.stringify(merged.verification) !==
           JSON.stringify(customDomain.verification)
       ) {
-        await config.customDomainAdapter.update(tenant_id, domain_id, {
-          status: merged.status,
-          verification: merged.verification,
-        });
+        try {
+          await config.customDomainAdapter.update(tenant_id, domain_id, {
+            status: merged.status,
+            verification: merged.verification,
+          });
+        } catch (err) {
+          console.warn(
+            `[custom-domains] DB writeback failed for ${domain_id} (tenant=${tenant_id}); returning merged response without DB sync.`,
+            err instanceof Error ? err.message : err,
+          );
+        }
       }
 
       return merged;

@@ -1,11 +1,9 @@
-import { z } from "@hono/zod-openapi";
 import { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { jwksSchema } from "@authhero/adapter-interfaces";
 import { JSONHTTPException } from "../errors/json-http-exception";
 import { decode, verify } from "hono/jwt";
-import { getJwksFromDatabase } from "./jwks";
-import { Bindings } from "../types";
+import { getJwksForVerification } from "./jwks";
+import { getIssuer } from "../variables";
 import { importParamsForJwk, SupportedAlg } from "./jwk-alg";
 
 export interface JwtPayload {
@@ -22,35 +20,6 @@ export interface JwtPayload {
   org_name?: string;
   // RFC 8693 §4.1 — present on tokens minted via a delegated flow.
   act?: { sub: string; client_id?: string };
-}
-
-async function getJwks(bindings: Bindings) {
-  if (bindings.JWKS_URL && bindings.JWKS_SERVICE) {
-    try {
-      const response = await bindings.JWKS_SERVICE.fetch(bindings.JWKS_URL);
-
-      if (!response.ok) {
-        console.warn(
-          `JWKS fetch failed with status ${response.status}, falling back to database`,
-        );
-        return await getJwksFromDatabase(bindings.data);
-      }
-
-      const responseBody = await response.json();
-      const parsed = z
-        .object({ keys: z.array(jwksSchema) })
-        .parse(responseBody);
-
-      return parsed.keys;
-    } catch (error) {
-      console.warn(
-        `JWKS fetch error: ${error instanceof Error ? error.message : "Unknown error"}, falling back to database`,
-      );
-      return await getJwksFromDatabase(bindings.data);
-    }
-  }
-
-  return await getJwksFromDatabase(bindings.data);
 }
 
 function toSupportedAlg(alg: unknown): SupportedAlg {
@@ -77,7 +46,15 @@ export async function validateJwtToken(
     const { header } = decode(token);
     const alg = toSupportedAlg(header?.alg);
 
-    const jwksKeys = await getJwks(ctx.env);
+    // Scope verification to the tenant resolved from the request. Loading the
+    // global keyset would let a token signed for tenant A verify against
+    // tenant B's API (matching kid), even though A's iss wouldn't match B's
+    // host — checked below as a second line of defense.
+    const jwksKeys = await getJwksForVerification(
+      ctx.env.data,
+      ctx.var.tenant_id,
+      ctx.env.signingKeyMode,
+    );
     const jwksKey = jwksKeys.find((key) => key.kid === header.kid);
 
     if (!jwksKey) {
@@ -103,9 +80,23 @@ export async function validateJwtToken(
       ["verify"],
     );
 
-    const verifiedPayload = await verify(token, cryptoKey, alg);
+    const verifiedPayload = (await verify(
+      token,
+      cryptoKey,
+      alg,
+    )) as unknown as JwtPayload;
 
-    return verifiedPayload as unknown as JwtPayload;
+    // Pin the token to the host it was issued for. A custom-domain tenant
+    // mints tokens with iss=https://<custom-domain>/; the canonical control
+    // plane uses env.ISSUER. Without this check, a kid that appears in both
+    // keysets (e.g. control-plane fallback during tenant key rollout) would
+    // let a token issued on host A authenticate on host B.
+    const expectedIssuer = getIssuer(ctx.env, ctx.var.custom_domain);
+    if (verifiedPayload.iss !== expectedIssuer) {
+      throw new JSONHTTPException(401, { message: "Invalid issuer" });
+    }
+
+    return verifiedPayload;
   } catch (error) {
     if (error instanceof HTTPException) {
       throw error;

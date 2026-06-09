@@ -33,20 +33,6 @@ async function signingKeysToJwks(signingKeys: SigningKey[]) {
 }
 
 /**
- * Helper function to fetch JWKS keys from the database for token *verification*.
- *
- * Returns every non-revoked `jwt_signing` key regardless of tenant scope so a
- * token signed by any key (control-plane or any tenant) can be matched by kid.
- * Use `getJwksForPublication` for the public `/.well-known/jwks.json` endpoint.
- */
-export async function getJwksFromDatabase(data: DataAdapters) {
-  const { signingKeys } = await data.keys.list({
-    q: "type:jwt_signing",
-  });
-  return signingKeysToJwks(signingKeys);
-}
-
-/**
  * JWKS for publication on a tenant's `/.well-known/jwks.json`. Honors the
  * configured `signingKeyMode` and, in `"tenant"` mode, returns the union of
  * the tenant's keys and the control-plane fallback so tokens signed by either
@@ -64,4 +50,24 @@ export async function getJwksForPublication(
     { purpose: "publish" },
   );
   return signingKeysToJwks(signingKeys);
+}
+
+/**
+ * JWKS for verifying bearer tokens. Mirrors the publication set so any kid
+ * that appears in a tenant's published `/.well-known/jwks.json` will also
+ * verify. Without a resolved tenant (control-plane host with no tenant
+ * subdomain), only control-plane-signed tokens are accepted.
+ */
+export async function getJwksForVerification(
+  data: DataAdapters,
+  tenantId: string | undefined,
+  modeOption: SigningKeyModeOption | undefined,
+) {
+  if (!tenantId) {
+    const { signingKeys } = await data.keys.list({
+      q: "type:jwt_signing AND -_exists_:tenant_id",
+    });
+    return signingKeysToJwks(signingKeys);
+  }
+  return getJwksForPublication(data, tenantId, modeOption);
 }

@@ -592,7 +592,6 @@ const env = {
   },
   // Other environment configuration...
   ISSUER: "https://your-domain.com",
-  JWKS_URL: "https://your-domain.com/.well-known/jwks.json",
   // ...
 };
 
