@@ -38,9 +38,20 @@ function toSupportedAlg(alg: unknown): SupportedAlg {
   }
 }
 
+export interface ValidateJwtTokenOptions {
+  /**
+   * Skip the `iss === getIssuer(env, custom_domain)` check. Use only when the
+   * caller will perform its own issuer check with caller-specific error
+   * semantics — e.g. RFC 8693 token-exchange returns `invalid_grant` (400/403)
+   * for iss mismatch rather than the 401 this function would raise.
+   */
+  skipIssuerCheck?: boolean;
+}
+
 export async function validateJwtToken(
   ctx: Context,
   token: string,
+  options: ValidateJwtTokenOptions = {},
 ): Promise<JwtPayload> {
   try {
     const { header } = decode(token);
@@ -91,9 +102,11 @@ export async function validateJwtToken(
     // plane uses env.ISSUER. Without this check, a kid that appears in both
     // keysets (e.g. control-plane fallback during tenant key rollout) would
     // let a token issued on host A authenticate on host B.
-    const expectedIssuer = getIssuer(ctx.env, ctx.var.custom_domain);
-    if (verifiedPayload.iss !== expectedIssuer) {
-      throw new JSONHTTPException(401, { message: "Invalid issuer" });
+    if (!options.skipIssuerCheck) {
+      const expectedIssuer = getIssuer(ctx.env, ctx.var.custom_domain);
+      if (verifiedPayload.iss !== expectedIssuer) {
+        throw new JSONHTTPException(401, { message: "Invalid issuer" });
+      }
     }
 
     return verifiedPayload;

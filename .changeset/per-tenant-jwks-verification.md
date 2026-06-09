@@ -26,3 +26,12 @@ kid during a key rollout.
 The `JWKS_URL` and `JWKS_SERVICE` bindings have been removed from
 `Bindings`. Deployments that need a tenant's JWKS over HTTP should fetch
 the tenant's `/.well-known/jwks.json` endpoint directly.
+
+**Behavior change:** verification now respects the `revoked_at` flag on
+signing keys, mirroring how `getJwksForPublication` already worked.
+Tokens signed by an immediately-revoked kid no longer verify (previously
+they continued to verify because the global keyset query did not filter
+revoked rows). The `/keys/signing/{kid}/revoke` endpoint provisions a
+replacement key in the same call, so subsequent tokens are signed by
+the new key. Use the `/keys/signing/rotate` endpoint instead when you
+want the legacy 24h grace period before the old key stops verifying.

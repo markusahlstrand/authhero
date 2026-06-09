@@ -93,10 +93,13 @@ export async function tokenExchangeGrant(
     });
   }
 
-  // Verify the subject token: signature + issuer + expiry. validateJwtToken
-  // resolves the signing key from the tenant's own JWKS, so any token it
-  // accepts was issued by this authhero instance.
-  const subjectPayload = await validateJwtToken(ctx, params.subject_token);
+  // Verify the subject token: signature + expiry. The iss check below
+  // converts a mismatch into RFC 8693 `invalid_grant` instead of the 401
+  // validateJwtToken would otherwise raise — token-exchange semantics, not
+  // bearer-auth semantics.
+  const subjectPayload = await validateJwtToken(ctx, params.subject_token, {
+    skipIssuerCheck: true,
+  });
 
   // Auth0 returns 403 for invalid_grant on the token endpoint; RFC 6749 §5.2
   // mandates 400. Gate on the client's auth0_conformant flag (default true) —
