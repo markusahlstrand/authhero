@@ -1,11 +1,9 @@
-import { z } from "@hono/zod-openapi";
 import { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { jwksSchema } from "@authhero/adapter-interfaces";
 import { JSONHTTPException } from "../errors/json-http-exception";
 import { decode, verify } from "hono/jwt";
-import { getJwksFromDatabase } from "./jwks";
-import { Bindings } from "../types";
+import { getJwksForVerification } from "./jwks";
+import { getIssuer } from "../variables";
 import { importParamsForJwk, SupportedAlg } from "./jwk-alg";
 
 export interface JwtPayload {
@@ -24,35 +22,6 @@ export interface JwtPayload {
   act?: { sub: string; client_id?: string };
 }
 
-async function getJwks(bindings: Bindings) {
-  if (bindings.JWKS_URL && bindings.JWKS_SERVICE) {
-    try {
-      const response = await bindings.JWKS_SERVICE.fetch(bindings.JWKS_URL);
-
-      if (!response.ok) {
-        console.warn(
-          `JWKS fetch failed with status ${response.status}, falling back to database`,
-        );
-        return await getJwksFromDatabase(bindings.data);
-      }
-
-      const responseBody = await response.json();
-      const parsed = z
-        .object({ keys: z.array(jwksSchema) })
-        .parse(responseBody);
-
-      return parsed.keys;
-    } catch (error) {
-      console.warn(
-        `JWKS fetch error: ${error instanceof Error ? error.message : "Unknown error"}, falling back to database`,
-      );
-      return await getJwksFromDatabase(bindings.data);
-    }
-  }
-
-  return await getJwksFromDatabase(bindings.data);
-}
-
 function toSupportedAlg(alg: unknown): SupportedAlg {
   switch (alg) {
     case "RS256":
@@ -69,15 +38,48 @@ function toSupportedAlg(alg: unknown): SupportedAlg {
   }
 }
 
+export interface ValidateJwtTokenOptions {
+  /**
+   * Skip the `iss === getIssuer(env, custom_domain)` check. Use only when the
+   * caller will perform its own issuer check with caller-specific error
+   * semantics — e.g. RFC 8693 token-exchange returns `invalid_grant` (400/403)
+   * for iss mismatch rather than the 401 this function would raise.
+   */
+  skipIssuerCheck?: boolean;
+}
+
+/**
+ * Raised when the subject JWT carried a past `exp`. Extends JSONHTTPException
+ * with the same 403/"Invalid JWT signature" body the wrapper used to emit for
+ * any verify failure, so callers that only branch on `instanceof HTTPException`
+ * keep their current behavior. Token-exchange catches this class specifically
+ * to emit the RFC 8693 `invalid_grant` / "Subject token has expired" response.
+ */
+export class JwtExpiredError extends JSONHTTPException {
+  constructor() {
+    super(403, { message: "Invalid JWT signature" });
+    this.name = "JwtExpiredError";
+  }
+}
+
 export async function validateJwtToken(
   ctx: Context,
   token: string,
+  options: ValidateJwtTokenOptions = {},
 ): Promise<JwtPayload> {
   try {
     const { header } = decode(token);
     const alg = toSupportedAlg(header?.alg);
 
-    const jwksKeys = await getJwks(ctx.env);
+    // Scope verification to the tenant resolved from the request. Loading the
+    // global keyset would let a token signed for tenant A verify against
+    // tenant B's API (matching kid), even though A's iss wouldn't match B's
+    // host — checked below as a second line of defense.
+    const jwksKeys = await getJwksForVerification(
+      ctx.env.data,
+      ctx.var.tenant_id,
+      ctx.env.signingKeyMode,
+    );
     const jwksKey = jwksKeys.find((key) => key.kid === header.kid);
 
     if (!jwksKey) {
@@ -103,12 +105,36 @@ export async function validateJwtToken(
       ["verify"],
     );
 
-    const verifiedPayload = await verify(token, cryptoKey, alg);
+    const verifiedPayload = (await verify(
+      token,
+      cryptoKey,
+      alg,
+    )) as unknown as JwtPayload;
 
-    return verifiedPayload as unknown as JwtPayload;
+    // Pin the token to the host it was issued for. A custom-domain tenant
+    // mints tokens with iss=https://<custom-domain>/; the canonical control
+    // plane uses env.ISSUER. Without this check, a kid that appears in both
+    // keysets (e.g. control-plane fallback during tenant key rollout) would
+    // let a token issued on host A authenticate on host B.
+    if (!options.skipIssuerCheck) {
+      const expectedIssuer = getIssuer(ctx.env, ctx.var.custom_domain);
+      if (verifiedPayload.iss !== expectedIssuer) {
+        throw new JSONHTTPException(401, { message: "Invalid issuer" });
+      }
+    }
+
+    return verifiedPayload;
   } catch (error) {
     if (error instanceof HTTPException) {
       throw error;
+    }
+    // hono/jwt raises a plain Error subclass named "JwtTokenExpired" when the
+    // token's `exp` is in the past. Surface that as a discriminable subclass
+    // so callers with expiry-specific semantics (RFC 8693 token-exchange) can
+    // branch on it; default behavior — a generic 403 — is preserved via the
+    // base class.
+    if (error instanceof Error && error.name === "JwtTokenExpired") {
+      throw new JwtExpiredError();
     }
     throw new JSONHTTPException(403, { message: "Invalid JWT signature" });
   }

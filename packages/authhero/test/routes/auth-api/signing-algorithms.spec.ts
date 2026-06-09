@@ -159,9 +159,6 @@ describe("signing algorithms", () => {
     });
     await env.data.keys.create(ecKey);
 
-    // Force JWKS lookups to go to the DB so they see the new EC key.
-    env.JWKS_URL = undefined;
-
     const client = testClient(oauthApp, env);
     const tokenResponse = await client.oauth.token.$post(
       // @ts-expect-error - testClient type requires both form and json

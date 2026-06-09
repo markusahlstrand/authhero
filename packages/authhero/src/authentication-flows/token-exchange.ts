@@ -6,7 +6,7 @@ import { Bindings, Variables, GrantFlowUserResult } from "../types";
 import { safeCompare } from "../utils/safe-compare";
 import { getEnrichedClient } from "../helpers/client";
 import { logMessage } from "../helpers/logging";
-import { validateJwtToken } from "../utils/jwt";
+import { JwtExpiredError, validateJwtToken, type JwtPayload } from "../utils/jwt";
 import { getIssuer } from "../variables";
 
 const SUBJECT_TOKEN_TYPE_ACCESS_TOKEN =
@@ -93,15 +93,33 @@ export async function tokenExchangeGrant(
     });
   }
 
-  // Verify the subject token: signature + issuer + expiry. validateJwtToken
-  // resolves the signing key from the tenant's own JWKS, so any token it
-  // accepts was issued by this authhero instance.
-  const subjectPayload = await validateJwtToken(ctx, params.subject_token);
-
   // Auth0 returns 403 for invalid_grant on the token endpoint; RFC 6749 §5.2
   // mandates 400. Gate on the client's auth0_conformant flag (default true) —
   // mirrors the pattern in refresh-token.ts so all grants agree.
   const invalidGrantStatus = client.auth0_conformant === false ? 400 : 403;
+
+  // Verify the subject token: signature + expiry. The iss check below
+  // converts a mismatch into RFC 8693 `invalid_grant` instead of the 401
+  // validateJwtToken would otherwise raise — token-exchange semantics, not
+  // bearer-auth semantics. Expiry is enforced by hono/jwt's verify; we map
+  // its dedicated JwtExpiredError to the same invalid_grant shape so audit
+  // logs and the wire response distinguish expired-subject from generic
+  // signature failures.
+  let subjectPayload: JwtPayload;
+  try {
+    subjectPayload = await validateJwtToken(ctx, params.subject_token, {
+      skipIssuerCheck: true,
+    });
+  } catch (error) {
+    if (error instanceof JwtExpiredError) {
+      failLog("Subject token expired");
+      throw new JSONHTTPException(invalidGrantStatus, {
+        error: "invalid_grant",
+        error_description: "Subject token has expired",
+      });
+    }
+    throw error;
+  }
 
   const expectedIssuer = getIssuer(ctx.env, ctx.var.custom_domain);
   if (subjectPayload.iss !== expectedIssuer) {
@@ -109,17 +127,6 @@ export async function tokenExchangeGrant(
     throw new JSONHTTPException(invalidGrantStatus, {
       error: "invalid_grant",
       error_description: "Subject token issuer mismatch",
-    });
-  }
-
-  if (
-    typeof subjectPayload.exp === "number" &&
-    subjectPayload.exp * 1000 < Date.now()
-  ) {
-    failLog("Subject token expired");
-    throw new JSONHTTPException(invalidGrantStatus, {
-      error: "invalid_grant",
-      error_description: "Subject token has expired",
     });
   }
 

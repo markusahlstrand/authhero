@@ -81,24 +81,18 @@ describe("keys", () => {
     );
     expect(rovokeResponse.status).toBe(200);
 
-    // Get a list of the keys. There should be a new key instead of the revoked one
-    const newKeysResponse = await managementClient.keys.signing.$get(
-      {
-        header: {
-          "tenant-id": "tenantId",
-        },
-      },
-      {
-        headers: {
-          authorization: `Bearer ${token}`,
-        },
-      },
+    // Immediate revoke invalidates tokens signed by the just-revoked kid, so
+    // the bearer above can no longer call the management API. Verify the
+    // resulting state directly: one active key (new), one revoked (old).
+    const { signingKeys } = await env.data.keys.list({
+      q: "type:jwt_signing",
+    });
+    const now = Date.now();
+    const active = signingKeys.filter(
+      (k) => !k.revoked_at || new Date(k.revoked_at).getTime() > now,
     );
-    expect(newKeysResponse.status).toBe(200);
-
-    const emptyKeys = await newKeysResponse.json();
-    expect(emptyKeys).toHaveLength(1);
-    expect(emptyKeys[0]?.kid).not.toBe(kid);
+    expect(active).toHaveLength(1);
+    expect(active[0]?.kid).not.toBe(kid);
   });
 
   it("should get a key by kid", async () => {

@@ -11,15 +11,9 @@ import {
 } from "./AuthHeroConfig";
 import { StrategyHandler } from "../strategies";
 
-declare type Fetcher = {
-  fetch: typeof fetch;
-};
-
 export type Bindings = {
   ENVIRONMENT: string;
   AUTH_URL: string;
-  JWKS_URL?: string;
-  JWKS_SERVICE?: Fetcher;
   ISSUER: string;
   UNIVERSAL_LOGIN_URL?: string;
   OAUTH_API_URL?: string;

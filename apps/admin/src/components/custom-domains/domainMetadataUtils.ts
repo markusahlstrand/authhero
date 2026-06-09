@@ -46,6 +46,31 @@ export function unflattenDomainMetadata<T extends AnyRecord>(record: T): T {
 }
 
 /**
+ * Fields accepted by PATCH /custom-domains/{id}. The API rejects everything
+ * else with a 400 (schema is `.strict()`), so the edit form must filter the
+ * record down to these before submitting.
+ */
+const UPDATE_ALLOWED_FIELDS = [
+  "tls_policy",
+  "custom_client_ip_header",
+  "domain_metadata",
+] as const;
+
+/**
+ * Transform for the edit form: flatten domain_metadata back to dot-notation
+ * AND drop fields the PATCH endpoint doesn't accept (domain, status,
+ * verification, custom_domain_id, etc.).
+ */
+export function transformForUpdate<T extends AnyRecord>(record: T): AnyRecord {
+  const flat = flattenDomainMetadata(record);
+  const picked: AnyRecord = {};
+  for (const key of UPDATE_ALLOWED_FIELDS) {
+    if (key in flat) picked[key] = flat[key];
+  }
+  return picked;
+}
+
+/**
  * Convert nested domain_metadata back to flat dot-notation keys
  * for the API.
  *

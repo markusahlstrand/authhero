@@ -1,7 +1,7 @@
 import { Edit, SimpleForm } from "@/components/admin";
 import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UrlTabs } from "@/components/ui/url-tabs";
-import { flattenDomainMetadata } from "@/components/custom-domains/domainMetadataUtils";
+import { transformForUpdate } from "@/components/custom-domains/domainMetadataUtils";
 import { CertificateTab } from "./tabs/certificate-tab";
 import { DetailsTab } from "./tabs/details-tab";
 import { ProxyTab } from "./tabs/proxy-tab";
@@ -9,7 +9,7 @@ import { RawJsonTab } from "./tabs/raw-json-tab";
 
 export function DomainEdit() {
   return (
-    <Edit transform={flattenDomainMetadata} mutationMode="pessimistic">
+    <Edit transform={transformForUpdate} mutationMode="pessimistic">
       <SimpleForm className="max-w-none">
         <UrlTabs defaultValue="details" className="w-full">
           <TabsList>
