@@ -48,6 +48,20 @@ export interface ValidateJwtTokenOptions {
   skipIssuerCheck?: boolean;
 }
 
+/**
+ * Raised when the subject JWT carried a past `exp`. Extends JSONHTTPException
+ * with the same 403/"Invalid JWT signature" body the wrapper used to emit for
+ * any verify failure, so callers that only branch on `instanceof HTTPException`
+ * keep their current behavior. Token-exchange catches this class specifically
+ * to emit the RFC 8693 `invalid_grant` / "Subject token has expired" response.
+ */
+export class JwtExpiredError extends JSONHTTPException {
+  constructor() {
+    super(403, { message: "Invalid JWT signature" });
+    this.name = "JwtExpiredError";
+  }
+}
+
 export async function validateJwtToken(
   ctx: Context,
   token: string,
@@ -113,6 +127,14 @@ export async function validateJwtToken(
   } catch (error) {
     if (error instanceof HTTPException) {
       throw error;
+    }
+    // hono/jwt raises a plain Error subclass named "JwtTokenExpired" when the
+    // token's `exp` is in the past. Surface that as a discriminable subclass
+    // so callers with expiry-specific semantics (RFC 8693 token-exchange) can
+    // branch on it; default behavior — a generic 403 — is preserved via the
+    // base class.
+    if (error instanceof Error && error.name === "JwtTokenExpired") {
+      throw new JwtExpiredError();
     }
     throw new JSONHTTPException(403, { message: "Invalid JWT signature" });
   }

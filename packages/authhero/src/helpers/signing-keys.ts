@@ -31,6 +31,11 @@ function assertSafeLuceneTerm(value: string, label: string): void {
   }
 }
 
+// Bumped well above the adapter default per_page (kysely: 100, drizzle: 50)
+// so a long key history doesn't silently truncate a JWKS that must contain
+// every still-active key for verification.
+const LIST_PAGE_SIZE = 1000;
+
 async function listByTenant(
   keys: KeysAdapter,
   tenantId: string,
@@ -41,18 +46,20 @@ async function listByTenant(
   const { signingKeys } = await keys.list({
     q: `type:${type} AND tenant_id:${tenantId}`,
     sort: { sort_by: "created_at", sort_order: "desc" },
+    per_page: LIST_PAGE_SIZE,
   });
   return nonRevoked(signingKeys);
 }
 
-async function listControlPlane(
+export async function listControlPlaneKeys(
   keys: KeysAdapter,
-  type: string,
+  type = "jwt_signing",
 ): Promise<SigningKey[]> {
   assertSafeLuceneTerm(type, "type");
   const { signingKeys } = await keys.list({
     q: `type:${type} AND -_exists_:tenant_id`,
     sort: { sort_by: "created_at", sort_order: "desc" },
+    per_page: LIST_PAGE_SIZE,
   });
   return nonRevoked(signingKeys);
 }
@@ -89,7 +96,7 @@ export async function resolveSigningKeys(
   const mode = await resolveSigningKeyMode(modeOption, tenantId);
 
   if (mode === "control-plane") {
-    const controlPlaneKeys = await listControlPlane(keys, type);
+    const controlPlaneKeys = await listControlPlaneKeys(keys, type);
     if (opts.purpose === "sign") {
       // Collapse to a single key so the sign path returns the same shape
       // (at most one element) regardless of mode.
@@ -102,7 +109,7 @@ export async function resolveSigningKeys(
   // mode === "tenant"
   const [tenantKeys, controlPlaneKeys] = await Promise.all([
     listByTenant(keys, tenantId, type),
-    listControlPlane(keys, type),
+    listControlPlaneKeys(keys, type),
   ]);
 
   if (opts.purpose === "sign") {

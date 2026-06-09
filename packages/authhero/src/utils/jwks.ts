@@ -5,7 +5,10 @@ import {
 } from "@authhero/adapter-interfaces";
 import { X509Certificate } from "@peculiar/x509";
 import { algForJwk } from "./jwk-alg";
-import { resolveSigningKeys } from "../helpers/signing-keys";
+import {
+  listControlPlaneKeys,
+  resolveSigningKeys,
+} from "../helpers/signing-keys";
 import { SigningKeyModeOption } from "../types/AuthHeroConfig";
 
 async function signingKeysToJwks(signingKeys: SigningKey[]) {
@@ -64,9 +67,7 @@ export async function getJwksForVerification(
   modeOption: SigningKeyModeOption | undefined,
 ) {
   if (!tenantId) {
-    const { signingKeys } = await data.keys.list({
-      q: "type:jwt_signing AND -_exists_:tenant_id",
-    });
+    const signingKeys = await listControlPlaneKeys(data.keys);
     return signingKeysToJwks(signingKeys);
   }
   return getJwksForPublication(data, tenantId, modeOption);
