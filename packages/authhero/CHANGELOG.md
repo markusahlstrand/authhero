@@ -1,5 +1,23 @@
 # authhero
 
+## 7.1.0
+
+### Minor Changes
+
+- 429f88a: Proxy control-plane now accepts bearer tokens whose `iss` is either the canonical `env.ISSUER` or the host the request actually arrived on (`x-forwarded-host`, falling back to the request URL host). This fixes 401s when the `@authhero/proxy` data plane calls the control plane on a tenant subdomain (e.g. `sesamy.token.sesamy.com`) or a registered custom domain (e.g. `login.parcferme.no`), where the minted token's `iss` matches the calling host rather than the canonical issuer.
+
+  JWKS is now fetched per-issuer from `<iss>/.well-known/jwks.json`, after the `iss` is allow-listed — this prevents a forged `iss` from steering the verifier to an attacker-controlled JWKS.
+
+  **Breaking config change** (`proxyControlPlane`): the `jwksUrl` option is removed. The JWKS URL is now derived from the verified `iss` per request. Callers that route JWKS fetches through a service binding can continue to do so via `jwksFetch?: (url: string) => Promise<Response>` — the URL is now the per-issuer URL, so the override must handle multiple hosts.
+
+### Patch Changes
+
+- 429f88a: Tighten PATCH `/api/v2/custom-domains/{id}` to match Auth0: only `tls_policy`, `custom_client_ip_header`, and `domain_metadata` (the authhero extension) are accepted. Previously the route accepted a partial of the full schema, which made round-trips (GET → modify → PATCH) fail with `Payload validation error` once clients sent immutable fields like `custom_domain_id`, `domain`, `primary`, `status`, `type`, etc. Adds an exported `customDomainUpdateSchema` for clients to bind to.
+- Updated dependencies [429f88a]
+  - @authhero/adapter-interfaces@3.1.0
+  - @authhero/proxy@0.5.1
+  - @authhero/widget@0.32.40
+
 ## 7.0.0
 
 ### Major Changes
