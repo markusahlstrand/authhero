@@ -17,6 +17,10 @@ export function list(db: Kysely<Database>) {
         customDomain.domain_metadata,
         undefined,
       ),
+      verification: parseJsonIfDefined(
+        customDomain.verification as unknown as string | undefined,
+        undefined,
+      ),
     }));
   };
 }

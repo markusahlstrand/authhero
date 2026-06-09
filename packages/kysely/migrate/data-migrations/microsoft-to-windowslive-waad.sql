@@ -14,9 +14,11 @@
 --   4. migration_sources with provider = 'microsoft' updated the same way as
 --      users (provider only — no user_id rewrite needed).
 --
--- ORDER MATTERS. Run the steps top-to-bottom. Step 2 must run before step 3
--- because it joins on the still-prefixed primary user_id to find the right
--- new prefix; step 3 then overwrites those primary user_ids.
+-- ORDER MATTERS. Run the steps top-to-bottom. Step 2 (rewriting
+-- users.linked_to) and step 3 (rewriting users.user_id + children) share the
+-- same FOREIGN_KEY_CHECKS = 0 session and step 2 must run before the parent
+-- users UPDATE in step 3, because it joins on the still-prefixed primary
+-- user_id to find the right new prefix.
 --
 -- IDEMPOTENCE: each step is gated by `WHERE provider = 'microsoft'` or
 -- `WHERE strategy = 'microsoft'`, so re-running after success is a no-op.
@@ -26,6 +28,17 @@
 --   * Run the SELECT preview queries at the bottom to confirm row counts.
 --   * Wrap each step in BEGIN; COMMIT; if your client supports it (PlanetScale
 --     supports DML transactions per session).
+--
+-- FOREIGN KEY NOTE
+--   users.user_id is referenced by FK constraints from passwords, codes,
+--   sessions, login_sessions, refresh_tokens, password_history, grants, and
+--   users.linked_to. None of them are ON UPDATE CASCADE, so rewriting the
+--   prefix on users.user_id will violate those FKs — and rewriting
+--   users.linked_to to the new prefix before users.user_id catches up
+--   violates the same self-referential FK. Steps 2 and 3 both run inside a
+--   single FOREIGN_KEY_CHECKS = 0 block so the parent + child + linked_to
+--   updates can land without referential violations. Run all of those
+--   statements in one session.
 
 -- ──────────────────────────────────────────────────────────────────────────
 -- Preview: how many rows will be touched?
@@ -67,9 +80,23 @@ WHERE strategy = 'microsoft';
 
 
 -- ──────────────────────────────────────────────────────────────────────────
--- Step 2: users.linked_to  'microsoft|<sub>' → '<new-strategy>|<sub>'
--- (Must run BEFORE step 3 — uses the still-prefixed primary user_id to join.)
+-- Step 2 + Step 3: rewrite users.linked_to and users.user_id (+ child tables)
+--
+-- These must run under FOREIGN_KEY_CHECKS = 0 in the same session:
+--   * Step 2 changes child.linked_to to '<new-strategy>|<sub>' while the
+--     primary user's user_id is still 'microsoft|<sub>' — a transient
+--     violation of the self-referential FK from users.linked_to →
+--     users.user_id.
+--   * Step 3 then rewrites users.user_id and every FK-referencing child
+--     table (passwords, codes, sessions, login_sessions, refresh_tokens,
+--     password_history, grants).
+-- Step 2 MUST execute before the parent users UPDATE in Step 3, because it
+-- joins on the still-prefixed primary user_id to find the right rows.
+-- Run every statement below in the same connection.
 -- ──────────────────────────────────────────────────────────────────────────
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- Step 2: users.linked_to  'microsoft|<sub>' → '<new-strategy>|<sub>'
 UPDATE users child
 JOIN users primary_u
   ON primary_u.tenant_id = child.tenant_id
@@ -84,10 +111,69 @@ SET child.linked_to = CONCAT(
 WHERE child.linked_to LIKE 'microsoft|%'
   AND c.strategy IN ('windowslive', 'waad');
 
+-- Step 3a. Child tables: rewrite their user_id prefix to match the new
+--   strategy. Each is gated by the parent users row still being a
+--   'microsoft|...' user whose connection has been flipped to
+--   windowslive/waad.
 
--- ──────────────────────────────────────────────────────────────────────────
--- Step 3: users.provider / user_id / is_social
--- ──────────────────────────────────────────────────────────────────────────
+UPDATE passwords p
+JOIN users u        ON u.tenant_id = p.tenant_id AND u.user_id = p.user_id
+JOIN connections c  ON c.tenant_id = u.tenant_id AND c.name    = u.connection
+SET p.user_id = CONCAT(c.strategy, '|', SUBSTRING(p.user_id, LOCATE('|', p.user_id) + 1))
+WHERE p.user_id LIKE 'microsoft|%'
+  AND u.provider = 'microsoft'
+  AND c.strategy IN ('windowslive', 'waad');
+
+UPDATE codes ch
+JOIN users u        ON u.tenant_id = ch.tenant_id AND u.user_id = ch.user_id
+JOIN connections c  ON c.tenant_id = u.tenant_id  AND c.name    = u.connection
+SET ch.user_id = CONCAT(c.strategy, '|', SUBSTRING(ch.user_id, LOCATE('|', ch.user_id) + 1))
+WHERE ch.user_id LIKE 'microsoft|%'
+  AND u.provider = 'microsoft'
+  AND c.strategy IN ('windowslive', 'waad');
+
+UPDATE sessions s
+JOIN users u        ON u.tenant_id = s.tenant_id AND u.user_id = s.user_id
+JOIN connections c  ON c.tenant_id = u.tenant_id AND c.name    = u.connection
+SET s.user_id = CONCAT(c.strategy, '|', SUBSTRING(s.user_id, LOCATE('|', s.user_id) + 1))
+WHERE s.user_id LIKE 'microsoft|%'
+  AND u.provider = 'microsoft'
+  AND c.strategy IN ('windowslive', 'waad');
+
+UPDATE login_sessions ls
+JOIN users u        ON u.tenant_id = ls.tenant_id AND u.user_id = ls.user_id
+JOIN connections c  ON c.tenant_id = u.tenant_id  AND c.name    = u.connection
+SET ls.user_id = CONCAT(c.strategy, '|', SUBSTRING(ls.user_id, LOCATE('|', ls.user_id) + 1))
+WHERE ls.user_id LIKE 'microsoft|%'
+  AND u.provider = 'microsoft'
+  AND c.strategy IN ('windowslive', 'waad');
+
+UPDATE refresh_tokens rt
+JOIN users u        ON u.tenant_id = rt.tenant_id AND u.user_id = rt.user_id
+JOIN connections c  ON c.tenant_id = u.tenant_id  AND c.name    = u.connection
+SET rt.user_id = CONCAT(c.strategy, '|', SUBSTRING(rt.user_id, LOCATE('|', rt.user_id) + 1))
+WHERE rt.user_id LIKE 'microsoft|%'
+  AND u.provider = 'microsoft'
+  AND c.strategy IN ('windowslive', 'waad');
+
+UPDATE password_history ph
+JOIN users u        ON u.tenant_id = ph.tenant_id AND u.user_id = ph.user_id
+JOIN connections c  ON c.tenant_id = u.tenant_id  AND c.name    = u.connection
+SET ph.user_id = CONCAT(c.strategy, '|', SUBSTRING(ph.user_id, LOCATE('|', ph.user_id) + 1))
+WHERE ph.user_id LIKE 'microsoft|%'
+  AND u.provider = 'microsoft'
+  AND c.strategy IN ('windowslive', 'waad');
+
+UPDATE grants g
+JOIN users u        ON u.tenant_id = g.tenant_id AND u.user_id = g.user_id
+JOIN connections c  ON c.tenant_id = u.tenant_id AND c.name    = u.connection
+SET g.user_id = CONCAT(c.strategy, '|', SUBSTRING(g.user_id, LOCATE('|', g.user_id) + 1))
+WHERE g.user_id LIKE 'microsoft|%'
+  AND u.provider = 'microsoft'
+  AND c.strategy IN ('windowslive', 'waad');
+
+-- 3b. Parent users: rewrite provider, user_id prefix, is_social.
+
 UPDATE users u
 JOIN connections c
   ON c.tenant_id = u.tenant_id
@@ -98,6 +184,8 @@ SET
   u.is_social = IF(c.strategy = 'windowslive', 1, 0)
 WHERE u.provider = 'microsoft'
   AND c.strategy IN ('windowslive', 'waad');
+
+SET FOREIGN_KEY_CHECKS = 1;
 
 
 -- ──────────────────────────────────────────────────────────────────────────
