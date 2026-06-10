@@ -15,8 +15,9 @@ export interface ProxyAppOptions {
   registry?: HandlerRegistry;
   bindings?: Record<string, unknown>;
   // Defense-in-depth ceiling (ms) on `resolver.resolveHost()`. Defaults to
-  // 5000. If the resolver hangs longer, the proxy returns 502 instead of
-  // letting the CF runtime cancel the request as `outcome: exception`.
+  // 5000. If the resolver hangs longer than `resolveHostTimeoutMs`, the
+  // proxy returns 504 instead of letting the CF runtime cancel the request
+  // as `outcome: exception`.
   resolveHostTimeoutMs?: number;
 }
 

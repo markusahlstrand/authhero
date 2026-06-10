@@ -16,7 +16,9 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    if: ${{ vars.CLOUDFLARE_ACCOUNT_ID != '' }}
+    # Guard against workflow_dispatch from non-main refs publishing unmerged
+    # docs to the production --branch=main Pages deployment.
+    if: ${{ vars.CLOUDFLARE_ACCOUNT_ID != '' && github.ref == 'refs/heads/main' }}
     permissions:
       contents: read
       deployments: write

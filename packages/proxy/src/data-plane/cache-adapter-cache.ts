@@ -116,8 +116,10 @@ export function createCacheAdapterHostCache(
     payload: CachedPayload,
     ttlSeconds: number,
   ): Promise<void> {
+    // Wrap in `Promise.resolve().then(...)` so a synchronous throw from
+    // `cache.set` is funneled into the `.catch` below instead of escaping.
     const op = withRaceTimeout(
-      cache.set(key, payload, ttlSeconds),
+      Promise.resolve().then(() => cache.set(key, payload, ttlSeconds)),
       cacheWriteTimeoutMs,
       "cache.set",
     ).catch(() => undefined);
