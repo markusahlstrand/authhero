@@ -81,8 +81,10 @@ function RevokeGrantCell() {
       notify("Grant revoked", { type: "success" });
       setOpen(false);
       refresh();
-    } catch {
-      notify("Error revoking grant", { type: "error" });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error("Error revoking grant", error);
+      notify("Error revoking grant: " + message, { type: "error" });
     } finally {
       setPending(false);
     }

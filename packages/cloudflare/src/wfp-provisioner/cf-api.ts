@@ -102,7 +102,7 @@ export class CloudflareApiClient {
   // ─── D1 ───────────────────────────────────────────────────────────────
 
   async createD1Database(name: string): Promise<D1Database> {
-    const path = `/accounts/${this.accountId}/d1/database`;
+    const path = `/accounts/${encodeURIComponent(this.accountId)}/d1/database`;
     const res = await this.request<{ result: D1Database }>("POST", path, {
       body: JSON.stringify({ name }),
     });
@@ -111,13 +111,13 @@ export class CloudflareApiClient {
 
   async listD1Databases(name?: string): Promise<D1Database[]> {
     const qs = name ? `?name=${encodeURIComponent(name)}` : "";
-    const path = `/accounts/${this.accountId}/d1/database${qs}`;
+    const path = `/accounts/${encodeURIComponent(this.accountId)}/d1/database${qs}`;
     const res = await this.request<{ result: D1Database[] }>("GET", path);
     return res.result ?? [];
   }
 
   async deleteD1Database(databaseId: string): Promise<void> {
-    const path = `/accounts/${this.accountId}/d1/database/${databaseId}`;
+    const path = `/accounts/${encodeURIComponent(this.accountId)}/d1/database/${encodeURIComponent(databaseId)}`;
     await this.request("DELETE", path);
   }
 
@@ -129,7 +129,7 @@ export class CloudflareApiClient {
    * bounded by the migration author.
    */
   async execD1(databaseId: string, sql: string): Promise<D1QueryResult[]> {
-    const path = `/accounts/${this.accountId}/d1/database/${databaseId}/query`;
+    const path = `/accounts/${encodeURIComponent(this.accountId)}/d1/database/${encodeURIComponent(databaseId)}/query`;
     const res = await this.request<{ result: D1QueryResult[] }>("POST", path, {
       body: JSON.stringify({ sql }),
     });

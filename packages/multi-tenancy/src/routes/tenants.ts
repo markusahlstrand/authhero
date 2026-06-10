@@ -351,7 +351,8 @@ export function createTenantsOpenAPIRouter(
         // Fast path: if the token was minted for this tenant's organization,
         // the auth flow already verified membership. Trust the claim.
         const tokenOrgName = ctx.var.org_name;
-        let hasAccess = tokenOrgName === id;
+        const idLower = id.toLowerCase();
+        let hasAccess = !!tokenOrgName && tokenOrgName.toLowerCase() === idLower;
 
         // Fallback: look up org memberships on the control plane. Covers
         // tokens issued without an org_name claim (e.g. legacy tokens).
@@ -365,7 +366,9 @@ export function createTenantsOpenAPIRouter(
               ),
             "organizations",
           );
-          hasAccess = userOrgs.some((org) => org.name === id);
+          hasAccess = userOrgs.some(
+            (org) => org.name?.toLowerCase() === idLower,
+          );
         }
 
         if (!hasAccess) {
