@@ -506,7 +506,7 @@ describe("data plane router", () => {
     });
   });
 
-  it("returns 500 when dispatch_namespace binding is missing", async () => {
+  it("returns 502 when dispatch_namespace binding is missing", async () => {
     const adapter = makeAdapter({
       tenant_id: "t1",
       custom_domain_id: "cd1",
@@ -529,7 +529,8 @@ describe("data plane router", () => {
     const res = await app.request("https://auth.example.com/", {
       headers: { host: "auth.example.com" },
     });
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(502);
+    expect(res.headers.get("x-authhero-proxy-error")).toBe("data_plane_error");
   });
 
   it("rewrites Set-Cookie Domain from upstream host to request host", async () => {
