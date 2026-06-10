@@ -539,6 +539,9 @@ importers:
       react-dom:
         specifier: ^19.2.6
         version: 19.2.6(react@19.2.6)
+      rollup:
+        specifier: ^4.54.0
+        version: 4.54.0
       rollup-plugin-dts:
         specifier: ^6.4.1
         version: 6.4.1(rollup@4.54.0)(typescript@5.9.3)
@@ -597,6 +600,9 @@ importers:
       hono:
         specifier: ^4.12.23
         version: 4.12.23
+      rollup:
+        specifier: ^4.54.0
+        version: 4.54.0
       rollup-plugin-dts:
         specifier: ^6.4.1
         version: 6.4.1(rollup@4.54.0)(typescript@5.9.3)
@@ -643,6 +649,9 @@ importers:
       msw:
         specifier: ^2.14.6
         version: 2.14.6(@types/node@24.12.4)(typescript@5.9.3)
+      rollup:
+        specifier: ^4.54.0
+        version: 4.54.0
       rollup-plugin-dts:
         specifier: ^6.4.1
         version: 6.4.1(rollup@4.54.0)(typescript@5.9.3)
@@ -766,6 +775,9 @@ importers:
       kysely-planetscale:
         specifier: ^1.5.0
         version: 1.7.1(@planetscale/database@1.19.0)(kysely@0.29.2)
+      rollup:
+        specifier: ^4.54.0
+        version: 4.54.0
       rollup-plugin-dts:
         specifier: ^6.4.1
         version: 6.4.1(rollup@4.54.0)(typescript@5.9.3)
@@ -837,6 +849,9 @@ importers:
       hono:
         specifier: ^4.12.23
         version: 4.12.23
+      rollup:
+        specifier: ^4.54.0
+        version: 4.54.0
       rollup-plugin-dts:
         specifier: ^6.4.1
         version: 6.4.1(rollup@4.54.0)(typescript@5.9.3)
@@ -868,6 +883,9 @@ importers:
       '@types/node':
         specifier: ^22.19.19
         version: 22.19.19
+      rollup:
+        specifier: ^4.54.0
+        version: 4.54.0
       rollup-plugin-dts:
         specifier: ^6.4.1
         version: 6.4.1(rollup@4.54.0)(typescript@5.9.3)

@@ -33,6 +33,7 @@
     "@hono/zod-openapi": "^1.4.0",
     "@types/node": "^24.12.4",
     "hono": "^4.12.23",
+    "rollup": "^4.54.0",
     "rollup-plugin-dts": "^6.4.1",
     "typescript": "^5.9.3",
     "vite": "^8.0.14",
