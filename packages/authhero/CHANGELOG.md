@@ -1,5 +1,12 @@
 # authhero
 
+## 7.2.1
+
+### Patch Changes
+
+- Updated dependencies [fe4941f]
+  - @authhero/proxy@0.6.0
+
 ## 7.2.0
 
 ### Minor Changes
