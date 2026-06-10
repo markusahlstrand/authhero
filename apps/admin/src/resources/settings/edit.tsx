@@ -36,6 +36,7 @@ export function SettingsEdit() {
       mutationMode="pessimistic"
       redirect={false}
       transform={removeNullValues as never}
+      actions={false}
     >
       <SimpleForm className="max-w-none">
         <UrlTabs defaultValue="general" className="w-full">

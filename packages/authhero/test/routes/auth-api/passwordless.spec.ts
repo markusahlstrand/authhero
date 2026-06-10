@@ -511,6 +511,52 @@ describe("passwordless", async () => {
       expect(body.userSafe).toBe(true);
     });
 
+    it("preserves prototype methods on class-based rateLimit adapters", async () => {
+      // Regression: the universal-login and auth-api routers wrap
+      // data.rateLimit through addCaching + addTimingLogs. Those helpers
+      // used to iterate `Object.entries(adapter)`, which skips prototype
+      // methods — so a class-based adapter (e.g. CloudflareRateLimit, which
+      // defines `consume` on its prototype) ended up wrapped as
+      // `{ bindings: ... }` with no `consume()`, producing
+      // `TypeError: rateLimit.consume is not a function` on every
+      // passwordless OTP request in production.
+      class ClassBasedRateLimit {
+        public consumed: Array<{ scope: string; key: string }> = [];
+        async consume(scope: string, key: string) {
+          this.consumed.push({ scope, key });
+          return { allowed: false, retryAfterSeconds: 30 };
+        }
+      }
+      const denyingRateLimit = new ClassBasedRateLimit();
+
+      const { oauthApp, env } = await getTestServer({
+        rateLimit: denyingRateLimit,
+      });
+      const oauthClient = testClient(oauthApp, env);
+
+      const response = await oauthClient.oauth.token.$post(
+        {
+          form: {
+            grant_type: "http://auth0.com/oauth/grant-type/passwordless/otp",
+            otp: "000000",
+            client_id: "clientId",
+            realm: "email",
+            username: "victim@example.com",
+          },
+        },
+        {
+          headers: {
+            "tenant-id": "tenantId",
+          },
+        },
+      );
+
+      // consume() must survive the wrap and actually fire (not throw).
+      expect(response.status).toBe(429);
+      expect(denyingRateLimit.consumed).toHaveLength(1);
+      expect(denyingRateLimit.consumed[0]?.scope).toBe("brute-force");
+    });
+
     it("fails open when the rateLimit adapter throws", async () => {
       const throwingRateLimit = {
         consume: async () => {

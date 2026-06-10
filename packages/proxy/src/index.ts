@@ -6,7 +6,10 @@ export {
   createProxyDataPlaneRouter,
   createProxyDataPlaneHandler,
 } from "./data-plane/router";
-export type { ProxyDataPlaneOptions } from "./data-plane/router";
+export type {
+  ProxyDataPlaneOptions,
+  ProxyRouteHandlerSpec,
+} from "./data-plane/router";
 export { createInMemoryHostCache } from "./data-plane/cache";
 export type { HostCacheOptions, HostResolverCache } from "./data-plane/cache";
 export {

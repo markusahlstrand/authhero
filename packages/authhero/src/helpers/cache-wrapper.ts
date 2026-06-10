@@ -1,4 +1,5 @@
 import { DataAdapters, CacheAdapter } from "@authhero/adapter-interfaces";
+import { getAdapterMethodNames } from "./adapter-methods";
 
 // Wrapper type to handle null values in cache
 type CacheValue<T> = {
@@ -84,10 +85,13 @@ export function addCaching(
 
     const wrappedAdapter: Record<string, any> = {};
 
-    // Process each method in the adapter
-    for (const [methodName, method] of Object.entries(
-      adapter as Record<string, any>,
+    // Process each method in the adapter. Includes prototype methods so
+    // class-based adapters (e.g. CloudflareRateLimit) don't have their
+    // methods silently stripped.
+    for (const methodName of getAdapterMethodNames(
+      adapter as Record<string, unknown>,
     )) {
+      const method = (adapter as Record<string, any>)[methodName];
       if (typeof method === "function") {
         // If this adapter entity shouldn't be cached, just pass through the original method
         if (!shouldCacheEntity) {

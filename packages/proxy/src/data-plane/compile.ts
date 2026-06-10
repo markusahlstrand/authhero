@@ -24,11 +24,16 @@ const ALL_METHODS = [
  * `domain` set in its Hono context (read with `getProxy*` helpers from
  * `handlers/util.ts`). Handlers that template against those values
  * (`dispatch_namespace`) depend on this wiring.
+ *
+ * `defaultHandlers` is a prebuilt middleware chain installed as the catch-all
+ * when no per-host route matches. Pass `undefined` to keep the legacy 404
+ * "No matching route" behavior.
  */
 export function compileHostApp(
   routes: ProxyRoute[],
   registry: HandlerRegistry,
   hostContext?: ProxyHostContext,
+  defaultHandlers?: MiddlewareHandler[],
 ): Hono {
   const app = new Hono();
 
@@ -57,8 +62,15 @@ export function compileHostApp(
     app.on(methods, [path], ...handlers);
   }
 
-  // Fallback for the host if no route matches.
-  app.all("*", (c) => c.text("No matching route", 404));
+  // Fallback for the host if no route matches. With `defaultHandlers`
+  // configured, run that chain instead of the 404 — matches the "default
+  // upstream" semantic of the legacy file-config proxy and keeps known hosts
+  // with empty `proxy_routes` rows serving traffic instead of 404-ing.
+  if (defaultHandlers && defaultHandlers.length > 0) {
+    app.on(ALL_METHODS, ["*"], ...defaultHandlers);
+  } else {
+    app.all("*", (c) => c.text("No matching route", 404));
+  }
 
   // Convert any unhandled throw from a route's handler chain into a structured
   // 502 (or 504 if the throw was timeout-like). Without this, Hono returns its
