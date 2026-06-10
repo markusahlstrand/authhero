@@ -21,7 +21,7 @@ AuthHero is a multi-tenant authentication system that provides identity and acce
 - **admin** - Admin interface (shadcn/ui + ra-core) for managing tenants, users, applications, and more
 - **demo** - Demo authentication server using the kysely adapter and SQLite
 - **proxy-dev** - Cloudflare Worker harness for developing/deploying `@authhero/proxy`
-- **docs** - Documentation site powered by VitePress
+- **docs** - Documentation site powered by VitePress, deployed to Cloudflare Pages at [docs.authhero.net](https://docs.authhero.net) — see [apps/docs/DEPLOYMENT.md](apps/docs/DEPLOYMENT.md)
 
 ## Quick Start
 
