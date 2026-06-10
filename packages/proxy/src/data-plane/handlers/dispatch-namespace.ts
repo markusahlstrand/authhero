@@ -1,11 +1,14 @@
 import { z } from "@hono/zod-openapi";
 import { defineHandler } from "../registry";
+import { isTimeoutLike, withAbortTimeout } from "../timeout";
 import {
   getProxyCustomDomainId,
   getProxyDomain,
   getProxyRequest,
   getProxyTenantId,
 } from "./util";
+
+const DEFAULT_TIMEOUT_MS = 30_000;
 
 const optionsSchema = z.object({
   // Name of the Cloudflare dispatch namespace binding to look up under
@@ -22,6 +25,11 @@ const optionsSchema = z.object({
   cpu_ms: z.number().int().positive().optional(),
   // Optional subrequest limit passed to the dispatcher binding.
   subrequests: z.number().int().positive().optional(),
+  // Per-route hard timeout (ms) on the dispatched fetch. Defaults to 30s.
+  // The CF runtime kills hung subrequests but only after ~30s of wall time;
+  // setting this explicitly turns hangs into clean 504s instead of the
+  // parent worker being terminated with `outcome: exception`.
+  timeout_ms: z.number().int().positive().optional(),
 });
 
 type Options = z.infer<typeof optionsSchema>;
@@ -65,6 +73,7 @@ export const dispatchNamespaceHandler = defineHandler<Options>({
     }
 
     const needsTemplating = hasPlaceholder(options.script_name);
+    const timeoutMs = options.timeout_ms ?? DEFAULT_TIMEOUT_MS;
     const init =
       options.cpu_ms || options.subrequests
         ? {
@@ -107,9 +116,28 @@ export const dispatchNamespaceHandler = defineHandler<Options>({
         }
       }
 
-      const worker = dispatcher.get(scriptName, undefined, init);
       const req = getProxyRequest(c);
-      return worker.fetch(req);
+      try {
+        const worker = dispatcher.get(scriptName, undefined, init);
+        return await withAbortTimeout(timeoutMs, async (signal) => {
+          // Attach the abort signal to the dispatched request so the CF
+          // runtime aborts the subrequest when the timer fires instead of
+          // letting it hang until the parent worker is killed.
+          const dispatchReq = new Request(req, { signal });
+          return worker.fetch(dispatchReq);
+        });
+      } catch (err) {
+        if (isTimeoutLike(err)) {
+          return c.text(
+            `dispatch_namespace timed out after ${timeoutMs}ms`,
+            504,
+            { "x-authhero-proxy-error": "dispatch_namespace_timeout" },
+          );
+        }
+        return c.text("Bad gateway", 502, {
+          "x-authhero-proxy-error": "dispatch_namespace_failed",
+        });
+      }
     };
   },
 });

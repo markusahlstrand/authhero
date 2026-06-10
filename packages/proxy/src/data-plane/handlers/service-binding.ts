@@ -1,7 +1,10 @@
 import { z } from "@hono/zod-openapi";
 import { defineHandler } from "../registry";
+import { isTimeoutLike, withAbortTimeout } from "../timeout";
 import { buildUpstreamRequest } from "./http";
 import { getProxyRequest } from "./util";
+
+const DEFAULT_TIMEOUT_MS = 30_000;
 
 const optionsSchema = z.object({
   // Name of the Cloudflare service binding to look up under `bindings`.
@@ -11,6 +14,10 @@ const optionsSchema = z.object({
   // an https URL with the binding name as the host.
   upstream_url: z.string().optional(),
   preserve_host: z.boolean().default(true),
+  // Per-route hard timeout (ms) on the binding fetch. Defaults to 30s — a
+  // misconfigured or stuck binding otherwise hangs the parent worker until
+  // the CF runtime kills it.
+  timeout_ms: z.number().int().positive().optional(),
 });
 
 type Options = z.infer<typeof optionsSchema>;
@@ -39,6 +46,7 @@ export const serviceBindingHandler = defineHandler<Options>({
     }
     const upstreamUrl =
       options.upstream_url ?? `https://${options.binding}.binding.invalid/`;
+    const timeoutMs = options.timeout_ms ?? DEFAULT_TIMEOUT_MS;
 
     return async (c) => {
       const req = getProxyRequest(c);
@@ -55,7 +63,24 @@ export const serviceBindingHandler = defineHandler<Options>({
         `${target.protocol}//${target.host}`,
       );
 
-      return fetcher.fetch(new Request(target.toString(), init));
+      try {
+        return await withAbortTimeout(timeoutMs, async (signal) => {
+          return fetcher.fetch(
+            new Request(target.toString(), { ...init, signal }),
+          );
+        });
+      } catch (err) {
+        if (isTimeoutLike(err)) {
+          return c.text(
+            `service_binding timed out after ${timeoutMs}ms`,
+            504,
+            { "x-authhero-proxy-error": "service_binding_timeout" },
+          );
+        }
+        return c.text("Bad gateway", 502, {
+          "x-authhero-proxy-error": "service_binding_failed",
+        });
+      }
     };
   },
 });

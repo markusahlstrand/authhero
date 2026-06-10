@@ -1,5 +1,6 @@
 import type { ResolvedHost } from "../adapter";
 import type { HostResolverCache } from "./cache";
+import { withRaceTimeout } from "./timeout";
 
 export interface CacheApiHostCacheOptions {
   // Underlying resolver (e.g. an HTTP adapter or DB adapter). The Cache-API
@@ -17,11 +18,18 @@ export interface CacheApiHostCacheOptions {
   cache?: Cache;
   // Optional `ctx.waitUntil` so async cache writes don't block the response.
   waitUntil?: (promise: Promise<unknown>) => void;
+  // Per-operation timeouts on the Cache API. Defaults to 1s read / 1s write
+  // so a stuck cache call falls through to the upstream resolver.
+  cacheReadTimeoutMs?: number;
+  cacheWriteTimeoutMs?: number;
 }
 
 interface CachedPayload {
   value: ResolvedHost | null;
 }
+
+const DEFAULT_CACHE_READ_TIMEOUT_MS = 1_000;
+const DEFAULT_CACHE_WRITE_TIMEOUT_MS = 1_000;
 
 function syntheticKey(namespace: string, host: string): Request {
   return new Request(
@@ -46,26 +54,45 @@ function getDefaultCache(): Cache | undefined {
  *
  * @deprecated Prefer `createCacheAdapterHostCache` with `createCloudflareCache`
  * from `@authhero/cloudflare-adapter`. The adapter-based wrapper supports
- * stale-while-revalidate and works with any `CacheAdapter` (Cloudflare,
- * Redis, in-memory, …).
+ * stale-while-revalidate, stale-if-error, and works with any `CacheAdapter`
+ * (Cloudflare, Redis, in-memory, …).
  */
 export function createCacheApiHostCache(
   options: CacheApiHostCacheOptions,
 ): HostResolverCache {
-  const cache = options.cache ?? getDefaultCache();
-  if (!cache) {
+  const resolved = options.cache ?? getDefaultCache();
+  if (!resolved) {
     return options.upstream;
   }
+  const cache: Cache = resolved;
 
   const namespace = options.namespace ?? "authhero-proxy";
   const positiveTtl = options.cacheTtlSeconds ?? 60;
   const negativeTtl = options.negativeCacheTtlSeconds ?? 10;
   const waitUntil = options.waitUntil;
+  const cacheReadTimeoutMs =
+    options.cacheReadTimeoutMs ?? DEFAULT_CACHE_READ_TIMEOUT_MS;
+  const cacheWriteTimeoutMs =
+    options.cacheWriteTimeoutMs ?? DEFAULT_CACHE_WRITE_TIMEOUT_MS;
+
+  async function safeCacheMatch(key: Request): Promise<Response | undefined> {
+    try {
+      return await withRaceTimeout(
+        Promise.resolve(cache.match(key)),
+        cacheReadTimeoutMs,
+        "cache.match",
+      );
+    } catch {
+      // Treat slow or failing cache reads as a miss — the upstream is the
+      // source of truth and always tried as a fallback.
+      return undefined;
+    }
+  }
 
   return {
     async resolveHost(host: string): Promise<ResolvedHost | null> {
       const key = syntheticKey(namespace, host);
-      const hit = await cache.match(key);
+      const hit = await safeCacheMatch(key);
       if (hit) {
         try {
           const payload = (await hit.json()) as CachedPayload;
@@ -86,9 +113,15 @@ export function createCacheApiHostCache(
           },
         },
       );
-      const put = cache.put(key, cached);
+      const put = withRaceTimeout(
+        Promise.resolve(cache.put(key, cached)),
+        cacheWriteTimeoutMs,
+        "cache.put",
+      ).catch(() => undefined);
       if (waitUntil) waitUntil(put);
-      else await put.catch(() => undefined);
+      // Without a `waitUntil` hook the runtime can recycle the isolate before
+      // the put finishes, so we await the (bounded, error-swallowing) write.
+      else await put;
 
       return value;
     },

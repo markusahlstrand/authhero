@@ -1,5 +1,6 @@
 import { z } from "@hono/zod-openapi";
 import { defineHandler } from "../registry";
+import { isTimeoutLike, withAbortTimeout } from "../timeout";
 import { getProxyRequest } from "./util";
 
 const HOP_HEADERS = new Set([
@@ -91,24 +92,19 @@ export const httpHandler = defineHandler<Options>({
         `${target.protocol}//${target.host}`,
       );
 
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeoutMs);
       try {
-        const res = await fetch(target.toString(), {
-          ...init,
-          signal: controller.signal,
-        });
-        // Some runtimes hand back a Response whose body is locked to the
-        // original socket; Hono only sets `c.res = …` via assignment, which
-        // is fine. Returning the Response directly also works.
-        return res;
+        return await withAbortTimeout(timeoutMs, (signal) =>
+          fetch(target.toString(), { ...init, signal }),
+        );
       } catch (err) {
-        if (err instanceof Error && err.name === "AbortError") {
-          return new Response("Upstream timeout", { status: 504 });
+        if (isTimeoutLike(err)) {
+          return c.text("Upstream timeout", 504, {
+            "x-authhero-proxy-error": "http_timeout",
+          });
         }
-        throw err;
-      } finally {
-        clearTimeout(timer);
+        return c.text("Bad gateway", 502, {
+          "x-authhero-proxy-error": "http_failed",
+        });
       }
     };
   },

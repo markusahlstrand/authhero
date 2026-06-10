@@ -4,6 +4,7 @@ import type { ProxyRoute } from "../types";
 import { HandlerRegistry } from "./registry";
 import { buildMatchFilter, sortRoutes } from "./matcher";
 import { setProxyHostContext, type ProxyHostContext } from "./handlers/util";
+import { isTimeoutLike } from "./timeout";
 
 const ALL_METHODS = [
   "GET",
@@ -58,6 +59,17 @@ export function compileHostApp(
 
   // Fallback for the host if no route matches.
   app.all("*", (c) => c.text("No matching route", 404));
+
+  // Convert any unhandled throw from a route's handler chain into a structured
+  // 502 (or 504 if the throw was timeout-like). Without this, Hono returns its
+  // default 500 with no error header, which doesn't reach the outer router's
+  // try/catch — `hostApp.fetch()` resolves successfully with the 500.
+  app.onError((err, c) => {
+    const isTimeout = isTimeoutLike(err);
+    return c.text(isTimeout ? "Upstream timeout" : "Bad gateway", isTimeout ? 504 : 502, {
+      "x-authhero-proxy-error": isTimeout ? "handler_timeout" : "handler_failed",
+    });
+  });
 
   return app;
 }
