@@ -1,5 +1,11 @@
 # @authhero/adapter-interfaces
 
+## 3.1.1
+
+### Patch Changes
+
+- aedf807: Add `rollup` as an explicit devDependency so the build works on CI where the peer dependency of `rollup-plugin-dts` is not auto-hoisted.
+
 ## 3.1.0
 
 ### Minor Changes

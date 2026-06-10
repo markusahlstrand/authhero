@@ -1,5 +1,14 @@
 # @authhero/admin
 
+## 0.6.6
+
+### Patch Changes
+
+- aedf807: Add a revoke button to the user grants tab so tenant operators can review and revoke OAuth consents from the admin UI.
+- aedf807: Add a Danger zone to the tenant settings Advanced tab with a confirmation-gated delete button, hide the default delete button at the top of the settings edit page, and fix the access check on `DELETE /tenants/{id}` so tokens carrying an `org_name` claim that matches the target tenant pass without a redundant control-plane membership lookup (which was rejecting valid org-scoped tokens).
+- Updated dependencies [aedf807]
+  - @authhero/adapter-interfaces@3.1.1
+
 ## 0.6.5
 
 ### Patch Changes

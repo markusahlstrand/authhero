@@ -1,5 +1,14 @@
 # @authhero/kysely-adapter
 
+## 11.8.8
+
+### Patch Changes
+
+- Updated dependencies [aedf807]
+- Updated dependencies [aedf807]
+  - @authhero/adapter-interfaces@3.1.1
+  - @authhero/proxy@0.7.0
+
 ## 11.8.7
 
 ### Patch Changes
