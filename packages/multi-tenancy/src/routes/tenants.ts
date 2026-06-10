@@ -348,18 +348,26 @@ export function createTenantsOpenAPIRouter(
           });
         }
 
-        // Check organization membership
-        const userOrgs = await fetchAll<{ id: string; name: string }>(
-          (params) =>
-            ctx.env.data.userOrganizations.listUserOrganizations(
-              controlPlaneTenantId,
-              user.sub,
-              params,
-            ),
-          "organizations",
-        );
+        // Fast path: if the token was minted for this tenant's organization,
+        // the auth flow already verified membership. Trust the claim.
+        const tokenOrgName = ctx.var.org_name;
+        let hasAccess = tokenOrgName === id;
 
-        const hasAccess = userOrgs.some((org) => org.name === id);
+        // Fallback: look up org memberships on the control plane. Covers
+        // tokens issued without an org_name claim (e.g. legacy tokens).
+        if (!hasAccess) {
+          const userOrgs = await fetchAll<{ id: string; name: string }>(
+            (params) =>
+              ctx.env.data.userOrganizations.listUserOrganizations(
+                controlPlaneTenantId,
+                user.sub,
+                params,
+              ),
+            "organizations",
+          );
+          hasAccess = userOrgs.some((org) => org.name === id);
+        }
+
         if (!hasAccess) {
           throw new HTTPException(403, {
             message: "Access denied to this tenant",

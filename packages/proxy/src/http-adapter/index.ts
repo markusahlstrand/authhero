@@ -24,7 +24,11 @@ export interface HttpProxyAdapterOptions {
   // Token cache: how many seconds to refresh before expiry. Defaults to 60.
   tokenRefreshSkewSeconds?: number;
   // Per-request timeout (ms) applied to both the token fetch and the
-  // resolveHost fetch. Defaults to 5000.
+  // resolveHost fetch. Defaults to 2500. Kept well below the router's
+  // outer `resolveHostTimeoutMs` (10s) so two sequential fetches (token +
+  // resolveHost) still fit under the outer ceiling, and so this inner
+  // abort surfaces a structured adapter error instead of being shadowed
+  // by the outer race timeout.
   timeoutMs?: number;
   // Optional fetch override (handy for tests).
   fetch?: typeof fetch;
@@ -85,7 +89,7 @@ export function createHttpProxyAdapter(
   const audience = options.audience ?? `${baseUrl}/api/v2/`;
   const scope = options.scope ?? PROXY_RESOLVE_HOST_SCOPE;
   const skewSeconds = options.tokenRefreshSkewSeconds ?? 60;
-  const timeoutMs = options.timeoutMs ?? 5000;
+  const timeoutMs = options.timeoutMs ?? 2500;
 
   function withTimeout<T>(op: (signal: AbortSignal) => Promise<T>): Promise<T> {
     const controller = new AbortController();

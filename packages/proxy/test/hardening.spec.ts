@@ -698,3 +698,153 @@ describe("cache key helper", () => {
     );
   });
 });
+
+describe("defaultHandlers fail-open fallback", () => {
+  const fallback = vi.fn(
+    async () => new Response("from default", { status: 200 }),
+  );
+
+  beforeEach(() => {
+    fallback.mockClear();
+  });
+
+  function appWithFallback(opts: {
+    data: ProxyDataAdapter;
+    resolver?: HostResolverCache;
+    resolveHostTimeoutMs?: number;
+  }) {
+    return createProxyApp({
+      data: opts.data,
+      ...(opts.resolver ? { resolver: opts.resolver } : {}),
+      ...(opts.resolveHostTimeoutMs !== undefined
+        ? { resolveHostTimeoutMs: opts.resolveHostTimeoutMs }
+        : {}),
+      defaultHandlers: [
+        { type: "http", options: { upstream_url: "https://fallback.example" } },
+      ],
+    });
+  }
+
+  it("serves the default chain when the host is unknown", async () => {
+    const orig = globalThis.fetch;
+    globalThis.fetch = fallback as unknown as typeof fetch;
+    try {
+      const app = appWithFallback({ data: makeAdapter(null) });
+      const res = await app.request("https://unknown.example/", {
+        headers: { host: "unknown.example" },
+      });
+      expect(res.status).toBe(200);
+      expect(await res.text()).toBe("from default");
+      expect(fallback).toHaveBeenCalledTimes(1);
+    } finally {
+      globalThis.fetch = orig;
+    }
+  });
+
+  it("serves the default chain when the host resolves with empty routes", async () => {
+    const orig = globalThis.fetch;
+    globalThis.fetch = fallback as unknown as typeof fetch;
+    try {
+      const app = appWithFallback({
+        data: makeAdapter({
+          tenant_id: "t1",
+          custom_domain_id: "cd1",
+          domain: "login.customer.com",
+          routes: [],
+        }),
+      });
+      const res = await app.request("https://login.customer.com/", {
+        headers: { host: "login.customer.com" },
+      });
+      expect(res.status).toBe(200);
+      expect(await res.text()).toBe("from default");
+      expect(fallback).toHaveBeenCalledTimes(1);
+    } finally {
+      globalThis.fetch = orig;
+    }
+  });
+
+  it("serves the default chain when resolveHost throws", async () => {
+    const orig = globalThis.fetch;
+    globalThis.fetch = fallback as unknown as typeof fetch;
+    try {
+      const app = appWithFallback({
+        data: makeAdapter(null),
+        resolver: {
+          resolveHost: async () => {
+            throw new Error("control plane down");
+          },
+        },
+      });
+      const res = await app.request("https://login.customer.com/", {
+        headers: { host: "login.customer.com" },
+      });
+      expect(res.status).toBe(200);
+      expect(fallback).toHaveBeenCalledTimes(1);
+    } finally {
+      globalThis.fetch = orig;
+    }
+  });
+
+  it("serves the default chain when resolveHost times out", async () => {
+    vi.useFakeTimers();
+    try {
+      const orig = globalThis.fetch;
+      globalThis.fetch = fallback as unknown as typeof fetch;
+      try {
+        const hanging: HostResolverCache = {
+          resolveHost: () => new Promise(() => {}),
+        };
+        const app = appWithFallback({
+          data: makeAdapter(null),
+          resolver: hanging,
+          resolveHostTimeoutMs: 100,
+        });
+        const pending = app.request("https://login.customer.com/", {
+          headers: { host: "login.customer.com" },
+        });
+        await vi.advanceTimersByTimeAsync(150);
+        const res = await pending;
+        expect(res.status).toBe(200);
+        expect(fallback).toHaveBeenCalledTimes(1);
+      } finally {
+        globalThis.fetch = orig;
+      }
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("prefers a matching per-host route over the default chain", async () => {
+    const upstream = vi.fn(
+      async () => new Response("from upstream", { status: 200 }),
+    );
+    const orig = globalThis.fetch;
+    // Both routes and fallback proxy through global fetch — route by URL.
+    globalThis.fetch = (async (input: Request | string | URL) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url.startsWith("https://upstream.example")) return upstream();
+      return fallback();
+    }) as unknown as typeof fetch;
+    try {
+      const app = appWithFallback({ data: makeAdapter(customerHost()) });
+      const res = await app.request("https://customer.com/", {
+        headers: { host: "customer.com" },
+      });
+      expect(res.status).toBe(200);
+      expect(await res.text()).toBe("from upstream");
+      expect(upstream).toHaveBeenCalledTimes(1);
+      expect(fallback).not.toHaveBeenCalled();
+    } finally {
+      globalThis.fetch = orig;
+    }
+  });
+
+  it("still returns 404 'Unknown host' when no defaultHandlers are configured", async () => {
+    const app = createProxyApp({ data: makeAdapter(null) });
+    const res = await app.request("https://unknown.example/", {
+      headers: { host: "unknown.example" },
+    });
+    expect(res.status).toBe(404);
+  });
+});

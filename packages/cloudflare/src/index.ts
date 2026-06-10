@@ -71,6 +71,31 @@ export { createAnalyticsEngineActionExecutionsAdapter } from "./analytics-engine
 export { createR2SQLLogsAdapter } from "./r2-sql-logs";
 export { createR2SQLStatsAdapter } from "./r2-sql-logs";
 
+// Workers-for-Platforms + D1 tenant provisioner. Plug
+// `provisioner.onProvision/onDeprovision` into
+// `@authhero/multi-tenancy`'s `databaseIsolation` config to provision a
+// per-tenant D1 + namespaced worker on every tenant create.
+export {
+  createCloudflareWfpD1Provisioner,
+  createWfpTenantProvisioningHook,
+  CloudflareApiClient,
+  CloudflareApiError,
+} from "./wfp-provisioner";
+export type {
+  CloudflareWfpD1Provisioner,
+  CloudflareWfpD1ProvisionerOptions,
+  ProvisionResult,
+  ProvisionerMigration,
+  TenantSecretsResolver,
+  WfpTenantProvisioningHook,
+  WfpTenantProvisioningHookOptions,
+  CfApiClientOptions,
+  D1Database,
+  D1QueryResult,
+  ScriptBinding,
+  ScriptUploadOptions,
+} from "./wfp-provisioner";
+
 export interface CloudflareAdapters {
   customDomains: CustomDomainsAdapter;
   cache: CacheAdapter;
