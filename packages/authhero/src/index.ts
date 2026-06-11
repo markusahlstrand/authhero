@@ -66,12 +66,6 @@ export {
 export { addEntityHooks } from "./helpers/entity-hooks-wrapper";
 export { seed, MANAGEMENT_API_SCOPES } from "./seed";
 export type { SeedOptions, SeedResult } from "./seed";
-export { NoopTenantProvisioner } from "./provisioning";
-export type {
-  TenantProvisioner,
-  TenantProvisionerContext,
-} from "./provisioning";
-
 // Export middlewares for use by multi-tenancy and other packages
 export {
   createAuthMiddleware,

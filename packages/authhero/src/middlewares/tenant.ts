@@ -33,18 +33,27 @@ export async function tenantMiddleware(
     return await next();
   }
 
+  // Hosts on the canonical ISSUER apex are tenant subdomains, never custom
+  // domains — skip the customDomains probe for them to avoid a DB round-trip
+  // on every request to e.g. tenant.auth.example.com.
+  const issuerHost = new URL(getIssuer(ctx.env)).host.toLowerCase();
+  const isIssuerHost = (host: string) =>
+    host === issuerHost || host.endsWith(`.${issuerHost}`);
+
   // Check x-forwarded-host for custom domains (used for proxied requests).
   // Per RFC 3986 §3.2.2 the host component is case-insensitive — normalize
   // before lookups but preserve the original casing in ctx.var.host /
   // custom_domain so we don't mutate values used in URL string comparisons.
   if (xForwardedHost) {
-    const domain = await ctx.env.data.customDomains.getByDomain(
-      xForwardedHost.toLowerCase(),
-    );
-    if (domain) {
-      ctx.set("tenant_id", domain.tenant_id);
-      ctx.set("custom_domain", xForwardedHost);
-      return await next();
+    const lowerForwarded = xForwardedHost.toLowerCase();
+    if (!isIssuerHost(lowerForwarded)) {
+      const domain =
+        await ctx.env.data.customDomains.getByDomain(lowerForwarded);
+      if (domain) {
+        ctx.set("tenant_id", domain.tenant_id);
+        ctx.set("custom_domain", xForwardedHost);
+        return await next();
+      }
     }
   }
 
@@ -53,12 +62,14 @@ export async function tenantMiddleware(
     const lowerHost = hostHeader.toLowerCase();
 
     // First, check if the full host is a registered custom domain
-    const customDomain =
-      await ctx.env.data.customDomains.getByDomain(lowerHost);
-    if (customDomain) {
-      ctx.set("tenant_id", customDomain.tenant_id);
-      ctx.set("custom_domain", hostHeader);
-      return await next();
+    if (!isIssuerHost(lowerHost)) {
+      const customDomain =
+        await ctx.env.data.customDomains.getByDomain(lowerHost);
+      if (customDomain) {
+        ctx.set("tenant_id", customDomain.tenant_id);
+        ctx.set("custom_domain", hostHeader);
+        return await next();
+      }
     }
 
     // Otherwise, check if the subdomain matches a tenant ID
@@ -74,7 +85,6 @@ export async function tenantMiddleware(
         // claim and openid-configuration match the host the client called.
         // Host comparison is case-insensitive, but preserve the request's
         // original casing in custom_domain.
-        const issuerHost = new URL(getIssuer(ctx.env)).host.toLowerCase();
         if (lowerHost !== issuerHost) {
           ctx.set("custom_domain", hostHeader);
         }

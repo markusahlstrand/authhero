@@ -36,6 +36,7 @@ import { tenantMiddleware } from "../../middlewares/tenant";
 import { clientInfoMiddleware } from "../../middlewares/client-info";
 import { preferMiddleware } from "../../middlewares/prefer";
 import { addCaching } from "../../helpers/cache-wrapper";
+import { addBundleWritePurge } from "../../helpers/bundle-write-purge";
 import { addEntityHooks } from "../../helpers/entity-hooks-wrapper";
 import { createInMemoryCache } from "../../adapters/cache/in-memory";
 import { formsRoutes } from "./forms";
@@ -302,7 +303,12 @@ export default function create(config: AuthHeroConfig) {
       cache: cacheAdapter,
     });
 
-    return addTimingLogs(ctx, cachedData);
+    // Best-effort: invalidate the auth-api ClientBundle for any entity the
+    // bundle pulls in. Cloudflare's Cache API can only delete on the local
+    // edge; remote edges still wait for TTL.
+    const purgingData = addBundleWritePurge(cachedData, cacheAdapter);
+
+    return addTimingLogs(ctx, purgingData);
   };
 
   app.use(
