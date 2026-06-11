@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { useRecordContext } from "ra-core";
 import { BadgeField, DataTable, List, TextInput } from "@/components/admin";
 import { getBasePath } from "@/utils/runtimeConfig";
@@ -21,13 +22,23 @@ const stateVariant: Record<
 function ProvisioningStateField() {
   const record = useRecordContext<TenantRecord>();
   const state = record?.provisioning_state ?? "ready";
+  const errorId = useId();
+  const error = record?.provisioning_error;
   return (
-    <span title={record?.provisioning_error}>
+    <span
+      title={error}
+      aria-describedby={error ? errorId : undefined}
+    >
       <BadgeField
         source="provisioning_state"
         defaultValue={state}
         variant={stateVariant[state]}
       />
+      {error ? (
+        <span id={errorId} className="sr-only">
+          {error}
+        </span>
+      ) : null}
     </span>
   );
 }

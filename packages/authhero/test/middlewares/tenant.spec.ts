@@ -225,6 +225,8 @@ describe("tenantMiddleware", () => {
     await tenantMiddleware(mockCtx, mockNext);
 
     expect(mockGetByDomain).not.toHaveBeenCalled();
+    expect(mockGet).toHaveBeenCalledWith(subdomain);
+    expect(mockSet).toHaveBeenCalledWith("tenant_id", subdomain);
     expect(mockNext).toHaveBeenCalled();
   });
 

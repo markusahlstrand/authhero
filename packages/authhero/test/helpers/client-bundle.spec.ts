@@ -200,6 +200,6 @@ describe("loadClientBundle", () => {
     });
 
     // Background refresh should reject internally but not propagate.
-    await expect(Promise.all(scheduled)).resolves.not.toThrow();
+    await expect(Promise.all(scheduled)).resolves.toBeDefined();
   });
 });

@@ -75,6 +75,8 @@ export class CloudflareCache implements CacheAdapter {
     cache: Cache,
     request: Request,
   ): Promise<Response | undefined> {
+    // configWithDefaults populates getTimeoutMs, but fall back here in case
+    // CloudflareCache is constructed directly without the factory.
     const timeoutMs = this.config.getTimeoutMs ?? 200;
     if (timeoutMs <= 0) {
       return cache.match(request);
@@ -229,6 +231,7 @@ export function createCloudflareCache(
   const configWithDefaults: CloudflareCacheConfig = {
     defaultTtlSeconds: 300, // 5 minutes default
     keyPrefix: "authhero", // default prefix
+    getTimeoutMs: 200, // bound stalled cache.match() lookups
     ...config, // user config overrides defaults
   };
 
