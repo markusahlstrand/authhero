@@ -184,6 +184,50 @@ describe("tenantMiddleware", () => {
     expect(mockNext).toHaveBeenCalled();
   });
 
+  it("should skip the customDomains lookup when the host is on the ISSUER apex", async () => {
+    // Hosts on the canonical ISSUER apex (the issuer host itself, or any
+    // subdomain of it) are structurally tenant subdomains, never custom
+    // domains. The middleware must skip the customDomains.getByDomain probe
+    // to avoid a DB round-trip on every request.
+    const host = "tenant123.auth.example.com";
+    const subdomain = "tenant123";
+    mockCtx.env.ISSUER = "https://auth.example.com/";
+
+    mockHeaderFn.mockImplementation((header) => {
+      if (header === "x-forwarded-host") return null;
+      if (header === "host") return host;
+      return null;
+    });
+
+    mockGet.mockResolvedValue({ id: subdomain });
+
+    await tenantMiddleware(mockCtx, mockNext);
+
+    expect(mockGetByDomain).not.toHaveBeenCalled();
+    expect(mockGet).toHaveBeenCalledWith(subdomain);
+    expect(mockSet).toHaveBeenCalledWith("tenant_id", subdomain);
+    expect(mockNext).toHaveBeenCalled();
+  });
+
+  it("should skip the customDomains lookup when x-forwarded-host is on the ISSUER apex", async () => {
+    const host = "tenant123.auth.example.com";
+    const subdomain = "tenant123";
+    mockCtx.env.ISSUER = "https://auth.example.com/";
+
+    mockHeaderFn.mockImplementation((header) => {
+      if (header === "x-forwarded-host") return host;
+      if (header === "host") return host;
+      return null;
+    });
+
+    mockGet.mockResolvedValue({ id: subdomain });
+
+    await tenantMiddleware(mockCtx, mockNext);
+
+    expect(mockGetByDomain).not.toHaveBeenCalled();
+    expect(mockNext).toHaveBeenCalled();
+  });
+
   it("should not set tenant_id when subdomain does not match a tenant ID", async () => {
     // Arrange
     const host = "unknown.authhero.com";

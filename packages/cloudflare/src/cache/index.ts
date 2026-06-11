@@ -23,6 +23,12 @@ export interface CloudflareCacheConfig {
    * Key prefix to namespace cache entries (optional)
    */
   keyPrefix?: string;
+  /**
+   * Milliseconds to wait for `cache.match()` before treating the lookup as a
+   * miss. Cloudflare's Cache API can occasionally stall for seconds; without
+   * a bound we'd block the whole request. Default 200ms. Set to 0 to disable.
+   */
+  getTimeoutMs?: number;
 }
 
 /**
@@ -65,11 +71,40 @@ export class CloudflareCache implements CacheAdapter {
     return new Request(`https://cache.internal/${this.getKey(key)}`);
   }
 
+  private async matchWithTimeout(
+    cache: Cache,
+    request: Request,
+  ): Promise<Response | undefined> {
+    const timeoutMs = this.config.getTimeoutMs ?? 200;
+    if (timeoutMs <= 0) {
+      return cache.match(request);
+    }
+
+    // Race the cache lookup against a timeout. On timeout we treat the call
+    // as a miss; the in-flight match() promise is left to resolve in the
+    // background and discarded. This bounds the rare (but observed) case
+    // where caches.default.match() stalls for several seconds and otherwise
+    // pins the entire request.
+    return new Promise<Response | undefined>((resolve) => {
+      const timer = setTimeout(() => resolve(undefined), timeoutMs);
+      cache.match(request).then(
+        (response) => {
+          clearTimeout(timer);
+          resolve(response);
+        },
+        () => {
+          clearTimeout(timer);
+          resolve(undefined);
+        },
+      );
+    });
+  }
+
   async get<T = any>(key: string): Promise<T | null> {
     try {
       const cache = await this.getCache();
       const request = this.createRequest(key);
-      const response = await cache.match(request);
+      const response = await this.matchWithTimeout(cache, request);
 
       if (!response) {
         return null;
