@@ -1,5 +1,11 @@
 # @authhero/proxy
 
+## 0.7.1
+
+### Patch Changes
+
+- e0d6e50: Add `rollup` as an explicit devDependency so the build works on CI where the peer dependency of `rollup-plugin-dts` is not auto-hoisted.
+
 ## 0.7.0
 
 ### Minor Changes
