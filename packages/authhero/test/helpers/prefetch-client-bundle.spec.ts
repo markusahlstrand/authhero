@@ -10,7 +10,7 @@ import { DataAdapters } from "@authhero/adapter-interfaces";
  * Composes the real wrapper stack against a counting raw adapter so we can
  * assert how many times each entity method actually got called.
  */
-function makeStack() {
+function makeStack(sharedCache?: ReturnType<typeof createInMemoryCache>) {
   const calls: Record<string, number> = {};
   const bump = (k: string) => {
     calls[k] = (calls[k] ?? 0) + 1;
@@ -77,11 +77,13 @@ function makeStack() {
     },
   } as unknown as DataAdapters;
 
-  const cache = createInMemoryCache({
-    defaultTtlSeconds: 0,
-    maxEntries: 100,
-    cleanupIntervalMs: 0,
-  });
+  const cache =
+    sharedCache ??
+    createInMemoryCache({
+      defaultTtlSeconds: 0,
+      maxEntries: 100,
+      cleanupIntervalMs: 0,
+    });
 
   const stableEntities = [
     "tenants",
@@ -114,7 +116,7 @@ function makeStack() {
   const bundled = withClientBundle(ctx, deduped, cache);
   ctx.env.data = bundled;
 
-  return { ctx, calls };
+  return { ctx, calls, cache };
 }
 
 describe("prefetchClientBundle", () => {
@@ -181,30 +183,18 @@ describe("prefetchClientBundle", () => {
   });
 
   it("warms the cache so a second request hits zero raw calls", async () => {
-    const { ctx, calls } = makeStack();
-    await prefetchClientBundle(ctx, { client_id: "c1" });
+    // First request: cold cache, assembles and stores the bundle.
+    const stackA = makeStack();
+    await prefetchClientBundle(stackA.ctx, { client_id: "c1" });
+    expect(stackA.calls["tenants.get"]).toBe(1); // sanity: cold path ran
 
-    const firstCalls = { ...calls };
+    // Second request: a genuinely fresh stack (new ctx + request-scoped dedup)
+    // that only shares the cross-request cache instance with the first.
+    const stackB = makeStack(stackA.cache);
+    await prefetchClientBundle(stackB.ctx, { client_id: "c1" });
 
-    // Simulate a second request: fresh ctx but same cache.
-    const stack2 = makeStack();
-    // (different cache instance, so won't actually reuse — this test
-    // verifies the warm-path *within* one cache instance below)
-    expect(stack2.calls).toEqual({}); // sanity
-
-    // Now properly warm-test: clear calls, prefetch again on the SAME ctx.
-    for (const k of Object.keys(calls)) delete calls[k];
-
-    // Second prefetch on same ctx hits the in-memory bundle Promise.
-    await prefetchClientBundle(ctx, { client_id: "c1" });
-
-    // Within the same request stack: no new raw calls (bundle in-memory).
-    // getByClientId still fires once because the wrapper doesn't intercept
-    // it on a (client_id, tenant_id) miss path — but since tenant_id is set
-    // from the first prefetch, it should still hit the cache.
-    expect(Object.values(calls).every((n) => n <= 1)).toBe(true);
-
-    // Restore for use of firstCalls in any assertion above
-    void firstCalls;
+    // Everything the second request needed — tenant discovery and every
+    // bundle-covered entity — was served from the shared cache. Zero raw reads.
+    expect(Object.values(stackB.calls).every((n) => n === 0)).toBe(true);
   });
 });

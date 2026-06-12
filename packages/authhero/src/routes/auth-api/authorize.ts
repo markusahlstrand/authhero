@@ -269,9 +269,12 @@ const getRoot = defineRoute({
       queryParams.client_id &&
       !isCimdClientId(queryParams.client_id)
     ) {
+      // Best-effort: a transient failure here must not short-circuit the
+      // real client/redirect validation below, which owns the proper error
+      // contract for an unknown client. Mirrors the other prefetch call sites.
       await prefetchClientBundle(ctx, {
         client_id: queryParams.client_id,
-      });
+      }).catch(() => {});
     }
 
     let requestObjectJwt: string | undefined = queryParams.request;

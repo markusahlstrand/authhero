@@ -39,9 +39,13 @@ export async function initJSXRoute(
   // and the parallel theme/branding fetch below hit a single cache key.
   const sessionClientId = loginSession.authParams.client_id;
   if (sessionClientId && !isCimdClientId(sessionClientId)) {
-    await prefetchClientBundle(ctx, { client_id: sessionClientId }).catch(
-      () => {},
-    );
+    // The login session is already scoped to ctx.var.tenant_id — pass it so
+    // the bundle is warmed for the active tenant instead of resolving the
+    // tenant via an extra clients.getByClientId lookup.
+    await prefetchClientBundle(ctx, {
+      client_id: sessionClientId,
+      tenant_id: ctx.var.tenant_id,
+    }).catch(() => {});
   }
 
   const client = await getEnrichedClient(

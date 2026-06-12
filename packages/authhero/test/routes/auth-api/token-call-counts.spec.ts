@@ -42,7 +42,12 @@ describe("token — adapter call counts", () => {
       { headers: { "tenant-id": "tenantId" } },
     );
 
-    expect(response.status).toBeLessThan(500);
+    // Assert the warm path actually issued a token before checking call counts
+    // — a 4xx early-exit would otherwise satisfy the "≤1×" assertions below
+    // without exercising the cached bundle.
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { access_token?: string };
+    expect(body.access_token).toBeTruthy();
 
     const counts = counting.value!.counts;
 
@@ -90,7 +95,7 @@ describe("token — adapter call counts", () => {
 
     // Second request — bundle in cache; raw should never be touched for
     // any bundle-covered entity.
-    await client.oauth.token.$post(
+    const response = await client.oauth.token.$post(
       // @ts-expect-error - testClient typing wants both form and json
       {
         form: {
@@ -102,6 +107,12 @@ describe("token — adapter call counts", () => {
       },
       { headers: { "tenant-id": "tenantId" } },
     );
+
+    // The warm request must have issued a token for the zero-read assertions
+    // below to be meaningful.
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { access_token?: string };
+    expect(body.access_token).toBeTruthy();
 
     const counts = counting.value!.counts;
     expect(counts["tenants.get"] ?? 0).toBe(0);

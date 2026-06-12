@@ -1057,9 +1057,10 @@ const getAcceptInvitation = defineRoute({
     }
 
     if (invite.client_id && !isCimdClientId(invite.client_id)) {
-      await prefetchClientBundle(ctx, { client_id: invite.client_id }).catch(
-        () => {},
-      );
+      await prefetchClientBundle(ctx, {
+        client_id: invite.client_id,
+        tenant_id: tenantId,
+      }).catch(() => {});
     }
     const enriched = await getEnrichedClient(ctx.env, invite.client_id);
     const redirectUri = enriched.callbacks?.[0];
@@ -1307,7 +1308,10 @@ const getPasswordChangeTicket = defineRoute({
     }
 
     if (clientId && !isCimdClientId(clientId)) {
-      await prefetchClientBundle(ctx, { client_id: clientId }).catch(() => {});
+      await prefetchClientBundle(ctx, {
+        client_id: clientId,
+        tenant_id: tenantId,
+      }).catch(() => {});
     }
     const enriched = await getEnrichedClient(ctx.env, clientId);
     const redirectUri = meta.result_url || enriched.callbacks?.[0];

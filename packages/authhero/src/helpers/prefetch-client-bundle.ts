@@ -42,23 +42,36 @@ export async function prefetchClientBundle(
 
   // Set ctx vars so the bundle wrapper engages for every subsequent read in
   // this request (including the ones inside getEnrichedClient's Promise.all).
+  // Setting them up front (rather than after validation) is what lets the
+  // Promise.all below be served from a single bundle key instead of two raw
+  // reads. Capture the previous values so we can restore them if validation
+  // fails — callers that swallow the throw (`.catch(() => {})`) must not be
+  // left with ctx scoped to a tenant/client that didn't validate.
+  const prevTenantId = ctx.var.tenant_id;
+  const prevClientId = ctx.var.client_id;
   ctx.set("tenant_id", tenant_id);
   ctx.set("client_id", client_id);
 
-  // Trigger the bundle load. Two reads kicked off in parallel — both hit
-  // the wrapper, share one bundle-fetch Promise, and return from the
-  // bundle. No extra round-trips.
-  const [tenant, client] = await Promise.all([
-    ctx.env.data.tenants.get(tenant_id),
-    ctx.env.data.clients.get(tenant_id, client_id),
-  ]);
+  try {
+    // Trigger the bundle load. Two reads kicked off in parallel — both hit
+    // the wrapper, share one bundle-fetch Promise, and return from the
+    // bundle. No extra round-trips.
+    const [tenant, client] = await Promise.all([
+      ctx.env.data.tenants.get(tenant_id),
+      ctx.env.data.clients.get(tenant_id, client_id),
+    ]);
 
-  if (!tenant) {
-    throw new JSONHTTPException(404, { message: "Tenant not found" });
-  }
-  if (!client) {
-    throw new JSONHTTPException(403, { message: "Client not found" });
-  }
+    if (!tenant) {
+      throw new JSONHTTPException(404, { message: "Tenant not found" });
+    }
+    if (!client) {
+      throw new JSONHTTPException(403, { message: "Client not found" });
+    }
 
-  return { tenant, client };
+    return { tenant, client };
+  } catch (err) {
+    ctx.set("tenant_id", prevTenantId);
+    ctx.set("client_id", prevClientId);
+    throw err;
+  }
 }

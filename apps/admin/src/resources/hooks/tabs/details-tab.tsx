@@ -7,6 +7,7 @@ import {
 import { useRecordContext } from "ra-core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { triggerChoices, getTemplateChoicesForTrigger } from "../hookConstants";
+import { TryHookButton } from "../try-hook-button";
 
 function TypeSpecificFields() {
   const record = useRecordContext<{
@@ -35,8 +36,9 @@ function TypeSpecificFields() {
 export function DetailsTab() {
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Basic information</CardTitle>
+        <TryHookButton />
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <TypeSpecificFields />

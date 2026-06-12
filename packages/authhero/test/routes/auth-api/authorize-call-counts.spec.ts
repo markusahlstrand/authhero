@@ -50,11 +50,12 @@ describe("authorize — adapter call counts", () => {
       },
     );
 
-    // Sanity — /authorize succeeded (302 to the universal-login page) or
-    // returned a defined status. We're not asserting the redirect target;
-    // this test exists to guard call counts.
-    expect(response.status).toBeGreaterThanOrEqual(200);
-    expect(response.status).toBeLessThan(500);
+    // Assert the warm path actually succeeded before checking call counts —
+    // otherwise a 4xx early-exit would trivially satisfy the "minimal calls"
+    // assertions below without exercising the cached bundle. Success here is a
+    // 302 redirect to the universal-login page.
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toBeTruthy();
 
     const counts = counting.value!.counts;
 
@@ -107,7 +108,7 @@ describe("authorize — adapter call counts", () => {
     // Second /authorize with a fresh state — the bundle for
     // (tenantId, clientId) is now in cache. Should serve zero
     // bundle-covered reads from the raw adapter.
-    await client.authorize.$get(
+    const response = await client.authorize.$get(
       {
         query: {
           client_id: "clientId",
@@ -121,6 +122,11 @@ describe("authorize — adapter call counts", () => {
       },
       { headers: { origin: "https://example.com" } },
     );
+
+    // The warm request must have succeeded (302 to universal-login) for the
+    // zero-read assertions below to be meaningful.
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toBeTruthy();
 
     const counts = counting.value!.counts;
 

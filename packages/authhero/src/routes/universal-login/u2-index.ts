@@ -41,15 +41,6 @@ export default function createU2App(config: AuthHeroConfig) {
     Variables: Variables;
   }>();
 
-  // Set up cache once at app creation time
-  const cacheAdapter =
-    config.dataAdapter.cache ||
-    createInMemoryCache({
-      defaultTtlSeconds: 0,
-      maxEntries: 100,
-      cleanupIntervalMs: 0,
-    });
-
   const defaultTtl = config.dataAdapter.cache ? 300 : 0;
 
   // Render a branded error page for all errors (except redirects)
@@ -86,6 +77,18 @@ export default function createU2App(config: AuthHeroConfig) {
       }),
     )
     .use(async (ctx, next) => {
+      // Per-request fallback cache so request-scoped state never leaks across
+      // u2 requests. A configured persistent cache is shared intentionally;
+      // only the in-memory fallback is per-request. Mirrors the auth-api
+      // middleware.
+      const cacheAdapter =
+        config.dataAdapter.cache ||
+        createInMemoryCache({
+          defaultTtlSeconds: 0,
+          maxEntries: 100,
+          cleanupIntervalMs: 0,
+        });
+
       ctx.env.data = composeAuthData({
         ctx,
         rawData: config.dataAdapter,
