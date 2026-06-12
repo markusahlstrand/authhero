@@ -7,6 +7,8 @@ import { isValidRedirectUrl } from "../../utils/is-valid-redirect-url";
 import { clearAuthCookie, getAuthCookie } from "../../utils/cookies";
 import { setTenantId } from "../../helpers/set-tenant-id";
 import { getEnrichedClient } from "../../helpers/client";
+import { prefetchClientBundle } from "../../helpers/prefetch-client-bundle";
+import { isCimdClientId } from "../../helpers/cimd";
 import { defineRoute } from "../../utils/define-route";
 const getRoot = defineRoute({
   route: createRoute({
@@ -30,6 +32,10 @@ const getRoot = defineRoute({
   }),
   handler: async (ctx) => {
     const { client_id, returnTo } = ctx.req.valid("query");
+
+    if (!isCimdClientId(client_id)) {
+      await prefetchClientBundle(ctx, { client_id }).catch(() => {});
+    }
 
     let client;
     try {

@@ -21,6 +21,7 @@ import { silentAuth } from "../../authentication-flows/silent";
 import { connectionAuth } from "../../authentication-flows/connection";
 import { resumeLoginSession } from "../../authentication-flows/resume";
 import { getEnrichedClient } from "../../helpers/client";
+import { prefetchClientBundle } from "../../helpers/prefetch-client-bundle";
 import { isCimdClientId } from "../../helpers/cimd";
 import { getIssuer, getUniversalLoginUrl } from "../../variables";
 import { formPostResponse } from "../../utils/form-post";
@@ -259,6 +260,19 @@ const getRoot = defineRoute({
     // SSRF guard scopes for request_uri/jwks_uri/CIMD fetches. In tests
     // private hosts (127.0.0.1, localhost) are allowed via the env override.
     const ssrfFetchOptions: SsrfFetchOptions = ssrfFetchOptionsFromEnv(env);
+
+    // Explicit bundle prefetch: warms the (tenant_id, client_id) snapshot
+    // so every downstream config read in this request — including the ones
+    // inside getEnrichedClient's parallel batch — is served from one cache
+    // key. Skip for CIMD clients (URL-based ids that resolve out-of-band).
+    if (
+      queryParams.client_id &&
+      !isCimdClientId(queryParams.client_id)
+    ) {
+      await prefetchClientBundle(ctx, {
+        client_id: queryParams.client_id,
+      });
+    }
 
     let requestObjectJwt: string | undefined = queryParams.request;
     if (queryParams.request_uri) {

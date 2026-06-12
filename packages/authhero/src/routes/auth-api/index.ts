@@ -17,12 +17,7 @@ import { authorizeRoutes } from "./authorize";
 import { accountRoutes } from "./account";
 import { registerRoutes } from "./register";
 import { connectStartRoutes } from "./connect-start";
-import { addDataHooks } from "../../hooks";
-import { addTimingLogs } from "../../helpers/server-timing";
-import { addCaching } from "../../helpers/cache-wrapper";
-import { addRequestScopedDedup } from "../../helpers/request-scoped-dedup";
-import { withClientBundle } from "../../helpers/with-client-bundle";
-import { addBundleWritePurge } from "../../helpers/bundle-write-purge";
+import { composeAuthData } from "../../helpers/compose-auth-data";
 import { createInMemoryCache } from "../../adapters/cache/in-memory";
 import { applyConfigMiddleware } from "../../middlewares/apply-config";
 import { tenantMiddleware } from "../../middlewares/tenant";
@@ -68,70 +63,38 @@ export default function create(config: AuthHeroConfig) {
   );
 
   app.use(async (ctx, next) => {
-    // First add data hooks
-    const dataWithHooks = addDataHooks(ctx, config.dataAdapter);
-
-    // Use provided cache adapter or create request-scoped cache as fallback
     const cacheAdapter =
       config.dataAdapter.cache ||
       createInMemoryCache({
-        defaultTtlSeconds: 0, // No TTL for request-scoped cache
-        maxEntries: 100, // Smaller limit since it's per-request
-        cleanupIntervalMs: 0, // Disable cleanup since cache dies with the request
+        defaultTtlSeconds: 0,
+        maxEntries: 100,
+        cleanupIntervalMs: 0,
       });
 
-    // TTL strategy: if using provided cache adapter, use longer TTL; if request-scoped, use 0
-    const defaultTtl = config.dataAdapter.cache ? 300 : 0; // 5 minutes for persistent, 0 for request-scoped
-
-    // Stable config entities — safe to both cache cross-request and dedup
-    // within a request. Anything that mutates transactionally (sessions,
-    // codes, loginSessions, users, refreshTokens, clientGrants, logs, …) is
-    // omitted on purpose; see request-scoped-dedup.ts for the rationale.
-    const stableEntities = [
-      "tenants",
-      "connections",
-      "clientConnections",
-      "customDomains",
-      "clients",
-      "branding",
-      "themes",
-      "promptSettings",
-      "forms",
-      "resourceServers",
-      "roles",
-      "organizations",
-      "userRoles",
-      "userPermissions",
-      "hooks",
-      "keys",
-    ];
-
-    // L2: persistent cross-request cache (CF Cache API in prod) for any
-    // read-only entity. Catches the long tail outside the bundle.
-    const cachedData = addCaching(dataWithHooks, {
-      defaultTtl,
-      cacheEntities: stableEntities,
-      cache: cacheAdapter,
+    ctx.env.data = composeAuthData({
+      ctx,
+      rawData: config.dataAdapter,
+      cacheAdapter,
+      defaultTtl: config.dataAdapter.cache ? 300 : 0,
+      // Bundle-covered entities (tenants/connections/clientConnections/
+      // branding/resourceServers/promptSettings/themes/hooks) are cached at
+      // L0 and intentionally NOT listed here — composeAuthData puts them in
+      // L1 dedup automatically.
+      //
+      // `clients` is the one exception: prefetchClientBundle calls
+      // clients.getByClientId(cid) BEFORE ctx.var.client_id is set, so the
+      // wrapper can't route it to the bundle.
+      nonBundleEntities: [
+        "clients",
+        "customDomains",
+        "forms",
+        "roles",
+        "organizations",
+        "userRoles",
+        "userPermissions",
+        "keys",
+      ],
     });
-
-    // L1: per-request in-flight Promise dedup so two callers asking for the
-    // same key share one round-trip even when they hit different code paths.
-    const dedupedData = addRequestScopedDedup(cachedData, {
-      dedupEntities: stableEntities,
-    });
-
-    // Purge the bundle cache when writes hit bundle-covered entities so a
-    // local edge sees its own writes immediately. Sits between L0 and L1 so
-    // it runs after the write succeeds at L2.
-    const purgingData = addBundleWritePurge(dedupedData, cacheAdapter);
-
-    // L0: per-(tenant, client) bundle, SWR 5min fresh / 10min stale. Routes
-    // bundle-covered methods (tenant/client/connections/branding/etc.) to a
-    // single cache key. Other reads pass through to L1.
-    const bundledData = withClientBundle(ctx, purgingData, cacheAdapter);
-
-    // Finally wrap with timing logs
-    ctx.env.data = addTimingLogs(ctx, bundledData);
     return next();
   });
 

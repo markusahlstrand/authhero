@@ -82,6 +82,12 @@ function makeUpstream() {
         return { hooks: [] };
       },
     },
+    themes: {
+      get: async (t: string, id: string) => {
+        bump(`themes.get:${t}:${id}`);
+        return null;
+      },
+    },
   } as unknown as DataAdapters;
   return { upstream, calls };
 }
@@ -102,7 +108,7 @@ describe("withClientBundle", () => {
     const ctx = makeCtx("t1", "c1");
     const wrapped = withClientBundle(ctx, upstream, cache);
 
-    // First call triggers bundle load (parallel fetch of all 8 components).
+    // First call triggers bundle load (parallel fetch of all components).
     await wrapped.tenants.get("t1");
     // Subsequent calls hit the in-memory bundle promise, no extra upstream calls.
     await wrapped.clients.get("t1", "c1");
@@ -112,6 +118,7 @@ describe("withClientBundle", () => {
     await wrapped.resourceServers.list("t1");
     await wrapped.promptSettings.get("t1");
     await wrapped.hooks.list("t1");
+    await wrapped.themes.get("t1", "default");
 
     // Each upstream method was called exactly once (during the bundle fetch).
     expect(calls["tenants.get:t1"]).toBe(1);
@@ -122,6 +129,7 @@ describe("withClientBundle", () => {
     expect(calls["resourceServers.list:t1"]).toBe(1);
     expect(calls["promptSettings.get:t1"]).toBe(1);
     expect(calls["hooks.list:t1"]).toBe(1);
+    expect(calls["themes.get:t1:default"]).toBe(1);
   });
 
   it("falls through to upstream when tenant_id is not set on ctx", async () => {

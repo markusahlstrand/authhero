@@ -10,6 +10,7 @@ import {
   Branding,
   PromptSetting,
   Tenant,
+  Theme,
 } from "@authhero/adapter-interfaces";
 
 /**
@@ -30,6 +31,11 @@ export interface ClientBundle {
   resourceServers: ListResourceServersResponse;
   promptSettings: PromptSetting | null;
   hooks: ListHooksResponse;
+  /** The tenant's default theme. Universal-login routes always fetch this
+   * one ("default") key, so bundling it saves a round-trip on every UI
+   * render. Non-UI routes get the field for free; the payload is small.
+   */
+  defaultTheme: Theme | null;
 }
 
 interface BundleEntry {
@@ -61,6 +67,26 @@ export function clientBundleKey(
   return `${prefix}:${tenantId}:${clientId}`;
 }
 
+/**
+ * Entity names covered by the {@link ClientBundle}. Single source of truth
+ * used by {@link composeAuthData} so individual apps don't need to enumerate
+ * the bundled entities themselves — they only declare their long-tail
+ * (non-bundle) entities.
+ *
+ * Keep in sync with {@link fetchBundle} above.
+ */
+export const BUNDLE_ENTITIES = [
+  "tenants",
+  "clients",
+  "connections",
+  "clientConnections",
+  "branding",
+  "resourceServers",
+  "promptSettings",
+  "hooks",
+  "themes",
+] as const;
+
 async function fetchBundle(
   data: DataAdapters,
   tenantId: string,
@@ -75,6 +101,7 @@ async function fetchBundle(
     resourceServers,
     promptSettings,
     hooks,
+    defaultTheme,
   ] = await Promise.all([
     data.tenants.get(tenantId),
     data.clients.get(tenantId, clientId),
@@ -84,6 +111,7 @@ async function fetchBundle(
     data.resourceServers.list(tenantId),
     data.promptSettings.get(tenantId).catch(() => null),
     data.hooks.list(tenantId),
+    data.themes.get(tenantId, "default"),
   ]);
 
   return {
@@ -95,6 +123,7 @@ async function fetchBundle(
     resourceServers,
     promptSettings,
     hooks,
+    defaultTheme,
   };
 }
 

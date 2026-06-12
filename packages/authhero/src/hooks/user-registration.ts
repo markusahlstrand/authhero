@@ -116,16 +116,13 @@ export function createUserHooks(
       }
     }
 
-    // Execute pre-user-registration code hooks
+    // Execute pre-user-registration code hooks.
+    // Fetch the full tenant hooks list (bundle-covered) and filter in memory
+    // rather than passing a `q:` param that bypasses the bundle wrapper.
     {
-      const { hooks: allHooks } = await data.hooks.list(tenant_id, {
-        q: "trigger_id:pre-user-registration",
-        page: 0,
-        per_page: 100,
-        include_totals: false,
-      });
+      const { hooks: allHooks } = await data.hooks.list(tenant_id);
       const preRegCodeHooks = allHooks
-        .filter((h) => h.enabled)
+        .filter((h) => h.trigger_id === "pre-user-registration" && h.enabled)
         .filter(isCodeHook);
       const outcomes: HandleCodeHookOutcome[] = [];
       for (const hook of preRegCodeHooks) {
@@ -272,16 +269,16 @@ export function createUserHooks(
         }
       }
 
-      // Execute post-user-registration code and template hooks
+      // Execute post-user-registration code and template hooks.
+      // Bundle-friendly: fetch the full tenant hooks list and filter in JS
+      // instead of passing a `q:` param.
       {
-        const { hooks: allHooks } = await ctx.env.data.hooks.list(tenant_id, {
-          q: "trigger_id:post-user-registration",
-          page: 0,
-          per_page: 100,
-          include_totals: false,
-        });
+        const { hooks: allHooks } = await ctx.env.data.hooks.list(tenant_id);
         const postRegCodeHooks = allHooks.filter(
-          (h: any) => h.enabled && isCodeHook(h),
+          (h: any) =>
+            h.trigger_id === "post-user-registration" &&
+            h.enabled &&
+            isCodeHook(h),
         );
         const postRegOutcomes: HandleCodeHookOutcome[] = [];
         for (const hook of postRegCodeHooks) {
@@ -325,7 +322,10 @@ export function createUserHooks(
         // hooks performed. Failures are logged but do not abort signup —
         // the post-registration phase is best-effort, mirroring code hooks.
         const postRegTemplateHooks = allHooks.filter(
-          (h: any) => h.enabled && isTemplateHook(h),
+          (h: any) =>
+            h.trigger_id === "post-user-registration" &&
+            h.enabled &&
+            isTemplateHook(h),
         );
         for (const hook of postRegTemplateHooks) {
           if (!isTemplateHook(hook)) continue;

@@ -10,6 +10,7 @@ import createAdapters, {
   Database,
   migrateToLatest,
 } from "@authhero/kysely-adapter";
+import { createInMemoryCache } from "../../src/adapters/cache/in-memory";
 import { base64 } from "oslo/encoding";
 import {
   createEncryptedDataAdapter,
@@ -56,6 +57,16 @@ type getEnvParams = {
   // Optional rate-limit adapter injected into `env.data.rateLimit` so tests
   // can exercise the opt-in throttling paths (passwordless OTP, pre-login).
   rateLimit?: RateLimitAdapter;
+  // Optional decorator applied to the data adapter *after* fixtures are
+  // seeded but *before* it's passed to `init`. Use for things like
+  // `countingAdapter` that should only observe request-time calls, not
+  // setup writes.
+  wrapDataAdapter?: (data: DataAdapters) => DataAdapters;
+  // When true, attach a persistent in-memory cache to `data.cache` so the
+  // ClientBundle + addCaching layers survive across requests within a test.
+  // Without this, every request gets a fresh per-request cache that
+  // immediately dies — making warm-cache assertions impossible.
+  persistentCache?: boolean;
 };
 
 export type TestServer = {
@@ -213,6 +224,15 @@ export async function getTestServer(
     emailService: mockEmailService,
     smsService: mockSmsService,
     ...(args.rateLimit ? { rateLimit: args.rateLimit } : {}),
+    ...(args.persistentCache
+      ? {
+          cache: createInMemoryCache({
+            defaultTtlSeconds: 300,
+            maxEntries: 1000,
+            cleanupIntervalMs: 0,
+          }),
+        }
+      : {}),
   };
 
   const env: Bindings = {
@@ -240,8 +260,12 @@ export async function getTestServer(
     env.codeExecutor = args.codeExecutor;
   }
 
+  const adapterForInit = args.wrapDataAdapter
+    ? args.wrapDataAdapter(dataWithServices)
+    : dataWithServices;
+
   const apps = init({
-    dataAdapter: dataWithServices,
+    dataAdapter: adapterForInit,
     hooks: args.hooks,
     entityHooks: args.entityHooks,
     ...(args.outbox ? { outbox: { enabled: true, maxRetries: 1 } } : {}),

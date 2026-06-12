@@ -19,9 +19,7 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { cors } from "hono/cors";
 import { AuthHeroConfig, Bindings, Variables } from "../../types";
-import { addDataHooks } from "../../hooks";
-import { addTimingLogs } from "../../helpers/server-timing";
-import { addCaching } from "../../helpers/cache-wrapper";
+import { composeAuthData } from "../../helpers/compose-auth-data";
 import { createInMemoryCache } from "../../adapters/cache/in-memory";
 import { applyConfigMiddleware } from "../../middlewares/apply-config";
 import { tenantMiddleware } from "../../middlewares/tenant";
@@ -88,29 +86,23 @@ export default function createU2App(config: AuthHeroConfig) {
       }),
     )
     .use(async (ctx, next) => {
-      const dataWithHooks = addDataHooks(ctx, config.dataAdapter);
-      const cachedData = addCaching(dataWithHooks, {
+      ctx.env.data = composeAuthData({
+        ctx,
+        rawData: config.dataAdapter,
+        cacheAdapter,
         defaultTtl,
-        cacheEntities: [
-          "tenants",
-          "connections",
+        // `clients` kept in L2 — see auth-api comment for the pre-prefetch
+        // getByClientId rationale.
+        nonBundleEntities: [
           "clients",
-          "clientConnections",
           "customDomains",
-          "resourceServers",
           "roles",
           "organizations",
-          "branding",
-          "themes",
-          "promptSettings",
           "forms",
-          "hooks",
           "customText",
           "universalLoginTemplates",
         ],
-        cache: cacheAdapter,
       });
-      ctx.env.data = addTimingLogs(ctx, cachedData);
       return next();
     })
     .use(clientInfoMiddleware)

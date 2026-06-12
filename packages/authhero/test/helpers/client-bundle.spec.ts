@@ -61,6 +61,7 @@ function makeData(): {
     },
     promptSettings: { get: async () => (bump("promptSettings.get"), null) },
     hooks: { list: async () => (bump("hooks.list"), { hooks: [] }) },
+    themes: { get: async () => (bump("themes.get"), null) },
   } as unknown as DataAdapters;
   return { data, calls };
 }
@@ -83,6 +84,7 @@ describe("loadClientBundle", () => {
       "resourceServers.list": 1,
       "promptSettings.get": 1,
       "hooks.list": 1,
+      "themes.get": 1,
     });
     expect(cache.store.has(clientBundleKey("t1", "c1"))).toBe(true);
   });
@@ -187,6 +189,7 @@ describe("loadClientBundle", () => {
       resourceServers: { list: async () => ({ resource_servers: [] }) },
       promptSettings: { get: async () => null },
       hooks: { list: async () => ({ hooks: [] }) },
+      themes: { get: async () => null },
     } as unknown as DataAdapters;
 
     let clock = 1_000_000;

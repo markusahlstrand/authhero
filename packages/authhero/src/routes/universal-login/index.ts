@@ -11,9 +11,7 @@ import { accountRoutes } from "./account";
 import { accountChangeEmailRoutes } from "./account-change-email";
 import { changeEmailVerifyRoutes } from "./account-change-email-verify";
 import { changeEmailConfirmationRoutes } from "./account-change-email-confirmation";
-import { addDataHooks } from "../../hooks";
-import { addTimingLogs } from "../../helpers/server-timing";
-import { addCaching } from "../../helpers/cache-wrapper";
+import { composeAuthData } from "../../helpers/compose-auth-data";
 import { createInMemoryCache } from "../../adapters/cache/in-memory";
 import { applyConfigMiddleware } from "../../middlewares/apply-config";
 import { preSignupRoutes } from "./pre-signup";
@@ -113,34 +111,23 @@ export default function create(config: AuthHeroConfig) {
       }),
     )
     .use(async (ctx, next) => {
-      // First add data hooks
-      const dataWithHooks = addDataHooks(ctx, config.dataAdapter);
-
-      // Use the app-level cache adapter
-      const cachedData = addCaching(dataWithHooks, {
+      ctx.env.data = composeAuthData({
+        ctx,
+        rawData: config.dataAdapter,
+        cacheAdapter,
         defaultTtl,
-        cacheEntities: [
-          "tenants",
-          "connections",
+        // `clients` kept in L2 — see auth-api comment for the pre-prefetch
+        // getByClientId rationale.
+        nonBundleEntities: [
           "clients",
-          "clientConnections",
           "customDomains",
-          "resourceServers",
           "roles",
           "organizations",
-          "branding",
-          "themes",
-          "promptSettings",
           "forms",
-          "hooks",
           "customText",
           "universalLoginTemplates",
         ],
-        cache: cacheAdapter,
       });
-
-      // Finally wrap with timing logs
-      ctx.env.data = addTimingLogs(ctx, cachedData);
       return next();
     })
     .use(clientInfoMiddleware)

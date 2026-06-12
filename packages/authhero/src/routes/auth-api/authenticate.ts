@@ -13,6 +13,8 @@ import {
 import { stringifyAuth0Client } from "../../utils/client-info";
 import { setTenantId } from "../../helpers/set-tenant-id";
 import { getEnrichedClient } from "../../helpers/client";
+import { prefetchClientBundle } from "../../helpers/prefetch-client-bundle";
+import { isCimdClientId } from "../../helpers/cimd";
 import { logMessage } from "../../helpers/logging";
 import { defineRoute } from "../../utils/define-route";
 const postRoot = defineRoute({
@@ -60,6 +62,9 @@ const postRoot = defineRoute({
     const body = ctx.req.valid("json");
     const { client_id, username } = body;
     ctx.set("username", username);
+    if (!isCimdClientId(client_id)) {
+      await prefetchClientBundle(ctx, { client_id }).catch(() => {});
+    }
     const client = await getEnrichedClient(ctx.env, client_id);
     ctx.set("client_id", client_id);
     setTenantId(ctx, client.tenant.id);

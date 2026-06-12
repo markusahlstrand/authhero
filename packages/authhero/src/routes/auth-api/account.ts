@@ -3,6 +3,8 @@ import { AuthParams } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../../types";
 import { getAuthCookie } from "../../utils/cookies";
 import { getEnrichedClient } from "../../helpers/client";
+import { prefetchClientBundle } from "../../helpers/prefetch-client-bundle";
+import { isCimdClientId } from "../../helpers/cimd";
 import { nanoid } from "nanoid";
 import { UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS } from "../../constants";
 import { stringifyAuth0Client } from "../../utils/client-info";
@@ -55,6 +57,10 @@ const getRoot = defineRoute({
       ctx.req.valid("query");
 
     ctx.set("log", "account");
+
+    if (!isCimdClientId(client_id)) {
+      await prefetchClientBundle(ctx, { client_id }).catch(() => {});
+    }
 
     const client = await getEnrichedClient(env, client_id);
     ctx.set("client_id", client.client_id);

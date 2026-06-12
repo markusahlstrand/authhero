@@ -2,6 +2,8 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
 import { JSONHTTPException } from "../../errors/json-http-exception";
 import { getEnrichedClient } from "../../helpers/client";
+import { prefetchClientBundle } from "../../helpers/prefetch-client-bundle";
+import { isCimdClientId } from "../../helpers/cimd";
 import { safeCompare } from "../../utils/safe-compare";
 import { parseBasicAuthHeader } from "../../utils/auth-header";
 import { setTenantId } from "../../helpers/set-tenant-id";
@@ -75,6 +77,16 @@ const postRoot = defineRoute({
         error: "invalid_request",
         error_description: "client_id is required",
       });
+    }
+
+    if (
+      typeof params.client_id === "string" &&
+      !isCimdClientId(params.client_id)
+    ) {
+      await prefetchClientBundle(ctx, {
+        client_id: params.client_id,
+        tenant_id: ctx.var.tenant_id,
+      }).catch(() => {});
     }
 
     // Mask "client not found" (403 from getEnrichedClient) as 401 invalid_client
