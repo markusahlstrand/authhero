@@ -137,9 +137,13 @@ export async function connectionCallback(
   // collapses to a single cache key.
   const sessionClientId = loginSession.authParams.client_id;
   if (sessionClientId && !isCimdClientId(sessionClientId)) {
-    await prefetchClientBundle(ctx, { client_id: sessionClientId }).catch(
-      () => {},
-    );
+    // Pass the tenant when the request already resolved one (tenant
+    // subdomain / header); otherwise the prefetch discovers it via
+    // clients.getByClientId.
+    await prefetchClientBundle(ctx, {
+      client_id: sessionClientId,
+      tenant_id: ctx.var.tenant_id || undefined,
+    }).catch(() => {});
   }
 
   const client = await getEnrichedClient(
