@@ -1,5 +1,13 @@
 # @authhero/kysely-adapter
 
+## 11.8.9
+
+### Patch Changes
+
+- e0d6e50: Add `rollup` as an explicit devDependency so the build works on CI where the peer dependency of `rollup-plugin-dts` is not auto-hoisted.
+- Updated dependencies [e0d6e50]
+  - @authhero/proxy@0.7.1
+
 ## 11.8.8
 
 ### Patch Changes

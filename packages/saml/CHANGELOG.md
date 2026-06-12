@@ -1,5 +1,11 @@
 # @authhero/saml
 
+## 0.4.2
+
+### Patch Changes
+
+- e0d6e50: Add `rollup` as an explicit devDependency so the build works on CI where the peer dependency of `rollup-plugin-dts` is not auto-hoisted.
+
 ## 0.4.1
 
 ### Patch Changes
