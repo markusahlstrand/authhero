@@ -20,6 +20,8 @@ import {
   ENTERPRISE_STRATEGIES,
 } from "../strategies";
 import { getEnrichedClient } from "../helpers/client";
+import { prefetchClientBundle } from "../helpers/prefetch-client-bundle";
+import { isCimdClientId } from "../helpers/cimd";
 import { getOrCreateUserByProvider } from "../helpers/users";
 import { finalizeAuthenticatedSession } from "./common";
 import { setTenantId } from "../helpers/set-tenant-id";
@@ -130,6 +132,15 @@ export async function connectionCallback(
   // finalize the login session here and let the resume endpoint 302 the
   // browser back to the original authorization host if needed. This avoids
   // the fragile 307-POST re-dispatch the old code used.
+
+  // Warm the bundle before getEnrichedClient so its parallel config fetch
+  // collapses to a single cache key.
+  const sessionClientId = loginSession.authParams.client_id;
+  if (sessionClientId && !isCimdClientId(sessionClientId)) {
+    await prefetchClientBundle(ctx, { client_id: sessionClientId }).catch(
+      () => {},
+    );
+  }
 
   const client = await getEnrichedClient(
     env,

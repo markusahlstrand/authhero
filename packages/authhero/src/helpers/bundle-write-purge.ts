@@ -107,6 +107,24 @@ export function addBundleWritePurge(
         return result;
       },
     },
+    themes: {
+      ...data.themes,
+      create: async (tenantId, theme, themeId) => {
+        const result = await data.themes.create(tenantId, theme, themeId);
+        await purgeTenant(tenantId);
+        return result;
+      },
+      update: async (tenantId, themeId, theme) => {
+        const result = await data.themes.update(tenantId, themeId, theme);
+        await purgeTenant(tenantId);
+        return result;
+      },
+      remove: async (tenantId, themeId) => {
+        const result = await data.themes.remove(tenantId, themeId);
+        await purgeTenant(tenantId);
+        return result;
+      },
+    },
     resourceServers: {
       ...data.resourceServers,
       update: async (tenantId, id, params) => {

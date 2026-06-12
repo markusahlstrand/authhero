@@ -11,9 +11,7 @@ import { accountRoutes } from "./account";
 import { accountChangeEmailRoutes } from "./account-change-email";
 import { changeEmailVerifyRoutes } from "./account-change-email-verify";
 import { changeEmailConfirmationRoutes } from "./account-change-email-confirmation";
-import { addDataHooks } from "../../hooks";
-import { addTimingLogs } from "../../helpers/server-timing";
-import { addCaching } from "../../helpers/cache-wrapper";
+import { composeAuthData } from "../../helpers/compose-auth-data";
 import { createInMemoryCache } from "../../adapters/cache/in-memory";
 import { applyConfigMiddleware } from "../../middlewares/apply-config";
 import { preSignupRoutes } from "./pre-signup";
@@ -42,15 +40,6 @@ export default function create(config: AuthHeroConfig) {
     Bindings: Bindings;
     Variables: Variables;
   }>();
-
-  // Set up cache once at app creation time
-  const cacheAdapter =
-    config.dataAdapter.cache ||
-    createInMemoryCache({
-      defaultTtlSeconds: 0, // No TTL for request-scoped cache
-      maxEntries: 100, // Smaller limit since it's per-request
-      cleanupIntervalMs: 0, // Disable cleanup since cache dies with the request
-    });
 
   // TTL strategy: if using provided cache adapter, use longer TTL; if request-scoped, use 0
   const defaultTtl = config.dataAdapter.cache ? 300 : 0; // 5 minutes for persistent, 0 for request-scoped
@@ -113,34 +102,35 @@ export default function create(config: AuthHeroConfig) {
       }),
     )
     .use(async (ctx, next) => {
-      // First add data hooks
-      const dataWithHooks = addDataHooks(ctx, config.dataAdapter);
+      // Create the fallback cache per-request so request-scoped state never
+      // leaks across universal-login requests. A configured persistent cache
+      // is shared intentionally; only the in-memory fallback is per-request.
+      // Mirrors the auth-api middleware.
+      const cacheAdapter =
+        config.dataAdapter.cache ||
+        createInMemoryCache({
+          defaultTtlSeconds: 0,
+          maxEntries: 100,
+          cleanupIntervalMs: 0,
+        });
 
-      // Use the app-level cache adapter
-      const cachedData = addCaching(dataWithHooks, {
+      ctx.env.data = composeAuthData({
+        ctx,
+        rawData: config.dataAdapter,
+        cacheAdapter,
         defaultTtl,
-        cacheEntities: [
-          "tenants",
-          "connections",
+        // `clients` kept in L2 — see auth-api comment for the pre-prefetch
+        // getByClientId rationale.
+        nonBundleEntities: [
           "clients",
-          "clientConnections",
           "customDomains",
-          "resourceServers",
           "roles",
           "organizations",
-          "branding",
-          "themes",
-          "promptSettings",
           "forms",
-          "hooks",
           "customText",
           "universalLoginTemplates",
         ],
-        cache: cacheAdapter,
       });
-
-      // Finally wrap with timing logs
-      ctx.env.data = addTimingLogs(ctx, cachedData);
       return next();
     })
     .use(clientInfoMiddleware)

@@ -434,17 +434,18 @@ export async function createAuthTokens(
     );
   }
 
-  // Execute credentials-exchange template hooks from the database
+  // Execute credentials-exchange template hooks from the database.
+  // Fetch the full tenant hooks list (bundle-covered, one cache hit) and
+  // filter in memory instead of passing a `q:` param — the param'd shape
+  // bypasses the ClientBundle wrapper.
   {
-    const { hooks } = await ctx.env.data.hooks.list(ctx.var.tenant_id, {
-      q: "trigger_id:credentials-exchange",
-      page: 0,
-      per_page: 100,
-      include_totals: false,
-    });
+    const { hooks } = await ctx.env.data.hooks.list(ctx.var.tenant_id);
 
     const credentialsExchangeTemplateHooks = hooks.filter(
-      (h: any) => h.enabled && isTemplateHook(h),
+      (h: any) =>
+        h.trigger_id === "credentials-exchange" &&
+        h.enabled &&
+        isTemplateHook(h),
     );
 
     const templateApi = buildCredentialsExchangeApi(

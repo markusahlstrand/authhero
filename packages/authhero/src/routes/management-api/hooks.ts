@@ -11,6 +11,7 @@ import { querySchema } from "../../types/auth0/Query";
 import { parseSort } from "../../utils/sort";
 import { HTTPException } from "hono/http-exception";
 import { generateHookId } from "../../utils/entity-id";
+import { invokeWebHook } from "../../hooks/webhooks";
 
 import { defineRoute } from "../../utils/define-route";
 const hopoksWithTotalsSchema = totalsSchema.extend({
@@ -282,6 +283,92 @@ const deleteByHook_id = defineRoute({
   },
 });
 
+const tryByHook_id = defineRoute({
+  route: createRoute({
+    tags: ["hooks"],
+    method: "post",
+    path: "/{hook_id}/try",
+    request: {
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
+      params: z.object({
+        hook_id: z.string(),
+      }),
+      body: {
+        content: {
+          "application/json": {
+            schema: z.object({
+              user_id: z.string(),
+            }),
+          },
+        },
+      },
+    },
+    security: [
+      {
+        Bearer: ["update:hooks"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: z.object({
+              ok: z.boolean(),
+              status: z.number().optional(),
+              body: z.string().optional(),
+              error: z.string().optional(),
+            }),
+          },
+        },
+        description:
+          "Invokes the webhook with the given user and returns the upstream response. authhero extension; not available in Auth0.",
+      },
+      400: {
+        description: "Hook is not a web hook",
+      },
+      404: {
+        description: "Hook or user not found",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const { hook_id } = ctx.req.valid("param");
+    const { user_id } = ctx.req.valid("json");
+
+    const hook = await ctx.env.data.hooks.get(ctx.var.tenant_id, hook_id);
+    if (!hook) {
+      throw new HTTPException(404, { message: "Hook not found" });
+    }
+    if (!("url" in hook)) {
+      throw new HTTPException(400, {
+        message: "Only web hooks can be tried",
+      });
+    }
+
+    const user = await ctx.env.data.users.get(ctx.var.tenant_id, user_id);
+    if (!user) {
+      throw new HTTPException(404, { message: "User not found" });
+    }
+
+    const result = await invokeWebHook(ctx, hook, {
+      tenant_id: ctx.var.tenant_id,
+      user,
+      trigger_id: hook.trigger_id,
+    });
+
+    await logMessage(ctx, ctx.var.tenant_id, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: `Try a Hook (${hook_id})`,
+      targetType: "hook",
+      targetId: hook_id,
+    });
+
+    return ctx.json(result);
+  },
+});
+
 export const hooksRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
@@ -291,4 +378,5 @@ export const hooksRoutes = new OpenAPIHono<{
   patchByHook_id,
   getByHook_id,
   deleteByHook_id,
+  tryByHook_id,
 ] as const);

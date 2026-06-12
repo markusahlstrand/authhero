@@ -6,6 +6,8 @@ import { Bindings, Variables } from "../../types";
 import { clearAuthCookie, getAuthCookie } from "../../utils/cookies";
 import { setTenantId } from "../../helpers/set-tenant-id";
 import { getEnrichedClient } from "../../helpers/client";
+import { prefetchClientBundle } from "../../helpers/prefetch-client-bundle";
+import { isCimdClientId } from "../../helpers/cimd";
 import { validateJwtToken } from "../../utils/jwt";
 
 import { defineRoute } from "../../utils/define-route";
@@ -105,6 +107,11 @@ const getRoot = defineRoute({
 
     let client;
     if (resolvedClientId) {
+      if (!isCimdClientId(resolvedClientId)) {
+        await prefetchClientBundle(ctx, { client_id: resolvedClientId }).catch(
+          () => {},
+        );
+      }
       try {
         client = await getEnrichedClient(ctx.env, resolvedClientId);
         ctx.set("client_id", resolvedClientId);

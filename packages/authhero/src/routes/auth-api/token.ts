@@ -42,6 +42,8 @@ import {
   CLIENT_ASSERTION_TYPE,
 } from "../../helpers/client-assertion";
 import { getEnrichedClient, EnrichedClient } from "../../helpers/client";
+import { prefetchClientBundle } from "../../helpers/prefetch-client-bundle";
+import { isCimdClientId } from "../../helpers/cimd";
 import { getAuthUrl, getIssuer } from "../../variables";
 import { base64url } from "oslo/encoding";
 
@@ -206,6 +208,23 @@ const postRoot = defineRoute({
       typeof params.client_assertion === "string"
         ? params.client_assertion
         : undefined;
+
+    // Bundle prefetch — peek the client_id (from params or from the
+    // assertion's unsigned payload) and warm the bundle once, so the
+    // downstream assertion check + grant handler share one cache key.
+    // Swallow failures: if the client doesn't exist, we want the proper
+    // RFC 6749 error from the grant handler, not a 403 here.
+    const peekedClientId =
+      typeof params.client_id === "string"
+        ? params.client_id
+        : clientAssertion
+          ? peekAssertionClientId(clientAssertion)
+          : undefined;
+    if (peekedClientId && !isCimdClientId(peekedClientId)) {
+      await prefetchClientBundle(ctx, { client_id: peekedClientId }).catch(
+        () => {},
+      );
+    }
     const clientAssertionType =
       typeof params.client_assertion_type === "string"
         ? params.client_assertion_type

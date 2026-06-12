@@ -51,6 +51,8 @@ import { DEFAULT_THEME } from "../../constants/defaultTheme";
 import { locales } from "../../i18n";
 import { nanoid } from "nanoid";
 import { getEnrichedClient } from "../../helpers/client";
+import { prefetchClientBundle } from "../../helpers/prefetch-client-bundle";
+import { isCimdClientId } from "../../helpers/cimd";
 import { UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS } from "../../constants";
 
 import { defineRoute } from "../../utils/define-route";
@@ -1054,6 +1056,12 @@ const getAcceptInvitation = defineRoute({
       throw new HTTPException(404, { message: "Organization not found" });
     }
 
+    if (invite.client_id && !isCimdClientId(invite.client_id)) {
+      await prefetchClientBundle(ctx, {
+        client_id: invite.client_id,
+        tenant_id: tenantId,
+      }).catch(() => {});
+    }
     const enriched = await getEnrichedClient(ctx.env, invite.client_id);
     const redirectUri = enriched.callbacks?.[0];
     if (!redirectUri) {
@@ -1299,6 +1307,12 @@ const getPasswordChangeTicket = defineRoute({
       });
     }
 
+    if (clientId && !isCimdClientId(clientId)) {
+      await prefetchClientBundle(ctx, {
+        client_id: clientId,
+        tenant_id: tenantId,
+      }).catch(() => {});
+    }
     const enriched = await getEnrichedClient(ctx.env, clientId);
     const redirectUri = meta.result_url || enriched.callbacks?.[0];
     if (!redirectUri) {

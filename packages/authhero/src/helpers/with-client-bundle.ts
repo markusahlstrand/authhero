@@ -11,6 +11,7 @@ import {
   Branding,
   PromptSetting,
   Tenant,
+  Theme,
 } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
 import {
@@ -184,6 +185,22 @@ export function withClientBundle(
           if (bundle && bundle.promptSettings) return bundle.promptSettings;
         }
         return upstream.promptSettings.get(tenantId);
+      },
+    },
+    themes: {
+      ...upstream.themes,
+      get: async (
+        tenantId: string,
+        themeId: string,
+      ): Promise<Theme | null> => {
+        // Only the "default" theme is bundled — that's what initJSXRoute and
+        // error pages fetch on every UI render. Other themeIds are rare and
+        // fall through.
+        if (tenantId === ctx.var.tenant_id && themeId === "default") {
+          const bundle = await getBundle();
+          if (bundle) return bundle.defaultTheme;
+        }
+        return upstream.themes.get(tenantId, themeId);
       },
     },
     hooks: {

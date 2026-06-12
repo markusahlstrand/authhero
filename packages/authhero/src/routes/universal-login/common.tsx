@@ -1,6 +1,8 @@
 import { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { getEnrichedClient, EnrichedClient } from "../../helpers/client";
+import { prefetchClientBundle } from "../../helpers/prefetch-client-bundle";
+import { isCimdClientId } from "../../helpers/cimd";
 import i18next from "i18next";
 import {
   getPrimaryUserByEmail,
@@ -32,6 +34,19 @@ export async function initJSXRoute(
   }
 
   ctx.set("loginSession", loginSession);
+
+  // Warm the bundle once for this (tenant, client) so both getEnrichedClient
+  // and the parallel theme/branding fetch below hit a single cache key.
+  const sessionClientId = loginSession.authParams.client_id;
+  if (sessionClientId && !isCimdClientId(sessionClientId)) {
+    // The login session is already scoped to ctx.var.tenant_id — pass it so
+    // the bundle is warmed for the active tenant instead of resolving the
+    // tenant via an extra clients.getByClientId lookup.
+    await prefetchClientBundle(ctx, {
+      client_id: sessionClientId,
+      tenant_id: ctx.var.tenant_id,
+    }).catch(() => {});
+  }
 
   const client = await getEnrichedClient(
     env,

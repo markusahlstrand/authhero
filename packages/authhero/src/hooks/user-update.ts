@@ -221,15 +221,15 @@ export function createUserUpdateHooks(
     // lookups; running it inside the trx would risk fighting the in-progress
     // commit and would also nest data.transaction calls.
     {
-      const { hooks: allHooks } = await data.hooks.list(tenant_id, {
-        q: "trigger_id:post-user-update",
-        page: 0,
-        per_page: 100,
-        include_totals: false,
-      });
+      // Bundle-friendly: fetch the full tenant hooks list (one cache hit
+      // via the ClientBundle) and filter in memory rather than passing a
+      // `q:` param that bypasses the bundle wrapper.
+      const { hooks: allHooks } = await data.hooks.list(tenant_id);
       const enabledTemplateHooks = allHooks.filter(
         (h: unknown) =>
-          isTemplateHook(h) && (h as { enabled: boolean }).enabled === true,
+          (h as { trigger_id?: string }).trigger_id === "post-user-update" &&
+          isTemplateHook(h) &&
+          (h as { enabled: boolean }).enabled === true,
       );
       if (enabledTemplateHooks.length > 0) {
         const updatedUser = await data.users.get(tenant_id, user_id);

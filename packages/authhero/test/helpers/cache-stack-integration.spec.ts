@@ -71,6 +71,11 @@ function makeStack(opts: {
       list: async (t: string) => (bump(`hooks.list:${t}`), { hooks: [] }),
       update: async () => true,
     },
+    themes: {
+      get: async (t: string, id: string) => (
+        bump(`themes.get:${t}:${id}`), null
+      ),
+    },
   } as unknown as DataAdapters;
 
   const cache =
@@ -95,6 +100,7 @@ function makeStack(opts: {
     "promptSettings",
     "resourceServers",
     "hooks",
+    "themes",
   ];
 
   const cached = addCaching(raw, {

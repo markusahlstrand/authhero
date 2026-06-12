@@ -318,6 +318,10 @@ export interface AuthHeroDataProvider extends DataProvider {
       language?: string;
     },
   ) => Promise<void>;
+  tryHook: (
+    hookId: string,
+    payload: { user_id: string },
+  ) => Promise<{ ok: boolean; status?: number; body?: string; error?: string }>;
 }
 
 /**
@@ -2261,9 +2265,7 @@ export default (
         try {
           await del(`email-templates/${encodeURIComponent(String(params.id))}`);
         } catch (err: unknown) {
-          const e = err as
-            | { status?: number; statusCode?: number }
-            | undefined;
+          const e = err as { status?: number; statusCode?: number } | undefined;
           const status = e?.status ?? e?.statusCode;
           // 404 means no override existed — already at default, treat as success.
           if (status !== 404) throw err;
@@ -2520,6 +2522,18 @@ export default (
           body: JSON.stringify(payload),
         },
       );
+    },
+
+    tryHook: async (hookId, payload) => {
+      const { json } = await httpClient(
+        `${apiUrl}/api/v2/hooks/${encodeURIComponent(hookId)}/try`,
+        {
+          method: "POST",
+          headers: createHeaders(tenantId),
+          body: JSON.stringify(payload),
+        },
+      );
+      return json;
     },
   };
 };

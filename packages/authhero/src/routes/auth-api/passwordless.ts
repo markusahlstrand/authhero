@@ -9,6 +9,8 @@ import generateOTP from "../../utils/otp";
 import { sendCode, sendLink } from "../../emails";
 import { OTP_EXPIRATION_TIME } from "../../constants";
 import { getEnrichedClient } from "../../helpers/client";
+import { prefetchClientBundle } from "../../helpers/prefetch-client-bundle";
+import { isCimdClientId } from "../../helpers/cimd";
 import { passwordlessGrant } from "../../authentication-flows/passwordless";
 import { nanoid } from "nanoid";
 import { stringifyAuth0Client } from "../../utils/client-info";
@@ -54,6 +56,9 @@ const postStart = defineRoute({
     const body = ctx.req.valid("json");
     const { env } = ctx;
     const { client_id, send, authParams, connection } = body;
+    if (!isCimdClientId(client_id)) {
+      await prefetchClientBundle(ctx, { client_id }).catch(() => {});
+    }
     const client = await getEnrichedClient(ctx.env, client_id);
     ctx.set("client_id", client.client_id);
     setTenantId(ctx, client.tenant.id);
@@ -183,6 +188,9 @@ const getVerifyRedirect = defineRoute({
       nonce,
     } = ctx.req.valid("query");
 
+    if (!isCimdClientId(client_id)) {
+      await prefetchClientBundle(ctx, { client_id }).catch(() => {});
+    }
     const client = await getEnrichedClient(env, client_id);
 
     ctx.set("client_id", client.client_id);
