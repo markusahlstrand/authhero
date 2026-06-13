@@ -59,11 +59,11 @@ export async function getConnectionInfo(
   }
 
   try {
-    const { connections } = await ctx.env.data.connections.list(tenantId, {
-      page: 0,
-      per_page: 100,
-      include_totals: false,
-    });
+    // No list params: the parameterless shape is what the client-bundle
+    // caches (same shape getEnrichedClient uses for "all tenant
+    // connections"), so this read is served from the bundle instead of a
+    // per-request round-trip.
+    const { connections } = await ctx.env.data.connections.list(tenantId);
 
     const connection =
       connections.find((c) => c.name === connectionName) ??

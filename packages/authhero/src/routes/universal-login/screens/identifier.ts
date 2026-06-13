@@ -499,6 +499,7 @@ export const identifierScreenDefinition: ScreenDefinition = {
               client,
               hrdConnection.name,
               loginSession.authParams,
+              loginSession,
             );
             const location = authResult.headers.get("location");
             const cookies = authResult.headers.getSetCookie?.() || [];

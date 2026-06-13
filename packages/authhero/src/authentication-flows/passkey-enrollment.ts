@@ -30,11 +30,9 @@ export async function checkPasskeyNudgeRequired(
     return { show: false };
   }
 
-  const { connections } = await ctx.env.data.connections.list(tenantId, {
-    page: 0,
-    per_page: 100,
-    include_totals: false,
-  });
+  // No list params — keeps the read on the client-bundle's cached shape
+  // (see getConnectionInfo) instead of a per-request round-trip.
+  const { connections } = await ctx.env.data.connections.list(tenantId);
 
   const connection =
     connections.find((c) => c.name === connectionName) ??

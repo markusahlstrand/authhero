@@ -873,8 +873,7 @@ export async function authenticateLoginSession(
   return session_id;
 }
 
-export type FinalizeAuthenticatedSessionParams =
-  AuthenticateLoginSessionParams;
+export type FinalizeAuthenticatedSessionParams = AuthenticateLoginSessionParams;
 
 /**
  * Persist an authenticated identity onto the login session and 302 the browser
@@ -1069,19 +1068,22 @@ export async function completeLoginSessionHook(
  * Mark a login session as completed (tokens issued)
  * This should be called when tokens are successfully returned to the client
  *
- * Uses optimistic concurrency: re-fetches current state to prevent stale overwrites
+ * Uses optimistic concurrency: re-fetches current state to prevent stale
+ * overwrites. Callers that fetched the session in the same request and have
+ * been the only writer since (e.g. createFrontChannelAuthResponse) can pass
+ * it as `freshSession` to skip the round-trip.
  */
 export async function completeLoginSession(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   tenantId: string,
   loginSession: LoginSession,
   auth_connection?: string,
+  freshSession?: LoginSession,
 ): Promise<void> {
   // Re-fetch current state to prevent stale overwrites
-  const currentSession = await ctx.env.data.loginSessions.get(
-    tenantId,
-    loginSession.id,
-  );
+  const currentSession =
+    freshSession ??
+    (await ctx.env.data.loginSessions.get(tenantId, loginSession.id));
   if (!currentSession) {
     console.warn(
       `Login session ${loginSession.id} not found when trying to mark as completed`,
@@ -1372,68 +1374,80 @@ export async function createFrontChannelAuthResponse(
   let refresh_token = params.refreshToken;
   let session_id: string | undefined;
 
-  // If we have a login session, use state-based logic to determine what to do
-  if (params.loginSession) {
-    // Re-fetch the login session to get the current state
-    const currentLoginSession = await ctx.env.data.loginSessions.get(
-      client.tenant.id,
-      params.loginSession.id,
-    );
-
-    if (!currentLoginSession) {
-      throw new JSONHTTPException(500, {
-        message: "Login session not found.",
-      });
-    }
-
-    const currentState = currentLoginSession.state || LoginSessionState.PENDING;
-
-    // Guard against terminal states
-    if (currentState === LoginSessionState.COMPLETED) {
-      throw new JSONHTTPException(400, {
-        error: "invalid_request",
-        error_description: "Login session has already been completed",
-      });
-    }
-    if (currentState === LoginSessionState.FAILED) {
-      throw new JSONHTTPException(400, {
-        error: "access_denied",
-        error_description: `Login session failed: ${currentLoginSession.failure_reason || "unknown reason"}`,
-      });
-    }
-    // EXPIRED sessions are NOT rejected here — if we got this far, the OAuth
-    // exchange succeeded and we have a valid user. The TTL expiry should only
-    // block new auth attempts, not in-flight completions.
-
-    // If state is PENDING or EXPIRED, we need to authenticate
-    if (
-      currentState === LoginSessionState.PENDING ||
-      currentState === LoginSessionState.EXPIRED
-    ) {
-      session_id = await authenticateLoginSession(ctx, {
-        user,
-        client,
-        loginSession: params.loginSession,
-        existingSessionId: params.existingSessionIdToLink,
-        authConnection: params.authConnection,
-      });
-    } else {
-      // State is AUTHENTICATED (or AWAITING_* states that allow completion)
-      // Use the session_id from the login session
-      session_id = currentLoginSession.session_id;
-
-      if (!session_id) {
-        throw new JSONHTTPException(500, {
-          message: `Login session in ${currentState} state but has no session_id`,
-        });
-      }
-    }
-  } else {
+  if (!params.loginSession) {
     // No login session provided - this is an error for front-channel responses
     throw new JSONHTTPException(500, {
       message:
         "loginSession must be provided for front-channel auth responses.",
     });
+  }
+
+  // Re-fetch the login session once. This is the single optimistic-concurrency
+  // read for the request: the MFA / consent / passkey-nudge checks and the
+  // final completeLoginSession below all reuse this object instead of
+  // re-reading, since from here on this request is the only writer.
+  let currentLoginSession = await ctx.env.data.loginSessions.get(
+    client.tenant.id,
+    params.loginSession.id,
+  );
+
+  if (!currentLoginSession) {
+    throw new JSONHTTPException(500, {
+      message: "Login session not found.",
+    });
+  }
+
+  const currentState = currentLoginSession.state || LoginSessionState.PENDING;
+
+  // Guard against terminal states
+  if (currentState === LoginSessionState.COMPLETED) {
+    throw new JSONHTTPException(400, {
+      error: "invalid_request",
+      error_description: "Login session has already been completed",
+    });
+  }
+  if (currentState === LoginSessionState.FAILED) {
+    throw new JSONHTTPException(400, {
+      error: "access_denied",
+      error_description: `Login session failed: ${currentLoginSession.failure_reason || "unknown reason"}`,
+    });
+  }
+  // EXPIRED sessions are NOT rejected here — if we got this far, the OAuth
+  // exchange succeeded and we have a valid user. The TTL expiry should only
+  // block new auth attempts, not in-flight completions.
+
+  // If state is PENDING or EXPIRED, we need to authenticate
+  if (
+    currentState === LoginSessionState.PENDING ||
+    currentState === LoginSessionState.EXPIRED
+  ) {
+    session_id = await authenticateLoginSession(ctx, {
+      user,
+      client,
+      loginSession: params.loginSession,
+      existingSessionId: params.existingSessionIdToLink,
+      authConnection: params.authConnection,
+    });
+    // Pick up the state authenticateLoginSession just wrote (AUTHENTICATED,
+    // session_id, user_id, auth_connection, …) so the checks below operate
+    // on fresh data without each doing their own round-trip.
+    const refreshed = await ctx.env.data.loginSessions.get(
+      client.tenant.id,
+      params.loginSession.id,
+    );
+    if (refreshed) {
+      currentLoginSession = refreshed;
+    }
+  } else {
+    // State is AUTHENTICATED (or AWAITING_* states that allow completion)
+    // Use the session_id from the login session
+    session_id = currentLoginSession.session_id;
+
+    if (!session_id) {
+      throw new JSONHTTPException(500, {
+        message: `Login session in ${currentState} state but has no session_id`,
+      });
+    }
   }
 
   // ============================================================================
@@ -1443,212 +1457,204 @@ export async function createFrontChannelAuthResponse(
   // If MFA is required and user hasn't completed it yet, redirect to MFA flow.
   // ============================================================================
   if (params.loginSession && user) {
-    const currentLoginSession = await ctx.env.data.loginSessions.get(
-      client.tenant.id,
-      params.loginSession.id,
-    );
-
-    if (currentLoginSession) {
-      const currentState =
-        currentLoginSession.state || LoginSessionState.PENDING;
-      let stateData: Record<string, unknown> = {};
-      if (currentLoginSession.state_data) {
-        try {
-          stateData = JSON.parse(currentLoginSession.state_data);
-        } catch {
-          console.error(
-            "Failed to parse state_data for login session",
-            currentLoginSession.id,
-          );
-        }
+    const mfaState = currentLoginSession.state || LoginSessionState.PENDING;
+    let stateData: Record<string, unknown> = {};
+    if (currentLoginSession.state_data) {
+      try {
+        stateData = JSON.parse(currentLoginSession.state_data);
+      } catch {
+        console.error(
+          "Failed to parse state_data for login session",
+          currentLoginSession.id,
+        );
       }
+    }
 
-      // If state is AWAITING_MFA, user needs to complete MFA
-      if (currentState === LoginSessionState.AWAITING_MFA) {
-        let targetPath = "/u2/mfa/login-options";
-        if (stateData.authenticationMethodId) {
-          const enrollments = await ctx.env.data.authenticationMethods.list(
-            client.tenant.id,
-            user.user_id,
-          );
-          const enrollment = enrollments.find(
-            (e) => e.id === stateData.authenticationMethodId,
-          );
-          if (enrollment?.confirmed && enrollment.type === "phone") {
-            targetPath = "/u2/mfa/phone-challenge";
-          } else if (enrollment?.confirmed && enrollment.type === "totp") {
-            targetPath = "/u2/mfa/totp-challenge";
-          } else if (
-            enrollment?.confirmed &&
-            (enrollment.type === "passkey" ||
-              enrollment.type === "webauthn-roaming" ||
-              enrollment.type === "webauthn-platform")
-          ) {
-            targetPath = "/u2/passkey/challenge";
-          } else if (enrollment?.type === "totp") {
-            targetPath = "/u2/mfa/totp-enrollment";
-          } else if (enrollment?.type === "phone") {
-            targetPath = "/u2/mfa/phone-enrollment";
-          }
-        }
-        return new Response(null, {
-          status: 302,
-          headers: {
-            location: `${targetPath}?state=${encodeURIComponent(params.loginSession.id)}`,
-          },
-        });
-      }
-
-      // If state is AUTHENTICATED and MFA hasn't been verified yet, check if MFA is required
-      if (
-        currentState === LoginSessionState.AUTHENTICATED &&
-        !stateData.mfa_verified
-      ) {
-        const { checkMfaRequired, sendMfaOtp } = await import("./mfa");
-        const mfaCheck = await checkMfaRequired(
-          ctx,
+    // If state is AWAITING_MFA, user needs to complete MFA
+    if (mfaState === LoginSessionState.AWAITING_MFA) {
+      let targetPath = "/u2/mfa/login-options";
+      if (stateData.authenticationMethodId) {
+        const enrollments = await ctx.env.data.authenticationMethods.list(
           client.tenant.id,
           user.user_id,
         );
+        const enrollment = enrollments.find(
+          (e) => e.id === stateData.authenticationMethodId,
+        );
+        if (enrollment?.confirmed && enrollment.type === "phone") {
+          targetPath = "/u2/mfa/phone-challenge";
+        } else if (enrollment?.confirmed && enrollment.type === "totp") {
+          targetPath = "/u2/mfa/totp-challenge";
+        } else if (
+          enrollment?.confirmed &&
+          (enrollment.type === "passkey" ||
+            enrollment.type === "webauthn-roaming" ||
+            enrollment.type === "webauthn-platform")
+        ) {
+          targetPath = "/u2/passkey/challenge";
+        } else if (enrollment?.type === "totp") {
+          targetPath = "/u2/mfa/totp-enrollment";
+        } else if (enrollment?.type === "phone") {
+          targetPath = "/u2/mfa/phone-enrollment";
+        }
+      }
+      return new Response(null, {
+        status: 302,
+        headers: {
+          location: `${targetPath}?state=${encodeURIComponent(params.loginSession.id)}`,
+        },
+      });
+    }
 
-        if (mfaCheck.required) {
-          // Transition to AWAITING_MFA
-          const { state: newState } = transitionLoginSession(
-            LoginSessionState.AUTHENTICATED,
-            { type: LoginSessionEventType.REQUIRE_MFA },
+    // If state is AUTHENTICATED and MFA hasn't been verified yet, check if MFA is required
+    if (
+      mfaState === LoginSessionState.AUTHENTICATED &&
+      !stateData.mfa_verified
+    ) {
+      const { checkMfaRequired, sendMfaOtp } = await import("./mfa");
+      const mfaCheck = await checkMfaRequired(
+        ctx,
+        client.tenant.id,
+        user.user_id,
+      );
+
+      if (mfaCheck.required) {
+        // Transition to AWAITING_MFA
+        const { state: newState } = transitionLoginSession(
+          LoginSessionState.AUTHENTICATED,
+          { type: LoginSessionEventType.REQUIRE_MFA },
+        );
+
+        if (!mfaCheck.enrolled) {
+          // User needs to enroll - determine which factor to use
+          const tenant = client.tenant;
+          const hasOtp = tenant.mfa?.factors?.otp === true;
+          const hasSms = tenant.mfa?.factors?.sms === true;
+          const hasWebauthn =
+            tenant.mfa?.factors?.webauthn_roaming === true ||
+            tenant.mfa?.factors?.webauthn_platform === true;
+
+          await ctx.env.data.loginSessions.update(
+            client.tenant.id,
+            params.loginSession.id,
+            {
+              state: newState,
+            },
           );
 
-          if (!mfaCheck.enrolled) {
-            // User needs to enroll - determine which factor to use
-            const tenant = client.tenant;
-            const hasOtp = tenant.mfa?.factors?.otp === true;
-            const hasSms = tenant.mfa?.factors?.sms === true;
-            const hasWebauthn =
-              tenant.mfa?.factors?.webauthn_roaming === true ||
-              tenant.mfa?.factors?.webauthn_platform === true;
-
-            await ctx.env.data.loginSessions.update(
-              client.tenant.id,
-              params.loginSession.id,
-              {
-                state: newState,
-              },
-            );
-
-            // If multiple factors available, show selection screen
-            const enabledFactorCount =
-              (hasOtp ? 1 : 0) + (hasSms ? 1 : 0) + (hasWebauthn ? 1 : 0);
-            if (enabledFactorCount > 1) {
-              return new Response(null, {
-                status: 302,
-                headers: {
-                  location: `/u2/mfa/login-options?state=${encodeURIComponent(params.loginSession.id)}`,
-                },
-              });
-            }
-
-            if (hasOtp) {
-              // Redirect to TOTP enrollment
-              return new Response(null, {
-                status: 302,
-                headers: {
-                  location: `/u2/mfa/totp-enrollment?state=${encodeURIComponent(params.loginSession.id)}`,
-                },
-              });
-            }
-
-            if (hasWebauthn) {
-              // Redirect to passkey enrollment
-              return new Response(null, {
-                status: 302,
-                headers: {
-                  location: `/u2/passkey/enrollment?state=${encodeURIComponent(params.loginSession.id)}`,
-                },
-              });
-            }
-
-            // Default to phone enrollment
+          // If multiple factors available, show selection screen
+          const enabledFactorCount =
+            (hasOtp ? 1 : 0) + (hasSms ? 1 : 0) + (hasWebauthn ? 1 : 0);
+          if (enabledFactorCount > 1) {
             return new Response(null, {
               status: 302,
               headers: {
-                location: `/u2/mfa/phone-enrollment?state=${encodeURIComponent(params.loginSession.id)}`,
-              },
-            });
-          } else {
-            // User is enrolled - check if multiple factors exist
-            if (mfaCheck.allEnrollments.length > 1) {
-              // Multiple enrollments - show selection screen
-              await ctx.env.data.loginSessions.update(
-                client.tenant.id,
-                params.loginSession.id,
-                {
-                  state: newState,
-                },
-              );
-
-              return new Response(null, {
-                status: 302,
-                headers: {
-                  location: `/u2/mfa/login-options?state=${encodeURIComponent(params.loginSession.id)}`,
-                },
-              });
-            }
-
-            // Single enrollment - redirect directly to challenge
-            await ctx.env.data.loginSessions.update(
-              client.tenant.id,
-              params.loginSession.id,
-              {
-                state: newState,
-                state_data: JSON.stringify({
-                  ...stateData,
-                  authenticationMethodId: mfaCheck.enrollment.id,
-                }),
-              },
-            );
-
-            if (mfaCheck.enrollment.type === "totp") {
-              // Redirect to TOTP challenge
-              return new Response(null, {
-                status: 302,
-                headers: {
-                  location: `/u2/mfa/totp-challenge?state=${encodeURIComponent(params.loginSession.id)}`,
-                },
-              });
-            }
-
-            if (
-              mfaCheck.enrollment.type === "passkey" ||
-              mfaCheck.enrollment.type === "webauthn-roaming" ||
-              mfaCheck.enrollment.type === "webauthn-platform"
-            ) {
-              return new Response(null, {
-                status: 302,
-                headers: {
-                  location: `/u2/passkey/challenge?state=${encodeURIComponent(params.loginSession.id)}`,
-                },
-              });
-            }
-
-            // Phone enrollment - send OTP and redirect
-            if (!mfaCheck.enrollment.phone_number) {
-              throw new Error("MFA enrollment is missing phone_number");
-            }
-
-            await sendMfaOtp(
-              ctx,
-              client,
-              params.loginSession,
-              mfaCheck.enrollment.phone_number,
-            );
-
-            return new Response(null, {
-              status: 302,
-              headers: {
-                location: `/u2/mfa/phone-challenge?state=${encodeURIComponent(params.loginSession.id)}`,
+                location: `/u2/mfa/login-options?state=${encodeURIComponent(params.loginSession.id)}`,
               },
             });
           }
+
+          if (hasOtp) {
+            // Redirect to TOTP enrollment
+            return new Response(null, {
+              status: 302,
+              headers: {
+                location: `/u2/mfa/totp-enrollment?state=${encodeURIComponent(params.loginSession.id)}`,
+              },
+            });
+          }
+
+          if (hasWebauthn) {
+            // Redirect to passkey enrollment
+            return new Response(null, {
+              status: 302,
+              headers: {
+                location: `/u2/passkey/enrollment?state=${encodeURIComponent(params.loginSession.id)}`,
+              },
+            });
+          }
+
+          // Default to phone enrollment
+          return new Response(null, {
+            status: 302,
+            headers: {
+              location: `/u2/mfa/phone-enrollment?state=${encodeURIComponent(params.loginSession.id)}`,
+            },
+          });
+        } else {
+          // User is enrolled - check if multiple factors exist
+          if (mfaCheck.allEnrollments.length > 1) {
+            // Multiple enrollments - show selection screen
+            await ctx.env.data.loginSessions.update(
+              client.tenant.id,
+              params.loginSession.id,
+              {
+                state: newState,
+              },
+            );
+
+            return new Response(null, {
+              status: 302,
+              headers: {
+                location: `/u2/mfa/login-options?state=${encodeURIComponent(params.loginSession.id)}`,
+              },
+            });
+          }
+
+          // Single enrollment - redirect directly to challenge
+          await ctx.env.data.loginSessions.update(
+            client.tenant.id,
+            params.loginSession.id,
+            {
+              state: newState,
+              state_data: JSON.stringify({
+                ...stateData,
+                authenticationMethodId: mfaCheck.enrollment.id,
+              }),
+            },
+          );
+
+          if (mfaCheck.enrollment.type === "totp") {
+            // Redirect to TOTP challenge
+            return new Response(null, {
+              status: 302,
+              headers: {
+                location: `/u2/mfa/totp-challenge?state=${encodeURIComponent(params.loginSession.id)}`,
+              },
+            });
+          }
+
+          if (
+            mfaCheck.enrollment.type === "passkey" ||
+            mfaCheck.enrollment.type === "webauthn-roaming" ||
+            mfaCheck.enrollment.type === "webauthn-platform"
+          ) {
+            return new Response(null, {
+              status: 302,
+              headers: {
+                location: `/u2/passkey/challenge?state=${encodeURIComponent(params.loginSession.id)}`,
+              },
+            });
+          }
+
+          // Phone enrollment - send OTP and redirect
+          if (!mfaCheck.enrollment.phone_number) {
+            throw new Error("MFA enrollment is missing phone_number");
+          }
+
+          await sendMfaOtp(
+            ctx,
+            client,
+            params.loginSession,
+            mfaCheck.enrollment.phone_number,
+          );
+
+          return new Response(null, {
+            status: 302,
+            headers: {
+              location: `/u2/mfa/phone-challenge?state=${encodeURIComponent(params.loginSession.id)}`,
+            },
+          });
         }
       }
     }
@@ -1668,55 +1674,46 @@ export async function createFrontChannelAuthResponse(
     !client.is_first_party &&
     responseMode !== AuthorizationResponseMode.WEB_MESSAGE
   ) {
-    const currentLoginSession = await ctx.env.data.loginSessions.get(
-      client.tenant.id,
-      params.loginSession.id,
-    );
+    const consentState = currentLoginSession.state || LoginSessionState.PENDING;
 
-    if (currentLoginSession) {
-      const currentState =
-        currentLoginSession.state || LoginSessionState.PENDING;
+    // If we're already waiting on consent, redirect to the screen.
+    if (consentState === LoginSessionState.AWAITING_CONSENT) {
+      return new Response(null, {
+        status: 302,
+        headers: {
+          location: `/u2/consent?state=${encodeURIComponent(params.loginSession.id)}`,
+        },
+      });
+    }
 
-      // If we're already waiting on consent, redirect to the screen.
-      if (currentState === LoginSessionState.AWAITING_CONSENT) {
+    // From AUTHENTICATED, check whether requested scopes are covered.
+    if (consentState === LoginSessionState.AUTHENTICATED) {
+      const requestedScopes =
+        currentLoginSession.authParams.scope?.split(" ").filter(Boolean) ?? [];
+      const missing = await getMissingConsentScopes(ctx, {
+        tenantId: client.tenant.id,
+        userId: user.user_id,
+        clientId: client.client_id,
+        requestedScopes,
+      });
+
+      if (missing.length > 0) {
+        const { state: newState } = transitionLoginSession(
+          LoginSessionState.AUTHENTICATED,
+          { type: LoginSessionEventType.REQUIRE_CONSENT },
+        );
+        await ctx.env.data.loginSessions.update(
+          client.tenant.id,
+          params.loginSession.id,
+          { state: newState },
+        );
+
         return new Response(null, {
           status: 302,
           headers: {
             location: `/u2/consent?state=${encodeURIComponent(params.loginSession.id)}`,
           },
         });
-      }
-
-      // From AUTHENTICATED, check whether requested scopes are covered.
-      if (currentState === LoginSessionState.AUTHENTICATED) {
-        const requestedScopes =
-          currentLoginSession.authParams.scope?.split(" ").filter(Boolean) ??
-          [];
-        const missing = await getMissingConsentScopes(ctx, {
-          tenantId: client.tenant.id,
-          userId: user.user_id,
-          clientId: client.client_id,
-          requestedScopes,
-        });
-
-        if (missing.length > 0) {
-          const { state: newState } = transitionLoginSession(
-            LoginSessionState.AUTHENTICATED,
-            { type: LoginSessionEventType.REQUIRE_CONSENT },
-          );
-          await ctx.env.data.loginSessions.update(
-            client.tenant.id,
-            params.loginSession.id,
-            { state: newState },
-          );
-
-          return new Response(null, {
-            status: 302,
-            headers: {
-              location: `/u2/consent?state=${encodeURIComponent(params.loginSession.id)}`,
-            },
-          });
-        }
       }
     }
   }
@@ -1732,66 +1729,50 @@ export async function createFrontChannelAuthResponse(
     user &&
     responseMode !== AuthorizationResponseMode.WEB_MESSAGE
   ) {
-    const currentLoginSession = await ctx.env.data.loginSessions.get(
-      client.tenant.id,
-      params.loginSession.id,
-    );
-
-    if (currentLoginSession) {
-      const currentState =
-        currentLoginSession.state || LoginSessionState.PENDING;
-      let stateData: Record<string, unknown> = {};
-      if (currentLoginSession.state_data) {
-        try {
-          stateData = JSON.parse(currentLoginSession.state_data);
-        } catch {
-          // ignore parse errors
-        }
+    const nudgeState = currentLoginSession.state || LoginSessionState.PENDING;
+    let stateData: Record<string, unknown> = {};
+    if (currentLoginSession.state_data) {
+      try {
+        stateData = JSON.parse(currentLoginSession.state_data);
+      } catch {
+        // ignore parse errors
       }
+    }
 
-      if (
-        currentState === LoginSessionState.AUTHENTICATED &&
-        !stateData.passkey_nudge_completed
-      ) {
-        const { checkPasskeyNudgeRequired } =
-          await import("./passkey-enrollment");
-        const nudgeCheck = await checkPasskeyNudgeRequired(
+    if (
+      nudgeState === LoginSessionState.AUTHENTICATED &&
+      !stateData.passkey_nudge_completed
+    ) {
+      const { checkPasskeyNudgeRequired } =
+        await import("./passkey-enrollment");
+      const nudgeCheck = await checkPasskeyNudgeRequired(
+        ctx,
+        client.tenant.id,
+        user.user_id,
+        currentLoginSession.auth_connection,
+      );
+
+      if (nudgeCheck.show) {
+        // Use continuation mechanism to pause login flow
+        await startLoginSessionContinuation(
           ctx,
           client.tenant.id,
-          user.user_id,
-          currentLoginSession.auth_connection,
+          currentLoginSession,
+          ["passkey-enrollment"],
+          `/u/continue?state=${encodeURIComponent(params.loginSession.id)}`,
         );
 
-        if (nudgeCheck.show) {
-          // Use continuation mechanism to pause login flow
-          await startLoginSessionContinuation(
-            ctx,
-            client.tenant.id,
-            currentLoginSession,
-            ["passkey-enrollment"],
-            `/u/continue?state=${encodeURIComponent(params.loginSession.id)}`,
-          );
-
-          return new Response(null, {
-            status: 302,
-            headers: {
-              location: `/u2/passkey/enrollment-nudge?state=${encodeURIComponent(params.loginSession.id)}`,
-            },
-          });
-        } else {
-          // Mark nudge as completed so we don't re-check on re-entry
-          await ctx.env.data.loginSessions.update(
-            client.tenant.id,
-            params.loginSession.id,
-            {
-              state_data: JSON.stringify({
-                ...stateData,
-                passkey_nudge_completed: true,
-              }),
-            },
-          );
-        }
+        return new Response(null, {
+          status: 302,
+          headers: {
+            location: `/u2/passkey/enrollment-nudge?state=${encodeURIComponent(params.loginSession.id)}`,
+          },
+        });
       }
+      // No nudge: deliberately no `passkey_nudge_completed` write here. The
+      // session reaches its terminal COMPLETED state later this request, so
+      // persisting the flag only mattered for the rare hook-redirect
+      // re-entry — where re-running the check yields the same result.
     }
   }
 
@@ -1842,7 +1823,10 @@ export async function createFrontChannelAuthResponse(
     refresh_token,
     authStrategy: params.authStrategy,
     authConnection: params.authConnection,
-    loginSession: params.loginSession,
+    // Pass the session re-read at the top of this function (and kept current
+    // since) so completeLoginSession can skip its own stale-overwrite fetch.
+    loginSession: currentLoginSession,
+    loginSessionIsCurrent: true,
     responseType,
     skipHooks: params.skipHooks,
     organization: params.organization,
@@ -1967,6 +1951,12 @@ export async function completeLogin(
   params: Omit<CreateAuthTokensParams, "client"> & {
     client: EnrichedClient;
     responseType?: AuthorizationResponseType;
+    /**
+     * Set when `loginSession` was fetched in this request and this call chain
+     * has been the only writer since — lets completeLoginSession skip its
+     * stale-overwrite re-fetch.
+     */
+    loginSessionIsCurrent?: boolean;
   },
 ): Promise<
   | TokenResponse
@@ -2165,6 +2155,7 @@ export async function completeLogin(
       params.client.tenant.id,
       params.loginSession,
       authConnection,
+      params.loginSessionIsCurrent ? params.loginSession : undefined,
     );
 
     return codeData;
@@ -2196,6 +2187,7 @@ export async function completeLogin(
       params.client.tenant.id,
       params.loginSession,
       authConnection,
+      params.loginSessionIsCurrent ? params.loginSession : undefined,
     );
 
     return { ...tokens, code: codeData.code, state: codeData.state };
@@ -2215,6 +2207,7 @@ export async function completeLogin(
         params.client.tenant.id,
         params.loginSession,
         authConnection,
+        params.loginSessionIsCurrent ? params.loginSession : undefined,
       );
     }
 

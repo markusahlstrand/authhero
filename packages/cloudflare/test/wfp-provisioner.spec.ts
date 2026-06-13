@@ -186,6 +186,43 @@ describe("CloudflareApiClient", () => {
     });
   });
 
+  it("default fetch is not invoked with the client as `this` (workerd brand check)", async () => {
+    server.use(
+      http.post(path(`/accounts/${ACCOUNT_ID}/d1/database`), () =>
+        HttpResponse.json({
+          result: { uuid: "db_uuid_strict", name: "tenant-strict" },
+          success: true,
+        }),
+      ),
+    );
+    // Mimic workerd: the global fetch throws when called with a foreign
+    // `this` (e.g. `this.fetchImpl(...)` binding the client instance).
+    const realFetch = fetch;
+    function strictFetch(
+      this: unknown,
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ): Promise<Response> {
+      if (this !== undefined && this !== globalThis) {
+        throw new TypeError(
+          "Illegal invocation: function called with incorrect `this` reference.",
+        );
+      }
+      return realFetch(input, init);
+    }
+    vi.stubGlobal("fetch", strictFetch);
+    try {
+      const client = new CloudflareApiClient({
+        accountId: ACCOUNT_ID,
+        apiToken: "token",
+      });
+      const created = await client.createD1Database("tenant-strict");
+      expect(created.uuid).toBe("db_uuid_strict");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("non-2xx responses throw CloudflareApiError with the status + body + errors array", async () => {
     server.use(
       http.post(path(`/accounts/${ACCOUNT_ID}/d1/database`), () =>
