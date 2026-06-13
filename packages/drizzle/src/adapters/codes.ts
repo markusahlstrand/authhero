@@ -29,21 +29,18 @@ export function createCodesAdapter(db: DrizzleDb) {
       code_id: string,
       code_type: string,
     ): Promise<Code | null> {
-      if (!tenant_id) {
-        throw new Error("tenant_id is required");
-      }
-
-      const result = await db
-        .select()
-        .from(codes)
-        .where(
-          and(
+      // /callback and /authorize/resume call get() before the tenant is
+      // known, so accept an empty tenant_id and look up by code alone in
+      // that case — same contract as loginSessions.get.
+      const where = tenant_id
+        ? and(
             eq(codes.tenant_id, tenant_id),
             eq(codes.code_id, code_id),
             eq(codes.code_type, code_type),
-          ),
-        )
-        .get();
+          )
+        : and(eq(codes.code_id, code_id), eq(codes.code_type, code_type));
+
+      const result = await db.select().from(codes).where(where).get();
 
       if (!result) return null;
       return sqlToCode(result);

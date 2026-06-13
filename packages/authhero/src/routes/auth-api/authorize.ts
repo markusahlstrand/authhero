@@ -7,6 +7,7 @@ import {
   AuthorizationResponseType,
   ClaimsRequest,
   CodeChallengeMethod,
+  LoginSession,
   LoginSessionState,
   Strategy,
   claimsRequestSchema,
@@ -265,10 +266,7 @@ const getRoot = defineRoute({
     // so every downstream config read in this request — including the ones
     // inside getEnrichedClient's parallel batch — is served from one cache
     // key. Skip for CIMD clients (URL-based ids that resolve out-of-band).
-    if (
-      queryParams.client_id &&
-      !isCimdClientId(queryParams.client_id)
-    ) {
+    if (queryParams.client_id && !isCimdClientId(queryParams.client_id)) {
       // Best-effort: a transient failure here must not short-circuit the
       // real client/redirect validation below, which owns the proper error
       // contract for an unknown client. Mirrors the other prefetch call sites.
@@ -416,8 +414,12 @@ const getRoot = defineRoute({
     // This makes `/authorize?connection=X&state=Y` work for social-login
     // redirects from the universal-login widget, which only reconstructs
     // params it has on hand (Auth0 parity).
+    //
+    // The lookup result is also handed to connectionAuth below so the
+    // connection flow doesn't fetch the same session a second time.
+    let existingSession: LoginSession | null | undefined;
     if (state) {
-      const existingSession = await env.data.loginSessions.get(
+      existingSession = await env.data.loginSessions.get(
         client.tenant.id,
         state,
       );
@@ -671,13 +673,20 @@ const getRoot = defineRoute({
         client,
         client.connections[0].name,
         authParams,
+        existingSession,
       );
     }
 
     // Connection auth flow
     if (connection && connection !== Strategy.EMAIL) {
       // connectionAuth returns Promise<Response>, which is fine directly.
-      return connectionAuth(ctx, client, connection, authParams);
+      return connectionAuth(
+        ctx,
+        client,
+        connection,
+        authParams,
+        existingSession,
+      );
     } else if (login_ticket) {
       const ticketAuthResult = await ticketAuth(
         ctx,

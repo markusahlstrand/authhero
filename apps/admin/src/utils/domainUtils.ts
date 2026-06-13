@@ -21,6 +21,11 @@ export interface DomainConfig {
   token?: string;
   // Client credentials method fields
   clientSecret?: string;
+  // Send tenant-scoped management API calls to `{tenant_id}.{apiHost}`
+  // instead of the apex host. Requires the deployment to route tenant
+  // subdomains (wildcard DNS) to the auth server. The `tenant-id` header is
+  // still sent for backward compatibility with older servers.
+  useTenantSubdomains?: boolean;
 }
 
 /**
@@ -47,6 +52,12 @@ const getDefaultDomainFromEnv = (): DomainConfig | null => {
     connectionMethod: "login",
     clientId: clientId || undefined,
     restApiUrl: apiUrl || undefined,
+    // Only set when enabled — this object is spread over stored configs in
+    // getDomainFromStorage, and an explicit `undefined` would clobber a
+    // user-enabled flag.
+    ...(getConfigValue("useTenantSubdomains") === "true"
+      ? { useTenantSubdomains: true }
+      : {}),
   };
 };
 
@@ -217,4 +228,39 @@ export const buildUrlWithProtocol = (domain: string): string => {
   }
 
   return `https://${trimmedDomain}`;
+};
+
+// A tenant id can only become a subdomain when it is a valid DNS label.
+const DNS_LABEL_REGEX = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/;
+
+/**
+ * Derives the per-tenant management API base URL by prefixing the tenant id
+ * as a subdomain: `https://api.example.com` → `https://kvartal.api.example.com`.
+ *
+ * Returns `null` when the URL can't take a tenant subdomain — loopback hosts
+ * (local dev keeps using the apex + `tenant-id` header), IP addresses, or a
+ * tenant id that isn't a valid DNS label. Callers should fall back to the
+ * apex URL in that case.
+ */
+export const deriveTenantSubdomainUrl = (
+  baseUrl: string,
+  tenantId: string,
+): string | null => {
+  const label = tenantId.trim().toLowerCase();
+  if (!DNS_LABEL_REGEX.test(label)) return null;
+
+  let parsed: URL;
+  try {
+    parsed = new URL(baseUrl);
+  } catch {
+    return null;
+  }
+
+  const host = parsed.hostname;
+  if (host === "localhost" || host === "127.0.0.1") return null;
+  // IPv4 and (bracketed) IPv6 hosts can't take subdomains
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host) || host.includes(":")) return null;
+
+  parsed.hostname = `${label}.${host}`;
+  return parsed.toString();
 };

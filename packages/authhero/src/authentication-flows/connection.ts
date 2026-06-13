@@ -1,6 +1,7 @@
 import { Context } from "hono";
 import {
   AuthParams,
+  LoginSession,
   LogTypes,
   StrategyType,
 } from "@authhero/adapter-interfaces";
@@ -33,6 +34,10 @@ export async function connectionAuth(
   client: EnrichedClient,
   connectionName: string,
   authParams: AuthParams,
+  // The login session keyed by authParams.state, when the caller already
+  // looked it up. `null` means "looked up, not found" (we create one);
+  // `undefined` means "not looked up" (we fetch it here).
+  preloadedLoginSession?: LoginSession | null,
 ) {
   if (!authParams.state) {
     throw new JSONHTTPException(400, { message: "State not found" });
@@ -50,10 +55,13 @@ export async function connectionAuth(
     throw new JSONHTTPException(403, { message: "Connection Not Found" });
   }
 
-  let loginSession = await ctx.env.data.loginSessions.get(
-    client.tenant.id,
-    authParams.state,
-  );
+  let loginSession =
+    preloadedLoginSession !== undefined
+      ? preloadedLoginSession
+      : await ctx.env.data.loginSessions.get(
+          client.tenant.id,
+          authParams.state,
+        );
 
   if (!loginSession) {
     const ip = ctx.get("ip");

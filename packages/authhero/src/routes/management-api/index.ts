@@ -3,6 +3,7 @@ import { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { LogTypes } from "@authhero/adapter-interfaces";
 import { Bindings, Variables, AuthHeroConfig } from "../../types";
+import { getIssuer } from "../../variables";
 import { logMessage } from "../../helpers/logging";
 import { actionsRoutes } from "./actions";
 import { actionExecutionsRoutes } from "./action-executions";
@@ -73,6 +74,40 @@ export default function create(config: AuthHeroConfig) {
 
   app.use(applyConfigMiddleware(config));
 
+  // Resolve the tenant from the request host the way tenantMiddleware does,
+  // but without its single-tenant/header fallbacks — used by the CORS
+  // preflight, where `tenantMiddleware` hasn't run yet and the browser sends
+  // no `tenant-id` header. Covers tenant subdomains of the ISSUER apex and
+  // custom domains. Returns undefined when the host names no tenant.
+  const resolveTenantIdFromHost = async (
+    ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  ): Promise<string | undefined> => {
+    const xForwardedHost = ctx.req.header("x-forwarded-host");
+    const hostHeader = ctx.req.header("host");
+    const browserHost = xForwardedHost || hostHeader;
+    if (!browserHost) return undefined;
+
+    const issuerHost = new URL(getIssuer(ctx.env)).host.toLowerCase();
+    const lowerBrowserHost = browserHost.toLowerCase();
+
+    // Tenant-subdomain fast path: `{tenant_id}.{issuerHost}`.
+    if (lowerBrowserHost.endsWith(`.${issuerHost}`)) {
+      const label = lowerBrowserHost.slice(0, -(issuerHost.length + 1));
+      // Deeper subdomains of the apex are never tenant hosts.
+      return label && !label.includes(".") ? label : undefined;
+    }
+
+    // Custom domain lookup for hosts outside the ISSUER apex.
+    for (const candidate of [xForwardedHost, hostHeader]) {
+      if (!candidate) continue;
+      const lower = candidate.toLowerCase();
+      if (lower === issuerHost || lower.endsWith(`.${issuerHost}`)) continue;
+      const domain = await managementAdapter.customDomains.getByDomain(lower);
+      if (domain) return domain.tenant_id;
+    }
+    return undefined;
+  };
+
   // Dynamic CORS middleware that fetches allowed origins from clients
   app.use(async (ctx, next) => {
     const origin = ctx.req.header("origin");
@@ -127,8 +162,12 @@ export default function create(config: AuthHeroConfig) {
           return response;
         }
 
-        // Try to get tenant ID from header to check client web_origins
-        const tenantId = ctx.req.header("tenant-id");
+        // Resolve the tenant to check that tenant's clients' web_origins.
+        // The `tenant-id` header is the legacy signal, but browsers never
+        // send custom headers on a preflight — so for subdomain/custom-domain
+        // addressing, fall back to resolving the tenant from the request host.
+        const tenantId =
+          ctx.req.header("tenant-id") ?? (await resolveTenantIdFromHost(ctx));
         if (tenantId) {
           const clients = await managementAdapter.clients.list(tenantId, {});
           const allWebOrigins = clients.clients.flatMap(

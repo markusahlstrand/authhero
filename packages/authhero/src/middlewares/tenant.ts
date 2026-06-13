@@ -1,6 +1,7 @@
 import { Context, Next } from "hono";
 import { Bindings, Variables } from "../types";
 import { getIssuer } from "../variables";
+import { isCimdClientId } from "../helpers/cimd";
 
 /**
  * Routes that resolve their tenant from a state artifact (oauth2_state code →
@@ -15,6 +16,24 @@ const STATE_KEYED_PATHS = new Set([
 ]);
 
 /**
+ * True when the route resolves its tenant from a request artifact and the
+ * single-tenant auto-detect would be pure cost: state-keyed routes (above),
+ * and /authorize with a registered client_id (tenant comes from the client
+ * lookup). CIMD client_ids (https URLs) are excluded — they have no clients
+ * row and rely on the host-derived tenant.
+ */
+function resolvesTenantWithoutHost(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+): boolean {
+  if (STATE_KEYED_PATHS.has(ctx.req.path)) return true;
+  if (ctx.req.path === "/authorize") {
+    const clientId = ctx.req.query("client_id");
+    if (clientId && !isCimdClientId(clientId)) return true;
+  }
+  return false;
+}
+
+/**
  * Sets the tenant id in the context based on the url and headers.
  *
  * Resolution order:
@@ -24,7 +43,8 @@ const STATE_KEYED_PATHS = new Set([
  *    the tenant id in the host itself, zero lookups
  * 4. Custom domain lookup (hosts outside the ISSUER apex)
  * 5. `tenant_id` query param (enrollment ticket URLs)
- * 6. Single-tenant auto-detect (skipped for state-keyed routes)
+ * 6. Single-tenant auto-detect (skipped for state-keyed routes and for
+ *    /authorize with a registered client_id)
  */
 export async function tenantMiddleware(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
@@ -103,9 +123,10 @@ export async function tenantMiddleware(
   }
 
   // Auto-detect single tenant: if no tenant found and only one exists in DB,
-  // use it. Skipped for state-keyed routes — they resolve the tenant from
-  // their state artifact, so the tenants.list round-trip is wasted there.
-  if (!STATE_KEYED_PATHS.has(ctx.req.path)) {
+  // use it. Skipped for routes that resolve the tenant from a request
+  // artifact (state code or client_id) — the tenants.list round-trip is
+  // wasted there.
+  if (!resolvesTenantWithoutHost(ctx)) {
     const { tenants } = await ctx.env.data.tenants.list({ per_page: 2 });
     if (tenants.length === 1 && tenants[0]) {
       ctx.set("tenant_id", tenants[0].id);
