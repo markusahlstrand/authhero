@@ -1,5 +1,24 @@
 # authhero
 
+## 8.2.0
+
+### Minor Changes
+
+- 990efe0: Rework host-based tenant resolution in `tenantMiddleware` for the tenant-subdomain deployment model:
+
+  - **Tenant subdomain fast path**: hosts of the form `{tenant_id}.{issuerHost}` resolve with **zero DB calls** — the subdomain label is trusted as the tenant id and validation is deferred to the first tenant-scoped read (the client-bundle prefetch 404s unknown tenants; `setTenantId` still throws on mismatch with state-derived tenants). Previously this path paid an uncached `tenants.get(subdomain)` round-trip on every request.
+  - **Scoped trust**: the subdomain interpretation only applies to hosts under the ISSUER apex. The first label of an arbitrary (non-issuer) host is no longer probed as a tenant id — those hosts resolve exclusively via the verified `customDomains.getByDomain` lookup. The ISSUER apex itself no longer probes its own first label as a tenant.
+  - **State-keyed routes skip the auto-detect fallback**: `/callback`, `/login/callback`, and `/authorize/resume` resolve their tenant from the state artifact (oauth2_state code → login session → client), so the single-tenant `tenants.list` fallback — an uncached query on every request — is skipped for them.
+
+  `connectionCallback` now also passes the already-resolved `ctx.var.tenant_id` to `prefetchClientBundle`, skipping the redundant `clients.getByClientId` discovery when the request arrived on a tenant subdomain.
+
+### Patch Changes
+
+- 990efe0: Reduce blocking writes on the login hot path:
+
+  - **Single login-session write on authentication**: `authenticateLoginSession` now persists `auth_strategy` and `authenticated_at` in its state-transition update, and `finalizeAuthenticatedSession` no longer issues a second `loginSessions.update` for the same row. On the already-AUTHENTICATED replay path the (identical) strategy metadata is no longer re-written; `loginSession.authenticated_at` is audit metadata and is not used to reject resumed sessions.
+  - **Profile sync skips no-op writes and defers the rest**: `getOrCreateUserByProvider`'s `on_each_login` root-attribute sync now compares incoming values against the stored user and skips the `users.update` entirely when nothing changed (the common case). When something did change, the write is deferred past the response via `executionCtx.waitUntil` — the request itself uses the merged in-memory user. Without an ExecutionContext (Node, tests) the write stays synchronous.
+
 ## 8.1.0
 
 ### Minor Changes
