@@ -357,17 +357,36 @@ export async function getOrCreateUserByProvider(
       ...rootAttrs,
       profileData: JSON.stringify(profileData),
     };
-    // Filter out undefined values to avoid overwriting existing data
-    const filteredUpdates = Object.fromEntries(
-      Object.entries(updates).filter(([_, v]) => v !== undefined),
+    // Filter out undefined values to avoid overwriting existing data, and
+    // drop fields whose stored value already matches — most logins sync an
+    // unchanged profile, and skipping the no-op write saves a DB round-trip
+    // on the hot path.
+    const currentUser: Record<string, unknown> = { ...user };
+    const changedUpdates = Object.fromEntries(
+      Object.entries(updates).filter(
+        ([key, value]) => value !== undefined && currentUser[key] !== value,
+      ),
     );
-    if (Object.keys(filteredUpdates).length > 0) {
-      await ctx.env.data.users.update(
+    if (Object.keys(changedUpdates).length > 0) {
+      // The merged object below is what this request uses, so the response
+      // doesn't need to wait for the write — defer it past the response on
+      // Workers. Without an ExecutionContext (Node, tests) stay synchronous.
+      const userId = user.user_id;
+      const updatePromise = ctx.env.data.users.update(
         client.tenant.id,
-        user.user_id,
-        filteredUpdates,
+        userId,
+        changedUpdates,
       );
-      user = { ...user, ...filteredUpdates };
+      try {
+        ctx.executionCtx.waitUntil(
+          updatePromise.catch((err) => {
+            console.error(`Deferred profile sync failed for ${userId}`, err);
+          }),
+        );
+      } catch {
+        await updatePromise;
+      }
+      user = { ...user, ...changedUpdates };
     }
   }
 

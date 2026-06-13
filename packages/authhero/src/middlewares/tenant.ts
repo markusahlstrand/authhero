@@ -3,10 +3,28 @@ import { Bindings, Variables } from "../types";
 import { getIssuer } from "../variables";
 
 /**
- * Sets the tenant id in the context based on the url and headers
- * @param ctx
- * @param next
- * @returns
+ * Routes that resolve their tenant from a state artifact (oauth2_state code →
+ * login session → client) rather than from the host. For these the
+ * single-tenant auto-detect fallback is pure cost — the flow works without a
+ * host-derived tenant — so the middleware skips the tenants.list round-trip.
+ */
+const STATE_KEYED_PATHS = new Set([
+  "/callback",
+  "/login/callback",
+  "/authorize/resume",
+]);
+
+/**
+ * Sets the tenant id in the context based on the url and headers.
+ *
+ * Resolution order:
+ * 1. Authenticated user's tenant
+ * 2. `tenant-id` header (API calls)
+ * 3. Tenant subdomain of the ISSUER apex — `{tenant_id}.{issuerHost}` carries
+ *    the tenant id in the host itself, zero lookups
+ * 4. Custom domain lookup (hosts outside the ISSUER apex)
+ * 5. `tenant_id` query param (enrollment ticket URLs)
+ * 6. Single-tenant auto-detect (skipped for state-keyed routes)
  */
 export async function tenantMiddleware(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
@@ -15,10 +33,9 @@ export async function tenantMiddleware(
   // Resolve browser-facing host upfront (before any early returns)
   const xForwardedHost = ctx.req.header("x-forwarded-host");
   const hostHeader = ctx.req.header("host");
-  ctx.set(
-    "host",
-    xForwardedHost || hostHeader || new URL(getIssuer(ctx.env)).host,
-  );
+  const browserHost =
+    xForwardedHost || hostHeader || new URL(getIssuer(ctx.env)).host;
+  ctx.set("host", browserHost);
 
   const user = ctx.var.user;
   if (user?.tenant_id) {
@@ -33,76 +50,62 @@ export async function tenantMiddleware(
     return await next();
   }
 
-  // Hosts on the canonical ISSUER apex are tenant subdomains, never custom
-  // domains — skip the customDomains probe for them to avoid a DB round-trip
-  // on every request to e.g. tenant.auth.example.com.
   const issuerHost = new URL(getIssuer(ctx.env)).host.toLowerCase();
-  const isIssuerHost = (host: string) =>
+  const isIssuerScoped = (host: string) =>
     host === issuerHost || host.endsWith(`.${issuerHost}`);
 
-  // Check x-forwarded-host for custom domains (used for proxied requests).
-  // Per RFC 3986 §3.2.2 the host component is case-insensitive — normalize
-  // before lookups but preserve the original casing in ctx.var.host /
-  // custom_domain so we don't mutate values used in URL string comparisons.
-  if (xForwardedHost) {
-    const lowerForwarded = xForwardedHost.toLowerCase();
-    if (!isIssuerHost(lowerForwarded)) {
-      const domain =
-        await ctx.env.data.customDomains.getByDomain(lowerForwarded);
-      if (domain) {
-        ctx.set("tenant_id", domain.tenant_id);
-        ctx.set("custom_domain", xForwardedHost);
-        return await next();
-      }
+  // Tenant-subdomain fast path: hosts of the form `{tenant_id}.{issuerHost}`
+  // carry the tenant id in the host itself — no lookup needed. The id is
+  // trusted as-is: the first tenant-scoped read (e.g. the client-bundle
+  // prefetch) 404s unknown tenants, and setTenantId throws on any mismatch
+  // with a state-derived tenant, so deferring validation is safe. Only hosts
+  // scoped under the operator's own ISSUER apex get this treatment — for any
+  // other host the first label says nothing about tenant identity.
+  //
+  // Per RFC 3986 §3.2.2 the host is case-insensitive — compare lowercased,
+  // but preserve the request's casing in ctx.var.host / custom_domain.
+  const lowerBrowserHost = browserHost.toLowerCase();
+  if (lowerBrowserHost.endsWith(`.${issuerHost}`)) {
+    const label = lowerBrowserHost.slice(0, -(issuerHost.length + 1));
+    if (label && !label.includes(".")) {
+      ctx.set("tenant_id", label);
+      // Self-referencing URLs (iss claim, openid-configuration) should use
+      // the subdomain host the client called, not the canonical apex.
+      ctx.set("custom_domain", browserHost);
+      return await next();
     }
+    // Deeper subdomains of the issuer apex are structurally never custom
+    // domains either — fall through without probing customDomains.
   }
 
-  // Check host header for custom domains (when accessed directly, not via proxy)
-  if (hostHeader) {
-    const lowerHost = hostHeader.toLowerCase();
-
-    // First, check if the full host is a registered custom domain
-    if (!isIssuerHost(lowerHost)) {
-      const customDomain =
-        await ctx.env.data.customDomains.getByDomain(lowerHost);
-      if (customDomain) {
-        ctx.set("tenant_id", customDomain.tenant_id);
-        ctx.set("custom_domain", hostHeader);
-        return await next();
-      }
-    }
-
-    // Otherwise, check if the subdomain matches a tenant ID
-    const hostParts = lowerHost.split(".");
-    if (hostParts.length > 1 && typeof hostParts[0] === "string") {
-      const subdomain = hostParts[0];
-      // Check if the subdomain exists as a tenant ID
-      const tenant = await ctx.env.data.tenants.get(subdomain);
-      if (tenant) {
-        ctx.set("tenant_id", subdomain);
-        // When the request lands on a tenant subdomain (not the canonical
-        // ISSUER host), use that host for self-referencing URLs so the iss
-        // claim and openid-configuration match the host the client called.
-        // Host comparison is case-insensitive, but preserve the request's
-        // original casing in custom_domain.
-        if (lowerHost !== issuerHost) {
-          ctx.set("custom_domain", hostHeader);
-        }
-      }
-    }
-  }
-
-  // Check query string for tenant_id (used in enrollment ticket URLs)
-  if (!ctx.var.tenant_id) {
-    const tenantIdQuery = ctx.req.query("tenant_id");
-    if (tenantIdQuery) {
-      ctx.set("tenant_id", tenantIdQuery);
+  // Custom domain lookup for hosts outside the ISSUER apex. Check
+  // x-forwarded-host (proxied requests) before the host header (direct).
+  for (const candidate of [xForwardedHost, hostHeader]) {
+    if (!candidate) continue;
+    const lower = candidate.toLowerCase();
+    // Hosts on the canonical ISSUER apex are tenant subdomains, never custom
+    // domains — skip the probe for them to avoid a DB round-trip on every
+    // request to e.g. tenant.auth.example.com.
+    if (isIssuerScoped(lower)) continue;
+    const domain = await ctx.env.data.customDomains.getByDomain(lower);
+    if (domain) {
+      ctx.set("tenant_id", domain.tenant_id);
+      ctx.set("custom_domain", candidate);
       return await next();
     }
   }
 
-  // Auto-detect single tenant: if no tenant found and only one exists in DB, use it
-  if (!ctx.var.tenant_id) {
+  // Check query string for tenant_id (used in enrollment ticket URLs)
+  const tenantIdQuery = ctx.req.query("tenant_id");
+  if (tenantIdQuery) {
+    ctx.set("tenant_id", tenantIdQuery);
+    return await next();
+  }
+
+  // Auto-detect single tenant: if no tenant found and only one exists in DB,
+  // use it. Skipped for state-keyed routes — they resolve the tenant from
+  // their state artifact, so the tenants.list round-trip is wasted there.
+  if (!STATE_KEYED_PATHS.has(ctx.req.path)) {
     const { tenants } = await ctx.env.data.tenants.list({ per_page: 2 });
     if (tenants.length === 1 && tenants[0]) {
       ctx.set("tenant_id", tenants[0].id);

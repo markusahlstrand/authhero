@@ -7,11 +7,13 @@ describe("tenantMiddleware", () => {
   let mockSet;
   let mockGetByDomain;
   let mockGet;
+  let mockList;
   let mockHeaderFn;
 
   beforeEach(() => {
     mockGetByDomain = vi.fn();
     mockGet = vi.fn();
+    mockList = vi.fn().mockResolvedValue({ tenants: [] });
     mockSet = vi.fn();
     mockNext = vi.fn().mockResolvedValue(null);
     mockHeaderFn = vi.fn();
@@ -20,6 +22,7 @@ describe("tenantMiddleware", () => {
       req: {
         header: mockHeaderFn,
         query: vi.fn().mockReturnValue(undefined),
+        path: "/authorize",
       },
       env: {
         data: {
@@ -28,7 +31,7 @@ describe("tenantMiddleware", () => {
           },
           tenants: {
             get: mockGet,
-            list: vi.fn().mockResolvedValue({ tenants: [] }),
+            list: mockList,
           },
         },
         ISSUER: "https://example.com",
@@ -71,7 +74,6 @@ describe("tenantMiddleware", () => {
       return null;
     });
 
-    // First call (x-forwarded-host) returns null, second call (host) returns the domain
     mockGetByDomain.mockResolvedValue({ tenant_id });
 
     // Act
@@ -110,10 +112,10 @@ describe("tenantMiddleware", () => {
     expect(mockNext).toHaveBeenCalled();
   });
 
-  it("should set tenant_id and custom_domain from host subdomain when it matches a tenant ID", async () => {
-    // Arrange
-    const host = "tenant123.authhero.com";
-    const subdomain = "tenant123";
+  it("should trust the subdomain of the ISSUER apex as tenant_id without any lookup", async () => {
+    // Arrange — `{tenant_id}.{issuerHost}` carries the tenant id in the
+    // host itself; validation is deferred to the first tenant-scoped read.
+    const host = "tenant123.example.com";
 
     mockHeaderFn.mockImplementation((header) => {
       if (header === "x-forwarded-host") return null;
@@ -121,118 +123,117 @@ describe("tenantMiddleware", () => {
       return null;
     });
 
-    mockGetByDomain.mockResolvedValue(null);
-    mockGet.mockResolvedValue({ id: subdomain });
-
     // Act
     await tenantMiddleware(mockCtx, mockNext);
 
-    // Assert
-    expect(mockHeaderFn).toHaveBeenCalledWith("x-forwarded-host");
-    expect(mockHeaderFn).toHaveBeenCalledWith("host");
-    expect(mockGet).toHaveBeenCalledWith(subdomain);
-    expect(mockSet).toHaveBeenCalledWith("tenant_id", subdomain);
+    // Assert — zero DB calls
+    expect(mockGetByDomain).not.toHaveBeenCalled();
+    expect(mockGet).not.toHaveBeenCalled();
+    expect(mockList).not.toHaveBeenCalled();
+    expect(mockSet).toHaveBeenCalledWith("tenant_id", "tenant123");
     expect(mockSet).toHaveBeenCalledWith("custom_domain", host);
     expect(mockNext).toHaveBeenCalled();
   });
 
-  it("should not set custom_domain when subdomain match lands on the canonical ISSUER host", async () => {
-    // Arrange
-    const host = "auth.example.com";
-    const subdomain = "auth";
-    mockCtx.env.ISSUER = "https://auth.example.com/";
-
-    mockHeaderFn.mockImplementation((header) => {
-      if (header === "x-forwarded-host") return null;
-      if (header === "host") return host;
-      return null;
-    });
-
-    mockGetByDomain.mockResolvedValue(null);
-    mockGet.mockResolvedValue({ id: subdomain });
-
-    // Act
-    await tenantMiddleware(mockCtx, mockNext);
-
-    // Assert
-    expect(mockSet).toHaveBeenCalledWith("tenant_id", subdomain);
-    expect(mockSet).not.toHaveBeenCalledWith("custom_domain", host);
-    expect(mockNext).toHaveBeenCalled();
-  });
-
-  it("should treat host vs ISSUER comparison as case-insensitive (RFC 3986)", async () => {
-    // Arrange — request lands on the canonical ISSUER host but with mixed-case host header
-    const host = "Auth.Example.com";
-    const subdomain = "auth";
-    mockCtx.env.ISSUER = "https://auth.example.com/";
-
-    mockHeaderFn.mockImplementation((header) => {
-      if (header === "x-forwarded-host") return null;
-      if (header === "host") return host;
-      return null;
-    });
-
-    mockGetByDomain.mockResolvedValue(null);
-    mockGet.mockResolvedValue({ id: subdomain });
-
-    // Act
-    await tenantMiddleware(mockCtx, mockNext);
-
-    // Assert — must NOT set custom_domain even though host casing differs from ISSUER
-    expect(mockSet).toHaveBeenCalledWith("tenant_id", subdomain);
-    expect(mockSet).not.toHaveBeenCalledWith("custom_domain", host);
-    expect(mockNext).toHaveBeenCalled();
-  });
-
-  it("should skip the customDomains lookup when the host is on the ISSUER apex", async () => {
-    // Hosts on the canonical ISSUER apex (the issuer host itself, or any
-    // subdomain of it) are structurally tenant subdomains, never custom
-    // domains. The middleware must skip the customDomains.getByDomain probe
-    // to avoid a DB round-trip on every request.
+  it("should trust the subdomain from x-forwarded-host (proxied requests)", async () => {
     const host = "tenant123.auth.example.com";
-    const subdomain = "tenant123";
-    mockCtx.env.ISSUER = "https://auth.example.com/";
-
-    mockHeaderFn.mockImplementation((header) => {
-      if (header === "x-forwarded-host") return null;
-      if (header === "host") return host;
-      return null;
-    });
-
-    mockGet.mockResolvedValue({ id: subdomain });
-
-    await tenantMiddleware(mockCtx, mockNext);
-
-    expect(mockGetByDomain).not.toHaveBeenCalled();
-    expect(mockGet).toHaveBeenCalledWith(subdomain);
-    expect(mockSet).toHaveBeenCalledWith("tenant_id", subdomain);
-    expect(mockNext).toHaveBeenCalled();
-  });
-
-  it("should skip the customDomains lookup when x-forwarded-host is on the ISSUER apex", async () => {
-    const host = "tenant123.auth.example.com";
-    const subdomain = "tenant123";
     mockCtx.env.ISSUER = "https://auth.example.com/";
 
     mockHeaderFn.mockImplementation((header) => {
       if (header === "x-forwarded-host") return host;
-      if (header === "host") return host;
+      if (header === "host") return "internal-worker.example.workers.dev";
       return null;
     });
-
-    mockGet.mockResolvedValue({ id: subdomain });
 
     await tenantMiddleware(mockCtx, mockNext);
 
     expect(mockGetByDomain).not.toHaveBeenCalled();
-    expect(mockGet).toHaveBeenCalledWith(subdomain);
-    expect(mockSet).toHaveBeenCalledWith("tenant_id", subdomain);
+    expect(mockGet).not.toHaveBeenCalled();
+    expect(mockSet).toHaveBeenCalledWith("tenant_id", "tenant123");
+    expect(mockSet).toHaveBeenCalledWith("custom_domain", host);
     expect(mockNext).toHaveBeenCalled();
   });
 
-  it("should not set tenant_id when subdomain does not match a tenant ID", async () => {
-    // Arrange
-    const host = "unknown.authhero.com";
+  it("should lowercase the subdomain tenant_id but preserve host casing in custom_domain", async () => {
+    const host = "Tenant123.Example.com";
+
+    mockHeaderFn.mockImplementation((header) => {
+      if (header === "x-forwarded-host") return null;
+      if (header === "host") return host;
+      return null;
+    });
+
+    await tenantMiddleware(mockCtx, mockNext);
+
+    expect(mockSet).toHaveBeenCalledWith("tenant_id", "tenant123");
+    expect(mockSet).toHaveBeenCalledWith("custom_domain", host);
+    expect(mockNext).toHaveBeenCalled();
+  });
+
+  it("should not derive a tenant from the ISSUER apex host itself", async () => {
+    // The apex can never be a tenant subdomain — no probe, fall through to
+    // the auto-detect fallback.
+    const host = "auth.example.com";
+    mockCtx.env.ISSUER = "https://auth.example.com/";
+
+    mockHeaderFn.mockImplementation((header) => {
+      if (header === "x-forwarded-host") return null;
+      if (header === "host") return host;
+      return null;
+    });
+
+    await tenantMiddleware(mockCtx, mockNext);
+
+    expect(mockGetByDomain).not.toHaveBeenCalled();
+    expect(mockGet).not.toHaveBeenCalled();
+    expect(mockList).toHaveBeenCalled(); // auto-detect fallback ran
+    expect(mockSet).not.toHaveBeenCalledWith("tenant_id", expect.anything());
+    expect(mockNext).toHaveBeenCalled();
+  });
+
+  it("should treat host vs ISSUER comparison as case-insensitive (RFC 3986)", async () => {
+    // Mixed-case apex host must still be recognized as the apex.
+    const host = "Auth.Example.com";
+    mockCtx.env.ISSUER = "https://auth.example.com/";
+
+    mockHeaderFn.mockImplementation((header) => {
+      if (header === "x-forwarded-host") return null;
+      if (header === "host") return host;
+      return null;
+    });
+
+    await tenantMiddleware(mockCtx, mockNext);
+
+    expect(mockGetByDomain).not.toHaveBeenCalled();
+    expect(mockSet).not.toHaveBeenCalledWith("tenant_id", expect.anything());
+    expect(mockSet).not.toHaveBeenCalledWith("custom_domain", host);
+    expect(mockNext).toHaveBeenCalled();
+  });
+
+  it("should not treat deeper subdomains of the ISSUER apex as tenants or custom domains", async () => {
+    // `a.b.{issuerHost}` is neither a tenant subdomain (multi-label) nor a
+    // possible custom domain — no probes, fall through to auto-detect.
+    const host = "a.b.auth.example.com";
+    mockCtx.env.ISSUER = "https://auth.example.com/";
+
+    mockHeaderFn.mockImplementation((header) => {
+      if (header === "x-forwarded-host") return null;
+      if (header === "host") return host;
+      return null;
+    });
+
+    await tenantMiddleware(mockCtx, mockNext);
+
+    expect(mockGetByDomain).not.toHaveBeenCalled();
+    expect(mockGet).not.toHaveBeenCalled();
+    expect(mockSet).not.toHaveBeenCalledWith("tenant_id", expect.anything());
+    expect(mockNext).toHaveBeenCalled();
+  });
+
+  it("should not interpret the subdomain of a non-ISSUER host as a tenant id", async () => {
+    // Hosts outside the ISSUER apex say nothing about tenant identity —
+    // only the (verified) custom-domain lookup applies to them.
+    const host = "unknown.authhero.com"; // ISSUER is example.com
 
     mockHeaderFn.mockImplementation((header) => {
       if (header === "x-forwarded-host") return null;
@@ -241,16 +242,48 @@ describe("tenantMiddleware", () => {
     });
 
     mockGetByDomain.mockResolvedValue(null);
-    mockGet.mockResolvedValue(null);
 
-    // Act
     await tenantMiddleware(mockCtx, mockNext);
 
-    // Assert
-    expect(mockHeaderFn).toHaveBeenCalledWith("x-forwarded-host");
-    expect(mockHeaderFn).toHaveBeenCalledWith("host");
-    expect(mockGet).toHaveBeenCalledWith("unknown");
-    expect(mockSet).toHaveBeenCalled();
+    expect(mockGetByDomain).toHaveBeenCalledWith(host);
+    expect(mockGet).not.toHaveBeenCalled();
+    expect(mockSet).not.toHaveBeenCalledWith("tenant_id", expect.anything());
+    expect(mockNext).toHaveBeenCalled();
+  });
+
+  it("should set tenant_id from the tenant_id query param", async () => {
+    mockHeaderFn.mockReturnValue(null);
+    mockCtx.req.query = vi.fn().mockReturnValue("tenant-from-query");
+
+    await tenantMiddleware(mockCtx, mockNext);
+
+    expect(mockSet).toHaveBeenCalledWith("tenant_id", "tenant-from-query");
+    expect(mockList).not.toHaveBeenCalled();
+    expect(mockNext).toHaveBeenCalled();
+  });
+
+  it("should auto-detect a single tenant when nothing else resolves", async () => {
+    mockHeaderFn.mockReturnValue(null);
+    mockList.mockResolvedValue({ tenants: [{ id: "only-tenant" }] });
+
+    await tenantMiddleware(mockCtx, mockNext);
+
+    expect(mockList).toHaveBeenCalledWith({ per_page: 2 });
+    expect(mockSet).toHaveBeenCalledWith("tenant_id", "only-tenant");
+    expect(mockNext).toHaveBeenCalled();
+  });
+
+  it("should skip the single-tenant auto-detect on state-keyed routes", async () => {
+    // /callback resolves its tenant from the state artifact (code → login
+    // session → client) — the tenants.list round-trip is pure cost there.
+    mockHeaderFn.mockReturnValue(null);
+    mockCtx.req.path = "/callback";
+    mockList.mockResolvedValue({ tenants: [{ id: "only-tenant" }] });
+
+    await tenantMiddleware(mockCtx, mockNext);
+
+    expect(mockList).not.toHaveBeenCalled();
+    expect(mockSet).not.toHaveBeenCalledWith("tenant_id", expect.anything());
     expect(mockNext).toHaveBeenCalled();
   });
 

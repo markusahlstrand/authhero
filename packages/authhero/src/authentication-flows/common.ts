@@ -718,6 +718,8 @@ export interface AuthenticateLoginSessionParams {
   existingSessionId?: string;
   /** The connection name used for authentication (e.g., "email", "google-oauth2") */
   authConnection?: string;
+  /** Strategy metadata persisted so /authorize/resume can rehydrate it */
+  authStrategy?: { strategy: string; strategy_type: string };
 }
 
 /**
@@ -740,6 +742,7 @@ export async function authenticateLoginSession(
     loginSession,
     existingSessionId,
     authConnection,
+    authStrategy,
   }: AuthenticateLoginSessionParams,
 ): Promise<string> {
   // Re-fetch current state to prevent stale overwrites
@@ -846,13 +849,18 @@ export async function authenticateLoginSession(
 
   // Update the login session with session_id, user_id, new state, and auth_connection
   // auth_connection is stored early so it survives hook redirects (new HTTP requests)
+  // auth_strategy + authenticated_at are included here (instead of a second
+  // update in finalizeAuthenticatedSession) so the transition costs a single
+  // write.
   // If recovering from EXPIRED, also extend expires_at so the session doesn't
   // immediately expire again during subsequent MFA/hook checks
   await ctx.env.data.loginSessions.update(client.tenant.id, loginSession.id, {
     session_id,
     state: newState,
     user_id: user.user_id,
+    authenticated_at: new Date().toISOString(),
     ...(resolvedConnection ? { auth_connection: resolvedConnection } : {}),
+    ...(authStrategy ? { auth_strategy: authStrategy } : {}),
     ...(currentState === LoginSessionState.EXPIRED
       ? {
           expires_at: new Date(
@@ -865,10 +873,8 @@ export async function authenticateLoginSession(
   return session_id;
 }
 
-export interface FinalizeAuthenticatedSessionParams extends AuthenticateLoginSessionParams {
-  /** Strategy metadata persisted so /authorize/resume can rehydrate it */
-  authStrategy?: { strategy: string; strategy_type: string };
-}
+export type FinalizeAuthenticatedSessionParams =
+  AuthenticateLoginSessionParams;
 
 /**
  * Persist an authenticated identity onto the login session and 302 the browser
@@ -885,20 +891,17 @@ export async function finalizeAuthenticatedSession(
 ): Promise<Response> {
   const { user, client, loginSession, authStrategy, authConnection } = params;
 
+  // authStrategy + authenticated_at are persisted inside
+  // authenticateLoginSession's single login-session write so /authorize/resume
+  // can reconstruct the createFrontChannelAuthResponse call without the
+  // sub-flow having to keep authStrategy in memory across the redirect.
   await authenticateLoginSession(ctx, {
     user,
     client,
     loginSession,
     existingSessionId: params.existingSessionId,
     authConnection,
-  });
-
-  // Persist strategy + timestamp so /authorize/resume can reconstruct the call
-  // to createFrontChannelAuthResponse without the sub-flow having to keep
-  // authStrategy in memory across the redirect.
-  await ctx.env.data.loginSessions.update(client.tenant.id, loginSession.id, {
-    ...(authStrategy ? { auth_strategy: authStrategy } : {}),
-    authenticated_at: new Date().toISOString(),
+    authStrategy,
   });
 
   // If the authorize request came in on a different host (e.g. a tenant
