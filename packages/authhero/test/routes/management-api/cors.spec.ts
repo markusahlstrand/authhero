@@ -94,6 +94,7 @@ describe("management-api CORS", () => {
     expect(response.headers.get("Access-Control-Allow-Origin")).toBe(
       "https://lc.example.com",
     );
+    expect(response.headers.get("Vary")).toContain("Origin");
   });
 
   it("should not set CORS headers for unknown origin but still set Vary", async () => {

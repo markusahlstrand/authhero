@@ -10,8 +10,11 @@ describe("deriveTenantSubdomainUrl", () => {
 
   it("preserves a non-default port and path", () => {
     expect(
-      deriveTenantSubdomainUrl("https://api.example.com:8443", "kvartal"),
-    ).toBe("https://kvartal.api.example.com:8443/");
+      deriveTenantSubdomainUrl(
+        "https://api.example.com:8443/some/path",
+        "kvartal",
+      ),
+    ).toBe("https://kvartal.api.example.com:8443/some/path");
   });
 
   it("lowercases the tenant id (DNS labels are case-insensitive)", () => {
