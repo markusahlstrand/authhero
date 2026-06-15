@@ -1,5 +1,11 @@
 # @authhero/drizzle
 
+## 0.53.9
+
+### Patch Changes
+
+- 44e8c0d: Allow codes.get to be called with an empty tenant_id, looking up by code alone — matching loginSessions.get. The /callback and /authorize/resume routes resolve the tenant from the state artifact and call codes.get before the tenant is known.
+
 ## 0.53.8
 
 ### Patch Changes

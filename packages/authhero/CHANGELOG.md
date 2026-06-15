@@ -1,5 +1,45 @@
 # authhero
 
+## 8.2.0
+
+### Minor Changes
+
+- 990efe0: Rework host-based tenant resolution in `tenantMiddleware` for the tenant-subdomain deployment model:
+
+  - **Tenant subdomain fast path**: hosts of the form `{tenant_id}.{issuerHost}` resolve with **zero DB calls** — the subdomain label is trusted as the tenant id and validation is deferred to the first tenant-scoped read (the client-bundle prefetch 404s unknown tenants; `setTenantId` still throws on mismatch with state-derived tenants). Previously this path paid an uncached `tenants.get(subdomain)` round-trip on every request.
+  - **Scoped trust**: the subdomain interpretation only applies to hosts under the ISSUER apex. The first label of an arbitrary (non-issuer) host is no longer probed as a tenant id — those hosts resolve exclusively via the verified `customDomains.getByDomain` lookup. The ISSUER apex itself no longer probes its own first label as a tenant.
+  - **State-keyed routes skip the auto-detect fallback**: `/callback`, `/login/callback`, and `/authorize/resume` resolve their tenant from the state artifact (oauth2_state code → login session → client), so the single-tenant `tenants.list` fallback — an uncached query on every request — is skipped for them.
+
+  `connectionCallback` now also passes the already-resolved `ctx.var.tenant_id` to `prefetchClientBundle`, skipping the redundant `clients.getByClientId` discovery when the request arrived on a tenant subdomain.
+
+### Patch Changes
+
+- 44e8c0d: Reduce `/authorize?connection=…` to the minimum per-request data calls (1 × `loginSessions.get` + 1 × `codes.create` on a warm cache):
+
+  - **Deduped login-session read**: the `/authorize` handler already loads the login session for `state` hydration; it now hands that result to `connectionAuth` instead of letting it re-fetch the same session (previously two uncached `loginSessions.get` round-trips per social-login redirect). The universal-login identifier HRD path passes its already-loaded session the same way.
+  - **Auto-detect skipped for client-keyed `/authorize`**: when `/authorize` carries a registered (non-CIMD) `client_id`, the tenant always comes from the client lookup, so `tenantMiddleware` no longer pays the single-tenant `tenants.list` fallback query. CIMD client_ids (https URLs) keep the host-derived resolution.
+
+  A call-count regression test pins the warm-path floor for the connection flow: one `loginSessions.get`, one `codes.create` (the `oauth2_state` code intentionally stays a DB row), and zero raw reads for middleware fallbacks or bundle-covered config.
+
+- 44e8c0d: Optimize /authorize/resume database usage
+
+  - Defer the last-login `users.update` (and its user-update decorator chain) off the response path via `waitUntil` — it was the slowest call in the login flow and nothing in the request reads its result.
+  - `createFrontChannelAuthResponse` now re-reads the login session once and threads that object through the MFA, consent, passkey-nudge and `completeLoginSession` steps instead of each doing its own fetch (5 reads → 2, 2 writes → 1).
+  - `/authorize/resume` stamps `(tenant_id, client_id)` on the context before fetching the enriched client, so tenant/client/connections reads are served from the client-bundle cache instead of per-entity round-trips.
+  - `getConnectionInfo` and the passkey-nudge check use the parameterless `connections.list` shape so the bundle covers them.
+  - RBAC permission reads (`userPermissions`/`userRoles`/per-role `rolePermissions`) now run in parallel instead of sequentially.
+
+- 44e8c0d: Management API CORS preflight now resolves the tenant from the request host
+  (tenant subdomain of the ISSUER apex, or a custom domain) in addition to the
+  `tenant-id` header. Browsers never send custom headers on a preflight, so
+  host-addressed management calls (the admin console using `{tenant}.{apiHost}`
+  instead of the `tenant-id` header) can now pass per-tenant `web_origins` CORS
+  checks. The `tenant-id` header path is unchanged.
+- 990efe0: Reduce blocking writes on the login hot path:
+
+  - **Single login-session write on authentication**: `authenticateLoginSession` now persists `auth_strategy` and `authenticated_at` in its state-transition update, and `finalizeAuthenticatedSession` no longer issues a second `loginSessions.update` for the same row. On the already-AUTHENTICATED replay path the (identical) strategy metadata is no longer re-written; `loginSession.authenticated_at` is audit metadata and is not used to reject resumed sessions.
+  - **Profile sync skips no-op writes and defers the rest**: `getOrCreateUserByProvider`'s `on_each_login` root-attribute sync now compares incoming values against the stored user and skips the `users.update` entirely when nothing changed (the common case). When something did change, the write is deferred past the response via `executionCtx.waitUntil` — the request itself uses the merged in-memory user. Without an ExecutionContext (Node, tests) the write stays synchronous.
+
 ## 8.1.0
 
 ### Minor Changes
