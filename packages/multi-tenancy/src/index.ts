@@ -27,6 +27,21 @@ export type {
   ControlPlaneConfig,
 } from "./init";
 
+// Control plane rollout — project the control plane's defaults into a tenant's
+// own database (e.g. a WFP tenant's D1) so the runtime fallback resolves them
+// locally. Direct execution today; swappable for durable Workflows later.
+export {
+  createDirectRolloutAdapter,
+  projectControlPlaneDefaults,
+} from "./rollout";
+export type {
+  ControlPlaneRolloutAdapter,
+  DefaultsProjectionConfig,
+  DefaultsProjectionEntities,
+  DefaultsProjectionResult,
+  EntityProjectionOutcome,
+} from "./rollout";
+
 // Public API - functions and types consumers actually need
 export { createSyncHooks } from "./hooks/sync";
 export type { EntitySyncConfig, SyncHooksResult } from "./hooks/sync";

@@ -562,6 +562,10 @@ gtag('config', 'G-DNZWG3PF2L');`,
                   link: "/customization/multi-tenancy/runtime-fallback",
                 },
                 {
+                  text: "Control Plane Defaults (WFP)",
+                  link: "/customization/multi-tenancy/control-plane-defaults",
+                },
+                {
                   text: "Subdomain Routing",
                   link: "/customization/multi-tenancy/subdomain-routing",
                 },
