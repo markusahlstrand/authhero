@@ -10,6 +10,7 @@ import { clientInfoMiddleware } from "../../middlewares/client-info";
 import { outboxMiddleware } from "../../middlewares/outbox";
 import { LogsDestination } from "../../helpers/outbox-destinations/logs";
 import { LogStreamDestination } from "../../helpers/outbox-destinations/log-streams";
+import { serverTimingMiddleware } from "../../helpers/server-timing";
 import { samlpRoutes } from "./samlp";
 
 export default function create(config: AuthHeroConfig) {
@@ -19,6 +20,7 @@ export default function create(config: AuthHeroConfig) {
   }>();
 
   app.use(applyConfigMiddleware(config));
+  app.use(serverTimingMiddleware);
 
   app.use(
     outboxMiddleware({

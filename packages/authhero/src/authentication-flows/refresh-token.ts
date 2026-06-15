@@ -176,10 +176,15 @@ export async function refreshTokenGrant(
     // within leeway: fall through and mint another sibling child
   }
 
-  const tokenUser = await ctx.env.data.users.get(
-    client.tenant.id,
-    refreshToken.user_id,
-  );
+  // The user lookup and the login-session lookup are independent — the login
+  // session is keyed on refreshToken.login_id, which we already have. Fire
+  // them together so the two backend round-trips overlap instead of stacking.
+  const [tokenUser, loginSession] = await Promise.all([
+    ctx.env.data.users.get(client.tenant.id, refreshToken.user_id),
+    refreshToken.login_id
+      ? ctx.env.data.loginSessions.get(client.tenant.id, refreshToken.login_id)
+      : Promise.resolve(undefined),
+  ]);
   if (!tokenUser) {
     throw new JSONHTTPException(403, { message: "User not found" });
   }
@@ -195,16 +200,8 @@ export async function refreshTokenGrant(
 
   const resourceServer = refreshToken.resource_servers[0];
 
-  // Resolve session_id and login session data
-  let sessionId: string | undefined;
-  let loginSession;
-  if (refreshToken.login_id) {
-    loginSession = await ctx.env.data.loginSessions.get(
-      client.tenant.id,
-      refreshToken.login_id,
-    );
-    sessionId = loginSession?.session_id;
-  }
+  // Resolve session_id from the login session fetched above.
+  const sessionId: string | undefined = loginSession?.session_id;
 
   // Resolve organization: explicit param takes priority, then fall back to login session
   const effectiveOrganization =
@@ -332,6 +329,15 @@ export async function refreshTokenGrant(
           ).toISOString()
         : refreshToken.idle_expires_at;
 
+    // Order matters across these two writes: create the child first, then
+    // mark the parent rotated. If they ran concurrently and the parent update
+    // landed while the child insert failed, the parent would be stamped
+    // `rotated_at` with no child ever handed out — a later retry of the parent
+    // (outside the leeway window) would then trip reuse detection and revoke
+    // the whole family. Sequencing create→update means the parent is only ever
+    // marked rotated after the child durably exists; the reverse failure
+    // (child created, parent update fails) is benign — the grant rejects, the
+    // orphan child is never handed out, and the client safely retries.
     await ctx.env.data.refreshTokens.create(client.tenant.id, {
       id: childId,
       login_id: refreshToken.login_id,
@@ -352,14 +358,12 @@ export async function refreshTokenGrant(
       token_hash: childHash,
       family_id: familyId,
     });
-
     // Anchor `rotated_at` to the *first* rotation so leeway-window siblings
     // don't extend the parent's exposure. Always overwrite `rotated_to` to
     // the most recent child for traceability. Also stamp `family_id` on the
-    // parent — for legacy rows (created before the rotation columns
-    // existed) this is the first time `family_id` gets a value, and
-    // without it `revokeFamily` would skip the parent itself when reuse is
-    // detected later.
+    // parent — for legacy rows (created before the rotation columns existed)
+    // this is the first time `family_id` gets a value, and without it
+    // `revokeFamily` would skip the parent itself when reuse is detected later.
     await ctx.env.data.refreshTokens.update(client.tenant.id, refreshToken.id, {
       rotated_to: childId,
       rotated_at: refreshToken.rotated_at ?? new Date().toISOString(),

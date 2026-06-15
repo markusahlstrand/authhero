@@ -206,6 +206,78 @@ describe("common", () => {
       });
     });
 
+    describe("auth_time claim (OIDC Core §2)", () => {
+      const AUTHENTICATED_AT = "2026-01-01T00:00:00.000Z";
+      const EXPECTED_AUTH_TIME = Math.floor(
+        new Date(AUTHENTICATED_AT).getTime() / 1000,
+      );
+
+      async function issueIdToken(extraAuthParams: Record<string, unknown>) {
+        const { env } = await getTestServer();
+        const ctx = {
+          env,
+          var: { tenant_id: "tenantId" },
+        } as Context<{ Bindings: Bindings; Variables: Variables }>;
+
+        const client = await getEnrichedClient(env, "clientId");
+        const user = await getPrimaryUserByEmail({
+          userAdapter: env.data.users,
+          tenant_id: "tenantId",
+          email: "foo@example.com",
+        });
+        if (!client || !user) {
+          throw new Error("Client or user not found");
+        }
+
+        // A login session that already carries authenticated_at — the value
+        // createAuthTokens prefers over a sessions.get round-trip.
+        const loginSession = await env.data.loginSessions.create("tenantId", {
+          expires_at: new Date(Date.now() + 60_000).toISOString(),
+          csrf_token: "csrfToken",
+          authParams: {
+            client_id: "clientId",
+            audience: "https://example.com",
+          },
+        });
+
+        const tokens = await createAuthTokens(ctx, {
+          authParams: {
+            client_id: "clientId",
+            response_type: AuthorizationResponseType.TOKEN_ID_TOKEN,
+            scope: "openid",
+            audience: "https://example.com",
+            ...extraAuthParams,
+          },
+          client,
+          user,
+          loginSession: { ...loginSession, authenticated_at: AUTHENTICATED_AT },
+        });
+
+        return (parseJWT(tokens.id_token!)!.payload as Record<string, unknown>)
+          .auth_time;
+      }
+
+      it("omits auth_time when the request carries no max_age / prompt=login / essential claim (Auth0 parity), even though it could be resolved", async () => {
+        expect(await issueIdToken({})).toBeUndefined();
+      });
+
+      it("includes auth_time when max_age was used (OIDC requires it)", async () => {
+        expect(await issueIdToken({ max_age: 3600 })).toBe(EXPECTED_AUTH_TIME);
+      });
+
+      it("includes auth_time when prompt=login forced re-authentication", async () => {
+        expect(await issueIdToken({ prompt: "login" })).toBe(EXPECTED_AUTH_TIME);
+      });
+
+      it("includes auth_time when requested as an essential claim", async () => {
+        expect(
+          await issueIdToken({
+            claims: { id_token: { auth_time: { essential: true } } },
+          }),
+        ).toBe(EXPECTED_AUTH_TIME);
+      });
+    });
+
     it("should NOT include email claims in id_token when only openid scope is requested (OIDC compliance)", async () => {
       const { env } = await getTestServer();
       const ctx = {

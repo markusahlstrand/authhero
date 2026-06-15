@@ -9,6 +9,7 @@ import { Context } from "hono";
 import { Variables, Bindings } from "../types";
 import { createServiceToken } from "../helpers/service-token";
 import { stripInternalUserFields } from "../helpers/hook-user-payload";
+import { recordServerTiming } from "../helpers/server-timing";
 
 export interface WebHookResult {
   ok: boolean;
@@ -56,13 +57,9 @@ export async function invokeWebHook(
         });
     const duration = performance.now() - startTime;
 
-    // Add webhook call to server-timing header
-    const existingHeader = ctx.res.headers.get("Server-Timing") || "";
-    const timingEntry = `webhook-${hook.hook_id};dur=${duration.toFixed(2)}`;
-    ctx.res.headers.set(
-      "Server-Timing",
-      existingHeader ? `${existingHeader}, ${timingEntry}` : timingEntry,
-    );
+    // Record the webhook call on the request-scoped Server-Timing buffer. The
+    // sink (header / log / drop) is decided centrally by serverTimingMiddleware.
+    recordServerTiming(ctx, `webhook-${hook.hook_id}`, duration);
 
     responseStatus = response.status;
 
