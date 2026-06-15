@@ -95,4 +95,27 @@ export type Bindings = {
    * leave unset (or false) in production so SSRF protection stays on.
    */
   ALLOW_PRIVATE_OUTBOUND_FETCH?: boolean;
+
+  /**
+   * Controls where Server-Timing instrumentation goes. The data/cache adapters
+   * and the webhook hook always measure per-operation latency; this decides the
+   * sink:
+   *   - "off" (default / unset): measurements are dropped — no header, no log.
+   *   - "client": emit the `Server-Timing` response header (optionally gated to
+   *     SERVER_TIMING_IPS).
+   *   - "log": write a structured server-side log line; never sent to the client.
+   *   - "both": do both.
+   * Off by default so per-operation timings — a user-enumeration / side-channel
+   * surface on the public auth endpoints — are never exposed to anonymous
+   * callers in production. See helpers/server-timing.ts.
+   */
+  SERVER_TIMING?: "off" | "client" | "log" | "both";
+
+  /**
+   * Optional comma-separated allowlist of client IPs (exact match against the
+   * resolved `ip` var). When set, the "client" sink only attaches the
+   * Server-Timing header for matching callers; the "log" sink is unaffected.
+   * Use this to expose timings to your own IP without leaking them publicly.
+   */
+  SERVER_TIMING_IPS?: string;
 };

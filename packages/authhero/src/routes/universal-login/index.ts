@@ -14,6 +14,7 @@ import { changeEmailConfirmationRoutes } from "./account-change-email-confirmati
 import { composeAuthData } from "../../helpers/compose-auth-data";
 import { createInMemoryCache } from "../../adapters/cache/in-memory";
 import { applyConfigMiddleware } from "../../middlewares/apply-config";
+import { serverTimingMiddleware } from "../../helpers/server-timing";
 import { preSignupRoutes } from "./pre-signup";
 import { invalidSessionRoutes } from "./invalid-session";
 import { infoRoutes } from "./info";
@@ -85,6 +86,7 @@ export default function create(config: AuthHeroConfig) {
 
   app
     .use(applyConfigMiddleware(config))
+    .use(serverTimingMiddleware)
     .use(
       outboxMiddleware({
         getOutbox: () => config.dataAdapter.outbox,

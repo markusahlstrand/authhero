@@ -31,7 +31,11 @@ import { logStreamsRoutes } from "./log-streams";
 import { migrationSourcesRoutes } from "./migration-sources";
 import { attackProtectionRoutes } from "./attack-protection";
 import { addDataHooks } from "../../hooks";
-import { addCacheTimingLogs, addTimingLogs } from "../../helpers/server-timing";
+import {
+  addCacheTimingLogs,
+  addTimingLogs,
+  serverTimingMiddleware,
+} from "../../helpers/server-timing";
 import { applyConfigMiddleware } from "../../middlewares/apply-config";
 import { tenantMiddleware } from "../../middlewares/tenant";
 import { clientInfoMiddleware } from "../../middlewares/client-info";
@@ -73,6 +77,7 @@ export default function create(config: AuthHeroConfig) {
   const managementAdapter = config.managementDataAdapter ?? config.dataAdapter;
 
   app.use(applyConfigMiddleware(config));
+  app.use(serverTimingMiddleware);
 
   // Resolve the tenant from the request host the way tenantMiddleware does,
   // but without its single-tenant/header fallbacks — used by the CORS

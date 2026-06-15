@@ -54,6 +54,12 @@ export type Variables = {
   // execution IDs are discovered via tenant logs, then fetched with
   // GET /api/v2/actions/executions/:id.
   action_execution_id?: string;
+  // Per-request Server-Timing measurements accumulated by the data/cache
+  // adapter wrappers and the webhook hook. Flushed once at the end of the
+  // request by serverTimingMiddleware, which decides — based on the
+  // SERVER_TIMING env — whether to emit them to the client, log them, or drop
+  // them. See helpers/server-timing.ts.
+  serverTiming?: { name: string; dur: number }[];
   // Set by `attemptUpstreamPasswordFallback` around its `users.create` call so
   // the signup gates (preUserSignupHook / validateSignupEmail) treat the
   // creation as a migration import rather than a fresh signup. Without this,

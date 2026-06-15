@@ -23,6 +23,7 @@ import { applyConfigMiddleware } from "../../middlewares/apply-config";
 import { tenantMiddleware } from "../../middlewares/tenant";
 import { clientInfoMiddleware } from "../../middlewares/client-info";
 import { outboxMiddleware } from "../../middlewares/outbox";
+import { serverTimingMiddleware } from "../../helpers/server-timing";
 import { LogsDestination } from "../../helpers/outbox-destinations/logs";
 import { LogStreamDestination } from "../../helpers/outbox-destinations/log-streams";
 import { WebhookDestination } from "../../helpers/outbox-destinations/webhooks";
@@ -37,6 +38,7 @@ export default function create(config: AuthHeroConfig) {
   }>();
 
   app.use(applyConfigMiddleware(config));
+  app.use(serverTimingMiddleware);
 
   app.use(
     outboxMiddleware({

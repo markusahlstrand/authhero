@@ -1,16 +1,95 @@
-import { Context } from "hono";
+import { Context, MiddlewareHandler } from "hono";
 import { CacheAdapter, DataAdapters } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
 import { getAdapterMethodNames } from "./adapter-methods";
 
 type TimingCtx = Context<{ Bindings: Bindings; Variables: Variables }>;
 
-/** Append one `name;dur=…` entry to the response's Server-Timing header. */
-function appendTiming(ctx: TimingCtx, name: string, duration: number): void {
-  const existing = ctx.res.headers.get("Server-Timing") || "";
-  const entry = `${name};dur=${duration.toFixed(2)}`;
-  ctx.res.headers.set("Server-Timing", existing ? `${existing}, ${entry}` : entry);
+/**
+ * Record one Server-Timing measurement on the request-scoped buffer
+ * (`ctx.var.serverTiming`). The measurement is NOT written to the response
+ * header here — {@link serverTimingMiddleware} decides at the end of the
+ * request whether to emit it to the client, log it server-side, or drop it.
+ * Used by the adapter wrappers below and by the webhook hook.
+ */
+export function recordServerTiming(
+  ctx: TimingCtx,
+  name: string,
+  duration: number,
+): void {
+  const entries = ctx.get("serverTiming");
+  if (entries) {
+    entries.push({ name, dur: duration });
+  } else {
+    ctx.set("serverTiming", [{ name, dur: duration }]);
+  }
 }
+
+function isIpAllowed(ip: string | undefined, allowlist: string): boolean {
+  if (!ip) return false;
+  return allowlist
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .includes(ip);
+}
+
+/**
+ * Flushes the request-scoped Server-Timing buffer according to the
+ * `SERVER_TIMING` env. Mount this right after `applyConfigMiddleware` so that
+ * env is populated before it runs and the client `ip` is resolved by the time
+ * `next()` returns.
+ *
+ * Sinks (see {@link Bindings.SERVER_TIMING}):
+ *   - "off"/unset → drop the buffer (default; nothing reaches the client).
+ *   - "client"    → set the `Server-Timing` header, optionally gated to
+ *                   `SERVER_TIMING_IPS`.
+ *   - "log"       → emit a structured log line; never sent to the client.
+ *   - "both"      → both of the above.
+ *
+ * Off by default because per-operation timings on the public auth endpoints are
+ * a user-enumeration / side-channel surface.
+ */
+export const serverTimingMiddleware: MiddlewareHandler<{
+  Bindings: Bindings;
+  Variables: Variables;
+}> = async (ctx, next) => {
+  await next();
+
+  const mode = ctx.env.SERVER_TIMING ?? "off";
+  if (mode === "off") return;
+
+  const entries = ctx.get("serverTiming");
+  if (!entries || entries.length === 0) return;
+
+  const header = entries
+    .map((e) => `${e.name};dur=${e.dur.toFixed(2)}`)
+    .join(", ");
+
+  if (mode === "log" || mode === "both") {
+    console.log(
+      JSON.stringify({
+        msg: "server-timing",
+        method: ctx.req.method,
+        path: ctx.req.path,
+        ip: ctx.get("ip"),
+        tenant_id: ctx.get("tenant_id"),
+        timing: header,
+      }),
+    );
+  }
+
+  if (mode === "client" || mode === "both") {
+    const allowlist = ctx.env.SERVER_TIMING_IPS;
+    if (!allowlist || isIpAllowed(ctx.get("ip"), allowlist)) {
+      const existing = ctx.res.headers.get("Server-Timing");
+      ctx.res.headers.set(
+        "Server-Timing",
+        existing ? `${existing}, ${header}` : header,
+      );
+    }
+  }
+};
 
 /**
  * The prefix segment of a cache key — everything before the first ":". Cache
@@ -42,7 +121,7 @@ export function addCacheTimingLogs(
     try {
       return await op();
     } finally {
-      appendTiming(ctx, metric, performance.now() - start);
+      recordServerTiming(ctx, metric, performance.now() - start);
     }
   };
 
@@ -116,7 +195,7 @@ export function addTimingLogs(
           try {
             // Call the original method
             const result = await bound(...args);
-            appendTiming(
+            recordServerTiming(
               ctx,
               `${adapterName}-${methodName}`,
               performance.now() - startTime,
@@ -124,7 +203,7 @@ export function addTimingLogs(
             return result;
           } catch (error) {
             // Add timing even for failed operations
-            appendTiming(
+            recordServerTiming(
               ctx,
               `${adapterName}-${methodName}-error`,
               performance.now() - startTime,

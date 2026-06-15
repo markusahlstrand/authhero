@@ -329,45 +329,46 @@ export async function refreshTokenGrant(
           ).toISOString()
         : refreshToken.idle_expires_at;
 
-    // The child insert and the parent update touch different rows and don't
-    // depend on each other's result (childId is generated above), so run them
-    // together to overlap the two backend round-trips. If either rejects the
-    // grant fails before the wire token is returned, so the client is never
-    // handed a token for a half-rotated family.
-    await Promise.all([
-      ctx.env.data.refreshTokens.create(client.tenant.id, {
-        id: childId,
-        login_id: refreshToken.login_id,
-        user_id: refreshToken.user_id,
-        client_id: refreshToken.client_id,
-        // Absolute expiry never extends across rotation — the family stays
-        // bounded by the original session_lifetime.
-        expires_at: refreshToken.expires_at,
-        idle_expires_at: newIdleExpiresAt,
-        device: {
-          ...refreshToken.device,
-          last_ip: nextLastIp,
-          last_user_agent: nextLastUa,
-        },
-        resource_servers: refreshToken.resource_servers,
-        rotating: true,
-        token_lookup: childLookup,
-        token_hash: childHash,
-        family_id: familyId,
-      }),
-      // Anchor `rotated_at` to the *first* rotation so leeway-window siblings
-      // don't extend the parent's exposure. Always overwrite `rotated_to` to
-      // the most recent child for traceability. Also stamp `family_id` on the
-      // parent — for legacy rows (created before the rotation columns
-      // existed) this is the first time `family_id` gets a value, and
-      // without it `revokeFamily` would skip the parent itself when reuse is
-      // detected later.
-      ctx.env.data.refreshTokens.update(client.tenant.id, refreshToken.id, {
-        rotated_to: childId,
-        rotated_at: refreshToken.rotated_at ?? new Date().toISOString(),
-        family_id: familyId,
-      }),
-    ]);
+    // Order matters across these two writes: create the child first, then
+    // mark the parent rotated. If they ran concurrently and the parent update
+    // landed while the child insert failed, the parent would be stamped
+    // `rotated_at` with no child ever handed out — a later retry of the parent
+    // (outside the leeway window) would then trip reuse detection and revoke
+    // the whole family. Sequencing create→update means the parent is only ever
+    // marked rotated after the child durably exists; the reverse failure
+    // (child created, parent update fails) is benign — the grant rejects, the
+    // orphan child is never handed out, and the client safely retries.
+    await ctx.env.data.refreshTokens.create(client.tenant.id, {
+      id: childId,
+      login_id: refreshToken.login_id,
+      user_id: refreshToken.user_id,
+      client_id: refreshToken.client_id,
+      // Absolute expiry never extends across rotation — the family stays
+      // bounded by the original session_lifetime.
+      expires_at: refreshToken.expires_at,
+      idle_expires_at: newIdleExpiresAt,
+      device: {
+        ...refreshToken.device,
+        last_ip: nextLastIp,
+        last_user_agent: nextLastUa,
+      },
+      resource_servers: refreshToken.resource_servers,
+      rotating: true,
+      token_lookup: childLookup,
+      token_hash: childHash,
+      family_id: familyId,
+    });
+    // Anchor `rotated_at` to the *first* rotation so leeway-window siblings
+    // don't extend the parent's exposure. Always overwrite `rotated_to` to
+    // the most recent child for traceability. Also stamp `family_id` on the
+    // parent — for legacy rows (created before the rotation columns existed)
+    // this is the first time `family_id` gets a value, and without it
+    // `revokeFamily` would skip the parent itself when reuse is detected later.
+    await ctx.env.data.refreshTokens.update(client.tenant.id, refreshToken.id, {
+      rotated_to: childId,
+      rotated_at: refreshToken.rotated_at ?? new Date().toISOString(),
+      family_id: familyId,
+    });
 
     outgoingWireToken = formatRefreshToken(childLookup, childSecret);
   } else {

@@ -31,6 +31,11 @@ describe("u2 identifier — adapter call counts", () => {
         return c.wrapped;
       },
     });
+    // Opt into the client-facing Server-Timing header — it is off by default
+    // so per-operation timings are never exposed to anonymous callers in
+    // production. This test inspects the header to assert the timing trace.
+    env.SERVER_TIMING = "client";
+
     const oauthClient = testClient(oauthApp, env);
     const u2Client = testClient(u2App, env);
 
