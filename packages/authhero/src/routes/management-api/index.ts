@@ -31,7 +31,7 @@ import { logStreamsRoutes } from "./log-streams";
 import { migrationSourcesRoutes } from "./migration-sources";
 import { attackProtectionRoutes } from "./attack-protection";
 import { addDataHooks } from "../../hooks";
-import { addTimingLogs } from "../../helpers/server-timing";
+import { addCacheTimingLogs, addTimingLogs } from "../../helpers/server-timing";
 import { applyConfigMiddleware } from "../../middlewares/apply-config";
 import { tenantMiddleware } from "../../middlewares/tenant";
 import { clientInfoMiddleware } from "../../middlewares/client-info";
@@ -324,7 +324,16 @@ export default function create(config: AuthHeroConfig) {
     ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
     data: DataAdapters,
   ): DataAdapters => {
-    const dataWithHooks = addDataHooks(ctx, data);
+    // Innermost: time the raw adapter so Server-Timing reflects only genuine
+    // backend round-trips. A read served from the cache is satisfied above
+    // this layer and never reaches it, so cache hits produce no timing entry.
+    const timedData = addTimingLogs(ctx, data);
+
+    const dataWithHooks = addDataHooks(ctx, timedData);
+
+    // Time the cache backend itself — the caching/purge layers call it
+    // directly, so its Cache API round-trips would otherwise be invisible.
+    const timedCache = addCacheTimingLogs(ctx, cacheAdapter);
 
     const cachedData = addCaching(dataWithHooks, {
       defaultTtl: 0,
@@ -339,15 +348,13 @@ export default function create(config: AuthHeroConfig) {
         "forms",
         "hooks",
       ],
-      cache: cacheAdapter,
+      cache: timedCache,
     });
 
     // Best-effort: invalidate the auth-api ClientBundle for any entity the
     // bundle pulls in. Cloudflare's Cache API can only delete on the local
     // edge; remote edges still wait for TTL.
-    const purgingData = addBundleWritePurge(cachedData, cacheAdapter);
-
-    return addTimingLogs(ctx, purgingData);
+    return addBundleWritePurge(cachedData, timedCache);
   };
 
   app.use(

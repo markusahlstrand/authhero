@@ -201,25 +201,42 @@ export async function createAuthTokens(
     return undefined;
   })();
 
-  // OIDC Core §2: auth_time is REQUIRED in the ID Token whenever max_age was
-  // used in the authorization request, and OPTIONAL otherwise. Code-flow and
-  // silent-auth callers compute it themselves and pass it in; the universal-
-  // login implicit/hybrid path goes straight from credential submission into
-  // createAuthTokens without that step. To keep the ID Token compliant for
-  // every flow, fall back to looking up the session's `authenticated_at`
-  // here when no auth_time was supplied. Otherwise the OIDF check
-  // `CheckIdTokenAuthTimeClaimPresentDueToMaxAge` fails for implicit
-  // `max_age` modules.
+  // OIDC Core §2: auth_time inclusion in the ID Token is OPTIONAL by default;
+  // it's only REQUIRED when `max_age` was used, when it was requested as an
+  // essential claim, or (for the conformance suite's re-authentication check)
+  // when `prompt=login` forced a fresh login. We match Auth0 — which omits it
+  // in the optional case — by resolving it only under those conditions. This
+  // keeps the OIDF `CheckIdTokenAuthTimeClaimPresentDueToMaxAge` (max_age) and
+  // `oidcc-prompt-login` modules green, since we emit auth_time under exactly
+  // the conditions they test, while dropping the lookup from ordinary logins
+  // and from every refresh exchange (which carries none of these).
+  //
+  // Code-flow / silent-auth callers compute auth_time themselves and pass it
+  // in. When it's required but not supplied (the universal-login
+  // implicit/hybrid path), resolve it without an extra round-trip where we
+  // can: the login session we already hold carries `authenticated_at`; only
+  // fall back to a `sessions.get` when it doesn't.
   let auth_time = params.auth_time;
-  if (auth_time === undefined && session_id && ctx.var.tenant_id) {
-    const session = await ctx.env.data.sessions.get(
-      ctx.var.tenant_id,
-      session_id,
-    );
-    if (session?.authenticated_at) {
+  const promptValues = authParams.prompt?.split(" ") ?? [];
+  const authTimeRequired =
+    authParams.max_age !== undefined ||
+    promptValues.includes("login") ||
+    authParams.claims?.id_token?.auth_time?.essential === true;
+  if (auth_time === undefined && authTimeRequired) {
+    if (params.loginSession?.authenticated_at) {
       auth_time = Math.floor(
-        new Date(session.authenticated_at).getTime() / 1000,
+        new Date(params.loginSession.authenticated_at).getTime() / 1000,
       );
+    } else if (session_id && ctx.var.tenant_id) {
+      const session = await ctx.env.data.sessions.get(
+        ctx.var.tenant_id,
+        session_id,
+      );
+      if (session?.authenticated_at) {
+        auth_time = Math.floor(
+          new Date(session.authenticated_at).getTime() / 1000,
+        );
+      }
     }
   }
 

@@ -6,7 +6,7 @@ import { addCaching } from "./cache-wrapper";
 import { addRequestScopedDedup } from "./request-scoped-dedup";
 import { addBundleWritePurge } from "./bundle-write-purge";
 import { withClientBundle } from "./with-client-bundle";
-import { addTimingLogs } from "./server-timing";
+import { addCacheTimingLogs, addTimingLogs } from "./server-timing";
 import { BUNDLE_ENTITIES } from "./client-bundle";
 
 /**
@@ -16,12 +16,20 @@ import { BUNDLE_ENTITIES } from "./client-bundle";
  * between layers — in one place so individual apps can't drift.
  *
  * Layering (outermost first; that's the order callers hit on each read):
- *   addTimingLogs        — server-timing instrumentation
  *   withClientBundle     — L0: per-(tenant_id, client_id) snapshot
  *   addBundleWritePurge  — local-edge bundle invalidation on writes
  *   addRequestScopedDedup — L1: in-request Promise memoization
  *   addCaching           — L2: cross-request cache (CF Cache API in prod)
  *   addDataHooks         — user lifecycle hooks
+ *   addTimingLogs        — server-timing instrumentation. Innermost on
+ *                          purpose: a read served by the bundle (L0), request
+ *                          dedup (L1), or cache (L2) is satisfied above this
+ *                          layer and never reaches it, so the Server-Timing
+ *                          header carries one line per genuine backend
+ *                          round-trip — with its true duration — instead of
+ *                          one line per surface call (cache/bundle hits
+ *                          included, the whole bundle's cost attributed to
+ *                          whichever call happened to trigger assembly).
  *   raw dataAdapter      — underlying DB
  *
  * Apps declare only their `nonBundleEntities` — the long-tail entities they
@@ -49,13 +57,25 @@ export function composeAuthData(opts: {
 }): DataAdapters {
   const { ctx, rawData, cacheAdapter, defaultTtl, nonBundleEntities } = opts;
 
-  const dataWithHooks = addDataHooks(ctx, rawData);
+  // Innermost: time the raw adapter so Server-Timing reflects only genuine
+  // backend round-trips. Reads served by the cache (L2), request dedup (L1),
+  // or the client bundle (L0) are satisfied above this layer and never reach
+  // it, so they produce no entry — and the bundle's assembly cost is no longer
+  // mis-attributed to whichever surface read happened to trigger it.
+  const timedData = addTimingLogs(ctx, rawData);
+
+  const dataWithHooks = addDataHooks(ctx, timedData);
+
+  // Time the cache backend itself. The caching/bundle layers call this adapter
+  // directly (not through the timed data stack), so on Workers the Cache API
+  // round-trips would otherwise be invisible. Emitted as `cache-get:<prefix>`.
+  const timedCache = addCacheTimingLogs(ctx, cacheAdapter);
 
   // L2: only the long tail. Bundle entities are cached at L0 under one key.
   const cachedData = addCaching(dataWithHooks, {
     defaultTtl,
     cacheEntities: nonBundleEntities,
-    cache: cacheAdapter,
+    cache: timedCache,
   });
 
   // L1: dedup the full set. Cheap, useful for fall-through.
@@ -63,9 +83,7 @@ export function composeAuthData(opts: {
     dedupEntities: [...BUNDLE_ENTITIES, ...nonBundleEntities],
   });
 
-  const purgingData = addBundleWritePurge(dedupedData, cacheAdapter);
+  const purgingData = addBundleWritePurge(dedupedData, timedCache);
 
-  const bundledData = withClientBundle(ctx, purgingData, cacheAdapter);
-
-  return addTimingLogs(ctx, bundledData);
+  return withClientBundle(ctx, purgingData, timedCache);
 }

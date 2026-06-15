@@ -1483,6 +1483,15 @@ describe("token", () => {
         id_token: expect.any(String),
       });
 
+      // A refresh exchange carries no max_age / prompt=login / essential
+      // auth_time request, so the id_token must omit auth_time — matching
+      // Auth0 and avoiding the otherwise-unnecessary session lookup.
+      const idTokenClaims = parseJWT(body.id_token!)!.payload as Record<
+        string,
+        unknown
+      >;
+      expect(idTokenClaims.auth_time).toBeUndefined();
+
       const refreshToken = await env.data.refreshTokens.get(
         "tenantId",
         "refreshToken",

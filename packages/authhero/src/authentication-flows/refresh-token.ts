@@ -176,10 +176,15 @@ export async function refreshTokenGrant(
     // within leeway: fall through and mint another sibling child
   }
 
-  const tokenUser = await ctx.env.data.users.get(
-    client.tenant.id,
-    refreshToken.user_id,
-  );
+  // The user lookup and the login-session lookup are independent — the login
+  // session is keyed on refreshToken.login_id, which we already have. Fire
+  // them together so the two backend round-trips overlap instead of stacking.
+  const [tokenUser, loginSession] = await Promise.all([
+    ctx.env.data.users.get(client.tenant.id, refreshToken.user_id),
+    refreshToken.login_id
+      ? ctx.env.data.loginSessions.get(client.tenant.id, refreshToken.login_id)
+      : Promise.resolve(undefined),
+  ]);
   if (!tokenUser) {
     throw new JSONHTTPException(403, { message: "User not found" });
   }
@@ -195,16 +200,8 @@ export async function refreshTokenGrant(
 
   const resourceServer = refreshToken.resource_servers[0];
 
-  // Resolve session_id and login session data
-  let sessionId: string | undefined;
-  let loginSession;
-  if (refreshToken.login_id) {
-    loginSession = await ctx.env.data.loginSessions.get(
-      client.tenant.id,
-      refreshToken.login_id,
-    );
-    sessionId = loginSession?.session_id;
-  }
+  // Resolve session_id from the login session fetched above.
+  const sessionId: string | undefined = loginSession?.session_id;
 
   // Resolve organization: explicit param takes priority, then fall back to login session
   const effectiveOrganization =
@@ -332,39 +329,45 @@ export async function refreshTokenGrant(
           ).toISOString()
         : refreshToken.idle_expires_at;
 
-    await ctx.env.data.refreshTokens.create(client.tenant.id, {
-      id: childId,
-      login_id: refreshToken.login_id,
-      user_id: refreshToken.user_id,
-      client_id: refreshToken.client_id,
-      // Absolute expiry never extends across rotation — the family stays
-      // bounded by the original session_lifetime.
-      expires_at: refreshToken.expires_at,
-      idle_expires_at: newIdleExpiresAt,
-      device: {
-        ...refreshToken.device,
-        last_ip: nextLastIp,
-        last_user_agent: nextLastUa,
-      },
-      resource_servers: refreshToken.resource_servers,
-      rotating: true,
-      token_lookup: childLookup,
-      token_hash: childHash,
-      family_id: familyId,
-    });
-
-    // Anchor `rotated_at` to the *first* rotation so leeway-window siblings
-    // don't extend the parent's exposure. Always overwrite `rotated_to` to
-    // the most recent child for traceability. Also stamp `family_id` on the
-    // parent — for legacy rows (created before the rotation columns
-    // existed) this is the first time `family_id` gets a value, and
-    // without it `revokeFamily` would skip the parent itself when reuse is
-    // detected later.
-    await ctx.env.data.refreshTokens.update(client.tenant.id, refreshToken.id, {
-      rotated_to: childId,
-      rotated_at: refreshToken.rotated_at ?? new Date().toISOString(),
-      family_id: familyId,
-    });
+    // The child insert and the parent update touch different rows and don't
+    // depend on each other's result (childId is generated above), so run them
+    // together to overlap the two backend round-trips. If either rejects the
+    // grant fails before the wire token is returned, so the client is never
+    // handed a token for a half-rotated family.
+    await Promise.all([
+      ctx.env.data.refreshTokens.create(client.tenant.id, {
+        id: childId,
+        login_id: refreshToken.login_id,
+        user_id: refreshToken.user_id,
+        client_id: refreshToken.client_id,
+        // Absolute expiry never extends across rotation — the family stays
+        // bounded by the original session_lifetime.
+        expires_at: refreshToken.expires_at,
+        idle_expires_at: newIdleExpiresAt,
+        device: {
+          ...refreshToken.device,
+          last_ip: nextLastIp,
+          last_user_agent: nextLastUa,
+        },
+        resource_servers: refreshToken.resource_servers,
+        rotating: true,
+        token_lookup: childLookup,
+        token_hash: childHash,
+        family_id: familyId,
+      }),
+      // Anchor `rotated_at` to the *first* rotation so leeway-window siblings
+      // don't extend the parent's exposure. Always overwrite `rotated_to` to
+      // the most recent child for traceability. Also stamp `family_id` on the
+      // parent — for legacy rows (created before the rotation columns
+      // existed) this is the first time `family_id` gets a value, and
+      // without it `revokeFamily` would skip the parent itself when reuse is
+      // detected later.
+      ctx.env.data.refreshTokens.update(client.tenant.id, refreshToken.id, {
+        rotated_to: childId,
+        rotated_at: refreshToken.rotated_at ?? new Date().toISOString(),
+        family_id: familyId,
+      }),
+    ]);
 
     outgoingWireToken = formatRefreshToken(childLookup, childSecret);
   } else {
