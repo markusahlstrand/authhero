@@ -1,5 +1,36 @@
 # authhero
 
+## 8.2.1
+
+### Patch Changes
+
+- d093c92: The `auth_time` claim is now emitted in the ID Token only when OIDC actually
+  requires it — when the authorization request used `max_age`, forced re-login
+  with `prompt=login`, or requested `auth_time` as an essential claim — matching
+  Auth0, which omits it in the optional case. Previously it was added to every
+  ID Token whenever a session lookup could resolve it.
+
+  This also removes a backend round-trip from the token endpoint: ordinary logins
+  and every refresh-token exchange (none of which carry those request parameters)
+  no longer perform the `sessions.get` that only existed to populate `auth_time`.
+  When the claim _is_ required, it's resolved from the login session already in
+  hand where possible, falling back to `sessions.get` only if needed. OIDC
+  conformance for the `max_age` and `prompt=login` flows is preserved.
+
+- d093c92: Refresh-token grant now overlaps its independent backend round-trips. The user
+  read and the login-session read are fired together (the login session is keyed
+  on data already in hand), and on rotation the child-token insert and the
+  parent-token update — which touch different rows — run concurrently instead of
+  back-to-back. On a deployment where each database round-trip costs ~350 ms
+  (Workers → PlanetScale over HTTP), this removes roughly two serial round-trips
+  from every `/oauth/token` refresh exchange. No change to behaviour or the number
+  of queries issued.
+- d093c92: Server-Timing now reports only genuine backend round-trips, plus a separate, labelled line for cache-backend latency. The timing wrapper was the outermost data-adapter layer, so it logged every surface read — including cache, request-dedup, and client-bundle hits — and attributed the whole bundle's assembly cost to whichever read happened to trigger it (e.g. a single `clients-get` showed up three times, two of them cache-served). It now sits innermost (below caching/dedup/bundle), so the header carries one entry per real DB call with its true duration, and reads served from cache produce no data-adapter entry.
+
+  The cache backend itself is now timed separately and emitted as `cache-get:<prefix>` / `cache-set:<prefix>` (e.g. `cache-get:client-bundle`, `cache-get:customText`), where the prefix is the cache-key namespace — never the full, id-bearing key. On Workers this surfaces the Cache API round-trip latency that the data-adapter timing could not see. Applies to the auth-api, universal-login, SAML, and management-api routers.
+
+  Server-Timing is now **off by default** and gated by a new `SERVER_TIMING` env (`off` | `client` | `log` | `both`). Per-operation timings on the public auth endpoints are a user-enumeration / side-channel surface, so they are no longer exposed to anonymous callers unless explicitly enabled. Measurements are accumulated on a request-scoped buffer and flushed once at the end of the request: `client` emits the `Server-Timing` response header, `log` writes a structured server-side log line (method, path, ip, tenant, timings) without exposing anything to the client, and `both` does each. A `SERVER_TIMING_IPS` env (comma-separated, exact match against the client ip) further restricts the `client` header to trusted callers — e.g. set `SERVER_TIMING=client` + `SERVER_TIMING_IPS=<your ip>` to inspect timings from your own IP only.
+
 ## 8.2.0
 
 ### Minor Changes
