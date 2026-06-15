@@ -7,6 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -42,6 +43,8 @@ export function DomainSelector({
   const [inputRestApiUrl, setInputRestApiUrl] = useState("");
   const [inputToken, setInputToken] = useState("");
   const [inputClientSecret, setInputClientSecret] = useState("");
+  const [inputUseTenantSubdomains, setInputUseTenantSubdomains] =
+    useState(false);
   const [connectionMethod, setConnectionMethod] =
     useState<ConnectionMethod>("login");
   const [open, setOpen] = useState(true);
@@ -88,6 +91,7 @@ export function DomainSelector({
           connectionMethod: "login",
           clientId: inputClientId,
           restApiUrl: inputRestApiUrl.trim() || undefined,
+          useTenantSubdomains: inputUseTenantSubdomains || undefined,
         };
         break;
       case "token":
@@ -120,6 +124,7 @@ export function DomainSelector({
     setInputRestApiUrl("");
     setInputToken("");
     setInputClientSecret("");
+    setInputUseTenantSubdomains(false);
   };
 
   const handleRemoveDomain = (url: string) => {
@@ -220,6 +225,24 @@ export function DomainSelector({
                   value={inputRestApiUrl}
                   onChange={(e) => setInputRestApiUrl(e.target.value)}
                 />
+              </div>
+              <div className="flex items-start gap-2">
+                <Checkbox
+                  id="ds-subdomains"
+                  checked={inputUseTenantSubdomains}
+                  onCheckedChange={(checked) =>
+                    setInputUseTenantSubdomains(checked === true)
+                  }
+                />
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor="ds-subdomains">Use tenant subdomains</Label>
+                  <span className="text-xs text-muted-foreground">
+                    Send tenant management calls to{" "}
+                    <code>{"{tenant}.{apiHost}"}</code> instead of the{" "}
+                    <code>tenant-id</code> header. Requires wildcard DNS routing
+                    to the auth server.
+                  </span>
+                </div>
               </div>
             </>
           )}

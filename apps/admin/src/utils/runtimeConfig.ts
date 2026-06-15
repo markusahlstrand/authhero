@@ -7,6 +7,8 @@ export interface AdminConfig {
   appName?: string;
   logoUrl?: string;
   faviconUrl?: string;
+  /** "true" to call tenant-scoped management APIs on `{tenant_id}.{apiHost}` */
+  useTenantSubdomains?: string;
 }
 
 declare global {
@@ -24,6 +26,7 @@ const envMap: Record<keyof AdminConfig, string> = {
   appName: import.meta.env.VITE_APP_NAME || "",
   logoUrl: import.meta.env.VITE_APP_LOGO_URL || "",
   faviconUrl: import.meta.env.VITE_APP_FAVICON_URL || "",
+  useTenantSubdomains: import.meta.env.VITE_USE_TENANT_SUBDOMAINS || "",
 };
 
 export function getConfigValue(key: keyof AdminConfig): string {

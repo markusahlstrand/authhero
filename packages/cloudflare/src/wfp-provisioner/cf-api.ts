@@ -91,7 +91,11 @@ export class CloudflareApiClient {
   constructor(options: CfApiClientOptions) {
     this.accountId = options.accountId;
     this.apiToken = options.apiToken;
-    this.fetchImpl = options.fetch ?? fetch;
+    // Wrap the global fetch so it's never invoked with `this` bound to the
+    // client instance — workerd's brand check rejects that with
+    // "TypeError: Illegal invocation".
+    this.fetchImpl =
+      options.fetch ?? ((...args: Parameters<typeof fetch>) => fetch(...args));
     this.timeoutMs = options.timeoutMs ?? 30_000;
     this.baseUrl = (options.baseUrl ?? "https://api.cloudflare.com/client/v4").replace(
       /\/+$/,

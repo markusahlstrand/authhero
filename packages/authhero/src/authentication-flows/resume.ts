@@ -3,6 +3,7 @@ import { LoginSessionState } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
 import { JSONHTTPException } from "../errors/json-http-exception";
 import { getEnrichedClient } from "../helpers/client";
+import { isCimdClientId } from "../helpers/cimd";
 import { setTenantId } from "../helpers/set-tenant-id";
 import { createFrontChannelAuthResponse } from "./common";
 
@@ -98,9 +99,29 @@ export async function resumeLoginSession(
     }
   }
 
+  // Resolve the tenant and stamp (tenant_id, client_id) on the context
+  // BEFORE fetching the enriched client: the client-bundle wrapper routes
+  // reads by ctx.var, so without this every resume pays per-entity
+  // round-trips for tenant/connections/clientConnections instead of one
+  // bundle cache hit. CIMD client_ids (https URLs) have no clients row to
+  // resolve a tenant from, so they keep the host-derived path.
+  const sessionClientId = loginSession.authParams.client_id;
+  let resolvedTenantId: string | undefined;
+  if (!isCimdClientId(sessionClientId)) {
+    const clientWithTenant =
+      await ctx.env.data.clients.getByClientId(sessionClientId);
+    if (!clientWithTenant) {
+      throw new JSONHTTPException(403, { message: "Client not found" });
+    }
+    resolvedTenantId = clientWithTenant.tenant_id;
+    setTenantId(ctx, resolvedTenantId);
+    ctx.set("client_id", sessionClientId);
+  }
+
   const client = await getEnrichedClient(
     ctx.env,
-    loginSession.authParams.client_id,
+    sessionClientId,
+    resolvedTenantId,
   );
   setTenantId(ctx, client.tenant.id);
   ctx.set("client_id", client.client_id);

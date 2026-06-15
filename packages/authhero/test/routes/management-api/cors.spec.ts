@@ -26,6 +26,77 @@ describe("management-api CORS", () => {
     expect(response.headers.get("Vary")).toContain("Origin");
   });
 
+  it("should resolve the tenant from a custom-domain host on preflight (no tenant-id header)", async () => {
+    const { managementApp, env } = await getTestServer();
+
+    // The admin console addresses tenant resources by host instead of the
+    // `tenant-id` header. Browsers never send custom headers on a preflight,
+    // so the tenant must be resolved from the host alone.
+    await env.data.customDomains.create("tenantId", {
+      custom_domain_id: "admin-domain-id",
+      domain: "admin.tenant.example.com",
+      type: "auth0_managed_certs",
+    });
+
+    const response = await managementApp.request(
+      "/clients",
+      {
+        method: "OPTIONS",
+        headers: {
+          Origin: "https://example.com",
+          "x-forwarded-host": "admin.tenant.example.com",
+          "Access-Control-Request-Method": "GET",
+        },
+      },
+      env,
+    );
+
+    expect(response.status).toBe(204);
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBe(
+      "https://example.com",
+    );
+    expect(response.headers.get("Vary")).toContain("Origin");
+  });
+
+  it("should resolve the tenant from a subdomain host on preflight", async () => {
+    const { managementApp, env } = await getTestServer();
+
+    // ISSUER is http://localhost:3000/, so `{tenant}.localhost:3000` is the
+    // tenant-subdomain host. Host labels are lowercased (RFC 3986), so the
+    // subdomain path requires a lowercase tenant id — provision one.
+    await env.data.tenants.create({
+      id: "lowercasetenant",
+      friendly_name: "Lowercase Tenant",
+      audience: "https://lc.example.com",
+      sender_email: "login@lc.example.com",
+      sender_name: "LC",
+    });
+    await env.data.clients.create("lowercasetenant", {
+      client_id: "lc-client",
+      name: "LC Client",
+      web_origins: ["https://lc.example.com"],
+    });
+
+    const response = await managementApp.request(
+      "/clients",
+      {
+        method: "OPTIONS",
+        headers: {
+          Origin: "https://lc.example.com",
+          "x-forwarded-host": "lowercasetenant.localhost:3000",
+          "Access-Control-Request-Method": "GET",
+        },
+      },
+      env,
+    );
+
+    expect(response.status).toBe(204);
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBe(
+      "https://lc.example.com",
+    );
+    expect(response.headers.get("Vary")).toContain("Origin");
+  });
+
   it("should not set CORS headers for unknown origin but still set Vary", async () => {
     const { managementApp, env } = await getTestServer();
 

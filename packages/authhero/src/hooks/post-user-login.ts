@@ -24,6 +24,7 @@ import {
 import { invokeHooks } from "./webhooks";
 import { createTokenAPI } from "./helpers/token-api";
 import { getConnectionInfo } from "../helpers/connection";
+import { waitUntil } from "../helpers/wait-until";
 
 // Type guard for webhook hooks
 function isWebHook(hook: any): hook is { url: string; enabled: boolean } {
@@ -228,12 +229,19 @@ export async function postUserLoginHook(
   // if a hook throws, preserving the prior unconditional-emission behavior.
   let executionId: string | null = null;
   try {
-    // Update the user's last login info
-    await data.users.update(tenant_id, user.user_id, {
-      last_login: new Date().toISOString(),
-      last_ip: ctx.var.ip || "",
-      login_count: user.login_count + 1,
-    });
+    // Update the user's last login info. Deferred off the critical path:
+    // nothing in this request reads the result (the in-memory `user` keeps
+    // the pre-login values either way), and the row write plus its
+    // user-update decorator chain is one of the slowest calls in the login
+    // flow.
+    waitUntil(
+      ctx,
+      data.users.update(tenant_id, user.user_id, {
+        last_login: new Date().toISOString(),
+        last_ip: ctx.var.ip || "",
+        login_count: user.login_count + 1,
+      }),
+    );
 
     // Build the Auth0-compatible event once. Reused by both the env-hook
     // (ctx.env.hooks.onExecutePostLogin) and the code-hook loop below so user

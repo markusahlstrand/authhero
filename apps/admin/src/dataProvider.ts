@@ -9,6 +9,7 @@ import { getConfigValue } from "./utils/runtimeConfig";
 import {
   getDomainFromStorage,
   buildUrlWithProtocol,
+  deriveTenantSubdomainUrl,
   formatDomain,
 } from "./utils/domainUtils";
 
@@ -74,11 +75,38 @@ export function getDataprovider(auth0Domain?: string) {
   ]);
 }
 
+/**
+ * Resolves the API base URL for tenant-scoped management calls.
+ *
+ * When the domain config opts into tenant subdomains, calls target
+ * `{tenant_id}.{apiHost}` so the server resolves the tenant from the host —
+ * the canonical (Auth0-compatible) addressing. Otherwise, and for hosts that
+ * can't take a subdomain (loopback, IPs), this falls back to the apex URL,
+ * where the `tenant-id` header carries the tenant instead. Control-plane
+ * calls (tenant list/create) always use `resolveApiBase` directly.
+ */
+export function resolveTenantApiBase(
+  tenantId: string,
+  auth0Domain?: string,
+): string {
+  const base = resolveApiBase(auth0Domain);
+  if (!auth0Domain) return base;
+
+  const domains = getDomainFromStorage();
+  const formattedDomain = formatDomain(auth0Domain);
+  const domainConfig = domains.find(
+    (d) => formatDomain(d.url) === formattedDomain,
+  );
+  if (!domainConfig?.useTenantSubdomains) return base;
+
+  return deriveTenantSubdomainUrl(base, tenantId) ?? base;
+}
+
 export function getDataproviderForTenant(
   tenantId: string,
   auth0Domain?: string,
 ) {
-  let apiUrl = resolveApiBase(auth0Domain);
+  let apiUrl = resolveTenantApiBase(tenantId, auth0Domain);
 
   // Ensure apiUrl doesn't end with a slash
   apiUrl = apiUrl.replace(/\/$/, "");
@@ -87,7 +115,7 @@ export function getDataproviderForTenant(
 
   // Create a dynamic httpClient that checks single-tenant mode at REQUEST TIME
   // This is important because the mode may not be known when the dataProvider is created
-  const dynamicHttpClient = (url: string, options?: any) => {
+  const dynamicHttpClient = (url: string, options?: RequestInit) => {
     // In single-tenant mode, use the regular authorized client without organization scope
     // In multi-tenant mode, use organization-scoped client for proper access control
     if (isSingleTenantForDomain(formattedDomain)) {

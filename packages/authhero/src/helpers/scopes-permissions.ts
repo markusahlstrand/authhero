@@ -99,14 +99,15 @@ async function getTenantPermissionsForOrganization(
     "", // Empty string for tenant-level (global) roles
   );
 
-  // Get permissions from each role
-  for (const role of tenantRoles) {
-    const rolePermissions = await ctx.env.data.rolePermissions.list(
-      currentTenantId,
-      role.id,
-      { per_page: 1000 },
-    );
-
+  // Get permissions from each role - one parallel batch
+  const rolePermissionLists = await Promise.all(
+    tenantRoles.map((role) =>
+      ctx.env.data.rolePermissions.list(currentTenantId, role.id, {
+        per_page: 1000,
+      }),
+    ),
+  );
+  for (const rolePermissions of rolePermissionLists) {
     // Add permissions that match the requested audience
     rolePermissions.forEach((permission) => {
       if (permission.resource_server_identifier === audience) {
@@ -443,29 +444,20 @@ export async function calculateScopesAndPermissions(
     };
   }
 
-  // RBAC is enabled - get user's permissions
-  const userPermissions = await ctx.env.data.userPermissions.list(
-    tenantId,
-    userId,
-    undefined,
-    organizationId, // Pass organizationId to get scoped permissions
-  );
-
-  // Get user roles - global roles (organizationId = "") or organization-specific roles
-  const globalRoles = await ctx.env.data.userRoles.list(
-    tenantId,
-    userId,
-    undefined,
-    "",
-  );
-  const orgRoles = organizationId
-    ? await ctx.env.data.userRoles.list(
-        tenantId,
-        userId,
-        undefined,
-        organizationId,
-      )
-    : [];
+  // RBAC is enabled - fetch the user's direct permissions and roles
+  // (global roles use organizationId = "") in parallel; they're independent.
+  const [userPermissions, globalRoles, orgRoles] = await Promise.all([
+    ctx.env.data.userPermissions.list(
+      tenantId,
+      userId,
+      undefined,
+      organizationId, // Pass organizationId to get scoped permissions
+    ),
+    ctx.env.data.userRoles.list(tenantId, userId, undefined, ""),
+    organizationId
+      ? ctx.env.data.userRoles.list(tenantId, userId, undefined, organizationId)
+      : Promise.resolve([]),
+  ]);
 
   // Combine global and organization-specific roles
   const userRoles = [...globalRoles, ...orgRoles];
@@ -476,15 +468,19 @@ export async function calculateScopesAndPermissions(
     ? await getTenantPermissionsForOrganization(ctx, tenantId, userId, audience)
     : [];
 
-  // Get all permissions from user's roles
+  // Get all permissions from user's roles - one parallel batch, not a
+  // round-trip per role
+  const rolePermissionLists = await Promise.all(
+    userRoles.map((role) =>
+      ctx.env.data.rolePermissions.list(
+        tenantId,
+        role.id,
+        { per_page: 1000 }, // Fetch all permissions - roles can have many permissions
+      ),
+    ),
+  );
   const rolePermissions: string[] = [];
-  for (const role of userRoles) {
-    const permissions = await ctx.env.data.rolePermissions.list(
-      tenantId,
-      role.id,
-      { per_page: 1000 }, // Fetch all permissions - roles can have many permissions
-    );
-
+  for (const permissions of rolePermissionLists) {
     permissions.forEach((permission) => {
       if (permission.resource_server_identifier === audience) {
         rolePermissions.push(permission.permission_name);
