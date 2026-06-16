@@ -1,0 +1,46 @@
+# ════════════════════════════════════════════════════════════════════════════
+# AuthHero WFP Tenant Worker
+# ════════════════════════════════════════════════════════════════════════════
+# The full authhero app for ONE tenant, deployed into the `authhero-tenants`
+# dispatch namespace and fronted by the WFP dispatcher. It reads only its own
+# D1 and inherits the control plane's defaults from rows the control plane
+# rollout projected into that D1.
+#
+# Deploy into the namespace (one per tenant):
+#   wrangler deploy --dispatch-namespace=authhero-tenants --name=tenant-<id>-auth
+#
+# Sensitive IDs (database_id) go in wrangler.local.toml (gitignored).
+# ════════════════════════════════════════════════════════════════════════════
+
+name = "tenant-auth"
+main = "src/index.ts"
+compatibility_date = "2026-05-01"
+compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = "./dist/assets"
+
+# ════════════════════════════════════════════════════════════════════════════
+# This tenant's own D1 database
+# ════════════════════════════════════════════════════════════════════════════
+# Each tenant Worker has its own database. Create one per tenant and set its id
+# in wrangler.local.toml:
+#   npx wrangler d1 create tenant-<id>-db
+[[d1_databases]]
+binding = "AUTH_DB"
+database_name = "tenant-db"
+database_id = "local"  # Use "local" for local dev, or your actual ID in wrangler.local.toml
+migrations_dir = "node_modules/@authhero/drizzle/drizzle"
+
+# ════════════════════════════════════════════════════════════════════════════
+# Encryption keys (set as secrets, not here)
+# ════════════════════════════════════════════════════════════════════════════
+#   wrangler secret put ENCRYPTION_KEY                  # this tenant's own key
+#   wrangler secret put CONTROL_PLANE_ENCRYPTION_KEY    # shared "cp" key
+#
+# CONTROL_PLANE_ENCRYPTION_KEY must be byte-identical to the key the control
+# plane used to project this tenant's inherited secrets, or they won't decrypt.
+
+# Optional: Enable observability
+# [observability]
+# enabled = true

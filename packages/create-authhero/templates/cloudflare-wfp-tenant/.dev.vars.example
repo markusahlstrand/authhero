@@ -1,0 +1,17 @@
+# ============================================================================
+# Development Environment Variables — WFP Tenant Worker
+# ============================================================================
+# Copy this file to .dev.vars and fill in your values.
+# ============================================================================
+
+# This tenant's own at-rest encryption key (base64-encoded 32 bytes).
+# `create-authhero` writes a generated key here for local dev. In production:
+#   wrangler secret put ENCRYPTION_KEY
+# Generate one with: openssl rand -base64 32
+# ENCRYPTION_KEY=
+
+# The CONTROL PLANE key (key id "cp"). Decrypts the shared secrets the control
+# plane projected into this tenant's database. Must be byte-identical to the
+# control plane's CONTROL_PLANE_ENCRYPTION_KEY. In production:
+#   wrangler secret put CONTROL_PLANE_ENCRYPTION_KEY
+# CONTROL_PLANE_ENCRYPTION_KEY=

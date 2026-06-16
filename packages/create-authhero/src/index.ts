@@ -21,6 +21,8 @@ type SetupType =
   | "local"
   | "cloudflare"
   | "cloudflare-wfp-dispatcher"
+  | "cloudflare-wfp-tenant"
+  | "cloudflare-control-plane"
   | "aws-sst"
   | "proxy";
 type PackageManager = "npm" | "yarn" | "pnpm" | "bun";
@@ -188,6 +190,103 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
         dependencies: {
           "@authhero/drizzle": v,
           "@authhero/proxy": v,
+          "drizzle-orm": "^0.44.0",
+          hono: "^4.6.0",
+        },
+        devDependencies: {
+          "@cloudflare/workers-types": "^4.0.0",
+          "drizzle-kit": "^0.31.0",
+          typescript: "^5.5.0",
+          wrangler: "^3.0.0",
+        },
+      };
+    },
+  },
+  "cloudflare-wfp-tenant": {
+    name: "Cloudflare Workers for Platforms — Tenant Worker",
+    description:
+      "Per-tenant authhero worker (own D1) that inherits control plane defaults via runtime fallback + keyed encryption (deploy into the dispatch namespace; pair with the control-plane template)",
+    templateDir: "cloudflare-wfp-tenant",
+    packageJson: (projectName, _multiTenant, _conformance, workspace) => {
+      const v = workspace ? "workspace:*" : "latest";
+      return {
+        name: projectName,
+        version: "1.0.0",
+        type: "module",
+        scripts: {
+          postinstall: "node copy-assets.js",
+          "copy-assets": "node copy-assets.js",
+          dev: "node copy-assets.js && wrangler dev --port 3002 --local-protocol https",
+          "dev:remote":
+            "node copy-assets.js && wrangler dev --port 3002 --local-protocol https --remote --config wrangler.local.toml",
+          deploy:
+            "node copy-assets.js && wrangler deploy --config wrangler.local.toml",
+          "db:migrate:local": "wrangler d1 migrations apply AUTH_DB --local",
+          "db:migrate:remote":
+            "wrangler d1 migrations apply AUTH_DB --remote --config wrangler.local.toml",
+          migrate: "wrangler d1 migrations apply AUTH_DB --local",
+          setup:
+            "cp wrangler.toml wrangler.local.toml && cp .dev.vars.example .dev.vars && echo '✅ Created wrangler.local.toml and .dev.vars - update with your IDs and CONTROL_PLANE_ENCRYPTION_KEY'",
+          "gen:key": "node scripts/generate-encryption-key.mjs",
+          decrypt: "node --env-file=.dev.vars scripts/decrypt-field.mjs",
+        },
+        dependencies: {
+          "@authhero/drizzle": v,
+          "@authhero/multi-tenancy": v,
+          "@authhero/widget": v,
+          "@hono/swagger-ui": "^0.5.0",
+          "@hono/zod-openapi": "^0.19.0",
+          authhero: v,
+          "drizzle-orm": "^0.44.0",
+          hono: "^4.6.0",
+        },
+        devDependencies: {
+          "@cloudflare/workers-types": "^4.0.0",
+          "drizzle-kit": "^0.31.0",
+          typescript: "^5.5.0",
+          wrangler: "^3.0.0",
+        },
+      };
+    },
+  },
+  "cloudflare-control-plane": {
+    name: "Cloudflare Workers for Platforms — Control Plane",
+    description:
+      "Control plane worker: tenant management + rollout source that projects default connections/prompts/branding into each WFP tenant's database (pair with the dispatcher and tenant templates)",
+    templateDir: "cloudflare-control-plane",
+    packageJson: (projectName, _multiTenant, _conformance, workspace) => {
+      const v = workspace ? "workspace:*" : "latest";
+      return {
+        name: projectName,
+        version: "1.0.0",
+        type: "module",
+        scripts: {
+          postinstall: "node copy-assets.js",
+          "copy-assets": "node copy-assets.js",
+          dev: "node copy-assets.js && wrangler dev --port 3000 --local-protocol https",
+          "dev:remote":
+            "node copy-assets.js && wrangler dev --port 3000 --local-protocol https --remote --config wrangler.local.toml",
+          deploy:
+            "node copy-assets.js && wrangler deploy --config wrangler.local.toml",
+          "db:migrate:local": "wrangler d1 migrations apply AUTH_DB --local",
+          "db:migrate:remote":
+            "wrangler d1 migrations apply AUTH_DB --remote --config wrangler.local.toml",
+          migrate: "wrangler d1 migrations apply AUTH_DB --local",
+          "seed:local": "node seed-helper.js",
+          "seed:remote": "node seed-helper.js '' '' remote",
+          seed: "node seed-helper.js",
+          setup:
+            "cp wrangler.toml wrangler.local.toml && cp .dev.vars.example .dev.vars && echo '✅ Created wrangler.local.toml and .dev.vars - update with your IDs and CONTROL_PLANE_ENCRYPTION_KEY'",
+          "gen:key": "node scripts/generate-encryption-key.mjs",
+          decrypt: "node --env-file=.dev.vars scripts/decrypt-field.mjs",
+        },
+        dependencies: {
+          "@authhero/drizzle": v,
+          "@authhero/multi-tenancy": v,
+          "@authhero/widget": v,
+          "@hono/swagger-ui": "^0.5.0",
+          "@hono/zod-openapi": "^0.19.0",
+          authhero: v,
           "drizzle-orm": "^0.44.0",
           hono: "^4.6.0",
         },
@@ -1310,6 +1409,37 @@ function printCloudflareWfpDispatcherSuccessMessage(): void {
 }
 
 /**
+ * Prints nice output at the end of setup for the WFP tenant template
+ */
+function printCloudflareWfpTenantSuccessMessage(): void {
+  console.log("\n" + "─".repeat(50));
+  console.log("🏠 WFP tenant worker running at https://localhost:3002");
+  console.log("🔑 Set CONTROL_PLANE_ENCRYPTION_KEY in .dev.vars to match the");
+  console.log("   control plane, then run the control plane's sync-defaults.");
+  console.log("📦 Deploy into the namespace:");
+  console.log(
+    "   wrangler deploy --dispatch-namespace=authhero-tenants --name=tenant-<id>-auth",
+  );
+  console.log("─".repeat(50) + "\n");
+}
+
+/**
+ * Prints nice output at the end of setup for the control plane template
+ */
+function printCloudflareControlPlaneSuccessMessage(): void {
+  console.log("\n" + "─".repeat(50));
+  console.log("🛰️  Control plane running at https://localhost:3000");
+  console.log("🚀 Open https://localhost:3000/setup to complete initial setup");
+  console.log(
+    "🔁 Project defaults into a tenant: POST /internal/tenants/:id/sync-defaults",
+  );
+  console.log(
+    "   (wire buildTenantAdapters() in src/index.ts and protect the route first)",
+  );
+  console.log("─".repeat(50) + "\n");
+}
+
+/**
  * Prints nice output at the end of setup for the proxy template
  */
 function printProxySuccessMessage(): void {
@@ -1403,13 +1533,15 @@ program
           "local",
           "cloudflare",
           "cloudflare-wfp-dispatcher",
+          "cloudflare-wfp-tenant",
+          "cloudflare-control-plane",
           "aws-sst",
           "proxy",
         ].includes(options.template)
       ) {
         console.error(`❌ Invalid template: ${options.template}`);
         console.error(
-          "Valid options: local, cloudflare, cloudflare-wfp-dispatcher, aws-sst, proxy",
+          "Valid options: local, cloudflare, cloudflare-wfp-dispatcher, cloudflare-wfp-tenant, cloudflare-control-plane, aws-sst, proxy",
         );
         process.exit(1);
       }
@@ -1438,6 +1570,16 @@ program
               short: setupConfigs["cloudflare-wfp-dispatcher"].name,
             },
             {
+              name: `${setupConfigs["cloudflare-control-plane"].name}\n     ${setupConfigs["cloudflare-control-plane"].description}`,
+              value: "cloudflare-control-plane",
+              short: setupConfigs["cloudflare-control-plane"].name,
+            },
+            {
+              name: `${setupConfigs["cloudflare-wfp-tenant"].name}\n     ${setupConfigs["cloudflare-wfp-tenant"].description}`,
+              value: "cloudflare-wfp-tenant",
+              short: setupConfigs["cloudflare-wfp-tenant"].name,
+            },
+            {
               name: `${setupConfigs["aws-sst"].name}\n     ${setupConfigs["aws-sst"].description}`,
               value: "aws-sst",
               short: setupConfigs["aws-sst"].name,
@@ -1453,12 +1595,17 @@ program
       setupType = answer.setupType;
     }
 
-    // Multi-tenant mode (not applicable to proxy or wfp-dispatcher templates,
-    // which don't run authhero themselves)
+    // Multi-tenant mode. Not prompted for templates that decide tenancy
+    // themselves: proxy/dispatcher don't run authhero; the control-plane
+    // template is always multi-tenant; the wfp-tenant template serves a single
+    // tenant and inherits defaults via runtime fallback.
     let multiTenant: boolean;
-    if (
+    if (setupType === "cloudflare-control-plane") {
+      multiTenant = true;
+    } else if (
       setupType === "proxy" ||
-      setupType === "cloudflare-wfp-dispatcher"
+      setupType === "cloudflare-wfp-dispatcher" ||
+      setupType === "cloudflare-wfp-tenant"
     ) {
       multiTenant = false;
     } else if (options.multiTenant !== undefined) {
@@ -1564,10 +1711,24 @@ program
     }
 
     // For Cloudflare setups, create local config files
-    if (
+    const cloudflareLike =
       setupType === "cloudflare" ||
-      setupType === "cloudflare-wfp-dispatcher"
-    ) {
+      setupType === "cloudflare-wfp-dispatcher" ||
+      setupType === "cloudflare-wfp-tenant" ||
+      setupType === "cloudflare-control-plane";
+    // Templates that store/encrypt data themselves get a .dev.vars with keys.
+    // The dispatcher doesn't, so it only gets wrangler.local.toml.
+    const encryptsAtRest =
+      setupType === "cloudflare" ||
+      setupType === "cloudflare-wfp-tenant" ||
+      setupType === "cloudflare-control-plane";
+    // The WFP tenant + control plane templates additionally use a shared
+    // control-plane key id ("cp") for inherited secrets.
+    const usesControlPlaneKey =
+      setupType === "cloudflare-wfp-tenant" ||
+      setupType === "cloudflare-control-plane";
+
+    if (cloudflareLike) {
       // Copy wrangler.toml to wrangler.local.toml for local development.
       // Skip if a wrangler.local.toml is already present so re-runs of the
       // scaffolder over an existing directory don't overwrite local edits.
@@ -1577,9 +1738,7 @@ program
         fs.copyFileSync(wranglerPath, wranglerLocalPath);
       }
 
-      // .dev.vars + ENCRYPTION_KEY only apply to the auth-server template;
-      // the dispatcher doesn't store or encrypt anything itself.
-      if (setupType === "cloudflare") {
+      if (encryptsAtRest) {
         const devVarsExamplePath = path.join(projectPath, ".dev.vars.example");
         const devVarsPath = path.join(projectPath, ".dev.vars");
         if (fs.existsSync(devVarsExamplePath)) {
@@ -1588,7 +1747,23 @@ program
             devVarsPath,
             `\n# Generated at-rest encryption key (local dev). Use a separate secret in production.\nENCRYPTION_KEY=${generateEncryptionKey()}\n`,
           );
-          console.log("🔒 Added a generated ENCRYPTION_KEY to .dev.vars");
+          if (usesControlPlaneKey) {
+            // Same generated value across the pair would be ideal, but each
+            // project is scaffolded independently — operators must align the
+            // control plane's and tenants' CONTROL_PLANE_ENCRYPTION_KEY.
+            fs.appendFileSync(
+              devVarsPath,
+              `# Shared control-plane key id "cp". Must be byte-identical across the control plane and every tenant worker.\nCONTROL_PLANE_ENCRYPTION_KEY=${generateEncryptionKey()}\n`,
+            );
+            console.log(
+              "🔒 Added generated ENCRYPTION_KEY + CONTROL_PLANE_ENCRYPTION_KEY to .dev.vars",
+            );
+            console.log(
+              "⚠️  Align CONTROL_PLANE_ENCRYPTION_KEY across the control plane and all tenant workers.",
+            );
+          } else {
+            console.log("🔒 Added a generated ENCRYPTION_KEY to .dev.vars");
+          }
         }
         console.log(
           "📁 Created wrangler.local.toml and .dev.vars for local development",
@@ -1760,10 +1935,15 @@ ENCRYPTION_KEY=${generateEncryptionKey()}
 
         console.log("\n✅ Dependencies installed successfully!\n");
 
-        // For local and cloudflare setups, run migrations (the wfp dispatcher
-        // shares D1 with the auth-server template, so it doesn't initialize
-        // the schema itself).
-        if (setupType === "local" || setupType === "cloudflare") {
+        // Run migrations for setups that own a database. The wfp dispatcher
+        // shares the control plane's D1, so it doesn't initialize the schema
+        // itself.
+        if (
+          setupType === "local" ||
+          setupType === "cloudflare" ||
+          setupType === "cloudflare-wfp-tenant" ||
+          setupType === "cloudflare-control-plane"
+        ) {
           if (!options.skipMigrate) {
             let shouldMigrate: boolean;
             if (isNonInteractive) {
@@ -1811,6 +1991,10 @@ ENCRYPTION_KEY=${generateEncryptionKey()}
             printCloudflareSuccessMessage();
           } else if (setupType === "cloudflare-wfp-dispatcher") {
             printCloudflareWfpDispatcherSuccessMessage();
+          } else if (setupType === "cloudflare-wfp-tenant") {
+            printCloudflareWfpTenantSuccessMessage();
+          } else if (setupType === "cloudflare-control-plane") {
+            printCloudflareControlPlaneSuccessMessage();
           } else if (setupType === "aws-sst") {
             printAwsSstSuccessMessage();
           } else if (setupType === "proxy") {
@@ -1832,6 +2016,10 @@ ENCRYPTION_KEY=${generateEncryptionKey()}
             printCloudflareSuccessMessage();
           } else if (setupType === "cloudflare-wfp-dispatcher") {
             printCloudflareWfpDispatcherSuccessMessage();
+          } else if (setupType === "cloudflare-wfp-tenant") {
+            printCloudflareWfpTenantSuccessMessage();
+          } else if (setupType === "cloudflare-control-plane") {
+            printCloudflareControlPlaneSuccessMessage();
           } else if (setupType === "aws-sst") {
             printAwsSstSuccessMessage();
           } else if (setupType === "proxy") {
@@ -1881,6 +2069,31 @@ ENCRYPTION_KEY=${generateEncryptionKey()}
         console.log(
           "  wrangler deploy --dispatch-namespace=authhero-tenants --name=tenant-<id>-auth",
         );
+      } else if (setupType === "cloudflare-control-plane") {
+        console.log("  npm install");
+        console.log("  npm run setup  # creates wrangler.local.toml + .dev.vars");
+        console.log(
+          "  # set CONTROL_PLANE_ENCRYPTION_KEY in .dev.vars (share it with every tenant worker)",
+        );
+        console.log("  npm run migrate");
+        console.log("  npm run seed");
+        console.log("  npm run dev  # or npm run dev:remote for production");
+        console.log(
+          "\nWire buildTenantAdapters() in src/index.ts, then project defaults:",
+        );
+        console.log("  POST /internal/tenants/:id/sync-defaults");
+      } else if (setupType === "cloudflare-wfp-tenant") {
+        console.log("  npm install");
+        console.log("  npm run setup  # creates wrangler.local.toml + .dev.vars");
+        console.log(
+          "  # set CONTROL_PLANE_ENCRYPTION_KEY in .dev.vars (must match the control plane)",
+        );
+        console.log("  npm run migrate");
+        console.log("  npm run dev  # or npm run dev:remote for production");
+        console.log("\nDeploy into the dispatch namespace:");
+        console.log(
+          "  wrangler deploy --dispatch-namespace=authhero-tenants --name=tenant-<id>-auth",
+        );
       } else if (setupType === "aws-sst") {
         console.log("  npm install");
         console.log("  npm run dev  # Deploys to AWS in development mode");
@@ -1896,7 +2109,9 @@ ENCRYPTION_KEY=${generateEncryptionKey()}
           ? 8787
           : setupType === "cloudflare-wfp-dispatcher"
             ? 3001
-            : 3000;
+            : setupType === "cloudflare-wfp-tenant"
+              ? 3002
+              : 3000;
       console.log(`\nServer will be available at: http://localhost:${port}`);
 
       if (conformance) {

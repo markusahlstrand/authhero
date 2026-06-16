@@ -1,0 +1,17 @@
+# ============================================================================
+# Development Environment Variables — Control Plane Worker
+# ============================================================================
+# Copy this file to .dev.vars and fill in your values.
+# ============================================================================
+
+# The control plane's own at-rest encryption key (base64-encoded 32 bytes).
+# `create-authhero` writes a generated key here for local dev. In production:
+#   wrangler secret put ENCRYPTION_KEY
+# Generate one with: openssl rand -base64 32
+# ENCRYPTION_KEY=
+
+# The shared CONTROL PLANE key (key id "cp"). The rollout encrypts projected
+# secrets under this key; each tenant Worker holds the same key to decrypt them.
+# Must be byte-identical across the control plane and every tenant Worker.
+#   wrangler secret put CONTROL_PLANE_ENCRYPTION_KEY
+# CONTROL_PLANE_ENCRYPTION_KEY=
