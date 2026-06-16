@@ -324,6 +324,22 @@ home of colocated tenants), the **tenant Worker** (reads only its own D1), and
 the **rollout** that connects them. The snippets below use environment names for
 illustration — adapt them to your bindings.
 
+::: tip Scaffold it with `create-authhero`
+You don't have to write this from scratch. `create-authhero` ships matching
+templates:
+
+```bash
+npm create authhero@latest -- --template cloudflare-control-plane   # rollout source + management
+npm create authhero@latest -- --template cloudflare-wfp-tenant      # per-tenant worker (own D1)
+npm create authhero@latest -- --template cloudflare-wfp-dispatcher  # front door
+```
+
+The control-plane template exposes `POST /internal/tenants/:id/sync-defaults`
+(backed by `createDirectRolloutAdapter`); the tenant template ships the
+`key ring → withRuntimeFallback` layering below. The snippets here explain what
+those templates generate.
+:::
+
 ### 1. Control plane Worker
 
 The control plane owns every key and serves colocated tenants from the shared

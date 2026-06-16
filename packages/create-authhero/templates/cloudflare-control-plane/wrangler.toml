@@ -1,0 +1,46 @@
+# ════════════════════════════════════════════════════════════════════════════
+# AuthHero Control Plane Worker
+# ════════════════════════════════════════════════════════════════════════════
+# The management surface + rollout source for a Workers-for-Platforms setup.
+# It manages tenants (/api/v2/tenants), serves colocated tenants, and projects
+# the control plane's default connections/prompts/branding into each WFP
+# tenant's own database via POST /internal/tenants/:id/sync-defaults.
+#
+# Pair with:
+#   - cloudflare-wfp-dispatcher  (front door)
+#   - cloudflare-wfp-tenant      (per-tenant Workers)
+#
+# Sensitive IDs (database_id) go in wrangler.local.toml (gitignored).
+# ════════════════════════════════════════════════════════════════════════════
+
+name = "authhero-control-plane"
+main = "src/index.ts"
+compatibility_date = "2026-05-01"
+compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = "./dist/assets"
+
+# ════════════════════════════════════════════════════════════════════════════
+# Control plane database (shared platform D1)
+# ════════════════════════════════════════════════════════════════════════════
+# Holds the control plane tenant's rows (the defaults bundle), tenant records,
+# custom_domains and proxy_routes. The dispatcher reads this same database.
+[[d1_databases]]
+binding = "AUTH_DB"
+database_name = "authhero-db"
+database_id = "local"  # Use "local" for local dev, or your actual ID in wrangler.local.toml
+migrations_dir = "node_modules/@authhero/drizzle/drizzle"
+
+# ════════════════════════════════════════════════════════════════════════════
+# Encryption keys (set as secrets, not here)
+# ════════════════════════════════════════════════════════════════════════════
+#   wrangler secret put ENCRYPTION_KEY                 # control plane's own key
+#   wrangler secret put CONTROL_PLANE_ENCRYPTION_KEY   # shared "cp" key
+#
+# CONTROL_PLANE_ENCRYPTION_KEY must be byte-identical to the key each tenant
+# Worker holds, so projected secrets decrypt on the tenant side.
+
+# Optional: Enable observability
+# [observability]
+# enabled = true
