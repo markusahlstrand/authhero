@@ -14,6 +14,9 @@ type Props = {
   disabled?: boolean;
   isLoading?: boolean;
   id?: string;
+  // When the button renders as an anchor, mark it so the client-side
+  // LoadingLinkHandler shows a loading state and blocks repeated clicks.
+  loadingLink?: boolean;
 };
 
 const Button = ({
@@ -25,8 +28,12 @@ const Button = ({
   disabled,
   isLoading,
   id,
+  loadingLink,
 }: PropsWithChildren<Props>) => {
-  const hrefProps = Component === "a" ? { href } : {};
+  const hrefProps =
+    Component === "a"
+      ? { href, ...(loadingLink ? { "data-loading-link": "" } : {}) }
+      : {};
   return (
     // @ts-expect-error - refactor this when migrating to authhero
     <Component

@@ -53,6 +53,7 @@ const SocialButton = ({
       aria-label={text}
       Component="a"
       href={href}
+      loadingLink
     >
       {icon || ""}
       <div
