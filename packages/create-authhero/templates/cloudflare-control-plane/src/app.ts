@@ -27,7 +27,12 @@ export default function createApp(
   app
     .onError((err, ctx) => {
       // Duck-typing avoids instanceof issues with bundled dependencies.
-      if (err && typeof err === "object" && "getResponse" in err) {
+      if (
+        err &&
+        typeof err === "object" &&
+        "getResponse" in err &&
+        typeof (err as { getResponse?: unknown }).getResponse === "function"
+      ) {
         return (err as { getResponse: () => Response }).getResponse();
       }
       console.error(err);
@@ -60,7 +65,7 @@ export default function createApp(
             ok: false,
             error: err instanceof Error ? err.message : String(err),
           },
-          501,
+          500,
         );
       }
     });

@@ -11,7 +11,12 @@ export default function createApp(config: AuthHeroConfig) {
   app
     .onError((err, ctx) => {
       // Duck-typing avoids instanceof issues with bundled dependencies.
-      if (err && typeof err === "object" && "getResponse" in err) {
+      if (
+        err &&
+        typeof err === "object" &&
+        "getResponse" in err &&
+        typeof (err as { getResponse?: unknown }).getResponse === "function"
+      ) {
         return (err as { getResponse: () => Response }).getResponse();
       }
       console.error(err);
