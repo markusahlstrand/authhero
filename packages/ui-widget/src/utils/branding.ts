@@ -197,8 +197,8 @@ export function brandingToCssVars(
   // Primary color
   if (branding.colors?.primary) {
     vars["--ah-color-primary"] = branding.colors.primary;
-    // Generate hover variant (slightly darker)
-    vars["--ah-color-primary-hover"] = branding.colors.primary;
+    // Hover variant is derived in CSS (color-mix darken) unless the theme
+    // sets an explicit base_hover_color; don't pin it to the base color here.
   }
 
   // Page background
@@ -275,7 +275,6 @@ export function themeToCssVars(theme?: WidgetTheme): Record<string, string> {
     // Primary button
     if (c.primary_button) {
       vars["--ah-color-primary"] = c.primary_button;
-      vars["--ah-color-primary-hover"] = c.primary_button;
 
       // Honor explicit primary_button_label when set; otherwise auto-pick.
       if (c.primary_button_label) {

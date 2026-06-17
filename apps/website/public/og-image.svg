@@ -1,0 +1,33 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="1200" height="630" fill="white"/>
+
+  <!-- Faint dot grid, matching the site background -->
+  <defs>
+    <pattern id="dots" width="28" height="28" patternUnits="userSpaceOnUse">
+      <circle cx="1.2" cy="1.2" r="1.2" fill="#E5E7EB"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="630" fill="url(#dots)"/>
+
+  <!-- Logo (AuthHero shield), scaled from the 120x120 source -->
+  <g transform="translate(90, 82) scale(0.95)">
+    <rect width="120" height="120" rx="24" fill="#3B82F6"/>
+    <path d="M60 30L80 45V75L60 90L40 75V45L60 30Z" fill="white"/>
+    <circle cx="60" cy="60" r="12" fill="#3B82F6"/>
+    <rect x="54" y="54" width="12" height="12" rx="2" fill="white"/>
+  </g>
+
+  <!-- Wordmark -->
+  <text x="232" y="172" font-family="Helvetica, Arial, sans-serif" font-size="60" font-weight="700" fill="#000000">AuthHero</text>
+
+  <!-- Headline -->
+  <text x="90" y="372" font-family="Helvetica, Arial, sans-serif" font-size="74" font-weight="700" fill="#000000">Identity infrastructure</text>
+  <text x="90" y="462" font-family="Helvetica, Arial, sans-serif" font-size="74" font-weight="700" fill="#000000">you own.</text>
+
+  <!-- Subtext -->
+  <text x="92" y="540" font-family="Helvetica, Arial, sans-serif" font-size="34" font-weight="400" fill="#6B7280">Auth0-compatible · Node-native · runs in-process</text>
+
+  <!-- Open source badge -->
+  <text x="92" y="590" font-family="Helvetica, Arial, sans-serif" font-size="26" font-weight="600" fill="#3B82F6">Open Source · MIT Licensed</text>
+</svg>

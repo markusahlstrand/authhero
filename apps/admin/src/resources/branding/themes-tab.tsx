@@ -1,10 +1,13 @@
+import { useState } from "react";
 import {
   TextInput,
   NumberInput,
   BooleanInput,
   SelectInput,
 } from "@/components/admin";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ColorInput } from "./color-input";
+import { ThemesRawEditor } from "./themes-raw";
 
 const keepEmptyString = (v: string | null | undefined) => v ?? "";
 
@@ -53,17 +56,9 @@ const fontSections: { key: string; label: string }[] = [
   { key: "title", label: "Title" },
 ];
 
-export function ThemesTab() {
+function ThemesFormFields() {
   return (
     <div className="flex max-w-3xl flex-col gap-6">
-      <div>
-        <h3 className="text-lg font-semibold">Theme Configuration</h3>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Configure the visual theme for your authentication pages. These
-          settings control colors, fonts, and layout.
-        </p>
-      </div>
-
       <TextInput source="themes.displayName" label="Display Name" />
 
       <section className="flex flex-col gap-4">
@@ -238,6 +233,42 @@ export function ThemesTab() {
           parse={keepEmptyString}
         />
       </section>
+    </div>
+  );
+}
+
+export function ThemesTab() {
+  const [view, setView] = useState<"form" | "raw">("form");
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h3 className="text-lg font-semibold">Theme Configuration</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Configure the visual theme for your authentication pages. These
+            settings control colors, fonts, and layout.
+          </p>
+        </div>
+        <ToggleGroup
+          type="single"
+          value={view}
+          onValueChange={(value) => {
+            if (value === "form" || value === "raw") setView(value);
+          }}
+          variant="outline"
+          size="sm"
+        >
+          <ToggleGroupItem value="form">Form</ToggleGroupItem>
+          <ToggleGroupItem value="raw">JSON</ToggleGroupItem>
+        </ToggleGroup>
+      </div>
+
+      {/* Keep the form fields mounted so values persist when toggling views. */}
+      <div className={view === "form" ? undefined : "hidden"}>
+        <ThemesFormFields />
+      </div>
+      {view === "raw" && <ThemesRawEditor />}
     </div>
   );
 }

@@ -39,7 +39,7 @@
   left: 16px;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 16px;
+  font-size: var(--ah-font-size-label, 16px);
   font-weight: var(--ah-font-weight-label, 400);
   color: var(--ah-color-text-muted, #65676e);
   pointer-events: none;
@@ -83,9 +83,9 @@ input[type="date"].input-field+.input-label {
   padding: 16px;
   font-size: 16px;
   font-family: inherit;
-  color: var(--ah-color-text, #1e212a);
+  color: var(--ah-color-input-text, var(--ah-color-text, #1e212a));
   background-color: var(--ah-color-input-bg, #ffffff);
-  border: 1px solid var(--ah-color-border, #c9cace);
+  border: var(--ah-input-border-width, 1px) solid var(--ah-color-border, #c9cace);
   border-radius: var(--ah-input-radius, 3px);
   outline: none;
   transition:
@@ -145,12 +145,12 @@ input[type="date"].input-field+.input-label {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--ah-color-text-muted, #65676e);
+  color: var(--ah-color-icon, var(--ah-color-text-muted, #65676e));
   transition: color 0.15s ease;
 }
 
 .password-toggle:hover {
-  color: var(--ah-color-text, #1e212a);
+  color: var(--ah-color-icon, var(--ah-color-text, #1e212a));
 }
 
 .password-toggle svg {
@@ -188,7 +188,7 @@ input[type="date"].input-field+.input-label {
 .field-link a {
   color: var(--ah-color-link, #635dff);
   text-decoration: var(--ah-link-decoration, none);
-  font-size: 14px;
+  font-size: var(--ah-font-size-link, 14px);
   font-weight: var(--ah-font-weight-link, 400);
 }
 
@@ -219,7 +219,8 @@ input[type="date"].input-field+.input-label {
 }
 
 .checkbox-label {
-  font-size: 14px;
+  font-size: var(--ah-font-size-body, 14px);
+  font-weight: var(--ah-font-weight-body, 400);
   color: var(--ah-color-text, #1e212a);
   line-height: 1.5;
 }
@@ -236,7 +237,7 @@ input[type="date"].input-field+.input-label {
   gap: 10px;
   width: 100%;
   padding: 14px 20px;
-  font-size: 16px;
+  font-size: var(--ah-font-size-btn, 16px);
   font-weight: var(--ah-font-weight-btn, 400);
   font-family: inherit;
   line-height: 1.25;
@@ -262,7 +263,7 @@ input[type="date"].input-field+.input-label {
 }
 
 .btn:focus-visible {
-  outline: 2px solid var(--ah-color-primary, #635dff);
+  outline: 2px solid var(--ah-color-focus-ring, var(--ah-color-primary, #635dff));
   outline-offset: 2px;
 }
 
@@ -274,14 +275,14 @@ input[type="date"].input-field+.input-label {
 }
 
 .btn-primary:not(:disabled):hover {
-  filter: brightness(0.85);
+  background-color: var(--ah-color-primary-hover, color-mix(in srgb, var(--ah-color-primary, #635dff) 85%, black));
 }
 
 /* Secondary Button (Social/OIDC) */
 .btn-secondary {
   background-color: var(--ah-color-bg, #ffffff);
-  color: var(--ah-color-text, #1e212a);
-  border: 1px solid var(--ah-color-border, #c9cace);
+  color: var(--ah-btn-secondary-text, var(--ah-color-text, #1e212a));
+  border: var(--ah-btn-border-width, 1px) solid var(--ah-btn-secondary-border, var(--ah-color-border, #c9cace));
 }
 
 .btn-secondary:not(:disabled):hover {
@@ -321,11 +322,11 @@ input[type="date"].input-field+.input-label {
   padding: 12px 8px;
   font-size: var(--ah-font-size-body, 16px);
   font-family: var(--ah-font-family, inherit);
-  border: 1px solid var(--ah-color-border, #c9cace);
+  border: var(--ah-input-border-width, 1px) solid var(--ah-color-border, #c9cace);
   border-right: none;
-  border-radius: var(--ah-border-radius-input, 4px) 0 0 var(--ah-border-radius-input, 4px);
-  background-color: var(--ah-color-surface, #fff);
-  color: var(--ah-color-text, #1e212a);
+  border-radius: var(--ah-input-radius, 4px) 0 0 var(--ah-input-radius, 4px);
+  background-color: var(--ah-color-input-bg, var(--ah-color-surface, #fff));
+  color: var(--ah-color-input-text, var(--ah-color-text, #1e212a));
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
@@ -352,7 +353,7 @@ input[type="date"].input-field+.input-label {
 }
 
 .phone-input-wrapper .input-field {
-  border-radius: 0 var(--ah-border-radius-input, 4px) var(--ah-border-radius-input, 4px) 0;
+  border-radius: 0 var(--ah-input-radius, 4px) var(--ah-input-radius, 4px) 0;
 }
 
 .phone-input-wrapper .input-label.floating,
@@ -450,9 +451,9 @@ input[type="date"].input-field+.input-label {
    ========================================================================== */
 
 .text-title {
-  font-size: 20px;
-  font-weight: 400;
-  color: var(--ah-color-text, #1e212a);
+  font-size: var(--ah-font-size-title, 20px);
+  font-weight: var(--ah-font-weight-title, 400);
+  color: var(--ah-color-text-header, var(--ah-color-header, #1e212a));
   margin: 8px 0;
   line-height: 1.3;
 }
@@ -462,7 +463,8 @@ input[type="date"].input-field+.input-label {
 }
 
 .text-description {
-  font-size: 14px;
+  font-size: var(--ah-font-size-subtitle, 14px);
+  font-weight: var(--ah-font-weight-subtitle, 400);
   color: var(--ah-color-text-muted, #65676e);
   margin: 4px 0;
   line-height: 1.5;
@@ -495,7 +497,7 @@ input[type="date"].input-field+.input-label {
 .link {
   color: var(--ah-color-link, #635dff);
   text-decoration: var(--ah-link-decoration, none);
-  font-size: 14px;
+  font-size: var(--ah-font-size-link, 14px);
   transition: color 0.15s ease;
 }
 
@@ -504,7 +506,7 @@ input[type="date"].input-field+.input-label {
 }
 
 .link:focus-visible {
-  outline: 2px solid var(--ah-color-link, #635dff);
+  outline: 2px solid var(--ah-color-focus-ring, var(--ah-color-link, #635dff));
   outline-offset: 2px;
   border-radius: 2px;
 }
@@ -568,7 +570,8 @@ input[type="date"].input-field+.input-label {
    ========================================================================== */
 
 .rich-text {
-  font-size: 14px;
+  font-size: var(--ah-font-size-body, 14px);
+  font-weight: var(--ah-font-weight-body, 400);
   line-height: 1.5;
   color: var(--ah-color-text, #1e212a);
 }

@@ -26,6 +26,7 @@
   margin: 0 auto;
   background-color: var(--ah-color-bg, #ffffff);
   border-radius: var(--ah-widget-radius, 5px);
+  border: var(--ah-widget-border-width, 0) solid var(--ah-widget-border-color, transparent);
   box-shadow: var(--ah-widget-shadow, 0 4px 22px 0 rgba(0, 0, 0, 0.11));
   box-sizing: border-box;
 }
@@ -77,12 +78,13 @@
   font-weight: var(--ah-font-weight-title, 700);
   text-align: var(--ah-title-align, center);
   margin: var(--ah-title-margin, 24px 0 24px);
-  color: var(--ah-color-header, #1e212a);
+  color: var(--ah-color-text-header, var(--ah-color-header, #1e212a));
   line-height: 1.2;
 }
 
 .description {
   font-size: var(--ah-font-size-subtitle, 16px);
+  font-weight: var(--ah-font-weight-subtitle, 400);
   text-align: var(--ah-title-align, center);
   margin: var(--ah-description-margin, 0 0 8px);
   color: var(--ah-color-text, #1e212a);
@@ -185,14 +187,15 @@ form {
 }
 
 .link-wrapper {
-  font-size: 14px;
+  font-size: var(--ah-font-size-body, 14px);
+  font-weight: var(--ah-font-weight-body, 400);
   color: var(--ah-color-text, #1e212a);
 }
 
 .link {
   color: var(--ah-color-link, #635dff);
   text-decoration: var(--ah-link-decoration, none);
-  font-size: 14px;
+  font-size: var(--ah-font-size-link, 14px);
   font-weight: var(--ah-font-weight-link, 400);
   transition: color 150ms ease;
 }
@@ -202,7 +205,7 @@ form {
 }
 
 .link:focus-visible {
-  outline: 2px solid var(--ah-color-link, #635dff);
+  outline: 2px solid var(--ah-color-focus-ring, var(--ah-color-link, #635dff));
   outline-offset: 2px;
   border-radius: 2px;
 }
@@ -231,7 +234,7 @@ form {
 }
 
 .widget-footer a:focus-visible {
-  outline: 2px solid var(--ah-color-link, #635dff);
+  outline: 2px solid var(--ah-color-focus-ring, var(--ah-color-link, #635dff));
   outline-offset: 2px;
   border-radius: 2px;
 }

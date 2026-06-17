@@ -21,6 +21,7 @@
     "demo": "pnpm --filter @authhero/demo",
     "saml": "pnpm --filter @authhero/saml",
     "vitepress": "pnpm --filter @authhero/docs",
+    "website": "pnpm --filter @authhero/website",
     "multi-tenancy": "pnpm --filter @authhero/multi-tenancy",
     "widget": "pnpm --filter @authhero/widget",
     "docker:build": "docker compose build",
@@ -55,5 +56,11 @@
   "engines": {
     "node": ">=20"
   },
-  "packageManager": "pnpm@10.20.0"
+  "packageManager": "pnpm@10.20.0",
+  "pnpm": {
+    "overrides": {
+      "@types/react": "19.2.15",
+      "@types/react-dom": "19.2.3"
+    }
+  }
 }

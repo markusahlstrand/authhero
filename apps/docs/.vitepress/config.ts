@@ -152,7 +152,6 @@ gtag('config', 'G-DNZWG3PF2L');`,
         { text: "Architecture", link: "/architecture/" },
         { text: "Standards", link: "/standards/" },
         { text: "API Reference", link: "/api/overview" },
-        { text: "Roadmap", link: "/roadmap" },
       ],
 
       sidebar: [
@@ -161,7 +160,6 @@ gtag('config', 'G-DNZWG3PF2L');`,
           items: [
             { text: "What is AuthHero?", link: "/" },
             { text: "Installation", link: "/getting-started" },
-            { text: "Roadmap", link: "/roadmap" },
           ],
         },
         {

@@ -83,14 +83,15 @@ describe("authenticate", () => {
 
     expect(loginResponse.status).toEqual(403);
 
-    // Inner FAILED_LOGIN_INCORRECT_PASSWORD plus the outer
-    // FAILED_CROSS_ORIGIN_AUTHENTICATION ("fcoa") from /co/authenticate.
+    // Inner FAILED_LOGIN_INVALID_EMAIL_USERNAME ("fu") for the unknown user
+    // plus the outer FAILED_CROSS_ORIGIN_AUTHENTICATION ("fcoa") from
+    // /co/authenticate.
     const { logs } = await env.data.logs.list("tenantId");
     expect(logs).toHaveLength(2);
 
     expect(logs).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ type: "fp", description: "Invalid user" }),
+        expect.objectContaining({ type: "fu", description: "Invalid user" }),
         expect.objectContaining({ type: "fcoa" }),
       ]),
     );
