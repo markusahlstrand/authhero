@@ -46,6 +46,15 @@ export interface ValidateJwtTokenOptions {
    * for iss mismatch rather than the 401 this function would raise.
    */
   skipIssuerCheck?: boolean;
+  /**
+   * Additional issuers accepted **in addition to**
+   * `getIssuer(env, custom_domain)`. A token whose `iss` matches the expected
+   * issuer OR any value in this list passes the issuer check. The host app
+   * resolves this list (e.g. from a control-plane issuer) and threads it in;
+   * authhero never derives or hardcodes any issuer itself. Defaults to the
+   * strict single-issuer check when omitted.
+   */
+  additionalIssuers?: string[];
 }
 
 /**
@@ -118,7 +127,11 @@ export async function validateJwtToken(
     // let a token issued on host A authenticate on host B.
     if (!options.skipIssuerCheck) {
       const expectedIssuer = getIssuer(ctx.env, ctx.var.custom_domain);
-      if (verifiedPayload.iss !== expectedIssuer) {
+      const additionalIssuers = options.additionalIssuers ?? [];
+      if (
+        verifiedPayload.iss !== expectedIssuer &&
+        !additionalIssuers.includes(verifiedPayload.iss)
+      ) {
         throw new JSONHTTPException(401, { message: "Invalid issuer" });
       }
     }

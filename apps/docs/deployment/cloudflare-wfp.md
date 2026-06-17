@@ -24,32 +24,33 @@ The trade-off is operational cost: every tenant has its own deployment lifecycle
 
 ## Architecture
 
-```text
-Internet
-   │
-   ▼
-┌─────────────────────────────┐
-│  Dispatcher Worker          │   = @authhero/proxy (cloudflare-wfp-dispatcher template)
-│                             │
-│  1. Host → custom_domains   │   reads from PLATFORM D1
-│     → tenant_id             │
-│  2. env.DISPATCHER          │
-│       .get('tenant-<id>-…') │   = dispatch namespace binding
-│       .fetch(request)       │
-└──────────────┬──────────────┘
-               │
-               ▼
-┌─────────────────────────────┐
-│  authhero-tenants namespace │   = dispatch namespace
-│  ─────────────────────────  │
-│  tenant-acme-auth           │   = full authhero, bound to its OWN or SHARED D1
-│  tenant-bob-auth            │
-│  tenant-carol-auth          │
-│  ...                        │
-└─────────────────────────────┘
+```mermaid
+flowchart TB
+    Internet["Internet"] --> Disp
+
+    subgraph Edge["Cloudflare edge"]
+        Disp["Dispatcher Worker<br/>(@authhero/proxy)<br/>1 · Host → custom_domains → tenant_id<br/>2 · DISPATCHER.get('tenant-&lt;id&gt;-auth').fetch()"]
+    end
+
+    Disp --> PlatDB[("Platform D1<br/>custom_domains + proxy_routes")]
+
+    Disp -->|"dispatch namespace binding"| NS
+
+    subgraph NS["Dispatch namespace: authhero-tenants"]
+        direction TB
+        T1["tenant-acme-auth<br/>(full authhero)"]
+        T2["tenant-bob-auth"]
+        T3["tenant-carol-auth"]
+    end
+
+    T1 --> S1[("acme: own D1")]
+    T2 --> S2[("shared tenant DB")]
+    T3 --> S3[("PlanetScale URL")]
 ```
 
-Three different data stores can be in play:
+The dispatcher reads only the **platform D1** to resolve a host; each tenant
+Worker talks to whatever store its own bindings point at (own D1, a shared DB,
+or PlanetScale). Three different data stores can be in play:
 
 | Store                      | Lives in          | Owned by              | Purpose                                                                    |
 | -------------------------- | ----------------- | --------------------- | -------------------------------------------------------------------------- |
@@ -58,6 +59,36 @@ Three different data stores can be in play:
 | **Shared tenant DB**       | one shared DB     | all tenant Workers    | shared `users`, `clients`, etc. — only data partition is `tenant_id`       |
 
 You can mix: tenant A uses its own fresh D1, tenant B uses the shared tenant DB, tenant C uses a PlanetScale URL. Each tenant Worker's `wrangler` bindings dictate what _it_ talks to; the dispatcher only cares about the platform D1.
+
+### Request flow
+
+A user request never reaches a tenant Worker directly — it always lands on the
+dispatcher first, which resolves the host and forwards into the namespace:
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant Disp as "Dispatcher (@authhero/proxy)"
+    participant P as Platform D1
+    participant T as tenant-acme-auth
+    participant D as acme data store
+
+    U->>Disp: GET auth.acme.com/authorize
+    Disp->>P: SELECT custom_domains WHERE domain = 'auth.acme.com'
+    P-->>Disp: tenant_id = acme (cached ~30s)
+    alt host not found
+        Disp-->>U: 404 Unknown host
+    else resolved
+        Disp->>T: DISPATCHER.get('tenant-acme-auth').fetch(request)
+        T->>D: read client, connections (tenant_id = acme)
+        D-->>T: rows (own + projected control-plane defaults)
+        T-->>U: render login (issuer = https://auth.acme.com/)
+    end
+```
+
+The dispatcher caches host → tenant resolution (~30s by default), so a newly
+inserted `custom_domains` row may 404 until the cache expires — see
+[Troubleshooting](#unknown-host-404-from-the-dispatcher).
 
 ## Prerequisites
 
@@ -399,6 +430,80 @@ VALUES (
 ```
 
 See [the proxy handler reference](/customization/proxy/) for the full list (cors, headers, basic_auth, redirect, rewrite_location, http, dispatch_namespace, service_binding, static, cache).
+
+## Control-plane admin tokens
+
+The control plane administers tenants through the same management API the tenant
+Workers expose. When an admin request is forwarded into a tenant Worker, the
+token presents a problem worth understanding.
+
+The control plane mints admin tokens with **its own issuer** — e.g.
+`iss = https://controlplane.token.example.com/`, `tenant_id: "controlplane"`,
+`org_name: "acme"`. That request is dispatched to `tenant-acme-auth`, whose
+`env.ISSUER` is the per-tenant value `https://auth.acme.com/`. The signature
+verifies fine (the tenant Worker fetches the control plane's JWKS), but two
+checks would reject it out of the box:
+
+1. **Issuer check** — `payload.iss` (control plane) ≠ this Worker's issuer.
+2. **Audience check** — the management API requires the `urn:authhero:management`
+   audience, and the token may carry a per-domain audience instead.
+
+```mermaid
+sequenceDiagram
+    participant A as "Admin UI / control plane"
+    participant Disp as Dispatcher
+    participant T as tenant-acme-auth
+    participant J as Control-plane JWKS
+
+    A->>Disp: PATCH auth.acme.com/api/v2/users/...<br/>Bearer (iss = controlplane, tenant-id: acme)
+    Disp->>T: dispatch to tenant Worker
+    T->>J: fetch control-plane JWKS, verify signature
+    J-->>T: ✓ valid
+    Note over T: additionalIssuers({tenant_id}) widens accepted issuers<br/>additionalManagementAudiences({tenant_id}) widens accepted audiences<br/>cross-tenant hop allowed only for the control-plane tenant
+    T-->>A: 200 (operates on tenant acme)
+```
+
+authhero never hardcodes or derives an issuer. The host app widens the accepted
+set with two resolvers, both of which receive the token's `tenant_id` and
+default to the strict single-value check when unset:
+
+```typescript
+import { init } from "authhero";
+
+const { app } = init({
+  dataAdapter,
+
+  // Accept the control-plane issuer in addition to this Worker's own ISSUER.
+  // Return [] to refuse — e.g. for tokens that shouldn't cross from the
+  // control plane.
+  additionalIssuers: ({ tenant_id }) =>
+    tenant_id ? ["https://controlplane.token.example.com/"] : [],
+
+  // Accept the control-plane / per-tenant audience alongside the built-in
+  // urn:authhero:management.
+  additionalManagementAudiences: ({ tenant_id }) =>
+    tenant_id
+      ? [
+          "https://controlplane.token.example.com/v2/api/",
+          `https://${tenant_id}.token.example.com/v2/api/`,
+        ]
+      : ["https://controlplane.token.example.com/v2/api/"],
+});
+```
+
+The cross-tenant hop itself (a token for tenant `controlplane` operating on
+tenant `acme`) is gated separately: it's allowed only when the token's
+`tenant_id` equals the deployment's configured `controlPlaneTenantId`. Any other
+tenant-to-tenant hop is rejected with
+`403 Cross-tenant management requires a control-plane token`. See
+[Management API Security](/security/management-api) for that guard.
+
+::: warning Scope the resolvers
+These resolvers are purely additive and you own the scoping. Don't return a
+broad list unconditionally — key the accepted issuers/audiences off `tenant_id`
+(or other token context) so only genuine control-plane tokens are widened, and
+return `[]` otherwise.
+:::
 
 ## Tenant lifecycle fields
 

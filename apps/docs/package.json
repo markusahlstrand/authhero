@@ -8,7 +8,9 @@
     "dev": "vitepress dev",
     "build": "vitepress build",
     "build:full": "cd ../../packages/authhero && pnpm build-storybook && cd ../../apps/docs && vitepress build",
-    "preview": "vitepress preview"
+    "preview": "vitepress preview",
+    "deploy": "npx -y wrangler@4 pages deploy .vitepress/dist --project-name=authhero-docs --branch=main",
+    "deploy:preview": "npx -y wrangler@4 pages deploy .vitepress/dist --project-name=authhero-docs --branch=preview"
   },
   "devDependencies": {
     "vitepress": "^1.3.4"

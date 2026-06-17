@@ -3,6 +3,7 @@ import { Context, Next } from "hono";
 import { Bindings, Variables } from "../types";
 import { HTTPException } from "hono/http-exception";
 import { JSONHTTPException } from "../errors/json-http-exception";
+import { decode } from "hono/jwt";
 import { validateJwtToken } from "../utils/jwt";
 import { extractBearerToken } from "../utils/auth-header";
 
@@ -35,8 +36,25 @@ function convertRouteSyntax(route: string) {
  * token, so a per-tenant identifier (e.g.
  * `https://${tenant_id}.token.example.com/v2/api/`) can be constructed at
  * request time alongside any global legacy identifiers.
+ *
+ * `additionalIssuers` extends the set of accepted token issuers beyond the
+ * deployment's own `getIssuer(env, custom_domain)`. The resolver receives the
+ * token's `tenant_id` and returns the issuers accepted for that token, so a
+ * control-plane issuer can be accepted on forwarded admin requests whose
+ * per-tenant worker has a different `env.ISSUER`. The default issuer is always
+ * accepted; the resolver is purely additive and may return `[]` to refuse.
  */
 export type ManagementAudienceResolver = (params: {
+  tenant_id?: string;
+}) => string[] | Promise<string[]>;
+
+/**
+ * Resolver returning the issuers accepted **in addition to** the deployment's
+ * own issuer when verifying bearer JWTs. Receives the token's `tenant_id` so a
+ * per-tenant or control-plane issuer can be constructed at request time.
+ * Returning `[]` keeps the strict single-issuer behavior for that token.
+ */
+export type IssuerResolver = (params: {
   tenant_id?: string;
 }) => string[] | Promise<string[]>;
 
@@ -44,6 +62,7 @@ export interface AuthMiddlewareOptions {
   requireManagementAudience?: boolean;
   relaxManagementAudience?: boolean;
   additionalManagementAudiences?: ManagementAudienceResolver;
+  additionalIssuers?: IssuerResolver;
 }
 
 // For a scope of the form `verb:resource` (e.g. `read:users`) also accept the
@@ -66,6 +85,7 @@ export function createAuthMiddleware(
   const requireManagementAudience = options.requireManagementAudience ?? false;
   const relaxManagementAudience = options.relaxManagementAudience ?? false;
   const additionalManagementAudiences = options.additionalManagementAudiences;
+  const additionalIssuers = options.additionalIssuers;
   return async (
     ctx: Context<{ Bindings: Bindings; Variables }>,
     next: Next,
@@ -114,7 +134,27 @@ export function createAuthMiddleware(
       }
 
       try {
-        const tokenPayload = await validateJwtToken(ctx, bearer);
+        // Resolve any host-app-provided additional issuers before verifying.
+        // The issuer check happens inside validateJwtToken, so the resolver
+        // needs the token's tenant_id up front — read it from the unverified
+        // payload. This only widens the set of candidate issuers; the token
+        // must still carry a valid signature AND an `iss` in the accepted set,
+        // so the unverified read can't be leveraged on its own.
+        let resolvedAdditionalIssuers: string[] | undefined;
+        if (additionalIssuers) {
+          const { payload: unverifiedPayload } = decode(bearer);
+          const tenantIdForIssuer =
+            typeof unverifiedPayload?.tenant_id === "string"
+              ? unverifiedPayload.tenant_id
+              : undefined;
+          resolvedAdditionalIssuers = await additionalIssuers({
+            tenant_id: tenantIdForIssuer,
+          });
+        }
+
+        const tokenPayload = await validateJwtToken(ctx, bearer, {
+          additionalIssuers: resolvedAdditionalIssuers,
+        });
 
         // Populate principal context from the validated token before any
         // authorization checks below. The token is cryptographically valid by

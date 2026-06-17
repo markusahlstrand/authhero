@@ -139,5 +139,9 @@ describe("post-user-registration is only enqueued on creation", () => {
       (c) => c.trigger_id === "post-user-registration",
     );
     expect(noopCall).toBeUndefined();
-  });
+    // This test must wait out the outbox retry-backoff window (~1s base delay)
+    // before draining to dead-letter, on top of two HTTP round-trips and two
+    // drains. That comfortably exceeds the 5s default under parallel load, so
+    // give it explicit headroom rather than flake.
+  }, 20000);
 });

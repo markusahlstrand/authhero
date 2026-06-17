@@ -621,6 +621,106 @@ describe("createAuthMiddleware", () => {
         warnSpy.mockRestore();
       }
     });
+
+    it("rejects a token whose issuer does not match by default", async () => {
+      // The deployment's issuer differs from the token's `iss`
+      // ("http://localhost:3000/"), and no additionalIssuers resolver is
+      // configured, so the strict single-issuer check must reject it.
+      mockCtx.env.ISSUER = "https://tenant.token.example.com/";
+      const middleware = createAuthMiddleware(app);
+
+      const token = await createToken({
+        user_id: "user123",
+        permissions: ["read:users"],
+      });
+
+      mockCtx.req.header.mockReturnValue(`Bearer ${token}`);
+
+      await expect(middleware(mockCtx, mockNext)).rejects.toThrow(
+        "Invalid issuer",
+      );
+      expect(mockNext).not.toHaveBeenCalled();
+    });
+
+    it("accepts a token whose issuer is in the additionalIssuers list", async () => {
+      mockCtx.env.ISSUER = "https://tenant.token.example.com/";
+      const middleware = createAuthMiddleware(app, {
+        additionalIssuers: () => ["http://localhost:3000/"],
+      });
+
+      const token = await createToken({
+        user_id: "user123",
+        permissions: ["read:users"],
+      });
+
+      mockCtx.req.header.mockReturnValue(`Bearer ${token}`);
+
+      const result = await middleware(mockCtx, mockNext);
+
+      expect(mockNext).toHaveBeenCalled();
+      expect(result).toBe("next-response");
+    });
+
+    it("passes the token's tenant_id to the additionalIssuers resolver", async () => {
+      mockCtx.env.ISSUER = "https://tenant.token.example.com/";
+      const resolver = vi.fn(() => ["http://localhost:3000/"]);
+      const middleware = createAuthMiddleware(app, {
+        additionalIssuers: resolver,
+      });
+
+      const token = await createToken({
+        user_id: "user123",
+        permissions: ["read:users"],
+        tenant_id: "sesamy",
+      });
+
+      mockCtx.req.header.mockReturnValue(`Bearer ${token}`);
+
+      const result = await middleware(mockCtx, mockNext);
+
+      expect(resolver).toHaveBeenCalledWith({ tenant_id: "sesamy" });
+      expect(mockNext).toHaveBeenCalled();
+      expect(result).toBe("next-response");
+    });
+
+    it("still rejects when the additionalIssuers resolver returns an empty list", async () => {
+      mockCtx.env.ISSUER = "https://tenant.token.example.com/";
+      const middleware = createAuthMiddleware(app, {
+        additionalIssuers: () => [],
+      });
+
+      const token = await createToken({
+        user_id: "user123",
+        permissions: ["read:users"],
+        tenant_id: "sesamy",
+      });
+
+      mockCtx.req.header.mockReturnValue(`Bearer ${token}`);
+
+      await expect(middleware(mockCtx, mockNext)).rejects.toThrow(
+        "Invalid issuer",
+      );
+      expect(mockNext).not.toHaveBeenCalled();
+    });
+
+    it("supports an async additionalIssuers resolver", async () => {
+      mockCtx.env.ISSUER = "https://tenant.token.example.com/";
+      const middleware = createAuthMiddleware(app, {
+        additionalIssuers: async () => ["http://localhost:3000/"],
+      });
+
+      const token = await createToken({
+        user_id: "user123",
+        permissions: ["read:users"],
+      });
+
+      mockCtx.req.header.mockReturnValue(`Bearer ${token}`);
+
+      const result = await middleware(mockCtx, mockNext);
+
+      expect(mockNext).toHaveBeenCalled();
+      expect(result).toBe("next-response");
+    });
   });
 
   // Cross-tenant access via `tenant-id` header: the management API resolves

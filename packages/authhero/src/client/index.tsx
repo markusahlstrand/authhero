@@ -2,6 +2,7 @@
 import { StrictMode } from "hono/jsx";
 import { hydrateRoot } from "hono/jsx/dom/client";
 import { FormHandler } from "./form-handler";
+import { LoadingLinkHandler } from "./loading-link-handler";
 import { PasswordToggle } from "./password-toggle";
 import { InputOTPHandler } from "./input-otp";
 import { IncognitoDetectionHandler } from "./incognito-handler";
@@ -24,6 +25,7 @@ if (root) {
     root,
     <StrictMode>
       <FormHandler />
+      <LoadingLinkHandler />
       <PasswordToggle />
       <InputOTPHandler />
     </StrictMode>,
