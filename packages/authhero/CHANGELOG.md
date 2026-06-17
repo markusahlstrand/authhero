@@ -1,5 +1,49 @@
 # authhero
 
+## 8.4.0
+
+### Minor Changes
+
+- 5f383d8: Add an `additionalIssuers` resolver to the auth config, mirroring
+  `additionalManagementAudiences`. When verifying bearer JWTs, the management API
+  now accepts any `iss` returned by the resolver in addition to the deployment's
+  own `getIssuer(env, custom_domain)`. The resolver receives the token's
+  `tenant_id` and returns the extra issuers accepted for that token (returning
+  `[]` keeps the strict single-issuer behavior).
+
+  This unblocks workers-for-platforms setups where a control-plane-minted admin
+  token (`iss` = control-plane issuer) is forwarded to a per-tenant worker whose
+  `env.ISSUER` is per-tenant: the signature still verifies, and the issuer check
+  no longer rejects it. authhero never derives or hardcodes any issuer — scoping
+  is the host app's responsibility. Default behavior is unchanged for anyone not
+  setting `additionalIssuers`. The new `IssuerResolver` type is exported.
+
+### Patch Changes
+
+- 5f383d8: Fix the Universal Login (v2) widget not centering on narrow/mobile viewports
+  when a tenant uses a custom page template. The custom-template body was injected
+  into a bare wrapper `<div>`, which became a shrink-to-fit flex child of the
+  page `<body>`. That collapsed the widget container's `width: clamp(320px, 100%,
+400px)` to its `320px` floor and pushed it off-centre on phones. The wrapper now
+  uses `display: contents`, so custom-template content participates directly in
+  the body's flex layout and centers exactly like the default template path.
+- 761aae7: Social login buttons (Google, Facebook, ...) on the universal login pages now
+  show a loading state and disable themselves on the first click, preventing the
+  user from firing several `/authorize` requests by clicking repeatedly. These
+  buttons render as plain anchor links, so the existing form `submit` handler
+  never saw them; a new client-side `LoadingLinkHandler` adds the shared
+  `is-loading` state (which sets `pointer-events: none`) on the first plain
+  left-click and clears it again when the page is restored from the browser's
+  back/forward cache.
+- d093c92: Refresh-token grant now overlaps its independent backend round-trips. The user
+  read and the login-session read are fired together (the login session is keyed
+  on data already in hand). On a deployment where each database round-trip costs ~350 ms
+  (Workers → PlanetScale over HTTP), this removes roughly one serial round-trip
+  from every `/oauth/token` refresh exchange. Token rotation writes remain
+  sequential (child insert before parent update) to prevent marking a parent as
+  rotated without a successfully created child. No change to behaviour or the number
+  of queries issued.
+
 ## 8.3.0
 
 ### Minor Changes
