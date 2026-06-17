@@ -15,7 +15,10 @@ import type { RolePermissionHooks, Hooks } from "./Hooks";
 import type { SamlSigner } from "@authhero/saml/core";
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import type { Handler } from "hono";
-import type { ManagementAudienceResolver } from "../middlewares/authentication";
+import type {
+  ManagementAudienceResolver,
+  IssuerResolver,
+} from "../middlewares/authentication";
 import { EntityHooks } from "./Hooks";
 
 /**
@@ -551,4 +554,30 @@ export interface AuthHeroConfig {
    * ```
    */
   additionalManagementAudiences?: ManagementAudienceResolver;
+
+  /**
+   * Resolver returning the list of issuers accepted by the bearer-JWT issuer
+   * check **in addition to** the deployment's own
+   * `getIssuer(env, custom_domain)`. The token's `tenant_id` is passed in, so a
+   * per-tenant or control-plane issuer can be constructed at request time.
+   *
+   * This is needed when control-plane-minted admin tokens are forwarded to a
+   * per-tenant worker: the token's `iss` is the control-plane issuer while the
+   * worker's `env.ISSUER` is per-tenant, so the strict single-issuer check
+   * would otherwise reject it. The signature is still verified normally; this
+   * only widens which `iss` values are accepted.
+   *
+   * authhero stays generic — it never derives or hardcodes any issuer. Scoping
+   * (e.g. only accepting the control-plane issuer for control-plane tokens) is
+   * the host app's job: the resolver receives `tenant_id` and can return `[]`
+   * to refuse. The default issuer is always accepted; the resolver is purely
+   * additive.
+   *
+   * @example
+   * ```ts
+   * additionalIssuers: ({ tenant_id }) =>
+   *   tenant_id ? ["https://token.example.com/"] : [];
+   * ```
+   */
+  additionalIssuers?: IssuerResolver;
 }

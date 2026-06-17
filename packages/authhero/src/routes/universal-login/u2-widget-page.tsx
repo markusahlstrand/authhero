@@ -837,8 +837,18 @@ export function WidgetPage({
           /* Custom-template path: tenant-controlled body markup. The
              expanded fragment already contains the widget mount + selected
              chips. The shell still wraps it for the page CSS, runtime, and
-             bg tint. */
-          <div dangerouslySetInnerHTML={{ __html: customBodyHtml }} />
+             bg tint.
+
+             `display: contents` keeps this wrapper out of the layout: its
+             children participate directly in the body's flex layout, exactly
+             as on the default path. Without it the wrapper is a shrink-to-fit
+             flex item, which collapses the widget container's
+             `width: clamp(320px, 100%, 400px)` to its 320px floor and pins it
+             off-centre on narrow (mobile) viewports. */
+          <div
+            style={{ display: "contents" }}
+            dangerouslySetInnerHTML={{ __html: customBodyHtml }}
+          />
         ) : (
           <>
             {/* Widget container — the widget's own shadow DOM renders the

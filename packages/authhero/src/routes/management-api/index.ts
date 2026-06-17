@@ -489,6 +489,7 @@ export default function create(config: AuthHeroConfig) {
         requireManagementAudience: true,
         relaxManagementAudience: config.relaxManagementAudience,
         additionalManagementAudiences: config.additionalManagementAudiences,
+        additionalIssuers: config.additionalIssuers,
       }),
     )
     // Add entity hooks after tenant is known
