@@ -481,10 +481,13 @@ const { app } = init({
 
   // Accept the control-plane / per-tenant audience alongside the built-in
   // urn:authhero:management.
-  additionalManagementAudiences: ({ tenant_id }) => [
-    "https://controlplane.token.example.com/v2/api/",
-    `https://${tenant_id}.token.example.com/v2/api/`,
-  ],
+  additionalManagementAudiences: ({ tenant_id }) =>
+    tenant_id
+      ? [
+          "https://controlplane.token.example.com/v2/api/",
+          `https://${tenant_id}.token.example.com/v2/api/`,
+        ]
+      : ["https://controlplane.token.example.com/v2/api/"],
 });
 ```
 

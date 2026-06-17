@@ -209,10 +209,13 @@ const { app } = init({
     tenant_id ? ["https://controlplane.token.example.com/"] : [],
 
   // Likewise widen the accepted management-API audience.
-  additionalManagementAudiences: ({ tenant_id }) => [
-    "https://controlplane.token.example.com/v2/api/",
-    `https://${tenant_id}.token.example.com/v2/api/`,
-  ],
+  additionalManagementAudiences: ({ tenant_id }) =>
+    tenant_id
+      ? [
+          "https://controlplane.token.example.com/v2/api/",
+          `https://${tenant_id}.token.example.com/v2/api/`,
+        ]
+      : ["https://controlplane.token.example.com/v2/api/"],
 });
 ```
 
