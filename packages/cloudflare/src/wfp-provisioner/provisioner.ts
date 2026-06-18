@@ -153,6 +153,7 @@ export function createCloudflareWfpD1Provisioner(
         name: "CONTROL_PLANE_BASE_URL",
         text: options.controlPlaneBaseUrl,
       },
+      ...(options.extraBindings ?? []),
     ];
 
     await client.uploadNamespacedScript(dispatchNamespace, scriptName, {

@@ -5,39 +5,40 @@ const getPackageName = () => {
   return "cloudflare-adapter";
 };
 
-const getPackageNameCamelCase = () => {
-  try {
-    return getPackageName().replace(/-./g, (char) =>
-      (char[1] || "").toUpperCase(),
-    );
-  } catch (err) {
-    throw new Error("Name property in package.json is missing.");
-  }
-};
+const formats: Array<"es" | "cjs"> = ["es", "cjs"];
 
-const fileName = {
-  es: `${getPackageName()}.mjs`,
-  cjs: `${getPackageName()}.cjs`,
-};
-
-const formats = Object.keys(fileName) as Array<keyof typeof fileName>;
+// Keep these out of the bundle. The app-level packages (authhero,
+// multi-tenancy) are optional peers used only by the `/wfp` subpath; hono is a
+// peer. Matches exact ids and their subpaths.
+const externalDeps = [
+  "@authhero/adapter-interfaces",
+  "@authhero/kysely-adapter",
+  "@authhero/multi-tenancy",
+  "authhero",
+  "hono",
+  "@hono/zod-openapi",
+  "wretch",
+];
 
 export default defineConfig({
   base: "./",
   build: {
     outDir: "./dist",
     lib: {
-      entry: path.resolve(__dirname, "src/index.ts"),
-      name: getPackageNameCamelCase(),
+      // Two entries: the main barrel (`.`) and the WFP control-plane-sync
+      // surface (`./wfp`). The main bundle name is unchanged so the `.` export
+      // stays byte-stable.
+      entry: {
+        [getPackageName()]: path.resolve(__dirname, "src/index.ts"),
+        wfp: path.resolve(__dirname, "src/wfp/index.ts"),
+      },
       formats,
-      fileName: (format) => fileName[format],
+      fileName: (format, entryName) =>
+        `${entryName}.${format === "es" ? "mjs" : "cjs"}`,
     },
     rollupOptions: {
-      external: [
-        "@authhero/adapter-interfaces",
-        "@authhero/kysely-adapter",
-        "wretch",
-      ],
+      external: (id) =>
+        externalDeps.some((dep) => id === dep || id.startsWith(`${dep}/`)),
     },
   },
   resolve: {

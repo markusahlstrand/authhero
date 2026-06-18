@@ -3,6 +3,7 @@ import { nanoid } from "nanoid";
 import type { Flow, ListParams } from "@authhero/adapter-interfaces";
 import { flows } from "../schema/sqlite";
 import { removeNullProperties, parseJsonIfString } from "../helpers/transform";
+import { buildLuceneFilter } from "../helpers/filter";
 import type { DrizzleDb } from "./types";
 
 export function createFlowsAdapter(db: DrizzleDb) {
@@ -76,13 +77,17 @@ export function createFlowsAdapter(db: DrizzleDb) {
         per_page = 50,
         include_totals = false,
         sort,
+        q,
       } = params || {};
 
-      let query = db
-        .select()
-        .from(flows)
-        .where(eq(flows.tenant_id, tenant_id))
-        .$dynamic();
+      const conditions = [eq(flows.tenant_id, tenant_id)];
+      if (q) {
+        const filter = buildLuceneFilter(flows, q, []);
+        if (filter) conditions.push(filter);
+      }
+      const whereClause = and(...conditions);
+
+      let query = db.select().from(flows).where(whereClause).$dynamic();
 
       if (sort?.sort_by) {
         const col = (flows as any)[sort.sort_by];
@@ -109,7 +114,7 @@ export function createFlowsAdapter(db: DrizzleDb) {
       const [countResult] = await db
         .select({ count: countFn() })
         .from(flows)
-        .where(eq(flows.tenant_id, tenant_id));
+        .where(whereClause);
 
       return {
         flows: mapped,

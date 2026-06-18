@@ -112,12 +112,14 @@ export function createLogsAdapter(db: DrizzleDb) {
       const baseConditions = [eq(logs.tenant_id, tenant_id)];
 
       if (q) {
-        const filter = buildLuceneFilter(logs, q, [
-          "user_id",
-          "ip",
-          "type",
-          "client_id",
-        ]);
+        // `description` is matched as a substring (likeField) to mirror the
+        // kysely adapter, where free-text log descriptions use LIKE.
+        const filter = buildLuceneFilter(
+          logs,
+          q,
+          ["user_id", "ip", "type", "client_id"],
+          ["description"],
+        );
         if (filter) baseConditions.push(filter);
       }
 

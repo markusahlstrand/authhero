@@ -3,6 +3,7 @@ import { nanoid } from "nanoid";
 import type { Form, ListParams } from "@authhero/adapter-interfaces";
 import { forms } from "../schema/sqlite";
 import { removeNullProperties, parseJsonIfString } from "../helpers/transform";
+import { buildLuceneFilter } from "../helpers/filter";
 import type { DrizzleDb } from "./types";
 
 const JSON_FIELDS = ["nodes", "start", "ending"] as const;
@@ -92,13 +93,17 @@ export function createFormsAdapter(db: DrizzleDb) {
         per_page = 50,
         include_totals = false,
         sort,
+        q,
       } = params || {};
 
-      let query = db
-        .select()
-        .from(forms)
-        .where(eq(forms.tenant_id, tenant_id))
-        .$dynamic();
+      const conditions = [eq(forms.tenant_id, tenant_id)];
+      if (q) {
+        const filter = buildLuceneFilter(forms, q, []);
+        if (filter) conditions.push(filter);
+      }
+      const whereClause = and(...conditions);
+
+      let query = db.select().from(forms).where(whereClause).$dynamic();
 
       if (sort?.sort_by) {
         const col = (forms as any)[sort.sort_by];
@@ -126,7 +131,7 @@ export function createFormsAdapter(db: DrizzleDb) {
       const [countResult] = await db
         .select({ count: countFn() })
         .from(forms)
-        .where(eq(forms.tenant_id, tenant_id));
+        .where(whereClause);
 
       return {
         forms: mapped,

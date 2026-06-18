@@ -1,8 +1,8 @@
-import { useWatch } from "react-hook-form";
+import { useEffect, useRef } from "react";
+import { useFormContext, useWatch } from "react-hook-form";
 import {
   Create,
   RadioButtonGroupInput,
-  SelectInput,
   SimpleForm,
   TextInput,
 } from "@/components/admin";
@@ -12,48 +12,66 @@ const deploymentTypeChoices = [
   { id: "wfp", name: "Dispatch worker (WFP)" },
 ];
 
-const storageKindChoices = [
-  { id: "own_d1", name: "Own D1 (provision a new D1)" },
-  { id: "existing_d1", name: "Existing D1 (bind by ID)" },
-  { id: "shared_planetscale", name: "Shared PlanetScale" },
-];
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
 
-const bundleConfigurationChoices = [
-  { id: "authhero-drizzle-d1", name: "authhero-drizzle-d1" },
-  { id: "authhero-kysely-planetscale", name: "authhero-kysely-planetscale" },
-];
+// Auto-suggests the tenant id (slug) from the name until the user edits it.
+function SlugInput() {
+  const { setValue } = useFormContext();
+  const name = useWatch({ name: "friendly_name" }) as string | undefined;
+  const edited = useRef(false);
+
+  useEffect(() => {
+    if (edited.current) return;
+    setValue("id", slugify(name ?? ""));
+  }, [name, setValue]);
+
+  return (
+    <TextInput
+      source="id"
+      label="Id"
+      onChange={() => {
+        edited.current = true;
+      }}
+    />
+  );
+}
 
 function DeploymentFields() {
   const deploymentType = useWatch({ name: "deployment_type" }) as
     | string
     | undefined;
-  const storageKind = useWatch({ name: "storage_kind" }) as string | undefined;
 
   if (deploymentType !== "wfp") return null;
 
   return (
-    <>
-      <RadioButtonGroupInput
-        source="storage_kind"
-        choices={storageKindChoices}
-      />
-      <SelectInput
-        source="bundle_configuration"
-        choices={bundleConfigurationChoices}
-      />
-      {storageKind === "existing_d1" ? (
-        <TextInput source="d1_database_id" label="D1 database ID" />
-      ) : null}
-    </>
+    <p className="text-sm text-muted-foreground">
+      A dedicated D1 database (Drizzle) will be provisioned for this tenant.
+    </p>
   );
 }
 
+// Dispatch worker tenants always get their own D1 provisioned with Drizzle.
+const transform = (data: Record<string, unknown>) => {
+  if (data.deployment_type !== "wfp") return data;
+  return {
+    ...data,
+    storage_kind: "own_d1",
+    bundle_configuration: "authhero-drizzle-d1",
+  };
+};
+
 export function TenantsCreate() {
   return (
-    <Create>
+    <Create transform={transform}>
       <SimpleForm>
-        <TextInput source="id" />
         <TextInput source="friendly_name" label="Name" required />
+        <SlugInput />
         <RadioButtonGroupInput
           source="deployment_type"
           choices={deploymentTypeChoices}

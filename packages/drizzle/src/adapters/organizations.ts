@@ -1,9 +1,14 @@
-import { eq, and, or, like, count as countFn, asc, desc } from "drizzle-orm";
+import { eq, and, count as countFn, asc, desc } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 import type { Organization, ListParams } from "@authhero/adapter-interfaces";
 import { organizations } from "../schema/sqlite";
 import { removeNullProperties, parseJsonIfString } from "../helpers/transform";
+import { buildLuceneFilter, sanitizeLuceneQuery } from "../helpers/filter";
 import type { DrizzleDb } from "./types";
+
+// Fields organizations.list() accepts in `q`. Excludes `tenant_id` so a clause
+// like `q=tenant_id:other` cannot reach arbitrary columns.
+const ALLOWED_Q_FIELDS = ["name", "display_name"];
 
 function generateOrganizationId(): string {
   const { customAlphabet } = require("nanoid");
@@ -136,21 +141,30 @@ export function createOrganizationsAdapter(db: DrizzleDb) {
         q,
       } = params || {};
 
+      const conditions = [eq(organizations.tenant_id, tenantId)];
+
+      if (q) {
+        // Sanitize first so only whitelisted fields reach buildLuceneFilter;
+        // otherwise a clause like `q=tenant_id:other` would emit SQL against
+        // arbitrary columns.
+        const sanitized = sanitizeLuceneQuery(q, ALLOWED_Q_FIELDS);
+        if (sanitized) {
+          const filter = buildLuceneFilter(
+            organizations,
+            sanitized,
+            ALLOWED_Q_FIELDS,
+          );
+          if (filter) conditions.push(filter);
+        }
+      }
+
+      const whereClause = and(...conditions);
+
       let query = db
         .select()
         .from(organizations)
-        .where(eq(organizations.tenant_id, tenantId))
+        .where(whereClause)
         .$dynamic();
-
-      if (q) {
-        // Simple name/display_name filter
-        query = query.where(
-          or(
-            like(organizations.name, `%${q}%`),
-            like(organizations.display_name, `%${q}%`),
-          ),
-        );
-      }
 
       if (sort?.sort_by) {
         const col = (organizations as any)[sort.sort_by];
@@ -168,20 +182,10 @@ export function createOrganizationsAdapter(db: DrizzleDb) {
         return { organizations: mapped };
       }
 
-      const countConditions = [eq(organizations.tenant_id, tenantId)];
-      if (q) {
-        countConditions.push(
-          or(
-            like(organizations.name, `%${q}%`),
-            like(organizations.display_name, `%${q}%`),
-          )!,
-        );
-      }
-
       const [countResult] = await db
         .select({ count: countFn() })
         .from(organizations)
-        .where(and(...countConditions));
+        .where(whereClause);
 
       return {
         organizations: mapped,

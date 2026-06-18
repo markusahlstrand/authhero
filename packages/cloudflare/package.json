@@ -23,6 +23,11 @@
       "types": "./dist/cloudflare-adapter.d.ts",
       "require": "./dist/cloudflare-adapter.cjs",
       "import": "./dist/cloudflare-adapter.mjs"
+    },
+    "./wfp": {
+      "types": "./dist/wfp.d.ts",
+      "require": "./dist/wfp.cjs",
+      "import": "./dist/wfp.mjs"
     }
   },
   "scripts": {
@@ -30,8 +35,10 @@
     "test": "vitest run"
   },
   "devDependencies": {
+    "@authhero/multi-tenancy": "workspace:*",
     "@hono/zod-openapi": "^1.4.0",
     "@types/node": "^24.12.4",
+    "authhero": "workspace:*",
     "better-sqlite3": "^12.4.1",
     "hono": "^4.12.23",
     "kysely": "^0.29.2",
@@ -43,8 +50,18 @@
     "vitest": "^4.1.7"
   },
   "peerDependencies": {
+    "@authhero/multi-tenancy": "^14.0.0",
     "@hono/zod-openapi": "^1.4.0",
+    "authhero": "^3.0.0",
     "hono": "^4.6.8"
+  },
+  "peerDependenciesMeta": {
+    "@authhero/multi-tenancy": {
+      "optional": true
+    },
+    "authhero": {
+      "optional": true
+    }
   },
   "dependencies": {
     "@authhero/adapter-interfaces": "workspace:*",

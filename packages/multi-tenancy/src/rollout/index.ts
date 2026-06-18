@@ -9,8 +9,19 @@ export type {
   DefaultsProjectionEntities,
   DefaultsProjectionResult,
   EntityProjectionOutcome,
+  ProjectableDefaults,
 } from "./defaults-projection";
 export { projectControlPlaneDefaults } from "./defaults-projection";
+
+export type {
+  ControlPlaneDefaultsPayload,
+  ControlPlaneDefaultsApplyResult,
+  DefaultsPayloadEntities,
+} from "./payload";
+export {
+  buildControlPlaneDefaultsPayload,
+  applyControlPlaneDefaultsPayload,
+} from "./payload";
 
 /**
  * A control plane rollout applies the control plane's state to one or more

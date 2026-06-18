@@ -11,6 +11,9 @@
 // Tenants
 export * from "./tenants";
 
+// Actions (actions, versions, executions)
+export * from "./actions";
+
 // Users & Authentication
 export * from "./users";
 export * from "./sessions";

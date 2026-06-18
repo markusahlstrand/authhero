@@ -1,7 +1,17 @@
-import { eq, or, isNull, gt, count as countFn, asc, desc } from "drizzle-orm";
+import {
+  eq,
+  or,
+  and,
+  isNull,
+  gt,
+  count as countFn,
+  asc,
+  desc,
+} from "drizzle-orm";
 import type { SigningKey, ListParams } from "@authhero/adapter-interfaces";
 import { keys } from "../schema/sqlite";
 import { removeNullProperties, getCountAsInt } from "../helpers/transform";
+import { buildLuceneFilter } from "../helpers/filter";
 import type { DrizzleDb } from "./types";
 
 export function createKeysAdapter(db: DrizzleDb) {
@@ -19,15 +29,28 @@ export function createKeysAdapter(db: DrizzleDb) {
         per_page = 50,
         include_totals = false,
         sort,
+        q,
       } = params || {};
 
       const now = new Date().toISOString();
 
-      let query = db
-        .select()
-        .from(keys)
-        .where(or(gt(keys.revoked_at, now), isNull(keys.revoked_at)))
-        .$dynamic();
+      const conditions = [
+        or(gt(keys.revoked_at, now), isNull(keys.revoked_at))!,
+      ];
+      if (q) {
+        const filter = buildLuceneFilter(keys, q, [
+          "kid",
+          "tenant_id",
+          "connection",
+          "fingerprint",
+          "thumbprint",
+          "type",
+        ]);
+        if (filter) conditions.push(filter);
+      }
+      const whereClause = and(...conditions);
+
+      let query = db.select().from(keys).where(whereClause).$dynamic();
 
       if (sort?.sort_by) {
         const col = (keys as any)[sort.sort_by];
@@ -52,7 +75,7 @@ export function createKeysAdapter(db: DrizzleDb) {
       const [countResult] = await db
         .select({ count: countFn() })
         .from(keys)
-        .where(or(gt(keys.revoked_at, now), isNull(keys.revoked_at)));
+        .where(whereClause);
 
       return {
         signingKeys,

@@ -1,7 +1,8 @@
-import { eq, and, count as countFn, asc, desc, like, sql } from "drizzle-orm";
+import { eq, and, count as countFn, asc, desc, sql } from "drizzle-orm";
 import type { ResourceServer, ListParams } from "@authhero/adapter-interfaces";
 import { resourceServers } from "../schema/sqlite";
 import { removeNullProperties, parseJsonIfString } from "../helpers/transform";
+import { buildLuceneFilter } from "../helpers/filter";
 import type { DrizzleDb } from "./types";
 
 function generateResourceServerId(): string {
@@ -188,17 +189,15 @@ export function createResourceServersAdapter(db: DrizzleDb) {
       const whereConditions = [eq(resourceServers.tenant_id, tenant_id)];
 
       if (q) {
-        // Custom filter for resource servers: name and identifier with LIKE
-        const match = q.match(/^([^:]+):(.+)$/);
-        if (match) {
-          const [, field, value] = match;
-          const isNegation = field?.startsWith("-");
-          const cleanField = isNegation ? field?.substring(1) : field;
-          if (cleanField && VALID_COLUMNS.has(cleanField) && !isNegation) {
-            const col = (resourceServers as any)[cleanField];
-            whereConditions.push(like(col, `%${value}%`));
-          }
-        }
+        // name/identifier are matched as substrings (likeFields) to mirror the
+        // kysely adapter, where `name:foo` does a LIKE %foo% search.
+        const filter = buildLuceneFilter(
+          resourceServers,
+          q,
+          ["name", "identifier"],
+          ["name", "identifier"],
+        );
+        if (filter) whereConditions.push(filter);
       }
 
       let query = db

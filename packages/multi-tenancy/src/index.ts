@@ -33,6 +33,8 @@ export type {
 export {
   createDirectRolloutAdapter,
   projectControlPlaneDefaults,
+  buildControlPlaneDefaultsPayload,
+  applyControlPlaneDefaultsPayload,
 } from "./rollout";
 export type {
   ControlPlaneRolloutAdapter,
@@ -40,6 +42,10 @@ export type {
   DefaultsProjectionEntities,
   DefaultsProjectionResult,
   EntityProjectionOutcome,
+  ProjectableDefaults,
+  ControlPlaneDefaultsPayload,
+  ControlPlaneDefaultsApplyResult,
+  DefaultsPayloadEntities,
 } from "./rollout";
 
 // Public API - functions and types consumers actually need

@@ -3,6 +3,9 @@ import {
   Connection,
   ResourceServer,
   Hook,
+  EmailProvider,
+  Branding,
+  PromptSetting,
   connectionInsertSchema,
   resourceServerInsertSchema,
   hookInsertSchema,
@@ -27,6 +30,44 @@ export interface DefaultsProjectionEntities {
   emailProvider?: boolean;
   branding?: boolean;
   promptSettings?: boolean;
+}
+
+/** Entity flags resolved to concrete booleans (all defaulted to `true`). */
+export interface ResolvedDefaultsEntities {
+  connections: boolean;
+  resourceServers: boolean;
+  hooks: boolean;
+  emailProvider: boolean;
+  branding: boolean;
+  promptSettings: boolean;
+}
+
+export function resolveDefaultsEntities(
+  entities: DefaultsProjectionEntities = {},
+): ResolvedDefaultsEntities {
+  return {
+    connections: entities.connections ?? true,
+    resourceServers: entities.resourceServers ?? true,
+    hooks: entities.hooks ?? true,
+    emailProvider: entities.emailProvider ?? true,
+    branding: entities.branding ?? true,
+    promptSettings: entities.promptSettings ?? true,
+  };
+}
+
+/**
+ * The control plane defaults as plain data — the result of reading them off a
+ * control plane adapter. This is also the non-key half of the wire payload
+ * (`ControlPlaneDefaultsPayload`), so the same `writeControlPlaneDefaults` path
+ * serves both the in-process projection and the apply-a-payload path.
+ */
+export interface ProjectableDefaults {
+  connections: Connection[];
+  resourceServers: ResourceServer[];
+  hooks: Hook[];
+  emailProvider: EmailProvider | null;
+  branding: Branding | null;
+  promptSettings: PromptSetting | null;
 }
 
 export interface DefaultsProjectionConfig {
@@ -80,11 +121,23 @@ export interface DefaultsProjectionResult {
   promptSettings: EntityProjectionOutcome;
 }
 
-function emptyOutcome(): EntityProjectionOutcome {
+export function emptyOutcome(): EntityProjectionOutcome {
   return { upserted: 0, errors: [] };
 }
 
-function isInheritableHook(hook: Hook): boolean {
+export function emptyResult(tenantId: string): DefaultsProjectionResult {
+  return {
+    tenantId,
+    connections: emptyOutcome(),
+    resourceServers: emptyOutcome(),
+    hooks: emptyOutcome(),
+    emailProvider: emptyOutcome(),
+    branding: emptyOutcome(),
+    promptSettings: emptyOutcome(),
+  };
+}
+
+export function isInheritableHook(hook: Hook): boolean {
   const metadata = (hook as { metadata?: Record<string, unknown> }).metadata;
   return Boolean(metadata && metadata.inheritable === true);
 }
@@ -93,7 +146,7 @@ function isInheritableHook(hook: Hook): boolean {
  * Runs `op`, routing any failure either to a thrown error (loud, default) or to
  * the outcome's `errors` array (when `continueOnError`).
  */
-async function attempt(
+export async function attempt(
   outcome: EntityProjectionOutcome,
   label: string,
   continueOnError: boolean,
@@ -111,54 +164,74 @@ async function attempt(
 }
 
 /**
- * Projects the control plane tenant's inheritable defaults into a single target
- * tenant's database, writing the rows under the control plane tenant id so the
- * existing runtime fallback resolves them with no read-path change.
- *
- * Idempotent: every row is upserted by its stable id, so re-running the
- * projection (a re-sync, or a later rollout) converges rather than duplicating.
+ * Reads the control plane's defaults off `cp` into plain data. Returns the full
+ * (unfiltered) set; the `is_system` / `inheritable` filters are applied on the
+ * write side so reads stay uniform. Entities whose flag is false are skipped
+ * (empty array / null) so callers don't pay for rows they won't write.
  */
-export async function projectControlPlaneDefaults(
-  config: DefaultsProjectionConfig,
-  targetTenantId: string,
-): Promise<DefaultsProjectionResult> {
-  const {
-    controlPlaneTenantId: cpId,
-    getControlPlaneAdapters,
-    getAdapters,
-    entities = {},
-    continueOnError = false,
-  } = config;
+export async function readControlPlaneDefaults(
+  cp: DataAdapters,
+  cpId: string,
+  project: ResolvedDefaultsEntities,
+): Promise<ProjectableDefaults> {
+  const connections = project.connections
+    ? await fetchAll<Connection>(
+        (params) => cp.connections.list(cpId, params),
+        "connections",
+        { cursorField: "id", pageSize: 100 },
+      )
+    : [];
 
-  const project = {
-    connections: entities.connections ?? true,
-    resourceServers: entities.resourceServers ?? true,
-    hooks: entities.hooks ?? true,
-    emailProvider: entities.emailProvider ?? true,
-    branding: entities.branding ?? true,
-    promptSettings: entities.promptSettings ?? true,
+  const resourceServers = project.resourceServers
+    ? await fetchAll<ResourceServer>(
+        (params) => cp.resourceServers.list(cpId, params),
+        "resource_servers",
+        { cursorField: "id", pageSize: 100 },
+      )
+    : [];
+
+  const hooks = project.hooks
+    ? await fetchAll<Hook>(
+        (params) => cp.hooks.list(cpId, params),
+        "hooks",
+        { cursorField: "hook_id", pageSize: 100 },
+      )
+    : [];
+
+  const emailProvider = project.emailProvider
+    ? ((await cp.emailProviders.get(cpId)) ?? null)
+    : null;
+  const branding = project.branding ? ((await cp.branding.get(cpId)) ?? null) : null;
+  const promptSettings = project.promptSettings
+    ? ((await cp.promptSettings.get(cpId)) ?? null)
+    : null;
+
+  return {
+    connections,
+    resourceServers,
+    hooks,
+    emailProvider,
+    branding,
+    promptSettings,
   };
+}
 
-  const cp = await getControlPlaneAdapters();
-  const target = await getAdapters(targetTenantId);
-
-  const result: DefaultsProjectionResult = {
-    tenantId: targetTenantId,
-    connections: emptyOutcome(),
-    resourceServers: emptyOutcome(),
-    hooks: emptyOutcome(),
-    emailProvider: emptyOutcome(),
-    branding: emptyOutcome(),
-    promptSettings: emptyOutcome(),
-  };
-
+/**
+ * Writes `data` into `target` under `cpId`, upserting each row by its stable id
+ * so re-runs converge. Resource servers are filtered to `is_system` and hooks
+ * to `inheritable` — the same set the runtime fallback reads — so passing the
+ * full (unfiltered) read result here is safe. `result` is mutated in place.
+ */
+export async function writeControlPlaneDefaults(
+  data: ProjectableDefaults,
+  target: DataAdapters,
+  cpId: string,
+  project: ResolvedDefaultsEntities,
+  continueOnError: boolean,
+  result: DefaultsProjectionResult,
+): Promise<void> {
   if (project.connections) {
-    const connections = await fetchAll<Connection>(
-      (params) => cp.connections.list(cpId, params),
-      "connections",
-      { cursorField: "id", pageSize: 100 },
-    );
-    for (const connection of connections) {
+    for (const connection of data.connections) {
       const id = connection.id;
       if (!id) continue;
       await attempt(
@@ -180,12 +253,7 @@ export async function projectControlPlaneDefaults(
   }
 
   if (project.resourceServers) {
-    const resourceServers = await fetchAll<ResourceServer>(
-      (params) => cp.resourceServers.list(cpId, params),
-      "resource_servers",
-      { cursorField: "id", pageSize: 100 },
-    );
-    for (const rs of resourceServers) {
+    for (const rs of data.resourceServers) {
       if (!rs.is_system || !rs.id) continue;
       await attempt(
         result.resourceServers,
@@ -206,12 +274,7 @@ export async function projectControlPlaneDefaults(
   }
 
   if (project.hooks) {
-    const hooks = await fetchAll<Hook>(
-      (params) => cp.hooks.list(cpId, params),
-      "hooks",
-      { cursorField: "hook_id", pageSize: 100 },
-    );
-    for (const hook of hooks) {
+    for (const hook of data.hooks) {
       if (!isInheritableHook(hook) || !hook.hook_id) continue;
       await attempt(
         result.hooks,
@@ -231,14 +294,13 @@ export async function projectControlPlaneDefaults(
     }
   }
 
-  if (project.emailProvider) {
+  if (project.emailProvider && data.emailProvider) {
     await attempt(
       result.emailProvider,
       "email_provider",
       continueOnError,
       async () => {
-        const provider = await cp.emailProviders.get(cpId);
-        if (!provider) return;
+        const provider = data.emailProvider!;
         const existing = await target.emailProviders.get(cpId);
         if (existing) {
           await target.emailProviders.update(cpId, provider);
@@ -250,28 +312,61 @@ export async function projectControlPlaneDefaults(
     );
   }
 
-  if (project.branding) {
+  if (project.branding && data.branding) {
     await attempt(result.branding, "branding", continueOnError, async () => {
-      const branding = await cp.branding.get(cpId);
-      if (!branding) return;
-      await target.branding.set(cpId, branding);
+      await target.branding.set(cpId, data.branding!);
       result.branding.upserted += 1;
     });
   }
 
-  if (project.promptSettings) {
+  if (project.promptSettings && data.promptSettings) {
     await attempt(
       result.promptSettings,
       "prompt_settings",
       continueOnError,
       async () => {
-        const promptSetting = await cp.promptSettings.get(cpId);
-        if (!promptSetting) return;
-        await target.promptSettings.set(cpId, promptSetting);
+        await target.promptSettings.set(cpId, data.promptSettings!);
         result.promptSettings.upserted += 1;
       },
     );
   }
+}
+
+/**
+ * Projects the control plane tenant's inheritable defaults into a single target
+ * tenant's database, writing the rows under the control plane tenant id so the
+ * existing runtime fallback resolves them with no read-path change.
+ *
+ * Idempotent: every row is upserted by its stable id, so re-running the
+ * projection (a re-sync, or a later rollout) converges rather than duplicating.
+ */
+export async function projectControlPlaneDefaults(
+  config: DefaultsProjectionConfig,
+  targetTenantId: string,
+): Promise<DefaultsProjectionResult> {
+  const {
+    controlPlaneTenantId: cpId,
+    getControlPlaneAdapters,
+    getAdapters,
+    entities,
+    continueOnError = false,
+  } = config;
+
+  const project = resolveDefaultsEntities(entities);
+
+  const cp = await getControlPlaneAdapters();
+  const data = await readControlPlaneDefaults(cp, cpId, project);
+  const target = await getAdapters(targetTenantId);
+
+  const result = emptyResult(targetTenantId);
+  await writeControlPlaneDefaults(
+    data,
+    target,
+    cpId,
+    project,
+    continueOnError,
+    result,
+  );
 
   return result;
 }

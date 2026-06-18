@@ -78,6 +78,7 @@ export { createR2SQLStatsAdapter } from "./r2-sql-logs";
 export {
   createCloudflareWfpD1Provisioner,
   createWfpTenantProvisioningHook,
+  createWfpForwardMiddleware,
   CloudflareApiClient,
   CloudflareApiError,
 } from "./wfp-provisioner";
@@ -94,6 +95,7 @@ export type {
   D1QueryResult,
   ScriptBinding,
   ScriptUploadOptions,
+  WfpForwardOptions,
 } from "./wfp-provisioner";
 
 export interface CloudflareAdapters {

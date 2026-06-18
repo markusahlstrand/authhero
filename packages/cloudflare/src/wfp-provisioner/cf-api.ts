@@ -58,12 +58,15 @@ export interface D1QueryResult {
 }
 
 export interface ScriptBinding {
-  type: "d1" | "plain_text" | "secret_text";
+  type: "d1" | "plain_text" | "secret_text" | "service";
   name: string;
   // d1
   id?: string;
   // plain_text / secret_text
   text?: string;
+  // service: target script name (and optional environment)
+  service?: string;
+  environment?: string;
 }
 
 export interface ScriptUploadOptions {

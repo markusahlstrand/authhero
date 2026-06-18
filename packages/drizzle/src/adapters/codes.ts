@@ -2,6 +2,7 @@ import { eq, and, isNull, count as countFn, asc, desc } from "drizzle-orm";
 import type { Code, ListParams } from "@authhero/adapter-interfaces";
 import { codes } from "../schema/sqlite";
 import { removeNullProperties } from "../helpers/transform";
+import { buildLuceneFilter } from "../helpers/filter";
 import type { DrizzleDb } from "./types";
 
 function sqlToCode(row: any): Code {
@@ -52,13 +53,17 @@ export function createCodesAdapter(db: DrizzleDb) {
         per_page = 50,
         include_totals = false,
         sort,
+        q,
       } = params || {};
 
-      let query = db
-        .select()
-        .from(codes)
-        .where(eq(codes.tenant_id, tenant_id))
-        .$dynamic();
+      const conditions = [eq(codes.tenant_id, tenant_id)];
+      if (q) {
+        const filter = buildLuceneFilter(codes, q, ["code_id", "login_id"]);
+        if (filter) conditions.push(filter);
+      }
+      const whereClause = and(...conditions);
+
+      let query = db.select().from(codes).where(whereClause).$dynamic();
 
       if (sort?.sort_by) {
         const col = (codes as any)[sort.sort_by];
@@ -79,7 +84,7 @@ export function createCodesAdapter(db: DrizzleDb) {
       const [countResult] = await db
         .select({ count: countFn() })
         .from(codes)
-        .where(eq(codes.tenant_id, tenant_id));
+        .where(whereClause);
 
       return {
         codes: mapped,
