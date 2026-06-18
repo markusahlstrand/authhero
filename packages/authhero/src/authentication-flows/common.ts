@@ -135,6 +135,10 @@ function failedExchangeLogTypeForGrant(grantType?: GrantType): LogType {
       return LogTypes.FAILED_EXCHANGE_REFRESH_TOKEN_FOR_ACCESS_TOKEN;
     case GrantType.OTP:
       return LogTypes.FAILED_EXCHANGE_PASSWORD_OTP_FOR_ACCESS_TOKEN;
+    case GrantType.Password:
+      return LogTypes.FAILED_EXCHANGE_PASSWORD_FOR_ACCESS_TOKEN;
+    case GrantType.Passwordless:
+      return LogTypes.FAILED_EXCHANGE_PASSWORDLESS_OTP_FOR_ACCESS_TOKEN;
     case GrantType.TokenExchange:
       return LogTypes.FAILED_EXCHANGE_SUBJECT_TOKEN_FOR_ACCESS_TOKEN;
     default:
