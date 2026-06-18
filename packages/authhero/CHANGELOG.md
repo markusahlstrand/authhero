@@ -1,5 +1,24 @@
 # authhero
 
+## 8.4.1
+
+### Patch Changes
+
+- 70e2dae: Log a FAILED*EXCHANGE audit event when a credentials-exchange hook calls `api.access.deny()`. Previously a hook denial returned a 400 (after the authorization code had already been consumed) but left no failed-exchange log entry — the only trace was a "canceled" action-execution record. The denial is now recorded under the grant's matching `FAILED_EXCHANGE*\*` log type with a description identifying the deny code.
+- c76247b: Fix login log accuracy for import-mode (Auth0 lazy migration) connections:
+
+  - An unknown user now logs `fu` (Failed Login - Invalid Email/Username) instead
+    of `fp` (Failed Login - Incorrect Password), matching Auth0's event taxonomy.
+    The wrong-password-on-existing-user branch continues to log `fp`.
+  - Upstream password-realm grant and `/userinfo` failures during lazy migration
+    were previously swallowed to a `console.warn` only. They now also emit a
+    structured `FAILED_LOGIN` tenant log including the upstream error code and
+    description, so import-mode failures are debuggable without `wrangler tail`.
+
+- 70e2dae: Fix SSO session reuse recording the primary identity's connection instead of the connection actually used. When an existing session is reused for a new client at `/authorize`, the connection is now recovered from the originating login session's `auth_connection`/`auth_strategy`. Both the `SUCCESS_LOGIN` audit log and the `onExecutePostLogin` hook event's `connection` now report the connection the user actually authenticated with (resolved via `auth_connection`), rather than falling back to the primary database identity. This matters for users who authenticated via a linked secondary identity (e.g. an OIDC connection).
+- Updated dependencies [c76247b]
+  - @authhero/widget@0.32.42
+
 ## 8.4.0
 
 ### Minor Changes
