@@ -51,11 +51,17 @@ export const onRequestPost = async (context: RequestContext): Promise<Response> 
   const lines = [`:phone: New AuthHero inquiry (${topic}): ${email}`];
   if (message) lines.push(message);
 
-  const slackResponse = await fetch(env.SLACK_WEBHOOK_URL, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ text: lines.join("\n") }),
-  });
+  let slackResponse: Response;
+  try {
+    slackResponse = await fetch(env.SLACK_WEBHOOK_URL, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ text: lines.join("\n") }),
+    });
+  } catch (error) {
+    console.error(`Slack webhook request failed: ${error}`);
+    return json({ error: "Could not submit your message. Please try again." }, 502);
+  }
 
   if (!slackResponse.ok) {
     console.error(`Slack webhook failed: ${slackResponse.status}`);

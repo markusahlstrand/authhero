@@ -44,16 +44,21 @@ export const onRequestPost = async (context: RequestContext): Promise<Response> 
     return json({ error: "Signups are temporarily unavailable. Please try again later." }, 503);
   }
 
-  const slackResponse = await fetch(env.SLACK_WEBHOOK_URL, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      text: `:rocket: New AuthHero early access request: ${email}`,
-    }),
-  });
+  try {
+    const slackResponse = await fetch(env.SLACK_WEBHOOK_URL, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        text: `:rocket: New AuthHero early access request: ${email}`,
+      }),
+    });
 
-  if (!slackResponse.ok) {
-    console.error(`Slack webhook failed: ${slackResponse.status}`);
+    if (!slackResponse.ok) {
+      console.error(`Slack webhook failed: ${slackResponse.status}`);
+      return json({ error: "Could not submit your request. Please try again." }, 502);
+    }
+  } catch (error) {
+    console.error("Slack webhook request failed", error);
     return json({ error: "Could not submit your request. Please try again." }, 502);
   }
 

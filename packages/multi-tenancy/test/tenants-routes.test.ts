@@ -274,12 +274,17 @@ describe("build: Hono is not bundled into the output", () => {
       "../dist",
     );
 
+    let checked = 0;
     for (const file of ["multi-tenancy.mjs", "multi-tenancy.cjs"]) {
       const bundlePath = path.join(distDir, file);
-      if (!existsSync(bundlePath)) continue; // skip if not built yet
+      if (!existsSync(bundlePath)) continue; // skip individual missing artifacts
       const contents = readFileSync(bundlePath, "utf8");
       expect(contents).not.toContain("hono/dist/http-exception");
       expect(contents).not.toContain("class HTTPException");
+      checked++;
     }
+
+    // Require the package to have been built so this regression check actually runs.
+    expect(checked).toBeGreaterThan(0);
   });
 });
