@@ -17,6 +17,44 @@ import {
 } from "../types";
 
 /**
+ * The subset of token claims we read off `ctx.var.user` to make tenant
+ * authorization decisions. Parsed defensively with zod so we never reach for
+ * `as` casts on the loosely-typed context variable.
+ */
+const callerClaimsSchema = z
+  .object({
+    sub: z.string(),
+    tenant_id: z.string().optional(),
+    org_id: z.string().optional(),
+    scope: z.string().optional(),
+    permissions: z.array(z.string()).optional(),
+  })
+  .passthrough();
+
+type CallerClaims = z.infer<typeof callerClaimsSchema>;
+
+function parseCaller(user: unknown): CallerClaims | undefined {
+  const result = callerClaimsSchema.safeParse(user);
+  return result.success ? result.data : undefined;
+}
+
+/**
+ * Whether the caller carries a scope/permission that grants tenant
+ * administration across the control plane (i.e. without per-tenant
+ * organization membership).
+ *
+ * `delete:tenants` is the scope the DELETE route declares in its OpenAPI
+ * security; `admin:organizations` is the broader claim the list route already
+ * treats as full access, kept here so create/list/delete stay symmetric.
+ */
+function callerHasGlobalTenantAdmin(caller: CallerClaims): boolean {
+  const permissions = caller.permissions ?? [];
+  const scopes = caller.scope ? caller.scope.split(" ").filter(Boolean) : [];
+  const granted = new Set([...permissions, ...scopes]);
+  return granted.has("delete:tenants") || granted.has("admin:organizations");
+}
+
+/**
  * Creates OpenAPI-based tenant management routes.
  *
  * These routes handle CRUD operations for tenants and are designed to be
@@ -333,9 +371,9 @@ export function createTenantsOpenAPIRouter(
 
       // Validate access and prevent deleting the control plane
       if (controlPlaneTenantId) {
-        const user = ctx.var.user;
+        const caller = parseCaller(ctx.var.user);
 
-        if (!user?.sub) {
+        if (!caller?.sub) {
           throw new HTTPException(401, {
             message: "Authentication required",
           });
@@ -352,7 +390,32 @@ export function createTenantsOpenAPIRouter(
         // the auth flow already verified membership. Trust the claim.
         const tokenOrgName = ctx.var.org_name;
         const idLower = id.toLowerCase();
-        let hasAccess = !!tokenOrgName && tokenOrgName.toLowerCase() === idLower;
+        let hasAccess =
+          !!tokenOrgName && tokenOrgName.toLowerCase() === idLower;
+
+        // Super-admin path: a non-org-scoped control-plane token carrying the
+        // delete:tenants scope may delete any tenant without per-organization
+        // membership. This keeps create and delete symmetric — a global admin
+        // can create tenants without being added to their organizations (the
+        // provisioning hook deliberately skips adding admin:organizations users
+        // to per-tenant orgs), so they must also be able to delete them.
+        // Mirrors the "full access" path on the list route. Org-scoped tokens
+        // are excluded: their privileges came from an org-scoped role and must
+        // not bypass per-organization filtering.
+        if (!hasAccess) {
+          const tokenIsOrgScoped = Boolean(
+            caller.org_id ?? ctx.var.organization_id ?? tokenOrgName,
+          );
+          const isControlPlaneToken =
+            !caller.tenant_id || caller.tenant_id === controlPlaneTenantId;
+          if (
+            !tokenIsOrgScoped &&
+            isControlPlaneToken &&
+            callerHasGlobalTenantAdmin(caller)
+          ) {
+            hasAccess = true;
+          }
+        }
 
         // Fallback: look up org memberships on the control plane. Covers
         // tokens issued without an org_name claim (e.g. legacy tokens).
@@ -361,7 +424,7 @@ export function createTenantsOpenAPIRouter(
             (params) =>
               ctx.env.data.userOrganizations.listUserOrganizations(
                 controlPlaneTenantId,
-                user.sub,
+                caller.sub,
                 params,
               ),
             "organizations",

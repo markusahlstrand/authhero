@@ -187,7 +187,7 @@ packages/authhero/src/helpers/outbox-destinations/
 
 ## What still runs inline (known gap)
 
-Post-user-registration **code hooks** currently execute inside `createUserHooks` runPostHooks, not through the outbox. The relay-time path would need to reconstruct a synthetic `ctx` to invoke `handleCodeHook` without the original request — that design is not yet in place. See [Roadmap](../roadmap.md) for the plan.
+Post-user-registration **code hooks** currently execute inside `createUserHooks` runPostHooks, not through the outbox. The relay-time path would need to reconstruct a synthetic `ctx` to invoke `handleCodeHook` without the original request — that design is not yet in place. See [#950](https://github.com/markusahlstrand/authhero/issues/950) for the plan.
 
 ## Further reading
 

@@ -1,5 +1,6 @@
 import path from "path";
 import { defineConfig } from "vite";
+import { isExternalDependency } from "./build-externals";
 
 const getPackageName = () => {
   return "multi-tenancy";
@@ -32,13 +33,7 @@ export default defineConfig({
       fileName: (format) => fileName[format],
     },
     rollupOptions: {
-      external: [
-        "@hono/zod-openapi",
-        "hono",
-        "zod",
-        "authhero",
-        "@authhero/adapter-interfaces",
-      ],
+      external: isExternalDependency,
     },
   },
   resolve: {

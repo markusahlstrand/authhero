@@ -181,8 +181,11 @@ export async function passwordGrant(
     }
 
     if (!user) {
+      // Auth0 logs an unknown user as `fu` (Failed Login - Invalid
+      // Email/Username), distinct from `fp` (wrong password on an existing
+      // user). The wrong-password branch below correctly uses `fp`.
       logMessage(ctx, client.tenant.id, {
-        type: LogTypes.FAILED_LOGIN_INCORRECT_PASSWORD,
+        type: LogTypes.FAILED_LOGIN_INVALID_EMAIL_USERNAME,
         description: "Invalid user",
       });
 

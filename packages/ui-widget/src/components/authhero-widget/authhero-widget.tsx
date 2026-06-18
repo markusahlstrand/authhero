@@ -288,6 +288,12 @@ export class AuthheroWidget {
   private conditionalMediationAbort?: AbortController;
 
   /**
+   * URL of the custom font stylesheet currently injected into the document
+   * head, tracked so it can be removed when the theme/branding changes.
+   */
+  private loadedFontUrl?: string;
+
+  /**
    * Emitted when the form is submitted.
    * The consuming application should handle the submission unless autoSubmit is true.
    */
@@ -453,6 +459,44 @@ export class AuthheroWidget {
   private applyThemeStyles() {
     const vars = mergeThemeVars(this._branding, this._theme);
     applyCssVars(this.el, vars);
+    this.loadCustomFont();
+  }
+
+  /**
+   * Load the custom font stylesheet referenced by the theme/branding.
+   * The stylesheet is expected to define the `ulp-font` family (Auth0
+   * convention), which the component CSS already falls back to. @font-face
+   * rules must live in the document (not the shadow DOM) to take effect, so
+   * the <link> is injected into the document head, de-duplicated by href.
+   */
+  private loadCustomFont() {
+    if (typeof document === "undefined") {
+      return;
+    }
+    const fontUrl = this._theme?.fonts?.font_url || this._branding?.font?.url;
+    if (fontUrl === this.loadedFontUrl) {
+      return;
+    }
+
+    // Remove any previously injected font stylesheet so old fonts don't
+    // persist across tenant/theme switches. Match by dataset attribute
+    // rather than interpolating the URL into a selector string.
+    for (const link of Array.from(
+      document.head.querySelectorAll("link[data-authhero-font]"),
+    )) {
+      link.remove();
+    }
+    this.loadedFontUrl = undefined;
+
+    if (!fontUrl) {
+      return;
+    }
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = fontUrl;
+    link.setAttribute("data-authhero-font", fontUrl);
+    document.head.appendChild(link);
+    this.loadedFontUrl = fontUrl;
   }
 
   /**

@@ -114,6 +114,15 @@ export async function attemptUpstreamPasswordFallback(
       console.warn(
         `Auth0 upstream ROPG failed for tenant=${client.tenant.id} realm=${dbConnection.name}: ${err.code} ${err.description ?? ""}`,
       );
+      // Surface the swallowed upstream reason as a structured tenant log so
+      // import-mode failures are debuggable without `wrangler tail`. The
+      // caller still records the user-facing fu/fp outcome separately.
+      logMessage(ctx, client.tenant.id, {
+        type: LogTypes.FAILED_LOGIN,
+        description: `Upstream password validation failed (${dbConnection.name}): ${err.code}${err.description ? ` - ${err.description}` : ""}`,
+        username,
+        connection: dbConnection.name,
+      });
       return null;
     }
     throw err;
@@ -134,6 +143,14 @@ export async function attemptUpstreamPasswordFallback(
         console.warn(
           `Auth0 upstream userinfo failed for tenant=${client.tenant.id}: ${err.code} ${err.description ?? ""}`,
         );
+        // Password validated upstream but the profile fetch failed — log the
+        // reason so the resulting "Invalid user" outcome is explainable.
+        logMessage(ctx, client.tenant.id, {
+          type: LogTypes.FAILED_LOGIN,
+          description: `Upstream userinfo fetch failed (${dbConnection.name}): ${err.code}${err.description ? ` - ${err.description}` : ""}`,
+          username,
+          connection: dbConnection.name,
+        });
         return null;
       }
       throw err;

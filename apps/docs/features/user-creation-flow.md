@@ -123,7 +123,7 @@ PHASE 2 — Commit (single short DB transaction)
 PHASE 3 — Publish (runs after the commit, never blocks it)
 
 6. onExecutePostUserRegistration (programmatic, inline for now)
-7. post-user-registration code hooks (inline for now — see roadmap)
+7. post-user-registration code hooks (inline for now — see [#950](https://github.com/markusahlstrand/authhero/issues/950))
 8. post-user-registration template hooks (e.g. account-linking)
    └── pre-defined function dispatched by template_id; not user code
 9. enqueuePostHookEvent("post-user-registration")
