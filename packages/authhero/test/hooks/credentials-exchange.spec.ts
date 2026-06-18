@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
-import { Strategy } from "@authhero/adapter-interfaces";
+import { LogTypes, Strategy } from "@authhero/adapter-interfaces";
 import { getTestServer } from "../helpers/test-server";
 import { parseJWT } from "oslo/jwt";
 import { nanoid } from "nanoid";
@@ -53,6 +53,54 @@ describe("client-credentials-hooks", () => {
       aud: "https://example.com",
       foo: "bar",
     });
+  });
+
+  it("writes a FAILED_EXCHANGE audit log when a hook denies the exchange", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const client = testClient(oauthApp, env);
+
+    env.hooks = {
+      onExecuteCredentialsExchange: async (
+        event: HookEvent,
+        api: OnExecuteCredentialsExchangeAPI,
+      ) => {
+        if (event.client?.client_id === "clientId") {
+          api.access.deny("policy_violation", "client exceeded quota");
+        }
+      },
+    };
+
+    const response = await client.oauth.token.$post(
+      {
+        form: {
+          grant_type: "client_credentials",
+          client_id: "clientId",
+          client_secret: "clientSecret",
+          audience: "https://example.com",
+        },
+      },
+      {
+        headers: {
+          "tenant-id": "tenantId",
+        },
+      },
+    );
+
+    expect(response.status).toBe(400);
+
+    const { logs } = await env.data.logs.list("tenantId", {
+      page: 0,
+      per_page: 50,
+      include_totals: true,
+    });
+    const denyLog = logs.find(
+      (l) =>
+        l.type === LogTypes.FAILED_EXCHANGE_ACCESS_TOKEN_FOR_CLIENT_CREDENTIALS,
+    );
+    expect(denyLog).toBeDefined();
+    expect(denyLog?.description).toContain("Access denied");
+    expect(denyLog?.description).toContain("policy_violation");
+    expect(denyLog?.description).toContain("client exceeded quota");
   });
 
   it("should expose grant_type and organization on the event for client_credentials", async () => {

@@ -1,7 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { getTestServer } from "../helpers/test-server";
 import { testClient } from "hono/testing";
-import { AuthorizationResponseType } from "@authhero/adapter-interfaces";
+import {
+  AuthorizationResponseType,
+  LogTypes,
+} from "@authhero/adapter-interfaces";
+import { HookEvent } from "../../src/types/Hooks";
 
 describe("universal", () => {
   it("should create a login session and return a redirect", async () => {
@@ -115,5 +119,91 @@ describe("universal", () => {
       code_id: code,
       code_type: "authorization_code",
     });
+  });
+
+  it("logs the original connection (not the primary identity) on SSO session reuse", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const oauthClient = testClient(oauthApp, env);
+
+    // Capture the post-login hook event so we can assert the connection it sees.
+    let capturedEvent: HookEvent | undefined;
+    env.hooks = {
+      onExecutePostLogin: async (event: HookEvent) => {
+        capturedEvent = event;
+      },
+    };
+
+    // The user's *primary* identity is the database "email" connection
+    // (test-server default), but the existing session was established via a
+    // linked OIDC connection "vipps". The originating login session records
+    // the real connection in `auth_connection` — note `auth_strategy` is left
+    // unset, mirroring production data where only auth_connection is persisted
+    // (it's stored early, before the provider round-trip).
+    const originLoginSession = await env.data.loginSessions.create("tenantId", {
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      csrf_token: "csrfToken",
+      authParams: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+        response_type: AuthorizationResponseType.CODE,
+      },
+      auth_connection: "vipps",
+    });
+
+    const session = await env.data.sessions.create("tenantId", {
+      id: "sessionId",
+      login_session_id: originLoginSession.id,
+      user_id: "email|userId",
+      clients: ["clientId"],
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      idle_expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      used_at: new Date().toISOString(),
+      device: {
+        last_ip: "",
+        initial_ip: "",
+        last_user_agent: "",
+        initial_user_agent: "",
+        initial_asn: "",
+        last_asn: "",
+      },
+    });
+
+    const response = await oauthClient.authorize.$get(
+      {
+        query: {
+          client_id: "clientId",
+          redirect_uri: "https://example.com/callback",
+          state: "state",
+          ui_locales: "en",
+          response_type: AuthorizationResponseType.CODE,
+        },
+      },
+      {
+        headers: {
+          cookie: `tenantId-auth-token=${session.id}`,
+          origin: "https://example.com",
+        },
+      },
+    );
+
+    // SSO reuse completes the login and redirects back with a code.
+    expect(response.status).toEqual(302);
+
+    const { logs } = await env.data.logs.list("tenantId", {
+      page: 0,
+      per_page: 50,
+      include_totals: true,
+    });
+    const successLogin = logs.find((l) => l.type === LogTypes.SUCCESS_LOGIN);
+    expect(successLogin).toBeDefined();
+    // Before the fix this fell back to the primary identity's connection
+    // ("email") instead of the connection actually used ("vipps", recovered
+    // from the originating login session's auth_connection).
+    expect(successLogin?.connection).toEqual("vipps");
+
+    // The post-login hook event must see the same real connection — not the
+    // primary identity's `user.connection`.
+    expect(capturedEvent).toBeDefined();
+    expect(capturedEvent!.connection?.name).toEqual("vipps");
   });
 });

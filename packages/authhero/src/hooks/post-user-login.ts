@@ -23,7 +23,7 @@ import {
 } from "./codehooks";
 import { invokeHooks } from "./webhooks";
 import { createTokenAPI } from "./helpers/token-api";
-import { getConnectionInfo } from "../helpers/connection";
+import { getConnectionInfo, resolveConnectionName } from "../helpers/connection";
 import { waitUntil } from "../helpers/wait-until";
 
 // Type guard for webhook hooks
@@ -42,7 +42,13 @@ async function buildEnhancedEventObject(
   tenant_id: string,
   user: User,
   loginSession: LoginSession,
-  params: { client: EnrichedClient; authParams?: any },
+  params: {
+    client: EnrichedClient;
+    authParams?: any;
+    authStrategy?: { strategy: string; strategy_type: string };
+    /** The connection name actually used to authenticate. */
+    authConnection?: string;
+  },
 ) {
   // Get user roles (both global and organization-specific)
   let userRoles: string[] = [];
@@ -59,22 +65,36 @@ async function buildEnhancedEventObject(
     console.error("Error fetching user roles:", error);
   }
 
+  // Resolve the connection actually used to authenticate — the authoritative
+  // `auth_connection` (recorded on the login session and recovered across SSO
+  // reuse), then any explicitly passed connection, then ctx, and only the
+  // primary identity's `user.connection` as a last resort. Using `user.connection`
+  // directly here was wrong for linked users / SSO re-issues, so hooks saw the
+  // primary identity's connection instead of the one actually used.
+  const connectionName =
+    resolveConnectionName({
+      loginSession,
+      authConnection: params.authConnection,
+      ctxConnection: ctx.var.connection,
+      user,
+    }) || user.connection;
+
   // Get connection information
   const connectionInfo = await getConnectionInfo(
     ctx,
     tenant_id,
-    user.connection,
+    connectionName,
     user,
   );
 
   // Get organization information if available
   let organizationInfo:
     | {
-        id: string;
-        name: string;
-        display_name: string;
-        metadata: any;
-      }
+      id: string;
+      name: string;
+      display_name: string;
+      metadata: any;
+    }
     | undefined = undefined;
   try {
     if (loginSession.authParams?.organization) {
@@ -152,15 +172,15 @@ async function buildEnhancedEventObject(
       roles: userRoles,
     },
     connection: connectionInfo ?? {
-      id: user.connection || Strategy.USERNAME_PASSWORD,
-      name: user.connection || Strategy.USERNAME_PASSWORD,
-      strategy: user.provider || "auth0",
+      id: connectionName || Strategy.USERNAME_PASSWORD,
+      name: connectionName || Strategy.USERNAME_PASSWORD,
+      strategy: params.authStrategy?.strategy || user.provider || "auth0",
     },
     organization: organizationInfo,
     resource_server: params.authParams?.audience
       ? {
-          identifier: params.authParams.audience,
-        }
+        identifier: params.authParams.audience,
+      }
       : undefined,
     stats: {
       logins_count: user.login_count || 0,
@@ -211,6 +231,8 @@ export async function postUserLoginHook(
     client?: EnrichedClient;
     authParams?: any;
     authStrategy?: { strategy: string; strategy_type: string };
+    /** The connection name actually used to authenticate. */
+    authConnection?: string;
   },
 ): Promise<User | Response> {
   // Determine strategy_type based on explicit auth strategy or user's is_social flag
@@ -221,6 +243,15 @@ export async function postUserLoginHook(
       ? StrategyType.SOCIAL
       : StrategyType.DATABASE;
   const strategy = params?.authStrategy?.strategy || user.connection || "";
+  // The log's `connection` is the connection actually used. Prefer the explicit
+  // auth strategy, then the authoritative `auth_connection` (recorded on the
+  // login session and recovered across SSO reuse — this is the only real signal
+  // when a flow records `auth_connection` but not `auth_strategy`, e.g. an OIDC
+  // login). Only fall back to the primary identity's `user.connection` when no
+  // real connection signal is available — that fallback is what caused SSO
+  // re-issues to mislabel linked-identity logins.
+  const connection =
+    params?.authStrategy?.strategy || params?.authConnection || user.connection || "";
 
   // SUCCESS_LOGIN is emitted in the `finally` below — deferred so we can embed
   // `details.execution_id` when post-login actions ran (matches Auth0's model
@@ -250,16 +281,18 @@ export async function postUserLoginHook(
     const enhancedEvent =
       params?.client && params?.authParams && loginSession
         ? await buildEnhancedEventObject(
-            ctx,
-            data,
-            tenant_id,
-            user,
-            loginSession,
-            {
-              client: params.client,
-              authParams: params.authParams,
-            },
-          )
+          ctx,
+          data,
+          tenant_id,
+          user,
+          loginSession,
+          {
+            client: params.client,
+            authParams: params.authParams,
+            authStrategy: params.authStrategy,
+            authConnection: params.authConnection,
+          },
+        )
         : null;
 
     // Trigger any onExecutePostLogin hooks defined in ctx.env.hooks
@@ -268,7 +301,7 @@ export async function postUserLoginHook(
 
       await ctx.env.hooks.onExecutePostLogin(enhancedEvent, {
         prompt: {
-          render: (_formId: string) => {},
+          render: (_formId: string) => { },
         },
         redirect: {
           sendUserTo: (
@@ -456,7 +489,7 @@ export async function postUserLoginHook(
       userId: user.user_id,
       strategy_type,
       strategy,
-      connection: strategy,
+      connection,
       audience: params?.authParams?.audience,
       scope: params?.authParams?.scope,
       ...(executionId ? { details: { execution_id: executionId } } : {}),

@@ -4,6 +4,8 @@ import {
   AuthParams,
   LoginSession,
   LoginSessionState,
+  LogType,
+  LogTypes,
   RefreshToken,
   User,
   TokenResponse,
@@ -55,6 +57,7 @@ import {
   LoginSessionEventType,
 } from "../state-machines/login-session";
 import { createServiceToken } from "../helpers/service-token";
+import { logMessage } from "../helpers/logging";
 import { redactUrlForLogging } from "../utils/url";
 import { OnExecuteCredentialsExchangeAPI } from "../types/Hooks";
 import {
@@ -115,10 +118,35 @@ export interface CreateAuthTokensParams {
 
 const RESERVED_CLAIMS = ["sub", "iss", "aud", "exp", "nbf", "iat", "jti"];
 
+/**
+ * Map the grant being exchanged to the matching `FAILED_EXCHANGE_*` audit log
+ * type so a hook `access.deny()` is recorded under the same taxonomy as the
+ * other failed-exchange events. Mirrors `successLogTypeForGrant` in
+ * routes/auth-api/token.ts. Falls back to the generic custom-token type for
+ * callers that create tokens without a grant (e.g. service tokens).
+ */
+function failedExchangeLogTypeForGrant(grantType?: GrantType): LogType {
+  switch (grantType) {
+    case GrantType.AuthorizationCode:
+      return LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN;
+    case GrantType.ClientCredential:
+      return LogTypes.FAILED_EXCHANGE_ACCESS_TOKEN_FOR_CLIENT_CREDENTIALS;
+    case GrantType.RefreshToken:
+      return LogTypes.FAILED_EXCHANGE_REFRESH_TOKEN_FOR_ACCESS_TOKEN;
+    case GrantType.OTP:
+      return LogTypes.FAILED_EXCHANGE_PASSWORD_OTP_FOR_ACCESS_TOKEN;
+    case GrantType.TokenExchange:
+      return LogTypes.FAILED_EXCHANGE_SUBJECT_TOKEN_FOR_ACCESS_TOKEN;
+    default:
+      return LogTypes.FAILED_EXCHANGE_CUSTOM_TOKEN;
+  }
+}
+
 function buildCredentialsExchangeApi(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   accessTokenPayload: Record<string, unknown>,
   idTokenPayload: Record<string, unknown> | undefined,
+  grantType?: GrantType,
 ): OnExecuteCredentialsExchangeAPI {
   return {
     accessToken: {
@@ -140,9 +168,22 @@ function buildCredentialsExchangeApi(
       },
     },
     access: {
-      deny: (code: string) => {
+      // RFC-style denial: `code` is a short error code, `reason` an optional
+      // human-readable explanation (mirrors Auth0's credentials-exchange API).
+      deny: (code: string, reason?: string) => {
+        const detail = reason ? `${code} - ${reason}` : code;
+        // A hook denial throws a 400 *after* the grant has already run (and,
+        // for authorization_code, after the code is consumed). Emit an audit
+        // log so the denial is visible alongside the other failed-exchange
+        // events instead of only existing as a "canceled" action-execution
+        // record. Fire-and-forget — the outbox middleware's finally block
+        // flushes queued events even though we throw on the next line.
+        logMessage(ctx, ctx.var.tenant_id || "", {
+          type: failedExchangeLogTypeForGrant(grantType),
+          description: `Access denied by credentials-exchange hook: ${detail}`,
+        });
         throw new JSONHTTPException(400, {
-          message: `Access denied: ${code}`,
+          message: `Access denied: ${detail}`,
         });
       },
     },
@@ -447,7 +488,12 @@ export async function createAuthTokens(
               }
             : undefined),
       },
-      buildCredentialsExchangeApi(ctx, accessTokenPayload, idTokenPayload),
+      buildCredentialsExchangeApi(
+        ctx,
+        accessTokenPayload,
+        idTokenPayload,
+        grantType,
+      ),
     );
   }
 
@@ -469,6 +515,7 @@ export async function createAuthTokens(
       ctx,
       accessTokenPayload,
       idTokenPayload,
+      grantType,
     );
 
     if (user) {
@@ -499,6 +546,7 @@ export async function createAuthTokens(
       ctx,
       accessTokenPayload,
       idTokenPayload,
+      grantType,
     );
 
     const executionId = await handleCredentialsExchangeCodeHooks(
@@ -1350,6 +1398,7 @@ export async function createFrontChannelAuthResponse(
           client,
           authParams,
           authStrategy: params.authStrategy,
+          authConnection: params.authConnection,
         },
       );
     }
@@ -2120,6 +2169,7 @@ export async function completeLogin(
         client: params.client,
         authParams: updatedAuthParams,
         authStrategy: params.authStrategy,
+        authConnection: params.authConnection,
       },
     );
 

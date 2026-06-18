@@ -25,6 +25,36 @@ interface UniversalAuthParams {
   screen_hint?: string;
 }
 
+/**
+ * Recover the connection/strategy the existing session was originally
+ * established with. On SSO re-use we complete the login without re-running a
+ * credential flow, so nothing supplies `authStrategy` — and without it the
+ * SUCCESS_LOGIN log (and post-login hook event) fall back to the *primary*
+ * identity's `user.connection`, which is wrong for users who authenticated via
+ * a linked secondary identity (e.g. email or an OIDC connection). The real
+ * connection used is persisted on the originating login session as
+ * `auth_strategy` / `auth_connection`, so read it back from there.
+ */
+async function recoverSessionAuthStrategy(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  tenantId: string,
+  session: Session,
+): Promise<{
+  authStrategy?: { strategy: string; strategy_type: string };
+  authConnection?: string;
+}> {
+  if (!session.login_session_id) {
+    return {};
+  }
+  const originLoginSession = await ctx.env.data.loginSessions
+    .get(tenantId, session.login_session_id)
+    .catch(() => undefined);
+  return {
+    authStrategy: originLoginSession?.auth_strategy,
+    authConnection: originLoginSession?.auth_connection,
+  };
+}
+
 // Helper function to check if session has exceeded max_age
 function isSessionExpiredByMaxAge(
   session: Session | undefined,
@@ -110,12 +140,19 @@ export async function universalAuth({
     if (user?.email === login_hint) {
       // Let createFrontChannelAuthResponse handle the session linking and state transitions
       // It will authenticate the login session with the existing session
+      const { authStrategy, authConnection } = await recoverSessionAuthStrategy(
+        ctx,
+        client.tenant.id,
+        session,
+      );
       return createFrontChannelAuthResponse(ctx, {
         client,
         loginSession,
         authParams,
         user,
         existingSessionIdToLink: session.id,
+        authStrategy,
+        authConnection,
       });
     }
   }
@@ -154,12 +191,19 @@ export async function universalAuth({
     );
 
     if (user) {
+      const { authStrategy, authConnection } = await recoverSessionAuthStrategy(
+        ctx,
+        client.tenant.id,
+        session,
+      );
       return createFrontChannelAuthResponse(ctx, {
         client,
         loginSession,
         authParams,
         user,
         existingSessionIdToLink: session.id,
+        authStrategy,
+        authConnection,
       });
     }
   }
