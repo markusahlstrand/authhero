@@ -45,8 +45,9 @@ async function buildEnhancedEventObject(
   params: {
     client: EnrichedClient;
     authParams?: any;
+    /** Strategy label/type, not a connection name. See `postUserLoginHook`. */
     authStrategy?: { strategy: string; strategy_type: string };
-    /** The connection name actually used to authenticate. */
+    /** The connection *name* actually used to authenticate. See `postUserLoginHook`. */
     authConnection?: string;
   },
 ) {
@@ -230,8 +231,19 @@ export async function postUserLoginHook(
   params?: {
     client?: EnrichedClient;
     authParams?: any;
+    /**
+     * The strategy that authenticated the user. CONTRACT: `strategy` is a
+     * strategy *label/type* (e.g. "auth0", "oauth2", "google-oauth2", "email"),
+     * NOT a connection name — don't use it to label the log/event connection.
+     */
     authStrategy?: { strategy: string; strategy_type: string };
-    /** The connection name actually used to authenticate. */
+    /**
+     * The connection *name* actually authenticated against (e.g.
+     * "Username-Password-Authentication", "google-oauth2", or a custom
+     * connection name). CONTRACT: every producer must set this to the real
+     * connection name — never a strategy label or the user record's internal
+     * provider id — so consumers can rely on it without flow-specific fallbacks.
+     */
     authConnection?: string;
   },
 ): Promise<User | Response> {
@@ -243,15 +255,16 @@ export async function postUserLoginHook(
       ? StrategyType.SOCIAL
       : StrategyType.DATABASE;
   const strategy = params?.authStrategy?.strategy || user.connection || "";
-  // The log's `connection` is the connection actually used. Prefer the explicit
-  // auth strategy, then the authoritative `auth_connection` (recorded on the
-  // login session and recovered across SSO reuse — this is the only real signal
-  // when a flow records `auth_connection` but not `auth_strategy`, e.g. an OIDC
-  // login). Only fall back to the primary identity's `user.connection` when no
-  // real connection signal is available — that fallback is what caused SSO
-  // re-issues to mislabel linked-identity logins.
-  const connection =
-    params?.authStrategy?.strategy || params?.authConnection || user.connection || "";
+  // The log's `connection` is the connection actually used. Use the
+  // authoritative `auth_connection` (recorded on the login session and
+  // recovered across SSO reuse) — every producer passes the real connection
+  // name there (see the `params` contract on `postUserLoginHook`). Only fall
+  // back to the primary identity's `user.connection` when no `auth_connection`
+  // was recorded — that fallback is what caused SSO re-issues to mislabel
+  // linked-identity logins, so it stays a last resort. Note: `authStrategy.
+  // strategy` is a strategy *label*, not a connection name, so it is
+  // deliberately not consulted here.
+  const connection = params?.authConnection || user.connection || "";
 
   // SUCCESS_LOGIN is emitted in the `finally` below — deferred so we can embed
   // `details.execution_id` when post-login actions ran (matches Auth0's model

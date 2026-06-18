@@ -351,7 +351,12 @@ export async function loginWithPassword(
   return createFrontChannelAuthResponse(ctx, {
     ...result,
     ticketAuth,
-    authConnection: ctx.get("connection") || Strategy.USERNAME_PASSWORD,
+    // `authConnection` is the connection *name* actually authenticated against.
+    // Use the requested `realm` (which is exactly the connection name the
+    // password grant resolved against), not `ctx.get("connection")` — that
+    // holds the user record's `connection`, which for a linked secondary
+    // identity is the internal provider id ("auth2"), not the real connection.
+    authConnection: realm,
     authStrategy: {
       strategy: Strategy.USERNAME_PASSWORD,
       strategy_type: StrategyType.DATABASE,
