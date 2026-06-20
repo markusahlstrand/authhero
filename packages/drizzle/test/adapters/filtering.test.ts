@@ -234,8 +234,20 @@ describe("adapter q filtering", () => {
     });
 
     it("keys filter by kid", async () => {
-      await data.keys.create({ kid: "key1", type: "jwt_signing" } as any);
-      await data.keys.create({ kid: "key2", type: "jwt_signing" } as any);
+      await data.keys.create({
+        kid: "key1",
+        type: "jwt_signing",
+        cert: "",
+        fingerprint: "",
+        thumbprint: "",
+      });
+      await data.keys.create({
+        kid: "key2",
+        type: "jwt_signing",
+        cert: "",
+        fingerprint: "",
+        thumbprint: "",
+      });
 
       const res = await data.keys.list({ q: "kid:key1" });
       expect(res.signingKeys).toHaveLength(1);

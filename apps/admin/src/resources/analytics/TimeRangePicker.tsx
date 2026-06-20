@@ -22,7 +22,16 @@ const QUICK_PRESETS: Array<{ label: string; days: number }> = [
   { label: "Last 90 days", days: 90 },
 ];
 
-/** Rolling preset range ending now — keeps the previous page's behaviour. */
+/**
+ * Rolling preset range ending now — keeps the previous page's behaviour.
+ *
+ * Note: presets intentionally return a *rolling* range whose `to` is the
+ * current instant (and `from` is N days before it), so the window advances as
+ * time passes. This differs from custom calendar selections, which normalize to
+ * day boundaries (startOfDay/endOfDay). The two behaviours are deliberately
+ * distinct: presets track "the last N days up to now", while a hand-picked range
+ * means "these whole calendar days".
+ */
 export function presetRange(days: number, now: Date = new Date()): TimeRange {
   return { from: subDays(now, days), to: now };
 }

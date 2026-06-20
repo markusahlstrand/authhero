@@ -3,10 +3,11 @@ import { nanoid } from "nanoid";
 import type { Form, ListParams } from "@authhero/adapter-interfaces";
 import { forms } from "../schema/sqlite";
 import { removeNullProperties, parseJsonIfString } from "../helpers/transform";
-import { buildLuceneFilter } from "../helpers/filter";
+import { buildLuceneFilter, sanitizeLuceneQuery } from "../helpers/filter";
 import type { DrizzleDb } from "./types";
 
 const JSON_FIELDS = ["nodes", "start", "ending"] as const;
+const ALLOWED_Q_FIELDS = ["name"];
 
 export function createFormsAdapter(db: DrizzleDb) {
   return {
@@ -98,8 +99,14 @@ export function createFormsAdapter(db: DrizzleDb) {
 
       const conditions = [eq(forms.tenant_id, tenant_id)];
       if (q) {
-        const filter = buildLuceneFilter(forms, q, []);
-        if (filter) conditions.push(filter);
+        // Sanitize first so only whitelisted fields reach buildLuceneFilter;
+        // otherwise a clause like `q=tenant_id:other` would emit SQL against
+        // arbitrary columns and bypass the tenant boundary.
+        const sanitized = sanitizeLuceneQuery(q, ALLOWED_Q_FIELDS);
+        if (sanitized) {
+          const filter = buildLuceneFilter(forms, sanitized, ALLOWED_Q_FIELDS);
+          if (filter) conditions.push(filter);
+        }
       }
       const whereClause = and(...conditions);
 

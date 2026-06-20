@@ -236,7 +236,7 @@ describe("createWfpTenantApp /internal/sync-defaults", () => {
         body: JSON.stringify(payload),
       }),
       env,
-      { waitUntil() {}, passThroughOnException() {}, props: {} },
+      { waitUntil() {}, passThroughOnException() {} },
     );
   }
 

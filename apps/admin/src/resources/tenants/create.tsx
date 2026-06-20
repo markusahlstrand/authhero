@@ -35,7 +35,10 @@ function SlugInput() {
     <TextInput
       source="id"
       label="Id"
-      onChange={() => {
+      // react-hook-form's field spread overrides any onChange we pass (see
+      // text-input.tsx), so signal user intent via onFocus instead — which the
+      // field object doesn't provide and therefore survives the spread.
+      onFocus={() => {
         edited.current = true;
       }}
     />
