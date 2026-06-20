@@ -88,6 +88,16 @@ export { fetchAll } from "./utils/fetchAll";
 export type { FetchAllOptions } from "./utils/fetchAll";
 export { deepMergePatch } from "./utils/deep-merge";
 
+// Export signing-key helpers — the control-plane key selection
+// (`-_exists_:tenant_id`) is the single source of truth reused by
+// `@authhero/multi-tenancy` when projecting public verify keys into a tenant.
+export {
+  listControlPlaneKeys,
+  resolveSigningKeys,
+  resolveSigningKeyMode,
+} from "./helpers/signing-keys";
+export type { ResolveSigningKeysOptions } from "./helpers/signing-keys";
+
 // Export constants
 export { USERNAME_PASSWORD_PROVIDER } from "./constants";
 

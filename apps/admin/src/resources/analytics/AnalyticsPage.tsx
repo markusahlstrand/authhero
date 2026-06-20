@@ -11,10 +11,8 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { format, parseISO, subDays } from "date-fns";
 import {
   AnalyticsGroupBy,
-  AnalyticsInterval,
   AnalyticsResource,
   useAnalyticsQuery,
 } from "./useAnalyticsQuery";
@@ -29,6 +27,14 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2 } from "lucide-react";
+import { presetRange, TimeRange, TimeRangePicker } from "./TimeRangePicker";
+import {
+  formatBucket,
+  IntervalSetting,
+  MAX_HOURLY_RANGE_DAYS,
+  rangeDays,
+  resolveInterval,
+} from "./analyticsTime";
 
 const RESOURCES: Array<{
   value: AnalyticsResource;
@@ -68,15 +74,12 @@ const RESOURCES: Array<{
   },
 ];
 
-const PRESETS: Array<{
-  label: string;
-  days: number;
-  interval: AnalyticsInterval;
-}> = [
-  { label: "Last 24h", days: 1, interval: "hour" },
-  { label: "Last 7d", days: 7, interval: "day" },
-  { label: "Last 30d", days: 30, interval: "day" },
-  { label: "Last 90d", days: 90, interval: "day" },
+const INTERVAL_OPTIONS: Array<{ value: IntervalSetting; label: string }> = [
+  { value: "auto", label: "Auto" },
+  { value: "hour", label: "Hour" },
+  { value: "day", label: "Day" },
+  { value: "week", label: "Week" },
+  { value: "month", label: "Month" },
 ];
 
 const CHART_COLORS = [
@@ -127,21 +130,26 @@ function pivotForTimeSeries(
 
 export function AnalyticsPage() {
   const [resource, setResource] = useState<AnalyticsResource>("logins");
-  const [preset, setPreset] = useState(PRESETS[1]);
+  const [range, setRange] = useState<TimeRange>(() => presetRange(7));
+  const [interval, setInterval] = useState<IntervalSetting>("auto");
   const [groupBy, setGroupBy] = useState<AnalyticsGroupBy[]>(["time"]);
 
   const resourceMeta = RESOURCES.find((r) => r.value === resource)!;
-  const now = useMemo(() => new Date(), []);
-  const from = useMemo(
-    () => subDays(now, preset.days).toISOString(),
-    [now, preset],
+
+  const effectiveInterval = useMemo(
+    () => resolveInterval(interval, range.from, range.to),
+    [interval, range],
   );
-  const to = useMemo(() => now.toISOString(), [now]);
+  // The backend rejects the hour bucket for ranges longer than 30 days.
+  const hourDisabled = rangeDays(range.from, range.to) > MAX_HOURLY_RANGE_DAYS;
+
+  const from = useMemo(() => range.from.toISOString(), [range]);
+  const to = useMemo(() => range.to.toISOString(), [range]);
 
   const { data, loading, error } = useAnalyticsQuery(resource, {
     from,
     to,
-    interval: preset.interval,
+    interval: effectiveInterval,
     groupBy,
   });
 
@@ -182,18 +190,33 @@ export function AnalyticsPage() {
             </SelectContent>
           </Select>
 
-          <div className="flex items-center gap-1">
-            {PRESETS.map((p) => (
-              <Button
-                key={p.label}
-                size="sm"
-                variant={p.label === preset.label ? "default" : "outline"}
-                onClick={() => setPreset(p)}
-              >
-                {p.label}
-              </Button>
-            ))}
-          </div>
+          <TimeRangePicker value={range} onChange={setRange} />
+
+          <Select
+            value={interval}
+            onValueChange={(v) => setInterval(v as IntervalSetting)}
+          >
+            <SelectTrigger className="w-36">
+              <SelectValue>
+                {interval === "auto"
+                  ? `Auto (${effectiveInterval})`
+                  : INTERVAL_OPTIONS.find((o) => o.value === interval)?.label}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {INTERVAL_OPTIONS.map((o) => (
+                <SelectItem
+                  key={o.value}
+                  value={o.value}
+                  disabled={o.value === "hour" && hourDisabled}
+                >
+                  {o.value === "auto"
+                    ? `Auto (${effectiveInterval})`
+                    : o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
           <div className="flex items-center gap-1">
             {resourceMeta.dims
@@ -244,16 +267,12 @@ export function AnalyticsPage() {
                   <XAxis
                     dataKey="time"
                     tick={{ fontSize: 11 }}
-                    tickFormatter={(v) => {
-                      try {
-                        return format(parseISO(String(v)), "MMM d");
-                      } catch {
-                        return String(v);
-                      }
-                    }}
+                    tickFormatter={(v) => formatBucket(v, effectiveInterval)}
                   />
                   <YAxis tick={{ fontSize: 11 }} width={32} />
-                  <Tooltip />
+                  <Tooltip
+                    labelFormatter={(v) => formatBucket(v, effectiveInterval)}
+                  />
                   <Bar dataKey={seriesKeys[0]} fill={CHART_COLORS[0]} />
                 </BarChart>
               ) : (
@@ -262,16 +281,12 @@ export function AnalyticsPage() {
                   <XAxis
                     dataKey="time"
                     tick={{ fontSize: 11 }}
-                    tickFormatter={(v) => {
-                      try {
-                        return format(parseISO(String(v)), "MMM d");
-                      } catch {
-                        return String(v);
-                      }
-                    }}
+                    tickFormatter={(v) => formatBucket(v, effectiveInterval)}
                   />
                   <YAxis tick={{ fontSize: 11 }} width={32} />
-                  <Tooltip />
+                  <Tooltip
+                    labelFormatter={(v) => formatBucket(v, effectiveInterval)}
+                  />
                   <Legend />
                   {seriesKeys.map((key, i) => (
                     <Line

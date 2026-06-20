@@ -5,50 +5,8 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1778321558011,
-      "tag": "0000_sloppy_forge",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1778477498497,
-      "tag": "0001_branding_dark_mode",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1778800000000,
-      "tag": "0002_client_disable_sign_ups",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1778890000000,
-      "tag": "0003_move_disable_signup_to_connection",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "6",
-      "when": 1779000000000,
-      "tag": "0004_proxy_routes",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "6",
-      "when": 1779200000000,
-      "tag": "0005_proxy_routes_v2",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "6",
-      "when": 1780000000000,
-      "tag": "0006_tenant_deployment_fields",
+      "when": 1781946733503,
+      "tag": "0000_init",
       "breakpoints": true
     }
   ]

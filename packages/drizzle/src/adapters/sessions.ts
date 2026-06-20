@@ -147,8 +147,10 @@ export function createSessionsAdapter(db: DrizzleDb) {
         q,
       } = params || {};
 
+      // `id` mirrors kysely's `session_id` searchable column (the session's
+      // primary key is stored as `id` in the drizzle schema).
       const luceneFilter = q
-        ? buildLuceneFilter(sessions, q, ["user_id"])
+        ? buildLuceneFilter(sessions, q, ["user_id", "id"])
         : undefined;
       const whereClause = luceneFilter
         ? and(eq(sessions.tenant_id, tenant_id), luceneFilter)

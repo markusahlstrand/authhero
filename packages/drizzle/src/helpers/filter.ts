@@ -6,6 +6,7 @@ import {
   lt,
   lte,
   like,
+  notLike,
   and,
   or,
   isNull,
@@ -14,6 +15,67 @@ import {
   sql,
 } from "drizzle-orm";
 import type { SQLiteTableWithColumns } from "drizzle-orm/sqlite-core";
+
+// Strip field-scoped clauses (`field:value`, `-field:value`, `_exists_:field`,
+// `field=value`) whose field is not in `allowedFields`. Bare-string tokens are
+// preserved (buildLuceneFilter routes them through its own searchable-columns
+// whitelist). Returns a query string safe to pass into buildLuceneFilter.
+//
+// Ported from the kysely adapter so both adapters share the same tenant-boundary
+// protection: without it a clause like `q=tenant_id:other` would emit SQL
+// against arbitrary columns.
+export function sanitizeLuceneQuery(
+  query: string,
+  allowedFields: string[],
+): string {
+  const allowed = new Set(allowedFields);
+
+  const sanitizePart = (part: string): string => {
+    const tokens: string[] = [];
+    let current = "";
+    let inQuotes = false;
+    for (let i = 0; i < part.length; i++) {
+      const char = part[i];
+      if (char === '"') {
+        inQuotes = !inQuotes;
+        current += char;
+      } else if (char === " " && !inQuotes) {
+        if (current.trim()) tokens.push(current.trim());
+        current = "";
+      } else {
+        current += char;
+      }
+    }
+    if (current.trim()) tokens.push(current.trim());
+
+    const kept = tokens.filter((token) => {
+      const normalized = token.replace(/^([^:]+)=/, "$1:");
+      const stripped = normalized.startsWith("-")
+        ? normalized.slice(1)
+        : normalized;
+
+      if (stripped.startsWith("_exists_:")) {
+        return allowed.has(stripped.slice(9));
+      }
+      const colonIdx = stripped.indexOf(":");
+      if (colonIdx > 0) {
+        return allowed.has(stripped.slice(0, colonIdx));
+      }
+      return true;
+    });
+
+    return kept.join(" ");
+  };
+
+  const orParts = query.split(/ OR /i);
+  if (orParts.length > 1) {
+    return orParts
+      .map(sanitizePart)
+      .filter((p) => p.length > 0)
+      .join(" OR ");
+  }
+  return sanitizePart(query);
+}
 
 /**
  * Apply a Lucene-style filter query string to a Drizzle query.
@@ -27,12 +89,17 @@ import type { SQLiteTableWithColumns } from "drizzle-orm/sqlite-core";
  * - field:value OR field:value disjunctions
  * - Unqualified search terms (search across specified columns with LIKE)
  * - Quoted values: field:"value with spaces"
+ * - likeFields: fields matched with substring LIKE instead of exact equality
+ *   (e.g. free-text log descriptions), mirroring the kysely adapter.
  */
 export function buildLuceneFilter<T extends SQLiteTableWithColumns<any>>(
   table: T,
   query: string,
   searchableColumns: string[],
+  likeFields: string[] = [],
 ): SQL | undefined {
+  const likeSet = new Set(likeFields);
+
   // Handle OR queries
   const orParts = query.split(/ OR /i);
 
@@ -43,10 +110,13 @@ export function buildLuceneFilter<T extends SQLiteTableWithColumns<any>>(
         if (match) {
           const [, field, value] = match;
           if (!field || !value) return null;
-          const cleanValue = value.replace(/^"(.*)"$/, "$1");
-          const col = (table as any)[field.trim()];
+          const fieldName = field.trim();
+          const cleanValue = value.replace(/^"(.*)"$/, "$1").trim();
+          const col = (table as any)[fieldName];
           if (!col) return null;
-          return eq(col, cleanValue.trim());
+          return likeSet.has(fieldName)
+            ? like(col, `%${cleanValue}%`)
+            : eq(col, cleanValue);
         }
         return null;
       })
@@ -161,6 +231,12 @@ export function buildLuceneFilter<T extends SQLiteTableWithColumns<any>>(
 
       if (isExistsQuery) {
         conditions.push(isNegation ? isNull(col) : isNotNull(col));
+      } else if (likeSet.has(key) && operator === "=") {
+        // Substring match for free-text fields (e.g. log descriptions),
+        // where exact-match is rarely useful.
+        conditions.push(
+          isNegation ? notLike(col, `%${value}%`) : like(col, `%${value}%`),
+        );
       } else if (isNegation) {
         switch (operator) {
           case ">":

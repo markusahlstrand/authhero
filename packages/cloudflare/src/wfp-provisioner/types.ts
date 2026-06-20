@@ -1,3 +1,5 @@
+import type { ScriptBinding } from "./cf-api";
+
 /**
  * Public types for the Workers-for-Platforms + D1 tenant provisioner.
  *
@@ -95,6 +97,17 @@ export interface CloudflareWfpD1ProvisionerOptions {
    * the per-script secrets API.
    */
   secrets: TenantSecretsResolver;
+  /**
+   * Extra bindings to attach to every provisioned tenant worker, appended
+   * after the always-present `AUTH_DB` (d1) and `CONTROL_PLANE_BASE_URL`
+   * (plain_text) bindings. Use this to wire e.g. a `service` binding to a
+   * shared upstream worker, or additional `plain_text` config the tenant
+   * bundle expects. Secrets still go through the `secrets` resolver, not here.
+   *
+   * `uploadNamespacedScript` forwards these verbatim into the CF script
+   * metadata, so any binding type the CF API accepts is valid.
+   */
+  extraBindings?: ScriptBinding[];
   /**
    * Naming convention for the namespaced script. Supports `{tenant_id}`
    * placeholder. Defaults to `"{tenant_id}"`.

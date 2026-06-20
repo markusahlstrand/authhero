@@ -13,8 +13,38 @@ import { HTTPException } from "hono/http-exception";
 import type { User, ListParams } from "@authhero/adapter-interfaces";
 import { users, passwords, authenticationMethods } from "../schema/sqlite";
 import { removeNullProperties, parseJsonIfString } from "../helpers/transform";
-import { buildLuceneFilter } from "../helpers/filter";
+import { buildLuceneFilter, sanitizeLuceneQuery } from "../helpers/filter";
 import type { DrizzleDb } from "./types";
+
+// Fields users.list() accepts in `q`. Excludes `tenant_id` so a clause like
+// `q=tenant_id:other` cannot reach arbitrary columns. Mirrors the kysely
+// adapter so both backends behave identically.
+const ALLOWED_Q_FIELDS = [
+  "user_id",
+  "email",
+  "email_verified",
+  "username",
+  "phone_number",
+  "phone_verified",
+  "name",
+  "given_name",
+  "family_name",
+  "nickname",
+  "picture",
+  "locale",
+  "linked_to",
+  "provider",
+  "connection",
+  "is_social",
+  "last_ip",
+  "last_login",
+  "login_count",
+  "created_at",
+  "updated_at",
+];
+
+// buildLuceneFilter routes bare-string tokens through this list (LIKE search).
+const SEARCHABLE_COLUMNS = ["email", "name", "phone_number", "user_id"];
 
 function userToIdentity(sqlUser: any, isPrimary: boolean) {
   const identity: any = {
@@ -265,13 +295,14 @@ export function createUsersAdapter(db: DrizzleDb) {
       ];
 
       if (q) {
-        const filter = buildLuceneFilter(users, q, [
-          "email",
-          "name",
-          "nickname",
-          "username",
-        ]);
-        if (filter) conditions.push(filter);
+        // Sanitize first so only whitelisted fields reach buildLuceneFilter;
+        // otherwise a clause like `q=tenant_id:other` would emit SQL against
+        // arbitrary columns.
+        const sanitized = sanitizeLuceneQuery(q, ALLOWED_Q_FIELDS);
+        if (sanitized) {
+          const filter = buildLuceneFilter(users, sanitized, SEARCHABLE_COLUMNS);
+          if (filter) conditions.push(filter);
+        }
       }
 
       const whereClause = and(...conditions);

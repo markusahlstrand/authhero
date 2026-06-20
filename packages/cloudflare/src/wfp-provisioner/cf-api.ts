@@ -57,14 +57,14 @@ export interface D1QueryResult {
   results?: unknown[];
 }
 
-export interface ScriptBinding {
-  type: "d1" | "plain_text" | "secret_text";
-  name: string;
-  // d1
-  id?: string;
-  // plain_text / secret_text
-  text?: string;
-}
+// Discriminated on `type` so each variant only carries (and requires) the
+// fields it actually uses — invalid combinations fail to compile rather than at
+// upload time.
+export type ScriptBinding =
+  | { type: "d1"; name: string; id: string }
+  | { type: "plain_text"; name: string; text: string }
+  | { type: "secret_text"; name: string; text: string }
+  | { type: "service"; name: string; service: string; environment?: string };
 
 export interface ScriptUploadOptions {
   /** Script source (JavaScript ES module). */

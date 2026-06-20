@@ -368,6 +368,45 @@ describe("createCloudflareWfpD1Provisioner", () => {
     expect(secret1.type).toBe("secret_text");
   });
 
+  it("appends extraBindings (e.g. a service binding) after the default bindings", async () => {
+    setupHappyPath();
+    const provisioner = createCloudflareWfpD1Provisioner({
+      accountId: ACCOUNT_ID,
+      apiToken: "token",
+      dispatchNamespace: NAMESPACE,
+      controlPlaneBaseUrl: "https://auth.example.com",
+      tenantWorkerScript: "export default {};",
+      migrations: [{ name: "0.sql", sql: "SELECT 1;" }],
+      secrets: async () => ({ X: "y" }),
+      extraBindings: [
+        { type: "service", name: "JWKS_SERVICE", service: "control-plane-auth" },
+        { type: "plain_text", name: "REGION", text: "eu" },
+      ],
+    });
+
+    await provisioner.onProvision("kvartal");
+
+    const upload = captured.find((c) => c.path === "/scripts/kvartal");
+    const metadata = JSON.parse(
+      (upload!.body as Record<string, string>)["metadata"],
+    );
+    const names = metadata.bindings.map((b: { name: string }) => b.name);
+    // Defaults first, extras appended in order.
+    expect(names).toEqual([
+      "AUTH_DB",
+      "CONTROL_PLANE_BASE_URL",
+      "JWKS_SERVICE",
+      "REGION",
+    ]);
+    expect(
+      metadata.bindings.find((b: { name: string }) => b.name === "JWKS_SERVICE"),
+    ).toEqual({
+      type: "service",
+      name: "JWKS_SERVICE",
+      service: "control-plane-auth",
+    });
+  });
+
   it("onProvision reuses an existing D1 by name instead of re-creating", async () => {
     server.use(
       http.get(path(`/accounts/${ACCOUNT_ID}/d1/database`), () =>

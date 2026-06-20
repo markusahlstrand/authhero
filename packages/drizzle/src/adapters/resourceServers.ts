@@ -1,8 +1,13 @@
-import { eq, and, count as countFn, asc, desc, like, sql } from "drizzle-orm";
+import { eq, and, count as countFn, asc, desc, sql } from "drizzle-orm";
 import type { ResourceServer, ListParams } from "@authhero/adapter-interfaces";
 import { resourceServers } from "../schema/sqlite";
 import { removeNullProperties, parseJsonIfString } from "../helpers/transform";
+import { buildLuceneFilter, sanitizeLuceneQuery } from "../helpers/filter";
 import type { DrizzleDb } from "./types";
+
+// Fields resourceServers.list() accepts in `q`. Excludes `tenant_id` to prevent
+// arbitrary column injection like `q=tenant_id:other`.
+const ALLOWED_Q_FIELDS = ["name", "identifier"];
 
 function generateResourceServerId(): string {
   const { customAlphabet } = require("nanoid");
@@ -188,16 +193,20 @@ export function createResourceServersAdapter(db: DrizzleDb) {
       const whereConditions = [eq(resourceServers.tenant_id, tenant_id)];
 
       if (q) {
-        // Custom filter for resource servers: name and identifier with LIKE
-        const match = q.match(/^([^:]+):(.+)$/);
-        if (match) {
-          const [, field, value] = match;
-          const isNegation = field?.startsWith("-");
-          const cleanField = isNegation ? field?.substring(1) : field;
-          if (cleanField && VALID_COLUMNS.has(cleanField) && !isNegation) {
-            const col = (resourceServers as any)[cleanField];
-            whereConditions.push(like(col, `%${value}%`));
-          }
+        // Sanitize first so only whitelisted fields reach buildLuceneFilter;
+        // otherwise a clause like `q=tenant_id:other` would emit SQL against
+        // arbitrary columns.
+        // name/identifier are matched as substrings (likeFields) to mirror the
+        // kysely adapter, where `name:foo` does a LIKE %foo% search.
+        const sanitized = sanitizeLuceneQuery(q, ALLOWED_Q_FIELDS);
+        if (sanitized) {
+          const filter = buildLuceneFilter(
+            resourceServers,
+            sanitized,
+            ALLOWED_Q_FIELDS,
+            ["name", "identifier"],
+          );
+          if (filter) whereConditions.push(filter);
         }
       }
 

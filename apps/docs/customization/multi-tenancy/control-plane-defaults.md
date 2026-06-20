@@ -234,6 +234,73 @@ The projection is new code on the **write path only**. `withRuntimeFallback`,
 keep resolving defaults from the shared database exactly as before.
 :::
 
+## Pushing over the wire: build + apply
+
+`createDirectRolloutAdapter` assumes the rollout process can reach the tenant's
+D1 directly (`getAdapters(tenantId)`). For a fully **push-based** topology — the
+control plane never touches a tenant's database, the tenant Worker applies
+defaults to its own D1 — the projection splits into two transport-agnostic
+halves:
+
+- **`buildControlPlaneDefaultsPayload(controlPlaneAdapters, controlPlaneTenantId, entities?)`**
+  runs on the control plane and returns a plain `ControlPlaneDefaultsPayload`
+  (the same defaults bundle, plus public signing keys — see below). Send it over
+  any transport: a Cloudflare dispatch push, an HTTP POST, a queue message.
+- **`applyControlPlaneDefaultsPayload(payload, targetAdapters, controlPlaneTenantId, options?)`**
+  runs on the tenant and writes the payload into the tenant's own adapter,
+  reusing the **exact same idempotent upsert/filter path** as
+  `projectControlPlaneDefaults`. The payload is treated as a trust boundary:
+  every entity is re-validated and signing keys are re-stripped of private
+  material before anything is written.
+
+```typescript
+// On the control plane: build the payload from its adapters.
+import { buildControlPlaneDefaultsPayload } from "@authhero/multi-tenancy";
+
+const payload = await buildControlPlaneDefaultsPayload(
+  controlPlaneAdapters,
+  CONTROL_PLANE_TENANT_ID,
+);
+// → POST payload to the tenant Worker's /internal/sync-defaults
+
+// On the tenant Worker: apply it to the tenant's own D1.
+import { applyControlPlaneDefaultsPayload } from "@authhero/multi-tenancy";
+
+const result = await applyControlPlaneDefaultsPayload(
+  payload,
+  tenantAdapters, // same key-ring adapter as step 2 below
+  CONTROL_PLANE_TENANT_ID,
+);
+// result.signingKeys.upserted, result.connections.upserted, …
+```
+
+::: tip Pure push, seeded at provision
+In a push topology a freshly provisioned tenant starts with an **empty** D1, so
+the control plane sends one initial payload as part of provisioning (the tenant
+is not ready until it lands). After that, the tenant Worker makes no
+request-time call to the control plane at all — it stays up even if the control
+plane is down. A scalable, durable fan-out for re-syncing every tenant (e.g. on
+key rotation) is the natural next step, backed by Cloudflare Workflows.
+:::
+
+### Signing keys travel as public verify keys
+
+The payload carries the control plane's `jwt_signing` keys so a tenant can
+**verify** tokens the control plane signed (e.g. a forwarded admin token)
+without a request-time JWKS fetch. This is security-sensitive, so the invariants
+are owned centrally:
+
+| Invariant | Enforced |
+| --- | --- |
+| Public only — never the private key | `pkcs7` stripped on build **and** re-stripped on apply |
+| Stored as shared, not tenant-scoped | written with **no `tenant_id`**, so `listControlPlaneKeys` resolves them |
+| Verify-only by construction | with no private material the sign path physically can't use them |
+| Rotation-safe | **create-if-missing by `kid`**; old public keys are harmless to leave |
+
+The selection (`type:jwt_signing AND -_exists_:tenant_id`) is authhero's
+`listControlPlaneKeys`, reused so the public-key query has a single source of
+truth. Opt out with `buildControlPlaneDefaultsPayload(..., { signingKeys: false })`.
+
 ## Secrets: held at rest, not readable by the tenant
 
 A shared Google connection means the tenant Worker needs the Google
@@ -505,6 +572,39 @@ Suggested order, each step independently shippable:
 - **`DefaultsProjectionConfig`** — `controlPlaneTenantId`,
   `getControlPlaneAdapters`, `getAdapters`, optional `entities` (per-entity
   toggles) and `continueOnError` (collect errors instead of throwing).
+- **`buildControlPlaneDefaultsPayload(controlPlaneAdapters, controlPlaneTenantId, entities?)`**
+  → `ControlPlaneDefaultsPayload` — read the defaults bundle + public signing
+  keys into a transport-agnostic wire payload. `entities.signingKeys` toggles
+  key projection (default `true`).
+- **`applyControlPlaneDefaultsPayload(payload, targetAdapters, controlPlaneTenantId, options?)`**
+  → `ControlPlaneDefaultsApplyResult` — apply a payload to a tenant adapter
+  (reuses the projection's upsert path; re-validates the payload and re-strips
+  private key material). `options`: `continueOnError`, `entities`.
+- **`ControlPlaneDefaultsPayload`** — the wire shape: `connections`,
+  `resourceServers`, `hooks`, `emailProvider`, `branding`, `promptSettings`,
+  `signingKeys` (public, no `tenant_id`).
+
+### `@authhero/cloudflare-adapter`
+
+The Cloudflare transport for a **pure-push** topology. `createWfpForwardMiddleware`
+is on the main entry; the sync helpers are on the `@authhero/cloudflare-adapter/wfp`
+subpath, whose `authhero` + `@authhero/multi-tenancy` peers are **optional** —
+install them only if you import `/wfp`.
+
+- **`createWfpForwardMiddleware({ tenants, controlPlaneTenantId, dispatcherBinding?, scriptNameTemplate?, resolveTenantId? })`**
+  → Hono `MiddlewareHandler` — forwards a resolved tenant's request to its WFP
+  worker over the dispatch namespace. Control-plane / shared / unknown tenants
+  fall through to the local app.
+- **`createDispatchSyncDefaults({ dispatcher, internalSecret, controlPlaneTenantId, controlPlaneAdapters, scriptNameTemplate?, entities?, timeoutMs? })`**
+  → `(tenantId) => Promise<void>` — builds the payload and **pushes** it to the
+  tenant worker's `/internal/sync-defaults`. Use as the provision-time seed and
+  for on-change / rotation re-syncs.
+- **`createWfpTenantApp({ createDataAdapter, configure? })`** → `{ fetch }` — the
+  tenant-worker scaffold: key-ring encryption over the tenant's own D1, runtime
+  fallback, the `/internal/sync-defaults` receiver, and the control-plane issuer
+  gate. `createDataAdapter(env)` injects the ORM adapter (e.g.
+  `createAdapters(drizzle(env.AUTH_DB))`) so the package carries no ORM dep. Pure
+  push — no request-time call to the control plane.
 
 ### `authhero`
 
@@ -514,6 +614,8 @@ Suggested order, each step independently shippable:
 - **`KeyRing`** — `{ default: CryptoKey; keys?: Record<string, CryptoKey> }`.
 - **`encryptFieldWithRing` / `decryptFieldWithRing` / `parseKeyId`** — the
   lower-level keyed primitives.
+- **`listControlPlaneKeys(keys, type?)`** — the control-plane public-key
+  selection (`-_exists_:tenant_id`) reused by the payload builder.
 
 ## See also
 

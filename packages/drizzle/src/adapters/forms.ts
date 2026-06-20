@@ -3,9 +3,11 @@ import { nanoid } from "nanoid";
 import type { Form, ListParams } from "@authhero/adapter-interfaces";
 import { forms } from "../schema/sqlite";
 import { removeNullProperties, parseJsonIfString } from "../helpers/transform";
+import { buildLuceneFilter, sanitizeLuceneQuery } from "../helpers/filter";
 import type { DrizzleDb } from "./types";
 
 const JSON_FIELDS = ["nodes", "start", "ending"] as const;
+const ALLOWED_Q_FIELDS = ["name"];
 
 export function createFormsAdapter(db: DrizzleDb) {
   return {
@@ -92,13 +94,23 @@ export function createFormsAdapter(db: DrizzleDb) {
         per_page = 50,
         include_totals = false,
         sort,
+        q,
       } = params || {};
 
-      let query = db
-        .select()
-        .from(forms)
-        .where(eq(forms.tenant_id, tenant_id))
-        .$dynamic();
+      const conditions = [eq(forms.tenant_id, tenant_id)];
+      if (q) {
+        // Sanitize first so only whitelisted fields reach buildLuceneFilter;
+        // otherwise a clause like `q=tenant_id:other` would emit SQL against
+        // arbitrary columns and bypass the tenant boundary.
+        const sanitized = sanitizeLuceneQuery(q, ALLOWED_Q_FIELDS);
+        if (sanitized) {
+          const filter = buildLuceneFilter(forms, sanitized, ALLOWED_Q_FIELDS);
+          if (filter) conditions.push(filter);
+        }
+      }
+      const whereClause = and(...conditions);
+
+      let query = db.select().from(forms).where(whereClause).$dynamic();
 
       if (sort?.sort_by) {
         const col = (forms as any)[sort.sort_by];
@@ -126,7 +138,7 @@ export function createFormsAdapter(db: DrizzleDb) {
       const [countResult] = await db
         .select({ count: countFn() })
         .from(forms)
-        .where(eq(forms.tenant_id, tenant_id));
+        .where(whereClause);
 
       return {
         forms: mapped,

@@ -249,7 +249,10 @@ export function createRefreshTokensAdapter(db: DrizzleDb) {
         .$dynamic();
 
       if (q) {
-        const filter = buildLuceneFilter(refreshTokens, q, ["user_id"]);
+        const filter = buildLuceneFilter(refreshTokens, q, [
+          "user_id",
+          "login_id",
+        ]);
         if (filter)
           query = query.where(
             and(eq(refreshTokens.tenant_id, tenant_id), filter),

@@ -52,9 +52,9 @@ export default function createAdapters(
   // Individual adapter factories use loose types internally for pragmatism.
   // The assembled object satisfies DataAdapters at the structural level.
   const adapters = {
-    actions: createActionsAdapter(),
-    actionExecutions: createActionExecutionsAdapter(),
-    actionVersions: createActionVersionsAdapter(),
+    actions: createActionsAdapter(db),
+    actionExecutions: createActionExecutionsAdapter(db),
+    actionVersions: createActionVersionsAdapter(db),
     branding: createBrandingAdapter(db),
     clients: createClientsAdapter(db),
     clientConnections: createClientConnectionsAdapter(db),
