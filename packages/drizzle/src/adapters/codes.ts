@@ -2,8 +2,11 @@ import { eq, and, isNull, count as countFn, asc, desc } from "drizzle-orm";
 import type { Code, ListParams } from "@authhero/adapter-interfaces";
 import { codes } from "../schema/sqlite";
 import { removeNullProperties } from "../helpers/transform";
-import { buildLuceneFilter } from "../helpers/filter";
+import { buildLuceneFilter, sanitizeLuceneQuery } from "../helpers/filter";
 import type { DrizzleDb } from "./types";
+
+// Fields codes.list() accepts in `q`. Excludes `tenant_id`.
+const ALLOWED_Q_FIELDS = ["code_id", "login_id"];
 
 function sqlToCode(row: any): Code {
   const { tenant_id: _, ...rest } = row;
@@ -58,8 +61,14 @@ export function createCodesAdapter(db: DrizzleDb) {
 
       const conditions = [eq(codes.tenant_id, tenant_id)];
       if (q) {
-        const filter = buildLuceneFilter(codes, q, ["code_id", "login_id"]);
-        if (filter) conditions.push(filter);
+        // Sanitize first so only whitelisted fields reach buildLuceneFilter;
+        // otherwise a clause like `q=tenant_id:other` would emit SQL against
+        // arbitrary columns.
+        const sanitized = sanitizeLuceneQuery(q, ALLOWED_Q_FIELDS);
+        if (sanitized) {
+          const filter = buildLuceneFilter(codes, sanitized, ALLOWED_Q_FIELDS);
+          if (filter) conditions.push(filter);
+        }
       }
       const whereClause = and(...conditions);
 

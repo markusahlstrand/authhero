@@ -121,7 +121,12 @@ async function buildTenantApp<Env extends WfpTenantEnv>(
       return c.json({ error: "unauthorized" }, 401);
     }
 
-    const payload = await c.req.json<ControlPlaneDefaultsPayload>();
+    let payload: ControlPlaneDefaultsPayload;
+    try {
+      payload = await c.req.json<ControlPlaneDefaultsPayload>();
+    } catch {
+      return c.json({ error: "invalid JSON" }, 400);
+    }
     // Apply to the key-ring adapter (pre-fallback) so projected secrets are
     // re-encrypted under "cp" and projected verify keys land with no tenant_id.
     const result = await applyControlPlaneDefaultsPayload(
