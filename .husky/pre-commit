@@ -1,18 +1,16 @@
+set -e
+
 if ! command -v gitleaks >/dev/null 2>&1; then
   echo "gitleaks not found. Install with: brew install gitleaks"
   exit 1
 fi
 gitleaks protect --staged --verbose --redact
 
-pnpm interfaces build
-pnpm kysely build
-pnpm saml build
-pnpm authhero build
-pnpm cloudflare build
-pnpm multi-tenancy build
-pnpm aws-adapter build
-pnpm drizzle build
-pnpm widget build
+# Build every workspace package in dependency order. pnpm -r resolves the
+# topological order from workspace deps, so a package's dist/*.d.ts always
+# exist before the next package type-checks against them (the manual ordered
+# list this replaced was fragile: e.g. cloudflare built before multi-tenancy).
+pnpm -r --filter './packages/**' build
 
 pnpm kysely test
 pnpm drizzle test

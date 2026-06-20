@@ -45,40 +45,20 @@ jobs:
             ${{ runner.os }}-ts-${{ hashFiles('packages/*/tsconfig*.json', 'pnpm-lock.yaml') }}-
             ${{ runner.os }}-ts-
 
-      - name: Build interfaces
-        run: pnpm interfaces build
+      - name: Build packages
+        # pnpm -r builds in topological dependency order, so each package's
+        # dist/*.d.ts exist before dependents type-check against them. Covers
+        # interfaces, saml, proxy, kysely, widget, authhero, drizzle,
+        # multi-tenancy, cloudflare, aws and create-authhero.
+        run: pnpm -r --filter './packages/**' build
 
-      - name: Build saml
-        run: pnpm saml build
-
-      - name: Build proxy
-        run: pnpm proxy build
-
-      - name: Build kysely
-        run: pnpm kysely build
-
-      - name: Build widget
-        run: pnpm widget build
-
-      - name: Build authhero
-        run: pnpm authhero build
+      - name: Build admin
+        run: pnpm admin build
 
       # Smoke-test the Cloudflare Workers deployment path: scaffold a fresh
       # multi-tenant project via create-authhero, then run `wrangler deploy
       # --dry-run` against it. Catches drift between published packages
       # (drizzle adapter, widget, admin, authhero core) before users hit it.
-      - name: Build drizzle
-        run: pnpm drizzle build
-
-      - name: Build multi-tenancy
-        run: pnpm --filter @authhero/multi-tenancy build
-
-      - name: Build admin
-        run: pnpm admin build
-
-      - name: Build create-authhero
-        run: pnpm create-authhero build
-
       - name: Scaffold cloudflare worker
         working-directory: apps
         run: |

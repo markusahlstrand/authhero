@@ -57,16 +57,11 @@ jobs:
             ${{ runner.os }}-ts-
 
       - name: Build packages
-        run: |
-          pnpm interfaces build
-          pnpm saml build
-          pnpm proxy build
-          pnpm kysely build
-          pnpm drizzle build
-          pnpm cloudflare build
-          pnpm widget build
-          pnpm authhero build
-          pnpm multi-tenancy build
+        # pnpm -r builds in topological dependency order, so a package's
+        # dist/*.d.ts always exist before the next package type-checks against
+        # them. The previous hand-ordered list built cloudflare before its
+        # authhero/multi-tenancy deps, breaking the type-check on a clean checkout.
+        run: pnpm -r --filter './packages/**' build
 
       - name: Create Release Pull Request or Publish to npm
         id: changesets
