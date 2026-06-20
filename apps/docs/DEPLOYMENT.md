@@ -40,7 +40,7 @@ After the first successful deploy:
 
 You can deploy from your machine without going through CI — useful for previews before merging to `main`.
 
-1. Copy [`.env.example`](.env.example) to `.env` (git-ignored). It sets `CLOUDFLARE_ACCOUNT_ID`, which wrangler auto-loads to pick the target Cloudflare account. Add `CLOUDFLARE_API_TOKEN` too, or run `npx wrangler login` once.
+1. Copy `.env.example` to `.env` (git-ignored). It sets `CLOUDFLARE_ACCOUNT_ID`, which wrangler auto-loads to pick the target Cloudflare account. Add `CLOUDFLARE_API_TOKEN` too, or run `npx wrangler login` once.
 2. From `apps/docs`:
 
    ```bash
