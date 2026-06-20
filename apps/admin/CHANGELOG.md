@@ -1,5 +1,15 @@
 # @authhero/admin
 
+## 0.10.0
+
+### Minor Changes
+
+- 02449c8: Analytics page: add a custom date-range picker (quick presets + two-month calendar) and a separate bucket-size selector (Auto/Hour/Day/Week/Month), decoupling granularity from the time range so monthly active users are now visible. Chart axis and tooltip labels now adapt to the selected interval (e.g. hourly buckets show the hour instead of just the date).
+
+### Patch Changes
+
+- 02449c8: Resolve the client "Login" link's custom domain on click instead of from the eagerly-listed custom domains. The list endpoint returns the stored (often stale "pending") status, so the link always fell back to the token domain; fetching the domain on click triggers the Cloudflare-backed status sync and uses the custom domain when it is actually "ready".
+
 ## 0.9.1
 
 ### Patch Changes
