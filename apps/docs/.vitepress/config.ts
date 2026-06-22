@@ -510,6 +510,10 @@ gtag('config', 'G-DNZWG3PF2L');`,
                   link: "/customization/ui-widget/customization",
                 },
                 {
+                  text: "Page Templates (Liquid)",
+                  link: "/customization/ui-widget/liquid-templates",
+                },
+                {
                   text: "API Reference",
                   link: "/customization/ui-widget/api-reference",
                 },

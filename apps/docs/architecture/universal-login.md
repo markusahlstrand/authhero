@@ -41,3 +41,5 @@ A hybrid approach for advanced use cases:
 ## Customization
 
 For details on customizing the login experience, see [UI Widget](/customization/ui-widget/) in the Customization section.
+
+To customize the page chrome around the widget — logo, dark-mode toggle, language picker, legal links, and content above/below the card — see [Page Templates (Liquid)](/customization/ui-widget/liquid-templates).

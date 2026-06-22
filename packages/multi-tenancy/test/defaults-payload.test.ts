@@ -71,8 +71,9 @@ async function setup() {
   );
 
   await createTenant(cp.raw, CP);
-  await createTenant(tenant.raw, CP); // projected control-plane tenant
-  await createTenant(tenant.raw, "t1");
+  await createTenant(cp.raw, "t1"); // target tenant — its row lives on the CP DB
+  // NB: the tenant DB starts with NO tenants rows (mirrors a freshly migrated
+  // WFP D1). The apply path is responsible for seeding the FK-target rows.
 
   // Seed control plane defaults.
   await cpData.connections.create(CP, {
@@ -149,6 +150,44 @@ describe("buildControlPlaneDefaultsPayload", () => {
     });
     expect(payload.signingKeys).toEqual([]);
   });
+
+  it("carries the control-plane tenant seed by default", async () => {
+    const payload = await buildControlPlaneDefaultsPayload(ctx.cpData, CP);
+    expect(payload.tenants).toEqual([{ id: CP, friendly_name: CP }]);
+  });
+
+  it("also carries the target tenant seed when given a target id", async () => {
+    const payload = await buildControlPlaneDefaultsPayload(
+      ctx.cpData,
+      CP,
+      {},
+      "t1",
+    );
+    expect(payload.tenants).toEqual([
+      { id: CP, friendly_name: CP },
+      { id: "t1", friendly_name: "t1" },
+    ]);
+  });
+
+  it("does not duplicate the seed when the target id is the control plane", async () => {
+    const payload = await buildControlPlaneDefaultsPayload(
+      ctx.cpData,
+      CP,
+      {},
+      CP,
+    );
+    expect(payload.tenants).toEqual([{ id: CP, friendly_name: CP }]);
+  });
+
+  it("can opt out of tenant seeds", async () => {
+    const payload = await buildControlPlaneDefaultsPayload(
+      ctx.cpData,
+      CP,
+      { tenants: false },
+      "t1",
+    );
+    expect(payload.tenants).toEqual([]);
+  });
 });
 
 describe("applyControlPlaneDefaultsPayload", () => {
@@ -156,6 +195,75 @@ describe("applyControlPlaneDefaultsPayload", () => {
 
   beforeEach(async () => {
     ctx = await setup();
+  });
+
+  it("seeds the FK-target tenant rows before the keyed defaults", async () => {
+    // The tenant DB starts with no tenants rows (fresh WFP D1).
+    expect(await ctx.tenant.raw.tenants.get(CP)).toBeNull();
+    expect(await ctx.tenant.raw.tenants.get("t1")).toBeNull();
+
+    const payload = await buildControlPlaneDefaultsPayload(
+      ctx.cpData,
+      CP,
+      {},
+      "t1",
+    );
+    const result = await applyControlPlaneDefaultsPayload(
+      payload,
+      ctx.tenantData,
+      CP,
+    );
+
+    expect(result.tenants.upserted).toBe(2);
+    expect((await ctx.tenant.raw.tenants.get(CP))?.friendly_name).toBe(CP);
+    expect((await ctx.tenant.raw.tenants.get("t1"))?.friendly_name).toBe("t1");
+    // The defaults keyed under the control-plane tenant were written too — i.e.
+    // their tenant_id FK resolved against the seeded row.
+    expect(result.connections.upserted).toBe(1);
+    expect(await ctx.tenant.raw.connections.get(CP, "google")).not.toBeNull();
+  });
+
+  it("is idempotent — tenant seeds are create-if-missing, never clobbered", async () => {
+    const payload = await buildControlPlaneDefaultsPayload(
+      ctx.cpData,
+      CP,
+      {},
+      "t1",
+    );
+    await applyControlPlaneDefaultsPayload(payload, ctx.tenantData, CP);
+
+    // A tenant edits its own row between syncs.
+    await ctx.tenant.raw.tenants.update("t1", { friendly_name: "Renamed" });
+
+    const second = await applyControlPlaneDefaultsPayload(
+      payload,
+      ctx.tenantData,
+      CP,
+    );
+
+    // Both rows already exist → nothing re-created, the local edit survives.
+    expect(second.tenants.upserted).toBe(0);
+    expect((await ctx.tenant.raw.tenants.get("t1"))?.friendly_name).toBe(
+      "Renamed",
+    );
+  });
+
+  it("without tenant seeding the keyed defaults FK-fail (the #972 bug)", async () => {
+    const payload = await buildControlPlaneDefaultsPayload(
+      ctx.cpData,
+      CP,
+      {},
+      "t1",
+    );
+    // Opt out of seeding → the control-plane tenant row is never created, so
+    // the connection keyed under CP violates the tenant_id FK, just as a
+    // freshly provisioned WFP D1 did before the seed was added.
+    await expect(
+      applyControlPlaneDefaultsPayload(payload, ctx.tenantData, CP, {
+        entities: { tenants: false },
+      }),
+    ).rejects.toThrow(/FOREIGN KEY/i);
+    expect(await ctx.tenant.raw.tenants.get(CP)).toBeNull();
   });
 
   it("writes the defaults under the control-plane tenant id", async () => {

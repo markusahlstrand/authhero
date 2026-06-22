@@ -527,6 +527,107 @@ export class AuthheroWidget {
   }
 
   /**
+   * Pending resolvers awaiting the next render, flushed by
+   * `componentDidRender`. Lets `swapScreen` wait until the new screen is
+   * actually in the DOM before measuring its height.
+   */
+  private pendingRenderResolvers: Array<() => void> = [];
+
+  componentDidRender() {
+    if (this.pendingRenderResolvers.length === 0) return;
+    const resolvers = this.pendingRenderResolvers;
+    this.pendingRenderResolvers = [];
+    resolvers.forEach((resolve) => resolve());
+  }
+
+  /**
+   * Resolves after Stencil flushes the next render, so `swapScreen` waits for
+   * the new screen to be in the DOM before measuring its height.
+   */
+  private nextRender(): Promise<void> {
+    return new Promise((resolve) => {
+      let settled = false;
+      const done = () => {
+        if (settled) return;
+        settled = true;
+        resolve();
+      };
+      this.pendingRenderResolvers.push(done);
+      // Safety net: a screen swap always triggers a render here, but never
+      // hang the swap if one somehow doesn't fire — resolve after a couple of
+      // frames at the latest.
+      requestAnimationFrame(() => requestAnimationFrame(done));
+    });
+  }
+
+  /**
+   * Apply a screen swap, animating the widget card's height to the next
+   * screen's size (Stripe-style): lock the current height, swap the content,
+   * measure the new natural height, then animate between them. The content
+   * itself doesn't fade — the card just resizes.
+   *
+   * The card (.widget-container) is animated rather than the host because it
+   * carries the background, so its resize is visible; clipping its content
+   * (not the host) also keeps the card's drop-shadow intact.
+   *
+   * Degrades to an immediate swap when the Web Animations API is unavailable
+   * or the user prefers reduced motion.
+   */
+  private async swapScreen(apply: () => void): Promise<void> {
+    const card = this.el.shadowRoot?.querySelector<HTMLElement>(
+      ".widget-container",
+    );
+    const prefersReducedMotion =
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (!card || typeof card.animate !== "function" || prefersReducedMotion) {
+      apply();
+      return;
+    }
+
+    // Lock the current height and clip, so swapping the content doesn't jump
+    // before the animation runs.
+    const startHeight = card.getBoundingClientRect().height;
+    card.style.height = `${startHeight}px`;
+    card.style.overflow = "hidden";
+
+    apply();
+    // Wait for the new screen to render before measuring its height.
+    await this.nextRender();
+
+    const cleanup = () => {
+      card.style.height = "";
+      card.style.overflow = "";
+    };
+
+    // Measure the new content's natural height without painting: toggle to
+    // auto, read, restore — all synchronous, so there's no visible jump.
+    card.style.height = "auto";
+    const endHeight = card.getBoundingClientRect().height;
+    card.style.height = `${startHeight}px`;
+    card.getBoundingClientRect(); // force reflow from startHeight
+
+    if (Math.abs(endHeight - startHeight) < 1) {
+      cleanup();
+      return;
+    }
+
+    const animation = card.animate(
+      [{ height: `${startHeight}px` }, { height: `${endHeight}px` }],
+      { duration: 520, easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
+    );
+    try {
+      await animation.finished;
+    } catch {
+      // Animation cancelled (e.g. superseded by a newer swap); the final
+      // DOM state is already correct, so just fall through to cleanup.
+    } finally {
+      cleanup();
+    }
+  }
+
+  /**
    * Get the effective autoNavigate value (defaults to autoSubmit if not set)
    */
   private get shouldAutoNavigate(): boolean {
@@ -869,55 +970,65 @@ export class AuthheroWidget {
           }
         } else if (!response.ok && result.screen) {
           // Handle validation errors (400 response) — preserve user input
-          this._screen = result.screen;
-          this.initFormDataFromDefaults(result.screen);
-          this.screenChange.emit(result.screen);
-          this.updateDataScreenAttribute();
-          this.focusFirstInput();
+          await this.swapScreen(() => {
+            // Clear loading first so the captured "after" snapshot doesn't
+            // freeze a disabled button into the cross-fade.
+            this.loading = false;
+            this._screen = result.screen;
+            this.initFormDataFromDefaults(result.screen);
+            this.screenChange.emit(result.screen);
+            this.updateDataScreenAttribute();
+            this.focusFirstInput();
+          });
         } else if (result.screen) {
           // Next screen (success)
-          this._screen = result.screen;
-          this.formData = {};
-          this.initFormDataFromDefaults(result.screen);
-          this.screenChange.emit(result.screen);
-          this.updateDataScreenAttribute();
+          await this.swapScreen(() => {
+            // Clear loading first so the captured "after" snapshot doesn't
+            // freeze a disabled button into the cross-fade.
+            this.loading = false;
+            this._screen = result.screen;
+            this.formData = {};
+            this.initFormDataFromDefaults(result.screen);
+            this.screenChange.emit(result.screen);
+            this.updateDataScreenAttribute();
 
-          // Update screenId if returned in response
-          if (result.screenId) {
-            this.screenId = result.screenId;
-          }
+            // Update screenId if returned in response
+            if (result.screenId) {
+              this.screenId = result.screenId;
+            }
 
-          // Persist state (especially for session storage mode)
-          this.persistState();
-
-          // Update URL path if navigateUrl is provided (client-side navigation)
-          if (result.navigateUrl && this.shouldAutoNavigate) {
-            window.history.pushState(
-              { screen: result.screenId, state: this.state },
-              "",
-              result.navigateUrl,
-            );
-          }
-
-          // Apply branding if included
-          if (result.branding) {
-            this._branding = result.branding;
-            this.applyThemeStyles();
-          }
-
-          // Update state if returned
-          if (result.state) {
-            this.state = result.state;
+            // Persist state (especially for session storage mode)
             this.persistState();
-          }
 
-          // Perform WebAuthn ceremony if present (structured data, not script)
-          if (result.ceremony) {
-            this.performWebAuthnCeremony(result.ceremony);
-          }
+            // Update URL path if navigateUrl is provided (client-side navigation)
+            if (result.navigateUrl && this.shouldAutoNavigate) {
+              window.history.pushState(
+                { screen: result.screenId, state: this.state },
+                "",
+                result.navigateUrl,
+              );
+            }
 
-          // Focus first input on new screen
-          this.focusFirstInput();
+            // Apply branding if included
+            if (result.branding) {
+              this._branding = result.branding;
+              this.applyThemeStyles();
+            }
+
+            // Update state if returned
+            if (result.state) {
+              this.state = result.state;
+              this.persistState();
+            }
+
+            // Perform WebAuthn ceremony if present (structured data, not script)
+            if (result.ceremony) {
+              this.performWebAuthnCeremony(result.ceremony);
+            }
+
+            // Focus first input on new screen
+            this.focusFirstInput();
+          });
         } else if (result.complete) {
           // Flow complete without redirect
           this.flowComplete.emit({});
