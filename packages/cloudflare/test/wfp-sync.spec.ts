@@ -150,7 +150,9 @@ describe("createWfpForwardMiddleware", () => {
     );
     const app = appWith(
       createWfpForwardMiddleware({
-        tenants: fakeTenants({ acme: { deployment_type: "wfp" } }),
+        tenants: fakeTenants({
+          acme: { deployment_type: "wfp", provisioning_state: "ready" },
+        }),
         controlPlaneTenantId: CP,
       }),
     );
@@ -163,6 +165,29 @@ describe("createWfpForwardMiddleware", () => {
 
     expect(await res.text()).toBe("from-tenant-worker");
     expect(dispatcher.calls[0].scriptName).toBe("tenant-acme-auth");
+  });
+
+  it("serves locally for a wfp tenant that is not yet ready", async () => {
+    const dispatcher = fakeDispatcher();
+    const app = appWith(
+      createWfpForwardMiddleware({
+        tenants: fakeTenants({
+          pending: { deployment_type: "wfp", provisioning_state: "pending" },
+          failed: { deployment_type: "wfp", provisioning_state: "failed" },
+        }),
+        controlPlaneTenantId: CP,
+      }),
+    );
+
+    for (const tenantId of ["pending", "failed"]) {
+      const res = await app.request(
+        "/authorize",
+        { headers: { "tenant-id": tenantId } },
+        { DISPATCHER: dispatcher },
+      );
+      expect(await res.text()).toBe("served-locally");
+    }
+    expect(dispatcher.calls).toHaveLength(0);
   });
 
   it("serves locally for the control plane, shared, and unknown tenants", async () => {

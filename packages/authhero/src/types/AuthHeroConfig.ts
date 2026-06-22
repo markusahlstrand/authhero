@@ -14,7 +14,7 @@ import {
 import type { RolePermissionHooks, Hooks } from "./Hooks";
 import type { SamlSigner } from "@authhero/saml/core";
 import type { OpenAPIHono } from "@hono/zod-openapi";
-import type { Handler } from "hono";
+import type { Handler, MiddlewareHandler } from "hono";
 import type {
   ManagementAudienceResolver,
   IssuerResolver,
@@ -374,6 +374,39 @@ export interface AuthHeroConfig {
     /** Per-request timeout for the sync POST (default: 10_000ms). */
     timeoutMs?: number;
   };
+
+  /**
+   * Optional middleware that dispatches a management-API request to its
+   * tenant's own worker instead of serving it from this (control-plane)
+   * instance — the inbound twin of the control-plane defaults projection.
+   *
+   * It is mounted inside the management API **after** the CORS middleware and
+   * **before** the auth/data chain, so:
+   *  - when it forwards (returns the tenant worker's `Response`), the central
+   *    CORS middleware applies the `Access-Control-Allow-*` headers to that
+   *    response — no manual CORS handling needed in the host app;
+   *  - when it calls `next()` (control-plane tenant, non-`wfp` tenant, tenant
+   *    not yet provisioned, or no dispatch binding), the request is served
+   *    locally as usual.
+   *
+   * Provide the implementation from `@authhero/cloudflare-adapter`'s
+   * `createWfpForwardMiddleware`, which dispatches over a Workers-for-Platforms
+   * dispatch namespace. Kept as a generic Hono `MiddlewareHandler` so authhero
+   * core carries no dispatch-namespace dependency.
+   *
+   * @example
+   * ```typescript
+   * const { app } = init({
+   *   dataAdapter,
+   *   allowedOrigins: ["https://admin.example.com"],
+   *   tenantDispatch: createWfpForwardMiddleware({
+   *     tenants: managementAdapter.tenants,
+   *     controlPlaneTenantId: "main",
+   *   }),
+   * });
+   * ```
+   */
+  tenantDispatch?: MiddlewareHandler;
 
   /**
    * Optional powered-by logo to display at the bottom left of the login widget.
