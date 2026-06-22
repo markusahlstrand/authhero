@@ -245,9 +245,15 @@ function buildSlotFragments(
   };
 }
 
+/** Strips HTML comments so commented-out markup isn't mistaken for live tags. */
+const HTML_COMMENT_RE = /<!--[\s\S]*?-->/g;
+
 /** True when `body` mounts the widget in any valid Liquid spelling. */
 export function templateMountsWidget(body: string): boolean {
-  return WIDGET_TAG_RE.test(body);
+  // A widget tag inside an HTML comment (`<!-- {%- auth0:widget -%} -->`)
+  // renders its output wrapped in a comment, so it never displays. Don't count
+  // it as a valid mount.
+  return WIDGET_TAG_RE.test(body.replace(HTML_COMMENT_RE, ""));
 }
 
 /**
@@ -257,7 +263,10 @@ export function templateMountsWidget(body: string): boolean {
  * essentials. Body fragments are wrapped in AuthHero's fixed page shell.
  */
 export function templateIsFullDocument(body: string): boolean {
-  return /<html[\s>]/i.test(body);
+  // Only treat the template as a full document when `<html>` (optionally
+  // preceded by a doctype) is at the very start — otherwise a fragment that
+  // merely contains literal `<html` text elsewhere would be misclassified.
+  return /^\s*(?:<!doctype[^>]*>\s*)?<html[\s>]/i.test(body);
 }
 
 /**

@@ -58,9 +58,12 @@ interface OpenFullPreviewOptions {
  *
  * The preview endpoint requires a Bearer token, so we can't simply point a
  * tab at the URL — instead we fetch the rendered HTML with the authorized
- * client and load it into the tab via a blob URL. The tab is opened
- * synchronously on the user gesture to avoid popup blockers, then navigated
- * once the HTML arrives.
+ * client and render it. The tab is opened synchronously on the user gesture to
+ * avoid popup blockers, then populated once the HTML arrives.
+ *
+ * The (tenant-controlled) template HTML is rendered inside a sandboxed iframe
+ * without `allow-same-origin`, so it executes in an opaque origin and cannot
+ * reach the admin origin's storage, cookies, or APIs.
  */
 export async function openFullPreview({
   tenantId,
@@ -70,11 +73,14 @@ export async function openFullPreview({
   theme,
 }: OpenFullPreviewOptions): Promise<void> {
   const win = window.open("", "_blank");
-  if (win) {
-    win.document.write(
-      "<!doctype html><title>Loading preview…</title><body style='font-family:system-ui;padding:24px;color:#555'>Loading preview…</body>",
+  if (!win) {
+    throw new Error(
+      "Could not open the preview tab. Your browser blocked the popup — please allow popups for this site and try again.",
     );
   }
+  win.document.write(
+    "<!doctype html><title>Loading preview…</title><body style='font-family:system-ui;padding:24px;color:#555'>Loading preview…</body>",
+  );
 
   try {
     const apiUrl = getApiUrl();
@@ -99,19 +105,23 @@ export async function openFullPreview({
       throw new Error("Empty preview response");
     }
 
-    const url = URL.createObjectURL(new Blob([html], { type: "text/html" }));
-    if (win) {
-      win.location.href = url;
-    } else {
-      window.open(url, "_blank");
-    }
-    // Give the tab time to load before releasing the blob.
-    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    // Replace the loading shell with a sandboxed iframe holding the template.
+    // `srcdoc` is set via the property (no escaping needed) and the sandbox
+    // omits `allow-same-origin`, isolating the template in an opaque origin.
+    win.document.open();
+    win.document.write(
+      "<!doctype html><html><head><meta charset='utf-8'><title>Universal Login preview</title>" +
+        "<style>html,body{margin:0;height:100%}iframe{display:block;border:0;width:100%;height:100vh}</style>" +
+        "</head><body></body></html>",
+    );
+    win.document.close();
+    const iframe = win.document.createElement("iframe");
+    iframe.setAttribute("sandbox", "allow-scripts allow-forms allow-popups");
+    iframe.srcdoc = html;
+    win.document.body.appendChild(iframe);
   } catch (err) {
-    if (win) {
-      win.document.body.innerHTML =
-        "<p style='font-family:system-ui;padding:24px;color:#b91c1c'>Failed to load preview.</p>";
-    }
+    win.document.body.innerHTML =
+      "<p style='font-family:system-ui;padding:24px;color:#b91c1c'>Failed to load preview.</p>";
     throw err;
   }
 }
