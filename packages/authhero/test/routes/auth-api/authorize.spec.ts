@@ -275,6 +275,16 @@ describe("authorize", () => {
     const redirectUriWithParams =
       "https://example.com/callback?existing=param&another=value";
 
+    // The redirect_uri (including its query string) must be registered — query
+    // params are matched exactly, so register this exact URI as a callback.
+    await env.data.clients.update("tenantId", "clientId", {
+      callbacks: [
+        "https://example.com/callback",
+        "http://localhost:3000/*",
+        redirectUriWithParams,
+      ],
+    });
+
     const response = await oauthClient.authorize.$get(
       {
         query: {

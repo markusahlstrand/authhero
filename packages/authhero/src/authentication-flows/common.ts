@@ -854,8 +854,14 @@ export async function authenticateLoginSession(
     });
   }
 
-  // Determine the session ID - either use existing or create new
+  // Determine the session ID - either use existing or create new.
+  // `authenticatedAt` tracks when the user actually authenticated: for a fresh
+  // session it's now, but for a reused (SSO) session it must stay pinned to the
+  // original authentication time so the id_token's auth_time is stable across
+  // re-authorizations (OIDC max_age re-uses the same auth_time — see
+  // createAuthTokens).
   let session_id: string;
+  let authenticatedAt: string;
   if (existingSessionId) {
     // Verify the existing session exists and is not revoked
     const existingSession = await ctx.env.data.sessions.get(
@@ -871,9 +877,11 @@ export async function authenticateLoginSession(
         loginSession,
       });
       session_id = newSession.id;
+      authenticatedAt = newSession.authenticated_at;
     } else {
       // Reuse existing valid session
       session_id = existingSessionId;
+      authenticatedAt = existingSession.authenticated_at;
 
       // Ensure the client is associated with the existing session
       if (!existingSession.clients.includes(client.client_id)) {
@@ -894,6 +902,7 @@ export async function authenticateLoginSession(
       loginSession,
     });
     session_id = newSession.id;
+    authenticatedAt = newSession.authenticated_at;
   }
 
   // Transition to AUTHENTICATED state
@@ -927,7 +936,7 @@ export async function authenticateLoginSession(
     session_id,
     state: newState,
     user_id: user.user_id,
-    authenticated_at: new Date().toISOString(),
+    authenticated_at: authenticatedAt,
     ...(resolvedConnection ? { auth_connection: resolvedConnection } : {}),
     ...(authStrategy ? { auth_strategy: authStrategy } : {}),
     ...(currentState === LoginSessionState.EXPIRED
