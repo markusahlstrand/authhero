@@ -54,13 +54,6 @@ function matchUrl(
     allowedUrl.hostname.split(".").length > 2 &&
     ["http:", "https:"].includes(allowedUrl.protocol);
 
-  // Query parameter matching. Every registered parameter must always appear
-  // unchanged on the incoming URL.
-  for (const [key, value] of allowedUrl.searchParams) {
-    if (url.searchParams.get(key) !== value) {
-      return false;
-    }
-  }
   // For exact (non-wildcard) registrations, the match must be strict: the
   // incoming URL may not carry any extra parameter the registered URL doesn't
   // pin. OAuth2 (RFC 6749 §3.1.2.3) and OIDC require redirect_uri to match a
@@ -70,8 +63,39 @@ function matchUrl(
   // registrations are an authhero extension that already signal a looser,
   // pattern-style match (e.g. the auth server's own `<issuer>/*` callback used
   // by the account flow, where the current URL legitimately carries query
-  // params), so the extra-parameter check is skipped for them.
-  if (!usesPathWildcard && !usesHostWildcard) {
+  // params), so the strict checks are skipped for them.
+  const strictParams = !usesPathWildcard && !usesHostWildcard;
+
+  // Query parameter matching. Every registered parameter must always appear
+  // unchanged on the incoming URL. Use getAll so a key registered (or supplied)
+  // multiple times is matched by both value and multiplicity — comparing only
+  // the first value would let a duplicate query parameter bypass the check.
+  for (const key of new Set(allowedUrl.searchParams.keys())) {
+    const allowedValues = allowedUrl.searchParams.getAll(key).sort();
+    const actualValues = url.searchParams.getAll(key);
+
+    if (strictParams) {
+      const sortedActual = actualValues.slice().sort();
+      if (
+        allowedValues.length !== sortedActual.length ||
+        !allowedValues.every((value, i) => value === sortedActual[i])
+      ) {
+        return false;
+      }
+    } else {
+      // Wildcard registrations only require each registered value to be present.
+      const remaining = actualValues.slice();
+      for (const value of allowedValues) {
+        const idx = remaining.indexOf(value);
+        if (idx === -1) {
+          return false;
+        }
+        remaining.splice(idx, 1);
+      }
+    }
+  }
+
+  if (strictParams) {
     for (const key of url.searchParams.keys()) {
       if (!allowedUrl.searchParams.has(key)) {
         return false;
