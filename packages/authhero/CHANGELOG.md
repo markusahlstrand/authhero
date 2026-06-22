@@ -1,5 +1,41 @@
 # authhero
 
+## 8.6.0
+
+### Minor Changes
+
+- 8a7317a: Move the WfP admin-request dispatch inside authhero's management-API pipeline so
+  CORS is handled centrally (#969).
+
+  - `authhero`: new optional `tenantDispatch` config — a Hono `MiddlewareHandler`
+    mounted in the management API **after** the CORS middleware and **before** the
+    auth/data chain. When it forwards a request to a tenant's worker (returning
+    that worker's `Response`), the central CORS middleware now applies the
+    `Access-Control-Allow-*` headers automatically, so host apps no longer need to
+    re-apply CORS to dispatched responses. When it falls through (calls `next()`),
+    the request is served locally as before.
+  - `@authhero/cloudflare-adapter`: `createWfpForwardMiddleware` now also gates on
+    `provisioning_state` — a `wfp` tenant that is still `pending` (or `failed`)
+    falls through to local serving instead of dispatching to a not-yet-deployed
+    worker. Pass it as `tenantDispatch` to `init()` instead of mounting it outside
+    the authhero app.
+
+### Patch Changes
+
+- 8a7317a: Fix two OIDC conformance failures:
+
+  - `redirect_uri` query parameters are now matched exactly for non-wildcard
+    registrations. An incoming `redirect_uri` that adds a query parameter not
+    present in a registered (exact) callback is now rejected, matching RFC 6749
+    §3.1.2.3 and the OIDC `oidcc-redirect-uri-query-added` test. Path/subdomain
+    wildcard registrations (e.g. the auth server's own `<issuer>/*` callback) stay
+    lenient on extra query parameters.
+  - `auth_time` is now stable across SSO re-authorizations. When an existing
+    session is reused, the login session keeps the session's original
+    authentication time instead of resetting it to "now", so id_tokens issued for
+    the same session (e.g. with `max_age`) share the same `auth_time`
+    (`oidcc-max-age-10000`).
+
 ## 8.5.0
 
 ### Minor Changes
