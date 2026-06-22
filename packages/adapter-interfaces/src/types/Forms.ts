@@ -198,6 +198,23 @@ const choiceField = fieldComponentBase.extend({
     .optional(),
 });
 
+const codeField = fieldComponentBase.extend({
+  type: z.literal("CODE"),
+  config: z
+    .object({
+      // Number of characters in the code (default 6 in the renderer).
+      length: z.number().optional(),
+      // Restricts allowed characters. "numeric" also sets inputmode=numeric
+      // so mobile keyboards show digits and SMS autofill works.
+      mode: z.enum(["numeric", "alphanumeric"]).optional(),
+      // Submit the form automatically once all characters are entered.
+      // Defaults to true; set false to require an explicit button press.
+      auto_submit: z.boolean().optional(),
+      default_value: z.string().optional(),
+    })
+    .optional(),
+});
+
 const customField = fieldComponentBase.extend({
   type: z.literal("CUSTOM"),
   config: z.object({
@@ -406,6 +423,7 @@ export const fieldComponentSchema = z.discriminatedUnion("type", [
   booleanField,
   cardsField,
   choiceField,
+  codeField,
   countryField,
   customField,
   dateField,
@@ -445,6 +463,7 @@ export const FORM_FIELD_TYPES = new Set<string>([
   "BOOLEAN",
   "CARDS",
   "CHOICE",
+  "CODE",
   "COUNTRY",
   "DATE",
   "DROPDOWN",
@@ -478,6 +497,7 @@ export type RecaptchaWidget = z.infer<typeof recaptchaWidget>;
 export type BooleanField = z.infer<typeof booleanField>;
 export type CardsField = z.infer<typeof cardsField>;
 export type ChoiceField = z.infer<typeof choiceField>;
+export type CodeField = z.infer<typeof codeField>;
 export type CountryField = z.infer<typeof countryField>;
 export type CustomField = z.infer<typeof customField>;
 export type DateField = z.infer<typeof dateField>;

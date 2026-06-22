@@ -287,6 +287,26 @@ export class AuthheroNode {
     }
   };
 
+  private handleCodeInput = (
+    e: Event,
+    length: number,
+    mode: "numeric" | "alphanumeric",
+    autoSubmit: boolean,
+  ) => {
+    const target = e.target as HTMLInputElement;
+    const disallowed = mode === "alphanumeric" ? /[^a-zA-Z0-9]/g : /\D/g;
+    const cleaned = target.value.replace(disallowed, "").slice(0, length);
+    // Reflect the sanitized value back so the visible boxes never show
+    // characters we stripped (e.g. a pasted "123-456").
+    if (cleaned !== target.value) {
+      target.value = cleaned;
+    }
+    this.fieldChange.emit({ id: this.component.id, value: cleaned });
+    if (autoSubmit && cleaned.length === length) {
+      this.buttonClick.emit({ id: "submit", type: "submit", value: "next" });
+    }
+  };
+
   private handleCheckbox = (e: Event) => {
     const target = e.target as HTMLInputElement;
     this.fieldChange.emit({
@@ -628,6 +648,80 @@ export class AuthheroNode {
             component.required,
             hasValue,
           )}
+        </div>
+        {this.renderErrors()}
+        {errors.length === 0 && this.renderHint(component.hint)}
+      </div>
+    );
+  }
+
+  /**
+   * Segmented one-time-code input (e.g. SMS/email verification codes).
+   *
+   * Rendered as a SINGLE real <input> overlaid (transparent) on a row of
+   * presentational boxes. This keeps native paste, iOS/Android SMS autofill
+   * (`autocomplete="one-time-code"`) and screen-reader behaviour working —
+   * all of which break when using one <input> per digit.
+   */
+  private renderCodeField(component: FieldComponent & { type: "CODE" }) {
+    const inputId = `input-${component.id}`;
+    const errors = this.getErrors();
+    const hasError = errors.length > 0;
+    const config = (component.config ?? {}) as {
+      length?: number;
+      mode?: "numeric" | "alphanumeric";
+      auto_submit?: boolean;
+    };
+    const length = config.length ?? 6;
+    const mode = config.mode ?? "numeric";
+    const autoSubmit = config.auto_submit !== false;
+    const value = (this.getEffectiveValue() ?? "").slice(0, length);
+
+    const boxClass = (i: number) => {
+      let cls = "code-box";
+      if (i < value.length) cls += " is-filled";
+      // Highlight the next empty box as the "caret" position while focused.
+      if (!this.disabled && i === value.length) cls += " is-active";
+      return cls;
+    };
+
+    return (
+      <div class="input-wrapper" part="input-wrapper">
+        {this.renderLabel(component.label, inputId, component.required)}
+        <div
+          class={hasError ? "code-field has-error" : "code-field"}
+          part="code-field"
+        >
+          <input
+            id={inputId}
+            class="code-input"
+            part="input code-input"
+            type="text"
+            name={component.id}
+            data-input-name={component.id}
+            value={value}
+            inputMode={mode === "numeric" ? "numeric" : "text"}
+            autoComplete="one-time-code"
+            autoCapitalize="off"
+            autoCorrect="off"
+            spellcheck={false}
+            maxLength={length}
+            required={component.required}
+            disabled={this.disabled}
+            aria-label={component.label}
+            aria-invalid={hasError ? "true" : "false"}
+            onInput={(e) =>
+              this.handleCodeInput(e, length, mode, autoSubmit)
+            }
+            onKeyDown={this.handleKeyDown}
+          />
+          <div class="code-boxes" part="code-boxes" aria-hidden="true">
+            {Array.from({ length }).map((_, i) => (
+              <div class={boxClass(i)} part="code-box">
+                {value[i] ?? ""}
+              </div>
+            ))}
+          </div>
         </div>
         {this.renderErrors()}
         {errors.length === 0 && this.renderHint(component.hint)}
@@ -1264,6 +1358,10 @@ export class AuthheroNode {
       case "EMAIL":
         return this.renderEmailField(
           this.component as FieldComponent & { type: "EMAIL" },
+        );
+      case "CODE":
+        return this.renderCodeField(
+          this.component as FieldComponent & { type: "CODE" },
         );
       case "PASSWORD":
         return this.renderPasswordField(

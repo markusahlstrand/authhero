@@ -633,3 +633,79 @@ input[type="date"].input-field+.input-label {
   font-size: 14px;
   color: var(--ah-color-text, #1e212a);
 }
+/* =========================================================================
+   CODE field (segmented one-time-code input)
+
+   One real <input> sits transparently on top of a row of presentational
+   boxes. The input keeps native paste / SMS autofill / a11y; the boxes are
+   purely visual and driven by the current value.
+   ========================================================================= */
+.code-field {
+  position: relative;
+}
+
+/* The real input overlays the whole row. opacity:0 (not display:none) keeps
+   it focusable and preserves browser/OS autofill. Text + caret are hidden so
+   only the boxes underneath are visible. */
+.code-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: transparent;
+  caret-color: transparent;
+  font-family: inherit;
+  letter-spacing: 0;
+  outline: none;
+  cursor: text;
+  /* Keep value off-screen visually but still selectable/pasteable. */
+  -webkit-text-fill-color: transparent;
+}
+
+.code-boxes {
+  display: flex;
+  gap: var(--ah-code-gap, 8px);
+  justify-content: center;
+}
+
+.code-box {
+  flex: 0 0 auto;
+  width: var(--ah-code-box-width, 48px);
+  height: var(--ah-code-box-height, 56px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--ah-code-font-size, 24px);
+  font-family: inherit;
+  color: var(--ah-color-input-text, var(--ah-color-text, #1e212a));
+  background-color: var(--ah-color-input-bg, #ffffff);
+  border: var(--ah-input-border-width, 1px) solid var(--ah-color-border, #c9cace);
+  border-radius: var(--ah-input-radius, 3px);
+  transition:
+    border-color 0.15s ease-out,
+    box-shadow 0.15s ease-out;
+  box-sizing: border-box;
+}
+
+/* The "caret" box: highlight the next empty slot while the input is focused. */
+.code-field:focus-within .code-box.is-active {
+  border-color: var(--ah-color-primary, #635dff);
+  box-shadow: inset 0 0 0 1px var(--ah-color-primary, #635dff);
+}
+
+.code-field.has-error .code-box {
+  border-color: var(--ah-color-error, #d03c38);
+}
+
+.code-input:disabled {
+  cursor: not-allowed;
+}
+
+.code-input:disabled ~ .code-boxes .code-box {
+  background-color: var(--ah-color-bg-disabled, #f5f5f5);
+  border-color: var(--ah-color-border-disabled, #e0e1e3);
+}

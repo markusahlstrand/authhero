@@ -35,6 +35,7 @@ export type {
   BooleanField,
   CardsField,
   ChoiceField,
+  CodeField,
   CountryField,
   CustomField,
   DateField,
