@@ -217,6 +217,16 @@ export default function create(config: AuthHeroConfig) {
     }
   });
 
+  // Dispatch a request to its tenant's own worker when configured. Mounted
+  // here — after the CORS middleware, before the auth/data chain — so a
+  // forwarded response is wrapped by the central CORS middleware above and
+  // skips control-plane auth/data setup. The middleware itself decides whether
+  // to forward (returns the tenant worker's Response) or fall through (calls
+  // next() for the control-plane tenant, non-wfp tenants, etc.).
+  if (config.tenantDispatch) {
+    app.use(config.tenantDispatch);
+  }
+
   // Auth0 SDKs (e.g. terraform-provider-auth0 via go-auth0) parse error bodies
   // strictly as { statusCode, error, message, errorCode }. Cover the two cases
   // authhero produces by default that aren't that shape: (1) plaintext from

@@ -25,6 +25,56 @@ describe("isValidRedirectUrl", () => {
     });
   });
 
+  describe("query parameter matching", () => {
+    it("rejects an added query parameter not present in the registration", () => {
+      // OIDC conformance `oidcc-redirect-uri-query-added`: registered URI has no
+      // query string, request adds one — must not match.
+      expect(
+        isValidRedirectUrl("https://example.com/callback?evil=1", [
+          "https://example.com/callback",
+        ]),
+      ).toBe(false);
+    });
+
+    it("rejects an extra query parameter alongside a registered one", () => {
+      expect(
+        isValidRedirectUrl("https://example.com/callback?a=1&b=2", [
+          "https://example.com/callback?a=1",
+        ]),
+      ).toBe(false);
+    });
+
+    it("requires registered query parameters to be present and unchanged", () => {
+      expect(
+        isValidRedirectUrl("https://example.com/callback", [
+          "https://example.com/callback?a=1",
+        ]),
+      ).toBe(false);
+
+      expect(
+        isValidRedirectUrl("https://example.com/callback?a=2", [
+          "https://example.com/callback?a=1",
+        ]),
+      ).toBe(false);
+    });
+
+    it("allows an exact query string match", () => {
+      expect(
+        isValidRedirectUrl("https://example.com/callback?a=1&b=2", [
+          "https://example.com/callback?a=1&b=2",
+        ]),
+      ).toBe(true);
+    });
+
+    it("ignores query parameter ordering", () => {
+      expect(
+        isValidRedirectUrl("https://example.com/callback?b=2&a=1", [
+          "https://example.com/callback?a=1&b=2",
+        ]),
+      ).toBe(true);
+    });
+  });
+
   describe("wildcard path matching", () => {
     it("should allow wildcard paths when configured", () => {
       expect(

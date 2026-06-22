@@ -67,6 +67,11 @@ type getEnvParams = {
   // Without this, every request gets a fresh per-request cache that
   // immediately dies — making warm-cache assertions impossible.
   persistentCache?: boolean;
+  // Optional middleware mounted inside the management API after the CORS
+  // middleware (the `config.tenantDispatch` integration point).
+  tenantDispatch?: import("hono").MiddlewareHandler;
+  // Optional static CORS allow-list passed through to `init`.
+  allowedOrigins?: string[];
 };
 
 export type TestServer = {
@@ -273,6 +278,8 @@ export async function getTestServer(
       ? { usernamePasswordProvider: args.usernamePasswordProvider }
       : {}),
     ...(args.codeExecutor ? { codeExecutor: args.codeExecutor } : {}),
+    ...(args.tenantDispatch ? { tenantDispatch: args.tenantDispatch } : {}),
+    ...(args.allowedOrigins ? { allowedOrigins: args.allowedOrigins } : {}),
   });
   return {
     ...apps,

@@ -48,10 +48,13 @@ function fillTemplate(template: string, tenantId: string): string {
  * worker.
  *
  * For each request it resolves a tenant id, and **only** dispatches when that
- * tenant exists and has `deployment_type === "wfp"`. The control-plane tenant,
- * unknown tenants, and shared (colocated) tenants all fall through to the next
- * handler so the local app serves them. The tenant worker receives the original
- * request verbatim and owns the full response.
+ * tenant exists, has `deployment_type === "wfp"`, and is fully provisioned
+ * (`provisioning_state === "ready"`). The control-plane tenant, unknown
+ * tenants, shared (colocated) tenants, and tenants still provisioning (or
+ * failed) all fall through to the next handler so the local app serves them —
+ * dispatching to a not-yet-deployed worker would only hard-fail the request.
+ * The tenant worker receives the original request verbatim and owns the full
+ * response.
  */
 export function createWfpForwardMiddleware(
   options: WfpForwardOptions,
@@ -72,6 +75,15 @@ export function createWfpForwardMiddleware(
 
     const tenant = await tenants.get(tenantId);
     if (!tenant || tenant.deployment_type !== "wfp") {
+      return next();
+    }
+
+    // Only dispatch once the tenant's worker is actually deployed. A `wfp`
+    // tenant still `pending` (or `failed`) has no worker to receive the
+    // request, so serve locally instead of hard-failing the dispatch.
+    // `provisioning_state` defaults to `"ready"` in the schema, so treat an
+    // absent value as ready and only block explicit non-ready states.
+    if (tenant.provisioning_state && tenant.provisioning_state !== "ready") {
       return next();
     }
 

@@ -593,8 +593,14 @@ install them only if you import `/wfp`.
 
 - **`createWfpForwardMiddleware({ tenants, controlPlaneTenantId, dispatcherBinding?, scriptNameTemplate?, resolveTenantId? })`**
   → Hono `MiddlewareHandler` — forwards a resolved tenant's request to its WFP
-  worker over the dispatch namespace. Control-plane / shared / unknown tenants
-  fall through to the local app.
+  worker over the dispatch namespace. Control-plane / shared / unknown tenants,
+  and `wfp` tenants not yet `provisioning_state === "ready"`, fall through to the
+  local app. Pass it as `init`'s `tenantDispatch` config so it is mounted inside
+  authhero's management API **after** the CORS middleware — then the central CORS
+  middleware applies the `Access-Control-Allow-*` headers to the dispatched
+  response and no manual CORS handling is needed in the host app. (Mounting it
+  outside the authhero app, ahead of CORS, is the legacy wiring and requires the
+  host to re-apply CORS itself.)
 - **`createDispatchSyncDefaults({ dispatcher, internalSecret, controlPlaneTenantId, controlPlaneAdapters, scriptNameTemplate?, entities?, timeoutMs? })`**
   → `(tenantId) => Promise<void>` — builds the payload and **pushes** it to the
   tenant worker's `/internal/sync-defaults`. Use as the provision-time seed and
