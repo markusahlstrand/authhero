@@ -45,6 +45,7 @@ export type {
   ProjectableDefaults,
   ControlPlaneDefaultsPayload,
   ControlPlaneDefaultsApplyResult,
+  ControlPlaneTenantSeed,
   DefaultsPayloadEntities,
 } from "./rollout";
 

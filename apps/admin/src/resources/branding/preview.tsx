@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useWatch } from "react-hook-form";
+import { useNotify } from "ra-core";
+import { ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useTenantId } from "@/TenantContext";
+import { openFullPreview } from "./previewClient";
 
 const WIDGET_VERSION = "0.32.14";
 const WIDGET_SRC = `https://unpkg.com/@authhero/widget@${WIDGET_VERSION}/dist/authhero-widget/authhero-widget.esm.js`;
@@ -215,6 +219,8 @@ function isPageBackgroundObject(v: unknown): v is PageBackgroundObject {
 export function BrandingPreview() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [previewScreen, setPreviewScreen] = useState<PreviewScreen>("login");
+  const tenantId = useTenantId() ?? "";
+  const notify = useNotify();
 
   const colors = useWatch({ name: "colors" }) as
     | { primary?: string; page_background?: PageBackgroundObject | string }
@@ -281,6 +287,20 @@ export function BrandingPreview() {
     }
   }, [branding, theme, previewScreen]);
 
+  const handleOpenFull = async () => {
+    if (!tenantId) return;
+    try {
+      await openFullPreview({
+        tenantId,
+        screen: previewScreen,
+        branding,
+        theme,
+      });
+    } catch {
+      notify("Failed to open preview", { type: "error" });
+    }
+  };
+
   const screenJson = JSON.stringify(screenConfigs[previewScreen]).replace(
     /'/g,
     "&apos;",
@@ -293,9 +313,17 @@ export function BrandingPreview() {
   return (
     <div className="flex h-full flex-col gap-2 rounded-lg bg-muted/40 p-3">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-muted-foreground">
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          onClick={handleOpenFull}
+          className="h-7 gap-1 px-2 text-xs text-muted-foreground"
+          title="Open the full-size login page in a new tab"
+        >
           Preview
-        </span>
+          <ExternalLink className="size-3" />
+        </Button>
         <div className="flex gap-1">
           {(["login", "password", "signup"] as PreviewScreen[]).map((s) => (
             <Button

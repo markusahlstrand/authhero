@@ -430,7 +430,7 @@ const authProvider = getAuthProvider(getSelectedDomainFromStorage());
 
 // Create a debounced http client to prevent parallel token requests
 let pendingRequests = new Map<string, Promise<any>>();
-interface HttpOptions extends RequestInit {
+export interface HttpOptions extends RequestInit {
   headers?: HeadersInit;
 }
 

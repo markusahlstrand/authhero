@@ -61,6 +61,9 @@ export function createDispatchSyncDefaults(
       controlPlaneAdapters,
       controlPlaneTenantId,
       entities,
+      // Include the target tenant's own FK-target row alongside the
+      // control-plane row, so the tenant's own writes resolve their FK too.
+      tenantId,
     );
 
     const scriptName = fillTemplate(scriptNameTemplate, tenantId);

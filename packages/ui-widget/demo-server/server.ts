@@ -57,6 +57,15 @@ interface PostResponse {
   redirect?: string;
   screen?: UiScreen;
   branding?: ScreenBranding;
+  /**
+   * When advancing to the next step client-side (returning `screen` rather
+   * than `redirect`), the widget swaps in place and `pushState`s this URL —
+   * the production path that triggers the view-transition animation. Without
+   * it the demo would `window.location.href` to the next page (full reload),
+   * which never runs the in-widget transition.
+   */
+  navigateUrl?: string;
+  screenId?: string;
 }
 
 // Dynamic settings passed via query params
@@ -747,16 +756,27 @@ function handleIdentifierPost(
   session.email = username;
   session.username = username;
 
-  // Determine next screen based on strategy
+  // Determine next screen based on strategy. We return the next screen (a
+  // client-side swap) plus navigateUrl (a pushState URL update) — matching
+  // production, where advancing a step returns `{ screen }` and the widget
+  // animates the swap. (A full `redirect` would reload the page instead.)
   if (settings.strategy === "password") {
-    return { redirect: `${baseUrl}/u2/enter-password?state=${state}` };
+    return {
+      screen: createEnterPasswordScreen(state, baseUrl, username),
+      screenId: "enter-password",
+      navigateUrl: `${baseUrl}/u2/enter-password?state=${state}`,
+    };
   }
 
   // Code-based login - generate mock OTP
   session.codeId = Math.floor(100000 + Math.random() * 900000).toString();
   console.log(`📧 Mock OTP code for ${username}: ${session.codeId}`);
 
-  return { redirect: `${baseUrl}/u2/login/email-otp-challenge?state=${state}` };
+  return {
+    screen: createEnterCodeScreen(state, baseUrl, username),
+    screenId: "email-otp-challenge",
+    navigateUrl: `${baseUrl}/u2/login/email-otp-challenge?state=${state}`,
+  };
 }
 
 function handleEnterPasswordPost(
@@ -1389,6 +1409,41 @@ async function renderWidgetPage(options: {
     .preview-area:not(.mobile-preview) .device-frame .device-screen {
       border-radius: 0;
       background: transparent;
+    }
+
+    /* ============= STEP TRANSITIONS =============
+       Scope the widget's view transitions to just the widget box (mirrors
+       the authhero login page's .widget-container[view-transition-name]).
+       Without a named element the swap would cross-fade this whole demo
+       page (controls, status bar, event log) instead of morphing only the
+       widget — see authhero-widget.tsx's swapScreen(). */
+    .device-screen authhero-widget {
+      view-transition-name: ah-widget;
+    }
+    /* Resize-forward (Stripe-style): the widget box morphs its height from
+       the old step to the new one — that resize is the main motion. Content
+       keeps its natural height (height: auto) so the snapshot isn't stretched
+       to the morphing box, and does a quick, clean cross-fade underneath. */
+    ::view-transition-group(ah-widget) {
+      animation-duration: 420ms;
+      animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    ::view-transition-old(ah-widget),
+    ::view-transition-new(ah-widget) {
+      height: auto;
+    }
+    ::view-transition-old(ah-widget) {
+      animation: 140ms ease both ah-widget-out;
+    }
+    ::view-transition-new(ah-widget) {
+      animation: 240ms ease 110ms both ah-widget-in;
+    }
+    @keyframes ah-widget-out { to { opacity: 0; } }
+    @keyframes ah-widget-in { from { opacity: 0; } }
+    @media (prefers-reduced-motion: reduce) {
+      ::view-transition-group(*),
+      ::view-transition-old(*),
+      ::view-transition-new(*) { animation: none !important; }
     }
     
     /* Viewport toggle buttons */
@@ -2272,6 +2327,88 @@ async function renderWidgetPage(options: {
     // =========================================
     // Screen Fetching
     // =========================================
+    // Animate the widget to the next screen's height (Stripe-style): lock
+    // the current height, swap the content, measure the new natural height,
+    // then animate height between them. No fade — the form just resizes.
+    // The demo drives the widget in controlled mode, so it does this itself.
+    // Skips the first paint, reduced-motion, and browsers without WAAPI.
+    // Used by both forward (submit) and back (links / history) navigation.
+    let hasRenderedScreen = false;
+    function runScreenTransition(apply) {
+      const host = widget; // the <authhero-widget> host element
+      // Animate the card itself — it has the background, so its resize is
+      // visible. Animating the host instead would only shrink transparent
+      // space around the card (invisible). Clipping the card's content (not
+      // the host) also keeps the card's drop-shadow intact.
+      const card =
+        (host.shadowRoot && host.shadowRoot.querySelector('.widget-container')) ||
+        host;
+      const animate =
+        hasRenderedScreen &&
+        typeof card.animate === 'function' &&
+        !matchMedia('(prefers-reduced-motion: reduce)').matches;
+      hasRenderedScreen = true;
+      if (!animate) {
+        apply();
+        return Promise.resolve();
+      }
+
+      // Lock the current height and clip, so swapping the content doesn't
+      // jump before the animation runs.
+      const startHeight = card.getBoundingClientRect().height;
+      card.style.height = startHeight + 'px';
+      card.style.overflow = 'hidden';
+
+      apply();
+
+      // Wait for the widget's shadow DOM to re-render the new screen.
+      const waitForRerender = () =>
+        new Promise((resolve) => {
+          const root = host.shadowRoot;
+          if (!root) {
+            requestAnimationFrame(() => requestAnimationFrame(resolve));
+            return;
+          }
+          let done = false;
+          const finish = () => {
+            if (done) return;
+            done = true;
+            obs.disconnect();
+            resolve();
+          };
+          const obs = new MutationObserver(() =>
+            requestAnimationFrame(finish),
+          );
+          obs.observe(root, { childList: true, subtree: true });
+          setTimeout(finish, 300);
+        });
+
+      const cleanup = () => {
+        card.style.height = '';
+        card.style.overflow = '';
+      };
+
+      return waitForRerender().then(() => {
+        // Measure the new content's natural height without painting: toggle
+        // to auto, read, restore — all synchronous, so no visible jump.
+        card.style.height = 'auto';
+        const endHeight = card.getBoundingClientRect().height;
+        card.style.height = startHeight + 'px';
+        card.getBoundingClientRect(); // force reflow from startHeight
+
+        if (Math.abs(endHeight - startHeight) < 1) {
+          cleanup();
+          return;
+        }
+
+        const anim = card.animate(
+          [{ height: startHeight + 'px' }, { height: endHeight + 'px' }],
+          { duration: 520, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' },
+        );
+        return anim.finished.catch(() => {}).then(cleanup);
+      });
+    }
+
     async function fetchScreen(screenId, updateUrl = true) {
       try {
         // Build query params for settings
@@ -2293,13 +2430,15 @@ async function renderWidgetPage(options: {
         const data = await response.json();
         
         if (data.screen) {
-          widget.screen = data.screen;
           currentScreen = screenId;
           screenIdEl.textContent = screenId;
           document.getElementById('screen-select').value = screenId;
-          
-          // Apply branding
-          applyBranding();
+
+          await runScreenTransition(() => {
+            widget.screen = data.screen;
+            // Apply branding
+            applyBranding();
+          });
         }
         
         if (updateUrl && urlMode !== 'ssr') {
@@ -2559,8 +2698,11 @@ async function renderWidgetPage(options: {
         }
         
         if (result.screen) {
-          widget.screen = result.screen;
-          applyBranding();
+          await runScreenTransition(() => {
+            widget.loading = false;
+            widget.screen = result.screen;
+            applyBranding();
+          });
         }
       } catch (error) {
         console.error('Submit error:', error);

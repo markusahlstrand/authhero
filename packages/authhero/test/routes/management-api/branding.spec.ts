@@ -244,4 +244,87 @@ describe("branding", () => {
       expect(fallbackBody.body).toContain("{%- auth0:widget -%}");
     });
   });
+
+  describe("universal login full-page preview", () => {
+    it("renders a full-page preview for a sample screen", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      const response = await managementClient.branding.templates[
+        "universal-login"
+      ].preview.$post(
+        {
+          header: { "tenant-id": "tenantId" },
+          json: { screen: "login" },
+        },
+        {
+          headers: { authorization: `Bearer ${token}` },
+        },
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toContain("text/html");
+      const html = await response.text();
+      // Full page shell + SSR'd widget.
+      expect(html).toContain("<meta charSet=");
+      expect(html).toContain("authhero-widget");
+      expect(html).toContain("data-authhero-widget-container");
+    });
+
+    it("reflects an unsaved template body passed in the request", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      const response = await managementClient.branding.templates[
+        "universal-login"
+      ].preview.$post(
+        {
+          header: { "tenant-id": "tenantId" },
+          json: {
+            screen: "login",
+            body: `<div class="preview-marker">PREVIEW_MARKER</div>{%- auth0:widget -%}`,
+          },
+        },
+        {
+          headers: { authorization: `Bearer ${token}` },
+        },
+      );
+
+      expect(response.status).toBe(200);
+      const html = await response.text();
+      expect(html).toContain("PREVIEW_MARKER");
+      expect(html).toContain("data-authhero-widget-container");
+    });
+
+    it("renders a full-document (Auth0-style) template as the whole page", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      const response = await managementClient.branding.templates[
+        "universal-login"
+      ].preview.$post(
+        {
+          header: { "tenant-id": "tenantId" },
+          json: {
+            screen: "login",
+            body: `<!DOCTYPE html><html><head>{%- auth0:head -%}</head><body><div class="my-doc">{%- auth0:widget -%}</div></body></html>`,
+          },
+        },
+        {
+          headers: { authorization: `Bearer ${token}` },
+        },
+      );
+
+      expect(response.status).toBe(200);
+      const html = await response.text();
+      // The tenant's own document wrapper is preserved (not nested in the shell).
+      expect(html).toContain('class="my-doc"');
+      // auth0:head injected the functional essentials (the widget script).
+      expect(html).toContain("/u/widget/authhero-widget.esm.js");
+      expect(html).toContain("data-authhero-widget-container");
+    });
+  });
 });

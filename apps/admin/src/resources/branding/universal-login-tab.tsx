@@ -1,57 +1,25 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNotify } from "ra-core";
-import { Loader2 } from "lucide-react";
-import {
-  authorizedHttpClient,
-  createOrganizationHttpClient,
-  isSingleTenantForDomain,
-} from "@/authProvider";
+import { ExternalLink, Loader2 } from "lucide-react";
 import { useTenantId } from "@/TenantContext";
-import {
-  buildUrlWithProtocol,
-  formatDomain,
-  getDomainFromStorage,
-  getSelectedDomainFromStorage,
-} from "@/utils/domainUtils";
-import { getConfigValue } from "@/utils/runtimeConfig";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { getApiUrl, getHttpClient, openFullPreview } from "./previewClient";
 
-const DEFAULT_TEMPLATE = `{%- auth0:widget -%}
+const DEFAULT_TEMPLATE = `<div class="ah-widget-stack">
+  <div class="ah-above-widget" data-ah-slot="above-widget"></div>
+  {%- auth0:widget -%}
+  <div class="ah-below-widget" data-ah-slot="below-widget"></div>
+</div>
 {%- authhero:logo -%}
 {%- authhero:settings -%}
 {%- authhero:powered-by -%}
 {%- authhero:legal -%}
 `;
 
-function getApiUrl(): string {
-  const domains = getDomainFromStorage();
-  const selectedDomain = getSelectedDomainFromStorage();
-  const formattedSelectedDomain = formatDomain(selectedDomain);
-  const domainConfig = domains.find(
-    (d) => formatDomain(d.url) === formattedSelectedDomain,
-  );
-
-  let apiUrl: string;
-  if (domainConfig?.restApiUrl) {
-    apiUrl = buildUrlWithProtocol(domainConfig.restApiUrl);
-  } else if (selectedDomain) {
-    apiUrl = buildUrlWithProtocol(selectedDomain);
-  } else {
-    apiUrl = buildUrlWithProtocol(getConfigValue("apiUrl"));
-  }
-
-  return apiUrl.replace(/\/$/, "");
-}
-
-function getHttpClient(tenantId: string) {
-  const formattedDomain = formatDomain(getSelectedDomainFromStorage());
-  if (isSingleTenantForDomain(formattedDomain)) {
-    return authorizedHttpClient;
-  }
-  return createOrganizationHttpClient(tenantId);
-}
+/** Matches the widget mount tag in any valid Liquid spelling. */
+const WIDGET_TAG_RE = /\{%-?\s*auth0\s*:\s*widget\s*-?%\}/;
 
 interface HttpError {
   status?: number;
@@ -119,8 +87,8 @@ export function UniversalLoginTab() {
 
   const handleSave = async () => {
     if (!tenantId) return;
-    if (!template.includes("{%- auth0:widget -%}")) {
-      notify("Template must contain {%- auth0:widget -%} tag", {
+    if (!WIDGET_TAG_RE.test(template)) {
+      notify("Template must contain the {%- auth0:widget -%} tag", {
         type: "error",
       });
       return;
@@ -193,6 +161,16 @@ export function UniversalLoginTab() {
 
   const handleUseDefault = () => setTemplate(DEFAULT_TEMPLATE);
 
+  const handleOpenFullPreview = async () => {
+    if (!tenantId) return;
+    try {
+      // Send the current editor body so the preview reflects unsaved edits.
+      await openFullPreview({ tenantId, screen: "login", body: template });
+    } catch {
+      notify("Failed to open preview", { type: "error" });
+    }
+  };
+
   const hasChanges = template !== originalTemplate;
 
   if (loading) {
@@ -209,14 +187,16 @@ export function UniversalLoginTab() {
         <h3 className="text-lg font-semibold">Universal Login Page Template</h3>
         <p className="mt-1 text-sm text-muted-foreground">
           Customize the Universal Login body. The page shell (CSS, dark-mode
-          runtime, layout) is fixed by AuthHero — your template only controls
-          which corner chips render. Delete a slot to hide that pill.
+          runtime, layout) is fixed by AuthHero — your template controls which
+          corner chips render and any content placed around the widget. The body
+          is rendered with Liquid, so you can use variables and{" "}
+          <code>{"{% if %}"}</code> logic. Delete a slot to hide that pill.
         </p>
       </div>
 
       <Alert>
         <AlertDescription>
-          <div className="text-sm font-semibold">Slots:</div>
+          <div className="text-sm font-semibold">Corner slots:</div>
           <ul className="ml-5 mt-2 list-disc space-y-1 text-sm">
             <li>
               <code>{"{%- auth0:widget -%}"}</code> — login widget mount
@@ -245,6 +225,33 @@ export function UniversalLoginTab() {
               <code>{"{%- authhero:legal -%}"}</code> — bottom-right legal chip
             </li>
           </ul>
+          <div className="mt-3 text-sm font-semibold">
+            Above / below the widget:
+          </div>
+          <p className="mt-1 text-sm">
+            Wrap the widget in <code>{'<div class="ah-widget-stack">'}</code>{" "}
+            and add <code>{'<div class="ah-above-widget">'}</code> /{" "}
+            <code>{'<div class="ah-below-widget">'}</code> regions to place your
+            own in-flow content (a heading, a notice, support links). Empty
+            regions collapse automatically.
+          </p>
+          <div className="mt-3 text-sm font-semibold">Chip styling:</div>
+          <p className="mt-1 text-sm">
+            Corner chips render as a pill over a background image and as plain
+            text on a solid background. Force one with the slot{"'"}s style
+            argument, e.g. <code>{'{%- authhero:legal style="plain" -%}'}</code>{" "}
+            or <code>{'style="pill"'}</code> (default <code>auto</code>).
+          </p>
+          <div className="mt-3 text-sm font-semibold">
+            Migrating from Auth0?
+          </div>
+          <p className="mt-1 text-sm">
+            Paste a full HTML document (with <code>{"<html>"}</code> and{" "}
+            <code>{"{%- auth0:head -%}"}</code>) and it renders as the whole
+            page instead of the fixed shell — your document owns its layout and
+            CSS, and <code>{"{%- auth0:head -%}"}</code> injects the widget
+            script and styles it needs.
+          </p>
           <a
             href="https://auth0.com/docs/authenticate/login/auth0-universal-login/new-experience/universal-login-page-templates"
             target="_blank"
@@ -284,6 +291,10 @@ export function UniversalLoginTab() {
           ) : (
             "Save Template"
           )}
+        </Button>
+        <Button type="button" variant="outline" onClick={handleOpenFullPreview}>
+          <ExternalLink className="size-4" />
+          Open full preview
         </Button>
         {!template && (
           <Button type="button" variant="outline" onClick={handleUseDefault}>
@@ -334,6 +345,18 @@ export function UniversalLoginTab() {
           </li>
           <li>
             <code>{"{{ prompt.screen.name }}"}</code> — Current screen name
+          </li>
+          <li>
+            <code>{"{{ page.has_background_image }}"}</code> — true when a
+            background image is set
+          </li>
+          <li>
+            <code>{"{{ page.dark_mode }}"}</code> — <code>auto</code> /{" "}
+            <code>light</code> / <code>dark</code>
+          </li>
+          <li>
+            <code>{"{{ page.logo_position }}"}</code> /{" "}
+            <code>{"{{ page.layout }}"}</code>
           </li>
         </ul>
       </div>

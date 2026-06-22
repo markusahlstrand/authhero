@@ -16,6 +16,7 @@ export { projectControlPlaneDefaults } from "./defaults-projection";
 export type {
   ControlPlaneDefaultsPayload,
   ControlPlaneDefaultsApplyResult,
+  ControlPlaneTenantSeed,
   DefaultsPayloadEntities,
 } from "./payload";
 export {
