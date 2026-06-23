@@ -332,12 +332,18 @@ describe("createCloudflareWfpD1Provisioner", () => {
 
     await provisioner.onProvision("kvartal");
 
-    // Order: D1 create, two migration execs, script upload, two secret puts
+    // Order: D1 create, then migrations reconciled against the tracking table
+    // (create table, read applied set, then per migration: run SQL + record),
+    // then script upload and two secret puts.
     const paths = captured.map((c) => c.path);
     expect(paths).toEqual([
       "/d1/database",
-      "/d1/exec",
-      "/d1/exec",
+      "/d1/exec", // CREATE TABLE _authhero_provisioner_migrations
+      "/d1/exec", // SELECT applied migration names
+      "/d1/exec", // run 0000_init.sql
+      "/d1/exec", // record 0000_init.sql
+      "/d1/exec", // run 0001_add_keys.sql
+      "/d1/exec", // record 0001_add_keys.sql
       "/scripts/kvartal",
       "/scripts/kvartal/secrets",
       "/scripts/kvartal/secrets",
@@ -347,8 +353,9 @@ describe("createCloudflareWfpD1Provisioner", () => {
     expect((captured[0].body as { name: string }).name).toBe("tenant-kvartal");
 
     // Script binds the D1 by uuid + plain-text the control-plane URL
+    const upload = captured.find((c) => c.path === "/scripts/kvartal");
     const metadata = JSON.parse(
-      (captured[3].body as Record<string, string>)["metadata"],
+      (upload!.body as Record<string, string>)["metadata"],
     );
     const dbBinding = metadata.bindings.find((b: { name: string }) => b.name === "AUTH_DB");
     const cpBinding = metadata.bindings.find(
@@ -361,8 +368,11 @@ describe("createCloudflareWfpD1Provisioner", () => {
     });
 
     // Secrets uploaded as secret_text
-    const secret1 = captured[4].body as Record<string, string>;
-    const secret2 = captured[5].body as Record<string, string>;
+    const secretPuts = captured.filter(
+      (c) => c.path === "/scripts/kvartal/secrets",
+    );
+    const secret1 = secretPuts[0].body as Record<string, string>;
+    const secret2 = secretPuts[1].body as Record<string, string>;
     const names = [secret1.name, secret2.name].sort();
     expect(names).toEqual(["ENCRYPTION_KEY", "ISSUER"]);
     expect(secret1.type).toBe("secret_text");
@@ -462,10 +472,15 @@ describe("createCloudflareWfpD1Provisioner", () => {
 
     await provisioner.onProvision("kvartal");
 
-    // No create (reused) and — crucially — no migration re-run on the existing
-    // D1, which is what used to make a re-provision throw on duplicate columns.
+    // No create (reused). The provisioner backfills its tracking table on a
+    // legacy D1 (table-exists probe, CREATE TABLE, record), but — crucially —
+    // never re-runs the migration SQL itself, which is what used to make a
+    // re-provision throw on duplicate columns.
     expect(captured.filter((c) => c.path === "/d1/database")).toHaveLength(0);
-    expect(captured.find((c) => c.path === "/d1/exec")).toBeUndefined();
+    const migrationSql = captured
+      .filter((c) => c.path === "/d1/exec")
+      .map((c) => (c.body as { sql: string }).sql);
+    expect(migrationSql.some((sql) => sql.includes("SELECT 1;"))).toBe(false);
     // The worker is still re-uploaded so the orphaned script is healed.
     expect(captured.find((c) => c.path === "/scripts/kvartal")).toBeDefined();
     expect(warn).toHaveBeenCalledOnce();

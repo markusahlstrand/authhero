@@ -18,3 +18,4 @@ pnpm saml test
 pnpm authhero test
 pnpm aws-adapter test
 pnpm multi-tenancy test
+pnpm cloudflare test
