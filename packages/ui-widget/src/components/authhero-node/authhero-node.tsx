@@ -697,7 +697,13 @@ export class AuthheroNode {
     const groupSize = config.group_size ?? 3;
     const separator = config.separator ?? "-";
     const placeholder = config.placeholder;
-    const value = (this.getEffectiveValue() ?? "").slice(0, length);
+    // Apply the same mode sanitization used on input (handleCodeInput) so a
+    // persisted/default value with invalid characters (e.g. "12-3a" in numeric
+    // mode) doesn't render until edited.
+    const disallowed = mode === "alphanumeric" ? /[^a-zA-Z0-9]/g : /\D/g;
+    const value = (this.getEffectiveValue() ?? "")
+      .replace(disallowed, "")
+      .slice(0, length);
 
     const boxClass = (i: number) => {
       let cls = "code-box";

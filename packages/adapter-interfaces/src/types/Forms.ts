@@ -202,8 +202,10 @@ const codeField = fieldComponentBase.extend({
   type: z.literal("CODE"),
   config: z
     .object({
-      // Number of characters in the code (default 6 in the renderer).
-      length: z.number().optional(),
+      // Number of characters in the code (default 6 in the renderer). Bounded
+      // to a positive integer so an absurd length can't blow up the rendered
+      // box grid.
+      length: z.number().int().positive().max(100).optional(),
       // Restricts allowed characters. "numeric" also sets inputmode=numeric
       // so mobile keyboards show digits and SMS autofill works.
       mode: z.enum(["numeric", "alphanumeric"]).optional(),
@@ -212,7 +214,7 @@ const codeField = fieldComponentBase.extend({
       auto_submit: z.boolean().optional(),
       // Split the boxes into groups of this size with a separator between
       // them (e.g. 3 → "123 - 456"). Defaults to 3; set 0 for no grouping.
-      group_size: z.number().optional(),
+      group_size: z.number().int().min(0).max(100).optional(),
       // Character drawn between groups. Defaults to "-"; set "" for a plain gap.
       separator: z.string().optional(),
       // Faint guide character shown inside empty boxes (e.g. "0" or "•").
@@ -220,6 +222,25 @@ const codeField = fieldComponentBase.extend({
       placeholder: z.string().optional(),
       default_value: z.string().optional(),
     })
+    // Keep cross-field invariants the renderer assumes: groups can't be larger
+    // than the code, and a default can't exceed the configured length.
+    .refine(
+      (c) =>
+        c.group_size === undefined ||
+        c.length === undefined ||
+        c.group_size <= c.length,
+      { message: "group_size cannot exceed length", path: ["group_size"] },
+    )
+    .refine(
+      (c) =>
+        c.default_value === undefined ||
+        c.length === undefined ||
+        c.default_value.length <= c.length,
+      {
+        message: "default_value is longer than the configured length",
+        path: ["default_value"],
+      },
+    )
     .optional(),
 });
 

@@ -70,9 +70,12 @@ export interface WfpTenantProvisioningHookOptions {
    * Folding the seed into provisioning closes the "ready but empty D1" gap: a
    * best-effort seed fired separately after this hook can be lost, leaving a
    * tenant marked `ready` whose D1 has no tenant row and no projected defaults.
-   * Here, if the seed throws, the tenant is marked `failed` (resource ids are
-   * still persisted so a re-provision can find them) and the error is
-   * re-thrown. Leave unset to mark `ready` as soon as the resources exist.
+   * Here, if the seed throws — or resolves with collected per-entity errors
+   * (the seed applies with `continueOnError`, so failures surface in the
+   * result rather than as a rejection) — the tenant is marked `failed`
+   * (resource ids are still persisted so a re-provision can find them) and the
+   * error is re-thrown. Leave unset to mark `ready` as soon as the resources
+   * exist.
    */
   syncDefaults?: (tenantId: string) => Promise<unknown>;
 }
@@ -86,6 +89,31 @@ function defaultShouldProvision(tenant: {
   deployment_type?: string;
 }): boolean {
   return tenant.deployment_type === "wfp";
+}
+
+/**
+ * Collects per-entity `errors` from a sync-defaults apply result. The seed runs
+ * with `continueOnError`, so the tenant worker returns a 2xx (no rejection)
+ * even when individual entities fail — a clean resolve is therefore not proof
+ * the seed landed. Walk the result's entity outcomes and surface any collected
+ * errors so a partially-seeded tenant isn't marked `ready`.
+ */
+function collectSyncDefaultsErrors(result: unknown): string[] {
+  if (typeof result !== "object" || result === null) return [];
+  const errors: string[] = [];
+  for (const outcome of Object.values(result)) {
+    if (
+      typeof outcome === "object" &&
+      outcome !== null &&
+      "errors" in outcome &&
+      Array.isArray(outcome.errors)
+    ) {
+      for (const err of outcome.errors) {
+        if (typeof err === "string") errors.push(err);
+      }
+    }
+  }
+  return errors;
 }
 
 export function createWfpTenantProvisioningHook(
@@ -138,8 +166,18 @@ export function createWfpTenantProvisioningHook(
 
       try {
         // Seed BEFORE marking ready so we never report "ready" over an empty
-        // D1 (no tenant row, no projected defaults).
-        if (syncDefaults) await syncDefaults(tenantId);
+        // D1 (no tenant row, no projected defaults). The seed runs with
+        // `continueOnError`, so a resolved result can still carry per-entity
+        // errors — treat those as a provisioning failure too.
+        if (syncDefaults) {
+          const result = await syncDefaults(tenantId);
+          const seedErrors = collectSyncDefaultsErrors(result);
+          if (seedErrors.length > 0) {
+            throw new Error(
+              `sync-defaults seed reported ${seedErrors.length} error(s): ${seedErrors.join("; ")}`,
+            );
+          }
+        }
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         try {
