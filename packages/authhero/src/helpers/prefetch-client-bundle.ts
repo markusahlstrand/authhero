@@ -28,10 +28,17 @@ export async function prefetchClientBundle(
   opts: { client_id: string; tenant_id?: string },
 ): Promise<{ tenant: Tenant; client: Client }> {
   const { client_id } = opts;
-  let { tenant_id } = opts;
+  // Prefer an explicit tenant_id, then the tenant the request already resolved
+  // (host subdomain / custom domain / tenant-id header). Falling back to the
+  // global getByClientId discovery only when the request carries no tenant is
+  // what preserves tenant isolation: without this, a request to one tenant's
+  // host could authenticate a client_id that belongs to a different tenant,
+  // because the global lookup derives — and then overwrites ctx with — the
+  // client's own tenant. See getEnrichedClient for the same precedence.
+  let tenant_id = opts.tenant_id ?? ctx.var.tenant_id;
 
-  // Discover tenant_id if not given. This is the one call that can't be
-  // bundle-served because ctx.var.client_id isn't set yet.
+  // Discover tenant_id only when the request resolved none. This is the one
+  // call that can't be bundle-served because ctx.var.client_id isn't set yet.
   if (!tenant_id) {
     const result = await ctx.env.data.clients.getByClientId(client_id);
     if (!result) {

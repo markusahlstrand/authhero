@@ -112,9 +112,9 @@ describe("tenantMiddleware", () => {
     expect(mockNext).toHaveBeenCalled();
   });
 
-  it("should trust the subdomain of the ISSUER apex as tenant_id without any lookup", async () => {
-    // Arrange — `{tenant_id}.{issuerHost}` carries the tenant id in the
-    // host itself; validation is deferred to the first tenant-scoped read.
+  it("should resolve the subdomain of the ISSUER apex as tenant_id when the tenant exists", async () => {
+    // Arrange — `{tenant_id}.{issuerHost}` carries the tenant id in the host
+    // itself; we verify the tenant exists (one indexed read) before trusting it.
     const host = "tenant123.example.com";
 
     mockHeaderFn.mockImplementation((header) => {
@@ -123,19 +123,44 @@ describe("tenantMiddleware", () => {
       return null;
     });
 
+    mockGet.mockResolvedValue({ id: "tenant123" });
+
     // Act
     await tenantMiddleware(mockCtx, mockNext);
 
-    // Assert — zero DB calls
+    // Assert — only the tenant existence check, no custom-domain probe / list
     expect(mockGetByDomain).not.toHaveBeenCalled();
-    expect(mockGet).not.toHaveBeenCalled();
+    expect(mockGet).toHaveBeenCalledWith("tenant123");
     expect(mockList).not.toHaveBeenCalled();
     expect(mockSet).toHaveBeenCalledWith("tenant_id", "tenant123");
     expect(mockSet).toHaveBeenCalledWith("custom_domain", host);
     expect(mockNext).toHaveBeenCalled();
   });
 
-  it("should trust the subdomain from x-forwarded-host (proxied requests)", async () => {
+  it("should 404 when the subdomain of the ISSUER apex is not a real tenant", async () => {
+    // A bogus subdomain (e.g. does-not-exist.example.com) must not resolve to
+    // a phantom tenant — otherwise the token endpoint would mint a token with
+    // iss=https://does-not-exist.example.com/ for a tenant that doesn't exist.
+    const host = "does-not-exist.example.com";
+
+    mockHeaderFn.mockImplementation((header) => {
+      if (header === "x-forwarded-host") return null;
+      if (header === "host") return host;
+      return null;
+    });
+
+    mockGet.mockResolvedValue(undefined);
+
+    await expect(tenantMiddleware(mockCtx, mockNext)).rejects.toMatchObject({
+      status: 404,
+    });
+
+    expect(mockGet).toHaveBeenCalledWith("does-not-exist");
+    expect(mockSet).not.toHaveBeenCalledWith("tenant_id", expect.anything());
+    expect(mockNext).not.toHaveBeenCalled();
+  });
+
+  it("should resolve the subdomain from x-forwarded-host (proxied requests)", async () => {
     const host = "tenant123.auth.example.com";
     mockCtx.env.ISSUER = "https://auth.example.com/";
 
@@ -145,10 +170,12 @@ describe("tenantMiddleware", () => {
       return null;
     });
 
+    mockGet.mockResolvedValue({ id: "tenant123" });
+
     await tenantMiddleware(mockCtx, mockNext);
 
     expect(mockGetByDomain).not.toHaveBeenCalled();
-    expect(mockGet).not.toHaveBeenCalled();
+    expect(mockGet).toHaveBeenCalledWith("tenant123");
     expect(mockSet).toHaveBeenCalledWith("tenant_id", "tenant123");
     expect(mockSet).toHaveBeenCalledWith("custom_domain", host);
     expect(mockNext).toHaveBeenCalled();
@@ -163,8 +190,11 @@ describe("tenantMiddleware", () => {
       return null;
     });
 
+    mockGet.mockResolvedValue({ id: "tenant123" });
+
     await tenantMiddleware(mockCtx, mockNext);
 
+    expect(mockGet).toHaveBeenCalledWith("tenant123");
     expect(mockSet).toHaveBeenCalledWith("tenant_id", "tenant123");
     expect(mockSet).toHaveBeenCalledWith("custom_domain", host);
     expect(mockNext).toHaveBeenCalled();

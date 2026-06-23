@@ -2,6 +2,7 @@ import { Context, Next } from "hono";
 import { Bindings, Variables } from "../types";
 import { getIssuer } from "../variables";
 import { isCimdClientId } from "../helpers/cimd";
+import { JSONHTTPException } from "../errors/json-http-exception";
 
 /**
  * Routes that resolve their tenant from a state artifact (oauth2_state code →
@@ -75,12 +76,13 @@ export async function tenantMiddleware(
     host === issuerHost || host.endsWith(`.${issuerHost}`);
 
   // Tenant-subdomain fast path: hosts of the form `{tenant_id}.{issuerHost}`
-  // carry the tenant id in the host itself — no lookup needed. The id is
-  // trusted as-is: the first tenant-scoped read (e.g. the client-bundle
-  // prefetch) 404s unknown tenants, and setTenantId throws on any mismatch
-  // with a state-derived tenant, so deferring validation is safe. Only hosts
-  // scoped under the operator's own ISSUER apex get this treatment — for any
-  // other host the first label says nothing about tenant identity.
+  // carry the tenant id in the host itself. The label IS the tenant id, but we
+  // verify the tenant actually exists before trusting it: not every endpoint's
+  // first read is strictly tenant-scoped, so an unverified label can leak
+  // through. The token endpoint, for instance, would mint a token carrying
+  // `iss=https://{label}.{issuerHost}/` for a phantom tenant instead of 404ing.
+  // Only hosts scoped under the operator's own ISSUER apex get this treatment —
+  // for any other host the first label says nothing about tenant identity.
   //
   // Per RFC 3986 §3.2.2 the host is case-insensitive — compare lowercased,
   // but preserve the request's casing in ctx.var.host / custom_domain.
@@ -88,6 +90,10 @@ export async function tenantMiddleware(
   if (lowerBrowserHost.endsWith(`.${issuerHost}`)) {
     const label = lowerBrowserHost.slice(0, -(issuerHost.length + 1));
     if (label && !label.includes(".")) {
+      const tenant = await ctx.env.data.tenants.get(label);
+      if (!tenant) {
+        throw new JSONHTTPException(404, { message: "Tenant not found" });
+      }
       ctx.set("tenant_id", label);
       // Self-referencing URLs (iss claim, openid-configuration) should use
       // the subdomain host the client called, not the canonical apex.

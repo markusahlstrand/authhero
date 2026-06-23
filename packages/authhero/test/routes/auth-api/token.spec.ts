@@ -137,6 +137,58 @@ describe("token", () => {
       expect(body).toEqual({ message: "Invalid client credentials" });
     });
 
+    it("should not authenticate a client that belongs to a different tenant", async () => {
+      // Tenant isolation regression: a request scoped to tenant A (via the
+      // resolved tenant_id) must not be able to authenticate a client_id that
+      // lives in tenant B, even with B's correct secret. Previously the token
+      // endpoint's client-bundle prefetch did a global client_id lookup and
+      // overwrote the request-scoped tenant with the client's own tenant.
+      const { oauthApp, env } = await getTestServer();
+      const client = testClient(oauthApp, env);
+
+      // Second tenant with its own client + secret.
+      await env.data.tenants.create({
+        id: "otherTenant",
+        friendly_name: "Other Tenant",
+        audience: "https://other.example.com",
+        default_audience: "https://other.example.com",
+        sender_email: "other@example.com",
+        sender_name: "Other",
+      });
+      await env.data.clients.create("otherTenant", {
+        client_id: "otherClientId",
+        client_secret: "otherClientSecret",
+        name: "Other Client",
+        callbacks: [],
+        web_origins: [],
+        allowed_logout_urls: [],
+        client_metadata: {},
+      });
+
+      const response = await client.oauth.token.$post(
+        // @ts-expect-error - testClient type requires both form and json
+        {
+          form: {
+            grant_type: "client_credentials",
+            client_id: "otherClientId",
+            client_secret: "otherClientSecret",
+            audience: "https://example.com",
+          },
+        },
+        {
+          // Request is scoped to "tenantId", but the client lives in
+          // "otherTenant" — it must not be found.
+          headers: {
+            "tenant-id": "tenantId",
+          },
+        },
+      );
+
+      expect(response.status).toBe(403);
+      const body = (await response.json()) as { message?: string };
+      expect(body.message).toBe("Client not found");
+    });
+
     it("should return all granted scopes when no scope is specified in client_credentials", async () => {
       const { oauthApp, env } = await getTestServer();
       const client = testClient(oauthApp, env);
