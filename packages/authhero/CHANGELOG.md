@@ -1,5 +1,17 @@
 # authhero
 
+## 8.7.1
+
+### Patch Changes
+
+- 6aef941: Fix tenant isolation at the token endpoint: a `client_credentials` (and any other prefetch-backed) request scoped to one tenant via the resolved host could authenticate a `client_id` belonging to a different tenant. `prefetchClientBundle` ignored the already-resolved `ctx.var.tenant_id` and did a global `getByClientId` discovery, overwriting the request's tenant with the client's own tenant. It now prefers the request-resolved tenant and only falls back to the global lookup when the request carries no tenant at all.
+- 6d19200: Fix Auth0-style full-document Universal Login templates rendering unstyled. The `{%- auth0:head -%}` slot now ships a centered body layout (page background, flex centering, font) in its page CSS, so a vanilla Auth0 page template (`<body>{%- auth0:widget -%}</body>`) renders centered on the page background instead of top-left on a blank page.
+- 6aef941: Return 404 for ISSUER-apex subdomains that don't map to a real tenant. `tenantMiddleware` previously trusted the subdomain label (`{tenant_id}.{issuerHost}`) as the tenant id without verifying it existed, deferring validation to the first tenant-scoped read. That assumption didn't hold for every endpoint — e.g. the token endpoint would mint a token carrying `iss=https://does-not-exist.{issuerHost}/` for a tenant that doesn't exist. The middleware now does a single indexed `tenants.get(label)` and throws 404 "Tenant not found" when the subdomain has no matching tenant.
+- Updated dependencies [6d19200]
+  - @authhero/adapter-interfaces@3.2.0
+  - @authhero/widget@0.34.0
+  - @authhero/proxy@0.7.2
+
 ## 8.7.0
 
 ### Minor Changes
