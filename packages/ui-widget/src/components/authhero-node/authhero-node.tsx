@@ -6,6 +6,7 @@ import {
   EventEmitter,
   State,
   Watch,
+  Element,
 } from "@stencil/core";
 import type {
   FormComponent,
@@ -30,6 +31,8 @@ export class AuthheroNode {
    * The component configuration to render.
    * Follows Auth0 Forms component schema.
    */
+  @Element() host!: HTMLElement;
+
   @Prop() component!: FormComponent | RuntimeComponent;
 
   /**
@@ -96,6 +99,19 @@ export class AuthheroNode {
   componentWillLoad() {
     this.initCountryFromConfig();
     this.initTelValue();
+  }
+
+  componentDidLoad() {
+    // Auto-focus a code field so the caret starts in the first (leftmost) box.
+    if (this.component?.type === "CODE" && !this.disabled) {
+      const value = this.getEffectiveValue() ?? "";
+      if (value.length === 0) {
+        const input = this.host.shadowRoot?.querySelector(
+          "input.code-input",
+        ) as HTMLInputElement | null;
+        input?.focus();
+      }
+    }
   }
 
   private initCountryFromConfig() {
@@ -284,6 +300,26 @@ export class AuthheroNode {
         this.localPhoneNumber = "";
         this.fieldChange.emit({ id: this.component.id, value: "" });
       }
+    }
+  };
+
+  private handleCodeInput = (
+    e: Event,
+    length: number,
+    mode: "numeric" | "alphanumeric",
+    autoSubmit: boolean,
+  ) => {
+    const target = e.target as HTMLInputElement;
+    const disallowed = mode === "alphanumeric" ? /[^a-zA-Z0-9]/g : /\D/g;
+    const cleaned = target.value.replace(disallowed, "").slice(0, length);
+    // Reflect the sanitized value back so the visible boxes never show
+    // characters we stripped (e.g. a pasted "123-456").
+    if (cleaned !== target.value) {
+      target.value = cleaned;
+    }
+    this.fieldChange.emit({ id: this.component.id, value: cleaned });
+    if (autoSubmit && cleaned.length === length) {
+      this.buttonClick.emit({ id: "submit", type: "submit", value: "next" });
     }
   };
 
@@ -628,6 +664,123 @@ export class AuthheroNode {
             component.required,
             hasValue,
           )}
+        </div>
+        {this.renderErrors()}
+        {errors.length === 0 && this.renderHint(component.hint)}
+      </div>
+    );
+  }
+
+  /**
+   * Segmented one-time-code input (e.g. SMS/email verification codes).
+   *
+   * Rendered as a SINGLE real <input> overlaid (transparent) on a row of
+   * presentational boxes. This keeps native paste, iOS/Android SMS autofill
+   * (`autocomplete="one-time-code"`) and screen-reader behaviour working —
+   * all of which break when using one <input> per digit.
+   */
+  private renderCodeField(component: FieldComponent & { type: "CODE" }) {
+    const inputId = `input-${component.id}`;
+    const errors = this.getErrors();
+    const hasError = errors.length > 0;
+    const config = (component.config ?? {}) as {
+      length?: number;
+      mode?: "numeric" | "alphanumeric";
+      auto_submit?: boolean;
+      group_size?: number;
+      separator?: string;
+      placeholder?: string;
+    };
+    const length = config.length ?? 6;
+    const mode = config.mode ?? "numeric";
+    const autoSubmit = config.auto_submit !== false;
+    const groupSize = config.group_size ?? 3;
+    const separator = config.separator ?? "-";
+    const placeholder = config.placeholder;
+    // Apply the same mode sanitization used on input (handleCodeInput) so a
+    // persisted/default value with invalid characters (e.g. "12-3a" in numeric
+    // mode) doesn't render until edited.
+    const disallowed = mode === "alphanumeric" ? /[^a-zA-Z0-9]/g : /\D/g;
+    const value = (this.getEffectiveValue() ?? "")
+      .replace(disallowed, "")
+      .slice(0, length);
+
+    const boxClass = (i: number) => {
+      let cls = "code-box";
+      if (i < value.length) cls += " is-filled";
+      // Highlight the next empty box as the "caret" position while focused.
+      if (!this.disabled && i === value.length) cls += " is-active";
+      return cls;
+    };
+
+    const renderBox = (i: number) => (
+      <div class={boxClass(i)} part="code-box">
+        {value[i] ??
+          (placeholder ? (
+            <span class="code-box-placeholder">{placeholder}</span>
+          ) : (
+            ""
+          ))}
+      </div>
+    );
+
+    // Split into groups of `groupSize` (e.g. 3 → "123 - 456"); a non-positive
+    // or >= length size means a single ungrouped row.
+    const useGroups = groupSize > 0 && groupSize < length;
+    const groups: number[][] = [];
+    if (useGroups) {
+      for (let start = 0; start < length; start += groupSize) {
+        groups.push(
+          Array.from({ length: Math.min(groupSize, length - start) }, (_, j) =>
+            start + j,
+          ),
+        );
+      }
+    } else {
+      groups.push(Array.from({ length }, (_, i) => i));
+    }
+
+    return (
+      <div class="input-wrapper" part="input-wrapper">
+        <div
+          class={hasError ? "code-field has-error" : "code-field"}
+          part="code-field"
+        >
+          <input
+            id={inputId}
+            class="code-input"
+            part="input code-input"
+            type="text"
+            name={component.id}
+            data-input-name={component.id}
+            value={value}
+            inputMode={mode === "numeric" ? "numeric" : "text"}
+            autoComplete="one-time-code"
+            autoCapitalize="off"
+            autoCorrect="off"
+            spellcheck={false}
+            maxLength={length}
+            required={component.required}
+            disabled={this.disabled}
+            aria-label={component.label}
+            aria-invalid={hasError ? "true" : "false"}
+            onInput={(e) =>
+              this.handleCodeInput(e, length, mode, autoSubmit)
+            }
+            onKeyDown={this.handleKeyDown}
+          />
+          <div class="code-boxes" part="code-boxes" aria-hidden="true">
+            {groups.map((group, gi) => [
+              gi > 0 && separator ? (
+                <span class="code-separator" part="code-separator">
+                  {separator}
+                </span>
+              ) : null,
+              <div class="code-group" part="code-group">
+                {group.map((i) => renderBox(i))}
+              </div>,
+            ])}
+          </div>
         </div>
         {this.renderErrors()}
         {errors.length === 0 && this.renderHint(component.hint)}
@@ -1264,6 +1417,10 @@ export class AuthheroNode {
       case "EMAIL":
         return this.renderEmailField(
           this.component as FieldComponent & { type: "EMAIL" },
+        );
+      case "CODE":
+        return this.renderCodeField(
+          this.component as FieldComponent & { type: "CODE" },
         );
       case "PASSWORD":
         return this.renderPasswordField(

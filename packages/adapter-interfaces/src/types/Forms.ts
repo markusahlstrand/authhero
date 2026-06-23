@@ -198,6 +198,52 @@ const choiceField = fieldComponentBase.extend({
     .optional(),
 });
 
+const codeField = fieldComponentBase.extend({
+  type: z.literal("CODE"),
+  config: z
+    .object({
+      // Number of characters in the code (default 6 in the renderer). Bounded
+      // to a positive integer so an absurd length can't blow up the rendered
+      // box grid.
+      length: z.number().int().positive().max(100).optional(),
+      // Restricts allowed characters. "numeric" also sets inputmode=numeric
+      // so mobile keyboards show digits and SMS autofill works.
+      mode: z.enum(["numeric", "alphanumeric"]).optional(),
+      // Submit the form automatically once all characters are entered.
+      // Defaults to true; set false to require an explicit button press.
+      auto_submit: z.boolean().optional(),
+      // Split the boxes into groups of this size with a separator between
+      // them (e.g. 3 → "123 - 456"). Defaults to 3; set 0 for no grouping.
+      group_size: z.number().int().min(0).max(100).optional(),
+      // Character drawn between groups. Defaults to "-"; set "" for a plain gap.
+      separator: z.string().optional(),
+      // Faint guide character shown inside empty boxes (e.g. "0" or "•").
+      // Omit for blank boxes.
+      placeholder: z.string().optional(),
+      default_value: z.string().optional(),
+    })
+    // Keep cross-field invariants the renderer assumes: groups can't be larger
+    // than the code, and a default can't exceed the configured length.
+    .refine(
+      (c) =>
+        c.group_size === undefined ||
+        c.length === undefined ||
+        c.group_size <= c.length,
+      { message: "group_size cannot exceed length", path: ["group_size"] },
+    )
+    .refine(
+      (c) =>
+        c.default_value === undefined ||
+        c.length === undefined ||
+        c.default_value.length <= c.length,
+      {
+        message: "default_value is longer than the configured length",
+        path: ["default_value"],
+      },
+    )
+    .optional(),
+});
+
 const customField = fieldComponentBase.extend({
   type: z.literal("CUSTOM"),
   config: z.object({
@@ -406,6 +452,7 @@ export const fieldComponentSchema = z.discriminatedUnion("type", [
   booleanField,
   cardsField,
   choiceField,
+  codeField,
   countryField,
   customField,
   dateField,
@@ -445,6 +492,7 @@ export const FORM_FIELD_TYPES = new Set<string>([
   "BOOLEAN",
   "CARDS",
   "CHOICE",
+  "CODE",
   "COUNTRY",
   "DATE",
   "DROPDOWN",
@@ -478,6 +526,7 @@ export type RecaptchaWidget = z.infer<typeof recaptchaWidget>;
 export type BooleanField = z.infer<typeof booleanField>;
 export type CardsField = z.infer<typeof cardsField>;
 export type ChoiceField = z.infer<typeof choiceField>;
+export type CodeField = z.infer<typeof codeField>;
 export type CountryField = z.infer<typeof countryField>;
 export type CustomField = z.infer<typeof customField>;
 export type DateField = z.infer<typeof dateField>;

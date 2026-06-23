@@ -280,13 +280,13 @@ function createEnterCodeScreen(
       },
       {
         id: "code",
-        type: "TEXT",
+        type: "CODE",
         category: "FIELD",
         visible: true,
         label: "Verification code",
         config: {
-          placeholder: "Enter 6-digit code",
-          max_length: 6,
+          length: 6,
+          mode: "numeric",
         },
         required: true,
         order: 1,
@@ -543,13 +543,13 @@ function createSmsOtpChallengeScreen(
       },
       {
         id: "code",
-        type: "TEXT",
+        type: "CODE",
         category: "FIELD",
         visible: true,
         label: "Verification code",
         config: {
-          placeholder: "Enter 6-digit code",
-          max_length: 6,
+          length: 6,
+          mode: "numeric",
         },
         required: true,
         order: 1,

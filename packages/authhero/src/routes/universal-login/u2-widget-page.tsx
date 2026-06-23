@@ -487,6 +487,62 @@ function buildWidgetContainerStyle(
 }
 
 // ---------------------------------------------------------------------------
+// Page body layout
+// ---------------------------------------------------------------------------
+
+/** Layout values for the page `<body>` — shared by the body-fragment path
+ *  (applied inline) and the full-document path (emitted into the stylesheet). */
+type BodyLayout = {
+  background: string;
+  fontFamily: string;
+  justifyContent: string;
+  padding: string;
+};
+
+/**
+ * Resolve the page-body layout (centering, background, font) from the theme
+ * and branding. Keeps the inline `<body>` style (fragment path) and the
+ * `auth0:head` stylesheet rule (full-document path) in sync so an Auth0-style
+ * template centers on the page background just like the default chrome does.
+ */
+function buildBodyLayout(opts: {
+  themePageBackground?: {
+    background_color?: string;
+    background_image_url?: string;
+    page_layout?: string;
+  };
+  brandingPageBackground?:
+    | string
+    | { type?: string; start?: string; end?: string; angle_deg?: number };
+  fontUrl?: string | null;
+}): BodyLayout {
+  const pageLayout = opts.themePageBackground?.page_layout || "center";
+  const justifyContent =
+    pageLayout === "left"
+      ? "flex-start"
+      : pageLayout === "right"
+        ? "flex-end"
+        : "center";
+  const padding =
+    pageLayout === "left"
+      ? "20px 20px 20px 80px"
+      : pageLayout === "right"
+        ? "20px 80px 20px 20px"
+        : "20px";
+  return {
+    background: buildThemePageBackground(
+      opts.themePageBackground,
+      opts.brandingPageBackground,
+    ),
+    fontFamily: opts.fontUrl
+      ? "'Inter', system-ui, sans-serif"
+      : "system-ui, -apple-system, sans-serif",
+    justifyContent,
+    padding,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Page CSS
 // ---------------------------------------------------------------------------
 
@@ -494,10 +550,31 @@ function buildPageCss(opts: {
   primaryColor?: string;
   themePrimary?: string;
   widgetBackground: string;
+  /**
+   * Page-body layout (centering, background, font). Only the full-document
+   * (Auth0-style) path passes this — there the tenant owns `<body>`, so the
+   * centering/background that the body-fragment path applies inline must come
+   * from the stylesheet instead. The fragment path omits it: its inline
+   * `<body>` style already covers layout and wins over a stylesheet rule.
+   */
+  bodyLayout?: BodyLayout;
 }): string {
-  const { primaryColor, themePrimary, widgetBackground } = opts;
+  const { primaryColor, themePrimary, widgetBackground, bodyLayout } = opts;
+  const bodyRule = bodyLayout
+    ? `
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: ${bodyLayout.justifyContent};
+      background: ${bodyLayout.background};
+      font-family: ${bodyLayout.fontFamily};
+      padding: ${bodyLayout.padding};
+    }`
+    : "";
   return `
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    ${bodyRule}
 
     /* ============= STEP TRANSITIONS =============
        Cross-document view transitions morph the widget's box between
@@ -890,10 +967,20 @@ export function buildHeadEssentials(opts: {
   const themePrimary = sanitizeCssColor(opts.theme?.colors?.primary_button);
   const widgetBackground =
     sanitizeCssColor(opts.theme?.colors?.widget_background) || "#ffffff";
+  // Full-document templates own `<body>` (no inline body style), so the page
+  // layout must come from the stylesheet — otherwise the widget renders
+  // top-left on a bare white page ("no styles"). This centers it on the page
+  // background, matching what Auth0's own `auth0:head` ships.
+  const bodyLayout = buildBodyLayout({
+    themePageBackground: opts.theme?.page_background,
+    brandingPageBackground: opts.branding?.colors?.page_background,
+    fontUrl,
+  });
   const pageCss = buildPageCss({
     primaryColor,
     themePrimary,
     widgetBackground,
+    bodyLayout,
   });
   const darkVarsJson = buildDarkVarsJson(themePrimary || primaryColor);
 
@@ -938,46 +1025,32 @@ export function WidgetPage({
   // container's CSS variables are computed by `buildWidgetContainerStyle`.
   const primaryColor = sanitizeCssColor(branding?.colors?.primary);
 
-  const pageBackground = buildThemePageBackground(
-    themePageBackground,
-    branding?.colors?.page_background,
-  );
   const hasBgImage = !!themePageBackground?.background_image_url;
   const faviconUrl = sanitizeUrl(branding?.favicon_url);
   const fontUrl = sanitizeUrl(branding?.font?.url);
   const widgetBackground =
     sanitizeCssColor(theme?.colors?.widget_background) || "#ffffff";
+  // Same layout resolution the full-document path emits into the stylesheet;
+  // here it's applied inline on `<body>` (and wins over any stylesheet rule).
+  const bodyLayout = buildBodyLayout({
+    themePageBackground,
+    brandingPageBackground: branding?.colors?.page_background,
+    fontUrl,
+  });
 
   // ---- Sanitize logo URL ----
   const safeLogoUrl = branding?.logo_url
     ? sanitizeUrl(branding.logo_url)
     : null;
 
-  // ---- Page layout (left/center/right) ----
-  const pageLayout = themePageBackground?.page_layout || "center";
-  const justifyContent =
-    pageLayout === "left"
-      ? "flex-start"
-      : pageLayout === "right"
-        ? "flex-end"
-        : "center";
-  const padding =
-    pageLayout === "left"
-      ? "20px 20px 20px 80px"
-      : pageLayout === "right"
-        ? "20px 80px 20px 20px"
-        : "20px";
-
   const bodyStyle = {
     minHeight: "100vh",
     display: "flex",
     alignItems: "center",
-    justifyContent,
-    background: pageBackground,
-    fontFamily: fontUrl
-      ? "'Inter', system-ui, sans-serif"
-      : "system-ui, -apple-system, sans-serif",
-    padding,
+    justifyContent: bodyLayout.justifyContent,
+    background: bodyLayout.background,
+    fontFamily: bodyLayout.fontFamily,
+    padding: bodyLayout.padding,
   };
 
   const widgetContainerStyle = buildWidgetContainerStyle(branding, theme);

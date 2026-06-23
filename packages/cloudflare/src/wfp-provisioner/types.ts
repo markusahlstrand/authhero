@@ -133,6 +133,12 @@ export interface CloudflareWfpD1ProvisionerOptions {
    * tenant bundle also takes a noticeable chunk of that.
    */
   timeoutMs?: number;
+  /**
+   * Optional `console`-compatible logger. Used to note non-fatal recovery
+   * decisions — e.g. skipping migrations while re-provisioning to heal an
+   * orphaned worker over an existing D1. Defaults to silent.
+   */
+  logger?: Pick<Console, "warn">;
 }
 
 /**

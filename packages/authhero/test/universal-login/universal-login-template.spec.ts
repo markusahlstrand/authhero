@@ -156,6 +156,25 @@ describe("auth0:head (full-document compatibility)", () => {
   });
 });
 
+describe("buildHeadEssentials (full-document page layout)", () => {
+  it("emits a centered body layout so a default Auth0 template isn't unstyled", async () => {
+    const { buildHeadEssentials } = await import(
+      "../../src/routes/universal-login/u2-widget-page"
+    );
+    const head = buildHeadEssentials({
+      clientName: "Acme",
+      branding: { colors: { page_background: "#101010" } },
+      theme: { page_background: { background_color: "#222" } },
+    });
+    // The full-document path owns <body>, so the centering/background that the
+    // fragment path applies inline must be present in the injected page CSS.
+    expect(head).toContain("min-height: 100vh");
+    expect(head).toContain("display: flex");
+    expect(head).toContain("justify-content: center");
+    expect(head).toContain("#222");
+  });
+});
+
 describe("templateIsFullDocument", () => {
   it("detects a full HTML document vs a body fragment", () => {
     expect(

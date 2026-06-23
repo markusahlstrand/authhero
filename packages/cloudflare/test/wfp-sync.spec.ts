@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { Hono } from "hono";
 import { Kysely, SqliteDialect } from "kysely";
 import SQLite from "better-sqlite3";
@@ -28,6 +28,15 @@ interface CapturedDispatch {
   init?: RequestInit;
 }
 
+// A minimal but well-formed apply result — what the tenant worker echoes back
+// and `createDispatchSyncDefaults` now parses and returns.
+const OK_RESULT = {
+  tenantId: CP,
+  connections: { received: 1, upserted: 1, errors: [] },
+  signingKeys: { received: 0, upserted: 0, errors: [] },
+  tenants: { received: 1, upserted: 1, errors: [] },
+};
+
 /** Fake dispatch namespace recording `.get(name).fetch(url, init)` calls. */
 function fakeDispatcher(handler?: (c: CapturedDispatch) => Response) {
   const calls: CapturedDispatch[] = [];
@@ -42,7 +51,7 @@ function fakeDispatcher(handler?: (c: CapturedDispatch) => Response) {
             init,
           };
           calls.push(captured);
-          return handler?.(captured) ?? new Response(null, { status: 200 });
+          return handler?.(captured) ?? Response.json(OK_RESULT);
         },
       };
     },
@@ -112,6 +121,37 @@ describe("createDispatchSyncDefaults", () => {
       controlPlaneAdapters: cp,
     });
     await expect(sync("acme")).rejects.toThrow(/failed: 500/);
+  });
+
+  it("surfaces the worker's structured error code from X-Authhero-Error", async () => {
+    const cp = await makeAdapters();
+    const dispatcher = fakeDispatcher(
+      () =>
+        new Response('{"error":"sync_defaults_apply_failed"}', {
+          status: 500,
+          headers: { "x-authhero-error": "sync_defaults_apply_failed" },
+        }),
+    );
+    const sync = createDispatchSyncDefaults({
+      dispatcher,
+      internalSecret: "s3cret",
+      controlPlaneTenantId: CP,
+      controlPlaneAdapters: cp,
+    });
+    await expect(sync("acme")).rejects.toThrow(/sync_defaults_apply_failed/);
+  });
+
+  it("resolves with the apply result the tenant worker returns", async () => {
+    const cp = await makeAdapters();
+    const dispatcher = fakeDispatcher();
+    const sync = createDispatchSyncDefaults({
+      dispatcher,
+      internalSecret: "s3cret",
+      controlPlaneTenantId: CP,
+      controlPlaneAdapters: cp,
+    });
+    const result = await sync("acme");
+    expect(result).toEqual(OK_RESULT);
   });
 });
 
@@ -286,5 +326,71 @@ describe("createWfpTenantApp /internal/sync-defaults", () => {
     });
     expect(signingKeys.map((k) => k.kid)).toEqual(["cp-kid-1"]);
     expect(signingKeys[0].tenant_id ?? null).toBeNull();
+  });
+
+  it("invokes onSyncResult with the applied result", async () => {
+    const onSyncResult = vi.fn();
+    app = createWfpTenantApp({
+      createDataAdapter: () => tenant,
+      onSyncResult,
+    });
+    const res = await post("push-secret");
+    expect(res.status).toBe(200);
+    expect(onSyncResult).toHaveBeenCalledOnce();
+    const [result, passedEnv] = onSyncResult.mock.calls[0];
+    expect(result.signingKeys.upserted).toBe(1);
+    expect(passedEnv).toBe(env);
+  });
+
+  it("returns a structured 500 (logged + X-Authhero-Error) when apply throws", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      // A non-object `branding` fails `brandingSchema.parse` before any row is
+      // written — the apply throws regardless of continueOnError.
+      const res = await app.fetch(
+        new Request("https://tenant.internal/internal/sync-defaults", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            authorization: "Bearer push-secret",
+          },
+          body: JSON.stringify({ ...payload, branding: "not-an-object" }),
+        }),
+        env,
+        { waitUntil() {}, passThroughOnException() {} },
+      );
+      expect(res.status).toBe(500);
+      expect(res.headers.get("x-authhero-error")).toBe(
+        "sync_defaults_apply_failed",
+      );
+      const body = await res.json();
+      expect(body.error).toBe("sync_defaults_apply_failed");
+      expect(typeof body.detail).toBe("string");
+      expect(errorSpy).toHaveBeenCalled();
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
+
+  it("returns a structured 500 carrying the result when onSyncResult throws", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    app = createWfpTenantApp({
+      createDataAdapter: () => tenant,
+      onSyncResult: () => {
+        throw new Error("logging sink down");
+      },
+    });
+    try {
+      const res = await post("push-secret");
+      expect(res.status).toBe(500);
+      expect(res.headers.get("x-authhero-error")).toBe(
+        "sync_defaults_on_result_failed",
+      );
+      const body = await res.json();
+      // The apply committed — the result is still surfaced.
+      expect(body.result.signingKeys.upserted).toBe(1);
+    } finally {
+      errorSpy.mockRestore();
+    }
   });
 });

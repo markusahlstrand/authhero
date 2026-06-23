@@ -102,35 +102,113 @@ export function createCloudflareWfpD1Provisioner(
     "nodejs_compat",
   ];
   const dispatchNamespace = options.dispatchNamespace;
+  const logger = options.logger;
 
-  async function findOrCreateD1(name: string): Promise<string> {
+  async function findOrCreateD1(
+    name: string,
+  ): Promise<{ id: string; created: boolean }> {
     // List with a name filter first — CF doesn't return a stable 409 on
     // duplicate name, so checking ahead of time avoids racing.
     const existing = await client.listD1Databases(name);
     const match = existing.find((db) => db.name === name);
-    if (match) return match.uuid;
+    if (match) return { id: match.uuid, created: false };
     try {
       const created = await client.createD1Database(name);
-      return created.uuid;
+      return { id: created.uuid, created: true };
     } catch (err) {
       if (!isAlreadyExistsError(err)) throw err;
       // Lost the race — re-list to find the uuid the other writer just made.
       const after = await client.listD1Databases(name);
       const found = after.find((db) => db.name === name);
-      if (found) return found.uuid;
+      if (found) return { id: found.uuid, created: false };
       throw err;
     }
   }
 
+  // D1 has no native migration tracking, so the provisioner keeps its own
+  // table recording which migrations have been applied. This lets a provision
+  // that died partway through its migration list heal on retry — already-
+  // applied migrations are skipped, only the missing tail is run — instead of
+  // relying on a one-shot "freshly created" flag that can't see partial state.
+  const MIGRATIONS_TABLE = "_authhero_provisioner_migrations";
+
+  /** Pull a string column out of D1 query result blocks. */
+  function collectStringColumn(
+    result: { results?: unknown[] }[],
+    column: string,
+  ): string[] {
+    const values: string[] = [];
+    for (const block of result) {
+      for (const row of block.results ?? []) {
+        if (row && typeof row === "object" && column in row) {
+          const value = (row as Record<string, unknown>)[column];
+          if (typeof value === "string") values.push(value);
+        }
+      }
+    }
+    return values;
+  }
+
+  async function migrationsTableExists(databaseId: string): Promise<boolean> {
+    const result = await client.execD1(
+      databaseId,
+      `SELECT name FROM sqlite_master WHERE type='table' AND name='${MIGRATIONS_TABLE}';`,
+    );
+    return collectStringColumn(result, "name").length > 0;
+  }
+
+  async function ensureMigrationsTable(databaseId: string): Promise<void> {
+    await client.execD1(
+      databaseId,
+      `CREATE TABLE IF NOT EXISTS ${MIGRATIONS_TABLE} (name TEXT PRIMARY KEY, applied_at TEXT NOT NULL);`,
+    );
+  }
+
+  async function appliedMigrationNames(
+    databaseId: string,
+  ): Promise<Set<string>> {
+    const result = await client.execD1(
+      databaseId,
+      `SELECT name FROM ${MIGRATIONS_TABLE};`,
+    );
+    return new Set(collectStringColumn(result, "name"));
+  }
+
+  function escapeSqlLiteral(value: string): string {
+    return value.replace(/'/g, "''");
+  }
+
+  async function recordMigration(
+    databaseId: string,
+    name: string,
+  ): Promise<void> {
+    const appliedAt = new Date().toISOString();
+    await client.execD1(
+      databaseId,
+      `INSERT OR IGNORE INTO ${MIGRATIONS_TABLE} (name, applied_at) VALUES ('${escapeSqlLiteral(name)}', '${escapeSqlLiteral(appliedAt)}');`,
+    );
+  }
+
+  /**
+   * Apply every migration not yet recorded in the tracking table, recording
+   * each as it lands. Reconciling against the tracking table (rather than a
+   * one-shot flag) is what makes a half-finished provision recoverable.
+   *
+   * Caveat: D1 has no transactional DDL, so a single migration *file* that
+   * fails midway can still leave that one file partly applied. Author
+   * migrations defensively (`CREATE TABLE IF NOT EXISTS`, guarded
+   * `ADD COLUMN`) so re-running the failed file converges. Cross-file partial
+   * failure is handled here; intra-file is the migration author's job.
+   */
   async function applyMigrations(databaseId: string): Promise<void> {
+    const applied = await appliedMigrationNames(databaseId);
     for (const migration of options.migrations) {
+      if (applied.has(migration.name)) continue;
       try {
         await client.execD1(databaseId, migration.sql);
       } catch (err) {
-        // D1 doesn't natively track migrations, so re-running an already-
-        // applied migration usually surfaces as a duplicate-column / table
-        // error. Tag the error with the migration name so the operator can
-        // tell what failed.
+        // Tag the error with the migration name so the operator can tell
+        // what failed.
         if (err instanceof Error) {
           throw new Error(
             `Failed to apply migration "${migration.name}" to D1 ${databaseId}: ${err.message}`,
@@ -139,6 +217,7 @@ export function createCloudflareWfpD1Provisioner(
         }
         throw err;
       }
+      await recordMigration(databaseId, migration.name);
     }
   }
 
@@ -186,16 +265,36 @@ export function createCloudflareWfpD1Provisioner(
       const scriptName = fillTemplate(scriptNameTemplate, tenantId);
       const d1Name = fillTemplate(d1NameTemplate, tenantId);
 
-      // 1. D1: create-if-missing, capture id
-      const databaseId = await findOrCreateD1(d1Name);
+      // 1. D1: create-if-missing, capture id + whether we just created it.
+      const { id: databaseId, created } = await findOrCreateD1(d1Name);
 
-      // 2. Apply migrations. Each migration is idempotent on the SQL level
-      //    only if the operator's migration files use IF NOT EXISTS or run
-      //    `tenant.has_been_migrated` checks; otherwise re-running this is
-      //    a no-op on success, an error on first failure.
-      await applyMigrations(databaseId);
+      // 2. Migrations are reconciled against a provisioner-owned tracking
+      //    table rather than gated on the `created` flag — a provision that
+      //    died partway through its migrations leaves an orphaned, partially
+      //    migrated D1, and the `created` flag alone can't tell that apart
+      //    from a fully migrated one. A fresh D1, or one we've tracked before,
+      //    reconciles: apply only the migrations not yet recorded.
+      const tracked = created ? false : await migrationsTableExists(databaseId);
+      if (created || tracked) {
+        await ensureMigrationsTable(databaseId);
+        await applyMigrations(databaseId);
+      } else {
+        // Legacy existing D1 from before tracking existed. We can't tell a
+        // fully-migrated DB from a partial one, and re-running migrations
+        // would error on already-present tables — so preserve the historical
+        // "assume already migrated" heal behavior, but backfill the tracking
+        // table so future re-provisions reconcile exactly.
+        logger?.warn(
+          `D1 "${d1Name}" has no migration-tracking table — assuming it predates tracking and is fully migrated; backfilling the tracking table and skipping migrations.`,
+        );
+        await ensureMigrationsTable(databaseId);
+        for (const migration of options.migrations) {
+          await recordMigration(databaseId, migration.name);
+        }
+      }
 
-      // 3. Upload the namespaced script with bindings.
+      // 3. Upload the namespaced script with bindings. An upload overwrites, so
+      //    this re-heals an orphaned worker on re-provision.
       await uploadScript(scriptName, databaseId);
 
       // 4. Set per-tenant secrets. Order matters only for our own logging
@@ -209,21 +308,45 @@ export function createCloudflareWfpD1Provisioner(
       const scriptName = fillTemplate(scriptNameTemplate, tenantId);
       const d1Name = fillTemplate(d1NameTemplate, tenantId);
 
-      // 1. Delete the namespaced script. Tolerate "already gone".
+      // Both teardowns are attempted even if one fails — a script-delete error
+      // must not leave the D1 orphaned (and vice versa). Errors are collected
+      // and thrown together at the end so the caller still sees the failure but
+      // the resources are guaranteed to have had a deletion attempt. Both
+      // tolerate "already gone" so a re-deprovision (or a half-torn-down
+      // tenant) converges to fully removed.
+      const errors: unknown[] = [];
+
+      // 1. Delete the namespaced script.
       try {
         await client.deleteNamespacedScript(dispatchNamespace, scriptName);
       } catch (err) {
-        if (!isNotFoundError(err)) throw err;
+        if (!isNotFoundError(err)) errors.push(err);
       }
 
       // 2. Delete the D1. Look it up by name first; tolerate "already gone".
-      const existing = await client.listD1Databases(d1Name);
-      const target = existing.find((db) => db.name === d1Name);
-      if (!target) return;
       try {
-        await client.deleteD1Database(target.uuid);
+        const existing = await client.listD1Databases(d1Name);
+        const target = existing.find((db) => db.name === d1Name);
+        if (target) {
+          try {
+            await client.deleteD1Database(target.uuid);
+          } catch (err) {
+            if (!isNotFoundError(err)) errors.push(err);
+          }
+        }
       } catch (err) {
-        if (!isNotFoundError(err)) throw err;
+        // Even the lookup failing shouldn't be swallowed — record it.
+        errors.push(err);
+      }
+
+      if (errors.length > 0) {
+        const message = errors
+          .map((e) => (e instanceof Error ? e.message : String(e)))
+          .join("; ");
+        throw new Error(
+          `Deprovision of tenant "${tenantId}" had ${errors.length} failure(s): ${message}`,
+          { cause: errors[0] },
+        );
       }
     },
   };

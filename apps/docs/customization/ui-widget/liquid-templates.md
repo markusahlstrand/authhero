@@ -80,7 +80,7 @@ For migration, AuthHero also accepts a **full HTML document** — the Auth0 page
 </html>
 ```
 
-This means an existing Auth0 template can be pasted in and work. The trade-off mirrors Auth0: in full-document mode **you own the layout and CSS**, so the curated chip chrome and page-level dark/light theming aren't applied for you — `auth0:head` provides only what the widget needs to run. The `authhero:*` chip slots still work if you want to drop them in.
+This means an existing Auth0 template can be pasted in and work. `auth0:head` ships the essentials the widget needs to render and theme — the page CSS (including a **centered body layout on the page background**, so a vanilla Auth0 template looks styled out of the box rather than rendering top-left on a blank page), fonts, favicon, the widget script, and the dark-mode runtime. The trade-off still mirrors Auth0: in full-document mode **you own the document**, so the curated corner-chip chrome isn't forced on you — but the `authhero:*` chip slots remain available if you want to drop them in.
 
 ::: tip Which mode am I in?
 A template containing `<html>` is rendered as a **full document**. Anything else is a **body fragment** wrapped in the fixed shell (the recommended path). Most tenants should stay with fragments — reach for a full document only when migrating an Auth0 template or when you truly need to own the whole page.

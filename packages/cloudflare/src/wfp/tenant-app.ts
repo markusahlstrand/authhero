@@ -1,19 +1,41 @@
-import { Hono, type ExecutionContext } from "hono";
+import { Hono, type Context, type ExecutionContext } from "hono";
 import {
   init,
   loadEncryptionKey,
   createEncryptedDataAdapterWithKeyRing,
   type AuthHeroConfig,
   type DataAdapters,
+  type IssuerResolver,
 } from "authhero";
 import {
   withRuntimeFallback,
   applyControlPlaneDefaultsPayload,
+  type ControlPlaneDefaultsApplyResult,
   type ControlPlaneDefaultsPayload,
 } from "@authhero/multi-tenancy";
 
 const CONTROL_PLANE_KEY_ID = "cp";
 const SYNC_PATH = "/internal/sync-defaults";
+
+/**
+ * Log the cause and return a structured 500: a stable error `code`, the
+ * cause's message as `detail`, an `X-Authhero-Error: <code>` header, and the
+ * apply `result` when one exists. Tenant workers run in a dispatch namespace
+ * (no `wrangler tail`), so the opaque `{"message":"Internal Server Error"}`
+ * the default handler emits is a debugging dead end — this is the only place
+ * the cause surfaces.
+ */
+function errorResponse(
+  c: Context,
+  code: string,
+  cause: unknown,
+  result?: ControlPlaneDefaultsApplyResult,
+): Response {
+  console.error(`[wfp-tenant] ${code}:`, cause);
+  const detail = cause instanceof Error ? cause.message : String(cause);
+  c.header("X-Authhero-Error", code);
+  return c.json({ error: code, detail, result }, 500);
+}
 
 /**
  * Env contract for a WFP tenant worker — the bindings + secrets
@@ -61,6 +83,42 @@ export interface WfpTenantAppOptions<Env extends WfpTenantEnv = WfpTenantEnv> {
    * scaffold's base config and the env.
    */
   configure?: (base: AuthHeroConfig, env: Env) => AuthHeroConfig;
+  /**
+   * Resolver for the issuers accepted *in addition to* this tenant's own
+   * `ISSUER`. Defaults to a **gated** resolver that accepts
+   * `env.CONTROL_PLANE_ISSUER` **only** for control-plane-minted tokens
+   * (`tenant_id === env.CONTROL_PLANE_TENANT_ID`) and `[]` otherwise — so a
+   * tenant token can never assert the control-plane issuer. Provide your own
+   * resolver to widen or narrow this; it fully replaces the default.
+   */
+  additionalIssuers?: (env: Env) => IssuerResolver;
+  /**
+   * When applying a `/internal/sync-defaults` push, keep going past a failing
+   * row and collect per-entity errors in the result rather than aborting the
+   * whole projection on the first failure. Defaults to `true` — a single bad
+   * inherited row shouldn't sink the entire sync into an opaque 500. Set
+   * `false` to restore fail-fast.
+   */
+  continueOnError?: boolean;
+  /**
+   * Called after a `/internal/sync-defaults` push is applied, with the result
+   * that is also returned to the control plane. Use it to log what landed
+   * (per-entity `received` / `upserted` / `errors`) without re-implementing the
+   * route. A throw here is caught and turns into a structured 500 — the apply
+   * has already committed, so treat it as best-effort logging.
+   */
+  onSyncResult?: (
+    result: ControlPlaneDefaultsApplyResult,
+    env: Env,
+  ) => void | Promise<void>;
+}
+
+/** Default additional-issuers resolver: gate the control-plane issuer to control-plane tokens. */
+function gatedControlPlaneIssuer<Env extends WfpTenantEnv>(
+  env: Env,
+): IssuerResolver {
+  return ({ tenant_id }) =>
+    tenant_id === env.CONTROL_PLANE_TENANT_ID ? [env.CONTROL_PLANE_ISSUER] : [];
 }
 
 async function buildTenantApp<Env extends WfpTenantEnv>(
@@ -100,9 +158,12 @@ async function buildTenantApp<Env extends WfpTenantEnv>(
 
   const baseConfig: AuthHeroConfig = {
     dataAdapter,
-    // Accept the control plane's issuer for forwarded admin tokens. The
-    // signature is still verified — against the projected control-plane keys.
-    additionalIssuers: () => [env.CONTROL_PLANE_ISSUER],
+    // Accept the control plane's issuer for forwarded admin tokens — but only
+    // for control-plane tokens (see `gatedControlPlaneIssuer`). The signature
+    // is still verified, against the projected control-plane keys.
+    additionalIssuers: (options.additionalIssuers ?? gatedControlPlaneIssuer)(
+      env,
+    ),
   };
   const config = options.configure
     ? options.configure(baseConfig, env)
@@ -127,13 +188,36 @@ async function buildTenantApp<Env extends WfpTenantEnv>(
     } catch {
       return c.json({ error: "invalid JSON" }, 400);
     }
-    // Apply to the key-ring adapter (pre-fallback) so projected secrets are
-    // re-encrypted under "cp" and projected verify keys land with no tenant_id.
-    const result = await applyControlPlaneDefaultsPayload(
-      payload,
-      encrypted,
-      controlPlaneTenantId,
-    );
+
+    let result: ControlPlaneDefaultsApplyResult;
+    try {
+      // Apply to the key-ring adapter (pre-fallback) so projected secrets are
+      // re-encrypted under "cp" and projected verify keys land with no
+      // tenant_id. `continueOnError` keeps one bad inherited row from aborting
+      // the whole projection into an opaque 500.
+      result = await applyControlPlaneDefaultsPayload(
+        payload,
+        encrypted,
+        controlPlaneTenantId,
+        { continueOnError: options.continueOnError ?? true },
+      );
+    } catch (err) {
+      // Dispatch-namespace workers can't be `wrangler tail`'d, so an opaque
+      // 500 here is a dead end. Always log the cause and return a structured
+      // body + `X-Authhero-Error` header so the control plane sees detail.
+      return errorResponse(c, "sync_defaults_apply_failed", err);
+    }
+
+    if (options.onSyncResult) {
+      try {
+        await options.onSyncResult(result, env);
+      } catch (err) {
+        // The apply already committed; the host's logging hook failing
+        // shouldn't masquerade as a successful sync, but the result is real.
+        return errorResponse(c, "sync_defaults_on_result_failed", err, result);
+      }
+    }
+
     return c.json(result);
   });
 

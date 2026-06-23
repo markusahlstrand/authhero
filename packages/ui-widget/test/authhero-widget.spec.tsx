@@ -256,4 +256,94 @@ describe("authhero-widget", () => {
     // data-screen should update to reflect the new screen's name
     expect(page.root!.getAttribute("data-screen")).toBe("signup");
   });
+
+  it("renders a CODE field as a segmented one-time-code input", async () => {
+    const codeScreen = {
+      title: "Enter your code",
+      action: "http://localhost/verify",
+      method: "POST",
+      components: [
+        {
+          id: "code",
+          type: "CODE",
+          category: "FIELD",
+          visible: true,
+          label: "Verification code",
+          config: { length: 6, mode: "numeric" },
+          required: true,
+          order: 0,
+        },
+      ],
+    };
+
+    const page = await newSpecPage({
+      components: [AuthheroWidget, AuthheroNode],
+      html: `<authhero-widget screen='${JSON.stringify(codeScreen)}'></authhero-widget>`,
+    });
+
+    await page.waitForChanges();
+
+    const node = page.root!.shadowRoot!.querySelector("authhero-node");
+    const nodeShadow = node!.shadowRoot!;
+
+    // Single real input carrying the OTP affordances.
+    const input = nodeShadow.querySelector(
+      "input.code-input",
+    ) as HTMLInputElement;
+    expect(input).not.toBeNull();
+    expect(input.getAttribute("autocomplete")).toBe("one-time-code");
+    expect(input.getAttribute("inputmode")).toBe("numeric");
+    expect(input.getAttribute("maxlength")).toBe("6");
+    expect(input.getAttribute("name")).toBe("code");
+
+    // One presentational box per character.
+    const boxes = nodeShadow.querySelectorAll(".code-box");
+    expect(boxes.length).toBe(6);
+
+    // Laid out as two groups of three with a separator between them.
+    const groups = nodeShadow.querySelectorAll(".code-group");
+    expect(groups.length).toBe(2);
+    expect(groups[0].querySelectorAll(".code-box").length).toBe(3);
+    const separators = nodeShadow.querySelectorAll(".code-separator");
+    expect(separators.length).toBe(1);
+
+    // No field label is rendered above the boxes (the input keeps an aria-label).
+    expect(nodeShadow.querySelector(".input-label")).toBeNull();
+    expect(input.getAttribute("aria-label")).toBe("Verification code");
+  });
+
+  it("strips non-matching characters and emits the cleaned code value", async () => {
+    const fieldChangeSpy = jest.fn();
+    const page = await newSpecPage({
+      components: [AuthheroNode],
+      html: `<authhero-node></authhero-node>`,
+    });
+
+    const node = page.root as HTMLElement & {
+      component: unknown;
+    };
+    node.component = {
+      id: "code",
+      type: "CODE",
+      category: "FIELD",
+      visible: true,
+      config: { length: 6, mode: "numeric" },
+      required: true,
+      order: 0,
+    };
+    page.root!.addEventListener("fieldChange", (e) =>
+      fieldChangeSpy((e as CustomEvent).detail),
+    );
+    await page.waitForChanges();
+
+    const input = page.root!.shadowRoot!.querySelector(
+      "input.code-input",
+    ) as HTMLInputElement;
+    input.value = "12a3-4";
+    input.dispatchEvent(new Event("input"));
+
+    expect(fieldChangeSpy).toHaveBeenCalledWith({ id: "code", value: "1234" });
+    // The visible value is sanitized in place too.
+    expect(input.value).toBe("1234");
+  });
 });
