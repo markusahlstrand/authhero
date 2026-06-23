@@ -666,13 +666,35 @@ input[type="date"].input-field+.input-label {
   -webkit-text-fill-color: transparent;
 }
 
+/* Outer row holds the groups; the larger gap separates one group from the
+   next (with the optional separator glyph sitting in that gap). */
 .code-boxes {
   display: flex;
-  gap: var(--ah-code-gap, 8px);
+  align-items: center;
+  gap: var(--ah-code-group-gap, 12px);
   justify-content: center;
 }
 
+/* Boxes within a single group are connected (no gap, shared borders). */
+.code-group {
+  display: flex;
+  gap: 0;
+}
+
+.code-separator {
+  color: var(--ah-color-text-muted, #65676e);
+  font-size: var(--ah-code-font-size, 24px);
+  user-select: none;
+}
+
+/* Faint guide character inside empty boxes. */
+.code-box-placeholder {
+  color: var(--ah-color-text-muted, #65676e);
+  opacity: 0.4;
+}
+
 .code-box {
+  position: relative;
   flex: 0 0 auto;
   width: var(--ah-code-box-width, 48px);
   height: var(--ah-code-box-height, 56px);
@@ -684,15 +706,32 @@ input[type="date"].input-field+.input-label {
   color: var(--ah-color-input-text, var(--ah-color-text, #1e212a));
   background-color: var(--ah-color-input-bg, #ffffff);
   border: var(--ah-input-border-width, 1px) solid var(--ah-color-border, #c9cace);
-  border-radius: var(--ah-input-radius, 3px);
+  border-radius: 0;
   transition:
     border-color 0.15s ease-out,
     box-shadow 0.15s ease-out;
   box-sizing: border-box;
 }
 
-/* The "caret" box: highlight the next empty slot while the input is focused. */
+/* Collapse the shared border between adjacent boxes in a group. */
+.code-box + .code-box {
+  margin-left: calc(-1 * var(--ah-input-border-width, 1px));
+}
+
+/* Round only the outer corners of each group. */
+.code-group .code-box:first-child {
+  border-top-left-radius: var(--ah-input-radius, 3px);
+  border-bottom-left-radius: var(--ah-input-radius, 3px);
+}
+.code-group .code-box:last-child {
+  border-top-right-radius: var(--ah-input-radius, 3px);
+  border-bottom-right-radius: var(--ah-input-radius, 3px);
+}
+
+/* The "caret" box: highlight the next empty slot while the input is focused.
+   Raise it so its full highlighted border draws over the collapsed neighbours. */
 .code-field:focus-within .code-box.is-active {
+  z-index: 1;
   border-color: var(--ah-color-primary, #635dff);
   box-shadow: inset 0 0 0 1px var(--ah-color-primary, #635dff);
 }

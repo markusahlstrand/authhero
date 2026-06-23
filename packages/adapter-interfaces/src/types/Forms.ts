@@ -210,6 +210,14 @@ const codeField = fieldComponentBase.extend({
       // Submit the form automatically once all characters are entered.
       // Defaults to true; set false to require an explicit button press.
       auto_submit: z.boolean().optional(),
+      // Split the boxes into groups of this size with a separator between
+      // them (e.g. 3 → "123 - 456"). Defaults to 3; set 0 for no grouping.
+      group_size: z.number().optional(),
+      // Character drawn between groups. Defaults to "-"; set "" for a plain gap.
+      separator: z.string().optional(),
+      // Faint guide character shown inside empty boxes (e.g. "0" or "•").
+      // Omit for blank boxes.
+      placeholder: z.string().optional(),
       default_value: z.string().optional(),
     })
     .optional(),

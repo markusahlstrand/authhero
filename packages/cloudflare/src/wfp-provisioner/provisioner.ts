@@ -102,22 +102,25 @@ export function createCloudflareWfpD1Provisioner(
     "nodejs_compat",
   ];
   const dispatchNamespace = options.dispatchNamespace;
+  const logger = options.logger;
 
-  async function findOrCreateD1(name: string): Promise<string> {
+  async function findOrCreateD1(
+    name: string,
+  ): Promise<{ id: string; created: boolean }> {
     // List with a name filter first — CF doesn't return a stable 409 on
     // duplicate name, so checking ahead of time avoids racing.
     const existing = await client.listD1Databases(name);
     const match = existing.find((db) => db.name === name);
-    if (match) return match.uuid;
+    if (match) return { id: match.uuid, created: false };
     try {
       const created = await client.createD1Database(name);
-      return created.uuid;
+      return { id: created.uuid, created: true };
     } catch (err) {
       if (!isAlreadyExistsError(err)) throw err;
       // Lost the race — re-list to find the uuid the other writer just made.
       const after = await client.listD1Databases(name);
       const found = after.find((db) => db.name === name);
-      if (found) return found.uuid;
+      if (found) return { id: found.uuid, created: false };
       throw err;
     }
   }
@@ -186,16 +189,24 @@ export function createCloudflareWfpD1Provisioner(
       const scriptName = fillTemplate(scriptNameTemplate, tenantId);
       const d1Name = fillTemplate(d1NameTemplate, tenantId);
 
-      // 1. D1: create-if-missing, capture id
-      const databaseId = await findOrCreateD1(d1Name);
+      // 1. D1: create-if-missing, capture id + whether we just created it.
+      const { id: databaseId, created } = await findOrCreateD1(d1Name);
 
-      // 2. Apply migrations. Each migration is idempotent on the SQL level
-      //    only if the operator's migration files use IF NOT EXISTS or run
-      //    `tenant.has_been_migrated` checks; otherwise re-running this is
-      //    a no-op on success, an error on first failure.
-      await applyMigrations(databaseId);
+      // 2. Apply migrations only to a freshly-created D1. Re-running them on an
+      //    already-provisioned (orphaned) D1 surfaces as duplicate-column /
+      //    table errors — which is exactly the case a re-provision hits when
+      //    healing an orphaned worker. Migrations aren't tracked by D1, so the
+      //    safe idempotent choice is to migrate once, at creation.
+      if (created) {
+        await applyMigrations(databaseId);
+      } else {
+        logger?.warn(
+          `D1 "${d1Name}" already exists — skipping migrations (assuming already applied) and re-uploading the worker to heal it.`,
+        );
+      }
 
-      // 3. Upload the namespaced script with bindings.
+      // 3. Upload the namespaced script with bindings. An upload overwrites, so
+      //    this re-heals an orphaned worker on re-provision.
       await uploadScript(scriptName, databaseId);
 
       // 4. Set per-tenant secrets. Order matters only for our own logging
@@ -209,21 +220,45 @@ export function createCloudflareWfpD1Provisioner(
       const scriptName = fillTemplate(scriptNameTemplate, tenantId);
       const d1Name = fillTemplate(d1NameTemplate, tenantId);
 
-      // 1. Delete the namespaced script. Tolerate "already gone".
+      // Both teardowns are attempted even if one fails — a script-delete error
+      // must not leave the D1 orphaned (and vice versa). Errors are collected
+      // and thrown together at the end so the caller still sees the failure but
+      // the resources are guaranteed to have had a deletion attempt. Both
+      // tolerate "already gone" so a re-deprovision (or a half-torn-down
+      // tenant) converges to fully removed.
+      const errors: unknown[] = [];
+
+      // 1. Delete the namespaced script.
       try {
         await client.deleteNamespacedScript(dispatchNamespace, scriptName);
       } catch (err) {
-        if (!isNotFoundError(err)) throw err;
+        if (!isNotFoundError(err)) errors.push(err);
       }
 
       // 2. Delete the D1. Look it up by name first; tolerate "already gone".
-      const existing = await client.listD1Databases(d1Name);
-      const target = existing.find((db) => db.name === d1Name);
-      if (!target) return;
       try {
-        await client.deleteD1Database(target.uuid);
+        const existing = await client.listD1Databases(d1Name);
+        const target = existing.find((db) => db.name === d1Name);
+        if (target) {
+          try {
+            await client.deleteD1Database(target.uuid);
+          } catch (err) {
+            if (!isNotFoundError(err)) errors.push(err);
+          }
+        }
       } catch (err) {
-        if (!isNotFoundError(err)) throw err;
+        // Even the lookup failing shouldn't be swallowed — record it.
+        errors.push(err);
+      }
+
+      if (errors.length > 0) {
+        const message = errors
+          .map((e) => (e instanceof Error ? e.message : String(e)))
+          .join("; ");
+        throw new Error(
+          `Deprovision of tenant "${tenantId}" had ${errors.length} failure(s): ${message}`,
+          { cause: errors[0] },
+        );
       }
     },
   };

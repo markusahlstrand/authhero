@@ -13,9 +13,6 @@ export { AuthParams, ButtonClickEventDetail, CompleteEventDetail, ErrorEventDeta
 export { WidgetBranding, WidgetTheme } from "./utils/branding";
 export namespace Components {
     interface AuthheroNode {
-        /**
-          * The component configuration to render. Follows Auth0 Forms component schema.
-         */
         "component": FormComponent | RuntimeComponent;
         /**
           * Whether the component is disabled.
@@ -148,9 +145,6 @@ declare global {
 }
 declare namespace LocalJSX {
     interface AuthheroNode {
-        /**
-          * The component configuration to render. Follows Auth0 Forms component schema.
-         */
         "component": FormComponent | RuntimeComponent;
         /**
           * Whether the component is disabled.

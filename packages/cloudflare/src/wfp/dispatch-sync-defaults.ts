@@ -1,6 +1,7 @@
 import type { DataAdapters } from "@authhero/adapter-interfaces";
 import {
   buildControlPlaneDefaultsPayload,
+  type ControlPlaneDefaultsApplyResult,
   type DefaultsPayloadEntities,
 } from "@authhero/multi-tenancy";
 import type { DispatchNamespace } from "../code-executor";
@@ -42,10 +43,15 @@ function fillTemplate(template: string, tenantId: string): string {
  * `/internal/sync-defaults` route (which applies it). The tenant worker never
  * calls back to the control plane. Use the returned function as the
  * provision-time seed and for on-change / rotation re-syncs.
+ *
+ * Resolves with the tenant worker's {@link ControlPlaneDefaultsApplyResult} so
+ * the caller can act on what actually landed — warn when an entity's `received`
+ * is `0`, surface per-entity `errors`, or assert the signing keys projected.
+ * Rejects (does not resolve) when the push fails or the worker returns non-2xx.
  */
 export function createDispatchSyncDefaults(
   options: DispatchSyncDefaultsOptions,
-): (tenantId: string) => Promise<void> {
+): (tenantId: string) => Promise<ControlPlaneDefaultsApplyResult> {
   const {
     dispatcher,
     scriptNameTemplate = DEFAULT_SCRIPT_NAME_TEMPLATE,
@@ -56,7 +62,7 @@ export function createDispatchSyncDefaults(
     timeoutMs = DEFAULT_TIMEOUT_MS,
   } = options;
 
-  return async (tenantId: string): Promise<void> => {
+  return async (tenantId: string): Promise<ControlPlaneDefaultsApplyResult> => {
     const payload = await buildControlPlaneDefaultsPayload(
       controlPlaneAdapters,
       controlPlaneTenantId,
@@ -90,9 +96,15 @@ export function createDispatchSyncDefaults(
 
     if (!response.ok) {
       const body = await response.text().catch(() => "");
+      // The tenant worker tags structured failures with `X-Authhero-Error`;
+      // include it so the caller sees the error code, not just the status.
+      const code = response.headers.get("x-authhero-error");
       throw new Error(
-        `sync-defaults push to "${scriptName}" failed: ${response.status} ${body.slice(0, 256)}`,
+        `sync-defaults push to "${scriptName}" failed: ${response.status}` +
+          `${code ? ` (${code})` : ""} ${body.slice(0, 256)}`,
       );
     }
+
+    return (await response.json()) as ControlPlaneDefaultsApplyResult;
   };
 }

@@ -61,6 +61,20 @@ export interface WfpTenantProvisioningHookOptions {
    * a silent no-op so this module stays test-quiet.
    */
   logger?: Pick<Console, "warn">;
+  /**
+   * Optional post-provision seed run *after* the CF resources exist but
+   * *before* the tenant is marked `ready` — typically
+   * `createDispatchSyncDefaults(...)`, which projects the control plane's
+   * defaults (and the FK-target tenant rows) into the fresh D1.
+   *
+   * Folding the seed into provisioning closes the "ready but empty D1" gap: a
+   * best-effort seed fired separately after this hook can be lost, leaving a
+   * tenant marked `ready` whose D1 has no tenant row and no projected defaults.
+   * Here, if the seed throws, the tenant is marked `failed` (resource ids are
+   * still persisted so a re-provision can find them) and the error is
+   * re-thrown. Leave unset to mark `ready` as soon as the resources exist.
+   */
+  syncDefaults?: (tenantId: string) => Promise<unknown>;
 }
 
 export interface WfpTenantProvisioningHook {
@@ -77,7 +91,7 @@ function defaultShouldProvision(tenant: {
 export function createWfpTenantProvisioningHook(
   options: WfpTenantProvisioningHookOptions,
 ): WfpTenantProvisioningHook {
-  const { provisioner, tenants } = options;
+  const { provisioner, tenants, syncDefaults } = options;
   const shouldProvision = options.shouldProvision ?? defaultShouldProvision;
   const logger = options.logger;
 
@@ -105,19 +119,51 @@ export function createWfpTenantProvisioningHook(
       if (!tenant) return; // No tenant row — probably mid-rollback. Nothing to do.
       if (!shouldProvision(tenant)) return; // Shared deployment, skip.
 
+      let result;
       try {
-        const result = await provisioner.onProvision(tenantId);
-        await tenants.update(tenantId, {
-          d1_database_id: result.d1DatabaseId,
-          worker_script_name: result.scriptName,
-          provisioning_state: "ready",
-          provisioning_error: undefined,
-          provisioning_state_changed_at: new Date().toISOString(),
-        });
+        result = await provisioner.onProvision(tenantId);
       } catch (err) {
+        // No resources (or only partial) — nothing to persist beyond the
+        // failure marker.
         await markFailed(tenantId, err);
         throw err;
       }
+
+      // Resources exist. Persist their ids regardless of what happens next so a
+      // re-provision / deprovision can find them.
+      const resourceIds = {
+        d1_database_id: result.d1DatabaseId,
+        worker_script_name: result.scriptName,
+      };
+
+      try {
+        // Seed BEFORE marking ready so we never report "ready" over an empty
+        // D1 (no tenant row, no projected defaults).
+        if (syncDefaults) await syncDefaults(tenantId);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        try {
+          await tenants.update(tenantId, {
+            ...resourceIds,
+            provisioning_state: "failed",
+            provisioning_error: message.slice(0, 2048),
+            provisioning_state_changed_at: new Date().toISOString(),
+          });
+        } catch (writeErr) {
+          logger?.warn(
+            `Failed to write provisioning_state="failed" for tenant ${tenantId}:`,
+            writeErr,
+          );
+        }
+        throw err;
+      }
+
+      await tenants.update(tenantId, {
+        ...resourceIds,
+        provisioning_state: "ready",
+        provisioning_error: undefined,
+        provisioning_state_changed_at: new Date().toISOString(),
+      });
     },
 
     async onDeprovision(tenantId: string): Promise<void> {

@@ -407,7 +407,8 @@ describe("createCloudflareWfpD1Provisioner", () => {
     });
   });
 
-  it("onProvision reuses an existing D1 by name instead of re-creating", async () => {
+  it("re-provision heals an orphaned worker: reuses the existing D1, skips migrations, re-uploads the script", async () => {
+    const warn = vi.fn();
     server.use(
       http.get(path(`/accounts/${ACCOUNT_ID}/d1/database`), () =>
         HttpResponse.json({
@@ -420,6 +421,7 @@ describe("createCloudflareWfpD1Provisioner", () => {
         captured.push({ method: "POST", path: "/d1/database", body: {} });
         return HttpResponse.json({ result: {}, success: true });
       }),
+      // Should NOT migrate an existing D1 — record it so we can assert it isn't.
       http.post(
         path(`/accounts/${ACCOUNT_ID}/d1/database/db_existing/query`),
         async ({ request }) => {
@@ -435,7 +437,10 @@ describe("createCloudflareWfpD1Provisioner", () => {
         path(
           `/accounts/${ACCOUNT_ID}/workers/dispatch/namespaces/${NAMESPACE}/scripts/kvartal`,
         ),
-        async () => HttpResponse.json({ result: {}, success: true }),
+        async () => {
+          captured.push({ method: "PUT", path: "/scripts/kvartal", body: null });
+          return HttpResponse.json({ result: {}, success: true });
+        },
       ),
       http.put(
         path(
@@ -452,14 +457,19 @@ describe("createCloudflareWfpD1Provisioner", () => {
       tenantWorkerScript: "export default {};",
       migrations: [{ name: "0000.sql", sql: "SELECT 1;" }],
       secrets: async () => ({ ENCRYPTION_KEY: "x" }),
+      logger: { warn },
     });
 
     await provisioner.onProvision("kvartal");
 
-    const posts = captured.filter((c) => c.path === "/d1/database");
-    expect(posts).toHaveLength(0);
-    // Confirms the migration was applied against the existing uuid
-    expect(captured.find((c) => c.path === "/d1/exec")).toBeDefined();
+    // No create (reused) and — crucially — no migration re-run on the existing
+    // D1, which is what used to make a re-provision throw on duplicate columns.
+    expect(captured.filter((c) => c.path === "/d1/database")).toHaveLength(0);
+    expect(captured.find((c) => c.path === "/d1/exec")).toBeUndefined();
+    // The worker is still re-uploaded so the orphaned script is healed.
+    expect(captured.find((c) => c.path === "/scripts/kvartal")).toBeDefined();
+    expect(warn).toHaveBeenCalledOnce();
+    expect(warn.mock.calls[0][0]).toMatch(/skipping migrations/);
   });
 
   it("onDeprovision deletes the namespaced script then the D1", async () => {
@@ -532,6 +542,53 @@ describe("createCloudflareWfpD1Provisioner", () => {
     });
     // Must not throw — both resources already gone.
     await provisioner.onDeprovision("kvartal");
+  });
+
+  it("onDeprovision still tears down the D1 even when the script delete fails, then throws an aggregate error", async () => {
+    server.use(
+      // Script delete fails with a non-404 — must NOT short-circuit the D1 teardown.
+      http.delete(
+        path(
+          `/accounts/${ACCOUNT_ID}/workers/dispatch/namespaces/${NAMESPACE}/scripts/kvartal`,
+        ),
+        () =>
+          HttpResponse.json(
+            { errors: [{ message: "internal error" }], success: false },
+            { status: 500 },
+          ),
+      ),
+      http.get(path(`/accounts/${ACCOUNT_ID}/d1/database`), () =>
+        HttpResponse.json({
+          result: [{ uuid: "db_kvartal", name: "tenant-kvartal" }],
+          success: true,
+        }),
+      ),
+      http.delete(path(`/accounts/${ACCOUNT_ID}/d1/database/db_kvartal`), () => {
+        captured.push({
+          method: "DELETE",
+          path: "/d1/database/db_kvartal",
+          body: null,
+        });
+        return HttpResponse.json({ result: null, success: true });
+      }),
+    );
+    const provisioner = createCloudflareWfpD1Provisioner({
+      accountId: ACCOUNT_ID,
+      apiToken: "token",
+      dispatchNamespace: NAMESPACE,
+      controlPlaneBaseUrl: "https://auth.example.com",
+      tenantWorkerScript: "",
+      migrations: [],
+      secrets: async () => ({}),
+    });
+
+    await expect(provisioner.onDeprovision("kvartal")).rejects.toThrow(
+      /had 1 failure/,
+    );
+    // The D1 deletion was still attempted despite the script-delete failure.
+    expect(
+      captured.find((c) => c.path === "/d1/database/db_kvartal"),
+    ).toBeDefined();
   });
 
   it("script and D1 names honor the template option", async () => {
@@ -703,6 +760,69 @@ describe("createWfpTenantProvisioningHook", () => {
       provisioning_state: "ready",
     });
     expect(row?.provisioning_state_changed_at).toMatch(/^\d{4}-/);
+  });
+
+  it("runs syncDefaults after provisioning and before marking ready", async () => {
+    const provisioner = fakeProvisioner();
+    provisioner.nextProvisionResult = {
+      d1DatabaseId: "db_kvartal",
+      scriptName: "kvartal",
+      d1Name: "tenant-kvartal",
+    };
+    const tenants = fakeTenantsAdapter({
+      id: "kvartal",
+      deployment_type: "wfp",
+      provisioning_state: "pending",
+    });
+    const order: string[] = [];
+    const syncDefaults = vi.fn(async (id: string) => {
+      // At seed time the resources exist but the tenant isn't ready yet.
+      order.push(`sync:${id}`);
+      expect(tenants.store.get("kvartal")?.provisioning_state).not.toBe("ready");
+    });
+    const hook = createWfpTenantProvisioningHook({
+      provisioner,
+      tenants,
+      syncDefaults,
+    });
+    await hook.onProvision("kvartal");
+    expect(syncDefaults).toHaveBeenCalledWith("kvartal");
+    expect(order).toEqual(["sync:kvartal"]);
+    expect(tenants.store.get("kvartal")).toMatchObject({
+      d1_database_id: "db_kvartal",
+      provisioning_state: "ready",
+    });
+  });
+
+  it("marks failed (but persists resource ids) when the post-provision syncDefaults throws", async () => {
+    const provisioner = fakeProvisioner();
+    provisioner.nextProvisionResult = {
+      d1DatabaseId: "db_kvartal",
+      scriptName: "kvartal",
+      d1Name: "tenant-kvartal",
+    };
+    const tenants = fakeTenantsAdapter({
+      id: "kvartal",
+      deployment_type: "wfp",
+      provisioning_state: "pending",
+    });
+    const hook = createWfpTenantProvisioningHook({
+      provisioner,
+      tenants,
+      syncDefaults: async () => {
+        throw new Error("sync push 500");
+      },
+    });
+    await expect(hook.onProvision("kvartal")).rejects.toThrow(/sync push 500/);
+    const row = tenants.store.get("kvartal");
+    // No "ready over an empty D1": state is failed with the cause...
+    expect(row).toMatchObject({
+      provisioning_state: "failed",
+      provisioning_error: "sync push 500",
+    });
+    // ...but the resource ids are still persisted so a re-provision can heal it.
+    expect(row?.d1_database_id).toBe("db_kvartal");
+    expect(row?.worker_script_name).toBe("kvartal");
   });
 
   it("marks provisioning_state='failed' with the error message when the provisioner throws", async () => {

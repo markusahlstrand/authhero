@@ -6,6 +6,7 @@ import {
   EventEmitter,
   State,
   Watch,
+  Element,
 } from "@stencil/core";
 import type {
   FormComponent,
@@ -30,6 +31,8 @@ export class AuthheroNode {
    * The component configuration to render.
    * Follows Auth0 Forms component schema.
    */
+  @Element() host!: HTMLElement;
+
   @Prop() component!: FormComponent | RuntimeComponent;
 
   /**
@@ -96,6 +99,19 @@ export class AuthheroNode {
   componentWillLoad() {
     this.initCountryFromConfig();
     this.initTelValue();
+  }
+
+  componentDidLoad() {
+    // Auto-focus a code field so the caret starts in the first (leftmost) box.
+    if (this.component?.type === "CODE" && !this.disabled) {
+      const value = this.getEffectiveValue() ?? "";
+      if (value.length === 0) {
+        const input = this.host.shadowRoot?.querySelector(
+          "input.code-input",
+        ) as HTMLInputElement | null;
+        input?.focus();
+      }
+    }
   }
 
   private initCountryFromConfig() {
@@ -671,10 +687,16 @@ export class AuthheroNode {
       length?: number;
       mode?: "numeric" | "alphanumeric";
       auto_submit?: boolean;
+      group_size?: number;
+      separator?: string;
+      placeholder?: string;
     };
     const length = config.length ?? 6;
     const mode = config.mode ?? "numeric";
     const autoSubmit = config.auto_submit !== false;
+    const groupSize = config.group_size ?? 3;
+    const separator = config.separator ?? "-";
+    const placeholder = config.placeholder;
     const value = (this.getEffectiveValue() ?? "").slice(0, length);
 
     const boxClass = (i: number) => {
@@ -685,9 +707,35 @@ export class AuthheroNode {
       return cls;
     };
 
+    const renderBox = (i: number) => (
+      <div class={boxClass(i)} part="code-box">
+        {value[i] ??
+          (placeholder ? (
+            <span class="code-box-placeholder">{placeholder}</span>
+          ) : (
+            ""
+          ))}
+      </div>
+    );
+
+    // Split into groups of `groupSize` (e.g. 3 → "123 - 456"); a non-positive
+    // or >= length size means a single ungrouped row.
+    const useGroups = groupSize > 0 && groupSize < length;
+    const groups: number[][] = [];
+    if (useGroups) {
+      for (let start = 0; start < length; start += groupSize) {
+        groups.push(
+          Array.from({ length: Math.min(groupSize, length - start) }, (_, j) =>
+            start + j,
+          ),
+        );
+      }
+    } else {
+      groups.push(Array.from({ length }, (_, i) => i));
+    }
+
     return (
       <div class="input-wrapper" part="input-wrapper">
-        {this.renderLabel(component.label, inputId, component.required)}
         <div
           class={hasError ? "code-field has-error" : "code-field"}
           part="code-field"
@@ -716,11 +764,16 @@ export class AuthheroNode {
             onKeyDown={this.handleKeyDown}
           />
           <div class="code-boxes" part="code-boxes" aria-hidden="true">
-            {Array.from({ length }).map((_, i) => (
-              <div class={boxClass(i)} part="code-box">
-                {value[i] ?? ""}
-              </div>
-            ))}
+            {groups.map((group, gi) => [
+              gi > 0 && separator ? (
+                <span class="code-separator" part="code-separator">
+                  {separator}
+                </span>
+              ) : null,
+              <div class="code-group" part="code-group">
+                {group.map((i) => renderBox(i))}
+              </div>,
+            ])}
           </div>
         </div>
         {this.renderErrors()}
