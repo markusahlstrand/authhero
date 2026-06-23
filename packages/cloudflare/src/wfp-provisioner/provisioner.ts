@@ -125,15 +125,90 @@ export function createCloudflareWfpD1Provisioner(
     }
   }
 
+  // D1 has no native migration tracking, so the provisioner keeps its own
+  // table recording which migrations have been applied. This lets a provision
+  // that died partway through its migration list heal on retry — already-
+  // applied migrations are skipped, only the missing tail is run — instead of
+  // relying on a one-shot "freshly created" flag that can't see partial state.
+  const MIGRATIONS_TABLE = "_authhero_provisioner_migrations";
+
+  /** Pull a string column out of D1 query result blocks. */
+  function collectStringColumn(
+    result: { results?: unknown[] }[],
+    column: string,
+  ): string[] {
+    const values: string[] = [];
+    for (const block of result) {
+      for (const row of block.results ?? []) {
+        if (row && typeof row === "object" && column in row) {
+          const value = (row as Record<string, unknown>)[column];
+          if (typeof value === "string") values.push(value);
+        }
+      }
+    }
+    return values;
+  }
+
+  async function migrationsTableExists(databaseId: string): Promise<boolean> {
+    const result = await client.execD1(
+      databaseId,
+      `SELECT name FROM sqlite_master WHERE type='table' AND name='${MIGRATIONS_TABLE}';`,
+    );
+    return collectStringColumn(result, "name").length > 0;
+  }
+
+  async function ensureMigrationsTable(databaseId: string): Promise<void> {
+    await client.execD1(
+      databaseId,
+      `CREATE TABLE IF NOT EXISTS ${MIGRATIONS_TABLE} (name TEXT PRIMARY KEY, applied_at TEXT NOT NULL);`,
+    );
+  }
+
+  async function appliedMigrationNames(
+    databaseId: string,
+  ): Promise<Set<string>> {
+    const result = await client.execD1(
+      databaseId,
+      `SELECT name FROM ${MIGRATIONS_TABLE};`,
+    );
+    return new Set(collectStringColumn(result, "name"));
+  }
+
+  function escapeSqlLiteral(value: string): string {
+    return value.replace(/'/g, "''");
+  }
+
+  async function recordMigration(
+    databaseId: string,
+    name: string,
+  ): Promise<void> {
+    const appliedAt = new Date().toISOString();
+    await client.execD1(
+      databaseId,
+      `INSERT OR IGNORE INTO ${MIGRATIONS_TABLE} (name, applied_at) VALUES ('${escapeSqlLiteral(name)}', '${escapeSqlLiteral(appliedAt)}');`,
+    );
+  }
+
+  /**
+   * Apply every migration not yet recorded in the tracking table, recording
+   * each as it lands. Reconciling against the tracking table (rather than a
+   * one-shot flag) is what makes a half-finished provision recoverable.
+   *
+   * Caveat: D1 has no transactional DDL, so a single migration *file* that
+   * fails midway can still leave that one file partly applied. Author
+   * migrations defensively (`CREATE TABLE IF NOT EXISTS`, guarded
+   * `ADD COLUMN`) so re-running the failed file converges. Cross-file partial
+   * failure is handled here; intra-file is the migration author's job.
+   */
   async function applyMigrations(databaseId: string): Promise<void> {
+    const applied = await appliedMigrationNames(databaseId);
     for (const migration of options.migrations) {
+      if (applied.has(migration.name)) continue;
       try {
         await client.execD1(databaseId, migration.sql);
       } catch (err) {
-        // D1 doesn't natively track migrations, so re-running an already-
-        // applied migration usually surfaces as a duplicate-column / table
-        // error. Tag the error with the migration name so the operator can
-        // tell what failed.
+        // Tag the error with the migration name so the operator can tell
+        // what failed.
         if (err instanceof Error) {
           throw new Error(
             `Failed to apply migration "${migration.name}" to D1 ${databaseId}: ${err.message}`,
@@ -142,6 +217,7 @@ export function createCloudflareWfpD1Provisioner(
         }
         throw err;
       }
+      await recordMigration(databaseId, migration.name);
     }
   }
 
@@ -192,17 +268,29 @@ export function createCloudflareWfpD1Provisioner(
       // 1. D1: create-if-missing, capture id + whether we just created it.
       const { id: databaseId, created } = await findOrCreateD1(d1Name);
 
-      // 2. Apply migrations only to a freshly-created D1. Re-running them on an
-      //    already-provisioned (orphaned) D1 surfaces as duplicate-column /
-      //    table errors — which is exactly the case a re-provision hits when
-      //    healing an orphaned worker. Migrations aren't tracked by D1, so the
-      //    safe idempotent choice is to migrate once, at creation.
-      if (created) {
+      // 2. Migrations are reconciled against a provisioner-owned tracking
+      //    table rather than gated on the `created` flag — a provision that
+      //    died partway through its migrations leaves an orphaned, partially
+      //    migrated D1, and the `created` flag alone can't tell that apart
+      //    from a fully migrated one. A fresh D1, or one we've tracked before,
+      //    reconciles: apply only the migrations not yet recorded.
+      const tracked = created ? false : await migrationsTableExists(databaseId);
+      if (created || tracked) {
+        await ensureMigrationsTable(databaseId);
         await applyMigrations(databaseId);
       } else {
+        // Legacy existing D1 from before tracking existed. We can't tell a
+        // fully-migrated DB from a partial one, and re-running migrations
+        // would error on already-present tables — so preserve the historical
+        // "assume already migrated" heal behavior, but backfill the tracking
+        // table so future re-provisions reconcile exactly.
         logger?.warn(
-          `D1 "${d1Name}" already exists — skipping migrations (assuming already applied) and re-uploading the worker to heal it.`,
+          `D1 "${d1Name}" has no migration-tracking table — assuming it predates tracking and is fully migrated; backfilling the tracking table and skipping migrations.`,
         );
+        await ensureMigrationsTable(databaseId);
+        for (const migration of options.migrations) {
+          await recordMigration(databaseId, migration.name);
+        }
       }
 
       // 3. Upload the namespaced script with bindings. An upload overwrites, so
