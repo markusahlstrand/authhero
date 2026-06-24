@@ -1,5 +1,16 @@
 # @authhero/widget
 
+## 0.34.0
+
+### Minor Changes
+
+- 6d19200: Add a dedicated `CODE` field component for one-time / verification codes. It renders a segmented input (Auth0-style boxes) using a single underlying `<input autocomplete="one-time-code">`, preserving native paste, mobile SMS autofill and screen-reader behaviour. Supports `length`, `mode` (`numeric` | `alphanumeric`) and `auto_submit` config.
+
+### Patch Changes
+
+- Updated dependencies [6d19200]
+  - @authhero/adapter-interfaces@3.2.0
+
 ## 0.33.0
 
 ### Minor Changes
