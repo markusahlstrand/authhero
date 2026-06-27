@@ -204,7 +204,7 @@ describe("management-api CORS", () => {
   it("sets CORS headers in a runtime where every Response exposes a null webSocket", async () => {
     const { managementApp, env } = await getTestServer();
 
-    const hadOwn = Object.prototype.hasOwnProperty.call(
+    const originalDescriptor = Object.getOwnPropertyDescriptor(
       Response.prototype,
       "webSocket",
     );
@@ -238,7 +238,16 @@ describe("management-api CORS", () => {
       );
       expect(response.headers.get("Vary")).toContain("Origin");
     } finally {
-      if (!hadOwn) {
+      // Fully restore the original state so later tests don't inherit the
+      // patched getter: re-install the saved descriptor if there was one,
+      // otherwise remove the property we added.
+      if (originalDescriptor) {
+        Object.defineProperty(
+          Response.prototype,
+          "webSocket",
+          originalDescriptor,
+        );
+      } else {
         Reflect.deleteProperty(Response.prototype, "webSocket");
       }
     }
