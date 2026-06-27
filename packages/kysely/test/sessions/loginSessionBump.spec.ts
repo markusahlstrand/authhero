@@ -5,7 +5,9 @@ import {
   LoginSessionState,
 } from "@authhero/adapter-interfaces";
 
-async function seedTenantAndClient(data: any) {
+type TestData = Awaited<ReturnType<typeof getTestServer>>["data"];
+
+async function seedTenantAndClient(data: TestData) {
   await data.tenants.create({
     id: "tenantId",
     friendly_name: "Test Tenant",
@@ -37,7 +39,7 @@ async function seedTenantAndClient(data: any) {
   });
 }
 
-async function createLoginSession(data: any, expiresAt: string) {
+async function createLoginSession(data: TestData, expiresAt: string) {
   return data.loginSessions.create("tenantId", {
     csrf_token: "csrf",
     authParams: {
