@@ -440,6 +440,11 @@ describe("createWfpForwardMiddleware", () => {
 
     expect(res.status).toBe(502);
     expect(res.headers.get("X-Authhero-Error")).toBe("wfp_dispatch_failed");
+    expect(res.headers.get("X-Wfp-Tenant")).toBe("acme");
+    expect(await res.json()).toMatchObject({
+      error: "wfp_dispatch_failed",
+      tenant_id: "acme",
+    });
   });
 
   it("passes a tenant worker 5xx through and tags it for correlation", async () => {
@@ -471,6 +476,7 @@ describe("createWfpForwardMiddleware", () => {
     expect(res.status).toBe(500);
     expect(res.headers.get("X-Authhero-Error")).toBe("tenant_app_error");
     expect(res.headers.get("X-Wfp-Tenant")).toBe("acme");
+    expect(await res.json()).toMatchObject({ error: "boom" });
   });
 
   it("tags a successful dispatched response with X-Wfp-Tenant", async () => {

@@ -63,7 +63,14 @@ const patchSettings = defineRoute({
       body: {
         content: {
           "application/json": {
-            schema: z.object(tenantInsertSchema.shape).partial(),
+            // `database_version` tracks the schema migration the tenant's
+            // deployed bundle targets — it's reconciled by the provisioner,
+            // not something a client may set. Omit it from the externally
+            // patchable settings so it can't be written through patchSettings.
+            schema: z
+              .object(tenantInsertSchema.shape)
+              .omit({ database_version: true })
+              .partial(),
           },
         },
       },
@@ -205,12 +212,21 @@ const redeployTenant = defineRoute({
       });
     }
 
+    // Only WFP-provisioned tenants have their own worker/D1 to redeploy. A
+    // shared tenant has nothing to upgrade and would otherwise fail deeper in
+    // the provisioning hook — reject it here with a clear client error.
+    if (existingTenant.deployment_type !== "wfp") {
+      throw new HTTPException(400, {
+        message: "Only WFP-provisioned tenants can be redeployed",
+      });
+    }
+
     try {
       await ctx.env.tenantUpgrade(id);
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
+      console.error("Tenant upgrade failed", { tenantId: id, err });
       throw new HTTPException(500, {
-        message: `Tenant upgrade failed: ${message}`,
+        message: "Tenant upgrade failed",
       });
     }
 

@@ -81,6 +81,12 @@ export const serverTimingMiddleware: MiddlewareHandler<{
   }
 
   if (mode === "client" || mode === "both") {
+    // A 101 / WebSocket upgrade response can't be normalized to a mutable
+    // response (its `webSocket` handle can't survive reconstruction) and a
+    // header write on it throws — leave upgrade responses untouched.
+    const isUpgrade = ctx.res.status === 101 || "webSocket" in ctx.res;
+    if (isUpgrade) return;
+
     const allowlist = ctx.env.SERVER_TIMING_IPS;
     if (!allowlist || isIpAllowed(ctx.get("ip"), allowlist)) {
       // The response may have come back from a dispatch/`fetch()` with immutable

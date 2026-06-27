@@ -215,8 +215,15 @@ export default function create(config: AuthHeroConfig) {
           return;
         }
 
-        // Try to get tenant ID from context (set by tenant middleware)
-        const tenantId = ctx.var.tenant_id || ctx.req.header("tenant-id");
+        // Try to get tenant ID from context (set by tenant middleware), then
+        // the legacy `tenant-id` header, then — for subdomain/custom-domain
+        // addressing where neither is present (e.g. a host-routed request
+        // `tenantDispatch` returned early for) — fall back to the request
+        // host, mirroring the preflight path above.
+        const tenantId =
+          ctx.var.tenant_id ||
+          ctx.req.header("tenant-id") ||
+          (await resolveTenantIdFromHost(ctx));
         if (tenantId) {
           const clients = await managementAdapter.clients.list(tenantId, {});
           const allWebOrigins = clients.clients.flatMap(

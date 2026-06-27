@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { MembersTab } from "../organizations/tabs/members-tab";
 import { findOrganizationForTenant } from "./orgLookup";
+import { getBasePath } from "@/utils/runtimeConfig";
 import {
   getClientIdFromStorage,
   getSelectedDomainFromStorage,
@@ -53,21 +54,43 @@ export function TenantMembers() {
     let cancelled = false;
     setState({ status: "loading" });
 
-    dataProvider
-      .getList<OrganizationRecord>("organizations", {
-        pagination: { page: 1, perPage: 100 },
-        sort: { field: "name", order: "ASC" },
-        filter: { q: tenantId },
-      })
-      .then(({ data }) => {
-        if (cancelled) return;
-        const org = findOrganizationForTenant(data, tenantId);
-        setState(org ? { status: "ready", org } : { status: "missing" });
-      })
-      .catch(() => {
+    // `q` is a fuzzy search, so the exact tenant→organization match isn't
+    // guaranteed to land on the first page. Iterate pages until the exact
+    // match is found or every matching organization has been checked —
+    // otherwise a tenant can be wrongly reported as "missing" when its
+    // organization sits on a later page of a large fuzzy result set.
+    (async () => {
+      const perPage = 100;
+      try {
+        for (let page = 1; ; page++) {
+          const { data, total } =
+            await dataProvider.getList<OrganizationRecord>("organizations", {
+              pagination: { page, perPage },
+              sort: { field: "name", order: "ASC" },
+              filter: { q: tenantId },
+            });
+          if (cancelled) return;
+
+          const org = findOrganizationForTenant(data, tenantId);
+          if (org) {
+            setState({ status: "ready", org });
+            return;
+          }
+
+          const seen = page * perPage;
+          const exhausted =
+            data.length < perPage ||
+            (typeof total === "number" && seen >= total);
+          if (exhausted) {
+            setState({ status: "missing" });
+            return;
+          }
+        }
+      } catch {
         if (cancelled) return;
         setState({ status: "error" });
-      });
+      }
+    })();
 
     return () => {
       cancelled = true;
@@ -78,7 +101,7 @@ export function TenantMembers() {
     <div className="flex flex-col gap-4 p-4">
       <div>
         <Button asChild variant="ghost" size="sm">
-          <Link to="/tenants">
+          <Link to={getBasePath()}>
             <ArrowLeft className="h-4 w-4 mr-1" />
             Back to tenants
           </Link>

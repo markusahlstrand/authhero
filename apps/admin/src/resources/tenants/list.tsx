@@ -53,7 +53,7 @@ function MembersLinkCell() {
       size="sm"
       onClick={(e) => e.stopPropagation()}
     >
-      <Link to={`/tenants/${String(record.id)}/members`}>
+      <Link to={`${getBasePath()}/${String(record.id)}/members`}>
         <Users className="h-4 w-4 mr-1" />
         Members
       </Link>

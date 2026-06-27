@@ -196,6 +196,13 @@ export function createWfpTenantProvisioningHook(
           );
         }
       }
+
+      await tenants.update(tenantId, {
+        ...resourceIds,
+        provisioning_state: "ready",
+        provisioning_error: undefined,
+        provisioning_state_changed_at: new Date().toISOString(),
+      });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       try {
@@ -213,13 +220,6 @@ export function createWfpTenantProvisioningHook(
       }
       throw err;
     }
-
-    await tenants.update(tenantId, {
-      ...resourceIds,
-      provisioning_state: "ready",
-      provisioning_error: undefined,
-      provisioning_state_changed_at: new Date().toISOString(),
-    });
   }
 
   return {
@@ -247,6 +247,10 @@ export function createWfpTenantProvisioningHook(
       try {
         await tenants.update(tenantId, {
           provisioning_state: "pending",
+          // Clear any error from a previous failed attempt so a retried
+          // upgrade starts clean — otherwise a stale error lingers alongside
+          // the in-flight `pending` state. Mirrors the success path.
+          provisioning_error: undefined,
           provisioning_state_changed_at: new Date().toISOString(),
         });
       } catch (writeErr) {

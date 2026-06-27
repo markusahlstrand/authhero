@@ -10,5 +10,7 @@ export function findOrganizationForTenant<T extends { name?: string }>(
   tenantId: string,
 ): T | undefined {
   const target = tenantId.toLowerCase();
-  return organizations.find((o) => (o.name ?? "").toLowerCase() === target);
+  return organizations.find(
+    (o) => typeof o.name === "string" && o.name.toLowerCase() === target,
+  );
 }

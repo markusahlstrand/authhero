@@ -1,4 +1,10 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   RecordContextProvider,
   useDataProvider,
@@ -505,6 +511,11 @@ function InviteMemberButton({ clientId }: { clientId: string }) {
   const [email, setEmail] = useState("");
   const [sendEmail, setSendEmail] = useState(true);
   const [busy, setBusy] = useState(false);
+  // Synchronous in-flight lock. `busy` drives the disabled UI state, but a
+  // state update doesn't settle before a rapid second Enter press re-enters
+  // `handleInvite`, so the `busy` check alone can't prevent a duplicate
+  // (non-idempotent) invite create. This ref flips immediately.
+  const inFlight = useRef(false);
 
   const handleClose = () => {
     setOpen(false);
@@ -513,7 +524,8 @@ function InviteMemberButton({ clientId }: { clientId: string }) {
   };
 
   const handleInvite = async () => {
-    if (!organizationId || !email.trim()) return;
+    if (inFlight.current || busy || !organizationId || !email.trim()) return;
+    inFlight.current = true;
     setBusy(true);
     try {
       await dataProvider.create("organization-invitations", {
@@ -532,6 +544,7 @@ function InviteMemberButton({ clientId }: { clientId: string }) {
       notify("Error sending invitation", { type: "error" });
     } finally {
       setBusy(false);
+      inFlight.current = false;
     }
   };
 
@@ -559,6 +572,7 @@ function InviteMemberButton({ clientId }: { clientId: string }) {
             type="email"
             placeholder="name@example.com"
             value={email}
+            disabled={busy}
             onChange={(e) => setEmail(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
@@ -747,7 +761,7 @@ export function MembersTab({
             </DataTable.Col>
           </DataTable>
         </ReferenceManyField>
-        {inviteClientId ? <PendingInvitations /> : null}
+        <PendingInvitations />
       </div>
     </OrganizationIdContext.Provider>
   );

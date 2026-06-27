@@ -49,6 +49,67 @@ describe("management-api POST /tenants/{id}/redeploy", () => {
     });
   });
 
+  it("returns 403 when the caller is not the control plane", async () => {
+    const calls: string[] = [];
+    const { app, env } = await getTestServer({
+      tenantUpgrade: async (tenantId: string) => {
+        calls.push(tenantId);
+      },
+    });
+
+    // Point the control plane at a different tenant so the acting tenant
+    // ("tenantId", from the header) is no longer the control plane.
+    (env.data as any).multiTenancyConfig = {
+      controlPlaneTenantId: "control_plane",
+    };
+
+    const token = await getAdminToken();
+    const response = await app.request(
+      "/api/v2/tenants/tenantId/redeploy",
+      {
+        method: "POST",
+        headers: {
+          "tenant-id": "tenantId",
+          authorization: `Bearer ${token}`,
+        },
+      },
+      env,
+    );
+
+    expect(response.status).toBe(403);
+    // The handler short-circuits before invoking the upgrade.
+    expect(calls).toEqual([]);
+  });
+
+  it("returns 400 when the target tenant is not WFP-provisioned", async () => {
+    const calls: string[] = [];
+    const { app, env } = await getTestServer({
+      tenantUpgrade: async (tenantId: string) => {
+        calls.push(tenantId);
+      },
+    });
+
+    // The fixture tenant defaults to a shared deployment — make it explicit.
+    await env.data.tenants.update("tenantId", { deployment_type: "shared" });
+
+    const token = await getAdminToken();
+    const response = await app.request(
+      "/api/v2/tenants/tenantId/redeploy",
+      {
+        method: "POST",
+        headers: {
+          "tenant-id": "tenantId",
+          authorization: `Bearer ${token}`,
+        },
+      },
+      env,
+    );
+
+    expect(response.status).toBe(400);
+    // Rejected before any upgrade work happens.
+    expect(calls).toEqual([]);
+  });
+
   it("returns 501 when no upgrade handler is configured", async () => {
     const { app, env } = await getTestServer();
 
@@ -101,6 +162,9 @@ describe("management-api POST /tenants/{id}/redeploy", () => {
       },
     });
 
+    // Only WFP tenants pass the deployment-type gate and reach the handler.
+    await env.data.tenants.update("tenantId", { deployment_type: "wfp" });
+
     const token = await getAdminToken();
     const response = await app.request(
       "/api/v2/tenants/tenantId/redeploy",
@@ -115,6 +179,7 @@ describe("management-api POST /tenants/{id}/redeploy", () => {
     );
 
     expect(response.status).toBe(500);
-    expect(await response.text()).toContain("upload failed");
+    // The internal error is logged server-side, not leaked to the client.
+    expect(await response.text()).toContain("Tenant upgrade failed");
   });
 });
