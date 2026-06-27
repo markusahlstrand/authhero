@@ -144,6 +144,53 @@ form {
   order: var(--ah-fields-order, 0);
 }
 
+.fields-list {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Long choice-button lists (e.g. tenant select) become a scrollable area
+   with a search box above. */
+.fields-list-scroll {
+  max-height: var(--ah-choice-list-max-height, 320px);
+  overflow-y: auto;
+  gap: var(--ah-choice-list-gap, 8px);
+  padding-right: 4px;
+}
+
+.choice-list-search {
+  width: 100%;
+  padding: 16px;
+  margin-bottom: 12px;
+  font-size: 16px;
+  font-family: inherit;
+  color: var(--ah-color-input-text, var(--ah-color-text, #1e212a));
+  background-color: var(--ah-color-input-bg, #ffffff);
+  border: var(--ah-input-border-width, 1px) solid
+    var(--ah-color-border, #c9cace);
+  border-radius: var(--ah-input-radius, 3px);
+  outline: none;
+  box-sizing: border-box;
+  transition:
+    border-color 0.15s ease-out,
+    box-shadow 0.15s ease-out;
+}
+
+.choice-list-search:hover {
+  border-color: var(--ah-color-border-hover, #65676e);
+}
+
+.choice-list-search:focus {
+  border-color: var(--ah-color-primary, var(--ah-color-link, #635dff));
+}
+
+.choice-list-empty {
+  padding: 16px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--ah-color-text-muted, #65676e);
+}
+
 /* ==========================================================================
    Divider
    Part: divider

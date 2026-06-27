@@ -19,3 +19,5 @@ pnpm authhero test
 pnpm aws-adapter test
 pnpm multi-tenancy test
 pnpm cloudflare test
+pnpm widget test
+pnpm admin test

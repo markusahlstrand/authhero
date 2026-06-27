@@ -5,11 +5,7 @@
  * Corresponds to: /u2/connect/start
  */
 
-import type {
-  UiScreen,
-  FormNodeComponent,
-  DataAdapters,
-} from "@authhero/adapter-interfaces";
+import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { getLoginPath } from "./types";
 import { getAuthCookie } from "../../../utils/cookies";
@@ -19,6 +15,7 @@ import { mintIat } from "../../../helpers/dcr/mint-iat";
 import { requireClientRegistrationTokens } from "../../auth-api/register/shared";
 import { logMessage } from "../../../helpers/logging";
 import { LogTypes } from "@authhero/adapter-interfaces";
+import { userCanRegisterOnTenant } from "./connect-authz";
 
 interface ConnectConsentData {
   integration_type?: string;
@@ -91,30 +88,6 @@ function buildReturn(
 // client metadata (which the generic route handler derives from
 // `universal_login_version`).
 const CONNECT_ROUTE_PREFIX = "/u2";
-
-async function isUserInOrganization(
-  data: DataAdapters,
-  tenantId: string,
-  userId: string,
-  organizationName: string,
-): Promise<boolean> {
-  const perPage = 100;
-  let page = 0;
-  while (true) {
-    const { organizations } =
-      await data.userOrganizations.listUserOrganizations(tenantId, userId, {
-        per_page: perPage,
-        page,
-      });
-    if (organizations.some((o) => o.name === organizationName)) {
-      return true;
-    }
-    if (organizations.length < perPage) {
-      return false;
-    }
-    page += 1;
-  }
-}
 
 export async function connectConsentScreen(
   context: ScreenContext,
@@ -315,14 +288,23 @@ async function handleConnectConsentSubmit(
   // child tenant chosen in the picker step.
   const targetTenantId = connect.target_tenant_id ?? tenant.id;
 
-  // For control-plane minting, re-validate that the consenting user actually
-  // has membership in the org corresponding to the chosen child tenant. The
-  // picker enforces this, but a stale or tampered state_data must not let a
-  // user mint on a tenant they don't belong to.
-  if (connect.target_tenant_id && connect.target_tenant_id !== tenant.id) {
-    const allowed = await isUserInOrganization(
-      ctx.env.data,
-      tenant.id,
+  // For control-plane minting, re-validate that the consenting user is
+  // actually authorized to register on the chosen child tenant. This uses the
+  // exact same check the picker applied when listing options (global-admin
+  // escape hatch OR org membership with `create:clients`), so a user who
+  // legitimately reached this screen can never be rejected here — while a
+  // stale or tampered state_data still can't mint on a tenant they lack
+  // access to.
+  // On the control plane the target must always be re-validated — including
+  // the case where a stale/tampered state set target_tenant_id to the control
+  // plane's own id, which userCanRegisterOnTenant rejects.
+  if (
+    connect.target_tenant_id &&
+    (isControlPlaneTenant(ctx.env.data, tenant.id) ||
+      connect.target_tenant_id !== tenant.id)
+  ) {
+    const allowed = await userCanRegisterOnTenant(
+      context,
       user.user_id,
       connect.target_tenant_id,
     );

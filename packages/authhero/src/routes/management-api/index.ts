@@ -193,8 +193,23 @@ export default function create(config: AuthHeroConfig) {
     // For actual requests, process the request first then set headers
     await next();
 
-    // Always append Vary: Origin so caches differentiate responses by origin
-    ctx.res.headers.append("Vary", "Origin");
+    // A response produced by `fetch()` / Workers-for-Platforms dispatch (the
+    // `tenantDispatch` middleware mounted below), or any proxied / cached / R2
+    // response, carries an *immutable* header guard — appending or setting a
+    // header on it throws "Can't modify immutable headers." Re-wrap such a
+    // response into a fresh Response, which has the mutable "response" guard,
+    // before writing any CORS/Vary header. Done once here so both the
+    // unconditional `Vary` append and `setCorsHeaders` below operate on a
+    // mutable response. A 101 upgrade (carries a `webSocket` handle) is left
+    // untouched — it never flows through this management API anyway.
+    if (ctx.res.status !== 101 && !("webSocket" in ctx.res)) {
+      try {
+        ctx.res.headers.append("Vary", "Origin");
+      } catch {
+        ctx.res = new Response(ctx.res.body, ctx.res);
+        ctx.res.headers.append("Vary", "Origin");
+      }
+    }
 
     if (origin) {
       // Check static allowedOrigins first

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { Hono } from "hono";
+import { Hono, type ExecutionContext } from "hono";
 import { Kysely, SqliteDialect } from "kysely";
 import SQLite from "better-sqlite3";
 import createAdapters, {
@@ -60,6 +60,10 @@ function fakeDispatcher(handler?: (c: CapturedDispatch) => Response) {
 
 async function makeAdapters(): Promise<DataAdapters> {
   const sqlite = new SQLite(":memory:");
+  // Enforce foreign keys so a tenant-scoped write into a D1 with no matching
+  // `tenants` row fails exactly as a real provisioned tenant D1 would — this is
+  // what makes the seed-projection regression test meaningful.
+  sqlite.pragma("foreign_keys = ON");
   const db = new Kysely<Database>({
     dialect: new SqliteDialect({ database: sqlite }),
   });
@@ -141,6 +145,94 @@ describe("createDispatchSyncDefaults", () => {
     await expect(sync("acme")).rejects.toThrow(/sync_defaults_apply_failed/);
   });
 
+  it("projects the tenant's own tenants row + signing keys so a tenant-scoped write succeeds", async () => {
+    // Full provisioning round-trip: build the payload on the control plane and
+    // route the dispatch POST into a real tenant app, which applies it to the
+    // (freshly migrated, empty) tenant D1. Regression for the "ready but empty
+    // D1" bug where the tenant's own `tenants` FK-target row was never seeded,
+    // so every tenant-scoped insert FK-failed.
+    const cp = await makeAdapters();
+    await cp.tenants.create({ id: CP, friendly_name: "Control Plane" });
+    // A control-plane signing key (no tenant_id) — projected so the tenant can
+    // verify control-plane-minted tokens.
+    await cp.keys.create({
+      kid: "cp-kid-1",
+      type: "jwt_signing",
+      cert: "-----PUBLIC-----",
+      fingerprint: "fp",
+      thumbprint: "tp",
+    });
+
+    const tenantAdapters = await makeAdapters();
+    const env = {
+      AUTH_DB: {},
+      ENCRYPTION_KEY: b64Key(1),
+      ISSUER: "https://acme.tokens.example.com/",
+      CONTROL_PLANE_TENANT_ID: CP,
+      CONTROL_PLANE_ISSUER: "https://controlplane.example.com/",
+      WFP_INTERNAL_SYNC_SECRET: "push-secret",
+    };
+    const tenantApp = createWfpTenantApp({
+      createDataAdapter: () => tenantAdapters,
+    });
+
+    // Dispatch namespace that routes the control plane's POST into the tenant
+    // app, the way a real WFP dispatch binding would.
+    const dispatcher = {
+      get() {
+        return {
+          async fetch(url: Request | string, init?: RequestInit) {
+            const req = typeof url === "string" ? new Request(url, init) : url;
+            return tenantApp.fetch(req, env, {
+              waitUntil() {},
+              passThroughOnException() {},
+            } as unknown as ExecutionContext);
+          },
+        };
+      },
+    };
+
+    const sync = createDispatchSyncDefaults({
+      dispatcher: dispatcher as unknown as Parameters<
+        typeof createDispatchSyncDefaults
+      >[0]["dispatcher"],
+      internalSecret: "push-secret",
+      controlPlaneTenantId: CP,
+      controlPlaneAdapters: cp,
+      scriptNameTemplate: "tenant-{tenant_id}-auth",
+    });
+
+    const result = await sync("acme");
+
+    // The tenant's own FK-target row was projected (alongside the control-plane
+    // row), with no per-entity errors.
+    expect(result.tenants.errors).toEqual([]);
+    expect(result.tenants.upserted).toBe(2);
+    const { tenants } = await tenantAdapters.tenants.list();
+    expect(tenants.map((t) => t.id).sort()).toEqual([CP, "acme"].sort());
+
+    // The control-plane verify key landed as a shared (no tenant_id) key.
+    expect(result.signingKeys.upserted).toBe(1);
+    const { signingKeys } = await tenantAdapters.keys.list({
+      q: "type:jwt_signing AND -_exists_:tenant_id",
+    });
+    expect(signingKeys.map((k) => k.kid)).toEqual(["cp-kid-1"]);
+
+    // The whole point: a tenant-scoped write into the fresh D1 now resolves its
+    // `tenant_id -> tenants(id)` FK instead of 500ing.
+    await expect(
+      tenantAdapters.users.create("acme", {
+        user_id: "auth2|seed-check",
+        email: "seed@acme.example.com",
+        email_verified: true,
+        name: "Seed Check",
+        provider: "auth2",
+        connection: "Username-Password-Authentication",
+        is_social: false,
+      }),
+    ).resolves.toBeTruthy();
+  });
+
   it("resolves with the apply result the tenant worker returns", async () => {
     const cp = await makeAdapters();
     const dispatcher = fakeDispatcher();
@@ -205,6 +297,51 @@ describe("createWfpForwardMiddleware", () => {
 
     expect(await res.text()).toBe("from-tenant-worker");
     expect(dispatcher.calls[0].scriptName).toBe("tenant-acme-auth");
+  });
+
+  it("re-wraps the dispatched response so its headers are mutable", async () => {
+    // A response straight from `fetch()` / WFP dispatch carries an immutable
+    // header guard. authhero core mounts this middleware inside its CORS
+    // middleware, which appends `Vary`/`Access-Control-*` after the fact — so
+    // the forwarded response must come back with mutable headers or every
+    // dispatched request 500s.
+    function immutableResponse(body: string, status: number): Response {
+      const res = new Response(body, { status });
+      const throwImmutable = () => {
+        throw new TypeError("Can't modify immutable headers.");
+      };
+      for (const method of ["append", "set", "delete"] as const) {
+        Object.defineProperty(res.headers, method, {
+          value: throwImmutable,
+          configurable: true,
+        });
+      }
+      return res;
+    }
+
+    const dispatcher = fakeDispatcher(() =>
+      immutableResponse("from-tenant-worker", 200),
+    );
+    const app = appWith(
+      createWfpForwardMiddleware({
+        tenants: fakeTenants({
+          acme: { deployment_type: "wfp", provisioning_state: "ready" },
+        }),
+        controlPlaneTenantId: CP,
+      }),
+    );
+
+    const res = await app.request(
+      "/authorize",
+      { headers: { "tenant-id": "acme" } },
+      { DISPATCHER: dispatcher },
+    );
+
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe("from-tenant-worker");
+    // The re-wrapped response has the mutable "response" guard — appending a
+    // header (as the CORS middleware does) must not throw.
+    expect(() => res.headers.append("Vary", "Origin")).not.toThrow();
   });
 
   it("serves locally for a wfp tenant that is not yet ready", async () => {
