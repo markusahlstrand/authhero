@@ -13,49 +13,51 @@ exports[`authhero-widget applies custom branding from fixture 1`] = `
         <form action="/api/auth/login" method="POST" part="form">
           <div class="form-content">
             <div class="fields-section" part="fields-section">
-              <authhero-node>
-                <template shadowrootmode="open">
-                  <div class="input-wrapper" part="input-wrapper">
-                    <div class="input-container">
-                      <input autocomplete="email" class="input-field" data-input-name="identifier" id="input-identifier" name="identifier" part="input" placeholder=" " required="" type="email" value="">
-                      <label class="input-label" for="input-identifier" part="label">
-                        Work email
-                        <span class="required">
-                          *
-                        </span>
-                      </label>
+              <div class="fields-list" part="fields-list">
+                <authhero-node>
+                  <template shadowrootmode="open">
+                    <div class="input-wrapper" part="input-wrapper">
+                      <div class="input-container">
+                        <input autocomplete="email" class="input-field" data-input-name="identifier" id="input-identifier" name="identifier" part="input" placeholder=" " required="" type="email" value="">
+                        <label class="input-label" for="input-identifier" part="label">
+                          Work email
+                          <span class="required">
+                            *
+                          </span>
+                        </label>
+                      </div>
                     </div>
-                  </div>
-                </template>
-              </authhero-node>
-              <authhero-node>
-                <template shadowrootmode="open">
-                  <div class="input-wrapper" part="input-wrapper">
-                    <div class="input-container password-container">
-                      <input autocomplete="current-password" class="input-field" data-input-name="password" id="input-password" name="password" part="input" placeholder=" " required="" type="password" value="">
-                      <label class="input-label" for="input-password" part="label">
-                        Password
-                        <span class="required">
-                          *
-                        </span>
-                      </label>
-                      <button aria-label="Toggle password visibility" aria-pressed="false" class="password-toggle" part="password-toggle" type="button">
-                        <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                          <circle cx="12" cy="12" r="3"></circle>
-                        </svg>
-                      </button>
+                  </template>
+                </authhero-node>
+                <authhero-node>
+                  <template shadowrootmode="open">
+                    <div class="input-wrapper" part="input-wrapper">
+                      <div class="input-container password-container">
+                        <input autocomplete="current-password" class="input-field" data-input-name="password" id="input-password" name="password" part="input" placeholder=" " required="" type="password" value="">
+                        <label class="input-label" for="input-password" part="label">
+                          Password
+                          <span class="required">
+                            *
+                          </span>
+                        </label>
+                        <button aria-label="Toggle password visibility" aria-pressed="false" class="password-toggle" part="password-toggle" type="button">
+                          <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                          </svg>
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                </template>
-              </authhero-node>
-              <authhero-node>
-                <template shadowrootmode="open">
-                  <button class="btn btn-primary" data-primary-action-button part="button button-primary" type="submit">
-                    Continue
-                  </button>
-                </template>
-              </authhero-node>
+                  </template>
+                </authhero-node>
+                <authhero-node>
+                  <template shadowrootmode="open">
+                    <button class="btn btn-primary" data-primary-action-button part="button button-primary" type="submit">
+                      Continue
+                    </button>
+                  </template>
+                </authhero-node>
+              </div>
             </div>
           </div>
         </form>
@@ -85,35 +87,37 @@ exports[`authhero-widget renders MFA TOTP screen 1`] = `
         <form action="/api/auth/mfa/verify" method="POST" part="form">
           <div class="form-content">
             <div class="fields-section" part="fields-section">
-              <authhero-node>
-                <template shadowrootmode="open">
-                  <div class="rich-text" part="rich-text">
-                    Enter the 6-digit code from your authenticator app
-                  </div>
-                </template>
-              </authhero-node>
-              <authhero-node>
-                <template shadowrootmode="open">
-                  <div class="input-wrapper" part="input-wrapper">
-                    <div class="input-container">
-                      <input autocomplete="one-time-code" class="input-field" data-input-name="totp_code" id="input-totp_code" name="totp_code" part="input" placeholder=" " required="" type="text" value="">
-                      <label class="input-label" for="input-totp_code" part="label">
-                        Verification code
-                        <span class="required">
-                          *
-                        </span>
-                      </label>
+              <div class="fields-list" part="fields-list">
+                <authhero-node>
+                  <template shadowrootmode="open">
+                    <div class="rich-text" part="rich-text">
+                      Enter the 6-digit code from your authenticator app
                     </div>
-                  </div>
-                </template>
-              </authhero-node>
-              <authhero-node>
-                <template shadowrootmode="open">
-                  <button class="btn btn-primary" data-primary-action-button part="button button-primary" type="submit">
-                    Continue
-                  </button>
-                </template>
-              </authhero-node>
+                  </template>
+                </authhero-node>
+                <authhero-node>
+                  <template shadowrootmode="open">
+                    <div class="input-wrapper" part="input-wrapper">
+                      <div class="input-container">
+                        <input autocomplete="one-time-code" class="input-field" data-input-name="totp_code" id="input-totp_code" name="totp_code" part="input" placeholder=" " required="" type="text" value="">
+                        <label class="input-label" for="input-totp_code" part="label">
+                          Verification code
+                          <span class="required">
+                            *
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+                  </template>
+                </authhero-node>
+                <authhero-node>
+                  <template shadowrootmode="open">
+                    <button class="btn btn-primary" data-primary-action-button part="button button-primary" type="submit">
+                      Continue
+                    </button>
+                  </template>
+                </authhero-node>
+              </div>
             </div>
           </div>
         </form>
@@ -160,49 +164,51 @@ exports[`authhero-widget renders login screen from JSON string prop 1`] = `
         <form action="/api/auth/login" method="POST" part="form">
           <div class="form-content">
             <div class="fields-section" part="fields-section">
-              <authhero-node>
-                <template shadowrootmode="open">
-                  <div class="input-wrapper" part="input-wrapper">
-                    <div class="input-container">
-                      <input autocomplete="email" class="input-field" data-input-name="identifier" id="input-identifier" name="identifier" part="input" placeholder=" " required="" type="email" value="">
-                      <label class="input-label" for="input-identifier" part="label">
-                        Email address
-                        <span class="required">
-                          *
-                        </span>
-                      </label>
+              <div class="fields-list" part="fields-list">
+                <authhero-node>
+                  <template shadowrootmode="open">
+                    <div class="input-wrapper" part="input-wrapper">
+                      <div class="input-container">
+                        <input autocomplete="email" class="input-field" data-input-name="identifier" id="input-identifier" name="identifier" part="input" placeholder=" " required="" type="email" value="">
+                        <label class="input-label" for="input-identifier" part="label">
+                          Email address
+                          <span class="required">
+                            *
+                          </span>
+                        </label>
+                      </div>
                     </div>
-                  </div>
-                </template>
-              </authhero-node>
-              <authhero-node>
-                <template shadowrootmode="open">
-                  <div class="input-wrapper" part="input-wrapper">
-                    <div class="input-container password-container">
-                      <input autocomplete="current-password" class="input-field" data-input-name="password" id="input-password" name="password" part="input" placeholder=" " required="" type="password" value="">
-                      <label class="input-label" for="input-password" part="label">
-                        Password
-                        <span class="required">
-                          *
-                        </span>
-                      </label>
-                      <button aria-label="Toggle password visibility" aria-pressed="false" class="password-toggle" part="password-toggle" type="button">
-                        <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                          <circle cx="12" cy="12" r="3"></circle>
-                        </svg>
-                      </button>
+                  </template>
+                </authhero-node>
+                <authhero-node>
+                  <template shadowrootmode="open">
+                    <div class="input-wrapper" part="input-wrapper">
+                      <div class="input-container password-container">
+                        <input autocomplete="current-password" class="input-field" data-input-name="password" id="input-password" name="password" part="input" placeholder=" " required="" type="password" value="">
+                        <label class="input-label" for="input-password" part="label">
+                          Password
+                          <span class="required">
+                            *
+                          </span>
+                        </label>
+                        <button aria-label="Toggle password visibility" aria-pressed="false" class="password-toggle" part="password-toggle" type="button">
+                          <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                          </svg>
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                </template>
-              </authhero-node>
-              <authhero-node>
-                <template shadowrootmode="open">
-                  <button class="btn btn-primary" data-primary-action-button part="button button-primary" type="submit">
-                    Continue
-                  </button>
-                </template>
-              </authhero-node>
+                  </template>
+                </authhero-node>
+                <authhero-node>
+                  <template shadowrootmode="open">
+                    <button class="btn btn-primary" data-primary-action-button part="button button-primary" type="submit">
+                      Continue
+                    </button>
+                  </template>
+                </authhero-node>
+              </div>
             </div>
           </div>
         </form>
@@ -237,61 +243,63 @@ exports[`authhero-widget renders login with social providers 1`] = `
         <form action="/api/auth/login" method="POST" part="form">
           <div class="form-content">
             <div class="fields-section" part="fields-section">
-              <authhero-node>
-                <template shadowrootmode="open"></template>
-              </authhero-node>
-              <authhero-node>
-                <template shadowrootmode="open"></template>
-              </authhero-node>
-              <authhero-node>
-                <template shadowrootmode="open"></template>
-              </authhero-node>
-              <authhero-node>
-                <template shadowrootmode="open"></template>
-              </authhero-node>
-              <authhero-node>
-                <template shadowrootmode="open">
-                  <div class="input-wrapper" part="input-wrapper">
-                    <div class="input-container">
-                      <input autocomplete="email" class="input-field" data-input-name="identifier" id="input-identifier" name="identifier" part="input" placeholder=" " required="" type="email" value="">
-                      <label class="input-label" for="input-identifier" part="label">
-                        Email address
-                        <span class="required">
-                          *
-                        </span>
-                      </label>
+              <div class="fields-list" part="fields-list">
+                <authhero-node>
+                  <template shadowrootmode="open"></template>
+                </authhero-node>
+                <authhero-node>
+                  <template shadowrootmode="open"></template>
+                </authhero-node>
+                <authhero-node>
+                  <template shadowrootmode="open"></template>
+                </authhero-node>
+                <authhero-node>
+                  <template shadowrootmode="open"></template>
+                </authhero-node>
+                <authhero-node>
+                  <template shadowrootmode="open">
+                    <div class="input-wrapper" part="input-wrapper">
+                      <div class="input-container">
+                        <input autocomplete="email" class="input-field" data-input-name="identifier" id="input-identifier" name="identifier" part="input" placeholder=" " required="" type="email" value="">
+                        <label class="input-label" for="input-identifier" part="label">
+                          Email address
+                          <span class="required">
+                            *
+                          </span>
+                        </label>
+                      </div>
                     </div>
-                  </div>
-                </template>
-              </authhero-node>
-              <authhero-node>
-                <template shadowrootmode="open">
-                  <div class="input-wrapper" part="input-wrapper">
-                    <div class="input-container password-container">
-                      <input autocomplete="current-password" class="input-field" data-input-name="password" id="input-password" name="password" part="input" placeholder=" " required="" type="password" value="">
-                      <label class="input-label" for="input-password" part="label">
-                        Password
-                        <span class="required">
-                          *
-                        </span>
-                      </label>
-                      <button aria-label="Toggle password visibility" aria-pressed="false" class="password-toggle" part="password-toggle" type="button">
-                        <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                          <circle cx="12" cy="12" r="3"></circle>
-                        </svg>
-                      </button>
+                  </template>
+                </authhero-node>
+                <authhero-node>
+                  <template shadowrootmode="open">
+                    <div class="input-wrapper" part="input-wrapper">
+                      <div class="input-container password-container">
+                        <input autocomplete="current-password" class="input-field" data-input-name="password" id="input-password" name="password" part="input" placeholder=" " required="" type="password" value="">
+                        <label class="input-label" for="input-password" part="label">
+                          Password
+                          <span class="required">
+                            *
+                          </span>
+                        </label>
+                        <button aria-label="Toggle password visibility" aria-pressed="false" class="password-toggle" part="password-toggle" type="button">
+                          <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                          </svg>
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                </template>
-              </authhero-node>
-              <authhero-node>
-                <template shadowrootmode="open">
-                  <button class="btn btn-primary" data-primary-action-button part="button button-primary" type="submit">
-                    Continue
-                  </button>
-                </template>
-              </authhero-node>
+                  </template>
+                </authhero-node>
+                <authhero-node>
+                  <template shadowrootmode="open">
+                    <button class="btn btn-primary" data-primary-action-button part="button button-primary" type="submit">
+                      Continue
+                    </button>
+                  </template>
+                </authhero-node>
+              </div>
             </div>
           </div>
         </form>
@@ -326,98 +334,100 @@ exports[`authhero-widget renders signup screen with all fields 1`] = `
         <form action="/api/auth/register" method="POST" part="form">
           <div class="form-content">
             <div class="fields-section" part="fields-section">
-              <authhero-node>
-                <template shadowrootmode="open">
-                  <div class="input-wrapper" part="input-wrapper">
-                    <div class="input-container">
-                      <input class="input-field" data-input-name="name" id="input-name" name="name" part="input" placeholder=" " required="" type="text" value="">
-                      <label class="input-label" for="input-name" part="label">
-                        Full name
-                        <span class="required">
-                          *
-                        </span>
-                      </label>
+              <div class="fields-list" part="fields-list">
+                <authhero-node>
+                  <template shadowrootmode="open">
+                    <div class="input-wrapper" part="input-wrapper">
+                      <div class="input-container">
+                        <input class="input-field" data-input-name="name" id="input-name" name="name" part="input" placeholder=" " required="" type="text" value="">
+                        <label class="input-label" for="input-name" part="label">
+                          Full name
+                          <span class="required">
+                            *
+                          </span>
+                        </label>
+                      </div>
                     </div>
-                  </div>
-                </template>
-              </authhero-node>
-              <authhero-node>
-                <template shadowrootmode="open">
-                  <div class="input-wrapper" part="input-wrapper">
-                    <div class="input-container">
-                      <input autocomplete="email" class="input-field" data-input-name="email" id="input-email" name="email" part="input" placeholder=" " required="" type="email" value="">
-                      <label class="input-label" for="input-email" part="label">
-                        Email address
-                        <span class="required">
-                          *
-                        </span>
-                      </label>
+                  </template>
+                </authhero-node>
+                <authhero-node>
+                  <template shadowrootmode="open">
+                    <div class="input-wrapper" part="input-wrapper">
+                      <div class="input-container">
+                        <input autocomplete="email" class="input-field" data-input-name="email" id="input-email" name="email" part="input" placeholder=" " required="" type="email" value="">
+                        <label class="input-label" for="input-email" part="label">
+                          Email address
+                          <span class="required">
+                            *
+                          </span>
+                        </label>
+                      </div>
                     </div>
-                  </div>
-                </template>
-              </authhero-node>
-              <authhero-node>
-                <template shadowrootmode="open">
-                  <div class="input-wrapper" part="input-wrapper">
-                    <div class="input-container password-container">
-                      <input autocomplete="current-password" class="input-field" data-input-name="password" id="input-password" minlength="8" name="password" part="input" placeholder=" " required="" type="password" value="">
-                      <label class="input-label" for="input-password" part="label">
-                        Password
-                        <span class="required">
-                          *
-                        </span>
-                      </label>
-                      <button aria-label="Toggle password visibility" aria-pressed="false" class="password-toggle" part="password-toggle" type="button">
-                        <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                          <circle cx="12" cy="12" r="3"></circle>
-                        </svg>
-                      </button>
+                  </template>
+                </authhero-node>
+                <authhero-node>
+                  <template shadowrootmode="open">
+                    <div class="input-wrapper" part="input-wrapper">
+                      <div class="input-container password-container">
+                        <input autocomplete="current-password" class="input-field" data-input-name="password" id="input-password" minlength="8" name="password" part="input" placeholder=" " required="" type="password" value="">
+                        <label class="input-label" for="input-password" part="label">
+                          Password
+                          <span class="required">
+                            *
+                          </span>
+                        </label>
+                        <button aria-label="Toggle password visibility" aria-pressed="false" class="password-toggle" part="password-toggle" type="button">
+                          <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                          </svg>
+                        </button>
+                      </div>
+                      <span class="helper-text" part="helper-text">
+                        Must be at least 8 characters
+                      </span>
                     </div>
-                    <span class="helper-text" part="helper-text">
-                      Must be at least 8 characters
-                    </span>
-                  </div>
-                </template>
-              </authhero-node>
-              <authhero-node>
-                <template shadowrootmode="open">
-                  <div class="input-wrapper" part="input-wrapper">
-                    <div class="input-container password-container">
-                      <input autocomplete="current-password" class="input-field" data-input-name="password_confirm" id="input-password_confirm" name="password_confirm" part="input" placeholder=" " required="" type="password" value="">
-                      <label class="input-label" for="input-password_confirm" part="label">
-                        Confirm password
-                        <span class="required">
-                          *
-                        </span>
-                      </label>
-                      <button aria-label="Toggle password visibility" aria-pressed="false" class="password-toggle" part="password-toggle" type="button">
-                        <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                          <circle cx="12" cy="12" r="3"></circle>
-                        </svg>
-                      </button>
+                  </template>
+                </authhero-node>
+                <authhero-node>
+                  <template shadowrootmode="open">
+                    <div class="input-wrapper" part="input-wrapper">
+                      <div class="input-container password-container">
+                        <input autocomplete="current-password" class="input-field" data-input-name="password_confirm" id="input-password_confirm" name="password_confirm" part="input" placeholder=" " required="" type="password" value="">
+                        <label class="input-label" for="input-password_confirm" part="label">
+                          Confirm password
+                          <span class="required">
+                            *
+                          </span>
+                        </label>
+                        <button aria-label="Toggle password visibility" aria-pressed="false" class="password-toggle" part="password-toggle" type="button">
+                          <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                          </svg>
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                </template>
-              </authhero-node>
-              <authhero-node>
-                <template shadowrootmode="open">
-                  <label class="checkbox-wrapper" part="checkbox-wrapper">
-                    <input name="terms" part="checkbox" required="" type="checkbox">
-                    <span class="checkbox-label" part="checkbox-label">
-                      I agree to the Terms of Service and Privacy Policy
-                    </span>
-                  </label>
-                </template>
-              </authhero-node>
-              <authhero-node>
-                <template shadowrootmode="open">
-                  <button class="btn btn-primary" data-primary-action-button part="button button-primary" type="submit">
-                    Create account
-                  </button>
-                </template>
-              </authhero-node>
+                  </template>
+                </authhero-node>
+                <authhero-node>
+                  <template shadowrootmode="open">
+                    <label class="checkbox-wrapper" part="checkbox-wrapper">
+                      <input name="terms" part="checkbox" required="" type="checkbox">
+                      <span class="checkbox-label" part="checkbox-label">
+                        I agree to the Terms of Service and Privacy Policy
+                      </span>
+                    </label>
+                  </template>
+                </authhero-node>
+                <authhero-node>
+                  <template shadowrootmode="open">
+                    <button class="btn btn-primary" data-primary-action-button part="button button-primary" type="submit">
+                      Create account
+                    </button>
+                  </template>
+                </authhero-node>
+              </div>
             </div>
           </div>
         </form>
@@ -453,34 +463,36 @@ exports[`authhero-widget renders success screen 1`] = `
         <form action="/" method="GET" part="form">
           <div class="form-content">
             <div class="fields-section" part="fields-section">
-              <authhero-node>
-                <template shadowrootmode="open">
-                  <img alt="Success" class="image" loading="lazy" part="image" src="/success-icon.svg">
-                </template>
-              </authhero-node>
-              <authhero-node>
-                <template shadowrootmode="open">
-                  <div class="rich-text" part="rich-text">
-                    <h2>
-                      Welcome back!
-                    </h2>
-                  </div>
-                </template>
-              </authhero-node>
-              <authhero-node>
-                <template shadowrootmode="open">
-                  <div class="rich-text" part="rich-text">
-                    You will be redirected to your dashboard shortly.
-                  </div>
-                </template>
-              </authhero-node>
-              <authhero-node>
-                <template shadowrootmode="open">
-                  <button class="btn btn-primary" data-primary-action-button part="button button-primary" type="submit">
-                    Continue
-                  </button>
-                </template>
-              </authhero-node>
+              <div class="fields-list" part="fields-list">
+                <authhero-node>
+                  <template shadowrootmode="open">
+                    <img alt="Success" class="image" loading="lazy" part="image" src="/success-icon.svg">
+                  </template>
+                </authhero-node>
+                <authhero-node>
+                  <template shadowrootmode="open">
+                    <div class="rich-text" part="rich-text">
+                      <h2>
+                        Welcome back!
+                      </h2>
+                    </div>
+                  </template>
+                </authhero-node>
+                <authhero-node>
+                  <template shadowrootmode="open">
+                    <div class="rich-text" part="rich-text">
+                      You will be redirected to your dashboard shortly.
+                    </div>
+                  </template>
+                </authhero-node>
+                <authhero-node>
+                  <template shadowrootmode="open">
+                    <button class="btn btn-primary" data-primary-action-button part="button button-primary" type="submit">
+                      Continue
+                    </button>
+                  </template>
+                </authhero-node>
+              </div>
             </div>
           </div>
         </form>
