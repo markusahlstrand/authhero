@@ -295,7 +295,14 @@ async function handleConnectConsentSubmit(
   // legitimately reached this screen can never be rejected here — while a
   // stale or tampered state_data still can't mint on a tenant they lack
   // access to.
-  if (connect.target_tenant_id && connect.target_tenant_id !== tenant.id) {
+  // On the control plane the target must always be re-validated — including
+  // the case where a stale/tampered state set target_tenant_id to the control
+  // plane's own id, which userCanRegisterOnTenant rejects.
+  if (
+    connect.target_tenant_id &&
+    (isControlPlaneTenant(ctx.env.data, tenant.id) ||
+      connect.target_tenant_id !== tenant.id)
+  ) {
     const allowed = await userCanRegisterOnTenant(
       context,
       user.user_id,

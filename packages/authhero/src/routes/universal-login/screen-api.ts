@@ -799,7 +799,13 @@ screenApiRoutes.openapi(
         },
       },
       400: {
-        description: "Validation error",
+        description:
+          "Validation error — the re-rendered screen with the error surfaced as a screen-level message",
+        content: {
+          "application/json": {
+            schema: screenPostResponseSchema,
+          },
+        },
       },
       404: {
         description: "Screen not found",

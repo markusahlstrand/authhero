@@ -590,9 +590,8 @@ export class AuthheroWidget {
    * or the user prefers reduced motion.
    */
   private async swapScreen(apply: () => void): Promise<void> {
-    const card = this.el.shadowRoot?.querySelector<HTMLElement>(
-      ".widget-container",
-    );
+    const card =
+      this.el.shadowRoot?.querySelector<HTMLElement>(".widget-container");
     const prefersReducedMotion =
       typeof window.matchMedia === "function" &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -860,6 +859,8 @@ export class AuthheroWidget {
         }
 
         if (this._screen) {
+          // New screen fetched — drop any stale searchable-list filter.
+          this.listFilter = "";
           // If we fetched with a screenId override, update our stored screenId
           if (currentScreenId && currentScreenId !== this.screenId) {
             this.screenId = currentScreenId;
@@ -991,6 +992,7 @@ export class AuthheroWidget {
             // freeze a disabled button into the cross-fade.
             this.loading = false;
             this._screen = result.screen;
+            this.listFilter = "";
             this.initFormDataFromDefaults(result.screen);
             this.screenChange.emit(result.screen);
             this.updateDataScreenAttribute();
@@ -1003,6 +1005,7 @@ export class AuthheroWidget {
             // freeze a disabled button into the cross-fade.
             this.loading = false;
             this._screen = result.screen;
+            this.listFilter = "";
             this.formData = {};
             this.initFormDataFromDefaults(result.screen);
             this.screenChange.emit(result.screen);

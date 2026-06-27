@@ -376,6 +376,8 @@ describe("/u2/connect/start — control-plane mode (multi-tenancy)", () => {
     );
     // Re-renders the picker with an error. Importantly: state_data is unchanged.
     expect(response.status).toBe(400);
+    const body = await response.text();
+    expect(body).toContain("You don't have access to that workspace");
     const updated = await env.data.loginSessions.get("tenantId", stateId);
     const stateData = JSON.parse(updated!.state_data!);
     expect(stateData.connect.target_tenant_id).toBeUndefined();
@@ -507,7 +509,12 @@ describe("/u2/connect/start — control-plane mode (multi-tenancy)", () => {
         permission_name: "admin:organizations",
       },
     ]);
-    await env.data.userRoles.create("tenantId", "email|userId", globalRole.id, "");
+    await env.data.userRoles.create(
+      "tenantId",
+      "email|userId",
+      globalRole.id,
+      "",
+    );
 
     const stateId = await startConnectFlow(oauthApp, env);
     const session = await createUserSession(env);
@@ -718,6 +725,8 @@ describe("/u2/connect/start — picker permission gating", () => {
     );
     // Re-renders the picker — nothing persisted.
     expect(response.status).toBe(400);
+    const body = await response.text();
+    expect(body).toContain("You don't have access to that workspace");
     const updated = await env.data.loginSessions.get("tenantId", stateId);
     const stateData = JSON.parse(updated!.state_data!);
     expect(stateData.connect.target_tenant_id).toBeUndefined();

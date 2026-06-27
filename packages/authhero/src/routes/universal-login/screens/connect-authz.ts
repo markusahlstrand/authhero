@@ -45,7 +45,8 @@ async function roleGrantsManagementPermission(
 /**
  * Mirrors @authhero/multi-tenancy's escape hatch: a user holding
  * `admin:organizations` on a global (non-org-scoped) role can act on any
- * tenant without being a member of its control-plane org.
+ * tenant without being a member of its control-plane org. Scoped to the
+ * Management API audience so unrelated API permissions can't satisfy it.
  */
 export async function userHasGlobalOrgAdmin(
   context: ScreenContext,
@@ -64,7 +65,7 @@ export async function userHasGlobalOrgAdmin(
         context,
         role.id,
         "admin:organizations",
-        null,
+        MANAGEMENT_API_AUDIENCE,
       )
     ) {
       return true;

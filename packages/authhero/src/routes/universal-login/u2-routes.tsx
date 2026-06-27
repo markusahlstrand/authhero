@@ -801,7 +801,11 @@ const postScreenRoute = defineRoute({
         content: { "text/html": { schema: z.string() } },
       },
       302: { description: "Redirect to next screen or external URL" },
-      400: { description: "Unknown screen path" },
+      400: {
+        description:
+          "Re-rendered screen HTML after a failed submission, or an unknown screen path",
+        content: { "text/html": { schema: z.string() } },
+      },
     },
   }),
   handler: async (ctx) => {
