@@ -1,6 +1,9 @@
 import { useId } from "react";
+import { Link } from "react-router-dom";
 import { useRecordContext } from "ra-core";
+import { Users } from "lucide-react";
 import { BadgeField, DataTable, List, TextInput } from "@/components/admin";
+import { Button } from "@/components/ui/button";
 import { getBasePath } from "@/utils/runtimeConfig";
 
 type TenantRecord = {
@@ -25,10 +28,7 @@ function ProvisioningStateField() {
   const errorId = useId();
   const error = record?.provisioning_error;
   return (
-    <span
-      title={error}
-      aria-describedby={error ? errorId : undefined}
-    >
+    <span title={error} aria-describedby={error ? errorId : undefined}>
       <BadgeField
         source="provisioning_state"
         defaultValue={state}
@@ -40,6 +40,24 @@ function ProvisioningStateField() {
         </span>
       ) : null}
     </span>
+  );
+}
+
+function MembersLinkCell() {
+  const record = useRecordContext<TenantRecord>();
+  if (!record) return null;
+  return (
+    <Button
+      asChild
+      variant="outline"
+      size="sm"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <Link to={`${getBasePath()}/${String(record.id)}/members`}>
+        <Users className="h-4 w-4 mr-1" />
+        Members
+      </Link>
+    </Button>
   );
 }
 
@@ -68,6 +86,9 @@ export function TenantsList() {
         </DataTable.Col>
         <DataTable.Col source="audience" />
         <DataTable.Col source="support_url" label="Support URL" />
+        <DataTable.Col label="">
+          <MembersLinkCell />
+        </DataTable.Col>
       </DataTable>
     </List>
   );

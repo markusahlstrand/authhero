@@ -49,6 +49,7 @@ CREATE TABLE `tenants` (
 	`provisioning_state_changed_at` text(35),
 	`bundle_configuration` text(64),
 	`worker_version` text(64),
+	`database_version` text(64),
 	`worker_script_name` text(255),
 	`storage_kind` text(32),
 	`d1_database_id` text(64)

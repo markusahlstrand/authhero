@@ -19,6 +19,7 @@ export interface CreateTenantParams {
   provisioning_state_changed_at?: string;
   bundle_configuration?: string;
   worker_version?: string;
+  database_version?: string;
   worker_script_name?: string;
   storage_kind?: "own_d1" | "existing_d1" | "shared_planetscale";
   d1_database_id?: string;

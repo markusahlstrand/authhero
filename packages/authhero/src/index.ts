@@ -23,6 +23,10 @@ export * from "./adapters";
 export * from "./email-services";
 export { waitUntil } from "./helpers/wait-until";
 export {
+  toMutableResponse,
+  ensureMutableResponse,
+} from "./helpers/mutable-response";
+export {
   cleanupUserSessions,
   cleanupSessions,
 } from "./helpers/user-session-cleanup";

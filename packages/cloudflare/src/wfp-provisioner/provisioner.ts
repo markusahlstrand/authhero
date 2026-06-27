@@ -14,6 +14,11 @@ const DEFAULT_D1_NAME_TEMPLATE = "tenant-{tenant_id}";
 const DEFAULT_MAIN_MODULE = "index.js";
 const DEFAULT_COMPATIBILITY_DATE = "2026-05-01";
 
+// The recorded version token is persisted into `tenants.database_version`,
+// a 64-char column. Reject anything longer up front so we never run the
+// Cloudflare side effects and then fail the control-plane write afterwards.
+const MAX_DATABASE_VERSION_LENGTH = 64;
+
 function fillTemplate(template: string, tenantId: string): string {
   return template.replace(/\{tenant_id\}/g, tenantId);
 }
@@ -265,6 +270,20 @@ export function createCloudflareWfpD1Provisioner(
       const scriptName = fillTemplate(scriptNameTemplate, tenantId);
       const d1Name = fillTemplate(d1NameTemplate, tenantId);
 
+      // Validate the version token we'll persist BEFORE any Cloudflare side
+      // effects — otherwise an oversize migration name only surfaces after the
+      // tenant is provisioned, leaving the control-plane update broken.
+      const lastMigration = options.migrations[options.migrations.length - 1];
+      const databaseVersion = lastMigration?.name;
+      if (
+        databaseVersion !== undefined &&
+        databaseVersion.length > MAX_DATABASE_VERSION_LENGTH
+      ) {
+        throw new Error(
+          `Migration name "${databaseVersion}" exceeds the ${MAX_DATABASE_VERSION_LENGTH}-character database_version limit.`,
+        );
+      }
+
       // 1. D1: create-if-missing, capture id + whether we just created it.
       const { id: databaseId, created } = await findOrCreateD1(d1Name);
 
@@ -301,7 +320,16 @@ export function createCloudflareWfpD1Provisioner(
       //    — CF processes each set independently.
       await uploadSecrets(scriptName, tenantId);
 
-      return { d1DatabaseId: databaseId, scriptName, d1Name };
+      // `databaseVersion` is the last migration in the configured list (they
+      // apply in array order), validated for length at the top of this hook.
+      return {
+        d1DatabaseId: databaseId,
+        scriptName,
+        d1Name,
+        bundleConfiguration: options.bundleConfiguration,
+        workerVersion: options.workerVersion,
+        databaseVersion,
+      };
     },
 
     async onDeprovision(tenantId: string): Promise<void> {

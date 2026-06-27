@@ -70,6 +70,9 @@ type getEnvParams = {
   // Optional middleware mounted inside the management API after the CORS
   // middleware (the `config.tenantDispatch` integration point).
   tenantDispatch?: import("hono").MiddlewareHandler;
+  // Optional handler driving POST /tenants/{id}/redeploy (the
+  // `config.tenantUpgrade` integration point).
+  tenantUpgrade?: (tenantId: string) => Promise<void>;
   // Optional static CORS allow-list passed through to `init`.
   allowedOrigins?: string[];
 };
@@ -279,6 +282,7 @@ export async function getTestServer(
       : {}),
     ...(args.codeExecutor ? { codeExecutor: args.codeExecutor } : {}),
     ...(args.tenantDispatch ? { tenantDispatch: args.tenantDispatch } : {}),
+    ...(args.tenantUpgrade ? { tenantUpgrade: args.tenantUpgrade } : {}),
     ...(args.allowedOrigins ? { allowedOrigins: args.allowedOrigins } : {}),
   });
   return {

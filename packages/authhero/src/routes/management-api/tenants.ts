@@ -63,7 +63,14 @@ const patchSettings = defineRoute({
       body: {
         content: {
           "application/json": {
-            schema: z.object(tenantInsertSchema.shape).partial(),
+            // `database_version` tracks the schema migration the tenant's
+            // deployed bundle targets — it's reconciled by the provisioner,
+            // not something a client may set. Omit it from the externally
+            // patchable settings so it can't be written through patchSettings.
+            schema: z
+              .object(tenantInsertSchema.shape)
+              .omit({ database_version: true })
+              .partial(),
           },
         },
       },
@@ -147,10 +154,109 @@ const patchSettings = defineRoute({
   },
 });
 
+// Re-provision ("upgrade") a WFP tenant onto the control plane's current
+// worker bundle + migrations. Control-plane-only: the acting tenant (resolved
+// from the `tenant-id` header) must be the control plane — which both scopes
+// the operation to operators and guarantees `tenantDispatch` did not forward
+// this request to a tenant worker (it never forwards control-plane traffic).
+// The target tenant is named by the `{id}` path param. Drives
+// `config.tenantUpgrade`; returns 501 when no upgrade handler is configured.
+const redeployTenant = defineRoute({
+  route: createRoute({
+    tags: ["tenants"],
+    method: "post",
+    path: "/{id}/redeploy",
+    request: {
+      params: z.object({
+        id: z.string(),
+      }),
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
+    },
+    security: [
+      {
+        Bearer: ["update:tenants"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: tenantSchema,
+          },
+        },
+        description: "Upgraded tenant settings",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    if (!isControlPlaneTenant(ctx, ctx.var.tenant_id)) {
+      throw new HTTPException(403, {
+        message: "Tenant upgrades can only be triggered from the control plane",
+      });
+    }
+
+    if (!ctx.env.tenantUpgrade) {
+      throw new HTTPException(501, {
+        message: "Tenant upgrades are not configured for this deployment",
+      });
+    }
+
+    const { id } = ctx.req.valid("param");
+
+    const existingTenant = await ctx.env.data.tenants.get(id);
+    if (!existingTenant) {
+      throw new HTTPException(404, {
+        message: "Tenant not found",
+      });
+    }
+
+    // Only WFP-provisioned tenants have their own worker/D1 to redeploy. A
+    // shared tenant has nothing to upgrade and would otherwise fail deeper in
+    // the provisioning hook — reject it here with a clear client error.
+    if (existingTenant.deployment_type !== "wfp") {
+      throw new HTTPException(400, {
+        message: "Only WFP-provisioned tenants can be redeployed",
+      });
+    }
+
+    try {
+      await ctx.env.tenantUpgrade(id);
+    } catch (err) {
+      console.error("Tenant upgrade failed", { tenantId: id, err });
+      throw new HTTPException(500, {
+        message: "Tenant upgrade failed",
+      });
+    }
+
+    const upgradedTenant = await ctx.env.data.tenants.get(id);
+    if (!upgradedTenant) {
+      throw new HTTPException(500, {
+        message: "Failed to retrieve upgraded tenant",
+      });
+    }
+
+    await logMessage(ctx, id, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: "Redeploy tenant",
+      targetType: "tenant",
+      targetId: id,
+      beforeState: existingTenant as Record<string, unknown>,
+      afterState: upgradedTenant as Record<string, unknown>,
+    });
+
+    return ctx.json({
+      ...upgradedTenant,
+      is_control_plane: isControlPlaneTenant(ctx, id),
+    });
+  },
+});
+
 export const tenantRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
-}>().openapiRoutes([getSettings, patchSettings] as const);
+}>().openapiRoutes([getSettings, patchSettings, redeployTenant] as const);
 
 // True when the current tenant is the deployment's control plane. In
 // multi-tenant deployments `multiTenancyConfig.controlPlaneTenantId` names the

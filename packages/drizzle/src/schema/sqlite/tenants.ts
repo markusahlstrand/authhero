@@ -65,6 +65,7 @@ export const tenants = sqliteTable("tenants", {
   }),
   bundle_configuration: text("bundle_configuration", { length: 64 }),
   worker_version: text("worker_version", { length: 64 }),
+  database_version: text("database_version", { length: 64 }),
   worker_script_name: text("worker_script_name", { length: 255 }),
   storage_kind: text("storage_kind", { length: 32 }),
   d1_database_id: text("d1_database_id", { length: 64 }),

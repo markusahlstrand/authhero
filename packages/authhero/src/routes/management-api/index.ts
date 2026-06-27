@@ -37,6 +37,7 @@ import {
   serverTimingMiddleware,
 } from "../../helpers/server-timing";
 import { applyConfigMiddleware } from "../../middlewares/apply-config";
+import { ensureMutableResponse } from "../../helpers/mutable-response";
 import { tenantMiddleware } from "../../middlewares/tenant";
 import { clientInfoMiddleware } from "../../middlewares/client-info";
 import { preferMiddleware } from "../../middlewares/prefer";
@@ -196,37 +197,41 @@ export default function create(config: AuthHeroConfig) {
     // A response produced by `fetch()` / Workers-for-Platforms dispatch (the
     // `tenantDispatch` middleware mounted below), or any proxied / cached / R2
     // response, carries an *immutable* header guard — appending or setting a
-    // header on it throws "Can't modify immutable headers." Re-wrap such a
-    // response into a fresh Response, which has the mutable "response" guard,
-    // before writing any CORS/Vary header. Done once here so both the
-    // unconditional `Vary` append and `setCorsHeaders` below operate on a
-    // mutable response. A 101 upgrade (carries a `webSocket` handle) is left
-    // untouched — it never flows through this management API anyway.
-    if (ctx.res.status !== 101 && !("webSocket" in ctx.res)) {
-      try {
-        ctx.res.headers.append("Vary", "Origin");
-      } catch {
-        ctx.res = new Response(ctx.res.body, ctx.res);
-        ctx.res.headers.append("Vary", "Origin");
-      }
-    }
+    // header on it throws "Can't modify immutable headers." Normalize once to a
+    // mutable response so both the `Vary` append and `setCorsHeaders` below are
+    // safe. A 101 upgrade is left immutable by the helper (its `webSocket` handle
+    // can't survive reconstruction), so skip the header writes for it — it never
+    // flows through this management API anyway.
+    ensureMutableResponse(ctx);
+    const isUpgrade = ctx.res.status === 101 || "webSocket" in ctx.res;
 
-    if (origin) {
-      // Check static allowedOrigins first
-      if (config.allowedOrigins?.includes(origin)) {
-        setCorsHeaders(origin);
-        return;
-      }
+    if (!isUpgrade) {
+      ctx.res.headers.append("Vary", "Origin");
 
-      // Try to get tenant ID from context (set by tenant middleware)
-      const tenantId = ctx.var.tenant_id || ctx.req.header("tenant-id");
-      if (tenantId) {
-        const clients = await managementAdapter.clients.list(tenantId, {});
-        const allWebOrigins = clients.clients.flatMap(
-          (client) => client.web_origins || [],
-        );
-        if (allWebOrigins.includes(origin)) {
+      if (origin) {
+        // Check static allowedOrigins first
+        if (config.allowedOrigins?.includes(origin)) {
           setCorsHeaders(origin);
+          return;
+        }
+
+        // Try to get tenant ID from context (set by tenant middleware), then
+        // the legacy `tenant-id` header, then — for subdomain/custom-domain
+        // addressing where neither is present (e.g. a host-routed request
+        // `tenantDispatch` returned early for) — fall back to the request
+        // host, mirroring the preflight path above.
+        const tenantId =
+          ctx.var.tenant_id ||
+          ctx.req.header("tenant-id") ||
+          (await resolveTenantIdFromHost(ctx));
+        if (tenantId) {
+          const clients = await managementAdapter.clients.list(tenantId, {});
+          const allWebOrigins = clients.clients.flatMap(
+            (client) => client.web_origins || [],
+          );
+          if (allWebOrigins.includes(origin)) {
+            setCorsHeaders(origin);
+          }
         }
       }
     }

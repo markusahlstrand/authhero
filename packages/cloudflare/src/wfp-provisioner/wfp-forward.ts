@@ -95,7 +95,53 @@ export function createWfpForwardMiddleware(
     }
 
     const scriptName = fillTemplate(scriptNameTemplate, tenantId);
-    const res = await dispatcher.get(scriptName).fetch(c.req.raw);
+
+    let res: Response;
+    try {
+      res = await dispatcher.get(scriptName).fetch(c.req.raw);
+    } catch (err) {
+      // `dispatcher.get(name).fetch()` throws when the tenant's worker isn't in
+      // the namespace ("worker not found") or fails to boot. Left unhandled this
+      // surfaces as an opaque control-plane 500 that names neither the tenant
+      // nor the script. Log the cause (visible in the control plane's own
+      // `wrangler tail`) and return a structured, tenant-scoped error so a
+      // routing/provisioning gap is distinguishable from a real upstream
+      // failure — and carries the same `X-Authhero-Error` code convention the
+      // tenant worker uses.
+      const detail = err instanceof Error ? err.message : String(err);
+      const missing = /not\s*found|no\s*such|does not exist/i.test(detail);
+      const code = missing ? "wfp_worker_not_found" : "wfp_dispatch_failed";
+      console.error(
+        `[wfp-forward] ${code} tenant=${tenantId} script=${scriptName}: ${detail}`,
+      );
+      c.header("X-Authhero-Error", code);
+      c.header("X-Wfp-Tenant", tenantId);
+      return c.json(
+        {
+          error: code,
+          detail: missing
+            ? `Tenant '${tenantId}' is marked ready but its worker '${scriptName}' is not deployed in the dispatch namespace.`
+            : `The worker for tenant '${tenantId}' could not be reached.`,
+          tenant_id: tenantId,
+        },
+        missing ? 503 : 502,
+      );
+    }
+
+    // A dispatched 5xx is the tenant worker failing. The control plane can't
+    // `wrangler tail` a dispatch-namespace worker, so record which tenant/script
+    // produced it — and any `X-Authhero-Error` code the worker tagged — here,
+    // where that context is known. The full cause still lives in the tenant
+    // worker's own logs, but this turns an opaque control-plane 500 into a
+    // traceable one.
+    if (res.status >= 500) {
+      const code = res.headers.get("X-Authhero-Error");
+      console.error(
+        `[wfp-forward] tenant worker ${res.status}${
+          code ? ` (${code})` : ""
+        } tenant=${tenantId} script=${scriptName}`,
+      );
+    }
 
     // A response returned straight from `fetch()` / WFP dispatch carries an
     // *immutable* header guard. authhero core mounts this middleware inside its
@@ -103,7 +149,7 @@ export function createWfpForwardMiddleware(
     // `Access-Control-*` on the response — mutating immutable headers throws
     // "Can't modify immutable headers." and every dispatched request 500s.
     // Re-wrap into a fresh Response, which has the mutable "response" guard, so
-    // downstream middleware can write headers.
+    // downstream middleware (and the tenant tag below) can write headers.
     //
     // Skip the re-wrap only for a 101 Switching Protocols upgrade: it carries a
     // `webSocket` handle that a reconstructed Response would drop, breaking the
@@ -115,6 +161,10 @@ export function createWfpForwardMiddleware(
       return res;
     }
 
-    return new Response(res.body, res);
+    // Tag every dispatched response so an operator can see, from the response
+    // alone, that the request was served by a tenant worker and which one.
+    const wrapped = new Response(res.body, res);
+    wrapped.headers.set("X-Wfp-Tenant", tenantId);
+    return wrapped;
   };
 }

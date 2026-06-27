@@ -1,12 +1,20 @@
-import { useEffect, useState } from "react";
 import {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import {
+  RecordContextProvider,
   useDataProvider,
+  useGetIdentity,
   useNotify,
   useRecordContext,
   useRefresh,
 } from "ra-core";
 import { useParams } from "react-router-dom";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Mail, Pencil, Plus, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -25,6 +33,7 @@ import {
   ReferenceManyField,
 } from "@/components/admin";
 import { getUserAvatarColor, getUserAvatarSeed } from "@/utils/userAvatar";
+import { buildInvitationPayload } from "./inviteMember";
 
 interface UserSummary {
   id: string | number;
@@ -52,8 +61,21 @@ interface MemberRecord {
   roles?: RoleSummary[];
 }
 
+/**
+ * Lets the members UI be driven either by the organization edit route param
+ * (`/organizations/:id`) or by an explicit organization id passed to
+ * `<MembersTab organizationId={...} />` (e.g. the control-plane tenant view).
+ */
+const OrganizationIdContext = createContext<string | undefined>(undefined);
+
+function useOrganizationId() {
+  const contextValue = useContext(OrganizationIdContext);
+  const { id } = useParams();
+  return contextValue ?? id;
+}
+
 function AddMemberButton() {
-  const { id: organizationId } = useParams();
+  const organizationId = useOrganizationId();
   const dataProvider = useDataProvider();
   const notify = useNotify();
   const refresh = useRefresh();
@@ -222,7 +244,7 @@ function MemberAvatarCell() {
 
 function RemoveMemberCell() {
   const record = useRecordContext<MemberRecord>();
-  const { id: organizationId } = useParams();
+  const organizationId = useOrganizationId();
   const dataProvider = useDataProvider();
   const notify = useNotify();
   const refresh = useRefresh();
@@ -316,7 +338,7 @@ function MemberRolesCell() {
 
 function EditMemberRolesCell() {
   const record = useRecordContext<MemberRecord>();
-  const { id: organizationId } = useParams();
+  const organizationId = useOrganizationId();
   const dataProvider = useDataProvider();
   const notify = useNotify();
   const refresh = useRefresh();
@@ -470,44 +492,289 @@ function EditMemberRolesCell() {
   );
 }
 
-export function MembersTab() {
+interface InvitationRecord {
+  id: string;
+  organization_id: string;
+  invitee?: { email?: string };
+  inviter?: { name?: string };
+  created_at?: string;
+  expires_at?: string;
+}
+
+function InviteMemberButton({ clientId }: { clientId: string }) {
+  const organizationId = useOrganizationId();
+  const dataProvider = useDataProvider();
+  const notify = useNotify();
+  const refresh = useRefresh();
+  const { identity } = useGetIdentity();
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState("");
+  const [sendEmail, setSendEmail] = useState(true);
+  const [busy, setBusy] = useState(false);
+  // Synchronous in-flight lock. `busy` drives the disabled UI state, but a
+  // state update doesn't settle before a rapid second Enter press re-enters
+  // `handleInvite`, so the `busy` check alone can't prevent a duplicate
+  // (non-idempotent) invite create. This ref flips immediately.
+  const inFlight = useRef(false);
+
+  const handleClose = () => {
+    setOpen(false);
+    setEmail("");
+    setSendEmail(true);
+  };
+
+  const handleInvite = async () => {
+    if (inFlight.current || busy || !organizationId || !email.trim()) return;
+    inFlight.current = true;
+    setBusy(true);
+    try {
+      await dataProvider.create("organization-invitations", {
+        data: buildInvitationPayload({
+          organizationId,
+          clientId,
+          email,
+          inviterName: identity?.fullName,
+          sendInvitationEmail: sendEmail,
+        }),
+      });
+      notify(`Invitation sent to ${email.trim()}`, { type: "success" });
+      handleClose();
+      refresh();
+    } catch {
+      notify("Error sending invitation", { type: "error" });
+    } finally {
+      setBusy(false);
+      inFlight.current = false;
+    }
+  };
+
+  if (!organizationId) return null;
+
   return (
-    <div className="flex flex-col gap-4">
-      <div>
-        <AddMemberButton />
-      </div>
+    <>
+      <Button type="button" variant="outline" onClick={() => setOpen(true)}>
+        <Mail className="h-4 w-4 mr-1" />
+        Invite by email
+      </Button>
+      <Dialog
+        open={open}
+        onOpenChange={(o) => (o ? setOpen(true) : handleClose())}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Invite a new member</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Invite someone who doesn&apos;t have an account yet. They&apos;ll
+            receive a link to join this tenant.
+          </p>
+          <Input
+            type="email"
+            placeholder="name@example.com"
+            value={email}
+            disabled={busy}
+            onChange={(e) => setEmail(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleInvite();
+              }
+            }}
+          />
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox
+              checked={sendEmail}
+              onCheckedChange={(c) => setSendEmail(c === true)}
+            />
+            Send invitation email
+          </label>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleClose}>
+              Cancel
+            </Button>
+            <Button onClick={handleInvite} disabled={busy || !email.trim()}>
+              Send invitation
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+function InvitationEmailCell() {
+  const record = useRecordContext<InvitationRecord>();
+  if (!record) return null;
+  return (
+    <span className="text-sm">
+      {record.invitee?.email ?? (
+        <span className="text-muted-foreground">—</span>
+      )}
+    </span>
+  );
+}
+
+function InvitationExpiresCell() {
+  const record = useRecordContext<InvitationRecord>();
+  if (!record?.expires_at) return null;
+  const formatted = new Date(record.expires_at).toLocaleDateString();
+  return <span className="text-sm text-muted-foreground">{formatted}</span>;
+}
+
+function RevokeInvitationCell() {
+  const record = useRecordContext<InvitationRecord>();
+  const organizationId = useOrganizationId();
+  const dataProvider = useDataProvider();
+  const notify = useNotify();
+  const refresh = useRefresh();
+  const [busy, setBusy] = useState(false);
+
+  if (!record || !organizationId) return null;
+
+  const handleRevoke = async () => {
+    setBusy(true);
+    try {
+      await dataProvider.delete("organization-invitations", {
+        id: record.id,
+        previousData: { id: record.id, organization_id: organizationId },
+      });
+      notify("Invitation revoked", { type: "success" });
+      refresh();
+    } catch {
+      notify("Error revoking invitation", { type: "error" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon"
+      aria-label="Revoke invitation"
+      disabled={busy}
+      onClick={(e) => {
+        e.stopPropagation();
+        handleRevoke();
+      }}
+    >
+      <Trash2 className="h-4 w-4" />
+    </Button>
+  );
+}
+
+function PendingInvitations() {
+  return (
+    <div className="flex flex-col gap-2">
+      <h3 className="text-sm font-medium">Pending invitations</h3>
       <ReferenceManyField
-        reference="organization-members"
+        reference="organization-invitations"
         target="organization_id"
-        sort={{ field: "email", order: "ASC" }}
+        sort={{ field: "created_at", order: "DESC" }}
         pagination={<ListPagination />}
         empty={
-          <p className="text-sm text-muted-foreground py-4">
-            No members in this organization
+          <p className="text-sm text-muted-foreground py-2">
+            No pending invitations
           </p>
         }
       >
-        <DataTable
-          rowClick={(_, __, record) => `/users/${record.user_id}`}
-          bulkActionButtons={false}
-        >
-          <DataTable.Col label="">
-            <MemberAvatarCell />
+        <DataTable bulkActionButtons={false}>
+          <DataTable.Col label="Email">
+            <InvitationEmailCell />
           </DataTable.Col>
-          <DataTable.Col source="email" />
-          <DataTable.Col source="name" />
-          <DataTable.Col source="user_id" label="User ID" />
-          <DataTable.Col label="Roles">
-            <MemberRolesCell />
+          <DataTable.Col label="Expires">
+            <InvitationExpiresCell />
           </DataTable.Col>
           <DataTable.Col label="">
-            <div className="flex items-center justify-end gap-1">
-              <EditMemberRolesCell />
-              <RemoveMemberCell />
+            <div className="flex items-center justify-end">
+              <RevokeInvitationCell />
             </div>
           </DataTable.Col>
         </DataTable>
       </ReferenceManyField>
     </div>
   );
+}
+
+interface MembersTabProps {
+  /**
+   * Organization to manage. When omitted, the organization is taken from the
+   * `/organizations/:id` route param (the organization edit page). When
+   * provided, a minimal record context is supplied so `ReferenceManyField` can
+   * resolve its `organization_id` target outside of an organization record.
+   */
+  organizationId?: string;
+  /**
+   * When set, enables email invitations for users who don't have an account
+   * yet. The client id is used to build the invitation link, so it must be a
+   * client in the tenant that owns this organization.
+   */
+  inviteClientId?: string;
+}
+
+export function MembersTab({
+  organizationId: orgIdProp,
+  inviteClientId,
+}: MembersTabProps = {}) {
+  const { id: routeId } = useParams();
+  const organizationId = orgIdProp ?? routeId;
+
+  const content = (
+    <OrganizationIdContext.Provider value={organizationId}>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap gap-2">
+          <AddMemberButton />
+          {inviteClientId ? (
+            <InviteMemberButton clientId={inviteClientId} />
+          ) : null}
+        </div>
+        <ReferenceManyField
+          reference="organization-members"
+          target="organization_id"
+          sort={{ field: "email", order: "ASC" }}
+          pagination={<ListPagination />}
+          empty={
+            <p className="text-sm text-muted-foreground py-4">
+              No members in this organization
+            </p>
+          }
+        >
+          <DataTable
+            rowClick={(_, __, record) => `/users/${record.user_id}`}
+            bulkActionButtons={false}
+          >
+            <DataTable.Col label="">
+              <MemberAvatarCell />
+            </DataTable.Col>
+            <DataTable.Col source="email" />
+            <DataTable.Col source="name" />
+            <DataTable.Col source="user_id" label="User ID" />
+            <DataTable.Col label="Roles">
+              <MemberRolesCell />
+            </DataTable.Col>
+            <DataTable.Col label="">
+              <div className="flex items-center justify-end gap-1">
+                <EditMemberRolesCell />
+                <RemoveMemberCell />
+              </div>
+            </DataTable.Col>
+          </DataTable>
+        </ReferenceManyField>
+        <PendingInvitations />
+      </div>
+    </OrganizationIdContext.Provider>
+  );
+
+  // When driven by an explicit org id we render outside an organization record
+  // context, so provide a minimal one for ReferenceManyField's target lookup.
+  if (orgIdProp) {
+    return (
+      <RecordContextProvider value={{ id: orgIdProp }}>
+        {content}
+      </RecordContextProvider>
+    );
+  }
+
+  return content;
 }

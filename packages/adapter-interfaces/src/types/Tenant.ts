@@ -235,6 +235,16 @@ export const tenantInsertSchema = z.object({
   // `storage_kind` plus `d1_database_id` determine the data backend the
   // tenant worker is bound to.
   //
+  // Versioning — the three fields below record what the tenant is currently
+  // running so the control plane can detect drift and drive upgrades:
+  //   - `bundle_configuration` — the worker image / variant name.
+  //   - `worker_version` — the release tag (or git SHA) of the deployed bundle,
+  //     supplied by the operator at build time.
+  //   - `database_version` — the name of the latest migration applied to the
+  //     tenant's database, i.e. the schema version the deployed bundle targets.
+  // A redeploy/upgrade re-uploads the current bundle, reconciles pending
+  // migrations, and rewrites all three.
+  //
   // `provisioning_state` tracks the async provision flow for `wfp` tenants.
   // Shared tenants are `ready` immediately.
   deployment_type: z.enum(["shared", "wfp"]).default("shared").optional(),
@@ -246,6 +256,7 @@ export const tenantInsertSchema = z.object({
   provisioning_state_changed_at: z.string().optional(),
   bundle_configuration: z.string().max(64).optional(),
   worker_version: z.string().max(64).optional(),
+  database_version: z.string().max(64).optional(),
   worker_script_name: z.string().max(255).optional(),
   storage_kind: z
     .enum(["own_d1", "existing_d1", "shared_planetscale"])

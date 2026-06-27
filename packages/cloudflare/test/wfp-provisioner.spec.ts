@@ -679,7 +679,46 @@ describe("createCloudflareWfpD1Provisioner", () => {
       d1DatabaseId: "db_kvartal",
       scriptName: "kvartal",
       d1Name: "tenant-kvartal",
+      // database_version is the last migration; no bundle/worker version set
+      databaseVersion: "0.sql",
     });
+  });
+
+  it("onProvision reports the deployed versions: bundle, worker, and the latest migration as database_version", async () => {
+    setupHappyPath();
+    const provisioner = createCloudflareWfpD1Provisioner({
+      accountId: ACCOUNT_ID,
+      apiToken: "token",
+      dispatchNamespace: NAMESPACE,
+      controlPlaneBaseUrl: "https://auth.example.com",
+      tenantWorkerScript: "",
+      bundleConfiguration: "authhero-drizzle-d1",
+      workerVersion: "v1.2.3",
+      migrations: [
+        { name: "0000_init.sql", sql: "SELECT 1;" },
+        { name: "0001_add_x.sql", sql: "SELECT 1;" },
+      ],
+      secrets: async () => ({ X: "y" }),
+    });
+    const result = await provisioner.onProvision("kvartal");
+    expect(result.bundleConfiguration).toBe("authhero-drizzle-d1");
+    expect(result.workerVersion).toBe("v1.2.3");
+    expect(result.databaseVersion).toBe("0001_add_x.sql");
+  });
+
+  it("onProvision leaves database_version undefined when no migrations are configured", async () => {
+    setupHappyPath();
+    const provisioner = createCloudflareWfpD1Provisioner({
+      accountId: ACCOUNT_ID,
+      apiToken: "token",
+      dispatchNamespace: NAMESPACE,
+      controlPlaneBaseUrl: "https://auth.example.com",
+      tenantWorkerScript: "",
+      migrations: [],
+      secrets: async () => ({ X: "y" }),
+    });
+    const result = await provisioner.onProvision("kvartal");
+    expect(result.databaseVersion).toBeUndefined();
   });
 });
 
@@ -937,5 +976,113 @@ describe("createWfpTenantProvisioningHook", () => {
     await expect(hook.onProvision("kvartal")).rejects.toThrow(/upstream failed/);
     expect(warn).toHaveBeenCalledOnce();
     expect(warn.mock.calls[0][0]).toMatch(/Failed to write provisioning_state/);
+  });
+
+  it("writes the deployed versions back onto the tenant row", async () => {
+    const provisioner = fakeProvisioner();
+    provisioner.nextProvisionResult = {
+      d1DatabaseId: "db_kvartal",
+      scriptName: "kvartal",
+      d1Name: "tenant-kvartal",
+      bundleConfiguration: "authhero-drizzle-d1",
+      workerVersion: "v1.2.3",
+      databaseVersion: "0001_add_x.sql",
+    };
+    const tenants = fakeTenantsAdapter({
+      id: "kvartal",
+      deployment_type: "wfp",
+      provisioning_state: "pending",
+    });
+    const hook = createWfpTenantProvisioningHook({ provisioner, tenants });
+    await hook.onProvision("kvartal");
+    expect(tenants.store.get("kvartal")).toMatchObject({
+      bundle_configuration: "authhero-drizzle-d1",
+      worker_version: "v1.2.3",
+      database_version: "0001_add_x.sql",
+      provisioning_state: "ready",
+    });
+  });
+
+  it("onUpgrade re-provisions a wfp tenant and rewrites its versions", async () => {
+    const provisioner = fakeProvisioner();
+    provisioner.nextProvisionResult = {
+      d1DatabaseId: "db_kvartal",
+      scriptName: "kvartal",
+      d1Name: "tenant-kvartal",
+      bundleConfiguration: "authhero-drizzle-d1",
+      workerVersion: "v2.0.0",
+      databaseVersion: "0002_add_y.sql",
+    };
+    const tenants = fakeTenantsAdapter({
+      id: "kvartal",
+      deployment_type: "wfp",
+      provisioning_state: "ready",
+      worker_version: "v1.0.0",
+      database_version: "0001_add_x.sql",
+    });
+    const hook = createWfpTenantProvisioningHook({ provisioner, tenants });
+    await hook.onUpgrade("kvartal");
+    expect(provisioner.onProvisionCalls).toEqual(["kvartal"]);
+    expect(tenants.store.get("kvartal")).toMatchObject({
+      worker_version: "v2.0.0",
+      database_version: "0002_add_y.sql",
+      provisioning_state: "ready",
+    });
+  });
+
+  it("onUpgrade marks the tenant 'pending' before re-provisioning", async () => {
+    const provisioner = fakeProvisioner();
+    const tenants = fakeTenantsAdapter({
+      id: "kvartal",
+      deployment_type: "wfp",
+      provisioning_state: "ready",
+    });
+    // Observe the state at the moment the provisioner runs.
+    let stateDuringProvision: string | undefined;
+    const baseOnProvision = provisioner.onProvision.bind(provisioner);
+    provisioner.onProvision = async (id: string) => {
+      stateDuringProvision = tenants.store.get(id)?.provisioning_state;
+      return baseOnProvision(id);
+    };
+    const hook = createWfpTenantProvisioningHook({ provisioner, tenants });
+    await hook.onUpgrade("kvartal");
+    expect(stateDuringProvision).toBe("pending");
+  });
+
+  it("onUpgrade marks failed and rethrows when the provisioner throws", async () => {
+    const provisioner = fakeProvisioner();
+    provisioner.nextProvisionError = new Error("upload failed");
+    const tenants = fakeTenantsAdapter({
+      id: "kvartal",
+      deployment_type: "wfp",
+      provisioning_state: "ready",
+    });
+    const hook = createWfpTenantProvisioningHook({ provisioner, tenants });
+    await expect(hook.onUpgrade("kvartal")).rejects.toThrow(/upload failed/);
+    expect(tenants.store.get("kvartal")).toMatchObject({
+      provisioning_state: "failed",
+      provisioning_error: "upload failed",
+    });
+  });
+
+  it("onUpgrade throws for a missing tenant", async () => {
+    const provisioner = fakeProvisioner();
+    const tenants = fakeTenantsAdapter({ id: "other", deployment_type: "wfp" });
+    const hook = createWfpTenantProvisioningHook({ provisioner, tenants });
+    await expect(hook.onUpgrade("missing")).rejects.toThrow(/not found/);
+    expect(provisioner.onProvisionCalls).toEqual([]);
+  });
+
+  it("onUpgrade throws for a non-wfp tenant", async () => {
+    const provisioner = fakeProvisioner();
+    const tenants = fakeTenantsAdapter({
+      id: "shared-tenant",
+      deployment_type: "shared",
+    });
+    const hook = createWfpTenantProvisioningHook({ provisioner, tenants });
+    await expect(hook.onUpgrade("shared-tenant")).rejects.toThrow(
+      /not a WFP-provisioned tenant/,
+    );
+    expect(provisioner.onProvisionCalls).toEqual([]);
   });
 });
