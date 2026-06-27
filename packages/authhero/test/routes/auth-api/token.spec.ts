@@ -1557,6 +1557,61 @@ describe("token", () => {
       ).toBeGreaterThanOrEqual(new Date(idle_expires_at).getTime());
     });
 
+    it("still exchanges when login_id points at a deleted login_session (orphaned)", async () => {
+      // Prod produced refresh tokens whose login_id references a login_session
+      // that cleanup later removed (FKs aren't enforced on Vitess). The exchange
+      // must treat the login_session as optional — validity is governed by the
+      // refresh_token row itself. The only degradation is a missing session
+      // cookie / auth_connection fallback. Guard against a future regression
+      // that turns a dangling login_id into a hard failure.
+      const { oauthApp, env } = await getTestServer();
+      const client = testClient(oauthApp, env);
+
+      const idle_expires_at = new Date(
+        Date.now() + 1000 * 60 * 60,
+      ).toISOString();
+
+      await env.data.refreshTokens.create("tenantId", {
+        id: "orphanedRefreshToken",
+        // login_session "doesNotExist" is never created.
+        login_id: "doesNotExist",
+        user_id: "email|userId",
+        client_id: "clientId",
+        resource_servers: [{ audience: "http://example.com", scopes: "openid" }],
+        device: {
+          last_ip: "",
+          initial_ip: "",
+          last_user_agent: "",
+          initial_user_agent: "",
+          initial_asn: "",
+          last_asn: "",
+        },
+        rotating: false,
+        idle_expires_at,
+        expires_at: idle_expires_at,
+      });
+
+      const response = await client.oauth.token.$post(
+        // @ts-expect-error - testClient type requires both form and json
+        {
+          form: {
+            grant_type: "refresh_token",
+            refresh_token: "orphanedRefreshToken",
+            client_id: "clientId",
+          },
+        },
+        { headers: { "tenant-id": "tenantId" } },
+      );
+
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as TokenResponse;
+      expect(body).toMatchObject({
+        access_token: expect.any(String),
+        refresh_token: expect.any(String),
+        id_token: expect.any(String),
+      });
+    });
+
     it("should extend login_session expires_at when refresh token is exchanged", async () => {
       const { oauthApp, env } = await getTestServer();
       const client = testClient(oauthApp, env);

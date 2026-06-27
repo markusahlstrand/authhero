@@ -533,11 +533,10 @@ describe("sessionCleanup", () => {
     expect(loginSessions.length).toEqual(0);
   });
 
-  it("should remove expired login sessions regardless of active sessions", async () => {
-    // Grace period is 1 week, so use 2 weeks ago for expired records
-    const twoWeeksAgo = new Date(
-      Date.now() - 1000 * 60 * 60 * 24 * 14,
-    ).toISOString();
+  it("keeps a login_session alive while it has an active session", async () => {
+    // An active session must keep its parent login_session alive: sessions.create
+    // bumps the login_session's expiry so cleanup never orphans the session by
+    // reaping the login_session it still references.
     const oneHourFromNow = new Date(Date.now() + 1000 * 60 * 60).toISOString();
 
     const { data, db } = await getTestServer();
@@ -617,13 +616,13 @@ describe("sessionCleanup", () => {
       user_id: "email|user1",
     });
 
-    // Expired login session is deleted (in the new model, its expires_at
-    // would have been extended on renewal if the session was still active)
+    // Creating the active session bumped the (previously expired) login_session
+    // forward, so cleanup retains it — the session is never orphaned.
     const loginSessions = await db
       .selectFrom("login_sessions")
       .selectAll()
       .execute();
-    expect(loginSessions.length).toEqual(0);
+    expect(loginSessions.length).toEqual(1);
 
     // The non-expired session should still exist
     const sessions = await db.selectFrom("sessions").selectAll().execute();

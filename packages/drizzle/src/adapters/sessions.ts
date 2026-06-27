@@ -1,7 +1,7 @@
-import { eq, and, count as countFn, asc, desc } from "drizzle-orm";
+import { eq, and, lt, count as countFn, asc, desc, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import type { Session, ListParams } from "@authhero/adapter-interfaces";
-import { sessions } from "../schema/sqlite";
+import { sessions, loginSessions } from "../schema/sqlite";
 import { removeNullProperties, parseJsonIfString } from "../helpers/transform";
 import { convertDatesToAdapter, isoToDbDate } from "../helpers/dates";
 import { buildLuceneFilter } from "../helpers/filter";
@@ -56,6 +56,13 @@ function sqlToSession(row: any): Session {
   });
 }
 
+function maxExpiry(
+  a: number | null | undefined,
+  b: number | null | undefined,
+): number {
+  return Math.max(a ?? 0, b ?? 0);
+}
+
 export function createSessionsAdapter(db: DrizzleDb) {
   return {
     async create(tenant_id: string, session: any): Promise<Session> {
@@ -82,7 +89,42 @@ export function createSessionsAdapter(db: DrizzleDb) {
         revoked_at_ts: isoToDbDate(session.revoked_at),
       };
 
-      await db.insert(sessions).values(values);
+      // Use manual BEGIN/COMMIT/ROLLBACK because Drizzle's built-in
+      // db.transaction() doesn't support async callbacks with better-sqlite3.
+      // TODO: switch to db.batch() in a follow-up PR — interactive
+      // BEGIN/COMMIT does not provide atomicity on D1 (async driver).
+      await db.run(sql`BEGIN`);
+      try {
+        await db.insert(sessions).values(values);
+
+        const newLoginSessionExpiry = maxExpiry(
+          values.expires_at_ts,
+          values.idle_expires_at_ts,
+        );
+        if (newLoginSessionExpiry > 0 && values.login_session_id) {
+          // Keep the parent login_session alive at least as long as this
+          // session. The `expires_at_ts < ?` predicate makes this "never
+          // shorten" atomic, mirroring refreshTokens.create.
+          await db
+            .update(loginSessions)
+            .set({
+              expires_at_ts: newLoginSessionExpiry,
+              updated_at_ts: now,
+            })
+            .where(
+              and(
+                eq(loginSessions.tenant_id, tenant_id),
+                eq(loginSessions.id, values.login_session_id),
+                lt(loginSessions.expires_at_ts, newLoginSessionExpiry),
+              ),
+            );
+        }
+
+        await db.run(sql`COMMIT`);
+      } catch (err) {
+        await db.run(sql`ROLLBACK`);
+        throw err;
+      }
 
       return sqlToSession({ ...values, tenant_id });
     },
@@ -134,6 +176,36 @@ export function createSessionsAdapter(db: DrizzleDb) {
         .set(updateData)
         .where(and(eq(sessions.tenant_id, tenant_id), eq(sessions.id, id)))
         .returning();
+
+      // When a session is renewed (its expiry slides forward), keep the parent
+      // login_session alive at least as long. Best-effort and idempotent
+      // (WHERE expires_at_ts < new), mirroring the create path. Only fires when
+      // an expiry field is actually being updated.
+      const newLoginSessionExpiry = maxExpiry(
+        updateData.expires_at_ts,
+        updateData.idle_expires_at_ts,
+      );
+      const updatedSession = results[0];
+      if (newLoginSessionExpiry > 0 && updatedSession) {
+        const loginSessionId =
+          session.login_session_id ?? updatedSession.login_session_id;
+        if (loginSessionId) {
+          await db
+            .update(loginSessions)
+            .set({
+              expires_at_ts: newLoginSessionExpiry,
+              updated_at_ts: Date.now(),
+            })
+            .where(
+              and(
+                eq(loginSessions.tenant_id, tenant_id),
+                eq(loginSessions.id, loginSessionId),
+                lt(loginSessions.expires_at_ts, newLoginSessionExpiry),
+              ),
+            )
+            .catch(() => {});
+        }
+      }
 
       return results.length > 0;
     },
