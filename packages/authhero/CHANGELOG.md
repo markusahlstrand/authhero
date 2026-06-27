@@ -1,5 +1,24 @@
 # authhero
 
+## 8.7.2
+
+### Patch Changes
+
+- 9f120fe: Fix DCR connect consent rejecting users who legitimately reached the consent screen.
+
+  On a multi-tenancy control plane, the workspace picker grants access via the global `admin:organizations` escape hatch (and per-org `create:clients`), but the consent POST re-validated with a plain org-membership check that honored neither. A global admin (or anyone who picked a workspace they don't directly belong to) could pass the picker and then get a bare `400` on consent. Both screens now share a single `userCanRegisterOnTenant` authorization helper so they can't drift.
+
+  Also surface screen handler error messages to the widget instead of silently re-rendering the same screen — failed submissions now show the reason (e.g. "You don't have access to that workspace") on both the JSON and HTML render paths. The no-JS HTML fallback now returns `400` (matching the JSON widget path) when re-rendering a screen after a failed submission, instead of `200`, and the OpenAPI contracts for these endpoints document the re-rendered `400` body shape.
+
+  Hardened the control-plane authorization in the process: the global `admin:organizations` escape hatch is now scoped to the Management API audience (an unrelated API permission of the same name can no longer satisfy it), and the consent step now re-validates control-plane targets even when the picked tenant id equals the request tenant — closing a path where a stale/tampered `target_tenant_id` could mint against the control plane itself.
+
+- 9f120fe: Fix 500 on every WFP-dispatched admin request caused by immutable response headers.
+
+  `createWfpForwardMiddleware` now re-wraps the dispatched tenant-worker response (`new Response(res.body, res)`) so its headers are mutable, instead of returning the immutable `fetch()`/Workers-for-Platforms response straight through. A 101 Switching Protocols / WebSocket upgrade is passed through untouched. As defense-in-depth, authhero core's management-API CORS middleware now tolerates an immutable upstream response, re-wrapping it before appending `Vary`/`Access-Control-*` rather than throwing "Can't modify immutable headers."
+
+- Updated dependencies [9f120fe]
+  - @authhero/widget@0.34.1
+
 ## 8.7.1
 
 ### Patch Changes

@@ -1,5 +1,20 @@
 # @authhero/cloudflare-adapter
 
+## 2.36.1
+
+### Patch Changes
+
+- 9f120fe: Fix 500 on every WFP-dispatched admin request caused by immutable response headers.
+
+  `createWfpForwardMiddleware` now re-wraps the dispatched tenant-worker response (`new Response(res.body, res)`) so its headers are mutable, instead of returning the immutable `fetch()`/Workers-for-Platforms response straight through. A 101 Switching Protocols / WebSocket upgrade is passed through untouched. As defense-in-depth, authhero core's management-API CORS middleware now tolerates an immutable upstream response, re-wrapping it before appending `Vary`/`Access-Control-*` rather than throwing "Can't modify immutable headers."
+
+- Updated dependencies [9f120fe]
+- Updated dependencies [cd3d8f4]
+- Updated dependencies [9f120fe]
+  - authhero@8.7.2
+  - @authhero/kysely-adapter@11.8.11
+  - @authhero/multi-tenancy@14.25.1
+
 ## 2.36.0
 
 ### Minor Changes
