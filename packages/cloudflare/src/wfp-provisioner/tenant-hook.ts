@@ -83,6 +83,19 @@ export interface WfpTenantProvisioningHookOptions {
 export interface WfpTenantProvisioningHook {
   onProvision(tenantId: string): Promise<void>;
   onDeprovision(tenantId: string): Promise<void>;
+  /**
+   * Re-run provisioning for an already-existing WFP tenant to pull it onto the
+   * current bundle + migrations — i.e. an upgrade. Re-uploads the worker
+   * script (an upload overwrites), reconciles any migrations not yet applied to
+   * the tenant D1, re-runs `syncDefaults`, then rewrites `worker_version`,
+   * `bundle_configuration`, and `database_version` so the recorded versions
+   * reflect what now runs. Marks `provisioning_state = "pending"` while the
+   * upgrade is in flight and `ready` on success (`failed` on error).
+   *
+   * Throws if the tenant doesn't exist or isn't WFP-provisioned — callers
+   * (e.g. a management-API redeploy endpoint) surface that as a 4xx.
+   */
+  onUpgrade(tenantId: string): Promise<void>;
 }
 
 function defaultShouldProvision(tenant: {
@@ -141,67 +154,111 @@ export function createWfpTenantProvisioningHook(
     }
   }
 
+  /**
+   * Shared provision/upgrade body: run the provisioner (idempotent — creates or
+   * heals the D1, overwrites the worker, reconciles pending migrations), seed
+   * defaults, then write the resource ids + recorded versions and mark `ready`.
+   * Failure at any step marks the tenant `failed` (persisting resource ids when
+   * we have them) and re-throws.
+   */
+  async function provisionAndPersist(tenantId: string): Promise<void> {
+    let result;
+    try {
+      result = await provisioner.onProvision(tenantId);
+    } catch (err) {
+      // No resources (or only partial) — nothing to persist beyond the
+      // failure marker.
+      await markFailed(tenantId, err);
+      throw err;
+    }
+
+    // Resources exist. Persist their ids + recorded versions regardless of what
+    // happens next so a re-provision / deprovision / drift check can find them.
+    const resourceIds = {
+      d1_database_id: result.d1DatabaseId,
+      worker_script_name: result.scriptName,
+      bundle_configuration: result.bundleConfiguration,
+      worker_version: result.workerVersion,
+      database_version: result.databaseVersion,
+    };
+
+    try {
+      // Seed BEFORE marking ready so we never report "ready" over an empty
+      // D1 (no tenant row, no projected defaults). The seed runs with
+      // `continueOnError`, so a resolved result can still carry per-entity
+      // errors — treat those as a provisioning failure too.
+      if (syncDefaults) {
+        const seedResult = await syncDefaults(tenantId);
+        const seedErrors = collectSyncDefaultsErrors(seedResult);
+        if (seedErrors.length > 0) {
+          throw new Error(
+            `sync-defaults seed reported ${seedErrors.length} error(s): ${seedErrors.join("; ")}`,
+          );
+        }
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      try {
+        await tenants.update(tenantId, {
+          ...resourceIds,
+          provisioning_state: "failed",
+          provisioning_error: message.slice(0, 2048),
+          provisioning_state_changed_at: new Date().toISOString(),
+        });
+      } catch (writeErr) {
+        logger?.warn(
+          `Failed to write provisioning_state="failed" for tenant ${tenantId}:`,
+          writeErr,
+        );
+      }
+      throw err;
+    }
+
+    await tenants.update(tenantId, {
+      ...resourceIds,
+      provisioning_state: "ready",
+      provisioning_error: undefined,
+      provisioning_state_changed_at: new Date().toISOString(),
+    });
+  }
+
   return {
     async onProvision(tenantId: string): Promise<void> {
       const tenant = await tenants.get(tenantId);
       if (!tenant) return; // No tenant row — probably mid-rollback. Nothing to do.
       if (!shouldProvision(tenant)) return; // Shared deployment, skip.
 
-      let result;
-      try {
-        result = await provisioner.onProvision(tenantId);
-      } catch (err) {
-        // No resources (or only partial) — nothing to persist beyond the
-        // failure marker.
-        await markFailed(tenantId, err);
-        throw err;
+      await provisionAndPersist(tenantId);
+    },
+
+    async onUpgrade(tenantId: string): Promise<void> {
+      const tenant = await tenants.get(tenantId);
+      if (!tenant) {
+        throw new Error(`Cannot upgrade tenant "${tenantId}": not found.`);
+      }
+      if (!shouldProvision(tenant)) {
+        throw new Error(
+          `Cannot upgrade tenant "${tenantId}": not a WFP-provisioned tenant.`,
+        );
       }
 
-      // Resources exist. Persist their ids regardless of what happens next so a
-      // re-provision / deprovision can find them.
-      const resourceIds = {
-        d1_database_id: result.d1DatabaseId,
-        worker_script_name: result.scriptName,
-      };
-
+      // Flip to `pending` so the admin UI reflects an in-flight upgrade. A
+      // failure inside `provisionAndPersist` overwrites this with `failed`.
       try {
-        // Seed BEFORE marking ready so we never report "ready" over an empty
-        // D1 (no tenant row, no projected defaults). The seed runs with
-        // `continueOnError`, so a resolved result can still carry per-entity
-        // errors — treat those as a provisioning failure too.
-        if (syncDefaults) {
-          const result = await syncDefaults(tenantId);
-          const seedErrors = collectSyncDefaultsErrors(result);
-          if (seedErrors.length > 0) {
-            throw new Error(
-              `sync-defaults seed reported ${seedErrors.length} error(s): ${seedErrors.join("; ")}`,
-            );
-          }
-        }
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        try {
-          await tenants.update(tenantId, {
-            ...resourceIds,
-            provisioning_state: "failed",
-            provisioning_error: message.slice(0, 2048),
-            provisioning_state_changed_at: new Date().toISOString(),
-          });
-        } catch (writeErr) {
-          logger?.warn(
-            `Failed to write provisioning_state="failed" for tenant ${tenantId}:`,
-            writeErr,
-          );
-        }
-        throw err;
+        await tenants.update(tenantId, {
+          provisioning_state: "pending",
+          provisioning_state_changed_at: new Date().toISOString(),
+        });
+      } catch (writeErr) {
+        // Non-fatal — the upgrade can still proceed; the state just won't show
+        // `pending` in the meantime.
+        logger?.warn(
+          `Failed to write provisioning_state="pending" for tenant ${tenantId}:`,
+          writeErr,
+        );
       }
 
-      await tenants.update(tenantId, {
-        ...resourceIds,
-        provisioning_state: "ready",
-        provisioning_error: undefined,
-        provisioning_state_changed_at: new Date().toISOString(),
-      });
+      await provisionAndPersist(tenantId);
     },
 
     async onDeprovision(tenantId: string): Promise<void> {

@@ -50,6 +50,58 @@ describe("management-api tenantDispatch", () => {
     expect(response.headers.get("Vary")).toContain("Origin");
   });
 
+  it("applies CORS to an immutable dispatched response without throwing", async () => {
+    // A real dispatch / `fetch()` response carries immutable headers. If the CORS
+    // (or any post-`next()`) middleware writes onto it without normalizing first,
+    // it throws "Can't modify immutable headers." and the request 500s. This
+    // forward returns such a response to prove the management chain re-wraps it.
+    const immutableForward: MiddlewareHandler = async (c, next) => {
+      const tenantId = c.req.header("tenant-id");
+      if (tenantId && tenantId !== "control-plane") {
+        const res = new Response(`forwarded:${tenantId}`, {
+          status: 200,
+          headers: { "content-type": "text/plain" },
+        });
+        const throwImmutable = () => {
+          throw new TypeError("Can't modify immutable headers.");
+        };
+        for (const method of ["append", "set", "delete"] as const) {
+          Object.defineProperty(res.headers, method, {
+            value: throwImmutable,
+            configurable: true,
+          });
+        }
+        return res;
+      }
+      return next();
+    };
+
+    const { managementApp, env } = await getTestServer({
+      tenantDispatch: immutableForward,
+      allowedOrigins: ["https://admin.example.com"],
+    });
+
+    const response = await managementApp.request(
+      "/clients",
+      {
+        method: "GET",
+        headers: {
+          Origin: "https://admin.example.com",
+          "tenant-id": "acme",
+        },
+      },
+      env,
+    );
+
+    // No 500: the immutable response was normalized before CORS wrote headers.
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe("forwarded:acme");
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBe(
+      "https://admin.example.com",
+    );
+    expect(response.headers.get("Vary")).toContain("Origin");
+  });
+
   it("falls through to the local pipeline when not dispatched", async () => {
     const { managementApp, env } = await getTestServer({
       tenantDispatch: fakeForward,

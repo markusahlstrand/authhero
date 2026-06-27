@@ -68,6 +68,11 @@ export type Bindings = {
   // Set via init({ webhookInvoker: ... })
   webhookInvoker?: WebhookInvoker;
 
+  // Optional handler to upgrade (re-provision) a WFP tenant onto the current
+  // bundle + migrations. Set via init({ tenantUpgrade: hook.onUpgrade }).
+  // Drives POST /api/v2/tenants/{id}/redeploy.
+  tenantUpgrade?: (tenantId: string) => Promise<void>;
+
   // Optional transactional outbox configuration
   // Set via init({ outbox: { enabled: true } })
   outbox?: OutboxConfig;

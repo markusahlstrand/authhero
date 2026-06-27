@@ -359,6 +359,13 @@
           "notNull": false,
           "autoincrement": false
         },
+        "database_version": {
+          "name": "database_version",
+          "type": "text(64)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "worker_script_name": {
           "name": "worker_script_name",
           "type": "text(255)",

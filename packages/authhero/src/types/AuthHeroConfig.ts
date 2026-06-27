@@ -409,6 +409,28 @@ export interface AuthHeroConfig {
   tenantDispatch?: MiddlewareHandler;
 
   /**
+   * Optional handler that re-provisions (upgrades) an existing WFP tenant onto
+   * the control plane's current worker bundle + migrations. When set, the
+   * management API exposes `POST /api/v2/tenants/{id}/redeploy` (control-plane
+   * only), which invokes this handler and returns the refreshed tenant row with
+   * its updated `worker_version` / `bundle_configuration` / `database_version`.
+   *
+   * Kept as a generic `(tenantId) => Promise<void>` so authhero core carries no
+   * Cloudflare / dispatch-namespace dependency. Wire it to
+   * `@authhero/cloudflare-adapter`'s provisioning hook:
+   *
+   * @example
+   * ```typescript
+   * const hook = createWfpTenantProvisioningHook({ provisioner, tenants });
+   * const { app } = init({
+   *   dataAdapter,
+   *   tenantUpgrade: hook.onUpgrade,
+   * });
+   * ```
+   */
+  tenantUpgrade?: (tenantId: string) => Promise<void>;
+
+  /**
    * Optional powered-by logo to display at the bottom left of the login widget.
    * This is only configurable in code, not stored in the database.
    *

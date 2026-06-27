@@ -1,5 +1,6 @@
 import { MiddlewareHandler } from "hono";
 import { Variables } from "../types/Variables";
+import { ensureMutableResponse } from "../helpers/mutable-response";
 
 export const PREFER_TOKENS = ["include-linked"] as const;
 export type PreferToken = (typeof PREFER_TOKENS)[number];
@@ -43,6 +44,8 @@ export const preferMiddleware: MiddlewareHandler<{ Variables: Variables }> =
     await next();
 
     if (applied.size > 0) {
+      // The response may be a received (immutable) one — normalize before write.
+      ensureMutableResponse(ctx);
       ctx.res.headers.set(
         "Preference-Applied",
         Array.from(applied).join(", "),

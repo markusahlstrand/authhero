@@ -2,6 +2,7 @@ import { Context, MiddlewareHandler } from "hono";
 import { CacheAdapter, DataAdapters } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
 import { getAdapterMethodNames } from "./adapter-methods";
+import { ensureMutableResponse } from "./mutable-response";
 
 type TimingCtx = Context<{ Bindings: Bindings; Variables: Variables }>;
 
@@ -82,6 +83,9 @@ export const serverTimingMiddleware: MiddlewareHandler<{
   if (mode === "client" || mode === "both") {
     const allowlist = ctx.env.SERVER_TIMING_IPS;
     if (!allowlist || isIpAllowed(ctx.get("ip"), allowlist)) {
+      // The response may have come back from a dispatch/`fetch()` with immutable
+      // headers — normalize before writing.
+      ensureMutableResponse(ctx);
       const existing = ctx.res.headers.get("Server-Timing");
       ctx.res.headers.set(
         "Server-Timing",

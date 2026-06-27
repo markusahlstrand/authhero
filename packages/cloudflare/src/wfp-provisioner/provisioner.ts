@@ -301,7 +301,20 @@ export function createCloudflareWfpD1Provisioner(
       //    — CF processes each set independently.
       await uploadSecrets(scriptName, tenantId);
 
-      return { d1DatabaseId: databaseId, scriptName, d1Name };
+      // The schema version this bundle targets is the last migration in the
+      // configured list (they apply in array order). `undefined` when no
+      // migrations are configured.
+      const lastMigration = options.migrations[options.migrations.length - 1];
+      const databaseVersion = lastMigration?.name;
+
+      return {
+        d1DatabaseId: databaseId,
+        scriptName,
+        d1Name,
+        bundleConfiguration: options.bundleConfiguration,
+        workerVersion: options.workerVersion,
+        databaseVersion,
+      };
     },
 
     async onDeprovision(tenantId: string): Promise<void> {

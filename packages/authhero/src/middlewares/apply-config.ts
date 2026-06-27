@@ -44,6 +44,10 @@ export function applyConfigMiddleware(
       ctx.env.webhookInvoker = config.webhookInvoker;
     }
 
+    if (config.tenantUpgrade) {
+      ctx.env.tenantUpgrade = config.tenantUpgrade;
+    }
+
     if (config.outbox) {
       ctx.env.outbox = config.outbox;
     }

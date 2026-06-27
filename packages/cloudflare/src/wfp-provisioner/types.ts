@@ -89,8 +89,26 @@ export interface CloudflareWfpD1ProvisionerOptions {
   /**
    * SQL migrations applied in array order to every new tenant D1. Typically
    * loaded from `@authhero/drizzle`'s shipped migrations via your build tool.
+   *
+   * The name of the LAST entry is reported back as the tenant's
+   * `database_version` (the schema version this bundle targets), so keep the
+   * array ordered and the names stable.
    */
   migrations: ProvisionerMigration[];
+  /**
+   * Identifier of the worker image / variant being deployed (e.g.
+   * `"authhero-drizzle-d1"`). Recorded verbatim on the tenant row as
+   * `bundle_configuration` so the control plane can tell which build a tenant
+   * runs. Optional — omit if you don't track image variants.
+   */
+  bundleConfiguration?: string;
+  /**
+   * Release tag or git SHA of `tenantWorkerScript`, supplied by the operator
+   * at build time. Recorded verbatim on the tenant row as `worker_version` so
+   * the control plane can detect when a tenant lags the current build and
+   * needs an upgrade. Optional but strongly recommended.
+   */
+  workerVersion?: string;
   /**
    * Resolver that returns the secret values to set on the tenant worker.
    * Called once per `onProvision`. The provisioner uploads each entry via
@@ -152,6 +170,25 @@ export interface ProvisionResult {
   d1DatabaseId: string;
   scriptName: string;
   d1Name: string;
+  /**
+   * The worker image / variant that was deployed — echoes back
+   * `options.bundleConfiguration` (undefined if not configured). The hook
+   * persists it to `tenants.bundle_configuration`.
+   */
+  bundleConfiguration?: string;
+  /**
+   * The release tag / git SHA that was deployed — echoes back
+   * `options.workerVersion` (undefined if not configured). The hook persists
+   * it to `tenants.worker_version`.
+   */
+  workerVersion?: string;
+  /**
+   * Name of the latest migration applied to the tenant D1 (the last entry in
+   * `options.migrations`), i.e. the schema version the deployed bundle
+   * targets. `undefined` when no migrations are configured. The hook persists
+   * it to `tenants.database_version`.
+   */
+  databaseVersion?: string;
 }
 
 /**

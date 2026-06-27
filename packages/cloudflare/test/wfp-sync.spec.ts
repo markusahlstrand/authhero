@@ -388,6 +388,113 @@ describe("createWfpForwardMiddleware", () => {
     }
     expect(dispatcher.calls).toHaveLength(0);
   });
+
+  it("returns a structured 503 when the tenant worker is not in the namespace", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const dispatcher = fakeDispatcher(() => {
+      throw new Error("Worker not found.");
+    });
+    const app = appWith(
+      createWfpForwardMiddleware({
+        tenants: fakeTenants({
+          acme: { deployment_type: "wfp", provisioning_state: "ready" },
+        }),
+        controlPlaneTenantId: CP,
+      }),
+    );
+
+    const res = await app.request(
+      "/users",
+      { headers: { "tenant-id": "acme" } },
+      { DISPATCHER: dispatcher },
+    );
+
+    expect(res.status).toBe(503);
+    expect(res.headers.get("X-Authhero-Error")).toBe("wfp_worker_not_found");
+    expect(res.headers.get("X-Wfp-Tenant")).toBe("acme");
+    expect(await res.json()).toMatchObject({
+      error: "wfp_worker_not_found",
+      tenant_id: "acme",
+    });
+  });
+
+  it("returns a structured 502 on an unexpected dispatch failure", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const dispatcher = fakeDispatcher(() => {
+      throw new Error("connection reset");
+    });
+    const app = appWith(
+      createWfpForwardMiddleware({
+        tenants: fakeTenants({
+          acme: { deployment_type: "wfp", provisioning_state: "ready" },
+        }),
+        controlPlaneTenantId: CP,
+      }),
+    );
+
+    const res = await app.request(
+      "/users",
+      { headers: { "tenant-id": "acme" } },
+      { DISPATCHER: dispatcher },
+    );
+
+    expect(res.status).toBe(502);
+    expect(res.headers.get("X-Authhero-Error")).toBe("wfp_dispatch_failed");
+  });
+
+  it("passes a tenant worker 5xx through and tags it for correlation", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const dispatcher = fakeDispatcher(
+      () =>
+        new Response(JSON.stringify({ error: "boom" }), {
+          status: 500,
+          headers: { "X-Authhero-Error": "tenant_app_error" },
+        }),
+    );
+    const app = appWith(
+      createWfpForwardMiddleware({
+        tenants: fakeTenants({
+          acme: { deployment_type: "wfp", provisioning_state: "ready" },
+        }),
+        controlPlaneTenantId: CP,
+      }),
+    );
+
+    const res = await app.request(
+      "/users",
+      { headers: { "tenant-id": "acme" } },
+      { DISPATCHER: dispatcher },
+    );
+
+    // The tenant worker's own response (status + body + its error code) is
+    // preserved; the dispatcher only adds the tenant tag.
+    expect(res.status).toBe(500);
+    expect(res.headers.get("X-Authhero-Error")).toBe("tenant_app_error");
+    expect(res.headers.get("X-Wfp-Tenant")).toBe("acme");
+  });
+
+  it("tags a successful dispatched response with X-Wfp-Tenant", async () => {
+    const dispatcher = fakeDispatcher(
+      () => new Response("from-tenant-worker", { status: 200 }),
+    );
+    const app = appWith(
+      createWfpForwardMiddleware({
+        tenants: fakeTenants({
+          acme: { deployment_type: "wfp", provisioning_state: "ready" },
+        }),
+        controlPlaneTenantId: CP,
+      }),
+    );
+
+    const res = await app.request(
+      "/users",
+      { headers: { "tenant-id": "acme" } },
+      { DISPATCHER: dispatcher },
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get("X-Wfp-Tenant")).toBe("acme");
+  });
 });
 
 describe("createWfpTenantApp /internal/sync-defaults", () => {
