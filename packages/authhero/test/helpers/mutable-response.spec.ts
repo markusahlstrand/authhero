@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   toMutableResponse,
   ensureMutableResponse,
+  isWebSocketUpgrade,
 } from "../../src/helpers/mutable-response";
 
 /**
@@ -56,6 +57,38 @@ describe("toMutableResponse", () => {
     const upgrade = new Response(null, { status: 200 });
     Object.defineProperty(upgrade, "webSocket", { value: {} });
     expect(toMutableResponse(upgrade)).toBe(upgrade);
+  });
+
+  it("re-wraps a Cloudflare-runtime response whose webSocket property is null", () => {
+    // Regression: the Workers runtime defines a `webSocket` property (value
+    // `null`) on every Response, so `"webSocket" in res` is true even for an
+    // ordinary response. Such a response must still be re-wrapped to mutable —
+    // otherwise downstream CORS/Vary writes are silently skipped in production
+    // while passing in Node (where the property is absent).
+    const res = immutableResponse("hello");
+    Object.defineProperty(res, "webSocket", { value: null });
+
+    const mutable = toMutableResponse(res);
+    expect(mutable).not.toBe(res);
+    expect(() => mutable.headers.set("X-Test", "1")).not.toThrow();
+  });
+});
+
+describe("isWebSocketUpgrade", () => {
+  it("is false for an ordinary response", () => {
+    expect(isWebSocketUpgrade(new Response("ok", { status: 200 }))).toBe(false);
+  });
+
+  it("is false when the runtime exposes a null webSocket property", () => {
+    const res = new Response("ok", { status: 200 });
+    Object.defineProperty(res, "webSocket", { value: null });
+    expect(isWebSocketUpgrade(res)).toBe(false);
+  });
+
+  it("is true for a live webSocket handle", () => {
+    const res = new Response(null, { status: 200 });
+    Object.defineProperty(res, "webSocket", { value: {} });
+    expect(isWebSocketUpgrade(res)).toBe(true);
   });
 });
 

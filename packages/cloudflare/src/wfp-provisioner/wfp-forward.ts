@@ -157,7 +157,13 @@ export function createWfpForwardMiddleware(
     // guarantees their body is `null`, so `new Response(null, res)` is valid —
     // and re-wrapping them is what lets the CORS layer append `Vary` without
     // throwing.
-    if (res.status === 101 || "webSocket" in res) {
+    //
+    // The check is a non-null `webSocket` handle, NOT `"webSocket" in res`: the
+    // Cloudflare Workers runtime defines a (null) `webSocket` property on every
+    // Response, so the `in` operator is always true there and would early-return
+    // for ordinary responses — leaving them immutable for the CORS layer.
+    const webSocket: unknown = Reflect.get(res, "webSocket");
+    if (res.status === 101 || webSocket != null) {
       return res;
     }
 

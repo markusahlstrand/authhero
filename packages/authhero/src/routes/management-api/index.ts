@@ -37,7 +37,10 @@ import {
   serverTimingMiddleware,
 } from "../../helpers/server-timing";
 import { applyConfigMiddleware } from "../../middlewares/apply-config";
-import { ensureMutableResponse } from "../../helpers/mutable-response";
+import {
+  ensureMutableResponse,
+  isWebSocketUpgrade,
+} from "../../helpers/mutable-response";
 import { tenantMiddleware } from "../../middlewares/tenant";
 import { clientInfoMiddleware } from "../../middlewares/client-info";
 import { preferMiddleware } from "../../middlewares/prefer";
@@ -203,7 +206,7 @@ export default function create(config: AuthHeroConfig) {
     // can't survive reconstruction), so skip the header writes for it — it never
     // flows through this management API anyway.
     ensureMutableResponse(ctx);
-    const isUpgrade = ctx.res.status === 101 || "webSocket" in ctx.res;
+    const isUpgrade = isWebSocketUpgrade(ctx.res);
 
     if (!isUpgrade) {
       ctx.res.headers.append("Vary", "Origin");

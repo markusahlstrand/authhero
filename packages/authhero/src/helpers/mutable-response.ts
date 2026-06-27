@@ -15,17 +15,33 @@
  */
 
 /**
+ * True only for a live WebSocket upgrade — a `101 Switching Protocols` response
+ * that carries a non-null `webSocket` handle.
+ *
+ * The check must NOT be `"webSocket" in res`: the Cloudflare Workers runtime
+ * defines a `webSocket` property on *every* `Response` (it is `null` for an
+ * ordinary response), so the `in` operator is always true there and would
+ * misclassify every response as an upgrade. (In Node / the test runtime the
+ * property is absent, so the bug stays invisible to tests.) A real upgrade has
+ * a non-null handle, which is what we detect here.
+ */
+export function isWebSocketUpgrade(res: Response): boolean {
+  const webSocket: unknown = Reflect.get(res, "webSocket");
+  return res.status === 101 || webSocket != null;
+}
+
+/**
  * Return a response whose headers are mutable. A received response is re-wrapped
  * into a fresh `Response` (which has the mutable "response" header guard); an
  * already-mutable response is re-wrapped too, harmlessly, preserving every header
  * already set on it.
  *
- * A `101 Switching Protocols` upgrade is returned untouched: it carries a
- * `webSocket` handle that reconstruction would drop, breaking the upgrade. Its
- * headers stay immutable, so callers must not write to an upgrade response.
+ * A WebSocket upgrade is returned untouched: it carries a `webSocket` handle
+ * that reconstruction would drop, breaking the upgrade. Its headers stay
+ * immutable, so callers must not write to an upgrade response.
  */
 export function toMutableResponse(res: Response): Response {
-  if (res.status === 101 || "webSocket" in res) return res;
+  if (isWebSocketUpgrade(res)) return res;
   return new Response(res.body, res);
 }
 

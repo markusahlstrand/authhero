@@ -191,6 +191,59 @@ describe("management-api CORS", () => {
     expect(response.headers.get("Vary")).toContain("Origin");
   });
 
+  // Regression (production CORS outage on the control plane): the Cloudflare
+  // Workers runtime defines a `webSocket` property — value `null` — on *every*
+  // Response. The actual-request CORS block used `"webSocket" in ctx.res` to
+  // detect an upgrade, which is therefore always true in production, so the
+  // whole block (Vary + Access-Control-*) was skipped on every real response.
+  // Node's Response has no such property (and a re-wrapped `new Response()`
+  // never gains one), so the bug was invisible to the suite. Faithfully
+  // simulate the runtime by defining a null `webSocket` getter on
+  // `Response.prototype` for the duration of the request — exactly what makes
+  // `"webSocket" in res` true for every response in production.
+  it("sets CORS headers in a runtime where every Response exposes a null webSocket", async () => {
+    const { managementApp, env } = await getTestServer();
+
+    const hadOwn = Object.prototype.hasOwnProperty.call(
+      Response.prototype,
+      "webSocket",
+    );
+    Object.defineProperty(Response.prototype, "webSocket", {
+      configurable: true,
+      get() {
+        return null;
+      },
+    });
+
+    try {
+      const response = await managementApp.request(
+        "/clients",
+        {
+          method: "GET",
+          headers: {
+            Origin: "https://example.com",
+            "tenant-id": "tenantId",
+          },
+        },
+        env,
+      );
+
+      // Without the fix, `isWebSocketUpgrade` would treat this ordinary response
+      // as an upgrade and skip the entire CORS block — no headers at all.
+      expect(response.headers.get("Access-Control-Allow-Origin")).toBe(
+        "https://example.com",
+      );
+      expect(response.headers.get("Access-Control-Allow-Credentials")).toBe(
+        "true",
+      );
+      expect(response.headers.get("Vary")).toContain("Origin");
+    } finally {
+      if (!hadOwn) {
+        Reflect.deleteProperty(Response.prototype, "webSocket");
+      }
+    }
+  });
+
   // Regression: a `tenantDispatch` middleware that returns a `fetch()`-style
   // response carries an *immutable* header guard. The CORS middleware appends
   // `Vary: Origin` (and, for an allowed origin, `Access-Control-*`) to the
