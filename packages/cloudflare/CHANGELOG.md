@@ -1,5 +1,50 @@
 # @authhero/cloudflare-adapter
 
+## 2.37.0
+
+### Minor Changes
+
+- 780d524: Track WFP tenant code + database versions on the control plane, and add an upgrade path.
+
+  The tenant row now records what a Workers-for-Platforms tenant is running so the
+  control plane can detect drift and drive upgrades:
+
+  - New `database_version` field (the latest migration applied — the schema
+    version the deployed bundle targets), alongside the existing
+    `worker_version` and `bundle_configuration` fields, which are now actually
+    populated.
+  - `createCloudflareWfpD1Provisioner` gains `bundleConfiguration` and
+    `workerVersion` options (supplied by the operator at build time) and returns
+    all three versions in its `ProvisionResult`. The provisioning hook writes them
+    back to the tenant row.
+  - `createWfpTenantProvisioningHook` gains `onUpgrade(tenantId)`: re-uploads the
+    current bundle, reconciles any pending migrations, re-runs the defaults seed,
+    and rewrites the recorded versions (marking `provisioning_state` `pending`
+    while in flight, `ready`/`failed` on completion).
+  - New `POST /api/v2/tenants/{id}/redeploy` management endpoint (control-plane
+    only), wired via the new `tenantUpgrade` init option, triggers the upgrade and
+    returns the refreshed tenant. Returns `501` when no upgrade handler is
+    configured.
+
+### Patch Changes
+
+- 780d524: Make WFP dispatch failures legible instead of opaque control-plane 500s.
+
+  `createWfpForwardMiddleware` previously let a failed dispatch throw straight up: a tenant worker missing from the namespace, or one that failed to boot, surfaced as a generic `{"message":"Internal Server Error"}` that named neither the tenant nor the script. Debugging meant guessing which `wrangler tail` to attach.
+
+  Now the middleware:
+
+  - Catches dispatch-level throws and returns a structured, tenant-scoped error — `503 wfp_worker_not_found` when the tenant's script isn't in the dispatch namespace, `502 wfp_dispatch_failed` otherwise — carrying the same `X-Authhero-Error: <code>` header convention the tenant worker uses, plus the cause logged on the control plane.
+  - Logs any dispatched `5xx` with the tenant id, script name, and the tenant worker's own `X-Authhero-Error` code (when present), so an opaque worker 500 is at least traceable from the control plane.
+  - Tags every dispatched response with `X-Wfp-Tenant` so an operator can tell, from the response alone, that a request was served by a tenant worker and which one.
+
+- Updated dependencies [780d524]
+- Updated dependencies [780d524]
+  - authhero@8.8.0
+  - @authhero/adapter-interfaces@3.3.0
+  - @authhero/kysely-adapter@11.9.0
+  - @authhero/multi-tenancy@14.25.1
+
 ## 2.36.1
 
 ### Patch Changes
