@@ -104,4 +104,33 @@ describe("sessions adapter keeps parent login_session alive", () => {
     const after = await data.loginSessions.get("tenantId", loginSession.id);
     expect(after?.expires_at).toEqual(renewedExpiry);
   });
+
+  it("never shortens an already-longer login_session when a session is renewed (update)", async () => {
+    const renewedExpiry = new Date(
+      Date.now() + 1000 * 60 * 60 * 24 * 5,
+    ).toISOString(); // 5d
+    const longExpiry = new Date(
+      Date.now() + 1000 * 60 * 60 * 24 * 30,
+    ).toISOString(); // 30d — already longer than the renewed session
+
+    const loginSession = await createLoginSession(longExpiry);
+
+    await data.sessions.create("tenantId", {
+      id: "session1",
+      user_id: "email|userId",
+      login_session_id: loginSession.id,
+      expires_at: renewedExpiry,
+      idle_expires_at: renewedExpiry,
+      device: device(),
+      clients: ["clientId"],
+    });
+
+    // Renewing to a shorter idle expiry must not pull the parent back in time.
+    await data.sessions.update("tenantId", "session1", {
+      idle_expires_at: renewedExpiry,
+    });
+
+    const after = await data.loginSessions.get("tenantId", loginSession.id);
+    expect(after?.expires_at).toEqual(longExpiry);
+  });
 });

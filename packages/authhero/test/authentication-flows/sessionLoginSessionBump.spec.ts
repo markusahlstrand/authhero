@@ -81,6 +81,9 @@ describe("login flow keeps login_session alive when creating a session", () => {
       "tenantId",
       updatedLoginSession!.session_id!,
     );
+    // Guard the expiry math below: without this the `?? 0` fallbacks would let a
+    // missing child session pass the comparison vacuously.
+    expect(createdSession).toBeTruthy();
     const sessionExpiry = Math.max(
       createdSession?.expires_at
         ? new Date(createdSession.expires_at).getTime()
