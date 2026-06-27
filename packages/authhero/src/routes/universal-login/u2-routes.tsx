@@ -579,6 +579,15 @@ function createScreenPostHandler(screenId: string) {
     // Otherwise, render the next/current screen as full HTML page
     const screenResult = result.screen;
 
+    // Surface a handler error as a screen-level message so it's visible to the
+    // user rather than silently dropped behind an unchanged re-rendered screen.
+    if ("error" in result) {
+      screenResult.screen.messages = [
+        ...(screenResult.screen.messages ?? []),
+        { text: result.error, type: "error" as const },
+      ];
+    }
+
     // Get custom template if available
     let customTemplate: { body: string } | null = null;
     try {
@@ -645,6 +654,8 @@ function createScreenPostHandler(screenId: string) {
       logoPosition: pageLogoPosition,
       extraScript: screenResult.extraScript,
       customTemplateBody: customTemplate?.body,
+      // A re-rendered screen after a failed submission is a client error.
+      status: "error" in result ? 400 : undefined,
     });
   };
 }

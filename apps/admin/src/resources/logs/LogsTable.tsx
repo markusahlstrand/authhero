@@ -54,6 +54,19 @@ export const logFilters = [
   <TextInput key="client_id" source="client_id" label="Client ID" />,
   <TextInput key="client_name" source="client_name" label="Client" />,
   <TextInput key="connection" source="connection" label="Connection" />,
+  <TextInput
+    key="connection_id"
+    source="connection_id"
+    label="Connection ID"
+  />,
+  <TextInput key="audience" source="audience" label="Audience" />,
+  <TextInput key="scope" source="scope" label="Scope" />,
+  <TextInput key="strategy" source="strategy" label="Strategy" />,
+  <TextInput
+    key="strategy_type"
+    source="strategy_type"
+    label="Strategy type"
+  />,
   <TextInput key="hostname" source="hostname" label="Hostname" />,
   <TextInput
     key="country_code"
@@ -102,15 +115,20 @@ function IsMobileCell() {
 // Columns hidden by default; users opt in via the Columns selector.
 const DEFAULT_HIDDEN_COLUMNS = [
   "ip",
-  "user_name",
   "user_id",
   "client_name",
   "client_id",
   "connection",
+  "connection_id",
+  "audience",
+  "scope",
+  "strategy",
+  "strategy_type",
   "hostname",
   "country_code",
   "isMobile",
   "user_agent",
+  "log_id",
 ];
 
 export interface LogsTableProps {
@@ -142,6 +160,11 @@ export function LogsTable({ bulkActionButtons, storeKey }: LogsTableProps) {
       <DataTable.Col source="client_name" label="Client" />
       <DataTable.Col source="client_id" label="Client ID" />
       <DataTable.Col source="connection" label="Connection" />
+      <DataTable.Col source="connection_id" label="Connection ID" />
+      <DataTable.Col source="audience" label="Audience" />
+      <DataTable.Col source="scope" label="Scope" />
+      <DataTable.Col source="strategy" label="Strategy" />
+      <DataTable.Col source="strategy_type" label="Strategy type" />
       <DataTable.Col source="hostname" label="Hostname" />
       <DataTable.Col source="country_code" label="Country">
         <CountryCell />
@@ -150,6 +173,7 @@ export function LogsTable({ bulkActionButtons, storeKey }: LogsTableProps) {
         <IsMobileCell />
       </DataTable.Col>
       <DataTable.Col source="user_agent" label="User agent" />
+      <DataTable.Col source="log_id" label="Log ID" />
     </DataTable>
   );
 }

@@ -382,7 +382,7 @@ describe("username login - combined login flow (u2/login)", () => {
     });
 
     // Should re-render with error (not redirect)
-    expect(loginResponse.status).toBe(200);
+    expect(loginResponse.status).toBe(400);
     const html = await loginResponse.text();
     expect(html).toContain("Invalid email");
   });
@@ -410,7 +410,7 @@ describe("username login - combined login flow (u2/login)", () => {
       form: { username: "ab", password: "Password1!" },
     });
 
-    expect(shortResponse.status).toBe(200);
+    expect(shortResponse.status).toBe(400);
     const shortHtml = await shortResponse.text();
     expect(shortHtml).toContain("at least 3 characters");
   });

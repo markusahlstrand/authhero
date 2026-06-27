@@ -95,6 +95,26 @@ export function createWfpForwardMiddleware(
     }
 
     const scriptName = fillTemplate(scriptNameTemplate, tenantId);
-    return dispatcher.get(scriptName).fetch(c.req.raw);
+    const res = await dispatcher.get(scriptName).fetch(c.req.raw);
+
+    // A response returned straight from `fetch()` / WFP dispatch carries an
+    // *immutable* header guard. authhero core mounts this middleware inside its
+    // CORS middleware, which (after `next()`) appends `Vary: Origin` and sets
+    // `Access-Control-*` on the response — mutating immutable headers throws
+    // "Can't modify immutable headers." and every dispatched request 500s.
+    // Re-wrap into a fresh Response, which has the mutable "response" guard, so
+    // downstream middleware can write headers.
+    //
+    // Skip the re-wrap only for a 101 Switching Protocols upgrade: it carries a
+    // `webSocket` handle that a reconstructed Response would drop, breaking the
+    // upgrade. Null-body statuses (204/304) are safe to re-wrap — `fetch`
+    // guarantees their body is `null`, so `new Response(null, res)` is valid —
+    // and re-wrapping them is what lets the CORS layer append `Vary` without
+    // throwing.
+    if (res.status === 101 || "webSocket" in res) {
+      return res;
+    }
+
+    return new Response(res.body, res);
   };
 }

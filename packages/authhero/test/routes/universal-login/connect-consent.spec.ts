@@ -375,7 +375,7 @@ describe("/u2/connect/start — control-plane mode (multi-tenancy)", () => {
       env,
     );
     // Re-renders the picker with an error. Importantly: state_data is unchanged.
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(400);
     const updated = await env.data.loginSessions.get("tenantId", stateId);
     const stateData = JSON.parse(updated!.state_data!);
     expect(stateData.connect.target_tenant_id).toBeUndefined();
@@ -469,10 +469,84 @@ describe("/u2/connect/start — control-plane mode (multi-tenancy)", () => {
       env,
     );
     // Re-renders consent with an error — no redirect, no IAT issued.
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(400);
+    // The rejection reason is surfaced to the user instead of being dropped
+    // behind a silently re-rendered screen.
+    const body = await response.text();
+    expect(body).toContain("You don't have access to that workspace");
     // Nothing was minted on either tenant.
     // (We don't have the IAT to look up here — the assertion above that we
     // did not redirect is the sufficient signal that no token was returned.)
+  });
+
+  it("consent POST honors the admin:organizations escape hatch for a tenant the user is not a member of", async () => {
+    const { oauthApp, u2App, env } = await getTestServer();
+    await enableConnectFlow(env);
+    await provisionControlPlane(env);
+
+    // A child tenant the user has zero org membership in. Without the global
+    // admin escape hatch the consent re-validation would reject it — the
+    // picker would have offered it (it honors admin:organizations), so the
+    // two checks must agree.
+    await env.data.tenants.create({
+      id: "stranger_tenant",
+      friendly_name: "Stranger Workspace",
+      audience: "urn:authhero:tenant:stranger_tenant",
+      sender_email: "login@example.com",
+      sender_name: "SenderName",
+    });
+
+    const globalRole = await env.data.roles.create("tenantId", {
+      name: "Platform Admin",
+      description: "Has global admin:organizations",
+    });
+    await env.data.rolePermissions.assign("tenantId", globalRole.id, [
+      {
+        role_id: globalRole.id,
+        resource_server_identifier: MANAGEMENT_API_AUDIENCE,
+        permission_name: "admin:organizations",
+      },
+    ]);
+    await env.data.userRoles.create("tenantId", "email|userId", globalRole.id, "");
+
+    const stateId = await startConnectFlow(oauthApp, env);
+    const session = await createUserSession(env);
+
+    // Mirror what the picker would have written after the global admin picked
+    // stranger_tenant.
+    const ls = await env.data.loginSessions.get("tenantId", stateId);
+    const data = JSON.parse(ls!.state_data!);
+    data.connect.target_tenant_id = "stranger_tenant";
+    await env.data.loginSessions.update("tenantId", stateId, {
+      state_data: JSON.stringify(data),
+    });
+
+    const response = await u2App.request(
+      `/connect/start?state=${encodeURIComponent(stateId)}`,
+      {
+        method: "POST",
+        headers: {
+          "tenant-id": "tenantId",
+          cookie: `tenantId-auth-token=${session.id}`,
+          "content-type": "application/x-www-form-urlencoded",
+        },
+        body: "",
+      },
+      env,
+    );
+    // The mint succeeds — global admin is allowed even without org membership.
+    expect(response.status).toBe(302);
+    const url = new URL(response.headers.get("location")!);
+    expect(url.searchParams.get("authhero_tenant")).toBe("stranger_tenant");
+    const iat = url.searchParams.get("authhero_iat");
+    expect(iat).toBeTruthy();
+
+    const hash = await hashRegistrationToken(iat!);
+    const onChild = await env.data.clientRegistrationTokens!.getByHash(
+      "stranger_tenant",
+      hash,
+    );
+    expect(onChild).toBeTruthy();
   });
 
   it("falls back to direct-tenant minting when the request hits a leaf tenant even if multiTenancyConfig is set", async () => {
@@ -643,7 +717,7 @@ describe("/u2/connect/start — picker permission gating", () => {
       env,
     );
     // Re-renders the picker — nothing persisted.
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(400);
     const updated = await env.data.loginSessions.get("tenantId", stateId);
     const stateData = JSON.parse(updated!.state_data!);
     expect(stateData.connect.target_tenant_id).toBeUndefined();

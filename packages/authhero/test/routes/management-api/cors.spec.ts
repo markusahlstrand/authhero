@@ -191,6 +191,71 @@ describe("management-api CORS", () => {
     expect(response.headers.get("Vary")).toContain("Origin");
   });
 
+  // Regression: a `tenantDispatch` middleware that returns a `fetch()`-style
+  // response carries an *immutable* header guard. The CORS middleware appends
+  // `Vary: Origin` (and, for an allowed origin, `Access-Control-*`) to the
+  // response after `next()` — which throws "Can't modify immutable headers."
+  // and turns every dispatched request into a 500 unless the CORS layer
+  // re-wraps the immutable response first.
+  describe("immutable dispatched response (tenantDispatch)", () => {
+    // Simulate the immutable header guard a fetch()/WFP-dispatch response
+    // carries: appending/setting/deleting a header throws.
+    function immutableResponse(body: string, status: number): Response {
+      const res = new Response(body, { status });
+      const throwImmutable = () => {
+        throw new TypeError("Can't modify immutable headers.");
+      };
+      for (const method of ["append", "set", "delete"] as const) {
+        Object.defineProperty(res.headers, method, {
+          value: throwImmutable,
+          configurable: true,
+        });
+      }
+      return res;
+    }
+
+    const tenantDispatch = async () =>
+      immutableResponse("from-tenant-worker", 200);
+
+    it("flows through CORS and returns the dispatched 200 without an Origin header", async () => {
+      const { managementApp, env } = await getTestServer({ tenantDispatch });
+
+      const response = await managementApp.request(
+        "/clients",
+        { method: "GET", headers: { "tenant-id": "tenantId" } },
+        env,
+      );
+
+      expect(response.status).toBe(200);
+      expect(await response.text()).toBe("from-tenant-worker");
+      // Vary: Origin is still appended (on the re-wrapped, mutable response).
+      expect(response.headers.get("Vary")).toContain("Origin");
+    });
+
+    it("flows through CORS and returns the dispatched 200 with an allowed Origin header", async () => {
+      const { managementApp, env } = await getTestServer({ tenantDispatch });
+
+      const response = await managementApp.request(
+        "/clients",
+        {
+          method: "GET",
+          headers: {
+            Origin: "https://example.com",
+            "tenant-id": "tenantId",
+          },
+        },
+        env,
+      );
+
+      expect(response.status).toBe(200);
+      expect(await response.text()).toBe("from-tenant-worker");
+      expect(response.headers.get("Access-Control-Allow-Origin")).toBe(
+        "https://example.com",
+      );
+      expect(response.headers.get("Vary")).toContain("Origin");
+    });
+  });
+
   it("should allow multiple origins from different clients simultaneously", async () => {
     const { managementApp, env } = await getTestServer();
 

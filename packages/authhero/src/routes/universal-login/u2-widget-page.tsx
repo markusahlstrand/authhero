@@ -40,6 +40,7 @@ import {
 } from "./sanitization-utils";
 import type { Branding, Theme } from "@authhero/adapter-interfaces";
 import { getCookie } from "hono/cookie";
+import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { buildHash } from "../../build-hash";
 import { createTranslation, getLocaleDisplayName } from "../../i18n";
 import {
@@ -1320,6 +1321,11 @@ export async function renderWidgetPageResponse(
      * bg tint) is unchanged.
      */
     customTemplateBody?: string;
+    /**
+     * HTTP status for the response. Defaults to 200; pass 400 when
+     * re-rendering a screen after a failed submission.
+     */
+    status?: ContentfulStatusCode;
   },
 ): Promise<Response> {
   // When placement suppresses the widget's own logo, the SSR'd widget needs
@@ -1388,7 +1394,7 @@ export async function renderWidgetPageResponse(
     const doc = /^\s*<!doctype/i.test(rendered)
       ? rendered
       : `<!DOCTYPE html>${rendered}`;
-    return ctx.html(doc);
+    return ctx.html(doc, opts.status);
   }
 
   let customBodyHtml: string | undefined;
@@ -1416,5 +1422,6 @@ export async function renderWidgetPageResponse(
       extraScript={opts.extraScript}
       customBodyHtml={customBodyHtml}
     />,
+    opts.status,
   );
 }

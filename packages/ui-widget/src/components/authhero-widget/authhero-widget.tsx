@@ -18,6 +18,14 @@ import { mergeThemeVars, applyCssVars } from "../../utils/branding";
 import { sanitizeHtml } from "../../utils/sanitize-html";
 
 /**
+ * When a screen's field section is made up entirely of choice buttons
+ * (NEXT_BUTTON) and there are more than this many, the widget renders them as
+ * a scrollable list with a search box on top instead of a tall column of
+ * buttons. Used by long pick-one screens such as tenant selection.
+ */
+const CHOICE_LIST_SEARCH_THRESHOLD = 5;
+
+/**
  * Submit event detail - emitted when a form is submitted
  */
 export interface SubmitEventDetail {
@@ -282,6 +290,13 @@ export class AuthheroWidget {
   @State() formData: Record<string, string> = {};
 
   /**
+   * Search query used to filter long choice-button lists (e.g. the
+   * tenant-select screen). Only applied when the screen is rendered as a
+   * searchable choice list — see CHOICE_LIST_SEARCH_THRESHOLD.
+   */
+  @State() listFilter = "";
+
+  /**
    * AbortController for an in-flight conditional mediation request.
    * Aborted on screen change or component disconnect.
    */
@@ -349,6 +364,7 @@ export class AuthheroWidget {
     }
     if (this._screen) {
       this.formData = {};
+      this.listFilter = "";
       this.initFormDataFromDefaults(this._screen);
       this.screenChange.emit(this._screen);
       this.updateDataScreenAttribute();
@@ -1738,6 +1754,14 @@ export class AuthheroWidget {
     return (component as { type: string }).type === "DIVIDER";
   }
 
+  /**
+   * Visible label of a choice button, used to filter searchable choice lists.
+   */
+  private getChoiceButtonText(component: FormComponent): string {
+    const config = (component as { config?: { text?: string } }).config;
+    return config?.text ?? "";
+  }
+
   render() {
     const screen = this._screen;
 
@@ -1779,6 +1803,23 @@ export class AuthheroWidget {
     const hasDivider = !!dividerComponent;
     const dividerText =
       (dividerComponent as DividerComponent)?.config?.text || "Or";
+
+    // A "choice list" screen is one whose entire field section is pick-one
+    // buttons (e.g. tenant selection). When the list is long, render it as a
+    // searchable, scrollable list instead of a tall column of buttons.
+    const choiceButtons = fieldComponents.filter(
+      (c) => c.type === "NEXT_BUTTON",
+    );
+    const isSearchableChoiceList =
+      choiceButtons.length === fieldComponents.length &&
+      choiceButtons.length > CHOICE_LIST_SEARCH_THRESHOLD;
+    const filterQuery = this.listFilter.trim().toLowerCase();
+    const visibleChoiceButtons =
+      isSearchableChoiceList && filterQuery
+        ? choiceButtons.filter((c) =>
+            this.getChoiceButtonText(c).toLowerCase().includes(filterQuery),
+          )
+        : choiceButtons;
 
     // Build dynamic exportparts for social buttons including provider-specific parts
     const getExportParts = (component: FormComponent): string => {
@@ -1910,24 +1951,65 @@ export class AuthheroWidget {
 
               {/* Form fields section - order controlled by CSS */}
               <div class="fields-section" part="fields-section">
-                {fieldComponents.map((component) => (
-                  <authhero-node
-                    key={component.id}
-                    component={component}
-                    value={this.formData[component.id]}
-                    onFieldChange={(
-                      e: CustomEvent<{ id: string; value: string }>,
-                    ) => this.handleInputChange(e.detail.id, e.detail.value)}
-                    onButtonClick={(
-                      e: CustomEvent<{
-                        id: string;
-                        type: string;
-                        value?: string;
-                      }>,
-                    ) => this.handleButtonClick(e.detail)}
-                    disabled={this.loading}
+                {isSearchableChoiceList && (
+                  <input
+                    type="text"
+                    class="choice-list-search"
+                    part="choice-list-search"
+                    placeholder="Search"
+                    aria-label="Search"
+                    autocomplete="off"
+                    value={this.listFilter}
+                    onInput={(e) =>
+                      (this.listFilter = (e.target as HTMLInputElement).value)
+                    }
+                    onKeyDown={(e: KeyboardEvent) => {
+                      // The search box lives inside the form; Enter would
+                      // submit with no choice selected. Swallow it.
+                      if (e.key === "Enter") e.preventDefault();
+                    }}
                   />
-                ))}
+                )}
+                <div
+                  class={
+                    isSearchableChoiceList
+                      ? "fields-list fields-list-scroll"
+                      : "fields-list"
+                  }
+                  part={
+                    isSearchableChoiceList
+                      ? "fields-list fields-list-scroll"
+                      : "fields-list"
+                  }
+                >
+                  {(isSearchableChoiceList
+                    ? visibleChoiceButtons
+                    : fieldComponents
+                  ).map((component) => (
+                    <authhero-node
+                      key={component.id}
+                      component={component}
+                      value={this.formData[component.id]}
+                      onFieldChange={(
+                        e: CustomEvent<{ id: string; value: string }>,
+                      ) => this.handleInputChange(e.detail.id, e.detail.value)}
+                      onButtonClick={(
+                        e: CustomEvent<{
+                          id: string;
+                          type: string;
+                          value?: string;
+                        }>,
+                      ) => this.handleButtonClick(e.detail)}
+                      disabled={this.loading}
+                    />
+                  ))}
+                  {isSearchableChoiceList &&
+                    visibleChoiceButtons.length === 0 && (
+                      <div class="choice-list-empty" part="choice-list-empty">
+                        No matches
+                      </div>
+                    )}
+                </div>
               </div>
             </div>
           </form>

@@ -21,12 +21,10 @@ import { getAuthCookie } from "../../../utils/cookies";
 import { RedirectException } from "../../../errors/redirect-exception";
 import { escapeHtml } from "../sanitization-utils";
 import { fetchAll } from "../../../utils/fetchAll";
-import { MANAGEMENT_API_AUDIENCE } from "../../../middlewares/authentication";
-
-// Permission required on a child tenant's control-plane org for the user to
-// register a DCR client against that tenant. Mirrors the Management API
-// scope a caller would need to POST /clients directly.
-const DCR_REGISTER_PERMISSION = "create:clients";
+import {
+  userHasGlobalOrgAdmin,
+  userCanRegisterOnOrg,
+} from "./connect-authz";
 
 interface ConnectConsentData {
   integration_type?: string;
@@ -76,81 +74,6 @@ function buildReturn(
     url.searchParams.set(k, v);
   }
   return url.toString();
-}
-
-async function roleGrantsManagementPermission(
-  context: ScreenContext,
-  roleId: string,
-  permissionName: string,
-  audience: string | null,
-): Promise<boolean> {
-  const { ctx, tenant } = context;
-  const permissions = await ctx.env.data.rolePermissions.list(
-    tenant.id,
-    roleId,
-    { per_page: 1000 },
-  );
-  return permissions.some(
-    (p) =>
-      p.permission_name === permissionName &&
-      (audience === null || p.resource_server_identifier === audience),
-  );
-}
-
-// Mirrors @authhero/multi-tenancy's escape hatch: a user holding
-// `admin:organizations` on a global (non-org-scoped) role can act on any
-// tenant without being a member of its control-plane org.
-async function userHasGlobalOrgAdmin(
-  context: ScreenContext,
-  userId: string,
-): Promise<boolean> {
-  const { ctx, tenant } = context;
-  const globalRoles = await ctx.env.data.userRoles.list(
-    tenant.id,
-    userId,
-    undefined,
-    "",
-  );
-  for (const role of globalRoles) {
-    if (
-      await roleGrantsManagementPermission(
-        context,
-        role.id,
-        "admin:organizations",
-        null,
-      )
-    ) {
-      return true;
-    }
-  }
-  return false;
-}
-
-async function userCanRegisterOnOrg(
-  context: ScreenContext,
-  userId: string,
-  organizationId: string,
-): Promise<boolean> {
-  const { ctx, tenant } = context;
-  const roles = await ctx.env.data.userRoles.list(
-    tenant.id,
-    userId,
-    undefined,
-    organizationId,
-  );
-  for (const role of roles) {
-    if (
-      await roleGrantsManagementPermission(
-        context,
-        role.id,
-        DCR_REGISTER_PERMISSION,
-        MANAGEMENT_API_AUDIENCE,
-      )
-    ) {
-      return true;
-    }
-  }
-  return false;
 }
 
 async function listUserTenantOptions(

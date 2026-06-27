@@ -866,12 +866,24 @@ screenApiRoutes.openapi(
           ? `${navigatePrefix}/${screenPath}?state=${encodeURIComponent(state)}`
           : undefined;
 
+      // When the handler returned an error, surface it as a screen-level error
+      // message so the widget can render it. Without this the error string is
+      // dropped and the user just sees the same screen re-rendered with a 400.
+      const messages =
+        "error" in result
+          ? [
+              ...(screenData.screen.messages ?? []),
+              { text: result.error, type: "error" as const },
+            ]
+          : screenData.screen.messages;
+
       return ctx.json(
         {
           screen: {
             ...screenData.screen,
             // Widget will POST JSON here when JS is enabled
             action: `/u2/screen/${nextScreenId}?state=${encodeURIComponent(state)}`,
+            messages,
             links: screenData.screen.links?.map((link) => ({
               ...link,
               href: link.href

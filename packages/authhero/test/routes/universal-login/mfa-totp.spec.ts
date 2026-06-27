@@ -299,7 +299,7 @@ describe("MFA TOTP (authenticator app)", () => {
       );
 
       // Should re-render the enrollment screen (not redirect)
-      expect(postResponse.status).toBe(200);
+      expect(postResponse.status).toBe(400);
 
       // Enrollment should still be unconfirmed
       const enrollments = await env.data.authenticationMethods.list(
@@ -486,7 +486,7 @@ describe("MFA TOTP (authenticator app)", () => {
       );
 
       // Should re-render the challenge screen with error (not redirect)
-      expect(postResponse.status).toBe(200);
+      expect(postResponse.status).toBe(400);
 
       // Login session should NOT have mfa_verified
       const updatedSession = await env.data.loginSessions.get(
