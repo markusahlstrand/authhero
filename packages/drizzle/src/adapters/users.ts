@@ -6,7 +6,6 @@ import {
   desc,
   inArray,
   isNull,
-  sql,
 } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { HTTPException } from "hono/http-exception";
@@ -15,6 +14,7 @@ import { users, passwords, authenticationMethods } from "../schema/sqlite";
 import { removeNullProperties, parseJsonIfString } from "../helpers/transform";
 import { buildLuceneFilter, sanitizeLuceneQuery } from "../helpers/filter";
 import type { DrizzleDb } from "./types";
+import { runAtomic } from "./atomic";
 
 // Fields users.list() accepts in `q`. Excludes `tenant_id` so a clause like
 // `q=tenant_id:other` cannot reach arbitrary columns. Mirrors the kysely
@@ -146,14 +146,12 @@ export function createUsersAdapter(db: DrizzleDb) {
 
     try {
       if (params.password && passwordId) {
-        // Wrap user + password inserts in a transaction so both
-        // succeed or both rollback.
-        // TODO: switch to db.batch() in a follow-up PR — interactive
-        // BEGIN/COMMIT does not provide atomicity on D1 (async driver).
-        await db.run(sql`BEGIN`);
-        try {
-          await db.insert(users).values(sqlData);
-          await db.insert(passwords).values({
+        // Insert the user and its password atomically so both succeed or both
+        // roll back. runAtomic uses db.batch() on D1 and BEGIN/COMMIT on
+        // better-sqlite3.
+        await runAtomic(db, [
+          db.insert(users).values(sqlData),
+          db.insert(passwords).values({
             id: passwordId,
             tenant_id,
             user_id: params.user_id,
@@ -162,12 +160,8 @@ export function createUsersAdapter(db: DrizzleDb) {
             is_current: 1,
             created_at: now,
             updated_at: now,
-          });
-          await db.run(sql`COMMIT`);
-        } catch (e) {
-          await db.run(sql`ROLLBACK`);
-          throw e;
-        }
+          }),
+        ]);
       } else {
         await db.insert(users).values(sqlData);
       }
@@ -300,7 +294,11 @@ export function createUsersAdapter(db: DrizzleDb) {
         // arbitrary columns.
         const sanitized = sanitizeLuceneQuery(q, ALLOWED_Q_FIELDS);
         if (sanitized) {
-          const filter = buildLuceneFilter(users, sanitized, SEARCHABLE_COLUMNS);
+          const filter = buildLuceneFilter(
+            users,
+            sanitized,
+            SEARCHABLE_COLUMNS,
+          );
           if (filter) conditions.push(filter);
         }
       }
@@ -359,62 +357,60 @@ export function createUsersAdapter(db: DrizzleDb) {
     },
 
     async remove(tenant_id: string, user_id: string): Promise<boolean> {
-      // Use manual BEGIN/COMMIT/ROLLBACK because Drizzle's built-in
-      // db.transaction() doesn't support async callbacks with better-sqlite3.
-      // TODO: switch to db.batch() in a follow-up PR — interactive
-      // BEGIN/COMMIT does not provide atomicity on D1 (async driver).
-      await db.run(sql`BEGIN`);
-      try {
-        // Collect all user IDs to delete: primary + linked
-        const linkedUsers = await db
-          .select({ user_id: users.user_id })
-          .from(users)
-          .where(
-            and(eq(users.tenant_id, tenant_id), eq(users.linked_to, user_id)),
-          );
-        const allUserIds = [user_id, ...linkedUsers.map((u) => u.user_id)];
+      // Collect all user IDs to delete: primary + linked. This read can sit
+      // outside the atomic unit — it mutates nothing, and the deletes it feeds
+      // are applied together below.
+      const linkedUsers = await db
+        .select({ user_id: users.user_id })
+        .from(users)
+        .where(
+          and(eq(users.tenant_id, tenant_id), eq(users.linked_to, user_id)),
+        );
+      const allUserIds = [user_id, ...linkedUsers.map((u) => u.user_id)];
 
+      // Apply the cascade deletes atomically so we never leave a user behind
+      // with its auth methods / passwords removed (or vice versa). runAtomic
+      // uses db.batch() on D1 and BEGIN/COMMIT on better-sqlite3.
+      const results = await runAtomic(db, [
         // Delete authentication methods for all users
-        await db
+        db
           .delete(authenticationMethods)
           .where(
             and(
               eq(authenticationMethods.tenant_id, tenant_id),
               inArray(authenticationMethods.user_id, allUserIds),
             ),
-          );
-
+          ),
         // Delete passwords for all users
-        await db
+        db
           .delete(passwords)
           .where(
             and(
               eq(passwords.tenant_id, tenant_id),
               inArray(passwords.user_id, allUserIds),
             ),
-          );
-
+          ),
         // Delete linked users
-        await db
+        db
           .delete(users)
           .where(
             and(eq(users.tenant_id, tenant_id), eq(users.linked_to, user_id)),
-          );
-
+          ),
         // Delete primary user
-        const results = await db
+        db
           .delete(users)
           .where(
             and(eq(users.tenant_id, tenant_id), eq(users.user_id, user_id)),
           )
-          .returning();
+          .returning(),
+      ]);
 
-        await db.run(sql`COMMIT`);
-        return results.length > 0;
-      } catch (e) {
-        await db.run(sql`ROLLBACK`);
-        throw e;
-      }
+      // The primary-user delete is the last statement; its `.returning()` rows
+      // tell us whether a row actually existed.
+      const primaryDeleteResult = results[results.length - 1];
+      return (
+        Array.isArray(primaryDeleteResult) && primaryDeleteResult.length > 0
+      );
     },
 
     async unlink(

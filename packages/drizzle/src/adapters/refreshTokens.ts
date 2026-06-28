@@ -1,13 +1,4 @@
-import {
-  eq,
-  and,
-  lt,
-  isNull,
-  count as countFn,
-  asc,
-  desc,
-  sql,
-} from "drizzle-orm";
+import { eq, and, lt, isNull, count as countFn, asc, desc } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import type {
   RefreshToken,
@@ -19,6 +10,8 @@ import { removeNullProperties, parseJsonIfString } from "../helpers/transform";
 import { convertDatesToAdapter, isoToDbDate } from "../helpers/dates";
 import { buildLuceneFilter } from "../helpers/filter";
 import type { DrizzleDb } from "./types";
+import { runAtomic } from "./atomic";
+import type { AtomicStatementList } from "./atomic";
 
 function sqlToRefreshToken(row: any): RefreshToken {
   const {
@@ -95,20 +88,20 @@ export function createRefreshTokensAdapter(db: DrizzleDb) {
         last_exchanged_at_ts: isoToDbDate(token.last_exchanged_at),
       };
 
-      // Use manual BEGIN/COMMIT/ROLLBACK because Drizzle's built-in
-      // db.transaction() doesn't support async callbacks with better-sqlite3.
-      // TODO: switch to db.batch() in a follow-up PR — interactive
-      // BEGIN/COMMIT does not provide atomicity on D1 (async driver).
-      await db.run(sql`BEGIN`);
-      try {
-        await db.insert(refreshTokens).values(values);
+      // Insert the refresh token and keep the parent login_session alive
+      // atomically. runAtomic uses db.batch() on D1 and BEGIN/COMMIT on
+      // better-sqlite3.
+      const statements: AtomicStatementList = [
+        db.insert(refreshTokens).values(values),
+      ];
 
-        const newLoginSessionExpiry = maxExpiry(
-          values.expires_at_ts,
-          values.idle_expires_at_ts,
-        );
-        if (newLoginSessionExpiry > 0 && values.login_id) {
-          await db
+      const newLoginSessionExpiry = maxExpiry(
+        values.expires_at_ts,
+        values.idle_expires_at_ts,
+      );
+      if (newLoginSessionExpiry > 0 && values.login_id) {
+        statements.push(
+          db
             .update(loginSessions)
             .set({
               expires_at_ts: newLoginSessionExpiry,
@@ -120,14 +113,11 @@ export function createRefreshTokensAdapter(db: DrizzleDb) {
                 eq(loginSessions.id, values.login_id),
                 lt(loginSessions.expires_at_ts, newLoginSessionExpiry),
               ),
-            );
-        }
-
-        await db.run(sql`COMMIT`);
-      } catch (err) {
-        await db.run(sql`ROLLBACK`);
-        throw err;
+            ),
+        );
       }
+
+      await runAtomic(db, statements);
 
       return sqlToRefreshToken({ ...values, tenant_id });
     },
