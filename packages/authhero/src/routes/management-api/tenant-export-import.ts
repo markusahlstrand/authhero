@@ -1,0 +1,214 @@
+import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
+import { Context } from "hono";
+import { HTTPException } from "hono/http-exception";
+import { LogTypes } from "@authhero/adapter-interfaces";
+import { Bindings, Variables } from "../../types";
+import { logMessage } from "../../helpers/logging";
+import { defineRoute } from "../../utils/define-route";
+import {
+  ExportLine,
+  exportTenant,
+  importTenant,
+} from "../../helpers/tenant-export-import";
+
+// Scope a token must additionally carry to include/import password hashes.
+const EXPORT_SECRETS_SCOPE = "read:user_password_hashes";
+const IMPORT_SECRETS_SCOPE = "create:user_password_hashes";
+
+type RouteContext = Context<{ Bindings: Bindings; Variables: Variables }>;
+
+function asStringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
+}
+
+/**
+ * All grants the token carries — both the space-delimited `scope` claim and the
+ * RBAC `permissions` array (management-API tokens usually use the latter). The
+ * auth middleware stores the full verified payload under `user`, so reading
+ * `permissions` here is safe; it's just absent from the narrowed `user` type.
+ */
+function tokenGrants(ctx: RouteContext): string[] {
+  const user = ctx.var.user;
+  if (!user) return [];
+  const scopes =
+    typeof user.scope === "string" ? user.scope.split(" ").filter(Boolean) : [];
+  const permissions =
+    "permissions" in user ? asStringArray(user.permissions) : [];
+  return [...scopes, ...permissions];
+}
+
+function requireScope(ctx: RouteContext, scope: string) {
+  if (!tokenGrants(ctx).includes(scope)) {
+    throw new HTTPException(403, {
+      message: `Including password hashes requires the "${scope}" scope`,
+    });
+  }
+}
+
+const exportLineSchema = z.object({
+  entity: z.string(),
+  data: z.unknown(),
+});
+
+/** Decode the request body, transparently inflating a gzip payload. */
+async function readBody(ctx: RouteContext): Promise<string> {
+  const buffer = new Uint8Array(await ctx.req.arrayBuffer());
+  // gzip magic bytes (0x1f 0x8b) — inflate; otherwise treat as plain text.
+  if (buffer.length >= 2 && buffer[0] === 0x1f && buffer[1] === 0x8b) {
+    const stream = new Blob([buffer])
+      .stream()
+      .pipeThrough(new DecompressionStream("gzip"));
+    return await new Response(stream).text();
+  }
+  return new TextDecoder().decode(buffer);
+}
+
+/** Parse newline-delimited JSON into validated export lines. */
+function parseJsonl(text: string): ExportLine[] {
+  const lines: ExportLine[] = [];
+  for (const raw of text.split("\n")) {
+    const trimmed = raw.trim();
+    if (!trimmed) continue;
+    lines.push(exportLineSchema.parse(JSON.parse(trimmed)));
+  }
+  return lines;
+}
+
+const importResultSchema = z.object({
+  counts: z.record(z.string(), z.number()),
+  errors: z.array(z.object({ entity: z.string(), error: z.string() })),
+});
+
+const exportRoute = defineRoute({
+  route: createRoute({
+    tags: ["tenant-export-import"],
+    method: "get",
+    path: "/export",
+    request: {
+      query: z.object({
+        include_password_hashes: z
+          .enum(["true", "false"])
+          .optional()
+          .openapi({
+            description:
+              "Include password hashes in the export. Requires the " +
+              `"${EXPORT_SECRETS_SCOPE}" scope.`,
+          }),
+      }),
+      headers: z.object({ "tenant-id": z.string().optional() }),
+    },
+    security: [{ Bearer: ["read:users"] }],
+    responses: {
+      200: {
+        content: {
+          "application/gzip": {
+            schema: z.string().openapi({
+              type: "string",
+              format: "binary",
+            }),
+          },
+        },
+        description:
+          "Gzipped JSON-lines export of the tenant's durable data, one " +
+          "`{ entity, data }` record per line.",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenant_id = ctx.var.tenant_id;
+    const includePasswordHashes =
+      ctx.req.query("include_password_hashes") === "true";
+    if (includePasswordHashes) {
+      requireScope(ctx, EXPORT_SECRETS_SCOPE);
+    }
+
+    const lines = await exportTenant(ctx.env.data, tenant_id, {
+      includePasswordHashes,
+    });
+    const jsonl = lines.map((line) => JSON.stringify(line)).join("\n") + "\n";
+    const body = new Blob([jsonl])
+      .stream()
+      .pipeThrough(new CompressionStream("gzip"));
+
+    await logMessage(ctx, tenant_id, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: `Tenant export (${lines.length} rows, password_hashes=${includePasswordHashes}) by ${ctx.var.user?.sub ?? "unknown"}`,
+      targetType: "tenant",
+      targetId: tenant_id,
+    });
+
+    return new Response(body, {
+      status: 200,
+      headers: {
+        "content-type": "application/gzip",
+        "content-disposition": `attachment; filename="${tenant_id}-export.jsonl.gz"`,
+      },
+    });
+  },
+});
+
+const importRoute = defineRoute({
+  route: createRoute({
+    tags: ["tenant-export-import"],
+    method: "post",
+    path: "/import",
+    request: {
+      query: z.object({
+        include_password_hashes: z
+          .enum(["true", "false"])
+          .optional()
+          .openapi({
+            description:
+              "Import password-hash records from the stream. Requires the " +
+              `"${IMPORT_SECRETS_SCOPE}" scope.`,
+          }),
+      }),
+      headers: z.object({ "tenant-id": z.string().optional() }),
+    },
+    security: [{ Bearer: ["create:users"] }],
+    responses: {
+      200: {
+        content: { "application/json": { schema: importResultSchema } },
+        description: "Per-entity counts and any non-fatal per-row errors.",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenant_id = ctx.var.tenant_id;
+    const includePasswordHashes =
+      ctx.req.query("include_password_hashes") === "true";
+    if (includePasswordHashes) {
+      requireScope(ctx, IMPORT_SECRETS_SCOPE);
+    }
+
+    let lines: ExportLine[];
+    try {
+      lines = parseJsonl(await readBody(ctx));
+    } catch {
+      throw new HTTPException(400, {
+        message: "Request body is not valid gzipped/plain JSON-lines",
+      });
+    }
+
+    const result = await importTenant(ctx.env.data, tenant_id, lines, {
+      includePasswordHashes,
+    });
+
+    const imported = Object.values(result.counts).reduce((a, b) => a + b, 0);
+    await logMessage(ctx, tenant_id, {
+      type: LogTypes.SUCCESSFULLY_IMPORTED_USERS,
+      description: `Tenant import (${imported} rows, ${result.errors.length} errors, password_hashes=${includePasswordHashes}) by ${ctx.var.user?.sub ?? "unknown"}`,
+      targetType: "tenant",
+      targetId: tenant_id,
+    });
+
+    return ctx.json(result);
+  },
+});
+
+export const tenantExportImportRoutes = new OpenAPIHono<{
+  Bindings: Bindings;
+  Variables: Variables;
+}>().openapiRoutes([exportRoute, importRoute] as const);
