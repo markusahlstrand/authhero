@@ -1,13 +1,18 @@
 import { Role, RoleInsert } from "../types";
 import { ListParams } from "../types/ListParams";
 import { Totals } from "../types";
+import { CreateOptions } from "../types/ImportMetadata";
 
 export interface ListRolesResponse extends Totals {
   roles: Role[];
 }
 
 export interface RolesAdapter {
-  create(tenantId: string, role: RoleInsert): Promise<Role>;
+  create(
+    tenantId: string,
+    role: RoleInsert,
+    options?: CreateOptions,
+  ): Promise<Role>;
   get(tenantId: string, roleId: string): Promise<Role | null>;
   list(tenantId: string, params?: ListParams): Promise<ListRolesResponse>;
   update(

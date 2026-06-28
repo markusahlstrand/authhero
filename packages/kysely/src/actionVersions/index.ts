@@ -3,6 +3,7 @@ import {
   ActionVersion,
   ActionVersionInsert,
   ActionVersionsAdapter,
+  CreateOptions,
   ListActionVersionsResponse,
   ListParams,
 } from "@authhero/adapter-interfaces";
@@ -54,9 +55,17 @@ export function createActionVersionsAdapter(
     async create(
       tenant_id: string,
       version: ActionVersionInsert,
+      options?: CreateOptions,
     ): Promise<ActionVersion> {
+      const importMetadata = options?.importMetadata;
       const now = Date.now();
-      const id = generateActionVersionId();
+      const createdAtTs = importMetadata?.created_at
+        ? new Date(importMetadata.created_at).getTime()
+        : now;
+      const updatedAtTs = importMetadata?.updated_at
+        ? new Date(importMetadata.updated_at).getTime()
+        : now;
+      const id = importMetadata?.id ?? generateActionVersionId();
       const deployed = version.deployed !== false;
 
       // Wrap latest-lookup, deployed-clear, and insert in a single transaction
@@ -101,8 +110,8 @@ export function createActionVersionsAdapter(
               ? JSON.stringify(version.supported_triggers)
               : null,
             deployed: deployed ? 1 : 0,
-            created_at_ts: now,
-            updated_at_ts: now,
+            created_at_ts: createdAtTs,
+            updated_at_ts: updatedAtTs,
           })
           .execute();
 
@@ -120,8 +129,8 @@ export function createActionVersionsAdapter(
         dependencies: version.dependencies,
         supported_triggers: version.supported_triggers,
         deployed,
-        created_at: new Date(now).toISOString(),
-        updated_at: new Date(now).toISOString(),
+        created_at: new Date(createdAtTs).toISOString(),
+        updated_at: new Date(updatedAtTs).toISOString(),
       };
     },
 

@@ -1,5 +1,6 @@
 import { User, Totals, UserInsert } from "../types";
 import { ListParams } from "../types/ListParams";
+import { CreateOptions } from "../types/ImportMetadata";
 
 export interface ListUsersResponse extends Totals {
   users: User[];
@@ -7,7 +8,11 @@ export interface ListUsersResponse extends Totals {
 
 export interface UserDataAdapter {
   get(tenant_id: string, id: string): Promise<User | null>;
-  create(tenantId: string, user: UserInsert): Promise<User>;
+  create(
+    tenantId: string,
+    user: UserInsert,
+    options?: CreateOptions,
+  ): Promise<User>;
   /**
    * Create a user without invoking any decorator-level hooks (pre/post
    * registration hooks, linking, webhooks, etc.). Intended to be called from

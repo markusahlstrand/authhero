@@ -1,14 +1,23 @@
 import { Kysely } from "kysely";
 import { HTTPException } from "hono/http-exception";
 import { Database } from "../db";
-import { Invite, InviteInsert } from "@authhero/adapter-interfaces";
+import {
+  Invite,
+  InviteInsert,
+  CreateOptions,
+} from "@authhero/adapter-interfaces";
 import { generateInviteId } from "../utils/entity-id";
 import { stringifyProperties } from "../helpers/stringify";
 
 export function create(db: Kysely<Database>) {
-  return async (tenantId: string, invite: InviteInsert): Promise<Invite> => {
-    const inviteId = invite.id || generateInviteId();
-    const createdAt = new Date().toISOString();
+  return async (
+    tenantId: string,
+    invite: InviteInsert,
+    options?: CreateOptions,
+  ): Promise<Invite> => {
+    const importMetadata = options?.importMetadata;
+    const inviteId = importMetadata?.id ?? invite.id ?? generateInviteId();
+    const createdAt = importMetadata?.created_at ?? new Date().toISOString();
 
     // Calculate expires_at based on ttl_sec (default 7 days)
     const ttlSec = invite.ttl_sec || 604800;

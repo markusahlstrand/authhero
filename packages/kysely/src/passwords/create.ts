@@ -1,18 +1,28 @@
 import { Kysely } from "kysely";
 import { nanoid } from "nanoid";
 import { Database } from "../db";
-import { Password, PasswordInsert } from "@authhero/adapter-interfaces";
+import {
+  Password,
+  PasswordInsert,
+  CreateOptions,
+} from "@authhero/adapter-interfaces";
 
 export function create(db: Kysely<Database>) {
-  return async (tenant_id: string, password: PasswordInsert) => {
-    const id = password.id || nanoid();
+  return async (
+    tenant_id: string,
+    password: PasswordInsert,
+    options?: CreateOptions,
+  ) => {
+    const importMetadata = options?.importMetadata;
+    const id = importMetadata?.id || password.id || nanoid();
     const isCurrent = password.is_current ?? true;
+    const now = new Date().toISOString();
     const createdPassword: Password = {
       id,
       ...password,
       is_current: isCurrent,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      created_at: importMetadata?.created_at ?? now,
+      updated_at: importMetadata?.updated_at ?? now,
     };
 
     if (isCurrent) {

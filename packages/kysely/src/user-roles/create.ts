@@ -1,4 +1,5 @@
 import { Kysely } from "kysely";
+import { CreateOptions } from "@authhero/adapter-interfaces";
 import { Database } from "../db";
 
 export function create(db: Kysely<Database>) {
@@ -7,7 +8,9 @@ export function create(db: Kysely<Database>) {
     user_id: string,
     role_id: string,
     organization_id?: string,
+    options?: CreateOptions,
   ): Promise<boolean> => {
+    const importMetadata = options?.importMetadata;
     const now = new Date().toISOString();
 
     try {
@@ -18,7 +21,7 @@ export function create(db: Kysely<Database>) {
           user_id,
           role_id,
           organization_id: organization_id || "",
-          created_at: now,
+          created_at: importMetadata?.created_at ?? now,
         })
         .execute();
 

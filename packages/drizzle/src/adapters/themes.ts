@@ -72,6 +72,16 @@ export function createThemesAdapter(db: DrizzleDb) {
       return sqlToTheme(result);
     },
 
+    async list(tenant_id: string): Promise<Theme[]> {
+      const results = await db
+        .select()
+        .from(themes)
+        .where(eq(themes.tenant_id, tenant_id))
+        .all();
+
+      return results.map(sqlToTheme);
+    },
+
     async update(
       tenant_id: string,
       themeId: string,

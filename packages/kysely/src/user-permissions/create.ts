@@ -1,6 +1,9 @@
 import { Kysely } from "kysely";
 import { Database } from "../db";
-import { UserPermissionInsert } from "@authhero/adapter-interfaces";
+import {
+  CreateOptions,
+  UserPermissionInsert,
+} from "@authhero/adapter-interfaces";
 
 export function create(db: Kysely<Database>) {
   return async (
@@ -8,7 +11,9 @@ export function create(db: Kysely<Database>) {
     user_id: string,
     permission: UserPermissionInsert,
     organization_id?: string,
+    options?: CreateOptions,
   ): Promise<boolean> => {
+    const importMetadata = options?.importMetadata;
     const now = new Date().toISOString();
 
     try {
@@ -18,7 +23,7 @@ export function create(db: Kysely<Database>) {
         resource_server_identifier: permission.resource_server_identifier,
         permission_name: permission.permission_name,
         organization_id: organization_id || permission.organization_id || "",
-        created_at: now,
+        created_at: importMetadata?.created_at ?? now,
       };
 
       await db.insertInto("user_permissions").values(assignment).execute();

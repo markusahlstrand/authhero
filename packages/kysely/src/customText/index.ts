@@ -1,6 +1,7 @@
 import {
   CustomTextAdapter,
   CustomText,
+  CreateOptions,
   PromptScreen,
 } from "@authhero/adapter-interfaces";
 import { Kysely } from "kysely";
@@ -39,7 +40,9 @@ export function createCustomTextAdapter(
       prompt: PromptScreen,
       language: string,
       customText: CustomText,
+      options?: CreateOptions,
     ): Promise<void> {
+      const importMetadata = options?.importMetadata;
       const now = Date.now();
       const customTextJson = JSON.stringify(customText);
 
@@ -71,8 +74,12 @@ export function createCustomTextAdapter(
             prompt,
             language,
             custom_text: customTextJson,
-            created_at_ts: now,
-            updated_at_ts: now,
+            created_at_ts: importMetadata?.created_at
+              ? new Date(importMetadata.created_at).getTime()
+              : now,
+            updated_at_ts: importMetadata?.updated_at
+              ? new Date(importMetadata.updated_at).getTime()
+              : now,
           })
           .execute();
       }

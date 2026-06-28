@@ -3,6 +3,7 @@ import {
   RolePermissionInsert,
   RolePermissionList,
 } from "../types/RolePermission";
+import { CreateOptions } from "../types/ImportMetadata";
 
 export interface RolePermissionsAdapter {
   // Assign permissions to a role
@@ -10,6 +11,7 @@ export interface RolePermissionsAdapter {
     tenant_id: string,
     role_id: string,
     permissions: RolePermissionInsert[],
+    options?: CreateOptions,
   ): Promise<boolean>;
 
   // Remove permissions from a role

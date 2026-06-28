@@ -1,17 +1,26 @@
 import { Kysely } from "kysely";
 import { nanoid } from "nanoid";
 import { HTTPException } from "hono/http-exception";
-import { CreateTenantParams, Tenant } from "@authhero/adapter-interfaces";
+import {
+  CreateTenantParams,
+  Tenant,
+  CreateOptions,
+} from "@authhero/adapter-interfaces";
 import { Database } from "../db";
 import { tenantToSqlTenant } from "./utils";
 
 export function create(db: Kysely<Database>) {
-  return async (params: CreateTenantParams): Promise<Tenant> => {
+  return async (
+    params: CreateTenantParams,
+    options?: CreateOptions,
+  ): Promise<Tenant> => {
+    const importMetadata = options?.importMetadata;
+    const now = new Date().toISOString();
     const tenant: Tenant = {
-      id: params.id || nanoid(),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      id: importMetadata?.id || params.id || nanoid(),
       ...params,
+      created_at: importMetadata?.created_at ?? now,
+      updated_at: importMetadata?.updated_at ?? now,
     };
 
     const sqlTenant = tenantToSqlTenant(tenant);

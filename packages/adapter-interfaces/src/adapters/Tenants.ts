@@ -1,5 +1,6 @@
 import { Tenant, Totals } from "../types";
 import { ListParams } from "../types/ListParams";
+import { CreateOptions } from "../types/ImportMetadata";
 
 export interface CreateTenantParams {
   friendly_name: string;
@@ -26,7 +27,10 @@ export interface CreateTenantParams {
 }
 
 export interface TenantsDataAdapter {
-  create(params: CreateTenantParams): Promise<Tenant>;
+  create(
+    params: CreateTenantParams,
+    options?: CreateOptions,
+  ): Promise<Tenant>;
   get(id: string): Promise<Tenant | null>;
   list(params?: ListParams): Promise<{ tenants: Tenant[]; totals?: Totals }>;
   update(id: string, tenant: Partial<Tenant>): Promise<void>;

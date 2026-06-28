@@ -1,4 +1,5 @@
 import { CustomText, PromptScreen } from "../types";
+import { CreateOptions } from "../types/ImportMetadata";
 
 export interface CustomTextAdapter {
   /**
@@ -18,6 +19,7 @@ export interface CustomTextAdapter {
     prompt: PromptScreen,
     language: string,
     customText: CustomText,
+    options?: CreateOptions,
   ) => Promise<void>;
 
   /**

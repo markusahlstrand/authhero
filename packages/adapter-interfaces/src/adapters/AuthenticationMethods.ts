@@ -3,11 +3,13 @@ import {
   AuthenticationMethodInsert,
   AuthenticationMethodUpdate,
 } from "../types/AuthenticationMethod";
+import { CreateOptions } from "../types/ImportMetadata";
 
 export interface AuthenticationMethodsAdapter {
   create: (
     tenant_id: string,
     method: AuthenticationMethodInsert,
+    options?: CreateOptions,
   ) => Promise<AuthenticationMethod>;
   get: (
     tenant_id: string,

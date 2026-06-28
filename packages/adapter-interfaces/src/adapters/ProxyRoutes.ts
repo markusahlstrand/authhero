@@ -3,6 +3,7 @@ import {
   ProxyRouteInsert,
   ProxyRouteUpdate,
 } from "../types/ProxyRoute";
+import { CreateOptions } from "../types/ImportMetadata";
 
 export interface ListProxyRoutesParams {
   page?: number;
@@ -18,7 +19,11 @@ export interface ListProxyRoutesResult {
 }
 
 export interface ProxyRoutesAdapter {
-  create(tenant_id: string, route: ProxyRouteInsert): Promise<ProxyRoute>;
+  create(
+    tenant_id: string,
+    route: ProxyRouteInsert,
+    options?: CreateOptions,
+  ): Promise<ProxyRoute>;
   get(tenant_id: string, id: string): Promise<ProxyRoute | null>;
   list(
     tenant_id: string,
