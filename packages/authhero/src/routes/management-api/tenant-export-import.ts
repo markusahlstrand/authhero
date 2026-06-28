@@ -96,6 +96,14 @@ const exportRoute = defineRoute({
               "Include password hashes in the export. Requires the " +
               `"${EXPORT_SECRETS_SCOPE}" scope.`,
           }),
+        gzip: z
+          .enum(["true", "false"])
+          .optional()
+          .openapi({
+            description:
+              "Whether to gzip the response (default true). Pass false to " +
+              "receive uncompressed `application/x-ndjson`.",
+          }),
       }),
       headers: z.object({ "tenant-id": z.string().optional() }),
     },
@@ -109,10 +117,13 @@ const exportRoute = defineRoute({
               format: "binary",
             }),
           },
+          "application/x-ndjson": {
+            schema: z.string(),
+          },
         },
         description:
-          "Gzipped JSON-lines export of the tenant's durable data, one " +
-          "`{ entity, data }` record per line.",
+          "JSON-lines export of the tenant's durable data, one " +
+          "`{ entity, data }` record per line (gzipped by default).",
       },
     },
   }),
@@ -123,14 +134,12 @@ const exportRoute = defineRoute({
     if (includePasswordHashes) {
       requireScope(ctx, EXPORT_SECRETS_SCOPE);
     }
+    const compress = ctx.req.query("gzip") !== "false";
 
     const lines = await exportTenant(ctx.env.data, tenant_id, {
       includePasswordHashes,
     });
     const jsonl = lines.map((line) => JSON.stringify(line)).join("\n") + "\n";
-    const body = new Blob([jsonl])
-      .stream()
-      .pipeThrough(new CompressionStream("gzip"));
 
     await logMessage(ctx, tenant_id, {
       type: LogTypes.SUCCESS_API_OPERATION,
@@ -139,6 +148,19 @@ const exportRoute = defineRoute({
       targetId: tenant_id,
     });
 
+    if (!compress) {
+      return new Response(jsonl, {
+        status: 200,
+        headers: {
+          "content-type": "application/x-ndjson",
+          "content-disposition": `attachment; filename="${tenant_id}-export.jsonl"`,
+        },
+      });
+    }
+
+    const body = new Blob([jsonl])
+      .stream()
+      .pipeThrough(new CompressionStream("gzip"));
     return new Response(body, {
       status: 200,
       headers: {

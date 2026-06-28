@@ -322,6 +322,16 @@ export interface AuthHeroDataProvider extends DataProvider {
     hookId: string,
     payload: { user_id: string },
   ) => Promise<{ ok: boolean; status?: number; body?: string; error?: string }>;
+  /** Download the tenant's durable data as JSON-lines text. */
+  exportTenantData: (includePasswordHashes?: boolean) => Promise<string>;
+  /** Replay a JSON-lines export into the current tenant. */
+  importTenantData: (
+    jsonl: string,
+    includePasswordHashes?: boolean,
+  ) => Promise<{
+    counts: Record<string, number>;
+    errors: { entity: string; error: string }[];
+  }>;
 }
 
 /**
@@ -2531,6 +2541,33 @@ export default (
           method: "POST",
           headers: createHeaders(tenantId),
           body: JSON.stringify(payload),
+        },
+      );
+      return json;
+    },
+    exportTenantData: async (includePasswordHashes) => {
+      const params = new URLSearchParams({ gzip: "false" });
+      if (includePasswordHashes) {
+        params.set("include_password_hashes", "true");
+      }
+      const { body } = await httpClient(
+        `${apiUrl}/api/v2/tenant-data/export?${params.toString()}`,
+        { headers: createHeaders(tenantId) },
+      );
+      return body;
+    },
+    importTenantData: async (jsonl, includePasswordHashes) => {
+      const params = new URLSearchParams();
+      if (includePasswordHashes) {
+        params.set("include_password_hashes", "true");
+      }
+      const query = params.toString();
+      const { json } = await httpClient(
+        `${apiUrl}/api/v2/tenant-data/import${query ? `?${query}` : ""}`,
+        {
+          method: "POST",
+          headers: createHeaders(tenantId),
+          body: jsonl,
         },
       );
       return json;
