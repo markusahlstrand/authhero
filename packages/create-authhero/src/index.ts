@@ -86,21 +86,21 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
           "@authhero/kysely-adapter": v,
           ...(adminUi && { "@authhero/admin": v }),
           "@authhero/widget": v,
-          "@hono/swagger-ui": "^0.5.0",
-          "@hono/zod-openapi": "^0.19.0",
+          "@hono/swagger-ui": "^0.6.0",
+          "@hono/zod-openapi": "^1.4.0",
           "@hono/node-server": "latest",
           authhero: v,
           "better-sqlite3": "latest",
-          hono: "^4.6.0",
+          hono: "^4.12.0",
           kysely: "latest",
           ...(multiTenant && { "@authhero/multi-tenancy": v }),
           ...(conformance && { bcryptjs: "latest" }),
         },
         devDependencies: {
           "@types/better-sqlite3": "^7.6.0",
-          "@types/node": "^20.0.0",
+          "@types/node": "^22.0.0",
           tsx: "^4.0.0",
-          typescript: "^5.5.0",
+          typescript: "^5.9.0",
         },
       };
     },
@@ -146,19 +146,19 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
           "@authhero/drizzle": v,
           ...(adminUi && { "@authhero/admin": v }),
           "@authhero/widget": v,
-          "@hono/swagger-ui": "^0.5.0",
-          "@hono/zod-openapi": "^0.19.0",
+          "@hono/swagger-ui": "^0.6.0",
+          "@hono/zod-openapi": "^1.4.0",
           authhero: v,
           "drizzle-orm": "^0.44.0",
-          hono: "^4.6.0",
+          hono: "^4.12.0",
           ...(multiTenant && { "@authhero/multi-tenancy": v }),
           ...(conformance && { bcryptjs: "latest" }),
         },
         devDependencies: {
           "@cloudflare/workers-types": "^4.0.0",
           "drizzle-kit": "^0.31.0",
-          typescript: "^5.5.0",
-          wrangler: "^3.0.0",
+          typescript: "^5.9.0",
+          wrangler: "^4.0.0",
         },
       };
     },
@@ -191,13 +191,13 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
           "@authhero/drizzle": v,
           "@authhero/proxy": v,
           "drizzle-orm": "^0.44.0",
-          hono: "^4.6.0",
+          hono: "^4.12.0",
         },
         devDependencies: {
           "@cloudflare/workers-types": "^4.0.0",
           "drizzle-kit": "^0.31.0",
-          typescript: "^5.5.0",
-          wrangler: "^3.0.0",
+          typescript: "^5.9.0",
+          wrangler: "^4.0.0",
         },
       };
     },
@@ -234,17 +234,17 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
           "@authhero/drizzle": v,
           "@authhero/multi-tenancy": v,
           "@authhero/widget": v,
-          "@hono/swagger-ui": "^0.5.0",
-          "@hono/zod-openapi": "^0.19.0",
+          "@hono/swagger-ui": "^0.6.0",
+          "@hono/zod-openapi": "^1.4.0",
           authhero: v,
           "drizzle-orm": "^0.44.0",
-          hono: "^4.6.0",
+          hono: "^4.12.0",
         },
         devDependencies: {
           "@cloudflare/workers-types": "^4.0.0",
           "drizzle-kit": "^0.31.0",
-          typescript: "^5.5.0",
-          wrangler: "^3.0.0",
+          typescript: "^5.9.0",
+          wrangler: "^4.0.0",
         },
       };
     },
@@ -284,17 +284,17 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
           "@authhero/drizzle": v,
           "@authhero/multi-tenancy": v,
           "@authhero/widget": v,
-          "@hono/swagger-ui": "^0.5.0",
-          "@hono/zod-openapi": "^0.19.0",
+          "@hono/swagger-ui": "^0.6.0",
+          "@hono/zod-openapi": "^1.4.0",
           authhero: v,
           "drizzle-orm": "^0.44.0",
-          hono: "^4.6.0",
+          hono: "^4.12.0",
         },
         devDependencies: {
           "@cloudflare/workers-types": "^4.0.0",
           "drizzle-kit": "^0.31.0",
-          typescript: "^5.5.0",
-          wrangler: "^3.0.0",
+          typescript: "^5.9.0",
+          wrangler: "^4.0.0",
         },
       };
     },
@@ -317,13 +317,13 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
         },
         dependencies: {
           "@authhero/proxy": v,
-          hono: "^4.6.0",
+          hono: "^4.12.0",
         },
         devDependencies: {
           "@cloudflare/workers-types": "^4.0.0",
-          "@types/node": "^20.0.0",
-          typescript: "^5.5.0",
-          wrangler: "^3.0.0",
+          "@types/node": "^22.0.0",
+          typescript: "^5.9.0",
+          wrangler: "^4.0.0",
         },
       };
     },
@@ -359,19 +359,19 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
           "@authhero/widget": v,
           "@aws-sdk/client-dynamodb": "^3.0.0",
           "@aws-sdk/lib-dynamodb": "^3.0.0",
-          "@hono/swagger-ui": "^0.5.0",
-          "@hono/zod-openapi": "^0.19.0",
+          "@hono/swagger-ui": "^0.6.0",
+          "@hono/zod-openapi": "^1.4.0",
           authhero: v,
-          hono: "^4.6.0",
+          hono: "^4.12.0",
           ...(multiTenant && { "@authhero/multi-tenancy": v }),
           ...(conformance && { bcryptjs: "latest" }),
         },
         devDependencies: {
           "@types/aws-lambda": "^8.10.0",
-          "@types/node": "^20.0.0",
+          "@types/node": "^22.0.0",
           sst: "^3.0.0",
           tsx: "^4.0.0",
-          typescript: "^5.5.0",
+          typescript: "^5.9.0",
         },
       };
     },
@@ -2071,7 +2071,9 @@ ENCRYPTION_KEY=${generateEncryptionKey()}
         );
       } else if (setupType === "cloudflare-control-plane") {
         console.log("  npm install");
-        console.log("  npm run setup  # creates wrangler.local.toml + .dev.vars");
+        console.log(
+          "  npm run setup  # creates wrangler.local.toml + .dev.vars",
+        );
         console.log(
           "  # set CONTROL_PLANE_ENCRYPTION_KEY in .dev.vars (share it with every tenant worker)",
         );
@@ -2084,7 +2086,9 @@ ENCRYPTION_KEY=${generateEncryptionKey()}
         console.log("  POST /internal/tenants/:id/sync-defaults");
       } else if (setupType === "cloudflare-wfp-tenant") {
         console.log("  npm install");
-        console.log("  npm run setup  # creates wrangler.local.toml + .dev.vars");
+        console.log(
+          "  npm run setup  # creates wrangler.local.toml + .dev.vars",
+        );
         console.log(
           "  # set CONTROL_PLANE_ENCRYPTION_KEY in .dev.vars (must match the control plane)",
         );
