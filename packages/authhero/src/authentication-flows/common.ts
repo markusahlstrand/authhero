@@ -49,6 +49,7 @@ import {
   buildScopeClaims,
   buildRequestedClaims,
 } from "../helpers/scope-claims";
+import { withDefaultPicture } from "../helpers/avatar";
 import { resolveSigningKeys } from "../helpers/signing-keys";
 import { JSONHTTPException } from "../errors/json-http-exception";
 import { GrantType } from "@authhero/adapter-interfaces";
@@ -418,7 +419,7 @@ export async function createAuthTokens(
           // OIDC Core 5.4 scope-driven claims (profile, email, address, phone),
           // shared with /userinfo via buildScopeClaims so the two stay in sync.
           ...(shouldIncludeScopeClaimsInIdToken
-            ? buildScopeClaims(user, scopes)
+            ? buildScopeClaims(withDefaultPicture(user, iss), scopes)
             : {}),
           // OIDC Core 5.5 — additively include any individual claims the RP
           // requested via `claims.id_token`, regardless of scope. Listed
@@ -427,7 +428,7 @@ export async function createAuthTokens(
           // "Requested Claims" precedence guidance).
           ...(authParams.claims?.id_token
             ? buildRequestedClaims(
-                user,
+                withDefaultPicture(user, iss),
                 Object.keys(authParams.claims.id_token),
               )
             : {}),
@@ -439,7 +440,7 @@ export async function createAuthTokens(
           // form-post-implicit `id_token` variants.
           ...(isPureIdTokenResponseType && authParams.claims?.userinfo
             ? buildRequestedClaims(
-                user,
+                withDefaultPicture(user, iss),
                 Object.keys(authParams.claims.userinfo),
               )
             : {}),

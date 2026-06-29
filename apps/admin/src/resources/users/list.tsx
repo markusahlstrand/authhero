@@ -1,7 +1,6 @@
 import { List, DataTable, TextInput } from "@/components/admin";
 import { useRecordContext } from "ra-core";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { getUserAvatarColor, getUserAvatarSeed } from "@/utils/userAvatar";
 
 const filters = [
   <TextInput key="email" source="email" label="Email" />,
@@ -18,17 +17,13 @@ function UserAvatarCell() {
     user_id?: string;
   }>();
   if (!record) return null;
-  const seed = getUserAvatarSeed(record);
-  const initial = seed.charAt(0).toUpperCase();
-  const bg = getUserAvatarColor(seed);
+  const label = record.email || record.name || "";
+  // authhero always returns a `picture` (a generated avatar when the user has
+  // none), so we render it directly; the fallback only covers a failed load.
   return (
     <Avatar>
-      {record.picture ? (
-        <AvatarImage src={record.picture} alt={record.email || record.name} />
-      ) : null}
-      <AvatarFallback style={{ backgroundColor: bg, color: "white" }}>
-        {initial}
-      </AvatarFallback>
+      <AvatarImage src={record.picture} alt={label} />
+      <AvatarFallback>{label.charAt(0).toUpperCase() || "?"}</AvatarFallback>
     </Avatar>
   );
 }

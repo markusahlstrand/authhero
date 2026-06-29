@@ -23,6 +23,8 @@ import {
 } from "@authhero/adapter-interfaces";
 import { getProviderFromConnection } from "../../strategies";
 import { isUsernamePasswordProvider } from "../../utils/username-password-provider";
+import { getIssuer } from "../../variables";
+import { withDefaultPicture } from "../../helpers/avatar";
 
 import { defineRoute } from "../../utils/define-route";
 const IDENTITY_PICK_KEYS = [
@@ -116,6 +118,7 @@ const getRoot = defineRoute({
   }),
   handler: async (ctx) => {
     const { page, per_page, include_totals, sort, q } = ctx.req.valid("query");
+    const issuer = getIssuer(ctx.env, ctx.var.custom_domain);
 
     // ugly hardcoded switch for now!
     if (q?.includes("identities.profileData.email")) {
@@ -151,7 +154,11 @@ const getRoot = defineRoute({
         });
       }
 
-      return ctx.json([auth0UserResponseSchema.parse(primaryAccount)]);
+      return ctx.json([
+        auth0UserResponseSchema.parse(
+          withDefaultPicture(primaryAccount, issuer),
+        ),
+      ]);
     }
 
     // Filter out linked users
@@ -168,7 +175,9 @@ const getRoot = defineRoute({
       q: query.join(" "),
     });
 
-    const primarySqlUsers = result.users.filter((user) => !user.linked_to);
+    const primarySqlUsers = result.users
+      .filter((user) => !user.linked_to)
+      .map((user) => withDefaultPicture(user, issuer));
 
     if (include_totals) {
       return ctx.json(
@@ -234,7 +243,11 @@ const getByUser_id = defineRoute({
       }
     }
 
-    return ctx.json(auth0UserResponseSchema.parse(user));
+    return ctx.json(
+      auth0UserResponseSchema.parse(
+        withDefaultPicture(user, getIssuer(ctx.env, ctx.var.custom_domain)),
+      ),
+    );
   },
 });
 
@@ -413,9 +426,17 @@ const postRoot = defineRoute({
             identities: [pickIdentity(result)],
           };
 
-      return ctx.json(auth0UserResponseSchema.parse(userResponse), {
-        status: 201,
-      });
+      return ctx.json(
+        auth0UserResponseSchema.parse(
+          withDefaultPicture(
+            userResponse,
+            getIssuer(ctx.env, ctx.var.custom_domain),
+          ),
+        ),
+        {
+          status: 201,
+        },
+      );
     } catch (err: any) {
       if (err.message === "User already exists") {
         throw new HTTPException(409, {
@@ -698,7 +719,14 @@ const patchByUser_id = defineRoute({
       },
     });
 
-    return ctx.json(auth0UserResponseSchema.parse(patchedUser));
+    return ctx.json(
+      auth0UserResponseSchema.parse(
+        withDefaultPicture(
+          patchedUser,
+          getIssuer(ctx.env, ctx.var.custom_domain),
+        ),
+      ),
+    );
   },
 });
 
@@ -843,7 +871,11 @@ const deleteByUser_idIdentitiesByProviderByLinked_user_id = defineRoute({
       targetId: user_id,
     });
 
-    return ctx.json([auth0UserResponseSchema.parse(user)]);
+    return ctx.json([
+      auth0UserResponseSchema.parse(
+        withDefaultPicture(user, getIssuer(ctx.env, ctx.var.custom_domain)),
+      ),
+    ]);
   },
 });
 
