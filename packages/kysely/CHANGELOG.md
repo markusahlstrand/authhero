@@ -1,5 +1,28 @@
 # @authhero/kysely-adapter
 
+## 11.10.1
+
+### Patch Changes
+
+- 8c75922: Add five new analytics metrics to the `/analytics/{resource}` API and the admin
+  Analytics dropdown: Logouts (`slo`, `flo`), Password Changes (`scp`, `fcp`,
+  `scpr`, `fcpr`), MFA (`gd_auth_succeed`, `gd_auth_failed`, `gd_auth_rejected`),
+  Email Verifications (`sv`, `fv`, `svr`, `fvr`) and Codes Sent (`cls`, `cs`).
+  Each is computed from the existing `logs` table — like the existing login/signup
+  metrics — and supports the same `time`, `connection`, `client_id`, `user_type`
+  and `event` group-by dimensions, so success/failure can be split via
+  `group_by=event`. Wired through the kysely, drizzle and Cloudflare Analytics
+  Engine adapters.
+- 892c7bf: Fix log filtering crashes and missing matches on `q` queries:
+
+  - Values containing Lucene-reserved characters (e.g. a `-`) returned no rows. Clients escape filter values per Lucene rules (a dash becomes `\-`) and quote them, but `luceneFilter` stripped the quotes without reversing the escaping, so exact-match comparisons ran against a backslash-prefixed literal. Lucene escape sequences are now unescaped before the value is used.
+  - A free-text term containing a `:` (e.g. a timestamp like `2024-01-01T10:00:00`) or a clause referencing a non-column (e.g. `success`) was misparsed as a column reference and crashed the request with a SQL error. `logs.list` now sanitizes `q` against an allowlist of real columns (as `users`/`organizations` already do) before filtering.
+  - Free-text log search now also matches `description` (substring), so searching for a user's email finds failed-login events that happened before any user record existed.
+
+- Updated dependencies [8c75922]
+  - @authhero/adapter-interfaces@3.4.1
+  - @authhero/proxy@0.7.5
+
 ## 11.10.0
 
 ### Minor Changes

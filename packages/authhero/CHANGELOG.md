@@ -1,5 +1,39 @@
 # authhero
 
+## 8.9.1
+
+### Patch Changes
+
+- 8c75922: Add five new analytics metrics to the `/analytics/{resource}` API and the admin
+  Analytics dropdown: Logouts (`slo`, `flo`), Password Changes (`scp`, `fcp`,
+  `scpr`, `fcpr`), MFA (`gd_auth_succeed`, `gd_auth_failed`, `gd_auth_rejected`),
+  Email Verifications (`sv`, `fv`, `svr`, `fvr`) and Codes Sent (`cls`, `cs`).
+  Each is computed from the existing `logs` table — like the existing login/signup
+  metrics — and supports the same `time`, `connection`, `client_id`, `user_type`
+  and `event` group-by dimensions, so success/failure can be split via
+  `group_by=event`. Wired through the kysely, drizzle and Cloudflare Analytics
+  Engine adapters.
+- 5c585eb: Clear the failed-login lockout counter when a user successfully resets their
+  password. Previously, a user who locked themselves out (3+ failed password
+  attempts within 5 minutes) and then reset their password would still be blocked
+  with `TOO_MANY_FAILED_LOGINS` when logging in with the new password, because the
+  `app_metadata.failed_logins` strikes were never cleared by the reset flow. Both
+  universal-login reset paths now wipe the counter on success, mirroring the
+  existing clear-on-successful-login behavior.
+- ae87522: Fix dark mode rendering black text on the universal login widget. Since the
+  default theme is now applied unconditionally, its light-mode colors
+  (`header`, `input_filled_text`, `secondary_button_label` = `#000000`) were set
+  as widget CSS vars that the dark-mode palette did not override — the header used
+  the newer `--ah-color-text-header` var name while the dark override only set the
+  legacy `--ah-color-header`, and input/secondary-button text had no dark override
+  at all. The dark palette now overrides `--ah-color-text-header`,
+  `--ah-color-input-text`, and `--ah-btn-secondary-text`, restoring readable
+  light text on dark surfaces.
+- Updated dependencies [8c75922]
+  - @authhero/adapter-interfaces@3.4.1
+  - @authhero/proxy@0.7.5
+  - @authhero/widget@0.34.4
+
 ## 8.9.0
 
 ### Minor Changes
