@@ -442,6 +442,95 @@ describe("Analytics Engine Logs Adapter", () => {
       expect(sql).toContain("double2 <= 1705399200000");
     });
 
+    it("should unescape Lucene-escaped characters in field values (e.g. a dash)", async () => {
+      const capturedQueries: string[] = [];
+      server.use(
+        http.post(
+          "https://api.cloudflare.com/client/v4/accounts/test-account/analytics_engine/sql",
+          async ({ request }) => {
+            capturedQueries.push(await request.text());
+            return HttpResponse.json({ success: true, data: mockLogs });
+          },
+        ),
+      );
+
+      const adapter = createAnalyticsEngineLogsAdapter({
+        accountId: "test-account",
+        apiToken: "test-token",
+        dataset: "authhero_logs",
+      });
+
+      // Exactly what apps/admin escapeLuceneValue produces: dash -> \-
+      await adapter.list("tenant-1", {
+        page: 0,
+        per_page: 50,
+        q: `user_id:"auth0|abc\\-123"`,
+      });
+
+      const sql = capturedQueries[0]!;
+      expect(sql).toContain("blob7 = 'auth0|abc-123'");
+      expect(sql).not.toContain("abc\\-123");
+    });
+
+    it("should match a bare free-text term against user_id, ip, and description", async () => {
+      const capturedQueries: string[] = [];
+      server.use(
+        http.post(
+          "https://api.cloudflare.com/client/v4/accounts/test-account/analytics_engine/sql",
+          async ({ request }) => {
+            capturedQueries.push(await request.text());
+            return HttpResponse.json({ success: true, data: mockLogs });
+          },
+        ),
+      );
+
+      const adapter = createAnalyticsEngineLogsAdapter({
+        accountId: "test-account",
+        apiToken: "test-token",
+        dataset: "authhero_logs",
+      });
+
+      await adapter.list("tenant-1", {
+        page: 0,
+        per_page: 50,
+        q: "foo@example.com",
+      });
+
+      const sql = capturedQueries[0]!;
+      expect(sql).toContain(
+        "(blob7 = 'foo@example.com' OR blob5 LIKE '%foo@example.com%' OR blob4 LIKE '%foo@example.com%')",
+      );
+    });
+
+    it("should combine a bare term with field filters", async () => {
+      const capturedQueries: string[] = [];
+      server.use(
+        http.post(
+          "https://api.cloudflare.com/client/v4/accounts/test-account/analytics_engine/sql",
+          async ({ request }) => {
+            capturedQueries.push(await request.text());
+            return HttpResponse.json({ success: true, data: mockLogs });
+          },
+        ),
+      );
+
+      const adapter = createAnalyticsEngineLogsAdapter({
+        accountId: "test-account",
+        apiToken: "test-token",
+        dataset: "authhero_logs",
+      });
+
+      await adapter.list("tenant-1", {
+        page: 0,
+        per_page: 50,
+        q: "type:f foo@example.com",
+      });
+
+      const sql = capturedQueries[0]!;
+      expect(sql).toContain("blob3 = 'f'");
+      expect(sql).toContain("blob4 LIKE '%foo@example.com%'");
+    });
+
     it("should translate success:false to a failure type prefix match", async () => {
       const capturedQueries: string[] = [];
       server.use(

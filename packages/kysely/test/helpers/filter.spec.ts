@@ -36,6 +36,24 @@ describe("luceneFilter", () => {
     expect(mockQb.where).toHaveBeenCalledWith("field", "!=", "value");
   });
 
+  it("unescapes Lucene-escaped characters in quoted values", () => {
+    // Clients (e.g. the admin UI) escape reserved chars before quoting, so a
+    // value such as `auth0|abc-123` arrives as `auth0|abc\-123`. The dash must
+    // be unescaped or the exact match never hits.
+    luceneFilter(
+      mockDb,
+      mockQb as any,
+      'user_id:"auth0|abc\\-123"',
+      searchableColumns,
+    );
+    expect(mockQb.where).toHaveBeenCalledWith("user_id", "=", "auth0|abc-123");
+  });
+
+  it("unescapes Lucene-escaped characters in unquoted values", () => {
+    luceneFilter(mockDb, mockQb as any, "field:a\\-b", searchableColumns);
+    expect(mockQb.where).toHaveBeenCalledWith("field", "=", "a-b");
+  });
+
   it("handles greater than query", () => {
     luceneFilter(mockDb, mockQb as any, "field:>value", searchableColumns);
     expect(mockQb.where).toHaveBeenCalledWith("field", ">", "value");

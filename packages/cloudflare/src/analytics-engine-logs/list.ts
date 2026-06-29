@@ -14,25 +14,81 @@ interface ListLogsResponse {
   length: number;
 }
 
+interface ParsedQuery {
+  /** `field:value` clauses, grouped by field (repeated keys collected). */
+  fields: Record<string, string[]>;
+  /** Bare free-text terms (no `field:` prefix). */
+  terms: string[];
+}
+
+/**
+ * Reverse Lucene escaping on a value operand: a backslash followed by a Lucene
+ * reserved character is a literal of that character (e.g. `auth0|abc\-123` ->
+ * `auth0|abc-123`). Clients (such as the admin UI) escape filter values per
+ * Lucene rules before interpolating them, so without this the backslash leaks
+ * into the SQL comparison and exact matches never hit.
+ */
+function unescapeLuceneValue(value: string): string {
+  return value.replace(/\\([\\"+\-!(){}[\]^~*?:/&|])/g, "$1");
+}
+
+/** Split a query into tokens, treating double-quoted spans as atomic. */
+function tokenizeQuery(q: string): string[] {
+  const tokens: string[] = [];
+  let current = "";
+  let inQuotes = false;
+  for (let i = 0; i < q.length; i++) {
+    const char = q[i];
+    if (char === '"') {
+      inQuotes = !inQuotes;
+      current += char;
+    } else if (char === " " && !inQuotes) {
+      if (current.trim()) tokens.push(current.trim());
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+  if (current.trim()) tokens.push(current.trim());
+  return tokens;
+}
+
+/** Strip one layer of surrounding double quotes, then unescape Lucene escapes. */
+function cleanValue(raw: string): string {
+  let value = raw;
+  if (value.startsWith('"') && value.endsWith('"') && value.length > 1) {
+    value = value.slice(1, -1);
+  }
+  return unescapeLuceneValue(value);
+}
+
 /**
  * Parse lucene-style filter query (simple implementation).
  * Supports key:value, key:"quoted value", and repeated keys joined with OR
- * (e.g. `user_id:"a" OR user_id:"b"`) which are collected into a list.
+ * (e.g. `user_id:"a" OR user_id:"b"`) which are collected into a list. Tokens
+ * without a `field:` prefix are treated as bare free-text search terms.
  */
-function parseLuceneFilter(q: string): Record<string, string[]> {
-  const filters: Record<string, string[]> = {};
+function parseLuceneFilter(q: string): ParsedQuery {
+  const fields: Record<string, string[]> = {};
+  const terms: string[] = [];
 
-  const regex = /(\w+):(?:"([^"]*)"|(\S+))/g;
-  let match: RegExpExecArray | null;
-  while ((match = regex.exec(q)) !== null) {
-    const key = match[1];
-    const value = match[2] !== undefined ? match[2] : match[3];
-    if (!key || value === undefined) continue;
-    if (!filters[key]) filters[key] = [];
-    filters[key].push(value);
+  for (const token of tokenizeQuery(q)) {
+    // `OR`/`AND` are conjunction markers, not values.
+    if (token === "OR" || token === "AND") continue;
+
+    const match = token.match(/^(\w+):([\s\S]*)$/);
+    if (match) {
+      const key = match[1]!;
+      const value = cleanValue(match[2]!);
+      if (!fields[key]) fields[key] = [];
+      fields[key].push(value);
+    } else {
+      const term = cleanValue(token);
+      if (term) terms.push(term);
+    }
   }
 
-  return filters;
+  return { fields, terms };
 }
 
 /**
@@ -106,6 +162,22 @@ function buildWhereConditions(filters: Record<string, string[]>): string[] {
 }
 
 /**
+ * Build WHERE conditions for bare free-text terms. Each term matches user_id
+ * (blob7, exact), or ip (blob5) / description (blob4) as a substring. Searching
+ * description matters because a user's email can appear there before login
+ * completes — i.e. before any user_id exists to match against.
+ */
+function buildTermConditions(terms: string[]): string[] {
+  return terms
+    .filter((term) => term !== "")
+    .map((term) => {
+      const exact = escapeSQLString(term);
+      const like = escapeSQLString(`%${term}%`);
+      return `(blob7 = ${exact} OR blob5 LIKE ${like} OR blob4 LIKE ${like})`;
+    });
+}
+
+/**
  * Map sort field to Analytics Engine field name
  */
 function mapSortFieldToColumn(field: string): string {
@@ -145,8 +217,9 @@ export function listLogs(config: AnalyticsEngineLogsAdapterConfig) {
     const whereConditions: string[] = [`index1 = ${escapeSQLString(tenantId)}`];
 
     if (q) {
-      const filters = parseLuceneFilter(q);
-      whereConditions.push(...buildWhereConditions(filters));
+      const { fields, terms } = parseLuceneFilter(q);
+      whereConditions.push(...buildWhereConditions(fields));
+      whereConditions.push(...buildTermConditions(terms));
     }
 
     // Date range filter (Unix seconds → epoch ms stored in double2)
