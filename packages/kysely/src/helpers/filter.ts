@@ -1,6 +1,15 @@
 import { Kysely, SelectQueryBuilder } from "kysely";
 import { Database } from "../db";
 
+// Reverse Lucene escaping on a value operand: a backslash followed by a Lucene
+// reserved character is a literal of that character (e.g. `auth0|abc\-123` ->
+// `auth0|abc-123`). Clients (such as the admin UI) escape filter values per
+// Lucene rules before interpolating them into the query string, so without this
+// the backslash leaks into the SQL comparison and exact matches never hit.
+function unescapeLuceneValue(value: string): string {
+  return value.replace(/\\([\\"+\-!(){}[\]^~*?:/&|])/g, "$1");
+}
+
 // Strip field-scoped clauses (`field:value`, `-field:value`, `_exists_:field`,
 // `field=value`) whose field is not in `allowedFields`. Bare-string tokens are
 // preserved (luceneFilter routes them through its own searchable-columns
@@ -81,7 +90,9 @@ export function luceneFilter<TB extends keyof Database>(
             const [, field, value] = match;
             if (!field || !value) return null;
             const fieldName = field.trim();
-            const cleanValue = value.replace(/^"(.*)"$/, "$1").trim();
+            const cleanValue = unescapeLuceneValue(
+              value.replace(/^"(.*)"$/, "$1").trim(),
+            );
             if (likeSet.has(fieldName)) {
               return eb(fieldName as any, "like", `%${cleanValue}%`);
             }
@@ -174,9 +185,13 @@ export function luceneFilter<TB extends keyof Database>(
         if (value.startsWith('"') && value.endsWith('"') && value.length > 1) {
           value = value.slice(1, -1);
         }
+
+        // Reverse client-side Lucene escaping (e.g. `\-` -> `-`) so the operand
+        // matches the stored value rather than a backslash-prefixed literal.
+        value = unescapeLuceneValue(value);
       } else {
         key = null;
-        value = filter;
+        value = unescapeLuceneValue(filter);
         isExistsQuery = false;
       }
 

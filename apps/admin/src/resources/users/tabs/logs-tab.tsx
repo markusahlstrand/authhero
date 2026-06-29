@@ -19,9 +19,13 @@ export function LogsTab() {
       }
     >
       <div className="flex flex-row items-end gap-2 mb-2 flex-wrap">
+        {/* Query controls (filters) on the left */}
         <FilterForm filters={logFiltersWithSearch} />
         <FilterButton filters={logFiltersWithSearch} resource="logs" />
-        <ColumnsButton />
+        {/* Display controls (columns) on the right */}
+        <div className="ml-auto">
+          <ColumnsButton />
+        </div>
       </div>
       <LogsTable bulkActionButtons={false} />
     </ReferenceManyField>

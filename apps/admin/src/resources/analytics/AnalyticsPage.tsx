@@ -327,8 +327,14 @@ export function AnalyticsPage() {
 
           <div className="flex flex-wrap items-end gap-3">
             <div className="flex flex-col gap-1">
-              <Label className="text-xs text-muted-foreground">Client ID</Label>
+              <Label
+                htmlFor="analytics-filter-client-id"
+                className="text-xs text-muted-foreground"
+              >
+                Client ID
+              </Label>
               <Input
+                id="analytics-filter-client-id"
                 className="w-44"
                 placeholder="Filter by client ID"
                 value={clientId}
@@ -336,10 +342,14 @@ export function AnalyticsPage() {
               />
             </div>
             <div className="flex flex-col gap-1">
-              <Label className="text-xs text-muted-foreground">
+              <Label
+                htmlFor="analytics-filter-connection"
+                className="text-xs text-muted-foreground"
+              >
                 Connection
               </Label>
               <Input
+                id="analytics-filter-connection"
                 className="w-44"
                 placeholder="Filter by connection"
                 value={connection}
@@ -347,8 +357,14 @@ export function AnalyticsPage() {
               />
             </div>
             <div className="flex flex-col gap-1">
-              <Label className="text-xs text-muted-foreground">User ID</Label>
+              <Label
+                htmlFor="analytics-filter-user-id"
+                className="text-xs text-muted-foreground"
+              >
+                User ID
+              </Label>
               <Input
+                id="analytics-filter-user-id"
                 className="w-44"
                 placeholder="Filter by user ID"
                 value={userId}
@@ -356,9 +372,14 @@ export function AnalyticsPage() {
               />
             </div>
             <div className="flex flex-col gap-1">
-              <Label className="text-xs text-muted-foreground">User type</Label>
+              <Label
+                htmlFor="analytics-filter-user-type"
+                className="text-xs text-muted-foreground"
+              >
+                User type
+              </Label>
               <Select value={userType} onValueChange={setUserType}>
-                <SelectTrigger className="w-44">
+                <SelectTrigger id="analytics-filter-user-type" className="w-44">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
