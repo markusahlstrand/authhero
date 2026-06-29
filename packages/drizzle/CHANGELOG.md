@@ -1,5 +1,37 @@
 # @authhero/drizzle
 
+## 0.56.0
+
+### Minor Changes
+
+- 9b7879c: Add tenant export/import for migrating a tenant between databases (e.g.
+  PlanetScale → a per-tenant Workers-for-Platforms D1).
+
+  - New `GET /api/v2/tenant-data/export` streams a gzipped JSON-lines export of a
+    tenant's durable data (one `{ entity, data }` record per line). Password
+    hashes are excluded unless `?include_password_hashes=true` is set, which
+    requires the additional `read:user_password_hashes` scope. Signing keys and
+    ephemeral/audit tables (sessions, refresh tokens, codes, login sessions, logs)
+    are never exported.
+  - New `POST /api/v2/tenant-data/import` replays an export (gzipped or plain
+    JSON-lines) into the current tenant in FK-safe order, returning per-entity
+    counts and any non-fatal per-row errors. Importing password hashes requires
+    the `create:user_password_hashes` scope. Both operations are written to the
+    tenant audit log.
+  - Every durable entity adapter's `create`/`set`/`assign` now accepts an
+    optional `options.importMetadata` argument so an import can faithfully
+    preserve the source row's primary id and `created_at`/`updated_at`. These
+    values are NOT part of any public insert schema and cannot be set through the
+    normal management-API write routes — only the import path passes them.
+  - Added `themes.list(tenant_id)` to the themes adapter (kysely, drizzle, aws).
+
+### Patch Changes
+
+- 2185ce2: Make the Drizzle adapter's multi-statement writes atomic on D1. `sessions.create`, `refreshTokens.create`, `users.create` (with password) and `users.remove` previously wrapped their dependent writes in manual `BEGIN`/`COMMIT`/`ROLLBACK`, which is not atomic on D1's async driver and could leave partial writes on failure. These now go through a `runAtomic` helper that uses `db.batch()` (atomic on D1) when the driver supports it, and falls back to `BEGIN`/`COMMIT`/`ROLLBACK` on better-sqlite3 (used in tests).
+- Updated dependencies [9b7879c]
+  - @authhero/adapter-interfaces@3.4.0
+  - @authhero/proxy@0.7.4
+
 ## 0.55.0
 
 ### Minor Changes
