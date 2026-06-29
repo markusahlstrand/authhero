@@ -61,6 +61,14 @@ export {
   type CreateApplySyncEventsOptions,
 } from "./routes/proxy-control-plane";
 export {
+  wrapProxyAdaptersWithKvPublish,
+  backfillProxyHostsToKv,
+  type KvPublishOptions,
+  type WrappedProxyAdapters,
+  type BackfillProxyHostsOptions,
+  type BackfillResult,
+} from "./routes/proxy-control-plane/kv-publish";
+export {
   PROXY_RESOLVE_HOST_SCOPE,
   verifyControlPlaneToken,
   isAllowedIssuer,
