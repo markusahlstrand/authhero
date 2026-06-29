@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { getTestServer } from "./helpers/test-server";
 
 describe("logs list query robustness", () => {
-  let data: any;
+  let data: Awaited<ReturnType<typeof getTestServer>>["data"];
   const tenantId = "test-tenant";
 
   beforeEach(async () => {

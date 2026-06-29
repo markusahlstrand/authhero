@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Kysely } from "kysely";
+import { Database } from "../../src/db";
 import { luceneFilter, sanitizeLuceneQuery } from "../../src/helpers/filter";
 
 describe("luceneFilter", () => {
@@ -8,12 +9,20 @@ describe("luceneFilter", () => {
     dynamic: {
       ref: vi.fn((col) => col),
     },
-  } as unknown as Kysely<any>;
+  } as unknown as Kysely<Database>;
 
-  // Mock query builder
+  // Mock query builder. `qb` is the same object presented as the typed
+  // SelectQueryBuilder that luceneFilter expects, so calls type-check without
+  // `any`; assertions read `mockQb.where` to reach the underlying vi mock.
   const mockQb = {
     where: vi.fn().mockReturnThis(),
   };
+  const qb = mockQb as unknown as Parameters<typeof luceneFilter>[1];
+
+  // A minimal stand-in for Kysely's expression builder: callable (records the
+  // `(field, op, value)` triples the OR branch emits) plus an `or` method.
+  const makeExpressionBuilderStub = () =>
+    Object.assign(vi.fn(), { or: vi.fn() });
 
   const searchableColumns = ["title", "description"];
 
@@ -22,17 +31,17 @@ describe("luceneFilter", () => {
   });
 
   it("handles single word search", () => {
-    luceneFilter(mockDb, mockQb as any, "test", searchableColumns);
+    luceneFilter(mockDb, qb, "test", searchableColumns);
     expect(mockQb.where).toHaveBeenCalledWith(expect.any(Function));
   });
 
   it("handles exact match query", () => {
-    luceneFilter(mockDb, mockQb as any, "field:value", searchableColumns);
+    luceneFilter(mockDb, qb, "field:value", searchableColumns);
     expect(mockQb.where).toHaveBeenCalledWith("field", "=", "value");
   });
 
   it("handles negation query", () => {
-    luceneFilter(mockDb, mockQb as any, "-field:value", searchableColumns);
+    luceneFilter(mockDb, qb, "-field:value", searchableColumns);
     expect(mockQb.where).toHaveBeenCalledWith("field", "!=", "value");
   });
 
@@ -42,7 +51,7 @@ describe("luceneFilter", () => {
     // be unescaped or the exact match never hits.
     luceneFilter(
       mockDb,
-      mockQb as any,
+      qb,
       'user_id:"auth0|abc\\-123"',
       searchableColumns,
     );
@@ -50,64 +59,64 @@ describe("luceneFilter", () => {
   });
 
   it("unescapes Lucene-escaped characters in unquoted values", () => {
-    luceneFilter(mockDb, mockQb as any, "field:a\\-b", searchableColumns);
+    luceneFilter(mockDb, qb, "field:a\\-b", searchableColumns);
     expect(mockQb.where).toHaveBeenCalledWith("field", "=", "a-b");
   });
 
   it("handles greater than query", () => {
-    luceneFilter(mockDb, mockQb as any, "field:>value", searchableColumns);
+    luceneFilter(mockDb, qb, "field:>value", searchableColumns);
     expect(mockQb.where).toHaveBeenCalledWith("field", ">", "value");
   });
 
   it("handles greater than or equal to query", () => {
-    luceneFilter(mockDb, mockQb as any, "field:>=value", searchableColumns);
+    luceneFilter(mockDb, qb, "field:>=value", searchableColumns);
     expect(mockQb.where).toHaveBeenCalledWith("field", ">=", "value");
   });
 
   it("handles less than query", () => {
-    luceneFilter(mockDb, mockQb as any, "field:<value", searchableColumns);
+    luceneFilter(mockDb, qb, "field:<value", searchableColumns);
     expect(mockQb.where).toHaveBeenCalledWith("field", "<", "value");
   });
 
   it("handles less than or equal to query", () => {
-    luceneFilter(mockDb, mockQb as any, "field:<=value", searchableColumns);
+    luceneFilter(mockDb, qb, "field:<=value", searchableColumns);
     expect(mockQb.where).toHaveBeenCalledWith("field", "<=", "value");
   });
 
   it("handles negated greater than query", () => {
-    luceneFilter(mockDb, mockQb as any, "-field:>value", searchableColumns);
+    luceneFilter(mockDb, qb, "-field:>value", searchableColumns);
     expect(mockQb.where).toHaveBeenCalledWith("field", "<=", "value");
   });
 
   it("handles negated greater than or equal to query", () => {
-    luceneFilter(mockDb, mockQb as any, "-field:>=value", searchableColumns);
+    luceneFilter(mockDb, qb, "-field:>=value", searchableColumns);
     expect(mockQb.where).toHaveBeenCalledWith("field", "<", "value");
   });
 
   it("handles negated less than query", () => {
-    luceneFilter(mockDb, mockQb as any, "-field:<value", searchableColumns);
+    luceneFilter(mockDb, qb, "-field:<value", searchableColumns);
     expect(mockQb.where).toHaveBeenCalledWith("field", ">=", "value");
   });
 
   it("handles negated less than or equal to query", () => {
-    luceneFilter(mockDb, mockQb as any, "-field:<=value", searchableColumns);
+    luceneFilter(mockDb, qb, "-field:<=value", searchableColumns);
     expect(mockQb.where).toHaveBeenCalledWith("field", ">", "value");
   });
 
   it("handles exists query", () => {
-    luceneFilter(mockDb, mockQb as any, "_exists_:field", searchableColumns);
+    luceneFilter(mockDb, qb, "_exists_:field", searchableColumns);
     expect(mockQb.where).toHaveBeenCalledWith("field", "is not", null);
   });
 
   it("handles not exists query", () => {
-    luceneFilter(mockDb, mockQb as any, "-_exists_:field", searchableColumns);
+    luceneFilter(mockDb, qb, "-_exists_:field", searchableColumns);
     expect(mockQb.where).toHaveBeenCalledWith("field", "is", null);
   });
 
   it("handles multiple conditions", () => {
     luceneFilter(
       mockDb,
-      mockQb as any,
+      qb,
       "field1:value1 field2:>value2 field3:<value3",
       searchableColumns,
     );
@@ -120,7 +129,7 @@ describe("luceneFilter", () => {
   it("handles mixed conditions", () => {
     luceneFilter(
       mockDb,
-      mockQb as any,
+      qb,
       "searchword field:>=value _exists_:field2",
       searchableColumns,
     );
@@ -138,7 +147,7 @@ describe("luceneFilter", () => {
     // signing key resolver.
     luceneFilter(
       mockDb,
-      mockQb as any,
+      qb,
       "type:jwt_signing AND -_exists_:tenant_id",
       searchableColumns,
     );
@@ -148,7 +157,7 @@ describe("luceneFilter", () => {
   });
 
   it('handles query with "=" instead of ":"', () => {
-    luceneFilter(mockDb, mockQb as any, "field=value", searchableColumns);
+    luceneFilter(mockDb, qb, "field=value", searchableColumns);
     expect(mockQb.where).toHaveBeenCalledWith("field", "=", "value");
   });
 
@@ -156,7 +165,7 @@ describe("luceneFilter", () => {
   it("handles quoted values", () => {
     luceneFilter(
       mockDb,
-      mockQb as any,
+      qb,
       'email:"test@example.com"',
       searchableColumns,
     );
@@ -164,14 +173,14 @@ describe("luceneFilter", () => {
   });
 
   it("handles quoted values with spaces", () => {
-    luceneFilter(mockDb, mockQb as any, 'name:"John Doe"', searchableColumns);
+    luceneFilter(mockDb, qb, 'name:"John Doe"', searchableColumns);
     expect(mockQb.where).toHaveBeenCalledWith("name", "=", "John Doe");
   });
 
   it("handles quoted values with special characters", () => {
     luceneFilter(
       mockDb,
-      mockQb as any,
+      qb,
       'description:"Value with @#$% special chars"',
       searchableColumns,
     );
@@ -183,19 +192,19 @@ describe("luceneFilter", () => {
   });
 
   it("handles empty quoted values", () => {
-    luceneFilter(mockDb, mockQb as any, 'field:""', searchableColumns);
+    luceneFilter(mockDb, qb, 'field:""', searchableColumns);
     expect(mockQb.where).toHaveBeenCalledWith("field", "=", "");
   });
 
   it("handles single character quoted values", () => {
-    luceneFilter(mockDb, mockQb as any, 'field:"a"', searchableColumns);
+    luceneFilter(mockDb, qb, 'field:"a"', searchableColumns);
     expect(mockQb.where).toHaveBeenCalledWith("field", "=", "a");
   });
 
   it("handles quoted values with operators", () => {
     luceneFilter(
       mockDb,
-      mockQb as any,
+      qb,
       'date:>"2023-01-01"',
       searchableColumns,
     );
@@ -205,7 +214,7 @@ describe("luceneFilter", () => {
   it("handles negated quoted values", () => {
     luceneFilter(
       mockDb,
-      mockQb as any,
+      qb,
       '-email:"blocked@example.com"',
       searchableColumns,
     );
@@ -219,7 +228,7 @@ describe("luceneFilter", () => {
   it("handles mixed quoted and unquoted values", () => {
     luceneFilter(
       mockDb,
-      mockQb as any,
+      qb,
       'email:"test@example.com" status:active',
       searchableColumns,
     );
@@ -230,17 +239,17 @@ describe("luceneFilter", () => {
 
   // Edge cases
   it("handles values with only opening quote", () => {
-    luceneFilter(mockDb, mockQb as any, 'field:"value', searchableColumns);
+    luceneFilter(mockDb, qb, 'field:"value', searchableColumns);
     expect(mockQb.where).toHaveBeenCalledWith("field", "=", '"value');
   });
 
   it("handles values with only closing quote", () => {
-    luceneFilter(mockDb, mockQb as any, 'field:value"', searchableColumns);
+    luceneFilter(mockDb, qb, 'field:value"', searchableColumns);
     expect(mockQb.where).toHaveBeenCalledWith("field", "=", 'value"');
   });
 
   it("handles values with quotes in the middle", () => {
-    luceneFilter(mockDb, mockQb as any, 'field:val"ue', searchableColumns);
+    luceneFilter(mockDb, qb, 'field:val"ue', searchableColumns);
     expect(mockQb.where).toHaveBeenCalledWith("field", "=", 'val"ue');
   });
 
@@ -248,7 +257,7 @@ describe("luceneFilter", () => {
   it("handles email searches properly", () => {
     luceneFilter(
       mockDb,
-      mockQb as any,
+      qb,
       'email:"user@domain.com"',
       searchableColumns,
     );
@@ -258,7 +267,7 @@ describe("luceneFilter", () => {
   it("handles phone number searches", () => {
     luceneFilter(
       mockDb,
-      mockQb as any,
+      qb,
       'phone_number:"+1-555-123-4567"',
       searchableColumns,
     );
@@ -272,7 +281,7 @@ describe("luceneFilter", () => {
   it("handles user ID searches with pipes", () => {
     luceneFilter(
       mockDb,
-      mockQb as any,
+      qb,
       'user_id:"auth0|123456789"',
       searchableColumns,
     );
@@ -286,7 +295,7 @@ describe("luceneFilter", () => {
   it("handles complex queries with quotes and operators", () => {
     luceneFilter(
       mockDb,
-      mockQb as any,
+      qb,
       'email:"test@example.com" created_at:>"2023-01-01" -status:"banned"',
       searchableColumns,
     );
@@ -297,20 +306,31 @@ describe("luceneFilter", () => {
   });
 
   // OR logic tests
-  it("handles simple OR query", () => {
+  it("handles simple OR query and unescapes values in the OR branch", () => {
     luceneFilter(
       mockDb,
-      mockQb as any,
-      "field1:value1 OR field2:value2",
+      qb,
+      "field1:a\\-b OR field2:value2",
       searchableColumns,
     );
     expect(mockQb.where).toHaveBeenCalledWith(expect.any(Function));
+
+    // The OR branch builds its conditions inside the callback handed to
+    // `where`, so exercising the callback is the only way to confirm operands
+    // are Lucene-unescaped there too (the AND path is covered separately).
+    const orCallback = mockQb.where.mock.calls[0]![0] as (
+      eb: ReturnType<typeof makeExpressionBuilderStub>,
+    ) => unknown;
+    const eb = makeExpressionBuilderStub();
+    orCallback(eb);
+    expect(eb).toHaveBeenCalledWith("field1", "=", "a-b");
+    expect(eb).toHaveBeenCalledWith("field2", "=", "value2");
   });
 
   it("handles OR query with multiple fields", () => {
     luceneFilter(
       mockDb,
-      mockQb as any,
+      qb,
       "id:tenant1 OR id:tenant2 OR id:tenant3",
       searchableColumns,
     );
@@ -320,7 +340,7 @@ describe("luceneFilter", () => {
   it("handles OR query with quoted values", () => {
     luceneFilter(
       mockDb,
-      mockQb as any,
+      qb,
       'name:"John Doe" OR name:"Jane Smith"',
       searchableColumns,
     );
@@ -330,7 +350,7 @@ describe("luceneFilter", () => {
   it("handles OR query case-insensitively", () => {
     luceneFilter(
       mockDb,
-      mockQb as any,
+      qb,
       "field1:value1 or field2:value2",
       searchableColumns,
     );
@@ -340,7 +360,7 @@ describe("luceneFilter", () => {
   it("handles OR query with mixed case", () => {
     luceneFilter(
       mockDb,
-      mockQb as any,
+      qb,
       "field1:value1 Or field2:value2",
       searchableColumns,
     );
