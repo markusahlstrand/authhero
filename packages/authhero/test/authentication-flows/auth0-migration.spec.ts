@@ -603,6 +603,52 @@ describe("auth0 migration: password fallback", () => {
     ).toBe(true);
   });
 
+  // Faithful repro of the reported prod case: a user imported with
+  // provider "auth0", connection "Username-Password-Authentication" (the
+  // DEFAULT name, matching the import_mode connection), and NO password row.
+  // Connection name matches user.connection here, so this isolates whether
+  // provider "auth0" alone breaks the Stage 2 fallback.
+  it("repro: imported auth0-provider passwordless user hits upstream fallback (default connection name)", async () => {
+    const { oauthApp, env } = await makeMigrationServer();
+
+    await env.data.users.create(TENANT_ID, {
+      user_id: "auth0|Eo4KYjjnM-Sze2wQVyXye",
+      email: "marcuslowe2000@gmail.com",
+      email_verified: false,
+      provider: "auth0",
+      connection: "Username-Password-Authentication",
+      is_social: false,
+    });
+
+    fetchSpy.mockResolvedValueOnce(
+      jsonResponse(200, {
+        access_token: "upstream-at",
+        token_type: "Bearer",
+        expires_in: 86400,
+      }),
+    );
+
+    const oauthClient = testClient(oauthApp, env);
+    const response = await oauthClient.co.authenticate.$post({
+      json: {
+        client_id: CLIENT_ID,
+        credential_type: "http://auth0.com/oauth/grant-type/password-realm",
+        realm: REALM,
+        username: "marcuslowe2000@gmail.com",
+        password: "UpstreamPassword!",
+      },
+    });
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(response.status).toBe(200);
+
+    const passwordRow = await env.data.passwords.get(
+      TENANT_ID,
+      "auth0|Eo4KYjjnM-Sze2wQVyXye",
+    );
+    expect(passwordRow).toBeDefined();
+  });
+
   // Local password row already exists and matches: the local check succeeds
   // and we must NOT call upstream — the bcrypt path is the source of truth
   // once migration has happened.

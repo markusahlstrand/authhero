@@ -16,7 +16,12 @@ export type AnalyticsResource =
   | "logins"
   | "signups"
   | "refresh-tokens"
-  | "sessions";
+  | "sessions"
+  | "logouts"
+  | "password-changes"
+  | "mfa"
+  | "email-verifications"
+  | "codes-sent";
 
 export type AnalyticsInterval = "hour" | "day" | "week" | "month";
 

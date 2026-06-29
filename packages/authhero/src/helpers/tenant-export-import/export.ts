@@ -29,7 +29,10 @@ async function* paginate(
       include_totals: false,
     });
     const rows = asRecord(result)?.[pluralKey];
-    if (!Array.isArray(rows) || rows.length === 0) break;
+    if (!Array.isArray(rows)) {
+      throw new Error(`Invalid list response for "${pluralKey}" during export`);
+    }
+    if (rows.length === 0) break;
     for (const row of rows) {
       yield row;
     }

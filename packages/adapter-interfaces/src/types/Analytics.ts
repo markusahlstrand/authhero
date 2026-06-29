@@ -6,6 +6,11 @@ export const analyticsResourceSchema = z.enum([
   "signups",
   "refresh-tokens",
   "sessions",
+  "logouts",
+  "password-changes",
+  "mfa",
+  "email-verifications",
+  "codes-sent",
 ]);
 export type AnalyticsResource = z.infer<typeof analyticsResourceSchema>;
 

@@ -15,6 +15,11 @@ const RESOURCE_EVENTS: Record<AnalyticsResource, readonly string[]> = {
   signups: ["ss", "fs"],
   "refresh-tokens": ["seacft", "fertft"],
   sessions: ["slo"],
+  logouts: ["slo", "flo"],
+  "password-changes": ["scp", "fcp", "scpr", "fcpr"],
+  mfa: ["gd_auth_succeed", "gd_auth_failed", "gd_auth_rejected"],
+  "email-verifications": ["sv", "fv", "svr", "fvr"],
+  "codes-sent": ["cls", "cs"],
 };
 
 const METRIC_BY_RESOURCE: Record<
@@ -26,6 +31,19 @@ const METRIC_BY_RESOURCE: Record<
   signups: { alias: "signups", type: "UInt64", agg: "count" },
   "refresh-tokens": { alias: "refresh_tokens", type: "UInt64", agg: "count" },
   sessions: { alias: "sessions", type: "UInt64", agg: "count" },
+  logouts: { alias: "logouts", type: "UInt64", agg: "count" },
+  "password-changes": {
+    alias: "password_changes",
+    type: "UInt64",
+    agg: "count",
+  },
+  mfa: { alias: "mfa", type: "UInt64", agg: "count" },
+  "email-verifications": {
+    alias: "email_verifications",
+    type: "UInt64",
+    agg: "count",
+  },
+  "codes-sent": { alias: "codes_sent", type: "UInt64", agg: "count" },
 };
 
 function timeBucket(interval: string) {

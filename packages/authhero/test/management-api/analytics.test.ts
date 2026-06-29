@@ -95,6 +95,39 @@ describe("GET /analytics/active-users", () => {
   });
 });
 
+describe("GET /analytics/logouts", () => {
+  it("counts logout events and splits success/failure by event", async () => {
+    const { managementApp, env } = await getTestServer();
+    const client = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const recent = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
+    await seedLog(env, LogTypes.SUCCESS_LOGOUT, recent, { user_id: "u1" });
+    await seedLog(env, LogTypes.SUCCESS_LOGOUT, recent, { user_id: "u2" });
+    await seedLog(env, LogTypes.FAILED_LOGOUT, recent, { user_id: "u3" });
+
+    const res = await client.analytics.logouts.$get(
+      {
+        query: { group_by: "event" },
+        header: { "tenant-id": "tenantId" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      meta: Array<{ name: string }>;
+      data: Array<{ event: string; logouts: number }>;
+    };
+    expect(body.meta.map((m) => m.name)).toContain("logouts");
+    const byEvent = Object.fromEntries(
+      body.data.map((r) => [r.event, r.logouts]),
+    );
+    expect(byEvent[LogTypes.SUCCESS_LOGOUT]).toBe(2);
+    expect(byEvent[LogTypes.FAILED_LOGOUT]).toBe(1);
+  });
+});
+
 describe("GET /analytics/logins", () => {
   it("counts all login events (success + failure types)", async () => {
     const { managementApp, env } = await getTestServer();

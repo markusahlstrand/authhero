@@ -9,6 +9,7 @@ import {
   RateLimitDecision,
   Strategy,
   StrategyType,
+  User,
 } from "@authhero/adapter-interfaces";
 import { EnrichedClient } from "../helpers/client";
 import { Bindings, GrantFlowUserResult, Variables } from "../types";
@@ -59,6 +60,43 @@ async function recordFailedLogin(
   await data.users.update(tenantId, primaryUser.user_id, {
     app_metadata: appMetadata,
   });
+}
+
+/**
+ * Clear the failed-login counter for a user. Failed logins are always
+ * recorded on the primary account (see {@link recordFailedLogin}), so this
+ * resolves the linked primary before clearing. Called on a successful
+ * password login and after a successful password reset — both are strong
+ * evidence the legitimate account owner is back in control, so a stale
+ * lockout shouldn't block them.
+ */
+export async function clearFailedLogins(
+  data: Bindings["data"],
+  tenantId: string,
+  user: User,
+): Promise<void> {
+  // Best-effort cleanup: a failure here must never turn a valid login or a
+  // successful password reset into an error, especially since the password/code
+  // state has already been mutated by the time this runs.
+  try {
+    const primaryUser = user.linked_to
+      ? await data.users.get(tenantId, user.linked_to)
+      : user;
+
+    if (!primaryUser) {
+      return;
+    }
+
+    const appMetadata = primaryUser.app_metadata || {};
+    if (appMetadata.failed_logins && appMetadata.failed_logins.length > 0) {
+      appMetadata.failed_logins = [];
+      await data.users.update(tenantId, primaryUser.user_id, {
+        app_metadata: appMetadata,
+      });
+    }
+  } catch (error) {
+    console.error("Failed to clear failed_logins:", error);
+  }
 }
 
 function isRateLimitDecision(value: unknown): value is RateLimitDecision {
@@ -313,13 +351,7 @@ export async function passwordGrant(
   }
 
   // Clear failed login attempts on successful password validation
-  const appMetadata = primaryUser.app_metadata || {};
-  if (appMetadata.failed_logins && appMetadata.failed_logins.length > 0) {
-    appMetadata.failed_logins = [];
-    data.users.update(client.tenant.id, primaryUser.user_id, {
-      app_metadata: appMetadata,
-    });
-  }
+  await clearFailedLogins(data, client.tenant.id, primaryUser);
 
   return {
     client,
