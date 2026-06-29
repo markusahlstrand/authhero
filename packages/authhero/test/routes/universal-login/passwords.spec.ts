@@ -676,6 +676,127 @@ describe("passwords", () => {
     expect(newPasswordLoginResponse.status).toBe(302);
   });
 
+  it("should clear failed-login lockout after a screens-path password reset", async () => {
+    const { u2App, oauthApp, env, getSentEmails } = await getTestServer({
+      mockEmail: true,
+      testTenantLanguage: "en",
+    });
+    const oauthClient = testClient(oauthApp, env);
+
+    const newPassword = "NewP@ssw0rd!";
+    const userId = `${USERNAME_PASSWORD_PROVIDER}|screensLockedOut123`;
+
+    // Create a password user
+    await env.data.users.create("tenantId", {
+      email: "screens-locked-out@example.com",
+      email_verified: true,
+      name: "Screens Locked Out User",
+      nickname: "screenslockedout",
+      connection: Strategy.USERNAME_PASSWORD,
+      provider: USERNAME_PASSWORD_PROVIDER,
+      is_social: false,
+      user_id: userId,
+    });
+
+    await env.data.passwords.create("tenantId", {
+      user_id: userId,
+      password: await bcryptjs.hash("OldP@ssw0rd!", 10),
+      algorithm: "bcrypt",
+    });
+
+    // Simulate a lockout: 3 recent failed-login timestamps (>= the 3 limit
+    // enforced in passwordGrant within the 5-minute window).
+    const now = Date.now();
+    await env.data.users.update("tenantId", userId, {
+      app_metadata: { failed_logins: [now, now, now] },
+    });
+
+    // Start the password reset flow
+    const authorizeResponse = await oauthClient.authorize.$get({
+      query: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+        state: "state",
+        nonce: "nonce",
+        scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
+      },
+    });
+
+    const location = authorizeResponse.headers.get("location");
+    const universalUrl = new URL(`https://example.com${location}`);
+    const state = universalUrl.searchParams.get("state");
+    if (!state) throw new Error("No state found");
+
+    // Request a reset code through the screens (u2) forgot-password route. The
+    // screens flow defaults to the "code" verification method, so the user gets
+    // a 6-digit code by email rather than a link.
+    await u2Screen(u2App, env, "reset-password/request").$post({
+      query: { state },
+      form: { email: "screens-locked-out@example.com" },
+    });
+
+    const sentEmails = getSentEmails();
+    const passwordResetEmail = sentEmails[sentEmails.length - 1];
+    const resetCode = passwordResetEmail.data.code;
+    if (!resetCode) {
+      throw new Error("No reset code found in email");
+    }
+
+    // Complete the reset through the screens reset-password-code route, which
+    // calls resetPassword's clearFailedLogins path via executePasswordReset.
+    const resetPasswordResponse = await u2Screen(
+      u2App,
+      env,
+      "reset-password/code",
+    ).$post({
+      query: { state },
+      form: {
+        code: resetCode,
+        password: newPassword,
+        confirm_password: newPassword,
+      },
+    });
+
+    expect(resetPasswordResponse.status).toBe(302);
+
+    // The failed-login counter should be cleared by the reset.
+    const userAfterReset = await env.data.users.get("tenantId", userId);
+    expect(userAfterReset?.app_metadata?.failed_logins).toEqual([]);
+
+    // And the user should be able to log in immediately with the new password
+    // rather than being blocked by the stale lockout.
+    const newAuthorize = await oauthClient.authorize.$get({
+      query: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+        state: "state2",
+        nonce: "nonce2",
+        scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
+      },
+    });
+    const newLocation = newAuthorize.headers.get("location");
+    const newUrl = new URL(`https://example.com${newLocation}`);
+    const newState = newUrl.searchParams.get("state");
+    if (!newState) throw new Error("No state found");
+
+    await u2Screen(u2App, env, "login/identifier").$post({
+      query: { state: newState },
+      form: { username: "screens-locked-out@example.com" },
+    });
+
+    const newPasswordLoginResponse = await u2Screen(
+      u2App,
+      env,
+      "enter-password",
+    ).$post({
+      query: { state: newState },
+      form: { password: newPassword },
+    });
+    expect(newPasswordLoginResponse.status).toBe(302);
+  });
+
   it("should reject weak passwords during reset", async () => {
     const { universalApp, oauthApp, env, getSentEmails } = await getTestServer({
       mockEmail: true,

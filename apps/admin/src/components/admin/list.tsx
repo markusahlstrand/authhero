@@ -193,6 +193,7 @@ const ListToolbar = ({
 
   return (
     <div className="flex items-center gap-2 my-2">
+      {/* Query controls (search + filters) on the left */}
       {!disableSearch && (
         <div className="flex w-full max-w-sm">
           <FilterLiveForm formComponent={SearchFormComponent}>
@@ -204,10 +205,13 @@ const ListToolbar = ({
           </FilterLiveForm>
         </div>
       )}
-      <div className="flex items-center gap-2 ml-auto">
-        {hasToggleableFilters ? <FilterButton /> : <AddFilterPlaceholder />}
-        {!disableColumns ? <ColumnsButton /> : null}
-      </div>
+      {hasToggleableFilters ? <FilterButton /> : <AddFilterPlaceholder />}
+      {/* Display controls (columns) on the right */}
+      {!disableColumns ? (
+        <div className="ml-auto">
+          <ColumnsButton />
+        </div>
+      ) : null}
     </div>
   );
 };
