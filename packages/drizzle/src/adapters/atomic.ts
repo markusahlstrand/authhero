@@ -59,7 +59,13 @@ export async function runAtomic(
     await db.run(sql`COMMIT`);
     return results;
   } catch (error) {
-    await db.run(sql`ROLLBACK`);
+    // Roll back best-effort: a failing ROLLBACK must not mask the original
+    // write/commit error that actually explains what went wrong.
+    try {
+      await db.run(sql`ROLLBACK`);
+    } catch (rollbackError) {
+      console.error("runAtomic rollback failed", rollbackError);
+    }
     throw error;
   }
 }

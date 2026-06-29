@@ -366,7 +366,8 @@ export function createUsersAdapter(db: DrizzleDb) {
         .where(
           and(eq(users.tenant_id, tenant_id), eq(users.linked_to, user_id)),
         );
-      const allUserIds = [user_id, ...linkedUsers.map((u) => u.user_id)];
+      const linkedIds = linkedUsers.map((u) => u.user_id);
+      const allUserIds = [user_id, ...linkedIds];
 
       // Apply the cascade deletes atomically so we never leave a user behind
       // with its auth methods / passwords removed (or vice versa). runAtomic
@@ -390,11 +391,16 @@ export function createUsersAdapter(db: DrizzleDb) {
               inArray(passwords.user_id, allUserIds),
             ),
           ),
-        // Delete linked users
+        // Delete linked users — by the same captured IDs the credential
+        // deletes above use, so the cascade never diverges from a live
+        // `linked_to` predicate if linkage changes between read and batch.
         db
           .delete(users)
           .where(
-            and(eq(users.tenant_id, tenant_id), eq(users.linked_to, user_id)),
+            and(
+              eq(users.tenant_id, tenant_id),
+              inArray(users.user_id, linkedIds),
+            ),
           ),
         // Delete primary user
         db
