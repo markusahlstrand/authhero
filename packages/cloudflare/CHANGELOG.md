@@ -1,5 +1,32 @@
 # @authhero/cloudflare-adapter
 
+## 2.37.3
+
+### Patch Changes
+
+- 892c7bf: Improve Analytics Engine log filtering to match the kysely adapter:
+
+  - Unescape Lucene escape sequences in `field:value` clauses. Clients escape filter values per Lucene rules (a dash becomes `\-`), but the backslash leaked into the generated SQL comparison, so filtering by any value containing a `-` returned no rows.
+  - Support bare free-text search terms in `q`. A term without a `field:` prefix now matches `user_id` (exact) and `ip`/`description` (substring), instead of being ignored (which returned every log). Searching `description` lets a user's email match failed-login events recorded before any user record existed.
+
+- 8c75922: Add five new analytics metrics to the `/analytics/{resource}` API and the admin
+  Analytics dropdown: Logouts (`slo`, `flo`), Password Changes (`scp`, `fcp`,
+  `scpr`, `fcpr`), MFA (`gd_auth_succeed`, `gd_auth_failed`, `gd_auth_rejected`),
+  Email Verifications (`sv`, `fv`, `svr`, `fvr`) and Codes Sent (`cls`, `cs`).
+  Each is computed from the existing `logs` table — like the existing login/signup
+  metrics — and supports the same `time`, `connection`, `client_id`, `user_type`
+  and `event` group-by dimensions, so success/failure can be split via
+  `group_by=event`. Wired through the kysely, drizzle and Cloudflare Analytics
+  Engine adapters.
+- Updated dependencies [8c75922]
+- Updated dependencies [5c585eb]
+- Updated dependencies [ae87522]
+- Updated dependencies [892c7bf]
+  - @authhero/adapter-interfaces@3.4.1
+  - @authhero/kysely-adapter@11.10.1
+  - authhero@8.9.1
+  - @authhero/multi-tenancy@14.25.1
+
 ## 2.37.2
 
 ### Patch Changes
