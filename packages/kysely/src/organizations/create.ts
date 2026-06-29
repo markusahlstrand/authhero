@@ -1,20 +1,27 @@
 import { Kysely } from "kysely";
 import { HTTPException } from "hono/http-exception";
 import { Database } from "../db";
-import { Organization, OrganizationInsert } from "@authhero/adapter-interfaces";
+import {
+  Organization,
+  OrganizationInsert,
+  CreateOptions,
+} from "@authhero/adapter-interfaces";
 import { generateOrganizationId } from "../utils/entity-id";
 
 export function create(db: Kysely<Database>) {
   return async (
     tenantId: string,
     organization: OrganizationInsert,
+    options?: CreateOptions,
   ): Promise<Organization> => {
+    const importMetadata = options?.importMetadata;
+    const now = new Date().toISOString();
     const sqlOrganization = {
       ...organization,
-      id: organization.id || generateOrganizationId(),
+      id: importMetadata?.id || organization.id || generateOrganizationId(),
       tenant_id: tenantId,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      created_at: importMetadata?.created_at ?? now,
+      updated_at: importMetadata?.updated_at ?? now,
       branding: JSON.stringify(organization.branding || {}),
       metadata: JSON.stringify(organization.metadata || {}),
       enabled_connections: JSON.stringify(

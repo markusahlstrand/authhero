@@ -6,6 +6,7 @@ import {
   MigrationSourceCredentials,
   MigrationSourcesAdapter,
   migrationProviderTypeSchema,
+  CreateOptions,
 } from "@authhero/adapter-interfaces";
 import { Database } from "../db";
 
@@ -31,9 +32,11 @@ export function createMigrationSourcesAdapter(
     async create(
       tenant_id: string,
       params: MigrationSourceInsert,
+      options?: CreateOptions,
     ): Promise<MigrationSource> {
+      const importMetadata = options?.importMetadata;
       const now = new Date().toISOString();
-      const id = params.id ?? `mig_${nanoid()}`;
+      const id = importMetadata?.id ?? params.id ?? `mig_${nanoid()}`;
       const enabled = params.enabled ?? true;
       const row: Row = {
         id,
@@ -43,8 +46,8 @@ export function createMigrationSourcesAdapter(
         connection: params.connection,
         enabled: enabled ? 1 : 0,
         credentials: JSON.stringify(params.credentials),
-        created_at: now,
-        updated_at: now,
+        created_at: importMetadata?.created_at ?? now,
+        updated_at: importMetadata?.updated_at ?? now,
       };
       await db.insertInto("migration_sources").values(row).execute();
       return fromRow(row);

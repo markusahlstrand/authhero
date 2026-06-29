@@ -1,4 +1,5 @@
 import { EmailTemplate, EmailTemplateName } from "../types";
+import { CreateOptions } from "../types/ImportMetadata";
 
 export interface EmailTemplatesAdapter {
   get: (
@@ -9,6 +10,7 @@ export interface EmailTemplatesAdapter {
   create: (
     tenant_id: string,
     template: EmailTemplate,
+    options?: CreateOptions,
   ) => Promise<EmailTemplate>;
   update: (
     tenant_id: string,

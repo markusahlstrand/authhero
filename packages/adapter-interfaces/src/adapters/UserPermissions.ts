@@ -1,5 +1,6 @@
 import { ListParams } from "../types/ListParams";
 import { UserPermissionInsert, UserPermissionWithDetailsList } from "../types";
+import { CreateOptions } from "../types/ImportMetadata";
 
 export interface UserPermissionsAdapter {
   // Create a single permission for a user
@@ -8,6 +9,7 @@ export interface UserPermissionsAdapter {
     user_id: string,
     permission: UserPermissionInsert,
     organization_id?: string,
+    options?: CreateOptions,
   ): Promise<boolean>;
 
   // Remove a single permission from a user

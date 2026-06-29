@@ -1,5 +1,6 @@
 import { Client, ClientInsert, Totals } from "../types";
 import { ListParams } from "../types/ListParams";
+import { CreateOptions } from "../types/ImportMetadata";
 
 /**
  * Result from getByClientId including tenant_id since client_id alone
@@ -10,7 +11,11 @@ export interface ClientWithTenantId extends Client {
 }
 
 export interface ClientsAdapter {
-  create(tenant_id: string, params: ClientInsert): Promise<Client>;
+  create(
+    tenant_id: string,
+    params: ClientInsert,
+    options?: CreateOptions,
+  ): Promise<Client>;
   get(tenant_id: string, client_id: string): Promise<Client | null>;
   /**
    * Get a client by client_id only (without tenant_id).

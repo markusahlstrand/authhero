@@ -1,6 +1,7 @@
 import {
   AuthenticationMethod,
   AuthenticationMethodInsert,
+  CreateOptions,
 } from "@authhero/adapter-interfaces";
 import { Kysely } from "kysely";
 import { Database } from "../db";
@@ -10,9 +11,16 @@ export function create(db: Kysely<Database>) {
   return async (
     tenant_id: string,
     method: AuthenticationMethodInsert,
+    options?: CreateOptions,
   ): Promise<AuthenticationMethod> => {
-    const now = Date.now();
-    const id = ulid();
+    const importMetadata = options?.importMetadata;
+    const createdAtTs = importMetadata?.created_at
+      ? new Date(importMetadata.created_at).getTime()
+      : Date.now();
+    const updatedAtTs = importMetadata?.updated_at
+      ? new Date(importMetadata.updated_at).getTime()
+      : createdAtTs;
+    const id = importMetadata?.id ?? ulid();
 
     await db
       .insertInto("authentication_methods")
@@ -37,8 +45,8 @@ export function create(db: Kysely<Database>) {
           : undefined,
         friendly_name: method.friendly_name,
         confirmed: method.confirmed ? 1 : 0,
-        created_at_ts: now,
-        updated_at_ts: now,
+        created_at_ts: createdAtTs,
+        updated_at_ts: updatedAtTs,
       })
       .execute();
 
@@ -55,8 +63,8 @@ export function create(db: Kysely<Database>) {
       transports: method.transports,
       friendly_name: method.friendly_name,
       confirmed: method.confirmed ?? false,
-      created_at: new Date(now).toISOString(),
-      updated_at: new Date(now).toISOString(),
+      created_at: new Date(createdAtTs).toISOString(),
+      updated_at: new Date(updatedAtTs).toISOString(),
     };
   };
 }

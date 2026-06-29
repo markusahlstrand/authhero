@@ -1,6 +1,6 @@
 import { eq, and } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import type { Theme } from "@authhero/adapter-interfaces";
+import type { Theme, CreateOptions } from "@authhero/adapter-interfaces";
 import { themes } from "../schema/sqlite";
 import {
   removeNullProperties,
@@ -27,6 +27,10 @@ function sqlToTheme(row: any): Theme {
       !!unflattened.borders.show_widget_shadow;
   }
   if (unflattened.fonts) {
+    unflattened.fonts.body_text_bold = !!unflattened.fonts.body_text_bold;
+    unflattened.fonts.buttons_text_bold = !!unflattened.fonts.buttons_text_bold;
+    unflattened.fonts.input_labels_bold =
+      !!unflattened.fonts.input_labels_bold;
     unflattened.fonts.links_bold = !!unflattened.fonts.links_bold;
     unflattened.fonts.subtitle_bold = !!unflattened.fonts.subtitle_bold;
     unflattened.fonts.title_bold = !!unflattened.fonts.title_bold;
@@ -41,17 +45,21 @@ export function createThemesAdapter(db: DrizzleDb) {
       tenant_id: string,
       theme: any,
       themeId?: string,
+      options?: CreateOptions,
     ): Promise<Theme> {
+      const importMetadata = options?.importMetadata;
       const now = new Date().toISOString();
-      const id = themeId || nanoid();
+      // `importMetadata.id` takes precedence over the positional themeId so
+      // imports preserve source ids consistently across adapters.
+      const id = importMetadata?.id || themeId || nanoid();
 
       const flattened = flattenObject(theme);
       const values = {
         ...flattened,
         tenant_id,
         themeId: id,
-        created_at: now,
-        updated_at: now,
+        created_at: importMetadata?.created_at ?? now,
+        updated_at: importMetadata?.updated_at ?? now,
       };
 
       await db.insert(themes).values(values as any);
@@ -70,6 +78,16 @@ export function createThemesAdapter(db: DrizzleDb) {
 
       if (!result) return null;
       return sqlToTheme(result);
+    },
+
+    async list(tenant_id: string): Promise<Theme[]> {
+      const results = await db
+        .select()
+        .from(themes)
+        .where(eq(themes.tenant_id, tenant_id))
+        .all();
+
+      return results.map(sqlToTheme);
     },
 
     async update(

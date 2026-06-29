@@ -1,5 +1,6 @@
 import { ActionVersion, ActionVersionInsert, Totals } from "../types";
 import { ListParams } from "../types/ListParams";
+import { CreateOptions } from "../types/ImportMetadata";
 
 export interface ListActionVersionsResponse extends Totals {
   versions: ActionVersion[];
@@ -14,6 +15,7 @@ export interface ActionVersionsAdapter {
   create: (
     tenant_id: string,
     version: ActionVersionInsert,
+    options?: CreateOptions,
   ) => Promise<ActionVersion>;
   get: (
     tenant_id: string,

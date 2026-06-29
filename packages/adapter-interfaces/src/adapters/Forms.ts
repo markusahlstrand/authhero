@@ -1,12 +1,17 @@
 import { Form, FormInsert, Totals } from "../types";
 import { ListParams } from "../types/ListParams";
+import { CreateOptions } from "../types/ImportMetadata";
 
 export interface ListFormsResponse extends Totals {
   forms: Form[];
 }
 
 export interface FormsAdapter {
-  create(tenant_id: string, params: FormInsert): Promise<Form>;
+  create(
+    tenant_id: string,
+    params: FormInsert,
+    options?: CreateOptions,
+  ): Promise<Form>;
   get(tenant_id: string, form_id: string): Promise<Form | null>;
   remove(tenant_id: string, form_id: string): Promise<boolean>;
   update(

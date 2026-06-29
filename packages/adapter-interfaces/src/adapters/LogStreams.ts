@@ -1,7 +1,12 @@
 import { LogStream, LogStreamInsert } from "../types/LogStream";
+import { CreateOptions } from "../types/ImportMetadata";
 
 export interface LogStreamsAdapter {
-  create(tenant_id: string, params: LogStreamInsert): Promise<LogStream>;
+  create(
+    tenant_id: string,
+    params: LogStreamInsert,
+    options?: CreateOptions,
+  ): Promise<LogStream>;
   get(tenant_id: string, id: string): Promise<LogStream | null>;
   list(tenant_id: string): Promise<LogStream[]>;
   update(

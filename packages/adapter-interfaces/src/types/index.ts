@@ -99,3 +99,4 @@ export * from "./Analytics";
 export * from "./CustomText";
 export * from "./Strategy";
 export * from "./AuthenticationMethod";
+export * from "./ImportMetadata";

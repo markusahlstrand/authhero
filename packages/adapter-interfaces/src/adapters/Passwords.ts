@@ -1,7 +1,12 @@
 import { Password, PasswordInsert } from "../types";
+import { CreateOptions } from "../types/ImportMetadata";
 
 export interface PasswordsAdapter {
-  create: (tenant_id: string, params: PasswordInsert) => Promise<Password>;
+  create: (
+    tenant_id: string,
+    params: PasswordInsert,
+    options?: CreateOptions,
+  ) => Promise<Password>;
   update: (tenant_id: string, params: PasswordInsert) => Promise<boolean>;
   get: (tenant_id: string, user_id: string) => Promise<Password | null>;
   list: (

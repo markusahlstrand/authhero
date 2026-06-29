@@ -4,6 +4,7 @@ import {
   Theme,
   ThemeInsert,
   themeSchema,
+  CreateOptions,
 } from "@authhero/adapter-interfaces";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
 import { themeKeys } from "../keys";
@@ -12,6 +13,7 @@ import {
   putItem,
   deleteItem,
   updateItem,
+  queryItems,
   stripDynamoDBFields,
   removeNullProperties,
 } from "../utils";
@@ -50,9 +52,13 @@ export function createThemesAdapter(ctx: DynamoDBContext): ThemesAdapter {
       tenantId: string,
       theme: ThemeInsert,
       providedThemeId?: string,
+      options?: CreateOptions,
     ): Promise<Theme> {
+      const importMetadata = options?.importMetadata;
       const now = new Date().toISOString();
-      const themeId = providedThemeId || nanoid();
+      // `importMetadata.id` takes precedence over the positional themeId so
+      // imports preserve source ids consistently across adapters.
+      const themeId = importMetadata?.id || providedThemeId || nanoid();
 
       const item: ThemeItem = {
         PK: themeKeys.pk(tenantId),
@@ -68,8 +74,8 @@ export function createThemesAdapter(ctx: DynamoDBContext): ThemesAdapter {
           ? JSON.stringify(theme.page_background)
           : undefined,
         widget: theme.widget ? JSON.stringify(theme.widget) : undefined,
-        created_at: now,
-        updated_at: now,
+        created_at: importMetadata?.created_at ?? now,
+        updated_at: importMetadata?.updated_at ?? now,
       };
 
       await putItem(ctx, item);
@@ -87,6 +93,22 @@ export function createThemesAdapter(ctx: DynamoDBContext): ThemesAdapter {
       if (!item) return null;
 
       return toTheme(item);
+    },
+
+    async list(tenantId: string): Promise<Theme[]> {
+      const items: ThemeItem[] = [];
+      let startKey: Record<string, unknown> | undefined;
+
+      do {
+        const page = await queryItems<ThemeItem>(ctx, themeKeys.pk(tenantId), {
+          skPrefix: "THEME#",
+          startKey,
+        });
+        items.push(...page.items);
+        startKey = page.lastKey;
+      } while (startKey);
+
+      return items.map(toTheme);
     },
 
     async update(

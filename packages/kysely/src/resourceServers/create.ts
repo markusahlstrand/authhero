@@ -3,6 +3,7 @@ import {
   ResourceServer,
   ResourceServerInsert,
   resourceServerSchema,
+  CreateOptions,
 } from "@authhero/adapter-interfaces";
 import { Database, sqlResourceServerSchema } from "../db";
 import { removeNullProperties } from "../helpers/remove-nulls";
@@ -15,13 +16,17 @@ export function create(db: Kysely<Database>) {
   return async (
     tenant_id: string,
     params: ResourceServerInsert,
+    createOptions?: CreateOptions,
   ): Promise<ResourceServer> => {
+    const importMetadata = createOptions?.importMetadata;
     const now = new Date().toISOString();
+    const created_at = importMetadata?.created_at ?? now;
+    const updated_at = importMetadata?.updated_at ?? now;
     const withDefaults = {
-      id: generateResourceServerId(),
       ...params,
-      created_at: now,
-      updated_at: now,
+      id: importMetadata?.id ?? params.id ?? generateResourceServerId(),
+      created_at,
+      updated_at,
     };
 
     const resourceServer = resourceServerSchema.parse(withDefaults);
@@ -48,8 +53,8 @@ export function create(db: Kysely<Database>) {
       is_system: is_system ? 1 : 0,
       metadata: metadata ? JSON.stringify(metadata) : undefined,
       verification_key: verificationKey,
-      created_at: now,
-      updated_at: now,
+      created_at,
+      updated_at,
     };
 
     await db.insertInto("resource_servers").values(dbResourceServer).execute();

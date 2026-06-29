@@ -1,5 +1,5 @@
 import { fetchUtils, type DataProvider, type UpdateParams } from "ra-core";
-import { createManagementClient } from "./authProvider";
+import { createManagementClient, resolveAccessToken } from "./authProvider";
 import { ManagementClient } from "auth0";
 import { unflattenDomainMetadata } from "./components/custom-domains/domainMetadataUtils";
 import {
@@ -322,6 +322,24 @@ export interface AuthHeroDataProvider extends DataProvider {
     hookId: string,
     payload: { user_id: string },
   ) => Promise<{ ok: boolean; status?: number; body?: string; error?: string }>;
+  /**
+   * Download the tenant's durable data as a gzipped JSON-lines file. Returns a
+   * `Blob` the caller can hand straight to the browser download API, so the
+   * compressed payload is never buffered as a JS string.
+   */
+  exportTenantData: (includePasswordHashes?: boolean) => Promise<Blob>;
+  /**
+   * Replay a previously exported file into the current tenant. Accepts the raw
+   * `Blob`/`File` (plain or gzipped) and streams it straight to the server, so
+   * the UI never has to decode it into memory first.
+   */
+  importTenantData: (
+    file: Blob | File,
+    includePasswordHashes?: boolean,
+  ) => Promise<{
+    counts: Record<string, number>;
+    errors: { entity: string; error: string }[];
+  }>;
 }
 
 /**
@@ -2534,6 +2552,56 @@ export default (
         },
       );
       return json;
+    },
+    exportTenantData: async (includePasswordHashes) => {
+      // Request the gzipped stream (server default) and read it as a Blob via a
+      // raw authorized fetch — the text-based httpClient would both corrupt the
+      // binary payload and force the whole export into a JS string.
+      const params = new URLSearchParams();
+      if (includePasswordHashes) {
+        params.set("include_password_hashes", "true");
+      }
+      const query = params.toString();
+      const token = await resolveAccessToken(apiUrl, tenantId, domain);
+      const headers = createHeaders(tenantId);
+      headers.set("Authorization", `Bearer ${token}`);
+      const response = await fetch(
+        `${apiUrl}/api/v2/tenant-data/export${query ? `?${query}` : ""}`,
+        { headers },
+      );
+      if (!response.ok) {
+        throw new Error(
+          `Tenant export failed (${response.status} ${response.statusText})`,
+        );
+      }
+      return response.blob();
+    },
+    importTenantData: async (file, includePasswordHashes) => {
+      // Stream the original file straight to the server (it sniffs gzip vs
+      // plain by magic bytes), so the UI never decodes the payload in memory.
+      const params = new URLSearchParams();
+      if (includePasswordHashes) {
+        params.set("include_password_hashes", "true");
+      }
+      const query = params.toString();
+      const token = await resolveAccessToken(apiUrl, tenantId, domain);
+      const headers = createHeaders(tenantId);
+      headers.set("Authorization", `Bearer ${token}`);
+      headers.set("content-type", "application/octet-stream");
+      const response = await fetch(
+        `${apiUrl}/api/v2/tenant-data/import${query ? `?${query}` : ""}`,
+        {
+          method: "POST",
+          headers,
+          body: file,
+        },
+      );
+      if (!response.ok) {
+        throw new Error(
+          `Tenant import failed (${response.status} ${response.statusText})`,
+        );
+      }
+      return response.json();
     },
   };
 };

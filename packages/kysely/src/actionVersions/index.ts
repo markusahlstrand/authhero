@@ -3,6 +3,7 @@ import {
   ActionVersion,
   ActionVersionInsert,
   ActionVersionsAdapter,
+  CreateOptions,
   ListActionVersionsResponse,
   ListParams,
 } from "@authhero/adapter-interfaces";
@@ -54,9 +55,22 @@ export function createActionVersionsAdapter(
     async create(
       tenant_id: string,
       version: ActionVersionInsert,
+      options?: CreateOptions,
     ): Promise<ActionVersion> {
+      const importMetadata = options?.importMetadata;
       const now = Date.now();
-      const id = generateActionVersionId();
+      const createdAtTs = importMetadata?.created_at
+        ? new Date(importMetadata.created_at).getTime()
+        : now;
+      // Preserve source timestamp on import: fall back to the imported
+      // created_at (not replay time) when updated_at is absent so historical
+      // replay keeps the original ordering.
+      const updatedAtTs = importMetadata?.updated_at
+        ? new Date(importMetadata.updated_at).getTime()
+        : importMetadata
+          ? createdAtTs
+          : now;
+      const id = importMetadata?.id ?? generateActionVersionId();
       const deployed = version.deployed !== false;
 
       // Wrap latest-lookup, deployed-clear, and insert in a single transaction
@@ -76,9 +90,12 @@ export function createActionVersionsAdapter(
         const next = (latest?.number ?? 0) + 1;
 
         if (deployed) {
+          // On import, only clear prior deployed flags — bumping updated_at_ts
+          // to replay time would corrupt the historical timestamps of older
+          // rows. Live creates still touch updated_at_ts as before.
           await trx
             .updateTable("action_versions")
-            .set({ deployed: 0, updated_at_ts: now })
+            .set(importMetadata ? { deployed: 0 } : { deployed: 0, updated_at_ts: now })
             .where("tenant_id", "=", tenant_id)
             .where("action_id", "=", version.action_id)
             .execute();
@@ -101,8 +118,8 @@ export function createActionVersionsAdapter(
               ? JSON.stringify(version.supported_triggers)
               : null,
             deployed: deployed ? 1 : 0,
-            created_at_ts: now,
-            updated_at_ts: now,
+            created_at_ts: createdAtTs,
+            updated_at_ts: updatedAtTs,
           })
           .execute();
 
@@ -120,8 +137,8 @@ export function createActionVersionsAdapter(
         dependencies: version.dependencies,
         supported_triggers: version.supported_triggers,
         deployed,
-        created_at: new Date(now).toISOString(),
-        updated_at: new Date(now).toISOString(),
+        created_at: new Date(createdAtTs).toISOString(),
+        updated_at: new Date(updatedAtTs).toISOString(),
       };
     },
 

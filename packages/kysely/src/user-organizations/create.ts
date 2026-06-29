@@ -4,6 +4,7 @@ import { Database } from "../db";
 import {
   UserOrganization,
   UserOrganizationInsert,
+  CreateOptions,
 } from "@authhero/adapter-interfaces";
 import { nanoid } from "nanoid";
 
@@ -11,14 +12,17 @@ export function create(db: Kysely<Database>) {
   return async (
     tenantId: string,
     userOrganization: UserOrganizationInsert,
+    options?: CreateOptions,
   ): Promise<UserOrganization> => {
+    const importMetadata = options?.importMetadata;
+    const now = new Date().toISOString();
     const sqlUserOrganization = {
-      id: nanoid(),
+      id: importMetadata?.id ?? nanoid(),
       tenant_id: tenantId,
       user_id: userOrganization.user_id,
       organization_id: userOrganization.organization_id,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      created_at: importMetadata?.created_at ?? now,
+      updated_at: importMetadata?.updated_at ?? now,
     };
 
     try {

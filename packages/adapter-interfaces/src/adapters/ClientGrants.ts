@@ -1,12 +1,17 @@
 import { ListParams } from "../types/ListParams";
 import { ClientGrant, ClientGrantInsert, Totals } from "../types";
+import { CreateOptions } from "../types/ImportMetadata";
 
 export interface ListClientGrantsResponse extends Totals {
   client_grants: ClientGrant[];
 }
 
 export interface ClientGrantsAdapter {
-  create(tenant_id: string, params: ClientGrantInsert): Promise<ClientGrant>;
+  create(
+    tenant_id: string,
+    params: ClientGrantInsert,
+    options?: CreateOptions,
+  ): Promise<ClientGrant>;
   get(tenant_id: string, id: string): Promise<ClientGrant | null>;
   list(
     tenant_id: string,

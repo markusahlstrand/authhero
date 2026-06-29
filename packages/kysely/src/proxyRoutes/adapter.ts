@@ -7,6 +7,7 @@ import {
   ProxyRouteInsert,
   ProxyRouteUpdate,
   ProxyRoutesAdapter,
+  CreateOptions,
 } from "@authhero/adapter-interfaces";
 import { Database } from "../db";
 import { rowToProxyRoute } from "./serialize";
@@ -18,17 +19,19 @@ export function createProxyRoutesAdapter(
     async create(
       tenant_id: string,
       input: ProxyRouteInsert,
+      options?: CreateOptions,
     ): Promise<ProxyRoute> {
+      const importMetadata = options?.importMetadata;
       const now = new Date().toISOString();
       const route: ProxyRoute = {
-        id: input.id || nanoid(),
+        id: importMetadata?.id ?? input.id ?? nanoid(),
         tenant_id,
         custom_domain_id: input.custom_domain_id,
         priority: input.priority,
         match: input.match,
         handlers: input.handlers,
-        created_at: now,
-        updated_at: now,
+        created_at: importMetadata?.created_at ?? now,
+        updated_at: importMetadata?.updated_at ?? now,
       };
 
       await db

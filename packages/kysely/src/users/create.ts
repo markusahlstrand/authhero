@@ -2,10 +2,15 @@ import { Kysely } from "kysely";
 import { HTTPException } from "hono/http-exception";
 import { nanoid } from "nanoid";
 import { Database } from "../db";
-import { User, UserInsert } from "@authhero/adapter-interfaces";
+import { User, UserInsert, CreateOptions } from "@authhero/adapter-interfaces";
 
 export function create(db: Kysely<Database>) {
-  return async (tenantId: string, user: UserInsert): Promise<User> => {
+  return async (
+    tenantId: string,
+    user: UserInsert,
+    options?: CreateOptions,
+  ): Promise<User> => {
+    const importMetadata = options?.importMetadata;
     const { identities, phone_verified, password, ...rest } = user as User &
       Pick<UserInsert, "password">;
 
@@ -13,8 +18,9 @@ export function create(db: Kysely<Database>) {
     const sqlUser = {
       ...rest,
       login_count: rest.login_count ?? 0,
-      created_at: rest.created_at ?? now,
-      updated_at: rest.updated_at ?? now,
+      created_at: importMetadata?.created_at ?? rest.created_at ?? now,
+      updated_at: importMetadata?.updated_at ?? rest.updated_at ?? now,
+      user_id: importMetadata?.id ?? rest.user_id,
       tenant_id: tenantId,
       email_verified: user.email_verified ? 1 : 0,
       phone_verified:

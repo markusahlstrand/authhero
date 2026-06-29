@@ -54,7 +54,9 @@ export function createOrganizationConnectionsAdapter(
       tenantId,
       organizationId,
       params: OrganizationConnectionInsert,
+      options,
     ) {
+      const importMetadata = options?.importMetadata;
       const now = new Date().toISOString();
       const row: Row = {
         tenant_id: tenantId,
@@ -63,8 +65,8 @@ export function createOrganizationConnectionsAdapter(
         assign_membership_on_login: params.assign_membership_on_login ? 1 : 0,
         show_as_button: params.show_as_button === false ? 0 : 1,
         is_signup_enabled: params.is_signup_enabled === false ? 0 : 1,
-        created_at: now,
-        updated_at: now,
+        created_at: importMetadata?.created_at ?? now,
+        updated_at: importMetadata?.updated_at ?? now,
       };
       await db.insertInto("organization_connections").values(row).execute();
       const connection = await loadConnection(

@@ -4,11 +4,13 @@ import {
   CustomDomainInsert,
   CustomDomainWithTenantId,
 } from "../types/CustomDomain";
+import { CreateOptions } from "../types/ImportMetadata";
 
 export interface CustomDomainsAdapter {
   create: (
     tenant_id: string,
     custom_domain: CustomDomainInsert,
+    options?: CreateOptions,
   ) => Promise<CustomDomain>;
   get: (tenant_id: string, id: string) => Promise<CustomDomain | null>;
   // This is used to determine with tenant a request belongs to

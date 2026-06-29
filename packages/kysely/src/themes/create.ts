@@ -1,6 +1,10 @@
 import { nanoid } from "nanoid";
 import { Kysely } from "kysely";
-import { Theme, ThemeInsert } from "@authhero/adapter-interfaces";
+import {
+  Theme,
+  ThemeInsert,
+  CreateOptions,
+} from "@authhero/adapter-interfaces";
 import { Database } from "../db";
 import { flattenObject } from "../utils/flatten";
 
@@ -9,12 +13,15 @@ export function create(db: Kysely<Database>) {
     tenant_id: string,
     theme: ThemeInsert,
     themeId?: string,
+    options?: CreateOptions,
   ): Promise<Theme> => {
+    const importMetadata = options?.importMetadata;
+    const now = new Date().toISOString();
     const createdTheme = {
-      themeId: themeId || nanoid(),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      themeId: importMetadata?.id || themeId || nanoid(),
       ...theme,
+      created_at: importMetadata?.created_at ?? now,
+      updated_at: importMetadata?.updated_at ?? now,
     };
 
     // Map themeId to theme_id for database storage

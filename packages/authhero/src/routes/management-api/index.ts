@@ -62,6 +62,7 @@ import { guardianRoutes } from "./guardian";
 import { authenticationMethodsRoutes } from "./authentication-methods";
 import { ticketsRoutes } from "./tickets";
 import { proxyRoutesRoutes } from "./proxy-routes";
+import { tenantExportImportRoutes } from "./tenant-export-import";
 import { DataAdapters } from "@authhero/adapter-interfaces";
 import { outboxMiddleware } from "../../middlewares/outbox";
 import { LogsDestination } from "../../helpers/outbox-destinations/logs";
@@ -581,7 +582,8 @@ export default function create(config: AuthHeroConfig) {
     .route(
       "/users/:user_id/authentication-methods",
       authenticationMethodsRoutes,
-    );
+    )
+    .route("/tenant-data", tenantExportImportRoutes);
 
   // Only mount core tenant routes if no extension overrides /tenants
   if (!extensionPaths.has("/tenants")) {

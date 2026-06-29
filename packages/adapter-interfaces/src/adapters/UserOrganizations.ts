@@ -5,12 +5,14 @@ import {
 } from "../types/UserOrganization";
 import { Organization } from "../types/Organization";
 import { ListParams } from "../types/ListParams";
+import { CreateOptions } from "../types/ImportMetadata";
 
 export interface UserOrganizationsAdapter {
   // CRUD operations for UserOrganization entity management
   create(
     tenantId: string,
     params: UserOrganizationInsert,
+    options?: CreateOptions,
   ): Promise<UserOrganization>;
 
   get(tenantId: string, id: string): Promise<UserOrganization | null>;

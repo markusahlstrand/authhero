@@ -1,4 +1,4 @@
-import { Connection, ConnectionInsert, Totals } from "../types";
+import { Connection, ConnectionInsert, CreateOptions, Totals } from "../types";
 import { ListParams } from "../types/ListParams";
 
 export interface ListConnectionsResponse extends Totals {
@@ -6,7 +6,11 @@ export interface ListConnectionsResponse extends Totals {
 }
 
 export interface ConnectionsAdapter {
-  create(tenant_id: string, params: ConnectionInsert): Promise<Connection>;
+  create(
+    tenant_id: string,
+    params: ConnectionInsert,
+    options?: CreateOptions,
+  ): Promise<Connection>;
   remove(tenant_id: string, connection_id: string): Promise<boolean>;
   get(tenant_id: string, connection_id: string): Promise<Connection | null>;
   update(

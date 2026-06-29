@@ -1,5 +1,6 @@
 import { Role } from "../types";
 import { ListParams } from "../types/ListParams";
+import { CreateOptions } from "../types/ImportMetadata";
 
 export interface ListUserRolesResponse {
   roles: Role[];
@@ -20,6 +21,7 @@ export interface UserRolesAdapter {
     userId: string,
     roleId: string,
     organizationId?: string,
+    options?: CreateOptions,
   ): Promise<boolean>;
   remove(
     tenantId: string,

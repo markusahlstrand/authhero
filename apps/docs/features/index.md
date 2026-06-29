@@ -16,4 +16,5 @@ description: AuthHero features — authentication flows, MFA, hooks, account lin
 - **[RBAC & Scopes](/features/rbac-and-scopes)** — Detailed guide for implementing role-based access control
 - **[Forms & Flows](/features/forms)** — Custom forms and server-driven authentication flows
 - **[Multi-Tenant SaaS](/features/multi-tenant-saas)** — Complete guide for setting up multi-tenant authentication
+- **[Tenant Export & Import](/features/tenant-export-import)** — Move a tenant's configuration and users between deployments as a single JSON-lines file
 - **[User Creation Flow](/features/user-creation-flow)** — How user registration and creation works

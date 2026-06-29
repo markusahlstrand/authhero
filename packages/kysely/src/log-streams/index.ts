@@ -4,6 +4,7 @@ import {
   LogStream,
   LogStreamInsert,
   LogStreamsAdapter,
+  CreateOptions,
 } from "@authhero/adapter-interfaces";
 import { Database } from "../db";
 
@@ -27,9 +28,14 @@ export function createLogStreamsAdapter(
   db: Kysely<Database>,
 ): LogStreamsAdapter {
   return {
-    async create(tenant_id, params: LogStreamInsert): Promise<LogStream> {
+    async create(
+      tenant_id,
+      params: LogStreamInsert,
+      options?: CreateOptions,
+    ): Promise<LogStream> {
+      const importMetadata = options?.importMetadata;
       const now = new Date().toISOString();
-      const id = `lst_${nanoid()}`;
+      const id = importMetadata?.id ?? `lst_${nanoid()}`;
       const row: Row = {
         id,
         tenant_id,
@@ -40,8 +46,8 @@ export function createLogStreamsAdapter(
         filters: params.filters ? JSON.stringify(params.filters) : null,
         is_priority:
           params.isPriority === undefined ? null : params.isPriority ? 1 : 0,
-        created_at: now,
-        updated_at: now,
+        created_at: importMetadata?.created_at ?? now,
+        updated_at: importMetadata?.updated_at ?? now,
       };
       await db.insertInto("log_streams").values(row).execute();
       return fromRow(row);

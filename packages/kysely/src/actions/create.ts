@@ -1,12 +1,27 @@
 import { Kysely } from "kysely";
-import { Action, ActionInsert } from "@authhero/adapter-interfaces";
+import {
+  Action,
+  ActionInsert,
+  CreateOptions,
+} from "@authhero/adapter-interfaces";
 import { Database } from "../db";
 import { generateActionId } from "../utils/entity-id";
 
 export function create(db: Kysely<Database>) {
-  return async (tenant_id: string, action: ActionInsert): Promise<Action> => {
+  return async (
+    tenant_id: string,
+    action: ActionInsert,
+    options?: CreateOptions,
+  ): Promise<Action> => {
+    const importMetadata = options?.importMetadata;
     const now = Date.now();
-    const id = generateActionId();
+    const createdAtTs = importMetadata?.created_at
+      ? new Date(importMetadata.created_at).getTime()
+      : now;
+    const updatedAtTs = importMetadata?.updated_at
+      ? new Date(importMetadata.updated_at).getTime()
+      : createdAtTs;
+    const id = importMetadata?.id ?? generateActionId();
 
     await db
       .insertInto("actions")
@@ -26,8 +41,8 @@ export function create(db: Kysely<Database>) {
           : null,
         is_system: action.is_system ? 1 : 0,
         inherit: action.inherit ? 1 : 0,
-        created_at_ts: now,
-        updated_at_ts: now,
+        created_at_ts: createdAtTs,
+        updated_at_ts: updatedAtTs,
       })
       .execute();
 
@@ -43,8 +58,8 @@ export function create(db: Kysely<Database>) {
       supported_triggers: action.supported_triggers,
       is_system: action.is_system ?? false,
       inherit: action.inherit ?? false,
-      created_at: new Date(now).toISOString(),
-      updated_at: new Date(now).toISOString(),
+      created_at: new Date(createdAtTs).toISOString(),
+      updated_at: new Date(updatedAtTs).toISOString(),
     };
   };
 }

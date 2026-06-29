@@ -1,12 +1,17 @@
 import { Invite, InviteInsert, Totals } from "../types";
 import { ListParams } from "../types/ListParams";
+import { CreateOptions } from "../types/ImportMetadata";
 
 export interface ListInvitesResponse extends Totals {
   invites: Invite[];
 }
 
 export interface InvitesAdapter {
-  create(tenant_id: string, params: InviteInsert): Promise<Invite>;
+  create(
+    tenant_id: string,
+    params: InviteInsert,
+    options?: CreateOptions,
+  ): Promise<Invite>;
   get(tenant_id: string, id: string): Promise<Invite | null>;
   remove(tenant_id: string, id: string): Promise<boolean>;
   list(tenant_id: string, params?: ListParams): Promise<ListInvitesResponse>;

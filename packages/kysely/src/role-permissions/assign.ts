@@ -1,15 +1,20 @@
 import { Kysely } from "kysely";
 import { Database } from "../db";
-import { RolePermissionInsert } from "@authhero/adapter-interfaces";
+import {
+  CreateOptions,
+  RolePermissionInsert,
+} from "@authhero/adapter-interfaces";
 
 export function assign(db: Kysely<Database>) {
   return async (
     tenant_id: string,
     role_id: string,
     permissions: RolePermissionInsert[],
+    options?: CreateOptions,
   ): Promise<boolean> => {
     if (permissions.length === 0) return true;
 
+    const importMetadata = options?.importMetadata;
     const now = new Date().toISOString();
 
     try {
@@ -27,7 +32,7 @@ export function assign(db: Kysely<Database>) {
           role_id: permission.role_id,
           resource_server_identifier: permission.resource_server_identifier,
           permission_name: permission.permission_name,
-          created_at: now,
+          created_at: importMetadata?.created_at ?? now,
         };
 
         try {

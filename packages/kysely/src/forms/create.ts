@@ -1,15 +1,26 @@
 import { nanoid } from "nanoid";
 import { Kysely } from "kysely";
-import { Form, FormInsert, formSchema } from "@authhero/adapter-interfaces";
+import {
+  CreateOptions,
+  Form,
+  FormInsert,
+  formSchema,
+} from "@authhero/adapter-interfaces";
 import { Database } from "../db";
 
 export function create(db: Kysely<Database>) {
-  return async (tenant_id: string, params: FormInsert): Promise<Form> => {
+  return async (
+    tenant_id: string,
+    params: FormInsert,
+    options?: CreateOptions,
+  ): Promise<Form> => {
+    const importMetadata = options?.importMetadata;
+    const now = new Date().toISOString();
     const form = formSchema.parse({
-      id: nanoid(),
+      id: importMetadata?.id ?? nanoid(),
       ...params,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      created_at: importMetadata?.created_at ?? now,
+      updated_at: importMetadata?.updated_at ?? now,
     });
 
     await db

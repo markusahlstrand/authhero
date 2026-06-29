@@ -89,6 +89,7 @@ import { SettingsList, SettingsEdit } from "./resources/settings";
 import { RoleList, RoleCreate, RoleEdit } from "./resources/roles";
 import { Dashboard } from "./resources/dashboard/Dashboard";
 import { AnalyticsPage } from "./resources/analytics/AnalyticsPage";
+import { TenantDataPage } from "./resources/tenant-data/TenantDataPage";
 
 interface AppProps {
   tenantId: string;
@@ -387,6 +388,12 @@ export function App({ tenantId, initialDomain, onAuthComplete }: AppProps) {
           list={SettingsList}
           edit={SettingsEdit}
           options={{ hasSingle: true, menuGroup: "Settings" }}
+        />
+        <Resource
+          name="tenant-data"
+          icon={Database}
+          list={TenantDataPage}
+          options={{ label: "Import / Export", menuGroup: "Settings" }}
         />
       </Admin>
     </TenantProvider>
