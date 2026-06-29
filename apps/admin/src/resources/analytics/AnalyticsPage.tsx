@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -18,6 +18,8 @@ import {
 } from "./useAnalyticsQuery";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -72,6 +74,36 @@ const RESOURCES: Array<{
     metric: "sessions",
     dims: ["time", "client_id"],
   },
+  {
+    value: "logouts",
+    label: "Logouts",
+    metric: "logouts",
+    dims: ["time", "connection", "client_id", "user_type", "event"],
+  },
+  {
+    value: "password-changes",
+    label: "Password Changes",
+    metric: "password_changes",
+    dims: ["time", "connection", "client_id", "user_type", "event"],
+  },
+  {
+    value: "mfa",
+    label: "MFA",
+    metric: "mfa",
+    dims: ["time", "connection", "client_id", "user_type", "event"],
+  },
+  {
+    value: "email-verifications",
+    label: "Email Verifications",
+    metric: "email_verifications",
+    dims: ["time", "connection", "client_id", "user_type", "event"],
+  },
+  {
+    value: "codes-sent",
+    label: "Codes Sent",
+    metric: "codes_sent",
+    dims: ["time", "connection", "client_id", "user_type", "event"],
+  },
 ];
 
 const INTERVAL_OPTIONS: Array<{ value: IntervalSetting; label: string }> = [
@@ -81,6 +113,34 @@ const INTERVAL_OPTIONS: Array<{ value: IntervalSetting; label: string }> = [
   { value: "week", label: "Week" },
   { value: "month", label: "Month" },
 ];
+
+// Backend filters are validated against this enum; "all" means no filter.
+const USER_TYPE_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: "all", label: "All user types" },
+  { value: "password", label: "Password" },
+  { value: "social", label: "Social" },
+  { value: "passwordless", label: "Passwordless" },
+  { value: "enterprise", label: "Enterprise" },
+];
+
+// Debounce free-text filters so we issue one query after typing settles rather
+// than one per keystroke.
+function useDebounced<T>(value: T, delayMs: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(value), delayMs);
+    return () => clearTimeout(id);
+  }, [value, delayMs]);
+  return debounced;
+}
+
+// Split a comma-separated filter input into the repeatable array the API takes.
+function toFilterList(value: string): string[] {
+  return value
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
 
 const CHART_COLORS = [
   "#2563eb",
@@ -133,6 +193,24 @@ export function AnalyticsPage() {
   const [range, setRange] = useState<TimeRange>(() => presetRange(7));
   const [interval, setInterval] = useState<IntervalSetting>("auto");
   const [groupBy, setGroupBy] = useState<AnalyticsGroupBy[]>(["time"]);
+  const [clientId, setClientId] = useState("");
+  const [connection, setConnection] = useState("");
+  const [userId, setUserId] = useState("");
+  const [userType, setUserType] = useState("all");
+
+  const debouncedClientId = useDebounced(clientId, 400);
+  const debouncedConnection = useDebounced(connection, 400);
+  const debouncedUserId = useDebounced(userId, 400);
+
+  const hasFilters =
+    clientId !== "" || connection !== "" || userId !== "" || userType !== "all";
+
+  const clearFilters = () => {
+    setClientId("");
+    setConnection("");
+    setUserId("");
+    setUserType("all");
+  };
 
   const resourceMeta = RESOURCES.find((r) => r.value === resource)!;
 
@@ -151,6 +229,10 @@ export function AnalyticsPage() {
     to,
     interval: effectiveInterval,
     groupBy,
+    clientId: toFilterList(debouncedClientId),
+    connection: toFilterList(debouncedConnection),
+    userId: toFilterList(debouncedUserId),
+    userType: userType === "all" ? [] : [userType],
   });
 
   const dimColumns = useMemo(() => groupBy.map((g) => String(g)), [groupBy]);
@@ -165,79 +247,134 @@ export function AnalyticsPage() {
       <div>
         <h2 className="text-2xl font-semibold">Analytics</h2>
         <p className="text-sm text-muted-foreground">
-          Time-series metrics for users, logins, signups, sessions, and tokens.
+          Time-series metrics for users, logins, signups, sessions, tokens, and
+          more — filter by client, connection, user, or user type.
         </p>
       </div>
 
       <Card>
-        <CardContent className="flex flex-wrap items-center gap-3 pt-4">
-          <Select
-            value={resource}
-            onValueChange={(v) => {
-              setResource(v as AnalyticsResource);
-              setGroupBy(["time"]);
-            }}
-          >
-            <SelectTrigger className="w-44">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {RESOURCES.map((r) => (
-                <SelectItem key={r.value} value={r.value}>
-                  {r.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <CardContent className="flex flex-col gap-3 pt-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <Select
+              value={resource}
+              onValueChange={(v) => {
+                setResource(v as AnalyticsResource);
+                setGroupBy(["time"]);
+              }}
+            >
+              <SelectTrigger className="w-44">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {RESOURCES.map((r) => (
+                  <SelectItem key={r.value} value={r.value}>
+                    {r.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-          <TimeRangePicker value={range} onChange={setRange} />
+            <TimeRangePicker value={range} onChange={setRange} />
 
-          <Select
-            value={interval}
-            onValueChange={(v) => setInterval(v as IntervalSetting)}
-          >
-            <SelectTrigger className="w-36">
-              <SelectValue>
-                {interval === "auto"
-                  ? `Auto (${effectiveInterval})`
-                  : INTERVAL_OPTIONS.find((o) => o.value === interval)?.label}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {INTERVAL_OPTIONS.map((o) => (
-                <SelectItem
-                  key={o.value}
-                  value={o.value}
-                  disabled={o.value === "hour" && hourDisabled}
-                >
-                  {o.value === "auto"
+            <Select
+              value={interval}
+              onValueChange={(v) => setInterval(v as IntervalSetting)}
+            >
+              <SelectTrigger className="w-36">
+                <SelectValue>
+                  {interval === "auto"
                     ? `Auto (${effectiveInterval})`
-                    : o.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <div className="flex items-center gap-1">
-            {resourceMeta.dims
-              .filter((d) => d !== "time")
-              .map((d) => {
-                const active = groupBy.includes(d);
-                return (
-                  <Button
-                    key={d}
-                    size="sm"
-                    variant={active ? "default" : "outline"}
-                    onClick={() =>
-                      setGroupBy((prev) =>
-                        active ? prev.filter((p) => p !== d) : [...prev, d],
-                      )
-                    }
+                    : INTERVAL_OPTIONS.find((o) => o.value === interval)?.label}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {INTERVAL_OPTIONS.map((o) => (
+                  <SelectItem
+                    key={o.value}
+                    value={o.value}
+                    disabled={o.value === "hour" && hourDisabled}
                   >
-                    {d}
-                  </Button>
-                );
-              })}
+                    {o.value === "auto"
+                      ? `Auto (${effectiveInterval})`
+                      : o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <div className="flex items-center gap-1">
+              {resourceMeta.dims
+                .filter((d) => d !== "time")
+                .map((d) => {
+                  const active = groupBy.includes(d);
+                  return (
+                    <Button
+                      key={d}
+                      size="sm"
+                      variant={active ? "default" : "outline"}
+                      onClick={() =>
+                        setGroupBy((prev) =>
+                          active ? prev.filter((p) => p !== d) : [...prev, d],
+                        )
+                      }
+                    >
+                      {d}
+                    </Button>
+                  );
+                })}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="flex flex-col gap-1">
+              <Label className="text-xs text-muted-foreground">Client ID</Label>
+              <Input
+                className="w-44"
+                placeholder="Filter by client ID"
+                value={clientId}
+                onChange={(e) => setClientId(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label className="text-xs text-muted-foreground">
+                Connection
+              </Label>
+              <Input
+                className="w-44"
+                placeholder="Filter by connection"
+                value={connection}
+                onChange={(e) => setConnection(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label className="text-xs text-muted-foreground">User ID</Label>
+              <Input
+                className="w-44"
+                placeholder="Filter by user ID"
+                value={userId}
+                onChange={(e) => setUserId(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label className="text-xs text-muted-foreground">User type</Label>
+              <Select value={userType} onValueChange={setUserType}>
+                <SelectTrigger className="w-44">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {USER_TYPE_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {hasFilters && (
+              <Button variant="ghost" size="sm" onClick={clearFilters}>
+                Clear filters
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>

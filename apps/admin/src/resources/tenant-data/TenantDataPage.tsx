@@ -30,6 +30,8 @@ export function TenantDataPage() {
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
 
+  const busy = exporting || importing;
+
   const handleExport = async () => {
     setExporting(true);
     try {
@@ -84,7 +86,8 @@ export function TenantDataPage() {
       <div>
         <h1 className="text-2xl font-semibold">Import / Export</h1>
         <p className="text-muted-foreground text-sm">
-          Move a tenant's configuration and users between deployments. Sessions,
+          Move a tenant&apos;s configuration and users between deployments.
+          Sessions,
           refresh tokens and logs are not included; signing keys are regenerated
           on import.
         </p>
@@ -94,7 +97,7 @@ export function TenantDataPage() {
         <CardHeader>
           <CardTitle>Export</CardTitle>
           <CardDescription>
-            Download this tenant's durable data as a JSON-lines file.
+            Download this tenant&apos;s durable data as a JSON-lines file.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -103,12 +106,13 @@ export function TenantDataPage() {
               id="export-hashes"
               checked={exportHashes}
               onCheckedChange={(v) => setExportHashes(v === true)}
+              disabled={busy}
             />
             <Label htmlFor="export-hashes">
               Include password hashes (requires elevated permission)
             </Label>
           </div>
-          <Button onClick={handleExport} disabled={exporting}>
+          <Button onClick={handleExport} disabled={busy}>
             {exporting ? <Loader2 className="animate-spin" /> : <Download />}
             Export tenant data
           </Button>
@@ -129,6 +133,7 @@ export function TenantDataPage() {
               id="import-hashes"
               checked={importHashes}
               onCheckedChange={(v) => setImportHashes(v === true)}
+              disabled={busy}
             />
             <Label htmlFor="import-hashes">
               Import password hashes (requires elevated permission)
@@ -147,7 +152,7 @@ export function TenantDataPage() {
           <Button
             variant="outline"
             onClick={() => fileInputRef.current?.click()}
-            disabled={importing}
+            disabled={busy}
           >
             {importing ? <Loader2 className="animate-spin" /> : <Upload />}
             Choose file and import

@@ -311,8 +311,7 @@ export async function importTenant(
           );
           break;
         case "universal_login_templates": {
-          const body = getString(row, "body");
-          if (body === undefined) continue;
+          const body = required(getString(row, "body"), "body");
           await data.universalLoginTemplates.set(
             tenant_id,
             { body },

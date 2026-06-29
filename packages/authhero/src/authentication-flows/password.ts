@@ -75,20 +75,27 @@ export async function clearFailedLogins(
   tenantId: string,
   user: User,
 ): Promise<void> {
-  const primaryUser = user.linked_to
-    ? await data.users.get(tenantId, user.linked_to)
-    : user;
+  // Best-effort cleanup: a failure here must never turn a valid login or a
+  // successful password reset into an error, especially since the password/code
+  // state has already been mutated by the time this runs.
+  try {
+    const primaryUser = user.linked_to
+      ? await data.users.get(tenantId, user.linked_to)
+      : user;
 
-  if (!primaryUser) {
-    return;
-  }
+    if (!primaryUser) {
+      return;
+    }
 
-  const appMetadata = primaryUser.app_metadata || {};
-  if (appMetadata.failed_logins && appMetadata.failed_logins.length > 0) {
-    appMetadata.failed_logins = [];
-    await data.users.update(tenantId, primaryUser.user_id, {
-      app_metadata: appMetadata,
-    });
+    const appMetadata = primaryUser.app_metadata || {};
+    if (appMetadata.failed_logins && appMetadata.failed_logins.length > 0) {
+      appMetadata.failed_logins = [];
+      await data.users.update(tenantId, primaryUser.user_id, {
+        app_metadata: appMetadata,
+      });
+    }
+  } catch (error) {
+    console.error("Failed to clear failed_logins:", error);
   }
 }
 

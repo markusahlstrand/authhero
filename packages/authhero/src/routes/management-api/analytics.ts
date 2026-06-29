@@ -19,6 +19,17 @@ const VALID_GROUP_BY: Record<AnalyticsResource, AnalyticsGroupBy[]> = {
   signups: ["time", "connection", "client_id", "user_type", "event"],
   "refresh-tokens": ["time", "client_id", "event"],
   sessions: ["time", "client_id"],
+  logouts: ["time", "connection", "client_id", "user_type", "event"],
+  "password-changes": ["time", "connection", "client_id", "user_type", "event"],
+  mfa: ["time", "connection", "client_id", "user_type", "event"],
+  "email-verifications": [
+    "time",
+    "connection",
+    "client_id",
+    "user_type",
+    "event",
+  ],
+  "codes-sent": ["time", "connection", "client_id", "user_type", "event"],
 };
 
 const VALID_INTERVALS: AnalyticsInterval[] = ["hour", "day", "week", "month"];
@@ -35,6 +46,11 @@ const METRIC_BY_RESOURCE: Record<AnalyticsResource, string> = {
   signups: "signups",
   "refresh-tokens": "refresh_tokens",
   sessions: "sessions",
+  logouts: "logouts",
+  "password-changes": "password_changes",
+  mfa: "mfa",
+  "email-verifications": "email_verifications",
+  "codes-sent": "codes_sent",
 };
 
 const MAX_LIMIT = 10000;
@@ -418,6 +434,11 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions = {}) {
     "signups",
     "refresh-tokens",
     "sessions",
+    "logouts",
+    "password-changes",
+    "mfa",
+    "email-verifications",
+    "codes-sent",
   ];
 
   for (const resource of resources) {

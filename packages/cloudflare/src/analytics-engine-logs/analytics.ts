@@ -17,6 +17,11 @@ const RESOURCE_EVENTS: Record<AnalyticsResource, readonly string[]> = {
   "refresh-tokens": ["seacft", "fertft"],
   // No dedicated session-created event yet; track logouts as the lifecycle signal.
   sessions: ["slo"],
+  logouts: ["slo", "flo"],
+  "password-changes": ["scp", "fcp", "scpr", "fcpr"],
+  mfa: ["gd_auth_succeed", "gd_auth_failed", "gd_auth_rejected"],
+  "email-verifications": ["sv", "fv", "svr", "fvr"],
+  "codes-sent": ["cls", "cs"],
 };
 
 // Field → blob mapping (kept in sync with logs.ts)
@@ -52,6 +57,19 @@ const METRIC_BY_RESOURCE: Record<
     type: "UInt64",
   },
   sessions: { expr: "count()", alias: "sessions", type: "UInt64" },
+  logouts: { expr: "count()", alias: "logouts", type: "UInt64" },
+  "password-changes": {
+    expr: "count()",
+    alias: "password_changes",
+    type: "UInt64",
+  },
+  mfa: { expr: "count()", alias: "mfa", type: "UInt64" },
+  "email-verifications": {
+    expr: "count()",
+    alias: "email_verifications",
+    type: "UInt64",
+  },
+  "codes-sent": { expr: "count()", alias: "codes_sent", type: "UInt64" },
 };
 
 function timeBucketExpr(interval: string, tz: string): string {
