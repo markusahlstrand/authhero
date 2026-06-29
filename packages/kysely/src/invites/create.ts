@@ -19,9 +19,12 @@ export function create(db: Kysely<Database>) {
     const inviteId = importMetadata?.id ?? invite.id ?? generateInviteId();
     const createdAt = importMetadata?.created_at ?? new Date().toISOString();
 
-    // Calculate expires_at based on ttl_sec (default 7 days)
+    // Calculate expires_at based on ttl_sec (default 7 days), relative to the
+    // (possibly imported) creation time so import preserves invite validity.
     const ttlSec = invite.ttl_sec || 604800;
-    const expiresAt = new Date(Date.now() + ttlSec * 1000).toISOString();
+    const expiresAt = new Date(
+      new Date(createdAt).getTime() + ttlSec * 1000,
+    ).toISOString();
 
     const sqlInvite = stringifyProperties(
       {

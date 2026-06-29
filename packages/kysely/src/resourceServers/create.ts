@@ -23,8 +23,8 @@ export function create(db: Kysely<Database>) {
     const created_at = importMetadata?.created_at ?? now;
     const updated_at = importMetadata?.updated_at ?? now;
     const withDefaults = {
-      id: importMetadata?.id ?? generateResourceServerId(),
       ...params,
+      id: importMetadata?.id ?? params.id ?? generateResourceServerId(),
       created_at,
       updated_at,
     };

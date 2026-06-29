@@ -17,8 +17,8 @@ export function create(db: Kysely<Database>) {
     const importMetadata = options?.importMetadata;
     const now = new Date().toISOString();
     const tenant: Tenant = {
-      id: importMetadata?.id || params.id || nanoid(),
       ...params,
+      id: importMetadata?.id ?? params.id ?? nanoid(),
       created_at: importMetadata?.created_at ?? now,
       updated_at: importMetadata?.updated_at ?? now,
     };

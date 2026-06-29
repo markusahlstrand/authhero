@@ -1,6 +1,6 @@
 import { eq, and } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import type { Theme } from "@authhero/adapter-interfaces";
+import type { Theme, CreateOptions } from "@authhero/adapter-interfaces";
 import { themes } from "../schema/sqlite";
 import {
   removeNullProperties,
@@ -41,17 +41,21 @@ export function createThemesAdapter(db: DrizzleDb) {
       tenant_id: string,
       theme: any,
       themeId?: string,
+      options?: CreateOptions,
     ): Promise<Theme> {
+      const importMetadata = options?.importMetadata;
       const now = new Date().toISOString();
-      const id = themeId || nanoid();
+      // `importMetadata.id` takes precedence over the positional themeId so
+      // imports preserve source ids consistently across adapters.
+      const id = importMetadata?.id || themeId || nanoid();
 
       const flattened = flattenObject(theme);
       const values = {
         ...flattened,
         tenant_id,
         themeId: id,
-        created_at: now,
-        updated_at: now,
+        created_at: importMetadata?.created_at ?? now,
+        updated_at: importMetadata?.updated_at ?? now,
       };
 
       await db.insert(themes).values(values as any);

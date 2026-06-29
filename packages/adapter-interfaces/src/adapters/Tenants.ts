@@ -27,10 +27,14 @@ export interface CreateTenantParams {
 }
 
 export interface TenantsDataAdapter {
-  create(
-    params: CreateTenantParams,
-    options?: CreateOptions,
-  ): Promise<Tenant>;
+  /**
+   * Single source of truth for the new tenant id: `options.importMetadata.id`
+   * takes precedence, then `params.id`, then a generated id. The tenant
+   * importer relies on this by passing the *target* id via `params.id` and
+   * leaving `importMetadata.id` unset, so an export always lands under the
+   * requested tenant.
+   */
+  create(params: CreateTenantParams, options?: CreateOptions): Promise<Tenant>;
   get(id: string): Promise<Tenant | null>;
   list(params?: ListParams): Promise<{ tenants: Tenant[]; totals?: Totals }>;
   update(id: string, tenant: Partial<Tenant>): Promise<void>;

@@ -263,6 +263,52 @@ export const createManagementClient = async (
   return managementClient;
 };
 
+/**
+ * Resolve a bearer token for a tenant-scoped management call, applying the same
+ * org-vs-non-org selection as {@link createManagementClient}'s token supplier.
+ * Exposed so callers that need a *raw* `fetch` (e.g. streaming a binary export
+ * download or uploading a file body) can authenticate without going through the
+ * text-buffering JSON http client.
+ */
+export const resolveAccessToken = async (
+  apiUrl: string,
+  tenantId?: string,
+  oauthDomain?: string,
+): Promise<string> => {
+  const normalizedTenantId = tenantId?.toLowerCase();
+  const domainForAuth = formatDomain(oauthDomain || apiUrl);
+  const domains = getDomainFromStorage();
+  const domainConfig = domains.find(
+    (d) => formatDomain(d.url) === domainForAuth,
+  );
+
+  if (!domainConfig) {
+    throw new Error(
+      `No domain configuration found for domain: ${domainForAuth}`,
+    );
+  }
+
+  if (normalizedTenantId && !isSingleTenantForDomain(domainForAuth)) {
+    if (domainConfig.connectionMethod === "login") {
+      const auth0Client = createAuth0Client(domainForAuth);
+      const audience = getConfigValue("audience") || "urn:authhero:management";
+      return getOrgAccessToken(
+        auth0Client,
+        normalizedTenantId,
+        audience,
+        domainForAuth,
+      );
+    }
+    return getOrganizationToken(domainConfig, normalizedTenantId);
+  }
+
+  const auth0Client =
+    domainConfig.connectionMethod === "login"
+      ? createAuth0Client(domainForAuth)
+      : undefined;
+  return getToken(domainConfig, auth0Client);
+};
+
 // Clear management client cache when token might be expired.
 // Cache keys are `${oauthKey}|${apiUrl}[|${tenantId}]` (see cacheKey above),
 // so callers that only have an OAuth domain can't selectively invalidate the

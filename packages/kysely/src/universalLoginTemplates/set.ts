@@ -35,7 +35,7 @@ export function set(db: Kysely<Database>) {
         .updateTable("universal_login_templates")
         .set({
           body: template.body,
-          updated_at_ts: now,
+          updated_at_ts: updatedAt,
         })
         .where("tenant_id", "=", tenant_id)
         .execute();

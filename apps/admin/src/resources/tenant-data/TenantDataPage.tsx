@@ -19,18 +19,6 @@ type ImportResult = {
   errors: { entity: string; error: string }[];
 };
 
-/** Read an uploaded export file into JSON-lines text, inflating gzip if needed. */
-async function readExportFile(file: File): Promise<string> {
-  const bytes = new Uint8Array(await file.arrayBuffer());
-  if (bytes.length >= 2 && bytes[0] === 0x1f && bytes[1] === 0x8b) {
-    const stream = new Blob([bytes])
-      .stream()
-      .pipeThrough(new DecompressionStream("gzip"));
-    return await new Response(stream).text();
-  }
-  return new TextDecoder().decode(bytes);
-}
-
 export function TenantDataPage() {
   const dataProvider = useDataProvider<AuthHeroDataProvider>();
   const notify = useNotify();
@@ -45,12 +33,11 @@ export function TenantDataPage() {
   const handleExport = async () => {
     setExporting(true);
     try {
-      const jsonl = await dataProvider.exportTenantData(exportHashes);
-      const blob = new Blob([jsonl], { type: "application/x-ndjson" });
+      const blob = await dataProvider.exportTenantData(exportHashes);
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = "tenant-export.jsonl";
+      anchor.download = "tenant-export.jsonl.gz";
       document.body.appendChild(anchor);
       anchor.click();
       document.body.removeChild(anchor);
@@ -69,9 +56,8 @@ export function TenantDataPage() {
     setImporting(true);
     setResult(null);
     try {
-      const jsonl = await readExportFile(file);
       const importResult = await dataProvider.importTenantData(
-        jsonl,
+        file,
         importHashes,
       );
       setResult(importResult);

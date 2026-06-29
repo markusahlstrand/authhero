@@ -1,4 +1,4 @@
-export { exportTenant } from "./export";
+export { exportTenant, exportTenantLines } from "./export";
 export { importTenant } from "./import";
 export { EXPORT_ORDER } from "./manifest";
 export type {

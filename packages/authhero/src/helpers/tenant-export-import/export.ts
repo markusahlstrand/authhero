@@ -19,8 +19,10 @@ async function* paginate(
   let page = 0;
   // Safety bound: avoid an infinite loop if an adapter ignores pagination.
   // 10k pages * 100 rows = 1M rows, far beyond any realistic single tenant.
+  // Fail closed if the cap is hit so a partial export is never mistaken for a
+  // complete one.
   const maxPages = 10_000;
-  while (page < maxPages) {
+  for (;;) {
     const result = await list(tenant_id, {
       page,
       per_page: PAGE_SIZE,
@@ -33,6 +35,11 @@ async function* paginate(
     }
     if (rows.length < PAGE_SIZE) break;
     page += 1;
+    if (page >= maxPages) {
+      throw new Error(
+        `Export exceeded pagination safety cap (${maxPages} pages) for "${pluralKey}"`,
+      );
+    }
   }
 }
 
@@ -41,23 +48,26 @@ function line(entity: string, data: unknown): ExportLine {
 }
 
 /**
- * Produce an ordered stream of `{ entity, data }` lines covering all durable
- * data for `tenant_id`. The order matches {@link EXPORT_ORDER} so a sequential
- * importer satisfies foreign keys (parents before children).
+ * Lazily yield an ordered stream of `{ entity, data }` lines covering all
+ * durable data for `tenant_id`. The order matches {@link EXPORT_ORDER} so a
+ * sequential importer satisfies foreign keys (parents before children).
+ *
+ * This is a generator so the HTTP layer can serialize each line straight to the
+ * response (and into gzip) without ever materializing the whole export in
+ * memory. Only bounded per-entity working sets (id lists, the hook buffer) are
+ * held at a time.
  *
  * Ephemeral/audit entities and the global key pool are never emitted.
  */
-export async function exportTenant(
+export async function* exportTenantLines(
   data: DataAdapters,
   tenant_id: string,
   opts: ExportOptions,
-): Promise<ExportLine[]> {
-  const lines: ExportLine[] = [];
-
+): AsyncGenerator<ExportLine> {
   // tenants(self)
   const tenant = await data.tenants.get(tenant_id);
   if (tenant) {
-    lines.push(line("tenants", tenant));
+    yield line("tenants", tenant);
   }
 
   // clients
@@ -67,7 +77,7 @@ export async function exportTenant(
     (t, p) => data.clients.list(t, p),
     tenant_id,
   )) {
-    lines.push(line("clients", client));
+    yield line("clients", client);
     const id = getString(client, "client_id");
     if (id) clientIds.push(id);
   }
@@ -78,7 +88,7 @@ export async function exportTenant(
     (t, p) => data.connections.list(t, p),
     tenant_id,
   )) {
-    lines.push(line("connections", connection));
+    yield line("connections", connection);
   }
 
   // resource_servers
@@ -87,7 +97,7 @@ export async function exportTenant(
     (t, p) => data.resourceServers.list(t, p),
     tenant_id,
   )) {
-    lines.push(line("resource_servers", resourceServer));
+    yield line("resource_servers", resourceServer);
   }
 
   // roles
@@ -97,7 +107,7 @@ export async function exportTenant(
     (t, p) => data.roles.list(t, p),
     tenant_id,
   )) {
-    lines.push(line("roles", role));
+    yield line("roles", role);
     const id = getString(role, "id");
     if (id) roleIds.push(id);
   }
@@ -109,7 +119,7 @@ export async function exportTenant(
     (t, p) => data.organizations.list(t, p),
     tenant_id,
   )) {
-    lines.push(line("organizations", organization));
+    yield line("organizations", organization);
     const id = getString(organization, "id");
     if (id) organizationIds.push(id);
   }
@@ -121,7 +131,7 @@ export async function exportTenant(
     (t, p) => data.users.list(t, p),
     tenant_id,
   )) {
-    lines.push(line("users", user));
+    yield line("users", user);
     const id = getString(user, "user_id");
     if (id) userIds.push(id);
   }
@@ -131,7 +141,7 @@ export async function exportTenant(
     for (const userId of userIds) {
       const passwords = await data.passwords.list(tenant_id, userId);
       for (const password of passwords) {
-        lines.push(line("passwords", password));
+        yield line("passwords", password);
       }
     }
   }
@@ -140,7 +150,7 @@ export async function exportTenant(
   for (const userId of userIds) {
     const methods = await data.authenticationMethods.list(tenant_id, userId);
     for (const method of methods) {
-      lines.push(line("authentication_methods", method));
+      yield line("authentication_methods", method);
     }
   }
 
@@ -150,7 +160,7 @@ export async function exportTenant(
     for (const role of roles) {
       const roleId = getString(role, "id");
       if (roleId) {
-        lines.push(line("user_roles", { user_id: userId, role_id: roleId }));
+        yield line("user_roles", { user_id: userId, role_id: roleId });
       }
     }
   }
@@ -159,7 +169,7 @@ export async function exportTenant(
   for (const userId of userIds) {
     const permissions = await data.userPermissions.list(tenant_id, userId);
     for (const permission of permissions) {
-      lines.push(line("user_permissions", { user_id: userId, permission }));
+      yield line("user_permissions", { user_id: userId, permission });
     }
   }
 
@@ -167,7 +177,7 @@ export async function exportTenant(
   for (const roleId of roleIds) {
     const permissions = await data.rolePermissions.list(tenant_id, roleId);
     for (const permission of permissions) {
-      lines.push(line("role_permissions", { role_id: roleId, permission }));
+      yield line("role_permissions", { role_id: roleId, permission });
     }
   }
 
@@ -178,12 +188,10 @@ export async function exportTenant(
       organizationId,
     );
     for (const connection of connections) {
-      lines.push(
-        line("organization_connections", {
-          organization_id: organizationId,
-          ...connection,
-        }),
-      );
+      yield line("organization_connections", {
+        ...connection,
+        organization_id: organizationId,
+      });
     }
   }
 
@@ -193,7 +201,7 @@ export async function exportTenant(
     (t, p) => data.userOrganizations.list(t, p),
     tenant_id,
   )) {
-    lines.push(line("user_organizations", userOrganization));
+    yield line("user_organizations", userOrganization);
   }
 
   // client_grants
@@ -202,7 +210,7 @@ export async function exportTenant(
     (t, p) => data.clientGrants.list(t, p),
     tenant_id,
   )) {
-    lines.push(line("client_grants", clientGrant));
+    yield line("client_grants", clientGrant);
   }
 
   // invites
@@ -211,7 +219,7 @@ export async function exportTenant(
     (t, p) => data.invites.list(t, p),
     tenant_id,
   )) {
-    lines.push(line("invites", invite));
+    yield line("invites", invite);
   }
 
   // actions + action_versions (nested per action)
@@ -221,13 +229,13 @@ export async function exportTenant(
     (t, p) => data.actions.list(t, p),
     tenant_id,
   )) {
-    lines.push(line("actions", action));
+    yield line("actions", action);
     const id = getString(action, "id");
     if (id) actionIds.push(id);
   }
   for (const actionId of actionIds) {
     let page = 0;
-    while (page < 10_000) {
+    for (;;) {
       const result = await data.actionVersions.list(tenant_id, actionId, {
         page,
         per_page: PAGE_SIZE,
@@ -236,29 +244,40 @@ export async function exportTenant(
       const versions = result.versions;
       if (versions.length === 0) break;
       for (const version of versions) {
-        lines.push(line("action_versions", version));
+        yield line("action_versions", version);
       }
       if (versions.length < PAGE_SIZE) break;
       page += 1;
+      if (page >= 10_000) {
+        throw new Error(
+          `Export exceeded pagination safety cap for action_versions of action "${actionId}"`,
+        );
+      }
     }
   }
 
-  // hooks + hook_code (best-effort: code hooks reference a hook_code by code_id)
+  // hooks + hook_code (best-effort: code hooks reference a hook_code by
+  // code_id). Emit hook_code first so a sequential importer has the referenced
+  // code rows before the hooks that depend on them.
   const codeIds = new Set<string>();
+  const hooks: unknown[] = [];
   for await (const hook of paginate(
     "hooks",
     (t, p) => data.hooks.list(t, p),
     tenant_id,
   )) {
-    lines.push(line("hooks", hook));
+    hooks.push(hook);
     const codeId = getString(hook, "code_id");
     if (codeId) codeIds.add(codeId);
   }
   for (const codeId of codeIds) {
     const hookCode = await data.hookCode.get(tenant_id, codeId);
     if (hookCode) {
-      lines.push(line("hook_code", hookCode));
+      yield line("hook_code", hookCode);
     }
+  }
+  for (const hook of hooks) {
+    yield line("hooks", hook);
   }
 
   // flows
@@ -267,7 +286,7 @@ export async function exportTenant(
     (t, p) => data.flows.list(t, p),
     tenant_id,
   )) {
-    lines.push(line("flows", flow));
+    yield line("flows", flow);
   }
 
   // forms
@@ -276,32 +295,32 @@ export async function exportTenant(
     (t, p) => data.forms.list(t, p),
     tenant_id,
   )) {
-    lines.push(line("forms", form));
+    yield line("forms", form);
   }
 
   // themes (tenant-wide, no pagination)
   const themes = await data.themes.list(tenant_id);
   for (const theme of themes) {
-    lines.push(line("themes", theme));
+    yield line("themes", theme);
   }
 
   // branding (singleton)
   const branding = await data.branding.get(tenant_id);
   if (branding) {
-    lines.push(line("branding", branding));
+    yield line("branding", branding);
   }
 
   // prompt_settings (singleton)
   const promptSettings = await data.promptSettings.get(tenant_id);
   if (promptSettings) {
-    lines.push(line("prompt_settings", promptSettings));
+    yield line("prompt_settings", promptSettings);
   }
 
   // universal_login_templates (singleton)
   const universalLoginTemplate =
     await data.universalLoginTemplates.get(tenant_id);
   if (universalLoginTemplate) {
-    lines.push(line("universal_login_templates", universalLoginTemplate));
+    yield line("universal_login_templates", universalLoginTemplate);
   }
 
   // custom_text (per prompt/language)
@@ -313,39 +332,37 @@ export async function exportTenant(
       entry.language,
     );
     if (customText) {
-      lines.push(
-        line("custom_text", {
-          prompt: entry.prompt,
-          language: entry.language,
-          custom_text: customText,
-        }),
-      );
+      yield line("custom_text", {
+        prompt: entry.prompt,
+        language: entry.language,
+        custom_text: customText,
+      });
     }
   }
 
   // email_providers (singleton)
   const emailProvider = await data.emailProviders.get(tenant_id);
   if (emailProvider) {
-    lines.push(line("email_providers", emailProvider));
+    yield line("email_providers", emailProvider);
   }
 
   // email_templates (tenant-wide, no pagination)
   const emailTemplates = await data.emailTemplates.list(tenant_id);
   for (const emailTemplate of emailTemplates) {
-    lines.push(line("email_templates", emailTemplate));
+    yield line("email_templates", emailTemplate);
   }
 
   // custom_domains (tenant-wide, no pagination)
   const customDomains = await data.customDomains.list(tenant_id);
   for (const customDomain of customDomains) {
-    lines.push(line("custom_domains", customDomain));
+    yield line("custom_domains", customDomain);
   }
 
   // log_streams (optional adapter)
   if (data.logStreams) {
     const logStreams = await data.logStreams.list(tenant_id);
     for (const logStream of logStreams) {
-      lines.push(line("log_streams", logStream));
+      yield line("log_streams", logStream);
     }
   }
 
@@ -353,14 +370,14 @@ export async function exportTenant(
   if (data.migrationSources) {
     const migrationSources = await data.migrationSources.list(tenant_id);
     for (const migrationSource of migrationSources) {
-      lines.push(line("migration_sources", migrationSource));
+      yield line("migration_sources", migrationSource);
     }
   }
 
   // proxy_routes (optional adapter)
   if (data.proxyRoutes) {
     let page = 0;
-    while (page < 10_000) {
+    for (;;) {
       const result = await data.proxyRoutes.list(tenant_id, {
         page,
         per_page: PAGE_SIZE,
@@ -368,12 +385,32 @@ export async function exportTenant(
       const routes = result.proxy_routes;
       if (routes.length === 0) break;
       for (const route of routes) {
-        lines.push(line("proxy_routes", route));
+        yield line("proxy_routes", route);
       }
       if (routes.length < PAGE_SIZE) break;
       page += 1;
+      if (page >= 10_000) {
+        throw new Error(
+          "Export exceeded pagination safety cap for proxy_routes",
+        );
+      }
     }
   }
+}
 
+/**
+ * Collect {@link exportTenantLines} into an array. Convenience for callers
+ * (e.g. tests) that want the whole export in memory; the HTTP layer streams the
+ * generator directly instead.
+ */
+export async function exportTenant(
+  data: DataAdapters,
+  tenant_id: string,
+  opts: ExportOptions,
+): Promise<ExportLine[]> {
+  const lines: ExportLine[] = [];
+  for await (const exportLine of exportTenantLines(data, tenant_id, opts)) {
+    lines.push(exportLine);
+  }
   return lines;
 }

@@ -7,7 +7,7 @@ import { logMessage } from "../../helpers/logging";
 import { defineRoute } from "../../utils/define-route";
 import {
   ExportLine,
-  exportTenant,
+  exportTenantLines,
   importTenant,
 } from "../../helpers/tenant-export-import";
 
@@ -52,17 +52,58 @@ const exportLineSchema = z.object({
   data: z.unknown(),
 });
 
-/** Decode the request body, transparently inflating a gzip payload. */
+// Hard limits guarding the import path against oversized uploads and gzip
+// bombs: a small compressed payload must not be allowed to inflate without
+// bound and exhaust worker memory.
+const MAX_COMPRESSED_BYTES = 25 * 1024 * 1024; // 25 MB on the wire
+const MAX_DECODED_BYTES = 250 * 1024 * 1024; // 250 MB after inflation
+
+/**
+ * Decode the request body, transparently inflating a gzip payload, while
+ * enforcing hard caps on both the compressed and decoded sizes so a gzip bomb
+ * can't OOM the worker. Throws `HTTPException(413)` when either cap is exceeded.
+ */
 async function readBody(ctx: RouteContext): Promise<string> {
   const buffer = new Uint8Array(await ctx.req.arrayBuffer());
-  // gzip magic bytes (0x1f 0x8b) — inflate; otherwise treat as plain text.
-  if (buffer.length >= 2 && buffer[0] === 0x1f && buffer[1] === 0x8b) {
-    const stream = new Blob([buffer])
-      .stream()
-      .pipeThrough(new DecompressionStream("gzip"));
-    return await new Response(stream).text();
+  if (buffer.byteLength > MAX_COMPRESSED_BYTES) {
+    throw new HTTPException(413, {
+      message: `Import payload exceeds the ${MAX_COMPRESSED_BYTES}-byte limit`,
+    });
   }
-  return new TextDecoder().decode(buffer);
+
+  // gzip magic bytes (0x1f 0x8b) — inflate; otherwise treat as plain text.
+  const isGzip =
+    buffer.byteLength >= 2 && buffer[0] === 0x1f && buffer[1] === 0x8b;
+  const byteStream = isGzip
+    ? new Blob([buffer]).stream().pipeThrough(new DecompressionStream("gzip"))
+    : new Blob([buffer]).stream();
+
+  // Drain the decoded stream chunk-by-chunk, enforcing the decoded cap as we go
+  // so inflation is aborted the moment it crosses the limit.
+  const reader = byteStream.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    if (!value) continue;
+    total += value.byteLength;
+    if (total > MAX_DECODED_BYTES) {
+      await reader.cancel();
+      throw new HTTPException(413, {
+        message: `Decoded import payload exceeds the ${MAX_DECODED_BYTES}-byte limit`,
+      });
+    }
+    chunks.push(value);
+  }
+
+  const merged = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder().decode(merged);
 }
 
 /** Parse newline-delimited JSON into validated export lines. */
@@ -136,20 +177,45 @@ const exportRoute = defineRoute({
     }
     const compress = ctx.req.query("gzip") !== "false";
 
-    const lines = await exportTenant(ctx.env.data, tenant_id, {
+    // Serialize each export line straight into the response (and into gzip)
+    // without ever buffering the whole tenant dump in memory.
+    const encoder = new TextEncoder();
+    const iterator = exportTenantLines(ctx.env.data, tenant_id, {
       includePasswordHashes,
-    });
-    const jsonl = lines.map((line) => JSON.stringify(line)).join("\n") + "\n";
+    })[Symbol.asyncIterator]();
+    let rowCount = 0;
+    let logged = false;
 
-    await logMessage(ctx, tenant_id, {
-      type: LogTypes.SUCCESS_API_OPERATION,
-      description: `Tenant export (${lines.length} rows, password_hashes=${includePasswordHashes}) by ${ctx.var.user?.sub ?? "unknown"}`,
-      targetType: "tenant",
-      targetId: tenant_id,
+    const ndjson = new ReadableStream<Uint8Array<ArrayBuffer>>({
+      async pull(controller) {
+        try {
+          const { value, done } = await iterator.next();
+          if (done) {
+            if (!logged) {
+              logged = true;
+              await logMessage(ctx, tenant_id, {
+                type: LogTypes.SUCCESS_API_OPERATION,
+                description: `Tenant export (${rowCount} rows, password_hashes=${includePasswordHashes}) by ${ctx.var.user?.sub ?? "unknown"}`,
+                targetType: "tenant",
+                targetId: tenant_id,
+              });
+            }
+            controller.close();
+            return;
+          }
+          rowCount += 1;
+          controller.enqueue(encoder.encode(JSON.stringify(value) + "\n"));
+        } catch (err) {
+          controller.error(err);
+        }
+      },
+      async cancel() {
+        await iterator.return?.(undefined);
+      },
     });
 
     if (!compress) {
-      return new Response(jsonl, {
+      return new Response(ndjson, {
         status: 200,
         headers: {
           "content-type": "application/x-ndjson",
@@ -158,9 +224,7 @@ const exportRoute = defineRoute({
       });
     }
 
-    const body = new Blob([jsonl])
-      .stream()
-      .pipeThrough(new CompressionStream("gzip"));
+    const body = ndjson.pipeThrough(new CompressionStream("gzip"));
     return new Response(body, {
       status: 200,
       headers: {
@@ -205,9 +269,12 @@ const importRoute = defineRoute({
       requireScope(ctx, IMPORT_SECRETS_SCOPE);
     }
 
+    // Size-limit failures (413) must surface as-is; only a malformed body maps
+    // to 400.
+    const body = await readBody(ctx);
     let lines: ExportLine[];
     try {
-      lines = parseJsonl(await readBody(ctx));
+      lines = parseJsonl(body);
     } catch {
       throw new HTTPException(400, {
         message: "Request body is not valid gzipped/plain JSON-lines",

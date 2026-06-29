@@ -1,4 +1,8 @@
-import { DataAdapters, ImportMetadata } from "@authhero/adapter-interfaces";
+import {
+  DataAdapters,
+  ImportMetadata,
+  importMetadataSchema,
+} from "@authhero/adapter-interfaces";
 
 /**
  * A single JSON-lines record in a tenant export stream.
@@ -54,15 +58,16 @@ export function buildImportMetadata(params: {
   created_at?: string;
   updated_at?: string;
 }): { importMetadata: ImportMetadata } | undefined {
-  const importMetadata: ImportMetadata = {};
-  if (params.id !== undefined) importMetadata.id = params.id;
-  if (params.created_at !== undefined)
-    importMetadata.created_at = params.created_at;
-  if (params.updated_at !== undefined)
-    importMetadata.updated_at = params.updated_at;
+  const raw: ImportMetadata = {};
+  if (params.id !== undefined) raw.id = params.id;
+  if (params.created_at !== undefined) raw.created_at = params.created_at;
+  if (params.updated_at !== undefined) raw.updated_at = params.updated_at;
 
-  if (Object.keys(importMetadata).length === 0) return undefined;
-  return { importMetadata };
+  if (Object.keys(raw).length === 0) return undefined;
+  // Validate timestamps up front so malformed metadata is rejected at this
+  // boundary (and surfaced as a per-row import error) instead of failing later
+  // inside adapter/DB code.
+  return { importMetadata: importMetadataSchema.parse(raw) };
 }
 
 export type { DataAdapters };

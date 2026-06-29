@@ -13,9 +13,12 @@ export function list(db: Kysely<Database>) {
       .execute();
 
     return themes.map((theme) => {
+      // `tenant_id` is a storage-only column; drop it so the returned Theme
+      // matches the other adapters and never leaks into export payloads.
+      const { tenant_id: _tenantId, ...rest } = theme;
       // Convert integer boolean fields from PlanetScale to actual booleans
       const convertedTheme = {
-        ...theme,
+        ...rest,
         borders_show_widget_shadow: Boolean(theme.borders_show_widget_shadow),
         fonts_body_text_bold: Boolean(theme.fonts_body_text_bold),
         fonts_buttons_text_bold: Boolean(theme.fonts_buttons_text_bold),

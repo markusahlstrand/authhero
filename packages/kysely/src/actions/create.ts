@@ -20,7 +20,7 @@ export function create(db: Kysely<Database>) {
       : now;
     const updatedAtTs = importMetadata?.updated_at
       ? new Date(importMetadata.updated_at).getTime()
-      : now;
+      : createdAtTs;
     const id = importMetadata?.id ?? generateActionId();
 
     await db

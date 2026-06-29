@@ -44,6 +44,12 @@ export function createCustomTextAdapter(
     ): Promise<void> {
       const importMetadata = options?.importMetadata;
       const now = Date.now();
+      const importedCreatedAtTs = importMetadata?.created_at
+        ? new Date(importMetadata.created_at).getTime()
+        : undefined;
+      const importedUpdatedAtTs = importMetadata?.updated_at
+        ? new Date(importMetadata.updated_at).getTime()
+        : importedCreatedAtTs;
       const customTextJson = JSON.stringify(customText);
 
       // Try to update first, then insert if not found
@@ -60,7 +66,10 @@ export function createCustomTextAdapter(
           .updateTable("custom_text")
           .set({
             custom_text: customTextJson,
-            updated_at_ts: now,
+            ...(importedCreatedAtTs !== undefined
+              ? { created_at_ts: importedCreatedAtTs }
+              : {}),
+            updated_at_ts: importedUpdatedAtTs ?? now,
           })
           .where("tenant_id", "=", tenant_id)
           .where("prompt", "=", prompt)
@@ -74,12 +83,8 @@ export function createCustomTextAdapter(
             prompt,
             language,
             custom_text: customTextJson,
-            created_at_ts: importMetadata?.created_at
-              ? new Date(importMetadata.created_at).getTime()
-              : now,
-            updated_at_ts: importMetadata?.updated_at
-              ? new Date(importMetadata.updated_at).getTime()
-              : now,
+            created_at_ts: importedCreatedAtTs ?? now,
+            updated_at_ts: importedUpdatedAtTs ?? now,
           })
           .execute();
       }

@@ -16,10 +16,10 @@ import { z } from "@hono/zod-openapi";
 export const importMetadataSchema = z.object({
   /** Preserve the source row's primary id (entity-specific column). */
   id: z.string().optional(),
-  /** Preserve the source row's `created_at`. */
-  created_at: z.string().optional(),
-  /** Preserve the source row's `updated_at`. */
-  updated_at: z.string().optional(),
+  /** Preserve the source row's `created_at` (ISO 8601 datetime). */
+  created_at: z.string().datetime({ offset: true }).optional(),
+  /** Preserve the source row's `updated_at` (ISO 8601 datetime). */
+  updated_at: z.string().datetime({ offset: true }).optional(),
 });
 
 export type ImportMetadata = z.infer<typeof importMetadataSchema>;

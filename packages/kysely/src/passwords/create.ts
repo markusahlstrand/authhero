@@ -18,8 +18,8 @@ export function create(db: Kysely<Database>) {
     const isCurrent = password.is_current ?? true;
     const now = new Date().toISOString();
     const createdPassword: Password = {
-      id,
       ...password,
+      id,
       is_current: isCurrent,
       created_at: importMetadata?.created_at ?? now,
       updated_at: importMetadata?.updated_at ?? now,

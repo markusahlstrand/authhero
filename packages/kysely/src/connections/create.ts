@@ -21,8 +21,8 @@ export function create(db: Kysely<Database>) {
 
     const now = new Date().toISOString();
     const connection: Connection = {
-      id: importMetadata?.id || rest.id || generateConnectionId(),
       ...rest,
+      id: importMetadata?.id ?? rest.id ?? generateConnectionId(),
       is_system: is_system ? true : undefined,
       created_at: importMetadata?.created_at ?? now,
       updated_at: importMetadata?.updated_at ?? now,

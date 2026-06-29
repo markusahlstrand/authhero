@@ -41,7 +41,12 @@ import {
   ImportResult,
   buildImportMetadata,
 } from "./types";
+import { EXPORT_ORDER } from "./manifest";
 import { asRecord, getString, withoutNullish } from "./row-access";
+
+const ENTITY_ORDER = new Map<string, number>(
+  EXPORT_ORDER.map((entity, index) => [entity, index]),
+);
 
 /**
  * Build the import-only `options.importMetadata` for a row, preserving its
@@ -87,7 +92,17 @@ export async function importTenant(
     counts[entity] = (counts[entity] ?? 0) + 1;
   };
 
-  for (const { entity, data: row } of lines) {
+  // Don't trust the uploaded line order: a file with child rows before their
+  // parents would otherwise fail FK-dependent imports. Re-sort into the
+  // FK-safe manifest order (stable, so rows within one entity keep their
+  // relative order). Unknown entities sort last and are reported in the loop.
+  const orderedLines = [...lines].sort(
+    (a, b) =>
+      (ENTITY_ORDER.get(a.entity) ?? Number.MAX_SAFE_INTEGER) -
+      (ENTITY_ORDER.get(b.entity) ?? Number.MAX_SAFE_INTEGER),
+  );
+
+  for (const { entity, data: row } of orderedLines) {
     try {
       // Export rows are full entities; their optional columns are often
       // serialized as null, which the *Insert* schemas reject. Strip nullish
@@ -162,7 +177,13 @@ export async function importTenant(
         case "user_roles": {
           const userId = required(getString(row, "user_id"), "user_id");
           const roleId = required(getString(row, "role_id"), "role_id");
-          await data.userRoles.create(tenant_id, userId, roleId);
+          await data.userRoles.create(
+            tenant_id,
+            userId,
+            roleId,
+            undefined,
+            meta(row),
+          );
           break;
         }
         case "user_permissions": {
@@ -171,7 +192,13 @@ export async function importTenant(
           const permission = userPermissionInsertSchema.parse(
             withoutNullish(record?.permission),
           );
-          await data.userPermissions.create(tenant_id, userId, permission);
+          await data.userPermissions.create(
+            tenant_id,
+            userId,
+            permission,
+            undefined,
+            meta(row),
+          );
           break;
         }
         case "role_permissions": {
@@ -180,7 +207,12 @@ export async function importTenant(
           const permission = rolePermissionInsertSchema.parse(
             withoutNullish(record?.permission),
           );
-          await data.rolePermissions.assign(tenant_id, roleId, [permission]);
+          await data.rolePermissions.assign(
+            tenant_id,
+            roleId,
+            [permission],
+            meta(row),
+          );
           break;
         }
         case "organization_connections": {
@@ -328,7 +360,13 @@ export async function importTenant(
           );
           break;
         case "log_streams":
-          if (!data.logStreams) continue;
+          if (!data.logStreams) {
+            errors.push({
+              entity,
+              error: "logStreams adapter is not configured",
+            });
+            continue;
+          }
           await data.logStreams.create(
             tenant_id,
             logStreamInsertSchema.parse(clean),
@@ -336,7 +374,13 @@ export async function importTenant(
           );
           break;
         case "migration_sources":
-          if (!data.migrationSources) continue;
+          if (!data.migrationSources) {
+            errors.push({
+              entity,
+              error: "migrationSources adapter is not configured",
+            });
+            continue;
+          }
           await data.migrationSources.create(
             tenant_id,
             migrationSourceInsertSchema.parse(clean),
@@ -344,7 +388,13 @@ export async function importTenant(
           );
           break;
         case "proxy_routes":
-          if (!data.proxyRoutes) continue;
+          if (!data.proxyRoutes) {
+            errors.push({
+              entity,
+              error: "proxyRoutes adapter is not configured",
+            });
+            continue;
+          }
           await data.proxyRoutes.create(
             tenant_id,
             proxyRouteInsertSchema.parse(clean),
@@ -352,7 +402,9 @@ export async function importTenant(
           );
           break;
         default:
-          // Unknown entity in the stream — skip without counting.
+          // Unknown entity in the stream — record it so a partial import is
+          // never mistaken for a clean one.
+          errors.push({ entity, error: `Unknown entity "${entity}"` });
           continue;
       }
       bump(entity);
