@@ -147,12 +147,21 @@ const DARK_MODE_CSS_VARS: Record<string, string> = {
   "--ah-color-text": "#f9fafb",
   "--ah-color-text-muted": "#9ca3af",
   "--ah-color-text-label": "#d1d5db",
+  // Header is read by the widget as `--ah-color-text-header` first, falling
+  // back to the legacy `--ah-color-header`. Set both so an applied theme's
+  // `header` color (e.g. DEFAULT_THEME's #000000) can't leave the title black.
+  "--ah-color-text-header": "#f9fafb",
   "--ah-color-header": "#f9fafb",
   "--ah-color-bg": "#1f2937",
   "--ah-color-bg-hover": "#374151",
   "--ah-color-bg-muted": "#374151",
   "--ah-color-bg-disabled": "#4b5563",
   "--ah-color-input-bg": "#374151",
+  // Typed input text and secondary-button label are also driven by the theme
+  // (input_filled_text / secondary_button_label) and default to #000000, which
+  // is unreadable on the dark input/widget surfaces above.
+  "--ah-color-input-text": "#f9fafb",
+  "--ah-btn-secondary-text": "#f9fafb",
   "--ah-color-border": "#4b5563",
   "--ah-color-border-hover": "#6b7280",
   "--ah-color-border-muted": "#374151",
