@@ -10,6 +10,8 @@ import {
 import type { User } from "@authhero/adapter-interfaces";
 
 import { defineRoute } from "../../utils/define-route";
+import { getIssuer } from "../../variables";
+import { withDefaultPicture } from "../../helpers/avatar";
 // OIDC Address Claim schema per OIDC Core 5.1.1
 const addressClaimSchema = z
   .object({
@@ -131,11 +133,21 @@ const getRoot = defineRoute({
       }
     }
 
-    const user = await ctx.env.data.users.get(tenant_id, ctx.var.user.sub);
+    const storedUser = await ctx.env.data.users.get(
+      tenant_id,
+      ctx.var.user.sub,
+    );
 
-    if (!user) {
+    if (!storedUser) {
       throw new HTTPException(404, { message: "User not found" });
     }
+
+    // Guarantee `picture` is always present, falling back to a generated
+    // avatar so consumers never have to render their own placeholder.
+    const user = withDefaultPicture(
+      storedUser,
+      getIssuer(ctx.env, ctx.var.custom_domain),
+    );
 
     // Get scope from token payload (ctx.var.user contains full JWT payload)
     const tokenPayload = ctx.var.user;
@@ -286,11 +298,21 @@ const postRoot = defineRoute({
       }
     }
 
-    const user = await ctx.env.data.users.get(tenant_id, tokenPayload.sub);
+    const storedUser = await ctx.env.data.users.get(
+      tenant_id,
+      tokenPayload.sub,
+    );
 
-    if (!user) {
+    if (!storedUser) {
       throw new HTTPException(404, { message: "User not found" });
     }
+
+    // Guarantee `picture` is always present, falling back to a generated
+    // avatar so consumers never have to render their own placeholder.
+    const user = withDefaultPicture(
+      storedUser,
+      getIssuer(ctx.env, ctx.var.custom_domain),
+    );
 
     // Get scopes from the token
     const scopes = tokenPayload?.scope?.split(" ") || [];

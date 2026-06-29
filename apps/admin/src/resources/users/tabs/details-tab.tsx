@@ -31,7 +31,6 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { TextInput } from "@/components/admin";
 import { Strategy } from "@/utils/Strategy";
-import { getUserAvatarColor, getUserAvatarSeed } from "@/utils/userAvatar";
 import type { UserIdentity, UserRecord } from "./types";
 
 function getInitials(record: UserRecord): string {
@@ -61,18 +60,13 @@ function UserHeader() {
   const subtitle =
     record.email && record.email !== displayName ? record.email : undefined;
 
-  const bg = getUserAvatarColor(getUserAvatarSeed(record));
-
+  // authhero always returns a `picture` (a generated avatar when the user has
+  // none), so we render it directly; the fallback only covers a failed load.
   return (
     <div className="flex items-center gap-4">
       <Avatar className="size-20">
-        {record.picture && (
-          <AvatarImage src={record.picture} alt={displayName} />
-        )}
-        <AvatarFallback
-          className="text-xl"
-          style={{ backgroundColor: bg, color: "white" }}
-        >
+        <AvatarImage src={record.picture} alt={displayName} />
+        <AvatarFallback className="text-xl">
           {getInitials(record)}
         </AvatarFallback>
       </Avatar>

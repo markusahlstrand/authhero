@@ -32,7 +32,6 @@ import {
   ListPagination,
   ReferenceManyField,
 } from "@/components/admin";
-import { getUserAvatarColor, getUserAvatarSeed } from "@/utils/userAvatar";
 import { buildInvitationPayload } from "./inviteMember";
 
 interface UserSummary {
@@ -223,21 +222,13 @@ function AddMemberButton() {
 function MemberAvatarCell() {
   const record = useRecordContext<MemberRecord>();
   if (!record) return null;
-  const seed = getUserAvatarSeed({
-    email: record.email,
-    name: record.name,
-    user_id: record.user_id,
-  });
-  const initial = seed.charAt(0).toUpperCase();
-  const bg = getUserAvatarColor(seed);
+  const label = record.email || record.name || "";
+  // authhero always returns a `picture` (a generated avatar when the user has
+  // none), so we render it directly; the fallback only covers a failed load.
   return (
     <Avatar>
-      {record.picture ? (
-        <AvatarImage src={record.picture} alt={record.email || record.name} />
-      ) : null}
-      <AvatarFallback style={{ backgroundColor: bg, color: "white" }}>
-        {initial}
-      </AvatarFallback>
+      <AvatarImage src={record.picture} alt={label} />
+      <AvatarFallback>{label.charAt(0).toUpperCase() || "?"}</AvatarFallback>
     </Avatar>
   );
 }

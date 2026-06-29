@@ -21,6 +21,7 @@ import { querySchema } from "../../types/auth0/Query";
 import { parseSort } from "../../utils/sort";
 import { logMessage } from "../../helpers/logging";
 import { getIssuer } from "../../variables";
+import { getDefaultUserPicture } from "../../helpers/avatar";
 import { sendInvitation } from "../../emails";
 
 import { defineRoute } from "../../utils/define-route";
@@ -495,7 +496,12 @@ const getByIdMembers = defineRoute({
           user_id: user.user_id,
           email: user.email || undefined,
           name: user.name || undefined,
-          picture: user.picture || undefined,
+          picture:
+            user.picture ||
+            getDefaultUserPicture(
+              getIssuer(ctx.env, ctx.var.custom_domain),
+              user,
+            ),
           roles,
         };
       }),

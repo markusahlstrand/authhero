@@ -17,6 +17,7 @@ import { authorizeRoutes } from "./authorize";
 import { accountRoutes } from "./account";
 import { registerRoutes } from "./register";
 import { connectStartRoutes } from "./connect-start";
+import { avatarRoutes } from "./avatars";
 import { composeAuthData } from "../../helpers/compose-auth-data";
 import { createInMemoryCache } from "../../adapters/cache/in-memory";
 import { applyConfigMiddleware } from "../../middlewares/apply-config";
@@ -136,7 +137,8 @@ export default function create(config: AuthHeroConfig) {
     .route("/oidc/register", registerRoutes)
     .route("/connect/start", connectStartRoutes)
     .route("/callback", callbackRoutes)
-    .route("/login/callback", loginCallbackRoutes);
+    .route("/login/callback", loginCallbackRoutes)
+    .route("/avatars", avatarRoutes);
 
   oauthApp.doc("/spec", {
     openapi: "3.0.0",
