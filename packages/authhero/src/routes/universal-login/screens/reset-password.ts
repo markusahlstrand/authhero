@@ -9,6 +9,7 @@ import { LogTypes, Strategy } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import bcryptjs from "bcryptjs";
 import { getUsernamePasswordUser } from "../../../utils/username-password-provider";
+import { clearFailedLogins } from "../../../authentication-flows/password";
 import { logMessage } from "../../../helpers/logging";
 import {
   getPasswordPolicy,
@@ -122,6 +123,11 @@ export async function executePasswordReset(params: {
         email_verified: true,
       });
     }
+
+    // Clear any failed-login lockout — a successful reset proves the account
+    // owner is back in control, so they shouldn't be blocked by stale strikes
+    // when they log in with the new password.
+    await clearFailedLogins(env.data, client.tenant.id, user);
 
     // Log the successful password change
     await logMessage(ctx, client.tenant.id, {

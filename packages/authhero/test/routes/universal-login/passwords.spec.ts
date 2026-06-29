@@ -552,6 +552,130 @@ describe("passwords", () => {
     expect(oldPasswordLoginResponse.status).toBe(400);
   });
 
+  it("should clear failed-login lockout after a password reset", async () => {
+    const { universalApp, oauthApp, env, getSentEmails } = await getTestServer({
+      mockEmail: true,
+      testTenantLanguage: "en",
+    });
+    const oauthClient = testClient(oauthApp, env);
+    const universalClient = testClient(universalApp, env);
+
+    const newPassword = "NewP@ssw0rd!";
+    const userId = `${USERNAME_PASSWORD_PROVIDER}|lockedOut123`;
+
+    // Create a password user
+    await env.data.users.create("tenantId", {
+      email: "locked-out@example.com",
+      email_verified: true,
+      name: "Locked Out User",
+      nickname: "lockedout",
+      connection: Strategy.USERNAME_PASSWORD,
+      provider: USERNAME_PASSWORD_PROVIDER,
+      is_social: false,
+      user_id: userId,
+    });
+
+    await env.data.passwords.create("tenantId", {
+      user_id: userId,
+      password: await bcryptjs.hash("OldP@ssw0rd!", 10),
+      algorithm: "bcrypt",
+    });
+
+    // Simulate a lockout: 3 recent failed-login timestamps (>= the 3 limit
+    // enforced in passwordGrant within the 5-minute window).
+    const now = Date.now();
+    await env.data.users.update("tenantId", userId, {
+      app_metadata: { failed_logins: [now, now, now] },
+    });
+
+    // Start the password reset flow
+    const authorizeResponse = await oauthClient.authorize.$get({
+      query: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+        state: "state",
+        nonce: "nonce",
+        scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
+      },
+    });
+
+    const location = authorizeResponse.headers.get("location");
+    const universalUrl = new URL(`https://example.com${location}`);
+    const state = universalUrl.searchParams.get("state");
+    if (!state) throw new Error("No state found");
+
+    await universalClient.login.identifier.$post({
+      query: { state },
+      form: { username: "locked-out@example.com" },
+    });
+
+    await universalClient["forgot-password"].$post({
+      query: { state },
+    });
+
+    const sentEmails = getSentEmails();
+    const passwordResetEmail = sentEmails[sentEmails.length - 1];
+
+    if (passwordResetEmail.data.passwordResetUrl === undefined) {
+      throw new Error("No reset URL found in email");
+    }
+
+    const passwordResetUrl = new URL(passwordResetEmail.data.passwordResetUrl);
+    const passwordResetCode = passwordResetUrl.searchParams.get("code");
+    const resetState = passwordResetUrl.searchParams.get("state");
+
+    if (!passwordResetCode || !resetState) {
+      throw new Error("No code or state found in email");
+    }
+
+    const resetPasswordResponse = await universalClient["reset-password"].$post(
+      {
+        query: { state: resetState, code: passwordResetCode },
+        form: {
+          password: newPassword,
+          "re-enter-password": newPassword,
+        },
+      },
+    );
+
+    expect(resetPasswordResponse.status).toBe(200);
+
+    // The failed-login counter should be cleared by the reset.
+    const userAfterReset = await env.data.users.get("tenantId", userId);
+    expect(userAfterReset?.app_metadata?.failed_logins).toEqual([]);
+
+    // And the user should be able to log in immediately with the new password
+    // rather than being blocked by the stale lockout.
+    const newAuthorize = await oauthClient.authorize.$get({
+      query: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+        state: "state2",
+        nonce: "nonce2",
+        scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
+      },
+    });
+    const newLocation = newAuthorize.headers.get("location");
+    const newUrl = new URL(`https://example.com${newLocation}`);
+    const newState = newUrl.searchParams.get("state");
+    if (!newState) throw new Error("No state found");
+
+    await universalClient.login.identifier.$post({
+      query: { state: newState },
+      form: { username: "locked-out@example.com" },
+    });
+
+    const newPasswordLoginResponse = await universalClient[
+      "enter-password"
+    ].$post({
+      query: { state: newState },
+      form: { password: newPassword },
+    });
+    expect(newPasswordLoginResponse.status).toBe(302);
+  });
+
   it("should reject weak passwords during reset", async () => {
     const { universalApp, oauthApp, env, getSentEmails } = await getTestServer({
       mockEmail: true,
