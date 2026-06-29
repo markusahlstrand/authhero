@@ -42,6 +42,31 @@ describe("GET /tenant-data/export", () => {
     expect(entities).toContain("clients");
   });
 
+  it("returns an uncompressed NDJSON export when gzip=false", async () => {
+    const { managementApp, env } = await getTestServer();
+    const token = await getAdminToken();
+
+    const res = await managementApp.request(
+      "/tenant-data/export?gzip=false",
+      {
+        headers: { authorization: `Bearer ${token}`, "tenant-id": "tenantId" },
+      },
+      env,
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toBe("application/x-ndjson");
+
+    const text = await res.text();
+    const entities = text
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line).entity);
+
+    expect(entities).toContain("tenants");
+    expect(entities).toContain("clients");
+  });
+
   it("rejects include_password_hashes without the elevated scope", async () => {
     const { managementApp, env } = await getTestServer();
     const token = await getAdminToken();
@@ -113,6 +138,30 @@ describe("POST /tenant-data/import", () => {
     const client = await env.data.clients.get("tenantId", "http-imported");
     expect(client?.client_id).toBe("http-imported");
     expect(client?.created_at).toBe("2020-01-01T00:00:00.000Z");
+  });
+
+  it("returns 400 for a corrupt gzip body instead of a 500", async () => {
+    const { managementApp, env } = await getTestServer();
+    const token = await getAdminToken();
+
+    // gzip magic bytes (0x1f 0x8b) followed by garbage — decompression fails.
+    const body = new Uint8Array([0x1f, 0x8b, 0x08, 0x00, 0x01, 0x02, 0x03]);
+
+    const res = await managementApp.request(
+      "/tenant-data/import",
+      {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${token}`,
+          "tenant-id": "tenantId",
+          "content-type": "application/gzip",
+        },
+        body,
+      },
+      env,
+    );
+
+    expect(res.status).toBe(400);
   });
 
   it("accepts a gzipped JSON-lines body", async () => {

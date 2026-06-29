@@ -16,11 +16,14 @@ export function create(db: Kysely<Database>) {
     const importMetadata = options?.importMetadata;
     const now = new Date().toISOString();
     const customDomain: CustomDomain = {
-      custom_domain_id:
-        importMetadata?.id || params.custom_domain_id || nanoid(),
       status: "pending",
       primary: false,
       ...params,
+      // Computed id must win over any `params.custom_domain_id` so an imported
+      // id (importMetadata.id) is preserved; spreading params first would let it
+      // clobber the intended precedence.
+      custom_domain_id:
+        importMetadata?.id || params.custom_domain_id || nanoid(),
     };
 
     await db

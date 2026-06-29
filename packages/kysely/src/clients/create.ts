@@ -21,7 +21,10 @@ export function create(db: Kysely<Database>) {
     const client: Client = {
       ...params,
       created_at: importMetadata?.created_at ?? now,
-      updated_at: importMetadata?.updated_at ?? now,
+      // Preserve source timestamp on import: fall back to the imported
+      // created_at (not replay time) when updated_at is absent.
+      updated_at:
+        importMetadata?.updated_at ?? importMetadata?.created_at ?? now,
       client_id,
       // Ensure required boolean fields have defaults
       global: params.global ?? false,

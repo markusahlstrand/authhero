@@ -11,7 +11,10 @@ export function create(db: Kysely<Database>) {
     const importMetadata = options?.importMetadata;
     const ts = new Date().toISOString();
     const created_at = importMetadata?.created_at ?? ts;
-    const updated_at = importMetadata?.updated_at ?? ts;
+    // Preserve source timestamp on import: fall back to the imported created_at
+    // (not replay time) when updated_at is absent.
+    const updated_at =
+      importMetadata?.updated_at ?? importMetadata?.created_at ?? ts;
 
     await db
       .insertInto("email_templates")

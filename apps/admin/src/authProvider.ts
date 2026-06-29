@@ -292,12 +292,32 @@ export const resolveAccessToken = async (
     if (domainConfig.connectionMethod === "login") {
       const auth0Client = createAuth0Client(domainForAuth);
       const audience = getConfigValue("audience") || "urn:authhero:management";
-      return getOrgAccessToken(
-        auth0Client,
-        normalizedTenantId,
-        audience,
-        domainForAuth,
-      );
+      try {
+        return await getOrgAccessToken(
+          auth0Client,
+          normalizedTenantId,
+          audience,
+          domainForAuth,
+        );
+      } catch (error) {
+        // Mirror createManagementClient's token supplier: when org-scoped
+        // access is missing, redirect to login for the organization rather
+        // than throwing, so export/import recovers the same way as the JSON
+        // management client.
+        const user = await auth0Client.getUser().catch(() => null);
+        await auth0Client.loginWithRedirect({
+          authorizationParams: {
+            organization: normalizedTenantId,
+            login_hint: user?.email,
+          },
+          appState: {
+            returnTo: window.location.pathname,
+          },
+        });
+        throw new Error(
+          `Redirecting to login for organization ${normalizedTenantId}`,
+        );
+      }
     }
     return getOrganizationToken(domainConfig, normalizedTenantId);
   }

@@ -20,6 +20,11 @@ export function create(db: Kysely<Database>) {
     const importMetadata = options?.importMetadata;
     const now = new Date().toISOString();
     const id = importMetadata?.id ?? nanoid();
+    const created_at = importMetadata?.created_at ?? now;
+    // Preserve the source timestamp on import: fall back to the imported
+    // created_at (not replay time) when updated_at is absent.
+    const updated_at =
+      importMetadata?.updated_at ?? importMetadata?.created_at ?? now;
 
     // Extract arrays for proper handling
     const { scope, authorization_details_types, ...rest } = params;
@@ -42,8 +47,8 @@ export function create(db: Kysely<Database>) {
           : undefined,
       is_system:
         rest.is_system !== undefined ? (rest.is_system ? 1 : 0) : undefined,
-      created_at: importMetadata?.created_at ?? now,
-      updated_at: importMetadata?.updated_at ?? now,
+      created_at,
+      updated_at,
     };
 
     await db.insertInto("client_grants").values(dbClientGrant).execute();
@@ -58,8 +63,8 @@ export function create(db: Kysely<Database>) {
       // Ensure boolean fields have proper defaults
       allow_any_organization: rest.allow_any_organization ?? false,
       is_system: rest.is_system ?? false,
-      created_at: importMetadata?.created_at ?? now,
-      updated_at: importMetadata?.updated_at ?? now,
+      created_at,
+      updated_at,
     });
   };
 }

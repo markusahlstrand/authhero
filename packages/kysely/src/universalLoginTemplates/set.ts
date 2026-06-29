@@ -36,6 +36,9 @@ export function set(db: Kysely<Database>) {
         .set({
           body: template.body,
           updated_at_ts: updatedAt,
+          // On import, also restore the source creation timestamp; a plain set
+          // must leave the existing created_at_ts untouched.
+          ...(importMetadata?.created_at ? { created_at_ts: createdAt } : {}),
         })
         .where("tenant_id", "=", tenant_id)
         .execute();

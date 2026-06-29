@@ -7,6 +7,7 @@ import createAdapters, {
 } from "@authhero/kysely-adapter";
 import { DataAdapters } from "@authhero/adapter-interfaces";
 import {
+  EXPORT_ORDER,
   exportTenant,
   importTenant,
 } from "../src/helpers/tenant-export-import";
@@ -134,6 +135,12 @@ describe("tenant export/import round-trip", () => {
     // No fatal per-row errors.
     expect(result.errors).toEqual([]);
 
+    // The tenant itself is remapped onto the destination id, and the source id
+    // is never recreated in the destination database.
+    const dstTenant = await dst.tenants.get("dst");
+    expect(dstTenant?.id).toBe("dst");
+    expect(await dst.tenants.get("src")).toBeNull();
+
     // Client id + created_at preserved.
     const dstClient = await dst.clients.get("dst", "c1");
     expect(dstClient?.client_id).toBe("c1");
@@ -170,6 +177,27 @@ describe("tenant export/import round-trip", () => {
     // User role assignment carried.
     const dstUserRoles = await dst.userRoles.list("dst", "auth2|u1");
     expect(dstUserRoles.some((r) => r.id === seeded.role.id)).toBe(true);
+  });
+
+  it("emits lines in the FK-safe manifest order", async () => {
+    const src = await freshAdapters();
+    await seed(src, "src");
+
+    const lines = await exportTenant(src, "src", {
+      includePasswordHashes: true,
+    });
+
+    // Every emitted entity must be a known manifest entity, and their positions
+    // must be non-decreasing — i.e. the export sequence is a subsequence of
+    // EXPORT_ORDER, keeping the exporter and the shared manifest in lock-step.
+    const positions = lines.map((l) => {
+      const index = EXPORT_ORDER.indexOf(l.entity as never);
+      expect(index, `unknown export entity "${l.entity}"`).toBeGreaterThan(-1);
+      return index;
+    });
+    for (let i = 1; i < positions.length; i++) {
+      expect(positions[i]).toBeGreaterThanOrEqual(positions[i - 1]);
+    }
   });
 
   it("omits password hashes when includePasswordHashes is false", async () => {

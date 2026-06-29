@@ -64,46 +64,122 @@ const MAX_DECODED_BYTES = 250 * 1024 * 1024; // 250 MB after inflation
  * can't OOM the worker. Throws `HTTPException(413)` when either cap is exceeded.
  */
 async function readBody(ctx: RouteContext): Promise<string> {
-  const buffer = new Uint8Array(await ctx.req.arrayBuffer());
-  if (buffer.byteLength > MAX_COMPRESSED_BYTES) {
+  const rawBody = ctx.req.raw.body;
+  if (!rawBody) return "";
+
+  const source = rawBody.getReader();
+
+  // Sniff the first non-empty chunk for the gzip magic bytes (0x1f 0x8b)
+  // without materializing the whole upload, then decide how to decode the rest.
+  let firstChunk: Uint8Array | undefined;
+  let compressed = 0;
+  while (!firstChunk) {
+    const { value, done } = await source.read();
+    if (done) break;
+    if (value && value.byteLength) {
+      firstChunk = value;
+      compressed = value.byteLength;
+    }
+  }
+  if (!firstChunk) return "";
+  if (compressed > MAX_COMPRESSED_BYTES) {
+    await source.cancel();
     throw new HTTPException(413, {
       message: `Import payload exceeds the ${MAX_COMPRESSED_BYTES}-byte limit`,
     });
   }
 
-  // gzip magic bytes (0x1f 0x8b) — inflate; otherwise treat as plain text.
-  const isGzip =
-    buffer.byteLength >= 2 && buffer[0] === 0x1f && buffer[1] === 0x8b;
-  const byteStream = isGzip
-    ? new Blob([buffer]).stream().pipeThrough(new DecompressionStream("gzip"))
-    : new Blob([buffer]).stream();
+  const isGzip = firstChunk[0] === 0x1f && firstChunk[1] === 0x8b;
 
-  // Drain the decoded stream chunk-by-chunk, enforcing the decoded cap as we go
-  // so inflation is aborted the moment it crosses the limit.
-  const reader = byteStream.getReader();
-  const chunks: Uint8Array[] = [];
-  let total = 0;
-  for (;;) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    if (!value) continue;
-    total += value.byteLength;
-    if (total > MAX_DECODED_BYTES) {
-      await reader.cancel();
-      throw new HTTPException(413, {
-        message: `Decoded import payload exceeds the ${MAX_DECODED_BYTES}-byte limit`,
-      });
+  // Request-body chunks are typed as possibly SharedArrayBuffer-backed
+  // (Uint8Array<ArrayBufferLike>); the BufferSource sinks below (TextDecoder and
+  // the gzip writer) only accept ArrayBuffer-backed views, so normalize once.
+  const toBytes = (chunk: Uint8Array): Uint8Array<ArrayBuffer> =>
+    new Uint8Array(chunk);
+
+  const decoder = new TextDecoder();
+  let text = "";
+  let decoded = 0;
+
+  // Plain (non-gzip) path: decode each chunk straight to text, enforcing the
+  // (here identical) size cap as bytes arrive. No intermediate byte buffer.
+  if (!isGzip) {
+    let chunk: Uint8Array | undefined = firstChunk;
+    for (;;) {
+      if (!chunk) {
+        const { value, done } = await source.read();
+        if (done) break;
+        if (!value) continue;
+        chunk = value;
+        compressed += chunk.byteLength;
+        if (compressed > MAX_COMPRESSED_BYTES) {
+          await source.cancel();
+          throw new HTTPException(413, {
+            message: `Import payload exceeds the ${MAX_COMPRESSED_BYTES}-byte limit`,
+          });
+        }
+      }
+      text += decoder.decode(toBytes(chunk), { stream: true });
+      chunk = undefined;
     }
-    chunks.push(value);
+    text += decoder.decode();
+    return text;
   }
 
-  const merged = new Uint8Array(total);
-  let offset = 0;
-  for (const chunk of chunks) {
-    merged.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-  return new TextDecoder().decode(merged);
+  // Gzip path: pump compressed chunks into a DecompressionStream while draining
+  // the inflated output concurrently — enforcing the compressed cap on the way
+  // in and the decoded cap on the way out, so a gzip bomb is aborted the moment
+  // it crosses either limit and the whole upload is never materialized at once.
+  const inflater = new DecompressionStream("gzip");
+  const writer = inflater.writable.getWriter();
+  const reader = inflater.readable.getReader();
+
+  const pump = (async () => {
+    let chunk: Uint8Array | undefined = firstChunk;
+    try {
+      for (;;) {
+        if (!chunk) {
+          const { value, done } = await source.read();
+          if (done) break;
+          if (!value) continue;
+          chunk = value;
+          compressed += chunk.byteLength;
+          if (compressed > MAX_COMPRESSED_BYTES) {
+            throw new HTTPException(413, {
+              message: `Import payload exceeds the ${MAX_COMPRESSED_BYTES}-byte limit`,
+            });
+          }
+        }
+        await writer.write(toBytes(chunk));
+        chunk = undefined;
+      }
+      await writer.close();
+    } catch (err) {
+      await source.cancel().catch(() => {});
+      await writer.abort(err).catch(() => {});
+      throw err;
+    }
+  })();
+
+  const drain = (async () => {
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      if (!value) continue;
+      decoded += value.byteLength;
+      if (decoded > MAX_DECODED_BYTES) {
+        await reader.cancel();
+        throw new HTTPException(413, {
+          message: `Decoded import payload exceeds the ${MAX_DECODED_BYTES}-byte limit`,
+        });
+      }
+      text += decoder.decode(value, { stream: true });
+    }
+    text += decoder.decode();
+  })();
+
+  await Promise.all([pump, drain]);
+  return text;
 }
 
 /** Parse newline-delimited JSON into validated export lines. */
@@ -269,13 +345,14 @@ const importRoute = defineRoute({
       requireScope(ctx, IMPORT_SECRETS_SCOPE);
     }
 
-    // Size-limit failures (413) must surface as-is; only a malformed body maps
-    // to 400.
-    const body = await readBody(ctx);
+    // Reading the body can fail during gzip decompression (corrupt payload) as
+    // well as during JSON parsing; both must map to 400. Size-limit failures
+    // (413, thrown as HTTPException by readBody) surface as-is.
     let lines: ExportLine[];
     try {
-      lines = parseJsonl(body);
-    } catch {
+      lines = parseJsonl(await readBody(ctx));
+    } catch (err) {
+      if (err instanceof HTTPException) throw err;
       throw new HTTPException(400, {
         message: "Request body is not valid gzipped/plain JSON-lines",
       });

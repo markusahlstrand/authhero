@@ -22,7 +22,10 @@ export function create(db: Kysely<Database>) {
       ...params,
       actions: params.actions || [],
       created_at: importMetadata?.created_at ?? now,
-      updated_at: importMetadata?.updated_at ?? now,
+      // Preserve source timestamp on import: fall back to the imported
+      // created_at (not replay time) when updated_at is absent.
+      updated_at:
+        importMetadata?.updated_at ?? importMetadata?.created_at ?? now,
     });
 
     await db

@@ -137,7 +137,7 @@ export function TenantDataPage() {
           <input
             ref={fileInputRef}
             type="file"
-            accept=".jsonl,.json,.gz,.ndjson"
+            accept=".jsonl,.jsonl.gz,.ndjson,.gz"
             className="hidden"
             onChange={(e) => {
               const file = e.currentTarget.files?.[0];

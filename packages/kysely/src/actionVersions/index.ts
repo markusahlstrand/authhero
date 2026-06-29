@@ -62,9 +62,14 @@ export function createActionVersionsAdapter(
       const createdAtTs = importMetadata?.created_at
         ? new Date(importMetadata.created_at).getTime()
         : now;
+      // Preserve source timestamp on import: fall back to the imported
+      // created_at (not replay time) when updated_at is absent so historical
+      // replay keeps the original ordering.
       const updatedAtTs = importMetadata?.updated_at
         ? new Date(importMetadata.updated_at).getTime()
-        : now;
+        : importMetadata
+          ? createdAtTs
+          : now;
       const id = importMetadata?.id ?? generateActionVersionId();
       const deployed = version.deployed !== false;
 
@@ -85,9 +90,12 @@ export function createActionVersionsAdapter(
         const next = (latest?.number ?? 0) + 1;
 
         if (deployed) {
+          // On import, only clear prior deployed flags — bumping updated_at_ts
+          // to replay time would corrupt the historical timestamps of older
+          // rows. Live creates still touch updated_at_ts as before.
           await trx
             .updateTable("action_versions")
-            .set({ deployed: 0, updated_at_ts: now })
+            .set(importMetadata ? { deployed: 0 } : { deployed: 0, updated_at_ts: now })
             .where("tenant_id", "=", tenant_id)
             .where("action_id", "=", version.action_id)
             .execute();
