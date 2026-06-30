@@ -8,7 +8,7 @@ import {
 import { useGetList, useResourceContext } from "ra-core";
 import { Strategy } from "@/utils/Strategy";
 
-const USERNAME_PASSWORD_PROVIDER = "auth2";
+const USERNAME_PASSWORD_PROVIDER = "auth0";
 
 interface ConnectionRecord {
   name: string;
@@ -29,10 +29,15 @@ export function UserCreate() {
     if (data.connection && connections) {
       const connection = connections.find((c) => c.name === data.connection);
       if (connection) {
-        data.provider =
-          connection.strategy === Strategy.USERNAME_PASSWORD
-            ? USERNAME_PASSWORD_PROVIDER
-            : connection.strategy || "database";
+        if (connection.strategy === Strategy.USERNAME_PASSWORD) {
+          data.provider = USERNAME_PASSWORD_PROVIDER;
+          // Store the canonical Auth0 connection name regardless of what the
+          // tenant's database connection happens to be named (e.g. "password"),
+          // so admin-created users match the connection the login flows use.
+          data.connection = Strategy.USERNAME_PASSWORD;
+        } else {
+          data.provider = connection.strategy || "database";
+        }
       }
     }
     return data;
