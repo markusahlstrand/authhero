@@ -399,7 +399,7 @@ zone_name = "acme.com"
 curl https://auth.acme.com/.well-known/openid-configuration
 ```
 
-Expected: a JWKS issuer document with `"issuer": "https://auth.acme.com/"`. If you get `Unknown host` (404), the `custom_domains` row isn't in place or the dispatcher hasn't picked it up yet (it caches host resolutions for 30s by default — see [the proxy cache config](/customization/proxy/)).
+Expected: a JWKS issuer document with `"issuer": "https://auth.acme.com/"`. If you get `Unknown host` (404), the `custom_domains` row isn't in place or the dispatcher hasn't picked it up yet (it caches host resolutions for 30s by default — see [the proxy cache config](/customization/proxy/caching)).
 
 ## Per-tenant routing customization
 
@@ -429,7 +429,7 @@ VALUES (
 );
 ```
 
-See [the proxy handler reference](/customization/proxy/) for the full list (cors, headers, basic_auth, redirect, rewrite_location, http, dispatch_namespace, service_binding, static, cache).
+See [the proxy handler reference](/customization/proxy/handlers) for the full list (cors, headers, basic_auth, redirect, rewrite_location, http, dispatch_namespace, service_binding, static, cache).
 
 ## Control-plane admin tokens
 
@@ -649,7 +649,7 @@ Track progress in [GitHub issue TBD]. Until then, treat the lifecycle fields as 
 - **Per-tenant D1 limits.** Cloudflare imposes a maximum number of D1 databases per account. If you choose `own_d1` and onboard hundreds of tenants, you'll hit this — pick `existing_d1` or PlanetScale for the long tail.
 - **Bindings propagate per script.** Each tenant Worker's `wrangler.toml` declares its own bindings; the dispatcher's bindings don't carry through. Codify the per-tenant `wrangler.toml` in your deploy pipeline. When provisioning through `createCloudflareWfpD1Provisioner`, pass an `extraBindings` array to attach additional bindings (beyond the default `AUTH_DB` and `CONTROL_PLANE_BASE_URL`) — including a `service` binding to a shared upstream Worker.
 - **Secrets distribution.** `ENCRYPTION_KEY` and other secrets must be set per-script via `wrangler secret put --name=tenant-<id>-auth …`. Plan to automate this (and rotation) in your deploy tooling.
-- **Dispatch namespace cache.** The dispatcher caches host resolution for 30s by default. After inserting a new `custom_domains` row, the first request may still 404 until the cache expires. Configure a shorter `negativeTtlMs` (see [proxy cache options](/customization/proxy/)) if you onboard tenants frequently.
+- **Dispatch namespace cache.** The dispatcher caches host resolution for 30s by default. After inserting a new `custom_domains` row, the first request may still 404 until the cache expires. Configure a shorter `negativeTtlMs` (see [proxy cache options](/customization/proxy/caching)) if you onboard tenants frequently.
 
 ## Troubleshooting
 
@@ -699,7 +699,7 @@ Applying ~40 migrations sequentially can hit Cloudflare's per-request limits whe
 ## Next Steps
 
 - [Single-Worker Cloudflare deployment](./cloudflare)
-- [Proxy package handler reference](/customization/proxy/)
+- [Proxy package handler reference](/customization/proxy/handlers)
 - [Custom domain setup](/deployment/custom-domain-setup)
 - [Multi-tenancy architecture](/architecture/multi-tenancy)
 - [Encryption at Rest](/security/encryption-at-rest)

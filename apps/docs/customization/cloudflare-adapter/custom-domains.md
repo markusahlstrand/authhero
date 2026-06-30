@@ -107,4 +107,7 @@ export const customDomains = cloudflareAdapters.customDomains;
 ## Related Documentation
 
 - [Cloudflare API](https://developers.cloudflare.com/api/)
-- [Custom Domain Setup Guide](/deployment/custom-domain-setup)
+- [Custom Domain Setup Guide](/deployment/custom-domain-setup) — DNS, TLS, and routing topologies end to end
+- [Proxy package](/customization/proxy/) — the reverse proxy that resolves these custom domains and dispatches them to tenants
+- [Control Plane → Proxy entity sync](/customization/multi-tenancy/control-plane#proxy-entity-sync) — replicating custom domains to a separate proxy database
+- [Multi-Tenancy architecture](/architecture/multi-tenancy) — how custom domains fit the control plane / proxy / WFP picture

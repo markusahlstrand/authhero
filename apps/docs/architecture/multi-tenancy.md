@@ -144,6 +144,27 @@ This is the deepest topic and has its own diagrammed guides:
   — how defaults and shared secrets are projected and held at rest
 - [Proxy package](/customization/proxy/) — the dispatcher's routing and handlers
 
+## The moving parts
+
+The fully-isolated model has four runtime components. Each has its own guide —
+this table is the thread between them, so you can start anywhere and find your
+way to the rest:
+
+| Component | What it is | Guide |
+| --- | --- | --- |
+| **Control plane** | The platform acting as itself: owns tenant lifecycle, is the source of truth for routing (`custom_domains` + `proxy_routes`), and projects defaults/secrets into tenant databases. | [Control Plane](/customization/multi-tenancy/control-plane) · [Defaults (WFP)](/customization/multi-tenancy/control-plane-defaults) |
+| **Custom domains** | The `custom_domains` rows mapping a customer hostname to a tenant, plus the TLS provisioned for them at the edge. | [Custom Domain Setup](/deployment/custom-domain-setup) · [adapter](/customization/cloudflare-adapter/custom-domains) |
+| **Proxy** | The edge data plane that resolves an inbound host to a tenant and dispatches to the right upstream / tenant Worker. | [Proxy package](/customization/proxy/) |
+| **WFP tenant Worker** | The isolated, per-tenant authhero instance the proxy dispatches into. | [Workers for Platforms](/deployment/cloudflare-wfp) |
+
+The data flow in one line: the **control plane** owns `custom_domains` +
+`proxy_routes` and **publishes them to the proxy** — by shared database, HTTP
+fetch, or a [KV read replica](/customization/proxy/deployment#shape-3b-split-db-kv-published-read-replica-recommended-over-plain-shape-3);
+the **proxy** resolves an inbound **custom domain** to a tenant and dispatches
+into that tenant's **WFP Worker**; and the control plane separately **projects
+defaults and shared secrets** into each tenant's own database so the isolated
+Worker serves without reading the control plane on the hot path.
+
 ## How a request finds its tenant
 
 Whatever the model, ingress resolves a **host** (or, for the management API, a

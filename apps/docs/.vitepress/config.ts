@@ -588,6 +588,25 @@ gtag('config', 'G-DNZWG3PF2L');`,
             {
               text: "Proxy Package",
               link: "/customization/proxy/",
+              collapsed: true,
+              items: [
+                {
+                  text: "Handlers",
+                  link: "/customization/proxy/handlers",
+                },
+                {
+                  text: "Host Caching",
+                  link: "/customization/proxy/caching",
+                },
+                {
+                  text: "Deployment Topologies",
+                  link: "/customization/proxy/deployment",
+                },
+                {
+                  text: "API Reference",
+                  link: "/customization/proxy/api-reference",
+                },
+              ],
             },
             {
               text: "Core Configuration",

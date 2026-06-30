@@ -684,7 +684,7 @@ via `ctx.waitUntil`, so it never blocks or fails the originating write.
 This is the write side of the proxy's KV read replica; the full publish → seed →
 use guide (including `backfillProxyHostsToKv` and the proxy-side
 `createKvProxyAdapter`) lives in
-[Proxy → Shape 3b](/customization/proxy/#shape-3b-—-split-db-kv-published-read-replica-recommended-over-plain-shape-3).
+[Proxy → Shape 3b](/customization/proxy/deployment#shape-3b-split-db-kv-published-read-replica-recommended-over-plain-shape-3).
 
 ### Tenant shard configuration
 
@@ -774,7 +774,17 @@ for (const tenant of tenants) {
 
 ## Next Steps
 
+**Within the multi-tenancy package:**
+
 - [Tenant Lifecycle](./tenant-lifecycle.md) - Learn about creating and managing tenants
 - [Database Isolation](./database-isolation.md) - Set up per-tenant databases
 - [Runtime Fallback](./runtime-fallback.md) - Inherit configuration from control plane at runtime
+- [Control Plane Defaults (WFP)](./control-plane-defaults) - Project defaults and shared secrets into per-tenant databases — the Workers for Platforms variant of this control-plane model
 - [API Reference](./api-reference.md) - Complete API documentation
+
+**How the control plane connects to the proxy, custom domains, and WFP tenants:**
+
+- [Multi-Tenancy architecture](/architecture/multi-tenancy) - the map that ties the control plane, proxy, custom domains, and WFP tenants together
+- [Proxy package](/customization/proxy/) - the data plane that resolves custom domains and dispatches to tenants (see [Proxy entity sync](#proxy-entity-sync) above for how routes reach it)
+- [Custom Domain Setup](/deployment/custom-domain-setup) - DNS, TLS, and edge routing for the customer domains this control plane publishes
+- [Cloudflare Workers for Platforms](/deployment/cloudflare-wfp) - the isolated per-tenant deployment this control plane feeds

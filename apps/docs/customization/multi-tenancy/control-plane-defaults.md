@@ -625,6 +625,8 @@ install them only if you import `/wfp`.
 
 ## See also
 
+- [Control Plane Architecture](./control-plane) — the general control-plane model (entity sync, organizations, proxy/host publishing) this WFP defaults-push is a variant of
+- [Multi-Tenancy architecture](../../architecture/multi-tenancy) — the map tying the control plane, proxy, custom domains, and WFP together
 - [Runtime Fallback](./runtime-fallback) — the read-path merge this builds on
 - [Database Isolation](./database-isolation) — per-tenant adapters
 - [Cloudflare Workers for Platforms](../../deployment/cloudflare-wfp) — the deploy topology
