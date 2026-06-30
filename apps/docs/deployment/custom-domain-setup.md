@@ -208,7 +208,7 @@ at the edge and never persisted by AuthHero. See
 
 | Symptom | Likely cause |
 | --- | --- |
-| Custom domain returns the wrong tenant / 404 | No `custom_domains` row for the host, or the proxy isn't forwarding `x-forwarded-host`. Resolution reads `x-forwarded-host` before `host`. |
+| Custom domain returns the wrong tenant / 404 | No `custom_domains` row for the host, or the proxy isn't forwarding `x-forwarded-host`. The proxy router resolves from `host` first, then `x-forwarded-host`; AuthHero's `tenantMiddleware` checks `x-forwarded-host` first, then `host`. |
 | TLS errors / cert not issued | Cloudflare custom hostname validation hasn't completed — check the CNAME points at your stable target and the hostname status in the Cloudflare dashboard. |
 | `iss` claim has the wrong host | Self-referencing URLs use the host the client called. Confirm the request reaches AuthHero with the expected host and that `env.ISSUER` is byte-exact (no trailing-slash normalization). |
 | Newly registered domain not routing (split-DB / KV) | KV propagates globally within ~60s, and a not-yet-seeded host falls through to the HTTP control plane. Run the backfill/reconcile job. |

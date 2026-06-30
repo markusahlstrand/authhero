@@ -6,7 +6,7 @@ description: Exports from @authhero/proxy, the kysely/drizzle/aws proxy data ada
 # API reference
 
 
-### From `@authhero/proxy`
+## From `@authhero/proxy`
 
 ```typescript
 // App factory — main entry point
@@ -119,7 +119,7 @@ export {
 } from "@authhero/proxy";
 ```
 
-### From `@authhero/kysely-adapter` / `@authhero/drizzle`
+## From `@authhero/kysely-adapter` / `@authhero/drizzle`
 
 ```typescript
 // Kysely or Drizzle implementation of ProxyDataAdapter (CRUD + resolveHost)
@@ -130,7 +130,7 @@ export { createProxyDataAdapter } from "@authhero/drizzle";
 
 `@authhero/aws` exposes an equivalent `createProxyDataAdapter` against its own schema.
 
-### From `authhero` (control-plane KV publisher)
+## From `authhero` (control-plane KV publisher)
 
 ```typescript
 // Wrap customDomains + proxyRoutes so writes publish the recomputed

@@ -7,7 +7,7 @@ description: Host-resolution caching for @authhero/proxy — in-memory SWR and p
 
 `resolveHost` runs on every request. Two cache implementations ship:
 
-### In-memory (default)
+## In-memory (default)
 
 Per-Worker LRU with stale-while-revalidate.
 
@@ -28,7 +28,7 @@ createProxyApp({
 
 On Cloudflare Workers, thread `ExecutionContext.waitUntil` through (e.g. via `AsyncLocalStorage`) so background refreshes survive the response.
 
-### Pluggable `CacheAdapter` (cross-instance, stale-while-revalidate)
+## Pluggable `CacheAdapter` (cross-instance, stale-while-revalidate)
 
 For larger deployments where you want cache hits across Worker isolates, wrap any `CacheAdapter` (the generic key/value cache interface from `@authhero/adapter-interfaces`) with `createCacheAdapterHostCache`. It adds stale-while-revalidate on top of whatever backing cache you plug in — Cloudflare's Cache API, Redis, in-memory, anything.
 

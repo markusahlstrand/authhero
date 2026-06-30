@@ -7,11 +7,11 @@ description: Where the @authhero/proxy data plane lives and how it learns about 
 
 Two architectural decisions: where the proxy lives, and how it learns about routes.
 
-### Shape 1 — All-in-one
+## Shape 1 — All-in-one
 
 Run the proxy data plane in the same Worker as AuthHero by composing them in a single Hono app. Convenient for local dev or single-customer deploys.
 
-### Shape 2 — Split, shared database (recommended for most production deployments)
+## Shape 2 — Split, shared database (recommended for most production deployments)
 
 ```typescript
 // AuthHero Worker (your existing deploy)
@@ -40,11 +40,11 @@ export default {
 
 Both Workers point at the same database. The proxy needs read access to `custom_domains` and `proxy_routes`; CRUD writes happen through the AuthHero Worker.
 
-### Shape 3 — Split, separate databases (control-plane HTTP fetch)
+## Shape 3 — Split, separate databases (control-plane HTTP fetch)
 
 When the proxy Worker **cannot** share a database with AuthHero — e.g. the proxy lives in a different Cloudflare account or VPC — fetch routing data over HTTP instead.
 
-#### Proxy side: `createHttpProxyAdapter`
+### Proxy side: `createHttpProxyAdapter`
 
 ```typescript
 import { createProxyApp, createHttpProxyAdapter } from "@authhero/proxy";
@@ -81,7 +81,7 @@ The adapter:
 
 The host cache wraps this so each control-plane fetch is amortized across many requests.
 
-#### Control-plane side: outbox-driven sync
+### Control-plane side: outbox-driven sync
 
 The control plane needs the `custom_domains` and `proxy_routes` data. AuthHero's outbox replicates mutations from each tenant shard:
 
@@ -131,7 +131,7 @@ The receiver is idempotent by construction — it handles duplicate `created` (f
 
 For the receiver-side config wiring and idempotency semantics in full, see [Control Plane → Proxy entity sync](/customization/multi-tenancy/control-plane#proxy-entity-sync).
 
-### Shape 3b — Split DB, KV-published read replica (recommended over plain Shape 3)
+## Shape 3b — Split DB, KV-published read replica (recommended over plain Shape 3)
 
 Shape 3 reads routing over HTTP on every cache miss. That path is a **two-hop,
 authenticated call** — an OAuth `client_credentials` token fetch followed by the
@@ -161,7 +161,7 @@ flowchart LR
 Three steps: **publish**, **seed**, then **use**. Keep the Shape 3 HTTP adapter
 as a fallback during migration and drop it once the backfill is verified.
 
-#### Step 1 — Publish (control plane)
+### Step 1 — Publish (control plane)
 
 Wrap the control plane's `customDomains` + `proxyRoutes` adapters with
 `wrapProxyAdaptersWithKvPublish`. On any write it recomputes the **whole**
@@ -246,7 +246,7 @@ binding = "PROXY_HOSTS"
 id = "<namespace-id>"
 ```
 
-#### Step 2 — Seed (one-time backfill + periodic reconcile)
+### Step 2 — Seed (one-time backfill + periodic reconcile)
 
 Existing custom domains aren't in KV until they're next written, so backfill them
 once. The same helper doubles as the reconcile primitive you run on a cron to
@@ -276,7 +276,7 @@ Hosts that no longer resolve are **deleted** from KV rather than left stale.
 Schedule this on a Cloudflare [Cron Trigger](https://developers.cloudflare.com/workers/configuration/cron-triggers/)
 (e.g. hourly) as the reconcile job.
 
-#### Step 3 — Use (proxy)
+### Step 3 — Use (proxy)
 
 On the proxy, read from KV with `createKvProxyAdapter` and keep the Shape 3 HTTP
 adapter as the **miss / error fallback**. Compose them into one upstream, then
@@ -340,7 +340,7 @@ Once the backfill is verified and KV is in steady-state sync, you can drop the
 HTTP fallback entirely (resolve straight from `kv`) and retire the
 `CONTROL_PLANE_*` secrets on the proxy.
 
-#### Constraints & notes
+### Constraints & notes
 
 - **Same Cloudflare account** for the KV namespace and the proxy Worker — KV is
   not shareable across accounts.
@@ -351,7 +351,7 @@ HTTP fallback entirely (resolve straight from `kv`) and retire the
   under a short `negativeTtlMs` lets a newly-seeded host become reachable quickly.
   The HTTP fallback covers hosts not yet backfilled during migration.
 
-### Shape 4 — WFP dispatcher
+## Shape 4 — WFP dispatcher
 
 This is the "proxy as dispatch worker" shape. See [Cloudflare Workers for Platforms](/deployment/cloudflare-wfp) for the full deploy guide. The proxy fronts a dispatch namespace and routes each request into the matching tenant's Worker. The data adapter is typically the same one AuthHero uses, but with a synthetic default route layered on (see [Quick start → WFP dispatcher](/customization/proxy/#wfp-dispatcher-workers-for-platforms)).
 
