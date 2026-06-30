@@ -131,6 +131,83 @@ describe("userinfo", () => {
       });
     });
 
+    // Regression: the generated-avatar fallback must not leak into responses
+    // that didn't grant `profile`. A user with no picture of their own who
+    // requests `picture` via the OIDC `claims` parameter (no `profile` scope)
+    // must NOT receive a fabricated default avatar.
+    it("should not fabricate a default picture for a requested claim without profile scope", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const client = testClient(oauthApp, env);
+
+      await env.data.users.create("tenantId", {
+        email: "nopicture@example.com",
+        email_verified: true,
+        name: "No Picture User",
+        connection: "email",
+        provider: "email",
+        is_social: false,
+        user_id: "email|noPictureUserId",
+      });
+
+      const accessToken = await createToken({
+        user_id: "email|noPictureUserId",
+        tenant_id: "tenantId",
+        scope: "openid", // no `profile` scope
+        requested_userinfo_claims: ["picture"],
+      });
+
+      const response = await client.userinfo.$get(
+        {},
+        {
+          headers: {
+            authorization: `Bearer ${accessToken}`,
+          },
+        },
+      );
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+      expect(body).toEqual({ sub: "email|noPictureUserId" });
+      expect(body.picture).toBeUndefined();
+    });
+
+    // Counterpart: the default avatar fallback IS attached when `profile` is
+    // granted, so consumers can always rely on `picture` being present.
+    it("should attach a default picture under profile scope when the user has none", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const client = testClient(oauthApp, env);
+
+      await env.data.users.create("tenantId", {
+        email: "nopicture2@example.com",
+        email_verified: true,
+        name: "No Picture User Two",
+        connection: "email",
+        provider: "email",
+        is_social: false,
+        user_id: "email|noPictureUserId2",
+      });
+
+      const accessToken = await createToken({
+        user_id: "email|noPictureUserId2",
+        tenant_id: "tenantId",
+        scope: "openid profile",
+      });
+
+      const response = await client.userinfo.$get(
+        {},
+        {
+          headers: {
+            authorization: `Bearer ${accessToken}`,
+          },
+        },
+      );
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+      expect(typeof body.picture).toBe("string");
+      expect(body.picture).toContain("/avatars/");
+    });
+
     it("should ignore unknown requested claim names", async () => {
       const { oauthApp, env } = await getTestServer();
       const client = testClient(oauthApp, env);

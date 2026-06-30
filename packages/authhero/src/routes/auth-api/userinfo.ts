@@ -71,14 +71,25 @@ function buildUserInfoResponse(
   user: User,
   scopes: string[],
   requestedClaims: string[] = [],
+  issuer?: string,
 ) {
   // sub is the only claim always included (OIDC Core 5.3.2). Scope-driven
   // claims are shared with the ID Token via buildScopeClaims. Individually
   // requested claims (OIDC Core 5.5 `claims.userinfo`) are merged on top,
   // regardless of scope.
+  //
+  // The generated-avatar fallback is a convenience for the `profile` scope,
+  // where consumers expect `picture` to always be present. It must NOT leak
+  // into responses that didn't grant `profile` — in particular an
+  // individually requested `picture` claim must reflect the user's real
+  // value, so buildRequestedClaims always sees the un-enriched user.
+  const scopedUser =
+    issuer && scopes.includes("profile")
+      ? withDefaultPicture(user, issuer)
+      : user;
   return {
     sub: user.user_id,
-    ...buildScopeClaims(user, scopes),
+    ...buildScopeClaims(scopedUser, scopes),
     ...buildRequestedClaims(user, requestedClaims),
   };
 }
@@ -142,12 +153,11 @@ const getRoot = defineRoute({
       throw new HTTPException(404, { message: "User not found" });
     }
 
-    // Guarantee `picture` is always present, falling back to a generated
-    // avatar so consumers never have to render their own placeholder.
-    const user = withDefaultPicture(
-      storedUser,
-      getIssuer(ctx.env, ctx.var.custom_domain),
-    );
+    const issuer = getIssuer(ctx.env, ctx.var.custom_domain);
+    // The hook context has historically always seen a `picture`; keep a
+    // default-picture-enriched copy for it. The response itself only attaches
+    // the fallback on the `profile`-scoped path (see buildUserInfoResponse).
+    const user = withDefaultPicture(storedUser, issuer);
 
     // Get scope from token payload (ctx.var.user contains full JWT payload)
     const tokenPayload = ctx.var.user;
@@ -155,7 +165,12 @@ const getRoot = defineRoute({
     const requestedClaims = extractRequestedUserinfoClaims(tokenPayload);
 
     // Build initial userinfo response based on scopes + requested claims
-    const baseUserInfo = buildUserInfoResponse(user, scopes, requestedClaims);
+    const baseUserInfo = buildUserInfoResponse(
+      storedUser,
+      scopes,
+      requestedClaims,
+      issuer,
+    );
 
     // Call onFetchUserInfo hook if configured
     const onFetchUserInfo = ctx.env.hooks?.onFetchUserInfo;
@@ -307,19 +322,23 @@ const postRoot = defineRoute({
       throw new HTTPException(404, { message: "User not found" });
     }
 
-    // Guarantee `picture` is always present, falling back to a generated
-    // avatar so consumers never have to render their own placeholder.
-    const user = withDefaultPicture(
-      storedUser,
-      getIssuer(ctx.env, ctx.var.custom_domain),
-    );
+    const issuer = getIssuer(ctx.env, ctx.var.custom_domain);
+    // The hook context has historically always seen a `picture`; keep a
+    // default-picture-enriched copy for it. The response itself only attaches
+    // the fallback on the `profile`-scoped path (see buildUserInfoResponse).
+    const user = withDefaultPicture(storedUser, issuer);
 
     // Get scopes from the token
     const scopes = tokenPayload?.scope?.split(" ") || [];
     const requestedClaims = extractRequestedUserinfoClaims(tokenPayload);
 
     // Build initial userinfo response based on scopes + requested claims
-    const baseUserInfo = buildUserInfoResponse(user, scopes, requestedClaims);
+    const baseUserInfo = buildUserInfoResponse(
+      storedUser,
+      scopes,
+      requestedClaims,
+      issuer,
+    );
 
     // Call onFetchUserInfo hook if configured
     const onFetchUserInfo = ctx.env.hooks?.onFetchUserInfo;
