@@ -1,5 +1,41 @@
 # authhero
 
+## 8.10.0
+
+### Minor Changes
+
+- 2d20db2: Add Cloudflare KV as a published read replica for proxy host resolution.
+
+  `@authhero/proxy` gains `createKvProxyAdapter`, a `ProxyDataAdapter` that
+  resolves a `Host` to its `ResolvedHost` blob with a single, unauthenticated,
+  edge-local `KV.get` — a faster, more reliable alternative to the two-hop
+  HTTP control-plane adapter. It slots into the existing `upstream` seam of
+  `createCacheAdapterHostCache`, with `createHttpProxyAdapter` left as the
+  miss / `stale-if-error` fallback during cutover. The KV binding is passed as
+  a minimal structural interface, so the package keeps its zero-Cloudflare
+  footprint. Also exports `buildKvHostKey` and `DEFAULT_KV_HOST_KEY_PREFIX`.
+
+  `authhero` gains the control-plane publisher `wrapProxyAdaptersWithKvPublish`,
+  which wraps the `customDomains` + `proxyRoutes` adapters so every write
+  recomputes the affected host's full blob and publishes it to KV
+  fire-and-forget (via `waitUntil`). Wrapping at the adapter layer makes it the
+  single choke-point — pass the wrapped pair to both the management-api app
+  (direct writes) and `createApplySyncEvents` (WFP `/sync`-applied writes) so KV
+  stays in sync regardless of write origin. `backfillProxyHostsToKv` covers the
+  one-time migration backfill and doubles as the periodic reconcile primitive.
+
+### Patch Changes
+
+- dfcd621: Fix tenant-data export silently returning a corrupt 10-byte gzip when the
+  export fails before producing any row. The handler now prefetches the first
+  line before committing the streamed response, so a pre-first-byte failure
+  returns a proper 500 instead of a 200 with a truncated gzip header. All export
+  failures (including mid-stream) are now logged as `FAILED_API_OPERATION` so the
+  underlying cause is diagnosable.
+- 1fef2e4: Fix `/userinfo` leaking a generated default-avatar `picture` for users who have none when `picture` is requested via the OIDC `claims` parameter without the `profile` scope. The default-avatar fallback is now only attached on the `profile`-scoped claims path; individually requested `picture` claims reflect the user's real value.
+- Updated dependencies [2d20db2]
+  - @authhero/proxy@0.8.0
+
 ## 8.9.2
 
 ### Patch Changes

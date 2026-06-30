@@ -1,5 +1,12 @@
 # @authhero/drizzle
 
+## 0.56.2
+
+### Patch Changes
+
+- Updated dependencies [2d20db2]
+  - @authhero/proxy@0.8.0
+
 ## 0.56.1
 
 ### Patch Changes

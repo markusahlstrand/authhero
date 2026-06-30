@@ -1,5 +1,12 @@
 # @authhero/aws-adapter
 
+## 0.37.2
+
+### Patch Changes
+
+- Updated dependencies [2d20db2]
+  - @authhero/proxy@0.8.0
+
 ## 0.37.1
 
 ### Patch Changes

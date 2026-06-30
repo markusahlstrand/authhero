@@ -1,5 +1,12 @@
 # @authhero/kysely-adapter
 
+## 11.10.2
+
+### Patch Changes
+
+- Updated dependencies [2d20db2]
+  - @authhero/proxy@0.8.0
+
 ## 11.10.1
 
 ### Patch Changes
