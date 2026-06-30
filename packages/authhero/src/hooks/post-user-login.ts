@@ -265,14 +265,31 @@ export async function postUserLoginHook(
     // the pre-login values either way), and the row write plus its
     // user-update decorator chain is one of the slowest calls in the login
     // flow.
+    const lastLogin = new Date().toISOString();
+    const lastIp = ctx.var.ip || "";
+    const loginCount = user.login_count + 1;
     waitUntil(
       ctx,
       data.users.update(tenant_id, user.user_id, {
-        last_login: new Date().toISOString(),
-        last_ip: ctx.var.ip || "",
-        login_count: user.login_count + 1,
+        last_login: lastLogin,
+        last_ip: lastIp,
+        login_count: loginCount,
       }),
     );
+    // Expand/contract migration (issue #1003): double-write the same counters
+    // to the user_activity entity. Reads still come from the legacy `users`
+    // columns this phase; a later PR cuts reads over and drops the columns.
+    // Guarded because the adapter is optional (e.g. drizzle doesn't ship it).
+    if (data.userActivity) {
+      waitUntil(
+        ctx,
+        data.userActivity.upsert(tenant_id, user.user_id, {
+          last_login: lastLogin,
+          last_ip: lastIp,
+          login_count: loginCount,
+        }),
+      );
+    }
 
     // Build the Auth0-compatible event once. Reused by both the env-hook
     // (ctx.env.hooks.onExecutePostLogin) and the code-hook loop below so user

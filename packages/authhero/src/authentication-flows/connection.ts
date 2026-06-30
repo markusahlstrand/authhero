@@ -244,15 +244,41 @@ export async function connectionCallback(
     }
   }
 
-  const userinfo = await strategy.validateAuthorizationCodeAndGetUser(
-    ctx,
-    connection,
-    code,
-    auth0state.code_verifier,
-  );
+  // Prefer the raw-capturing variant so the entire upstream claim set is
+  // persisted to profileData (Auth0 parity — e.g. waad's upn /
+  // preferred_username / unique_name / oid). Strategies that don't implement it
+  // (most social ones) fall back to the normalized userinfo with raw: null, so
+  // their behavior is unchanged.
+  const { userinfo, raw } = strategy.validateAuthorizationCodeAndGetUserWithRaw
+    ? await strategy.validateAuthorizationCodeAndGetUserWithRaw(
+        ctx,
+        connection,
+        code,
+        auth0state.code_verifier,
+      )
+    : {
+        userinfo: await strategy.validateAuthorizationCodeAndGetUser(
+          ctx,
+          connection,
+          code,
+          auth0state.code_verifier,
+        ),
+        raw: null,
+      };
 
-  const { sub, ...profileData } = userinfo;
+  const { sub, ...normalizedProfile } = userinfo;
   ctx.set("user_id", sub);
+
+  // Persist the full decoded upstream claims when the strategy exposes them
+  // (id_token / userinfo claims only — no tokens or secrets), with the
+  // normalized fields taking precedence. `sub` is dropped since it maps to
+  // user_id, matching the prior profileData shape.
+  let profileData: Record<string, unknown> = { ...normalizedProfile };
+  if (raw) {
+    const rawClaims = { ...raw };
+    delete rawClaims.sub;
+    profileData = { ...rawClaims, ...normalizedProfile };
+  }
 
   const email =
     userinfo.email?.toLocaleLowerCase() ||

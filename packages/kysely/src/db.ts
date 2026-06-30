@@ -513,6 +513,17 @@ export interface Database {
   prompt_settings: z.infer<typeof sqlPromptSettingSchema>;
   refresh_tokens: z.infer<typeof sqlRefreshTokensSchema>;
   users: z.infer<typeof sqlUserSchema>;
+  // Write-often counters split out of `users` (issue #1003). Populated/read in
+  // a follow-up PR; the table exists empty until then.
+  user_activity: {
+    tenant_id: string;
+    user_id: string;
+    last_login: string | null;
+    last_ip: string | null;
+    login_count: number;
+    failed_logins: string | null; // JSON array of lockout timestamps
+    last_password_reset: string | null;
+  };
   sessions: z.infer<typeof sqlSessionSchema>;
   tenants: z.infer<typeof sqlTenantSchema>;
   themes: z.infer<typeof sqlThemeSchema>;

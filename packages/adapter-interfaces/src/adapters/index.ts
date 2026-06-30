@@ -32,6 +32,7 @@ import { FormsAdapter } from "./Forms";
 import { ResourceServersAdapter } from "./ResourceServers";
 import { RolePermissionsAdapter } from "./RolePermissions";
 import { GrantsAdapter } from "./Grants";
+import { UserActivityAdapter } from "./UserActivity";
 import { UserPermissionsAdapter } from "./UserPermissions";
 import { RolesAdapter } from "./Roles";
 import { UserRolesAdapter } from "./UserRoles";
@@ -116,6 +117,14 @@ export interface DataAdapters {
    * `/api/v2/client-grants`, which is `clientGrants` above).
    */
   grants?: GrantsAdapter;
+  /**
+   * Optional write-often per-user activity counters (last_login, last_ip,
+   * login_count, …) split out of the `users` row (issue #1003). When set, the
+   * login flow double-writes these alongside the legacy `users` columns during
+   * the expand/contract migration. When undefined, only the legacy columns are
+   * written.
+   */
+  userActivity?: UserActivityAdapter;
   userPermissions: UserPermissionsAdapter;
   roles: RolesAdapter;
   sessions: SessionsAdapter;
@@ -238,4 +247,5 @@ export * from "./TenantSettings";
 export * from "./Tenants";
 export * from "./Themes";
 export * from "./Grants";
+export * from "./UserActivity";
 export * from "./Users";

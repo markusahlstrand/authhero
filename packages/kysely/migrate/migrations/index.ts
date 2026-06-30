@@ -174,6 +174,7 @@ import * as o075_create_grants from "./2026-06-04T11:00:00_create_grants";
 import * as o076_default_first_party_true from "./2026-06-04T11:01:00_default_first_party_true";
 import * as o077_tenant_deployment_fields from "./2026-06-06T12:00:00_tenant_deployment_fields";
 import * as o078_tenant_database_version from "./2026-06-27T12:00:00_tenant_database_version";
+import * as o079_user_activity_and_user_column_cleanup from "./2026-06-30T12:00:00_user_activity_and_user_column_cleanup";
 
 // These need to be in alphabetic order
 export default {
@@ -353,4 +354,5 @@ export default {
   o076_default_first_party_true,
   o077_tenant_deployment_fields,
   o078_tenant_database_version,
+  o079_user_activity_and_user_column_cleanup,
 };

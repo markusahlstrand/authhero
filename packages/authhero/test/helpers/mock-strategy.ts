@@ -23,6 +23,14 @@ export const mockStrategy: Strategy = {
           sub: "foo",
           email: "foo@example.com",
         };
+      // Mimics an Entra/waad mismatch: the `email` claim is sourced from the
+      // `mail` attribute and differs from the sign-in identifier (upn /
+      // preferred_username). Used to assert the full claim set is captured.
+      case "entra-mismatch":
+        return {
+          sub: "entra-oid-123",
+          email: "mail-attr@contoso.com",
+        };
       case "vipps-user@example.com":
         return {
           sub: "vipps-456",
@@ -55,5 +63,36 @@ export const mockStrategy: Strategy = {
           email: "hello@example.com",
         };
     }
+  },
+  // Backward-compatible: returns raw: null for every existing code (so the
+  // callback keeps its prior profileData shape), and the full upstream claim
+  // set only for the `entra-mismatch` code used by the capture test.
+  validateAuthorizationCodeAndGetUserWithRaw: async (
+    ctx,
+    connection,
+    code: string,
+    codeVerifier?: string,
+  ) => {
+    const userinfo = await mockStrategy.validateAuthorizationCodeAndGetUser(
+      ctx,
+      connection,
+      code,
+      codeVerifier,
+    );
+    if (code === "entra-mismatch") {
+      return {
+        userinfo,
+        raw: {
+          sub: userinfo.sub,
+          email: userinfo.email,
+          preferred_username: "alice@contoso.com",
+          upn: "alice@contoso.com",
+          unique_name: "alice@contoso.com",
+          oid: "00000000-aaaa-bbbb-cccc-111111111111",
+          tid: "contoso-tenant-guid",
+        },
+      };
+    }
+    return { userinfo, raw: null };
   },
 };
