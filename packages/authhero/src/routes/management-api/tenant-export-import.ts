@@ -242,6 +242,17 @@ const exportRoute = defineRoute({
           "JSON-lines export of the tenant's durable data, one " +
           "`{ entity, data }` record per line (gzipped by default).",
       },
+      500: {
+        content: {
+          "application/json": {
+            schema: z.object({
+              message: z.string(),
+            }),
+          },
+        },
+        description:
+          "Export failed before the response body could be streamed.",
+      },
     },
   }),
   handler: async (ctx) => {
