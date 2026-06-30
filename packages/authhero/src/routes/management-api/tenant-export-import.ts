@@ -242,6 +242,17 @@ const exportRoute = defineRoute({
           "JSON-lines export of the tenant's durable data, one " +
           "`{ entity, data }` record per line (gzipped by default).",
       },
+      500: {
+        content: {
+          "application/json": {
+            schema: z.object({
+              message: z.string(),
+            }),
+          },
+        },
+        description:
+          "Export failed before the response body could be streamed.",
+      },
     },
   }),
   handler: async (ctx) => {
@@ -262,10 +273,32 @@ const exportRoute = defineRoute({
     let rowCount = 0;
     let logged = false;
 
+    // Pull the first line *before* committing the response. The body streams,
+    // so returning the Response locks in status 200 + headers; if the very
+    // first adapter call throws after that, the only recourse is
+    // `controller.error`, which truncates the gzip to its 10-byte header and
+    // hands the client a 200 with a corrupt file. Surfacing that first failure
+    // here lets us return a real 5xx (and log it) instead.
+    let firstResult: IteratorResult<ExportLine>;
+    try {
+      firstResult = await iterator.next();
+    } catch (err) {
+      await logMessage(ctx, tenant_id, {
+        type: LogTypes.FAILED_API_OPERATION,
+        description: `Tenant export failed (password_hashes=${includePasswordHashes}) by ${ctx.var.user?.sub ?? "unknown"}: ${err instanceof Error ? err.message : String(err)}`,
+        targetType: "tenant",
+        targetId: tenant_id,
+      });
+      throw new HTTPException(500, { message: "Tenant export failed" });
+    }
+    // The first chunk is already fetched; emit it before resuming the iterator.
+    let pending: IteratorResult<ExportLine> | undefined = firstResult;
+
     const ndjson = new ReadableStream<Uint8Array<ArrayBuffer>>({
       async pull(controller) {
         try {
-          const { value, done } = await iterator.next();
+          const { value, done } = pending ?? (await iterator.next());
+          pending = undefined;
           if (done) {
             if (!logged) {
               logged = true;
@@ -282,6 +315,17 @@ const exportRoute = defineRoute({
           rowCount += 1;
           controller.enqueue(encoder.encode(JSON.stringify(value) + "\n"));
         } catch (err) {
+          // Mid-stream failure: status 200 is already on the wire, so the
+          // client still gets a truncated body — but at least record why.
+          if (!logged) {
+            logged = true;
+            await logMessage(ctx, tenant_id, {
+              type: LogTypes.FAILED_API_OPERATION,
+              description: `Tenant export failed after ${rowCount} rows (password_hashes=${includePasswordHashes}) by ${ctx.var.user?.sub ?? "unknown"}: ${err instanceof Error ? err.message : String(err)}`,
+              targetType: "tenant",
+              targetId: tenant_id,
+            });
+          }
           controller.error(err);
         }
       },

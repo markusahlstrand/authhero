@@ -67,6 +67,30 @@ describe("GET /tenant-data/export", () => {
     expect(entities).toContain("clients");
   });
 
+  it("returns 500 (not a corrupt 200) when the export fails before the first row", async () => {
+    // Hit the full app so the root onError converts the thrown HTTPException
+    // into a 500 response (the management app deliberately rethrows >=500s).
+    const { app, env } = await getTestServer();
+    const token = await getAdminToken();
+
+    // The export streams, so status is committed before any row is produced.
+    // A throw on the very first adapter call must surface as a real error
+    // rather than a 200 with a truncated 10-byte gzip header.
+    env.data.tenants.get = async () => {
+      throw new Error("boom");
+    };
+
+    const res = await app.request(
+      "/api/v2/tenant-data/export",
+      {
+        headers: { authorization: `Bearer ${token}`, "tenant-id": "tenantId" },
+      },
+      env,
+    );
+
+    expect(res.status).toBe(500);
+  });
+
   it("rejects include_password_hashes without the elevated scope", async () => {
     const { managementApp, env } = await getTestServer();
     const token = await getAdminToken();
