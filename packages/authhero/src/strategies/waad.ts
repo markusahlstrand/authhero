@@ -4,6 +4,7 @@ import { Bindings, Variables } from "../types";
 import {
   microsoftEntraRedirect,
   microsoftEntraValidate,
+  microsoftEntraValidateWithRaw,
   microsoftLogoDataUri,
 } from "./microsoft-entra";
 
@@ -32,6 +33,24 @@ export function validateAuthorizationCodeAndGetUser(
   code_verifier?: string,
 ) {
   return microsoftEntraValidate(
+    ctx,
+    connection,
+    code,
+    code_verifier,
+    DEFAULT_TENANT,
+  );
+}
+
+// Exposes the full decoded ID token payload alongside the normalized user so
+// the connection callback can persist the entire upstream claim set (upn,
+// preferred_username, unique_name, oid, …) to profileData.
+export function validateAuthorizationCodeAndGetUserWithRaw(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  connection: Connection,
+  code: string,
+  code_verifier?: string,
+) {
+  return microsoftEntraValidateWithRaw(
     ctx,
     connection,
     code,

@@ -66,4 +66,58 @@ describe("connection", () => {
       },
     });
   });
+
+  it("persists the full upstream claim set to profileData on callback", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const oauthClient = testClient(oauthApp, env);
+
+    // mock-strategy exposes validateAuthorizationCodeAndGetUserWithRaw, so the
+    // callback should persist the entire decoded claim set (incl. upn /
+    // preferred_username) to profileData — not just the normalized email.
+    await oauthClient.authorize.$get(
+      {
+        query: {
+          client_id: "clientId",
+          redirect_uri: "https://example.com/callback",
+          state: "state",
+          connection: "mock-strategy",
+          response_type: AuthorizationResponseType.TOKEN_ID_TOKEN,
+        },
+      },
+      { headers: { origin: "https://example.com" } },
+    );
+
+    // mock-strategy.getRedirect uses the fixed oauth2_state "code".
+    const oauth2Code = await env.data.codes.get(
+      "tenantId",
+      "code",
+      "oauth2_state",
+    );
+    if (!oauth2Code) throw new Error("No oauth2_state code found");
+
+    const callbackResponse = await oauthClient.login.callback.$get({
+      query: { state: "code", code: "entra-mismatch" },
+    });
+    expect(callbackResponse.status).toEqual(302);
+
+    const user = await env.data.users.get(
+      "tenantId",
+      "mock-strategy|entra-oid-123",
+    );
+    if (!user?.profileData) throw new Error("User or profileData missing");
+    const profileData = JSON.parse(user.profileData);
+
+    // The full upstream claim set is captured...
+    expect(profileData).toMatchObject({
+      preferred_username: "alice@contoso.com",
+      upn: "alice@contoso.com",
+      unique_name: "alice@contoso.com",
+      oid: "00000000-aaaa-bbbb-cccc-111111111111",
+      tid: "contoso-tenant-guid",
+      email: "mail-attr@contoso.com",
+    });
+    // ...but the upstream `sub` is not duplicated into profileData (it maps to
+    // user_id).
+    expect(profileData.sub).toBeUndefined();
+  });
 });

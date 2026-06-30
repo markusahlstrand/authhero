@@ -48,6 +48,7 @@ import { createOutboxAdapter } from "./outbox";
 import { createLogStreamsAdapter } from "./log-streams";
 import { createMigrationSourcesAdapter } from "./migrationSources";
 import { createProxyRoutesAdapter } from "./proxyRoutes";
+import { createUserActivityAdapter } from "./userActivity";
 
 export { migrateToLatest, migrateDown } from "../migrate/migrate";
 export type { Database } from "./db";
@@ -102,6 +103,7 @@ export default function createAdapters(
     universalLoginTemplates: createUniversalLoginTemplatesAdapter(db),
     customText: createCustomTextAdapter(db),
     users: createUsersAdapter(db),
+    userActivity: createUserActivityAdapter(db),
     organizations: createOrganizationsAdapter(db),
     organizationConnections: createOrganizationConnectionsAdapter(db),
     userOrganizations: createUserOrganizationsAdapter(db),

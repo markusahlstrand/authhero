@@ -69,7 +69,7 @@ export async function microsoftEntraRedirect(
   };
 }
 
-export async function microsoftEntraValidate(
+async function microsoftEntraValidateInternal(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   connection: Connection,
   code: string,
@@ -88,17 +88,56 @@ export async function microsoftEntraValidate(
     throw new Error("Invalid ID token");
   }
 
+  // idTokenSchema is `.passthrough()`, so the parsed payload retains every
+  // upstream claim (upn, preferred_username, unique_name, oid, …) — we expose
+  // it as `raw` so the full claim set can be persisted to profileData.
   const payload = idTokenSchema.parse(idToken.payload);
   ctx.set("log", `Microsoft user: ${JSON.stringify(payload)}`);
 
   return {
-    sub: payload.sub,
-    email: payload.email,
-    given_name: payload.given_name,
-    family_name: payload.family_name,
-    name: payload.name,
-    picture: payload.picture,
+    userinfo: {
+      sub: payload.sub,
+      email: payload.email,
+      given_name: payload.given_name,
+      family_name: payload.family_name,
+      name: payload.name,
+      picture: payload.picture,
+    },
+    raw: { ...idToken.payload } as Record<string, unknown>,
   };
+}
+
+export async function microsoftEntraValidate(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  connection: Connection,
+  code: string,
+  code_verifier: string | undefined,
+  defaultTenant: string,
+) {
+  const { userinfo } = await microsoftEntraValidateInternal(
+    ctx,
+    connection,
+    code,
+    code_verifier,
+    defaultTenant,
+  );
+  return userinfo;
+}
+
+export async function microsoftEntraValidateWithRaw(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  connection: Connection,
+  code: string,
+  code_verifier: string | undefined,
+  defaultTenant: string,
+) {
+  return microsoftEntraValidateInternal(
+    ctx,
+    connection,
+    code,
+    code_verifier,
+    defaultTenant,
+  );
 }
 
 export const microsoftLogoDataUri =
