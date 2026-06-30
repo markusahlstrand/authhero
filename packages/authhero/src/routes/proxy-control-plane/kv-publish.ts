@@ -93,12 +93,20 @@ export function wrapProxyAdaptersWithKvPublish(
     schedule(publishHost(host, op));
   }
 
+  // Host discovery exists only to compute the KV key — it must never fail (or
+  // delay a false failure onto) the underlying write. A read error degrades to
+  // "host unknown", which simply skips the publish for that mutation; the
+  // periodic reconcile (`backfillProxyHostsToKv`) then repairs the drift.
   async function hostForCustomDomainId(
     tenant_id: string,
     custom_domain_id: string,
   ): Promise<string | null> {
-    const domain = await customDomains.get(tenant_id, custom_domain_id);
-    return domain?.domain ?? null;
+    try {
+      const domain = await customDomains.get(tenant_id, custom_domain_id);
+      return domain?.domain ?? null;
+    } catch {
+      return null;
+    }
   }
 
   const wrappedCustomDomains: CustomDomainsAdapter = {
@@ -113,23 +121,23 @@ export function wrapProxyAdaptersWithKvPublish(
       return created;
     },
     async update(tenant_id, id, custom_domain) {
-      const before = await customDomains.get(tenant_id, id);
+      const beforeHost = await hostForCustomDomainId(tenant_id, id);
       const ok = await customDomains.update(tenant_id, id, custom_domain);
       if (ok) {
-        const after = await customDomains.get(tenant_id, id);
-        const host = after?.domain ?? before?.domain;
+        const afterHost = await hostForCustomDomainId(tenant_id, id);
+        const host = afterHost ?? beforeHost;
         // A domain rename leaves a stale key under the old host — drop it.
-        if (before?.domain && after?.domain && before.domain !== after.domain) {
-          publish(before.domain, "custom_domain.update");
+        if (beforeHost && afterHost && beforeHost !== afterHost) {
+          publish(beforeHost, "custom_domain.update");
         }
         publish(host, "custom_domain.update");
       }
       return ok;
     },
     async remove(tenant_id, id) {
-      const before = await customDomains.get(tenant_id, id);
+      const beforeHost = await hostForCustomDomainId(tenant_id, id);
       const ok = await customDomains.remove(tenant_id, id);
-      if (ok) publish(before?.domain, "custom_domain.remove");
+      if (ok) publish(beforeHost, "custom_domain.remove");
       return ok;
     },
   };
@@ -228,7 +236,11 @@ export async function backfillProxyHostsToKv(
 
   const result: BackfillResult = { published: 0, deleted: 0, failed: [] };
 
-  for (const host of hosts) {
+  for (const rawHost of hosts) {
+    // Normalize once so resolution and the KV key agree. `buildKvHostKey`
+    // lowercases the key, so a mixed-case input passed raw to `resolveHost`
+    // could fail to resolve and then delete the canonical (live) lowercase key.
+    const host = rawHost.toLowerCase();
     try {
       const blob = await resolveHost(host);
       const key = buildKvHostKey(keyPrefix, host);

@@ -17,7 +17,7 @@ const blob: ResolvedHost = {
 function fakeKv(store: Record<string, unknown>): KvNamespaceReader & {
   get: ReturnType<typeof vi.fn>;
 } {
-  const get = vi.fn(async (key: string, _type: "json") => {
+  const get = vi.fn(async (key: string) => {
     return (store[key] ?? null) as never;
   });
   return { get };

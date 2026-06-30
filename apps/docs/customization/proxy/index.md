@@ -23,7 +23,7 @@ In both cases, all surfaces share the same origin so session cookies can be shar
 
 - 🧭 **Structured route matching** — match on `path`, `methods`, `hosts`, `headers`, `query`; priority-ordered
 - 🧩 **Composable handler chain** — 12 built-in handlers covering CORS, auth, header rewrite, caching, and five dispatch modes (`http`, `service_binding`, `dispatch_namespace`, `redirect`, `static`)
-- 🔌 **Pluggable data adapter** — static (in-memory), SQL (via `@authhero/kysely-adapter` or `@authhero/drizzle`), HTTP (via `createHttpProxyAdapter` for cross-account control planes), or Cloudflare KV (via `createKvProxyAdapter` — a published read replica, see [Shape 3b](#shape-3b-—-split-db-kv-published-read-replica-recommended-over-plain-shape-3))
+- 🔌 **Pluggable data adapter** — static (in-memory), SQL (via `@authhero/kysely-adapter` or `@authhero/drizzle`), HTTP (via `createHttpProxyAdapter` for cross-account control planes), or Cloudflare KV (via `createKvProxyAdapter` — a published read replica, see [Shape 3b](#shape-3b-split-db-kv-published-read-replica-recommended-over-plain-shape-3))
 - 🗄️ **Shared schema** — the `proxy_routes` table is part of the standard AuthHero migrations
 - ⚡ **Built-in host cache** — stale-while-revalidate so `resolveHost` doesn't hit the database on the hot path; layer in any `CacheAdapter` (Cloudflare, Redis, …) for cross-instance hits
 - 🚀 **Library-first** — both the data plane and the management API are exposed as Hono router factories you can mount wherever fits your deploy topology
@@ -629,7 +629,7 @@ resolved host blob to a Cloudflare **KV** namespace whenever a `custom_domain` o
 unauthenticated, edge-local `KV.get`. The control-plane DB stays the source of
 truth — KV is a published read replica.
 
-```
+```text
 custom_domain / proxy_route write
         │  (direct control-plane write  OR  WFP /sync-applied write)
         ▼
@@ -671,7 +671,9 @@ const { customDomains, proxyRoutes } = wrapProxyAdaptersWithKvPublish({
   proxyRoutes: proxyAdapters.proxyRoutes,
   kv: env.PROXY_HOSTS, // the KV namespace binding
   resolveHost,
-  waitUntil: (p) => ctx.waitUntil(p), // thread ExecutionContext through
+  // `ctx` is the Worker's ExecutionContext, threaded through (e.g. via
+  // AsyncLocalStorage) so the fire-and-forget KV publish survives the response.
+  waitUntil: (p) => ctx.waitUntil(p),
   onError: (err, { host, op }) =>
     console.error(`[kv-publish] ${op} ${host}`, err),
   // keyPrefix defaults to "authhero-proxy-host:" — must match the reader
