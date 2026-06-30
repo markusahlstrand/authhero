@@ -670,6 +670,22 @@ The outbox retries on network failure, so the receiver MUST be safe to call mult
 
 Adapters that don't preserve the source-shard `id` will diverge over time; the kysely and drizzle adapters both use `input.id` when supplied (`proxyRouteInsertSchema` carries it as optional).
 
+### Publishing resolved hosts to Cloudflare KV
+
+To take the two-hop HTTP read off the proxy's hot path, the control plane can
+publish each resolved host blob to a Cloudflare KV namespace that the proxy reads
+directly. Wrap the `customDomains` + `proxyRoutes` adapters **once** with
+`wrapProxyAdaptersWithKvPublish` and pass the wrapped pair to both the
+`dataAdapter` (direct management-API writes) and `createApplySyncEvents`
+(`/sync`-replicated writes) — the adapter layer is the single choke-point that
+sees every write regardless of origin. Recompute-and-publish runs fire-and-forget
+via `ctx.waitUntil`, so it never blocks or fails the originating write.
+
+This is the write side of the proxy's KV read replica; the full publish → seed →
+use guide (including `backfillProxyHostsToKv` and the proxy-side
+`createKvProxyAdapter`) lives in
+[Proxy → Shape 3b](/customization/proxy/#shape-3b-—-split-db-kv-published-read-replica-recommended-over-plain-shape-3).
+
 ### Tenant shard configuration
 
 Each tenant shard opts into replication with the `controlPlaneSync` block on `AuthHeroConfig` (requires the outbox to be enabled):

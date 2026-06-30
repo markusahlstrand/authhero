@@ -219,6 +219,62 @@ const { app } = init({
 });
 ```
 
+## KV-published read replica (recommended over the bare HTTP adapter)
+
+The HTTP adapter reads routing over a two-hop authenticated call (token mint +
+resolve) on every cache miss. To remove that hop from the hot path, have the
+control plane **publish** each resolved host blob to a Cloudflare KV namespace,
+and have the proxy **read** it with a single, unauthenticated `KV.get`. The
+control-plane DB stays the source of truth; KV is a published read replica.
+
+**Proxy side** — `createKvProxyAdapter`, with the HTTP adapter kept as the
+miss/error fallback during migration:
+
+```ts
+import {
+  createProxyApp,
+  createKvProxyAdapter,
+  createHttpProxyAdapter,
+  createCacheAdapterHostCache,
+  createInMemoryHostCache,
+  type ProxyDataAdapter,
+} from "@authhero/proxy";
+import { createCloudflareCache } from "@authhero/cloudflare-adapter";
+
+const kv = createKvProxyAdapter({ kv: env.PROXY_HOSTS, timeoutMs: 1000 });
+const http = createHttpProxyAdapter({ baseUrl, clientId, clientSecret });
+
+const upstream: ProxyDataAdapter = {
+  proxyRoutes: kv.proxyRoutes, // read-only
+  async resolveHost(host) {
+    try {
+      const hit = await kv.resolveHost(host);
+      if (hit) return hit;
+    } catch {
+      /* KV slow/unavailable — fall through */
+    }
+    return http.resolveHost(host); // miss / error fallback
+  },
+};
+
+const resolver = createCacheAdapterHostCache({
+  upstream: createInMemoryHostCache(upstream, { freshTtlMs: 60_000 }),
+  cache: createCloudflareCache({ cacheName: "authhero-proxy-hosts" }),
+  freshTtlMs: 60 * 60_000,
+  negativeTtlMs: 60_000,
+  waitUntil: (p) => ctx.waitUntil(p),
+});
+
+createProxyApp({ data: upstream, resolver });
+```
+
+**Control-plane side** — wrap the adapters once with
+`wrapProxyAdaptersWithKvPublish` (from `authhero`) and pass the wrapped pair to
+both the management API and `createApplySyncEvents`, then seed existing hosts
+with `backfillProxyHostsToKv`. The KV namespace must live in the **same
+Cloudflare account** as the proxy Worker. See the full publish → seed → use guide
+in the docs: [Proxy → Shape 3b](https://www.authhero.net/customization/proxy/#shape-3b-—-split-db-kv-published-read-replica-recommended-over-plain-shape-3).
+
 ## Host cache
 
 `resolveHost` is called on every request. Wrap it with the built-in stale-while-revalidate cache:

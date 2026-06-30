@@ -57,4 +57,14 @@ export type {
 } from "./static";
 export { createHttpProxyAdapter } from "./http-adapter";
 export type { HttpProxyAdapterOptions } from "./http-adapter";
+export {
+  createKvProxyAdapter,
+  buildKvHostKey,
+  DEFAULT_KV_HOST_KEY_PREFIX,
+} from "./kv-adapter";
+export type {
+  KvProxyAdapterOptions,
+  KvNamespaceReader,
+  KvNamespaceWriter,
+} from "./kv-adapter";
 export { PROXY_RESOLVE_HOST_SCOPE } from "./constants";

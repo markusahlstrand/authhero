@@ -23,7 +23,7 @@ In both cases, all surfaces share the same origin so session cookies can be shar
 
 - 🧭 **Structured route matching** — match on `path`, `methods`, `hosts`, `headers`, `query`; priority-ordered
 - 🧩 **Composable handler chain** — 12 built-in handlers covering CORS, auth, header rewrite, caching, and five dispatch modes (`http`, `service_binding`, `dispatch_namespace`, `redirect`, `static`)
-- 🔌 **Pluggable data adapter** — static (in-memory), SQL (via `@authhero/kysely-adapter` or `@authhero/drizzle`), or HTTP (via `createHttpProxyAdapter` for cross-account control planes)
+- 🔌 **Pluggable data adapter** — static (in-memory), SQL (via `@authhero/kysely-adapter` or `@authhero/drizzle`), HTTP (via `createHttpProxyAdapter` for cross-account control planes), or Cloudflare KV (via `createKvProxyAdapter` — a published read replica, see [Shape 3b](#shape-3b-split-db-kv-published-read-replica-recommended-over-plain-shape-3))
 - 🗄️ **Shared schema** — the `proxy_routes` table is part of the standard AuthHero migrations
 - ⚡ **Built-in host cache** — stale-while-revalidate so `resolveHost` doesn't hit the database on the hot path; layer in any `CacheAdapter` (Cloudflare, Redis, …) for cross-instance hits
 - 🚀 **Library-first** — both the data plane and the management API are exposed as Hono router factories you can mount wherever fits your deploy topology
@@ -616,6 +616,199 @@ The receiver is idempotent by construction — it handles duplicate `created` (f
 
 For the receiver-side config wiring and idempotency semantics in full, see [Control Plane → Proxy entity sync](/customization/multi-tenancy/control-plane#proxy-entity-sync).
 
+### Shape 3b — Split DB, KV-published read replica (recommended over plain Shape 3)
+
+Shape 3 reads routing over HTTP on every cache miss. That path is a **two-hop,
+authenticated call** — an OAuth `client_credentials` token fetch followed by the
+resolve fetch — which can be slow on cold/edge-cache fall-through and has failed
+intermittently in production.
+
+Shape 3b removes that hop from the hot path. The control plane **publishes** each
+resolved host blob to a Cloudflare **KV** namespace whenever a `custom_domain` or
+`proxy_route` changes; the proxy **reads** that blob with a single,
+unauthenticated, edge-local `KV.get`. The control-plane DB stays the source of
+truth — KV is a published read replica.
+
+```text
+custom_domain / proxy_route write
+        │  (direct control-plane write  OR  WFP /sync-applied write)
+        ▼
+wrapProxyAdaptersWithKvPublish ──recompute ResolvedHost──▶ KV.put(host)  (fire-and-forget)
+                                                              │
+proxy:  KV.get(host) ──hit──▶ serve     ── miss/error ──▶ HTTP control plane (fallback)
+```
+
+Three steps: **publish**, **seed**, then **use**. Keep the Shape 3 HTTP adapter
+as a fallback during migration and drop it once the backfill is verified.
+
+#### Step 1 — Publish (control plane)
+
+Wrap the control plane's `customDomains` + `proxyRoutes` adapters with
+`wrapProxyAdaptersWithKvPublish`. On any write it recomputes the **whole**
+`ResolvedHost` for the affected host and publishes it to KV via `ctx.waitUntil`,
+so a slow or failed `KV.put` never adds latency to — or fails — the write.
+
+Wrapping at the adapter layer makes it the **single choke-point**: pass the
+wrapped pair to **both** the management API (`dataAdapter`, which serves direct
+control-plane writes) **and** `createApplySyncEvents` (which applies WFP
+`/sync`-replicated writes). Both paths then publish to KV.
+
+```typescript
+import {
+  init,
+  createApplySyncEvents,
+  wrapProxyAdaptersWithKvPublish,
+} from "authhero";
+import createAdapters, { createProxyDataAdapter } from "@authhero/kysely-adapter";
+
+const proxyAdapters = createAdapters(proxyDb);
+
+// Same resolver the control plane already uses for GET /hosts/:host.
+const resolveHost = createProxyDataAdapter(proxyDb).resolveHost;
+
+const { customDomains, proxyRoutes } = wrapProxyAdaptersWithKvPublish({
+  customDomains: proxyAdapters.customDomains,
+  proxyRoutes: proxyAdapters.proxyRoutes,
+  kv: env.PROXY_HOSTS, // the KV namespace binding
+  resolveHost,
+  // `ctx` is the Worker's ExecutionContext, threaded through (e.g. via
+  // AsyncLocalStorage) so the fire-and-forget KV publish survives the response.
+  waitUntil: (p) => ctx.waitUntil(p),
+  onError: (err, { host, op }) =>
+    console.error(`[kv-publish] ${op} ${host}`, err),
+  // keyPrefix defaults to "authhero-proxy-host:" — must match the reader
+});
+
+export default init({
+  // Wrapped adapters → direct management-API writes publish to KV.
+  dataAdapter: { ...proxyAdapters, customDomains, proxyRoutes },
+  proxyControlPlane: {
+    resolveHost,
+    // Wrapped adapters → WFP /sync-applied writes publish to KV.
+    applySyncEvents: createApplySyncEvents({ customDomains, proxyRoutes }),
+  },
+});
+```
+
+Publishing is fire-and-forget, so a dropped `KV.put` can leave KV momentarily
+stale. Two safety nets cover that: the proxy's HTTP fallback self-heals a missed
+write on the next request (Step 3), and the periodic reconcile catches silent
+drift (Step 2).
+
+Bind the namespace in the control plane's `wrangler.toml` — it **must live in the
+same Cloudflare account as the proxy Worker** (KV can't be shared cross-account):
+
+```toml
+[[kv_namespaces]]
+binding = "PROXY_HOSTS"
+id = "<namespace-id>"
+```
+
+#### Step 2 — Seed (one-time backfill + periodic reconcile)
+
+Existing custom domains aren't in KV until they're next written, so backfill them
+once. The same helper doubles as the reconcile primitive you run on a cron to
+correct any drift. The adapter interface has no cross-tenant domain list, so you
+supply the host list from a direct DB query.
+
+```typescript
+import { backfillProxyHostsToKv } from "authhero";
+
+// Your cross-tenant query over the control-plane DB.
+const hosts = await proxyDb
+  .selectFrom("custom_domains")
+  .select("domain")
+  .execute()
+  .then((rows) => rows.map((r) => r.domain));
+
+const result = await backfillProxyHostsToKv({
+  hosts,
+  resolveHost,
+  kv: env.PROXY_HOSTS,
+});
+// { published: number; deleted: number; failed: string[] }
+console.log("[kv-backfill]", result);
+```
+
+Hosts that no longer resolve are **deleted** from KV rather than left stale.
+Schedule this on a Cloudflare [Cron Trigger](https://developers.cloudflare.com/workers/configuration/cron-triggers/)
+(e.g. hourly) as the reconcile job.
+
+#### Step 3 — Use (proxy)
+
+On the proxy, read from KV with `createKvProxyAdapter` and keep the Shape 3 HTTP
+adapter as the **miss / error fallback**. Compose them into one upstream, then
+layer the normal in-memory + `CacheAdapter` caches on top.
+
+```typescript
+import {
+  createProxyApp,
+  createKvProxyAdapter,
+  createHttpProxyAdapter,
+  createCacheAdapterHostCache,
+  createInMemoryHostCache,
+  type ProxyDataAdapter,
+  type ResolvedHost,
+} from "@authhero/proxy";
+import { createCloudflareCache } from "@authhero/cloudflare-adapter";
+
+const kv = createKvProxyAdapter({
+  kv: env.PROXY_HOSTS,
+  timeoutMs: 1000, // fall through to HTTP if KV is slow
+  // keyPrefix must match the publisher's (default "authhero-proxy-host:")
+});
+
+const http = createHttpProxyAdapter({
+  baseUrl: env.CONTROL_PLANE_URL,
+  clientId: env.CONTROL_PLANE_CLIENT_ID,
+  clientSecret: env.CONTROL_PLANE_CLIENT_SECRET,
+});
+
+// KV first; on a miss (not-yet-seeded host) or error, fall back to HTTP.
+const upstream: ProxyDataAdapter = {
+  proxyRoutes: kv.proxyRoutes, // read-only stub; the data plane never writes
+  async resolveHost(host: string): Promise<ResolvedHost | null> {
+    try {
+      const fromKv = await kv.resolveHost(host);
+      if (fromKv) return fromKv;
+    } catch {
+      // KV unavailable/slow — fall through to the control plane.
+    }
+    return http.resolveHost(host);
+  },
+};
+
+const resolver = createCacheAdapterHostCache({
+  upstream: createInMemoryHostCache(upstream, {
+    freshTtlMs: 60_000,
+    staleTtlMs: 5 * 60_000,
+  }),
+  cache: createCloudflareCache({ cacheName: "authhero-proxy-hosts" }),
+  freshTtlMs: 60 * 60_000,
+  staleTtlMs: 23 * 60 * 60_000,
+  staleIfErrorTtlMs: 24 * 60 * 60_000,
+  negativeTtlMs: 60_000, // short, so a freshly-seeded host appears quickly
+  waitUntil: (p) => ctx.waitUntil(p),
+});
+
+createProxyApp({ data: upstream, resolver });
+```
+
+Once the backfill is verified and KV is in steady-state sync, you can drop the
+HTTP fallback entirely (resolve straight from `kv`) and retire the
+`CONTROL_PLANE_*` secrets on the proxy.
+
+#### Constraints & notes
+
+- **Same Cloudflare account** for the KV namespace and the proxy Worker — KV is
+  not shareable across accounts.
+- **Eventual consistency:** KV writes propagate globally within ~60s. That's
+  tighter than the long stale-revalidate window Shape 3 relied on, and acceptable
+  here.
+- **Negative results:** a `KV.get` returning `null` means *not found* — caching it
+  under a short `negativeTtlMs` lets a newly-seeded host become reachable quickly.
+  The HTTP fallback covers hosts not yet backfilled during migration.
+
 ### Shape 4 — WFP dispatcher
 
 This is the "proxy as dispatch worker" shape. See [Cloudflare Workers for Platforms](/deployment/cloudflare-wfp) for the full deploy guide. The proxy fronts a dispatch namespace and routes each request into the matching tenant's Worker. The data adapter is typically the same one AuthHero uses, but with a synthetic default route layered on (see [Quick start → WFP dispatcher](#wfp-dispatcher-workers-for-platforms)).
@@ -692,6 +885,19 @@ export type {
 // HTTP adapter for cross-account / cross-DB proxy deployments
 export { createHttpProxyAdapter } from "@authhero/proxy";
 export type { HttpProxyAdapterOptions } from "@authhero/proxy";
+
+// KV adapter — read resolved host blobs from a Cloudflare KV namespace
+// (the read side of Shape 3b). Pair with the control-plane publisher below.
+export {
+  createKvProxyAdapter,
+  buildKvHostKey,
+  DEFAULT_KV_HOST_KEY_PREFIX,
+} from "@authhero/proxy";
+export type {
+  KvProxyAdapterOptions,
+  KvNamespaceReader,
+  KvNamespaceWriter,
+} from "@authhero/proxy";
 
 // Host caches
 export { createInMemoryHostCache } from "@authhero/proxy";
@@ -770,6 +976,19 @@ export { createProxyDataAdapter } from "@authhero/drizzle";
 ```
 
 `@authhero/aws` exposes an equivalent `createProxyDataAdapter` against its own schema.
+
+### From `authhero` (control-plane KV publisher)
+
+```typescript
+// Wrap customDomains + proxyRoutes so writes publish the recomputed
+// ResolvedHost to a KV namespace (the write side of Shape 3b).
+export { wrapProxyAdaptersWithKvPublish } from "authhero";
+export type { KvPublishOptions, WrappedProxyAdapters } from "authhero";
+
+// One-time backfill + periodic reconcile of existing hosts into KV.
+export { backfillProxyHostsToKv } from "authhero";
+export type { BackfillProxyHostsOptions, BackfillResult } from "authhero";
+```
 
 ## Related guides
 
