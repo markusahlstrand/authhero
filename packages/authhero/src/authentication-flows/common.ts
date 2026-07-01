@@ -45,6 +45,7 @@ import renderAuthIframe from "../utils/authIframe";
 import { formPostResponse } from "../utils/form-post";
 import { calculateScopesAndPermissions } from "../helpers/scopes-permissions";
 import { getMissingConsentScopes } from "../helpers/consent";
+import { isConnectLoginSession } from "../helpers/dcr/connect-state";
 import {
   buildScopeClaims,
   buildRequestedClaims,
@@ -1737,6 +1738,30 @@ export async function createFrontChannelAuthResponse(
           });
         }
       }
+    }
+
+    // ========================================================================
+    // CONNECT (DCR consent) CONTINUATION
+    // ========================================================================
+    // A /connect/start login session is not a real OAuth request: it carries
+    // no redirect_uri/response_type and exists only to authenticate the user
+    // for the DCR consent screen. Once the user is authenticated (and MFA, if
+    // required, has been satisfied above), hand control back to the connect
+    // screen instead of issuing tokens — there is no redirect_uri to honor.
+    // The auth cookie is set here so the consent screen resolves the session
+    // we just authenticated.
+    if (session_id && isConnectLoginSession(currentLoginSession.state_data)) {
+      const connectHeaders = new Headers();
+      serializeAuthCookie(
+        client.tenant.id,
+        session_id,
+        ctx.var.host || "",
+      ).forEach((cookie) => connectHeaders.append("set-cookie", cookie));
+      connectHeaders.set(
+        "location",
+        `/u2/connect/start?state=${encodeURIComponent(params.loginSession.id)}`,
+      );
+      return new Response(null, { status: 302, headers: connectHeaders });
     }
   }
 
