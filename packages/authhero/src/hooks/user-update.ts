@@ -274,6 +274,38 @@ export function createUserUpdateHooks(
       });
     }
 
+    // Post-update JS hook runs after the commit (and any post-user-update
+    // template hooks) so consumers observe the persisted record — e.g. to
+    // force-sync a downstream cache that pulls from the updated user rather
+    // than being handed the new values. Failures are logged, never thrown:
+    // the update is already committed.
+    if (ctx.env.hooks?.onExecutePostUserUpdate) {
+      try {
+        const updatedUser = await data.users.get(tenant_id, user_id);
+        await ctx.env.hooks.onExecutePostUserUpdate(
+          {
+            ctx,
+            tenant: { id: tenant_id },
+            user_id,
+            user: updatedUser
+              ? stripInternalUserFields(updatedUser)
+              : undefined,
+            updates,
+            request,
+          },
+          {
+            token: createTokenAPI(ctx, tenant_id),
+          },
+        );
+      } catch (err) {
+        logMessage(ctx, tenant_id, {
+          type: LogTypes.ACTIONS_EXECUTION_FAILED,
+          description: `Post user update hook failed: ${err instanceof Error ? err.message : "Unknown error"}`,
+          userId: user_id,
+        });
+      }
+    }
+
     return true;
   };
 }

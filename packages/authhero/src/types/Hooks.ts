@@ -233,6 +233,15 @@ export type OnExecutePreUserUpdate = (
   api: OnExecutePreUserUpdateAPI,
 ) => Promise<void>;
 
+export type OnExecutePostUserUpdateAPI = {
+  token: TokenAPI;
+};
+
+export type OnExecutePostUserUpdate = (
+  event: HookEvent & { user_id: string; updates: Partial<User> },
+  api: OnExecutePostUserUpdateAPI,
+) => Promise<void>;
+
 export type OnExecutePostLoginAPI = {
   prompt: {
     render: (formId: string) => void;
@@ -325,6 +334,7 @@ export type Hooks = {
   onExecutePreUserRegistration?: OnExecutePreUserRegistration;
   onExecutePostUserRegistration?: OnExecutePostUserRegistration;
   onExecutePreUserUpdate?: OnExecutePreUserUpdate;
+  onExecutePostUserUpdate?: OnExecutePostUserUpdate;
   onExecutePostLogin?: OnExecutePostLogin;
   onExecutePreUserDeletion?: OnExecutePreUserDeletion;
   onExecutePostUserDeletion?: OnExecutePostUserDeletion;
