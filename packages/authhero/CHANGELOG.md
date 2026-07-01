@@ -1,5 +1,11 @@
 # authhero
 
+## 8.12.0
+
+### Minor Changes
+
+- 3816638: Add `onExecutePostUserUpdate` hook that fires after a user is updated (missing changeset for #1012).
+
 ## 8.11.1
 
 ### Patch Changes
