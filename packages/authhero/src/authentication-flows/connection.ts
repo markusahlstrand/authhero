@@ -25,6 +25,7 @@ import { prefetchClientBundle } from "../helpers/prefetch-client-bundle";
 import { isCimdClientId } from "../helpers/cimd";
 import { getOrCreateUserByProvider } from "../helpers/users";
 import { finalizeAuthenticatedSession } from "./common";
+import { isConnectLoginSession } from "../helpers/dcr/connect-state";
 import { setTenantId } from "../helpers/set-tenant-id";
 import { writeTryConnectionResult } from "./try-connection";
 import { nanoid } from "nanoid";
@@ -186,7 +187,15 @@ export async function connectionCallback(
 
   ctx.set("connection", connection.name);
 
-  if (!loginSession.authParams.redirect_uri) {
+  // A /connect/start login session carries no redirect_uri — it authenticates
+  // the user for the DCR consent flow rather than issuing tokens. Skip the
+  // redirect_uri requirement for it; finalizeAuthenticatedSession →
+  // /authorize/resume → createFrontChannelAuthResponse hands control back to
+  // the connect screen.
+  if (
+    !isConnectLoginSession(loginSession.state_data) &&
+    !loginSession.authParams.redirect_uri
+  ) {
     await logMessage(ctx, client.tenant.id, {
       type: LogTypes.FAILED_LOGIN,
       description: "Redirect URI not defined",
