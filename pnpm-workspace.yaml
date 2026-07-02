@@ -1,6 +1,9 @@
 packages:
   - apps/*
   - packages/*
+  # Scaffolded by `pnpm --filter create-authhero dev` (--workspace mode);
+  # matches nothing on a clean clone.
+  - packages/create-authhero/auth-server
   - docker
 onlyBuiltDependencies:
   - better-sqlite3

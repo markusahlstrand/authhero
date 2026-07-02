@@ -184,11 +184,14 @@ export default function createSetupApp(config: AuthHeroConfig) {
         body: {
           content: {
             "application/json": {
+              // Field rules are checked in the handler so failures render the
+              // setup screen with an error message instead of a bare 400 the
+              // widget can't display.
               schema: z.object({
                 data: z.object({
-                  identifier: z.string().trim().min(1),
-                  password: z.string().min(8),
-                  confirm_password: z.string().min(8),
+                  identifier: z.string().trim(),
+                  password: z.string(),
+                  confirm_password: z.string(),
                   name: z.string().optional(),
                 }),
               }),
@@ -212,14 +215,23 @@ export default function createSetupApp(config: AuthHeroConfig) {
       const { identifier, password, confirm_password, name } =
         ctx.req.valid("json").data;
 
-      // Validate passwords match
-      if (password !== confirm_password) {
-        const errorScreen = getSetupScreen("Passwords do not match.");
+      const respondWithError = (error: string) => {
+        const errorScreen = getSetupScreen(error);
         const accept = ctx.req.header("Accept") || "";
         if (accept.includes("application/json")) {
           return ctx.json({ screen: errorScreen });
         }
         return renderSetupPage(ctx, errorScreen, "setup");
+      };
+
+      if (!identifier) {
+        return respondWithError("Please enter an admin username or email.");
+      }
+      if (password.length < 8) {
+        return respondWithError("Password must be at least 8 characters.");
+      }
+      if (password !== confirm_password) {
+        return respondWithError("Passwords do not match.");
       }
 
       // Determine if identifier is an email or username

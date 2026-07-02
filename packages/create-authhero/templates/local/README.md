@@ -69,4 +69,4 @@ npm run gen:key                   # print a fresh base64 key
 npm run decrypt -- "enc:v1:..."   # decrypt a stored value using ENCRYPTION_KEY from .env
 ```
 
-For more information, visit [https://authhero.net/docs](https://authhero.net/docs).
+For more information, visit [https://docs.authhero.net](https://docs.authhero.net).

@@ -9,6 +9,7 @@ import fs from "fs";
 import path from "path";
 import { execFileSync } from "child_process";
 import https from "https";
+import { fileURLToPath } from "url";
 
 // Generate self-signed certificates for local HTTPS if they don't exist
 const certDir = path.join(process.cwd(), ".certs");
@@ -130,9 +131,22 @@ const issuer = process.env.ISSUER || `https://localhost:${port}/`;
 // Get or generate certificates
 const { key, cert } = ensureCertificates();
 
+// Point at the locally installed admin UI when the @authhero/admin package is
+// present (same check as app.ts); fall back to the hosted portal otherwise.
+const hasLocalAdminUi = fs.existsSync(
+  path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "../node_modules/@authhero/admin/dist/index.html",
+  ),
+);
+
 console.log(`🔐 AuthHero server running at https://localhost:${port}`);
 console.log(`📚 API documentation available at https://localhost:${port}/docs`);
-console.log(`🌐 Portal available at https://local.authhero.net`);
+if (hasLocalAdminUi) {
+  console.log(`🛠️  Admin UI available at https://localhost:${port}/admin`);
+} else {
+  console.log(`🌐 Portal available at https://local.authhero.net`);
+}
 
 serve({
   fetch: (request) => {

@@ -1,5 +1,47 @@
+// @vitest-environment jsdom
+// @vitest-environment-options {"url": "https://localhost:3000/admin"}
 import { describe, it, expect } from "vitest";
-import { deriveTenantSubdomainUrl } from "./domainUtils";
+import { buildUrlWithProtocol, deriveTenantSubdomainUrl } from "./domainUtils";
+
+describe("buildUrlWithProtocol", () => {
+  it("follows the page protocol for a same-origin domain without scheme", () => {
+    // The bundled admin UI is served from the auth server itself (here
+    // https://localhost:3000/admin), so its API must use the same protocol.
+    expect(buildUrlWithProtocol("localhost:3000")).toBe(
+      "https://localhost:3000",
+    );
+  });
+
+  it("defaults to https for other domains without scheme", () => {
+    expect(buildUrlWithProtocol("localhost:4000")).toBe(
+      "https://localhost:4000",
+    );
+    expect(buildUrlWithProtocol("auth.example.com")).toBe(
+      "https://auth.example.com",
+    );
+  });
+
+  it("preserves an explicit http scheme for loopback hosts", () => {
+    expect(buildUrlWithProtocol("http://localhost:8787")).toBe(
+      "http://localhost:8787",
+    );
+    expect(buildUrlWithProtocol("http://127.0.0.1:3000")).toBe(
+      "http://127.0.0.1:3000",
+    );
+  });
+
+  it("upgrades an explicit http scheme to https for non-loopback hosts", () => {
+    expect(buildUrlWithProtocol("http://auth.example.com")).toBe(
+      "https://auth.example.com",
+    );
+  });
+
+  it("preserves an explicit https scheme", () => {
+    expect(buildUrlWithProtocol("https://localhost:3000")).toBe(
+      "https://localhost:3000",
+    );
+  });
+});
 
 describe("deriveTenantSubdomainUrl", () => {
   it("prefixes the tenant id as a subdomain", () => {

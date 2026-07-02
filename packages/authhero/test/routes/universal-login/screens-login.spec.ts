@@ -1,7 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
+import bcryptjs from "bcryptjs";
 import { getTestServer } from "../../helpers/test-server";
 import { u2Screen } from "../../helpers/u2-screen";
+import { USERNAME_PASSWORD_PROVIDER } from "../../../src/constants";
 import {
   AuthorizationResponseType,
   Strategy,
@@ -188,5 +190,50 @@ describe("login screen - passwordless button", () => {
     // The SSR HTML should contain the passwordless button as an <a> in social-buttons
     expect(html).toContain("login-passwordless-identifier");
     expect(html).toContain("social-buttons");
+  });
+});
+
+describe("login screen - wrong password", () => {
+  it("should show a translated error message, not the raw i18n key", async () => {
+    const { u2App, oauthApp, env } = await getTestServer({
+      mockEmail: true,
+      testTenantLanguage: "en",
+    });
+
+    await env.data.users.create("tenantId", {
+      email: "wrongpw@example.com",
+      email_verified: true,
+      name: "Wrong PW User",
+      nickname: "wrongpw",
+      picture: "https://example.com/test.png",
+      connection: Strategy.USERNAME_PASSWORD,
+      provider: USERNAME_PASSWORD_PROVIDER,
+      is_social: false,
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|wrongPwUserId`,
+    });
+    await env.data.passwords.create("tenantId", {
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|wrongPwUserId`,
+      password: await bcryptjs.hash("Password1!", 10),
+      algorithm: "bcrypt",
+    });
+
+    // The test server creates the connection with the username-password
+    // provider strategy, but the combined login screen checks for
+    // strategy === Strategy.USERNAME_PASSWORD.
+    await env.data.connections.update("tenantId", Strategy.USERNAME_PASSWORD, {
+      strategy: Strategy.USERNAME_PASSWORD,
+    });
+
+    const oauthClient = testClient(oauthApp, env);
+    const state = await getLoginState(oauthClient);
+
+    const response = await u2Screen(u2App, env, "login").$post({
+      query: { state },
+      form: { username: "wrongpw@example.com", password: "not-the-password" },
+    });
+
+    const html = await response.text();
+    expect(html).toContain("Wrong username or password");
+    expect(html).not.toContain("wrong-credentials");
   });
 });

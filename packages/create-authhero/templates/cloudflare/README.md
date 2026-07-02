@@ -189,7 +189,7 @@ routes = [
 ]
 ```
 
-For more information, visit [https://authhero.net/docs](https://authhero.net/docs).
+For more information, visit [https://docs.authhero.net](https://docs.authhero.net).
 
 ## CI/CD with GitHub Actions
 
