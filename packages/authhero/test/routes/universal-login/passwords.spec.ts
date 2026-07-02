@@ -583,9 +583,9 @@ describe("passwords", () => {
 
     // Simulate a lockout: 3 recent failed-login timestamps (>= the 3 limit
     // enforced in passwordGrant within the 5-minute window).
-    const now = Date.now();
-    await env.data.users.update("tenantId", userId, {
-      app_metadata: { failed_logins: [now, now, now] },
+    const nowIso = new Date().toISOString();
+    await env.data.userActivity.upsert("tenantId", userId, {
+      failed_logins: [nowIso, nowIso, nowIso],
     });
 
     // Start the password reset flow
@@ -641,9 +641,14 @@ describe("passwords", () => {
 
     expect(resetPasswordResponse.status).toBe(200);
 
-    // The failed-login counter should be cleared by the reset.
-    const userAfterReset = await env.data.users.get("tenantId", userId);
-    expect(userAfterReset?.app_metadata?.failed_logins).toEqual([]);
+    // The failed-login counter should be cleared by the reset, and the reset
+    // itself stamped on the activity row.
+    const activityAfterReset = await env.data.userActivity.get(
+      "tenantId",
+      userId,
+    );
+    expect(activityAfterReset?.failed_logins ?? []).toEqual([]);
+    expect(activityAfterReset?.last_password_reset).toBeDefined();
 
     // And the user should be able to log in immediately with the new password
     // rather than being blocked by the stale lockout.
@@ -706,9 +711,9 @@ describe("passwords", () => {
 
     // Simulate a lockout: 3 recent failed-login timestamps (>= the 3 limit
     // enforced in passwordGrant within the 5-minute window).
-    const now = Date.now();
-    await env.data.users.update("tenantId", userId, {
-      app_metadata: { failed_logins: [now, now, now] },
+    const nowIso = new Date().toISOString();
+    await env.data.userActivity.upsert("tenantId", userId, {
+      failed_logins: [nowIso, nowIso, nowIso],
     });
 
     // Start the password reset flow
@@ -760,9 +765,14 @@ describe("passwords", () => {
 
     expect(resetPasswordResponse.status).toBe(302);
 
-    // The failed-login counter should be cleared by the reset.
-    const userAfterReset = await env.data.users.get("tenantId", userId);
-    expect(userAfterReset?.app_metadata?.failed_logins).toEqual([]);
+    // The failed-login counter should be cleared by the reset, and the reset
+    // itself stamped on the activity row.
+    const activityAfterReset = await env.data.userActivity.get(
+      "tenantId",
+      userId,
+    );
+    expect(activityAfterReset?.failed_logins ?? []).toEqual([]);
+    expect(activityAfterReset?.last_password_reset).toBeDefined();
 
     // And the user should be able to log in immediately with the new password
     // rather than being blocked by the stale lockout.

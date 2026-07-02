@@ -40,23 +40,76 @@ import {
 import { findConnectionByName } from "../utils/connections";
 import { attemptUpstreamPasswordFallback } from "./auth0-migration";
 
+const FAILED_LOGIN_WINDOW_MS = 1000 * 60 * 5;
+const FAILED_LOGIN_LIMIT = 3;
+
+/**
+ * Filter lockout timestamps (ISO 8601 strings) down to those inside the
+ * 5-minute window. Unparseable entries are dropped.
+ */
+function getRecentFailedLogins(
+  failedLogins: string[] | undefined,
+  now: number,
+): string[] {
+  return (failedLogins ?? []).filter(
+    (ts) => now - Date.parse(ts) < FAILED_LOGIN_WINDOW_MS,
+  );
+}
+
+/**
+ * Legacy strikes: numeric epoch timestamps in `app_metadata.failed_logins`.
+ * Only read/written for third-party adapters without a `userActivity`
+ * implementation (all in-repo adapters ship one).
+ */
+function getRecentLegacyFailedLogins(user: User, now: number): number[] {
+  const failedLogins: unknown = user.app_metadata?.failed_logins;
+  if (!Array.isArray(failedLogins)) {
+    return [];
+  }
+  return failedLogins.filter(
+    (ts): ts is number =>
+      typeof ts === "number" && now - ts < FAILED_LOGIN_WINDOW_MS,
+  );
+}
+
+async function countRecentFailedLogins(
+  data: Bindings["data"],
+  tenantId: string,
+  primaryUser: User,
+): Promise<number> {
+  const now = Date.now();
+  if (data.userActivity) {
+    const activity = await data.userActivity.get(tenantId, primaryUser.user_id);
+    return getRecentFailedLogins(activity?.failed_logins, now).length;
+  }
+  return getRecentLegacyFailedLogins(primaryUser, now).length;
+}
+
 async function recordFailedLogin(
   data: Bindings["data"],
   tenantId: string,
-  primaryUser: any,
+  primaryUser: User,
 ): Promise<void> {
-  const appMetadata = primaryUser.app_metadata || {};
-  const failedLogins = appMetadata.failed_logins || [];
   const now = Date.now();
 
   // Add current timestamp and remove timestamps older than 5 minutes
-  const recentFailedLogins = [
-    ...failedLogins.filter((ts: number) => now - ts < 1000 * 60 * 5),
+  if (data.userActivity) {
+    const activity = await data.userActivity.get(tenantId, primaryUser.user_id);
+    const failedLogins = [
+      ...getRecentFailedLogins(activity?.failed_logins, now),
+      new Date(now).toISOString(),
+    ];
+    await data.userActivity.upsert(tenantId, primaryUser.user_id, {
+      failed_logins: failedLogins,
+    });
+    return;
+  }
+
+  const appMetadata = primaryUser.app_metadata || {};
+  appMetadata.failed_logins = [
+    ...getRecentLegacyFailedLogins(primaryUser, now),
     now,
   ];
-
-  appMetadata.failed_logins = recentFailedLogins;
-
   await data.users.update(tenantId, primaryUser.user_id, {
     app_metadata: appMetadata,
   });
@@ -87,15 +140,59 @@ export async function clearFailedLogins(
       return;
     }
 
+    if (data.userActivity) {
+      const activity = await data.userActivity.get(
+        tenantId,
+        primaryUser.user_id,
+      );
+      if (activity?.failed_logins && activity.failed_logins.length > 0) {
+        await data.userActivity.upsert(tenantId, primaryUser.user_id, {
+          failed_logins: [],
+        });
+      }
+    }
+
+    // Clears the legacy-fallback strikes for adapters without `userActivity`,
+    // and doubles as transitional cleanup elsewhere: strikes used to live in
+    // `app_metadata.failed_logins` (numeric epoch timestamps), so removing the
+    // leftover key converges old rows.
     const appMetadata = primaryUser.app_metadata || {};
-    if (appMetadata.failed_logins && appMetadata.failed_logins.length > 0) {
-      appMetadata.failed_logins = [];
+    if (
+      Array.isArray(appMetadata.failed_logins) &&
+      appMetadata.failed_logins.length > 0
+    ) {
+      delete appMetadata.failed_logins;
       await data.users.update(tenantId, primaryUser.user_id, {
         app_metadata: appMetadata,
       });
     }
   } catch (error) {
     console.error("Failed to clear failed_logins:", error);
+  }
+}
+
+/**
+ * Post-reset bookkeeping shared by the reset-password routes: clear the
+ * failed-login lockout (a successful reset proves the account owner is back
+ * in control) and stamp `last_password_reset` on the activity row. Both are
+ * best-effort — the password is already changed by the time this runs.
+ */
+export async function recordPasswordReset(
+  data: Bindings["data"],
+  tenantId: string,
+  user: User,
+): Promise<void> {
+  await clearFailedLogins(data, tenantId, user);
+
+  if (!data.userActivity) {
+    return;
+  }
+  try {
+    await data.userActivity.upsert(tenantId, user.user_id, {
+      last_password_reset: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error("Failed to record last_password_reset:", error);
   }
 }
 
@@ -106,15 +203,6 @@ function isRateLimitDecision(value: unknown): value is RateLimitDecision {
     "allowed" in value &&
     typeof value.allowed === "boolean"
   );
-}
-
-function getRecentFailedLogins(user: any): number[] {
-  const appMetadata = user.app_metadata || {};
-  const failedLogins = appMetadata.failed_logins || [];
-  const now = Date.now();
-
-  // Filter to only include timestamps within the last 5 minutes
-  return failedLogins.filter((ts: number) => now - ts < 1000 * 60 * 5);
 }
 
 export async function passwordGrant(
@@ -250,10 +338,14 @@ export async function passwordGrant(
   ctx.set("connection", user.connection);
   ctx.set("user_id", primaryUser.user_id);
 
-  // Check failed login attempts from app_metadata BEFORE validating password
-  const recentFailedLogins = getRecentFailedLogins(primaryUser);
+  // Check failed login attempts from user_activity BEFORE validating password
+  const recentFailedLogins = await countRecentFailedLogins(
+    data,
+    client.tenant.id,
+    primaryUser,
+  );
 
-  if (recentFailedLogins.length >= 3) {
+  if (recentFailedLogins >= FAILED_LOGIN_LIMIT) {
     logMessage(ctx, client.tenant.id, {
       // TODO: change to BLOCKED_ACCOUNT_EMAIL
       type: LogTypes.FAILED_LOGIN,
@@ -307,8 +399,9 @@ export async function passwordGrant(
       description: "Invalid password",
     });
 
-    // Record failed login attempt in app_metadata
-    recordFailedLogin(data, client.tenant.id, primaryUser);
+    // Record the failed-login strike in user_activity before responding, so a
+    // terminated worker can't drop it and let an attacker dodge the lockout.
+    await recordFailedLogin(data, client.tenant.id, primaryUser);
 
     // Note: Not marking session as FAILED - user can retry with correct password
 
