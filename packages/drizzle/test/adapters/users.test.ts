@@ -202,10 +202,18 @@ describe("users adapter", () => {
       login_count: 0,
     });
 
+    // login_count at create time seeds a user_activity row, so the remove
+    // below must clean it up too.
+    expect(
+      await data.userActivity!.get("tenant1", "auth0|user1"),
+    ).not.toBeNull();
+
     const removed = await data.users.remove("tenant1", "auth0|user1");
     expect(removed).toBe(true);
 
     const fetched = await data.users.get("tenant1", "auth0|user1");
     expect(fetched).toBeNull();
+
+    expect(await data.userActivity!.get("tenant1", "auth0|user1")).toBeNull();
   });
 });

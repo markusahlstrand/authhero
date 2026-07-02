@@ -100,17 +100,19 @@ export function luceneFilter<DB, TB extends keyof DB, O>(
   fieldMap: Record<string, FieldMapping> = {},
 ) {
   const likeSet = new Set(likeFields);
+  const { ref } = db.dynamic;
   const toColumn = (field: string): string => {
     const mapped = fieldMap[field];
     if (mapped === undefined) return field;
     return typeof mapped === "string" ? mapped : mapped.column;
   };
   // Left-hand side for comparison clauses; unlike toColumn this wraps
-  // coalesced fields in their COALESCE expression.
+  // coalesced fields in their COALESCE expression. Dynamic references go
+  // through `db.dynamic.ref` so runtime-resolved column names stay typed.
   const toLhs = (field: string) => {
     const mapped = fieldMap[field];
     if (mapped === undefined || typeof mapped === "string") {
-      return mapped ?? field;
+      return ref(mapped ?? field);
     }
     return coalescedRef(mapped);
   };
@@ -139,19 +141,19 @@ export function luceneFilter<DB, TB extends keyof DB, O>(
               value.replace(/^"(.*)"$/, "$1").trim(),
             );
             if (likeSet.has(fieldName)) {
-              return eb(toColumn(fieldName) as any, "like", `%${cleanValue}%`);
+              return eb(ref(toColumn(fieldName)), "like", `%${cleanValue}%`);
             }
             return eb(
-              toLhs(fieldName) as any,
+              toLhs(fieldName),
               "=",
               toOperand(fieldName, cleanValue),
             );
           }
           return null;
         })
-        .filter(Boolean);
+        .filter((condition) => condition !== null);
 
-      return eb.or(conditions as any);
+      return eb.or(conditions);
     });
   }
 
@@ -250,47 +252,42 @@ export function luceneFilter<DB, TB extends keyof DB, O>(
   // Apply filters to the query builder
   filters.forEach(({ key, value, isNegation, isExistsQuery, operator }) => {
     if (key) {
-      const column = toColumn(key);
+      const column = ref(toColumn(key));
       const lhs = toLhs(key);
       const operand = toOperand(key, value);
       if (isExistsQuery) {
         if (isNegation) {
-          qb = qb.where(column as any, "is", null);
+          qb = qb.where(column, "is", null);
         } else {
-          qb = qb.where(column as any, "is not", null);
+          qb = qb.where(column, "is not", null);
         }
       } else if (likeSet.has(key) && operator === "=") {
         // Substring match for free-text fields (e.g. log descriptions),
         // where exact-match is rarely useful.
-        qb = qb.where(
-          column as any,
-          isNegation ? "not like" : "like",
-          `%${value}%`,
-        );
+        qb = qb.where(column, isNegation ? "not like" : "like", `%${value}%`);
       } else {
         if (isNegation) {
           switch (operator) {
             case ">":
-              qb = qb.where(lhs as any, "<=", operand);
+              qb = qb.where(lhs, "<=", operand);
               break;
             case ">=":
-              qb = qb.where(lhs as any, "<", operand);
+              qb = qb.where(lhs, "<", operand);
               break;
             case "<":
-              qb = qb.where(lhs as any, ">=", operand);
+              qb = qb.where(lhs, ">=", operand);
               break;
             case "<=":
-              qb = qb.where(lhs as any, ">", operand);
+              qb = qb.where(lhs, ">", operand);
               break;
             default:
-              qb = qb.where(lhs as any, "!=", operand);
+              qb = qb.where(lhs, "!=", operand);
           }
         } else {
-          qb = qb.where(lhs as any, operator as any, operand);
+          qb = qb.where(lhs, operator, operand);
         }
       }
     } else if (value) {
-      const { ref } = db.dynamic;
       qb = qb.where((eb) =>
         eb.or(
           searchableColumns.map((col) =>

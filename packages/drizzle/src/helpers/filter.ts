@@ -11,13 +11,14 @@ import {
   or,
   isNull,
   isNotNull,
+  is,
+  getTableColumns,
+  Column,
   SQL,
   sql,
 } from "drizzle-orm";
-import type {
-  AnySQLiteColumn,
-  SQLiteTableWithColumns,
-} from "drizzle-orm/sqlite-core";
+import { SQLiteTable } from "drizzle-orm/sqlite-core";
+import type { AnySQLiteColumn } from "drizzle-orm/sqlite-core";
 
 // A filter target backed by a nullable LEFT-JOINed column that the public
 // shape presents with a numeric default (e.g. `login_count` -> 0 when the
@@ -125,14 +126,17 @@ export function sanitizeLuceneQuery(
  * several tables (e.g. users + user_activity) so each public field resolves to
  * a column of the right table.
  */
-export function buildLuceneFilter<
-  T extends SQLiteTableWithColumns<any> | Record<string, unknown>,
->(
-  table: T,
+export function buildLuceneFilter(
+  table: SQLiteTable | Record<string, unknown>,
   query: string,
   searchableColumns: string[],
   likeFields: string[] = [],
 ): SQL | undefined {
+  // Normalize to a plain field→value record so the lookups below stay typed;
+  // `is()` + `getTableColumns()` avoid reaching into the table via `any`.
+  const columns: Record<string, unknown> = is(table, SQLiteTable)
+    ? getTableColumns(table)
+    : table;
   const likeSet = new Set(likeFields);
   const toNumericOperand = (value: string): string | number => {
     const num = Number(value);
@@ -151,18 +155,18 @@ export function buildLuceneFilter<
           if (!field || !value) return null;
           const fieldName = field.trim();
           const cleanValue = value.replace(/^"(.*)"$/, "$1").trim();
-          const col = (table as any)[fieldName];
-          if (!col) return null;
+          const col = columns[fieldName];
           if (isCoalescedNumericColumn(col)) {
             return eq(coalescedExpr(col), toNumericOperand(cleanValue));
           }
+          if (!is(col, Column)) return null;
           return likeSet.has(fieldName)
             ? like(col, `%${cleanValue}%`)
             : eq(col, cleanValue);
         }
         return null;
       })
-      .filter(Boolean) as SQL[];
+      .filter((condition): condition is SQL => condition !== null);
 
     if (conditions.length === 0) return undefined;
     return or(...conditions);
@@ -254,12 +258,15 @@ export function buildLuceneFilter<
 
   for (const { key, value, isNegation, isExistsQuery, operator } of filters) {
     if (key) {
-      const mapped = (table as any)[key];
+      const mapped = columns[key];
       // `_exists_` still checks the raw column — "no activity row" is the
       // meaningful NULL there, and COALESCE would make it never-null.
       const isCoalesced = isCoalescedNumericColumn(mapped);
-      const col = isCoalesced ? mapped.coalesce : mapped;
-      const lhs = isCoalesced ? coalescedExpr(mapped) : mapped;
+      const col = isCoalesced
+        ? mapped.coalesce
+        : is(mapped, Column)
+          ? mapped
+          : undefined;
       const operand = isCoalesced ? toNumericOperand(value) : value;
       if (!col) {
         // Use raw SQL for unknown columns
@@ -276,6 +283,10 @@ export function buildLuceneFilter<
         }
         continue;
       }
+
+      // Interpolating a Column into `sql` renders its qualified name, so both
+      // arms produce the same SQL a bare-column operator call would.
+      const lhs: SQL = isCoalesced ? coalescedExpr(mapped) : sql`${col}`;
 
       if (isExistsQuery) {
         conditions.push(isNegation ? isNull(col) : isNotNull(col));
@@ -328,13 +339,13 @@ export function buildLuceneFilter<
 
       const searchConditions = columnsToSearch
         .map((colName) => {
-          const col = (table as any)[colName];
-          if (!col) return null;
+          const col = columns[colName];
+          if (!is(col, Column)) return null;
           return colName === "user_id"
             ? eq(col, value)
             : like(col, `%${value}%`);
         })
-        .filter(Boolean) as SQL[];
+        .filter((condition): condition is SQL => condition !== null);
 
       if (searchConditions.length > 0) {
         conditions.push(or(...searchConditions)!);

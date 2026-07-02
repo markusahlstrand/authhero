@@ -1,4 +1,4 @@
-import { Kysely } from "kysely";
+import { Kysely, sql } from "kysely";
 import { Database } from "../../src/db";
 
 /**
@@ -31,4 +31,27 @@ export async function down(db: Kysely<Database>): Promise<void> {
     .alterTable("users")
     .addColumn("login_count", "integer", (col) => col.notNull().defaultTo(0))
     .execute();
+
+  // Rehydrate the re-added columns from user_activity so a rollback restores
+  // the counters instead of leaving them empty. Raw SQL because the columns
+  // no longer exist on the Database type; correlated subqueries against a
+  // different table work on both SQLite/D1 and MySQL.
+  await sql`
+    UPDATE users SET
+      last_login = (
+        SELECT ua.last_login FROM user_activity ua
+        WHERE ua.tenant_id = users.tenant_id AND ua.user_id = users.user_id
+      ),
+      last_ip = (
+        SELECT ua.last_ip FROM user_activity ua
+        WHERE ua.tenant_id = users.tenant_id AND ua.user_id = users.user_id
+      ),
+      login_count = COALESCE(
+        (
+          SELECT ua.login_count FROM user_activity ua
+          WHERE ua.tenant_id = users.tenant_id AND ua.user_id = users.user_id
+        ),
+        0
+      )
+  `.execute(db);
 }

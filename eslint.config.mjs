@@ -19,6 +19,17 @@ export default [
     },
     rules: {
       "react/react-in-jsx-scope": "off", // Turn off the rule for requiring React in scope
+      // `_`-prefixed bindings and rest-sibling destructuring are the
+      // codebase's idiom for intentionally-discarded values.
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+          ignoreRestSiblings: true,
+        },
+      ],
     },
   },
 ];

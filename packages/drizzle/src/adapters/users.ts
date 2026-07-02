@@ -4,9 +4,11 @@ import {
   count as countFn,
   asc,
   desc,
+  getTableColumns,
   inArray,
   isNull,
 } from "drizzle-orm";
+import type { AnySQLiteColumn } from "drizzle-orm/sqlite-core";
 import { nanoid } from "nanoid";
 import { HTTPException } from "hono/http-exception";
 import type { User, ListParams } from "@authhero/adapter-interfaces";
@@ -63,7 +65,14 @@ const SEARCHABLE_COLUMNS = ["email", "name", "phone_number", "user_id"];
 // and sorting so each public field hits the right table's column.
 const ACTIVITY_FIELDS = new Set(["last_login", "last_ip", "login_count"]);
 
-const FILTER_COLUMNS: Record<string, unknown> = Object.fromEntries(
+const USER_COLUMNS: Record<string, AnySQLiteColumn> = getTableColumns(users);
+const ACTIVITY_COLUMNS: Record<string, AnySQLiteColumn> =
+  getTableColumns(userActivity);
+
+const FILTER_COLUMNS: Record<
+  string,
+  AnySQLiteColumn | CoalescedNumericColumn | undefined
+> = Object.fromEntries(
   ALLOWED_Q_FIELDS.map((field) => [
     field,
     field === "login_count"
@@ -75,8 +84,8 @@ const FILTER_COLUMNS: Record<string, unknown> = Object.fromEntries(
           defaultValue: 0,
         } satisfies CoalescedNumericColumn)
       : ACTIVITY_FIELDS.has(field)
-        ? (userActivity as any)[field]
-        : (users as any)[field],
+        ? ACTIVITY_COLUMNS[field]
+        : USER_COLUMNS[field],
   ]),
 );
 
@@ -303,20 +312,6 @@ export function createUsersAdapter(db: DrizzleDb) {
       user_id: string,
       params: Partial<User>,
     ): Promise<boolean> {
-      // Activity counters live in user_activity (issue #1003). Route them
-      // there so callers that still pass them keep working.
-      if (
-        params.last_login !== undefined ||
-        params.last_ip !== undefined ||
-        params.login_count !== undefined
-      ) {
-        await createUserActivityAdapter(db).upsert(tenant_id, user_id, {
-          last_login: params.last_login,
-          last_ip: params.last_ip,
-          login_count: params.login_count,
-        });
-      }
-
       const updateData: any = {
         updated_at: new Date().toISOString(),
       };
@@ -374,7 +369,27 @@ export function createUsersAdapter(db: DrizzleDb) {
         .where(and(eq(users.tenant_id, tenant_id), eq(users.user_id, user_id)))
         .returning();
 
-      return results.length > 0;
+      if (results.length === 0) {
+        return false;
+      }
+
+      // Activity counters live in user_activity (issue #1003). Route them
+      // there so callers that still pass them keep working — but only after
+      // the users update confirmed the row exists, so a missing user never
+      // gains an orphaned activity row.
+      if (
+        params.last_login !== undefined ||
+        params.last_ip !== undefined ||
+        params.login_count !== undefined
+      ) {
+        await createUserActivityAdapter(db).upsert(tenant_id, user_id, {
+          last_login: params.last_login,
+          last_ip: params.last_ip,
+          login_count: params.login_count,
+        });
+      }
+
+      return true;
     },
 
     async list(tenant_id: string, params?: ListParams) {
@@ -420,7 +435,7 @@ export function createUsersAdapter(db: DrizzleDb) {
         if (col) {
           const expr = isCoalescedNumericColumn(col) ? coalescedExpr(col) : col;
           query = query.orderBy(
-            sort.sort_order === "desc" ? desc(expr as any) : asc(expr as any),
+            sort.sort_order === "desc" ? desc(expr) : asc(expr),
           );
         }
       }
