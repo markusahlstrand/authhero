@@ -96,7 +96,7 @@ async function buildEnhancedEventObject(
         id: string;
         name: string;
         display_name: string;
-        metadata: any;
+        metadata: Record<string, unknown>;
       }
     | undefined = undefined;
   try {

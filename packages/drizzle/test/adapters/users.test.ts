@@ -126,6 +126,52 @@ describe("users adapter", () => {
     expect(none.users).toHaveLength(0);
   });
 
+  it("treats users without an activity row as login_count 0 in filters and sorts", async () => {
+    // get/list present a missing user_activity row as login_count 0, so
+    // filters and sorts must match that shape (COALESCE, not the raw NULL).
+    await data.users.create("tenant1", {
+      user_id: "auth0|never",
+      email: "never@example.com",
+      email_verified: true,
+      is_social: false,
+      provider: "auth0",
+    });
+    await data.users.create("tenant1", {
+      user_id: "auth0|active",
+      email: "active@example.com",
+      email_verified: true,
+      is_social: false,
+      provider: "auth0",
+    });
+    await data.userActivity!.upsert("tenant1", "auth0|active", {
+      login_count: 5,
+    });
+
+    const neverLoggedIn = await data.users.list("tenant1", {
+      q: "login_count:0",
+    });
+    expect(neverLoggedIn.users.map((u) => u.user_id)).toEqual(["auth0|never"]);
+
+    const below = await data.users.list("tenant1", { q: "login_count:<5" });
+    expect(below.users.map((u) => u.user_id)).toEqual(["auth0|never"]);
+
+    const ascending = await data.users.list("tenant1", {
+      sort: { sort_by: "login_count", sort_order: "asc" },
+    });
+    expect(ascending.users.map((u) => u.user_id)).toEqual([
+      "auth0|never",
+      "auth0|active",
+    ]);
+
+    const descending = await data.users.list("tenant1", {
+      sort: { sort_by: "login_count", sort_order: "desc" },
+    });
+    expect(descending.users.map((u) => u.user_id)).toEqual([
+      "auth0|active",
+      "auth0|never",
+    ]);
+  });
+
   it("persists activity fields passed at creation time", async () => {
     // e.g. lazy Auth0 migration records the login on the created user.
     await data.users.create("tenant1", {

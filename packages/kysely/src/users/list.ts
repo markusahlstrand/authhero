@@ -1,5 +1,10 @@
 import { Kysely } from "kysely";
-import { luceneFilter, sanitizeLuceneQuery } from "../helpers/filter";
+import {
+  luceneFilter,
+  sanitizeLuceneQuery,
+  coalescedRef,
+  FieldMapping,
+} from "../helpers/filter";
 import { removeNullProperties } from "../helpers/remove-nulls";
 import { userToIdentity } from "./user-to-identity";
 import { Database } from "../db";
@@ -38,10 +43,17 @@ const ALLOWED_Q_FIELDS = [
 // unqualified refs ambiguous after the join, so every field is qualified.
 const ACTIVITY_FIELDS = new Set(["last_login", "last_ip", "login_count"]);
 
-const FIELD_MAP: Record<string, string> = Object.fromEntries(
-  ALLOWED_Q_FIELDS.map((field) => [
+const FIELD_MAP: Record<string, FieldMapping> = Object.fromEntries(
+  ALLOWED_Q_FIELDS.map((field): [string, FieldMapping] => [
     field,
-    ACTIVITY_FIELDS.has(field) ? `user_activity.${field}` : `users.${field}`,
+    field === "login_count"
+      ? // list/get present a missing activity row as login_count 0, so
+        // filters and sorts must treat NULL as 0 too — otherwise
+        // `q=login_count:0` would skip users who never logged in.
+        { column: "user_activity.login_count", defaultValue: 0 }
+      : ACTIVITY_FIELDS.has(field)
+        ? `user_activity.${field}`
+        : `users.${field}`,
   ]),
 );
 
@@ -85,8 +97,9 @@ export function list(db: Kysely<Database>) {
 
     if (sort && sort.sort_by) {
       const { ref } = db.dynamic;
+      const mapped = FIELD_MAP[sort.sort_by] ?? sort.sort_by;
       query = query.orderBy(
-        ref(FIELD_MAP[sort.sort_by] ?? sort.sort_by),
+        typeof mapped === "string" ? ref(mapped) : coalescedRef(mapped),
         sort.sort_order,
       );
     }

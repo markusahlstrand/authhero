@@ -1,5 +1,22 @@
-import { Kysely, SelectQueryBuilder } from "kysely";
+import { Kysely, SelectQueryBuilder, sql } from "kysely";
 import { Database } from "../db";
+
+// A field backed by a nullable LEFT-JOINed column that the public shape
+// presents with a numeric default (e.g. `login_count` -> 0 when the user has
+// no user_activity row). Comparisons wrap the column in COALESCE so rows
+// without a joined row still match, and bind the operand as a number: a
+// COALESCE expression has no column affinity in SQLite, so a string operand
+// would compare as text and never match.
+export type CoalescedNumericField = {
+  column: string;
+  defaultValue: number;
+};
+
+export type FieldMapping = string | CoalescedNumericField;
+
+export function coalescedRef(field: CoalescedNumericField) {
+  return sql`coalesce(${sql.ref(field.column)}, ${sql.lit(field.defaultValue)})`;
+}
 
 // Reverse Lucene escaping on a value operand: a backslash followed by a Lucene
 // reserved character is a literal of that character (e.g. `auth0|abc\-123` ->
@@ -78,11 +95,31 @@ export function luceneFilter<DB, TB extends keyof DB, O>(
   // Maps a public field name to a qualified column ref (e.g.
   // `login_count` -> `user_activity.login_count`). Needed when the query
   // joins tables that share column names, where an unqualified ref would be
-  // ambiguous. Fields not in the map are used as-is.
-  fieldMap: Record<string, string> = {},
+  // ambiguous. Fields not in the map are used as-is. A CoalescedNumericField
+  // value additionally makes comparisons NULL-aware (see its doc above).
+  fieldMap: Record<string, FieldMapping> = {},
 ) {
   const likeSet = new Set(likeFields);
-  const toColumn = (field: string): string => fieldMap[field] ?? field;
+  const toColumn = (field: string): string => {
+    const mapped = fieldMap[field];
+    if (mapped === undefined) return field;
+    return typeof mapped === "string" ? mapped : mapped.column;
+  };
+  // Left-hand side for comparison clauses; unlike toColumn this wraps
+  // coalesced fields in their COALESCE expression.
+  const toLhs = (field: string) => {
+    const mapped = fieldMap[field];
+    if (mapped === undefined || typeof mapped === "string") {
+      return mapped ?? field;
+    }
+    return coalescedRef(mapped);
+  };
+  const toOperand = (field: string, value: string): string | number => {
+    const mapped = fieldMap[field];
+    if (mapped === undefined || typeof mapped === "string") return value;
+    const num = Number(value);
+    return Number.isFinite(num) ? num : value;
+  };
   // Split by OR first to handle OR queries
   const orParts = query.split(/ OR /i);
 
@@ -104,7 +141,11 @@ export function luceneFilter<DB, TB extends keyof DB, O>(
             if (likeSet.has(fieldName)) {
               return eb(toColumn(fieldName) as any, "like", `%${cleanValue}%`);
             }
-            return eb(toColumn(fieldName) as any, "=", cleanValue);
+            return eb(
+              toLhs(fieldName) as any,
+              "=",
+              toOperand(fieldName, cleanValue),
+            );
           }
           return null;
         })
@@ -210,6 +251,8 @@ export function luceneFilter<DB, TB extends keyof DB, O>(
   filters.forEach(({ key, value, isNegation, isExistsQuery, operator }) => {
     if (key) {
       const column = toColumn(key);
+      const lhs = toLhs(key);
+      const operand = toOperand(key, value);
       if (isExistsQuery) {
         if (isNegation) {
           qb = qb.where(column as any, "is", null);
@@ -228,22 +271,22 @@ export function luceneFilter<DB, TB extends keyof DB, O>(
         if (isNegation) {
           switch (operator) {
             case ">":
-              qb = qb.where(column as any, "<=", value);
+              qb = qb.where(lhs as any, "<=", operand);
               break;
             case ">=":
-              qb = qb.where(column as any, "<", value);
+              qb = qb.where(lhs as any, "<", operand);
               break;
             case "<":
-              qb = qb.where(column as any, ">=", value);
+              qb = qb.where(lhs as any, ">=", operand);
               break;
             case "<=":
-              qb = qb.where(column as any, ">", value);
+              qb = qb.where(lhs as any, ">", operand);
               break;
             default:
-              qb = qb.where(column as any, "!=", value);
+              qb = qb.where(lhs as any, "!=", operand);
           }
         } else {
-          qb = qb.where(column as any, operator as any, value);
+          qb = qb.where(lhs as any, operator as any, operand);
         }
       }
     } else if (value) {

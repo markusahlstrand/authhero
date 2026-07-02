@@ -14,7 +14,36 @@ import {
   SQL,
   sql,
 } from "drizzle-orm";
-import type { SQLiteTableWithColumns } from "drizzle-orm/sqlite-core";
+import type {
+  AnySQLiteColumn,
+  SQLiteTableWithColumns,
+} from "drizzle-orm/sqlite-core";
+
+// A filter target backed by a nullable LEFT-JOINed column that the public
+// shape presents with a numeric default (e.g. `login_count` -> 0 when the
+// user has no user_activity row). Comparisons wrap the column in COALESCE so
+// rows without a joined row still match, and bind the operand as a number: a
+// COALESCE expression has no column affinity in SQLite, so a string operand
+// would compare as text and never match.
+export type CoalescedNumericColumn = {
+  coalesce: AnySQLiteColumn;
+  defaultValue: number;
+};
+
+export function isCoalescedNumericColumn(
+  value: unknown,
+): value is CoalescedNumericColumn {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "coalesce" in value &&
+    "defaultValue" in value
+  );
+}
+
+export function coalescedExpr(mapping: CoalescedNumericColumn): SQL {
+  return sql`coalesce(${mapping.coalesce}, ${mapping.defaultValue})`;
+}
 
 // Strip field-scoped clauses (`field:value`, `-field:value`, `_exists_:field`,
 // `field=value`) whose field is not in `allowedFields`. Bare-string tokens are
@@ -105,6 +134,10 @@ export function buildLuceneFilter<
   likeFields: string[] = [],
 ): SQL | undefined {
   const likeSet = new Set(likeFields);
+  const toNumericOperand = (value: string): string | number => {
+    const num = Number(value);
+    return Number.isFinite(num) ? num : value;
+  };
 
   // Handle OR queries
   const orParts = query.split(/ OR /i);
@@ -120,6 +153,9 @@ export function buildLuceneFilter<
           const cleanValue = value.replace(/^"(.*)"$/, "$1").trim();
           const col = (table as any)[fieldName];
           if (!col) return null;
+          if (isCoalescedNumericColumn(col)) {
+            return eq(coalescedExpr(col), toNumericOperand(cleanValue));
+          }
           return likeSet.has(fieldName)
             ? like(col, `%${cleanValue}%`)
             : eq(col, cleanValue);
@@ -218,7 +254,13 @@ export function buildLuceneFilter<
 
   for (const { key, value, isNegation, isExistsQuery, operator } of filters) {
     if (key) {
-      const col = (table as any)[key];
+      const mapped = (table as any)[key];
+      // `_exists_` still checks the raw column — "no activity row" is the
+      // meaningful NULL there, and COALESCE would make it never-null.
+      const isCoalesced = isCoalescedNumericColumn(mapped);
+      const col = isCoalesced ? mapped.coalesce : mapped;
+      const lhs = isCoalesced ? coalescedExpr(mapped) : mapped;
+      const operand = isCoalesced ? toNumericOperand(value) : value;
       if (!col) {
         // Use raw SQL for unknown columns
         if (isExistsQuery) {
@@ -246,36 +288,36 @@ export function buildLuceneFilter<
       } else if (isNegation) {
         switch (operator) {
           case ">":
-            conditions.push(lte(col, value));
+            conditions.push(lte(lhs, operand));
             break;
           case ">=":
-            conditions.push(lt(col, value));
+            conditions.push(lt(lhs, operand));
             break;
           case "<":
-            conditions.push(gte(col, value));
+            conditions.push(gte(lhs, operand));
             break;
           case "<=":
-            conditions.push(gt(col, value));
+            conditions.push(gt(lhs, operand));
             break;
           default:
-            conditions.push(ne(col, value));
+            conditions.push(ne(lhs, operand));
         }
       } else {
         switch (operator) {
           case ">":
-            conditions.push(gt(col, value));
+            conditions.push(gt(lhs, operand));
             break;
           case ">=":
-            conditions.push(gte(col, value));
+            conditions.push(gte(lhs, operand));
             break;
           case "<":
-            conditions.push(lt(col, value));
+            conditions.push(lt(lhs, operand));
             break;
           case "<=":
-            conditions.push(lte(col, value));
+            conditions.push(lte(lhs, operand));
             break;
           default:
-            conditions.push(eq(col, value));
+            conditions.push(eq(lhs, operand));
         }
       }
     } else if (value) {

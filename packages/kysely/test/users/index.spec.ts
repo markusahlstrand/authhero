@@ -173,4 +173,82 @@ describe("users", () => {
       ]);
     });
   });
+
+  describe("login_count filtering and sorting", () => {
+    // login_count lives in the LEFT-JOINed user_activity table and a missing
+    // row is presented as 0, so filters and sorts must treat NULL as 0.
+    async function seed() {
+      const { data } = await getTestServer();
+
+      await data.tenants.create({
+        id: "t1",
+        friendly_name: "Tenant t1",
+        audience: "https://t1.example.com",
+        sender_email: "login@t1.example.com",
+        sender_name: "SenderName",
+      });
+
+      for (const user_id of ["email|never", "email|active"]) {
+        await data.users.create("t1", {
+          user_id,
+          email: `${user_id.slice(6)}@example.com`,
+          email_verified: true,
+          is_social: false,
+          app_metadata: {},
+          user_metadata: {},
+          connection: Strategy.USERNAME_PASSWORD,
+          provider: "authhero",
+        });
+      }
+
+      // Gives email|active a user_activity row; email|never has none.
+      await data.users.update("t1", "email|active", { login_count: 5 });
+
+      return data;
+    }
+
+    it("matches users without an activity row on login_count:0", async () => {
+      const data = await seed();
+
+      const neverLoggedIn = await data.users.list("t1", {
+        q: "login_count:0",
+      });
+      expect(neverLoggedIn.users.map((u) => u.user_id)).toEqual([
+        "email|never",
+      ]);
+
+      const active = await data.users.list("t1", { q: "login_count:5" });
+      expect(active.users.map((u) => u.user_id)).toEqual(["email|active"]);
+    });
+
+    it("treats a missing activity row as 0 in range filters", async () => {
+      const data = await seed();
+
+      const below = await data.users.list("t1", { q: "login_count:<5" });
+      expect(below.users.map((u) => u.user_id)).toEqual(["email|never"]);
+
+      const above = await data.users.list("t1", { q: "login_count:>0" });
+      expect(above.users.map((u) => u.user_id)).toEqual(["email|active"]);
+    });
+
+    it("sorts users without an activity row as 0", async () => {
+      const data = await seed();
+
+      const ascending = await data.users.list("t1", {
+        sort: { sort_by: "login_count", sort_order: "asc" },
+      });
+      expect(ascending.users.map((u) => u.user_id)).toEqual([
+        "email|never",
+        "email|active",
+      ]);
+
+      const descending = await data.users.list("t1", {
+        sort: { sort_by: "login_count", sort_order: "desc" },
+      });
+      expect(descending.users.map((u) => u.user_id)).toEqual([
+        "email|active",
+        "email|never",
+      ]);
+    });
+  });
 });

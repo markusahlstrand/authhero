@@ -17,7 +17,13 @@ import {
   authenticationMethods,
 } from "../schema/sqlite";
 import { removeNullProperties, parseJsonIfString } from "../helpers/transform";
-import { buildLuceneFilter, sanitizeLuceneQuery } from "../helpers/filter";
+import {
+  buildLuceneFilter,
+  sanitizeLuceneQuery,
+  coalescedExpr,
+  isCoalescedNumericColumn,
+  type CoalescedNumericColumn,
+} from "../helpers/filter";
 import { createUserActivityAdapter } from "./userActivity";
 import type { DrizzleDb } from "./types";
 import { runAtomic, type AtomicStatementList } from "./atomic";
@@ -60,9 +66,17 @@ const ACTIVITY_FIELDS = new Set(["last_login", "last_ip", "login_count"]);
 const FILTER_COLUMNS: Record<string, unknown> = Object.fromEntries(
   ALLOWED_Q_FIELDS.map((field) => [
     field,
-    ACTIVITY_FIELDS.has(field)
-      ? (userActivity as any)[field]
-      : (users as any)[field],
+    field === "login_count"
+      ? // list/get present a missing activity row as login_count 0, so
+        // filters and sorts must treat NULL as 0 too — otherwise
+        // `q=login_count:0` would skip users who never logged in.
+        ({
+          coalesce: userActivity.login_count,
+          defaultValue: 0,
+        } satisfies CoalescedNumericColumn)
+      : ACTIVITY_FIELDS.has(field)
+        ? (userActivity as any)[field]
+        : (users as any)[field],
   ]),
 );
 
@@ -404,8 +418,9 @@ export function createUsersAdapter(db: DrizzleDb) {
       if (sort?.sort_by) {
         const col = FILTER_COLUMNS[sort.sort_by];
         if (col) {
+          const expr = isCoalescedNumericColumn(col) ? coalescedExpr(col) : col;
           query = query.orderBy(
-            sort.sort_order === "desc" ? desc(col as any) : asc(col as any),
+            sort.sort_order === "desc" ? desc(expr as any) : asc(expr as any),
           );
         }
       }
