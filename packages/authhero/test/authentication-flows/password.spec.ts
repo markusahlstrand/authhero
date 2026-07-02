@@ -4,9 +4,10 @@ import { testClient } from "hono/testing";
 import bcryptjs from "bcryptjs";
 import { USERNAME_PASSWORD_PROVIDER } from "../../src/constants";
 import { Strategy } from "@authhero/adapter-interfaces";
+import { recordPasswordReset } from "../../src/authentication-flows/password";
 
 describe("password authentication - failed login tracking", () => {
-  it("should reject a login after three failed attempts and record in app_metadata", async () => {
+  it("should reject a login after three failed attempts and record in user_activity", async () => {
     const { oauthApp, env } = await getTestServer();
     const oauthClient = testClient(oauthApp, env);
 
@@ -58,19 +59,27 @@ describe("password authentication - failed login tracking", () => {
 
     expect(blockedResponse.status).toEqual(403);
 
-    // Verify user has failed_logins in app_metadata
+    // Verify the strikes were recorded in user_activity
+    const activity = await env.data.userActivity.get(
+      "tenantId",
+      `${USERNAME_PASSWORD_PROVIDER}|userId`,
+    );
+    expect(activity?.failed_logins).toBeDefined();
+    expect(Array.isArray(activity?.failed_logins)).toBe(true);
+    expect(activity?.failed_logins?.length).toBeGreaterThanOrEqual(3);
+
+    // All timestamps should be parseable ISO 8601 strings
+    activity?.failed_logins?.forEach((ts) => {
+      expect(typeof ts).toBe("string");
+      expect(Number.isNaN(Date.parse(ts))).toBe(false);
+    });
+
+    // The users row is no longer touched on failed attempts
     const user = await env.data.users.get(
       "tenantId",
       `${USERNAME_PASSWORD_PROVIDER}|userId`,
     );
-    expect(user?.app_metadata?.failed_logins).toBeDefined();
-    expect(Array.isArray(user?.app_metadata?.failed_logins)).toBe(true);
-    expect(user?.app_metadata?.failed_logins?.length).toBeGreaterThanOrEqual(3);
-
-    // All timestamps should be numbers (milliseconds)
-    user?.app_metadata?.failed_logins?.forEach((ts: any) => {
-      expect(typeof ts).toBe("number");
-    });
+    expect(user?.app_metadata?.failed_logins).toBeUndefined();
   });
 
   it("should clear failed_logins after successful login", async () => {
@@ -109,13 +118,11 @@ describe("password authentication - failed login tracking", () => {
     expect(incorrectPasswordResponse.status).toEqual(403);
 
     // Verify failed login was recorded
-    let user = await env.data.users.get(
+    let activity = await env.data.userActivity.get(
       "tenantId",
       `${USERNAME_PASSWORD_PROVIDER}|userId2`,
     );
-    if (user?.app_metadata?.failed_logins) {
-      expect(user?.app_metadata?.failed_logins?.length).toBeGreaterThan(0);
-    }
+    expect(activity?.failed_logins?.length).toBeGreaterThan(0);
 
     // Now login successfully
     const successResponse = await oauthClient.co.authenticate.$post({
@@ -131,22 +138,66 @@ describe("password authentication - failed login tracking", () => {
     expect(successResponse.status).toEqual(200);
 
     // Verify failed_logins was cleared
-    user = await env.data.users.get(
+    activity = await env.data.userActivity.get(
       "tenantId",
       `${USERNAME_PASSWORD_PROVIDER}|userId2`,
     );
-    expect(user?.app_metadata?.failed_logins).toBeDefined();
-    // After successful login, failed_logins should be empty or cleared
-    if (user?.app_metadata?.failed_logins) {
-      expect(user?.app_metadata?.failed_logins?.length).toBe(0);
-    }
+    expect(activity?.failed_logins ?? []).toEqual([]);
+  });
+
+  it("should remove legacy app_metadata.failed_logins on successful login", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const oauthClient = testClient(oauthApp, env);
+
+    const userId = `${USERNAME_PASSWORD_PROVIDER}|legacyUser`;
+    await env.data.users.create("tenantId", {
+      email: "legacy@example.com",
+      email_verified: true,
+      name: "Legacy User",
+      nickname: "Legacy User",
+      connection: Strategy.USERNAME_PASSWORD,
+      provider: USERNAME_PASSWORD_PROVIDER,
+      is_social: false,
+      user_id: userId,
+    });
+    await env.data.passwords.create("tenantId", {
+      user_id: userId,
+      password: await bcryptjs.hash("CorrectPassword123!", 10),
+      algorithm: "bcrypt",
+    });
+
+    // Strikes from before the user_activity cutover: numeric epochs stored in
+    // app_metadata. They must not lock the user out (the lockout check reads
+    // user_activity), and a successful login should clean them up.
+    await env.data.users.update("tenantId", userId, {
+      app_metadata: {
+        failed_logins: [Date.now(), Date.now(), Date.now()],
+        other_key: "untouched",
+      },
+    });
+
+    const successResponse = await oauthClient.co.authenticate.$post({
+      json: {
+        client_id: "clientId",
+        credential_type: "http://auth0.com/oauth/grant-type/password-realm",
+        realm: Strategy.USERNAME_PASSWORD,
+        password: "CorrectPassword123!",
+        username: "legacy@example.com",
+      },
+    });
+    expect(successResponse.status).toEqual(200);
+
+    const user = await env.data.users.get("tenantId", userId);
+    expect(user?.app_metadata?.failed_logins).toBeUndefined();
+    expect(user?.app_metadata?.other_key).toBe("untouched");
   });
 
   it("should clean up timestamps older than 5 minutes", async () => {
-    const { env } = await getTestServer();
+    const { oauthApp, env } = await getTestServer();
+    const oauthClient = testClient(oauthApp, env);
 
-    // Create the user
-    const testUser = await env.data.users.create("tenantId", {
+    const userId = `${USERNAME_PASSWORD_PROVIDER}|userId3`;
+    await env.data.users.create("tenantId", {
       email: "testuser3@example.com",
       email_verified: true,
       name: "Test User 3",
@@ -154,43 +205,40 @@ describe("password authentication - failed login tracking", () => {
       connection: Strategy.USERNAME_PASSWORD,
       provider: USERNAME_PASSWORD_PROVIDER,
       is_social: false,
-      user_id: `${USERNAME_PASSWORD_PROVIDER}|userId3`,
+      user_id: userId,
+    });
+    await env.data.passwords.create("tenantId", {
+      user_id: userId,
+      password: await bcryptjs.hash("CorrectPassword123!", 10),
+      algorithm: "bcrypt",
     });
 
-    // Manually add old timestamps
-    const appMetadata = testUser.app_metadata || {};
-    appMetadata.failed_logins = [
-      Date.now() - 1000 * 60 * 10, // 10 minutes ago
-      Date.now() - 1000 * 60 * 7, // 7 minutes ago
-      Date.now(), // now
-    ];
+    // Seed two expired strikes and one recent one. Three entries would be a
+    // lockout if the window weren't applied, so the wrong-password attempt
+    // below also proves expired strikes don't count toward the limit.
+    await env.data.userActivity.upsert("tenantId", userId, {
+      failed_logins: [
+        new Date(Date.now() - 1000 * 60 * 10).toISOString(), // 10 minutes ago
+        new Date(Date.now() - 1000 * 60 * 7).toISOString(), // 7 minutes ago
+        new Date(Date.now() - 1000 * 60).toISOString(), // 1 minute ago
+      ],
+    });
 
-    await env.data.users.update(
-      "tenantId",
-      `${USERNAME_PASSWORD_PROVIDER}|userId3`,
-      {
-        app_metadata: appMetadata,
+    const incorrectPasswordResponse = await oauthClient.co.authenticate.$post({
+      json: {
+        client_id: "clientId",
+        credential_type: "http://auth0.com/oauth/grant-type/password-realm",
+        realm: Strategy.USERNAME_PASSWORD,
+        password: "IncorrectPassword",
+        username: "testuser3@example.com",
       },
-    );
+    });
+    expect(incorrectPasswordResponse.status).toEqual(403);
 
-    // Verify we have 3 timestamps
-    let user = await env.data.users.get(
-      "tenantId",
-      `${USERNAME_PASSWORD_PROVIDER}|userId3`,
-    );
-    expect(user?.app_metadata?.failed_logins?.length).toBe(3);
-
-    // Now trigger the cleanup by recording a new failed login
-    // We'll do this by calling the passwordGrant function directly
-    // But for simplicity, let's just verify the cleanup logic works on retrieval
-    const failedLogins = user?.app_metadata?.failed_logins || [];
-    const now = Date.now();
-    const recentFailedLogins = failedLogins.filter(
-      (ts: number) => now - ts < 1000 * 60 * 5,
-    );
-
-    // Should only have 1 recent timestamp (the one recorded "now")
-    expect(recentFailedLogins.length).toBe(1);
+    // Recording the new strike prunes the expired ones: only the 1-minute-old
+    // seed and the just-recorded strike remain.
+    const activity = await env.data.userActivity.get("tenantId", userId);
+    expect(activity?.failed_logins?.length).toBe(2);
   });
 
   it("should track failed logins on linked users' primary account", async () => {
@@ -242,21 +290,72 @@ describe("password authentication - failed login tracking", () => {
 
     expect(incorrectPasswordResponse.status).toEqual(403);
 
-    // Verify failed login was recorded on PRIMARY user's app_metadata
-    const updatedPrimaryUser = await env.data.users.get(
+    // Verify the strike was recorded on the PRIMARY user's activity row
+    const primaryActivity = await env.data.userActivity.get(
       "tenantId",
       `${USERNAME_PASSWORD_PROVIDER}|primary`,
     );
-    if (updatedPrimaryUser?.app_metadata?.failed_logins) {
-      expect(
-        updatedPrimaryUser?.app_metadata?.failed_logins?.length,
-      ).toBeGreaterThan(0);
-    } else {
-      // If failed_logins doesn't exist yet, it might be persisted asynchronously
-      // The important thing is that the feature is implemented
-      console.log(
-        "Note: failed_logins not yet persisted on linked user's primary - async operation",
-      );
-    }
+    expect(primaryActivity?.failed_logins?.length).toBeGreaterThan(0);
+
+    // And nothing was recorded against the linked identity itself
+    const linkedActivity = await env.data.userActivity.get(
+      "tenantId",
+      `${USERNAME_PASSWORD_PROVIDER}|linked`,
+    );
+    expect(linkedActivity?.failed_logins ?? []).toEqual([]);
+  });
+
+  it("should record a password reset on the linked user's primary account", async () => {
+    const { env } = await getTestServer();
+
+    await env.data.users.create("tenantId", {
+      email: "reset-primary@example.com",
+      email_verified: true,
+      name: "Reset Primary",
+      nickname: "Reset Primary",
+      connection: "email",
+      provider: "email",
+      is_social: false,
+      user_id: "email|resetPrimary",
+    });
+
+    const linkedUser = await env.data.users.create("tenantId", {
+      email: "reset-primary@example.com",
+      email_verified: true,
+      name: "Reset Linked",
+      nickname: "Reset Linked",
+      connection: Strategy.USERNAME_PASSWORD,
+      provider: USERNAME_PASSWORD_PROVIDER,
+      is_social: false,
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|resetLinked`,
+      linked_to: "email|resetPrimary",
+    });
+
+    // A stale lockout on the primary account, as left behind by failed
+    // password attempts on the linked identity.
+    await env.data.userActivity.upsert("tenantId", "email|resetPrimary", {
+      failed_logins: [new Date().toISOString()],
+    });
+
+    // The reset-password screen passes the password identity, not the primary.
+    await recordPasswordReset(env.data, "tenantId", linkedUser);
+
+    // Both the lockout clear and the reset timestamp land on the primary.
+    const primaryActivity = await env.data.userActivity.get(
+      "tenantId",
+      "email|resetPrimary",
+    );
+    expect(primaryActivity?.failed_logins ?? []).toEqual([]);
+    expect(primaryActivity?.last_password_reset).toBeDefined();
+    expect(
+      Number.isNaN(Date.parse(primaryActivity!.last_password_reset!)),
+    ).toBe(false);
+
+    // Nothing is stamped on the linked identity's own row.
+    const linkedActivity = await env.data.userActivity.get(
+      "tenantId",
+      `${USERNAME_PASSWORD_PROVIDER}|resetLinked`,
+    );
+    expect(linkedActivity?.last_password_reset).toBeFalsy();
   });
 });
