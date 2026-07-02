@@ -16,6 +16,7 @@ export * from "./actions";
 
 // Users & Authentication
 export * from "./users";
+export * from "./userActivity";
 export * from "./sessions";
 
 // Clients & Grants

@@ -1,5 +1,22 @@
-import { Kysely, SelectQueryBuilder } from "kysely";
+import { Kysely, SelectQueryBuilder, sql } from "kysely";
 import { Database } from "../db";
+
+// A field backed by a nullable LEFT-JOINed column that the public shape
+// presents with a numeric default (e.g. `login_count` -> 0 when the user has
+// no user_activity row). Comparisons wrap the column in COALESCE so rows
+// without a joined row still match, and bind the operand as a number: a
+// COALESCE expression has no column affinity in SQLite, so a string operand
+// would compare as text and never match.
+export type CoalescedNumericField = {
+  column: string;
+  defaultValue: number;
+};
+
+export type FieldMapping = string | CoalescedNumericField;
+
+export function coalescedRef(field: CoalescedNumericField) {
+  return sql`coalesce(${sql.ref(field.column)}, ${sql.lit(field.defaultValue)})`;
+}
 
 // Reverse Lucene escaping on a value operand: a backslash followed by a Lucene
 // reserved character is a literal of that character (e.g. `auth0|abc\-123` ->
@@ -67,14 +84,44 @@ export function sanitizeLuceneQuery(
   return sanitizePart(query);
 }
 
-export function luceneFilter<TB extends keyof Database>(
+// Generic over the query builder's DB type (not just `Database`) because
+// left-joined builders carry a widened DB type with nullable joined columns.
+export function luceneFilter<DB, TB extends keyof DB, O>(
   db: Kysely<Database>,
-  qb: SelectQueryBuilder<Database, TB, {}>,
+  qb: SelectQueryBuilder<DB, TB, O>,
   query: string,
   searchableColumns: string[],
   likeFields: string[] = [],
+  // Maps a public field name to a qualified column ref (e.g.
+  // `login_count` -> `user_activity.login_count`). Needed when the query
+  // joins tables that share column names, where an unqualified ref would be
+  // ambiguous. Fields not in the map are used as-is. A CoalescedNumericField
+  // value additionally makes comparisons NULL-aware (see its doc above).
+  fieldMap: Record<string, FieldMapping> = {},
 ) {
   const likeSet = new Set(likeFields);
+  const { ref } = db.dynamic;
+  const toColumn = (field: string): string => {
+    const mapped = fieldMap[field];
+    if (mapped === undefined) return field;
+    return typeof mapped === "string" ? mapped : mapped.column;
+  };
+  // Left-hand side for comparison clauses; unlike toColumn this wraps
+  // coalesced fields in their COALESCE expression. Dynamic references go
+  // through `db.dynamic.ref` so runtime-resolved column names stay typed.
+  const toLhs = (field: string) => {
+    const mapped = fieldMap[field];
+    if (mapped === undefined || typeof mapped === "string") {
+      return ref(mapped ?? field);
+    }
+    return coalescedRef(mapped);
+  };
+  const toOperand = (field: string, value: string): string | number => {
+    const mapped = fieldMap[field];
+    if (mapped === undefined || typeof mapped === "string") return value;
+    const num = Number(value);
+    return Number.isFinite(num) ? num : value;
+  };
   // Split by OR first to handle OR queries
   const orParts = query.split(/ OR /i);
 
@@ -94,15 +141,19 @@ export function luceneFilter<TB extends keyof Database>(
               value.replace(/^"(.*)"$/, "$1").trim(),
             );
             if (likeSet.has(fieldName)) {
-              return eb(fieldName as any, "like", `%${cleanValue}%`);
+              return eb(ref(toColumn(fieldName)), "like", `%${cleanValue}%`);
             }
-            return eb(fieldName as any, "=", cleanValue);
+            return eb(
+              toLhs(fieldName),
+              "=",
+              toOperand(fieldName, cleanValue),
+            );
           }
           return null;
         })
-        .filter(Boolean);
+        .filter((condition) => condition !== null);
 
-      return eb.or(conditions as any);
+      return eb.or(conditions);
     });
   }
 
@@ -201,50 +252,48 @@ export function luceneFilter<TB extends keyof Database>(
   // Apply filters to the query builder
   filters.forEach(({ key, value, isNegation, isExistsQuery, operator }) => {
     if (key) {
+      const column = ref(toColumn(key));
+      const lhs = toLhs(key);
+      const operand = toOperand(key, value);
       if (isExistsQuery) {
         if (isNegation) {
-          qb = qb.where(key as any, "is", null);
+          qb = qb.where(column, "is", null);
         } else {
-          qb = qb.where(key as any, "is not", null);
+          qb = qb.where(column, "is not", null);
         }
       } else if (likeSet.has(key) && operator === "=") {
         // Substring match for free-text fields (e.g. log descriptions),
         // where exact-match is rarely useful.
-        qb = qb.where(
-          key as any,
-          isNegation ? "not like" : "like",
-          `%${value}%`,
-        );
+        qb = qb.where(column, isNegation ? "not like" : "like", `%${value}%`);
       } else {
         if (isNegation) {
           switch (operator) {
             case ">":
-              qb = qb.where(key as any, "<=", value);
+              qb = qb.where(lhs, "<=", operand);
               break;
             case ">=":
-              qb = qb.where(key as any, "<", value);
+              qb = qb.where(lhs, "<", operand);
               break;
             case "<":
-              qb = qb.where(key as any, ">=", value);
+              qb = qb.where(lhs, ">=", operand);
               break;
             case "<=":
-              qb = qb.where(key as any, ">", value);
+              qb = qb.where(lhs, ">", operand);
               break;
             default:
-              qb = qb.where(key as any, "!=", value);
+              qb = qb.where(lhs, "!=", operand);
           }
         } else {
-          qb = qb.where(key as any, operator as any, value);
+          qb = qb.where(lhs, operator, operand);
         }
       }
     } else if (value) {
-      const { ref } = db.dynamic;
       qb = qb.where((eb) =>
         eb.or(
           searchableColumns.map((col) =>
             col === "user_id"
-              ? eb(ref(col), "=", value) // Exact match for user_id (e.g. "auth0|12345")
-              : eb(ref(col), "like", `%${value}%`),
+              ? eb(ref(toColumn(col)), "=", value) // Exact match for user_id (e.g. "auth0|12345")
+              : eb(ref(toColumn(col)), "like", `%${value}%`),
           ),
         ),
       );

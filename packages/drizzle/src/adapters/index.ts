@@ -37,6 +37,7 @@ import { createTenantsAdapter } from "./tenants";
 import { createThemesAdapter } from "./themes";
 import { createUniversalLoginTemplatesAdapter } from "./universalLoginTemplates";
 import { createUsersAdapter } from "./users";
+import { createUserActivityAdapter } from "./userActivity";
 import { createUserRolesAdapter } from "./userRoles";
 import { createUserOrganizationsAdapter } from "./userOrganizations";
 import { createStatsAdapter } from "./stats";
@@ -90,6 +91,7 @@ export default function createAdapters(
     themes: createThemesAdapter(db),
     universalLoginTemplates: createUniversalLoginTemplatesAdapter(db),
     users: createUsersAdapter(db),
+    userActivity: createUserActivityAdapter(db),
     userRoles: createUserRolesAdapter(db),
     userOrganizations: createUserOrganizationsAdapter(db),
     stats: createStatsAdapter(db),

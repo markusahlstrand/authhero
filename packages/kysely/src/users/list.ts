@@ -1,5 +1,10 @@
 import { Kysely } from "kysely";
-import { luceneFilter, sanitizeLuceneQuery } from "../helpers/filter";
+import {
+  luceneFilter,
+  sanitizeLuceneQuery,
+  coalescedRef,
+  FieldMapping,
+} from "../helpers/filter";
 import { removeNullProperties } from "../helpers/remove-nulls";
 import { userToIdentity } from "./user-to-identity";
 import { Database } from "../db";
@@ -8,7 +13,7 @@ import getCountAsInt from "../utils/getCountAsInt";
 
 // Fields users.list() accepts in `q`. Excludes `tenant_id` so a clause like
 // `q=tenant_id:other` cannot cross tenant boundaries; everything else here
-// maps to a real column on the users table.
+// maps to a real column on the users or user_activity table.
 const ALLOWED_Q_FIELDS = [
   "user_id",
   "email",
@@ -33,6 +38,25 @@ const ALLOWED_Q_FIELDS = [
   "updated_at",
 ];
 
+// Activity counters live in the joined user_activity table (issue #1003);
+// everything else resolves against users. Shared column names (user_id) make
+// unqualified refs ambiguous after the join, so every field is qualified.
+const ACTIVITY_FIELDS = new Set(["last_login", "last_ip", "login_count"]);
+
+const FIELD_MAP: Record<string, FieldMapping> = Object.fromEntries(
+  ALLOWED_Q_FIELDS.map((field): [string, FieldMapping] => [
+    field,
+    field === "login_count"
+      ? // list/get present a missing activity row as login_count 0, so
+        // filters and sorts must treat NULL as 0 too — otherwise
+        // `q=login_count:0` would skip users who never logged in.
+        { column: "user_activity.login_count", defaultValue: 0 }
+      : ACTIVITY_FIELDS.has(field)
+        ? `user_activity.${field}`
+        : `users.${field}`,
+  ]),
+);
+
 // luceneFilter routes bare-string tokens through this list (LIKE search).
 // Keep narrow — every column here is publicly searchable via `q`.
 const SEARCHABLE_COLUMNS = ["email", "name", "phone_number", "user_id"];
@@ -44,25 +68,52 @@ export function list(db: Kysely<Database>) {
   ): Promise<ListUsersResponse> => {
     const { page = 0, per_page = 50, include_totals = false, sort, q } = params;
 
-    let query = db.selectFrom("users").where("users.tenant_id", "=", tenantId);
+    let query = db
+      .selectFrom("users")
+      // 1:1 join (user_activity PK is tenant_id+user_id), so no row fanout.
+      // A missing row means the user never logged in.
+      .leftJoin("user_activity", (join) =>
+        join
+          .onRef("user_activity.tenant_id", "=", "users.tenant_id")
+          .onRef("user_activity.user_id", "=", "users.user_id"),
+      )
+      .where("users.tenant_id", "=", tenantId);
     if (q) {
       // Sanitize first so only whitelisted fields reach luceneFilter;
       // otherwise a clause like `q=tenant_id:other` would emit SQL against
       // arbitrary columns and could cross tenant boundaries.
       const sanitized = sanitizeLuceneQuery(q, ALLOWED_Q_FIELDS);
       if (sanitized) {
-        query = luceneFilter(db, query, sanitized, SEARCHABLE_COLUMNS);
+        query = luceneFilter(
+          db,
+          query,
+          sanitized,
+          SEARCHABLE_COLUMNS,
+          [],
+          FIELD_MAP,
+        );
       }
     }
 
     if (sort && sort.sort_by) {
       const { ref } = db.dynamic;
-      query = query.orderBy(ref(sort.sort_by), sort.sort_order);
+      const mapped = FIELD_MAP[sort.sort_by] ?? sort.sort_by;
+      query = query.orderBy(
+        typeof mapped === "string" ? ref(mapped) : coalescedRef(mapped),
+        sort.sort_order,
+      );
     }
 
     const filteredQuery = query.offset(page * per_page).limit(per_page);
 
-    const users = await filteredQuery.selectAll().execute();
+    const users = await filteredQuery
+      .selectAll("users")
+      .select([
+        "user_activity.last_login",
+        "user_activity.last_ip",
+        "user_activity.login_count",
+      ])
+      .execute();
 
     const userIds = users.map((u) => u.user_id);
 
@@ -88,6 +139,7 @@ export function list(db: Kysely<Database>) {
         phone_verified:
           user.phone_verified !== null ? user.phone_verified === 1 : undefined,
         is_social: user.is_social === 1,
+        login_count: user.login_count ?? 0,
         app_metadata: JSON.parse(user.app_metadata),
         user_metadata: JSON.parse(user.user_metadata),
         address: user.address ? JSON.parse(user.address) : undefined,

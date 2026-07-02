@@ -4,17 +4,31 @@ import {
   count as countFn,
   asc,
   desc,
+  getTableColumns,
   inArray,
   isNull,
 } from "drizzle-orm";
+import type { AnySQLiteColumn } from "drizzle-orm/sqlite-core";
 import { nanoid } from "nanoid";
 import { HTTPException } from "hono/http-exception";
 import type { User, ListParams } from "@authhero/adapter-interfaces";
-import { users, passwords, authenticationMethods } from "../schema/sqlite";
+import {
+  users,
+  userActivity,
+  passwords,
+  authenticationMethods,
+} from "../schema/sqlite";
 import { removeNullProperties, parseJsonIfString } from "../helpers/transform";
-import { buildLuceneFilter, sanitizeLuceneQuery } from "../helpers/filter";
+import {
+  buildLuceneFilter,
+  sanitizeLuceneQuery,
+  coalescedExpr,
+  isCoalescedNumericColumn,
+  type CoalescedNumericColumn,
+} from "../helpers/filter";
+import { createUserActivityAdapter } from "./userActivity";
 import type { DrizzleDb } from "./types";
-import { runAtomic } from "./atomic";
+import { runAtomic, type AtomicStatementList } from "./atomic";
 
 // Fields users.list() accepts in `q`. Excludes `tenant_id` so a clause like
 // `q=tenant_id:other` cannot reach arbitrary columns. Mirrors the kysely
@@ -45,6 +59,62 @@ const ALLOWED_Q_FIELDS = [
 
 // buildLuceneFilter routes bare-string tokens through this list (LIKE search).
 const SEARCHABLE_COLUMNS = ["email", "name", "phone_number", "user_id"];
+
+// Activity counters live in the joined user_activity table (issue #1003);
+// everything else resolves against users. This map feeds buildLuceneFilter
+// and sorting so each public field hits the right table's column.
+const ACTIVITY_FIELDS = new Set(["last_login", "last_ip", "login_count"]);
+
+const USER_COLUMNS: Record<string, AnySQLiteColumn> = getTableColumns(users);
+const ACTIVITY_COLUMNS: Record<string, AnySQLiteColumn> =
+  getTableColumns(userActivity);
+
+const FILTER_COLUMNS: Record<
+  string,
+  AnySQLiteColumn | CoalescedNumericColumn | undefined
+> = Object.fromEntries(
+  ALLOWED_Q_FIELDS.map((field) => [
+    field,
+    field === "login_count"
+      ? // list/get present a missing activity row as login_count 0, so
+        // filters and sorts must treat NULL as 0 too — otherwise
+        // `q=login_count:0` would skip users who never logged in.
+        ({
+          coalesce: userActivity.login_count,
+          defaultValue: 0,
+        } satisfies CoalescedNumericColumn)
+      : ACTIVITY_FIELDS.has(field)
+        ? ACTIVITY_COLUMNS[field]
+        : USER_COLUMNS[field],
+  ]),
+);
+
+// Join predicate reused by get/list; user_activity is 1:1 with users (PK is
+// tenant_id+user_id) so a LEFT JOIN never fans out rows. A missing row means
+// the user never logged in.
+function activityJoin() {
+  return and(
+    eq(userActivity.tenant_id, users.tenant_id),
+    eq(userActivity.user_id, users.user_id),
+  );
+}
+
+// Merge a joined row back into the flat user shape sqlToUser expects.
+function withActivity<T extends Record<string, unknown>>(
+  userRow: T,
+  activityRow: {
+    last_login: string | null;
+    last_ip: string | null;
+    login_count: number;
+  } | null,
+) {
+  return {
+    ...userRow,
+    last_login: activityRow?.last_login,
+    last_ip: activityRow?.last_ip,
+    login_count: activityRow?.login_count ?? 0,
+  };
+}
 
 function userToIdentity(sqlUser: any, isPrimary: boolean) {
   const identity: any = {
@@ -117,9 +187,6 @@ export function createUsersAdapter(db: DrizzleDb) {
       phone_verified: params.phone_verified ?? false,
       username: params.username,
       linked_to: params.linked_to,
-      last_ip: params.last_ip,
-      login_count: params.login_count ?? 0,
-      last_login: params.last_login,
       provider: params.provider,
       connection: params.connection,
       email_verified: params.email_verified ?? false,
@@ -144,13 +211,34 @@ export function createUsersAdapter(db: DrizzleDb) {
 
     const passwordId = params.password ? nanoid() : undefined;
 
+    // Callers that record a login at creation time (e.g. lazy Auth0
+    // migration, social sign-up) pass activity fields — those live in
+    // user_activity (issue #1003), not on the users row.
+    const hasActivity =
+      params.last_login !== undefined ||
+      params.last_ip !== undefined ||
+      params.login_count !== undefined;
+
     try {
+      // Insert the user and its activity/password rows atomically so all
+      // succeed or all roll back. runAtomic uses db.batch() on D1 and
+      // BEGIN/COMMIT on better-sqlite3.
+      const statements: AtomicStatementList = [
+        db.insert(users).values(sqlData),
+      ];
+      if (hasActivity) {
+        statements.push(
+          db.insert(userActivity).values({
+            tenant_id,
+            user_id: params.user_id,
+            last_login: params.last_login,
+            last_ip: params.last_ip,
+            login_count: params.login_count ?? 0,
+          }),
+        );
+      }
       if (params.password && passwordId) {
-        // Insert the user and its password atomically so both succeed or both
-        // roll back. runAtomic uses db.batch() on D1 and BEGIN/COMMIT on
-        // better-sqlite3.
-        await runAtomic(db, [
-          db.insert(users).values(sqlData),
+        statements.push(
           db.insert(passwords).values({
             id: passwordId,
             tenant_id,
@@ -161,7 +249,11 @@ export function createUsersAdapter(db: DrizzleDb) {
             created_at: now,
             updated_at: now,
           }),
-        ]);
+        );
+      }
+
+      if (statements.length > 1) {
+        await runAtomic(db, statements);
       } else {
         await db.insert(users).values(sqlData);
       }
@@ -178,7 +270,12 @@ export function createUsersAdapter(db: DrizzleDb) {
       });
     }
 
-    return sqlToUser(sqlData);
+    return sqlToUser({
+      ...sqlData,
+      last_login: params.last_login,
+      last_ip: params.last_ip,
+      login_count: params.login_count ?? 0,
+    });
   };
 
   return {
@@ -189,6 +286,7 @@ export function createUsersAdapter(db: DrizzleDb) {
       const result = await db
         .select()
         .from(users)
+        .leftJoin(userActivity, activityJoin())
         .where(and(eq(users.tenant_id, tenant_id), eq(users.user_id, user_id)))
         .get();
 
@@ -203,7 +301,10 @@ export function createUsersAdapter(db: DrizzleDb) {
         )
         .all();
 
-      return sqlToUser(result, linked);
+      return sqlToUser(
+        withActivity(result.users, result.user_activity),
+        linked,
+      );
     },
 
     async update(
@@ -227,9 +328,6 @@ export function createUsersAdapter(db: DrizzleDb) {
         "phone_number",
         "username",
         "linked_to",
-        "last_ip",
-        "login_count",
-        "last_login",
         "provider",
         "connection",
         "locale",
@@ -271,7 +369,27 @@ export function createUsersAdapter(db: DrizzleDb) {
         .where(and(eq(users.tenant_id, tenant_id), eq(users.user_id, user_id)))
         .returning();
 
-      return results.length > 0;
+      if (results.length === 0) {
+        return false;
+      }
+
+      // Activity counters live in user_activity (issue #1003). Route them
+      // there so callers that still pass them keep working — but only after
+      // the users update confirmed the row exists, so a missing user never
+      // gains an orphaned activity row.
+      if (
+        params.last_login !== undefined ||
+        params.last_ip !== undefined ||
+        params.login_count !== undefined
+      ) {
+        await createUserActivityAdapter(db).upsert(tenant_id, user_id, {
+          last_login: params.last_login,
+          last_ip: params.last_ip,
+          login_count: params.login_count,
+        });
+      }
+
+      return true;
     },
 
     async list(tenant_id: string, params?: ListParams) {
@@ -295,7 +413,7 @@ export function createUsersAdapter(db: DrizzleDb) {
         const sanitized = sanitizeLuceneQuery(q, ALLOWED_Q_FIELDS);
         if (sanitized) {
           const filter = buildLuceneFilter(
-            users,
+            FILTER_COLUMNS,
             sanitized,
             SEARCHABLE_COLUMNS,
           );
@@ -305,18 +423,27 @@ export function createUsersAdapter(db: DrizzleDb) {
 
       const whereClause = and(...conditions);
 
-      let query = db.select().from(users).where(whereClause).$dynamic();
+      let query = db
+        .select()
+        .from(users)
+        .leftJoin(userActivity, activityJoin())
+        .where(whereClause)
+        .$dynamic();
 
       if (sort?.sort_by) {
-        const col = (users as any)[sort.sort_by];
+        const col = FILTER_COLUMNS[sort.sort_by];
         if (col) {
+          const expr = isCoalescedNumericColumn(col) ? coalescedExpr(col) : col;
           query = query.orderBy(
-            sort.sort_order === "desc" ? desc(col) : asc(col),
+            sort.sort_order === "desc" ? desc(expr) : asc(expr),
           );
         }
       }
 
-      const results = await query.offset(page * per_page).limit(per_page);
+      const joinedResults = await query.offset(page * per_page).limit(per_page);
+      const results = joinedResults.map((row) =>
+        withActivity(row.users, row.user_activity),
+      );
 
       // Fetch linked users for these results
       const primaryIds = results.map((r) => r.user_id);
@@ -343,9 +470,12 @@ export function createUsersAdapter(db: DrizzleDb) {
         return { users: mapped };
       }
 
+      // The where clause may reference joined user_activity columns, so the
+      // count query needs the same join (1:1, so counts are unaffected).
       const [countResult] = await db
         .select({ count: countFn() })
         .from(users)
+        .leftJoin(userActivity, activityJoin())
         .where(whereClause);
 
       return {
@@ -389,6 +519,16 @@ export function createUsersAdapter(db: DrizzleDb) {
             and(
               eq(passwords.tenant_id, tenant_id),
               inArray(passwords.user_id, allUserIds),
+            ),
+          ),
+        // Delete activity counters for all users (don't rely on FK cascades —
+        // the rest of this cascade is explicit for the same reason)
+        db
+          .delete(userActivity)
+          .where(
+            and(
+              eq(userActivity.tenant_id, tenant_id),
+              inArray(userActivity.user_id, allUserIds),
             ),
           ),
         // Delete linked users — by the same captured IDs the credential

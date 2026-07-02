@@ -110,15 +110,19 @@ const sqlPasswordSchema = z.object({
   is_current: z.number(),
 });
 
-export const sqlUserSchema = userSchema.extend({
-  email_verified: z.number(),
-  phone_verified: z.number().optional().nullable(),
-  is_social: z.number(),
-  app_metadata: z.string(),
-  user_metadata: z.string(),
-  address: z.string().optional().nullable(),
-  tenant_id: z.string(),
-});
+// last_login/last_ip/login_count live in the user_activity table (issue
+// #1003), not on the users row.
+export const sqlUserSchema = userSchema
+  .omit({ last_login: true, last_ip: true, login_count: true })
+  .extend({
+    email_verified: z.number(),
+    phone_verified: z.number().optional().nullable(),
+    is_social: z.number(),
+    app_metadata: z.string(),
+    user_metadata: z.string(),
+    address: z.string().optional().nullable(),
+    tenant_id: z.string(),
+  });
 
 const sqlHookSchema = z.object({
   tenant_id: z.string(),
@@ -513,8 +517,9 @@ export interface Database {
   prompt_settings: z.infer<typeof sqlPromptSettingSchema>;
   refresh_tokens: z.infer<typeof sqlRefreshTokensSchema>;
   users: z.infer<typeof sqlUserSchema>;
-  // Write-often counters split out of `users` (issue #1003). Populated/read in
-  // a follow-up PR; the table exists empty until then.
+  // Write-often counters split out of `users` (issue #1003). This is the
+  // authoritative store for last_login/last_ip/login_count; a missing row
+  // means the user never logged in.
   user_activity: {
     tenant_id: string;
     user_id: string;

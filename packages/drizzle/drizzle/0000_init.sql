@@ -136,9 +136,6 @@ CREATE TABLE `users` (
 	`created_at` text(35) NOT NULL,
 	`updated_at` text(35) NOT NULL,
 	`linked_to` text(255),
-	`last_ip` text(255),
-	`login_count` integer NOT NULL,
-	`last_login` text(255),
 	`registration_completed_at` text(35),
 	`provider` text(255) NOT NULL,
 	`connection` text(255),
@@ -167,6 +164,18 @@ CREATE INDEX `users_email_index` ON `users` (`email`);--> statement-breakpoint
 CREATE INDEX `users_linked_to_index` ON `users` (`linked_to`);--> statement-breakpoint
 CREATE INDEX `users_name_index` ON `users` (`name`);--> statement-breakpoint
 CREATE INDEX `users_phone_tenant_provider_index` ON `users` (`tenant_id`,`phone_number`,`provider`);--> statement-breakpoint
+CREATE TABLE `user_activity` (
+	`tenant_id` text(255) NOT NULL,
+	`user_id` text(255) NOT NULL,
+	`last_login` text(35),
+	`last_ip` text(45),
+	`login_count` integer DEFAULT 0 NOT NULL,
+	`failed_logins` text,
+	`last_password_reset` text(35),
+	PRIMARY KEY(`tenant_id`, `user_id`),
+	FOREIGN KEY (`user_id`,`tenant_id`) REFERENCES `users`(`user_id`,`tenant_id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
 CREATE TABLE `authentication_codes` (
 	`tenant_id` text(191) NOT NULL,
 	`code` text(255) PRIMARY KEY NOT NULL,

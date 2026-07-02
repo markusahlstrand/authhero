@@ -9,9 +9,21 @@ export function get(db: Kysely<Database>) {
     const [sqlUser, linkedUsers] = await Promise.all([
       db
         .selectFrom("users")
+        // Activity counters live in user_activity (issue #1003). A missing
+        // row means the user never logged in, so LEFT JOIN and coalesce.
+        .leftJoin("user_activity", (join) =>
+          join
+            .onRef("user_activity.tenant_id", "=", "users.tenant_id")
+            .onRef("user_activity.user_id", "=", "users.user_id"),
+        )
         .where("users.tenant_id", "=", tenantId)
         .where("users.user_id", "=", user_id)
-        .selectAll()
+        .selectAll("users")
+        .select([
+          "user_activity.last_login",
+          "user_activity.last_ip",
+          "user_activity.login_count",
+        ])
         .executeTakeFirst(),
       db
         .selectFrom("users")
@@ -37,6 +49,9 @@ export function get(db: Kysely<Database>) {
           ? sqlUser.phone_verified === 1
           : undefined,
       is_social: sqlUser.is_social === 1,
+      last_login: sqlUser.last_login ?? undefined,
+      last_ip: sqlUser.last_ip ?? undefined,
+      login_count: sqlUser.login_count ?? 0,
       app_metadata: JSON.parse(sqlUser.app_metadata),
       user_metadata: JSON.parse(sqlUser.user_metadata),
       address: sqlUser.address ? JSON.parse(sqlUser.address) : undefined,

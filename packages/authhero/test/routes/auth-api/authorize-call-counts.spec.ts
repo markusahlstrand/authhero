@@ -329,14 +329,13 @@ describe("authorize — adapter call counts", () => {
     expect(counts["codes.create"] ?? 0).toBe(1);
 
     // The last-login bookkeeping write still happens (deferred via
-    // waitUntil; the test runner flushes it before the response leaves).
-    // Its user-update decorator chain reads the user once more (the second
-    // users.get) and commits the write inside data.transaction() — whose
-    // inner adapter the counting wrapper intentionally bypasses, so
-    // users.update itself never shows up in counts. Both ride along in the
-    // deferred promise, off the response path on Workers.
-    expect(counts["users.get"] ?? 0).toBe(2);
-    expect(counts["transaction()"] ?? 0).toBe(1);
+    // waitUntil; the test runner flushes it before the response leaves),
+    // but since the issue #1003 cutover it goes to userActivity.upsert —
+    // no user-update decorator chain, so no second users.get and no
+    // data.transaction() on the warm path.
+    expect(counts["users.get"] ?? 0).toBe(1);
+    expect(counts["userActivity.upsert"] ?? 0).toBe(1);
+    expect(counts["transaction()"] ?? 0).toBe(0);
 
     // Middleware fallbacks must not fire: resume resolves its tenant from
     // the state artifact (single-tenant auto-detect is skipped).
