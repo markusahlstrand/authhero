@@ -1,5 +1,12 @@
 # create-authhero
 
+## 0.47.2
+
+### Patch Changes
+
+- 54e1a96: Point the local template's startup banner at the bundled admin UI (https://localhost:3000/admin) instead of the hosted portal at local.authhero.net when @authhero/admin is installed, and fix the CLI success messages to use https URLs matching the local dev server. Documentation links now point to https://docs.authhero.net instead of the outdated https://authhero.net/docs.
+- 54e1a96: The /setup screen now shows an error message when the password is too short (or the identifier is empty) instead of failing with a bare 400 the widget can't display. The local template's generated app.ts defaults the admin UI config to the https issuer so the admin UI no longer links to http://localhost:3000, and the seed script includes the https://localhost:3000 callback and logout URLs.
+
 ## 0.47.1
 
 ### Patch Changes

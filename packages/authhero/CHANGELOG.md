@@ -1,5 +1,12 @@
 # authhero
 
+## 8.12.1
+
+### Patch Changes
+
+- 54e1a96: Show "Wrong username or password" on the combined login screen when the password is wrong, instead of leaking the raw i18n key "wrong-credentials". The screen translates against the login.login prompt whose Auth0 locale key is camelCase (wrongCredentials); the kebab-case key only exists for the login-id and login-password prompts.
+- 54e1a96: The /setup screen now shows an error message when the password is too short (or the identifier is empty) instead of failing with a bare 400 the widget can't display. The local template's generated app.ts defaults the admin UI config to the https issuer so the admin UI no longer links to http://localhost:3000, and the seed script includes the https://localhost:3000 callback and logout URLs.
+
 ## 8.12.0
 
 ### Minor Changes
