@@ -408,7 +408,13 @@ function generateLocalSeedFileContent(
     "https://local.authhero.net/auth-callback",
     "http://localhost:5173/auth-callback",
     "http://localhost:3000/auth-callback",
-    ...(adminUi ? ["http://localhost:3000/admin/auth-callback"] : []),
+    "https://localhost:3000/auth-callback",
+    ...(adminUi
+      ? [
+          "http://localhost:3000/admin/auth-callback",
+          "https://localhost:3000/admin/auth-callback",
+        ]
+      : []),
   ];
   const conformanceCallbacks = conformance
     ? [
@@ -423,6 +429,7 @@ function generateLocalSeedFileContent(
     "https://local.authhero.net",
     "http://localhost:5173",
     "http://localhost:3000",
+    "https://localhost:3000",
   ];
   const conformanceLogoutUrls = conformance
     ? ["https://localhost:8443/", "https://localhost.emobix.co.uk:8443/"]
@@ -698,7 +705,7 @@ const adminIndexPath = path.join(adminDistPath, "index.html");
   // Add admin UI handler if the package is installed
   if (fs.existsSync(adminIndexPath)) {
     const issuer =
-      process.env.ISSUER || \`http://localhost:\${process.env.PORT || 3000}/\`;
+      process.env.ISSUER || \`https://localhost:\${process.env.PORT || 3000}/\`;
     const rawHtml = fs.readFileSync(adminIndexPath, "utf-8")
       .replace(/src="\\.\\//g, 'src="/admin/')
       .replace(/href="\\.\\//g, 'href="/admin/');
@@ -1453,13 +1460,19 @@ function printProxySuccessMessage(): void {
 /**
  * Prints nice output at the end of setup for local/sqlite
  */
-function printLocalSuccessMessage(): void {
+function printLocalSuccessMessage(adminUi?: boolean): void {
   console.log("\n" + "─".repeat(50));
-  console.log("✅ Self-signed certificates generated with openssl");
-  console.log("⚠️  You may need to trust the certificate in your browser");
-  console.log("🔐 AuthHero server running at http://localhost:3000");
-  console.log("📚 API documentation available at http://localhost:3000/docs");
-  console.log("🚀 Open http://localhost:3000/setup to complete initial setup");
+  console.log("🔐 AuthHero server running at https://localhost:3000");
+  console.log("⚠️  Uses a self-signed certificate — you may need to trust it");
+  console.log("📚 API documentation available at https://localhost:3000/docs");
+  console.log(
+    "🚀 Open https://localhost:3000/setup to complete initial setup",
+  );
+  if (adminUi) {
+    console.log("🛠️  Admin UI available at https://localhost:3000/admin");
+  } else {
+    console.log("🌐 Portal available at https://local.authhero.net");
+  }
   console.log("─".repeat(50) + "\n");
 }
 
@@ -2000,7 +2013,7 @@ ENCRYPTION_KEY=${generateEncryptionKey()}
           } else if (setupType === "proxy") {
             printProxySuccessMessage();
           } else {
-            printLocalSuccessMessage();
+            printLocalSuccessMessage(adminUi);
           }
           console.log("🚀 Starting development server...\n");
           await runCommand(`${packageManager} run dev`, projectPath);
@@ -2025,7 +2038,7 @@ ENCRYPTION_KEY=${generateEncryptionKey()}
           } else if (setupType === "proxy") {
             printProxySuccessMessage();
           } else {
-            printLocalSuccessMessage();
+            printLocalSuccessMessage(adminUi);
           }
         }
       } catch (error) {
@@ -2043,7 +2056,7 @@ ENCRYPTION_KEY=${generateEncryptionKey()}
         console.log("  npm run migrate");
         console.log("  npm run dev");
         console.log(
-          "\nOpen http://localhost:3000/setup to complete initial setup",
+          "\nOpen https://localhost:3000/setup to complete initial setup",
         );
       } else if (setupType === "cloudflare") {
         console.log("  npm install");
@@ -2116,7 +2129,12 @@ ENCRYPTION_KEY=${generateEncryptionKey()}
             : setupType === "cloudflare-wfp-tenant"
               ? 3002
               : 3000;
-      console.log(`\nServer will be available at: http://localhost:${port}`);
+      // The proxy template serves plain http; all other templates run their
+      // dev server with TLS (self-signed certs / wrangler --local-protocol).
+      const protocol = setupType === "proxy" ? "http" : "https";
+      console.log(
+        `\nServer will be available at: ${protocol}://localhost:${port}`,
+      );
 
       if (conformance) {
         console.log("\n🧪 OpenID Conformance Suite Testing:");
@@ -2135,7 +2153,7 @@ ENCRYPTION_KEY=${generateEncryptionKey()}
         console.log(`  4. Use alias: ${conformanceAlias}`);
       }
 
-      console.log("\nFor more information, visit: https://authhero.net/docs\n");
+      console.log("\nFor more information, visit: https://docs.authhero.net\n");
     }
   });
 

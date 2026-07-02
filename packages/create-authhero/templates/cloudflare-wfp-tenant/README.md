@@ -58,5 +58,5 @@ wrangler secret put CONTROL_PLANE_ENCRYPTION_KEY  --name tenant-<id>-auth
 
 After the Worker and its D1 exist, run the control plane's
 `sync-defaults` for this tenant so its inherited rows are populated. See the
-[Control Plane Defaults](https://authhero.net/docs/customization/multi-tenancy/control-plane-defaults)
+[Control Plane Defaults](https://docs.authhero.net/customization/multi-tenancy/control-plane-defaults)
 docs for the full flow.

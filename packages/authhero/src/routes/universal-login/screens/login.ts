@@ -697,13 +697,13 @@ export const loginScreenDefinition: ScreenDefinition = {
       } catch (e: unknown) {
         const authError = e as AuthError;
 
-        let errorMessage = authError.message || m["wrong-credentials"]();
+        let errorMessage = authError.message || m.wrongCredentials();
 
         if (
           authError.code === "INVALID_PASSWORD" ||
           authError.code === "USER_NOT_FOUND"
         ) {
-          errorMessage = m["wrong-credentials"]();
+          errorMessage = m.wrongCredentials();
         } else if (authError.code === "EMAIL_NOT_VERIFIED") {
           errorMessage = m.unverifiedEmail();
         } else if (authError.code === "TOO_MANY_FAILED_LOGINS") {

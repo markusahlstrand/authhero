@@ -158,6 +158,6 @@ npm run decrypt -- "enc:v1:..."   # decrypt a stored value using ENCRYPTION_KEY 
 ## Learn More
 
 - [SST Documentation](https://sst.dev/docs)
-- [AuthHero Documentation](https://authhero.net/docs)
+- [AuthHero Documentation](https://docs.authhero.net)
 - [AWS Lambda](https://docs.aws.amazon.com/lambda/)
 - [DynamoDB](https://docs.aws.amazon.com/dynamodb/)

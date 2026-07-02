@@ -55,5 +55,5 @@ npm run seed      # seed the control plane tenant + admin
 npm run dev
 ```
 
-See [Control Plane Defaults](https://authhero.net/docs/customization/multi-tenancy/control-plane-defaults)
+See [Control Plane Defaults](https://docs.authhero.net/customization/multi-tenancy/control-plane-defaults)
 for the full architecture and request flows.

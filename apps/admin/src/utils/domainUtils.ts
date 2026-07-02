@@ -192,9 +192,12 @@ export const getClientIdFromStorage = (domain: string): string => {
 
 /**
  * Constructs a full URL with the appropriate protocol
- * - Uses http:// for localhost and 127.0.0.1 (no self-signed certs needed locally)
- * - Uses https:// for all other domains
- * - Upgrades http:// to https:// for non-loopback hosts
+ * - Preserves an explicit http:// for loopback hosts; upgrades it to https://
+ *   for everything else
+ * - Without a scheme, a domain matching the page's own host follows the page
+ *   protocol (the bundled admin UI is always same-origin with its API), and
+ *   any other host gets https:// — local templates serve TLS, and plain-http
+ *   servers can still be reached with an explicit http:// URL
  */
 export const buildUrlWithProtocol = (domain: string): string => {
   const trimmedDomain = domain.trim();
@@ -222,9 +225,9 @@ export const buildUrlWithProtocol = (domain: string): string => {
     return trimmedDomain;
   }
 
-  // No scheme provided — use http for loopback, https otherwise
-  if (isLoopback(parsed.hostname)) {
-    return `http://${trimmedDomain}`;
+  // No scheme provided — same-origin domains follow the page protocol
+  if (typeof window !== "undefined" && parsed.host === window.location.host) {
+    return `${window.location.protocol}//${trimmedDomain}`;
   }
 
   return `https://${trimmedDomain}`;
