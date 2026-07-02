@@ -28,9 +28,8 @@ export const users = sqliteTable(
     created_at: text("created_at", { length: 35 }).notNull(),
     updated_at: text("updated_at", { length: 35 }).notNull(),
     linked_to: text("linked_to", { length: 255 }),
-    last_ip: text("last_ip", { length: 255 }),
-    login_count: integer("login_count").notNull(),
-    last_login: text("last_login", { length: 255 }),
+    // last_login/last_ip/login_count live in the user_activity table
+    // (issue #1003), not on the users row.
     registration_completed_at: text("registration_completed_at", {
       length: 35,
     }),

@@ -23,7 +23,10 @@ import {
 } from "./codehooks";
 import { invokeHooks } from "./webhooks";
 import { createTokenAPI } from "./helpers/token-api";
-import { getConnectionInfo, resolveConnectionName } from "../helpers/connection";
+import {
+  getConnectionInfo,
+  resolveConnectionName,
+} from "../helpers/connection";
 import { waitUntil } from "../helpers/wait-until";
 
 // Type guard for webhook hooks
@@ -90,11 +93,11 @@ async function buildEnhancedEventObject(
   // Get organization information if available
   let organizationInfo:
     | {
-      id: string;
-      name: string;
-      display_name: string;
-      metadata: any;
-    }
+        id: string;
+        name: string;
+        display_name: string;
+        metadata: any;
+      }
     | undefined = undefined;
   try {
     if (loginSession.authParams?.organization) {
@@ -179,8 +182,8 @@ async function buildEnhancedEventObject(
     organization: organizationInfo,
     resource_server: params.authParams?.audience
       ? {
-        identifier: params.authParams.audience,
-      }
+          identifier: params.authParams.audience,
+        }
       : undefined,
     stats: {
       logins_count: user.login_count || 0,
@@ -251,7 +254,10 @@ export async function postUserLoginHook(
   // real connection signal is available — that fallback is what caused SSO
   // re-issues to mislabel linked-identity logins.
   const connection =
-    params?.authStrategy?.strategy || params?.authConnection || user.connection || "";
+    params?.authStrategy?.strategy ||
+    params?.authConnection ||
+    user.connection ||
+    "";
 
   // SUCCESS_LOGIN is emitted in the `finally` below — deferred so we can embed
   // `details.execution_id` when post-login actions ran (matches Auth0's model
@@ -268,22 +274,23 @@ export async function postUserLoginHook(
     const lastLogin = new Date().toISOString();
     const lastIp = ctx.var.ip || "";
     const loginCount = user.login_count + 1;
-    waitUntil(
-      ctx,
-      data.users.update(tenant_id, user.user_id, {
-        last_login: lastLogin,
-        last_ip: lastIp,
-        login_count: loginCount,
-      }),
-    );
-    // Expand/contract migration (issue #1003): double-write the same counters
-    // to the user_activity entity. Reads still come from the legacy `users`
-    // columns this phase; a later PR cuts reads over and drops the columns.
-    // Guarded because the adapter is optional (e.g. drizzle doesn't ship it).
+    // Contract phase of issue #1003: user_activity is the authoritative
+    // store for these counters. The users.update fallback only exists for
+    // third-party adapters without a userActivity implementation (all
+    // in-repo adapters ship one), which keep the legacy columns on users.
     if (data.userActivity) {
       waitUntil(
         ctx,
         data.userActivity.upsert(tenant_id, user.user_id, {
+          last_login: lastLogin,
+          last_ip: lastIp,
+          login_count: loginCount,
+        }),
+      );
+    } else {
+      waitUntil(
+        ctx,
+        data.users.update(tenant_id, user.user_id, {
           last_login: lastLogin,
           last_ip: lastIp,
           login_count: loginCount,
@@ -298,18 +305,18 @@ export async function postUserLoginHook(
     const enhancedEvent =
       params?.client && params?.authParams && loginSession
         ? await buildEnhancedEventObject(
-          ctx,
-          data,
-          tenant_id,
-          user,
-          loginSession,
-          {
-            client: params.client,
-            authParams: params.authParams,
-            authStrategy: params.authStrategy,
-            authConnection: params.authConnection,
-          },
-        )
+            ctx,
+            data,
+            tenant_id,
+            user,
+            loginSession,
+            {
+              client: params.client,
+              authParams: params.authParams,
+              authStrategy: params.authStrategy,
+              authConnection: params.authConnection,
+            },
+          )
         : null;
 
     // Trigger any onExecutePostLogin hooks defined in ctx.env.hooks
@@ -318,7 +325,7 @@ export async function postUserLoginHook(
 
       await ctx.env.hooks.onExecutePostLogin(enhancedEvent, {
         prompt: {
-          render: (_formId: string) => { },
+          render: (_formId: string) => {},
         },
         redirect: {
           sendUserTo: (

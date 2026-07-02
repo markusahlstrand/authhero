@@ -91,8 +91,14 @@ export function sanitizeLuceneQuery(
  * - Quoted values: field:"value with spaces"
  * - likeFields: fields matched with substring LIKE instead of exact equality
  *   (e.g. free-text log descriptions), mirroring the kysely adapter.
+ *
+ * `table` can also be a plain field→column map. Use that when the query joins
+ * several tables (e.g. users + user_activity) so each public field resolves to
+ * a column of the right table.
  */
-export function buildLuceneFilter<T extends SQLiteTableWithColumns<any>>(
+export function buildLuceneFilter<
+  T extends SQLiteTableWithColumns<any> | Record<string, unknown>,
+>(
   table: T,
   query: string,
   searchableColumns: string[],

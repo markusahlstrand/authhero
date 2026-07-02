@@ -11,13 +11,21 @@ export function create(db: Kysely<Database>) {
     options?: CreateOptions,
   ): Promise<User> => {
     const importMetadata = options?.importMetadata;
-    const { identities, phone_verified, password, ...rest } = user as User &
-      Pick<UserInsert, "password">;
+    const {
+      identities,
+      phone_verified,
+      password,
+      // Activity counters are stored in user_activity, not on the users row
+      // (issue #1003) — split them off and write them separately below.
+      last_login,
+      last_ip,
+      login_count,
+      ...rest
+    } = user as User & Pick<UserInsert, "password">;
 
     const now = new Date().toISOString();
     const sqlUser = {
       ...rest,
-      login_count: rest.login_count ?? 0,
       created_at: importMetadata?.created_at ?? rest.created_at ?? now,
       updated_at: importMetadata?.updated_at ?? rest.updated_at ?? now,
       user_id: importMetadata?.id ?? rest.user_id,
@@ -34,6 +42,27 @@ export function create(db: Kysely<Database>) {
     try {
       const execute = async (trx: Kysely<Database>) => {
         await trx.insertInto("users").values(sqlUser).execute();
+
+        // Callers that record a login at creation time (e.g. lazy Auth0
+        // migration, social sign-up) pass activity fields — persist them in
+        // the same transaction so the user never exists without them.
+        if (
+          sqlUser.user_id &&
+          (last_login !== undefined ||
+            last_ip !== undefined ||
+            login_count !== undefined)
+        ) {
+          await trx
+            .insertInto("user_activity")
+            .values({
+              tenant_id: tenantId,
+              user_id: sqlUser.user_id,
+              last_login: last_login ?? null,
+              last_ip: last_ip ?? null,
+              login_count: login_count ?? 0,
+            })
+            .execute();
+        }
 
         if (password && sqlUser.user_id) {
           const passwordRecord = {
@@ -68,6 +97,9 @@ export function create(db: Kysely<Database>) {
 
     return {
       ...sqlUser,
+      last_login,
+      last_ip,
+      login_count: login_count ?? 0,
       // TODO: check if this is correct. Should it be optional?
       email: sqlUser.email || "",
       email_verified: sqlUser.email_verified === 1,

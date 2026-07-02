@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "aa362ef7-2aa5-43c2-822c-5e9ffd5ec7e5",
+  "id": "f5a5b35e-cf8e-4fe4-afe9-ec2d33b03c33",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "tenants": {
@@ -952,27 +952,6 @@
           "notNull": false,
           "autoincrement": false
         },
-        "last_ip": {
-          "name": "last_ip",
-          "type": "text(255)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "login_count": {
-          "name": "login_count",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "last_login": {
-          "name": "last_login",
-          "type": "text(255)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
         "registration_completed_at": {
           "name": "registration_completed_at",
           "type": "text(35)",
@@ -1176,6 +1155,90 @@
             "tenant_id"
           ],
           "name": "users_tenants"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "user_activity": {
+      "name": "user_activity",
+      "columns": {
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "last_login": {
+          "name": "last_login",
+          "type": "text(35)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "last_ip": {
+          "name": "last_ip",
+          "type": "text(45)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "login_count": {
+          "name": "login_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "failed_logins": {
+          "name": "failed_logins",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "last_password_reset": {
+          "name": "last_password_reset",
+          "type": "text(35)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "user_activity_user_id_constraint": {
+          "name": "user_activity_user_id_constraint",
+          "tableFrom": "user_activity",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id",
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "user_id",
+            "tenant_id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "user_activity_pkey": {
+          "columns": [
+            "tenant_id",
+            "user_id"
+          ],
+          "name": "user_activity_pkey"
         }
       },
       "uniqueConstraints": {},

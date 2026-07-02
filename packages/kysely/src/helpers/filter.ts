@@ -67,14 +67,22 @@ export function sanitizeLuceneQuery(
   return sanitizePart(query);
 }
 
-export function luceneFilter<TB extends keyof Database>(
+// Generic over the query builder's DB type (not just `Database`) because
+// left-joined builders carry a widened DB type with nullable joined columns.
+export function luceneFilter<DB, TB extends keyof DB, O>(
   db: Kysely<Database>,
-  qb: SelectQueryBuilder<Database, TB, {}>,
+  qb: SelectQueryBuilder<DB, TB, O>,
   query: string,
   searchableColumns: string[],
   likeFields: string[] = [],
+  // Maps a public field name to a qualified column ref (e.g.
+  // `login_count` -> `user_activity.login_count`). Needed when the query
+  // joins tables that share column names, where an unqualified ref would be
+  // ambiguous. Fields not in the map are used as-is.
+  fieldMap: Record<string, string> = {},
 ) {
   const likeSet = new Set(likeFields);
+  const toColumn = (field: string): string => fieldMap[field] ?? field;
   // Split by OR first to handle OR queries
   const orParts = query.split(/ OR /i);
 
@@ -94,9 +102,9 @@ export function luceneFilter<TB extends keyof Database>(
               value.replace(/^"(.*)"$/, "$1").trim(),
             );
             if (likeSet.has(fieldName)) {
-              return eb(fieldName as any, "like", `%${cleanValue}%`);
+              return eb(toColumn(fieldName) as any, "like", `%${cleanValue}%`);
             }
-            return eb(fieldName as any, "=", cleanValue);
+            return eb(toColumn(fieldName) as any, "=", cleanValue);
           }
           return null;
         })
@@ -201,17 +209,18 @@ export function luceneFilter<TB extends keyof Database>(
   // Apply filters to the query builder
   filters.forEach(({ key, value, isNegation, isExistsQuery, operator }) => {
     if (key) {
+      const column = toColumn(key);
       if (isExistsQuery) {
         if (isNegation) {
-          qb = qb.where(key as any, "is", null);
+          qb = qb.where(column as any, "is", null);
         } else {
-          qb = qb.where(key as any, "is not", null);
+          qb = qb.where(column as any, "is not", null);
         }
       } else if (likeSet.has(key) && operator === "=") {
         // Substring match for free-text fields (e.g. log descriptions),
         // where exact-match is rarely useful.
         qb = qb.where(
-          key as any,
+          column as any,
           isNegation ? "not like" : "like",
           `%${value}%`,
         );
@@ -219,22 +228,22 @@ export function luceneFilter<TB extends keyof Database>(
         if (isNegation) {
           switch (operator) {
             case ">":
-              qb = qb.where(key as any, "<=", value);
+              qb = qb.where(column as any, "<=", value);
               break;
             case ">=":
-              qb = qb.where(key as any, "<", value);
+              qb = qb.where(column as any, "<", value);
               break;
             case "<":
-              qb = qb.where(key as any, ">=", value);
+              qb = qb.where(column as any, ">=", value);
               break;
             case "<=":
-              qb = qb.where(key as any, ">", value);
+              qb = qb.where(column as any, ">", value);
               break;
             default:
-              qb = qb.where(key as any, "!=", value);
+              qb = qb.where(column as any, "!=", value);
           }
         } else {
-          qb = qb.where(key as any, operator as any, value);
+          qb = qb.where(column as any, operator as any, value);
         }
       }
     } else if (value) {
@@ -243,8 +252,8 @@ export function luceneFilter<TB extends keyof Database>(
         eb.or(
           searchableColumns.map((col) =>
             col === "user_id"
-              ? eb(ref(col), "=", value) // Exact match for user_id (e.g. "auth0|12345")
-              : eb(ref(col), "like", `%${value}%`),
+              ? eb(ref(toColumn(col)), "=", value) // Exact match for user_id (e.g. "auth0|12345")
+              : eb(ref(toColumn(col)), "like", `%${value}%`),
           ),
         ),
       );
