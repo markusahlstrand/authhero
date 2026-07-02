@@ -19,7 +19,9 @@
     "build": "tsc && vite build",
     "prepublishOnly": "pnpm build",
     "dev": "pnpm build && rm -rf auth-server && node dist/create-authhero.js auth-server --workspace --skip-install --skip-start && pnpm -w install --force --filter auth-server... && pnpm --filter auth-server migrate && pnpm --filter auth-server dev",
-    "start": "pnpm build && node dist/create-authhero.js"
+    "start": "pnpm build && node dist/create-authhero.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^26.0.1",
@@ -28,7 +30,8 @@
     "@types/node": "^20.19.41",
     "tsx": "^4.22.3",
     "typescript": "^5.5.2",
-    "vite": "^8.0.14"
+    "vite": "^8.0.14",
+    "vitest": "^4.1.7"
   },
   "dependencies": {
     "commander": "^12.1.0",

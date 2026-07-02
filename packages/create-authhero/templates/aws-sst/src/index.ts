@@ -1,7 +1,7 @@
 import { handle } from "hono/aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
-import createAdapters from "@authhero/aws";
+import createAdapters from "@authhero/aws-adapter";
 import {
   DataAdapters,
   createEncryptedDataAdapter,
