@@ -1,5 +1,11 @@
 # create-authhero
 
+## 0.47.3
+
+### Patch Changes
+
+- c078f14: Fix the aws-sst template to depend on `@authhero/aws-adapter` (the published package) instead of the non-existent `@authhero/aws`, and add a test suite that scaffolds every template and verifies the generated files, dependency names, and that generated/template code only imports things the authhero packages actually export.
+
 ## 0.47.2
 
 ### Patch Changes
