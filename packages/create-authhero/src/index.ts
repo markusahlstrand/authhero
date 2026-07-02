@@ -354,7 +354,7 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
           decrypt: "node --env-file=.env scripts/decrypt-field.mjs",
         },
         dependencies: {
-          "@authhero/aws": v,
+          "@authhero/aws-adapter": v,
           ...(adminUi && { "@authhero/admin": v }),
           "@authhero/widget": v,
           "@aws-sdk/client-dynamodb": "^3.0.0",
@@ -1124,7 +1124,7 @@ function generateAwsSstSeedFileContent(
 
   return `import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
-import createAdapters from "@authhero/aws";
+import createAdapters from "@authhero/aws-adapter";
 import { seed, createEncryptedDataAdapter, loadEncryptionKey } from "authhero";
 
 async function main() {
@@ -1465,9 +1465,7 @@ function printLocalSuccessMessage(adminUi?: boolean): void {
   console.log("🔐 AuthHero server running at https://localhost:3000");
   console.log("⚠️  Uses a self-signed certificate — you may need to trust it");
   console.log("📚 API documentation available at https://localhost:3000/docs");
-  console.log(
-    "🚀 Open https://localhost:3000/setup to complete initial setup",
-  );
+  console.log("🚀 Open https://localhost:3000/setup to complete initial setup");
   if (adminUi) {
     console.log("🛠️  Admin UI available at https://localhost:3000/admin");
   } else {

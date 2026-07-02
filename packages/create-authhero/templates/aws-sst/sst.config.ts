@@ -61,7 +61,7 @@ export default $config({
         ENCRYPTION_KEY: process.env.ENCRYPTION_KEY ?? "",
       },
       nodejs: {
-        install: ["@authhero/aws"],
+        install: ["@authhero/aws-adapter"],
       },
     });
 

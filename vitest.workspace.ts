@@ -6,6 +6,7 @@ export default defineWorkspace([
   "./packages/kysely/vite.config.ts",
   "./packages/cloudflare/vite.config.ts",
   "./packages/authhero/vite.config.ts",
+  "./packages/create-authhero/vite.config.ts",
   // Excluded from vitest:
   // - packages/ui-widget: Uses Stencil's test runner (pnpm test in that package)
   // - test/routes: Legacy tests that need migration to a proper package
