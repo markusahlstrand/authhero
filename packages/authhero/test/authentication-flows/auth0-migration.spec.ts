@@ -649,6 +649,57 @@ describe("auth0 migration: password fallback", () => {
     expect(passwordRow).toBeDefined();
   });
 
+  // Issue #992: once a user has a current local password, a mismatch is a
+  // real failed login — Auth0 never re-delegates to the legacy source after
+  // import. Otherwise a user who changed their password here could still log
+  // in with the old upstream one, and every typo would fire an upstream call.
+  it("does NOT call upstream on a wrong password when the user has a current local password", async () => {
+    // If the gate regressed, this upstream 200 would turn the wrong local
+    // password into a successful login.
+    fetchSpy.mockResolvedValueOnce(
+      jsonResponse(200, {
+        access_token: "upstream-at",
+        token_type: "Bearer",
+        expires_in: 86400,
+      }),
+    );
+
+    const { oauthApp, env } = await makeMigrationServer();
+
+    const existingUserId = `${USERNAME_PASSWORD_PROVIDER}|has-local-pwd`;
+    await env.data.users.create(TENANT_ID, {
+      user_id: existingUserId,
+      email: "has-local-pwd@example.com",
+      email_verified: true,
+      provider: USERNAME_PASSWORD_PROVIDER,
+      connection: Strategy.USERNAME_PASSWORD,
+      is_social: false,
+    });
+    await env.data.passwords.create(TENANT_ID, {
+      user_id: existingUserId,
+      password: await bcryptjs.hash("CurrentLocalPwd!", 10),
+      algorithm: "bcrypt",
+    });
+
+    const oauthClient = testClient(oauthApp, env);
+    const response = await oauthClient.co.authenticate.$post({
+      json: {
+        client_id: CLIENT_ID,
+        credential_type: "http://auth0.com/oauth/grant-type/password-realm",
+        realm: REALM,
+        username: "has-local-pwd@example.com",
+        password: "OldUpstreamPwd!",
+      },
+    });
+
+    expect(response.status).toBe(403);
+    expect(fetchSpy).not.toHaveBeenCalled();
+
+    // The mismatch counts as a real failed-login strike.
+    const activity = await env.data.userActivity.get(TENANT_ID, existingUserId);
+    expect(activity?.failed_logins?.length).toBe(1);
+  });
+
   // Local password row already exists and matches: the local check succeeds
   // and we must NOT call upstream — the bcrypt path is the source of truth
   // once migration has happened.
