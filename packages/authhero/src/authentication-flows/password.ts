@@ -367,10 +367,14 @@ export async function passwordGrant(
     password &&
     (await bcryptjs.compare(authParams.password, password.password));
 
-  if (!valid) {
-    // Try upstream lazy migration before recording a failed-login strike.
-    // The user already exists locally; we just don't have a matching
-    // password hash. Use the user's own connection record to read the
+  if (!valid && !password) {
+    // Try upstream lazy migration before recording a failed-login strike —
+    // but only when the user has no current local password (e.g. an
+    // admin/import-created shell user). Once a password exists locally, a
+    // mismatch is a real failed login: Auth0 never re-delegates to the
+    // legacy source after import, so neither do we — otherwise a user who
+    // changed their password here could still log in with the old upstream
+    // one. Use the user's own connection record to read the
     // import_mode flag — only that connection's name is acceptable as the
     // upstream realm.
     const userDbConnection = await findConnectionByName(
