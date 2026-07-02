@@ -4,6 +4,7 @@ import { testClient } from "hono/testing";
 import bcryptjs from "bcryptjs";
 import { USERNAME_PASSWORD_PROVIDER } from "../../src/constants";
 import { Strategy } from "@authhero/adapter-interfaces";
+import { recordPasswordReset } from "../../src/authentication-flows/password";
 
 describe("password authentication - failed login tracking", () => {
   it("should reject a login after three failed attempts and record in user_activity", async () => {
@@ -302,5 +303,59 @@ describe("password authentication - failed login tracking", () => {
       `${USERNAME_PASSWORD_PROVIDER}|linked`,
     );
     expect(linkedActivity?.failed_logins ?? []).toEqual([]);
+  });
+
+  it("should record a password reset on the linked user's primary account", async () => {
+    const { env } = await getTestServer();
+
+    await env.data.users.create("tenantId", {
+      email: "reset-primary@example.com",
+      email_verified: true,
+      name: "Reset Primary",
+      nickname: "Reset Primary",
+      connection: "email",
+      provider: "email",
+      is_social: false,
+      user_id: "email|resetPrimary",
+    });
+
+    const linkedUser = await env.data.users.create("tenantId", {
+      email: "reset-primary@example.com",
+      email_verified: true,
+      name: "Reset Linked",
+      nickname: "Reset Linked",
+      connection: Strategy.USERNAME_PASSWORD,
+      provider: USERNAME_PASSWORD_PROVIDER,
+      is_social: false,
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|resetLinked`,
+      linked_to: "email|resetPrimary",
+    });
+
+    // A stale lockout on the primary account, as left behind by failed
+    // password attempts on the linked identity.
+    await env.data.userActivity.upsert("tenantId", "email|resetPrimary", {
+      failed_logins: [new Date().toISOString()],
+    });
+
+    // The reset-password screen passes the password identity, not the primary.
+    await recordPasswordReset(env.data, "tenantId", linkedUser);
+
+    // Both the lockout clear and the reset timestamp land on the primary.
+    const primaryActivity = await env.data.userActivity.get(
+      "tenantId",
+      "email|resetPrimary",
+    );
+    expect(primaryActivity?.failed_logins ?? []).toEqual([]);
+    expect(primaryActivity?.last_password_reset).toBeDefined();
+    expect(
+      Number.isNaN(Date.parse(primaryActivity!.last_password_reset!)),
+    ).toBe(false);
+
+    // Nothing is stamped on the linked identity's own row.
+    const linkedActivity = await env.data.userActivity.get(
+      "tenantId",
+      `${USERNAME_PASSWORD_PROVIDER}|resetLinked`,
+    );
+    expect(linkedActivity?.last_password_reset).toBeFalsy();
   });
 });

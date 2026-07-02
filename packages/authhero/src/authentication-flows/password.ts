@@ -79,8 +79,17 @@ async function countRecentFailedLogins(
 ): Promise<number> {
   const now = Date.now();
   if (data.userActivity) {
-    const activity = await data.userActivity.get(tenantId, primaryUser.user_id);
-    return getRecentFailedLogins(activity?.failed_logins, now).length;
+    try {
+      const activity = await data.userActivity.get(
+        tenantId,
+        primaryUser.user_id,
+      );
+      return getRecentFailedLogins(activity?.failed_logins, now).length;
+    } catch (error) {
+      // Fail open: a transient activity-store read failure must never block
+      // valid logins. Fall back to the legacy strikes on the user row.
+      console.error("Failed to read failed_logins from user_activity:", error);
+    }
   }
   return getRecentLegacyFailedLogins(primaryUser, now).length;
 }
@@ -90,29 +99,39 @@ async function recordFailedLogin(
   tenantId: string,
   primaryUser: User,
 ): Promise<void> {
-  const now = Date.now();
+  // Best-effort: a storage failure here must not replace the invalid-password
+  // 403 with an error. The write is still awaited by the caller so it lands
+  // before the response is sent (a terminated worker can't drop it).
+  try {
+    const now = Date.now();
 
-  // Add current timestamp and remove timestamps older than 5 minutes
-  if (data.userActivity) {
-    const activity = await data.userActivity.get(tenantId, primaryUser.user_id);
-    const failedLogins = [
-      ...getRecentFailedLogins(activity?.failed_logins, now),
-      new Date(now).toISOString(),
+    // Add current timestamp and remove timestamps older than 5 minutes
+    if (data.userActivity) {
+      const activity = await data.userActivity.get(
+        tenantId,
+        primaryUser.user_id,
+      );
+      const failedLogins = [
+        ...getRecentFailedLogins(activity?.failed_logins, now),
+        new Date(now).toISOString(),
+      ];
+      await data.userActivity.upsert(tenantId, primaryUser.user_id, {
+        failed_logins: failedLogins,
+      });
+      return;
+    }
+
+    const appMetadata = primaryUser.app_metadata || {};
+    appMetadata.failed_logins = [
+      ...getRecentLegacyFailedLogins(primaryUser, now),
+      now,
     ];
-    await data.userActivity.upsert(tenantId, primaryUser.user_id, {
-      failed_logins: failedLogins,
+    await data.users.update(tenantId, primaryUser.user_id, {
+      app_metadata: appMetadata,
     });
-    return;
+  } catch (error) {
+    console.error("Failed to record failed login:", error);
   }
-
-  const appMetadata = primaryUser.app_metadata || {};
-  appMetadata.failed_logins = [
-    ...getRecentLegacyFailedLogins(primaryUser, now),
-    now,
-  ];
-  await data.users.update(tenantId, primaryUser.user_id, {
-    app_metadata: appMetadata,
-  });
 }
 
 /**
@@ -188,7 +207,17 @@ export async function recordPasswordReset(
     return;
   }
   try {
-    await data.userActivity.upsert(tenantId, user.user_id, {
+    // Activity lives on the primary account (like failed_logins above), so
+    // resolve the linked primary before stamping the reset timestamp.
+    const primaryUser = user.linked_to
+      ? await data.users.get(tenantId, user.linked_to)
+      : user;
+
+    if (!primaryUser) {
+      return;
+    }
+
+    await data.userActivity.upsert(tenantId, primaryUser.user_id, {
       last_password_reset: new Date().toISOString(),
     });
   } catch (error) {
