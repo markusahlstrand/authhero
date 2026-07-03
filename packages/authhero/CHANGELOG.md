@@ -1,5 +1,16 @@
 # authhero
 
+## 8.14.1
+
+### Patch Changes
+
+- 7fa1d94: Skip the /authorize resource-server check when the resolved audience is the `${iss}userinfo` sentinel. Tenants whose default_audience holds the sentinel no longer get "Service not found" on audience-less login flows — the sentinel is the userinfo-only JWT path, not a resource server.
+- e8f7e66: Don't delegate to the upstream password source when the user has a current local password (#992)
+
+  The lazy-migration fallback for `import_mode` connections now only fires when the user has no current local password. Once a password exists locally, a mismatch is a real failed login — matching Auth0, which never re-consults the legacy source after import. Previously a migrated user who changed their password in authhero could still log in with the old upstream password, and every wrong-password typo triggered an upstream call.
+
+- c338463: Tenant export: prefetch the first 1000 lines / 1 MB before committing the streaming response, so adapter failures anywhere in that window — in practice the entirety of small and medium tenants — surface as a real 500 with a tenant log entry, instead of a 200 with a truncated 10-byte gzip. Also make the stream-side success/failure logs reliable: they are now written with `waitForCompletion` (a `waitUntil`-scheduled write can be dropped once the stream ends) and a failed log write can no longer mask the original error.
+
 ## 8.14.0
 
 ### Minor Changes
