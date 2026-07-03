@@ -1,9 +1,18 @@
 name: OIDC Conformance
 
-# Manually triggered. Builds the OpenID Foundation conformance suite (cached
-# Maven artifact), generates a fresh auth-server, and runs the conformance
-# runner. ~10–20 min on cold cache, ~5–8 min when the suite JAR cache hits.
+# Runs on manual dispatch, and automatically on the changesets release PR
+# (changeset-release/main) where it is a required check — packages must pass
+# the conformance suite before a version-bump PR can merge. The pull_request
+# trigger fires on every PR so the required check is always reported, but the
+# job itself is skipped (= satisfied) unless the head is the release branch.
+#
+# Builds the OpenID Foundation conformance suite (cached Maven artifact),
+# generates a fresh auth-server, and runs the conformance runner.
+# ~10–20 min on cold cache, ~5–8 min when the suite JAR cache hits.
 on:
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       grep:
@@ -16,8 +25,15 @@ on:
         type: boolean
         default: true
 
+# The release workflow force-pushes changeset-release/main on every main
+# merge; cancel a superseded conformance run instead of queueing behind it.
+concurrency:
+  group: conformance-${{ github.event_name == 'pull_request' && github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   conformance:
+    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'changeset-release/main'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -129,10 +145,12 @@ jobs:
 
       # SKIP_SETUP=1 because the steps above already started the suite and
       # seeded the DB; ALLOW_WARNING is configurable from the workflow input.
+      # On pull_request runs there are no inputs — allow warnings (the
+      # dispatch default) and run the full plan.
       - name: Run conformance runner
         env:
           SKIP_SETUP: "1"
-          ALLOW_WARNING: ${{ inputs.allow_warning && '1' || '' }}
+          ALLOW_WARNING: ${{ (github.event_name == 'pull_request' || inputs.allow_warning) && '1' || '' }}
           GREP: ${{ inputs.grep }}
         run: |
           if [ -n "$GREP" ]; then
