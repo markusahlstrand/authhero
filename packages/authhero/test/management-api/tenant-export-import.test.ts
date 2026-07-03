@@ -91,6 +91,78 @@ describe("GET /tenant-data/export", () => {
     expect(res.status).toBe(500);
   });
 
+  it("returns 500 (not a truncated 200) when the export fails partway through", async () => {
+    const { app, env } = await getTestServer();
+    const token = await getAdminToken();
+
+    // Fails on a later entity, after the tenants row already succeeded.
+    // Rows within the prefetch window are pulled before the response commits,
+    // so this must be a real 500 rather than a 200 with a 10-byte gzip header.
+    env.data.clients.list = async () => {
+      throw new Error("boom");
+    };
+
+    const res = await app.request(
+      "/api/v2/tenant-data/export",
+      {
+        headers: { authorization: `Bearer ${token}`, "tenant-id": "tenantId" },
+      },
+      env,
+    );
+
+    expect(res.status).toBe(500);
+  });
+
+  it("streams complete exports larger than the prefetch window", async () => {
+    const { managementApp, env } = await getTestServer();
+    const token = await getAdminToken();
+
+    // Serve more rows than the 1000-line prefetch window so the tail is
+    // produced by the live iterator after the response has committed.
+    const totalUsers = 1200;
+    env.data.users.list = async (_tenantId, params) => {
+      const page = params?.page ?? 0;
+      const perPage = params?.per_page ?? 50;
+      const start = page * perPage;
+      const users = Array.from(
+        { length: Math.max(0, Math.min(perPage, totalUsers - start)) },
+        (_, i) => ({
+          user_id: `auth2|bulk${start + i}`,
+          email: `bulk${start + i}@example.com`,
+          email_verified: true,
+          provider: "auth2",
+          connection: "Username-Password-Authentication",
+          is_social: false,
+          login_count: 0,
+          created_at: "2020-01-01T00:00:00.000Z",
+          updated_at: "2020-01-01T00:00:00.000Z",
+        }),
+      );
+      return { users, start, limit: perPage, length: users.length };
+    };
+    // Skip the per-user fan-out lookups so the test stays fast.
+    env.data.authenticationMethods.list = async () => [];
+    env.data.userRoles.list = async () => [];
+    env.data.userPermissions.list = async () => [];
+
+    const res = await managementApp.request(
+      "/tenant-data/export",
+      {
+        headers: { authorization: `Bearer ${token}`, "tenant-id": "tenantId" },
+      },
+      env,
+    );
+
+    expect(res.status).toBe(200);
+    const text = await gunzip(await res.arrayBuffer());
+    const userLines = text
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line))
+      .filter((line) => line.entity === "users");
+    expect(userLines).toHaveLength(totalUsers);
+  });
+
   it("rejects include_password_hashes without the elevated scope", async () => {
     const { managementApp, env } = await getTestServer();
     const token = await getAdminToken();

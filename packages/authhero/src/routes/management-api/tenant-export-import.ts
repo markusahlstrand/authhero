@@ -273,50 +273,83 @@ const exportRoute = defineRoute({
     let rowCount = 0;
     let logged = false;
 
-    // Pull the first line *before* committing the response. The body streams,
-    // so returning the Response locks in status 200 + headers; if the very
-    // first adapter call throws after that, the only recourse is
+    // Prefetch a bounded prefix of the export *before* committing the
+    // response. The body streams, so returning the Response locks in status
+    // 200 + headers; any adapter failure after that can only surface as
     // `controller.error`, which truncates the gzip to its 10-byte header and
-    // hands the client a 200 with a corrupt file. Surfacing that first failure
-    // here lets us return a real 5xx (and log it) instead.
-    let firstResult: IteratorResult<ExportLine>;
+    // hands the client a 200 with a corrupt file. Buffering the first rows
+    // up-front means a failure anywhere in them — in practice the entirety of
+    // small and medium tenants — comes back as a real 5xx (and a log entry)
+    // instead. Only exports larger than this window can still truncate
+    // mid-stream, and those at least carry a partial body that shows where
+    // they stopped.
+    const PREFETCH_MAX_LINES = 1000;
+    const PREFETCH_MAX_BYTES = 1024 * 1024;
+    const prefetched: Uint8Array<ArrayBuffer>[] = [];
+    let prefetchedBytes = 0;
+    let exhausted = false;
     try {
-      firstResult = await iterator.next();
+      while (
+        prefetched.length < PREFETCH_MAX_LINES &&
+        prefetchedBytes < PREFETCH_MAX_BYTES
+      ) {
+        const { value, done } = await iterator.next();
+        if (done) {
+          exhausted = true;
+          break;
+        }
+        const chunk = encoder.encode(JSON.stringify(value) + "\n");
+        prefetched.push(chunk);
+        prefetchedBytes += chunk.byteLength;
+        rowCount += 1;
+      }
     } catch (err) {
       await logMessage(ctx, tenant_id, {
         type: LogTypes.FAILED_API_OPERATION,
-        description: `Tenant export failed (password_hashes=${includePasswordHashes}) by ${ctx.var.user?.sub ?? "unknown"}: ${err instanceof Error ? err.message : String(err)}`,
+        description: `Tenant export failed after ${rowCount} rows (password_hashes=${includePasswordHashes}) by ${ctx.var.user?.sub ?? "unknown"}: ${err instanceof Error ? err.message : String(err)}`,
         targetType: "tenant",
         targetId: tenant_id,
-      });
+      }).catch(() => {});
       throw new HTTPException(500, { message: "Tenant export failed" });
     }
-    // The first chunk is already fetched; emit it before resuming the iterator.
-    let pending: IteratorResult<ExportLine> | undefined = firstResult;
 
     const ndjson = new ReadableStream<Uint8Array<ArrayBuffer>>({
       async pull(controller) {
+        // Drain the prefetched prefix before resuming the iterator.
+        const buffered = prefetched.shift();
+        if (buffered) {
+          controller.enqueue(buffered);
+          return;
+        }
         try {
-          const { value, done } = pending ?? (await iterator.next());
-          pending = undefined;
-          if (done) {
+          const next = exhausted ? undefined : await iterator.next();
+          if (!next || next.done) {
             if (!logged) {
               logged = true;
+              // waitForCompletion: this runs inside the stream, after the
+              // middleware chain finished — a waitUntil-scheduled write can be
+              // dropped, so await the log write itself before closing. Swallow
+              // its errors: every row is already produced, and a failed audit
+              // write must not error the stream and corrupt a complete export.
               await logMessage(ctx, tenant_id, {
                 type: LogTypes.SUCCESS_API_OPERATION,
                 description: `Tenant export (${rowCount} rows, password_hashes=${includePasswordHashes}) by ${ctx.var.user?.sub ?? "unknown"}`,
                 targetType: "tenant",
                 targetId: tenant_id,
-              });
+                waitForCompletion: true,
+              }).catch(() => {});
             }
             controller.close();
             return;
           }
           rowCount += 1;
-          controller.enqueue(encoder.encode(JSON.stringify(value) + "\n"));
+          controller.enqueue(encoder.encode(JSON.stringify(next.value) + "\n"));
         } catch (err) {
           // Mid-stream failure: status 200 is already on the wire, so the
           // client still gets a truncated body — but at least record why.
+          // waitForCompletion: awaited directly because a waitUntil-scheduled
+          // write can be dropped once the stream errors. Never let a failed
+          // log write mask the original error.
           if (!logged) {
             logged = true;
             await logMessage(ctx, tenant_id, {
@@ -324,7 +357,8 @@ const exportRoute = defineRoute({
               description: `Tenant export failed after ${rowCount} rows (password_hashes=${includePasswordHashes}) by ${ctx.var.user?.sub ?? "unknown"}: ${err instanceof Error ? err.message : String(err)}`,
               targetType: "tenant",
               targetId: tenant_id,
-            });
+              waitForCompletion: true,
+            }).catch(() => {});
           }
           controller.error(err);
         }
