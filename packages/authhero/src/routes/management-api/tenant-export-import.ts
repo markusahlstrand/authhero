@@ -328,14 +328,16 @@ const exportRoute = defineRoute({
               logged = true;
               // waitForCompletion: this runs inside the stream, after the
               // middleware chain finished — a waitUntil-scheduled write can be
-              // dropped, so await the log write itself before closing.
+              // dropped, so await the log write itself before closing. Swallow
+              // its errors: every row is already produced, and a failed audit
+              // write must not error the stream and corrupt a complete export.
               await logMessage(ctx, tenant_id, {
                 type: LogTypes.SUCCESS_API_OPERATION,
                 description: `Tenant export (${rowCount} rows, password_hashes=${includePasswordHashes}) by ${ctx.var.user?.sub ?? "unknown"}`,
                 targetType: "tenant",
                 targetId: tenant_id,
                 waitForCompletion: true,
-              });
+              }).catch(() => {});
             }
             controller.close();
             return;
