@@ -576,7 +576,11 @@ const getRoot = defineRoute({
     // registered resource server, so the user sees the error before the
     // login UI rather than after entering credentials. An undefined
     // audience is allowed — it produces a userinfo-only JWT downstream.
-    if (authParams.audience) {
+    // The `${iss}userinfo` sentinel is that same userinfo-only path made
+    // explicit (e.g. via tenant default_audience), not a resource server,
+    // so it must skip the check too.
+    const userinfoAudience = `${getIssuer(ctx.env, ctx.var.custom_domain)}userinfo`;
+    if (authParams.audience && authParams.audience !== userinfoAudience) {
       const { resource_servers } = await env.data.resourceServers.list(
         client.tenant.id,
       );

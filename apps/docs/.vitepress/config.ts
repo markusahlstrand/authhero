@@ -186,6 +186,10 @@ gtag('config', 'G-DNZWG3PF2L');`,
             { text: "Adapters", link: "/architecture/adapters" },
             { text: "Audit Events", link: "/architecture/audit-events" },
             {
+              text: "Audit Archive (Design)",
+              link: "/architecture/audit-archive",
+            },
+            {
               text: "Hooks & Outbox Pipeline",
               link: "/architecture/hooks-pipeline",
             },
