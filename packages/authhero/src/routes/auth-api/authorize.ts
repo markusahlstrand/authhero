@@ -572,6 +572,33 @@ const getRoot = defineRoute({
       }
     }
 
+    // OAuth 2.0 Multiple Response Type Encoding Practices: `query` must not
+    // be used when the authorization response carries front-channel tokens.
+    // Auth0 rejects the combination with unsupported_response_mode; we used
+    // to silently coerce to fragment at redirect-build time. Every
+    // response_type except pure `code` carries a token. The error itself is
+    // token-free, so delivering it via the requested query channel is safe.
+    if (
+      response_mode === AuthorizationResponseMode.QUERY &&
+      response_type !== AuthorizationResponseType.CODE
+    ) {
+      const errorDescription = `Invalid response_mode "query" for response_type "${response_type}"`;
+      if (sanitizedRedirectUri) {
+        const errorParams: Record<string, string> = {
+          error: "unsupported_response_mode",
+          error_description: errorDescription,
+        };
+        if (state) errorParams.state = state;
+
+        const redirectUrl = new URL(sanitizedRedirectUri);
+        for (const [k, v] of Object.entries(errorParams)) {
+          redirectUrl.searchParams.set(k, v);
+        }
+        return ctx.redirect(redirectUrl.toString());
+      }
+      throw new HTTPException(400, { message: errorDescription });
+    }
+
     // Auth0 parity: reject /authorize when the audience doesn't match a
     // registered resource server, so the user sees the error before the
     // login UI rather than after entering credentials. An undefined
