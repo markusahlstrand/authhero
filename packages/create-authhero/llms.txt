@@ -129,23 +129,24 @@ export default function createApp(config: AuthHeroConfig) {
 
 ```typescript
 // src/index.ts
-import { Kysely } from "kysely";
-import { D1Dialect } from "kysely-d1";
-import createAdapters from "@authhero/kysely-adapter";
+import { drizzle } from "drizzle-orm/d1";
+import createAdapters from "@authhero/drizzle";
+import * as schema from "@authhero/drizzle/schema/sqlite";
 import createApp from "./app";
 
 export default {
   async fetch(request: Request, env: Env) {
-    const db = new Kysely({ dialect: new D1Dialect({ database: env.AUTH_DB }) });
-    const dataAdapter = createAdapters(db);
-    const app = createApp({
-      dataAdapter,
-      issuer: new URL(request.url).origin,
-    });
+    const db = drizzle(env.AUTH_DB, { schema });
+    const dataAdapter = createAdapters(db, { useTransactions: false });
+    const app = createApp({ dataAdapter });
     return app.fetch(request, env);
   },
 };
 ```
+
+The local template uses the same adapter on better-sqlite3
+(`drizzle-orm/better-sqlite3`), with migrations shipped inside the
+`@authhero/drizzle` package.
 
 ## Seed Data
 
@@ -166,7 +167,7 @@ The CLI generates seed data including:
 ## Related Packages
 
 - `authhero` - Core authentication library
-- `@authhero/kysely-adapter` - Database adapter
+- `@authhero/drizzle` - Database adapter (SQLite/D1)
 - `@authhero/multi-tenancy` - Multi-tenant support
 
 ## License

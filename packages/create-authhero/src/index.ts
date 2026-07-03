@@ -83,7 +83,7 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
           decrypt: "node --env-file=.env scripts/decrypt-field.mjs",
         },
         dependencies: {
-          "@authhero/kysely-adapter": v,
+          "@authhero/drizzle": v,
           ...(adminUi && { "@authhero/admin": v }),
           "@authhero/widget": v,
           "@hono/swagger-ui": "^0.6.0",
@@ -91,8 +91,8 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
           "@hono/node-server": "latest",
           authhero: v,
           "better-sqlite3": "latest",
+          "drizzle-orm": "^0.44.0",
           hono: "^4.12.0",
-          kysely: "latest",
           ...(multiTenant && { "@authhero/multi-tenancy": v }),
           ...(conformance && { bcryptjs: "latest" }),
         },
@@ -571,9 +571,10 @@ function generateLocalSeedFileContent(
     : "";
 
   // TypeScript seed file for local setup - uses the seed function from authhero
-  return `import { SqliteDialect, Kysely } from "kysely";
-import Database from "better-sqlite3";
-import createAdapters from "@authhero/kysely-adapter";
+  return `import Database from "better-sqlite3";
+import { drizzle } from "drizzle-orm/better-sqlite3";
+import createAdapters from "@authhero/drizzle";
+import * as schema from "@authhero/drizzle/schema/sqlite";
 import { seed, createEncryptedDataAdapter, loadEncryptionKey${conformance ? ", USERNAME_PASSWORD_PROVIDER" : ""} } from "authhero";
 
 interface ExtraClient {
@@ -623,11 +624,8 @@ async function main() {
     ? JSON.parse(userProfileJson)
     : {};
 
-  const dialect = new SqliteDialect({
-    database: new Database("db.sqlite"),
-  });
-
-  const db = new Kysely<any>({ dialect });
+  const sqlite = new Database("db.sqlite");
+  const db = drizzle(sqlite, { schema });
   let adapters = createAdapters(db);
 
   // Match the server: encrypt seeded secrets at rest when a key is configured.
@@ -674,7 +672,7 @@ async function main() {
     console.log(\`✅ Updated profile of user "\${seedResult.username}"\`);
   }
 ${conformanceClientCode}
-  await db.destroy();
+  sqlite.close();
 }
 
 main().catch((err) => {

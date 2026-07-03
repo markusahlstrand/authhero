@@ -1,25 +1,26 @@
-import { SqliteDialect, Kysely } from "kysely";
 import Database from "better-sqlite3";
-import { migrateToLatest } from "@authhero/kysely-adapter";
+import { drizzle } from "drizzle-orm/better-sqlite3";
+import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 
-async function migrate() {
-  const dialect = new SqliteDialect({
-    database: new Database("db.sqlite"),
-  });
+// Migrations are pre-generated and shipped with the @authhero/drizzle package.
+// The schema is managed by AuthHero — do not generate your own migrations.
+const migrationsFolder = "node_modules/@authhero/drizzle/drizzle";
 
-  const db = new Kysely<any>({ dialect });
+function migrateDb() {
+  const sqlite = new Database("db.sqlite");
+  const db = drizzle(sqlite);
 
   console.log("Running migrations...");
 
   try {
-    await migrateToLatest(db, true);
+    migrate(db, { migrationsFolder });
     console.log("✅ All migrations completed successfully");
   } catch (error) {
     console.error("Migration failed:", error);
     process.exit(1);
   } finally {
-    await db.destroy();
+    sqlite.close();
   }
 }
 
-migrate();
+migrateDb();
