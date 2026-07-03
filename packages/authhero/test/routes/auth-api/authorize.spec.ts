@@ -361,6 +361,81 @@ describe("authorize", () => {
     expect(login.authParams.redirect_uri).toEqual("http://localhost:3000/auth");
   });
 
+  describe("resource server validation", () => {
+    it("redirects with access_denied when the audience doesn't match a resource server", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const oauthClient = testClient(oauthApp, env);
+
+      const response = await oauthClient.authorize.$get(
+        {
+          query: {
+            client_id: "clientId",
+            redirect_uri: "https://example.com/callback",
+            state: "state",
+            scope: "openid",
+            response_type: AuthorizationResponseType.CODE,
+            audience: "https://unregistered-api.example.com",
+          },
+        },
+        {
+          headers: {
+            origin: "https://example.com",
+          },
+        },
+      );
+
+      expect(response.status).toEqual(302);
+      const location = new URL(response.headers.get("location")!);
+      expect(location.searchParams.get("error")).toEqual("access_denied");
+      expect(location.searchParams.get("error_description")).toEqual(
+        "Service not found: https://unregistered-api.example.com",
+      );
+    });
+
+    it("allows the ${iss}userinfo sentinel resolved from tenant default_audience", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const oauthClient = testClient(oauthApp, env);
+
+      // The sentinel is a legitimate value the code produces itself (the
+      // userinfo-only JWT path) and is intentionally not a resource server.
+      await env.data.tenants.update("tenantId", {
+        default_audience: "http://localhost:3000/userinfo",
+      });
+
+      const response = await oauthClient.authorize.$get(
+        {
+          query: {
+            client_id: "clientId",
+            redirect_uri: "https://example.com/callback",
+            state: "state",
+            scope: "openid",
+            response_type: AuthorizationResponseType.CODE,
+            // audience deliberately omitted — resolved from default_audience
+          },
+        },
+        {
+          headers: {
+            origin: "https://example.com",
+          },
+        },
+      );
+
+      expect(response.status).toEqual(302);
+      const redirectUri = new URL(
+        "http://localhost:3000" + response.headers.get("location"),
+      );
+      expect(redirectUri.pathname).toEqual("/u/login/identifier");
+
+      const login = await env.data.loginSessions.get(
+        "clientId",
+        redirectUri.searchParams.get("state")!,
+      );
+      expect(login?.authParams.audience).toEqual(
+        "http://localhost:3000/userinfo",
+      );
+    });
+  });
+
   describe("silent authentication", () => {
     it("should return a web_message response with login required if no valid session exists", async () => {
       const { oauthApp, env } = await getTestServer();
