@@ -361,6 +361,101 @@ describe("authorize", () => {
     expect(login.authParams.redirect_uri).toEqual("http://localhost:3000/auth");
   });
 
+  describe("response_mode validation", () => {
+    it("redirects with unsupported_response_mode when query is combined with response_type=token", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const oauthClient = testClient(oauthApp, env);
+
+      const response = await oauthClient.authorize.$get(
+        {
+          query: {
+            client_id: "clientId",
+            redirect_uri: "https://example.com/callback",
+            state: "state",
+            scope: "openid",
+            response_type: AuthorizationResponseType.TOKEN,
+            response_mode: AuthorizationResponseMode.QUERY,
+          },
+        },
+        {
+          headers: {
+            origin: "https://example.com",
+          },
+        },
+      );
+
+      expect(response.status).toEqual(302);
+      const location = new URL(response.headers.get("location")!);
+      expect(location.searchParams.get("error")).toEqual(
+        "unsupported_response_mode",
+      );
+      expect(location.searchParams.get("error_description")).toEqual(
+        'Invalid response_mode "query" for response_type "token"',
+      );
+      expect(location.searchParams.get("state")).toEqual("state");
+      // The error must not create a login session
+      expect(location.pathname).toEqual("/callback");
+    });
+
+    it("rejects query for hybrid response types carrying a token", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const oauthClient = testClient(oauthApp, env);
+
+      const response = await oauthClient.authorize.$get(
+        {
+          query: {
+            client_id: "clientId",
+            redirect_uri: "https://example.com/callback",
+            state: "state",
+            scope: "openid",
+            response_type: AuthorizationResponseType.CODE_ID_TOKEN,
+            response_mode: AuthorizationResponseMode.QUERY,
+          },
+        },
+        {
+          headers: {
+            origin: "https://example.com",
+          },
+        },
+      );
+
+      expect(response.status).toEqual(302);
+      const location = new URL(response.headers.get("location")!);
+      expect(location.searchParams.get("error")).toEqual(
+        "unsupported_response_mode",
+      );
+    });
+
+    it("still allows response_mode=query with response_type=code", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const oauthClient = testClient(oauthApp, env);
+
+      const response = await oauthClient.authorize.$get(
+        {
+          query: {
+            client_id: "clientId",
+            redirect_uri: "https://example.com/callback",
+            state: "state",
+            scope: "openid",
+            response_type: AuthorizationResponseType.CODE,
+            response_mode: AuthorizationResponseMode.QUERY,
+          },
+        },
+        {
+          headers: {
+            origin: "https://example.com",
+          },
+        },
+      );
+
+      expect(response.status).toEqual(302);
+      const redirectUri = new URL(
+        "http://localhost:3000" + response.headers.get("location"),
+      );
+      expect(redirectUri.pathname).toEqual("/u/login/identifier");
+    });
+  });
+
   describe("resource server validation", () => {
     it("redirects with access_denied when the audience doesn't match a resource server", async () => {
       const { oauthApp, env } = await getTestServer();
