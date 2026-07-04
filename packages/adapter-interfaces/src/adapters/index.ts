@@ -50,6 +50,9 @@ import { EmailServiceAdapter } from "./EmailService";
 import { SmsServiceAdapter } from "./SmsService";
 import { OutboxAdapter } from "./Outbox";
 import { RateLimitAdapter } from "./RateLimit";
+import { TenantOperationsAdapter } from "./TenantOperations";
+import { TenantOperationEventsAdapter } from "./TenantOperationEvents";
+import { RolloutsAdapter } from "./Rollouts";
 
 /**
  * Parameters for cleaning up expired sessions
@@ -136,6 +139,23 @@ export interface DataAdapters {
    */
   analytics?: AnalyticsAdapter;
   tenants: TenantsDataAdapter;
+  /**
+   * Optional control-plane log of durable tenant lifecycle operations
+   * (provision / seed / upgrade / backup / deprovision — issue #1026).
+   * The tenant row's provisioning fields remain the current-state snapshot;
+   * these rows are the append-only history explaining how it got there.
+   * When set (together with `tenantOperationEvents`), AuthHero mounts the
+   * `/api/v2/operations` and `/api/v2/tenants/:id/operations` management
+   * routes and lifecycle hooks record every provision run.
+   */
+  tenantOperations?: TenantOperationsAdapter;
+  /** Per-step history rows for `tenantOperations`; append-only. */
+  tenantOperationEvents?: TenantOperationEventsAdapter;
+  /**
+   * Optional fleet rollout records (issue #1026). Phase 1 ships the table
+   * and CRUD only; the wave/canary coordinator and routes come later.
+   */
+  rollouts?: RolloutsAdapter;
   themes: ThemesAdapter;
   universalLoginTemplates: UniversalLoginTemplatesAdapter;
   customText: CustomTextAdapter;
@@ -249,3 +269,6 @@ export * from "./Themes";
 export * from "./Grants";
 export * from "./UserActivity";
 export * from "./Users";
+export * from "./TenantOperations";
+export * from "./TenantOperationEvents";
+export * from "./Rollouts";
