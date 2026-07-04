@@ -10,6 +10,8 @@ import {
   Role,
   RoleInsert,
   Tenant,
+  TenantOperation,
+  TenantOperationKind,
 } from "@authhero/adapter-interfaces";
 import type { RolePermissionHooks, Hooks } from "./Hooks";
 import type { SamlSigner } from "@authhero/saml/core";
@@ -123,6 +125,22 @@ export interface ManagementApiExtension {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   router: OpenAPIHono<any, any, any>;
+}
+
+/**
+ * Enqueues a durable tenant lifecycle operation (issue #1026): creates
+ * the `tenant_operations` row and starts execution on the configured
+ * engine. The inline engine resolves with a terminal row; durable engines
+ * resolve as soon as the run is enqueued — clients poll
+ * `GET /api/v2/operations/{id}`.
+ */
+export interface TenantOperationExecutorBinding {
+  engine: string;
+  enqueue(params: {
+    kind: TenantOperationKind;
+    tenant_id: string | null;
+    initiated_by?: string;
+  }): Promise<TenantOperation>;
 }
 
 /**
@@ -429,6 +447,17 @@ export interface AuthHeroConfig {
    * ```
    */
   tenantUpgrade?: (tenantId: string) => Promise<void>;
+
+  /**
+   * Optional executor for durable tenant lifecycle operations (issue
+   * #1026). When set together with the `tenantOperations` /
+   * `tenantOperationEvents` adapters, `POST /api/v2/tenants/{id}/operations`
+   * enqueues operations through it. Kept structural so authhero core
+   * depends on neither `@authhero/multi-tenancy` nor any engine —
+   * `@authhero/multi-tenancy`'s `enqueueTenantOperation` + executors
+   * satisfy this shape.
+   */
+  tenantOperationExecutor?: TenantOperationExecutorBinding;
 
   /**
    * Optional powered-by logo to display at the bottom left of the login widget.

@@ -563,6 +563,12 @@ export const MANAGEMENT_API_SCOPES = [
   { description: "Create Tenants", value: "create:tenants" },
   { description: "Update Tenants", value: "update:tenants" },
   { description: "Delete Tenants", value: "delete:tenants" },
+  // Tenant lifecycle operations (issue #1026)
+  { description: "Read Tenant Operations", value: "read:tenant_operations" },
+  {
+    description: "Create Tenant Operations",
+    value: "create:tenant_operations",
+  },
 ];
 
 export interface SeedOptions {

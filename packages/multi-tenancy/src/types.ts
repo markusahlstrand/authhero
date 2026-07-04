@@ -1,5 +1,6 @@
 import { CreateTenantParams, DataAdapters, Tenant } from "authhero";
 import { Context } from "hono";
+import type { StepReporter } from "./operations/types";
 
 /**
  * Bindings type from authhero core - simplified version for this package
@@ -124,6 +125,11 @@ export interface DatabaseIsolationConfig {
    *
    * @param tenantId - The ID of the newly created tenant
    *
+   * When the control plane carries the tenant-operations adapters, the
+   * hook receives an optional `StepReporter` — call it at step boundaries
+   * to surface per-step events in the operation history (issue #1026).
+   * Implementations may ignore it; a single coarse step is recorded then.
+   *
    * @example
    * ```typescript
    * onProvision: async (tenantId) => {
@@ -133,7 +139,7 @@ export interface DatabaseIsolationConfig {
    * }
    * ```
    */
-  onProvision?: (tenantId: string) => Promise<void>;
+  onProvision?: (tenantId: string, report?: StepReporter) => Promise<void>;
 
   /**
    * Called when a tenant is being deleted to cleanup its database.

@@ -262,7 +262,7 @@ export const tenantRoutes = new OpenAPIHono<{
 // multi-tenant deployments `multiTenancyConfig.controlPlaneTenantId` names the
 // designated tenant; when no config is set we treat the deployment as
 // single-tenant, which is effectively a control plane.
-function isControlPlaneTenant(
+export function isControlPlaneTenant(
   ctx: {
     env: { data: { multiTenancyConfig?: { controlPlaneTenantId?: string } } };
   },

@@ -49,6 +49,12 @@ export type {
   DefaultsPayloadEntities,
 } from "./rollout";
 
+// Durable tenant lifecycle operations (issue #1026) — record provisions as
+// operations with step events, run operations inline, and (phase 2) via
+// Cloudflare Workflows. The control-plane DB is the source of truth; the
+// executor engine is swappable.
+export * from "./operations";
+
 // Public API - functions and types consumers actually need
 export { createSyncHooks } from "./hooks/sync";
 export type { EntitySyncConfig, SyncHooksResult } from "./hooks/sync";
