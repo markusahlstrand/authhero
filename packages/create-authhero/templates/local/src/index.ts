@@ -1,8 +1,8 @@
 import { serve } from "@hono/node-server";
-import { SqliteDialect } from "kysely";
-import { Kysely } from "kysely";
 import Database from "better-sqlite3";
-import createAdapters from "@authhero/kysely-adapter";
+import { drizzle, BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
+import createAdapters from "@authhero/drizzle";
+import * as schema from "@authhero/drizzle/schema/sqlite";
 import { createEncryptedDataAdapter, loadEncryptionKey } from "authhero";
 import createApp from "./app";
 import fs from "fs";
@@ -85,12 +85,9 @@ function ensureCertificates() {
 }
 
 // Initialize SQLite database
-let db: Kysely<any>;
+let db: BetterSQLite3Database<typeof schema>;
 try {
-  const dialect = new SqliteDialect({
-    database: new Database("db.sqlite"),
-  });
-  db = new Kysely<any>({ dialect });
+  db = drizzle(new Database("db.sqlite"), { schema });
 } catch (error) {
   console.error("❌ Failed to initialize database:");
   console.error(

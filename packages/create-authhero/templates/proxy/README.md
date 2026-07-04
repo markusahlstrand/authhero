@@ -29,34 +29,35 @@ export const proxyConfig: StaticProxyAdapterOptions = {
 
 The proxy reads its routes through a `ProxyDataAdapter`. Three implementations are common:
 
-| Adapter | Best for | Notes |
-| --- | --- | --- |
-| **Static** (default) | Local dev, small fixed deployments | Routes baked into the worker bundle; re-deploy to change them. |
-| **Database** | Same-process or co-located deployments | Reads directly from the proxy_routes table that authhero writes to. |
+| Adapter                   | Best for                                           | Notes                                                                      |
+| ------------------------- | -------------------------------------------------- | -------------------------------------------------------------------------- |
+| **Static** (default)      | Local dev, small fixed deployments                 | Routes baked into the worker bundle; re-deploy to change them.             |
+| **Database**              | Same-process or co-located deployments             | Reads directly from the proxy_routes table that authhero writes to.        |
 | **HTTP / management API** | Geographically distributed proxies, hosted Workers | Calls `/api/v2/proxy-routes` on your authhero server with a service token. |
 
 The authhero server exposes the management API (`/api/v2/proxy-routes`) and creates the underlying table automatically once the standard adapter migrations have run — see the `local` template's [src/index.ts](../local/src/index.ts).
 
-### Database-backed (Kysely)
+### Database-backed (Drizzle)
 
-Add the adapter and your Kysely driver, then swap the data line:
+Add the adapter and drizzle-orm, then swap the data line:
 
 ```bash
-npm install @authhero/kysely-adapter kysely
+npm install @authhero/drizzle drizzle-orm
 ```
 
 ```ts
-import { Kysely } from "kysely";
+import { drizzle } from "drizzle-orm/d1";
 import { createProxyApp } from "@authhero/proxy";
-import { createProxyDataAdapter } from "@authhero/kysely-adapter";
+import { createProxyDataAdapter } from "@authhero/drizzle";
+import * as schema from "@authhero/drizzle/schema/sqlite";
 
-const db = new Kysely({ dialect: /* your dialect */ });
+const db = drizzle(env.AUTH_DB, { schema });
 const app = createProxyApp({
   data: createProxyDataAdapter(db),
 });
 ```
 
-Cloudflare Workers can't open SQLite files, so on Workers this path means D1, Hyperdrive, or a remote MySQL/Postgres. For a local Node process, `better-sqlite3` pointing at the same `db.sqlite` your authhero server uses works out of the box.
+On Cloudflare Workers this reads from the same D1 database your authhero worker uses. For a local Node process, use `drizzle-orm/better-sqlite3` pointing at the same `db.sqlite` your authhero server uses. (If your routes live in MySQL/Postgres, `@authhero/kysely-adapter` exposes the same `createProxyDataAdapter` for Kysely dialects.)
 
 ### HTTP-backed (management API)
 
@@ -87,7 +88,7 @@ interface Env {
 
 function createHttpProxyAdapter(env: Env): ProxyDataAdapter {
   const headers = {
-    "authorization": `Bearer ${env.AUTHHERO_SERVICE_TOKEN}`,
+    authorization: `Bearer ${env.AUTHHERO_SERVICE_TOKEN}`,
     "tenant-id": env.AUTHHERO_TENANT_ID,
   };
 
@@ -101,16 +102,29 @@ function createHttpProxyAdapter(env: Env): ProxyDataAdapter {
     // The proxy data plane only needs resolveHost; the CRUD methods on
     // proxyRoutes stay unused (writes always go through authhero directly).
     proxyRoutes: {
-      list: () => { throw new Error("read-only proxy adapter"); },
-      get: () => { throw new Error("read-only proxy adapter"); },
-      create: () => { throw new Error("read-only proxy adapter"); },
-      update: () => { throw new Error("read-only proxy adapter"); },
-      remove: () => { throw new Error("read-only proxy adapter"); },
+      list: () => {
+        throw new Error("read-only proxy adapter");
+      },
+      get: () => {
+        throw new Error("read-only proxy adapter");
+      },
+      create: () => {
+        throw new Error("read-only proxy adapter");
+      },
+      update: () => {
+        throw new Error("read-only proxy adapter");
+      },
+      remove: () => {
+        throw new Error("read-only proxy adapter");
+      },
     },
     async resolveHost(host): Promise<ResolvedHost | null> {
-      const domains = await api<{ custom_domains: Array<{
-        custom_domain_id: string; domain: string;
-      }> }>("/api/v2/custom-domains");
+      const domains = await api<{
+        custom_domains: Array<{
+          custom_domain_id: string;
+          domain: string;
+        }>;
+      }>("/api/v2/custom-domains");
       const match = domains.custom_domains.find((d) => d.domain === host);
       if (!match) return null;
 

@@ -98,11 +98,13 @@ describe("local template", () => {
     }
   });
 
-  it("depends on the kysely adapter with published versions by default", () => {
+  it("depends on the drizzle adapter with published versions by default", () => {
     const pkg = readJson(path.join(projects.local.projectPath, "package.json"));
-    expect(pkg.dependencies["@authhero/kysely-adapter"]).toBe("latest");
+    expect(pkg.dependencies["@authhero/drizzle"]).toBe("latest");
+    expect(pkg.dependencies["@authhero/kysely-adapter"]).toBeUndefined();
     expect(pkg.dependencies.authhero).toBe("latest");
     expect(pkg.dependencies["better-sqlite3"]).toBeTruthy();
+    expect(pkg.dependencies["drizzle-orm"]).toBeTruthy();
   });
 
   it("enables the admin UI by default in non-interactive mode", () => {
