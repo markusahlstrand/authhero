@@ -1,4 +1,14 @@
 export { createCloudflareWfpD1Provisioner } from "./provisioner";
+export {
+  createWfpProvisionerSteps,
+  escapeSqlLiteral,
+} from "./provisioner-steps";
+export type {
+  TenantProvisionerSteps,
+  TenantProvisionNames,
+  WfpProvisionerSteps,
+} from "./provisioner-steps";
+export { collectSyncDefaultsErrors } from "./sync-defaults-errors";
 export type {
   CloudflareWfpD1Provisioner,
   CloudflareWfpD1ProvisionerOptions,
