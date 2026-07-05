@@ -288,6 +288,7 @@ Set any option to `false` to disable that type of synchronization if you want ch
 - [Architecture](./architecture.md) - Organization-tenant model and token-based access
 - [Database Isolation](./database-isolation.md) - Per-tenant databases with D1, Turso, or custom
 - [Tenant Lifecycle](./tenant-lifecycle.md) - Creating, managing, and deleting tenants
+- [Tenant Operations](./tenant-operations.md) - Durable lifecycle operations with an append-only history and Cloudflare Workflows execution
 - [Subdomain Routing](./subdomain-routing.md) - Route requests based on subdomains
 - [API Reference](./api-reference.md) - Complete API documentation
 - [Migration Guide](./migration.md) - Moving from single to multi-tenant

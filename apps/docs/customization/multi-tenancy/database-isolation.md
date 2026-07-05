@@ -241,6 +241,11 @@ const multiTenancy = setupMultiTenancy({
 });
 ```
 
+When the control plane carries the tenant-operations adapters, the provision run is recorded as a durable operation with step events (see [Tenant Operations](./tenant-operations.md)). Two extra knobs on `databaseIsolation` control this:
+
+- `onProvision(tenantId, report?)` — the optional second argument is a `StepReporter`; call it at step boundaries (`await report?.("run-migrations", "succeeded")`) to surface per-step events in the operation history. Ignoring it records a single coarse step.
+- `recordProvisionOperations: false` — opt out of the automatic recording when the hook manages its own operation rows (the Cloudflare Workflows hook does this).
+
 ### With Deprovisioning
 
 Add cleanup when tenants are deleted:

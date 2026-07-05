@@ -288,6 +288,10 @@ const multiTenancy = setupMultiTenancy({
 
 ## Provisioning
 
+::: tip Operation history
+When the control plane carries the tenant-operations adapters, every provision run is automatically recorded as a durable operation with per-step events — queryable via `GET /api/v2/tenants/{id}/operations` and shown in the admin UI. `onProvision` also receives an optional `StepReporter` to surface custom step boundaries. See [Tenant Operations](./tenant-operations.md).
+:::
+
 ### Database Provisioning
 
 Automatically provision databases for new tenants:

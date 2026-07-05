@@ -32,7 +32,11 @@ function Root() {
   const isTenantsPath =
     relativePath === "/tenants" ||
     relativePath.startsWith("/tenants/create") ||
-    relativePath === "/tenants/";
+    relativePath === "/tenants/" ||
+    // Control-plane subpages registered as CustomRoutes inside TenantsApp —
+    // without these, a full page load of their URLs would fall through to
+    // the per-tenant app branch with tenantId="tenants".
+    /^\/tenants\/[^/]+\/(members|operations)(\/|$)/.test(relativePath);
 
   if (isAuthCallback) {
     return (

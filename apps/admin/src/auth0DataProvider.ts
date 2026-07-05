@@ -340,6 +340,60 @@ export interface AuthHeroDataProvider extends DataProvider {
     counts: Record<string, number>;
     errors: { entity: string; error: string }[];
   }>;
+  /**
+   * Durable tenant lifecycle operations (issue #1026). Control-plane
+   * routes — available only when the server carries the operations
+   * adapters (404 otherwise, 501 when no executor is configured).
+   */
+  listTenantOperations: (
+    tenantId: string,
+    params?: { page?: number; perPage?: number },
+  ) => Promise<{
+    operations: TenantOperationRecord[];
+    start: number;
+    limit: number;
+    length: number;
+  }>;
+  getTenantOperation: (
+    operationId: string,
+  ) => Promise<
+    TenantOperationRecord & { events: TenantOperationEventRecord[] }
+  >;
+  createTenantOperation: (
+    tenantId: string,
+    kind: "upgrade" | "seed" | "backup",
+  ) => Promise<TenantOperationRecord>;
+}
+
+// Wire shapes of the tenant-operations management API (issue #1026).
+export interface TenantOperationRecord {
+  id: string;
+  tenant_id: string | null;
+  kind: "provision" | "seed" | "upgrade" | "backup" | "deprovision";
+  status: "pending" | "running" | "succeeded" | "failed" | "cancelled";
+  current_step?: string | null;
+  engine: string;
+  error?: string | null;
+  initiated_by?: string | null;
+  created_at: string;
+  updated_at: string;
+  finished_at?: string | null;
+}
+
+export interface TenantOperationEventRecord {
+  id: string;
+  operation_id: string;
+  step: string;
+  outcome:
+    | "started"
+    | "succeeded"
+    | "failed"
+    | "retried"
+    | "skipped"
+    | "reconciled";
+  detail?: Record<string, unknown> | null;
+  attempt: number;
+  created_at: string;
 }
 
 /**
@@ -2508,6 +2562,38 @@ export default (
         method: "POST",
         headers: createHeaders(tenantId),
       });
+    },
+
+    listTenantOperations: async (targetTenantId, params) => {
+      const query = new URLSearchParams({
+        page: String((params?.page ?? 1) - 1),
+        per_page: String(params?.perPage ?? 25),
+      });
+      const res = await httpClient(
+        `${apiUrl}/api/v2/tenants/${encodeURIComponent(targetTenantId)}/operations?${query}`,
+        { headers: createHeaders(tenantId) },
+      );
+      return res.json;
+    },
+
+    getTenantOperation: async (operationId) => {
+      const res = await httpClient(
+        `${apiUrl}/api/v2/operations/${encodeURIComponent(operationId)}`,
+        { headers: createHeaders(tenantId) },
+      );
+      return res.json;
+    },
+
+    createTenantOperation: async (targetTenantId, kind) => {
+      const res = await httpClient(
+        `${apiUrl}/api/v2/tenants/${encodeURIComponent(targetTenantId)}/operations`,
+        {
+          method: "POST",
+          headers: createHeaders(tenantId),
+          body: JSON.stringify({ kind }),
+        },
+      );
+      return res.json;
     },
 
     revokeSigningKey: async (kid: string) => {
