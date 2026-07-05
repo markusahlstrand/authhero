@@ -16,6 +16,7 @@ import { createEmailProvidersAdapter } from "./emailProviders";
 import { createEmailTemplatesAdapter } from "./emailTemplates";
 import { createFlowsAdapter } from "./flows";
 import { createFormsAdapter } from "./forms";
+import { createGrantsAdapter } from "./grants";
 import { createHookCodeAdapter } from "./hookCode";
 import { createHooksAdapter } from "./hooks";
 import { createInvitesAdapter } from "./invites";
@@ -69,6 +70,7 @@ export default function createAdapters(
     emailTemplates: createEmailTemplatesAdapter(db),
     flows: createFlowsAdapter(db),
     forms: createFormsAdapter(db),
+    grants: createGrantsAdapter(db),
     hookCode: createHookCodeAdapter(db),
     hooks: createHooksAdapter(db),
     invites: createInvitesAdapter(db),

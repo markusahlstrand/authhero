@@ -121,6 +121,14 @@ async function fillAuthHeroLoginIfPresent(
   // or split it across two screens (identifier → password). We loop until
   // we leave the authhero universal-login URL space.
   for (let i = 0; i < 4; i++) {
+    // The previous submit's redirect chain may not have landed yet.
+    // Querying locators mid-navigation resolves count() against the OLD
+    // document, and the subsequent fill() then waits for an element that
+    // never appears on the new page — with no action timeout, that hang
+    // only ends at the 180s test timeout. Settle first, and bound every
+    // action below so a lost race retries instead of hanging.
+    await page.waitForLoadState("load", { timeout: 10_000 }).catch(() => {});
+
     const startUrl = page.url();
     if (!isAuthHeroLoginUrl(startUrl)) return;
 
@@ -137,21 +145,31 @@ async function fillAuthHeroLoginIfPresent(
     // Bail if there's nothing to interact with at all.
     if (!hasUsername && !hasPassword && !hasSubmit) return;
 
-    if (hasUsername) {
-      const field = usernameField.first();
-      const isDisabled = await field.isDisabled().catch(() => false);
-      if (!isDisabled) await field.fill(username);
-    }
-    if (hasPassword) {
-      await passwordField.first().fill(password);
-    }
+    try {
+      if (hasUsername) {
+        const field = usernameField.first();
+        const isDisabled = await field.isDisabled().catch(() => false);
+        if (!isDisabled) await field.fill(username, { timeout: 5_000 });
+      }
+      if (hasPassword) {
+        await passwordField.first().fill(password, { timeout: 5_000 });
+      }
 
-    // Submit advances all UL screens — identifier, password, and also
-    // interstitials with no fields like /u2/check-account ("Yes, continue").
-    await Promise.all([
-      page.waitForURL((u) => u.href !== startUrl, { timeout: 5_000 }),
-      submitButton.first().click(),
-    ]);
+      // Submit advances all UL screens — identifier, password, and also
+      // interstitials with no fields like /u2/check-account ("Yes, continue").
+      await Promise.all([
+        page.waitForURL((u) => u.href !== startUrl, { timeout: 5_000 }),
+        submitButton.first().click({ timeout: 5_000 }),
+      ]);
+    } catch (err) {
+      // A navigation raced our locator queries (element detached, URL
+      // flipped mid-fill, or the form didn't advance). Log and re-evaluate
+      // against the settled page on the next pass; if it's a genuine dead
+      // end we fall through to the loud error below after 4 attempts.
+      console.log(
+        `[conformance-runner] login step retry (${page.url()}): ${err instanceof Error ? err.message.split("\n")[0] : err}`,
+      );
+    }
   }
 
   // If we exhausted the loop and the page is *still* on a u/u2 path, the

@@ -26,10 +26,19 @@ on:
         default: true
 
 # The release workflow force-pushes changeset-release/main on every main
-# merge; cancel a superseded conformance run instead of queueing behind it.
+# merge, and runs can sit in "action_required" until manually approved — so
+# several runs for the same branch can start close together, out of commit
+# order. Scope the group per-SHA so a (re-)run of a stale commit can never
+# cancel the run for the current branch head; stale runs instead cancel
+# themselves in the "Cancel superseded run" step below.
 concurrency:
-  group: conformance-${{ github.event_name == 'pull_request' && github.head_ref || github.run_id }}
+  group: conformance-${{ github.event_name == 'pull_request' && format('{0}-{1}', github.head_ref, github.event.pull_request.head.sha) || github.run_id }}
   cancel-in-progress: true
+
+# actions: write lets a superseded run cancel itself via `gh run cancel`.
+permissions:
+  contents: read
+  actions: write
 
 jobs:
   conformance:
@@ -38,6 +47,25 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+
+      # By the time an approved run starts, its commit may no longer be the
+      # head of changeset-release/main. Concurrency is per-SHA (see above),
+      # so a stale run bails out here instead of burning ~15 minutes on a
+      # commit whose result no longer matters.
+      - name: Cancel superseded run
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ github.head_ref }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          head=$(git ls-remote origin "refs/heads/$HEAD_REF" | cut -f1)
+          if [ -n "$head" ] && [ "$head" != "$PR_HEAD_SHA" ]; then
+            echo "$HEAD_REF is now at $head; this run is for $PR_HEAD_SHA — superseded, cancelling."
+            gh run cancel "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY"
+            sleep 60
+            exit 1
+          fi
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
@@ -140,8 +168,26 @@ jobs:
       - name: Map host.docker.internal to localhost on the runner
         run: echo "127.0.0.1 host.docker.internal" | sudo tee -a /etc/hosts
 
+      # Cache the Chromium download (~150 MB) keyed on the Playwright
+      # version; on a hit only the apt system deps need installing.
+      - name: Get Playwright version
+        id: playwright-version
+        run: echo "version=$(pnpm --filter @authhero/conformance-runner exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
+
       - name: Install Playwright Chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: pnpm --filter @authhero/conformance-runner exec playwright install --with-deps chromium
+
+      - name: Install Playwright system deps (browser cache hit)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: pnpm --filter @authhero/conformance-runner exec playwright install-deps chromium
 
       # SKIP_SETUP=1 because the steps above already started the suite and
       # seeded the DB; ALLOW_WARNING is configurable from the workflow input.
@@ -152,9 +198,12 @@ jobs:
           SKIP_SETUP: "1"
           ALLOW_WARNING: ${{ (github.event_name == 'pull_request' || inputs.allow_warning) && '1' || '' }}
           GREP: ${{ inputs.grep }}
+        # No `--` before --grep: pnpm passes the separator through verbatim,
+        # and `playwright test -- --grep x` treats everything after `--` as
+        # file filters → "No tests found".
         run: |
           if [ -n "$GREP" ]; then
-            pnpm conformance:run -- --grep "$GREP"
+            pnpm conformance:run --grep "$GREP"
           else
             pnpm conformance:run
           fi
@@ -188,7 +237,7 @@ jobs:
         if: failure()
         run: |
           docker logs conformance-suite-server-1 --tail 500 2>&1 || true
-          docker logs conformance-suite-httpd-1  --tail 200 2>&1 || true
+          docker logs conformance-suite-nginx-1  --tail 200 2>&1 || true
 
       - name: Stop conformance suite
         if: always()

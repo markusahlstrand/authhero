@@ -21,6 +21,7 @@ export * from "./sessions";
 
 // Clients & Grants
 export * from "./clients";
+export * from "./grants";
 
 // Connections & Domains
 export * from "./connections";

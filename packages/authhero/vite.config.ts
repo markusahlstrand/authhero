@@ -44,7 +44,21 @@ export default defineConfig(async ({ mode }) => {
   }
 
   // Server build configuration (default)
-  const { visualizer } = await import("rollup-plugin-visualizer");
+  // rollup-plugin-visualizer gzip/brotli-compresses every chunk to build
+  // dist/stats.html — a significant share of build time that nobody reads
+  // in CI, so only run it locally.
+  const rollupPlugins = [];
+  if (!process.env.CI) {
+    const { visualizer } = await import("rollup-plugin-visualizer");
+    rollupPlugins.push(
+      visualizer({
+        filename: "./dist/stats.html",
+        open: false,
+        gzipSize: true,
+        brotliSize: true,
+      }) as any,
+    );
+  }
   return {
     base: "./",
     define: {
@@ -69,14 +83,7 @@ export default defineConfig(async ({ mode }) => {
             return assetInfo.name || "";
           },
         },
-        plugins: [
-          visualizer({
-            filename: "./dist/stats.html",
-            open: false,
-            gzipSize: true,
-            brotliSize: true,
-          }) as any,
-        ],
+        plugins: rollupPlugins,
       },
     },
     css: {
