@@ -16,13 +16,21 @@ export default defineConfig({
   testDir: "./tests",
   fullyParallel: false,
   workers: 1,
-  retries: 0,
+  // One retry in CI: the OIDF suite occasionally stalls module-side (e.g.
+  // stuck in RUNNING after "Redirecting to authorization endpoint" without
+  // ever exposing the next browser URL). Genuine regressions fail both
+  // attempts; a retry gets a fresh plan and rescues suite hiccups.
+  retries: process.env.CI ? 1 : 0,
   timeout: 180_000,
   expect: { timeout: 10_000 },
   reporter: [["list"], ["html", { open: "never" }]],
   globalSetup: "./global-setup.ts",
   use: {
     baseURL: env.conformanceBaseUrl,
+    // Playwright's default actionTimeout is 0 (unlimited) — a single fill()
+    // waiting for an element that never appears would otherwise consume the
+    // whole 180s test budget before failing.
+    actionTimeout: 10_000,
     ignoreHTTPSErrors: true,
     trace: "retain-on-failure",
     video: "retain-on-failure",
