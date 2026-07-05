@@ -568,6 +568,10 @@ gtag('config', 'G-DNZWG3PF2L');`,
                   link: "/customization/multi-tenancy/tenant-lifecycle",
                 },
                 {
+                  text: "Tenant Operations",
+                  link: "/customization/multi-tenancy/tenant-operations",
+                },
+                {
                   text: "Runtime Fallback",
                   link: "/customization/multi-tenancy/runtime-fallback",
                 },

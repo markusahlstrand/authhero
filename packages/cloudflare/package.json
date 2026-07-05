@@ -28,6 +28,11 @@
       "types": "./dist/wfp.d.ts",
       "require": "./dist/wfp.cjs",
       "import": "./dist/wfp.mjs"
+    },
+    "./workflows": {
+      "types": "./dist/workflows.d.ts",
+      "require": "./dist/workflows.cjs",
+      "import": "./dist/workflows.mjs"
     }
   },
   "scripts": {

@@ -25,12 +25,14 @@ export default defineConfig({
   build: {
     outDir: "./dist",
     lib: {
-      // Two entries: the main barrel (`.`) and the WFP control-plane-sync
-      // surface (`./wfp`). The main bundle name is unchanged so the `.` export
-      // stays byte-stable.
+      // Three entries: the main barrel (`.`), the WFP control-plane-sync
+      // surface (`./wfp`), and the durable tenant-operations surface
+      // (`./workflows`). The main bundle name is unchanged so the `.`
+      // export stays byte-stable.
       entry: {
         [getPackageName()]: path.resolve(__dirname, "src/index.ts"),
         wfp: path.resolve(__dirname, "src/wfp/index.ts"),
+        workflows: path.resolve(__dirname, "src/workflows/index.ts"),
       },
       formats,
       fileName: (format, entryName) =>

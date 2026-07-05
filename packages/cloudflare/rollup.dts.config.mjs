@@ -15,4 +15,10 @@ export default [
     external,
     plugins: [dts({ respectExternal: false })],
   },
+  {
+    input: "./dist/types/workflows/index.d.ts",
+    output: { file: "./dist/workflows.d.ts", format: "es" },
+    external,
+    plugins: [dts({ respectExternal: false })],
+  },
 ];

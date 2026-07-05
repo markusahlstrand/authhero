@@ -62,18 +62,24 @@ export function createProvisioningHooks(
       // 2. Provision database if isolation is enabled. When the control
       // plane carries the tenant-operations adapters (issue #1026), the
       // provision run is recorded as an operation with step events;
-      // otherwise it runs exactly as before.
+      // otherwise it runs exactly as before. Hooks that create their own
+      // operation rows (the durable workflow hook) opt out via
+      // `recordProvisionOperations: false`.
       if (databaseIsolation?.onProvision) {
         const onProvision = databaseIsolation.onProvision;
-        await runRecordedTenantOperation(
-          ctx.adapters,
-          {
-            kind: "provision",
-            tenant_id: tenant.id,
-            initiated_by: ctx.ctx?.var.user?.sub,
-          },
-          (report) => onProvision(tenant.id, report),
-        );
+        if (databaseIsolation.recordProvisionOperations === false) {
+          await onProvision(tenant.id);
+        } else {
+          await runRecordedTenantOperation(
+            ctx.adapters,
+            {
+              kind: "provision",
+              tenant_id: tenant.id,
+              initiated_by: ctx.ctx?.var.user?.sub,
+            },
+            (report) => onProvision(tenant.id, report),
+          );
+        }
       }
     },
 
