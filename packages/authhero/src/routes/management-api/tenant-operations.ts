@@ -58,7 +58,14 @@ const getOperation = defineRoute({
 
     const { id } = ctx.req.valid("param");
     const operation = await tenantOperations.get(id);
-    if (!operation) {
+    // Only the control plane may read arbitrary operations; other callers
+    // are limited to their own tenant's. Respond 404 (not 403) so foreign
+    // operation ids don't leak their existence.
+    if (
+      !operation ||
+      (!isControlPlaneTenant(ctx, ctx.var.tenant_id) &&
+        operation.tenant_id !== ctx.var.tenant_id)
+    ) {
       throw new HTTPException(404, { message: "Operation not found" });
     }
 
@@ -112,6 +119,17 @@ const listTenantOperations = defineRoute({
     const tenantId = ctx.req.param("id");
     if (!tenantId) {
       throw new HTTPException(400, { message: "Missing tenant id" });
+    }
+    // Same scoping as GET /operations/{id}: only the control plane may read
+    // other tenants' operation history.
+    if (
+      !isControlPlaneTenant(ctx, ctx.var.tenant_id) &&
+      tenantId !== ctx.var.tenant_id
+    ) {
+      throw new HTTPException(403, {
+        message:
+          "Operations for other tenants can only be read from the control plane",
+      });
     }
     const { page, per_page, kind, status } = ctx.req.valid("query");
 

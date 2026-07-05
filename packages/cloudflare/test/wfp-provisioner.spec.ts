@@ -1218,6 +1218,61 @@ describe("createWfpTenantProvisioningHook step reporter", () => {
     });
   });
 
+  it("reports the same step boundaries during an upgrade", async () => {
+    const { provisioner, tenants, store, syncDefaults } = reporterFakes(true);
+    const hook = createWfpTenantProvisioningHook({
+      provisioner,
+      tenants,
+      syncDefaults,
+    });
+
+    const reported: string[] = [];
+    await hook.onUpgrade("kvartal", async (step, outcome) => {
+      reported.push(`${step}:${outcome}`);
+    });
+
+    expect(reported).toEqual([
+      "provision-resources:started",
+      "provision-resources:succeeded",
+      "seed-defaults:started",
+      "seed-defaults:succeeded",
+    ]);
+    expect(store.get("kvartal")).toMatchObject({
+      provisioning_state: "ready",
+    });
+  });
+
+  it("reports seed-defaults as failed when the seed collects errors", async () => {
+    const { provisioner, tenants, store } = reporterFakes(false);
+    const hook = createWfpTenantProvisioningHook({
+      provisioner,
+      tenants,
+      // Resolves cleanly but carries per-entity errors (continueOnError).
+      syncDefaults: async () => ({
+        connections: { errors: ["insert failed"] },
+      }),
+    });
+
+    const reported: string[] = [];
+    await expect(
+      hook.onProvision("kvartal", async (step, outcome) => {
+        reported.push(`${step}:${outcome}`);
+      }),
+    ).rejects.toThrow(/sync-defaults seed reported 1 error/);
+
+    expect(reported).toEqual([
+      "provision-resources:started",
+      "provision-resources:succeeded",
+      "seed-defaults:started",
+      "seed-defaults:failed",
+    ]);
+    expect(store.get("kvartal")).toMatchObject({
+      provisioning_state: "failed",
+      // Resource ids survive the failure so a re-provision can find them.
+      d1_database_id: "db_x",
+    });
+  });
+
   it("never lets a throwing reporter fail the provision", async () => {
     const { provisioner, tenants, store, syncDefaults } = reporterFakes(true);
     const hook = createWfpTenantProvisioningHook({

@@ -146,6 +146,15 @@ function collectSyncDefaultsErrors(result: unknown): string[] {
   return errors;
 }
 
+// Cap persisted error text (tenant rows and reported step details) so a
+// verbose upstream failure can't bloat control-plane records.
+const MAX_ERROR_LENGTH = 2048;
+
+function errorMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.slice(0, MAX_ERROR_LENGTH);
+}
+
 export function createWfpTenantProvisioningHook(
   options: WfpTenantProvisioningHookOptions,
 ): WfpTenantProvisioningHook {
@@ -154,11 +163,10 @@ export function createWfpTenantProvisioningHook(
   const logger = options.logger;
 
   async function markFailed(tenantId: string, error: unknown): Promise<void> {
-    const message = error instanceof Error ? error.message : String(error);
     try {
       await tenants.update(tenantId, {
         provisioning_state: "failed",
-        provisioning_error: message.slice(0, 2048),
+        provisioning_error: errorMessage(error),
         provisioning_state_changed_at: new Date().toISOString(),
       });
     } catch (writeErr) {
@@ -208,7 +216,7 @@ export function createWfpTenantProvisioningHook(
       // No resources (or only partial) — nothing to persist beyond the
       // failure marker.
       await reportStep("provision-resources", "failed", {
-        message: err instanceof Error ? err.message : String(err),
+        message: errorMessage(err),
       });
       await markFailed(tenantId, err);
       throw err;
@@ -243,8 +251,7 @@ export function createWfpTenantProvisioningHook(
           await reportStep("seed-defaults", "succeeded");
         } catch (seedErr) {
           await reportStep("seed-defaults", "failed", {
-            message:
-              seedErr instanceof Error ? seedErr.message : String(seedErr),
+            message: errorMessage(seedErr),
           });
           throw seedErr;
         }
@@ -257,12 +264,11 @@ export function createWfpTenantProvisioningHook(
         provisioning_state_changed_at: new Date().toISOString(),
       });
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
       try {
         await tenants.update(tenantId, {
           ...resourceIds,
           provisioning_state: "failed",
-          provisioning_error: message.slice(0, 2048),
+          provisioning_error: errorMessage(err),
           provisioning_state_changed_at: new Date().toISOString(),
         });
       } catch (writeErr) {

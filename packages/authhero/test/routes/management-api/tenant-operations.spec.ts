@@ -67,11 +67,11 @@ describe("management-api tenant operations", () => {
   });
 
   it("enqueues an upgrade and exposes it via GET /operations/{id}", async () => {
-    let dataRef: DataAdapters | undefined;
+    const dataRef: { current?: DataAdapters } = {};
     const { app, env } = await getTestServer({
-      tenantOperationExecutor: createStubExecutor(() => dataRef),
+      tenantOperationExecutor: createStubExecutor(() => dataRef.current),
     });
-    dataRef = env.data;
+    dataRef.current = env.data;
 
     const token = await getAdminToken();
     const response = await app.request(
@@ -132,11 +132,11 @@ describe("management-api tenant operations", () => {
   });
 
   it("rejects lifecycle-managed kinds with 400", async () => {
-    let dataRef: DataAdapters | undefined;
+    const dataRef: { current?: DataAdapters } = {};
     const { app, env } = await getTestServer({
-      tenantOperationExecutor: createStubExecutor(() => dataRef),
+      tenantOperationExecutor: createStubExecutor(() => dataRef.current),
     });
-    dataRef = env.data;
+    dataRef.current = env.data;
 
     const token = await getAdminToken();
     const response = await app.request(
@@ -157,11 +157,11 @@ describe("management-api tenant operations", () => {
   });
 
   it("returns 501 for not-yet-supported kinds", async () => {
-    let dataRef: DataAdapters | undefined;
+    const dataRef: { current?: DataAdapters } = {};
     const { app, env } = await getTestServer({
-      tenantOperationExecutor: createStubExecutor(() => dataRef),
+      tenantOperationExecutor: createStubExecutor(() => dataRef.current),
     });
-    dataRef = env.data;
+    dataRef.current = env.data;
 
     const token = await getAdminToken();
     const response = await app.request(
@@ -203,11 +203,11 @@ describe("management-api tenant operations", () => {
   });
 
   it("returns 403 when the caller is not the control plane", async () => {
-    let dataRef: DataAdapters | undefined;
+    const dataRef: { current?: DataAdapters } = {};
     const { app, env } = await getTestServer({
-      tenantOperationExecutor: createStubExecutor(() => dataRef),
+      tenantOperationExecutor: createStubExecutor(() => dataRef.current),
     });
-    dataRef = env.data;
+    dataRef.current = env.data;
 
     env.data.multiTenancyConfig = {
       controlPlaneTenantId: "control_plane",
@@ -229,6 +229,60 @@ describe("management-api tenant operations", () => {
     );
 
     expect(response.status).toBe(403);
+  });
+
+  it("hides other tenants' operations from non-control-plane callers", async () => {
+    const { app, env } = await getTestServer();
+
+    // Designate a control plane BEFORE any request — the management app
+    // wraps the data adapter on first use, so a later mutation isn't seen
+    // (same constraint as the redeploy 403 test).
+    env.data.multiTenancyConfig = {
+      controlPlaneTenantId: "control_plane",
+    };
+
+    // Seed the operation directly: POST is control-plane-only, and the
+    // acting tenants in this test deliberately aren't the control plane.
+    await env.data.tenants.create({
+      id: "otherTenant",
+      friendly_name: "Other Tenant",
+    });
+    const operation = await env.data.tenantOperations!.create({
+      tenant_id: "tenantId",
+      kind: "upgrade",
+      engine: "inline",
+    });
+
+    const token = await getAdminToken();
+
+    // A foreign tenant gets a 404 for the operation and a 403 for the list.
+    const foreignGet = await app.request(
+      `/api/v2/operations/${operation.id}`,
+      {
+        headers: { "tenant-id": "otherTenant", authorization: `Bearer ${token}` },
+      },
+      env,
+    );
+    expect(foreignGet.status).toBe(404);
+
+    const foreignList = await app.request(
+      "/api/v2/tenants/tenantId/operations",
+      {
+        headers: { "tenant-id": "otherTenant", authorization: `Bearer ${token}` },
+      },
+      env,
+    );
+    expect(foreignList.status).toBe(403);
+
+    // The owning tenant can still read its own history.
+    const ownGet = await app.request(
+      `/api/v2/operations/${operation.id}`,
+      {
+        headers: { "tenant-id": "tenantId", authorization: `Bearer ${token}` },
+      },
+      env,
+    );
+    expect(ownGet.status).toBe(200);
   });
 
   it("returns 404 for an unknown operation id", async () => {

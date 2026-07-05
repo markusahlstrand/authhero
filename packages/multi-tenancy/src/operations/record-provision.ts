@@ -4,7 +4,7 @@ import {
   StepReporter,
   TenantOperationStores,
 } from "./types";
-import { buildEngineInstanceId } from "./instance-id";
+import { createOperationRow } from "./enqueue";
 import { createOperationRecorder, errorToMessage } from "./recorder";
 
 function getStores(adapters: DataAdapters): TenantOperationStores | undefined {
@@ -56,19 +56,8 @@ export async function runRecordedTenantOperation(
 
   let operationId: string | undefined;
   await safe(async () => {
-    const created = await stores.tenantOperations.create({
-      tenant_id: params.tenant_id,
-      rollout_id: params.rollout_id,
-      kind: params.kind,
-      engine: "inline",
-      initiated_by: params.initiated_by,
-      target_worker_version: params.target_worker_version,
-      target_database_version: params.target_database_version,
-    });
+    const created = await createOperationRow(stores, params, "inline");
     operationId = created.id;
-    await stores.tenantOperations.update(created.id, {
-      engine_instance_id: buildEngineInstanceId(created),
-    });
     await recorder.markRunning(created.id);
   });
 

@@ -4,7 +4,7 @@ import {
   TenantOperationExecutor,
   TenantOperationStores,
 } from "./types";
-import { createOperationRecorder } from "./recorder";
+import { createOperationRecorder, errorToMessage } from "./recorder";
 
 export interface TenantOperationStepContext {
   operation: TenantOperation;
@@ -108,7 +108,7 @@ export function createInlineExecutor(
           await recorder.appendEvent(operation.id, {
             step: step.name,
             outcome: "failed",
-            detail: { message: String(error) },
+            detail: { message: errorToMessage(error) },
           });
           await recorder.markFailed(operation.id, error);
           throw error;
