@@ -610,4 +610,47 @@ export interface Database {
     created_at: string;
     updated_at: string;
   };
+  // Durable tenant lifecycle operations (issue #1026). Control-plane log;
+  // no FK to tenants so history survives tenant deletion, and tenant_id is
+  // NULL for fleet-level operations.
+  tenant_operations: {
+    id: string;
+    tenant_id: string | null;
+    rollout_id: string | null;
+    kind: string;
+    status: string;
+    current_step: string | null;
+    engine: string;
+    engine_instance_id: string | null;
+    target_worker_version: string | null;
+    target_database_version: string | null;
+    error: string | null;
+    initiated_by: string | null;
+    created_at: string;
+    updated_at: string;
+    finished_at: string | null;
+  };
+  tenant_operation_events: {
+    id: string;
+    operation_id: string;
+    step: string;
+    outcome: string;
+    detail: string | null; // JSON
+    attempt: number;
+    created_at: string;
+  };
+  rollouts: {
+    id: string;
+    kind: string;
+    status: string;
+    target_worker_version: string | null;
+    target_database_version: string | null;
+    wave_size: number;
+    canary_tenant_ids: string | null; // JSON array of tenant ids
+    filter: string | null; // JSON tenant filter
+    initiated_by: string | null;
+    created_at: string;
+    updated_at: string;
+    finished_at: string | null;
+  };
 }

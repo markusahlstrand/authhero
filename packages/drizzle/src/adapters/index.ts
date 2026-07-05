@@ -45,11 +45,27 @@ import { createStatsAdapter } from "./stats";
 import { createAnalyticsAdapter } from "./analytics";
 import { createOutboxAdapter } from "./outbox";
 import { createSessionCleanup } from "./cleanup";
+import { createTenantOperationsAdapter } from "./tenantOperations";
+import { createTenantOperationEventsAdapter } from "./tenantOperationEvents";
+import { createRolloutsAdapter } from "./rollouts";
 import type { DrizzleDb } from "./types";
+
+export interface CreateAdaptersOptions {
+  useTransactions?: boolean;
+  /**
+   * Wire the control-plane-only adapters (tenantOperations,
+   * tenantOperationEvents, rollouts — issue #1026). Requires the
+   * `drizzle-control-plane/` migration set to have been applied. Leave
+   * unset on WFP tenant workers, whose D1s only carry the core schema —
+   * the adapters' presence is also what mounts the operations management
+   * routes.
+   */
+  controlPlane?: boolean;
+}
 
 export default function createAdapters(
   db: DrizzleDb,
-  databaseOptions = { useTransactions: true },
+  databaseOptions: CreateAdaptersOptions = { useTransactions: true },
 ): DataAdapters {
   // Individual adapter factories use loose types internally for pragmatism.
   // The assembled object satisfies DataAdapters at the structural level.
@@ -90,6 +106,13 @@ export default function createAdapters(
     sessions: createSessionsAdapter(db),
     sessionCleanup: createSessionCleanup(db),
     tenants: createTenantsAdapter(db),
+    ...(databaseOptions.controlPlane
+      ? {
+          tenantOperations: createTenantOperationsAdapter(db),
+          tenantOperationEvents: createTenantOperationEventsAdapter(db),
+          rollouts: createRolloutsAdapter(db),
+        }
+      : {}),
     themes: createThemesAdapter(db),
     universalLoginTemplates: createUniversalLoginTemplatesAdapter(db),
     users: createUsersAdapter(db),

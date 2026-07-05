@@ -49,6 +49,9 @@ import { createLogStreamsAdapter } from "./log-streams";
 import { createMigrationSourcesAdapter } from "./migrationSources";
 import { createProxyRoutesAdapter } from "./proxyRoutes";
 import { createUserActivityAdapter } from "./userActivity";
+import { createTenantOperationsAdapter } from "./tenantOperations";
+import { createTenantOperationEventsAdapter } from "./tenantOperationEvents";
+import { createRolloutsAdapter } from "./rollouts";
 
 export { migrateToLatest, migrateDown } from "../migrate/migrate";
 export type { Database } from "./db";
@@ -99,6 +102,9 @@ export default function createAdapters(
     sessions: createSessionsAdapter(db),
     sessionCleanup: createSessionCleanup(db),
     tenants: createTenantsAdapter(db),
+    tenantOperations: createTenantOperationsAdapter(db),
+    tenantOperationEvents: createTenantOperationEventsAdapter(db),
+    rollouts: createRolloutsAdapter(db),
     themes: createThemesAdapter(db),
     universalLoginTemplates: createUniversalLoginTemplatesAdapter(db),
     customText: createCustomTextAdapter(db),

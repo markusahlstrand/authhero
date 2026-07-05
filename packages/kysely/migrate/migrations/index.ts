@@ -176,6 +176,7 @@ import * as o077_tenant_deployment_fields from "./2026-06-06T12:00:00_tenant_dep
 import * as o078_tenant_database_version from "./2026-06-27T12:00:00_tenant_database_version";
 import * as o079_user_activity_and_user_column_cleanup from "./2026-06-30T12:00:00_user_activity_and_user_column_cleanup";
 import * as o080_drop_user_activity_columns_from_users from "./2026-07-02T12:00:00_drop_user_activity_columns_from_users";
+import * as o081_tenant_operations from "./2026-07-04T12:00:00_tenant_operations";
 
 // These need to be in alphabetic order
 export default {
@@ -357,4 +358,5 @@ export default {
   o078_tenant_database_version,
   o079_user_activity_and_user_column_cleanup,
   o080_drop_user_activity_columns_from_users,
+  o081_tenant_operations,
 };

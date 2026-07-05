@@ -15,7 +15,8 @@
   "files": [
     "dist",
     "src/schema",
-    "drizzle"
+    "drizzle",
+    "drizzle-control-plane"
   ],
   "main": "dist/drizzle-adapter.cjs",
   "module": "dist/drizzle-adapter.mjs",
