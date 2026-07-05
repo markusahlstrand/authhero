@@ -48,6 +48,16 @@ export const env = {
   get alias(): string {
     return process.env.CONFORMANCE_ALIAS ?? "my-local-test";
   },
+  // Per-worker plan alias. The OIDF suite serializes test modules per alias
+  // (a new module claiming an alias aborts the previous one), so parallel
+  // Playwright workers must each run their plans under a distinct alias.
+  // Worker 0 keeps the base alias; the seeded test clients register
+  // callback/post-logout URLs for the base alias plus -w1..-w3 (which caps
+  // usable workers at 4 — see playwright.config.ts).
+  get workerAlias(): string {
+    const worker = Number(process.env.TEST_PARALLEL_INDEX ?? "0");
+    return worker > 0 ? `${this.alias}-w${worker}` : this.alias;
+  },
   get allowWarning(): boolean {
     return parseBool(process.env.ALLOW_WARNING);
   },

@@ -96,8 +96,8 @@ function buildSharedClientConfig(label: string) {
     ? env.authheroIssuer
     : `${env.authheroIssuer}/`;
   return {
-    alias: env.alias,
-    description: `AuthHero local ${label} — ${env.alias}`,
+    alias: env.workerAlias,
+    description: `AuthHero local ${label} — ${env.workerAlias}`,
     server: {
       discoveryUrl: `${issuer}.well-known/openid-configuration`,
     },

@@ -24,6 +24,10 @@ on:
         required: false
         type: boolean
         default: true
+      workers:
+        description: "Playwright workers (parallel plans, max 4). Empty uses the CI default."
+        required: false
+        default: ""
 
 # The release workflow force-pushes changeset-release/main on every main
 # merge, and runs can sit in "action_required" until manually approved — so
@@ -41,8 +45,44 @@ permissions:
   actions: write
 
 jobs:
-  conformance:
+  # Cheap gate (~15s): hash the inputs that influence the conformance result
+  # and look for a marker cached by a previous successful full run of the
+  # same code. The release workflow force-pushes changeset-release/main on
+  # every main merge, but most merges (docs, admin UI, changesets) don't
+  # touch conformance-relevant code — CHANGELOGs and .changeset/ churn is
+  # excluded from the hash, so those force-pushes skip the ~15-minute run.
+  precheck:
     if: github.event_name == 'workflow_dispatch' || github.head_ref == 'changeset-release/main'
+    runs-on: ubuntu-latest
+    outputs:
+      code-hash: ${{ steps.hash.outputs.hash }}
+      already-passed: ${{ steps.marker.outputs.cache-hit }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compute conformance code hash
+        id: hash
+        run: |
+          hash=$(git ls-files -s -- packages apps/conformance-runner package.json pnpm-lock.yaml pnpm-workspace.yaml .github/workflows/conformance.yml ':!**/CHANGELOG.md' ':!.changeset' | git hash-object --stdin)
+          echo "hash=$hash" >> "$GITHUB_OUTPUT"
+          echo "conformance code hash: $hash"
+
+      - name: Check for a prior passing run of this code
+        id: marker
+        uses: actions/cache/restore@v4
+        with:
+          path: .conformance-passed
+          key: conformance-pass-v1-${{ steps.hash.outputs.hash }}
+          lookup-only: true
+
+  conformance:
+    needs: precheck
+    # Manual dispatches always run. pull_request runs skip when this exact
+    # code state already passed a full run — the required check reports
+    # "skipped", which satisfies branch protection the same way it does on
+    # non-release PRs. (If precheck itself was skipped — non-release PR —
+    # this job is skipped too via the needs chain.)
+    if: github.event_name == 'workflow_dispatch' || needs.precheck.outputs.already-passed != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -198,6 +238,7 @@ jobs:
           SKIP_SETUP: "1"
           ALLOW_WARNING: ${{ (github.event_name == 'pull_request' || inputs.allow_warning) && '1' || '' }}
           GREP: ${{ inputs.grep }}
+          PW_WORKERS: ${{ inputs.workers }}
         # No `--` before --grep: pnpm passes the separator through verbatim,
         # and `playwright test -- --grep x` treats everything after `--` as
         # file filters → "No tests found".
@@ -207,6 +248,19 @@ jobs:
           else
             pnpm conformance:run
           fi
+
+      # Only reached when the runner step passed. Grep-filtered dispatch runs
+      # don't count as a full pass, so they don't write a marker.
+      - name: Record passing code state
+        if: needs.precheck.outputs.already-passed != 'true' && (github.event_name == 'pull_request' || inputs.grep == '')
+        run: echo "passed as run ${{ github.run_id }}" > .conformance-passed
+
+      - name: Save pass marker
+        if: needs.precheck.outputs.already-passed != 'true' && (github.event_name == 'pull_request' || inputs.grep == '')
+        uses: actions/cache/save@v4
+        with:
+          path: .conformance-passed
+          key: conformance-pass-v1-${{ needs.precheck.outputs.code-hash }}
 
       - name: Upload Playwright HTML report
         if: always()

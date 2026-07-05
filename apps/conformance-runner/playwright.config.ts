@@ -15,7 +15,21 @@ prepareAuthServer();
 export default defineConfig({
   testDir: "./tests",
   fullyParallel: false,
-  workers: 1,
+  // Each spec file drives its own OIDF test plan, and the suite serializes
+  // per alias — workers each claim a distinct alias (env.workerAlias), so
+  // plans run concurrently and wall time ≈ the longest single plan. Capped
+  // at 4 because the seeded clients only register callbacks for the base
+  // alias plus -w1..-w3. Override with PW_WORKERS (e.g. PW_WORKERS=1 to
+  // debug serially).
+  // `||` not `??`: CI passes PW_WORKERS as an empty string when the dispatch
+  // input is unset, and Number("") is 0.
+  workers: Math.min(
+    4,
+    Number(process.env.PW_WORKERS || (process.env.CI ? 2 : 1)),
+  ),
+  // Without serial mode a systemic outage (auth-server down) would otherwise
+  // burn a worker restart per module for all ~260 modules — bail out early.
+  maxFailures: process.env.CI ? 15 : 0,
   // One retry in CI: the OIDF suite occasionally stalls module-side (e.g.
   // stuck in RUNNING after "Redirecting to authorization endpoint" without
   // ever exposing the next browser URL). Genuine regressions fail both

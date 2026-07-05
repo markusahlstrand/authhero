@@ -49,7 +49,11 @@ const MODULES_ALLOWED_TO_WARN = new Set<string>([]);
 // gaps — drop them once the underlying behaviour is fixed.
 const MODULES_EXPECTED_TO_FAIL = new Set<string>([]);
 
-test.describe.configure({ mode: "serial" });
+// No serial mode: with per-test isolation a failure tears down only its own
+// worker (the next test gets a fresh worker + plan), so one flaky module
+// doesn't skip the rest of the file, and a CI retry re-runs just the failed
+// module instead of the whole plan.
+test.describe.configure({ mode: "default" });
 
 test.describe("OIDCC RP-Initiated Logout Certification", () => {
   for (const moduleName of getStaticModulesForPlan()) {
