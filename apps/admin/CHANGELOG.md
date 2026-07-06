@@ -1,5 +1,21 @@
 # @authhero/admin
 
+## 0.11.0
+
+### Minor Changes
+
+- c94ef71: Add a control-plane Operations page per tenant (issue #1026 phase 5): lifecycle operation history with expandable step-event timelines, live polling while an operation is in flight, and a Redeploy button that enqueues an upgrade operation. The data provider gains `listTenantOperations` / `getTenantOperation` / `createTenantOperation`, and the tenants list links to the new page. Full-page loads of `/tenants/:id/members` and `/tenants/:id/operations` now render the control-plane app correctly.
+
+### Patch Changes
+
+- d90f51a: Standardize agent instruction files on CLAUDE.md. Replaces the stale
+  `packages/ui-widget/agent.md` (which still described the abandoned Ory Kratos
+  schema direction) with a lean CLAUDE.md documenting the actual Auth0 Forms
+  schema, and trims `apps/admin/AGENTS.md` bootstrap boilerplate into a
+  CLAUDE.md with the repo-relevant conventions. Docs only, no runtime changes.
+- Updated dependencies [5b50504]
+  - @authhero/adapter-interfaces@3.6.0
+
 ## 0.10.6
 
 ### Patch Changes

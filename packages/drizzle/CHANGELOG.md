@@ -1,5 +1,20 @@
 # @authhero/drizzle
 
+## 0.58.0
+
+### Minor Changes
+
+- 6258d34: Add the grants adapter (per-user OAuth consent storage), mirroring the kysely implementation. Without it the universal-login consent screen fails closed with access_denied — surfaced by the OIDC conformance suite's oidcc-refresh-token module after the conformance auth-server switched to the drizzle adapter. Ships migration 0001 creating the grants table.
+- 5b50504: Add control-plane data model for durable tenant lifecycle operations (issue #1026): new `tenant_operations`, `tenant_operation_events` (append-only), and `rollouts` entities with optional `tenantOperations`, `tenantOperationEvents`, and `rollouts` adapters in `DataAdapters`. The tenant row's provisioning fields remain the current-state snapshot; these tables are the history explaining how it got there.
+
+  These are control-plane-only tables. In the drizzle adapter they live in a separate `drizzle-control-plane/` migration set (own journal; apply with `migrationsTable: "__drizzle_migrations_control_plane"`) so WFP tenant D1s — which apply everything in `drizzle/` — never get them, and `createAdapters(db, { controlPlane: true })` opts a control-plane deployment into the new adapters. The kysely adapter (control-plane databases only) carries them in its normal migration chain.
+
+### Patch Changes
+
+- Updated dependencies [5b50504]
+  - @authhero/adapter-interfaces@3.6.0
+  - @authhero/proxy@0.8.2
+
 ## 0.57.0
 
 ### Minor Changes

@@ -1,5 +1,20 @@
 # @authhero/kysely-adapter
 
+## 11.13.0
+
+### Minor Changes
+
+- 5b50504: Add control-plane data model for durable tenant lifecycle operations (issue #1026): new `tenant_operations`, `tenant_operation_events` (append-only), and `rollouts` entities with optional `tenantOperations`, `tenantOperationEvents`, and `rollouts` adapters in `DataAdapters`. The tenant row's provisioning fields remain the current-state snapshot; these tables are the history explaining how it got there.
+
+  These are control-plane-only tables. In the drizzle adapter they live in a separate `drizzle-control-plane/` migration set (own journal; apply with `migrationsTable: "__drizzle_migrations_control_plane"`) so WFP tenant D1s — which apply everything in `drizzle/` — never get them, and `createAdapters(db, { controlPlane: true })` opts a control-plane deployment into the new adapters. The kysely adapter (control-plane databases only) carries them in its normal migration chain.
+
+### Patch Changes
+
+- ca24c50: Keep user creation working on databases that have not yet run the o080 drop migration. On those schemas users.login_count still exists as NOT NULL without a default, so the post-#1003 insert (which omits it) fails on MySQL strict mode with errno 1364. create() now detects the legacy column from the failed insert, retries with login_count supplied, and caches the schema state per Kysely instance — flipping back automatically once the column is dropped, so the o080 migration can run later without a coordinated deploy.
+- Updated dependencies [5b50504]
+  - @authhero/adapter-interfaces@3.6.0
+  - @authhero/proxy@0.8.2
+
 ## 11.12.0
 
 ### Minor Changes

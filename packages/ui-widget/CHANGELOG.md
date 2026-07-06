@@ -1,5 +1,17 @@
 # @authhero/widget
 
+## 0.34.6
+
+### Patch Changes
+
+- d90f51a: Standardize agent instruction files on CLAUDE.md. Replaces the stale
+  `packages/ui-widget/agent.md` (which still described the abandoned Ory Kratos
+  schema direction) with a lean CLAUDE.md documenting the actual Auth0 Forms
+  schema, and trims `apps/admin/AGENTS.md` bootstrap boilerplate into a
+  CLAUDE.md with the repo-relevant conventions. Docs only, no runtime changes.
+- Updated dependencies [5b50504]
+  - @authhero/adapter-interfaces@3.6.0
+
 ## 0.34.5
 
 ### Patch Changes
