@@ -38,10 +38,10 @@ const app = createApp({ dataAdapter: adapters });
 
 | Adapter | Database | Best For |
 | --- | --- | --- |
-| `@authhero/kysely-adapter` | PostgreSQL, MySQL, SQLite, D1, Turso | Most deployments |
-| `@authhero/drizzle-adapter` | PostgreSQL, MySQL, SQLite | Drizzle users (experimental) |
-| `@authhero/aws` | DynamoDB + RDS | AWS Lambda deployments |
-| `@authhero/cloudflare` | D1 + KV + R2 | Cloudflare Workers deployments |
+| `@authhero/drizzle` | SQLite, D1, PostgreSQL, MySQL | New deployments (primary adapter) |
+| `@authhero/kysely-adapter` | PostgreSQL, MySQL, SQLite, D1, Turso | Existing deployments |
+| `@authhero/aws-adapter` | DynamoDB + RDS | AWS Lambda deployments |
+| `@authhero/cloudflare-adapter` | D1 + KV + R2 | Cloudflare Workers deployments |
 
 ## Layering Adapters
 

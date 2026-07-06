@@ -57,10 +57,8 @@ AuthHero is built on open identity standards. This section tracks every spec Aut
 
 AuthHero is verified against the [OpenID Foundation conformance suite](https://gitlab.com/openid/conformance-suite) via an automated Playwright-driven runner. See [Conformance Testing](/standards/conformance) for which test plans are exercised, how to run the suite locally, and how to interpret failures.
 
-## Notes on unimplemented endpoints
+## Notes on unimplemented standards
 
-A few endpoints are advertised in [`/.well-known/openid-configuration`](/standards/openid-connect-discovery) but are not yet wired up:
-
-- **RFC 8628 — Device Authorization Grant** — `device_authorization_endpoint` is advertised but not yet routed.
+- **RFC 8628 — Device Authorization Grant** — not implemented; `device_authorization_endpoint` is not advertised in [`/.well-known/openid-configuration`](/standards/openid-connect-discovery).
 
 These will be documented as dedicated pages once implemented.

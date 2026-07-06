@@ -14,7 +14,7 @@ OpenID Connect Discovery lets clients dynamically learn an OP's endpoints and ca
 
 - **Discovery endpoint** — `GET /.well-known/openid-configuration`. The same document is also served at [`/.well-known/oauth-authorization-server`](/standards/rfc-8414) (RFC 8414).
 - **JWKS endpoint advertisement** — `jwks_uri` points to [`/.well-known/jwks.json`](/standards/rfc-7517).
-- **Core endpoints** — `issuer`, `authorization_endpoint`, `token_endpoint`, `userinfo_endpoint`, `jwks_uri`, `revocation_endpoint`, `device_authorization_endpoint`, `mfa_challenge_endpoint` are always advertised.
+- **Core endpoints** — `issuer`, `authorization_endpoint`, `token_endpoint`, `userinfo_endpoint`, `jwks_uri`, `revocation_endpoint` are always advertised.
 - **Conditional endpoints** — `registration_endpoint` is included only when Dynamic Client Registration is enabled for the tenant; `end_session_endpoint` is included by default and can be hidden by setting `oidc_logout.rp_logout_end_session_endpoint_discovery` to `false` (see [OIDC RP-Initiated Logout](/standards/oidc-rp-initiated-logout)).
 - **Supported response types** — `code`, `token`, `id_token`, `code token`, `code id_token`, `token id_token`, `code token id_token`.
 - **Supported response modes** — `query`, `fragment`, `form_post`.
@@ -27,14 +27,9 @@ OpenID Connect Discovery lets clients dynamically learn an OP's endpoints and ca
 - **PKCE** — `code_challenge_methods_supported`: `S256`, `plain`.
 - **Supported claims** — published in `claims_supported`.
 
-## Declared but not yet implemented
+## Not advertised
 
-Some endpoints are advertised for compatibility but the underlying functionality is on the roadmap:
-
-- `revocation_endpoint` — RFC 7009 token revocation.
-- `device_authorization_endpoint` — RFC 8628 device flow.
-
-See the [Standards overview](/standards/) for details.
+Endpoints for functionality AuthHero doesn't implement — notably `device_authorization_endpoint` (RFC 8628 device flow) — are omitted from the discovery document rather than advertised speculatively. See the [Standards overview](/standards/) for the full implementation status of each spec.
 
 ## Related AuthHero documentation
 

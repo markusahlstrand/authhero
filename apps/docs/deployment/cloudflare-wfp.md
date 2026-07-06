@@ -95,7 +95,6 @@ inserted `custom_domains` row may 404 until the cache expires — see
 - A Cloudflare account on the **Workers for Platforms** plan (dispatch namespaces require this)
 - [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/install-and-update/) v3.50+
 - Node.js 20+
-- An [R2 bucket](https://developers.cloudflare.com/r2/) if you plan to use the bundle registry (see [Roadmap](#roadmap-api-driven-provisioning))
 
 Verify your account has the WFP plan:
 
@@ -316,7 +315,7 @@ UPDATE tenants SET d1_database_id = 'xyz789...' WHERE id = 'acme';
 ```
 
 ::: tip One-shot schema apply
-Running `wrangler d1 migrations apply` does ~40 sequential HTTP calls to D1 (one per migration), which takes 8-20 seconds. If you need it faster — for programmatic provisioning from a Worker — bundle all migrations into a single SQL file and POST once to `/accounts/:id/d1/database/:dbid/query`. D1's query endpoint accepts multi-statement bodies up to ~100KB; the current drizzle bundle is ~916 lines and fits comfortably. The upcoming `CloudflarePlatformProvisioner` (see [Roadmap](#roadmap-api-driven-provisioning)) uses this technique.
+Running `wrangler d1 migrations apply` does ~40 sequential HTTP calls to D1 (one per migration), which takes 8-20 seconds. If you need it faster — for programmatic provisioning from a Worker — bundle all migrations into a single SQL file and POST once to `/accounts/:id/d1/database/:dbid/query`. D1's query endpoint accepts multi-statement bodies up to ~100KB; the current drizzle bundle is ~916 lines and fits comfortably. The API-driven provisioner (see [API-driven provisioning](#api-driven-provisioning)) applies migrations through this HTTP endpoint rather than wrangler.
 :::
 
 For Options B/C, skip this step — the data store already exists.
@@ -507,7 +506,7 @@ return `[]` otherwise.
 
 ## Tenant lifecycle fields
 
-Every tenant row carries metadata that describes _how_ the tenant runs and where its data lives. These fields drive the dispatcher's routing and (in future versions, see [Roadmap](#roadmap-api-driven-provisioning)) the provisioning flow.
+Every tenant row carries metadata that describes _how_ the tenant runs and where its data lives. These fields drive the dispatcher's routing and the provisioning flow.
 
 | Field                            | Type                                                   | Purpose                                                                                          |
 | -------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
@@ -523,112 +522,45 @@ Every tenant row carries metadata that describes _how_ the tenant runs and where
 
 Existing shared tenants (created before these fields existed) keep working — `deployment_type` defaults to `"shared"` and `provisioning_state` defaults to `"ready"` at the database level. No backfill needed.
 
-## The `TenantProvisioner` adapter
+## API-driven provisioning
 
-`authhero` exposes a `TenantProvisioner` interface so the provisioning side effects (creating a D1, uploading a Worker, wiring bindings) can be swapped without touching the API or admin UI.
-
-```typescript
-import type { Tenant, TenantsDataAdapter } from "@authhero/adapter-interfaces";
-
-interface TenantProvisionerContext {
-  tenants: TenantsDataAdapter;
-}
-
-interface TenantProvisioner {
-  provision(tenant: Tenant, ctx: TenantProvisionerContext): Promise<void>;
-}
-```
-
-Contract:
-
-- **Idempotent.** The same tenant may be passed twice if a prior run crashed mid-flight or an operator retries.
-- **Never throws.** Errors are captured into `provisioning_error` and `provisioning_state` is set to `"failed"`. The caller (typically `ctx.executionCtx.waitUntil(...)`) won't see a rejected promise.
-- **Self-contained.** Safe to schedule via `waitUntil` — must not rely on the originating request surviving.
-
-### Built-in implementations
-
-| Implementation                        | Use when                                                                              |
-| ------------------------------------- | ------------------------------------------------------------------------------------- |
-| `NoopTenantProvisioner`               | All tenants are `deployment_type: "shared"`, or you provision WFP tenants manually    |
-| `CloudflarePlatformProvisioner`       | (coming) Programmatically creates D1s and uploads Worker bundles from an R2 registry  |
-
-### Wiring it up
+The manual flow in [Step 3](#step-3-onboard-a-tenant) always works and is the easiest way to onboard your first tenant. For programmatic onboarding, `@authhero/cloudflare-adapter` ships a WFP provisioner that performs the same steps through the Cloudflare API:
 
 ```typescript
-import { init, NoopTenantProvisioner } from "authhero";
+import {
+  createCloudflareWfpD1Provisioner,
+  createWfpTenantProvisioningHook,
+} from "@authhero/cloudflare-adapter";
+import migration0000 from "@authhero/drizzle/drizzle/sqlite/0000_initial.sql?raw";
 
-const { app } = init({
-  dataAdapter,
-  provisioner: new NoopTenantProvisioner(),   // default — can be omitted
+const provisioner = createCloudflareWfpD1Provisioner({
+  // Cloudflare API credentials, dispatch namespace, the worker bundle,
+  // migrations (imported as raw SQL and bundled into the control plane),
+  // and a per-tenant secrets resolver — see the type for the full options.
+  migrations: [{ name: "0000_initial.sql", sql: migration0000 }],
+  // ...
 });
+
+const hook = createWfpTenantProvisioningHook({ provisioner, tenants });
 ```
 
-### Writing a custom provisioner
+The provisioner creates a D1 (for `storage_kind: "own_d1"`), applies the migration bundle through the D1 HTTP query endpoint, uploads the worker script to the dispatch namespace with its bindings and secrets, and maintains `provisioning_state` / `provisioning_error` on the tenant row. Migration bundles ship inside the control-plane worker itself (via `?raw` SQL imports) — no external bundle registry is required.
 
-If your platform has bespoke needs (e.g. talks to a non-Cloudflare API, kicks off a CI job, posts to Slack), implement the interface directly:
+The hook exposes three entry points:
 
-```typescript
-import type { TenantProvisioner } from "authhero";
+| Method | Purpose |
+| ------ | ------- |
+| `onProvision(tenantId)` | Full first-time provisioning of a `deployment_type: "wfp"` tenant |
+| `onDeprovision(tenantId)` | Tear down the tenant's script (and optionally its D1) |
+| `onUpgrade(tenantId)` | Re-provision an existing tenant onto the current bundle + migrations; backs `POST /api/v2/tenants/{id}/redeploy` when wired via the `tenantUpgrade` option of `init()` |
 
-class SlackNotifyingProvisioner implements TenantProvisioner {
-  async provision(tenant, ctx) {
-    try {
-      // your bespoke side effects
-      await uploadBundle(tenant);
-      await postToSlack(`Provisioned ${tenant.id}`);
-      await ctx.tenants.update(tenant.id, {
-        provisioning_state: "ready",
-        provisioning_state_changed_at: new Date().toISOString(),
-        provisioning_error: undefined,
-      });
-    } catch (err) {
-      await ctx.tenants.update(tenant.id, {
-        provisioning_state: "failed",
-        provisioning_state_changed_at: new Date().toISOString(),
-        provisioning_error: err instanceof Error ? err.message : String(err),
-      });
-    }
-  }
-}
-```
+Clients observe provisioning asynchronously: `POST /api/v2/tenants` returns with `provisioning_state: "pending"` and callers poll `GET /api/v2/tenants/:id` (or the operations history) until the state transitions to `ready` or `failed`.
 
-The same shape will (with a richer `ctx`) eventually be the contract for swapping in a [Cloudflare Workflow](https://developers.cloudflare.com/workflows/) for durable provisioning. See [Roadmap](#roadmap-api-driven-provisioning).
+### Durable provisioning with Cloudflare Workflows
 
-## Roadmap: API-driven provisioning
+For provisioning that survives engine crashes and records every step, wire the tenant-operations executor: each operation is journaled in the `tenant_operations` / `tenant_operation_events` tables, executed as a [Cloudflare Workflow](https://developers.cloudflare.com/workflows/) with durable steps (create-database → apply-migrations → upload-script → upload-secrets → seed-defaults → verify), and exposed via `GET /api/v2/tenants/{id}/operations`. See [Tenant Operations](/customization/multi-tenancy/tenant-operations) for the data model, executor wiring, and reconciliation pattern, and [Tenant Lifecycle](/customization/multi-tenancy/tenant-lifecycle) for the surrounding create/update/delete hooks.
 
-The manual flow in [Step 3](#step-3-onboard-a-tenant) works today and is the recommended path. A first-class API-driven flow is in progress and will become the default once shipped.
-
-The end state:
-
-1. **Admin UI form** picks `deployment_type: "wfp"`, `bundle_configuration`, `worker_version`, `storage_kind`.
-2. **`POST /api/v2/tenants`** returns `202 Accepted` with `provisioning_state: "pending"`.
-3. **`CloudflarePlatformProvisioner`** runs in `ctx.waitUntil()`:
-   - Reads the bundle from R2 (`tenant-bundles/<configuration>/<version>/`)
-   - Creates a D1 if `storage_kind = "own_d1"`, applies the bundled schema in a single query
-   - Uploads `worker.js` to the dispatch namespace with bindings configured for the chosen storage
-   - Marks `provisioning_state: "ready"`
-4. **Admin UI polls** `GET /api/v2/tenants/:id` until state transitions, then shows success or the recorded error.
-
-The R2 bundle layout:
-
-```text
-tenant-bundles/
-  authhero-drizzle-d1/
-    v1.2.3/
-      worker.js
-      schema-bundle.sql       # all migrations flattened
-      meta.json
-    v1.2.4/
-      ...
-  authhero-kysely-planetscale/
-    v0.7.0/
-      worker.js
-      meta.json               # requires_own_db: false
-```
-
-`bundle_configuration` selects the variant; `worker_version` pins the release. New bundles are published by running `pnpm publish-bundle` in each `bundles/<configuration>/` workspace.
-
-Track progress in [GitHub issue TBD]. Until then, treat the lifecycle fields as the public surface for tooling — keep them populated so the admin UI and downstream automation can render the right thing.
+Later phases — fleet rollouts (waves + canary) and D1 Time Travel backups — are tracked in [issue #1026](https://github.com/markusahlstrand/authhero/issues/1026).
 
 ## Trade-offs vs. single Worker
 

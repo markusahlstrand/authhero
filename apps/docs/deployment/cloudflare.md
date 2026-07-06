@@ -333,15 +333,13 @@ See [Cloudflare Adapter → Cache](/customization/cloudflare-adapter/cache) for 
 
 ### Reduce Cold Starts
 
-- Use Durable Objects for session storage (coming soon)
 - Keep worker size small (< 1MB)
 - Minimize dependencies
 
 ### Global Performance
 
 - Workers run in 200+ cities automatically
-- D1 replication coming soon
-- Use Read Replicas when available
+- [D1 read replication](https://developers.cloudflare.com/d1/best-practices/read-replication/) is available in public beta — opt in per database and Cloudflare serves reads from regional replicas. Queries must go through the D1 Sessions API (`withSession()`) to benefit; AuthHero's adapters don't use it yet, so today this only helps custom read paths you wire up yourself
 
 ## Limitations
 

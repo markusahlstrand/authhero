@@ -7,9 +7,19 @@ description: Overview of AuthHero's built-in database and platform adapters — 
 
 AuthHero ships with several adapter implementations for different databases and platforms.
 
-## Kysely (SQL) — Recommended
+## Drizzle (SQL) — Recommended
 
-The primary SQL adapter, supporting any database Kysely supports:
+The primary SQL adapter, built on Drizzle ORM:
+
+- SQLite / Cloudflare D1 (primary targets), PostgreSQL, MySQL
+- Schema-first approach with pre-generated migrations shipped in the package
+- Used by all `create-authhero` templates
+
+[Drizzle adapter details →](/customization/drizzle/)
+
+## Kysely (SQL)
+
+A SQL adapter supporting any database Kysely supports, maintained for existing deployments (new projects should prefer Drizzle):
 
 - PostgreSQL, MySQL, SQLite, Cloudflare D1, Turso
 - Type-safe query builder
@@ -21,16 +31,6 @@ const adapters = createKyselyAdapters(kyselyInstance);
 ```
 
 [Kysely adapter details →](/customization/kysely/)
-
-## Drizzle (SQL) — Experimental
-
-An alternative SQL adapter using Drizzle ORM:
-
-- PostgreSQL, MySQL, SQLite
-- Schema-first approach
-- Not yet production-ready
-
-[Drizzle adapter details →](/customization/drizzle/)
 
 ## AWS
 
