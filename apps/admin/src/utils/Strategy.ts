@@ -1,1 +1,4 @@
-export { Strategy } from "@authhero/adapter-interfaces";
+export {
+  Strategy,
+  isDatabaseConnectionStrategy,
+} from "@authhero/adapter-interfaces";

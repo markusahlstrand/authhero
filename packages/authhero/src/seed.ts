@@ -1,4 +1,8 @@
-import { DataAdapters, Strategy } from "@authhero/adapter-interfaces";
+import {
+  DATABASE_CONNECTION_STRATEGY,
+  DataAdapters,
+  Strategy,
+} from "@authhero/adapter-interfaces";
 import { createX509Certificate } from "./utils/encryption";
 import { userIdGenerate } from "./utils/user-id";
 import { nanoid } from "nanoid";
@@ -787,9 +791,11 @@ export async function seed(
     if (debug) {
       console.log("Creating password connection...");
     }
+    // Auth0 stores database connections with strategy "auth0"; only the
+    // connection NAME is "Username-Password-Authentication".
     await adapters.connections.create(tenantId, {
       name: Strategy.USERNAME_PASSWORD,
-      strategy: Strategy.USERNAME_PASSWORD,
+      strategy: DATABASE_CONNECTION_STRATEGY,
       options: {
         attributes: {
           username: {

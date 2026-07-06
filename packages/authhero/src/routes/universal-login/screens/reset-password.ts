@@ -5,7 +5,10 @@
  */
 
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
-import { LogTypes, Strategy } from "@authhero/adapter-interfaces";
+import {
+  LogTypes,
+  isDatabaseConnectionStrategy,
+} from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import bcryptjs from "bcryptjs";
 import { getUsernamePasswordUser } from "../../../utils/username-password-provider";
@@ -46,8 +49,8 @@ export async function executePasswordReset(params: {
   }
 
   // Find the password connection by strategy
-  const passwordConnection = client.connections.find(
-    (c) => c.strategy === Strategy.USERNAME_PASSWORD,
+  const passwordConnection = client.connections.find((c) =>
+    isDatabaseConnectionStrategy(c.strategy),
   );
   const connectionName = passwordConnection?.name || user.connection;
 

@@ -1,7 +1,10 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
 import bcryptjs from "bcryptjs";
-import { LogTypes, Strategy } from "@authhero/adapter-interfaces";
+import {
+  LogTypes,
+  isDatabaseConnectionStrategy,
+} from "@authhero/adapter-interfaces";
 import i18next from "i18next";
 import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
@@ -135,8 +138,8 @@ const postRoot = defineRoute({
     // Find the password connection by strategy to get the correct connection name
     // This is needed because user.connection may contain "Username-Password-Authentication"
     // (a hardcoded fallback) instead of the actual connection name
-    const passwordConnection = client.connections.find(
-      (c) => c.strategy === Strategy.USERNAME_PASSWORD,
+    const passwordConnection = client.connections.find((c) =>
+      isDatabaseConnectionStrategy(c.strategy),
     );
     const connectionName = passwordConnection?.name || user.connection;
 

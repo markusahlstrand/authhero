@@ -2,8 +2,8 @@ import { HTTPException } from "hono/http-exception";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import {
   LogTypes,
-  Strategy,
   promptSettingSchema,
+  isDatabaseConnectionStrategy,
 } from "@authhero/adapter-interfaces";
 import { Context } from "hono";
 import { setSearchParams } from "../../utils/url";
@@ -84,8 +84,8 @@ async function returnError(
           ctx.var.tenant_id,
         );
         const settings = promptSettingSchema.parse(promptSettings || {});
-        const hasPasswordConnection = client.connections.some(
-          (c) => c.strategy === Strategy.USERNAME_PASSWORD,
+        const hasPasswordConnection = client.connections.some((c) =>
+          isDatabaseConnectionStrategy(c.strategy),
         );
         if (settings.identifier_first === false && hasPasswordConnection) {
           loginPath = "/login";

@@ -7,7 +7,11 @@ import Icon from "./Icon";
 import ErrorMessage from "./ErrorMessage";
 import FormComponent from "./Form";
 import { GoBack } from "./GoBack";
-import { Theme, Branding, Strategy } from "@authhero/adapter-interfaces";
+import {
+  Theme,
+  Branding,
+  isDatabaseConnectionStrategy,
+} from "@authhero/adapter-interfaces";
 import { EnrichedClient } from "../helpers/client";
 import Trans from "./Trans";
 
@@ -36,8 +40,8 @@ const EnterCodePage: FC<Props> = ({
     state,
   });
 
-  const showPasswordLogin = client.connections.some(
-    (c) => c.strategy === Strategy.USERNAME_PASSWORD,
+  const showPasswordLogin = client.connections.some((c) =>
+    isDatabaseConnectionStrategy(c.strategy),
   );
 
   return (

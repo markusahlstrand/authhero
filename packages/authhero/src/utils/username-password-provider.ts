@@ -33,23 +33,10 @@ import {
 const LEGACY_PROVIDER = "auth2";
 const TARGET_PROVIDER = "auth0";
 
-/**
- * True when a connection's `strategy` field marks it as a native database
- * (username/password) connection. Legacy tenants persist the provider
- * literal ("auth2") in the strategy field instead of the canonical Auth0
- * strategy name, and either provider literal must never leak into new
- * user rows as the provider — write sites go through
- * {@link resolveUsernamePasswordProvider} instead.
- */
-export function isDatabaseConnectionStrategy(
-  strategy: string | undefined | null,
-): boolean {
-  return (
-    strategy === "Username-Password-Authentication" ||
-    strategy === LEGACY_PROVIDER ||
-    strategy === TARGET_PROVIDER
-  );
-}
+// Shared with the admin UI via adapter-interfaces. None of the matched
+// strategy spellings may ever leak into new user rows as the provider —
+// write sites go through {@link resolveUsernamePasswordProvider} instead.
+export { isDatabaseConnectionStrategy } from "@authhero/adapter-interfaces";
 
 export type UsernamePasswordProviderValue =
   | typeof LEGACY_PROVIDER

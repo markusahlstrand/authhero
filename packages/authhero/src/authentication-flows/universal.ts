@@ -5,6 +5,7 @@ import {
   Session,
   Strategy,
   promptSettingSchema,
+  isDatabaseConnectionStrategy,
 } from "@authhero/adapter-interfaces";
 import { EnrichedClient } from "../helpers/client";
 import { Bindings, Variables } from "../types";
@@ -218,8 +219,8 @@ export async function universalAuth({
     const settings = promptSettingSchema.parse(promptSettings || {});
 
     // Check if password connection is available
-    const hasPasswordConnection = client.connections.some(
-      (c) => c.strategy === Strategy.USERNAME_PASSWORD,
+    const hasPasswordConnection = client.connections.some((c) =>
+      isDatabaseConnectionStrategy(c.strategy),
     );
 
     // If identifier_first is explicitly false and password auth is available,

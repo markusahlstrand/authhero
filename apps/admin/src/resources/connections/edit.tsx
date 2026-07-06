@@ -3,7 +3,7 @@ import { DeleteButton } from "@/components/admin/delete-button";
 import { useRecordContext } from "ra-core";
 import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UrlTabs } from "@/components/ui/url-tabs";
-import { Strategy } from "@/utils/Strategy";
+import { isDatabaseConnectionStrategy } from "@/utils/Strategy";
 import { DetailsTab } from "./tabs/details-tab";
 import { AttributesTab } from "./tabs/attributes-tab";
 import { AuthenticationMethodsTab } from "./tabs/authentication-methods-tab";
@@ -30,7 +30,7 @@ function stripNulls(value: unknown): unknown {
 
 function ConnectionTabs() {
   const record = useRecordContext();
-  const isDb = record?.strategy === Strategy.USERNAME_PASSWORD;
+  const isDb = isDatabaseConnectionStrategy(record?.strategy);
 
   return (
     <UrlTabs defaultValue="details" className="w-full">

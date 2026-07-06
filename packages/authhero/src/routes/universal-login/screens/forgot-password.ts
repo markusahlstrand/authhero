@@ -5,7 +5,7 @@
  */
 
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
-import { Strategy } from "@authhero/adapter-interfaces";
+import { isDatabaseConnectionStrategy } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { getLoginPath } from "./types";
 import { createTranslation } from "../../../i18n";
@@ -215,8 +215,8 @@ export const forgotPasswordScreenDefinition: ScreenDefinition = {
       // Check the connection's verification_method. In the u2 flow we default
       // to "code" when unset, so the user stays on-page instead of relying on
       // an emailed link (the link points at the legacy /u routes).
-      const passwordConnection = context.client.connections.find(
-        (c) => c.strategy === Strategy.USERNAME_PASSWORD,
+      const passwordConnection = context.client.connections.find((c) =>
+        isDatabaseConnectionStrategy(c.strategy),
       );
       const verificationMethod =
         passwordConnection?.options?.attributes?.email?.verification_method ??
