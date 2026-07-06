@@ -123,7 +123,7 @@ Once the upstream password-fallback traffic drops to a handful per day you can f
 ## Comparison with the other migration mechanisms
 
 - **Bulk import via `/api/v2/users-imports`** — pre-seeds users (with password hashes if you can extract them) so AuthHero owns the records upfront. Use when you want to flip DNS in one shot rather than draining the upstream incrementally.
-- **[Token Exchange (RFC 8693)](https://github.com/markusahlstrand/authhero/issues/807)** — proposed: an explicit `grant_type=token-exchange` surface for callers that prefer signalling the migration in the request rather than relying on transparent fallback. Not yet shipped.
+- **[Token Exchange (RFC 8693)](/standards/rfc-8693)** — an explicit `grant_type=urn:ietf:params:oauth:grant-type:token-exchange` surface for callers that prefer signalling the migration in the request rather than relying on transparent fallback.
 - **Lazy migration (this page)** — no client changes for password logins or refresh tokens; users and refresh tokens are migrated transparently on first use.
 
 These are complementary — most production migrations use lazy migration as the foundation and add bulk import for the long tail of users who never sign in during the migration window.

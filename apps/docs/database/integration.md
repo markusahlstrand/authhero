@@ -15,8 +15,8 @@ AuthHero uses adapters to interact with databases, making it flexible enough to 
 
 AuthHero supports several database adapters:
 
-- **Kysely Adapter**: For SQL databases (PostgreSQL, MySQL, SQLite)
-- **Drizzle Adapter**: For SQL databases using Drizzle ORM (not yet stable)
+- **Drizzle Adapter**: The primary adapter (Drizzle ORM; SQLite/D1, PostgreSQL, MySQL) — used by all `create-authhero` templates
+- **Kysely Adapter**: For SQL databases (PostgreSQL, MySQL, SQLite) — maintained for existing deployments
 - **Custom Adapters**: Implementing the adapter interfaces for other database systems
 
 ## Setting Up the Kysely Adapter
