@@ -167,3 +167,7 @@ apps/wfp-dispatcher-smoke/
 .claude/settings.json
 .claude/settings.local.json
 .claude/worktrees/
+
+# graphify knowledge-graph output
+graphify-out/
+.graphifyignore
