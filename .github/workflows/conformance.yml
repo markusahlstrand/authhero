@@ -65,7 +65,7 @@ jobs:
       code-hash: ${{ steps.hash.outputs.hash }}
       already-passed: ${{ steps.marker.outputs.cache-hit }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           # Only local git commands run here — no credentialed operations.
           persist-credentials: false
@@ -79,7 +79,7 @@ jobs:
 
       - name: Check for a prior passing run of this code
         id: marker
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: .conformance-passed
           key: conformance-pass-v1-${{ steps.hash.outputs.hash }}
@@ -96,7 +96,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # By the time an approved run starts, its commit may no longer be the
       # head of changeset-release/main. Concurrency is per-SHA (see above),
@@ -117,13 +117,13 @@ jobs:
             exit 1
           fi
 
+      # No version input — pnpm/action-setup v4+ reads the packageManager
+      # field from package.json (and errors if both are set and disagree).
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 10
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: "22.x"
           cache: "pnpm"
@@ -183,7 +183,7 @@ jobs:
       # bump it manually when a fresh suite build is needed.
       - name: Cache conformance suite build
         id: suite-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/conformance-suite/target
@@ -226,7 +226,7 @@ jobs:
 
       - name: Cache Playwright browsers
         id: playwright-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
@@ -267,14 +267,14 @@ jobs:
 
       - name: Save pass marker
         if: needs.precheck.outputs.already-passed != 'true' && (github.event_name == 'pull_request' || inputs.grep == '')
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: .conformance-passed
           key: conformance-pass-v1-${{ needs.precheck.outputs.code-hash }}
 
       - name: Upload Playwright HTML report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: playwright-report
           path: apps/conformance-runner/playwright-report/
@@ -282,7 +282,7 @@ jobs:
 
       - name: Upload OIDF conformance plan reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: conformance-reports
           path: apps/conformance-runner/conformance-reports/
@@ -291,7 +291,7 @@ jobs:
 
       - name: Upload Playwright traces
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: playwright-traces
           path: apps/conformance-runner/test-results/
