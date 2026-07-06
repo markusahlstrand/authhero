@@ -59,6 +59,9 @@ jobs:
       already-passed: ${{ steps.marker.outputs.cache-hit }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Only local git commands run here — no credentialed operations.
+          persist-credentials: false
 
       - name: Compute conformance code hash
         id: hash

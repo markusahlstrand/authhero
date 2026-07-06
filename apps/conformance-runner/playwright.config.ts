@@ -12,21 +12,29 @@ import { prepareAuthServer } from "./lib/prepare-auth-server";
 // the suite API).
 prepareAuthServer();
 
+// Each spec file drives its own OIDF test plan, and the suite serializes
+// per alias — workers each claim a distinct alias (env.workerAlias), so
+// plans run concurrently and wall time ≈ the longest single plan. Capped
+// at 4 because the seeded clients only register callbacks for the base
+// alias plus -w1..-w3. Override with PW_WORKERS (e.g. PW_WORKERS=1 to
+// debug serially). Anything that isn't a positive integer — including the
+// empty string CI passes when the dispatch input is unset, and non-numeric
+// values that would otherwise flow through as NaN — falls back to the
+// CI/local default.
+const requestedWorkers = Number(process.env.PW_WORKERS);
+const workers = Math.min(
+  4,
+  Number.isInteger(requestedWorkers) && requestedWorkers > 0
+    ? requestedWorkers
+    : process.env.CI
+      ? 2
+      : 1,
+);
+
 export default defineConfig({
   testDir: "./tests",
   fullyParallel: false,
-  // Each spec file drives its own OIDF test plan, and the suite serializes
-  // per alias — workers each claim a distinct alias (env.workerAlias), so
-  // plans run concurrently and wall time ≈ the longest single plan. Capped
-  // at 4 because the seeded clients only register callbacks for the base
-  // alias plus -w1..-w3. Override with PW_WORKERS (e.g. PW_WORKERS=1 to
-  // debug serially).
-  // `||` not `??`: CI passes PW_WORKERS as an empty string when the dispatch
-  // input is unset, and Number("") is 0.
-  workers: Math.min(
-    4,
-    Number(process.env.PW_WORKERS || (process.env.CI ? 2 : 1)),
-  ),
+  workers,
   // Without serial mode a systemic outage (auth-server down) would otherwise
   // burn a worker restart per module for all ~260 modules — bail out early.
   maxFailures: process.env.CI ? 15 : 0,
