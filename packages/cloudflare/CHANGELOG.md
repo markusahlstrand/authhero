@@ -1,5 +1,18 @@
 # @authhero/cloudflare-adapter
 
+## 2.38.1
+
+### Patch Changes
+
+- f0cdf47: Export `createWfpProvisionerSteps` and its types (`TenantProvisionerSteps`, `TenantProvisionNames`, `WfpProvisionerSteps`) from the package root. They were exported from the internal `wfp-provisioner` module but missing from the public entry point, so consumers wiring the steps into a durable workflow (e.g. Cloudflare Workflows) could not import them.
+- b83ae9f: Surface the `spm` (Success Password Migration) log type: add a `password-migrations` analytics resource (`GET /api/v2/analytics/password-migrations`) backed by the drizzle, kysely, and Analytics Engine adapters, show it as "Password Migrations" on the admin analytics page, add `spm` to the admin logs type filter, and sort both the logs type filter and the analytics resource dropdown alphabetically.
+- Updated dependencies [6ffefb4]
+- Updated dependencies [b83ae9f]
+  - authhero@8.16.0
+  - @authhero/adapter-interfaces@3.7.0
+  - @authhero/kysely-adapter@11.13.1
+  - @authhero/multi-tenancy@14.26.0
+
 ## 2.38.0
 
 ### Minor Changes
