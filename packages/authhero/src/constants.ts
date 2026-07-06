@@ -1,4 +1,8 @@
-export const USERNAME_PASSWORD_PROVIDER = "auth2";
+// Provider value stamped on NEW username/password user rows. Legacy rows
+// (and some tenants' connection.strategy fields) still carry "auth2" —
+// reads must keep matching both via isUsernamePasswordProvider(); new
+// users must NEVER be created with "auth2".
+export const USERNAME_PASSWORD_PROVIDER = "auth0";
 
 export const JWKS_CACHE_TIMEOUT_IN_SECONDS = 60 * 5; // 5 minutes
 export const SILENT_AUTH_MAX_AGE_IN_SECONDS = 30 * 24 * 60 * 60; // 30 days

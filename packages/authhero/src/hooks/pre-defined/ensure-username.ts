@@ -3,6 +3,10 @@ import { userIdGenerate } from "../../utils/user-id";
 import { USERNAME_PASSWORD_PROVIDER } from "../../constants";
 import { Strategy } from "@authhero/adapter-interfaces";
 import { isUniqueConstraintError } from "../../errors/is-unique-constraint-error";
+import {
+  USERNAME_PASSWORD_PROVIDERS,
+  isUsernamePasswordProvider,
+} from "../../utils/username-password-provider";
 
 export interface EnsureUsernameOptions {
   /**
@@ -98,16 +102,21 @@ async function isUsernameTaken(
   userAdapter: { list: (tenant_id: string, params?: any) => Promise<any> },
   tenantId: string,
   username: string,
-  provider: string,
+  providers: readonly string[],
 ): Promise<boolean> {
-  const { users } = await userAdapter.list(tenantId, {
-    page: 0,
-    per_page: 1,
-    include_totals: false,
-    q: `username:${username} provider:${provider}`,
-  });
+  for (const provider of providers) {
+    const { users } = await userAdapter.list(tenantId, {
+      page: 0,
+      per_page: 1,
+      include_totals: false,
+      q: `username:${username} provider:${provider}`,
+    });
+    if (users.length > 0) {
+      return true;
+    }
+  }
 
-  return users.length > 0;
+  return false;
 }
 
 /**
@@ -124,12 +133,12 @@ async function findUniqueUsername(
   userAdapter: { list: (tenant_id: string, params?: any) => Promise<any> },
   tenantId: string,
   candidates: string[],
-  provider: string,
+  providers: readonly string[],
   maxRetries: number,
 ): Promise<string | undefined> {
   for (const base of candidates) {
     // Try the base candidate first
-    if (!(await isUsernameTaken(userAdapter, tenantId, base, provider))) {
+    if (!(await isUsernameTaken(userAdapter, tenantId, base, providers))) {
       return base;
     }
 
@@ -137,7 +146,7 @@ async function findUniqueUsername(
     for (let i = 2; i <= maxRetries + 1; i++) {
       const candidate = `${base}${i}`;
       if (
-        !(await isUsernameTaken(userAdapter, tenantId, candidate, provider))
+        !(await isUsernameTaken(userAdapter, tenantId, candidate, providers))
       ) {
         return candidate;
       }
@@ -160,10 +169,10 @@ function userHasUsername(
       profileData?: { username?: string };
     }> | null;
   },
-  provider: string,
+  matchesProvider: (provider?: string) => boolean,
 ): boolean {
   // If the user itself is a username-type account with a username set
-  if (user.provider === provider && user.username) {
+  if (matchesProvider(user.provider) && user.username) {
     return true;
   }
 
@@ -171,7 +180,7 @@ function userHasUsername(
   if (user.identities) {
     return user.identities.some(
       (identity) =>
-        identity.provider === provider && identity.profileData?.username,
+        matchesProvider(identity.provider) && identity.profileData?.username,
     );
   }
 
@@ -222,7 +231,16 @@ export function ensureUsername(
   options?: EnsureUsernameOptions,
 ): OnExecutePostLogin {
   const connection = options?.connection ?? Strategy.USERNAME_PASSWORD;
-  const provider = options?.provider ?? USERNAME_PASSWORD_PROVIDER;
+  // Value stamped on NEWLY created username accounts. Reads must keep
+  // matching legacy "auth2" rows too, so lookups use matchesProvider /
+  // lookupProviders rather than this single value.
+  const writeProvider = options?.provider ?? USERNAME_PASSWORD_PROVIDER;
+  const matchesProvider = options?.provider
+    ? (provider?: string) => provider === options.provider
+    : isUsernamePasswordProvider;
+  const lookupProviders: readonly string[] = options?.provider
+    ? [options.provider]
+    : USERNAME_PASSWORD_PROVIDERS;
   const maxRetries = Math.max(0, Math.floor(options?.maxRetries ?? 10));
 
   return async (event, _api) => {
@@ -236,22 +254,24 @@ export function ensureUsername(
     const data = ctx.env.data;
 
     // Already has a username — nothing to do
-    if (userHasUsername(user, provider)) {
+    if (userHasUsername(user, matchesProvider)) {
       return;
     }
 
     // Check if any linked user in the DB already has a username account.
     // The identities array on the primary user may not be populated, so we
     // query the database directly to avoid creating duplicate username accounts.
-    if (user.provider !== provider) {
-      const { users: linkedUsernameUsers } = await data.users.list(tenantId, {
-        page: 0,
-        per_page: 1,
-        include_totals: false,
-        q: `linked_to:${user.user_id} provider:${provider}`,
-      });
-      if (linkedUsernameUsers.length > 0) {
-        return;
+    if (!matchesProvider(user.provider)) {
+      for (const lookupProvider of lookupProviders) {
+        const { users: linkedUsernameUsers } = await data.users.list(tenantId, {
+          page: 0,
+          per_page: 1,
+          include_totals: false,
+          q: `linked_to:${user.user_id} provider:${lookupProvider}`,
+        });
+        if (linkedUsernameUsers.length > 0) {
+          return;
+        }
       }
     }
 
@@ -273,7 +293,7 @@ export function ensureUsername(
         data.users,
         tenantId,
         candidates,
-        provider,
+        lookupProviders,
         maxRetries,
       );
 
@@ -285,18 +305,18 @@ export function ensureUsername(
       }
 
       try {
-        if (user.provider === provider) {
+        if (matchesProvider(user.provider)) {
           // This IS a username-type account — just set the username field
           await data.users.update(tenantId, user.user_id, { username });
         } else {
           // Different provider — create a linked username account
-          const usernameUserId = `${provider}|${userIdGenerate()}`;
+          const usernameUserId = `${writeProvider}|${userIdGenerate()}`;
 
           await data.users.create(tenantId, {
             user_id: usernameUserId,
             username,
             name: username,
-            provider,
+            provider: writeProvider,
             connection,
             email_verified: false,
             is_social: false,

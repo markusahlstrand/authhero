@@ -12,15 +12,15 @@ import {
  * TRANSITIONAL helpers for the auth2 → auth0 provider migration.
  *
  * Historically every native database user has been stored with
- * `provider = "auth2"` and `user_id = "auth2|<id>"`. We're moving onto the
- * `"auth0"` provider value, one tenant at a time, by setting
- * `init({ usernamePasswordProvider })` to return `"auth0"` for the
- * migrated tenants.
+ * `provider = "auth2"` and `user_id = "auth2|<id>"`. New rows are now
+ * written with the `"auth0"` provider value everywhere; the
+ * `init({ usernamePasswordProvider })` resolver only exists to pin a
+ * tenant back onto `"auth2"` during a staged cutover.
  *
  * Two surfaces are exposed:
  *
  * - {@link resolveUsernamePasswordProvider} — used at WRITE sites to pick
- *   the value to stamp on a new row. Defaults to `"auth2"`.
+ *   the value to stamp on a new row. Defaults to `"auth0"`.
  * - {@link isUsernamePasswordProvider} / {@link getUsernamePasswordUser} /
  *   {@link getPrimaryUsernamePasswordUser} — used at READ sites to match
  *   existing rows under EITHER value, so a tenant can have a mix of
@@ -33,16 +33,41 @@ import {
 const LEGACY_PROVIDER = "auth2";
 const TARGET_PROVIDER = "auth0";
 
+/**
+ * True when a connection's `strategy` field marks it as a native database
+ * (username/password) connection. Legacy tenants persist the provider
+ * literal ("auth2") in the strategy field instead of the canonical Auth0
+ * strategy name, and either provider literal must never leak into new
+ * user rows as the provider — write sites go through
+ * {@link resolveUsernamePasswordProvider} instead.
+ */
+export function isDatabaseConnectionStrategy(
+  strategy: string | undefined | null,
+): boolean {
+  return (
+    strategy === "Username-Password-Authentication" ||
+    strategy === LEGACY_PROVIDER ||
+    strategy === TARGET_PROVIDER
+  );
+}
+
 export type UsernamePasswordProviderValue =
   | typeof LEGACY_PROVIDER
   | typeof TARGET_PROVIDER;
+
+/**
+ * Both native database provider values, legacy first — for read sites
+ * that need to enumerate rather than predicate-match.
+ */
+export const USERNAME_PASSWORD_PROVIDERS: readonly UsernamePasswordProviderValue[] =
+  [LEGACY_PROVIDER, TARGET_PROVIDER];
 
 export async function resolveUsernamePasswordProvider(
   env: Bindings,
   tenant_id: string,
 ): Promise<UsernamePasswordProviderValue> {
   if (!env.usernamePasswordProvider) {
-    return LEGACY_PROVIDER;
+    return TARGET_PROVIDER;
   }
   return env.usernamePasswordProvider({ tenant_id });
 }

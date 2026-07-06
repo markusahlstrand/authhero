@@ -30,7 +30,6 @@ import { Bindings } from "../../src/types";
 import { MockEmailService } from "./mock-email-service";
 import { MockSmsService } from "./mock-sms-service";
 import { mockStrategy } from "./mock-strategy";
-import { USERNAME_PASSWORD_PROVIDER } from "../../src/constants";
 
 type getEnvParams = {
   testTenantLanguage?: string;
@@ -178,11 +177,13 @@ export async function getTestServer(
     },
   });
 
-  // Add the Username-Password-Authentication connection
+  // Add the Username-Password-Authentication connection. Legacy tenants
+  // persist the strategy as the "auth2" provider literal — keep that here
+  // so tests prove new users are still stamped with the "auth0" provider.
   await data.connections.create("tenantId", {
     id: "Username-Password-Authentication",
     name: "Username-Password-Authentication",
-    strategy: USERNAME_PASSWORD_PROVIDER,
+    strategy: "auth2",
     options: {},
   });
 

@@ -22,7 +22,11 @@ import {
   organizationSchema,
 } from "@authhero/adapter-interfaces";
 import { getProviderFromConnection } from "../../strategies";
-import { isUsernamePasswordProvider } from "../../utils/username-password-provider";
+import {
+  isDatabaseConnectionStrategy,
+  isUsernamePasswordProvider,
+  resolveUsernamePasswordProvider,
+} from "../../utils/username-password-provider";
 import { getIssuer } from "../../variables";
 import { withDefaultPicture } from "../../helpers/avatar";
 
@@ -59,7 +63,6 @@ const usersWithTotalsSchema = totalsSchema.extend({
 const sessionsWithTotalsSchema = totalsSchema.extend({
   sessions: z.array(sessionSchema),
 });
-
 
 const logsWithTotalsSchema = totalsSchema.extend({
   logs: z.array(logSchema),
@@ -363,10 +366,23 @@ const postRoot = defineRoute({
       connection,
     );
 
+    // Database (username/password) users get the tenant's configured
+    // username-password provider — never the connection's strategy field,
+    // which legacy tenants persist as the "auth2" provider literal, and
+    // never a caller-supplied "auth2". The lookup above is by connection
+    // id, so also classify by connection name / provider for tenants whose
+    // password connection has a generated id.
+    const isDatabaseUser = connectionRecord
+      ? isDatabaseConnectionStrategy(connectionRecord.strategy)
+      : connection === Strategy.USERNAME_PASSWORD ||
+        isUsernamePasswordProvider(providedProvider);
+
     // Derive provider from connection, or use provided provider for migration
-    const provider = connectionRecord
-      ? getProviderFromConnection(connectionRecord)
-      : providedProvider || connection;
+    const provider = isDatabaseUser
+      ? await resolveUsernamePasswordProvider(ctx.env, ctx.var.tenant_id)
+      : connectionRecord
+        ? getProviderFromConnection(connectionRecord)
+        : providedProvider || connection;
 
     // Parse user_id to avoid double-prefixing if client sends provider-prefixed id
     const rawUserId = body["user_id"];

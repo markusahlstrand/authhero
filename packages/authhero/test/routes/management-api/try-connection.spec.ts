@@ -50,7 +50,9 @@ describe("POST /api/v2/connections/:id/try", () => {
     expect(body.mode).toBe("inline");
     expect(body.status).toBe("success");
     expect(body.connection_name).toBe("Username-Password-Authentication");
-    expect(body.strategy).toBe(USERNAME_PASSWORD_PROVIDER);
+    // The fixture models a legacy tenant whose connection row persists the
+    // "auth2" provider literal in the strategy field.
+    expect(body.strategy).toBe("auth2");
     expect(body.userinfo?.email).toBe("testuser@example.com");
   });
 
