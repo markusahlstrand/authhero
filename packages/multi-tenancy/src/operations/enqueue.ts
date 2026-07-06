@@ -28,7 +28,18 @@ export async function createOperationRow(
   });
 
   const engine_instance_id = buildEngineInstanceId(created);
-  await stores.tenantOperations.update(created.id, { engine_instance_id });
+  try {
+    await stores.tenantOperations.update(created.id, { engine_instance_id });
+  } catch (error) {
+    // The row exists but couldn't be stamped — transition it to a terminal
+    // state so it isn't left permanently `pending` without an instance id.
+    try {
+      await createOperationRecorder(stores).markFailed(created.id, error);
+    } catch {
+      // The store is broken; rethrowing the stamp failure is all we can do.
+    }
+    throw error;
+  }
   return { ...created, engine_instance_id };
 }
 
@@ -51,12 +62,28 @@ export async function enqueueTenantOperation(
   try {
     await executor.start(operation);
   } catch (error) {
-    const current = await stores.tenantOperations.get(operation.id);
-    if (current && !isTerminalStatus(current.status)) {
-      await recorder.markFailed(operation.id, error);
+    // The start failure is the authoritative outcome — a broken lookup or
+    // write-back here must not mask it.
+    try {
+      const current = await stores.tenantOperations.get(operation.id);
+      if (current && !isTerminalStatus(current.status)) {
+        await recorder.markFailed(operation.id, error);
+      }
+    } catch (recordError) {
+      console.warn("Failed to record tenant operation failure:", recordError);
     }
     throw error;
   }
 
-  return (await stores.tenantOperations.get(operation.id)) ?? operation;
+  // The executor already ran — a failing re-fetch must not turn that into a
+  // thrown (and potentially retried, duplicating the start) enqueue.
+  try {
+    return (await stores.tenantOperations.get(operation.id)) ?? operation;
+  } catch (refetchError) {
+    console.warn(
+      "Failed to re-fetch tenant operation after start:",
+      refetchError,
+    );
+    return operation;
+  }
 }

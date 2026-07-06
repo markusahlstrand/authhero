@@ -47,6 +47,17 @@ describe("buildEngineInstanceId", () => {
     expect(id.length).toBeLessThanOrEqual(64);
     expect(id.endsWith("-op_abcdefghij123456789")).toBe(true);
   });
+
+  it("truncates an oversized kind while preserving the operation id suffix", () => {
+    const id = buildEngineInstanceId({
+      kind: "k".repeat(200),
+      tenant_id: "y".repeat(200),
+      id: "op_abcdefghij123456789",
+    });
+    expect(id.length).toBeLessThanOrEqual(64);
+    expect(id.endsWith("-op_abcdefghij123456789")).toBe(true);
+    expect(id).toMatch(/^op-/);
+  });
 });
 
 describe("inline executor + enqueue", () => {

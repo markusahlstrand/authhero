@@ -151,7 +151,18 @@ function collectSyncDefaultsErrors(result: unknown): string[] {
 const MAX_ERROR_LENGTH = 2048;
 
 function errorMessage(error: unknown): string {
-  const message = error instanceof Error ? error.message : String(error);
+  let message: string;
+  if (error instanceof Error) {
+    message = error.message;
+  } else {
+    try {
+      message = String(error);
+    } catch {
+      // String() throws for e.g. null-prototype objects; this helper runs in
+      // failure paths and must never mask the original error.
+      message = Object.prototype.toString.call(error);
+    }
+  }
   return message.slice(0, MAX_ERROR_LENGTH);
 }
 

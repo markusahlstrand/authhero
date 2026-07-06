@@ -1,4 +1,4 @@
-import { DataAdapters } from "authhero";
+import type { DataAdapters } from "authhero";
 import {
   EnqueueTenantOperationParams,
   StepReporter,
