@@ -77,6 +77,7 @@ export { createR2SQLStatsAdapter } from "./r2-sql-logs";
 // per-tenant D1 + namespaced worker on every tenant create.
 export {
   createCloudflareWfpD1Provisioner,
+  createWfpProvisionerSteps,
   createWfpTenantProvisioningHook,
   createWfpForwardMiddleware,
   CloudflareApiClient,
@@ -85,6 +86,9 @@ export {
 export type {
   CloudflareWfpD1Provisioner,
   CloudflareWfpD1ProvisionerOptions,
+  TenantProvisionerSteps,
+  TenantProvisionNames,
+  WfpProvisionerSteps,
   ProvisionResult,
   ProvisionerMigration,
   TenantSecretsResolver,
