@@ -8,6 +8,7 @@ import {
 } from "authhero";
 import { createSyncHooks, EntitySyncConfig } from "./hooks/sync";
 import { createProvisioningHooks } from "./hooks";
+import { createInlineExecutor, enqueueTenantOperation } from "./operations";
 import { createTenantsOpenAPIRouter } from "./routes";
 import {
   createProtectSyncedMiddleware,
@@ -253,6 +254,48 @@ export function initMultiTenant(config: MultiTenantConfig): MultiTenantResult {
     };
   }
 
+  // Wire a default inline executor for tenant operations (issue #1026)
+  // when the control plane carries the operations adapters and an upgrade
+  // handler is configured. Downstream deployments can pass their own
+  // `tenantOperationExecutor` (e.g. Cloudflare Workflows) to override.
+  let tenantOperationExecutor = restConfig.tenantOperationExecutor;
+  if (
+    !tenantOperationExecutor &&
+    rawDataAdapter.tenantOperations &&
+    rawDataAdapter.tenantOperationEvents &&
+    restConfig.tenantUpgrade
+  ) {
+    const stores = {
+      tenantOperations: rawDataAdapter.tenantOperations,
+      tenantOperationEvents: rawDataAdapter.tenantOperationEvents,
+    };
+    const tenantUpgrade = restConfig.tenantUpgrade;
+    const inlineExecutor = createInlineExecutor({
+      stores,
+      definitions: {
+        upgrade: (operation) => [
+          {
+            name: "upgrade",
+            async run() {
+              if (!operation.tenant_id) {
+                throw new Error("upgrade operations require a tenant_id");
+              }
+              await tenantUpgrade(operation.tenant_id);
+            },
+          },
+        ],
+      },
+    });
+    tenantOperationExecutor = {
+      engine: inlineExecutor.engine,
+      enqueue: (params) =>
+        enqueueTenantOperation(stores, inlineExecutor, {
+          ...params,
+          tenant_id: params.tenant_id,
+        }),
+    };
+  }
+
   // Determine sync settings
   const syncEnabled = sync !== false;
   const syncConfig = syncEnabled
@@ -358,6 +401,7 @@ export function initMultiTenant(config: MultiTenantConfig): MultiTenantResult {
     dataAdapter,
     managementDataAdapter,
     ...restConfig,
+    tenantOperationExecutor,
     entityHooks,
     managementApiExtensions: [
       ...managementApiExtensions,

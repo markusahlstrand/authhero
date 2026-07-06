@@ -48,6 +48,10 @@ export function applyConfigMiddleware(
       ctx.env.tenantUpgrade = config.tenantUpgrade;
     }
 
+    if (config.tenantOperationExecutor) {
+      ctx.env.tenantOperationExecutor = config.tenantOperationExecutor;
+    }
+
     if (config.outbox) {
       ctx.env.outbox = config.outbox;
     }

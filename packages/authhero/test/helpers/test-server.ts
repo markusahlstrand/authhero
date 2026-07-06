@@ -73,6 +73,9 @@ type getEnvParams = {
   // Optional handler driving POST /tenants/{id}/redeploy (the
   // `config.tenantUpgrade` integration point).
   tenantUpgrade?: (tenantId: string) => Promise<void>;
+  // Optional executor driving POST /tenants/{id}/operations (the
+  // `config.tenantOperationExecutor` integration point, issue #1026).
+  tenantOperationExecutor?: import("../../src/types").TenantOperationExecutorBinding;
   // Optional static CORS allow-list passed through to `init`.
   allowedOrigins?: string[];
 };
@@ -283,6 +286,9 @@ export async function getTestServer(
     ...(args.codeExecutor ? { codeExecutor: args.codeExecutor } : {}),
     ...(args.tenantDispatch ? { tenantDispatch: args.tenantDispatch } : {}),
     ...(args.tenantUpgrade ? { tenantUpgrade: args.tenantUpgrade } : {}),
+    ...(args.tenantOperationExecutor
+      ? { tenantOperationExecutor: args.tenantOperationExecutor }
+      : {}),
     ...(args.allowedOrigins ? { allowedOrigins: args.allowedOrigins } : {}),
   });
   return {

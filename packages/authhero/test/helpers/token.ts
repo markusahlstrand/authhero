@@ -135,6 +135,8 @@ const ADMIN_PERMISSIONS = [
   "read:sessions",
   "read:signing_keys",
   "read:stats",
+  "read:tenant_operations",
+  "create:tenant_operations",
   "read:tenants",
   "read:users",
   "update:actions",

@@ -15,10 +15,7 @@ import {
   createCloudflareWfpD1Provisioner,
   createWfpTenantProvisioningHook,
 } from "../src";
-import type {
-  CloudflareWfpD1Provisioner,
-  ProvisionResult,
-} from "../src";
+import type { CloudflareWfpD1Provisioner, ProvisionResult } from "../src";
 import type { Tenant, TenantsDataAdapter } from "@authhero/adapter-interfaces";
 
 const ACCOUNT_ID = "acc_test";
@@ -71,17 +68,20 @@ async function captureBody(req: Request): Promise<unknown> {
 describe("CloudflareApiClient", () => {
   it("createD1Database POSTs the name and returns the uuid", async () => {
     server.use(
-      http.post(path(`/accounts/${ACCOUNT_ID}/d1/database`), async ({ request }) => {
-        captured.push({
-          method: "POST",
-          path: "/d1/database",
-          body: await captureBody(request),
-        });
-        return HttpResponse.json({
-          result: { uuid: "db_uuid_1", name: "tenant-kvartal" },
-          success: true,
-        });
-      }),
+      http.post(
+        path(`/accounts/${ACCOUNT_ID}/d1/database`),
+        async ({ request }) => {
+          captured.push({
+            method: "POST",
+            path: "/d1/database",
+            body: await captureBody(request),
+          });
+          return HttpResponse.json({
+            result: { uuid: "db_uuid_1", name: "tenant-kvartal" },
+            success: true,
+          });
+        },
+      ),
     );
     const client = new CloudflareApiClient({
       accountId: ACCOUNT_ID,
@@ -227,7 +227,10 @@ describe("CloudflareApiClient", () => {
     server.use(
       http.post(path(`/accounts/${ACCOUNT_ID}/d1/database`), () =>
         HttpResponse.json(
-          { errors: [{ code: 7501, message: "Name already taken" }], success: false },
+          {
+            errors: [{ code: 7501, message: "Name already taken" }],
+            success: false,
+          },
           { status: 400 },
         ),
       ),
@@ -258,17 +261,20 @@ describe("createCloudflareWfpD1Provisioner", () => {
       http.get(path(`/accounts/${ACCOUNT_ID}/d1/database`), () =>
         HttpResponse.json({ result: [], success: true }),
       ),
-      http.post(path(`/accounts/${ACCOUNT_ID}/d1/database`), async ({ request }) => {
-        captured.push({
-          method: "POST",
-          path: "/d1/database",
-          body: await captureBody(request),
-        });
-        return HttpResponse.json({
-          result: { uuid: "db_kvartal", name: "tenant-kvartal" },
-          success: true,
-        });
-      }),
+      http.post(
+        path(`/accounts/${ACCOUNT_ID}/d1/database`),
+        async ({ request }) => {
+          captured.push({
+            method: "POST",
+            path: "/d1/database",
+            body: await captureBody(request),
+          });
+          return HttpResponse.json({
+            result: { uuid: "db_kvartal", name: "tenant-kvartal" },
+            success: true,
+          });
+        },
+      ),
       http.post(
         path(`/accounts/${ACCOUNT_ID}/d1/database/db_kvartal/query`),
         async ({ request }) => {
@@ -319,7 +325,8 @@ describe("createCloudflareWfpD1Provisioner", () => {
       apiToken: "token",
       dispatchNamespace: NAMESPACE,
       controlPlaneBaseUrl: "https://auth.example.com",
-      tenantWorkerScript: "export default { fetch() { return new Response('hi'); } };",
+      tenantWorkerScript:
+        "export default { fetch() { return new Response('hi'); } };",
       migrations: [
         { name: "0000_init.sql", sql: "CREATE TABLE users (id TEXT);" },
         { name: "0001_add_keys.sql", sql: "CREATE TABLE keys (kid TEXT);" },
@@ -357,7 +364,9 @@ describe("createCloudflareWfpD1Provisioner", () => {
     const metadata = JSON.parse(
       (upload!.body as Record<string, string>)["metadata"],
     );
-    const dbBinding = metadata.bindings.find((b: { name: string }) => b.name === "AUTH_DB");
+    const dbBinding = metadata.bindings.find(
+      (b: { name: string }) => b.name === "AUTH_DB",
+    );
     const cpBinding = metadata.bindings.find(
       (b: { name: string }) => b.name === "CONTROL_PLANE_BASE_URL",
     );
@@ -389,7 +398,11 @@ describe("createCloudflareWfpD1Provisioner", () => {
       migrations: [{ name: "0.sql", sql: "SELECT 1;" }],
       secrets: async () => ({ X: "y" }),
       extraBindings: [
-        { type: "service", name: "JWKS_SERVICE", service: "control-plane-auth" },
+        {
+          type: "service",
+          name: "JWKS_SERVICE",
+          service: "control-plane-auth",
+        },
         { type: "plain_text", name: "REGION", text: "eu" },
       ],
     });
@@ -409,7 +422,9 @@ describe("createCloudflareWfpD1Provisioner", () => {
       "REGION",
     ]);
     expect(
-      metadata.bindings.find((b: { name: string }) => b.name === "JWKS_SERVICE"),
+      metadata.bindings.find(
+        (b: { name: string }) => b.name === "JWKS_SERVICE",
+      ),
     ).toEqual({
       type: "service",
       name: "JWKS_SERVICE",
@@ -440,7 +455,10 @@ describe("createCloudflareWfpD1Provisioner", () => {
             path: "/d1/exec",
             body: await captureBody(request),
           });
-          return HttpResponse.json({ result: [{ success: true }], success: true });
+          return HttpResponse.json({
+            result: [{ success: true }],
+            success: true,
+          });
         },
       ),
       http.put(
@@ -448,7 +466,11 @@ describe("createCloudflareWfpD1Provisioner", () => {
           `/accounts/${ACCOUNT_ID}/workers/dispatch/namespaces/${NAMESPACE}/scripts/kvartal`,
         ),
         async () => {
-          captured.push({ method: "PUT", path: "/scripts/kvartal", body: null });
+          captured.push({
+            method: "PUT",
+            path: "/scripts/kvartal",
+            body: null,
+          });
           return HttpResponse.json({ result: {}, success: true });
         },
       ),
@@ -494,7 +516,11 @@ describe("createCloudflareWfpD1Provisioner", () => {
           `/accounts/${ACCOUNT_ID}/workers/dispatch/namespaces/${NAMESPACE}/scripts/kvartal`,
         ),
         () => {
-          captured.push({ method: "DELETE", path: "/scripts/kvartal", body: null });
+          captured.push({
+            method: "DELETE",
+            path: "/scripts/kvartal",
+            body: null,
+          });
           return HttpResponse.json({ result: null, success: true });
         },
       ),
@@ -507,7 +533,11 @@ describe("createCloudflareWfpD1Provisioner", () => {
       http.delete(
         path(`/accounts/${ACCOUNT_ID}/d1/database/db_kvartal`),
         () => {
-          captured.push({ method: "DELETE", path: "/d1/database/db_kvartal", body: null });
+          captured.push({
+            method: "DELETE",
+            path: "/d1/database/db_kvartal",
+            body: null,
+          });
           return HttpResponse.json({ result: null, success: true });
         },
       ),
@@ -578,14 +608,17 @@ describe("createCloudflareWfpD1Provisioner", () => {
           success: true,
         }),
       ),
-      http.delete(path(`/accounts/${ACCOUNT_ID}/d1/database/db_kvartal`), () => {
-        captured.push({
-          method: "DELETE",
-          path: "/d1/database/db_kvartal",
-          body: null,
-        });
-        return HttpResponse.json({ result: null, success: true });
-      }),
+      http.delete(
+        path(`/accounts/${ACCOUNT_ID}/d1/database/db_kvartal`),
+        () => {
+          captured.push({
+            method: "DELETE",
+            path: "/d1/database/db_kvartal",
+            body: null,
+          });
+          return HttpResponse.json({ result: null, success: true });
+        },
+      ),
     );
     const provisioner = createCloudflareWfpD1Provisioner({
       accountId: ACCOUNT_ID,
@@ -625,16 +658,19 @@ describe("createCloudflareWfpD1Provisioner", () => {
           });
         },
       ),
-      http.post(
-        path(`/accounts/${ACCOUNT_ID}/d1/database/db_x/query`),
-        () => HttpResponse.json({ result: [{ success: true }], success: true }),
+      http.post(path(`/accounts/${ACCOUNT_ID}/d1/database/db_x/query`), () =>
+        HttpResponse.json({ result: [{ success: true }], success: true }),
       ),
       http.put(
         path(
           `/accounts/${ACCOUNT_ID}/workers/dispatch/namespaces/${NAMESPACE}/scripts/tenant-kvartal-auth`,
         ),
         () => {
-          captured.push({ method: "PUT", path: "/scripts/tenant-kvartal-auth", body: null });
+          captured.push({
+            method: "PUT",
+            path: "/scripts/tenant-kvartal-auth",
+            body: null,
+          });
           return HttpResponse.json({ result: {}, success: true });
         },
       ),
@@ -660,7 +696,9 @@ describe("createCloudflareWfpD1Provisioner", () => {
     expect((captured[0].body as { name: string }).name).toBe(
       "authhero-tenant-kvartal",
     );
-    expect(captured.find((c) => c.path === "/scripts/tenant-kvartal-auth")).toBeDefined();
+    expect(
+      captured.find((c) => c.path === "/scripts/tenant-kvartal-auth"),
+    ).toBeDefined();
   });
 
   it("onProvision returns the resource ids the caller needs to persist", async () => {
@@ -832,7 +870,9 @@ describe("createWfpTenantProvisioningHook", () => {
     const syncDefaults = vi.fn(async (id: string) => {
       // At seed time the resources exist but the tenant isn't ready yet.
       order.push(`sync:${id}`);
-      expect(tenants.store.get("kvartal")?.provisioning_state).not.toBe("ready");
+      expect(tenants.store.get("kvartal")?.provisioning_state).not.toBe(
+        "ready",
+      );
     });
     const hook = createWfpTenantProvisioningHook({
       provisioner,
@@ -973,7 +1013,9 @@ describe("createWfpTenantProvisioningHook", () => {
       tenants,
       logger: { warn },
     });
-    await expect(hook.onProvision("kvartal")).rejects.toThrow(/upstream failed/);
+    await expect(hook.onProvision("kvartal")).rejects.toThrow(
+      /upstream failed/,
+    );
     expect(warn).toHaveBeenCalledOnce();
     expect(warn.mock.calls[0][0]).toMatch(/Failed to write provisioning_state/);
   });
@@ -1084,5 +1126,167 @@ describe("createWfpTenantProvisioningHook", () => {
       /not a WFP-provisioned tenant/,
     );
     expect(provisioner.onProvisionCalls).toEqual([]);
+  });
+});
+
+// ─── provisioning step reporter (issue #1026) ───────────────────────────
+
+describe("createWfpTenantProvisioningHook step reporter", () => {
+  function reporterFakes(withSeed: boolean) {
+    const provisioner: CloudflareWfpD1Provisioner & {
+      nextProvisionError?: Error;
+    } = {
+      nextProvisionError: undefined,
+      async onProvision(): Promise<ProvisionResult> {
+        if (provisioner.nextProvisionError)
+          throw provisioner.nextProvisionError;
+        return {
+          d1DatabaseId: "db_x",
+          scriptName: "kvartal",
+          d1Name: "tenant-kvartal",
+        };
+      },
+      async onDeprovision(): Promise<void> {},
+    };
+    const store = new Map<string, Partial<Tenant>>([
+      ["kvartal", { id: "kvartal", deployment_type: "wfp" }],
+    ]);
+    const tenants: TenantsDataAdapter = {
+      async create(): Promise<Tenant> {
+        throw new Error("not used");
+      },
+      async get(id: string): Promise<Tenant | null> {
+        return (store.get(id) as Tenant | undefined) ?? null;
+      },
+      async list() {
+        return { tenants: Array.from(store.values()) as Tenant[] };
+      },
+      async update(id: string, patch: Partial<Tenant>): Promise<void> {
+        const cur = store.get(id);
+        if (cur) store.set(id, { ...cur, ...patch });
+      },
+      async remove(id: string): Promise<boolean> {
+        return store.delete(id);
+      },
+    };
+    const syncDefaults = withSeed ? async () => ({}) : undefined;
+    return { provisioner, tenants, store, syncDefaults };
+  }
+
+  it("reports provision-resources and seed-defaults boundaries", async () => {
+    const { provisioner, tenants, syncDefaults } = reporterFakes(true);
+    const hook = createWfpTenantProvisioningHook({
+      provisioner,
+      tenants,
+      syncDefaults,
+    });
+
+    const reported: string[] = [];
+    await hook.onProvision("kvartal", async (step, outcome, detail) => {
+      reported.push(`${step}:${outcome}`);
+      if (step === "provision-resources" && outcome === "succeeded") {
+        expect(detail).toMatchObject({ d1_database_id: "db_x" });
+      }
+    });
+
+    expect(reported).toEqual([
+      "provision-resources:started",
+      "provision-resources:succeeded",
+      "seed-defaults:started",
+      "seed-defaults:succeeded",
+    ]);
+  });
+
+  it("reports a failed provision step and still marks the tenant failed", async () => {
+    const { provisioner, tenants, store } = reporterFakes(false);
+    provisioner.nextProvisionError = new Error("cf exploded");
+    const hook = createWfpTenantProvisioningHook({ provisioner, tenants });
+
+    const reported: string[] = [];
+    await expect(
+      hook.onProvision("kvartal", async (step, outcome) => {
+        reported.push(`${step}:${outcome}`);
+      }),
+    ).rejects.toThrow("cf exploded");
+
+    expect(reported).toEqual([
+      "provision-resources:started",
+      "provision-resources:failed",
+    ]);
+    expect(store.get("kvartal")).toMatchObject({
+      provisioning_state: "failed",
+    });
+  });
+
+  it("reports the same step boundaries during an upgrade", async () => {
+    const { provisioner, tenants, store, syncDefaults } = reporterFakes(true);
+    const hook = createWfpTenantProvisioningHook({
+      provisioner,
+      tenants,
+      syncDefaults,
+    });
+
+    const reported: string[] = [];
+    await hook.onUpgrade("kvartal", async (step, outcome) => {
+      reported.push(`${step}:${outcome}`);
+    });
+
+    expect(reported).toEqual([
+      "provision-resources:started",
+      "provision-resources:succeeded",
+      "seed-defaults:started",
+      "seed-defaults:succeeded",
+    ]);
+    expect(store.get("kvartal")).toMatchObject({
+      provisioning_state: "ready",
+    });
+  });
+
+  it("reports seed-defaults as failed when the seed collects errors", async () => {
+    const { provisioner, tenants, store } = reporterFakes(false);
+    const hook = createWfpTenantProvisioningHook({
+      provisioner,
+      tenants,
+      // Resolves cleanly but carries per-entity errors (continueOnError).
+      syncDefaults: async () => ({
+        connections: { errors: ["insert failed"] },
+      }),
+    });
+
+    const reported: string[] = [];
+    await expect(
+      hook.onProvision("kvartal", async (step, outcome) => {
+        reported.push(`${step}:${outcome}`);
+      }),
+    ).rejects.toThrow(/sync-defaults seed reported 1 error/);
+
+    expect(reported).toEqual([
+      "provision-resources:started",
+      "provision-resources:succeeded",
+      "seed-defaults:started",
+      "seed-defaults:failed",
+    ]);
+    expect(store.get("kvartal")).toMatchObject({
+      provisioning_state: "failed",
+      // Resource ids survive the failure so a re-provision can find them.
+      d1_database_id: "db_x",
+    });
+  });
+
+  it("never lets a throwing reporter fail the provision", async () => {
+    const { provisioner, tenants, store, syncDefaults } = reporterFakes(true);
+    const hook = createWfpTenantProvisioningHook({
+      provisioner,
+      tenants,
+      syncDefaults,
+    });
+
+    await hook.onProvision("kvartal", async () => {
+      throw new Error("reporter down");
+    });
+
+    expect(store.get("kvartal")).toMatchObject({
+      provisioning_state: "ready",
+    });
   });
 });
