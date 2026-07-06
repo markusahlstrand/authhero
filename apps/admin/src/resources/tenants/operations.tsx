@@ -31,7 +31,6 @@ import type {
   TenantOperationRecord,
   TenantOperationEventRecord,
 } from "@/auth0DataProvider";
-import { getBasePath } from "@/utils/runtimeConfig";
 
 const STATUS_VARIANT: Record<
   TenantOperationRecord["status"],
@@ -239,7 +238,7 @@ export function TenantOperations() {
     <div className="flex flex-col gap-4 p-4">
       <div>
         <Button asChild variant="ghost" size="sm">
-          <Link to={getBasePath()}>
+          <Link to="/tenants">
             <ArrowLeft className="h-4 w-4 mr-1" />
             Back to tenants
           </Link>
@@ -324,7 +323,16 @@ export function TenantOperations() {
                   <Fragment key={operation.id}>
                     <TableRow
                       className="cursor-pointer"
+                      role="button"
+                      tabIndex={0}
+                      aria-expanded={expandedId === operation.id}
                       onClick={() => toggleExpanded(operation.id)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          toggleExpanded(operation.id);
+                        }
+                      }}
                     >
                       <TableCell>
                         {expandedId === operation.id ? (
