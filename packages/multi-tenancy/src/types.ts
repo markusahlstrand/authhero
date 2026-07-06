@@ -142,6 +142,17 @@ export interface DatabaseIsolationConfig {
   onProvision?: (tenantId: string, report?: StepReporter) => Promise<void>;
 
   /**
+   * Whether `afterCreate` wraps `onProvision` in
+   * `runRecordedTenantOperation` (default true). Set to `false` when the
+   * hook manages its own operation rows — e.g.
+   * `createWfpWorkflowProvisioningHook`, whose durable workflow creates
+   * and finalizes the operation itself; the wrapper would otherwise write
+   * a second, immediately-"succeeded" row for a run that is still in
+   * flight on the engine.
+   */
+  recordProvisionOperations?: boolean;
+
+  /**
    * Called when a tenant is being deleted to cleanup its database.
    * Use this to delete the database, backup data, etc.
    *
