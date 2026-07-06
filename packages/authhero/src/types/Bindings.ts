@@ -5,6 +5,7 @@ import {
   EntityHooksConfig,
   OutboxConfig,
   SigningKeyModeOption,
+  TenantOperationExecutorBinding,
   UserLinkingModeOption,
   UsernamePasswordProviderResolver,
   WebhookInvoker,
@@ -72,6 +73,11 @@ export type Bindings = {
   // bundle + migrations. Set via init({ tenantUpgrade: hook.onUpgrade }).
   // Drives POST /api/v2/tenants/{id}/redeploy.
   tenantUpgrade?: (tenantId: string) => Promise<void>;
+
+  // Optional executor for durable tenant lifecycle operations (issue #1026).
+  // Set via init({ tenantOperationExecutor }). Drives
+  // POST /api/v2/tenants/{id}/operations.
+  tenantOperationExecutor?: TenantOperationExecutorBinding;
 
   // Optional transactional outbox configuration
   // Set via init({ outbox: { enabled: true } })

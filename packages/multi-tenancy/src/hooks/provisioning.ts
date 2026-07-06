@@ -18,6 +18,7 @@ import {
   TenantEntityHooks,
   TenantHookContext,
 } from "../types";
+import { runRecordedTenantOperation } from "../operations";
 
 /**
  * Creates hooks for tenant provisioning and deprovisioning.
@@ -58,9 +59,21 @@ export function createProvisioningHooks(
         await createOrganizationForTenant(ctx, tenant, accessControl);
       }
 
-      // 2. Provision database if isolation is enabled
+      // 2. Provision database if isolation is enabled. When the control
+      // plane carries the tenant-operations adapters (issue #1026), the
+      // provision run is recorded as an operation with step events;
+      // otherwise it runs exactly as before.
       if (databaseIsolation?.onProvision) {
-        await databaseIsolation.onProvision(tenant.id);
+        const onProvision = databaseIsolation.onProvision;
+        await runRecordedTenantOperation(
+          ctx.adapters,
+          {
+            kind: "provision",
+            tenant_id: tenant.id,
+            initiated_by: ctx.ctx?.var.user?.sub,
+          },
+          (report) => onProvision(tenant.id, report),
+        );
       }
     },
 

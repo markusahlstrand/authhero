@@ -62,6 +62,7 @@ import { guardianRoutes } from "./guardian";
 import { authenticationMethodsRoutes } from "./authentication-methods";
 import { ticketsRoutes } from "./tickets";
 import { proxyRoutesRoutes } from "./proxy-routes";
+import { operationRoutes, tenantOperationsRoutes } from "./tenant-operations";
 import { tenantExportImportRoutes } from "./tenant-export-import";
 import { DataAdapters } from "@authhero/adapter-interfaces";
 import { outboxMiddleware } from "../../middlewares/outbox";
@@ -594,6 +595,17 @@ export default function create(config: AuthHeroConfig) {
   // adapter is optional on DataAdapters; without it the routes return 501.
   if (!extensionPaths.has("/proxy-routes") && managementAdapter.proxyRoutes) {
     managementApp.route("/proxy-routes", proxyRoutesRoutes);
+  }
+
+  // Durable tenant lifecycle operations (issue #1026). Mounted only when
+  // the control-plane operations adapters are wired — tenant workers and
+  // non-control-plane deployments never expose these routes.
+  if (
+    managementAdapter.tenantOperations &&
+    managementAdapter.tenantOperationEvents
+  ) {
+    managementApp.route("/operations", operationRoutes);
+    managementApp.route("/tenants/:id/operations", tenantOperationsRoutes);
   }
 
   // Mount any additional route extensions from config

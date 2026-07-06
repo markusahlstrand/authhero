@@ -80,8 +80,24 @@ export interface WfpTenantProvisioningHookOptions {
   syncDefaults?: (tenantId: string) => Promise<unknown>;
 }
 
+/**
+ * Structural mirror of `@authhero/multi-tenancy`'s `StepReporter` — kept
+ * local so this module carries no multi-tenancy dependency. When the
+ * control plane records provisions as tenant operations (issue #1026),
+ * the hook receives this callback and surfaces coarse step boundaries
+ * (`provision-resources`, `seed-defaults`) in the operation history.
+ */
+export type WfpProvisioningStepReporter = (
+  step: string,
+  outcome: "started" | "succeeded" | "failed",
+  detail?: Record<string, unknown>,
+) => Promise<void>;
+
 export interface WfpTenantProvisioningHook {
-  onProvision(tenantId: string): Promise<void>;
+  onProvision(
+    tenantId: string,
+    report?: WfpProvisioningStepReporter,
+  ): Promise<void>;
   onDeprovision(tenantId: string): Promise<void>;
   /**
    * Re-run provisioning for an already-existing WFP tenant to pull it onto the
@@ -95,12 +111,13 @@ export interface WfpTenantProvisioningHook {
    * Throws if the tenant doesn't exist or isn't WFP-provisioned — callers
    * (e.g. a management-API redeploy endpoint) surface that as a 4xx.
    */
-  onUpgrade(tenantId: string): Promise<void>;
+  onUpgrade(
+    tenantId: string,
+    report?: WfpProvisioningStepReporter,
+  ): Promise<void>;
 }
 
-function defaultShouldProvision(tenant: {
-  deployment_type?: string;
-}): boolean {
+function defaultShouldProvision(tenant: { deployment_type?: string }): boolean {
   return tenant.deployment_type === "wfp";
 }
 
@@ -129,6 +146,15 @@ function collectSyncDefaultsErrors(result: unknown): string[] {
   return errors;
 }
 
+// Cap persisted error text (tenant rows and reported step details) so a
+// verbose upstream failure can't bloat control-plane records.
+const MAX_ERROR_LENGTH = 2048;
+
+function errorMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.slice(0, MAX_ERROR_LENGTH);
+}
+
 export function createWfpTenantProvisioningHook(
   options: WfpTenantProvisioningHookOptions,
 ): WfpTenantProvisioningHook {
@@ -137,11 +163,10 @@ export function createWfpTenantProvisioningHook(
   const logger = options.logger;
 
   async function markFailed(tenantId: string, error: unknown): Promise<void> {
-    const message = error instanceof Error ? error.message : String(error);
     try {
       await tenants.update(tenantId, {
         provisioning_state: "failed",
-        provisioning_error: message.slice(0, 2048),
+        provisioning_error: errorMessage(error),
         provisioning_state_changed_at: new Date().toISOString(),
       });
     } catch (writeErr) {
@@ -161,13 +186,38 @@ export function createWfpTenantProvisioningHook(
    * Failure at any step marks the tenant `failed` (persisting resource ids when
    * we have them) and re-throws.
    */
-  async function provisionAndPersist(tenantId: string): Promise<void> {
+  async function provisionAndPersist(
+    tenantId: string,
+    report?: WfpProvisioningStepReporter,
+  ): Promise<void> {
+    // Reporting is observability only — a throwing reporter must never
+    // fail (or retry) an otherwise healthy provision.
+    const reportStep: WfpProvisioningStepReporter = async (
+      step,
+      outcome,
+      detail,
+    ) => {
+      if (!report) return;
+      try {
+        await report(step, outcome, detail);
+      } catch (reportErr) {
+        logger?.warn(
+          `Failed to report provisioning step "${step}" for tenant ${tenantId}:`,
+          reportErr,
+        );
+      }
+    };
+
+    await reportStep("provision-resources", "started");
     let result;
     try {
       result = await provisioner.onProvision(tenantId);
     } catch (err) {
       // No resources (or only partial) — nothing to persist beyond the
       // failure marker.
+      await reportStep("provision-resources", "failed", {
+        message: errorMessage(err),
+      });
       await markFailed(tenantId, err);
       throw err;
     }
@@ -181,6 +231,7 @@ export function createWfpTenantProvisioningHook(
       worker_version: result.workerVersion,
       database_version: result.databaseVersion,
     };
+    await reportStep("provision-resources", "succeeded", { ...resourceIds });
 
     try {
       // Seed BEFORE marking ready so we never report "ready" over an empty
@@ -188,12 +239,21 @@ export function createWfpTenantProvisioningHook(
       // `continueOnError`, so a resolved result can still carry per-entity
       // errors — treat those as a provisioning failure too.
       if (syncDefaults) {
-        const seedResult = await syncDefaults(tenantId);
-        const seedErrors = collectSyncDefaultsErrors(seedResult);
-        if (seedErrors.length > 0) {
-          throw new Error(
-            `sync-defaults seed reported ${seedErrors.length} error(s): ${seedErrors.join("; ")}`,
-          );
+        await reportStep("seed-defaults", "started");
+        try {
+          const seedResult = await syncDefaults(tenantId);
+          const seedErrors = collectSyncDefaultsErrors(seedResult);
+          if (seedErrors.length > 0) {
+            throw new Error(
+              `sync-defaults seed reported ${seedErrors.length} error(s): ${seedErrors.join("; ")}`,
+            );
+          }
+          await reportStep("seed-defaults", "succeeded");
+        } catch (seedErr) {
+          await reportStep("seed-defaults", "failed", {
+            message: errorMessage(seedErr),
+          });
+          throw seedErr;
         }
       }
 
@@ -204,12 +264,11 @@ export function createWfpTenantProvisioningHook(
         provisioning_state_changed_at: new Date().toISOString(),
       });
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
       try {
         await tenants.update(tenantId, {
           ...resourceIds,
           provisioning_state: "failed",
-          provisioning_error: message.slice(0, 2048),
+          provisioning_error: errorMessage(err),
           provisioning_state_changed_at: new Date().toISOString(),
         });
       } catch (writeErr) {
@@ -223,15 +282,21 @@ export function createWfpTenantProvisioningHook(
   }
 
   return {
-    async onProvision(tenantId: string): Promise<void> {
+    async onProvision(
+      tenantId: string,
+      report?: WfpProvisioningStepReporter,
+    ): Promise<void> {
       const tenant = await tenants.get(tenantId);
       if (!tenant) return; // No tenant row — probably mid-rollback. Nothing to do.
       if (!shouldProvision(tenant)) return; // Shared deployment, skip.
 
-      await provisionAndPersist(tenantId);
+      await provisionAndPersist(tenantId, report);
     },
 
-    async onUpgrade(tenantId: string): Promise<void> {
+    async onUpgrade(
+      tenantId: string,
+      report?: WfpProvisioningStepReporter,
+    ): Promise<void> {
       const tenant = await tenants.get(tenantId);
       if (!tenant) {
         throw new Error(`Cannot upgrade tenant "${tenantId}": not found.`);
@@ -262,7 +327,7 @@ export function createWfpTenantProvisioningHook(
         );
       }
 
-      await provisionAndPersist(tenantId);
+      await provisionAndPersist(tenantId, report);
     },
 
     async onDeprovision(tenantId: string): Promise<void> {

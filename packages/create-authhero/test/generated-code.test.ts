@@ -139,11 +139,13 @@ async function scanDts(
   result: PackageExports,
   visited: Set<string>,
 ): Promise<void> {
-  const resolved = fs.existsSync(filePath)
-    ? filePath
-    : [`${filePath}.d.ts`, path.join(filePath, "index.d.ts")].find((p) =>
-        fs.existsSync(p),
-      );
+  // A bare specifier like "./operations" may exist as a directory; only a
+  // regular file can be read, so fall through to .d.ts / index.d.ts variants.
+  const resolved = [
+    filePath,
+    `${filePath}.d.ts`,
+    path.join(filePath, "index.d.ts"),
+  ].find((p) => fs.existsSync(p) && fs.statSync(p).isFile());
   if (!resolved || visited.has(resolved)) return;
   visited.add(resolved);
 
