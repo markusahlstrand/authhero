@@ -1,5 +1,31 @@
 # @authhero/multi-tenancy
 
+## 14.26.0
+
+### Minor Changes
+
+- 88f2bf7: Record tenant lifecycle operations and expose them via the management API (issue #1026, phase 1).
+
+  - `@authhero/multi-tenancy` gains an operations module: `runRecordedTenantOperation` wraps `databaseIsolation.onProvision` so every provision writes a `tenant_operations` row with step events (no behavior change — recording is skipped when the adapters are absent and is warn-only on write failure), plus `createInlineExecutor` / `enqueueTenantOperation` implementing the row-first executor contract the Cloudflare Workflows engine plugs into next. `initMultiTenant` wires a default inline executor for `upgrade` operations when `tenantUpgrade` is configured.
+  - `authhero` mounts `GET /api/v2/operations/{id}`, `GET/POST /api/v2/tenants/{id}/operations` (new scopes `read:tenant_operations`, `create:tenant_operations`) when the control-plane operations adapters are present, with a new `tenantOperationExecutor` config binding.
+  - `@authhero/cloudflare-adapter`'s WFP provisioning hook accepts an optional step reporter and surfaces `provision-resources` / `seed-defaults` boundaries; reporting can never fail a provision.
+
+### Patch Changes
+
+- d8dac78: Add the `@authhero/cloudflare-adapter/workflows` subpath (issue #1026 phase 2): durable provision-as-workflow for WFP tenants on Cloudflare Workflows.
+
+  - `runProvisionOperation` runs the provisioner steps (via the provider-agnostic `TenantProvisionerSteps` contract) as one durable engine step each — with the defaults seed as a retried step _before_ `ready` and a `verify` step that throws until the tenant D1 actually holds signing keys and its tenant row. "Ready over an empty D1" is no longer possible.
+  - `createCloudflareWorkflowsExecutor` implements the row-first `TenantOperationExecutor` contract over a structural Workflows binding (no `cloudflare:workers` import in the library; the downstream worker owns the ~10-line `WorkflowEntrypoint` shell — see `entrypoint.example.ts`).
+  - `reconcileTenantOperations` sweeps operations stuck in `pending`/`running` whose engine instance died before its terminal write, copying terminal engine states into the control-plane log (run from a `scheduled` handler, at least daily).
+  - `createWfpWorkflowProvisioningHook` replaces inline provisioning with a durable enqueue on tenant create; upgrade/deprovision keep delegating to the inline hook. Wire with `databaseIsolation.recordProvisionOperations: false` (new `@authhero/multi-tenancy` flag) since the workflow owns the operation row.
+
+- Updated dependencies [6258d34]
+- Updated dependencies [5b50504]
+- Updated dependencies [88f2bf7]
+- Updated dependencies [7023dd5]
+  - authhero@8.15.0
+  - @authhero/adapter-interfaces@3.6.0
+
 ## 14.25.1
 
 ### Patch Changes

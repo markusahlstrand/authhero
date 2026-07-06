@@ -1,5 +1,25 @@
 # authhero
 
+## 8.15.0
+
+### Minor Changes
+
+- 88f2bf7: Record tenant lifecycle operations and expose them via the management API (issue #1026, phase 1).
+
+  - `@authhero/multi-tenancy` gains an operations module: `runRecordedTenantOperation` wraps `databaseIsolation.onProvision` so every provision writes a `tenant_operations` row with step events (no behavior change — recording is skipped when the adapters are absent and is warn-only on write failure), plus `createInlineExecutor` / `enqueueTenantOperation` implementing the row-first executor contract the Cloudflare Workflows engine plugs into next. `initMultiTenant` wires a default inline executor for `upgrade` operations when `tenantUpgrade` is configured.
+  - `authhero` mounts `GET /api/v2/operations/{id}`, `GET/POST /api/v2/tenants/{id}/operations` (new scopes `read:tenant_operations`, `create:tenant_operations`) when the control-plane operations adapters are present, with a new `tenantOperationExecutor` config binding.
+  - `@authhero/cloudflare-adapter`'s WFP provisioning hook accepts an optional step reporter and surfaces `provision-resources` / `seed-defaults` boundaries; reporting can never fail a provision.
+
+### Patch Changes
+
+- 6258d34: Skip rollup-plugin-visualizer when building in CI. The gzip/brotli sizing pass was a significant share of build time, and dist/stats.html (previously included in the published tarball) is only useful locally.
+- 7023dd5: Reject `response_mode=query` for token-bearing response types at /authorize with `unsupported_response_mode` instead of silently coercing the response into the fragment — Auth0 parity per OAuth 2.0 Multiple Response Type Encoding Practices. Pure `code` responses with `response_mode=query` are unaffected.
+- Updated dependencies [d90f51a]
+- Updated dependencies [5b50504]
+  - @authhero/widget@0.34.6
+  - @authhero/adapter-interfaces@3.6.0
+  - @authhero/proxy@0.8.2
+
 ## 8.14.1
 
 ### Patch Changes
