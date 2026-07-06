@@ -1,0 +1,27 @@
+{
+  "email": "admin@example.com",
+  "email_verified": true,
+  "name": "Admin User",
+  "given_name": "Admin",
+  "family_name": "User",
+  "middle_name": "Test",
+  "nickname": "admin",
+  "preferred_username": "admin",
+  "picture": "https://example.com/admin.png",
+  "profile": "https://example.com/admin",
+  "website": "https://example.com",
+  "gender": "other",
+  "birthdate": "2000-01-01",
+  "zoneinfo": "Europe/London",
+  "locale": "en-US",
+  "phone_number": "+441234567890",
+  "phone_verified": true,
+  "address": {
+    "formatted": "123 Main St, London, UK",
+    "street_address": "123 Main St",
+    "locality": "London",
+    "region": "Greater London",
+    "postal_code": "SW1A 1AA",
+    "country": "United Kingdom"
+  }
+}
