@@ -13,6 +13,13 @@ on:
   pull_request:
     branches:
       - main
+    # "edited" (non-default) covers stacked PRs: when a parent PR merges and
+    # GitHub auto-retargets the child to main, no opened/synchronize event
+    # fires — without it the required conformance check is never reported and
+    # the PR is stuck on "Expected". Title/body edits also fire it, but those
+    # runs skip in seconds (non-release PRs) or dedupe via the per-SHA
+    # concurrency group below.
+    types: [opened, synchronize, reopened, edited]
   workflow_dispatch:
     inputs:
       grep:
