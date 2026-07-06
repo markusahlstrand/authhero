@@ -89,9 +89,9 @@ export type Bindings = {
   userLinkingMode?: UserLinkingModeOption;
 
   // Per-tenant override for the native database provider value written on
-  // new password users. When unset, all tenants use the legacy "auth2".
-  // Returning "auth0" for a tenant migrates that tenant onto the "auth0"
-  // provider value. TRANSITIONAL — remove once all tenants are backfilled.
+  // new password users. When unset, all tenants write "auth0". Returning
+  // "auth2" pins a tenant on the legacy provider value during a staged
+  // cutover. TRANSITIONAL — remove once all tenants are backfilled.
   usernamePasswordProvider?: UsernamePasswordProviderResolver;
 
   // Per-tenant signing-key bucket selector. When unset, every tenant

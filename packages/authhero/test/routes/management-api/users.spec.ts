@@ -909,11 +909,13 @@ describe("users management API endpoint", () => {
           is_social: false,
         });
 
+        // Legacy native user — must stay the literal "auth2" to model
+        // rows written before the auth0 provider cutover.
         await env.data.users.create("tenantId", {
-          user_id: `${USERNAME_PASSWORD_PROVIDER}|linked-user`,
+          user_id: "auth2|linked-user",
           email: "imported@example.com",
           email_verified: true,
-          provider: USERNAME_PASSWORD_PROVIDER,
+          provider: "auth2",
           connection: Strategy.USERNAME_PASSWORD,
           is_social: false,
           linked_to: "auth0|primary-user",
@@ -943,7 +945,7 @@ describe("users management API endpoint", () => {
 
         const auth2Password = await env.data.passwords.get(
           "tenantId",
-          `${USERNAME_PASSWORD_PROVIDER}|linked-user`,
+          "auth2|linked-user",
         );
         expect(auth2Password).toBeDefined();
 

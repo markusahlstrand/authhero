@@ -22,10 +22,10 @@ describe("isUsernamePasswordProvider", () => {
 });
 
 describe("resolveUsernamePasswordProvider", () => {
-  it("defaults to auth2 when no resolver is configured", async () => {
+  it("defaults to auth0 when no resolver is configured", async () => {
     const { env } = await getTestServer();
     expect(await resolveUsernamePasswordProvider(env, "tenantId")).toBe(
-      "auth2",
+      "auth0",
     );
   });
 

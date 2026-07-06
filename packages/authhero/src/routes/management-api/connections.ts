@@ -9,7 +9,6 @@ import {
   connectionSchema,
   totalsSchema,
   LogTypes,
-  Strategy,
 } from "@authhero/adapter-interfaces";
 import { parseSort } from "../../utils/sort";
 import { generateConnectionId } from "../../utils/entity-id";
@@ -21,19 +20,10 @@ import { getEnrichedClient } from "../../helpers/client";
 import { getTenantCustomDomain } from "../../helpers/custom-domain";
 import { getAuthUrl } from "../../variables";
 import { passwordGrant } from "../../authentication-flows/password";
-import { USERNAME_PASSWORD_PROVIDER } from "../../constants";
+import { isDatabaseConnectionStrategy } from "../../utils/username-password-provider";
 import { nanoid } from "nanoid";
 
 import { defineRoute } from "../../utils/define-route";
-// Some tenants persist database connections with the strategy field set to
-// the provider literal ("auth2") rather than the canonical Auth0 strategy
-// name. Treat both as a database connection for the try-flow.
-function isDatabaseConnection(strategy: string): boolean {
-  return (
-    strategy === Strategy.USERNAME_PASSWORD ||
-    strategy === USERNAME_PASSWORD_PROVIDER
-  );
-}
 
 const connectionsWithTotalsSchema = totalsSchema.extend({
   connections: z.array(connectionSchema),
@@ -610,7 +600,7 @@ const postByIdTry = defineRoute({
     });
 
     // Database connections complete inline — no browser round-trip needed.
-    if (isDatabaseConnection(connection.strategy)) {
+    if (isDatabaseConnectionStrategy(connection.strategy)) {
       const body = ctx.req.valid("json") ?? {};
       if (!body.username || !body.password) {
         throw new HTTPException(400, {
