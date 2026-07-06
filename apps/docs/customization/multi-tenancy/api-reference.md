@@ -14,7 +14,7 @@ Complete API reference for the `@authhero/multi-tenancy` package.
 The easiest way to set up multi-tenancy. Automatically configures sync hooks, tenants API, middleware, and runtime fallback.
 
 ```typescript
-function initMultiTenant(config: MultiTenantConfig): MultiTenantResult
+function initMultiTenant(config: MultiTenantConfig): MultiTenantResult;
 ```
 
 **Parameters:**
@@ -48,7 +48,10 @@ export default app;
 Configuration for `initMultiTenant()`.
 
 ```typescript
-interface MultiTenantConfig extends Omit<AuthHeroConfig, "entityHooks" | "managementApiExtensions"> {
+interface MultiTenantConfig extends Omit<
+  AuthHeroConfig,
+  "entityHooks" | "managementApiExtensions"
+> {
   // Control plane configuration (optional but recommended)
   controlPlane?: ControlPlaneConfig;
 
@@ -110,6 +113,7 @@ const { app } = initMultiTenant({
 ```
 
 When `controlPlane` is configured:
+
 - **Runtime Fallback**: Connection secrets, OAuth credentials, and client settings fallback to control plane without copying
 - **Access Control**: `/api/v2/tenants` endpoint filters based on user's organization memberships
 - **Organization Sync**: Organizations are automatically created on control plane when tenants are created
@@ -123,7 +127,9 @@ Per-tenant resolver for runtime inheritance. Mirrors the shape of
 wrapped adapter read with the tenant being read.
 
 ```typescript
-type ControlPlaneResolver = (params: { tenant_id: string }) =>
+type ControlPlaneResolver = (params: {
+  tenant_id: string;
+}) =>
   | { tenantId: string; clientId?: string }
   | undefined
   | Promise<{ tenantId: string; clientId?: string } | undefined>;
@@ -202,8 +208,14 @@ interface DatabaseIsolationConfig {
   // Get data adapters for a specific tenant
   getAdapters: (tenantId: string) => Promise<DataAdapters>;
 
-  // Called when a new tenant is provisioned
-  onProvision?: (tenantId: string) => Promise<void>;
+  // Called when a new tenant is provisioned. The optional StepReporter
+  // surfaces per-step events in the operation history when the control
+  // plane records tenant operations (see Tenant Operations).
+  onProvision?: (tenantId: string, report?: StepReporter) => Promise<void>;
+
+  // Set to false when the hook creates its own operation rows (e.g. the
+  // Cloudflare Workflows provisioning hook). Default: true.
+  recordProvisionOperations?: boolean;
 
   // Called when a tenant is deprovisioned/deleted
   onDeprovision?: (tenantId: string) => Promise<void>;
@@ -258,7 +270,7 @@ import { withRuntimeFallback } from "@authhero/multi-tenancy";
 
 const adapters = withRuntimeFallback(baseAdapters, {
   controlPlaneTenantId: "control_plane",
-  controlPlaneClientId: "control_plane_client"
+  controlPlaneClientId: "control_plane_client",
 });
 ```
 
@@ -543,7 +555,7 @@ import { createRuntimeFallbackAdapter } from "@authhero/multi-tenancy";
 
 const adapters = createRuntimeFallbackAdapter(baseAdapters, {
   controlPlaneTenantId: "control_plane",
-  controlPlaneClientId: "control_plane_client"
+  controlPlaneClientId: "control_plane_client",
 });
 ```
 
@@ -576,7 +588,7 @@ import { withRuntimeFallback } from "@authhero/multi-tenancy";
 
 const adapters = withRuntimeFallback(baseAdapters, {
   controlPlaneTenantId: "control_plane",
-  controlPlaneClientId: "control_plane_client"
+  controlPlaneClientId: "control_plane_client",
 });
 ```
 
@@ -778,6 +790,14 @@ Delete a tenant (main tenant only).
   success: boolean;
 }
 ```
+
+### Tenant operations
+
+Mounted only when the control plane carries the tenant-operations adapters (see [Tenant Operations](./tenant-operations.md)). Scopes: `read:tenant_operations`, `create:tenant_operations`.
+
+- `GET /tenants/:id/operations` — paginated lifecycle-operation history for a tenant (query: `page`, `per_page`, `kind`, `status`)
+- `GET /operations/:id` — one operation with its full step-event timeline
+- `POST /tenants/:id/operations` — enqueue `{ "kind": "upgrade" }` (control-plane only; returns `201` with the operation row — poll `GET /operations/:id`)
 
 ## Context Variables
 

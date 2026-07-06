@@ -19,6 +19,10 @@ This page describes how a WFP tenant still gets its default connections,
 prompts, branding and **shared social-login secrets** (Google, Apple, …) — and
 how it can hold those secrets at rest without being able to decrypt them.
 
+::: tip Durable delivery
+Delivery of the projection is made durable by [Tenant Operations](./tenant-operations.md): on control planes using the Cloudflare Workflows executor, the seed runs as a retried workflow step _before_ the tenant is marked `ready`, followed by a verification step — a lost or failed seed can no longer produce a `ready` tenant with an empty database.
+:::
+
 ## The core idea: push a durable copy, don't pull on the hot path
 
 The naive fix is a request-time call from the tenant Worker to the control
@@ -32,12 +36,12 @@ database**, under the control plane tenant id. The tenant Worker then reads
 rows with **no read-path change** — the tenant database is, in effect, a
 miniature control-plane-colocated database.
 
-| | Pull (cache) | **Push (projection)** |
-| --- | --- | --- |
-| Read path | new remote source, blocks on miss | existing runtime fallback, unchanged |
-| Control plane outage | cold isolate fails | serves last-known-good from D1 |
-| Freshness | bounded by cache TTL | bounded by rollout cadence |
-| Where new code lives | request path | rollout (write) path only |
+|                      | Pull (cache)                      | **Push (projection)**                |
+| -------------------- | --------------------------------- | ------------------------------------ |
+| Read path            | new remote source, blocks on miss | existing runtime fallback, unchanged |
+| Control plane outage | cold isolate fails                | serves last-known-good from D1       |
+| Freshness            | bounded by cache TTL              | bounded by rollout cadence           |
+| Where new code lives | request path                      | rollout (write) path only            |
 
 ::: tip
 Defaults, schema migrations and tenant Worker code all change at **release
@@ -144,8 +148,8 @@ sequenceDiagram
 ::: warning Keep three concepts orthogonal
 **Host** = which tenant's auth surface (`acme.token.example.com` / custom
 domain). **`deployment_type`** = which Worker serves it (control plane vs WFP).
-**`controlplane.token.example.com`** = the control plane *as itself*. A
-control-plane-*colocated* tenant is still addressed at its own host — it is not
+**`controlplane.token.example.com`** = the control plane _as itself_. A
+control-plane-_colocated_ tenant is still addressed at its own host — it is not
 reachable as the control plane.
 :::
 
@@ -171,14 +175,14 @@ code** it uses in a shared database. Nothing on the read path is WFP-aware.
 
 What gets projected (the "defaults bundle"):
 
-| Entity | Filter | Consumed on read by |
-| --- | --- | --- |
-| Connections | all | runtime fallback, matched by `strategy` |
-| Resource servers | `is_system === true` | runtime fallback scope inheritance |
-| Hooks | `metadata.inheritable === true` | runtime fallback hook inheritance |
-| Email provider | singleton | runtime fallback email-provider fallback |
-| Branding | singleton | tenant resolving control-plane branding |
-| Prompt settings | singleton | tenant resolving control-plane prompts |
+| Entity           | Filter                          | Consumed on read by                      |
+| ---------------- | ------------------------------- | ---------------------------------------- |
+| Connections      | all                             | runtime fallback, matched by `strategy`  |
+| Resource servers | `is_system === true`            | runtime fallback scope inheritance       |
+| Hooks            | `metadata.inheritable === true` | runtime fallback hook inheritance        |
+| Email provider   | singleton                       | runtime fallback email-provider fallback |
+| Branding         | singleton                       | tenant resolving control-plane branding  |
+| Prompt settings  | singleton                       | tenant resolving control-plane prompts   |
 
 ## The rollout
 
@@ -290,12 +294,12 @@ The payload carries the control plane's `jwt_signing` keys so a tenant can
 without a request-time JWKS fetch. This is security-sensitive, so the invariants
 are owned centrally:
 
-| Invariant | Enforced |
-| --- | --- |
-| Public only — never the private key | `pkcs7` stripped on build **and** re-stripped on apply |
+| Invariant                           | Enforced                                                                 |
+| ----------------------------------- | ------------------------------------------------------------------------ |
+| Public only — never the private key | `pkcs7` stripped on build **and** re-stripped on apply                   |
 | Stored as shared, not tenant-scoped | written with **no `tenant_id`**, so `listControlPlaneKeys` resolves them |
-| Verify-only by construction | with no private material the sign path physically can't use them |
-| Rotation-safe | **create-if-missing by `kid`**; old public keys are harmless to leave |
+| Verify-only by construction         | with no private material the sign path physically can't use them         |
+| Rotation-safe                       | **create-if-missing by `kid`**; old public keys are harmless to leave    |
 
 The selection (`type:jwt_signing AND -_exists_:tenant_id`) is authhero's
 `listControlPlaneKeys`, reused so the public-key query has a single source of
@@ -305,7 +309,7 @@ truth. Opt out with `buildControlPlaneDefaultsPayload(..., { signingKeys: false 
 
 A shared Google connection means the tenant Worker needs the Google
 `client_secret` to complete the token exchange. But a tenant operator may be
-able to **pull a copy of their own D1** — and must not be able to read *our*
+able to **pull a copy of their own D1** — and must not be able to read _our_
 shared secret out of it.
 
 The solution is envelope-style **keyed encryption**: control-plane-owned secrets
@@ -410,7 +414,7 @@ those templates generate.
 ### 1. Control plane Worker
 
 The control plane owns every key and serves colocated tenants from the shared
-database. Its adapters are the *source* for projection.
+database. Its adapters are the _source_ for projection.
 
 ```typescript
 import createAdapters from "@authhero/kysely-adapter";
@@ -425,7 +429,9 @@ const CONTROL_PLANE_TENANT_ID = "control_plane";
 
 // Both keys live as Worker secret bindings — never in any database.
 const tenantKey = await loadEncryptionKey(env.ENCRYPTION_KEY);
-const controlPlaneKey = await loadEncryptionKey(env.CONTROL_PLANE_ENCRYPTION_KEY);
+const controlPlaneKey = await loadEncryptionKey(
+  env.CONTROL_PLANE_ENCRYPTION_KEY,
+);
 
 // The control plane reads/writes its own rows; a single key is enough here.
 const controlPlaneAdapters: DataAdapters = createEncryptedDataAdapter(
@@ -458,7 +464,9 @@ import { withRuntimeFallback } from "@authhero/multi-tenancy";
 const CONTROL_PLANE_TENANT_ID = "control_plane";
 
 const tenantKey = await loadEncryptionKey(env.ENCRYPTION_KEY);
-const controlPlaneKey = await loadEncryptionKey(env.CONTROL_PLANE_ENCRYPTION_KEY);
+const controlPlaneKey = await loadEncryptionKey(
+  env.CONTROL_PLANE_ENCRYPTION_KEY,
+);
 
 // Encrypt this tenant's own rows under the tenant key, but control-plane-tenant
 // rows under the "cp" key id (so the operator can hold but not read them).
@@ -543,13 +551,13 @@ Every piece is additive and reversible — except one. The only one-way door is
 reference today's issuer, so do not change `ISSUER` for existing tenants; give
 new issuer hosts only to new or deliberately migrated tenants.
 
-| Change | Breaking? | Note |
-| --- | --- | --- |
-| Project defaults into tenant D1 | No | New code on the WFP/provision path; colocated tenants untouched |
-| Runtime fallback (read path) | No | Not modified — the whole point of the push model |
-| Keyed encryption | No | `enc:v1:<payload>` still decrypts; key id is additive |
-| `controlplane.*` host | No, if additive | Add as an accepted host; keep the existing/apex path working |
-| Issuer / JWT `iss` host | **Irreversible** | Pin names before any token carries them |
+| Change                          | Breaking?        | Note                                                            |
+| ------------------------------- | ---------------- | --------------------------------------------------------------- |
+| Project defaults into tenant D1 | No               | New code on the WFP/provision path; colocated tenants untouched |
+| Runtime fallback (read path)    | No               | Not modified — the whole point of the push model                |
+| Keyed encryption                | No               | `enc:v1:<payload>` still decrypts; key id is additive           |
+| `controlplane.*` host           | No, if additive  | Add as an accepted host; keep the existing/apex path working    |
+| Issuer / JWT `iss` host         | **Irreversible** | Pin names before any token carries them                         |
 
 Suggested order, each step independently shippable:
 

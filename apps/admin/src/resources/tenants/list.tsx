@@ -1,7 +1,7 @@
 import { useId } from "react";
 import { Link } from "react-router-dom";
 import { useRecordContext } from "ra-core";
-import { Users } from "lucide-react";
+import { History, Users } from "lucide-react";
 import { BadgeField, DataTable, List, TextInput } from "@/components/admin";
 import { Button } from "@/components/ui/button";
 import { getBasePath } from "@/utils/runtimeConfig";
@@ -61,6 +61,26 @@ function MembersLinkCell() {
   );
 }
 
+function OperationsLinkCell() {
+  const record = useRecordContext<TenantRecord>();
+  if (!record) return null;
+  // Plain router path — react-router prefixes the basename itself, and the
+  // outer Root also renders TenantsApp for this URL on a full reload.
+  return (
+    <Button
+      asChild
+      variant="outline"
+      size="sm"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <Link to={`/tenants/${String(record.id)}/operations`}>
+        <History className="h-4 w-4 mr-1" />
+        Operations
+      </Link>
+    </Button>
+  );
+}
+
 export function TenantsList() {
   const filters = [
     <TextInput key="q" source="q" placeholder="Search" label={false} />,
@@ -88,6 +108,9 @@ export function TenantsList() {
         <DataTable.Col source="support_url" label="Support URL" />
         <DataTable.Col label="">
           <MembersLinkCell />
+        </DataTable.Col>
+        <DataTable.Col label="">
+          <OperationsLinkCell />
         </DataTable.Col>
       </DataTable>
     </List>

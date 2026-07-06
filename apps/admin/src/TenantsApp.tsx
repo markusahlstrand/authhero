@@ -8,6 +8,7 @@ import { getConfigValue, getBasePath } from "./utils/runtimeConfig";
 import { TenantsList } from "./resources/tenants/list";
 import { TenantsCreate } from "./resources/tenants/create";
 import { TenantMembers } from "./resources/tenants/members";
+import { TenantOperations } from "./resources/tenants/operations";
 import { Loader2 } from "lucide-react";
 
 interface TenantsAppProps {
@@ -109,6 +110,10 @@ export function TenantsApp({ initialDomain, onAuthComplete }: TenantsAppProps) {
       <Resource name="users" />
       <CustomRoutes>
         <Route path="/tenants/:tenantId/members" element={<TenantMembers />} />
+        <Route
+          path="/tenants/:tenantId/operations"
+          element={<TenantOperations />}
+        />
       </CustomRoutes>
     </Admin>
   );
