@@ -21,6 +21,7 @@ const VALID_GROUP_BY: Record<AnalyticsResource, AnalyticsGroupBy[]> = {
   sessions: ["time", "client_id"],
   logouts: ["time", "connection", "client_id", "user_type", "event"],
   "password-changes": ["time", "connection", "client_id", "user_type", "event"],
+  "password-migrations": ["time", "connection", "client_id", "user_type"],
   mfa: ["time", "connection", "client_id", "user_type", "event"],
   "email-verifications": [
     "time",
@@ -48,6 +49,7 @@ const METRIC_BY_RESOURCE: Record<AnalyticsResource, string> = {
   sessions: "sessions",
   logouts: "logouts",
   "password-changes": "password_changes",
+  "password-migrations": "password_migrations",
   mfa: "mfa",
   "email-verifications": "email_verifications",
   "codes-sent": "codes_sent",
@@ -436,6 +438,7 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions = {}) {
     "sessions",
     "logouts",
     "password-changes",
+    "password-migrations",
     "mfa",
     "email-verifications",
     "codes-sent",

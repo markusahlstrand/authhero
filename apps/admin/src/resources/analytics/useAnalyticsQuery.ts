@@ -19,6 +19,7 @@ export type AnalyticsResource =
   | "sessions"
   | "logouts"
   | "password-changes"
+  | "password-migrations"
   | "mfa"
   | "email-verifications"
   | "codes-sent";

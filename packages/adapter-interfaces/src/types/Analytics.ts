@@ -8,6 +8,7 @@ export const analyticsResourceSchema = z.enum([
   "sessions",
   "logouts",
   "password-changes",
+  "password-migrations",
   "mfa",
   "email-verifications",
   "codes-sent",

@@ -19,6 +19,7 @@ const RESOURCE_EVENTS: Record<AnalyticsResource, readonly string[]> = {
   sessions: ["slo"],
   logouts: ["slo", "flo"],
   "password-changes": ["scp", "fcp", "scpr", "fcpr"],
+  "password-migrations": ["spm"],
   mfa: ["gd_auth_succeed", "gd_auth_failed", "gd_auth_rejected"],
   "email-verifications": ["sv", "fv", "svr", "fvr"],
   "codes-sent": ["cls", "cs"],
@@ -61,6 +62,11 @@ const METRIC_BY_RESOURCE: Record<
   "password-changes": {
     expr: "count()",
     alias: "password_changes",
+    type: "UInt64",
+  },
+  "password-migrations": {
+    expr: "count()",
+    alias: "password_migrations",
     type: "UInt64",
   },
   mfa: { expr: "count()", alias: "mfa", type: "UInt64" },
