@@ -41,7 +41,7 @@ This is a **pnpm monorepo** implementing a multi-tenant authentication/IAM syste
 
 ### Packages
 
-- **`packages/authhero`** — Core Hono.js HTTP application. Contains all auth routes, login UI (React + TailwindCSS), authentication flows (authorization code, refresh token, device flow, etc.), and state machines. Built with Vite; outputs CJS + ESM bundles. i18n handled at build time via Paraglide.
+- **`packages/authhero`** — Core Hono.js HTTP application. Contains all auth routes, login UI (React + TailwindCSS), authentication flows (authorization code, refresh token, client credentials, token exchange, passwordless OTP, etc.), and state machines. Built with Vite; outputs CJS + ESM bundles. i18n handled at build time via Paraglide.
 - **`packages/adapter-interfaces`** — TypeScript interfaces defining the adapter contract (CRUD for tenants, users, clients, connections, etc.). All database adapters must implement these.
 - **`packages/kysely`** — Kysely ORM adapter for PlanetScale (MySQL) and other SQL databases. Kept while PlanetScale runs in production; new deployments should use drizzle. ~39 entity modules each handling one domain entity.
 - **`packages/drizzle`** — Primary database adapter (Drizzle ORM, SQLite/D1). Used by all create-authhero templates; ships pre-generated migrations in `drizzle/`.
