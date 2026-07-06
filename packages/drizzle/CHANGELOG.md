@@ -1,5 +1,14 @@
 # @authhero/drizzle
 
+## 0.58.1
+
+### Patch Changes
+
+- b83ae9f: Surface the `spm` (Success Password Migration) log type: add a `password-migrations` analytics resource (`GET /api/v2/analytics/password-migrations`) backed by the drizzle, kysely, and Analytics Engine adapters, show it as "Password Migrations" on the admin analytics page, add `spm` to the admin logs type filter, and sort both the logs type filter and the analytics resource dropdown alphabetically.
+- Updated dependencies [b83ae9f]
+  - @authhero/adapter-interfaces@3.7.0
+  - @authhero/proxy@0.8.3
+
 ## 0.58.0
 
 ### Minor Changes
