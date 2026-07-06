@@ -38,6 +38,7 @@ import {
   resolveInterval,
 } from "./analyticsTime";
 
+// Ordered alphabetically by label — this drives the resource dropdown.
 const RESOURCES: Array<{
   value: AnalyticsResource;
   label: string;
@@ -51,16 +52,46 @@ const RESOURCES: Array<{
     dims: ["time", "connection", "client_id", "user_type"],
   },
   {
+    value: "codes-sent",
+    label: "Codes Sent",
+    metric: "codes_sent",
+    dims: ["time", "connection", "client_id", "user_type", "event"],
+  },
+  {
+    value: "email-verifications",
+    label: "Email Verifications",
+    metric: "email_verifications",
+    dims: ["time", "connection", "client_id", "user_type", "event"],
+  },
+  {
     value: "logins",
     label: "Logins",
     metric: "logins",
     dims: ["time", "connection", "client_id", "user_type", "event"],
   },
   {
-    value: "signups",
-    label: "Signups",
-    metric: "signups",
+    value: "logouts",
+    label: "Logouts",
+    metric: "logouts",
     dims: ["time", "connection", "client_id", "user_type", "event"],
+  },
+  {
+    value: "mfa",
+    label: "MFA",
+    metric: "mfa",
+    dims: ["time", "connection", "client_id", "user_type", "event"],
+  },
+  {
+    value: "password-changes",
+    label: "Password Changes",
+    metric: "password_changes",
+    dims: ["time", "connection", "client_id", "user_type", "event"],
+  },
+  {
+    value: "password-migrations",
+    label: "Password Migrations",
+    metric: "password_migrations",
+    dims: ["time", "connection", "client_id", "user_type"],
   },
   {
     value: "refresh-tokens",
@@ -75,33 +106,9 @@ const RESOURCES: Array<{
     dims: ["time", "client_id"],
   },
   {
-    value: "logouts",
-    label: "Logouts",
-    metric: "logouts",
-    dims: ["time", "connection", "client_id", "user_type", "event"],
-  },
-  {
-    value: "password-changes",
-    label: "Password Changes",
-    metric: "password_changes",
-    dims: ["time", "connection", "client_id", "user_type", "event"],
-  },
-  {
-    value: "mfa",
-    label: "MFA",
-    metric: "mfa",
-    dims: ["time", "connection", "client_id", "user_type", "event"],
-  },
-  {
-    value: "email-verifications",
-    label: "Email Verifications",
-    metric: "email_verifications",
-    dims: ["time", "connection", "client_id", "user_type", "event"],
-  },
-  {
-    value: "codes-sent",
-    label: "Codes Sent",
-    metric: "codes_sent",
+    value: "signups",
+    label: "Signups",
+    metric: "signups",
     dims: ["time", "connection", "client_id", "user_type", "event"],
   },
 ];

@@ -25,6 +25,7 @@ const FILTER_TYPES: readonly string[] = [
   LogTypes.FAILED_CHANGE_EMAIL,
   LogTypes.SUCCESS_CHANGE_PASSWORD,
   LogTypes.FAILED_CHANGE_PASSWORD,
+  LogTypes.SUCCESS_PASSWORD_MIGRATION,
   LogTypes.SUCCESS_HOOK,
   LogTypes.FAILED_HOOK,
 ];
@@ -32,7 +33,7 @@ const FILTER_TYPES: readonly string[] = [
 const typeChoices = FILTER_TYPES.map((id) => ({
   id,
   name: getLogTypeDescription(id),
-}));
+})).sort((a, b) => a.name.localeCompare(b.name));
 
 const statusChoices = [
   { id: "true", name: "Success" },
