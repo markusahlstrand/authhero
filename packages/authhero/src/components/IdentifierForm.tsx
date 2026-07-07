@@ -4,6 +4,7 @@ import {
   Theme,
   Branding,
   Strategy,
+  isDatabaseConnectionStrategy,
 } from "@authhero/adapter-interfaces";
 import { EnrichedClient } from "../helpers/client";
 import i18next from "i18next";
@@ -48,18 +49,17 @@ const IdentifierForm: FC<Props> = ({
     ({ strategy }) => strategy,
   );
 
-  // Determine which input fields to show based on available connections
+  // Determine which input fields to show based on available connections.
+  // Database connections are matched via isDatabaseConnectionStrategy since
+  // their strategy field can be any of the
+  // "auth0"/"auth2"/"Username-Password-Authentication" spellings.
   const showEmailInput =
     connectionStrategies.includes(Strategy.EMAIL) ||
-    connectionStrategies.includes(Strategy.USERNAME_PASSWORD);
+    connectionStrategies.some(isDatabaseConnectionStrategy);
   const showPhoneInput = connectionStrategies.includes(Strategy.SMS);
 
   // Strategies that are handled by form inputs, not social/enterprise buttons.
-  const formStrategies = new Set<string>([
-    Strategy.EMAIL,
-    Strategy.SMS,
-    Strategy.USERNAME_PASSWORD,
-  ]);
+  const formStrategies = new Set<string>([Strategy.EMAIL, Strategy.SMS]);
 
   // Get all available social/enterprise connections with their configs.
   // HRD-enabled connections (those with domain_aliases) are hidden by default
@@ -67,7 +67,11 @@ const IdentifierForm: FC<Props> = ({
   // An explicit `show_as_button: true` opts back in; `show_as_button: false`
   // always hides regardless of HRD configuration.
   const socialConnections = client.connections
-    .filter((connection) => !formStrategies.has(connection.strategy))
+    .filter(
+      (connection) =>
+        !formStrategies.has(connection.strategy) &&
+        !isDatabaseConnectionStrategy(connection.strategy),
+    )
     .filter((connection) => {
       if (connection.show_as_button === false) return false;
       if (connection.show_as_button === true) return true;

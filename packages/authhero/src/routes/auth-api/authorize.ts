@@ -11,6 +11,7 @@ import {
   LoginSessionState,
   Strategy,
   claimsRequestSchema,
+  isDatabaseConnectionStrategy,
   tokenResponseSchema,
 } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../../types";
@@ -693,11 +694,15 @@ const getRoot = defineRoute({
       });
     }
 
-    // If there's only one connection and it's a OIDC provider, we can redirect to that provider directly
+    // If there's only one connection and it's a OIDC provider, we can redirect
+    // to that provider directly. Database connections are excluded via
+    // isDatabaseConnectionStrategy since their strategy field can be any of
+    // the "auth0"/"auth2"/"Username-Password-Authentication" spellings.
     if (
       client.connections.length === 1 &&
       client.connections[0] &&
-      !UI_STRATEGIES.includes(client.connections[0].strategy || "")
+      !UI_STRATEGIES.includes(client.connections[0].strategy || "") &&
+      !isDatabaseConnectionStrategy(client.connections[0].strategy)
     ) {
       return connectionAuth(
         ctx,

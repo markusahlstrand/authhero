@@ -10,7 +10,10 @@ import {
 } from "../../helpers/users";
 import { getPrimaryUsernamePasswordUser } from "../../utils/username-password-provider";
 import { RedirectException } from "../../errors/redirect-exception";
-import { Strategy } from "@authhero/adapter-interfaces";
+import {
+  Strategy,
+  isDatabaseConnectionStrategy,
+} from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../../types";
 import { getAuthCookie } from "../../utils/cookies";
 import { setTenantId } from "../../helpers/set-tenant-id";
@@ -234,6 +237,16 @@ const STRATEGY_MAP: Record<string, LoginStrategy> = {
   [Strategy.SMS]: "sms",
 };
 
+// Database connections store their strategy as any of the
+// "auth0"/"auth2"/"Username-Password-Authentication" spellings — collapse
+// them all to "password" before the map lookup.
+function toLoginStrategy(
+  strategy: string | undefined | null,
+): LoginStrategy | undefined {
+  if (isDatabaseConnectionStrategy(strategy)) return "password";
+  return strategy ? STRATEGY_MAP[strategy] : undefined;
+}
+
 export async function getLoginStrategy(
   ctx: Context,
   client: EnrichedClient,
@@ -279,14 +292,14 @@ export async function getLoginStrategy(
           });
 
   // Check user's preferred login method (last used)
-  const userStrategy = user?.app_metadata?.strategy;
-  if (userStrategy && STRATEGY_MAP[userStrategy]) {
-    return STRATEGY_MAP[userStrategy];
+  const preferredStrategy = toLoginStrategy(user?.app_metadata?.strategy);
+  if (preferredStrategy) {
+    return preferredStrategy;
   }
 
   // Get available strategies from client connections
   const availableStrategies = client.connections
-    .map((c) => STRATEGY_MAP[c.strategy])
+    .map((c) => toLoginStrategy(c.strategy))
     .filter((s): s is LoginStrategy => s !== undefined);
 
   // If only one option is available, use it
