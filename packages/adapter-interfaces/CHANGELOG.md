@@ -1,5 +1,30 @@
 # @authhero/adapter-interfaces
 
+## 3.8.0
+
+### Minor Changes
+
+- 378e918: Recognize every spelling of the database-connection strategy and write the Auth0-canonical value on new connections.
+
+  - `@authhero/adapter-interfaces` exports `DATABASE_CONNECTION_STRATEGY` (`"auth0"`, what Auth0 stores on database connections) and `isDatabaseConnectionStrategy()`, which matches the canonical `"auth0"` plus the two legacy spellings still present in existing data: `"Username-Password-Authentication"` (the connection name reused as strategy) and `"auth2"` (the legacy provider literal).
+  - All readers that detect a password connection — universal-login screens, password/ticket/dbconnections flows, callback error routing, and the admin UI — now use the tolerant matcher instead of comparing against the exact `"Username-Password-Authentication"` string. Tenants whose connection rows carry a legacy strategy value get correct password-login behavior everywhere.
+  - `seed()` now creates the database connection with `strategy: "auth0"` (name stays `"Username-Password-Authentication"`), matching Auth0's management API shape.
+
+  This is the prerequisite for backfilling existing connection rows to `strategy = "auth0"`: once this version is deployed, the backfill is a plain UPDATE and no reader depends on the old spellings.
+
+- ab4c324: Remove `themes.list` from the ThemesAdapter interface and its kysely/drizzle/aws implementations. Auth0 only supports a single "default" theme per tenant and nothing besides the tenant export used `list`, so the export now reads `themes.get(tenant_id, "default")` instead. This also fixes tenant export failing with `themes.list is not a function` against deployments that override the themes adapter with a partial implementation (e.g. a vendor-settings-backed one that only implements `get`/`create`/`update`/`remove`).
+
+### Patch Changes
+
+- e358192: Fix tenant log identity fields so logs match what Auth0 records
+
+  - SUCCESS_LOGIN logs no longer record the strategy (e.g. "okta") as the `connection`; the connection name actually used (e.g. "Okta-Warner") wins, resolved via the login session's `auth_connection`.
+  - `logMessage` now resolves `connection_id`, `client_name` and `user_name` from the data layer when the caller doesn't supply them, instead of hardcoding empty strings. Applies to every log/audit event, including the outbox path.
+  - Token endpoint success logs (`seacft`, `serft`, …) now carry `connection`, `strategy`, `strategy_type`, `user_name` and `client_name`.
+  - The password flow sets `ctx.var.connection` to the tenant's actual password connection name (resolved from the realm against the client's connections) instead of the user record's legacy provider literal (`auth0`/`auth2`) or the generic `Username-Password-Authentication` literal.
+  - Audit events gained optional `connection_id`/`client_name` fields, mapped through to stored logs.
+  - The kysely logs adapter returns the stored `client_name` instead of always returning `""`.
+
 ## 3.7.0
 
 ### Minor Changes

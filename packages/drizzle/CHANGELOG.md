@@ -1,5 +1,20 @@
 # @authhero/drizzle
 
+## 0.59.0
+
+### Minor Changes
+
+- ab4c324: Remove `themes.list` from the ThemesAdapter interface and its kysely/drizzle/aws implementations. Auth0 only supports a single "default" theme per tenant and nothing besides the tenant export used `list`, so the export now reads `themes.get(tenant_id, "default")` instead. This also fixes tenant export failing with `themes.list is not a function` against deployments that override the themes adapter with a partial implementation (e.g. a vendor-settings-backed one that only implements `get`/`create`/`update`/`remove`).
+
+### Patch Changes
+
+- 2c5c014: Fix data.transaction() throwing on Cloudflare D1. The generic transaction wrapper (and actionVersions.create) issued raw BEGIN/COMMIT/ROLLBACK, which D1 rejects, so every flow wrapping writes in data.transaction() (user create, link-users, register, logout, ...) failed with a 500. The wrapper now feature-detects batch-capable drivers the same way runAtomic does: on D1 the callback runs directly (non-atomic, same as useTransactions: false) while per-adapter multi-statement writes stay atomic via db.batch(); better-sqlite3 keeps interactive transactions. actionVersions.create now routes its deployed-clear + insert through runAtomic.
+- Updated dependencies [378e918]
+- Updated dependencies [e358192]
+- Updated dependencies [ab4c324]
+  - @authhero/adapter-interfaces@3.8.0
+  - @authhero/proxy@0.8.4
+
 ## 0.58.1
 
 ### Patch Changes
