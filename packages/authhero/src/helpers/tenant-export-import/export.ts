@@ -301,9 +301,9 @@ export async function* exportTenantLines(
     yield line("forms", form);
   }
 
-  // themes (tenant-wide, no pagination)
-  const themes = await data.themes.list(tenant_id);
-  for (const theme of themes) {
+  // theme (singleton — mirrors Auth0's single "default" theme per tenant)
+  const theme = await data.themes.get(tenant_id, "default");
+  if (theme) {
     yield line("themes", theme);
   }
 

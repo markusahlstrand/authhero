@@ -13,7 +13,6 @@ import {
   putItem,
   deleteItem,
   updateItem,
-  queryItems,
   stripDynamoDBFields,
   removeNullProperties,
 } from "../utils";
@@ -93,22 +92,6 @@ export function createThemesAdapter(ctx: DynamoDBContext): ThemesAdapter {
       if (!item) return null;
 
       return toTheme(item);
-    },
-
-    async list(tenantId: string): Promise<Theme[]> {
-      const items: ThemeItem[] = [];
-      let startKey: Record<string, unknown> | undefined;
-
-      do {
-        const page = await queryItems<ThemeItem>(ctx, themeKeys.pk(tenantId), {
-          skPrefix: "THEME#",
-          startKey,
-        });
-        items.push(...page.items);
-        startKey = page.lastKey;
-      } while (startKey);
-
-      return items.map(toTheme);
     },
 
     async update(

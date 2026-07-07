@@ -16,7 +16,6 @@ export interface ThemesAdapter {
   ) => Promise<Theme>;
   remove: (tenant_id: string, themeId: string) => Promise<boolean>;
   get: (tenant_id: string, themeId: string) => Promise<Theme | null>;
-  list: (tenant_id: string) => Promise<Theme[]>;
   update: (
     tenant_id: string,
     themeId,
