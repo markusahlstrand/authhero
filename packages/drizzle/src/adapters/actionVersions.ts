@@ -101,6 +101,7 @@ export function createActionVersionsAdapter(
                 and(
                   eq(actionVersions.tenant_id, tenant_id),
                   eq(actionVersions.action_id, version.action_id),
+                  eq(actionVersions.deployed, 1),
                 ),
               ),
             insertStatement,
