@@ -214,6 +214,44 @@ describe("authorize", () => {
     expect(authorizationUrl.searchParams.get("firstName")).toEqual("firstName");
   });
 
+  it("should redirect to the universal login when the only connection is a database connection with strategy auth0", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const oauthClient = testClient(oauthApp, env);
+
+    // Leave a single database connection stored with the canonical Auth0
+    // strategy value. The single-connection shortcut in /authorize must not
+    // treat it as a redirectable provider (getStrategy("auth0") would throw).
+    await env.data.connections.remove("tenantId", "email");
+    await env.data.connections.remove("tenantId", "mock-strategy");
+    await env.data.connections.update(
+      "tenantId",
+      "Username-Password-Authentication",
+      { strategy: "auth0" },
+    );
+
+    const response = await oauthClient.authorize.$get(
+      {
+        query: {
+          client_id: "clientId",
+          redirect_uri: "https://example.com/callback",
+          state: "state",
+          scope: "openid",
+          response_type: AuthorizationResponseType.CODE,
+        },
+      },
+      {
+        headers: {
+          origin: "https://example.com",
+        },
+      },
+    );
+
+    expect(response.status).toEqual(302);
+    const location = response.headers.get("location");
+    const redirectUri = new URL("https://example.com" + location);
+    expect(redirectUri.pathname).toEqual("/u/login/identifier");
+  });
+
   it("should not store fragments in redirect_uri according to RFC 6749 section 3.1.2", async () => {
     const { oauthApp, env } = await getTestServer();
     const oauthClient = testClient(oauthApp, env);

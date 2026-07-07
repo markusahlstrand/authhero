@@ -43,25 +43,23 @@ const IdentifierPage: FC<Props> = ({
     ({ strategy }) => strategy,
   );
 
-  // Determine which input fields to show based on available connections
-  const showEmailInput =
-    connectionStrategies.includes(Strategy.EMAIL) ||
-    connectionStrategies.includes(Strategy.USERNAME_PASSWORD);
-  const showPhoneInput = connectionStrategies.includes(Strategy.SMS);
-
-  // Check if the password connection has username identifier enabled
+  // Check if the password connection has username identifier enabled.
+  // Matched via isDatabaseConnectionStrategy since the strategy field can be
+  // any of the "auth0"/"auth2"/"Username-Password-Authentication" spellings.
   const passwordConnection = client.connections.find((c) =>
     isDatabaseConnectionStrategy(c.strategy),
   );
   const requiresUsername =
     getConnectionIdentifierConfig(passwordConnection).usernameIdentifierActive;
 
+  // Determine which input fields to show based on available connections
+  const showEmailInput =
+    connectionStrategies.includes(Strategy.EMAIL) ||
+    Boolean(passwordConnection);
+  const showPhoneInput = connectionStrategies.includes(Strategy.SMS);
+
   // Strategies that are handled by form inputs, not social/enterprise buttons.
-  const formStrategies = new Set<string>([
-    Strategy.EMAIL,
-    Strategy.SMS,
-    Strategy.USERNAME_PASSWORD,
-  ]);
+  const formStrategies = new Set<string>([Strategy.EMAIL, Strategy.SMS]);
 
   // Get all available social/enterprise connections with their configs.
   // HRD-enabled connections (those with domain_aliases) are hidden by default
@@ -69,7 +67,11 @@ const IdentifierPage: FC<Props> = ({
   // An explicit `show_as_button: true` opts back in; `show_as_button: false`
   // always hides regardless of HRD configuration.
   const socialConnections = client.connections
-    .filter((connection) => !formStrategies.has(connection.strategy))
+    .filter(
+      (connection) =>
+        !formStrategies.has(connection.strategy) &&
+        !isDatabaseConnectionStrategy(connection.strategy),
+    )
     .filter((connection) => {
       if (connection.show_as_button === false) return false;
       if (connection.show_as_button === true) return true;
