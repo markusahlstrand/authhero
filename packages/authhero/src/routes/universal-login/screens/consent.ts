@@ -104,6 +104,7 @@ export async function consentScreen(
       type: LogTypes.FAILED_LOGIN,
       description: "User denied OAuth consent",
       userId: user.user_id,
+      username: user.email || user.phone_number || user.name,
     });
 
     const errorParams: Record<string, string> = {

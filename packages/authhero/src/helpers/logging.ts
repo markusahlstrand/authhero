@@ -9,6 +9,7 @@ import {
 import { Variables, Bindings } from "../types";
 import { waitUntil } from "./wait-until";
 import { instanceToJson } from "../utils/instance-to-json";
+import { getConnectionInfo } from "./connection";
 
 /** Fields fully replaced with [REDACTED] in entity state and request bodies. */
 const SENSITIVE_FIELDS = new Set([
@@ -88,6 +89,17 @@ export type LogParams = {
   strategy?: string;
   strategy_type?: string;
   connection?: string;
+  /**
+   * The id of the connection used (`con_…`). When omitted, `logMessage`
+   * resolves it from the connection name via the (bundle-cached) tenant
+   * connections list.
+   */
+  connection_id?: string;
+  /**
+   * Display name of the client. When omitted, `logMessage` resolves it from
+   * `ctx.var.client_id`.
+   */
+  client_name?: string;
   audience?: string;
   scope?: string;
   /**
@@ -152,10 +164,70 @@ function inferCategory(
   return "system";
 }
 
+/**
+ * Fields `logMessage` looks up when the caller didn't supply them, so every
+ * log carries the same identifying data Auth0 puts on its tenant logs.
+ */
+type LogEnrichment = {
+  connection_id: string;
+  client_name: string;
+  user_name: string;
+};
+
+/**
+ * Resolve `connection_id`, `client_name` and `user_name` from the data layer
+ * when the caller didn't pass them. All reads are keyed gets or the
+ * parameterless connections list, so they're served from the per-request
+ * client bundle when the request warmed it. Failures degrade to empty strings
+ * — enrichment must never break log delivery.
+ */
+async function resolveLogEnrichment(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  tenantId: string,
+  params: LogParams,
+): Promise<LogEnrichment> {
+  const connectionName = params.connection || ctx.var.connection || "";
+  const clientId = ctx.var.client_id;
+  const userId = params.userId || ctx.var.user_id || "";
+
+  const [connection_id, client_name, user_name] = await Promise.all([
+    (async () => {
+      if (params.connection_id) return params.connection_id;
+      if (!connectionName) return "";
+      const info = await getConnectionInfo(ctx, tenantId, connectionName);
+      return info?.id || "";
+    })(),
+    (async () => {
+      if (params.client_name) return params.client_name;
+      if (!clientId) return "";
+      try {
+        const client = await ctx.env.data.clients.get(tenantId, clientId);
+        return client?.name || "";
+      } catch {
+        return "";
+      }
+    })(),
+    (async () => {
+      const explicit = ctx.var.username || params.username;
+      if (explicit) return explicit;
+      if (!userId) return "";
+      try {
+        const user = await ctx.env.data.users.get(tenantId, userId);
+        return user?.email || user?.phone_number || user?.name || "";
+      } catch {
+        return "";
+      }
+    })(),
+  ]);
+
+  return { connection_id, client_name, user_name };
+}
+
 function buildAuditEvent(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   tenantId: string,
   params: LogParams,
+  enrichment?: LogEnrichment,
 ): AuditEventInsert {
   const captureEntityState = ctx.env.outbox?.captureEntityState !== false;
   const beforeState = captureEntityState
@@ -164,6 +236,17 @@ function buildAuditEvent(
   const afterState = captureEntityState
     ? redactSensitiveFields(params.afterState)
     : undefined;
+
+  // The enrichment's user_name was looked up for the log's subject
+  // (params.userId || ctx.var.user_id). Only surface it as the actor's email
+  // when the actor is that same user — never attribute a target user's email
+  // to an admin actor.
+  const enrichedUserId = params.userId || ctx.var.user_id;
+  const actorId = ctx.var.user_id || params.actorUserId || params.userId;
+  const actorEmailFallback =
+    enrichment && enrichedUserId && enrichedUserId === actorId
+      ? enrichment.user_name
+      : undefined;
 
   return {
     tenant_id: tenantId,
@@ -184,7 +267,8 @@ function buildAuditEvent(
               ? "client_credentials"
               : "system",
       id: ctx.var.user_id || params.actorUserId || params.userId || undefined,
-      email: ctx.var.username || params.username || undefined,
+      email:
+        ctx.var.username || params.username || actorEmailFallback || undefined,
       org_id: ctx.var.organization_id || ctx.var.user?.org_id || undefined,
       org_name: ctx.var.org_name || ctx.var.user?.org_name || undefined,
       scopes: ctx.var.user?.scope ? ctx.var.user.scope.split(" ") : undefined,
@@ -223,6 +307,9 @@ function buildAuditEvent(
       : undefined,
 
     connection: params.connection || ctx.var.connection || undefined,
+    connection_id:
+      params.connection_id || enrichment?.connection_id || undefined,
+    client_name: params.client_name || enrichment?.client_name || undefined,
     strategy: params.strategy || undefined,
     strategy_type: params.strategy_type || undefined,
     audience: params.audience || undefined,
@@ -268,11 +355,16 @@ export async function logMessage(
 
   // Outbox path: write rich AuditEvent to outbox (synchronously, within transaction)
   if (ctx.env.outbox?.enabled && ctx.env.data.outbox) {
-    const event = buildAuditEvent(ctx, tenantId, params);
-
     // Geo enrichment is deferred to the outbox relay/processor.
     // The IP is already captured in event.request.ip.
-    const eventPromise = ctx.env.data.outbox.create(tenantId, event);
+    // Identity enrichment (connection_id / client_name / user_name) happens
+    // inside the promise so the push below stays synchronous.
+    const outbox = ctx.env.data.outbox;
+    const eventPromise = (async () => {
+      const enrichment = await resolveLogEnrichment(ctx, tenantId, params);
+      const event = buildAuditEvent(ctx, tenantId, params, enrichment);
+      return outbox.create(tenantId, event);
+    })();
 
     // Push the promise synchronously so even non-awaited logMessage calls
     // are captured by the outbox middleware's finally block.
@@ -284,17 +376,19 @@ export async function logMessage(
 
   const createLogPromise = async () => {
     // Get geo information if adapter is available
-    let locationInfo: LogInsert["location_info"] = undefined;
-
-    if (ctx.env.data.geo) {
-      try {
-        const geoInfo = await ctx.env.data.geo.getGeoInfo(headers);
-        locationInfo = geoInfo || undefined;
-      } catch (error) {
-        // Silently ignore geo lookup errors
-        console.warn("Failed to get geo information:", error);
-      }
-    }
+    const [locationInfo, enrichment] = await Promise.all([
+      (async (): Promise<LogInsert["location_info"]> => {
+        if (!ctx.env.data.geo) return undefined;
+        try {
+          return (await ctx.env.data.geo.getGeoInfo(headers)) || undefined;
+        } catch (error) {
+          // Silently ignore geo lookup errors
+          console.warn("Failed to get geo information:", error);
+          return undefined;
+        }
+      })(),
+      resolveLogEnrichment(ctx, tenantId, params),
+    ]);
 
     const log: LogInsert = {
       type: params.type,
@@ -316,11 +410,11 @@ export async function logMessage(
       },
       isMobile: false,
       client_id: ctx.var.client_id,
-      client_name: "",
+      client_name: enrichment.client_name,
       user_id: params.userId || ctx.var.user_id || "",
       hostname: ctx.var.host || "",
-      user_name: ctx.var.username || params.username || "",
-      connection_id: "",
+      user_name: enrichment.user_name,
+      connection_id: enrichment.connection_id,
       connection: params.connection || ctx.var.connection || "",
       strategy: params.strategy || "",
       strategy_type: params.strategy_type || "",

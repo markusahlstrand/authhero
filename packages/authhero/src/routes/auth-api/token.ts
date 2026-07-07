@@ -45,6 +45,7 @@ import { getEnrichedClient, EnrichedClient } from "../../helpers/client";
 import { prefetchClientBundle } from "../../helpers/prefetch-client-bundle";
 import { isCimdClientId } from "../../helpers/cimd";
 import { getAuthUrl, getIssuer } from "../../variables";
+import { resolveConnectionName } from "../../helpers/connection";
 import { base64url } from "oslo/encoding";
 
 import { defineRoute } from "../../utils/define-route";
@@ -481,9 +482,26 @@ const postRoot = defineRoute({
     const successLogType = successLogTypeForGrant(body.grant_type);
     if (successLogType) {
       const executionId = ctx.var.action_execution_id;
+      const grantUser = grantResult.user;
+      // The connection/strategy actually used to authenticate: the login
+      // session's stored auth_connection/auth_strategy when the grant carries
+      // one (authorization_code), else the flow's explicit authConnection
+      // (refresh_token, passwordless), else the user's own connection.
+      const authStrategy = grantResult.loginSession?.auth_strategy;
       logMessage(ctx, grantResult.client.tenant.id, {
         type: successLogType,
-        userId: grantResult.user?.user_id,
+        userId: grantUser?.user_id,
+        username: grantUser
+          ? grantUser.email || grantUser.phone_number || grantUser.name
+          : undefined,
+        connection: resolveConnectionName({
+          loginSession: grantResult.loginSession,
+          authConnection: grantResult.authConnection,
+          user: grantUser,
+        }),
+        strategy: authStrategy?.strategy,
+        strategy_type: authStrategy?.strategy_type,
+        client_name: grantResult.client.name,
         scope: grantResult.authParams.scope,
         audience: grantResult.authParams.audience,
         ...(executionId ? { details: { execution_id: executionId } } : {}),

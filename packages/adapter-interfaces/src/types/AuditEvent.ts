@@ -80,6 +80,8 @@ export const auditEventInsertSchema = z.object({
   response: responseContextSchema.optional(),
 
   connection: z.string().optional(),
+  connection_id: z.string().optional(),
+  client_name: z.string().optional(),
   strategy: z.string().optional(),
   strategy_type: z.string().optional(),
   audience: z.string().optional(),

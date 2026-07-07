@@ -49,8 +49,8 @@ async function buildEnhancedEventObject(
     client: EnrichedClient;
     authParams?: any;
     authStrategy?: { strategy: string; strategy_type: string };
-    /** The connection name actually used to authenticate. */
-    authConnection?: string;
+    /** The resolved connection name actually used to authenticate. */
+    connection?: string;
   },
 ) {
   // Get user roles (both global and organization-specific)
@@ -68,19 +68,11 @@ async function buildEnhancedEventObject(
     console.error("Error fetching user roles:", error);
   }
 
-  // Resolve the connection actually used to authenticate — the authoritative
-  // `auth_connection` (recorded on the login session and recovered across SSO
-  // reuse), then any explicitly passed connection, then ctx, and only the
-  // primary identity's `user.connection` as a last resort. Using `user.connection`
-  // directly here was wrong for linked users / SSO re-issues, so hooks saw the
-  // primary identity's connection instead of the one actually used.
-  const connectionName =
-    resolveConnectionName({
-      loginSession,
-      authConnection: params.authConnection,
-      ctxConnection: ctx.var.connection,
-      user,
-    }) || user.connection;
+  // The connection actually used to authenticate is resolved once in
+  // `postUserLoginHook` (session sources first, the primary identity's
+  // `user.connection` only as a last resort) and passed in here, so the hook
+  // event and the success log can never drift apart.
+  const connectionName = params.connection;
 
   // Get connection information
   const connectionInfo = await getConnectionInfo(
@@ -246,18 +238,19 @@ export async function postUserLoginHook(
       ? StrategyType.SOCIAL
       : StrategyType.DATABASE;
   const strategy = params?.authStrategy?.strategy || user.connection || "";
-  // The log's `connection` is the connection actually used. Prefer the explicit
-  // auth strategy, then the authoritative `auth_connection` (recorded on the
-  // login session and recovered across SSO reuse — this is the only real signal
-  // when a flow records `auth_connection` but not `auth_strategy`, e.g. an OIDC
-  // login). Only fall back to the primary identity's `user.connection` when no
-  // real connection signal is available — that fallback is what caused SSO
-  // re-issues to mislabel linked-identity logins.
+  // The log's `connection` is the connection NAME actually used (e.g.
+  // "Okta-Warner"), never the strategy (e.g. "okta") — those only coincide for
+  // database/passwordless connections. Session sources win (correct even for
+  // linked users / SSO reuse); the primary identity's `user.connection` is the
+  // last resort — that fallback is what caused SSO re-issues to mislabel
+  // linked-identity logins.
   const connection =
-    params?.authStrategy?.strategy ||
-    params?.authConnection ||
-    user.connection ||
-    "";
+    resolveConnectionName({
+      loginSession,
+      authConnection: params?.authConnection,
+      ctxConnection: ctx.var.connection,
+      user,
+    }) || "";
 
   // SUCCESS_LOGIN is emitted in the `finally` below — deferred so we can embed
   // `details.execution_id` when post-login actions ran (matches Auth0's model
@@ -314,7 +307,7 @@ export async function postUserLoginHook(
               client: params.client,
               authParams: params.authParams,
               authStrategy: params.authStrategy,
-              authConnection: params.authConnection,
+              connection,
             },
           )
         : null;
@@ -511,6 +504,8 @@ export async function postUserLoginHook(
       type: LogTypes.SUCCESS_LOGIN,
       description: `Successful login for ${user.user_id}`,
       userId: user.user_id,
+      username: user.email || user.phone_number || user.name,
+      client_name: params?.client?.name,
       strategy_type,
       strategy,
       connection,

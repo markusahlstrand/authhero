@@ -17,7 +17,7 @@ export function getLogResponse(log: Database["logs"]): Log {
   const logResponse: Log = {
     ...log,
     client_id: log.client_id,
-    client_name: "",
+    client_name: log.client_name || "",
     auth0_client: tryParseJSON(log.auth0_client),
     details: tryParseJSON(log.details),
     isMobile: !!log.isMobile,

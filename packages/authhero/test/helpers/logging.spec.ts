@@ -84,6 +84,7 @@ describe("logging helper - geo functionality", () => {
       type: "s",
       description: "Test log with geo",
       userId: "test-user",
+      waitForCompletion: true,
       body: { test: "data" },
     });
 
@@ -114,6 +115,7 @@ describe("logging helper - geo functionality", () => {
       type: "s",
       description: "Test log without geo",
       userId: "test-user",
+      waitForCompletion: true,
     });
 
     // Verify that logs.create was called without location_info
@@ -140,6 +142,7 @@ describe("logging helper - geo functionality", () => {
       type: "s",
       description: "Test log without geo adapter",
       userId: "test-user",
+      waitForCompletion: true,
     });
 
     // Verify that logs.create was called without location_info
@@ -178,6 +181,7 @@ describe("logging helper - geo functionality", () => {
       type: "s",
       description: "Test log with geo error",
       userId: "test-user",
+      waitForCompletion: true,
     });
 
     // Verify that the warning was logged

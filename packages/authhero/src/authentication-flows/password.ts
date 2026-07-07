@@ -365,7 +365,24 @@ export async function passwordGrant(
     });
   }
 
-  ctx.set("connection", user.connection);
+  // The realm is the connection this login targets (defaults to the canonical
+  // "Username-Password-Authentication"). Legacy user records carry provider
+  // literals ("auth0"/"auth2") in `user.connection`, which must not leak into
+  // ctx.var.connection — it feeds the tenant logs and the session's persisted
+  // auth_connection. Resolve the realm against the client's connections so a
+  // tenant whose password connection has a custom name (e.g. "Password")
+  // records that name instead of the generic literal; when the match is
+  // ambiguous (multiple username-password connections) keep the realm as-is.
+  let targetConnection = client.connections.find((c) => c.name === realm);
+  if (!targetConnection && realm === Strategy.USERNAME_PASSWORD) {
+    const usernamePasswordConnections = client.connections.filter(
+      (c) => c.strategy === Strategy.USERNAME_PASSWORD,
+    );
+    if (usernamePasswordConnections.length === 1) {
+      targetConnection = usernamePasswordConnections[0];
+    }
+  }
+  ctx.set("connection", targetConnection?.name ?? realm);
   ctx.set("user_id", primaryUser.user_id);
 
   // Check failed login attempts from user_activity BEFORE validating password
