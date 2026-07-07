@@ -246,18 +246,19 @@ export async function postUserLoginHook(
       ? StrategyType.SOCIAL
       : StrategyType.DATABASE;
   const strategy = params?.authStrategy?.strategy || user.connection || "";
-  // The log's `connection` is the connection actually used. Prefer the explicit
-  // auth strategy, then the authoritative `auth_connection` (recorded on the
-  // login session and recovered across SSO reuse — this is the only real signal
-  // when a flow records `auth_connection` but not `auth_strategy`, e.g. an OIDC
-  // login). Only fall back to the primary identity's `user.connection` when no
-  // real connection signal is available — that fallback is what caused SSO
-  // re-issues to mislabel linked-identity logins.
+  // The log's `connection` is the connection NAME actually used (e.g.
+  // "Okta-Warner"), never the strategy (e.g. "okta") — those only coincide for
+  // database/passwordless connections. Session sources win (correct even for
+  // linked users / SSO reuse); the primary identity's `user.connection` is the
+  // last resort — that fallback is what caused SSO re-issues to mislabel
+  // linked-identity logins.
   const connection =
-    params?.authStrategy?.strategy ||
-    params?.authConnection ||
-    user.connection ||
-    "";
+    resolveConnectionName({
+      loginSession,
+      authConnection: params?.authConnection,
+      ctxConnection: ctx.var.connection,
+      user,
+    }) || "";
 
   // SUCCESS_LOGIN is emitted in the `finally` below — deferred so we can embed
   // `details.execution_id` when post-login actions ran (matches Auth0's model
@@ -511,6 +512,8 @@ export async function postUserLoginHook(
       type: LogTypes.SUCCESS_LOGIN,
       description: `Successful login for ${user.user_id}`,
       userId: user.user_id,
+      username: user.email || user.phone_number || user.name,
+      client_name: params?.client?.name,
       strategy_type,
       strategy,
       connection,

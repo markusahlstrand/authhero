@@ -7,6 +7,7 @@ import {
   User,
 } from "@authhero/adapter-interfaces";
 import { postUserLoginHook } from "../../src/hooks";
+import { flushBackgroundPromises } from "../../src/helpers/wait-until";
 import { Bindings, Variables } from "../../src/types";
 import { getTestServer } from "../helpers/test-server";
 
@@ -107,6 +108,10 @@ describe("postUserLoginHook → SUCCESS_LOGIN log carries details.execution_id",
         },
       );
 
+      // Bare Hono app — no outbox middleware, so flush the fire-and-forget
+      // log write before responding or the assertions below race it.
+      await flushBackgroundPromises(ctx);
+
       // Surface ctx.var.action_execution_id so we can sanity-check that the
       // executor pipeline actually persisted an execution (otherwise the
       // log-assertion below would silently pass for the wrong reason).
@@ -173,6 +178,9 @@ describe("postUserLoginHook → SUCCESS_LOGIN log carries details.execution_id",
       ctx.set("useragent", "test");
 
       await postUserLoginHook(ctx, server.env.data, "tenantId", user);
+      // Bare Hono app — no outbox middleware, so flush the fire-and-forget
+      // log write before responding or the assertions below race it.
+      await flushBackgroundPromises(ctx);
       return ctx.json({ ok: true });
     });
 

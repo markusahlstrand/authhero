@@ -364,7 +364,12 @@ export async function passwordGrant(
     });
   }
 
-  ctx.set("connection", user.connection);
+  // The realm is the connection this login targets (defaults to the canonical
+  // "Username-Password-Authentication"). Legacy user records carry provider
+  // literals ("auth0"/"auth2") in `user.connection`, which must not leak into
+  // ctx.var.connection — it feeds the tenant logs and the session's persisted
+  // auth_connection.
+  ctx.set("connection", realm);
   ctx.set("user_id", primaryUser.user_id);
 
   // Check failed login attempts from user_activity BEFORE validating password
