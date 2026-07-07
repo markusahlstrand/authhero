@@ -47,7 +47,7 @@ function buildSocialButtons(
   const { connections } = context;
 
   const socialConnections = connections.filter(
-    (c) => c.strategy !== Strategy.USERNAME_PASSWORD,
+    (c) => !isDatabaseConnectionStrategy(c.strategy),
   );
 
   if (socialConnections.length === 0) {
