@@ -49,8 +49,8 @@ async function buildEnhancedEventObject(
     client: EnrichedClient;
     authParams?: any;
     authStrategy?: { strategy: string; strategy_type: string };
-    /** The connection name actually used to authenticate. */
-    authConnection?: string;
+    /** The resolved connection name actually used to authenticate. */
+    connection?: string;
   },
 ) {
   // Get user roles (both global and organization-specific)
@@ -68,19 +68,11 @@ async function buildEnhancedEventObject(
     console.error("Error fetching user roles:", error);
   }
 
-  // Resolve the connection actually used to authenticate — the authoritative
-  // `auth_connection` (recorded on the login session and recovered across SSO
-  // reuse), then any explicitly passed connection, then ctx, and only the
-  // primary identity's `user.connection` as a last resort. Using `user.connection`
-  // directly here was wrong for linked users / SSO re-issues, so hooks saw the
-  // primary identity's connection instead of the one actually used.
-  const connectionName =
-    resolveConnectionName({
-      loginSession,
-      authConnection: params.authConnection,
-      ctxConnection: ctx.var.connection,
-      user,
-    }) || user.connection;
+  // The connection actually used to authenticate is resolved once in
+  // `postUserLoginHook` (session sources first, the primary identity's
+  // `user.connection` only as a last resort) and passed in here, so the hook
+  // event and the success log can never drift apart.
+  const connectionName = params.connection;
 
   // Get connection information
   const connectionInfo = await getConnectionInfo(
@@ -315,7 +307,7 @@ export async function postUserLoginHook(
               client: params.client,
               authParams: params.authParams,
               authStrategy: params.authStrategy,
-              authConnection: params.authConnection,
+              connection,
             },
           )
         : null;
