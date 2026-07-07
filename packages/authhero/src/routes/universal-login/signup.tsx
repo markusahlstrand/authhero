@@ -2,7 +2,10 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
 import bcryptjs from "bcryptjs";
 import i18next from "i18next";
-import { Strategy } from "@authhero/adapter-interfaces";
+import {
+  Strategy,
+  isDatabaseConnectionStrategy,
+} from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
 import SignupPage from "../../components/SignUpPage";
@@ -142,8 +145,8 @@ const postRoot = defineRoute({
       }
 
       // Find the password connection from the client's connections
-      const passwordConnection = client.connections.find(
-        (c) => c.strategy === Strategy.USERNAME_PASSWORD,
+      const passwordConnection = client.connections.find((c) =>
+        isDatabaseConnectionStrategy(c.strategy),
       );
       const connection = passwordConnection?.name || Strategy.USERNAME_PASSWORD;
       ctx.set("connection", connection);

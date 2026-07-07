@@ -11,8 +11,8 @@ import { validateSignupEmail } from "../../hooks";
 import { logMessage } from "../../helpers/logging";
 import {
   LogTypes,
-  Strategy,
   getConnectionIdentifierConfig,
+  isDatabaseConnectionStrategy,
 } from "@authhero/adapter-interfaces";
 import i18next from "i18next";
 import generateOTP from "../../utils/otp";
@@ -179,8 +179,8 @@ const postRoot = defineRoute({
     }
 
     // Check if the password connection has username identifier enabled
-    const passwordConnection = client.connections.find(
-      (c) => c.strategy === Strategy.USERNAME_PASSWORD,
+    const passwordConnection = client.connections.find((c) =>
+      isDatabaseConnectionStrategy(c.strategy),
     );
     const identifierConfig = getConnectionIdentifierConfig(passwordConnection);
     const requiresUsername = identifierConfig.usernameIdentifierActive;
@@ -253,7 +253,7 @@ const postRoot = defineRoute({
     if (!hasValidConnection && connectionType === "email" && username) {
       const hasMigrationConnection = client.connections.some(
         (c) =>
-          c.strategy === Strategy.USERNAME_PASSWORD &&
+          isDatabaseConnectionStrategy(c.strategy) &&
           c.options?.import_mode === true &&
           typeof c.options?.configuration === "object" &&
           c.options.configuration !== null,

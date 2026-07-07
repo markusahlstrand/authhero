@@ -2,6 +2,7 @@ import {
   AuthParams,
   Strategy,
   StrategyType,
+  isDatabaseConnectionStrategy,
 } from "@authhero/adapter-interfaces";
 import { JSONHTTPException } from "../errors/json-http-exception";
 import { Context } from "hono";
@@ -73,10 +74,9 @@ export async function ticketAuth(
     (isUsernamePasswordProvider(provider)
       ? Strategy.USERNAME_PASSWORD
       : Strategy.EMAIL);
-  const strategy_type =
-    strategy === Strategy.USERNAME_PASSWORD
-      ? StrategyType.DATABASE
-      : StrategyType.PASSWORDLESS;
+  const strategy_type = isDatabaseConnectionStrategy(strategy)
+    ? StrategyType.DATABASE
+    : StrategyType.PASSWORDLESS;
 
   let user =
     realm === Strategy.USERNAME_PASSWORD

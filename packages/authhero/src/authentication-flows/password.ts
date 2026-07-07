@@ -10,6 +10,7 @@ import {
   Strategy,
   StrategyType,
   User,
+  isDatabaseConnectionStrategy,
 } from "@authhero/adapter-interfaces";
 import { EnrichedClient } from "../helpers/client";
 import { Bindings, GrantFlowUserResult, Variables } from "../types";
@@ -310,8 +311,8 @@ export async function passwordGrant(
     // (e.g. "Password") would never resolve, so fall back to matching by
     // strategy on the client's connections in that case.
     if (!realmDbConnection && realm === Strategy.USERNAME_PASSWORD) {
-      const usernamePasswordConnections = client.connections.filter(
-        (c) => c.strategy === Strategy.USERNAME_PASSWORD,
+      const usernamePasswordConnections = client.connections.filter((c) =>
+        isDatabaseConnectionStrategy(c.strategy),
       );
       if (usernamePasswordConnections.length > 1) {
         throw new JSONHTTPException(400, {
@@ -592,8 +593,8 @@ export async function requestPasswordReset(
   });
 
   if (!existingUser) {
-    const passwordConnection = client.connections.find(
-      (c) => c.strategy === Strategy.USERNAME_PASSWORD,
+    const passwordConnection = client.connections.find((c) =>
+      isDatabaseConnectionStrategy(c.strategy),
     );
     const validation = await validateSignupEmail(
       ctx,

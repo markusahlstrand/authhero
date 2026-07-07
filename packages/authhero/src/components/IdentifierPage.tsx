@@ -5,6 +5,7 @@ import {
   Branding,
   Strategy,
   getConnectionIdentifierConfig,
+  isDatabaseConnectionStrategy,
 } from "@authhero/adapter-interfaces";
 import { EnrichedClient } from "../helpers/client";
 import Layout from "./Layout";
@@ -49,8 +50,8 @@ const IdentifierPage: FC<Props> = ({
   const showPhoneInput = connectionStrategies.includes(Strategy.SMS);
 
   // Check if the password connection has username identifier enabled
-  const passwordConnection = client.connections.find(
-    (c) => c.strategy === Strategy.USERNAME_PASSWORD,
+  const passwordConnection = client.connections.find((c) =>
+    isDatabaseConnectionStrategy(c.strategy),
   );
   const requiresUsername =
     getConnectionIdentifierConfig(passwordConnection).usernameIdentifierActive;

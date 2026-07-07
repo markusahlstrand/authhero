@@ -1,6 +1,11 @@
 import { HTTPException } from "hono/http-exception";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { AuthParams, LogTypes, Strategy } from "@authhero/adapter-interfaces";
+import {
+  AuthParams,
+  LogTypes,
+  Strategy,
+  isDatabaseConnectionStrategy,
+} from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../../types";
 import { logMessage } from "../../helpers/logging";
 import {
@@ -65,8 +70,8 @@ const postSignup = defineRoute({
     setTenantId(ctx, client.tenant.id);
 
     // Find the password connection from the client's connections to get the correct password policy
-    const passwordConnection = client.connections.find(
-      (c) => c.strategy === Strategy.USERNAME_PASSWORD,
+    const passwordConnection = client.connections.find((c) =>
+      isDatabaseConnectionStrategy(c.strategy),
     );
     const connectionName =
       passwordConnection?.name || Strategy.USERNAME_PASSWORD;

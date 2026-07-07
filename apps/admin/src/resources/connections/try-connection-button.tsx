@@ -24,7 +24,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Strategy } from "@/utils/Strategy";
+import { isDatabaseConnectionStrategy } from "@/utils/Strategy";
 
 interface ConnectionRecord {
   id: string;
@@ -147,7 +147,7 @@ export function TryConnectionButton() {
   const popupRef = useRef<Window | null>(null);
   const popupOriginRef = useRef<string | null>(null);
 
-  const isDb = record?.strategy === Strategy.USERNAME_PASSWORD;
+  const isDb = isDatabaseConnectionStrategy(record?.strategy);
 
   const callTry = useCallback(
     async (body?: { username?: string; password?: string }) => {

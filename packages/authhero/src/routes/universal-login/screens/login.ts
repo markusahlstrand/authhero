@@ -12,6 +12,7 @@ import {
   getConnectionIdentifierConfig,
   Strategy,
   StrategyType,
+  isDatabaseConnectionStrategy,
 } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import {
@@ -46,7 +47,7 @@ function buildSocialButtons(
   const { connections } = context;
 
   const socialConnections = connections.filter(
-    (c) => c.strategy !== Strategy.USERNAME_PASSWORD,
+    (c) => !isDatabaseConnectionStrategy(c.strategy),
   );
 
   if (socialConnections.length === 0) {
@@ -107,8 +108,8 @@ function buildSocialButtons(
   };
 
   // Add divider if we have social buttons and a password connection
-  const hasPasswordConnection = connections.some(
-    (c) => c.strategy === Strategy.USERNAME_PASSWORD,
+  const hasPasswordConnection = connections.some((c) =>
+    isDatabaseConnectionStrategy(c.strategy),
   );
 
   if (hasPasswordConnection) {
@@ -153,8 +154,8 @@ export async function loginScreen(
   const socialButtonCount = socialButtons.length;
 
   // Check if we have a password connection
-  const passwordConnection = context.connections.find(
-    (c) => c.strategy === Strategy.USERNAME_PASSWORD,
+  const passwordConnection = context.connections.find((c) =>
+    isDatabaseConnectionStrategy(c.strategy),
   );
   const hasPasswordConnection = !!passwordConnection;
   const identifierConfig = getConnectionIdentifierConfig(passwordConnection);
@@ -491,8 +492,8 @@ export const loginScreenDefinition: ScreenDefinition = {
       );
 
       // Check if the password connection has username identifier enabled
-      const passwordConnection = client.connections.find(
-        (c) => c.strategy === Strategy.USERNAME_PASSWORD,
+      const passwordConnection = client.connections.find((c) =>
+        isDatabaseConnectionStrategy(c.strategy),
       );
       const identifierConfig =
         getConnectionIdentifierConfig(passwordConnection);

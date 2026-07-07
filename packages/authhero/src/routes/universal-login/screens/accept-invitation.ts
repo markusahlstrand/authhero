@@ -14,7 +14,11 @@ import type {
   FormNodeComponent,
   User,
 } from "@authhero/adapter-interfaces";
-import { LogTypes, Strategy } from "@authhero/adapter-interfaces";
+import {
+  LogTypes,
+  Strategy,
+  isDatabaseConnectionStrategy,
+} from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { createTranslation } from "../../../i18n";
 import {
@@ -261,8 +265,8 @@ export const acceptInvitationScreenDefinition: ScreenDefinition = {
         };
       }
 
-      const passwordConnection = client.connections.find(
-        (c) => c.strategy === Strategy.USERNAME_PASSWORD,
+      const passwordConnection = client.connections.find((c) =>
+        isDatabaseConnectionStrategy(c.strategy),
       );
       const connection = passwordConnection?.name || Strategy.USERNAME_PASSWORD;
 

@@ -7,7 +7,7 @@ import {
 } from "@/components/admin";
 import { useWatch } from "react-hook-form";
 import { SecretInput } from "@/common/SecretInput";
-import { Strategy } from "@/utils/Strategy";
+import { Strategy, isDatabaseConnectionStrategy } from "@/utils/Strategy";
 import {
   Card,
   CardContent,
@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/card";
 
 const isDbConnection = (strategy?: string) =>
-  strategy === Strategy.USERNAME_PASSWORD;
+  isDatabaseConnectionStrategy(strategy);
 
 // Strategies that don't have a registered redirect handler in authhero's
 // findHrdConnection eligibility check, so HRD can't route to them.

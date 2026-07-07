@@ -224,7 +224,10 @@ describe("callback", () => {
       throw new Error("No location header");
     }
     const redirectUri = new URL(location);
-    expect(redirectUri.pathname).toEqual("/u2/login/identifier");
+    // The fixture tenant has identifier_first: false (the default) and a
+    // password connection (legacy "auth2" strategy, now recognized by the
+    // tolerant matcher), so errors land on the combined login screen.
+    expect(redirectUri.pathname).toEqual("/u2/login");
     expect(redirectUri.searchParams.get("error")).toEqual("access_denied");
     expect(redirectUri.searchParams.get("error_description")).toEqual(
       "Signup disabled",

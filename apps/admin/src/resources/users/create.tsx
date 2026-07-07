@@ -6,22 +6,9 @@ import {
   BooleanInput,
 } from "@/components/admin";
 import { useGetList, useResourceContext } from "ra-core";
-import { Strategy } from "@/utils/Strategy";
+import { Strategy, isDatabaseConnectionStrategy } from "@/utils/Strategy";
 
 const USERNAME_PASSWORD_PROVIDER = "auth0";
-
-// Legacy tenants persist database connections with the strategy field set
-// to a provider literal ("auth2", or "auth0" after migration) instead of
-// the canonical Auth0 strategy name. All of them are password connections,
-// and none of these literals may be forwarded as the provider — new users
-// must never be created with the legacy "auth2" provider.
-function isPasswordStrategy(strategy: string): boolean {
-  return (
-    strategy === Strategy.USERNAME_PASSWORD ||
-    strategy === "auth2" ||
-    strategy === "auth0"
-  );
-}
 
 interface ConnectionRecord {
   name: string;
@@ -42,7 +29,7 @@ export function UserCreate() {
     if (data.connection && connections) {
       const connection = connections.find((c) => c.name === data.connection);
       if (connection) {
-        if (isPasswordStrategy(connection.strategy)) {
+        if (isDatabaseConnectionStrategy(connection.strategy)) {
           data.provider = USERNAME_PASSWORD_PROVIDER;
           // Store the canonical Auth0 connection name regardless of what the
           // tenant's database connection happens to be named (e.g. "password"),

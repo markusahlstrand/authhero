@@ -5,7 +5,10 @@
  */
 
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
-import { LoginSessionState, Strategy } from "@authhero/adapter-interfaces";
+import {
+  LoginSessionState,
+  isDatabaseConnectionStrategy,
+} from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { getLoginPath } from "./types";
 import { escapeHtml } from "../sanitization-utils";
@@ -93,8 +96,8 @@ export async function emailOtpChallengeScreen(
 
   // Determine the back link: if there's no password connection, the user
   // is in a passwordless flow and should go back to the passwordless identifier
-  const hasPasswordConnection = context.connections.some(
-    (c) => c.strategy === Strategy.USERNAME_PASSWORD,
+  const hasPasswordConnection = context.connections.some((c) =>
+    isDatabaseConnectionStrategy(c.strategy),
   );
   const backPath = hasPasswordConnection
     ? await getLoginPath(context)

@@ -9,7 +9,10 @@ import type {
   FormNodeComponent,
   User,
 } from "@authhero/adapter-interfaces";
-import { Strategy } from "@authhero/adapter-interfaces";
+import {
+  Strategy,
+  isDatabaseConnectionStrategy,
+} from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { getLoginPath } from "./types";
 import { createTranslation } from "../../../i18n";
@@ -39,8 +42,8 @@ export async function signupScreen(
   const { m } = createTranslation("signup", "signup", locale, customText);
 
   // Check if we have password signup available
-  const hasPasswordSignup = context.connections.some(
-    (c) => c.strategy === Strategy.USERNAME_PASSWORD,
+  const hasPasswordSignup = context.connections.some((c) =>
+    isDatabaseConnectionStrategy(c.strategy),
   );
 
   const components: FormNodeComponent[] = [];
@@ -228,8 +231,8 @@ export const signupScreenDefinition: ScreenDefinition = {
       }
 
       // Find the password connection from the client's connections
-      const passwordConnection = client.connections.find(
-        (c) => c.strategy === Strategy.USERNAME_PASSWORD,
+      const passwordConnection = client.connections.find((c) =>
+        isDatabaseConnectionStrategy(c.strategy),
       );
       const connection = passwordConnection?.name || Strategy.USERNAME_PASSWORD;
 
