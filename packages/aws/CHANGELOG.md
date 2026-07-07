@@ -1,5 +1,19 @@
 # @authhero/aws-adapter
 
+## 0.38.0
+
+### Minor Changes
+
+- ab4c324: Remove `themes.list` from the ThemesAdapter interface and its kysely/drizzle/aws implementations. Auth0 only supports a single "default" theme per tenant and nothing besides the tenant export used `list`, so the export now reads `themes.get(tenant_id, "default")` instead. This also fixes tenant export failing with `themes.list is not a function` against deployments that override the themes adapter with a partial implementation (e.g. a vendor-settings-backed one that only implements `get`/`create`/`update`/`remove`).
+
+### Patch Changes
+
+- Updated dependencies [378e918]
+- Updated dependencies [e358192]
+- Updated dependencies [ab4c324]
+  - @authhero/adapter-interfaces@3.8.0
+  - @authhero/proxy@0.8.4
+
 ## 0.37.5
 
 ### Patch Changes
