@@ -19,7 +19,7 @@ interface BatchCapableDb {
   batch(statements: AtomicStatements): Promise<unknown[]>;
 }
 
-function hasBatch(db: DrizzleDb): db is DrizzleDb & BatchCapableDb {
+export function hasBatch(db: DrizzleDb): db is DrizzleDb & BatchCapableDb {
   const candidate: unknown = db;
   return (
     typeof candidate === "object" &&

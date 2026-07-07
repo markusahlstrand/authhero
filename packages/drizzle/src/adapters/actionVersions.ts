@@ -1,4 +1,4 @@
-import { eq, and, desc, count as countFn, sql } from "drizzle-orm";
+import { eq, and, desc, count as countFn } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import type {
   ActionVersion,
@@ -9,6 +9,7 @@ import type {
 } from "@authhero/adapter-interfaces";
 import { actionVersions } from "../schema/sqlite";
 import { parseJsonIfString } from "../helpers/transform";
+import { runAtomic, type AtomicStatementList } from "./atomic";
 import type { DrizzleDb } from "./types";
 
 function rowToVersion(row: any): ActionVersion {
@@ -27,7 +28,8 @@ function rowToVersion(row: any): ActionVersion {
     ...rest,
     runtime: runtime ?? undefined,
     deployed: !!deployed,
-    secrets: parseJsonIfString<Array<{ name: string; value?: string }>>(secrets),
+    secrets:
+      parseJsonIfString<Array<{ name: string; value?: string }>>(secrets),
     dependencies:
       parseJsonIfString<Array<{ name: string; version: string }>>(dependencies),
     supported_triggers:
@@ -51,65 +53,61 @@ export function createActionVersionsAdapter(
       const id = `ver_${nanoid()}`;
       const deployed = version.deployed !== false;
 
-      // Wrap latest-lookup, deployed-clear and insert in a transaction so the
-      // sequential per-action `number` can't observe a half-applied state. The
-      // unique (tenant_id, action_id, number) index still rejects any race that
-      // beats the read. Manual BEGIN/COMMIT because Drizzle's db.transaction()
-      // doesn't support async callbacks with better-sqlite3.
-      await db.run(sql`BEGIN`);
-      let next: number;
-      try {
-        const latest = await db
-          .select({ number: actionVersions.number })
-          .from(actionVersions)
-          .where(
-            and(
-              eq(actionVersions.tenant_id, tenant_id),
-              eq(actionVersions.action_id, version.action_id),
-            ),
-          )
-          .orderBy(desc(actionVersions.number))
-          .limit(1)
-          .get();
+      // Read the latest `number` first, then apply the deployed-clear and
+      // insert as one atomic unit via runAtomic (db.batch() on D1, manual
+      // BEGIN/COMMIT on better-sqlite3 — D1 rejects interactive BEGIN). The
+      // unique (tenant_id, action_id, number) index rejects any race that
+      // beats the read.
+      const latest = await db
+        .select({ number: actionVersions.number })
+        .from(actionVersions)
+        .where(
+          and(
+            eq(actionVersions.tenant_id, tenant_id),
+            eq(actionVersions.action_id, version.action_id),
+          ),
+        )
+        .orderBy(desc(actionVersions.number))
+        .limit(1)
+        .get();
 
-        next = (latest?.number ?? 0) + 1;
+      const next = (latest?.number ?? 0) + 1;
 
-        if (deployed) {
-          await db
-            .update(actionVersions)
-            .set({ deployed: 0, updated_at_ts: now })
-            .where(
-              and(
-                eq(actionVersions.tenant_id, tenant_id),
-                eq(actionVersions.action_id, version.action_id),
+      const insertStatement = db.insert(actionVersions).values({
+        id,
+        tenant_id,
+        action_id: version.action_id,
+        number: next,
+        code: version.code,
+        runtime: version.runtime ?? null,
+        secrets: version.secrets ? JSON.stringify(version.secrets) : null,
+        dependencies: version.dependencies
+          ? JSON.stringify(version.dependencies)
+          : null,
+        supported_triggers: version.supported_triggers
+          ? JSON.stringify(version.supported_triggers)
+          : null,
+        deployed: deployed ? 1 : 0,
+        created_at_ts: now,
+        updated_at_ts: now,
+      });
+
+      const statements: AtomicStatementList = deployed
+        ? [
+            db
+              .update(actionVersions)
+              .set({ deployed: 0, updated_at_ts: now })
+              .where(
+                and(
+                  eq(actionVersions.tenant_id, tenant_id),
+                  eq(actionVersions.action_id, version.action_id),
+                ),
               ),
-            );
-        }
+            insertStatement,
+          ]
+        : [insertStatement];
 
-        await db.insert(actionVersions).values({
-          id,
-          tenant_id,
-          action_id: version.action_id,
-          number: next,
-          code: version.code,
-          runtime: version.runtime ?? null,
-          secrets: version.secrets ? JSON.stringify(version.secrets) : null,
-          dependencies: version.dependencies
-            ? JSON.stringify(version.dependencies)
-            : null,
-          supported_triggers: version.supported_triggers
-            ? JSON.stringify(version.supported_triggers)
-            : null,
-          deployed: deployed ? 1 : 0,
-          created_at_ts: now,
-          updated_at_ts: now,
-        });
-
-        await db.run(sql`COMMIT`);
-      } catch (e) {
-        await db.run(sql`ROLLBACK`);
-        throw e;
-      }
+      await runAtomic(db, statements);
 
       return {
         id,
