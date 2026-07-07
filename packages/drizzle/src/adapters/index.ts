@@ -48,6 +48,7 @@ import { createSessionCleanup } from "./cleanup";
 import { createTenantOperationsAdapter } from "./tenantOperations";
 import { createTenantOperationEventsAdapter } from "./tenantOperationEvents";
 import { createRolloutsAdapter } from "./rollouts";
+import { hasBatch } from "./atomic";
 import type { DrizzleDb } from "./types";
 
 export interface CreateAdaptersOptions {
@@ -128,14 +129,18 @@ export default function createAdapters(
       if (databaseOptions.useTransactions === false) {
         return fn(adapters);
       }
-      // Use manual BEGIN/COMMIT/ROLLBACK so we can properly await the
-      // async callback before deciding whether to commit or roll back.
-      // Drizzle's built-in db.transaction() runs the callback synchronously
-      // for better-sqlite3, which means async throws don't trigger rollback.
-      // NOTE: this pattern works for sync drivers only. For D1 support, the
-      // per-adapter call sites should migrate to db.batch() in a follow-up PR;
-      // this generic wrapper cannot be expressed as a batch because it takes
-      // an arbitrary async callback.
+      // D1 rejects interactive BEGIN/COMMIT outright, and an arbitrary async
+      // callback can't be expressed as a db.batch(). On batch-capable (D1)
+      // drivers we therefore run the callback directly, non-atomically — the
+      // same as useTransactions: false. Multi-statement writes inside the
+      // individual adapters stay atomic via runAtomic's batch path.
+      if (hasBatch(db)) {
+        return fn(adapters);
+      }
+      // Sync drivers (better-sqlite3): manual BEGIN/COMMIT/ROLLBACK so we can
+      // properly await the async callback before deciding whether to commit
+      // or roll back. Drizzle's built-in db.transaction() runs the callback
+      // synchronously there, which means async throws don't trigger rollback.
       await db.run(sql`BEGIN`);
       try {
         const result = await fn(adapters);
