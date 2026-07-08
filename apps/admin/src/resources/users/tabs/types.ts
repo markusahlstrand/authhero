@@ -18,6 +18,15 @@ export interface UserRecord extends RaRecord {
   family_name?: string;
   nickname?: string;
   picture?: string;
+  birthdate?: string;
+  address?: {
+    formatted?: string;
+    street_address?: string;
+    locality?: string;
+    region?: string;
+    postal_code?: string;
+    country?: string;
+  };
   connection?: string;
   user_id?: string;
   last_login?: string;
