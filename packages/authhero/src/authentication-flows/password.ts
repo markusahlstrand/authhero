@@ -375,8 +375,8 @@ export async function passwordGrant(
   // ambiguous (multiple username-password connections) keep the realm as-is.
   let targetConnection = client.connections.find((c) => c.name === realm);
   if (!targetConnection && realm === Strategy.USERNAME_PASSWORD) {
-    const usernamePasswordConnections = client.connections.filter(
-      (c) => c.strategy === Strategy.USERNAME_PASSWORD,
+    const usernamePasswordConnections = client.connections.filter((c) =>
+      isDatabaseConnectionStrategy(c.strategy),
     );
     if (usernamePasswordConnections.length === 1) {
       targetConnection = usernamePasswordConnections[0];
