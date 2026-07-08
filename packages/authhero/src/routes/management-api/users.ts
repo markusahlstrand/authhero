@@ -358,6 +358,22 @@ const postRoot = defineRoute({
       provider: providedProvider,
       connection,
       password,
+      // Pulled out so they don't leak through ...profileFields below:
+      //   user_id/provider are re-derived, verify_email is never persisted,
+      //   last_ip/is_social/last_login are set by the server, and
+      //   registration_completed_at is an internal self-healing flag callers
+      //   must not be able to spoof.
+      user_id: _providedUserId,
+      verify_email: _verifyEmail,
+      last_ip: _lastIp,
+      is_social: _isSocial,
+      last_login: _lastLogin,
+      registration_completed_at: _registrationCompletedAt,
+      // Everything else on userInsertSchema (given_name, family_name,
+      // nickname, picture, app_metadata, user_metadata, address, birthdate,
+      // etc.) is forwarded verbatim so it is actually persisted instead of
+      // being silently dropped.
+      ...profileFields
     } = body;
 
     // Look up the connection to derive the provider
@@ -399,6 +415,9 @@ const postRoot = defineRoute({
       // ctx.env.data is already wrapped with hooks by the management API middleware,
       // so we can use it directly to enable automatic account linking
       const userToCreate = {
+        // Forward the remaining validated profile fields first; the explicit
+        // keys below take precedence over anything with the same name.
+        ...profileFields,
         email,
         user_id,
         name: name || email || phone_number,

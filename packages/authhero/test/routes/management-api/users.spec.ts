@@ -151,6 +151,102 @@ describe("users management API endpoint", () => {
       ]);
     });
 
+    it("should persist the full profile on create instead of dropping fields", async () => {
+      const token = await getAdminToken();
+
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+
+      const createUserResponse = await managementClient.users.$post(
+        {
+          json: {
+            email: "full-profile@example.com",
+            connection: "email",
+            given_name: "Ada",
+            family_name: "Lovelace",
+            nickname: "ada",
+            picture: "https://example.com/ada.png",
+            locale: "en-GB",
+            gender: "female",
+            birthdate: "1815-12-10",
+            zoneinfo: "Europe/London",
+            website: "https://example.com/ada",
+            middle_name: "Augusta",
+            preferred_username: "countess",
+            app_metadata: { plan: "pro" },
+            user_metadata: { favouriteColor: "green" },
+            address: {
+              country: "United Kingdom",
+              locality: "London",
+            },
+          },
+          header: {
+            "tenant-id": "tenantId",
+          },
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      expect(createUserResponse.status).toBe(201);
+
+      const newUser = await createUserResponse.json();
+
+      // The create response should echo back every profile field, not just
+      // the previously-whitelisted subset.
+      expect(newUser.given_name).toBe("Ada");
+      expect(newUser.family_name).toBe("Lovelace");
+      expect(newUser.nickname).toBe("ada");
+      expect(newUser.picture).toBe("https://example.com/ada.png");
+      expect(newUser.locale).toBe("en-GB");
+      expect(newUser.gender).toBe("female");
+      expect(newUser.birthdate).toBe("1815-12-10");
+      expect(newUser.zoneinfo).toBe("Europe/London");
+      expect(newUser.website).toBe("https://example.com/ada");
+      expect(newUser.middle_name).toBe("Augusta");
+      expect(newUser.preferred_username).toBe("countess");
+      expect(newUser.app_metadata).toEqual({ plan: "pro" });
+      expect(newUser.user_metadata).toEqual({ favouriteColor: "green" });
+      expect(newUser.address).toEqual({
+        country: "United Kingdom",
+        locality: "London",
+      });
+
+      // And the fields should actually be persisted, not just reflected.
+      const getUserResponse = await managementClient.users[":user_id"].$get(
+        {
+          param: { user_id: newUser.user_id },
+          header: {
+            "tenant-id": "tenantId",
+          },
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      expect(getUserResponse.status).toBe(200);
+
+      const fetchedUser = await getUserResponse.json();
+      if (Array.isArray(fetchedUser)) {
+        throw new Error("Expected a single user");
+      }
+
+      expect(fetchedUser.given_name).toBe("Ada");
+      expect(fetchedUser.family_name).toBe("Lovelace");
+      expect(fetchedUser.app_metadata).toEqual({ plan: "pro" });
+      expect(fetchedUser.user_metadata).toEqual({ favouriteColor: "green" });
+      expect(fetchedUser.address).toEqual({
+        country: "United Kingdom",
+        locality: "London",
+      });
+    });
+
     it("should handle provider-prefixed user_id without double-prefixing", async () => {
       const token = await getAdminToken();
       const { managementApp, env } = await getTestServer();

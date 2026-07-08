@@ -168,7 +168,12 @@ export function create(db: Kysely<Database>) {
           ? sqlUser.phone_verified === 1
           : undefined,
       is_social: sqlUser.is_social === 1,
-      address: user.address, // Return original address object, not serialized string
+      // Return the original object values, not the serialized strings written
+      // to the row — so the create response matches what get()/list() return
+      // (and Auth0) instead of leaking JSON strings.
+      app_metadata: user.app_metadata,
+      user_metadata: user.user_metadata,
+      address: user.address,
     };
   };
 }
