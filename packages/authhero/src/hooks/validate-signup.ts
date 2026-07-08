@@ -13,6 +13,9 @@ import {
 } from "./webhooks";
 import { createTokenAPI } from "./helpers/token-api";
 
+// Matches WebhookDestination's default delivery timeout.
+const VALIDATE_SIGNUP_WEBHOOK_TIMEOUT_MS = 10_000;
+
 /**
  * Validates if an email can be used for signup based on client settings.
  * This is a lightweight check that can be done early (e.g., on identifier page)
@@ -144,20 +147,33 @@ export async function validateSignupEmail(
       // Create service token for webhook authentication
       const token = await createServiceToken(ctx, client.tenant.id, "webhook");
 
-      const response = await fetch(validateSignupEmailWebhook.url, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token.access_token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          tenant_id: client.tenant.id,
-          email,
-          connection,
-          client_id: client.client_id,
-          trigger_id: "validate-registration-username",
-        }),
-      });
+      // Guard against a slow upstream blocking every identifier-page GET —
+      // mirror WebhookDestination's 10s delivery timeout.
+      const controller = new AbortController();
+      const timer = setTimeout(
+        () => controller.abort(),
+        VALIDATE_SIGNUP_WEBHOOK_TIMEOUT_MS,
+      );
+      let response: Response;
+      try {
+        response = await fetch(validateSignupEmailWebhook.url, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token.access_token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            tenant_id: client.tenant.id,
+            email,
+            connection,
+            client_id: client.client_id,
+            trigger_id: "validate-registration-username",
+          }),
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timer);
+      }
 
       if (!response.ok) {
         const body = await response.text();
