@@ -45,6 +45,8 @@ describe("on-post-user-registration-hook", () => {
     // The hook should fire once when the user is created
     expect(events.length).toBe(1);
     expect(events[0]?.user.email).toBe("foo2@example.com");
+    // The event should carry the tenant, matching update/deletion hooks
+    expect(events[0]?.tenant).toEqual({ id: "tenantId" });
   });
 
   it("should fire only once when two creates race for the same user_id", async () => {
