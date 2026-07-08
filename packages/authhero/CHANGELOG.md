@@ -1,5 +1,13 @@
 # authhero
 
+## 8.17.3
+
+### Patch Changes
+
+- 66dc7b2: Forward `tenant: { id }` to the pre- and post-user-registration hook events, matching the update and deletion hooks. Consumers no longer need to fall back to `event.ctx.var.tenant_id`.
+- 7a5d763: Resolve the password realm against connections with the canonical "auth0" strategy (and other legacy spellings), not just the literal "Username-Password-Authentication" strategy. Tenants whose database connection uses a custom name with strategy "auth0" logged password logins with the generic connection literal and an empty connection_id.
+- 5dddd72: Persist the full user profile on `POST /users`. The management-api create handler previously hand-copied a whitelist of fields and silently dropped the rest (`given_name`, `family_name`, `nickname`, `picture`, `locale`, `gender`, `birthdate`, `zoneinfo`, `website`, `middle_name`, `preferred_username`, `app_metadata`, `user_metadata`, `address`, etc.) even though they are valid on the schema and the adapter already stores them — forcing a create-then-PATCH workaround. It now forwards all validated profile fields, matching Auth0 and the `PATCH /users` behaviour. Also fixes the kysely adapter's `create` to return `app_metadata`/`user_metadata` as objects (not serialized JSON strings) so the create response matches `get`/`list`.
+
 ## 8.17.2
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @authhero/admin
 
+## 0.11.3
+
+### Patch Changes
+
+- c72ddd2: Fix the connection create form so the "Password" option sets the strategy to the canonical Auth0 database value `auth0` instead of the connection name `Username-Password-Authentication`.
+
 ## 0.11.2
 
 ### Patch Changes
