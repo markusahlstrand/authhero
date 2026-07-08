@@ -69,6 +69,7 @@ export function createUserHooks(
             ctx,
             user,
             request,
+            tenant: { id: tenant_id },
           },
           {
             user: {
@@ -241,6 +242,7 @@ export function createUserHooks(
               ctx,
               user,
               request,
+              tenant: { id: tenant_id },
             },
             {
               user: {},

@@ -11,13 +11,15 @@ import { UserResponse, Strategy } from "@authhero/adapter-interfaces";
 describe("on-pre-user-registration-hook", () => {
   it("should link user to primary via setLinkedTo", async () => {
     let primaryUserId: string | undefined;
+    const events: HookEvent[] = [];
 
     const { env, managementApp } = await getTestServer({
       hooks: {
         onExecutePreUserRegistration: async (
-          _: HookEvent,
+          event: HookEvent,
           api: OnExecutePreUserRegistrationAPI,
         ) => {
+          events.push(event);
           // Link to the primary user when creating a new user
           if (primaryUserId) {
             api.user.setLinkedTo(primaryUserId);
@@ -50,6 +52,9 @@ describe("on-pre-user-registration-hook", () => {
     expect(primaryResponse.status).toBe(201);
     const primaryUser = (await primaryResponse.json()) as UserResponse;
     primaryUserId = primaryUser.user_id;
+
+    // The event should carry the tenant, matching update/deletion hooks
+    expect(events[0]?.tenant).toEqual({ id: "tenantId" });
 
     // Create a secondary user that will be linked to the primary
     const secondaryResponse = await client.users.$post(
