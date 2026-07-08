@@ -516,6 +516,121 @@ describe("silent", () => {
     expect(newLoginSession?.auth_connection).toEqual("vipps");
   });
 
+  it("should carry auth_strategy along the login-session chain and keep it alive across silent renewals", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const oauthClient = testClient(oauthApp, env);
+
+    // Interactive password login recorded the strategy on the originating
+    // login session.
+    const originLoginSession = await env.data.loginSessions.create(
+      "tenantId",
+      {
+        expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+        csrf_token: "csrfToken",
+        authParams: {
+          client_id: "clientId",
+          redirect_uri: "https://example.com/callback",
+          response_type: AuthorizationResponseType.CODE,
+        },
+        auth_connection: "Username-Password-Authentication",
+        auth_strategy: {
+          strategy: "Username-Password-Authentication",
+          strategy_type: "database",
+        },
+      },
+    );
+
+    const sessionExpiresAt = new Date(
+      Date.now() + 30 * 24 * 3600 * 1000,
+    ).toISOString();
+    const session = await env.data.sessions.create("tenantId", {
+      id: "sessionId",
+      user_id: "email|userId",
+      used_at: new Date().toISOString(),
+      login_session_id: originLoginSession.id,
+      device: {
+        last_ip: "",
+        initial_ip: "",
+        last_user_agent: "",
+        initial_user_agent: "",
+        initial_asn: "",
+        last_asn: "",
+      },
+      expires_at: sessionExpiresAt,
+      idle_expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      clients: ["clientId"],
+    });
+
+    const silentRenewal = async () => {
+      const response = await oauthClient.authorize.$get(
+        {
+          query: {
+            client_id: "clientId",
+            redirect_uri: "https://example.com/callback",
+            state: "state",
+            prompt: "none",
+            response_type: AuthorizationResponseType.CODE,
+            response_mode: AuthorizationResponseMode.WEB_MESSAGE,
+            code_challenge: "ZLQ3m0EnuZ-kdlU1aRGNOPN_dTW8ewOVqEEfZd0cFZE",
+          },
+        },
+        {
+          headers: {
+            origin: "https://example.com",
+            cookie: `tenantId-auth-token=${session.id}`,
+          },
+        },
+      );
+      expect(response.status).toEqual(200);
+      const codeMatch = (await response.text()).match(/"code":"([^"]+)"/);
+      const code = await env.data.codes.get(
+        "tenantId",
+        codeMatch?.[1] || "",
+        "authorization_code",
+      );
+      const loginSession = await env.data.loginSessions.get(
+        "tenantId",
+        code?.login_id || "",
+      );
+      if (!loginSession) {
+        throw new Error("Login session not found for silent renewal");
+      }
+      return loginSession;
+    };
+
+    // First renewal: the session gets re-pointed at a new login session,
+    // which must inherit the strategy from the originating one.
+    const firstRenewalLoginSession = await silentRenewal();
+    expect(firstRenewalLoginSession.id).not.toEqual(originLoginSession.id);
+    expect(firstRenewalLoginSession.auth_strategy).toEqual({
+      strategy: "Username-Password-Authentication",
+      strategy_type: "database",
+    });
+
+    const updatedSession = await env.data.sessions.get("tenantId", session.id);
+    expect(updatedSession?.login_session_id).toEqual(
+      firstRenewalLoginSession.id,
+    );
+
+    // The login session the session now points at must outlive the session
+    // (it's what strategy/connection recovery reads back), not keep its
+    // initial 5-minute expiry.
+    expect(
+      new Date(firstRenewalLoginSession.expires_at).getTime(),
+    ).toBeGreaterThanOrEqual(new Date(sessionExpiresAt).getTime());
+
+    // Second renewal: the strategy must survive hops where the previous
+    // link in the chain is itself a silent-auth login session.
+    const secondRenewalLoginSession = await silentRenewal();
+    expect(secondRenewalLoginSession.id).not.toEqual(
+      firstRenewalLoginSession.id,
+    );
+    expect(secondRenewalLoginSession.auth_strategy).toEqual({
+      strategy: "Username-Password-Authentication",
+      strategy_type: "database",
+    });
+  });
+
   it("should fall back to user.connection when the original login session has no auth_connection", async () => {
     const { oauthApp, env } = await getTestServer();
     const oauthClient = testClient(oauthApp, env);
