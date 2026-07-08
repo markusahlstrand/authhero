@@ -349,6 +349,13 @@ export async function silentAuth({
     expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(), // 5 minutes
     session_id: session.id,
     ...(auth_connection ? { auth_connection } : {}),
+    // Carry auth_strategy along the login-session chain. The session is
+    // re-pointed at this login session below, so without the copy the
+    // strategy recorded at interactive login would be lost on the first
+    // silent renewal (and recoverSessionAuthStrategy would find nothing).
+    ...(originalLoginSession?.auth_strategy
+      ? { auth_strategy: originalLoginSession.auth_strategy }
+      : {}),
     ip: ctx.var.ip,
     useragent: ctx.var.useragent,
   });
@@ -437,10 +444,18 @@ export async function silentAuth({
     idle_expires_at: newIdleExpiresAt,
   });
 
-  // Keep the login_session alive as long as the session is active
-  if (newIdleExpiresAt) {
+  // Keep the login_session alive as long as the session is active. The
+  // session now points at this login session (auth_strategy/auth_connection
+  // recovery reads it back), so it must survive cleanup for the session's
+  // whole remaining lifetime — fall back to the session's absolute expiry
+  // when the tenant has no idle_session_lifetime.
+  const keepAliveMs = Math.max(
+    newIdleExpiresAt ? new Date(newIdleExpiresAt).getTime() : 0,
+    session.expires_at ? new Date(session.expires_at).getTime() : 0,
+  );
+  if (keepAliveMs > Date.now()) {
     await env.data.loginSessions.update(client.tenant.id, loginSession.id, {
-      expires_at: newIdleExpiresAt,
+      expires_at: new Date(keepAliveMs).toISOString(),
     });
   }
 

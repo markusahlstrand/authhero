@@ -5,6 +5,7 @@ import {
   LogTypes,
   AuthorizationResponseType,
   Strategy,
+  StrategyType,
 } from "@authhero/adapter-interfaces";
 import { getTestServer } from "../../helpers/test-server";
 import { u2Screen } from "../../helpers/u2-screen";
@@ -126,6 +127,19 @@ describe("passwords", () => {
       throw new Error("User not found");
     }
     expect(user.app_metadata.strategy).toBe(Strategy.USERNAME_PASSWORD);
+
+    // The login session must record how the user authenticated. This is what
+    // analytics/session-strategy recovery read back, and the password path
+    // (createFrontChannelAuthResponse without a /authorize/resume hop) used
+    // to drop it, leaving auth_strategy NULL for all password logins.
+    const completedLoginSession = await env.data.loginSessions.get(
+      "tenantId",
+      state,
+    );
+    expect(completedLoginSession?.auth_strategy).toEqual({
+      strategy: Strategy.USERNAME_PASSWORD,
+      strategy_type: StrategyType.DATABASE,
+    });
 
     // --------------------------------
     // request password reset
