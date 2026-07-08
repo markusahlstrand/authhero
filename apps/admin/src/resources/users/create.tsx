@@ -59,6 +59,7 @@ export function UserCreate() {
         <TextInput source="name" />
         <TextInput source="given_name" />
         <TextInput source="family_name" />
+        <TextInput source="birthdate" type="date" label="Birthdate" />
         <TextInput source="picture" />
         <BooleanInput source="email_verified" />
         <BooleanInput source="phone_verified" />
