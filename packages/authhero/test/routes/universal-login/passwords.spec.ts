@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
 import bcryptjs from "bcryptjs";
 import {
+  DATABASE_CONNECTION_STRATEGY,
   LogTypes,
   AuthorizationResponseType,
   Strategy,
@@ -207,6 +208,90 @@ describe("passwords", () => {
     });
 
     expect(resetPasswordGetResponse.status).toBe(200);
+  });
+
+  it("should log the real connection name and id when the password connection has a custom name and the canonical auth0 strategy", async () => {
+    // Regression test: a tenant whose database connection uses the canonical
+    // "auth0" strategy and a custom name (e.g. "password") logged successful
+    // password logins with the generic Username-Password-Authentication
+    // literal and an empty connection_id, because the realm fallback only
+    // matched the legacy name-as-strategy spelling.
+    const { universalApp, oauthApp, env } = await getTestServer({
+      testTenantLanguage: "en",
+    });
+    const oauthClient = testClient(oauthApp, env);
+    const universalClient = testClient(universalApp, env);
+
+    // Replace the default password connection with one shaped like a
+    // production tenant: custom name + canonical "auth0" strategy.
+    await env.data.connections.remove("tenantId", Strategy.USERNAME_PASSWORD);
+    await env.data.connections.create("tenantId", {
+      id: "con_customPassword",
+      name: "password",
+      strategy: DATABASE_CONNECTION_STRATEGY,
+      options: {},
+    });
+
+    await env.data.users.create("tenantId", {
+      email: "custom-conn@example.com",
+      email_verified: true,
+      name: "Custom Connection User",
+      nickname: "customconn",
+      connection: Strategy.USERNAME_PASSWORD,
+      provider: USERNAME_PASSWORD_PROVIDER,
+      is_social: false,
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|customConnUser`,
+    });
+    await env.data.passwords.create("tenantId", {
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|customConnUser`,
+      password: await bcryptjs.hash("password", 10),
+      algorithm: "bcrypt",
+    });
+
+    const authorizeResponse = await oauthClient.authorize.$get({
+      query: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+        state: "state",
+        nonce: "nonce",
+        scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
+      },
+    });
+    expect(authorizeResponse.status).toBe(302);
+
+    const location = authorizeResponse.headers.get("location");
+    const universalUrl = new URL(`https://example.com${location}`);
+    const state = universalUrl.searchParams.get("state");
+    if (!state) {
+      throw new Error("No state found");
+    }
+
+    const identifierResponse = await universalClient.login.identifier.$post({
+      query: { state },
+      form: { username: "custom-conn@example.com" },
+    });
+    expect(identifierResponse.status).toBe(302);
+
+    const enterPasswordPostResponse = await universalClient[
+      "enter-password"
+    ].$post({
+      query: { state },
+      form: { password: "password" },
+    });
+    expect(enterPasswordPostResponse.status).toBe(302);
+
+    const { logs } = await env.data.logs.list("tenantId", {
+      page: 0,
+      per_page: 100,
+      include_totals: false,
+    });
+    const successLoginLog = logs.find(
+      (log) => log.type === LogTypes.SUCCESS_LOGIN,
+    );
+    expect(successLoginLog).toBeDefined();
+    expect(successLoginLog?.connection).toBe("password");
+    expect(successLoginLog?.connection_id).toBe("con_customPassword");
   });
 
   it("should log password reset request when email is sent", async () => {

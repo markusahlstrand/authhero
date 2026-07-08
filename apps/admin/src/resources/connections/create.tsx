@@ -1,5 +1,5 @@
 import { Create, SimpleForm, TextInput, SelectInput } from "@/components/admin";
-import { Strategy } from "@/utils/Strategy";
+import { Strategy, DATABASE_CONNECTION_STRATEGY } from "@/utils/Strategy";
 
 const strategyChoices = [
   { id: Strategy.EMAIL, name: "Email" },
@@ -13,7 +13,7 @@ const strategyChoices = [
   { id: Strategy.OAUTH2, name: "OAuth2" },
   { id: Strategy.OIDC, name: "OpenID Connect" },
   { id: Strategy.OKTA, name: "Okta" },
-  { id: Strategy.USERNAME_PASSWORD, name: "Password" },
+  { id: DATABASE_CONNECTION_STRATEGY, name: "Password" },
   { id: Strategy.SMS, name: "SMS" },
   { id: Strategy.SAMLP, name: "SAML" },
 ];
