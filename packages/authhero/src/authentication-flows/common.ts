@@ -1508,6 +1508,7 @@ export async function createFrontChannelAuthResponse(
       loginSession: params.loginSession,
       existingSessionId: params.existingSessionIdToLink,
       authConnection: params.authConnection,
+      authStrategy: params.authStrategy,
     });
     // Pick up the state authenticateLoginSession just wrote (AUTHENTICATED,
     // session_id, user_id, auth_connection, …) so the checks below operate
