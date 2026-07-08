@@ -325,38 +325,34 @@ export async function postUserLoginHook(
             url: string,
             options?: { query?: Record<string, string> },
           ) => {
-            // Add state parameter automatically for AuthHero compatibility
             const urlObj = new URL(url, ctx.req.url);
-            urlObj.searchParams.set("state", loginSession.id);
 
-            // Add any additional query parameters
+            // Add any additional query parameters first, then set the state
+            // parameter last so a user-supplied `query.state` can't overwrite
+            // the login-session state AuthHero relies on for compatibility.
             if (options?.query) {
               Object.entries(options.query).forEach(([key, value]) => {
                 urlObj.searchParams.set(key, value);
               });
             }
+            urlObj.searchParams.set("state", loginSession.id);
 
             redirectUrl = urlObj.toString();
           },
-          encodeToken: (options: {
+          encodeToken: (_options: {
             secret: string;
             payload: Record<string, any>;
             expiresInSeconds?: number;
-          }) => {
-            // Implement JWT token encoding here
-            // For now, return a placeholder - you'd implement proper JWT signing
-            return JSON.stringify({
-              payload: options.payload,
-              exp: Date.now() + (options.expiresInSeconds || 900) * 1000,
-            });
+          }): string => {
+            // Fail loudly instead of returning placeholder output that action
+            // code would mistake for a real signed token.
+            throw new Error("redirect.encodeToken is not implemented");
           },
           validateToken: (_options: {
             secret: string;
             tokenParameterName?: string;
-          }) => {
-            // Implement JWT token validation here
-            // For now, return null - you'd implement proper JWT verification
-            return null;
+          }): Record<string, any> => {
+            throw new Error("redirect.validateToken is not implemented");
           },
         },
         token: createTokenAPI(ctx, tenant_id),

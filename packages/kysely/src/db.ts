@@ -115,11 +115,6 @@ const sqlPasswordSchema = z.object({
 export const sqlUserSchema = userSchema
   .omit({ last_login: true, last_ip: true, login_count: true })
   .extend({
-    // Transition shim: databases that haven't run the o080 drop migration yet
-    // still carry users.login_count as NOT NULL without a default, and
-    // users/create.ts supplies it there. Remove together with that shim once
-    // every environment has dropped the column.
-    login_count: z.number().optional(),
     email_verified: z.number(),
     phone_verified: z.number().optional().nullable(),
     is_social: z.number(),

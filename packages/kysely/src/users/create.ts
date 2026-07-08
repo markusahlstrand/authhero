@@ -4,40 +4,6 @@ import { nanoid } from "nanoid";
 import { Database } from "../db";
 import { User, UserInsert, CreateOptions } from "@authhero/adapter-interfaces";
 
-// Transition shim for the user_activity split (issue #1003): databases that
-// have not yet run the o080 drop migration still have users.login_count as
-// NOT NULL without a default, so the insert must supply it or MySQL strict
-// mode rejects it (errno 1364). The schema state is learned from the first
-// failed insert and cached per Kysely instance; it flips back automatically
-// once the column is dropped. Remove together with the optional login_count
-// on sqlUserSchema when every environment has run o080.
-const legacyLoginCountColumn = new WeakMap<Kysely<Database>, boolean>();
-
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
-}
-
-// MySQL: "Field 'login_count' doesn't have a default value"
-// SQLite/D1: "NOT NULL constraint failed: users.login_count"
-function isMissingLoginCountValueError(err: unknown): boolean {
-  const message = errorMessage(err);
-  return (
-    message.includes("login_count") &&
-    (message.includes("doesn't have a default value") ||
-      message.includes("NOT NULL constraint failed"))
-  );
-}
-
-// MySQL: "Unknown column 'login_count' in 'field list'"
-// SQLite/D1: "table users has no column named login_count"
-function isUnknownLoginCountColumnError(err: unknown): boolean {
-  const message = errorMessage(err);
-  return (
-    message.includes("login_count") &&
-    (message.includes("Unknown column") || message.includes("no column named"))
-  );
-}
-
 export function create(db: Kysely<Database>) {
   return async (
     tenantId: string,
@@ -73,76 +39,50 @@ export function create(db: Kysely<Database>) {
       address: user.address ? JSON.stringify(user.address) : null,
     };
 
-    const runInsert = async (includeLegacyLoginCount: boolean) => {
-      const execute = async (trx: Kysely<Database>) => {
+    const execute = async (trx: Kysely<Database>) => {
+      await trx.insertInto("users").values(sqlUser).execute();
+
+      // Callers that record a login at creation time (e.g. lazy Auth0
+      // migration, social sign-up) pass activity fields — persist them in
+      // the same transaction so the user never exists without them.
+      if (
+        sqlUser.user_id &&
+        (last_login !== undefined ||
+          last_ip !== undefined ||
+          login_count !== undefined)
+      ) {
         await trx
-          .insertInto("users")
-          .values(
-            includeLegacyLoginCount
-              ? { ...sqlUser, login_count: login_count ?? 0 }
-              : sqlUser,
-          )
-          .execute();
-
-        // Callers that record a login at creation time (e.g. lazy Auth0
-        // migration, social sign-up) pass activity fields — persist them in
-        // the same transaction so the user never exists without them.
-        if (
-          sqlUser.user_id &&
-          (last_login !== undefined ||
-            last_ip !== undefined ||
-            login_count !== undefined)
-        ) {
-          await trx
-            .insertInto("user_activity")
-            .values({
-              tenant_id: tenantId,
-              user_id: sqlUser.user_id,
-              last_login: last_login ?? null,
-              last_ip: last_ip ?? null,
-              login_count: login_count ?? 0,
-            })
-            .execute();
-        }
-
-        if (password && sqlUser.user_id) {
-          const passwordRecord = {
-            id: nanoid(),
-            user_id: sqlUser.user_id,
-            password: password.hash,
-            algorithm: password.algorithm as "bcrypt" | "argon2id",
-            is_current: 1,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
+          .insertInto("user_activity")
+          .values({
             tenant_id: tenantId,
-          };
-          await trx.insertInto("passwords").values(passwordRecord).execute();
-        }
-      };
+            user_id: sqlUser.user_id,
+            last_login: last_login ?? null,
+            last_ip: last_ip ?? null,
+            login_count: login_count ?? 0,
+          })
+          .execute();
+      }
 
-      if (db.isTransaction) {
-        await execute(db);
-      } else {
-        await db.transaction().execute(execute);
+      if (password && sqlUser.user_id) {
+        const passwordRecord = {
+          id: nanoid(),
+          user_id: sqlUser.user_id,
+          password: password.hash,
+          algorithm: password.algorithm as "bcrypt" | "argon2id",
+          is_current: 1,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          tenant_id: tenantId,
+        };
+        await trx.insertInto("passwords").values(passwordRecord).execute();
       }
     };
 
     try {
-      const includeLegacy = legacyLoginCountColumn.get(db) ?? false;
-      try {
-        await runInsert(includeLegacy);
-      } catch (err) {
-        // Schema drift relative to the o080 migration — flip the cached mode
-        // and retry once (in a fresh transaction unless the caller passed one).
-        if (!includeLegacy && isMissingLoginCountValueError(err)) {
-          legacyLoginCountColumn.set(db, true);
-          await runInsert(true);
-        } else if (includeLegacy && isUnknownLoginCountColumnError(err)) {
-          legacyLoginCountColumn.set(db, false);
-          await runInsert(false);
-        } else {
-          throw err;
-        }
+      if (db.isTransaction) {
+        await execute(db);
+      } else {
+        await db.transaction().execute(execute);
       }
     } catch (err: any) {
       if (
