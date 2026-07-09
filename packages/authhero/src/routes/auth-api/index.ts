@@ -28,6 +28,7 @@ import { serverTimingMiddleware } from "../../helpers/server-timing";
 import { LogsDestination } from "../../helpers/outbox-destinations/logs";
 import { LogStreamDestination } from "../../helpers/outbox-destinations/log-streams";
 import { WebhookDestination } from "../../helpers/outbox-destinations/webhooks";
+import { CodeHookDestination } from "../../helpers/outbox-destinations/code-hooks";
 import { RegistrationFinalizerDestination } from "../../helpers/outbox-destinations/registration-finalizer";
 import { makeOutboxServiceTokenFactory } from "../../helpers/service-token";
 import { getIssuer } from "../../variables";
@@ -58,6 +59,7 @@ export default function create(config: AuthHeroConfig) {
           }),
           { webhookInvoker: ctx.env.webhookInvoker },
         ),
+        new CodeHookDestination(ctx.env.data, ctx.env.codeExecutor),
         // Must come after delivery destinations so the flag only flips when
         // the upstream hook destinations actually succeeded.
         new RegistrationFinalizerDestination(config.dataAdapter.users),

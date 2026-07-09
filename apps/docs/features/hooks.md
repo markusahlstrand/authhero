@@ -1185,12 +1185,25 @@ exports.onExecutePostLogin = async (event, api) => {
 
 Supported triggers and their export names:
 
-| Trigger | Export Function |
-|---------|----------------|
-| `post-user-login` | `exports.onExecutePostLogin` |
-| `credentials-exchange` | `exports.onExecuteCredentialsExchange` |
-| `pre-user-registration` | `exports.onExecutePreUserRegistration` |
-| `post-user-registration` | `exports.onExecutePostUserRegistration` |
+| Trigger | Export Function | Execution |
+|---------|----------------|-----------|
+| `post-user-login` | `exports.onExecutePostLogin` | Inline (mutates the token) |
+| `credentials-exchange` | `exports.onExecuteCredentialsExchange` | Inline (mutates the token) |
+| `pre-user-registration` | `exports.onExecutePreUserRegistration` | Inline (blocks / mutates the user before creation) |
+| `post-user-registration` | `exports.onExecutePostUserRegistration` | Outbox-backed (retried) |
+| `post-user-deletion` | `exports.onExecutePostUserDeletion` | Outbox-backed (retried) |
+
+### Outbox-backed delivery for post-registration / post-deletion code hooks
+
+`post-user-registration` and `post-user-deletion` code hooks are delivered through the [outbox pipeline](../architecture/hooks-pipeline.md), the same durable path as webhooks — via `CodeHookDestination`. They are **not** run inline in the request:
+
+- **Retries + dead-letter**: a failing code hook is retried with exponential backoff and dead-lettered after `maxRetries`, then surfaced via the [Failed events](/customization/failed-events) endpoints. Previously a failure was only logged and dropped.
+- **At-least-once**: because the event can be retried (and re-enqueued by [self-healing](../architecture/hooks-pipeline.md#self-healing-post-user-registration) on the user's next login), a code hook may run more than once. The outbox event id is passed to your code as `event.idempotency_key` — key non-idempotent side effects on it, or check `app_metadata`, so re-delivery is safe.
+- **Ordering**: they run after the user row is committed and after any `account-linking` template hook, so `event.user` reflects the linked/primary user.
+
+The token-mutating triggers (`post-user-login`, `credentials-exchange`) still run inline — they must alter the live token in the request and cannot be deferred.
+
+When running the [outbox as a cron drain](/deployment/outbox-cron), pass the same `codeExecutor` to `runOutboxRelay` / `createDefaultDestinations` so code hooks that failed per-request delivery are actually retried rather than skipped.
 
 ### Management API
 

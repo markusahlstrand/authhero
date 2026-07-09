@@ -4,11 +4,13 @@ import {
   ActionExecutionResult,
   ActionExecutionStatus,
   CodeExecutionLog,
+  CodeExecutor,
   DataAdapters,
   Hook,
 } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
 import { HookEvent, OnExecuteCredentialsExchangeAPI } from "../types/Hooks";
+import { EnrichedClient } from "../helpers/client";
 
 /**
  * Auth0 uses `post-login` for what we internally call `post-user-login`.
@@ -19,6 +21,17 @@ export function toAuth0TriggerId(internal: string): string {
   return internal;
 }
 
+/**
+ * The subset of `DataAdapters` needed to resolve and run a code hook and to
+ * persist its execution record. Narrowed so `CodeHookDestination` and the cron
+ * `createDefaultDestinations` helper can construct it without depending on the
+ * full adapter surface.
+ */
+export type CodeHookData = Pick<
+  DataAdapters,
+  "hooks" | "actions" | "hookCode" | "actionExecutions" | "multiTenancyConfig"
+>;
+
 // Type guard for code hooks
 type CodeHook = Extract<Hook, { code_id: string }>;
 
@@ -27,12 +40,29 @@ export function isCodeHook(hook: Hook): hook is CodeHook {
 }
 
 /**
+ * Loosened event shape accepted by `buildSerializableEvent` / `executeCodeHook`.
+ *
+ * The inline hook call sites pass a full `HookEvent`. The `CodeHookDestination`
+ * (which runs from the outbox relay, after the request has closed) has no live
+ * `ctx` and reconstructs the event from the persisted audit event, so `user`
+ * and `request` arrive as already-serialized `unknown` values. Both are
+ * assignable to this type.
+ */
+export type CodeHookEventInput = {
+  ctx?: unknown;
+  client?: Pick<
+    EnrichedClient,
+    "client_id" | "name" | "client_metadata"
+  > | null;
+} & Record<string, unknown>;
+
+/**
  * Build a serializable event object from a HookEvent.
  * Strips the `ctx` property (Hono context) which cannot be serialized,
  * and returns a plain JSON-compatible object.
  */
 export function buildSerializableEvent(
-  event: HookEvent,
+  event: CodeHookEventInput,
   secrets?: Record<string, string>,
 ): Record<string, unknown> {
   const { ctx, client, ...rest } = event;
@@ -51,12 +81,32 @@ export function buildSerializableEvent(
 }
 
 /**
+ * The namespaced API surface exposed to code hooks. User code records calls of
+ * the form `<namespace>.<method>(...)` (e.g. `accessToken.setCustomClaim`,
+ * `access.deny`), which {@link replayApiCalls} replays against the real
+ * namespace objects. Each top-level key is a namespace whose members are the
+ * callable methods for that namespace — so the shape is nested (namespace →
+ * method → function) rather than a flat `any` surface. Concrete per-trigger API
+ * types (`OnExecute*API`) structurally satisfy this.
+ *
+ * The method args stay permissive (`any[]`): this surface is a dynamic
+ * dispatcher — {@link replayApiCalls} looks methods up by string and applies
+ * the recorded `unknown[]` args, while call sites register concretely-typed
+ * methods (`(key: string, value: unknown) => void`, …). A stricter `unknown[]`
+ * args tuple would reject those concrete registrations (parameter
+ * contravariance). The return type is still narrowed to `unknown`.
+ */
+export type CodeHookApiMethod = (...args: any[]) => unknown;
+export type CodeHookApiNamespace = Record<string, CodeHookApiMethod>;
+export type CodeHookApi = Record<string, CodeHookApiNamespace>;
+
+/**
  * Replay recorded API calls from code hook execution against real API objects.
  * Handles calls like "accessToken.setCustomClaim" by navigating the api object.
  */
 export function replayApiCalls(
   apiCalls: Array<{ method: string; args: unknown[] }>,
-  api: Record<string, any>,
+  api: CodeHookApi,
 ): void {
   for (const call of apiCalls) {
     const parts = call.method.split(".");
@@ -87,7 +137,7 @@ function secretsToMap(
 }
 
 async function loadCodeForHook(
-  data: DataAdapters,
+  data: Pick<DataAdapters, "actions" | "hookCode" | "multiTenancyConfig">,
   tenant_id: string,
   code_id: string,
 ): Promise<ResolvedCode | null> {
@@ -160,34 +210,35 @@ export type HandleCodeHookOutcome = {
 };
 
 /**
- * Execute a code hook by fetching the code from the database, running it
- * through the code executor, and replaying API calls against the real api
- * object.
+ * Core code-hook execution, decoupled from the Hono request `ctx`.
  *
- * Returns the per-action result (Auth0 shape) so the caller can aggregate
- * results across all actions on a trigger into a single `action_executions`
- * record. Returns `null` when the code cannot be located or the executor is
- * unavailable — the caller decides whether to surface that.
+ * Given an explicit executor, data adapter, and tenant, fetches the code,
+ * runs it, and replays the recorded API calls against `api`. Shared by the
+ * inline `handleCodeHook` wrapper (request-time) and by `CodeHookDestination`
+ * (outbox relay, after the request has closed).
+ *
+ * Always returns an outcome — including a `code_not_found` / `execution_failed`
+ * outcome — so the caller can persist an `action_executions` record. It only
+ * throws for `api.access.deny`, which surfaces as a thrown `HTTPException` from
+ * the replayed API call; callers that must abort the flow catch it.
+ *
+ * `idempotencyKey`, when set, is exposed to user code as `event.idempotency_key`.
+ * The outbox is at-least-once, so a retried hook event re-runs the code; authors
+ * performing non-idempotent side effects can dedupe on this key.
  */
-export async function handleCodeHook(
-  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
-  data: DataAdapters,
-  hook: { code_id: string; hook_id: string },
-  event: HookEvent,
-  triggerId: string,
-  api: Record<string, any>,
-): Promise<HandleCodeHookOutcome | null> {
-  const codeExecutor = ctx.env.codeExecutor;
-  if (!codeExecutor) {
-    return null;
-  }
+export async function executeCodeHook(params: {
+  codeExecutor: CodeExecutor;
+  data: CodeHookData;
+  tenantId: string;
+  hook: { code_id: string; hook_id?: string };
+  event: CodeHookEventInput;
+  triggerId: string;
+  api: CodeHookApi;
+  idempotencyKey?: string;
+}): Promise<HandleCodeHookOutcome> {
+  const { codeExecutor, data, tenantId, hook, event, triggerId, api } = params;
 
-  const tenant_id = ctx.var.tenant_id || ctx.req.header("tenant-id");
-  if (!tenant_id) {
-    return null;
-  }
-
-  const codeRecord = await loadCodeForHook(data, tenant_id, hook.code_id);
+  const codeRecord = await loadCodeForHook(data, tenantId, hook.code_id);
   const started_at = new Date().toISOString();
 
   if (!codeRecord) {
@@ -207,6 +258,9 @@ export async function handleCodeHook(
   }
 
   const serializableEvent = buildSerializableEvent(event, codeRecord.secrets);
+  if (params.idempotencyKey) {
+    serializableEvent.idempotency_key = params.idempotencyKey;
+  }
 
   const execResult = await codeExecutor.execute({
     code: codeRecord.code,
@@ -254,12 +308,50 @@ export async function handleCodeHook(
 }
 
 /**
+ * Execute a code hook by fetching the code from the database, running it
+ * through the code executor, and replaying API calls against the real api
+ * object.
+ *
+ * Thin request-time wrapper over `executeCodeHook` that resolves the executor
+ * and tenant from `ctx`. Returns `null` when the code executor is unavailable
+ * or the tenant can't be resolved — the caller decides whether to surface that.
+ */
+export async function handleCodeHook(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  data: DataAdapters,
+  hook: { code_id: string; hook_id: string },
+  event: HookEvent,
+  triggerId: string,
+  api: CodeHookApi,
+): Promise<HandleCodeHookOutcome | null> {
+  const codeExecutor = ctx.env.codeExecutor;
+  if (!codeExecutor) {
+    return null;
+  }
+
+  const tenant_id = ctx.var.tenant_id || ctx.req.header("tenant-id");
+  if (!tenant_id) {
+    return null;
+  }
+
+  return executeCodeHook({
+    codeExecutor,
+    data,
+    tenantId: tenant_id,
+    hook,
+    event,
+    triggerId,
+    api,
+  });
+}
+
+/**
  * Aggregate per-action outcomes into an Auth0-shape execution record and
  * persist it via the adapter. Returns the generated execution_id (uuid)
  * so the caller can embed it in the surrounding tenant log.
  */
 export async function persistActionExecution(
-  data: DataAdapters,
+  data: Pick<DataAdapters, "actionExecutions">,
   tenant_id: string,
   triggerId: string,
   outcomes: HandleCodeHookOutcome[],
@@ -319,7 +411,7 @@ export async function handleCredentialsExchangeCodeHooks(
         hook,
         event,
         "credentials-exchange",
-        api as unknown as Record<string, any>,
+        api as unknown as CodeHookApi,
       );
       if (outcome) outcomes.push(outcome);
     } catch (err) {

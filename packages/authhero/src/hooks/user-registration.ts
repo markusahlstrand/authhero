@@ -271,58 +271,23 @@ export function createUserHooks(
         }
       }
 
-      // Execute post-user-registration code and template hooks.
+      // Execute post-user-registration template hooks.
+      //
+      // Post-registration *code* hooks are no longer run inline: they are
+      // delivered by `CodeHookDestination` from the outbox event enqueued
+      // below, so they get retries + dead-letter instead of best-effort
+      // inline execution. See `enqueuePostHookEvent`.
+      //
       // Bundle-friendly: fetch the full tenant hooks list and filter in JS
       // instead of passing a `q:` param.
       {
         const { hooks: allHooks } = await ctx.env.data.hooks.list(tenant_id);
-        const postRegCodeHooks = allHooks.filter(
-          (h: any) =>
-            h.trigger_id === "post-user-registration" &&
-            h.enabled &&
-            isCodeHook(h),
-        );
-        const postRegOutcomes: HandleCodeHookOutcome[] = [];
-        for (const hook of postRegCodeHooks) {
-          if (!isCodeHook(hook)) continue;
-          try {
-            const outcome = await handleCodeHook(
-              ctx,
-              ctx.env.data,
-              hook,
-              { ctx, user: result, request },
-              "post-user-registration",
-              { user: {} },
-            );
-            if (outcome) postRegOutcomes.push(outcome);
-          } catch (err) {
-            const message = err instanceof Error ? err.message : String(err);
-            postRegOutcomes.push({
-              result: {
-                action_name: hook.code_id,
-                error: { id: "execution_threw", msg: message },
-                started_at: new Date().toISOString(),
-                ended_at: new Date().toISOString(),
-              },
-              logs: [],
-              denied: false,
-            });
-          }
-        }
-        const postRegExecutionId = await persistActionExecution(
-          ctx.env.data,
-          tenant_id,
-          "post-user-registration",
-          postRegOutcomes,
-        );
-        if (postRegExecutionId) {
-          ctx.set("action_execution_id", postRegExecutionId);
-        }
 
-        // Template hooks (e.g. `account-linking`) run after code hooks so
-        // they observe any user-metadata or linked_to updates the code
-        // hooks performed. Failures are logged but do not abort signup —
-        // the post-registration phase is best-effort, mirroring code hooks.
+        // Template hooks (e.g. `account-linking`) mutate `result` before the
+        // post-registration event is enqueued, so code hooks (delivered async
+        // from that event) observe the linked/primary user. Failures are
+        // logged but do not abort signup — the post-registration phase is
+        // best-effort for template hooks.
         const postRegTemplateHooks = allHooks.filter(
           (h: any) =>
             h.trigger_id === "post-user-registration" &&

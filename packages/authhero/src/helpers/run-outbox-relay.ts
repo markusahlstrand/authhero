@@ -1,4 +1,4 @@
-import { DataAdapters } from "@authhero/adapter-interfaces";
+import { CodeExecutor, DataAdapters } from "@authhero/adapter-interfaces";
 import type { WebhookInvoker } from "../types/AuthHeroConfig";
 import { drainOutbox } from "./outbox-relay";
 import { cleanupOutbox } from "./outbox-cleanup";
@@ -35,6 +35,14 @@ export interface RunOutboxRelayConfig {
 
   /** Webhook HTTP timeout (ms), when the default invoker is used. */
   webhookTimeoutMs?: number;
+
+  /**
+   * Optional code executor — same instance passed to `init({ codeExecutor })`.
+   * When provided, cron-drained `hook.*` events also run tenant code hooks, so
+   * a code hook that failed per-request delivery is retried rather than
+   * silently skipped.
+   */
+  codeExecutor?: CodeExecutor;
 }
 
 /**
@@ -78,6 +86,7 @@ export async function runOutboxRelay(
     batchSize,
     maxRetries,
     webhookTimeoutMs,
+    codeExecutor,
   } = config;
 
   if (!dataAdapter.outbox) {
@@ -95,6 +104,7 @@ export async function runOutboxRelay(
     getServiceToken,
     webhookTimeoutMs,
     webhookInvoker,
+    codeExecutor,
   });
 
   let drainError: unknown;
