@@ -3,6 +3,7 @@ import {
   Tenant,
   MANAGEMENT_API_SCOPES,
   MANAGEMENT_API_AUDIENCE,
+  provisionDefaultClients,
 } from "authhero";
 
 /**
@@ -78,6 +79,24 @@ export function createProvisioningHooks(
               initiated_by: ctx.ctx?.var.user?.sub,
             },
             (report) => onProvision(tenant.id, report),
+          );
+        }
+      } else {
+        // 3. Provision a default interactive client (+ M2M Management API
+        // client) so the tenant has a working anchor for tenant-level flows
+        // by construction (#1007). Only for pooled tenants: when database
+        // isolation is on, the tenant's own DB is seeded via `onProvision`
+        // (which runs `seed`, itself calling `provisionDefaultClients`), so
+        // provisioning here would write to the wrong database.
+        try {
+          await provisionDefaultClients(ctx.adapters, tenant.id, {
+            managementApiIdentifier: MANAGEMENT_API_AUDIENCE,
+            managementApiScopes: MANAGEMENT_API_SCOPES,
+          });
+        } catch (error) {
+          console.warn(
+            `Failed to provision default clients for tenant ${tenant.id}:`,
+            error,
           );
         }
       }

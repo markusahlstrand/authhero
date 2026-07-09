@@ -37,6 +37,15 @@ export { cleanupOutbox } from "./helpers/outbox-cleanup";
 export type { OutboxCleanupParams } from "./helpers/outbox-cleanup";
 export { createDefaultDestinations } from "./helpers/default-destinations";
 export type { CreateDefaultDestinationsConfig } from "./helpers/default-destinations";
+export {
+  provisionDefaultClients,
+  isInteractiveClient,
+} from "./helpers/provision-tenant-clients";
+export type {
+  ProvisionDefaultClientsOptions,
+  ProvisionDefaultClientsResult,
+  ManagementApiScope,
+} from "./helpers/provision-tenant-clients";
 export { runOutboxRelay } from "./helpers/run-outbox-relay";
 export type { RunOutboxRelayConfig } from "./helpers/run-outbox-relay";
 export { LogsDestination } from "./helpers/outbox-destinations/logs";
