@@ -1,5 +1,15 @@
 # @authhero/admin
 
+## 0.11.4
+
+### Patch Changes
+
+- 9dbf39a: Add a consistent "Raw JSON" tab to admin detail screens that were missing it: sessions, email providers, email templates, flows, resource server scopes, resource servers, settings, actions, attack protection, branding, MFA, and prompts.
+
+  Consolidate the redundant read-only session edit view into the session show view (sessions are now viewed via `/sessions/:id/show`).
+
+- 2f62e0b: User permissions can now be scoped to an organization from the management API and admin UI. The `POST`/`DELETE` `/users/{user_id}/permissions` endpoints accept an optional `organization_id` per permission (previously ignored, which made organization-scoped permissions impossible to assign or remove). The admin user permissions tab shows an "Organization" column and lets you pick an organization when assigning permissions.
+
 ## 0.11.3
 
 ### Patch Changes
