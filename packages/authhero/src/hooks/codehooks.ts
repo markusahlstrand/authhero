@@ -81,12 +81,32 @@ export function buildSerializableEvent(
 }
 
 /**
+ * The namespaced API surface exposed to code hooks. User code records calls of
+ * the form `<namespace>.<method>(...)` (e.g. `accessToken.setCustomClaim`,
+ * `access.deny`), which {@link replayApiCalls} replays against the real
+ * namespace objects. Each top-level key is a namespace whose members are the
+ * callable methods for that namespace — so the shape is nested (namespace →
+ * method → function) rather than a flat `any` surface. Concrete per-trigger API
+ * types (`OnExecute*API`) structurally satisfy this.
+ *
+ * The method args stay permissive (`any[]`): this surface is a dynamic
+ * dispatcher — {@link replayApiCalls} looks methods up by string and applies
+ * the recorded `unknown[]` args, while call sites register concretely-typed
+ * methods (`(key: string, value: unknown) => void`, …). A stricter `unknown[]`
+ * args tuple would reject those concrete registrations (parameter
+ * contravariance). The return type is still narrowed to `unknown`.
+ */
+export type CodeHookApiMethod = (...args: any[]) => unknown;
+export type CodeHookApiNamespace = Record<string, CodeHookApiMethod>;
+export type CodeHookApi = Record<string, CodeHookApiNamespace>;
+
+/**
  * Replay recorded API calls from code hook execution against real API objects.
  * Handles calls like "accessToken.setCustomClaim" by navigating the api object.
  */
 export function replayApiCalls(
   apiCalls: Array<{ method: string; args: unknown[] }>,
-  api: Record<string, any>,
+  api: CodeHookApi,
 ): void {
   for (const call of apiCalls) {
     const parts = call.method.split(".");
@@ -213,7 +233,7 @@ export async function executeCodeHook(params: {
   hook: { code_id: string; hook_id?: string };
   event: CodeHookEventInput;
   triggerId: string;
-  api: Record<string, any>;
+  api: CodeHookApi;
   idempotencyKey?: string;
 }): Promise<HandleCodeHookOutcome> {
   const { codeExecutor, data, tenantId, hook, event, triggerId, api } = params;
@@ -302,7 +322,7 @@ export async function handleCodeHook(
   hook: { code_id: string; hook_id: string },
   event: HookEvent,
   triggerId: string,
-  api: Record<string, any>,
+  api: CodeHookApi,
 ): Promise<HandleCodeHookOutcome | null> {
   const codeExecutor = ctx.env.codeExecutor;
   if (!codeExecutor) {
@@ -391,7 +411,7 @@ export async function handleCredentialsExchangeCodeHooks(
         hook,
         event,
         "credentials-exchange",
-        api as unknown as Record<string, any>,
+        api as unknown as CodeHookApi,
       );
       if (outcome) outcomes.push(outcome);
     } catch (err) {

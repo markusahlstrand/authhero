@@ -1,6 +1,28 @@
-import { describe, it, expect, vi } from "vitest";
-import type { AuditEvent } from "@authhero/adapter-interfaces";
+import { describe, it, expect, vi, type Mock } from "vitest";
+import type {
+  ActionExecutionResult,
+  AuditEvent,
+  CodeExecutionResult,
+  CodeExecutor,
+} from "@authhero/adapter-interfaces";
 import { CodeHookDestination } from "../../../src/helpers/outbox-destinations/code-hooks";
+import type { CodeHookData } from "../../../src/hooks/codehooks";
+
+/** Minimal hook shape the destination reads (enabled + trigger + code/url). */
+type MockHook = {
+  hook_id?: string;
+  code_id?: string;
+  url?: string;
+  enabled: boolean;
+  trigger_id: string;
+};
+
+/** Captured `action_executions.create` record. */
+type CreatedExecution = {
+  trigger_id: string;
+  status: string;
+  results: ActionExecutionResult[];
+};
 
 function makeEvent(overrides: Partial<AuditEvent> = {}): AuditEvent {
   return {
@@ -26,40 +48,37 @@ function makeEvent(overrides: Partial<AuditEvent> = {}): AuditEvent {
  * Build a data adapter mock where `hooks.list` returns `hooks`, code is
  * resolved from `hookCode.get`, and action executions are captured.
  */
-function makeData(hooks: any[], code = "module.exports = async () => {};") {
-  const created: any[] = [];
-  return {
-    data: {
-      hooks: { list: vi.fn().mockResolvedValue({ hooks }) },
-      actions: { get: vi.fn().mockResolvedValue(null), list: vi.fn() },
-      hookCode: { get: vi.fn().mockResolvedValue({ code, secrets: {} }) },
-      actionExecutions: {
-        create: vi.fn(async (_tenantId: string, rec: any) => {
-          created.push(rec);
-        }),
-      },
-    } as any,
-    created,
-  };
+function makeData(
+  hooks: MockHook[],
+  code = "module.exports = async () => {};",
+) {
+  const created: CreatedExecution[] = [];
+  const data = {
+    hooks: { list: vi.fn().mockResolvedValue({ hooks }) },
+    actions: { get: vi.fn().mockResolvedValue(null), list: vi.fn() },
+    hookCode: { get: vi.fn().mockResolvedValue({ code, secrets: {} }) },
+    actionExecutions: {
+      create: vi.fn(async (_tenantId: string, rec: CreatedExecution) => {
+        created.push(rec);
+      }),
+    },
+  } as unknown as CodeHookData;
+  return { data, created };
 }
 
 function makeExecutor(
-  result: Partial<{
-    success: boolean;
-    error: string;
-    apiCalls: Array<{ method: string; args: unknown[] }>;
-    logs: unknown[];
-  }> = {},
-) {
-  return {
-    execute: vi.fn().mockResolvedValue({
-      success: result.success ?? true,
-      error: result.error,
-      durationMs: 1,
-      apiCalls: result.apiCalls ?? [],
-      logs: result.logs ?? [],
-    }),
-  } as any;
+  result: Partial<
+    Pick<CodeExecutionResult, "success" | "error" | "apiCalls" | "logs">
+  > = {},
+): CodeExecutor & { execute: Mock<CodeExecutor["execute"]> } {
+  const execute = vi.fn<CodeExecutor["execute"]>().mockResolvedValue({
+    success: result.success ?? true,
+    error: result.error,
+    durationMs: 1,
+    apiCalls: result.apiCalls ?? [],
+    logs: result.logs ?? [],
+  });
+  return { execute };
 }
 
 const codeHook = {
@@ -142,15 +161,17 @@ describe("CodeHookDestination", () => {
 
   it("records a thrown executor as execution_threw and retries", async () => {
     const { data, created } = makeData([codeHook]);
-    const executor = {
-      execute: vi.fn().mockRejectedValue(new Error("executor exploded")),
-    } as any;
+    const executor: CodeExecutor = {
+      execute: vi
+        .fn<CodeExecutor["execute"]>()
+        .mockRejectedValue(new Error("executor exploded")),
+    };
     const dest = new CodeHookDestination(data, executor);
 
     await expect(dest.deliver([dest.transform(makeEvent())])).rejects.toThrow(
       /executor exploded/,
     );
     expect(created).toHaveLength(1);
-    expect(created[0].results[0].error.id).toBe("execution_threw");
+    expect(created[0].results[0].error?.id).toBe("execution_threw");
   });
 });

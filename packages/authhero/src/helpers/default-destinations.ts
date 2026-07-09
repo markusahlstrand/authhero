@@ -120,11 +120,25 @@ export function createDefaultDestinations(
     destinations.push(new LogStreamDestination(dataAdapter.logStreams));
   }
 
+  if (getServiceToken) {
+    destinations.push(
+      new WebhookDestination(dataAdapter.hooks, getServiceToken, {
+        timeoutMs: webhookTimeoutMs,
+        webhookInvoker,
+      }),
+    );
+  }
+
   // Run tenant code hooks on the cron path too, so a code hook that failed
   // per-request delivery is actually retried rather than skipped. Requires the
   // code-hook adapters alongside the executor. Independent of `getServiceToken`
   // — code hooks are invoked directly (via `executeCodeHook`), not over HTTP —
   // so a consumer that only configures `codeExecutor` still drains code hooks.
+  //
+  // Must be pushed AFTER `WebhookDestination`: `drainOutbox` / `processOutboxEvents`
+  // stop an event's destination loop on the first failure, so placing code hooks
+  // first would let a failing code hook block webhook delivery on cron retries.
+  // This also matches the per-request destination order in the route middleware.
   if (
     codeExecutor &&
     dataAdapter.actions &&
@@ -146,12 +160,6 @@ export function createDefaultDestinations(
   }
 
   if (getServiceToken) {
-    destinations.push(
-      new WebhookDestination(dataAdapter.hooks, getServiceToken, {
-        timeoutMs: webhookTimeoutMs,
-        webhookInvoker,
-      }),
-    );
     if (controlPlaneSync) {
       destinations.push(
         new ControlPlaneSyncDestination({

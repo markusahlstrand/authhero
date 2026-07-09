@@ -25,8 +25,11 @@ interface CodeHookInvocation {
  * Delivers `hook.*` outbox events to tenant-authored **code hooks** (actions)
  * for the matching `trigger_id`. Runs alongside `WebhookDestination` — both
  * accept the same `hook.*` events — so a single registration/deletion event
- * fans out to webhooks *and* code hooks, each retried independently by the
- * outbox relay.
+ * fans out to webhooks *and* code hooks. The fan-out is not retried
+ * independently: the relay retries the whole outbox event, running its
+ * destinations in order and stopping at the first failure, so a code-hook
+ * failure here causes earlier destinations (e.g. webhooks) to run again on the
+ * retry. Every destination on the event must therefore be idempotent.
  *
  * Reliability model: unlike the previous inline execution (best-effort,
  * at-most-once, failures logged and dropped), code hooks delivered here are

@@ -191,7 +191,7 @@ packages/authhero/src/helpers/outbox-destinations/
 
 ## Code hooks: from inline to outbox-backed
 
-Post-user-registration **code hooks** (tenant-authored actions bound by `code_id`) used to run inline inside `createUserHooks` — best-effort and at-most-once, so a throw was logged and dropped. Post-user-deletion code hooks are new here and have no inline predecessor; they were only ever delivered through the outbox. Both now run through `CodeHookDestination` from the `hook.*` event, sharing the relay's retry + dead-letter machinery ([#950](https://github.com/markusahlstrand/authhero/issues/950)).
+Post-user-registration **code hooks** (tenant-authored actions bound by `code_id`) had an inline predecessor: they used to run inside `createUserHooks` — best-effort and at-most-once, so a throw was logged and dropped. Post-user-deletion code hooks are newly introduced here and have no inline predecessor — this is the first time they execute at all, and they run only through the relay. Both now run through `CodeHookDestination` from the `hook.*` event, sharing the relay's retry + dead-letter machinery ([#950](https://github.com/markusahlstrand/authhero/issues/950)).
 
 The core executor was decoupled from the request `ctx`: `codehooks.ts::executeCodeHook({ codeExecutor, data, tenantId, hook, event, triggerId, api })` runs the code given explicit dependencies, and the inline `handleCodeHook(ctx, …)` is now a thin wrapper that resolves them from `ctx`. This works because the serialized event never carries `ctx` (it is stripped before reaching user code) and post-registration/deletion expose an empty `api` (there is no token to mutate), so no synthetic request needs to be reconstructed.
 
