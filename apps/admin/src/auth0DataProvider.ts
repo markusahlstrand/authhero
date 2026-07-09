@@ -2510,6 +2510,9 @@ export default (
               resource_server_identifier:
                 prev.resource_server_identifier ??
                 parsedFromId.resource_server_identifier,
+              ...(prev.organization_id
+                ? { organization_id: prev.organization_id }
+                : {}),
             },
           ],
         };
