@@ -55,7 +55,7 @@ import {
   LogStreamCreate,
   LogStreamEdit,
 } from "./resources/log-streams";
-import { SessionEdit, SessionShow } from "./resources/sessions";
+import { SessionShow } from "./resources/sessions";
 import { FormsList, FormCreate, FormEdit } from "./resources/forms";
 import { FlowsList, FlowCreate, FlowEdit } from "./resources/flows";
 import { BrandingList, BrandingEdit } from "./resources/branding";
@@ -278,7 +278,7 @@ export function App({ tenantId, initialDomain, onAuthComplete }: AppProps) {
           edit={LogStreamEdit}
           options={{ label: "Log Streams", menuGroup: "Observability" }}
         />
-        <Resource name="sessions" edit={SessionEdit} show={SessionShow} />
+        <Resource name="sessions" show={SessionShow} />
         <Resource name="action-executions" show={ActionExecutionShow} />
         <Resource
           name="forms"

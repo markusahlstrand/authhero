@@ -10,6 +10,9 @@ import type { EditorProps } from "@monaco-editor/react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { UrlTabs } from "@/components/ui/url-tabs";
+import { RawJsonTab } from "@/common/RawJsonTab";
 import { useRecordContext, useResourceContext } from "ra-core";
 import { Info } from "lucide-react";
 import { EmailTemplatePreview } from "./preview";
@@ -245,7 +248,18 @@ export function EmailTemplatesEdit() {
       actions={<ResetToDefaultButton />}
     >
       <SimpleForm className="max-w-none">
-        <EmailTemplateFormContent />
+        <UrlTabs defaultValue="details" className="w-full">
+          <TabsList>
+            <TabsTrigger value="details">Details</TabsTrigger>
+            <TabsTrigger value="raw">Raw JSON</TabsTrigger>
+          </TabsList>
+          <TabsContent value="details" className="mt-4">
+            <EmailTemplateFormContent />
+          </TabsContent>
+          <TabsContent value="raw" className="mt-4">
+            <RawJsonTab />
+          </TabsContent>
+        </UrlTabs>
       </SimpleForm>
     </Edit>
   );

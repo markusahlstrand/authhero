@@ -3,6 +3,9 @@ import { useGetOne, useNotify, useRedirect } from "ra-core";
 import { Edit, SimpleForm, TextInput } from "@/components/admin";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { UrlTabs } from "@/components/ui/url-tabs";
+import { RawJsonTab } from "@/common/RawJsonTab";
 import { ArrowLeft } from "lucide-react";
 
 export function ScopeEdit() {
@@ -56,14 +59,25 @@ export function ScopeEdit() {
         }}
         redirect={false}
       >
-        <SimpleForm>
-          <TextInput
-            source="value"
-            label="Scope"
-            required
-            readOnly={isSystem}
-          />
-          <TextInput source="description" multiline readOnly={isSystem} />
+        <SimpleForm className="max-w-none">
+          <UrlTabs defaultValue="details" className="w-full">
+            <TabsList>
+              <TabsTrigger value="details">Details</TabsTrigger>
+              <TabsTrigger value="raw">Raw JSON</TabsTrigger>
+            </TabsList>
+            <TabsContent value="details" className="mt-4">
+              <TextInput
+                source="value"
+                label="Scope"
+                required
+                readOnly={isSystem}
+              />
+              <TextInput source="description" multiline readOnly={isSystem} />
+            </TabsContent>
+            <TabsContent value="raw" className="mt-4">
+              <RawJsonTab />
+            </TabsContent>
+          </UrlTabs>
         </SimpleForm>
       </Edit>
     </div>

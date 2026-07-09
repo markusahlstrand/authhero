@@ -46,7 +46,7 @@ export function SessionsTab() {
         </p>
       }
     >
-      <DataTable rowClick="edit" bulkActionButtons={false}>
+      <DataTable rowClick="show" bulkActionButtons={false}>
         <DataTable.Col source="id" />
         <DataTable.Col label="Used at">
           <DateField source="used_at" showTime empty="-" />

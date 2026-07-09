@@ -26,6 +26,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { UrlTabs } from "@/components/ui/url-tabs";
+import { RawJsonTab } from "@/common/RawJsonTab";
 import type {
   Auth0UpdateUserAction,
   EmailVerifyAction,
@@ -484,9 +487,20 @@ function ActionsField() {
 export function FlowEdit() {
   return (
     <Edit mutationMode="pessimistic" transform={transformFlow}>
-      <SimpleForm>
-        <TextInput source="name" required />
-        <ActionsField />
+      <SimpleForm className="max-w-none">
+        <UrlTabs defaultValue="details" className="w-full">
+          <TabsList>
+            <TabsTrigger value="details">Details</TabsTrigger>
+            <TabsTrigger value="raw">Raw JSON</TabsTrigger>
+          </TabsList>
+          <TabsContent value="details" className="mt-4">
+            <TextInput source="name" required />
+            <ActionsField />
+          </TabsContent>
+          <TabsContent value="raw" className="mt-4">
+            <RawJsonTab />
+          </TabsContent>
+        </UrlTabs>
       </SimpleForm>
     </Edit>
   );

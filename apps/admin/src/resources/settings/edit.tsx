@@ -9,6 +9,7 @@ import { ErrorPageTab } from "./tabs/error-page-tab";
 import { ChangePasswordTab } from "./tabs/change-password-tab";
 import { FeatureFlagsTab } from "./tabs/feature-flags-tab";
 import { AdvancedTab } from "./tabs/advanced-tab";
+import { RawJsonTab } from "@/common/RawJsonTab";
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -51,6 +52,7 @@ export function SettingsEdit() {
             <TabsTrigger value="change-password">Change Password</TabsTrigger>
             <TabsTrigger value="feature-flags">Feature Flags</TabsTrigger>
             <TabsTrigger value="advanced">Advanced</TabsTrigger>
+            <TabsTrigger value="raw">Raw JSON</TabsTrigger>
           </TabsList>
           <TabsContent value="general" className="mt-4">
             <GeneralTab />
@@ -75,6 +77,9 @@ export function SettingsEdit() {
           </TabsContent>
           <TabsContent value="advanced" className="mt-4">
             <AdvancedTab />
+          </TabsContent>
+          <TabsContent value="raw" className="mt-4">
+            <RawJsonTab />
           </TabsContent>
         </UrlTabs>
       </SimpleForm>

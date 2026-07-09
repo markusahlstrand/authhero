@@ -5,6 +5,7 @@ import { UrlTabs } from "@/components/ui/url-tabs";
 import { DetailsTab } from "./tabs/details-tab";
 import { TestTab } from "./tabs/test-tab";
 import { VersionsTab } from "./tabs/versions-tab";
+import { RawJsonTab } from "@/common/RawJsonTab";
 
 type Secret = { name: string; value?: string };
 type Trigger = { id?: string };
@@ -73,6 +74,7 @@ export function ActionEdit() {
             <TabsTrigger value="details">Settings</TabsTrigger>
             <TabsTrigger value="test">Test</TabsTrigger>
             <TabsTrigger value="versions">Versions</TabsTrigger>
+            <TabsTrigger value="raw">Raw JSON</TabsTrigger>
           </TabsList>
           <TabsContent value="details" className="mt-4">
             <DetailsTab />
@@ -82,6 +84,9 @@ export function ActionEdit() {
           </TabsContent>
           <TabsContent value="versions" className="mt-4">
             <VersionsTab />
+          </TabsContent>
+          <TabsContent value="raw" className="mt-4">
+            <RawJsonTab />
           </TabsContent>
         </UrlTabs>
       </SimpleForm>

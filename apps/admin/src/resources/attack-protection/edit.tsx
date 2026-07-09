@@ -18,6 +18,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { RawJsonTab } from "@/common/RawJsonTab";
 
 const shieldChoices = [
   { id: "block", name: "Block" },
@@ -194,6 +195,7 @@ export function AttackProtectionEdit() {
               Breached Passwords
             </TabsTrigger>
             <TabsTrigger value="suspicious-ip">Suspicious IPs</TabsTrigger>
+            <TabsTrigger value="raw">Raw JSON</TabsTrigger>
           </TabsList>
           <TabsContent value="brute-force" className="mt-4">
             <BruteForceTab />
@@ -203,6 +205,9 @@ export function AttackProtectionEdit() {
           </TabsContent>
           <TabsContent value="suspicious-ip" className="mt-4">
             <SuspiciousIpTab />
+          </TabsContent>
+          <TabsContent value="raw" className="mt-4">
+            <RawJsonTab />
           </TabsContent>
         </UrlTabs>
       </SimpleForm>
