@@ -212,6 +212,10 @@ async function ensureManagementClient(
       client.name === MANAGEMENT_CLIENT_NAME,
   );
   if (existing) {
+    // The client may have been created by a prior run that failed before its
+    // Management API grant was written. Restore the grant if it is missing so
+    // re-runs recover from a partial failure.
+    await ensureManagementApiGrant(adapters, tenantId, existing.client_id, opts);
     return existing.client_id;
   }
 
@@ -256,14 +260,41 @@ async function ensureManagementClient(
     grant_types: ["client_credentials"],
   });
 
-  await adapters.clientGrants.create(tenantId, {
-    client_id: client.client_id,
-    audience: opts.managementApiIdentifier,
-    scope: opts.managementApiScopes?.map((scope) => scope.value) ?? [],
-  });
+  await ensureManagementApiGrant(adapters, tenantId, client.client_id, opts);
 
   if (opts.debug) {
     console.log(`✅ Management API (M2M) client created (${client.client_id})`);
   }
   return client.client_id;
+}
+
+/**
+ * Ensures the M2M client has a grant against the Management API, creating one
+ * only when it is missing. Idempotent so re-runs recover from a partial prior
+ * run that created the client but not its grant.
+ */
+async function ensureManagementApiGrant(
+  adapters: DataAdapters,
+  tenantId: string,
+  clientId: string,
+  opts: {
+    managementApiIdentifier: string;
+    managementApiScopes?: ManagementApiScope[];
+  },
+): Promise<void> {
+  const { client_grants } = await adapters.clientGrants.list(tenantId);
+  const hasGrant = client_grants.some(
+    (grant) =>
+      grant.client_id === clientId &&
+      grant.audience === opts.managementApiIdentifier,
+  );
+  if (hasGrant) {
+    return;
+  }
+
+  await adapters.clientGrants.create(tenantId, {
+    client_id: clientId,
+    audience: opts.managementApiIdentifier,
+    scope: opts.managementApiScopes?.map((scope) => scope.value) ?? [],
+  });
 }

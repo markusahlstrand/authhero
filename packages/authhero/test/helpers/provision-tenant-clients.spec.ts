@@ -80,6 +80,32 @@ describe("provisionDefaultClients", () => {
     expect(afterSecond.length).toBe(afterFirst.length);
   });
 
+  it("restores a missing Management API grant for an existing M2M client (partial-failure recovery)", async () => {
+    const { env } = await getTestServer();
+
+    // Simulate a prior run that created the M2M client but failed before its
+    // Management API grant was written.
+    await env.data.clients.create("tenantId", {
+      client_id: "orphanM2m",
+      client_secret: "s",
+      name: "API Explorer Application",
+      app_type: "non_interactive",
+      grant_types: ["client_credentials"],
+    });
+
+    const result = await provisionDefaultClients(env.data, "tenantId", {
+      managementApiIdentifier: MANAGEMENT_AUDIENCE,
+      managementApiScopes: MANAGEMENT_API_SCOPES,
+    });
+
+    // Reuses the orphaned client rather than creating a duplicate...
+    expect(result.managementClientId).toBe("orphanM2m");
+    // ...and restores the missing grant.
+    const { client_grants } = await env.data.clientGrants.list("tenantId", {});
+    const grant = client_grants.find((g) => g.client_id === "orphanM2m");
+    expect(grant?.audience).toBe(MANAGEMENT_AUDIENCE);
+  });
+
   it("respects an already-configured, valid default_client_id", async () => {
     const { env } = await getTestServer();
     await env.data.clients.create("tenantId", {

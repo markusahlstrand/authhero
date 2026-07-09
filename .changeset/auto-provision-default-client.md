@@ -11,3 +11,4 @@ New tenants now come with a designated interactive default client by constructio
 - Wired into both tenant-creation paths: the `seed`/bootstrap script and the multi-tenancy `afterCreate` provisioning hook (pooled tenants; isolated tenants are seeded via their own database provisioning).
 - `/connect/start` now falls back to the first *interactive* client (via the new `isInteractiveClient` helper) instead of `clients[0]`, so it never anchors on an M2M client.
 - `PATCH /tenants/settings` now rejects a `default_client_id` that doesn't reference an existing, interactive client (both the management-api and multi-tenancy handlers).
+- Provisioning now recovers from a partial prior run: if the M2M "API Explorer" client exists but its Management API grant is missing (e.g. a run that failed between creating the client and its grant), a re-run restores the grant instead of returning early.
