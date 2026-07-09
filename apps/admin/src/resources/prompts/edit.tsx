@@ -10,6 +10,7 @@ import { Plus, Pencil, Trash2 } from "lucide-react";
 import { Edit, SelectInput, SimpleForm } from "@/components/admin";
 import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UrlTabs } from "@/components/ui/url-tabs";
+import { RawJsonTab } from "@/common/RawJsonTab";
 import {
   Accordion,
   AccordionContent,
@@ -943,12 +944,16 @@ function PromptsFormContent() {
       <TabsList>
         <TabsTrigger value="settings">Settings</TabsTrigger>
         <TabsTrigger value="custom-text">Custom Text</TabsTrigger>
+        <TabsTrigger value="raw">Raw JSON</TabsTrigger>
       </TabsList>
       <TabsContent value="settings" className="mt-4">
         <SettingsTab />
       </TabsContent>
       <TabsContent value="custom-text" className="mt-4">
         <CustomTextTab />
+      </TabsContent>
+      <TabsContent value="raw" className="mt-4">
+        <RawJsonTab />
       </TabsContent>
     </UrlTabs>
   );

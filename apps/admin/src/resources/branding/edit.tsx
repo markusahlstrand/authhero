@@ -6,6 +6,7 @@ import { ColorInput } from "./color-input";
 import { ThemesTab } from "./themes-tab";
 import { UniversalLoginTab } from "./universal-login-tab";
 import { BrandingPreview } from "./preview";
+import { RawJsonTab } from "@/common/RawJsonTab";
 
 const keepEmptyString = (v: string | null | undefined) => v ?? "";
 
@@ -105,6 +106,7 @@ function BrandingFormContent() {
             <TabsTrigger value="style">Style</TabsTrigger>
             <TabsTrigger value="themes">Themes</TabsTrigger>
             <TabsTrigger value="universal-login">Universal Login</TabsTrigger>
+            <TabsTrigger value="raw">Raw JSON</TabsTrigger>
           </TabsList>
           <TabsContent value="style" className="mt-4">
             <StyleTab />
@@ -114,6 +116,9 @@ function BrandingFormContent() {
           </TabsContent>
           <TabsContent value="universal-login" className="mt-4">
             <UniversalLoginTab />
+          </TabsContent>
+          <TabsContent value="raw" className="mt-4">
+            <RawJsonTab />
           </TabsContent>
         </UrlTabs>
       </div>

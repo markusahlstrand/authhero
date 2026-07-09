@@ -8,6 +8,9 @@ import {
 } from "@/components/admin";
 import { useWatch } from "react-hook-form";
 import { SecretInput } from "@/common/SecretInput";
+import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { UrlTabs } from "@/components/ui/url-tabs";
+import { RawJsonTab } from "@/common/RawJsonTab";
 
 const PROVIDER_CHOICES = [
   { id: "mailgun", name: "Mailgun" },
@@ -109,13 +112,24 @@ function ProviderFields() {
 export function EmailProvidersEdit() {
   return (
     <Edit mutationMode="pessimistic" redirect={false} title="Email Provider">
-      <SimpleForm>
-        <SelectInput
-          source="name"
-          label="Provider"
-          choices={PROVIDER_CHOICES}
-        />
-        <ProviderFields />
+      <SimpleForm className="max-w-none">
+        <UrlTabs defaultValue="details" className="w-full">
+          <TabsList>
+            <TabsTrigger value="details">Details</TabsTrigger>
+            <TabsTrigger value="raw">Raw JSON</TabsTrigger>
+          </TabsList>
+          <TabsContent value="details" className="mt-4">
+            <SelectInput
+              source="name"
+              label="Provider"
+              choices={PROVIDER_CHOICES}
+            />
+            <ProviderFields />
+          </TabsContent>
+          <TabsContent value="raw" className="mt-4">
+            <RawJsonTab />
+          </TabsContent>
+        </UrlTabs>
       </SimpleForm>
     </Edit>
   );

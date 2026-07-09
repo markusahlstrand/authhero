@@ -4,6 +4,7 @@ import { UrlTabs } from "@/components/ui/url-tabs";
 import { DetailsTab } from "./tabs/details-tab";
 import { RbacTab } from "./tabs/rbac-tab";
 import { ScopesTab } from "./tabs/scopes-tab";
+import { RawJsonTab } from "@/common/RawJsonTab";
 
 export function ResourceServerEdit() {
   return (
@@ -14,6 +15,7 @@ export function ResourceServerEdit() {
             <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="rbac">RBAC</TabsTrigger>
             <TabsTrigger value="scopes">Scopes</TabsTrigger>
+            <TabsTrigger value="raw">Raw JSON</TabsTrigger>
           </TabsList>
           <TabsContent value="details" className="mt-4">
             <DetailsTab />
@@ -23,6 +25,9 @@ export function ResourceServerEdit() {
           </TabsContent>
           <TabsContent value="scopes" className="mt-4">
             <ScopesTab />
+          </TabsContent>
+          <TabsContent value="raw" className="mt-4">
+            <RawJsonTab />
           </TabsContent>
         </UrlTabs>
       </SimpleForm>

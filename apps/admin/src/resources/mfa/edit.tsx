@@ -16,6 +16,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { RawJsonTab } from "@/common/RawJsonTab";
 
 function FactorRow({ source, label }: { source: string; label: string }) {
   return (
@@ -147,6 +148,7 @@ export function MfaEdit() {
             <TabsTrigger value="factors">Factors &amp; policy</TabsTrigger>
             <TabsTrigger value="sms">SMS provider</TabsTrigger>
             <TabsTrigger value="page">Guardian page</TabsTrigger>
+            <TabsTrigger value="raw">Raw JSON</TabsTrigger>
           </TabsList>
           <TabsContent value="factors" className="mt-4">
             <FactorsTab />
@@ -156,6 +158,9 @@ export function MfaEdit() {
           </TabsContent>
           <TabsContent value="page" className="mt-4">
             <GuardianPageTab />
+          </TabsContent>
+          <TabsContent value="raw" className="mt-4">
+            <RawJsonTab />
           </TabsContent>
         </UrlTabs>
       </SimpleForm>
