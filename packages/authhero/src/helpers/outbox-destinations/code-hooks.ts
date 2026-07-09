@@ -1,4 +1,4 @@
-import { AuditEvent, CodeExecutor } from "@authhero/adapter-interfaces";
+import { AuditEvent, CodeExecutor, Hook } from "@authhero/adapter-interfaces";
 import { EventDestination } from "../outbox-relay";
 import {
   CodeHookData,
@@ -77,7 +77,7 @@ export class CodeHookDestination implements EventDestination {
     if (!codeExecutor) return;
 
     for (const invocation of invocations) {
-      const { hooks } = await this.data.hooks.list(invocation.tenantId);
+      const hooks = await this.listAllHooks(invocation.tenantId);
       const codeHooks = hooks.filter(
         (h) =>
           h.enabled &&
@@ -145,5 +145,24 @@ export class CodeHookDestination implements EventDestination {
         );
       }
     }
+  }
+
+  /**
+   * Fetch every hook for the tenant, paging past the adapter's default page
+   * size. `hooks.list` returns only the first page by default, so a tenant with
+   * more enabled code hooks than one page would silently skip the rest.
+   */
+  private async listAllHooks(tenantId: string): Promise<Hook[]> {
+    const perPage = 100;
+    const all: Hook[] = [];
+    for (let page = 0; ; page++) {
+      const { hooks } = await this.data.hooks.list(tenantId, {
+        page,
+        per_page: perPage,
+      });
+      all.push(...hooks);
+      if (hooks.length < perPage) break;
+    }
+    return all;
   }
 }

@@ -100,7 +100,7 @@ Four destinations ship today:
 | `CodeHookDestination` | `event.event_type.startsWith("hook.")` | runs each enabled **code hook** whose `trigger_id` matches through the `codeExecutor`, persists an `action_executions` record, and throws if any hook failed so the event is retried. No-op when no executor is configured. Listed **after** `WebhookDestination` |
 | `RegistrationFinalizerDestination` | `event.event_type === "hook.post-user-registration"` | sets `user.registration_completed_at` (listed **after** the delivery destinations so the flag only flips when webhook **and** code-hook delivery succeeded) |
 
-`WebhookDestination` and `CodeHookDestination` both accept `hook.*` events, so a single `hook.post-user-registration` / `hook.post-user-deletion` event fans out to webhooks **and** code hooks, each retried independently by the relay.
+`WebhookDestination` and `CodeHookDestination` both accept `hook.*` events, so a single `hook.post-user-registration` / `hook.post-user-deletion` event fans out to webhooks **and** code hooks. The fan-out is not independent per destination: the relay runs an event's destinations in order and stops the loop at the first failure (step 2 above), so a webhook failure short-circuits the code-hook destination on that pass. The whole event is retried later, re-running every destination — which is why each destination must be idempotent.
 
 Destinations are constructed per request in `getDestinations(ctx)` so they can close over ctx-scoped dependencies — notably the service-token minter used for webhook `Authorization` headers.
 
@@ -191,7 +191,7 @@ packages/authhero/src/helpers/outbox-destinations/
 
 ## Code hooks: from inline to outbox-backed
 
-Post-user-registration and post-user-deletion **code hooks** (tenant-authored actions bound by `code_id`) used to run inline inside `createUserHooks` — best-effort and at-most-once, so a throw was logged and dropped. They now run through `CodeHookDestination` from the `hook.*` event, sharing the relay's retry + dead-letter machinery ([#950](https://github.com/markusahlstrand/authhero/issues/950)).
+Post-user-registration **code hooks** (tenant-authored actions bound by `code_id`) used to run inline inside `createUserHooks` — best-effort and at-most-once, so a throw was logged and dropped. Post-user-deletion code hooks are new here and have no inline predecessor; they were only ever delivered through the outbox. Both now run through `CodeHookDestination` from the `hook.*` event, sharing the relay's retry + dead-letter machinery ([#950](https://github.com/markusahlstrand/authhero/issues/950)).
 
 The core executor was decoupled from the request `ctx`: `codehooks.ts::executeCodeHook({ codeExecutor, data, tenantId, hook, event, triggerId, api })` runs the code given explicit dependencies, and the inline `handleCodeHook(ctx, …)` is now a thin wrapper that resolves them from `ctx`. This works because the serialized event never carries `ctx` (it is stripped before reaching user code) and post-registration/deletion expose an empty `api` (there is no token to mutate), so no synthetic request needs to be reconstructed.
 

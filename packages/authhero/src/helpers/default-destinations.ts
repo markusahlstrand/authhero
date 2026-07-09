@@ -120,6 +120,31 @@ export function createDefaultDestinations(
     destinations.push(new LogStreamDestination(dataAdapter.logStreams));
   }
 
+  // Run tenant code hooks on the cron path too, so a code hook that failed
+  // per-request delivery is actually retried rather than skipped. Requires the
+  // code-hook adapters alongside the executor. Independent of `getServiceToken`
+  // — code hooks are invoked directly (via `executeCodeHook`), not over HTTP —
+  // so a consumer that only configures `codeExecutor` still drains code hooks.
+  if (
+    codeExecutor &&
+    dataAdapter.actions &&
+    dataAdapter.hookCode &&
+    dataAdapter.actionExecutions
+  ) {
+    destinations.push(
+      new CodeHookDestination(
+        {
+          hooks: dataAdapter.hooks,
+          actions: dataAdapter.actions,
+          hookCode: dataAdapter.hookCode,
+          actionExecutions: dataAdapter.actionExecutions,
+          multiTenancyConfig: dataAdapter.multiTenancyConfig,
+        },
+        codeExecutor,
+      ),
+    );
+  }
+
   if (getServiceToken) {
     destinations.push(
       new WebhookDestination(dataAdapter.hooks, getServiceToken, {
@@ -136,30 +161,8 @@ export function createDefaultDestinations(
         }),
       );
     }
-    // Run tenant code hooks on the cron path too, so a code hook that failed
-    // per-request delivery is actually retried rather than skipped. Requires
-    // the code-hook adapters alongside the executor.
-    if (
-      codeExecutor &&
-      dataAdapter.actions &&
-      dataAdapter.hookCode &&
-      dataAdapter.actionExecutions
-    ) {
-      destinations.push(
-        new CodeHookDestination(
-          {
-            hooks: dataAdapter.hooks,
-            actions: dataAdapter.actions,
-            hookCode: dataAdapter.hookCode,
-            actionExecutions: dataAdapter.actionExecutions,
-            multiTenancyConfig: dataAdapter.multiTenancyConfig,
-          },
-          codeExecutor,
-        ),
-      );
-    }
-    // Must come AFTER the delivery destinations so the registration-completed
-    // flag only flips once webhook and code-hook delivery have succeeded.
+    // Must come AFTER the delivery destinations (webhook + code hook) so the
+    // registration-completed flag only flips once delivery has succeeded.
     destinations.push(new RegistrationFinalizerDestination(dataAdapter.users));
   }
 
