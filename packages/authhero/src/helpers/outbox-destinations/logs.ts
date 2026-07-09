@@ -6,12 +6,22 @@ import {
 } from "@authhero/adapter-interfaces";
 import { EventDestination } from "../outbox-relay";
 
+/** Target entity types whose id identifies an affected user. For these, the
+ *  flat log's `user_id` should be the target (the user the operation acted on),
+ *  matching Auth0 — e.g. "Delete a User" logs the deleted user, not the admin
+ *  actor. For non-user targets (client, connection, …) the actor is retained. */
+const USER_TARGET_TYPES = new Set(["user", "identity"]);
+
 /**
  * Transforms AuditEvent into LogInsert for the existing logs table.
  * This preserves backward compatibility — the management API GET /logs
  * endpoints continue to work unchanged.
  */
 function toLogInsert(event: AuditEvent): LogInsert {
+  const userId =
+    (USER_TARGET_TYPES.has(event.target?.type) && event.target?.id) ||
+    event.actor.id ||
+    "";
   return {
     log_id: event.id,
     type: event.log_type as LogType,
@@ -19,7 +29,7 @@ function toLogInsert(event: AuditEvent): LogInsert {
     description: event.description || "",
     ip: event.request.ip,
     user_agent: event.request.user_agent || "",
-    user_id: event.actor.id || "",
+    user_id: userId,
     user_name: event.actor.email || "",
     client_id: event.actor.client_id,
     client_name: event.client_name || "",

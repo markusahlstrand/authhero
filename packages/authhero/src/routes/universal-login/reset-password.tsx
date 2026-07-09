@@ -245,11 +245,15 @@ const postRoot = defineRoute({
       // Clear any failed-login lockout and stamp last_password_reset.
       await recordPasswordReset(env.data, client.tenant.id, user);
 
-      // Log the successful password change
+      // Log the successful password change. ctx.connection isn't set in this
+      // flow, so pass the resolved connection explicitly — otherwise both
+      // connection and connection_id come out empty.
       await logMessage(ctx, client.tenant.id, {
         type: LogTypes.SUCCESS_CHANGE_PASSWORD,
         description: `Password changed for ${user.email}`,
         userId: user.user_id,
+        connection: connectionName,
+        connection_id: passwordConnection?.id,
       });
     } catch (err) {
       // Log the actual error for debugging

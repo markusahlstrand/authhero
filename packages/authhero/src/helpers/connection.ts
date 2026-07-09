@@ -1,5 +1,10 @@
 import { Context } from "hono";
-import { LoginSession, User } from "@authhero/adapter-interfaces";
+import {
+  LoginSession,
+  Strategy,
+  User,
+  isDatabaseConnectionStrategy,
+} from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
 import { HookEvent } from "../types/Hooks";
 
@@ -65,11 +70,27 @@ export async function getConnectionInfo(
     // per-request round-trip.
     const { connections } = await ctx.env.data.connections.list(tenantId);
 
-    const connection =
+    let connection =
       connections.find((c) => c.name === connectionName) ??
       connections.find(
         (c) => c.name.toLowerCase() === connectionName.toLowerCase(),
       );
+
+    // Sessions created before the realm-resolution fix (2026-07-07) stored the
+    // generic "Username-Password-Authentication" realm as their auth_connection
+    // instead of the tenant's actual database connection name (e.g. "password").
+    // Long-lived offline_access refresh tokens keep replaying that generic name
+    // on every exchange, so resolve it to the tenant's single database
+    // connection here — mirroring the same single-connection heuristic the
+    // password flow uses — to recover both the canonical name and its id.
+    if (!connection && connectionName === Strategy.USERNAME_PASSWORD) {
+      const databaseConnections = connections.filter((c) =>
+        isDatabaseConnectionStrategy(c.strategy),
+      );
+      if (databaseConnections.length === 1) {
+        connection = databaseConnections[0];
+      }
+    }
 
     if (!connection) {
       return undefined;

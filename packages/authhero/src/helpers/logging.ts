@@ -5,6 +5,7 @@ import {
   LogType,
   AuditEventInsert,
   AuditCategory,
+  Strategy,
 } from "@authhero/adapter-interfaces";
 import { Variables, Bindings } from "../types";
 import { waitUntil } from "./wait-until";
@@ -131,6 +132,28 @@ export type LogParams = {
   targetId?: string;
 };
 
+/** Target entity types whose id identifies an affected user. For these, the
+ *  flat log's `user_id` is the target (the user the operation acted on) rather
+ *  than the actor — matching Auth0, e.g. "Delete a User" logs the deleted user.
+ *  Kept in sync with the same set in `outbox-destinations/logs.ts`. */
+const USER_TARGET_TYPES = new Set(["user", "identity"]);
+
+/** The affected user for the flat log's `user_id`: the target for user-scoped
+ *  management operations, otherwise the subject/actor user. */
+function subjectUserId(
+  params: LogParams,
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+): string {
+  if (
+    params.targetType &&
+    USER_TARGET_TYPES.has(params.targetType) &&
+    params.targetId
+  ) {
+    return params.targetId;
+  }
+  return params.userId || ctx.var.user_id || "";
+}
+
 function computeDiff(
   before: Record<string, unknown> | undefined,
   after: Record<string, unknown> | undefined,
@@ -170,6 +193,10 @@ function inferCategory(
  */
 type LogEnrichment = {
   connection_id: string;
+  /** The resolved connection's canonical name. Differs from the requested name
+   *  when it resolved case-insensitively or via the username-password fallback
+   *  (e.g. the generic "Username-Password-Authentication" realm → "password"). */
+  connection: string;
   client_name: string;
   user_name: string;
 };
@@ -190,12 +217,10 @@ async function resolveLogEnrichment(
   const clientId = ctx.var.client_id;
   const userId = params.userId || ctx.var.user_id || "";
 
-  const [connection_id, client_name, user_name] = await Promise.all([
+  const [connectionInfo, client_name, user_name] = await Promise.all([
     (async () => {
-      if (params.connection_id) return params.connection_id;
-      if (!connectionName) return "";
-      const info = await getConnectionInfo(ctx, tenantId, connectionName);
-      return info?.id || "";
+      if (!connectionName) return undefined;
+      return getConnectionInfo(ctx, tenantId, connectionName);
     })(),
     (async () => {
       if (params.client_name) return params.client_name;
@@ -220,7 +245,22 @@ async function resolveLogEnrichment(
     })(),
   ]);
 
-  return { connection_id, client_name, user_name };
+  // Only correct the connection *name* when the request carried the generic
+  // "Username-Password-Authentication" realm (pre-2026-07-07 sessions replay it
+  // on every refresh-token exchange). Resolving it to the tenant's real
+  // database connection name (e.g. "password") fixes the logged connection
+  // without canonicalizing casing for every other connection.
+  const connection =
+    connectionName === Strategy.USERNAME_PASSWORD
+      ? connectionInfo?.name || ""
+      : "";
+
+  return {
+    connection_id: params.connection_id || connectionInfo?.id || "",
+    connection,
+    client_name,
+    user_name,
+  };
 }
 
 function buildAuditEvent(
@@ -306,7 +346,15 @@ function buildAuditEvent(
         }
       : undefined,
 
-    connection: params.connection || ctx.var.connection || undefined,
+    // Prefer the resolved connection name: enrichment.connection is only set
+    // when the request carried the generic username-password realm and it
+    // resolved to the tenant's real database connection (e.g. "password").
+    // Fall back to the raw requested name in every other case.
+    connection:
+      enrichment?.connection ||
+      params.connection ||
+      ctx.var.connection ||
+      undefined,
     connection_id:
       params.connection_id || enrichment?.connection_id || undefined,
     client_name: params.client_name || enrichment?.client_name || undefined,
@@ -411,11 +459,14 @@ export async function logMessage(
       isMobile: false,
       client_id: ctx.var.client_id,
       client_name: enrichment.client_name,
-      user_id: params.userId || ctx.var.user_id || "",
+      // For user-targeted management operations (e.g. "Delete a User"), record
+      // the affected user as user_id — matching Auth0 — rather than the actor.
+      user_id: subjectUserId(params, ctx),
       hostname: ctx.var.host || "",
       user_name: enrichment.user_name,
       connection_id: enrichment.connection_id,
-      connection: params.connection || ctx.var.connection || "",
+      connection:
+        enrichment.connection || params.connection || ctx.var.connection || "",
       strategy: params.strategy || "",
       strategy_type: params.strategy_type || "",
       audience: params.audience || "",
@@ -452,6 +503,10 @@ export async function logMessageInTx(
   params: LogParams,
 ): Promise<string | undefined> {
   if (!ctx.env.outbox?.enabled || !trxData.outbox) return undefined;
-  const event = buildAuditEvent(ctx, tenantId, params);
+  // Resolve identity enrichment (connection_id / client_name / user_name) the
+  // same way logMessage does — otherwise connection_id and client_name are
+  // silently dropped even though connection/client_id are present.
+  const enrichment = await resolveLogEnrichment(ctx, tenantId, params);
+  const event = buildAuditEvent(ctx, tenantId, params, enrichment);
   return trxData.outbox.create(tenantId, event);
 }

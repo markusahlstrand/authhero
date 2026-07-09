@@ -209,3 +209,85 @@ describe("logging helper - geo functionality", () => {
     consoleWarnSpy.mockRestore();
   });
 });
+
+describe("logging helper - connection enrichment", () => {
+  // A tenant whose only database connection is named "password" — it does NOT
+  // have a connection literally named "Username-Password-Authentication".
+  function createCtx(
+    connections: { id: string; name: string; strategy: string }[],
+  ): Context<{ Bindings: Bindings; Variables: Variables }> {
+    return {
+      env: {
+        data: {
+          logs: { create: vi.fn().mockResolvedValue(undefined) },
+          connections: {
+            list: vi.fn().mockResolvedValue({ connections }),
+          },
+          clients: { get: vi.fn().mockResolvedValue(undefined) },
+          users: { get: vi.fn().mockResolvedValue(undefined) },
+        } as any,
+      } as any,
+      var: {
+        ip: "127.0.0.1",
+        useragent: "test-agent",
+        client_id: "clientId",
+        user_id: "auth0|user",
+      },
+      set: () => {},
+      req: {
+        method: "POST",
+        path: "/oauth/token",
+        queries: () => ({}),
+        header: () => undefined,
+        raw: { headers: new Headers() },
+      },
+      executionCtx: { waitUntil: () => {}, passThroughOnException: () => {} },
+    } as any;
+  }
+
+  it("resolves the generic username-password realm to the tenant's database connection name and id", async () => {
+    const ctx = createCtx([
+      { id: "con_email", name: "Email", strategy: "email" },
+      { id: "con_password", name: "password", strategy: "auth0" },
+    ]);
+
+    // The login session stored the generic realm (pre-2026-07-07 sessions),
+    // which is what the token endpoint passes as params.connection.
+    await logMessage(ctx, "test-tenant", {
+      type: "sertft",
+      description: "",
+      connection: "Username-Password-Authentication",
+      waitForCompletion: true,
+    });
+
+    expect(ctx.env.data.logs.create).toHaveBeenCalledWith(
+      "test-tenant",
+      expect.objectContaining({
+        connection: "password",
+        connection_id: "con_password",
+      }),
+    );
+  });
+
+  it("leaves the realm unresolved when there are multiple database connections", async () => {
+    const ctx = createCtx([
+      { id: "con_a", name: "password", strategy: "auth0" },
+      { id: "con_b", name: "legacy-db", strategy: "auth2" },
+    ]);
+
+    await logMessage(ctx, "test-tenant", {
+      type: "sertft",
+      description: "",
+      connection: "Username-Password-Authentication",
+      waitForCompletion: true,
+    });
+
+    expect(ctx.env.data.logs.create).toHaveBeenCalledWith(
+      "test-tenant",
+      expect.objectContaining({
+        connection: "Username-Password-Authentication",
+        connection_id: "",
+      }),
+    );
+  });
+});

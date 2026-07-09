@@ -469,6 +469,14 @@ describe("passwords", () => {
     expect(passwordResetSuccessLog?.user_id).toBe(
       `${USERNAME_PASSWORD_PROVIDER}|resetComplete456`,
     );
+    // The reset flow never sets ctx.connection, so the log must carry the
+    // resolved database connection explicitly — otherwise both fields are empty.
+    expect(passwordResetSuccessLog?.connection).toBe(
+      Strategy.USERNAME_PASSWORD,
+    );
+    expect(passwordResetSuccessLog?.connection_id).toBe(
+      Strategy.USERNAME_PASSWORD,
+    );
   });
 
   it("should successfully change password and allow login with new password", async () => {
@@ -749,6 +757,19 @@ describe("passwords", () => {
     expect(activityAfterReset?.failed_logins ?? []).toEqual([]);
     expect(activityAfterReset?.last_password_reset).toBeDefined();
 
+    // The scp (password-changed) log must carry the resolved connection —
+    // both reset routes logged empty connection/connection_id in prod.
+    const { logs: resetLogs } = await env.data.logs.list("tenantId", {
+      page: 0,
+      per_page: 100,
+      include_totals: false,
+    });
+    const scpLog = resetLogs.find(
+      (log) => log.type === LogTypes.SUCCESS_CHANGE_PASSWORD,
+    );
+    expect(scpLog?.connection).toBe(Strategy.USERNAME_PASSWORD);
+    expect(scpLog?.connection_id).toBe(Strategy.USERNAME_PASSWORD);
+
     // And the user should be able to log in immediately with the new password
     // rather than being blocked by the stale lockout.
     const newAuthorize = await oauthClient.authorize.$get({
@@ -872,6 +893,19 @@ describe("passwords", () => {
     );
     expect(activityAfterReset?.failed_logins ?? []).toEqual([]);
     expect(activityAfterReset?.last_password_reset).toBeDefined();
+
+    // The scp (password-changed) log must carry the resolved connection —
+    // both reset routes logged empty connection/connection_id in prod.
+    const { logs: resetLogs } = await env.data.logs.list("tenantId", {
+      page: 0,
+      per_page: 100,
+      include_totals: false,
+    });
+    const scpLog = resetLogs.find(
+      (log) => log.type === LogTypes.SUCCESS_CHANGE_PASSWORD,
+    );
+    expect(scpLog?.connection).toBe(Strategy.USERNAME_PASSWORD);
+    expect(scpLog?.connection_id).toBe(Strategy.USERNAME_PASSWORD);
 
     // And the user should be able to log in immediately with the new password
     // rather than being blocked by the stale lockout.
