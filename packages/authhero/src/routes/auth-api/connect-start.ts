@@ -3,6 +3,7 @@ import { nanoid } from "nanoid";
 import { Bindings, Variables } from "../../types";
 import { JSONHTTPException } from "../../errors/json-http-exception";
 import { validateConnectOrigin } from "../../helpers/dcr/validate-connect-origin";
+import { isInteractiveClient } from "../../helpers/provision-tenant-clients";
 
 import { defineRoute } from "../../utils/define-route";
 const UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS = 60 * 30; // 30 min
@@ -144,14 +145,15 @@ const getRoot = defineRoute({
     // to carry consent state through the login bounce; the anchor client_id
     // is never traversed in an OAuth flow. Prefer the tenant's configured
     // `default_client_id` (analogous to Auth0's Default App) so branding
-    // stays deterministic, and fall back to the first available client so a
-    // brand-new tenant can still bootstrap its first DCR integration.
+    // stays deterministic, and fall back to the first *interactive* client so
+    // a brand-new tenant can still bootstrap its first DCR integration — never
+    // an M2M/client_credentials client, which can't render a login screen.
     let anchorClient = tenant.default_client_id
       ? await ctx.env.data.clients.get(tenant_id, tenant.default_client_id)
       : null;
     if (!anchorClient) {
       const { clients } = await ctx.env.data.clients.list(tenant_id);
-      anchorClient = clients[0] ?? null;
+      anchorClient = clients.find(isInteractiveClient) ?? null;
     }
     if (!anchorClient) {
       throw new JSONHTTPException(400, {

@@ -7,6 +7,7 @@ import { createX509Certificate } from "./utils/encryption";
 import { userIdGenerate } from "./utils/user-id";
 import { nanoid } from "nanoid";
 import { hashPassword } from "./helpers/password-policy";
+import { provisionDefaultClients } from "./helpers/provision-tenant-clients";
 import { USERNAME_PASSWORD_PROVIDER } from "./constants";
 
 /**
@@ -889,6 +890,15 @@ export async function seed(
   } else if (debug) {
     console.log("Management API resource server already exists, skipping...");
   }
+
+  // Designate the interactive default client (reuses the "Default Application"
+  // created above) and provision an M2M Management API client. Idempotent, so
+  // re-seeding an existing tenant neither duplicates nor clobbers it (#1007).
+  await provisionDefaultClients(adapters, tenantId, {
+    managementApiIdentifier,
+    managementApiScopes: MANAGEMENT_API_SCOPES,
+    debug,
+  });
 
   // Create organization with tenant_id as the name (for org-scoped token support)
   // The ID is a generated random string like Auth0's org_xxx pattern

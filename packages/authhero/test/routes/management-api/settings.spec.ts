@@ -559,4 +559,80 @@ describe("settings", () => {
       expect(updated.default_audience).toBe("https://orphaned.example.com");
     });
   });
+
+  describe("default_client_id validation", () => {
+    it("rejects a default_client_id that does not reference any client", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      const response = await managementClient.tenants.settings.$patch(
+        {
+          header: { "tenant-id": "tenantId" },
+          json: { default_client_id: "doesNotExist" },
+        },
+        { headers: { authorization: `Bearer ${token}` } },
+      );
+
+      expect(response.status).toBe(400);
+    });
+
+    it("rejects a default_client_id that references an M2M client", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      await env.data.clients.create("tenantId", {
+        client_id: "m2mClient",
+        client_secret: "s",
+        name: "M2M Client",
+        app_type: "non_interactive",
+        grant_types: ["client_credentials"],
+      });
+
+      const response = await managementClient.tenants.settings.$patch(
+        {
+          header: { "tenant-id": "tenantId" },
+          json: { default_client_id: "m2mClient" },
+        },
+        { headers: { authorization: `Bearer ${token}` } },
+      );
+
+      expect(response.status).toBe(400);
+    });
+
+    it("accepts a default_client_id that references an interactive client", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      const response = await managementClient.tenants.settings.$patch(
+        {
+          header: { "tenant-id": "tenantId" },
+          json: { default_client_id: "clientId" },
+        },
+        { headers: { authorization: `Bearer ${token}` } },
+      );
+
+      expect(response.status).toBe(200);
+      const updated = await response.json();
+      expect(updated.default_client_id).toBe("clientId");
+    });
+
+    it("allows clearing default_client_id with an empty string", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      const response = await managementClient.tenants.settings.$patch(
+        {
+          header: { "tenant-id": "tenantId" },
+          json: { default_client_id: "" },
+        },
+        { headers: { authorization: `Bearer ${token}` } },
+      );
+
+      expect(response.status).toBe(200);
+    });
+  });
 });

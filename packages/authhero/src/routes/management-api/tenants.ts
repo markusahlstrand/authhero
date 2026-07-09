@@ -9,6 +9,7 @@ import {
 import { deepMergePatch } from "../../utils/deep-merge";
 import { logMessage } from "../../helpers/logging";
 import { defineRoute } from "../../utils/define-route";
+import { isInteractiveClient } from "../../helpers/provision-tenant-clients";
 const getSettings = defineRoute({
   route: createRoute({
     tags: ["tenants", "settings"],
@@ -118,6 +119,26 @@ const patchSettings = defineRoute({
         if (!exists) {
           throw new HTTPException(400, {
             message: `Resource server with identifier '${next}' not found`,
+          });
+        }
+      }
+    }
+
+    // The default client anchors interactive tenant-level flows (e.g. the DCR
+    // /connect/start consent bounce), so it must reference an existing,
+    // interactive client — never an M2M/client_credentials client (#1007).
+    if ("default_client_id" in sanitizedUpdates) {
+      const next = sanitizedUpdates.default_client_id;
+      if (typeof next === "string" && next.length > 0) {
+        const client = await ctx.env.data.clients.get(ctx.var.tenant_id, next);
+        if (!client) {
+          throw new HTTPException(400, {
+            message: `Client with id '${next}' not found`,
+          });
+        }
+        if (!isInteractiveClient(client)) {
+          throw new HTTPException(400, {
+            message: `Client '${next}' is not an interactive client and cannot be used as the default client`,
           });
         }
       }
