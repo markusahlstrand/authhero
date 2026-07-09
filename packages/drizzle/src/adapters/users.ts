@@ -11,7 +11,11 @@ import {
 import type { AnySQLiteColumn } from "drizzle-orm/sqlite-core";
 import { nanoid } from "nanoid";
 import { HTTPException } from "hono/http-exception";
-import type { User, ListParams } from "@authhero/adapter-interfaces";
+import type {
+  User,
+  ListParams,
+  WriteOptions,
+} from "@authhero/adapter-interfaces";
 import {
   users,
   userActivity,
@@ -29,6 +33,19 @@ import {
 import { createUserActivityAdapter } from "./userActivity";
 import type { DrizzleDb } from "./types";
 import { runAtomic, type AtomicStatementList } from "./atomic";
+import { buildOutboxInsert } from "./outbox";
+
+/**
+ * Map companion outbox events (issue #1057) to their insert statements so they
+ * can be appended to a user-write `runAtomic` batch — the event row then lands
+ * in the same `db.batch()` (D1) / transaction (better-sqlite3) as the business
+ * row.
+ */
+function outboxInserts(db: DrizzleDb, options?: WriteOptions) {
+  return (options?.outboxEvents ?? []).map((event) =>
+    buildOutboxInsert(db, event.id, event.tenant_id, event),
+  );
+}
 
 // Fields users.list() accepts in `q`. Excludes `tenant_id` so a clause like
 // `q=tenant_id:other` cannot reach arbitrary columns. Mirrors the kysely
@@ -170,7 +187,11 @@ function sqlToUser(sqlUser: any, linkedUsers: any[] = []): User {
 }
 
 export function createUsersAdapter(db: DrizzleDb) {
-  const createImpl = async (tenant_id: string, params: any): Promise<User> => {
+  const createImpl = async (
+    tenant_id: string,
+    params: any,
+    options?: WriteOptions,
+  ): Promise<User> => {
     const now = new Date().toISOString();
 
     const sqlData: any = {
@@ -252,6 +273,13 @@ export function createUsersAdapter(db: DrizzleDb) {
         );
       }
 
+      // Companion outbox events (issue #1057): the event row commits in the
+      // same atomic unit as the user, so a crash between the two can never
+      // leave the user without its post-registration event (or vice versa).
+      for (const stmt of outboxInserts(db, options)) {
+        statements.push(stmt);
+      }
+
       if (statements.length > 1) {
         await runAtomic(db, statements);
       } else {
@@ -311,6 +339,7 @@ export function createUsersAdapter(db: DrizzleDb) {
       tenant_id: string,
       user_id: string,
       params: Partial<User>,
+      options?: WriteOptions,
     ): Promise<boolean> {
       const updateData: any = {
         updated_at: new Date().toISOString(),
@@ -363,13 +392,26 @@ export function createUsersAdapter(db: DrizzleDb) {
       if (params.profileData !== undefined)
         updateData.profileData = JSON.stringify(params.profileData);
 
-      const results = await db
+      const updateStmt = db
         .update(users)
         .set(updateData)
         .where(and(eq(users.tenant_id, tenant_id), eq(users.user_id, user_id)))
         .returning();
 
-      if (results.length === 0) {
+      // With companion outbox events (issue #1057), commit the update and the
+      // event rows in a single atomic unit. Without events, keep the plain
+      // single-statement path.
+      const companions = outboxInserts(db, options);
+      let updatedRows: unknown[];
+      if (companions.length > 0) {
+        const statements: AtomicStatementList = [updateStmt, ...companions];
+        const batchResults = await runAtomic(db, statements);
+        updatedRows = batchResults[0] as unknown[];
+      } else {
+        updatedRows = await updateStmt;
+      }
+
+      if (!Array.isArray(updatedRows) || updatedRows.length === 0) {
         return false;
       }
 
@@ -486,7 +528,11 @@ export function createUsersAdapter(db: DrizzleDb) {
       };
     },
 
-    async remove(tenant_id: string, user_id: string): Promise<boolean> {
+    async remove(
+      tenant_id: string,
+      user_id: string,
+      options?: WriteOptions,
+    ): Promise<boolean> {
       // Collect all user IDs to delete: primary + linked. This read can sit
       // outside the atomic unit — it mutates nothing, and the deletes it feeds
       // are applied together below.
@@ -502,7 +548,7 @@ export function createUsersAdapter(db: DrizzleDb) {
       // Apply the cascade deletes atomically so we never leave a user behind
       // with its auth methods / passwords removed (or vice versa). runAtomic
       // uses db.batch() on D1 and BEGIN/COMMIT on better-sqlite3.
-      const results = await runAtomic(db, [
+      const statements: AtomicStatementList = [
         // Delete authentication methods for all users
         db
           .delete(authenticationMethods)
@@ -549,11 +595,19 @@ export function createUsersAdapter(db: DrizzleDb) {
             and(eq(users.tenant_id, tenant_id), eq(users.user_id, user_id)),
           )
           .returning(),
-      ]);
+      ];
 
-      // The primary-user delete is the last statement; its `.returning()` rows
-      // tell us whether a row actually existed.
-      const primaryDeleteResult = results[results.length - 1];
+      // The primary-user delete carries `.returning()` and its result tells us
+      // whether a row existed. Capture its index before appending any companion
+      // outbox inserts (issue #1057) so the detection stays correct.
+      const primaryDeleteIndex = statements.length - 1;
+      for (const stmt of outboxInserts(db, options)) {
+        statements.push(stmt);
+      }
+
+      const results = await runAtomic(db, statements);
+
+      const primaryDeleteResult = results[primaryDeleteIndex];
       return (
         Array.isArray(primaryDeleteResult) && primaryDeleteResult.length > 0
       );

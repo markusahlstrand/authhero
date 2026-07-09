@@ -1,35 +1,45 @@
 import { Context } from "hono";
-import { AuditEventInsert, LogTypes, User } from "@authhero/adapter-interfaces";
+import { nanoid } from "nanoid";
+import {
+  AuditEventInsert,
+  LogTypes,
+  OutboxEventInsert,
+  User,
+} from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
 import { waitUntil } from "./wait-until";
 import { invokeHooks } from "../hooks/webhooks";
 import { stripInternalUserFields } from "./hook-user-payload";
 
+type HookCtx = Context<{ Bindings: Bindings; Variables: Variables }>;
+
 /**
- * Enqueue a `hook.{triggerId}` event to the outbox so the `WebhookDestination`
- * (and future `CodeHookDestination`) can dispatch the hook asynchronously with
- * retries instead of firing inline while the request is being served.
- *
- * Mirrors the synchronous-push pattern used by `logMessage`: the promise from
- * `outbox.create` is pushed onto `ctx.var.outboxEventPromises` so the outbox
- * middleware can await it in its finally block and then relay the resulting
- * event IDs.
- *
- * When the outbox is not configured, falls back to inline webhook invocation
- * (via `waitUntil`) so tenants without outbox still receive webhook calls.
+ * Whether the outbox is configured for this request. When false, hook dispatch
+ * falls back to inline webhook invocation (no retry / dead-letter).
  */
-export function enqueuePostHookEvent(
-  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+export function outboxEnabled(ctx: HookCtx): boolean {
+  return Boolean(ctx.env.outbox?.enabled && ctx.env.data.outbox);
+}
+
+/**
+ * Build a `hook.{triggerId}` outbox event with a caller-assigned id, or
+ * `undefined` when the outbox is not configured (the caller then falls back to
+ * inline dispatch via {@link dispatchPostHookInline}).
+ *
+ * The returned event is meant to be handed to an event-emitting user write
+ * (`rawCreate` / `remove`) via its `outboxEvents` option so it commits in the
+ * same atomic unit as the business row (issue #1057). Because the id is fixed
+ * up front, the caller can relay it with {@link relayOutboxEvent} once the
+ * write commits without needing a return value from the adapter.
+ */
+export function buildPostHookEvent(
+  ctx: HookCtx,
   tenantId: string,
   triggerId: string,
   user: User,
-): void {
-  if (!ctx.env.outbox?.enabled || !ctx.env.data.outbox) {
-    // Outbox not configured: invoke webhooks inline (fire-and-forget via
-    // waitUntil). No retry + dead-letter support in this mode — configure
-    // the outbox to get durable delivery.
-    waitUntil(ctx, dispatchInline(ctx, tenantId, triggerId, user));
-    return;
+): OutboxEventInsert | undefined {
+  if (!outboxEnabled(ctx)) {
+    return undefined;
   }
 
   const event: AuditEventInsert = {
@@ -69,14 +79,39 @@ export function enqueuePostHookEvent(
     timestamp: new Date().toISOString(),
   };
 
-  const eventPromise = ctx.env.data.outbox.create(tenantId, event);
+  return { ...event, id: nanoid() };
+}
+
+/**
+ * Relay an outbox event that has already been persisted (atomically with its
+ * business write) so the outbox middleware picks it up for delivery. Mirrors
+ * the synchronous-push pattern used by `logMessage`: the id is pushed onto
+ * `ctx.var.outboxEventPromises`, which the outbox middleware drains and hands
+ * to `processOutboxEvents`.
+ */
+export function relayOutboxEvent(ctx: HookCtx, id: string): void {
   const existing = ctx.var.outboxEventPromises || [];
-  existing.push(eventPromise);
+  existing.push(Promise.resolve(id));
   ctx.set("outboxEventPromises", existing);
 }
 
+/**
+ * Fallback dispatch for when the outbox is not configured: invoke the
+ * post-hook webhooks inline (fire-and-forget via `waitUntil`). No retry /
+ * dead-letter support in this mode — configure the outbox for durable
+ * delivery.
+ */
+export function dispatchPostHookInline(
+  ctx: HookCtx,
+  tenantId: string,
+  triggerId: string,
+  user: User,
+): void {
+  waitUntil(ctx, dispatchInline(ctx, tenantId, triggerId, user));
+}
+
 async function dispatchInline(
-  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  ctx: HookCtx,
   tenantId: string,
   triggerId: string,
   user: User,

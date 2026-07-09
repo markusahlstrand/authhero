@@ -20,6 +20,7 @@ import type {
 import { outboxEvents } from "../schema/sqlite";
 import { parseJsonIfString } from "../helpers/transform";
 import type { DrizzleDb } from "./types";
+import type { SqliteBatchItem } from "./atomic";
 
 function sqlToOutboxEvent(row: any): any {
   return {
@@ -28,29 +29,44 @@ function sqlToOutboxEvent(row: any): any {
   };
 }
 
+/**
+ * Build the insert statement for a single outbox event without executing it.
+ * Shared by `outbox.create` (standalone insert) and the user write adapters,
+ * which append it to their `runAtomic` batch so the event and the business row
+ * commit as one unit (issue #1057).
+ */
+export function buildOutboxInsert(
+  db: DrizzleDb,
+  id: string,
+  tenant_id: string,
+  event: any,
+): SqliteBatchItem {
+  return db.insert(outboxEvents).values({
+    id,
+    tenant_id,
+    event_type: event.event_type,
+    log_type: event.log_type,
+    // `aggregate_type`/`aggregate_id` are NOT NULL. Audit-event payloads carry
+    // the aggregate on `target` (type/id), so fall back to that — mirroring the
+    // kysely adapter — rather than the absent top-level `aggregate_*` fields.
+    aggregate_type: event.aggregate_type ?? event.target?.type,
+    aggregate_id: event.aggregate_id ?? event.target?.id,
+    payload: JSON.stringify({ ...event, id }),
+    created_at: new Date().toISOString(),
+    processed_at: null,
+    retry_count: 0,
+    next_retry_at: null,
+    error: null,
+    claimed_by: null,
+    claim_expires_at: null,
+  }) as unknown as SqliteBatchItem;
+}
+
 export function createOutboxAdapter(db: DrizzleDb): OutboxAdapter {
   return {
     async create(tenant_id: string, event: any): Promise<string> {
       const id = nanoid();
-      const now = new Date().toISOString();
-
-      await db.insert(outboxEvents).values({
-        id,
-        tenant_id,
-        event_type: event.event_type,
-        log_type: event.log_type,
-        aggregate_type: event.aggregate_type,
-        aggregate_id: event.aggregate_id,
-        payload: JSON.stringify({ ...event, id }),
-        created_at: now,
-        processed_at: null,
-        retry_count: 0,
-        next_retry_at: null,
-        error: null,
-        claimed_by: null,
-        claim_expires_at: null,
-      });
-
+      await buildOutboxInsert(db, id, tenant_id, event);
       return id;
     },
 

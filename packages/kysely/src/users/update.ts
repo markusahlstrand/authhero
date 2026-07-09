@@ -1,8 +1,13 @@
-import { PostUsersBody, User } from "@authhero/adapter-interfaces";
+import {
+  PostUsersBody,
+  User,
+  WriteOptions,
+} from "@authhero/adapter-interfaces";
 import { Kysely } from "kysely";
 import { Database } from "../db";
 import { flattenObject } from "../utils/flatten";
 import { createUserActivityAdapter } from "../userActivity";
+import { insertOutboxEvent } from "../outbox/create";
 
 export function update(db: Kysely<Database>) {
   return async (
@@ -13,6 +18,7 @@ export function update(db: Kysely<Database>) {
     // flattenObject() and the .set() below.
     user: Partial<PostUsersBody> &
       Partial<Pick<User, "last_login" | "last_ip" | "login_count">>,
+    options?: WriteOptions,
   ): Promise<boolean> => {
     // Activity counters live in user_activity (issue #1003). Split them off
     // so callers that still pass them (e.g. adapters without a userActivity
@@ -62,6 +68,13 @@ export function update(db: Kysely<Database>) {
           last_ip,
           login_count,
         });
+      }
+
+      // Companion outbox events (issue #1057): persist inside the same
+      // transaction as the update so both commit together or roll back
+      // together.
+      for (const event of options?.outboxEvents ?? []) {
+        await insertOutboxEvent(trx, event.tenant_id, event.id, event);
       }
 
       return true;

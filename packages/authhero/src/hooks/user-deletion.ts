@@ -9,7 +9,11 @@ import { Bindings, Variables } from "../types";
 import { logMessage } from "../helpers/logging";
 import { JSONHTTPException } from "../errors/json-http-exception";
 import { HookRequest } from "../types/Hooks";
-import { enqueuePostHookEvent } from "../helpers/hook-events";
+import {
+  buildPostHookEvent,
+  relayOutboxEvent,
+  dispatchPostHookInline,
+} from "../helpers/hook-events";
 import { preUserDeletionWebhook } from "./webhooks";
 import { createTokenAPI } from "./helpers/token-api";
 import { stripInternalUserFields } from "../helpers/hook-user-payload";
@@ -91,9 +95,21 @@ export function createUserDeletionHooks(
       });
     }
 
+    // Build the post-user-deletion outbox event up front (with a fixed id) so
+    // it can be written atomically with the delete (issue #1057). `undefined`
+    // when the outbox isn't configured — the inline fallback below runs then.
+    const deletionEvent = buildPostHookEvent(
+      ctx,
+      tenant_id,
+      "post-user-deletion",
+      userToDelete,
+    );
+
     // Unlink secondary users + remove the primary atomically. No external
     // I/O inside this transaction — webhooks and user code already ran in
-    // the pre-deletion phase above.
+    // the pre-deletion phase above. The post-deletion event commits in the
+    // same atomic unit as the delete so it can never be dropped on a crash
+    // between the two.
     const result = await data.transaction(async (trxData) => {
       const linkedUsers = await trxData.users.list(tenant_id, {
         q: `linked_to:${user_id}`,
@@ -109,7 +125,9 @@ export function createUserDeletionHooks(
           );
         }
       }
-      return trxData.users.remove(tenant_id, user_id);
+      return trxData.users.remove(tenant_id, user_id, {
+        outboxEvents: deletionEvent ? [deletionEvent] : undefined,
+      });
     });
 
     if (result) {
@@ -132,8 +150,20 @@ export function createUserDeletionHooks(
     // Post-deletion hooks run after the commit transaction has closed.
     if (result) {
       // Webhook delivery is enqueued via the outbox so it retries with backoff
-      // rather than firing inline.
-      enqueuePostHookEvent(ctx, tenant_id, "post-user-deletion", userToDelete);
+      // rather than firing inline. The event row was already persisted
+      // atomically with the delete above; here we only relay its id so the
+      // middleware delivers it. When the outbox isn't configured, fall back to
+      // inline dispatch.
+      if (deletionEvent) {
+        relayOutboxEvent(ctx, deletionEvent.id);
+      } else {
+        dispatchPostHookInline(
+          ctx,
+          tenant_id,
+          "post-user-deletion",
+          userToDelete,
+        );
+      }
 
       if (ctx.env.hooks?.onExecutePostUserDeletion) {
         try {

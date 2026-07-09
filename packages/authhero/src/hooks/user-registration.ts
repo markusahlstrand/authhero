@@ -6,7 +6,11 @@ import { getEnrichedClient } from "../helpers/client";
 import { logMessage } from "../helpers/logging";
 import { JSONHTTPException } from "../errors/json-http-exception";
 import { HookRequest } from "../types/Hooks";
-import { enqueuePostHookEvent } from "../helpers/hook-events";
+import {
+  buildPostHookEvent,
+  relayOutboxEvent,
+  dispatchPostHookInline,
+} from "../helpers/hook-events";
 import { commitUserHook } from "./link-users";
 import {
   isCodeHook,
@@ -26,11 +30,14 @@ import { builtInUserLinkingEnabled } from "../helpers/user-linking";
  *  1. Pre-registration blocking hooks (outside any transaction so webhook
  *     latency and user-authored code don't hold a DB connection).
  *  2. `commitUserHook` — the internal transactional step that atomically
- *     writes the user row (via `rawCreate`) and, when the built-in
- *     email-based linking path is enabled, also resolves `linked_to` from
- *     the existing primary inside the same transaction.
- *  3. Post-registration hooks — webhook delivery is handed to the outbox
- *     (`enqueuePostHookEvent`) for retryable / idempotent dispatch; code
+ *     writes the user row (via `rawCreate`), the post-registration outbox
+ *     event (via `rawCreate`'s `outboxEvents` option, so business row and
+ *     event commit together — issue #1057), and, when the built-in
+ *     email-based linking path is enabled, resolves `linked_to` from the
+ *     existing primary inside the same transaction.
+ *  3. Post-registration hooks — the already-persisted event id is relayed
+ *     (`relayOutboxEvent`) for retryable / idempotent webhook dispatch, or
+ *     `dispatchPostHookInline` runs when the outbox isn't configured; code
  *     hooks currently still run inline with ctx.
  */
 export function createUserHooks(
@@ -214,8 +221,22 @@ export function createUserHooks(
       ctx.var.client_id,
     );
 
+    // Build the post-user-registration outbox event up front (with a fixed id)
+    // so it can be written atomically with the user row inside commitUserHook.
+    // Per the decision on #1057 the event describes the committed user, not the
+    // post-template-hook result (account-linking etc. can emit their own
+    // events). `undefined` when the outbox isn't configured — the inline
+    // fallback below runs instead.
+    const registrationEvent = buildPostHookEvent(
+      ctx,
+      tenant_id,
+      "post-user-registration",
+      user,
+    );
+
     const linkResult = await commitUserHook(data)(tenant_id, user, {
       resolveEmailLinkedPrimary,
+      outboxEvents: registrationEvent ? [registrationEvent] : undefined,
     });
 
     // Race-loser: another concurrent create committed the row first.
@@ -328,7 +349,19 @@ export function createUserHooks(
       // Hand post-user-registration webhook delivery to the outbox so it is
       // retried with backoff instead of firing inline. Idempotent delivery is
       // enforced via `Idempotency-Key: {event.id}` headers in WebhookDestination.
-      enqueuePostHookEvent(ctx, tenant_id, "post-user-registration", result);
+      // The event row was already persisted atomically with the user inside
+      // commitUserHook; here we only relay its id so the middleware delivers it.
+      // When the outbox isn't configured, fall back to inline dispatch.
+      if (registrationEvent) {
+        relayOutboxEvent(ctx, registrationEvent.id);
+      } else {
+        dispatchPostHookInline(
+          ctx,
+          tenant_id,
+          "post-user-registration",
+          result,
+        );
+      }
     };
 
     await runPostHooks();

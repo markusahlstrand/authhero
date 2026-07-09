@@ -1,4 +1,8 @@
-import { DataAdapters, User } from "@authhero/adapter-interfaces";
+import {
+  DataAdapters,
+  OutboxEventInsert,
+  User,
+} from "@authhero/adapter-interfaces";
 import { getPrimaryUserByEmail } from "../helpers/users";
 import { JSONHTTPException } from "../errors/json-http-exception";
 import { isUniqueConstraintError } from "../errors/is-unique-constraint-error";
@@ -24,6 +28,15 @@ export interface CommitUserOptions {
    * goes away entirely).
    */
   resolveEmailLinkedPrimary?: boolean;
+
+  /**
+   * Post-registration outbox events to persist in the same atomic unit as the
+   * user row (issue #1057). Forwarded to `rawCreate`'s `outboxEvents` option so
+   * the event and the user commit together — a race-loser whose `rawCreate`
+   * rolls back never leaves a stranded event. The caller relays the event ids
+   * (via `relayOutboxEvent`) only after `created === true`.
+   */
+  outboxEvents?: OutboxEventInsert[];
 }
 
 /**
@@ -41,7 +54,7 @@ export function commitUserHook(data: DataAdapters) {
     user: User,
     options: CommitUserOptions = {},
   ): Promise<CommitUserResult> => {
-    const { resolveEmailLinkedPrimary = false } = options;
+    const { resolveEmailLinkedPrimary = false, outboxEvents } = options;
 
     try {
       const committed = await data.transaction(async (trxData) => {
@@ -79,8 +92,12 @@ export function commitUserHook(data: DataAdapters) {
 
         // Create the user (with or without linked_to). rawCreate bypasses
         // decorator hooks — pre/post-registration hooks ran outside this
-        // transaction and must never re-enter via the commit path.
-        const createdUser = await trxData.users.rawCreate(tenant_id, user);
+        // transaction and must never re-enter via the commit path. The
+        // post-registration outbox event (if any) is written as part of the
+        // same atomic unit so it can never outlive a rolled-back create.
+        const createdUser = await trxData.users.rawCreate(tenant_id, user, {
+          outboxEvents,
+        });
 
         // If linked to a primary user, return the primary with updated identities
         if (user.linked_to) {
