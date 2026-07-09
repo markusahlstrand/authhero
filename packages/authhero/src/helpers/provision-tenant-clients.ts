@@ -215,7 +215,7 @@ async function ensureManagementClient(
     // A partial seed can leave the management client present but without its
     // grant, so it can't mint Management API tokens. Recreate the grant when
     // it's missing rather than trusting the client's mere existence.
-    await ensureManagementGrant(adapters, tenantId, existing.client_id, opts);
+    await ensureManagementApiGrant(adapters, tenantId, existing.client_id, opts);
     return existing.client_id;
   }
 
@@ -260,7 +260,7 @@ async function ensureManagementClient(
     grant_types: ["client_credentials"],
   });
 
-  await ensureManagementGrant(adapters, tenantId, client.client_id, opts);
+  await ensureManagementApiGrant(adapters, tenantId, client.client_id, opts);
 
   if (opts.debug) {
     console.log(`✅ Management API (M2M) client created (${client.client_id})`);
@@ -269,11 +269,11 @@ async function ensureManagementClient(
 }
 
 /**
- * Ensures the M2M client has a grant for the Management API audience, creating
- * one when it's missing. Idempotent: a client that already has the grant is
- * left untouched.
+ * Ensures the M2M client has a grant against the Management API, creating one
+ * only when it is missing. Idempotent so re-runs recover from a partial prior
+ * run that created the client but not its grant.
  */
-async function ensureManagementGrant(
+async function ensureManagementApiGrant(
   adapters: DataAdapters,
   tenantId: string,
   clientId: string,
