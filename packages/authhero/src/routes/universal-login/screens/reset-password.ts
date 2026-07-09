@@ -5,15 +5,13 @@
  */
 
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
-import {
-  LogTypes,
-  isDatabaseConnectionStrategy,
-} from "@authhero/adapter-interfaces";
+import { LogTypes } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import bcryptjs from "bcryptjs";
 import { getUsernamePasswordUser } from "../../../utils/username-password-provider";
 import { recordPasswordReset } from "../../../authentication-flows/password";
 import { logMessage } from "../../../helpers/logging";
+import { resolvePasswordConnection } from "../../../helpers/password-connection";
 import {
   getPasswordPolicy,
   validatePasswordPolicy,
@@ -49,10 +47,10 @@ export async function executePasswordReset(params: {
   }
 
   // Find the password connection by strategy
-  const passwordConnection = client.connections.find((c) =>
-    isDatabaseConnectionStrategy(c.strategy),
+  const { connection: connectionName, connectionId } = resolvePasswordConnection(
+    client,
+    user.connection,
   );
-  const connectionName = passwordConnection?.name || user.connection;
 
   // Validate password against connection policy
   const policy = await getPasswordPolicy(
@@ -130,11 +128,15 @@ export async function executePasswordReset(params: {
     // Clear any failed-login lockout and stamp last_password_reset.
     await recordPasswordReset(env.data, client.tenant.id, user);
 
-    // Log the successful password change
+    // Log the successful password change. This flow never sets ctx.connection,
+    // so pass the resolved connection explicitly — otherwise both connection
+    // and connection_id come out empty.
     await logMessage(ctx, client.tenant.id, {
       type: LogTypes.SUCCESS_CHANGE_PASSWORD,
       description: `Password changed for ${user.email}`,
       userId: user.user_id,
+      connection: connectionName,
+      connection_id: connectionId,
     });
 
     return { success: true };

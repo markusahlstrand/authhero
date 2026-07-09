@@ -96,6 +96,9 @@ describe("user deletion - Management API logging", () => {
     expect(sapiLog?.date).toBeDefined();
     expect(sapiLog?.type).toBe("sapi");
     expect(sapiLog?.description).toBe("Delete a User");
+    // The management-operation log must identify the affected (deleted) user,
+    // not the admin actor performing the call.
+    expect(sapiLog?.user_id).toBe(createdUser.user_id);
 
     // Verify request details are logged
     expect(sapiLog?.details?.request).toBeDefined();

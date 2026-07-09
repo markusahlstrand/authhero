@@ -5,6 +5,7 @@ import {
   LogsDataAdapter,
 } from "@authhero/adapter-interfaces";
 import { EventDestination } from "../outbox-relay";
+import { USER_TARGET_TYPES } from "../audit-target-types";
 
 /**
  * Transforms AuditEvent into LogInsert for the existing logs table.
@@ -12,6 +13,10 @@ import { EventDestination } from "../outbox-relay";
  * endpoints continue to work unchanged.
  */
 function toLogInsert(event: AuditEvent): LogInsert {
+  const userId =
+    (USER_TARGET_TYPES.has(event.target?.type) && event.target?.id) ||
+    event.actor.id ||
+    "";
   return {
     log_id: event.id,
     type: event.log_type as LogType,
@@ -19,7 +24,7 @@ function toLogInsert(event: AuditEvent): LogInsert {
     description: event.description || "",
     ip: event.request.ip,
     user_agent: event.request.user_agent || "",
-    user_id: event.actor.id || "",
+    user_id: userId,
     user_name: event.actor.email || "",
     client_id: event.actor.client_id,
     client_name: event.client_name || "",
