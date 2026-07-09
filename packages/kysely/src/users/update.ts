@@ -73,8 +73,11 @@ export function update(db: Kysely<Database>) {
       // Companion outbox events (issue #1057): persist inside the same
       // transaction as the update so both commit together or roll back
       // together.
+      // Scope the outbox row to the operation's tenant, not `event.tenant_id`,
+      // so a companion event can never drift into a different tenant than the
+      // user update it commits with.
       for (const event of options?.outboxEvents ?? []) {
-        await insertOutboxEvent(trx, event.tenant_id, event.id, event);
+        await insertOutboxEvent(trx, tenant_id, event.id, event);
       }
 
       return true;

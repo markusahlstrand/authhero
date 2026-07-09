@@ -86,8 +86,11 @@ export function create(db: Kysely<Database>) {
       // Companion outbox events (issue #1057): persist inside the same
       // transaction as the user so the event row and the business row commit
       // together or not at all.
+      // Scope the outbox row to the operation's tenant, not `event.tenant_id`,
+      // so a companion event can never drift into a different tenant than the
+      // user write it commits with.
       for (const event of options?.outboxEvents ?? []) {
-        await insertOutboxEvent(trx, event.tenant_id, event.id, event);
+        await insertOutboxEvent(trx, tenantId, event.id, event);
       }
     };
 

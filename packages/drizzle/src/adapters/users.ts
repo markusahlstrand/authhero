@@ -41,9 +41,16 @@ import { buildOutboxInsert } from "./outbox";
  * in the same `db.batch()` (D1) / transaction (better-sqlite3) as the business
  * row.
  */
-function outboxInserts(db: DrizzleDb, options?: WriteOptions) {
+function outboxInserts(
+  db: DrizzleDb,
+  tenantId: string,
+  options?: WriteOptions,
+) {
+  // Scope the outbox row to the operation's tenant, not `event.tenant_id`, so a
+  // companion event can never drift into a different tenant than the user write
+  // it commits with. Mirrors the kysely adapter.
   return (options?.outboxEvents ?? []).map((event) =>
-    buildOutboxInsert(db, event.id, event.tenant_id, event),
+    buildOutboxInsert(db, event.id, tenantId, event),
   );
 }
 
@@ -276,7 +283,7 @@ export function createUsersAdapter(db: DrizzleDb) {
       // Companion outbox events (issue #1057): the event row commits in the
       // same atomic unit as the user, so a crash between the two can never
       // leave the user without its post-registration event (or vice versa).
-      for (const stmt of outboxInserts(db, options)) {
+      for (const stmt of outboxInserts(db, tenant_id, options)) {
         statements.push(stmt);
       }
 
@@ -401,7 +408,7 @@ export function createUsersAdapter(db: DrizzleDb) {
       // With companion outbox events (issue #1057), commit the update and the
       // event rows in a single atomic unit. Without events, keep the plain
       // single-statement path.
-      const companions = outboxInserts(db, options);
+      const companions = outboxInserts(db, tenant_id, options);
       let updatedRows: unknown[];
       if (companions.length > 0) {
         const statements: AtomicStatementList = [updateStmt, ...companions];
@@ -601,7 +608,7 @@ export function createUsersAdapter(db: DrizzleDb) {
       // whether a row existed. Capture its index before appending any companion
       // outbox inserts (issue #1057) so the detection stays correct.
       const primaryDeleteIndex = statements.length - 1;
-      for (const stmt of outboxInserts(db, options)) {
+      for (const stmt of outboxInserts(db, tenant_id, options)) {
         statements.push(stmt);
       }
 

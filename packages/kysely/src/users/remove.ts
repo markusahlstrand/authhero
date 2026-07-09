@@ -44,8 +44,11 @@ export function remove(db: Kysely<Database>) {
       // Companion outbox events (issue #1057): the post-deletion event commits
       // in the same transaction as the deletes, so a crash between them can
       // never drop the event while the user is gone (or vice versa).
+      // Scope the outbox row to the operation's tenant, not `event.tenant_id`,
+      // so a companion event can never drift into a different tenant than the
+      // user delete it commits with.
       for (const event of options?.outboxEvents ?? []) {
-        await insertOutboxEvent(trx, event.tenant_id, event.id, event);
+        await insertOutboxEvent(trx, tenant_id, event.id, event);
       }
 
       return results.length === 1;

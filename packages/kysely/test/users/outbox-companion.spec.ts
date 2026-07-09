@@ -97,4 +97,31 @@ describe("users adapter — companion outbox events (#1057)", () => {
     expect(await data.users.get("tenantId", "email|u1")).toBeNull();
     expect(await data.outbox.getByIds(["evt-delete"])).toHaveLength(1);
   });
+
+  it("persists the update event atomically with the user change", async () => {
+    const { data } = await getTestServer();
+    await seedTenant(data);
+
+    await data.users.rawCreate("tenantId", {
+      user_id: "email|u1",
+      ...baseUser,
+    });
+
+    const updated = await data.users.update(
+      "tenantId",
+      "email|u1",
+      { name: "Updated Name" },
+      {
+        outboxEvents: [
+          makeEvent("evt-update", { event_type: "hook.post-user-update" }),
+        ],
+      },
+    );
+
+    expect(updated).toBe(true);
+    expect((await data.users.get("tenantId", "email|u1"))?.name).toBe(
+      "Updated Name",
+    );
+    expect(await data.outbox.getByIds(["evt-update"])).toHaveLength(1);
+  });
 });
