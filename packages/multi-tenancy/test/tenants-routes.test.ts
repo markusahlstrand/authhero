@@ -252,6 +252,131 @@ describe("tenants routes authorization", () => {
   });
 });
 
+describe("tenant settings: default_client_id validation", () => {
+  let adapters: ReturnType<typeof createAdapters>;
+  let env: { data: ReturnType<typeof createAdapters> };
+
+  const config: MultiTenancyConfig = {
+    accessControl: {
+      controlPlaneTenantId,
+      requireOrganizationMatch: true,
+    },
+  };
+
+  beforeEach(async () => {
+    const db = await createMigratedDb();
+    adapters = createAdapters(db);
+    env = { data: adapters };
+
+    await adapters.tenants.create({
+      id: controlPlaneTenantId,
+      friendly_name: "Control Plane",
+      audience: "https://example.com",
+      sender_email: "admin@example.com",
+      sender_name: "Control Plane",
+    });
+  });
+
+  function settingsApp() {
+    const { hooks } = setupMultiTenancy(config);
+    return createHostApp({
+      config,
+      hooks,
+      user: {
+        sub: "auth0|admin",
+        tenant_id: controlPlaneTenantId,
+        scope: "update:tenants",
+      },
+    });
+  }
+
+  async function patchSettings(app: ReturnType<typeof settingsApp>, body: unknown) {
+    return app.request(
+      "/management/tenants/settings",
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      },
+      env,
+    );
+  }
+
+  it("rejects a default_client_id that does not exist", async () => {
+    const app = settingsApp();
+
+    const response = await patchSettings(app, {
+      default_client_id: "does-not-exist",
+    });
+
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body.message).toContain("does-not-exist");
+    expect(
+      (await adapters.tenants.get(controlPlaneTenantId))!.default_client_id,
+    ).toBeFalsy();
+  });
+
+  it("rejects a non-interactive (M2M) client as the default", async () => {
+    await adapters.clients.create(controlPlaneTenantId, {
+      client_id: "m2m",
+      client_secret: "s",
+      name: "M2M",
+      app_type: "non_interactive",
+      grant_types: ["client_credentials"],
+    });
+    const app = settingsApp();
+
+    const response = await patchSettings(app, { default_client_id: "m2m" });
+
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body.message).toContain("interactive");
+    expect(
+      (await adapters.tenants.get(controlPlaneTenantId))!.default_client_id,
+    ).toBeFalsy();
+  });
+
+  it("accepts an interactive client as the default", async () => {
+    await adapters.clients.create(controlPlaneTenantId, {
+      client_id: "web",
+      client_secret: "s",
+      name: "Web",
+      app_type: "regular_web",
+      grant_types: ["authorization_code"],
+    });
+    const app = settingsApp();
+
+    const response = await patchSettings(app, { default_client_id: "web" });
+
+    expect(response.status).toBe(200);
+    expect(
+      (await adapters.tenants.get(controlPlaneTenantId))!.default_client_id,
+    ).toBe("web");
+  });
+
+  it("allows clearing default_client_id with an empty string", async () => {
+    await adapters.clients.create(controlPlaneTenantId, {
+      client_id: "web",
+      client_secret: "s",
+      name: "Web",
+      app_type: "regular_web",
+      grant_types: ["authorization_code"],
+    });
+    await adapters.tenants.update(controlPlaneTenantId, {
+      default_client_id: "web",
+    });
+    const app = settingsApp();
+
+    const response = await patchSettings(app, { default_client_id: "" });
+
+    expect(response.status).toBe(200);
+    expect(
+      (await adapters.tenants.get(controlPlaneTenantId))!.default_client_id,
+    ).toBeFalsy();
+  });
+});
+
 describe("build: Hono is not bundled into the output", () => {
   it("treats hono and its subpath exports as external", () => {
     // Regression for the duplicate-Hono bug: the bare package was external but

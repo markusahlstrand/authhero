@@ -94,10 +94,14 @@ export function createProvisioningHooks(
             managementApiScopes: MANAGEMENT_API_SCOPES,
           });
         } catch (error) {
+          // Don't swallow this: a tenant left without its default interactive
+          // client/M2M setup can't anchor tenant-level flows (see #1007), so
+          // surface the failure instead of reporting a healthy tenant.
           console.warn(
             `Failed to provision default clients for tenant ${tenant.id}:`,
             error,
           );
+          throw error;
         }
       }
     },

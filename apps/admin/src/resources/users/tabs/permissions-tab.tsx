@@ -71,6 +71,7 @@ function AddPermissionButton() {
   const [resourceServers, setResourceServers] = useState<ResourceServer[]>([]);
   const [selectedServerId, setSelectedServerId] = useState<string>("");
   const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [orgsLoadFailed, setOrgsLoadFailed] = useState(false);
   const [selectedOrgId, setSelectedOrgId] = useState<string>(NO_ORG);
   const [available, setAvailable] = useState<
     Array<{ permission_name: string; description: string }>
@@ -89,11 +90,13 @@ function AddPermissionButton() {
     setAvailable([]);
     setSelected(new Set());
     setSearch("");
+    setOrgsLoadFailed(false);
   };
 
   const handleOpen = async () => {
     setOpen(true);
     setLoading(true);
+    setOrgsLoadFailed(false);
     try {
       const [servers, orgs] = await Promise.all([
         dataProvider.getList<ResourceServer>("resource-servers", {
@@ -107,7 +110,14 @@ function AddPermissionButton() {
             sort: { field: "display_name", order: "ASC" },
             filter: {},
           })
-          .catch(() => ({ data: [] as Organization[] })),
+          // Surface the failure rather than silently degrading to tenant-wide
+          // grants — an admin might add a tenant-wide permission when they
+          // meant an organization-scoped one.
+          .catch(() => {
+            setOrgsLoadFailed(true);
+            notify("Error loading organizations", { type: "error" });
+            return { data: [] as Organization[] };
+          }),
       ]);
       setResourceServers(servers.data);
       setOrganizations(orgs.data);
@@ -242,6 +252,13 @@ function AddPermissionButton() {
                 </SelectContent>
               </Select>
             </div>
+            {orgsLoadFailed && (
+              <p className="text-sm text-destructive">
+                Couldn't load organizations. Retry before adding a permission —
+                otherwise it may be granted tenant-wide instead of scoped to an
+                organization.
+              </p>
+            )}
             {organizations.length > 0 && (
               <div>
                 <Select value={selectedOrgId} onValueChange={setSelectedOrgId}>
@@ -337,7 +354,10 @@ function AddPermissionButton() {
             <Button variant="outline" onClick={handleClose}>
               Cancel
             </Button>
-            <Button onClick={handleAdd} disabled={selected.size === 0}>
+            <Button
+              onClick={handleAdd}
+              disabled={selected.size === 0 || orgsLoadFailed}
+            >
               Add {selected.size > 0 ? `${selected.size} ` : ""}permission(s)
             </Button>
           </DialogFooter>

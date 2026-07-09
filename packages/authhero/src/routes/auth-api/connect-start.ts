@@ -152,8 +152,19 @@ const getRoot = defineRoute({
       ? await ctx.env.data.clients.get(tenant_id, tenant.default_client_id)
       : null;
     if (!anchorClient) {
-      const { clients } = await ctx.env.data.clients.list(tenant_id);
-      anchorClient = clients.find(isInteractiveClient) ?? null;
+      // Page through the tenant's clients — the list adapter defaults to the
+      // first 50 rows, so an interactive client could sit on a later page.
+      const perPage = 100;
+      for (let page = 0; !anchorClient; page++) {
+        const { clients } = await ctx.env.data.clients.list(tenant_id, {
+          page,
+          per_page: perPage,
+        });
+        anchorClient = clients.find(isInteractiveClient) ?? null;
+        if (clients.length < perPage) {
+          break;
+        }
+      }
     }
     if (!anchorClient) {
       throw new JSONHTTPException(400, {

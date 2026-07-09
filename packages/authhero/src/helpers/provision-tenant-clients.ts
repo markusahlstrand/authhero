@@ -1,4 +1,4 @@
-import { Client, DataAdapters } from "@authhero/adapter-interfaces";
+import { Client, ClientGrant, DataAdapters } from "@authhero/adapter-interfaces";
 import { nanoid } from "nanoid";
 import { MANAGEMENT_API_AUDIENCE } from "../middlewares/authentication";
 
@@ -167,7 +167,7 @@ async function resolveDefaultClient(
 
   // Reuse any existing interactive client (e.g. the seed's "Default
   // Application") rather than creating a duplicate.
-  const { clients } = await adapters.clients.list(tenantId);
+  const clients = await listAllClients(adapters, tenantId);
   const interactive = clients.find(isInteractiveClient);
   if (interactive) {
     return interactive;
@@ -205,13 +205,17 @@ async function ensureManagementClient(
     debug: boolean;
   },
 ): Promise<string | undefined> {
-  const { clients } = await adapters.clients.list(tenantId);
+  const clients = await listAllClients(adapters, tenantId);
   const existing = clients.find(
     (client) =>
       client.app_type === "non_interactive" &&
       client.name === MANAGEMENT_CLIENT_NAME,
   );
   if (existing) {
+    // A partial seed can leave the management client present but without its
+    // grant, so it can't mint Management API tokens. Recreate the grant when
+    // it's missing rather than trusting the client's mere existence.
+    await ensureManagementGrant(adapters, tenantId, existing.client_id, opts);
     return existing.client_id;
   }
 
@@ -256,14 +260,79 @@ async function ensureManagementClient(
     grant_types: ["client_credentials"],
   });
 
-  await adapters.clientGrants.create(tenantId, {
-    client_id: client.client_id,
-    audience: opts.managementApiIdentifier,
-    scope: opts.managementApiScopes?.map((scope) => scope.value) ?? [],
-  });
+  await ensureManagementGrant(adapters, tenantId, client.client_id, opts);
 
   if (opts.debug) {
     console.log(`✅ Management API (M2M) client created (${client.client_id})`);
   }
   return client.client_id;
+}
+
+/**
+ * Ensures the M2M client has a grant for the Management API audience, creating
+ * one when it's missing. Idempotent: a client that already has the grant is
+ * left untouched.
+ */
+async function ensureManagementGrant(
+  adapters: DataAdapters,
+  tenantId: string,
+  clientId: string,
+  opts: {
+    managementApiIdentifier: string;
+    managementApiScopes?: ManagementApiScope[];
+  },
+): Promise<void> {
+  const grants = await listAllClientGrants(adapters, tenantId);
+  const hasGrant = grants.some(
+    (grant) =>
+      grant.client_id === clientId &&
+      grant.audience === opts.managementApiIdentifier,
+  );
+  if (hasGrant) {
+    return;
+  }
+
+  await adapters.clientGrants.create(tenantId, {
+    client_id: clientId,
+    audience: opts.managementApiIdentifier,
+    scope: opts.managementApiScopes?.map((scope) => scope.value) ?? [],
+  });
+}
+
+/** Pages through every client for a tenant (the list adapter is paginated). */
+async function listAllClients(
+  adapters: DataAdapters,
+  tenantId: string,
+): Promise<Client[]> {
+  const perPage = 100;
+  const all: Client[] = [];
+  for (let page = 0; ; page++) {
+    const { clients } = await adapters.clients.list(tenantId, {
+      page,
+      per_page: perPage,
+    });
+    all.push(...clients);
+    if (clients.length < perPage) {
+      return all;
+    }
+  }
+}
+
+/** Pages through every client grant for a tenant. */
+async function listAllClientGrants(
+  adapters: DataAdapters,
+  tenantId: string,
+): Promise<ClientGrant[]> {
+  const perPage = 100;
+  const all: ClientGrant[] = [];
+  for (let page = 0; ; page++) {
+    const { client_grants } = await adapters.clientGrants.list(tenantId, {
+      page,
+      per_page: perPage,
+    });
+    all.push(...client_grants);
+    if (client_grants.length < perPage) {
+      return all;
+    }
+  }
 }
