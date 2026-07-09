@@ -1,3 +1,4 @@
+import type React from "react";
 import { useRef, useState } from "react";
 import { useDataProvider, useNotify } from "ra-core";
 import {
@@ -28,6 +29,7 @@ export function TenantDataPage() {
   const [importHashes, setImportHashes] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
 
   const busy = exporting || importing;
@@ -79,6 +81,25 @@ export function TenantDataPage() {
       setImporting(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDragOver(false);
+    if (busy) return;
+    const file = e.dataTransfer.files?.[0];
+    if (file) void handleImportFile(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (busy) return;
+    setDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDragOver(false);
   };
 
   return (
@@ -149,14 +170,41 @@ export function TenantDataPage() {
               if (file) void handleImportFile(file);
             }}
           />
-          <Button
-            variant="outline"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={busy}
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => !busy && fileInputRef.current?.click()}
+            onKeyDown={(e) => {
+              if ((e.key === "Enter" || e.key === " ") && !busy) {
+                e.preventDefault();
+                fileInputRef.current?.click();
+              }
+            }}
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
+              dragOver
+                ? "border-primary bg-primary/5"
+                : "border-muted-foreground/25 hover:border-muted-foreground/50"
+            } ${busy ? "pointer-events-none opacity-60" : ""}`}
           >
-            {importing ? <Loader2 className="animate-spin" /> : <Upload />}
-            Choose file and import
-          </Button>
+            {importing ? (
+              <Loader2 className="text-muted-foreground animate-spin" />
+            ) : (
+              <Upload className="text-muted-foreground" />
+            )}
+            <p className="text-sm font-medium">
+              {importing
+                ? "Importing…"
+                : dragOver
+                  ? "Drop the file to import"
+                  : "Drag a file here, or click to browse"}
+            </p>
+            <p className="text-muted-foreground text-xs">
+              Accepts .jsonl or .jsonl.gz
+            </p>
+          </div>
 
           {result && (
             <div className="space-y-3">
