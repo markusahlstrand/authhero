@@ -5,15 +5,13 @@
  */
 
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
-import {
-  LogTypes,
-  isDatabaseConnectionStrategy,
-} from "@authhero/adapter-interfaces";
+import { LogTypes } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import bcryptjs from "bcryptjs";
 import { getUsernamePasswordUser } from "../../../utils/username-password-provider";
 import { recordPasswordReset } from "../../../authentication-flows/password";
 import { logMessage } from "../../../helpers/logging";
+import { resolvePasswordConnection } from "../../../helpers/password-connection";
 import {
   getPasswordPolicy,
   validatePasswordPolicy,
@@ -49,10 +47,10 @@ export async function executePasswordReset(params: {
   }
 
   // Find the password connection by strategy
-  const passwordConnection = client.connections.find((c) =>
-    isDatabaseConnectionStrategy(c.strategy),
+  const { connection: connectionName, connectionId } = resolvePasswordConnection(
+    client,
+    user.connection,
   );
-  const connectionName = passwordConnection?.name || user.connection;
 
   // Validate password against connection policy
   const policy = await getPasswordPolicy(
@@ -138,7 +136,7 @@ export async function executePasswordReset(params: {
       description: `Password changed for ${user.email}`,
       userId: user.user_id,
       connection: connectionName,
-      connection_id: passwordConnection?.id,
+      connection_id: connectionId,
     });
 
     return { success: true };

@@ -5,12 +5,7 @@ import {
   LogsDataAdapter,
 } from "@authhero/adapter-interfaces";
 import { EventDestination } from "../outbox-relay";
-
-/** Target entity types whose id identifies an affected user. For these, the
- *  flat log's `user_id` should be the target (the user the operation acted on),
- *  matching Auth0 — e.g. "Delete a User" logs the deleted user, not the admin
- *  actor. For non-user targets (client, connection, …) the actor is retained. */
-const USER_TARGET_TYPES = new Set(["user", "identity"]);
+import { USER_TARGET_TYPES } from "../audit-target-types";
 
 /**
  * Transforms AuditEvent into LogInsert for the existing logs table.

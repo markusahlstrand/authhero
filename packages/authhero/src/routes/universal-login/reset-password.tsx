@@ -1,10 +1,7 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
 import bcryptjs from "bcryptjs";
-import {
-  LogTypes,
-  isDatabaseConnectionStrategy,
-} from "@authhero/adapter-interfaces";
+import { LogTypes } from "@authhero/adapter-interfaces";
 import i18next from "i18next";
 import { Bindings, Variables } from "../../types";
 import { initJSXRoute } from "./common";
@@ -13,6 +10,7 @@ import MessagePage from "../../components/MessagePage";
 import { getUsernamePasswordUser } from "../../utils/username-password-provider";
 import { recordPasswordReset } from "../../authentication-flows/password";
 import { logMessage } from "../../helpers/logging";
+import { resolvePasswordConnection } from "../../helpers/password-connection";
 import { defineRoute } from "../../utils/define-route";
 import {
   getPasswordPolicy,
@@ -135,13 +133,11 @@ const postRoot = defineRoute({
       throw new HTTPException(400, { message: "User not found" });
     }
 
-    // Find the password connection by strategy to get the correct connection name
-    // This is needed because user.connection may contain "Username-Password-Authentication"
-    // (a hardcoded fallback) instead of the actual connection name
-    const passwordConnection = client.connections.find((c) =>
-      isDatabaseConnectionStrategy(c.strategy),
-    );
-    const connectionName = passwordConnection?.name || user.connection;
+    // Resolve the real password connection — user.connection may contain the
+    // "Username-Password-Authentication" hardcoded fallback rather than the
+    // tenant's actual connection name.
+    const { connection: connectionName, connectionId } =
+      resolvePasswordConnection(client, user.connection);
 
     // Validate password against connection policy
     const policy = await getPasswordPolicy(
@@ -253,7 +249,7 @@ const postRoot = defineRoute({
         description: `Password changed for ${user.email}`,
         userId: user.user_id,
         connection: connectionName,
-        connection_id: passwordConnection?.id,
+        connection_id: connectionId,
       });
     } catch (err) {
       // Log the actual error for debugging

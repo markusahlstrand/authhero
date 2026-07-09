@@ -11,6 +11,7 @@ import { Variables, Bindings } from "../types";
 import { waitUntil } from "./wait-until";
 import { instanceToJson } from "../utils/instance-to-json";
 import { getConnectionInfo } from "./connection";
+import { USER_TARGET_TYPES } from "./audit-target-types";
 
 /** Fields fully replaced with [REDACTED] in entity state and request bodies. */
 const SENSITIVE_FIELDS = new Set([
@@ -132,12 +133,6 @@ export type LogParams = {
   targetId?: string;
 };
 
-/** Target entity types whose id identifies an affected user. For these, the
- *  flat log's `user_id` is the target (the user the operation acted on) rather
- *  than the actor — matching Auth0, e.g. "Delete a User" logs the deleted user.
- *  Kept in sync with the same set in `outbox-destinations/logs.ts`. */
-const USER_TARGET_TYPES = new Set(["user", "identity"]);
-
 /** The affected user for the flat log's `user_id`: the target for user-scoped
  *  management operations, otherwise the subject/actor user. */
 function subjectUserId(
@@ -215,7 +210,13 @@ async function resolveLogEnrichment(
 ): Promise<LogEnrichment> {
   const connectionName = params.connection || ctx.var.connection || "";
   const clientId = ctx.var.client_id;
-  const userId = params.userId || ctx.var.user_id || "";
+  // Resolve user_name for the same subject the flat log records as user_id —
+  // the target for user-scoped management ops, otherwise the actor/subject.
+  const subjectId = subjectUserId(params, ctx);
+  const isUserTarget =
+    !!params.targetType &&
+    USER_TARGET_TYPES.has(params.targetType) &&
+    !!params.targetId;
 
   const [connectionInfo, client_name, user_name] = await Promise.all([
     (async () => {
@@ -233,11 +234,17 @@ async function resolveLogEnrichment(
       }
     })(),
     (async () => {
-      const explicit = ctx.var.username || params.username;
-      if (explicit) return explicit;
-      if (!userId) return "";
+      // ctx.var.username / params.username identify the *actor*, so only use
+      // them when the subject is the actor. For user-scoped management ops the
+      // subject is the target user — resolve its name from the data layer (or
+      // omit it) rather than mislabelling it with the actor's name.
+      if (!isUserTarget) {
+        const explicit = ctx.var.username || params.username;
+        if (explicit) return explicit;
+      }
+      if (!subjectId) return "";
       try {
-        const user = await ctx.env.data.users.get(tenantId, userId);
+        const user = await ctx.env.data.users.get(tenantId, subjectId);
         return user?.email || user?.phone_number || user?.name || "";
       } catch {
         return "";
@@ -277,14 +284,14 @@ function buildAuditEvent(
     ? redactSensitiveFields(params.afterState)
     : undefined;
 
-  // The enrichment's user_name was looked up for the log's subject
-  // (params.userId || ctx.var.user_id). Only surface it as the actor's email
-  // when the actor is that same user — never attribute a target user's email
-  // to an admin actor.
-  const enrichedUserId = params.userId || ctx.var.user_id;
+  // The enrichment's user_name was looked up for the log's subject (the target
+  // for user-scoped ops, otherwise the actor/subject). Only surface it as the
+  // actor's email when the subject is that same actor — never attribute a
+  // target user's email to an admin actor.
+  const subjectId = subjectUserId(params, ctx);
   const actorId = ctx.var.user_id || params.actorUserId || params.userId;
   const actorEmailFallback =
-    enrichment && enrichedUserId && enrichedUserId === actorId
+    enrichment && subjectId && subjectId === actorId
       ? enrichment.user_name
       : undefined;
 
