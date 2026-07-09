@@ -1197,6 +1197,7 @@ const postByUser_idPermissions = defineRoute({
                 z.object({
                   permission_name: z.string(),
                   resource_server_identifier: z.string(),
+                  organization_id: z.string().optional(),
                 }),
               ),
             }),
@@ -1236,7 +1237,9 @@ const postByUser_idPermissions = defineRoute({
           user_id,
           resource_server_identifier: permission.resource_server_identifier,
           permission_name: permission.permission_name,
+          organization_id: permission.organization_id,
         },
+        permission.organization_id,
       );
 
       if (!success) {
@@ -1280,6 +1283,7 @@ const deleteByUser_idPermissions = defineRoute({
                 z.object({
                   permission_name: z.string(),
                   resource_server_identifier: z.string(),
+                  organization_id: z.string().optional(),
                 }),
               ),
             }),
@@ -1315,7 +1319,11 @@ const deleteByUser_idPermissions = defineRoute({
       const success = await ctx.env.data.userPermissions.remove(
         ctx.var.tenant_id,
         user_id,
-        permission,
+        {
+          resource_server_identifier: permission.resource_server_identifier,
+          permission_name: permission.permission_name,
+        },
+        permission.organization_id,
       );
 
       if (!success) {

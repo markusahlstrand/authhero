@@ -62,31 +62,49 @@ describe("provisionDefaultClients", () => {
     expect(grant?.audience).toBe(MANAGEMENT_AUDIENCE);
   });
 
-  it("is idempotent — re-running does not duplicate clients or clobber the default", async () => {
+  it("is idempotent — re-running does not duplicate clients, grants, or clobber the default", async () => {
     const { env } = await getTestServer();
+
+    const snapshotClients = () =>
+      env.data.clients
+        .list("tenantId", { per_page: 100 })
+        .then(({ clients }) => clients.map((c) => c.client_id).sort());
+    const snapshotGrants = () =>
+      env.data.clientGrants
+        .list("tenantId", { per_page: 100 })
+        .then(({ client_grants }) =>
+          client_grants
+            .map((g) => `${g.client_id}:${g.audience}`)
+            .sort(),
+        );
 
     const first = await provisionDefaultClients(env.data, "tenantId", {
       managementApiScopes: MANAGEMENT_API_SCOPES,
     });
-    const { clients: afterFirst } = await env.data.clients.list("tenantId");
+    const clientsAfterFirst = await snapshotClients();
+    const grantsAfterFirst = await snapshotGrants();
 
     const second = await provisionDefaultClients(env.data, "tenantId", {
       managementApiScopes: MANAGEMENT_API_SCOPES,
     });
-    const { clients: afterSecond } = await env.data.clients.list("tenantId");
+    const clientsAfterSecond = await snapshotClients();
+    const grantsAfterSecond = await snapshotGrants();
 
     expect(second.defaultClientId).toBe(first.defaultClientId);
     expect(second.managementClientId).toBe(first.managementClientId);
-    expect(afterSecond.length).toBe(afterFirst.length);
+    // Compare the full client and grant sets, not just counts, so a duplicate
+    // grant (or churned client) would be caught.
+    expect(clientsAfterSecond).toEqual(clientsAfterFirst);
+    expect(grantsAfterSecond).toEqual(grantsAfterFirst);
   });
 
-  it("restores a missing Management API grant for an existing M2M client (partial-failure recovery)", async () => {
+  it("recreates the management grant when reusing a management client that lost it", async () => {
     const { env } = await getTestServer();
 
-    // Simulate a prior run that created the M2M client but failed before its
-    // Management API grant was written.
-    await env.data.clients.create("tenantId", {
-      client_id: "orphanM2m",
+    // Simulate a partial seed: the management client exists but its grant is
+    // missing, so it can't mint Management API tokens.
+    const orphan = await env.data.clients.create("tenantId", {
+      client_id: "orphanManagement",
       client_secret: "s",
       name: "API Explorer Application",
       app_type: "non_interactive",
@@ -98,15 +116,18 @@ describe("provisionDefaultClients", () => {
       managementApiScopes: MANAGEMENT_API_SCOPES,
     });
 
-    // Reuses the orphaned client rather than creating a duplicate...
-    expect(result.managementClientId).toBe("orphanM2m");
-    // ...and restores the missing grant.
-    const { client_grants } = await env.data.clientGrants.list("tenantId", {});
-    const grant = client_grants.find((g) => g.client_id === "orphanM2m");
+    // Reuses the existing client rather than creating a second one.
+    expect(result.managementClientId).toBe(orphan.client_id);
+    const { client_grants } = await env.data.clientGrants.list("tenantId", {
+      per_page: 100,
+    });
+    const grant = client_grants.find(
+      (g) => g.client_id === orphan.client_id,
+    );
     expect(grant?.audience).toBe(MANAGEMENT_AUDIENCE);
   });
 
-  it("respects an already-configured, valid default_client_id", async () => {
+  it("respects an already-configured, valid default_client_id without creating a replacement", async () => {
     const { env } = await getTestServer();
     await env.data.clients.create("tenantId", {
       client_id: "preferred",
@@ -117,12 +138,24 @@ describe("provisionDefaultClients", () => {
     await env.data.tenants.update("tenantId", {
       default_client_id: "preferred",
     });
+    const { clients: before } = await env.data.clients.list("tenantId", {
+      per_page: 100,
+    });
 
     const result = await provisionDefaultClients(env.data, "tenantId", {
       createManagementClient: false,
     });
 
     expect(result.defaultClientId).toBe("preferred");
+    // No replacement default client was created and the pointer is unchanged.
+    const { clients: after } = await env.data.clients.list("tenantId", {
+      per_page: 100,
+    });
+    expect(after.map((c) => c.client_id).sort()).toEqual(
+      before.map((c) => c.client_id).sort(),
+    );
+    const tenant = await env.data.tenants.get("tenantId");
+    expect(tenant!.default_client_id).toBe("preferred");
   });
 
   it("creates a Default App when the tenant has no interactive client", async () => {

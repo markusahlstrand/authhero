@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { RaRecord } from "ra-core";
 import {
   useDataProvider,
+  useGetOne,
   useNotify,
   useRecordContext,
   useRefresh,
@@ -43,13 +44,23 @@ interface ResourceServer extends RaRecord {
   }>;
 }
 
+interface Organization extends RaRecord {
+  name?: string;
+  display_name?: string;
+}
+
 interface PermissionRecord extends RaRecord {
   permission_name: string;
   resource_server_identifier: string;
   resource_server_name?: string;
   description?: string;
   created_at?: string;
+  organization_id?: string;
 }
+
+// Sentinel Select value for "no organization" (tenant-global permission),
+// since a shadcn SelectItem cannot use an empty string as its value.
+const NO_ORG = "__none__";
 
 function AddPermissionButton() {
   const { id: userId } = useParams();
@@ -59,6 +70,9 @@ function AddPermissionButton() {
   const [open, setOpen] = useState(false);
   const [resourceServers, setResourceServers] = useState<ResourceServer[]>([]);
   const [selectedServerId, setSelectedServerId] = useState<string>("");
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [orgsLoadFailed, setOrgsLoadFailed] = useState(false);
+  const [selectedOrgId, setSelectedOrgId] = useState<string>(NO_ORG);
   const [available, setAvailable] = useState<
     Array<{ permission_name: string; description: string }>
   >([]);
@@ -72,24 +86,41 @@ function AddPermissionButton() {
 
   const reset = () => {
     setSelectedServerId("");
+    setSelectedOrgId(NO_ORG);
     setAvailable([]);
     setSelected(new Set());
     setSearch("");
+    setOrgsLoadFailed(false);
   };
 
   const handleOpen = async () => {
     setOpen(true);
     setLoading(true);
+    setOrgsLoadFailed(false);
     try {
-      const { data } = await dataProvider.getList<ResourceServer>(
-        "resource-servers",
-        {
+      const [servers, orgs] = await Promise.all([
+        dataProvider.getList<ResourceServer>("resource-servers", {
           pagination: { page: 1, perPage: 100 },
           sort: { field: "name", order: "ASC" },
           filter: {},
-        },
-      );
-      setResourceServers(data);
+        }),
+        dataProvider
+          .getList<Organization>("organizations", {
+            pagination: { page: 1, perPage: 100 },
+            sort: { field: "display_name", order: "ASC" },
+            filter: {},
+          })
+          // Surface the failure rather than silently degrading to tenant-wide
+          // grants — an admin might add a tenant-wide permission when they
+          // meant an organization-scoped one.
+          .catch(() => {
+            setOrgsLoadFailed(true);
+            notify("Error loading organizations", { type: "error" });
+            return { data: [] as Organization[] };
+          }),
+      ]);
+      setResourceServers(servers.data);
+      setOrganizations(orgs.data);
     } catch {
       notify("Error loading resource servers", { type: "error" });
     } finally {
@@ -108,6 +139,7 @@ function AddPermissionButton() {
       (s) => s.identifier === selectedServerId,
     );
     if (!server) return;
+    const orgId = selectedOrgId === NO_ORG ? undefined : selectedOrgId;
     setSelected(new Set());
     setSearch("");
     setLoading(true);
@@ -125,9 +157,15 @@ function AddPermissionButton() {
             filter: {},
           },
         );
+        // A permission is unique per (resource server, permission, organization),
+        // so only exclude scopes already assigned for the selected organization.
         const existingNames = new Set(
           existing.data
-            .filter((p) => p.resource_server_identifier === server.identifier)
+            .filter(
+              (p) =>
+                p.resource_server_identifier === server.identifier &&
+                (p.organization_id || undefined) === orgId,
+            )
             .map((p) => p.permission_name),
         );
         setAvailable(
@@ -141,7 +179,14 @@ function AddPermissionButton() {
         setLoading(false);
       }
     })();
-  }, [selectedServerId, userId, resourceServers, dataProvider, notify]);
+  }, [
+    selectedServerId,
+    selectedOrgId,
+    userId,
+    resourceServers,
+    dataProvider,
+    notify,
+  ]);
 
   const toggle = (name: string) => {
     setSelected((prev) => {
@@ -154,12 +199,14 @@ function AddPermissionButton() {
 
   const handleAdd = async () => {
     if (!userId || !selectedServer || selected.size === 0) return;
+    const orgId = selectedOrgId === NO_ORG ? undefined : selectedOrgId;
     try {
       await dataProvider.create(`users/${userId}/permissions`, {
         data: {
           permissions: Array.from(selected).map((permission_name) => ({
             permission_name,
             resource_server_identifier: selectedServer.identifier,
+            ...(orgId ? { organization_id: orgId } : {}),
           })),
         },
       });
@@ -205,6 +252,32 @@ function AddPermissionButton() {
                 </SelectContent>
               </Select>
             </div>
+            {orgsLoadFailed && (
+              <p className="text-sm text-destructive">
+                Couldn't load organizations. Retry before adding a permission —
+                otherwise it may be granted tenant-wide instead of scoped to an
+                organization.
+              </p>
+            )}
+            {organizations.length > 0 && (
+              <div>
+                <Select value={selectedOrgId} onValueChange={setSelectedOrgId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Organization (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NO_ORG}>
+                      No organization (tenant-wide)
+                    </SelectItem>
+                    {organizations.map((o) => (
+                      <SelectItem key={o.id} value={String(o.id)}>
+                        {o.display_name || o.name || String(o.id)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             {selectedServerId && (
               <>
                 {available.length > 5 && (
@@ -281,7 +354,10 @@ function AddPermissionButton() {
             <Button variant="outline" onClick={handleClose}>
               Cancel
             </Button>
-            <Button onClick={handleAdd} disabled={selected.size === 0}>
+            <Button
+              onClick={handleAdd}
+              disabled={selected.size === 0 || orgsLoadFailed}
+            >
               Add {selected.size > 0 ? `${selected.size} ` : ""}permission(s)
             </Button>
           </DialogFooter>
@@ -363,6 +439,20 @@ function AssignedCell() {
   return <DateAgo date={record.created_at} />;
 }
 
+function OrganizationCell() {
+  const record = useRecordContext<PermissionRecord>();
+  const orgId = record?.organization_id;
+  const { data } = useGetOne<Organization>(
+    "organizations",
+    { id: orgId as string },
+    { enabled: !!orgId },
+  );
+  if (!orgId) {
+    return <span className="text-muted-foreground">Tenant-wide</span>;
+  }
+  return <>{data?.display_name || data?.name || orgId}</>;
+}
+
 export function PermissionsTab() {
   return (
     <div className="flex flex-col gap-4">
@@ -387,6 +477,9 @@ export function PermissionsTab() {
           />
           <DataTable.Col source="resource_server_name" label="Resource name" />
           <DataTable.Col source="permission_name" label="Permission" />
+          <DataTable.Col label="Organization">
+            <OrganizationCell />
+          </DataTable.Col>
           <DataTable.Col label="Description">
             <TextField source="description" />
           </DataTable.Col>

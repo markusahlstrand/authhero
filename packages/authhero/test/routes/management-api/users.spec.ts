@@ -2578,6 +2578,86 @@ describe("users management API endpoint", () => {
       );
     });
 
+    it("should scope permissions to an organization", async () => {
+      const organizationId = "org_test_perms";
+
+      // Assign the same permission twice: once tenant-wide, once org-scoped.
+      const addResponse = await managementClient.users[
+        ":user_id"
+      ].permissions.$post(
+        {
+          param: { user_id: userId },
+          json: {
+            permissions: [
+              {
+                permission_name: "read:profile",
+                resource_server_identifier: uniqueResourceServer,
+              },
+              {
+                permission_name: "read:profile",
+                resource_server_identifier: uniqueResourceServer,
+                organization_id: organizationId,
+              },
+            ],
+          },
+          header: { "tenant-id": "tenantId" },
+        },
+        { headers: { authorization: `Bearer ${token}` } },
+      );
+      expect(addResponse.status).toBe(201);
+
+      // Both assignments should be listed, distinguished by organization_id.
+      const afterAdd = await (
+        await managementClient.users[":user_id"].permissions.$get(
+          {
+            param: { user_id: userId },
+            header: { "tenant-id": "tenantId" },
+          },
+          { headers: { authorization: `Bearer ${token}` } },
+        )
+      ).json();
+
+      expect(afterAdd.length).toBe(2);
+      const orgScoped = afterAdd.find((p: any) => p.organization_id);
+      const tenantWide = afterAdd.find((p: any) => !p.organization_id);
+      expect(orgScoped?.organization_id).toBe(organizationId);
+      expect(tenantWide).toBeDefined();
+
+      // Removing the org-scoped permission must leave the tenant-wide one intact.
+      const removeResponse = await managementClient.users[
+        ":user_id"
+      ].permissions.$delete(
+        {
+          param: { user_id: userId },
+          json: {
+            permissions: [
+              {
+                permission_name: "read:profile",
+                resource_server_identifier: uniqueResourceServer,
+                organization_id: organizationId,
+              },
+            ],
+          },
+          header: { "tenant-id": "tenantId" },
+        },
+        { headers: { authorization: `Bearer ${token}` } },
+      );
+      expect(removeResponse.status).toBe(200);
+
+      const afterRemove = await (
+        await managementClient.users[":user_id"].permissions.$get(
+          {
+            param: { user_id: userId },
+            header: { "tenant-id": "tenantId" },
+          },
+          { headers: { authorization: `Bearer ${token}` } },
+        )
+      ).json();
+
+      expect(afterRemove.length).toBe(1);
+      expect(afterRemove[0].organization_id).toBeUndefined();
+    });
+
     it("should return 404 for non-existent user", async () => {
       const nonExistentUserId = "email|non-existent-user";
 
