@@ -30,6 +30,7 @@ export default {
       dataAdapter,
       issuer: env.ISSUER,
       webhookInvoker, // same function passed to init()
+      codeExecutor, // same executor passed to init() — see below
       retentionDays: 7,
     });
   },
@@ -43,6 +44,7 @@ export default {
 | `dataAdapter` | yes | Same `DataAdapters` you pass to `init()`. Must include `outbox` — the call is a no-op if it doesn't. |
 | `issuer` | yes | Issuer URL used when minting `auth-service` tokens. Typically `env.ISSUER`. Webhook receivers that validate `iss` will accept tokens from both the inline and cron paths. |
 | `webhookInvoker` | no | Same shape as the `webhookInvoker` option on `init()`. **Pass the same function** — see below. |
+| `codeExecutor` | no | Same executor passed to `init({ codeExecutor })`. Pass it so cron-drained `hook.*` events also run `post-user-registration` / `post-user-deletion` code hooks — otherwise a code hook that failed per-request delivery is silently skipped on retry. |
 | `retentionDays` | no | Days to keep processed events before cleanup. Default `7`. |
 | `batchSize` | no | Max events per drain pass. Forwarded to `drainOutbox`. |
 | `maxRetries` | no | Max delivery attempts before an event is dead-lettered. Forwarded to `drainOutbox`. |

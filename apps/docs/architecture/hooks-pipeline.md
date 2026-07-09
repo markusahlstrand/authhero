@@ -91,13 +91,16 @@ After the request handler returns, the `outboxMiddleware` flushes the synchronou
 
 ### Destination registry
 
-Three destinations ship today:
+Four destinations ship today:
 
 | Destination | `accepts()` | `deliver()` |
 |---|---|---|
 | `LogsDestination` | `!event.event_type.startsWith("hook.")` | writes an `AuditEvent` to the `logs` table |
 | `WebhookDestination` | `event.event_type.startsWith("hook.")` | POSTs to each enabled webhook whose `trigger_id` matches, with `Idempotency-Key: {event.id}` and a 10s `AbortController` timeout |
-| `RegistrationFinalizerDestination` | `event.event_type === "hook.post-user-registration"` | sets `user.registration_completed_at` (listed **after** `WebhookDestination` so the flag only flips when delivery succeeded) |
+| `CodeHookDestination` | `event.event_type.startsWith("hook.")` | runs each enabled **code hook** whose `trigger_id` matches through the `codeExecutor`, persists an `action_executions` record, and throws if any hook failed so the event is retried. No-op when no executor is configured. Listed **after** `WebhookDestination` |
+| `RegistrationFinalizerDestination` | `event.event_type === "hook.post-user-registration"` | sets `user.registration_completed_at` (listed **after** the delivery destinations so the flag only flips when webhook **and** code-hook delivery succeeded) |
+
+`WebhookDestination` and `CodeHookDestination` both accept `hook.*` events, so a single `hook.post-user-registration` / `hook.post-user-deletion` event fans out to webhooks **and** code hooks, each retried independently by the relay.
 
 Destinations are constructed per request in `getDestinations(ctx)` so they can close over ctx-scoped dependencies — notably the service-token minter used for webhook `Authorization` headers.
 
@@ -107,7 +110,7 @@ Destinations are constructed per request in `getDestinations(ctx)` so they can c
 2. Return `true` from `accepts` only for the `event_type` values you handle — destinations must not cross-write.
 3. Make `deliver` idempotent. The relay can retry after a partial success if the worker dies between `deliver` and `markProcessed`. Webhooks rely on `Idempotency-Key`; in-DB destinations should dedupe on a unique constraint (see `LogsDestination.deliver` which swallows `UNIQUE constraint failed` on the `logs.log_id` column).
 4. Throw on failure — the relay will `markRetry` with exponential backoff automatically.
-5. Register it in both `management-api/index.ts` and `auth-api/index.ts` `outboxMiddleware` calls.
+5. Register it in every `outboxMiddleware` call — `auth-api/index.ts`, `management-api/index.ts`, and both universal-login apps (`universal-login/index.ts`, `universal-login/u2-index.ts`) — and in `createDefaultDestinations` (the cron-drain safety net) so retries on the cron path aren't silently skipped.
 
 ## Dead-letter & replay
 
@@ -176,18 +179,25 @@ packages/authhero/src/hooks/
                                 #   and post-user-update
 ```
 
-Three sibling modules under `helpers/outbox-destinations/` own the publish phase:
+The sibling modules under `helpers/outbox-destinations/` own the publish phase:
 
 ```text
 packages/authhero/src/helpers/outbox-destinations/
 ├── logs.ts                    # LogsDestination (rejects hook.* events)
 ├── webhooks.ts                # WebhookDestination (hook.* events → HTTP POST)
+├── code-hooks.ts              # CodeHookDestination (hook.* events → codeExecutor)
 └── registration-finalizer.ts  # flips registration_completed_at
 ```
 
-## What still runs inline (known gap)
+## Code hooks: from inline to outbox-backed
 
-Post-user-registration **code hooks** currently execute inside `createUserHooks` runPostHooks, not through the outbox. The relay-time path would need to reconstruct a synthetic `ctx` to invoke `handleCodeHook` without the original request — that design is not yet in place. See [#950](https://github.com/markusahlstrand/authhero/issues/950) for the plan.
+Post-user-registration and post-user-deletion **code hooks** (tenant-authored actions bound by `code_id`) used to run inline inside `createUserHooks` — best-effort and at-most-once, so a throw was logged and dropped. They now run through `CodeHookDestination` from the `hook.*` event, sharing the relay's retry + dead-letter machinery ([#950](https://github.com/markusahlstrand/authhero/issues/950)).
+
+The core executor was decoupled from the request `ctx`: `codehooks.ts::executeCodeHook({ codeExecutor, data, tenantId, hook, event, triggerId, api })` runs the code given explicit dependencies, and the inline `handleCodeHook(ctx, …)` is now a thin wrapper that resolves them from `ctx`. This works because the serialized event never carries `ctx` (it is stripped before reaching user code) and post-registration/deletion expose an empty `api` (there is no token to mutate), so no synthetic request needs to be reconstructed.
+
+**This changes the delivery guarantee from at-most-once to at-least-once.** A retried event re-runs every code hook for the trigger, so the outbox event id is passed to user code as `event.idempotency_key` for dedupe. Authors of non-idempotent side effects should key on it (or check `app_metadata`) — the same contract already required for self-healing.
+
+> Code hooks that mutate tokens (`post-user-login`, `credentials-exchange`) still run inline — they must observe/alter the live token in the request, so they cannot be deferred to the outbox.
 
 ## Further reading
 

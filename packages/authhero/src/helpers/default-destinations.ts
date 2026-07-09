@@ -1,4 +1,4 @@
-import { DataAdapters } from "@authhero/adapter-interfaces";
+import { CodeExecutor, DataAdapters } from "@authhero/adapter-interfaces";
 import { EventDestination } from "./outbox-relay";
 import { LogsDestination } from "./outbox-destinations/logs";
 import { LogStreamDestination } from "./outbox-destinations/log-streams";
@@ -6,16 +6,25 @@ import {
   WebhookDestination,
   type GetServiceToken,
 } from "./outbox-destinations/webhooks";
+import { CodeHookDestination } from "./outbox-destinations/code-hooks";
 import { RegistrationFinalizerDestination } from "./outbox-destinations/registration-finalizer";
 import { ControlPlaneSyncDestination } from "./outbox-destinations/control-plane-sync";
 import type { WebhookInvoker } from "../types/AuthHeroConfig";
 
 export interface CreateDefaultDestinationsConfig {
   /**
-   * Data adapter — only the `logs`, `hooks`, `users`, and `logStreams`
-   * adapters are used by the built-in destinations.
+   * Data adapter — the `logs`, `hooks`, `users`, and `logStreams` adapters are
+   * used by the built-in destinations. When `codeExecutor` is set, the
+   * `actions`, `hookCode`, and `actionExecutions` adapters are also required so
+   * `CodeHookDestination` can resolve and run tenant code hooks.
    */
-  dataAdapter: Pick<DataAdapters, "logs" | "hooks" | "users" | "logStreams">;
+  dataAdapter: Pick<DataAdapters, "logs" | "hooks" | "users" | "logStreams"> &
+    Partial<
+      Pick<
+        DataAdapters,
+        "actions" | "hookCode" | "actionExecutions" | "multiTenancyConfig"
+      >
+    >;
 
   /**
    * Produces a Bearer access token for the given tenant, used when POSTing
@@ -49,6 +58,15 @@ export interface CreateDefaultDestinationsConfig {
    * deliveries don't diverge from inline per-request ones.
    */
   webhookInvoker?: WebhookInvoker;
+
+  /**
+   * Code executor — same instance passed to `init({ codeExecutor })`. When
+   * provided (and `dataAdapter` carries `actions`, `hookCode`, and
+   * `actionExecutions`), a `CodeHookDestination` is added so cron-drained
+   * `hook.*` events also run tenant code hooks. Without it, code hooks that
+   * failed per-request delivery would be silently skipped on retry.
+   */
+  codeExecutor?: CodeExecutor;
 }
 
 /**
@@ -85,6 +103,7 @@ export function createDefaultDestinations(
     webhookTimeoutMs,
     webhookInvoker,
     controlPlaneSync,
+    codeExecutor,
   } = config;
 
   if (controlPlaneSync && !getServiceToken) {
@@ -117,8 +136,30 @@ export function createDefaultDestinations(
         }),
       );
     }
-    // Must come AFTER WebhookDestination so the registration-completed flag
-    // only flips once webhook delivery has actually succeeded.
+    // Run tenant code hooks on the cron path too, so a code hook that failed
+    // per-request delivery is actually retried rather than skipped. Requires
+    // the code-hook adapters alongside the executor.
+    if (
+      codeExecutor &&
+      dataAdapter.actions &&
+      dataAdapter.hookCode &&
+      dataAdapter.actionExecutions
+    ) {
+      destinations.push(
+        new CodeHookDestination(
+          {
+            hooks: dataAdapter.hooks,
+            actions: dataAdapter.actions,
+            hookCode: dataAdapter.hookCode,
+            actionExecutions: dataAdapter.actionExecutions,
+            multiTenancyConfig: dataAdapter.multiTenancyConfig,
+          },
+          codeExecutor,
+        ),
+      );
+    }
+    // Must come AFTER the delivery destinations so the registration-completed
+    // flag only flips once webhook and code-hook delivery have succeeded.
     destinations.push(new RegistrationFinalizerDestination(dataAdapter.users));
   }
 

@@ -54,6 +54,7 @@ export {
   type WebhookDestinationOptions,
   type GetServiceToken,
 } from "./helpers/outbox-destinations/webhooks";
+export { CodeHookDestination } from "./helpers/outbox-destinations/code-hooks";
 export { RegistrationFinalizerDestination } from "./helpers/outbox-destinations/registration-finalizer";
 export {
   ControlPlaneSyncDestination,

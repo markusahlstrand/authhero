@@ -122,19 +122,24 @@ PHASE 2 — Commit (single short DB transaction)
 
 PHASE 3 — Publish (runs after the commit, never blocks it)
 
-6. onExecutePostUserRegistration (programmatic, inline for now)
-7. post-user-registration code hooks (inline for now — see [#950](https://github.com/markusahlstrand/authhero/issues/950))
-8. post-user-registration template hooks (e.g. account-linking)
+6. onExecutePostUserRegistration (programmatic SDK hook, inline)
+7. post-user-registration template hooks (e.g. account-linking)
    └── pre-defined function dispatched by template_id; not user code
-9. enqueuePostHookEvent("post-user-registration")
-   └── outbox relay → WebhookDestination + RegistrationFinalizerDestination
-       ├── POSTs to enabled webhooks with Idempotency-Key = event.id
+8. enqueuePostHookEvent("post-user-registration")
+   └── outbox relay → WebhookDestination + CodeHookDestination
+       │                + RegistrationFinalizerDestination
+       ├── WebhookDestination: POSTs to enabled webhooks with
+       │   Idempotency-Key = event.id
+       ├── CodeHookDestination: runs enabled post-user-registration
+       │   code hooks via the codeExecutor (idempotency_key = event.id)
        ├── retries with exponential backoff on failure (max 5)
        ├── moves to dead-letter after retry exhaustion
        └── on success → sets user.registration_completed_at
 ```
 
-Self-healing: if `registration_completed_at` is still `null` on the user's next login, `postUserLoginHook` re-enqueues the `post-user-registration` event so a dead-lettered or lost delivery recovers automatically. Webhook consumers must be idempotent (enforced by the `Idempotency-Key` header).
+Post-user-registration **code hooks** run from the outbox event (step 8) via `CodeHookDestination`, not inline — so they get retries + dead-letter. Because template hooks (step 7) mutate the user before the event is enqueued, code hooks observe the linked/primary user. See [#950](https://github.com/markusahlstrand/authhero/issues/950) and the [Hooks & Outbox Pipeline](../architecture/hooks-pipeline.md#code-hooks-from-inline-to-outbox-backed) doc.
+
+Self-healing: if `registration_completed_at` is still `null` on the user's next login, `postUserLoginHook` re-enqueues the `post-user-registration` event so a dead-lettered or lost delivery recovers automatically. Consumers must be idempotent — webhooks via the `Idempotency-Key` header, code hooks via `event.idempotency_key`.
 
 ## Signup Blocking with `disable_sign_ups`
 
