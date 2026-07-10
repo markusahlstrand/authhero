@@ -1,6 +1,8 @@
+import type { FormHTMLAttributes } from "react";
 import { useEffect, useState } from "react";
 import type { RaRecord } from "ra-core";
 import {
+  FilterLiveForm,
   useDataProvider,
   useGetOne,
   useNotify,
@@ -8,7 +10,7 @@ import {
   useRefresh,
 } from "ra-core";
 import { useParams } from "react-router-dom";
-import { Plus, Trash2 } from "lucide-react";
+import { Filter, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -27,9 +29,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  ColumnsButton,
   DataTable,
   ListPagination,
   ReferenceManyField,
+  SearchInput,
   TextField,
 } from "@/components/admin";
 import { DateAgo } from "@/common/DateAgo";
@@ -453,6 +457,40 @@ function OrganizationCell() {
   return <>{data?.display_name || data?.name || orgId}</>;
 }
 
+const SearchFormComponent = (props: FormHTMLAttributes<HTMLFormElement>) => (
+  <form {...props} className="flex w-full" />
+);
+
+/**
+ * Mirrors the toolbar rendered by <List> (search + filters + columns), which a
+ * bare <ReferenceManyField> does not provide. Rendered inside the field so it
+ * shares its ListContext (search) and resource context (columns store key).
+ */
+function PermissionsToolbar() {
+  return (
+    <div className="flex items-center gap-2 my-2">
+      <div className="flex w-full max-w-sm">
+        <FilterLiveForm formComponent={SearchFormComponent}>
+          <SearchInput source="q" className="flex-grow" />
+        </FilterLiveForm>
+      </div>
+      <Button
+        type="button"
+        variant="outline"
+        disabled
+        className="cursor-not-allowed opacity-60"
+        title="No filters configured"
+      >
+        <Filter className="h-4 w-4" />
+        Add filter
+      </Button>
+      <div className="ml-auto">
+        <ColumnsButton />
+      </div>
+    </div>
+  );
+}
+
 export function PermissionsTab() {
   return (
     <div className="flex flex-col gap-4">
@@ -470,6 +508,7 @@ export function PermissionsTab() {
           </p>
         }
       >
+        <PermissionsToolbar />
         <DataTable rowClick={false} bulkActionButtons={false}>
           <DataTable.Col
             source="resource_server_identifier"
