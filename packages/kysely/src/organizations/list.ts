@@ -6,6 +6,7 @@ import {
 } from "@authhero/adapter-interfaces";
 import { removeNullProperties } from "../helpers/remove-nulls";
 import { luceneFilter, sanitizeLuceneQuery } from "../helpers/filter";
+import { keysetPaginate, isKeysetRequest } from "../helpers/paginate";
 
 const ALLOWED_Q_FIELDS = ["name", "display_name"];
 
@@ -30,7 +31,39 @@ export function list(db: Kysely<Database>) {
       }
     }
 
-    // Apply sorting
+    // Keyset (checkpoint) pagination: from/take. Ordered by created_at desc with
+    // id as tiebreaker (a fixed, stable order — dynamic sort applies to offset
+    // pagination only), and no total, matching Auth0's checkpoint responses.
+    if (isKeysetRequest(params)) {
+      const { rows, limit, next } = await keysetPaginate(
+        baseQuery.selectAll(),
+        params,
+        { sortColumn: "created_at", sortOrder: "desc" },
+      );
+      const organizations = rows.map((result) =>
+        removeNullProperties({
+          ...result,
+          branding: result.branding ? JSON.parse(result.branding) : {},
+          metadata: result.metadata ? JSON.parse(result.metadata) : {},
+          enabled_connections: result.enabled_connections
+            ? JSON.parse(result.enabled_connections)
+            : [],
+          token_quota: result.token_quota
+            ? JSON.parse(result.token_quota)
+            : {},
+        }),
+      );
+      return {
+        organizations,
+        start: 0,
+        limit,
+        length: organizations.length,
+        total: organizations.length,
+        next,
+      };
+    }
+
+    // Apply sorting (offset pagination)
     if (params?.sort) {
       const sortOrder = params.sort.sort_order === "asc" ? "asc" : "desc";
       const sortBy = params.sort.sort_by as
@@ -47,8 +80,8 @@ export function list(db: Kysely<Database>) {
     }
 
     // Clamp pagination inputs so negative or non-finite values cannot
-    // produce bad SQL. take wins over per_page when both are supplied.
-    const rawPerPage = params?.take ?? params?.per_page;
+    // produce bad SQL.
+    const rawPerPage = params?.per_page;
     const normalized =
       typeof rawPerPage === "number" && Number.isFinite(rawPerPage)
         ? Math.floor(rawPerPage)
@@ -56,12 +89,7 @@ export function list(db: Kysely<Database>) {
     const perPage = normalized >= 1 ? normalized : 10;
 
     let offset = 0;
-    if (params?.from !== undefined) {
-      const parsed = parseInt(params.from, 10);
-      if (!Number.isNaN(parsed)) {
-        offset = Math.max(0, parsed);
-      }
-    } else if (
+    if (
       typeof params?.page === "number" &&
       Number.isFinite(params.page)
     ) {

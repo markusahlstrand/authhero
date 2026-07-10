@@ -1,9 +1,16 @@
 ---
-"authhero": patch
-"@authhero/kysely-adapter": patch
-"@authhero/drizzle": patch
+"@authhero/adapter-interfaces": minor
+"authhero": minor
+"@authhero/kysely-adapter": minor
+"@authhero/drizzle": minor
 ---
 
-Fix `GET /organizations/{id}/members` ignoring `from`/`take` pagination.
+Add Auth0-style keyset (checkpoint) pagination with an opaque `next` cursor.
 
-The members handler only read `page`/`per_page`, so a client paging with checkpoint pagination — e.g. the Auth0 SDK, which sends `from=0&take=25` — had `take` dropped and fell back to the `per_page` default of 10, capping every response at 10 members. The handler now passes `from`/`take` through, and the `userOrganizations` list adapters (kysely and drizzle) honor them the same way the organizations adapter does (`take` wins over `per_page`, `from` over `page`, with clamping).
+List endpoints previously treated the `from` parameter as a numeric SQL offset, which diverges from Auth0 (where `from` is the opaque `next` token from the prior response) and is unstable under concurrent writes. Organization and organization-members listing now support true keyset pagination:
+
+- `adapter-interfaces` exposes `encodeCursor`/`decodeCursor` and a `next` field on the list-response contract. `from` is documented as an opaque cursor.
+- kysely and drizzle gain a shared keyset paginator (`(sortColumn, id)` row-value comparison, `take + 1` look-ahead to emit `next`). Offset pagination (`page`/`per_page` + `total`), used by the admin UI, is unchanged.
+- `GET /organizations` and `GET /organizations/{id}/members` return `{ items, next }` when called with `from`/`take`, and keep the offset shape for `page`/`per_page`.
+
+This fixes `GET /organizations/{id}/members` being capped at 10 (the Auth0 SDK sends `from`/`take`) and lets clients page the full set via the cursor. The admin UI's org-members view switches to offset pagination so it keeps numbered pages and totals.

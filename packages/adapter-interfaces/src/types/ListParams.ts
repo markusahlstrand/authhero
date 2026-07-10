@@ -7,7 +7,10 @@ export interface ListParams {
     sort_by: string;
     sort_order: "asc" | "desc";
   };
-  // Checkpoint pagination (alternative to page/per_page)
+  // Checkpoint (keyset) pagination, an alternative to page/per_page.
+  // `from` is an OPAQUE cursor token — the `next` value returned by the
+  // previous response, passed back verbatim. It is not a numeric offset.
+  // `take` is the page size. Adapters decode `from` via decodeCursor().
   from?: string;
   take?: number;
   // Optional date range (Unix timestamp in seconds, inclusive)

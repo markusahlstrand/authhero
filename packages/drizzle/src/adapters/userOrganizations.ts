@@ -1,4 +1,4 @@
-import { eq, and, count as countFn } from "drizzle-orm";
+import { eq, and, count as countFn, desc } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { HTTPException } from "hono/http-exception";
 import type {
@@ -8,6 +8,13 @@ import type {
 import { userOrganizations, organizations } from "../schema/sqlite";
 import { removeNullProperties, parseJsonIfString } from "../helpers/transform";
 import { buildLuceneFilter } from "../helpers/filter";
+import {
+  isKeysetRequest,
+  keysetCondition,
+  keysetOrderBy,
+  keysetTake,
+  sliceWithNext,
+} from "../helpers/paginate";
 import type { DrizzleDb } from "./types";
 
 export function createUserOrganizationsAdapter(db: DrizzleDb) {
@@ -91,30 +98,6 @@ export function createUserOrganizationsAdapter(db: DrizzleDb) {
     async list(tenantId: string, params?: ListParams) {
       const { include_totals = false, q } = params || {};
 
-      // Clamp pagination inputs. take wins over per_page, and from
-      // (checkpoint offset) wins over page. Mirrors the organizations adapter
-      // so the Auth0 SDK's from/take pagination is honored instead of being
-      // capped at the per_page default.
-      const rawPerPage = params?.take ?? params?.per_page;
-      const normalized =
-        typeof rawPerPage === "number" && Number.isFinite(rawPerPage)
-          ? Math.floor(rawPerPage)
-          : NaN;
-      const per_page = normalized >= 1 ? normalized : 50;
-
-      let offset = 0;
-      if (params?.from !== undefined) {
-        const parsed = parseInt(params.from, 10);
-        if (!Number.isNaN(parsed)) {
-          offset = Math.max(0, parsed);
-        }
-      } else if (
-        typeof params?.page === "number" &&
-        Number.isFinite(params.page)
-      ) {
-        offset = Math.max(0, Math.floor(params.page) * per_page);
-      }
-
       const tenantFilter = eq(userOrganizations.tenant_id, tenantId);
 
       let whereCondition = tenantFilter;
@@ -126,16 +109,54 @@ export function createUserOrganizationsAdapter(db: DrizzleDb) {
         if (filter) whereCondition = and(tenantFilter, filter)!;
       }
 
+      const stripTenant = (row: typeof userOrganizations.$inferSelect) => {
+        const { tenant_id: _, ...rest } = row;
+        return rest;
+      };
+
+      // Keyset (checkpoint) pagination: from/take. No total, matching Auth0's
+      // checkpoint responses. Sorted by created_at desc, id as tiebreaker.
+      if (isKeysetRequest(params)) {
+        const cols = {
+          sortColumn: userOrganizations.created_at,
+          idColumn: userOrganizations.id,
+          sortOrder: "desc" as const,
+        };
+        const keyset = keysetCondition(params, cols);
+        const take = keysetTake(params);
+        const rows = await db
+          .select()
+          .from(userOrganizations)
+          .where(keyset ? and(whereCondition, keyset) : whereCondition)
+          .orderBy(...keysetOrderBy(cols))
+          .limit(take + 1);
+        const { rows: pageRows, next } = sliceWithNext(
+          rows.map(stripTenant),
+          take,
+          "created_at",
+        );
+        return {
+          userOrganizations: pageRows,
+          start: 0,
+          limit: take,
+          length: pageRows.length,
+          next,
+        };
+      }
+
+      // Offset pagination (page/per_page) with a total count.
+      const page = params?.page ?? 0;
+      const per_page = params?.per_page ?? 50;
+      const offset = page * per_page;
+
       const results = await db
         .select()
         .from(userOrganizations)
         .where(whereCondition)
+        .orderBy(desc(userOrganizations.created_at), desc(userOrganizations.id))
         .offset(offset)
         .limit(per_page);
-      const mapped = results.map((row) => {
-        const { tenant_id: _, ...rest } = row;
-        return rest;
-      });
+      const mapped = results.map(stripTenant);
 
       if (!include_totals) {
         return { userOrganizations: mapped };

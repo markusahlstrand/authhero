@@ -125,7 +125,7 @@ describe("OrganizationsAdapter", () => {
     expect(page1Ids).not.toEqual(page2Ids);
   });
 
-  it("should paginate organizations with from/take (checkpoint)", async () => {
+  it("should paginate organizations with from/take (keyset checkpoint)", async () => {
     // Create 5 organizations
     for (let i = 0; i < 5; i++) {
       await adapter.organizations.create(tenantId, {
@@ -133,32 +133,37 @@ describe("OrganizationsAdapter", () => {
       });
     }
 
-    // Get first batch using checkpoint pagination
+    // Get first batch using checkpoint pagination. Keyset returns an opaque
+    // `next` cursor (not a numeric offset) and no grand total, matching Auth0.
     const batch1 = await adapter.organizations.list(tenantId, {
-      from: "0",
       take: 2,
-      include_totals: true,
     });
 
     expect(batch1.organizations).toHaveLength(2);
-    expect(batch1.total).toBe(5);
-    expect(batch1.start).toBe(0);
+    expect(batch1.next).toBeDefined();
     expect(batch1.limit).toBe(2);
 
-    // Get second batch
-    const batch2 = await adapter.organizations.list(tenantId, {
-      from: "2",
-      take: 2,
-      include_totals: true,
-    });
+    // Walk the remaining pages via the cursor and assert full, unique coverage.
+    const seen = new Set<string>(
+      batch1.organizations.map((o: any) => o.id),
+    );
+    let from = batch1.next;
+    let pages = 1;
+    while (from) {
+      const batch = await adapter.organizations.list(tenantId, {
+        take: 2,
+        from,
+      });
+      for (const o of batch.organizations) {
+        expect(seen.has(o.id)).toBe(false);
+        seen.add(o.id);
+      }
+      from = batch.next;
+      pages++;
+      if (pages > 5) throw new Error("cursor walk did not terminate");
+    }
 
-    expect(batch2.organizations).toHaveLength(2);
-    expect(batch2.start).toBe(2);
-
-    // Verify different results
-    const batch1Ids = batch1.organizations.map((o: any) => o.id);
-    const batch2Ids = batch2.organizations.map((o: any) => o.id);
-    expect(batch1Ids).not.toEqual(batch2Ids);
+    expect(seen.size).toBe(5);
   });
 
   it("should search organizations with q parameter", async () => {
