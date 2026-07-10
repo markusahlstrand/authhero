@@ -10,6 +10,8 @@
  * token opaque means clients cannot depend on its shape and we can evolve the
  * encoding — e.g. add extra sort keys — without breaking callers.
  */
+import { decodeBase64UrlString, encodeBase64UrlString } from "./base64url";
+
 export interface CursorPayload {
   /**
    * Value of the sort column on the last row of the previous page. `null` when
@@ -20,35 +22,12 @@ export interface CursorPayload {
   i: string;
 }
 
-function toBase64Url(input: string): string {
-  // btoa expects a Latin1 string; encode UTF-8 first so non-ASCII ids survive.
-  const bytes = new TextEncoder().encode(input);
-  let binary = "";
-  for (const byte of bytes) {
-    binary += String.fromCharCode(byte);
-  }
-  return btoa(binary)
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
-}
-
-function fromBase64Url(input: string): string {
-  const padded = input.replace(/-/g, "+").replace(/_/g, "/");
-  const binary = atob(padded);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return new TextDecoder().decode(bytes);
-}
-
 /**
  * Encode a keyset position into an opaque cursor token suitable for returning
  * as `next` and accepting back as `from`.
  */
 export function encodeCursor(payload: CursorPayload): string {
-  return toBase64Url(JSON.stringify(payload));
+  return encodeBase64UrlString(JSON.stringify(payload));
 }
 
 /**
@@ -58,7 +37,7 @@ export function encodeCursor(payload: CursorPayload): string {
  */
 export function decodeCursor(token: string): CursorPayload | null {
   try {
-    const parsed = JSON.parse(fromBase64Url(token));
+    const parsed = JSON.parse(decodeBase64UrlString(token));
     if (
       parsed &&
       typeof parsed === "object" &&
