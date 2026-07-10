@@ -1,13 +1,36 @@
-import { Kysely } from "kysely";
+import { Kysely, Selectable } from "kysely";
 import {
   ListParams,
   ListClientGrantsResponse,
   ClientGrant,
+  clientGrantSchema,
 } from "@authhero/adapter-interfaces";
 import { Database } from "../db";
 import getCountAsInt from "../utils/getCountAsInt";
 import { luceneFilter } from "../helpers/filter";
 import { removeNullProperties } from "../helpers/remove-nulls";
+import { keysetPaginate, isKeysetRequest } from "../helpers/paginate";
+
+// SQL rows store scope/authorization_details_types as JSON strings and booleans
+// as integers, and leave unset enum columns (organization_usage, subject_type)
+// as NULL. Stripping nulls turns those into absent optionals and
+// clientGrantSchema.parse then validates the enums and drops tenant_id — so no
+// casts are needed and only the JSON/boolean fields are prepared by hand.
+function sqlToClientGrant(
+  row: Selectable<Database["client_grants"]>,
+): ClientGrant {
+  return clientGrantSchema.parse(
+    removeNullProperties({
+      ...row,
+      scope: row.scope ? JSON.parse(row.scope) : [],
+      allow_any_organization: Boolean(row.allow_any_organization),
+      is_system: Boolean(row.is_system),
+      authorization_details_types: row.authorization_details_types
+        ? JSON.parse(row.authorization_details_types)
+        : [],
+    }),
+  );
+}
 
 export function list(db: Kysely<Database>) {
   return async (
@@ -39,27 +62,29 @@ export function list(db: Kysely<Database>) {
         // Special handling for boolean fields that are stored as integers
         if (fieldName === "allow_any_organization") {
           const boolValue = value === "true" ? 1 : 0;
-          if (neg) {
-            query = query.where(columnRef, "!=", boolValue);
-          } else {
-            query = query.where(columnRef, "=", boolValue);
-          }
+          query = query.where(columnRef, neg ? "!=" : "=", boolValue);
         } else {
-          // Generic handling for string fields
-          if (neg) {
-            query = query.where(columnRef, "!=", value);
-          } else {
-            query = query.where(columnRef, "=", value);
-          }
+          query = query.where(columnRef, neg ? "!=" : "=", value);
         }
       } else {
         query = luceneFilter(db, query, trimmedQ, []);
       }
     }
 
-    let filteredQuery = query;
+    // Keyset (checkpoint) pagination: from/take. Fixed created_at desc order
+    // with id tiebreaker; no total, matching Auth0's checkpoint responses.
+    if (isKeysetRequest(params)) {
+      const { rows, limit, next } = await keysetPaginate(
+        query.selectAll(),
+        params,
+        { sortColumn: "created_at", sortOrder: "desc" },
+      );
+      const client_grants = rows.map(sqlToClientGrant);
+      return { client_grants, start: 0, limit, length: client_grants.length, next };
+    }
 
-    // Add sorting if specified
+    // Offset pagination.
+    let filteredQuery = query;
     if (sort) {
       const { ref } = db.dynamic;
       filteredQuery = filteredQuery.orderBy(ref(sort.sort_by), sort.sort_order);
@@ -67,46 +92,15 @@ export function list(db: Kysely<Database>) {
       filteredQuery = filteredQuery.orderBy("client_grants.created_at", "desc");
     }
 
-    filteredQuery = filteredQuery.limit(per_page).offset(page * per_page);
-
-    const results = await filteredQuery.selectAll().execute();
-
-    const clientGrants: ClientGrant[] = results.map((result) => {
-      const clientGrant: ClientGrant = {
-        id: result.id,
-        client_id: result.client_id,
-        audience: result.audience,
-        scope: result.scope ? JSON.parse(result.scope) : [],
-        organization_usage: result.organization_usage as
-          | "deny"
-          | "allow"
-          | "require"
-          | undefined,
-        // Convert integers back to booleans for API response (with defaults)
-        allow_any_organization:
-          result.allow_any_organization !== undefined
-            ? Boolean(result.allow_any_organization)
-            : false,
-        is_system:
-          result.is_system !== undefined ? Boolean(result.is_system) : false,
-        subject_type: result.subject_type as "client" | "user" | undefined,
-        authorization_details_types: result.authorization_details_types
-          ? JSON.parse(result.authorization_details_types)
-          : [],
-        created_at: result.created_at,
-        updated_at: result.updated_at,
-      };
-
-      return removeNullProperties(clientGrant);
-    });
+    const results = await filteredQuery
+      .selectAll()
+      .limit(per_page)
+      .offset(page * per_page)
+      .execute();
+    const client_grants = results.map(sqlToClientGrant);
 
     if (!include_totals) {
-      return {
-        client_grants: clientGrants,
-        start: 0,
-        limit: 0,
-        length: 0,
-      };
+      return { client_grants, start: 0, limit: 0, length: 0 };
     }
 
     const { count } = await query
@@ -114,7 +108,7 @@ export function list(db: Kysely<Database>) {
       .executeTakeFirstOrThrow();
 
     return {
-      client_grants: clientGrants,
+      client_grants,
       start: page * per_page,
       limit: per_page,
       length: getCountAsInt(count),

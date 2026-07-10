@@ -74,6 +74,14 @@ const clientGrantsQuerySchema = z.object({
 const clientGrantsWithTotalsSchema = totalsSchema.extend({
   client_grants: z.array(clientGrantSchema),
 });
+
+// Checkpoint (keyset) pagination response: items plus an opaque cursor.
+const clientGrantsWithNextSchema = z.object({
+  client_grants: z.array(clientGrantSchema),
+  next: z.string().optional().openapi({
+    description: "Opaque cursor for the next page; absent on the last page.",
+  }),
+});
 const getRoot = defineRoute({
   route: createRoute({
     tags: ["client-grants"],
@@ -98,6 +106,7 @@ const getRoot = defineRoute({
             schema: z.union([
               z.array(clientGrantSchema),
               clientGrantsWithTotalsSchema,
+              clientGrantsWithNextSchema,
             ]),
           },
         },
@@ -139,22 +148,26 @@ const getRoot = defineRoute({
       queryParts.push(`subject_type:"${subject_type}"`);
     }
 
-    if (from) {
-      queryParts.push(`id:>${from}`);
-    }
-
     const luceneQuery =
       queryParts.length > 0 ? queryParts.join(" AND ") : undefined;
 
-    // Use take parameter if provided, otherwise use per_page
-    const actualPerPage = take ?? per_page;
-
     const result = await ctx.env.data.clientGrants.list(tenant_id, {
       page,
-      per_page: actualPerPage,
+      per_page,
       include_totals,
       q: luceneQuery,
+      from,
+      take,
     });
+
+    // Keyset (checkpoint) pagination: return Auth0's { items, next } shape so
+    // clients can page past the first page via the opaque cursor.
+    if (from !== undefined || take !== undefined) {
+      return ctx.json({
+        client_grants: result.client_grants,
+        next: result.next,
+      });
+    }
 
     if (!include_totals) {
       return ctx.json(result.client_grants);
