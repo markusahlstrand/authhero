@@ -5,6 +5,7 @@ import { JSONHTTPException } from "../errors/json-http-exception";
 import { Bindings, Variables, GrantFlowUserResult } from "../types";
 import { safeCompare } from "../utils/safe-compare";
 import { getEnrichedClient } from "../helpers/client";
+import { MANAGEMENT_API_AUDIENCE } from "../middlewares/authentication";
 import { logMessage } from "../helpers/logging";
 import { JwtExpiredError, validateJwtToken, type JwtPayload } from "../utils/jwt";
 import { getIssuer } from "../variables";
@@ -235,8 +236,10 @@ export async function tokenExchangeGrant(
   }
 
   // Authorize the org switch. Mirrors the refresh-token grant: bypass when
-  // the user has the global `admin:organizations` permission on this
-  // resource server (gated by tenant flag); otherwise require membership.
+  // the user has the global `admin:organizations` permission on the Management
+  // API (gated by tenant flag); otherwise require membership. This is a
+  // management-plane permission, so it is matched against the Management API
+  // audience, never the requested token's audience.
   let hasGlobalOrgAdminPermission = false;
   const tenant = await ctx.env.data.tenants.get(client.tenant.id);
   if (tenant?.flags?.inherit_global_permissions_in_organizations) {
@@ -249,7 +252,7 @@ export async function tokenExchangeGrant(
     hasGlobalOrgAdminPermission = globalUserPermissions.some(
       (p) =>
         p.permission_name === "admin:organizations" &&
-        p.resource_server_identifier === resourceServer.identifier,
+        p.resource_server_identifier === MANAGEMENT_API_AUDIENCE,
     );
 
     if (!hasGlobalOrgAdminPermission) {
@@ -268,7 +271,7 @@ export async function tokenExchangeGrant(
         const hasAdminOrg = rolePermissions.some(
           (p) =>
             p.permission_name === "admin:organizations" &&
-            p.resource_server_identifier === resourceServer.identifier,
+            p.resource_server_identifier === MANAGEMENT_API_AUDIENCE,
         );
         if (hasAdminOrg) {
           hasGlobalOrgAdminPermission = true;
