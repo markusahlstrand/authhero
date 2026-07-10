@@ -355,6 +355,124 @@ HTTP fallback entirely (resolve straight from `kv`) and retire the
 
 This is the "proxy as dispatch worker" shape. See [Cloudflare Workers for Platforms](/deployment/cloudflare-wfp) for the full deploy guide. The proxy fronts a dispatch namespace and routes each request into the matching tenant's Worker. The data adapter is typically the same one AuthHero uses, but with a synthetic default route layered on (see [Quick start → WFP dispatcher](/customization/proxy/#wfp-dispatcher-workers-for-platforms)).
 
+## Shape 5 — Proxy-at-edge in front of a legacy control plane
+
+Use this when you already run a single "control-plane" AuthHero Worker that owns a
+wildcard auth zone (e.g. `*.token.example.com/*` → one Worker backed by a shared
+PlanetScale/MySQL database), and you want to migrate tenants onto their own
+per-tenant Workers **one at a time** without a big-bang cutover.
+
+The proxy takes over the wildcard route and does two things:
+
+- **Dispatches** hosts that have been migrated (a `custom_domains` + `proxy_routes`
+  row, or a KV blob) to the tenant's own Worker via the dispatch namespace.
+- **Default-forwards** everything else — legacy tenants still on the shared DB,
+  JWKS, M2M `POST /api/v2/*` — to the legacy control-plane Worker, unchanged.
+
+The default-forward is the router's fail-open `defaultHandlers` chain (see
+[router.ts](https://github.com/markusahlstrand/authhero/blob/main/packages/proxy/src/data-plane/router.ts)):
+an unresolved host, a resolve timeout, or a resolve error all fall through to the
+same catch-all instead of returning 404/502. Point that catch-all at the legacy
+control plane over a **service binding** so the hop never touches the public edge:
+
+```typescript
+import { createProxyApp } from "@authhero/proxy";
+
+export default {
+  fetch(req: Request, env: Env, ctx: ExecutionContext) {
+    return createProxyApp({
+      data,                                   // KV or shared-DB adapter (Shape 2/3b)
+      bindings: { AUTH2: env.AUTH2 },         // service binding → legacy control plane
+      // Unmatched host / resolve failure → forward to the legacy Worker verbatim.
+      defaultHandlers: [
+        { type: "forwarded_headers" },
+        { type: "service_binding", options: { binding: "AUTH2", preserve_host: true } },
+      ],
+    }).fetch(req, env, ctx);
+  },
+};
+```
+
+`preserve_host: true` is required so the legacy Worker still resolves the tenant
+from the original `Host` (its subdomain-/custom-domain-based tenant resolution and
+`iss` claim depend on it). Verify this end-to-end for `POST /api/v2/*` with auth
+headers before cutover — a dropped Host silently reroutes the write to the wrong
+tenant.
+
+### The self-loop foot-gun (fix this first)
+
+If the proxy's control-plane resolution (`createHttpProxyAdapter`) targets a
+hostname **on the wildcard the proxy now owns** — e.g. `CONTROL_PLANE_URL` is
+`https://controlplane.token.example.com` while the proxy serves
+`*.token.example.com/*` — then the proxy's own `/oauth/token` and `resolveHost`
+calls loop back into the proxy. That is a self-DoS, and it triggers the moment you
+move the route.
+
+Two fixes, use at least one:
+
+1. **Point `CONTROL_PLANE_URL` off the wildcard** — e.g. `https://auth2.example.com`.
+2. **Resolve over a service binding** with `createServiceBindingFetch`, so the
+   control-plane calls never traverse the public edge regardless of `baseUrl`:
+
+```typescript
+import { createHttpProxyAdapter, createServiceBindingFetch } from "@authhero/proxy";
+
+const data = createHttpProxyAdapter({
+  baseUrl: env.CONTROL_PLANE_URL,           // may even stay on the wildcard
+  clientId: env.CONTROL_PLANE_CLIENT_ID,
+  clientSecret: env.CONTROL_PLANE_CLIENT_SECRET,
+  fetch: createServiceBindingFetch(env.AUTH2),
+});
+```
+
+The binding routes straight to the control-plane Worker, so the loop cannot form.
+Do this **before** moving the route.
+
+### Phased cutover runbook
+
+The route move and the per-tenant database migration are decoupled — Phase 1
+changes only topology, Phase 2 migrates tenants incrementally. Both are reversible.
+
+**Phase 0 — prepare (no traffic change)**
+
+- [ ] Deploy the proxy Worker with the `AUTH2` service binding to the legacy
+      control plane, the dispatch-namespace binding, and the loop-fix above.
+- [ ] Confirm the default-forward chain is active (`defaultHandlers` → `AUTH2`).
+- [ ] Smoke-test the proxy on a spare hostname: legacy host forwards (200), JWKS
+      returns the expected keys, `POST /api/v2/users` preserves Host + tenant.
+
+**Phase 1 — edge cutover (behaviorally transparent)**
+
+- [ ] Move the wildcard route (`*.token.example.dev/*` first, then `.com`) from
+      the legacy Worker to the proxy Worker. All tenants stay on the shared DB.
+- [ ] Every request now default-forwards to the legacy control plane over `AUTH2`
+      — one extra SWR-cached hop, no behavior change. Only topology moved.
+- [ ] **Rollback:** move the route back to the legacy Worker. Instant, total.
+- [ ] Verify in dev first — this both validates the topology and fixes the
+      "`403 Client not found` on a WFP host" symptom for any already-migrated tenant.
+
+**Phase 2 — per-tenant database migration (incremental)**
+
+For each tenant, in isolation:
+
+- [ ] Provision the tenant's per-tenant Worker + database (its client/connection
+      data now lives in the tenant DB, not the shared control-plane DB).
+- [ ] Add the routing row: a `custom_domains` + `proxy_routes` entry (or a KV blob,
+      Shape 3b) mapping `<tenant>.token.example.com` → `tenant-{id}-auth`.
+- [ ] The proxy now dispatches that host to the tenant Worker; all other hosts keep
+      default-forwarding to the legacy control plane.
+- [ ] **Rollback:** delete the routing row → the host falls back through
+      `defaultHandlers` to the legacy control plane again.
+
+### Verify before prod
+
+- **Host preservation** through the service binding for `POST /api/v2/*` with auth
+  headers — replay a real M2M call in dev, confirm the correct tenant/issuer.
+- **JWKS** resolves for both a forwarded legacy host and (Phase 2) a WFP host
+  served by the tenant Worker with projected shared signing keys.
+- **Loop fix live** before the route move — confirm control-plane resolution never
+  re-enters the wildcard (it should traverse the binding, not the public edge).
+
 ## Database setup
 
 The `proxy_routes` table is part of the standard AuthHero schema and is created by the regular adapter migrations (`migrateToLatest` for `@authhero/kysely-adapter`, the equivalent step for `@authhero/drizzle` and `@authhero/aws`). The proxy reads from the existing `custom_domains` table that AuthHero already manages — so when you share a database with AuthHero, no extra setup is needed at all.

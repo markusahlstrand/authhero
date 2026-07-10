@@ -57,6 +57,8 @@ export type {
 } from "./static";
 export { createHttpProxyAdapter } from "./http-adapter";
 export type { HttpProxyAdapterOptions } from "./http-adapter";
+export { createServiceBindingFetch } from "./http-adapter/service-binding-fetch";
+export type { ServiceBindingFetcher } from "./http-adapter/service-binding-fetch";
 export {
   createKvProxyAdapter,
   buildKvHostKey,
