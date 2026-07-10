@@ -95,13 +95,19 @@ export function list(db: Kysely<Database>) {
       }
     }
 
+    // Only sort on a known field. An unmapped sort_by (e.g. `sort=id:1`, where
+    // `id` isn't a users column) must be ignored rather than passed through to
+    // SQL — an unqualified `order by id` is rejected by MySQL/Vitess as an
+    // unknown column once user_activity is joined. Mirrors the drizzle adapter.
     if (sort && sort.sort_by) {
-      const { ref } = db.dynamic;
-      const mapped = FIELD_MAP[sort.sort_by] ?? sort.sort_by;
-      query = query.orderBy(
-        typeof mapped === "string" ? ref(mapped) : coalescedRef(mapped),
-        sort.sort_order,
-      );
+      const mapped = FIELD_MAP[sort.sort_by];
+      if (mapped) {
+        const { ref } = db.dynamic;
+        query = query.orderBy(
+          typeof mapped === "string" ? ref(mapped) : coalescedRef(mapped),
+          sort.sort_order,
+        );
+      }
     }
 
     const filteredQuery = query.offset(page * per_page).limit(per_page);

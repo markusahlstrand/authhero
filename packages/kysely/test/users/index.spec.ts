@@ -250,5 +250,20 @@ describe("users", () => {
         "email|never",
       ]);
     });
+
+    it("ignores an unmapped sort_by instead of emitting invalid SQL", async () => {
+      const data = await seed();
+
+      // `id` isn't a users column; after the user_activity join an unqualified
+      // `order by id` is rejected by MySQL/Vitess. The sort must be dropped.
+      const result = await data.users.list("t1", {
+        sort: { sort_by: "id", sort_order: "asc" },
+      });
+
+      expect(result.users.map((u) => u.user_id).sort()).toEqual([
+        "email|active",
+        "email|never",
+      ]);
+    });
   });
 });
