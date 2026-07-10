@@ -11,9 +11,26 @@ export function list(db: Kysely<Database>) {
     tenantId: string,
     params?: ListParams,
   ): Promise<{ userOrganizations: UserOrganization[] } & Totals> => {
-    const page = params?.page || 0;
-    const per_page = params?.per_page || 50;
-    const offset = page * per_page;
+    // Clamp pagination inputs so negative or non-finite values cannot
+    // produce bad SQL. take wins over per_page when both are supplied, and
+    // from (checkpoint offset) wins over page. This mirrors the organizations
+    // adapter so the Auth0 SDK's from/take pagination is honored.
+    const rawPerPage = params?.take ?? params?.per_page;
+    const normalized =
+      typeof rawPerPage === "number" && Number.isFinite(rawPerPage)
+        ? Math.floor(rawPerPage)
+        : NaN;
+    const per_page = normalized >= 1 ? normalized : 50;
+
+    let offset = 0;
+    if (params?.from !== undefined) {
+      const parsed = parseInt(params.from, 10);
+      if (!Number.isNaN(parsed)) {
+        offset = Math.max(0, parsed);
+      }
+    } else if (typeof params?.page === "number" && Number.isFinite(params.page)) {
+      offset = Math.max(0, Math.floor(params.page) * per_page);
+    }
 
     let query = db
       .selectFrom("user_organizations")

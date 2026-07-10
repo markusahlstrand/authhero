@@ -458,7 +458,8 @@ const getByIdMembers = defineRoute({
   handler: async (ctx) => {
     const tenant_id = ctx.var.tenant_id;
     const { id: organizationId } = ctx.req.valid("param");
-    const { page, per_page, include_totals, sort } = ctx.req.valid("query");
+    const { page, per_page, include_totals, sort, from, take } =
+      ctx.req.valid("query");
 
     // First verify organization exists
     const organization = await ctx.env.data.organizations.get(
@@ -469,7 +470,10 @@ const getByIdMembers = defineRoute({
       throw new HTTPException(404, { message: "Organization not found" });
     }
 
-    // Get user-organization relationships
+    // Get user-organization relationships. Pass through checkpoint pagination
+    // (from/take) as well as page/per_page so clients using either style —
+    // e.g. the Auth0 SDK, which sends from/take — page correctly instead of
+    // being capped at the per_page default.
     const userOrgsResult = await ctx.env.data.userOrganizations.list(
       tenant_id,
       {
@@ -478,6 +482,8 @@ const getByIdMembers = defineRoute({
         include_totals,
         sort: parseSort(sort),
         q: `organization_id:${organization.id}`,
+        from,
+        take,
       },
     );
 
