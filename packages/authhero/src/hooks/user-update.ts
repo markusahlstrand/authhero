@@ -13,6 +13,11 @@ import { stripInternalUserFields } from "../helpers/hook-user-payload";
 import { isTemplateHook, handleTemplateHook } from "./templatehooks";
 import { builtInUserLinkingEnabled } from "../helpers/user-linking";
 import { compareUsersByAge, repointPrimary } from "../helpers/users";
+import {
+  buildPostHookEvent,
+  relayOutboxEvent,
+  dispatchPostHookInline,
+} from "../helpers/hook-events";
 
 /**
  * Decorator applied by `addDataHooks` to `users.update`. Fires pre-update
@@ -107,10 +112,29 @@ export function createUserUpdateHooks(
       ctx.var.client_id,
     );
 
+    // Build the post-user-update outbox event up front (with a fixed id) so it
+    // can be written atomically with the update inside the transaction below
+    // (issue #1086, building on the #1057 plumbing). Per the #1057 decision the
+    // event describes the row this update commits — `{ ...user, ...updates }`,
+    // which already reflects any `updates` mutations made by pre-update hooks —
+    // not the result of in-transaction account-linking or post-update template
+    // hooks (those repoint `linked_to` / run their own writes and can emit
+    // their own events). `undefined` when the outbox isn't configured; the
+    // inline fallback after the commit runs instead.
+    const updateEvent = buildPostHookEvent(ctx, tenant_id, "post-user-update", {
+      ...user,
+      ...updates,
+    });
+
     // Wrap the update and potential account linking in a transaction
     await data.transaction(async (trxData) => {
-      // If we get here, proceed with the update
-      const updated = await trxData.users.update(tenant_id, user_id, updates);
+      // If we get here, proceed with the update. The outbox event commits in
+      // the same atomic unit as the user row (drizzle appends it to the update
+      // `runAtomic` batch; kysely inserts it in the update transaction) so it
+      // can never be dropped on a crash between the two writes.
+      const updated = await trxData.users.update(tenant_id, user_id, updates, {
+        outboxEvents: updateEvent ? [updateEvent] : undefined,
+      });
       if (!updated) {
         throw new JSONHTTPException(404, {
           message: "User not found",
@@ -215,6 +239,20 @@ export function createUserUpdateHooks(
         }
       }
     });
+
+    // The update committed. Relay the post-user-update event so the outbox
+    // middleware delivers it (WebhookDestination + CodeHookDestination) with
+    // retries / dead-letter. The event row was already persisted atomically
+    // with the update above; here we only push its id. When the outbox isn't
+    // configured, fall back to inline webhook dispatch (no retries).
+    if (updateEvent) {
+      relayOutboxEvent(ctx, updateEvent.id);
+    } else {
+      dispatchPostHookInline(ctx, tenant_id, "post-user-update", {
+        ...user,
+        ...updates,
+      });
+    }
 
     // Template hooks at `post-user-update` run after the transaction commits.
     // The `account-linking` template uses ctx-bound adapters for its own
