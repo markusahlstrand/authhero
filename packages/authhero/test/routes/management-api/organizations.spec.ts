@@ -266,6 +266,64 @@ describe("organizations management API endpoint", () => {
     });
   });
 
+  describe("GET /api/v2/organizations/:id/members", () => {
+    it("honors the take parameter instead of capping at the per_page default", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      const tenantId = `members-take-${Date.now()}`;
+
+      await env.data.tenants.create({
+        id: tenantId,
+        friendly_name: "Members Take Tenant",
+        audience: "https://example.com",
+        default_audience: "https://example.com",
+        sender_email: "login@example.com",
+        sender_name: "SenderName",
+      });
+
+      const organization = await env.data.organizations.create(tenantId, {
+        name: "members-org",
+        display_name: "Members Org",
+      });
+
+      // Create more members than the default per_page (10) so a regression
+      // where take is ignored would surface as a truncated list.
+      const memberCount = 15;
+      for (let i = 0; i < memberCount; i++) {
+        const userId = `email|member-${i}`;
+        await env.data.users.create(tenantId, {
+          email: `member-${i}@example.com`,
+          user_id: userId,
+          provider: "email",
+          connection: "email",
+          email_verified: true,
+          is_social: false,
+        });
+        await env.data.userOrganizations.create(tenantId, {
+          user_id: userId,
+          organization_id: organization.id,
+        });
+      }
+
+      const response = await managementClient.organizations[":id"].members.$get(
+        {
+          param: { id: organization.id },
+          // from/take is how the Auth0 SDK paginates members.
+          query: { from: "0", take: "25" },
+          header: { "tenant-id": tenantId },
+        },
+        { headers: { authorization: `Bearer ${token}` } },
+      );
+
+      expect(response.status).toBe(200);
+      const data = (await response.json()) as any;
+      expect(Array.isArray(data)).toBe(true);
+      expect(data).toHaveLength(memberCount);
+    });
+  });
+
   describe("POST /api/v2/organizations/:id/members", () => {
     it("should return 404 when the organization does not exist", async () => {
       const { managementApp, env } = await getTestServer();
