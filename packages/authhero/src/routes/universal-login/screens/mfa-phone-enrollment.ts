@@ -254,10 +254,18 @@ export const mfaPhoneEnrollmentScreenDefinition: ScreenDefinition = {
           redirect: `${routePrefix}/mfa/phone-challenge?state=${encodeURIComponent(state)}`,
         };
       } catch (err) {
-        console.error(
-          "[mfa-phone-enrollment] Error during phone enrollment:",
-          err,
-        );
+        // Expected client errors (4xx: invalid enrollment session, bad phone
+        // number) are surfaced to the user and recorded in the tenant logs
+        // below, so we don't flag them to Cloudflare observability. Only
+        // unexpected failures (e.g. SMS provider errors) are logged at error
+        // level.
+        const isExpected = err instanceof HTTPException && err.status < 500;
+        if (!isExpected) {
+          console.error(
+            "[mfa-phone-enrollment] Error during phone enrollment:",
+            err,
+          );
+        }
         logMessage(ctx, client.tenant.id, {
           type: LogTypes.MFA_ENROLLMENT_FAILED,
           description: `MFA phone enrollment failed: ${err instanceof Error ? err.message : String(err)}`,

@@ -256,10 +256,35 @@ export const emailOtpChallengeScreenDefinition: ScreenDefinition = {
           }),
         };
       } catch (e: unknown) {
-        console.error(
-          "[email-otp-challenge] Error:",
-          e instanceof Error ? e.stack || e.message : e,
-        );
+        // Determine whether this is an expected, user-safe validation error
+        // (wrong/used/expired code). Those are surfaced to the user and
+        // recorded in the tenant logs, so we don't flag them to Cloudflare
+        // observability as errors.
+        let errorMessage: string = m.unexpectedError() as string;
+        let isUserSafe = false;
+        if (e instanceof JSONHTTPException) {
+          try {
+            const parsed = JSON.parse((e as Error).message);
+            if (parsed.message) {
+              errorMessage = parsed.message;
+            }
+            if (parsed.userSafe) {
+              isUserSafe = true;
+            }
+          } catch {
+            // Keep the generic error message for non-JSON errors
+          }
+        } else if (e instanceof HTTPException) {
+          errorMessage = e.message;
+        }
+
+        // Only log genuinely unexpected errors at error level.
+        if (!isUserSafe) {
+          console.error(
+            "[email-otp-challenge] Error:",
+            e instanceof Error ? e.stack || e.message : e,
+          );
+        }
 
         // Check if user has password login available
         let hasPasswordLogin = false;
@@ -272,20 +297,6 @@ export const emailOtpChallengeScreenDefinition: ScreenDefinition = {
           hasPasswordLogin = !!passwordUser;
         } catch {
           // Ignore errors
-        }
-
-        let errorMessage: string = m.unexpectedError() as string;
-        if (e instanceof JSONHTTPException) {
-          try {
-            const parsed = JSON.parse((e as Error).message);
-            if (parsed.message) {
-              errorMessage = parsed.message;
-            }
-          } catch {
-            // Keep the generic error message for non-JSON errors
-          }
-        } else if (e instanceof HTTPException) {
-          errorMessage = e.message;
         }
 
         return {
