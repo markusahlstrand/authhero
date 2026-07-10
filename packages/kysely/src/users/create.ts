@@ -2,13 +2,19 @@ import { Kysely } from "kysely";
 import { HTTPException } from "hono/http-exception";
 import { nanoid } from "nanoid";
 import { Database } from "../db";
-import { User, UserInsert, CreateOptions } from "@authhero/adapter-interfaces";
+import {
+  User,
+  UserInsert,
+  CreateOptions,
+  WriteOptions,
+} from "@authhero/adapter-interfaces";
+import { insertOutboxEvent } from "../outbox/create";
 
 export function create(db: Kysely<Database>) {
   return async (
     tenantId: string,
     user: UserInsert,
-    options?: CreateOptions,
+    options?: CreateOptions & WriteOptions,
   ): Promise<User> => {
     const importMetadata = options?.importMetadata;
     const {
@@ -75,6 +81,16 @@ export function create(db: Kysely<Database>) {
           tenant_id: tenantId,
         };
         await trx.insertInto("passwords").values(passwordRecord).execute();
+      }
+
+      // Companion outbox events (issue #1057): persist inside the same
+      // transaction as the user so the event row and the business row commit
+      // together or not at all.
+      // Scope the outbox row to the operation's tenant, not `event.tenant_id`,
+      // so a companion event can never drift into a different tenant than the
+      // user write it commits with.
+      for (const event of options?.outboxEvents ?? []) {
+        await insertOutboxEvent(trx, tenantId, event.id, event);
       }
     };
 
