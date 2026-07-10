@@ -58,6 +58,9 @@ type HitConfig = {
   primary: (record: RaRecord) => string;
   secondary?: (record: RaRecord) => string | undefined;
   icon: typeof Users;
+  // Column to sort the `q` lookup by. Defaults to `id`; override where the
+  // resource has no `id` column (e.g. `users`, keyed by `user_id`).
+  sortField?: string;
 };
 
 // Resources to query for record search. Singletons (branding, settings,
@@ -72,6 +75,7 @@ const SEARCHABLE: Record<string, HitConfig> = {
       return name && email && name !== email ? name : undefined;
     },
     icon: Users,
+    sortField: "user_id",
   },
   clients: {
     primary: (r) => str(r.name) || str(r.client_id) || str(r.id),
@@ -306,7 +310,11 @@ function ResourceHits({
     resource,
     {
       pagination: { page: 1, perPage: 5 },
-      sort: { field: "id", order: "ASC" },
+      // Sort field is resource-specific: `users` has no `id` column (only
+      // `user_id`), and a hardcoded `id` sort made the dataProvider emit
+      // `sort=id:1`, which the users endpoint rejects. Order is irrelevant for
+      // a top-N `q` lookup, so any indexed column the resource exposes is fine.
+      sort: { field: config.sortField ?? "id", order: "ASC" },
       filter: { q: query },
     },
     {
