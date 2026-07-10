@@ -2,6 +2,7 @@ import { Context } from "hono";
 import { ResourceServer, GrantType } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
 import { JSONHTTPException } from "../errors/json-http-exception";
+import { MANAGEMENT_API_AUDIENCE } from "../middlewares/authentication";
 
 // Base interface with common properties
 interface BaseScopesAndPermissionsParams {
@@ -333,10 +334,12 @@ export async function calculateScopesAndPermissions(
           { per_page: 1000 },
         );
 
+        // admin:organizations is a management-plane permission: match it against
+        // the Management API audience, never the requested token's audience.
         const hasAdminOrg = rolePermissions.some(
           (permission) =>
             permission.permission_name === "admin:organizations" &&
-            permission.resource_server_identifier === audience,
+            permission.resource_server_identifier === MANAGEMENT_API_AUDIENCE,
         );
 
         if (hasAdminOrg) {

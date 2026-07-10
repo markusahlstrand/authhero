@@ -1165,11 +1165,13 @@ describe("scopes-permissions helper", () => {
           description: "Can manage all organizations",
         });
 
-        // Assign the admin:organizations and read:users permissions to the role
+        // admin:organizations is a management-plane permission and drives the
+        // membership bypass, so it lives on the Management API audience. The
+        // app permission (read:users) is what actually lands in the app token.
         await env.data.rolePermissions.assign("tenantId", adminRole.id, [
           {
             role_id: adminRole.id,
-            resource_server_identifier: "https://admin-test-api.example.com",
+            resource_server_identifier: "urn:authhero:management",
             permission_name: "admin:organizations",
           },
           {
@@ -1205,15 +1207,11 @@ describe("scopes-permissions helper", () => {
           organizationId: organization.id,
         });
 
-        expect(result).toEqual(
-          expect.objectContaining({
-            scopes: [],
-            permissions: expect.arrayContaining([
-              "admin:organizations",
-              "read:users",
-            ]),
-          }),
-        );
+        // Membership is bypassed and the inherited app permission is granted.
+        // admin:organizations is a Management API permission and must NOT leak
+        // into the app-audience token.
+        expect(result.permissions).toContain("read:users");
+        expect(result.permissions).not.toContain("admin:organizations");
 
         // Clean up
         await env.data.resourceServers.remove("tenantId", resourceServer.id!);
@@ -1270,12 +1268,13 @@ describe("scopes-permissions helper", () => {
           description: "Can admin orgs but only read users",
         });
 
-        // Only assign read:users and admin:organizations (NOT write:users or delete:users)
+        // admin:organizations (management-plane) drives the bypass and lives on
+        // the Management API. Only read:users is a held app permission — NOT
+        // write:users or delete:users.
         await env.data.rolePermissions.assign("tenantId", limitedRole.id, [
           {
             role_id: limitedRole.id,
-            resource_server_identifier:
-              "https://permission-check-api.example.com",
+            resource_server_identifier: "urn:authhero:management",
             permission_name: "admin:organizations",
           },
           {
@@ -1316,9 +1315,10 @@ describe("scopes-permissions helper", () => {
           organizationId: organization.id,
         });
 
-        // Should only get the permissions they actually have
+        // Should only get the app permissions they actually have. The
+        // management-plane admin:organizations must NOT leak into the app token.
         expect(result.permissions).toContain("read:users");
-        expect(result.permissions).toContain("admin:organizations");
+        expect(result.permissions).not.toContain("admin:organizations");
         expect(result.permissions).not.toContain("write:users");
         expect(result.permissions).not.toContain("delete:users");
 

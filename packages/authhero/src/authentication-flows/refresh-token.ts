@@ -10,6 +10,7 @@ import { z } from "@hono/zod-openapi";
 import { safeCompare } from "../utils/safe-compare";
 import { appendLog } from "../utils/append-log";
 import { getEnrichedClient } from "../helpers/client";
+import { MANAGEMENT_API_AUDIENCE } from "../middlewares/authentication";
 import { ssrfFetchOptionsFromEnv } from "../utils/ssrf-fetch";
 import { logMessage } from "../helpers/logging";
 import {
@@ -86,6 +87,32 @@ export async function refreshTokenGrant(
     );
   }
 
+  // The failure logs below fire before the login-session/user lookup further
+  // down, so on their own they'd omit the audience/scope/connection/strategy
+  // that the success log (token.ts) records — leaving a failed exchange less
+  // traceable than a successful one. Resolve those same fields from the token
+  // row (audience/scope) and the login session it was minted against
+  // (connection/strategy). Only the single failing branch runs, so this costs
+  // at most one extra keyed read, and only on the error path.
+  const resolveFailureLogFields = async () => {
+    if (!refreshToken) return {};
+    const resourceServer = refreshToken.resource_servers[0];
+    const loginSession = refreshToken.login_id
+      ? await ctx.env.data.loginSessions.get(
+          client.tenant.id,
+          refreshToken.login_id,
+        )
+      : undefined;
+    return {
+      userId: refreshToken.user_id,
+      audience: resourceServer?.audience,
+      scope: resourceServer?.scopes,
+      connection: loginSession?.auth_connection,
+      strategy: loginSession?.auth_strategy?.strategy,
+      strategy_type: loginSession?.auth_strategy?.strategy_type,
+    };
+  };
+
   if (!refreshToken) {
     // No local row matches the presented token. Try the tenant's configured
     // migration sources (#833): redeem the RT upstream, learn the user via
@@ -112,7 +139,7 @@ export async function refreshTokenGrant(
     logMessage(ctx, client.tenant.id, {
       type: LogTypes.FAILED_EXCHANGE_REFRESH_TOKEN_FOR_ACCESS_TOKEN,
       description: "Refresh token was not issued to this client",
-      userId: refreshToken.user_id,
+      ...(await resolveFailureLogFields()),
     });
     throw new JSONHTTPException(invalidGrantStatus, {
       error: "invalid_grant",
@@ -123,7 +150,7 @@ export async function refreshTokenGrant(
     logMessage(ctx, client.tenant.id, {
       type: LogTypes.FAILED_EXCHANGE_REFRESH_TOKEN_FOR_ACCESS_TOKEN,
       description: "Refresh token has been revoked",
-      userId: refreshToken.user_id,
+      ...(await resolveFailureLogFields()),
     });
     throw new JSONHTTPException(invalidGrantStatus, {
       error: "invalid_grant",
@@ -139,7 +166,7 @@ export async function refreshTokenGrant(
     logMessage(ctx, client.tenant.id, {
       type: LogTypes.FAILED_EXCHANGE_REFRESH_TOKEN_FOR_ACCESS_TOKEN,
       description: "Refresh token has expired",
-      userId: refreshToken.user_id,
+      ...(await resolveFailureLogFields()),
     });
     throw new JSONHTTPException(invalidGrantStatus, {
       error: "invalid_grant",
@@ -166,7 +193,7 @@ export async function refreshTokenGrant(
       logMessage(ctx, client.tenant.id, {
         type: LogTypes.FAILED_EXCHANGE_REFRESH_TOKEN_FOR_ACCESS_TOKEN,
         description: "Refresh token reuse detected; family revoked",
-        userId: refreshToken.user_id,
+        ...(await resolveFailureLogFields()),
       });
       throw new JSONHTTPException(invalidGrantStatus, {
         error: "invalid_grant",
@@ -222,14 +249,14 @@ export async function refreshTokenGrant(
       });
     }
 
-    // Check if user has global admin:organizations permission (bypasses membership check)
+    // Check if user has the global `admin:organizations` permission, which
+    // bypasses the membership check. This is a management-plane permission, so
+    // it is always matched against the Management API audience — never against
+    // the requested token's audience (which may be an app resource server).
     let hasGlobalOrgAdminPermission = false;
     const currentTenant = await ctx.env.data.tenants.get(client.tenant.id);
 
-    if (
-      currentTenant?.flags?.inherit_global_permissions_in_organizations &&
-      resourceServer?.audience
-    ) {
+    if (currentTenant?.flags?.inherit_global_permissions_in_organizations) {
       // Check direct user permissions at tenant level
       const globalUserPermissions = await ctx.env.data.userPermissions.list(
         client.tenant.id,
@@ -241,7 +268,7 @@ export async function refreshTokenGrant(
       hasGlobalOrgAdminPermission = globalUserPermissions.some(
         (permission) =>
           permission.permission_name === "admin:organizations" &&
-          permission.resource_server_identifier === resourceServer.audience,
+          permission.resource_server_identifier === MANAGEMENT_API_AUDIENCE,
       );
 
       // Check role-derived permissions at tenant level
@@ -263,7 +290,7 @@ export async function refreshTokenGrant(
           const hasAdminOrg = rolePermissions.some(
             (permission) =>
               permission.permission_name === "admin:organizations" &&
-              permission.resource_server_identifier === resourceServer.audience,
+              permission.resource_server_identifier === MANAGEMENT_API_AUDIENCE,
           );
 
           if (hasAdminOrg) {

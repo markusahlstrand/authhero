@@ -2566,10 +2566,13 @@ describe("token", () => {
         description: "Can manage all organizations",
       });
 
+      // admin:organizations is a management-plane permission: the membership
+      // bypass matches it against the Management API audience, never the
+      // requested token's (app) audience.
       await env.data.rolePermissions.assign("tenantId", adminRole.id, [
         {
           role_id: adminRole.id,
-          resource_server_identifier: audience,
+          resource_server_identifier: "urn:authhero:management",
           permission_name: "admin:organizations",
         },
       ]);
@@ -2647,6 +2650,133 @@ describe("token", () => {
       // Verify the token has the correct org_id
       const payload = parseJWT(body.access_token)?.payload as any;
       expect(payload.org_id).toBe(organization.id);
+
+      // Clean up
+      await env.data.tenants.update("tenantId", { flags: {} });
+      await env.data.resourceServers.remove("tenantId", resourceServer.id!);
+      await env.data.users.remove("tenantId", user.user_id);
+      await env.data.organizations.remove("tenantId", organization.id);
+    });
+
+    it("should NOT bypass membership when admin:organizations is on an app audience instead of the Management API", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const client = testClient(oauthApp, env);
+
+      const audience = "https://app-scoped-admin-api.example.com";
+
+      const resourceServer = await env.data.resourceServers.create("tenantId", {
+        name: "App Scoped Admin API",
+        identifier: audience,
+        scopes: [
+          { value: "admin:organizations", description: "Manage organizations" },
+          { value: "read:users", description: "Read users" },
+        ],
+        options: {
+          enforce_policies: true,
+          token_dialect: "access_token_authz",
+        },
+      });
+
+      const organization = await env.data.organizations.create("tenantId", {
+        name: "app-scoped-org",
+        display_name: "App Scoped Org",
+      });
+
+      const user = await env.data.users.create("tenantId", {
+        user_id: "email|app-scoped-admin-user",
+        email: "app-scoped-admin@example.com",
+        provider: "email",
+        connection: "email",
+        email_verified: true,
+        is_social: false,
+      });
+
+      const adminRole = await env.data.roles.create("tenantId", {
+        name: "App Scoped Org Admin",
+        description: "admin:organizations on an app audience only",
+      });
+
+      // admin:organizations granted on the APP audience — not the Management
+      // API. This must NOT authorize the org switch.
+      await env.data.rolePermissions.assign("tenantId", adminRole.id, [
+        {
+          role_id: adminRole.id,
+          resource_server_identifier: audience,
+          permission_name: "admin:organizations",
+        },
+      ]);
+
+      await env.data.userRoles.create(
+        "tenantId",
+        user.user_id,
+        adminRole.id,
+        "", // Global role (no organization)
+      );
+
+      await env.data.tenants.update("tenantId", {
+        flags: {
+          inherit_global_permissions_in_organizations: true,
+        },
+      });
+
+      const loginSession = await env.data.loginSessions.create("tenantId", {
+        expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+        csrf_token: "csrfToken",
+        authParams: {
+          client_id: "clientId",
+          redirect_uri: "https://example.com/callback",
+        },
+      });
+
+      const idle_expires_at = new Date(
+        Date.now() + 1000 * 60 * 60,
+      ).toISOString();
+
+      await env.data.refreshTokens.create("tenantId", {
+        id: "refreshTokenAppScopedAdmin",
+        login_id: loginSession.id,
+        user_id: user.user_id,
+        client_id: "clientId",
+        resource_servers: [
+          {
+            audience,
+            scopes: "admin:organizations read:users",
+          },
+        ],
+        device: {
+          last_ip: "",
+          initial_ip: "",
+          last_user_agent: "",
+          initial_user_agent: "",
+          initial_asn: "",
+          last_asn: "",
+        },
+        rotating: false,
+        idle_expires_at,
+        expires_at: idle_expires_at,
+      });
+
+      const response = await client.oauth.token.$post(
+        // @ts-expect-error - testClient type requires both form and json
+        {
+          form: {
+            grant_type: "refresh_token",
+            refresh_token: "refreshTokenAppScopedAdmin",
+            client_id: "clientId",
+            organization: organization.id,
+          },
+        },
+        { headers: { "tenant-id": "tenantId" } },
+      );
+
+      expect(response.status).toBe(403);
+      const body = (await response.json()) as {
+        error: string;
+        error_description: string;
+      };
+      expect(body.error_description).toBe(
+        "User is not a member of the specified organization",
+      );
 
       // Clean up
       await env.data.tenants.update("tenantId", { flags: {} });
