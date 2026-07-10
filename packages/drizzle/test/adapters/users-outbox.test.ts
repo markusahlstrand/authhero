@@ -89,6 +89,17 @@ describe("users adapter — companion outbox events (#1057)", () => {
     expect(events[0].event_type).toBe("hook.post-user-deletion");
   });
 
+  it("does not persist a deletion event when the user does not exist", async () => {
+    const removed = await data.users.remove("tenant1", "auth0|missing", {
+      outboxEvents: [
+        makeEvent("evt-orphan", { event_type: "hook.post-user-deletion" }),
+      ],
+    });
+
+    expect(removed).toBe(false);
+    expect(await data.outbox.getByIds(["evt-orphan"])).toHaveLength(0);
+  });
+
   it("routes the user and its event through a single db.batch() on a batch-capable driver", async () => {
     // Feature-detect batch support the same way runAtomic does: patching
     // `batch` onto the drizzle db makes createAdapters treat it as D1. The fake

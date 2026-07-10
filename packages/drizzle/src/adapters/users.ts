@@ -1,6 +1,7 @@
 import {
   eq,
   and,
+  or,
   count as countFn,
   asc,
   desc,
@@ -540,16 +541,23 @@ export function createUsersAdapter(db: DrizzleDb) {
       user_id: string,
       options?: WriteOptions,
     ): Promise<boolean> {
-      // Collect all user IDs to delete: primary + linked. This read can sit
+      // Collect the primary + linked user IDs to delete. This read can sit
       // outside the atomic unit — it mutates nothing, and the deletes it feeds
-      // are applied together below.
-      const linkedUsers = await db
+      // are applied together below. It also tells us whether the primary user
+      // exists, which gates the companion outbox insert (see below).
+      const affected = await db
         .select({ user_id: users.user_id })
         .from(users)
         .where(
-          and(eq(users.tenant_id, tenant_id), eq(users.linked_to, user_id)),
+          and(
+            eq(users.tenant_id, tenant_id),
+            or(eq(users.user_id, user_id), eq(users.linked_to, user_id)),
+          ),
         );
-      const linkedIds = linkedUsers.map((u) => u.user_id);
+      const primaryExists = affected.some((u) => u.user_id === user_id);
+      const linkedIds = affected
+        .map((u) => u.user_id)
+        .filter((id) => id !== user_id);
       const allUserIds = [user_id, ...linkedIds];
 
       // Apply the cascade deletes atomically so we never leave a user behind
@@ -608,8 +616,18 @@ export function createUsersAdapter(db: DrizzleDb) {
       // whether a row existed. Capture its index before appending any companion
       // outbox inserts (issue #1057) so the detection stays correct.
       const primaryDeleteIndex = statements.length - 1;
-      for (const stmt of outboxInserts(db, tenant_id, options)) {
-        statements.push(stmt);
+
+      // Only emit the companion event when the primary user actually exists, so
+      // a delete of a non-existent user can't persist an orphaned
+      // `hook.post-user-deletion` event. We gate on the pre-batch existence read
+      // rather than the primary delete's `returning()` result because on D1 the
+      // atomic unit is `db.batch()` — every statement is submitted before any
+      // result is known, so the insert can't be added conditionally mid-batch.
+      // Gating here keeps the event and the delete in the same atomic unit.
+      if (primaryExists) {
+        for (const stmt of outboxInserts(db, tenant_id, options)) {
+          statements.push(stmt);
+        }
       }
 
       const results = await runAtomic(db, statements);
