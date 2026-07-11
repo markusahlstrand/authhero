@@ -2,7 +2,11 @@ import { Kysely } from "kysely";
 import { removeNullProperties } from "../helpers/remove-nulls";
 import { parseJsonObjectIfDefined } from "../helpers/parse";
 import { luceneFilter } from "../helpers/filter";
-import { ListHooksResponse, ListParams } from "@authhero/adapter-interfaces";
+import {
+  Hook,
+  ListHooksResponse,
+  ListParams,
+} from "@authhero/adapter-interfaces";
 import { Database } from "../db";
 import getCountAsInt from "../utils/getCountAsInt";
 import { convertDatesToAdapter } from "../utils/dateConversion";
@@ -52,7 +56,7 @@ export function list(db: Kysely<Database>) {
         "updated_at_ts",
       ]);
 
-      return removeNullProperties({
+      return removeNullProperties<Hook>({
         ...rest,
         ...dates,
         enabled: !!enabled,

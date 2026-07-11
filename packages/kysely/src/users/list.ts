@@ -8,7 +8,11 @@ import {
 import { removeNullProperties } from "../helpers/remove-nulls";
 import { userToIdentity } from "./user-to-identity";
 import { Database } from "../db";
-import { ListParams, ListUsersResponse } from "@authhero/adapter-interfaces";
+import {
+  ListParams,
+  ListUsersResponse,
+  User,
+} from "@authhero/adapter-interfaces";
 import getCountAsInt from "../utils/getCountAsInt";
 
 // Fields users.list() accepts in `q`. Excludes `tenant_id` so a clause like
@@ -139,7 +143,7 @@ export function list(db: Kysely<Database>) {
         (u) => u.linked_to === user.user_id,
       );
 
-      return removeNullProperties({
+      return removeNullProperties<User>({
         ...user,
         email_verified: user.email_verified === 1,
         phone_verified:

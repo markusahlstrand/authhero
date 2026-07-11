@@ -1,6 +1,10 @@
 import { Kysely } from "kysely";
 import { Database } from "../db";
-import { ListInvitesResponse, ListParams } from "@authhero/adapter-interfaces";
+import {
+  Invite,
+  ListInvitesResponse,
+  ListParams,
+} from "@authhero/adapter-interfaces";
 import { removeNullProperties } from "../helpers/remove-nulls";
 import { parseJsonProperties } from "../helpers/parse";
 
@@ -35,7 +39,7 @@ export function list(db: Kysely<Database>) {
         roles: [],
       });
 
-      return removeNullProperties({
+      return removeNullProperties<Invite>({
         ...parsed,
         send_invitation_email: result.send_invitation_email === 1,
       });

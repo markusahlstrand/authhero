@@ -3,6 +3,7 @@ import { Database } from "../db";
 import {
   ListOrganizationsResponse,
   ListParams,
+  Organization,
 } from "@authhero/adapter-interfaces";
 import { removeNullProperties } from "../helpers/remove-nulls";
 import { luceneFilter, sanitizeLuceneQuery } from "../helpers/filter";
@@ -41,16 +42,14 @@ export function list(db: Kysely<Database>) {
         { sortColumn: "created_at", sortOrder: "desc" },
       );
       const organizations = rows.map((result) =>
-        removeNullProperties({
+        removeNullProperties<Organization>({
           ...result,
           branding: result.branding ? JSON.parse(result.branding) : {},
           metadata: result.metadata ? JSON.parse(result.metadata) : {},
           enabled_connections: result.enabled_connections
             ? JSON.parse(result.enabled_connections)
             : [],
-          token_quota: result.token_quota
-            ? JSON.parse(result.token_quota)
-            : {},
+          token_quota: result.token_quota ? JSON.parse(result.token_quota) : {},
         }),
       );
       return {
@@ -89,10 +88,7 @@ export function list(db: Kysely<Database>) {
     const perPage = normalized >= 1 ? normalized : 10;
 
     let offset = 0;
-    if (
-      typeof params?.page === "number" &&
-      Number.isFinite(params.page)
-    ) {
+    if (typeof params?.page === "number" && Number.isFinite(params.page)) {
       offset = Math.max(0, Math.floor(params.page) * perPage);
     }
 
@@ -129,7 +125,7 @@ export function list(db: Kysely<Database>) {
     }
 
     const organizations = results.map((result) =>
-      removeNullProperties({
+      removeNullProperties<Organization>({
         ...result,
         branding: result.branding ? JSON.parse(result.branding) : {},
         metadata: result.metadata ? JSON.parse(result.metadata) : {},

@@ -20,9 +20,14 @@
   "types": "dist/adapter-interfaces.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/adapter-interfaces.d.ts",
       "require": "./dist/adapter-interfaces.cjs",
-      "import": "./dist/adapter-interfaces.mjs",
-      "types": "./dist/adapter-interfaces.d.ts"
+      "import": "./dist/adapter-interfaces.mjs"
+    },
+    "./sql": {
+      "types": "./dist/sql.d.ts",
+      "require": "./dist/sql.cjs",
+      "import": "./dist/sql.mjs"
     }
   },
   "scripts": {

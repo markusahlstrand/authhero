@@ -46,66 +46,11 @@ export function coalescedExpr(mapping: CoalescedNumericColumn): SQL {
   return sql`coalesce(${mapping.coalesce}, ${mapping.defaultValue})`;
 }
 
-// Strip field-scoped clauses (`field:value`, `-field:value`, `_exists_:field`,
-// `field=value`) whose field is not in `allowedFields`. Bare-string tokens are
-// preserved (buildLuceneFilter routes them through its own searchable-columns
-// whitelist). Returns a query string safe to pass into buildLuceneFilter.
-//
-// Ported from the kysely adapter so both adapters share the same tenant-boundary
-// protection: without it a clause like `q=tenant_id:other` would emit SQL
-// against arbitrary columns.
-export function sanitizeLuceneQuery(
-  query: string,
-  allowedFields: string[],
-): string {
-  const allowed = new Set(allowedFields);
-
-  const sanitizePart = (part: string): string => {
-    const tokens: string[] = [];
-    let current = "";
-    let inQuotes = false;
-    for (let i = 0; i < part.length; i++) {
-      const char = part[i];
-      if (char === '"') {
-        inQuotes = !inQuotes;
-        current += char;
-      } else if (char === " " && !inQuotes) {
-        if (current.trim()) tokens.push(current.trim());
-        current = "";
-      } else {
-        current += char;
-      }
-    }
-    if (current.trim()) tokens.push(current.trim());
-
-    const kept = tokens.filter((token) => {
-      const normalized = token.replace(/^([^:]+)=/, "$1:");
-      const stripped = normalized.startsWith("-")
-        ? normalized.slice(1)
-        : normalized;
-
-      if (stripped.startsWith("_exists_:")) {
-        return allowed.has(stripped.slice(9));
-      }
-      const colonIdx = stripped.indexOf(":");
-      if (colonIdx > 0) {
-        return allowed.has(stripped.slice(0, colonIdx));
-      }
-      return true;
-    });
-
-    return kept.join(" ");
-  };
-
-  const orParts = query.split(/ OR /i);
-  if (orParts.length > 1) {
-    return orParts
-      .map(sanitizePart)
-      .filter((p) => p.length > 0)
-      .join(" OR ");
-  }
-  return sanitizePart(query);
-}
+// Re-exported so existing `../helpers/filter` imports keep working; the
+// implementation is shared with the kysely adapter via adapter-interfaces,
+// so both adapters get the same tenant-boundary protection: without it a
+// clause like `q=tenant_id:other` would emit SQL against arbitrary columns.
+export { sanitizeLuceneQuery } from "@authhero/adapter-interfaces";
 
 /**
  * Apply a Lucene-style filter query string to a Drizzle query.

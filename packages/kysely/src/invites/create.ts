@@ -7,7 +7,6 @@ import {
   CreateOptions,
 } from "@authhero/adapter-interfaces";
 import { generateInviteId } from "../utils/entity-id";
-import { stringifyProperties } from "../helpers/stringify";
 
 export function create(db: Kysely<Database>) {
   return async (
@@ -26,27 +25,24 @@ export function create(db: Kysely<Database>) {
       new Date(createdAt).getTime() + ttlSec * 1000,
     ).toISOString();
 
-    const sqlInvite = stringifyProperties(
-      {
-        id: inviteId,
-        tenant_id: tenantId,
-        organization_id: invite.organization_id,
-        inviter: invite.inviter || {},
-        invitee: invite.invitee || {},
-        client_id: invite.client_id,
-        connection_id: invite.connection_id || null,
-        invitation_url: invite.invitation_url,
-        created_at: createdAt,
-        expires_at: expiresAt,
-        app_metadata: invite.app_metadata || {},
-        user_metadata: invite.user_metadata || {},
-        roles: invite.roles || [],
-        ticket_id: null,
-        ttl_sec: ttlSec,
-        send_invitation_email: (invite.send_invitation_email ?? true) ? 1 : 0,
-      },
-      ["inviter", "invitee", "app_metadata", "user_metadata", "roles"],
-    );
+    const sqlInvite = {
+      id: inviteId,
+      tenant_id: tenantId,
+      organization_id: invite.organization_id,
+      inviter: JSON.stringify(invite.inviter || {}),
+      invitee: JSON.stringify(invite.invitee || {}),
+      client_id: invite.client_id,
+      connection_id: invite.connection_id || null,
+      invitation_url: invite.invitation_url,
+      created_at: createdAt,
+      expires_at: expiresAt,
+      app_metadata: JSON.stringify(invite.app_metadata || {}),
+      user_metadata: JSON.stringify(invite.user_metadata || {}),
+      roles: JSON.stringify(invite.roles || []),
+      ticket_id: null,
+      ttl_sec: ttlSec,
+      send_invitation_email: (invite.send_invitation_email ?? true) ? 1 : 0,
+    };
 
     try {
       await db.insertInto("invites").values(sqlInvite).execute();
@@ -65,7 +61,7 @@ export function create(db: Kysely<Database>) {
 
     return {
       id: inviteId,
-      organization_id: sqlInvite.organization_id,
+      organization_id: invite.organization_id,
       inviter: invite.inviter,
       invitee: invite.invitee,
       client_id: invite.client_id,
@@ -76,7 +72,7 @@ export function create(db: Kysely<Database>) {
       app_metadata: invite.app_metadata || {},
       user_metadata: invite.user_metadata || {},
       roles: invite.roles || [],
-      ticket_id: sqlInvite.ticket_id || undefined,
+      ticket_id: undefined,
       ttl_sec: ttlSec,
       send_invitation_email: invite.send_invitation_email ?? true,
     };
