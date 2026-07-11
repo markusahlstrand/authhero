@@ -33,14 +33,21 @@ export default defineConfig({
       fileName: (format) => fileName[format],
     },
     rollupOptions: {
-      external: [
-        "@hono/zod-openapi",
-        "hono",
-        "kysely",
-        "kysely-planetscale",
-        "@authhero/adapter-interfaces",
-        "nanoid",
-      ],
+      // Matches exact ids and their subpaths — Rollup's `external` array does
+      // exact string matching, so subpath imports (e.g. "hono/http-exception",
+      // "@authhero/adapter-interfaces/sql") would otherwise be inlined. A
+      // bundled copy of hono means HTTPExceptions thrown here fail the host
+      // app's `instanceof` checks.
+      external: (id) =>
+        [
+          "@hono/zod-openapi",
+          "hono",
+          "kysely",
+          "kysely-planetscale",
+          "@authhero/adapter-interfaces",
+          "@authhero/proxy",
+          "nanoid",
+        ].some((dep) => id === dep || id.startsWith(`${dep}/`)),
     },
   },
   resolve: {
