@@ -297,6 +297,15 @@ VALUES ('cd-acme', 'acme', 'auth.acme.com', 'auth0_managed_certs',
 The `POST /api/v2/tenants` endpoint requires the `create:tenants` scope **and** must be called against a control-plane tenant (see [Multi-Tenancy](/architecture/multi-tenancy)). Use a service-account token, never a tenant token.
 :::
 
+::: tip platform subdomains need no custom_domains row
+The `custom_domains` entry above is for the tenant's **branded** domain
+(`auth.acme.com`). The tenant's platform subdomain (`acme.token.example.com`)
+routes without one: wrap the control plane's tenants adapter with
+`wrapTenantsAdapterWithWfpKvPublish` and its dispatch route is derived from the
+tenant row and published to KV automatically when provisioning completes — see
+[Proxy → Deployment topologies → WFP tenant subdomains](/customization/proxy/deployment#wfp-tenant-subdomains).
+:::
+
 ### 3.2 Provision the tenant's data store (only if `storage_kind = "own_d1"`)
 
 ```bash

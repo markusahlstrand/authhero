@@ -340,6 +340,124 @@ Once the backfill is verified and KV is in steady-state sync, you can drop the
 HTTP fallback entirely (resolve straight from `kv`) and retire the
 `CONTROL_PLANE_*` secrets on the proxy.
 
+### WFP tenant subdomains
+
+Everything above keys off `custom_domains` / `proxy_routes` writes. A WFP
+tenant's **platform subdomain** (`{tenant_id}.token.example.com`) has neither —
+so without extra wiring the host resolves to nothing, falls through the proxy's
+default chain to the shared control plane, and the tenant's own Worker never
+sees traffic even after provisioning succeeds.
+
+The mapping is fully derivable from the tenant row (`deployment_type`,
+`provisioning_state`, `worker_script_name`), so instead of materialising
+synthetic custom-domain rows, derive it:
+
+```typescript
+import {
+  composeHostResolvers,
+  createWfpTenantHostResolver,
+  wrapTenantsAdapterWithWfpKvPublish,
+} from "authhero";
+
+const issuerHost = new URL(env.ISSUER).host; // e.g. "token.example.com"
+
+// Resolves `{tenant_id}.{issuerHost}` for tenants with deployment_type "wfp"
+// AND provisioning_state "ready" to a synthetic ResolvedHost whose single
+// route dispatches into the tenant's Worker. Anything else → null.
+const wfpResolver = createWfpTenantHostResolver({
+  tenants: adapters.tenants,
+  issuerHost,
+  // Binding + template must match the proxy Worker's wrangler config and the
+  // provisioner. `worker_script_name` from the tenant row is preferred; the
+  // template only covers rows provisioned before it was written back.
+  dispatchBinding: "DISPATCHER",
+  scriptNameTemplate: "tenant-{tenant_id}-auth",
+});
+
+// One composed resolver for every consumer: custom domains win on a host
+// collision, WFP subdomains fill the gap.
+const resolveHost = composeHostResolvers(
+  createProxyDataAdapter(db).resolveHost,
+  wfpResolver,
+);
+
+// Tenants-adapter counterpart of wrapProxyAdaptersWithKvPublish. The
+// provisioner flips provisioning_state to "ready" through tenants.update —
+// that write publishes the dispatch blob to KV, with no per-path wiring in
+// your provisioning hook or workflow. remove (and a wfp → shared flip)
+// deletes the key, so the host falls back to the default chain instead of
+// dispatching to a dead script.
+const tenants = wrapTenantsAdapterWithWfpKvPublish({
+  tenants: adapters.tenants,
+  kv: env.PROXY_HOSTS,
+  resolveHost,
+  issuerHost,
+  waitUntil: (p) => ctx.waitUntil(p),
+  onError: (err, { host, op }) =>
+    console.error(`[kv-publish] ${op} ${host}`, err),
+});
+
+export default init({
+  dataAdapter: { ...adapters, tenants, customDomains, proxyRoutes },
+  proxyControlPlane: {
+    resolveHost, // the HTTP fallback now also serves WFP subdomains
+    applySyncEvents: createApplySyncEvents({ customDomains, proxyRoutes }),
+  },
+});
+```
+
+Pass the **same composed `resolveHost`** to `wrapProxyAdaptersWithKvPublish`,
+`wrapTenantsAdapterWithWfpKvPublish`, and `proxyControlPlane` — every publisher
+then computes identical blobs, and the proxy's HTTP fallback covers the KV
+propagation window (~60s) right after provisioning.
+
+Extend the reconcile (Step 2) so WFP hosts self-heal too — derive their hosts
+from the tenants table with `wfpTenantHost`:
+
+```typescript
+import { backfillProxyHostsToKv, wfpTenantHost } from "authhero";
+
+const domainHosts = await db
+  .selectFrom("custom_domains")
+  .select("domain")
+  .execute()
+  .then((rows) => rows.map((r) => r.domain));
+
+const wfpHosts = await db
+  .selectFrom("tenants")
+  .select("id")
+  .where("deployment_type", "=", "wfp")
+  .execute()
+  .then((rows) => rows.map((r) => wfpTenantHost(r.id, issuerHost)));
+
+await backfillProxyHostsToKv({
+  hosts: [...domainHosts, ...wfpHosts],
+  resolveHost, // the composed resolver
+  kv: env.PROXY_HOSTS,
+});
+```
+
+Notes:
+
+- **Publish gates on `ready`.** A pending/failed tenant resolves to `null`, so
+  its subdomain keeps default-forwarding to the shared control plane until the
+  Worker is actually servable. Rollback is the same mechanism: delete the key
+  (or flip the tenant off `wfp`) and the host falls back.
+- **The whole host dispatches** — including `/api/v2/*`. Management traffic on
+  the tenant subdomain reaches the tenant Worker directly instead of the
+  control plane's forwarding middleware, so the tenant Worker must accept
+  control-plane-issued admin tokens (it does when provisioned with
+  `CONTROL_PLANE_ISSUER` / projected signing keys).
+- **Don't include the reconcile's WFP hosts filter on `provisioning_state`** —
+  listing *all* wfp tenants lets the reconcile also delete stale keys for
+  tenants that regressed from `ready` (the blob recomputes to `null`).
+- **WFP tenant ids must be lowercase DNS labels** (`isWfpSubdomainSafeTenantId`
+  — alphanumeric with inner hyphens, no dots, max 63 chars). DNS lowercases the
+  incoming host but the tenant lookup is exact-match, so a mixed-case or dotted
+  id can never round-trip through a hostname; the publisher skips such ids
+  rather than writing keys the resolver can't match. Enforce the constraint at
+  tenant creation for wfp tenants.
+
 ### Constraints & notes
 
 - **Same Cloudflare account** for the KV namespace and the proxy Worker — KV is
@@ -457,12 +575,17 @@ For each tenant, in isolation:
 
 - [ ] Provision the tenant's per-tenant Worker + database (its client/connection
       data now lives in the tenant DB, not the shared control-plane DB).
-- [ ] Add the routing row: a `custom_domains` + `proxy_routes` entry (or a KV blob,
-      Shape 3b) mapping `<tenant>.token.example.com` → `tenant-{id}-auth`.
+- [ ] The routing entry publishes itself: with
+      [`wrapTenantsAdapterWithWfpKvPublish`](#wfp-tenant-subdomains)
+      on the control plane, the provisioner's `provisioning_state: "ready"`
+      write-back pushes the `<tenant>.token.example.com` → `tenant-{id}-auth`
+      dispatch blob to KV. (A branded custom domain still needs its own
+      `custom_domains` + `proxy_routes` entry.)
 - [ ] The proxy now dispatches that host to the tenant Worker; all other hosts keep
       default-forwarding to the legacy control plane.
-- [ ] **Rollback:** delete the routing row → the host falls back through
-      `defaultHandlers` to the legacy control plane again.
+- [ ] **Rollback:** delete the KV key (or flip the tenant off `wfp` / off `ready`)
+      → the host falls back through `defaultHandlers` to the legacy control
+      plane again.
 
 ### Verify before prod
 

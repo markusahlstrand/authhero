@@ -79,6 +79,17 @@ export {
   type BackfillResult,
 } from "./routes/proxy-control-plane/kv-publish";
 export {
+  createWfpTenantHostResolver,
+  wrapTenantsAdapterWithWfpKvPublish,
+  composeHostResolvers,
+  wfpTenantHost,
+  isWfpSubdomainSafeTenantId,
+  DEFAULT_WFP_DISPATCH_BINDING,
+  DEFAULT_WFP_SCRIPT_NAME_TEMPLATE,
+  type WfpTenantHostResolverOptions,
+  type WfpTenantsKvPublishOptions,
+} from "./routes/proxy-control-plane/wfp-tenant-hosts";
+export {
   PROXY_RESOLVE_HOST_SCOPE,
   verifyControlPlaneToken,
   isAllowedIssuer,
