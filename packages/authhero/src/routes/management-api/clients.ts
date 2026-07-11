@@ -21,10 +21,12 @@ import { defineRoute } from "../../utils/define-route";
 // per-tenant "AuthHero Try Connection" stub created by ensureTryConnectionClient).
 // Hide from the listing and block destructive writes — the row is recreated
 // on demand and admins can't usefully manage it.
-function isSystemClient(client: {
-  client_id?: string;
-  client_metadata?: Record<string, string> | null;
-} | null): boolean {
+function isSystemClient(
+  client: {
+    client_id?: string;
+    client_metadata?: Record<string, string> | null;
+  } | null,
+): boolean {
   if (!client?.client_id) return false;
   if (client.client_metadata?.system_purpose === "try_connection") return true;
   return isTryConnectionClientId(client.client_id);
@@ -125,6 +127,14 @@ const clientWithTotalsSchema = totalsSchema.extend({
   clients: z.array(clientSchema),
 });
 
+// Checkpoint (keyset) pagination response: items plus an opaque cursor.
+const clientsWithNextSchema = z.object({
+  clients: z.array(clientSchema),
+  next: z.string().optional().openapi({
+    description: "Opaque cursor for the next page; absent on the last page.",
+  }),
+});
+
 // Schema for client connections response
 const clientConnectionsResponseSchema = z.object({
   enabled_connections: z.array(
@@ -157,7 +167,11 @@ const getRoot = defineRoute({
       200: {
         content: {
           "application/json": {
-            schema: z.union([clientWithTotalsSchema, z.array(clientSchema)]),
+            schema: z.union([
+              clientWithTotalsSchema,
+              z.array(clientSchema),
+              clientsWithNextSchema,
+            ]),
           },
         },
         description: "List of clients",
@@ -166,7 +180,8 @@ const getRoot = defineRoute({
   }),
   handler: async (ctx) => {
     const tenant_id = ctx.var.tenant_id;
-    const { page, per_page, include_totals, sort, q } = ctx.req.valid("query");
+    const { page, per_page, include_totals, sort, q, from, take } =
+      ctx.req.valid("query");
 
     const result = await ctx.env.data.clients.list(tenant_id, {
       page,
@@ -174,6 +189,8 @@ const getRoot = defineRoute({
       include_totals,
       sort: parseSort(sort),
       q,
+      from,
+      take,
     });
 
     // Strip platform-managed clients (e.g. the try-connection stub) from the
@@ -183,6 +200,17 @@ const getRoot = defineRoute({
     // tenant. `length` reflects the filtered page so the client can render
     // the slice it received.
     const clients = result.clients.filter((c) => !isSystemClient(c));
+
+    // Keyset (checkpoint) pagination: return Auth0's { items, next } shape so
+    // clients can page past the first page via the opaque cursor. The cursor
+    // is taken from the adapter's unfiltered last row, so stripping system
+    // clients above can shorten a page but never breaks the walk.
+    if (from !== undefined || take !== undefined) {
+      return ctx.json({
+        clients,
+        next: result.totals?.next,
+      });
+    }
 
     if (include_totals) {
       return ctx.json({

@@ -176,6 +176,58 @@ describe("clients", () => {
     expect(get404Response.status).toBe(404);
   });
 
+  it("walks all clients across pages via the opaque next cursor", async () => {
+    const { managementApp, env } = await getTestServer();
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const tenantId = "clients-cursor-tenant";
+    await env.data.tenants.create({
+      id: tenantId,
+      friendly_name: "Clients Cursor Tenant",
+      audience: "https://example.com",
+      sender_email: "login@example.com",
+      sender_name: "SenderName",
+    });
+
+    for (let i = 0; i < 7; i++) {
+      await env.data.clients.create(tenantId, {
+        client_id: `cursor-client-${i}`,
+        name: `Cursor Client ${i}`,
+      });
+    }
+
+    const seen = new Set<string>();
+    let from: string | undefined;
+    let pages = 0;
+    for (;;) {
+      const response = await managementClient.clients.$get(
+        {
+          query: from ? { take: "3", from } : { take: "3" },
+          header: { "tenant-id": tenantId },
+        },
+        { headers: { authorization: `Bearer ${token}` } },
+      );
+      expect(response.status).toBe(200);
+      // Checkpoint pagination returns { clients, next }, not a bare array.
+      const data = (await response.json()) as {
+        clients: Client[];
+        next?: string;
+      };
+      for (const client of data.clients) {
+        expect(seen.has(client.client_id)).toBe(false);
+        seen.add(client.client_id);
+      }
+      pages++;
+      if (!data.next) break;
+      from = data.next;
+      if (pages > 5) throw new Error("cursor walk did not terminate");
+    }
+
+    expect(seen.size).toBe(7);
+    expect(pages).toBe(3); // 3 + 3 + 1
+  });
+
   it("should get and update client connections", async () => {
     const { managementApp, env } = await getTestServer();
     const managementClient = testClient(managementApp, env);
