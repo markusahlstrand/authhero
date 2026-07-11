@@ -1,97 +1,14 @@
-/**
- * Remove null properties from an object recursively.
- */
-export function removeNullProperties<T = any>(obj: unknown): T {
-  if (obj === null || obj === undefined || typeof obj !== "object") {
-    return obj as T;
-  }
-
-  if (Array.isArray(obj)) {
-    return obj.map((item) =>
-      item !== null && typeof item === "object"
-        ? removeNullProperties(item)
-        : item,
-    ) as T;
-  }
-
-  const clone: Record<string, any> = { ...(obj as Record<string, any>) };
-
-  for (const key in clone) {
-    const val = clone[key];
-    if (val === null) {
-      delete clone[key];
-    } else if (val !== null && typeof val === "object") {
-      if (Array.isArray(val)) {
-        clone[key] = val.map((item: unknown) =>
-          item !== null && typeof item === "object"
-            ? removeNullProperties(item)
-            : item,
-        );
-      } else {
-        clone[key] = removeNullProperties(val);
-      }
-    }
-  }
-
-  return clone as T;
-}
-
-/**
- * Stringify a value to JSON if it's defined, otherwise return undefined.
- */
-export function stringifyIfDefined<T>(
-  value: T | undefined,
-): string | undefined {
-  return value !== undefined ? JSON.stringify(value) : undefined;
-}
-
-/**
- * Stringify multiple properties of an object to JSON strings.
- * Only properties that are defined will be stringified.
- */
-export function stringifyProperties<T extends Record<string, any>>(
-  obj: T,
-  properties: (keyof T)[],
-  target: any = { ...obj },
-): any {
-  for (const prop of properties) {
-    if (obj[prop] !== undefined) {
-      target[prop] = JSON.stringify(obj[prop]);
-    }
-  }
-  return target;
-}
-
-/**
- * Convert boolean properties to integers (1 for true, 0 for false).
- * Only properties that are defined will be converted.
- */
-export function booleanToInt<T extends Record<string, any>>(
-  source: Partial<T>,
-  properties: (keyof T)[],
-  target: any = source,
-): void {
-  for (const property of properties) {
-    if (source[property] !== undefined) {
-      target[property] = source[property] ? 1 : 0;
-    }
-  }
-}
-
-/**
- * Remove undefined and null properties from an object.
- */
-export function removeUndefinedAndNull<T extends Record<string, any>>(
-  obj: T,
-): Partial<T> {
-  const cleaned: any = {};
-  for (const key in obj) {
-    if (obj[key] !== undefined && obj[key] !== null) {
-      cleaned[key] = obj[key];
-    }
-  }
-  return cleaned;
-}
+// The transformation helpers shared with the kysely adapter live in
+// @authhero/adapter-interfaces, the canonical home for helpers shared
+// between the SQL adapters. Drizzle-specific helpers stay below.
+export {
+  removeNullProperties,
+  stringifyIfDefined,
+  stringifyProperties,
+  booleanToInt,
+  removeUndefinedAndNull,
+  getCountAsInt,
+} from "@authhero/adapter-interfaces";
 
 /**
  * Parse a JSON string field if it's a string, otherwise return as-is.
@@ -187,17 +104,4 @@ export function unflattenObject(
   }
 
   return result;
-}
-
-/**
- * Get count as integer from various DB return types.
- */
-export function getCountAsInt(count: string | number | bigint): number {
-  if (typeof count === "string") {
-    return parseInt(count, 10);
-  }
-  if (typeof count === "bigint") {
-    return Number(count);
-  }
-  return count;
 }
