@@ -5,33 +5,13 @@ import {
   Totals,
   ListParams,
 } from "@authhero/adapter-interfaces";
+import { keysetPaginate, isKeysetRequest } from "../helpers/paginate";
 
 export function list(db: Kysely<Database>) {
   return async (
     tenantId: string,
     params?: ListParams,
   ): Promise<{ userOrganizations: UserOrganization[] } & Totals> => {
-    // Clamp pagination inputs so negative or non-finite values cannot
-    // produce bad SQL. take wins over per_page when both are supplied, and
-    // from (checkpoint offset) wins over page. This mirrors the organizations
-    // adapter so the Auth0 SDK's from/take pagination is honored.
-    const rawPerPage = params?.take ?? params?.per_page;
-    const normalized =
-      typeof rawPerPage === "number" && Number.isFinite(rawPerPage)
-        ? Math.floor(rawPerPage)
-        : NaN;
-    const per_page = normalized >= 1 ? normalized : 50;
-
-    let offset = 0;
-    if (params?.from !== undefined) {
-      const parsed = parseInt(params.from, 10);
-      if (!Number.isNaN(parsed)) {
-        offset = Math.max(0, parsed);
-      }
-    } else if (typeof params?.page === "number" && Number.isFinite(params.page)) {
-      offset = Math.max(0, Math.floor(params.page) * per_page);
-    }
-
     let query = db
       .selectFrom("user_organizations")
       .selectAll()
@@ -49,15 +29,47 @@ export function list(db: Kysely<Database>) {
       }
     }
 
-    query = query.orderBy("created_at", "desc");
+    const mapRow = (result: {
+      id: string;
+      user_id: string;
+      organization_id: string;
+      created_at: string;
+      updated_at: string;
+    }): UserOrganization => ({
+      id: result.id,
+      user_id: result.user_id,
+      organization_id: result.organization_id,
+      created_at: result.created_at,
+      updated_at: result.updated_at,
+    });
 
-    if (per_page > 0) {
-      query = query.limit(per_page).offset(offset);
+    // Keyset (checkpoint) pagination: from/take. No total is computed, matching
+    // Auth0's checkpoint responses.
+    if (isKeysetRequest(params)) {
+      const { rows, limit, next } = await keysetPaginate(query, params, {
+        sortColumn: "created_at",
+        sortOrder: "desc",
+      });
+      return {
+        userOrganizations: rows.map(mapRow),
+        start: 0,
+        limit,
+        length: rows.length,
+        next,
+      };
     }
 
-    const results = await query.execute();
+    // Offset pagination (page/per_page) with a total count.
+    const page = params?.page || 0;
+    const per_page = params?.per_page || 50;
+    const offset = page * per_page;
 
-    // Get total count with the same filters
+    const results = await query
+      .orderBy("created_at", "desc")
+      .limit(per_page)
+      .offset(offset)
+      .execute();
+
     let countQuery = db
       .selectFrom("user_organizations")
       .select(db.fn.count("id").as("count"))
@@ -75,16 +87,8 @@ export function list(db: Kysely<Database>) {
 
     const total = await countQuery.executeTakeFirst();
 
-    const userOrganizations: UserOrganization[] = results.map((result) => ({
-      id: result.id,
-      user_id: result.user_id,
-      organization_id: result.organization_id,
-      created_at: result.created_at,
-      updated_at: result.updated_at,
-    }));
-
     return {
-      userOrganizations,
+      userOrganizations: results.map(mapRow),
       start: offset,
       limit: per_page,
       length: Number(total?.count || 0),

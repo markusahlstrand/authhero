@@ -1501,12 +1501,18 @@ export default (
         resource === "organization-members" &&
         params.target === "organization_id"
       ) {
+        // Use offset pagination (page/per_page) so the admin keeps numbered
+        // pages and a total count. `from`/`take` on this endpoint is now
+        // Auth0-style keyset checkpoint pagination — `from` is an opaque
+        // cursor, not a numeric offset — and returns no total, which the
+        // numbered <ListPagination> cannot consume.
         const result = await managementClient.organizations.members.list(
           params.id as string,
           {
-            from: String((page - 1) * perPage),
-            take: perPage,
-          },
+            page: page - 1,
+            per_page: perPage,
+            include_totals: true,
+          } as any,
         );
         const response = (result as any).response || result;
         const membersData = Array.isArray(response)

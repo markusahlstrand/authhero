@@ -238,6 +238,47 @@ describe("ClientGrantsAdapter", () => {
     expect(result.limit).toBe(3);
   });
 
+  it("should paginate client grants with from/take (keyset checkpoint)", async () => {
+    for (let i = 0; i < 5; i++) {
+      await db
+        .insertInto("resource_servers")
+        .values({
+          id: `ks-api-${i}-id`,
+          tenant_id: tenantId,
+          identifier: `https://ks-api${i}.example.com`,
+          name: `KS API ${i}`,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .execute();
+      await adapter.clientGrants.create(tenantId, {
+        client_id: "test-client-id",
+        audience: `https://ks-api${i}.example.com`,
+        scope: [`read:ks${i}`],
+      });
+    }
+
+    // Walk every grant via the opaque `next` cursor; no total, no duplicates.
+    const seen = new Set<string>();
+    let from: string | undefined;
+    let pages = 0;
+    for (;;) {
+      const batch = await adapter.clientGrants.list(tenantId, { take: 2, from });
+      expect(batch.client_grants.length).toBeLessThanOrEqual(2);
+      for (const g of batch.client_grants) {
+        expect(seen.has(g.id)).toBe(false);
+        seen.add(g.id);
+      }
+      pages++;
+      if (!batch.next) break;
+      from = batch.next;
+      if (pages > 5) throw new Error("cursor walk did not terminate");
+    }
+
+    expect(seen.size).toBe(5);
+    expect(pages).toBe(3); // 2 + 2 + 1
+  });
+
   it("should filter client grants by audience", async () => {
     // Create another resource server
     await db

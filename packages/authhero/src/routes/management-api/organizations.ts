@@ -89,6 +89,14 @@ const organizationsWithTotalsSchema = totalsSchema.extend({
   organizations: z.array(organizationSchema),
 });
 
+// Checkpoint (keyset) pagination response: items plus an opaque cursor.
+const organizationsWithNextSchema = z.object({
+  organizations: z.array(organizationSchema),
+  next: z.string().optional().openapi({
+    description: "Opaque cursor for the next page; absent on the last page.",
+  }),
+});
+
 // Schema for organization member as per Auth0 API spec
 const organizationMemberSchema = z.object({
   user_id: z.string().openapi({
@@ -168,6 +176,7 @@ const getRoot = defineRoute({
           "application/json": {
             schema: z.union([
               organizationsWithTotalsSchema,
+              organizationsWithNextSchema,
               z.array(organizationSchema),
             ]),
           },
@@ -190,6 +199,15 @@ const getRoot = defineRoute({
       from,
       take,
     });
+
+    // Keyset (checkpoint) pagination: return Auth0's { items, next } shape so
+    // clients can page past the first page via the opaque cursor.
+    if (from !== undefined || take !== undefined) {
+      return ctx.json({
+        organizations: result.organizations,
+        next: result.next,
+      });
+    }
 
     if (include_totals) {
       return ctx.json(result);
@@ -514,6 +532,12 @@ const getByIdMembers = defineRoute({
     ).then((rows) =>
       rows.filter((r): r is NonNullable<typeof r> => r !== null),
     );
+
+    // Keyset (checkpoint) pagination: return Auth0's { members, next } shape so
+    // clients can page past the first page via the opaque cursor.
+    if (from !== undefined || take !== undefined) {
+      return ctx.json({ members, next: userOrgsResult.next });
+    }
 
     // Return different formats based on query parameters
     if (include_totals) {

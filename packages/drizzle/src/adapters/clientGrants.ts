@@ -8,6 +8,13 @@ import type {
 import { clientGrants } from "../schema/sqlite";
 import { removeNullProperties, parseJsonIfString } from "../helpers/transform";
 import { buildLuceneFilter } from "../helpers/filter";
+import {
+  isKeysetRequest,
+  keysetCondition,
+  keysetOrderBy,
+  keysetTake,
+  sliceWithNext,
+} from "../helpers/paginate";
 import type { DrizzleDb } from "./types";
 
 function sqlToClientGrant(row: any): ClientGrant {
@@ -126,6 +133,33 @@ export function createClientGrantsAdapter(db: DrizzleDb) {
       const whereCondition = luceneFilter
         ? and(eq(clientGrants.tenant_id, tenant_id), luceneFilter)
         : eq(clientGrants.tenant_id, tenant_id);
+
+      // Keyset (checkpoint) pagination: from/take. Fixed created_at desc order
+      // with id tiebreaker; no total, matching Auth0's checkpoint responses.
+      if (isKeysetRequest(params)) {
+        const cols = {
+          sortColumn: clientGrants.created_at,
+          idColumn: clientGrants.id,
+          sortOrder: "desc" as const,
+        };
+        const keyset = keysetCondition(params, cols);
+        const take = keysetTake(params);
+        const rows = await db
+          .select()
+          .from(clientGrants)
+          .where(keyset ? and(whereCondition, keyset) : whereCondition)
+          .orderBy(...keysetOrderBy(cols))
+          .limit(take + 1);
+        const { rows: pageRows, next } = sliceWithNext(rows, take, "created_at");
+        const mapped = pageRows.map(sqlToClientGrant);
+        return {
+          client_grants: mapped,
+          start: 0,
+          limit: take,
+          length: mapped.length,
+          next,
+        };
+      }
 
       let query = db
         .select()

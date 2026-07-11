@@ -310,8 +310,8 @@ describe("organizations management API endpoint", () => {
       const response = await managementClient.organizations[":id"].members.$get(
         {
           param: { id: organization.id },
-          // from/take is how the Auth0 SDK paginates members.
-          query: { from: "0", take: "25" },
+          // from/take is how the Auth0 SDK paginates members (checkpoint).
+          query: { take: "25" },
           header: { "tenant-id": tenantId },
         },
         { headers: { authorization: `Bearer ${token}` } },
@@ -319,8 +319,73 @@ describe("organizations management API endpoint", () => {
 
       expect(response.status).toBe(200);
       const data = (await response.json()) as any;
-      expect(Array.isArray(data)).toBe(true);
-      expect(data).toHaveLength(memberCount);
+      // Checkpoint pagination returns { members, next }, not a bare array.
+      expect(data.members).toHaveLength(memberCount);
+      expect(data.next).toBeUndefined(); // all fit on one page
+    });
+
+    it("walks all members across pages via the opaque next cursor", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      const tenantId = `members-cursor-${Date.now()}`;
+      await env.data.tenants.create({
+        id: tenantId,
+        friendly_name: "Members Cursor Tenant",
+        audience: "https://example.com",
+        default_audience: "https://example.com",
+        sender_email: "login@example.com",
+        sender_name: "SenderName",
+      });
+      const organization = await env.data.organizations.create(tenantId, {
+        name: "members-cursor-org",
+        display_name: "Members Cursor Org",
+      });
+
+      const memberCount = 12;
+      for (let i = 0; i < memberCount; i++) {
+        const userId = `email|cursor-${i}`;
+        await env.data.users.create(tenantId, {
+          email: `cursor-${i}@example.com`,
+          user_id: userId,
+          provider: "email",
+          connection: "email",
+          email_verified: true,
+          is_social: false,
+        });
+        await env.data.userOrganizations.create(tenantId, {
+          user_id: userId,
+          organization_id: organization.id,
+        });
+      }
+
+      const seen = new Set<string>();
+      let from: string | undefined;
+      let pages = 0;
+      for (;;) {
+        const res = await managementClient.organizations[":id"].members.$get(
+          {
+            param: { id: organization.id },
+            query: from ? { take: "5", from } : { take: "5" },
+            header: { "tenant-id": tenantId },
+          },
+          { headers: { authorization: `Bearer ${token}` } },
+        );
+        expect(res.status).toBe(200);
+        const body = (await res.json()) as any;
+        for (const m of body.members) {
+          expect(seen.has(m.user_id)).toBe(false);
+          seen.add(m.user_id);
+        }
+        pages++;
+        if (!body.next) break;
+        from = body.next as string;
+        if (pages > 6) throw new Error("cursor walk did not terminate");
+      }
+
+      expect(seen.size).toBe(memberCount);
+      expect(pages).toBe(3); // 5 + 5 + 2
     });
   });
 

@@ -4,6 +4,13 @@ import type { Organization, ListParams } from "@authhero/adapter-interfaces";
 import { organizations } from "../schema/sqlite";
 import { removeNullProperties, parseJsonIfString } from "../helpers/transform";
 import { buildLuceneFilter, sanitizeLuceneQuery } from "../helpers/filter";
+import {
+  isKeysetRequest,
+  keysetCondition,
+  keysetOrderBy,
+  keysetTake,
+  sliceWithNext,
+} from "../helpers/paginate";
 import type { DrizzleDb } from "./types";
 
 // Fields organizations.list() accepts in `q`. Excludes `tenant_id` so a clause
@@ -159,6 +166,34 @@ export function createOrganizationsAdapter(db: DrizzleDb) {
       }
 
       const whereClause = and(...conditions);
+
+      // Keyset (checkpoint) pagination: from/take. Fixed created_at desc order
+      // with id tiebreaker; no total, matching Auth0's checkpoint responses.
+      if (isKeysetRequest(params)) {
+        const cols = {
+          sortColumn: organizations.created_at,
+          idColumn: organizations.id,
+          sortOrder: "desc" as const,
+        };
+        const keyset = keysetCondition(params, cols);
+        const take = keysetTake(params);
+        const rows = await db
+          .select()
+          .from(organizations)
+          .where(keyset ? and(whereClause, keyset) : whereClause)
+          .orderBy(...keysetOrderBy(cols))
+          .limit(take + 1);
+        const { rows: pageRows, next } = sliceWithNext(rows, take, "created_at");
+        const mapped = pageRows.map(sqlToOrganization);
+        return {
+          organizations: mapped,
+          start: 0,
+          limit: take,
+          length: mapped.length,
+          total: mapped.length,
+          next,
+        };
+      }
 
       let query = db
         .select()
