@@ -83,6 +83,7 @@ export {
   wrapTenantsAdapterWithWfpKvPublish,
   composeHostResolvers,
   wfpTenantHost,
+  isWfpSubdomainSafeTenantId,
   DEFAULT_WFP_DISPATCH_BINDING,
   DEFAULT_WFP_SCRIPT_NAME_TEMPLATE,
   type WfpTenantHostResolverOptions,

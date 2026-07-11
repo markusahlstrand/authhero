@@ -38,6 +38,22 @@ function normalizeHost(host: string): string {
   return normalized;
 }
 
+// One lowercase DNS label, per RFC 1123 (max 63 chars, alphanumeric with
+// inner hyphens). Case matters: DNS lowercases the incoming host but
+// `tenants.get()` is exact-match, so a mixed-case id can never round-trip
+// through a hostname.
+const DNS_LABEL_RE = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/;
+
+/**
+ * Whether a tenant id can be served on a platform subdomain at all. Ids that
+ * fail this (mixed case, dots, other URL-unsafe characters) are skipped by
+ * `wrapTenantsAdapterWithWfpKvPublish` — publishing them would create KV keys
+ * the resolver can never match. Give WFP tenants lowercase DNS-label ids.
+ */
+export function isWfpSubdomainSafeTenantId(tenantId: string): boolean {
+  return DNS_LABEL_RE.test(tenantId);
+}
+
 export interface WfpTenantHostResolverOptions {
   /** Tenant lookup — typically the control plane's tenants adapter. */
   tenants: Pick<TenantsDataAdapter, "get">;
@@ -218,9 +234,12 @@ export interface WfpTenantsKvPublishOptions {
  * remove deletes the key, so a deprovisioned tenant's host falls back to the
  * proxy's default chain instead of dispatching to a dead script.
  *
- * Shared (non-WFP) tenants never touch KV. Publishing is fire-and-forget;
- * silent drift is corrected by the periodic reconcile
- * (`backfillProxyHostsToKv` over `wfpTenantHost`-derived hosts).
+ * Shared (non-WFP) tenants never touch KV, and neither do wfp tenants whose
+ * id is not a lowercase DNS label (`isWfpSubdomainSafeTenantId`) — such ids
+ * cannot round-trip through a hostname, so publishing them would only create
+ * dead keys. Publishing is fire-and-forget; silent drift is corrected by the
+ * periodic reconcile (`backfillProxyHostsToKv` over `wfpTenantHost`-derived
+ * hosts).
  */
 export function wrapTenantsAdapterWithWfpKvPublish(
   options: WfpTenantsKvPublishOptions,
@@ -257,6 +276,7 @@ export function wrapTenantsAdapterWithWfpKvPublish(
   }
 
   function publish(tenantId: string, op: string): void {
+    if (!isWfpSubdomainSafeTenantId(tenantId)) return;
     schedule(publishHost(wfpTenantHost(tenantId, issuerHost), op));
   }
 

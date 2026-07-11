@@ -340,7 +340,7 @@ Once the backfill is verified and KV is in steady-state sync, you can drop the
 HTTP fallback entirely (resolve straight from `kv`) and retire the
 `CONTROL_PLANE_*` secrets on the proxy.
 
-### WFP tenant subdomains — dispatch routes without `custom_domains` rows
+### WFP tenant subdomains
 
 Everything above keys off `custom_domains` / `proxy_routes` writes. A WFP
 tenant's **platform subdomain** (`{tenant_id}.token.example.com`) has neither —
@@ -451,6 +451,12 @@ Notes:
 - **Don't include the reconcile's WFP hosts filter on `provisioning_state`** —
   listing *all* wfp tenants lets the reconcile also delete stale keys for
   tenants that regressed from `ready` (the blob recomputes to `null`).
+- **WFP tenant ids must be lowercase DNS labels** (`isWfpSubdomainSafeTenantId`
+  — alphanumeric with inner hyphens, no dots, max 63 chars). DNS lowercases the
+  incoming host but the tenant lookup is exact-match, so a mixed-case or dotted
+  id can never round-trip through a hostname; the publisher skips such ids
+  rather than writing keys the resolver can't match. Enforce the constraint at
+  tenant creation for wfp tenants.
 
 ### Constraints & notes
 
@@ -570,7 +576,7 @@ For each tenant, in isolation:
 - [ ] Provision the tenant's per-tenant Worker + database (its client/connection
       data now lives in the tenant DB, not the shared control-plane DB).
 - [ ] The routing entry publishes itself: with
-      [`wrapTenantsAdapterWithWfpKvPublish`](#wfp-tenant-subdomains-dispatch-routes-without-custom-domains-rows)
+      [`wrapTenantsAdapterWithWfpKvPublish`](#wfp-tenant-subdomains)
       on the control plane, the provisioner's `provisioning_state: "ready"`
       write-back pushes the `<tenant>.token.example.com` → `tenant-{id}-auth`
       dispatch blob to KV. (A branded custom domain still needs its own

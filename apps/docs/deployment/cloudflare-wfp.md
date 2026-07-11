@@ -303,7 +303,7 @@ The `custom_domains` entry above is for the tenant's **branded** domain
 routes without one: wrap the control plane's tenants adapter with
 `wrapTenantsAdapterWithWfpKvPublish` and its dispatch route is derived from the
 tenant row and published to KV automatically when provisioning completes — see
-[Proxy → Deployment topologies → WFP tenant subdomains](/customization/proxy/deployment#wfp-tenant-subdomains-dispatch-routes-without-custom-domains-rows).
+[Proxy → Deployment topologies → WFP tenant subdomains](/customization/proxy/deployment#wfp-tenant-subdomains).
 :::
 
 ### 3.2 Provision the tenant's data store (only if `storage_kind = "own_d1"`)

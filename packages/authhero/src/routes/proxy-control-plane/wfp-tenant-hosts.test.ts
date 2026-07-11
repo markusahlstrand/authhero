@@ -9,6 +9,7 @@ import { buildKvHostKey, DEFAULT_KV_HOST_KEY_PREFIX } from "@authhero/proxy";
 import {
   composeHostResolvers,
   createWfpTenantHostResolver,
+  isWfpSubdomainSafeTenantId,
   wfpTenantHost,
   wrapTenantsAdapterWithWfpKvPublish,
 } from "./wfp-tenant-hosts";
@@ -81,6 +82,25 @@ describe("wfpTenantHost", () => {
     expect(wfpTenantHost("WPF", "Token.Example.com:8443")).toBe(
       "wpf.token.example.com",
     );
+  });
+});
+
+describe("isWfpSubdomainSafeTenantId", () => {
+  it("accepts lowercase DNS labels", () => {
+    expect(isWfpSubdomainSafeTenantId("wpf")).toBe(true);
+    expect(isWfpSubdomainSafeTenantId("acme-2")).toBe(true);
+    expect(isWfpSubdomainSafeTenantId("a")).toBe(true);
+    expect(isWfpSubdomainSafeTenantId("a".repeat(63))).toBe(true);
+  });
+
+  it("rejects ids that cannot round-trip through a hostname", () => {
+    expect(isWfpSubdomainSafeTenantId("WpF")).toBe(false); // mixed case
+    expect(isWfpSubdomainSafeTenantId("a.b")).toBe(false); // dot
+    expect(isWfpSubdomainSafeTenantId("-acme")).toBe(false); // leading hyphen
+    expect(isWfpSubdomainSafeTenantId("acme-")).toBe(false); // trailing hyphen
+    expect(isWfpSubdomainSafeTenantId("a_b")).toBe(false); // underscore
+    expect(isWfpSubdomainSafeTenantId("")).toBe(false);
+    expect(isWfpSubdomainSafeTenantId("a".repeat(64))).toBe(false); // too long
   });
 });
 
@@ -285,6 +305,24 @@ describe("wrapTenantsAdapterWithWfpKvPublish", () => {
     await s.flush();
 
     expect(s.kvh.delete).toHaveBeenCalledWith(key("wpf.token.example.com"));
+  });
+
+  it("skips wfp tenants whose id is not a lowercase DNS label", async () => {
+    const s = setupWrapped();
+    await s.wrapped.create({
+      friendly_name: "Mixed",
+      id: "WpF",
+      deployment_type: "wfp",
+      provisioning_state: "ready",
+      worker_script_name: "tenant-WpF-auth",
+    });
+    await s.wrapped.update("WpF", { friendly_name: "renamed" });
+    const ok = await s.wrapped.remove("WpF");
+    await s.flush();
+
+    expect(ok).toBe(true);
+    expect(s.kvh.put).not.toHaveBeenCalled();
+    expect(s.kvh.delete).not.toHaveBeenCalled();
   });
 
   it("ignores shared tenants entirely", async () => {
