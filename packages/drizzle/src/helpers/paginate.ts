@@ -21,10 +21,13 @@ export function isKeysetRequest(params?: ListParams): boolean {
   return params?.from !== undefined || params?.take !== undefined;
 }
 
+// Auth0 caps take: "Values above the maximum permitted size are capped."
+const MAX_TAKE = 100;
+
 export function keysetTake(params?: ListParams): number {
   const raw = params?.take;
   const n = typeof raw === "number" && Number.isFinite(raw) ? Math.floor(raw) : NaN;
-  return n >= 1 ? n : 50;
+  return n >= 1 ? Math.min(n, MAX_TAKE) : 50;
 }
 
 export interface KeysetColumns {

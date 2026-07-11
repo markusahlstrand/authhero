@@ -38,10 +38,13 @@ export interface KeysetResult<Row> {
   next?: string;
 }
 
+// Auth0 caps take: "Values above the maximum permitted size are capped."
+const MAX_TAKE = 100;
+
 function clampSize(raw: number | undefined, fallback: number): number {
   const n =
     typeof raw === "number" && Number.isFinite(raw) ? Math.floor(raw) : NaN;
-  return n >= 1 ? n : fallback;
+  return n >= 1 ? Math.min(n, MAX_TAKE) : fallback;
 }
 
 export async function keysetPaginate<DB, TB extends keyof DB, O>(
