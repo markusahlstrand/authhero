@@ -15,22 +15,28 @@ const getPackageNameCamelCase = () => {
   }
 };
 
-const fileName = {
-  es: `${getPackageName()}.mjs`,
-  cjs: `${getPackageName()}.cjs`,
+const extensions = {
+  es: "mjs",
+  cjs: "cjs",
 };
 
-const formats = Object.keys(fileName) as Array<keyof typeof fileName>;
+const formats = Object.keys(extensions) as Array<keyof typeof extensions>;
 
 export default defineConfig({
   base: "./",
   build: {
     outDir: "./dist",
     lib: {
-      entry: path.resolve(__dirname, "src/index.ts"),
+      entry: {
+        [getPackageName()]: path.resolve(__dirname, "src/index.ts"),
+        // SQL-adapter helpers, published as the `/sql` subpath so they stay
+        // out of the main adapter-contract surface.
+        sql: path.resolve(__dirname, "src/sql/index.ts"),
+      },
       name: getPackageNameCamelCase(),
       formats,
-      fileName: (format) => fileName[format],
+      fileName: (format, entryName) =>
+        `${entryName}.${extensions[format as keyof typeof extensions]}`,
     },
     rollupOptions: {
       external: ["@hono/zod-openapi"],

@@ -4,6 +4,4 @@ export * from "./connection-attributes";
 export * from "./guards";
 export * from "./base64url";
 export * from "./cursor";
-export * from "./dates";
-export * from "./sql-transform";
 export * from "./lucene";

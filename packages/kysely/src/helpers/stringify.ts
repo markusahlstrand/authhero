@@ -5,4 +5,4 @@ export {
   stringifyProperties,
   booleanToInt,
   removeUndefinedAndNull,
-} from "@authhero/adapter-interfaces";
+} from "@authhero/adapter-interfaces/sql";

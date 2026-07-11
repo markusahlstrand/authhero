@@ -22,6 +22,16 @@
 export type DbDateField = string | number | null | undefined;
 
 /**
+ * Convert a millisecond timestamp to an ISO string. NaN, Infinity, and
+ * out-of-range values would make toISOString() throw a RangeError, so guard
+ * and return undefined instead of aborting row conversion.
+ */
+function timestampToIso(value: number): string | undefined {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
+}
+
+/**
  * Convert a database date field (either format) to an ISO string for the
  * adapter interface. Returns undefined if the value is null/undefined/empty.
  */
@@ -32,7 +42,7 @@ export function dbDateToIso(value: DbDateField): string | undefined {
 
   // Handle numeric value (bigint timestamp)
   if (typeof value === "number") {
-    return new Date(value).toISOString();
+    return timestampToIso(value);
   }
 
   // Handle string values
@@ -42,10 +52,9 @@ export function dbDateToIso(value: DbDateField): string | undefined {
     }
 
     // Check if it's a numeric string (bigint stored as string by some DB drivers)
-    // This handles cases like "1609459200000" or "1609459200000.0"
-    const numericValue = parseFloat(value);
-    if (!isNaN(numericValue) && /^\d+(\.\d+)?$/.test(value)) {
-      return new Date(numericValue).toISOString();
+    // This handles cases like "1609459200000", "1609459200000.0", or "-1"
+    if (/^-?\d+(\.\d+)?$/.test(value)) {
+      return timestampToIso(parseFloat(value));
     }
 
     // It's already an ISO string
@@ -100,23 +109,23 @@ export function nowIso(): string {
  */
 export function convertDatesToAdapter<
   T extends Record<string, DbDateField>,
-  R extends keyof T,
-  O extends keyof T = never,
+  R extends Extract<keyof T, string>,
+  O extends Extract<keyof T, string> = never,
 >(
   row: T,
   requiredColumns: R[],
-  optionalColumns: O[] = [] as O[],
+  optionalColumns: O[] = [],
 ): Record<string, string | undefined> {
   const result: Record<string, string | undefined> = {};
 
-  for (const col of requiredColumns) {
-    const outputName = (col as string).replace(/_ts$/, "");
-    result[outputName] = dbDateToIsoRequired(row[col]);
+  // Optional columns are written first so that a required column always wins
+  // if both map to the same output name after the _ts suffix is stripped.
+  for (const col of optionalColumns) {
+    result[col.replace(/_ts$/, "")] = dbDateToIso(row[col]);
   }
 
-  for (const col of optionalColumns) {
-    const outputName = (col as string).replace(/_ts$/, "");
-    result[outputName] = dbDateToIso(row[col]);
+  for (const col of requiredColumns) {
+    result[col.replace(/_ts$/, "")] = dbDateToIsoRequired(row[col]);
   }
 
   return result;

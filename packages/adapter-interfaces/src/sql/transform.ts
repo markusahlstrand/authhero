@@ -29,11 +29,27 @@ export function stringifyIfDefined<T>(
  * const result = stringifyProperties(source, ['flags', 'sessions']);
  * // result = { flags: '{"enabled":true}', sessions: '{"timeout":300}', name: "Test" }
  */
-export function stringifyProperties<T extends Record<string, any>>(
-  obj: T,
-  properties: (keyof T)[],
-  target: any = { ...obj },
-): any {
+type StringifiedProperties<T, K extends keyof T> = {
+  [P in keyof T]: P extends K
+    ? undefined extends T[P]
+      ? string | undefined
+      : string
+    : T[P];
+};
+
+export function stringifyProperties<
+  T extends Record<string, unknown>,
+  K extends keyof T & string,
+>(obj: T, properties: K[]): StringifiedProperties<T, K>;
+export function stringifyProperties<
+  T extends Record<string, unknown>,
+  U extends Record<string, unknown>,
+>(obj: T, properties: (keyof T & string)[], target: U): U;
+export function stringifyProperties(
+  obj: Record<string, unknown>,
+  properties: string[],
+  target: Record<string, unknown> = { ...obj },
+): Record<string, unknown> {
   for (const prop of properties) {
     if (obj[prop] !== undefined) {
       target[prop] = JSON.stringify(obj[prop]);
@@ -56,10 +72,10 @@ export function stringifyProperties<T extends Record<string, any>>(
  * booleanToInt(source, ['enabled', 'active'], result);
  * // result = { enabled: 1, active: 0 }
  */
-export function booleanToInt<T extends Record<string, any>>(
+export function booleanToInt<T extends Record<string, unknown>>(
   source: Partial<T>,
-  properties: (keyof T)[],
-  target: any = source,
+  properties: (keyof T & string)[],
+  target: Record<string, unknown> = source,
 ): void {
   for (const property of properties) {
     if (source[property] !== undefined) {
@@ -72,16 +88,17 @@ export function booleanToInt<T extends Record<string, any>>(
  * Remove undefined and null properties from an object.
  * This keeps the SQL payload clean by only including defined values.
  */
-export function removeUndefinedAndNull<T extends Record<string, any>>(
+export function removeUndefinedAndNull<T extends Record<string, unknown>>(
   obj: T,
 ): Partial<T> {
-  const cleaned: any = {};
-  for (const key in obj) {
-    if (obj[key] !== undefined && obj[key] !== null) {
-      cleaned[key] = obj[key];
-    }
-  }
-  return cleaned;
+  // Object.entries/fromEntries only touch own enumerable keys and create
+  // plain data properties, so an own `__proto__` key cannot pollute the
+  // prototype of the returned object.
+  return Object.fromEntries(
+    Object.entries(obj).filter(
+      ([, value]) => value !== undefined && value !== null,
+    ),
+  ) as Partial<T>;
 }
 
 /**
@@ -89,7 +106,7 @@ export function removeUndefinedAndNull<T extends Record<string, any>>(
  * rows (where missing values are NULL) back to adapter entities (where they
  * are absent).
  */
-export function removeNullProperties<T = any>(obj: unknown): T {
+export function removeNullProperties<T>(obj: unknown): T {
   // Return primitives and null/undefined as-is
   if (obj === null || obj === undefined || typeof obj !== "object") {
     return obj as T;
@@ -104,26 +121,24 @@ export function removeNullProperties<T = any>(obj: unknown): T {
     ) as T;
   }
 
-  const clone: Record<string, any> = { ...(obj as Record<string, any>) };
-
-  for (const key in clone) {
-    const val = clone[key];
-    if (val === null) {
-      delete clone[key];
-    } else if (val !== null && typeof val === "object") {
-      if (Array.isArray(val)) {
-        clone[key] = val.map((item: unknown) =>
-          item !== null && typeof item === "object"
-            ? removeNullProperties(item)
-            : item,
-        );
-      } else {
-        clone[key] = removeNullProperties(val);
-      }
-    }
+  // Leave non-plain objects (Date, Buffer, driver-specific classes) untouched:
+  // spreading them into a plain object would silently corrupt them.
+  const prototype = Object.getPrototypeOf(obj);
+  if (prototype !== Object.prototype && prototype !== null) {
+    return obj as T;
   }
 
-  return clone as T;
+  // Object.entries/fromEntries only touch own enumerable keys and create
+  // plain data properties, so an own `__proto__` key cannot pollute the
+  // prototype of the returned object.
+  return Object.fromEntries(
+    Object.entries(obj)
+      .filter(([, value]) => value !== null)
+      .map(([key, value]) => [
+        key,
+        typeof value === "object" ? removeNullProperties(value) : value,
+      ]),
+  ) as T;
 }
 
 /**
@@ -131,11 +146,11 @@ export function removeNullProperties<T = any>(obj: unknown): T {
  * returns it (string, number, or bigint).
  */
 export function getCountAsInt(count: string | number | bigint): number {
-  if (typeof count === "string") {
-    return parseInt(count, 10);
+  const value = Number(count);
+  if (!Number.isSafeInteger(value)) {
+    throw new RangeError(
+      `COUNT result is not a safe integer: ${String(count)}`,
+    );
   }
-  if (typeof count === "bigint") {
-    return Number(count);
-  }
-  return count;
+  return value;
 }

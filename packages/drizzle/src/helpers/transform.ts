@@ -8,7 +8,7 @@ export {
   booleanToInt,
   removeUndefinedAndNull,
   getCountAsInt,
-} from "@authhero/adapter-interfaces";
+} from "@authhero/adapter-interfaces/sql";
 
 /**
  * Parse a JSON string field if it's a string, otherwise return as-is.

@@ -8,4 +8,4 @@ export {
   isoToDbDate,
   nowIso,
   convertDatesToAdapter,
-} from "@authhero/adapter-interfaces";
+} from "@authhero/adapter-interfaces/sql";
