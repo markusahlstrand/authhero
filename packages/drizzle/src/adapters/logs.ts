@@ -1,9 +1,17 @@
 import { eq, and, count as countFn, asc, desc, gte, lt } from "drizzle-orm";
 import { nanoid } from "nanoid";
+import { HTTPException } from "hono/http-exception";
 import type { Log, ListParams } from "@authhero/adapter-interfaces";
 import { logs } from "../schema/sqlite";
 import { removeNullProperties, parseJsonIfString } from "../helpers/transform";
 import { buildLuceneFilter } from "../helpers/filter";
+import {
+  isKeysetRequest,
+  keysetCondition,
+  keysetOrderBy,
+  keysetTake,
+  sliceWithNext,
+} from "../helpers/paginate";
 import type { DrizzleDb } from "./types";
 
 function sqlToLog(row: any): Log {
@@ -138,6 +146,50 @@ export function createLogsAdapter(db: DrizzleDb) {
       }
 
       const whereClause = and(...baseConditions);
+
+      // Keyset (checkpoint) pagination: from/take. Unlike Auth0 — which
+      // ignores q/sort in checkpoint mode on /logs — the q and date-range
+      // filters above stay in effect, and sorting by date (asc/desc) is
+      // honored as a superset. Only `date` is keyset-sortable; log_id is the
+      // unique tiebreaker.
+      if (isKeysetRequest(params)) {
+        if (sort?.sort_by && sort.sort_by !== "date") {
+          throw new HTTPException(400, {
+            message: `Sorting by ${sort.sort_by} is not supported with checkpoint pagination (from/take); only date is`,
+          });
+        }
+        const sortOrder: "asc" | "desc" =
+          sort?.sort_order === "asc" ? "asc" : "desc";
+        const cols = {
+          sortColumn: logs.date,
+          idColumn: logs.log_id,
+          sortOrder,
+          sortKey: `date:${sortOrder}`,
+        };
+        const keyset = keysetCondition(params, cols);
+        const take = keysetTake(params);
+        const rows = await db
+          .select()
+          .from(logs)
+          .where(keyset ? and(whereClause, keyset) : whereClause)
+          .orderBy(...keysetOrderBy(cols))
+          .limit(take + 1);
+        const { rows: pageRows, next } = sliceWithNext(
+          rows,
+          take,
+          "date",
+          "log_id",
+          cols.sortKey,
+        );
+        const mapped = pageRows.map(sqlToLog);
+        return {
+          logs: mapped,
+          start: 0,
+          limit: take,
+          length: mapped.length,
+          next,
+        };
+      }
 
       let query = db.select().from(logs).where(whereClause).$dynamic();
 

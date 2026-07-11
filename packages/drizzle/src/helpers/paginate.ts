@@ -1,4 +1,5 @@
 import { SQL, sql, asc, desc, gt, lt, Column } from "drizzle-orm";
+import { HTTPException } from "hono/http-exception";
 import {
   ListParams,
   decodeCursor,
@@ -31,6 +32,13 @@ export interface KeysetColumns {
   sortColumn: Column;
   idColumn: Column;
   sortOrder: "asc" | "desc";
+  /**
+   * Sort spec (e.g. `date:desc`) for endpoints that honor a caller-chosen sort
+   * in checkpoint mode. Minted into the cursor; a cursor presented under a
+   * different sort spec is rejected with a 400, because its keyset position is
+   * meaningless in the new order. Omit on fixed-sort endpoints.
+   */
+  sortKey?: string;
 }
 
 /** ORDER BY sortColumn, idColumn (tiebreaker), in the requested direction. */
@@ -51,6 +59,13 @@ export function keysetCondition(
 ): SQL | undefined {
   const cursor = params?.from ? decodeCursor(params.from) : null;
   if (!cursor) return undefined;
+
+  if (cursor.k !== cols.sortKey) {
+    throw new HTTPException(400, {
+      message:
+        "The `from` cursor was issued under a different sort and cannot be used with this request",
+    });
+  }
 
   if (cursor.s === undefined || cursor.s === null) {
     // Id-only ordering (or a null boundary): compare on the tiebreaker alone.
@@ -73,6 +88,7 @@ export function sliceWithNext<Row extends Record<string, unknown>>(
   take: number,
   sortField: string,
   idField = "id",
+  sortKey?: string,
 ): { rows: Row[]; next?: string } {
   const hasMore = rows.length > take;
   const page = hasMore ? rows.slice(0, take) : rows;
@@ -89,6 +105,7 @@ export function sliceWithNext<Row extends Record<string, unknown>>(
           ? (sortValue as string | number | null)
           : String(sortValue),
       i: String(last[idField]),
+      ...(sortKey !== undefined && { k: sortKey }),
     });
   }
   return { rows: page, next };

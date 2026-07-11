@@ -101,3 +101,122 @@ describe("keyset pagination (from/take)", () => {
     }
   });
 });
+
+// Logs honor q, date-range filters, and a date asc/desc sort in checkpoint
+// mode (a superset of Auth0, which ignores q/sort under from/take on /logs).
+// The cursor records the sort it was minted under so a token replayed with a
+// different sort fails instead of returning pages from the wrong position.
+describe("logs keyset pagination (from/take)", () => {
+  let data: any;
+  const tenantId = "keyset-logs-tenant";
+
+  beforeEach(async () => {
+    const server = await getTestServer();
+    data = server.data;
+
+    // 25 logs across 5 timestamps (5 rows per timestamp) so pages routinely
+    // split inside a shared date — exactly where the log_id tiebreaker
+    // matters. Alternate user_ids for the filtered-walk test.
+    for (let i = 0; i < 25; i++) {
+      const second = Math.floor(i / 5);
+      await data.logs.create(tenantId, {
+        log_id: `log-${i.toString().padStart(2, "0")}`,
+        type: "s",
+        date: `2026-01-01T00:00:0${second}.000Z`,
+        isMobile: false,
+        user_id: i % 2 === 0 ? "user-even" : "user-odd",
+      });
+    }
+  });
+
+  it("walks every row exactly once in date desc order by default", async () => {
+    const seen: string[] = [];
+    let from: string | undefined;
+    let pages = 0;
+    let lastDate: string | undefined;
+
+    for (;;) {
+      const res = await data.logs.list(tenantId, { take: 10, from });
+      pages++;
+      for (const log of res.logs) {
+        expect(seen.includes(log.log_id)).toBe(false);
+        seen.push(log.log_id);
+        if (lastDate !== undefined) {
+          expect(log.date <= lastDate).toBe(true);
+        }
+        lastDate = log.date;
+      }
+      if (!res.next) break;
+      from = res.next;
+      if (pages > 10) throw new Error("cursor walk did not terminate");
+    }
+
+    expect(seen.length).toBe(25);
+    expect(pages).toBe(3);
+  });
+
+  it("honors sort=date asc in checkpoint mode", async () => {
+    const res = await data.logs.list(tenantId, {
+      take: 10,
+      sort: { sort_by: "date", sort_order: "asc" },
+    });
+    expect(res.logs).toHaveLength(10);
+    expect(res.logs[0].date <= res.logs[9].date).toBe(true);
+
+    const page2 = await data.logs.list(tenantId, {
+      take: 10,
+      from: res.next,
+      sort: { sort_by: "date", sort_order: "asc" },
+    });
+    expect(res.logs[9].date <= page2.logs[0].date).toBe(true);
+  });
+
+  it("honors q filters inside a cursor walk", async () => {
+    const seen = new Set<string>();
+    let from: string | undefined;
+
+    for (;;) {
+      const res = await data.logs.list(tenantId, {
+        q: "user_id:user-even",
+        take: 5,
+        from,
+      });
+      for (const log of res.logs) {
+        expect(log.user_id).toBe("user-even");
+        seen.add(log.log_id);
+      }
+      if (!res.next) break;
+      from = res.next;
+    }
+
+    expect(seen.size).toBe(13); // even indices 0..24
+  });
+
+  it("rejects a cursor replayed under a different sort", async () => {
+    const page1 = await data.logs.list(tenantId, { take: 10 });
+    expect(page1.next).toBeDefined();
+
+    await expect(
+      data.logs.list(tenantId, {
+        take: 10,
+        from: page1.next,
+        sort: { sort_by: "date", sort_order: "asc" },
+      }),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  it("rejects unsupported sort columns in checkpoint mode", async () => {
+    await expect(
+      data.logs.list(tenantId, {
+        take: 10,
+        sort: { sort_by: "user_id", sort_order: "asc" },
+      }),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  it("omits next on the final page", async () => {
+    const res = await data.logs.list(tenantId, { take: 50 });
+    expect(res.logs).toHaveLength(25);
+    expect(res.next).toBeUndefined();
+  });
+});

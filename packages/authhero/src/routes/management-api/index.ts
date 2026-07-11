@@ -5,6 +5,7 @@ import { LogTypes } from "@authhero/adapter-interfaces";
 import { Bindings, Variables, AuthHeroConfig } from "../../types";
 import { getIssuer } from "../../variables";
 import { logMessage } from "../../helpers/logging";
+import { isHTTPExceptionLike } from "../../errors/is-http-exception-like";
 import { actionsRoutes } from "./actions";
 import { actionExecutionsRoutes } from "./action-executions";
 import { actionTriggersRoutes } from "./action-triggers";
@@ -258,7 +259,10 @@ export default function create(config: AuthHeroConfig) {
   // authhero produces by default that aren't that shape: (1) plaintext from
   // HTTPException, (2) zod-openapi's default validation-failure JSON.
   app.onError((err, ctx) => {
-    if (!(err instanceof HTTPException)) {
+    // Duck-typed rather than `instanceof HTTPException`: adapter packages
+    // bundle their own hono, so their HTTPExceptions have a different class
+    // identity.
+    if (!isHTTPExceptionLike(err)) {
       // Let the parent app's onError do its thing (logging, 500 response).
       throw err;
     }
