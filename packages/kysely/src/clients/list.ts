@@ -1,8 +1,56 @@
 import { Client, Totals } from "@authhero/adapter-interfaces";
-import { Kysely, sql } from "kysely";
+import { Kysely, Selectable, sql } from "kysely";
 import { Database } from "../db";
 import { ListParams } from "@authhero/adapter-interfaces";
 import { removeNullProperties } from "../helpers/remove-nulls";
+import { keysetPaginate, isKeysetRequest } from "../helpers/paginate";
+
+function sqlToClient(result: Selectable<Database["clients"]>): Client {
+  return removeNullProperties<Client>({
+    ...result,
+    // Convert integer fields back to booleans
+    global: !!result.global,
+    is_first_party: !!result.is_first_party,
+    oidc_conformant: !!result.oidc_conformant,
+    auth0_conformant: !!result.auth0_conformant,
+    sso: !!result.sso,
+    sso_disabled: !!result.sso_disabled,
+    cross_origin_authentication: !!result.cross_origin_authentication,
+    custom_login_page_on: !!result.custom_login_page_on,
+    require_pushed_authorization_requests:
+      !!result.require_pushed_authorization_requests,
+    require_proof_of_possession: !!result.require_proof_of_possession,
+    hide_sign_up_disabled_error: !!result.hide_sign_up_disabled_error,
+    // Parse JSON string fields back to objects/arrays
+    callbacks: JSON.parse(result.callbacks),
+    allowed_origins: JSON.parse(result.allowed_origins),
+    web_origins: JSON.parse(result.web_origins),
+    client_aliases: JSON.parse(result.client_aliases),
+    allowed_clients: JSON.parse(result.allowed_clients),
+    connections: JSON.parse(result.connections || "[]"),
+    allowed_logout_urls: JSON.parse(result.allowed_logout_urls),
+    session_transfer: JSON.parse(result.session_transfer),
+    oidc_logout: JSON.parse(result.oidc_logout),
+    grant_types: JSON.parse(result.grant_types),
+    jwt_configuration: JSON.parse(result.jwt_configuration),
+    signing_keys: JSON.parse(result.signing_keys),
+    encryption_key: JSON.parse(result.encryption_key),
+    addons: JSON.parse(result.addons),
+    client_metadata: JSON.parse(result.client_metadata),
+    mobile: JSON.parse(result.mobile),
+    native_social_login: JSON.parse(result.native_social_login),
+    refresh_token: JSON.parse(result.refresh_token),
+    default_organization: JSON.parse(result.default_organization),
+    client_authentication_methods: JSON.parse(
+      result.client_authentication_methods,
+    ),
+    signed_request_object: JSON.parse(result.signed_request_object),
+    token_quota: JSON.parse(result.token_quota),
+    registration_metadata: result.registration_metadata
+      ? JSON.parse(result.registration_metadata)
+      : undefined,
+  });
+}
 
 export function list(db: Kysely<Database>) {
   return async (
@@ -46,7 +94,23 @@ export function list(db: Kysely<Database>) {
       }
     }
 
-    // Apply sorting
+    // Keyset (checkpoint) pagination: from/take. Fixed created_at desc order
+    // with client_id tiebreaker; no total, matching Auth0's checkpoint
+    // responses.
+    if (isKeysetRequest(params)) {
+      const { rows, limit, next } = await keysetPaginate(
+        query.selectAll(),
+        params,
+        { sortColumn: "created_at", sortOrder: "desc", idColumn: "client_id" },
+      );
+      const clients = rows.map(sqlToClient);
+      return {
+        clients,
+        totals: { start: 0, limit, length: clients.length, next },
+      };
+    }
+
+    // Offset pagination.
     if (params?.sort) {
       const sortOrder = params.sort.sort_order === "asc" ? "asc" : "desc";
       const sortBy = params.sort.sort_by as
@@ -63,23 +127,14 @@ export function list(db: Kysely<Database>) {
       query = query.orderBy("created_at", "desc");
     }
 
-    // Handle checkpoint pagination (from/take)
-    if (params?.from !== undefined) {
-      const offset = parseInt(params.from, 10);
-      if (!isNaN(offset)) {
-        query = query.offset(offset);
-      }
-    } else if (params?.page !== undefined) {
-      const perPage = params?.per_page || params?.take || 10;
-      const offset = params.page * perPage;
-      query = query.offset(offset);
-    }
+    const page = params?.page ?? 0;
+    const limit = params?.per_page || 10;
 
-    // Apply limit (take or per_page)
-    const limit = params?.take || params?.per_page || 10;
-    query = query.limit(limit);
-
-    const results = await query.selectAll().execute();
+    const results = await query
+      .selectAll()
+      .limit(limit)
+      .offset(page * limit)
+      .execute();
 
     // Get total count for include_totals
     let total = results.length;
@@ -117,65 +172,13 @@ export function list(db: Kysely<Database>) {
       total = Number(countResult?.count || 0);
     }
 
-    const clients: Client[] = results.map((result) =>
-      removeNullProperties<Client>({
-        ...result,
-        // Convert integer fields back to booleans
-        global: !!result.global,
-        is_first_party: !!result.is_first_party,
-        oidc_conformant: !!result.oidc_conformant,
-        auth0_conformant: !!result.auth0_conformant,
-        sso: !!result.sso,
-        sso_disabled: !!result.sso_disabled,
-        cross_origin_authentication: !!result.cross_origin_authentication,
-        custom_login_page_on: !!result.custom_login_page_on,
-        require_pushed_authorization_requests:
-          !!result.require_pushed_authorization_requests,
-        require_proof_of_possession: !!result.require_proof_of_possession,
-        hide_sign_up_disabled_error: !!result.hide_sign_up_disabled_error,
-        // Parse JSON string fields back to objects/arrays
-        callbacks: JSON.parse(result.callbacks),
-        allowed_origins: JSON.parse(result.allowed_origins),
-        web_origins: JSON.parse(result.web_origins),
-        client_aliases: JSON.parse(result.client_aliases),
-        allowed_clients: JSON.parse(result.allowed_clients),
-        connections: JSON.parse(result.connections || "[]"),
-        allowed_logout_urls: JSON.parse(result.allowed_logout_urls),
-        session_transfer: JSON.parse(result.session_transfer),
-        oidc_logout: JSON.parse(result.oidc_logout),
-        grant_types: JSON.parse(result.grant_types),
-        jwt_configuration: JSON.parse(result.jwt_configuration),
-        signing_keys: JSON.parse(result.signing_keys),
-        encryption_key: JSON.parse(result.encryption_key),
-        addons: JSON.parse(result.addons),
-        client_metadata: JSON.parse(result.client_metadata),
-        mobile: JSON.parse(result.mobile),
-        native_social_login: JSON.parse(result.native_social_login),
-        refresh_token: JSON.parse(result.refresh_token),
-        default_organization: JSON.parse(result.default_organization),
-        client_authentication_methods: JSON.parse(
-          result.client_authentication_methods,
-        ),
-        signed_request_object: JSON.parse(result.signed_request_object),
-        token_quota: JSON.parse(result.token_quota),
-        registration_metadata: result.registration_metadata
-          ? JSON.parse(result.registration_metadata)
-          : undefined,
-      }),
-    );
-
-    const perPage = params?.take || params?.per_page || 10;
-    const start = params?.from
-      ? parseInt(params.from, 10)
-      : params?.page
-        ? params.page * perPage
-        : 0;
+    const clients: Client[] = results.map(sqlToClient);
 
     return {
       clients,
       totals: {
-        start: isNaN(start) ? 0 : start,
-        limit: perPage,
+        start: page * limit,
+        limit,
         length: clients.length,
         total,
       },

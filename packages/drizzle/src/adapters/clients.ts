@@ -13,6 +13,13 @@ import {
   removeUndefinedAndNull,
 } from "../helpers/transform";
 import { buildLuceneFilter } from "../helpers/filter";
+import {
+  isKeysetRequest,
+  keysetCondition,
+  keysetOrderBy,
+  keysetTake,
+  sliceWithNext,
+} from "../helpers/paginate";
 import type { DrizzleDb } from "./types";
 
 const BOOLEAN_FIELDS = [
@@ -239,17 +246,44 @@ export function createClientsAdapter(db: DrizzleDb): ClientsAdapter {
         q,
       } = params || {};
 
-      let query = db
-        .select()
-        .from(clients)
-        .where(eq(clients.tenant_id, tenant_id))
-        .$dynamic();
+      const luceneFilter = q
+        ? buildLuceneFilter(clients, q, ["name", "client_id"])
+        : undefined;
+      const whereCondition = luceneFilter
+        ? and(eq(clients.tenant_id, tenant_id), luceneFilter)
+        : eq(clients.tenant_id, tenant_id);
 
-      if (q) {
-        const filter = buildLuceneFilter(clients, q, ["name", "client_id"]);
-        if (filter)
-          query = query.where(and(eq(clients.tenant_id, tenant_id), filter));
+      // Keyset (checkpoint) pagination: from/take. Fixed created_at desc order
+      // with client_id tiebreaker; no total, matching Auth0's checkpoint
+      // responses.
+      if (isKeysetRequest(params)) {
+        const cols = {
+          sortColumn: clients.created_at,
+          idColumn: clients.client_id,
+          sortOrder: "desc" as const,
+        };
+        const keyset = keysetCondition(params, cols);
+        const take = keysetTake(params);
+        const rows = await db
+          .select()
+          .from(clients)
+          .where(keyset ? and(whereCondition, keyset) : whereCondition)
+          .orderBy(...keysetOrderBy(cols))
+          .limit(take + 1);
+        const { rows: pageRows, next } = sliceWithNext(
+          rows,
+          take,
+          "created_at",
+          "client_id",
+        );
+        const mapped = pageRows.map(sqlToClient);
+        return {
+          clients: mapped,
+          totals: { start: 0, limit: take, length: mapped.length, next },
+        };
       }
+
+      let query = db.select().from(clients).where(whereCondition).$dynamic();
 
       if (sort?.sort_by) {
         const col = (clients as any)[sort.sort_by];
@@ -270,13 +304,16 @@ export function createClientsAdapter(db: DrizzleDb): ClientsAdapter {
       const [countResult] = await db
         .select({ count: countFn() })
         .from(clients)
-        .where(eq(clients.tenant_id, tenant_id));
+        .where(whereCondition);
 
       return {
         clients: mapped,
-        start: page * per_page,
-        limit: per_page,
-        length: Number(countResult?.count ?? 0),
+        totals: {
+          start: page * per_page,
+          limit: per_page,
+          length: mapped.length,
+          total: Number(countResult?.count ?? 0),
+        },
       };
     },
 

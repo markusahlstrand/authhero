@@ -167,7 +167,7 @@ describe("clients", () => {
       });
     });
 
-    it("should support checkpoint pagination with from/take", async () => {
+    it("should paginate clients with from/take (keyset checkpoint)", async () => {
       const { data } = await getTestServer();
 
       await data.tenants.create({
@@ -185,19 +185,75 @@ describe("clients", () => {
         });
       }
 
-      const result = await data.clients.list("tenantId", {
-        from: "2",
-        take: 2,
-        include_totals: true,
+      // Walk every client via the opaque `next` cursor; no duplicates.
+      const seen = new Set<string>();
+      let from: string | undefined;
+      let pages = 0;
+      for (;;) {
+        const batch = await data.clients.list("tenantId", { take: 2, from });
+        expect(batch.clients.length).toBeLessThanOrEqual(2);
+        for (const c of batch.clients) {
+          expect(seen.has(c.client_id)).toBe(false);
+          seen.add(c.client_id);
+        }
+        pages++;
+        if (!batch.totals?.next) break;
+        // The cursor is opaque — not a numeric offset.
+        expect(Number.isNaN(Number(batch.totals.next))).toBe(true);
+        from = batch.totals.next;
+        if (pages > 5) throw new Error("cursor walk did not terminate");
+      }
+
+      expect(seen.size).toBe(5);
+      expect(pages).toBe(3); // 2 + 2 + 1
+    });
+
+    it("keyset walk stays stable when a client is inserted mid-walk", async () => {
+      const { data } = await getTestServer();
+
+      await data.tenants.create({
+        id: "tenantId",
+        friendly_name: "Test Tenant",
+        audience: "https://example.com",
+        sender_email: "login@example.com",
+        sender_name: "SenderName",
       });
 
-      expect(result.clients).toHaveLength(2);
-      expect(result.totals).toMatchObject({
-        start: 2,
-        limit: 2,
-        length: 2,
-        total: 5,
+      for (let i = 0; i < 4; i++) {
+        await data.clients.create("tenantId", {
+          client_id: `stable-${i}`,
+          name: `Stable ${i}`,
+        });
+      }
+
+      const page1 = await data.clients.list("tenantId", { take: 2 });
+      expect(page1.clients).toHaveLength(2);
+      expect(page1.totals?.next).toBeDefined();
+
+      // A row inserted mid-walk must not shift the remaining pages
+      // (OFFSET-based paging would skip or duplicate here).
+      await data.clients.create("tenantId", {
+        client_id: "stable-late",
+        name: "Late arrival",
       });
+
+      const page1Ids = page1.clients.map((c) => c.client_id);
+      const rest: string[] = [];
+      let from = page1.totals?.next;
+      while (from) {
+        const batch = await data.clients.list("tenantId", { take: 2, from });
+        rest.push(...batch.clients.map((c) => c.client_id));
+        from = batch.totals?.next;
+      }
+
+      for (const id of page1Ids) {
+        expect(rest).not.toContain(id);
+      }
+      // All four originals appear exactly once across the walk.
+      const all = [...page1Ids, ...rest];
+      for (let i = 0; i < 4; i++) {
+        expect(all.filter((id) => id === `stable-${i}`)).toHaveLength(1);
+      }
     });
 
     it("should support sorting", async () => {
