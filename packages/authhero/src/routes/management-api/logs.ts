@@ -9,6 +9,14 @@ import { defineRoute } from "../../utils/define-route";
 const logsWithTotalsSchema = totalsSchema.extend({
   logs: z.array(logSchema),
 });
+
+// Checkpoint (keyset) pagination response: items plus an opaque cursor.
+const logsWithNextSchema = z.object({
+  logs: z.array(logSchema),
+  next: z.string().optional().openapi({
+    description: "Opaque cursor for the next page; absent on the last page.",
+  }),
+});
 const getRoot = defineRoute({
   route: createRoute({
     tags: ["logs"],
@@ -29,7 +37,11 @@ const getRoot = defineRoute({
       200: {
         content: {
           "application/json": {
-            schema: z.union([z.array(logSchema), logsWithTotalsSchema]),
+            schema: z.union([
+              z.array(logSchema),
+              logsWithTotalsSchema,
+              logsWithNextSchema,
+            ]),
           },
         },
         description: "List of log rows",
@@ -37,8 +49,17 @@ const getRoot = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const { page, per_page, include_totals, sort, q, from_date, to_date } =
-      ctx.req.valid("query");
+    const {
+      page,
+      per_page,
+      include_totals,
+      sort,
+      q,
+      from,
+      take,
+      from_date,
+      to_date,
+    } = ctx.req.valid("query");
 
     const result = await ctx.env.data.logs.list(ctx.var.tenant_id, {
       page,
@@ -46,9 +67,20 @@ const getRoot = defineRoute({
       include_totals,
       sort: parseSort(sort),
       q,
+      from,
+      take,
       from_date,
       to_date,
     });
+
+    // Keyset (checkpoint) pagination: return Auth0's { items, next } shape so
+    // callers can page past the first page via the opaque cursor.
+    if (from !== undefined || take !== undefined) {
+      return ctx.json({
+        logs: result.logs,
+        next: result.next,
+      });
+    }
 
     if (include_totals) {
       return ctx.json(result);

@@ -1,4 +1,5 @@
 import { sql, SelectQueryBuilder, SqlBool } from "kysely";
+import { HTTPException } from "hono/http-exception";
 import {
   ListParams,
   decodeCursor,
@@ -28,6 +29,13 @@ export interface KeysetOptions {
   sortOrder: "asc" | "desc";
   /** Unique tiebreaker column; defaults to "id". */
   idColumn?: string;
+  /**
+   * Sort spec (e.g. `date:desc`) for endpoints that honor a caller-chosen sort
+   * in checkpoint mode. Minted into the cursor; a cursor presented under a
+   * different sort spec is rejected with a 400, because its keyset position is
+   * meaningless in the new order. Omit on fixed-sort endpoints.
+   */
+  sortKey?: string;
 }
 
 export interface KeysetResult<Row> {
@@ -58,6 +66,12 @@ export async function keysetPaginate<DB, TB extends keyof DB, O>(
     .orderBy(sql.ref(idColumn), sortOrder);
 
   const cursor = params?.from ? decodeCursor(params.from) : null;
+  if (cursor && cursor.k !== options.sortKey) {
+    throw new HTTPException(400, {
+      message:
+        "The `from` cursor was issued under a different sort and cannot be used with this request",
+    });
+  }
   if (cursor) {
     if (cursor.s === undefined || cursor.s === null) {
       // Id-only ordering (or a null boundary): compare on the tiebreaker alone.
@@ -94,6 +108,7 @@ export async function keysetPaginate<DB, TB extends keyof DB, O>(
           ? (sortValue as string | number | null)
           : String(sortValue),
       i: String(last[idColumn]),
+      ...(options.sortKey !== undefined && { k: options.sortKey }),
     });
   }
 

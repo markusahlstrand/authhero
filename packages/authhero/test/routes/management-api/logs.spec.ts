@@ -163,4 +163,78 @@ describe("logs", () => {
   //   expect(log.log_id).toBeTypeOf("string");
   //   expect(log.details?.request.method).toBe("GET");
   // });
+
+  it("pages with take/from and an opaque next cursor", async () => {
+    const { managementApp, env } = await getTestServer();
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    for (let i = 0; i < 5; i++) {
+      await env.data.logs.create("tenantId", {
+        log_id: `log-${i}`,
+        type: "s",
+        date: `2026-01-01T00:00:0${i}.000Z`,
+        isMobile: false,
+      });
+    }
+
+    const seen = new Set<string>();
+    let from: string | undefined;
+    let pages = 0;
+
+    for (;;) {
+      const response = await managementClient.logs.$get(
+        {
+          query: from ? { take: "2", from } : { take: "2" },
+          header: {
+            "tenant-id": "tenantId",
+          },
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
+      expect(response.status).toBe(200);
+      pages++;
+
+      const body = (await response.json()) as { logs: Log[]; next?: string };
+      expect(Array.isArray(body.logs)).toBe(true);
+      for (const log of body.logs) {
+        expect(seen.has(log.log_id)).toBe(false);
+        seen.add(log.log_id);
+      }
+      if (!body.next) break;
+      // The cursor is opaque — never a numeric offset.
+      expect(body.next).not.toMatch(/^\d+$/);
+      from = body.next;
+      if (pages > 5) throw new Error("cursor walk did not terminate");
+    }
+
+    expect(seen.size).toBe(5);
+    expect(pages).toBe(3); // 2 + 2 + 1
+  });
+
+  it("returns 400 for unsupported sort in checkpoint mode", async () => {
+    const { managementApp, env } = await getTestServer();
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const response = await managementClient.logs.$get(
+      {
+        query: { take: "2", sort: "user_id:1" },
+        header: {
+          "tenant-id": "tenantId",
+        },
+      },
+      {
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      },
+    );
+
+    expect(response.status).toBe(400);
+  });
 });

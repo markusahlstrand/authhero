@@ -20,6 +20,13 @@ export interface CursorPayload {
   s?: string | number | null;
   /** Id of the last row of the previous page — the unique tiebreaker. */
   i: string;
+  /**
+   * Sort spec the cursor was minted under (e.g. `date:desc`). Set by endpoints
+   * that honor a caller-chosen sort in checkpoint mode, so a token replayed
+   * with a different sort is rejected instead of silently returning pages from
+   * the wrong position. Absent on fixed-sort endpoints.
+   */
+  k?: string;
 }
 
 /**

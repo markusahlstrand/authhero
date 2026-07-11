@@ -1,9 +1,11 @@
 import { Kysely } from "kysely";
+import { HTTPException } from "hono/http-exception";
 import { ListParams } from "@authhero/adapter-interfaces";
 import { luceneFilter, sanitizeLuceneQuery } from "../helpers/filter";
 import { getLogResponse } from "./logs";
 import { Database } from "../db";
 import getCountAsInt from "../utils/getCountAsInt";
+import { isKeysetRequest, keysetPaginate } from "../helpers/paginate";
 
 // Fields logs.list() accepts as `field:value` clauses in `q`. Every entry maps
 // to a real column on the logs table. Excludes `tenant_id` so a clause like
@@ -88,6 +90,38 @@ export function listLogs(db: Kysely<Database>) {
         "<=",
         new Date(Math.floor(to_date) * 1000 + 999).toISOString(),
       );
+    }
+
+    // Keyset (checkpoint) pagination: from/take. Unlike Auth0 — which ignores
+    // q/sort in checkpoint mode on /logs — the q and date-range filters above
+    // stay in effect, and sorting by date (asc/desc) is honored as a superset.
+    // Only `date` is keyset-sortable; log_id is the unique tiebreaker.
+    if (isKeysetRequest(params)) {
+      if (sort?.sort_by && sort.sort_by !== "date") {
+        throw new HTTPException(400, {
+          message: `Sorting by ${sort.sort_by} is not supported with checkpoint pagination (from/take); only date is`,
+        });
+      }
+      const sortOrder: "asc" | "desc" =
+        sort?.sort_order === "asc" ? "asc" : "desc";
+      const { rows, limit, next } = await keysetPaginate(
+        query.selectAll(),
+        params,
+        {
+          sortColumn: "date",
+          sortOrder,
+          idColumn: "log_id",
+          sortKey: `date:${sortOrder}`,
+        },
+      );
+      const logs = rows.map(getLogResponse);
+      return {
+        logs,
+        start: 0,
+        limit,
+        length: logs.length,
+        next,
+      };
     }
 
     let filteredQuery = query;
