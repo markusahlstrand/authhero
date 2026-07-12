@@ -27,6 +27,23 @@ export function getUniversalLoginUrl(
   return `${env.ISSUER}${prefix}/`;
 }
 
+/**
+ * Wildcard callback entries that always allow redirecting back to the auth
+ * server itself (e.g. the /u/info and /u2/info test screens) without
+ * per-client registration. The bases usually end in "/", so normalize before
+ * appending "*" — a naive `${base}/*` yields a "//*" path whose wildcard
+ * regex never matches a real pathname.
+ */
+export function getSelfCallbackWildcards(
+  env: Bindings,
+  customDomain?: string,
+) {
+  return [
+    getIssuer(env, customDomain),
+    getUniversalLoginUrl(env, customDomain),
+  ].map((base) => `${base}${base.endsWith("/") ? "" : "/"}*`);
+}
+
 export function getAuthUrl(env: Bindings, customDomain?: string) {
   if (customDomain) {
     return `https://${customDomain}/`;

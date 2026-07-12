@@ -25,7 +25,7 @@ import { resumeLoginSession } from "../../authentication-flows/resume";
 import { getEnrichedClient } from "../../helpers/client";
 import { prefetchClientBundle } from "../../helpers/prefetch-client-bundle";
 import { isCimdClientId } from "../../helpers/cimd";
-import { getIssuer, getUniversalLoginUrl } from "../../variables";
+import { getIssuer, getSelfCallbackWildcards } from "../../variables";
 import { formPostResponse } from "../../utils/form-post";
 import { setTenantId } from "../../helpers/set-tenant-id";
 import { defineRoute } from "../../utils/define-route";
@@ -552,12 +552,11 @@ const getRoot = defineRoute({
     };
 
     if (authParams.redirect_uri) {
-      const validCallbacks = client.callbacks || [];
+      // Copy: pushing onto client.callbacks directly would mutate the client
+      const validCallbacks = [...(client.callbacks || [])];
       if (ctx.var.host) {
-        // Allow wildcard for the auth server
-        validCallbacks.push(`${getIssuer(ctx.env, ctx.var.custom_domain)}/*`);
         validCallbacks.push(
-          `${getUniversalLoginUrl(ctx.env, ctx.var.custom_domain)}/*`,
+          ...getSelfCallbackWildcards(ctx.env, ctx.var.custom_domain),
         );
       }
 
