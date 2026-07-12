@@ -1,4 +1,5 @@
 import { eq, and, count as countFn, asc, desc } from "drizzle-orm";
+import { customAlphabet } from "nanoid";
 import { HTTPException } from "hono/http-exception";
 import type { Connection, ListParams } from "@authhero/adapter-interfaces";
 import { connections } from "../schema/sqlite";
@@ -7,7 +8,6 @@ import { buildLuceneFilter } from "../helpers/filter";
 import type { DrizzleDb } from "./types";
 
 function generateConnectionId(): string {
-  const { customAlphabet } = require("nanoid");
   const generate = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 17);
   return `con_${generate()}`;
 }

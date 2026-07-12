@@ -1,4 +1,5 @@
 import { eq, and, count as countFn, asc, desc } from "drizzle-orm";
+import { customAlphabet } from "nanoid";
 import { HTTPException } from "hono/http-exception";
 import type { Invite, ListParams } from "@authhero/adapter-interfaces";
 import { invites } from "../schema/sqlite";
@@ -6,7 +7,6 @@ import { removeNullProperties, parseJsonIfString } from "../helpers/transform";
 import type { DrizzleDb } from "./types";
 
 function generateInviteId(): string {
-  const { customAlphabet } = require("nanoid");
   const generate = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 17);
   return `inv_${generate()}`;
 }

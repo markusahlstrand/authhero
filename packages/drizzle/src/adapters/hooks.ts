@@ -1,4 +1,5 @@
 import { eq, and, count as countFn, asc, desc } from "drizzle-orm";
+import { customAlphabet } from "nanoid";
 import type { Hook, ListParams } from "@authhero/adapter-interfaces";
 import { hooks } from "../schema/sqlite";
 import { removeNullProperties } from "../helpers/transform";
@@ -7,7 +8,6 @@ import { buildLuceneFilter } from "../helpers/filter";
 import type { DrizzleDb } from "./types";
 
 function generateHookId(): string {
-  const { customAlphabet } = require("nanoid");
   const generate = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 17);
   return `h_${generate()}`;
 }
