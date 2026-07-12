@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { testClient } from "hono/testing";
 import { createJWT } from "oslo/jwt";
 import { TimeSpan } from "oslo";
-import { base64url } from "oslo/encoding";
+import { encodeBase64Url } from "@authhero/adapter-interfaces";
 import { getTestServer } from "../../helpers/test-server";
 
 const ISSUER = "http://localhost:3000/";
@@ -86,11 +86,10 @@ describe("/authorize request= and request_uri (RFC 9101 / OIDC Core 6.1, 6.2)", 
     const { publicJwk } = await generateRsaKeypairWithJwks();
     await attachClientJwks(env, publicJwk);
 
-    const header = base64url.encode(
+    const header = encodeBase64Url(
       new TextEncoder().encode(JSON.stringify({ alg: "none", typ: "JWT" })),
-      { includePadding: false },
     );
-    const payload = base64url.encode(
+    const payload = encodeBase64Url(
       new TextEncoder().encode(
         JSON.stringify({
           iss: "clientId",
@@ -101,7 +100,6 @@ describe("/authorize request= and request_uri (RFC 9101 / OIDC Core 6.1, 6.2)", 
           exp: Math.floor(Date.now() / 1000) + 300,
         }),
       ),
-      { includePadding: false },
     );
     const unsignedJwt = `${header}.${payload}.`;
 

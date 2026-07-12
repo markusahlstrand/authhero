@@ -1,9 +1,9 @@
 import { nanoid } from "nanoid";
 import * as x509 from "@peculiar/x509";
-import { encodeHex, base64, base64url } from "oslo/encoding";
+import { encodeHex, base64 } from "oslo/encoding";
 import { sha256 } from "oslo/crypto";
 import { getRuntimeKey } from "hono/adapter";
-import { SigningKey } from "@authhero/adapter-interfaces";
+import { SigningKey, encodeBase64Url } from "@authhero/adapter-interfaces";
 
 const RFC7638_REQUIRED_MEMBERS: Record<string, string[]> = {
   RSA: ["e", "kty", "n"],
@@ -191,5 +191,5 @@ export async function computeJWKThumbprint(jwk: JsonWebKey): Promise<string> {
 
   const json = JSON.stringify(canonical);
   const digest = await sha256(new TextEncoder().encode(json));
-  return base64url.encode(new Uint8Array(digest), { includePadding: false });
+  return encodeBase64Url(new Uint8Array(digest));
 }

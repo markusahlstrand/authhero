@@ -1,4 +1,8 @@
-import { base64, base64url } from "oslo/encoding";
+import { base64 } from "oslo/encoding";
+import {
+  encodeBase64Url,
+  decodeBase64Url,
+} from "@authhero/adapter-interfaces";
 
 // Version-tagged prefix for encrypted field values. Stored values that do not
 // start with this prefix are treated as legacy plaintext and returned as-is,
@@ -97,7 +101,7 @@ async function encryptWithKey(
   combined.set(iv, 0);
   combined.set(new Uint8Array(ciphertext), iv.byteLength);
 
-  const payload = base64url.encode(combined);
+  const payload = encodeBase64Url(combined);
   return keyId ? `${PREFIX}${keyId}:${payload}` : `${PREFIX}${payload}`;
 }
 
@@ -109,7 +113,9 @@ async function decryptWithKey(
   const colon = remainder.indexOf(":");
   const payload = colon === -1 ? remainder : remainder.slice(colon + 1);
 
-  const combined = base64url.decode(payload);
+  // Values stored before 2026-07 carry base64 padding ("="); the decoder must
+  // stay lenient so both padded and unpadded payloads keep decrypting.
+  const combined = decodeBase64Url(payload);
   const iv = combined.slice(0, IV_BYTES);
   const ciphertext = combined.slice(IV_BYTES);
 

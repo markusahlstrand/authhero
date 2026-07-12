@@ -1,5 +1,5 @@
 import { sha256 } from "oslo/crypto";
-import { base64url } from "oslo/encoding";
+import { encodeBase64Url } from "@authhero/adapter-interfaces";
 
 export function pemToBuffer(pem: string): ArrayBuffer {
   try {
@@ -33,7 +33,5 @@ export async function computeCodeChallenge(
   const hashedVerifier = await sha256(encodedData);
 
   // Convert to base64url without padding
-  return base64url.encode(new Uint8Array(hashedVerifier), {
-    includePadding: false,
-  });
+  return encodeBase64Url(new Uint8Array(hashedVerifier));
 }
