@@ -45,13 +45,14 @@ Run a single plan's tests with Playwright's filename filter:
 pnpm conformance:run -- tests/oidcc-config.spec.ts
 ```
 
-The runner currently drives eight plans, each in its own spec file:
+The runner currently drives nine plans, each in its own spec file:
 
 - `oidcc-basic-certification-test-plan` ([oidcc-basic.spec.ts](tests/oidcc-basic.spec.ts))
 - `oidcc-formpost-basic-certification-test-plan` ([oidcc-form-post-basic.spec.ts](tests/oidcc-form-post-basic.spec.ts))
 - `oidcc-implicit-certification-test-plan` ([oidcc-implicit.spec.ts](tests/oidcc-implicit.spec.ts)) — `response_type` is pinned per-module by the plan; status TBD until first green run
 - `oidcc-formpost-implicit-certification-test-plan` ([oidcc-form-post-implicit.spec.ts](tests/oidcc-form-post-implicit.spec.ts)) — implicit profile with `response_mode=form_post`; `response_type` pinned per-module by the plan; status TBD until first green run
 - `oidcc-hybrid-certification-test-plan` ([oidcc-hybrid.spec.ts](tests/oidcc-hybrid.spec.ts)) — hybrid flow (`code id_token`, `code token`, `code id_token token`); `response_type` pinned per-module by the plan; status TBD until first green run
+- `oidcc-formpost-hybrid-certification-test-plan` ([oidcc-form-post-hybrid.spec.ts](tests/oidcc-form-post-hybrid.spec.ts)) — hybrid profile with `response_mode=form_post`; `response_type` pinned per-module by the plan; status TBD until first green run
 - `oidcc-rp-initiated-logout-certification-test-plan` ([oidcc-rp-initiated-logout.spec.ts](tests/oidcc-rp-initiated-logout.spec.ts))
 - `oidcc-config-certification-test-plan` ([oidcc-config.spec.ts](tests/oidcc-config.spec.ts)) — pure metadata verification (discovery + JWKS), no browser flow
 - `oidcc-dynamic-certification-test-plan` ([oidcc-dynamic.spec.ts](tests/oidcc-dynamic.spec.ts)) — basic flow with `client_registration=dynamic_client`; suite registers its own client via `/oidc/register`. Requires the conformance tenant to have `enable_dynamic_client_registration=true` (set automatically by `create-authhero --conformance`). Status TBD until first green run
