@@ -43,12 +43,22 @@ export async function generateTOTP(secret: Uint8Array): Promise<string> {
   return generateHOTP(secret, counter);
 }
 
-/** Verify a code against the current period (no clock-skew window). */
+/**
+ * Verify a code against the current period ±1 (RFC 6238 §6 recommends
+ * tolerating one step of transmission delay / clock drift, and oslo's
+ * current-slice-only check made codes fail at period boundaries).
+ */
 export async function verifyTOTP(
   code: string,
   secret: Uint8Array,
 ): Promise<boolean> {
-  return (await generateTOTP(secret)) === code;
+  const counter = Math.floor(Date.now() / (TOTP_PERIOD_SECONDS * 1000));
+  for (const step of [0, -1, 1]) {
+    if ((await generateHOTP(secret, counter + step)) === code) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /** otpauth:// URI for enrolling the secret in an authenticator app. */
