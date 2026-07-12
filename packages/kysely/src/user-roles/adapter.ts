@@ -8,6 +8,8 @@ export function createUserRolesAdapter(db: Kysely<Database>): UserRolesAdapter {
   return {
     list: (tenantId, userId, params, organizationId) =>
       repo.list(tenantId, userId, params, organizationId),
+    listUsers: (tenantId, roleId, params) =>
+      repo.listUsers(tenantId, roleId, params),
     create: (tenantId, userId, roleId, organizationId) =>
       repo.create(tenantId, userId, roleId, organizationId),
     remove: (tenantId, userId, roleId, organizationId) =>

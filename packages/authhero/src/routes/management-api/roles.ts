@@ -12,6 +12,8 @@ import {
   LogTypes,
 } from "@authhero/adapter-interfaces";
 import { logMessage } from "../../helpers/logging";
+import { getIssuer } from "../../variables";
+import { getDefaultUserPicture } from "../../helpers/avatar";
 
 import { defineRoute } from "../../utils/define-route";
 const rolesWithTotalsSchema = totalsSchema.extend({
@@ -20,6 +22,26 @@ const rolesWithTotalsSchema = totalsSchema.extend({
 
 const rolePermissionsWithTotalsSchema = totalsSchema.extend({
   permissions: z.array(rolePermissionSchema),
+});
+
+// Auth0's GET /roles/{id}/users returns user summaries, not full profiles.
+const roleUserSchema = z.object({
+  user_id: z.string(),
+  email: z.string().optional(),
+  name: z.string().optional(),
+  picture: z.string().optional(),
+});
+
+const roleUsersWithTotalsSchema = totalsSchema.extend({
+  users: z.array(roleUserSchema),
+});
+
+const roleUsersWithNextSchema = z.object({
+  next: z.string().optional().openapi({
+    description:
+      "Checkpoint cursor to be used to retrieve the next set of results",
+  }),
+  users: z.array(roleUserSchema),
 });
 const getRoot = defineRoute({
   route: createRoute({
@@ -385,6 +407,110 @@ const getByIdPermissions = defineRoute({
   },
 });
 
+const getByIdUsers = defineRoute({
+  route: createRoute({
+    tags: ["roles"],
+    method: "get",
+    path: "/{id}/users",
+    request: {
+      params: z.object({
+        id: z.string(),
+      }),
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
+      query: querySchema,
+    },
+    security: [
+      {
+        Bearer: ["read:roles"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: z.union([
+              z.array(roleUserSchema),
+              roleUsersWithTotalsSchema,
+              roleUsersWithNextSchema,
+            ]),
+          },
+        },
+        description: "Users assigned to the role",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const { id } = ctx.req.valid("param");
+    const { page, per_page, include_totals, from, take } =
+      ctx.req.valid("query");
+
+    const tenantId = ctx.var.tenant_id;
+    if (!tenantId) {
+      throw new HTTPException(400, {
+        message: "tenant-id header is required",
+      });
+    }
+
+    const role = await ctx.env.data.roles.get(tenantId, id);
+    if (!role) {
+      throw new HTTPException(404, {
+        message: "Role not found",
+      });
+    }
+
+    // Pass through checkpoint pagination (from/take) as well as
+    // page/per_page so clients using either style — e.g. the Auth0 SDK,
+    // which sends from/take past 1000 results — page correctly.
+    const result = await ctx.env.data.userRoles.listUsers(tenantId, id, {
+      page,
+      per_page,
+      include_totals,
+      from,
+      take,
+    });
+
+    const users = await Promise.all(
+      result.userIds.map(async (userId) => {
+        const user = await ctx.env.data.users.get(tenantId, userId);
+        if (!user) return null;
+        return {
+          user_id: user.user_id,
+          email: user.email || undefined,
+          name: user.name || undefined,
+          picture:
+            user.picture ||
+            getDefaultUserPicture(
+              getIssuer(ctx.env, ctx.var.custom_domain),
+              user,
+            ),
+        };
+      }),
+    ).then((rows) =>
+      rows.filter((r): r is NonNullable<typeof r> => r !== null),
+    );
+
+    // Keyset (checkpoint) pagination: return Auth0's { users, next } shape so
+    // clients can page past the first page via the opaque cursor.
+    if (from !== undefined || take !== undefined) {
+      return ctx.json({ users, next: result.next });
+    }
+
+    if (include_totals) {
+      return ctx.json({
+        users,
+        start: result.start,
+        limit: result.limit,
+        length: users.length,
+        total: result.length,
+      });
+    }
+
+    return ctx.json(users);
+  },
+});
+
 const postByIdPermissions = defineRoute({
   route: createRoute({
     tags: ["roles"],
@@ -563,6 +689,7 @@ export const roleRoutes = new OpenAPIHono<{
   patchById,
   deleteById,
   getByIdPermissions,
+  getByIdUsers,
   postByIdPermissions,
   deleteByIdPermissions,
 ] as const);
