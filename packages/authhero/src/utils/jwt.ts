@@ -2,9 +2,160 @@ import { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { JSONHTTPException } from "../errors/json-http-exception";
 import { decode, verify } from "hono/jwt";
+import type { TokenHeader } from "hono/utils/jwt/jwt";
+import type { JWTPayload } from "hono/utils/jwt/types";
+import { encodeBase64Url } from "@authhero/adapter-interfaces";
 import { getJwksForVerification } from "./jwks";
 import { getIssuer } from "../variables";
 import { importParamsForJwk, SupportedAlg } from "./jwk-alg";
+
+export type JWTSigningAlg =
+  | "HS256"
+  | "HS384"
+  | "HS512"
+  | "RS256"
+  | "RS384"
+  | "RS512"
+  | "ES256"
+  | "ES384"
+  | "ES512";
+
+const EC_CURVE_BY_ALG: Record<string, string> = {
+  ES256: "P-256",
+  ES384: "P-384",
+  ES512: "P-521",
+};
+
+export interface SignJWTOptions {
+  /** Sets `exp` to now + this many seconds. */
+  expiresInSeconds?: number;
+  /** Sets `iat` to now. */
+  includeIssuedTimestamp?: boolean;
+  /** Extra JOSE header members (e.g. `kid`); merged over `alg`/`typ`. */
+  headers?: Record<string, unknown>;
+}
+
+// Copy into a freshly allocated ArrayBuffer so the value satisfies the Web
+// Crypto BufferSource typing (which requires an ArrayBuffer rather than a
+// possibly-SharedArrayBuffer-backed view).
+function toArrayBuffer(key: ArrayBuffer | Uint8Array): ArrayBuffer {
+  if (!(key instanceof Uint8Array)) {
+    return key;
+  }
+  const buffer = new ArrayBuffer(key.byteLength);
+  new Uint8Array(buffer).set(key);
+  return buffer;
+}
+
+function hashForAlg(alg: JWTSigningAlg): string {
+  return `SHA-${alg.slice(2)}`;
+}
+
+async function importSigningKey(
+  alg: JWTSigningAlg,
+  key: ArrayBuffer | Uint8Array,
+): Promise<CryptoKey> {
+  const raw = toArrayBuffer(key);
+  if (alg.startsWith("HS")) {
+    return crypto.subtle.importKey(
+      "raw",
+      raw,
+      { name: "HMAC", hash: hashForAlg(alg) },
+      false,
+      ["sign"],
+    );
+  }
+  if (alg.startsWith("RS")) {
+    return crypto.subtle.importKey(
+      "pkcs8",
+      raw,
+      { name: "RSASSA-PKCS1-v1_5", hash: hashForAlg(alg) },
+      false,
+      ["sign"],
+    );
+  }
+  const namedCurve = EC_CURVE_BY_ALG[alg];
+  if (!namedCurve) {
+    throw new Error(`Unsupported JWT signing alg: ${alg}`);
+  }
+  return crypto.subtle.importKey(
+    "pkcs8",
+    raw,
+    { name: "ECDSA", namedCurve },
+    false,
+    ["sign"],
+  );
+}
+
+/**
+ * Sign a JWT (compact JWS) on Web Crypto. `key` is the raw HMAC secret for
+ * HS* or a PKCS#8 private key for RS* and ES*. ECDSA signatures use the raw
+ * `r ‖ s` form Web Crypto produces, as JWS requires.
+ */
+export async function signJWT(
+  algorithm: JWTSigningAlg,
+  key: ArrayBuffer | Uint8Array,
+  payloadClaims: Record<string, unknown>,
+  options: SignJWTOptions = {},
+): Promise<string> {
+  const header: Record<string, unknown> = {
+    alg: algorithm,
+    typ: "JWT",
+    ...options.headers,
+  };
+  const payload: Record<string, unknown> = { ...payloadClaims };
+  if (options.expiresInSeconds !== undefined) {
+    payload.exp = Math.floor(Date.now() / 1000) + options.expiresInSeconds;
+  }
+  if (options.includeIssuedTimestamp === true) {
+    payload.iat = Math.floor(Date.now() / 1000);
+  }
+
+  const encoder = new TextEncoder();
+  const headerPart = encodeBase64Url(encoder.encode(JSON.stringify(header)));
+  const payloadPart = encodeBase64Url(encoder.encode(JSON.stringify(payload)));
+  const data = encoder.encode(`${headerPart}.${payloadPart}`);
+
+  const cryptoKey = await importSigningKey(algorithm, key);
+  const signature = await crypto.subtle.sign(
+    algorithm.startsWith("ES")
+      ? { name: "ECDSA", hash: hashForAlg(algorithm) }
+      : cryptoKey.algorithm.name,
+    cryptoKey,
+    data,
+  );
+
+  return `${headerPart}.${payloadPart}.${encodeBase64Url(new Uint8Array(signature))}`;
+}
+
+export interface ParsedJWT {
+  header: TokenHeader;
+  payload: JWTPayload;
+}
+
+/**
+ * Decode a compact JWT without verifying its signature; null on malformed
+ * input. For reading claims out of tokens we minted ourselves or received
+ * over a channel that authenticates the issuer (e.g. an IdP token
+ * endpoint). Anything accepted from the outside goes through
+ * `validateJwtToken` or the JWKS verifiers in helpers/ instead.
+ */
+export function parseJWT(jwt: string): ParsedJWT | null {
+  try {
+    const { header, payload } = decode(jwt);
+    if (
+      typeof header !== "object" ||
+      header === null ||
+      typeof payload !== "object" ||
+      payload === null
+    ) {
+      return null;
+    }
+    return { header, payload };
+  } catch {
+    return null;
+  }
+}
 
 export interface JwtPayload {
   sub: string;

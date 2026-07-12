@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { parseJWT } from "oslo/jwt";
+import { parseJWT } from "../../src/utils/jwt";
 import type {
   DataAdapters,
   HooksAdapter,

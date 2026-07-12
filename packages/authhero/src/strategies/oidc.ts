@@ -6,7 +6,7 @@ import {
 import { Context } from "hono";
 import { Connection } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
-import { parseJWT } from "oslo/jwt";
+import { parseJWT } from "../utils/jwt";
 import { idTokenSchema } from "../types/IdToken";
 import { getConnectionCallbackUrl } from "./index";
 import { ExtendedOAuth2Client } from "./internal-oauth2";

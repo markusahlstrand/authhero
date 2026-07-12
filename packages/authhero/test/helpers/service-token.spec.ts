@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { Context } from "hono";
-import { parseJWT } from "oslo/jwt";
+import { parseJWT } from "../../src/utils/jwt";
 import { createClientServiceToken } from "../../src/helpers/service-token";
 import { getTestServer } from "./test-server";
 import { Bindings, Variables } from "../../src/types";

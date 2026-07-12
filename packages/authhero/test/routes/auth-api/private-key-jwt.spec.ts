@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
-import { createJWT, parseJWT } from "oslo/jwt";
-import { TimeSpan } from "oslo";
+import { signJWT, parseJWT } from "../../../src/utils/jwt";
 import { encodeBase64Url } from "@authhero/adapter-interfaces";
 import { getTestServer } from "../../helpers/test-server";
 
@@ -52,7 +51,7 @@ async function makeAssertion(
   kid: string,
   overrides: Record<string, unknown> = {},
 ): Promise<string> {
-  return createJWT(
+  return signJWT(
     "RS256",
     privateBuffer,
     {
@@ -64,7 +63,7 @@ async function makeAssertion(
     },
     {
       includeIssuedTimestamp: true,
-      expiresIn: new TimeSpan(5, "m"),
+      expiresInSeconds: 300,
       headers: { kid },
     },
   );
@@ -266,7 +265,7 @@ describe("/oauth/token with RFC 7523 client_assertion", () => {
     const secretBytes = new Uint8Array(
       new TextEncoder().encode("clientSecret"),
     );
-    const assertion = await createJWT(
+    const assertion = await signJWT(
       "HS256",
       secretBytes,
       {
@@ -275,7 +274,7 @@ describe("/oauth/token with RFC 7523 client_assertion", () => {
         aud: TOKEN_ENDPOINT,
         jti: "hs-jti",
       },
-      { includeIssuedTimestamp: true, expiresIn: new TimeSpan(5, "m") },
+      { includeIssuedTimestamp: true, expiresInSeconds: 300 },
     );
 
     const oauthClient = testClient(oauthApp, env);

@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createJWT } from "oslo/jwt";
-import { TimeSpan } from "oslo";
+import { signJWT } from "../../../src/utils/jwt";
 import { LogTypes } from "@authhero/adapter-interfaces";
 import { getTestServer } from "../../helpers/test-server";
 import { createSessions } from "../../helpers/create-session";
@@ -15,7 +14,7 @@ interface IdTokenOptions {
 
 async function signIdToken(opts: IdTokenOptions = {}) {
   const cert = await getCertificate();
-  return createJWT(
+  return signJWT(
     "RS256",
     pemToBuffer(cert.pkcs7!),
     {
@@ -26,7 +25,7 @@ async function signIdToken(opts: IdTokenOptions = {}) {
     },
     {
       includeIssuedTimestamp: true,
-      expiresIn: new TimeSpan(1, "h"),
+      expiresInSeconds: 3600,
       headers: { kid: cert.kid },
     },
   );

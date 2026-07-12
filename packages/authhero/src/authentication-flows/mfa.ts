@@ -11,8 +11,7 @@ import { EnrichedClient } from "../helpers/client";
 import generateOTP from "../utils/otp";
 import { logMessage } from "../helpers/logging";
 import { createClientServiceToken } from "../helpers/service-token";
-import { TOTPController } from "oslo/otp";
-import { createTOTPKeyURI } from "oslo/otp";
+import { verifyTOTP, createTOTPKeyURI } from "../utils/totp";
 import { encodeBase32, decodeBase32 } from "@authhero/adapter-interfaces";
 
 const MFA_OTP_EXPIRATION_MS = 10 * 60 * 1000; // 10 minutes
@@ -197,8 +196,6 @@ export async function verifyMfaOtp(
 }
 
 const TOTP_SECRET_BYTES = 20;
-const totpController = new TOTPController();
-
 /**
  * Generate a random TOTP secret and return it as a base32-encoded string.
  */
@@ -228,5 +225,5 @@ export async function verifyTotpCode(
   code: string,
 ): Promise<boolean> {
   const secretBytes = decodeBase32(secretBase32);
-  return totpController.verify(code, secretBytes);
+  return verifyTOTP(code, secretBytes);
 }

@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createJWT } from "oslo/jwt";
-import { TimeSpan } from "oslo";
+import { signJWT } from "../../src/utils/jwt";
 import { encodeBase64Url } from "@authhero/adapter-interfaces";
 import {
   verifyClientAssertion,
@@ -65,9 +64,9 @@ const standardClaims = () => ({
 describe("verifyClientAssertion (RFC 7523)", () => {
   it("verifies a valid private_key_jwt assertion (RS256)", async () => {
     const { privateBuffer, publicJwk } = await generateRsaKeypair();
-    const jwt = await createJWT("RS256", privateBuffer, standardClaims(), {
+    const jwt = await signJWT("RS256", privateBuffer, standardClaims(), {
       includeIssuedTimestamp: true,
-      expiresIn: new TimeSpan(5, "m"),
+      expiresInSeconds: 300,
       headers: { kid: publicJwk.kid },
     });
     const verified = await verifyClientAssertion(
@@ -82,9 +81,9 @@ describe("verifyClientAssertion (RFC 7523)", () => {
 
   it("verifies a valid private_key_jwt assertion (ES256)", async () => {
     const { privateBuffer, publicJwk } = await generateEcKeypair();
-    const jwt = await createJWT("ES256", privateBuffer, standardClaims(), {
+    const jwt = await signJWT("ES256", privateBuffer, standardClaims(), {
       includeIssuedTimestamp: true,
-      expiresIn: new TimeSpan(5, "m"),
+      expiresInSeconds: 300,
       headers: { kid: publicJwk.kid },
     });
     const verified = await verifyClientAssertion(
@@ -98,9 +97,9 @@ describe("verifyClientAssertion (RFC 7523)", () => {
   it("verifies a client_secret_jwt assertion (HS256)", async () => {
     const client_secret = "shared-secret-of-reasonable-length-here";
     const secretBytes = new Uint8Array(new TextEncoder().encode(client_secret));
-    const jwt = await createJWT("HS256", secretBytes, standardClaims(), {
+    const jwt = await signJWT("HS256", secretBytes, standardClaims(), {
       includeIssuedTimestamp: true,
-      expiresIn: new TimeSpan(5, "m"),
+      expiresInSeconds: 300,
     });
     const verified = await verifyClientAssertion(
       jwt,
@@ -133,13 +132,13 @@ describe("verifyClientAssertion (RFC 7523)", () => {
 
   it("rejects when iss != client_id", async () => {
     const { privateBuffer, publicJwk } = await generateRsaKeypair();
-    const jwt = await createJWT(
+    const jwt = await signJWT(
       "RS256",
       privateBuffer,
       { ...standardClaims(), iss: "other-client" },
       {
         includeIssuedTimestamp: true,
-        expiresIn: new TimeSpan(5, "m"),
+        expiresInSeconds: 300,
         headers: { kid: publicJwk.kid },
       },
     );
@@ -152,13 +151,13 @@ describe("verifyClientAssertion (RFC 7523)", () => {
 
   it("rejects when sub != client_id", async () => {
     const { privateBuffer, publicJwk } = await generateRsaKeypair();
-    const jwt = await createJWT(
+    const jwt = await signJWT(
       "RS256",
       privateBuffer,
       { ...standardClaims(), sub: "different-sub" },
       {
         includeIssuedTimestamp: true,
-        expiresIn: new TimeSpan(5, "m"),
+        expiresInSeconds: 300,
         headers: { kid: publicJwk.kid },
       },
     );
@@ -171,13 +170,13 @@ describe("verifyClientAssertion (RFC 7523)", () => {
 
   it("rejects when aud doesn't match", async () => {
     const { privateBuffer, publicJwk } = await generateRsaKeypair();
-    const jwt = await createJWT(
+    const jwt = await signJWT(
       "RS256",
       privateBuffer,
       { ...standardClaims(), aud: "https://other-op.example.com/oauth/token" },
       {
         includeIssuedTimestamp: true,
-        expiresIn: new TimeSpan(5, "m"),
+        expiresInSeconds: 300,
         headers: { kid: publicJwk.kid },
       },
     );
@@ -190,13 +189,13 @@ describe("verifyClientAssertion (RFC 7523)", () => {
 
   it("accepts aud as an array containing one of the accepted audiences", async () => {
     const { privateBuffer, publicJwk } = await generateRsaKeypair();
-    const jwt = await createJWT(
+    const jwt = await signJWT(
       "RS256",
       privateBuffer,
       { ...standardClaims(), aud: ["https://other.example/", TOKEN_ENDPOINT] },
       {
         includeIssuedTimestamp: true,
-        expiresIn: new TimeSpan(5, "m"),
+        expiresInSeconds: 300,
         headers: { kid: publicJwk.kid },
       },
     );
@@ -210,9 +209,9 @@ describe("verifyClientAssertion (RFC 7523)", () => {
 
   it("rejects expired assertions", async () => {
     const { privateBuffer, publicJwk } = await generateRsaKeypair();
-    const jwt = await createJWT("RS256", privateBuffer, standardClaims(), {
+    const jwt = await signJWT("RS256", privateBuffer, standardClaims(), {
       includeIssuedTimestamp: true,
-      expiresIn: new TimeSpan(1, "s"),
+      expiresInSeconds: 1,
       headers: { kid: publicJwk.kid },
     });
     const future = Date.now() + 10 * 60 * 1000;
@@ -227,13 +226,13 @@ describe("verifyClientAssertion (RFC 7523)", () => {
   it("rejects when signed with a different key than the client owns", async () => {
     const { privateBuffer } = await generateRsaKeypair();
     const other = await generateRsaKeypair();
-    const jwt = await createJWT(
+    const jwt = await signJWT(
       "RS256",
       privateBuffer, // signs with our key
       standardClaims(),
       {
         includeIssuedTimestamp: true,
-        expiresIn: new TimeSpan(5, "m"),
+        expiresInSeconds: 300,
         headers: { kid: other.publicJwk.kid }, // pretends to be the other key
       },
     );
@@ -246,9 +245,9 @@ describe("verifyClientAssertion (RFC 7523)", () => {
 
   it("rejects RS256 when client has no jwks registered", async () => {
     const { privateBuffer, publicJwk } = await generateRsaKeypair();
-    const jwt = await createJWT("RS256", privateBuffer, standardClaims(), {
+    const jwt = await signJWT("RS256", privateBuffer, standardClaims(), {
       includeIssuedTimestamp: true,
-      expiresIn: new TimeSpan(5, "m"),
+      expiresInSeconds: 300,
       headers: { kid: publicJwk.kid },
     });
     await expect(
@@ -262,9 +261,9 @@ describe("verifyClientAssertion (RFC 7523)", () => {
 
   it("rejects HS256 when client has no client_secret", async () => {
     const secretBytes = new Uint8Array(new TextEncoder().encode("foo"));
-    const jwt = await createJWT("HS256", secretBytes, standardClaims(), {
+    const jwt = await signJWT("HS256", secretBytes, standardClaims(), {
       includeIssuedTimestamp: true,
-      expiresIn: new TimeSpan(5, "m"),
+      expiresInSeconds: 300,
     });
     await expect(
       verifyClientAssertion(

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
-import { parseJWT } from "oslo/jwt";
+import { parseJWT } from "../../../src/utils/jwt";
 import { getTestServer } from "../../helpers/test-server";
 import { mintRegistrationToken } from "../../../src/helpers/dcr/mint-token";
 import type { Bindings } from "../../../src/types";

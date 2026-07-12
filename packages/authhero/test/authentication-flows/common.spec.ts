@@ -13,7 +13,7 @@ import {
   AuthorizationResponseMode,
   Strategy,
 } from "@authhero/adapter-interfaces";
-import { parseJWT } from "oslo/jwt";
+import { parseJWT } from "../../src/utils/jwt";
 import { getEnrichedClient } from "../../src/helpers/client";
 
 describe("common", () => {
@@ -266,7 +266,9 @@ describe("common", () => {
       });
 
       it("includes auth_time when prompt=login forced re-authentication", async () => {
-        expect(await issueIdToken({ prompt: "login" })).toBe(EXPECTED_AUTH_TIME);
+        expect(await issueIdToken({ prompt: "login" })).toBe(
+          EXPECTED_AUTH_TIME,
+        );
       });
 
       it("includes auth_time when requested as an essential claim", async () => {

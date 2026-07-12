@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createJWT } from "oslo/jwt";
-import { TimeSpan } from "oslo";
+import { signJWT } from "../../src/utils/jwt";
 import { encodeBase64Url } from "@authhero/adapter-interfaces";
 import {
   verifyRequestObject,
@@ -56,7 +55,7 @@ function clientWithJwks(
 describe("verifyRequestObject", () => {
   it("verifies a signed RS256 request object", async () => {
     const { privateBuffer, publicJwk } = await generateRsaKeypair();
-    const jwt = await createJWT(
+    const jwt = await signJWT(
       "RS256",
       privateBuffer,
       {
@@ -67,7 +66,7 @@ describe("verifyRequestObject", () => {
       },
       {
         includeIssuedTimestamp: true,
-        expiresIn: new TimeSpan(5, "m"),
+        expiresInSeconds: 300,
         headers: { kid: publicJwk.kid },
       },
     );
@@ -85,13 +84,13 @@ describe("verifyRequestObject", () => {
 
   it("verifies a signed ES256 request object", async () => {
     const { privateBuffer, publicJwk } = await generateEcKeypair();
-    const jwt = await createJWT(
+    const jwt = await signJWT(
       "ES256",
       privateBuffer,
       { iss: CLIENT_ID, aud: ISSUER, scope: "openid" },
       {
         includeIssuedTimestamp: true,
-        expiresIn: new TimeSpan(5, "m"),
+        expiresInSeconds: 300,
         headers: { kid: publicJwk.kid },
       },
     );
@@ -104,13 +103,13 @@ describe("verifyRequestObject", () => {
   it("verifies HS256 against client_secret", async () => {
     const client_secret = "this-is-a-shared-secret-of-reasonable-length";
     const secretBytes = new Uint8Array(new TextEncoder().encode(client_secret));
-    const jwt = await createJWT(
+    const jwt = await signJWT(
       "HS256",
       secretBytes,
       { iss: CLIENT_ID, aud: ISSUER, scope: "openid" },
       {
         includeIssuedTimestamp: true,
-        expiresIn: new TimeSpan(5, "m"),
+        expiresInSeconds: 300,
       },
     );
     const payload = await verifyRequestObject(
@@ -148,13 +147,13 @@ describe("verifyRequestObject", () => {
   it("rejects when the signature does not verify", async () => {
     const { privateBuffer, publicJwk } = await generateRsaKeypair();
     const otherKeypair = await generateRsaKeypair();
-    const jwt = await createJWT(
+    const jwt = await signJWT(
       "RS256",
       privateBuffer,
       { iss: CLIENT_ID, aud: ISSUER, scope: "openid" },
       {
         includeIssuedTimestamp: true,
-        expiresIn: new TimeSpan(5, "m"),
+        expiresInSeconds: 300,
         headers: { kid: otherKeypair.publicJwk.kid },
       },
     );
@@ -169,7 +168,7 @@ describe("verifyRequestObject", () => {
 
   it("rejects when the request object is expired", async () => {
     const { privateBuffer, publicJwk } = await generateRsaKeypair();
-    const jwt = await createJWT(
+    const jwt = await signJWT(
       "RS256",
       privateBuffer,
       {
@@ -179,7 +178,7 @@ describe("verifyRequestObject", () => {
       },
       {
         includeIssuedTimestamp: true,
-        expiresIn: new TimeSpan(1, "s"),
+        expiresInSeconds: 1,
         headers: { kid: publicJwk.kid },
       },
     );
@@ -196,13 +195,13 @@ describe("verifyRequestObject", () => {
 
   it("rejects when iss in the request object does not match client_id", async () => {
     const { privateBuffer, publicJwk } = await generateRsaKeypair();
-    const jwt = await createJWT(
+    const jwt = await signJWT(
       "RS256",
       privateBuffer,
       { iss: "different-client", aud: ISSUER, scope: "openid" },
       {
         includeIssuedTimestamp: true,
-        expiresIn: new TimeSpan(5, "m"),
+        expiresInSeconds: 300,
         headers: { kid: publicJwk.kid },
       },
     );
@@ -215,7 +214,7 @@ describe("verifyRequestObject", () => {
 
   it("rejects when aud does not include the OP issuer", async () => {
     const { privateBuffer, publicJwk } = await generateRsaKeypair();
-    const jwt = await createJWT(
+    const jwt = await signJWT(
       "RS256",
       privateBuffer,
       {
@@ -225,7 +224,7 @@ describe("verifyRequestObject", () => {
       },
       {
         includeIssuedTimestamp: true,
-        expiresIn: new TimeSpan(5, "m"),
+        expiresInSeconds: 300,
         headers: { kid: publicJwk.kid },
       },
     );
@@ -238,13 +237,13 @@ describe("verifyRequestObject", () => {
 
   it("rejects asymmetric alg when client has no jwks", async () => {
     const { privateBuffer, publicJwk } = await generateRsaKeypair();
-    const jwt = await createJWT(
+    const jwt = await signJWT(
       "RS256",
       privateBuffer,
       { iss: CLIENT_ID, aud: ISSUER, scope: "openid" },
       {
         includeIssuedTimestamp: true,
-        expiresIn: new TimeSpan(5, "m"),
+        expiresInSeconds: 300,
         headers: { kid: publicJwk.kid },
       },
     );
@@ -269,13 +268,13 @@ describe("verifyRequestObject", () => {
     const rsa = await generateRsaKeypair();
     const ec = await generateEcKeypair();
 
-    const jwt = await createJWT(
+    const jwt = await signJWT(
       "RS256",
       rsa.privateBuffer,
       { iss: CLIENT_ID, aud: ISSUER, scope: "openid" },
       {
         includeIssuedTimestamp: true,
-        expiresIn: new TimeSpan(5, "m"),
+        expiresInSeconds: 300,
         headers: { kid: ec.publicJwk.kid }, // points at the EC JWK
       },
     );

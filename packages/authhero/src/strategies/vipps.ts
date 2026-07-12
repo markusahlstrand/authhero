@@ -4,7 +4,7 @@ import { Connection } from "@authhero/adapter-interfaces";
 import { nanoid } from "nanoid";
 import { Bindings, Variables } from "../types";
 import { JSONHTTPException } from "../errors/json-http-exception";
-import { parseJWT } from "oslo/jwt";
+import { parseJWT } from "../utils/jwt";
 import { idTokenSchema } from "../types/IdToken";
 import { getConnectionCallbackUrl } from "./index";
 

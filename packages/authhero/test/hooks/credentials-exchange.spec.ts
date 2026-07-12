@@ -2,10 +2,10 @@ import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
 import { LogTypes, Strategy } from "@authhero/adapter-interfaces";
 import { getTestServer } from "../helpers/test-server";
-import { parseJWT } from "oslo/jwt";
+import { parseJWT } from "../../src/utils/jwt";
 import { nanoid } from "nanoid";
 import { computeCodeChallenge } from "../../src/utils/crypto";
-import { generateCodeVerifier } from "oslo/oauth2";
+import { generateCodeVerifier } from "../../src/utils/crypto";
 import {
   HookEvent,
   OnExecuteCredentialsExchangeAPI,

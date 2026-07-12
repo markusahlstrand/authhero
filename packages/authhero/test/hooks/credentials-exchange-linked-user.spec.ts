@@ -9,7 +9,7 @@ import { nanoid } from "nanoid";
 import { USERNAME_PASSWORD_PROVIDER } from "../../src/constants";
 import { Strategy } from "@authhero/adapter-interfaces";
 import { computeCodeChallenge } from "../../src/utils/crypto";
-import { generateCodeVerifier } from "oslo/oauth2";
+import { generateCodeVerifier } from "../../src/utils/crypto";
 
 describe("credentials-exchange hook with linked users", () => {
   it("should pass the authentication connection (email), not the primary user's connection (oidc), when a linked user logs in", async () => {
