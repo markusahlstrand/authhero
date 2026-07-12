@@ -81,7 +81,7 @@ The conformance suite's `/token` request follows OIDC Core verbatim — no `audi
 
 ## What's covered today
 
-The runner currently drives seven plans against AuthHero. Each module below maps 1-to-1 with an upstream conformance suite test (linked from the suite's web UI as `log-detail.html?log=…` on a run).
+The runner currently drives nine plans against AuthHero. Each module below maps 1-to-1 with an upstream conformance suite test (linked from the suite's web UI as `log-detail.html?log=…` on a run).
 
 ::: tip
 The status column is the on-the-record outcome from the most recent green CI run. The lists are kept in sync with the spec files themselves — entries removed from a plan's `getStaticModulesForPlan()` should also disappear here, and new entries should land with a one-liner.
@@ -226,6 +226,10 @@ Newly wired up — the spec file is at [oidcc-dynamic.spec.ts](https://github.co
 ### `oidcc-hybrid-certification-test-plan`
 
 Newly wired up — the spec file is at [oidcc-hybrid.spec.ts](https://github.com/markusahlstrand/authhero/blob/main/apps/conformance-runner/tests/oidcc-hybrid.spec.ts). Variant: `{ server_metadata: "discovery", client_registration: "static_client" }` (the hybrid plan pins `response_type` per-module: `code id_token`, `code token`, `code id_token token`). The OP returns a code on every flow plus an `id_token` and/or `access_token` in the redirect fragment; the code is exchanged at `/oauth/token` afterwards. The id_token issued from `/authorize` carries `c_hash` (always) and `at_hash` (when an access_token is co-issued), per OIDC Core 3.3.2.11. The plan passes in CI; modules absent from the live plan are filtered via `test.skip`.
+
+### `oidcc-formpost-hybrid-certification-test-plan`
+
+Newly wired up — the spec file is at [oidcc-form-post-hybrid.spec.ts](https://github.com/markusahlstrand/authhero/blob/main/apps/conformance-runner/tests/oidcc-form-post-hybrid.spec.ts). Variant: `{ server_metadata: "discovery", client_registration: "static_client" }` (the `formpost` profile is encoded in the plan name itself, not the variant; same module-level pinning of `response_type` as the plain Hybrid plan). Module set mirrors the Hybrid plan, but every authorization response — code plus `id_token` and/or `access_token` — is delivered via `response_mode=form_post` instead of the fragment. This completes the response-mode matrix: all three flows (basic, implicit, hybrid) are now tested in both their default response mode and form_post. Modules absent from the live plan are filtered via `test.skip`; status TBD until first green run.
 
 ### Out of scope (for now)
 
