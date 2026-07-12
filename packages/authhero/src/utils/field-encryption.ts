@@ -1,7 +1,7 @@
-import { base64 } from "oslo/encoding";
 import {
   encodeBase64Url,
   decodeBase64Url,
+  decodeBase64,
 } from "@authhero/adapter-interfaces";
 
 // Version-tagged prefix for encrypted field values. Stored values that do not
@@ -68,7 +68,7 @@ function toArrayBuffer(view: Uint8Array): ArrayBuffer {
  * at boot rather than silently weakening encryption.
  */
 export async function loadEncryptionKey(b64: string): Promise<CryptoKey> {
-  const raw = base64.decode(b64);
+  const raw = decodeBase64(b64);
   if (raw.byteLength !== 32) {
     throw new Error(
       `ENCRYPTION_KEY must decode to 32 bytes (got ${raw.byteLength}). Generate one with: openssl rand -base64 32`,
@@ -159,9 +159,9 @@ function resolveKey(ring: KeyRing, keyId: string | undefined): CryptoKey {
   const key = ring.keys?.[keyId];
   if (!key) {
     throw new Error(
-      `No key for id "${keyId}" in key ring (have: ${Object.keys(
-        ring.keys ?? {},
-      ).join(", ") || "none"}). The key binding for this id is missing.`,
+      `No key for id "${keyId}" in key ring (have: ${
+        Object.keys(ring.keys ?? {}).join(", ") || "none"
+      }). The key binding for this id is missing.`,
     );
   }
   return key;

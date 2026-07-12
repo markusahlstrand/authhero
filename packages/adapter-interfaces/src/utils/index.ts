@@ -3,5 +3,8 @@ export * from "./passthrough";
 export * from "./connection-attributes";
 export * from "./guards";
 export * from "./base64url";
+export * from "./base64";
+export * from "./base32";
+export * from "./hex";
 export * from "./cursor";
 export * from "./lucene";

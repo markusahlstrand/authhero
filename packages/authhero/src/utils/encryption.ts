@@ -1,9 +1,12 @@
 import { nanoid } from "nanoid";
 import * as x509 from "@peculiar/x509";
-import { encodeHex, base64 } from "oslo/encoding";
-import { sha256 } from "oslo/crypto";
 import { getRuntimeKey } from "hono/adapter";
-import { SigningKey, encodeBase64Url } from "@authhero/adapter-interfaces";
+import {
+  SigningKey,
+  encodeBase64Url,
+  encodeBase64,
+  encodeHex,
+} from "@authhero/adapter-interfaces";
 
 const RFC7638_REQUIRED_MEMBERS: Record<string, string[]> = {
   RSA: ["e", "kty", "n"],
@@ -138,7 +141,7 @@ export function convertPKCS7ToPem(
   keyType: "PRIVATE" | "PUBLIC",
   binaryData: ArrayBuffer,
 ) {
-  const base64Cert = base64.encode(new Uint8Array(binaryData));
+  const base64Cert = encodeBase64(new Uint8Array(binaryData));
   let pemCert = `-----BEGIN ${keyType} KEY-----\r\n`;
   let nextIndex = 0;
 
@@ -190,6 +193,9 @@ export async function computeJWKThumbprint(jwk: JsonWebKey): Promise<string> {
   }
 
   const json = JSON.stringify(canonical);
-  const digest = await sha256(new TextEncoder().encode(json));
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(json),
+  );
   return encodeBase64Url(new Uint8Array(digest));
 }

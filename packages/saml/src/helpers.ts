@@ -1,6 +1,6 @@
 import { XMLBuilder, XMLParser } from "fast-xml-parser";
 import { samlRequestSchema, SAMLResponseJSON } from "./types";
-import { base64 } from "oslo/encoding";
+import { decodeBase64 } from "@authhero/adapter-interfaces";
 import { nanoid } from "nanoid";
 import { SamlSigner } from "./signer";
 
@@ -45,7 +45,7 @@ export async function inflateRaw(
 }
 
 export async function inflateDecompress(input: string): Promise<string> {
-  const decodedBytes = await base64.decode(input.replace(/ /g, "+"));
+  const decodedBytes = decodeBase64(input.replace(/ /g, "+"));
 
   try {
     // Try to decompress using pako

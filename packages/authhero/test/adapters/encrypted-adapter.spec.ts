@@ -5,8 +5,7 @@ import createAdapters, {
   Database,
   migrateToLatest,
 } from "@authhero/kysely-adapter";
-import { DataAdapters } from "@authhero/adapter-interfaces";
-import { base64 } from "oslo/encoding";
+import { DataAdapters, encodeBase64 } from "@authhero/adapter-interfaces";
 import { createEncryptedDataAdapter, loadEncryptionKey } from "../../src";
 
 const ENC_PREFIX = "enc:v1:";
@@ -20,7 +19,7 @@ async function setup() {
 
   const raw: DataAdapters = createAdapters(db);
   const key = await loadEncryptionKey(
-    base64.encode(crypto.getRandomValues(new Uint8Array(32))),
+    encodeBase64(crypto.getRandomValues(new Uint8Array(32))),
   );
   const data = createEncryptedDataAdapter(raw, key);
 
