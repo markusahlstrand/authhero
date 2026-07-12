@@ -9,6 +9,7 @@ import { getEnrichedClient } from "../../helpers/client";
 import { prefetchClientBundle } from "../../helpers/prefetch-client-bundle";
 import { isCimdClientId } from "../../helpers/cimd";
 import { validateJwtToken } from "../../utils/jwt";
+import { sendBackchannelLogout } from "../../helpers/backchannel-logout";
 
 import { defineRoute } from "../../utils/define-route";
 // OIDC RP-Initiated Logout 1.0
@@ -212,6 +213,8 @@ const getRoot = defineRoute({
               description: `Revoked ${revokedCount} refresh token(s)`,
             });
           }
+
+          sendBackchannelLogout(ctx, client.tenant.id, session);
         }
       }
     }

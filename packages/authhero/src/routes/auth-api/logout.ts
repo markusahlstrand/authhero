@@ -9,6 +9,7 @@ import { setTenantId } from "../../helpers/set-tenant-id";
 import { getEnrichedClient } from "../../helpers/client";
 import { prefetchClientBundle } from "../../helpers/prefetch-client-bundle";
 import { isCimdClientId } from "../../helpers/cimd";
+import { sendBackchannelLogout } from "../../helpers/backchannel-logout";
 import { defineRoute } from "../../utils/define-route";
 const getRoot = defineRoute({
   route: createRoute({
@@ -144,6 +145,8 @@ const getRoot = defineRoute({
               description: `Revoked ${revokedCount} refresh token(s)`,
             });
           }
+
+          sendBackchannelLogout(ctx, client.tenant.id, session);
         }
       }
     }

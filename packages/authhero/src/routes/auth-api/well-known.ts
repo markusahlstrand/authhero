@@ -88,6 +88,11 @@ async function buildAuthServerMetadata(ctx: {
           end_session_endpoint: `${getAuthUrl(ctx.env, customDomain)}oidc/logout`,
         }
       : {}),
+    // OIDC Back-Channel Logout 1.0 — session ends POST a signed logout token
+    // (always carrying `sid`) to each client's registered
+    // oidc_logout.backchannel_logout_urls.
+    backchannel_logout_supported: true,
+    backchannel_logout_session_supported: true,
     scopes_supported: [
       "openid",
       "profile",

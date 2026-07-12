@@ -78,6 +78,18 @@ export const FORM_POST_HYBRID_PLAN_VARIANT = {
   client_registration: "static_client",
 } as const;
 
+export const BACKCHANNEL_LOGOUT_PLAN_NAME =
+  "oidcc-backchannel-rp-initiated-logout-certification-test-plan";
+
+// Same variant shape as the RP-initiated logout plan: the plan pins
+// server_metadata (and, on the main module, client_auth_type/response_mode)
+// per-module, so only client_registration + response_type may be supplied at
+// the plan level.
+export const BACKCHANNEL_LOGOUT_PLAN_VARIANT = {
+  client_registration: "static_client",
+  response_type: "code",
+} as const;
+
 export const DYNAMIC_PLAN_NAME = "oidcc-dynamic-certification-test-plan";
 
 // Dynamic registration variant — the suite calls /oidc/register itself for
@@ -167,6 +179,28 @@ export function buildHybridPlanConfig() {
 
 export function buildFormPostHybridPlanConfig() {
   return buildSharedClientConfig("OIDC Form Post Hybrid");
+}
+
+export function buildBackchannelLogoutPlanConfig() {
+  // The suite POSTs the logout token to
+  //   <suite-base>/test/a/<alias>/backchannel_logout
+  // and every URL registered on a client gets called on every logout of a
+  // session that client participated in. A shared client would therefore
+  // spray logout tokens across all workers' test instances, so each worker
+  // gets a dedicated client whose backchannel_logout_urls target only its
+  // own alias (see fixtures/seed-clients.json).
+  const workerSuffix =
+    env.workerAlias === env.alias
+      ? ""
+      : env.workerAlias.slice(env.alias.length);
+  const config = buildSharedClientConfig("OIDC Backchannel Logout");
+  config.client = {
+    client_id: `test-client-bcl${workerSuffix}`,
+    client_secret: workerSuffix
+      ? `test-client-bcl${workerSuffix}-secret-at-least-32-bytes`
+      : "test-client-bcl-secret-at-least-32-bytes-long",
+  };
+  return config;
 }
 
 export function buildDynamicPlanConfig() {

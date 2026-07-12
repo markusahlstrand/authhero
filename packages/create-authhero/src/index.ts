@@ -585,6 +585,9 @@ interface ExtraClient {
   allowed_logout_urls?: string[];
   web_origins?: string[];
   auth0_conformant?: boolean;
+  oidc_logout?: {
+    backchannel_logout_urls?: string[];
+  };
 }
 
 function parseFlag(name: string): string | undefined {
@@ -663,6 +666,7 @@ async function main() {
       ...(c.auth0_conformant !== undefined && {
         auth0_conformant: c.auth0_conformant,
       }),
+      ...(c.oidc_logout !== undefined && { oidc_logout: c.oidc_logout }),
     });
     console.log(\`✅ Created client "\${c.client_id}"\`);
   }
