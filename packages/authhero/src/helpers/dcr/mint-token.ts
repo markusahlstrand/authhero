@@ -1,6 +1,4 @@
-import { sha256 } from "oslo/crypto";
-import { encodeHex } from "oslo/encoding";
-import { encodeBase64Url } from "@authhero/adapter-interfaces";
+import { encodeBase64Url, encodeHex } from "@authhero/adapter-interfaces";
 import { nanoid } from "nanoid";
 
 export interface GeneratedRegistrationToken {
@@ -17,7 +15,7 @@ function randomBytes(length: number): Uint8Array {
 
 export async function hashRegistrationToken(token: string): Promise<string> {
   const encoded = new TextEncoder().encode(token);
-  return encodeHex(await sha256(encoded));
+  return encodeHex(await crypto.subtle.digest("SHA-256", encoded));
 }
 
 export async function mintRegistrationToken(): Promise<GeneratedRegistrationToken> {

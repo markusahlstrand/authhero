@@ -1,6 +1,4 @@
-import { sha256 } from "oslo/crypto";
-import { encodeHex } from "oslo/encoding";
-import { encodeBase64Url } from "@authhero/adapter-interfaces";
+import { encodeBase64Url, encodeHex } from "@authhero/adapter-interfaces";
 
 export const REFRESH_TOKEN_PREFIX = "rt_";
 export const LOOKUP_BYTES = 7;
@@ -36,7 +34,9 @@ export function generateRefreshTokenParts(): {
 }
 
 export async function hashRefreshTokenSecret(secret: string): Promise<string> {
-  return encodeHex(await sha256(new TextEncoder().encode(secret)));
+  return encodeHex(
+    await crypto.subtle.digest("SHA-256", new TextEncoder().encode(secret)),
+  );
 }
 
 export function formatRefreshToken(lookup: string, secret: string): string {

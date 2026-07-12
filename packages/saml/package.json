@@ -53,9 +53,9 @@
     "vitest": "^4.1.7"
   },
   "dependencies": {
+    "@authhero/adapter-interfaces": "workspace:*",
     "fast-xml-parser": "^4.5.1",
-    "nanoid": "^5.1.11",
-    "oslo": "^1.2.1"
+    "nanoid": "^5.1.11"
   },
   "optionalDependencies": {
     "xml-crypto": "^6.1.2"

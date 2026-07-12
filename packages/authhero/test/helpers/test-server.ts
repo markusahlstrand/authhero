@@ -11,7 +11,7 @@ import createAdapters, {
   migrateToLatest,
 } from "@authhero/kysely-adapter";
 import { createInMemoryCache } from "../../src/adapters/cache/in-memory";
-import { base64 } from "oslo/encoding";
+import { encodeBase64 } from "@authhero/adapter-interfaces";
 import {
   createEncryptedDataAdapter,
   loadEncryptionKey,
@@ -122,7 +122,7 @@ export async function getTestServer(
 
   if (args.encryption) {
     const key = await loadEncryptionKey(
-      base64.encode(crypto.getRandomValues(new Uint8Array(32))),
+      encodeBase64(crypto.getRandomValues(new Uint8Array(32))),
     );
     data = createEncryptedDataAdapter(data, key);
   }

@@ -13,7 +13,7 @@ import { logMessage } from "../helpers/logging";
 import { createClientServiceToken } from "../helpers/service-token";
 import { TOTPController } from "oslo/otp";
 import { createTOTPKeyURI } from "oslo/otp";
-import { base32 } from "oslo/encoding";
+import { encodeBase32, decodeBase32 } from "@authhero/adapter-interfaces";
 
 const MFA_OTP_EXPIRATION_MS = 10 * 60 * 1000; // 10 minutes
 
@@ -205,7 +205,7 @@ const totpController = new TOTPController();
 export function generateTotpSecret(): string {
   const secret = new Uint8Array(TOTP_SECRET_BYTES);
   crypto.getRandomValues(secret);
-  return base32.encode(secret, { includePadding: false });
+  return encodeBase32(secret);
 }
 
 /**
@@ -216,7 +216,7 @@ export function createTotpUri(
   accountName: string,
   secretBase32: string,
 ): string {
-  const secretBytes = base32.decode(secretBase32, { strict: false });
+  const secretBytes = decodeBase32(secretBase32);
   return createTOTPKeyURI(issuer, accountName, secretBytes);
 }
 
@@ -227,6 +227,6 @@ export async function verifyTotpCode(
   secretBase32: string,
   code: string,
 ): Promise<boolean> {
-  const secretBytes = base32.decode(secretBase32, { strict: false });
+  const secretBytes = decodeBase32(secretBase32);
   return totpController.verify(code, secretBytes);
 }

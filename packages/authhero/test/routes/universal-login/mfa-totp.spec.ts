@@ -7,7 +7,7 @@ import { testClient } from "hono/testing";
 import { getTestServer } from "../../helpers/test-server";
 import { getAdminToken } from "../../helpers/token";
 import { TOTPController } from "oslo/otp";
-import { base32 } from "oslo/encoding";
+import { decodeBase32 } from "@authhero/adapter-interfaces";
 
 /**
  * Helper to enable OTP factor and set MFA policy to "always" on the test tenant.
@@ -215,9 +215,7 @@ describe("MFA TOTP (authenticator app)", () => {
 
       // Generate a valid TOTP code using the secret
       const totpController = new TOTPController();
-      const secretBytes = base32.decode(enrollment.totp_secret!, {
-        strict: false,
-      });
+      const secretBytes = decodeBase32(enrollment.totp_secret!);
       const validCode = await totpController.generate(secretBytes);
 
       // POST the valid code to complete enrollment
@@ -381,9 +379,7 @@ describe("MFA TOTP (authenticator app)", () => {
 
         // Generate a valid TOTP code
         const totpController = new TOTPController();
-        const secretBytes = base32.decode(enrollment!.totp_secret!, {
-          strict: false,
-        });
+        const secretBytes = decodeBase32(enrollment!.totp_secret!);
         const validCode = await totpController.generate(secretBytes);
 
         // POST the valid code to complete enrollment
@@ -598,7 +594,7 @@ describe("MFA TOTP (authenticator app)", () => {
       expect(secret.length).toBeGreaterThan(0);
 
       // Should be decodable as base32
-      const decoded = base32.decode(secret, { strict: false });
+      const decoded = decodeBase32(secret);
       expect(decoded.byteLength).toBe(20); // 20 bytes = 160 bits
     });
 
@@ -625,7 +621,7 @@ describe("MFA TOTP (authenticator app)", () => {
 
       // Generate a valid code using oslo's TOTP controller
       const totpController = new TOTPController();
-      const secretBytes = base32.decode(secret, { strict: false });
+      const secretBytes = decodeBase32(secret);
       const code = await totpController.generate(secretBytes);
 
       // Our function should verify it
