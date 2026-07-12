@@ -19,6 +19,12 @@ export function pemToBuffer(pem: string): ArrayBuffer {
   }
 }
 
+/** A high-entropy PKCE code verifier (RFC 7636 §4.1): 32 random bytes,
+ * base64url-encoded to 43 characters. */
+export function generateCodeVerifier(): string {
+  return encodeBase64Url(crypto.getRandomValues(new Uint8Array(32)));
+}
+
 export async function computeCodeChallenge(
   codeVerifier: string,
   method: "plain" | "S256",

@@ -1,5 +1,4 @@
-import { createJWT } from "oslo/jwt";
-import { TimeSpan } from "oslo";
+import { signJWT } from "../../src/utils/jwt";
 import { createX509Certificate } from "../../src/utils/encryption";
 import { SigningKey } from "@authhero/adapter-interfaces";
 import { MANAGEMENT_API_AUDIENCE } from "../../src/middlewares/authentication";
@@ -44,7 +43,7 @@ export interface CreateTokenParams {
 export async function createToken(params?: CreateTokenParams) {
   const certificate = await getCertificate();
 
-  return createJWT(
+  return signJWT(
     "RS256",
     pemToBuffer(certificate.pkcs7!),
     {
@@ -60,7 +59,7 @@ export async function createToken(params?: CreateTokenParams) {
     },
     {
       includeIssuedTimestamp: true,
-      expiresIn: new TimeSpan(1, "h"),
+      expiresInSeconds: 3600,
       headers: {
         kid: certificate.kid,
       },

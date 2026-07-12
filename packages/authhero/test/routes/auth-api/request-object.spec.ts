@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { testClient } from "hono/testing";
-import { createJWT } from "oslo/jwt";
-import { TimeSpan } from "oslo";
+import { signJWT } from "../../../src/utils/jwt";
 import { encodeBase64Url } from "@authhero/adapter-interfaces";
 import { getTestServer } from "../../helpers/test-server";
 
@@ -45,7 +44,7 @@ describe("/authorize request= and request_uri (RFC 9101 / OIDC Core 6.1, 6.2)", 
     const { privateBuffer, publicJwk } = await generateRsaKeypairWithJwks();
     await attachClientJwks(env, publicJwk);
 
-    const requestJwt = await createJWT(
+    const requestJwt = await signJWT(
       "RS256",
       privateBuffer,
       {
@@ -58,7 +57,7 @@ describe("/authorize request= and request_uri (RFC 9101 / OIDC Core 6.1, 6.2)", 
       },
       {
         includeIssuedTimestamp: true,
-        expiresIn: new TimeSpan(5, "m"),
+        expiresInSeconds: 300,
         headers: { kid: publicJwk.kid },
       },
     );
@@ -122,7 +121,7 @@ describe("/authorize request= and request_uri (RFC 9101 / OIDC Core 6.1, 6.2)", 
     await attachClientJwks(env, registered);
 
     const attacker = await generateRsaKeypairWithJwks();
-    const requestJwt = await createJWT(
+    const requestJwt = await signJWT(
       "RS256",
       attacker.privateBuffer,
       {
@@ -134,7 +133,7 @@ describe("/authorize request= and request_uri (RFC 9101 / OIDC Core 6.1, 6.2)", 
       },
       {
         includeIssuedTimestamp: true,
-        expiresIn: new TimeSpan(5, "m"),
+        expiresInSeconds: 300,
         // Use the registered kid so the lookup matches but the signature does not.
         headers: { kid: registered.kid },
       },
@@ -212,7 +211,7 @@ describe("/authorize request= and request_uri (RFC 9101 / OIDC Core 6.1, 6.2)", 
     const { privateBuffer, publicJwk } = await generateRsaKeypairWithJwks();
     await attachClientJwks(env, publicJwk);
 
-    const requestJwt = await createJWT(
+    const requestJwt = await signJWT(
       "RS256",
       privateBuffer,
       {
@@ -224,7 +223,7 @@ describe("/authorize request= and request_uri (RFC 9101 / OIDC Core 6.1, 6.2)", 
       },
       {
         includeIssuedTimestamp: true,
-        expiresIn: new TimeSpan(5, "m"),
+        expiresInSeconds: 300,
         headers: { kid: publicJwk.kid },
       },
     );

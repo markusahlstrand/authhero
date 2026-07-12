@@ -5,7 +5,7 @@ import { getTestServer } from "../helpers/test-server";
 import { Bindings, Variables } from "../../src/types";
 import { getPrimaryUserByEmail } from "../../src/helpers/users";
 import { AuthorizationResponseType } from "@authhero/adapter-interfaces";
-import { parseJWT } from "oslo/jwt";
+import { parseJWT } from "../../src/utils/jwt";
 import { getEnrichedClient } from "../../src/helpers/client";
 
 describe("org_name in tokens", () => {

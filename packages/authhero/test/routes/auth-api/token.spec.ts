@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
 import { getTestServer } from "../../helpers/test-server";
-import { parseJWT } from "oslo/jwt";
+import { parseJWT } from "../../../src/utils/jwt";
 import { computeCodeChallenge } from "../../../src/utils/crypto";
 import {
   CodeChallengeMethod,
@@ -1577,7 +1577,9 @@ describe("token", () => {
         login_id: "doesNotExist",
         user_id: "email|userId",
         client_id: "clientId",
-        resource_servers: [{ audience: "http://example.com", scopes: "openid" }],
+        resource_servers: [
+          { audience: "http://example.com", scopes: "openid" },
+        ],
         device: {
           last_ip: "",
           initial_ip: "",

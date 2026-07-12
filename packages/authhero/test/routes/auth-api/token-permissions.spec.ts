@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
 import { getTestServer } from "../../helpers/test-server";
-import { parseJWT } from "oslo/jwt";
+import { parseJWT } from "../../../src/utils/jwt";
 import { AuthorizationResponseType } from "@authhero/adapter-interfaces";
 
 interface TokenResponse {

@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
-import { createJWT } from "oslo/jwt";
-import { TimeSpan } from "oslo";
+import { signJWT } from "../../src/utils/jwt";
 import { getTestServer } from "../helpers/test-server";
 import { getCertificate, pemToBuffer } from "../helpers/token";
 
@@ -12,8 +11,7 @@ const USER_ID = "email|userId";
 
 const EXCHANGE_CLIENT_ID = "exchange-client";
 const EXCHANGE_CLIENT_SECRET = "exchange-secret";
-const TOKEN_EXCHANGE_GRANT =
-  "urn:ietf:params:oauth:grant-type:token-exchange";
+const TOKEN_EXCHANGE_GRANT = "urn:ietf:params:oauth:grant-type:token-exchange";
 const ACCESS_TOKEN_TYPE = "urn:ietf:params:oauth:token-type:access_token";
 
 interface TokenResponse {
@@ -71,7 +69,7 @@ async function mintSubjectToken(
   // the private `pkcs7` material (only what's safe to expose).
   const signingKey = await getCertificate();
 
-  return createJWT(
+  return signJWT(
     "RS256",
     pemToBuffer(signingKey.pkcs7!),
     {
@@ -84,7 +82,7 @@ async function mintSubjectToken(
     },
     {
       includeIssuedTimestamp: true,
-      expiresIn: new TimeSpan(1, "h"),
+      expiresInSeconds: 3600,
       headers: { kid: signingKey.kid },
     },
   );

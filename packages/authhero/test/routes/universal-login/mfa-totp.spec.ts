@@ -6,7 +6,7 @@ import {
 import { testClient } from "hono/testing";
 import { getTestServer } from "../../helpers/test-server";
 import { getAdminToken } from "../../helpers/token";
-import { TOTPController } from "oslo/otp";
+import { generateTOTP } from "../../../src/utils/totp";
 import { decodeBase32 } from "@authhero/adapter-interfaces";
 
 /**
@@ -214,9 +214,8 @@ describe("MFA TOTP (authenticator app)", () => {
       expect(enrollment.totp_secret).toBeTruthy();
 
       // Generate a valid TOTP code using the secret
-      const totpController = new TOTPController();
       const secretBytes = decodeBase32(enrollment.totp_secret!);
-      const validCode = await totpController.generate(secretBytes);
+      const validCode = await generateTOTP(secretBytes);
 
       // POST the valid code to complete enrollment
       const postResponse = await u2App.request(
@@ -378,9 +377,8 @@ describe("MFA TOTP (authenticator app)", () => {
         expect(enrollment!.totp_secret).toBeTruthy();
 
         // Generate a valid TOTP code
-        const totpController = new TOTPController();
         const secretBytes = decodeBase32(enrollment!.totp_secret!);
-        const validCode = await totpController.generate(secretBytes);
+        const validCode = await generateTOTP(secretBytes);
 
         // POST the valid code to complete enrollment
         const enrollPostResponse = await u2App.request(
@@ -400,7 +398,7 @@ describe("MFA TOTP (authenticator app)", () => {
         expect(enrollRedirect).toContain("/mfa/totp-challenge");
 
         // Now generate a fresh code for the challenge (TOTP codes are time-based)
-        const challengeCode = await totpController.generate(secretBytes);
+        const challengeCode = await generateTOTP(secretBytes);
 
         // POST the valid code to the challenge screen
         const challengeResponse = await u2App.request(
@@ -619,10 +617,9 @@ describe("MFA TOTP (authenticator app)", () => {
 
       const secret = generateTotpSecret();
 
-      // Generate a valid code using oslo's TOTP controller
-      const totpController = new TOTPController();
+      // Generate a valid code
       const secretBytes = decodeBase32(secret);
-      const code = await totpController.generate(secretBytes);
+      const code = await generateTOTP(secretBytes);
 
       // Our function should verify it
       const result = await verifyTotpCode(secret, code);

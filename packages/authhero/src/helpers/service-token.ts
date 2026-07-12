@@ -4,8 +4,7 @@ import {
   KeysAdapter,
   TenantsDataAdapter,
 } from "@authhero/adapter-interfaces";
-import { TimeSpan } from "oslo";
-import { createJWT } from "oslo/jwt";
+import { signJWT } from "../utils/jwt";
 import { Bindings, Variables } from "../types";
 import { SigningKeyModeOption } from "../types/AuthHeroConfig";
 import { createAuthTokens } from "../authentication-flows/common";
@@ -109,9 +108,9 @@ export async function createServiceTokenCore(
     ...params.customClaims,
   };
 
-  const access_token = await createJWT(alg, keyBuffer, accessTokenPayload, {
+  const access_token = await signJWT(alg, keyBuffer, accessTokenPayload, {
     includeIssuedTimestamp: true,
-    expiresIn: new TimeSpan(expiresInSeconds, "s"),
+    expiresInSeconds,
     headers: { kid: signingKey.kid },
   });
 
@@ -349,9 +348,9 @@ export async function createClientServiceToken(
     gty: "client_credentials",
   };
 
-  const access_token = await createJWT(alg, keyBuffer, accessTokenPayload, {
+  const access_token = await signJWT(alg, keyBuffer, accessTokenPayload, {
     includeIssuedTimestamp: true,
-    expiresIn: new TimeSpan(expiresInSeconds, "s"),
+    expiresInSeconds,
     headers: { kid: signingKey.kid },
   });
 

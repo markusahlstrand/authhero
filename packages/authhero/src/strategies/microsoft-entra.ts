@@ -3,7 +3,7 @@ import { Context } from "hono";
 import { Connection, Strategy } from "@authhero/adapter-interfaces";
 import { nanoid } from "nanoid";
 import { Bindings, Variables } from "../types";
-import { parseJWT } from "oslo/jwt";
+import { parseJWT } from "../utils/jwt";
 import { idTokenSchema } from "../types/IdToken";
 import { getConnectionCallbackUrl } from "./index";
 

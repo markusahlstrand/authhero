@@ -1,4 +1,4 @@
-import { verifyRequestOrigin } from "oslo/request";
+import { verifyRequestOrigin } from "../../utils/request-origin";
 import { HTTPException } from "hono/http-exception";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import {

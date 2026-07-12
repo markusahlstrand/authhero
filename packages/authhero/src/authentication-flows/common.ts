@@ -18,12 +18,10 @@ import {
 import { EnrichedClient } from "../helpers/client";
 import { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { TimeSpan } from "oslo";
-import { createJWT } from "oslo/jwt";
+import { signJWT } from "../utils/jwt";
 import { nanoid } from "nanoid";
 import { ulid } from "../utils/ulid";
-import { generateCodeVerifier } from "oslo/oauth2";
-import { pemToBuffer } from "../utils/crypto";
+import { pemToBuffer, generateCodeVerifier } from "../utils/crypto";
 import { algForCert } from "../utils/jwk-alg";
 import { computeIdTokenHash } from "../utils/id-token-hash";
 import { Bindings, Variables } from "../types";
@@ -595,13 +593,13 @@ export async function createAuthTokens(
 
   const header = {
     includeIssuedTimestamp: true,
-    expiresIn: new TimeSpan(effectiveTokenLifetime, "s"),
+    expiresInSeconds: effectiveTokenLifetime,
     headers: {
       kid: signingKey.kid,
     },
   };
 
-  const access_token = await createJWT(
+  const access_token = await signJWT(
     signingAlg,
     keyBuffer,
     accessTokenPayload,
@@ -630,7 +628,7 @@ export async function createAuthTokens(
   }
 
   const id_token = idTokenPayload
-    ? await createJWT(signingAlg, keyBuffer, idTokenPayload, header)
+    ? await signJWT(signingAlg, keyBuffer, idTokenPayload, header)
     : undefined;
 
   return {
