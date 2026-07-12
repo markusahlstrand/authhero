@@ -1,5 +1,13 @@
 # @authhero/saml
 
+## 0.4.3
+
+### Patch Changes
+
+- dbb6e70: Add canonical base64, base32, and hex encoding helpers to @authhero/adapter-interfaces (encodeBase64/decodeBase64, encodeBase32/decodeBase32, encodeHex) and migrate all authhero and saml call sites off oslo's encoding module (step 2 of #1099). oslo's sha256 wrapper is replaced with direct crypto.subtle.digest calls, and the oslo dependency is dropped from @authhero/saml entirely.
+- Updated dependencies [dbb6e70]
+  - @authhero/adapter-interfaces@3.12.0
+
 ## 0.4.2
 
 ### Patch Changes
