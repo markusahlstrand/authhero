@@ -104,6 +104,36 @@ describe("backchannel logout", () => {
     expect(payload.exp).toBeTypeOf("number");
   });
 
+  it("revokes the session and notifies on /oidc/logout with sid but no cookie", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const { session } = await createSessions(env.data);
+
+    await env.data.clients.update("tenantId", "clientId", {
+      oidc_logout: {
+        backchannel_logout_urls: ["https://rp.example.com/backchannel"],
+      },
+    });
+
+    const idToken = await signIdToken(session.id);
+    const response = await oauthApp.request(
+      `/oidc/logout?id_token_hint=${encodeURIComponent(idToken)}`,
+      {
+        method: "GET",
+        headers: { host: "auth.example.com" },
+      },
+      env,
+    );
+
+    expect(response.status).toBe(200);
+
+    const sessionAfter = await env.data.sessions.get("tenantId", session.id);
+    expect(sessionAfter?.revoked_at).toBeTypeOf("string");
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const { payload } = deliveredLogoutToken();
+    expect(payload.sid).toBe(session.id);
+  });
+
   it("does not call out when the client has no backchannel_logout_urls", async () => {
     const { oauthApp, env } = await getTestServer();
     const { session } = await createSessions(env.data);
