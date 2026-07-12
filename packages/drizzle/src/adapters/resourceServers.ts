@@ -1,4 +1,5 @@
 import { eq, and, count as countFn, asc, desc, sql } from "drizzle-orm";
+import { customAlphabet } from "nanoid";
 import type { ResourceServer, ListParams } from "@authhero/adapter-interfaces";
 import { resourceServers } from "../schema/sqlite";
 import { removeNullProperties, parseJsonIfString } from "../helpers/transform";
@@ -10,7 +11,6 @@ import type { DrizzleDb } from "./types";
 const ALLOWED_Q_FIELDS = ["name", "identifier"];
 
 function generateResourceServerId(): string {
-  const { customAlphabet } = require("nanoid");
   const generate = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 17);
   return `api_${generate()}`;
 }

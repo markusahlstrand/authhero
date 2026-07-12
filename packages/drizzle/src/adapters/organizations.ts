@@ -1,4 +1,5 @@
 import { eq, and, count as countFn, asc, desc } from "drizzle-orm";
+import { customAlphabet } from "nanoid";
 import { HTTPException } from "hono/http-exception";
 import type { Organization, ListParams } from "@authhero/adapter-interfaces";
 import { organizations } from "../schema/sqlite";
@@ -18,7 +19,6 @@ import type { DrizzleDb } from "./types";
 const ALLOWED_Q_FIELDS = ["name", "display_name"];
 
 function generateOrganizationId(): string {
-  const { customAlphabet } = require("nanoid");
   const generate = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 17);
   return `org_${generate()}`;
 }
