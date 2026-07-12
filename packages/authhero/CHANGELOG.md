@@ -1,5 +1,42 @@
 # authhero
 
+## 8.22.0
+
+### Minor Changes
+
+- 953739e: `GET /clients` now supports true keyset (checkpoint) pagination with an opaque `next` cursor.
+
+  Auth0 documents `/clients` as a checkpoint endpoint, but our implementation treated `from` as a numeric SQL offset and never returned `next`. The kysely and drizzle adapters now branch to the shared keyset paginator (created_at desc, client_id tiebreaker) when `from`/`take` is present, and the endpoint returns `{ clients, next }` in that mode. Offset pagination (`page`/`per_page` + `total`), used by the admin UI, is unchanged.
+
+  The drizzle adapter's list response is also aligned with the adapter contract: totals are now returned as a nested `totals` object (previously flattened and dropped by the management API), `length` reflects the returned page rather than the total count, and the `include_totals` count now honors the `q` filter.
+
+- 4a549c2: `GET /logs` now supports true keyset (checkpoint) pagination with an opaque `next` cursor.
+
+  Auth0 documents `/logs` as a checkpoint endpoint, but our implementation only supported `page`/`per_page` offsets. The kysely and drizzle adapters now branch to the shared keyset paginator (date desc by default, log_id tiebreaker) when `from`/`take` is present, and the endpoint returns `{ logs, next }` in that mode. As a superset of Auth0 — which ignores `q`/`sort` under `from`/`take` on `/logs` — `q` and `from_date`/`to_date` filters stay in effect during a cursor walk, and sorting by `date` (asc/desc) is honored; other sort columns are rejected with a 400 rather than silently ignored.
+
+  To make sort-aware cursors safe, the cursor payload gains an optional sort-key field (`k`): a token minted under one sort that is replayed under a different sort is rejected with a 400 instead of returning pages from the wrong position.
+
+  The management API error handler now duck-types HTTPException-like errors (numeric `status` + `getResponse`) instead of `instanceof HTTPException`, so 4xx errors thrown inside the bundled kysely/drizzle adapters map to proper HTTP responses rather than escaping as 500s.
+
+- 34dc5d8: Publish WFP tenant-subdomain dispatch routes automatically
+
+  New helpers so a WFP tenant's platform subdomain (`{tenant_id}.{issuerHost}`) routes to its own Worker without a manual `custom_domains`/`proxy_routes` entry:
+
+  - `createWfpTenantHostResolver` — resolves a ready WFP tenant's subdomain to a synthetic `ResolvedHost` whose single route dispatches via the proxy's `dispatch_namespace` handler; derived entirely from the tenant row.
+  - `wrapTenantsAdapterWithWfpKvPublish` — tenants-adapter counterpart of `wrapProxyAdaptersWithKvPublish`: the provisioner's `provisioning_state: "ready"` write-back publishes the KV blob, a remove (or wfp → shared flip) deletes it.
+  - `composeHostResolvers` — chains resolvers (custom domains first) so one composed `resolveHost` serves the HTTP endpoint, both KV publishers, and the reconcile.
+  - `wfpTenantHost` — canonical host derivation for reconcile host lists.
+
+  Previously nothing published these hosts, so tenant subdomains silently fell through to the proxy's default-forward chain (the shared control plane) even after the tenant Worker was provisioned.
+
+### Patch Changes
+
+- Updated dependencies [4a549c2]
+- Updated dependencies [7fb85fb]
+  - @authhero/adapter-interfaces@3.11.0
+  - @authhero/proxy@0.9.1
+  - @authhero/widget@0.34.11
+
 ## 8.21.0
 
 ### Minor Changes
