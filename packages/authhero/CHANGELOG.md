@@ -1,5 +1,18 @@
 # authhero
 
+## 8.22.1
+
+### Patch Changes
+
+- 4877cb8: Replace oslo's base64url with the canonical encodeBase64Url/decodeBase64Url helpers from @authhero/adapter-interfaces (first step of the oslo removal, #1099). Encrypted field payloads are now written without base64 padding; existing padded values keep decrypting via the lenient decoder.
+- dbb6e70: Add canonical base64, base32, and hex encoding helpers to @authhero/adapter-interfaces (encodeBase64/decodeBase64, encodeBase32/decodeBase32, encodeHex) and migrate all authhero and saml call sites off oslo's encoding module (step 2 of #1099). oslo's sha256 wrapper is replaced with direct crypto.subtle.digest calls, and the oslo dependency is dropped from @authhero/saml entirely.
+- 1be8d5d: Remove the oslo dependency entirely (final step of #1099). JWT signing (signJWT) and unverified decoding (parseJWT) now live in utils/jwt.ts on Web Crypto and hono/jwt's decode; TOTP generate/verify and the otpauth:// enrollment URI are implemented in utils/totp.ts (RFC 6238, HMAC-SHA1, 6 digits, 30s period); verifyRequestOrigin moves to utils/request-origin.ts; and generateCodeVerifier joins utils/crypto.ts. Token output is byte-compatible: same header/payload construction, same exp/iat semantics, same raw ECDSA signature form.
+- Updated dependencies [dbb6e70]
+  - @authhero/adapter-interfaces@3.12.0
+  - @authhero/saml@0.4.3
+  - @authhero/proxy@0.9.2
+  - @authhero/widget@0.34.12
+
 ## 8.22.0
 
 ### Minor Changes

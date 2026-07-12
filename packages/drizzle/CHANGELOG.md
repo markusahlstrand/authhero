@@ -1,5 +1,13 @@
 # @authhero/drizzle
 
+## 0.62.1
+
+### Patch Changes
+
+- Updated dependencies [dbb6e70]
+  - @authhero/adapter-interfaces@3.12.0
+  - @authhero/proxy@0.9.2
+
 ## 0.62.0
 
 ### Minor Changes
