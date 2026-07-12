@@ -29,12 +29,12 @@ export function encodeBase32(bytes: Uint8Array): string {
   return result;
 }
 
-/** Decode a base32 string (with or without padding) back to raw bytes.
- * Throws on non-canonical input: characters outside the alphabet,
- * impossible unpadded lengths, or non-zero trailing bits — so distinct
- * malformed strings can never normalize to the same bytes. */
+/** Decode a base32 string (with or without padding, case-insensitive)
+ * back to raw bytes. Throws on non-canonical input: characters outside
+ * the alphabet, impossible unpadded lengths, or non-zero trailing bits —
+ * so distinct malformed strings can never normalize to the same bytes. */
 export function decodeBase32(input: string): Uint8Array {
-  const clean = input.replace(/=+$/, "");
+  const clean = input.replace(/=+$/, "").toUpperCase();
   // Valid unpadded base32 lengths are ≡ 0, 2, 4, 5, or 7 (mod 8).
   const rem = clean.length % 8;
   if (rem === 1 || rem === 3 || rem === 6) {
