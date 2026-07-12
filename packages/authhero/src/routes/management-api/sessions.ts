@@ -3,6 +3,7 @@ import { Bindings, Variables } from "../../types";
 import { HTTPException } from "hono/http-exception";
 import { sessionSchema, LogTypes } from "@authhero/adapter-interfaces";
 import { logMessage } from "../../helpers/logging";
+import { sendBackchannelLogout } from "../../helpers/backchannel-logout";
 import { defineRoute } from "../../utils/define-route";
 const getById = defineRoute({
   route: createRoute({
@@ -74,11 +75,19 @@ const deleteById = defineRoute({
   handler: async (ctx) => {
     const { id } = ctx.req.valid("param");
 
+    // Read before removing — the backchannel logout notification needs the
+    // participating client ids, which are gone once the row is deleted.
+    const session = await ctx.env.data.sessions.get(ctx.var.tenant_id, id);
+
     const result = await ctx.env.data.sessions.remove(ctx.var.tenant_id, id);
     if (!result) {
       throw new HTTPException(404, {
         message: "Session not found",
       });
+    }
+
+    if (session) {
+      sendBackchannelLogout(ctx, ctx.var.tenant_id, session);
     }
 
     await logMessage(ctx, ctx.var.tenant_id, {
@@ -119,6 +128,8 @@ const postByIdRevoke = defineRoute({
   handler: async (ctx) => {
     const { id } = ctx.req.valid("param");
 
+    const session = await ctx.env.data.sessions.get(ctx.var.tenant_id, id);
+
     const result = await ctx.env.data.sessions.update(ctx.var.tenant_id, id, {
       revoked_at: new Date().toISOString(),
     });
@@ -126,6 +137,10 @@ const postByIdRevoke = defineRoute({
       throw new HTTPException(404, {
         message: "Session not found",
       });
+    }
+
+    if (session) {
+      sendBackchannelLogout(ctx, ctx.var.tenant_id, session);
     }
 
     await logMessage(ctx, ctx.var.tenant_id, {

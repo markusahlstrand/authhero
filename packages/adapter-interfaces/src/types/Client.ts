@@ -109,9 +109,36 @@ export const clientInsertSchema = z.object({
     .openapi({
       description: "Native to Web SSO Configuration",
     }),
-  oidc_logout: z.record(z.string(), z.any()).default({}).optional().openapi({
-    description: "Configuration for OIDC backchannel logout",
-  }),
+  oidc_logout: z
+    .object({
+      backchannel_logout_urls: z.array(z.string()).optional().openapi({
+        description:
+          "URLs that receive a signed OIDC Back-Channel Logout 1.0 logout token when a session this client participated in ends.",
+      }),
+      backchannel_logout_initiators: z
+        .object({
+          mode: z.enum(["all", "custom"]).optional().openapi({
+            description:
+              "Whether all session-end events initiate a backchannel logout (all) or only the selected_initiators (custom).",
+          }),
+          selected_initiators: z.array(z.string()).optional().openapi({
+            description:
+              "Logout initiators that trigger a backchannel logout when mode is custom (e.g. rp-logout, idp-logout, password-changed).",
+          }),
+        })
+        .passthrough()
+        .optional()
+        .openapi({
+          description:
+            "Controls which session-end events initiate backchannel logout notifications. Stored for Auth0 compatibility; not yet enforced — all initiators currently notify.",
+        }),
+    })
+    .passthrough()
+    .default({})
+    .optional()
+    .openapi({
+      description: "Configuration for OIDC backchannel logout",
+    }),
   grant_types: z.array(z.string()).default([]).optional().openapi({
     description:
       "List of grant types supported for this application. Can include authorization_code, implicit, refresh_token, client_credentials, password, http://auth0.com/oauth/grant-type/password-realm, http://auth0.com/oauth/grant-type/mfa-oob, http://auth0.com/oauth/grant-type/mfa-otp, http://auth0.com/oauth/grant-type/mfa-recovery-code, urn:openid:params:grant-type:ciba, and urn:ietf:params:oauth:grant-type:device_code.",

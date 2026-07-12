@@ -81,4 +81,6 @@ export const openIDConfigurationSchema = z.object({
   request_object_signing_alg_values_supported: z.array(z.string()).optional(),
   token_endpoint_auth_signing_alg_values_supported: z.array(z.string()),
   client_id_metadata_document_supported: z.boolean().optional(),
+  backchannel_logout_supported: z.boolean().optional(),
+  backchannel_logout_session_supported: z.boolean().optional(),
 });

@@ -9,6 +9,7 @@ import { getEnrichedClient } from "../../helpers/client";
 import { prefetchClientBundle } from "../../helpers/prefetch-client-bundle";
 import { isCimdClientId } from "../../helpers/cimd";
 import { validateJwtToken } from "../../utils/jwt";
+import { sendBackchannelLogout } from "../../helpers/backchannel-logout";
 
 import { defineRoute } from "../../utils/define-route";
 // OIDC RP-Initiated Logout 1.0
@@ -156,8 +157,14 @@ const getRoot = defineRoute({
     }
 
     const cookieHeader = ctx.req.header("cookie");
-    if (client && cookieHeader) {
-      const sessionId = getAuthCookie(client.tenant.id, cookieHeader);
+    if (client) {
+      // A valid id_token_hint identifies the session via its sid claim, so
+      // sid-based logout must work without an OP cookie (e.g. the RP calls
+      // the end-session endpoint after the browser cookie is already gone).
+      // The cookie only serves as the fallback when the hint carries no sid.
+      const sessionId = cookieHeader
+        ? getAuthCookie(client.tenant.id, cookieHeader)
+        : undefined;
       const targetSessionId = idTokenSid ?? sessionId;
       if (targetSessionId) {
         const session = await ctx.env.data.sessions.get(
@@ -212,6 +219,8 @@ const getRoot = defineRoute({
               description: `Revoked ${revokedCount} refresh token(s)`,
             });
           }
+
+          sendBackchannelLogout(ctx, client.tenant.id, session);
         }
       }
     }
