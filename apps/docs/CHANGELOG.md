@@ -1,5 +1,11 @@
 # @authhero/docs
 
+## 1.59.0
+
+### Minor Changes
+
+- 4087fa7: Document the oidcc-formpost-hybrid conformance certification test plan — the ninth OP plan driven by the conformance runner, completing the response-mode matrix (basic, implicit, and hybrid flows each tested in their default response mode and form_post).
+
 ## 1.58.0
 
 ### Minor Changes
