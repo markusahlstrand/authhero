@@ -41,6 +41,7 @@ describe("backchannel logout", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.useRealTimers();
   });
 
   function deliveredLogoutToken(callIndex = 0) {
@@ -61,6 +62,11 @@ describe("backchannel logout", () => {
   it("POSTs a signed logout token to the client's registered URL on /oidc/logout", async () => {
     const { oauthApp, env } = await getTestServer();
     const { session } = await createSessions(env.data);
+
+    // Freeze Date only (setTimeout stays real — the delivery helper uses it
+    // for its abort timer) so iat/exp are minted from the same instant and
+    // the two-minute lifetime can be asserted exactly.
+    vi.useFakeTimers({ toFake: ["Date"] });
 
     await env.data.clients.update("tenantId", "clientId", {
       oidc_logout: {
@@ -102,6 +108,8 @@ describe("backchannel logout", () => {
     expect(payload).not.toHaveProperty("nonce");
     expect(payload.iat).toBeTypeOf("number");
     expect(payload.exp).toBeTypeOf("number");
+    // §2.4-adjacent hardening: keep the replay window short.
+    expect(payload.exp).toBe(Number(payload.iat) + 120);
   });
 
   it("revokes the session and notifies on /oidc/logout with sid but no cookie", async () => {

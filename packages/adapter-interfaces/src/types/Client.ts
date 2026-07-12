@@ -117,11 +117,21 @@ export const clientInsertSchema = z.object({
       }),
       backchannel_logout_initiators: z
         .object({
-          mode: z.enum(["all", "custom"]).optional(),
-          selected_initiators: z.array(z.string()).optional(),
+          mode: z.enum(["all", "custom"]).optional().openapi({
+            description:
+              "Whether all session-end events initiate a backchannel logout (all) or only the selected_initiators (custom).",
+          }),
+          selected_initiators: z.array(z.string()).optional().openapi({
+            description:
+              "Logout initiators that trigger a backchannel logout when mode is custom (e.g. rp-logout, idp-logout, password-changed).",
+          }),
         })
         .passthrough()
-        .optional(),
+        .optional()
+        .openapi({
+          description:
+            "Controls which session-end events initiate backchannel logout notifications. Stored for Auth0 compatibility; not yet enforced — all initiators currently notify.",
+        }),
     })
     .passthrough()
     .default({})
