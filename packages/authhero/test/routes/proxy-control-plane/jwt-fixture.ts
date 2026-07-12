@@ -1,17 +1,20 @@
+import {
+  encodeBase64Url,
+  encodeBase64UrlString,
+} from "@authhero/adapter-interfaces";
+
 type JWK = JsonWebKey;
 
 const encoder = new TextEncoder();
 
 function base64UrlEncode(bytes: Uint8Array | ArrayBuffer): string {
-  const arr =
-    bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes as ArrayBuffer);
-  let bin = "";
-  for (const b of arr) bin += String.fromCharCode(b);
-  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  return encodeBase64Url(
+    bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes),
+  );
 }
 
 function base64UrlEncodeJson(obj: unknown): string {
-  return base64UrlEncode(encoder.encode(JSON.stringify(obj)));
+  return encodeBase64UrlString(JSON.stringify(obj));
 }
 
 const ALG_HASH: Record<string, string> = {

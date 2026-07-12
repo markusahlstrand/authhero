@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { createJWT } from "oslo/jwt";
 import { TimeSpan } from "oslo";
-import { base64url } from "oslo/encoding";
+import { encodeBase64Url } from "@authhero/adapter-interfaces";
 import {
   verifyRequestObject,
   RequestObjectVerificationError,
@@ -122,11 +122,10 @@ describe("verifyRequestObject", () => {
   });
 
   it("rejects alg=none even when payload looks well-formed", async () => {
-    const header = base64url.encode(
+    const header = encodeBase64Url(
       new TextEncoder().encode(JSON.stringify({ alg: "none", typ: "JWT" })),
-      { includePadding: false },
     );
-    const payload = base64url.encode(
+    const payload = encodeBase64Url(
       new TextEncoder().encode(
         JSON.stringify({
           iss: CLIENT_ID,
@@ -135,7 +134,6 @@ describe("verifyRequestObject", () => {
           exp: Math.floor(Date.now() / 1000) + 300,
         }),
       ),
-      { includePadding: false },
     );
     const jwt = `${header}.${payload}.`;
 
@@ -295,13 +293,12 @@ describe("verifyRequestObject", () => {
   it("rejects request objects that omit the exp claim", async () => {
     const { privateBuffer, publicJwk } = await generateRsaKeypair();
     // createJWT requires expiresIn, so build the JWT manually without exp.
-    const header = base64url.encode(
+    const header = encodeBase64Url(
       new TextEncoder().encode(
         JSON.stringify({ alg: "RS256", typ: "JWT", kid: publicJwk.kid }),
       ),
-      { includePadding: false },
     );
-    const body = base64url.encode(
+    const body = encodeBase64Url(
       new TextEncoder().encode(
         JSON.stringify({
           iss: CLIENT_ID,
@@ -310,7 +307,6 @@ describe("verifyRequestObject", () => {
           iat: Math.floor(Date.now() / 1000),
         }),
       ),
-      { includePadding: false },
     );
     const signingInput = new TextEncoder().encode(`${header}.${body}`);
     const cryptoKey = await crypto.subtle.importKey(
@@ -323,7 +319,7 @@ describe("verifyRequestObject", () => {
     const sig = new Uint8Array(
       await crypto.subtle.sign("RSASSA-PKCS1-v1_5", cryptoKey, signingInput),
     );
-    const jwt = `${header}.${body}.${base64url.encode(sig, { includePadding: false })}`;
+    const jwt = `${header}.${body}.${encodeBase64Url(sig)}`;
 
     await expect(
       verifyRequestObject(jwt, clientWithJwks(publicJwk), {

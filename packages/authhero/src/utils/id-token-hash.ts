@@ -1,4 +1,4 @@
-import { base64url } from "oslo/encoding";
+import { encodeBase64Url } from "@authhero/adapter-interfaces";
 
 // OIDC Core 3.3.2.11 / 3.1.3.6: c_hash and at_hash are computed by hashing the
 // ASCII representation of the code or access_token with the hash function
@@ -31,5 +31,5 @@ export async function computeIdTokenHash(
   const hashBuffer = await crypto.subtle.digest(digest, encoded);
   const full = new Uint8Array(hashBuffer);
   const half = full.slice(0, full.length / 2);
-  return base64url.encode(half, { includePadding: false });
+  return encodeBase64Url(half);
 }

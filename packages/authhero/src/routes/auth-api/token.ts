@@ -3,6 +3,7 @@ import {
   LogType,
   LogTypes,
   tokenResponseSchema,
+  decodeBase64Url,
 } from "@authhero/adapter-interfaces";
 import { logMessage } from "../../helpers/logging";
 import { Bindings, Variables } from "../../types";
@@ -46,8 +47,6 @@ import { prefetchClientBundle } from "../../helpers/prefetch-client-bundle";
 import { isCimdClientId } from "../../helpers/cimd";
 import { getAuthUrl, getIssuer } from "../../variables";
 import { resolveConnectionName } from "../../helpers/connection";
-import { base64url } from "oslo/encoding";
-
 import { defineRoute } from "../../utils/define-route";
 const optionalClientCredentials = z.object({
   client_id: z.string().optional(),
@@ -61,7 +60,7 @@ function peekAssertionClientId(jwt: string): string | undefined {
   if (parts.length !== 3 || !parts[1]) return undefined;
   try {
     const payload = JSON.parse(
-      new TextDecoder().decode(base64url.decode(parts[1], { strict: false })),
+      new TextDecoder().decode(decodeBase64Url(parts[1])),
     );
     if (payload && typeof payload === "object") {
       const iss = (payload as Record<string, unknown>).iss;

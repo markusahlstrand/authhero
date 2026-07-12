@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { createJWT } from "oslo/jwt";
 import { TimeSpan } from "oslo";
-import { base64url } from "oslo/encoding";
+import { encodeBase64Url } from "@authhero/adapter-interfaces";
 import {
   verifyClientAssertion,
   ClientAssertionError,
@@ -111,18 +111,16 @@ describe("verifyClientAssertion (RFC 7523)", () => {
   });
 
   it("rejects alg=none", async () => {
-    const header = base64url.encode(
+    const header = encodeBase64Url(
       new TextEncoder().encode(JSON.stringify({ alg: "none", typ: "JWT" })),
-      { includePadding: false },
     );
-    const payload = base64url.encode(
+    const payload = encodeBase64Url(
       new TextEncoder().encode(
         JSON.stringify({
           ...standardClaims(),
           exp: Math.floor(Date.now() / 1000) + 300,
         }),
       ),
-      { includePadding: false },
     );
     await expect(
       verifyClientAssertion(

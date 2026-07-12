@@ -1,5 +1,6 @@
 import { sha256 } from "oslo/crypto";
-import { base64url, encodeHex } from "oslo/encoding";
+import { encodeHex } from "oslo/encoding";
+import { encodeBase64Url } from "@authhero/adapter-interfaces";
 
 export const REFRESH_TOKEN_PREFIX = "rt_";
 export const LOOKUP_BYTES = 7;
@@ -29,12 +30,8 @@ export function generateRefreshTokenParts(): {
   secret: string;
 } {
   return {
-    lookup: base64url.encode(randomBytes(LOOKUP_BYTES), {
-      includePadding: false,
-    }),
-    secret: base64url.encode(randomBytes(SECRET_BYTES), {
-      includePadding: false,
-    }),
+    lookup: encodeBase64Url(randomBytes(LOOKUP_BYTES)),
+    secret: encodeBase64Url(randomBytes(SECRET_BYTES)),
   };
 }
 

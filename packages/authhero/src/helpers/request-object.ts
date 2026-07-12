@@ -1,5 +1,4 @@
-import { base64url } from "oslo/encoding";
-import { Jwk } from "@authhero/adapter-interfaces";
+import { Jwk, decodeBase64Url } from "@authhero/adapter-interfaces";
 import { importParamsForJwk, SupportedAlg } from "../utils/jwk-alg";
 import {
   loadClientJwks,
@@ -77,7 +76,7 @@ interface JoseHeader {
 
 function decodeJoseSegment<T = unknown>(segment: string): T {
   const decoded = new TextDecoder().decode(
-    base64url.decode(segment, { strict: false }),
+    decodeBase64Url(segment),
   );
   const parsed = JSON.parse(decoded);
   if (typeof parsed !== "object" || parsed === null) {
@@ -153,7 +152,7 @@ export async function verifyRequestObject(
     new TextEncoder().encode(`${headerSeg}.${payloadSeg}`),
   );
   const signature = new Uint8Array(
-    base64url.decode(signatureSeg, { strict: false }),
+    decodeBase64Url(signatureSeg),
   );
 
   if (SUPPORTED_SYMMETRIC_ALGS.has(header.alg)) {
