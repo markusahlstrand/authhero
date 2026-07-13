@@ -34,7 +34,7 @@
     "@hono/zod-openapi": "^1.4.0",
     "@types/node": "^24.12.4",
     "dynalite": "^3.2.2",
-    "hono": "^4.12.23",
+    "hono": "^4.12.30",
     "rollup": "^4.54.0",
     "rollup-plugin-dts": "^6.4.1",
     "typescript": "^5.9.3",
@@ -48,8 +48,8 @@
   "dependencies": {
     "@authhero/adapter-interfaces": "workspace:*",
     "@authhero/proxy": "workspace:*",
-    "@aws-sdk/client-dynamodb": "^3.700.0",
-    "@aws-sdk/lib-dynamodb": "^3.700.0",
+    "@aws-sdk/client-dynamodb": "^3.1085.0",
+    "@aws-sdk/lib-dynamodb": "^3.1085.0",
     "nanoid": "^5.1.11"
   }
 }

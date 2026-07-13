@@ -45,7 +45,7 @@
     "@types/node": "^24.12.4",
     "authhero": "workspace:*",
     "better-sqlite3": "^12.4.1",
-    "hono": "^4.12.23",
+    "hono": "^4.12.30",
     "kysely": "^0.29.2",
     "msw": "^2.14.6",
     "rollup": "^4.54.0",

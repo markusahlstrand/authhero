@@ -41,7 +41,7 @@
   "dependencies": {
     "@authhero/adapter-interfaces": "workspace:*",
     "@authhero/proxy": "workspace:*",
-    "drizzle-orm": "^0.44.2",
+    "drizzle-orm": "^0.45.2",
     "nanoid": "^5.1.11"
   },
   "devDependencies": {
@@ -52,7 +52,7 @@
     "@types/node": "^20.19.41",
     "better-sqlite3": "^11.10.0",
     "drizzle-kit": "^0.31.4",
-    "hono": "^4.12.23",
+    "hono": "^4.12.30",
     "typescript": "^5.5.2",
     "vite": "^8.0.14",
     "vitest": "^4.1.7"

@@ -54,7 +54,7 @@
   },
   "dependencies": {
     "@authhero/adapter-interfaces": "workspace:*",
-    "fast-xml-parser": "^4.5.1",
+    "fast-xml-parser": "^4.5.5",
     "nanoid": "^5.1.11"
   },
   "optionalDependencies": {
