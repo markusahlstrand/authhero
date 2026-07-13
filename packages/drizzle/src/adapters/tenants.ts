@@ -135,12 +135,13 @@ export function createTenantsAdapter(db: DrizzleDb) {
         q,
       } = params || {};
 
+      const filter = q
+        ? buildLuceneFilter(tenants, q, ["friendly_name"])
+        : undefined;
+
       let query = db.select().from(tenants).$dynamic();
 
-      if (q) {
-        const filter = buildLuceneFilter(tenants, q, ["friendly_name"]);
-        if (filter) query = query.where(filter);
-      }
+      if (filter) query = query.where(filter);
 
       if (sort?.sort_by) {
         const col = (tenants as any)[sort.sort_by];
@@ -158,7 +159,14 @@ export function createTenantsAdapter(db: DrizzleDb) {
         return { tenants: mappedTenants };
       }
 
-      const [countResult] = await db.select({ count: countFn() }).from(tenants);
+      let countQuery = db
+        .select({ count: countFn() })
+        .from(tenants)
+        .$dynamic();
+
+      if (filter) countQuery = countQuery.where(filter);
+
+      const [countResult] = await countQuery;
 
       return {
         tenants: mappedTenants,

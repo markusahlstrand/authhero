@@ -33,6 +33,42 @@ describe("tenants adapter", () => {
     expect(result.tenants.length).toBe(2);
   });
 
+  it("should apply the q filter to totals", async () => {
+    await data.tenants.create({
+      id: "t1",
+      name: "Tenant 1",
+      friendly_name: "Acme",
+    });
+    await data.tenants.create({
+      id: "t2",
+      name: "Tenant 2",
+      friendly_name: "Acme Corp",
+    });
+    await data.tenants.create({
+      id: "t3",
+      name: "Tenant 3",
+      friendly_name: "Other",
+    });
+
+    const freeText = await data.tenants.list({
+      page: 0,
+      per_page: 1,
+      include_totals: true,
+      q: "Acme",
+    });
+    expect(freeText.tenants.length).toBe(1);
+    expect(freeText.length).toBe(2);
+
+    const excludeId = await data.tenants.list({
+      page: 0,
+      per_page: 10,
+      include_totals: true,
+      q: "-id:t3",
+    });
+    expect(excludeId.tenants.map((t) => t.id).sort()).toEqual(["t1", "t2"]);
+    expect(excludeId.length).toBe(2);
+  });
+
   it("should update a tenant", async () => {
     await data.tenants.create({ id: "t1", name: "Original" });
     await data.tenants.update("t1", { name: "Updated" });
