@@ -1,5 +1,27 @@
 # authhero
 
+## 8.23.0
+
+### Minor Changes
+
+- da635f1: Implement OIDC Back-Channel Logout 1.0. When a session ends — via /v2/logout, /oidc/logout, or Management API session revoke/delete — the OP now POSTs a signed logout token (typ `logout+jwt`, with `sid`, `sub`, and the backchannel-logout `events` claim, never a `nonce`) to each participating client's registered `oidc_logout.backchannel_logout_urls`. Delivery is best-effort in the background and goes through the SSRF-safe URL check. Discovery now advertises `backchannel_logout_supported` and `backchannel_logout_session_supported`. The client `oidc_logout` field is now typed (`backchannel_logout_urls`, `backchannel_logout_initiators`), and the create-authhero conformance seed passes `oidc_logout` through for extra clients.
+- 5ede4a0: Add `GET /roles/{id}/users` to the management API with Auth0-style checkpoint pagination
+
+  The endpoint returns the distinct users assigned to a role (per-organization assignments collapsed), as user summaries (`user_id`, `email`, `name`, `picture`). It supports the bare array, `include_totals` and checkpoint (`from`/`take` + opaque `next` cursor) response shapes, matching Auth0 — which requires checkpoint pagination on this endpoint past 1000 results.
+
+  Breaking (adapter-interfaces): `UserRolesAdapter` gains a required `listUsers(tenantId, roleId, params)` method, so custom adapter implementations must add it. It is implemented with keyset pagination in the kysely and drizzle adapters. The aws/DynamoDB adapter throws an explicit not-implemented error (its key layout has no index by role), mirroring the actions adapters.
+
+### Patch Changes
+
+- 0cfbfc8: Fix the always-allowed auth-server self-callbacks in /authorize and /account. The issuer and universal-login wildcard entries were built by appending "/\*" to bases that already end in "/", producing patterns like `https://domain//*` whose path regex never matches a real pathname — so redirect URIs pointing back at the auth server itself (e.g. the /u2/info test screen on a custom domain or tenant subdomain) were rejected with "Invalid redirect URI". Also stop mutating client.callbacks when appending the wildcards.
+- 683fccf: Fix management API user creation returning 403 "Client not found" when the token's `azp` claim names a client that doesn't exist in the target tenant (e.g. control-plane dashboard tokens against WFP tenants). A non-resolving `client_id` is now treated as a management call — signup validation only runs when the client actually exists in the tenant, matching Auth0's behavior of bypassing signup restrictions for management API user creation.
+- Updated dependencies [da635f1]
+- Updated dependencies [5ede4a0]
+  - @authhero/adapter-interfaces@4.0.0
+  - @authhero/proxy@0.9.3
+  - @authhero/saml@0.4.4
+  - @authhero/widget@0.34.13
+
 ## 8.22.1
 
 ### Patch Changes
