@@ -1,5 +1,16 @@
 # @authhero/cloudflare-adapter
 
+## 2.38.10
+
+### Patch Changes
+
+- fb0110a: Raise the hono peer dependency range from `^4.6.8` to `^4.12.30` so consumers resolve a hono version with the patched CORS middleware (reflected any Origin with credentials when origin defaulted to wildcard).
+- Updated dependencies [fb0110a]
+- Updated dependencies [47db71e]
+  - @authhero/kysely-adapter@11.18.1
+  - authhero@8.23.1
+  - @authhero/multi-tenancy@14.27.0
+
 ## 2.38.9
 
 ### Patch Changes
