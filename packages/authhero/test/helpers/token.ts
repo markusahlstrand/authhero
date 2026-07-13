@@ -34,6 +34,10 @@ export interface CreateTokenParams {
   scope?: string;
   permissions?: string[];
   aud?: string;
+  // Authorized party — the client the token was issued to. Auth0 sets this
+  // on client-credentials tokens; the management middleware copies it into
+  // ctx.var.client_id.
+  azp?: string;
   // OIDC Core 5.5 — list of claim names the original /authorize request
   // asked for under `claims.userinfo`. Tests use this to exercise the
   // `requested_userinfo_claims` access-token slot end-to-end.
@@ -53,6 +57,7 @@ export async function createToken(params?: CreateTokenParams) {
       sub: params?.user_id || "userId",
       iss: "http://localhost:3000/",
       tenant_id: params?.tenant_id,
+      ...(params?.azp ? { azp: params.azp } : {}),
       ...(params?.requested_userinfo_claims
         ? { requested_userinfo_claims: params.requested_userinfo_claims }
         : {}),
@@ -165,9 +170,10 @@ const ADMIN_PERMISSIONS = [
   "update:users",
 ];
 
-export async function getAdminToken() {
+export async function getAdminToken(overrides?: Partial<CreateTokenParams>) {
   return createToken({
     permissions: ADMIN_PERMISSIONS,
     aud: MANAGEMENT_API_AUDIENCE,
+    ...overrides,
   });
 }
