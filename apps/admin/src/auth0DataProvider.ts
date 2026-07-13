@@ -6,6 +6,7 @@ import {
   EMAIL_TEMPLATE_DEFINITIONS,
   getTemplateLabel,
 } from "./resources/email-templates/template-names";
+import { resolveOrganizationMemberDeletion } from "./utils/organizationMembers";
 
 function isNotFoundError(err: unknown): boolean {
   return (
@@ -2383,25 +2384,8 @@ export default (
 
       // Organization members
       if (resource === "organization-members") {
-        let organization_id, user_ids;
-
-        if (params.previousData?.members) {
-          organization_id = params.id;
-          user_ids = params.previousData.members;
-        } else if (typeof params.id === "string" && params.id.includes("_")) {
-          [organization_id, ...user_ids] = params.id.split("_");
-        } else if (params.previousData) {
-          organization_id = params.previousData.organization_id || params.id;
-          user_ids = params.previousData.user_ids || [
-            params.previousData.user_id,
-          ];
-        }
-
-        if (!organization_id || !user_ids || user_ids.length === 0) {
-          throw new Error(
-            "Missing organization_id or user_id(s) for organization member deletion",
-          );
-        }
+        const { organization_id, user_ids } =
+          resolveOrganizationMemberDeletion(params);
 
         const res = await del(`organizations/${organization_id}/members`, {
           members: user_ids,
