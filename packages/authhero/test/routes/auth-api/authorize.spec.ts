@@ -214,6 +214,67 @@ describe("authorize", () => {
     expect(authorizationUrl.searchParams.get("firstName")).toEqual("firstName");
   });
 
+  describe("auth server self-callbacks", () => {
+    it("allows the auth server's own /u2/info as redirect_uri without client registration", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const oauthClient = testClient(oauthApp, env);
+
+      // Drop the fixture's registered localhost wildcard so the redirect can
+      // only be allowed by the auth server's own always-allowed callbacks.
+      await env.data.clients.update("tenantId", "clientId", {
+        callbacks: ["https://example.com/callback"],
+      });
+
+      // ISSUER is http://localhost:3000/ — /u2/info is not registered on the
+      // client, but redirects back to the auth server itself are always allowed.
+      const response = await oauthClient.authorize.$get({
+        query: {
+          client_id: "clientId",
+          redirect_uri: "http://localhost:3000/u2/info",
+          state: "state",
+          response_type: AuthorizationResponseType.CODE,
+        },
+      });
+
+      expect(response.status).toEqual(302);
+      const location = response.headers.get("location");
+      const redirectUri = new URL(location!, "http://localhost:3000");
+      expect(redirectUri.pathname).toEqual("/u/login/identifier");
+    });
+
+    it("allows /u2/info on a custom domain as redirect_uri without client registration", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const oauthClient = testClient(oauthApp, env);
+
+      await env.data.customDomains.create("tenantId", {
+        domain: "auth.example.com",
+        custom_domain_id: "custom-domain-id",
+        type: "auth0_managed_certs",
+      });
+
+      const response = await oauthClient.authorize.$get(
+        {
+          query: {
+            client_id: "clientId",
+            redirect_uri: "https://auth.example.com/u2/info",
+            state: "state",
+            response_type: AuthorizationResponseType.CODE,
+          },
+        },
+        {
+          headers: {
+            host: "auth.example.com",
+          },
+        },
+      );
+
+      expect(response.status).toEqual(302);
+      const location = response.headers.get("location");
+      const redirectUri = new URL(location!, "https://auth.example.com");
+      expect(redirectUri.pathname).toEqual("/u/login/identifier");
+    });
+  });
+
   it("should redirect to the universal login when the only connection is a database connection with strategy auth0", async () => {
     const { oauthApp, env } = await getTestServer();
     const oauthClient = testClient(oauthApp, env);

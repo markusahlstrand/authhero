@@ -8,7 +8,10 @@ import { isCimdClientId } from "../../helpers/cimd";
 import { nanoid } from "nanoid";
 import { UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS } from "../../constants";
 import { stringifyAuth0Client } from "../../utils/client-info";
-import { getIssuer, getUniversalLoginUrl } from "../../variables";
+import {
+  getSelfCallbackWildcards,
+  getUniversalLoginUrl,
+} from "../../variables";
 import { verifyRequestOrigin } from "../../utils/request-origin";
 import { HTTPException } from "hono/http-exception";
 import { isValidRedirectUrl } from "../../utils/is-valid-redirect-url";
@@ -80,12 +83,11 @@ const getRoot = defineRoute({
     }
 
     if (authParams.redirect_uri) {
-      const validCallbacks = client.callbacks || [];
+      // Copy: pushing onto client.callbacks directly would mutate the client
+      const validCallbacks = [...(client.callbacks || [])];
       if (ctx.var.host) {
-        // Allow wildcard for the auth server
-        validCallbacks.push(`${getIssuer(ctx.env, ctx.var.custom_domain)}/*`);
         validCallbacks.push(
-          `${getUniversalLoginUrl(ctx.env, ctx.var.custom_domain)}/*`,
+          ...getSelfCallbackWildcards(ctx.env, ctx.var.custom_domain),
         );
       }
 
