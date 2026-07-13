@@ -1,5 +1,19 @@
 # @authhero/adapter-interfaces
 
+## 4.0.0
+
+### Major Changes
+
+- 5ede4a0: Add `GET /roles/{id}/users` to the management API with Auth0-style checkpoint pagination
+
+  The endpoint returns the distinct users assigned to a role (per-organization assignments collapsed), as user summaries (`user_id`, `email`, `name`, `picture`). It supports the bare array, `include_totals` and checkpoint (`from`/`take` + opaque `next` cursor) response shapes, matching Auth0 — which requires checkpoint pagination on this endpoint past 1000 results.
+
+  Breaking (adapter-interfaces): `UserRolesAdapter` gains a required `listUsers(tenantId, roleId, params)` method, so custom adapter implementations must add it. It is implemented with keyset pagination in the kysely and drizzle adapters. The aws/DynamoDB adapter throws an explicit not-implemented error (its key layout has no index by role), mirroring the actions adapters.
+
+### Minor Changes
+
+- da635f1: Implement OIDC Back-Channel Logout 1.0. When a session ends — via /v2/logout, /oidc/logout, or Management API session revoke/delete — the OP now POSTs a signed logout token (typ `logout+jwt`, with `sid`, `sub`, and the backchannel-logout `events` claim, never a `nonce`) to each participating client's registered `oidc_logout.backchannel_logout_urls`. Delivery is best-effort in the background and goes through the SSRF-safe URL check. Discovery now advertises `backchannel_logout_supported` and `backchannel_logout_session_supported`. The client `oidc_logout` field is now typed (`backchannel_logout_urls`, `backchannel_logout_initiators`), and the create-authhero conformance seed passes `oidc_logout` through for extra clients.
+
 ## 3.12.0
 
 ### Minor Changes
