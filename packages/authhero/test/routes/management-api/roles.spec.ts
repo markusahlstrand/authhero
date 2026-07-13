@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { testClient } from "hono/testing";
 import { getAdminToken } from "../../helpers/token";
 import { getTestServer } from "../../helpers/test-server";
+import type { Bindings } from "../../../src/types";
 import { env } from "hono/adapter";
 
 describe("roles", () => {
@@ -580,7 +581,14 @@ describe("roles", () => {
 });
 
 describe("GET /api/v2/roles/:id/users", () => {
-  async function seedRoleWithUsers(env: any, count: number) {
+  type RoleUserSummary = {
+    user_id: string;
+    email?: string;
+    name?: string;
+    picture?: string;
+  };
+
+  async function seedRoleWithUsers(env: Bindings, count: number) {
     const role = await env.data.roles.create("tenantId", {
       name: `users-role-${count}`,
       description: "Role with users",
@@ -630,7 +638,7 @@ describe("GET /api/v2/roles/:id/users", () => {
       { headers: { authorization: `Bearer ${token}` } },
     );
     expect(response.status).toBe(200);
-    const users = (await response.json()) as any[];
+    const users = (await response.json()) as RoleUserSummary[];
     expect(users).toHaveLength(3);
     expect(users[0].user_id).toBe("email|role-user-00");
     expect(users[0].email).toBe("role-user-0@example.com");
@@ -645,11 +653,44 @@ describe("GET /api/v2/roles/:id/users", () => {
       { headers: { authorization: `Bearer ${token}` } },
     );
     expect(totalsResponse.status).toBe(200);
-    const body = (await totalsResponse.json()) as any;
+    const body = (await totalsResponse.json()) as {
+      users: RoleUserSummary[];
+      total: number;
+      start: number;
+      limit: number;
+    };
     expect(body.users).toHaveLength(2);
     expect(body.total).toBe(3);
     expect(body.start).toBe(0);
     expect(body.limit).toBe(2);
+  });
+
+  it("rejects per_page and take above Auth0's cap of 100", async () => {
+    const { managementApp, env } = await getTestServer();
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const role = await seedRoleWithUsers(env, 1);
+
+    const perPageResponse = await managementClient.roles[":id"].users.$get(
+      {
+        param: { id: role.id },
+        query: { per_page: "200" },
+        header: { "tenant-id": "tenantId" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(perPageResponse.status).toBe(400);
+
+    const takeResponse = await managementClient.roles[":id"].users.$get(
+      {
+        param: { id: role.id },
+        query: { take: "500" },
+        header: { "tenant-id": "tenantId" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(takeResponse.status).toBe(400);
   });
 
   it("walks all users across pages via the opaque next cursor", async () => {
@@ -674,14 +715,17 @@ describe("GET /api/v2/roles/:id/users", () => {
       );
       expect(res.status).toBe(200);
       // Checkpoint pagination returns { users, next }, not a bare array.
-      const body = (await res.json()) as any;
+      const body = (await res.json()) as {
+        users: RoleUserSummary[];
+        next?: string;
+      };
       for (const user of body.users) {
         expect(seen.has(user.user_id)).toBe(false);
         seen.add(user.user_id);
       }
       pages++;
       if (!body.next) break;
-      from = body.next as string;
+      from = body.next;
       if (pages > 6) throw new Error("cursor walk did not terminate");
     }
 

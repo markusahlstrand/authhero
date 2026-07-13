@@ -43,6 +43,15 @@ const roleUsersWithNextSchema = z.object({
   }),
   users: z.array(roleUserSchema),
 });
+
+// Auth0 caps per_page/take at 100 on this endpoint; the cap also bounds the
+// hydration fan-out below (one users.get() per returned user).
+const roleUsersQuerySchema = querySchema.extend({
+  per_page: querySchema.shape.per_page.pipe(z.number().int().min(0).max(100)),
+  take: querySchema.shape.take.pipe(
+    z.number().int().min(1).max(100).optional(),
+  ),
+});
 const getRoot = defineRoute({
   route: createRoute({
     tags: ["roles"],
@@ -419,7 +428,7 @@ const getByIdUsers = defineRoute({
       headers: z.object({
         "tenant-id": z.string().optional(),
       }),
-      query: querySchema,
+      query: roleUsersQuerySchema,
     },
     security: [
       {
