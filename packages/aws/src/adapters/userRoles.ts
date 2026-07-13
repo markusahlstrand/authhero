@@ -74,6 +74,17 @@ export function createUserRolesAdapter(ctx: DynamoDBContext): UserRolesAdapter {
       );
     },
 
+    async listUsers() {
+      // User-role items are keyed by (tenant, user, organization); there is no
+      // index by role, so listing a role's users would require a full scan or
+      // a new GSI. Throw so the gap is obvious rather than silently returning
+      // empty results, mirroring the actions adapters.
+      throw new Error(
+        "userRoles.listUsers is not implemented in the AWS DynamoDB adapter. " +
+          "Use a SQL-backed adapter (kysely/drizzle) for tenants that need to list a role's users.",
+      );
+    },
+
     async list(
       tenantId: string,
       userId: string,
