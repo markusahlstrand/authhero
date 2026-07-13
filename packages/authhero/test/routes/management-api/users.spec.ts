@@ -81,6 +81,38 @@ describe("users management API endpoint", () => {
       expect(duplicatedCreateUserRequest.status).toBe(409);
     });
 
+    it("should create a user when the token's azp is not a client in the target tenant", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+
+      // Management tokens carry the calling application in `azp` (Auth0's
+      // client-credentials shape). That client lives in the issuing tenant —
+      // e.g. a dashboard client on the control plane — and may not exist in
+      // the target tenant. This used to 403 with "Client not found" (#1123).
+      const token = await getAdminToken({ azp: "client-from-another-tenant" });
+
+      const createUserResponse = await managementClient.users.$post(
+        {
+          json: {
+            email: "azp-user@example.com",
+            connection: "email",
+          },
+          header: {
+            "tenant-id": "tenantId",
+          },
+        },
+        {
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      expect(createUserResponse.status).toBe(201);
+      const newUser = await createUserResponse.json();
+      expect(newUser.email).toBe("azp-user@example.com");
+    });
+
     it("should create a new user for an empty tenant", async () => {
       const token = await getAdminToken();
 

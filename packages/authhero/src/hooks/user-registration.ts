@@ -45,20 +45,33 @@ export function createUserHooks(
   data: DataAdapters,
 ) {
   return async (tenant_id: string, user: User) => {
-    // Get the client_id from context if available (auth flows)
-    // Management API calls won't have client_id, so skip validation in that case
+    // `ctx.var.client_id` is set by auth flows (after validating the client)
+    // but also by the management authentication middleware from the token's
+    // `azp` claim, which names a client in the issuing tenant — one that may
+    // not exist in the target tenant (#1123). Only treat it as an auth-flow
+    // signup when the client actually resolves in this tenant; a miss means
+    // a management call, which skips signup validation (matching Auth0).
     if (ctx.var.client_id) {
-      const client = await getEnrichedClient(
-        ctx.env,
-        ctx.var.client_id,
-        ctx.var.tenant_id,
-      );
+      const tenantClient = await data.clients.get(tenant_id, ctx.var.client_id);
+      if (tenantClient) {
+        const client = await getEnrichedClient(
+          ctx.env,
+          ctx.var.client_id,
+          ctx.var.tenant_id,
+        );
 
-      // Call preUserSignupHook BEFORE any user creation logic
-      // This ensures ALL signup methods (email, code, social) are checked
-      // Only validate email-based signups (skip SMS/phone-based signups)
-      if (user.email) {
-        await preUserSignupHook(ctx, client, data, user.email, user.connection);
+        // Call preUserSignupHook BEFORE any user creation logic
+        // This ensures ALL signup methods (email, code, social) are checked
+        // Only validate email-based signups (skip SMS/phone-based signups)
+        if (user.email) {
+          await preUserSignupHook(
+            ctx,
+            client,
+            data,
+            user.email,
+            user.connection,
+          );
+        }
       }
     }
 
