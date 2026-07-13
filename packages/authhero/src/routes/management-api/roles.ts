@@ -45,13 +45,25 @@ const roleUsersWithNextSchema = z.object({
 });
 
 // Auth0 caps per_page/take at 100 on this endpoint; the cap also bounds the
-// hydration fan-out below (one users.get() per returned user).
-const roleUsersQuerySchema = querySchema.extend({
-  per_page: querySchema.shape.per_page.pipe(z.number().int().min(0).max(100)),
-  take: querySchema.shape.take.pipe(
-    z.number().int().min(1).max(100).optional(),
-  ),
-});
+// hydration fan-out below (one users.get() per returned user). Only the
+// parameters the handler consumes are accepted — Auth0 supports neither
+// sort nor q here.
+const roleUsersQuerySchema = querySchema
+  .pick({
+    page: true,
+    per_page: true,
+    include_totals: true,
+    from: true,
+    take: true,
+  })
+  .extend({
+    per_page: querySchema.shape.per_page.pipe(
+      z.number().int().min(0).max(100),
+    ),
+    take: querySchema.shape.take.pipe(
+      z.number().int().min(1).max(100).optional(),
+    ),
+  });
 const getRoot = defineRoute({
   route: createRoute({
     tags: ["roles"],

@@ -106,7 +106,7 @@ describe("keyset pagination (from/take)", () => {
 // keyset on user_id itself (user_roles has no surrogate id, and user_id is
 // unique once assignments are collapsed).
 describe("role users keyset pagination (from/take)", () => {
-  let data: any;
+  let data: Awaited<ReturnType<typeof getTestServer>>["data"];
   const tenantId = "keyset-role-users-tenant";
   let roleId: string;
 
