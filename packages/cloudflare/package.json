@@ -58,7 +58,7 @@
     "@authhero/multi-tenancy": "^14.0.0",
     "@hono/zod-openapi": "^1.4.0",
     "authhero": "^3.0.0",
-    "hono": "^4.6.8"
+    "hono": "^4.12.30"
   },
   "peerDependenciesMeta": {
     "@authhero/multi-tenancy": {
