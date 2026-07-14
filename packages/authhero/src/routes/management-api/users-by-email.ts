@@ -3,6 +3,7 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
 import { userSchema } from "@authhero/adapter-interfaces";
 import { defineRoute } from "../../utils/define-route";
+import { requireTenantId } from "./helpers";
 const getRoot = defineRoute({
   route: createRoute({
     tags: ["users"],
@@ -34,12 +35,9 @@ const getRoot = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { email } = ctx.req.valid("query");
-    const users = await getUsersByEmail(
-      ctx.env.data.users,
-      ctx.var.tenant_id,
-      email,
-    );
+    const users = await getUsersByEmail(ctx.env.data.users, tenantId, email);
 
     const primarySqlUsers = users.filter((user) => !user.linked_to);
 

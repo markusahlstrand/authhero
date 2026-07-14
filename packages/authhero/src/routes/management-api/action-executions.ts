@@ -8,6 +8,7 @@ import {
 import { HTTPException } from "hono/http-exception";
 
 import { defineRoute } from "../../utils/define-route";
+import { requireTenantId } from "./helpers";
 // Public response shape mirrors Auth0 (no internal fields like tenant_id or
 // captured console logs). See:
 // https://auth0.com/docs/api/management/v2/actions/get-execution
@@ -48,11 +49,9 @@ const getById = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
-    const execution = await ctx.env.data.actionExecutions.get(
-      ctx.var.tenant_id,
-      id,
-    );
+    const execution = await ctx.env.data.actionExecutions.get(tenantId, id);
     if (!execution) {
       throw new HTTPException(404, { message: "Execution not found" });
     }
@@ -92,11 +91,9 @@ const getByIdLogs = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
-    const execution = await ctx.env.data.actionExecutions.get(
-      ctx.var.tenant_id,
-      id,
-    );
+    const execution = await ctx.env.data.actionExecutions.get(tenantId, id);
     if (!execution) {
       throw new HTTPException(404, { message: "Execution not found" });
     }

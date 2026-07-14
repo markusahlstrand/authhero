@@ -7,14 +7,14 @@ import {
   resourceServerInsertSchema,
   resourceServerSchema,
   ResourceServer,
-  totalsSchema,
   LogTypes,
 } from "@authhero/adapter-interfaces";
 import { parseSort } from "../../utils/sort";
 import { logMessage } from "../../helpers/logging";
 
 import { defineRoute } from "../../utils/define-route";
-const resourceServersWithTotalsSchema = totalsSchema.extend({
+import { requireTenantId, withTotals, listResponse } from "./helpers";
+const resourceServersWithTotalsSchema = withTotals({
   resource_servers: z.array(resourceServerSchema),
 });
 
@@ -68,7 +68,7 @@ const getRoot = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
 
     const {
       page,
@@ -86,11 +86,7 @@ const getRoot = defineRoute({
       q,
     });
 
-    if (!include_totals) {
-      return ctx.json(result.resource_servers);
-    }
-
-    return ctx.json(result);
+    return ctx.json(listResponse(include_totals, result, "resource_servers"));
   },
 });
 
@@ -125,7 +121,7 @@ const getById = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
 
     const resourceServer = await resolveResourceServer(ctx, tenant_id, id);
@@ -163,7 +159,7 @@ const deleteById = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
 
     const resourceServer = await resolveResourceServer(ctx, tenant_id, id);
@@ -190,7 +186,7 @@ const deleteById = defineRoute({
 
     await ctx.env.data.resourceServers.remove(tenant_id, resourceServer.id!);
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenant_id, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Delete a Resource Server",
       targetType: "resource_server",
@@ -239,7 +235,7 @@ const patchById = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
     const body = ctx.req.valid("json");
 
@@ -275,7 +271,7 @@ const patchById = defineRoute({
       });
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenant_id, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Update a Resource Server",
       targetType: "resource_server",
@@ -322,7 +318,7 @@ const postRoot = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const body = ctx.req.valid("json");
 
     const resourceServer = await ctx.env.data.resourceServers.create(
@@ -330,7 +326,7 @@ const postRoot = defineRoute({
       body,
     );
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenant_id, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Create a Resource Server",
       targetType: "resource_server",

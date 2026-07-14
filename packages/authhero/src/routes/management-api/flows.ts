@@ -5,14 +5,14 @@ import { querySchema } from "../../types";
 import {
   flowInsertSchema,
   flowSchema,
-  totalsSchema,
   LogTypes,
 } from "@authhero/adapter-interfaces";
 import { logMessage } from "../../helpers/logging";
 import { parseSort } from "../../utils/sort";
 
 import { defineRoute } from "../../utils/define-route";
-const flowsWithTotalsSchema = totalsSchema.extend({
+import { requireTenantId, withTotals, listResponse } from "./helpers";
+const flowsWithTotalsSchema = withTotals({
   flows: z.array(flowSchema),
 });
 const getRoot = defineRoute({
@@ -43,7 +43,7 @@ const getRoot = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const {
       page,
       per_page,
@@ -60,11 +60,7 @@ const getRoot = defineRoute({
       q,
     });
 
-    if (!include_totals) {
-      return ctx.json(result.flows);
-    }
-
-    return ctx.json(result);
+    return ctx.json(listResponse(include_totals, result, "flows"));
   },
 });
 
@@ -98,7 +94,7 @@ const getById = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
 
     const flow = await ctx.env.data.flows.get(tenant_id, id);
@@ -135,7 +131,7 @@ const deleteById = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
 
     const result = await ctx.env.data.flows.remove(tenant_id, id);
@@ -145,7 +141,7 @@ const deleteById = defineRoute({
       });
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenant_id, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Delete a Flow",
       targetType: "flow",
@@ -193,7 +189,7 @@ const patchById = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
     const body = ctx.req.valid("json");
 
@@ -204,7 +200,7 @@ const patchById = defineRoute({
       });
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenant_id, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Update a Flow",
       targetType: "flow",
@@ -250,12 +246,12 @@ const postRoot = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const body = ctx.req.valid("json");
 
     const flow = await ctx.env.data.flows.create(tenant_id, body);
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenant_id, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Create a Flow",
       targetType: "flow",

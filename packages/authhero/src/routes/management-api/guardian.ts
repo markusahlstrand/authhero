@@ -7,6 +7,7 @@ import { getIssuer } from "../../variables";
 import { logMessage } from "../../helpers/logging";
 
 import { defineRoute } from "../../utils/define-route";
+import { requireTenantId } from "./helpers";
 // Auth0-compatible Guardian MFA factor types
 const factorNames = [
   "sms",
@@ -85,7 +86,8 @@ const getFactors = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
+    const tenantId = requireTenantId(ctx);
+    const tenant = await ctx.env.data.tenants.get(tenantId);
     const factors = tenant?.mfa?.factors;
 
     // Return all factors with their current state
@@ -131,7 +133,8 @@ const getFactorsSmsSelectedProvider = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
+    const tenantId = requireTenantId(ctx);
+    const tenant = await ctx.env.data.tenants.get(tenantId);
     const provider = tenant?.mfa?.sms_provider?.provider || "twilio";
 
     return ctx.json({ provider });
@@ -172,14 +175,15 @@ const putFactorsSmsSelectedProvider = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { provider } = ctx.req.valid("json");
 
-    const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
+    const tenant = await ctx.env.data.tenants.get(tenantId);
     if (!tenant) {
       throw new HTTPException(404, { message: "Tenant not found" });
     }
 
-    await ctx.env.data.tenants.update(ctx.var.tenant_id, {
+    await ctx.env.data.tenants.update(tenantId, {
       mfa: {
         ...tenant.mfa,
         sms_provider: {
@@ -188,11 +192,11 @@ const putFactorsSmsSelectedProvider = defineRoute({
       },
     });
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Set SMS Provider",
       targetType: "guardian",
-      targetId: ctx.var.tenant_id,
+      targetId: tenantId,
     });
 
     return ctx.json({ provider });
@@ -226,7 +230,8 @@ const getFactorsSmsProvidersTwilio = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
+    const tenantId = requireTenantId(ctx);
+    const tenant = await ctx.env.data.tenants.get(tenantId);
     const twilio = tenant?.mfa?.twilio || {};
 
     // Don't return the auth_token in full for security
@@ -274,9 +279,10 @@ const putFactorsSmsProvidersTwilio = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const twilioConfig = ctx.req.valid("json");
 
-    const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
+    const tenant = await ctx.env.data.tenants.get(tenantId);
     if (!tenant) {
       throw new HTTPException(404, { message: "Tenant not found" });
     }
@@ -293,18 +299,18 @@ const putFactorsSmsProvidersTwilio = defineRoute({
           : existingTwilio.auth_token,
     };
 
-    await ctx.env.data.tenants.update(ctx.var.tenant_id, {
+    await ctx.env.data.tenants.update(tenantId, {
       mfa: {
         ...tenant.mfa,
         twilio: updatedTwilio,
       },
     });
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Configure Twilio Provider",
       targetType: "guardian",
-      targetId: ctx.var.tenant_id,
+      targetId: tenantId,
     });
 
     return ctx.json({
@@ -378,7 +384,8 @@ const getPolicies = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
+    const tenantId = requireTenantId(ctx);
+    const tenant = await ctx.env.data.tenants.get(tenantId);
     const policy = tenant?.mfa?.policy;
 
     // Auth0 format: ["all-applications"] for "always", [] for "never"
@@ -423,9 +430,10 @@ const putPolicies = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const policies = ctx.req.valid("json");
 
-    const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
+    const tenant = await ctx.env.data.tenants.get(tenantId);
     if (!tenant) {
       throw new HTTPException(404, { message: "Tenant not found" });
     }
@@ -433,18 +441,18 @@ const putPolicies = defineRoute({
     // Map Auth0 format to internal: ["all-applications"] = "always", [] = "never"
     const policy = policies.includes("all-applications") ? "always" : "never";
 
-    await ctx.env.data.tenants.update(ctx.var.tenant_id, {
+    await ctx.env.data.tenants.update(tenantId, {
       mfa: {
         ...tenant.mfa,
         policy,
       },
     });
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Set Guardian Policies",
       targetType: "guardian",
-      targetId: ctx.var.tenant_id,
+      targetId: tenantId,
     });
 
     return ctx.json(policy === "always" ? ["all-applications"] : []);
@@ -493,7 +501,7 @@ const postEnrollmentsTicket = defineRoute({
   }),
   handler: async (ctx) => {
     const { user_id, email } = ctx.req.valid("json");
-    const tenantId = ctx.var.tenant_id;
+    const tenantId = requireTenantId(ctx);
 
     // Validate the tenant exists and has MFA factors enabled
     const tenant = await ctx.env.data.tenants.get(tenantId);
@@ -565,11 +573,11 @@ const postEnrollmentsTicket = defineRoute({
     }
     const ticketUrl = url.toString();
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Create Enrollment Ticket",
       targetType: "guardian",
-      targetId: ctx.var.tenant_id,
+      targetId: tenantId,
     });
 
     return ctx.json(
@@ -612,8 +620,9 @@ const getFactorsByFactor_name = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { factor_name } = ctx.req.valid("param");
-    const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
+    const tenant = await ctx.env.data.tenants.get(tenantId);
     const factors = tenant?.mfa?.factors;
     const internalKey = toInternalKey(factor_name) as keyof NonNullable<
       typeof factors
@@ -664,19 +673,20 @@ const putFactorsByFactor_name = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { factor_name } = ctx.req.valid("param");
     const { enabled } = ctx.req.valid("json");
     const internalKey = toInternalKey(factor_name);
 
     // Get current tenant
-    const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
+    const tenant = await ctx.env.data.tenants.get(tenantId);
     if (!tenant) {
       throw new HTTPException(404, { message: "Tenant not found" });
     }
 
     // Update the factor state - merge with existing factors
     const existingFactors = tenant.mfa?.factors;
-    await ctx.env.data.tenants.update(ctx.var.tenant_id, {
+    await ctx.env.data.tenants.update(tenantId, {
       mfa: {
         ...tenant.mfa,
         factors: {
@@ -693,11 +703,11 @@ const putFactorsByFactor_name = defineRoute({
       },
     });
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Update Guardian Factor",
       targetType: "guardian",
-      targetId: ctx.var.tenant_id,
+      targetId: tenantId,
     });
 
     return ctx.json({

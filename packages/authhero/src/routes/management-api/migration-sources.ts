@@ -10,6 +10,7 @@ import { Bindings, Variables } from "../../types";
 import { logMessage } from "../../helpers/logging";
 
 import { defineRoute } from "../../utils/define-route";
+import { requireTenantId } from "./helpers";
 const REDACTED = "***";
 
 const migrationSourceResponseSchema = migrationSourceSchema.extend({
@@ -55,8 +56,9 @@ const getRoot = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const adapter = getAdapter(ctx);
-    const result = await adapter.list(ctx.var.tenant_id);
+    const result = await adapter.list(tenantId);
     return ctx.json(result.map(redact));
   },
 });
@@ -81,9 +83,10 @@ const getById = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const adapter = getAdapter(ctx);
     const { id } = ctx.req.valid("param");
-    const source = await adapter.get(ctx.var.tenant_id, id);
+    const source = await adapter.get(tenantId, id);
     if (!source) {
       throw new HTTPException(404);
     }
@@ -117,11 +120,12 @@ const postRoot = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const adapter = getAdapter(ctx);
     const body = ctx.req.valid("json");
-    const source = await adapter.create(ctx.var.tenant_id, body);
+    const source = await adapter.create(tenantId, body);
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Create a Migration Source",
       targetType: "migration_source",
@@ -160,19 +164,20 @@ const patchById = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const adapter = getAdapter(ctx);
     const { id } = ctx.req.valid("param");
     const body = ctx.req.valid("json");
-    const ok = await adapter.update(ctx.var.tenant_id, id, body);
+    const ok = await adapter.update(tenantId, id, body);
     if (!ok) {
       throw new HTTPException(404);
     }
-    const source = await adapter.get(ctx.var.tenant_id, id);
+    const source = await adapter.get(tenantId, id);
     if (!source) {
       throw new HTTPException(404);
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Update a Migration Source",
       targetType: "migration_source",
@@ -199,14 +204,15 @@ const deleteById = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const adapter = getAdapter(ctx);
     const { id } = ctx.req.valid("param");
-    const ok = await adapter.remove(ctx.var.tenant_id, id);
+    const ok = await adapter.remove(tenantId, id);
     if (!ok) {
       throw new HTTPException(404);
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Delete a Migration Source",
       targetType: "migration_source",

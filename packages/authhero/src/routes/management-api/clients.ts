@@ -2,7 +2,6 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import {
   clientSchema,
   clientInsertSchema,
-  totalsSchema,
   connectionSchema,
   LogTypes,
 } from "@authhero/adapter-interfaces";
@@ -16,6 +15,7 @@ import { isCimdClientId } from "../../helpers/cimd";
 import { isTryConnectionClientId } from "../../constants";
 
 import { defineRoute } from "../../utils/define-route";
+import { requireTenantId, withTotals } from "./helpers";
 
 // Platform-managed clients with no business meaning to admins (e.g. the
 // per-tenant "AuthHero Try Connection" stub created by ensureTryConnectionClient).
@@ -123,7 +123,7 @@ function applyAppTypeDefaults<
     grant_types: "grant_types" in raw ? body.grant_types : defaults.grant_types,
   };
 }
-const clientWithTotalsSchema = totalsSchema.extend({
+const clientWithTotalsSchema = withTotals({
   clients: z.array(clientSchema),
 });
 
@@ -179,7 +179,7 @@ const getRoot = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const { page, per_page, include_totals, sort, q, from, take } =
       ctx.req.valid("query");
 
@@ -256,7 +256,7 @@ const getById = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
 
     const client = await ctx.env.data.clients.get(tenant_id, id);
@@ -294,7 +294,7 @@ const deleteById = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
 
     const existing = await ctx.env.data.clients.get(tenant_id, id);
@@ -307,7 +307,7 @@ const deleteById = defineRoute({
       throw new HTTPException(404, { message: "Client not found" });
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenant_id, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Delete a Client",
       targetType: "client",
@@ -355,7 +355,7 @@ const patchById = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
     const body = ctx.req.valid("json");
 
@@ -377,7 +377,7 @@ const patchById = defineRoute({
       throw new HTTPException(404, { message: "Client not found" });
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenant_id, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Update a Client",
       beforeState: clientBefore as Record<string, unknown>,
@@ -425,7 +425,7 @@ const postRoot = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const body = stripCimdMetadata(ctx.req.valid("json"));
     const rawBody = (await ctx.req.json().catch(() => ({}))) as Record<
       string,
@@ -460,7 +460,7 @@ const postRoot = defineRoute({
 
     const client = await ctx.env.data.clients.create(tenant_id, clientCreate);
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenant_id, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Create a Client",
       afterState: client as Record<string, unknown>,
@@ -502,7 +502,7 @@ const getByIdConnections = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
 
     const client = await ctx.env.data.clients.get(tenant_id, id);
@@ -587,7 +587,7 @@ const patchByIdConnections = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
     const connectionIds = ctx.req.valid("json");
 
@@ -637,7 +637,7 @@ const patchByIdConnections = defineRoute({
       }),
     );
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenant_id, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Update Client Connections",
       targetType: "client_connection",

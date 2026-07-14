@@ -6,6 +6,7 @@ import { mintIat } from "../../helpers/dcr/mint-iat";
 import { requireClientRegistrationTokens } from "../auth-api/register/shared";
 
 import { defineRoute } from "../../utils/define-route";
+import { requireTenantId } from "./helpers";
 const mintBodySchema = z.object({
   sub: z.string().optional().openapi({
     description: "User ID to bind the IAT to (optional)",
@@ -66,7 +67,7 @@ const postRoot = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const body = ctx.req.valid("json");
 
     const minted = await mintIat(

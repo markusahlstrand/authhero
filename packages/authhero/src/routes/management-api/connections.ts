@@ -7,7 +7,6 @@ import {
   Connection,
   connectionInsertSchema,
   connectionSchema,
-  totalsSchema,
   LogTypes,
 } from "@authhero/adapter-interfaces";
 import { parseSort } from "../../utils/sort";
@@ -24,8 +23,9 @@ import { isDatabaseConnectionStrategy } from "../../utils/username-password-prov
 import { nanoid } from "nanoid";
 
 import { defineRoute } from "../../utils/define-route";
+import { requireTenantId, withTotals, listResponse } from "./helpers";
 
-const connectionsWithTotalsSchema = totalsSchema.extend({
+const connectionsWithTotalsSchema = withTotals({
   connections: z.array(connectionSchema),
 });
 
@@ -95,6 +95,7 @@ const getRoot = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const {
       page,
       per_page,
@@ -103,7 +104,7 @@ const getRoot = defineRoute({
       q,
     } = ctx.req.valid("query");
 
-    const result = await ctx.env.data.connections.list(ctx.var.tenant_id, {
+    const result = await ctx.env.data.connections.list(tenantId, {
       page,
       per_page,
       include_totals,
@@ -113,11 +114,9 @@ const getRoot = defineRoute({
 
     const connections = result.connections.map(stripConnectionSecrets);
 
-    if (!include_totals) {
-      return ctx.json(connections);
-    }
-
-    return ctx.json({ ...result, connections });
+    return ctx.json(
+      listResponse(include_totals, { ...result, connections }, "connections"),
+    );
   },
 });
 
@@ -152,12 +151,10 @@ const getById = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
 
-    const connection = await ctx.env.data.connections.get(
-      ctx.var.tenant_id,
-      id,
-    );
+    const connection = await ctx.env.data.connections.get(tenantId, id);
 
     if (!connection) {
       throw new HTTPException(404);
@@ -193,7 +190,7 @@ const deleteById = defineRoute({
   }),
   handler: async (ctx) => {
     const { id } = ctx.req.valid("param");
-    const tenantId = ctx.var.tenant_id;
+    const tenantId = requireTenantId(ctx);
 
     const result = await ctx.env.data.connections.remove(tenantId, id);
     if (!result) {
@@ -202,7 +199,7 @@ const deleteById = defineRoute({
       });
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Delete a Connection",
       targetType: "connection",
@@ -252,7 +249,7 @@ const patchById = defineRoute({
   handler: async (ctx) => {
     const { id } = ctx.req.valid("param");
     const body = ctx.req.valid("json");
-    const tenantId = ctx.var.tenant_id;
+    const tenantId = requireTenantId(ctx);
 
     const connectionBefore = await ctx.env.data.connections.get(tenantId, id);
 
@@ -294,7 +291,7 @@ const patchById = defineRoute({
       });
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Update a Connection",
       beforeState: connectionBefore as Record<string, unknown>,
@@ -343,7 +340,7 @@ const postRoot = defineRoute({
   }),
   handler: async (ctx) => {
     const body = ctx.req.valid("json");
-    const tenantId = ctx.var.tenant_id;
+    const tenantId = requireTenantId(ctx);
 
     // Generate ID if not provided
     const connectionId = body.id || generateConnectionId();
@@ -353,7 +350,7 @@ const postRoot = defineRoute({
       id: connectionId,
     });
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Create a Connection",
       afterState: connection as Record<string, unknown>,
@@ -395,13 +392,11 @@ const getByIdClients = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
 
     // First verify the connection exists
-    const connection = await ctx.env.data.connections.get(
-      ctx.var.tenant_id,
-      id,
-    );
+    const connection = await ctx.env.data.connections.get(tenantId, id);
 
     if (!connection) {
       throw new HTTPException(404, {
@@ -410,7 +405,7 @@ const getByIdClients = defineRoute({
     }
 
     // Get all clients in this tenant
-    const { clients } = await ctx.env.data.clients.list(ctx.var.tenant_id, {
+    const { clients } = await ctx.env.data.clients.list(tenantId, {
       per_page: 1000,
     });
 
@@ -458,14 +453,12 @@ const patchByIdClients = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
     const body = ctx.req.valid("json");
 
     // First verify the connection exists
-    const connection = await ctx.env.data.connections.get(
-      ctx.var.tenant_id,
-      id,
-    );
+    const connection = await ctx.env.data.connections.get(tenantId, id);
 
     if (!connection) {
       throw new HTTPException(404, {
@@ -476,7 +469,7 @@ const patchByIdClients = defineRoute({
     // Process each client update; respond 204 to match Auth0's contract.
     for (const clientUpdate of body) {
       const client = await ctx.env.data.clients.get(
-        ctx.var.tenant_id,
+        tenantId,
         clientUpdate.client_id,
       );
 
@@ -489,29 +482,21 @@ const patchByIdClients = defineRoute({
       if (clientUpdate.status) {
         // Enable: Add connection if not already present
         if (!currentConnections.includes(id)) {
-          await ctx.env.data.clients.update(
-            ctx.var.tenant_id,
-            clientUpdate.client_id,
-            {
-              connections: [...currentConnections, id],
-            },
-          );
+          await ctx.env.data.clients.update(tenantId, clientUpdate.client_id, {
+            connections: [...currentConnections, id],
+          });
         }
       } else {
         // Disable: Remove connection if present
         if (currentConnections.includes(id)) {
-          await ctx.env.data.clients.update(
-            ctx.var.tenant_id,
-            clientUpdate.client_id,
-            {
-              connections: currentConnections.filter((c) => c !== id),
-            },
-          );
+          await ctx.env.data.clients.update(tenantId, clientUpdate.client_id, {
+            connections: currentConnections.filter((c) => c !== id),
+          });
         }
       }
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Update Connection Clients",
       targetType: "connection_client",
@@ -582,7 +567,7 @@ const postByIdTry = defineRoute({
   }),
   handler: async (ctx) => {
     const { id } = ctx.req.valid("param");
-    const tenantId = ctx.var.tenant_id;
+    const tenantId = requireTenantId(ctx);
 
     const connection = await ctx.env.data.connections.get(tenantId, id);
     if (!connection) {

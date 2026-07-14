@@ -11,6 +11,7 @@ import { Bindings, Variables } from "../../types";
 import { logMessage } from "../../helpers/logging";
 
 import { defineRoute } from "../../utils/define-route";
+import { requireTenantId } from "./helpers";
 type Section = keyof AttackProtection;
 
 function isPlainObject(v: unknown): v is Record<string, unknown> {
@@ -35,7 +36,8 @@ async function getSection<S extends Section>(
   ctx: { env: Bindings; var: Variables },
   section: S,
 ): Promise<NonNullable<AttackProtection[S]>> {
-  const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
+  const tenantId = requireTenantId(ctx);
+  const tenant = await ctx.env.data.tenants.get(tenantId);
   if (!tenant) {
     throw new HTTPException(404, { message: "Tenant not found" });
   }
@@ -49,7 +51,8 @@ async function patchSection<S extends Section>(
   section: S,
   patch: AttackProtection[S],
 ): Promise<NonNullable<AttackProtection[S]>> {
-  const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
+  const tenantId = requireTenantId(ctx);
+  const tenant = await ctx.env.data.tenants.get(tenantId);
   if (!tenant) {
     throw new HTTPException(404, { message: "Tenant not found" });
   }
@@ -59,15 +62,15 @@ async function patchSection<S extends Section>(
     ...existing,
     [section]: mergedSection,
   };
-  await ctx.env.data.tenants.update(ctx.var.tenant_id, {
+  await ctx.env.data.tenants.update(tenantId, {
     attack_protection: next,
   });
 
-  await logMessage(ctx as any, ctx.var.tenant_id, {
+  await logMessage(ctx as any, tenantId, {
     type: LogTypes.SUCCESS_API_OPERATION,
     description: `Update Attack Protection (${section})`,
     targetType: "attack_protection",
-    targetId: ctx.var.tenant_id,
+    targetId: tenantId,
   });
 
   return next[section] as NonNullable<AttackProtection[S]>;

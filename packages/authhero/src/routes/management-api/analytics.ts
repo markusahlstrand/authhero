@@ -11,6 +11,7 @@ import {
   analyticsQueryResponseSchema,
   CacheAdapter,
 } from "@authhero/adapter-interfaces";
+import { requireTenantId } from "./helpers";
 
 // Per-resource grouping rules. `time` is always allowed.
 const VALID_GROUP_BY: Record<AnalyticsResource, AnalyticsGroupBy[]> = {
@@ -400,7 +401,7 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions = {}) {
       throw err;
     }
 
-    const tenantId = ctx.var.tenant_id;
+    const tenantId = requireTenantId(ctx);
     const cacheKey = cache
       ? normalizedCacheKey(tenantId, resource, parsed)
       : null;

@@ -4,6 +4,7 @@ import { emailProviderSchema, LogTypes } from "@authhero/adapter-interfaces";
 import { logMessage } from "../../helpers/logging";
 import { HTTPException } from "hono/http-exception";
 import { defineRoute } from "../../utils/define-route";
+import { requireTenantId } from "./helpers";
 const getRoot = defineRoute({
   route: createRoute({
     tags: ["emails"],
@@ -31,9 +32,8 @@ const getRoot = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const emailProvider = await ctx.env.data.emailProviders.get(
-      ctx.var.tenant_id,
-    );
+    const tenantId = requireTenantId(ctx);
+    const emailProvider = await ctx.env.data.emailProviders.get(tenantId);
 
     // Auth0 returns 200 with an empty object when no provider is configured.
     return ctx.json(emailProvider ?? {});
@@ -77,27 +77,28 @@ const postRoot = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const emailProvider = ctx.req.valid("json");
 
     // Match Auth0: POST is strict create. If the singleton already exists,
     // return 409 — clients should PATCH to update, or DELETE first.
-    const existing = await ctx.env.data.emailProviders.get(ctx.var.tenant_id);
+    const existing = await ctx.env.data.emailProviders.get(tenantId);
     if (existing) {
       throw new HTTPException(409, {
         message: "Email provider already configured",
       });
     }
 
-    await ctx.env.data.emailProviders.create(ctx.var.tenant_id, emailProvider);
+    await ctx.env.data.emailProviders.create(tenantId, emailProvider);
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Create Email Provider",
       targetType: "email_provider",
-      targetId: ctx.var.tenant_id,
+      targetId: tenantId,
     });
 
-    const stored = await ctx.env.data.emailProviders.get(ctx.var.tenant_id);
+    const stored = await ctx.env.data.emailProviders.get(tenantId);
     return ctx.json(stored ?? emailProvider, { status: 201 });
   },
 });
@@ -136,20 +137,21 @@ const patchRoot = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const patch = ctx.req.valid("json");
 
-    await ctx.env.data.emailProviders.update(ctx.var.tenant_id, patch);
+    await ctx.env.data.emailProviders.update(tenantId, patch);
 
-    const updated = await ctx.env.data.emailProviders.get(ctx.var.tenant_id);
+    const updated = await ctx.env.data.emailProviders.get(tenantId);
     if (!updated) {
       throw new HTTPException(404, { message: "Email provider not found" });
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Update Email Provider",
       targetType: "email_provider",
-      targetId: ctx.var.tenant_id,
+      targetId: tenantId,
     });
 
     return ctx.json(updated);
@@ -181,18 +183,19 @@ const deleteRoot = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const existing = await ctx.env.data.emailProviders.get(ctx.var.tenant_id);
+    const tenantId = requireTenantId(ctx);
+    const existing = await ctx.env.data.emailProviders.get(tenantId);
     if (!existing) {
       throw new HTTPException(404, { message: "Email provider not found" });
     }
 
-    await ctx.env.data.emailProviders.remove(ctx.var.tenant_id);
+    await ctx.env.data.emailProviders.remove(tenantId);
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Delete Email Provider",
       targetType: "email_provider",
-      targetId: ctx.var.tenant_id,
+      targetId: tenantId,
     });
 
     return ctx.body(null, 204);

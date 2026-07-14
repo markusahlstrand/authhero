@@ -12,6 +12,7 @@ import { getDefaultTemplate } from "../../emails/defaults";
 import { sendTestEmail } from "../../emails";
 
 import { defineRoute } from "../../utils/define-route";
+import { requireTenantId } from "./helpers";
 const headers = z.object({ "tenant-id": z.string().optional() });
 
 const templateNameParam = z.object({
@@ -50,10 +51,11 @@ const postRoot = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const body = ctx.req.valid("json");
 
     const existing = await ctx.env.data.emailTemplates.get(
-      ctx.var.tenant_id,
+      tenantId,
       body.template,
     );
     if (existing) {
@@ -62,12 +64,9 @@ const postRoot = defineRoute({
       });
     }
 
-    const created = await ctx.env.data.emailTemplates.create(
-      ctx.var.tenant_id,
-      body,
-    );
+    const created = await ctx.env.data.emailTemplates.create(tenantId, body);
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Create Email Template",
       targetType: "email_template",
@@ -104,7 +103,8 @@ const getDefaults = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const out: { name: EmailTemplateName; body: string; subject: string }[] = [];
+    const out: { name: EmailTemplateName; body: string; subject: string }[] =
+      [];
     for (const name of emailTemplateNameSchema.options) {
       const def = getDefaultTemplate(name);
       if (def) out.push({ name, body: def.body, subject: def.subject });
@@ -132,9 +132,10 @@ const getByTemplateName = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { templateName } = ctx.req.valid("param");
     const template = await ctx.env.data.emailTemplates.get(
-      ctx.var.tenant_id,
+      tenantId,
       templateName,
     );
     if (!template) {
@@ -169,6 +170,7 @@ const putByTemplateName = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { templateName } = ctx.req.valid("param");
     const body = ctx.req.valid("json");
 
@@ -182,30 +184,30 @@ const putByTemplateName = defineRoute({
     const normalized = { ...body, from: normalizedFrom };
 
     const existing = await ctx.env.data.emailTemplates.get(
-      ctx.var.tenant_id,
+      tenantId,
       templateName,
     );
     if (existing) {
       await ctx.env.data.emailTemplates.update(
-        ctx.var.tenant_id,
+        tenantId,
         templateName,
         normalized,
       );
     } else {
-      await ctx.env.data.emailTemplates.create(ctx.var.tenant_id, normalized);
+      await ctx.env.data.emailTemplates.create(tenantId, normalized);
     }
 
     const stored = await ctx.env.data.emailTemplates.get(
-      ctx.var.tenant_id,
+      tenantId,
       templateName,
     );
     if (!stored) {
       throw new HTTPException(500, {
-        message: `Email template not found after upsert (tenant_id=${ctx.var.tenant_id}, template=${templateName})`,
+        message: `Email template not found after upsert (tenant_id=${tenantId}, template=${templateName})`,
       });
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Update Email Template",
       targetType: "email_template",
@@ -240,11 +242,12 @@ const patchByTemplateName = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { templateName } = ctx.req.valid("param");
     const patch = ctx.req.valid("json");
 
     const updated = await ctx.env.data.emailTemplates.update(
-      ctx.var.tenant_id,
+      tenantId,
       templateName,
       patch,
     );
@@ -253,14 +256,14 @@ const patchByTemplateName = defineRoute({
     }
 
     const stored = await ctx.env.data.emailTemplates.get(
-      ctx.var.tenant_id,
+      tenantId,
       templateName,
     );
     if (!stored) {
       throw new HTTPException(404, { message: "Email template not found" });
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Patch Email Template",
       targetType: "email_template",
@@ -294,17 +297,18 @@ const deleteByTemplateName = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { templateName } = ctx.req.valid("param");
 
     const removed = await ctx.env.data.emailTemplates.remove(
-      ctx.var.tenant_id,
+      tenantId,
       templateName,
     );
     if (!removed) {
       throw new HTTPException(404, { message: "Email template not found" });
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Delete Email Template",
       targetType: "email_template",
@@ -351,6 +355,7 @@ const tryByTemplateName = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { templateName } = ctx.req.valid("param");
     const body = ctx.req.valid("json");
 
@@ -364,7 +369,7 @@ const tryByTemplateName = defineRoute({
       language: body.language,
     });
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: `Test Email Sent (${templateName})`,
       targetType: "email_template",

@@ -4,12 +4,12 @@ import { HTTPException } from "hono/http-exception";
 import {
   clientGrantInsertSchema,
   clientGrantSchema,
-  totalsSchema,
   LogTypes,
 } from "@authhero/adapter-interfaces";
 import { logMessage } from "../../helpers/logging";
 
 import { defineRoute } from "../../utils/define-route";
+import { requireTenantId, withTotals, listResponse } from "./helpers";
 // Auth0-compatible query schema for client grants
 const clientGrantsQuerySchema = z.object({
   per_page: z
@@ -71,7 +71,7 @@ const clientGrantsQuerySchema = z.object({
   }),
 });
 
-const clientGrantsWithTotalsSchema = totalsSchema.extend({
+const clientGrantsWithTotalsSchema = withTotals({
   client_grants: z.array(clientGrantSchema),
 });
 
@@ -115,7 +115,7 @@ const getRoot = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
 
     const {
       page,
@@ -169,11 +169,7 @@ const getRoot = defineRoute({
       });
     }
 
-    if (!include_totals) {
-      return ctx.json(result.client_grants);
-    }
-
-    return ctx.json(result);
+    return ctx.json(listResponse(include_totals, result, "client_grants"));
   },
 });
 
@@ -208,7 +204,7 @@ const getById = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
 
     const clientGrant = await ctx.env.data.clientGrants.get(tenant_id, id);
@@ -248,7 +244,7 @@ const deleteById = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
 
     const result = await ctx.env.data.clientGrants.remove(tenant_id, id);
@@ -258,7 +254,7 @@ const deleteById = defineRoute({
       });
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenant_id, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Delete a Client Grant",
       targetType: "client_grant",
@@ -306,7 +302,7 @@ const patchById = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
     const body = ctx.req.valid("json");
 
@@ -332,7 +328,7 @@ const patchById = defineRoute({
       });
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenant_id, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Update a Client Grant",
       targetType: "client_grant",
@@ -379,12 +375,12 @@ const postRoot = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const body = ctx.req.valid("json");
 
     const clientGrant = await ctx.env.data.clientGrants.create(tenant_id, body);
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenant_id, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Create a Client Grant",
       targetType: "client_grant",

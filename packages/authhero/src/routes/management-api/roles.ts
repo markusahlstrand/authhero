@@ -6,7 +6,6 @@ import { parseSort } from "../../utils/sort";
 import {
   roleSchema,
   roleInsertSchema,
-  totalsSchema,
   rolePermissionSchema,
   rolePermissionListSchema,
   LogTypes,
@@ -16,11 +15,12 @@ import { getIssuer } from "../../variables";
 import { getDefaultUserPicture } from "../../helpers/avatar";
 
 import { defineRoute } from "../../utils/define-route";
-const rolesWithTotalsSchema = totalsSchema.extend({
+import { requireTenantId, withTotals, listResponse } from "./helpers";
+const rolesWithTotalsSchema = withTotals({
   roles: z.array(roleSchema),
 });
 
-const rolePermissionsWithTotalsSchema = totalsSchema.extend({
+const rolePermissionsWithTotalsSchema = withTotals({
   permissions: z.array(rolePermissionSchema),
 });
 
@@ -32,7 +32,7 @@ const roleUserSchema = z.object({
   picture: z.string().optional(),
 });
 
-const roleUsersWithTotalsSchema = totalsSchema.extend({
+const roleUsersWithTotalsSchema = withTotals({
   users: z.array(roleUserSchema),
 });
 
@@ -57,9 +57,7 @@ const roleUsersQuerySchema = querySchema
     take: true,
   })
   .extend({
-    per_page: querySchema.shape.per_page.pipe(
-      z.number().int().min(0).max(100),
-    ),
+    per_page: querySchema.shape.per_page.pipe(z.number().int().min(0).max(100)),
     take: querySchema.shape.take.pipe(
       z.number().int().min(1).max(100).optional(),
     ),
@@ -94,12 +92,7 @@ const getRoot = defineRoute({
   handler: async (ctx) => {
     const { page, per_page, include_totals, sort, q } = ctx.req.valid("query");
 
-    const tenantId = ctx.var.tenant_id;
-    if (!tenantId) {
-      throw new HTTPException(400, {
-        message: "tenant-id header is required",
-      });
-    }
+    const tenantId = requireTenantId(ctx);
 
     const result = await ctx.env.data.roles.list(tenantId, {
       page,
@@ -109,11 +102,7 @@ const getRoot = defineRoute({
       q,
     });
 
-    if (include_totals) {
-      return ctx.json(result);
-    }
-
-    return ctx.json(result.roles);
+    return ctx.json(listResponse(include_totals, result, "roles"));
   },
 });
 
@@ -149,12 +138,7 @@ const getById = defineRoute({
   handler: async (ctx) => {
     const { id } = ctx.req.valid("param");
 
-    const tenantId = ctx.var.tenant_id;
-    if (!tenantId) {
-      throw new HTTPException(400, {
-        message: "tenant-id header is required",
-      });
-    }
+    const tenantId = requireTenantId(ctx);
 
     const role = await ctx.env.data.roles.get(tenantId, id);
 
@@ -201,16 +185,11 @@ const postRoot = defineRoute({
   }),
   handler: async (ctx) => {
     const body = ctx.req.valid("json");
-    const tenantId = ctx.var.tenant_id;
-    if (!tenantId) {
-      throw new HTTPException(400, {
-        message: "tenant-id header is required",
-      });
-    }
+    const tenantId = requireTenantId(ctx);
 
     const role = await ctx.env.data.roles.create(tenantId, body);
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Create a Role",
       targetType: "role",
@@ -261,12 +240,7 @@ const patchById = defineRoute({
   handler: async (ctx) => {
     const { id } = ctx.req.valid("param");
     const body = ctx.req.valid("json");
-    const tenantId = ctx.var.tenant_id;
-    if (!tenantId) {
-      throw new HTTPException(400, {
-        message: "tenant-id header is required",
-      });
-    }
+    const tenantId = requireTenantId(ctx);
 
     const updated = await ctx.env.data.roles.update(tenantId, id, body);
 
@@ -276,7 +250,7 @@ const patchById = defineRoute({
 
     const role = await ctx.env.data.roles.get(tenantId, id);
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Update a Role",
       targetType: "role",
@@ -314,12 +288,7 @@ const deleteById = defineRoute({
   }),
   handler: async (ctx) => {
     const { id } = ctx.req.valid("param");
-    const tenantId = ctx.var.tenant_id;
-    if (!tenantId) {
-      throw new HTTPException(400, {
-        message: "tenant-id header is required",
-      });
-    }
+    const tenantId = requireTenantId(ctx);
 
     const deleted = await ctx.env.data.roles.remove(tenantId, id);
 
@@ -327,7 +296,7 @@ const deleteById = defineRoute({
       throw new HTTPException(404);
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Delete a Role",
       targetType: "role",
@@ -376,12 +345,7 @@ const getByIdPermissions = defineRoute({
 
     const { page, per_page, include_totals, sort, q } = ctx.req.valid("query");
 
-    const tenantId = ctx.var.tenant_id;
-    if (!tenantId) {
-      throw new HTTPException(400, {
-        message: "tenant-id header is required",
-      });
-    }
+    const tenantId = requireTenantId(ctx);
 
     // Check if role exists first
     const role = await ctx.env.data.roles.get(tenantId, id);
@@ -467,12 +431,7 @@ const getByIdUsers = defineRoute({
     const { page, per_page, include_totals, from, take } =
       ctx.req.valid("query");
 
-    const tenantId = ctx.var.tenant_id;
-    if (!tenantId) {
-      throw new HTTPException(400, {
-        message: "tenant-id header is required",
-      });
-    }
+    const tenantId = requireTenantId(ctx);
 
     const role = await ctx.env.data.roles.get(tenantId, id);
     if (!role) {
@@ -573,12 +532,7 @@ const postByIdPermissions = defineRoute({
   handler: async (ctx) => {
     const { id } = ctx.req.valid("param");
     const { permissions } = ctx.req.valid("json");
-    const tenantId = ctx.var.tenant_id;
-    if (!tenantId) {
-      throw new HTTPException(400, {
-        message: "tenant-id header is required",
-      });
-    }
+    const tenantId = requireTenantId(ctx);
 
     // Check if role exists first
     const role = await ctx.env.data.roles.get(tenantId, id);
@@ -607,7 +561,7 @@ const postByIdPermissions = defineRoute({
       });
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Assign Permissions to a Role",
       targetType: "role_permission",
@@ -661,12 +615,7 @@ const deleteByIdPermissions = defineRoute({
   handler: async (ctx) => {
     const { id } = ctx.req.valid("param");
     const { permissions } = ctx.req.valid("json");
-    const tenantId = ctx.var.tenant_id;
-    if (!tenantId) {
-      throw new HTTPException(400, {
-        message: "tenant-id header is required",
-      });
-    }
+    const tenantId = requireTenantId(ctx);
 
     // Check if role exists first
     const role = await ctx.env.data.roles.get(tenantId, id);
@@ -689,7 +638,7 @@ const deleteByIdPermissions = defineRoute({
       });
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Remove Permissions from a Role",
       targetType: "role_permission",

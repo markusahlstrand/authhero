@@ -8,6 +8,7 @@ import {
 } from "@authhero/adapter-interfaces";
 import { defineRoute } from "../../utils/define-route";
 import { enqueueControlPlaneSyncEvent } from "../../helpers/control-plane-sync-events";
+import { requireTenantId } from "./helpers";
 
 const listResponseSchema = z.object({
   proxy_routes: z.array(proxyRouteSchema),
@@ -53,9 +54,10 @@ const listRoutes = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const proxyRoutes = requireProxyRoutes(ctx);
     const q = ctx.req.valid("query");
-    const result = await proxyRoutes.list(ctx.var.tenant_id, {
+    const result = await proxyRoutes.list(tenantId, {
       page: q.page,
       per_page: q.per_page,
       custom_domain_id: q.custom_domain_id,
@@ -82,9 +84,10 @@ const getById = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const proxyRoutes = requireProxyRoutes(ctx);
     const { id } = ctx.req.valid("param");
-    const route = await proxyRoutes.get(ctx.var.tenant_id, id);
+    const route = await proxyRoutes.get(tenantId, id);
     if (!route) throw new HTTPException(404);
     return ctx.json(route);
   },
@@ -114,11 +117,12 @@ const postRoot = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const proxyRoutes = requireProxyRoutes(ctx);
     const body = ctx.req.valid("json");
-    const route = await proxyRoutes.create(ctx.var.tenant_id, body);
+    const route = await proxyRoutes.create(tenantId, body);
     enqueueControlPlaneSyncEvent(ctx, {
-      tenantId: ctx.var.tenant_id,
+      tenantId,
       entity: "proxy_route",
       op: "created",
       aggregateId: route.id,
@@ -153,15 +157,16 @@ const patchById = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const proxyRoutes = requireProxyRoutes(ctx);
     const { id } = ctx.req.valid("param");
     const body = ctx.req.valid("json");
-    const ok = await proxyRoutes.update(ctx.var.tenant_id, id, body);
+    const ok = await proxyRoutes.update(tenantId, id, body);
     if (!ok) throw new HTTPException(404);
-    const updated = await proxyRoutes.get(ctx.var.tenant_id, id);
+    const updated = await proxyRoutes.get(tenantId, id);
     if (!updated) throw new HTTPException(404);
     enqueueControlPlaneSyncEvent(ctx, {
-      tenantId: ctx.var.tenant_id,
+      tenantId,
       entity: "proxy_route",
       op: "updated",
       aggregateId: id,
@@ -186,15 +191,16 @@ const deleteById = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const proxyRoutes = requireProxyRoutes(ctx);
     const { id } = ctx.req.valid("param");
     // Snapshot before delete so the sync event carries the pre-delete payload.
-    const beforeDelete = await proxyRoutes.get(ctx.var.tenant_id, id);
-    const ok = await proxyRoutes.remove(ctx.var.tenant_id, id);
+    const beforeDelete = await proxyRoutes.get(tenantId, id);
+    const ok = await proxyRoutes.remove(tenantId, id);
     if (!ok) throw new HTTPException(404);
     if (beforeDelete) {
       enqueueControlPlaneSyncEvent(ctx, {
-        tenantId: ctx.var.tenant_id,
+        tenantId,
         entity: "proxy_route",
         op: "deleted",
         aggregateId: id,

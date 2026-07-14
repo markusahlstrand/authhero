@@ -6,6 +6,7 @@ import { deepMergePatch } from "../../utils/deep-merge";
 import { logMessage } from "../../helpers/logging";
 
 import { defineRoute } from "../../utils/define-route";
+import { requireTenantId } from "./helpers";
 // Zod 4 removed `.deepPartial()` (the API was unsound in several edge cases).
 // PATCH /branding/themes/default accepts an arbitrary subset of the theme
 // tree, so we recursively wrap each nested object in `.partial()`. Runtime
@@ -54,7 +55,8 @@ const getDefault = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const theme = await ctx.env.data.themes.get(ctx.var.tenant_id, "default");
+    const tenantId = requireTenantId(ctx);
+    const theme = await ctx.env.data.themes.get(tenantId, "default");
 
     if (!theme) {
       return ctx.json(DEFAULT_THEME);
@@ -98,13 +100,11 @@ const patchDefault = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const themeData = ctx.req.valid("json");
 
     // Get existing theme from database
-    const existingTheme = await ctx.env.data.themes.get(
-      ctx.var.tenant_id,
-      "default",
-    );
+    const existingTheme = await ctx.env.data.themes.get(tenantId, "default");
 
     // Always merge with DEFAULT_THEME to ensure all required fields exist
     const baseTheme = existingTheme || DEFAULT_THEME;
@@ -112,21 +112,13 @@ const patchDefault = defineRoute({
 
     if (existingTheme) {
       // Update existing theme
-      await ctx.env.data.themes.update(
-        ctx.var.tenant_id,
-        "default",
-        mergedTheme,
-      );
+      await ctx.env.data.themes.update(tenantId, "default", mergedTheme);
     } else {
       // Create new theme
-      await ctx.env.data.themes.create(
-        ctx.var.tenant_id,
-        mergedTheme,
-        "default",
-      );
+      await ctx.env.data.themes.create(tenantId, mergedTheme, "default");
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Update Theme",
       targetType: "theme",
