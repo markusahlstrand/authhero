@@ -839,8 +839,13 @@ const postByUser_idIdentities = defineRoute({
       });
     }
 
-    const user = await ctx.env.data.users.get(tenantId, user_id);
-    if (!user) {
+    // Both ends of the link must exist — updating a nonexistent secondary
+    // would otherwise silently no-op and report the link as created.
+    const [user, linkWithUser] = await Promise.all([
+      ctx.env.data.users.get(tenantId, user_id),
+      ctx.env.data.users.get(tenantId, link_with),
+    ]);
+    if (!user || !linkWithUser) {
       throw new HTTPException(400, {
         message: "Linking an inexistent identity is not allowed.",
       });

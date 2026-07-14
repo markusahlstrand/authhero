@@ -404,18 +404,26 @@ const getByIdClients = defineRoute({
       });
     }
 
-    // Get all clients in this tenant
-    const { clients } = await ctx.env.data.clients.list(tenantId, {
-      per_page: 1000,
-    });
-
-    // Filter to clients that have this connection enabled
-    const enabledClients = clients
-      .filter((client) => client.connections?.includes(id))
-      .map((client) => ({
-        client_id: client.client_id,
-        name: client.name,
-      }));
+    // Filter to clients that have this connection enabled. Page through the
+    // full client list — a single capped page would silently drop clients on
+    // tenants with more than one page's worth.
+    const enabledClients: { client_id: string; name: string }[] = [];
+    const per_page = 1000;
+    for (let page = 0; ; page++) {
+      const { clients } = await ctx.env.data.clients.list(tenantId, {
+        page,
+        per_page,
+      });
+      enabledClients.push(
+        ...clients
+          .filter((client) => client.connections?.includes(id))
+          .map((client) => ({
+            client_id: client.client_id,
+            name: client.name,
+          })),
+      );
+      if (clients.length < per_page) break;
+    }
 
     return ctx.json({ enabled_clients: enabledClients });
   },

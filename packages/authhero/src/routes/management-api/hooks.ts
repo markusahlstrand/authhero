@@ -14,7 +14,7 @@ import { invokeWebHook } from "../../hooks/webhooks";
 
 import { defineRoute } from "../../utils/define-route";
 import { requireTenantId, withTotals, listResponse } from "./helpers";
-const hopoksWithTotalsSchema = withTotals({
+const hooksWithTotalsSchema = withTotals({
   hooks: z.array(hookSchema),
 });
 const getRoot = defineRoute({
@@ -38,7 +38,7 @@ const getRoot = defineRoute({
       200: {
         content: {
           "application/json": {
-            schema: z.union([z.array(hookSchema), hopoksWithTotalsSchema]),
+            schema: z.union([z.array(hookSchema), hooksWithTotalsSchema]),
           },
         },
         description: "List of hooks",
