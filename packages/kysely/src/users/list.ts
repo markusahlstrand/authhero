@@ -166,6 +166,13 @@ export function list(db: Kysely<Database>) {
         sort?.sort_order === "asc" ? "asc" : "desc";
       const { rows, limit, next } = await keysetPaginate(
         query
+          // Checkpoint walks enumerate primary users only — linked accounts
+          // are folded into identities by hydrateProfiles, and surfacing them
+          // as top-level rows too would duplicate them. Matches the drizzle
+          // adapter, which excludes linked users unconditionally. The offset
+          // path is left alone: the route's identities.profileData.email
+          // lookup depends on linked rows being returned there.
+          .where("users.linked_to", "is", null)
           .selectAll("users")
           .select([
             "user_activity.last_login",

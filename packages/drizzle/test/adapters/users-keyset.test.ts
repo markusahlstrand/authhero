@@ -74,12 +74,36 @@ describe("users keyset pagination (from/take)", () => {
   });
 
   it("honors sort=created_at asc and rejects replay under another sort", async () => {
+    // Seeded rows share created_at (second resolution), so ordering must be
+    // lexicographic on the full (created_at, user_id) keyset, not just the
+    // sort column.
+    const assertAscending = (rows: { created_at: string; user_id: string }[]) => {
+      for (let i = 1; i < rows.length; i++) {
+        const prev = rows[i - 1];
+        const cur = rows[i];
+        const ordered =
+          prev.created_at < cur.created_at ||
+          (prev.created_at === cur.created_at && prev.user_id < cur.user_id);
+        expect(ordered).toBe(true);
+      }
+    };
+
     const page1 = await data.users.list(tenantId, {
       take: 10,
       sort: { sort_by: "created_at", sort_order: "asc" },
     });
     expect(page1.users).toHaveLength(10);
     expect(page1.next).toBeDefined();
+    assertAscending(page1.users);
+
+    const page2 = await data.users.list(tenantId, {
+      take: 10,
+      from: page1.next,
+      sort: { sort_by: "created_at", sort_order: "asc" },
+    });
+    expect(page2.users).toHaveLength(10);
+    // Order must hold across the page boundary too.
+    assertAscending([page1.users[9], ...page2.users]);
 
     await expect(
       data.users.list(tenantId, {

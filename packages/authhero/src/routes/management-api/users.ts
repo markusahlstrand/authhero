@@ -150,6 +150,10 @@ const getRoot = defineRoute({
       // Assuming there is only one result here. Not very defensive programming!
       const [linkedAccount] = linkedAccounts;
       if (!linkedAccount) {
+        // Keyset callers expect the { users, next } shape even here.
+        if (from !== undefined || take !== undefined) {
+          return ctx.json(usersWithNextSchema.parse({ users: [] }));
+        }
         return ctx.json([]);
       }
 
@@ -167,11 +171,15 @@ const getRoot = defineRoute({
         });
       }
 
-      return ctx.json([
-        auth0UserResponseSchema.parse(
-          withDefaultPicture(primaryAccount, issuer),
-        ),
-      ]);
+      const primaryUser = auth0UserResponseSchema.parse(
+        withDefaultPicture(primaryAccount, issuer),
+      );
+      // Keyset callers expect the { users, next } shape; a single primary
+      // user is always the full result, so no next cursor.
+      if (from !== undefined || take !== undefined) {
+        return ctx.json(usersWithNextSchema.parse({ users: [primaryUser] }));
+      }
+      return ctx.json([primaryUser]);
     }
 
     // Filter out linked users
