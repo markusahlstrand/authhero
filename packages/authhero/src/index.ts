@@ -84,6 +84,12 @@ export {
   type CreateServiceTokenCoreParams,
   type ServiceTokenResponse,
 } from "./helpers/service-token";
+// Route control-plane calls over a Cloudflare service binding instead of the
+// public edge — see `createControlPlaneClient`'s `fetchImpl`.
+export {
+  createServiceBindingFetch,
+  type ServiceBindingFetcher,
+} from "@authhero/proxy";
 export {
   createControlPlaneClient,
   type ControlPlaneClient,

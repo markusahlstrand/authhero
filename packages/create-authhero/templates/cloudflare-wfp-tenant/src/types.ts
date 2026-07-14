@@ -20,4 +20,11 @@ export interface Env {
   // uniqueness) instead of only into this tenant's D1 — without it, a created
   // domain is never registered in Cloudflare and stays unroutable.
   CONTROL_PLANE_URL?: string;
+
+  // Service binding to the control-plane Worker. Optional but recommended:
+  // this Worker runs inside the dispatch namespace, so without the binding the
+  // call to CONTROL_PLANE_URL goes out over the public edge and back in
+  // through the proxy that dispatched us. The binding keeps it internal.
+  // CONTROL_PLANE_URL is still required — it forms the request URL.
+  CONTROL_PLANE?: Fetcher;
 }

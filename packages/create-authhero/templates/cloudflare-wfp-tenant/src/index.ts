@@ -8,6 +8,7 @@ import {
   createControlPlaneCustomDomainsAdapter,
   createEncryptedDataAdapter,
   createEncryptedDataAdapterWithKeyRing,
+  createServiceBindingFetch,
   createServiceTokenCore,
   loadEncryptionKey,
   type KeyRing,
@@ -70,6 +71,15 @@ export default {
       const shard = dataAdapter;
       const client = createControlPlaneClient({
         baseUrl: env.CONTROL_PLANE_URL,
+        // Prefer the service binding: this Worker runs inside the dispatch
+        // namespace, so a public-edge call to the control plane would leave
+        // Cloudflare and come back in through the proxy that dispatched us.
+        // The binding keeps the hop internal (and cannot loop back into the
+        // proxy regardless of what CONTROL_PLANE_URL points at). Without the
+        // binding we fall back to the public edge, which still works.
+        fetchImpl: env.CONTROL_PLANE
+          ? createServiceBindingFetch(env.CONTROL_PLANE)
+          : undefined,
         getServiceToken: async (tenantId, scope) => {
           const token = await createServiceTokenCore({
             tenants: shard.tenants,

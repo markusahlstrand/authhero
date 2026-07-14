@@ -41,6 +41,28 @@ migrations_dir = "node_modules/@authhero/drizzle/drizzle"
 # CONTROL_PLANE_ENCRYPTION_KEY must be byte-identical to the key the control
 # plane used to project this tenant's inherited secrets, or they won't decrypt.
 
+# ════════════════════════════════════════════════════════════════════════════
+# Control plane (required for custom domains)
+# ════════════════════════════════════════════════════════════════════════════
+# Registering a custom hostname is an account-level Cloudflare operation, and
+# a hostname can only be claimed by one tenant — neither is something this
+# Worker can do from its own D1. So custom-domain writes go through the control
+# plane, which holds the credentials and sees every tenant.
+#
+# Without CONTROL_PLANE_URL a created domain is stored locally and never
+# registered in Cloudflare: it will not route.
+#
+# [vars]
+# CONTROL_PLANE_URL = "https://auth.example.com"
+#
+# The service binding is optional but recommended: this Worker lives in the
+# dispatch namespace, so without it the call leaves Cloudflare and re-enters
+# through the proxy. With it, the hop stays internal.
+#
+# [[services]]
+# binding = "CONTROL_PLANE"
+# service = "authhero-control-plane"
+
 # Optional: Enable observability
 # [observability]
 # enabled = true

@@ -557,7 +557,7 @@ If the request resolves to a child tenant — for example via a [custom domain](
 
 ### The `authhero_tenant` callback parameter
 
-When the IAT is minted on a tenant *different* from the request's resolved tenant (i.e. always in control-plane mode, never in direct-to-child mode), the success redirect appends `authhero_tenant=<child_tenant_id>` alongside `authhero_iat`. The integrator must use this value as the `tenant-id` header on `POST /oidc/register` so the registration call is routed to the correct tenant.
+When the IAT is minted on a tenant _different_ from the request's resolved tenant (i.e. always in control-plane mode, never in direct-to-child mode), the success redirect appends `authhero_tenant=<child_tenant_id>` alongside `authhero_iat`. The integrator must use this value as the `tenant-id` header on `POST /oidc/register` so the registration call is routed to the correct tenant.
 
 ```js
 // Example: a CMS handling the connect callback
@@ -586,10 +586,10 @@ The IAT itself enforces all the constraints captured at consent time (`domain`, 
 
 Pick the mode that matches the integrator's view of your system:
 
-| Entry point                             | Mode             | When to use                                                                                                                                                |
-| --------------------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Control plane host (`auth2.sesamy.com`) | Control plane    | A single canonical URL across all integrators. Users without a per-tenant subdomain. The picker is the natural place to disambiguate which workspace owns the connection. |
-| Child tenant host (`acme.auth…`)        | Direct-to-child  | The integrator already knows which tenant they're connecting to (e.g. white-label deployments, self-service sign-up that bakes the tenant into the install). |
+| Entry point                             | Mode            | When to use                                                                                                                                                               |
+| --------------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Control plane host (`auth2.sesamy.com`) | Control plane   | A single canonical URL across all integrators. Users without a per-tenant subdomain. The picker is the natural place to disambiguate which workspace owns the connection. |
+| Child tenant host (`acme.auth…`)        | Direct-to-child | The integrator already knows which tenant they're connecting to (e.g. white-label deployments, self-service sign-up that bakes the tenant into the install).              |
 
 Both modes can coexist on the same AuthHero deployment — there is no global setting to flip.
 
@@ -628,11 +628,17 @@ Wrap the shard's own `customDomains` adapter as the mirror:
 import {
   createControlPlaneClient,
   createControlPlaneCustomDomainsAdapter,
+  createServiceBindingFetch,
   createServiceTokenCore,
 } from "authhero";
 
 const client = createControlPlaneClient({
   baseUrl: env.CONTROL_PLANE_URL,
+  // On Workers for Platforms, route the call over a service binding to the
+  // control-plane Worker. A tenant Worker in the dispatch namespace calling the
+  // public edge would leave Cloudflare and re-enter through the proxy that
+  // dispatched it. Omit it and the call falls back to the public edge.
+  fetchImpl: createServiceBindingFetch(env.CONTROL_PLANE),
   // Signed by this shard's own key; the control plane verifies it against the
   // shard's published JWKS. No shared client secret.
   getServiceToken: async (tenantId, scope) => {
