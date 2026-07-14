@@ -4,8 +4,11 @@ import * as schema from "@authhero/drizzle/schema/sqlite";
 import {
   AuthHeroConfig,
   DataAdapters,
+  createControlPlaneClient,
+  createControlPlaneCustomDomainsAdapter,
   createEncryptedDataAdapter,
   createEncryptedDataAdapterWithKeyRing,
+  createServiceTokenCore,
   loadEncryptionKey,
   type KeyRing,
 } from "authhero";
@@ -56,6 +59,37 @@ export default {
     dataAdapter = withRuntimeFallback(dataAdapter, {
       controlPlaneTenantId: CONTROL_PLANE_TENANT_ID,
     });
+
+    // Custom domains are the one entity this Worker cannot own. Registering a
+    // CF-for-SaaS hostname needs account credentials that only the control
+    // plane holds, and "login.acme.com belongs to exactly one tenant" can only
+    // be enforced above the shards. So writes go to the control plane
+    // synchronously and the result is mirrored into this tenant's D1, which
+    // stays the read cache that host resolution uses.
+    if (env.CONTROL_PLANE_URL) {
+      const shard = dataAdapter;
+      const client = createControlPlaneClient({
+        baseUrl: env.CONTROL_PLANE_URL,
+        getServiceToken: async (tenantId, scope) => {
+          const token = await createServiceTokenCore({
+            tenants: shard.tenants,
+            keys: shard.keys,
+            tenantId,
+            scope,
+            issuer,
+          });
+          return token.access_token;
+        },
+      });
+
+      dataAdapter = {
+        ...shard,
+        customDomains: createControlPlaneCustomDomainsAdapter({
+          client,
+          mirror: shard.customDomains,
+        }),
+      };
+    }
 
     const config: AuthHeroConfig = {
       dataAdapter,

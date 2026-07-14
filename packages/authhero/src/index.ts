@@ -71,6 +71,28 @@ export {
   type CreateApplySyncEventsOptions,
 } from "./routes/proxy-control-plane";
 export {
+  CONTROL_PLANE_SYNC_SCOPE,
+  CONTROL_PLANE_CUSTOM_DOMAINS_SCOPE,
+} from "./routes/proxy-control-plane/scopes";
+export {
+  createControlPlaneCustomDomainsAdapter,
+  CONTROL_PLANE_CUSTOM_DOMAINS_PATH,
+  type ControlPlaneCustomDomainsOptions,
+} from "./adapters/control-plane-custom-domains";
+export {
+  createServiceTokenCore,
+  type CreateServiceTokenCoreParams,
+  type ServiceTokenResponse,
+} from "./helpers/service-token";
+export {
+  createControlPlaneClient,
+  type ControlPlaneClient,
+  type ControlPlaneClientOptions,
+  type ControlPlaneRequest,
+  type ControlPlaneResponse,
+  type GetControlPlaneToken,
+} from "./helpers/control-plane-client";
+export {
   wrapProxyAdaptersWithKvPublish,
   backfillProxyHostsToKv,
   type KvPublishOptions,

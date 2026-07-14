@@ -56,8 +56,12 @@ export interface VerifyControlPlaneTokenOptions {
    * so any host you list here must publish its own JWKS at that path.
    */
   expectedIssuers: string[];
-  /** Required `scope` (space-separated). Defaults to `proxy:resolve_host`. */
-  requiredScope?: string;
+  /**
+   * Required `scope` (the token's `scope` claim is space-separated). Pass an
+   * array to accept any one of several scopes. Defaults to
+   * `proxy:resolve_host`.
+   */
+  requiredScope?: string | string[];
 }
 
 function deriveJwksUrl(iss: string): string {
@@ -70,8 +74,8 @@ function deriveJwksUrl(iss: string): string {
  * logs only and must not be surfaced to the caller.
  *
  * Accepted algs: RS256/384/512, ES256/384/512. The JWK's `alg` must match
- * the token header's `alg`. The token must carry the configured required
- * scope (`proxy:resolve_host` by default) and an `iss` that strictly equals
+ * the token header's `alg`. The token must carry one of the configured
+ * required scopes (`proxy:resolve_host` by default) and an `iss` that strictly equals
  * one of `expectedIssuers` after URL normalization. The JWKS document is
  * fetched from `<iss>/.well-known/jwks.json` AFTER the `iss` is allow-listed,
  * so an attacker cannot redirect the verifier to a JWKS they control.
@@ -80,7 +84,12 @@ export async function verifyControlPlaneToken(
   options: VerifyControlPlaneTokenOptions,
 ): Promise<VerifyControlPlaneTokenResult> {
   const { token, jwksFetch, expectedIssuers } = options;
-  const requiredScope = options.requiredScope ?? PROXY_RESOLVE_HOST_SCOPE;
+  const requiredScopes =
+    options.requiredScope === undefined
+      ? [PROXY_RESOLVE_HOST_SCOPE]
+      : Array.isArray(options.requiredScope)
+        ? options.requiredScope
+        : [options.requiredScope];
 
   let header: { alg?: unknown; kid?: unknown };
   let unverifiedPayload: { iss?: unknown };
@@ -142,13 +151,9 @@ export async function verifyControlPlaneToken(
   let cryptoKey: CryptoKey;
   try {
     const importParams = importParamsForJwk(jwk, alg);
-    cryptoKey = await crypto.subtle.importKey(
-      "jwk",
-      jwk,
-      importParams,
-      false,
-      ["verify"],
-    );
+    cryptoKey = await crypto.subtle.importKey("jwk", jwk, importParams, false, [
+      "verify",
+    ]);
   } catch {
     return { ok: false, reason: "key import failed" };
   }
@@ -167,7 +172,7 @@ export async function verifyControlPlaneToken(
     typeof scopeClaim === "string"
       ? scopeClaim.split(/\s+/).filter(Boolean)
       : [];
-  if (!scopes.includes(requiredScope)) {
+  if (!requiredScopes.some((required) => scopes.includes(required))) {
     return { ok: false, reason: "missing required scope" };
   }
 

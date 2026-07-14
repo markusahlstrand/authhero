@@ -169,7 +169,8 @@ function setup() {
     onError,
   });
   const flush = () => Promise.all(pending);
-  const key = (host: string) => buildKvHostKey(DEFAULT_KV_HOST_KEY_PREFIX, host);
+  const key = (host: string) =>
+    buildKvHostKey(DEFAULT_KV_HOST_KEY_PREFIX, host);
   return { cd, pr, kvh, resolveHost, wrapped, flush, key, onError };
 }
 
@@ -289,29 +290,21 @@ describe("wrapProxyAdaptersWithKvPublish — resilience", () => {
 });
 
 describe("createApplySyncEvents against wrapped adapters", () => {
-  it("publishes to KV on a /sync-applied custom_domain + proxy_route write", async () => {
+  it("publishes to KV on a /sync-applied proxy_route write", async () => {
     const t = setup();
     const apply = createApplySyncEvents({
-      customDomains: t.wrapped.customDomains,
       proxyRoutes: t.wrapped.proxyRoutes,
     });
 
+    // The domain itself is written directly on the control plane (it owns the
+    // row now), not replicated in via /sync — only the route arrives over sync.
+    await t.wrapped.customDomains.create("t1", {
+      domain: "synced.com",
+      custom_domain_id: "cd-sync",
+      type: "auth0_managed_certs",
+    });
+
     await apply([
-      {
-        event_id: "e1",
-        tenant_id: "t1",
-        entity: "custom_domain",
-        op: "created",
-        aggregate_id: "cd-sync",
-        payload: {
-          domain: "synced.com",
-          custom_domain_id: "cd-sync",
-          type: "auth0_managed_certs",
-          primary: false,
-          status: "ready",
-        },
-        occurred_at: "2026-01-01T00:00:00.000Z",
-      },
       {
         event_id: "e2",
         tenant_id: "t1",
@@ -357,9 +350,9 @@ describe("backfillProxyHostsToKv", () => {
     expect(result.published).toBe(2);
     expect(result.deleted).toBe(1);
     expect(result.failed).toEqual([]);
-    expect(kvh.store.has(buildKvHostKey(DEFAULT_KV_HOST_KEY_PREFIX, "a.com"))).toBe(
-      true,
-    );
+    expect(
+      kvh.store.has(buildKvHostKey(DEFAULT_KV_HOST_KEY_PREFIX, "a.com")),
+    ).toBe(true);
   });
 
   it("collects hosts that throw into failed", async () => {

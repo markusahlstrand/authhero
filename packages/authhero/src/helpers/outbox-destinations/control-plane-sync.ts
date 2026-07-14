@@ -13,7 +13,6 @@ const DEFAULT_SCOPE = "controlplane:sync";
 const SYNC_PATH = "/api/v2/proxy/control-plane/sync";
 
 const SYNC_ENTITIES: ReadonlySet<SyncEntity> = new Set<SyncEntity>([
-  "custom_domain",
   "proxy_route",
 ]);
 const SYNC_OPS: ReadonlySet<SyncOp> = new Set<SyncOp>([

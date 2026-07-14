@@ -2,8 +2,6 @@ import { Hono, type Handler } from "hono";
 import type { ResolvedHost } from "@authhero/proxy";
 import {
   CustomDomain,
-  CustomDomainInsert,
-  customDomainSchema,
   CustomDomainsAdapter,
   ProxyRoute,
   proxyRouteSchema,
@@ -12,31 +10,23 @@ import {
 import { z } from "@hono/zod-openapi";
 import { SyncEvent } from "../../helpers/control-plane-sync-events";
 import { Bindings } from "../../types";
+import { createCustomDomainsControlPlaneApp } from "./custom-domains";
 import {
+  CONTROL_PLANE_CUSTOM_DOMAINS_SCOPE,
+  CONTROL_PLANE_SYNC_SCOPE,
   PROXY_RESOLVE_HOST_SCOPE,
-  verifyControlPlaneToken,
-} from "./verify";
+} from "./scopes";
+import { verifyControlPlaneToken } from "./verify";
 
-const syncEventSchema = z.discriminatedUnion("entity", [
-  z.object({
-    event_id: z.string(),
-    tenant_id: z.string(),
-    entity: z.literal("custom_domain"),
-    op: z.enum(["created", "updated", "deleted"]),
-    aggregate_id: z.string(),
-    payload: customDomainSchema,
-    occurred_at: z.string(),
-  }),
-  z.object({
-    event_id: z.string(),
-    tenant_id: z.string(),
-    entity: z.literal("proxy_route"),
-    op: z.enum(["created", "updated", "deleted"]),
-    aggregate_id: z.string(),
-    payload: proxyRouteSchema,
-    occurred_at: z.string(),
-  }),
-]);
+const syncEventSchema = z.object({
+  event_id: z.string(),
+  tenant_id: z.string(),
+  entity: z.literal("proxy_route"),
+  op: z.enum(["created", "updated", "deleted"]),
+  aggregate_id: z.string(),
+  payload: proxyRouteSchema,
+  occurred_at: z.string(),
+});
 
 const syncRequestSchema = z.object({
   events: z.array(syncEventSchema).min(1),
@@ -65,10 +55,26 @@ export interface ProxyControlPlaneOptions {
    *
    * Implementations MUST be idempotent: the outbox retries on transient
    * failures even after the receiver applied the change.
-   * `createDefaultApplySyncEvents` wires this to a local data adapter with
-   * idempotent semantics.
+   * `createApplySyncEvents` wires this to a local adapter with idempotent
+   * semantics.
+   *
+   * Custom domains do NOT flow through here — the control plane is
+   * authoritative for them (see `customDomains` below); only `proxy_route`
+   * replicates upward.
    */
   applySyncEvents?: (events: SyncEvent[]) => Promise<void>;
+
+  /**
+   * The authoritative custom-domains adapter. When set, mounts the
+   * `/custom-domains` resource that tenant shards call through
+   * `createControlPlaneCustomDomainsAdapter`.
+   *
+   * Pass the Cloudflare adapter (`@authhero/cloudflare`) wrapping the
+   * control-plane database: registering a CF-for-SaaS hostname needs account
+   * credentials that only exist here, and enforcing "one tenant owns
+   * login.acme.com" needs a view across every tenant that only exists here.
+   */
+  customDomains?: CustomDomainsAdapter;
 }
 
 function extractBearerToken(request: Request): string | null {
@@ -96,10 +102,29 @@ export function createProxyControlPlaneApp(
 ): Hono<{ Bindings: Bindings }> {
   const app = new Hono<{ Bindings: Bindings }>();
 
-  async function authenticate(c: {
-    req: { raw: Request; header(name: string): string | undefined; url: string };
-    env: Bindings;
-  }): Promise<{ ok: true } | { ok: false; reason: string }> {
+  function authenticateWithScope(requiredScope: string | string[]) {
+    return async (c: {
+      req: {
+        raw: Request;
+        header(name: string): string | undefined;
+        url: string;
+      };
+      env: Bindings;
+    }): Promise<{ ok: true } | { ok: false; reason: string }> =>
+      authenticate(c, requiredScope);
+  }
+
+  async function authenticate(
+    c: {
+      req: {
+        raw: Request;
+        header(name: string): string | undefined;
+        url: string;
+      };
+      env: Bindings;
+    },
+    requiredScope: string | string[],
+  ): Promise<{ ok: true } | { ok: false; reason: string }> {
     const token = extractBearerToken(c.req.raw);
     if (!token) return { ok: false, reason: "missing bearer token" };
 
@@ -112,20 +137,18 @@ export function createProxyControlPlaneApp(
     const inboundHost =
       c.req.header("x-forwarded-host") ?? new URL(c.req.url).host;
     const inboundIssuer = `https://${inboundHost}/`;
-    const expectedIssuers = Array.from(
-      new Set([c.env.ISSUER, inboundIssuer]),
-    );
+    const expectedIssuers = Array.from(new Set([c.env.ISSUER, inboundIssuer]));
 
     return verifyControlPlaneToken({
       token,
       jwksFetch: options.jwksFetch,
       expectedIssuers,
-      requiredScope: PROXY_RESOLVE_HOST_SCOPE,
+      requiredScope,
     });
   }
 
   const resolveHandler: Handler<{ Bindings: Bindings }> = async (c) => {
-    const result = await authenticate(c);
+    const result = await authenticate(c, PROXY_RESOLVE_HOST_SCOPE);
     if (!result.ok) {
       console.warn(
         `[proxy/control-plane] authentication failed: ${result.reason}`,
@@ -146,10 +169,26 @@ export function createProxyControlPlaneApp(
 
   app.get("/hosts/:host", resolveHandler);
 
+  if (options.customDomains) {
+    app.route(
+      "/custom-domains",
+      createCustomDomainsControlPlaneApp({
+        customDomains: options.customDomains,
+        authenticate: authenticateWithScope(CONTROL_PLANE_CUSTOM_DOMAINS_SCOPE),
+      }),
+    );
+  }
+
   if (options.applySyncEvents) {
     const applySyncEvents = options.applySyncEvents;
     app.post("/sync", async (c) => {
-      const result = await authenticate(c);
+      // `ControlPlaneSyncDestination` mints its token with the
+      // `controlplane:sync` scope; `proxy:resolve_host` stays accepted for
+      // callers minted before the scopes were split.
+      const result = await authenticate(c, [
+        CONTROL_PLANE_SYNC_SCOPE,
+        PROXY_RESOLVE_HOST_SCOPE,
+      ]);
       if (!result.ok) {
         console.warn(
           `[proxy/control-plane/sync] authentication failed: ${result.reason}`,
@@ -188,10 +227,7 @@ export function createProxyControlPlaneApp(
           (err as { retryable?: unknown }).retryable === true;
         if (retryable) throw err;
         const e = err instanceof Error ? err : new Error(String(err));
-        console.error(
-          "[proxy/control-plane/sync] applySyncEvents failed:",
-          e,
-        );
+        console.error("[proxy/control-plane/sync] applySyncEvents failed:", e);
         return c.json(
           {
             error: "Failed to apply sync events",
@@ -209,93 +245,33 @@ export function createProxyControlPlaneApp(
 }
 
 export interface CreateApplySyncEventsOptions {
-  customDomains: CustomDomainsAdapter;
-  proxyRoutes?: ProxyRoutesAdapter;
+  proxyRoutes: ProxyRoutesAdapter;
 }
 
 /**
  * Build an idempotent `applySyncEvents` implementation backed by a local
- * `CustomDomainsAdapter` / `ProxyRoutesAdapter`. Handles the three retry
- * shapes the outbox can produce:
+ * `ProxyRoutesAdapter`. Handles the three retry shapes the outbox can produce:
  *
  *  - duplicate `created` (retry after the previous succeeded but
  *    `markProcessed` failed) — falls back to `update`.
  *  - `updated` for a row that doesn't exist locally yet (a `created`
  *    delivery is still in flight or lost) — falls back to `create`.
  *  - `deleted` for a row that's already gone — no-op success.
+ *
+ * Custom domains are not replicated: the control plane is authoritative for
+ * them and tenant shards write through it (see
+ * `createControlPlaneCustomDomainsAdapter`), so there is no upward sync to
+ * apply.
  */
 export function createApplySyncEvents(
   options: CreateApplySyncEventsOptions,
 ): (events: SyncEvent[]) => Promise<void> {
-  const { customDomains, proxyRoutes } = options;
-
-  async function applyOne(event: SyncEvent): Promise<void> {
-    if (event.entity === "custom_domain") {
-      await applyCustomDomain(customDomains, event);
-      return;
-    }
-    if (!proxyRoutes) {
-      throw new Error(
-        `proxy_route sync event received but no proxyRoutes adapter is configured`,
-      );
-    }
-    await applyProxyRoute(proxyRoutes, event);
-  }
+  const { proxyRoutes } = options;
 
   return async (events) => {
     for (const event of events) {
-      await applyOne(event);
+      await applyProxyRoute(proxyRoutes, event);
     }
-  };
-}
-
-async function applyCustomDomain(
-  adapter: CustomDomainsAdapter,
-  event: Extract<SyncEvent, { entity: "custom_domain" }>,
-): Promise<void> {
-  if (event.op === "deleted") {
-    try {
-      await adapter.remove(event.tenant_id, event.aggregate_id);
-    } catch (err) {
-      if (!isNotFoundError(err)) throw err;
-    }
-    return;
-  }
-
-  const insertPayload = toCustomDomainInsert(event.payload);
-
-  if (event.op === "created") {
-    try {
-      await adapter.create(event.tenant_id, insertPayload);
-      return;
-    } catch (err) {
-      if (!isDuplicateError(err)) throw err;
-      // Retry of a delivery that already succeeded — fall through to update.
-    }
-  }
-
-  const updated = await adapter.update(
-    event.tenant_id,
-    event.aggregate_id,
-    event.payload,
-  );
-  if (!updated) {
-    // Row missing locally (the `created` event hasn't arrived yet, or was
-    // lost). Create it now so the local state matches the source.
-    await adapter.create(event.tenant_id, insertPayload);
-  }
-}
-
-/**
- * `CustomDomain` widens `tls_policy` to `string` (to accommodate legacy DB
- * rows), but `CustomDomainInsert` keeps it as the literal `"recommended"`.
- * Normalize at the receiver boundary so the insert is type-safe.
- */
-function toCustomDomainInsert(payload: CustomDomain): CustomDomainInsert {
-  const { tls_policy, ...rest } = payload;
-  return {
-    ...rest,
-    tls_policy: tls_policy === "recommended" ? "recommended" : undefined,
   };
 }
 

@@ -598,9 +598,92 @@ Both modes can coexist on the same AuthHero deployment — there is no global se
 - The picker assumes a **single shared database** or per-tenant databases reachable from the same data adapter. With strict [database isolation](./database-isolation.md), control-plane minting needs the runtime to swap adapters before calling `mintIat` against the chosen child — that wiring is not yet exposed.
 - Users with zero matching organizations see a "no workspaces available" message instead of the picker; they cannot complete the connect flow until invited.
 
+## Custom domains: the control plane is authoritative
+
+A Cloudflare-for-SaaS custom hostname is an **account-global** resource in one shared zone. Two things follow, and both of them are impossible on a tenant shard:
+
+- **Registering the hostname** needs Cloudflare account credentials (`zoneId` / `authKey` / `authEmail`). By design those live only on the control plane.
+- **Claiming the hostname exactly once** needs a view across every tenant. Two WFP tenants can't both own `login.acme.com`, but neither tenant's database can see the other's rows.
+
+So the control plane owns the row and the tenant's database holds a **read-cache mirror**. A tenant shard writes through the control plane synchronously rather than writing locally and replicating upward.
+
+```
+tenant: POST /api/v2/custom-domains
+  → createControlPlaneCustomDomainsAdapter
+      → POST {control plane}/api/v2/proxy/control-plane/custom-domains
+          1. hostname owned by another tenant? → 409, nothing written anywhere
+          2. register the hostname in Cloudflare (account credentials live here)
+          3. persist the authoritative row
+      → 2xx: mirror the row into the tenant's own database
+      → 409: surface the conflict; write nothing locally
+```
+
+Nothing is written locally on a conflict, which is what prevents the half-provisioned, unroutable row this design replaces.
+
+### Tenant shard
+
+Wrap the shard's own `customDomains` adapter as the mirror:
+
+```typescript
+import {
+  createControlPlaneClient,
+  createControlPlaneCustomDomainsAdapter,
+  createServiceTokenCore,
+} from "authhero";
+
+const client = createControlPlaneClient({
+  baseUrl: env.CONTROL_PLANE_URL,
+  // Signed by this shard's own key; the control plane verifies it against the
+  // shard's published JWKS. No shared client secret.
+  getServiceToken: async (tenantId, scope) => {
+    const token = await createServiceTokenCore({
+      tenants: adapters.tenants,
+      keys: adapters.keys,
+      tenantId,
+      scope,
+      issuer,
+    });
+    return token.access_token;
+  },
+});
+
+const dataAdapter = {
+  ...adapters,
+  customDomains: createControlPlaneCustomDomainsAdapter({
+    client,
+    mirror: adapters.customDomains,
+  }),
+};
+```
+
+**Read freshness.** `get`/`list` trust the mirror once a domain is `ready`. A fresh domain is `pending` until the customer adds the DV record, and that transition happens at the control plane — so a non-ready row is refreshed upstream on read. `getByDomain` always reads the mirror: it is on the tenant-resolution path for every request to a custom domain and must never take a network hop.
+
+### Control plane
+
+Mount the authoritative resource by passing the Cloudflare adapter (wrapping the control-plane database) as `proxyControlPlane.customDomains`:
+
+```typescript
+import createCloudflareAdapters from "@authhero/cloudflare-adapter";
+
+export default init({
+  dataAdapter,
+  proxyControlPlane: {
+    resolveHost: createProxyDataAdapter(db).resolveHost,
+    customDomains: createCloudflareAdapters({
+      zoneId: env.CLOUDFLARE_ZONE_ID,
+      authKey: env.CLOUDFLARE_API_KEY,
+      authEmail: env.CLOUDFLARE_API_EMAIL,
+      customDomainAdapter: dataAdapter.customDomains,
+    }).customDomains,
+  },
+});
+```
+
+Tokens for this resource must carry the `controlplane:custom_domains` scope; the resource is not mounted when no adapter is configured.
+
 ## Proxy entity sync
 
-When the [`@authhero/proxy`](/customization/proxy/) data plane lives in a separate database from your tenant shards, AuthHero can replicate `custom_domains` and `proxy_routes` mutations to a control-plane instance that owns the proxy's database. The pipeline rides on the existing outbox, so writes never block on the network.
+`proxy_routes` are tenant-owned data that the control plane needs for host resolution, so they still replicate **upward** over the outbox. (Custom domains used to travel this way too — that is exactly what left them registered nowhere. They now write through the control plane instead, as described above.)
 
 ### Wire shape
 
@@ -617,7 +700,7 @@ Content-Type: application/json
     {
       "event_id": "...",
       "tenant_id": "acme",
-      "entity": "custom_domain",        // or "proxy_route"
+      "entity": "proxy_route",
       "op": "created",                  // or "updated" / "deleted"
       "aggregate_id": "...",
       "payload": { /* full row */ },
@@ -647,7 +730,6 @@ export default init({
     jwksUrl: `${env.ISSUER}/.well-known/jwks.json`,
     // jwksFetch: (url) => env.JWKS_SERVICE.fetch(url), // optional, Workers
     applySyncEvents: createApplySyncEvents({
-      customDomains: proxyAdapters.customDomains,
       proxyRoutes: proxyAdapters.proxyRoutes,
     }),
   },

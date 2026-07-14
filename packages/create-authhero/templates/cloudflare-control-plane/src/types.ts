@@ -11,4 +11,13 @@ export interface Env {
   // under when projected into a tenant's database. The control plane holds it
   // so the rollout can re-encrypt secrets the tenant Worker will decrypt.
   CONTROL_PLANE_ENCRYPTION_KEY?: string;
+
+  // Cloudflare for SaaS credentials for the zone that fronts every tenant's
+  // custom domains. They live here and nowhere else: registering a custom
+  // hostname is an account-level operation, so tenant Workers delegate it to
+  // this Worker. Without all three, the /custom-domains resource is not
+  // mounted and tenants cannot register domains.
+  CLOUDFLARE_ZONE_ID?: string;
+  CLOUDFLARE_API_KEY?: string;
+  CLOUDFLARE_API_EMAIL?: string;
 }
