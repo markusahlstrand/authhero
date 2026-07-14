@@ -60,6 +60,14 @@ const usersWithTotalsSchema = totalsSchema.extend({
   users: z.array(auth0UserResponseSchema),
 });
 
+// Checkpoint (keyset) pagination response: items plus an opaque cursor.
+const usersWithNextSchema = z.object({
+  users: z.array(auth0UserResponseSchema),
+  next: z.string().optional().openapi({
+    description: "Opaque cursor for the next page; absent on the last page.",
+  }),
+});
+
 const sessionsWithTotalsSchema = totalsSchema.extend({
   sessions: z.array(sessionSchema),
 });
@@ -112,6 +120,7 @@ const getRoot = defineRoute({
             schema: z.union([
               z.array(auth0UserResponseSchema),
               usersWithTotalsSchema,
+              usersWithNextSchema,
             ]),
           },
         },
@@ -120,7 +129,8 @@ const getRoot = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const { page, per_page, include_totals, sort, q } = ctx.req.valid("query");
+    const { page, per_page, include_totals, sort, q, from, take } =
+      ctx.req.valid("query");
     const issuer = getIssuer(ctx.env, ctx.var.custom_domain);
 
     // ugly hardcoded switch for now!
@@ -176,11 +186,25 @@ const getRoot = defineRoute({
       include_totals,
       sort: parseSort(sort),
       q: query.join(" "),
+      from,
+      take,
     });
 
     const primarySqlUsers = result.users
       .filter((user) => !user.linked_to)
       .map((user) => withDefaultPicture(user, issuer));
+
+    // Keyset (checkpoint) pagination: return the { items, next } shape so
+    // callers can page past the first page via the opaque cursor. A superset
+    // of Auth0, which only offers offset (capped at 1000 results) on /users.
+    if (from !== undefined || take !== undefined) {
+      return ctx.json(
+        usersWithNextSchema.parse({
+          users: primarySqlUsers,
+          next: result.next,
+        }),
+      );
+    }
 
     if (include_totals) {
       return ctx.json(

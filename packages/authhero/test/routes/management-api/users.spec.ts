@@ -1335,6 +1335,75 @@ describe("users management API endpoint", () => {
       expect(body.length).toBe(0);
     });
 
+    // Checkpoint (keyset) pagination — a superset of Auth0, which only
+    // offers offset paging (capped at 1000 results) on /users.
+    it("pages users with take/from and an opaque next cursor", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      const tenantId = "checkpoint-users-tenant";
+      await env.data.tenants.create({
+        id: tenantId,
+        friendly_name: "Checkpoint Users Tenant",
+        audience: "https://example.com",
+        sender_email: "login@example.com",
+        sender_name: "SenderName",
+      });
+      for (let i = 0; i < 12; i++) {
+        await env.data.users.create(tenantId, {
+          user_id: `email|cp-${i.toString().padStart(2, "0")}`,
+          email: `cp-${i.toString().padStart(2, "0")}@example.com`,
+          email_verified: true,
+          connection: "email",
+          provider: "email",
+          is_social: false,
+        });
+      }
+
+      const seen = new Set<string>();
+      let from: string | undefined;
+      let pages = 0;
+
+      for (;;) {
+        const response = await managementClient.users.$get(
+          {
+            query: from ? { take: "5", from } : { take: "5" },
+            header: {
+              "tenant-id": tenantId,
+            },
+          },
+          {
+            headers: {
+              authorization: `Bearer ${token}`,
+            },
+          },
+        );
+        expect(response.status).toBe(200);
+
+        const body = (await response.json()) as {
+          users: { user_id: string }[];
+          next?: string;
+        };
+        pages++;
+        // Checkpoint responses are { users, next }, not a bare array and
+        // not the offset totals shape.
+        expect(Array.isArray(body.users)).toBe(true);
+        expect("start" in body).toBe(false);
+        for (const user of body.users) {
+          expect(seen.has(user.user_id)).toBe(false); // no duplicates
+          seen.add(user.user_id);
+        }
+        if (!body.next) break;
+        expect(body.next).not.toMatch(/^\d+$/); // opaque, not an offset
+        from = body.next;
+        if (pages > 10) throw new Error("cursor walk did not terminate");
+      }
+
+      expect(seen.size).toBe(12);
+      expect(pages).toBe(3); // 5 + 5 + 2
+    });
+
     it("should return linked users as identities in primary user, and not in list of results", async () => {
       const { managementApp, env } = await getTestServer();
       const managementClient = testClient(managementApp, env);
@@ -1486,7 +1555,8 @@ describe("users management API endpoint", () => {
 
       expect(body.users.length).toBe(1);
       expect(body.start).toBe(0);
-      expect(body.limit).toBe(10);
+      // Default per_page follows Auth0's documented default of 50.
+      expect(body.limit).toBe(50);
       expect(body.length).toBe(1);
     });
   });

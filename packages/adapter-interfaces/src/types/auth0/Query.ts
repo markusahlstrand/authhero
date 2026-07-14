@@ -14,10 +14,11 @@ export const auth0QuerySchema = z.object({
     .string()
     .min(1)
     .optional()
-    .default("10")
+    // Auth0's documented default page size is 50 (max 100).
+    .default("50")
     .transform((p) => parseInt(p, 10))
     .openapi({
-      description: "The number of items per page",
+      description: "The number of items per page. Defaults to 50.",
     }),
   include_totals: z
     .string()
