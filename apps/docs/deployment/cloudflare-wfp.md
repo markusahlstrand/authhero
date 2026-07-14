@@ -415,8 +415,9 @@ account credentials, which by design live only on the control plane, and a
 hostname can only be claimed by one tenant, which only the control plane can
 see. So `POST /api/v2/custom-domains` on a tenant Worker writes **through** the
 control plane and mirrors the result into the tenant's own D1. **Without
-`CONTROL_PLANE_URL` the domain is stored locally and never registered — it will
-not route.** See [Custom domains: the control plane is authoritative](/customization/multi-tenancy/control-plane#custom-domains-the-control-plane-is-authoritative).
+`CONTROL_PLANE_URL` the tenant Worker refuses custom-domain writes (`501`)**
+rather than storing a row Cloudflare never hears about; reads keep working. See
+[Custom domains: the control plane is authoritative](/customization/multi-tenancy/control-plane#custom-domains-the-control-plane-is-authoritative).
 
 ### 3.6 Point the tenant's custom domain at the dispatcher
 

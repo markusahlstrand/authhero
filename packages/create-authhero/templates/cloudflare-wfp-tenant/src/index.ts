@@ -1,8 +1,10 @@
 import { drizzle } from "drizzle-orm/d1";
 import createAdapters from "@authhero/drizzle";
 import * as schema from "@authhero/drizzle/schema/sqlite";
+import { HTTPException } from "hono/http-exception";
 import {
   AuthHeroConfig,
+  CustomDomainsAdapter,
   DataAdapters,
   createControlPlaneClient,
   createControlPlaneCustomDomainsAdapter,
@@ -99,6 +101,15 @@ export default {
           mirror: shard.customDomains,
         }),
       };
+    } else {
+      // Fail closed. Writing to the local table would "succeed" while the
+      // hostname is registered nowhere and its uniqueness is unchecked — the
+      // exact silent breakage this indirection exists to prevent. Reads still
+      // work, so any domain already mirrored here keeps resolving.
+      dataAdapter = {
+        ...dataAdapter,
+        customDomains: readOnlyCustomDomains(dataAdapter.customDomains),
+      };
     }
 
     const config: AuthHeroConfig = {
@@ -111,3 +122,26 @@ export default {
     return app.fetch(request, { ...env, ISSUER: issuer });
   },
 };
+
+/**
+ * Custom-domain reads pass through; every write is refused. A tenant Worker
+ * cannot register a Cloudflare hostname or check that nobody else claimed it,
+ * so a "successful" local write would produce a domain that never routes.
+ * Set CONTROL_PLANE_URL to enable writes.
+ */
+function readOnlyCustomDomains(mirror: CustomDomainsAdapter) {
+  const unconfigured = (): never => {
+    throw new HTTPException(501, {
+      message:
+        "Custom domains are managed by the control plane: set CONTROL_PLANE_URL on this tenant Worker to create, update or delete them.",
+    });
+  };
+
+  return {
+    ...mirror,
+    create: unconfigured,
+    update: unconfigured,
+    remove: unconfigured,
+    uploadCertificate: unconfigured,
+  };
+}

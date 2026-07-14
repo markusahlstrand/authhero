@@ -16,13 +16,16 @@ const ISSUER = "https://issuer.example.test/";
 
 async function bearer(
   keyset: TestKeyset,
-  overrides: { scope?: string; iss?: string } = {},
+  overrides: { scope?: string; iss?: string; tenantId?: string | null } = {},
 ): Promise<string> {
+  const tenantId =
+    overrides.tenantId === undefined ? "tenant-1" : overrides.tenantId;
   const token = await keyset.sign({
     payload: {
       iss: overrides.iss ?? ISSUER,
-      sub: "client-proxy",
-      scope: overrides.scope ?? PROXY_RESOLVE_HOST_SCOPE,
+      sub: "auth-service",
+      scope: overrides.scope ?? CONTROL_PLANE_SYNC_SCOPE,
+      ...(tenantId === null ? {} : { tenant_id: tenantId }),
     },
   });
   return `Bearer ${token}`;
@@ -252,10 +255,12 @@ describe("POST /sync route", () => {
     });
   });
 
-  it("accepts the controlplane:sync scope the sync destination actually mints", async () => {
+  it("rejects a proxy host-resolution token — it is a read credential", async () => {
+    // proxy:resolve_host belongs to the proxy for GET /hosts/:host. Accepting
+    // it here would let that read credential rewrite global proxy routes.
     const apply = vi.fn<(events: SyncEvent[]) => Promise<void>>(async () => {});
     const { app, keyset } = await setup(apply);
-    const auth = await bearer(keyset, { scope: CONTROL_PLANE_SYNC_SCOPE });
+    const auth = await bearer(keyset, { scope: PROXY_RESOLVE_HOST_SCOPE });
     const res = await app.request(
       "/sync",
       {
@@ -265,7 +270,29 @@ describe("POST /sync route", () => {
       },
       envWithIssuer(),
     );
-    expect(res.status).toBe(204);
+    expect(res.status).toBe(401);
+    expect(apply).not.toHaveBeenCalled();
+  });
+
+  it("refuses to replicate events belonging to another tenant", async () => {
+    // Every shard holds controlplane:sync, so the event's own tenant_id cannot
+    // be trusted — bind to the token.
+    const apply = vi.fn<(events: SyncEvent[]) => Promise<void>>(async () => {});
+    const { app, keyset } = await setup(apply);
+    const auth = await bearer(keyset, { tenantId: "t-attacker" });
+    const res = await app.request(
+      "/sync",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", authorization: auth },
+        body: JSON.stringify({
+          events: [syncEvent({ tenant_id: "t-victim" })],
+        }),
+      },
+      envWithIssuer(),
+    );
+    expect(res.status).toBe(403);
+    expect(apply).not.toHaveBeenCalled();
   });
 
   it("rejects a token carrying an unrelated scope", async () => {
@@ -305,7 +332,7 @@ describe("GET /hosts/:host route", () => {
       resolveHost: async () => null,
       jwksFetch: keyset.jwksFetch,
     });
-    const auth = await bearer(keyset);
+    const auth = await bearer(keyset, { scope: PROXY_RESOLVE_HOST_SCOPE });
     const res = await app.request(
       "/hosts/auth.example.com",
       { headers: { authorization: auth } },
@@ -326,7 +353,7 @@ describe("GET /hosts/:host route", () => {
       resolveHost: async () => resolved,
       jwksFetch: keyset.jwksFetch,
     });
-    const auth = await bearer(keyset);
+    const auth = await bearer(keyset, { scope: PROXY_RESOLVE_HOST_SCOPE });
     const res = await app.request(
       "/hosts/auth.example.com",
       { headers: { authorization: auth } },
@@ -354,7 +381,10 @@ describe("GET /hosts/:host route", () => {
       }),
       jwksFetch: tenantKeyset.jwksFetch,
     });
-    const auth = await bearer(tenantKeyset, { iss: tenantIssuer });
+    const auth = await bearer(tenantKeyset, {
+      iss: tenantIssuer,
+      scope: PROXY_RESOLVE_HOST_SCOPE,
+    });
     const res = await app.request(
       "/hosts/login.parcferme.no",
       {
@@ -383,7 +413,10 @@ describe("GET /hosts/:host route", () => {
       }),
       jwksFetch: customKeyset.jwksFetch,
     });
-    const auth = await bearer(customKeyset, { iss: customIssuer });
+    const auth = await bearer(customKeyset, {
+      iss: customIssuer,
+      scope: PROXY_RESOLVE_HOST_SCOPE,
+    });
     const res = await app.request(
       `/hosts/${customHost}`,
       {
@@ -400,7 +433,10 @@ describe("GET /hosts/:host route", () => {
       resolveHost: async () => null,
       jwksFetch: keyset.jwksFetch,
     });
-    const auth = await bearer(keyset, { iss: "https://attacker.example/" });
+    const auth = await bearer(keyset, {
+      iss: "https://attacker.example/",
+      scope: PROXY_RESOLVE_HOST_SCOPE,
+    });
     const res = await app.request(
       "/hosts/auth.example.com",
       {

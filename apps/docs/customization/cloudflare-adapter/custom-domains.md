@@ -100,8 +100,12 @@ const cloudflareAdapters = createAdapters({
   customDomainAdapter: database.customDomains,
 });
 
-// Use in your application
-export const customDomains = cloudflareAdapters.customDomains;
+// Hand the Cloudflare-backed adapter to authhero in place of the DB one, so a
+// create both registers the hostname and stores the mapping.
+export const dataAdapter = {
+  ...database,
+  customDomains: cloudflareAdapters.customDomains,
+};
 ```
 
 ## Where this adapter belongs

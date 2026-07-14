@@ -16,7 +16,10 @@ import {
   CONTROL_PLANE_SYNC_SCOPE,
   PROXY_RESOLVE_HOST_SCOPE,
 } from "./scopes";
-import { verifyControlPlaneToken } from "./verify";
+import {
+  verifyControlPlaneToken,
+  type VerifyControlPlaneTokenResult,
+} from "./verify";
 
 const syncEventSchema = z.object({
   event_id: z.string(),
@@ -110,7 +113,7 @@ export function createProxyControlPlaneApp(
         url: string;
       };
       env: Bindings;
-    }): Promise<{ ok: true } | { ok: false; reason: string }> =>
+    }): Promise<VerifyControlPlaneTokenResult> =>
       authenticate(c, requiredScope);
   }
 
@@ -124,7 +127,7 @@ export function createProxyControlPlaneApp(
       env: Bindings;
     },
     requiredScope: string | string[],
-  ): Promise<{ ok: true } | { ok: false; reason: string }> {
+  ): Promise<VerifyControlPlaneTokenResult> {
     const token = extractBearerToken(c.req.raw);
     if (!token) return { ok: false, reason: "missing bearer token" };
 
@@ -182,13 +185,12 @@ export function createProxyControlPlaneApp(
   if (options.applySyncEvents) {
     const applySyncEvents = options.applySyncEvents;
     app.post("/sync", async (c) => {
-      // `ControlPlaneSyncDestination` mints its token with the
-      // `controlplane:sync` scope; `proxy:resolve_host` stays accepted for
-      // callers minted before the scopes were split.
-      const result = await authenticate(c, [
-        CONTROL_PLANE_SYNC_SCOPE,
-        PROXY_RESOLVE_HOST_SCOPE,
-      ]);
+      // `controlplane:sync` only. `proxy:resolve_host` is a read credential
+      // held by the proxy; accepting it here would let a host-resolution token
+      // mutate global proxy routes. (Nothing can depend on the old behavior:
+      // the receiver required `proxy:resolve_host` while the sender minted
+      // `controlplane:sync`, so this endpoint never authenticated anyone.)
+      const result = await authenticate(c, CONTROL_PLANE_SYNC_SCOPE);
       if (!result.ok) {
         console.warn(
           `[proxy/control-plane/sync] authentication failed: ${result.reason}`,
@@ -211,6 +213,19 @@ export function createProxyControlPlaneApp(
           { error: "Invalid sync request", details: parsed.error.issues },
           400,
         );
+      }
+
+      // A shard may only replicate its own rows. The scope is held by every
+      // shard, so without this an event's `tenant_id` would be enough to
+      // rewrite another tenant's proxy routes.
+      if (
+        result.tenantId &&
+        parsed.data.events.some((e) => e.tenant_id !== result.tenantId)
+      ) {
+        console.warn(
+          `[proxy/control-plane/sync] event tenant_id does not match the token (tenant=${result.tenantId})`,
+        );
+        return c.text("Forbidden", 403);
       }
 
       try {

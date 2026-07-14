@@ -149,17 +149,6 @@ describe("createControlPlaneCustomDomainsAdapter", () => {
     expect((err as HTTPException).status).toBe(409);
   });
 
-  it("serves a ready domain from the mirror without a network hop", async () => {
-    const mirror = makeMirror([domain({ status: "ready" })]);
-    const client = makeClient(() => ({ status: 500 }));
-    const adapter = createControlPlaneCustomDomainsAdapter({ client, mirror });
-
-    const found = await adapter.get("t1", "cd-1");
-
-    expect(found).toMatchObject({ custom_domain_id: "cd-1", status: "ready" });
-    expect(client.request).not.toHaveBeenCalled();
-  });
-
   it("refreshes a pending domain from the control plane and re-mirrors it", async () => {
     // The pending → ready transition happens upstream (the customer added the
     // DV record), so a non-ready mirror row must not be trusted.
@@ -175,6 +164,34 @@ describe("createControlPlaneCustomDomainsAdapter", () => {
     expect(found).toMatchObject({ status: "ready" });
     expect(client.request).toHaveBeenCalledTimes(1);
     expect(mirror.rows.get("t1:cd-1")).toMatchObject({ status: "ready" });
+  });
+
+  it("converges a ready mirror row with an upstream change", async () => {
+    // A `ready` row is not permanently trusted: the control plane owns it, so a
+    // change made there (or by another shard) has to reach this mirror.
+    const mirror = makeMirror([domain({ status: "ready" })]);
+    const client = makeClient(() => ({
+      status: 200,
+      data: domain({ status: "ready", tls_policy: "recommended" }),
+    }));
+    const adapter = createControlPlaneCustomDomainsAdapter({ client, mirror });
+
+    expect(await adapter.get("t1", "cd-1")).toMatchObject({
+      tls_policy: "recommended",
+    });
+    expect(mirror.rows.get("t1:cd-1")).toMatchObject({
+      tls_policy: "recommended",
+    });
+  });
+
+  it("stops resolving a ready domain that was deleted upstream", async () => {
+    const mirror = makeMirror([domain({ status: "ready" })]);
+    const client = makeClient(() => ({ status: 404 }));
+    const adapter = createControlPlaneCustomDomainsAdapter({ client, mirror });
+
+    expect(await adapter.get("t1", "cd-1")).toBeNull();
+    // The routing path reads the mirror, so the row must actually be gone.
+    expect(await mirror.getByDomain("login.acme.com")).toBeNull();
   });
 
   it("serves the stale mirror row when the control plane is unreachable", async () => {
@@ -231,13 +248,12 @@ describe("createControlPlaneCustomDomainsAdapter", () => {
     expect(mirror.rows.get("t1:cd-1")).toMatchObject({ status: "ready" });
   });
 
-  it("serves mirror rows for list when every domain is ready", async () => {
+  it("falls back to mirror rows for list when the control plane is unreachable", async () => {
     const mirror = makeMirror([domain({ status: "ready" })]);
     const client = makeClient(() => ({ status: 500 }));
     const adapter = createControlPlaneCustomDomainsAdapter({ client, mirror });
 
     expect(await adapter.list("t1")).toHaveLength(1);
-    expect(client.request).not.toHaveBeenCalled();
   });
 
   it("removes upstream first, then clears the mirror", async () => {
@@ -264,6 +280,37 @@ describe("createControlPlaneCustomDomainsAdapter", () => {
     expect(mirror.rows.get("t1:cd-1")).toMatchObject({
       tls_policy: "recommended",
     });
+  });
+
+  it("surfaces a failed mirror write instead of reporting a domain that cannot route", async () => {
+    // getByDomain reads only the mirror, so a lost mirror write means the
+    // control plane thinks the domain is registered while this shard can never
+    // resolve it. The caller must find out and retry (create is idempotent).
+    const mirror = makeMirror();
+    mirror.create = vi.fn(async () => {
+      throw new Error("D1_ERROR: disk full");
+    });
+    const client = makeClient(() => ({ status: 201, data: domain() }));
+    const adapter = createControlPlaneCustomDomainsAdapter({ client, mirror });
+
+    const err = await adapter
+      .create("t1", { domain: "login.acme.com", type: "auth0_managed_certs" })
+      .catch((e: unknown) => e);
+
+    expect((err as HTTPException).status).toBe(503);
+  });
+
+  it("surfaces a failed mirror delete instead of leaving the domain resolving", async () => {
+    const mirror = makeMirror([domain({ status: "ready" })]);
+    mirror.remove = vi.fn(async () => {
+      throw new Error("D1_ERROR: disk full");
+    });
+    const client = makeClient(() => ({ status: 204 }));
+    const adapter = createControlPlaneCustomDomainsAdapter({ client, mirror });
+
+    const err = await adapter.remove("t1", "cd-1").catch((e: unknown) => e);
+
+    expect((err as HTTPException).status).toBe(503);
   });
 
   it("reports an upstream failure as a 502 rather than a local success", async () => {

@@ -41,7 +41,16 @@ export function isAllowedIssuer(iss: string, expected: string): boolean {
 const jwksDocumentSchema = z.object({ keys: z.array(jwksSchema) });
 
 export type VerifyControlPlaneTokenResult =
-  | { ok: true }
+  | {
+      ok: true;
+      /**
+       * The verified `tenant_id` claim, when the token carries one. Service
+       * tokens minted by `createServiceTokenCore` always do; a client-credentials
+       * token minted for a proxy may not. Callers that act on a tenant's data
+       * MUST bind to this rather than to a tenant id taken from the request.
+       */
+      tenantId?: string;
+    }
   | { ok: false; reason: string };
 
 export interface VerifyControlPlaneTokenOptions {
@@ -158,10 +167,11 @@ export async function verifyControlPlaneToken(
     return { ok: false, reason: "key import failed" };
   }
 
-  let verifiedPayload: { scope?: unknown };
+  let verifiedPayload: { scope?: unknown; tenant_id?: unknown };
   try {
     verifiedPayload = (await verify(token, cryptoKey, alg)) as {
       scope?: unknown;
+      tenant_id?: unknown;
     };
   } catch {
     return { ok: false, reason: "signature verification failed" };
@@ -176,7 +186,13 @@ export async function verifyControlPlaneToken(
     return { ok: false, reason: "missing required scope" };
   }
 
-  return { ok: true };
+  return {
+    ok: true,
+    tenantId:
+      typeof verifiedPayload.tenant_id === "string"
+        ? verifiedPayload.tenant_id
+        : undefined,
+  };
 }
 
 export { PROXY_RESOLVE_HOST_SCOPE };

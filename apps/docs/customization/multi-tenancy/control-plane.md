@@ -687,6 +687,10 @@ export default init({
 
 Tokens for this resource must carry the `controlplane:custom_domains` scope; the resource is not mounted when no adapter is configured.
 
+**Authorization is bound to the token's tenant.** Every shard holds this scope, so the scope says _who is calling_, not _what they may touch_. Each operation acts on the `tenant_id` claim of the verified token: a request naming a different tenant is refused with `403`, and a token with no tenant claim is refused outright. The same rule applies to `POST /sync` — a shard may only replicate its own rows.
+
+**Without `CONTROL_PLANE_URL`, a tenant shard refuses custom-domain writes** (`501`) rather than writing a local row that Cloudflare never hears about. Reads keep working, so any domain already mirrored there still resolves.
+
 ## Proxy entity sync
 
 `proxy_routes` are tenant-owned data that the control plane needs for host resolution, so they still replicate **upward** over the outbox. (Custom domains used to travel this way too — that is exactly what left them registered nowhere. They now write through the control plane instead, as described above.)

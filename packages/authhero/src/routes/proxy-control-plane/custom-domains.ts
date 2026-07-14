@@ -1,28 +1,29 @@
 import { Hono } from "hono";
 import {
-  CustomDomain,
   customDomainCertificateUploadSchema,
   customDomainInsertSchema,
-  customDomainSchema,
   CustomDomainsAdapter,
+  customDomainUpdateSchema,
 } from "@authhero/adapter-interfaces";
 import { z } from "@hono/zod-openapi";
 import { Bindings } from "../../types";
 
-const createBodySchema = customDomainInsertSchema.extend({
-  tenant_id: z.string(),
-});
+// `tenant_id` is accepted for readability of the wire format, but it is NEVER
+// what the handler acts on: the tenant is taken from the verified token and a
+// mismatch is refused. A shard holding this scope must not be able to touch
+// another tenant's domains by naming it.
+const tenantIdField = { tenant_id: z.string().optional() };
 
-// The tenant-side adapter forwards whatever `Partial<CustomDomain>` the
-// management API handed it, so accept the full shape partially rather than the
-// narrow Auth0 update schema.
-const updateBodySchema = customDomainSchema.partial().extend({
-  tenant_id: z.string(),
-});
+const createBodySchema = customDomainInsertSchema.extend(tenantIdField);
 
-const certificateBodySchema = customDomainCertificateUploadSchema.extend({
-  tenant_id: z.string(),
-});
+// Only the fields Auth0 lets you change. A permissive `Partial<CustomDomain>`
+// would let a caller move `domain` to a hostname it doesn't own (bypassing both
+// the uniqueness check and Cloudflare registration) or forge lifecycle state
+// like `status: "ready"` / `verification`.
+const updateBodySchema = customDomainUpdateSchema.extend(tenantIdField);
+
+const certificateBodySchema =
+  customDomainCertificateUploadSchema.extend(tenantIdField);
 
 /**
  * Cloudflare rejects a hostname that already exists in the zone (error 1406,
@@ -48,29 +49,35 @@ function conflictBody(domain: string) {
 export type AuthenticateControlPlane = (c: {
   req: { raw: Request; header(name: string): string | undefined; url: string };
   env: Bindings;
-}) => Promise<{ ok: true } | { ok: false; reason: string }>;
+}) => Promise<{ ok: true; tenantId?: string } | { ok: false; reason: string }>;
 
 export interface CustomDomainsControlPlaneOptions {
   /**
    * The authoritative adapter. On the control plane this is the Cloudflare
-   * adapter (`@authhero/cloudflare`) wrapping the control-plane database, so a
-   * write both registers the hostname in the CF-for-SaaS zone and persists the
-   * row where the account credentials live.
+   * adapter (`@authhero/cloudflare-adapter`) wrapping the control-plane
+   * database, so a write both registers the hostname in the CF-for-SaaS zone
+   * and persists the row where the account credentials live.
    */
   customDomains: CustomDomainsAdapter;
   authenticate: AuthenticateControlPlane;
 }
+
+type TenantVars = { tenantId: string };
 
 /**
  * The authoritative `custom-domains` resource. Tenant shards reach it through
  * `createControlPlaneCustomDomainsAdapter`; it is the only place that can both
  * see every tenant's domains (so `login.acme.com` can be claimed exactly once)
  * and hold the Cloudflare account credentials needed to register the hostname.
+ *
+ * Every operation is bound to the `tenant_id` claim of the verified token. The
+ * scope alone is not authorization: each shard holds it, so a request-supplied
+ * tenant id would let any shard read or delete any other tenant's domains.
  */
 export function createCustomDomainsControlPlaneApp(
   options: CustomDomainsControlPlaneOptions,
-): Hono<{ Bindings: Bindings }> {
-  const app = new Hono<{ Bindings: Bindings }>();
+): Hono<{ Bindings: Bindings; Variables: TenantVars }> {
+  const app = new Hono<{ Bindings: Bindings; Variables: TenantVars }>();
   const { customDomains, authenticate } = options;
 
   app.use("*", async (c, next) => {
@@ -81,19 +88,38 @@ export function createCustomDomainsControlPlaneApp(
       );
       return c.text("Unauthorized", 401, { "WWW-Authenticate": "Bearer" });
     }
+
+    // Fail closed: a token with no tenant binding (e.g. a bare proxy
+    // client-credentials token) cannot act on a tenant's domains at all.
+    if (!result.tenantId) {
+      console.warn(
+        "[proxy/control-plane/custom-domains] token carries no tenant_id claim",
+      );
+      return c.text("Forbidden", 403);
+    }
+
+    c.set("tenantId", result.tenantId);
     return next();
   });
 
-  async function readBody(c: {
-    req: { json(): Promise<unknown> };
-  }): Promise<unknown> {
-    return c.req.json();
+  /**
+   * Refuse a request that names a tenant other than the one it authenticated
+   * as, instead of silently acting on the authenticated tenant — a caller that
+   * asked for tenant B must not believe it got tenant B's data back.
+   */
+  function claimedTenantMismatch(
+    tenantId: string,
+    claimed: string | undefined,
+  ): boolean {
+    return claimed !== undefined && claimed !== tenantId;
   }
 
   app.post("/", async (c) => {
+    const tenantId = c.get("tenantId");
+
     let body: unknown;
     try {
-      body = await readBody(c);
+      body = await c.req.json();
     } catch {
       return c.text("Invalid JSON", 400);
     }
@@ -106,24 +132,26 @@ export function createCustomDomainsControlPlaneApp(
       );
     }
 
-    const { tenant_id, ...insert } = parsed.data;
+    const { tenant_id: claimed, ...insert } = parsed.data;
+    if (claimedTenantMismatch(tenantId, claimed))
+      return c.text("Forbidden", 403);
 
     // Cross-tenant uniqueness — the reason this resource has to live above the
     // shards. Only the control plane can see that another tenant already owns
     // the hostname.
     const existing = await customDomains.getByDomain(insert.domain);
     if (existing) {
-      if (existing.tenant_id !== tenant_id) {
+      if (existing.tenant_id !== tenantId) {
         return c.json(conflictBody(insert.domain), 409);
       }
       // Same tenant: idempotent re-create (a retried request, or a shard whose
       // mirror was lost) returns the record it already owns.
       const { tenant_id: _tenantId, ...domain } = existing;
-      return c.json(domain satisfies CustomDomain, 200);
+      return c.json(domain, 200);
     }
 
     try {
-      const created = await customDomains.create(tenant_id, insert);
+      const created = await customDomains.create(tenantId, insert);
       return c.json(created, 201);
     } catch (err) {
       if (isHostnameConflict(err)) {
@@ -134,16 +162,19 @@ export function createCustomDomainsControlPlaneApp(
   });
 
   app.get("/", async (c) => {
-    const tenantId = c.req.query("tenant_id");
-    if (!tenantId) return c.text("Missing tenant_id", 400);
+    const tenantId = c.get("tenantId");
+    if (claimedTenantMismatch(tenantId, c.req.query("tenant_id"))) {
+      return c.text("Forbidden", 403);
+    }
 
-    const domains = await customDomains.list(tenantId);
-    return c.json(domains);
+    return c.json(await customDomains.list(tenantId));
   });
 
   app.get("/:id", async (c) => {
-    const tenantId = c.req.query("tenant_id");
-    if (!tenantId) return c.text("Missing tenant_id", 400);
+    const tenantId = c.get("tenantId");
+    if (claimedTenantMismatch(tenantId, c.req.query("tenant_id"))) {
+      return c.text("Forbidden", 403);
+    }
 
     const domain = await customDomains.get(tenantId, c.req.param("id"));
     if (!domain) return c.text("Not found", 404);
@@ -152,9 +183,11 @@ export function createCustomDomainsControlPlaneApp(
   });
 
   app.patch("/:id", async (c) => {
+    const tenantId = c.get("tenantId");
+
     let body: unknown;
     try {
-      body = await readBody(c);
+      body = await c.req.json();
     } catch {
       return c.text("Invalid JSON", 400);
     }
@@ -167,21 +200,25 @@ export function createCustomDomainsControlPlaneApp(
       );
     }
 
-    const { tenant_id, ...update } = parsed.data;
-    const id = c.req.param("id");
+    const { tenant_id: claimed, ...update } = parsed.data;
+    if (claimedTenantMismatch(tenantId, claimed))
+      return c.text("Forbidden", 403);
 
-    const updated = await customDomains.update(tenant_id, id, update);
+    const id = c.req.param("id");
+    const updated = await customDomains.update(tenantId, id, update);
     if (!updated) return c.text("Not found", 404);
 
-    const domain = await customDomains.get(tenant_id, id);
+    const domain = await customDomains.get(tenantId, id);
     if (!domain) return c.text("Not found", 404);
 
     return c.json(domain);
   });
 
   app.delete("/:id", async (c) => {
-    const tenantId = c.req.query("tenant_id");
-    if (!tenantId) return c.text("Missing tenant_id", 400);
+    const tenantId = c.get("tenantId");
+    if (claimedTenantMismatch(tenantId, c.req.query("tenant_id"))) {
+      return c.text("Forbidden", 403);
+    }
 
     const removed = await customDomains.remove(tenantId, c.req.param("id"));
     if (!removed) return c.text("Not found", 404);
@@ -190,6 +227,8 @@ export function createCustomDomainsControlPlaneApp(
   });
 
   app.put("/:id/certificate", async (c) => {
+    const tenantId = c.get("tenantId");
+
     const { uploadCertificate } = customDomains;
     if (!uploadCertificate) {
       return c.json(
@@ -204,7 +243,7 @@ export function createCustomDomainsControlPlaneApp(
 
     let body: unknown;
     try {
-      body = await readBody(c);
+      body = await c.req.json();
     } catch {
       return c.text("Invalid JSON", 400);
     }
@@ -217,8 +256,11 @@ export function createCustomDomainsControlPlaneApp(
       );
     }
 
-    const { tenant_id, ...cert } = parsed.data;
-    const domain = await uploadCertificate(tenant_id, c.req.param("id"), cert);
+    const { tenant_id: claimed, ...cert } = parsed.data;
+    if (claimedTenantMismatch(tenantId, claimed))
+      return c.text("Forbidden", 403);
+
+    const domain = await uploadCertificate(tenantId, c.req.param("id"), cert);
     return c.json(domain);
   });
 

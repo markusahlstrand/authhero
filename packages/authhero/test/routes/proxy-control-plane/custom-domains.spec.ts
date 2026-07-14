@@ -13,12 +13,27 @@ import { createTestKeyset, type TestKeyset } from "./jwt-fixture";
 
 const ISSUER = "https://controlplane.example.test/";
 
+/**
+ * A shard's service token. `tenant_id` is what the resource authorizes on —
+ * the scope alone is held by every shard, so it says who you are, not what you
+ * may touch.
+ */
 async function bearer(
   keyset: TestKeyset,
-  scope: string = CONTROL_PLANE_CUSTOM_DOMAINS_SCOPE,
+  // `tenantId: null` mints a token with no tenant claim at all (a default of
+  // `undefined` would be indistinguishable from "not passed").
+  {
+    scope = CONTROL_PLANE_CUSTOM_DOMAINS_SCOPE,
+    tenantId = "t1" as string | null,
+  } = {},
 ): Promise<string> {
   const token = await keyset.sign({
-    payload: { iss: ISSUER, sub: "tenant-shard", scope },
+    payload: {
+      iss: ISSUER,
+      sub: "tenant-shard",
+      scope,
+      ...(tenantId === null ? {} : { tenant_id: tenantId }),
+    },
   });
   return `Bearer ${token}`;
 }
@@ -304,12 +319,218 @@ describe("control-plane /custom-domains", () => {
       "/custom-domains?tenant_id=t1",
       {
         headers: {
-          authorization: await bearer(keyset, PROXY_RESOLVE_HOST_SCOPE),
+          authorization: await bearer(keyset, {
+            scope: PROXY_RESOLVE_HOST_SCOPE,
+          }),
         },
       },
       envWithIssuer(),
     );
     expect(res.status).toBe(401);
+  });
+
+  it("rejects a token with the scope but no tenant binding", async () => {
+    // Every shard holds this scope, so a token that doesn't say WHICH tenant it
+    // speaks for must not be able to act on any tenant's domains.
+    const adapter = makeAuthoritativeAdapter();
+    const { app, keyset } = await setup(adapter);
+
+    const res = await app.request(
+      "/custom-domains?tenant_id=t1",
+      {
+        headers: { authorization: await bearer(keyset, { tenantId: null }) },
+      },
+      envWithIssuer(),
+    );
+    expect(res.status).toBe(403);
+  });
+
+  describe("tenant isolation — a shard may only touch its own domains", () => {
+    // The token says t-attacker; every request names t-victim.
+    async function attacker(keyset: TestKeyset) {
+      return bearer(keyset, { tenantId: "t-attacker" });
+    }
+
+    function victimAdapter() {
+      return makeAuthoritativeAdapter([
+        { tenant_id: "t-victim", domain: domain() },
+      ]);
+    }
+
+    it("refuses to list another tenant's domains", async () => {
+      const adapter = victimAdapter();
+      const { app, keyset } = await setup(adapter);
+
+      const res = await app.request(
+        "/custom-domains?tenant_id=t-victim",
+        { headers: { authorization: await attacker(keyset) } },
+        envWithIssuer(),
+      );
+      expect(res.status).toBe(403);
+      expect(adapter.list).not.toHaveBeenCalled();
+    });
+
+    it("refuses to read another tenant's domain", async () => {
+      const adapter = victimAdapter();
+      const { app, keyset } = await setup(adapter);
+
+      const res = await app.request(
+        "/custom-domains/cd-1?tenant_id=t-victim",
+        { headers: { authorization: await attacker(keyset) } },
+        envWithIssuer(),
+      );
+      expect(res.status).toBe(403);
+      expect(adapter.get).not.toHaveBeenCalled();
+    });
+
+    it("refuses to delete another tenant's domain", async () => {
+      const adapter = victimAdapter();
+      const { app, keyset } = await setup(adapter);
+
+      const res = await app.request(
+        "/custom-domains/cd-1?tenant_id=t-victim",
+        {
+          method: "DELETE",
+          headers: { authorization: await attacker(keyset) },
+        },
+        envWithIssuer(),
+      );
+      expect(res.status).toBe(403);
+      expect(adapter.remove).not.toHaveBeenCalled();
+    });
+
+    it("refuses to patch another tenant's domain", async () => {
+      const adapter = victimAdapter();
+      const { app, keyset } = await setup(adapter);
+
+      const res = await app.request(
+        "/custom-domains/cd-1",
+        {
+          method: "PATCH",
+          headers: {
+            "content-type": "application/json",
+            authorization: await attacker(keyset),
+          },
+          body: JSON.stringify({
+            tenant_id: "t-victim",
+            tls_policy: "recommended",
+          }),
+        },
+        envWithIssuer(),
+      );
+      expect(res.status).toBe(403);
+      expect(adapter.update).not.toHaveBeenCalled();
+    });
+
+    it("refuses to create a domain for another tenant", async () => {
+      const adapter = victimAdapter();
+      const { app, keyset } = await setup(adapter);
+
+      const res = await app.request(
+        "/custom-domains",
+        {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            authorization: await attacker(keyset),
+          },
+          body: JSON.stringify({
+            tenant_id: "t-victim",
+            domain: "new.acme.com",
+            type: "auth0_managed_certs",
+          }),
+        },
+        envWithIssuer(),
+      );
+      expect(res.status).toBe(403);
+      expect(adapter.create).not.toHaveBeenCalled();
+    });
+
+    it("refuses to upload a certificate for another tenant", async () => {
+      const adapter = victimAdapter();
+      adapter.uploadCertificate = vi.fn();
+      const { app, keyset } = await setup(adapter);
+
+      const res = await app.request(
+        "/custom-domains/cd-1/certificate",
+        {
+          method: "PUT",
+          headers: {
+            "content-type": "application/json",
+            authorization: await attacker(keyset),
+          },
+          body: JSON.stringify({
+            tenant_id: "t-victim",
+            certificate:
+              "-----BEGIN CERTIFICATE-----\nabc\n-----END CERTIFICATE-----\n",
+            private_key:
+              "-----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY-----\n",
+          }),
+        },
+        envWithIssuer(),
+      );
+      expect(res.status).toBe(403);
+      expect(adapter.uploadCertificate).not.toHaveBeenCalled();
+    });
+
+    it("acts on the token's tenant, never the one named in the request", async () => {
+      const adapter = makeAuthoritativeAdapter();
+      const { app, keyset } = await setup(adapter);
+
+      // No tenant_id in the body at all — the token is the only source.
+      const res = await app.request(
+        "/custom-domains",
+        {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            authorization: await attacker(keyset),
+          },
+          body: JSON.stringify({
+            domain: "new.acme.com",
+            type: "auth0_managed_certs",
+          }),
+        },
+        envWithIssuer(),
+      );
+
+      expect(res.status).toBe(201);
+      expect(adapter.create).toHaveBeenCalledWith(
+        "t-attacker",
+        expect.objectContaining({ domain: "new.acme.com" }),
+      );
+    });
+  });
+
+  it("refuses a PATCH that tries to forge lifecycle state or move the hostname", async () => {
+    // A permissive partial schema would let a caller set status: "ready" or
+    // repoint `domain` at a hostname it never registered.
+    const adapter = makeAuthoritativeAdapter([
+      { tenant_id: "t1", domain: domain() },
+    ]);
+    const { app, keyset } = await setup(adapter);
+
+    for (const forged of [
+      { status: "ready" },
+      { domain: "victim.acme.com" },
+      { custom_domain_id: "cd-other" },
+      { verification: { methods: [] } },
+    ]) {
+      const res = await app.request(
+        "/custom-domains/cd-1",
+        {
+          method: "PATCH",
+          headers: {
+            "content-type": "application/json",
+            authorization: await bearer(keyset),
+          },
+          body: JSON.stringify({ tenant_id: "t1", ...forged }),
+        },
+        envWithIssuer(),
+      );
+      expect(res.status).toBe(400);
+    }
+    expect(adapter.update).not.toHaveBeenCalled();
   });
 
   it("rejects an unauthenticated request", async () => {

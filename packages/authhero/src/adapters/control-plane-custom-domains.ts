@@ -94,58 +94,84 @@ export function createControlPlaneCustomDomainsAdapter(
   const basePath = options.basePath ?? CONTROL_PLANE_CUSTOM_DOMAINS_PATH;
   const scope = CONTROL_PLANE_CUSTOM_DOMAINS_SCOPE;
 
-  /**
-   * Write the authoritative record into the local mirror. Failures are logged
-   * and swallowed: the mirror is a cache, and the control plane has already
-   * accepted the write — failing the request here would report an error for an
-   * operation that actually succeeded.
-   */
+  /** Write the authoritative record into the local mirror. */
   async function mirrorUpsert(
     tenantId: string,
     domain: CustomDomain,
   ): Promise<void> {
-    try {
-      const updated = await mirror.update(
-        tenantId,
-        domain.custom_domain_id,
-        domain,
-      );
-      if (updated) return;
+    const updated = await mirror.update(
+      tenantId,
+      domain.custom_domain_id,
+      domain,
+    );
+    if (updated) return;
 
-      const insert: CustomDomainInsert = {
-        domain: domain.domain,
-        custom_domain_id: domain.custom_domain_id,
-        type: domain.type,
-        verification_method: domain.verification_method,
-        tls_policy:
-          domain.tls_policy === "recommended" ? "recommended" : undefined,
-        custom_client_ip_header: domain.custom_client_ip_header,
-        domain_metadata: domain.domain_metadata,
-      };
-      await mirror.create(tenantId, insert);
-      // `CustomDomainInsert` carries no lifecycle state, so mirror the
-      // control-plane-derived fields in a second write (same shape the
-      // Cloudflare adapter uses).
-      await mirror.update(tenantId, domain.custom_domain_id, {
-        status: domain.status,
-        primary: domain.primary,
-        verification: domain.verification,
-        origin_domain_name: domain.origin_domain_name,
-      });
+    const insert: CustomDomainInsert = {
+      domain: domain.domain,
+      custom_domain_id: domain.custom_domain_id,
+      type: domain.type,
+      verification_method: domain.verification_method,
+      tls_policy:
+        domain.tls_policy === "recommended" ? "recommended" : undefined,
+      custom_client_ip_header: domain.custom_client_ip_header,
+      domain_metadata: domain.domain_metadata,
+    };
+    await mirror.create(tenantId, insert);
+    // `CustomDomainInsert` carries no lifecycle state, so mirror the
+    // control-plane-derived fields in a second write (same shape the
+    // Cloudflare adapter uses).
+    await mirror.update(tenantId, domain.custom_domain_id, {
+      status: domain.status,
+      primary: domain.primary,
+      verification: domain.verification,
+      origin_domain_name: domain.origin_domain_name,
+    });
+  }
+
+  /**
+   * Mirror a write that the control plane has already accepted.
+   *
+   * This must NOT swallow failures. `getByDomain` — the tenant-resolution path
+   * — reads only the mirror, so a lost mirror write means a domain that the
+   * control plane considers registered never routes on this shard (and a lost
+   * mirror delete means a removed domain keeps routing). Surfacing the error
+   * lets the caller retry, which is safe: a repeated create returns the record
+   * the tenant already owns rather than registering a second hostname.
+   */
+  async function mirrorWriteOrThrow(
+    tenantId: string,
+    op: () => Promise<void>,
+    what: string,
+  ): Promise<void> {
+    try {
+      await op();
     } catch (err) {
-      console.warn(
-        `[control-plane/custom-domains] mirror write failed for ${domain.custom_domain_id} (tenant=${tenantId}); the control plane remains authoritative:`,
-        err instanceof Error ? err.message : err,
+      const detail = err instanceof Error ? err.message : String(err);
+      console.error(
+        `[control-plane/custom-domains] mirror ${what} failed (tenant=${tenantId}); the control plane accepted the write but this shard cannot route it:`,
+        detail,
       );
+      throw new HTTPException(503, {
+        message: `The custom domain was registered but could not be cached locally (${what}); retry the request. Detail: ${detail}`,
+      });
     }
   }
 
-  async function mirrorRemove(tenantId: string, id: string): Promise<void> {
+  /**
+   * Refresh the mirror from an authoritative read. Failures are logged and
+   * swallowed here — unlike a write, the response we are about to return is
+   * already correct, and the next read will try again.
+   */
+  async function mirrorRefresh(
+    tenantId: string,
+    op: () => Promise<void>,
+    what: string,
+  ): Promise<void> {
     try {
-      await mirror.remove(tenantId, id);
+      await op();
     } catch (err) {
       console.warn(
-        `[control-plane/custom-domains] mirror delete failed for ${id} (tenant=${tenantId}):`,
+        `[control-plane/custom-domains] mirror ${what} failed during refresh (tenant=${tenantId}):`,
         err instanceof Error ? err.message : err,
       );
     }
@@ -172,14 +198,19 @@ export function createControlPlaneCustomDomainsAdapter(
       }
 
       const created = parseCustomDomain(response.data, "create");
-      await mirrorUpsert(tenantId, created);
+      await mirrorWriteOrThrow(
+        tenantId,
+        () => mirrorUpsert(tenantId, created),
+        "create",
+      );
       return created;
     },
 
     get: async (tenantId: string, id: string): Promise<CustomDomain | null> => {
-      const cached = await mirror.get(tenantId, id);
-      if (cached?.status === "ready") return cached;
-
+      // Always ask the owner. Trusting a `ready` mirror row forever would mean
+      // a domain updated or deleted at the control plane never converges here.
+      // This is a management read, not the routing path (`getByDomain`), so the
+      // hop is affordable; the mirror is the fallback when the hop fails.
       let response: ControlPlaneResponse;
       try {
         response = await client.request({
@@ -189,6 +220,7 @@ export function createControlPlaneCustomDomainsAdapter(
           path: `${basePath}/${encodeURIComponent(id)}?tenant_id=${encodeURIComponent(tenantId)}`,
         });
       } catch (err) {
+        const cached = await mirror.get(tenantId, id);
         if (cached) {
           console.warn(
             `[control-plane/custom-domains] refresh failed for ${id} (tenant=${tenantId}); serving the stale mirror row:`,
@@ -200,17 +232,29 @@ export function createControlPlaneCustomDomainsAdapter(
       }
 
       if (response.status === 404) {
-        // Removed upstream (or by another shard) — drop the stale mirror row.
-        if (cached) await mirrorRemove(tenantId, id);
+        // Removed upstream (or by another shard) — drop the stale mirror row so
+        // it stops resolving here.
+        await mirrorRefresh(
+          tenantId,
+          async () => {
+            await mirror.remove(tenantId, id);
+          },
+          "delete",
+        );
         return null;
       }
       if (response.status !== 200) {
+        const cached = await mirror.get(tenantId, id);
         if (cached) return cached;
         throw toHttpException(response, "read the custom domain");
       }
 
       const domain = parseCustomDomain(response.data, "get");
-      await mirrorUpsert(tenantId, domain);
+      await mirrorRefresh(
+        tenantId,
+        () => mirrorUpsert(tenantId, domain),
+        "upsert",
+      );
       return domain;
     },
 
@@ -221,11 +265,10 @@ export function createControlPlaneCustomDomainsAdapter(
     ): Promise<CustomDomainWithTenantId | null> => mirror.getByDomain(domain),
 
     list: async (tenantId: string): Promise<CustomDomain[]> => {
-      const cached = await mirror.list(tenantId);
-      const stale =
-        cached.length === 0 || cached.some((d) => d.status !== "ready");
-      if (!stale) return cached;
-
+      // Same reasoning as `get`: the control plane owns these rows, so this is
+      // where the mirror reconciles — including pruning rows that were removed
+      // upstream. Falls back to the mirror when the control plane is
+      // unreachable.
       let response: ControlPlaneResponse;
       try {
         response = await client.request({
@@ -239,14 +282,14 @@ export function createControlPlaneCustomDomainsAdapter(
           `[control-plane/custom-domains] list refresh failed (tenant=${tenantId}); serving mirror rows:`,
           err instanceof Error ? err.message : err,
         );
-        return cached;
+        return mirror.list(tenantId);
       }
 
       if (response.status !== 200) {
         console.warn(
           `[control-plane/custom-domains] list refresh returned ${response.status} (tenant=${tenantId}); serving mirror rows.`,
         );
-        return cached;
+        return mirror.list(tenantId);
       }
 
       const parsed = customDomainSchema.array().safeParse(response.data);
@@ -254,19 +297,28 @@ export function createControlPlaneCustomDomainsAdapter(
         console.warn(
           `[control-plane/custom-domains] list refresh unparseable (tenant=${tenantId}); serving mirror rows.`,
         );
-        return cached;
+        return mirror.list(tenantId);
       }
 
       const fresh = parsed.data;
       const freshIds = new Set(fresh.map((d) => d.custom_domain_id));
-      for (const row of cached) {
-        if (!freshIds.has(row.custom_domain_id)) {
-          await mirrorRemove(tenantId, row.custom_domain_id);
-        }
-      }
-      for (const domain of fresh) {
-        await mirrorUpsert(tenantId, domain);
-      }
+      const cached = await mirror.list(tenantId);
+
+      await mirrorRefresh(
+        tenantId,
+        async () => {
+          for (const row of cached) {
+            if (!freshIds.has(row.custom_domain_id)) {
+              await mirror.remove(tenantId, row.custom_domain_id);
+            }
+          }
+          for (const domain of fresh) {
+            await mirrorUpsert(tenantId, domain);
+          }
+        },
+        "reconcile",
+      );
+
       return fresh;
     },
 
@@ -289,7 +341,11 @@ export function createControlPlaneCustomDomainsAdapter(
       }
 
       const updated = parseCustomDomain(response.data, "update");
-      await mirrorUpsert(tenantId, updated);
+      await mirrorWriteOrThrow(
+        tenantId,
+        () => mirrorUpsert(tenantId, updated),
+        "update",
+      );
       return true;
     },
 
@@ -301,17 +357,22 @@ export function createControlPlaneCustomDomainsAdapter(
         path: `${basePath}/${encodeURIComponent(id)}?tenant_id=${encodeURIComponent(tenantId)}`,
       });
 
-      if (response.status === 404) {
-        // Already gone upstream; clear the mirror so the two agree.
-        await mirrorRemove(tenantId, id);
-        return false;
-      }
-      if (response.status !== 200 && response.status !== 204) {
+      const gone = response.status === 404;
+      if (!gone && response.status !== 200 && response.status !== 204) {
         throw toHttpException(response, "delete the custom domain");
       }
 
-      await mirrorRemove(tenantId, id);
-      return true;
+      // Deleted upstream (or already gone): the mirror MUST follow, or the
+      // domain keeps resolving to this tenant via getByDomain.
+      await mirrorWriteOrThrow(
+        tenantId,
+        async () => {
+          await mirror.remove(tenantId, id);
+        },
+        "delete",
+      );
+
+      return !gone;
     },
 
     uploadCertificate: async (
@@ -332,7 +393,11 @@ export function createControlPlaneCustomDomainsAdapter(
       }
 
       const domain = parseCustomDomain(response.data, "certificate upload");
-      await mirrorUpsert(tenantId, domain);
+      await mirrorWriteOrThrow(
+        tenantId,
+        () => mirrorUpsert(tenantId, domain),
+        "certificate upload",
+      );
       return domain;
     },
   };

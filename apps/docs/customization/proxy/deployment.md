@@ -50,7 +50,7 @@ When the proxy Worker **cannot** share a database with AuthHero — e.g. the pro
 import { createProxyApp, createHttpProxyAdapter } from "@authhero/proxy";
 
 interface Env {
-  CONTROL_PLANE_URL: string;     // e.g. "https://controlplane.example.com"
+  CONTROL_PLANE_URL: string; // e.g. "https://controlplane.example.com"
   CONTROL_PLANE_CLIENT_ID: string;
   CONTROL_PLANE_CLIENT_SECRET: string;
 }
@@ -112,13 +112,24 @@ export default init({
 ```typescript
 import { init, createApplySyncEvents } from "authhero";
 import createAdapters from "@authhero/kysely-adapter";
+import createCloudflareAdapters from "@authhero/cloudflare-adapter";
 
 const proxyAdapters = createAdapters(proxyDb);
+
+// The account credentials live here and nowhere else, which is why this is the
+// only place that can register a custom hostname.
+const cloudflareAdapters = createCloudflareAdapters({
+  zoneId: env.CLOUDFLARE_ZONE_ID,
+  authKey: env.CLOUDFLARE_API_KEY,
+  authEmail: env.CLOUDFLARE_API_EMAIL,
+  customDomainAdapter: proxyAdapters.customDomains,
+});
 
 export default init({
   dataAdapter: proxyAdapters,
   proxyControlPlane: {
-    resolveHost: (host) => proxyAdapters.customDomains.resolveHost?.(host) ?? null,
+    resolveHost: (host) =>
+      proxyAdapters.customDomains.resolveHost?.(host) ?? null,
     authenticate: (req) => verifyControlPlaneBearer(req),
     applySyncEvents: createApplySyncEvents({
       proxyRoutes: proxyAdapters.proxyRoutes,
@@ -209,7 +220,9 @@ import {
   createApplySyncEvents,
   wrapProxyAdaptersWithKvPublish,
 } from "authhero";
-import createAdapters, { createProxyDataAdapter } from "@authhero/kysely-adapter";
+import createAdapters, {
+  createProxyDataAdapter,
+} from "@authhero/kysely-adapter";
 import createCloudflareAdapters from "@authhero/cloudflare-adapter";
 
 const proxyAdapters = createAdapters(proxyDb);
@@ -472,7 +485,7 @@ Notes:
   control-plane-issued admin tokens (it does when provisioned with
   `CONTROL_PLANE_ISSUER` / projected signing keys).
 - **Don't include the reconcile's WFP hosts filter on `provisioning_state`** —
-  listing *all* wfp tenants lets the reconcile also delete stale keys for
+  listing _all_ wfp tenants lets the reconcile also delete stale keys for
   tenants that regressed from `ready` (the blob recomputes to `null`).
 - **WFP tenant ids must be lowercase DNS labels** (`isWfpSubdomainSafeTenantId`
   — alphanumeric with inner hyphens, no dots, max 63 chars). DNS lowercases the
@@ -488,7 +501,7 @@ Notes:
 - **Eventual consistency:** KV writes propagate globally within ~60s. That's
   tighter than the long stale-revalidate window Shape 3 relied on, and acceptable
   here.
-- **Negative results:** a `KV.get` returning `null` means *not found* — caching it
+- **Negative results:** a `KV.get` returning `null` means _not found_ — caching it
   under a short `negativeTtlMs` lets a newly-seeded host become reachable quickly.
   The HTTP fallback covers hosts not yet backfilled during migration.
 
@@ -522,12 +535,15 @@ import { createProxyApp } from "@authhero/proxy";
 export default {
   fetch(req: Request, env: Env, ctx: ExecutionContext) {
     return createProxyApp({
-      data,                                   // KV or shared-DB adapter (Shape 2/3b)
-      bindings: { AUTH2: env.AUTH2 },         // service binding → legacy control plane
+      data, // KV or shared-DB adapter (Shape 2/3b)
+      bindings: { AUTH2: env.AUTH2 }, // service binding → legacy control plane
       // Unmatched host / resolve failure → forward to the legacy Worker verbatim.
       defaultHandlers: [
         { type: "forwarded_headers" },
-        { type: "service_binding", options: { binding: "AUTH2", preserve_host: true } },
+        {
+          type: "service_binding",
+          options: { binding: "AUTH2", preserve_host: true },
+        },
       ],
     }).fetch(req, env, ctx);
   },
@@ -556,10 +572,13 @@ Two fixes, use at least one:
    control-plane calls never traverse the public edge regardless of `baseUrl`:
 
 ```typescript
-import { createHttpProxyAdapter, createServiceBindingFetch } from "@authhero/proxy";
+import {
+  createHttpProxyAdapter,
+  createServiceBindingFetch,
+} from "@authhero/proxy";
 
 const data = createHttpProxyAdapter({
-  baseUrl: env.CONTROL_PLANE_URL,           // may even stay on the wildcard
+  baseUrl: env.CONTROL_PLANE_URL, // may even stay on the wildcard
   clientId: env.CONTROL_PLANE_CLIENT_ID,
   clientSecret: env.CONTROL_PLANE_CLIENT_SECRET,
   fetch: createServiceBindingFetch(env.AUTH2),
@@ -656,4 +675,3 @@ Secrets (HTTP control-plane shape):
 All cache tuning happens in code via the `cache` option on `createProxyApp` (see [Host caching](/customization/proxy/caching)).
 
 For a runnable reference deployment, see [`apps/proxy-dev`](https://github.com/markusahlstrand/authhero/tree/main/apps/proxy-dev) in the monorepo. It shows the canonical Cloudflare Workers setup, including threading `ExecutionContext.waitUntil` through `AsyncLocalStorage` so background SWR refreshes survive the response.
-
