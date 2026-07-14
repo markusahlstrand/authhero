@@ -6,6 +6,7 @@ import { HTTPException } from "hono/http-exception";
 import { generateHookId } from "../../utils/entity-id";
 
 import { defineRoute } from "../../utils/define-route";
+import { requireTenantId } from "./helpers";
 // Map Auth0 trigger IDs to internal trigger IDs
 const TRIGGER_ID_MAP: Record<string, string> = {
   "post-login": "post-user-login",
@@ -84,11 +85,12 @@ const getByTriggerIdBindings = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { triggerId } = ctx.req.valid("param");
     const internalTriggerId = toInternalTriggerId(triggerId);
 
     // Get all hooks for this trigger that are code hooks
-    const hooks = await ctx.env.data.hooks.list(ctx.var.tenant_id, {
+    const hooks = await ctx.env.data.hooks.list(tenantId, {
       q: `trigger_id:"${internalTriggerId}"`,
       per_page: 100,
     });
@@ -102,7 +104,7 @@ const getByTriggerIdBindings = defineRoute({
     const bindings: any[] = [];
     for (const hook of codeHooks) {
       const codeId = (hook as any).code_id;
-      const action = await ctx.env.data.actions.get(ctx.var.tenant_id, codeId);
+      const action = await ctx.env.data.actions.get(tenantId, codeId);
       if (action) {
         bindings.push({
           id: hook.hook_id,
@@ -161,6 +163,7 @@ const patchByTriggerIdBindings = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { triggerId } = ctx.req.valid("param");
     const { bindings } = ctx.req.valid("json");
     const internalTriggerId = toInternalTriggerId(triggerId);
@@ -191,7 +194,7 @@ const patchByTriggerIdBindings = defineRoute({
         const per_page = 100;
         let lookupPage = 0;
         while (true) {
-          const matches = await ctx.env.data.actions.list(ctx.var.tenant_id, {
+          const matches = await ctx.env.data.actions.list(tenantId, {
             page: lookupPage,
             per_page,
             include_totals: false,
@@ -212,10 +215,7 @@ const patchByTriggerIdBindings = defineRoute({
         });
       }
 
-      const action = await ctx.env.data.actions.get(
-        ctx.var.tenant_id,
-        actionId,
-      );
+      const action = await ctx.env.data.actions.get(tenantId, actionId);
       if (!action) {
         throw new HTTPException(404, {
           message: `Action ${actionId} not found`,
@@ -226,14 +226,14 @@ const patchByTriggerIdBindings = defineRoute({
     }
 
     // All bindings valid — safe to swap out existing code hooks.
-    const existingHooks = await ctx.env.data.hooks.list(ctx.var.tenant_id, {
+    const existingHooks = await ctx.env.data.hooks.list(tenantId, {
       q: `trigger_id:"${internalTriggerId}"`,
       per_page: 100,
     });
 
     for (const hook of existingHooks.hooks) {
       if ("code_id" in hook && hook.code_id) {
-        await ctx.env.data.hooks.remove(ctx.var.tenant_id, hook.hook_id);
+        await ctx.env.data.hooks.remove(tenantId, hook.hook_id);
       }
     }
 
@@ -243,7 +243,7 @@ const patchByTriggerIdBindings = defineRoute({
 
       // Create a hook binding with priority based on array position
       // Higher index = lower priority (first in array executes first)
-      const hook = await ctx.env.data.hooks.create(ctx.var.tenant_id, {
+      const hook = await ctx.env.data.hooks.create(tenantId, {
         hook_id: generateHookId(),
         trigger_id: internalTriggerId as any,
         code_id: actionId,
@@ -265,7 +265,7 @@ const patchByTriggerIdBindings = defineRoute({
       });
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: `Update trigger bindings for ${triggerId}`,
       targetType: "action",

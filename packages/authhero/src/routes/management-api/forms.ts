@@ -5,14 +5,14 @@ import { querySchema } from "../../types";
 import {
   formInsertSchema,
   formSchema,
-  totalsSchema,
   LogTypes,
 } from "@authhero/adapter-interfaces";
 import { logMessage } from "../../helpers/logging";
 import { parseSort } from "../../utils/sort";
 import { defineRoute } from "../../utils/define-route";
+import { requireTenantId, withTotals, listResponse } from "./helpers";
 
-const formsWithTotalsSchema = totalsSchema.extend({
+const formsWithTotalsSchema = withTotals({
   forms: z.array(formSchema),
 });
 
@@ -41,7 +41,7 @@ const listForms = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const {
       page,
       per_page,
@@ -56,10 +56,7 @@ const listForms = defineRoute({
       sort: parseSort(sort),
       q,
     });
-    if (!include_totals) {
-      return ctx.json(result.forms);
-    }
-    return ctx.json(result);
+    return ctx.json(listResponse(include_totals, result, "forms"));
   },
 });
 
@@ -82,7 +79,7 @@ const getForm = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
     const form = await ctx.env.data.forms.get(tenant_id, id);
     if (!form) {
@@ -108,14 +105,14 @@ const deleteForm = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
     const result = await ctx.env.data.forms.remove(tenant_id, id);
     if (!result) {
       throw new HTTPException(404, { message: "Form not found" });
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenant_id, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Delete a Form",
       targetType: "form",
@@ -152,7 +149,7 @@ const patchForm = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
     const body = ctx.req.valid("json");
     const result = await ctx.env.data.forms.update(tenant_id, id, body);
@@ -164,7 +161,7 @@ const patchForm = defineRoute({
       throw new HTTPException(404, { message: "Form not found" });
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenant_id, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Update a Form",
       targetType: "form",
@@ -201,11 +198,11 @@ const createForm = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const body = ctx.req.valid("json");
     const form = await ctx.env.data.forms.create(tenant_id, body);
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenant_id, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Create a Form",
       targetType: "form",

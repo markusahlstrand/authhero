@@ -12,6 +12,7 @@ import {
 import { logMessage } from "../../helpers/logging";
 import { enqueueControlPlaneSyncEvent } from "../../helpers/control-plane-sync-events";
 import { defineRoute } from "../../utils/define-route";
+import { requireTenantId } from "./helpers";
 const getRoot = defineRoute({
   route: createRoute({
     tags: ["custom-domains"],
@@ -41,7 +42,8 @@ const getRoot = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const result = await ctx.env.data.customDomains.list(ctx.var.tenant_id);
+    const tenantId = requireTenantId(ctx);
+    const result = await ctx.env.data.customDomains.list(tenantId);
 
     return ctx.json(result);
   },
@@ -78,12 +80,10 @@ const getById = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
 
-    const customDomain = await ctx.env.data.customDomains.get(
-      ctx.var.tenant_id,
-      id,
-    );
+    const customDomain = await ctx.env.data.customDomains.get(tenantId, id);
 
     if (!customDomain) {
       throw new HTTPException(404);
@@ -118,26 +118,21 @@ const deleteById = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
 
     // Snapshot before delete so the control-plane sync event carries the
     // pre-delete payload (used by the receiver to know what to remove).
-    const beforeDelete = await ctx.env.data.customDomains.get(
-      ctx.var.tenant_id,
-      id,
-    );
+    const beforeDelete = await ctx.env.data.customDomains.get(tenantId, id);
 
-    const result = await ctx.env.data.customDomains.remove(
-      ctx.var.tenant_id,
-      id,
-    );
+    const result = await ctx.env.data.customDomains.remove(tenantId, id);
     if (!result) {
       throw new HTTPException(404, {
         message: "Custom domain not found",
       });
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Delete a Custom Domain",
       targetType: "custom_domain",
@@ -146,7 +141,7 @@ const deleteById = defineRoute({
 
     if (beforeDelete) {
       enqueueControlPlaneSyncEvent(ctx, {
-        tenantId: ctx.var.tenant_id,
+        tenantId,
         entity: "custom_domain",
         op: "deleted",
         aggregateId: id,
@@ -195,28 +190,22 @@ const patchById = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
     const body = ctx.req.valid("json");
 
-    const result = await ctx.env.data.customDomains.update(
-      ctx.var.tenant_id,
-      id,
-      body,
-    );
+    const result = await ctx.env.data.customDomains.update(tenantId, id, body);
     if (!result) {
       throw new HTTPException(404);
     }
 
-    const customDomain = await ctx.env.data.customDomains.get(
-      ctx.var.tenant_id,
-      id,
-    );
+    const customDomain = await ctx.env.data.customDomains.get(tenantId, id);
 
     if (!customDomain) {
       throw new HTTPException(404);
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Update a Custom Domain",
       targetType: "custom_domain",
@@ -225,7 +214,7 @@ const patchById = defineRoute({
     });
 
     enqueueControlPlaneSyncEvent(ctx, {
-      tenantId: ctx.var.tenant_id,
+      tenantId,
       entity: "custom_domain",
       op: "updated",
       aggregateId: id,
@@ -270,14 +259,15 @@ const postRoot = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const body = ctx.req.valid("json");
 
     const customDomain = await ctx.env.data.customDomains.create(
-      ctx.var.tenant_id,
+      tenantId,
       body,
     );
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Create a Custom Domain",
       targetType: "custom_domain",
@@ -286,7 +276,7 @@ const postRoot = defineRoute({
     });
 
     enqueueControlPlaneSyncEvent(ctx, {
-      tenantId: ctx.var.tenant_id,
+      tenantId,
       entity: "custom_domain",
       op: "created",
       aggregateId: customDomain.custom_domain_id,
@@ -335,6 +325,7 @@ const putByIdCertificate = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
     const body = ctx.req.valid("json");
 
@@ -346,9 +337,9 @@ const putByIdCertificate = defineRoute({
       });
     }
 
-    const customDomain = await uploadCertificate(ctx.var.tenant_id, id, body);
+    const customDomain = await uploadCertificate(tenantId, id, body);
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Upload a Custom Domain Certificate",
       targetType: "custom_domain",

@@ -4,6 +4,7 @@ import { dailyStatsSchema, DailyStats } from "@authhero/adapter-interfaces";
 import { HTTPException } from "hono/http-exception";
 
 import { defineRoute } from "../../utils/define-route";
+import { requireTenantId } from "./helpers";
 function parseYYYYMMDD(dateStr: string): string {
   return `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`;
 }
@@ -83,6 +84,7 @@ const getDaily = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { from, to } = ctx.req.valid("query");
 
     if (!ctx.env.data.stats) {
@@ -97,7 +99,7 @@ const getDaily = defineRoute({
     const fromDate = from ? parseYYYYMMDD(from) : toDateString(thirtyDaysAgo);
     const toDate = to ? parseYYYYMMDD(to) : toDateString(now);
 
-    const stats = await ctx.env.data.stats.getDaily(ctx.var.tenant_id, {
+    const stats = await ctx.env.data.stats.getDaily(tenantId, {
       from: fromDate,
       to: toDate,
     });
@@ -136,15 +138,14 @@ const getActiveUsers = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     if (!ctx.env.data.stats) {
       throw new HTTPException(501, {
         message: "Stats adapter not configured",
       });
     }
 
-    const activeUsers = await ctx.env.data.stats.getActiveUsers(
-      ctx.var.tenant_id,
-    );
+    const activeUsers = await ctx.env.data.stats.getActiveUsers(tenantId);
 
     return ctx.json(activeUsers);
   },

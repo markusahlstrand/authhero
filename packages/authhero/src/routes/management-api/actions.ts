@@ -7,7 +7,6 @@ import {
   actionSchema,
   actionVersionSchema,
   DataAdapters,
-  totalsSchema,
   LogTypes,
 } from "@authhero/adapter-interfaces";
 import { logMessage } from "../../helpers/logging";
@@ -16,7 +15,8 @@ import { parseSort } from "../../utils/sort";
 import { HTTPException } from "hono/http-exception";
 
 import { defineRoute } from "../../utils/define-route";
-const actionsWithTotalsSchema = totalsSchema.extend({
+import { requireTenantId, withTotals, listResponse } from "./helpers";
+const actionsWithTotalsSchema = withTotals({
   actions: z.array(actionSchema),
 });
 
@@ -32,7 +32,7 @@ const versionsResponseSchema = z.object({
   versions: z.array(actionVersionSchema),
 });
 
-const versionsWithTotalsSchema = totalsSchema.extend({
+const versionsWithTotalsSchema = withTotals({
   versions: z.array(actionVersionSchema),
 });
 
@@ -80,9 +80,10 @@ const getRoot = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { page, per_page, include_totals, sort, q } = ctx.req.valid("query");
 
-    const result = await ctx.env.data.actions.list(ctx.var.tenant_id, {
+    const result = await ctx.env.data.actions.list(tenantId, {
       page,
       per_page,
       include_totals,
@@ -96,11 +97,9 @@ const getRoot = defineRoute({
       secrets: action.secrets?.map((s) => ({ name: s.name })),
     }));
 
-    if (!include_totals) {
-      return ctx.json(actions);
-    }
-
-    return ctx.json({ ...result, actions });
+    return ctx.json(
+      listResponse(include_totals, { ...result, actions }, "actions"),
+    );
   },
 });
 
@@ -138,9 +137,10 @@ const postRoot = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const body = ctx.req.valid("json");
 
-    const action = await ctx.env.data.actions.create(ctx.var.tenant_id, body);
+    const action = await ctx.env.data.actions.create(tenantId, body);
 
     // Deploy to execution environment if supported. Track success so the
     // snapshot reflects what's actually live in the executor — a failed
@@ -151,7 +151,7 @@ const postRoot = defineRoute({
         await ctx.env.codeExecutor.deploy(action.id, body.code);
         deployed = true;
       } catch (err) {
-        await logMessage(ctx, ctx.var.tenant_id, {
+        await logMessage(ctx, tenantId, {
           type: LogTypes.FAILED_HOOK,
           description: `Failed to deploy action ${action.id}: ${err instanceof Error ? err.message : String(err)}`,
         });
@@ -162,14 +162,9 @@ const postRoot = defineRoute({
       deployed = true;
     }
 
-    await snapshotActionVersion(
-      ctx.env.data,
-      ctx.var.tenant_id,
-      action,
-      deployed,
-    );
+    await snapshotActionVersion(ctx.env.data, tenantId, action, deployed);
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Create action",
       targetType: "action",
@@ -213,9 +208,10 @@ const getById = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
 
-    const action = await ctx.env.data.actions.get(ctx.var.tenant_id, id);
+    const action = await ctx.env.data.actions.get(tenantId, id);
 
     if (!action) {
       throw new HTTPException(404, { message: "Action not found" });
@@ -269,19 +265,16 @@ const patchById = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
     const body = ctx.req.valid("json");
 
-    const updated = await ctx.env.data.actions.update(
-      ctx.var.tenant_id,
-      id,
-      body,
-    );
+    const updated = await ctx.env.data.actions.update(tenantId, id, body);
     if (!updated) {
       throw new HTTPException(404, { message: "Action not found" });
     }
 
-    const action = await ctx.env.data.actions.get(ctx.var.tenant_id, id);
+    const action = await ctx.env.data.actions.get(tenantId, id);
     if (!action) {
       throw new HTTPException(404, { message: "Action not found" });
     }
@@ -295,20 +288,15 @@ const patchById = defineRoute({
         await ctx.env.codeExecutor.deploy(id, body.code);
         deployed = true;
       } catch (err) {
-        await logMessage(ctx, ctx.var.tenant_id, {
+        await logMessage(ctx, tenantId, {
           type: LogTypes.FAILED_HOOK,
           description: `Failed to deploy action ${id}: ${err instanceof Error ? err.message : String(err)}`,
         });
       }
-      await snapshotActionVersion(
-        ctx.env.data,
-        ctx.var.tenant_id,
-        action,
-        deployed,
-      );
+      await snapshotActionVersion(ctx.env.data, tenantId, action, deployed);
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Update action",
       targetType: "action",
@@ -353,10 +341,11 @@ const deleteById = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
 
     // Check if action is bound to any triggers via hooks
-    const hooks = await ctx.env.data.hooks.list(ctx.var.tenant_id, {
+    const hooks = await ctx.env.data.hooks.list(tenantId, {
       q: `code_id:"${id}"`,
     });
     if (hooks.hooks.length > 0) {
@@ -366,26 +355,26 @@ const deleteById = defineRoute({
       });
     }
 
-    const result = await ctx.env.data.actions.remove(ctx.var.tenant_id, id);
+    const result = await ctx.env.data.actions.remove(tenantId, id);
     if (!result) {
       throw new HTTPException(404, { message: "Action not found" });
     }
 
-    await ctx.env.data.actionVersions.removeForAction(ctx.var.tenant_id, id);
+    await ctx.env.data.actionVersions.removeForAction(tenantId, id);
 
     // Remove from execution environment if supported
     if (ctx.env.codeExecutor?.remove) {
       try {
         await ctx.env.codeExecutor.remove(id);
       } catch (err) {
-        await logMessage(ctx, ctx.var.tenant_id, {
+        await logMessage(ctx, tenantId, {
           type: LogTypes.FAILED_HOOK,
           description: `Failed to remove action worker ${id}: ${err instanceof Error ? err.message : String(err)}`,
         });
       }
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Delete action",
       targetType: "action",
@@ -429,9 +418,10 @@ const postByIdDeploy = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
 
-    const action = await ctx.env.data.actions.get(ctx.var.tenant_id, id);
+    const action = await ctx.env.data.actions.get(tenantId, id);
     if (!action) {
       throw new HTTPException(404, { message: "Action not found" });
     }
@@ -441,7 +431,7 @@ const postByIdDeploy = defineRoute({
       try {
         await ctx.env.codeExecutor.deploy(id, action.code);
       } catch (err) {
-        await logMessage(ctx, ctx.var.tenant_id, {
+        await logMessage(ctx, tenantId, {
           type: LogTypes.FAILED_HOOK,
           description: `Failed to deploy action ${id}: ${err instanceof Error ? err.message : String(err)}`,
         });
@@ -451,15 +441,15 @@ const postByIdDeploy = defineRoute({
       }
     }
 
-    await ctx.env.data.actions.update(ctx.var.tenant_id, id, {
+    await ctx.env.data.actions.update(tenantId, id, {
       status: "built",
       deployed_at: new Date().toISOString(),
     });
 
     // Reached only after a successful executor deploy (or none configured).
-    await snapshotActionVersion(ctx.env.data, ctx.var.tenant_id, action, true);
+    await snapshotActionVersion(ctx.env.data, tenantId, action, true);
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Deploy action",
       targetType: "action",
@@ -508,24 +498,21 @@ const getByActionIdVersions = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { actionId } = ctx.req.valid("param");
     const { page, per_page, include_totals, sort } = ctx.req.valid("query");
 
-    const action = await ctx.env.data.actions.get(ctx.var.tenant_id, actionId);
+    const action = await ctx.env.data.actions.get(tenantId, actionId);
     if (!action) {
       throw new HTTPException(404, { message: "Action not found" });
     }
 
-    const result = await ctx.env.data.actionVersions.list(
-      ctx.var.tenant_id,
-      actionId,
-      {
-        page,
-        per_page,
-        include_totals,
-        sort: parseSort(sort),
-      },
-    );
+    const result = await ctx.env.data.actionVersions.list(tenantId, actionId, {
+      page,
+      per_page,
+      include_totals,
+      sort: parseSort(sort),
+    });
 
     const versions = result.versions.map((v) => ({
       ...v,
@@ -574,10 +561,11 @@ const getByActionIdVersionsById = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { actionId, id } = ctx.req.valid("param");
 
     const version = await ctx.env.data.actionVersions.get(
-      ctx.var.tenant_id,
+      tenantId,
       actionId,
       id,
     );
@@ -628,10 +616,11 @@ const postByActionIdVersionsByIdDeploy = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { actionId, id } = ctx.req.valid("param");
 
     const version = await ctx.env.data.actionVersions.get(
-      ctx.var.tenant_id,
+      tenantId,
       actionId,
       id,
     );
@@ -645,7 +634,7 @@ const postByActionIdVersionsByIdDeploy = defineRoute({
       try {
         await ctx.env.codeExecutor.deploy(actionId, version.code);
       } catch (err) {
-        await logMessage(ctx, ctx.var.tenant_id, {
+        await logMessage(ctx, tenantId, {
           type: LogTypes.FAILED_HOOK,
           description: `Failed to roll back action ${actionId} to version ${id}: ${err instanceof Error ? err.message : String(err)}`,
         });
@@ -655,7 +644,7 @@ const postByActionIdVersionsByIdDeploy = defineRoute({
       }
     }
 
-    await ctx.env.data.actions.update(ctx.var.tenant_id, actionId, {
+    await ctx.env.data.actions.update(tenantId, actionId, {
       code: version.code,
       runtime: version.runtime,
       secrets: version.secrets,
@@ -665,14 +654,14 @@ const postByActionIdVersionsByIdDeploy = defineRoute({
       deployed_at: new Date().toISOString(),
     });
 
-    const updated = await ctx.env.data.actions.get(ctx.var.tenant_id, actionId);
+    const updated = await ctx.env.data.actions.get(tenantId, actionId);
     if (!updated) {
       throw new HTTPException(404, { message: "Action not found" });
     }
 
-    await snapshotActionVersion(ctx.env.data, ctx.var.tenant_id, updated, true);
+    await snapshotActionVersion(ctx.env.data, tenantId, updated, true);
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: `Roll back action to version ${version.number}`,
       targetType: "action",
@@ -742,6 +731,7 @@ const postByIdTest = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
     const body = ctx.req.valid("json");
 
@@ -752,7 +742,7 @@ const postByIdTest = defineRoute({
       });
     }
 
-    const action = await ctx.env.data.actions.get(ctx.var.tenant_id, id);
+    const action = await ctx.env.data.actions.get(tenantId, id);
     if (!action) {
       throw new HTTPException(404, { message: "Action not found" });
     }

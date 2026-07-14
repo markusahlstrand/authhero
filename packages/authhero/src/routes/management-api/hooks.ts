@@ -3,7 +3,6 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import {
   hookInsertSchema,
   hookSchema,
-  totalsSchema,
   LogTypes,
 } from "@authhero/adapter-interfaces";
 import { logMessage } from "../../helpers/logging";
@@ -14,7 +13,8 @@ import { generateHookId } from "../../utils/entity-id";
 import { invokeWebHook } from "../../hooks/webhooks";
 
 import { defineRoute } from "../../utils/define-route";
-const hopoksWithTotalsSchema = totalsSchema.extend({
+import { requireTenantId, withTotals, listResponse } from "./helpers";
+const hooksWithTotalsSchema = withTotals({
   hooks: z.array(hookSchema),
 });
 const getRoot = defineRoute({
@@ -38,7 +38,7 @@ const getRoot = defineRoute({
       200: {
         content: {
           "application/json": {
-            schema: z.union([z.array(hookSchema), hopoksWithTotalsSchema]),
+            schema: z.union([z.array(hookSchema), hooksWithTotalsSchema]),
           },
         },
         description: "List of hooks",
@@ -46,9 +46,10 @@ const getRoot = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { page, per_page, include_totals, sort, q } = ctx.req.valid("query");
 
-    const hooks = await ctx.env.data.hooks.list(ctx.var.tenant_id, {
+    const hooks = await ctx.env.data.hooks.list(tenantId, {
       page,
       per_page,
       include_totals,
@@ -56,11 +57,7 @@ const getRoot = defineRoute({
       q,
     });
 
-    if (!include_totals) {
-      return ctx.json(hooks.hooks);
-    }
-
-    return ctx.json(hooks);
+    return ctx.json(listResponse(include_totals, hooks, "hooks"));
   },
 });
 
@@ -98,6 +95,7 @@ const postRoot = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const hook = ctx.req.valid("json");
 
     const hookData = {
@@ -105,9 +103,9 @@ const postRoot = defineRoute({
       hook_id: hook.hook_id || generateHookId(),
     };
 
-    const hooks = await ctx.env.data.hooks.create(ctx.var.tenant_id, hookData);
+    const hooks = await ctx.env.data.hooks.create(tenantId, hookData);
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Create a Hook",
       targetType: "hook",
@@ -164,6 +162,7 @@ const patchByHook_id = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { hook_id } = ctx.req.valid("param");
     // Zod 4 widens the per-member `.options` array's inferred element type
     // to `unknown` when the members are produced via a runtime `.map`; the
@@ -173,14 +172,14 @@ const patchByHook_id = defineRoute({
       typeof ctx.env.data.hooks.update
     >[2];
 
-    await ctx.env.data.hooks.update(ctx.var.tenant_id, hook_id, hook);
-    const result = await ctx.env.data.hooks.get(ctx.var.tenant_id, hook_id);
+    await ctx.env.data.hooks.update(tenantId, hook_id, hook);
+    const result = await ctx.env.data.hooks.get(tenantId, hook_id);
 
     if (!result) {
       throw new HTTPException(404, { message: "Hook not found" });
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Update a Hook",
       targetType: "hook",
@@ -226,9 +225,10 @@ const getByHook_id = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { hook_id } = ctx.req.valid("param");
 
-    const hook = await ctx.env.data.hooks.get(ctx.var.tenant_id, hook_id);
+    const hook = await ctx.env.data.hooks.get(tenantId, hook_id);
 
     if (!hook) {
       throw new HTTPException(404, { message: "Hook not found" });
@@ -264,15 +264,16 @@ const deleteByHook_id = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { hook_id } = ctx.req.valid("param");
 
-    const result = await ctx.env.data.hooks.remove(ctx.var.tenant_id, hook_id);
+    const result = await ctx.env.data.hooks.remove(tenantId, hook_id);
 
     if (!result) {
       throw new HTTPException(404, { message: "Hook not found" });
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Delete a Hook",
       targetType: "hook",
@@ -334,10 +335,11 @@ const tryByHook_id = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { hook_id } = ctx.req.valid("param");
     const { user_id } = ctx.req.valid("json");
 
-    const hook = await ctx.env.data.hooks.get(ctx.var.tenant_id, hook_id);
+    const hook = await ctx.env.data.hooks.get(tenantId, hook_id);
     if (!hook) {
       throw new HTTPException(404, { message: "Hook not found" });
     }
@@ -347,18 +349,18 @@ const tryByHook_id = defineRoute({
       });
     }
 
-    const user = await ctx.env.data.users.get(ctx.var.tenant_id, user_id);
+    const user = await ctx.env.data.users.get(tenantId, user_id);
     if (!user) {
       throw new HTTPException(404, { message: "User not found" });
     }
 
     const result = await invokeWebHook(ctx, hook, {
-      tenant_id: ctx.var.tenant_id,
+      tenant_id: tenantId,
       user,
       trigger_id: hook.trigger_id,
     });
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: `Try a Hook (${hook_id})`,
       targetType: "hook",

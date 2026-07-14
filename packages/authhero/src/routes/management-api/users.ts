@@ -15,7 +15,6 @@ import {
   identitySchema,
   logSchema,
   sessionSchema,
-  totalsSchema,
   userInsertSchema,
   userPermissionWithDetailsListSchema,
   roleListSchema,
@@ -31,6 +30,7 @@ import { getIssuer } from "../../variables";
 import { withDefaultPicture } from "../../helpers/avatar";
 
 import { defineRoute } from "../../utils/define-route";
+import { requireTenantId, withTotals, listResponse } from "./helpers";
 const IDENTITY_PICK_KEYS = [
   "email",
   "email_verified",
@@ -56,7 +56,7 @@ function pickIdentity(user: Record<string, any>): Identity {
   return identity;
 }
 
-const usersWithTotalsSchema = totalsSchema.extend({
+const usersWithTotalsSchema = withTotals({
   users: z.array(auth0UserResponseSchema),
 });
 
@@ -68,15 +68,15 @@ const usersWithNextSchema = z.object({
   }),
 });
 
-const sessionsWithTotalsSchema = totalsSchema.extend({
+const sessionsWithTotalsSchema = withTotals({
   sessions: z.array(sessionSchema),
 });
 
-const logsWithTotalsSchema = totalsSchema.extend({
+const logsWithTotalsSchema = withTotals({
   logs: z.array(logSchema),
 });
 
-const userOrganizationsWithTotalsSchema = totalsSchema.extend({
+const userOrganizationsWithTotalsSchema = withTotals({
   organizations: z.array(organizationSchema),
 });
 
@@ -93,7 +93,7 @@ const connectedClientSchema = z.object({
   updated_at: z.string().optional(),
 });
 
-const connectedClientsWithTotalsSchema = totalsSchema.extend({
+const connectedClientsWithTotalsSchema = withTotals({
   connected_clients: z.array(connectedClientSchema),
 });
 const getRoot = defineRoute({
@@ -131,13 +131,14 @@ const getRoot = defineRoute({
   handler: async (ctx) => {
     const { page, per_page, include_totals, sort, q, from, take } =
       ctx.req.valid("query");
+    const tenantId = requireTenantId(ctx);
     const issuer = getIssuer(ctx.env, ctx.var.custom_domain);
 
     // ugly hardcoded switch for now!
     if (q?.includes("identities.profileData.email")) {
       // assuming no other query params here... could be stricter
       const linkedAccountEmail = q.split("=")[1];
-      const results = await ctx.env.data.users.list(ctx.var.tenant_id, {
+      const results = await ctx.env.data.users.list(tenantId, {
         page,
         per_page,
         include_totals,
@@ -159,7 +160,7 @@ const getRoot = defineRoute({
 
       // get primary account
       const primaryAccount = await ctx.env.data.users.get(
-        ctx.var.tenant_id,
+        tenantId,
         // we know linked_to is truthy here but typescript cannot read .filter() logic above
         // possible to fix!
         linkedAccount.linked_to!,
@@ -188,7 +189,7 @@ const getRoot = defineRoute({
       query.push(q);
     }
 
-    const result = await ctx.env.data.users.list(ctx.var.tenant_id, {
+    const result = await ctx.env.data.users.list(tenantId, {
       page,
       per_page,
       include_totals,
@@ -261,8 +262,9 @@ const getByUser_id = defineRoute({
   }),
   handler: async (ctx) => {
     const { user_id } = ctx.req.valid("param");
+    const tenantId = requireTenantId(ctx);
 
-    const user = await ctx.env.data.users.get(ctx.var.tenant_id, user_id);
+    const user = await ctx.env.data.users.get(tenantId, user_id);
 
     if (!user) {
       throw new HTTPException(404);
@@ -312,20 +314,18 @@ const deleteByUser_id = defineRoute({
   }),
   handler: async (ctx) => {
     const { user_id } = ctx.req.valid("param");
+    const tenantId = requireTenantId(ctx);
 
-    const userToDelete = await ctx.env.data.users.get(
-      ctx.var.tenant_id,
-      user_id,
-    );
+    const userToDelete = await ctx.env.data.users.get(tenantId, user_id);
 
-    const result = await ctx.env.data.users.remove(ctx.var.tenant_id, user_id);
+    const result = await ctx.env.data.users.remove(tenantId, user_id);
 
     if (!result) {
       throw new HTTPException(404);
     }
 
     // Log the Management API operation
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Delete a User",
       beforeState: userToDelete ?? undefined,
@@ -379,6 +379,7 @@ const postRoot = defineRoute({
   handler: async (ctx) => {
     const body = ctx.req.valid("json");
     ctx.set("body", body);
+    const tenantId = requireTenantId(ctx);
 
     // As for instance verify_email is not persisted, we need to remove it from the body
     const {
@@ -410,7 +411,7 @@ const postRoot = defineRoute({
 
     // Look up the connection to derive the provider
     const connectionRecord = await ctx.env.data.connections.get(
-      ctx.var.tenant_id,
+      tenantId,
       connection,
     );
 
@@ -427,7 +428,7 @@ const postRoot = defineRoute({
 
     // Derive provider from connection, or use provided provider for migration
     const provider = isDatabaseUser
-      ? await resolveUsernamePasswordProvider(ctx.env, ctx.var.tenant_id)
+      ? await resolveUsernamePasswordProvider(ctx.env, tenantId)
       : connectionRecord
         ? getProviderFromConnection(connectionRecord)
         : providedProvider || connection;
@@ -469,14 +470,11 @@ const postRoot = defineRoute({
 
       // Create the user - this may trigger account linking
       // Password (if provided) is created atomically in the same transaction
-      const result = await ctx.env.data.users.create(
-        ctx.var.tenant_id,
-        userToCreate,
-      );
+      const result = await ctx.env.data.users.create(tenantId, userToCreate);
 
       ctx.set("user_id", result.user_id);
 
-      await logMessage(ctx, ctx.var.tenant_id, {
+      await logMessage(ctx, tenantId, {
         type: LogTypes.SUCCESS_API_OPERATION,
         description: "User created",
         afterState: result,
@@ -555,10 +553,11 @@ const patchByUser_id = defineRoute({
     const { data } = ctx.env;
     const body = ctx.req.valid("json");
     const { user_id } = ctx.req.valid("param");
+    const tenantId = requireTenantId(ctx);
 
     // verify_email is not persisted, connection is used to target a specific identity
     const { verify_email, password, connection, ...userFields } = body;
-    const userToPatch = await data.users.get(ctx.var.tenant_id, user_id);
+    const userToPatch = await data.users.get(tenantId, user_id);
 
     if (!userToPatch) {
       throw new HTTPException(404);
@@ -597,7 +596,7 @@ const patchByUser_id = defineRoute({
         isPasswordConnection && userToPatch.provider === "auth0";
 
       const linkedUsers = preferAuth2Linked
-        ? await data.users.list(ctx.var.tenant_id, {
+        ? await data.users.list(tenantId, {
             page: 0,
             per_page: 100,
             include_totals: false,
@@ -620,7 +619,7 @@ const patchByUser_id = defineRoute({
         // Look for a linked user with this connection
         const linkedList =
           linkedUsers ??
-          (await data.users.list(ctx.var.tenant_id, {
+          (await data.users.list(tenantId, {
             page: 0,
             per_page: 100,
             include_totals: false,
@@ -644,7 +643,7 @@ const patchByUser_id = defineRoute({
     if (userFields.email && userFields.email !== targetUser.email) {
       const existingUser = await getUsersByEmail(
         ctx.env.data.users,
-        ctx.var.tenant_id,
+        tenantId,
         userFields.email,
       );
 
@@ -664,15 +663,12 @@ const patchByUser_id = defineRoute({
       userFields.phone_number &&
       userFields.phone_number !== targetUser.phone_number
     ) {
-      const { users: existingUsers } = await data.users.list(
-        ctx.var.tenant_id,
-        {
-          page: 0,
-          per_page: 10,
-          include_totals: false,
-          q: `phone_number:${userFields.phone_number}`,
-        },
-      );
+      const { users: existingUsers } = await data.users.list(tenantId, {
+        page: 0,
+        per_page: 10,
+        include_totals: false,
+        q: `phone_number:${userFields.phone_number}`,
+      });
 
       if (existingUsers.some((u) => u.user_id !== targetUserId)) {
         throw new HTTPException(409, {
@@ -681,11 +677,7 @@ const patchByUser_id = defineRoute({
       }
     }
 
-    await ctx.env.data.users.update(
-      ctx.var.tenant_id,
-      targetUserId,
-      userFields,
-    );
+    await ctx.env.data.users.update(tenantId, targetUserId, userFields);
 
     if (password) {
       // When updating password with a connection specified, use that connection
@@ -736,12 +728,9 @@ const patchByUser_id = defineRoute({
       const userId = `${passwordIdentity.provider}|${passwordIdentity.user_id}`;
 
       // Mark old password as not current (for password history)
-      const existingPassword = await data.passwords.get(
-        ctx.var.tenant_id,
-        userId,
-      );
+      const existingPassword = await data.passwords.get(tenantId, userId);
       if (existingPassword) {
-        await data.passwords.update(ctx.var.tenant_id, {
+        await data.passwords.update(tenantId, {
           id: existingPassword.id,
           user_id: userId,
           password: existingPassword.password,
@@ -752,7 +741,7 @@ const patchByUser_id = defineRoute({
 
       // Create new password
       const { hash, algorithm } = await hashPassword(password);
-      await data.passwords.create(ctx.var.tenant_id, {
+      await data.passwords.create(tenantId, {
         user_id: userId,
         password: hash,
         algorithm,
@@ -761,10 +750,7 @@ const patchByUser_id = defineRoute({
     }
 
     // Always return the primary user
-    const patchedUser = await ctx.env.data.users.get(
-      ctx.var.tenant_id,
-      user_id,
-    );
+    const patchedUser = await ctx.env.data.users.get(tenantId, user_id);
 
     if (!patchedUser) {
       // we should never reach here UNLESS there's some race condition where another service deletes the users after the update...
@@ -772,7 +758,7 @@ const patchByUser_id = defineRoute({
     }
 
     // Log the user update operation
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Update a User",
       beforeState: userToPatch,
@@ -843,6 +829,7 @@ const postByUser_idIdentities = defineRoute({
   handler: async (ctx) => {
     const body = ctx.req.valid("json");
     const { user_id } = ctx.req.valid("param");
+    const tenantId = requireTenantId(ctx);
 
     const link_with = "link_with" in body ? body.link_with : body.user_id;
 
@@ -852,18 +839,23 @@ const postByUser_idIdentities = defineRoute({
       });
     }
 
-    const user = await ctx.env.data.users.get(ctx.var.tenant_id, user_id);
-    if (!user) {
+    // Both ends of the link must exist — updating a nonexistent secondary
+    // would otherwise silently no-op and report the link as created.
+    const [user, linkWithUser] = await Promise.all([
+      ctx.env.data.users.get(tenantId, user_id),
+      ctx.env.data.users.get(tenantId, link_with),
+    ]);
+    if (!user || !linkWithUser) {
       throw new HTTPException(400, {
         message: "Linking an inexistent identity is not allowed.",
       });
     }
 
-    await ctx.env.data.users.update(ctx.var.tenant_id, link_with, {
+    await ctx.env.data.users.update(tenantId, link_with, {
       linked_to: user_id,
     });
 
-    const linkedusers = await ctx.env.data.users.list(ctx.var.tenant_id, {
+    const linkedusers = await ctx.env.data.users.list(tenantId, {
       page: 0,
       per_page: 10,
       include_totals: false,
@@ -872,7 +864,7 @@ const postByUser_idIdentities = defineRoute({
 
     const identities = [user, ...linkedusers.users].map(pickIdentity);
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Link a user identity",
       targetType: "identity",
@@ -918,20 +910,21 @@ const deleteByUser_idIdentitiesByProviderByLinked_user_id = defineRoute({
   }),
   handler: async (ctx) => {
     const { user_id, provider, linked_user_id } = ctx.req.valid("param");
+    const tenantId = requireTenantId(ctx);
 
     await ctx.env.data.users.unlink(
-      ctx.var.tenant_id,
+      tenantId,
       user_id,
       provider,
       linked_user_id,
     );
 
-    const user = await ctx.env.data.users.get(ctx.var.tenant_id, user_id);
+    const user = await ctx.env.data.users.get(tenantId, user_id);
     if (!user) {
       throw new HTTPException(404);
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Unlink a user identity",
       targetType: "identity",
@@ -983,8 +976,9 @@ const getByUser_idConnectedClients = defineRoute({
   handler: async (ctx) => {
     const { user_id } = ctx.req.valid("param");
     const { include_totals, page, per_page } = ctx.req.valid("query");
+    const tenantId = requireTenantId(ctx);
 
-    const result = await ctx.env.data.clients.list(ctx.var.tenant_id, {
+    const result = await ctx.env.data.clients.list(tenantId, {
       page,
       per_page,
       include_totals,
@@ -1044,19 +1038,16 @@ const getByUser_idSessions = defineRoute({
   handler: async (ctx) => {
     const { user_id } = ctx.req.valid("param");
     const { include_totals, page, per_page } = ctx.req.valid("query");
+    const tenantId = requireTenantId(ctx);
 
-    const sessions = await ctx.env.data.sessions.list(ctx.var.tenant_id, {
+    const sessions = await ctx.env.data.sessions.list(tenantId, {
       page,
       per_page,
       include_totals,
       q: `user_id:${user_id}`,
     });
 
-    if (!include_totals) {
-      return ctx.json(sessions.sessions);
-    }
-
-    return ctx.json(sessions);
+    return ctx.json(listResponse(include_totals, sessions, "sessions"));
   },
 });
 
@@ -1099,13 +1090,14 @@ const getByUser_idLogs = defineRoute({
       sort,
       q: callerQ,
     } = ctx.req.valid("query");
+    const tenantId = requireTenantId(ctx);
 
-    const user = await ctx.env.data.users.get(ctx.var.tenant_id, user_id);
+    const user = await ctx.env.data.users.get(tenantId, user_id);
     if (!user || user.linked_to) {
       throw new HTTPException(404);
     }
 
-    const linked = await ctx.env.data.users.list(ctx.var.tenant_id, {
+    const linked = await ctx.env.data.users.list(tenantId, {
       page: 0,
       per_page: 100,
       include_totals: false,
@@ -1133,7 +1125,7 @@ const getByUser_idLogs = defineRoute({
       }
     }
 
-    const result = await ctx.env.data.logs.list(ctx.var.tenant_id, {
+    const result = await ctx.env.data.logs.list(tenantId, {
       page,
       per_page,
       include_totals,
@@ -1141,11 +1133,7 @@ const getByUser_idLogs = defineRoute({
       q,
     });
 
-    if (!include_totals) {
-      return ctx.json(result.logs);
-    }
-
-    return ctx.json(result);
+    return ctx.json(listResponse(include_totals, result, "logs"));
   },
 });
 
@@ -1183,9 +1171,10 @@ const getByUser_idPermissions = defineRoute({
     const { user_id } = ctx.req.valid("param");
 
     const { page, per_page, sort, q } = ctx.req.valid("query");
+    const tenantId = requireTenantId(ctx);
 
     // Check if user exists first
-    const user = await ctx.env.data.users.get(ctx.var.tenant_id, user_id);
+    const user = await ctx.env.data.users.get(tenantId, user_id);
     if (!user) {
       throw new HTTPException(404, {
         message: "User not found",
@@ -1194,7 +1183,7 @@ const getByUser_idPermissions = defineRoute({
 
     // Get permissions assigned to this user using the new adapter
     const permissions = await ctx.env.data.userPermissions.list(
-      ctx.var.tenant_id,
+      tenantId,
       user_id,
       {
         page,
@@ -1251,9 +1240,10 @@ const postByUser_idPermissions = defineRoute({
   handler: async (ctx) => {
     const { user_id } = ctx.req.valid("param");
     const { permissions } = ctx.req.valid("json");
+    const tenantId = requireTenantId(ctx);
 
     // Check if user exists first
-    const user = await ctx.env.data.users.get(ctx.var.tenant_id, user_id);
+    const user = await ctx.env.data.users.get(tenantId, user_id);
     if (!user) {
       throw new HTTPException(404, {
         message: "User not found",
@@ -1263,7 +1253,7 @@ const postByUser_idPermissions = defineRoute({
     // Use the new user permissions adapter to create permissions
     for (const permission of permissions) {
       const success = await ctx.env.data.userPermissions.create(
-        ctx.var.tenant_id,
+        tenantId,
         user_id,
         {
           user_id,
@@ -1281,7 +1271,7 @@ const postByUser_idPermissions = defineRoute({
       }
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Assign permissions to a user",
       targetType: "user_permission",
@@ -1337,9 +1327,10 @@ const deleteByUser_idPermissions = defineRoute({
   handler: async (ctx) => {
     const { user_id } = ctx.req.valid("param");
     const { permissions } = ctx.req.valid("json");
+    const tenantId = requireTenantId(ctx);
 
     // Check if user exists first
-    const user = await ctx.env.data.users.get(ctx.var.tenant_id, user_id);
+    const user = await ctx.env.data.users.get(tenantId, user_id);
     if (!user) {
       throw new HTTPException(404, {
         message: "User not found",
@@ -1349,7 +1340,7 @@ const deleteByUser_idPermissions = defineRoute({
     // Use the new user permissions adapter to remove permissions
     for (const permission of permissions) {
       const success = await ctx.env.data.userPermissions.remove(
-        ctx.var.tenant_id,
+        tenantId,
         user_id,
         {
           resource_server_identifier: permission.resource_server_identifier,
@@ -1365,7 +1356,7 @@ const deleteByUser_idPermissions = defineRoute({
       }
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Remove permissions from a user",
       targetType: "user_permission",
@@ -1395,12 +1386,13 @@ const getByUser_idRoles = defineRoute({
   }),
   handler: async (ctx) => {
     const { user_id } = ctx.req.valid("param");
+    const tenantId = requireTenantId(ctx);
 
-    const user = await ctx.env.data.users.get(ctx.var.tenant_id, user_id);
+    const user = await ctx.env.data.users.get(tenantId, user_id);
     if (!user) throw new HTTPException(404, { message: "User not found" });
 
     const roles = await ctx.env.data.userRoles.list(
-      ctx.var.tenant_id,
+      tenantId,
       user_id,
       undefined,
       "", // Global roles should have empty string organization_id
@@ -1431,14 +1423,15 @@ const postByUser_idRoles = defineRoute({
   handler: async (ctx) => {
     const { user_id } = ctx.req.valid("param");
     const { roles } = ctx.req.valid("json");
+    const tenantId = requireTenantId(ctx);
 
-    const user = await ctx.env.data.users.get(ctx.var.tenant_id, user_id);
+    const user = await ctx.env.data.users.get(tenantId, user_id);
     if (!user) throw new HTTPException(404, { message: "User not found" });
 
     // Create roles one by one using the new API
     for (const roleId of roles) {
       const ok = await ctx.env.data.userRoles.create(
-        ctx.var.tenant_id,
+        tenantId,
         user_id,
         roleId,
         "", // Global roles should have empty string organization_id
@@ -1450,7 +1443,7 @@ const postByUser_idRoles = defineRoute({
       }
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Assign roles to a user",
       targetType: "user_role",
@@ -1486,14 +1479,15 @@ const deleteByUser_idRoles = defineRoute({
   handler: async (ctx) => {
     const { user_id } = ctx.req.valid("param");
     const { roles } = ctx.req.valid("json");
+    const tenantId = requireTenantId(ctx);
 
-    const user = await ctx.env.data.users.get(ctx.var.tenant_id, user_id);
+    const user = await ctx.env.data.users.get(tenantId, user_id);
     if (!user) throw new HTTPException(404, { message: "User not found" });
 
     // Remove roles one by one using the new API
     for (const roleId of roles) {
       const ok = await ctx.env.data.userRoles.remove(
-        ctx.var.tenant_id,
+        tenantId,
         user_id,
         roleId,
         "", // Global roles should have empty string organization_id
@@ -1505,7 +1499,7 @@ const deleteByUser_idRoles = defineRoute({
       }
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Remove roles from a user",
       targetType: "user_role",
@@ -1548,16 +1542,17 @@ const getByUser_idOrganizations = defineRoute({
   handler: async (ctx) => {
     const { user_id } = ctx.req.valid("param");
     const { page, per_page, include_totals, sort } = ctx.req.valid("query");
+    const tenantId = requireTenantId(ctx);
 
     // First verify user exists
-    const user = await ctx.env.data.users.get(ctx.var.tenant_id, user_id);
+    const user = await ctx.env.data.users.get(tenantId, user_id);
     if (!user) {
       throw new HTTPException(404, { message: "User not found" });
     }
 
     // Get organizations for the user using the new method
     const result = await ctx.env.data.userOrganizations.listUserOrganizations(
-      ctx.var.tenant_id,
+      tenantId,
       user_id,
       {
         page,
@@ -1602,21 +1597,19 @@ const deleteByUser_idOrganizationsByOrganization_id = defineRoute({
   }),
   handler: async (ctx) => {
     const { user_id, organization_id } = ctx.req.valid("param");
+    const tenantId = requireTenantId(ctx);
 
     // First verify user exists
-    const user = await ctx.env.data.users.get(ctx.var.tenant_id, user_id);
+    const user = await ctx.env.data.users.get(tenantId, user_id);
     if (!user) {
       throw new HTTPException(404, { message: "User not found" });
     }
 
     // Find the membership to remove
-    const userOrgs = await ctx.env.data.userOrganizations.list(
-      ctx.var.tenant_id,
-      {
-        q: `user_id:${user_id}`,
-        per_page: 100, // Should be enough for most cases
-      },
-    );
+    const userOrgs = await ctx.env.data.userOrganizations.list(tenantId, {
+      q: `user_id:${user_id}`,
+      per_page: 100, // Should be enough for most cases
+    });
 
     const membershipToRemove = userOrgs.userOrganizations.find(
       (uo) => uo.organization_id === organization_id,
@@ -1629,11 +1622,11 @@ const deleteByUser_idOrganizationsByOrganization_id = defineRoute({
     }
 
     await ctx.env.data.userOrganizations.remove(
-      ctx.var.tenant_id,
+      tenantId,
       membershipToRemove.id,
     );
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Remove a user from an organization",
       targetType: "user_organization",

@@ -7,6 +7,7 @@ import {
 } from "@authhero/adapter-interfaces";
 import { logMessage } from "../../helpers/logging";
 import { defineRoute } from "../../utils/define-route";
+import { requireTenantId } from "./helpers";
 const getById = defineRoute({
   route: createRoute({
     tags: ["refresh_tokens"],
@@ -38,9 +39,10 @@ const getById = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
 
-    const session = await ctx.env.data.refreshTokens.get(ctx.var.tenant_id, id);
+    const session = await ctx.env.data.refreshTokens.get(tenantId, id);
 
     if (!session) {
       throw new HTTPException(404);
@@ -75,6 +77,7 @@ const deleteById = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
 
     // Resolve the row first so we know its family. Removing a refresh token
@@ -87,28 +90,25 @@ const deleteById = defineRoute({
     // remove fails the family is already torched and a retry just
     // re-runs remove. The reverse order would leave siblings active if
     // the family-revoke step failed after the parent was already gone.
-    const target = await ctx.env.data.refreshTokens.get(ctx.var.tenant_id, id);
+    const target = await ctx.env.data.refreshTokens.get(tenantId, id);
 
     const familyId = target?.family_id ?? target?.id;
     if (familyId) {
       await ctx.env.data.refreshTokens.revokeFamily(
-        ctx.var.tenant_id,
+        tenantId,
         familyId,
         new Date().toISOString(),
       );
     }
 
-    const result = await ctx.env.data.refreshTokens.remove(
-      ctx.var.tenant_id,
-      id,
-    );
+    const result = await ctx.env.data.refreshTokens.remove(tenantId, id);
     if (!result) {
       throw new HTTPException(404, {
         message: "Session not found",
       });
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Delete a Refresh Token",
       targetType: "refresh_token",

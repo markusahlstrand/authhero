@@ -9,6 +9,7 @@ import { logMessage } from "../../helpers/logging";
 import { HTTPException } from "hono/http-exception";
 
 import { defineRoute } from "../../utils/define-route";
+import { requireTenantId } from "./helpers";
 const hookCodeResponseSchema = hookCodeSchema.extend({
   deploymentStatus: z.enum(["deployed", "failed", "not_required"]),
   deploymentError: z.string().optional(),
@@ -47,12 +48,10 @@ const postRoot = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const body = ctx.req.valid("json");
 
-    const hookCode = await ctx.env.data.hookCode.create(
-      ctx.var.tenant_id,
-      body,
-    );
+    const hookCode = await ctx.env.data.hookCode.create(tenantId, body);
 
     // Deploy to execution environment if supported
     let deploymentStatus: "deployed" | "failed" | "not_required" =
@@ -66,14 +65,14 @@ const postRoot = defineRoute({
       } catch (err) {
         deploymentStatus = "failed";
         deploymentError = err instanceof Error ? err.message : String(err);
-        await logMessage(ctx, ctx.var.tenant_id, {
+        await logMessage(ctx, tenantId, {
           type: LogTypes.FAILED_HOOK,
           description: `Failed to deploy hook code ${hookCode.id}: ${deploymentError}`,
         });
       }
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Create hook code",
       targetType: "hook_code",
@@ -120,9 +119,10 @@ const getById = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
 
-    const hookCode = await ctx.env.data.hookCode.get(ctx.var.tenant_id, id);
+    const hookCode = await ctx.env.data.hookCode.get(tenantId, id);
 
     if (!hookCode) {
       throw new HTTPException(404, { message: "Hook code not found" });
@@ -172,19 +172,16 @@ const putById = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
     const body = ctx.req.valid("json");
 
-    const updated = await ctx.env.data.hookCode.update(
-      ctx.var.tenant_id,
-      id,
-      body,
-    );
+    const updated = await ctx.env.data.hookCode.update(tenantId, id, body);
     if (!updated) {
       throw new HTTPException(404, { message: "Hook code not found" });
     }
 
-    const hookCode = await ctx.env.data.hookCode.get(ctx.var.tenant_id, id);
+    const hookCode = await ctx.env.data.hookCode.get(tenantId, id);
     if (!hookCode) {
       throw new HTTPException(404, { message: "Hook code not found" });
     }
@@ -201,14 +198,14 @@ const putById = defineRoute({
       } catch (err) {
         deploymentStatus = "failed";
         deploymentError = err instanceof Error ? err.message : String(err);
-        await logMessage(ctx, ctx.var.tenant_id, {
+        await logMessage(ctx, tenantId, {
           type: LogTypes.FAILED_HOOK,
           description: `Failed to deploy hook code ${id}: ${deploymentError}`,
         });
       }
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Update hook code",
       targetType: "hook_code",
@@ -244,9 +241,10 @@ const deleteById = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
 
-    const result = await ctx.env.data.hookCode.remove(ctx.var.tenant_id, id);
+    const result = await ctx.env.data.hookCode.remove(tenantId, id);
 
     if (!result) {
       throw new HTTPException(404, { message: "Hook code not found" });
@@ -257,14 +255,14 @@ const deleteById = defineRoute({
       try {
         await ctx.env.codeExecutor.remove(id);
       } catch (err) {
-        await logMessage(ctx, ctx.var.tenant_id, {
+        await logMessage(ctx, tenantId, {
           type: LogTypes.FAILED_HOOK,
           description: `Failed to remove hook worker ${id}: ${err instanceof Error ? err.message : String(err)}`,
         });
       }
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Delete hook code",
       targetType: "hook_code",

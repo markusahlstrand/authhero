@@ -10,6 +10,7 @@ import { deepMergePatch } from "../../utils/deep-merge";
 import { logMessage } from "../../helpers/logging";
 import { defineRoute } from "../../utils/define-route";
 import { isInteractiveClient } from "../../helpers/provision-tenant-clients";
+import { requireTenantId } from "./helpers";
 const getSettings = defineRoute({
   route: createRoute({
     tags: ["tenants", "settings"],
@@ -37,7 +38,8 @@ const getSettings = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
+    const tenant_id = requireTenantId(ctx);
+    const tenant = await ctx.env.data.tenants.get(tenant_id);
 
     if (!tenant) {
       throw new HTTPException(404, {
@@ -47,7 +49,7 @@ const getSettings = defineRoute({
 
     return ctx.json({
       ...tenant,
-      is_control_plane: isControlPlaneTenant(ctx, ctx.var.tenant_id),
+      is_control_plane: isControlPlaneTenant(ctx, tenant_id),
     });
   },
 });
@@ -93,13 +95,14 @@ const patchSettings = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenant_id = requireTenantId(ctx);
     const updates = ctx.req.valid("json");
 
     // Strip protected system fields that should not be modified
     const { id, ...sanitizedUpdates } = updates;
 
     // Get existing tenant
-    const existingTenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
+    const existingTenant = await ctx.env.data.tenants.get(tenant_id);
 
     if (!existingTenant) {
       throw new HTTPException(404, {
@@ -112,9 +115,8 @@ const patchSettings = defineRoute({
     if ("default_audience" in sanitizedUpdates) {
       const next = sanitizedUpdates.default_audience;
       if (typeof next === "string" && next.length > 0) {
-        const { resource_servers } = await ctx.env.data.resourceServers.list(
-          ctx.var.tenant_id,
-        );
+        const { resource_servers } =
+          await ctx.env.data.resourceServers.list(tenant_id);
         const exists = resource_servers.some((rs) => rs.identifier === next);
         if (!exists) {
           throw new HTTPException(400, {
@@ -130,7 +132,7 @@ const patchSettings = defineRoute({
     if ("default_client_id" in sanitizedUpdates) {
       const next = sanitizedUpdates.default_client_id;
       if (typeof next === "string" && next.length > 0) {
-        const client = await ctx.env.data.clients.get(ctx.var.tenant_id, next);
+        const client = await ctx.env.data.clients.get(tenant_id, next);
         if (!client) {
           throw new HTTPException(400, {
             message: `Client with id '${next}' not found`,
@@ -148,10 +150,10 @@ const patchSettings = defineRoute({
     // Note: created_at and updated_at are not in the update payload, they're only in the full tenant schema
     const mergedTenant = deepMergePatch(existingTenant, sanitizedUpdates);
 
-    await ctx.env.data.tenants.update(ctx.var.tenant_id, mergedTenant);
+    await ctx.env.data.tenants.update(tenant_id, mergedTenant);
 
     // Return the updated tenant
-    const updatedTenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
+    const updatedTenant = await ctx.env.data.tenants.get(tenant_id);
 
     if (!updatedTenant) {
       throw new HTTPException(500, {
@@ -159,18 +161,18 @@ const patchSettings = defineRoute({
       });
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenant_id, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Update tenant settings",
       targetType: "tenant",
-      targetId: ctx.var.tenant_id,
+      targetId: tenant_id,
       beforeState: existingTenant as Record<string, unknown>,
       afterState: updatedTenant as Record<string, unknown>,
     });
 
     return ctx.json({
       ...updatedTenant,
-      is_control_plane: isControlPlaneTenant(ctx, ctx.var.tenant_id),
+      is_control_plane: isControlPlaneTenant(ctx, tenant_id),
     });
   },
 });

@@ -3,10 +3,11 @@ import { HTTPException } from "hono/http-exception";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { querySchema } from "../../types/auth0/Query";
 import { parseSort } from "../../utils/sort";
-import { logSchema, totalsSchema } from "@authhero/adapter-interfaces";
+import { logSchema } from "@authhero/adapter-interfaces";
 
 import { defineRoute } from "../../utils/define-route";
-const logsWithTotalsSchema = totalsSchema.extend({
+import { requireTenantId, withTotals, listResponse } from "./helpers";
+const logsWithTotalsSchema = withTotals({
   logs: z.array(logSchema),
 });
 
@@ -49,6 +50,7 @@ const getRoot = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const {
       page,
       per_page,
@@ -61,7 +63,7 @@ const getRoot = defineRoute({
       to_date,
     } = ctx.req.valid("query");
 
-    const result = await ctx.env.data.logs.list(ctx.var.tenant_id, {
+    const result = await ctx.env.data.logs.list(tenantId, {
       page,
       per_page,
       include_totals,
@@ -82,11 +84,7 @@ const getRoot = defineRoute({
       });
     }
 
-    if (include_totals) {
-      return ctx.json(result);
-    }
-
-    return ctx.json(result.logs);
+    return ctx.json(listResponse(include_totals, result, "logs"));
   },
 });
 
@@ -121,9 +119,10 @@ const getById = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
 
-    const log = await ctx.env.data.logs.get(ctx.var.tenant_id, id);
+    const log = await ctx.env.data.logs.get(tenantId, id);
 
     if (!log) {
       throw new HTTPException(404);

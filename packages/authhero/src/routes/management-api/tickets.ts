@@ -21,6 +21,7 @@ import { logMessage } from "../../helpers/logging";
 import { getIssuer } from "../../variables";
 
 import { defineRoute } from "../../utils/define-route";
+import { requireTenantId } from "./helpers";
 const DEFAULT_TTL_SEC = 432000; // 5 days, matches Auth0 default
 
 const emailVerificationTicketBodySchema = z.object({
@@ -82,7 +83,7 @@ const postEmailVerification = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenantId = ctx.var.tenant_id;
+    const tenantId = requireTenantId(ctx);
     const body = ctx.req.valid("json");
 
     const user = await ctx.env.data.users.get(tenantId, body.user_id);
@@ -155,7 +156,7 @@ const postPasswordChange = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenantId = ctx.var.tenant_id;
+    const tenantId = requireTenantId(ctx);
     const body = ctx.req.valid("json");
 
     // Resolve user from user_id, or email + connection_id (Auth0 alternative).

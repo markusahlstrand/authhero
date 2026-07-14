@@ -5,6 +5,7 @@ import { LogTypes } from "@authhero/adapter-interfaces";
 import { logMessage } from "../../helpers/logging";
 
 import { defineRoute } from "../../utils/define-route";
+import { requireTenantId } from "./helpers";
 // Auth0-compatible authentication method response schema
 const authenticationMethodSchema = z.object({
   id: z.string(),
@@ -104,13 +105,14 @@ const getRoot = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const userId = ctx.req.param("user_id");
     if (!userId) {
       throw new HTTPException(400, { message: "user_id is required" });
     }
 
     const enrollments = await ctx.env.data.authenticationMethods.list(
-      ctx.var.tenant_id,
+      tenantId,
       userId,
     );
 
@@ -166,6 +168,7 @@ const postRoot = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const userId = ctx.req.param("user_id");
     if (!userId) {
       throw new HTTPException(400, { message: "user_id is required" });
@@ -174,7 +177,7 @@ const postRoot = defineRoute({
     const body = ctx.req.valid("json");
 
     const enrollment = await ctx.env.data.authenticationMethods.create(
-      ctx.var.tenant_id,
+      tenantId,
       {
         user_id: userId,
         type: body.type,
@@ -190,7 +193,7 @@ const postRoot = defineRoute({
       },
     );
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Create Authentication Method",
       targetType: "authentication_method",
@@ -246,11 +249,12 @@ const getByMethod_id = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { method_id } = ctx.req.valid("param");
     const userId = ctx.req.param("user_id");
 
     const enrollment = await ctx.env.data.authenticationMethods.get(
-      ctx.var.tenant_id,
+      tenantId,
       method_id,
     );
 
@@ -301,11 +305,12 @@ const deleteByMethod_id = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { method_id } = ctx.req.valid("param");
     const userId = ctx.req.param("user_id");
 
     const enrollment = await ctx.env.data.authenticationMethods.get(
-      ctx.var.tenant_id,
+      tenantId,
       method_id,
     );
 
@@ -316,7 +321,7 @@ const deleteByMethod_id = defineRoute({
     }
 
     const deleted = await ctx.env.data.authenticationMethods.remove(
-      ctx.var.tenant_id,
+      tenantId,
       method_id,
     );
 
@@ -326,7 +331,7 @@ const deleteByMethod_id = defineRoute({
       });
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Delete Authentication Method",
       targetType: "authentication_method",

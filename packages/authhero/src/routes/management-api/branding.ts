@@ -22,6 +22,7 @@ import { buildPreviewScreen, PREVIEW_SCREEN_IDS } from "./branding-preview";
 import { HTTPException } from "hono/http-exception";
 
 import { defineRoute } from "../../utils/define-route";
+import { requireTenantId } from "./helpers";
 const universalLoginTemplateSchema = z.object({
   body: z.string(),
 });
@@ -52,7 +53,8 @@ const getRoot = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const branding = await ctx.env.data.branding.get(ctx.var.tenant_id);
+    const tenantId = requireTenantId(ctx);
+    const branding = await ctx.env.data.branding.get(tenantId);
 
     if (!branding) {
       return ctx.json(DEFAULT_BRANDING);
@@ -96,18 +98,19 @@ const patchRoot = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const branding = ctx.req.valid("json");
 
-    await ctx.env.data.branding.set(ctx.var.tenant_id, branding);
+    await ctx.env.data.branding.set(tenantId, branding);
 
     // Return the updated branding (like Auth0 does)
-    const updatedBranding = await ctx.env.data.branding.get(ctx.var.tenant_id);
+    const updatedBranding = await ctx.env.data.branding.get(tenantId);
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Update Branding",
       targetType: "branding",
-      targetId: ctx.var.tenant_id,
+      targetId: tenantId,
     });
 
     return ctx.json(updatedBranding || DEFAULT_BRANDING);
@@ -142,9 +145,8 @@ const getTemplatesUniversalLogin = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const template = await ctx.env.data.universalLoginTemplates.get(
-      ctx.var.tenant_id,
-    );
+    const tenantId = requireTenantId(ctx);
+    const template = await ctx.env.data.universalLoginTemplates.get(tenantId);
 
     if (template) {
       return ctx.json(template);
@@ -186,6 +188,7 @@ const putTemplatesUniversalLogin = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const template = ctx.req.valid("json");
 
     // Body must mount the widget and be valid Liquid. Chip slots are
@@ -197,13 +200,13 @@ const putTemplatesUniversalLogin = defineRoute({
       });
     }
 
-    await ctx.env.data.universalLoginTemplates.set(ctx.var.tenant_id, template);
+    await ctx.env.data.universalLoginTemplates.set(tenantId, template);
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Set Universal Login Template",
       targetType: "universal_login_template",
-      targetId: ctx.var.tenant_id,
+      targetId: tenantId,
     });
 
     return ctx.body(null, 204);
@@ -232,13 +235,14 @@ const deleteTemplatesUniversalLogin = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    await ctx.env.data.universalLoginTemplates.delete(ctx.var.tenant_id);
+    const tenantId = requireTenantId(ctx);
+    await ctx.env.data.universalLoginTemplates.delete(tenantId);
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Delete Universal Login Template",
       targetType: "universal_login_template",
-      targetId: ctx.var.tenant_id,
+      targetId: tenantId,
     });
 
     return ctx.body(null, 204);
@@ -296,7 +300,7 @@ const postTemplatesUniversalLoginPreview = defineRoute({
       branding: brandingOverride,
       theme: themeOverride,
     } = ctx.req.valid("json");
-    const tenantId = ctx.var.tenant_id;
+    const tenantId = requireTenantId(ctx);
 
     const [branding, theme, storedTemplate] = await Promise.all([
       ctx.env.data.branding.get(tenantId),

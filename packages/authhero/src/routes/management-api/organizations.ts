@@ -4,7 +4,6 @@ import {
   organizationInsertSchema,
   organizationConnectionSchema,
   organizationConnectionInsertSchema,
-  totalsSchema,
   roleListSchema,
   roleSchema,
   inviteSchema,
@@ -25,6 +24,7 @@ import { getDefaultUserPicture } from "../../helpers/avatar";
 import { sendInvitation } from "../../emails";
 
 import { defineRoute } from "../../utils/define-route";
+import { requireTenantId, withTotals, listResponse } from "./helpers";
 // Query schema for invitations list endpoint
 const invitationsQuerySchema = z.object({
   page: z
@@ -85,7 +85,7 @@ const inviteCreateRequestSchema = inviteInsertSchema.omit({
   invitation_url: true,
 });
 
-const organizationsWithTotalsSchema = totalsSchema.extend({
+const organizationsWithTotalsSchema = withTotals({
   organizations: z.array(organizationSchema),
 });
 
@@ -186,7 +186,7 @@ const getRoot = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const { page, per_page, include_totals, sort, q, from, take } =
       ctx.req.valid("query");
 
@@ -209,11 +209,7 @@ const getRoot = defineRoute({
       });
     }
 
-    if (include_totals) {
-      return ctx.json(result);
-    }
-
-    return ctx.json(result.organizations);
+    return ctx.json(listResponse(include_totals, result, "organizations"));
   },
 });
 
@@ -247,7 +243,7 @@ const getById = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
 
     const organization = await ctx.env.data.organizations.get(tenant_id, id);
@@ -285,7 +281,7 @@ const deleteById = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
 
     const result = await ctx.env.data.organizations.remove(tenant_id, id);
@@ -293,7 +289,7 @@ const deleteById = defineRoute({
       throw new HTTPException(404, { message: "Organization not found" });
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenant_id, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Delete an Organization",
       targetType: "organization",
@@ -341,7 +337,7 @@ const patchById = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
     const body = ctx.req.valid("json");
 
@@ -367,7 +363,7 @@ const patchById = defineRoute({
       throw new HTTPException(404, { message: "Organization not found" });
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenant_id, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Update an Organization",
       targetType: "organization",
@@ -414,7 +410,7 @@ const postRoot = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const body = ctx.req.valid("json");
 
     const organizationData = {
@@ -427,7 +423,7 @@ const postRoot = defineRoute({
       organizationData,
     );
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenant_id, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Create an Organization",
       targetType: "organization",
@@ -474,7 +470,7 @@ const getByIdMembers = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const { id: organizationId } = ctx.req.valid("param");
     const { page, per_page, include_totals, sort, from, take } =
       ctx.req.valid("query");
@@ -587,7 +583,7 @@ const postByIdMembers = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const { id: organizationId } = ctx.req.valid("param");
     const { members } = ctx.req.valid("json");
 
@@ -622,7 +618,7 @@ const postByIdMembers = defineRoute({
       }
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenant_id, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Add Members to an Organization",
       targetType: "organization_member",
@@ -665,7 +661,7 @@ const deleteByIdMembers = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const { id: organizationId } = ctx.req.valid("param");
     const { members } = ctx.req.valid("json");
 
@@ -696,7 +692,7 @@ const deleteByIdMembers = defineRoute({
       }
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenant_id, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Remove Members from an Organization",
       targetType: "organization_member",
@@ -739,7 +735,7 @@ const getByIdMembersByUser_idRoles = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const { id: organizationId, user_id } = ctx.req.valid("param");
 
     // First verify organization exists
@@ -806,7 +802,7 @@ const postByIdMembersByUser_idRoles = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const { id: organizationId, user_id } = ctx.req.valid("param");
     const { roles } = ctx.req.valid("json");
 
@@ -857,7 +853,7 @@ const postByIdMembersByUser_idRoles = defineRoute({
       }
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenant_id, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Assign Roles to an Organization Member",
       targetType: "organization_member_role",
@@ -905,7 +901,7 @@ const deleteByIdMembersByUser_idRoles = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const { id: organizationId, user_id } = ctx.req.valid("param");
     const { roles } = ctx.req.valid("json");
 
@@ -939,7 +935,7 @@ const deleteByIdMembersByUser_idRoles = defineRoute({
       }
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenant_id, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Remove Roles from an Organization Member",
       targetType: "organization_member_role",
@@ -981,7 +977,7 @@ const getByIdRoles = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const { id: organizationId } = ctx.req.valid("param");
     const { page, per_page, sort, q } = ctx.req.valid("query");
 
@@ -1044,7 +1040,7 @@ const getByIdInvitations = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const { id: organization_id } = ctx.req.valid("param");
     const { page, per_page, include_totals, fields, include_fields, sort } =
       ctx.req.valid("query");
@@ -1155,7 +1151,7 @@ const getByIdInvitationsByInvitation_id = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const { id: organization_id, invitation_id } = ctx.req.valid("param");
 
     const organization = await ctx.env.data.organizations.get(
@@ -1216,7 +1212,7 @@ const postByIdInvitations = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const { id: organization_id } = ctx.req.valid("param");
     const body = ctx.req.valid("json");
 
@@ -1246,7 +1242,7 @@ const postByIdInvitations = defineRoute({
 
     const invite = await ctx.env.data.invites.create(tenant_id, inviteData);
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenant_id, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Create an Organization Invitation",
       targetType: "invitation",
@@ -1314,7 +1310,7 @@ const deleteByIdInvitationsByInvitation_id = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const { id: organization_id, invitation_id } = ctx.req.valid("param");
 
     const organization = await ctx.env.data.organizations.get(
@@ -1336,7 +1332,7 @@ const deleteByIdInvitationsByInvitation_id = defineRoute({
       throw new HTTPException(404, { message: "Invitation not found" });
     }
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenant_id, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Delete an Organization Invitation",
       targetType: "invitation",
@@ -1384,7 +1380,7 @@ const getByIdEnabledConnections = defineRoute({
       200: {
         content: {
           "application/json": {
-            schema: totalsSchema.extend({
+            schema: withTotals({
               connections: z.array(organizationConnectionSchema),
             }),
           },
@@ -1394,7 +1390,7 @@ const getByIdEnabledConnections = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const { id: organization_id } = ctx.req.valid("param");
     const { include_totals, page, per_page } = ctx.req.valid("query");
 
@@ -1460,7 +1456,7 @@ const postByIdEnabledConnections = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const { id: organization_id } = ctx.req.valid("param");
     const body = ctx.req.valid("json");
 
@@ -1539,7 +1535,7 @@ const getByIdEnabledConnectionsByConnection_id = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const { id: organization_id, connection_id } = ctx.req.valid("param");
 
     const organization = await ctx.env.data.organizations.get(
@@ -1602,7 +1598,7 @@ const patchByIdEnabledConnectionsByConnection_id = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const { id: organization_id, connection_id } = ctx.req.valid("param");
     const body = ctx.req.valid("json");
 
@@ -1659,7 +1655,7 @@ const deleteByIdEnabledConnectionsByConnection_id = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const { id: organization_id, connection_id } = ctx.req.valid("param");
 
     const organization = await ctx.env.data.organizations.get(

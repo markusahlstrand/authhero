@@ -5,6 +5,7 @@ import { querySchema } from "../../types/auth0/Query";
 import { auditEventSchema } from "@authhero/adapter-interfaces";
 
 import { defineRoute } from "../../utils/define-route";
+import { requireTenantId } from "./helpers";
 const outboxEventSchema = auditEventSchema.extend({
   created_at: z.string(),
   processed_at: z.string().nullable(),
@@ -49,6 +50,7 @@ const getRoot = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const outbox = ctx.env.data.outbox;
     if (!outbox) {
       throw new HTTPException(501, {
@@ -57,7 +59,7 @@ const getRoot = defineRoute({
     }
 
     const { page, per_page, include_totals } = ctx.req.valid("query");
-    const result = await outbox.listFailed(ctx.var.tenant_id, {
+    const result = await outbox.listFailed(tenantId, {
       page,
       per_page,
       include_totals,
@@ -101,6 +103,7 @@ const postByIdRetry = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const outbox = ctx.env.data.outbox;
     if (!outbox) {
       throw new HTTPException(501, {
@@ -111,7 +114,7 @@ const postByIdRetry = defineRoute({
     const { id } = ctx.req.valid("param");
     // Scope replay to the caller's tenant so a management-API token issued
     // for tenant A can never reach into tenant B's dead-letter queue.
-    const replayed = await outbox.replay(id, ctx.var.tenant_id);
+    const replayed = await outbox.replay(id, tenantId);
     if (!replayed) {
       throw new HTTPException(404, {
         message: "Dead-lettered event not found",

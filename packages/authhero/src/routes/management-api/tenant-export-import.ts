@@ -5,6 +5,7 @@ import { LogTypes } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../../types";
 import { logMessage } from "../../helpers/logging";
 import { defineRoute } from "../../utils/define-route";
+import { requireTenantId } from "./helpers";
 import {
   ExportLine,
   exportTenantLines,
@@ -256,7 +257,7 @@ const exportRoute = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const includePasswordHashes =
       ctx.req.query("include_password_hashes") === "true";
     if (includePasswordHashes) {
@@ -416,7 +417,7 @@ const importRoute = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const tenant_id = ctx.var.tenant_id;
+    const tenant_id = requireTenantId(ctx);
     const includePasswordHashes =
       ctx.req.query("include_password_hashes") === "true";
     if (includePasswordHashes) {

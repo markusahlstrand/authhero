@@ -1,9 +1,10 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../../types";
 import { HTTPException } from "hono/http-exception";
-import { grantSchema, totalsSchema } from "@authhero/adapter-interfaces";
+import { grantSchema } from "@authhero/adapter-interfaces";
 
 import { defineRoute } from "../../utils/define-route";
+import { requireTenantId, withTotals, listResponse } from "./helpers";
 
 const grantsQuerySchema = z.object({
   per_page: z
@@ -40,7 +41,7 @@ const grantsQuerySchema = z.object({
   }),
 });
 
-const grantsWithTotalsSchema = totalsSchema.extend({
+const grantsWithTotalsSchema = withTotals({
   grants: z.array(grantSchema),
 });
 
@@ -66,6 +67,7 @@ const getRoot = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { page, per_page, include_totals, user_id, client_id, audience } =
       ctx.req.valid("query");
 
@@ -83,17 +85,14 @@ const getRoot = defineRoute({
     const luceneQuery =
       queryParts.length > 0 ? queryParts.join(" AND ") : undefined;
 
-    const result = await ctx.env.data.grants.list(ctx.var.tenant_id, {
+    const result = await ctx.env.data.grants.list(tenantId, {
       page,
       per_page,
       include_totals,
       q: luceneQuery,
     });
 
-    if (!include_totals) {
-      return ctx.json(result.grants);
-    }
-    return ctx.json(result);
+    return ctx.json(listResponse(include_totals, result, "grants"));
   },
 });
 
@@ -112,11 +111,12 @@ const deleteById = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
     if (!ctx.env.data.grants) {
       throw new HTTPException(404);
     }
-    const removed = await ctx.env.data.grants.remove(ctx.var.tenant_id, id);
+    const removed = await ctx.env.data.grants.remove(tenantId, id);
     if (!removed) {
       throw new HTTPException(404);
     }
@@ -143,11 +143,12 @@ const deleteByUserId = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { user_id } = ctx.req.valid("query");
     if (!ctx.env.data.grants) {
       return ctx.body(null, 204);
     }
-    await ctx.env.data.grants.removeByUser(ctx.var.tenant_id, user_id);
+    await ctx.env.data.grants.removeByUser(tenantId, user_id);
     return ctx.body(null, 204);
   },
 });

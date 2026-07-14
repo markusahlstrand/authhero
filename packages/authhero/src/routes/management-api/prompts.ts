@@ -9,6 +9,7 @@ import {
 import { logMessage } from "../../helpers/logging";
 import { getAllLocaleDefaults } from "../../i18n";
 import { defineRoute } from "../../utils/define-route";
+import { requireTenantId } from "./helpers";
 const getRoot = defineRoute({
   route: createRoute({
     tags: ["prompts"],
@@ -37,9 +38,8 @@ const getRoot = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const promptSetting = await ctx.env.data.promptSettings.get(
-      ctx.var.tenant_id,
-    );
+    const tenantId = requireTenantId(ctx);
+    const promptSetting = await ctx.env.data.promptSettings.get(tenantId);
 
     if (!promptSetting) {
       // Returns the default values
@@ -79,23 +79,24 @@ const patchRoot = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const promptSettings = ctx.req.valid("json");
 
-    const existing = await ctx.env.data.promptSettings.get(ctx.var.tenant_id);
+    const existing = await ctx.env.data.promptSettings.get(tenantId);
 
-    await ctx.env.data.promptSettings.set(ctx.var.tenant_id, {
+    await ctx.env.data.promptSettings.set(tenantId, {
       ...existing,
       ...promptSettings,
     });
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Update Prompt Settings",
       targetType: "prompt_settings",
-      targetId: ctx.var.tenant_id,
+      targetId: tenantId,
     });
 
-    return ctx.json(await ctx.env.data.promptSettings.get(ctx.var.tenant_id));
+    return ctx.json(await ctx.env.data.promptSettings.get(tenantId));
   },
 });
 
@@ -131,7 +132,8 @@ const getCustomText = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const entries = await ctx.env.data.customText.list(ctx.var.tenant_id);
+    const tenantId = requireTenantId(ctx);
+    const entries = await ctx.env.data.customText.list(tenantId);
     return ctx.json(entries);
   },
 });
@@ -210,9 +212,10 @@ const getByPromptCustomTextByLanguage = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { prompt, language } = ctx.req.valid("param");
     const customText = await ctx.env.data.customText.get(
-      ctx.var.tenant_id,
+      tenantId,
       prompt,
       language,
     );
@@ -259,22 +262,18 @@ const putByPromptCustomTextByLanguage = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { prompt, language } = ctx.req.valid("param");
     const body = await ctx.req.json();
     const customText = customTextSchema.parse(body);
 
-    await ctx.env.data.customText.set(
-      ctx.var.tenant_id,
-      prompt,
-      language,
-      customText,
-    );
+    await ctx.env.data.customText.set(tenantId, prompt, language, customText);
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Set Custom Text",
       targetType: "custom_text",
-      targetId: ctx.var.tenant_id,
+      targetId: tenantId,
     });
 
     return ctx.json(customText);
@@ -307,15 +306,16 @@ const deleteByPromptCustomTextByLanguage = defineRoute({
     },
   }),
   handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
     const { prompt, language } = ctx.req.valid("param");
 
-    await ctx.env.data.customText.delete(ctx.var.tenant_id, prompt, language);
+    await ctx.env.data.customText.delete(tenantId, prompt, language);
 
-    await logMessage(ctx, ctx.var.tenant_id, {
+    await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Delete Custom Text",
       targetType: "custom_text",
-      targetId: ctx.var.tenant_id,
+      targetId: tenantId,
     });
 
     return ctx.body(null, 204);
