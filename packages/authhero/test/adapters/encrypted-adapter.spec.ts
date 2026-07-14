@@ -281,8 +281,11 @@ describe("createEncryptedDataAdapter", () => {
       enabled: true,
       credentials: { api_key: "k1" },
     });
+    // The plaintext must be long enough that random base64 ciphertext can't
+    // contain it by chance — a 2-char secret like "k2" flakes ~1% of runs.
+    const updatedKey = "updated-secret-api-key";
     await ctx.data.emailProviders.update("t1", {
-      credentials: { api_key: "k2" },
+      credentials: { api_key: updatedKey },
     });
 
     const raw = await ctx.db
@@ -290,10 +293,10 @@ describe("createEncryptedDataAdapter", () => {
       .select("credentials")
       .where("tenant_id", "=", "t1")
       .executeTakeFirst();
-    expect(String(raw?.credentials)).not.toContain("k2");
+    expect(String(raw?.credentials)).not.toContain(updatedKey);
     expect(String(raw?.credentials)).toContain(ENC_PREFIX);
     expect((await ctx.data.emailProviders.get("t1"))?.credentials.api_key).toBe(
-      "k2",
+      updatedKey,
     );
   });
 

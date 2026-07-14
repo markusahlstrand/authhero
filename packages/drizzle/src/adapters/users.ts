@@ -31,6 +31,14 @@ import {
   isCoalescedNumericColumn,
   type CoalescedNumericColumn,
 } from "../helpers/filter";
+import {
+  isKeysetRequest,
+  keysetTake,
+  keysetCondition,
+  keysetOrderBy,
+  sliceWithNext,
+  type KeysetColumns,
+} from "../helpers/paginate";
 import { createUserActivityAdapter } from "./userActivity";
 import type { DrizzleDb } from "./types";
 import { runAtomic, type AtomicStatementList } from "./atomic";
@@ -473,6 +481,82 @@ export function createUsersAdapter(db: DrizzleDb) {
 
       const whereClause = and(...conditions);
 
+      // Fetch each primary user's linked accounts and fold them into
+      // identities. Shared by the offset and keyset branches.
+      const hydrateLinked = async <T extends { user_id: string }>(
+        results: T[],
+      ): Promise<User[]> => {
+        const primaryIds = results.map((r) => r.user_id);
+
+        const allLinked =
+          primaryIds.length > 0
+            ? await db
+                .select()
+                .from(users)
+                .where(
+                  and(
+                    eq(users.tenant_id, tenant_id),
+                    inArray(users.linked_to, primaryIds),
+                  ),
+                )
+            : [];
+
+        return results.map((row) => {
+          const linked = allLinked.filter((u) => u.linked_to === row.user_id);
+          return sqlToUser(row, linked);
+        });
+      };
+
+      // Keyset (checkpoint) pagination: from/take. Auth0 does not offer
+      // checkpoint on /users at all (offset there is capped at 1000 results);
+      // this is a deliberate superset so full-tenant walks don't need export
+      // jobs. `q` stays in effect inside cursor walks. Only created_at is
+      // keyset-sortable (asc/desc); user_id is the unique tiebreaker.
+      if (isKeysetRequest(params)) {
+        if (sort?.sort_by && sort.sort_by !== "created_at") {
+          throw new HTTPException(400, {
+            message: `Sorting by ${sort.sort_by} is not supported with checkpoint pagination (from/take); only created_at is`,
+          });
+        }
+        const sortOrder: "asc" | "desc" =
+          sort?.sort_order === "asc" ? "asc" : "desc";
+        const cols: KeysetColumns = {
+          sortColumn: users.created_at,
+          idColumn: users.user_id,
+          sortOrder,
+          sortKey: `created_at:${sortOrder}`,
+        };
+        const take = keysetTake(params);
+        const cursorCondition = keysetCondition(params, cols);
+
+        const joined = await db
+          .select()
+          .from(users)
+          .leftJoin(userActivity, activityJoin())
+          .where(
+            cursorCondition ? and(whereClause, cursorCondition) : whereClause,
+          )
+          .orderBy(...keysetOrderBy(cols))
+          .limit(take + 1);
+
+        const { rows, next } = sliceWithNext(
+          joined.map((row) => withActivity(row.users, row.user_activity)),
+          take,
+          "created_at",
+          "user_id",
+          cols.sortKey,
+        );
+        const mapped = await hydrateLinked(rows);
+
+        return {
+          users: mapped,
+          start: 0,
+          limit: take,
+          length: mapped.length,
+          next,
+        };
+      }
+
       let query = db
         .select()
         .from(users)
@@ -495,26 +579,7 @@ export function createUsersAdapter(db: DrizzleDb) {
         withActivity(row.users, row.user_activity),
       );
 
-      // Fetch linked users for these results
-      const primaryIds = results.map((r) => r.user_id);
-
-      let allLinked: any[] = [];
-      if (primaryIds.length > 0) {
-        allLinked = await db
-          .select()
-          .from(users)
-          .where(
-            and(
-              eq(users.tenant_id, tenant_id),
-              inArray(users.linked_to, primaryIds),
-            ),
-          );
-      }
-
-      const mapped = results.map((row) => {
-        const linked = allLinked.filter((u) => u.linked_to === row.user_id);
-        return sqlToUser(row, linked);
-      });
+      const mapped = await hydrateLinked(results);
 
       if (!include_totals) {
         return { users: mapped };

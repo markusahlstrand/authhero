@@ -1,4 +1,5 @@
-import { Kysely } from "kysely";
+import { Kysely, Selectable } from "kysely";
+import { HTTPException } from "hono/http-exception";
 import {
   luceneFilter,
   sanitizeLuceneQuery,
@@ -14,6 +15,7 @@ import {
   User,
 } from "@authhero/adapter-interfaces";
 import getCountAsInt from "../utils/getCountAsInt";
+import { isKeysetRequest, keysetPaginate } from "../helpers/paginate";
 
 // Fields users.list() accepts in `q`. Excludes `tenant_id` so a clause like
 // `q=tenant_id:other` cannot cross tenant boundaries; everything else here
@@ -65,6 +67,56 @@ const FIELD_MAP: Record<string, FieldMapping> = Object.fromEntries(
 // Keep narrow — every column here is publicly searchable via `q`.
 const SEARCHABLE_COLUMNS = ["email", "name", "phone_number", "user_id"];
 
+// Row shape shared by the offset and keyset branches: every users column plus
+// the activity counters selected from the 1:1 left-joined user_activity table.
+type UserRow = Selectable<Database["users"]> & {
+  last_login: string | null;
+  last_ip: string | null;
+  login_count: number | null;
+};
+
+// Fetch each primary user's linked accounts and fold them into identities.
+async function hydrateProfiles(
+  db: Kysely<Database>,
+  tenantId: string,
+  users: UserRow[],
+): Promise<User[]> {
+  const userIds = users.map((u) => u.user_id);
+
+  // TODO: execute these in parallel with a join
+  const linkedUsers = !userIds.length
+    ? []
+    : await db
+        .selectFrom("users")
+        .selectAll()
+        .where("users.tenant_id", "=", tenantId)
+        .where("users.linked_to", "in", userIds)
+        .orderBy("created_at", "asc")
+        .execute();
+
+  return users.map((user) => {
+    const linkedUsersForUser = linkedUsers.filter(
+      (u) => u.linked_to === user.user_id,
+    );
+
+    return removeNullProperties<User>({
+      ...user,
+      email_verified: user.email_verified === 1,
+      phone_verified:
+        user.phone_verified !== null ? user.phone_verified === 1 : undefined,
+      is_social: user.is_social === 1,
+      login_count: user.login_count ?? 0,
+      app_metadata: JSON.parse(user.app_metadata),
+      user_metadata: JSON.parse(user.user_metadata),
+      address: user.address ? JSON.parse(user.address) : undefined,
+      identities: [
+        userToIdentity(user, true),
+        ...linkedUsersForUser.map((u) => userToIdentity(u)),
+      ],
+    });
+  });
+}
+
 export function list(db: Kysely<Database>) {
   return async (
     tenantId: string,
@@ -99,6 +151,54 @@ export function list(db: Kysely<Database>) {
       }
     }
 
+    // Keyset (checkpoint) pagination: from/take. Auth0 does not offer
+    // checkpoint on /users at all (offset there is capped at 1000 results);
+    // this is a deliberate superset so full-tenant walks don't need export
+    // jobs. `q` stays in effect inside cursor walks. Only created_at is
+    // keyset-sortable (asc/desc); user_id is the unique tiebreaker.
+    if (isKeysetRequest(params)) {
+      if (sort?.sort_by && sort.sort_by !== "created_at") {
+        throw new HTTPException(400, {
+          message: `Sorting by ${sort.sort_by} is not supported with checkpoint pagination (from/take); only created_at is`,
+        });
+      }
+      const sortOrder: "asc" | "desc" =
+        sort?.sort_order === "asc" ? "asc" : "desc";
+      const { rows, limit, next } = await keysetPaginate(
+        query
+          // Checkpoint walks enumerate primary users only — linked accounts
+          // are folded into identities by hydrateProfiles, and surfacing them
+          // as top-level rows too would duplicate them. Matches the drizzle
+          // adapter, which excludes linked users unconditionally. The offset
+          // path is left alone: the route's identities.profileData.email
+          // lookup depends on linked rows being returned there.
+          .where("users.linked_to", "is", null)
+          .selectAll("users")
+          .select([
+            "user_activity.last_login",
+            "user_activity.last_ip",
+            "user_activity.login_count",
+          ]),
+        params,
+        {
+          // Qualified refs: user_activity also has a user_id column, so a
+          // bare user_id ref would be ambiguous after the join.
+          sortColumn: "users.created_at",
+          sortOrder,
+          idColumn: "users.user_id",
+          sortKey: `created_at:${sortOrder}`,
+        },
+      );
+      const usersWithProfiles = await hydrateProfiles(db, tenantId, rows);
+      return {
+        users: usersWithProfiles,
+        start: 0,
+        limit,
+        length: usersWithProfiles.length,
+        next,
+      };
+    }
+
     // Only sort on a known field. An unmapped sort_by (e.g. `sort=id:1`, where
     // `id` isn't a users column) must be ignored rather than passed through to
     // SQL — an unqualified `order by id` is rejected by MySQL/Vitess as an
@@ -125,40 +225,7 @@ export function list(db: Kysely<Database>) {
       ])
       .execute();
 
-    const userIds = users.map((u) => u.user_id);
-
-    // TODO: execute these in parallel with a join
-    const linkedUsers = !userIds.length
-      ? []
-      : await db
-          .selectFrom("users")
-          .selectAll()
-          .where("users.tenant_id", "=", tenantId)
-          .where("users.linked_to", "in", userIds)
-          .orderBy("created_at", "asc")
-          .execute();
-
-    const usersWithProfiles = users.map((user) => {
-      const linkedUsersForUser = linkedUsers.filter(
-        (u) => u.linked_to === user.user_id,
-      );
-
-      return removeNullProperties<User>({
-        ...user,
-        email_verified: user.email_verified === 1,
-        phone_verified:
-          user.phone_verified !== null ? user.phone_verified === 1 : undefined,
-        is_social: user.is_social === 1,
-        login_count: user.login_count ?? 0,
-        app_metadata: JSON.parse(user.app_metadata),
-        user_metadata: JSON.parse(user.user_metadata),
-        address: user.address ? JSON.parse(user.address) : undefined,
-        identities: [
-          userToIdentity(user, true),
-          ...linkedUsersForUser.map((u) => userToIdentity(u)),
-        ],
-      });
-    });
+    const usersWithProfiles = await hydrateProfiles(db, tenantId, users);
 
     if (!include_totals) {
       return {

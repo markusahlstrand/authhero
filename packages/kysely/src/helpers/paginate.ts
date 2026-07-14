@@ -24,10 +24,14 @@ export function isKeysetRequest(params?: ListParams): boolean {
 }
 
 export interface KeysetOptions {
-  /** Column to sort by. Must be a real column on the queried table. */
+  /**
+   * Column to sort by. Must be a real column on the queried table. May be
+   * table-qualified (`users.created_at`) when the query joins other tables;
+   * the row property is read from the segment after the last dot.
+   */
   sortColumn: string;
   sortOrder: "asc" | "desc";
-  /** Unique tiebreaker column; defaults to "id". */
+  /** Unique tiebreaker column (may be table-qualified); defaults to "id". */
   idColumn?: string;
   /**
    * Sort spec (e.g. `date:desc`) for endpoints that honor a caller-chosen sort
@@ -99,7 +103,11 @@ export async function keysetPaginate<DB, TB extends keyof DB, O>(
   let next: string | undefined;
   if (hasMore && rows.length > 0) {
     const last = rows[rows.length - 1] as Record<string, unknown>;
-    const sortValue = last[sortColumn];
+    // Row properties carry the bare column name even when the query used a
+    // table-qualified ref for ORDER BY / WHERE.
+    const sortProp = sortColumn.split(".").pop()!;
+    const idProp = idColumn.split(".").pop()!;
+    const sortValue = last[sortProp];
     next = encodeCursor({
       s:
         typeof sortValue === "string" ||
@@ -107,7 +115,7 @@ export async function keysetPaginate<DB, TB extends keyof DB, O>(
         sortValue === null
           ? (sortValue as string | number | null)
           : String(sortValue),
-      i: String(last[idColumn]),
+      i: String(last[idProp]),
       ...(options.sortKey !== undefined && { k: options.sortKey }),
     });
   }
