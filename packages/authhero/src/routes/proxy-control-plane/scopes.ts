@@ -13,4 +13,12 @@ export const CONTROL_PLANE_SYNC_SCOPE = "controlplane:sync";
  */
 export const CONTROL_PLANE_CUSTOM_DOMAINS_SCOPE = "controlplane:custom_domains";
 
+/**
+ * Scope required by the authoritative `/tenant-members` resource on the control
+ * plane — a tenant's team (organization membership + org-scoped roles +
+ * invitations) that only the control plane can write. Tenant shards mint a
+ * token with this scope through `createControlPlaneTenantMembersAdapter`.
+ */
+export const CONTROL_PLANE_TENANT_MEMBERS_SCOPE = "controlplane:tenant_members";
+
 export { PROXY_RESOLVE_HOST_SCOPE };

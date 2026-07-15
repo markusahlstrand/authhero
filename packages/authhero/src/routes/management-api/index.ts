@@ -65,6 +65,7 @@ import { ticketsRoutes } from "./tickets";
 import { proxyRoutesRoutes } from "./proxy-routes";
 import { operationRoutes, tenantOperationsRoutes } from "./tenant-operations";
 import { tenantExportImportRoutes } from "./tenant-export-import";
+import { createTenantMembersRoutes } from "./tenant-members";
 import { DataAdapters } from "@authhero/adapter-interfaces";
 import { outboxMiddleware } from "../../middlewares/outbox";
 import { LogsDestination } from "../../helpers/outbox-destinations/logs";
@@ -595,6 +596,17 @@ export default function create(config: AuthHeroConfig) {
   // Only mount core tenant routes if no extension overrides /tenants
   if (!extensionPaths.has("/tenants")) {
     managementApp.route("/tenants", tenantRoutes);
+  }
+
+  // Tenant-team self-management (#1137). Lets a tenant admin manage who
+  // administers the tenant (control-plane organization membership + roles +
+  // invitations) from the per-tenant admin UI, delegating to a backend that
+  // either resolves the org locally or hops to the control plane.
+  if (config.tenantMembers && !extensionPaths.has("/tenant-members")) {
+    managementApp.route(
+      "/tenant-members",
+      createTenantMembersRoutes(config.tenantMembers.getBackend),
+    );
   }
 
   // Mount proxy-routes management when the data adapter exposes one. The

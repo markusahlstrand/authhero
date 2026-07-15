@@ -22,6 +22,7 @@ import {
   Type,
   UserCog,
   Users,
+  UsersRound,
   Webhook,
   Workflow,
 } from "lucide-react";
@@ -90,6 +91,7 @@ import { RoleList, RoleCreate, RoleEdit } from "./resources/roles";
 import { Dashboard } from "./resources/dashboard/Dashboard";
 import { AnalyticsPage } from "./resources/analytics/AnalyticsPage";
 import { TenantDataPage } from "./resources/tenant-data/TenantDataPage";
+import { TeamPage } from "./resources/team/TeamPage";
 
 interface AppProps {
   tenantId: string;
@@ -394,6 +396,12 @@ export function App({ tenantId, initialDomain, onAuthComplete }: AppProps) {
           icon={Database}
           list={TenantDataPage}
           options={{ label: "Import / Export", menuGroup: "Settings" }}
+        />
+        <Resource
+          name="team"
+          icon={UsersRound}
+          list={TeamPage}
+          options={{ label: "Team", menuGroup: "Settings" }}
         />
       </Admin>
     </TenantProvider>

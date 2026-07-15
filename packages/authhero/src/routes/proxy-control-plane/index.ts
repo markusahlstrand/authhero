@@ -12,8 +12,13 @@ import { SyncEvent } from "../../helpers/control-plane-sync-events";
 import { Bindings } from "../../types";
 import { createCustomDomainsControlPlaneApp } from "./custom-domains";
 import {
+  createTenantMembersControlPlaneApp,
+  type TenantMembersControlPlaneOptions,
+} from "./tenant-members";
+import {
   CONTROL_PLANE_CUSTOM_DOMAINS_SCOPE,
   CONTROL_PLANE_SYNC_SCOPE,
+  CONTROL_PLANE_TENANT_MEMBERS_SCOPE,
   PROXY_RESOLVE_HOST_SCOPE,
 } from "./scopes";
 import {
@@ -78,6 +83,19 @@ export interface ProxyControlPlaneOptions {
    * login.acme.com" needs a view across every tenant that only exists here.
    */
   customDomains?: CustomDomainsAdapter;
+
+  /**
+   * The authoritative tenant-team resource. When set, mounts
+   * `/api/v2/proxy/control-plane/tenant-members` — the resource tenant shards
+   * call through `createControlPlaneTenantMembersAdapter` to let their admins
+   * manage who administers the tenant (control-plane organization membership +
+   * org-scoped roles + invitations), rows the shard itself cannot write.
+   *
+   * Wire the backend to the control-plane database (see
+   * `createLocalTenantMembersBackend`); the org is pinned from the verified
+   * token, never the request.
+   */
+  tenantMembers?: TenantMembersControlPlaneOptions;
 }
 
 function extractBearerToken(request: Request): string | null {
@@ -178,6 +196,18 @@ export function createProxyControlPlaneApp(
       createCustomDomainsControlPlaneApp({
         customDomains: options.customDomains,
         authenticate: authenticateWithScope(CONTROL_PLANE_CUSTOM_DOMAINS_SCOPE),
+      }),
+    );
+  }
+
+  if (options.tenantMembers) {
+    app.route(
+      "/tenant-members",
+      createTenantMembersControlPlaneApp({
+        getBackend: options.tenantMembers.getBackend,
+        authenticate: authenticateWithScope(
+          CONTROL_PLANE_TENANT_MEMBERS_SCOPE,
+        ),
       }),
     );
   }
