@@ -41,6 +41,22 @@ migrations_dir = "node_modules/@authhero/drizzle/drizzle"
 # CONTROL_PLANE_ENCRYPTION_KEY must be byte-identical to the key each tenant
 # Worker holds, so projected secrets decrypt on the tenant side.
 
+# ════════════════════════════════════════════════════════════════════════════
+# Cloudflare for SaaS credentials (required to register custom domains)
+# ════════════════════════════════════════════════════════════════════════════
+# Registering a custom hostname is an account-level operation, so the account
+# credentials for the shared zone live HERE and nowhere else — tenant Workers
+# delegate to this control plane. Without all three the /custom-domains resource
+# is not mounted and tenants cannot register domains.
+#
+# CLOUDFLARE_API_KEY is a global API key: set it as a SECRET, never in [vars].
+#   wrangler secret put CLOUDFLARE_API_KEY
+#
+# Zone id and account email are not secret, so they can live in [vars]:
+# [vars]
+# CLOUDFLARE_ZONE_ID = "<zone id for the shared custom-domain zone>"
+# CLOUDFLARE_API_EMAIL = "you@example.com"
+
 # Optional: Enable observability
 # [observability]
 # enabled = true
