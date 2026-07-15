@@ -50,7 +50,7 @@ When the proxy Worker **cannot** share a database with AuthHero — e.g. the pro
 import { createProxyApp, createHttpProxyAdapter } from "@authhero/proxy";
 
 interface Env {
-  CONTROL_PLANE_URL: string;     // e.g. "https://controlplane.example.com"
+  CONTROL_PLANE_URL: string; // e.g. "https://controlplane.example.com"
   CONTROL_PLANE_CLIENT_ID: string;
   CONTROL_PLANE_CLIENT_SECRET: string;
 }
@@ -83,9 +83,12 @@ The host cache wraps this so each control-plane fetch is amortized across many r
 
 ### Control-plane side: outbox-driven sync
 
-The control plane needs the `custom_domains` and `proxy_routes` data. AuthHero's outbox replicates mutations from each tenant shard:
+The control plane needs the `custom_domains` and `proxy_routes` data. They arrive by two different routes, because they are two different problems:
 
-1. A tenant-shard write to `custom_domains` or `proxy_routes` enqueues a `controlplane.sync.{entity}.{op}` event.
+- **`custom_domains`** — the control plane is authoritative. Registering the hostname needs Cloudflare account credentials that only exist there, so tenant shards **write through** it synchronously via `createControlPlaneCustomDomainsAdapter` and mirror the answer locally. See [Custom domains: the control plane is authoritative](/customization/multi-tenancy/control-plane#custom-domains-the-control-plane-is-authoritative).
+- **`proxy_routes`** — tenant-owned data the control plane needs for host resolution. These still replicate upward over the outbox:
+
+1. A tenant-shard write to `proxy_routes` enqueues a `controlplane.sync.proxy_route.{op}` event.
 2. `ControlPlaneSyncDestination` POSTs each event to `${baseUrl}/api/v2/proxy/control-plane/sync` with an idempotency key.
 3. The control plane applies the event via `createApplySyncEvents`. The proxy data plane reads from the control plane's database.
 
@@ -109,18 +112,31 @@ export default init({
 ```typescript
 import { init, createApplySyncEvents } from "authhero";
 import createAdapters from "@authhero/kysely-adapter";
+import createCloudflareAdapters from "@authhero/cloudflare-adapter";
 
 const proxyAdapters = createAdapters(proxyDb);
+
+// The account credentials live here and nowhere else, which is why this is the
+// only place that can register a custom hostname.
+const cloudflareAdapters = createCloudflareAdapters({
+  zoneId: env.CLOUDFLARE_ZONE_ID,
+  authKey: env.CLOUDFLARE_API_KEY,
+  authEmail: env.CLOUDFLARE_API_EMAIL,
+  customDomainAdapter: proxyAdapters.customDomains,
+});
 
 export default init({
   dataAdapter: proxyAdapters,
   proxyControlPlane: {
-    resolveHost: (host) => proxyAdapters.customDomains.resolveHost?.(host) ?? null,
+    resolveHost: (host) =>
+      proxyAdapters.customDomains.resolveHost?.(host) ?? null,
     authenticate: (req) => verifyControlPlaneBearer(req),
     applySyncEvents: createApplySyncEvents({
-      customDomains: proxyAdapters.customDomains,
       proxyRoutes: proxyAdapters.proxyRoutes,
     }),
+    // Authoritative custom-domains resource — pass the Cloudflare adapter so
+    // hostnames are actually registered in the zone.
+    customDomains: cloudflareAdapters.customDomains,
   },
 });
 ```
@@ -169,14 +185,17 @@ Wrap the control plane's `customDomains` + `proxyRoutes` adapters with
 so a slow or failed `KV.put` never adds latency to — or fails — the write.
 
 Wrapping at the adapter layer makes it the **single choke-point**: pass the
-wrapped pair to **both** the management API (`dataAdapter`, which serves direct
-control-plane writes) **and** `createApplySyncEvents` (which applies WFP
-`/sync`-replicated writes). Both paths then publish to KV.
+wrapped pair to **every** path that mutates routing data — the management API
+(`dataAdapter`, direct control-plane writes), `createApplySyncEvents` (WFP
+`/sync`-replicated `proxy_routes`), and `proxyControlPlane.customDomains` (the
+authoritative resource WFP tenants write through). All of them then publish to
+KV.
 
 ```mermaid
 flowchart TB
     A["Direct write<br/>management API (dataAdapter)"] --> Wrap
-    B["WFP /sync-applied write<br/>createApplySyncEvents"] --> Wrap
+    B["WFP /sync-applied route write<br/>createApplySyncEvents"] --> Wrap
+    C["WFP custom-domain write<br/>proxyControlPlane.customDomains"] --> Wrap
 
     subgraph Wrap["wrapProxyAdaptersWithKvPublish (single choke-point)"]
         direction TB
@@ -201,15 +220,28 @@ import {
   createApplySyncEvents,
   wrapProxyAdaptersWithKvPublish,
 } from "authhero";
-import createAdapters, { createProxyDataAdapter } from "@authhero/kysely-adapter";
+import createAdapters, {
+  createProxyDataAdapter,
+} from "@authhero/kysely-adapter";
+import createCloudflareAdapters from "@authhero/cloudflare-adapter";
 
 const proxyAdapters = createAdapters(proxyDb);
 
 // Same resolver the control plane already uses for GET /hosts/:host.
 const resolveHost = createProxyDataAdapter(proxyDb).resolveHost;
 
+// Registers the hostname in the CF-for-SaaS zone, then persists the row through
+// the database adapter. Wrapped for KV below, so a registration also refreshes
+// the routing blob.
+const cloudflareAdapters = createCloudflareAdapters({
+  zoneId: env.CLOUDFLARE_ZONE_ID,
+  authKey: env.CLOUDFLARE_API_KEY,
+  authEmail: env.CLOUDFLARE_API_EMAIL,
+  customDomainAdapter: proxyAdapters.customDomains,
+});
+
 const { customDomains, proxyRoutes } = wrapProxyAdaptersWithKvPublish({
-  customDomains: proxyAdapters.customDomains,
+  customDomains: cloudflareAdapters.customDomains,
   proxyRoutes: proxyAdapters.proxyRoutes,
   kv: env.PROXY_HOSTS, // the KV namespace binding
   resolveHost,
@@ -226,8 +258,11 @@ export default init({
   dataAdapter: { ...proxyAdapters, customDomains, proxyRoutes },
   proxyControlPlane: {
     resolveHost,
-    // Wrapped adapters → WFP /sync-applied writes publish to KV.
-    applySyncEvents: createApplySyncEvents({ customDomains, proxyRoutes }),
+    // Wrapped adapters → WFP /sync-applied route writes publish to KV.
+    applySyncEvents: createApplySyncEvents({ proxyRoutes }),
+    // Wrapped adapter → WFP custom-domain writes register the hostname AND
+    // publish to KV.
+    customDomains,
   },
 });
 ```
@@ -401,7 +436,8 @@ export default init({
   dataAdapter: { ...adapters, tenants, customDomains, proxyRoutes },
   proxyControlPlane: {
     resolveHost, // the HTTP fallback now also serves WFP subdomains
-    applySyncEvents: createApplySyncEvents({ customDomains, proxyRoutes }),
+    applySyncEvents: createApplySyncEvents({ proxyRoutes }),
+    customDomains,
   },
 });
 ```
@@ -449,7 +485,7 @@ Notes:
   control-plane-issued admin tokens (it does when provisioned with
   `CONTROL_PLANE_ISSUER` / projected signing keys).
 - **Don't include the reconcile's WFP hosts filter on `provisioning_state`** —
-  listing *all* wfp tenants lets the reconcile also delete stale keys for
+  listing _all_ wfp tenants lets the reconcile also delete stale keys for
   tenants that regressed from `ready` (the blob recomputes to `null`).
 - **WFP tenant ids must be lowercase DNS labels** (`isWfpSubdomainSafeTenantId`
   — alphanumeric with inner hyphens, no dots, max 63 chars). DNS lowercases the
@@ -465,7 +501,7 @@ Notes:
 - **Eventual consistency:** KV writes propagate globally within ~60s. That's
   tighter than the long stale-revalidate window Shape 3 relied on, and acceptable
   here.
-- **Negative results:** a `KV.get` returning `null` means *not found* — caching it
+- **Negative results:** a `KV.get` returning `null` means _not found_ — caching it
   under a short `negativeTtlMs` lets a newly-seeded host become reachable quickly.
   The HTTP fallback covers hosts not yet backfilled during migration.
 
@@ -499,12 +535,15 @@ import { createProxyApp } from "@authhero/proxy";
 export default {
   fetch(req: Request, env: Env, ctx: ExecutionContext) {
     return createProxyApp({
-      data,                                   // KV or shared-DB adapter (Shape 2/3b)
-      bindings: { AUTH2: env.AUTH2 },         // service binding → legacy control plane
+      data, // KV or shared-DB adapter (Shape 2/3b)
+      bindings: { AUTH2: env.AUTH2 }, // service binding → legacy control plane
       // Unmatched host / resolve failure → forward to the legacy Worker verbatim.
       defaultHandlers: [
         { type: "forwarded_headers" },
-        { type: "service_binding", options: { binding: "AUTH2", preserve_host: true } },
+        {
+          type: "service_binding",
+          options: { binding: "AUTH2", preserve_host: true },
+        },
       ],
     }).fetch(req, env, ctx);
   },
@@ -533,10 +572,13 @@ Two fixes, use at least one:
    control-plane calls never traverse the public edge regardless of `baseUrl`:
 
 ```typescript
-import { createHttpProxyAdapter, createServiceBindingFetch } from "@authhero/proxy";
+import {
+  createHttpProxyAdapter,
+  createServiceBindingFetch,
+} from "@authhero/proxy";
 
 const data = createHttpProxyAdapter({
-  baseUrl: env.CONTROL_PLANE_URL,           // may even stay on the wildcard
+  baseUrl: env.CONTROL_PLANE_URL, // may even stay on the wildcard
   clientId: env.CONTROL_PLANE_CLIENT_ID,
   clientSecret: env.CONTROL_PLANE_CLIENT_SECRET,
   fetch: createServiceBindingFetch(env.AUTH2),
@@ -633,4 +675,3 @@ Secrets (HTTP control-plane shape):
 All cache tuning happens in code via the `cache` option on `createProxyApp` (see [Host caching](/customization/proxy/caching)).
 
 For a runnable reference deployment, see [`apps/proxy-dev`](https://github.com/markusahlstrand/authhero/tree/main/apps/proxy-dev) in the monorepo. It shows the canonical Cloudflare Workers setup, including threading `ExecutionContext.waitUntil` through `AsyncLocalStorage` so background SWR refreshes survive the response.
-

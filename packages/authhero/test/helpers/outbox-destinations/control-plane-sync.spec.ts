@@ -1,25 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type {
-  AuditEvent,
-  CustomDomain,
-  ProxyRoute,
-} from "@authhero/adapter-interfaces";
+import type { AuditEvent, ProxyRoute } from "@authhero/adapter-interfaces";
 import { ControlPlaneSyncDestination } from "../../../src/helpers/outbox-destinations/control-plane-sync";
 import {
   CONTROL_PLANE_SYNC_EVENT_PREFIX,
   SyncEvent,
 } from "../../../src/helpers/control-plane-sync-events";
-
-function makeCustomDomain(overrides: Partial<CustomDomain> = {}): CustomDomain {
-  return {
-    custom_domain_id: "cd-1",
-    domain: "auth.example.com",
-    type: "auth0_managed_certs",
-    primary: false,
-    status: "pending",
-    ...overrides,
-  };
-}
 
 function makeProxyRoute(overrides: Partial<ProxyRoute> = {}): ProxyRoute {
   return {
@@ -39,16 +24,16 @@ function makeEvent(overrides: Partial<AuditEvent> = {}): AuditEvent {
   return {
     id: "evt-1",
     tenant_id: "tenant-1",
-    event_type: `${CONTROL_PLANE_SYNC_EVENT_PREFIX}custom_domain.created`,
+    event_type: `${CONTROL_PLANE_SYNC_EVENT_PREFIX}proxy_route.created`,
     log_type: "sapi",
     category: "system",
     actor: { type: "system" },
     target: {
-      type: "custom_domain",
-      id: "cd-1",
-      after: makeCustomDomain() as unknown as Record<string, unknown>,
+      type: "proxy_route",
+      id: "pr-1",
+      after: makeProxyRoute() as unknown as Record<string, unknown>,
     },
-    request: { method: "POST", path: "/custom-domains", ip: "127.0.0.1" },
+    request: { method: "POST", path: "/proxy-routes", ip: "127.0.0.1" },
     hostname: "localhost",
     timestamp: "2026-01-02T03:04:05.000Z",
     ...overrides,
@@ -87,10 +72,10 @@ describe("ControlPlaneSyncDestination", () => {
     expect(transformed).toEqual({
       event_id: "evt-1",
       tenant_id: "tenant-1",
-      entity: "custom_domain",
+      entity: "proxy_route",
       op: "created",
-      aggregate_id: "cd-1",
-      payload: expect.objectContaining({ custom_domain_id: "cd-1" }),
+      aggregate_id: "pr-1",
+      payload: expect.objectContaining({ id: "pr-1" }),
       occurred_at: "2026-01-02T03:04:05.000Z",
     });
   });
@@ -98,16 +83,16 @@ describe("ControlPlaneSyncDestination", () => {
   it("falls back to target.before when target.after is absent (delete events)", () => {
     const dest = makeDest();
     const evt = makeEvent({
-      event_type: `${CONTROL_PLANE_SYNC_EVENT_PREFIX}custom_domain.deleted`,
+      event_type: `${CONTROL_PLANE_SYNC_EVENT_PREFIX}proxy_route.deleted`,
       target: {
-        type: "custom_domain",
-        id: "cd-1",
-        before: makeCustomDomain() as unknown as Record<string, unknown>,
+        type: "proxy_route",
+        id: "pr-1",
+        before: makeProxyRoute() as unknown as Record<string, unknown>,
       },
     });
     const transformed = dest.transform(evt) as SyncEvent;
     expect(transformed.op).toBe("deleted");
-    expect(transformed.payload).toMatchObject({ custom_domain_id: "cd-1" });
+    expect(transformed.payload).toMatchObject({ id: "pr-1" });
   });
 
   it("throws on unknown entity / op suffixes", () => {
@@ -122,10 +107,21 @@ describe("ControlPlaneSyncDestination", () => {
     expect(() =>
       dest.transform(
         makeEvent({
-          event_type: `${CONTROL_PLANE_SYNC_EVENT_PREFIX}custom_domain.weird`,
+          event_type: `${CONTROL_PLANE_SYNC_EVENT_PREFIX}proxy_route.weird`,
         }),
       ),
     ).toThrow(/unknown op/);
+  });
+
+  it("no longer replicates custom_domain events — the control plane owns them", () => {
+    const dest = makeDest();
+    expect(() =>
+      dest.transform(
+        makeEvent({
+          event_type: `${CONTROL_PLANE_SYNC_EVENT_PREFIX}custom_domain.created`,
+        }),
+      ),
+    ).toThrow(/unknown entity/);
   });
 
   it("POSTs the event with Bearer token + Idempotency-Key + sync URL", async () => {
@@ -148,7 +144,7 @@ describe("ControlPlaneSyncDestination", () => {
       events: [
         expect.objectContaining({
           event_id: "evt-1",
-          entity: "custom_domain",
+          entity: "proxy_route",
           op: "created",
         }),
       ],
@@ -166,7 +162,7 @@ describe("ControlPlaneSyncDestination", () => {
     );
   });
 
-  it("handles proxy_route events alongside custom_domain events", async () => {
+  it("transforms an updated proxy_route event", async () => {
     const dest = makeDest();
     const evt = makeEvent({
       event_type: `${CONTROL_PLANE_SYNC_EVENT_PREFIX}proxy_route.updated`,

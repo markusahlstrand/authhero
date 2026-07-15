@@ -1,11 +1,17 @@
 import { drizzle } from "drizzle-orm/d1";
 import createAdapters from "@authhero/drizzle";
 import * as schema from "@authhero/drizzle/schema/sqlite";
+import { HTTPException } from "hono/http-exception";
 import {
   AuthHeroConfig,
+  CustomDomainsAdapter,
   DataAdapters,
+  createControlPlaneClient,
+  createControlPlaneCustomDomainsAdapter,
   createEncryptedDataAdapter,
   createEncryptedDataAdapterWithKeyRing,
+  createServiceBindingFetch,
+  createServiceTokenCore,
   loadEncryptionKey,
   type KeyRing,
 } from "authhero";
@@ -57,6 +63,55 @@ export default {
       controlPlaneTenantId: CONTROL_PLANE_TENANT_ID,
     });
 
+    // Custom domains are the one entity this Worker cannot own. Registering a
+    // CF-for-SaaS hostname needs account credentials that only the control
+    // plane holds, and "login.acme.com belongs to exactly one tenant" can only
+    // be enforced above the shards. So writes go to the control plane
+    // synchronously and the result is mirrored into this tenant's D1, which
+    // stays the read cache that host resolution uses.
+    if (env.CONTROL_PLANE_URL) {
+      const shard = dataAdapter;
+      const client = createControlPlaneClient({
+        baseUrl: env.CONTROL_PLANE_URL,
+        // Prefer the service binding: this Worker runs inside the dispatch
+        // namespace, so a public-edge call to the control plane would leave
+        // Cloudflare and come back in through the proxy that dispatched us.
+        // The binding keeps the hop internal (and cannot loop back into the
+        // proxy regardless of what CONTROL_PLANE_URL points at). Without the
+        // binding we fall back to the public edge, which still works.
+        fetchImpl: env.CONTROL_PLANE
+          ? createServiceBindingFetch(env.CONTROL_PLANE)
+          : undefined,
+        getServiceToken: async (tenantId, scope) => {
+          const token = await createServiceTokenCore({
+            tenants: shard.tenants,
+            keys: shard.keys,
+            tenantId,
+            scope,
+            issuer,
+          });
+          return token.access_token;
+        },
+      });
+
+      dataAdapter = {
+        ...shard,
+        customDomains: createControlPlaneCustomDomainsAdapter({
+          client,
+          mirror: shard.customDomains,
+        }),
+      };
+    } else {
+      // Fail closed. Writing to the local table would "succeed" while the
+      // hostname is registered nowhere and its uniqueness is unchecked — the
+      // exact silent breakage this indirection exists to prevent. Reads still
+      // work, so any domain already mirrored here keeps resolving.
+      dataAdapter = {
+        ...dataAdapter,
+        customDomains: readOnlyCustomDomains(dataAdapter.customDomains),
+      };
+    }
+
     const config: AuthHeroConfig = {
       dataAdapter,
       allowedOrigins: [origin].filter(Boolean),
@@ -67,3 +122,26 @@ export default {
     return app.fetch(request, { ...env, ISSUER: issuer });
   },
 };
+
+/**
+ * Custom-domain reads pass through; every write is refused. A tenant Worker
+ * cannot register a Cloudflare hostname or check that nobody else claimed it,
+ * so a "successful" local write would produce a domain that never routes.
+ * Set CONTROL_PLANE_URL to enable writes.
+ */
+function readOnlyCustomDomains(mirror: CustomDomainsAdapter) {
+  const unconfigured = (): never => {
+    throw new HTTPException(501, {
+      message:
+        "Custom domains are managed by the control plane: set CONTROL_PLANE_URL on this tenant Worker to create, update or delete them.",
+    });
+  };
+
+  return {
+    ...mirror,
+    create: unconfigured,
+    update: unconfigured,
+    remove: unconfigured,
+    uploadCertificate: unconfigured,
+  };
+}

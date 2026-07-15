@@ -366,22 +366,37 @@ export interface AuthHeroConfig {
      * Optional receiver for `POST /sync` events emitted by tenant shards via
      * the `ControlPlaneSyncDestination`. Mount on the control-plane authhero
      * instance only. Implementations MUST be idempotent — the outbox retries
-     * on transient failures. Use `createApplySyncEvents({ customDomains,
-     * proxyRoutes })` (exported from `authhero`) for the default
-     * adapter-backed implementation.
+     * on transient failures. Use `createApplySyncEvents({ proxyRoutes })`
+     * (exported from `authhero`) for the default adapter-backed
+     * implementation.
      */
     applySyncEvents?: (
       events: import("../helpers/control-plane-sync-events").SyncEvent[],
     ) => Promise<void>;
+    /**
+     * The authoritative custom-domains adapter. When set, mounts
+     * `/api/v2/proxy/control-plane/custom-domains` — the resource tenant
+     * shards write through (`createControlPlaneCustomDomainsAdapter`).
+     *
+     * Pass the Cloudflare adapter wrapping the control-plane database: a
+     * CF-for-SaaS hostname is an account-global resource, so registering it
+     * needs credentials that only exist here, and claiming it exactly once
+     * needs a view across every tenant that only exists here.
+     */
+    customDomains?: import("@authhero/adapter-interfaces").CustomDomainsAdapter;
   };
 
   /**
-   * Optional outbox-driven replication of `custom_domains` and `proxy_routes`
-   * mutations to a global proxy control plane. When set, every successful
-   * write on this tenant shard enqueues a `controlplane.sync.*` outbox event;
-   * the `ControlPlaneSyncDestination` POSTs each event to
+   * Optional outbox-driven replication of `proxy_routes` mutations to a global
+   * proxy control plane. When set, every successful write on this tenant shard
+   * enqueues a `controlplane.sync.*` outbox event; the
+   * `ControlPlaneSyncDestination` POSTs each event to
    * `${baseUrl}/api/v2/proxy/control-plane/sync`. Requires the outbox to be
    * enabled (`outbox: { enabled: true }`).
+   *
+   * Custom domains are NOT replicated this way — the control plane is
+   * authoritative for them; wire `createControlPlaneCustomDomainsAdapter` into
+   * the shard's `dataAdapter` instead.
    *
    * Leave unset for single-DB deployments — the proxy reads the same database
    * the management API writes to, so replication is unnecessary.

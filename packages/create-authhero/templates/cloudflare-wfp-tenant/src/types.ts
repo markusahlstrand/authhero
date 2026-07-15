@@ -13,4 +13,18 @@ export interface Env {
   // tenant's database under the "cp" key id. The Worker holds it as a binding;
   // a raw export of AUTH_DB cannot be decrypted without it.
   CONTROL_PLANE_ENCRYPTION_KEY?: string;
+
+  // Base URL of the control-plane Worker, e.g. https://auth.example.com.
+  // When set, custom domains are written through the control plane (which
+  // holds the Cloudflare account credentials and enforces cross-tenant
+  // uniqueness) instead of only into this tenant's D1 — without it, a created
+  // domain is never registered in Cloudflare and stays unroutable.
+  CONTROL_PLANE_URL?: string;
+
+  // Service binding to the control-plane Worker. Optional but recommended:
+  // this Worker runs inside the dispatch namespace, so without the binding the
+  // call to CONTROL_PLANE_URL goes out over the public edge and back in
+  // through the proxy that dispatched us. The binding keeps it internal.
+  // CONTROL_PLANE_URL is still required — it forms the request URL.
+  CONTROL_PLANE?: Fetcher;
 }

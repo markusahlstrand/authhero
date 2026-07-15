@@ -281,6 +281,9 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
           decrypt: "node --env-file=.dev.vars scripts/decrypt-field.mjs",
         },
         dependencies: {
+          // Registers custom hostnames in the CF-for-SaaS zone — the account-
+          // level side effect tenant Workers delegate to this control plane.
+          "@authhero/cloudflare-adapter": v,
           "@authhero/drizzle": v,
           "@authhero/multi-tenancy": v,
           "@authhero/widget": v,

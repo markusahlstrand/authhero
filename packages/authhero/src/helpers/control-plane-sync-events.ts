@@ -1,7 +1,6 @@
 import { Context } from "hono";
 import {
   AuditEventInsert,
-  CustomDomain,
   LogTypes,
   ProxyRoute,
 } from "@authhero/adapter-interfaces";
@@ -9,7 +8,15 @@ import { Bindings, Variables } from "../types";
 
 export const CONTROL_PLANE_SYNC_EVENT_PREFIX = "controlplane.sync.";
 
-export type SyncEntity = "custom_domain" | "proxy_route";
+/**
+ * Only `proxy_route` replicates upward. Custom domains used to sync the same
+ * way, which is exactly what left them half-provisioned: the row reached the
+ * control plane but nothing ever registered the hostname in Cloudflare. They
+ * are now written through the control plane synchronously
+ * (`createControlPlaneCustomDomainsAdapter`), which owns the row and performs
+ * the account-level side effect.
+ */
+export type SyncEntity = "proxy_route";
 export type SyncOp = "created" | "updated" | "deleted";
 
 /**
@@ -18,50 +25,22 @@ export type SyncOp = "created" | "updated" | "deleted";
  * (`{ events: [...] }`) for forward compatibility with a future
  * batched-delivery destination.
  */
-export type SyncEvent =
-  | {
-      event_id: string;
-      tenant_id: string;
-      entity: "custom_domain";
-      op: "created" | "updated";
-      aggregate_id: string;
-      payload: CustomDomain;
-      occurred_at: string;
-    }
-  | {
-      event_id: string;
-      tenant_id: string;
-      entity: "custom_domain";
-      op: "deleted";
-      aggregate_id: string;
-      payload: CustomDomain;
-      occurred_at: string;
-    }
-  | {
-      event_id: string;
-      tenant_id: string;
-      entity: "proxy_route";
-      op: "created" | "updated";
-      aggregate_id: string;
-      payload: ProxyRoute;
-      occurred_at: string;
-    }
-  | {
-      event_id: string;
-      tenant_id: string;
-      entity: "proxy_route";
-      op: "deleted";
-      aggregate_id: string;
-      payload: ProxyRoute;
-      occurred_at: string;
-    };
+export type SyncEvent = {
+  event_id: string;
+  tenant_id: string;
+  entity: "proxy_route";
+  op: SyncOp;
+  aggregate_id: string;
+  payload: ProxyRoute;
+  occurred_at: string;
+};
 
 interface EnqueueArgs {
   tenantId: string;
   entity: SyncEntity;
   op: SyncOp;
   aggregateId: string;
-  payload: CustomDomain | ProxyRoute;
+  payload: ProxyRoute;
 }
 
 /**

@@ -1,8 +1,10 @@
 import { drizzle } from "drizzle-orm/d1";
-import createAdapters from "@authhero/drizzle";
+import createAdapters, { createProxyDataAdapter } from "@authhero/drizzle";
 import * as schema from "@authhero/drizzle/schema/sqlite";
+import createCloudflareAdapters from "@authhero/cloudflare-adapter";
 import {
   AuthHeroConfig,
+  CustomDomainsAdapter,
   DataAdapters,
   createEncryptedDataAdapter,
   loadEncryptionKey,
@@ -40,9 +42,40 @@ export default {
       getAdapters: (tenantId) => buildTenantAdapters(env, tenantId),
     });
 
+    // The control plane is authoritative for custom domains: it is the only
+    // place that holds Cloudflare account credentials (so it can register the
+    // custom hostname) and the only place that can see every tenant's domains
+    // (so a hostname is claimed exactly once). Tenant shards reach this
+    // through `createControlPlaneCustomDomainsAdapter`.
+    const customDomains: CustomDomainsAdapter | undefined =
+      env.CLOUDFLARE_ZONE_ID &&
+      env.CLOUDFLARE_API_KEY &&
+      env.CLOUDFLARE_API_EMAIL
+        ? createCloudflareAdapters({
+            zoneId: env.CLOUDFLARE_ZONE_ID,
+            authKey: env.CLOUDFLARE_API_KEY,
+            authEmail: env.CLOUDFLARE_API_EMAIL,
+            // The Cloudflare adapter performs the zone-level side effect and
+            // persists the row through this database adapter.
+            customDomainAdapter: dataAdapter.customDomains,
+          }).customDomains
+        : undefined;
+
+    if (customDomains) {
+      // The same adapter serves both writers, so neither can create a domain
+      // that Cloudflare never hears about: colocated tenants writing through
+      // this instance's management API, and WFP tenants writing through the
+      // /custom-domains resource below.
+      dataAdapter = { ...dataAdapter, customDomains };
+    }
+
     const config: AuthHeroConfig & { dataAdapter: DataAdapters } = {
       dataAdapter,
       allowedOrigins: [origin].filter(Boolean),
+      proxyControlPlane: {
+        resolveHost: createProxyDataAdapter(db).resolveHost,
+        customDomains,
+      },
     };
 
     const app = createApp(config, rollout);

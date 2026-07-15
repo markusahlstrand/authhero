@@ -10,7 +10,6 @@ import {
   LogTypes,
 } from "@authhero/adapter-interfaces";
 import { logMessage } from "../../helpers/logging";
-import { enqueueControlPlaneSyncEvent } from "../../helpers/control-plane-sync-events";
 import { defineRoute } from "../../utils/define-route";
 import { requireTenantId } from "./helpers";
 const getRoot = defineRoute({
@@ -121,10 +120,6 @@ const deleteById = defineRoute({
     const tenantId = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
 
-    // Snapshot before delete so the control-plane sync event carries the
-    // pre-delete payload (used by the receiver to know what to remove).
-    const beforeDelete = await ctx.env.data.customDomains.get(tenantId, id);
-
     const result = await ctx.env.data.customDomains.remove(tenantId, id);
     if (!result) {
       throw new HTTPException(404, {
@@ -138,16 +133,6 @@ const deleteById = defineRoute({
       targetType: "custom_domain",
       targetId: id,
     });
-
-    if (beforeDelete) {
-      enqueueControlPlaneSyncEvent(ctx, {
-        tenantId,
-        entity: "custom_domain",
-        op: "deleted",
-        aggregateId: id,
-        payload: beforeDelete,
-      });
-    }
 
     return ctx.text("OK");
   },
@@ -213,14 +198,6 @@ const patchById = defineRoute({
       afterState: customDomain as Record<string, unknown>,
     });
 
-    enqueueControlPlaneSyncEvent(ctx, {
-      tenantId,
-      entity: "custom_domain",
-      op: "updated",
-      aggregateId: id,
-      payload: customDomain,
-    });
-
     return ctx.json(customDomain);
   },
 });
@@ -273,14 +250,6 @@ const postRoot = defineRoute({
       targetType: "custom_domain",
       targetId: customDomain.custom_domain_id,
       afterState: customDomain as Record<string, unknown>,
-    });
-
-    enqueueControlPlaneSyncEvent(ctx, {
-      tenantId,
-      entity: "custom_domain",
-      op: "created",
-      aggregateId: customDomain.custom_domain_id,
-      payload: customDomain,
     });
 
     return ctx.json(customDomain, { status: 201 });

@@ -100,14 +100,25 @@ const cloudflareAdapters = createAdapters({
   customDomainAdapter: database.customDomains,
 });
 
-// Use in your application
-export const customDomains = cloudflareAdapters.customDomains;
+// Hand the Cloudflare-backed adapter to authhero in place of the DB one, so a
+// create both registers the hostname and stores the mapping.
+export const dataAdapter = {
+  ...database,
+  customDomains: cloudflareAdapters.customDomains,
+};
 ```
+
+## Where this adapter belongs
+
+This adapter needs Cloudflare **account** credentials (`zoneId` / `authKey` / `authEmail`), so it can only run where those credentials live.
+
+- **Single instance** — wire it into `dataAdapter.customDomains`, as above.
+- **Workers for Platforms** — wire it into the **control plane only**, and pass it as `proxyControlPlane.customDomains`. Tenant Workers have no account credentials and cannot see other tenants' domains, so they write through the control plane with [`createControlPlaneCustomDomainsAdapter`](/customization/multi-tenancy/control-plane#custom-domains-the-control-plane-is-authoritative) and keep a local read-cache mirror. A tenant Worker that talks straight to its own database stores a row that Cloudflare never hears about — the domain will not route.
 
 ## Related Documentation
 
 - [Cloudflare API](https://developers.cloudflare.com/api/)
 - [Custom Domain Setup Guide](/deployment/custom-domain-setup) — DNS, TLS, and routing topologies end to end
 - [Proxy package](/customization/proxy/) — the reverse proxy that resolves these custom domains and dispatches them to tenants
-- [Control Plane → Proxy entity sync](/customization/multi-tenancy/control-plane#proxy-entity-sync) — replicating custom domains to a separate proxy database
+- [Control plane authority for custom domains](/customization/multi-tenancy/control-plane#custom-domains-the-control-plane-is-authoritative) — how tenant shards register domains they have no credentials for
 - [Multi-Tenancy architecture](/architecture/multi-tenancy) — how custom domains fit the control plane / proxy / WFP picture

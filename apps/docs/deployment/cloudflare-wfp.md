@@ -7,7 +7,7 @@ WFP authhero is **two Workers**, not one:
 
 1. **Dispatcher** — `@authhero/proxy` running as a Worker. Resolves the request's `Host` header to a tenant, then dispatches to that tenant's Worker via a [dispatch namespace](https://developers.cloudflare.com/cloudflare-for-platforms/workers-for-platforms/configuration/dispatch-namespaces/) binding.
 2. **Tenant Worker(s)** — the full `authhero` app, one Worker per tenant, deployed _into_ the dispatch namespace.
-:::
+   :::
 
 ## When to use this
 
@@ -52,11 +52,11 @@ The dispatcher reads only the **platform D1** to resolve a host; each tenant
 Worker talks to whatever store its own bindings point at (own D1, a shared DB,
 or PlanetScale). Three different data stores can be in play:
 
-| Store                      | Lives in          | Owned by              | Purpose                                                                    |
-| -------------------------- | ----------------- | --------------------- | -------------------------------------------------------------------------- |
-| **Platform D1**            | one shared DB     | dispatcher            | `custom_domains` + `proxy_routes` — how the dispatcher resolves hosts      |
-| **Per-tenant D1**          | optional          | each tenant Worker    | the tenant's own `users`, `clients`, `sessions`, etc. — full isolation     |
-| **Shared tenant DB**       | one shared DB     | all tenant Workers    | shared `users`, `clients`, etc. — only data partition is `tenant_id`       |
+| Store                | Lives in      | Owned by           | Purpose                                                                |
+| -------------------- | ------------- | ------------------ | ---------------------------------------------------------------------- |
+| **Platform D1**      | one shared DB | dispatcher         | `custom_domains` + `proxy_routes` — how the dispatcher resolves hosts  |
+| **Per-tenant D1**    | optional      | each tenant Worker | the tenant's own `users`, `clients`, `sessions`, etc. — full isolation |
+| **Shared tenant DB** | one shared DB | all tenant Workers | shared `users`, `clients`, etc. — only data partition is `tenant_id`   |
 
 You can mix: tenant A uses its own fresh D1, tenant B uses the shared tenant DB, tenant C uses a PlanetScale URL. Each tenant Worker's `wrangler` bindings dictate what _it_ talks to; the dispatcher only cares about the platform D1.
 
@@ -297,6 +297,14 @@ VALUES ('cd-acme', 'acme', 'auth.acme.com', 'auth0_managed_certs',
 The `POST /api/v2/tenants` endpoint requires the `create:tenants` scope **and** must be called against a control-plane tenant (see [Multi-Tenancy](/architecture/multi-tenancy)). Use a service-account token, never a tenant token.
 :::
 
+::: warning direct SQL does not register the hostname
+The management-API path above goes through the control plane's Cloudflare
+adapter, which registers the hostname in the CF-for-SaaS zone. The direct-SQL
+path only writes a row — Cloudflare never hears about the domain and it will
+not route, no matter how the DNS is pointed. Use direct SQL only for a domain
+you have already registered in the zone by hand.
+:::
+
 ::: tip platform subdomains need no custom_domains row
 The `custom_domains` entry above is for the tenant's **branded** domain
 (`auth.acme.com`). The tenant's platform subdomain (`acme.token.example.com`)
@@ -385,6 +393,31 @@ wrangler secret put --name=tenant-acme-auth EMAIL_API_KEY
 ```
 
 Generate `ENCRYPTION_KEY` per tenant — don't share it across the namespace. See [Encryption at Rest](/security/encryption-at-rest).
+
+If tenants will register their **own** custom domains through their management
+API (rather than you creating them centrally, as in [3.1](#_3-1-create-the-tenant-row-custom-domain-in-the-platform-d1)),
+the tenant Worker also needs to know where the control plane is:
+
+```toml
+# tenant-acme/wrangler.toml
+[vars]
+CONTROL_PLANE_URL = "https://auth.example.com"
+
+# Optional but recommended — keeps the call inside Cloudflare instead of
+# looping out over the public edge and back in through the dispatcher.
+[[services]]
+binding = "CONTROL_PLANE"
+service = "authhero-control-plane"
+```
+
+A tenant Worker cannot register a custom hostname itself: that needs Cloudflare
+account credentials, which by design live only on the control plane, and a
+hostname can only be claimed by one tenant, which only the control plane can
+see. So `POST /api/v2/custom-domains` on a tenant Worker writes **through** the
+control plane and mirrors the result into the tenant's own D1. **Without
+`CONTROL_PLANE_URL` the tenant Worker refuses custom-domain writes (`501`)**
+rather than storing a row Cloudflare never hears about; reads keep working. See
+[Custom domains: the control plane is authoritative](/customization/multi-tenancy/control-plane#custom-domains-the-control-plane-is-authoritative).
 
 ### 3.6 Point the tenant's custom domain at the dispatcher
 
@@ -517,17 +550,17 @@ return `[]` otherwise.
 
 Every tenant row carries metadata that describes _how_ the tenant runs and where its data lives. These fields drive the dispatcher's routing and the provisioning flow.
 
-| Field                            | Type                                                   | Purpose                                                                                          |
-| -------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
-| `deployment_type`                | `"shared" \| "wfp"` (default: `"shared"`)              | Whether the tenant runs on the single-Worker deploy or in a dispatch namespace                   |
-| `provisioning_state`             | `"pending" \| "ready" \| "failed"` (default: `"ready"`)| Lifecycle of the WFP setup. Shared tenants are always `ready`                                    |
-| `provisioning_error`             | `string?`                                              | Human-readable failure reason when state is `failed`                                             |
-| `provisioning_state_changed_at`  | ISO timestamp                                          | When the state last changed — useful for ops dashboards                                          |
-| `bundle_configuration`           | e.g. `"authhero-drizzle-d1"`                           | Identifies which authhero build variant the tenant runs                                          |
-| `worker_version`                 | e.g. `"v1.2.3"`                                        | Pins the release within that configuration                                                       |
-| `worker_script_name`             | e.g. `"tenant-acme-auth"`                              | Script name in the dispatch namespace. Defaults to `tenant-<id>-auth`                            |
-| `storage_kind`                   | `"own_d1" \| "existing_d1" \| "shared_planetscale"`    | Which storage option (A/B/C from [Step 2](#step-2-pick-a-tenant-storage-model)) the tenant uses  |
-| `d1_database_id`                 | string                                                 | The actual D1 id when `storage_kind` is `own_d1` or `existing_d1`                                |
+| Field                           | Type                                                    | Purpose                                                                                         |
+| ------------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `deployment_type`               | `"shared" \| "wfp"` (default: `"shared"`)               | Whether the tenant runs on the single-Worker deploy or in a dispatch namespace                  |
+| `provisioning_state`            | `"pending" \| "ready" \| "failed"` (default: `"ready"`) | Lifecycle of the WFP setup. Shared tenants are always `ready`                                   |
+| `provisioning_error`            | `string?`                                               | Human-readable failure reason when state is `failed`                                            |
+| `provisioning_state_changed_at` | ISO timestamp                                           | When the state last changed — useful for ops dashboards                                         |
+| `bundle_configuration`          | e.g. `"authhero-drizzle-d1"`                            | Identifies which authhero build variant the tenant runs                                         |
+| `worker_version`                | e.g. `"v1.2.3"`                                         | Pins the release within that configuration                                                      |
+| `worker_script_name`            | e.g. `"tenant-acme-auth"`                               | Script name in the dispatch namespace. Defaults to `tenant-<id>-auth`                           |
+| `storage_kind`                  | `"own_d1" \| "existing_d1" \| "shared_planetscale"`     | Which storage option (A/B/C from [Step 2](#step-2-pick-a-tenant-storage-model)) the tenant uses |
+| `d1_database_id`                | string                                                  | The actual D1 id when `storage_kind` is `own_d1` or `existing_d1`                               |
 
 Existing shared tenants (created before these fields existed) keep working — `deployment_type` defaults to `"shared"` and `provisioning_state` defaults to `"ready"` at the database level. No backfill needed.
 
@@ -557,11 +590,11 @@ The provisioner creates a D1 (for `storage_kind: "own_d1"`), applies the migrati
 
 The hook exposes three entry points:
 
-| Method | Purpose |
-| ------ | ------- |
-| `onProvision(tenantId)` | Full first-time provisioning of a `deployment_type: "wfp"` tenant |
-| `onDeprovision(tenantId)` | Tear down the tenant's script (and optionally its D1) |
-| `onUpgrade(tenantId)` | Re-provision an existing tenant onto the current bundle + migrations; backs `POST /api/v2/tenants/{id}/redeploy` when wired via the `tenantUpgrade` option of `init()` |
+| Method                    | Purpose                                                                                                                                                                |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `onProvision(tenantId)`   | Full first-time provisioning of a `deployment_type: "wfp"` tenant                                                                                                      |
+| `onDeprovision(tenantId)` | Tear down the tenant's script (and optionally its D1)                                                                                                                  |
+| `onUpgrade(tenantId)`     | Re-provision an existing tenant onto the current bundle + migrations; backs `POST /api/v2/tenants/{id}/redeploy` when wired via the `tenantUpgrade` option of `init()` |
 
 Clients observe provisioning asynchronously: `POST /api/v2/tenants` returns with `provisioning_state: "pending"` and callers poll `GET /api/v2/tenants/:id` (or the operations history) until the state transitions to `ready` or `failed`.
 
@@ -573,16 +606,16 @@ Later phases — fleet rollouts (waves + canary) and D1 Time Travel backups — 
 
 ## Trade-offs vs. single Worker
 
-|                                       | Single Worker                              | WFP per-tenant                                         |
-| ------------------------------------- | ------------------------------------------ | ------------------------------------------------------ |
-| Operational complexity                | Low                                        | High (deploy per tenant)                               |
-| Isolation between tenants             | Soft (logical, via `tenant_id`)            | Hard (separate isolates per script)                    |
-| Per-tenant code customization         | Not supported                              | Native (different bundle per tenant)                   |
-| Per-tenant resource limits            | Not supported                              | Per-script CPU/subrequest caps                         |
-| Cold-start cost                       | One Worker                                 | One per tenant (mitigated by namespace placement)      |
-| Cost                                  | Workers Free / Paid plan                   | Workers for Platforms plan ($25/mo + per-script costs) |
-| Data isolation                        | Logical only                               | Optional (`own_d1`)                                    |
-| Maximum tenant count                  | 10,000s on one Worker                      | Limited by namespace script count (~10k typical)       |
+|                               | Single Worker                   | WFP per-tenant                                         |
+| ----------------------------- | ------------------------------- | ------------------------------------------------------ |
+| Operational complexity        | Low                             | High (deploy per tenant)                               |
+| Isolation between tenants     | Soft (logical, via `tenant_id`) | Hard (separate isolates per script)                    |
+| Per-tenant code customization | Not supported                   | Native (different bundle per tenant)                   |
+| Per-tenant resource limits    | Not supported                   | Per-script CPU/subrequest caps                         |
+| Cold-start cost               | One Worker                      | One per tenant (mitigated by namespace placement)      |
+| Cost                          | Workers Free / Paid plan        | Workers for Platforms plan ($25/mo + per-script costs) |
+| Data isolation                | Logical only                    | Optional (`own_d1`)                                    |
+| Maximum tenant count          | 10,000s on one Worker           | Limited by namespace script count (~10k typical)       |
 
 ## Limitations
 
