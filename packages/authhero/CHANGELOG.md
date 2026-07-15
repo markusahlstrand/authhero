@@ -1,5 +1,45 @@
 # authhero
 
+## 8.25.1
+
+### Patch Changes
+
+- b971b41: Deduplicate the universal-login auth forms (#1102). The sign-up, reset-password,
+  enter-password, forgot-password, and identifier screens each carried verbatim
+  copies of the same ~68-line theme/branding style computation, and the sign-up,
+  reset-password, and enter-password screens repeated the same ~66-line
+  password-input-with-visibility-toggle block up to twice each.
+
+  These are now shared:
+  - `getThemeStyles(theme, branding, error)` — the derived colors, border/font
+    sizes, and card/title/body/input/button style objects.
+  - `AuthCard` — the themed card shell (logo, title, description) with the form
+    passed as children.
+  - `PasswordField` — the themed password input plus its show/hide toggle
+    markup and client-hydration data attributes.
+
+  Pure refactor with no behavior change; a render-snapshot test asserts the
+  affected screens produce byte-identical HTML.
+
+- 9b30ea3: Security: bind the control-plane `isTrustedIssuer` predicate to the token's
+  `tenant_id` claim.
+
+  `verifyControlPlaneToken` accepted WFP tenant-subdomain issuers via
+  `isTrustedIssuer` but never bound the tenant encoded in `iss` (the key owner)
+  to the `tenant_id` claim it returned. With per-tenant signing keys, a caller
+  holding tenant A's key could set `tenant_id: "B"` and act on tenant B — a
+  cross-tenant escalation on the subdomain-issuer path (#1143).
+
+  The predicate now receives the (unverified) `tenant_id` claim as a second
+  argument — `isTrustedIssuer?: (iss, tenantId) => boolean` — so deployments can
+  bind key-owner to claimed-tenant atomically, e.g.
+  `(iss, tid) => !!tid && iss === \`https://${tid}.${issuerHost}/\``. The binding
+  is confirmed by the signature check the verifier runs immediately afterwards.
+
+  This is a signature change to the `isTrustedIssuer` hook shipped in 8.25.0.
+  There are no consumers of the hook yet, so it lands without a deprecation
+  window; this must be in place before any deployment enables subdomain issuers.
+
 ## 8.25.0
 
 ### Minor Changes
