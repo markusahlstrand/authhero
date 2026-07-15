@@ -5,6 +5,7 @@ import { DetailsTab } from "./tabs/details-tab";
 import { SsoTab } from "./tabs/sso-tab";
 import { ClientGrantsTab } from "./tabs/client-grants-tab";
 import { ConnectionsTab } from "./tabs/connections-tab";
+import { OrganizationsTab } from "./tabs/organizations-tab";
 import { AdvancedTab } from "./tabs/advanced-tab";
 import { RefreshTokensTab } from "./tabs/refresh-tokens-tab";
 import { RawJsonTab } from "./tabs/raw-json-tab";
@@ -52,6 +53,7 @@ export function ClientEdit() {
             <TabsTrigger value="sso">SSO</TabsTrigger>
             <TabsTrigger value="grants">Client Grants</TabsTrigger>
             <TabsTrigger value="connections">Connections</TabsTrigger>
+            <TabsTrigger value="organizations">Organizations</TabsTrigger>
             <TabsTrigger value="advanced">Advanced</TabsTrigger>
             <TabsTrigger value="refresh">Refresh Tokens</TabsTrigger>
             <TabsTrigger value="raw">Raw JSON</TabsTrigger>
@@ -67,6 +69,9 @@ export function ClientEdit() {
           </TabsContent>
           <TabsContent value="connections" className="mt-4">
             <ConnectionsTab />
+          </TabsContent>
+          <TabsContent value="organizations" className="mt-4">
+            <OrganizationsTab />
           </TabsContent>
           <TabsContent value="advanced" className="mt-4">
             <AdvancedTab />
