@@ -73,12 +73,44 @@ export {
 export {
   CONTROL_PLANE_SYNC_SCOPE,
   CONTROL_PLANE_CUSTOM_DOMAINS_SCOPE,
+  CONTROL_PLANE_TENANT_MEMBERS_SCOPE,
 } from "./routes/proxy-control-plane/scopes";
 export {
   createControlPlaneCustomDomainsAdapter,
   CONTROL_PLANE_CUSTOM_DOMAINS_PATH,
   type ControlPlaneCustomDomainsOptions,
 } from "./adapters/control-plane-custom-domains";
+// Tenant-team self-management (#1137): the backend seam + its two
+// implementations, plus the control-plane resource wiring.
+export {
+  createTenantMembersControlPlaneApp,
+  type TenantMembersControlPlaneOptions,
+} from "./routes/proxy-control-plane/tenant-members";
+export {
+  createTenantMembersRoutes,
+  type GetTenantMembersBackend,
+} from "./routes/management-api/tenant-members";
+export {
+  createLocalTenantMembersBackend,
+  type LocalTenantMembersBackendOptions,
+} from "./tenant-members/local-backend";
+export {
+  createControlPlaneTenantMembersAdapter,
+  type ControlPlaneTenantMembersOptions,
+} from "./tenant-members/remote-backend";
+export { CONTROL_PLANE_TENANT_MEMBERS_PATH } from "./tenant-members/wire";
+export {
+  type TenantMembersBackend,
+  type TenantMember,
+  type TenantMembersListResult,
+  type TenantInvitation,
+  type TenantInvitationInput,
+  type TenantRole,
+  type TenantMembersPageParams,
+  TenantMembersNotFoundError,
+  TenantOrganizationNotFoundError,
+  TenantInvitationNotFoundError,
+} from "./tenant-members/types";
 export {
   createServiceTokenCore,
   type CreateServiceTokenCoreParams,

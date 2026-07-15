@@ -363,6 +363,14 @@ export interface AuthHeroConfig {
      */
     jwksFetch?: (url: string) => Promise<Response>;
     /**
+     * Optional predicate widening the accepted token issuers beyond
+     * `env.ISSUER` / the inbound host to a deployment's own WFP tenant
+     * subdomains, whose per-tenant control-plane credential `jwksFetch`
+     * resolves locally (see #1139). Consulted before any JWKS fetch; return
+     * `true` only for issuer hosts you serve.
+     */
+    isTrustedIssuer?: (iss: string) => boolean;
+    /**
      * Optional receiver for `POST /sync` events emitted by tenant shards via
      * the `ControlPlaneSyncDestination`. Mount on the control-plane authhero
      * instance only. Implementations MUST be idempotent — the outbox retries
@@ -384,6 +392,32 @@ export interface AuthHeroConfig {
      * needs a view across every tenant that only exists here.
      */
     customDomains?: import("@authhero/adapter-interfaces").CustomDomainsAdapter;
+
+    /**
+     * The authoritative tenant-team resource. When set, mounts
+     * `/api/v2/proxy/control-plane/tenant-members` — the resource tenant shards
+     * call through `createControlPlaneTenantMembersAdapter` so their admins can
+     * manage who administers the tenant (control-plane organization membership
+     * + org-scoped roles + invitations). Wire the backend to the control-plane
+     * database via `createLocalTenantMembersBackend`.
+     */
+    tenantMembers?: import("../routes/proxy-control-plane/tenant-members").TenantMembersControlPlaneOptions;
+  };
+
+  /**
+   * Enables the tenant-scoped `/api/v2/tenant-members` management resource,
+   * which lets a tenant admin manage their own team from the per-tenant admin
+   * UI. Every request is pinned to the caller's `org_name` claim, then
+   * delegated to the backend this returns.
+   *
+   * Return `createLocalTenantMembersBackend(...)` on a single-instance /
+   * control-plane deployment (the team lives in the same database), or
+   * `createControlPlaneTenantMembersAdapter(...)` on a Workers-for-Platforms
+   * shard (the team lives on the control plane and is reached over the shared
+   * control-plane client). Leave unset to not mount the resource.
+   */
+  tenantMembers?: {
+    getBackend: import("../routes/management-api/tenant-members").GetTenantMembersBackend;
   };
 
   /**

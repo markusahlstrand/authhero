@@ -71,6 +71,20 @@ export interface VerifyControlPlaneTokenOptions {
    * `proxy:resolve_host`.
    */
   requiredScope?: string | string[];
+  /**
+   * Optional predicate consulted IN ADDITION to `expectedIssuers`, for issuers
+   * that can't be enumerated ahead of time — specifically a deployment's own
+   * Workers-for-Platforms tenant subdomains (`https://{tenant}.{host}/`), whose
+   * per-tenant control-plane credential the accompanying `jwksFetch` resolves
+   * locally (see #1139).
+   *
+   * Like `expectedIssuers`, it runs BEFORE the JWKS fetch, so it still gates
+   * where the verifier will fetch keys from: return `true` only for issuer
+   * hosts you actually serve. The signature must still verify against the
+   * resolved key, so this does not broaden trust beyond "a caller holding that
+   * tenant's registered private key."
+   */
+  isTrustedIssuer?: (iss: string) => boolean;
 }
 
 function deriveJwksUrl(iss: string): string {
@@ -118,17 +132,31 @@ export async function verifyControlPlaneToken(
 
   // Allow-list the issuer BEFORE fetching anything: this is what prevents a
   // forged token from steering the JWKS fetch to an attacker-controlled host.
+  // The optional `isTrustedIssuer` predicate widens the allow-list to a
+  // deployment's own WFP tenant subdomains, but is still consulted here — ahead
+  // of the fetch — so the SSRF guarantee holds.
+  const issRaw = unverifiedPayload.iss;
   if (
-    typeof unverifiedPayload.iss !== "string" ||
-    !expectedIssuers.some((expected) =>
-      isAllowedIssuer(unverifiedPayload.iss as string, expected),
+    typeof issRaw !== "string" ||
+    !(
+      expectedIssuers.some((expected) => isAllowedIssuer(issRaw, expected)) ||
+      options.isTrustedIssuer?.(issRaw) === true
     )
   ) {
     return { ok: false, reason: "issuer mismatch" };
   }
-  const iss = unverifiedPayload.iss;
+  const iss = issRaw;
 
-  const jwksUrl = deriveJwksUrl(iss);
+  // `expectedIssuers` matches parse `iss` as a URL, but a custom
+  // `isTrustedIssuer` might accept a string that isn't a valid absolute URL —
+  // in which case `deriveJwksUrl` (`new URL(...)`) throws. Reject gracefully
+  // rather than letting a TypeError escape.
+  let jwksUrl: string;
+  try {
+    jwksUrl = deriveJwksUrl(iss);
+  } catch {
+    return { ok: false, reason: "malformed issuer url" };
+  }
   const fetchFn = jwksFetch ?? fetch;
   let jwksRes: Response;
   try {

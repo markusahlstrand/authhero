@@ -364,6 +364,61 @@ export interface AuthHeroDataProvider extends DataProvider {
     tenantId: string,
     kind: "upgrade" | "seed" | "backup",
   ) => Promise<TenantOperationRecord>;
+
+  /**
+   * Tenant-team self-management (#1137). These hit `/api/v2/tenant-members`,
+   * which manages who administers THIS tenant — control-plane organization
+   * membership + org-scoped roles + invitations — not the tenant's end users.
+   * The server pins the org to the caller's token, so no organization id is
+   * passed. Available only when the server enables the resource (404 / 403
+   * otherwise).
+   */
+  listTeamMembers: (params?: {
+    page?: number;
+    perPage?: number;
+    q?: string;
+  }) => Promise<{
+    members: TeamMemberRecord[];
+    start: number;
+    limit: number;
+    total: number;
+  }>;
+  addTeamMembers: (userIds: string[]) => Promise<void>;
+  removeTeamMembers: (userIds: string[]) => Promise<void>;
+  assignTeamMemberRoles: (userId: string, roleIds: string[]) => Promise<void>;
+  removeTeamMemberRoles: (userId: string, roleIds: string[]) => Promise<void>;
+  listAssignableTeamRoles: (q?: string) => Promise<TeamRoleRecord[]>;
+  listTeamInvitations: () => Promise<TeamInvitationRecord[]>;
+  createTeamInvitation: (input: {
+    email: string;
+    inviterName?: string;
+    roles?: string[];
+    sendInvitationEmail?: boolean;
+  }) => Promise<TeamInvitationRecord>;
+  revokeTeamInvitation: (invitationId: string) => Promise<void>;
+}
+
+export interface TeamRoleRecord {
+  id: string;
+  name?: string;
+  description?: string;
+}
+
+export interface TeamMemberRecord {
+  user_id: string;
+  email?: string;
+  name?: string;
+  picture?: string;
+  roles: TeamRoleRecord[];
+}
+
+export interface TeamInvitationRecord {
+  id: string;
+  organization_id: string;
+  invitee?: { email?: string };
+  inviter?: { name?: string };
+  created_at?: string;
+  expires_at?: string;
 }
 
 // Wire shapes of the tenant-operations management API (issue #1026).
@@ -2587,6 +2642,93 @@ export default (
         },
       );
       return res.json;
+    },
+
+    // --- Tenant-team self-management (#1137) ---
+    listTeamMembers: async (params) => {
+      const query = stringify({
+        page: params?.page,
+        per_page: params?.perPage,
+        q: params?.q || undefined,
+      });
+      const res = await httpClient(
+        `${apiUrl}/api/v2/tenant-members${query ? `?${query}` : ""}`,
+        { headers: createHeaders(tenantId) },
+      );
+      return res.json;
+    },
+    addTeamMembers: async (userIds) => {
+      const headers = createHeaders(tenantId);
+      headers.set("content-type", "application/json");
+      await httpClient(`${apiUrl}/api/v2/tenant-members`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ user_ids: userIds }),
+      });
+    },
+    removeTeamMembers: async (userIds) => {
+      const headers = createHeaders(tenantId);
+      headers.set("content-type", "application/json");
+      await httpClient(`${apiUrl}/api/v2/tenant-members`, {
+        method: "DELETE",
+        headers,
+        body: JSON.stringify({ user_ids: userIds }),
+      });
+    },
+    assignTeamMemberRoles: async (userId, roleIds) => {
+      const headers = createHeaders(tenantId);
+      headers.set("content-type", "application/json");
+      await httpClient(
+        `${apiUrl}/api/v2/tenant-members/${encodeURIComponent(userId)}/roles`,
+        { method: "POST", headers, body: JSON.stringify({ roles: roleIds }) },
+      );
+    },
+    removeTeamMemberRoles: async (userId, roleIds) => {
+      const headers = createHeaders(tenantId);
+      headers.set("content-type", "application/json");
+      await httpClient(
+        `${apiUrl}/api/v2/tenant-members/${encodeURIComponent(userId)}/roles`,
+        { method: "DELETE", headers, body: JSON.stringify({ roles: roleIds }) },
+      );
+    },
+    listAssignableTeamRoles: async (q) => {
+      const query = stringify({ q: q || undefined, per_page: 100 });
+      const res = await httpClient(
+        `${apiUrl}/api/v2/tenant-members/roles${query ? `?${query}` : ""}`,
+        { headers: createHeaders(tenantId) },
+      );
+      return res.json;
+    },
+    listTeamInvitations: async () => {
+      const res = await httpClient(
+        `${apiUrl}/api/v2/tenant-members/invitations`,
+        { headers: createHeaders(tenantId) },
+      );
+      return res.json;
+    },
+    createTeamInvitation: async (input) => {
+      const headers = createHeaders(tenantId);
+      headers.set("content-type", "application/json");
+      const res = await httpClient(
+        `${apiUrl}/api/v2/tenant-members/invitations`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            invitee: { email: input.email.trim() },
+            inviter: input.inviterName ? { name: input.inviterName } : {},
+            roles: input.roles,
+            send_invitation_email: input.sendInvitationEmail,
+          }),
+        },
+      );
+      return res.json;
+    },
+    revokeTeamInvitation: async (invitationId) => {
+      await httpClient(
+        `${apiUrl}/api/v2/tenant-members/invitations/${encodeURIComponent(invitationId)}`,
+        { method: "DELETE", headers: createHeaders(tenantId) },
+      );
     },
 
     revokeSigningKey: async (kid: string) => {
