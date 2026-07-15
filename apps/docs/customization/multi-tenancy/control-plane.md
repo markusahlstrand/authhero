@@ -691,6 +691,97 @@ Tokens for this resource must carry the `controlplane:custom_domains` scope; the
 
 **Without `CONTROL_PLANE_URL`, a tenant shard refuses custom-domain writes** (`501`) rather than writing a local row that Cloudflare never hears about. Reads keep working, so any domain already mirrored there still resolves.
 
+## Tenant team: self-service member management
+
+A tenant's **team** — the people who administer it — is not the tenant's users. It is an [organization](#organizations-control-plane-vs-child-tenants) on the control-plane tenant whose `name` equals the tenant id, its members are control-plane users, and their access is an org membership plus an org-scoped role. **A tenant shard cannot write those rows.** Putting administrators in the tenant's own `users` table would be a category error, and letting the org-scoped token call the control-plane `organizations/{id}/members` endpoints directly is unsafe — those routes are permission-gated but not scoped to the caller's own organization, so a tenant admin could edit _other_ tenants' teams by changing the id in the URL.
+
+This is the same shape as custom domains — an authoritative side effect the shard can't perform — but with **no read-cache mirror**: nothing in the tenant's request path ever reads "who administers me" (authorization already happens against the `org_name`/`org_id` claim the control plane put in the token). So it is a pure pass-through delegation, not write-through-plus-cache.
+
+```
+tenant admin → GET/POST/DELETE /api/v2/tenant-members        (on the shard)
+  → pin: token org_name must equal the request tenant  ── else 403
+  → createControlPlaneTenantMembersAdapter
+      → …/api/v2/proxy/control-plane/tenant-members          (on the control plane)
+          → pin again: act on the verified token's tenant_id ── else 403
+          → resolve org (name == tenant_id), then read/write
+            membership · org-scoped roles · invitations
+```
+
+**Two independent org pins.** The shard's `/api/v2/tenant-members` resource requires the token's `org_name` claim to equal the request tenant, so a tenant-A admin cannot manage tenant B by swapping the `tenant-id` header. The control-plane resource then re-pins to the verified service token's `tenant_id` claim. A request that names a different tenant is refused with `403` at both hops. Tokens for the control-plane resource carry the `controlplane:tenant_members` scope.
+
+### Tenant shard
+
+Enable the resource with `tenantMembers.getBackend`, returning a control-plane-backed adapter that reuses the **same `client`** as custom domains:
+
+```typescript
+import { createControlPlaneTenantMembersAdapter } from "authhero";
+
+export default init({
+  dataAdapter,
+  // `client` is the createControlPlaneClient from the custom-domains wiring above.
+  tenantMembers: {
+    getBackend: () => createControlPlaneTenantMembersAdapter({ client }),
+  },
+});
+```
+
+### Control plane
+
+Mount the authoritative resource with `proxyControlPlane.tenantMembers`. Its backend resolves the org and mutates the control-plane database directly:
+
+```typescript
+import { createLocalTenantMembersBackend } from "authhero";
+
+export default init({
+  dataAdapter,
+  proxyControlPlane: {
+    resolveHost: createProxyDataAdapter(db).resolveHost,
+    tenantMembers: {
+      getBackend: (c) =>
+        createLocalTenantMembersBackend({
+          data: c.env.data, // control-plane adapters
+          controlPlaneTenantId: CONTROL_PLANE_TENANT_ID,
+          issuer, // builds invitation acceptance links + default avatars
+          invitationClientId: env.INVITATION_CLIENT_ID,
+          // Optional: any async sender. Omit it and the invitation is still
+          // created and returned; only email delivery is skipped (like Auth0).
+          sendInvitationEmail: async ({ to, invitationUrl }) =>
+            deliverEmail(c, to, invitationUrl),
+        }),
+    },
+  },
+});
+```
+
+### Single-instance deployments
+
+When the control plane and the tenants share one database, there is no hop: wire the **local** backend straight into `tenantMembers.getBackend` (the same `createLocalTenantMembersBackend`) and omit `proxyControlPlane.tenantMembers`. The shard's `/api/v2/tenant-members` resource then resolves the org against the same database it already holds.
+
+### Admin UI
+
+The per-tenant admin ships a **Team** page (Settings → Team) that drives this resource: invite colleagues by email, remove administrators, and edit each administrator's roles. The invitation client is resolved server-side, so — unlike the control-plane-only `/tenants/:id/members` page — it does not depend on a client id being present in local storage. Because members are control-plane users (which a shard can't enumerate), the way to add someone is an email invitation, not a user search; the control-plane page remains the place for global admins to add existing control-plane users directly.
+
+## Accepting WFP tenant-subdomain issuers
+
+The control-plane resources above verify the caller's service token against the issuer's published JWKS, allowing `iss` to be either `env.ISSUER` or the host the request arrived on. A Workers-for-Platforms shard, however, signs with **its own** key and issuer (`https://{tenant}.{host}/`), which is neither — so by default such a token is rejected as an issuer mismatch.
+
+Opt those issuers in with `proxyControlPlane.isTrustedIssuer`, a predicate that widens the accepted issuer set to a deployment's own tenant subdomains:
+
+```typescript
+export default init({
+  proxyControlPlane: {
+    // …customDomains / tenantMembers / resolveHost as above.
+    isTrustedIssuer: (iss) => isOwnTenantSubdomain(iss), // e.g. *.auth.example.com
+  },
+});
+```
+
+It is consulted **before** any JWKS fetch — so it still constrains where verifying keys are fetched from — the signature must still verify against the resolved key, and `tenant_id` is still pinned. Return `true` only for issuer hosts you actually serve. The predicate applies to every mounted resource (custom-domains, tenant-members, sync).
+
+::: tip Verifying without reaching the shard
+Pair `isTrustedIssuer` with a `proxyControlPlane.jwksFetch` that resolves each tenant's control-plane-comm public key from a local registry instead of the network, so the control plane never has to fetch keys from — or dispatch to — the shard at verify time. Provisioning the per-tenant credential and registry is deployment wiring; see [issue #1139](https://github.com/markusahlstrand/authhero/issues/1139).
+:::
+
 ## Proxy entity sync
 
 `proxy_routes` are tenant-owned data that the control plane needs for host resolution, so they still replicate **upward** over the outbox. (Custom domains used to travel this way too — that is exactly what left them registered nowhere. They now write through the control plane instead, as described above.)
