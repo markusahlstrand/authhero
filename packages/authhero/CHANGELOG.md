@@ -1,5 +1,42 @@
 # authhero
 
+## 8.24.0
+
+### Minor Changes
+
+- 32ceb43: feat(pagination): checkpoint (from/take + opaque next cursor) on GET /users, and align the default page size with Auth0 (#1098)
+
+  - `GET /users` now supports keyset (checkpoint) pagination via `from`/`take`, returning `{ users, next }` with an opaque cursor that is absent on the last page. This is a deliberate superset of Auth0, which only offers offset paging on /users and caps it at 1000 results — full-tenant walks no longer need export jobs. Offset paging (`page`/`per_page` + totals) is unchanged.
+  - In checkpoint mode, `q` filters stay in effect and `created_at` asc/desc is sortable (`user_id` is the unique tiebreaker). The cursor records the sort it was minted under; replaying it with a different sort returns 400. Unsupported sort columns return 400.
+  - Linked accounts remain folded into their primary user's `identities` during cursor walks and never appear as top-level rows.
+  - The default page size for offset pagination is now 50 (was 10), matching Auth0's documented default. Requests that pass an explicit `per_page` are unaffected.
+  - kysely: the shared keyset helper now accepts table-qualified sort/id columns for queries with joins.
+
+- 1477310: Make the control plane authoritative for custom domains.
+
+  A custom domain created on a WFP tenant persisted a row to the tenant's own D1 but was never registered in Cloudflare: the tenant shard has no account-level credentials (`zoneId`/`authKey`/`authEmail`), and the control-plane sync path only replicated the row DB→DB. The result was an unroutable, half-provisioned domain.
+
+  A CF-for-SaaS custom hostname is an account-global resource in one shared zone, so only something above the shards can register it — or see that another tenant already claimed `login.acme.com`. The control plane now owns the row and the tenant's database holds a read-cache mirror.
+
+  - `createControlPlaneCustomDomainsAdapter` — a `CustomDomainsAdapter` for tenant shards that writes through the control plane synchronously and mirrors the result locally. On a conflict it writes nothing, so no orphan row is left behind. `get`/`list` read through to the control plane (which owns the row) and fall back to the mirror when it is unreachable; `getByDomain` always reads the mirror, since it is on the tenant-resolution path. A failed mirror write surfaces as a 503 rather than reporting success for a domain this shard cannot route.
+  - `createControlPlaneClient` — shared authed transport with a per-(tenant, scope) token cache, single-flight minting, and a single re-mint on 401. Pass `createServiceBindingFetch(env.CONTROL_PLANE)` to keep the call inside Cloudflare instead of looping out over the public edge.
+  - `proxyControlPlane.customDomains` — mounts the authoritative `/api/v2/proxy/control-plane/custom-domains` resource: cross-tenant uniqueness check (409, nothing written), Cloudflare registration where the credentials live, and get/list/update/remove. Requires the new `controlplane:custom_domains` scope, and every operation is authorized against the token's `tenant_id` claim — every shard holds the scope, so a request-supplied tenant id is refused with 403. `PATCH` accepts only the mutable Auth0 fields, so a caller cannot move the hostname or forge lifecycle state.
+  - The `cloudflare-wfp-tenant` template wires the control-plane adapter when `CONTROL_PLANE_URL` is set, routing the call over an optional `CONTROL_PLANE` service binding. Without the URL it **refuses custom-domain writes (501)** rather than silently storing an unregistered row. The `cloudflare-control-plane` template mounts the resource with the Cloudflare adapter when the CF credentials are set, and uses that same adapter for its own colocated tenants.
+
+  **Breaking:** `custom_domain` is no longer a control-plane sync entity — only `proxy_route` replicates upward. `createApplySyncEvents` now takes `{ proxyRoutes }` (previously `{ customDomains, proxyRoutes }`), and `custom_domain` `SyncEvent`s are rejected as an unknown entity. Deploy the control-plane resource before pointing tenant shards at it.
+
+  Also hardens `POST /sync`, which could not previously have authenticated anyone: it required the `proxy:resolve_host` scope while `ControlPlaneSyncDestination` mints its token with `controlplane:sync`, so every sync POST would have 401'd. It now requires `controlplane:sync` — `proxy:resolve_host` is the proxy's read credential and must not be able to rewrite proxy routes — and a shard may only replicate events for its own tenant.
+
+### Patch Changes
+
+- c0a08dc: Deduplicate the management-api route modules with shared helpers (#1103): `requireTenantId(ctx)` replaces the repeated tenant-id extraction/400 guard, `withTotals()` replaces the `totalsSchema.extend` wrapper pattern, and `listResponse()` handles the `include_totals` response branching. Response shapes are unchanged; the only behavior change is that handlers which previously passed an unresolved tenant id straight to the adapters now consistently return 400 "tenant-id header is required" when the request resolves no tenant.
+- Updated dependencies [cbd5c0c]
+- Updated dependencies [32ceb43]
+  - @authhero/saml@0.4.6
+  - @authhero/adapter-interfaces@4.1.0
+  - @authhero/proxy@0.9.4
+  - @authhero/widget@0.34.14
+
 ## 8.23.1
 
 ### Patch Changes
