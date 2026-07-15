@@ -363,6 +363,14 @@ export interface AuthHeroConfig {
      */
     jwksFetch?: (url: string) => Promise<Response>;
     /**
+     * Optional predicate widening the accepted token issuers beyond
+     * `env.ISSUER` / the inbound host to a deployment's own WFP tenant
+     * subdomains, whose per-tenant control-plane credential `jwksFetch`
+     * resolves locally (see #1139). Consulted before any JWKS fetch; return
+     * `true` only for issuer hosts you serve.
+     */
+    isTrustedIssuer?: (iss: string) => boolean;
+    /**
      * Optional receiver for `POST /sync` events emitted by tenant shards via
      * the `ControlPlaneSyncDestination`. Mount on the control-plane authhero
      * instance only. Implementations MUST be idempotent — the outbox retries

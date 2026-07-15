@@ -26,3 +26,11 @@ Admin UI: a new **Team** page in the per-tenant admin lets tenant admins invite
 colleagues by email, remove admins, and edit each admin's roles. The invitation
 client is resolved server-side, fixing the control-plane page's "invite UI
 silently disappears when the client id isn't in local storage" foot-gun.
+
+Also adds an optional `proxyControlPlane.isTrustedIssuer(iss)` predicate (#1139)
+that widens the accepted control-plane token issuers to a deployment's own
+Workers-for-Platforms tenant subdomains — needed so a shard whose tokens are
+signed by its own key (issuer `https://{tenant}.{host}/`) can authenticate the
+write-through to the control plane. It is consulted before any JWKS fetch, so
+the SSRF guarantee holds, and applies to every mounted resource (custom-domains,
+tenant-members, sync).

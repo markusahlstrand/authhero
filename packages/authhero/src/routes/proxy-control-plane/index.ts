@@ -56,6 +56,17 @@ export interface ProxyControlPlaneOptions {
   jwksFetch?: (url: string) => Promise<Response>;
 
   /**
+   * Optional predicate that widens the set of accepted token issuers beyond
+   * `env.ISSUER` and the inbound host — specifically to a deployment's own
+   * Workers-for-Platforms tenant subdomains, whose per-tenant control-plane
+   * credential `jwksFetch` resolves locally (see #1139). Consulted before any
+   * JWKS fetch, so it still constrains where keys are fetched from; return
+   * `true` only for issuer hosts you serve. Applies to every mounted resource
+   * (custom-domains, tenant-members, sync).
+   */
+  isTrustedIssuer?: (iss: string) => boolean;
+
+  /**
    * Optional handler for `POST /sync` — receives `controlplane.sync.*` events
    * emitted by tenant shards via `ControlPlaneSyncDestination` and replicates
    * the mutation into the control-plane data store. When omitted, the
@@ -165,6 +176,7 @@ export function createProxyControlPlaneApp(
       jwksFetch: options.jwksFetch,
       expectedIssuers,
       requiredScope,
+      isTrustedIssuer: options.isTrustedIssuer,
     });
   }
 
