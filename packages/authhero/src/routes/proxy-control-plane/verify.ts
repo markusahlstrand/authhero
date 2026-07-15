@@ -147,7 +147,16 @@ export async function verifyControlPlaneToken(
   }
   const iss = issRaw;
 
-  const jwksUrl = deriveJwksUrl(iss);
+  // `expectedIssuers` matches parse `iss` as a URL, but a custom
+  // `isTrustedIssuer` might accept a string that isn't a valid absolute URL —
+  // in which case `deriveJwksUrl` (`new URL(...)`) throws. Reject gracefully
+  // rather than letting a TypeError escape.
+  let jwksUrl: string;
+  try {
+    jwksUrl = deriveJwksUrl(iss);
+  } catch {
+    return { ok: false, reason: "malformed issuer url" };
+  }
   const fetchFn = jwksFetch ?? fetch;
   let jwksRes: Response;
   try {

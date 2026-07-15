@@ -79,6 +79,21 @@ describe("verifyControlPlaneToken issuer allow-list", () => {
     expect(isTrustedIssuer).not.toHaveBeenCalled();
   });
 
+  it("rejects (does not throw) when isTrustedIssuer accepts a malformed issuer URL", async () => {
+    const jwksFetch = vi.fn(async () => new Response("{}"));
+    const result = await verifyControlPlaneToken({
+      token: makeToken(header, { ...payload, iss: "not a url" }),
+      jwksFetch,
+      expectedIssuers: [CP_ISSUER],
+      requiredScope: "controlplane:tenant_members",
+      // A permissive predicate lets an unparseable issuer past the allow-list;
+      // deriving its JWKS URL must fail closed, not throw.
+      isTrustedIssuer: () => true,
+    });
+    expect(result).toEqual({ ok: false, reason: "malformed issuer url" });
+    expect(jwksFetch).not.toHaveBeenCalled();
+  });
+
   it("still rejects an untrusted issuer when the predicate returns false", async () => {
     const jwksFetch = vi.fn(async () => new Response("{}"));
     const result = await verifyControlPlaneToken({
