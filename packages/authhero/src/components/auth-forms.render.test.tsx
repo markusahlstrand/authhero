@@ -135,6 +135,34 @@ const client: EnrichedClient = {
   connections: [],
 };
 
+// A client exposing both a database connection (drives the email input) and a
+// social connection (drives a provider button + separator), so the
+// IdentifierForm input/button/separator/provider branches are exercised
+// alongside the empty-connections case above.
+const clientWithConnections: EnrichedClient = {
+  ...client,
+  connections: [
+    {
+      id: "db-connection-id",
+      name: "Username-Password-Authentication",
+      strategy: "auth0",
+      options: {},
+      enabled_clients: ["test-client-id"],
+      created_at: "2024-01-01T00:00:00.000Z",
+      updated_at: "2024-01-01T00:00:00.000Z",
+    },
+    {
+      id: "google-connection-id",
+      name: "google-oauth2",
+      strategy: "google-oauth2",
+      options: {},
+      enabled_clients: ["test-client-id"],
+      created_at: "2024-01-01T00:00:00.000Z",
+      updated_at: "2024-01-01T00:00:00.000Z",
+    },
+  ],
+};
+
 const noLogoTheme: Theme = {
   ...theme,
   widget: { ...theme.widget, logo_position: "none" },
@@ -207,5 +235,22 @@ describe("universal-login auth form rendering", () => {
   });
   it("IdentifierForm", () => {
     expect(renderHonoComponent(IdentifierForm, { ...base })).toMatchSnapshot();
+  });
+  it("IdentifierForm with database and social connections", () => {
+    expect(
+      renderHonoComponent(IdentifierForm, {
+        ...base,
+        client: clientWithConnections,
+      }),
+    ).toMatchSnapshot();
+  });
+  it("IdentifierForm with connections and error", () => {
+    expect(
+      renderHonoComponent(IdentifierForm, {
+        ...base,
+        client: clientWithConnections,
+        error: "Invalid credentials",
+      }),
+    ).toMatchSnapshot();
   });
 });
