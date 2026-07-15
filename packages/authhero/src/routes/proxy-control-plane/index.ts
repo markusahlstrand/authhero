@@ -63,8 +63,14 @@ export interface ProxyControlPlaneOptions {
    * JWKS fetch, so it still constrains where keys are fetched from; return
    * `true` only for issuer hosts you serve. Applies to every mounted resource
    * (custom-domains, tenant-members, sync).
+   *
+   * The second argument is the token's (unverified) `tenant_id` claim. Bind it
+   * to `iss` so a caller holding one tenant's subdomain key cannot act on
+   * another by naming it in the claim (#1143), e.g.
+   * `(iss, tid) => !!tid && iss === \`https://${tid}.${issuerHost}/\``. The
+   * binding is confirmed by the signature check the verifier runs afterwards.
    */
-  isTrustedIssuer?: (iss: string) => boolean;
+  isTrustedIssuer?: (iss: string, tenantId: string | undefined) => boolean;
 
   /**
    * Optional handler for `POST /sync` — receives `controlplane.sync.*` events
@@ -217,9 +223,7 @@ export function createProxyControlPlaneApp(
       "/tenant-members",
       createTenantMembersControlPlaneApp({
         getBackend: options.tenantMembers.getBackend,
-        authenticate: authenticateWithScope(
-          CONTROL_PLANE_TENANT_MEMBERS_SCOPE,
-        ),
+        authenticate: authenticateWithScope(CONTROL_PLANE_TENANT_MEMBERS_SCOPE),
       }),
     );
   }

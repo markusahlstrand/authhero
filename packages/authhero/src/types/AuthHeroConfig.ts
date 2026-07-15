@@ -368,8 +368,13 @@ export interface AuthHeroConfig {
      * subdomains, whose per-tenant control-plane credential `jwksFetch`
      * resolves locally (see #1139). Consulted before any JWKS fetch; return
      * `true` only for issuer hosts you serve.
+     *
+     * The second argument is the token's (unverified) `tenant_id` claim. Bind
+     * it to `iss` so a caller holding one tenant's subdomain key cannot act on
+     * another by naming it in the claim (#1143), e.g.
+     * `(iss, tid) => !!tid && iss === \`https://${tid}.${issuerHost}/\``.
      */
-    isTrustedIssuer?: (iss: string) => boolean;
+    isTrustedIssuer?: (iss: string, tenantId: string | undefined) => boolean;
     /**
      * Optional receiver for `POST /sync` events emitted by tenant shards via
      * the `ControlPlaneSyncDestination`. Mount on the control-plane authhero

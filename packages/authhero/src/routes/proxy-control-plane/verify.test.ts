@@ -36,14 +36,13 @@ describe("verifyControlPlaneToken issuer allow-list", () => {
     // Return an empty key set so verification fails AFTER the issuer gate — we
     // only care that the gate let it through and the fetch targeted the
     // tenant-subdomain JWKS.
-    const jwksFetch = vi.fn(async () =>
-      new Response(JSON.stringify({ keys: [] }), {
-        headers: { "content-type": "application/json" },
-      }),
+    const jwksFetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ keys: [] }), {
+          headers: { "content-type": "application/json" },
+        }),
     );
-    const isTrustedIssuer = vi.fn(
-      (iss: string) => iss === TENANT_ISSUER,
-    );
+    const isTrustedIssuer = vi.fn((iss: string) => iss === TENANT_ISSUER);
 
     const result = await verifyControlPlaneToken({
       token: makeToken(header, payload),
@@ -53,7 +52,9 @@ describe("verifyControlPlaneToken issuer allow-list", () => {
       isTrustedIssuer,
     });
 
-    expect(isTrustedIssuer).toHaveBeenCalledWith(TENANT_ISSUER);
+    // The predicate receives both the issuer AND the (unverified) tenant_id
+    // claim, so a deployment can bind the two (#1143).
+    expect(isTrustedIssuer).toHaveBeenCalledWith(TENANT_ISSUER, "acme");
     expect(jwksFetch).toHaveBeenCalledWith(
       "https://acme.cp.example.com/.well-known/jwks.json",
     );
@@ -62,10 +63,11 @@ describe("verifyControlPlaneToken issuer allow-list", () => {
   });
 
   it("does not consult isTrustedIssuer for an issuer already in expectedIssuers", async () => {
-    const jwksFetch = vi.fn(async () =>
-      new Response(JSON.stringify({ keys: [] }), {
-        headers: { "content-type": "application/json" },
-      }),
+    const jwksFetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ keys: [] }), {
+          headers: { "content-type": "application/json" },
+        }),
     );
     const isTrustedIssuer = vi.fn(() => false);
     await verifyControlPlaneToken({
@@ -94,10 +96,62 @@ describe("verifyControlPlaneToken issuer allow-list", () => {
     expect(jwksFetch).not.toHaveBeenCalled();
   });
 
+  it("binds iss to the claimed tenant_id: rejects when a tenant's key names another tenant", async () => {
+    // Tenant A holds A's subdomain key (iss = A) but claims tenant_id: "B".
+    // A predicate that binds `iss` to the claimed tenant rejects this before
+    // any key fetch — the cross-tenant escalation of #1143.
+    const jwksFetch = vi.fn(async () => new Response("{}"));
+    const isTrustedIssuer = vi.fn(
+      (iss: string, tid: string | undefined) =>
+        !!tid && iss === `https://${tid}.cp.example.com/`,
+    );
+    const result = await verifyControlPlaneToken({
+      token: makeToken(header, {
+        ...payload,
+        iss: TENANT_ISSUER,
+        tenant_id: "b",
+      }),
+      jwksFetch,
+      expectedIssuers: [CP_ISSUER],
+      requiredScope: "controlplane:tenant_members",
+      isTrustedIssuer,
+    });
+    expect(isTrustedIssuer).toHaveBeenCalledWith(TENANT_ISSUER, "b");
+    expect(result).toEqual({ ok: false, reason: "issuer mismatch" });
+    expect(jwksFetch).not.toHaveBeenCalled();
+  });
+
+  it("binds iss to the claimed tenant_id: passes the gate when they agree", async () => {
+    const jwksFetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ keys: [] }), {
+          headers: { "content-type": "application/json" },
+        }),
+    );
+    const isTrustedIssuer = vi.fn(
+      (iss: string, tid: string | undefined) =>
+        !!tid && iss === `https://${tid}.cp.example.com/`,
+    );
+    const result = await verifyControlPlaneToken({
+      // iss = acme.cp.example.com AND tenant_id = "acme" — self-consistent.
+      token: makeToken(header, payload),
+      jwksFetch,
+      expectedIssuers: [CP_ISSUER],
+      requiredScope: "controlplane:tenant_members",
+      isTrustedIssuer,
+    });
+    expect(isTrustedIssuer).toHaveBeenCalledWith(TENANT_ISSUER, "acme");
+    // Gate passed; failure is now the empty key set, not the issuer/tenant.
+    expect(result).toEqual({ ok: false, reason: "unknown kid" });
+  });
+
   it("still rejects an untrusted issuer when the predicate returns false", async () => {
     const jwksFetch = vi.fn(async () => new Response("{}"));
     const result = await verifyControlPlaneToken({
-      token: makeToken(header, { ...payload, iss: "https://evil.example.com/" }),
+      token: makeToken(header, {
+        ...payload,
+        iss: "https://evil.example.com/",
+      }),
       jwksFetch,
       expectedIssuers: [CP_ISSUER],
       requiredScope: "controlplane:tenant_members",
