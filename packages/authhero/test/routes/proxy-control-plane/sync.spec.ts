@@ -295,6 +295,28 @@ describe("POST /sync route", () => {
     expect(apply).not.toHaveBeenCalled();
   });
 
+  it("refuses a token with no tenant binding — fail closed", async () => {
+    // A sync token without a tenant_id claim must not be able to replicate an
+    // arbitrary tenant's events; the check is skipped only when there is a
+    // tenant to compare against, so it has to fail closed instead.
+    const apply = vi.fn<(events: SyncEvent[]) => Promise<void>>(async () => {});
+    const { app, keyset } = await setup(apply);
+    const auth = await bearer(keyset, { tenantId: null });
+    const res = await app.request(
+      "/sync",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", authorization: auth },
+        body: JSON.stringify({
+          events: [syncEvent({ tenant_id: "t-victim" })],
+        }),
+      },
+      envWithIssuer(),
+    );
+    expect(res.status).toBe(403);
+    expect(apply).not.toHaveBeenCalled();
+  });
+
   it("rejects a token carrying an unrelated scope", async () => {
     const { app, keyset } = await setup(async () => {});
     const auth = await bearer(keyset, { scope: "openid" });

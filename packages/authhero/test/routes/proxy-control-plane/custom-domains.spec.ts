@@ -228,6 +228,64 @@ describe("control-plane /custom-domains", () => {
     expect(adapter.create).not.toHaveBeenCalled();
   });
 
+  it("canonicalizes the hostname so a differently-cased create matches the owned record", async () => {
+    // The row is stored lower-cased (as the resolution path looks it up); a
+    // create for `Login.acme.com` must resolve to it, not register a duplicate.
+    const adapter = makeAuthoritativeAdapter([
+      { tenant_id: "t1", domain: domain({ domain: "login.acme.com" }) },
+    ]);
+    const { app, keyset } = await setup(adapter);
+
+    const res = await app.request(
+      "/custom-domains",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: await bearer(keyset),
+        },
+        body: JSON.stringify({
+          tenant_id: "t1",
+          domain: "Login.Acme.com",
+          type: "auth0_managed_certs",
+        }),
+      },
+      envWithIssuer(),
+    );
+
+    expect(res.status).toBe(200);
+    expect(adapter.getByDomain).toHaveBeenCalledWith("login.acme.com");
+    expect(adapter.create).not.toHaveBeenCalled();
+  });
+
+  it("registers a new hostname lower-cased", async () => {
+    const adapter = makeAuthoritativeAdapter();
+    const { app, keyset } = await setup(adapter);
+
+    const res = await app.request(
+      "/custom-domains",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: await bearer(keyset),
+        },
+        body: JSON.stringify({
+          tenant_id: "t1",
+          domain: "Login.Acme.com",
+          type: "auth0_managed_certs",
+        }),
+      },
+      envWithIssuer(),
+    );
+
+    expect(res.status).toBe(201);
+    expect(adapter.create).toHaveBeenCalledWith(
+      "t1",
+      expect.objectContaining({ domain: "login.acme.com" }),
+    );
+  });
+
   it("maps a Cloudflare duplicate-hostname error to 409", async () => {
     // DB and zone have drifted: nothing in the control-plane DB, but the zone
     // already holds the hostname. One coherent answer, not a 500.

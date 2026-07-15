@@ -151,8 +151,11 @@ export function createControlPlaneCustomDomainsAdapter(
         `[control-plane/custom-domains] mirror ${what} failed (tenant=${tenantId}); the control plane accepted the write but this shard cannot route it:`,
         detail,
       );
+      // The raw detail stays in the server log above; the client only needs to
+      // know the write succeeded upstream but the local cache did not, and that
+      // a retry is safe.
       throw new HTTPException(503, {
-        message: `The custom domain was registered but could not be cached locally (${what}); retry the request. Detail: ${detail}`,
+        message: `The custom domain was registered but could not be cached locally (${what}); retry the request.`,
       });
     }
   }
@@ -233,14 +236,18 @@ export function createControlPlaneCustomDomainsAdapter(
 
       if (response.status === 404) {
         // Removed upstream (or by another shard) — drop the stale mirror row so
-        // it stops resolving here.
-        await mirrorRefresh(
-          tenantId,
-          async () => {
-            await mirror.remove(tenantId, id);
-          },
-          "delete",
-        );
+        // it stops resolving here. A failed cleanup is worse than a failed
+        // refresh: the deleted domain keeps resolving via getByDomain, so log
+        // it at error severity with the tenant + id for alerting. We still
+        // return null (the caller asked whether the row exists; it doesn't).
+        try {
+          await mirror.remove(tenantId, id);
+        } catch (err) {
+          console.error(
+            `[control-plane/custom-domains] mirror delete of a domain removed upstream failed (tenant=${tenantId}, id=${id}); it may keep resolving until the next reconcile:`,
+            err instanceof Error ? err.message : err,
+          );
+        }
         return null;
       }
       if (response.status !== 200) {

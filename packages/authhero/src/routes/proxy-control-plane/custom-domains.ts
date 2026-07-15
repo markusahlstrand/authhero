@@ -136,26 +136,36 @@ export function createCustomDomainsControlPlaneApp(
     if (claimedTenantMismatch(tenantId, claimed))
       return c.text("Forbidden", 403);
 
+    // Hostnames are case-insensitive, but the uniqueness lookup and the
+    // resolution path (`getByDomain`) both match exactly. Canonicalize to
+    // lower-case so `Login.acme.com` and `login.acme.com` resolve to the one
+    // record — otherwise a differently-cased create dodges the same-tenant
+    // idempotent-return and stores a row that never routes.
+    const domain = insert.domain.toLowerCase();
+
     // Cross-tenant uniqueness — the reason this resource has to live above the
     // shards. Only the control plane can see that another tenant already owns
     // the hostname.
-    const existing = await customDomains.getByDomain(insert.domain);
+    const existing = await customDomains.getByDomain(domain);
     if (existing) {
       if (existing.tenant_id !== tenantId) {
-        return c.json(conflictBody(insert.domain), 409);
+        return c.json(conflictBody(domain), 409);
       }
       // Same tenant: idempotent re-create (a retried request, or a shard whose
       // mirror was lost) returns the record it already owns.
-      const { tenant_id: _tenantId, ...domain } = existing;
-      return c.json(domain, 200);
+      const { tenant_id: _tenantId, ...owned } = existing;
+      return c.json(owned, 200);
     }
 
     try {
-      const created = await customDomains.create(tenantId, insert);
+      const created = await customDomains.create(tenantId, {
+        ...insert,
+        domain,
+      });
       return c.json(created, 201);
     } catch (err) {
       if (isHostnameConflict(err)) {
-        return c.json(conflictBody(insert.domain), 409);
+        return c.json(conflictBody(domain), 409);
       }
       throw err;
     }

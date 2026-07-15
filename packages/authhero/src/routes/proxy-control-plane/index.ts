@@ -217,13 +217,15 @@ export function createProxyControlPlaneApp(
 
       // A shard may only replicate its own rows. The scope is held by every
       // shard, so without this an event's `tenant_id` would be enough to
-      // rewrite another tenant's proxy routes.
+      // rewrite another tenant's proxy routes. Fail closed: a token with no
+      // tenant binding cannot replicate anything (every legitimate sync token,
+      // minted by createServiceTokenCore, carries a tenant_id claim).
       if (
-        result.tenantId &&
+        !result.tenantId ||
         parsed.data.events.some((e) => e.tenant_id !== result.tenantId)
       ) {
         console.warn(
-          `[proxy/control-plane/sync] event tenant_id does not match the token (tenant=${result.tenantId})`,
+          `[proxy/control-plane/sync] event tenant_id does not match the token (tenant=${result.tenantId ?? "<none>"})`,
         );
         return c.text("Forbidden", 403);
       }

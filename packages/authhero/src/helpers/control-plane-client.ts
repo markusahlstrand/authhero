@@ -89,6 +89,17 @@ export function createControlPlaneClient(
   const tokens = new Map<string, CachedToken>();
   const pending = new Map<string, Promise<string>>();
 
+  /**
+   * Drop every expired entry. A long-lived client serving many (tenant, scope)
+   * pairs would otherwise accumulate entries that are never looked up again.
+   * Runs only on the mint path (a cache miss), so it is not on the hot path.
+   */
+  function evictExpired(now: number): void {
+    for (const [k, t] of tokens) {
+      if (t.expiresAt <= now) tokens.delete(k);
+    }
+  }
+
   async function getToken(
     tenantId: string,
     scope: string,
@@ -104,6 +115,8 @@ export function createControlPlaneClient(
 
     const inFlight = pending.get(key);
     if (inFlight) return inFlight;
+
+    evictExpired(Date.now());
 
     const promise = options
       .getServiceToken(tenantId, scope)
