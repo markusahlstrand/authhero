@@ -83,8 +83,20 @@ export interface VerifyControlPlaneTokenOptions {
    * hosts you actually serve. The signature must still verify against the
    * resolved key, so this does not broaden trust beyond "a caller holding that
    * tenant's registered private key."
+   *
+   * `tenantId` is the token's (as-yet UNVERIFIED) `tenant_id` claim. With
+   * per-tenant signing keys the key owner is encoded in `iss` while the
+   * `tenant_id` claim is set freely by the caller, so a predicate that only
+   * looks at `iss` cannot stop tenant A (holding A's key) from acting on
+   * tenant B by claiming `tenant_id: "B"`. Bind the two here — e.g.
+   * `(iss, tid) => !!tid && iss === \`https://${tid}.${host}/\``. This is
+   * sound despite `tenant_id` being unverified at predicate time: it is the
+   * SAME token whose signature is checked moments later, so verification
+   * confirms the exact `tenant_id` the predicate bound to `iss`. A forged
+   * `tenant_id` either fails the predicate (mismatch with `iss`) or fails
+   * signature verification (the caller lacks that subdomain's key).
    */
-  isTrustedIssuer?: (iss: string) => boolean;
+  isTrustedIssuer?: (iss: string, tenantId: string | undefined) => boolean;
 }
 
 function deriveJwksUrl(iss: string): string {
@@ -115,11 +127,14 @@ export async function verifyControlPlaneToken(
         : [options.requiredScope];
 
   let header: { alg?: unknown; kid?: unknown };
-  let unverifiedPayload: { iss?: unknown };
+  let unverifiedPayload: { iss?: unknown; tenant_id?: unknown };
   try {
     const decoded = decode(token);
     header = decoded.header as { alg?: unknown; kid?: unknown };
-    unverifiedPayload = decoded.payload as { iss?: unknown };
+    unverifiedPayload = decoded.payload as {
+      iss?: unknown;
+      tenant_id?: unknown;
+    };
   } catch {
     return { ok: false, reason: "malformed token" };
   }
@@ -135,12 +150,23 @@ export async function verifyControlPlaneToken(
   // The optional `isTrustedIssuer` predicate widens the allow-list to a
   // deployment's own WFP tenant subdomains, but is still consulted here — ahead
   // of the fetch — so the SSRF guarantee holds.
+  //
+  // The predicate also receives the (unverified) `tenant_id` claim so it can
+  // bind the key owner in `iss` to the tenant the caller claims to act on:
+  // without this, a caller holding tenant A's subdomain key could set
+  // `tenant_id: "B"` and act on B (cross-tenant escalation, #1143). Passing
+  // the unverified claim is safe — the signature check below confirms the
+  // exact `tenant_id` the predicate bound to `iss`.
   const issRaw = unverifiedPayload.iss;
+  const claimedTenantId =
+    typeof unverifiedPayload.tenant_id === "string"
+      ? unverifiedPayload.tenant_id
+      : undefined;
   if (
     typeof issRaw !== "string" ||
     !(
       expectedIssuers.some((expected) => isAllowedIssuer(issRaw, expected)) ||
-      options.isTrustedIssuer?.(issRaw) === true
+      options.isTrustedIssuer?.(issRaw, claimedTenantId) === true
     )
   ) {
     return { ok: false, reason: "issuer mismatch" };
