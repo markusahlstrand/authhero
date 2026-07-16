@@ -351,6 +351,7 @@ const postRoot = defineRoute({
         "tenant-id": z.string().optional(),
       }),
       body: {
+        required: true,
         content: {
           "application/json": {
             schema: userInsertSchema.extend({
