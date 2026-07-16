@@ -13,6 +13,15 @@ describe("keyset pagination (from/take)", () => {
     const server = await getTestServer();
     data = server.data;
 
+    // users.tenant_id is an FK to tenants, so the tenant has to exist first.
+    await data.tenants.create({
+      id: tenantId,
+      friendly_name: "Keyset Tenant",
+      audience: "https://example.com",
+      sender_email: "login@example.com",
+      sender_name: "SenderName",
+    });
+
     await data.organizations.create(tenantId, {
       id: organizationId,
       name: "keyset-org",
@@ -23,8 +32,18 @@ describe("keyset pagination (from/take)", () => {
     // so many rows can share a timestamp — this is exactly why the id
     // tiebreaker matters, and the test deliberately does not space them out.
     for (let i = 0; i < 25; i++) {
+      const userId = `user-${i.toString().padStart(2, "0")}`;
+      // user_organizations has an FK to users, so the member has to exist.
+      await data.users.create(tenantId, {
+        user_id: userId,
+        email: `${userId}@example.com`,
+        email_verified: true,
+        connection: "email",
+        provider: "email",
+        is_social: false,
+      });
       await data.userOrganizations.create(tenantId, {
-        user_id: `user-${i.toString().padStart(2, "0")}`,
+        user_id: userId,
         organization_id: organizationId,
       });
     }
@@ -85,6 +104,14 @@ describe("keyset pagination (from/take)", () => {
 
     // Insert a new membership between page fetches. Offset pagination would
     // shift rows and duplicate/skip; keyset must not.
+    await data.users.create(tenantId, {
+      user_id: "user-inserted",
+      email: "user-inserted@example.com",
+      email_verified: true,
+      connection: "email",
+      provider: "email",
+      is_social: false,
+    });
     await data.userOrganizations.create(tenantId, {
       user_id: "user-inserted",
       organization_id: organizationId,
@@ -379,7 +406,9 @@ describe("users keyset pagination (from/take)", () => {
     // Seeded rows share created_at (second resolution), so ordering must be
     // lexicographic on the full (created_at, user_id) keyset, not just the
     // sort column.
-    const assertAscending = (rows: { created_at: string; user_id: string }[]) => {
+    const assertAscending = (
+      rows: { created_at: string; user_id: string }[],
+    ) => {
       for (let i = 1; i < rows.length; i++) {
         const prev = rows[i - 1];
         const cur = rows[i];
