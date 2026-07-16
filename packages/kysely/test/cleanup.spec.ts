@@ -935,3 +935,180 @@ describe("sessionCleanup", () => {
     expect(sessions[0].tenant_id).toEqual("tenant2");
   });
 });
+
+describe("codes cleanup", () => {
+  type TestData = Awaited<ReturnType<typeof getTestServer>>["data"];
+
+  async function setupTenant(data: TestData, id: string) {
+    await data.tenants.create({
+      id,
+      friendly_name: "Test Tenant",
+      audience: "https://example.com",
+      sender_email: "login@example.com",
+      sender_name: "SenderName",
+    });
+  }
+
+  const iso = (offsetMs: number) =>
+    new Date(Date.now() + offsetMs).toISOString();
+
+  it("deletes codes expired before the cutoff and keeps the rest", async () => {
+    const { data, db } = await getTestServer();
+    await setupTenant(data, "tenantId");
+
+    // Expired two days ago — before a one-day-ago cutoff.
+    await data.codes.create("tenantId", {
+      code_id: "long-expired",
+      code_type: "authorization_code",
+      login_id: "login1",
+      expires_at: iso(-1000 * 60 * 60 * 24 * 2),
+    });
+
+    // Expired, but only an hour ago — inside the grace window, so it must
+    // survive a cutoff of one day ago.
+    await data.codes.create("tenantId", {
+      code_id: "recently-expired",
+      code_type: "authorization_code",
+      login_id: "login2",
+      expires_at: iso(-1000 * 60 * 60),
+    });
+
+    // Still live.
+    await data.codes.create("tenantId", {
+      code_id: "live",
+      code_type: "authorization_code",
+      login_id: "login3",
+      expires_at: iso(1000 * 60 * 60),
+    });
+
+    const cutoff = iso(-1000 * 60 * 60 * 24);
+    const deleted = await data.codes.cleanup(cutoff);
+
+    expect(deleted).toEqual(1);
+
+    const remaining = await db
+      .selectFrom("codes")
+      .select("code_id")
+      .orderBy("code_id")
+      .execute();
+    expect(remaining.map((r) => r.code_id)).toEqual([
+      "live",
+      "recently-expired",
+    ]);
+  });
+
+  it("sweeps across tenants, since retention is not tenant-scoped", async () => {
+    const { data, db } = await getTestServer();
+    await setupTenant(data, "tenant1");
+    await setupTenant(data, "tenant2");
+
+    for (const tenant of ["tenant1", "tenant2"]) {
+      await data.codes.create(tenant, {
+        code_id: `expired-${tenant}`,
+        code_type: "otp",
+        login_id: "login1",
+        expires_at: iso(-1000 * 60 * 60 * 24 * 2),
+      });
+    }
+
+    const deleted = await data.codes.cleanup(iso(-1000 * 60 * 60 * 24));
+
+    expect(deleted).toEqual(2);
+    const remaining = await db.selectFrom("codes").selectAll().execute();
+    expect(remaining.length).toEqual(0);
+  });
+
+  it("writes expires_at_ts alongside expires_at so the sweep is indexed", async () => {
+    const { data, db } = await getTestServer();
+    await setupTenant(data, "tenantId");
+
+    const expiresAt = iso(1000 * 60 * 60);
+    await data.codes.create("tenantId", {
+      code_id: "code1",
+      code_type: "authorization_code",
+      login_id: "login1",
+      expires_at: expiresAt,
+    });
+
+    const row = await db
+      .selectFrom("codes")
+      .select(["expires_at", "expires_at_ts"])
+      .executeTakeFirstOrThrow();
+
+    expect(row.expires_at).toEqual(expiresAt);
+    expect(Number(row.expires_at_ts)).toEqual(new Date(expiresAt).getTime());
+  });
+
+  it("still sweeps rows written before expires_at_ts existed", async () => {
+    const { data, db } = await getTestServer();
+    await setupTenant(data, "tenantId");
+
+    await data.codes.create("tenantId", {
+      code_id: "legacy",
+      code_type: "authorization_code",
+      login_id: "login1",
+      expires_at: iso(-1000 * 60 * 60 * 24 * 2),
+    });
+
+    // Model a row inserted by an app version older than the migration: the
+    // numeric twin is missing, so only the varchar fallback can catch it.
+    await db
+      .updateTable("codes")
+      .set({ expires_at_ts: null })
+      .where("code_id", "=", "legacy")
+      .execute();
+
+    const deleted = await data.codes.cleanup(iso(-1000 * 60 * 60 * 24));
+
+    expect(deleted).toEqual(1);
+    const remaining = await db.selectFrom("codes").selectAll().execute();
+    expect(remaining.length).toEqual(0);
+  });
+
+  it("stores an unparseable expires_at as already-expired rather than failing the insert", async () => {
+    const { data, db } = await getTestServer();
+    await setupTenant(data, "tenantId");
+
+    // expires_at is only typed z.string(), so this is representable. The
+    // insert must not blow up on the bigint column, and the row must stay
+    // sweepable rather than being stranded forever.
+    await data.codes.create("tenantId", {
+      code_id: "garbage-expiry",
+      code_type: "authorization_code",
+      login_id: "login1",
+      expires_at: "not-a-date",
+    });
+
+    const row = await db
+      .selectFrom("codes")
+      .select("expires_at_ts")
+      .executeTakeFirstOrThrow();
+    expect(Number(row.expires_at_ts)).toEqual(0);
+
+    expect(await data.codes.cleanup(iso(-1000 * 60 * 60 * 24))).toEqual(1);
+  });
+
+  it("does not delete a live row whose expires_at_ts is missing", async () => {
+    const { data, db } = await getTestServer();
+    await setupTenant(data, "tenantId");
+
+    await data.codes.create("tenantId", {
+      code_id: "legacy-live",
+      code_type: "authorization_code",
+      login_id: "login1",
+      expires_at: iso(1000 * 60 * 60),
+    });
+
+    await db
+      .updateTable("codes")
+      .set({ expires_at_ts: null })
+      .where("code_id", "=", "legacy-live")
+      .execute();
+
+    const deleted = await data.codes.cleanup(iso(-1000 * 60 * 60 * 24));
+
+    expect(deleted).toEqual(0);
+    const remaining = await db.selectFrom("codes").selectAll().execute();
+    expect(remaining.length).toEqual(1);
+  });
+});

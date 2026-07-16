@@ -20,4 +20,13 @@ export interface CodesAdapter {
    */
   consume: (tenant_id: string, code_id: string) => Promise<boolean>;
   remove: (tenant_id: string, code_id: string) => Promise<boolean>;
+  /**
+   * Delete codes that expired before the given ISO date. Returns count deleted.
+   *
+   * Codes are short-lived by design, so nothing reads a row once it is past
+   * `expires_at` — this is a pure retention sweep, and unlike `remove` it is
+   * not tenant-scoped. Intended to be driven by `cleanupCodes` from a
+   * scheduled handler.
+   */
+  cleanup: (olderThan: string) => Promise<number>;
 }

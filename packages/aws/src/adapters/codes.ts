@@ -185,5 +185,14 @@ export function createCodesAdapter(ctx: DynamoDBContext): CodesAdapter {
         codeKeys.sk(codeId, code.code_type),
       );
     },
+
+    async cleanup(): Promise<number> {
+      // No-op: `create` sets a DynamoDB `ttl` attribute from `expires_at`, so
+      // DynamoDB expires these items itself and there is no backlog to sweep.
+      // Deleting them manually would only add write cost. Returns 0 because
+      // nothing was deleted by us — DynamoDB does not report TTL deletions
+      // synchronously.
+      return 0;
+    },
   };
 }

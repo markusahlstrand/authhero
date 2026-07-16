@@ -502,7 +502,10 @@ export interface Database {
   clients: z.infer<typeof sqlClientSchema>;
   client_grants: z.infer<typeof sqlClientGrantSchema>;
   client_registration_tokens: z.infer<typeof sqlClientRegistrationTokenSchema>;
-  codes: Code & { tenant_id: string };
+  // `expires_at` stays canonical (it is what the adapter reads); `expires_at_ts`
+  // is an indexed numeric twin written alongside it so retention sweeps don't
+  // have to scan. Nullable for rows written before 2026-07-16T12:00:00.
+  codes: Code & { tenant_id: string; expires_at_ts?: number | null };
   connections: z.infer<typeof sqlConnectionSchema>;
   custom_domains: z.infer<typeof sqlCustomDomainSchema>;
   email_providers: z.infer<typeof sqlEmailProvidersSchema>;
