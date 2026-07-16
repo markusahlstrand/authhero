@@ -1,4 +1,4 @@
-import { eq, and, isNull, count as countFn, asc, desc } from "drizzle-orm";
+import { eq, and, isNull, lt, count as countFn, asc, desc } from "drizzle-orm";
 import type { Code, ListParams } from "@authhero/adapter-interfaces";
 import { codes } from "../schema/sqlite";
 import { removeNullProperties } from "../helpers/transform";
@@ -137,6 +137,21 @@ export function createCodesAdapter(db: DrizzleDb) {
         .returning();
 
       return results.length > 0;
+    },
+
+    async cleanup(olderThan: string): Promise<number> {
+      // `expires_at` is an ISO-8601 text column with its own index
+      // (`codes_expires_at_index`), and ISO-8601 compares lexicographically in
+      // chronological order — so this is an indexed range scan as-is. Unlike
+      // kysely, drizzle needs no numeric twin column here.
+      const results = await db
+        .delete(codes)
+        .where(lt(codes.expires_at, olderThan))
+        // Project a single column rather than whole rows: this can delete a
+        // large backlog on its first run.
+        .returning({ code_id: codes.code_id });
+
+      return results.length;
     },
   };
 }

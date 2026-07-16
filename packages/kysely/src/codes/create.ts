@@ -14,6 +14,9 @@ export function create(db: Kysely<Database>) {
       .values({
         ...createdCode,
         tenant_id,
+        // Numeric twin of expires_at, indexed so retention sweeps are cheap.
+        // Not part of the Code type — storage detail only.
+        expires_at_ts: new Date(createdCode.expires_at).getTime(),
       })
       .execute();
 

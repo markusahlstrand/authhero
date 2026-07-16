@@ -178,6 +178,7 @@ import * as o079_user_activity_and_user_column_cleanup from "./2026-06-30T12:00:
 import * as o080_drop_user_activity_columns_from_users from "./2026-07-02T12:00:00_drop_user_activity_columns_from_users";
 import * as o081_tenant_operations from "./2026-07-04T12:00:00_tenant_operations";
 import * as o082_control_plane_comm_keys from "./2026-07-16T10:00:00_control_plane_comm_keys";
+import * as o083_codes_expires_at_ts from "./2026-07-16T12:00:00_codes_expires_at_ts";
 
 // These need to be in alphabetic order
 export default {
@@ -361,4 +362,5 @@ export default {
   o080_drop_user_activity_columns_from_users,
   o081_tenant_operations,
   o082_control_plane_comm_keys,
+  o083_codes_expires_at_ts,
 };
