@@ -1,5 +1,31 @@
 # authhero
 
+## 8.26.0
+
+### Minor Changes
+
+- be34110: Give `codes` a retention story so the table stops growing without bound (#1155).
+
+  `codes` rows are short-lived by design but nothing ever pruned them, so every deployment accumulated them forever — one real deployment reached ~2.5M rows of which essentially 100% were expired.
+
+  - `CodesAdapter` gains a required `cleanup(olderThan)` method, and `authhero` exports a `cleanupCodes(codes, { retentionDays })` helper to drive it from a scheduled handler, mirroring `cleanupOutbox`. **If you maintain a custom adapter, you must implement `cleanup`.**
+  - The kysely adapter gains a `2026-07-16T12:00:00_codes_expires_at_ts` migration adding an indexed numeric `expires_at_ts` twin of `expires_at`, so sweeps no longer scan the table. It prunes already-expired rows _before_ adding the index, so it stays cheap on a table that has already grown large, and backfills the small remainder.
+  - The drizzle adapter sweeps its existing indexed `expires_at` column and needs no migration. The AWS adapter is a no-op — DynamoDB already expires codes via a native `ttl`.
+
+  Scheduling `cleanupCodes` is what keeps the table in check; the migration is a one-time catch-up. See the new Data Retention deployment guide for the full set of tables that need sweeping.
+
+### Patch Changes
+
+- 3566e6c: Return 400 instead of 500 for `POST /api/v2/users` requests sent without a body
+
+  The route declared its request body without `required: true`, so `@hono/zod-openapi` installed its optional-body middleware, which only runs the zod validator when a `Content-Type` header is present. A request with no body and no `Content-Type` therefore skipped validation entirely and reached the handler with `{}`, failing later at the database layer with a NOT NULL constraint violation and surfacing as a generic 500. Marking the body as required makes the validator run unconditionally and reject such requests with a 400.
+
+- Updated dependencies [be34110]
+  - @authhero/adapter-interfaces@4.2.0
+  - @authhero/proxy@0.9.5
+  - @authhero/saml@0.4.7
+  - @authhero/widget@0.34.15
+
 ## 8.25.2
 
 ### Patch Changes
