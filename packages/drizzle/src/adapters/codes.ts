@@ -1,4 +1,4 @@
-import { eq, and, isNull, lt, count as countFn, asc, desc } from "drizzle-orm";
+import { eq, and, isNull, sql, count as countFn, asc, desc } from "drizzle-orm";
 import type { Code, ListParams } from "@authhero/adapter-interfaces";
 import { codes } from "../schema/sqlite";
 import { removeNullProperties } from "../helpers/transform";
@@ -7,6 +7,10 @@ import type { DrizzleDb } from "./types";
 
 // Fields codes.list() accepts in `q`. Excludes `tenant_id`.
 const ALLOWED_Q_FIELDS = ["code_id", "login_id"];
+
+// Rows deleted per statement by cleanup(). Small enough that a chunk's
+// RETURNING payload stays well inside D1's response limits.
+const CLEANUP_CHUNK = 500;
 
 function sqlToCode(row: any): Code {
   const { tenant_id: _, ...rest } = row;
@@ -144,14 +148,30 @@ export function createCodesAdapter(db: DrizzleDb) {
       // (`codes_expires_at_index`), and ISO-8601 compares lexicographically in
       // chronological order — so this is an indexed range scan as-is. Unlike
       // kysely, drizzle needs no numeric twin column here.
-      const results = await db
-        .delete(codes)
-        .where(lt(codes.expires_at, olderThan))
-        // Project a single column rather than whole rows: this can delete a
-        // large backlog on its first run.
-        .returning({ code_id: codes.code_id });
+      //
+      // Deleted in chunks, because the first sweep of a deployment that has
+      // been accumulating codes can face millions of rows: an unbounded
+      // `DELETE ... RETURNING` would materialize every deleted id at once and
+      // blow D1's statement/response limits, leaving the backlog uncleared.
+      // The subquery bounds each statement (SQLite has no `DELETE ... LIMIT`
+      // unless built with SQLITE_ENABLE_UPDATE_DELETE_LIMIT), and `RETURNING`
+      // is capped at CHUNK rows so counting stays cheap.
+      let total = 0;
 
-      return results.length;
+      for (;;) {
+        const deleted = await db
+          .delete(codes)
+          .where(
+            sql`rowid IN (SELECT rowid FROM ${codes} WHERE ${codes.expires_at} < ${olderThan} LIMIT ${CLEANUP_CHUNK})`,
+          )
+          .returning({ code_id: codes.code_id });
+
+        total += deleted.length;
+
+        if (deleted.length < CLEANUP_CHUNK) break;
+      }
+
+      return total;
     },
   };
 }

@@ -937,7 +937,9 @@ describe("sessionCleanup", () => {
 });
 
 describe("codes cleanup", () => {
-  async function setupTenant(data: any, id: string) {
+  type TestData = Awaited<ReturnType<typeof getTestServer>>["data"];
+
+  async function setupTenant(data: TestData, id: string) {
     await data.tenants.create({
       id,
       friendly_name: "Test Tenant",
@@ -1061,6 +1063,29 @@ describe("codes cleanup", () => {
     expect(deleted).toEqual(1);
     const remaining = await db.selectFrom("codes").selectAll().execute();
     expect(remaining.length).toEqual(0);
+  });
+
+  it("stores an unparseable expires_at as already-expired rather than failing the insert", async () => {
+    const { data, db } = await getTestServer();
+    await setupTenant(data, "tenantId");
+
+    // expires_at is only typed z.string(), so this is representable. The
+    // insert must not blow up on the bigint column, and the row must stay
+    // sweepable rather than being stranded forever.
+    await data.codes.create("tenantId", {
+      code_id: "garbage-expiry",
+      code_type: "authorization_code",
+      login_id: "login1",
+      expires_at: "not-a-date",
+    });
+
+    const row = await db
+      .selectFrom("codes")
+      .select("expires_at_ts")
+      .executeTakeFirstOrThrow();
+    expect(Number(row.expires_at_ts)).toEqual(0);
+
+    expect(await data.codes.cleanup(iso(-1000 * 60 * 60 * 24))).toEqual(1);
   });
 
   it("does not delete a live row whose expires_at_ts is missing", async () => {

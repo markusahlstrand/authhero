@@ -72,6 +72,34 @@ async function safeAddColumn(
   }
 }
 
+// Counterpart to safeAddColumn: without this, re-running against a database
+// that already has the column would skip the column but still fail here on
+// "Duplicate key name" (errno 1061), making safeAddColumn's tolerance useless.
+async function safeCreateIndex(
+  db: Kysely<Database>,
+  indexName: string,
+  tableName: string,
+  columnName: string,
+): Promise<void> {
+  try {
+    await db.schema
+      .createIndex(indexName)
+      .on(tableName)
+      .column(columnName)
+      .execute();
+  } catch (error: unknown) {
+    if (
+      error instanceof Error &&
+      (error.message.includes("1061") ||
+        error.message.toLowerCase().includes("already exists"))
+    ) {
+      migrationLog(`  Index ${indexName} already exists, skipping`);
+      return;
+    }
+    throw error;
+  }
+}
+
 async function pruneExpiredCodes(
   db: Kysely<Database>,
   dbType: "mysql" | "sqlite",
@@ -171,11 +199,12 @@ export async function up(db: Kysely<Database>): Promise<void> {
   // ---- STEP 2: add the numeric twin + its index ----
   await safeAddColumn(db, "codes", "expires_at_ts");
 
-  await db.schema
-    .createIndex("idx_codes_expires_at_ts")
-    .on("codes")
-    .column("expires_at_ts")
-    .execute();
+  await safeCreateIndex(
+    db,
+    "idx_codes_expires_at_ts",
+    "codes",
+    "expires_at_ts",
+  );
 
   // ---- STEP 3: backfill the (now small) remainder ----
   try {

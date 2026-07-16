@@ -5,7 +5,9 @@ const iso = (offsetMs: number) => new Date(Date.now() + offsetMs).toISOString();
 
 const DAY = 1000 * 60 * 60 * 24;
 
-async function setupTenant(data: any, id: string) {
+type TestData = ReturnType<typeof getTestServer>["data"];
+
+async function setupTenant(data: TestData, id: string) {
   await data.tenants.create({
     id,
     friendly_name: "Test Tenant",
@@ -47,7 +49,7 @@ describe("codes cleanup", () => {
     expect(deleted).toEqual(1);
 
     const { codes } = await data.codes.list("tenantId", {});
-    expect(codes.map((c: any) => c.code_id).sort()).toEqual([
+    expect(codes.map((c) => c.code_id).sort()).toEqual([
       "live",
       "recently-expired",
     ]);
@@ -72,6 +74,36 @@ describe("codes cleanup", () => {
     expect(deleted).toEqual(2);
     expect((await data.codes.list("tenant1", {})).codes).toEqual([]);
     expect((await data.codes.list("tenant2", {})).codes).toEqual([]);
+  });
+
+  it("sweeps a backlog larger than one chunk", async () => {
+    const { data } = getTestServer();
+    await setupTenant(data, "tenantId");
+
+    // CLEANUP_CHUNK is 500, so this spans three statements (500/500/201) and
+    // catches a loop that stops after the first chunk or fails to terminate.
+    const TOTAL = 1201;
+    for (let i = 0; i < TOTAL; i++) {
+      await data.codes.create("tenantId", {
+        code_id: `expired-${i}`,
+        code_type: "authorization_code",
+        login_id: "login1",
+        expires_at: iso(-2 * DAY),
+      });
+    }
+    // One live row that must survive the whole loop.
+    await data.codes.create("tenantId", {
+      code_id: "live",
+      code_type: "authorization_code",
+      login_id: "login1",
+      expires_at: iso(1000 * 60 * 60),
+    });
+
+    const deleted = await data.codes.cleanup(iso(-DAY));
+
+    expect(deleted).toEqual(TOTAL);
+    const { codes } = await data.codes.list("tenantId", {});
+    expect(codes.map((c) => c.code_id)).toEqual(["live"]);
   });
 
   it("returns 0 when there is nothing to sweep", async () => {
