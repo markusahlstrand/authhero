@@ -122,12 +122,22 @@ export async function tokenExchangeGrant(
     throw error;
   }
 
+  // The comparison is byte-exact and stays that way (Auth0 behaves the same).
+  // The values are public discovery data, so report both rather than only the
+  // verdict. When no tenant domain resolved from the request host, `getIssuer`
+  // silently falls back to env.ISSUER — a token minted by a subdomain-addressed
+  // tenant can then never match, and a bare "mismatch" blames the token for
+  // what is really a host that resolved no tenant. Say which one happened.
   const expectedIssuer = getIssuer(ctx.env, ctx.var.custom_domain);
   if (subjectPayload.iss !== expectedIssuer) {
-    failLog("Subject token was not issued by this server");
+    const fallbackNote = ctx.var.custom_domain
+      ? ""
+      : ` — request host '${ctx.var.host ?? "unknown"}' did not resolve to a tenant domain, so the expected issuer fell back to the configured ISSUER`;
+    const detail = `(token iss=${subjectPayload.iss ?? "none"}, expected=${expectedIssuer}${fallbackNote})`;
+    failLog(`Subject token was not issued by this server ${detail}`);
     throw new JSONHTTPException(invalidGrantStatus, {
       error: "invalid_grant",
-      error_description: "Subject token issuer mismatch",
+      error_description: `Subject token issuer mismatch ${detail}`,
     });
   }
 

@@ -23,6 +23,10 @@ const GRANT_TYPE_CHOICES = [
   { id: "password", name: "Password" },
   { id: "mfa", name: "MFA" },
   { id: "passwordless_otp", name: "Passwordless OTP" },
+  {
+    id: "urn:ietf:params:oauth:grant-type:token-exchange",
+    name: "Token Exchange",
+  },
 ];
 
 const EMAIL_VALIDATION_CHOICES = [
