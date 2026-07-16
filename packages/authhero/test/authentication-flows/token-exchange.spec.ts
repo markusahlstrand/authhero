@@ -201,6 +201,103 @@ describe("token-exchange grant (RFC 8693)", () => {
     expect(response.status).toBe(403);
     const body = (await response.json()) as ErrorResponse;
     expect(body.error).toBe("invalid_grant");
+    // Both issuers are named so the mismatch is diagnosable from the response
+    // alone — they're public discovery values, not secrets.
+    expect(body.error_description).toContain(
+      "token iss=https://other-issuer.example.com/",
+    );
+    expect(body.error_description).toContain(`expected=${ISSUER}`);
+  });
+
+  it("names the unresolved host when the expected issuer fell back to ISSUER", async () => {
+    const { oauthApp, env } = await getTestServer();
+    await seedExchangeClient(env);
+    const org = await seedOrg(env);
+    await env.data.userOrganizations.create(TENANT_ID, {
+      user_id: USER_ID,
+      organization_id: org.id,
+    });
+
+    // The scenario from the field: a subdomain-addressed tenant minted the
+    // token, but the request's host resolves no tenant, so the comparison runs
+    // against the bare-host fallback and can never match.
+    const subjectToken = await mintSubjectToken({
+      iss: "https://tenant.localhost:3000/",
+    });
+
+    const oauthClient = testClient(oauthApp, env);
+    const response = await oauthClient.oauth.token.$post(
+      // @ts-expect-error - testClient type requires both form and json
+      {
+        form: {
+          grant_type: TOKEN_EXCHANGE_GRANT,
+          subject_token: subjectToken,
+          subject_token_type: ACCESS_TOKEN_TYPE,
+          client_id: EXCHANGE_CLIENT_ID,
+          client_secret: EXCHANGE_CLIENT_SECRET,
+          organization: org.id,
+        },
+      },
+      {
+        headers: {
+          "tenant-id": TENANT_ID,
+          "x-forwarded-host": "internal.svc.example.com",
+        },
+      },
+    );
+
+    expect(response.status).toBe(403);
+    const body = (await response.json()) as ErrorResponse;
+    expect(body.error).toBe("invalid_grant");
+    expect(body.error_description).toContain(
+      "request host 'internal.svc.example.com' did not resolve to a tenant domain",
+    );
+    expect(body.error_description).toContain("fell back to the configured");
+  });
+
+  it("omits the ISSUER-fallback note when the host resolved a tenant domain", async () => {
+    const { oauthApp, env } = await getTestServer();
+    await seedExchangeClient(env);
+    const org = await seedOrg(env);
+    await env.data.userOrganizations.create(TENANT_ID, {
+      user_id: USER_ID,
+      organization_id: org.id,
+    });
+    await env.data.customDomains.create(TENANT_ID, {
+      domain: "login.example.com",
+      custom_domain_id: "custom-domain-id",
+      type: "auth0_managed_certs",
+    });
+
+    // Host resolves to a real custom domain, so the expected issuer is that
+    // domain — a mismatch here really is the token's fault.
+    const subjectToken = await mintSubjectToken({
+      iss: "https://other-issuer.example.com/",
+    });
+
+    const oauthClient = testClient(oauthApp, env);
+    const response = await oauthClient.oauth.token.$post(
+      // @ts-expect-error - testClient type requires both form and json
+      {
+        form: {
+          grant_type: TOKEN_EXCHANGE_GRANT,
+          subject_token: subjectToken,
+          subject_token_type: ACCESS_TOKEN_TYPE,
+          client_id: EXCHANGE_CLIENT_ID,
+          client_secret: EXCHANGE_CLIENT_SECRET,
+          organization: org.id,
+        },
+      },
+      { headers: { host: "login.example.com" } },
+    );
+
+    expect(response.status).toBe(403);
+    const body = (await response.json()) as ErrorResponse;
+    expect(body.error).toBe("invalid_grant");
+    expect(body.error_description).toContain(
+      "expected=https://login.example.com/",
+    );
+    expect(body.error_description).not.toContain("fell back");
   });
 
   it("rejects subject tokens that already carry an act claim (no chained exchange)", async () => {
