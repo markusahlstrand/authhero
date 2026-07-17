@@ -7,6 +7,7 @@ import {
   resolveCimdClient,
   cimdDocumentSchema,
 } from "../../../src/helpers/cimd";
+import { getEnrichedClient } from "../../../src/helpers/client";
 import { SsrfFetchOptions } from "../../../src/utils/ssrf-fetch";
 
 const CIMD_URL = "https://rp.example.com/cimd.json";
@@ -316,5 +317,57 @@ describe("/authorize with a CIMD client_id", () => {
     expect(stub).not.toBeNull();
     expect(stub?.name).toBe("Example MCP Client");
     expect(stub?.client_metadata?.cimd).toBe("true");
+  });
+});
+
+describe("getEnrichedClient recovers the CIMD tenant on state-keyed routes", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  // Regression: after a social login (e.g. Google), the browser returns to the
+  // /callback (and then /authorize/resume) route. Those routes resolve their
+  // tenant from the login-session state, not the host, so ctx.var.tenant_id is
+  // empty and connectionCallback/resumeLoginSession call getEnrichedClient with
+  // no tenant argument. For a CIMD client this used to throw
+  // "tenant_id is required to resolve a CIMD client", dead-ending the login at
+  // /u/login/identifier?error=access_denied. It must instead recover the tenant
+  // from the stub row upserted on the first /authorize.
+  it("resolves a CIMD client without a tenant hint once the stub exists", async () => {
+    const { oauthApp, env } = await getTestServer();
+    await enableCimd(env);
+    env.ALLOW_PRIVATE_OUTBOUND_FETCH = true;
+    mockFetchJson(validDocument());
+
+    // First /authorize upserts the stub row under the tenant, exactly as the
+    // real flow does before the browser is redirected out to the IdP.
+    const oauthClient = testClient(oauthApp, env);
+    await oauthClient.authorize.$get({
+      query: {
+        client_id: CIMD_URL,
+        redirect_uri: "https://rp.example.com/callback",
+        response_type: "code",
+        scope: "openid",
+        code_challenge: "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM",
+        code_challenge_method: "S256",
+        state: "xyz",
+      },
+    });
+
+    // Mirror connectionCallback/resumeLoginSession: no tenant, no fetch opts.
+    const client = await getEnrichedClient(env, CIMD_URL);
+
+    expect(client.client_id).toBe(CIMD_URL);
+    expect(client.tenant.id).toBe("tenantId");
+    expect(client.name).toBe("Example MCP Client");
+  });
+
+  it("still throws when no stub exists and no tenant is supplied", async () => {
+    const { env } = await getTestServer();
+    await enableCimd(env);
+    env.ALLOW_PRIVATE_OUTBOUND_FETCH = true;
+    mockFetchJson(validDocument());
+
+    await expect(getEnrichedClient(env, CIMD_URL)).rejects.toThrow(
+      /tenant_id is required/,
+    );
   });
 });

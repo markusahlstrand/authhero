@@ -103,8 +103,8 @@ export async function resumeLoginSession(
   // BEFORE fetching the enriched client: the client-bundle wrapper routes
   // reads by ctx.var, so without this every resume pays per-entity
   // round-trips for tenant/connections/clientConnections instead of one
-  // bundle cache hit. CIMD client_ids (https URLs) have no clients row to
-  // resolve a tenant from, so they keep the host-derived path.
+  // bundle cache hit. CIMD client_ids (https URLs) aren't looked up here;
+  // getEnrichedClient recovers their tenant from the CIMD stub row instead.
   const sessionClientId = loginSession.authParams.client_id;
   let resolvedTenantId: string | undefined;
   if (!isCimdClientId(sessionClientId)) {
