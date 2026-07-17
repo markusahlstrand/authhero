@@ -24,7 +24,9 @@ async function generateHOTP(
     false,
     ["sign"],
   );
-  const hs = new Uint8Array(await crypto.subtle.sign("HMAC", key, counterBytes));
+  const hs = new Uint8Array(
+    await crypto.subtle.sign("HMAC", key, counterBytes),
+  );
 
   // RFC 4226 §5.3 dynamic truncation: the low nibble of the last byte picks
   // the offset of a 31-bit big-endian slice.

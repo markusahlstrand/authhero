@@ -248,7 +248,9 @@ describe("createDispatchSyncDefaults", () => {
 });
 
 describe("createWfpForwardMiddleware", () => {
-  function fakeTenants(rows: Record<string, Partial<Tenant>>): TenantsDataAdapter {
+  function fakeTenants(
+    rows: Record<string, Partial<Tenant>>,
+  ): TenantsDataAdapter {
     return {
       async create() {
         throw new Error("not used");
@@ -267,9 +269,7 @@ describe("createWfpForwardMiddleware", () => {
     };
   }
 
-  function appWith(
-    middleware: ReturnType<typeof createWfpForwardMiddleware>,
-  ) {
+  function appWith(middleware: ReturnType<typeof createWfpForwardMiddleware>) {
     const app = new Hono();
     app.use("*", middleware);
     app.all("*", (c) => c.text("served-locally"));

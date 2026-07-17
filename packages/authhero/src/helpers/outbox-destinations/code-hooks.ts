@@ -83,9 +83,7 @@ export class CodeHookDestination implements EventDestination {
       const hooks = await this.listAllHooks(invocation.tenantId);
       const codeHooks = hooks.filter(
         (h) =>
-          h.enabled &&
-          h.trigger_id === invocation.triggerId &&
-          isCodeHook(h),
+          h.enabled && h.trigger_id === invocation.triggerId && isCodeHook(h),
       );
       if (codeHooks.length === 0) continue;
 

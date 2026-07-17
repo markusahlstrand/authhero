@@ -9,7 +9,10 @@ const ORGANIZATION_USAGE_CHOICES = [
 const ORGANIZATION_REQUIRE_BEHAVIOR_CHOICES = [
   { id: "no_prompt", name: "No prompt" },
   { id: "pre_login_prompt", name: "Pre-login prompt" },
-  { id: "post_login_prompt", name: "Post-login prompt (requires OIDC Conformant)" },
+  {
+    id: "post_login_prompt",
+    name: "Post-login prompt (requires OIDC Conformant)",
+  },
 ];
 
 export function OrganizationsTab() {

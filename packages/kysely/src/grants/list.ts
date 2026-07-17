@@ -1,7 +1,4 @@
-import {
-  ListParams,
-  ListGrantsResponse,
-} from "@authhero/adapter-interfaces";
+import { ListParams, ListGrantsResponse } from "@authhero/adapter-interfaces";
 import { Kysely } from "kysely";
 import { luceneFilter } from "../helpers/filter";
 import { Database } from "../db";

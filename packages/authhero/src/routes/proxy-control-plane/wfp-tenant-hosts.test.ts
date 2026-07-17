@@ -192,7 +192,12 @@ describe("createWfpTenantHostResolver", () => {
 describe("composeHostResolvers", () => {
   it("returns the first non-null hit in order", async () => {
     const a = vi.fn(async () => null);
-    const hit = { tenant_id: "t", custom_domain_id: "c", domain: "d", routes: [] };
+    const hit = {
+      tenant_id: "t",
+      custom_domain_id: "c",
+      domain: "d",
+      routes: [],
+    };
     const b = vi.fn(async () => hit as ResolvedHost);
     const c = vi.fn(async () => {
       throw new Error("unreachable");

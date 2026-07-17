@@ -67,7 +67,11 @@ export function ThemesRawEditor() {
     }
     try {
       const parsed: unknown = JSON.parse(next);
-      if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+      if (
+        typeof parsed !== "object" ||
+        parsed === null ||
+        Array.isArray(parsed)
+      ) {
         setError("Themes must be a JSON object");
         return;
       }

@@ -36,7 +36,10 @@ export function create(db: Kysely<Database>) {
     const idleExpiresAtTs = isoToDbDate(idle_expires_at);
     // Keep the parent login_session alive at least as long as this session's
     // furthest-out expiry. See the "never shorten" predicate below.
-    const newLoginSessionExpiry = Math.max(expiresAtTs ?? 0, idleExpiresAtTs ?? 0);
+    const newLoginSessionExpiry = Math.max(
+      expiresAtTs ?? 0,
+      idleExpiresAtTs ?? 0,
+    );
 
     await db.transaction().execute(async (trx) => {
       await trx

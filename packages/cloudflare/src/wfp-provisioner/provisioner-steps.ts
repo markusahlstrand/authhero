@@ -66,9 +66,7 @@ export interface TenantProvisionerSteps {
     bundleConfiguration?: string;
     workerVersion?: string;
   };
-  findOrCreateDatabase(
-    name: string,
-  ): Promise<{ id: string; created: boolean }>;
+  findOrCreateDatabase(name: string): Promise<{ id: string; created: boolean }>;
   /**
    * Reconcile migrations against the provisioner-owned tracking table
    * (`_authhero_provisioner_migrations`), including the legacy backfill

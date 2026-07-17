@@ -144,9 +144,7 @@ describe("OrganizationsAdapter", () => {
     expect(batch1.limit).toBe(2);
 
     // Walk the remaining pages via the cursor and assert full, unique coverage.
-    const seen = new Set<string>(
-      batch1.organizations.map((o: any) => o.id),
-    );
+    const seen = new Set<string>(batch1.organizations.map((o: any) => o.id));
     let from = batch1.next;
     let pages = 1;
     while (from) {

@@ -13,7 +13,9 @@ export function PasswordReset() {
         {"{{ password_reset_notification_title }}"}
       </Heading>
       <Text className="mt-0">{"{{ password_reset_notification_intro }}"}</Text>
-      <Text className="mt-3">{"{{ password_reset_notification_followup }}"}</Text>
+      <Text className="mt-3">
+        {"{{ password_reset_notification_followup }}"}
+      </Text>
     </Layout>
   );
 }

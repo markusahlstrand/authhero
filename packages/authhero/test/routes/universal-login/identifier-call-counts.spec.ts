@@ -194,7 +194,9 @@ describe("u2 identifier — adapter call counts", () => {
     expect(counts["clients.getByClientId"] ?? 0).toBeLessThanOrEqual(1);
     expect(counts["tenants.get"] ?? 0).toBeLessThanOrEqual(1);
     expect(counts["connections.list"] ?? 0).toBeLessThanOrEqual(1);
-    expect(counts["clientConnections.listByClient"] ?? 0).toBeLessThanOrEqual(1);
+    expect(counts["clientConnections.listByClient"] ?? 0).toBeLessThanOrEqual(
+      1,
+    );
     expect(counts["branding.get"] ?? 0).toBeLessThanOrEqual(1);
     expect(counts["themes.get"] ?? 0).toBeLessThanOrEqual(1);
     expect(counts["universalLoginTemplates.get"] ?? 0).toBeLessThanOrEqual(1);

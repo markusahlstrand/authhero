@@ -191,17 +191,18 @@ export async function readControlPlaneDefaults(
     : [];
 
   const hooks = project.hooks
-    ? await fetchAll<Hook>(
-        (params) => cp.hooks.list(cpId, params),
-        "hooks",
-        { cursorField: "hook_id", pageSize: 100 },
-      )
+    ? await fetchAll<Hook>((params) => cp.hooks.list(cpId, params), "hooks", {
+        cursorField: "hook_id",
+        pageSize: 100,
+      })
     : [];
 
   const emailProvider = project.emailProvider
     ? ((await cp.emailProviders.get(cpId)) ?? null)
     : null;
-  const branding = project.branding ? ((await cp.branding.get(cpId)) ?? null) : null;
+  const branding = project.branding
+    ? ((await cp.branding.get(cpId)) ?? null)
+    : null;
   const promptSettings = project.promptSettings
     ? ((await cp.promptSettings.get(cpId)) ?? null)
     : null;

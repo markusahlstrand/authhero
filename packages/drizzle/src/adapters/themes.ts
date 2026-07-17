@@ -29,8 +29,7 @@ function sqlToTheme(row: any): Theme {
   if (unflattened.fonts) {
     unflattened.fonts.body_text_bold = !!unflattened.fonts.body_text_bold;
     unflattened.fonts.buttons_text_bold = !!unflattened.fonts.buttons_text_bold;
-    unflattened.fonts.input_labels_bold =
-      !!unflattened.fonts.input_labels_bold;
+    unflattened.fonts.input_labels_bold = !!unflattened.fonts.input_labels_bold;
     unflattened.fonts.links_bold = !!unflattened.fonts.links_bold;
     unflattened.fonts.subtitle_bold = !!unflattened.fonts.subtitle_bold;
     unflattened.fonts.title_bold = !!unflattened.fonts.title_bold;

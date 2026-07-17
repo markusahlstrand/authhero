@@ -72,7 +72,11 @@ const selfHostedTiers: Tier[] = [
       "Optional SLA (separate line item)",
     ],
     cta: (
-      <ContactDialog size="lg" className="w-full" topic="Commercial / Sovereign">
+      <ContactDialog
+        size="lg"
+        className="w-full"
+        topic="Commercial / Sovereign"
+      >
         Contact us
       </ContactDialog>
     ),
@@ -128,7 +132,12 @@ const cloudTiers: Tier[] = [
       "Bundles the commercial license",
     ],
     cta: (
-      <ContactDialog variant="outline" size="lg" className="w-full" topic="Enterprise">
+      <ContactDialog
+        variant="outline"
+        size="lg"
+        className="w-full"
+        topic="Enterprise"
+      >
         Contact us
       </ContactDialog>
     ),

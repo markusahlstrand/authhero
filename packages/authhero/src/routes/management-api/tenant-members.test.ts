@@ -5,7 +5,12 @@ import type { TenantMembersBackend } from "../../tenant-members/types";
 
 function recordingBackend(): TenantMembersBackend {
   return {
-    listMembers: vi.fn(async () => ({ members: [], start: 0, limit: 25, total: 0 })),
+    listMembers: vi.fn(async () => ({
+      members: [],
+      start: 0,
+      limit: 25,
+      total: 0,
+    })),
     addMembers: vi.fn(async () => {}),
     removeMembers: vi.fn(async () => {}),
     listMemberRoles: vi.fn(async () => []),
@@ -33,7 +38,10 @@ function makeApp(
     if (vars.org_name) c.set("org_name" as never, vars.org_name as never);
     await next();
   });
-  app.route("/tenant-members", createTenantMembersRoutes(() => backend));
+  app.route(
+    "/tenant-members",
+    createTenantMembersRoutes(() => backend),
+  );
   return app;
 }
 

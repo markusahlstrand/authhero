@@ -71,11 +71,9 @@ export const serviceBindingHandler = defineHandler<Options>({
         });
       } catch (err) {
         if (isTimeoutLike(err)) {
-          return c.text(
-            `service_binding timed out after ${timeoutMs}ms`,
-            504,
-            { "x-authhero-proxy-error": "service_binding_timeout" },
-          );
+          return c.text(`service_binding timed out after ${timeoutMs}ms`, 504, {
+            "x-authhero-proxy-error": "service_binding_timeout",
+          });
         }
         return c.text("Bad gateway", 502, {
           "x-authhero-proxy-error": "service_binding_failed",

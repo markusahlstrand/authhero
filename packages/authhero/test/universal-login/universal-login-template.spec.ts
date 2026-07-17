@@ -158,9 +158,8 @@ describe("auth0:head (full-document compatibility)", () => {
 
 describe("buildHeadEssentials (full-document page layout)", () => {
   it("emits a centered body layout so a default Auth0 template isn't unstyled", async () => {
-    const { buildHeadEssentials } = await import(
-      "../../src/routes/universal-login/u2-widget-page"
-    );
+    const { buildHeadEssentials } =
+      await import("../../src/routes/universal-login/u2-widget-page");
     const head = buildHeadEssentials({
       clientName: "Acme",
       branding: { colors: { page_background: "#101010" } },

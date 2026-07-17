@@ -5,8 +5,22 @@ const Footer = () => (
         <span>© 2026 AuthHero. Open source under MIT.</span>
       </div>
       <div className="flex gap-6">
-        <a href="https://github.com/markusahlstrand/authhero" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">GitHub</a>
-        <a href="https://docs.authhero.net" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">Docs</a>
+        <a
+          href="https://github.com/markusahlstrand/authhero"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hover:text-foreground transition-colors"
+        >
+          GitHub
+        </a>
+        <a
+          href="https://docs.authhero.net"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hover:text-foreground transition-colors"
+        >
+          Docs
+        </a>
       </div>
     </div>
   </footer>

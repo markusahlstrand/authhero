@@ -108,9 +108,8 @@ export function TenantDataPage() {
         <h1 className="text-2xl font-semibold">Import / Export</h1>
         <p className="text-muted-foreground text-sm">
           Move a tenant&apos;s configuration and users between deployments.
-          Sessions,
-          refresh tokens and logs are not included; signing keys are regenerated
-          on import.
+          Sessions, refresh tokens and logs are not included; signing keys are
+          regenerated on import.
         </p>
       </div>
 

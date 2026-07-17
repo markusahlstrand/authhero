@@ -70,7 +70,10 @@ function joinIssuer(issuer: string, path: string): string {
 // URL of the generated SVG avatar for a user, served by the `/avatars`
 // endpoint. Only non-PII derived data (initials + a palette color) is encoded
 // into the URL, so it is safe to embed in tokens and API responses.
-export function getDefaultUserPicture(issuer: string, user: Partial<User>): string {
+export function getDefaultUserPicture(
+  issuer: string,
+  user: Partial<User>,
+): string {
   const initials = getAvatarInitials(user);
   const color = getAvatarColor(getAvatarSeed(user));
   return joinIssuer(

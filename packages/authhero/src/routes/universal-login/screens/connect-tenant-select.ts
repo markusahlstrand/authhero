@@ -21,10 +21,7 @@ import { getAuthCookie } from "../../../utils/cookies";
 import { RedirectException } from "../../../errors/redirect-exception";
 import { escapeHtml } from "../sanitization-utils";
 import { fetchAll } from "../../../utils/fetchAll";
-import {
-  userHasGlobalOrgAdmin,
-  userCanRegisterOnOrg,
-} from "./connect-authz";
+import { userHasGlobalOrgAdmin, userCanRegisterOnOrg } from "./connect-authz";
 
 interface ConnectConsentData {
   integration_type?: string;

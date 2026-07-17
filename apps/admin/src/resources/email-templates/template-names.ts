@@ -38,8 +38,7 @@ export const EMAIL_TEMPLATE_DEFINITIONS: ReadonlyArray<{
   {
     name: "blocked_account",
     label: "Blocked Account",
-    description:
-      "Sent when an account is blocked due to suspicious activity.",
+    description: "Sent when an account is blocked due to suspicious activity.",
   },
   {
     name: "stolen_credentials",
@@ -60,14 +59,12 @@ export const EMAIL_TEMPLATE_DEFINITIONS: ReadonlyArray<{
   {
     name: "change_password",
     label: "Change Password (Legacy)",
-    description:
-      "Legacy template kept for backwards compatibility with Auth0.",
+    description: "Legacy template kept for backwards compatibility with Auth0.",
   },
   {
     name: "password_reset",
     label: "Password Reset (Legacy)",
-    description:
-      "Legacy template kept for backwards compatibility with Auth0.",
+    description: "Legacy template kept for backwards compatibility with Auth0.",
   },
 ];
 
@@ -75,11 +72,11 @@ export const EMAIL_TEMPLATE_NAMES: ReadonlyArray<EmailTemplateName> =
   EMAIL_TEMPLATE_DEFINITIONS.map((d) => d.name);
 
 export function getTemplateLabel(name: string): string {
-  return (
-    EMAIL_TEMPLATE_DEFINITIONS.find((d) => d.name === name)?.label ?? name
-  );
+  return EMAIL_TEMPLATE_DEFINITIONS.find((d) => d.name === name)?.label ?? name;
 }
 
 export function getTemplateDescription(name: string): string {
-  return EMAIL_TEMPLATE_DEFINITIONS.find((d) => d.name === name)?.description ?? "";
+  return (
+    EMAIL_TEMPLATE_DEFINITIONS.find((d) => d.name === name)?.description ?? ""
+  );
 }

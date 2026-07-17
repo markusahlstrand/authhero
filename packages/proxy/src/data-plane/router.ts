@@ -121,9 +121,13 @@ export function createProxyDataPlaneHandler(
       // doesn't cancel the request as `outcome: exception`.
       if (defaultApp) return await defaultApp.fetch(c.req.raw);
       if (isTimeoutLike(err)) {
-        return c.text(`Resolve host timed out after ${resolveHostTimeoutMs}ms`, 504, {
-          "x-authhero-proxy-error": "resolve_host_timeout",
-        });
+        return c.text(
+          `Resolve host timed out after ${resolveHostTimeoutMs}ms`,
+          504,
+          {
+            "x-authhero-proxy-error": "resolve_host_timeout",
+          },
+        );
       }
       return c.text("Bad gateway", 502, {
         "x-authhero-proxy-error": "data_plane_error",

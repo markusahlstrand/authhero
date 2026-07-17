@@ -159,10 +159,7 @@ export function createTenantsAdapter(db: DrizzleDb) {
         return { tenants: mappedTenants };
       }
 
-      let countQuery = db
-        .select({ count: countFn() })
-        .from(tenants)
-        .$dynamic();
+      let countQuery = db.select({ count: countFn() }).from(tenants).$dynamic();
 
       if (filter) countQuery = countQuery.where(filter);
 

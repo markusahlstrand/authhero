@@ -22,9 +22,7 @@ export function create(db: Kysely<Database>) {
       const existingScope: string[] = existing.scope
         ? JSON.parse(existing.scope)
         : [];
-      const merged = Array.from(
-        new Set([...existingScope, ...requestedScope]),
-      );
+      const merged = Array.from(new Set([...existingScope, ...requestedScope]));
 
       await db
         .updateTable("grants")

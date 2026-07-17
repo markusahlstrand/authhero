@@ -30,7 +30,8 @@ function makeStack(opts: {
     },
     clients: {
       get: async (t: string, c: string) => (
-        bump(`clients.get:${t}:${c}`), { client_id: c, name: c }
+        bump(`clients.get:${t}:${c}`),
+        { client_id: c, name: c }
       ),
       getByClientId: async (c: string) => (
         bump(`clients.getByClientId:${c}`),
@@ -47,19 +48,22 @@ function makeStack(opts: {
     },
     clientConnections: {
       listByClient: async (t: string, c: string) => (
-        bump(`clientConnections.listByClient:${t}:${c}`), [{ id: "cc" }]
+        bump(`clientConnections.listByClient:${t}:${c}`),
+        [{ id: "cc" }]
       ),
       updateByClient: async () => true,
     },
     branding: {
       get: async (t: string) => (
-        bump(`branding.get:${t}`), { primary_color: "#abc" }
+        bump(`branding.get:${t}`),
+        { primary_color: "#abc" }
       ),
       set: async () => {},
     },
     resourceServers: {
       list: async (t: string) => (
-        bump(`resourceServers.list:${t}`), { resource_servers: [] }
+        bump(`resourceServers.list:${t}`),
+        { resource_servers: [] }
       ),
       update: async () => true,
     },
@@ -73,7 +77,8 @@ function makeStack(opts: {
     },
     themes: {
       get: async (t: string, id: string) => (
-        bump(`themes.get:${t}:${id}`), null
+        bump(`themes.get:${t}:${id}`),
+        null
       ),
     },
   } as unknown as DataAdapters;

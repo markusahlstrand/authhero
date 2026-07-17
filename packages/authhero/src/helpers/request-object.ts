@@ -75,9 +75,7 @@ interface JoseHeader {
 }
 
 function decodeJoseSegment<T = unknown>(segment: string): T {
-  const decoded = new TextDecoder().decode(
-    decodeBase64Url(segment),
-  );
+  const decoded = new TextDecoder().decode(decodeBase64Url(segment));
   const parsed = JSON.parse(decoded);
   if (typeof parsed !== "object" || parsed === null) {
     throw new RequestObjectVerificationError(
@@ -151,9 +149,7 @@ export async function verifyRequestObject(
   const signedInput = new Uint8Array(
     new TextEncoder().encode(`${headerSeg}.${payloadSeg}`),
   );
-  const signature = new Uint8Array(
-    decodeBase64Url(signatureSeg),
-  );
+  const signature = new Uint8Array(decodeBase64Url(signatureSeg));
 
   if (SUPPORTED_SYMMETRIC_ALGS.has(header.alg)) {
     if (!client.client_secret) {

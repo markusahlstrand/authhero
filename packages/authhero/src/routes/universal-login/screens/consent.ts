@@ -258,7 +258,10 @@ async function handleConsentSubmit(
   // the grants adapter is missing, but guard again so a direct POST can't
   // bypass it.
   if (!ctx.env.data.grants) {
-    return { error: "Consent storage is not configured", screen: await consentScreen(context) };
+    return {
+      error: "Consent storage is not configured",
+      screen: await consentScreen(context),
+    };
   }
 
   const requestedScopes =

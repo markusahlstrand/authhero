@@ -26,7 +26,9 @@ export interface WfpForwardOptions {
    * `tenant-id` header (legacy compatibility). Replace it to resolve from a
    * subdomain or custom domain. Return `undefined` to fall through locally.
    */
-  resolveTenantId?: (c: Context) => string | undefined | Promise<string | undefined>;
+  resolveTenantId?: (
+    c: Context,
+  ) => string | undefined | Promise<string | undefined>;
 }
 
 function isDispatchNamespace(value: unknown): value is DispatchNamespace {

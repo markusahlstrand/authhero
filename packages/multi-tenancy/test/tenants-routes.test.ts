@@ -290,7 +290,10 @@ describe("tenant settings: default_client_id validation", () => {
     });
   }
 
-  async function patchSettings(app: ReturnType<typeof settingsApp>, body: unknown) {
+  async function patchSettings(
+    app: ReturnType<typeof settingsApp>,
+    body: unknown,
+  ) {
     return app.request(
       "/management/tenants/settings",
       {

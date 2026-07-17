@@ -95,12 +95,7 @@ function makeData() {
           .map((r) => roles.get(r.role_id))
           .filter(Boolean);
       },
-      async create(
-        _t: string,
-        userId: string,
-        roleId: string,
-        orgId?: string,
-      ) {
+      async create(_t: string, userId: string, roleId: string, orgId?: string) {
         userRoles.push({
           user_id: userId,
           role_id: roleId,
@@ -108,12 +103,7 @@ function makeData() {
         });
         return true;
       },
-      async remove(
-        _t: string,
-        userId: string,
-        roleId: string,
-        orgId?: string,
-      ) {
+      async remove(_t: string, userId: string, roleId: string, orgId?: string) {
         const i = userRoles.findIndex(
           (r) =>
             r.user_id === userId &&
@@ -212,7 +202,10 @@ describe("local tenant-members backend", () => {
   it("assign roles is idempotent", async () => {
     await fx.backend.addMembers(TENANT, ["u1"]);
     await fx.backend.assignMemberRoles(TENANT, "u1", ["role_admin"]);
-    await fx.backend.assignMemberRoles(TENANT, "u1", ["role_admin", "role_view"]);
+    await fx.backend.assignMemberRoles(TENANT, "u1", [
+      "role_admin",
+      "role_view",
+    ]);
     const roles = await fx.backend.listMemberRoles(TENANT, "u1");
     expect(roles.map((r) => r.id).sort()).toEqual(["role_admin", "role_view"]);
   });

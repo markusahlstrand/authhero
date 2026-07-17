@@ -6,7 +6,10 @@ interface TextGenerateEffectProps {
   className?: string;
 }
 
-const TextGenerateEffect = ({ words, className = "" }: TextGenerateEffectProps) => {
+const TextGenerateEffect = ({
+  words,
+  className = "",
+}: TextGenerateEffectProps) => {
   const prefersReduced = useReducedMotion();
   const wordArray = words.split(" ");
 

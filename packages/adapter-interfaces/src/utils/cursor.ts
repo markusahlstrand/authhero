@@ -45,11 +45,7 @@ export function encodeCursor(payload: CursorPayload): string {
 export function decodeCursor(token: string): CursorPayload | null {
   try {
     const parsed = JSON.parse(decodeBase64UrlString(token));
-    if (
-      parsed &&
-      typeof parsed === "object" &&
-      typeof parsed.i === "string"
-    ) {
+    if (parsed && typeof parsed === "object" && typeof parsed.i === "string") {
       return parsed as CursorPayload;
     }
     return null;

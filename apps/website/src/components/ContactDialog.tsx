@@ -60,14 +60,22 @@ const ContactDialog = ({
       });
 
       if (!res.ok) {
-        const data = (await res.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(data?.error ?? "Something went wrong. Please try again.");
+        const data = (await res.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        throw new Error(
+          data?.error ?? "Something went wrong. Please try again.",
+        );
       }
 
       setStatus("success");
     } catch (err) {
       setStatus("error");
-      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Something went wrong. Please try again.",
+      );
     }
   };
 
@@ -88,10 +96,16 @@ const ContactDialog = ({
       <DialogContent className="sm:max-w-md">
         {status === "success" ? (
           <div className="text-center py-4">
-            <CheckCircle2 className="h-10 w-10 text-accent mx-auto mb-4" strokeWidth={1.5} />
-            <DialogTitle className="mb-2">Thanks — we'll be in touch</DialogTitle>
+            <CheckCircle2
+              className="h-10 w-10 text-accent mx-auto mb-4"
+              strokeWidth={1.5}
+            />
+            <DialogTitle className="mb-2">
+              Thanks — we'll be in touch
+            </DialogTitle>
             <DialogDescription>
-              We've got your message and someone from the team will reach out soon.
+              We've got your message and someone from the team will reach out
+              soon.
             </DialogDescription>
             <Button className="mt-6" onClick={() => setOpen(false)}>
               Done
@@ -130,7 +144,9 @@ const ContactDialog = ({
                   disabled={status === "submitting"}
                 />
               </div>
-              {status === "error" && <p className="text-sm text-destructive">{error}</p>}
+              {status === "error" && (
+                <p className="text-sm text-destructive">{error}</p>
+              )}
             </div>
 
             <DialogFooter>

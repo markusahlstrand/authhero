@@ -9,7 +9,9 @@ export function ResetEmail() {
       <Heading className="text-lg font-semibold mt-0 mb-3">
         {"{{ password_reset_title }}"}
       </Heading>
-      <Text className="mt-0">{"{{ reset_password_email_click_to_reset }}"}</Text>
+      <Text className="mt-0">
+        {"{{ reset_password_email_click_to_reset }}"}
+      </Text>
       <Section className="text-center my-6">
         <PrimaryButton href={"{{ url }}"}>
           {"{{ reset_password_email_reset }}"}

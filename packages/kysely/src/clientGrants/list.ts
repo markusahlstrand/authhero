@@ -80,7 +80,13 @@ export function list(db: Kysely<Database>) {
         { sortColumn: "created_at", sortOrder: "desc" },
       );
       const client_grants = rows.map(sqlToClientGrant);
-      return { client_grants, start: 0, limit, length: client_grants.length, next };
+      return {
+        client_grants,
+        start: 0,
+        limit,
+        length: client_grants.length,
+        next,
+      };
     }
 
     // Offset pagination.

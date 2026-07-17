@@ -36,7 +36,8 @@ export const getPostMeta = (slug: string): BlogPostMeta | undefined =>
 // dynamic import(), so a body is only fetched (from the edge cache) when that
 // post is opened — and the main bundle never grows as posts are added.
 const contentLoaders: Record<string, () => Promise<{ default: string }>> = {
-  "outbox-pattern-edge-audit-logs": () => import("./outbox-pattern-edge-audit-logs.md?raw"),
+  "outbox-pattern-edge-audit-logs": () =>
+    import("./outbox-pattern-edge-audit-logs.md?raw"),
   "rebuilding-auth0-taught-me-about-constraints": () =>
     import("./rebuilding-auth0-taught-me-about-constraints.md?raw"),
 };

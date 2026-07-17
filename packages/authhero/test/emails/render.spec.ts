@@ -22,5 +22,4 @@ describe("renderDefaultTemplate", () => {
     expect(out!.html).toContain("https://cdn.test/logo.png");
     expect(out!.html).toContain("(c) Acme");
   });
-
 });

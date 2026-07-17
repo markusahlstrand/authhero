@@ -84,9 +84,7 @@ export interface VerifiedClientAssertion {
 }
 
 function decodeJoseSegment<T = unknown>(segment: string): T {
-  const decoded = new TextDecoder().decode(
-    decodeBase64Url(segment),
-  );
+  const decoded = new TextDecoder().decode(decodeBase64Url(segment));
   const parsed = JSON.parse(decoded);
   if (typeof parsed !== "object" || parsed === null) {
     throw new ClientAssertionError(
@@ -155,9 +153,7 @@ export async function verifyClientAssertion(
   const signedInput = new Uint8Array(
     new TextEncoder().encode(`${headerSeg}.${payloadSeg}`),
   );
-  const signature = new Uint8Array(
-    decodeBase64Url(signatureSeg),
-  );
+  const signature = new Uint8Array(decodeBase64Url(signatureSeg));
 
   let method: ClientAssertionMethod;
 

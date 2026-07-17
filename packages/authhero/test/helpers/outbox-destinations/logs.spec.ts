@@ -1,8 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import type {
-  AuditEvent,
-  LogsDataAdapter,
-} from "@authhero/adapter-interfaces";
+import type { AuditEvent, LogsDataAdapter } from "@authhero/adapter-interfaces";
 import { LogsDestination } from "../../../src/helpers/outbox-destinations/logs";
 
 function makeEvent(overrides: Partial<AuditEvent> = {}): AuditEvent {
@@ -14,7 +11,11 @@ function makeEvent(overrides: Partial<AuditEvent> = {}): AuditEvent {
     category: "api",
     actor: { type: "admin", id: "admin-actor-id", email: "admin@example.com" },
     target: { type: "user", id: "auth0|deletedUser" },
-    request: { method: "DELETE", path: "/users/auth0|deletedUser", ip: "1.2.3.4" },
+    request: {
+      method: "DELETE",
+      path: "/users/auth0|deletedUser",
+      ip: "1.2.3.4",
+    },
     hostname: "localhost",
     timestamp: "2026-07-09T00:00:00.000Z",
     ...overrides,

@@ -143,7 +143,9 @@ export function createGrantsAdapter(db: DrizzleDb): GrantsAdapter {
 
       const col = sort?.sort_by ? getSortableColumn(sort.sort_by) : undefined;
       if (col) {
-        query = query.orderBy(sort?.sort_order === "desc" ? desc(col) : asc(col));
+        query = query.orderBy(
+          sort?.sort_order === "desc" ? desc(col) : asc(col),
+        );
       } else {
         query = query.orderBy(asc(grants.created_at));
       }

@@ -48,11 +48,22 @@ function makeControlPlaneData() {
         );
       },
     },
-    users: { async get(_t: string, id: string) { return users.get(id) ?? null; } },
+    users: {
+      async get(_t: string, id: string) {
+        return users.get(id) ?? null;
+      },
+    },
     roles: {
-      async get(_t: string, id: string) { return roles.get(id) ?? null; },
+      async get(_t: string, id: string) {
+        return roles.get(id) ?? null;
+      },
       async list() {
-        return { roles: [...roles.values()], start: 0, limit: 100, length: roles.size };
+        return {
+          roles: [...roles.values()],
+          start: 0,
+          limit: 100,
+          length: roles.size,
+        };
       },
     },
     userOrganizations: {
@@ -63,7 +74,12 @@ function makeControlPlaneData() {
           rows = userOrgs.filter((r) => r.organization_id === q.slice(16));
         else if (q.startsWith("user_id:"))
           rows = userOrgs.filter((r) => r.user_id === q.slice(8));
-        return { userOrganizations: rows, start: 0, limit: 100, length: rows.length };
+        return {
+          userOrganizations: rows,
+          start: 0,
+          limit: 100,
+          length: rows.length,
+        };
       },
       async create(_t: string, params: any) {
         const row = { id: `uo_${++seq}`, ...params };
@@ -79,7 +95,9 @@ function makeControlPlaneData() {
     userRoles: {
       async list(_t: string, userId: string, _p: any, orgId?: string) {
         return userRoles
-          .filter((r) => r.user_id === userId && r.organization_id === (orgId ?? ""))
+          .filter(
+            (r) => r.user_id === userId && r.organization_id === (orgId ?? ""),
+          )
           .map((r) => roles.get(r.role_id))
           .filter(Boolean);
       },
@@ -87,13 +105,23 @@ function makeControlPlaneData() {
         userRoles.push({ user_id: u, role_id: r, organization_id: o ?? "" });
         return true;
       },
-      async remove() { return true; },
+      async remove() {
+        return true;
+      },
     },
     invites: {
-      async list() { return { invites: [], start: 0, limit: 100, length: 0 }; },
-      async get() { return null; },
-      async create(_t: string, p: any) { return { ...p }; },
-      async remove() { return true; },
+      async list() {
+        return { invites: [], start: 0, limit: 100, length: 0 };
+      },
+      async get() {
+        return null;
+      },
+      async create(_t: string, p: any) {
+        return { ...p };
+      },
+      async remove() {
+        return true;
+      },
     },
   } as any;
 }
@@ -124,7 +152,10 @@ function makeApp(data = makeControlPlaneData()) {
   const root = new Hono();
   root.route(
     CONTROL_PLANE_TENANT_MEMBERS_PATH,
-    createTenantMembersControlPlaneApp({ getBackend: () => backend, authenticate }),
+    createTenantMembersControlPlaneApp({
+      getBackend: () => backend,
+      authenticate,
+    }),
   );
   return { app: root, data };
 }

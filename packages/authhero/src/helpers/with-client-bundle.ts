@@ -101,10 +101,7 @@ export function withClientBundle(
         tenantId: string,
         clientId: string,
       ): Promise<Client | null> => {
-        if (
-          tenantId === ctx.var.tenant_id &&
-          clientId === ctx.var.client_id
-        ) {
+        if (tenantId === ctx.var.tenant_id && clientId === ctx.var.client_id) {
           const bundle = await getBundle();
           if (bundle) return bundle.client;
         }
@@ -141,10 +138,7 @@ export function withClientBundle(
         tenantId: string,
         clientId: string,
       ): Promise<Connection[]> => {
-        if (
-          tenantId === ctx.var.tenant_id &&
-          clientId === ctx.var.client_id
-        ) {
+        if (tenantId === ctx.var.tenant_id && clientId === ctx.var.client_id) {
           const bundle = await getBundle();
           if (bundle) return bundle.clientConnections;
         }
@@ -189,10 +183,7 @@ export function withClientBundle(
     },
     themes: {
       ...upstream.themes,
-      get: async (
-        tenantId: string,
-        themeId: string,
-      ): Promise<Theme | null> => {
+      get: async (tenantId: string, themeId: string): Promise<Theme | null> => {
         // Only the "default" theme is bundled — that's what initJSXRoute and
         // error pages fetch on every UI render. Other themeIds are rare and
         // fall through.

@@ -259,7 +259,10 @@ describe("management-api tenant operations", () => {
     const foreignGet = await app.request(
       `/api/v2/operations/${operation.id}`,
       {
-        headers: { "tenant-id": "otherTenant", authorization: `Bearer ${token}` },
+        headers: {
+          "tenant-id": "otherTenant",
+          authorization: `Bearer ${token}`,
+        },
       },
       env,
     );
@@ -268,7 +271,10 @@ describe("management-api tenant operations", () => {
     const foreignList = await app.request(
       "/api/v2/tenants/tenantId/operations",
       {
-        headers: { "tenant-id": "otherTenant", authorization: `Bearer ${token}` },
+        headers: {
+          "tenant-id": "otherTenant",
+          authorization: `Bearer ${token}`,
+        },
       },
       env,
     );

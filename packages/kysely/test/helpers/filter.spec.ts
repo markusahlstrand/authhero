@@ -49,12 +49,7 @@ describe("luceneFilter", () => {
     // Clients (e.g. the admin UI) escape reserved chars before quoting, so a
     // value such as `auth0|abc-123` arrives as `auth0|abc\-123`. The dash must
     // be unescaped or the exact match never hits.
-    luceneFilter(
-      mockDb,
-      qb,
-      'user_id:"auth0|abc\\-123"',
-      searchableColumns,
-    );
+    luceneFilter(mockDb, qb, 'user_id:"auth0|abc\\-123"', searchableColumns);
     expect(mockQb.where).toHaveBeenCalledWith("user_id", "=", "auth0|abc-123");
   });
 
@@ -163,12 +158,7 @@ describe("luceneFilter", () => {
 
   // Quote handling tests
   it("handles quoted values", () => {
-    luceneFilter(
-      mockDb,
-      qb,
-      'email:"test@example.com"',
-      searchableColumns,
-    );
+    luceneFilter(mockDb, qb, 'email:"test@example.com"', searchableColumns);
     expect(mockQb.where).toHaveBeenCalledWith("email", "=", "test@example.com");
   });
 
@@ -202,22 +192,12 @@ describe("luceneFilter", () => {
   });
 
   it("handles quoted values with operators", () => {
-    luceneFilter(
-      mockDb,
-      qb,
-      'date:>"2023-01-01"',
-      searchableColumns,
-    );
+    luceneFilter(mockDb, qb, 'date:>"2023-01-01"', searchableColumns);
     expect(mockQb.where).toHaveBeenCalledWith("date", ">", "2023-01-01");
   });
 
   it("handles negated quoted values", () => {
-    luceneFilter(
-      mockDb,
-      qb,
-      '-email:"blocked@example.com"',
-      searchableColumns,
-    );
+    luceneFilter(mockDb, qb, '-email:"blocked@example.com"', searchableColumns);
     expect(mockQb.where).toHaveBeenCalledWith(
       "email",
       "!=",
@@ -255,12 +235,7 @@ describe("luceneFilter", () => {
 
   // Common use cases
   it("handles email searches properly", () => {
-    luceneFilter(
-      mockDb,
-      qb,
-      'email:"user@domain.com"',
-      searchableColumns,
-    );
+    luceneFilter(mockDb, qb, 'email:"user@domain.com"', searchableColumns);
     expect(mockQb.where).toHaveBeenCalledWith("email", "=", "user@domain.com");
   });
 
@@ -279,12 +254,7 @@ describe("luceneFilter", () => {
   });
 
   it("handles user ID searches with pipes", () => {
-    luceneFilter(
-      mockDb,
-      qb,
-      'user_id:"auth0|123456789"',
-      searchableColumns,
-    );
+    luceneFilter(mockDb, qb, 'user_id:"auth0|123456789"', searchableColumns);
     expect(mockQb.where).toHaveBeenCalledWith(
       "user_id",
       "=",

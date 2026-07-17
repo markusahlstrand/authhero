@@ -47,10 +47,8 @@ export async function executePasswordReset(params: {
   }
 
   // Find the password connection by strategy
-  const { connection: connectionName, connectionId } = resolvePasswordConnection(
-    client,
-    user.connection,
-  );
+  const { connection: connectionName, connectionId } =
+    resolvePasswordConnection(client, user.connection);
 
   // Validate password against connection policy
   const policy = await getPasswordPolicy(

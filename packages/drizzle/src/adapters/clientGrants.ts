@@ -150,7 +150,11 @@ export function createClientGrantsAdapter(db: DrizzleDb) {
           .where(keyset ? and(whereCondition, keyset) : whereCondition)
           .orderBy(...keysetOrderBy(cols))
           .limit(take + 1);
-        const { rows: pageRows, next } = sliceWithNext(rows, take, "created_at");
+        const { rows: pageRows, next } = sliceWithNext(
+          rows,
+          take,
+          "created_at",
+        );
         const mapped = pageRows.map(sqlToClientGrant);
         return {
           client_grants: mapped,

@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { CloudflareCache } from "../src/cache";
 
-function installFakeCaches(matchImpl: (req: Request) => Promise<Response | undefined>) {
+function installFakeCaches(
+  matchImpl: (req: Request) => Promise<Response | undefined>,
+) {
   const fakeCache: Cache = {
     async match(req) {
       return matchImpl(req as Request);
@@ -41,13 +43,19 @@ describe("CloudflareCache.get timeout", () => {
   const originalCaches = (globalThis as { caches?: CacheStorage }).caches;
 
   afterEach(() => {
-    (globalThis as unknown as { caches?: CacheStorage }).caches = originalCaches;
+    (globalThis as unknown as { caches?: CacheStorage }).caches =
+      originalCaches;
   });
 
   it("returns the cached value when match resolves within the timeout", async () => {
     installFakeCaches(async () => {
-      const body = JSON.stringify({ value: { hello: "world" }, cachedAt: new Date().toISOString() });
-      return new Response(body, { headers: { "Content-Type": "application/json" } });
+      const body = JSON.stringify({
+        value: { hello: "world" },
+        cachedAt: new Date().toISOString(),
+      });
+      return new Response(body, {
+        headers: { "Content-Type": "application/json" },
+      });
     });
     const cache = new CloudflareCache({ getTimeoutMs: 100 });
     const result = await cache.get<{ hello: string }>("key");

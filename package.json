@@ -7,6 +7,7 @@
     "dev": "pnpm --recursive --parallel --stream run dev",
     "test": "echo \"Error: no test specified\" && exit 0",
     "format": "prettier --write \"./**/*.{js,jsx,ts,tsx,json}\"",
+    "format:check": "prettier --check \"./**/*.{js,jsx,ts,tsx,json}\"",
     "manage": "pnpm --filter @authhero/manage",
     "admin": "pnpm --filter @authhero/admin",
     "authhero": "pnpm --filter authhero",
@@ -47,6 +48,7 @@
     "eslint-plugin-react": "^7.37.5",
     "globals": "^16.5.0",
     "husky": "^9.1.7",
+    "lint-staged": "^17.0.8",
     "prettier": "^3.8.3",
     "prettier-plugin-tailwindcss": "^0.7.1",
     "typescript": "^5.9.3",
@@ -62,5 +64,8 @@
       "@types/react": "19.2.15",
       "@types/react-dom": "19.2.3"
     }
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,json}": "prettier --write"
   }
 }

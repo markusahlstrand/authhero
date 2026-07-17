@@ -78,9 +78,15 @@ export function compileHostApp(
   // try/catch — `hostApp.fetch()` resolves successfully with the 500.
   app.onError((err, c) => {
     const isTimeout = isTimeoutLike(err);
-    return c.text(isTimeout ? "Upstream timeout" : "Bad gateway", isTimeout ? 504 : 502, {
-      "x-authhero-proxy-error": isTimeout ? "handler_timeout" : "handler_failed",
-    });
+    return c.text(
+      isTimeout ? "Upstream timeout" : "Bad gateway",
+      isTimeout ? 504 : 502,
+      {
+        "x-authhero-proxy-error": isTimeout
+          ? "handler_timeout"
+          : "handler_failed",
+      },
+    );
   });
 
   return app;

@@ -731,8 +731,9 @@ export class AuthheroNode {
     if (useGroups) {
       for (let start = 0; start < length; start += groupSize) {
         groups.push(
-          Array.from({ length: Math.min(groupSize, length - start) }, (_, j) =>
-            start + j,
+          Array.from(
+            { length: Math.min(groupSize, length - start) },
+            (_, j) => start + j,
           ),
         );
       }
@@ -764,9 +765,7 @@ export class AuthheroNode {
             disabled={this.disabled}
             aria-label={component.label}
             aria-invalid={hasError ? "true" : "false"}
-            onInput={(e) =>
-              this.handleCodeInput(e, length, mode, autoSubmit)
-            }
+            onInput={(e) => this.handleCodeInput(e, length, mode, autoSubmit)}
             onKeyDown={this.handleKeyDown}
           />
           <div class="code-boxes" part="code-boxes" aria-hidden="true">

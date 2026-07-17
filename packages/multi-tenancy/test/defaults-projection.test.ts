@@ -141,7 +141,9 @@ describe("projectControlPlaneDefaults", () => {
     const result = await projectControlPlaneDefaults(ctx.config, "t1");
     expect(result.resourceServers.upserted).toBe(1);
 
-    expect(await ctx.tenantData.resourceServers.get(CP, "rs-sys")).not.toBeNull();
+    expect(
+      await ctx.tenantData.resourceServers.get(CP, "rs-sys"),
+    ).not.toBeNull();
     expect(await ctx.tenantData.resourceServers.get(CP, "rs-user")).toBeNull();
   });
 

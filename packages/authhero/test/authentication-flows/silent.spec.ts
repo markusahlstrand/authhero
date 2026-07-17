@@ -522,23 +522,20 @@ describe("silent", () => {
 
     // Interactive password login recorded the strategy on the originating
     // login session.
-    const originLoginSession = await env.data.loginSessions.create(
-      "tenantId",
-      {
-        expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
-        csrf_token: "csrfToken",
-        authParams: {
-          client_id: "clientId",
-          redirect_uri: "https://example.com/callback",
-          response_type: AuthorizationResponseType.CODE,
-        },
-        auth_connection: "Username-Password-Authentication",
-        auth_strategy: {
-          strategy: "Username-Password-Authentication",
-          strategy_type: "database",
-        },
+    const originLoginSession = await env.data.loginSessions.create("tenantId", {
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      csrf_token: "csrfToken",
+      authParams: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+        response_type: AuthorizationResponseType.CODE,
       },
-    );
+      auth_connection: "Username-Password-Authentication",
+      auth_strategy: {
+        strategy: "Username-Password-Authentication",
+        strategy_type: "database",
+      },
+    });
 
     const sessionExpiresAt = new Date(
       Date.now() + 30 * 24 * 3600 * 1000,

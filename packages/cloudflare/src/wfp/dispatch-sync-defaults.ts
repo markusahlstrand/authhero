@@ -78,9 +78,9 @@ export function createDispatchSyncDefaults(
 
     let response: Response;
     try {
-      response = await dispatcher.get(scriptName).fetch(
-        `https://tenant.internal${SYNC_PATH}`,
-        {
+      response = await dispatcher
+        .get(scriptName)
+        .fetch(`https://tenant.internal${SYNC_PATH}`, {
           method: "POST",
           headers: {
             "content-type": "application/json",
@@ -88,8 +88,7 @@ export function createDispatchSyncDefaults(
           },
           body: JSON.stringify(payload),
           signal: controller.signal,
-        },
-      );
+        });
     } finally {
       clearTimeout(timer);
     }

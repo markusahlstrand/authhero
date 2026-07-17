@@ -95,7 +95,11 @@ export function createActionVersionsAdapter(
           // rows. Live creates still touch updated_at_ts as before.
           await trx
             .updateTable("action_versions")
-            .set(importMetadata ? { deployed: 0 } : { deployed: 0, updated_at_ts: now })
+            .set(
+              importMetadata
+                ? { deployed: 0 }
+                : { deployed: 0, updated_at_ts: now },
+            )
             .where("tenant_id", "=", tenant_id)
             .where("action_id", "=", version.action_id)
             .execute();
