@@ -52,21 +52,30 @@ export async function up(db: Kysely<Database>): Promise<void> {
 
     // 2. Delete duplicates, keeping the smallest user_id per group. The
     //    row-value sub-query is compatible with both MySQL and SQLite.
+    //
+    //    Each sub-query reads `users`, the same table the DELETE modifies,
+    //    which MySQL rejects with ER_UPDATE_TABLE_USED (1093). Wrapping each
+    //    one in an outer SELECT forces it into a materialized derived table,
+    //    so the read finishes before the delete touches a row.
     await sql`
       DELETE FROM users
       WHERE phone_number IS NOT NULL
         AND (user_id, tenant_id) NOT IN (
-          SELECT MIN(user_id), tenant_id
-          FROM users
-          WHERE phone_number IS NOT NULL
-          GROUP BY phone_number, provider, tenant_id
+          SELECT keep.user_id, keep.tenant_id FROM (
+            SELECT MIN(user_id) AS user_id, tenant_id
+            FROM users
+            WHERE phone_number IS NOT NULL
+            GROUP BY phone_number, provider, tenant_id
+          ) AS keep
         )
         AND (phone_number, provider, tenant_id) IN (
-          SELECT phone_number, provider, tenant_id
-          FROM users
-          WHERE phone_number IS NOT NULL
-          GROUP BY phone_number, provider, tenant_id
-          HAVING COUNT(*) > 1
+          SELECT dupes.phone_number, dupes.provider, dupes.tenant_id FROM (
+            SELECT phone_number, provider, tenant_id
+            FROM users
+            WHERE phone_number IS NOT NULL
+            GROUP BY phone_number, provider, tenant_id
+            HAVING COUNT(*) > 1
+          ) AS dupes
         )
     `.execute(db);
 
