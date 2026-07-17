@@ -34,9 +34,8 @@ import { Database } from "../../src/db";
  *
  * Otherwise this file is a snapshot and nothing else: anything that landed
  * after the snapshot was captured stays a migration of its own on top of it —
- * 2026-07-16T15:00:00_codes_expires_at_ts (a column production has yet to get)
- * and 2026-07-16T16:00:00_restore_unique_phone_provider (a constraint declared
- * since the first migration that production has somehow lost).
+ * e.g. 2026-07-16T15:00:00_codes_expires_at_ts (a column production has yet to
+ * get).
  *
  * Charset/collation are left to the server (production is uniformly utf8mb4 /
  * utf8mb4_0900_ai_ci on InnoDB DYNAMIC — the MySQL 8 default).

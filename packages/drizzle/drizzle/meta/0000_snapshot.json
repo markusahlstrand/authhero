@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "f5a5b35e-cf8e-4fe4-afe9-ec2d33b03c33",
+  "id": "f612da20-cbcd-43bf-819f-2d1d5a3beb5e",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "tenants": {
@@ -1079,15 +1079,6 @@
           "name": "unique_email_provider",
           "columns": [
             "email",
-            "provider",
-            "tenant_id"
-          ],
-          "isUnique": true
-        },
-        "unique_phone_provider": {
-          "name": "unique_phone_provider",
-          "columns": [
-            "phone_number",
             "provider",
             "tenant_id"
           ],
@@ -3045,6 +3036,122 @@
           "name": "clients_tenant_id_client_id"
         }
       },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "grants": {
+      "name": "grants",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text(21)",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "client_id": {
+          "name": "client_id",
+          "type": "text(100)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "audience": {
+          "name": "audience",
+          "type": "text(100)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "''"
+        },
+        "scope": {
+          "name": "scope",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'[]'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text(35)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text(35)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "grants_natural_key_idx": {
+          "name": "grants_natural_key_idx",
+          "columns": [
+            "tenant_id",
+            "user_id",
+            "client_id",
+            "audience"
+          ],
+          "isUnique": true
+        },
+        "grants_tenant_user_idx": {
+          "name": "grants_tenant_user_idx",
+          "columns": [
+            "tenant_id",
+            "user_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "grants_tenant_id_tenants_id_fk": {
+          "name": "grants_tenant_id_tenants_id_fk",
+          "tableFrom": "grants",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "grants_user_id_constraint": {
+          "name": "grants_user_id_constraint",
+          "tableFrom": "grants",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id",
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "user_id",
+            "tenant_id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
     },

@@ -1,7 +1,7 @@
 import { HTTPException } from "hono/http-exception";
 import { userIdGenerate, userIdParse } from "../../utils/user-id";
 import { Bindings, Variables } from "../../types";
-import { getUsersByEmail } from "../../helpers/users";
+import { getUsersByEmail, getUserByProvider } from "../../helpers/users";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { querySchema } from "../../types/auth0/Query";
 import { parseSort } from "../../utils/sort";
@@ -438,6 +438,27 @@ const postRoot = defineRoute({
     const rawUserId = body["user_id"];
     const idPart = rawUserId ? userIdParse(rawUserId) : userIdGenerate();
     const user_id = `${provider}|${idPart}`;
+
+    // A phone number only *identifies* a user on the passwordless `sms`
+    // connection, so uniqueness is enforced here (Auth0-style, at lookup)
+    // rather than by a database constraint spanning every provider — for
+    // non-sms providers the phone is ordinary profile data that people
+    // legitimately share (see #1162). Mirrors the resolve-to-existing check
+    // the login flow does in getOrCreateUserByProvider.
+    if (provider === "sms" && phone_number) {
+      const existingSmsUser = await getUserByProvider({
+        userAdapter: ctx.env.data.users,
+        tenant_id: tenantId,
+        username: phone_number,
+        provider: "sms",
+      });
+
+      if (existingSmsUser) {
+        throw new HTTPException(409, {
+          message: "User already exists",
+        });
+      }
+    }
 
     try {
       // Hash password if provided for atomic creation
