@@ -10,9 +10,7 @@
  * attempting a normal front-channel OAuth response (which would dead-end on
  * the missing redirect_uri).
  */
-export function isConnectLoginSession(
-  stateDataJson?: string | null,
-): boolean {
+export function isConnectLoginSession(stateDataJson?: string | null): boolean {
   if (!stateDataJson) return false;
   try {
     const parsed = JSON.parse(stateDataJson) as { connect?: unknown };

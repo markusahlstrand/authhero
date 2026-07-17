@@ -38,7 +38,8 @@ function toColumns(activity: UserActivityUpdate): {
     failed_logins?: string;
     last_password_reset?: string;
   } = {};
-  if (activity.last_login !== undefined) columns.last_login = activity.last_login;
+  if (activity.last_login !== undefined)
+    columns.last_login = activity.last_login;
   if (activity.last_ip !== undefined) columns.last_ip = activity.last_ip;
   if (activity.login_count !== undefined)
     columns.login_count = activity.login_count;

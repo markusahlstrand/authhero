@@ -21,7 +21,9 @@ export function addBundleWritePurge(
   keyPrefix?: string,
 ): DataAdapters {
   const purgeClient = (tenantId: string, clientId: string) =>
-    cache.delete(clientBundleKey(tenantId, clientId, keyPrefix)).catch(() => {});
+    cache
+      .delete(clientBundleKey(tenantId, clientId, keyPrefix))
+      .catch(() => {});
 
   const purgeTenant = (tenantId: string) => {
     const prefix = `${keyPrefix ?? "client-bundle"}:${tenantId}:`;

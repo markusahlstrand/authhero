@@ -15,7 +15,10 @@ export interface PostLoaderData {
 }
 
 const isPostLoaderData = (value: unknown): value is PostLoaderData =>
-  typeof value === "object" && value !== null && "meta" in value && "content" in value;
+  typeof value === "object" &&
+  value !== null &&
+  "meta" in value &&
+  "content" in value;
 
 const BlogPost = () => {
   const raw = useLoaderData();
@@ -69,7 +72,9 @@ const BlogPost = () => {
             </p>
           ) : (
             <div className="prose prose-neutral max-w-none prose-headings:font-semibold prose-headings:tracking-tight prose-a:text-accent prose-a:font-normal prose-code:before:content-none prose-code:after:content-none prose-blockquote:border-l-accent prose-blockquote:not-italic prose-blockquote:font-normal prose-blockquote:text-foreground">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {content}
+              </ReactMarkdown>
             </div>
           )}
         </FadeIn>

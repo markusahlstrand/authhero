@@ -68,8 +68,7 @@ export function createActionExecutionsAdapter(
         tenant_id: row.tenant_id,
         trigger_id: row.trigger_id,
         status: row.status as ActionExecutionStatus,
-        results:
-          parseJsonIfString<ActionExecutionResult[]>(row.results) ?? [],
+        results: parseJsonIfString<ActionExecutionResult[]>(row.results) ?? [],
         logs: parseJsonIfString<ActionExecutionLogs>(row.logs),
         created_at: new Date(Number(row.created_at_ts)).toISOString(),
         updated_at: new Date(Number(row.updated_at_ts)).toISOString(),

@@ -76,7 +76,9 @@ function ClientLoginLink() {
 
   return (
     <a
-      href={tenantId ? buildAuthorizeUrl(getTokenBaseUrl(tenantId), clientId) : "#"}
+      href={
+        tenantId ? buildAuthorizeUrl(getTokenBaseUrl(tenantId), clientId) : "#"
+      }
       target="_blank"
       rel="noopener noreferrer"
       onClick={(e) => {

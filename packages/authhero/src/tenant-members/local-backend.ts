@@ -1,7 +1,4 @@
-import {
-  DataAdapters,
-  Organization,
-} from "@authhero/adapter-interfaces";
+import { DataAdapters, Organization } from "@authhero/adapter-interfaces";
 import { generateInviteId } from "../utils/entity-id";
 import { getDefaultUserPicture } from "../helpers/avatar";
 import {

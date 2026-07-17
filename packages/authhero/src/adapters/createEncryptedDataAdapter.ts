@@ -214,7 +214,10 @@ function wrapConnections(
     create: async (tenant_id, params) => {
       const codec = codecFor(tenant_id);
       return mapConnection(
-        await base.create(tenant_id, await mapConnection(params, codec.encrypt)),
+        await base.create(
+          tenant_id,
+          await mapConnection(params, codec.encrypt),
+        ),
         codec.decrypt,
       );
     },
@@ -304,7 +307,10 @@ function wrapAuthenticationMethods(
     create: async (tenant_id, method) => {
       const codec = codecFor(tenant_id);
       return mapTotpSecret(
-        await base.create(tenant_id, await mapTotpSecret(method, codec.encrypt)),
+        await base.create(
+          tenant_id,
+          await mapTotpSecret(method, codec.encrypt),
+        ),
         codec.decrypt,
       );
     },

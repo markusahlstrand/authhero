@@ -143,9 +143,8 @@ export function wrapProxyAdaptersWithKvPublish(
   };
 
   if (customDomains.uploadCertificate) {
-    const uploadCertificate = customDomains.uploadCertificate.bind(
-      customDomains,
-    );
+    const uploadCertificate =
+      customDomains.uploadCertificate.bind(customDomains);
     wrappedCustomDomains.uploadCertificate = async (tenant_id, id, cert) => {
       const result = await uploadCertificate(tenant_id, id, cert);
       publish(result.domain, "custom_domain.uploadCertificate");

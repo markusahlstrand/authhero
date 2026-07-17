@@ -60,9 +60,13 @@ export function createProxyApp(options: ProxyAppOptions): Hono {
   // CF runtime turns into `outcome: exception`.
   app.onError((err, c) => {
     const isTimeout = isTimeoutLike(err);
-    return c.text(isTimeout ? "Proxy timeout" : "Bad gateway", isTimeout ? 504 : 502, {
-      "x-authhero-proxy-error": isTimeout ? "proxy_timeout" : "proxy_error",
-    });
+    return c.text(
+      isTimeout ? "Proxy timeout" : "Bad gateway",
+      isTimeout ? 504 : 502,
+      {
+        "x-authhero-proxy-error": isTimeout ? "proxy_timeout" : "proxy_error",
+      },
+    );
   });
 
   return app;

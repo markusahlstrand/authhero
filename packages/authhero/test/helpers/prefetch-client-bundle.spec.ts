@@ -112,7 +112,9 @@ function makeStack(sharedCache?: ReturnType<typeof createInMemoryCache>) {
     cacheEntities: stableEntities,
     cache,
   });
-  const deduped = addRequestScopedDedup(cached, { dedupEntities: stableEntities });
+  const deduped = addRequestScopedDedup(cached, {
+    dedupEntities: stableEntities,
+  });
   const bundled = withClientBundle(ctx, deduped, cache);
   ctx.env.data = bundled;
 

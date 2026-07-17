@@ -183,7 +183,11 @@ export function createOrganizationsAdapter(db: DrizzleDb) {
           .where(keyset ? and(whereClause, keyset) : whereClause)
           .orderBy(...keysetOrderBy(cols))
           .limit(take + 1);
-        const { rows: pageRows, next } = sliceWithNext(rows, take, "created_at");
+        const { rows: pageRows, next } = sliceWithNext(
+          rows,
+          take,
+          "created_at",
+        );
         const mapped = pageRows.map(sqlToOrganization);
         return {
           organizations: mapped,
@@ -195,11 +199,7 @@ export function createOrganizationsAdapter(db: DrizzleDb) {
         };
       }
 
-      let query = db
-        .select()
-        .from(organizations)
-        .where(whereClause)
-        .$dynamic();
+      let query = db.select().from(organizations).where(whereClause).$dynamic();
 
       if (sort?.sort_by) {
         const col = (organizations as any)[sort.sort_by];

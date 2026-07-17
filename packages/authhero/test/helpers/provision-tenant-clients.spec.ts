@@ -73,9 +73,7 @@ describe("provisionDefaultClients", () => {
       env.data.clientGrants
         .list("tenantId", { per_page: 100 })
         .then(({ client_grants }) =>
-          client_grants
-            .map((g) => `${g.client_id}:${g.audience}`)
-            .sort(),
+          client_grants.map((g) => `${g.client_id}:${g.audience}`).sort(),
         );
 
     const first = await provisionDefaultClients(env.data, "tenantId", {
@@ -121,9 +119,7 @@ describe("provisionDefaultClients", () => {
     const { client_grants } = await env.data.clientGrants.list("tenantId", {
       per_page: 100,
     });
-    const grant = client_grants.find(
-      (g) => g.client_id === orphan.client_id,
-    );
+    const grant = client_grants.find((g) => g.client_id === orphan.client_id);
     expect(grant?.audience).toBe(MANAGEMENT_AUDIENCE);
   });
 

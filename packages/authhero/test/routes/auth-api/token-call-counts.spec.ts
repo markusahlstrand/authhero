@@ -55,7 +55,9 @@ describe("token — adapter call counts", () => {
     expect(counts["clients.get"] ?? 0).toBeLessThanOrEqual(1);
     expect(counts["clients.getByClientId"] ?? 0).toBeLessThanOrEqual(1);
     expect(counts["connections.list"] ?? 0).toBeLessThanOrEqual(1);
-    expect(counts["clientConnections.listByClient"] ?? 0).toBeLessThanOrEqual(1);
+    expect(counts["clientConnections.listByClient"] ?? 0).toBeLessThanOrEqual(
+      1,
+    );
     expect(counts["branding.get"] ?? 0).toBeLessThanOrEqual(1);
     expect(counts["resourceServers.list"] ?? 0).toBeLessThanOrEqual(1);
     expect(counts["promptSettings.get"] ?? 0).toBeLessThanOrEqual(1);

@@ -94,9 +94,9 @@ describe("CodeHookDestination", () => {
     const dest = new CodeHookDestination(data, makeExecutor());
 
     expect(dest.accepts(makeEvent())).toBe(true);
-    expect(dest.accepts(makeEvent({ event_type: "hook.post-user-deletion" }))).toBe(
-      true,
-    );
+    expect(
+      dest.accepts(makeEvent({ event_type: "hook.post-user-deletion" })),
+    ).toBe(true);
     expect(dest.accepts(makeEvent({ event_type: "user.created" }))).toBe(false);
   });
 
@@ -121,7 +121,10 @@ describe("CodeHookDestination", () => {
     const execArg = executor.execute.mock.calls[0][0];
     expect(execArg.triggerId).toBe("post-user-registration");
     // The serialized user snapshot comes from the audit event's target.after.
-    expect(execArg.event.user).toEqual({ user_id: "user-1", email: "a@b.test" });
+    expect(execArg.event.user).toEqual({
+      user_id: "user-1",
+      email: "a@b.test",
+    });
     // The outbox event id is exposed for at-least-once dedupe.
     expect(execArg.event.idempotency_key).toBe("evt-1");
 
@@ -132,7 +135,12 @@ describe("CodeHookDestination", () => {
 
   it("skips webhook (url) hooks and hooks for other triggers", async () => {
     const { data } = makeData([
-      { hook_id: "w1", url: "https://x.test", enabled: true, trigger_id: "post-user-registration" },
+      {
+        hook_id: "w1",
+        url: "https://x.test",
+        enabled: true,
+        trigger_id: "post-user-registration",
+      },
       { ...codeHook, trigger_id: "post-user-login" },
       { ...codeHook, hook_id: "h2", code_id: "code-2", enabled: false },
     ]);

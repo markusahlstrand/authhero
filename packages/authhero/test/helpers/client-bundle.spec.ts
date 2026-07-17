@@ -46,7 +46,8 @@ function makeData(): {
     tenants: { get: async (id: string) => (bump("tenants.get"), { id }) },
     clients: {
       get: async (_t: string, c: string) => (
-        bump("clients.get"), { client_id: c }
+        bump("clients.get"),
+        { client_id: c }
       ),
     },
     connections: {
@@ -57,7 +58,10 @@ function makeData(): {
     },
     branding: { get: async () => (bump("branding.get"), null) },
     resourceServers: {
-      list: async () => (bump("resourceServers.list"), { resource_servers: [] }),
+      list: async () => (
+        bump("resourceServers.list"),
+        { resource_servers: [] }
+      ),
     },
     promptSettings: { get: async () => (bump("promptSettings.get"), null) },
     hooks: { list: async () => (bump("hooks.list"), { hooks: [] }) },

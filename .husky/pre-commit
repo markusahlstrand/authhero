@@ -6,6 +6,10 @@ if ! command -v gitleaks >/dev/null 2>&1; then
 fi
 gitleaks protect --staged --verbose --redact
 
+# Format staged files and re-stage them, so formatting never accumulates into
+# unrelated diffs. Runs before the build so what is tested is what is committed.
+pnpm exec lint-staged
+
 # Build every workspace package in dependency order. pnpm -r resolves the
 # topological order from workspace deps, so a package's dist/*.d.ts always
 # exist before the next package type-checks against them (the manual ordered

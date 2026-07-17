@@ -23,9 +23,7 @@ export class CloudflareApiError extends Error {
     body: string,
     errors: unknown[] = [],
   ) {
-    super(
-      `Cloudflare API ${status} ${endpoint}: ${truncate(body, 256)}`,
-    );
+    super(`Cloudflare API ${status} ${endpoint}: ${truncate(body, 256)}`);
     this.name = "CloudflareApiError";
     this.status = status;
     this.endpoint = endpoint;
@@ -97,10 +95,9 @@ export class CloudflareApiClient {
     this.fetchImpl =
       options.fetch ?? ((...args: Parameters<typeof fetch>) => fetch(...args));
     this.timeoutMs = options.timeoutMs ?? 30_000;
-    this.baseUrl = (options.baseUrl ?? "https://api.cloudflare.com/client/v4").replace(
-      /\/+$/,
-      "",
-    );
+    this.baseUrl = (
+      options.baseUrl ?? "https://api.cloudflare.com/client/v4"
+    ).replace(/\/+$/, "");
   }
 
   // ─── D1 ───────────────────────────────────────────────────────────────
@@ -225,7 +222,11 @@ export class CloudflareApiClient {
     };
     // Default JSON content-type unless the body is FormData (browser sets the
     // boundary header) or there's no body.
-    if (init?.body && !(init.body instanceof FormData) && !headers["Content-Type"]) {
+    if (
+      init?.body &&
+      !(init.body instanceof FormData) &&
+      !headers["Content-Type"]
+    ) {
       headers["Content-Type"] = "application/json";
     }
     let res: Response;

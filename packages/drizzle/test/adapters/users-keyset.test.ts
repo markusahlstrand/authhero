@@ -77,7 +77,9 @@ describe("users keyset pagination (from/take)", () => {
     // Seeded rows share created_at (second resolution), so ordering must be
     // lexicographic on the full (created_at, user_id) keyset, not just the
     // sort column.
-    const assertAscending = (rows: { created_at: string; user_id: string }[]) => {
+    const assertAscending = (
+      rows: { created_at: string; user_id: string }[],
+    ) => {
       for (let i = 1; i < rows.length; i++) {
         const prev = rows[i - 1];
         const cur = rows[i];

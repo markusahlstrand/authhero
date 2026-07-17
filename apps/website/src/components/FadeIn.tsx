@@ -18,7 +18,13 @@ const FadeIn = ({ children, delay = 0, className = "" }: FadeInProps) => {
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-50px" }}
-      transition={{ duration: 0.5, delay, type: "spring", stiffness: 100, damping: 20 }}
+      transition={{
+        duration: 0.5,
+        delay,
+        type: "spring",
+        stiffness: 100,
+        damping: 20,
+      }}
       className={className}
     >
       {children}

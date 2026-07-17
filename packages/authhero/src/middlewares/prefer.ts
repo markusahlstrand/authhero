@@ -26,29 +26,27 @@ function parsePreferHeader(value: string | undefined): Set<PreferToken> {
   return tokens;
 }
 
-export const preferMiddleware: MiddlewareHandler<{ Variables: Variables }> =
-  async (ctx, next) => {
-    const requested = parsePreferHeader(ctx.req.header("prefer"));
-    const applied = new Set<PreferToken>();
+export const preferMiddleware: MiddlewareHandler<{
+  Variables: Variables;
+}> = async (ctx, next) => {
+  const requested = parsePreferHeader(ctx.req.header("prefer"));
+  const applied = new Set<PreferToken>();
 
-    const state: PreferState = {
-      has: (token) => requested.has(token),
-      applied: (token) => {
-        applied.add(token);
-      },
-      appliedTokens: () => Array.from(applied),
-    };
-
-    ctx.set("prefer", state);
-
-    await next();
-
-    if (applied.size > 0) {
-      // The response may be a received (immutable) one — normalize before write.
-      ensureMutableResponse(ctx);
-      ctx.res.headers.set(
-        "Preference-Applied",
-        Array.from(applied).join(", "),
-      );
-    }
+  const state: PreferState = {
+    has: (token) => requested.has(token),
+    applied: (token) => {
+      applied.add(token);
+    },
+    appliedTokens: () => Array.from(applied),
   };
+
+  ctx.set("prefer", state);
+
+  await next();
+
+  if (applied.size > 0) {
+    // The response may be a received (immutable) one — normalize before write.
+    ensureMutableResponse(ctx);
+    ctx.res.headers.set("Preference-Applied", Array.from(applied).join(", "));
+  }
+};

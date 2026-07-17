@@ -220,7 +220,9 @@ describe("universal-login auth form rendering", () => {
     ).toMatchSnapshot();
   });
   it("ForgotPasswordForm", () => {
-    expect(renderHonoComponent(ForgotPasswordForm, { ...base })).toMatchSnapshot();
+    expect(
+      renderHonoComponent(ForgotPasswordForm, { ...base }),
+    ).toMatchSnapshot();
   });
   it("LoginForm", () => {
     expect(

@@ -43,7 +43,10 @@ export function SessionShow() {
             <RecordField source="device.last_ip" label="Last IP">
               <TextField source="device.last_ip" />
             </RecordField>
-            <RecordField source="device.last_user_agent" label="Last user agent">
+            <RecordField
+              source="device.last_user_agent"
+              label="Last user agent"
+            >
               <TextField source="device.last_user_agent" />
             </RecordField>
           </SimpleShowLayout>

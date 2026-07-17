@@ -1,4 +1,8 @@
-import { Client, ClientGrant, DataAdapters } from "@authhero/adapter-interfaces";
+import {
+  Client,
+  ClientGrant,
+  DataAdapters,
+} from "@authhero/adapter-interfaces";
 import { nanoid } from "nanoid";
 import { MANAGEMENT_API_AUDIENCE } from "../middlewares/authentication";
 
@@ -215,7 +219,12 @@ async function ensureManagementClient(
     // A partial seed can leave the management client present but without its
     // grant, so it can't mint Management API tokens. Recreate the grant when
     // it's missing rather than trusting the client's mere existence.
-    await ensureManagementApiGrant(adapters, tenantId, existing.client_id, opts);
+    await ensureManagementApiGrant(
+      adapters,
+      tenantId,
+      existing.client_id,
+      opts,
+    );
     return existing.client_id;
   }
 

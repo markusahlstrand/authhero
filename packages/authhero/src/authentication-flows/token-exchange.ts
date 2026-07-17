@@ -7,7 +7,11 @@ import { safeCompare } from "../utils/safe-compare";
 import { getEnrichedClient } from "../helpers/client";
 import { MANAGEMENT_API_AUDIENCE } from "../middlewares/authentication";
 import { logMessage } from "../helpers/logging";
-import { JwtExpiredError, validateJwtToken, type JwtPayload } from "../utils/jwt";
+import {
+  JwtExpiredError,
+  validateJwtToken,
+  type JwtPayload,
+} from "../utils/jwt";
 import { getIssuer } from "../variables";
 
 const SUBJECT_TOKEN_TYPE_ACCESS_TOKEN =
@@ -82,10 +86,7 @@ export async function tokenExchangeGrant(
   // Gate on the exchanging client's organization_usage. Defaults to "deny",
   // so freshly registered (DCR'd) clients can't perform token exchange until
   // an admin explicitly flips them to "allow" or "require".
-  if (
-    !client.organization_usage ||
-    client.organization_usage === "deny"
-  ) {
+  if (!client.organization_usage || client.organization_usage === "deny") {
     failLog("Client is not permitted to request organization context");
     throw new JSONHTTPException(403, {
       error: "unauthorized_client",
@@ -238,7 +239,9 @@ export async function tokenExchangeGrant(
     (rs) => rs.identifier === requestedAudience,
   );
   if (!resourceServer) {
-    failLog(`Audience '${requestedAudience}' is not a registered resource server`);
+    failLog(
+      `Audience '${requestedAudience}' is not a registered resource server`,
+    );
     throw new JSONHTTPException(400, {
       error: "invalid_request",
       error_description: "audience is not a registered resource server",
@@ -305,8 +308,7 @@ export async function tokenExchangeGrant(
       );
       throw new JSONHTTPException(403, {
         error: "access_denied",
-        error_description:
-          "User is not a member of the specified organization",
+        error_description: "User is not a member of the specified organization",
       });
     }
   }

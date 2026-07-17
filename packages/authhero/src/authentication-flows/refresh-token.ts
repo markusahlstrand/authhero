@@ -421,10 +421,7 @@ export async function refreshTokenGrant(
       outgoingWireToken = formatRefreshToken(lookup, secret);
     }
 
-    if (
-      refreshToken.idle_expires_at &&
-      client.tenant.idle_session_lifetime
-    ) {
+    if (refreshToken.idle_expires_at && client.tenant.idle_session_lifetime) {
       const idleExpiresAt = new Date(
         Date.now() + client.tenant.idle_session_lifetime * 60 * 60 * 1000,
       );

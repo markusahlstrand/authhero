@@ -111,9 +111,7 @@ describe("universal-login post-user-registration code hook delivery", () => {
     // The event must not have been dead-lettered.
     const failed = await env.data.outbox!.listFailed("tenantId");
     expect(
-      failed.events.find(
-        (e) => e.event_type === "hook.post-user-registration",
-      ),
+      failed.events.find((e) => e.event_type === "hook.post-user-registration"),
     ).toBeUndefined();
   });
 });

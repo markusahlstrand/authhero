@@ -333,9 +333,7 @@ export function createTenantMembersRoutes(getBackend: GetTenantMembersBackend) {
       const tenantId = pinnedTenantId(ctx);
       const { invitation_id } = ctx.req.valid("param");
       const backend = await getBackend(ctx);
-      await orNotFound(() =>
-        backend.revokeInvitation(tenantId, invitation_id),
-      );
+      await orNotFound(() => backend.revokeInvitation(tenantId, invitation_id));
       return ctx.body(null, 204);
     },
   });

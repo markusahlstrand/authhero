@@ -396,10 +396,7 @@ export async function sendResetPasswordCode(
       "reset_password_email_enter_code",
       options,
     ),
-    resetPasswordEmailEnterCode: t(
-      "reset_password_email_enter_code",
-      options,
-    ),
+    resetPasswordEmailEnterCode: t("reset_password_email_enter_code", options),
     linkEmailLogin: t("reset_password_email_reset", options),
     reset_password_email_reset: t("reset_password_email_reset", options),
     linkEmailOrEnterCode: t("link_email_or_enter_code", {

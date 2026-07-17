@@ -43,7 +43,11 @@ const ForgotPasswordForm: FC<Props> = ({
       )}
     >
       <form method="post" className="space-y-4">
-        <input type="hidden" name="state" value={loginSession.authParams.state} />
+        <input
+          type="hidden"
+          name="state"
+          value={loginSession.authParams.state}
+        />
 
         <div className="space-y-2">
           <Label

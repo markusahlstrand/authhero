@@ -48,14 +48,18 @@ const DeploymentCards = () => (
                 className="h-4 w-4 text-muted-foreground group-hover:text-accent transition-colors"
                 strokeWidth={1.5}
               />
-              <h3 className="font-semibold text-sm group-hover:text-accent transition-colors">{opt.title}</h3>
+              <h3 className="font-semibold text-sm group-hover:text-accent transition-colors">
+                {opt.title}
+              </h3>
               {opt.badge && (
                 <span className="text-[10px] font-medium uppercase tracking-wider text-accent bg-accent/10 px-1.5 py-0.5 rounded">
                   {opt.badge}
                 </span>
               )}
             </div>
-            <p className="text-sm text-muted-foreground leading-relaxed">{opt.desc}</p>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              {opt.desc}
+            </p>
           </a>
         </FadeIn>
       ))}

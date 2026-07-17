@@ -48,7 +48,7 @@ describe("renderWidgetSSR JSON transport", () => {
           visible: true,
           config: {
             content:
-              '<pre><code>{\n  &quot;sub&quot;: &quot;foo&quot;,\n  &quot;email&quot;: &quot;a&amp;b@example.com&quot;,\n  &quot;name&quot;: &quot;O&#x27;Brien &lt;test&gt;&quot;\n}</code></pre>',
+              "<pre><code>{\n  &quot;sub&quot;: &quot;foo&quot;,\n  &quot;email&quot;: &quot;a&amp;b@example.com&quot;,\n  &quot;name&quot;: &quot;O&#x27;Brien &lt;test&gt;&quot;\n}</code></pre>",
           },
           order: 0,
         },

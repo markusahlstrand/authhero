@@ -27,15 +27,23 @@ const Index = () => (
 
         <FadeIn delay={0.4}>
           <p className="text-muted-foreground text-lg md:text-xl max-w-2xl mb-10 text-balance">
-            A high-performance, Auth0-compatible engine. Deploy it as a standalone service, embed it directly into your Node process with no network round-trip, or use our upcoming managed cloud.
+            A high-performance, Auth0-compatible engine. Deploy it as a
+            standalone service, embed it directly into your Node process with no
+            network round-trip, or use our upcoming managed cloud.
           </p>
         </FadeIn>
 
         <FadeIn delay={0.6}>
           <div className="flex gap-3">
-            <EarlyAccessDialog size="lg">Get Started for Free</EarlyAccessDialog>
+            <EarlyAccessDialog size="lg">
+              Get Started for Free
+            </EarlyAccessDialog>
             <Button variant="outline" size="lg" asChild>
-              <a href={GITHUB_ORG_URL} target="_blank" rel="noopener noreferrer">
+              <a
+                href={GITHUB_ORG_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <Github className="mr-2 h-4 w-4" strokeWidth={1.5} />
                 View Open Source
               </a>
@@ -72,7 +80,8 @@ const Index = () => (
             Ready to own your auth?
           </h2>
           <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-            Deploy in minutes. Migrate from Auth0 in hours. Sleep better forever.
+            Deploy in minutes. Migrate from Auth0 in hours. Sleep better
+            forever.
           </p>
           <EarlyAccessDialog size="lg">Get Started for Free</EarlyAccessDialog>
         </FadeIn>

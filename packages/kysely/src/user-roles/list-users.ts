@@ -1,6 +1,9 @@
 import { Kysely } from "kysely";
 import { Database } from "../db";
-import { ListParams, ListRoleUsersResponse } from "@authhero/adapter-interfaces";
+import {
+  ListParams,
+  ListRoleUsersResponse,
+} from "@authhero/adapter-interfaces";
 import { keysetPaginate, isKeysetRequest } from "../helpers/paginate";
 
 export function listUsers(db: Kysely<Database>) {

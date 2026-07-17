@@ -82,10 +82,7 @@ export function createTenantMembersControlPlaneApp(
 
   // Map the backend's "not there" signal to 404; everything else propagates to
   // the app's onError.
-  async function run<T>(
-    c: CpCtx,
-    op: () => Promise<T>,
-  ): Promise<Response | T> {
+  async function run<T>(c: CpCtx, op: () => Promise<T>): Promise<Response | T> {
     try {
       return await op();
     } catch (err) {
@@ -118,7 +115,10 @@ export function createTenantMembersControlPlaneApp(
     const tenantId = c.get("tenantId");
     const parsed = membersMutationBodySchema.safeParse(await readJson(c));
     if (!parsed.success) {
-      return c.json({ error: "invalid_request", details: parsed.error.issues }, 400);
+      return c.json(
+        { error: "invalid_request", details: parsed.error.issues },
+        400,
+      );
     }
     if (claimedMismatch(tenantId, parsed.data.tenant_id)) {
       return c.text("Forbidden", 403);
@@ -134,7 +134,10 @@ export function createTenantMembersControlPlaneApp(
     const tenantId = c.get("tenantId");
     const parsed = membersMutationBodySchema.safeParse(await readJson(c));
     if (!parsed.success) {
-      return c.json({ error: "invalid_request", details: parsed.error.issues }, 400);
+      return c.json(
+        { error: "invalid_request", details: parsed.error.issues },
+        400,
+      );
     }
     if (claimedMismatch(tenantId, parsed.data.tenant_id)) {
       return c.text("Forbidden", 403);
@@ -162,7 +165,10 @@ export function createTenantMembersControlPlaneApp(
     const tenantId = c.get("tenantId");
     const parsed = memberRolesBodySchema.safeParse(await readJson(c));
     if (!parsed.success) {
-      return c.json({ error: "invalid_request", details: parsed.error.issues }, 400);
+      return c.json(
+        { error: "invalid_request", details: parsed.error.issues },
+        400,
+      );
     }
     if (claimedMismatch(tenantId, parsed.data.tenant_id)) {
       return c.text("Forbidden", 403);
@@ -182,7 +188,10 @@ export function createTenantMembersControlPlaneApp(
     const tenantId = c.get("tenantId");
     const parsed = memberRolesBodySchema.safeParse(await readJson(c));
     if (!parsed.success) {
-      return c.json({ error: "invalid_request", details: parsed.error.issues }, 400);
+      return c.json(
+        { error: "invalid_request", details: parsed.error.issues },
+        400,
+      );
     }
     if (claimedMismatch(tenantId, parsed.data.tenant_id)) {
       return c.text("Forbidden", 403);
@@ -237,7 +246,10 @@ export function createTenantMembersControlPlaneApp(
     const tenantId = c.get("tenantId");
     const parsed = createInvitationBodySchema.safeParse(await readJson(c));
     if (!parsed.success) {
-      return c.json({ error: "invalid_request", details: parsed.error.issues }, 400);
+      return c.json(
+        { error: "invalid_request", details: parsed.error.issues },
+        400,
+      );
     }
     const { tenant_id: claimed, ...input } = parsed.data;
     if (claimedMismatch(tenantId, claimed)) {

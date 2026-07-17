@@ -149,10 +149,7 @@ function EmailTemplateFormContent() {
       return;
     }
     const value = ed.getModel()?.getValue() ?? "";
-    ed.setHiddenAreas(
-      findPreviewPaddingRanges(value),
-      HIDDEN_AREA_SOURCE,
-    );
+    ed.setHiddenAreas(findPreviewPaddingRanges(value), HIDDEN_AREA_SOURCE);
   }, []);
 
   useEffect(() => {

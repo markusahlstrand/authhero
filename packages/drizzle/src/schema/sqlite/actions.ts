@@ -69,10 +69,7 @@ export const actionVersions = sqliteTable(
       table.action_id,
       table.number,
     ),
-    index("idx_action_versions_action_id").on(
-      table.tenant_id,
-      table.action_id,
-    ),
+    index("idx_action_versions_action_id").on(table.tenant_id, table.action_id),
   ],
 );
 

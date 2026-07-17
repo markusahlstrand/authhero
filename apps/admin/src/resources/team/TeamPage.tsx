@@ -1,9 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  useDataProvider,
-  useGetIdentity,
-  useNotify,
-} from "ra-core";
+import { useDataProvider, useGetIdentity, useNotify } from "ra-core";
 import { Loader2, Mail, Pencil, Plus, Trash2 } from "lucide-react";
 import type {
   AuthHeroDataProvider,
@@ -472,7 +468,11 @@ function InviteDialog({
             onClick={handleInvite}
             disabled={busy || !email.trim()}
           >
-            {busy ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Plus className="mr-1 h-4 w-4" />}
+            {busy ? (
+              <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+            ) : (
+              <Plus className="mr-1 h-4 w-4" />
+            )}
             Send invitation
           </Button>
         </DialogFooter>

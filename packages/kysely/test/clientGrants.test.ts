@@ -263,7 +263,10 @@ describe("ClientGrantsAdapter", () => {
     let from: string | undefined;
     let pages = 0;
     for (;;) {
-      const batch = await adapter.clientGrants.list(tenantId, { take: 2, from });
+      const batch = await adapter.clientGrants.list(tenantId, {
+        take: 2,
+        from,
+      });
       expect(batch.client_grants.length).toBeLessThanOrEqual(2);
       for (const g of batch.client_grants) {
         expect(seen.has(g.id)).toBe(false);

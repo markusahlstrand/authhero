@@ -19,10 +19,7 @@ export interface GrantsAdapter {
     clientID: string,
     audience?: string,
   ) => Promise<Grant | null>;
-  list: (
-    tenant_id: string,
-    params?: ListParams,
-  ) => Promise<ListGrantsResponse>;
+  list: (tenant_id: string, params?: ListParams) => Promise<ListGrantsResponse>;
   remove: (tenant_id: string, id: string) => Promise<boolean>;
   removeByUser: (tenant_id: string, user_id: string) => Promise<boolean>;
 }

@@ -54,14 +54,22 @@ const EarlyAccessDialog = ({
       });
 
       if (!res.ok) {
-        const data = (await res.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(data?.error ?? "Something went wrong. Please try again.");
+        const data = (await res.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        throw new Error(
+          data?.error ?? "Something went wrong. Please try again.",
+        );
       }
 
       setStatus("success");
     } catch (err) {
       setStatus("error");
-      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Something went wrong. Please try again.",
+      );
     }
   };
 
@@ -82,10 +90,14 @@ const EarlyAccessDialog = ({
       <DialogContent className="sm:max-w-md">
         {status === "success" ? (
           <div className="text-center py-4">
-            <CheckCircle2 className="h-10 w-10 text-accent mx-auto mb-4" strokeWidth={1.5} />
+            <CheckCircle2
+              className="h-10 w-10 text-accent mx-auto mb-4"
+              strokeWidth={1.5}
+            />
             <DialogTitle className="mb-2">You're on the list</DialogTitle>
             <DialogDescription>
-              Thanks for your interest in AuthHero. We'll be in touch as early access opens up.
+              Thanks for your interest in AuthHero. We'll be in touch as early
+              access opens up.
             </DialogDescription>
             <Button className="mt-6" onClick={() => setOpen(false)}>
               Done
@@ -96,8 +108,8 @@ const EarlyAccessDialog = ({
             <DialogHeader>
               <DialogTitle>Request early access</DialogTitle>
               <DialogDescription>
-                AuthHero Cloud is launching soon. Drop your email and we'll add you to the early
-                access queue.
+                AuthHero Cloud is launching soon. Drop your email and we'll add
+                you to the early access queue.
               </DialogDescription>
             </DialogHeader>
 
@@ -113,7 +125,9 @@ const EarlyAccessDialog = ({
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={status === "submitting"}
               />
-              {status === "error" && <p className="text-sm text-destructive">{error}</p>}
+              {status === "error" && (
+                <p className="text-sm text-destructive">{error}</p>
+              )}
             </div>
 
             <DialogFooter>

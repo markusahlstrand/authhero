@@ -280,7 +280,9 @@ describe("applyControlPlaneDefaultsPayload", () => {
 
     const connection = await ctx.tenantData.connections.get(CP, "google");
     expect(connection?.options.client_secret).toBe("our-google-secret");
-    expect(await ctx.tenantData.resourceServers.get(CP, "rs-sys")).not.toBeNull();
+    expect(
+      await ctx.tenantData.resourceServers.get(CP, "rs-sys"),
+    ).not.toBeNull();
     expect(await ctx.tenantData.resourceServers.get(CP, "rs-user")).toBeNull();
   });
 
@@ -333,10 +335,7 @@ describe("applyControlPlaneDefaultsPayload", () => {
     // Second apply finds both kids already present and creates nothing.
     expect(second.signingKeys.upserted).toBe(0);
 
-    const rows = await ctx.tenant.db
-      .selectFrom("keys")
-      .select("kid")
-      .execute();
+    const rows = await ctx.tenant.db.selectFrom("keys").select("kid").execute();
     expect(rows).toHaveLength(2);
   });
 

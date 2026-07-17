@@ -24,7 +24,8 @@ export function isKeysetRequest(params?: ListParams): boolean {
 
 export function keysetTake(params?: ListParams): number {
   const raw = params?.take;
-  const n = typeof raw === "number" && Number.isFinite(raw) ? Math.floor(raw) : NaN;
+  const n =
+    typeof raw === "number" && Number.isFinite(raw) ? Math.floor(raw) : NaN;
   return n >= 1 ? n : 50;
 }
 

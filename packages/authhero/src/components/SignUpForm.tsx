@@ -40,10 +40,17 @@ const SignUpForm: FC<Props> = ({
       branding={branding}
       className={className}
       title={i18next.t("create_account_title", "Create Account")}
-      description={i18next.t("create_account_description", "Sign up to get started")}
+      description={i18next.t(
+        "create_account_description",
+        "Sign up to get started",
+      )}
     >
       <form method="post" className="space-y-4">
-        <input type="hidden" name="state" value={loginSession.authParams.state} />
+        <input
+          type="hidden"
+          name="state"
+          value={loginSession.authParams.state}
+        />
         {code && <input type="hidden" name="code" value={code} />}
 
         {/* Email Field */}

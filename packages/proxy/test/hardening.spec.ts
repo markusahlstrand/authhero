@@ -399,7 +399,9 @@ describe("router defense-in-depth", () => {
     // which the outer router's try/catch can't see.
     registry.add({
       type: "throwing",
-      optionsSchema: { safeParse: () => ({ success: true, data: {} }) } as never,
+      optionsSchema: {
+        safeParse: () => ({ success: true, data: {} }),
+      } as never,
       build: () => () => {
         throw new Error("middleware blew up");
       },
@@ -410,9 +412,7 @@ describe("router defense-in-depth", () => {
         tenant_id: "t1",
         custom_domain_id: "cd1",
         domain: "customer.com",
-        routes: [
-          route({ handlers: [{ type: "throwing", options: {} }] }),
-        ],
+        routes: [route({ handlers: [{ type: "throwing", options: {} }] })],
       }),
       registry,
     });

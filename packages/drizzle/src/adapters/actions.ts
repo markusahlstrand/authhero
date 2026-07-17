@@ -47,7 +47,8 @@ function rowToAction(row: any): Action {
     deployed_at: deployed_at_ts
       ? new Date(Number(deployed_at_ts)).toISOString()
       : undefined,
-    secrets: parseJsonIfString<Array<{ name: string; value?: string }>>(secrets),
+    secrets:
+      parseJsonIfString<Array<{ name: string; value?: string }>>(secrets),
     dependencies:
       parseJsonIfString<Array<{ name: string; version: string }>>(dependencies),
     supported_triggers:
@@ -119,8 +120,13 @@ export function createActionsAdapter(db: DrizzleDb): ActionsAdapter {
       tenant_id: string,
       params: ListParams = {},
     ): Promise<ListActionsResponse> {
-      const { page = 0, per_page = 50, include_totals = false, sort, q } =
-        params;
+      const {
+        page = 0,
+        per_page = 50,
+        include_totals = false,
+        sort,
+        q,
+      } = params;
 
       const conditions = [eq(actions.tenant_id, tenant_id)];
       if (q) {

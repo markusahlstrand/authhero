@@ -34,10 +34,7 @@ export function getUniversalLoginUrl(
  * appending "*" — a naive `${base}/*` yields a "//*" path whose wildcard
  * regex never matches a real pathname.
  */
-export function getSelfCallbackWildcards(
-  env: Bindings,
-  customDomain?: string,
-) {
+export function getSelfCallbackWildcards(env: Bindings, customDomain?: string) {
   return [
     getIssuer(env, customDomain),
     getUniversalLoginUrl(env, customDomain),

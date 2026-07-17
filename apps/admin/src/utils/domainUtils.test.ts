@@ -79,7 +79,9 @@ describe("deriveTenantSubdomainUrl", () => {
   });
 
   it("returns null for IPv6 hosts", () => {
-    expect(deriveTenantSubdomainUrl("https://[::1]:3000", "kvartal")).toBe(null);
+    expect(deriveTenantSubdomainUrl("https://[::1]:3000", "kvartal")).toBe(
+      null,
+    );
   });
 
   it("returns null for tenant ids that aren't valid DNS labels", () => {

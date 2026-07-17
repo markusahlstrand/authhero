@@ -194,7 +194,11 @@ async function refreshBundle(
     staleUntil: t + (cfg.freshSeconds + cfg.staleSeconds) * 1000,
   };
   // Keep entry alive for the full fresh+stale window.
-  await cache.set(key(tenantId, clientId, cfg.keyPrefix), entry, cfg.freshSeconds + cfg.staleSeconds);
+  await cache.set(
+    key(tenantId, clientId, cfg.keyPrefix),
+    entry,
+    cfg.freshSeconds + cfg.staleSeconds,
+  );
   return value;
 }
 

@@ -2,7 +2,10 @@ import FadeIn from "./FadeIn";
 
 const codeLines = [
   { indent: 0, content: 'import { init } from "authhero";' },
-  { indent: 0, content: 'import createAdapters from "@authhero/kysely-adapter";' },
+  {
+    indent: 0,
+    content: 'import createAdapters from "@authhero/kysely-adapter";',
+  },
   { indent: 0, content: "" },
   { indent: 0, content: "const { oauthApp, managementApp } = init({" },
   { indent: 1, content: "dataAdapter: createAdapters(db)," },

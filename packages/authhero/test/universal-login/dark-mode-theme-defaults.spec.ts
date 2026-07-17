@@ -22,7 +22,10 @@ import { DEFAULT_THEME } from "../../src/constants/defaultTheme";
 const BLACK_DEFAULT = "#000000";
 const TEXT_VARS: { cssVar: string; themeColor: string | undefined }[] = [
   { cssVar: "--ah-color-text", themeColor: DEFAULT_THEME.colors?.body_text },
-  { cssVar: "--ah-color-text-header", themeColor: DEFAULT_THEME.colors?.header },
+  {
+    cssVar: "--ah-color-text-header",
+    themeColor: DEFAULT_THEME.colors?.header,
+  },
   {
     cssVar: "--ah-color-input-text",
     themeColor: DEFAULT_THEME.colors?.input_filled_text,

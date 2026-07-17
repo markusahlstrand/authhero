@@ -38,26 +38,27 @@ const theme = {
 test.skipIf(!process.env.PREVIEW)(
   "render full-document Auth0 template to /tmp",
   async () => {
-  const screen = buildPreviewScreen("login");
-  const ctx = { html: (doc: string) => doc };
+    const screen = buildPreviewScreen("login");
+    const ctx = { html: (doc: string) => doc };
 
-  const html = (await renderWidgetPageResponse(ctx as never, {
-    screenId: screen.name,
-    screenJson: JSON.stringify(screen),
-    brandingJson: JSON.stringify(branding),
-    themeJson: JSON.stringify(theme),
-    state: "preview",
-    authParamsJson: JSON.stringify({ client_id: "preview" }),
-    branding: branding as never,
-    theme: theme as never,
-    clientName: "Acme Inc",
-    customTemplateBody: AUTH0_FULL_DOC,
-  })) as unknown as string;
+    const html = (await renderWidgetPageResponse(ctx as never, {
+      screenId: screen.name,
+      screenJson: JSON.stringify(screen),
+      brandingJson: JSON.stringify(branding),
+      themeJson: JSON.stringify(theme),
+      state: "preview",
+      authParamsJson: JSON.stringify({ client_id: "preview" }),
+      branding: branding as never,
+      theme: theme as never,
+      clientName: "Acme Inc",
+      customTemplateBody: AUTH0_FULL_DOC,
+    })) as unknown as string;
 
-  const out = "/tmp/auth0-fulldoc-preview.html";
-  writeFileSync(out, html);
-  // eslint-disable-next-line no-console
-  console.log(
-    `\nWrote ${out} — body layout present: ${/body\s*\{[^}]*min-height: 100vh/.test(html)}\n`,
-  );
-});
+    const out = "/tmp/auth0-fulldoc-preview.html";
+    writeFileSync(out, html);
+    // eslint-disable-next-line no-console
+    console.log(
+      `\nWrote ${out} — body layout present: ${/body\s*\{[^}]*min-height: 100vh/.test(html)}\n`,
+    );
+  },
+);

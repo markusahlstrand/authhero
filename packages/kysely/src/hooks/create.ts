@@ -13,8 +13,7 @@ export function create(db: Kysely<Database>) {
     const now = new Date().toISOString();
     const createdAt = importMetadata?.created_at ?? now;
     const updatedAt = importMetadata?.updated_at ?? now;
-    const hookId =
-      importMetadata?.id ?? (hook.hook_id || generateHookId());
+    const hookId = importMetadata?.id ?? (hook.hook_id || generateHookId());
 
     const { hook_id: _hookId, enabled, synchronous, metadata, ...rest } = hook;
 

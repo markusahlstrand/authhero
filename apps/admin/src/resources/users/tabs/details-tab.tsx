@@ -729,10 +729,7 @@ export function DetailsTab() {
           <TextInput source="address.street_address" label="Street address" />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <TextInput source="address.locality" label="City / locality" />
-            <TextInput
-              source="address.region"
-              label="State / region"
-            />
+            <TextInput source="address.region" label="State / region" />
             <TextInput source="address.postal_code" label="Postal code" />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -37,7 +37,8 @@ const BentoGrid = () => (
         Built for the Modern Stack
       </h2>
       <p className="text-muted-foreground text-center max-w-xl mx-auto mb-12">
-        Unrestricted Access. Every feature, from Impersonation to Organizations, is available on every tier. No "Contact Sales" hurdles.
+        Unrestricted Access. Every feature, from Impersonation to Organizations,
+        is available on every tier. No "Contact Sales" hurdles.
       </p>
     </FadeIn>
     <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-border rounded-lg overflow-hidden hairline">
@@ -51,8 +52,12 @@ const BentoGrid = () => (
           >
             <SpotlightCard className="rounded-none border-0 h-full">
               <f.icon className="h-5 w-5 text-accent mb-4" strokeWidth={1.5} />
-              <h3 className="font-semibold mb-2 group-hover:text-accent transition-colors">{f.title}</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
+              <h3 className="font-semibold mb-2 group-hover:text-accent transition-colors">
+                {f.title}
+              </h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {f.desc}
+              </p>
             </SpotlightCard>
           </a>
         </FadeIn>

@@ -40,7 +40,11 @@ const ResetPasswordForm: FC<Props> = ({
       description={`${i18next.t("reset_password_description", "Set a new password for")} ${email}`}
     >
       <form method="post" className="space-y-4">
-        <input type="hidden" name="state" value={loginSession.authParams.state} />
+        <input
+          type="hidden"
+          name="state"
+          value={loginSession.authParams.state}
+        />
 
         {/* New Password Field */}
         <div className="space-y-2">
