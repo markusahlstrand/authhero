@@ -2103,7 +2103,6 @@ export async function down(db: Kysely<Database>): Promise<void> {
   await db.schema.dropTable("forms").ifExists().execute();
   await db.schema.dropTable("flows").ifExists().execute();
   await db.schema.dropTable("email_templates").ifExists().execute();
-  await db.schema.dropTable("tenants").ifExists().execute();
   await db.schema.dropTable("email_providers").ifExists().execute();
   await db.schema.dropTable("custom_text").ifExists().execute();
   await db.schema.dropTable("custom_domains").ifExists().execute();
@@ -2119,4 +2118,5 @@ export async function down(db: Kysely<Database>): Promise<void> {
   await db.schema.dropTable("actions").ifExists().execute();
   await db.schema.dropTable("action_versions").ifExists().execute();
   await db.schema.dropTable("action_executions").ifExists().execute();
+  await db.schema.dropTable("tenants").ifExists().execute();
 }
