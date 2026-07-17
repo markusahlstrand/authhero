@@ -907,6 +907,16 @@ describe("scopes-permissions helper", () => {
         },
       ]);
 
+      // user_organizations has an FK to users, so the member has to exist.
+      await env.data.users.create("tenantId", {
+        user_id: "orgUserId",
+        email: "org-user@example.com",
+        email_verified: true,
+        connection: "email",
+        provider: "email",
+        is_social: false,
+      });
+
       // Add user to organization
       await env.data.userOrganizations.create("tenantId", {
         user_id: "orgUserId",
@@ -1013,6 +1023,16 @@ describe("scopes-permissions helper", () => {
           permission_name: "write:users",
         },
       ]);
+
+      // user_organizations has an FK to users, so the member has to exist.
+      await env.data.users.create("tenantId", {
+        user_id: "mixedUserId",
+        email: "mixed-user@example.com",
+        email_verified: true,
+        connection: "email",
+        provider: "email",
+        is_social: false,
+      });
 
       // Add user to organization
       await env.data.userOrganizations.create("tenantId", {

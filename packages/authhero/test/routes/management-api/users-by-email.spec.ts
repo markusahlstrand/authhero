@@ -141,7 +141,12 @@ describe("users by email", () => {
 
     expect(users.length).toBe(2);
 
-    expect(users[0]).toMatchObject({
+    // The endpoint doesn't ORDER BY, so the order is whatever the planner's
+    // chosen index yields — select by user_id rather than by position.
+    const emailUser = users.find((u) => u.user_id === "email|userId");
+    const passwordUser = users.find((u) => u.user_id !== "email|userId");
+
+    expect(emailUser).toMatchObject({
       email: "foo@example.com",
       email_verified: true,
       name: "Test User",
@@ -154,7 +159,7 @@ describe("users by email", () => {
       is_social: false,
       user_id: "email|userId",
     });
-    expect(users[0]?.identities).toEqual([
+    expect(emailUser?.identities).toEqual([
       {
         connection: "email",
         provider: "email",
@@ -165,7 +170,7 @@ describe("users by email", () => {
         username: "testuser",
       },
     ]);
-    expect(users[1]).toMatchObject({
+    expect(passwordUser).toMatchObject({
       email: "foo@example.com",
       tenant_id: "tenantId",
       name: "Test User with password",
