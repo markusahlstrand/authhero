@@ -64,11 +64,13 @@ export const users = sqliteTable(
       table.provider,
       table.tenant_id,
     ),
-    uniqueIndex("unique_phone_provider").on(
-      table.phone_number,
-      table.provider,
-      table.tenant_id,
-    ),
+    // No unique index on phone_number: a phone only *identifies* a user on the
+    // passwordless `sms` connection; for every other provider it is ordinary
+    // profile data that people legitimately share (placeholder / switchboard /
+    // family numbers). sms-phone uniqueness is enforced at the application
+    // layer (Auth0-style, at lookup), not by a database constraint. This
+    // mirrors the kysely baseline, which carries no phone unique index either.
+    // See #1162. The non-unique lookup index below remains.
     uniqueIndex("unique_username_provider").on(
       table.username,
       table.provider,
