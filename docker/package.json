@@ -1,6 +1,6 @@
 {
   "name": "@authhero/docker",
-  "version": "1.4.79",
+  "version": "1.4.80",
   "private": true,
   "type": "module",
   "scripts": {
