@@ -1,5 +1,19 @@
 # @authhero/widget
 
+## 0.34.16
+
+### Patch Changes
+
+- c3c4546: chore: apply repo-wide Prettier formatting
+
+  Formatting-only sweep, no behavior change. Generated output (Stencil loader/hydrate,
+  drizzle-kit migration metadata, the built tailwind CSS blob) is now listed in
+  `.prettierignore` so it is not reformatted on every build, and `lint-staged` runs in
+  the pre-commit hook to keep formatting from drifting again.
+
+- Updated dependencies [c3c4546]
+  - @authhero/adapter-interfaces@4.2.1
+
 ## 0.34.15
 
 ### Patch Changes
