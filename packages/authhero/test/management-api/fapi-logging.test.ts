@@ -57,6 +57,63 @@ describe("management-api fapi logging", () => {
     });
   });
 
+  it("does not write a FAILED_API_OPERATION log for a benign read miss (GET user 404)", async () => {
+    const { managementApp, env } = await getTestServer();
+    const token = await getAdminToken();
+
+    const res = await managementApp.request(
+      "/users/auth2|doesnotexist",
+      {
+        method: "GET",
+        headers: {
+          "tenant-id": "tenantId",
+          authorization: `Bearer ${token}`,
+        },
+      },
+      env,
+    );
+
+    expect(res.status).toBe(404);
+
+    const { logs } = await env.data.logs.list("tenantId", {
+      page: 0,
+      per_page: 50,
+      include_totals: true,
+    });
+    const fapi = logs.find((l) => l.type === LogTypes.FAILED_API_OPERATION);
+    expect(fapi).toBeUndefined();
+  });
+
+  it("still writes a FAILED_API_OPERATION log for a non-GET 404 (DELETE user)", async () => {
+    const { managementApp, env } = await getTestServer();
+    const token = await getAdminToken();
+
+    const res = await managementApp.request(
+      "/users/auth2|doesnotexist",
+      {
+        method: "DELETE",
+        headers: {
+          "tenant-id": "tenantId",
+          authorization: `Bearer ${token}`,
+        },
+      },
+      env,
+    );
+
+    expect(res.status).toBe(404);
+
+    const { logs } = await env.data.logs.list("tenantId", {
+      page: 0,
+      per_page: 50,
+      include_totals: true,
+    });
+    const fapi = logs.find((l) => l.type === LogTypes.FAILED_API_OPERATION);
+    expect(fapi).toBeDefined();
+    expect(fapi?.details).toMatchObject({
+      response: { statusCode: 404 },
+    });
+  });
+
   it("does not write a FAILED_API_OPERATION log for successful requests", async () => {
     const { managementApp, env } = await getTestServer();
     const token = await getAdminToken();

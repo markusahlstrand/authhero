@@ -491,7 +491,13 @@ export default function create(config: AuthHeroConfig) {
       }
     }
 
-    if (status >= 400 && status < 600) {
+    // A `GET` that 404s is a benign read miss — a caller probing whether a
+    // resource (e.g. a user) exists. Real Auth0 doesn't surface that as a
+    // failed-API-operation log; it just returns the 404. Skip it here so these
+    // expected "not found" reads don't show up as error-class events.
+    const isBenignReadMiss = status === 404 && ctx.req.method === "GET";
+
+    if (status >= 400 && status < 600 && !isBenignReadMiss) {
       const tenantId = ctx.var.tenant_id || ctx.req.header("tenant-id");
       if (tenantId && ctx.env.data?.logs) {
         try {
