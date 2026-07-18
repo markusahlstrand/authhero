@@ -138,12 +138,23 @@ export async function getEnrichedClient(
   // `login_sessions` (see migration 2025-09-16T12:30:00); runtime values still
   // come from the freshly-fetched document, not the stub.
   if (isCimdClientId(clientId)) {
-    if (!tenantId) {
+    // The tenant is normally passed in, resolved from the request host/domain.
+    // State-keyed routes (the social-login /callback and /authorize/resume)
+    // carry no host-derived tenant, so fall back to the CIMD stub row that was
+    // upserted under the tenant on the first /authorize (ensureCimdStubClient).
+    // Without this, social login and resume throw for CIMD clients even though
+    // the tenant is unambiguously fixed by the login session in flight.
+    let cimdTenantId = tenantId;
+    if (!cimdTenantId) {
+      const stub = await env.data.clients.getByClientId(clientId);
+      cimdTenantId = stub?.tenant_id;
+    }
+    if (!cimdTenantId) {
       throw new JSONHTTPException(400, {
         message: "tenant_id is required to resolve a CIMD client",
       });
     }
-    const tenant = await env.data.tenants.get(tenantId);
+    const tenant = await env.data.tenants.get(cimdTenantId);
     if (!tenant) {
       throw new JSONHTTPException(404, { message: "Tenant not found" });
     }
@@ -151,8 +162,8 @@ export async function getEnrichedClient(
       throw new JSONHTTPException(403, { message: "Client not found" });
     }
     const synthesized = await resolveCimdClient(clientId, fetchOpts);
-    const allConnections = await env.data.connections.list(tenantId);
-    await ensureCimdStubClient(env, tenantId, synthesized);
+    const allConnections = await env.data.connections.list(cimdTenantId);
+    await ensureCimdStubClient(env, cimdTenantId, synthesized);
     return enrichClient(env, synthesized, tenant, allConnections.connections);
   }
 
