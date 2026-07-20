@@ -1502,38 +1502,58 @@ export default (
       if (resource === "permissions" && params.target === "user_id") {
         const result = await managementClient.users.permissions.list(
           params.id as string,
-          buildPaginationParams(),
+          { page: 0, per_page: 100 },
         );
         const permissions = (result as any).response || result;
         const permissionsArray = Array.isArray(permissions)
           ? permissions
           : permissions.permissions || [];
-        return {
+        return clientSideListHandler({
           data: permissionsArray.map((item: any) => ({
             id: `${item.resource_server_identifier}:${item.permission_name}`,
             ...item,
           })),
-          total: permissionsArray.length || 0,
-        };
+          page,
+          perPage: perPage || 25,
+          sortField: field,
+          sortOrder: order,
+          searchQuery: params.filter?.q,
+          searchFields: [
+            "permission_name",
+            "description",
+            "resource_server_identifier",
+            "resource_server_name",
+          ],
+        });
       }
 
       // Permissions nested under roles
       if (resource === "permissions" && params.target === "role_id") {
         const result = await managementClient.roles.permissions.list(
           params.id as string,
-          buildPaginationParams(),
+          { page: 0, per_page: 100 },
         );
         const permissions = (result as any).response || result;
         const permissionsArray = Array.isArray(permissions)
           ? permissions
           : permissions.permissions || [];
-        return {
+        return clientSideListHandler({
           data: permissionsArray.map((item: any) => ({
             id: `${item.resource_server_identifier}:${item.permission_name}`,
             ...item,
           })),
-          total: permissionsArray.length || 0,
-        };
+          page,
+          perPage: perPage || 25,
+          sortField: field,
+          sortOrder: order,
+          searchQuery: params.filter?.q,
+          searchFields: [
+            "permission_name",
+            "description",
+            "resource_server_identifier",
+            "resource_server_name",
+          ],
+        });
       }
 
       // Roles nested under users
