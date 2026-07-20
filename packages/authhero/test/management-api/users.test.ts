@@ -72,6 +72,77 @@ describe("POST /api/v2/users", () => {
     const body = await response.json();
     expect(body).toMatchObject({ email: "valid-body@example.com" });
   });
+
+  // Management create deliberately 409s where the login flow resolves to the
+  // existing user: creating a user here is an explicit administrative act,
+  // often scripted in bulk, so silently returning a user_id the caller did not
+  // create would hide a merge. Decision recorded in #1166.
+  it("rejects creating a second sms user with an existing sms phone number", async () => {
+    const { managementApp, env } = await getTestServer();
+    const token = await getAdminToken();
+
+    await env.data.users.create("tenantId", {
+      user_id: "sms|existing",
+      phone_number: "+46700000010",
+      email_verified: false,
+      provider: "sms",
+      connection: "sms",
+      is_social: false,
+    });
+
+    const response = await managementApp.request(
+      "/users",
+      {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${token}`,
+          "tenant-id": "tenantId",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          phone_number: "+46700000010",
+          connection: "sms",
+        }),
+      },
+      env,
+    );
+
+    expect(response.status).toBe(409);
+  });
+
+  it("allows creating a non-sms user carrying a phone number an sms user holds", async () => {
+    const { managementApp, env } = await getTestServer();
+    const token = await getAdminToken();
+
+    await env.data.users.create("tenantId", {
+      user_id: "sms|holder",
+      phone_number: "+46700000011",
+      email_verified: false,
+      provider: "sms",
+      connection: "sms",
+      is_social: false,
+    });
+
+    const response = await managementApp.request(
+      "/users",
+      {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${token}`,
+          "tenant-id": "tenantId",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          email: "carries-phone@example.com",
+          phone_number: "+46700000011",
+          connection: "Username-Password-Authentication",
+        }),
+      },
+      env,
+    );
+
+    expect(response.status).toBe(201);
+  });
 });
 
 describe("PATCH /api/v2/users/:user_id phone_number uniqueness", () => {

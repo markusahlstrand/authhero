@@ -443,8 +443,14 @@ const postRoot = defineRoute({
     // connection, so uniqueness is enforced here (Auth0-style, at lookup)
     // rather than by a database constraint spanning every provider — for
     // non-sms providers the phone is ordinary profile data that people
-    // legitimately share (see #1162). Mirrors the resolve-to-existing check
-    // the login flow does in getOrCreateUserByProvider.
+    // legitimately share (see #1162).
+    //
+    // This uses the same lookup as the login flow's getOrCreateUserByProvider
+    // but *deliberately* differs in outcome: login resolves to the existing
+    // user, management create 409s. Creating a user here is an explicit
+    // administrative act, often scripted in bulk, so silently returning a
+    // user_id the caller did not create would hide a merge. The split is
+    // intentional, not an oversight — see #1166.
     if (provider === "sms" && phone_number) {
       const existingSmsUser = await getUserByProvider({
         userAdapter: ctx.env.data.users,
