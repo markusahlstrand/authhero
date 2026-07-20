@@ -13,11 +13,11 @@ export interface CodesCleanupParams {
 
 /**
  * Delete codes that expired more than the retention window ago.
- * Intended for use in a scheduled handler / cron job.
  *
- * Codes are short-lived by design but nothing else prunes them, so without a
- * scheduled call to this the table grows without bound. See the Data Retention
- * deployment guide for the full set of tables that need sweeping.
+ * Prefer `runRetention`, which calls this along with every other prunable
+ * table — scheduling one call means a future prunable table is covered without
+ * editing your handler. Use this directly only when you want to sweep `codes`
+ * on its own schedule.
  *
  * @example
  * ```ts

@@ -50,6 +50,13 @@ export type {
 } from "./helpers/provision-tenant-clients";
 export { runOutboxRelay } from "./helpers/run-outbox-relay";
 export type { RunOutboxRelayConfig } from "./helpers/run-outbox-relay";
+export { runRetention, RetentionSweepError } from "./helpers/run-retention";
+export type {
+  RunRetentionConfig,
+  RunRetentionResult,
+  RetentionSweep,
+  RetentionSweepStatus,
+} from "./helpers/run-retention";
 export { LogsDestination } from "./helpers/outbox-destinations/logs";
 export {
   WebhookDestination,
