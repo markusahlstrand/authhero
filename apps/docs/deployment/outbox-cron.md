@@ -17,6 +17,10 @@ You need a scheduled handler if **any** of the following is true:
 
 If outbox is disabled, webhook delivery is fire-and-forget per request with no retry — no cron is possible or needed.
 
+::: tip This cron is about delivery, not retention
+`runOutboxRelay` cleans up `outbox_events` as a convenience, but it is not your retention story — it sweeps no other table, and it returns early when outbox is disabled. Schedule [`runRetention`](./data-retention) as well; it covers `codes`, sessions and outbox events in one call. Running both is safe.
+:::
+
 ## One-call handler: `runOutboxRelay`
 
 `runOutboxRelay` is the entire body of a scheduled handler. It builds the same destinations the inline dispatcher uses, mints per-tenant `auth-service` tokens via the same in-process path, drains the outbox, and cleans up processed events past the retention window.
