@@ -443,8 +443,14 @@ const postRoot = defineRoute({
     // connection, so uniqueness is enforced here (Auth0-style, at lookup)
     // rather than by a database constraint spanning every provider — for
     // non-sms providers the phone is ordinary profile data that people
-    // legitimately share (see #1162). Mirrors the resolve-to-existing check
-    // the login flow does in getOrCreateUserByProvider.
+    // legitimately share (see #1162).
+    //
+    // This uses the same lookup as the login flow's getOrCreateUserByProvider
+    // but *deliberately* differs in outcome: login resolves to the existing
+    // user, management create 409s. Creating a user here is an explicit
+    // administrative act, often scripted in bulk, so silently returning a
+    // user_id the caller did not create would hide a merge. The split is
+    // intentional, not an oversight — see #1166.
     if (provider === "sms" && phone_number) {
       const existingSmsUser = await getUserByProvider({
         userAdapter: ctx.env.data.users,
@@ -680,19 +686,24 @@ const patchByUser_id = defineRoute({
       }
     }
 
-    // Check if the phone_number is being changed to an existing phone_number of another user
+    // A phone number only *identifies* a user on the passwordless `sms`
+    // connection, so uniqueness is enforced only for sms users — mirroring the
+    // create path above and Auth0. For every other provider the phone is
+    // ordinary profile data that people legitimately share (see #1162), and an
+    // unscoped check 409s on the placeholder numbers non-sms users carry.
     if (
+      targetUser.provider === "sms" &&
       userFields.phone_number &&
       userFields.phone_number !== targetUser.phone_number
     ) {
-      const { users: existingUsers } = await data.users.list(tenantId, {
-        page: 0,
-        per_page: 10,
-        include_totals: false,
-        q: `phone_number:${userFields.phone_number}`,
+      const existingSmsUser = await getUserByProvider({
+        userAdapter: data.users,
+        tenant_id: tenantId,
+        username: userFields.phone_number,
+        provider: "sms",
       });
 
-      if (existingUsers.some((u) => u.user_id !== targetUserId)) {
+      if (existingSmsUser && existingSmsUser.user_id !== targetUserId) {
         throw new HTTPException(409, {
           message: "Another user with the same phone number already exists.",
         });
