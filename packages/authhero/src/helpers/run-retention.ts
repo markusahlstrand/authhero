@@ -21,17 +21,39 @@ export interface RunRetentionConfig {
 
 export type RetentionSweepStatus = "swept" | "skipped" | "failed";
 
-export interface RetentionSweep {
+interface RetentionSweepBase {
   /** Table(s) this sweep covers, for logging. */
   table: string;
-  status: RetentionSweepStatus;
-  /** Rows deleted, when the underlying adapter reports a count. */
-  deleted?: number;
-  /** Why the sweep was skipped — an adapter that does not support it. */
-  reason?: string;
-  /** The failure, when `status` is `"failed"`. */
-  error?: unknown;
 }
+
+export interface RetentionSweepSwept extends RetentionSweepBase {
+  status: "swept";
+  /**
+   * Rows deleted. Absent when the underlying adapter reports no count —
+   * `sessionCleanup` returns void, so a session sweep succeeds without one.
+   */
+  deleted?: number;
+}
+
+export interface RetentionSweepSkipped extends RetentionSweepBase {
+  status: "skipped";
+  /** Why the sweep was skipped — an adapter that does not support it. */
+  reason: string;
+}
+
+export interface RetentionSweepFailed extends RetentionSweepBase {
+  status: "failed";
+  error: unknown;
+}
+
+/**
+ * Discriminated on `status`, so a sweep cannot carry fields that contradict
+ * it — no `error` on a successful sweep, no `deleted` on a failed one.
+ */
+export type RetentionSweep =
+  | RetentionSweepSwept
+  | RetentionSweepSkipped
+  | RetentionSweepFailed;
 
 export interface RunRetentionResult {
   sweeps: RetentionSweep[];

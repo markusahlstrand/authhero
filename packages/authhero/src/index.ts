@@ -56,6 +56,9 @@ export type {
   RunRetentionResult,
   RetentionSweep,
   RetentionSweepStatus,
+  RetentionSweepSwept,
+  RetentionSweepSkipped,
+  RetentionSweepFailed,
 } from "./helpers/run-retention";
 export { LogsDestination } from "./helpers/outbox-destinations/logs";
 export {
