@@ -2,7 +2,7 @@
 import { Meta, StoryObj } from "@storybook/react";
 import { HonoFullPageWrapper } from "../../storybook-utils/HonoJSXWrapper";
 import AuthLayout from "../AuthLayout";
-import IdentifierForm from "../IdentifierForm";
+import IdentifierPage from "../IdentifierPage";
 import type {
   LoginSession,
   Theme,
@@ -254,10 +254,10 @@ type Story = StoryObj<typeof meta>;
 // Story: Center layout (default)
 export const CenterLayout: Story = {
   render: (args) => {
-    // Render IdentifierForm inside AuthLayout using Hono JSX
-    const form = IdentifierForm({
-      theme: args.theme,
-      branding: args.branding,
+    // Render IdentifierPage inside AuthLayout using Hono JSX
+    const form = IdentifierPage({
+      theme: args.theme ?? null,
+      branding: args.branding ?? null,
       loginSession: mockLoginSession,
       client: createMockClient(["email", "google-oauth2"]),
     });
@@ -284,10 +284,10 @@ export const CenterLayout: Story = {
 // Story: Left layout
 export const LeftLayout: Story = {
   render: (args) => {
-    // Render IdentifierForm inside AuthLayout using Hono JSX
-    const form = IdentifierForm({
-      theme: args.theme,
-      branding: args.branding,
+    // Render IdentifierPage inside AuthLayout using Hono JSX
+    const form = IdentifierPage({
+      theme: args.theme ?? null,
+      branding: args.branding ?? null,
       loginSession: mockLoginSession,
       client: createMockClient(["email", "google-oauth2"]),
     });
@@ -314,10 +314,10 @@ export const LeftLayout: Story = {
 // Story: Right layout
 export const RightLayout: Story = {
   render: (args) => {
-    // Render IdentifierForm inside AuthLayout using Hono JSX
-    const form = IdentifierForm({
-      theme: args.theme,
-      branding: args.branding,
+    // Render IdentifierPage inside AuthLayout using Hono JSX
+    const form = IdentifierPage({
+      theme: args.theme ?? null,
+      branding: args.branding ?? null,
       loginSession: mockLoginSession,
       client: createMockClient(["email", "google-oauth2"]),
     });
@@ -344,10 +344,10 @@ export const RightLayout: Story = {
 // Story: Gradient background
 export const GradientBackground: Story = {
   render: (args) => {
-    // Render IdentifierForm inside AuthLayout using Hono JSX
-    const form = IdentifierForm({
-      theme: args.theme,
-      branding: args.branding,
+    // Render IdentifierPage inside AuthLayout using Hono JSX
+    const form = IdentifierPage({
+      theme: args.theme ?? null,
+      branding: args.branding ?? null,
       loginSession: mockLoginSession,
       client: createMockClient(["email", "google-oauth2"]),
     });
@@ -374,10 +374,10 @@ export const GradientBackground: Story = {
 // Story: Image background
 export const ImageBackground: Story = {
   render: (args) => {
-    // Render IdentifierForm inside AuthLayout using Hono JSX
-    const form = IdentifierForm({
-      theme: args.theme,
-      branding: args.branding,
+    // Render IdentifierPage inside AuthLayout using Hono JSX
+    const form = IdentifierPage({
+      theme: args.theme ?? null,
+      branding: args.branding ?? null,
       loginSession: mockLoginSession,
       client: createMockClient(["email"]),
     });
@@ -404,10 +404,10 @@ export const ImageBackground: Story = {
 // Story: Dark theme
 export const DarkTheme: Story = {
   render: (args) => {
-    // Render IdentifierForm inside AuthLayout using Hono JSX
-    const form = IdentifierForm({
-      theme: args.theme,
-      branding: args.branding,
+    // Render IdentifierPage inside AuthLayout using Hono JSX
+    const form = IdentifierPage({
+      theme: args.theme ?? null,
+      branding: args.branding ?? null,
       loginSession: mockLoginSession,
       client: createMockClient(["email", "google-oauth2"]),
     });
@@ -434,10 +434,10 @@ export const DarkTheme: Story = {
 // Story: No logo
 export const NoLogo: Story = {
   render: (args) => {
-    // Render IdentifierForm inside AuthLayout using Hono JSX
-    const form = IdentifierForm({
-      theme: args.theme,
-      branding: args.branding,
+    // Render IdentifierPage inside AuthLayout using Hono JSX
+    const form = IdentifierPage({
+      theme: args.theme ?? null,
+      branding: args.branding ?? null,
       loginSession: mockLoginSession,
       client: createMockClient(["email"]),
     });
@@ -473,9 +473,9 @@ export const MultipleComponents: Story = {
     // For MultipleComponents, we'll just show a single form
     // The original intent was to demonstrate layout flexibility,
     // but due to JSX runtime limitations, we keep it simple
-    const form = IdentifierForm({
-      theme: args.theme,
-      branding: args.branding,
+    const form = IdentifierPage({
+      theme: args.theme ?? null,
+      branding: args.branding ?? null,
       loginSession: mockLoginSession,
       client: createMockClient(["email"]),
     });

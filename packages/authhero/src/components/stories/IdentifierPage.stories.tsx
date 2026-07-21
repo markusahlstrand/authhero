@@ -311,3 +311,52 @@ export const CustomColors: Story = {
     client: createMockClient([Strategy.EMAIL, "google-oauth2", "apple"]),
   },
 };
+
+// Story: Multiple social connections (Google, Facebook, Apple, GitHub, Microsoft)
+export const MultipleSocialConnections: Story = {
+  render: (args) => (
+    <HonoJSXWrapper html={renderHonoComponent(IdentifierPage, args)} />
+  ),
+  args: {
+    theme: mockTheme,
+    branding: mockBranding,
+    loginSession: mockLoginSession,
+    client: createMockClient([
+      Strategy.EMAIL,
+      "google-oauth2",
+      "facebook",
+      "apple",
+      "github",
+      "windowslive",
+    ]),
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Dynamically renders multiple social login buttons based on available connections — Google, Facebook, Apple, GitHub, Microsoft, and Vipps.",
+      },
+    },
+  },
+};
+
+// Story: Developer-focused social logins (GitHub + Microsoft)
+export const DeveloperSocialLogins: Story = {
+  render: (args) => (
+    <HonoJSXWrapper html={renderHonoComponent(IdentifierPage, args)} />
+  ),
+  args: {
+    theme: mockTheme,
+    branding: mockBranding,
+    loginSession: mockLoginSession,
+    client: createMockClient([Strategy.EMAIL, "github", "windowslive"]),
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Showcases GitHub and Microsoft authentication options, for developer-focused applications.",
+      },
+    },
+  },
+};
