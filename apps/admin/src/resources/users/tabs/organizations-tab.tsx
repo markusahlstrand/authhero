@@ -16,13 +16,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import {
   DataTable,
   ListPagination,
   ReferenceManyField,
 } from "@/components/admin";
 import { DateAgo } from "@/common/DateAgo";
+import { SelectionList } from "@/components/SelectionList";
 
 interface OrganizationRecord {
   id: string;
@@ -47,7 +47,6 @@ function AddOrganizationButton() {
   const [available, setAvailable] = useState<OrganizationRecord[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
-  const [search, setSearch] = useState("");
 
   const handleOpen = async () => {
     setOpen(true);
@@ -90,7 +89,6 @@ function AddOrganizationButton() {
     setOpen(false);
     setSelected(new Set());
     setAvailable([]);
-    setSearch("");
   };
 
   const toggle = (id: string) => {
@@ -136,64 +134,22 @@ function AddOrganizationButton() {
           <DialogHeader>
             <DialogTitle>Add to organizations</DialogTitle>
           </DialogHeader>
-          {available.length > 5 && (
-            <Input
-              placeholder="Search organizations"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          )}
-          <div className="max-h-72 overflow-auto border rounded-md">
-            {loading ? (
-              <p className="p-4 text-sm text-muted-foreground">Loading…</p>
-            ) : available.length === 0 ? (
-              <p className="p-4 text-sm text-muted-foreground">
-                No organizations available
-              </p>
-            ) : (
-              (() => {
-                const q = search.trim().toLowerCase();
-                const filtered = q
-                  ? available.filter((o) =>
-                      [o.display_name, o.name, o.id]
-                        .filter((v): v is string => Boolean(v))
-                        .some((v) => v.toLowerCase().includes(q)),
-                    )
-                  : available;
-                if (filtered.length === 0) {
-                  return (
-                    <p className="p-4 text-sm text-muted-foreground">
-                      No matches
-                    </p>
-                  );
-                }
-                return (
-                  <ul className="divide-y">
-                    {filtered.map((o) => (
-                      <li key={o.id} className="flex items-start gap-2 p-2">
-                        <Checkbox
-                          id={`org-${o.id}`}
-                          checked={selected.has(o.id)}
-                          onCheckedChange={() => toggle(o.id)}
-                        />
-                        <label
-                          htmlFor={`org-${o.id}`}
-                          className="flex-1 cursor-pointer"
-                        >
-                          <div className="text-sm font-medium">
-                            {o.display_name || o.name || o.id}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            ID: {o.id}
-                          </div>
-                        </label>
-                      </li>
-                    ))}
-                  </ul>
-                );
-              })()
-            )}
-          </div>
+          <SelectionList
+            items={available.map((o) => ({
+              key: o.id,
+              primary: o.display_name || o.name || o.id,
+              secondary: `ID: ${o.id}`,
+              searchText: [o.display_name, o.name, o.id]
+                .filter(Boolean)
+                .join(" "),
+            }))}
+            selected={selected}
+            onToggle={toggle}
+            loading={loading}
+            emptyMessage="No organizations available"
+            searchPlaceholder="Search organizations"
+            idPrefix="org"
+          />
           <DialogFooter>
             <Button variant="outline" onClick={handleClose}>
               Cancel
