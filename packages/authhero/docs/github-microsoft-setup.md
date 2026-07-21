@@ -164,8 +164,8 @@ pnpm run storybook
 
 Navigate to:
 
-- **Components → IdentifierForm → Multiple Social Connections** - Shows all providers including GitHub and Microsoft
-- **Components → IdentifierForm → Developer Social Logins** - Focuses on GitHub and Microsoft
+- **Components → IdentifierPage → Multiple Social Connections** - Shows all providers including GitHub and Microsoft
+- **Components → IdentifierPage → Developer Social Logins** - Focuses on GitHub and Microsoft
 
 ---
 
