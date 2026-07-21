@@ -5,7 +5,7 @@ import { transformForUpdate } from "@/components/custom-domains/domainMetadataUt
 import { CertificateTab } from "./tabs/certificate-tab";
 import { DetailsTab } from "./tabs/details-tab";
 import { ProxyTab } from "./tabs/proxy-tab";
-import { RawJsonTab } from "./tabs/raw-json-tab";
+import { RawJsonTab } from "@/common/RawJsonTab";
 
 export function DomainEdit() {
   return (

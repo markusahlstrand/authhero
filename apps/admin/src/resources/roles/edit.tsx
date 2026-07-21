@@ -3,7 +3,7 @@ import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UrlTabs } from "@/components/ui/url-tabs";
 import { DetailsTab } from "./tabs/details-tab";
 import { PermissionsTab } from "./tabs/permissions-tab";
-import { RawJsonTab } from "./tabs/raw-json-tab";
+import { RawJsonTab } from "@/common/RawJsonTab";
 
 export function RoleEdit() {
   return (

@@ -9,7 +9,7 @@ import { PermissionsTab } from "./tabs/permissions-tab";
 import { RolesTab } from "./tabs/roles-tab";
 import { OrganizationsTab } from "./tabs/organizations-tab";
 import { MfaTab } from "./tabs/mfa-tab";
-import { RawJsonTab } from "./tabs/raw-json-tab";
+import { RawJsonTab } from "@/common/RawJsonTab";
 
 export function UserEdit() {
   return (
