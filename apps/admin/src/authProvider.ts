@@ -827,20 +827,12 @@ export const createOrganizationHttpClient = (organizationId: string) => {
       });
     }
 
-    let request;
-    if (
-      ["token", "client_credentials"].includes(
-        domainConfig.connectionMethod || "",
-      )
-    ) {
-      // For token/client_credentials, use organization-scoped token
-      // This includes the org_id claim for accessing tenant-specific resources
-      request = getOrganizationToken(domainConfig, normalizedOrgId)
-        .catch((error) => {
-          throw new Error(
-            `Authentication failed: ${error.message}. Please configure your credentials in the domain selector.`,
-          );
-        })
+    // Both connection methods differ only in how the org-scoped token is
+    // obtained; once we have the token promise, building the request headers,
+    // parsing the response and mapping a failed-fetch to a certificate error
+    // are identical. Share that tail here.
+    const sendWithToken = (tokenPromise: Promise<string>) =>
+      tokenPromise
         .then((token) => {
           const headersObj = new Headers();
           // Merge any headers passed in options
@@ -901,18 +893,34 @@ export const createOrganizationHttpClient = (organizationId: string) => {
           }
           throw error;
         });
+
+    let request;
+    if (
+      ["token", "client_credentials"].includes(
+        domainConfig.connectionMethod || "",
+      )
+    ) {
+      // For token/client_credentials, use organization-scoped token
+      // This includes the org_id claim for accessing tenant-specific resources
+      request = sendWithToken(
+        getOrganizationToken(domainConfig, normalizedOrgId).catch((error) => {
+          throw new Error(
+            `Authentication failed: ${error.message}. Please configure your credentials in the domain selector.`,
+          );
+        }),
+      );
     } else {
       // For OAuth login, use refresh token with organization parameter
       const auth0Client = createAuth0Client(selectedDomain);
       const audience = getConfigValue("audience") || "urn:authhero:management";
 
-      request = getOrgAccessToken(
-        auth0Client,
-        normalizedOrgId,
-        audience,
-        formattedSelectedDomain,
-      )
-        .catch(async (_error) => {
+      request = sendWithToken(
+        getOrgAccessToken(
+          auth0Client,
+          normalizedOrgId,
+          audience,
+          formattedSelectedDomain,
+        ).catch(async (_error) => {
           const user = await auth0Client.getUser().catch(() => null);
           await auth0Client.loginWithRedirect({
             authorizationParams: {
@@ -926,67 +934,8 @@ export const createOrganizationHttpClient = (organizationId: string) => {
           throw new Error(
             `Redirecting to login for organization ${normalizedOrgId}`,
           );
-        })
-        .then((token) => {
-          const headersObj = new Headers();
-          // Merge any headers passed in options
-          if (options.headers) {
-            const incomingHeaders =
-              options.headers instanceof Headers
-                ? options.headers
-                : new Headers(options.headers as HeadersInit);
-            incomingHeaders.forEach((value, key) => {
-              headersObj.set(key, value);
-            });
-          }
-          headersObj.set("Authorization", `Bearer ${token}`);
-          const method = (options.method || "GET").toUpperCase();
-          if (method === "POST" || method === "PATCH") {
-            headersObj.set("content-type", "application/json");
-          }
-          return fetch(url, { ...options, headers: headersObj });
-        })
-        .then(async (response) => {
-          if (response.status < 200 || response.status >= 300) {
-            const text = await response.text();
-            throw new Error(text || response.statusText);
-          }
-
-          const text = await response.text();
-          let json;
-          try {
-            json = JSON.parse(text);
-          } catch (e) {
-            json = text;
-          }
-
-          return {
-            json,
-            status: response.status,
-            headers: response.headers,
-            body: text,
-          };
-        })
-        .catch((error) => {
-          if (
-            error.message === "Failed to fetch" ||
-            error.name === "TypeError"
-          ) {
-            const urlObj = new URL(url);
-            if (
-              urlObj.hostname === "localhost" ||
-              urlObj.hostname === "127.0.0.1"
-            ) {
-              const certError = new Error(
-                `Unable to connect to ${urlObj.origin}. This may be due to an untrusted SSL certificate.`,
-              );
-              (certError as any).isCertificateError = true;
-              (certError as any).serverUrl = urlObj.origin;
-              throw certError;
-            }
-          }
-          throw error;
-        });
+        }),
+      );
     }
 
     request.finally(() => {
