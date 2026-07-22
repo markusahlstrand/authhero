@@ -18,6 +18,16 @@ main = "src/index.ts"
 compatibility_date = "2026-05-01"
 compatibility_flags = ["nodejs_compat"]
 
+# ════════════════════════════════════════════════════════════════════════════
+# Scheduled retention sweep (this Worker's own D1)
+# ════════════════════════════════════════════════════════════════════════════
+# Runs the `scheduled` handler in src/index.ts, pruning expired `codes`,
+# processed `outbox_events` and expired sessions in the control-plane database.
+# WFP tenant shards have their own D1 and are swept centrally — see the note in
+# src/index.ts and https://authhero.net/deployment/data-retention.
+[triggers]
+crons = ["0 3 * * *"]
+
 [assets]
 directory = "./dist/assets"
 

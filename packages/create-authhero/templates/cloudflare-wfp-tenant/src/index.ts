@@ -23,6 +23,18 @@ import { Env } from "./types";
 // Must match the control plane Worker's CONTROL_PLANE_TENANT_ID.
 const CONTROL_PLANE_TENANT_ID = "control_plane";
 
+// ──────────────────────────────────────────────────────────────────────────────
+// Data retention: no cron here — this is deliberate.
+//
+// This Worker is uploaded to a Workers-for-Platforms dispatch namespace and is
+// only ever invoked via `env.DISPATCHER.get(name).fetch()`. Dispatch-namespace
+// Workers do NOT receive `scheduled` events, so a `[triggers] crons` block here
+// would never fire. Its D1 (codes, outbox_events, expired sessions) must instead
+// be swept centrally: iterate tenants from the control plane and call
+// `runRetention({ dataAdapter, tenantId })` against each tenant's own database.
+// See https://authhero.net/deployment/data-retention.
+// ──────────────────────────────────────────────────────────────────────────────
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);

@@ -8,6 +8,7 @@ import {
   DataAdapters,
   createEncryptedDataAdapter,
   loadEncryptionKey,
+  runRetention,
 } from "authhero";
 import { createDirectRolloutAdapter } from "@authhero/multi-tenancy";
 import createApp from "./app";
@@ -21,17 +22,8 @@ export default {
     const issuer = `${url.protocol}//${url.host}/`;
     const origin = request.headers.get("Origin") || "";
 
-    const db = drizzle(env.AUTH_DB, { schema });
-    let dataAdapter: DataAdapters = createAdapters(db, {
-      useTransactions: false,
-    });
-
-    if (env.ENCRYPTION_KEY) {
-      dataAdapter = createEncryptedDataAdapter(
-        dataAdapter,
-        await loadEncryptionKey(env.ENCRYPTION_KEY),
-      );
-    }
+    const { db, dataAdapter: baseAdapter } = await buildDataAdapter(env);
+    let dataAdapter = baseAdapter;
 
     // Rollout source: project the control plane's inheritable defaults into a
     // WFP tenant's own database. Runs inline here; swap for a Cloudflare
@@ -82,7 +74,47 @@ export default {
 
     return app.fetch(request, { ...env, ISSUER: issuer });
   },
+
+  // ────────────────────────────────────────────────────────────────────────
+  // Retention sweep (this Worker's own D1)
+  // ────────────────────────────────────────────────────────────────────────
+  // Prunes expired `codes`, processed `outbox_events` and expired sessions in
+  // the control plane's own database, which otherwise grows without bound.
+  // Runs on the cron in wrangler.toml.
+  //
+  // NOTE: this sweeps only AUTH_DB (the control_plane tenant). Each WFP tenant
+  // has its OWN D1 and its tenant Worker cannot carry a cron (dispatch-namespace
+  // Workers don't receive scheduled events), so tenant shards must be swept
+  // centrally — call `runRetention({ dataAdapter, tenantId })` per tenant using
+  // `buildTenantAdapters(env, tenantId)` below. That cross-tenant driver is not
+  // wired here yet; see https://authhero.net/deployment/data-retention.
+  async scheduled(_event: ScheduledEvent, env: Env): Promise<void> {
+    const { dataAdapter } = await buildDataAdapter(env);
+    const { sweeps } = await runRetention({ dataAdapter });
+    console.log("retention sweep", sweeps);
+  },
 };
+
+/**
+ * Build the base DataAdapters over the control plane's own D1 (AUTH_DB),
+ * wrapped with encryption when ENCRYPTION_KEY is set. Shared by the request
+ * path and the retention cron so both see the same schema, transaction and
+ * encryption configuration. The fetch handler decorates the returned adapter
+ * with custom-domains support after this base is built.
+ */
+async function buildDataAdapter(env: Env) {
+  const db = drizzle(env.AUTH_DB, { schema });
+  let dataAdapter: DataAdapters = createAdapters(db, {
+    useTransactions: false,
+  });
+  if (env.ENCRYPTION_KEY) {
+    dataAdapter = createEncryptedDataAdapter(
+      dataAdapter,
+      await loadEncryptionKey(env.ENCRYPTION_KEY),
+    );
+  }
+  return { db, dataAdapter };
+}
 
 /**
  * Return the DataAdapters over the given tenant's OWN D1, wrapped with the same

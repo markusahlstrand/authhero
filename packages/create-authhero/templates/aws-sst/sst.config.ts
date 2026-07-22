@@ -27,6 +27,12 @@ export default $config({
         gsi1: { hashKey: "gsi1pk", rangeKey: "gsi1sk" },
         gsi2: { hashKey: "gsi2pk", rangeKey: "gsi2sk" },
       },
+      // Data retention: no scheduled `runRetention` sweep is needed on AWS.
+      // DynamoDB's native TTL (below) expires codes, sessions and refresh
+      // tokens by `expiresAt` on its own, the AWS adapter exposes no `outbox`
+      // or `sessionCleanup`, and its `codes.cleanup()` is a no-op returning 0.
+      // The Cloudflare templates schedule a sweep because SQLite/D1 has no
+      // equivalent. See https://authhero.net/deployment/data-retention.
       ttl: "expiresAt",
     });
 
