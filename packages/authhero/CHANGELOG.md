@@ -1,5 +1,38 @@
 # authhero
 
+## 8.27.0
+
+### Minor Changes
+
+- 77adddf: Add `runRetention()` — a single entry point that sweeps every prunable table (`codes`, `outbox_events`, and sessions/refresh_tokens/login_sessions where the adapter supports it).
+
+  Retention was previously per-table opt-in: each prunable table needed its own call that operators had to discover and remember, which is how `codes` grew unbounded in the first place. Scheduling `runRetention` now covers future prunable tables without any change to your handler.
+
+  Every sweep runs even if an earlier one throws, so one broken adapter method cannot stop the rest being pruned; failures surface as a `RetentionSweepError` carrying the partial result. The per-table helpers (`cleanupCodes`, `cleanupOutbox`) remain exported as escape hatches.
+
+  `runOutboxRelay` is unchanged — it still cleans up `outbox_events` after draining, and running both is safe.
+
+### Patch Changes
+
+- dbc1af4: Fix CIMD (MCP client) login failing after a social/redirect connection. The
+  social-login `/callback` and `/authorize/resume` routes resolve their tenant
+  from the login-session state rather than the host, so they called
+  `getEnrichedClient` without a tenant. For CIMD clients this threw
+  `tenant_id is required to resolve a CIMD client`, dead-ending the flow at
+  `/u/login/identifier?error=access_denied` (e.g. after logging in with Google),
+  while email/OTP kept working. `getEnrichedClient` now recovers the tenant from
+  the CIMD stub row upserted on the first `/authorize`.
+- e0669c9: Don't log a `fapi` (Failed API Operation) event when a management-API `GET`
+  returns 404. A read miss — e.g. a client probing `GET /api/v2/users/{id}` for a
+  user that doesn't exist — is an expected outcome that real Auth0 doesn't surface
+  as an error-class log event; it just returns the 404. Non-GET 404s (and other
+  4xx/5xx responses) are still logged as before.
+- 937d2cd: Scope the management API PATCH phone-number uniqueness check to `sms` users, matching the create path and Auth0.
+
+  The PATCH handler rejected a phone update if _any_ user in the tenant held that number, regardless of provider — the same over-broad rule PR #1165 removed from the database, still live at the app layer. Non-sms users legitimately share phone numbers (placeholder and api-created values are common), so this produced spurious 409s on valid updates.
+
+  A phone number only identifies a user on the passwordless `sms` connection, so the check now applies only when the target user is an sms user, and only collides against other sms users. The lookup also moved to the provider-scoped `getUserByProvider` helper, which removes an unscoped `per_page: 10` query that silently missed matches past the tenth.
+
 ## 8.26.1
 
 ### Patch Changes

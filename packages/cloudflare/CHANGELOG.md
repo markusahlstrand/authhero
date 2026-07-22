@@ -1,5 +1,26 @@
 # @authhero/cloudflare-adapter
 
+## 2.38.15
+
+### Patch Changes
+
+- d9dab63: Serve `/u/widget/*` from the control plane in `createWfpForwardMiddleware`
+  instead of dispatching it to the tenant worker. The u2 universal-login pages
+  load the widget bundle as an ES module to hydrate the form, but a per-tenant
+  WFP dispatch worker has no static-assets binding and no `widgetHandler`, so the
+  request 404'd and the u2 Continue / social buttons rendered inert on every WFP
+  tenant pinned to u2.
+
+  The middleware now carves out a configurable list of shared static-asset path
+  prefixes (`localPaths`, default `["/u/widget/"]`) that fall through to the
+  local control-plane app. Pass `localPaths: []` to opt out.
+
+- Updated dependencies [dbc1af4]
+- Updated dependencies [e0669c9]
+- Updated dependencies [937d2cd]
+- Updated dependencies [77adddf]
+  - authhero@8.27.0
+
 ## 2.38.14
 
 ### Patch Changes
