@@ -22,17 +22,8 @@ export default {
     const issuer = `${url.protocol}//${url.host}/`;
     const origin = request.headers.get("Origin") || "";
 
-    const db = drizzle(env.AUTH_DB, { schema });
-    let dataAdapter: DataAdapters = createAdapters(db, {
-      useTransactions: false,
-    });
-
-    if (env.ENCRYPTION_KEY) {
-      dataAdapter = createEncryptedDataAdapter(
-        dataAdapter,
-        await loadEncryptionKey(env.ENCRYPTION_KEY),
-      );
-    }
+    const { db, dataAdapter: baseAdapter } = await buildDataAdapter(env);
+    let dataAdapter = baseAdapter;
 
     // Rollout source: project the control plane's inheritable defaults into a
     // WFP tenant's own database. Runs inline here; swap for a Cloudflare
@@ -98,20 +89,32 @@ export default {
   // `buildTenantAdapters(env, tenantId)` below. That cross-tenant driver is not
   // wired here yet; see https://authhero.net/deployment/data-retention.
   async scheduled(_event: ScheduledEvent, env: Env): Promise<void> {
-    const db = drizzle(env.AUTH_DB, { schema });
-    let dataAdapter: DataAdapters = createAdapters(db, {
-      useTransactions: false,
-    });
-    if (env.ENCRYPTION_KEY) {
-      dataAdapter = createEncryptedDataAdapter(
-        dataAdapter,
-        await loadEncryptionKey(env.ENCRYPTION_KEY),
-      );
-    }
+    const { dataAdapter } = await buildDataAdapter(env);
     const { sweeps } = await runRetention({ dataAdapter });
     console.log("retention sweep", sweeps);
   },
 };
+
+/**
+ * Build the base DataAdapters over the control plane's own D1 (AUTH_DB),
+ * wrapped with encryption when ENCRYPTION_KEY is set. Shared by the request
+ * path and the retention cron so both see the same schema, transaction and
+ * encryption configuration. The fetch handler decorates the returned adapter
+ * with custom-domains support after this base is built.
+ */
+async function buildDataAdapter(env: Env) {
+  const db = drizzle(env.AUTH_DB, { schema });
+  let dataAdapter: DataAdapters = createAdapters(db, {
+    useTransactions: false,
+  });
+  if (env.ENCRYPTION_KEY) {
+    dataAdapter = createEncryptedDataAdapter(
+      dataAdapter,
+      await loadEncryptionKey(env.ENCRYPTION_KEY),
+    );
+  }
+  return { db, dataAdapter };
+}
 
 /**
  * Return the DataAdapters over the given tenant's OWN D1, wrapped with the same
