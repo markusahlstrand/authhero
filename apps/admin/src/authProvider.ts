@@ -845,6 +845,11 @@ export const createOrganizationHttpClient = (organizationId: string) => {
               headersObj.set(key, value);
             });
           }
+          // Carry the tenant context for apex/loopback deployments where the
+          // server resolves the tenant from this header rather than the host.
+          // Set after merging caller headers so it can't be omitted or
+          // overridden; the org id is the tenant id here.
+          headersObj.set("tenant-id", normalizedOrgId);
           headersObj.set("Authorization", `Bearer ${token}`);
           const method = (options.method || "GET").toUpperCase();
           if (method === "POST" || method === "PATCH") {
