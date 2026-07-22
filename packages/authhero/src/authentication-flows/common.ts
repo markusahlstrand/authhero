@@ -305,8 +305,18 @@ export async function createAuthTokens(
     const scope = tenantIdForKeys
       ? `tenant "${tenantIdForKeys}"`
       : "the control-plane scope";
+    // `resolvedKeys` is the sign-filtered set (signable only), so its length no
+    // longer reflects how many verify keys the scope actually holds. Re-resolve
+    // with purpose "publish" — only on this rare error path — to report the true
+    // count (e.g. a WFP tenant with projected public keys but no private key).
+    const verifyKeys = await resolveSigningKeys(
+      ctx.env.data.keys,
+      tenantIdForKeys ?? "",
+      tenantIdForKeys ? ctx.env.signingKeyMode : "control-plane",
+      { purpose: "publish" },
+    );
     throw new JSONHTTPException(500, {
-      message: `No signing key configured for ${scope}: found ${resolvedKeys.length} verify key(s) but none with private material to sign tokens.`,
+      message: `No signing key configured for ${scope}: found ${verifyKeys.length} verify key(s) but none with private material to sign tokens.`,
     });
   }
 
