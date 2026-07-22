@@ -24,6 +24,14 @@ export default {
 
 Daily is a reasonable cadence.
 
+### Scaffolded projects already have this
+
+If you started from a `create-authhero` template you do not need to add this by hand — it is wired at scaffold time:
+
+- **`cloudflare`** and **`cloudflare-control-plane`** ship a `scheduled` handler that calls `runRetention`, plus a `[triggers] crons = ["0 3 * * *"]` block in `wrangler.toml`. Adjust the schedule to taste.
+- **`cloudflare-wfp-tenant`** has **no** cron on purpose. Workers uploaded to a Workers-for-Platforms dispatch namespace never receive `scheduled` events, so a cron there would silently never fire. Each tenant Worker reads only its own D1, so those shards must be swept **centrally**: iterate tenants from the control plane and call `runRetention({ dataAdapter, tenantId })` against each tenant's database. (The control-plane template sweeps its own D1 only; the cross-tenant driver is left for you to wire.)
+- **`aws-sst`** needs no sweep at all. DynamoDB's native TTL expires codes, sessions and refresh tokens by `expiresAt` on its own, and the AWS adapter exposes no `outbox` or `sessionCleanup`. See [Adapter behaviour](#adapter-behaviour).
+
 `runRetention` sweeps every prunable table, using the default window for each:
 
 | Table(s) | Default window | Notes |

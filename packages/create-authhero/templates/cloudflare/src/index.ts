@@ -5,14 +5,35 @@ import createApp from "./app";
 import { Env } from "./types";
 import {
   AuthHeroConfig,
+  DataAdapters,
   createEncryptedDataAdapter,
   loadEncryptionKey,
+  runRetention,
 } from "authhero";
 
 // ──────────────────────────────────────────────────────────────────────────────
 // OPTIONAL: Uncomment to enable Cloudflare adapters (Analytics Engine, etc.)
 // ──────────────────────────────────────────────────────────────────────────────
 // import createCloudflareAdapters from "@authhero/cloudflare-adapter";
+
+/**
+ * Build the data adapter. Shared by `fetch` and the `scheduled` handler so both
+ * request traffic and the retention sweep talk to the database the same way.
+ */
+async function buildDataAdapter(env: Env): Promise<DataAdapters> {
+  const db = drizzle(env.AUTH_DB, { schema });
+  let dataAdapter = createAdapters(db, { useTransactions: false });
+
+  // Encrypt sensitive credential fields at rest when ENCRYPTION_KEY is set.
+  // In local dev it comes from .dev.vars; in production set it with
+  // `wrangler secret put ENCRYPTION_KEY`. Without it, behavior is unchanged.
+  if (env.ENCRYPTION_KEY) {
+    const encryptionKey = await loadEncryptionKey(env.ENCRYPTION_KEY);
+    dataAdapter = createEncryptedDataAdapter(dataAdapter, encryptionKey);
+  }
+
+  return dataAdapter;
+}
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -22,16 +43,7 @@ export default {
     // Get the origin from the request for dynamic CORS
     const origin = request.headers.get("Origin") || "";
 
-    const db = drizzle(env.AUTH_DB, { schema });
-    let dataAdapter = createAdapters(db, { useTransactions: false });
-
-    // Encrypt sensitive credential fields at rest when ENCRYPTION_KEY is set.
-    // In local dev it comes from .dev.vars; in production set it with
-    // `wrangler secret put ENCRYPTION_KEY`. Without it, behavior is unchanged.
-    if (env.ENCRYPTION_KEY) {
-      const encryptionKey = await loadEncryptionKey(env.ENCRYPTION_KEY);
-      dataAdapter = createEncryptedDataAdapter(dataAdapter, encryptionKey);
-    }
+    const dataAdapter = await buildDataAdapter(env);
 
     // ────────────────────────────────────────────────────────────────────────
     // OPTIONAL: Cloudflare Analytics Engine for centralized logging
@@ -93,5 +105,20 @@ export default {
     };
 
     return app.fetch(request, envWithIssuer);
+  },
+
+  // ────────────────────────────────────────────────────────────────────────
+  // Retention sweep
+  // ────────────────────────────────────────────────────────────────────────
+  // Runs on the cron in wrangler.toml ([triggers] crons). Several AuthHero
+  // tables (codes, outbox_events, expired sessions) accumulate rows that normal
+  // traffic never deletes, so without this a deployment grows without bound.
+  // `runRetention` sweeps every prunable table in one call and picks up tables
+  // added in future AuthHero versions with no change here.
+  // See https://authhero.net/deployment/data-retention for details and tuning.
+  async scheduled(_event: ScheduledEvent, env: Env): Promise<void> {
+    const dataAdapter = await buildDataAdapter(env);
+    const { sweeps } = await runRetention({ dataAdapter });
+    console.log("retention sweep", sweeps);
   },
 };

@@ -17,6 +17,17 @@ compatibility_date = "2026-05-01"
 compatibility_flags = ["nodejs_compat"]
 
 # ════════════════════════════════════════════════════════════════════════════
+# Scheduled retention sweep
+# ════════════════════════════════════════════════════════════════════════════
+# Runs the `scheduled` handler in src/index.ts, which calls `runRetention` to
+# prune expired `codes`, processed `outbox_events` and expired sessions. Without
+# this cron those tables grow without bound. Daily at 03:00 UTC is a sensible
+# default; adjust the schedule to taste.
+# https://authhero.net/deployment/data-retention
+[triggers]
+crons = ["0 3 * * *"]
+
+# ════════════════════════════════════════════════════════════════════════════
 # Static Assets (CSS, JS, Widget)
 # ════════════════════════════════════════════════════════════════════════════
 # Serve static assets from the authhero package.

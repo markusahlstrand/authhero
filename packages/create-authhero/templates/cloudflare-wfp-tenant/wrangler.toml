@@ -17,6 +17,10 @@ main = "src/index.ts"
 compatibility_date = "2026-05-01"
 compatibility_flags = ["nodejs_compat"]
 
+# No [triggers] crons here: dispatch-namespace Workers never receive scheduled
+# events, so a cron would never fire. This tenant's D1 is swept centrally from
+# the control plane — see the retention note in src/index.ts.
+
 [assets]
 directory = "./dist/assets"
 
