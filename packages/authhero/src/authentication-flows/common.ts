@@ -298,7 +298,16 @@ export async function createAuthTokens(
   const signingKey = resolvedKeys[0];
 
   if (!signingKey?.pkcs7 || !signingKey.cert) {
-    throw new JSONHTTPException(500, { message: "No signing key available" });
+    // A resolved-but-unsignable key means the scope holds only public verify
+    // keys (e.g. a WFP tenant that inherited the control plane's public keys
+    // but was never provisioned its own private key — issue #1181). Name the
+    // scope so this stops reading as a client-credentials problem.
+    const scope = tenantIdForKeys
+      ? `tenant "${tenantIdForKeys}"`
+      : "the control-plane scope";
+    throw new JSONHTTPException(500, {
+      message: `No signing key configured for ${scope}: found ${resolvedKeys.length} verify key(s) but none with private material to sign tokens.`,
+    });
   }
 
   const keyBuffer = pemToBuffer(signingKey.pkcs7);

@@ -200,8 +200,13 @@ export {
   listControlPlaneKeys,
   resolveSigningKeys,
   resolveSigningKeyMode,
+  ensureSigningKey,
 } from "./helpers/signing-keys";
-export type { ResolveSigningKeysOptions } from "./helpers/signing-keys";
+export type {
+  ResolveSigningKeysOptions,
+  EnsureSigningKeyOptions,
+  EnsureSigningKeyResult,
+} from "./helpers/signing-keys";
 
 // Export constants
 export { USERNAME_PASSWORD_PROVIDER } from "./constants";

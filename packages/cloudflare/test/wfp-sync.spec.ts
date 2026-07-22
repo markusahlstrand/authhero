@@ -216,7 +216,12 @@ describe("createDispatchSyncDefaults", () => {
     const { signingKeys } = await tenantAdapters.keys.list({
       q: "type:jwt_signing AND -_exists_:tenant_id",
     });
-    expect(signingKeys.map((k) => k.kid)).toEqual(["cp-kid-1"]);
+    expect(signingKeys.map((k) => k.kid)).toContain("cp-kid-1");
+    // Provisioning also minted the tenant's own PRIVATE signing key (#1181), so
+    // /oauth/token can actually sign; the projected cp key is public-only.
+    const signable = signingKeys.filter((k) => k.pkcs7);
+    expect(signable).toHaveLength(1);
+    expect(signable[0].kid).not.toBe("cp-kid-1");
 
     // The whole point: a tenant-scoped write into the fresh D1 now resolves its
     // `tenant_id -> tenants(id)` FK instead of 500ing.
@@ -574,8 +579,39 @@ describe("createWfpTenantApp /internal/sync-defaults", () => {
     const { signingKeys } = await tenant.keys.list({
       q: "type:jwt_signing AND -_exists_:tenant_id",
     });
-    expect(signingKeys.map((k) => k.kid)).toEqual(["cp-kid-1"]);
-    expect(signingKeys[0].tenant_id ?? null).toBeNull();
+    const cpKey = signingKeys.find((k) => k.kid === "cp-kid-1");
+    expect(cpKey).toBeTruthy();
+    expect(cpKey!.tenant_id ?? null).toBeNull();
+  });
+
+  it("mints the tenant's own private signing key so /oauth/token can sign (#1181)", async () => {
+    const res = await post("push-secret");
+    expect(res.status).toBe(200);
+    const result = await res.json();
+    // The response surfaces that a key was minted during provisioning.
+    expect(result.signingKey).toEqual({ created: true });
+
+    // A signable (private-material) key now exists in the control-plane scope,
+    // distinct from the projected public-only cp key.
+    const { signingKeys } = await tenant.keys.list({
+      q: "type:jwt_signing AND -_exists_:tenant_id",
+    });
+    const signable = signingKeys.filter((k) => k.pkcs7);
+    expect(signable).toHaveLength(1);
+    expect(signable[0].kid).not.toBe("cp-kid-1");
+  });
+
+  it("is idempotent: a re-sync does not mint a second signing key (#1181)", async () => {
+    const first = await (await post("push-secret")).json();
+    expect(first.signingKey).toEqual({ created: true });
+
+    const second = await (await post("push-secret")).json();
+    expect(second.signingKey).toEqual({ created: false });
+
+    const { signingKeys } = await tenant.keys.list({
+      q: "type:jwt_signing AND -_exists_:tenant_id",
+    });
+    expect(signingKeys.filter((k) => k.pkcs7)).toHaveLength(1);
   });
 
   it("invokes onSyncResult with the applied result", async () => {

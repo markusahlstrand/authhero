@@ -7,6 +7,7 @@ import {
 import {
   resolveSigningKeys,
   resolveSigningKeyMode,
+  ensureSigningKey,
 } from "../../src/helpers/signing-keys";
 
 function makeKey(overrides: Partial<SigningKey>): SigningKey {
@@ -71,8 +72,9 @@ describe("resolveSigningKeyMode", () => {
 });
 
 describe("resolveSigningKeys (sign purpose)", () => {
-  const cpKey = makeKey({ kid: "cp" });
-  const t1Key = makeKey({ kid: "t1", tenant_id: "t1" });
+  // Sign candidates must carry private material (pkcs7).
+  const cpKey = makeKey({ kid: "cp", pkcs7: "PRIVATE" });
+  const t1Key = makeKey({ kid: "t1", tenant_id: "t1", pkcs7: "PRIVATE" });
 
   it("returns the control-plane key in control-plane mode", async () => {
     const keys = makeKeysAdapter([cpKey, t1Key]);
@@ -118,6 +120,34 @@ describe("resolveSigningKeys (sign purpose)", () => {
     });
     expect(result).toEqual([]);
   });
+
+  it("skips a newer public-only key and signs with the signable one (control-plane)", async () => {
+    // Models a WFP tenant after a control-plane key rotation re-sync: a fresh
+    // public-only verify key (no pkcs7) sorts ahead of the tenant's own private
+    // key, but must not be chosen for signing (#1181).
+    const newerPublic = makeKey({
+      kid: "cp-public",
+      current_since: new Date().toISOString(),
+    });
+    const olderSignable = makeKey({
+      kid: "cp-priv",
+      pkcs7: "PRIVATE",
+      current_since: new Date(Date.now() - 1000).toISOString(),
+    });
+    const keys = makeKeysAdapter([newerPublic, olderSignable]);
+    const result = await resolveSigningKeys(keys, "t1", "control-plane", {
+      purpose: "sign",
+    });
+    expect(result.map((k) => k.kid)).toEqual(["cp-priv"]);
+  });
+
+  it("returns nothing when only public verify keys exist (unsignable)", async () => {
+    const keys = makeKeysAdapter([makeKey({ kid: "cp-public" })]);
+    const result = await resolveSigningKeys(keys, "t1", "control-plane", {
+      purpose: "sign",
+    });
+    expect(result).toEqual([]);
+  });
 });
 
 describe("resolveSigningKeys (publish purpose)", () => {
@@ -147,5 +177,76 @@ describe("resolveSigningKeys (publish purpose)", () => {
       purpose: "publish",
     });
     expect(result.map((k) => k.kid)).toEqual(["cp"]);
+  });
+});
+
+// Stateful variant of makeKeysAdapter whose create() actually persists, so we
+// can assert the mint + the create-if-missing idempotency.
+function makeStatefulKeysAdapter(initial: SigningKey[] = []): {
+  adapter: KeysAdapter;
+  rows: SigningKey[];
+} {
+  const rows: SigningKey[] = [...initial];
+  const base = makeKeysAdapter(rows);
+  const adapter: KeysAdapter = {
+    ...base,
+    create: async (key) => {
+      rows.push(key);
+    },
+  };
+  return { adapter, rows };
+}
+
+describe("ensureSigningKey", () => {
+  it("mints a control-plane RS256 key when the scope is empty", async () => {
+    const { adapter, rows } = makeStatefulKeysAdapter([]);
+    const result = await ensureSigningKey(adapter);
+    expect(result.created).toBe(true);
+    expect(result.key.pkcs7).toBeTruthy();
+    expect(result.key.cert).toBeTruthy();
+    expect(result.key.type).toBe("jwt_signing");
+    expect(result.key.tenant_id).toBeUndefined();
+    expect(rows).toHaveLength(1);
+  });
+
+  it("mints even when only public (unsignable) verify keys exist", async () => {
+    // Projected control-plane keys have their pkcs7 stripped, so they are not
+    // signable — this is the exact WFP provisioning gap in #1181.
+    const publicOnly = makeKey({ kid: "cp-public" });
+    expect(publicOnly.pkcs7).toBeUndefined();
+    const { adapter, rows } = makeStatefulKeysAdapter([publicOnly]);
+    const result = await ensureSigningKey(adapter);
+    expect(result.created).toBe(true);
+    expect(rows).toHaveLength(2);
+    expect(rows.some((k) => k.pkcs7)).toBe(true);
+  });
+
+  it("is a no-op when a signable key already exists (idempotent)", async () => {
+    const signable = makeKey({ kid: "cp-priv", pkcs7: "PRIVATE" });
+    const { adapter, rows } = makeStatefulKeysAdapter([signable]);
+    const result = await ensureSigningKey(adapter);
+    expect(result.created).toBe(false);
+    expect(result.key.kid).toBe("cp-priv");
+    expect(rows).toHaveLength(1);
+  });
+
+  it("stamps tenant_id when a tenantId is given", async () => {
+    const { adapter, rows } = makeStatefulKeysAdapter([]);
+    const result = await ensureSigningKey(adapter, { tenantId: "t1" });
+    expect(result.created).toBe(true);
+    expect(result.key.tenant_id).toBe("t1");
+    expect(rows.some((k) => k.tenant_id === "t1" && k.pkcs7)).toBe(true);
+  });
+
+  it("does not treat a tenant's own key as satisfying the control-plane scope", async () => {
+    const tenantSignable = makeKey({
+      kid: "t1-priv",
+      tenant_id: "t1",
+      pkcs7: "PRIVATE",
+    });
+    const { adapter, rows } = makeStatefulKeysAdapter([tenantSignable]);
+    const result = await ensureSigningKey(adapter);
+    expect(result.created).toBe(true); // control-plane scope was empty
+    expect(rows).toHaveLength(2);
   });
 });

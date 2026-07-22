@@ -3,6 +3,7 @@ import {
   init,
   loadEncryptionKey,
   createEncryptedDataAdapterWithKeyRing,
+  ensureSigningKey,
   type AuthHeroConfig,
   type DataAdapters,
   type IssuerResolver,
@@ -208,6 +209,24 @@ async function buildTenantApp<Env extends WfpTenantEnv>(
       return errorResponse(c, "sync_defaults_apply_failed", err);
     }
 
+    // The projected defaults only carry the control plane's PUBLIC keys, so a
+    // freshly provisioned tenant has nothing to sign tokens with and would 500
+    // at /oauth/token (issue #1181). Mint the tenant's own private RS256 key
+    // here — the first point where its data adapter exists. Written to the
+    // key-ring adapter (control-plane scope, no tenant_id) so it resolves in
+    // both signing-key modes; private material is generated locally and never
+    // crosses the control-plane boundary. Idempotent: a re-sync is a no-op once
+    // a signable key exists.
+    let signingKey: { created: boolean };
+    try {
+      const ensured = await ensureSigningKey(encrypted.keys, {
+        name: env.ISSUER,
+      });
+      signingKey = { created: ensured.created };
+    } catch (err) {
+      return errorResponse(c, "sync_defaults_signing_key_failed", err, result);
+    }
+
     if (options.onSyncResult) {
       try {
         await options.onSyncResult(result, env);
@@ -218,7 +237,10 @@ async function buildTenantApp<Env extends WfpTenantEnv>(
       }
     }
 
-    return c.json(result);
+    // Surface the signing-key outcome in the body so the control plane can
+    // confirm provisioning wired a private key (dispatch workers aren't
+    // tailable). Additive to the apply result the verify step reads from D1.
+    return c.json({ ...result, signingKey });
   });
 
   app.route("/", authheroApp);

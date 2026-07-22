@@ -1,5 +1,6 @@
 import { SigningKey, KeysAdapter } from "@authhero/adapter-interfaces";
 import { SigningKeyMode, SigningKeyModeOption } from "../types/AuthHeroConfig";
+import { createX509Certificate } from "../utils/encryption";
 
 /**
  * Returns the non-revoked subset of a list result, sorted newest-first.
@@ -99,8 +100,13 @@ export async function resolveSigningKeys(
     const controlPlaneKeys = await listControlPlaneKeys(keys, type);
     if (opts.purpose === "sign") {
       // Collapse to a single key so the sign path returns the same shape
-      // (at most one element) regardless of mode.
-      const preferred = controlPlaneKeys[0];
+      // (at most one element) regardless of mode. Pick the newest *signable*
+      // key: a WFP tenant's control-plane scope also holds verify-only public
+      // keys projected from the control plane (private material stripped), and
+      // a control-plane rotation can re-sync a newer public key that would
+      // otherwise out-sort the tenant's own private key — leaving the signer
+      // with nothing to sign (#1181).
+      const preferred = controlPlaneKeys.find(isSignable);
       return preferred ? [preferred] : [];
     }
     return controlPlaneKeys;
@@ -114,9 +120,11 @@ export async function resolveSigningKeys(
 
   if (opts.purpose === "sign") {
     // Prefer a tenant key; fall back to control-plane while a tenant key is
-    // being provisioned. Returning a single-element array keeps callers
-    // uniform with the publish path.
-    const preferred = tenantKeys[0] ?? controlPlaneKeys[0];
+    // being provisioned. Only signable keys are candidates — projected public
+    // verify keys can't sign (#1181). Returning a single-element array keeps
+    // callers uniform with the publish path.
+    const preferred =
+      tenantKeys.find(isSignable) ?? controlPlaneKeys.find(isSignable);
     return preferred ? [preferred] : [];
   }
 
@@ -129,4 +137,74 @@ export async function resolveSigningKeys(
     merged.push(k);
   }
   return merged;
+}
+
+/** A key is signable only if it carries private material, not just a cert. */
+function isSignable(key: SigningKey): boolean {
+  return Boolean(key.pkcs7 && key.cert);
+}
+
+export interface EnsureSigningKeyOptions {
+  /**
+   * When set, the key is created tenant-scoped (`tenant_id` stamped) and the
+   * existence check is scoped to that tenant. Omit for a control-plane key
+   * (no `tenant_id`), which `resolveSigningKeys` resolves in both modes — as
+   * the primary key in `"control-plane"` mode and as the fallback in
+   * `"tenant"` mode. Control-plane scope is the right default for a freshly
+   * provisioned WFP tenant.
+   */
+  tenantId?: string;
+  /** Cert CN. Falls back to the tenant id, then to `"authhero"`. */
+  name?: string;
+  /** Defaults to `"jwt_signing"`. */
+  type?: SigningKey["type"];
+}
+
+export interface EnsureSigningKeyResult {
+  /** True when a new key was minted; false when a signable key already existed. */
+  created: boolean;
+  key: SigningKey;
+}
+
+/**
+ * Guarantees the target scope holds at least one *signable* key — one carrying
+ * private material (`pkcs7` + `cert`), not merely a projected public verify key.
+ *
+ * A freshly provisioned WFP tenant inherits only the control plane's public
+ * keys (private material stripped at the boundary), so it can serve JWKS and
+ * `/authorize` but 500s at `/oauth/token` with nothing to sign — issue #1181.
+ * Calling this at provision time closes that gap by minting the tenant's own
+ * RS256 key locally (private material never crosses the control-plane boundary).
+ *
+ * Create-if-missing and idempotent: a scope that already has a signable key is
+ * left untouched, so it is safe to call on every provision and re-sync.
+ */
+export async function ensureSigningKey(
+  keys: KeysAdapter,
+  opts: EnsureSigningKeyOptions = {},
+): Promise<EnsureSigningKeyResult> {
+  const type: SigningKey["type"] = opts.type ?? "jwt_signing";
+  const existing = opts.tenantId
+    ? await listByTenant(keys, opts.tenantId, type)
+    : await listControlPlaneKeys(keys, type);
+
+  const signable = existing.find(isSignable);
+  if (signable) {
+    return { created: false, key: signable };
+  }
+
+  // Default keyType is RSA -> RS256, matching seed.ts and the rotate endpoint.
+  const generated = await createX509Certificate({
+    name: `CN=${opts.name || opts.tenantId || "authhero"}`,
+  });
+  const key: SigningKey = {
+    ...generated,
+    type,
+    // Stamp current_since so this key wins the resolveSigningKeys tiebreaker
+    // over any key minted concurrently at ~the same instant.
+    current_since: new Date().toISOString(),
+    ...(opts.tenantId ? { tenant_id: opts.tenantId } : {}),
+  };
+  await keys.create(key);
+  return { created: true, key };
 }
