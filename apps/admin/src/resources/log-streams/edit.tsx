@@ -1,8 +1,8 @@
 import { Edit, SimpleForm, TextInput, SelectInput } from "@/components/admin";
 import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UrlTabs } from "@/components/ui/url-tabs";
-import { regex, required, useRecordContext } from "ra-core";
-import { JsonOutput } from "@/common/JsonOutput";
+import { regex, required } from "ra-core";
+import { RawJsonTab } from "@/common/RawJsonTab";
 import {
   contentFormatChoices,
   statusChoices,
@@ -46,12 +46,6 @@ function DetailsTab() {
       />
     </>
   );
-}
-
-function RawJsonTab() {
-  const record = useRecordContext();
-  if (!record) return null;
-  return <JsonOutput data={record} />;
 }
 
 export function LogStreamEdit() {

@@ -9,7 +9,7 @@ import { AttributesTab } from "./tabs/attributes-tab";
 import { AuthenticationMethodsTab } from "./tabs/authentication-methods-tab";
 import { PasswordPolicyTab } from "./tabs/password-policy-tab";
 import { ClientsTab } from "./tabs/clients-tab";
-import { RawJsonTab } from "./tabs/raw-json-tab";
+import { RawJsonTab } from "@/common/RawJsonTab";
 import { TryConnectionButton } from "./try-connection-button";
 
 // Recursively strip null values so cleared inputs don't send "null" to the API.

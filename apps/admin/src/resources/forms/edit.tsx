@@ -4,7 +4,7 @@ import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UrlTabs } from "@/components/ui/url-tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DetailsTab } from "./tabs/details-tab";
-import { RawJsonTab } from "./tabs/raw-json-tab";
+import { RawJsonTab } from "@/common/RawJsonTab";
 
 const DesignerTab = lazy(() =>
   import("./tabs/designer-tab").then((m) => ({ default: m.DesignerTab })),

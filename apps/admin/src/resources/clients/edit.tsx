@@ -8,7 +8,7 @@ import { ConnectionsTab } from "./tabs/connections-tab";
 import { OrganizationsTab } from "./tabs/organizations-tab";
 import { AdvancedTab } from "./tabs/advanced-tab";
 import { RefreshTokensTab } from "./tabs/refresh-tokens-tab";
-import { RawJsonTab } from "./tabs/raw-json-tab";
+import { RawJsonTab } from "@/common/RawJsonTab";
 import { CimdBanner } from "./cimd";
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
