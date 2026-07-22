@@ -5,6 +5,20 @@ import type { DispatchNamespace } from "../code-executor";
 const DEFAULT_DISPATCHER_BINDING = "DISPATCHER";
 const DEFAULT_SCRIPT_NAME_TEMPLATE = "tenant-{tenant_id}-auth";
 
+/**
+ * Path prefixes served from the control plane rather than dispatched to a
+ * tenant worker. These are shared static assets that are byte-identical across
+ * tenants and only exist on the control plane's deployment.
+ *
+ * `/u/widget/` is the universal-login (u2) widget bundle. It's a multi-file
+ * Stencil bundle the SSR'd pages load as an ES module to hydrate the form. A
+ * per-tenant dispatch worker has no static-assets binding and no configured
+ * `widgetHandler`, so forwarding these requests 404s and the u2 buttons render
+ * inert. Serving them from the control plane — where the assets live — keeps
+ * zero per-tenant weight.
+ */
+const DEFAULT_LOCAL_PATHS = ["/u/widget/"];
+
 export interface WfpForwardOptions {
   /** Tenants adapter, used to look up the resolved tenant's `deployment_type`. */
   tenants: TenantsDataAdapter;
@@ -29,6 +43,18 @@ export interface WfpForwardOptions {
   resolveTenantId?: (
     c: Context,
   ) => string | undefined | Promise<string | undefined>;
+  /**
+   * Request path prefixes that are **never** dispatched to a tenant worker,
+   * even for a fully-provisioned `wfp` tenant. Matching requests fall through
+   * to the local (control-plane) app so it serves them from its own assets /
+   * handlers.
+   *
+   * Use this for shared static assets that only the control plane can serve —
+   * a per-tenant dispatch worker has no static-assets binding. Defaults to
+   * `["/u/widget/"]` (the universal-login widget bundle); pass `[]` to disable
+   * the carve-out entirely, or extend the list for other shared assets.
+   */
+  localPaths?: string[];
 }
 
 function isDispatchNamespace(value: unknown): value is DispatchNamespace {
@@ -57,6 +83,10 @@ function fillTemplate(template: string, tenantId: string): string {
  * dispatching to a not-yet-deployed worker would only hard-fail the request.
  * The tenant worker receives the original request verbatim and owns the full
  * response.
+ *
+ * Requests whose path matches `localPaths` (default `["/u/widget/"]`) are also
+ * never dispatched — they are shared static assets that only the control plane
+ * can serve, so a per-tenant worker would 404 them. See `DEFAULT_LOCAL_PATHS`.
  */
 export function createWfpForwardMiddleware(
   options: WfpForwardOptions,
@@ -67,9 +97,21 @@ export function createWfpForwardMiddleware(
     dispatcherBinding = DEFAULT_DISPATCHER_BINDING,
     scriptNameTemplate = DEFAULT_SCRIPT_NAME_TEMPLATE,
     resolveTenantId = (c) => c.req.header("tenant-id"),
+    localPaths = DEFAULT_LOCAL_PATHS,
   } = options;
 
   return async (c, next) => {
+    // Shared static assets (byte-identical across tenants, served only by the
+    // control plane) must not be forwarded to a tenant worker that can't serve
+    // them. Check the path before resolving the tenant so it short-circuits
+    // regardless of which tenant the request would otherwise route to.
+    if (localPaths.length > 0) {
+      const path = c.req.path;
+      if (localPaths.some((prefix) => path.startsWith(prefix))) {
+        return next();
+      }
+    }
+
     const tenantId = await resolveTenantId(c);
     if (!tenantId || tenantId === controlPlaneTenantId) {
       return next();

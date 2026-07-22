@@ -599,11 +599,16 @@ is on the main entry; the sync helpers are on the `@authhero/cloudflare-adapter/
 subpath, whose `authhero` + `@authhero/multi-tenancy` peers are **optional** —
 install them only if you import `/wfp`.
 
-- **`createWfpForwardMiddleware({ tenants, controlPlaneTenantId, dispatcherBinding?, scriptNameTemplate?, resolveTenantId? })`**
+- **`createWfpForwardMiddleware({ tenants, controlPlaneTenantId, dispatcherBinding?, scriptNameTemplate?, resolveTenantId?, localPaths? })`**
   → Hono `MiddlewareHandler` — forwards a resolved tenant's request to its WFP
   worker over the dispatch namespace. Control-plane / shared / unknown tenants,
   and `wfp` tenants not yet `provisioning_state === "ready"`, fall through to the
-  local app. Pass it as `init`'s `tenantDispatch` config so it is mounted inside
+  local app. Requests matching `localPaths` (default `["/u/widget/"]`) are never
+  dispatched either — they are shared static assets (the universal-login widget
+  bundle) that only the control plane can serve, so a per-tenant dispatch worker
+  would 404 them; they fall through so the control-plane app serves them. Pass
+  `localPaths: []` to disable the carve-out. Pass it as `init`'s `tenantDispatch`
+  config so it is mounted inside
   authhero's management API **after** the CORS middleware — then the central CORS
   middleware applies the `Access-Control-Allow-*` headers to the dispatched
   response and no manual CORS handling is needed in the host app. (Mounting it
