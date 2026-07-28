@@ -20,9 +20,15 @@ import {
   handleCodeHook,
   persistActionExecution,
   HandleCodeHookOutcome,
+  CodeHookApi,
 } from "./codehooks";
 import { invokeHooks } from "./webhooks";
 import { createTokenAPI } from "./helpers/token-api";
+import { createPostLoginUserApi } from "./helpers/post-login-account-linking";
+import {
+  resolveLinkCandidates,
+  toLinkCandidates,
+} from "../helpers/link-candidates";
 import {
   getConnectionInfo,
   resolveConnectionName,
@@ -444,6 +450,34 @@ export async function postUserLoginHook(
       (h: any) => h.enabled && isCodeHook(h),
     );
     if (enhancedEvent && codeHooks.length > 0) {
+      // Programmable account linking (issue #1184). Only tenants that opted in
+      // via `metadata.resolve_link_candidates` on a code hook pay the extra
+      // user-list query and get `event.link_candidates` — existing code hooks
+      // see no behaviour or latency change. `setLinkedTo` is still guarded
+      // host-side, so an action can't link to a user outside this set.
+      const linkingOptedIn = codeHooks.some(
+        (h: any) => h.metadata?.resolve_link_candidates === true,
+      );
+      const linkCandidates = linkingOptedIn
+        ? await resolveLinkCandidates({
+            userAdapter: data.users,
+            tenantId: tenant_id,
+            user,
+          })
+        : [];
+      if (linkingOptedIn) {
+        (enhancedEvent as Record<string, unknown>).link_candidates =
+          toLinkCandidates(linkCandidates);
+      }
+
+      const linkingApi = createPostLoginUserApi({
+        ctx,
+        data,
+        tenantId: tenant_id,
+        user,
+        candidates: linkCandidates,
+      });
+
       const outcomes: HandleCodeHookOutcome[] = [];
       for (const hook of codeHooks) {
         if (!isCodeHook(hook)) continue;
@@ -454,7 +488,7 @@ export async function postUserLoginHook(
             hook,
             enhancedEvent,
             "post-user-login",
-            {},
+            linkingApi.api as unknown as CodeHookApi,
           );
           if (outcome) outcomes.push(outcome);
         } catch (err) {
@@ -471,6 +505,15 @@ export async function postUserLoginHook(
           });
         }
       }
+
+      // If an action linked the user, re-fetch the resulting primary so
+      // downstream token building sees it — matching `handleTemplateHook`.
+      const linkedPrimaryId = linkingApi.getLinkedPrimaryId();
+      if (linkedPrimaryId && linkedPrimaryId !== user.user_id) {
+        const primary = await data.users.get(tenant_id, linkedPrimaryId);
+        if (primary) user = primary;
+      }
+
       const persistedExecutionId = await persistActionExecution(
         data,
         tenant_id,

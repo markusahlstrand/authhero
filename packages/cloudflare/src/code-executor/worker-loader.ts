@@ -1,6 +1,7 @@
 import {
   CodeExecutionResult,
   CodeExecutor,
+  TRIGGER_API_SHAPES,
 } from "@authhero/adapter-interfaces";
 
 /**
@@ -36,25 +37,9 @@ const TRIGGER_FN_NAMES: Record<string, string> = {
   "post-user-registration": "onExecutePostUserRegistration",
 };
 
-const API_SHAPES: Record<string, Record<string, string[]>> = {
-  "post-user-login": {
-    accessToken: ["setCustomClaim"],
-    idToken: ["setCustomClaim"],
-    access: ["deny"],
-    prompt: ["render"],
-    redirect: ["sendUserTo"],
-  },
-  "credentials-exchange": {
-    accessToken: ["setCustomClaim"],
-    idToken: ["setCustomClaim"],
-    access: ["deny"],
-  },
-  "pre-user-registration": {
-    user: ["setUserMetadata", "setLinkedTo"],
-    access: ["deny"],
-  },
-  "post-user-registration": {},
-};
+// Shared with the local executor via `TRIGGER_API_SHAPES` so the two executors
+// expose an identical surface. Serialized into the generated worker below.
+const API_SHAPES = TRIGGER_API_SHAPES;
 
 /**
  * SHA-256 digest of the code, hex-encoded. Used as part of the worker cache key

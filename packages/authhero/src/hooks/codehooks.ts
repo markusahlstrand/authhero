@@ -103,11 +103,19 @@ export type CodeHookApi = Record<string, CodeHookApiNamespace>;
 /**
  * Replay recorded API calls from code hook execution against real API objects.
  * Handles calls like "accessToken.setCustomClaim" by navigating the api object.
+ *
+ * Awaits each replayed call. Most registered methods are synchronous (they
+ * mutate a token or throw), but some do async work — notably
+ * `user.setLinkedTo` at `post-user-login`, which paginates and writes user rows
+ * to perform the link. Since replay runs *after* the isolate returns, the login
+ * response is built from whatever this resolves to; awaiting guarantees such
+ * work completes before the caller proceeds. Synchronous methods return
+ * non-thenables, so awaiting them is a no-op.
  */
-export function replayApiCalls(
+export async function replayApiCalls(
   apiCalls: Array<{ method: string; args: unknown[] }>,
   api: CodeHookApi,
-): void {
+): Promise<void> {
   for (const call of apiCalls) {
     const parts = call.method.split(".");
     if (parts.length !== 2) continue;
@@ -115,7 +123,7 @@ export function replayApiCalls(
     const namespace = parts[0]!;
     const method = parts[1]!;
     if (api[namespace] && typeof api[namespace][method] === "function") {
-      api[namespace][method](...call.args);
+      await api[namespace][method](...call.args);
     }
   }
 }
@@ -290,8 +298,8 @@ export async function executeCodeHook(params: {
 
   // Replay the recorded API calls against the real api objects. This is where
   // api.access.deny fires (throws), where setCustomClaim mutates the real
-  // token, etc.
-  replayApiCalls(execResult.apiCalls, api);
+  // token, and where user.setLinkedTo performs (and awaits) the link.
+  await replayApiCalls(execResult.apiCalls, api);
 
   const denied = execResult.apiCalls.some((c) => c.method === "access.deny");
 

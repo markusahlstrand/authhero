@@ -1,3 +1,5 @@
+import { TRIGGER_API_SHAPES } from "@authhero/adapter-interfaces";
+
 /**
  * Generates a Cloudflare Worker script that wraps user-authored code.
  *
@@ -17,25 +19,9 @@ const fnNames = {
   "post-user-registration": "onExecutePostUserRegistration",
 };
 
-const apiShapes = {
-  "post-user-login": {
-    accessToken: ["setCustomClaim"],
-    idToken: ["setCustomClaim"],
-    access: ["deny"],
-    prompt: ["render"],
-    redirect: ["sendUserTo"],
-  },
-  "credentials-exchange": {
-    accessToken: ["setCustomClaim"],
-    idToken: ["setCustomClaim"],
-    access: ["deny"],
-  },
-  "pre-user-registration": {
-    user: ["setUserMetadata", "setLinkedTo"],
-    access: ["deny"],
-  },
-  "post-user-registration": {},
-};
+// Shared source of truth for the per-trigger API allowlist — see
+// TRIGGER_API_SHAPES in @authhero/adapter-interfaces.
+const apiShapes = ${JSON.stringify(TRIGGER_API_SHAPES)};
 
 function createRecordingApiProxy(triggerId) {
   const calls = [];

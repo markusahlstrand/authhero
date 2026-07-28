@@ -1,6 +1,7 @@
 import { User } from "@authhero/adapter-interfaces";
 import { HookEvent, OnExecutePostLogin } from "../../types/Hooks";
 import { compareUsersByAge, repointPrimary } from "../../helpers/users";
+import { resolveLinkCandidates } from "../../helpers/link-candidates";
 
 /**
  * Coerce a possibly-serialised `user_metadata` blob into a plain record.
@@ -122,54 +123,16 @@ export function accountLinking(
 
     const data = ctx.env.data;
 
-    // List all users with the same email and pick a candidate that is NOT
-    // the current user. Using getPrimaryUserByEmail here would return the
-    // oldest primary — which may be the current user itself — and then
-    // miss any newer duplicate primaries that should be demoted.
-    const normalizedEmail = user.email.toLowerCase();
-    const { users: matchingUsers } = await data.users.list(tenantId, {
-      page: 0,
-      per_page: 10,
-      include_totals: false,
-      q: `email:${normalizedEmail}`,
+    // Resolve the candidate primaries for this email (oldest first), excluding
+    // the current user. Shared with the programmable `post-user-login` code
+    // hook path so both see identical selection semantics. The built-in policy
+    // picks the oldest, i.e. the first element.
+    const candidates = await resolveLinkCandidates({
+      userAdapter: data.users,
+      tenantId,
+      user,
     });
-
-    const otherUsers = matchingUsers.filter((u) => u.user_id !== user.user_id);
-    if (otherUsers.length === 0) return;
-
-    // Prefer the OLDEST unlinked primary so duplicate-primary races converge
-    // in a single pass — picking the first match from adapter list ordering
-    // can demote the older canonical account if the newer duplicate happens
-    // to come first.
-    const directPrimaries = otherUsers.filter((u) => !u.linked_to);
-    let candidate: User | undefined =
-      directPrimaries.length > 0
-        ? [...directPrimaries].sort(compareUsersByAge)[0]
-        : undefined;
-
-    if (!candidate) {
-      // No direct primaries — resolve every secondary's linked_to chain to
-      // its root and pick the oldest root so multiple chains for the same
-      // email collapse onto a single primary.
-      const roots: User[] = [];
-      const seen = new Set<string>();
-      for (const u of otherUsers) {
-        if (!u.linked_to) continue;
-        const resolved = await data.users.get(tenantId, u.linked_to);
-        if (
-          resolved &&
-          resolved.user_id !== user.user_id &&
-          !seen.has(resolved.user_id)
-        ) {
-          seen.add(resolved.user_id);
-          roots.push(resolved);
-        }
-      }
-      if (roots.length > 0) {
-        candidate = roots.sort(compareUsersByAge)[0];
-      }
-    }
-
+    const candidate = candidates[0];
     if (!candidate) return;
 
     // Older account wins. If the currently logging-in user pre-dates the
