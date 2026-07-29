@@ -48,6 +48,61 @@ export interface AccountLinkingOptions {
    * @default false
    */
   copyUserMetadata?: boolean;
+
+  /**
+   * When the link is performed, fill in *absent* root profile fields on the
+   * primary from the secondary — e.g. a secondary that has a `birthdate` the
+   * primary lacks, or a phone number an email primary doesn't carry.
+   *
+   * Fill-if-absent only: a field already set on the primary is never
+   * overwritten (primary stays authoritative), matching `copyUserMetadata`.
+   * Identifier and verification fields are never touched — `email`,
+   * `email_verified`, `phone_verified`, `username`, `provider`, `connection`
+   * are excluded — so this can't rewrite a login identifier. In particular an
+   * sms primary already carries a `phone_number`, so its identifier is never
+   * filled over; the promotion only reaches a primary that has no phone yet.
+   *
+   * Off by default to match Auth0, which keeps a linked identity's own
+   * attributes under `identities[].profileData` rather than promoting them to
+   * the merged user's root profile.
+   *
+   * @default false
+   */
+  copyProfileFields?: boolean;
+}
+
+/**
+ * Root profile fields that {@link AccountLinkingOptions.copyProfileFields} may
+ * fill in on the primary. Deliberately excludes every identifier/credential and
+ * verification field (`email`, `email_verified`, `phone_verified`, `username`,
+ * `provider`, `connection`, `linked_to`, metadata) so a profile promotion can
+ * never mutate how an identity logs in.
+ */
+const PROMOTABLE_PROFILE_FIELDS = [
+  "name",
+  "given_name",
+  "family_name",
+  "middle_name",
+  "nickname",
+  "preferred_username",
+  "picture",
+  "profile",
+  "website",
+  "gender",
+  "birthdate",
+  "zoneinfo",
+  "locale",
+  "phone_number",
+  "address",
+] as const;
+
+/**
+ * True when `value` is "absent" for promotion purposes — undefined, null, or an
+ * empty string. A field in this state on the primary may be filled from the
+ * secondary; any other value is authoritative and left untouched.
+ */
+function isAbsent(value: unknown): boolean {
+  return value === undefined || value === null || value === "";
 }
 
 /**
@@ -105,6 +160,7 @@ export function accountLinking(
 ): OnExecutePostLogin & AccountLinkingHandler {
   const requireVerifiedEmail = options?.requireVerifiedEmail ?? true;
   const copyUserMetadata = options?.copyUserMetadata ?? false;
+  const copyProfileFields = options?.copyProfileFields ?? false;
 
   const handler = async (event: HookEvent) => {
     const { ctx, user } = event;
@@ -182,6 +238,30 @@ export function accountLinking(
             user_metadata: merged,
           });
         }
+      }
+    }
+
+    if (copyProfileFields) {
+      // Fill absent root profile fields on the primary from the secondary.
+      // Never overwrites a value already present on the primary, and only the
+      // allow-listed non-identifier fields are eligible, so this can't touch a
+      // login identifier (email/username) or a verification flag.
+      const primaryRecord = primaryUser as unknown as Record<string, unknown>;
+      const secondaryRecord = secondaryUser as unknown as Record<
+        string,
+        unknown
+      >;
+      const fills: Record<string, unknown> = {};
+      for (const field of PROMOTABLE_PROFILE_FIELDS) {
+        if (
+          isAbsent(primaryRecord[field]) &&
+          !isAbsent(secondaryRecord[field])
+        ) {
+          fills[field] = secondaryRecord[field];
+        }
+      }
+      if (Object.keys(fills).length > 0) {
+        await data.users.update(tenantId, primaryUser.user_id, fills);
       }
     }
   };

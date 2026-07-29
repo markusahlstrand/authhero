@@ -3,6 +3,7 @@ import { EnrichedClient } from "./client";
 import { Context } from "hono";
 import { Bindings, Variables } from "../types";
 import { userIdGenerate } from "../utils/user-id";
+import { isUsernamePasswordProvider } from "../utils/username-password-provider";
 
 export async function getUsersByEmail(
   userAdapter: UserDataAdapter,
@@ -178,6 +179,107 @@ export async function repointPrimary({
   await userAdapter.update(tenant_id, formerPrimary.user_id, {
     linked_to: newPrimaryId,
   });
+}
+
+/**
+ * True for identities whose *login identifier* is the email address: the native
+ * username-password providers (`auth0`/`auth2`) and the passwordless `email`
+ * connection. For these, `email` is a credential — it's how the login row is
+ * found (`getUserByProvider`), so it must stay consistent across a linked
+ * cluster.
+ *
+ * Social identities carry `email` as ordinary profile data (re-synced from the
+ * IdP on every login) and sms identities are keyed by `phone_number`, so neither
+ * is email-identified and neither should have its `email` rewritten by a cascade.
+ */
+export function isEmailIdentifiedUser(
+  user: Pick<User, "provider" | "connection">,
+): boolean {
+  if (isUsernamePasswordProvider(user.provider)) return true;
+  return user.provider === "email" || user.connection === "email";
+}
+
+interface CascadeEmailParams {
+  userAdapter: UserDataAdapter;
+  tenant_id: string;
+  /** The cluster root (primary) user_id — its secondaries are enumerated. */
+  primaryUserId: string;
+  /** The row whose email the caller already updated; skipped by the cascade. */
+  sourceUserId: string;
+  email: string;
+  email_verified: boolean;
+}
+
+/**
+ * Propagate an email change across every *email-identified* identity in a linked
+ * cluster so a merged user keeps a single login email.
+ *
+ * Because account-linking matches on a shared email, at link time every
+ * email-identified identity in a cluster carries the same address. The only way
+ * they diverge is a later email change on one of them — and when they diverge,
+ * the login row for the *other* email-identified identities still carries the
+ * old address, so the user can no longer sign in with the address now shown on
+ * their profile (the classic "changed my email, can't log in with my password"
+ * bug).
+ *
+ * This re-establishes the invariant: only email-identified rows are touched
+ * ({@link isEmailIdentifiedUser}); sms (`phone_number`) and social (provider
+ * sub) identifiers are never rewritten. `sourceUserId` is skipped (the caller
+ * already wrote it). Each cascaded write goes through the normal decorated
+ * `update`, so every affected identity emits its own `user.updated` event for
+ * downstream propagation, and `email_verified` moves in lock-step so the whole
+ * cluster shares one verification state.
+ */
+export async function cascadeEmailToLinkedIdentities({
+  userAdapter,
+  tenant_id,
+  primaryUserId,
+  sourceUserId,
+  email,
+  email_verified,
+}: CascadeEmailParams): Promise<void> {
+  const normalizedEmail = email.toLowerCase();
+
+  const applyTo = async (member: User) => {
+    if (member.user_id === sourceUserId) return;
+    if (!isEmailIdentifiedUser(member)) return;
+    // Skip no-op writes so we don't bump updated_at / emit a spurious event.
+    if (
+      member.email?.toLowerCase() === normalizedEmail &&
+      member.email_verified === email_verified
+    ) {
+      return;
+    }
+    await userAdapter.update(tenant_id, member.user_id, {
+      email: normalizedEmail,
+      email_verified,
+    });
+  };
+
+  // The cluster root, unless it's the row the caller already updated.
+  if (primaryUserId !== sourceUserId) {
+    const primary = await userAdapter.get(tenant_id, primaryUserId);
+    if (primary) await applyTo(primary);
+  }
+
+  // Every secondary of the primary. Paginate — a cluster can exceed one page,
+  // mirroring the loop in `repointPrimary`.
+  const pageSize = 100;
+  let page = 0;
+  while (true) {
+    const { users: secondaries } = await userAdapter.list(tenant_id, {
+      page,
+      per_page: pageSize,
+      include_totals: false,
+      q: `linked_to:${primaryUserId}`,
+    });
+    if (secondaries.length === 0) break;
+    for (const sec of secondaries) {
+      await applyTo(sec);
+    }
+    if (secondaries.length < pageSize) break;
+    page++;
+  }
 }
 
 interface GetPrimaryUserByProviderParams {
