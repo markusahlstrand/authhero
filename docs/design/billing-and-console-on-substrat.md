@@ -2,7 +2,7 @@
 
 - **Status:** Draft / for discussion
 - **Author:** Markus Ahlstrand
-- **Created:** 2026-07-23 · **Revised:** 2026-07-28 (verified against Substrat repo at `/Users/markus/Projects/private/substrat`)
+- **Created:** 2026-07-23 · **Revised:** 2026-07-28 (verified against the private Substrat repository)
 - **Related:** AuthHero #1026 (tenant operations), #1057 (transactional outbox), #1080 (control-plane authority / delegating adapters), #1137 (tenant self-manage members), #1181 (cp signing keys); Substrat `@substrat-run/cli`, `control-plane-api` (`wfp.ts`), `@substrat-run/vertical-auth`, `substrat hostnames`
 
 ---
@@ -194,7 +194,7 @@ A plan isn't real unless something enforces it, and enforcement lives where the 
 is created — **inside the auth core** (Nth active user, MFA-as-paid-feature, custom-domain
 gating, connection count, …). So AuthHero gains a **read-only** capability:
 
-```
+```text
 entitlements.get(tenantId) -> Set<capability>   // "what is this tenant entitled to?"
 ```
 
