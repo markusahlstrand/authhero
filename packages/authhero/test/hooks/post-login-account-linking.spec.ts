@@ -1,9 +1,11 @@
 import { describe, it, expect } from "vitest";
+import { Context } from "hono";
 import {
   Strategy,
   TRIGGER_API_SHAPES,
   User,
 } from "@authhero/adapter-interfaces";
+import { Bindings, Variables } from "../../src/types";
 import { getTestServer } from "../helpers/test-server";
 import { addDataHooks } from "../../src/hooks";
 import { USERNAME_PASSWORD_PROVIDER } from "../../src/constants";
@@ -12,16 +14,20 @@ import {
   toLinkCandidates,
 } from "../../src/helpers/link-candidates";
 import { createPostLoginUserApi } from "../../src/hooks/helpers/post-login-account-linking";
-import { executeCodeHook, CodeHookApi } from "../../src/hooks/codehooks";
+import { executeCodeHook } from "../../src/hooks/codehooks";
 import { LocalCodeExecutor } from "../../src/hooks/code-executor/local";
 
 const tenantId = "tenantId";
 
-function createMockCtx(env: any): any {
+function createMockCtx(
+  env: Bindings,
+): Context<{ Bindings: Bindings; Variables: Variables }> {
   const vars: Record<string, unknown> = {
     tenant_id: tenantId,
     ip: "127.0.0.1",
   };
+  // Hand-rolled partial context — narrow through `unknown` since it only
+  // implements the members these tests exercise.
   return {
     req: {
       method: "POST",
@@ -36,11 +42,11 @@ function createMockCtx(env: any): any {
     set: (key: string, value: unknown) => {
       vars[key] = value;
     },
-  };
+  } as unknown as Context<{ Bindings: Bindings; Variables: Variables }>;
 }
 
 async function seedUser(
-  env: any,
+  env: Bindings,
   overrides: Partial<User> & { user_id: string },
 ) {
   return env.data.users.create(tenantId, {
@@ -377,7 +383,7 @@ exports.onExecutePostLogin = async (event, api) => {
         link_candidates: toLinkCandidates(candidates),
       },
       triggerId: "post-user-login",
-      api: linking.api as unknown as CodeHookApi,
+      api: linking.api,
     });
 
     expect(outcome.result.error).toBeNull();
@@ -426,7 +432,7 @@ exports.onExecutePostLogin = async (event, api) => {
       hook: { code_id: hookCode.id },
       event: { user: current, link_candidates: [] },
       triggerId: "post-user-login",
-      api: linking.api as unknown as CodeHookApi,
+      api: linking.api,
     });
 
     expect(linking.getLinkedPrimaryId()).toBeNull();

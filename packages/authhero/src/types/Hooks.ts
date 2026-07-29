@@ -2,6 +2,7 @@ import {
   AuthorizationResponseMode,
   AuthorizationResponseType,
   DataAdapters,
+  LinkCandidate,
   RolePermissionInsert,
   User,
 } from "@authhero/adapter-interfaces";
@@ -166,6 +167,13 @@ export type HookEvent = {
     ja3?: string;
     ja4?: string;
   };
+  /**
+   * Candidate primary accounts the built-in email-linking policy would consider,
+   * exposed only to `post-user-login` code hooks that opt in via
+   * `metadata.resolve_link_candidates`. Absent on the event for every other hook
+   * (and trigger).
+   */
+  link_candidates?: LinkCandidate[];
 };
 
 export type TokenAPI = {

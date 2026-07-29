@@ -15,7 +15,9 @@
  * generated worker script. Duplicating it risked the two drifting; importing
  * this const keeps them byte-identical by construction.
  */
-export const TRIGGER_API_SHAPES: Record<string, Record<string, string[]>> = {
+export const TRIGGER_API_SHAPES: Readonly<
+  Record<string, Readonly<Record<string, readonly string[]>>>
+> = {
   "post-user-login": {
     accessToken: ["setCustomClaim"],
     idToken: ["setCustomClaim"],

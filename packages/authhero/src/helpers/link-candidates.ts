@@ -30,12 +30,26 @@ export async function resolveLinkCandidates(params: {
   if (!user.email) return [];
 
   const normalizedEmail = user.email.toLowerCase();
-  const { users: matchingUsers } = await userAdapter.list(tenantId, {
-    page: 0,
-    per_page: 10,
-    include_totals: false,
-    q: `email:${normalizedEmail}`,
-  });
+
+  // Fetch *every* user sharing this email — not just the first page. A single
+  // fixed page could drop the oldest matching account (an email with many
+  // provider identities), which would silently violate the "oldest account
+  // wins" invariant the sort below relies on. Mirrors the pagination loop in
+  // `repointPrimary` (helpers/users.ts).
+  const pageSize = 100;
+  const matchingUsers: User[] = [];
+  let page = 0;
+  while (true) {
+    const { users } = await userAdapter.list(tenantId, {
+      page,
+      per_page: pageSize,
+      include_totals: false,
+      q: `email:${normalizedEmail}`,
+    });
+    matchingUsers.push(...users);
+    if (users.length < pageSize) break;
+    page++;
+  }
 
   const otherUsers = matchingUsers.filter((u) => u.user_id !== user.user_id);
   if (otherUsers.length === 0) return [];

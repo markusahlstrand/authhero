@@ -9,11 +9,11 @@ import { compareUsersByAge, repointPrimary } from "../../helpers/users";
  * is the programmable account-linking verb (issue #1184): an action reads
  * `event.link_candidates` and calls `api.user.setLinkedTo(candidate.user_id)`.
  */
-export interface PostLoginUserApi {
+export type PostLoginUserApi = {
   user: {
     setLinkedTo: (primaryUserId: string) => Promise<void>;
   };
-}
+};
 
 /**
  * Builds the guarded `api.user.setLinkedTo` implementation for the
@@ -111,8 +111,17 @@ export function createPostLoginUserApi(params: {
       });
       linkedPrimaryId = currentUser.user_id;
     } else {
-      await data.users.update(tenantId, currentUser.user_id, {
-        linked_to: target.user_id,
+      // Demote the logging-in user under the (older) target. Use
+      // `repointPrimary` — not a bare `linked_to` update — so any accounts
+      // already linked to `currentUser` are repointed at `target`, keeping the
+      // graph a single hop deep. A plain update would strand them behind a
+      // now-secondary `currentUser`, producing 2-hop chains that
+      // `getPrimaryUserByProvider` can't follow.
+      await repointPrimary({
+        userAdapter: data.users,
+        tenant_id: tenantId,
+        formerPrimary: currentUser,
+        newPrimaryId: target.user_id,
       });
       currentUser = { ...currentUser, linked_to: target.user_id };
       linkedPrimaryId = target.user_id;

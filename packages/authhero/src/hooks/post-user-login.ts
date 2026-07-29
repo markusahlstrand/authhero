@@ -20,8 +20,8 @@ import {
   handleCodeHook,
   persistActionExecution,
   HandleCodeHookOutcome,
-  CodeHookApi,
 } from "./codehooks";
+import { HookEvent } from "../types/Hooks";
 import { invokeHooks } from "./webhooks";
 import { createTokenAPI } from "./helpers/token-api";
 import { createPostLoginUserApi } from "./helpers/post-login-account-linking";
@@ -456,7 +456,7 @@ export async function postUserLoginHook(
       // see no behaviour or latency change. `setLinkedTo` is still guarded
       // host-side, so an action can't link to a user outside this set.
       const linkingOptedIn = codeHooks.some(
-        (h: any) => h.metadata?.resolve_link_candidates === true,
+        (h) => h.metadata?.resolve_link_candidates === true,
       );
       const linkCandidates = linkingOptedIn
         ? await resolveLinkCandidates({
@@ -465,10 +465,11 @@ export async function postUserLoginHook(
             user,
           })
         : [];
-      if (linkingOptedIn) {
-        (enhancedEvent as Record<string, unknown>).link_candidates =
-          toLinkCandidates(linkCandidates);
-      }
+      // Serialize once; attached per hook below rather than mutated onto the
+      // shared event, so only opted-in hooks receive it.
+      const serializedCandidates = linkingOptedIn
+        ? toLinkCandidates(linkCandidates)
+        : [];
 
       const linkingApi = createPostLoginUserApi({
         ctx,
@@ -481,14 +482,21 @@ export async function postUserLoginHook(
       const outcomes: HandleCodeHookOutcome[] = [];
       for (const hook of codeHooks) {
         if (!isCodeHook(hook)) continue;
+        // Only hooks that opted in see `link_candidates` — otherwise an
+        // unrelated action would receive other accounts' ids/emails just
+        // because a *different* hook on the same tenant opted in.
+        const eventForHook: HookEvent =
+          hook.metadata?.resolve_link_candidates === true
+            ? { ...enhancedEvent, link_candidates: serializedCandidates }
+            : enhancedEvent;
         try {
           const outcome = await handleCodeHook(
             ctx,
             data,
             hook,
-            enhancedEvent,
+            eventForHook,
             "post-user-login",
-            linkingApi.api as unknown as CodeHookApi,
+            linkingApi.api,
           );
           if (outcome) outcomes.push(outcome);
         } catch (err) {

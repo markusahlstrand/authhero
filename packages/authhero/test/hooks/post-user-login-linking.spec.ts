@@ -6,11 +6,13 @@ import { LocalCodeExecutor } from "../../src/hooks/code-executor/local";
 import { flushBackgroundPromises } from "../../src/helpers/wait-until";
 import { USERNAME_PASSWORD_PROVIDER } from "../../src/constants";
 import { Bindings, Variables } from "../../src/types";
+import { EnrichedClient } from "../../src/helpers/client";
 import { getTestServer } from "../helpers/test-server";
 
 const tenantId = "tenantId";
 
-function makeEnrichedClient() {
+function makeEnrichedClient(): EnrichedClient {
+  // Minimal shape for the hook path under test — narrow through `unknown`.
   return {
     id: "clientId",
     name: "Test",
@@ -21,10 +23,10 @@ function makeEnrichedClient() {
     web_origins: [],
     grant_types: ["authorization_code" as const],
     connections: [],
-  };
+  } as unknown as EnrichedClient;
 }
 
-async function makeLoginSession(env: any) {
+async function makeLoginSession(env: Bindings) {
   return env.data.loginSessions.create(tenantId, {
     csrf_token: "csrf",
     authParams: {
@@ -43,10 +45,13 @@ async function makeLoginSession(env: any) {
  * query `resolveLinkCandidates` issues. Lets us assert the opt-in gate: tenants
  * that didn't opt in pay no extra query.
  */
-function countEmailListCalls(env: any): () => number {
+function countEmailListCalls(env: Bindings): () => number {
   let count = 0;
   const original = env.data.users.list.bind(env.data.users);
-  env.data.users.list = async (tid: string, opts: any) => {
+  env.data.users.list = async (
+    tid: string,
+    opts: Parameters<typeof original>[1],
+  ) => {
     if (typeof opts?.q === "string" && opts.q.startsWith("email:")) count++;
     return original(tid, opts);
   };
@@ -122,7 +127,7 @@ exports.onExecutePostLogin = async (event, api) => {
         current,
         loginSession,
         {
-          client: makeEnrichedClient() as any,
+          client: makeEnrichedClient(),
           authParams: loginSession.authParams,
         },
       );
@@ -203,7 +208,7 @@ exports.onExecutePostLogin = async (event, api) => {
       ctx.set("client_id", "clientId");
 
       await postUserLoginHook(ctx, env.data, tenantId, current, loginSession, {
-        client: makeEnrichedClient() as any,
+        client: makeEnrichedClient(),
         authParams: loginSession.authParams,
       });
       await flushBackgroundPromises(ctx);
