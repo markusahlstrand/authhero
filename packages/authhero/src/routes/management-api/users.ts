@@ -1,7 +1,11 @@
 import { HTTPException } from "hono/http-exception";
 import { userIdGenerate, userIdParse } from "../../utils/user-id";
 import { Bindings, Variables } from "../../types";
-import { getUsersByEmail, getUserByProvider } from "../../helpers/users";
+import {
+  getUsersByEmail,
+  getUserByProvider,
+  cascadeEmailToLinkedIdentities,
+} from "../../helpers/users";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { querySchema } from "../../types/auth0/Query";
 import { parseSort } from "../../utils/sort";
@@ -557,6 +561,17 @@ const patchByUser_id = defineRoute({
               .extend({
                 verify_email: z.boolean(),
                 password: z.string(),
+                // PATCH is pass-through: a field the caller omits must stay
+                // untouched. `userInsertSchema` gives these create-time
+                // defaults (`email_verified: false`, metadata `{}`), and
+                // `.partial()` does NOT strip a `.default()` — so without
+                // overriding them here, omitting the field would silently reset
+                // `email_verified` to false (locking out enforced-verification
+                // clients after any edit) and wipe `app_metadata`/
+                // `user_metadata` on every update.
+                email_verified: z.boolean(),
+                app_metadata: z.any(),
+                user_metadata: z.any(),
               })
               .partial(),
           },
@@ -711,6 +726,25 @@ const patchByUser_id = defineRoute({
     }
 
     await ctx.env.data.users.update(tenantId, targetUserId, userFields);
+
+    // Keep a merged user's login email consistent: when the email of one
+    // email-identified identity changes, propagate it to the cluster's other
+    // email-identified identities (username-password / passwordless-email) so a
+    // linked password account isn't left logging in with the old address. sms
+    // and social identifiers are never rewritten. `user_id` is the cluster root
+    // (patching a secondary is rejected with 404 above). See
+    // cascadeEmailToLinkedIdentities.
+    if (userFields.email && userFields.email !== targetUser.email) {
+      await cascadeEmailToLinkedIdentities({
+        userAdapter: ctx.env.data.users,
+        tenant_id: tenantId,
+        primaryUserId: user_id,
+        sourceUserId: targetUserId,
+        email: userFields.email,
+        email_verified:
+          userFields.email_verified ?? targetUser.email_verified ?? false,
+      });
+    }
 
     if (password) {
       // When updating password with a connection specified, use that connection

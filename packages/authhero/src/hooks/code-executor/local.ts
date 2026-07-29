@@ -2,6 +2,7 @@ import {
   CodeExecutionLog,
   CodeExecutionResult,
   CodeExecutor,
+  TRIGGER_API_SHAPES,
 } from "@authhero/adapter-interfaces";
 
 const MAX_LOG_ENTRIES = 50;
@@ -44,28 +45,9 @@ function createRecordingApiProxy(triggerId: string): {
 } {
   const calls: Array<{ method: string; args: unknown[] }> = [];
 
-  // Define the API shape per trigger type
-  const apiShapes: Record<string, Record<string, string[]>> = {
-    "post-user-login": {
-      accessToken: ["setCustomClaim"],
-      idToken: ["setCustomClaim"],
-      access: ["deny"],
-      prompt: ["render"],
-      redirect: ["sendUserTo"],
-    },
-    "credentials-exchange": {
-      accessToken: ["setCustomClaim"],
-      idToken: ["setCustomClaim"],
-      access: ["deny"],
-    },
-    "pre-user-registration": {
-      user: ["setUserMetadata", "setLinkedTo"],
-      access: ["deny"],
-    },
-    "post-user-registration": {},
-  };
-
-  const shape = apiShapes[triggerId] || {};
+  // Per-trigger API shape is shared with the production (Worker Loader)
+  // executor via `TRIGGER_API_SHAPES` so the two can never drift.
+  const shape = TRIGGER_API_SHAPES[triggerId] || {};
   const api: Record<string, unknown> = {};
 
   for (const [namespace, methods] of Object.entries(shape)) {

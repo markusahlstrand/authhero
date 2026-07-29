@@ -104,3 +104,5 @@ export * from "./CustomText";
 export * from "./Strategy";
 export * from "./AuthenticationMethod";
 export * from "./ImportMetadata";
+
+export * from "./codeHookApiShapes";

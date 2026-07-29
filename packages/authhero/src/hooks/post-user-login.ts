@@ -21,8 +21,14 @@ import {
   persistActionExecution,
   HandleCodeHookOutcome,
 } from "./codehooks";
+import { HookEvent } from "../types/Hooks";
 import { invokeHooks } from "./webhooks";
 import { createTokenAPI } from "./helpers/token-api";
+import { createPostLoginUserApi } from "./helpers/post-login-account-linking";
+import {
+  resolveLinkCandidates,
+  toLinkCandidates,
+} from "../helpers/link-candidates";
 import {
   getConnectionInfo,
   resolveConnectionName,
@@ -444,17 +450,53 @@ export async function postUserLoginHook(
       (h: any) => h.enabled && isCodeHook(h),
     );
     if (enhancedEvent && codeHooks.length > 0) {
+      // Programmable account linking (issue #1184). Only tenants that opted in
+      // via `metadata.resolve_link_candidates` on a code hook pay the extra
+      // user-list query and get `event.link_candidates` — existing code hooks
+      // see no behaviour or latency change. `setLinkedTo` is still guarded
+      // host-side, so an action can't link to a user outside this set.
+      const linkingOptedIn = codeHooks.some(
+        (h) => h.metadata?.resolve_link_candidates === true,
+      );
+      const linkCandidates = linkingOptedIn
+        ? await resolveLinkCandidates({
+            userAdapter: data.users,
+            tenantId: tenant_id,
+            user,
+          })
+        : [];
+      // Serialize once; attached per hook below rather than mutated onto the
+      // shared event, so only opted-in hooks receive it.
+      const serializedCandidates = linkingOptedIn
+        ? toLinkCandidates(linkCandidates)
+        : [];
+
+      const linkingApi = createPostLoginUserApi({
+        ctx,
+        data,
+        tenantId: tenant_id,
+        user,
+        candidates: linkCandidates,
+      });
+
       const outcomes: HandleCodeHookOutcome[] = [];
       for (const hook of codeHooks) {
         if (!isCodeHook(hook)) continue;
+        // Only hooks that opted in see `link_candidates` — otherwise an
+        // unrelated action would receive other accounts' ids/emails just
+        // because a *different* hook on the same tenant opted in.
+        const eventForHook: HookEvent =
+          hook.metadata?.resolve_link_candidates === true
+            ? { ...enhancedEvent, link_candidates: serializedCandidates }
+            : enhancedEvent;
         try {
           const outcome = await handleCodeHook(
             ctx,
             data,
             hook,
-            enhancedEvent,
+            eventForHook,
             "post-user-login",
-            {},
+            linkingApi.api,
           );
           if (outcome) outcomes.push(outcome);
         } catch (err) {
@@ -471,6 +513,15 @@ export async function postUserLoginHook(
           });
         }
       }
+
+      // If an action linked the user, re-fetch the resulting primary so
+      // downstream token building sees it — matching `handleTemplateHook`.
+      const linkedPrimaryId = linkingApi.getLinkedPrimaryId();
+      if (linkedPrimaryId && linkedPrimaryId !== user.user_id) {
+        const primary = await data.users.get(tenant_id, linkedPrimaryId);
+        if (primary) user = primary;
+      }
+
       const persistedExecutionId = await persistActionExecution(
         data,
         tenant_id,

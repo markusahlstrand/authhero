@@ -1,6 +1,7 @@
 import { User } from "@authhero/adapter-interfaces";
 import { HookEvent, OnExecutePostLogin } from "../../types/Hooks";
 import { compareUsersByAge, repointPrimary } from "../../helpers/users";
+import { resolveLinkCandidates } from "../../helpers/link-candidates";
 
 /**
  * Coerce a possibly-serialised `user_metadata` blob into a plain record.
@@ -47,6 +48,61 @@ export interface AccountLinkingOptions {
    * @default false
    */
   copyUserMetadata?: boolean;
+
+  /**
+   * When the link is performed, fill in *absent* root profile fields on the
+   * primary from the secondary — e.g. a secondary that has a `birthdate` the
+   * primary lacks, or a phone number an email primary doesn't carry.
+   *
+   * Fill-if-absent only: a field already set on the primary is never
+   * overwritten (primary stays authoritative), matching `copyUserMetadata`.
+   * Identifier and verification fields are never touched — `email`,
+   * `email_verified`, `phone_verified`, `username`, `provider`, `connection`
+   * are excluded — so this can't rewrite a login identifier. In particular an
+   * sms primary already carries a `phone_number`, so its identifier is never
+   * filled over; the promotion only reaches a primary that has no phone yet.
+   *
+   * Off by default to match Auth0, which keeps a linked identity's own
+   * attributes under `identities[].profileData` rather than promoting them to
+   * the merged user's root profile.
+   *
+   * @default false
+   */
+  copyProfileFields?: boolean;
+}
+
+/**
+ * Root profile fields that {@link AccountLinkingOptions.copyProfileFields} may
+ * fill in on the primary. Deliberately excludes every identifier/credential and
+ * verification field (`email`, `email_verified`, `phone_verified`, `username`,
+ * `provider`, `connection`, `linked_to`, metadata) so a profile promotion can
+ * never mutate how an identity logs in.
+ */
+const PROMOTABLE_PROFILE_FIELDS = [
+  "name",
+  "given_name",
+  "family_name",
+  "middle_name",
+  "nickname",
+  "preferred_username",
+  "picture",
+  "profile",
+  "website",
+  "gender",
+  "birthdate",
+  "zoneinfo",
+  "locale",
+  "phone_number",
+  "address",
+] as const;
+
+/**
+ * True when `value` is "absent" for promotion purposes — undefined, null, or an
+ * empty string. A field in this state on the primary may be filled from the
+ * secondary; any other value is authoritative and left untouched.
+ */
+function isAbsent(value: unknown): boolean {
+  return value === undefined || value === null || value === "";
 }
 
 /**
@@ -104,6 +160,7 @@ export function accountLinking(
 ): OnExecutePostLogin & AccountLinkingHandler {
   const requireVerifiedEmail = options?.requireVerifiedEmail ?? true;
   const copyUserMetadata = options?.copyUserMetadata ?? false;
+  const copyProfileFields = options?.copyProfileFields ?? false;
 
   const handler = async (event: HookEvent) => {
     const { ctx, user } = event;
@@ -122,54 +179,16 @@ export function accountLinking(
 
     const data = ctx.env.data;
 
-    // List all users with the same email and pick a candidate that is NOT
-    // the current user. Using getPrimaryUserByEmail here would return the
-    // oldest primary — which may be the current user itself — and then
-    // miss any newer duplicate primaries that should be demoted.
-    const normalizedEmail = user.email.toLowerCase();
-    const { users: matchingUsers } = await data.users.list(tenantId, {
-      page: 0,
-      per_page: 10,
-      include_totals: false,
-      q: `email:${normalizedEmail}`,
+    // Resolve the candidate primaries for this email (oldest first), excluding
+    // the current user. Shared with the programmable `post-user-login` code
+    // hook path so both see identical selection semantics. The built-in policy
+    // picks the oldest, i.e. the first element.
+    const candidates = await resolveLinkCandidates({
+      userAdapter: data.users,
+      tenantId,
+      user,
     });
-
-    const otherUsers = matchingUsers.filter((u) => u.user_id !== user.user_id);
-    if (otherUsers.length === 0) return;
-
-    // Prefer the OLDEST unlinked primary so duplicate-primary races converge
-    // in a single pass — picking the first match from adapter list ordering
-    // can demote the older canonical account if the newer duplicate happens
-    // to come first.
-    const directPrimaries = otherUsers.filter((u) => !u.linked_to);
-    let candidate: User | undefined =
-      directPrimaries.length > 0
-        ? [...directPrimaries].sort(compareUsersByAge)[0]
-        : undefined;
-
-    if (!candidate) {
-      // No direct primaries — resolve every secondary's linked_to chain to
-      // its root and pick the oldest root so multiple chains for the same
-      // email collapse onto a single primary.
-      const roots: User[] = [];
-      const seen = new Set<string>();
-      for (const u of otherUsers) {
-        if (!u.linked_to) continue;
-        const resolved = await data.users.get(tenantId, u.linked_to);
-        if (
-          resolved &&
-          resolved.user_id !== user.user_id &&
-          !seen.has(resolved.user_id)
-        ) {
-          seen.add(resolved.user_id);
-          roots.push(resolved);
-        }
-      }
-      if (roots.length > 0) {
-        candidate = roots.sort(compareUsersByAge)[0];
-      }
-    }
-
+    const candidate = candidates[0];
     if (!candidate) return;
 
     // Older account wins. If the currently logging-in user pre-dates the
@@ -219,6 +238,30 @@ export function accountLinking(
             user_metadata: merged,
           });
         }
+      }
+    }
+
+    if (copyProfileFields) {
+      // Fill absent root profile fields on the primary from the secondary.
+      // Never overwrites a value already present on the primary, and only the
+      // allow-listed non-identifier fields are eligible, so this can't touch a
+      // login identifier (email/username) or a verification flag.
+      const primaryRecord = primaryUser as unknown as Record<string, unknown>;
+      const secondaryRecord = secondaryUser as unknown as Record<
+        string,
+        unknown
+      >;
+      const fills: Record<string, unknown> = {};
+      for (const field of PROMOTABLE_PROFILE_FIELDS) {
+        if (
+          isAbsent(primaryRecord[field]) &&
+          !isAbsent(secondaryRecord[field])
+        ) {
+          fills[field] = secondaryRecord[field];
+        }
+      }
+      if (Object.keys(fills).length > 0) {
+        await data.users.update(tenantId, primaryUser.user_id, fills);
       }
     }
   };
