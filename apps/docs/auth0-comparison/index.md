@@ -9,19 +9,19 @@ AuthHero is designed as a modern, open-source alternative to Auth0 with enhanced
 
 ## Overview
 
-| Feature                      | Auth0             | AuthHero                               |
-| ---------------------------- | ----------------- | -------------------------------------- |
-| **Hosting**                  | SaaS only         | Self-hosted or Edge                    |
-| **Pricing**                  | Per-MAU pricing   | Free, open-source                      |
-| **Multi-tenancy**            | Enterprise plans  | Built-in, all plans                    |
-| **Account Linking**          | Custom Actions    | ✅ Built-in automatic                  |
-| **Database**                 | Managed           | Your choice (SQL, etc.)                |
-| **Edge Deployment**          | Limited           | Full support (Workers, Edge Functions) |
-| **Source Code**              | Closed            | Open source (AGPL-3.0 / commercial)     |
-| **Hooks System**             | Deprecated (2024) | Active & expanding                     |
-| **User Deletion Hooks**      | ❌ Not available  | ✅ Pre & Post hooks                    |
-| **Connection Order Control** | ❌ Not available  | ✅ Configurable ordering               |
-| **Flow Redirect Actions**    | ❌ Not available  | ✅ Built-in redirect support           |
+| Feature                      | Auth0             | AuthHero                                 |
+| ---------------------------- | ----------------- | ---------------------------------------- |
+| **Hosting**                  | SaaS only         | Self-hosted or Edge                      |
+| **Pricing**                  | Per-MAU pricing   | Free, open-source                        |
+| **Multi-tenancy**            | Enterprise plans  | Built-in, all plans                      |
+| **Account Linking**          | Custom Actions    | ✅ Built-in automatic                    |
+| **Database**                 | Managed           | Your choice (SQL, etc.)                  |
+| **Edge Deployment**          | Limited           | Full support (Workers, Edge Functions)   |
+| **Source Code**              | Closed            | Open source (AGPL-3.0-only / commercial) |
+| **Hooks System**             | Deprecated (2024) | Active & expanding                       |
+| **User Deletion Hooks**      | ❌ Not available  | ✅ Pre & Post hooks                      |
+| **Connection Order Control** | ❌ Not available  | ✅ Configurable ordering                 |
+| **Flow Redirect Actions**    | ❌ Not available  | ✅ Built-in redirect support             |
 
 ## Key Advantages
 
@@ -29,7 +29,7 @@ AuthHero is designed as a modern, open-source alternative to Auth0 with enhanced
 
 AuthHero gives you complete control over your authentication system:
 
-- **Open Source**: Full source code access under AGPL-3.0 (commercial licenses available)
+- **Open Source**: Full source code access under AGPL-3.0-only (commercial licenses available)
 - **Self-Hosted**: Deploy on your infrastructure
 - **Data Ownership**: Your data stays in your database
 - **Customization**: Modify any part of the system
@@ -272,7 +272,7 @@ AuthHero provides a per-client `auth0_conformant` flag (default: `true`) to ensu
 {
   "client_id": "abc123",
   "name": "My Application",
-  "auth0_conformant": true  // Default: Auth0-compatible behavior
+  "auth0_conformant": true // Default: Auth0-compatible behavior
 }
 ```
 
@@ -335,16 +335,16 @@ AuthHero provides a per-client `auth0_conformant` flag (default: `true`) to ensu
 
 ### Management & Operations
 
-| Feature              | Auth0           | AuthHero        |
-| -------------------- | --------------- | --------------- |
-| Admin Dashboard      | ✅              | ✅              |
-| User Management      | ✅              | ✅              |
-| Logs & Analytics     | ✅              | ✅              |
-| Geo Location Data    | ⚠️ Country only | ✅ Full details |
+| Feature              | Auth0           | AuthHero                            |
+| -------------------- | --------------- | ----------------------------------- |
+| Admin Dashboard      | ✅              | ✅                                  |
+| User Management      | ✅              | ✅                                  |
+| Logs & Analytics     | ✅              | ✅                                  |
+| Geo Location Data    | ⚠️ Country only | ✅ Full details                     |
 | Custom Domains       | ✅ Enterprise   | ✅ All plans, with edge cert upload |
-| Branding             | ✅ Limited      | ✅ Full control |
-| Email Templates      | ✅              | ✅              |
-| Multi-tenant Support | ✅ Enterprise   | ✅ Built-in     |
+| Branding             | ✅ Limited      | ✅ Full control                     |
+| Email Templates      | ✅              | ✅                                  |
+| Multi-tenant Support | ✅ Enterprise   | ✅ Built-in                         |
 
 ### Geographic Location Data
 
@@ -547,7 +547,7 @@ The new token records the exchanging client in the RFC 8693 `act` claim (`{ sub,
 
 ### Custom Domain Certificate Upload
 
-**Auth0 Limitation**: Auth0's custom domain feature has two modes — Auth0-managed certificates (issued automatically via Let's Encrypt or Google Trust Services) and self-managed certificates. Critically, neither mode lets you upload your own certificate to Auth0. "Self-managed" means *you* run a reverse proxy (CloudFront, Cloudflare, Akamai, NGINX, …) in front of Auth0 and terminate TLS there — Auth0 never sees the certificate. This has been a [recurring community request](https://community.auth0.com/t/certificate-upload-for-custom-domain/10242) since 2018 and is still not supported.
+**Auth0 Limitation**: Auth0's custom domain feature has two modes — Auth0-managed certificates (issued automatically via Let's Encrypt or Google Trust Services) and self-managed certificates. Critically, neither mode lets you upload your own certificate to Auth0. "Self-managed" means _you_ run a reverse proxy (CloudFront, Cloudflare, Akamai, NGINX, …) in front of Auth0 and terminate TLS there — Auth0 never sees the certificate. This has been a [recurring community request](https://community.auth0.com/t/certificate-upload-for-custom-domain/10242) since 2018 and is still not supported.
 
 **AuthHero Solution**: When deployed with the `@authhero/cloudflare-adapter`, AuthHero accepts a PEM-encoded certificate and private key for any custom domain and installs them at the Cloudflare edge via the Custom Hostnames BYOC API. The customer doesn't need to operate a separate reverse proxy.
 

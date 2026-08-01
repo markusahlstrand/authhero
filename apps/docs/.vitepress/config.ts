@@ -694,7 +694,7 @@ gtag('config', 'G-DNZWG3PF2L');`,
       },
 
       footer: {
-        message: "Dual-licensed: AGPL-3.0 or commercial.",
+        message: "Dual-licensed: AGPL-3.0-only or commercial license.",
         copyright: "Copyright © 2025 AuthHero",
       },
     },

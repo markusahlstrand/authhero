@@ -49,8 +49,13 @@ You represent that:
    intellectual property that You create, You represent that You have received
    permission to make the Contribution on behalf of that employer, or that Your
    employer has waived such rights for the Contribution.
-2. Each Contribution is Your original creation. Where a Contribution includes work that
-   is not Your original creation, You will identify it and its license clearly.
+2. Each Contribution is Your original creation. If You wish to submit work that is not
+   Your original creation, You must submit it separately from any Contribution,
+   conspicuously identifying it as third-party material and including complete details
+   of its source and of any license or other restriction (including, but not limited
+   to, related patents, trademarks, and license agreements) of which You are aware.
+   Such material becomes part of the Project only if and when the Maintainer expressly
+   approves its inclusion.
 3. You are not expected to provide support for Your Contributions, and You provide them
    **"AS IS"**, without warranties or conditions of any kind, express or implied.
 
