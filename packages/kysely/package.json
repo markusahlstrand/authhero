@@ -56,5 +56,6 @@
     "hono": "^4.12.30",
     "kysely": "^0.29.0",
     "kysely-planetscale": "^1.5.0"
-  }
+  },
+  "license": "AGPL-3.0-only"
 }

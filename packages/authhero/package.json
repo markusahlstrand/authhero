@@ -117,5 +117,6 @@
     "ua-parser-js": {
       "optional": true
     }
-  }
+  },
+  "license": "AGPL-3.0-only"
 }

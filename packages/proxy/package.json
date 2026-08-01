@@ -45,5 +45,6 @@
   },
   "dependencies": {
     "@authhero/adapter-interfaces": "workspace:*"
-  }
+  },
+  "license": "AGPL-3.0-only"
 }

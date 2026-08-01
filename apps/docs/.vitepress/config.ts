@@ -694,7 +694,7 @@ gtag('config', 'G-DNZWG3PF2L');`,
       },
 
       footer: {
-        message: "Released under the MIT License.",
+        message: "Dual-licensed: AGPL-3.0 or commercial.",
         copyright: "Copyright © 2025 AuthHero",
       },
     },
