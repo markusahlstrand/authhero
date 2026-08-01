@@ -4,7 +4,7 @@ import { createX509Certificate } from "../../utils/encryption";
 import { HTTPException } from "hono/http-exception";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { signingKeySchema } from "@authhero/adapter-interfaces";
-import { resolveSigningKeyMode } from "../../helpers/signing-keys";
+import { isSignable, resolveSigningKeyMode } from "../../helpers/signing-keys";
 
 import { defineRoute } from "../../utils/define-route";
 const DAY = 1000 * 60 * 60 * 24;
@@ -175,6 +175,16 @@ const postSigningRotate = defineRoute({
         per_page: perPage,
       });
       for (const key of signingKeys) {
+        // Never revoke a public-only key: in control-plane scope a WFP tenant's
+        // keyset also holds the control plane's PUBLIC verify keys, projected
+        // with private material stripped (`pkcs7` null). Those are copies the
+        // tenant doesn't own and the real control plane is still signing with —
+        // revoking them here severs verification of control-plane admin tokens
+        // while the control plane keeps issuing them. Only rotate out keys this
+        // scope actually signs with (private material present).
+        if (!isSignable(key)) {
+          continue;
+        }
         await ctx.env.data.keys.update(key.kid, {
           revoked_at: new Date(Date.now() + DAY).toISOString(),
         });

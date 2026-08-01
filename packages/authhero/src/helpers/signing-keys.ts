@@ -140,7 +140,7 @@ export async function resolveSigningKeys(
 }
 
 /** A key is signable only if it carries private material, not just a cert. */
-function isSignable(key: SigningKey): boolean {
+export function isSignable(key: SigningKey): boolean {
   return Boolean(key.pkcs7 && key.cert);
 }
 
