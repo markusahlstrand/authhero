@@ -7,11 +7,15 @@ on:
 
 # Contributors sign once by commenting the sign phrase on their PR; signatures are
 # stored on the `cla-signatures` branch of this repo. See CLA.md / CONTRIBUTING.md.
+#
+# pull_request_target is safe here: no step checks out or executes PR content —
+# the action only calls the GitHub API. These permissions are the action's
+# documented minimum for same-repo signature storage:
 permissions:
-  actions: write
-  contents: write
-  pull-requests: write
-  statuses: write
+  actions: write # re-run the CLA check after a signature comment
+  contents: write # write signatures to the cla-signatures branch ('read' only works with remote storage)
+  pull-requests: write # post/update the signing comment on PRs
+  statuses: write # set the CLA commit status
 
 jobs:
   cla:
