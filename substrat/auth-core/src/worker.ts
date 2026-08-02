@@ -204,13 +204,50 @@ async function getStoredConfig(
   return Object.fromEntries(rows.map((r) => [r.key, r.value]));
 }
 
+/** Ensure the instance's OWN origin is on the seeded client's URL lists —
+ *  the admin UI logs in/out against the tenant's own host, which seed's
+ *  defaults (manage.authhero.net + localhost) never include. Idempotent. */
+async function ensureSelfOriginClientUrls(
+  dataAdapter: ReturnType<typeof createAdapters>,
+  tenantId: string,
+  origin: string,
+): Promise<void> {
+  try {
+    const client = await dataAdapter.clients.get(tenantId, "default");
+    if (!client) return;
+    const merge = (current: string[] | undefined, add: string[]) => {
+      const set = new Set(current ?? []);
+      let changed = false;
+      for (const url of add) if (!set.has(url)) (set.add(url), (changed = true));
+      return { list: [...set], changed };
+    };
+    const callbacks = merge(client.callbacks, [
+      `${origin}/admin/auth-callback`,
+      `${origin}/admin`,
+    ]);
+    const logout = merge(client.allowed_logout_urls, [`${origin}/admin`, origin]);
+    const webOrigins = merge(client.web_origins, [origin]);
+    if (callbacks.changed || logout.changed || webOrigins.changed) {
+      await dataAdapter.clients.update(tenantId, "default", {
+        callbacks: callbacks.list,
+        allowed_logout_urls: logout.list,
+        web_origins: webOrigins.list,
+      });
+    }
+  } catch (err) {
+    console.warn(`self-origin urls(${tenantId}):`, err instanceof Error ? err.message : err);
+  }
+}
+
 /** Apply the configurable bootstrap: default_audience + admin credential
- *  upsert + email backfill. Idempotent; safe on fresh and existing tenants. */
+ *  upsert + email backfill + self-origin client URLs. Idempotent. */
 async function applyBootstrap(
   dataAdapter: ReturnType<typeof createAdapters>,
   tenantId: string,
   cfg: Record<string, string | undefined>,
+  origin?: string,
 ): Promise<void> {
+  if (origin) await ensureSelfOriginClientUrls(dataAdapter, tenantId, origin);
   try {
     await dataAdapter.tenants.update(tenantId, {
       default_audience: `urn:authhero:tenant:${tenantId}`,
@@ -218,12 +255,18 @@ async function applyBootstrap(
   } catch (err) {
     console.warn(`default_audience(${tenantId}):`, err instanceof Error ? err.message : err);
   }
-  const username = cfg.ADMIN_USERNAME;
+  const identifier = cfg.ADMIN_USERNAME;
   const password = cfg.ADMIN_PASSWORD;
-  if (!username || !password) return;
+  if (!identifier || !password) return;
+  // The User schema forbids '@' in username ("use the email field") — but the
+  // adapter write path doesn't validate, so an email-shaped username STORES
+  // and then 500s the users list on read. An email-shaped identifier is the
+  // EMAIL; username is its local part.
+  const isEmail = identifier.includes("@");
+  const username = isEmail ? (identifier.split("@")[0] ?? identifier) : identifier;
   try {
     const found = await dataAdapter.users.list(tenantId, {
-      q: `username:${username}`,
+      q: isEmail ? `email:${identifier}` : `username:${identifier}`,
     });
     const user = found.users[0];
     if (user) {
@@ -234,19 +277,21 @@ async function applyBootstrap(
         algorithm,
         is_current: true,
       });
-      const wantEmail = username.includes("@") ? username : undefined;
-      if (wantEmail && user.email !== wantEmail) {
-        await dataAdapter.users.update(tenantId, user.user_id, {
-          email: wantEmail,
-          email_verified: true,
-        });
+      // Heal schema violations from earlier bootstraps: '@' in username.
+      const patch: { email?: string; email_verified?: boolean; username?: string } = {};
+      if (isEmail && user.email !== identifier) {
+        patch.email = identifier;
+        patch.email_verified = true;
+      }
+      if (user.username?.includes("@")) patch.username = username;
+      if (Object.keys(patch).length > 0) {
+        await dataAdapter.users.update(tenantId, user.user_id, patch);
       }
     } else {
-      // No user under that username yet (e.g. the operator changed it after
-      // install): create it through seed's own idempotent path.
+      // No user under that identifier yet: create through seed's own path.
       await seed(dataAdapter, {
         adminUsername: username,
-        ...(username.includes("@") ? { adminEmail: username } : {}),
+        ...(isEmail ? { adminEmail: identifier } : {}),
         adminPassword: password,
         tenantId,
         isControlPlane: false,
@@ -297,13 +342,15 @@ app.post("/internal/provision", async (c) => {
     useTransactions: false,
   });
   const issuer = `${new URL(c.req.raw.url).origin}/`;
-  const adminUsername =
+  const adminIdentifier =
     body.config?.ADMIN_USERNAME ?? `admin@${body.slug}.local`;
   const adminPassword = body.config?.ADMIN_PASSWORD ?? `${ulid()}aA1!`;
-  // The universal-login identifier lookup is BY EMAIL (helpers/users.ts), so an
-  // email-shaped admin username must also be the user's email or login reports
-  // "account doesn't exist" for a user that exists.
-  const adminEmail = adminUsername.includes("@") ? adminUsername : undefined;
+  // Email-shaped identifier → EMAIL (the login lookup key); username = local
+  // part (the User schema forbids '@' in usernames — see applyBootstrap).
+  const adminEmail = adminIdentifier.includes("@") ? adminIdentifier : undefined;
+  const adminUsername = adminEmail
+    ? (adminIdentifier.split("@")[0] ?? adminIdentifier)
+    : adminIdentifier;
   let seedError: string | undefined;
   const seeded = await seed(dataAdapter, {
     adminUsername,
@@ -326,7 +373,7 @@ app.post("/internal/provision", async (c) => {
     ...Object.entries(body.config ?? {}).map(([key, value]) => ({ key, value })),
     { key: "__owner", value: body.owner },
   ]);
-  await applyBootstrap(dataAdapter, body.tenantId, await getStoredConfig(store));
+  await applyBootstrap(dataAdapter, body.tenantId, await getStoredConfig(store), new URL(c.req.raw.url).origin);
 
   return c.json(
     {
@@ -338,7 +385,7 @@ app.post("/internal/provision", async (c) => {
       // Dev-channel spike affordance: surfaced once via the intent result so
       // the console operator gets the tenant's first login. Replace with an
       // invite/reset flow before any real audience.
-      adminUsername: seeded ? adminUsername : undefined,
+      adminUsername: seeded ? adminIdentifier : undefined,
       adminPassword:
         seeded && !body.config?.ADMIN_PASSWORD ? adminPassword : undefined,
     },
@@ -363,7 +410,7 @@ app.post("/internal/configure", async (c) => {
   const dataAdapter = createAdapters(drizzle(db, { schema }), {
     useTransactions: false,
   });
-  await applyBootstrap(dataAdapter, body.tenantId, await getStoredConfig(store));
+  await applyBootstrap(dataAdapter, body.tenantId, await getStoredConfig(store), new URL(c.req.raw.url).origin);
   return c.json({ ok: true, applied: body.entries.map((e) => e.key) });
 });
 
@@ -403,7 +450,7 @@ app.post("/internal/reconcile", async (c) => {
   const dataAdapter = createAdapters(drizzle(db, { schema }), {
     useTransactions: false,
   });
-  await applyBootstrap(dataAdapter, body.tenantId, cfg);
+  await applyBootstrap(dataAdapter, body.tenantId, cfg, new URL(c.req.raw.url).origin);
   return c.json({
     tenantId: body.tenantId,
     scopeId: body.scopeId,
