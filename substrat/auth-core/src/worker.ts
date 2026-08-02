@@ -621,8 +621,14 @@ const runtimes = new Map<
   }
 >();
 
-function runtimeFor(env: Env, tenant: TenantId, issuer: string) {
-  const cached = runtimes.get(tenant);
+function runtimeFor(
+  env: Env,
+  tenant: TenantId,
+  issuer: string,
+  callerOrigin: string,
+) {
+  const cacheKey = tenant + "|" + callerOrigin;
+  const cached = runtimes.get(cacheKey);
   if (cached) return cached;
   const db = tenantDb(env, tenant);
   const dataAdapter = createAdapters(drizzle(db, { schema }), {
@@ -630,13 +636,16 @@ function runtimeFor(env: Env, tenant: TenantId, issuer: string) {
   });
   const config: AuthHeroConfig = {
     dataAdapter,
-    allowedOrigins: [new URL(issuer).origin],
+    // Reflect the caller (the wfp-tenant template's production behavior): the
+    // console SPA exchanges tokens cross-origin; per-client web_origins remain
+    // the authoritative check inside authhero.
+    allowedOrigins: [new URL(issuer).origin, callerOrigin].filter(Boolean),
     widgetHandler,
     adminHandler,
     adminIndexHtml: adminIndexFor(issuer, "default"),
   };
   const runtime = { app: init(config).app, dataAdapter };
-  runtimes.set(tenant, runtime);
+  runtimes.set(cacheKey, runtime);
   return runtime;
 }
 
@@ -664,7 +673,7 @@ app.all("*", async (c) => {
     }
   }
   const issuer = `${new URL(c.req.raw.url).origin}/`;
-  const runtime = runtimeFor(c.env, tenant, issuer);
+  const runtime = runtimeFor(c.env, tenant, issuer, c.req.header("Origin") ?? "");
   return runtime.app.fetch(c.req.raw, {
     ISSUER: issuer,
     AUTH_URL: issuer,
