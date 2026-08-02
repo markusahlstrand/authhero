@@ -226,7 +226,9 @@ const configureBody = z.object({
 app.post("/internal/configure", async (c) => {
   gatePlatform(c);
   const body = configureBody.parse(await c.req.json());
-  const ownerSub = body.entries.find((e) => e.key === "OWNER_SUB")?.value;
+  const ownerSub =
+    body.entries.find((e) => e.key === "OWNER_SUB")?.value ??
+    appEnv(c.env).OWNER_SUB; // env-default fallback (bridge until substrat#398)
   if (ownerSub) {
     await hostFor(c.env).assignScopeRole(
       body.scopeId,

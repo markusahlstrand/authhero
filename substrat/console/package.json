@@ -16,7 +16,8 @@
         "description": "The AuthHero deployment console admins log in against — byte-exact as it appears in the iss claim (usually ends with /).",
         "placeholder": "https://auth.example.com/",
         "required": true,
-        "group": "Auth"
+        "group": "Auth",
+        "default": "https://authhero-auth-core-authhero.global.substrat.run/"
       },
       {
         "key": "OIDC_CLIENT_ID",
@@ -28,16 +29,18 @@
       {
         "key": "OIDC_AUDIENCE",
         "label": "API audience",
-        "description": "The audience bearer tokens must carry (an AuthHero API identifier, e.g. urn:authhero:tenant:<id>). Required for the SPA token exchange.",
+        "description": "The audience bearer tokens must carry. urn:authhero:management matches the admin surface and always exists on seeded tenants.",
         "required": false,
-        "group": "Auth"
+        "group": "Auth",
+        "default": "urn:authhero:management"
       },
       {
         "key": "OWNER_SUB",
         "label": "Operator sub",
         "description": "The AuthHero sub of the human operator; grants their login the platform-operator role at provision/reconcile.",
         "required": false,
-        "group": "Bootstrap"
+        "group": "Bootstrap",
+        "default": "auth0|0aceaa2aa48fddc1729072ee"
       }
     ]
   },

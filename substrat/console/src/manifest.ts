@@ -63,7 +63,7 @@ export const controlplaneManifest = moduleManifest.parse({
       description:
         "The AuthHero deployment console admins log in against — byte-exact as it appears in the `iss` claim (usually ends with '/').",
       placeholder: "https://auth.example.com/",
-      default: "http://localhost:3000/",
+      default: "https://authhero-auth-core-authhero.global.substrat.run/",
       group: "Auth",
     },
     {
@@ -76,11 +76,21 @@ export const controlplaneManifest = moduleManifest.parse({
     },
     {
       key: "OIDC_AUDIENCE",
-      label: "API audience (optional)",
+      label: "API audience",
       description:
-        "When set, bearer tokens must carry this audience. Leave empty to accept any audience from the trusted issuer (dev).",
+        "The audience bearer tokens must carry. urn:authhero:management matches the admin surface and always exists on seeded tenants.",
+      default: "urn:authhero:management",
       required: false,
       group: "Auth",
+    },
+    {
+      key: "OWNER_SUB",
+      label: "Operator sub",
+      description:
+        "The AuthHero sub of the human operator; grants their login the platform-operator role at provision/configure.",
+      default: "auth0|0aceaa2aa48fddc1729072ee",
+      required: false,
+      group: "Bootstrap",
     },
   ],
 });
