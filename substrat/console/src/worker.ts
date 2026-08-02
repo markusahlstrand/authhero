@@ -213,6 +213,34 @@ app.post("/internal/provision", async (c) => {
   );
 });
 
+// Settings delivery (configureInstance → key-by-key entries). The console's one
+// configurable bootstrap is OWNER_SUB; its effect (the role tuple) is durable in
+// the scope, so applying IS persisting. OIDC_* entries are read from env
+// (worker envSpec) — their per-install delivery is substrat#398's territory.
+const configureBody = z.object({
+  tenantId: tenantIdOf,
+  scopeId: scopeIdOf,
+  entries: z.array(z.object({ key: z.string().min(1), value: z.string() })),
+});
+
+app.post("/internal/configure", async (c) => {
+  gatePlatform(c);
+  const body = configureBody.parse(await c.req.json());
+  const ownerSub = body.entries.find((e) => e.key === "OWNER_SUB")?.value;
+  if (ownerSub) {
+    await hostFor(c.env).assignScopeRole(
+      body.scopeId,
+      principalForSub(ownerSub),
+      OWNER_ROLE,
+    );
+  }
+  return c.json({
+    ok: true,
+    applied: ownerSub ? ["OWNER_SUB"] : [],
+    ...(ownerSub ? { operatorPrincipal: principalForSub(ownerSub) } : {}),
+  });
+});
+
 // The platform-intent pull surface (platform-intents.md Phase B1): the platform
 // LISTS this scope's pending intents, effects them with its own authority, and
 // SETTLES the outcomes back. This is how the console's provision-tenant /

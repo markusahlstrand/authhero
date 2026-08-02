@@ -169,6 +169,95 @@ function gatePlatform(c: { env: Env; req: { raw: Request } }): void {
   }
 }
 
+// ── Instance config: durable per-tenant entries + the bootstrap they drive ───
+// configureInstance delivers settings as key-by-key upserts (never a full
+// replace); the vertical owns durable storage. Ours lives in the tenant D1
+// beside the data it configures. `__owner` is the owner-of-record reconcile
+// re-sources (the platform deliberately never persists one).
+
+const CONFIG_TABLE = "_authhero_instance_config";
+
+async function putConfigEntries(
+  store: ReturnType<typeof d1TenantRelationalStore>,
+  entries: Array<{ key: string; value: string }>,
+): Promise<void> {
+  await store.exec(
+    `CREATE TABLE IF NOT EXISTS ${CONFIG_TABLE} (key TEXT PRIMARY KEY, value TEXT NOT NULL)`,
+  );
+  for (const e of entries) {
+    await store.exec(
+      `INSERT INTO ${CONFIG_TABLE} (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+      [e.key, e.value],
+    );
+  }
+}
+
+async function getStoredConfig(
+  store: ReturnType<typeof d1TenantRelationalStore>,
+): Promise<Record<string, string>> {
+  await store.exec(
+    `CREATE TABLE IF NOT EXISTS ${CONFIG_TABLE} (key TEXT PRIMARY KEY, value TEXT NOT NULL)`,
+  );
+  const rows = await store.query<{ key: string; value: string }>(
+    `SELECT key, value FROM ${CONFIG_TABLE}`,
+  );
+  return Object.fromEntries(rows.map((r) => [r.key, r.value]));
+}
+
+/** Apply the configurable bootstrap: default_audience + admin credential
+ *  upsert + email backfill. Idempotent; safe on fresh and existing tenants. */
+async function applyBootstrap(
+  dataAdapter: ReturnType<typeof createAdapters>,
+  tenantId: string,
+  cfg: Record<string, string | undefined>,
+): Promise<void> {
+  try {
+    await dataAdapter.tenants.update(tenantId, {
+      default_audience: `urn:authhero:tenant:${tenantId}`,
+    });
+  } catch (err) {
+    console.warn(`default_audience(${tenantId}):`, err instanceof Error ? err.message : err);
+  }
+  const username = cfg.ADMIN_USERNAME;
+  const password = cfg.ADMIN_PASSWORD;
+  if (!username || !password) return;
+  try {
+    const found = await dataAdapter.users.list(tenantId, {
+      q: `username:${username}`,
+    });
+    const user = found.users[0];
+    if (user) {
+      const { hash, algorithm } = await hashPassword(password);
+      await dataAdapter.passwords.update(tenantId, {
+        user_id: user.user_id,
+        password: hash,
+        algorithm,
+        is_current: true,
+      });
+      const wantEmail = username.includes("@") ? username : undefined;
+      if (wantEmail && user.email !== wantEmail) {
+        await dataAdapter.users.update(tenantId, user.user_id, {
+          email: wantEmail,
+          email_verified: true,
+        });
+      }
+    } else {
+      // No user under that username yet (e.g. the operator changed it after
+      // install): create it through seed's own idempotent path.
+      await seed(dataAdapter, {
+        adminUsername: username,
+        ...(username.includes("@") ? { adminEmail: username } : {}),
+        adminPassword: password,
+        tenantId,
+        isControlPlane: false,
+        debug: false,
+      });
+    }
+  } catch (err) {
+    console.warn(`admin bootstrap(${tenantId}):`, err instanceof Error ? err.message : err);
+  }
+}
+
 // ── /internal/provision — the K-31 ready-gate, both halves ───────────────────
 
 const provisionBody = z.object({
@@ -231,60 +320,13 @@ app.post("/internal/provision", async (c) => {
     return undefined;
   });
 
-  // Standard-OIDC compatibility: a plain RP (the platform's vertical-auth
-  // included) does an audience-less code exchange, which AuthHero 400s unless
-  // the tenant carries a default_audience (authentication-flows/common.ts).
-  // Point it at the tenant's own seeded API so no caller needs the Auth0-ism.
-  try {
-    await dataAdapter.tenants.update(body.tenantId, {
-      default_audience: `urn:authhero:tenant:${body.tenantId}`,
-    });
-  } catch (err) {
-    console.warn(
-      `default_audience(${body.tenantId}):`,
-      err instanceof Error ? err.message : err,
-    );
-  }
-
-  // Admin UPSERT (#426): seed() short-circuits on an existing tenant, so
-  // credentials delivered via install/reconcile config would silently not
-  // apply. When the operator supplied both, set the password explicitly —
-  // the same hash path seed uses. Idempotent; fresh and existing alike.
-  if (body.config?.ADMIN_USERNAME && body.config?.ADMIN_PASSWORD) {
-    try {
-      const found = await dataAdapter.users.list(body.tenantId, {
-        q: `username:${body.config.ADMIN_USERNAME}`,
-      });
-      const user = found.users[0];
-      if (user) {
-        const { hash, algorithm } = await hashPassword(
-          body.config.ADMIN_PASSWORD,
-        );
-        await dataAdapter.passwords.update(body.tenantId, {
-          user_id: user.user_id,
-          password: hash,
-          algorithm,
-          is_current: true,
-        });
-        // Email backfill: heal a user created before the adminEmail fix (or
-        // renamed) so the email-keyed login lookup finds them.
-        const wantEmail = body.config.ADMIN_USERNAME.includes("@")
-          ? body.config.ADMIN_USERNAME
-          : undefined;
-        if (wantEmail && user.email !== wantEmail) {
-          await dataAdapter.users.update(body.tenantId, user.user_id, {
-            email: wantEmail,
-            email_verified: true,
-          });
-        }
-      }
-    } catch (err) {
-      console.warn(
-        `admin upsert(${body.tenantId}):`,
-        err instanceof Error ? err.message : err,
-      );
-    }
-  }
+  // Persist install-delivered config + the owner-of-record, then apply the
+  // configurable bootstrap (default_audience, admin credential upsert).
+  await putConfigEntries(store, [
+    ...Object.entries(body.config ?? {}).map(([key, value]) => ({ key, value })),
+    { key: "__owner", value: body.owner },
+  ]);
+  await applyBootstrap(dataAdapter, body.tenantId, await getStoredConfig(store));
 
   return c.json(
     {
@@ -302,6 +344,71 @@ app.post("/internal/provision", async (c) => {
     },
     201,
   );
+});
+
+// ── /internal/configure — settings delivery (key-by-key upserts, then apply) ─
+
+const configureBody = z.object({
+  tenantId: tenantIdOf,
+  scopeId: scopeIdOf,
+  entries: z.array(z.object({ key: z.string().min(1), value: z.string() })),
+});
+
+app.post("/internal/configure", async (c) => {
+  gatePlatform(c);
+  const body = configureBody.parse(await c.req.json());
+  const db = tenantDb(c.env, body.tenantId);
+  const store = d1TenantRelationalStore(db);
+  await putConfigEntries(store, body.entries);
+  const dataAdapter = createAdapters(drizzle(db, { schema }), {
+    useTransactions: false,
+  });
+  await applyBootstrap(dataAdapter, body.tenantId, await getStoredConfig(store));
+  return c.json({ ok: true, applied: body.entries.map((e) => e.key) });
+});
+
+// ── /internal/reconcile — the builder-triggerable repair (#332 shape) ────────
+// Re-runs the idempotent provision: kernel scope re-projected (owner re-sourced
+// from our own owner-of-record), entitlements re-delivered by the platform,
+// migrations + bootstrap re-applied from stored config.
+
+const reconcileBody = z.object({
+  tenantId: tenantIdOf,
+  scopeId: scopeIdOf,
+  entitlements: z.array(entitlementGrant).optional(),
+});
+
+app.post("/internal/reconcile", async (c) => {
+  gatePlatform(c);
+  const body = reconcileBody.parse(await c.req.json());
+  const db = tenantDb(c.env, body.tenantId);
+  const store = d1TenantRelationalStore(db);
+  const cfg = await getStoredConfig(store);
+  const storedOwner = principalIdOf.safeParse(cfg.__owner ?? "");
+  if (!storedOwner.success) {
+    return c.json(
+      { error: "no owner-of-record for this instance — provision it first" },
+      409,
+    );
+  }
+  await hostFor(c.env).provisionScopeLocal({
+    tenantId: body.tenantId,
+    scopeId: body.scopeId,
+    owner: storedOwner.data,
+    roles: ROLES,
+    ownerRoleKey: OWNER_ROLE,
+    ...(body.entitlements ? { entitlements: body.entitlements } : {}),
+  });
+  await applyMigrations(store);
+  const dataAdapter = createAdapters(drizzle(db, { schema }), {
+    useTransactions: false,
+  });
+  await applyBootstrap(dataAdapter, body.tenantId, cfg);
+  return c.json({
+    tenantId: body.tenantId,
+    scopeId: body.scopeId,
+    owner: storedOwner.data,
+  });
 });
 
 // ── Platform introspection + the probe diagnostic (stand-in parity) ──────────
