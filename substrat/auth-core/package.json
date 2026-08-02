@@ -24,7 +24,25 @@
       ]
     },
     "tenant": "authhero-mqk5x7",
-    "permissions": "src/permissions.ts"
+    "permissions": "src/permissions.ts",
+    "envSpec": [
+      {
+        "key": "ADMIN_USERNAME",
+        "label": "Initial admin username",
+        "description": "Bootstrap credential for this tenant: applied at provision/reconcile (upserted if the tenant already exists). Log in at /admin with it.",
+        "placeholder": "admin@example.com",
+        "required": false,
+        "group": "Bootstrap"
+      },
+      {
+        "key": "ADMIN_PASSWORD",
+        "label": "Initial admin password",
+        "description": "Set together with the username; the vertical hashes it with the same policy the seed path uses and never returns it.",
+        "secret": true,
+        "required": false,
+        "group": "Bootstrap"
+      }
+    ]
   },
   "scripts": {
     "gen:migrations": "node scripts/gen-migrations.mjs",

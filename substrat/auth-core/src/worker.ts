@@ -26,7 +26,7 @@ import { HTTPException } from "hono/http-exception";
 import { drizzle } from "drizzle-orm/d1";
 import createAdapters from "@authhero/drizzle";
 import * as schema from "@authhero/drizzle/schema/sqlite";
-import { init, seed, type AuthHeroConfig } from "authhero";
+import { init, seed, hashPassword, type AuthHeroConfig } from "authhero";
 import {
   defineScopeDO,
   CloudflareScopeHost,
@@ -226,6 +226,35 @@ app.post("/internal/provision", async (c) => {
     );
     return undefined;
   });
+
+  // Admin UPSERT (#426): seed() short-circuits on an existing tenant, so
+  // credentials delivered via install/reconcile config would silently not
+  // apply. When the operator supplied both, set the password explicitly —
+  // the same hash path seed uses. Idempotent; fresh and existing alike.
+  if (body.config?.ADMIN_USERNAME && body.config?.ADMIN_PASSWORD) {
+    try {
+      const found = await dataAdapter.users.list(body.tenantId, {
+        q: `username:${body.config.ADMIN_USERNAME}`,
+      });
+      const user = found.users[0];
+      if (user) {
+        const { hash, algorithm } = await hashPassword(
+          body.config.ADMIN_PASSWORD,
+        );
+        await dataAdapter.passwords.update(body.tenantId, {
+          user_id: user.user_id,
+          password: hash,
+          algorithm,
+          is_current: true,
+        });
+      }
+    } catch (err) {
+      console.warn(
+        `admin upsert(${body.tenantId}):`,
+        err instanceof Error ? err.message : err,
+      );
+    }
+  }
 
   return c.json(
     {

@@ -8,7 +8,38 @@
     "slug": "authhero-console",
     "name": "AuthHero Console",
     "tenant": "authhero-mqk5x7",
-    "permissions": "src/permissions.ts"
+    "permissions": "src/permissions.ts",
+    "envSpec": [
+      {
+        "key": "OIDC_ISSUER",
+        "label": "AuthHero issuer",
+        "description": "The AuthHero deployment console admins log in against — byte-exact as it appears in the iss claim (usually ends with /).",
+        "placeholder": "https://auth.example.com/",
+        "required": true,
+        "group": "Auth"
+      },
+      {
+        "key": "OIDC_CLIENT_ID",
+        "label": "Console client id",
+        "description": "The AuthHero client the SPA uses for PKCE login.",
+        "default": "default",
+        "group": "Auth"
+      },
+      {
+        "key": "OIDC_AUDIENCE",
+        "label": "API audience",
+        "description": "The audience bearer tokens must carry (an AuthHero API identifier, e.g. urn:authhero:tenant:<id>). Required for the SPA token exchange.",
+        "required": false,
+        "group": "Auth"
+      },
+      {
+        "key": "OWNER_SUB",
+        "label": "Operator sub",
+        "description": "The AuthHero sub of the human operator; grants their login the platform-operator role at provision/reconcile.",
+        "required": false,
+        "group": "Bootstrap"
+      }
+    ]
   },
   "scripts": {
     "server": "tsx src/server.ts",
