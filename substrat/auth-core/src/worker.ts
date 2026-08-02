@@ -246,28 +246,47 @@ async function ensureSelfOriginClientUrls(
 async function healInvalidUsernames(
   dataAdapter: ReturnType<typeof createAdapters>,
   tenantId: string,
-): Promise<void> {
+): Promise<{ healed: string[]; errors: string[] }> {
+  const healed: string[] = [];
+  const errors: string[] = [];
   try {
+    // Two invalid users can share a local part (admin@a + admin@b → 'admin'),
+    // and a collision mid-sweep must not abort the rest — collect taken
+    // usernames first, uniquify, and isolate each update.
+    const all: Array<{ user_id: string; username?: string; email?: string }> = [];
     for (let page = 0; page < 20; page++) {
-      const batch = await dataAdapter.users.list(tenantId, {
-        page,
-        per_page: 100,
-      });
-      for (const user of batch.users) {
-        if (!user.username?.includes("@")) continue;
-        const local = user.username.split("@")[0] ?? user.username;
+      const batch = await dataAdapter.users.list(tenantId, { page, per_page: 100 });
+      all.push(...batch.users);
+      if (batch.users.length < 100) break;
+    }
+    const taken = new Set(
+      all.map((u) => u.username).filter((u): u is string => !!u && !u.includes("@")),
+    );
+    for (const user of all) {
+      if (!user.username?.includes("@")) continue;
+      const base = user.username.split("@")[0] || "user";
+      let candidate = base;
+      for (let i = 2; taken.has(candidate); i++) candidate = `${base}${i}`;
+      taken.add(candidate);
+      try {
         await dataAdapter.users.update(tenantId, user.user_id, {
-          username: local,
+          username: candidate,
           // If the invalid username was their only identifier, keep them
           // reachable by making it the email.
           ...(!user.email ? { email: user.username, email_verified: true } : {}),
         });
+        healed.push(`${user.user_id}:${candidate}`);
+      } catch (err) {
+        errors.push(
+          `${user.user_id}: ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
-      if (batch.users.length < 100) break;
     }
   } catch (err) {
-    console.warn(`heal usernames(${tenantId}):`, err instanceof Error ? err.message : err);
+    errors.push(err instanceof Error ? err.message : String(err));
   }
+  if (errors.length) console.warn(`heal usernames(${tenantId}):`, errors);
+  return { healed, errors };
 }
 
 /** Apply the configurable bootstrap: default_audience + admin credential
@@ -488,6 +507,38 @@ app.post("/internal/reconcile", async (c) => {
     scopeId: body.scopeId,
     owner: storedOwner.data,
   });
+});
+
+// Users audit (platform-gated): the raw identifier state of every user, with
+// schema-violation flags — the diagnostic the generic 500 on the users list
+// hides. Also runs the heal and reports what it did, so one call = see + fix.
+app.post("/internal/users-audit", async (c) => {
+  gatePlatform(c);
+  const body = z
+    .object({ tenantId: tenantIdOf, heal: z.boolean().optional() })
+    .parse(await c.req.json());
+  const db = tenantDb(c.env, body.tenantId);
+  const dataAdapter = createAdapters(drizzle(db, { schema }), {
+    useTransactions: false,
+  });
+  const result =
+    body.heal === false
+      ? { healed: [], errors: [] }
+      : await healInvalidUsernames(dataAdapter, body.tenantId);
+  const users: Array<Record<string, unknown>> = [];
+  for (let page = 0; page < 20; page++) {
+    const batch = await dataAdapter.users.list(body.tenantId, { page, per_page: 100 });
+    for (const u of batch.users) {
+      users.push({
+        user_id: u.user_id,
+        username: u.username,
+        email: u.email,
+        invalidUsername: !!u.username?.includes("@"),
+      });
+    }
+    if (batch.users.length < 100) break;
+  }
+  return c.json({ users, ...result });
 });
 
 // ── Platform introspection + the probe diagnostic (stand-in parity) ──────────
