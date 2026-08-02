@@ -227,6 +227,21 @@ app.post("/internal/provision", async (c) => {
     return undefined;
   });
 
+  // Standard-OIDC compatibility: a plain RP (the platform's vertical-auth
+  // included) does an audience-less code exchange, which AuthHero 400s unless
+  // the tenant carries a default_audience (authentication-flows/common.ts).
+  // Point it at the tenant's own seeded API so no caller needs the Auth0-ism.
+  try {
+    await dataAdapter.tenants.update(body.tenantId, {
+      default_audience: `urn:authhero:tenant:${body.tenantId}`,
+    });
+  } catch (err) {
+    console.warn(
+      `default_audience(${body.tenantId}):`,
+      err instanceof Error ? err.message : err,
+    );
+  }
+
   // Admin UPSERT (#426): seed() short-circuits on an existing tenant, so
   // credentials delivered via install/reconcile config would silently not
   // apply. When the operator supplied both, set the password explicitly —
