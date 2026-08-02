@@ -6,6 +6,6 @@
     "outDir": "dist/worker",
     "noEmit": false
   },
-  "include": ["src/worker.ts"],
+  "include": ["src/worker.ts", "src/authhero-drizzle.d.ts"],
   "exclude": []
 }

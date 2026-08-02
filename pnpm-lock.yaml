@@ -1240,17 +1240,17 @@ importers:
         specifier: ^1.13.0
         version: 1.19.14(hono@4.12.30)
       '@substrat-run/adapter-cloudflare':
-        specifier: ^0.31.0
-        version: 0.31.0
+        specifier: ^0.34.0
+        version: 0.34.0
       '@substrat-run/adapter-sqlite':
-        specifier: ^0.31.0
-        version: 0.31.0
+        specifier: ^0.34.0
+        version: 0.34.0
       '@substrat-run/contracts':
-        specifier: ^0.31.0
-        version: 0.31.0
+        specifier: ^0.34.0
+        version: 0.34.0
       '@substrat-run/kernel':
-        specifier: ^0.31.0
-        version: 0.31.0
+        specifier: ^0.34.0
+        version: 0.34.0
       authhero:
         specifier: workspace:*
         version: link:../../packages/authhero
@@ -1292,14 +1292,14 @@ importers:
   substrat/authcore:
     dependencies:
       '@substrat-run/adapter-cloudflare':
-        specifier: ^0.31.0
-        version: 0.31.0
+        specifier: ^0.34.0
+        version: 0.34.0
       '@substrat-run/contracts':
-        specifier: ^0.31.0
-        version: 0.31.0
+        specifier: ^0.34.0
+        version: 0.34.0
       '@substrat-run/kernel':
-        specifier: ^0.31.0
-        version: 0.31.0
+        specifier: ^0.34.0
+        version: 0.34.0
       hono:
         specifier: ^4.6.0
         version: 4.12.30
@@ -1317,20 +1317,20 @@ importers:
         specifier: ^1.13.0
         version: 1.19.14(hono@4.12.30)
       '@substrat-run/adapter-cloudflare':
-        specifier: ^0.31.0
-        version: 0.31.0
+        specifier: ^0.34.0
+        version: 0.34.0
       '@substrat-run/adapter-sqlite':
-        specifier: ^0.31.0
-        version: 0.31.0
+        specifier: ^0.34.0
+        version: 0.34.0
       '@substrat-run/contracts':
-        specifier: ^0.31.0
-        version: 0.31.0
+        specifier: ^0.34.0
+        version: 0.34.0
       '@substrat-run/control-plane-api':
-        specifier: ^0.31.0
-        version: 0.31.0
+        specifier: ^0.34.0
+        version: 0.34.0
       '@substrat-run/kernel':
-        specifier: ^0.31.0
-        version: 0.31.0
+        specifier: ^0.34.0
+        version: 0.34.0
       better-sqlite3:
         specifier: ^11.0.0
         version: 11.10.0
@@ -5045,24 +5045,24 @@ packages:
       typescript:
         optional: true
 
-  '@substrat-run/adapter-cloudflare@0.31.0':
-    resolution: {integrity: sha512-lLW3K//img38YcMzACLMOy6wfpvdhJiGppErnpSRrulIdpKIKiLj90VAt6fseZgzVK+MDe45eNqpGwnh8eXCew==}
+  '@substrat-run/adapter-cloudflare@0.34.0':
+    resolution: {integrity: sha512-VidMx8HhxzxYpE37jITp0sS9o33K61WzvmNEDp8K+gB2hO1DVzFS5nSY/+yndJd/BkZDJhgs4tQD5lp1umBpPA==}
 
-  '@substrat-run/adapter-sqlite@0.31.0':
-    resolution: {integrity: sha512-laFmW6OP2mRg1wMtsehHrzFofYbyZX58kFmbXdrSKCX9opCwT08aUXqNnM2quY15CPCqL37FiiPbRLyn9y/gwA==}
+  '@substrat-run/adapter-sqlite@0.34.0':
+    resolution: {integrity: sha512-7Q9SbYIMg4o7CX1oA2vHM24ZKPapV4XCWyhpBh6JeBrNzJ0IeecQerQYg5qaBr842p+fbMU/uOoln0OThAVEog==}
 
   '@substrat-run/boundary-lint@0.0.5':
     resolution: {integrity: sha512-jVpTFgCZ5kY+4lJ1xmbuGzVjYlYRIA9A0SxayvcMVdDYqcMU0jHmel0RYeHWwI045r6ZS7K06EQA+/WkN7Cqag==}
     hasBin: true
 
-  '@substrat-run/contracts@0.31.0':
-    resolution: {integrity: sha512-LopBOOohzAF8v+xKJn86qv8sIVsmD/UIGpyEYAuBQFLUGSdYY/7qK4ptSAadrPxQFB+NwBEypHKjQ80tFnHTkQ==}
+  '@substrat-run/contracts@0.34.0':
+    resolution: {integrity: sha512-1phVGw+nrHaIKhoSD+urVjaUbEF7QtXF3IgAc1bbFrn4IiNvcABjrsmImd3EcJgkXueuXra02voFkv/whAZmiw==}
 
-  '@substrat-run/control-plane-api@0.31.0':
-    resolution: {integrity: sha512-4vpr+Ijd5VNR1DR/YkTnz+fpf4s7I9dbIuhgbVwbNZZ4xBaL3m7UFHWJamtCD5sQalPc6pfk3OdIsElcHYBSNQ==}
+  '@substrat-run/control-plane-api@0.34.0':
+    resolution: {integrity: sha512-tg0S/pg8XI7NwgQ8tNRAwz9UY/Pdqj2//efNCxk+K2g2UgQXZIrY6C7zhznjgkL4TscrRYaQNaSu8A0GjV6ISQ==}
 
-  '@substrat-run/kernel@0.31.0':
-    resolution: {integrity: sha512-co4reY5h41YMP4avEVowXJAUmO1K0x54QlyKUf9bYSS3LvtIhzEgMSmR9y0Z+0L9FOdihpeF2OOe+//tulhvRQ==}
+  '@substrat-run/kernel@0.34.0':
+    resolution: {integrity: sha512-ZyJy9WWeFICFWOQY7Os3nCmyUPQxanc5n9mcerxVs5uQxRxDcatTqTKCwATaEv6SbTTAZqqNhGVLLeEi6zGTtQ==}
 
   '@substrat-run/psl@0.2.0':
     resolution: {integrity: sha512-lqUqOeZG2bEuuWOUacU+5g0yFSWuyZhkUNudkTxfCvi137Y3auBCFrJkuxSO/MUCC9PggKPPMz45AAyf0Uyp2Q==}
@@ -15248,33 +15248,33 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@substrat-run/adapter-cloudflare@0.31.0':
+  '@substrat-run/adapter-cloudflare@0.34.0':
     dependencies:
-      '@substrat-run/contracts': 0.31.0
-      '@substrat-run/kernel': 0.31.0
+      '@substrat-run/contracts': 0.34.0
+      '@substrat-run/kernel': 0.34.0
 
-  '@substrat-run/adapter-sqlite@0.31.0':
+  '@substrat-run/adapter-sqlite@0.34.0':
     dependencies:
-      '@substrat-run/contracts': 0.31.0
-      '@substrat-run/kernel': 0.31.0
+      '@substrat-run/contracts': 0.34.0
+      '@substrat-run/kernel': 0.34.0
       better-sqlite3: 12.11.1
 
   '@substrat-run/boundary-lint@0.0.5': {}
 
-  '@substrat-run/contracts@0.31.0':
+  '@substrat-run/contracts@0.34.0':
     dependencies:
       zod: 4.4.3
 
-  '@substrat-run/control-plane-api@0.31.0':
+  '@substrat-run/control-plane-api@0.34.0':
     dependencies:
-      '@substrat-run/contracts': 0.31.0
-      '@substrat-run/kernel': 0.31.0
+      '@substrat-run/contracts': 0.34.0
+      '@substrat-run/kernel': 0.34.0
       '@substrat-run/psl': 0.2.0
       hono: 4.12.30
 
-  '@substrat-run/kernel@0.31.0':
+  '@substrat-run/kernel@0.34.0':
     dependencies:
-      '@substrat-run/contracts': 0.31.0
+      '@substrat-run/contracts': 0.34.0
 
   '@substrat-run/psl@0.2.0': {}
 

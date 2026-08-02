@@ -145,7 +145,7 @@ app.post("/internal/provision", async (c) => {
     binding: STORE_BINDING,
   });
   const store = host.openTenantStore(handle);
-  const { applied } = applyMigrations(store);
+  const { applied } = await applyMigrations(store);
 
   const db = drizzle(nativeDb(store), { schema });
   const dataAdapter = createAdapters(db);

@@ -13,18 +13,24 @@ export function createRolePermissionsAdapter(db: DrizzleDb) {
       }>,
     ): Promise<boolean> {
       const now = new Date().toISOString();
-      await db
-        .insert(rolePermissions)
-        .values(
-          permissions.map((perm) => ({
-            tenant_id,
-            role_id,
-            resource_server_identifier: perm.resource_server_identifier,
-            permission_name: perm.permission_name,
-            created_at: now,
-          })),
-        )
-        .onConflictDoNothing();
+      // Chunked: D1 caps bound parameters at 100 per statement (5 columns →
+      // max 20 rows). A single multi-VALUES insert of e.g. the admin role's
+      // 239 permissions binds ~1200 parameters and fails on D1, while passing
+      // on better-sqlite3 — chunking keeps one behavior on both.
+      const CHUNK = 18;
+      const rows = permissions.map((perm) => ({
+        tenant_id,
+        role_id,
+        resource_server_identifier: perm.resource_server_identifier,
+        permission_name: perm.permission_name,
+        created_at: now,
+      }));
+      for (let i = 0; i < rows.length; i += CHUNK) {
+        await db
+          .insert(rolePermissions)
+          .values(rows.slice(i, i + CHUNK))
+          .onConflictDoNothing();
+      }
 
       return true;
     },

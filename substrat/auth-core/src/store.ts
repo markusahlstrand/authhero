@@ -25,25 +25,25 @@ function statementsOf(sql: string): string[] {
  * journal row per applied tag, so a retried provision (at-least-once platform
  * drain) converges instead of failing on existing tables.
  */
-export function applyMigrations(store: TenantRelationalStore): {
+export async function applyMigrations(store: TenantRelationalStore): Promise<{
   applied: string[];
-} {
-  store.exec(
+}> {
+  await store.exec(
     `CREATE TABLE IF NOT EXISTS ${JOURNAL_TABLE} (tag TEXT PRIMARY KEY, applied_at TEXT NOT NULL)`,
   );
   const done = new Set(
-    store
-      .query<{ tag: string }>(`SELECT tag FROM ${JOURNAL_TABLE}`)
-      .map((r) => r.tag),
+    (
+      await store.query<{ tag: string }>(`SELECT tag FROM ${JOURNAL_TABLE}`)
+    ).map((r) => r.tag),
   );
   const applied: string[] = [];
   for (const migration of MIGRATIONS) {
     if (done.has(migration.tag)) continue;
-    for (const stmt of statementsOf(migration.sql)) store.exec(stmt);
-    store.exec(`INSERT INTO ${JOURNAL_TABLE} (tag, applied_at) VALUES (?, ?)`, [
-      migration.tag,
-      new Date().toISOString(),
-    ]);
+    for (const stmt of statementsOf(migration.sql)) await store.exec(stmt);
+    await store.exec(
+      `INSERT INTO ${JOURNAL_TABLE} (tag, applied_at) VALUES (?, ?)`,
+      [migration.tag, new Date().toISOString()],
+    );
     applied.push(migration.tag);
   }
   return { applied };

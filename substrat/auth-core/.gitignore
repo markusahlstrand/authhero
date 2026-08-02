@@ -5,3 +5,4 @@ dist
 .data
 data
 src/migrations.generated.ts
+src/assets.generated.ts

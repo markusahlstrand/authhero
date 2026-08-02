@@ -26,11 +26,11 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.13.0",
-    "@substrat-run/adapter-cloudflare": "^0.31.0",
-    "@substrat-run/adapter-sqlite": "^0.31.0",
-    "@substrat-run/contracts": "^0.31.0",
-    "@substrat-run/control-plane-api": "^0.31.0",
-    "@substrat-run/kernel": "^0.31.0",
+    "@substrat-run/adapter-cloudflare": "^0.34.0",
+    "@substrat-run/adapter-sqlite": "^0.34.0",
+    "@substrat-run/contracts": "^0.34.0",
+    "@substrat-run/control-plane-api": "^0.34.0",
+    "@substrat-run/kernel": "^0.34.0",
     "better-sqlite3": "^11.0.0",
     "hono": "^4.6.0"
   },
