@@ -1,0 +1,25 @@
+{
+  // The console vertical's Cloudflare Worker target. `substrat push` reads this to
+  // build + bundle; a private vertical's push lands admitted, `--promote dev`
+  // points the dev channel at it.
+  //
+  // NodeNext `.js` import specifiers don't resolve under esbuild, so we precompile
+  // with tsc (build.command) and point `main` at the emitted JS — the CRM pattern.
+  "name": "authhero-console",
+  "main": "dist/worker/worker.js",
+  "compatibility_date": "2026-06-01",
+  // SPA first, inline it (gen-assets), then compile the worker: the pushed bundle
+  // serves its own UI (no ASSETS binding — not admissible in the dispatch sandbox).
+  "build": {
+    "command": "npm --prefix app install --no-audit --no-fund && npm --prefix app run build && node scripts/gen-assets.mjs && npm run build:worker"
+  },
+  // One SQLite-backed Durable Object per scope — the vertical's OWN store. The
+  // directory/control-plane DO is platform infrastructure, deliberately absent.
+  "durable_objects": {
+    "bindings": [{ "name": "SCOPE", "class_name": "ScopeDO" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ScopeDO"] }],
+  // Local `wrangler dev` only — hosted, the router asserts the node and OIDC is
+  // the only identity. Never ship ALLOW_DEV_HEADER in a promoted channel.
+  "dev": { "port": 8788 }
+}

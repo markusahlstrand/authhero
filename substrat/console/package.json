@@ -1,0 +1,47 @@
+{
+  "name": "authhero-console",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "AuthHero control-plane vertical on Substrat — tenant registry + entitlements seam (design: billing-and-console-on-substrat.md, Stage 2)",
+  "substrat": {
+    "slug": "authhero-console",
+    "name": "AuthHero Console"
+  },
+  "scripts": {
+    "server": "tsx src/server.ts",
+    "dev": "tsx src/server.ts",
+    "test": "vitest run",
+    "gen:assets": "node scripts/gen-assets.mjs",
+    "app:build": "npm --prefix app run build",
+    "pretypecheck": "node scripts/gen-assets.mjs",
+    "typecheck": "tsc --noEmit",
+    "pretypecheck:worker": "node scripts/gen-assets.mjs",
+    "typecheck:worker": "tsc -p tsconfig.worker.json --noEmit",
+    "prebuild:worker": "node scripts/gen-assets.mjs",
+    "build:worker": "tsc -p tsconfig.worker.json",
+    "lint:boundaries": "boundary-lint",
+    "verify": "npm run typecheck && npm run typecheck:worker && npm test && npm run lint:boundaries",
+    "platform:local": "tsx scripts/local-platform.ts"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.13.0",
+    "@substrat-run/adapter-cloudflare": "^0.31.0",
+    "@substrat-run/adapter-sqlite": "^0.31.0",
+    "@substrat-run/contracts": "^0.31.0",
+    "@substrat-run/control-plane-api": "^0.31.0",
+    "@substrat-run/kernel": "^0.31.0",
+    "better-sqlite3": "^11.0.0",
+    "hono": "^4.6.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260801.1",
+    "@substrat-run/boundary-lint": "^0.0.5",
+    "@types/node": "^22",
+    "concurrently": "^9.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0",
+    "wrangler": "^4.30.0"
+  }
+}

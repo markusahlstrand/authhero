@@ -62,7 +62,16 @@ This is a **pnpm monorepo** implementing a multi-tenant authentication/IAM syste
 - **`apps/website`** — Public marketing site (Vite + React SSG, Cloudflare Pages).
 - **`apps/conformance-auth-server`** / **`apps/conformance-runner`** — Local AuthHero server plus Playwright runner for the OpenID Foundation conformance suite.
 
-Packages with non-obvious conventions have their own `CLAUDE.md` (currently `apps/admin` and `packages/ui-widget`).
+### Substrat verticals (`substrat/`)
+
+Workspace members deployed via `substrat push <dir>` (the Substrat platform CLI), not npm:
+
+- **`substrat/console`** — AuthHero's control plane as a Substrat kernel vertical: tenant registry, plans→entitlements, provisioning via platform intents (`ctx.requestPlatform`), AuthHero-OIDC login, thin SPA. Replaces the `control_plane` magic tenant long-term. Has its own `CLAUDE.md` — read it before touching module code (kernel layer rules apply).
+- **`substrat/authcore`** — TEMPORARY stand-in for the auth core as a vertical (one entitlement-probe op, `/internal`-only). Deleted when the real auth core lands as `substrat/auth-core` (the Stage-1 port of the `cloudflare-wfp-tenant` template onto platform-minted per-tenant D1).
+
+Design docs: `docs/design/billing-and-console-on-substrat.md` (the architecture) and `substrat/console/docs/provisioning-capability.md` (the platform-intent contract).
+
+Packages with non-obvious conventions have their own `CLAUDE.md` (currently `apps/admin`, `packages/ui-widget`, and `substrat/console`).
 
 ### Key Architectural Patterns
 
