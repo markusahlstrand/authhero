@@ -45,6 +45,7 @@ import { controlplaneManifest } from "./manifest.js";
 import { controlplaneModule } from "./module.js";
 import { ROLES, OWNER_ROLE } from "./roles.js";
 import { principalFromAuthHero, type OidcVerifyConfig } from "./oidc-auth.js";
+import { principalForSub } from "./identity.js";
 import { serveAsset } from "./assets.js";
 
 // The code-time module set, bundled into the DO (a DO cannot receive handler
@@ -167,6 +168,11 @@ const provisionBody = z.object({
   slug: z.string().min(1),
   name: z.string().min(1),
   entitlements: z.array(entitlementGrant).optional(),
+  /** Install-time config (#426): OWNER_SUB = the AuthHero `sub` of the human
+   *  operator — their OIDC login derives a DIFFERENT principal than the
+   *  platform's install owner, so without this the installer logs in as
+   *  role-none with no bootstrap affordance. */
+  config: z.record(z.string(), z.string()).optional(),
 });
 
 // Provision ONE console scope on the platform's instruction (K-31), CP-less:
@@ -175,7 +181,8 @@ const provisionBody = z.object({
 app.post("/internal/provision", async (c) => {
   gatePlatform(c);
   const body = provisionBody.parse(await c.req.json());
-  await hostFor(c.env).provisionScopeLocal({
+  const host = hostFor(c.env);
+  await host.provisionScopeLocal({
     tenantId: body.tenantId,
     scopeId: body.scopeId,
     owner: body.owner,
@@ -183,8 +190,25 @@ app.post("/internal/provision", async (c) => {
     ownerRoleKey: OWNER_ROLE,
     ...(body.entitlements ? { entitlements: body.entitlements } : {}),
   });
+  // Bridge the two identities (#426 config): the platform's install owner got
+  // the role above; OWNER_SUB additionally grants it to the principal the
+  // operator's AuthHero login will DERIVE, so their first sign-in is already
+  // platform-operator. Idempotent (tuple write is INSERT OR REPLACE).
+  const ownerSub = body.config?.OWNER_SUB;
+  if (ownerSub) {
+    await host.assignScopeRole(
+      body.scopeId,
+      principalForSub(ownerSub),
+      OWNER_ROLE,
+    );
+  }
   return c.json(
-    { tenantId: body.tenantId, scopeId: body.scopeId, owner: body.owner },
+    {
+      tenantId: body.tenantId,
+      scopeId: body.scopeId,
+      owner: body.owner,
+      ...(ownerSub ? { operatorPrincipal: principalForSub(ownerSub) } : {}),
+    },
     201,
   );
 });
