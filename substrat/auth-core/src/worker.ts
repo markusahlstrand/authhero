@@ -298,6 +298,11 @@ async function applyBootstrap(
   origin?: string,
 ): Promise<void> {
   if (origin) await ensureSelfOriginClientUrls(dataAdapter, tenantId, origin);
+  for (const [key] of Object.entries(cfg)) {
+    if (key.startsWith("__origin.")) {
+      await ensureSelfOriginClientUrls(dataAdapter, tenantId, key.slice("__origin.".length));
+    }
+  }
   await healInvalidUsernames(dataAdapter, tenantId);
   try {
     await dataAdapter.tenants.update(tenantId, {
@@ -635,8 +640,29 @@ function runtimeFor(env: Env, tenant: TenantId, issuer: string) {
   return runtime;
 }
 
+const learnedOrigins = new Set<string>();
+
 app.all("*", async (c) => {
   const tenant = tenantFor(c.req.raw, c.env);
+  // Learn the PUBLIC origin from real traffic: /internal calls arrive with the
+  // platform transport's Host, so bootstrap alone registers the wrong origin
+  // for client URL lists (login/logout validation). First sight of a
+  // (tenant, origin) pair persists it and patches the client immediately.
+  const reqOrigin = new URL(c.req.raw.url).origin;
+  const learnKey = tenant + "|" + reqOrigin;
+  if (!learnedOrigins.has(learnKey)) {
+    learnedOrigins.add(learnKey);
+    try {
+      const ldb = tenantDb(c.env, tenant);
+      const lstore = d1TenantRelationalStore(ldb);
+      await putConfigEntries(lstore, [{ key: "__origin." + reqOrigin, value: new Date().toISOString() }]);
+      const ladapter = createAdapters(drizzle(ldb, { schema }), { useTransactions: false });
+      await ensureSelfOriginClientUrls(ladapter, tenant, reqOrigin);
+    } catch (err) {
+      learnedOrigins.delete(learnKey); // retry on a later request
+      console.warn("origin learn(" + tenant + "):", err instanceof Error ? err.message : err);
+    }
+  }
   const issuer = `${new URL(c.req.raw.url).origin}/`;
   const runtime = runtimeFor(c.env, tenant, issuer);
   return runtime.app.fetch(c.req.raw, {
