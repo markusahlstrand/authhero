@@ -211,8 +211,14 @@ app.post("/internal/provision", async (c) => {
   const adminUsername =
     body.config?.ADMIN_USERNAME ?? `admin@${body.slug}.local`;
   const adminPassword = body.config?.ADMIN_PASSWORD ?? `${ulid()}aA1!`;
+  // The universal-login identifier lookup is BY EMAIL (helpers/users.ts), so an
+  // email-shaped admin username must also be the user's email or login reports
+  // "account doesn't exist" for a user that exists.
+  const adminEmail = adminUsername.includes("@") ? adminUsername : undefined;
+  let seedError: string | undefined;
   const seeded = await seed(dataAdapter, {
     adminUsername,
+    ...(adminEmail ? { adminEmail } : {}),
     adminPassword,
     issuer,
     tenantId: body.tenantId,
@@ -220,10 +226,8 @@ app.post("/internal/provision", async (c) => {
     isControlPlane: false,
     debug: false,
   }).catch((err: unknown) => {
-    console.warn(
-      `seed(${body.tenantId}):`,
-      err instanceof Error ? err.message : err,
-    );
+    seedError = err instanceof Error ? err.message : String(err);
+    console.warn(`seed(${body.tenantId}):`, seedError);
     return undefined;
   });
 
@@ -262,6 +266,17 @@ app.post("/internal/provision", async (c) => {
           algorithm,
           is_current: true,
         });
+        // Email backfill: heal a user created before the adminEmail fix (or
+        // renamed) so the email-keyed login lookup finds them.
+        const wantEmail = body.config.ADMIN_USERNAME.includes("@")
+          ? body.config.ADMIN_USERNAME
+          : undefined;
+        if (wantEmail && user.email !== wantEmail) {
+          await dataAdapter.users.update(body.tenantId, user.user_id, {
+            email: wantEmail,
+            email_verified: true,
+          });
+        }
       }
     } catch (err) {
       console.warn(
@@ -277,6 +292,7 @@ app.post("/internal/provision", async (c) => {
       scopeId: body.scopeId,
       migrationsApplied: applied,
       clientId: seeded?.clientId,
+      ...(seedError ? { seedError } : {}),
       // Dev-channel spike affordance: surfaced once via the intent result so
       // the console operator gets the tenant's first login. Replace with an
       // invite/reset flow before any real audience.
