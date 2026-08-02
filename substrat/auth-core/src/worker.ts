@@ -239,6 +239,37 @@ async function ensureSelfOriginClientUrls(
   }
 }
 
+/** Heal EVERY user whose username violates the schema ('@' forbidden): one
+ *  invalid legacy row poisons the whole users LIST (response validation),
+ *  while single-object endpoints keep working. The adapter read is raw (no
+ *  response schema), so paging through it is safe. Idempotent. */
+async function healInvalidUsernames(
+  dataAdapter: ReturnType<typeof createAdapters>,
+  tenantId: string,
+): Promise<void> {
+  try {
+    for (let page = 0; page < 20; page++) {
+      const batch = await dataAdapter.users.list(tenantId, {
+        page,
+        per_page: 100,
+      });
+      for (const user of batch.users) {
+        if (!user.username?.includes("@")) continue;
+        const local = user.username.split("@")[0] ?? user.username;
+        await dataAdapter.users.update(tenantId, user.user_id, {
+          username: local,
+          // If the invalid username was their only identifier, keep them
+          // reachable by making it the email.
+          ...(!user.email ? { email: user.username, email_verified: true } : {}),
+        });
+      }
+      if (batch.users.length < 100) break;
+    }
+  } catch (err) {
+    console.warn(`heal usernames(${tenantId}):`, err instanceof Error ? err.message : err);
+  }
+}
+
 /** Apply the configurable bootstrap: default_audience + admin credential
  *  upsert + email backfill + self-origin client URLs. Idempotent. */
 async function applyBootstrap(
@@ -248,6 +279,7 @@ async function applyBootstrap(
   origin?: string,
 ): Promise<void> {
   if (origin) await ensureSelfOriginClientUrls(dataAdapter, tenantId, origin);
+  await healInvalidUsernames(dataAdapter, tenantId);
   try {
     await dataAdapter.tenants.update(tenantId, {
       default_audience: `urn:authhero:tenant:${tenantId}`,
