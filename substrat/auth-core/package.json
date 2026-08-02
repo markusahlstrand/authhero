@@ -22,7 +22,9 @@
           "binding": "AUTH_DB"
         }
       ]
-    }
+    },
+    "tenant": "authhero-mqk5x7",
+    "permissions": "src/permissions.ts"
   },
   "scripts": {
     "gen:migrations": "node scripts/gen-migrations.mjs",
@@ -39,10 +41,10 @@
   "dependencies": {
     "@authhero/drizzle": "workspace:*",
     "@hono/node-server": "^1.13.0",
-    "@substrat-run/adapter-cloudflare": "^0.34.0",
-    "@substrat-run/adapter-sqlite": "^0.34.0",
-    "@substrat-run/contracts": "^0.34.0",
-    "@substrat-run/kernel": "^0.34.0",
+    "@substrat-run/adapter-cloudflare": "^0.35.0",
+    "@substrat-run/adapter-sqlite": "^0.35.0",
+    "@substrat-run/contracts": "^0.35.0",
+    "@substrat-run/kernel": "^0.35.0",
     "authhero": "workspace:*",
     "better-sqlite3": "^11.0.0",
     "drizzle-orm": "^0.45.2",

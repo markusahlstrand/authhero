@@ -6,7 +6,9 @@
   "description": "AuthHero control-plane vertical on Substrat — tenant registry + entitlements seam (design: billing-and-console-on-substrat.md, Stage 2)",
   "substrat": {
     "slug": "authhero-console",
-    "name": "AuthHero Console"
+    "name": "AuthHero Console",
+    "tenant": "authhero-mqk5x7",
+    "permissions": "src/permissions.ts"
   },
   "scripts": {
     "server": "tsx src/server.ts",
@@ -26,11 +28,11 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.13.0",
-    "@substrat-run/adapter-cloudflare": "^0.34.0",
-    "@substrat-run/adapter-sqlite": "^0.34.0",
-    "@substrat-run/contracts": "^0.34.0",
-    "@substrat-run/control-plane-api": "^0.34.0",
-    "@substrat-run/kernel": "^0.34.0",
+    "@substrat-run/adapter-cloudflare": "^0.35.0",
+    "@substrat-run/adapter-sqlite": "^0.35.0",
+    "@substrat-run/contracts": "^0.35.0",
+    "@substrat-run/control-plane-api": "^0.35.0",
+    "@substrat-run/kernel": "^0.35.0",
     "better-sqlite3": "^11.0.0",
     "hono": "^4.6.0"
   },

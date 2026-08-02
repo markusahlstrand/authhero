@@ -33,8 +33,6 @@ import {
   d1TenantRelationalStore,
 } from "@substrat-run/adapter-cloudflare";
 import {
-  moduleManifest,
-  permissionKey,
   principalId as principalIdOf,
   tenantId as tenantIdOf,
   scopeId as scopeIdOf,
@@ -58,31 +56,15 @@ import {
 import { applyMigrations } from "./store.js";
 import { widgetHandler, adminHandler, adminIndexFor } from "./ui.js";
 
-// ── The kernel module (entitlements surface — mirrors the retired stand-in) ──
+// ── The kernel module (definition shared with src/permissions.ts) ────────────
 
-const FEATURE_ENTITLEMENT: Record<string, string> = {
-  mfa: "authhero-mfa",
-  "custom-domains": "authhero-custom-domains",
-  saml: "authhero-saml",
-};
-const PERM_FEATURE_CHECK = permissionKey.parse("authcore:feature-check");
-
-const manifest = moduleManifest.parse({
-  id: "authcore",
-  version: "0.0.0",
-  kernelContract: "^0.0.1",
-  permissions: [
-    {
-      key: PERM_FEATURE_CHECK,
-      description:
-        "Read the tenant's entitlement set at an enforcement point (the auth-core read-port).",
-    },
-  ],
-  events: { emits: [], consumes: [] },
-  migrations: { journalDir: "authcore", compatibleFrom: "0.0.0" },
-  attachmentTargets: [],
-  entitlementKey: "authhero-auth-core",
-});
+import {
+  FEATURE_ENTITLEMENT,
+  PERM_FEATURE_CHECK,
+  authcoreManifest as manifest,
+  ROLES,
+  OWNER_ROLE,
+} from "./module-def.js";
 
 const probeInput = z.object({ feature: z.string().min(1) });
 const probeFeature: OperationHandler = async (ctx, input) => {
@@ -211,14 +193,8 @@ app.post("/internal/provision", async (c) => {
     tenantId: body.tenantId,
     scopeId: body.scopeId,
     owner: body.owner,
-    roles: [
-      {
-        key: "auth-admin",
-        permissions: [PERM_FEATURE_CHECK],
-        source: "vertical",
-      },
-    ],
-    ownerRoleKey: "auth-admin",
+    roles: ROLES,
+    ownerRoleKey: OWNER_ROLE,
     ...(body.entitlements ? { entitlements: body.entitlements } : {}),
   });
 
