@@ -95,9 +95,19 @@ function appEnv(env: Env): Record<string, string | undefined> {
 
 function oidcCfg(env: Env): OidcVerifyConfig {
   const values = appEnv(env);
+  let staticJwks: { keys: unknown[] } | undefined;
+  if (values.OIDC_JWKS) {
+    try {
+      const parsed: unknown = JSON.parse(values.OIDC_JWKS);
+      if (parsed && typeof parsed === "object" && Array.isArray((parsed as { keys?: unknown }).keys)) {
+        staticJwks = parsed as { keys: unknown[] };
+      }
+    } catch { /* malformed static JWKS — fall back to fetch */ }
+  }
   return {
     issuer: values.OIDC_ISSUER ?? "",
     ...(values.OIDC_AUDIENCE ? { audience: values.OIDC_AUDIENCE } : {}),
+    ...(staticJwks ? { staticJwks } : {}),
   };
 }
 
@@ -145,7 +155,32 @@ async function principalFor(
 
 const app = new Hono<{ Bindings: Env }>();
 
-app.get("/health", (c) => c.json({ ok: true, vertical: "authhero-console" }));
+app.get("/health", async (c) => {
+  // ?check=jwks: exercise the worker-side JWKS fetch to the issuer — the one
+  // leg of token verification that involves worker-to-worker networking.
+  if (c.req.query("check") === "jwks") {
+    const cfg = oidcCfg(c.env);
+    const base = cfg.issuer.endsWith("/") ? cfg.issuer : cfg.issuer + "/";
+    try {
+      const res = await fetch(base + ".well-known/jwks.json");
+      const body = (await res.json().catch(() => ({}))) as { keys?: unknown[] };
+      return c.json({
+        ok: res.ok,
+        issuer: cfg.issuer,
+        audience: cfg.audience ?? null,
+        jwksStatus: res.status,
+        keys: body.keys?.length ?? 0,
+      });
+    } catch (err) {
+      return c.json({
+        ok: false,
+        issuer: cfg.issuer,
+        fetchError: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+  return c.json({ ok: true, vertical: "authhero-console" });
+});
 
 // ── The platform's /internal/* surface (secret-gated, never user-facing) ─────
 

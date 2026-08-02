@@ -41,6 +41,13 @@
         "required": false,
         "group": "Bootstrap",
         "default": "auth0|0aceaa2aa48fddc1729072ee"
+      },
+      {
+        "key": "OIDC_JWKS",
+        "label": "Issuer JWKS (static bridge)",
+        "description": "Static JWKS pin — bridge until cross-vertical fetch works.",
+        "required": false,
+        "group": "Auth"
       }
     ]
   },
