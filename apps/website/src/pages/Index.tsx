@@ -17,7 +17,7 @@ const Index = () => (
         <FadeIn>
           <div className="inline-flex items-center gap-2 hairline rounded-full px-3 py-1 text-xs text-muted-foreground mb-8">
             <span className="w-1.5 h-1.5 rounded-full bg-success" />
-            Open Source · MIT Licensed
+            Open Source · AGPL-3.0-only or Commercial License
           </div>
         </FadeIn>
 

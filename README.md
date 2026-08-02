@@ -230,4 +230,12 @@ authhero/
 
 ## License
 
-[MIT License](LICENSE)
+AuthHero is **dual-licensed** under [AGPL-3.0-only](LICENSE) or a commercial license —
+see [LICENSING.md](LICENSING.md) for the full model and the per-package table. The
+integration surfaces stay permissive on purpose: `@authhero/adapter-interfaces`,
+`create-authhero` (and the apps it scaffolds), and `@authhero/widget` are **MIT**, so
+using those packages on their own imposes no AGPL obligations on your code. The
+AGPL-licensed packages remain subject to AGPL-3.0-only or a commercial license.
+
+Versions published before this change remain MIT. Contributions are accepted under the
+[CLA](CLA.md) — see [CONTRIBUTING.md](CONTRIBUTING.md).

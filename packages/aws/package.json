@@ -51,5 +51,6 @@
     "@aws-sdk/client-dynamodb": "^3.1085.0",
     "@aws-sdk/lib-dynamodb": "^3.1085.0",
     "nanoid": "^5.1.11"
-  }
+  },
+  "license": "AGPL-3.0-only"
 }

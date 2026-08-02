@@ -52,5 +52,6 @@
     "@hono/zod-openapi": "^1.4.0",
     "authhero": "^3.0.0",
     "hono": "^4.7.0"
-  }
+  },
+  "license": "AGPL-3.0-only"
 }
