@@ -207,4 +207,75 @@ describe("postUserLoginHook → SUCCESS_LOGIN log carries details.execution_id",
       | undefined;
     expect(details?.execution_id).toBeUndefined();
   });
+
+  it("records the login redirect_uri on the SUCCESS_LOGIN request details", async () => {
+    const server = await getTestServer();
+
+    const user: User = {
+      user_id: "auth2|redir-user",
+      email: "redir@example.com",
+      email_verified: true,
+      provider: "auth2",
+      connection: "Username-Password-Authentication",
+      is_social: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      last_ip: "",
+      last_login: "",
+      login_count: 0,
+    };
+    await server.env.data.users.create("tenantId", user);
+
+    const redirectUri = "https://account.example.com/subscriptions/app";
+
+    const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
+    app.post("/run", async (ctx) => {
+      Object.assign(ctx.env, server.env);
+      ctx.set("tenant_id", "tenantId");
+      ctx.set("ip", "1.2.3.4");
+      ctx.set("useragent", "test");
+      ctx.set("client_id", "clientId");
+
+      // No code hook → the log keeps its auto-built request snapshot, so the
+      // redirect_uri we thread through authParams should land on it.
+      await postUserLoginHook(
+        ctx,
+        server.env.data,
+        "tenantId",
+        user,
+        undefined,
+        {
+          authParams: {
+            client_id: "clientId",
+            redirect_uri: redirectUri,
+            scope: "openid",
+            audience: "https://example.com",
+          },
+        } as any,
+      );
+      await flushBackgroundPromises(ctx);
+      return ctx.json({ ok: true });
+    });
+
+    const res = await app.request(
+      "/run",
+      { method: "POST", headers: { "tenant-id": "tenantId" } },
+      server.env,
+    );
+    expect(res.status).toBe(200);
+
+    const { logs } = await server.env.data.logs.list("tenantId", {
+      page: 0,
+      per_page: 100,
+      include_totals: true,
+    });
+    const successLogs = logs.filter(
+      (log) => log.type === LogTypes.SUCCESS_LOGIN,
+    );
+    expect(successLogs).toHaveLength(1);
+    const details = successLogs[0]?.details as
+      | { request?: { redirect_uri?: string } }
+      | undefined;
+    expect(details?.request?.redirect_uri).toBe(redirectUri);
+  });
 });
