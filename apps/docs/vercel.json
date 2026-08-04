@@ -1,6 +1,0 @@
-{
-  "buildCommand": "pnpm build",
-  "outputDirectory": ".vitepress/dist",
-  "installCommand": "npm install",
-  "cleanUrls": true
-}
