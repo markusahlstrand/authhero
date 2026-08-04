@@ -7,5 +7,18 @@
     "declarationMap": false,
     "sourceMap": false,
     "outDir": "./dist/types"
-  }
+  },
+  // Storybook `*.stories.tsx` fixtures are dev-only and never shipped in the
+  // bundle, but `include: ["src"]` (inherited from tsconfig.json) pulls them
+  // into this declaration build. Their `Meta<typeof Component>` inference trips
+  // a Storybook 10 + React 19 typing quirk that surfaces in CI's clean install
+  // and fails the package build. Exclude them here so a dev-only typing artifact
+  // can't gate the release build. NOTE: an explicit `exclude` replaces the
+  // TypeScript default, so node_modules/outDir are listed to keep them out.
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/**/*.stories.tsx",
+    "src/**/*.stories.ts"
+  ]
 }
