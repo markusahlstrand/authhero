@@ -8,6 +8,7 @@ import {
   AuthorizationResponseType,
 } from "@authhero/adapter-interfaces";
 import { createSessions } from "../../helpers/create-session";
+import { createTestRefreshToken } from "../../helpers/refresh-token";
 
 interface TokenResponse {
   access_token: string;
@@ -1491,7 +1492,7 @@ describe("token", () => {
         Date.now() + 1000 * 60 * 60,
       ).toISOString();
 
-      await env.data.refreshTokens.create("tenantId", {
+      const { wireToken } = await createTestRefreshToken(env, "tenantId", {
         id: "refreshToken",
         login_id: "loginSessionId",
         user_id: "email|userId",
@@ -1520,7 +1521,7 @@ describe("token", () => {
         {
           form: {
             grant_type: "refresh_token",
-            refresh_token: "refreshToken",
+            refresh_token: wireToken,
             client_id: "clientId",
           },
         },
@@ -1571,7 +1572,7 @@ describe("token", () => {
         Date.now() + 1000 * 60 * 60,
       ).toISOString();
 
-      await env.data.refreshTokens.create("tenantId", {
+      const { wireToken } = await createTestRefreshToken(env, "tenantId", {
         id: "orphanedRefreshToken",
         // login_session "doesNotExist" is never created.
         login_id: "doesNotExist",
@@ -1598,7 +1599,7 @@ describe("token", () => {
         {
           form: {
             grant_type: "refresh_token",
-            refresh_token: "orphanedRefreshToken",
+            refresh_token: wireToken,
             client_id: "clientId",
           },
         },
@@ -1639,7 +1640,7 @@ describe("token", () => {
         Date.now() + 1000 * 60 * 60,
       ).toISOString();
 
-      await env.data.refreshTokens.create("tenantId", {
+      const { wireToken } = await createTestRefreshToken(env, "tenantId", {
         id: "refreshTokenLoginSession",
         login_id: loginSession.id,
         user_id: "email|userId",
@@ -1668,7 +1669,7 @@ describe("token", () => {
         {
           form: {
             grant_type: "refresh_token",
-            refresh_token: "refreshTokenLoginSession",
+            refresh_token: wireToken,
             client_id: "clientId",
           },
         },
@@ -1705,7 +1706,7 @@ describe("token", () => {
       });
 
       const originalScopes = "openid profile email read:users";
-      await env.data.refreshTokens.create("tenantId", {
+      const { wireToken } = await createTestRefreshToken(env, "tenantId", {
         id: "refreshTokenWithScopes",
         login_id: "loginSessionId",
         user_id: "email|userId",
@@ -1734,7 +1735,7 @@ describe("token", () => {
         {
           form: {
             grant_type: "refresh_token",
-            refresh_token: "refreshTokenWithScopes",
+            refresh_token: wireToken,
             client_id: "clientId",
           },
         },
@@ -1757,7 +1758,7 @@ describe("token", () => {
       const { oauthApp, env } = await getTestServer();
       const client = testClient(oauthApp, env);
 
-      await env.data.refreshTokens.create("tenantId", {
+      const { wireToken } = await createTestRefreshToken(env, "tenantId", {
         id: "refreshToken",
         login_id: "loginSessionId",
         user_id: "email|userId",
@@ -1785,7 +1786,7 @@ describe("token", () => {
         {
           form: {
             grant_type: "refresh_token",
-            refresh_token: "refreshToken",
+            refresh_token: wireToken,
             client_id: "clientId",
           },
         },
@@ -1814,7 +1815,7 @@ describe("token", () => {
         auth0_conformant: false,
       });
 
-      await env.data.refreshTokens.create("tenantId", {
+      const { wireToken } = await createTestRefreshToken(env, "tenantId", {
         id: "refreshTokenRfcExpired",
         login_id: "loginSessionId",
         user_id: "email|userId",
@@ -1842,7 +1843,7 @@ describe("token", () => {
         {
           form: {
             grant_type: "refresh_token",
-            refresh_token: "refreshTokenRfcExpired",
+            refresh_token: wireToken,
             client_id: "rfcClient",
           },
         },
@@ -1861,7 +1862,7 @@ describe("token", () => {
       const { oauthApp, env } = await getTestServer();
       const client = testClient(oauthApp, env);
 
-      await env.data.refreshTokens.create("tenantId", {
+      const { wireToken } = await createTestRefreshToken(env, "tenantId", {
         id: "refreshToken",
         login_id: "loginSessionId",
         user_id: "email|userId",
@@ -1889,7 +1890,7 @@ describe("token", () => {
         {
           form: {
             grant_type: "refresh_token",
-            refresh_token: "refreshToken",
+            refresh_token: wireToken,
             client_id: "clientId",
           },
         },
@@ -1912,7 +1913,7 @@ describe("token", () => {
         Date.now() + 1000 * 60 * 60,
       ).toISOString();
 
-      await env.data.refreshTokens.create("tenantId", {
+      const { wireToken } = await createTestRefreshToken(env, "tenantId", {
         id: "refreshToken",
         login_id: "loginSessionId",
         user_id: "email|userId",
@@ -1941,7 +1942,7 @@ describe("token", () => {
         {
           form: {
             grant_type: "refresh_token",
-            refresh_token: "refreshToken",
+            refresh_token: wireToken,
             client_id: "clientId",
             client_secret: "clientSecret",
           },
@@ -1966,7 +1967,7 @@ describe("token", () => {
         Date.now() + 1000 * 60 * 60,
       ).toISOString();
 
-      await env.data.refreshTokens.create("tenantId", {
+      const { wireToken } = await createTestRefreshToken(env, "tenantId", {
         id: "refreshToken",
         login_id: "loginSessionId",
         user_id: "email|userId",
@@ -1995,7 +1996,7 @@ describe("token", () => {
         {
           form: {
             grant_type: "refresh_token",
-            refresh_token: "refreshToken",
+            refresh_token: wireToken,
           },
         },
         {
@@ -2231,7 +2232,7 @@ describe("token", () => {
         Date.now() + 1000 * 60 * 60,
       ).toISOString();
 
-      await env.data.refreshTokens.create("tenantId", {
+      const { wireToken } = await createTestRefreshToken(env, "tenantId", {
         id: "refreshTokenOrgPreserve",
         login_id: loginSession.id,
         user_id: user.user_id,
@@ -2261,7 +2262,7 @@ describe("token", () => {
         {
           form: {
             grant_type: "refresh_token",
-            refresh_token: "refreshTokenOrgPreserve",
+            refresh_token: wireToken,
             client_id: "clientId",
           },
         },
@@ -2328,7 +2329,7 @@ describe("token", () => {
         Date.now() + 1000 * 60 * 60,
       ).toISOString();
 
-      await env.data.refreshTokens.create("tenantId", {
+      const { wireToken } = await createTestRefreshToken(env, "tenantId", {
         id: "refreshTokenOrgSwitch",
         login_id: loginSession.id,
         user_id: user.user_id,
@@ -2358,7 +2359,7 @@ describe("token", () => {
         {
           form: {
             grant_type: "refresh_token",
-            refresh_token: "refreshTokenOrgSwitch",
+            refresh_token: wireToken,
             client_id: "clientId",
             organization: org2.id,
           },
@@ -2387,7 +2388,7 @@ describe("token", () => {
         Date.now() + 1000 * 60 * 60,
       ).toISOString();
 
-      await env.data.refreshTokens.create("tenantId", {
+      const { wireToken } = await createTestRefreshToken(env, "tenantId", {
         id: "refreshTokenOrgNotFound",
         login_id: "loginSessionId",
         user_id: "email|userId",
@@ -2416,7 +2417,7 @@ describe("token", () => {
         {
           form: {
             grant_type: "refresh_token",
-            refresh_token: "refreshTokenOrgNotFound",
+            refresh_token: wireToken,
             client_id: "clientId",
             organization: "nonexistent-org-id",
           },
@@ -2476,7 +2477,7 @@ describe("token", () => {
         Date.now() + 1000 * 60 * 60,
       ).toISOString();
 
-      await env.data.refreshTokens.create("tenantId", {
+      const { wireToken } = await createTestRefreshToken(env, "tenantId", {
         id: "refreshTokenNoMember",
         login_id: loginSession.id,
         user_id: user.user_id,
@@ -2505,7 +2506,7 @@ describe("token", () => {
         {
           form: {
             grant_type: "refresh_token",
-            refresh_token: "refreshTokenNoMember",
+            refresh_token: wireToken,
             client_id: "clientId",
             organization: organization.id,
           },
@@ -2607,7 +2608,7 @@ describe("token", () => {
         Date.now() + 1000 * 60 * 60,
       ).toISOString();
 
-      await env.data.refreshTokens.create("tenantId", {
+      const { wireToken } = await createTestRefreshToken(env, "tenantId", {
         id: "refreshTokenGlobalAdmin",
         login_id: loginSession.id,
         user_id: user.user_id,
@@ -2637,7 +2638,7 @@ describe("token", () => {
         {
           form: {
             grant_type: "refresh_token",
-            refresh_token: "refreshTokenGlobalAdmin",
+            refresh_token: wireToken,
             client_id: "clientId",
             organization: organization.id,
           },
@@ -2734,7 +2735,7 @@ describe("token", () => {
         Date.now() + 1000 * 60 * 60,
       ).toISOString();
 
-      await env.data.refreshTokens.create("tenantId", {
+      const { wireToken } = await createTestRefreshToken(env, "tenantId", {
         id: "refreshTokenAppScopedAdmin",
         login_id: loginSession.id,
         user_id: user.user_id,
@@ -2763,7 +2764,7 @@ describe("token", () => {
         {
           form: {
             grant_type: "refresh_token",
-            refresh_token: "refreshTokenAppScopedAdmin",
+            refresh_token: wireToken,
             client_id: "clientId",
             organization: organization.id,
           },
@@ -2804,7 +2805,7 @@ describe("token", () => {
         Date.now() + 1000 * 60 * 60,
       ).toISOString();
 
-      await env.data.refreshTokens.create("tenantId", {
+      const { wireToken } = await createTestRefreshToken(env, "tenantId", {
         id: "refreshTokenNoOrg",
         login_id: loginSession.id,
         user_id: "email|userId",
@@ -2833,7 +2834,7 @@ describe("token", () => {
         {
           form: {
             grant_type: "refresh_token",
-            refresh_token: "refreshTokenNoOrg",
+            refresh_token: wireToken,
             client_id: "clientId",
           },
         },
@@ -3761,7 +3762,7 @@ describe("token", () => {
           Date.now() + 1000 * 60 * 60,
         ).toISOString();
 
-        await env.data.refreshTokens.create("tenantId", {
+        const { wireToken } = await createTestRefreshToken(env, "tenantId", {
           id: "testRefreshToken",
           login_id: "loginSessionId",
           user_id: "email|userId",
@@ -3792,7 +3793,7 @@ describe("token", () => {
             json: {
               grant_type: "refresh_token",
               client_id: "clientId",
-              refresh_token: "testRefreshToken",
+              refresh_token: wireToken,
             },
           },
           {

@@ -7,6 +7,7 @@ import {
   AuthorizationResponseType,
 } from "@authhero/adapter-interfaces";
 import { getTestServer } from "../../helpers/test-server";
+import { createTestRefreshToken } from "../../helpers/refresh-token";
 import { USERNAME_PASSWORD_PROVIDER } from "../../../src/constants";
 
 interface TokenResponse {
@@ -62,7 +63,7 @@ describe("linked user token resolution", () => {
     });
 
     const idle_expires_at = new Date(Date.now() + 1000 * 60 * 60).toISOString();
-    await env.data.refreshTokens.create("tenantId", {
+    const { wireToken } = await createTestRefreshToken(env, "tenantId", {
       id: "linkedRefreshToken",
       login_id: "loginSessionId",
       user_id: secondaryUserId,
@@ -91,7 +92,7 @@ describe("linked user token resolution", () => {
       {
         form: {
           grant_type: "refresh_token",
-          refresh_token: "linkedRefreshToken",
+          refresh_token: wireToken,
           client_id: "clientId",
         },
       },

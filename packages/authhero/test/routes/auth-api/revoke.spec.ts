@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
 import { getTestServer } from "../../helpers/test-server";
+import { createTestRefreshToken } from "../../helpers/refresh-token";
 
 interface ErrorResponse {
   error: string;
@@ -37,7 +38,7 @@ describe("/oauth/revoke", () => {
     const client = testClient(oauthApp, env);
 
     const expires = futureIso();
-    await env.data.refreshTokens.create("tenantId", {
+    const { wireToken } = await createTestRefreshToken(env, "tenantId", {
       ...baseRefreshTokenFields,
       id: "rtToRevoke",
       client_id: "clientId",
@@ -49,7 +50,7 @@ describe("/oauth/revoke", () => {
       // @ts-expect-error - testClient type requires both form and json
       {
         form: {
-          token: "rtToRevoke",
+          token: wireToken,
           client_id: "clientId",
           client_secret: "clientSecret",
         },
@@ -195,7 +196,7 @@ describe("/oauth/revoke", () => {
     });
 
     const expires = futureIso();
-    await env.data.refreshTokens.create("tenantId", {
+    const { wireToken } = await createTestRefreshToken(env, "tenantId", {
       ...baseRefreshTokenFields,
       id: "rtForPublic",
       client_id: "publicClient",
@@ -207,7 +208,7 @@ describe("/oauth/revoke", () => {
       // @ts-expect-error - testClient type requires both form and json
       {
         form: {
-          token: "rtForPublic",
+          token: wireToken,
           client_id: "publicClient",
         },
       },
@@ -291,7 +292,7 @@ describe("/oauth/revoke", () => {
     const client = testClient(oauthApp, env);
 
     const expires = futureIso();
-    await env.data.refreshTokens.create("tenantId", {
+    const { wireToken } = await createTestRefreshToken(env, "tenantId", {
       ...baseRefreshTokenFields,
       id: "rtViaBasic",
       client_id: "clientId",
@@ -302,7 +303,7 @@ describe("/oauth/revoke", () => {
     const response = await client.oauth.revoke.$post(
       // @ts-expect-error - testClient type requires both form and json
       {
-        form: { token: "rtViaBasic" },
+        form: { token: wireToken },
       },
       {
         headers: {
