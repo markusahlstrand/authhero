@@ -1244,6 +1244,91 @@ describe("scopes-permissions helper", () => {
         });
       });
 
+      it("should bypass membership when admin:organizations is assigned directly (not via a role)", async () => {
+        // Regression for #1198: the org-membership gate must honor a
+        // directly-assigned global admin:organizations user permission, in
+        // parity with the refresh-token grant's gate (which already did).
+        const { env } = await getTestServer();
+        const ctx = {
+          env,
+          var: {},
+        } as Context<{
+          Bindings: Bindings;
+          Variables: Variables;
+        }>;
+
+        const resourceServer = await env.data.resourceServers.create(
+          "tenantId",
+          {
+            name: "Test API for Direct Perm",
+            identifier: "https://direct-perm-api.example.com",
+            scopes: [{ value: "read:users", description: "Read users" }],
+            options: {
+              enforce_policies: true,
+              token_dialect: "access_token_authz",
+            },
+          },
+        );
+
+        // Organization the user is NOT a member of
+        const organization = await env.data.organizations.create("tenantId", {
+          name: "Direct Perm Target Org",
+          display_name: "Direct Perm Target",
+        });
+
+        // admin:organizations assigned DIRECTLY at the global level (no role),
+        // on the Management API audience.
+        await env.data.userPermissions.create(
+          "tenantId",
+          "directAdminUserId",
+          {
+            user_id: "directAdminUserId",
+            resource_server_identifier: "urn:authhero:management",
+            permission_name: "admin:organizations",
+          },
+          "", // Global (tenant-level) permission
+        );
+
+        // A held app permission so there is something to return in the token.
+        await env.data.userPermissions.create(
+          "tenantId",
+          "directAdminUserId",
+          {
+            user_id: "directAdminUserId",
+            resource_server_identifier: "https://direct-perm-api.example.com",
+            permission_name: "read:users",
+          },
+          organization.id,
+        );
+
+        await env.data.tenants.update("tenantId", {
+          flags: {
+            inherit_global_permissions_in_organizations: true,
+          },
+        });
+
+        // Membership is bypassed via the direct global permission.
+        const result = await calculateScopesAndPermissions(ctx, {
+          tenantId: "tenantId",
+          clientId: "test-client-id",
+          userId: "directAdminUserId",
+          audience: "https://direct-perm-api.example.com",
+          requestedScopes: ["read:users"],
+          organizationId: organization.id,
+        });
+
+        expect(result.permissions).toContain("read:users");
+
+        // Clean up
+        await env.data.resourceServers.remove("tenantId", resourceServer.id!);
+        await env.data.organizations.remove("tenantId", organization.id);
+        await env.data.tenants.update("tenantId", {
+          flags: {
+            inherit_global_permissions_in_organizations: false,
+          },
+        });
+      });
+
       it("should only grant permissions the user actually has at the global level", async () => {
         const { env } = await getTestServer();
         const ctx = {
@@ -1434,6 +1519,106 @@ describe("scopes-permissions helper", () => {
             inherit_global_permissions_in_organizations: false,
           },
         });
+      });
+    });
+
+    describe("role scope isolation (#1198)", () => {
+      it("does not leak an org-scoped role's permissions into a no-org token", async () => {
+        // A user who holds a management permission only via an ORG-scoped role
+        // must not have it applied at the tenant level. Before #1198 the
+        // Drizzle adapter's list(..., "") returned roles across every scope, so
+        // an org-scoped admin's permissions leaked into their global (no-org)
+        // token — letting them e.g. list every organization/vendor without any
+        // global grant. Kysely always scoped correctly; this locks the contract
+        // at the token-building layer.
+        const { env } = await getTestServer();
+        const ctx = {
+          env,
+          var: {},
+        } as Context<{
+          Bindings: Bindings;
+          Variables: Variables;
+        }>;
+
+        const resourceServer = await env.data.resourceServers.create(
+          "tenantId",
+          {
+            name: "Scope Isolation API",
+            identifier: "https://scope-isolation-api.example.com",
+            scopes: [{ value: "read:organizations", description: "Read orgs" }],
+            options: {
+              enforce_policies: true,
+              token_dialect: "access_token_authz",
+            },
+          },
+        );
+
+        const organization = await env.data.organizations.create("tenantId", {
+          name: "Scope Isolation Org",
+          display_name: "Scope Isolation Org",
+        });
+
+        await env.data.users.create("tenantId", {
+          user_id: "email|org-scoped-user",
+          email: "org-scoped@example.com",
+          provider: "email",
+          connection: "email",
+          email_verified: true,
+          is_social: false,
+          name: "Org Scoped User",
+        });
+
+        // read:organizations granted ONLY via an org-scoped role.
+        const orgRole = await env.data.roles.create("tenantId", {
+          name: "Org-scoped Reader",
+          description: "Reads orgs within one org scope",
+        });
+        await env.data.rolePermissions.assign("tenantId", orgRole.id, [
+          {
+            role_id: orgRole.id,
+            resource_server_identifier:
+              "https://scope-isolation-api.example.com",
+            permission_name: "read:organizations",
+          },
+        ]);
+        await env.data.userRoles.create(
+          "tenantId",
+          "email|org-scoped-user",
+          orgRole.id,
+          organization.id, // org-scoped, NOT global
+        );
+        // Member of that org (so the in-org sanity check passes the membership
+        // gate); still holds no global grant.
+        await env.data.userOrganizations.create("tenantId", {
+          user_id: "email|org-scoped-user",
+          organization_id: organization.id,
+        });
+
+        // No-org token: the org-scoped permission must NOT appear.
+        const noOrg = await calculateScopesAndPermissions(ctx, {
+          tenantId: "tenantId",
+          clientId: "test-client-id",
+          userId: "email|org-scoped-user",
+          audience: "https://scope-isolation-api.example.com",
+          requestedScopes: ["read:organizations"],
+        });
+        expect(noOrg.permissions).not.toContain("read:organizations");
+
+        // Sanity: within its own org scope the permission IS granted.
+        const inOrg = await calculateScopesAndPermissions(ctx, {
+          tenantId: "tenantId",
+          clientId: "test-client-id",
+          userId: "email|org-scoped-user",
+          audience: "https://scope-isolation-api.example.com",
+          requestedScopes: ["read:organizations"],
+          organizationId: organization.id,
+        });
+        expect(inOrg.permissions).toContain("read:organizations");
+
+        // Clean up
+        await env.data.resourceServers.remove("tenantId", resourceServer.id!);
+        await env.data.organizations.remove("tenantId", organization.id);
+        await env.data.roles.remove("tenantId", orgRole.id);
       });
     });
 

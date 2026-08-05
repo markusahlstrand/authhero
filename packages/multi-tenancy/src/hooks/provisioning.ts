@@ -276,8 +276,14 @@ async function userHasGlobalOrgAdminPermission(
       { per_page: 1000 },
     );
 
+    // admin:organizations is a management-plane permission, so it only counts
+    // when granted on the Management API audience — otherwise an identically
+    // named permission on an unrelated resource server would masquerade as the
+    // global escape hatch (#1198).
     const hasAdminOrg = rolePermissions.some(
-      (permission) => permission.permission_name === "admin:organizations",
+      (permission) =>
+        permission.permission_name === "admin:organizations" &&
+        permission.resource_server_identifier === MANAGEMENT_API_AUDIENCE,
     );
 
     if (hasAdminOrg) {
