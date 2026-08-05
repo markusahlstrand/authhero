@@ -10,7 +10,6 @@ import { z } from "@hono/zod-openapi";
 import { safeCompare } from "../utils/safe-compare";
 import { appendLog } from "../utils/append-log";
 import { getEnrichedClient } from "../helpers/client";
-import { MANAGEMENT_API_AUDIENCE } from "../middlewares/authentication";
 import { ssrfFetchOptionsFromEnv } from "../utils/ssrf-fetch";
 import { logMessage } from "../helpers/logging";
 import {
@@ -22,6 +21,7 @@ import {
 } from "../utils/refresh-token-format";
 import { ulid } from "../utils/ulid";
 import { tryUpstreamRemint } from "./refresh-token-migration";
+import { userHasGlobalOrgAdminPermission } from "../helpers/scopes-permissions";
 
 export const refreshTokenParamsSchema = z.object({
   grant_type: z.literal("refresh_token"),
@@ -253,52 +253,16 @@ export async function refreshTokenGrant(
     // bypasses the membership check. This is a management-plane permission, so
     // it is always matched against the Management API audience — never against
     // the requested token's audience (which may be an app resource server).
+    // Shared with the scopes-permissions gate so both stay in parity (#1198).
     let hasGlobalOrgAdminPermission = false;
     const currentTenant = await ctx.env.data.tenants.get(client.tenant.id);
 
     if (currentTenant?.flags?.inherit_global_permissions_in_organizations) {
-      // Check direct user permissions at tenant level
-      const globalUserPermissions = await ctx.env.data.userPermissions.list(
+      hasGlobalOrgAdminPermission = await userHasGlobalOrgAdminPermission(
+        ctx,
         client.tenant.id,
         user.user_id,
-        undefined,
-        "", // Empty string for tenant-level (global) permissions
       );
-
-      hasGlobalOrgAdminPermission = globalUserPermissions.some(
-        (permission) =>
-          permission.permission_name === "admin:organizations" &&
-          permission.resource_server_identifier === MANAGEMENT_API_AUDIENCE,
-      );
-
-      // Check role-derived permissions at tenant level
-      if (!hasGlobalOrgAdminPermission) {
-        const globalRoles = await ctx.env.data.userRoles.list(
-          client.tenant.id,
-          user.user_id,
-          undefined,
-          "", // Empty string for tenant-level (global) roles
-        );
-
-        for (const role of globalRoles) {
-          const rolePermissions = await ctx.env.data.rolePermissions.list(
-            client.tenant.id,
-            role.id,
-            { per_page: 1000 },
-          );
-
-          const hasAdminOrg = rolePermissions.some(
-            (permission) =>
-              permission.permission_name === "admin:organizations" &&
-              permission.resource_server_identifier === MANAGEMENT_API_AUDIENCE,
-          );
-
-          if (hasAdminOrg) {
-            hasGlobalOrgAdminPermission = true;
-            break;
-          }
-        }
-      }
     }
 
     // Verify the user is a member of the organization (unless they have global admin permission)

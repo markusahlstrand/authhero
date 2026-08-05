@@ -24,12 +24,25 @@ export interface ListRoleUsersResponse {
 }
 
 export interface UserRolesAdapter {
+  /**
+   * List the roles assigned to a user, returned as a flat array.
+   *
+   * `organizationId` selects the scope and adapters MUST honor it exactly:
+   *   - `undefined` — roles across every organization scope (no filter)
+   *   - `""`        — global / tenant-level roles only
+   *   - `"<id>"`    — that organization's roles only
+   *
+   * The empty-string case is load-bearing: callers pass `""` to read a user's
+   * global roles (e.g. the org-membership `admin:organizations` bypass), so an
+   * adapter that treats `""` as "all scopes" leaks org-scoped roles into global
+   * lookups (see #1198).
+   */
   list(
     tenantId: string,
     userId: string,
     params?: ListParams,
     organizationId?: string,
-  ): Promise<Role[]>; // return a flat list of roles
+  ): Promise<Role[]>;
   /**
    * List the distinct users assigned to a role, across all organization
    * scopes (a user holding the role in several organizations appears once).

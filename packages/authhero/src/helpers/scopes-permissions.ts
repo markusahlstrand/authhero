@@ -121,6 +121,71 @@ async function getTenantPermissionsForOrganization(
 }
 
 /**
+ * True when the user holds the global `admin:organizations` escape hatch — the
+ * single canonical key for "may act on any organization without being a
+ * member". It is a management-plane permission, so it is always matched against
+ * the Management API audience, never the requested token's audience.
+ *
+ * "Global" means an assignment with an empty organization scope (`""`). Both
+ * directly-assigned user permissions AND role-derived permissions count, so a
+ * user granted the permission either way is treated consistently (see #1198).
+ *
+ * The caller is responsible for gating on the
+ * `inherit_global_permissions_in_organizations` tenant flag; this helper only
+ * answers whether the permission is present.
+ */
+export async function userHasGlobalOrgAdminPermission(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  tenantId: string,
+  userId: string,
+): Promise<boolean> {
+  // Directly-assigned global user permissions.
+  const globalUserPermissions = await ctx.env.data.userPermissions.list(
+    tenantId,
+    userId,
+    undefined,
+    "", // Empty string for tenant-level (global) permissions
+  );
+
+  const hasDirect = globalUserPermissions.some(
+    (permission) =>
+      permission.permission_name === "admin:organizations" &&
+      permission.resource_server_identifier === MANAGEMENT_API_AUDIENCE,
+  );
+  if (hasDirect) {
+    return true;
+  }
+
+  // Role-derived global permissions.
+  const globalRoles = await ctx.env.data.userRoles.list(
+    tenantId,
+    userId,
+    undefined,
+    "", // Empty string for tenant-level (global) roles
+  );
+
+  for (const role of globalRoles) {
+    const rolePermissions = await ctx.env.data.rolePermissions.list(
+      tenantId,
+      role.id,
+      { per_page: 1000 },
+    );
+
+    const hasAdminOrg = rolePermissions.some(
+      (permission) =>
+        permission.permission_name === "admin:organizations" &&
+        permission.resource_server_identifier === MANAGEMENT_API_AUDIENCE,
+    );
+
+    if (hasAdminOrg) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
  * Calculates scopes and permissions for client_credentials grant type based on client grants.
  *
  * Auth0 behavior for client_credentials:
@@ -318,35 +383,13 @@ export async function calculateScopesAndPermissions(
 
   if (organizationId) {
     if (currentTenant?.flags?.inherit_global_permissions_in_organizations) {
-      // Check if user has admin:organizations permission at the global level
-      const globalRoles = await ctx.env.data.userRoles.list(
+      // Checks both directly-assigned and role-derived global permissions, so
+      // this gate stays in parity with the refresh-token grant's gate (#1198).
+      hasGlobalOrgAdminPermission = await userHasGlobalOrgAdminPermission(
+        ctx,
         tenantId,
         userId,
-        undefined,
-        "", // Empty string for tenant-level (global) roles
       );
-
-      // Get permissions from each global role
-      for (const role of globalRoles) {
-        const rolePermissions = await ctx.env.data.rolePermissions.list(
-          tenantId,
-          role.id,
-          { per_page: 1000 },
-        );
-
-        // admin:organizations is a management-plane permission: match it against
-        // the Management API audience, never the requested token's audience.
-        const hasAdminOrg = rolePermissions.some(
-          (permission) =>
-            permission.permission_name === "admin:organizations" &&
-            permission.resource_server_identifier === MANAGEMENT_API_AUDIENCE,
-        );
-
-        if (hasAdminOrg) {
-          hasGlobalOrgAdminPermission = true;
-          break;
-        }
-      }
     }
 
     // Only check membership if user doesn't have global admin:organizations permission

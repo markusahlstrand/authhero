@@ -1244,6 +1244,91 @@ describe("scopes-permissions helper", () => {
         });
       });
 
+      it("should bypass membership when admin:organizations is assigned directly (not via a role)", async () => {
+        // Regression for #1198: the org-membership gate must honor a
+        // directly-assigned global admin:organizations user permission, in
+        // parity with the refresh-token grant's gate (which already did).
+        const { env } = await getTestServer();
+        const ctx = {
+          env,
+          var: {},
+        } as Context<{
+          Bindings: Bindings;
+          Variables: Variables;
+        }>;
+
+        const resourceServer = await env.data.resourceServers.create(
+          "tenantId",
+          {
+            name: "Test API for Direct Perm",
+            identifier: "https://direct-perm-api.example.com",
+            scopes: [{ value: "read:users", description: "Read users" }],
+            options: {
+              enforce_policies: true,
+              token_dialect: "access_token_authz",
+            },
+          },
+        );
+
+        // Organization the user is NOT a member of
+        const organization = await env.data.organizations.create("tenantId", {
+          name: "Direct Perm Target Org",
+          display_name: "Direct Perm Target",
+        });
+
+        // admin:organizations assigned DIRECTLY at the global level (no role),
+        // on the Management API audience.
+        await env.data.userPermissions.create(
+          "tenantId",
+          "directAdminUserId",
+          {
+            user_id: "directAdminUserId",
+            resource_server_identifier: "urn:authhero:management",
+            permission_name: "admin:organizations",
+          },
+          "", // Global (tenant-level) permission
+        );
+
+        // A held app permission so there is something to return in the token.
+        await env.data.userPermissions.create(
+          "tenantId",
+          "directAdminUserId",
+          {
+            user_id: "directAdminUserId",
+            resource_server_identifier: "https://direct-perm-api.example.com",
+            permission_name: "read:users",
+          },
+          organization.id,
+        );
+
+        await env.data.tenants.update("tenantId", {
+          flags: {
+            inherit_global_permissions_in_organizations: true,
+          },
+        });
+
+        // Membership is bypassed via the direct global permission.
+        const result = await calculateScopesAndPermissions(ctx, {
+          tenantId: "tenantId",
+          clientId: "test-client-id",
+          userId: "directAdminUserId",
+          audience: "https://direct-perm-api.example.com",
+          requestedScopes: ["read:users"],
+          organizationId: organization.id,
+        });
+
+        expect(result.permissions).toContain("read:users");
+
+        // Clean up
+        await env.data.resourceServers.remove("tenantId", resourceServer.id!);
+        await env.data.organizations.remove("tenantId", organization.id);
+        await env.data.tenants.update("tenantId", {
+          flags: {
+            inherit_global_permissions_in_organizations: false,
+          },
+        });
+      });
+
       it("should only grant permissions the user actually has at the global level", async () => {
         const { env } = await getTestServer();
         const ctx = {

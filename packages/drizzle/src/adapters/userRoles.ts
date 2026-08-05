@@ -55,7 +55,14 @@ export function createUserRolesAdapter(db: DrizzleDb) {
         eq(userRoles.user_id, user_id),
       ];
 
-      if (organization_id) {
+      // organization_id semantics (must match the Kysely adapter):
+      //   undefined -> roles across every organization scope (no filter)
+      //   ""        -> global / tenant-level roles only
+      //   "<id>"    -> that organization's roles only
+      // Guarding on truthiness instead of `!== undefined` would make ""
+      // (global) fall through to "all scopes", leaking org-scoped roles into
+      // global lookups (see #1198).
+      if (organization_id !== undefined) {
         conditions.push(eq(userRoles.organization_id, organization_id));
       }
 

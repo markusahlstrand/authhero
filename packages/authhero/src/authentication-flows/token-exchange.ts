@@ -5,7 +5,7 @@ import { JSONHTTPException } from "../errors/json-http-exception";
 import { Bindings, Variables, GrantFlowUserResult } from "../types";
 import { safeCompare } from "../utils/safe-compare";
 import { getEnrichedClient } from "../helpers/client";
-import { MANAGEMENT_API_AUDIENCE } from "../middlewares/authentication";
+import { userHasGlobalOrgAdminPermission } from "../helpers/scopes-permissions";
 import { logMessage } from "../helpers/logging";
 import {
   JwtExpiredError,
@@ -253,45 +253,16 @@ export async function tokenExchangeGrant(
   // API (gated by tenant flag); otherwise require membership. This is a
   // management-plane permission, so it is matched against the Management API
   // audience, never the requested token's audience.
+  // Shared with the refresh-token and scopes-permissions gates so all three
+  // agree on what "global org admin" means (#1198).
   let hasGlobalOrgAdminPermission = false;
   const tenant = await ctx.env.data.tenants.get(client.tenant.id);
   if (tenant?.flags?.inherit_global_permissions_in_organizations) {
-    const globalUserPermissions = await ctx.env.data.userPermissions.list(
+    hasGlobalOrgAdminPermission = await userHasGlobalOrgAdminPermission(
+      ctx,
       client.tenant.id,
       user.user_id,
-      undefined,
-      "", // tenant-level (global) permissions
     );
-    hasGlobalOrgAdminPermission = globalUserPermissions.some(
-      (p) =>
-        p.permission_name === "admin:organizations" &&
-        p.resource_server_identifier === MANAGEMENT_API_AUDIENCE,
-    );
-
-    if (!hasGlobalOrgAdminPermission) {
-      const globalRoles = await ctx.env.data.userRoles.list(
-        client.tenant.id,
-        user.user_id,
-        undefined,
-        "",
-      );
-      for (const role of globalRoles) {
-        const rolePermissions = await ctx.env.data.rolePermissions.list(
-          client.tenant.id,
-          role.id,
-          { per_page: 1000 },
-        );
-        const hasAdminOrg = rolePermissions.some(
-          (p) =>
-            p.permission_name === "admin:organizations" &&
-            p.resource_server_identifier === MANAGEMENT_API_AUDIENCE,
-        );
-        if (hasAdminOrg) {
-          hasGlobalOrgAdminPermission = true;
-          break;
-        }
-      }
-    }
   }
 
   if (!hasGlobalOrgAdminPermission) {
