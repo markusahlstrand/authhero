@@ -1,5 +1,38 @@
 # @authhero/drizzle
 
+## 1.0.0
+
+### Major Changes
+
+- 47851c3: **License change: AuthHero is now dual-licensed (AGPL-3.0-only or commercial).**
+
+  The core server and its runtime packages (`authhero`, the database adapters, `saml`,
+  `multi-tenancy`, `proxy`, `@authhero/admin`) are now licensed **AGPL-3.0-only**, with
+  commercial licenses available. The integration surfaces stay permissive:
+  `@authhero/adapter-interfaces`, `create-authhero` (and the apps it scaffolds), and
+  `@authhero/widget` are **MIT** — using these packages on their own imposes no AGPL
+  obligations on your code. Use of the AGPL-licensed packages remains subject to
+  AGPL-3.0-only (or a commercial license).
+
+  Versions published before this release remain available under their original MIT
+  terms. See LICENSING.md in the repository for the full model, and CLA.md for the
+  contributor agreement that keeps dual licensing possible.
+
+### Patch Changes
+
+- ee69820: Make the global `admin:organizations` org-membership bypass consistent across grants and adapters, and close a related privilege-escalation on the Drizzle adapter (#1198).
+  - **Parity across all three org gates.** The refresh-token grant, token-exchange grant, and `calculateScopesAndPermissions` now share one `userHasGlobalOrgAdminPermission` helper. Previously the scopes-permissions gate only checked _role-derived_ global permissions, so a user granted `admin:organizations` **directly** (not via a role) passed the refresh-token gate but was still rejected with 403 once an `audience` was present. All three now honor both directly-assigned and role-derived global permissions, matched against the Management API audience.
+  - **Drizzle `userRoles.list` scope fix (privilege escalation).** `list(..., "")` (global / tenant-level roles) guarded on truthiness, so the empty-string scope fell through to "all scopes" and returned the user's roles across _every_ organization. Consumers that read global roles this way — the `admin:organizations` bypass and the `globalRoles` bucket in `calculateScopesAndPermissions` — would therefore apply an **org-scoped** user's role permissions at the tenant level, letting an admin of a single organization mint a token carrying those permissions globally (e.g. listing every organization without any global grant). Only affected Drizzle (SQLite/D1) deployments; Kysely already scoped correctly. `list(..., "")` now filters `organization_id = ""`, matching Kysely and the documented contract (`undefined` = all scopes, `""` = global only, `"<id>"` = that org).
+  - **Audience tightening in tenant provisioning.** `@authhero/multi-tenancy`'s global-admin check now requires `admin:organizations` to be granted on the Management API audience, so an identically named permission on an unrelated resource server can no longer masquerade as the global escape hatch.
+
+  Note: this repairs the code paths, but a user must still actually hold `admin:organizations` on a global role/permission (and the tenant must enable `inherit_global_permissions_in_organizations`) to bypass org membership. A "tenant-admin"-style global role that lacks that specific permission is still rejected by design.
+
+- Updated dependencies [47851c3]
+- Updated dependencies [f1cbb4c]
+- Updated dependencies [a5cb3a3]
+  - @authhero/adapter-interfaces@4.3.0
+  - @authhero/proxy@0.10.0
+
 ## 0.65.1
 
 ### Patch Changes
@@ -18,7 +51,6 @@
   share (placeholder / switchboard / family numbers). The blanket
   `unique (phone_number, provider, tenant_id)` constraint therefore treated real,
   distinct users as duplicates.
-
   - `@authhero/kysely-adapter`: removed the `restore_unique_phone_provider`
     migration shipped in 11.21.0. Besides the wrong scope, its dedupe `DELETE`
     used a row-value `NOT IN` that exceeds PlanetScale's statement timeout (which
@@ -46,7 +78,6 @@
 - be34110: Give `codes` a retention story so the table stops growing without bound (#1155).
 
   `codes` rows are short-lived by design but nothing ever pruned them, so every deployment accumulated them forever — one real deployment reached ~2.5M rows of which essentially 100% were expired.
-
   - `CodesAdapter` gains a required `cleanup(olderThan)` method, and `authhero` exports a `cleanupCodes(codes, { retentionDays })` helper to drive it from a scheduled handler, mirroring `cleanupOutbox`. **If you maintain a custom adapter, you must implement `cleanup`.**
   - The kysely adapter gains a `2026-07-16T12:00:00_codes_expires_at_ts` migration adding an indexed numeric `expires_at_ts` twin of `expires_at`, so sweeps no longer scan the table. It prunes already-expired rows _before_ adding the index, so it stays cheap on a table that has already grown large, and backfills the small remainder.
   - The drizzle adapter sweeps its existing indexed `expires_at` column and needs no migration. The AWS adapter is a no-op — DynamoDB already expires codes via a native `ttl`.
@@ -64,7 +95,6 @@
 ### Minor Changes
 
 - 32ceb43: feat(pagination): checkpoint (from/take + opaque next cursor) on GET /users, and align the default page size with Auth0 (#1098)
-
   - `GET /users` now supports keyset (checkpoint) pagination via `from`/`take`, returning `{ users, next }` with an opaque cursor that is absent on the last page. This is a deliberate superset of Auth0, which only offers offset paging on /users and caps it at 1000 results — full-tenant walks no longer need export jobs. Offset paging (`page`/`per_page` + totals) is unchanged.
   - In checkpoint mode, `q` filters stay in effect and `created_at` asc/desc is sortable (`user_id` is the unique tiebreaker). The cursor records the sort it was minted under; replaying it with a different sort returns 400. Unsupported sort columns return 400.
   - Linked accounts remain folded into their primary user's `identities` during cursor walks and never appear as top-level rows.
@@ -83,7 +113,6 @@
 
 - dd16e55: Apply the `q` filter to the totals count in the tenants adapter's list method. Previously `include_totals` returned the full table count even when `q` filtered the rows.
 - 47db71e: Security dependency bumps for open Dependabot alerts:
-
   - `@authhero/saml`: fast-xml-parser `^4.5.1` → `^4.5.5` (DOCTYPE entity-encoding bypass, entity-expansion DoS) and @xmldom/xmldom 0.8.13 via xml-crypto (XML injection in serialization)
   - `@authhero/drizzle`: drizzle-orm `^0.44.2` → `^0.45.2` (SQL injection via improperly escaped identifiers)
   - `@authhero/aws-adapter`: @aws-sdk/client-dynamodb and @aws-sdk/lib-dynamodb `^3.700.0` → `^3.1085.0` (pulls patched fast-xml-parser 5.x)
@@ -154,7 +183,6 @@
 - 0e6acf4: Add Auth0-style keyset (checkpoint) pagination with an opaque `next` cursor.
 
   List endpoints previously treated the `from` parameter as a numeric SQL offset, which diverges from Auth0 (where `from` is the opaque `next` token from the prior response) and is unstable under concurrent writes. Organization and organization-members listing now support true keyset pagination:
-
   - `adapter-interfaces` exposes `encodeCursor`/`decodeCursor` and a `next` field on the list-response contract. `from` is documented as an opaque cursor.
   - kysely and drizzle gain a shared keyset paginator (`(sortColumn, id)` row-value comparison, `take + 1` look-ahead to emit `next`). Offset pagination (`page`/`per_page` + `total`), used by the admin UI, is unchanged.
   - `GET /organizations`, `GET /organizations/{id}/members` and `GET /client-grants` return `{ items, next }` when called with `from`/`take`, and keep the offset shape for `page`/`per_page`. These are the endpoints Auth0 documents as checkpoint pagination.
@@ -177,7 +205,6 @@
 - 4867c22: Make the outbox transactional: hook events now commit atomically with the user write (#1057).
 
   Previously the `hook.post-user-registration` / `hook.post-user-deletion` outbox event was written as a standalone insert _after_ the user commit closed, then awaited by the outbox middleware with `Promise.allSettled` + `console.error`. A failed enqueue — or a worker crash/eviction between the two writes — silently dropped the event, so the outbox pattern's defining guarantee ("business row and event row commit together or not at all") did not hold.
-
   - **adapter-interfaces**: `rawCreate`, `update`, and `remove` accept an optional `WriteOptions.outboxEvents` (a new `OutboxEventInsert` — an audit event with a caller-assigned `id`). Adapters must persist these in the same atomic unit as the business write.
   - **drizzle**: the companion outbox insert is appended to the existing `runAtomic` batch, so on D1 the user row and its event land in a single `db.batch()` (and one `BEGIN/COMMIT` on better-sqlite3). On `remove`, the companion event is only appended when the primary user actually exists (checked via the same pre-batch read that collects linked IDs), so deleting a non-existent user can't strand an orphaned `hook.post-user-deletion` event. Also fixes a latent bug where `outbox.create` wrote `undefined` into the NOT NULL `aggregate_type`/`aggregate_id` columns — these now derive from the event's `target`, matching kysely.
   - **kysely**: the companion event is inserted inside the same transaction as the user write.
@@ -274,7 +301,6 @@
 
 - 9b7879c: Add tenant export/import for migrating a tenant between databases (e.g.
   PlanetScale → a per-tenant Workers-for-Platforms D1).
-
   - New `GET /api/v2/tenant-data/export` streams a gzipped JSON-lines export of a
     tenant's durable data (one `{ entity, data }` record per line). Password
     hashes are excluded unless `?include_password_hashes=true` is set, which
@@ -308,7 +334,6 @@
 
   The tenant row now records what a Workers-for-Platforms tenant is running so the
   control plane can detect drift and drive upgrades:
-
   - New `database_version` field (the latest migration applied — the schema
     version the deployed bundle targets), alongside the existing
     `worker_version` and `bundle_configuration` fields, which are now actually

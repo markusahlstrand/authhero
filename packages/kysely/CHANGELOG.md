@@ -1,5 +1,31 @@
 # @authhero/kysely-adapter
 
+## 12.0.0
+
+### Major Changes
+
+- 47851c3: **License change: AuthHero is now dual-licensed (AGPL-3.0-only or commercial).**
+
+  The core server and its runtime packages (`authhero`, the database adapters, `saml`,
+  `multi-tenancy`, `proxy`, `@authhero/admin`) are now licensed **AGPL-3.0-only**, with
+  commercial licenses available. The integration surfaces stay permissive:
+  `@authhero/adapter-interfaces`, `create-authhero` (and the apps it scaffolds), and
+  `@authhero/widget` are **MIT** — using these packages on their own imposes no AGPL
+  obligations on your code. Use of the AGPL-licensed packages remains subject to
+  AGPL-3.0-only (or a commercial license).
+
+  Versions published before this release remain available under their original MIT
+  terms. See LICENSING.md in the repository for the full model, and CLA.md for the
+  contributor agreement that keeps dual licensing possible.
+
+### Patch Changes
+
+- Updated dependencies [47851c3]
+- Updated dependencies [f1cbb4c]
+- Updated dependencies [a5cb3a3]
+  - @authhero/adapter-interfaces@4.3.0
+  - @authhero/proxy@0.10.0
+
 ## 11.21.1
 
 ### Patch Changes
@@ -18,7 +44,6 @@
   share (placeholder / switchboard / family numbers). The blanket
   `unique (phone_number, provider, tenant_id)` constraint therefore treated real,
   distinct users as duplicates.
-
   - `@authhero/kysely-adapter`: removed the `restore_unique_phone_provider`
     migration shipped in 11.21.0. Besides the wrong scope, its dedupe `DELETE`
     used a row-value `NOT IN` that exceeds PlanetScale's statement timeout (which
@@ -65,7 +90,6 @@
 
   Three things production had lost are restored, since dropping them would have
   been a silent regression rather than a snapshot:
-
   - The 17 `tenant_id -> tenants` cascades. Declared inline by the historical set
     and created on SQLite, but silently ignored by Vitess, so production reports
     no trace of them. They live in the baseline because neither engine can add a
@@ -88,7 +112,6 @@
 - be34110: Give `codes` a retention story so the table stops growing without bound (#1155).
 
   `codes` rows are short-lived by design but nothing ever pruned them, so every deployment accumulated them forever — one real deployment reached ~2.5M rows of which essentially 100% were expired.
-
   - `CodesAdapter` gains a required `cleanup(olderThan)` method, and `authhero` exports a `cleanupCodes(codes, { retentionDays })` helper to drive it from a scheduled handler, mirroring `cleanupOutbox`. **If you maintain a custom adapter, you must implement `cleanup`.**
   - The kysely adapter gains a `2026-07-16T12:00:00_codes_expires_at_ts` migration adding an indexed numeric `expires_at_ts` twin of `expires_at`, so sweeps no longer scan the table. It prunes already-expired rows _before_ adding the index, so it stays cheap on a table that has already grown large, and backfills the small remainder.
   - The drizzle adapter sweeps its existing indexed `expires_at` column and needs no migration. The AWS adapter is a no-op — DynamoDB already expires codes via a native `ttl`.
@@ -107,7 +130,6 @@
 ### Minor Changes
 
 - 32ceb43: feat(pagination): checkpoint (from/take + opaque next cursor) on GET /users, and align the default page size with Auth0 (#1098)
-
   - `GET /users` now supports keyset (checkpoint) pagination via `from`/`take`, returning `{ users, next }` with an opaque cursor that is absent on the last page. This is a deliberate superset of Auth0, which only offers offset paging on /users and caps it at 1000 results — full-tenant walks no longer need export jobs. Offset paging (`page`/`per_page` + totals) is unchanged.
   - In checkpoint mode, `q` filters stay in effect and `created_at` asc/desc is sortable (`user_id` is the unique tiebreaker). The cursor records the sort it was minted under; replaying it with a different sort returns 400. Unsupported sort columns return 400.
   - Linked accounts remain folded into their primary user's `identities` during cursor walks and never appear as top-level rows.
@@ -190,7 +212,6 @@
 - 0e6acf4: Add Auth0-style keyset (checkpoint) pagination with an opaque `next` cursor.
 
   List endpoints previously treated the `from` parameter as a numeric SQL offset, which diverges from Auth0 (where `from` is the opaque `next` token from the prior response) and is unstable under concurrent writes. Organization and organization-members listing now support true keyset pagination:
-
   - `adapter-interfaces` exposes `encodeCursor`/`decodeCursor` and a `next` field on the list-response contract. `from` is documented as an opaque cursor.
   - kysely and drizzle gain a shared keyset paginator (`(sortColumn, id)` row-value comparison, `take + 1` look-ahead to emit `next`). Offset pagination (`page`/`per_page` + `total`), used by the admin UI, is unchanged.
   - `GET /organizations`, `GET /organizations/{id}/members` and `GET /client-grants` return `{ items, next }` when called with `from`/`take`, and keep the offset shape for `page`/`per_page`. These are the endpoints Auth0 documents as checkpoint pagination.
@@ -214,7 +235,6 @@
 - 4867c22: Make the outbox transactional: hook events now commit atomically with the user write (#1057).
 
   Previously the `hook.post-user-registration` / `hook.post-user-deletion` outbox event was written as a standalone insert _after_ the user commit closed, then awaited by the outbox middleware with `Promise.allSettled` + `console.error`. A failed enqueue — or a worker crash/eviction between the two writes — silently dropped the event, so the outbox pattern's defining guarantee ("business row and event row commit together or not at all") did not hold.
-
   - **adapter-interfaces**: `rawCreate`, `update`, and `remove` accept an optional `WriteOptions.outboxEvents` (a new `OutboxEventInsert` — an audit event with a caller-assigned `id`). Adapters must persist these in the same atomic unit as the business write.
   - **drizzle**: the companion outbox insert is appended to the existing `runAtomic` batch, so on D1 the user row and its event land in a single `db.batch()` (and one `BEGIN/COMMIT` on better-sqlite3). On `remove`, the companion event is only appended when the primary user actually exists (checked via the same pre-batch read that collects linked IDs), so deleting a non-existent user can't strand an orphaned `hook.post-user-deletion` event. Also fixes a latent bug where `outbox.create` wrote `undefined` into the NOT NULL `aggregate_type`/`aggregate_id` columns — these now derive from the event's `target`, matching kysely.
   - **kysely**: the companion event is inserted inside the same transaction as the user write.
@@ -249,7 +269,6 @@
 ### Patch Changes
 
 - e358192: Fix tenant log identity fields so logs match what Auth0 records
-
   - SUCCESS_LOGIN logs no longer record the strategy (e.g. "okta") as the `connection`; the connection name actually used (e.g. "Okta-Warner") wins, resolved via the login session's `auth_connection`.
   - `logMessage` now resolves `connection_id`, `client_name` and `user_name` from the data layer when the caller doesn't supply them, instead of hardcoding empty strings. Applies to every log/audit event, including the outbox path.
   - Token endpoint success logs (`seacft`, `serft`, …) now carry `connection`, `strategy`, `strategy_type`, `user_name` and `client_name`.
@@ -292,7 +311,6 @@
 ### Minor Changes
 
 - fb431a9: Cut login-activity counters over to the user_activity table (contract phase of #1003)
-
   - `authhero`: `postUserLoginHook` now writes `last_login`/`last_ip`/`login_count` to `data.userActivity` when the adapter provides it (falling back to `users.update` for third-party adapters that don't). This removes the per-login rewrite of the users row and its user-update decorator chain from the login path.
   - `@authhero/kysely-adapter`: `users.get`/`users.list` now LEFT JOIN `user_activity` for the activity fields (missing row = never logged in, `login_count` 0); filtering and sorting on those fields via `q`/`sort` still works. `users.create`/`users.update` route any activity fields they receive to `user_activity`. A new migration drops the legacy `last_login`/`last_ip`/`login_count` columns from `users` — run the user_activity backfill script against each environment **before** applying it, since the drop discards any values that were never copied.
 
@@ -303,7 +321,6 @@
 - 028f2b5: Add a `user_activity` table and clean up `users` column types (issue #1003).
 
   Schema-only, forward-only migration — no data is moved or backfilled yet:
-
   - Converts the large, non-indexed `users` columns `profileData`, `picture`, and `app_metadata` from `varchar` to `TEXT` (so enriched profile data is no longer capped/truncated and InnoDB row-size pressure is relieved). `app_metadata` keeps its `'{}'` default via a MySQL 8 expression default.
   - Right-sizes oversized `users` varchars: `created_at`/`updated_at` → `varchar(35)`, `locale` → `varchar(64)`.
   - Adds an empty `user_activity` entity (keyed `(tenant_id, user_id)`, FK to `users` with `ON DELETE CASCADE`) to hold the write-often counters (`last_login`, `last_ip`, `login_count`, `failed_logins`, `last_password_reset`).
@@ -338,7 +355,6 @@
   `group_by=event`. Wired through the kysely, drizzle and Cloudflare Analytics
   Engine adapters.
 - 892c7bf: Fix log filtering crashes and missing matches on `q` queries:
-
   - Values containing Lucene-reserved characters (e.g. a `-`) returned no rows. Clients escape filter values per Lucene rules (a dash becomes `\-`) and quote them, but `luceneFilter` stripped the quotes without reversing the escaping, so exact-match comparisons ran against a backslash-prefixed literal. Lucene escape sequences are now unescaped before the value is used.
   - A free-text term containing a `:` (e.g. a timestamp like `2024-01-01T10:00:00`) or a clause referencing a non-column (e.g. `success`) was misparsed as a column reference and crashed the request with a SQL error. `logs.list` now sanitizes `q` against an allowlist of real columns (as `users`/`organizations` already do) before filtering.
   - Free-text log search now also matches `description` (substring), so searching for a user's email finds failed-login events that happened before any user record existed.
@@ -353,7 +369,6 @@
 
 - 9b7879c: Add tenant export/import for migrating a tenant between databases (e.g.
   PlanetScale → a per-tenant Workers-for-Platforms D1).
-
   - New `GET /api/v2/tenant-data/export` streams a gzipped JSON-lines export of a
     tenant's durable data (one `{ entity, data }` record per line). Password
     hashes are excluded unless `?include_password_hashes=true` is set, which
@@ -386,7 +401,6 @@
 
   The tenant row now records what a Workers-for-Platforms tenant is running so the
   control plane can detect drift and drive upgrades:
-
   - New `database_version` field (the latest migration applied — the schema
     version the deployed bundle targets), alongside the existing
     `worker_version` and `bundle_configuration` fields, which are now actually

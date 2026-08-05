@@ -1,5 +1,37 @@
 # create-authhero
 
+## 0.50.0
+
+### Minor Changes
+
+- 47851c3: **License change: AuthHero is now dual-licensed (AGPL-3.0-only or commercial).**
+
+  The core server and its runtime packages (`authhero`, the database adapters, `saml`,
+  `multi-tenancy`, `proxy`, `@authhero/admin`) are now licensed **AGPL-3.0-only**, with
+  commercial licenses available. The integration surfaces stay permissive:
+  `@authhero/adapter-interfaces`, `create-authhero` (and the apps it scaffolds), and
+  `@authhero/widget` are **MIT** — using these packages on their own imposes no AGPL
+  obligations on your code. Use of the AGPL-licensed packages remains subject to
+  AGPL-3.0-only (or a commercial license).
+
+  Versions published before this release remain available under their original MIT
+  terms. See LICENSING.md in the repository for the full model, and CLA.md for the
+  contributor agreement that keeps dual licensing possible.
+
+### Patch Changes
+
+- 151a911: Scaffold a working retention sweep into the Cloudflare templates so fresh
+  projects don't accumulate rows forever. The `cloudflare` and
+  `cloudflare-control-plane` templates now export a `scheduled` handler that calls
+  `runRetention` and declare a daily `[triggers] crons` block in `wrangler.toml`,
+  pruning expired `codes`, processed `outbox_events` and expired sessions without
+  the operator having to discover the data-retention guide first.
+
+  `cloudflare-wfp-tenant` deliberately gets no cron — dispatch-namespace Workers
+  never receive `scheduled` events — and instead documents that tenant shards are
+  swept centrally from the control plane. `aws-sst` records that DynamoDB's native
+  TTL already expires these rows, so it needs no sweep.
+
 ## 0.49.0
 
 ### Minor Changes
@@ -9,7 +41,6 @@
   A custom domain created on a WFP tenant persisted a row to the tenant's own D1 but was never registered in Cloudflare: the tenant shard has no account-level credentials (`zoneId`/`authKey`/`authEmail`), and the control-plane sync path only replicated the row DB→DB. The result was an unroutable, half-provisioned domain.
 
   A CF-for-SaaS custom hostname is an account-global resource in one shared zone, so only something above the shards can register it — or see that another tenant already claimed `login.acme.com`. The control plane now owns the row and the tenant's database holds a read-cache mirror.
-
   - `createControlPlaneCustomDomainsAdapter` — a `CustomDomainsAdapter` for tenant shards that writes through the control plane synchronously and mirrors the result locally. On a conflict it writes nothing, so no orphan row is left behind. `get`/`list` read through to the control plane (which owns the row) and fall back to the mirror when it is unreachable; `getByDomain` always reads the mirror, since it is on the tenant-resolution path. A failed mirror write surfaces as a 503 rather than reporting success for a domain this shard cannot route.
   - `createControlPlaneClient` — shared authed transport with a per-(tenant, scope) token cache, single-flight minting, and a single re-mint on 401. Pass `createServiceBindingFetch(env.CONTROL_PLANE)` to keep the call inside Cloudflare instead of looping out over the public edge.
   - `proxyControlPlane.customDomains` — mounts the authoritative `/api/v2/proxy/control-plane/custom-domains` resource: cross-tenant uniqueness check (409, nothing written), Cloudflare registration where the credentials live, and get/list/update/remove. Requires the new `controlplane:custom_domains` scope, and every operation is authorized against the token's `tenant_id` claim — every shard holds the scope, so a request-supplied tenant id is refused with 403. `PATCH` accepts only the mutable Auth0 fields, so a caller cannot move the hostname or forge lifecycle state.
@@ -55,7 +86,6 @@
 ### Minor Changes
 
 - 57a5442: Add two Workers-for-Platforms templates that complete the WFP control-plane-defaults setup:
-
   - **`cloudflare-wfp-tenant`** — a per-tenant authhero Worker (its own D1) that inherits the control plane's defaults via `withRuntimeFallback`, with keyed encryption (`createEncryptedDataAdapterWithKeyRing`) so the shared `cp`-keyed secrets are held but not readable from a raw database export. Deploys into the `authhero-tenants` dispatch namespace.
   - **`cloudflare-control-plane`** — the management surface and rollout source. Runs `initMultiTenant` and exposes `POST /internal/tenants/:id/sync-defaults`, which uses `createDirectRolloutAdapter` to project the control plane's defaults into a tenant's database. Ships with a `buildTenantAdapters` stub to fill in per-tenant D1 resolution.
 

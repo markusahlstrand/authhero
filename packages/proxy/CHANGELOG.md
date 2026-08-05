@@ -1,5 +1,30 @@
 # @authhero/proxy
 
+## 0.10.0
+
+### Minor Changes
+
+- 47851c3: **License change: AuthHero is now dual-licensed (AGPL-3.0-only or commercial).**
+
+  The core server and its runtime packages (`authhero`, the database adapters, `saml`,
+  `multi-tenancy`, `proxy`, `@authhero/admin`) are now licensed **AGPL-3.0-only**, with
+  commercial licenses available. The integration surfaces stay permissive:
+  `@authhero/adapter-interfaces`, `create-authhero` (and the apps it scaffolds), and
+  `@authhero/widget` are **MIT** — using these packages on their own imposes no AGPL
+  obligations on your code. Use of the AGPL-licensed packages remains subject to
+  AGPL-3.0-only (or a commercial license).
+
+  Versions published before this release remain available under their original MIT
+  terms. See LICENSING.md in the repository for the full model, and CLA.md for the
+  contributor agreement that keeps dual licensing possible.
+
+### Patch Changes
+
+- Updated dependencies [47851c3]
+- Updated dependencies [f1cbb4c]
+- Updated dependencies [a5cb3a3]
+  - @authhero/adapter-interfaces@4.3.0
+
 ## 0.9.6
 
 ### Patch Changes
@@ -180,7 +205,6 @@
   Without `defaultHandlers` the proxy keeps its previous behavior — 404 on unknown host or no-matching-route, 504 on resolve timeout, 502 on resolve error.
 
   Also decouples the proxy's outer resolve-host race timeout from the HTTP adapter's per-fetch abort timeout so they no longer collide at the same 5000ms value:
-
   - `createHttpProxyAdapter` `timeoutMs` default: **5000 → 2500** (per fetch — token and resolveHost each get this budget)
   - `createProxyApp` / `createProxyDataPlaneHandler` `resolveHostTimeoutMs` default: **5000 → 10000** (must comfortably exceed the sum of inner fetches)
 
@@ -196,7 +220,6 @@
 ### Minor Changes
 
 - fe4941f: Harden `@authhero/proxy` against hangs and unhandled exceptions:
-
   - Add per-route `timeout_ms` (default 30s) to `dispatch_namespace` and `service_binding` handlers; hung subrequests now return a clean 504 with `x-authhero-proxy-error: <handler>_timeout` instead of letting the Cloudflare runtime cancel the parent worker as `outcome: exception`.
   - Wrap every dispatched fetch (`http`, `dispatch_namespace`, `service_binding`) in try/catch; non-timeout failures now return a structured 502 with `x-authhero-proxy-error: <handler>_failed`.
   - Add an outer try/catch and a configurable `resolveHostTimeoutMs` (default 5s) ceiling to the data-plane router. Resolver hangs become 504, resolver/build errors become 502 — never an unhandled rejection.

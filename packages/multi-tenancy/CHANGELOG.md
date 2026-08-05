@@ -1,5 +1,43 @@
 # @authhero/multi-tenancy
 
+## 15.0.0
+
+### Major Changes
+
+- 47851c3: **License change: AuthHero is now dual-licensed (AGPL-3.0-only or commercial).**
+
+  The core server and its runtime packages (`authhero`, the database adapters, `saml`,
+  `multi-tenancy`, `proxy`, `@authhero/admin`) are now licensed **AGPL-3.0-only**, with
+  commercial licenses available. The integration surfaces stay permissive:
+  `@authhero/adapter-interfaces`, `create-authhero` (and the apps it scaffolds), and
+  `@authhero/widget` are **MIT** — using these packages on their own imposes no AGPL
+  obligations on your code. Use of the AGPL-licensed packages remains subject to
+  AGPL-3.0-only (or a commercial license).
+
+  Versions published before this release remain available under their original MIT
+  terms. See LICENSING.md in the repository for the full model, and CLA.md for the
+  contributor agreement that keeps dual licensing possible.
+
+### Patch Changes
+
+- ee69820: Make the global `admin:organizations` org-membership bypass consistent across grants and adapters, and close a related privilege-escalation on the Drizzle adapter (#1198).
+  - **Parity across all three org gates.** The refresh-token grant, token-exchange grant, and `calculateScopesAndPermissions` now share one `userHasGlobalOrgAdminPermission` helper. Previously the scopes-permissions gate only checked _role-derived_ global permissions, so a user granted `admin:organizations` **directly** (not via a role) passed the refresh-token gate but was still rejected with 403 once an `audience` was present. All three now honor both directly-assigned and role-derived global permissions, matched against the Management API audience.
+  - **Drizzle `userRoles.list` scope fix (privilege escalation).** `list(..., "")` (global / tenant-level roles) guarded on truthiness, so the empty-string scope fell through to "all scopes" and returned the user's roles across _every_ organization. Consumers that read global roles this way — the `admin:organizations` bypass and the `globalRoles` bucket in `calculateScopesAndPermissions` — would therefore apply an **org-scoped** user's role permissions at the tenant level, letting an admin of a single organization mint a token carrying those permissions globally (e.g. listing every organization without any global grant). Only affected Drizzle (SQLite/D1) deployments; Kysely already scoped correctly. `list(..., "")` now filters `organization_id = ""`, matching Kysely and the documented contract (`undefined` = all scopes, `""` = global only, `"<id>"` = that org).
+  - **Audience tightening in tenant provisioning.** `@authhero/multi-tenancy`'s global-admin check now requires `admin:organizations` to be granted on the Management API audience, so an identically named permission on an unrelated resource server can no longer masquerade as the global escape hatch.
+
+  Note: this repairs the code paths, but a user must still actually hold `admin:organizations` on a global role/permission (and the tenant must enable `inherit_global_permissions_in_organizations`) to bypass org membership. A "tenant-admin"-style global role that lacks that specific permission is still rejected by design.
+
+- Updated dependencies [2b9e5ca]
+- Updated dependencies [57eca12]
+- Updated dependencies [47851c3]
+- Updated dependencies [ee69820]
+- Updated dependencies [f1cbb4c]
+- Updated dependencies [a5cb3a3]
+- Updated dependencies [177c0a9]
+- Updated dependencies [a7cca7b]
+  - authhero@9.0.0
+  - @authhero/adapter-interfaces@4.3.0
+
 ## 14.27.1
 
 ### Patch Changes
@@ -23,7 +61,6 @@
 - 74f1373: Auto-provision a default/anchor client at tenant creation (issue #1007).
 
   New tenants now come with a designated interactive default client by construction, so tenant-level flows that need an anchor (e.g. the DCR `/connect/start` consent flow) no longer silently fall back to an arbitrary — possibly M2M — client.
-
   - New shared `provisionDefaultClients()` helper (exported from `authhero`) creates an interactive first-party "Default App", sets `tenant.default_client_id` to it, and provisions an M2M "API Explorer" client authorized against the Management API. It is idempotent and import-safe: it respects an already-set `default_client_id`, reuses an existing interactive client instead of duplicating, and skips the M2M client when one already exists. The Default App is created with no connections, so all of the tenant's connections are offered at login.
   - Wired into both tenant-creation paths: the `seed`/bootstrap script and the multi-tenancy `afterCreate` provisioning hook (pooled tenants; isolated tenants are seeded via their own database provisioning).
   - `/connect/start` now falls back to the first _interactive_ client (via the new `isInteractiveClient` helper) instead of `clients[0]`, so it never anchors on an M2M client.
@@ -41,7 +78,6 @@
 ### Minor Changes
 
 - 88f2bf7: Record tenant lifecycle operations and expose them via the management API (issue #1026, phase 1).
-
   - `@authhero/multi-tenancy` gains an operations module: `runRecordedTenantOperation` wraps `databaseIsolation.onProvision` so every provision writes a `tenant_operations` row with step events (no behavior change — recording is skipped when the adapters are absent and is warn-only on write failure), plus `createInlineExecutor` / `enqueueTenantOperation` implementing the row-first executor contract the Cloudflare Workflows engine plugs into next. `initMultiTenant` wires a default inline executor for `upgrade` operations when `tenantUpgrade` is configured.
   - `authhero` mounts `GET /api/v2/operations/{id}`, `GET/POST /api/v2/tenants/{id}/operations` (new scopes `read:tenant_operations`, `create:tenant_operations`) when the control-plane operations adapters are present, with a new `tenantOperationExecutor` config binding.
   - `@authhero/cloudflare-adapter`'s WFP provisioning hook accepts an optional step reporter and surfaces `provision-resources` / `seed-defaults` boundaries; reporting can never fail a provision.
@@ -49,7 +85,6 @@
 ### Patch Changes
 
 - d8dac78: Add the `@authhero/cloudflare-adapter/workflows` subpath (issue #1026 phase 2): durable provision-as-workflow for WFP tenants on Cloudflare Workflows.
-
   - `runProvisionOperation` runs the provisioner steps (via the provider-agnostic `TenantProvisionerSteps` contract) as one durable engine step each — with the defaults seed as a retried step _before_ `ready` and a `verify` step that throws until the tenant D1 actually holds signing keys and its tenant row. "Ready over an empty D1" is no longer possible.
   - `createCloudflareWorkflowsExecutor` implements the row-first `TenantOperationExecutor` contract over a structural Workflows binding (no `cloudflare:workers` import in the library; the downstream worker owns the ~10-line `WorkflowEntrypoint` shell — see `entrypoint.example.ts`).
   - `reconcileTenantOperations` sweeps operations stuck in `pending`/`running` whose engine instance died before its terminal write, copying terminal engine states into the control-plane log (run from a `scheduled` handler, at least daily).
@@ -75,7 +110,6 @@
   tenant-scoped insert (the tenant's own `POST /api/v2/connections`, and the
   projected control-plane defaults keyed under the control-plane tenant id)
   FK-failed with a 500 until those rows existed.
-
   - `@authhero/multi-tenancy`: `ControlPlaneDefaultsPayload` now carries a
     `tenants` array of minimal (`id` + `friendly_name`) seed rows, gated by a new
     `tenants` flag on `DefaultsPayloadEntities` (default `true`).
@@ -99,7 +133,6 @@
 - 02449c8: Add a transport-agnostic control-plane defaults **wire contract** to
   `@authhero/multi-tenancy` for pushing shared state into per-tenant databases
   (e.g. a Workers-for-Platforms tenant's D1):
-
   - `buildControlPlaneDefaultsPayload(controlPlaneAdapters, controlPlaneTenantId, entities?)`
     reads the control plane's inheritable connections, `is_system` resource
     servers, `inheritable` hooks, email provider, branding, prompt settings, and
@@ -128,7 +161,6 @@
 ### Patch Changes
 
 - c76247b: Fix tenant deletion returning a 500 instead of the real status, and make tenant create/delete authorization symmetric.
-
   - **Single Hono instance.** The build no longer inlines a second copy of Hono. The Rollup `external` config only matched the bare `hono` package, so the subpath import `hono/http-exception` was still bundled — giving the package its own `HTTPException` class. The host app's `instanceof HTTPException` check then failed and legitimate 401/403/404s surfaced as generic 500s. Subpath exports are now externalized too, so `hono` (and `@hono/zod-openapi`) resolve to the host app's single instance.
   - **Super-admin delete path.** `DELETE /tenants/{id}` now lets a non-org-scoped control-plane token carrying the `delete:tenants` scope (or `admin:organizations`, mirroring the list route) delete any tenant without per-organization membership. Previously a tenant created via the API/UI by a global admin — who is deliberately not added to the tenant's organization by the provisioning hook — became undeletable through the API.
 
@@ -146,12 +178,10 @@
   WFP tenants run in their own Worker with their own database and cannot read the control plane's database at request time, so runtime fallback has nothing to resolve against. Instead, the control plane's inheritable defaults (connections, `is_system` resource servers, `inheritable` hooks, email provider, branding, prompt settings) are now **projected into each tenant's own database under the control plane tenant id** — the existing `withRuntimeFallback` resolves them with no read-path change.
 
   `@authhero/multi-tenancy` adds:
-
   - `projectControlPlaneDefaults(config, targetTenantId)` — idempotent (upsert-by-id) projection of the control plane's defaults bundle into a tenant database.
   - `createDirectRolloutAdapter(config)` returning a `ControlPlaneRolloutAdapter` (`syncDefaults` / `syncDefaultsToTenants`). The adapter is the seam for execution strategy: inline today, swappable for a durable Cloudflare Workflows implementation later without changing callers.
 
   `authhero` adds keyed encryption so a tenant can hold inherited secrets at rest without being able to decrypt them:
-
   - The `enc:v1:` field-encryption format gains an optional key id (`enc:v1:<keyId>:<payload>`), fully backward compatible with existing unkeyed values.
   - `createEncryptedDataAdapterWithKeyRing(data, ring, { resolveEncryptKeyId })` encrypts each tenant's secrets under a key selected from a `KeyRing` (e.g. control-plane-tenant rows under a control-plane-only key id), choosing the key on read from the id embedded in the ciphertext.
   - New low-level helpers `encryptFieldWithRing`, `decryptFieldWithRing`, `parseKeyId`, and the `KeyRing` / `EncryptKeyIdResolver` types.

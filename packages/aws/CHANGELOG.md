@@ -1,5 +1,31 @@
 # @authhero/aws-adapter
 
+## 1.0.0
+
+### Major Changes
+
+- 47851c3: **License change: AuthHero is now dual-licensed (AGPL-3.0-only or commercial).**
+
+  The core server and its runtime packages (`authhero`, the database adapters, `saml`,
+  `multi-tenancy`, `proxy`, `@authhero/admin`) are now licensed **AGPL-3.0-only**, with
+  commercial licenses available. The integration surfaces stay permissive:
+  `@authhero/adapter-interfaces`, `create-authhero` (and the apps it scaffolds), and
+  `@authhero/widget` are **MIT** — using these packages on their own imposes no AGPL
+  obligations on your code. Use of the AGPL-licensed packages remains subject to
+  AGPL-3.0-only (or a commercial license).
+
+  Versions published before this release remain available under their original MIT
+  terms. See LICENSING.md in the repository for the full model, and CLA.md for the
+  contributor agreement that keeps dual licensing possible.
+
+### Patch Changes
+
+- Updated dependencies [47851c3]
+- Updated dependencies [f1cbb4c]
+- Updated dependencies [a5cb3a3]
+  - @authhero/adapter-interfaces@4.3.0
+  - @authhero/proxy@0.10.0
+
 ## 0.40.1
 
 ### Patch Changes
@@ -15,7 +41,6 @@
 - be34110: Give `codes` a retention story so the table stops growing without bound (#1155).
 
   `codes` rows are short-lived by design but nothing ever pruned them, so every deployment accumulated them forever — one real deployment reached ~2.5M rows of which essentially 100% were expired.
-
   - `CodesAdapter` gains a required `cleanup(olderThan)` method, and `authhero` exports a `cleanupCodes(codes, { retentionDays })` helper to drive it from a scheduled handler, mirroring `cleanupOutbox`. **If you maintain a custom adapter, you must implement `cleanup`.**
   - The kysely adapter gains a `2026-07-16T12:00:00_codes_expires_at_ts` migration adding an indexed numeric `expires_at_ts` twin of `expires_at`, so sweeps no longer scan the table. It prunes already-expired rows _before_ adding the index, so it stays cheap on a table that has already grown large, and backfills the small remainder.
   - The drizzle adapter sweeps its existing indexed `expires_at` column and needs no migration. The AWS adapter is a no-op — DynamoDB already expires codes via a native `ttl`.
@@ -41,7 +66,6 @@
 ### Patch Changes
 
 - 47db71e: Security dependency bumps for open Dependabot alerts:
-
   - `@authhero/saml`: fast-xml-parser `^4.5.1` → `^4.5.5` (DOCTYPE entity-encoding bypass, entity-expansion DoS) and @xmldom/xmldom 0.8.13 via xml-crypto (XML injection in serialization)
   - `@authhero/drizzle`: drizzle-orm `^0.44.2` → `^0.45.2` (SQL injection via improperly escaped identifiers)
   - `@authhero/aws-adapter`: @aws-sdk/client-dynamodb and @aws-sdk/lib-dynamodb `^3.700.0` → `^3.1085.0` (pulls patched fast-xml-parser 5.x)
@@ -163,7 +187,6 @@
 
 - 9b7879c: Add tenant export/import for migrating a tenant between databases (e.g.
   PlanetScale → a per-tenant Workers-for-Platforms D1).
-
   - New `GET /api/v2/tenant-data/export` streams a gzipped JSON-lines export of a
     tenant's durable data (one `{ entity, data }` record per line). Password
     hashes are excluded unless `?include_password_hashes=true` is set, which
