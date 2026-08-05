@@ -64,4 +64,23 @@ describe("userRoles.list organization scope semantics", () => {
     expect(ids).toContain(globalRoleId);
     expect(ids).toContain(orgRoleId);
   });
+
+  it('does not leak an org-only user\'s roles into the "" global bucket', async () => {
+    // The privilege-escalation shape behind #1198: consumers read a user's
+    // GLOBAL roles via list(..., "") and treat their permissions as tenant-wide
+    // (e.g. the "globalRoles" source in calculateScopesAndPermissions, and the
+    // admin:organizations bypass). A user who only holds org-scoped roles must
+    // yield an EMPTY global bucket, otherwise an org-scoped admin's permissions
+    // would be applied at the tenant level and leak into a no-org token.
+    const orgOnlyUser = "user-org-only";
+    await data.userRoles.create(tenantId, orgOnlyUser, orgRoleId, "org-a");
+
+    const globalRoles = await data.userRoles.list(
+      tenantId,
+      orgOnlyUser,
+      undefined,
+      "",
+    );
+    expect(globalRoles).toHaveLength(0);
+  });
 });

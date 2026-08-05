@@ -1522,6 +1522,106 @@ describe("scopes-permissions helper", () => {
       });
     });
 
+    describe("role scope isolation (#1198)", () => {
+      it("does not leak an org-scoped role's permissions into a no-org token", async () => {
+        // A user who holds a management permission only via an ORG-scoped role
+        // must not have it applied at the tenant level. Before #1198 the
+        // Drizzle adapter's list(..., "") returned roles across every scope, so
+        // an org-scoped admin's permissions leaked into their global (no-org)
+        // token — letting them e.g. list every organization/vendor without any
+        // global grant. Kysely always scoped correctly; this locks the contract
+        // at the token-building layer.
+        const { env } = await getTestServer();
+        const ctx = {
+          env,
+          var: {},
+        } as Context<{
+          Bindings: Bindings;
+          Variables: Variables;
+        }>;
+
+        const resourceServer = await env.data.resourceServers.create(
+          "tenantId",
+          {
+            name: "Scope Isolation API",
+            identifier: "https://scope-isolation-api.example.com",
+            scopes: [{ value: "read:organizations", description: "Read orgs" }],
+            options: {
+              enforce_policies: true,
+              token_dialect: "access_token_authz",
+            },
+          },
+        );
+
+        const organization = await env.data.organizations.create("tenantId", {
+          name: "Scope Isolation Org",
+          display_name: "Scope Isolation Org",
+        });
+
+        await env.data.users.create("tenantId", {
+          user_id: "email|org-scoped-user",
+          email: "org-scoped@example.com",
+          provider: "email",
+          connection: "email",
+          email_verified: true,
+          is_social: false,
+          name: "Org Scoped User",
+        });
+
+        // read:organizations granted ONLY via an org-scoped role.
+        const orgRole = await env.data.roles.create("tenantId", {
+          name: "Org-scoped Reader",
+          description: "Reads orgs within one org scope",
+        });
+        await env.data.rolePermissions.assign("tenantId", orgRole.id, [
+          {
+            role_id: orgRole.id,
+            resource_server_identifier:
+              "https://scope-isolation-api.example.com",
+            permission_name: "read:organizations",
+          },
+        ]);
+        await env.data.userRoles.create(
+          "tenantId",
+          "email|org-scoped-user",
+          orgRole.id,
+          organization.id, // org-scoped, NOT global
+        );
+        // Member of that org (so the in-org sanity check passes the membership
+        // gate); still holds no global grant.
+        await env.data.userOrganizations.create("tenantId", {
+          user_id: "email|org-scoped-user",
+          organization_id: organization.id,
+        });
+
+        // No-org token: the org-scoped permission must NOT appear.
+        const noOrg = await calculateScopesAndPermissions(ctx, {
+          tenantId: "tenantId",
+          clientId: "test-client-id",
+          userId: "email|org-scoped-user",
+          audience: "https://scope-isolation-api.example.com",
+          requestedScopes: ["read:organizations"],
+        });
+        expect(noOrg.permissions).not.toContain("read:organizations");
+
+        // Sanity: within its own org scope the permission IS granted.
+        const inOrg = await calculateScopesAndPermissions(ctx, {
+          tenantId: "tenantId",
+          clientId: "test-client-id",
+          userId: "email|org-scoped-user",
+          audience: "https://scope-isolation-api.example.com",
+          requestedScopes: ["read:organizations"],
+          organizationId: organization.id,
+        });
+        expect(inOrg.permissions).toContain("read:organizations");
+
+        // Clean up
+        await env.data.resourceServers.remove("tenantId", resourceServer.id!);
+        await env.data.organizations.remove("tenantId", organization.id);
+        await env.data.roles.remove("tenantId", orgRole.id);
+      });
+    });
+
     describe("client_credentials grant", () => {
       it("should throw 403 when requesting unauthorized scopes", async () => {
         const { env } = await getTestServer();

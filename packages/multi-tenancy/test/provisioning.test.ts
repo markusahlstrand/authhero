@@ -597,6 +597,7 @@ describe("Tenant Provisioning with admin:organizations permission", () => {
 
   const TEST_ISSUER = "https://auth.example.com/";
   const GLOBAL_ADMIN_USER_ID = "auth0|global-admin";
+  let globalAdminRoleId: string;
 
   beforeEach(async () => {
     db = await createMigratedDb();
@@ -642,6 +643,7 @@ describe("Tenant Provisioning with admin:organizations permission", () => {
       name: "Global Admin",
       description: "Can admin all organizations without membership",
     });
+    globalAdminRoleId = globalAdminRole.id;
 
     // Assign admin:organizations permission to the role
     await adapters.rolePermissions.assign("control_plane", globalAdminRole.id, [
@@ -739,6 +741,61 @@ describe("Tenant Provisioning with admin:organizations permission", () => {
       (uo) => uo.user_id === GLOBAL_ADMIN_USER_ID,
     );
     expect(adminOrgMembership).toBeUndefined();
+  });
+
+  it("does not treat admin:organizations on a non-management audience as the global escape hatch", async () => {
+    // #1198: the bypass is a management-plane permission, so admin:organizations
+    // granted on some OTHER resource server must NOT count. Re-scope the role's
+    // permission to a non-management audience; the user should then be treated
+    // as a normal creator and added to the new org.
+    await adapters.rolePermissions.remove("control_plane", globalAdminRoleId, [
+      {
+        resource_server_identifier: "urn:authhero:management",
+        permission_name: "admin:organizations",
+      },
+    ]);
+    await adapters.rolePermissions.assign("control_plane", globalAdminRoleId, [
+      {
+        role_id: globalAdminRoleId,
+        resource_server_identifier: "https://some-other-api.example.com",
+        permission_name: "admin:organizations",
+      },
+    ]);
+
+    const response = await app.request(
+      "/management/tenants",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: "non-mgmt-audience-tenant",
+          friendly_name: "Non Mgmt Audience Tenant",
+          audience: "https://non-mgmt-audience.example.com",
+          sender_email: "support@non-mgmt.com",
+          sender_name: "Non Mgmt",
+        }),
+      },
+      env,
+    );
+
+    expect(response.status).toBe(201);
+
+    const orgs = await adapters.organizations.list("control_plane");
+    const newTenantOrg = orgs.organizations.find(
+      (org) => org.name === "non-mgmt-audience-tenant",
+    );
+    expect(newTenantOrg).toBeDefined();
+
+    // No genuine global escape hatch -> creator IS added to the organization.
+    const userOrgs = await adapters.userOrganizations.list("control_plane", {
+      q: `organization_id:${newTenantOrg!.id}`,
+    });
+    const adminOrgMembership = userOrgs.userOrganizations.find(
+      (uo) => uo.user_id === GLOBAL_ADMIN_USER_ID,
+    );
+    expect(adminOrgMembership).toBeDefined();
   });
 
   it("should not assign organization-specific role to user with admin:organizations", async () => {
