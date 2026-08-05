@@ -6,7 +6,50 @@
   "description": "AuthHero control-plane vertical on Substrat — tenant registry + entitlements seam (design: billing-and-console-on-substrat.md, Stage 2)",
   "substrat": {
     "slug": "authhero-console",
-    "name": "AuthHero Console"
+    "name": "AuthHero Console",
+    "tenant": "authhero-mqk5x7",
+    "permissions": "src/permissions.ts",
+    "envSpec": [
+      {
+        "key": "OIDC_ISSUER",
+        "label": "AuthHero issuer",
+        "description": "The AuthHero deployment console admins log in against — byte-exact as it appears in the iss claim (usually ends with /).",
+        "placeholder": "https://auth.example.com/",
+        "required": true,
+        "group": "Auth",
+        "default": "https://authhero-auth-core-authhero.global.substrat.run/"
+      },
+      {
+        "key": "OIDC_CLIENT_ID",
+        "label": "Console client id",
+        "description": "The AuthHero client the SPA uses for PKCE login.",
+        "default": "default",
+        "group": "Auth"
+      },
+      {
+        "key": "OIDC_AUDIENCE",
+        "label": "API audience",
+        "description": "The audience bearer tokens must carry. urn:authhero:management matches the admin surface and always exists on seeded tenants.",
+        "required": false,
+        "group": "Auth",
+        "default": "urn:authhero:management"
+      },
+      {
+        "key": "OWNER_SUB",
+        "label": "Operator sub",
+        "description": "The AuthHero sub of the human operator; grants their login the platform-operator role at provision/reconcile.",
+        "required": false,
+        "group": "Bootstrap",
+        "default": "auth0|0aceaa2aa48fddc1729072ee"
+      },
+      {
+        "key": "OIDC_JWKS",
+        "label": "Issuer JWKS (static bridge)",
+        "description": "Static JWKS pin — bridge until cross-vertical fetch works.",
+        "required": false,
+        "group": "Auth"
+      }
+    ]
   },
   "scripts": {
     "server": "tsx src/server.ts",
@@ -26,11 +69,11 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.13.0",
-    "@substrat-run/adapter-cloudflare": "^0.31.0",
-    "@substrat-run/adapter-sqlite": "^0.31.0",
-    "@substrat-run/contracts": "^0.31.0",
-    "@substrat-run/control-plane-api": "^0.31.0",
-    "@substrat-run/kernel": "^0.31.0",
+    "@substrat-run/adapter-cloudflare": "^0.35.0",
+    "@substrat-run/adapter-sqlite": "^0.35.0",
+    "@substrat-run/contracts": "^0.35.0",
+    "@substrat-run/control-plane-api": "^0.35.0",
+    "@substrat-run/kernel": "^0.35.0",
     "better-sqlite3": "^11.0.0",
     "hono": "^4.6.0"
   },

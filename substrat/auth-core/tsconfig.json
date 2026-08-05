@@ -8,10 +8,10 @@
     "noUncheckedIndexedAccess": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "types": ["@cloudflare/workers-types"],
-    "rootDir": "src",
-    "outDir": "dist/worker",
-    "noEmit": false
+    "types": ["node"],
+    "outDir": "dist",
+    "rootDir": "."
   },
-  "include": ["src/worker.ts"]
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/worker.ts"]
 }

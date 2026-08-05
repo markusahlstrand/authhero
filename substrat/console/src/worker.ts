@@ -45,6 +45,7 @@ import { controlplaneManifest } from "./manifest.js";
 import { controlplaneModule } from "./module.js";
 import { ROLES, OWNER_ROLE } from "./roles.js";
 import { principalFromAuthHero, type OidcVerifyConfig } from "./oidc-auth.js";
+import { principalForSub } from "./identity.js";
 import { serveAsset } from "./assets.js";
 
 // The code-time module set, bundled into the DO (a DO cannot receive handler
@@ -94,9 +95,19 @@ function appEnv(env: Env): Record<string, string | undefined> {
 
 function oidcCfg(env: Env): OidcVerifyConfig {
   const values = appEnv(env);
+  let staticJwks: { keys: unknown[] } | undefined;
+  if (values.OIDC_JWKS) {
+    try {
+      const parsed: unknown = JSON.parse(values.OIDC_JWKS);
+      if (parsed && typeof parsed === "object" && Array.isArray((parsed as { keys?: unknown }).keys)) {
+        staticJwks = parsed as { keys: unknown[] };
+      }
+    } catch { /* malformed static JWKS — fall back to fetch */ }
+  }
   return {
     issuer: values.OIDC_ISSUER ?? "",
     ...(values.OIDC_AUDIENCE ? { audience: values.OIDC_AUDIENCE } : {}),
+    ...(staticJwks ? { staticJwks } : {}),
   };
 }
 
@@ -144,7 +155,32 @@ async function principalFor(
 
 const app = new Hono<{ Bindings: Env }>();
 
-app.get("/health", (c) => c.json({ ok: true, vertical: "authhero-console" }));
+app.get("/health", async (c) => {
+  // ?check=jwks: exercise the worker-side JWKS fetch to the issuer — the one
+  // leg of token verification that involves worker-to-worker networking.
+  if (c.req.query("check") === "jwks") {
+    const cfg = oidcCfg(c.env);
+    const base = cfg.issuer.endsWith("/") ? cfg.issuer : cfg.issuer + "/";
+    try {
+      const res = await fetch(base + ".well-known/jwks.json");
+      const body = (await res.json().catch(() => ({}))) as { keys?: unknown[] };
+      return c.json({
+        ok: res.ok,
+        issuer: cfg.issuer,
+        audience: cfg.audience ?? null,
+        jwksStatus: res.status,
+        keys: body.keys?.length ?? 0,
+      });
+    } catch (err) {
+      return c.json({
+        ok: false,
+        issuer: cfg.issuer,
+        fetchError: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+  return c.json({ ok: true, vertical: "authhero-console" });
+});
 
 // ── The platform's /internal/* surface (secret-gated, never user-facing) ─────
 
@@ -167,6 +203,11 @@ const provisionBody = z.object({
   slug: z.string().min(1),
   name: z.string().min(1),
   entitlements: z.array(entitlementGrant).optional(),
+  /** Install-time config (#426): OWNER_SUB = the AuthHero `sub` of the human
+   *  operator — their OIDC login derives a DIFFERENT principal than the
+   *  platform's install owner, so without this the installer logs in as
+   *  role-none with no bootstrap affordance. */
+  config: z.record(z.string(), z.string()).optional(),
 });
 
 // Provision ONE console scope on the platform's instruction (K-31), CP-less:
@@ -175,7 +216,8 @@ const provisionBody = z.object({
 app.post("/internal/provision", async (c) => {
   gatePlatform(c);
   const body = provisionBody.parse(await c.req.json());
-  await hostFor(c.env).provisionScopeLocal({
+  const host = hostFor(c.env);
+  await host.provisionScopeLocal({
     tenantId: body.tenantId,
     scopeId: body.scopeId,
     owner: body.owner,
@@ -183,10 +225,57 @@ app.post("/internal/provision", async (c) => {
     ownerRoleKey: OWNER_ROLE,
     ...(body.entitlements ? { entitlements: body.entitlements } : {}),
   });
+  // Bridge the two identities (#426 config): the platform's install owner got
+  // the role above; OWNER_SUB additionally grants it to the principal the
+  // operator's AuthHero login will DERIVE, so their first sign-in is already
+  // platform-operator. Idempotent (tuple write is INSERT OR REPLACE).
+  const ownerSub = body.config?.OWNER_SUB;
+  if (ownerSub) {
+    await host.assignScopeRole(
+      body.scopeId,
+      principalForSub(ownerSub),
+      OWNER_ROLE,
+    );
+  }
   return c.json(
-    { tenantId: body.tenantId, scopeId: body.scopeId, owner: body.owner },
+    {
+      tenantId: body.tenantId,
+      scopeId: body.scopeId,
+      owner: body.owner,
+      ...(ownerSub ? { operatorPrincipal: principalForSub(ownerSub) } : {}),
+    },
     201,
   );
+});
+
+// Settings delivery (configureInstance → key-by-key entries). The console's one
+// configurable bootstrap is OWNER_SUB; its effect (the role tuple) is durable in
+// the scope, so applying IS persisting. OIDC_* entries are read from env
+// (worker envSpec) — their per-install delivery is substrat#398's territory.
+const configureBody = z.object({
+  tenantId: tenantIdOf,
+  scopeId: scopeIdOf,
+  entries: z.array(z.object({ key: z.string().min(1), value: z.string() })),
+});
+
+app.post("/internal/configure", async (c) => {
+  gatePlatform(c);
+  const body = configureBody.parse(await c.req.json());
+  const ownerSub =
+    body.entries.find((e) => e.key === "OWNER_SUB")?.value ??
+    appEnv(c.env).OWNER_SUB; // env-default fallback (bridge until substrat#398)
+  if (ownerSub) {
+    await hostFor(c.env).assignScopeRole(
+      body.scopeId,
+      principalForSub(ownerSub),
+      OWNER_ROLE,
+    );
+  }
+  return c.json({
+    ok: true,
+    applied: ownerSub ? ["OWNER_SUB"] : [],
+    ...(ownerSub ? { operatorPrincipal: principalForSub(ownerSub) } : {}),
+  });
 });
 
 // The platform-intent pull surface (platform-intents.md Phase B1): the platform

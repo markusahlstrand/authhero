@@ -22,6 +22,9 @@ export * from "./styles";
 export * from "./adapters";
 export * from "./email-services";
 export { waitUntil } from "./helpers/wait-until";
+// Credential helper for provisioning surfaces (docker seed, substrat/auth-core):
+// the same hash path seed() uses, so an admin upsert is byte-compatible.
+export { hashPassword } from "./helpers/password-policy";
 export {
   toMutableResponse,
   ensureMutableResponse,
