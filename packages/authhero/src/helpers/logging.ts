@@ -105,6 +105,14 @@ export type LogParams = {
   audience?: string;
   scope?: string;
   /**
+   * The login target — the RP's `redirect_uri` the authorization is completing
+   * for. Recorded on the request block so a `Successful Login` (or other auth
+   * event) can be attributed to a specific destination even when several flows
+   * share one `client_id` (e.g. a browser SPA and a server-side OIDC plugin
+   * both authorizing as the same client).
+   */
+  redirect_uri?: string;
+  /**
    * Response details to include in the log (for Management API operations)
    */
   response?: {
@@ -344,6 +352,7 @@ function buildAuditEvent(
       body: redactBody(params.body || ctx.var.body || undefined),
       ip: ctx.var.ip || "",
       user_agent: ctx.var.useragent || undefined,
+      ...(params.redirect_uri ? { redirect_uri: params.redirect_uri } : {}),
     },
 
     response: params.response
@@ -458,6 +467,9 @@ export async function logMessage(
           path: ctx.req.path,
           qs: ctx.req.queries(),
           body: redactBody(params.body || ctx.var.body || ""),
+          ...(params.redirect_uri
+            ? { redirect_uri: params.redirect_uri }
+            : {}),
         },
         ...(params.response && {
           response: params.response,

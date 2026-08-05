@@ -41,6 +41,8 @@ export const requestContextSchema = z.object({
   ip: z.string(),
   user_agent: z.string().optional(),
   correlation_id: z.string().optional(),
+  /** The RP `redirect_uri` this authorization is completing for, when known. */
+  redirect_uri: z.string().optional(),
 });
 
 export type RequestContext = z.infer<typeof requestContextSchema>;
