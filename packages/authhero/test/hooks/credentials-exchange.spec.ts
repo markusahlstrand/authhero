@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
 import { LogTypes, Strategy } from "@authhero/adapter-interfaces";
 import { getTestServer } from "../helpers/test-server";
+import { createTestRefreshToken } from "../helpers/refresh-token";
 import { parseJWT } from "../../src/utils/jwt";
 import { nanoid } from "nanoid";
 import { computeCodeChallenge } from "../../src/utils/crypto";
@@ -379,7 +380,7 @@ describe("client-credentials-hooks", () => {
     });
 
     const idle_expires_at = new Date(Date.now() + 3600 * 1000).toISOString();
-    await env.data.refreshTokens.create("tenantId", {
+    const { wireToken } = await createTestRefreshToken(env, "tenantId", {
       id: "vippsRefreshToken",
       login_id: loginSession.id,
       user_id: userId,
@@ -410,7 +411,7 @@ describe("client-credentials-hooks", () => {
       {
         form: {
           grant_type: "refresh_token",
-          refresh_token: "vippsRefreshToken",
+          refresh_token: wireToken,
           client_id: "clientId",
         },
       },
@@ -462,7 +463,7 @@ describe("client-credentials-hooks", () => {
     });
 
     const idle_expires_at = new Date(Date.now() + 3600 * 1000).toISOString();
-    await env.data.refreshTokens.create("tenantId", {
+    const { wireToken } = await createTestRefreshToken(env, "tenantId", {
       id: "fallbackRefreshToken",
       login_id: loginSession.id,
       user_id: userId,
@@ -493,7 +494,7 @@ describe("client-credentials-hooks", () => {
       {
         form: {
           grant_type: "refresh_token",
-          refresh_token: "fallbackRefreshToken",
+          refresh_token: wireToken,
           client_id: "clientId",
         },
       },
