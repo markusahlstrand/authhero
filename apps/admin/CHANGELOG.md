@@ -1,5 +1,30 @@
 # @authhero/admin
 
+## 0.16.0
+
+### Minor Changes
+
+- 47851c3: **License change: AuthHero is now dual-licensed (AGPL-3.0-only or commercial).**
+
+  The core server and its runtime packages (`authhero`, the database adapters, `saml`,
+  `multi-tenancy`, `proxy`, `@authhero/admin`) are now licensed **AGPL-3.0-only**, with
+  commercial licenses available. The integration surfaces stay permissive:
+  `@authhero/adapter-interfaces`, `create-authhero` (and the apps it scaffolds), and
+  `@authhero/widget` are **MIT** — using these packages on their own imposes no AGPL
+  obligations on your code. Use of the AGPL-licensed packages remains subject to
+  AGPL-3.0-only (or a commercial license).
+
+  Versions published before this release remain available under their original MIT
+  terms. See LICENSING.md in the repository for the full model, and CLA.md for the
+  contributor agreement that keeps dual licensing possible.
+
+### Patch Changes
+
+- Updated dependencies [47851c3]
+- Updated dependencies [f1cbb4c]
+- Updated dependencies [a5cb3a3]
+  - @authhero/adapter-interfaces@4.3.0
+
 ## 0.15.3
 
 ### Patch Changes
@@ -145,7 +170,6 @@
 ### Patch Changes
 
 - 378e918: Recognize every spelling of the database-connection strategy and write the Auth0-canonical value on new connections.
-
   - `@authhero/adapter-interfaces` exports `DATABASE_CONNECTION_STRATEGY` (`"auth0"`, what Auth0 stores on database connections) and `isDatabaseConnectionStrategy()`, which matches the canonical `"auth0"` plus the two legacy spellings still present in existing data: `"Username-Password-Authentication"` (the connection name reused as strategy) and `"auth2"` (the legacy provider literal).
   - All readers that detect a password connection — universal-login screens, password/ticket/dbconnections flows, callback error routing, and the admin UI — now use the tolerant matcher instead of comparing against the exact `"Username-Password-Authentication"` string. Tenants whose connection rows carry a legacy strategy value get correct password-login behavior everywhere.
   - `seed()` now creates the database connection with `strategy: "auth0"` (name stays `"Username-Password-Authentication"`), matching Auth0's management API shape.
@@ -162,7 +186,6 @@
 ### Patch Changes
 
 - 6ffefb4: Never create users with the legacy "auth2" provider — new username/password users are always stamped with "auth0".
-
   - `resolveUsernamePasswordProvider` now defaults to `"auth0"` when no `usernamePasswordProvider` resolver is configured; return `"auth2"` from the resolver to pin a tenant on the legacy value during a staged cutover.
   - The management API `POST /users` no longer derives the provider from a database connection's `strategy` field (which legacy tenants persist as the `"auth2"` literal) and no longer honors a caller-supplied `"auth2"` provider — database users always get the tenant's resolved username-password provider.
   - The exported `USERNAME_PASSWORD_PROVIDER` constant changed from `"auth2"` to `"auth0"`; seeding and the `ensureUsername` pre-defined hook now create `auth0|*` accounts, while their lookups keep matching existing `auth2|*` rows so no duplicates are created.
@@ -264,7 +287,6 @@
 ### Minor Changes
 
 - b783b34: Add a "try" action for webhooks so they can be triggered manually for a specific user.
-
   - New management API endpoint `POST /api/v2/hooks/{hook_id}/try` (authhero extension; not in Auth0). Takes `{ user_id }`, invokes the webhook through the same code path as a real trigger (service-token Bearer auth, stripped user payload, SUCCESS_HOOK/FAILED_HOOK logging) and returns the upstream response `{ ok, status, body?, error? }`. Disabled hooks can be tried, so a webhook can be verified before enabling it.
   - `invokeWebHook` is exported from `hooks/webhooks.ts` as the single-hook invoker returning the response details; `invokeHooks` now delegates to it per hook with unchanged behavior.
   - Admin UI: the hook edit page shows a "Try" button for web hooks that opens a dialog to search for a user and trigger the webhook, displaying the upstream response status and body.

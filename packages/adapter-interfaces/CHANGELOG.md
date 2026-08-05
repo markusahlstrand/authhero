@@ -1,5 +1,64 @@
 # @authhero/adapter-interfaces
 
+## 4.3.0
+
+### Minor Changes
+
+- 47851c3: **License change: AuthHero is now dual-licensed (AGPL-3.0-only or commercial).**
+
+  The core server and its runtime packages (`authhero`, the database adapters, `saml`,
+  `multi-tenancy`, `proxy`, `@authhero/admin`) are now licensed **AGPL-3.0-only**, with
+  commercial licenses available. The integration surfaces stay permissive:
+  `@authhero/adapter-interfaces`, `create-authhero` (and the apps it scaffolds), and
+  `@authhero/widget` are **MIT** — using these packages on their own imposes no AGPL
+  obligations on your code. Use of the AGPL-licensed packages remains subject to
+  AGPL-3.0-only (or a commercial license).
+
+  Versions published before this release remain available under their original MIT
+  terms. See LICENSING.md in the repository for the full model, and CLA.md for the
+  contributor agreement that keeps dual licensing possible.
+
+- a5cb3a3: Allow account linking from a `post-user-login` code hook (action).
+
+  Tenants that need custom linking policy (link only within a domain, only for
+  certain connections, only when an `app_metadata` flag is set, …) can now
+  implement it as a user-authored action, alongside the existing built-in
+  `account-linking` template hook. Fixes #1184.
+  - **Opt-in.** Set `metadata.resolve_link_candidates: true` on a `post-user-login`
+    code hook. Only then does AuthHero run the extra same-email lookup and expose
+    `event.link_candidates` — an array of the primary accounts the built-in policy
+    would consider (oldest flagged `is_oldest`). Existing code hooks see no
+    behaviour or latency change and pay no extra query.
+  - **New verb.** `api.user.setLinkedTo(primaryUserId)` is now available at
+    `post-user-login`. The action reads `event.link_candidates` and links to one
+    of them.
+  - **Guarded host-side.** The write rejects any `primaryUserId` not present in
+    `event.link_candidates` (logging `FAILED_HOOK`) so an action can't be turned
+    into an account-takeover primitive; it enforces the verified-email gate
+    server-side regardless of what the action asserts; it uses "older account
+    wins" direction via `repointPrimary` (no 2-hop chains); and it is idempotent.
+    After linking, the resulting primary is re-fetched so downstream token
+    building sees it.
+  - `userLinkingMode: "off"` still only suppresses the built-in email→primary
+    lookup — explicit action/template linking remains available.
+
+  Internals: the per-trigger code-hook API allowlist, previously duplicated across
+  both executors, is now a single `TRIGGER_API_SHAPES` source of truth in
+  `@authhero/adapter-interfaces` (with a `LinkCandidate` type), and code-hook API
+  replay now awaits each call so `setLinkedTo`'s writes complete before the login
+  response is built.
+
+### Patch Changes
+
+- f1cbb4c: Record the login target (`redirect_uri`) on authentication logs. The
+  `SUCCESS_LOGIN` event now carries the RP `redirect_uri` on its request details
+  (`details.request.redirect_uri` in flat logs, `request.redirect_uri` on the
+  outbox audit event), so a login can be attributed to a specific destination
+  even when several flows share one `client_id` — e.g. a browser SPA and a
+  server-side OIDC plugin authorizing as the same client. `logMessage` gains an
+  optional `redirect_uri` param and `requestContextSchema` gains an optional
+  `redirect_uri` field.
+
 ## 4.2.1
 
 ### Patch Changes
@@ -18,7 +77,6 @@
 - be34110: Give `codes` a retention story so the table stops growing without bound (#1155).
 
   `codes` rows are short-lived by design but nothing ever pruned them, so every deployment accumulated them forever — one real deployment reached ~2.5M rows of which essentially 100% were expired.
-
   - `CodesAdapter` gains a required `cleanup(olderThan)` method, and `authhero` exports a `cleanupCodes(codes, { retentionDays })` helper to drive it from a scheduled handler, mirroring `cleanupOutbox`. **If you maintain a custom adapter, you must implement `cleanup`.**
   - The kysely adapter gains a `2026-07-16T12:00:00_codes_expires_at_ts` migration adding an indexed numeric `expires_at_ts` twin of `expires_at`, so sweeps no longer scan the table. It prunes already-expired rows _before_ adding the index, so it stays cheap on a table that has already grown large, and backfills the small remainder.
   - The drizzle adapter sweeps its existing indexed `expires_at` column and needs no migration. The AWS adapter is a no-op — DynamoDB already expires codes via a native `ttl`.
@@ -30,7 +88,6 @@
 ### Minor Changes
 
 - 32ceb43: feat(pagination): checkpoint (from/take + opaque next cursor) on GET /users, and align the default page size with Auth0 (#1098)
-
   - `GET /users` now supports keyset (checkpoint) pagination via `from`/`take`, returning `{ users, next }` with an opaque cursor that is absent on the last page. This is a deliberate superset of Auth0, which only offers offset paging on /users and caps it at 1000 results — full-tenant walks no longer need export jobs. Offset paging (`page`/`per_page` + totals) is unchanged.
   - In checkpoint mode, `q` filters stay in effect and `created_at` asc/desc is sortable (`user_id` is the unique tiebreaker). The cursor records the sort it was minted under; replaying it with a different sort returns 400. Unsupported sort columns return 400.
   - Linked accounts remain folded into their primary user's `identities` during cursor walks and never appear as top-level rows.
@@ -78,7 +135,6 @@
 - 0e6acf4: Add Auth0-style keyset (checkpoint) pagination with an opaque `next` cursor.
 
   List endpoints previously treated the `from` parameter as a numeric SQL offset, which diverges from Auth0 (where `from` is the opaque `next` token from the prior response) and is unstable under concurrent writes. Organization and organization-members listing now support true keyset pagination:
-
   - `adapter-interfaces` exposes `encodeCursor`/`decodeCursor` and a `next` field on the list-response contract. `from` is documented as an opaque cursor.
   - kysely and drizzle gain a shared keyset paginator (`(sortColumn, id)` row-value comparison, `take + 1` look-ahead to emit `next`). Offset pagination (`page`/`per_page` + `total`), used by the admin UI, is unchanged.
   - `GET /organizations`, `GET /organizations/{id}/members` and `GET /client-grants` return `{ items, next }` when called with `from`/`take`, and keep the offset shape for `page`/`per_page`. These are the endpoints Auth0 documents as checkpoint pagination.
@@ -94,7 +150,6 @@
 - 4867c22: Make the outbox transactional: hook events now commit atomically with the user write (#1057).
 
   Previously the `hook.post-user-registration` / `hook.post-user-deletion` outbox event was written as a standalone insert _after_ the user commit closed, then awaited by the outbox middleware with `Promise.allSettled` + `console.error`. A failed enqueue — or a worker crash/eviction between the two writes — silently dropped the event, so the outbox pattern's defining guarantee ("business row and event row commit together or not at all") did not hold.
-
   - **adapter-interfaces**: `rawCreate`, `update`, and `remove` accept an optional `WriteOptions.outboxEvents` (a new `OutboxEventInsert` — an audit event with a caller-assigned `id`). Adapters must persist these in the same atomic unit as the business write.
   - **drizzle**: the companion outbox insert is appended to the existing `runAtomic` batch, so on D1 the user row and its event land in a single `db.batch()` (and one `BEGIN/COMMIT` on better-sqlite3). On `remove`, the companion event is only appended when the primary user actually exists (checked via the same pre-batch read that collects linked IDs), so deleting a non-existent user can't strand an orphaned `hook.post-user-deletion` event. Also fixes a latent bug where `outbox.create` wrote `undefined` into the NOT NULL `aggregate_type`/`aggregate_id` columns — these now derive from the event's `target`, matching kysely.
   - **kysely**: the companion event is inserted inside the same transaction as the user write.
@@ -107,7 +162,6 @@
 ### Minor Changes
 
 - 378e918: Recognize every spelling of the database-connection strategy and write the Auth0-canonical value on new connections.
-
   - `@authhero/adapter-interfaces` exports `DATABASE_CONNECTION_STRATEGY` (`"auth0"`, what Auth0 stores on database connections) and `isDatabaseConnectionStrategy()`, which matches the canonical `"auth0"` plus the two legacy spellings still present in existing data: `"Username-Password-Authentication"` (the connection name reused as strategy) and `"auth2"` (the legacy provider literal).
   - All readers that detect a password connection — universal-login screens, password/ticket/dbconnections flows, callback error routing, and the admin UI — now use the tolerant matcher instead of comparing against the exact `"Username-Password-Authentication"` string. Tenants whose connection rows carry a legacy strategy value get correct password-login behavior everywhere.
   - `seed()` now creates the database connection with `strategy: "auth0"` (name stays `"Username-Password-Authentication"`), matching Auth0's management API shape.
@@ -119,7 +173,6 @@
 ### Patch Changes
 
 - e358192: Fix tenant log identity fields so logs match what Auth0 records
-
   - SUCCESS_LOGIN logs no longer record the strategy (e.g. "okta") as the `connection`; the connection name actually used (e.g. "Okta-Warner") wins, resolved via the login session's `auth_connection`.
   - `logMessage` now resolves `connection_id`, `client_name` and `user_name` from the data layer when the caller doesn't supply them, instead of hardcoding empty strings. Applies to every log/audit event, including the outbox path.
   - Token endpoint success logs (`seacft`, `serft`, …) now carry `connection`, `strategy`, `strategy_type`, `user_name` and `client_name`.
@@ -169,7 +222,6 @@
 
 - 9b7879c: Add tenant export/import for migrating a tenant between databases (e.g.
   PlanetScale → a per-tenant Workers-for-Platforms D1).
-
   - New `GET /api/v2/tenant-data/export` streams a gzipped JSON-lines export of a
     tenant's durable data (one `{ entity, data }` record per line). Password
     hashes are excluded unless `?include_password_hashes=true` is set, which
@@ -196,7 +248,6 @@
 
   The tenant row now records what a Workers-for-Platforms tenant is running so the
   control plane can detect drift and drive upgrades:
-
   - New `database_version` field (the latest migration applied — the schema
     version the deployed bundle targets), alongside the existing
     `worker_version` and `bundle_configuration` fields, which are now actually

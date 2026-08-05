@@ -1,5 +1,30 @@
 # @authhero/widget
 
+## 0.35.0
+
+### Minor Changes
+
+- 47851c3: **License change: AuthHero is now dual-licensed (AGPL-3.0-only or commercial).**
+
+  The core server and its runtime packages (`authhero`, the database adapters, `saml`,
+  `multi-tenancy`, `proxy`, `@authhero/admin`) are now licensed **AGPL-3.0-only**, with
+  commercial licenses available. The integration surfaces stay permissive:
+  `@authhero/adapter-interfaces`, `create-authhero` (and the apps it scaffolds), and
+  `@authhero/widget` are **MIT** — using these packages on their own imposes no AGPL
+  obligations on your code. Use of the AGPL-licensed packages remains subject to
+  AGPL-3.0-only (or a commercial license).
+
+  Versions published before this release remain available under their original MIT
+  terms. See LICENSING.md in the repository for the full model, and CLA.md for the
+  contributor agreement that keeps dual licensing possible.
+
+### Patch Changes
+
+- Updated dependencies [47851c3]
+- Updated dependencies [f1cbb4c]
+- Updated dependencies [a5cb3a3]
+  - @authhero/adapter-interfaces@4.3.0
+
 ## 0.34.16
 
 ### Patch Changes
@@ -152,7 +177,6 @@
   code), the widget card now animates its height from the current step's size to
   the next one's — like Stripe's dashboard login — instead of snapping. The
   content swaps without a fade; the card just resizes.
-
   - `@authhero/widget`: after a form submit swaps the screen, `swapScreen` locks
     the card's current height, swaps the content, measures the new screen's
     natural height, and animates the `.widget-container` height between them via
@@ -172,7 +196,6 @@
 ### Patch Changes
 
 - c76247b: Fix theme/branding options that were set but never applied. Several CSS variables produced by the theme were read under a different name (or not at all) by the component CSS, so the corresponding Auth0-style theme settings had no visible effect. Now wired up:
-
   - **Input Filled Text** (`input_filled_text`) — input/select text now uses this color instead of the body text color.
   - **Header** color (`header`) — title/header text color now applies.
   - **Secondary button** label and border colors (`secondary_button_label`, `secondary_button_border`).
