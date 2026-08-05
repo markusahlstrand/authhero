@@ -1,0 +1,15 @@
+{
+  "//": "Harness files (composition roots exempt from module rules). oidc-auth.ts fetches the issuer's JWKS — identity plumbing the worker runs OUTSIDE any scope transaction; platform-handlers.ts wields HostAdmin (the local platform stand-in). Module code stays: manifest, migrations, module, policy, intents.",
+  "harness": [
+    "seed.ts",
+    "server.ts",
+    "worker.ts",
+    "constants.ts",
+    "identity.ts",
+    "oidc-auth.ts",
+    "platform-handlers.ts",
+    "roles.ts",
+    "assets.ts",
+    "assets.generated.ts"
+  ]
+}
