@@ -11,10 +11,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # No version input — pnpm/action-setup v4+ reads the packageManager
+      # field from package.json. A pinned older pnpm (8) can't read the
+      # lockfileVersion 9 lockfile, silently ignores it, and fresh-resolves
+      # into whatever the registry serves (e.g. a broken upstream release).
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 8
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
