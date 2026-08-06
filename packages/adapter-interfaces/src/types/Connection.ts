@@ -232,8 +232,8 @@ export const connectionInsertSchema = z.object({
     )
     .default({}),
   enabled_clients: z.array(z.string()).default([]).optional(),
-  response_type: z.custom<AuthorizationResponseType>().optional(),
-  response_mode: z.custom<AuthorizationResponseMode>().optional(),
+  response_type: z.nativeEnum(AuthorizationResponseType).optional(),
+  response_mode: z.nativeEnum(AuthorizationResponseMode).optional(),
   is_domain_connection: z.boolean().optional(),
   show_as_button: z.boolean().optional(),
   metadata: z.record(z.string(), z.any()).optional(),
