@@ -2,7 +2,7 @@ import { Context } from "hono";
 import { DataAdapters, LogTypes } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
 import { EnrichedClient } from "../helpers/client";
-import { getPrimaryUserByEmail } from "../helpers/users";
+import { userExistsByEmail } from "../helpers/users";
 import { logMessage } from "../helpers/logging";
 import { createServiceToken } from "../helpers/service-token";
 import { JSONHTTPException } from "../errors/json-http-exception";
@@ -82,8 +82,11 @@ export async function validateSignupEmail(
       return { allowed: true };
     }
 
-    // If there is another user with the same email, allow as they will be linked
-    const existingUser = await getPrimaryUserByEmail({
+    // If there is another user with the same email, allow — either they'll be
+    // linked, or (with linking off) the address already belongs to a real
+    // account on this tenant. Existence is the whole question; which row is
+    // canonical doesn't matter.
+    const existingUser = await userExistsByEmail({
       userAdapter: data.users,
       tenant_id: client.tenant.id,
       email,

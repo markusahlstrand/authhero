@@ -14,7 +14,7 @@ import {
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import {
   getPrimaryUserByProvider,
-  getPrimaryUserByEmail,
+  userExistsByEmail,
 } from "../../../helpers/users";
 import { validateSignupEmail } from "../../../hooks";
 import { getConnectionFromIdentifier } from "../../../utils/username";
@@ -540,26 +540,30 @@ export const identifierScreenDefinition: ScreenDefinition = {
         }
       }
 
-      // Look up user
-      const user =
+      // Does an account exist for this identifier? Only existence matters
+      // here — which row is canonical is irrelevant to both the connection
+      // check and the signup gate below, so we never ask for a single
+      // "primary" by email. That would be wrong on tenants running with user
+      // linking off, where several unlinked primaries share one email.
+      const userExists =
         connectionType === "email"
-          ? await getPrimaryUserByEmail({
+          ? await userExistsByEmail({
               userAdapter: ctx.env.data.users,
               tenant_id: client.tenant.id,
               email: normalized,
             })
           : connectionType === "username"
-            ? await getPrimaryUsernamePasswordUser({
+            ? !!(await getPrimaryUsernamePasswordUser({
                 env: ctx.env,
                 tenant_id: client.tenant.id,
                 username: normalized,
-              })
-            : await getPrimaryUserByProvider({
+              }))
+            : !!(await getPrimaryUserByProvider({
                 userAdapter: ctx.env.data.users,
                 tenant_id: client.tenant.id,
                 username: normalized,
                 provider: "sms",
-              });
+              }));
 
       // Check if connection is allowed
       // For "username" connectionType, allow if password connection has username identifier active
@@ -570,7 +574,7 @@ export const identifierScreenDefinition: ScreenDefinition = {
         client.connections.find((c) => c.strategy === connectionType) ||
         (connectionType === "username" && requiresUsername) ||
         (connectionType === "email" && passwordConnection && requiresEmail) ||
-        user;
+        userExists;
 
       if (!hasValidConnection) {
         const errorMsg = m.userAccountDoesNotExist();
@@ -590,7 +594,7 @@ export const identifierScreenDefinition: ScreenDefinition = {
       // as if the account existed — the OTP/password challenge then fails
       // generically, hiding the signal that the email is unknown.
       let silentSignupStub = false;
-      if (!user) {
+      if (!userExists) {
         // When we accept the email via the password-connection fallback above,
         // resolve to that connection's name so the gate runs on the right
         // record (the literal "email" strategy may not exist on this client).
