@@ -83,16 +83,78 @@ export function compareUsersByAge(a: User, b: User): number {
   return (a.user_id || "").localeCompare(b.user_id || "");
 }
 
+/**
+ * Order users by how recently they were used to log in (most recent first).
+ *
+ * Distinct from {@link compareUsersByAge}: that encodes the *linking* policy
+ * ("the older account is canonical"), while this answers "which of these
+ * accounts is the person actually using?" — the question behind the login
+ * screen's last-used-strategy hint.
+ *
+ * Users that have never logged in sort last. Ties fall back to
+ * `compareUsersByAge` so the ordering is fully deterministic.
+ */
+export function compareUsersByLastLogin(a: User, b: User): number {
+  const toTime = (value?: string): number => {
+    if (!value) return 0;
+    const time = new Date(value).getTime();
+    return Number.isNaN(time) ? 0 : time;
+  };
+  const aTime = toTime(a.last_login);
+  const bTime = toTime(b.last_login);
+  if (aTime !== bTime) return bTime - aTime;
+  return compareUsersByAge(a, b);
+}
+
+interface UserExistsByEmailParams {
+  userAdapter: UserDataAdapter;
+  tenant_id: string;
+  email: string;
+}
+
+/**
+ * True when any user row carries this email — primary or secondary.
+ *
+ * The login screens' signup gates only need to know whether an account exists
+ * for the address, never which row is canonical. Asking that narrower question
+ * directly (rather than via {@link getPrimaryUserByEmail}) keeps them correct
+ * on tenants running with user linking off, where several unlinked primaries
+ * legitimately share an email, and avoids throwing on a dangling `linked_to`.
+ */
+export async function userExistsByEmail({
+  userAdapter,
+  tenant_id,
+  email,
+}: UserExistsByEmailParams): Promise<boolean> {
+  const { users } = await userAdapter.list(tenant_id, {
+    page: 0,
+    per_page: 1,
+    include_totals: false,
+    q: `email:${email}`,
+  });
+
+  return users.length > 0;
+}
+
 interface GetPrimaryUserByEmailParams {
   userAdapter: UserDataAdapter;
   tenant_id: string;
   email: string;
+  /**
+   * Log when more than one primary shares the email. Only meaningful on
+   * account-linking paths, where duplicate primaries mean linking failed to
+   * converge. With `userLinkingMode: "off"` several primaries per email is the
+   * expected steady state (it's Auth0's default behaviour), so read paths
+   * leave this off rather than logging an error on every login.
+   */
+  warnOnMultiplePrimaries?: boolean;
 }
 
 export async function getPrimaryUserByEmail({
   userAdapter,
   tenant_id,
   email,
+  warnOnMultiplePrimaries = false,
 }: GetPrimaryUserByEmailParams): Promise<User | undefined> {
   const { users } = await userAdapter.list(tenant_id, {
     page: 0,
@@ -108,7 +170,7 @@ export async function getPrimaryUserByEmail({
   const primaryUsers = users.filter((user) => !user.linked_to);
 
   if (primaryUsers.length > 0) {
-    if (primaryUsers.length > 1) {
+    if (warnOnMultiplePrimaries && primaryUsers.length > 1) {
       console.error("More than one primary user found for same email");
     }
 
@@ -126,6 +188,62 @@ export async function getPrimaryUserByEmail({
   }
 
   return primaryAccount;
+}
+
+interface GetLastUsedUserByEmailParams {
+  userAdapter: UserDataAdapter;
+  tenant_id: string;
+  email: string;
+}
+
+/**
+ * The account for `email` that was most recently logged in to.
+ *
+ * Used for UI hints that describe *this person's habits* — chiefly the
+ * last-used-strategy shortcut on the identifier screen. When linking is off, an
+ * email can map to several primaries (say a password account and a Google one);
+ * picking the oldest, as {@link getPrimaryUserByEmail} does, would hand back
+ * whichever account they happened to create first and hint at a login method
+ * they may have abandoned. Picking by `last_login` follows the account actually
+ * in use.
+ *
+ * Deliberately *not* provider-biased: preferring the password account would
+ * push habitual social users to the password screen.
+ *
+ * When only secondaries match, the cluster root is returned — login updates
+ * land on the primary, so that's where the hint lives. Unlike
+ * `getPrimaryUserByEmail` a dangling `linked_to` yields `undefined` rather than
+ * throwing; callers fall back to the tenant's default strategy, which is the
+ * right outcome for a hint.
+ */
+export async function getLastUsedUserByEmail({
+  userAdapter,
+  tenant_id,
+  email,
+}: GetLastUsedUserByEmailParams): Promise<User | undefined> {
+  const { users } = await userAdapter.list(tenant_id, {
+    page: 0,
+    per_page: 10,
+    include_totals: false,
+    q: `email:${email}`,
+  });
+
+  if (users.length === 0) {
+    return;
+  }
+
+  const primaryUsers = users.filter((user) => !user.linked_to);
+
+  if (primaryUsers.length > 0) {
+    return [...primaryUsers].sort(compareUsersByLastLogin)[0];
+  }
+
+  const linkedTo = users[0]?.linked_to;
+  if (!linkedTo) {
+    return;
+  }
+
+  return (await userAdapter.get(tenant_id, linkedTo)) ?? undefined;
 }
 
 interface RepointPrimaryParams {

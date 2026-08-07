@@ -5,7 +5,7 @@ import { prefetchClientBundle } from "../../helpers/prefetch-client-bundle";
 import { isCimdClientId } from "../../helpers/cimd";
 import i18next from "i18next";
 import {
-  getPrimaryUserByEmail,
+  getLastUsedUserByEmail,
   getPrimaryUserByProvider,
 } from "../../helpers/users";
 import { getPrimaryUsernamePasswordUser } from "../../utils/username-password-provider";
@@ -268,12 +268,13 @@ export async function getLoginStrategy(
     return connectionType === "sms" ? "sms" : "email";
   }
 
-  // Look up user - for email use getPrimaryUserByEmail (finds any provider);
-  // for username use the dual-read helper (auth2 or auth0); for sms use the
-  // literal "sms" provider.
+  // Look up user - for email use getLastUsedUserByEmail (finds any provider,
+  // and picks the account this person actually logs in with when linking is
+  // off and several primaries share the email); for username use the dual-read
+  // helper (auth2 or auth0); for sms use the literal "sms" provider.
   const user =
     connectionType === "email"
-      ? await getPrimaryUserByEmail({
+      ? await getLastUsedUserByEmail({
           userAdapter: ctx.env.data.users,
           tenant_id: client.tenant.id,
           email: username,

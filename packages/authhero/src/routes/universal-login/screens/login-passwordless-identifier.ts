@@ -12,7 +12,7 @@ import { Strategy } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import {
   getPrimaryUserByProvider,
-  getPrimaryUserByEmail,
+  userExistsByEmail,
 } from "../../../helpers/users";
 import { validateSignupEmail } from "../../../hooks";
 import { getConnectionFromIdentifier } from "../../../utils/username";
@@ -272,26 +272,29 @@ export const loginPasswordlessIdentifierScreenDefinition: ScreenDefinition = {
         };
       }
 
-      // Look up user
-      const user =
+      // Does an account exist for this identifier? Only existence matters —
+      // the sole consumer is the signup gate below, so we never ask for a
+      // single "primary" by email, which would be wrong on tenants running
+      // with user linking off (several unlinked primaries per email).
+      const userExists =
         connectionType === "email"
-          ? await getPrimaryUserByEmail({
+          ? await userExistsByEmail({
               userAdapter: ctx.env.data.users,
               tenant_id: client.tenant.id,
               email: normalized,
             })
-          : await getPrimaryUserByProvider({
+          : !!(await getPrimaryUserByProvider({
               userAdapter: ctx.env.data.users,
               tenant_id: client.tenant.id,
               username: normalized,
               provider: "sms",
-            });
+            }));
 
       // Validate signup if user doesn't exist. In enumeration-safe mode the
       // screen behaves as if the account existed and the OTP challenge fails
       // generically.
       let silentSignupStub = false;
-      if (!user) {
+      if (!userExists) {
         const validation = await validateSignupEmail(
           ctx,
           client,

@@ -68,6 +68,11 @@ export function commitUserHook(data: DataAdapters) {
               userAdapter: trxData.users,
               tenant_id,
               email: normalizedEmail,
+              // Built-in linking is on for this tenant, so two primaries
+              // sharing an email means a previous link failed to converge —
+              // worth an error. Read paths pass this off: with linking
+              // disabled, duplicate primaries are the expected steady state.
+              warnOnMultiplePrimaries: true,
             });
 
             if (primaryUser) {

@@ -17,7 +17,7 @@ import {
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import {
   getPrimaryUserByProvider,
-  getPrimaryUserByEmail,
+  userExistsByEmail,
 } from "../../../helpers/users";
 import { getPrimaryUsernamePasswordUser } from "../../../utils/username-password-provider";
 import { validateSignupEmail } from "../../../hooks";
@@ -586,26 +586,29 @@ export const loginScreenDefinition: ScreenDefinition = {
         };
       }
 
-      // Look up user
-      const user =
+      // Does an account exist for this identifier? Only existence matters —
+      // the sole consumer is the signup gate below, so we never ask for a
+      // single "primary" by email, which would be wrong on tenants running
+      // with user linking off (several unlinked primaries per email).
+      const userExists =
         connectionType === "email"
-          ? await getPrimaryUserByEmail({
+          ? await userExistsByEmail({
               userAdapter: ctx.env.data.users,
               tenant_id: client.tenant.id,
               email: normalized,
             })
           : connectionType === "username"
-            ? await getPrimaryUsernamePasswordUser({
+            ? !!(await getPrimaryUsernamePasswordUser({
                 env: ctx.env,
                 tenant_id: client.tenant.id,
                 username: normalized,
-              })
-            : await getPrimaryUserByProvider({
+              }))
+            : !!(await getPrimaryUserByProvider({
                 userAdapter: ctx.env.data.users,
                 tenant_id: client.tenant.id,
                 username: normalized,
                 provider: "sms",
-              });
+              }));
 
       // Check if password connection is allowed
       if (!passwordConnection) {
@@ -624,7 +627,7 @@ export const loginScreenDefinition: ScreenDefinition = {
       // skip the explicit error and let loginWithPassword below fail with
       // the standard wrong-credentials message, masking that the email is
       // unknown.
-      if (!user) {
+      if (!userExists) {
         const validation = await validateSignupEmail(
           ctx,
           client,

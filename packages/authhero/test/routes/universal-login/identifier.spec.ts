@@ -484,4 +484,84 @@ describe("login identifier page", () => {
     const redirectLocation = passwordUserResponse.headers.get("location");
     expect(redirectLocation).toContain("/u/enter-password");
   });
+
+  it("routes to the most recently used account when linking is off and two primaries share an email", async () => {
+    const { universalApp, oauthApp, env } = await getTestServer({
+      mockEmail: true,
+    });
+    const oauthClient = testClient(oauthApp, env);
+    const universalClient = testClient(universalApp, env);
+
+    const email = "two-primaries@example.com";
+
+    // The steady state on a tenant with user linking off: a social account and
+    // a database account for the same person, neither linked. The social one
+    // is older, so an age-based lookup returns it — but the person signs in
+    // with their password, and that's the account the screen must follow.
+    await env.data.users.create("tenantId", {
+      user_id: "google-oauth2|two-primaries",
+      email,
+      email_verified: true,
+      provider: "google-oauth2",
+      connection: "google-oauth2",
+      is_social: true,
+      created_at: "2026-07-04T13:50:29.977Z",
+      last_login: "2026-07-18T16:53:16.633Z",
+      app_metadata: { strategy: "google-oauth2" },
+    });
+    await env.data.users.create("tenantId", {
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|two-primaries`,
+      email,
+      email_verified: true,
+      provider: USERNAME_PASSWORD_PROVIDER,
+      connection: Strategy.USERNAME_PASSWORD,
+      is_social: false,
+      created_at: "2026-07-18T16:54:08.334Z",
+      last_login: "2026-08-07T15:46:27.838Z",
+      app_metadata: { strategy: Strategy.USERNAME_PASSWORD },
+    });
+
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+
+    try {
+      const authorizeResponse = await oauthClient.authorize.$get({
+        query: {
+          client_id: "clientId",
+          redirect_uri: "https://example.com/callback",
+          state: "state",
+          nonce: "nonce",
+          scope: "openid email profile",
+          response_type: AuthorizationResponseType.CODE,
+        },
+      });
+
+      const location = authorizeResponse.headers.get("location");
+      const universalUrl = new URL(`https://example.com${location}`);
+      const state = universalUrl.searchParams.get("state");
+      if (!state) {
+        throw new Error("No state found");
+      }
+
+      const response = await universalClient.login.identifier.$post({
+        query: { state },
+        form: { username: email },
+      });
+
+      // The tenant has both an email and a password connection, so nothing but
+      // the last-used hint can produce enter-password here — the default
+      // fallback is the email code.
+      expect(response.status).toBe(302);
+      expect(response.headers.get("location")).toContain("/u/enter-password");
+
+      // Duplicate primaries are expected with linking off, so the identifier
+      // POST must not log an error for them.
+      expect(consoleError).not.toHaveBeenCalledWith(
+        "More than one primary user found for same email",
+      );
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
 });
