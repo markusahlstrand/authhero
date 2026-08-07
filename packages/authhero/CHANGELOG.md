@@ -1,5 +1,28 @@
 # authhero
 
+## 9.1.0
+
+### Minor Changes
+
+- b7f67aa: Add SCIM 2.0 inbound-provisioning configuration plumbing (Phase 1 of #1191). Introduces three optional, tenant-scoped entities — `scimConfigurations` (one config per connection), `scimTokens` (hashed long-lived bearer tokens), and `scimExternalIds` (IdP `externalId` → `user_id` lookup) — with drizzle and kysely adapter implementations and migrations. Exposes the Auth0-parity management API under `/api/v2/connections/{id}/scim-configuration` (config CRUD, `default-mapping`, and token mint/list/delete), guarded by the existing `*:scim_config` / `*:scim_token` scopes and mounted only when the SCIM adapters are wired. Raw token secrets are returned once and stored only as SHA-256 hashes. The `/scim/v2` provisioning endpoints themselves land in Phase 2.
+- af987cc: Add the SCIM 2.0 provisioning endpoints (Phase 2 of #1191). Enterprise IdPs (Okta, Microsoft Entra) can now provision users at `/scim/v2/connections/{connection_id}` using a connection-scoped SCIM bearer token: `GET/POST /Users`, `POST /Users/.search`, `GET/PUT/PATCH/DELETE /Users/{id}`, and the `ServiceProviderConfig`/`ResourceTypes`/`Schemas` discovery documents. Includes a hand-rolled SCIM filter parser (`eq`/`and`/`or`) and PATCH applier (covering the ops Okta/Entra send), `externalId` lookup via the scim_external_ids table, `active`↔`blocked` mapping (deactivation blocks the user and revokes their sessions), and `sscim` audit logging. Provisioning writes flow through the normal user pipeline, so hooks and the outbox fire as usual. Mounted only when the SCIM adapters are wired; `disable_signup` is bypassed for provisioning (an admin-plane write). SCIM token scopes (`get/post/put/patch/delete:users`) are enforced when a token carries them — an unscoped token keeps full access — and a token is bound to its connection for use and for deletion. Groups are not yet supported.
+- 8af3eab: Add an Auth0-parity `blocked` flag to users. A blocked user cannot authenticate or refresh tokens: the password login path rejects with `USER_BLOCKED`, the refresh_token grant returns `invalid_grant`, and `createAuthTokens` fails closed for every other grant. Blocking a user via the management API (`PATCH /api/v2/users/{id}` with `blocked: true`) also revokes the user's sessions and refresh tokens, mirroring Auth0's session termination on block. The field is stored on both the drizzle and kysely adapters (nullable column, additive migrations). This is the prerequisite for SCIM `active: false` deprovisioning (#1191).
+
+### Patch Changes
+
+- 25dbb6e: Stop treating multiple primary users per email as an error on read paths. With `userLinkingMode: "off"` — Auth0's own default behaviour — a database account and a social account for the same address legitimately coexist unlinked, but every identifier POST logged "More than one primary user found for same email" and resolved the _oldest_ account.
+  - The login screens' signup gates (`login/identifier`, `login`, passwordless identifier, and `validateSignupEmail`) only ever needed to know whether an account exists for the address, so they now use the new `userExistsByEmail` helper instead of asking for a single canonical primary. This also removes a `"Primary account not found"` throw on a dangling `linked_to`.
+  - `getLoginStrategy` now resolves the last-used-strategy hint via the new `getLastUsedUserByEmail`, which picks the account with the most recent `last_login` rather than the oldest. Previously someone with an older social account and a newer password account was sent to the email-code screen even though they always sign in with a password. The selection is deliberately not provider-biased, so habitual social users are unaffected.
+  - `getPrimaryUserByEmail` now only logs the duplicate-primary error when the caller passes `warnOnMultiplePrimaries` — set on the built-in linking path, where duplicate primaries really do mean linking failed to converge.
+
+- Updated dependencies [b7f67aa]
+- Updated dependencies [52811ff]
+- Updated dependencies [8af3eab]
+  - @authhero/adapter-interfaces@4.4.0
+  - @authhero/proxy@0.10.1
+  - @authhero/saml@0.5.1
+  - @authhero/widget@0.35.1
+
 ## 9.0.0
 
 ### Major Changes
