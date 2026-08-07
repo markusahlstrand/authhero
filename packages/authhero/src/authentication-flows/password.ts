@@ -462,6 +462,31 @@ export async function passwordGrant(
     });
   }
 
+  // A blocked account cannot log in. Checked against the resolved primary
+  // (a block on the primary blocks all linked identities) and after password
+  // validation, so it neither enables enumeration nor leaks block status to
+  // someone without valid credentials.
+  if (primaryUser.blocked) {
+    logMessage(ctx, client.tenant.id, {
+      type: LogTypes.FAILED_LOGIN,
+      description: "User is blocked",
+    });
+
+    if (loginSession) {
+      await failLoginSession(
+        ctx,
+        client.tenant.id,
+        loginSession,
+        "User is blocked",
+      );
+    }
+
+    throw new AuthError(403, {
+      message: "User is blocked",
+      code: "USER_BLOCKED",
+    });
+  }
+
   if (
     !user.email_verified &&
     client.client_metadata?.email_validation === "enforced"

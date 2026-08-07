@@ -37,6 +37,8 @@ export const users = sqliteTable(
     connection: text("connection", { length: 255 }),
     email_verified: integer("email_verified", { mode: "boolean" }).notNull(),
     is_social: integer("is_social", { mode: "boolean" }).notNull(),
+    // Auth0-parity account block flag. Nullable; absent/0 means not blocked.
+    blocked: integer("blocked", { mode: "boolean" }),
     app_metadata: text("app_metadata", { length: 4096 })
       .notNull()
       .default("{}"),

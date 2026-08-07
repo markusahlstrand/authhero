@@ -37,6 +37,7 @@ const ALLOWED_Q_FIELDS = [
   "provider",
   "connection",
   "is_social",
+  "blocked",
   "last_ip",
   "last_login",
   "login_count",
@@ -105,6 +106,7 @@ async function hydrateProfiles(
       phone_verified:
         user.phone_verified !== null ? user.phone_verified === 1 : undefined,
       is_social: user.is_social === 1,
+      blocked: user.blocked != null ? user.blocked === 1 : undefined,
       login_count: user.login_count ?? 0,
       app_metadata: JSON.parse(user.app_metadata),
       user_metadata: JSON.parse(user.user_metadata),

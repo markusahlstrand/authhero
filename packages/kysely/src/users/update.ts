@@ -41,6 +41,8 @@ export function update(db: Kysely<Database>) {
             ? 1
             : 0
           : undefined,
+      blocked:
+        user.blocked !== undefined ? (user.blocked ? 1 : 0) : undefined,
     });
 
     // Update the user row first and only write activity once the row is

@@ -28,6 +28,11 @@ import { createOrganizationsAdapter } from "./organizations";
 import { createPasswordsAdapter } from "./passwords";
 import { createPromptSettingsAdapter } from "./promptSettings";
 import { createProxyRoutesAdapter } from "./proxyRoutes";
+import {
+  createScimConfigurationsAdapter,
+  createScimTokensAdapter,
+  createScimExternalIdsAdapter,
+} from "./scim";
 import { createRefreshTokensAdapter } from "./refreshTokens";
 import { createResourceServersAdapter } from "./resourceServers";
 import { createRolePermissionsAdapter } from "./rolePermissions";
@@ -99,6 +104,9 @@ export default function createAdapters(
     passwords: createPasswordsAdapter(db),
     promptSettings: createPromptSettingsAdapter(db),
     proxyRoutes: createProxyRoutesAdapter(db),
+    scimConfigurations: createScimConfigurationsAdapter(db),
+    scimTokens: createScimTokensAdapter(db),
+    scimExternalIds: createScimExternalIdsAdapter(db),
     refreshTokens: createRefreshTokensAdapter(db),
     resourceServers: createResourceServersAdapter(db),
     rolePermissions: createRolePermissionsAdapter(db),

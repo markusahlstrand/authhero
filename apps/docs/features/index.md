@@ -14,6 +14,7 @@ description: AuthHero features — authentication flows, MFA, hooks, account lin
 - **[Impersonation](/features/impersonation)** — Allow admins to sign in as another user
 - **[Session Management](/features/session-management)** — Login sessions, user sessions, and session configuration
 - **[RBAC & Scopes](/features/rbac-and-scopes)** — Detailed guide for implementing role-based access control
+- **[SCIM Provisioning](/features/scim-provisioning)** — Provision and deprovision users from Okta or Microsoft Entra ID over SCIM 2.0
 - **[Forms & Flows](/features/forms)** — Custom forms and server-driven authentication flows
 - **[Multi-Tenant SaaS](/features/multi-tenant-saas)** — Complete guide for setting up multi-tenant authentication
 - **[Tenant Export & Import](/features/tenant-export-import)** — Move a tenant's configuration and users between deployments as a single JSON-lines file

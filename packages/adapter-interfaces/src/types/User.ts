@@ -68,6 +68,9 @@ export const userInsertSchema = baseUserSchema.extend({
   provider: z.string().optional(),
   connection: z.string(),
   is_social: z.boolean().optional(),
+  // Auth0-parity account block flag. A blocked user cannot authenticate or
+  // refresh tokens. SCIM inbound provisioning maps `active: false` to this.
+  blocked: z.boolean().optional(),
   /**
    * Set when the post-user-registration outbox event has reached processed
    * state (all post-hook destinations succeeded) or when the inline dispatch

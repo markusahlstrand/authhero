@@ -10,6 +10,7 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { querySchema } from "../../types/auth0/Query";
 import { parseSort } from "../../utils/sort";
 import { logMessage } from "../../helpers/logging";
+import { revokeUserSessions } from "../../helpers/revoke-user-sessions";
 import { hashPassword } from "../../helpers/password-policy";
 import {
   Identity,
@@ -725,7 +726,29 @@ const patchByUser_id = defineRoute({
       }
     }
 
-    await ctx.env.data.users.update(tenantId, targetUserId, userFields);
+    // `blocked` is a cluster-level flag: login and refresh-token checks read
+    // the resolved primary, so a block written onto a linked identity (when
+    // `connection` targets one) would silently not block anything. Apply it to
+    // the cluster root; every other field stays on the targeted identity.
+    const { blocked, ...identityFields } = userFields;
+    const blockOnRoot = blocked !== undefined && targetUserId !== user_id;
+
+    if (!blockOnRoot) {
+      await ctx.env.data.users.update(tenantId, targetUserId, userFields);
+    } else {
+      if (Object.keys(identityFields).length > 0) {
+        await ctx.env.data.users.update(tenantId, targetUserId, identityFields);
+      }
+      await ctx.env.data.users.update(tenantId, user_id, { blocked });
+    }
+
+    // Blocking a user terminates their sessions and refresh tokens (Auth0
+    // parity). Only fire on the transition into blocked, against the cluster
+    // root — and judged by the root's prior state, since that is where the
+    // flag lives — so a no-op re-block doesn't churn revocations.
+    if (blocked === true && !userToPatch.blocked) {
+      await revokeUserSessions(ctx, tenantId, user_id);
+    }
 
     // Keep a merged user's login email consistent: when the email of one
     // email-identified identity changes, propagate it to the cluster's other

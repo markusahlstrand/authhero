@@ -225,6 +225,15 @@ export async function refreshTokenGrant(
 
   ctx.set("user_id", user.user_id);
 
+  // A blocked user cannot refresh tokens. `invalid_grant` is the correct OAuth
+  // error for the token endpoint (mirrors the revoked-token responses above).
+  if (user.blocked) {
+    throw new JSONHTTPException(invalidGrantStatus, {
+      error: "invalid_grant",
+      error_description: "User is blocked",
+    });
+  }
+
   const resourceServer = refreshToken.resource_servers[0];
 
   // Resolve session_id from the login session fetched above.

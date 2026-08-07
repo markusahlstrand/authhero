@@ -226,6 +226,18 @@ export async function createAuthTokens(
     grantType,
   } = params;
 
+  // Backstop: a blocked user must never receive tokens, whichever grant or
+  // flow funnels through here (authorization_code, refresh_token, OTP,
+  // token-exchange, and the interactive flows). Individual grants also reject
+  // earlier with flow-appropriate errors; this is the single place that covers
+  // them all. Client-credentials has no `user`, so it is unaffected.
+  if (user?.blocked) {
+    throw new JSONHTTPException(403, {
+      error: "access_denied",
+      error_description: "User is blocked",
+    });
+  }
+
   // RFC 8693 §4.1 — `act.sub` identifies the acting party. For user
   // impersonation we use the impersonator's user_id; for client-delegated
   // exchanges (token-exchange grant) we use the acting client_id. When both

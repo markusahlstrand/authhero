@@ -5,6 +5,7 @@ export type HttpExceptionCode =
   | "EMAIL_NOT_VERIFIED"
   | "INVALID_PASSWORD"
   | "USER_NOT_FOUND"
+  | "USER_BLOCKED"
   | "TOO_MANY_FAILED_LOGINS"
   | "TOO_MANY_REQUESTS";
 

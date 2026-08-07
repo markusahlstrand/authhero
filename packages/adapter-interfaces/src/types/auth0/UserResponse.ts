@@ -8,6 +8,8 @@ export interface PostUsersBody extends BaseUser {
   username?: string;
   connection?: string;
   email_verified?: boolean;
+  // Auth0-parity account block flag (set true to block, false to unblock).
+  blocked?: boolean;
 }
 
 export const userResponseSchema = baseUserSchema
