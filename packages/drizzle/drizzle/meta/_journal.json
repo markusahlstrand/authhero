@@ -15,6 +15,13 @@
       "when": 1786036597896,
       "tag": "0001_scim_inbound_provisioning",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1786097448605,
+      "tag": "0002_user_blocked",
+      "breakpoints": true
     }
   ]
 }

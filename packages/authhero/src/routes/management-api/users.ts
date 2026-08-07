@@ -10,6 +10,7 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { querySchema } from "../../types/auth0/Query";
 import { parseSort } from "../../utils/sort";
 import { logMessage } from "../../helpers/logging";
+import { revokeUserSessions } from "../../helpers/revoke-user-sessions";
 import { hashPassword } from "../../helpers/password-policy";
 import {
   Identity,
@@ -726,6 +727,13 @@ const patchByUser_id = defineRoute({
     }
 
     await ctx.env.data.users.update(tenantId, targetUserId, userFields);
+
+    // Blocking a user terminates their sessions and refresh tokens (Auth0
+    // parity). Only fire on the transition into blocked, against the cluster
+    // root, so a no-op re-block doesn't churn revocations.
+    if (userFields.blocked === true && !targetUser.blocked) {
+      await revokeUserSessions(ctx, tenantId, user_id);
+    }
 
     // Keep a merged user's login email consistent: when the email of one
     // email-identified identity changes, propagate it to the cluster's other

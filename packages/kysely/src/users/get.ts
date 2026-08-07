@@ -49,6 +49,7 @@ export function get(db: Kysely<Database>) {
           ? sqlUser.phone_verified === 1
           : undefined,
       is_social: sqlUser.is_social === 1,
+      blocked: sqlUser.blocked != null ? sqlUser.blocked === 1 : undefined,
       last_login: sqlUser.last_login ?? undefined,
       last_ip: sqlUser.last_ip ?? undefined,
       login_count: sqlUser.login_count ?? 0,

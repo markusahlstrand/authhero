@@ -118,6 +118,7 @@ export const sqlUserSchema = userSchema
     email_verified: z.number(),
     phone_verified: z.number().optional().nullable(),
     is_social: z.number(),
+    blocked: z.number().optional().nullable(),
     app_metadata: z.string(),
     user_metadata: z.string(),
     address: z.string().optional().nullable(),

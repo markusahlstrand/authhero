@@ -40,6 +40,7 @@ export function create(db: Kysely<Database>) {
       phone_verified:
         phone_verified !== undefined ? (phone_verified ? 1 : 0) : null,
       is_social: user.is_social ? 1 : 0,
+      blocked: user.blocked ? 1 : 0,
       app_metadata: JSON.stringify(user.app_metadata),
       user_metadata: JSON.stringify(user.user_metadata),
       address: user.address ? JSON.stringify(user.address) : null,
@@ -124,6 +125,7 @@ export function create(db: Kysely<Database>) {
           ? sqlUser.phone_verified === 1
           : undefined,
       is_social: sqlUser.is_social === 1,
+      blocked: sqlUser.blocked != null ? sqlUser.blocked === 1 : undefined,
       // Return the original object values, not the serialized strings written
       // to the row — so the create response matches what get()/list() return
       // (and Auth0) instead of leaking JSON strings.

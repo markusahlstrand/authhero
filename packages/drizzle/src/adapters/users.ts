@@ -181,6 +181,7 @@ function sqlToUser(sqlUser: any, linkedUsers: any[] = []): User {
     email_verified,
     phone_verified,
     is_social,
+    blocked,
     linked_to: __,
     profileData: ___,
     ...rest
@@ -195,6 +196,7 @@ function sqlToUser(sqlUser: any, linkedUsers: any[] = []): User {
     email_verified: !!email_verified,
     phone_verified: phone_verified != null ? !!phone_verified : undefined,
     is_social: !!is_social,
+    blocked: blocked != null ? !!blocked : undefined,
     app_metadata: parseJsonIfString(app_metadata, {}),
     user_metadata: parseJsonIfString(user_metadata, {}),
     address: parseJsonIfString(address),
@@ -228,6 +230,7 @@ export function createUsersAdapter(db: DrizzleDb) {
       connection: params.connection,
       email_verified: params.email_verified ?? false,
       is_social: params.is_social ?? false,
+      blocked: params.blocked ?? false,
       app_metadata: JSON.stringify(params.app_metadata || {}),
       user_metadata: JSON.stringify(params.user_metadata || {}),
       address: params.address ? JSON.stringify(params.address) : undefined,
@@ -397,6 +400,7 @@ export function createUsersAdapter(db: DrizzleDb) {
         updateData.phone_verified = params.phone_verified;
       if (params.is_social !== undefined)
         updateData.is_social = params.is_social;
+      if (params.blocked !== undefined) updateData.blocked = params.blocked;
 
       // JSON fields
       if (params.app_metadata !== undefined)
