@@ -9,6 +9,7 @@ import createOauthApi from "./routes/auth-api";
 import createUniversalLogin from "./routes/universal-login";
 import createU2App from "./routes/universal-login/u2-index";
 import createSamlpApi from "./routes/saml";
+import { createScimApi } from "./routes/scim";
 import createSetupApp from "./routes/setup";
 import { createX509Certificate } from "./utils/encryption";
 import { applyConfigMiddleware } from "./middlewares/apply-config";
@@ -289,6 +290,17 @@ export function init(config: AuthHeroConfig) {
 
   const samlApp = createSamlpApi(config);
   app.route("/samlp", samlApp);
+
+  // SCIM 2.0 inbound provisioning (#1191), mounted per connection only when
+  // the SCIM adapters are wired.
+  if (
+    config.dataAdapter.scimConfigurations &&
+    config.dataAdapter.scimTokens &&
+    config.dataAdapter.scimExternalIds
+  ) {
+    const scimApp = createScimApi(config);
+    app.route("/scim/v2/connections/:connection_id", scimApp);
+  }
 
   const oauthApp = createOauthApi(config);
   app.route("/", oauthApp);
