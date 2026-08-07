@@ -56,6 +56,7 @@ import { resourceServerRoutes } from "./resource-servers";
 import { clientGrantRoutes } from "./client-grants";
 import { grantRoutes } from "./grants";
 import { clientRegistrationTokenRoutes } from "./client-registration-tokens";
+import { scimConfigurationRoutes } from "./scim";
 import { organizationRoutes } from "./organizations";
 import { statsRoutes } from "./stats";
 import { createAnalyticsRoutes } from "./analytics";
@@ -619,6 +620,19 @@ export default function create(config: AuthHeroConfig) {
   // adapter is optional on DataAdapters; without it the routes return 501.
   if (!extensionPaths.has("/proxy-routes") && managementAdapter.proxyRoutes) {
     managementApp.route("/proxy-routes", proxyRoutesRoutes);
+  }
+
+  // SCIM inbound provisioning config + tokens (#1191). Mounted per connection
+  // only when the SCIM adapters are wired.
+  if (
+    !extensionPaths.has("/connections") &&
+    managementAdapter.scimConfigurations &&
+    managementAdapter.scimTokens
+  ) {
+    managementApp.route(
+      "/connections/:id/scim-configuration",
+      scimConfigurationRoutes,
+    );
   }
 
   // Durable tenant lifecycle operations (issue #1026). Mounted only when

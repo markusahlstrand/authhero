@@ -46,3 +46,6 @@ export * from "./outbox";
 
 // Proxy routes (used by @authhero/proxy)
 export * from "./proxyRoutes";
+
+// SCIM inbound provisioning (#1191)
+export * from "./scim";

@@ -608,6 +608,32 @@ export interface Database {
     created_at: string;
     updated_at: string;
   };
+  // SCIM inbound provisioning (#1191).
+  scim_configurations: {
+    connection_id: string;
+    tenant_id: string;
+    user_id_attribute: string;
+    mapping: string; // JSON-encoded ScimMappingEntry[]
+    created_at: string;
+    updated_at: string;
+  };
+  scim_tokens: {
+    token_id: string;
+    tenant_id: string;
+    connection_id: string;
+    token_hash: string;
+    scopes: string; // JSON-encoded string[]
+    valid_until: string | null;
+    created_at: string;
+    last_used_at: string | null;
+  };
+  scim_external_ids: {
+    tenant_id: string;
+    connection_id: string;
+    external_id: string;
+    user_id: string;
+    created_at: string;
+  };
   // Durable tenant lifecycle operations (issue #1026). Control-plane log;
   // no FK to tenants so history survives tenant deletion, and tenant_id is
   // NULL for fleet-level operations.

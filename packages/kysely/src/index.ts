@@ -48,6 +48,11 @@ import { createOutboxAdapter } from "./outbox";
 import { createLogStreamsAdapter } from "./log-streams";
 import { createMigrationSourcesAdapter } from "./migrationSources";
 import { createProxyRoutesAdapter } from "./proxyRoutes";
+import {
+  createScimConfigurationsAdapter,
+  createScimTokensAdapter,
+  createScimExternalIdsAdapter,
+} from "./scim";
 import { createUserActivityAdapter } from "./userActivity";
 import { createTenantOperationsAdapter } from "./tenantOperations";
 import { createTenantOperationEventsAdapter } from "./tenantOperationEvents";
@@ -92,6 +97,9 @@ export default function createAdapters(
     passwords: createPasswordAdapter(db),
     promptSettings: createPromptSettingsAdapter(db),
     proxyRoutes: createProxyRoutesAdapter(db),
+    scimConfigurations: createScimConfigurationsAdapter(db),
+    scimTokens: createScimTokensAdapter(db),
+    scimExternalIds: createScimExternalIdsAdapter(db),
     refreshTokens: createRefreshTokensAdapter(db),
     resourceServers: createResourceServersAdapter(db),
     rolePermissions: rolePermissions(db),

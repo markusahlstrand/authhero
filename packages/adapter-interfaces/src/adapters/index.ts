@@ -25,6 +25,9 @@ import { ThemesAdapter } from "./Themes";
 import { LoginSessionsAdapter } from "./LoginSessions";
 import { PromptSettingsAdapter } from "./PromptSettings";
 import { ProxyRoutesAdapter } from "./ProxyRoutes";
+import { ScimConfigurationsAdapter } from "./ScimConfigurations";
+import { ScimTokensAdapter } from "./ScimTokens";
+import { ScimExternalIdsAdapter } from "./ScimExternalIds";
 import { EmailProvidersAdapter } from "./EmailProviders";
 import { EmailTemplatesAdapter } from "./EmailTemplates";
 import { RefreshTokensAdapter } from "./RefreshTokens";
@@ -104,6 +107,16 @@ export interface DataAdapters {
    * directly from the database or by calling this management API.
    */
   proxyRoutes?: ProxyRoutesAdapter;
+  /**
+   * Optional SCIM 2.0 inbound-provisioning adapters (issue #1191). When all
+   * three are set, AuthHero exposes the SCIM configuration management API and
+   * (Phase 2) the `/scim/v2` provisioning endpoints. `scimConfigurations`
+   * holds one config per connection, `scimTokens` the hashed bearer tokens,
+   * and `scimExternalIds` the IdP `externalId` → `user_id` lookup table.
+   */
+  scimConfigurations?: ScimConfigurationsAdapter;
+  scimTokens?: ScimTokensAdapter;
+  scimExternalIds?: ScimExternalIdsAdapter;
   refreshTokens: RefreshTokensAdapter;
   resourceServers: ResourceServersAdapter;
   rolePermissions: RolePermissionsAdapter;
@@ -260,6 +273,9 @@ export * from "./Logs";
 export * from "./Passwords";
 export * from "./PromptSettings";
 export * from "./ProxyRoutes";
+export * from "./ScimConfigurations";
+export * from "./ScimTokens";
+export * from "./ScimExternalIds";
 export * from "./ResourceServers";
 export * from "./Roles";
 export * from "./Sessions";

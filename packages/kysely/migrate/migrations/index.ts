@@ -1,5 +1,6 @@
 import * as baseline from "./2026-07-16T14:00:00_baseline";
 import * as codesExpiresAtTs from "./2026-07-16T15:00:00_codes_expires_at_ts";
+import * as scimInboundProvisioning from "./2026-08-04T12:00:00_scim_inbound_provisioning";
 
 /**
  * Kysely runs these in key order and refuses to start if an already-executed
@@ -19,4 +20,5 @@ import * as codesExpiresAtTs from "./2026-07-16T15:00:00_codes_expires_at_ts";
 export default {
   "2026-07-16T14:00:00_baseline": baseline,
   "2026-07-16T15:00:00_codes_expires_at_ts": codesExpiresAtTs,
+  "2026-08-04T12:00:00_scim_inbound_provisioning": scimInboundProvisioning,
 };
