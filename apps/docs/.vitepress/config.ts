@@ -284,6 +284,10 @@ gtag('config', 'G-DNZWG3PF2L');`,
               link: "/features/session-management",
             },
             { text: "RBAC & Scopes", link: "/features/rbac-and-scopes" },
+            {
+              text: "SCIM Provisioning",
+              link: "/features/scim-provisioning",
+            },
             { text: "Forms", link: "/features/forms" },
             { text: "Flows", link: "/features/flows" },
             {
