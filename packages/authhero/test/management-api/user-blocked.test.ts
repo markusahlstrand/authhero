@@ -70,4 +70,49 @@ describe("management-api user blocked", () => {
     const revoked = await env.data.sessions.get(TENANT, session.id);
     expect(revoked!.revoked_at).toBeTruthy();
   });
+
+  it("blocks the cluster root when targeting a linked identity", async () => {
+    const { managementApp, env } = await getTestServer();
+    const token = await getAdminToken();
+
+    const primaryId = `${USERNAME_PASSWORD_PROVIDER}|linked-block-primary`;
+    const linkedId = "google-oauth2|linked-block-secondary";
+
+    await env.data.users.create(TENANT, {
+      email: "linked-block@example.com",
+      email_verified: true,
+      connection: Strategy.USERNAME_PASSWORD,
+      provider: USERNAME_PASSWORD_PROVIDER,
+      is_social: false,
+      user_id: primaryId,
+    });
+    await env.data.users.create(TENANT, {
+      email: "linked-block@example.com",
+      email_verified: true,
+      connection: "google-oauth2",
+      provider: "google-oauth2",
+      is_social: true,
+      user_id: linkedId,
+      linked_to: primaryId,
+    });
+
+    // Target the linked identity by connection. Login and refresh check the
+    // primary's `blocked`, so that is where the flag has to land.
+    const res = await managementApp.request(
+      `/users/${encodeURIComponent(primaryId)}`,
+      {
+        method: "PATCH",
+        headers: {
+          authorization: `Bearer ${token}`,
+          "tenant-id": TENANT,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ blocked: true, connection: "google-oauth2" }),
+      },
+      env,
+    );
+    expect(res.status).toBe(200);
+
+    expect((await env.data.users.get(TENANT, primaryId))!.blocked).toBe(true);
+  });
 });

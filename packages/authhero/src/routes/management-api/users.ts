@@ -726,12 +726,27 @@ const patchByUser_id = defineRoute({
       }
     }
 
-    await ctx.env.data.users.update(tenantId, targetUserId, userFields);
+    // `blocked` is a cluster-level flag: login and refresh-token checks read
+    // the resolved primary, so a block written onto a linked identity (when
+    // `connection` targets one) would silently not block anything. Apply it to
+    // the cluster root; every other field stays on the targeted identity.
+    const { blocked, ...identityFields } = userFields;
+    const blockOnRoot = blocked !== undefined && targetUserId !== user_id;
+
+    if (!blockOnRoot) {
+      await ctx.env.data.users.update(tenantId, targetUserId, userFields);
+    } else {
+      if (Object.keys(identityFields).length > 0) {
+        await ctx.env.data.users.update(tenantId, targetUserId, identityFields);
+      }
+      await ctx.env.data.users.update(tenantId, user_id, { blocked });
+    }
 
     // Blocking a user terminates their sessions and refresh tokens (Auth0
     // parity). Only fire on the transition into blocked, against the cluster
-    // root, so a no-op re-block doesn't churn revocations.
-    if (userFields.blocked === true && !targetUser.blocked) {
+    // root — and judged by the root's prior state, since that is where the
+    // flag lives — so a no-op re-block doesn't churn revocations.
+    if (blocked === true && !userToPatch.blocked) {
       await revokeUserSessions(ctx, tenantId, user_id);
     }
 

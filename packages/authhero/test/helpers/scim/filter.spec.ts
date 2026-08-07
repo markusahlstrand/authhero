@@ -85,7 +85,9 @@ describe("SCIM filter parser", () => {
     expect(() => parseScimFilter('userName co "ali"')).toThrow(
       UnsupportedFilterError,
     );
-    expect(() => parseScimFilter("userName pr")).toThrow();
+    expect(() => parseScimFilter("userName pr")).toThrow(
+      UnsupportedFilterError,
+    );
   });
 
   it("rejects malformed filters", () => {

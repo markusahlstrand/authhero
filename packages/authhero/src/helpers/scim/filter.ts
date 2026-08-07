@@ -24,6 +24,14 @@ interface Token {
   value: string;
 }
 
+const ESCAPES: Record<string, string> = {
+  n: "\n",
+  t: "\t",
+  r: "\r",
+  b: "\b",
+  f: "\f",
+};
+
 function tokenize(input: string): Token[] {
   const tokens: Token[] = [];
   let i = 0;
@@ -48,7 +56,13 @@ function tokenize(input: string): Token[] {
       i++;
       while (i < input.length && input.charAt(i) !== '"') {
         if (input.charAt(i) === "\\" && i + 1 < input.length) {
+          // JSON string escapes (RFC 7644 filter values are JSON strings).
+          // Unknown escapes keep the escaped character verbatim rather than
+          // rejecting a filter a real IdP might send.
           i++;
+          str += ESCAPES[input.charAt(i)] ?? input.charAt(i);
+          i++;
+          continue;
         }
         str += input.charAt(i);
         i++;
@@ -143,7 +157,8 @@ export function parseScimFilter(input: string): ScimFilterNode {
       );
     }
     const valueToken = next();
-    if (!valueToken) throw new InvalidFilterError("Expected a comparison value");
+    if (!valueToken)
+      throw new InvalidFilterError("Expected a comparison value");
     let value: ScimFilterValue;
     if (valueToken.kind === "string") {
       value = valueToken.value;
@@ -171,7 +186,11 @@ export function parseScimFilter(input: string): ScimFilterNode {
  * Evaluate a parsed filter against a flat attribute map (a SCIM resource
  * projected to the attributes we support: `userName`, `externalId`, `active`,
  * `emails.value`/`emails`). Attribute matching is case-insensitive on the name
- * (SCIM attribute names are case-insensitive); string values compare exactly.
+ * (SCIM attribute names are case-insensitive), and so is string value
+ * comparison: `userName` and `emails.value` are `caseExact: false` in our
+ * schema, and the targeted `userName` lookup is case-insensitive too, so an
+ * exact comparison here would make the same filter behave differently
+ * depending on which path served it.
  */
 export function evaluateScimFilter(
   node: ScimFilterNode,
@@ -196,7 +215,7 @@ export function evaluateScimFilter(
       const actual = attributes[key];
       if (actual === undefined) return false;
       if (typeof node.value === "string" && typeof actual === "string") {
-        return actual === node.value;
+        return actual.toLowerCase() === node.value.toLowerCase();
       }
       return actual === node.value;
     }

@@ -293,12 +293,13 @@ export function init(config: AuthHeroConfig) {
 
   // SCIM 2.0 inbound provisioning (#1191), mounted per connection only when
   // the SCIM adapters are wired.
+  let scimApp: ReturnType<typeof createScimApi> | undefined;
   if (
     config.dataAdapter.scimConfigurations &&
     config.dataAdapter.scimTokens &&
     config.dataAdapter.scimExternalIds
   ) {
-    const scimApp = createScimApi(config);
+    scimApp = createScimApi(config);
     app.route("/scim/v2/connections/:connection_id", scimApp);
   }
 
@@ -326,6 +327,8 @@ export function init(config: AuthHeroConfig) {
     samlApp,
     universalApp,
     u2App,
+    // Undefined when the deployment did not wire the SCIM adapters.
+    scimApp,
     createX509Certificate,
   };
 }

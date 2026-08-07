@@ -90,8 +90,13 @@ export function userToScimResource(
  * Map a SCIM User resource (as sent on create/replace, or the result of
  * applying a PATCH) to AuthHero user fields. `userName` becomes `email` when it
  * looks like an address, otherwise `username`. `active` maps to the inverse of
- * `blocked` (omitted when `active` is absent, so a partial update doesn't
- * unblock).
+ * `blocked`.
+ *
+ * Attributes the resource does not carry are **omitted from the result**, not
+ * set to `undefined`: the callers spread this straight into `users.update`, and
+ * an explicit key would be indistinguishable from "clear this field". Absent
+ * therefore means "leave unchanged" — a partial PATCH never unblocks a user or
+ * wipes their name.
  */
 export function scimResourceToUserFields(resource: {
   userName?: string;
@@ -103,17 +108,21 @@ export function scimResourceToUserFields(resource: {
 }): MappedUserFields {
   const userName = resource.userName;
   const isEmailUserName = !!userName && userName.includes("@");
-  const email = primaryEmail(resource.emails) ?? (isEmailUserName ? userName : undefined);
+  const email =
+    primaryEmail(resource.emails) ?? (isEmailUserName ? userName : undefined);
 
-  return {
-    email,
-    username: userName && !isEmailUserName ? userName : undefined,
-    given_name: resource.name?.givenName,
-    family_name: resource.name?.familyName,
-    name: resource.displayName,
-    blocked: resource.active === undefined ? undefined : !resource.active,
-    externalId: resource.externalId,
-  };
+  const fields: MappedUserFields = {};
+  if (email !== undefined) fields.email = email;
+  if (userName !== undefined && !isEmailUserName) fields.username = userName;
+  if (resource.name?.givenName !== undefined)
+    fields.given_name = resource.name.givenName;
+  if (resource.name?.familyName !== undefined)
+    fields.family_name = resource.name.familyName;
+  if (resource.displayName !== undefined) fields.name = resource.displayName;
+  if (resource.active !== undefined) fields.blocked = !resource.active;
+  if (resource.externalId !== undefined)
+    fields.externalId = resource.externalId;
+  return fields;
 }
 
 /**

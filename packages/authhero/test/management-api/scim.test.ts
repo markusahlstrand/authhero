@@ -141,6 +141,15 @@ describe("management-api SCIM configuration", () => {
     );
     expect(delTok.status).toBe(204);
 
+    // Mint a second token, then delete the configuration: its tokens go with
+    // it, since a token is meaningless without a configuration.
+    const second = await managementApp.request(
+      `${base}/tokens`,
+      { method: "POST", headers: auth(token), body: JSON.stringify({}) },
+      env,
+    );
+    expect(second.status).toBe(201);
+
     // Delete configuration.
     const delCfg = await managementApp.request(
       base,
@@ -149,12 +158,56 @@ describe("management-api SCIM configuration", () => {
     );
     expect(delCfg.status).toBe(204);
 
+    expect(
+      await env.data.scimTokens!.listByConnection(TENANT, connection.id),
+    ).toEqual([]);
+
     const afterDelete = await managementApp.request(
       base,
       { headers: auth(token) },
       env,
     );
     expect(afterDelete.status).toBe(404);
+  });
+
+  it("only deletes a token through its own connection", async () => {
+    const { managementApp, env } = await getTestServer();
+    const token = await getAdminToken();
+    const owner = await createConnection(env, { name: "token-owner" });
+    const other = await createConnection(env, { name: "token-bystander" });
+
+    for (const connection of [owner, other]) {
+      const created = await managementApp.request(
+        `/connections/${connection.id}/scim-configuration`,
+        { method: "POST", headers: auth(token), body: JSON.stringify({}) },
+        env,
+      );
+      expect(created.status).toBe(201);
+    }
+
+    const mintRes = await managementApp.request(
+      `/connections/${owner.id}/scim-configuration/tokens`,
+      { method: "POST", headers: auth(token), body: JSON.stringify({}) },
+      env,
+    );
+    const { token_id } = await mintRes.json();
+
+    // Addressed under the wrong connection → not found, and still alive.
+    const crossDelete = await managementApp.request(
+      `/connections/${other.id}/scim-configuration/tokens/${token_id}`,
+      { method: "DELETE", headers: auth(token) },
+      env,
+    );
+    expect(crossDelete.status).toBe(404);
+    expect(await env.data.scimTokens!.get(TENANT, token_id)).not.toBeNull();
+
+    const ownDelete = await managementApp.request(
+      `/connections/${owner.id}/scim-configuration/tokens/${token_id}`,
+      { method: "DELETE", headers: auth(token) },
+      env,
+    );
+    expect(ownDelete.status).toBe(204);
+    expect(await env.data.scimTokens!.get(TENANT, token_id)).toBeNull();
   });
 
   it("404s when the connection does not exist", async () => {

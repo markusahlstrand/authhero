@@ -42,6 +42,28 @@ describe("SCIM adapters", () => {
       ).toBeNull();
     });
 
+    it("lets two tenants configure the same connection id", async () => {
+      await data.scimConfigurations!.create(tenantId, {
+        connection_id: connectionId,
+        user_id_attribute: "externalId",
+        mapping: [],
+      });
+      await data.scimConfigurations!.create(otherTenant, {
+        connection_id: connectionId,
+        user_id_attribute: "userName",
+        mapping: [],
+      });
+
+      expect(
+        (await data.scimConfigurations!.get(tenantId, connectionId))!
+          .user_id_attribute,
+      ).toBe("externalId");
+      expect(
+        (await data.scimConfigurations!.get(otherTenant, connectionId))!
+          .user_id_attribute,
+      ).toBe("userName");
+    });
+
     it("updates mapping and user_id_attribute", async () => {
       await data.scimConfigurations!.create(tenantId, {
         connection_id: connectionId,
@@ -119,6 +141,28 @@ describe("SCIM adapters", () => {
       expect(
         await data.scimTokens!.getByHash(otherTenant, "hash_abc"),
       ).toBeNull();
+    });
+
+    it("lets two tenants hold the same token id", async () => {
+      await data.scimTokens!.create(tenantId, {
+        token_id: "tok_1",
+        connection_id: connectionId,
+        token_hash: "hash_abc",
+        scopes: [],
+      });
+      await data.scimTokens!.create(otherTenant, {
+        token_id: "tok_1",
+        connection_id: connectionId,
+        token_hash: "hash_xyz",
+        scopes: [],
+      });
+
+      expect((await data.scimTokens!.get(tenantId, "tok_1"))!.token_hash).toBe(
+        "hash_abc",
+      );
+      expect(
+        (await data.scimTokens!.get(otherTenant, "tok_1"))!.token_hash,
+      ).toBe("hash_xyz");
     });
 
     it("lists by connection and marks used", async () => {
@@ -203,6 +247,34 @@ describe("SCIM adapters", () => {
           "ext-1",
         ),
       ).toBeNull();
+    });
+
+    it("lets two tenants map the same connection and external id", async () => {
+      await data.scimExternalIds!.create(tenantId, {
+        connection_id: connectionId,
+        external_id: "ext-1",
+        user_id: "auth0|1",
+      });
+      await data.scimExternalIds!.create(otherTenant, {
+        connection_id: connectionId,
+        external_id: "ext-1",
+        user_id: "auth0|2",
+      });
+
+      expect(
+        (await data.scimExternalIds!.getByExternalId(
+          tenantId,
+          connectionId,
+          "ext-1",
+        ))!.user_id,
+      ).toBe("auth0|1");
+      expect(
+        (await data.scimExternalIds!.getByExternalId(
+          otherTenant,
+          connectionId,
+          "ext-1",
+        ))!.user_id,
+      ).toBe("auth0|2");
     });
 
     it("removes a mapping", async () => {

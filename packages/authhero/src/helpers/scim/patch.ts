@@ -36,7 +36,8 @@ interface PathSegmentFiltered {
   key: string; // the multi-valued attribute, e.g. "emails"
   filterAttr: string; // e.g. "type"
   filterValue: string | boolean;
-  subAttr?: string; // e.g. "value"
+  // A sub-attribute (`…].value`) arrives as the next plain segment, so it is
+  // read from `rest[0]` in applyToTarget rather than stored here.
 }
 
 function parsePath(path: string): (PathSegmentPlain | PathSegmentFiltered)[] {
@@ -118,7 +119,7 @@ function applyToTarget(
     element = { [seg.filterAttr]: seg.filterValue };
     arr.push(element);
   }
-  if (seg.subAttr === undefined && rest.length === 0) {
+  if (rest.length === 0) {
     if (op === "remove") {
       const idx = arr.indexOf(element);
       if (idx >= 0) arr.splice(idx, 1);
@@ -126,7 +127,14 @@ function applyToTarget(
       Object.assign(element, value);
     }
   } else {
-    const subKey = seg.subAttr ?? (rest[0] as PathSegmentPlain)?.key;
+    if (rest.length > 1) {
+      // e.g. `emails[type eq "work"].value.deep` — nothing in our resource
+      // shape nests that far, so reject rather than silently drop segments.
+      throw new UnsupportedPatchError(
+        "Unsupported nested value-path in patch operation",
+      );
+    }
+    const subKey = (rest[0] as PathSegmentPlain)?.key;
     if (!subKey) throw new InvalidPatchError("Invalid value-path target");
     if (op === "remove") {
       delete element[subKey];

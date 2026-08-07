@@ -1,14 +1,45 @@
-import { MiddlewareHandler } from "hono";
+import { Context, MiddlewareHandler } from "hono";
 import { Bindings, Variables } from "../types";
 import { hashScimToken } from "../helpers/scim/mint-token";
 import { ScimError } from "../helpers/scim/responses";
+import { waitUntil } from "../helpers/wait-until";
+
+/**
+ * The scope a request needs, by verb — the Auth0 SCIM token scope vocabulary.
+ * `POST /Users/.search` is a read, so it maps to `get:users` rather than
+ * `post:users`.
+ */
+function requiredScope(ctx: Context): string {
+  const method = ctx.req.method.toUpperCase();
+  if (method === "POST" && ctx.req.path.endsWith("/Users/.search")) {
+    return "get:users";
+  }
+  switch (method) {
+    case "POST":
+      return "post:users";
+    case "PUT":
+      return "put:users";
+    case "PATCH":
+      return "patch:users";
+    case "DELETE":
+      return "delete:users";
+    default:
+      return "get:users";
+  }
+}
 
 /**
  * Authenticates a `/scim/v2/connections/:connection_id` request with its SCIM
  * bearer token: hash the presented token, resolve it via `getByHash`, bind it
- * to the connection in the path, honour `valid_until`, and require a SCIM
- * configuration on the connection. On success the token's `last_used_at` is
- * bumped. Tenant is already resolved by `tenantMiddleware` upstream.
+ * to the connection in the path, honour `valid_until` and the token's scopes,
+ * and require a SCIM configuration on the connection. On success the token's
+ * `last_used_at` is bumped. Tenant is already resolved by `tenantMiddleware`
+ * upstream.
+ *
+ * Scopes are only enforced when the token carries them: a token minted without
+ * scopes (the default, and what Auth0 treats as "all operations") can perform
+ * any supported operation, while a scoped token is held to exactly what it was
+ * granted.
  */
 export const scimAuthMiddleware: MiddlewareHandler<{
   Bindings: Bindings;
@@ -42,8 +73,18 @@ export const scimAuthMiddleware: MiddlewareHandler<{
   if (!token || token.connection_id !== connection_id) {
     throw new ScimError(401, "Invalid SCIM token");
   }
-  if (token.valid_until && new Date(token.valid_until).getTime() < Date.now()) {
-    throw new ScimError(401, "SCIM token has expired");
+  if (token.valid_until) {
+    // An unparseable `valid_until` yields NaN, and every NaN comparison is
+    // false — so treat it as expired rather than as "never expires".
+    const validUntil = new Date(token.valid_until).getTime();
+    if (Number.isNaN(validUntil) || validUntil < Date.now()) {
+      throw new ScimError(401, "SCIM token has expired");
+    }
+  }
+
+  const scope = requiredScope(ctx);
+  if (token.scopes.length > 0 && !token.scopes.includes(scope)) {
+    throw new ScimError(403, `SCIM token is missing the "${scope}" scope`);
   }
 
   const configuration = await scimConfigurations.get(tenant_id, connection_id);
@@ -51,11 +92,11 @@ export const scimAuthMiddleware: MiddlewareHandler<{
     throw new ScimError(404, "SCIM is not configured for this connection");
   }
 
-  // Usage stamp for observability; a cheap single-row update.
-  await scimTokens.markUsed(
-    tenant_id,
-    token.token_id,
-    new Date().toISOString(),
+  // Usage stamp for observability only; keep it off the request's critical
+  // path now that the token is fully validated.
+  waitUntil(
+    ctx,
+    scimTokens.markUsed(tenant_id, token.token_id, new Date().toISOString()),
   );
 
   await next();

@@ -6,9 +6,10 @@ const TENANT = "tenantId";
 
 async function setupScim(
   env: Awaited<ReturnType<typeof getTestServer>>["env"],
+  options: { name?: string; scopes?: string[] } = {},
 ) {
   const connection = await env.data.connections.create(TENANT, {
-    name: "okta-ent",
+    name: options.name ?? "okta-ent",
     strategy: "oidc",
     options: {},
   });
@@ -22,7 +23,7 @@ async function setupScim(
     token_id: minted.token_id,
     connection_id: connection.id,
     token_hash: minted.token_hash,
-    scopes: [],
+    scopes: options.scopes ?? [],
   });
   return { connection, token: minted.token };
 }
@@ -210,8 +211,121 @@ describe("SCIM /Users endpoints", () => {
     );
     expect(badToken.status).toBe(401);
 
-    // A valid token is bound to its connection.
-    void token;
+    // A valid token is bound to its connection: presenting it against another
+    // connection of the same tenant is rejected.
+    const { connection: other } = await setupScim(env, { name: "other-ent" });
+    const crossConnection = await app.request(
+      `/scim/v2/connections/${other.id}/Users`,
+      { headers: headers(token) },
+      env,
+    );
+    expect(crossConnection.status).toBe(401);
+  });
+
+  it("enforces the scopes a token was minted with", async () => {
+    const { app, env } = await getTestServer();
+    const { connection, token } = await setupScim(env, {
+      scopes: ["get:users"],
+    });
+    const base = `/scim/v2/connections/${connection.id}`;
+    const h = headers(token);
+
+    const list = await app.request(`${base}/Users`, { headers: h }, env);
+    expect(list.status).toBe(200);
+
+    const create = await app.request(
+      `${base}/Users`,
+      {
+        method: "POST",
+        headers: h,
+        body: JSON.stringify({ userName: "scoped@example.com", active: true }),
+      },
+      env,
+    );
+    expect(create.status).toBe(403);
+  });
+
+  it("never returns a user of another connection", async () => {
+    const { app, env } = await getTestServer();
+    const { connection, token } = await setupScim(env);
+    const { connection: other, token: otherToken } = await setupScim(env, {
+      name: "neighbour-ent",
+    });
+
+    const created = await app.request(
+      `/scim/v2/connections/${other.id}/Users`,
+      {
+        method: "POST",
+        headers: headers(otherToken),
+        body: JSON.stringify({
+          userName: "neighbour@example.com",
+          active: true,
+        }),
+      },
+      env,
+    );
+    expect(created.status).toBe(201);
+    const neighbour = await created.json();
+
+    // Neither by filter…
+    const byFilter = await app.request(
+      `/scim/v2/connections/${connection.id}/Users?filter=${encodeURIComponent(
+        'userName eq "neighbour@example.com"',
+      )}`,
+      { headers: headers(token) },
+      env,
+    );
+    expect((await byFilter.json()).totalResults).toBe(0);
+
+    // …nor by id.
+    const byId = await app.request(
+      `/scim/v2/connections/${connection.id}/Users/${encodeURIComponent(neighbour.id)}`,
+      { headers: headers(token) },
+      env,
+    );
+    expect(byId.status).toBe(404);
+  });
+
+  it("reports the connection's real total when paging", async () => {
+    const { app, env } = await getTestServer();
+    const { connection, token } = await setupScim(env);
+    const base = `/scim/v2/connections/${connection.id}`;
+    const h = headers(token);
+
+    for (const name of ["p1", "p2", "p3"]) {
+      const res = await app.request(
+        `${base}/Users`,
+        {
+          method: "POST",
+          headers: h,
+          body: JSON.stringify({
+            userName: `${name}@example.com`,
+            active: true,
+          }),
+        },
+        env,
+      );
+      expect(res.status).toBe(201);
+    }
+
+    const firstPage = await app.request(
+      `${base}/Users?startIndex=1&count=2`,
+      { headers: h },
+      env,
+    );
+    const firstBody = await firstPage.json();
+    expect(firstBody.Resources).toHaveLength(2);
+    expect(firstBody.totalResults).toBe(3);
+
+    const secondPage = await app.request(
+      `${base}/Users?startIndex=3&count=2`,
+      { headers: h },
+      env,
+    );
+    const secondBody = await secondPage.json();
+    expect(secondBody.Resources).toHaveLength(1);
+    expect(secondBody.totalResults).toBe(3);
+    expect(secondBody.startIndex).toBe(3);
   });
 
   it("exposes ServiceProviderConfig", async () => {

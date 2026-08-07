@@ -8,6 +8,10 @@ import { Database } from "../../src/db";
  *   - scim_tokens: hashed long-lived bearer tokens for /scim/v2.
  *   - scim_external_ids: IdP externalId -> AuthHero user_id lookup.
  *
+ * Every primary/unique key leads with `tenant_id`: connection ids, token ids
+ * and IdP external ids are only unique within a tenant, so a tenant-less key
+ * would let one tenant's row block another's.
+ *
  * No foreign keys, mirroring `proxy_routes`: connections have a composite
  * (tenant_id, id) primary key, so a real FK would be composite and awkward,
  * and these tables are always queried tenant-scoped anyway. `mapping` and
@@ -25,13 +29,10 @@ export async function up(db: Kysely<Database>): Promise<void> {
     .addColumn("mapping", sql`text`, (col) => col.notNull())
     .addColumn("created_at", sql`varchar(35)`, (col) => col.notNull())
     .addColumn("updated_at", sql`varchar(35)`, (col) => col.notNull())
-    .addPrimaryKeyConstraint("scim_configurations_pk", ["connection_id"])
-    .execute();
-
-  await db.schema
-    .createIndex("scim_configurations_tenant_id_idx")
-    .on("scim_configurations")
-    .column("tenant_id")
+    .addPrimaryKeyConstraint("scim_configurations_pk", [
+      "tenant_id",
+      "connection_id",
+    ])
     .execute();
 
   await db.schema
@@ -44,7 +45,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
     .addColumn("valid_until", sql`varchar(35)`)
     .addColumn("created_at", sql`varchar(35)`, (col) => col.notNull())
     .addColumn("last_used_at", sql`varchar(35)`)
-    .addPrimaryKeyConstraint("scim_tokens_pk", ["token_id"])
+    .addPrimaryKeyConstraint("scim_tokens_pk", ["tenant_id", "token_id"])
     .execute();
 
   await db.schema
@@ -57,6 +58,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
     .createIndex("scim_tokens_tenant_hash_idx")
     .on("scim_tokens")
     .columns(["tenant_id", "token_hash"])
+    .unique()
     .execute();
 
   await db.schema
@@ -67,6 +69,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
     .addColumn("user_id", sql`varchar(255)`, (col) => col.notNull())
     .addColumn("created_at", sql`varchar(35)`, (col) => col.notNull())
     .addPrimaryKeyConstraint("scim_external_ids_pk", [
+      "tenant_id",
       "connection_id",
       "user_id",
     ])
@@ -75,14 +78,8 @@ export async function up(db: Kysely<Database>): Promise<void> {
   await db.schema
     .createIndex("scim_external_ids_connection_external_idx")
     .on("scim_external_ids")
-    .columns(["connection_id", "external_id"])
+    .columns(["tenant_id", "connection_id", "external_id"])
     .unique()
-    .execute();
-
-  await db.schema
-    .createIndex("scim_external_ids_tenant_id_idx")
-    .on("scim_external_ids")
-    .column("tenant_id")
     .execute();
 }
 

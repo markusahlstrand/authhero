@@ -7,15 +7,20 @@ import { scimListResponse, ScimListResponse } from "./responses";
  * filtering yes; bulk, sort, etag, changePassword no.
  */
 
+/**
+ * Largest page the `/Users` endpoints return, advertised as
+ * `filter.maxResults` in ServiceProviderConfig. The route clamps `count` to
+ * this so the advertised ceiling and the served page size can't drift apart.
+ */
+export const SCIM_MAX_RESULTS = 200;
+
 export function serviceProviderConfig(location: string) {
   return {
-    schemas: [
-      "urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig",
-    ],
+    schemas: ["urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig"],
     documentationUri: "https://authhero.com/docs",
     patch: { supported: true },
     bulk: { supported: false, maxOperations: 0, maxPayloadSize: 0 },
-    filter: { supported: true, maxResults: 200 },
+    filter: { supported: true, maxResults: SCIM_MAX_RESULTS },
     changePassword: { supported: false },
     sort: { supported: false },
     etag: { supported: false },

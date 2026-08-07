@@ -44,10 +44,18 @@ import {
   serviceProviderConfig,
   resourceTypes,
   schemas,
+  SCIM_MAX_RESULTS,
 } from "../../helpers/scim/discovery";
 
 const MAX_LIST_SCAN = 1000;
 const DEFAULT_COUNT = 100;
+const EXTERNAL_ID_BATCH = 50;
+
+// `q` values are Lucene-ish: spaces split tokens, ` OR ` is split out before
+// quoting is even considered, and a `"` unbalances quoting. A value carrying
+// any of those cannot be embedded in a `q` string without changing its
+// meaning, so it takes the in-memory path instead.
+const Q_SAFE_VALUE = /^[^\s"]+$/;
 
 type Ctx = Context<{ Bindings: Bindings; Variables: Variables }>;
 
@@ -91,6 +99,12 @@ async function resolveScim(ctx: Ctx): Promise<ScimContext> {
   };
 }
 
+// ServiceProviderConfig advertises `filter.maxResults`, so honour it: a larger
+// requested count is clamped rather than served.
+function clampCount(requested: number): number {
+  return Math.min(SCIM_MAX_RESULTS, Math.max(0, requested));
+}
+
 function scimJson(
   ctx: Ctx,
   body: unknown,
@@ -116,15 +130,52 @@ async function externalIdFor(
   return mapping?.external_id;
 }
 
-async function toResource(
+/**
+ * externalIds for a batch of users. The adapter has no bulk lookup, so resolve
+ * them concurrently in bounded batches rather than one sequential round trip
+ * per user (a filter scan otherwise costs one query per scanned user).
+ */
+async function externalIdsFor(
+  s: ScimContext,
+  users: User[],
+): Promise<Map<string, string | undefined>> {
+  const byUserId = new Map<string, string | undefined>();
+  for (let i = 0; i < users.length; i += EXTERNAL_ID_BATCH) {
+    const batch = users.slice(i, i + EXTERNAL_ID_BATCH);
+    const resolved = await Promise.all(
+      batch.map((user) => externalIdFor(s, user.user_id)),
+    );
+    batch.forEach((user, idx) => byUserId.set(user.user_id, resolved[idx]));
+  }
+  return byUserId;
+}
+
+function toResourceWith(
   s: ScimContext,
   user: User,
-): Promise<ScimUserResource> {
-  const externalId = await externalIdFor(s, user.user_id);
+  externalId: string | undefined,
+): ScimUserResource {
   return userToScimResource(
     user,
     externalId,
     `${s.baseUrl}/Users/${user.user_id}`,
+  );
+}
+
+async function toResource(
+  s: ScimContext,
+  user: User,
+): Promise<ScimUserResource> {
+  return toResourceWith(s, user, await externalIdFor(s, user.user_id));
+}
+
+async function toResources(
+  s: ScimContext,
+  users: User[],
+): Promise<ScimUserResource[]> {
+  const externalIds = await externalIdsFor(s, users);
+  return users.map((user) =>
+    toResourceWith(s, user, externalIds.get(user.user_id)),
   );
 }
 
@@ -141,18 +192,40 @@ async function loadUserInConnection(
   return inConnection(s, user) ? user : null;
 }
 
+/**
+ * Resolve a SCIM `userName` to a user of this connection. The targeted `q`
+ * lookup is only usable for values that can't rewrite the query grammar (see
+ * `Q_SAFE_VALUE`); anything else falls back to the in-memory scan, which never
+ * interpolates the value at all. Either way the result is re-checked against
+ * the connection, so a user of another connection can never be returned.
+ */
 async function findByUserName(
   s: ScimContext,
   userName: string,
 ): Promise<User | null> {
   const field = userName.includes("@") ? "email" : "username";
-  const { users } = await s.data.users.list(s.tenant_id, {
-    page: 0,
-    per_page: 5,
-    include_totals: false,
-    q: `${field}:${userName} connection:${s.connection.name}`,
-  });
-  return users.find((u) => !u.linked_to) ?? users[0] ?? null;
+
+  let candidates: User[];
+  if (Q_SAFE_VALUE.test(userName)) {
+    const { users } = await s.data.users.list(s.tenant_id, {
+      page: 0,
+      per_page: 5,
+      include_totals: false,
+      q: `${field}:${userName} connection:${s.connection.name}`,
+    });
+    candidates = users;
+  } else {
+    const wanted = userName.toLowerCase();
+    const { users } = await listConnectionUsers(s);
+    candidates = users.filter(
+      (u) => (u.email ?? u.username ?? "").toLowerCase() === wanted,
+    );
+  }
+
+  const inThisConnection = candidates.filter((u) => inConnection(s, u));
+  return (
+    inThisConnection.find((u) => !u.linked_to) ?? inThisConnection[0] ?? null
+  );
 }
 
 async function findByExternalId(
@@ -168,22 +241,84 @@ async function findByExternalId(
   return loadUserInConnection(s, mapping.user_id);
 }
 
-async function listConnectionUsers(s: ScimContext): Promise<User[]> {
+/**
+ * The matching-row count of a `users.list({ include_totals: true })` call. Both
+ * adapters report it in `length` (`total` is left unset), so read it from there
+ * and fall back to the page size if an adapter omits it.
+ */
+function totalFrom(result: { users: User[]; length?: number }): number {
+  return typeof result.length === "number"
+    ? result.length
+    : result.users.length;
+}
+
+interface ConnectionUsers {
+  users: User[];
+  /** The adapter's own count of the connection's users, never the scan size. */
+  total: number;
+  /** True when the connection holds more users than the scan collected. */
+  truncated: boolean;
+}
+
+/**
+ * Scan up to `MAX_LIST_SCAN` users of the connection, together with the
+ * adapter's real total. The total comes from the count query rather than the
+ * collected page, so a truncated scan is visible to the caller instead of
+ * silently reporting the cap as the whole population.
+ */
+async function listConnectionUsers(s: ScimContext): Promise<ConnectionUsers> {
   const collected: User[] = [];
   let page = 0;
+  let total = 0;
   const perPage = 100;
   while (collected.length < MAX_LIST_SCAN) {
-    const { users } = await s.data.users.list(s.tenant_id, {
+    const result = await s.data.users.list(s.tenant_id, {
       page,
       per_page: perPage,
-      include_totals: false,
+      include_totals: true,
       q: `connection:${s.connection.name}`,
     });
-    collected.push(...users.filter((u) => !u.linked_to));
-    if (users.length < perPage) break;
+    if (page === 0) total = totalFrom(result);
+    collected.push(...result.users.filter((u) => !u.linked_to));
+    if (result.users.length < perPage) break;
     page++;
   }
-  return collected;
+  return { users: collected, total, truncated: total > collected.length };
+}
+
+/**
+ * A single page of the connection's users, resolved by the adapter rather than
+ * by scanning. `startIndex`/`count` are the SCIM window; when it aligns to a
+ * page boundary (how every IdP pages) the offset goes straight to the DB, so
+ * deep pagination costs nothing extra. An unaligned window is served by
+ * over-fetching from the start, which is bounded by `MAX_LIST_SCAN`.
+ */
+async function pageConnectionUsers(
+  s: ScimContext,
+  offset: number,
+  count: number,
+): Promise<{ users: User[]; total: number }> {
+  const aligned = count > 0 && offset % count === 0;
+  if (!aligned && offset + count > MAX_LIST_SCAN) {
+    throw new ScimError(
+      400,
+      `startIndex is beyond the supported window (${MAX_LIST_SCAN}) for this count; page with a count that divides startIndex - 1`,
+      "invalidValue",
+    );
+  }
+
+  const per_page = aligned ? count : offset + count;
+  const result = await s.data.users.list(s.tenant_id, {
+    page: aligned && count > 0 ? offset / count : 0,
+    per_page,
+    include_totals: true,
+    q: `connection:${s.connection.name}`,
+  });
+  const users = result.users.filter((u) => !u.linked_to);
+  return {
+    users: aligned ? users : users.slice(offset),
+    total: totalFrom(result),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -221,24 +356,35 @@ async function queryUsers(
       }
     }
 
-    // General case: scan the connection and evaluate in memory.
-    const users = await listConnectionUsers(s);
-    const matched: User[] = [];
-    for (const user of users) {
-      const externalId = await externalIdFor(s, user.user_id);
-      if (evaluateScimFilter(ast, userToFilterAttributes(user, externalId))) {
-        matched.push(user);
-      }
+    // General case: scan the connection and evaluate in memory. That can only
+    // answer honestly if the scan covered every user — a filter evaluated over
+    // a truncated scan would report matches past the cap as absent, which for
+    // a provisioning client means "create a duplicate". Say so instead.
+    const scan = await listConnectionUsers(s);
+    if (scan.truncated) {
+      throw new ScimError(
+        400,
+        `This filter is evaluated over the connection's users and it holds more than ${MAX_LIST_SCAN}; narrow the filter to userName or externalId`,
+        "tooMany",
+      );
     }
+
+    const externalIds = await externalIdsFor(s, scan.users);
+    const matched = scan.users.filter((user) =>
+      evaluateScimFilter(
+        ast,
+        userToFilterAttributes(user, externalIds.get(user.user_id)),
+      ),
+    );
     const pageSlice = matched.slice(startIndex - 1, startIndex - 1 + count);
-    const resources = await Promise.all(pageSlice.map((u) => toResource(s, u)));
+    const resources = pageSlice.map((user) =>
+      toResourceWith(s, user, externalIds.get(user.user_id)),
+    );
     return { resources, total: matched.length };
   }
 
-  const users = await listConnectionUsers(s);
-  const pageSlice = users.slice(startIndex - 1, startIndex - 1 + count);
-  const resources = await Promise.all(pageSlice.map((u) => toResource(s, u)));
-  return { resources, total: users.length };
+  const { users, total } = await pageConnectionUsers(s, startIndex - 1, count);
+  return { resources: await toResources(s, users), total };
 }
 
 // ---------------------------------------------------------------------------
@@ -257,15 +403,51 @@ async function upsertExternalId(
     user_id,
   );
   if (existing && existing.external_id === externalId) return;
+
+  // externalId is unique per connection, so a value already claimed by another
+  // user is a SCIM uniqueness conflict, not a 500 out of the unique index.
+  const claimed = await s.data.scimExternalIds.getByExternalId(
+    s.tenant_id,
+    s.connection_id,
+    externalId,
+  );
+  if (claimed && claimed.user_id !== user_id) {
+    throw new ScimError(
+      409,
+      "A user with this externalId already exists",
+      "uniqueness",
+    );
+  }
+
   if (existing) {
     // externalId is immutable in practice; replace by remove+create.
     await s.data.scimExternalIds.remove(s.tenant_id, s.connection_id, user_id);
   }
-  await s.data.scimExternalIds.create(s.tenant_id, {
-    connection_id: s.connection_id,
-    external_id: externalId,
-    user_id,
-  });
+  try {
+    await s.data.scimExternalIds.create(s.tenant_id, {
+      connection_id: s.connection_id,
+      external_id: externalId,
+      user_id,
+    });
+  } catch (err) {
+    // Lost a race on the unique index. Put the previous mapping back so the
+    // user doesn't end up with no externalId at all, then report the conflict.
+    if (existing) {
+      await s.data.scimExternalIds
+        .create(s.tenant_id, {
+          connection_id: s.connection_id,
+          external_id: existing.external_id,
+          user_id,
+        })
+        .catch(() => undefined);
+    }
+    console.error("SCIM externalId mapping failed:", err);
+    throw new ScimError(
+      409,
+      "A user with this externalId already exists",
+      "uniqueness",
+    );
+  }
 }
 
 function logScim(
@@ -279,7 +461,9 @@ function logScim(
     description,
     connection: s.connection.name,
     connection_id: s.connection_id,
-    ...(user_id ? { userId: user_id, targetType: "user", targetId: user_id } : {}),
+    ...(user_id
+      ? { userId: user_id, targetType: "user", targetId: user_id }
+      : {}),
   });
 }
 
@@ -294,8 +478,10 @@ export function createScimApi(config: AuthHeroConfig) {
         { "content-type": SCIM_CONTENT_TYPE },
       );
     }
-    const detail = err instanceof Error ? err.message : "Internal error";
-    return ctx.body(JSON.stringify(scimErrorBody(500, detail)), 500, {
+    // Anything else is a bug or an adapter failure: log the detail, but never
+    // hand an internal message to the IdP.
+    console.error("SCIM request failed:", err);
+    return ctx.body(JSON.stringify(scimErrorBody(500, "Internal error")), 500, {
       "content-type": SCIM_CONTENT_TYPE,
     });
   });
@@ -357,8 +543,7 @@ export function createScimApi(config: AuthHeroConfig) {
       1,
       parseInt(ctx.req.query("startIndex") ?? "1", 10) || 1,
     );
-    const count = Math.max(
-      0,
+    const count = clampCount(
       parseInt(ctx.req.query("count") ?? String(DEFAULT_COUNT), 10) ||
         DEFAULT_COUNT,
     );
@@ -379,8 +564,7 @@ export function createScimApi(config: AuthHeroConfig) {
     const s = await resolveScim(ctx);
     const body = await ctx.req.json().catch(() => ({}));
     const startIndex = Math.max(1, Number(body.startIndex) || 1);
-    const count = Math.max(
-      0,
+    const count = clampCount(
       Number(body.count ?? DEFAULT_COUNT) || DEFAULT_COUNT,
     );
     const { resources, total } = await queryUsers(
@@ -476,18 +660,11 @@ export function createScimApi(config: AuthHeroConfig) {
     const body = (await ctx.req.json().catch(() => {
       throw new ScimError(400, "Invalid JSON body");
     })) as Record<string, unknown>;
-    const mapped = scimResourceToUserFields(body);
+    const { externalId, ...userFields } = scimResourceToUserFields(body);
 
-    const willBlock = mapped.blocked === true && !user.blocked;
-    await s.data.users.update(s.tenant_id, user.user_id, {
-      email: mapped.email,
-      username: mapped.username,
-      given_name: mapped.given_name,
-      family_name: mapped.family_name,
-      name: mapped.name,
-      blocked: mapped.blocked,
-    });
-    await upsertExternalId(s, user.user_id, mapped.externalId);
+    const willBlock = userFields.blocked === true && !user.blocked;
+    await s.data.users.update(s.tenant_id, user.user_id, userFields);
+    await upsertExternalId(s, user.user_id, externalId);
     if (willBlock) await revokeUserSessions(ctx, s.tenant_id, user.user_id);
     logScim(ctx, s, "SCIM user replaced", user.user_id);
 
@@ -520,17 +697,12 @@ export function createScimApi(config: AuthHeroConfig) {
       throw new ScimError(400, (err as Error).message, "invalidValue");
     }
 
-    const mapped = scimResourceToUserFields(patched);
-    const willBlock = mapped.blocked === true && !user.blocked;
-    await s.data.users.update(s.tenant_id, user.user_id, {
-      email: mapped.email,
-      username: mapped.username,
-      given_name: mapped.given_name,
-      family_name: mapped.family_name,
-      name: mapped.name,
-      blocked: mapped.blocked,
-    });
-    await upsertExternalId(s, user.user_id, mapped.externalId);
+    // Absent attributes are omitted by the mapper, so a PATCH that only
+    // touches `active` leaves the rest of the profile alone.
+    const { externalId, ...userFields } = scimResourceToUserFields(patched);
+    const willBlock = userFields.blocked === true && !user.blocked;
+    await s.data.users.update(s.tenant_id, user.user_id, userFields);
+    await upsertExternalId(s, user.user_id, externalId);
     if (willBlock) await revokeUserSessions(ctx, s.tenant_id, user.user_id);
     logScim(ctx, s, "SCIM user patched", user.user_id);
 
@@ -544,6 +716,10 @@ export function createScimApi(config: AuthHeroConfig) {
     const user = await loadUserInConnection(s, ctx.req.param("id"));
     if (!user) throw new ScimError(404, "User not found");
 
+    // Deprovisioning must end the user's access immediately, exactly as
+    // deactivation does — removing the row alone would leave live sessions and
+    // refresh tokens behind.
+    await revokeUserSessions(ctx, s.tenant_id, user.user_id);
     await s.data.scimExternalIds.remove(
       s.tenant_id,
       s.connection_id,

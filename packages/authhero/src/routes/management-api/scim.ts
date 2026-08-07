@@ -215,7 +215,9 @@ const createConfiguration = defineRoute({
     const configuration = await scimConfigurations.create(tenant_id, {
       connection_id,
       user_id_attribute: body.user_id_attribute ?? DEFAULT_USER_ID_ATTRIBUTE,
-      mapping: body.mapping ?? DEFAULT_SCIM_MAPPING,
+      // Copy the default so a stored configuration never shares the exported
+      // array with every other configuration.
+      mapping: body.mapping ?? [...DEFAULT_SCIM_MAPPING],
     });
 
     await logMessage(ctx, tenant_id, {
@@ -272,6 +274,9 @@ const updateConfiguration = defineRoute({
       tenant_id,
       connection_id,
     );
+    if (!configuration) {
+      throw new HTTPException(404, { message: "SCIM configuration not found" });
+    }
 
     await logMessage(ctx, tenant_id, {
       type: LogTypes.SUCCESS_API_OPERATION,
@@ -280,7 +285,7 @@ const updateConfiguration = defineRoute({
       targetId: connection_id,
     });
 
-    return ctx.json(toConfigurationResponse(configuration!, connection), 200);
+    return ctx.json(toConfigurationResponse(configuration, connection), 200);
   },
 });
 
@@ -477,8 +482,18 @@ const deleteToken = defineRoute({
   }),
   handler: async (ctx) => {
     const tenant_id = requireTenantId(ctx);
+    const connection_id = ctx.req.param("id")!;
     const token_id = ctx.req.param("tokenId")!;
     const { scimTokens } = requireScim(ctx.env.data);
+
+    await requireConnection(ctx, tenant_id, connection_id);
+
+    // The token is addressed under a connection, so it must belong to that
+    // connection — otherwise this route would delete any token in the tenant.
+    const token = await scimTokens.get(tenant_id, token_id);
+    if (!token || token.connection_id !== connection_id) {
+      throw new HTTPException(404, { message: "SCIM token not found" });
+    }
 
     const removed = await scimTokens.remove(tenant_id, token_id);
     if (!removed) {

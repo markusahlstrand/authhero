@@ -6337,7 +6337,7 @@
         "connection_id": {
           "name": "connection_id",
           "type": "text(255)",
-          "primaryKey": true,
+          "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
@@ -6379,17 +6379,17 @@
           "autoincrement": false
         }
       },
-      "indexes": {
-        "scim_configurations_tenant_id_idx": {
-          "name": "scim_configurations_tenant_id_idx",
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "scim_configurations_tenant_id_connection_id_pk": {
           "columns": [
-            "tenant_id"
+            "tenant_id",
+            "connection_id"
           ],
-          "isUnique": false
+          "name": "scim_configurations_tenant_id_connection_id_pk"
         }
       },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
@@ -6436,27 +6436,22 @@
         "scim_external_ids_connection_external_idx": {
           "name": "scim_external_ids_connection_external_idx",
           "columns": [
+            "tenant_id",
             "connection_id",
             "external_id"
           ],
           "isUnique": true
-        },
-        "scim_external_ids_tenant_id_idx": {
-          "name": "scim_external_ids_tenant_id_idx",
-          "columns": [
-            "tenant_id"
-          ],
-          "isUnique": false
         }
       },
       "foreignKeys": {},
       "compositePrimaryKeys": {
-        "scim_external_ids_connection_id_user_id_pk": {
+        "scim_external_ids_tenant_id_connection_id_user_id_pk": {
           "columns": [
+            "tenant_id",
             "connection_id",
             "user_id"
           ],
-          "name": "scim_external_ids_connection_id_user_id_pk"
+          "name": "scim_external_ids_tenant_id_connection_id_user_id_pk"
         }
       },
       "uniqueConstraints": {},
@@ -6468,7 +6463,7 @@
         "token_id": {
           "name": "token_id",
           "type": "text(64)",
-          "primaryKey": true,
+          "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
@@ -6538,11 +6533,19 @@
             "tenant_id",
             "token_hash"
           ],
-          "isUnique": false
+          "isUnique": true
         }
       },
       "foreignKeys": {},
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "scim_tokens_tenant_id_token_id_pk": {
+          "columns": [
+            "tenant_id",
+            "token_id"
+          ],
+          "name": "scim_tokens_tenant_id_token_id_pk"
+        }
+      },
       "uniqueConstraints": {},
       "checkConstraints": {}
     }
