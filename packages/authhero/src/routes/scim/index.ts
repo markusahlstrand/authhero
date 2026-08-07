@@ -252,6 +252,19 @@ function totalFrom(result: { users: User[]; length?: number }): number {
     : result.users.length;
 }
 
+/**
+ * Every SCIM read is over the connection's *primary* users: a linked identity
+ * is folded into its primary and is not a SCIM resource of its own. The
+ * exclusion has to happen in the query rather than on the returned rows —
+ * filtering afterwards leaves the page, the offset and the count query
+ * describing different populations, which makes a page come back short, shifts
+ * what an offset points at, and (because the count still includes linked rows)
+ * makes the connection look larger than the scan covered.
+ */
+function connectionQuery(s: ScimContext): string {
+  return `connection:${s.connection.name} -_exists_:linked_to`;
+}
+
 interface ConnectionUsers {
   users: User[];
   /** The adapter's own count of the connection's users, never the scan size. */
@@ -276,10 +289,10 @@ async function listConnectionUsers(s: ScimContext): Promise<ConnectionUsers> {
       page,
       per_page: perPage,
       include_totals: true,
-      q: `connection:${s.connection.name}`,
+      q: connectionQuery(s),
     });
     if (page === 0) total = totalFrom(result);
-    collected.push(...result.users.filter((u) => !u.linked_to));
+    collected.push(...result.users);
     if (result.users.length < perPage) break;
     page++;
   }
@@ -312,11 +325,12 @@ async function pageConnectionUsers(
     page: aligned && count > 0 ? offset / count : 0,
     per_page,
     include_totals: true,
-    q: `connection:${s.connection.name}`,
+    q: connectionQuery(s),
   });
-  const users = result.users.filter((u) => !u.linked_to);
+  // The rows are already the primaries-only population the count describes, so
+  // the unaligned branch can drop the leading `offset` of them directly.
   return {
-    users: aligned ? users : users.slice(offset),
+    users: aligned ? result.users : result.users.slice(offset),
     total: totalFrom(result),
   };
 }

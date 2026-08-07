@@ -243,6 +243,40 @@ describe("SCIM /Users endpoints", () => {
       env,
     );
     expect(create.status).toBe(403);
+
+    // …and a token granted the mutation scope can perform it, so the scope
+    // names the middleware requires stay the ones a token can be minted with.
+    const { connection: writable, token: writeToken } = await setupScim(env, {
+      name: "writable-ent",
+      scopes: ["post:users", "delete:users"],
+    });
+    const writeBase = `/scim/v2/connections/${writable.id}`;
+    const wh = headers(writeToken);
+
+    const allowed = await app.request(
+      `${writeBase}/Users`,
+      {
+        method: "POST",
+        headers: wh,
+        body: JSON.stringify({ userName: "scoped@example.com", active: true }),
+      },
+      env,
+    );
+    expect(allowed.status).toBe(201);
+
+    // A verb outside the grant is still refused.
+    const patch = await app.request(
+      `${writeBase}/Users/${encodeURIComponent((await allowed.json()).id)}`,
+      {
+        method: "PATCH",
+        headers: wh,
+        body: JSON.stringify({
+          Operations: [{ op: "replace", path: "active", value: false }],
+        }),
+      },
+      env,
+    );
+    expect(patch.status).toBe(403);
   });
 
   it("never returns a user of another connection", async () => {
@@ -326,6 +360,56 @@ describe("SCIM /Users endpoints", () => {
     expect(secondBody.Resources).toHaveLength(1);
     expect(secondBody.totalResults).toBe(3);
     expect(secondBody.startIndex).toBe(3);
+  });
+
+  it("ignores linked identities when listing and filtering", async () => {
+    const { app, env } = await getTestServer();
+    const { connection, token } = await setupScim(env);
+    const base = `/scim/v2/connections/${connection.id}`;
+    const h = headers(token);
+
+    const created = await app.request(
+      `${base}/Users`,
+      {
+        method: "POST",
+        headers: h,
+        body: JSON.stringify({ userName: "primary@example.com", active: true }),
+      },
+      env,
+    );
+    expect(created.status).toBe(201);
+    const primaryId = (await created.json()).id;
+
+    // A second identity of the same connection, linked to the first. It is not
+    // a SCIM resource of its own — it must not count towards totals, and it
+    // must not make the connection look bigger than the scan can cover.
+    await env.data.users.create(TENANT, {
+      email: "primary-alias@example.com",
+      email_verified: true,
+      connection: "okta-ent",
+      provider: "oidc",
+      is_social: false,
+      user_id: "oidc|linked-identity",
+      linked_to: primaryId,
+    });
+
+    const list = await app.request(`${base}/Users`, { headers: h }, env);
+    expect(list.status).toBe(200);
+    const listBody = await list.json();
+    expect(listBody.totalResults).toBe(1);
+    expect(listBody.Resources).toHaveLength(1);
+
+    // A filter that needs the in-memory scan still answers, rather than
+    // reporting the connection as too large to evaluate.
+    const filtered = await app.request(
+      `${base}/Users?filter=${encodeURIComponent("active eq true")}`,
+      { headers: h },
+      env,
+    );
+    expect(filtered.status).toBe(200);
+    const filteredBody = await filtered.json();
+    expect(filteredBody.totalResults).toBe(1);
+    expect(filteredBody.Resources[0].id).toBe(primaryId);
   });
 
   it("exposes ServiceProviderConfig", async () => {
