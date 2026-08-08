@@ -36,6 +36,7 @@ import type {
 } from "@authhero/adapter-interfaces";
 import { renderWidgetPageResponse, resolveDarkMode } from "./u2-widget-page";
 import { sanitizeUrl } from "./sanitization-utils";
+import { resolvePrimaryUser } from "../../helpers/users";
 
 import { defineRoute } from "../../utils/define-route";
 /**
@@ -225,6 +226,16 @@ const getFormIdNodesNodeId = defineRoute({
           loginSession.user_id,
         )) ?? undefined;
     }
+    // The session may point at a secondary identity (it is created before the
+    // post-login hooks run, and account-linking can demote its user) — the
+    // form always operates on the primary.
+    if (user) {
+      user = await resolvePrimaryUser(
+        ctx.env.data.users,
+        client.tenant.id,
+        user,
+      );
+    }
 
     // Build the UiScreen from form node components
     const screen = buildFormNodeScreen(
@@ -373,13 +384,22 @@ const postFormIdNodesNodeId = defineRoute({
         throw new Error("Session expired");
       }
 
-      const user = await ctx.env.data.users.get(
+      const sessionUser = await ctx.env.data.users.get(
         client.tenant.id,
         session.user_id,
       );
-      if (!user) {
+      if (!sessionUser) {
         throw new Error("Session expired");
       }
+      // The session may point at a secondary identity (it is created before
+      // the post-login hooks run, and account-linking can demote its user).
+      // Resolve to the primary so router conditions read the canonical
+      // profile and UPDATE_USER stamps it — not the linked identity.
+      const user = await resolvePrimaryUser(
+        ctx.env.data.users,
+        client.tenant.id,
+        sessionUser,
+      );
 
       // Check if there's a next_node in the STEP config
       const nextNodeId = node.config?.next_node;

@@ -13,6 +13,7 @@ import { logMessage } from "../helpers/logging";
 import { stripInternalUserFields } from "../helpers/hook-user-payload";
 import { startLoginSessionHook } from "../authentication-flows/common";
 import { isFormHook, handleFormHook } from "./formhooks";
+import { resolvePrimaryUser } from "../helpers/users";
 import { isPageHook, handlePageHook } from "./pagehooks";
 import { isTemplateHook, handleTemplateHook } from "./templatehooks";
 import {
@@ -384,37 +385,12 @@ export async function postUserLoginHook(
       (h: any) => h.trigger_id === "post-user-login",
     );
 
-    // Handle form hook (redirect) if we have a login session
-    if (loginSession) {
-      const formHook = postLoginHooks.find(
-        (h: any) => h.enabled && isFormHook(h),
-      );
-      if (formHook && isFormHook(formHook)) {
-        return handleFormHook(
-          ctx,
-          formHook.form_id,
-          loginSession,
-          user,
-          params?.client,
-        );
-      }
-
-      // Handle page hook (redirect) if we have a login session
-      const pageHook = postLoginHooks.find(
-        (h: any) => h.enabled && isPageHook(h),
-      );
-      if (pageHook && isPageHook(pageHook)) {
-        return handlePageHook(
-          ctx,
-          pageHook.page_id,
-          loginSession,
-          user,
-          pageHook.permission_required,
-        );
-      }
-    }
-
-    // Handle template hooks (execute pre-defined hook functions)
+    // Handle template hooks (execute pre-defined hook functions). These run
+    // BEFORE the form/page dispatch below: account-linking may demote the
+    // logging-in user to a secondary, and an interrupting form must evaluate
+    // its router conditions against — and stamp submitted values onto — the
+    // primary identity. Running them after meant a form hook's early return
+    // skipped linking entirely on the very login where it should happen.
     const templateHooks = postLoginHooks.filter(
       (h: any) => h.enabled && isTemplateHook(h),
     );
@@ -438,6 +414,50 @@ export async function postUserLoginHook(
             error: message,
           },
         });
+      }
+    }
+    // handleTemplateHook re-fetches by the same user_id, so after a link the
+    // returned row is the now-secondary identity — follow linked_to so the
+    // form dispatch and token building downstream see the primary.
+    user = await resolvePrimaryUser(data.users, tenant_id, user);
+
+    // Handle form hook (redirect) if we have a login session
+    if (loginSession) {
+      const formHook = postLoginHooks.find(
+        (h: any) => h.enabled && isFormHook(h),
+      );
+      if (formHook && isFormHook(formHook)) {
+        const formResult = await handleFormHook(
+          ctx,
+          formHook.form_id,
+          loginSession,
+          user,
+          params?.client,
+        );
+        if (formResult instanceof Response) {
+          return formResult;
+        }
+        // No form interrupt (router fell through to the ending) — continue
+        // with the remaining hooks instead of skipping them.
+        user = formResult;
+      }
+
+      // Handle page hook (redirect) if we have a login session
+      const pageHook = postLoginHooks.find(
+        (h: any) => h.enabled && isPageHook(h),
+      );
+      if (pageHook && isPageHook(pageHook)) {
+        const pageResult = await handlePageHook(
+          ctx,
+          pageHook.page_id,
+          loginSession,
+          user,
+          pageHook.permission_required,
+        );
+        if (pageResult instanceof Response) {
+          return pageResult;
+        }
+        user = pageResult;
       }
     }
 

@@ -246,6 +246,28 @@ export async function getLastUsedUserByEmail({
   return (await userAdapter.get(tenant_id, linkedTo)) ?? undefined;
 }
 
+/**
+ * Resolve a user to the primary of its linked cluster. Follows a single
+ * `linked_to` hop — the linking invariants keep clusters one level deep
+ * (see {@link repointPrimary}) — and falls back to the given user on a
+ * dangling link so callers never lose the identity they started with.
+ *
+ * Used by the forms engine so that post-login profile forms evaluate
+ * router conditions against, and stamp submitted values onto, the primary
+ * identity even when the session points at a secondary.
+ */
+export async function resolvePrimaryUser(
+  userAdapter: UserDataAdapter,
+  tenant_id: string,
+  user: User,
+): Promise<User> {
+  if (!user.linked_to) {
+    return user;
+  }
+  const primary = await userAdapter.get(tenant_id, user.linked_to);
+  return primary ?? user;
+}
+
 interface RepointPrimaryParams {
   userAdapter: UserDataAdapter;
   tenant_id: string;
