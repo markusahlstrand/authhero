@@ -35,7 +35,11 @@ export function FieldCombobox({ value, onChange }: FieldComboboxProps) {
     return acc;
   }, {});
 
-  const selected = ROUTER_FIELD_OPTIONS.find((opt) => opt.value === value);
+  // Rules saved before the designer emitted {{context.user.…}} templates
+  // hold bare paths; map them onto the matching option for display.
+  const normalized =
+    value && !value.startsWith("{{") ? `{{context.user.${value}}}` : value;
+  const selected = ROUTER_FIELD_OPTIONS.find((opt) => opt.value === normalized);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -81,7 +85,9 @@ export function FieldCombobox({ value, onChange }: FieldComboboxProps) {
                     <Check
                       className={cn(
                         "mr-2 h-3.5 w-3.5",
-                        value === option.value ? "opacity-100" : "opacity-0",
+                        normalized === option.value
+                          ? "opacity-100"
+                          : "opacity-0",
                       )}
                     />
                     <span className="flex-1">{option.label}</span>

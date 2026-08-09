@@ -43,6 +43,7 @@ export interface RouterCondition {
 }
 
 export interface RouterConditionGroup {
+  type?: "and";
   conditions: RouterCondition[];
 }
 
