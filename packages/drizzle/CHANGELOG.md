@@ -1,5 +1,26 @@
 # @authhero/drizzle
 
+## 1.1.0
+
+### Minor Changes
+
+- 5b31dcc: Add an opt-in "Last used" connection hint to the u2 universal-login identifier and login screens (#1138).
+  - New `show_last_used_connection` flag on `promptSettings` (default `false`). When enabled, a successful login writes a per-tenant `httpOnly` cookie holding only the connection name (~1 year, never on failed auth), and the identifier/login screens badge the matching social connection button.
+  - `provider_details` in the Forms schema gains `last_used` and a server-translated `last_used_label`.
+  - The widget renders the badge via a new `button-social-badge` (and `button-social-badge-<provider>`) shadow part, leaving the documented `button-social-subtitle` `::part()` behaviour untouched.
+
+- b7f67aa: Add SCIM 2.0 inbound-provisioning configuration plumbing (Phase 1 of #1191). Introduces three optional, tenant-scoped entities — `scimConfigurations` (one config per connection), `scimTokens` (hashed long-lived bearer tokens), and `scimExternalIds` (IdP `externalId` → `user_id` lookup) — with drizzle and kysely adapter implementations and migrations. Exposes the Auth0-parity management API under `/api/v2/connections/{id}/scim-configuration` (config CRUD, `default-mapping`, and token mint/list/delete), guarded by the existing `*:scim_config` / `*:scim_token` scopes and mounted only when the SCIM adapters are wired. Raw token secrets are returned once and stored only as SHA-256 hashes. The `/scim/v2` provisioning endpoints themselves land in Phase 2.
+- 8af3eab: Add an Auth0-parity `blocked` flag to users. A blocked user cannot authenticate or refresh tokens: the password login path rejects with `USER_BLOCKED`, the refresh_token grant returns `invalid_grant`, and `createAuthTokens` fails closed for every other grant. Blocking a user via the management API (`PATCH /api/v2/users/{id}` with `blocked: true`) also revokes the user's sessions and refresh tokens, mirroring Auth0's session termination on block. The field is stored on both the drizzle and kysely adapters (nullable column, additive migrations). This is the prerequisite for SCIM `active: false` deprovisioning (#1191).
+
+### Patch Changes
+
+- Updated dependencies [5b31dcc]
+- Updated dependencies [b7f67aa]
+- Updated dependencies [52811ff]
+- Updated dependencies [8af3eab]
+  - @authhero/adapter-interfaces@4.4.0
+  - @authhero/proxy@0.10.1
+
 ## 1.0.0
 
 ### Major Changes

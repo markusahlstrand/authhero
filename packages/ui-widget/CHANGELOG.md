@@ -1,5 +1,22 @@
 # @authhero/widget
 
+## 0.36.0
+
+### Minor Changes
+
+- 5b31dcc: Add an opt-in "Last used" connection hint to the u2 universal-login identifier and login screens (#1138).
+  - New `show_last_used_connection` flag on `promptSettings` (default `false`). When enabled, a successful login writes a per-tenant `httpOnly` cookie holding only the connection name (~1 year, never on failed auth), and the identifier/login screens badge the matching social connection button.
+  - `provider_details` in the Forms schema gains `last_used` and a server-translated `last_used_label`.
+  - The widget renders the badge via a new `button-social-badge` (and `button-social-badge-<provider>`) shadow part, leaving the documented `button-social-subtitle` `::part()` behaviour untouched.
+
+### Patch Changes
+
+- Updated dependencies [5b31dcc]
+- Updated dependencies [b7f67aa]
+- Updated dependencies [52811ff]
+- Updated dependencies [8af3eab]
+  - @authhero/adapter-interfaces@4.4.0
+
 ## 0.35.0
 
 ### Minor Changes
