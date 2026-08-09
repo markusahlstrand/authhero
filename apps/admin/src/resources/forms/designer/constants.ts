@@ -54,29 +54,69 @@ export interface RouterFieldOption {
   group: string;
 }
 
+// Field values are {{context.user.…}} templates — the form engine only
+// substitutes template references; a bare path would compare as a literal.
+const userField = (path: string) => `{{context.user.${path}}}`;
+
 export const ROUTER_FIELD_OPTIONS: RouterFieldOption[] = [
-  { value: "email", label: "Email", group: "User profile" },
-  { value: "name", label: "Name", group: "User profile" },
-  { value: "given_name", label: "Given name", group: "User profile" },
-  { value: "family_name", label: "Family name", group: "User profile" },
-  { value: "nickname", label: "Nickname", group: "User profile" },
-  { value: "picture", label: "Picture", group: "User profile" },
-  { value: "locale", label: "Locale", group: "User profile" },
-  { value: "username", label: "Username", group: "User profile" },
-  { value: "phone_number", label: "Phone number", group: "User profile" },
-  { value: "connection", label: "Connection", group: "Authentication" },
-  { value: "provider", label: "Provider", group: "Authentication" },
-  { value: "is_social", label: "Is social", group: "Authentication" },
-  { value: "user_id", label: "User ID", group: "Authentication" },
-  { value: "user_metadata.country", label: "Country", group: "User metadata" },
-  { value: "user_metadata.gender", label: "Gender", group: "User metadata" },
+  { value: userField("email"), label: "Email", group: "User profile" },
+  { value: userField("name"), label: "Name", group: "User profile" },
   {
-    value: "user_metadata.birthdate",
+    value: userField("given_name"),
+    label: "Given name",
+    group: "User profile",
+  },
+  {
+    value: userField("family_name"),
+    label: "Family name",
+    group: "User profile",
+  },
+  { value: userField("nickname"), label: "Nickname", group: "User profile" },
+  { value: userField("picture"), label: "Picture", group: "User profile" },
+  { value: userField("locale"), label: "Locale", group: "User profile" },
+  { value: userField("username"), label: "Username", group: "User profile" },
+  {
+    value: userField("phone_number"),
+    label: "Phone number",
+    group: "User profile",
+  },
+  {
+    value: userField("connection"),
+    label: "Connection",
+    group: "Authentication",
+  },
+  { value: userField("provider"), label: "Provider", group: "Authentication" },
+  {
+    value: userField("is_social"),
+    label: "Is social",
+    group: "Authentication",
+  },
+  { value: userField("user_id"), label: "User ID", group: "Authentication" },
+  {
+    value: userField("user_metadata.country"),
+    label: "Country",
+    group: "User metadata",
+  },
+  {
+    value: userField("user_metadata.gender"),
+    label: "Gender",
+    group: "User metadata",
+  },
+  {
+    value: userField("user_metadata.birthdate"),
     label: "Birthdate",
     group: "User metadata",
   },
-  { value: "user_metadata.address", label: "Address", group: "User metadata" },
-  { value: "user_metadata.phone", label: "Phone", group: "User metadata" },
+  {
+    value: userField("user_metadata.address"),
+    label: "Address",
+    group: "User metadata",
+  },
+  {
+    value: userField("user_metadata.phone"),
+    label: "Phone",
+    group: "User metadata",
+  },
 ];
 
 export const COMPONENT_CATEGORIES = {

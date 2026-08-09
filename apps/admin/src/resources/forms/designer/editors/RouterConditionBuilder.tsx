@@ -28,7 +28,7 @@ export function RouterConditionBuilder({ name }: RouterConditionBuilderProps) {
   const conditions = value.conditions ?? [];
 
   const update = (next: RouterCondition[]) =>
-    field.onChange({ conditions: next });
+    field.onChange({ type: "and", conditions: next });
 
   const addCondition = () =>
     update([...conditions, { field: "", operator: "equals", value: "" }]);

@@ -115,9 +115,13 @@ function evaluateSingleCondition(
 ): boolean {
   // Handle the operator at the condition level
   const operator = condition.operator?.toLowerCase();
-  const field = condition.field
-    ? resolveTemplateField(condition.field, context)
-    : "";
+  const rawField = condition.field ?? "";
+  let field = rawField ? resolveTemplateField(rawField, context) : "";
+  // A condition's field is always a reference, never a literal: bare paths
+  // like "email" or "user_metadata.birthdate" resolve against the user.
+  if (rawField && field === rawField && !rawField.startsWith("{{")) {
+    field = resolveNestedPath(context.user, rawField);
+  }
   const value = condition.value || "";
 
   switch (operator) {
@@ -188,8 +192,10 @@ function evaluateCondition(
   },
   context: ResolveContext,
 ): boolean {
-  // Handle compound conditions with AND logic
-  if (condition.type === "and" && Array.isArray(condition.conditions)) {
+  // Handle compound conditions with AND logic. The type discriminator is
+  // optional: a bare { conditions: [...] } group (as older versions of the
+  // admin designer emitted) is unambiguous and evaluated the same way.
+  if (Array.isArray(condition.conditions)) {
     // All conditions must be true (AND logic)
     return condition.conditions.every((cond) =>
       evaluateSingleCondition(cond, context),

@@ -165,7 +165,7 @@ export function useNodeOperations({
           {
             id: ruleId,
             alias: "Rule 1",
-            condition: { conditions: [] },
+            condition: { type: "and", conditions: [] },
             next_node: ENDING_TARGET,
           },
         ],

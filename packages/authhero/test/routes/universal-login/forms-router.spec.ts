@@ -673,4 +673,150 @@ describe("forms - router node with user context", () => {
     expect(html).toContain("Test Mode");
     expect(html).toContain("This is a test account!");
   });
+
+  it("should evaluate designer-authored conditions (type-less group, bare field paths)", async () => {
+    const { universalApp, oauthApp, managementApp, getSentEmails, env } =
+      await getTestServer({
+        mockEmail: true,
+        testTenantLanguage: "en",
+      });
+    const oauthClient = testClient(oauthApp, env);
+    const universalClient = testClient(universalApp, env);
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    // The admin designer used to emit condition groups without type: "and"
+    // and field references as bare paths instead of {{context.user.…}}
+    // templates. The engine accepts both shapes.
+    const createFormResponse = await managementClient.forms.$post(
+      {
+        json: {
+          name: "designer-router-form",
+          nodes: [
+            {
+              id: "router_designer",
+              type: "ROUTER",
+              coordinates: { x: 200, y: 100 },
+              alias: "Designer Router",
+              config: {
+                rules: [
+                  {
+                    id: "rule_profile",
+                    alias: "Missing birthdate",
+                    condition: {
+                      conditions: [
+                        {
+                          field: "user_metadata.birthdate",
+                          operator: "not_exists",
+                          value: "",
+                        },
+                        {
+                          field: "email",
+                          operator: "ends_with",
+                          value: "example.com",
+                        },
+                      ],
+                    },
+                    next_node: "step_profile",
+                  },
+                ],
+                fallback: "$ending",
+              },
+            },
+            {
+              id: "step_profile",
+              type: "STEP",
+              coordinates: { x: 400, y: 100 },
+              alias: "Profile Step",
+              config: {
+                components: [
+                  {
+                    id: "profile-text",
+                    type: "RICH_TEXT",
+                    config: {
+                      content: "<h2>Complete your profile</h2>",
+                    },
+                  },
+                  {
+                    id: "continue-btn",
+                    type: "NEXT_BUTTON",
+                    config: {
+                      text: "Continue",
+                    },
+                  },
+                ],
+                next_node: "$ending",
+              },
+            },
+          ],
+          start: { next_node: "router_designer" },
+          ending: {},
+        },
+        header: { "tenant-id": "tenantId" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(createFormResponse.status).toBe(201);
+    const form = await createFormResponse.json();
+
+    const createHookResponse = await managementClient.hooks.$post(
+      {
+        json: {
+          trigger_id: "post-user-login",
+          form_id: form.id,
+          enabled: true,
+        },
+        header: { "tenant-id": "tenantId" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(createHookResponse.status).toBe(201);
+
+    const authorizeResponse = await oauthClient.authorize.$get({
+      query: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+        state: "state-designer",
+        nonce: "nonce-designer",
+        scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
+      },
+    });
+    expect(authorizeResponse.status).toBe(302);
+    const location = authorizeResponse.headers.get("location");
+    const universalUrl = new URL(`https://example.com${location}`);
+    const state = universalUrl.searchParams.get("state");
+    if (!state) throw new Error("No state found");
+
+    // Login with a user that has no birthdate — both conditions match
+    const enterEmailPostResponse = await universalClient.login.identifier.$post(
+      {
+        query: { state },
+        form: { username: "designer-user@example.com" },
+      },
+    );
+    expect(enterEmailPostResponse.status).toBe(302);
+
+    const email = getSentEmails()[0];
+    const { code } = email.data;
+    const enterCodePostResponse = await universalClient.login[
+      "email-otp-challenge"
+    ].$post({
+      query: { state },
+      form: { code },
+    });
+    expect(enterCodePostResponse.status).toBe(302);
+    const enterCodeLocation = enterCodePostResponse.headers.get("location");
+
+    expect(enterCodeLocation).toBe(
+      `/u/forms/${form.id}/nodes/step_profile?state=${state}`,
+    );
+
+    const formNodeGet = await universalClient["forms"][form.id][
+      "nodes"
+    ].step_profile.$get({ query: { state } });
+    expect(formNodeGet.status).toBe(200);
+    const html = await formNodeGet.text();
+    expect(html).toContain("Complete your profile");
+  });
 });

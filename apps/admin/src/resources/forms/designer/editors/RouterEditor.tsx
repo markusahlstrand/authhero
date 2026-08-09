@@ -31,7 +31,7 @@ export function RouterEditor({ index }: RouterEditorProps) {
     const newRule: RouterRule = {
       id: randomId("rule"),
       alias: `Rule ${rules.length + 1}`,
-      condition: { conditions: [] },
+      condition: { type: "and", conditions: [] },
       next_node: ENDING_TARGET,
     };
     updateRules([...rules, newRule]);
