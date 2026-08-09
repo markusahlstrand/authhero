@@ -11,6 +11,7 @@ function toRow(promptSetting: Partial<PromptSetting>) {
     identifier_first?: number;
     password_first?: number;
     webauthn_platform_first_factor?: number;
+    show_last_used_connection?: number;
     universal_login_experience?: "new" | "classic";
   } = {};
   if (typeof promptSetting.identifier_first === "boolean") {
@@ -22,6 +23,11 @@ function toRow(promptSetting: Partial<PromptSetting>) {
   if (typeof promptSetting.webauthn_platform_first_factor === "boolean") {
     row.webauthn_platform_first_factor =
       promptSetting.webauthn_platform_first_factor ? 1 : 0;
+  }
+  if (typeof promptSetting.show_last_used_connection === "boolean") {
+    row.show_last_used_connection = promptSetting.show_last_used_connection
+      ? 1
+      : 0;
   }
   if (promptSetting.universal_login_experience) {
     row.universal_login_experience = promptSetting.universal_login_experience;
@@ -42,6 +48,7 @@ export function set(db: Kysely<Database>) {
           password_first: row.password_first ?? 0,
           webauthn_platform_first_factor:
             row.webauthn_platform_first_factor ?? 0,
+          show_last_used_connection: row.show_last_used_connection ?? 0,
           universal_login_experience: row.universal_login_experience ?? "new",
         })
         .execute();

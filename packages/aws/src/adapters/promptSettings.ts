@@ -18,6 +18,7 @@ interface PromptSettingsItem extends DynamoDBBaseItem {
   identifier_first?: boolean;
   password_first?: boolean;
   webauthn_platform_first_factor?: boolean;
+  show_last_used_connection?: boolean;
 }
 
 const defaultPromptSettings: PromptSetting = {
@@ -25,6 +26,7 @@ const defaultPromptSettings: PromptSetting = {
   identifier_first: false,
   password_first: false,
   webauthn_platform_first_factor: false,
+  show_last_used_connection: false,
 };
 
 function toPromptSettings(item: PromptSettingsItem): PromptSetting {
@@ -35,6 +37,7 @@ function toPromptSettings(item: PromptSettingsItem): PromptSetting {
     password_first: rest.password_first ?? false,
     webauthn_platform_first_factor:
       rest.webauthn_platform_first_factor ?? false,
+    show_last_used_connection: rest.show_last_used_connection ?? false,
   });
 
   return promptSettingSchema.parse(data);
@@ -74,6 +77,9 @@ export function createPromptSettingsAdapter(
         webauthn_platform_first_factor:
           promptSetting.webauthn_platform_first_factor ??
           existing.webauthn_platform_first_factor,
+        show_last_used_connection:
+          promptSetting.show_last_used_connection ??
+          existing.show_last_used_connection,
         created_at: existingItem?.created_at || now,
         updated_at: now,
       };

@@ -225,6 +225,11 @@ export const promptSettings = sqliteTable("prompt_settings", {
   })
     .notNull()
     .default(false),
+  show_last_used_connection: integer("show_last_used_connection", {
+    mode: "boolean",
+  })
+    .notNull()
+    .default(false),
 });
 
 export const emailProviders = sqliteTable("email_providers", {

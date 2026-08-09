@@ -27,6 +27,7 @@ describe("prompts", () => {
     expect(defalutPromptSetting).toEqual({
       identifier_first: false,
       password_first: false,
+      show_last_used_connection: false,
       universal_login_experience: "new",
       webauthn_platform_first_factor: false,
     });
@@ -54,6 +55,7 @@ describe("prompts", () => {
     expect(updateBrandingResponseBody).toEqual({
       identifier_first: false,
       password_first: false,
+      show_last_used_connection: false,
       universal_login_experience: "new",
       webauthn_platform_first_factor: false,
     });

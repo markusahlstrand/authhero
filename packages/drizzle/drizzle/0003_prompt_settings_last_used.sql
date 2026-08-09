@@ -1,0 +1,1 @@
+ALTER TABLE `prompt_settings` ADD `show_last_used_connection` integer DEFAULT false NOT NULL;

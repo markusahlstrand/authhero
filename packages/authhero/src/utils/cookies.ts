@@ -1,11 +1,17 @@
 import { parse, serialize } from "cookie";
 import {
+  LAST_USED_CONNECTION_COOKIE_NAME,
+  LAST_USED_CONNECTION_MAX_AGE_IN_SECONDS,
   SILENT_AUTH_MAX_AGE_IN_SECONDS,
   SILENT_COOKIE_NAME,
 } from "../constants";
 
 function getCookieName(tenant_id: string) {
   return `${tenant_id}-${SILENT_COOKIE_NAME}`;
+}
+
+function getLastUsedConnectionCookieName(tenant_id: string) {
+  return `${tenant_id}-${LAST_USED_CONNECTION_COOKIE_NAME}`;
 }
 
 /**
@@ -184,4 +190,40 @@ export function serializeAuthCookie(
       partitioned: true,
     }),
   ];
+}
+
+/**
+ * "Last used" connection hint (opt-in via promptSettings.show_last_used_connection).
+ *
+ * Stores only the connection name — no PII, no fingerprint. Read server-side
+ * on the identifier/login screens to badge the matching connection button,
+ * so it stays `httpOnly`. SameSite=Lax (not None): it is only read on
+ * top-level navigations to the login page, never inside the silent-auth
+ * iframe, and Lax also lets it survive without `partitioned`.
+ */
+export function getLastUsedConnectionCookie(
+  tenant_id: string,
+  cookieHeaders?: string,
+): string | undefined {
+  if (!cookieHeaders) {
+    return undefined;
+  }
+  const cookies = parse(cookieHeaders);
+  return cookies[getLastUsedConnectionCookieName(tenant_id)];
+}
+
+export function serializeLastUsedConnectionCookie(
+  tenant_id: string,
+  connectionName: string,
+  hostname?: string,
+): string {
+  const insecure = isInsecureDevHost(hostname);
+  return serialize(getLastUsedConnectionCookieName(tenant_id), connectionName, {
+    path: "/",
+    httpOnly: true,
+    secure: !insecure,
+    sameSite: "lax",
+    maxAge: LAST_USED_CONNECTION_MAX_AGE_IN_SECONDS,
+    domain: hostname ? getWildcardDomain(hostname) : undefined,
+  });
 }

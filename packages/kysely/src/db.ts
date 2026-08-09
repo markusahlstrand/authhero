@@ -96,6 +96,8 @@ const sqlPromptSettingSchema = promptSettingSchema.extend({
   identifier_first: z.number(),
   password_first: z.number(),
   webauthn_platform_first_factor: z.number(),
+  // Nullable: column added after baseline; NULL reads back as "off".
+  show_last_used_connection: z.number().nullable(),
   tenant_id: z.string(),
 });
 

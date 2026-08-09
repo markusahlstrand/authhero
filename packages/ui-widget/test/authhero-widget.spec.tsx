@@ -346,4 +346,64 @@ describe("authhero-widget", () => {
     // The visible value is sanitized in place too.
     expect(input.value).toBe("1234");
   });
+
+  it("renders a 'Last used' badge only on the matching social provider", async () => {
+    const socialScreen = {
+      title: "Sign in",
+      action: "http://localhost/login/identifier",
+      method: "POST",
+      components: [
+        {
+          id: "social-buttons",
+          type: "SOCIAL",
+          category: "FIELD",
+          visible: true,
+          config: {
+            providers: ["google-oauth2", "github"],
+            provider_details: [
+              {
+                name: "google-oauth2",
+                strategy: "google-oauth2",
+                display_name: "Continue with Google",
+                last_used: true,
+                last_used_label: "Last used",
+              },
+              {
+                name: "github",
+                strategy: "github",
+                display_name: "Continue with GitHub",
+              },
+            ],
+          },
+          order: 0,
+        },
+      ],
+    };
+
+    const page = await newSpecPage({
+      components: [AuthheroWidget, AuthheroNode],
+      html: `<authhero-widget screen='${JSON.stringify(socialScreen)}'></authhero-widget>`,
+    });
+
+    await page.waitForChanges();
+
+    const node = page.root!.shadowRoot!.querySelector("authhero-node");
+    const nodeShadow = node!.shadowRoot!;
+
+    const badges = nodeShadow.querySelectorAll(".btn-social-badge");
+    expect(badges.length).toBe(1);
+    expect(badges[0].textContent).toBe("Last used");
+    // New dedicated part — .btn-social-subtitle's documented ::part() trick
+    // must keep working, so the badge doesn't reuse it.
+    expect(badges[0].getAttribute("part")).toBe(
+      "button-social-badge button-social-badge-google-oauth2",
+    );
+    expect(
+      badges[0].closest("button")!.getAttribute("data-connection-name"),
+    ).toBe("google-oauth2");
+
+    // The subtitle span still renders (empty) for every provider.
+    const subtitles = nodeShadow.querySelectorAll(".btn-social-subtitle");
+    expect(subtitles.length).toBe(2);
+  });
 });

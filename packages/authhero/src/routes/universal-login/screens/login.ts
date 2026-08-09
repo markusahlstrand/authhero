@@ -15,6 +15,7 @@ import {
   isDatabaseConnectionStrategy,
 } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
+import { getLastUsedConnection } from "./types";
 import {
   getPrimaryUserByProvider,
   userExistsByEmail,
@@ -43,6 +44,7 @@ import {
 function buildSocialButtons(
   context: ScreenContext,
   m: LoginScreen,
+  lastUsedConnection?: string,
 ): FormNodeComponent[] {
   const { connections } = context;
 
@@ -74,6 +76,9 @@ function buildSocialButtons(
         connectionName: displayName,
       }),
       icon_url: getConnectionIconUrl(conn),
+      ...(conn.name === lastUsedConnection
+        ? { last_used: true, last_used_label: m.lastUsedText() }
+        : {}),
     };
   });
 
@@ -86,6 +91,9 @@ function buildSocialButtons(
       display_name: m.enterACodeBtn(),
       icon_url: getConnectionIconUrl(firstPasswordless),
       href: passwordlessUrl,
+      ...(passwordlessConnections.some((c) => c.name === lastUsedConnection)
+        ? { last_used: true, last_used_label: m.lastUsedText() }
+        : {}),
     } as (typeof providerDetails)[number] & { href: string });
   }
 
@@ -150,7 +158,8 @@ export async function loginScreen(
   const locale = context.language || "en";
   const { m } = createTranslation("login", "login", locale, customText);
 
-  const socialButtons = buildSocialButtons(context, m);
+  const lastUsedConnection = await getLastUsedConnection(context);
+  const socialButtons = buildSocialButtons(context, m, lastUsedConnection);
   const socialButtonCount = socialButtons.length;
 
   // Check if we have a password connection
