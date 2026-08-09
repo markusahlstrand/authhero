@@ -14,6 +14,7 @@ import {
 } from "@authhero/adapter-interfaces";
 import { EnrichedClient } from "../../../helpers/client";
 import { Bindings, Variables } from "../../../types";
+import { getLastUsedConnectionCookie } from "../../../utils/cookies";
 
 /**
  * Branding information for screen rendering
@@ -183,4 +184,33 @@ export async function getLoginPath(context: ScreenContext): Promise<string> {
   return settings.identifier_first === false && hasPasswordConnection
     ? `${routePrefix}/login`
     : `${routePrefix}/login/identifier`;
+}
+
+/**
+ * Resolve the "Last used" connection hint for the identifier/login screens.
+ *
+ * Returns the connection name from the device cookie, but only when the
+ * tenant has opted in via promptSettings.show_last_used_connection and the
+ * named connection is still available on this client — a stale cookie for a
+ * removed connection must not badge anything.
+ */
+export async function getLastUsedConnection(
+  context: ScreenContext,
+): Promise<string | undefined> {
+  const promptSettings = await context.ctx.env.data.promptSettings.get(
+    context.tenant.id,
+  );
+  if (promptSettings?.show_last_used_connection !== true) {
+    return undefined;
+  }
+  const lastUsed = getLastUsedConnectionCookie(
+    context.tenant.id,
+    context.ctx.req.header("cookie"),
+  );
+  if (!lastUsed) {
+    return undefined;
+  }
+  return context.connections.some((c) => c.name === lastUsed)
+    ? lastUsed
+    : undefined;
 }

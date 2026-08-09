@@ -1834,6 +1834,7 @@ export class AuthheroWidget {
         "button-social-content",
         "button-social-text",
         "button-social-subtitle",
+        "button-social-badge",
         "social-icon",
       ];
       const config = component.config as { providers?: string[] } | undefined;
@@ -1845,6 +1846,7 @@ export class AuthheroWidget {
           `button-social-content-${safe}`,
           `button-social-text-${safe}`,
           `button-social-subtitle-${safe}`,
+          `button-social-badge-${safe}`,
           `social-icon-${safe}`,
         ];
       });

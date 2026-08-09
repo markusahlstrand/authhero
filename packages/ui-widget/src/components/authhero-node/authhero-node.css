@@ -64,7 +64,7 @@ input[type="date"].input-field+.input-label {
   color: var(--ah-color-text-muted, #65676e);
 }
 
-.input-field:focus+.input-label {
+.input-field:focus + .input-label {
   color: var(--ah-color-primary, #635dff);
 }
 
@@ -85,7 +85,8 @@ input[type="date"].input-field+.input-label {
   font-family: inherit;
   color: var(--ah-color-input-text, var(--ah-color-text, #1e212a));
   background-color: var(--ah-color-input-bg, #ffffff);
-  border: var(--ah-input-border-width, 1px) solid var(--ah-color-border, #c9cace);
+  border: var(--ah-input-border-width, 1px) solid
+    var(--ah-color-border, #c9cace);
   border-radius: var(--ah-input-radius, 3px);
   outline: none;
   transition:
@@ -263,7 +264,8 @@ input[type="date"].input-field+.input-label {
 }
 
 .btn:focus-visible {
-  outline: 2px solid var(--ah-color-focus-ring, var(--ah-color-primary, #635dff));
+  outline: 2px solid
+    var(--ah-color-focus-ring, var(--ah-color-primary, #635dff));
   outline-offset: 2px;
 }
 
@@ -275,14 +277,18 @@ input[type="date"].input-field+.input-label {
 }
 
 .btn-primary:not(:disabled):hover {
-  background-color: var(--ah-color-primary-hover, color-mix(in srgb, var(--ah-color-primary, #635dff) 85%, black));
+  background-color: var(
+    --ah-color-primary-hover,
+    color-mix(in srgb, var(--ah-color-primary, #635dff) 85%, black)
+  );
 }
 
 /* Secondary Button (Social/OIDC) */
 .btn-secondary {
   background-color: var(--ah-color-bg, #ffffff);
   color: var(--ah-btn-secondary-text, var(--ah-color-text, #1e212a));
-  border: var(--ah-btn-border-width, 1px) solid var(--ah-btn-secondary-border, var(--ah-color-border, #c9cace));
+  border: var(--ah-btn-border-width, 1px) solid
+    var(--ah-btn-secondary-border, var(--ah-color-border, #c9cace));
 }
 
 .btn-secondary:not(:disabled):hover {
@@ -322,7 +328,8 @@ input[type="date"].input-field+.input-label {
   padding: 12px 8px;
   font-size: var(--ah-font-size-body, 16px);
   font-family: var(--ah-font-family, inherit);
-  border: var(--ah-input-border-width, 1px) solid var(--ah-color-border, #c9cace);
+  border: var(--ah-input-border-width, 1px) solid
+    var(--ah-color-border, #c9cace);
   border-right: none;
   border-radius: var(--ah-input-radius, 4px) 0 0 var(--ah-input-radius, 4px);
   background-color: var(--ah-color-input-bg, var(--ah-color-surface, #fff));
@@ -357,8 +364,8 @@ input[type="date"].input-field+.input-label {
 }
 
 .phone-input-wrapper .input-label.floating,
-.phone-input-wrapper .input-field:focus+.input-label,
-.phone-input-wrapper .input-field:not(:placeholder-shown)+.input-label {
+.phone-input-wrapper .input-field:focus + .input-label,
+.phone-input-wrapper .input-field:not(:placeholder-shown) + .input-label {
   left: 8px;
 }
 
@@ -375,6 +382,25 @@ input[type="date"].input-field+.input-label {
   align-items: center;
   justify-content: center;
   gap: 12px;
+  position: relative;
+}
+
+/* "Last used" badge — absolutely positioned so the centered button label
+   doesn't shift when the badge is present. Restyle or hide via
+   ::part(button-social-badge) / ::part(button-social-badge-<provider>). */
+.btn-social-badge {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  line-height: 1;
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: var(--ah-color-bg-hover, rgba(0, 0, 0, 0.06));
+  color: var(--ah-color-text-muted, #666);
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 .btn-social-content {
@@ -407,7 +433,6 @@ input[type="date"].input-field+.input-label {
 
 /* Small screen: collapse social buttons to icon-only in a row only if 3+ buttons */
 @media (max-width: 480px) {
-
   /* Only apply icon-only layout when there are 3 or more social buttons */
   .social-buttons:has(.btn-social:nth-child(3)) {
     flex-direction: row;
@@ -705,7 +730,8 @@ input[type="date"].input-field+.input-label {
   font-family: inherit;
   color: var(--ah-color-input-text, var(--ah-color-text, #1e212a));
   background-color: var(--ah-color-input-bg, #ffffff);
-  border: var(--ah-input-border-width, 1px) solid var(--ah-color-border, #c9cace);
+  border: var(--ah-input-border-width, 1px) solid
+    var(--ah-color-border, #c9cace);
   border-radius: 0;
   transition:
     border-color 0.15s ease-out,

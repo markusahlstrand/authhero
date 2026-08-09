@@ -16,6 +16,7 @@ export function get(db: Kysely<Database>) {
       password_first: !!promptSetting?.password_first,
       webauthn_platform_first_factor:
         !!promptSetting?.webauthn_platform_first_factor,
+      show_last_used_connection: !!promptSetting?.show_last_used_connection,
       universal_login_experience:
         promptSetting?.universal_login_experience || "new",
     });

@@ -1249,6 +1249,8 @@ export class AuthheroNode {
           display_name?: string;
           icon_url?: string;
           href?: string;
+          last_used?: boolean;
+          last_used_label?: string;
         }[];
       }
     )?.provider_details;
@@ -1318,6 +1320,16 @@ export class AuthheroNode {
                 part={`button-social-subtitle button-social-subtitle-${safeProvider}`}
               ></span>
             </span>,
+            // "Last used" badge — separate element from .btn-social-subtitle,
+            // whose ::part() + content trick is documented for tenant use.
+            details?.last_used ? (
+              <span
+                class="btn-social-badge"
+                part={`button-social-badge button-social-badge-${safeProvider}`}
+              >
+                {details.last_used_label || "Last used"}
+              </span>
+            ) : null,
           ];
 
           if (details?.href) {

@@ -30,7 +30,10 @@ import {
   TICKET_EXPIRATION_TIME,
   UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS,
 } from "../constants";
-import { serializeAuthCookie } from "../utils/cookies";
+import {
+  serializeAuthCookie,
+  serializeLastUsedConnectionCookie,
+} from "../utils/cookies";
 import { getIssuer } from "../variables";
 import { samlCallback } from "../strategies/saml";
 import { postUserLoginHook } from "../hooks/index";
@@ -1992,6 +1995,26 @@ export async function createFrontChannelAuthResponse(
     authCookies.forEach((cookie) => {
       headers.append("set-cookie", cookie);
     });
+
+    // "Last used" hint: only after a completed login, and only when the tenant
+    // has opted in — writing a non-essential device cookie is off by default.
+    // auth_connection is a real auth signal (never inferred from the user
+    // record), so absent means we genuinely don't know what was used.
+    if (currentLoginSession.auth_connection) {
+      const promptSettings = await ctx.env.data.promptSettings.get(
+        client.tenant.id,
+      );
+      if (promptSettings?.show_last_used_connection === true) {
+        headers.append(
+          "set-cookie",
+          serializeLastUsedConnectionCookie(
+            client.tenant.id,
+            currentLoginSession.auth_connection,
+            ctx.var.host || "",
+          ),
+        );
+      }
+    }
   } else if (responseMode === AuthorizationResponseMode.WEB_MESSAGE) {
     console.warn(
       "Session ID not available for WEB_MESSAGE, cookie will not be set.",

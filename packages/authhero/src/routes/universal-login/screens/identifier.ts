@@ -12,6 +12,7 @@ import {
   isDatabaseConnectionStrategy,
 } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
+import { getLastUsedConnection } from "./types";
 import {
   getPrimaryUserByProvider,
   userExistsByEmail,
@@ -47,6 +48,7 @@ import {
 function buildSocialButtons(
   context: ScreenContext,
   m: LoginIdScreen,
+  lastUsedConnection?: string,
 ): FormNodeComponent[] {
   const { connections } = context;
 
@@ -81,6 +83,9 @@ function buildSocialButtons(
         connectionName: displayName,
       }),
       icon_url: getConnectionIconUrl(conn),
+      ...(conn.name === lastUsedConnection
+        ? { last_used: true, last_used_label: m.lastUsedText() }
+        : {}),
     };
   });
 
@@ -145,7 +150,8 @@ export async function identifierScreen(
   const locale = context.language || "en";
   const { m } = createTranslation("login-id", "login-id", locale, customText);
 
-  const socialButtons = buildSocialButtons(context, m);
+  const lastUsedConnection = await getLastUsedConnection(context);
+  const socialButtons = buildSocialButtons(context, m, lastUsedConnection);
   const socialButtonCount = socialButtons.length;
 
   // Check if we have email/sms/password connections that need the identifier input

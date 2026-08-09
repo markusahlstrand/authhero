@@ -367,6 +367,9 @@ const socialField = fieldComponentBase.extend({
             display_name: z.string().optional(),
             icon_url: z.string().optional(),
             href: z.string().optional(),
+            last_used: z.boolean().optional(),
+            // Server-translated badge copy; the widget owns layout only.
+            last_used_label: z.string().optional(),
           }),
         )
         .optional(),
