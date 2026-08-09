@@ -17,6 +17,7 @@ import {
   resolveTemplateField,
 } from "../../hooks/formhooks";
 import { FORM_FIELD_TYPES } from "@authhero/adapter-interfaces";
+import { resolvePrimaryUser } from "../../helpers/users";
 import { defineRoute } from "../../utils/define-route";
 import type {
   Form,
@@ -120,6 +121,16 @@ const getFormIdNodesNodeId = defineRoute({
             loginSession.user_id,
           )) ?? undefined;
       }
+      // The session may point at a secondary identity (it is created before
+      // the post-login hooks run, and account-linking can demote its user) —
+      // the form always operates on the primary.
+      if (user) {
+        user = await resolvePrimaryUser(
+          ctx.env.data.users,
+          client.tenant.id,
+          user,
+        );
+      }
     } catch {
       // Non-critical: user resolution for templates can fail silently
     }
@@ -213,6 +224,13 @@ const postFormIdNodesNodeId = defineRoute({
               loginSession.user_id,
             )) ?? undefined;
         }
+        if (user) {
+          user = await resolvePrimaryUser(
+            ctx.env.data.users,
+            client.tenant.id,
+            user,
+          );
+        }
       } catch {
         // Non-critical: user resolution for templates can fail silently
       }
@@ -268,6 +286,13 @@ const postFormIdNodesNodeId = defineRoute({
       if (!user) {
         throw new Error("Session expired");
       }
+      // Resolve to the primary so router conditions read the canonical
+      // profile and UPDATE_USER stamps it — not a linked secondary identity.
+      user = await resolvePrimaryUser(
+        ctx.env.data.users,
+        client.tenant.id,
+        user,
+      );
 
       // Check if there's a next_node in the STEP config
       const nextNodeId = node.config?.next_node;
