@@ -8,10 +8,18 @@ import {
   AuthorizationResponseType,
   Strategy,
 } from "@authhero/adapter-interfaces";
+import type { UiScreen } from "@authhero/adapter-interfaces";
+import type { Bindings } from "../../../src/types";
+
+type TestServer = Awaited<ReturnType<typeof getTestServer>>;
+type OauthClient = ReturnType<typeof testClient<TestServer["oauthApp"]>>;
+type UniversalClient = ReturnType<
+  typeof testClient<TestServer["universalApp"]>
+>;
 
 const LAST_USED_COOKIE = "tenantId-last-used-connection";
 
-async function createPasswordUser(env: any) {
+async function createPasswordUser(env: Bindings) {
   await env.data.users.create("tenantId", {
     email: "foo@example.com",
     email_verified: true,
@@ -27,10 +35,11 @@ async function createPasswordUser(env: any) {
     user_id: `${USERNAME_PASSWORD_PROVIDER}|userId`,
     password: await bcryptjs.hash("password", 10),
     algorithm: "bcrypt",
+    is_current: true,
   });
 }
 
-async function createGoogleConnection(env: any) {
+async function createGoogleConnection(env: Bindings) {
   await env.data.connections.create("tenantId", {
     id: "google",
     name: "google-oauth2",
@@ -46,7 +55,7 @@ async function createGoogleConnection(env: any) {
   ]);
 }
 
-async function getLoginState(oauthClient: any) {
+async function getLoginState(oauthClient: OauthClient) {
   const authorizeResponse = await oauthClient.authorize.$get({
     query: {
       client_id: "clientId",
@@ -69,11 +78,26 @@ async function getLoginState(oauthClient: any) {
 }
 
 /**
+ * Extract provider_details from a screen-API JSON response, narrowing to the
+ * SOCIAL component so the entries are fully typed.
+ */
+async function getProviderDetails(response: Response) {
+  const data: { screen: UiScreen } = await response.json();
+  const socialButtons = data.screen.components.find(
+    (c) => c.id === "social-buttons",
+  );
+  if (!socialButtons || socialButtons.type !== "SOCIAL") {
+    throw new Error("social-buttons SOCIAL component not found");
+  }
+  return socialButtons.config?.provider_details ?? [];
+}
+
+/**
  * Drive the classic /u password flow to completion and return the final
  * (302-to-callback) response, whose Set-Cookie headers we assert on.
  */
 async function loginWithPassword(
-  universalClient: any,
+  universalClient: UniversalClient,
   state: string,
   password: string,
 ) {
@@ -200,15 +224,10 @@ describe("last used badge on u2 screens", () => {
     );
 
     expect(response.status).toBe(200);
-    const data = (await response.json()) as any;
-    const socialButtons = data.screen.components.find(
-      (c: any) => c.id === "social-buttons",
-    );
-    const google = socialButtons.config.provider_details.find(
-      (p: any) => p.name === "google-oauth2",
-    );
-    expect(google.last_used).toBe(true);
-    expect(google.last_used_label).toBe("Last used");
+    const providerDetails = await getProviderDetails(response);
+    const google = providerDetails.find((p) => p.name === "google-oauth2");
+    expect(google?.last_used).toBe(true);
+    expect(google?.last_used_label).toBe("Last used");
   });
 
   it("marks the matching provider on the combined login screen (screen API)", async () => {
@@ -234,15 +253,10 @@ describe("last used badge on u2 screens", () => {
     );
 
     expect(response.status).toBe(200);
-    const data = (await response.json()) as any;
-    const socialButtons = data.screen.components.find(
-      (c: any) => c.id === "social-buttons",
-    );
-    const google = socialButtons.config.provider_details.find(
-      (p: any) => p.name === "google-oauth2",
-    );
-    expect(google.last_used).toBe(true);
-    expect(google.last_used_label).toBe("Last used");
+    const providerDetails = await getProviderDetails(response);
+    const google = providerDetails.find((p) => p.name === "google-oauth2");
+    expect(google?.last_used).toBe(true);
+    expect(google?.last_used_label).toBe("Last used");
   });
 
   it("renders the badge into the SSR page", async () => {
@@ -287,15 +301,11 @@ describe("last used badge on u2 screens", () => {
     );
 
     expect(response.status).toBe(200);
-    const data = (await response.json()) as any;
-    const socialButtons = data.screen.components.find(
-      (c: any) => c.id === "social-buttons",
-    );
-    const google = socialButtons.config.provider_details.find(
-      (p: any) => p.name === "google-oauth2",
-    );
-    expect(google.last_used).toBeUndefined();
-    expect(google.last_used_label).toBeUndefined();
+    const providerDetails = await getProviderDetails(response);
+    const google = providerDetails.find((p) => p.name === "google-oauth2");
+    expect(google).toBeDefined();
+    expect(google?.last_used).toBeUndefined();
+    expect(google?.last_used_label).toBeUndefined();
   });
 
   it("shows no badge for a stale cookie naming a connection this client no longer has", async () => {
@@ -321,11 +331,9 @@ describe("last used badge on u2 screens", () => {
     );
 
     expect(response.status).toBe(200);
-    const data = (await response.json()) as any;
-    const socialButtons = data.screen.components.find(
-      (c: any) => c.id === "social-buttons",
-    );
-    for (const provider of socialButtons.config.provider_details) {
+    const providerDetails = await getProviderDetails(response);
+    expect(providerDetails.length).toBeGreaterThan(0);
+    for (const provider of providerDetails) {
       expect(provider.last_used).toBeUndefined();
     }
   });
