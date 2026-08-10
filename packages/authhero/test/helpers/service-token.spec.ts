@@ -119,6 +119,32 @@ describe("createServiceToken", () => {
       }),
     ).rejects.toThrow(/Cannot overwrite reserved claim 'tenant_id'/);
   });
+
+  it("allows overriding azp via customClaims for downstream attribution", async () => {
+    // Regression: the sesamy entitlements hook mints service tokens with
+    // customClaims { azp: vendorId, vendor_id: vendorId } so the entitlements
+    // API attributes the call to the vendor. 9.1.1 briefly reserved `azp` on
+    // internal mints, which made every such mint throw and silently dropped
+    // the entitlements claim from issued tokens.
+    const { env } = await getTestServer();
+    const ctx = makeCtx(env);
+
+    const result = await createServiceToken(
+      ctx,
+      TENANT_ID,
+      "vault:read vault:impersonate",
+      undefined,
+      { azp: "vendor-1", vendor_id: "vendor-1" },
+    );
+
+    const payload = parseJWT(result.access_token)!.payload as Record<
+      string,
+      unknown
+    >;
+    expect(payload.sub).toBe("auth-service");
+    expect(payload.azp).toBe("vendor-1");
+    expect(payload.vendor_id).toBe("vendor-1");
+  });
 });
 
 describe("createClientServiceToken", () => {
@@ -403,6 +429,25 @@ describe("createClientServiceToken", () => {
         customClaims: { sub: "hacker" },
       }),
     ).rejects.toThrow(/Cannot overwrite reserved claim 'sub'/);
+  });
+
+  it("keeps azp reserved for client-bound tokens", async () => {
+    // Unlike internal auth-service mints, a client-bound token's azp must
+    // stay the registered client id.
+    const { env } = await setupClientWithGrant({
+      clientId: "azp-locked",
+      audience: "urn:sesamy",
+      scopes: ["email:queue"],
+    });
+    const ctx = makeCtx(env);
+    await expect(
+      createClientServiceToken(ctx, TENANT_ID, {
+        clientId: "azp-locked",
+        scope: "email:queue",
+        audience: "urn:sesamy",
+        customClaims: { azp: "spoofed" },
+      }),
+    ).rejects.toThrow(/Cannot overwrite reserved claim 'azp'/);
   });
 
   it("merges non-reserved customClaims into the JWT", async () => {

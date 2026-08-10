@@ -10,6 +10,10 @@ import { resolveSigningKeys } from "./signing-keys";
 
 const AUTH_SERVICE_CLIENT_ID = "auth-service";
 const DEFAULT_EXPIRES_IN_SECONDS = 3600;
+// `azp` is deliberately NOT reserved here: trusted hook code overrides it on
+// internal auth-service mints to attribute the call to a vendor/tenant for
+// downstream APIs, while `sub` stays "auth-service". Client-bound mints
+// (createClientServiceToken) keep `azp` locked to the registered client.
 const RESERVED_CLAIMS = [
   "sub",
   "iss",
@@ -19,9 +23,10 @@ const RESERVED_CLAIMS = [
   "iat",
   "jti",
   "scope",
-  "azp",
   "tenant_id",
 ];
+
+const CLIENT_RESERVED_CLAIMS = [...RESERVED_CLAIMS, "azp"];
 
 export interface ServiceTokenResponse {
   access_token: string;
@@ -319,7 +324,7 @@ export async function createClientServiceToken(
   }
 
   if (params.customClaims) {
-    for (const claim of RESERVED_CLAIMS) {
+    for (const claim of CLIENT_RESERVED_CLAIMS) {
       if (claim in params.customClaims) {
         throw new Error(`Cannot overwrite reserved claim '${claim}'`);
       }
