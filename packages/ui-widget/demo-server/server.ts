@@ -74,6 +74,7 @@ interface DynamicSettings {
   showSocial: boolean;
   allowSignup: boolean;
   socialProviders: string[];
+  lastUsed: boolean;
 }
 
 // ============================================
@@ -112,6 +113,7 @@ function parseSettings(
     showSocial: query.showSocial !== "false",
     allowSignup: query.allowSignup !== "false",
     socialProviders: providers,
+    lastUsed: query.lastUsed === "true",
   };
 }
 
@@ -135,6 +137,19 @@ function buildSocialButtons(settings: DynamicSettings): FormComponent[] {
       visible: true,
       config: {
         providers: settings.socialProviders,
+        // Mimic the server's last-used hint on the first provider so the
+        // badge + button highlight can be previewed in the demo.
+        ...(settings.lastUsed
+          ? {
+              provider_details: [
+                {
+                  name: settings.socialProviders[0],
+                  last_used: true,
+                  last_used_label: "Last used",
+                },
+              ],
+            }
+          : {}),
       },
       order: 0,
     },
@@ -1603,6 +1618,10 @@ async function renderWidgetPage(options: {
           <label for="show-social">Show Social Login Buttons</label>
         </div>
         <div class="setting-row checkbox-row">
+          <input type="checkbox" id="last-used-badge">
+          <label for="last-used-badge">"Last used" Badge</label>
+        </div>
+        <div class="setting-row checkbox-row">
           <input type="checkbox" id="allow-signup" checked>
           <label for="allow-signup">Allow Sign Up</label>
         </div>
@@ -2109,6 +2128,7 @@ async function renderWidgetPage(options: {
           renderMode,
           loginStrategy,
           showSocial,
+          lastUsedBadge,
           allowSignup,
           darkMode,
           branding,
@@ -2139,6 +2159,7 @@ async function renderWidgetPage(options: {
     let renderMode = new URLSearchParams(window.location.search).get('renderMode') || savedSettings?.renderMode || '${renderMode}';
     let loginStrategy = savedSettings?.loginStrategy || 'code';
     let showSocial = savedSettings?.showSocial ?? true;
+    let lastUsedBadge = savedSettings?.lastUsedBadge ?? false;
     let allowSignup = savedSettings?.allowSignup ?? true;
     let socialProviders = '${providers || "google-oauth2"}';
     let darkMode = savedSettings?.darkMode ?? false;
@@ -2416,6 +2437,7 @@ async function renderWidgetPage(options: {
           state: currentState,
           strategy: loginStrategy,
           showSocial: showSocial,
+          lastUsed: lastUsedBadge,
           allowSignup: allowSignup,
           providers: socialProviders,
         });
@@ -2572,6 +2594,7 @@ async function renderWidgetPage(options: {
       // Login settings
       document.getElementById('login-strategy').value = loginStrategy;
       document.getElementById('show-social').checked = showSocial;
+      document.getElementById('last-used-badge').checked = lastUsedBadge;
       document.getElementById('allow-signup').checked = allowSignup;
       document.getElementById('dark-mode').checked = darkMode;
       
@@ -2820,6 +2843,14 @@ async function renderWidgetPage(options: {
       fetchScreen(currentScreen, false);
     });
     
+    // "Last used" badge toggle
+    document.getElementById('last-used-badge').addEventListener('change', (e) => {
+      lastUsedBadge = e.target.checked;
+      log('Last used badge → ' + (lastUsedBadge ? 'on' : 'off'));
+      saveSettings();
+      fetchScreen(currentScreen, false);
+    });
+
     // Signup toggle
     document.getElementById('allow-signup').addEventListener('change', (e) => {
       allowSignup = e.target.checked;
@@ -3031,6 +3062,7 @@ app.get("/u2/screen/:screenId", (c) => {
     strategy: c.req.query("strategy"),
     showSocial: c.req.query("showSocial"),
     allowSignup: c.req.query("allowSignup"),
+    lastUsed: c.req.query("lastUsed"),
   });
 
   const result = getScreen(screenId, state, baseUrl, settings);
@@ -3055,6 +3087,7 @@ app.post("/u2/screen/:screenId", async (c) => {
     strategy: c.req.query("strategy"),
     showSocial: c.req.query("showSocial"),
     allowSignup: c.req.query("allowSignup"),
+    lastUsed: c.req.query("lastUsed"),
   });
 
   let data: Record<string, unknown> = {};

@@ -1302,8 +1302,9 @@ export class AuthheroNode {
           const strategy = getProviderStrategy(provider);
           const icon = getProviderIcon(provider);
           const details = detailsMap.get(provider);
-          const btnClass = `btn btn-secondary btn-social btn-social-${safeProvider}${icon ? "" : " no-icon"}`;
-          const btnPart = `button button-secondary button-social button-social-${safeProvider}`;
+          const lastUsed = details?.last_used === true;
+          const btnClass = `btn btn-secondary btn-social btn-social-${safeProvider}${icon ? "" : " no-icon"}${lastUsed ? " btn-social-last-used" : ""}`;
+          const btnPart = `button button-secondary button-social button-social-${safeProvider}${lastUsed ? " button-social-last-used" : ""}`;
           const content = [
             icon,
             <span

@@ -385,22 +385,32 @@ input[type="date"].input-field+.input-label {
   position: relative;
 }
 
-/* "Last used" badge — absolutely positioned so the centered button label
-   doesn't shift when the badge is present. Restyle or hide via
+/* "Last used" badge — pill pinned to the button's top-right corner, straddling
+   the border. Absolutely positioned so the centered button label doesn't shift
+   when the badge is present. Restyle or hide via
    ::part(button-social-badge) / ::part(button-social-badge-<provider>). */
 .btn-social-badge {
   position: absolute;
-  right: 10px;
-  top: 50%;
+  right: 12px;
+  top: 0;
   transform: translateY(-50%);
   font-size: 11px;
+  font-weight: 500;
   line-height: 1;
-  padding: 4px 7px;
+  padding: 4px 9px;
   border-radius: 999px;
-  background: var(--ah-color-bg-hover, rgba(0, 0, 0, 0.06));
-  color: var(--ah-color-text-muted, #666);
+  background: var(--ah-color-last-used, var(--ah-color-primary, #635dff));
+  color: var(--ah-color-last-used-text, var(--ah-color-text-on-primary, #fff));
   white-space: nowrap;
   pointer-events: none;
+}
+
+/* Highlight the last-used button itself so it reads as the suggested choice.
+   Override via ::part(button-social-last-used). */
+.btn-social.btn-social-last-used {
+  border-color: var(--ah-color-last-used, var(--ah-color-primary, #635dff));
+  box-shadow: inset 0 0 0 1px
+    var(--ah-color-last-used, var(--ah-color-primary, #635dff));
 }
 
 .btn-social-content {
