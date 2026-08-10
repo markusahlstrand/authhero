@@ -1,0 +1,1 @@
+CREATE INDEX `action_executions_created_at_ts_index` ON `action_executions` (`created_at_ts`);

@@ -36,8 +36,10 @@ export { drainOutbox } from "./helpers/outbox-relay";
 export type { EventDestination } from "./helpers/outbox-relay";
 export { cleanupOutbox } from "./helpers/outbox-cleanup";
 export { cleanupCodes } from "./helpers/codes-cleanup";
+export { cleanupActionExecutions } from "./helpers/action-executions-cleanup";
 export type { OutboxCleanupParams } from "./helpers/outbox-cleanup";
 export type { CodesCleanupParams } from "./helpers/codes-cleanup";
+export type { ActionExecutionsCleanupParams } from "./helpers/action-executions-cleanup";
 export { createDefaultDestinations } from "./helpers/default-destinations";
 export type { CreateDefaultDestinationsConfig } from "./helpers/default-destinations";
 export {

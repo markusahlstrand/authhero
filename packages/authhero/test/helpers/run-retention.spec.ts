@@ -9,18 +9,23 @@ function makeDataAdapter(
   overrides: {
     codesCleanup?: ReturnType<typeof vi.fn>;
     outboxCleanup?: ReturnType<typeof vi.fn> | null;
+    actionExecutionsCleanup?: ReturnType<typeof vi.fn> | null;
     sessionCleanup?: ReturnType<typeof vi.fn> | null;
   } = {},
 ): DataAdapters {
   const {
     codesCleanup = vi.fn().mockResolvedValue(5),
     outboxCleanup = vi.fn().mockResolvedValue(3),
+    actionExecutionsCleanup = vi.fn().mockResolvedValue(4),
     sessionCleanup = vi.fn().mockResolvedValue(undefined),
   } = overrides;
 
   return {
     codes: { cleanup: codesCleanup },
     outbox: outboxCleanup ? { cleanup: outboxCleanup } : undefined,
+    actionExecutions: actionExecutionsCleanup
+      ? { cleanup: actionExecutionsCleanup }
+      : {},
     sessionCleanup: sessionCleanup ?? undefined,
   } as unknown as DataAdapters;
 }
@@ -31,13 +36,15 @@ function daysAgo(cutoff: string): number {
 }
 
 describe("runRetention", () => {
-  it("sweeps codes, outbox and sessions in one call", async () => {
+  it("sweeps codes, outbox, action executions and sessions in one call", async () => {
     const codesCleanup = vi.fn().mockResolvedValue(5);
     const outboxCleanup = vi.fn().mockResolvedValue(3);
+    const actionExecutionsCleanup = vi.fn().mockResolvedValue(4);
     const sessionCleanup = vi.fn().mockResolvedValue(undefined);
     const dataAdapter = makeDataAdapter({
       codesCleanup,
       outboxCleanup,
+      actionExecutionsCleanup,
       sessionCleanup,
     });
 
@@ -45,11 +52,13 @@ describe("runRetention", () => {
 
     expect(codesCleanup).toHaveBeenCalledTimes(1);
     expect(outboxCleanup).toHaveBeenCalledTimes(1);
+    expect(actionExecutionsCleanup).toHaveBeenCalledTimes(1);
     expect(sessionCleanup).toHaveBeenCalledTimes(1);
 
     expect(sweeps).toEqual([
       { table: "codes", status: "swept", deleted: 5 },
       { table: "outbox_events", status: "swept", deleted: 3 },
+      { table: "action_executions", status: "swept", deleted: 4 },
       {
         table: "sessions, refresh_tokens, login_sessions",
         status: "swept",
@@ -69,17 +78,45 @@ describe("runRetention", () => {
     expect(daysAgo(outboxCleanup.mock.calls[0][0])).toBe(7);
   });
 
+  it("applies the documented default window for action executions", async () => {
+    const actionExecutionsCleanup = vi.fn().mockResolvedValue(0);
+    await runRetention({
+      dataAdapter: makeDataAdapter({ actionExecutionsCleanup }),
+    });
+
+    expect(daysAgo(actionExecutionsCleanup.mock.calls[0][0])).toBe(30);
+  });
+
   it("honours per-table retention overrides", async () => {
     const codesCleanup = vi.fn().mockResolvedValue(0);
     const outboxCleanup = vi.fn().mockResolvedValue(0);
+    const actionExecutionsCleanup = vi.fn().mockResolvedValue(0);
     await runRetention({
-      dataAdapter: makeDataAdapter({ codesCleanup, outboxCleanup }),
+      dataAdapter: makeDataAdapter({
+        codesCleanup,
+        outboxCleanup,
+        actionExecutionsCleanup,
+      }),
       codesRetentionDays: 0,
       outboxRetentionDays: 30,
+      actionExecutionsRetentionDays: 90,
     });
 
     expect(daysAgo(codesCleanup.mock.calls[0][0])).toBe(0);
     expect(daysAgo(outboxCleanup.mock.calls[0][0])).toBe(30);
+    expect(daysAgo(actionExecutionsCleanup.mock.calls[0][0])).toBe(90);
+  });
+
+  it("skips action executions when the adapter has no cleanup", async () => {
+    const { sweeps } = await runRetention({
+      dataAdapter: makeDataAdapter({ actionExecutionsCleanup: null }),
+    });
+
+    expect(sweeps[2]).toEqual({
+      table: "action_executions",
+      status: "skipped",
+      reason: "not supported by this adapter",
+    });
   });
 
   it("still sweeps codes and sessions when the outbox is disabled", async () => {
@@ -107,7 +144,7 @@ describe("runRetention", () => {
       dataAdapter: makeDataAdapter({ sessionCleanup: null }),
     });
 
-    expect(sweeps[2]).toEqual({
+    expect(sweeps[3]).toEqual({
       table: "sessions, refresh_tokens, login_sessions",
       status: "skipped",
       reason: "not supported by this adapter",

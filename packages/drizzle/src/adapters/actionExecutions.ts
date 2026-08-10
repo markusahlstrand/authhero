@@ -1,4 +1,4 @@
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import type {
   ActionExecution,
   ActionExecutionInsert,
@@ -10,6 +10,11 @@ import type {
 import { actionExecutions } from "../schema/sqlite";
 import { parseJsonIfString } from "../helpers/transform";
 import type { DrizzleDb } from "./types";
+
+// Rows deleted per statement by cleanup(). Same rationale as the codes
+// adapter: bound each statement so the first sweep of a long-uncleaned
+// deployment stays within D1's statement/response limits.
+const CLEANUP_CHUNK = 500;
 
 export function createActionExecutionsAdapter(
   db: DrizzleDb,
@@ -73,6 +78,34 @@ export function createActionExecutionsAdapter(
         created_at: new Date(Number(row.created_at_ts)).toISOString(),
         updated_at: new Date(Number(row.updated_at_ts)).toISOString(),
       };
+    },
+
+    async cleanup(olderThan: string): Promise<number> {
+      const cutoff = Date.parse(olderThan);
+      if (Number.isNaN(cutoff)) {
+        throw new Error(`Invalid olderThan date: ${olderThan}`);
+      }
+
+      // Chunked for the same reason as the codes cleanup: the subquery bounds
+      // each statement (SQLite has no `DELETE ... LIMIT` unless built with
+      // SQLITE_ENABLE_UPDATE_DELETE_LIMIT), and `RETURNING` is capped at
+      // CLEANUP_CHUNK rows so counting stays cheap.
+      let total = 0;
+
+      for (;;) {
+        const deleted = await db
+          .delete(actionExecutions)
+          .where(
+            sql`rowid IN (SELECT rowid FROM ${actionExecutions} WHERE ${actionExecutions.created_at_ts} < ${cutoff} LIMIT ${CLEANUP_CHUNK})`,
+          )
+          .returning({ id: actionExecutions.id });
+
+        total += deleted.length;
+
+        if (deleted.length < CLEANUP_CHUNK) break;
+      }
+
+      return total;
     },
   };
 }

@@ -1,4 +1,5 @@
 import { DataAdapters } from "@authhero/adapter-interfaces";
+import { cleanupActionExecutions } from "./action-executions-cleanup";
 import { cleanupCodes } from "./codes-cleanup";
 import { cleanupOutbox } from "./outbox-cleanup";
 
@@ -11,6 +12,9 @@ export interface RunRetentionConfig {
 
   /** Days to keep processed/dead-lettered outbox events. Default 7. */
   outboxRetentionDays?: number;
+
+  /** Days of action execution history to keep. Default 30. */
+  actionExecutionsRetentionDays?: number;
 
   /**
    * Scope the session sweep to a single tenant. Codes and outbox events are
@@ -87,7 +91,8 @@ export class RetentionSweepError extends Error {
  * without editing its handler.
  *
  * Covers `codes`, `outbox_events`, and (where the adapter supports it)
- * `sessions` / `refresh_tokens` / `login_sessions`. It does **not** drain the
+ * `action_executions` and `sessions` / `refresh_tokens` / `login_sessions`.
+ * It does **not** drain the
  * outbox: delivery is `runOutboxRelay`'s job, and the two are scheduled
  * independently. Running both is safe — the relay's own cleanup pass and this
  * one are idempotent.
@@ -113,8 +118,13 @@ export class RetentionSweepError extends Error {
 export async function runRetention(
   config: RunRetentionConfig,
 ): Promise<RunRetentionResult> {
-  const { dataAdapter, codesRetentionDays, outboxRetentionDays, tenantId } =
-    config;
+  const {
+    dataAdapter,
+    codesRetentionDays,
+    outboxRetentionDays,
+    actionExecutionsRetentionDays,
+    tenantId,
+  } = config;
 
   const sweeps: RetentionSweep[] = [];
   const errors: unknown[] = [];
@@ -142,6 +152,13 @@ export async function runRetention(
           retentionDays: outboxRetentionDays,
         });
       },
+    },
+    {
+      table: "action_executions",
+      run: () =>
+        cleanupActionExecutions(dataAdapter.actionExecutions, {
+          retentionDays: actionExecutionsRetentionDays,
+        }),
     },
     {
       table: "sessions, refresh_tokens, login_sessions",

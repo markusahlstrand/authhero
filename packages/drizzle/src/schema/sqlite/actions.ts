@@ -92,5 +92,6 @@ export const actionExecutions = sqliteTable(
       columns: [table.tenant_id, table.id],
       name: "action_executions_pk",
     }),
+    index("action_executions_created_at_ts_index").on(table.created_at_ts),
   ],
 );

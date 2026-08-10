@@ -84,4 +84,49 @@ describe("ActionExecutionsAdapter (kysely)", () => {
     const fetched = await data.actionExecutions.get(tenantId, "missing");
     expect(fetched).toBeNull();
   });
+
+  describe("cleanup", () => {
+    // `create` stamps created_at_ts with Date.now(), so rather than backdating
+    // rows these tests move the cutoff to either side of "now".
+    const iso = (offsetMs: number) =>
+      new Date(Date.now() + offsetMs).toISOString();
+
+    async function createExecution(tenant: string, id: string) {
+      await data.actionExecutions.create(tenant, {
+        id,
+        trigger_id: "post-login",
+        status: "final",
+        results: [],
+      });
+    }
+
+    it("deletes executions created before the cutoff and keeps the rest", async () => {
+      await createExecution(tenantId, "exec-1");
+
+      expect(await data.actionExecutions.cleanup!(iso(-1000 * 60 * 60))).toBe(
+        0,
+      );
+      expect(
+        await data.actionExecutions.get(tenantId, "exec-1"),
+      ).not.toBeNull();
+
+      expect(await data.actionExecutions.cleanup!(iso(1000 * 60 * 60))).toBe(1);
+      expect(await data.actionExecutions.get(tenantId, "exec-1")).toBeNull();
+    });
+
+    it("sweeps across tenants, since retention is not tenant-scoped", async () => {
+      await createExecution("tenant-a", "exec-a");
+      await createExecution("tenant-b", "exec-b");
+
+      expect(await data.actionExecutions.cleanup!(iso(1000 * 60 * 60))).toBe(2);
+      expect(await data.actionExecutions.get("tenant-a", "exec-a")).toBeNull();
+      expect(await data.actionExecutions.get("tenant-b", "exec-b")).toBeNull();
+    });
+
+    it("rejects an unparseable cutoff instead of deleting nothing silently", async () => {
+      await expect(
+        data.actionExecutions.cleanup!("not-a-date"),
+      ).rejects.toThrow("Invalid olderThan date");
+    });
+  });
 });
