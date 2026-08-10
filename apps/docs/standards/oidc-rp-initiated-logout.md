@@ -89,6 +89,7 @@ Both endpoints use the same `allowed_logout_urls` registration list on the clien
 
 ## Related AuthHero documentation
 
+- [OIDC Back-Channel Logout 1.0](/standards/backchannel-logout) — server-to-server logout notifications sent when sessions revoked here end
 - [OpenID Connect Discovery](/standards/openid-connect-discovery)
 - [OpenID Connect Core](/standards/openid-connect-core)
 - [Session Management](/features/session-management)

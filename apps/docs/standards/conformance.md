@@ -236,7 +236,7 @@ Newly wired up — the spec file is at [oidcc-form-post-hybrid.spec.ts](https://
 The runner is structured so adding more plans is just a new spec file with a different `planName`/variant. The following are explicitly not yet wired up:
 
 - `oidcc-comprehensive-certification-test-plan` (full OP — superset of basic + implicit + hybrid)
-- `oidcc-frontchannel-rp-initiated-logout-certification-test-plan` and `oidcc-backchannel-rp-initiated-logout-certification-test-plan` (front/back-channel logout — AuthHero only ships RP-Initiated Logout today)
+- `oidcc-frontchannel-rp-initiated-logout-certification-test-plan` and `oidcc-backchannel-rp-initiated-logout-certification-test-plan` (AuthHero now ships [Back-Channel Logout 1.0](/standards/backchannel-logout) alongside RP-Initiated Logout, but neither logout plan is wired into the runner yet; front-channel logout is not implemented)
 - FAPI plans (require mTLS, DPoP, or signed request objects beyond the current AuthHero surface)
 
 ## Running it locally

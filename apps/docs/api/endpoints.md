@@ -395,7 +395,8 @@ List all users.
 
 **Query Parameters:**
 
-- `page`, `per_page`, `include_totals` - Pagination
+- `page`, `per_page`, `include_totals` - Offset pagination
+- `from`, `take` - [Checkpoint pagination](/api/pagination) (opaque cursor, stable for full exports)
 - `sort` - Sort order
 - `q` - Search query (supports `email:user@example.com`, `user_id:123`, etc.)
 

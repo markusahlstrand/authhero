@@ -256,6 +256,10 @@ SELECT * FROM sessions WHERE user_id = 'email|user123';
 - **Multiple sessions**: User has multiple active sessions (normal for different devices)
 - **Session reuse failure**: Existing session not properly linked to new login session
 
+## Logout Notifications
+
+When a session is revoked — via `GET /v2/logout`, `GET /oidc/logout`, or the Management API session delete/revoke endpoints — AuthHero sends a signed logout token to every client that participated in the session and has back-channel logout URLs registered. See [OIDC Back-Channel Logout 1.0](/standards/backchannel-logout) for the token format, delivery semantics, and how to register a client.
+
 ## Cleanup
 
 Expired `login_sessions`, `sessions`, and `refresh_tokens` can be swept two ways:
