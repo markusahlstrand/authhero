@@ -1,7 +1,10 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { Context } from "hono";
 import { parseJWT } from "../../src/utils/jwt";
-import { createClientServiceToken } from "../../src/helpers/service-token";
+import {
+  createClientServiceToken,
+  createServiceToken,
+} from "../../src/helpers/service-token";
 import { getTestServer } from "./test-server";
 import { Bindings, Variables } from "../../src/types";
 
@@ -42,6 +45,81 @@ function makeCtx(env: Bindings): Context<{
     Variables: Variables;
   }>;
 }
+
+describe("createServiceToken", () => {
+  it("mints an auth-service token from the tenant's audience and signing key", async () => {
+    const { env } = await getTestServer();
+    const ctx = makeCtx(env);
+
+    const result = await createServiceToken(ctx, TENANT_ID, "webhook");
+
+    expect(result.token_type).toBe("Bearer");
+    const payload = parseJWT(result.access_token)!.payload as Record<
+      string,
+      unknown
+    >;
+    expect(payload.sub).toBe("auth-service");
+    expect(payload.azp).toBe("auth-service");
+    expect(payload.aud).toBe("https://example.com");
+    expect(payload.scope).toBe("webhook");
+    expect(payload.tenant_id).toBe(TENANT_ID);
+    expect(payload.iss).toBe(env.ISSUER);
+  });
+
+  it("does not run credentials-exchange hooks (a denying tenant hook must not block internal mints)", async () => {
+    // Regression: minting used to go through createAuthTokens, which runs the
+    // tenant's credentials-exchange hooks. A hook calling api.access.deny()
+    // (e.g. a tenant gating logins on an external membership lookup) made
+    // every internal service-token mint fail — and since post-user-update
+    // hooks mint service tokens, a hook that updates a user could recurse
+    // back into itself.
+    const { env } = await getTestServer();
+    const onExecuteCredentialsExchange = vi.fn(async (_event, api) => {
+      api.access.deny("access_denied", "user not found in external system");
+    });
+    env.hooks = { onExecuteCredentialsExchange };
+    const ctx = makeCtx(env);
+
+    const result = await createServiceToken(
+      ctx,
+      TENANT_ID,
+      "profile:user:read",
+    );
+
+    expect(onExecuteCredentialsExchange).not.toHaveBeenCalled();
+    const payload = parseJWT(result.access_token)!.payload as Record<
+      string,
+      unknown
+    >;
+    expect(payload.scope).toBe("profile:user:read");
+    expect(payload.sub).toBe("auth-service");
+  });
+
+  it("honors expiresInSeconds in both the JWT and the response", async () => {
+    const { env } = await getTestServer();
+    const ctx = makeCtx(env);
+
+    const result = await createServiceToken(ctx, TENANT_ID, "webhook", 120);
+
+    expect(result.expires_in).toBe(120);
+    const payload = parseJWT(result.access_token)!.payload as Record<
+      string,
+      number
+    >;
+    expect(payload.exp - payload.iat).toBe(120);
+  });
+
+  it("rejects reserved claims in customClaims", async () => {
+    const { env } = await getTestServer();
+    const ctx = makeCtx(env);
+
+    await expect(
+      createServiceToken(ctx, TENANT_ID, "webhook", undefined, {
+        tenant_id: "other-tenant",
+      }),
+    ).rejects.toThrow(/Cannot overwrite reserved claim 'tenant_id'/);
+  });
+});
 
 describe("createClientServiceToken", () => {
   it("mints a JWT bound to the named client and granted scope", async () => {

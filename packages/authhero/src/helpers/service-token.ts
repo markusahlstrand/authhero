@@ -1,13 +1,8 @@
 import { Context } from "hono";
-import {
-  AuthorizationResponseType,
-  KeysAdapter,
-  TenantsDataAdapter,
-} from "@authhero/adapter-interfaces";
+import { KeysAdapter, TenantsDataAdapter } from "@authhero/adapter-interfaces";
 import { signJWT } from "../utils/jwt";
 import { Bindings, Variables } from "../types";
 import { SigningKeyModeOption } from "../types/AuthHeroConfig";
-import { createAuthTokens } from "../authentication-flows/common";
 import { pemToBuffer } from "../utils/crypto";
 import { algForCert } from "../utils/jwk-alg";
 import { getIssuer } from "../variables";
@@ -40,6 +35,12 @@ export interface CreateServiceTokenCoreParams {
   tenantId: string;
   scope: string;
   issuer: string;
+  /**
+   * Explicit audience override. When unset the tenant's `audience` is
+   * required — callers that want a fallback chain (e.g. `default_audience`)
+   * resolve it themselves and pass the result here.
+   */
+  audience?: string;
   expiresInSeconds?: number;
   customClaims?: Record<string, unknown>;
   /**
@@ -67,7 +68,7 @@ export async function createServiceTokenCore(
     throw new Error(`Tenant not found: ${tenantId}`);
   }
 
-  const audience = tenant.audience;
+  const audience = params.audience ?? tenant.audience;
   if (!audience) {
     throw new Error(
       `Cannot mint service token: tenant "${tenantId}" has no default audience`,
@@ -121,40 +122,44 @@ export async function createServiceTokenCore(
   };
 }
 
+/**
+ * Mint an internal `auth-service` token for calling our own (or a trusted
+ * downstream) API. Deliberately does NOT go through `createAuthTokens`: that
+ * path runs the tenant's credentials-exchange hooks, which must never fire for
+ * internal mints. A hook that calls `api.access.deny()` (e.g. a tenant gating
+ * logins on an external membership lookup) would otherwise reject the mint —
+ * and since post-user-update hooks commonly mint service tokens, a hook that
+ * updates a user could recurse straight back into itself.
+ */
 export async function createServiceToken(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   tenant_id: string,
   scope: string,
   expiresInSeconds?: number,
   customClaims?: Record<string, unknown>,
-) {
+): Promise<ServiceTokenResponse> {
   const tenant = await ctx.env.data.tenants.get(tenant_id);
   if (!tenant) {
     throw new Error(`Tenant not found: ${tenant_id}`);
   }
 
-  const mockClient = {
-    client_id: AUTH_SERVICE_CLIENT_ID,
-    tenant,
-    auth0_conformant: true,
-  };
+  const issuer = getIssuer(ctx.env, ctx.var.custom_domain);
+  // Same audience fallback chain the token endpoint uses, so tenants without
+  // an explicit `audience` keep minting (Auth0-parity `${iss}userinfo` last).
+  const audience =
+    tenant.audience ?? tenant.default_audience ?? `${issuer}userinfo`;
 
-  const tokenResponse = await createAuthTokens(ctx, {
-    client: mockClient,
-    authParams: {
-      client_id: AUTH_SERVICE_CLIENT_ID,
-      response_type: AuthorizationResponseType.TOKEN,
-      scope,
-      audience: tenant.audience,
-    },
+  return createServiceTokenCore({
+    tenants: ctx.env.data.tenants,
+    keys: ctx.env.data.keys,
+    tenantId: tenant_id,
+    scope,
+    issuer,
+    audience,
+    expiresInSeconds,
     customClaims,
+    signingKeyMode: ctx.env.signingKeyMode,
   });
-
-  return {
-    access_token: tokenResponse.access_token,
-    token_type: tokenResponse.token_type,
-    expires_in: expiresInSeconds || DEFAULT_EXPIRES_IN_SECONDS,
-  };
 }
 
 /**
