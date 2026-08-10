@@ -664,10 +664,31 @@ export class AuthheroNode {
             component.required,
             hasValue,
           )}
+          {this.renderInputBadge(component)}
         </div>
         {this.renderErrors()}
         {errors.length === 0 && this.renderHint(component.hint)}
       </div>
+    );
+  }
+
+  /**
+   * "Last used" badge on an input (TEXT/EMAIL identifier field) — the input
+   * counterpart of the social button's button-social-badge, shown when the
+   * previous login came in through this field instead of a social button.
+   */
+  private renderInputBadge(
+    component: FieldComponent & { type: "TEXT" | "EMAIL" },
+  ) {
+    const config = component.config;
+    if (config?.last_used !== true) {
+      return null;
+    }
+    const safeId = this.sanitizeForCssToken(component.id);
+    return (
+      <span class="input-badge" part={`input-badge input-badge-${safeId}`}>
+        {config.last_used_label || "Last used"}
+      </span>
     );
   }
 
@@ -818,6 +839,7 @@ export class AuthheroNode {
             component.required,
             hasValue,
           )}
+          {this.renderInputBadge(component)}
         </div>
         {this.renderErrors()}
         {errors.length === 0 && this.renderHint(component.hint)}

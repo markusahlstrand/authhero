@@ -183,6 +183,17 @@ export async function identifierScreen(
     ...socialButtons,
   ];
 
+  // "Last used" hint on the identifier input: badge it when the previous
+  // login came in through this field (email/SMS/database connection) rather
+  // than a social button — those get their badge in buildSocialButtons.
+  const lastUsedIsIdentifier = context.connections.some(
+    (c) =>
+      c.name === lastUsedConnection &&
+      (c.strategy === Strategy.EMAIL ||
+        c.strategy === Strategy.SMS ||
+        isDatabaseConnectionStrategy(c.strategy)),
+  );
+
   // Only add email input and continue button if we have email/sms/password connections
   if (hasEmailOrPasswordConnection) {
     const errorMessages = errors?.username
@@ -199,6 +210,9 @@ export async function identifierScreen(
         label: identifierLabel,
         config: {
           placeholder: identifierLabel,
+          ...(lastUsedIsIdentifier
+            ? { last_used: true, last_used_label: m.lastUsedText() }
+            : {}),
         },
         required: true,
         order: socialButtonCount + 1,

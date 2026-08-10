@@ -186,6 +186,12 @@ function createIdentifierScreen(
         label: "Email address",
         config: {
           placeholder: "name@example.com",
+          // Mirror the server: when the last login came in through the
+          // identifier field (no social button to badge), the hint lands on
+          // the input. Previewed here by hiding the social buttons.
+          ...(settings.lastUsed && socialButtons.length === 0
+            ? { last_used: true, last_used_label: "Last used" }
+            : {}),
         },
         required: true,
         order: socialCount + 1,
