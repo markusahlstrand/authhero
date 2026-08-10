@@ -38,9 +38,10 @@ If you started from a `create-authhero` template you do not need to add this by 
 | --- | --- | --- |
 | `codes` | 1 day past expiry | Authorization codes, OTPs, OAuth2 state, email-verification and password-reset codes. Highest-churn table in the system. |
 | `outbox_events` | 7 days after processing | Only processed and dead-lettered events are removed. Skipped when the adapter has no `outbox`. |
+| `action_executions` | 30 days after creation | One row per action execution — diagnostic history referenced from logs. Skipped when the adapter's backend expires rows itself (DynamoDB TTL, Analytics Engine). |
 | `sessions`, `refresh_tokens`, `login_sessions` | 1 week past expiry (fixed grace period) | Skipped when the adapter does not implement `sessionCleanup`. |
 
-Codes and outbox events are swept globally; they are not tenant-scoped, because an expired row is dead regardless of who owns it. Pass `tenantId` to scope the session sweep to one tenant.
+Codes, outbox events and action executions are swept globally; they are not tenant-scoped, because an expired row is dead regardless of who owns it. Pass `tenantId` to scope the session sweep to one tenant.
 
 Override the windows per table when you need to:
 
@@ -49,6 +50,7 @@ await runRetention({
   dataAdapter,
   codesRetentionDays: 1,
   outboxRetentionDays: 30,
+  actionExecutionsRetentionDays: 90,
 });
 ```
 
@@ -69,10 +71,13 @@ Every sweep runs even if an earlier one throws, so a single broken adapter metho
 The individual helpers remain exported for consumers who want to sweep a single table, or run tables on different schedules:
 
 ```ts
-import { cleanupCodes, cleanupOutbox } from "authhero";
+import { cleanupCodes, cleanupOutbox, cleanupActionExecutions } from "authhero";
 
 await cleanupCodes(dataAdapter.codes, { retentionDays: 1 });
 await cleanupOutbox(dataAdapter.outbox, { retentionDays: 7 });
+await cleanupActionExecutions(dataAdapter.actionExecutions, {
+  retentionDays: 30,
+});
 await dataAdapter.sessionCleanup?.();
 ```
 
@@ -87,6 +92,7 @@ await dataAdapter.sessionCleanup?.();
 - **Drizzle** sweeps `codes` using the indexed ISO-8601 `expires_at` column directly.
 - **Kysely** sweeps using `expires_at_ts`, a numeric twin of `expires_at` added by the `2026-07-16T12:00:00_codes_expires_at_ts` migration. That migration also prunes whatever had already accumulated, so the first deploy after upgrading clears the backlog.
 - **DynamoDB (AWS)** needs no sweep: codes carry a native `ttl` attribute and DynamoDB expires them itself. `cleanup()` is a no-op returning `0`, so the handler above is safe to run unchanged.
+- **`action_executions`** is swept on the numeric `created_at_ts` column in both drizzle and kysely, indexed by the `0004_action_executions_created_at_index` / `2026-08-10T12:00:00_action_executions_created_at_index` migrations. Unlike the codes migration these do not prune — how much execution history to keep is your policy call, so the backlog is cleared by the first scheduled sweep instead (in bounded chunks, safe at any size). Adapters whose backend expires rows itself (Analytics Engine, DynamoDB) simply omit `cleanup` and the sweep reports `skipped`.
 
 ## If you are upgrading an existing deployment
 
