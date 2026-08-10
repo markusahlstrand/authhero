@@ -220,7 +220,7 @@ describe("/oidc/logout", () => {
     expect(response.status).toBe(400);
   });
 
-  it("revokes the session and refresh tokens, and writes audit logs", async () => {
+  it("revokes the session but not refresh tokens, and writes an audit log", async () => {
     const { oauthApp, env } = await getTestServer();
     const { loginSession, session } = await createSessions(env.data);
 
@@ -229,6 +229,29 @@ describe("/oidc/logout", () => {
       login_id: loginSession.id,
       user_id: "email|userId",
       client_id: "clientId",
+      resource_servers: [{ audience: "https://example.com", scopes: "openid" }],
+      device: {
+        last_ip: "",
+        initial_ip: "",
+        last_user_agent: "",
+        initial_user_agent: "",
+        initial_asn: "",
+        last_asn: "",
+      },
+      rotating: false,
+    });
+
+    // A second client's refresh token on the same login session — the exact
+    // token the old cascade used to kill.
+    await env.data.clients.create("tenantId", {
+      client_id: "otherClientId",
+      name: "Other Client",
+    });
+    await env.data.refreshTokens.create("tenantId", {
+      id: "otherClientRefreshToken",
+      login_id: loginSession.id,
+      user_id: "email|userId",
+      client_id: "otherClientId",
       resource_servers: [{ audience: "https://example.com", scopes: "openid" }],
       device: {
         last_ip: "",
@@ -266,16 +289,16 @@ describe("/oidc/logout", () => {
     const { refresh_tokens } = await env.data.refreshTokens.list("tenantId", {
       q: `login_id:${loginSession.id}`,
       include_totals: false,
-      per_page: 1,
+      per_page: 10,
       page: 0,
     });
-    expect(refresh_tokens).toHaveLength(1);
-    expect(refresh_tokens[0]?.revoked_at).toBeTypeOf("string");
+    expect(refresh_tokens).toHaveLength(2);
+    for (const refreshToken of refresh_tokens) {
+      expect(refreshToken.revoked_at).toBeUndefined();
+    }
 
     const { logs } = await env.data.logs.list("tenantId");
-    const logTypes = logs.map((l) => l.type).sort();
-    expect(logTypes).toEqual(
-      [LogTypes.SUCCESS_LOGOUT, LogTypes.SUCCESS_REVOCATION].sort(),
-    );
+    const logTypes = logs.map((l) => l.type);
+    expect(logTypes).toEqual([LogTypes.SUCCESS_LOGOUT]);
   });
 });

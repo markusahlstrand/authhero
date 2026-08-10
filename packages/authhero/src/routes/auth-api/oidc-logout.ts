@@ -1,7 +1,7 @@
 import { LogTypes } from "@authhero/adapter-interfaces";
 import { HTTPException } from "hono/http-exception";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { logMessage, logMessageInTx } from "../../helpers/logging";
+import { logMessage } from "../../helpers/logging";
 import { Bindings, Variables } from "../../types";
 import { clearAuthCookie, getAuthCookie } from "../../utils/cookies";
 import { setTenantId } from "../../helpers/set-tenant-id";
@@ -183,42 +183,17 @@ const getRoot = defineRoute({
             }
           }
 
-          const revokedAt = new Date().toISOString();
-          const { revokedCount, committedEventId } =
-            await ctx.env.data.transaction(async (trx) => {
-              const count = session.login_session_id
-                ? await trx.refreshTokens.revokeByLoginSession(
-                    client.tenant.id,
-                    session.login_session_id,
-                    revokedAt,
-                  )
-                : 0;
-
-              await trx.sessions.update(client.tenant.id, targetSessionId, {
-                revoked_at: revokedAt,
-              });
-
-              const eventId =
-                count > 0
-                  ? await logMessageInTx(ctx, trx, client.tenant.id, {
-                      type: LogTypes.SUCCESS_REVOCATION,
-                      description: `Revoked ${count} refresh token(s)`,
-                    })
-                  : undefined;
-
-              return { revokedCount: count, committedEventId: eventId };
-            });
-
-          if (committedEventId) {
-            const promises = ctx.var.outboxEventPromises ?? [];
-            promises.push(Promise.resolve(committedEventId));
-            ctx.set("outboxEventPromises", promises);
-          } else if (revokedCount > 0) {
-            logMessage(ctx, client.tenant.id, {
-              type: LogTypes.SUCCESS_REVOCATION,
-              description: `Revoked ${revokedCount} refresh token(s)`,
-            });
-          }
+          // RP-initiated logout ends the session only — same rationale as
+          // /v2/logout: refresh tokens are client-scoped grants revoked via
+          // POST /oauth/revoke (RFC 7009), and the OP session is shared by
+          // every client on the tenant.
+          await ctx.env.data.sessions.update(
+            client.tenant.id,
+            targetSessionId,
+            {
+              revoked_at: new Date().toISOString(),
+            },
+          );
 
           sendBackchannelLogout(ctx, client.tenant.id, session);
         }
