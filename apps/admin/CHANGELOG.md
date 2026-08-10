@@ -1,5 +1,11 @@
 # @authhero/admin
 
+## 0.16.2
+
+### Patch Changes
+
+- 7c3f0f1: Add a "Show last used badge" toggle to the prompts Settings tab so `show_last_used_connection` can be enabled per tenant from the admin UI instead of only via the Management API.
+
 ## 0.16.1
 
 ### Patch Changes
