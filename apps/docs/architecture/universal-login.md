@@ -38,6 +38,25 @@ A hybrid approach for advanced use cases:
 - Supports progressive profiling, custom consent, and multi-step forms
 - Uses the widget for rendering but the server drives the flow logic
 
+## "Last Used" Connection Badge
+
+The u2 identifier and combined login screens can highlight the connection the user last logged in with — a "Last used" pill on the matching social (or passwordless) button. It is **opt-in** via the `show_last_used_connection` prompt setting (default `false`):
+
+```http
+PATCH /api/v2/prompts
+{
+  "show_last_used_connection": true
+}
+```
+
+How it works:
+
+- On a **successful** login (never on failure), AuthHero sets a per-tenant `{tenant_id}-last-used-connection` cookie holding only the connection name — no user id or other PII. It is `httpOnly`, `SameSite=Lax`, and lives for one year.
+- On the next visit, the matching button in `provider_details` gets `last_used: true` plus a server-translated `last_used_label` ("Last used", localized in all eight locales; overridable per tenant via prompt custom text as `lastUsedText`).
+- A stale cookie naming a connection that no longer exists on the client shows nothing.
+
+The badge only appears on the widget-based `/u2/` screens; the deprecated server-rendered `/u/` login does not render it. Style it from outside the widget via the `button-social-badge` CSS part, or recolor it with the `--ah-color-last-used` / `--ah-color-last-used-text` custom properties — see [Widget Customization](/customization/ui-widget/customization).
+
 ## Customization
 
 For details on customizing the login experience, see [UI Widget](/customization/ui-widget/) in the Customization section.

@@ -386,6 +386,10 @@ gtag('config', 'G-DNZWG3PF2L');`,
                   link: "/standards/oidc-rp-initiated-logout",
                 },
                 {
+                  text: "OIDC Back-Channel Logout 1.0",
+                  link: "/standards/backchannel-logout",
+                },
+                {
                   text: "RFC 9101 — JAR (Request Objects)",
                   link: "/standards/rfc-9101",
                 },
@@ -670,6 +674,7 @@ gtag('config', 'G-DNZWG3PF2L');`,
           items: [
             { text: "Overview", link: "/api/overview" },
             { text: "Endpoints", link: "/api/endpoints" },
+            { text: "Pagination", link: "/api/pagination" },
             { text: "Prefer Header", link: "/api/prefer-header" },
             { text: "Error Codes", link: "/api/error-codes" },
           ],

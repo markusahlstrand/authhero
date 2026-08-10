@@ -20,6 +20,37 @@ Each user has:
 - **user_metadata**: Custom data editable by the user
 - **app_metadata**: Custom data editable by administrators only
 - **identities**: Array of linked authentication identities
+- **blocked**: Auth0-parity account block flag (see [Blocking a User](#blocking-a-user))
+- **login_count / last_login / last_ip**: Login activity counters (see [Login Activity](#login-activity))
+
+## Blocking a User
+
+Setting `blocked: true` disables an account without deleting it:
+
+```http
+PATCH /api/v2/users/{user_id}
+{
+  "blocked": true
+}
+```
+
+Effects:
+
+- **All authentication is refused** — password, passwordless/OTP, social and enterprise logins, silent auth, and token exchange fail with `403 access_denied` ("User is blocked"). Password logins are checked *after* credential validation, so the block status is never leaked to someone without valid credentials.
+- **Refresh tokens stop working** — the `refresh_token` grant returns `invalid_grant` with "User is blocked".
+- **Existing sessions are revoked** — on the transition into blocked, every session and its refresh tokens are revoked and a `SUCCESS_REVOCATION` log event is written. Already-issued access tokens are stateless JWTs and remain valid until they expire.
+
+Blocking always operates on the **primary account**: blocking it blocks every linked identity, and a `blocked` value sent in an update targeting a linked identity is applied to the primary so it can't silently do nothing.
+
+Unblock with `blocked: false` (this revokes nothing). You can filter on the flag with `GET /api/v2/users?q=blocked:true`.
+
+[SCIM inbound provisioning](/features/scim-provisioning) maps `active: false` to `blocked: true` (and vice versa), with the same session revocation on deactivation. Note that the admin UI has no blocked toggle yet — blocking is Management API / SCIM only today.
+
+## Login Activity
+
+`login_count`, `last_login`, and `last_ip` appear on user records returned by the Management API and can be used in `q=` filters and sorts (e.g. `q=login_count:0` finds users who never logged in). They are stored in a separate write-often `user_activity` table (see the [database schema](/database/schema)) — joined into user reads transparently — so the profile row isn't rewritten on every login.
+
+The same table backs the failed-password lockout window (`failed_logins`) and `last_password_reset`; those fields are internal to the authentication flows and are not exposed through the Management API.
 
 ## Account Linking
 

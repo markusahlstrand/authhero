@@ -84,6 +84,8 @@ The widget exposes CSS parts that allow you to style internal elements from outs
 | `button-social-text-{provider}`     | Provider-specific main text                                                                  |
 | `button-social-subtitle`            | Subtitle text element (empty by default, populate via CSS)                                   |
 | `button-social-subtitle-{provider}` | Provider-specific subtitle element                                                           |
+| `button-social-badge`               | The "Last used" pill shown when the [last-used badge](/architecture/universal-login#last-used-connection-badge) is enabled |
+| `button-social-badge-{provider}`    | Provider-specific "Last used" pill                                                           |
 | `social-icon`                       | All social button icons (img elements)                                                       |
 | `social-icon-{provider}`            | Provider-specific icon (e.g., `social-icon-google-oauth2`)                                   |
 
@@ -144,6 +146,15 @@ authhero-widget::part(button-social) {
 /* Style a specific provider's button */
 authhero-widget::part(button-social-google-oauth2) {
   background-color: #f8f9fa;
+}
+
+/* Restyle or hide the "Last used" badge (when enabled) */
+authhero-widget::part(button-social-badge) {
+  font-weight: 600;
+}
+authhero-widget {
+  --ah-color-last-used: #0f766e; /* badge + highlighted button accents */
+  --ah-color-last-used-text: #fff;
 }
 ```
 
