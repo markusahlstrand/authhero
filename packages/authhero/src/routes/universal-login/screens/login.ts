@@ -184,6 +184,14 @@ export async function loginScreen(
     ...socialButtons,
   ];
 
+  // "Last used" hint on the identifier input: on this combined screen the
+  // input only serves the database connection — passwordless (email/SMS)
+  // logins get their badge on the "enter a code" button instead.
+  const lastUsedIsPassword = context.connections.some(
+    (c) =>
+      c.name === lastUsedConnection && isDatabaseConnectionStrategy(c.strategy),
+  );
+
   // Only add email/password inputs if we have password connection
   if (hasPasswordConnection) {
     const usernameMessages = errors?.username
@@ -203,6 +211,9 @@ export async function loginScreen(
         label: identifierLabel,
         config: {
           placeholder: identifierLabel,
+          ...(lastUsedIsPassword
+            ? { last_used: true, last_used_label: m.lastUsedText() }
+            : {}),
         },
         required: true,
         order: socialButtonCount + 1,

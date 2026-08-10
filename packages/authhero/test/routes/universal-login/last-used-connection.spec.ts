@@ -93,6 +93,26 @@ async function getProviderDetails(response: Response) {
 }
 
 /**
+ * Extract the components list from a screen-API JSON response.
+ */
+async function getScreenComponents(response: Response) {
+  const data: { screen: UiScreen } = await response.json();
+  return data.screen.components;
+}
+
+/**
+ * Find the identifier input (TEXT/EMAIL "username" component) in a screen's
+ * components, narrowing so its config is fully typed.
+ */
+function getIdentifierInput(components: UiScreen["components"]) {
+  const username = components.find((c) => c.id === "username");
+  if (!username || (username.type !== "EMAIL" && username.type !== "TEXT")) {
+    throw new Error("username TEXT/EMAIL component not found");
+  }
+  return username;
+}
+
+/**
  * Drive the classic /u password flow to completion and return the final
  * (302-to-callback) response, whose Set-Cookie headers we assert on.
  */
@@ -306,6 +326,169 @@ describe("last used badge on u2 screens", () => {
     expect(google).toBeDefined();
     expect(google?.last_used).toBeUndefined();
     expect(google?.last_used_label).toBeUndefined();
+  });
+
+  it("badges the identifier input when the cookie names the database connection", async () => {
+    const { u2App, oauthApp, env } = await getTestServer({ mockEmail: true });
+    const oauthClient = testClient(oauthApp, env);
+    await createGoogleConnection(env);
+    await env.data.promptSettings.set("tenantId", {
+      show_last_used_connection: true,
+    });
+
+    const state = await getLoginState(oauthClient);
+
+    const response = await u2App.request(
+      `/screen/identifier?state=${state}`,
+      {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          cookie: `${LAST_USED_COOKIE}=${Strategy.USERNAME_PASSWORD}`,
+        },
+      },
+      env,
+    );
+
+    expect(response.status).toBe(200);
+    const components = await getScreenComponents(response);
+    const username = getIdentifierInput(components);
+    expect(username.config?.last_used).toBe(true);
+    expect(username.config?.last_used_label).toBe("Last used");
+
+    // The social buttons must not be badged for a database login.
+    const social = components.find((c) => c.id === "social-buttons");
+    if (social && social.type === "SOCIAL") {
+      for (const provider of social.config?.provider_details ?? []) {
+        expect(provider.last_used).toBeUndefined();
+      }
+    }
+  });
+
+  it("badges the identifier input when the cookie names the email connection", async () => {
+    const { u2App, oauthApp, env } = await getTestServer({ mockEmail: true });
+    const oauthClient = testClient(oauthApp, env);
+    await env.data.promptSettings.set("tenantId", {
+      show_last_used_connection: true,
+    });
+
+    const state = await getLoginState(oauthClient);
+
+    // "Email" is the passwordless connection created by the test fixtures.
+    const response = await u2App.request(
+      `/screen/identifier?state=${state}`,
+      {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          cookie: `${LAST_USED_COOKIE}=Email`,
+        },
+      },
+      env,
+    );
+
+    expect(response.status).toBe(200);
+    const components = await getScreenComponents(response);
+    const username = getIdentifierInput(components);
+    expect(username.config?.last_used).toBe(true);
+    expect(username.config?.last_used_label).toBe("Last used");
+  });
+
+  it("does not badge the identifier input when the cookie names a social connection", async () => {
+    const { u2App, oauthApp, env } = await getTestServer({ mockEmail: true });
+    const oauthClient = testClient(oauthApp, env);
+    await createGoogleConnection(env);
+    await env.data.promptSettings.set("tenantId", {
+      show_last_used_connection: true,
+    });
+
+    const state = await getLoginState(oauthClient);
+
+    const response = await u2App.request(
+      `/screen/identifier?state=${state}`,
+      {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          cookie: `${LAST_USED_COOKIE}=google-oauth2`,
+        },
+      },
+      env,
+    );
+
+    expect(response.status).toBe(200);
+    const components = await getScreenComponents(response);
+    const username = getIdentifierInput(components);
+    expect(username.config?.last_used).toBeUndefined();
+    expect(username.config?.last_used_label).toBeUndefined();
+  });
+
+  it("badges the identifier input on the combined login screen for a database login", async () => {
+    const { u2App, oauthApp, env } = await getTestServer({ mockEmail: true });
+    const oauthClient = testClient(oauthApp, env);
+    await createGoogleConnection(env);
+    await env.data.promptSettings.set("tenantId", {
+      show_last_used_connection: true,
+    });
+
+    const state = await getLoginState(oauthClient);
+
+    const response = await u2App.request(
+      `/screen/login?state=${state}`,
+      {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          cookie: `${LAST_USED_COOKIE}=${Strategy.USERNAME_PASSWORD}`,
+        },
+      },
+      env,
+    );
+
+    expect(response.status).toBe(200);
+    const components = await getScreenComponents(response);
+    const username = getIdentifierInput(components);
+    expect(username.config?.last_used).toBe(true);
+    expect(username.config?.last_used_label).toBe("Last used");
+  });
+
+  it("keeps the badge on the passwordless button, not the input, on the combined login screen", async () => {
+    const { u2App, oauthApp, env } = await getTestServer({ mockEmail: true });
+    const oauthClient = testClient(oauthApp, env);
+    await env.data.promptSettings.set("tenantId", {
+      show_last_used_connection: true,
+    });
+
+    const state = await getLoginState(oauthClient);
+
+    const response = await u2App.request(
+      `/screen/login?state=${state}`,
+      {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          cookie: `${LAST_USED_COOKIE}=Email`,
+        },
+      },
+      env,
+    );
+
+    expect(response.status).toBe(200);
+    const components = await getScreenComponents(response);
+
+    // The email/SMS login lives behind the "enter a code" button on this
+    // screen, so that is where the badge belongs.
+    const social = components.find((c) => c.id === "social-buttons");
+    if (!social || social.type !== "SOCIAL") {
+      throw new Error("social-buttons SOCIAL component not found");
+    }
+    const passwordless = (social.config?.provider_details ?? []).find(
+      (p) => p.name === "Email",
+    );
+    expect(passwordless?.last_used).toBe(true);
+
+    const username = getIdentifierInput(components);
+    expect(username.config?.last_used).toBeUndefined();
   });
 
   it("shows no badge for a stale cookie naming a connection this client no longer has", async () => {

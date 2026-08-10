@@ -292,6 +292,11 @@ const emailField = fieldComponentBase.extend({
     .object({
       placeholder: z.string().optional(),
       default_value: z.string().optional(),
+      // "Last used" hint when the previous login came in through this input
+      // (email/SMS/database connection) rather than a social button.
+      last_used: z.boolean().optional(),
+      // Server-translated badge copy; the widget owns layout only.
+      last_used_label: z.string().optional(),
     })
     .optional(),
 });
@@ -397,6 +402,11 @@ const textField = fieldComponentBase.extend({
       multiline: z.boolean().optional(),
       max_length: z.number().optional(),
       default_value: z.string().optional(),
+      // "Last used" hint when the previous login came in through this input
+      // (the username variant of the identifier field).
+      last_used: z.boolean().optional(),
+      // Server-translated badge copy; the widget owns layout only.
+      last_used_label: z.string().optional(),
     })
     .optional(),
 });

@@ -413,6 +413,29 @@ input[type="date"].input-field+.input-label {
     var(--ah-color-last-used, var(--ah-color-primary, #635dff));
 }
 
+/* "Last used" badge on an input (identifier/email field) — same pill as the
+   social-button badge, pinned to the input's top-right corner straddling the
+   border. The input keeps its normal border: a permanent primary outline on a
+   text field would read as focus. Restyle or hide via ::part(input-badge) /
+   ::part(input-badge-<component-id>). */
+.input-badge {
+  position: absolute;
+  right: 12px;
+  top: 0;
+  transform: translateY(-50%);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--ah-color-last-used, var(--ah-color-primary, #635dff));
+  color: var(--ah-color-last-used-text, var(--ah-color-text-on-primary, #fff));
+  white-space: nowrap;
+  pointer-events: none;
+  /* Above the floating label (z-index 1) and the input border */
+  z-index: 2;
+}
+
 .btn-social-content {
   display: flex;
   flex-direction: column;
