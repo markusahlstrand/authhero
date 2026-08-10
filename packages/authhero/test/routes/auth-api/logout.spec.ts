@@ -100,6 +100,34 @@ describe("logout", () => {
       rotating: false,
     });
 
+    // A second client's refresh token on the same login session — the exact
+    // token the old cascade used to kill.
+    await env.data.clients.create("tenantId", {
+      client_id: "otherClientId",
+      name: "Other Client",
+    });
+    await env.data.refreshTokens.create("tenantId", {
+      id: "otherClientRefreshToken",
+      login_id: loginSession.id,
+      user_id: "email|userId",
+      client_id: "otherClientId",
+      resource_servers: [
+        {
+          audience: "http://example.com",
+          scopes: "openid",
+        },
+      ],
+      device: {
+        last_ip: "",
+        initial_ip: "",
+        last_user_agent: "",
+        initial_user_agent: "",
+        initial_asn: "",
+        last_asn: "",
+      },
+      rotating: false,
+    });
+
     await client.v2.logout.$get(
       {
         query: {
@@ -123,12 +151,14 @@ describe("logout", () => {
     const refreshtokensRes = await env.data.refreshTokens.list("tenantId", {
       q: `login_id:${loginSession.id}`,
       include_totals: false,
-      per_page: 1,
+      per_page: 10,
       page: 0,
     });
 
-    expect(refreshtokensRes.refresh_tokens).toHaveLength(1);
-    expect(refreshtokensRes.refresh_tokens[0]?.revoked_at).toBeUndefined();
+    expect(refreshtokensRes.refresh_tokens).toHaveLength(2);
+    for (const refreshToken of refreshtokensRes.refresh_tokens) {
+      expect(refreshToken.revoked_at).toBeUndefined();
+    }
 
     const { logs } = await env.data.logs.list("tenantId");
     expect(logs.length).toBe(1);

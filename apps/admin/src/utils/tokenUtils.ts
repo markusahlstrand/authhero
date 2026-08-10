@@ -1,5 +1,5 @@
 import { DomainConfig, formatDomain } from "./domainUtils";
-import { Auth0Client } from "@auth0/auth0-spa-js";
+import { Auth0Client, GenericError } from "@auth0/auth0-spa-js";
 import { getConfigValue } from "./runtimeConfig";
 
 // In-memory caches for access tokens. The Auth0 SDK cache key is
@@ -214,7 +214,7 @@ export function clearOrganizationTokenCache(): void {
  * an unauthorized loop against a token endpoint that keeps refusing the dead
  * refresh token.
  */
-export async function forceReauthLogin(
+async function forceReauthLogin(
   auth0Client: Auth0Client,
   organization?: string,
 ): Promise<never> {
@@ -235,6 +235,41 @@ export async function forceReauthLogin(
       ? `Redirecting to login for organization ${organization}`
       : "Redirecting to login",
   );
+}
+
+// OAuth error codes on a failed token exchange that mean silent auth cannot
+// succeed and only a fresh interactive login can recover. `timeout` (the SDK's
+// TimeoutError is also a GenericError) and non-OAuth failures like network
+// TypeErrors are deliberately absent — logging the user out over a transient
+// failure would discard a still-valid refresh token.
+const REAUTH_ERROR_CODES = new Set([
+  "invalid_grant",
+  "missing_refresh_token",
+  "login_required",
+  "interaction_required",
+  "consent_required",
+  "mfa_required",
+]);
+
+/**
+ * Shared catch handler for a failed `getTokenSilently`: when the failure is a
+ * refresh-token rejection (see {@link REAUTH_ERROR_CODES}) force a fresh
+ * interactive login via {@link forceReauthLogin}; any other error — timeouts,
+ * network failures — is rethrown untouched so the caller surfaces it without
+ * destroying local auth state.
+ */
+export async function recoverFromTokenError(
+  auth0Client: Auth0Client,
+  error: unknown,
+  organization?: string,
+): Promise<never> {
+  if (
+    !(error instanceof GenericError) ||
+    !REAUTH_ERROR_CODES.has(error.error)
+  ) {
+    throw error;
+  }
+  return forceReauthLogin(auth0Client, organization);
 }
 
 /**
@@ -312,8 +347,8 @@ export default async function getToken(
       const audience = getConfigValue("audience") || "urn:authhero:management";
       const domain = formatDomain(domainConfig.url);
       return await getNonOrgAccessToken(auth0Client, audience, domain);
-    } catch {
-      return await forceReauthLogin(auth0Client);
+    } catch (error) {
+      return await recoverFromTokenError(auth0Client, error);
     }
   }
 

@@ -10,7 +10,7 @@ import {
 } from "./utils/domainUtils";
 import getToken, {
   clearOrganizationTokenCache,
-  forceReauthLogin,
+  recoverFromTokenError,
   getOrganizationToken,
   getOrgAccessToken,
 } from "./utils/tokenUtils";
@@ -215,7 +215,11 @@ export const createManagementClient = async (
             domainForAuth,
           );
         } catch (error) {
-          return await forceReauthLogin(auth0Client, normalizedTenantId);
+          return await recoverFromTokenError(
+            auth0Client,
+            error,
+            normalizedTenantId,
+          );
         }
       }
       // For token/client_credentials, use getOrganizationToken
@@ -293,7 +297,11 @@ export const resolveAccessToken = async (
         // access is missing, redirect to login for the organization rather
         // than throwing, so export/import recovers the same way as the JSON
         // management client.
-        return await forceReauthLogin(auth0Client, normalizedTenantId);
+        return await recoverFromTokenError(
+          auth0Client,
+          error,
+          normalizedTenantId,
+        );
       }
     }
     return getOrganizationToken(domainConfig, normalizedTenantId);
@@ -902,8 +910,8 @@ export const createOrganizationHttpClient = (organizationId: string) => {
           normalizedOrgId,
           audience,
           formattedSelectedDomain,
-        ).catch(async (_error) =>
-          forceReauthLogin(auth0Client, normalizedOrgId),
+        ).catch(async (error) =>
+          recoverFromTokenError(auth0Client, error, normalizedOrgId),
         ),
       );
     }
