@@ -1969,6 +1969,7 @@ export async function createFrontChannelAuthResponse(
     skipHooks: params.skipHooks,
     organization: params.organization,
     impersonatingUser: params.impersonatingUser,
+    sessionReused: Boolean(params.existingSessionIdToLink),
   });
 
   // If completeLogin returned a Response (from a hook redirect), return it directly
@@ -2115,6 +2116,12 @@ export async function completeLogin(
      * stale-overwrite re-fetch.
      */
     loginSessionIsCurrent?: boolean;
+    /**
+     * True when the login completed by reusing an existing SSO session
+     * rather than fresh credentials. Page hooks (e.g. impersonate) are
+     * skipped for reused sessions.
+     */
+    sessionReused?: boolean;
   },
 ): Promise<
   | TokenResponse
@@ -2262,6 +2269,7 @@ export async function completeLogin(
         authParams: updatedAuthParams,
         authStrategy: params.authStrategy,
         authConnection: params.authConnection,
+        sessionReused: params.sessionReused,
       },
     );
 
