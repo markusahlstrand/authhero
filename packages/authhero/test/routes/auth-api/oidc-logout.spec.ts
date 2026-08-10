@@ -220,7 +220,7 @@ describe("/oidc/logout", () => {
     expect(response.status).toBe(400);
   });
 
-  it("revokes the session and refresh tokens, and writes audit logs", async () => {
+  it("revokes the session but not refresh tokens, and writes an audit log", async () => {
     const { oauthApp, env } = await getTestServer();
     const { loginSession, session } = await createSessions(env.data);
 
@@ -270,12 +270,10 @@ describe("/oidc/logout", () => {
       page: 0,
     });
     expect(refresh_tokens).toHaveLength(1);
-    expect(refresh_tokens[0]?.revoked_at).toBeTypeOf("string");
+    expect(refresh_tokens[0]?.revoked_at).toBeUndefined();
 
     const { logs } = await env.data.logs.list("tenantId");
-    const logTypes = logs.map((l) => l.type).sort();
-    expect(logTypes).toEqual(
-      [LogTypes.SUCCESS_LOGOUT, LogTypes.SUCCESS_REVOCATION].sort(),
-    );
+    const logTypes = logs.map((l) => l.type);
+    expect(logTypes).toEqual([LogTypes.SUCCESS_LOGOUT]);
   });
 });

@@ -203,6 +203,41 @@ export function clearOrganizationTokenCache(): void {
 }
 
 /**
+ * Recover from a failed refresh-token exchange (e.g. the refresh token was
+ * revoked server-side and the exchange returns `invalid_grant`) by forcing a
+ * fresh interactive login.
+ *
+ * The SDK cache may still hold unexpired access tokens at this point, so
+ * `isAuthenticated()` stays true — and the debounced `loginWithRedirect`
+ * patch in authProvider short-circuits on that check. Local auth state must
+ * be cleared first, otherwise the redirect never fires and the app wedges in
+ * an unauthorized loop against a token endpoint that keeps refusing the dead
+ * refresh token.
+ */
+export async function forceReauthLogin(
+  auth0Client: Auth0Client,
+  organization?: string,
+): Promise<never> {
+  const user = await auth0Client.getUser().catch(() => undefined);
+  clearOrganizationTokenCache();
+  await auth0Client.logout({ openUrl: false });
+  await auth0Client.loginWithRedirect({
+    authorizationParams: {
+      ...(organization ? { organization } : {}),
+      login_hint: user?.email,
+    },
+    appState: {
+      returnTo: window.location.pathname,
+    },
+  });
+  throw new Error(
+    organization
+      ? `Redirecting to login for organization ${organization}`
+      : "Redirecting to login",
+  );
+}
+
+/**
  * Get an organization-scoped token for the given domain configuration.
  * This token will have the org_id claim set to the specified organization.
  * Used for accessing tenant-specific resources.
@@ -277,10 +312,8 @@ export default async function getToken(
       const audience = getConfigValue("audience") || "urn:authhero:management";
       const domain = formatDomain(domainConfig.url);
       return await getNonOrgAccessToken(auth0Client, audience, domain);
-    } catch (error) {
-      throw new Error(
-        "Failed to get token from OAuth session. Please log in again.",
-      );
+    } catch {
+      return await forceReauthLogin(auth0Client);
     }
   }
 

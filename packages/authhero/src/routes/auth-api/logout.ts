@@ -1,7 +1,7 @@
 import { LogTypes } from "@authhero/adapter-interfaces";
 import { HTTPException } from "hono/http-exception";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { logMessage, logMessageInTx } from "../../helpers/logging";
+import { logMessage } from "../../helpers/logging";
 import { Bindings, Variables } from "../../types";
 import { isValidRedirectUrl } from "../../utils/is-valid-redirect-url";
 import { clearAuthCookie, getAuthCookie } from "../../utils/cookies";
@@ -99,52 +99,15 @@ const getRoot = defineRoute({
             ctx.set("connection", user.connection);
           }
 
-          // Soft-revoke every refresh token bound to this login session in
-          // a single UPDATE + mark session revoked + write the
-          // SUCCESS_REVOCATION audit event atomically. The outbox insert
-          // commits with the state changes, so we never emit a success
-          // event for tokens that weren't actually revoked.
-          const revokedAt = new Date().toISOString();
-          const { revokedCount, committedEventId } =
-            await ctx.env.data.transaction(async (trx) => {
-              const count = session.login_session_id
-                ? await trx.refreshTokens.revokeByLoginSession(
-                    client.tenant.id,
-                    session.login_session_id,
-                    revokedAt,
-                  )
-                : 0;
-
-              await trx.sessions.update(client.tenant.id, tokenState, {
-                revoked_at: revokedAt,
-              });
-
-              const eventId =
-                count > 0
-                  ? await logMessageInTx(ctx, trx, client.tenant.id, {
-                      type: LogTypes.SUCCESS_REVOCATION,
-                      description: `Revoked ${count} refresh token(s)`,
-                    })
-                  : undefined;
-
-              return { revokedCount: count, committedEventId: eventId };
-            });
-
-          if (committedEventId) {
-            // Feed the already-committed event id into the outbox middleware
-            // so destination delivery is still scheduled.
-            const promises = ctx.var.outboxEventPromises ?? [];
-            promises.push(Promise.resolve(committedEventId));
-            ctx.set("outboxEventPromises", promises);
-          } else if (revokedCount > 0) {
-            // logMessageInTx returned undefined — either outbox is disabled
-            // or the transaction-scoped outbox adapter is unavailable. Emit
-            // the legacy log so the revocation is still recorded.
-            logMessage(ctx, client.tenant.id, {
-              type: LogTypes.SUCCESS_REVOCATION,
-              description: `Revoked ${revokedCount} refresh token(s)`,
-            });
-          }
+          // Front-channel logout ends the browser session only. Refresh
+          // tokens are grants, not sessions — the auth cookie is shared by
+          // every client on the tenant, so cascading revocation here would
+          // kill other clients' tokens (and this endpoint is an
+          // unauthenticated GET). Auth0 behaves the same; clients revoke
+          // their own tokens via POST /oauth/revoke (RFC 7009).
+          await ctx.env.data.sessions.update(client.tenant.id, tokenState, {
+            revoked_at: new Date().toISOString(),
+          });
 
           sendBackchannelLogout(ctx, client.tenant.id, session);
         }

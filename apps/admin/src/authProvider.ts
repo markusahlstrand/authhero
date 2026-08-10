@@ -10,6 +10,7 @@ import {
 } from "./utils/domainUtils";
 import getToken, {
   clearOrganizationTokenCache,
+  forceReauthLogin,
   getOrganizationToken,
   getOrgAccessToken,
 } from "./utils/tokenUtils";
@@ -214,19 +215,7 @@ export const createManagementClient = async (
             domainForAuth,
           );
         } catch (error) {
-          const user = await auth0Client.getUser().catch(() => null);
-          await auth0Client.loginWithRedirect({
-            authorizationParams: {
-              organization: normalizedTenantId,
-              login_hint: user?.email,
-            },
-            appState: {
-              returnTo: window.location.pathname,
-            },
-          });
-          throw new Error(
-            `Redirecting to login for organization ${normalizedTenantId}`,
-          );
+          return await forceReauthLogin(auth0Client, normalizedTenantId);
         }
       }
       // For token/client_credentials, use getOrganizationToken
@@ -304,19 +293,7 @@ export const resolveAccessToken = async (
         // access is missing, redirect to login for the organization rather
         // than throwing, so export/import recovers the same way as the JSON
         // management client.
-        const user = await auth0Client.getUser().catch(() => null);
-        await auth0Client.loginWithRedirect({
-          authorizationParams: {
-            organization: normalizedTenantId,
-            login_hint: user?.email,
-          },
-          appState: {
-            returnTo: window.location.pathname,
-          },
-        });
-        throw new Error(
-          `Redirecting to login for organization ${normalizedTenantId}`,
-        );
+        return await forceReauthLogin(auth0Client, normalizedTenantId);
       }
     }
     return getOrganizationToken(domainConfig, normalizedTenantId);
@@ -925,21 +902,9 @@ export const createOrganizationHttpClient = (organizationId: string) => {
           normalizedOrgId,
           audience,
           formattedSelectedDomain,
-        ).catch(async (_error) => {
-          const user = await auth0Client.getUser().catch(() => null);
-          await auth0Client.loginWithRedirect({
-            authorizationParams: {
-              organization: normalizedOrgId,
-              login_hint: user?.email,
-            },
-            appState: {
-              returnTo: window.location.pathname,
-            },
-          });
-          throw new Error(
-            `Redirecting to login for organization ${normalizedOrgId}`,
-          );
-        }),
+        ).catch(async (_error) =>
+          forceReauthLogin(auth0Client, normalizedOrgId),
+        ),
       );
     }
 

@@ -117,6 +117,9 @@ describe("logout", () => {
     const sessionAfter = await env.data.sessions.get("tenantId", session.id);
     expect(sessionAfter?.revoked_at).toBeTypeOf("string");
 
+    // Refresh tokens are grants, not sessions — front-channel logout must not
+    // revoke them (Auth0 parity). The auth cookie is tenant-wide, so a cascade
+    // here would kill other clients' tokens too.
     const refreshtokensRes = await env.data.refreshTokens.list("tenantId", {
       q: `login_id:${loginSession.id}`,
       include_totals: false,
@@ -125,13 +128,10 @@ describe("logout", () => {
     });
 
     expect(refreshtokensRes.refresh_tokens).toHaveLength(1);
-    expect(refreshtokensRes.refresh_tokens[0]?.revoked_at).toBeTypeOf("string");
+    expect(refreshtokensRes.refresh_tokens[0]?.revoked_at).toBeUndefined();
 
     const { logs } = await env.data.logs.list("tenantId");
-    expect(logs.length).toBe(2);
-    const logTypes = logs.map((l) => l.type).sort();
-    expect(logTypes).toEqual(
-      [LogTypes.SUCCESS_LOGOUT, LogTypes.SUCCESS_REVOCATION].sort(),
-    );
+    expect(logs.length).toBe(1);
+    expect(logs[0]?.type).toBe(LogTypes.SUCCESS_LOGOUT);
   });
 });
