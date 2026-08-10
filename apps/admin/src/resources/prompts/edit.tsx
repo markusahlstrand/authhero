@@ -7,7 +7,12 @@ import {
 } from "ra-core";
 import { useWatch, useFormContext } from "react-hook-form";
 import { Plus, Pencil, Trash2 } from "lucide-react";
-import { Edit, SelectInput, SimpleForm } from "@/components/admin";
+import {
+  BooleanInput,
+  Edit,
+  SelectInput,
+  SimpleForm,
+} from "@/components/admin";
 import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UrlTabs } from "@/components/ui/url-tabs";
 import { RawJsonTab } from "@/common/RawJsonTab";
@@ -934,6 +939,11 @@ function SettingsTab() {
         helperText="Choose between the new or classic Universal Login experience"
       />
       <LoginFlowInput />
+      <BooleanInput
+        source="show_last_used_connection"
+        label='Show "Last used" badge'
+        helperText="Highlight the social connection the user last logged in with on the login screen. The badge appears on the user's next visit after their first login with this enabled."
+      />
     </div>
   );
 }
