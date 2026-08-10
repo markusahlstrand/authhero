@@ -13,9 +13,8 @@ import { USERNAME_PASSWORD_PROVIDER } from "../../../src/constants";
 
 describe("impersonation routes", () => {
   describe("GET /u/impersonate", () => {
-    it("should trigger postLogin hook and redirect to impersonation page when an existing session is reused", async () => {
-      const { universalApp, oauthApp, env } = await getTestServer();
-      const universalClient = testClient(universalApp, env);
+    it("should complete silently without the impersonation page when an existing session is reused", async () => {
+      const { oauthApp, env } = await getTestServer();
       const oauthClient = testClient(oauthApp, env);
 
       // Create user with impersonation permission
@@ -88,23 +87,17 @@ describe("impersonation routes", () => {
 
       expect(authorizeResponse.status).toBe(302);
 
-      // Silent SSO triggers the postLogin hook directly at /authorize, which
-      // redirects to the impersonation page.
+      // SSO session reuse must NOT interrupt with the impersonation page —
+      // page hooks only run on fresh interactive logins. The flow completes
+      // silently and redirects back to the app with a code.
       const authorizeLocation = authorizeResponse.headers.get("location");
-      expect(authorizeLocation).toContain("/u/impersonate");
+      expect(authorizeLocation).not.toContain("/u/impersonate");
 
-      const universalUrl = new URL(`https://example.com${authorizeLocation}`);
-      const state = universalUrl.searchParams.get("state");
-      expect(state).toBeTruthy();
-
-      // Verify the impersonation page renders correctly
-      const impersonateResponse = await universalClient.impersonate.$get({
-        query: { state: state! },
-      });
-
-      expect(impersonateResponse.status).toBe(200);
-      const html = await impersonateResponse.text();
-      expect(html).toContain("user@example.com");
+      const redirectUri = new URL(authorizeLocation!);
+      expect(redirectUri.hostname).toBe("example.com");
+      expect(redirectUri.pathname).toBe("/callback");
+      expect(redirectUri.searchParams.get("code")).toBeTruthy();
+      expect(redirectUri.searchParams.get("state")).toBe("auth-state");
     });
 
     it("should render impersonation page when user has session", async () => {

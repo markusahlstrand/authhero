@@ -235,6 +235,12 @@ export async function postUserLoginHook(
     authStrategy?: { strategy: string; strategy_type: string };
     /** The connection name actually used to authenticate. */
     authConnection?: string;
+    /**
+     * True when the login completed by reusing an existing SSO session
+     * rather than fresh credentials. Page hooks (e.g. impersonate) only
+     * interrupt fresh logins.
+     */
+    sessionReused?: boolean;
   },
 ): Promise<User | Response> {
   // Determine strategy_type based on explicit auth strategy or user's is_social flag
@@ -442,10 +448,12 @@ export async function postUserLoginHook(
         user = formResult;
       }
 
-      // Handle page hook (redirect) if we have a login session
-      const pageHook = postLoginHooks.find(
-        (h: any) => h.enabled && isPageHook(h),
-      );
+      // Handle page hook (redirect) if we have a login session. Skipped on
+      // SSO session reuse: pages like impersonate should only interrupt a
+      // fresh interactive login, not every silent re-authorization.
+      const pageHook = params?.sessionReused
+        ? undefined
+        : postLoginHooks.find((h: any) => h.enabled && isPageHook(h));
       if (pageHook && isPageHook(pageHook)) {
         const pageResult = await handlePageHook(
           ctx,
