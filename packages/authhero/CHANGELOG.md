@@ -1,5 +1,20 @@
 # authhero
 
+## 9.1.1
+
+### Patch Changes
+
+- 03e6eb1: Skip page hooks (e.g. the impersonation page) on SSO session reuse. Pages now only interrupt fresh interactive logins; silently re-authorizing with an existing session completes straight to the callback.
+- 19ecb77: fix: mint internal service tokens without running credentials-exchange hooks
+
+  `createServiceToken` previously minted through `createAuthTokens`, which runs the tenant's credentials-exchange hooks (the config hook plus DB template/code hooks). A tenant hook calling `api.access.deny()` therefore rejected every internal mint — e.g. the profile re-sync fired from a post-user-update hook — and a hook that updates a user could recurse straight back into itself.
+
+  Internal service tokens are now minted directly via `createServiceTokenCore` (which gained an optional `audience` override), keeping the same payload shape: `sub`/`azp` of `auth-service`, the tenant's audience with the `default_audience` → `{issuer}userinfo` fallback chain, and a custom-domain-aware issuer. Behavior changes: hook-added custom claims no longer appear on internal service tokens, `expiresInSeconds` is now honored in the JWT `exp` (default 3600s instead of the previous 86400s), and `customClaims` are validated against the core minter's stricter reserved-claim list (`scope`, `azp`, `tenant_id` included).
+
+- 8103847: Front-channel logout (`/v2/logout` and `/oidc/logout`) no longer revokes refresh tokens. The auth session cookie is shared by every client on the tenant, so the previous cascade let a logout from one application kill other applications' refresh tokens — an unauthenticated GET destroying grants it never owned. Matching Auth0, logout now revokes the session only (back-channel logout notifications are still sent); clients revoke their own refresh tokens via the authenticated `POST /oauth/revoke` endpoint (RFC 7009).
+- Updated dependencies [d9fcd8d]
+  - @authhero/widget@0.36.1
+
 ## 9.1.0
 
 ### Minor Changes
