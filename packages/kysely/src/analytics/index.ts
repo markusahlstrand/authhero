@@ -5,6 +5,12 @@ import {
   AnalyticsQueryParams,
   AnalyticsQueryResponse,
   AnalyticsResource,
+  SessionRetentionParams,
+  SessionRetentionResponse,
+  buildSessionRetention,
+  sessionRetentionWindow,
+  MONDAY_EPOCH_SHIFT_MS,
+  WEEK_MS,
 } from "@authhero/adapter-interfaces";
 import { Database } from "../db";
 
@@ -358,6 +364,54 @@ export function createAnalyticsAdapter(db: Kysely<Database>): AnalyticsAdapter {
         rows_before_limit_at_least: data.length,
         statistics: { elapsed: (Date.now() - startedAt) / 1000 },
       };
+    },
+
+    async sessionRetention(
+      tenantId: string,
+      params: SessionRetentionParams,
+    ): Promise<SessionRetentionResponse> {
+      const now = Date.now();
+      const { sinceMs } = sessionRetentionWindow(params.weeks, now);
+      const dialect = await getDialect();
+
+      // Monday-aligned week index of an epoch-ms column. SQLite's `/` on two
+      // integers already truncates; MySQL needs DIV for integer division.
+      const week = (col: "created_at_ts" | "used_at_ts") => {
+        const shifted =
+          col === "used_at_ts"
+            ? // Sessions that were never refreshed have no used_at; they were
+              // last seen in their creation week.
+              sql`(COALESCE(${sql.ref("used_at_ts")}, ${sql.ref("created_at_ts")}) + ${sql.lit(MONDAY_EPOCH_SHIFT_MS)})`
+            : sql`(${sql.ref(col)} + ${sql.lit(MONDAY_EPOCH_SHIFT_MS)})`;
+        return dialect === "mysql"
+          ? sql<number>`${shifted} DIV ${sql.lit(WEEK_MS)}`
+          : sql<number>`${shifted} / ${sql.lit(WEEK_MS)}`;
+      };
+
+      const rows = await db
+        .selectFrom("sessions")
+        .where("tenant_id", "=", tenantId)
+        .where("created_at_ts", ">=", sinceMs)
+        .select([
+          week("created_at_ts").as("created_week"),
+          week("used_at_ts").as("used_week"),
+          sql<number>`COUNT(*)`.as("count"),
+        ])
+        .groupBy([week("created_at_ts"), week("used_at_ts")] as never)
+        .execute();
+
+      // SQLite divides bound parameters as floats (and MySQL drivers may
+      // return DECIMAL strings), so normalize with floor here rather than
+      // relying on integer division in the query.
+      return buildSessionRetention(
+        rows.map((r) => ({
+          created_week: Math.floor(Number(r.created_week)),
+          used_week: Math.floor(Number(r.used_week)),
+          count: Number(r.count),
+        })),
+        params.weeks,
+        now,
+      );
     },
   };
 }

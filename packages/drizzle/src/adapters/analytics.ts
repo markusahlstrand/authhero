@@ -5,8 +5,14 @@ import {
   AnalyticsQueryParams,
   AnalyticsQueryResponse,
   AnalyticsResource,
+  SessionRetentionParams,
+  SessionRetentionResponse,
+  buildSessionRetention,
+  sessionRetentionWindow,
+  MONDAY_EPOCH_SHIFT_MS,
+  WEEK_MS,
 } from "@authhero/adapter-interfaces";
-import { logs } from "../schema/sqlite";
+import { logs, sessions } from "../schema/sqlite";
 import type { DrizzleDb } from "./types";
 
 const RESOURCE_EVENTS: Record<AnalyticsResource, readonly string[]> = {
@@ -215,6 +221,48 @@ export function createAnalyticsAdapter(db: DrizzleDb): AnalyticsAdapter {
         rows_before_limit_at_least: data.length,
         statistics: { elapsed: (Date.now() - startedAt) / 1000 },
       };
+    },
+
+    async sessionRetention(
+      tenantId: string,
+      params: SessionRetentionParams,
+    ): Promise<SessionRetentionResponse> {
+      const now = Date.now();
+      const { sinceMs } = sessionRetentionWindow(params.weeks, now);
+
+      // Monday-aligned week index; SQLite `/` on two integers truncates.
+      // Sessions that were never refreshed have no used_at — they were last
+      // seen in their creation week.
+      const createdWeek = sql<number>`(${sessions.created_at_ts} + ${MONDAY_EPOCH_SHIFT_MS}) / ${WEEK_MS}`;
+      const usedWeek = sql<number>`(COALESCE(${sessions.used_at_ts}, ${sessions.created_at_ts}) + ${MONDAY_EPOCH_SHIFT_MS}) / ${WEEK_MS}`;
+
+      const rows = await db
+        .select({
+          created_week: createdWeek,
+          used_week: usedWeek,
+          count: sql<number>`COUNT(*)`,
+        })
+        .from(sessions)
+        .where(
+          and(
+            eq(sessions.tenant_id, tenantId),
+            gte(sessions.created_at_ts, sinceMs),
+          ),
+        )
+        .groupBy(createdWeek, usedWeek)
+        .all();
+
+      // Bound parameters make SQLite divide as floats, so floor here rather
+      // than relying on integer division in the query.
+      return buildSessionRetention(
+        rows.map((r) => ({
+          created_week: Math.floor(Number(r.created_week)),
+          used_week: Math.floor(Number(r.used_week)),
+          count: Number(r.count),
+        })),
+        params.weeks,
+        now,
+      );
     },
   };
 }

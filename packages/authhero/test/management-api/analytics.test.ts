@@ -1,6 +1,7 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { testClient } from "hono/testing";
-import { LogTypes } from "@authhero/adapter-interfaces";
+import { LogTypes, Strategy } from "@authhero/adapter-interfaces";
+import { USERNAME_PASSWORD_PROVIDER } from "../../src/constants";
 import { getAdminToken } from "../helpers/token";
 import { getTestServer } from "../helpers/test-server";
 
@@ -279,5 +280,128 @@ describe("/analytics validation", () => {
     expect(res.status).toBe(400);
     const body = (await res.json()) as { param: string };
     expect(body.param).toBe("interval");
+  });
+});
+
+describe("GET /analytics/session-retention", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+  const RETENTION_USER_ID = `${USERNAME_PASSWORD_PROVIDER}|retention-user`;
+
+  async function seedUser(
+    env: Awaited<ReturnType<typeof getTestServer>>["env"],
+  ) {
+    await env.data.users.create("tenantId", {
+      email: "retention@example.com",
+      email_verified: true,
+      connection: Strategy.USERNAME_PASSWORD,
+      provider: USERNAME_PASSWORD_PROVIDER,
+      is_social: false,
+      user_id: RETENTION_USER_ID,
+    });
+  }
+
+  async function seedSession(
+    env: Awaited<ReturnType<typeof getTestServer>>["env"],
+    id: string,
+    opts: { used_at?: string } = {},
+  ) {
+    const loginSession = await env.data.loginSessions.create("tenantId", {
+      csrf_token: "csrf",
+      authParams: { client_id: "clientId" },
+      expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      state: "pending",
+    });
+    await env.data.sessions.create("tenantId", {
+      id,
+      user_id: RETENTION_USER_ID,
+      login_session_id: loginSession.id,
+      device: {
+        last_ip: "",
+        initial_ip: "",
+        last_user_agent: "",
+        initial_user_agent: "",
+        initial_asn: "",
+        last_asn: "",
+      },
+      clients: ["clientId"],
+      ...opts,
+    });
+  }
+
+  it("returns weekly cohorts computed from the sessions table", async () => {
+    const { managementApp, env } = await getTestServer();
+    const client = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    // created_at_ts is pinned to Date.now() in the adapters, so build
+    // historical cohorts with fake timers. Offsets are exact multiples of a
+    // week, which keeps every seeded session in the same relative bucket no
+    // matter where "now" falls within its week.
+    const realNow = Date.now();
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(realNow - 2 * WEEK_MS);
+      await seedUser(env);
+      await seedSession(env, "s1", {
+        used_at: new Date(realNow - WEEK_MS).toISOString(),
+      });
+      await seedSession(env, "s2", {
+        used_at: new Date(realNow).toISOString(),
+      });
+      await seedSession(env, "s3");
+
+      vi.setSystemTime(realNow);
+      await seedSession(env, "s4");
+    } finally {
+      vi.useRealTimers();
+    }
+
+    const res = await client.analytics["session-retention"].$get(
+      { query: { weeks: "4" }, header: { "tenant-id": "tenantId" } },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      interval: string;
+      cohorts: Array<{ cohort: string; sessions: number; active: number[] }>;
+    };
+
+    expect(body.interval).toBe("week");
+    expect(body.cohorts).toHaveLength(4);
+
+    // Cohorts are oldest-first: index 1 is the week two weeks back.
+    const twoWeeksBack = body.cohorts[1]!;
+    expect(twoWeeksBack.sessions).toBe(3);
+    // +0w: all three; +1w: s1 (used one week later) and s2 (used this week);
+    // +2w: only s2.
+    expect(twoWeeksBack.active).toEqual([3, 2, 1]);
+
+    const currentWeek = body.cohorts[3]!;
+    expect(currentWeek.sessions).toBe(1);
+    expect(currentWeek.active).toEqual([1]);
+
+    const emptyCohort = body.cohorts[0]!;
+    expect(emptyCohort.sessions).toBe(0);
+    expect(emptyCohort.active).toEqual([0, 0, 0, 0]);
+  });
+
+  it("rejects out-of-range weeks", async () => {
+    const { managementApp, env } = await getTestServer();
+    const client = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const res = await client.analytics["session-retention"].$get(
+      { query: { weeks: "99" }, header: { "tenant-id": "tenantId" } },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { param: string };
+    expect(body.param).toBe("weeks");
   });
 });

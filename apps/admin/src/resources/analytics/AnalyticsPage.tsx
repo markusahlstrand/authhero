@@ -28,7 +28,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
+import { SessionRetentionTab } from "./SessionRetentionTab";
 import { presetRange, TimeRange, TimeRangePicker } from "./TimeRangePicker";
 import {
   formatBucket,
@@ -259,216 +261,243 @@ export function AnalyticsPage() {
         </p>
       </div>
 
-      <Card>
-        <CardContent className="flex flex-col gap-3 pt-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <Select
-              value={resource}
-              onValueChange={(v) => {
-                setResource(v as AnalyticsResource);
-                setGroupBy(["time"]);
-              }}
-            >
-              <SelectTrigger className="w-44">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {RESOURCES.map((r) => (
-                  <SelectItem key={r.value} value={r.value}>
-                    {r.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+      <Tabs defaultValue="overview">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="retention">Retention</TabsTrigger>
+        </TabsList>
 
-            <TimeRangePicker value={range} onChange={setRange} />
+        <TabsContent value="retention">
+          <SessionRetentionTab />
+        </TabsContent>
 
-            <Select
-              value={interval}
-              onValueChange={(v) => setInterval(v as IntervalSetting)}
-            >
-              <SelectTrigger className="w-36">
-                <SelectValue>
-                  {interval === "auto"
-                    ? `Auto (${effectiveInterval})`
-                    : INTERVAL_OPTIONS.find((o) => o.value === interval)?.label}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {INTERVAL_OPTIONS.map((o) => (
-                  <SelectItem
-                    key={o.value}
-                    value={o.value}
-                    disabled={o.value === "hour" && hourDisabled}
+        <TabsContent value="overview" className="flex flex-col gap-4">
+          <Card>
+            <CardContent className="flex flex-col gap-3 pt-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <Select
+                  value={resource}
+                  onValueChange={(v) => {
+                    setResource(v as AnalyticsResource);
+                    setGroupBy(["time"]);
+                  }}
+                >
+                  <SelectTrigger className="w-44">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {RESOURCES.map((r) => (
+                      <SelectItem key={r.value} value={r.value}>
+                        {r.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <TimeRangePicker value={range} onChange={setRange} />
+
+                <Select
+                  value={interval}
+                  onValueChange={(v) => setInterval(v as IntervalSetting)}
+                >
+                  <SelectTrigger className="w-36">
+                    <SelectValue>
+                      {interval === "auto"
+                        ? `Auto (${effectiveInterval})`
+                        : INTERVAL_OPTIONS.find((o) => o.value === interval)
+                            ?.label}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {INTERVAL_OPTIONS.map((o) => (
+                      <SelectItem
+                        key={o.value}
+                        value={o.value}
+                        disabled={o.value === "hour" && hourDisabled}
+                      >
+                        {o.value === "auto"
+                          ? `Auto (${effectiveInterval})`
+                          : o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <div className="flex items-center gap-1">
+                  {resourceMeta.dims
+                    .filter((d) => d !== "time")
+                    .map((d) => {
+                      const active = groupBy.includes(d);
+                      return (
+                        <Button
+                          key={d}
+                          size="sm"
+                          variant={active ? "default" : "outline"}
+                          onClick={() =>
+                            setGroupBy((prev) =>
+                              active
+                                ? prev.filter((p) => p !== d)
+                                : [...prev, d],
+                            )
+                          }
+                        >
+                          {d}
+                        </Button>
+                      );
+                    })}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="flex flex-col gap-1">
+                  <Label
+                    htmlFor="analytics-filter-client-id"
+                    className="text-xs text-muted-foreground"
                   >
-                    {o.value === "auto"
-                      ? `Auto (${effectiveInterval})`
-                      : o.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <div className="flex items-center gap-1">
-              {resourceMeta.dims
-                .filter((d) => d !== "time")
-                .map((d) => {
-                  const active = groupBy.includes(d);
-                  return (
-                    <Button
-                      key={d}
-                      size="sm"
-                      variant={active ? "default" : "outline"}
-                      onClick={() =>
-                        setGroupBy((prev) =>
-                          active ? prev.filter((p) => p !== d) : [...prev, d],
-                        )
-                      }
+                    Client ID
+                  </Label>
+                  <Input
+                    id="analytics-filter-client-id"
+                    className="w-44"
+                    placeholder="Filter by client ID"
+                    value={clientId}
+                    onChange={(e) => setClientId(e.target.value)}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label
+                    htmlFor="analytics-filter-connection"
+                    className="text-xs text-muted-foreground"
+                  >
+                    Connection
+                  </Label>
+                  <Input
+                    id="analytics-filter-connection"
+                    className="w-44"
+                    placeholder="Filter by connection"
+                    value={connection}
+                    onChange={(e) => setConnection(e.target.value)}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label
+                    htmlFor="analytics-filter-user-id"
+                    className="text-xs text-muted-foreground"
+                  >
+                    User ID
+                  </Label>
+                  <Input
+                    id="analytics-filter-user-id"
+                    className="w-44"
+                    placeholder="Filter by user ID"
+                    value={userId}
+                    onChange={(e) => setUserId(e.target.value)}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label
+                    htmlFor="analytics-filter-user-type"
+                    className="text-xs text-muted-foreground"
+                  >
+                    User type
+                  </Label>
+                  <Select value={userType} onValueChange={setUserType}>
+                    <SelectTrigger
+                      id="analytics-filter-user-type"
+                      className="w-44"
                     >
-                      {d}
-                    </Button>
-                  );
-                })}
-            </div>
-          </div>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {USER_TYPE_OPTIONS.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>
+                          {o.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {hasFilters && (
+                  <Button variant="ghost" size="sm" onClick={clearFilters}>
+                    Clear filters
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
-          <div className="flex flex-wrap items-end gap-3">
-            <div className="flex flex-col gap-1">
-              <Label
-                htmlFor="analytics-filter-client-id"
-                className="text-xs text-muted-foreground"
-              >
-                Client ID
-              </Label>
-              <Input
-                id="analytics-filter-client-id"
-                className="w-44"
-                placeholder="Filter by client ID"
-                value={clientId}
-                onChange={(e) => setClientId(e.target.value)}
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <Label
-                htmlFor="analytics-filter-connection"
-                className="text-xs text-muted-foreground"
-              >
-                Connection
-              </Label>
-              <Input
-                id="analytics-filter-connection"
-                className="w-44"
-                placeholder="Filter by connection"
-                value={connection}
-                onChange={(e) => setConnection(e.target.value)}
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <Label
-                htmlFor="analytics-filter-user-id"
-                className="text-xs text-muted-foreground"
-              >
-                User ID
-              </Label>
-              <Input
-                id="analytics-filter-user-id"
-                className="w-44"
-                placeholder="Filter by user ID"
-                value={userId}
-                onChange={(e) => setUserId(e.target.value)}
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <Label
-                htmlFor="analytics-filter-user-type"
-                className="text-xs text-muted-foreground"
-              >
-                User type
-              </Label>
-              <Select value={userType} onValueChange={setUserType}>
-                <SelectTrigger id="analytics-filter-user-type" className="w-44">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {USER_TYPE_OPTIONS.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>
-                      {o.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {hasFilters && (
-              <Button variant="ghost" size="sm" onClick={clearFilters}>
-                Clear filters
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error.message}</AlertDescription>
-        </Alert>
-      )}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{resourceMeta.label}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex items-center justify-center h-72">
-              <Loader2 className="h-6 w-6 animate-spin" />
-            </div>
-          ) : rows.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No data.</p>
-          ) : (
-            <ResponsiveContainer width="100%" height={320}>
-              {seriesKeys.length === 1 ? (
-                <BarChart data={rows}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis
-                    dataKey="time"
-                    tick={{ fontSize: 11 }}
-                    tickFormatter={(v) => formatBucket(v, effectiveInterval)}
-                  />
-                  <YAxis tick={{ fontSize: 11 }} width={32} />
-                  <Tooltip
-                    labelFormatter={(v) => formatBucket(v, effectiveInterval)}
-                  />
-                  <Bar dataKey={seriesKeys[0]} fill={CHART_COLORS[0]} />
-                </BarChart>
-              ) : (
-                <LineChart data={rows}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis
-                    dataKey="time"
-                    tick={{ fontSize: 11 }}
-                    tickFormatter={(v) => formatBucket(v, effectiveInterval)}
-                  />
-                  <YAxis tick={{ fontSize: 11 }} width={32} />
-                  <Tooltip
-                    labelFormatter={(v) => formatBucket(v, effectiveInterval)}
-                  />
-                  <Legend />
-                  {seriesKeys.map((key, i) => (
-                    <Line
-                      key={key}
-                      type="monotone"
-                      dataKey={key}
-                      stroke={CHART_COLORS[i % CHART_COLORS.length]}
-                      strokeWidth={2}
-                      dot={false}
-                    />
-                  ))}
-                </LineChart>
-              )}
-            </ResponsiveContainer>
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error.message}</AlertDescription>
+            </Alert>
           )}
-        </CardContent>
-      </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>{resourceMeta.label}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="flex items-center justify-center h-72">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                </div>
+              ) : rows.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No data.</p>
+              ) : (
+                <ResponsiveContainer width="100%" height={320}>
+                  {seriesKeys.length === 1 ? (
+                    <BarChart data={rows}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                      <XAxis
+                        dataKey="time"
+                        tick={{ fontSize: 11 }}
+                        tickFormatter={(v) =>
+                          formatBucket(v, effectiveInterval)
+                        }
+                      />
+                      <YAxis tick={{ fontSize: 11 }} width={32} />
+                      <Tooltip
+                        labelFormatter={(v) =>
+                          formatBucket(v, effectiveInterval)
+                        }
+                      />
+                      <Bar dataKey={seriesKeys[0]} fill={CHART_COLORS[0]} />
+                    </BarChart>
+                  ) : (
+                    <LineChart data={rows}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                      <XAxis
+                        dataKey="time"
+                        tick={{ fontSize: 11 }}
+                        tickFormatter={(v) =>
+                          formatBucket(v, effectiveInterval)
+                        }
+                      />
+                      <YAxis tick={{ fontSize: 11 }} width={32} />
+                      <Tooltip
+                        labelFormatter={(v) =>
+                          formatBucket(v, effectiveInterval)
+                        }
+                      />
+                      <Legend />
+                      {seriesKeys.map((key, i) => (
+                        <Line
+                          key={key}
+                          type="monotone"
+                          dataKey={key}
+                          stroke={CHART_COLORS[i % CHART_COLORS.length]}
+                          strokeWidth={2}
+                          dot={false}
+                        />
+                      ))}
+                    </LineChart>
+                  )}
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
