@@ -1,5 +1,14 @@
 # @authhero/aws-adapter
 
+## 1.1.2
+
+### Patch Changes
+
+- Updated dependencies [3c960f4]
+- Updated dependencies [73e8fff]
+  - @authhero/adapter-interfaces@4.6.0
+  - @authhero/proxy@0.10.3
+
 ## 1.1.1
 
 ### Patch Changes
