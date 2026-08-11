@@ -140,6 +140,8 @@ const sqlHookSchema = z.object({
   form_id: z.string().optional().nullable(),
   template_id: z.string().optional().nullable(),
   code_id: z.string().optional().nullable(),
+  page_id: z.string().optional().nullable(),
+  permission_required: z.string().optional().nullable(),
   metadata: z.string().optional().nullable(),
 });
 

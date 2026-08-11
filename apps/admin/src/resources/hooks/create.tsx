@@ -7,13 +7,19 @@ import {
   NumberInput,
 } from "@/components/admin";
 import { useWatch } from "react-hook-form";
-import { getTemplateChoicesForTrigger, triggerChoices } from "./hookConstants";
+import {
+  getTemplateChoicesForTrigger,
+  pageChoices,
+  pageHookTriggerChoices,
+  triggerChoices,
+} from "./hookConstants";
 
 const typeChoices = [
   { id: "url", name: "Webhook" },
   { id: "form", name: "Form" },
   { id: "template", name: "Template" },
   { id: "code", name: "Code" },
+  { id: "page", name: "Page" },
 ];
 
 function TypeSpecificFields() {
@@ -38,7 +44,34 @@ function TypeSpecificFields() {
   if (type === "code") {
     return <TextInput source="code_id" label="Code (action) ID" required />;
   }
+  if (type === "page") {
+    return (
+      <>
+        <SelectInput source="page_id" label="Page" choices={pageChoices} />
+        <TextInput
+          source="permission_required"
+          label="Permission required"
+          helperText="Only interrupt the login for users holding this permission (e.g. users:impersonate). Leave empty to show the page on every login."
+        />
+      </>
+    );
+  }
   return null;
+}
+
+/**
+ * Page hooks only run after authentication, so offering the other triggers
+ * would just produce a 400 from the management API.
+ */
+function TriggerField() {
+  const type = useWatch({ name: "type" });
+  return (
+    <SelectInput
+      source="trigger_id"
+      label="Trigger"
+      choices={type === "page" ? pageHookTriggerChoices : triggerChoices}
+    />
+  );
 }
 
 export function HooksCreate() {
@@ -46,11 +79,7 @@ export function HooksCreate() {
     <Create>
       <SimpleForm>
         <SelectInput source="type" choices={typeChoices} />
-        <SelectInput
-          source="trigger_id"
-          label="Trigger"
-          choices={triggerChoices}
-        />
+        <TriggerField />
         <TypeSpecificFields />
         <BooleanInput source="enabled" defaultValue={true} />
         <BooleanInput source="synchronous" />

@@ -6,7 +6,11 @@ import {
 } from "@/components/admin";
 import { useRecordContext } from "ra-core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { triggerChoices, getTemplateChoicesForTrigger } from "../hookConstants";
+import {
+  triggerChoices,
+  getTemplateChoicesForTrigger,
+  pageChoices,
+} from "../hookConstants";
 import { TryHookButton } from "../try-hook-button";
 
 function TypeSpecificFields() {
@@ -15,6 +19,7 @@ function TypeSpecificFields() {
     form_id?: string;
     template_id?: string;
     code_id?: string;
+    page_id?: string;
     trigger_id?: string;
   }>();
   if (!record) return null;
@@ -30,6 +35,18 @@ function TypeSpecificFields() {
     );
   }
   if (record.code_id) return <TextInput source="code_id" label="Code ID" />;
+  if (record.page_id) {
+    return (
+      <>
+        <SelectInput source="page_id" label="Page" choices={pageChoices} />
+        <TextInput
+          source="permission_required"
+          label="Permission required"
+          helperText="Only interrupt the login for users holding this permission (e.g. users:impersonate). Leave empty to show the page on every login."
+        />
+      </>
+    );
+  }
   return null;
 }
 
