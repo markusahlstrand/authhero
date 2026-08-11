@@ -71,6 +71,22 @@ export const triggerChoicesWithTemplatesOnly = triggerChoices.filter((c) =>
   triggerIdsWithTemplates.has(c.id),
 );
 
+/**
+ * Built-in universal-login pages a page hook can interrupt the login with.
+ * Mirrors `hookPageId` in adapter-interfaces — keep the two in sync.
+ */
+export const pageChoices = [
+  {
+    id: "impersonate",
+    name: "Impersonate — lets permitted users sign in as another user",
+  },
+];
+
+/** Page hooks only run after authentication, so only on post-user-login. */
+export const pageHookTriggerChoices = triggerChoices.filter(
+  (c) => c.id === "post-user-login",
+);
+
 /** Trigger IDs supported by code hooks. */
 export const codeHookTriggerChoices = triggerChoices.filter((c) =>
   [

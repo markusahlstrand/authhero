@@ -7,12 +7,14 @@ function HookType() {
     form_id?: string;
     template_id?: string;
     code_id?: string;
+    page_id?: string;
   }>();
   if (!record) return null;
   if (record.url) return <>Webhook</>;
   if (record.form_id) return <>Form</>;
   if (record.template_id) return <>Template</>;
   if (record.code_id) return <>Code</>;
+  if (record.page_id) return <>Page</>;
   return <>—</>;
 }
 

@@ -4,6 +4,7 @@ import * as scimInboundProvisioning from "./2026-08-04T12:00:00_scim_inbound_pro
 import * as userBlocked from "./2026-08-05T12:00:00_user_blocked";
 import * as promptSettingsLastUsed from "./2026-08-09T12:00:00_prompt_settings_last_used";
 import * as actionExecutionsCreatedAtIndex from "./2026-08-10T12:00:00_action_executions_created_at_index";
+import * as pageHooks from "./2026-08-11T12:00:00_page_hooks";
 
 /**
  * Kysely runs these in key order and refuses to start if an already-executed
@@ -28,4 +29,5 @@ export default {
   "2026-08-09T12:00:00_prompt_settings_last_used": promptSettingsLastUsed,
   "2026-08-10T12:00:00_action_executions_created_at_index":
     actionExecutionsCreatedAtIndex,
+  "2026-08-11T12:00:00_page_hooks": pageHooks,
 };
