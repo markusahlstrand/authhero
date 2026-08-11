@@ -9,6 +9,7 @@ import {
   AnalyticsResource,
   AnalyticsUserType,
   analyticsQueryResponseSchema,
+  sessionRetentionResponseSchema,
   CacheAdapter,
 } from "@authhero/adapter-interfaces";
 import { requireTenantId } from "./helpers";
@@ -448,6 +449,96 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions = {}) {
   for (const resource of resources) {
     app.openapi(makeRoute(resource), handler(resource));
   }
+
+  // Session cohort retention is computed from the sessions table rather than
+  // logs, so it has its own shape and its own (optional) adapter method.
+  const retentionRoute = createRoute({
+    tags: ["analytics"],
+    method: "get" as const,
+    path: "/session-retention",
+    request: {
+      query: z.object({
+        weeks: z.string().optional().openapi({
+          description: "Number of weekly cohorts to include, 1-26. Default 12.",
+        }),
+      }),
+      headers: z.object({ "tenant-id": z.string().optional() }),
+    },
+    security: [{ Bearer: ["read:stats"] }],
+    responses: {
+      200: {
+        content: {
+          "application/json": { schema: sessionRetentionResponseSchema },
+        },
+        description: "Weekly session cohort retention",
+      },
+      400: {
+        content: { "application/json": { schema: z.any() } },
+        description: "Invalid request",
+      },
+    },
+  });
+
+  app.openapi(retentionRoute, async (ctx) => {
+    const analytics = ctx.env.data.analytics;
+    if (!analytics?.sessionRetention) {
+      throw new HTTPException(501, {
+        message:
+          "Session retention is not supported by the configured analytics adapter",
+      });
+    }
+
+    let weeks: number;
+    try {
+      weeks = parseInteger(ctx.req.query("weeks"), "weeks", 12, {
+        min: 1,
+        max: 26,
+      });
+    } catch (err) {
+      if (err instanceof AnalyticsRequestError) {
+        return ctx.json(
+          {
+            type: "https://authhero.net/errors/invalid-parameter",
+            title: "Invalid parameter",
+            status: 400,
+            detail: err.detail,
+            param: err.param,
+          },
+          400,
+        );
+      }
+      throw err;
+    }
+
+    const tenantId = requireTenantId(ctx);
+    const cacheKey = cache
+      ? `analytics:${tenantId}:session-retention:${weeks}`
+      : null;
+
+    // The response is tenant-scoped via the tenant-id header, not the URL, so
+    // it must never land in a shared HTTP cache; the server-side cache above
+    // is keyed by tenant and does the actual caching.
+    if (cache && cacheKey) {
+      const hit = await cache.get(cacheKey);
+      if (hit !== null) {
+        ctx.header("X-Cache", "HIT");
+        ctx.header("Cache-Control", "no-store");
+        return ctx.json(hit);
+      }
+    }
+
+    const result = await analytics.sessionRetention(tenantId, { weeks });
+
+    if (cache && cacheKey) {
+      // The current cohort week is always in progress, so keep the TTL short.
+      const ttl = 15 * 60;
+      cache.set(cacheKey, result, ttl).catch(() => {});
+      ctx.header("X-Cache", "MISS");
+      ctx.header("Cache-Control", "no-store");
+    }
+
+    return ctx.json(result);
+  });
 
   return app;
 }

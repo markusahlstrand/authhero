@@ -76,6 +76,46 @@ export interface AnalyticsQueryResponse {
   };
 }
 
+export interface SessionRetentionParams {
+  /** Number of weekly cohorts to include, counting back from the current week */
+  weeks: number;
+}
+
+export interface SessionRetentionCohort {
+  /** ISO date (UTC Monday) the cohort week starts on */
+  cohort: string;
+  /** Sessions created during the cohort week */
+  sessions: number;
+  /**
+   * active[k] = sessions still active k weeks after the cohort week, i.e.
+   * last used during week k or later. active[0] === sessions. The array is
+   * truncated at the current week, so recent cohorts have fewer entries.
+   */
+  active: number[];
+}
+
+export interface SessionRetentionResponse {
+  interval: "week";
+  /** Inclusive lower bound of the first cohort week */
+  from: string;
+  /** Timestamp the query ran at; the last cohort week is still in progress */
+  to: string;
+  cohorts: SessionRetentionCohort[];
+}
+
+export const sessionRetentionCohortSchema = z.object({
+  cohort: z.string(),
+  sessions: z.number(),
+  active: z.array(z.number()),
+});
+
+export const sessionRetentionResponseSchema = z.object({
+  interval: z.literal("week"),
+  from: z.string(),
+  to: z.string(),
+  cohorts: z.array(sessionRetentionCohortSchema),
+});
+
 export const analyticsColumnMetaSchema = z.object({
   name: z.string(),
   type: z.string(),

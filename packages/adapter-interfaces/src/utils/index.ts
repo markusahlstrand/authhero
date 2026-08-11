@@ -8,3 +8,4 @@ export * from "./base32";
 export * from "./hex";
 export * from "./cursor";
 export * from "./lucene";
+export * from "./session-retention";
