@@ -20,9 +20,9 @@
   "types": "dist/kysely-adapter.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/kysely-adapter.d.ts",
       "require": "./dist/kysely-adapter.cjs",
-      "import": "./dist/kysely-adapter.mjs",
-      "types": "./dist/kysely-adapter.d.ts"
+      "import": "./dist/kysely-adapter.mjs"
     }
   },
   "scripts": {

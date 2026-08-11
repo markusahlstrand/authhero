@@ -102,7 +102,7 @@
     "xstate": "^5.31.1"
   },
   "peerDependencies": {
-    "@authhero/widget": "^0.1.0",
+    "@authhero/widget": ">=0.37.0 <1.0.0",
     "@hono/zod-openapi": "^1.4.0",
     "hono": "^4.8.7",
     "ua-parser-js": "^2.0.0"

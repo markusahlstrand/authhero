@@ -57,6 +57,57 @@ jobs:
       - name: Build admin
         run: pnpm admin build
 
+      # Validate the shape of what we publish, not just what compiles from
+      # source. publint reads the packed manifest: it catches a "types"
+      # condition ordered after "import"/"require" (TypeScript resolves
+      # conditions in order, so it silently finds no types) and exports
+      # pointing at files absent from the tarball.
+      - name: Check package manifests (publint)
+        run: |
+          set -e
+          for p in packages/adapter-interfaces packages/authhero packages/aws \
+                   packages/cloudflare packages/create-authhero packages/drizzle \
+                   packages/kysely packages/multi-tenancy packages/proxy \
+                   packages/saml packages/ui-widget apps/admin; do
+            echo "::group::publint $p"
+            (cd "$p" && pnpm dlx publint)
+            echo "::endgroup::"
+          done
+
+      # attw resolves each entrypoint the way a consumer's TypeScript would.
+      #
+      # Two known-issue filters, both deliberate:
+      #   false-cjs — systemic. Every package ships a single .d.ts next to an
+      #     .mjs, so ESM consumers get CJS-flavoured types. Fixing it means
+      #     emitting .d.mts/.d.cts from every build; tracked separately.
+      #   ui-widget — excluded entirely. Stencil emits ESM into .js files with
+      #     no "type": "module", tripping UnexpectedModuleSyntax on every
+      #     entrypoint. That is a Stencil build concern, not a manifest one.
+      #
+      # authhero/styles is a stylesheet, so it has no types to resolve.
+      - name: Check published types (arethetypeswrong)
+        run: |
+          set -e
+          for p in packages/adapter-interfaces packages/authhero packages/aws \
+                   packages/cloudflare packages/drizzle packages/kysely \
+                   packages/multi-tenancy packages/proxy packages/saml apps/admin; do
+            extra=""
+            if [ "$p" = "packages/authhero" ]; then
+              extra="--exclude-entrypoints styles"
+            fi
+            echo "::group::attw $p"
+            (cd "$p" && pnpm dlx @arethetypeswrong/cli --pack . \
+              --profile node16 --ignore-rules false-cjs $extra)
+            echo "::endgroup::"
+          done
+
+      # Scaffold each template from packed tarballs, outside the workspace, and
+      # type-check it. The --workspace smoke tests below cannot catch a bad peer
+      # range, an empty tarball, or a missing .d.ts, because workspace links and
+      # esbuild bundling hide all three. See the script header.
+      - name: Verify templates install from packed tarballs
+        run: node scripts/scaffold-from-tarballs.mjs
+
       # Smoke-test the Cloudflare Workers deployment path: scaffold a fresh
       # multi-tenant project via create-authhero, then run `wrangler deploy
       # --dry-run` against it. Catches drift between published packages

@@ -23,17 +23,17 @@
   "types": "dist/drizzle-adapter.d.ts",
   "exports": {
     ".": {
-      "require": "./dist/drizzle-adapter.cjs",
+      "types": "./dist/drizzle-adapter.d.ts",
       "import": "./dist/drizzle-adapter.mjs",
-      "types": "./dist/drizzle-adapter.d.ts"
+      "require": "./dist/drizzle-adapter.cjs"
     },
     "./schema/sqlite": {
-      "import": "./src/schema/sqlite/index.ts",
-      "types": "./src/schema/sqlite/index.ts"
+      "types": "./src/schema/sqlite/index.ts",
+      "import": "./src/schema/sqlite/index.ts"
     }
   },
   "scripts": {
-    "build": "tsc && vite build",
+    "build": "vite build && tsc -p tsconfig.types.json && rollup -c rollup.dts.config.mjs",
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push"
@@ -53,6 +53,8 @@
     "better-sqlite3": "^11.10.0",
     "drizzle-kit": "^0.31.4",
     "hono": "^4.12.30",
+    "rollup": "^4.54.0",
+    "rollup-plugin-dts": "^6.4.1",
     "typescript": "^5.5.2",
     "vite": "^8.0.14",
     "vitest": "^4.1.7"

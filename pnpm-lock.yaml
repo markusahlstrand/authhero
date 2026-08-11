@@ -272,55 +272,6 @@ importers:
         specifier: ^4.1.7
         version: 4.1.7(@types/node@25.9.1)(jsdom@29.1.1)(msw@2.14.6(@types/node@25.9.1)(typescript@5.9.3))(vite@8.0.14(@types/node@25.9.1)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.3)(yaml@2.9.0))
 
-  apps/conformance-auth-server:
-    dependencies:
-      '@authhero/admin':
-        specifier: workspace:*
-        version: link:../admin
-      '@authhero/drizzle':
-        specifier: workspace:*
-        version: link:../../packages/drizzle
-      '@authhero/widget':
-        specifier: workspace:*
-        version: link:../../packages/ui-widget
-      '@hono/node-server':
-        specifier: latest
-        version: 2.0.10(hono@4.12.30)
-      '@hono/swagger-ui':
-        specifier: ^0.6.0
-        version: 0.6.1(hono@4.12.30)
-      '@hono/zod-openapi':
-        specifier: ^1.4.0
-        version: 1.4.0(hono@4.12.30)(zod@4.4.3)
-      authhero:
-        specifier: workspace:*
-        version: link:../../packages/authhero
-      bcryptjs:
-        specifier: latest
-        version: 3.0.3
-      better-sqlite3:
-        specifier: latest
-        version: 12.11.1
-      drizzle-orm:
-        specifier: ^0.45.2
-        version: 0.45.2(@cloudflare/workers-types@4.20260526.1)(@planetscale/database@1.19.0)(@types/better-sqlite3@7.6.13)(better-sqlite3@12.11.1)(bun-types@1.3.5)(kysely@0.29.3)
-      hono:
-        specifier: ^4.12.30
-        version: 4.12.30
-    devDependencies:
-      '@types/better-sqlite3':
-        specifier: ^7.6.0
-        version: 7.6.13
-      '@types/node':
-        specifier: ^22.0.0
-        version: 22.19.19
-      tsx:
-        specifier: ^4.0.0
-        version: 4.22.3
-      typescript:
-        specifier: ^5.9.0
-        version: 5.9.3
-
   apps/conformance-runner:
     devDependencies:
       '@playwright/test':
@@ -588,7 +539,7 @@ importers:
         version: link:../packages/ui-widget
       '@hono/node-server':
         specifier: latest
-        version: 2.0.10(hono@4.12.30)
+        version: 2.1.0(hono@4.12.30)
       '@hono/swagger-ui':
         specifier: ^0.5.0
         version: 0.5.3(hono@4.12.30)
@@ -597,7 +548,7 @@ importers:
         version: link:../packages/authhero
       better-sqlite3:
         specifier: latest
-        version: 12.11.1
+        version: 13.0.3
       hono:
         specifier: ^4.12.30
         version: 4.12.30
@@ -941,55 +892,6 @@ importers:
         specifier: ^4.1.7
         version: 4.1.7(@types/node@20.19.41)(jsdom@29.1.1)(msw@2.14.6(@types/node@20.19.41)(typescript@5.9.3))(vite@8.0.14(@types/node@20.19.41)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.3)(yaml@2.9.0))
 
-  packages/create-authhero/auth-server:
-    dependencies:
-      '@authhero/admin':
-        specifier: workspace:*
-        version: link:../../../apps/admin
-      '@authhero/kysely-adapter':
-        specifier: workspace:*
-        version: link:../../kysely
-      '@authhero/multi-tenancy':
-        specifier: workspace:*
-        version: link:../../multi-tenancy
-      '@authhero/widget':
-        specifier: workspace:*
-        version: link:../../ui-widget
-      '@hono/node-server':
-        specifier: latest
-        version: 2.0.10(hono@4.12.30)
-      '@hono/swagger-ui':
-        specifier: ^0.6.0
-        version: 0.6.1(hono@4.12.30)
-      '@hono/zod-openapi':
-        specifier: ^1.4.0
-        version: 1.4.0(hono@4.12.30)(zod@4.4.3)
-      authhero:
-        specifier: workspace:*
-        version: link:../../authhero
-      better-sqlite3:
-        specifier: latest
-        version: 12.11.1
-      hono:
-        specifier: ^4.12.30
-        version: 4.12.30
-      kysely:
-        specifier: latest
-        version: 0.29.3
-    devDependencies:
-      '@types/better-sqlite3':
-        specifier: ^7.6.0
-        version: 7.6.13
-      '@types/node':
-        specifier: ^22.0.0
-        version: 22.19.19
-      tsx:
-        specifier: ^4.0.0
-        version: 4.22.3
-      typescript:
-        specifier: ^5.9.0
-        version: 5.9.3
-
   packages/drizzle:
     dependencies:
       '@authhero/adapter-interfaces':
@@ -1029,6 +931,12 @@ importers:
       hono:
         specifier: ^4.12.30
         version: 4.12.30
+      rollup:
+        specifier: ^4.54.0
+        version: 4.54.0
+      rollup-plugin-dts:
+        specifier: ^6.4.1
+        version: 6.4.1(rollup@4.54.0)(typescript@5.9.3)
       typescript:
         specifier: ^5.5.2
         version: 5.9.3
@@ -1856,11 +1764,11 @@ packages:
 
   '@esbuild-kit/core-utils@3.3.2':
     resolution: {integrity: sha512-sPRAnw9CdSsRmEtnsl2WXWdyquogVpB3yZ3dgwJfe8zrOzTsV7cJvmwrKVa+0ma5BoiGJ+BoqkMvawbayKUsqQ==}
-    deprecated: 'Merged into tsx: https://tsx.is'
+    deprecated: 'Merged into tsx: https://tsx.hirok.io'
 
   '@esbuild-kit/esm-loader@2.6.5':
     resolution: {integrity: sha512-FxEMIkJKnodyA1OaCUoEvbYRkoZlLZ4d/eXFu9Fh8CbBBgP5EmZxrfTRyN0qpXZ4vOvqnE5YdRdcrmUUXuU+dA==}
-    deprecated: 'Merged into tsx: https://tsx.is'
+    deprecated: 'Merged into tsx: https://tsx.hirok.io'
 
   '@esbuild/aix-ppc64@0.21.5':
     resolution: {integrity: sha512-1SDgH6ZSPTlggy1yI6+Dbkiz8xzpHJEVAlF/AM1tHPLsf5STom9rwtjE4hKAF20FfXXNTFqEYXyJNWh1GiZedQ==}
@@ -2680,19 +2588,14 @@ packages:
     peerDependencies:
       hono: ^4
 
-  '@hono/node-server@2.0.10':
-    resolution: {integrity: sha512-ZcnNVhKTmyDJeg0UlnZjvM73JBsTAuhrH/J4fjwGOw59PwOW51r4J+p6CsKZWXdKSme4MFqU62CZMOsdDrU4CA==}
+  '@hono/node-server@2.1.0':
+    resolution: {integrity: sha512-XovyyCCnBzW+zKu+z/zq8hwNs4KOR5rEMAOxo2f40Q5xoOI37IMm6MIg2COOUtUApo0i6850MTBKH2u4QLGIqg==}
     engines: {node: '>=20'}
     peerDependencies:
       hono: ^4
 
   '@hono/swagger-ui@0.5.3':
     resolution: {integrity: sha512-Hn90DOOJ62ICJQplQvCDVpi9Jcn6EhtRaiffyJIS53wA5RmRLtMCDQGVc0bor8vQD7JIwpkweWjs+3cycp+IvA==}
-    peerDependencies:
-      hono: '>=4.0.0'
-
-  '@hono/swagger-ui@0.6.1':
-    resolution: {integrity: sha512-sJTvldu1GPeEPfyeLG7gRj+W4vEuD+JDi+JjJ3TJs/DvMUtBLs0KJO5yokGegWWdy5qrbdnQGekbhgNRmPmYKQ==}
     peerDependencies:
       hono: '>=4.0.0'
 
@@ -5722,6 +5625,7 @@ packages:
 
   arctic@3.7.0:
     resolution: {integrity: sha512-ZMQ+f6VazDgUJOd+qNV+H7GohNSYal1mVjm5kEaZfE2Ifb7Ss70w+Q7xpJC87qZDkMZIXYf0pTIYZA0OPasSbw==}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
 
   arg@5.0.2:
     resolution: {integrity: sha512-PYjyFOLKQ9y57JvQ6QLo8dAgNqswh8M1RMJYdQduT6xbWSgK36P/Z/v+p888pM69jMMfS8Xd8F6I1kQ/I9HUGg==}
@@ -5878,13 +5782,13 @@ packages:
   better-sqlite3@11.10.0:
     resolution: {integrity: sha512-EwhOpyXiOEL/lKzHz9AW1msWFNzGc/z+LzeB3/jnFJpxu+th2yqvzsSWas1v9jgs9+xiXJcD5A8CJxAG2TaghQ==}
 
-  better-sqlite3@12.11.1:
-    resolution: {integrity: sha512-dq9AtApgg5PGFtBzPFSBl3HZQjHok5gaQCM6zh2Yk0aSmDCs1CbnVI8/HgASQkNKsWFpseIO9beg5xxpYhbIfA==}
-    engines: {node: 20.x || 22.x || 23.x || 24.x || 25.x || 26.x}
-
   better-sqlite3@12.5.0:
     resolution: {integrity: sha512-WwCZ/5Diz7rsF29o27o0Gcc1Du+l7Zsv7SYtVPG0X3G/uUI1LqdxrQI7c9Hs2FWpqXXERjW9hp6g3/tH7DlVKg==}
     engines: {node: 20.x || 22.x || 23.x || 24.x || 25.x}
+
+  better-sqlite3@13.0.3:
+    resolution: {integrity: sha512-RbOBxmLBG8uvFUc15X9+9SFemKcQ0WBuISBVkpuiaUB2qblC8UWlHEjdWVoZ8AdhSwmoEgsiXKfopX0CQxaACQ==}
+    engines: {node: '>=22'}
 
   bidi-js@1.0.3:
     resolution: {integrity: sha512-RKshQI1R3YQ+n9YJz2QQ147P66ELpa1FQEg20Dk8oW9t2KgLbpDLLp9aGZ7y8WHSshDknG0bknqGw5/tyCs5tw==}
@@ -8648,6 +8552,10 @@ packages:
   node-abi@3.85.0:
     resolution: {integrity: sha512-zsFhmbkAzwhTft6nd3VxcG0cvJsT70rL+BIGHWVq5fi6MwGrHwzqKaxXE+Hl2GmnGItnDKPPkO5/LQqjVkIdFg==}
     engines: {node: '>=10'}
+
+  node-addon-api@8.9.1:
+    resolution: {integrity: sha512-4eUQWVPCUUUiBjLnHS3cXWeC6ryoPUc0U3rP7IuzapoGbzMqd/r6KKO0clr0b+snQhsrueFEhCZDdK+LK7hxKg==}
+    engines: {node: ^18 || ^20 || >= 21}
 
   node-fetch@2.7.0:
     resolution: {integrity: sha512-c4FRfUm/dbcWZ7U+1Wq0AwCyFL+3nt2bEw05wfxSz+DWpWsitgmSgYmy2dQdWyKC1694ELPqMs/YzUSNozLt8A==}
@@ -12422,15 +12330,11 @@ snapshots:
     dependencies:
       hono: 4.12.30
 
-  '@hono/node-server@2.0.10(hono@4.12.30)':
+  '@hono/node-server@2.1.0(hono@4.12.30)':
     dependencies:
       hono: 4.12.30
 
   '@hono/swagger-ui@0.5.3(hono@4.12.30)':
-    dependencies:
-      hono: 4.12.30
-
-  '@hono/swagger-ui@0.6.1(hono@4.12.30)':
     dependencies:
       hono: 4.12.30
 
@@ -16016,15 +15920,14 @@ snapshots:
       bindings: 1.5.0
       prebuild-install: 7.1.3
 
-  better-sqlite3@12.11.1:
-    dependencies:
-      bindings: 1.5.0
-      prebuild-install: 7.1.3
-
   better-sqlite3@12.5.0:
     dependencies:
       bindings: 1.5.0
       prebuild-install: 7.1.3
+
+  better-sqlite3@13.0.3:
+    dependencies:
+      node-addon-api: 8.9.1
 
   bidi-js@1.0.3:
     dependencies:
@@ -16850,15 +16753,6 @@ snapshots:
       '@planetscale/database': 1.19.0
       '@types/better-sqlite3': 7.6.13
       better-sqlite3: 11.10.0
-      bun-types: 1.3.5
-      kysely: 0.29.3
-
-  drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260526.1)(@planetscale/database@1.19.0)(@types/better-sqlite3@7.6.13)(better-sqlite3@12.11.1)(bun-types@1.3.5)(kysely@0.29.3):
-    optionalDependencies:
-      '@cloudflare/workers-types': 4.20260526.1
-      '@planetscale/database': 1.19.0
-      '@types/better-sqlite3': 7.6.13
-      better-sqlite3: 12.11.1
       bun-types: 1.3.5
       kysely: 0.29.3
 
@@ -18681,7 +18575,8 @@ snapshots:
 
   kysely@0.29.2: {}
 
-  kysely@0.29.3: {}
+  kysely@0.29.3:
+    optional: true
 
   launder@1.7.1:
     dependencies:
@@ -19530,6 +19425,8 @@ snapshots:
   node-abi@3.85.0:
     dependencies:
       semver: 7.8.1
+
+  node-addon-api@8.9.1: {}
 
   node-fetch@2.7.0:
     dependencies:

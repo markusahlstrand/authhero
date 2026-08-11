@@ -63,7 +63,9 @@ jobs:
         # dist/*.d.ts always exist before the next package type-checks against
         # them. The previous hand-ordered list built cloudflare before its
         # authhero/multi-tenancy deps, breaking the type-check on a clean checkout.
-        run: pnpm -r --filter './packages/**' build
+        # apps/admin must be included: @authhero/admin is published from there,
+        # and without a build it ships an empty tarball (no dist/).
+        run: pnpm -r --filter './packages/**' --filter './apps/admin' build
 
       - name: Create Release Pull Request or Publish to npm
         id: changesets

@@ -20,19 +20,19 @@
   "types": "dist/saml.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/saml.d.ts",
       "require": "./dist/saml.cjs",
-      "import": "./dist/saml.mjs",
-      "types": "./dist/saml.d.ts"
+      "import": "./dist/saml.mjs"
     },
     "./core": {
+      "types": "./dist/core.d.ts",
       "require": "./dist/core.cjs",
-      "import": "./dist/core.mjs",
-      "types": "./dist/core.d.ts"
+      "import": "./dist/core.mjs"
     },
     "./local-signer": {
+      "types": "./dist/local-signer.d.ts",
       "require": "./dist/local-signer.cjs",
-      "import": "./dist/local-signer.mjs",
-      "types": "./dist/local-signer.d.ts"
+      "import": "./dist/local-signer.mjs"
     }
   },
   "scripts": {
