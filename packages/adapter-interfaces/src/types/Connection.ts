@@ -13,6 +13,13 @@ export const connectionOptionsSchema = z.object({
   client_secret: z.string().optional(),
   app_secret: z.string().optional(),
   scope: z.string().optional(),
+  // Response-only masked previews of the secret fields above. The management
+  // API strips the secrets themselves and returns a hint (e.g. "3a9f••••••••")
+  // so a UI can show that a secret is set without ever exposing it. They are
+  // ignored on write — sending one back never persists it.
+  client_secret_hint: z.string().optional(),
+  app_secret_hint: z.string().optional(),
+  twilio_token_hint: z.string().optional(),
   authorization_endpoint: z.string().optional(),
   token_endpoint: z.string().optional(),
   userinfo_endpoint: z.string().optional(),
@@ -81,6 +88,8 @@ export const connectionOptionsSchema = z.object({
       userinfo_endpoint: z.string().optional(),
       client_id: z.string().optional(),
       client_secret: z.string().optional(),
+      // Response-only masked preview of `client_secret`, see above.
+      client_secret_hint: z.string().optional(),
       // Optional override for the `realm` sent in the password-realm grant.
       // Defaults to the connection name when omitted.
       realm: z.string().optional(),
