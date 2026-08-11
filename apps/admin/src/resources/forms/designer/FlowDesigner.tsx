@@ -198,7 +198,7 @@ export function FlowDesigner({
                 type="button"
                 size="sm"
                 variant="outline"
-                onClick={() => onSelect(addRouter())}
+                onClick={() => addRouter()}
               >
                 <GitBranch className="h-3.5 w-3.5" />
                 Router

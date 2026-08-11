@@ -9,7 +9,7 @@ import { Plus, Trash2, AlertTriangle } from "lucide-react";
 
 import { NodeTargetSelect } from "./NodeTargetSelect";
 import { RouterConditionBuilder } from "./RouterConditionBuilder";
-import { ENDING_TARGET, randomId } from "../constants";
+import { randomId } from "../constants";
 import { isRouterConditionGroup, type RouterRule } from "../types";
 
 interface RouterEditorProps {
@@ -32,7 +32,7 @@ export function RouterEditor({ index }: RouterEditorProps) {
       id: randomId("rule"),
       alias: `Rule ${rules.length + 1}`,
       condition: { type: "and", conditions: [] },
-      next_node: ENDING_TARGET,
+      next_node: "",
     };
     updateRules([...rules, newRule]);
   };

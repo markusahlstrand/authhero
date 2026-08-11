@@ -166,10 +166,10 @@ export function useNodeOperations({
             id: ruleId,
             alias: "Rule 1",
             condition: { type: "and", conditions: [] },
-            next_node: ENDING_TARGET,
+            next_node: "",
           },
         ],
-        fallback: ENDING_TARGET,
+        fallback: "",
       },
     };
     writeNodes([...nodes, router]);

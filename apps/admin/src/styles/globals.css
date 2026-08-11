@@ -192,6 +192,11 @@
   h1, h2, h3, h4 {
     letter-spacing: -0.02em;
   }
+  /* Tailwind v4 preflight no longer sets cursor: pointer on buttons */
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
 }
 
 /* xyflow flow designer theming */

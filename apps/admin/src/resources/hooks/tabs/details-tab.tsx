@@ -7,6 +7,7 @@ import {
 import { useRecordContext } from "ra-core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { triggerChoices, getTemplateChoicesForTrigger } from "../hookConstants";
+import { RecordPickerInput } from "../record-picker-input";
 import { TryHookButton } from "../try-hook-button";
 
 function TypeSpecificFields() {
@@ -19,7 +20,11 @@ function TypeSpecificFields() {
   }>();
   if (!record) return null;
   if (record.url) return <TextInput source="url" label="Webhook URL" />;
-  if (record.form_id) return <TextInput source="form_id" label="Form ID" />;
+  if (record.form_id) {
+    return (
+      <RecordPickerInput source="form_id" label="Form" reference="forms" />
+    );
+  }
   if (record.template_id) {
     return (
       <SelectInput
@@ -29,7 +34,11 @@ function TypeSpecificFields() {
       />
     );
   }
-  if (record.code_id) return <TextInput source="code_id" label="Code ID" />;
+  if (record.code_id) {
+    return (
+      <RecordPickerInput source="code_id" label="Action" reference="actions" />
+    );
+  }
   return null;
 }
 

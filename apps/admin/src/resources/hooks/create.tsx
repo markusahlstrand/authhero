@@ -8,6 +8,7 @@ import {
 } from "@/components/admin";
 import { useWatch } from "react-hook-form";
 import { getTemplateChoicesForTrigger, triggerChoices } from "./hookConstants";
+import { RecordPickerInput } from "./record-picker-input";
 
 const typeChoices = [
   { id: "url", name: "Webhook" },
@@ -24,7 +25,14 @@ function TypeSpecificFields() {
     return <TextInput source="url" label="Webhook URL" required />;
   }
   if (type === "form") {
-    return <TextInput source="form_id" label="Form ID" required />;
+    return (
+      <RecordPickerInput
+        source="form_id"
+        label="Form"
+        reference="forms"
+        isRequired
+      />
+    );
   }
   if (type === "template") {
     return (
@@ -36,7 +44,14 @@ function TypeSpecificFields() {
     );
   }
   if (type === "code") {
-    return <TextInput source="code_id" label="Code (action) ID" required />;
+    return (
+      <RecordPickerInput
+        source="code_id"
+        label="Action"
+        reference="actions"
+        isRequired
+      />
+    );
   }
   return null;
 }
