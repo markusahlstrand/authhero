@@ -34,8 +34,16 @@ export function useSessionRetention(weeks: number) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!tenantId) return;
+    if (!tenantId) {
+      setData(null);
+      setLoading(false);
+      setError(null);
+      return;
+    }
     let cancelled = false;
+    // Drop the previous tenant's cohorts before fetching, so a failed or
+    // slow request can never leave another tenant's data on screen.
+    setData(null);
     setLoading(true);
     setError(null);
 

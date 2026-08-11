@@ -479,7 +479,7 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions = {}) {
     },
   });
 
-  app.openapi(retentionRoute, async (ctx: any) => {
+  app.openapi(retentionRoute, async (ctx) => {
     const analytics = ctx.env.data.analytics;
     if (!analytics?.sessionRetention) {
       throw new HTTPException(501, {
@@ -515,10 +515,14 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions = {}) {
       ? `analytics:${tenantId}:session-retention:${weeks}`
       : null;
 
+    // The response is tenant-scoped via the tenant-id header, not the URL, so
+    // it must never land in a shared HTTP cache; the server-side cache above
+    // is keyed by tenant and does the actual caching.
     if (cache && cacheKey) {
       const hit = await cache.get(cacheKey);
       if (hit !== null) {
         ctx.header("X-Cache", "HIT");
+        ctx.header("Cache-Control", "no-store");
         return ctx.json(hit);
       }
     }
@@ -530,7 +534,7 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions = {}) {
       const ttl = 15 * 60;
       cache.set(cacheKey, result, ttl).catch(() => {});
       ctx.header("X-Cache", "MISS");
-      ctx.header("Cache-Control", `public, max-age=${ttl}`);
+      ctx.header("Cache-Control", "no-store");
     }
 
     return ctx.json(result);

@@ -41,7 +41,9 @@ function cellStyle(pct: number): { backgroundColor: string; color: string } {
   );
   return {
     backgroundColor: RAMP[idx],
-    color: idx >= 6 ? "#ffffff" : "#0b0b0b",
+    // Dark ink keeps better contrast than white up through index 7 (#2a78d6);
+    // white only wins from #256abf onward.
+    color: idx >= 8 ? "#ffffff" : "#0b0b0b",
   };
 }
 
