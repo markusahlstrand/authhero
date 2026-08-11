@@ -114,7 +114,7 @@ async function returnError(
  */
 function getErrorDescription(err: unknown): string {
   if (err instanceof Error) {
-    // Arctic OAuth2RequestError (e.g. invalid_grant, redirect_uri_mismatch)
+    // OAuth2RequestError (e.g. invalid_grant, redirect_uri_mismatch)
     if ("code" in err && "description" in err) {
       const oauthErr = err as Error & {
         code: string;
@@ -124,7 +124,7 @@ function getErrorDescription(err: unknown): string {
         ? `${oauthErr.code}: ${oauthErr.description}`
         : oauthErr.code;
     }
-    // Arctic UnexpectedResponseError / UnexpectedErrorResponseBodyError
+    // UnexpectedResponseError / UnexpectedErrorResponseBodyError
     if ("status" in err) {
       const statusErr = err as Error & { status: number };
       return `${err.message} (status: ${statusErr.status})`;
@@ -210,7 +210,7 @@ async function handleCallback(
       throw err;
     }
 
-    // Catch all other errors (arctic OAuth2RequestError, network errors,
+    // Catch all other errors (OAuth2RequestError, network errors,
     // JWT parsing errors, etc.) - log them and redirect to login with error
     const description = getErrorDescription(err);
     logMessage(ctx, ctx.var.tenant_id, {

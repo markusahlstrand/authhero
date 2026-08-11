@@ -1,4 +1,4 @@
-import { generateCodeVerifier, MicrosoftEntraId } from "arctic";
+import { generateCodeVerifier, MicrosoftEntraId } from "../oauth2-client";
 import { Context } from "hono";
 import { Connection, Strategy } from "@authhero/adapter-interfaces";
 import { nanoid } from "nanoid";
@@ -52,7 +52,7 @@ export async function microsoftEntraRedirect(
     ? trimmedScope.split(/\s+/)
     : ["openid", "profile", "email"];
 
-  const authorizationUrl = client.createAuthorizationURL(
+  const authorizationUrl = await client.createAuthorizationURL(
     code,
     code_verifier,
     scopes,
