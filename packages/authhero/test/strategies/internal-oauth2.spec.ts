@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { OAuth2RequestError } from "arctic";
+import { OAuth2RequestError } from "../../src/oauth2-client";
 import { ExtendedOAuth2Client } from "../../src/strategies/internal-oauth2";
 
 type CapturedRequest = {

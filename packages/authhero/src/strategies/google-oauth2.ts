@@ -1,4 +1,4 @@
-import { generateCodeVerifier, Google } from "arctic";
+import { generateCodeVerifier, Google } from "../oauth2-client";
 import { Context } from "hono";
 import { Connection } from "@authhero/adapter-interfaces";
 import { nanoid } from "nanoid";
@@ -36,7 +36,7 @@ export async function getRedirect(
   const code = nanoid();
   const code_verifier = generateCodeVerifier();
 
-  const authorizationUrl = google.createAuthorizationURL(
+  const authorizationUrl = await google.createAuthorizationURL(
     code,
     code_verifier,
     options.scope?.split(" ") ?? ["email", "profile"],

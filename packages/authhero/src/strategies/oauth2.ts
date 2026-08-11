@@ -2,8 +2,7 @@ import {
   OAuth2Client,
   generateState,
   generateCodeVerifier,
-  CodeChallengeMethod,
-} from "arctic";
+} from "../oauth2-client";
 import { Context } from "hono";
 import { Connection } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
@@ -37,10 +36,10 @@ export async function getRedirect(
   const codeVerifier = generateCodeVerifier();
   const scopes = options.scope?.split(" ") ?? [];
 
-  const authorizationUrl = client.createAuthorizationURLWithPKCE(
+  const authorizationUrl = await client.createAuthorizationURLWithPKCE(
     options.authorization_endpoint,
     state,
-    CodeChallengeMethod.S256,
+    "S256",
     codeVerifier,
     scopes,
   );

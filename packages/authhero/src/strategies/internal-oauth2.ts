@@ -1,11 +1,15 @@
-import { OAuth2Client, OAuth2Tokens, OAuth2RequestError } from "arctic";
+import {
+  OAuth2Client,
+  OAuth2Tokens,
+  OAuth2RequestError,
+} from "../oauth2-client";
 
 /**
- * Extends arctic's `OAuth2Client` so we own the token-endpoint exchange. We
- * support both `client_secret_basic` (HTTP Basic) and `client_secret_post`
+ * Extends `OAuth2Client` so we own the token-endpoint exchange. We support
+ * both `client_secret_basic` (HTTP Basic) and `client_secret_post`
  * (credentials in form body), and always surface the upstream response body in
- * thrown errors — arctic discards it, which makes diagnosing `invalid_client`
- * from providers like JumpCloud nearly impossible.
+ * thrown errors — the base client discards it, which makes diagnosing
+ * `invalid_client` from providers like JumpCloud nearly impossible.
  */
 export type TokenEndpointAuthMethod =
   | "client_secret_basic"

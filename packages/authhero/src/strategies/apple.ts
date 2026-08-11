@@ -1,4 +1,4 @@
-import { Apple } from "arctic";
+import { Apple } from "../oauth2-client";
 import { Context } from "hono";
 import { Connection } from "@authhero/adapter-interfaces";
 import { nanoid } from "nanoid";
