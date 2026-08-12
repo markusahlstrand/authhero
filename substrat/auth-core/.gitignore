@@ -1,0 +1,8 @@
+node_modules
+dist
+*.log
+.wrangler
+.data
+data
+src/migrations.generated.ts
+src/assets.generated.ts

@@ -1,0 +1,22 @@
+{
+  // The REAL auth core's Worker target. Hosted, the platform derives config from
+  // substrat.runtimeNeeds (stores + tenantStores) and ATTACHES per-tenant D1
+  // bindings to the serving script as tenants are provisioned — this file exists
+  // for `wrangler dev` parity only.
+  "name": "authhero-auth-core",
+  "main": "dist/worker/worker.js",
+  "compatibility_date": "2026-06-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "build": { "command": "npm run build:worker" },
+  "durable_objects": {
+    "bindings": [{ "name": "SCOPE", "class_name": "ScopeDO" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ScopeDO"] }],
+  // Local dev only: wrangler cannot attach dynamic per-tenant D1s, so a single
+  // static fallback store serves whichever tenant the dev seam names. Never a
+  // hosted binding — hosted stores are platform-minted (tenantStores/#301).
+  "d1_databases": [
+    { "binding": "AUTH_DB_DEV", "database_name": "auth-core-dev", "database_id": "local" }
+  ],
+  "dev": { "port": 8791 }
+}

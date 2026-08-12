@@ -169,8 +169,10 @@ export const createManagementClient = async (
   tenantId?: string,
   oauthDomain?: string,
 ): Promise<ManagementClient> => {
-  // Normalize tenant ID to lowercase to avoid casing mismatches
-  const normalizedTenantId = tenantId?.toLowerCase();
+  // Preserve tenant-id casing verbatim: ULID tenant ids are canonically
+  // uppercase and the management API cross-tenant guard compares strictly —
+  // lowercasing here is what CREATED the mismatch it meant to avoid.
+  const normalizedTenantId = tenantId;
   const oauthKey = oauthDomain ? formatDomain(oauthDomain) : apiUrl;
   const cacheKey = normalizedTenantId
     ? `${oauthKey}|${apiUrl}|${normalizedTenantId}`
@@ -268,7 +270,7 @@ export const resolveAccessToken = async (
   tenantId?: string,
   oauthDomain?: string,
 ): Promise<string> => {
-  const normalizedTenantId = tenantId?.toLowerCase();
+  const normalizedTenantId = tenantId; // casing preserved — see createManagementClient note
   const domainForAuth = formatDomain(oauthDomain || apiUrl);
   const domains = getDomainFromStorage();
   const domainConfig = domains.find(

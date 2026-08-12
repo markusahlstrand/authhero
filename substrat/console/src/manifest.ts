@@ -63,7 +63,7 @@ export const controlplaneManifest = moduleManifest.parse({
       description:
         "The AuthHero deployment console admins log in against — byte-exact as it appears in the `iss` claim (usually ends with '/').",
       placeholder: "https://auth.example.com/",
-      default: "http://localhost:3000/",
+      default: "https://authhero-auth-core-authhero.global.substrat.run/",
       group: "Auth",
     },
     {
@@ -76,11 +76,30 @@ export const controlplaneManifest = moduleManifest.parse({
     },
     {
       key: "OIDC_AUDIENCE",
-      label: "API audience (optional)",
+      label: "API audience",
       description:
-        "When set, bearer tokens must carry this audience. Leave empty to accept any audience from the trusted issuer (dev).",
+        "The audience bearer tokens must carry. urn:authhero:management matches the admin surface and always exists on seeded tenants.",
+      default: "urn:authhero:management",
       required: false,
       group: "Auth",
+    },
+    {
+      key: "OIDC_JWKS",
+      label: "Issuer JWKS (static bridge)",
+      description:
+        "The issuer's JWKS as JSON. Bridge: worker-to-worker fetch across verticals 522s on the platform zone, so keys are pinned statically until cross-vertical HTTP lands. Re-pin after key rotation.",
+      default: JSON.stringify({"keys":[{"alg":"RS256","kid":"GbqAbWj8FRoarbJaG7TSVBRDuGfoRqRkzimnRvWDy34","kty":"RSA","use":"sig","n":"riynUKg3kOC7q1L72md_QhfzTsLuiek74beQpam5I4aWCpjbYq6cmxIMTtOMWFjBtiqLqF2vIYOA219K1ZxTU21QU2rgXJ0BOPpRe9U6NlIihhXgOTHzxLg0ztE1uiaoniOnD-4cnYh-hi7stemcb_-4FuQ45YmkT1KJZYfvxswyueE18iiEAc9Ju1PYzW8h6DLTgv--MXTUkW4aoSPpDPRTSYq4ZoqjEUDTSXbCYxDdkSQjiJmNH0cxqv12h66rSLVHqbF18P6EQgyxBt5IHRTmeEXQ_eiGT68-ZQ099Vv8M_1uqqJbO1Bikdu6jZh6BgpJDDnTV55Y2f_5MO2avw","e":"AQAB"}]}),
+      required: false,
+      group: "Auth",
+    },
+    {
+      key: "OWNER_SUB",
+      label: "Operator sub",
+      description:
+        "The AuthHero sub of the human operator; grants their login the platform-operator role at provision/configure.",
+      default: "auth0|0aceaa2aa48fddc1729072ee",
+      required: false,
+      group: "Bootstrap",
     },
   ],
 });

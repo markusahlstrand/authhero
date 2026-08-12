@@ -1,0 +1,81 @@
+{
+  "name": "authhero-substrat-auth-core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The REAL AuthHero auth core as a Substrat vertical (design stage 1): the authhero package served per tenant over a PLATFORM-MINTED per-tenant relational store (tenantStores/#301 — D1 hosted, .sqlite locally). Succeeds substrat/authcore (the stand-in).",
+  "substrat": {
+    "slug": "authhero-auth-core",
+    "name": "AuthHero Auth Core",
+    "runtimeNeeds": {
+      "entry": "dist/worker/worker.js",
+      "needsNodeCompat": true,
+      "build": "npm run build:worker",
+      "stores": [
+        {
+          "binding": "SCOPE",
+          "class": "ScopeDO"
+        }
+      ],
+      "tenantStores": [
+        {
+          "binding": "AUTH_DB"
+        }
+      ]
+    },
+    "tenant": "authhero-mqk5x7",
+    "permissions": "src/permissions.ts",
+    "envSpec": [
+      {
+        "key": "ADMIN_USERNAME",
+        "label": "Initial admin username",
+        "description": "Bootstrap credential for this tenant: applied at provision/reconcile (upserted if the tenant already exists). Log in at /admin with it.",
+        "placeholder": "admin@example.com",
+        "required": false,
+        "group": "Bootstrap"
+      },
+      {
+        "key": "ADMIN_PASSWORD",
+        "label": "Initial admin password",
+        "description": "Set together with the username; the vertical hashes it with the same policy the seed path uses and never returns it.",
+        "secret": true,
+        "required": false,
+        "group": "Bootstrap"
+      }
+    ]
+  },
+  "scripts": {
+    "gen:migrations": "node scripts/gen-migrations.mjs",
+    "server": "tsx src/server.ts",
+    "pretypecheck": "node scripts/gen-migrations.mjs",
+    "typecheck": "tsc --noEmit",
+    "pretypecheck:worker": "node scripts/gen-migrations.mjs && node scripts/gen-assets.mjs",
+    "typecheck:worker": "tsc -p tsconfig.worker.json --noEmit",
+    "prebuild:worker": "node scripts/gen-migrations.mjs && node scripts/gen-assets.mjs",
+    "build:worker": "tsc -p tsconfig.worker.json",
+    "pregen:assets": "true",
+    "gen:assets": "node scripts/gen-assets.mjs"
+  },
+  "dependencies": {
+    "@authhero/drizzle": "workspace:*",
+    "@hono/node-server": "^1.13.0",
+    "@substrat-run/adapter-cloudflare": "^0.35.0",
+    "@substrat-run/adapter-sqlite": "^0.35.0",
+    "@substrat-run/contracts": "^0.35.0",
+    "@substrat-run/kernel": "^0.35.0",
+    "authhero": "workspace:*",
+    "better-sqlite3": "^11.0.0",
+    "drizzle-orm": "^0.45.2",
+    "hono": "^4.6.0"
+  },
+  "devDependencies": {
+    "@authhero/adapter-interfaces": "workspace:*",
+    "@cloudflare/workers-types": "^5.20260730.1",
+    "@types/better-sqlite3": "^7.6.0",
+    "@types/node": "^22",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0",
+    "wrangler": "^4.30.0"
+  }
+}

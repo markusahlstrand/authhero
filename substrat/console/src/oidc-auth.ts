@@ -10,6 +10,8 @@
 import { principalForSub } from "./identity.js";
 
 export interface OidcVerifyConfig {
+  /** Static JWKS (bridge for platforms where worker-to-worker fetch fails). */
+  staticJwks?: { keys: unknown[] };
   /** The AuthHero issuer, byte-exact as it appears in `iss` (e.g. https://auth.example.com/). */
   issuer: string;
   /** Optional audience the token must carry (an AuthHero API identifier). */
@@ -91,7 +93,12 @@ export async function verifyAuthHeroToken(
       if (!aud.includes(cfg.audience)) return null;
     }
 
-    const keys = await jwksFor(cfg.issuer, header.kid);
+    const staticKeys = (cfg.staticJwks?.keys ?? []).filter(
+    (k): k is Jwk => typeof k === "object" && k !== null && typeof (k as Jwk).kty === "string",
+  );
+  const keys = staticKeys.some((k) => !header.kid || k.kid === header.kid)
+    ? staticKeys
+    : await jwksFor(cfg.issuer, header.kid);
     const jwk =
       (header.kid ? keys.find((k) => k.kid === header.kid) : keys[0]) ?? null;
     if (!jwk) return null;
