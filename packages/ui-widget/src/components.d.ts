@@ -20,6 +20,10 @@ export namespace Components {
          */
         "disabled": boolean;
         /**
+          * BCP-47 locale used for locale-dependent field layout (currently the segment order of DATE fields). Resolved server-side so SSR and hydration agree; falls back to day-month-year when absent.
+         */
+        "locale"?: string;
+        /**
           * Current value for field components.
          */
         "value"?: string;
@@ -56,6 +60,10 @@ export namespace Components {
           * @default false
          */
         "loading": boolean;
+        /**
+          * BCP-47 locale for locale-dependent field layout, e.g. whether a DATE field reads DD/MM/YYYY, MM/DD/YYYY or YYYY-MM-DD. Resolve it server-side and pass it in so the server-rendered markup and the hydrated one agree; screen text itself is already localized by the server.
+         */
+        "locale"?: string;
         /**
           * The UI screen configuration from the server. Can be passed as a JSON string or object. Follows Auth0 Forms component schema.
          */
@@ -152,6 +160,10 @@ declare namespace LocalJSX {
          */
         "disabled"?: boolean;
         /**
+          * BCP-47 locale used for locale-dependent field layout (currently the segment order of DATE fields). Resolved server-side so SSR and hydration agree; falls back to day-month-year when absent.
+         */
+        "locale"?: string;
+        /**
           * Emitted when a button is clicked.
          */
         "onButtonClick"?: (event: AuthheroNodeCustomEvent<{
@@ -200,6 +212,10 @@ declare namespace LocalJSX {
           * @default false
          */
         "loading"?: boolean;
+        /**
+          * BCP-47 locale for locale-dependent field layout, e.g. whether a DATE field reads DD/MM/YYYY, MM/DD/YYYY or YYYY-MM-DD. Resolve it server-side and pass it in so the server-rendered markup and the hydrated one agree; screen text itself is already localized by the server.
+         */
+        "locale"?: string;
         /**
           * Emitted when a non-submit button is clicked (social login, back, etc.). The consuming application decides what to do based on id/type/value.
          */
@@ -259,6 +275,7 @@ declare namespace LocalJSX {
     interface AuthheroNodeAttributes {
         "value": string;
         "disabled": boolean;
+        "locale": string;
     }
     interface AuthheroWidgetAttributes {
         "screen": UiScreen | string;
@@ -274,6 +291,7 @@ declare namespace LocalJSX {
         "loading": boolean;
         "autoSubmit": boolean;
         "autoNavigate": boolean;
+        "locale": string;
     }
 
     interface IntrinsicElements {

@@ -26,6 +26,28 @@ import { sanitizeHtml } from "../../utils/sanitize-html";
 const CHOICE_LIST_SEARCH_THRESHOLD = 5;
 
 /**
+ * Component types the widget renders as something the user can actually fill
+ * in. Only these gate the primary action button: types that render nothing
+ * (CARDS, FILE, RECAPTCHA, …) can carry `required` in the schema too, and
+ * gating on them would leave Continue disabled with no way to satisfy it.
+ */
+const FILLABLE_FIELD_TYPES = new Set([
+  "TEXT",
+  "EMAIL",
+  "CODE",
+  "PASSWORD",
+  "NUMBER",
+  "TEL",
+  "URL",
+  "DATE",
+  "BOOLEAN",
+  "LEGAL",
+  "COUNTRY",
+  "DROPDOWN",
+  "CHOICE",
+]);
+
+/**
  * Submit event detail - emitted when a form is submitted
  */
 export interface SubmitEventDetail {
@@ -265,6 +287,14 @@ export class AuthheroWidget {
   @Prop() autoNavigate?: boolean;
 
   /**
+   * BCP-47 locale for locale-dependent field layout, e.g. whether a DATE
+   * field reads DD/MM/YYYY, MM/DD/YYYY or YYYY-MM-DD. Resolve it server-side
+   * and pass it in so the server-rendered markup and the hydrated one agree;
+   * screen text itself is already localized by the server.
+   */
+  @Prop() locale?: string;
+
+  /**
    * Internal parsed screen state.
    */
   @State() _screen?: UiScreen;
@@ -379,16 +409,17 @@ export class AuthheroWidget {
   private initFormDataFromDefaults(screen: UiScreen) {
     const defaults: Record<string, string> = {};
     for (const comp of screen.components || []) {
-      if (
-        "config" in comp &&
-        comp.config &&
-        "default_value" in comp.config &&
-        comp.config.default_value
-      ) {
-        const val = comp.config.default_value;
-        if (typeof val === "string" && val !== "") {
-          defaults[comp.id] = val;
-        }
+      if (!("config" in comp) || !comp.config) continue;
+      if (!("default_value" in comp.config)) continue;
+
+      const val = comp.config.default_value;
+      if (typeof val === "string" && val !== "") {
+        defaults[comp.id] = val;
+      } else if (typeof val === "boolean") {
+        // A BOOLEAN's default decides whether the checkbox renders ticked, so
+        // seed the matching value — otherwise a field the user never touches
+        // submits nothing and the screen's state is lost.
+        defaults[comp.id] = val ? "true" : "false";
       }
     }
     if (Object.keys(defaults).length > 0) {
@@ -1540,6 +1571,11 @@ export class AuthheroWidget {
   private handleButtonClick = (detail: ButtonClickEventDetail) => {
     // If this is a submit button click, trigger form submission
     if (detail.type === "submit") {
+      // Enter in a text field submits too, so the required-field gate has to
+      // live here and not only on the button's disabled state.
+      if (this._screen && this.hasUnfilledRequiredFields(this._screen)) {
+        return;
+      }
       // For GET screens (or missing method), navigate directly — no form submission needed
       if (
         (!this._screen?.method ||
@@ -1758,6 +1794,39 @@ export class AuthheroWidget {
   }
 
   /**
+   * Whether a required component holds a value the user has supplied.
+   */
+  private isRequiredFieldFilled(component: FormComponent): boolean {
+    const value = this.formData[component.id];
+
+    // Checkboxes are only "filled" when ticked. A BOOLEAN's default_value is
+    // seeded into formData, so it needs no separate handling here.
+    if (component.type === "BOOLEAN" || component.type === "LEGAL") {
+      return value === "true";
+    }
+
+    return typeof value === "string" && value.trim() !== "";
+  }
+
+  /**
+   * Whether the screen still has required fields the user has not filled in.
+   * Used to hold the primary action button disabled: the widget submits via
+   * its own handler rather than a native form submit, so the browser's
+   * constraint validation never runs and an empty required field would
+   * otherwise only surface as a server error after a round trip.
+   */
+  private hasUnfilledRequiredFields(screen: UiScreen): boolean {
+    return (screen.components ?? []).some(
+      (component) =>
+        component.visible !== false &&
+        "required" in component &&
+        component.required === true &&
+        FILLABLE_FIELD_TYPES.has(component.type) &&
+        !this.isRequiredFieldFilled(component),
+    );
+  }
+
+  /**
    * Visible label of a choice button, used to filter searchable choice lists.
    */
   private getChoiceButtonText(component: FormComponent): string {
@@ -1816,6 +1885,10 @@ export class AuthheroWidget {
     const isSearchableChoiceList =
       choiceButtons.length === fieldComponents.length &&
       choiceButtons.length > CHOICE_LIST_SEARCH_THRESHOLD;
+    // Hold the primary action button disabled until every required field has
+    // a value.
+    const requiredFieldsMissing = this.hasUnfilledRequiredFields(screen);
+
     const filterQuery = this.listFilter.trim().toLowerCase();
     const visibleChoiceButtons =
       isSearchableChoiceList && filterQuery
@@ -1927,6 +2000,7 @@ export class AuthheroWidget {
                     <authhero-node
                       key={component.id}
                       component={component}
+                      locale={this.locale}
                       value={this.formData[component.id]}
                       onFieldChange={(
                         e: CustomEvent<{ id: string; value: string }>,
@@ -1994,6 +2068,7 @@ export class AuthheroWidget {
                     <authhero-node
                       key={component.id}
                       component={component}
+                      locale={this.locale}
                       value={this.formData[component.id]}
                       onFieldChange={(
                         e: CustomEvent<{ id: string; value: string }>,
@@ -2005,7 +2080,11 @@ export class AuthheroWidget {
                           value?: string;
                         }>,
                       ) => this.handleButtonClick(e.detail)}
-                      disabled={this.loading}
+                      disabled={
+                        this.loading ||
+                        (component.type === "NEXT_BUTTON" &&
+                          requiredFieldsMissing)
+                      }
                     />
                   ))}
                   {isSearchableChoiceList &&
