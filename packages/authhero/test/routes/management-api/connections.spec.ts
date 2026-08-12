@@ -427,6 +427,181 @@ describe("connections", () => {
     }
   });
 
+  it("should return masked hints instead of secret values", async () => {
+    const { managementApp, env } = await getTestServer();
+    const managementClient = testClient(managementApp, env);
+
+    const token = await getAdminToken();
+
+    const createResponse = await managementClient.connections.$post(
+      {
+        json: {
+          name: "oidc-with-hints",
+          strategy: "oidc",
+          options: {
+            client_id: "hint-client",
+            // Long enough to reveal a prefix
+            client_secret: "3a9f1234567890abcdef",
+            // Too short to reveal anything
+            twilio_token: "short",
+            configuration: {
+              client_secret: "cfg-secret-1234567890",
+            },
+          },
+        },
+        header: { "tenant-id": "tenantId" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(createResponse.status).toBe(201);
+    const created = (await createResponse.json()) as Connection;
+
+    const getResponse = await managementClient.connections[":id"].$get(
+      {
+        param: { id: created.id },
+        header: { "tenant-id": "tenantId" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    const fetched = (await getResponse.json()) as Connection;
+
+    // Long secret: first four characters plus a fixed-width mask
+    expect(fetched.options?.client_secret).toBeUndefined();
+    expect(fetched.options?.client_secret_hint).toBe("3a9f••••••••");
+    // Short secret: mask only, no prefix
+    expect(fetched.options?.twilio_token).toBeUndefined();
+    expect(fetched.options?.twilio_token_hint).toBe("••••••••");
+    // Unset secret: no hint at all
+    expect(fetched.options?.app_secret_hint).toBeUndefined();
+    // Nested upstream migration secret is redacted the same way
+    expect(fetched.options?.configuration?.client_secret).toBeUndefined();
+    expect(fetched.options?.configuration?.client_secret_hint).toBe(
+      "cfg-••••••••",
+    );
+
+    // The stored values are untouched
+    const stored = await env.data.connections.get("tenantId", created.id);
+    expect(stored?.options?.client_secret).toBe("3a9f1234567890abcdef");
+    expect(stored?.options?.twilio_token).toBe("short");
+    expect(stored?.options?.configuration?.client_secret).toBe(
+      "cfg-secret-1234567890",
+    );
+    // Hints are never persisted
+    expect(stored?.options?.client_secret_hint).toBeUndefined();
+    expect(stored?.options?.twilio_token_hint).toBeUndefined();
+    expect(stored?.options?.configuration?.client_secret_hint).toBeUndefined();
+  });
+
+  it("should ignore hints and blank secrets sent back by a client", async () => {
+    const { managementApp, env } = await getTestServer();
+    const managementClient = testClient(managementApp, env);
+
+    const token = await getAdminToken();
+
+    const createResponse = await managementClient.connections.$post(
+      {
+        json: {
+          name: "oidc-roundtrip",
+          strategy: "oidc",
+          options: {
+            client_id: "roundtrip-client",
+            client_secret: "3a9f1234567890abcdef",
+            configuration: {
+              client_id: "upstream-client",
+              client_secret: "cfg-secret-1234567890",
+            },
+          },
+        },
+        header: { "tenant-id": "tenantId" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    const created = (await createResponse.json()) as Connection;
+
+    // Simulate a UI that echoes the whole record back: the hint is present and
+    // the secret input was left blank.
+    const patchResponse = await managementClient.connections[":id"].$patch(
+      {
+        param: { id: created.id },
+        json: {
+          options: {
+            client_id: "roundtrip-client-updated",
+            client_secret: "",
+            client_secret_hint: "3a9f••••••••",
+            configuration: {
+              client_id: "upstream-client",
+              client_secret: "",
+              client_secret_hint: "cfg-••••••••",
+            },
+          },
+        },
+        header: { "tenant-id": "tenantId" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(patchResponse.status).toBe(200);
+
+    const stored = await env.data.connections.get("tenantId", created.id);
+    expect(stored?.options?.client_id).toBe("roundtrip-client-updated");
+    // Neither the mask nor the empty string replaced the stored secrets
+    expect(stored?.options?.client_secret).toBe("3a9f1234567890abcdef");
+    expect(stored?.options?.client_secret_hint).toBeUndefined();
+    expect(stored?.options?.configuration?.client_secret).toBe(
+      "cfg-secret-1234567890",
+    );
+    expect(stored?.options?.configuration?.client_secret_hint).toBeUndefined();
+  });
+
+  it("should keep secrets out of the audit log", async () => {
+    const { managementApp, env } = await getTestServer();
+    const managementClient = testClient(managementApp, env);
+
+    const token = await getAdminToken();
+
+    const createResponse = await managementClient.connections.$post(
+      {
+        json: {
+          name: "oidc-audit",
+          strategy: "oidc",
+          options: {
+            client_id: "audit-client",
+            client_secret: "3a9f1234567890abcdef",
+          },
+        },
+        header: { "tenant-id": "tenantId" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    const created = (await createResponse.json()) as Connection;
+
+    await managementClient.connections[":id"].$patch(
+      {
+        param: { id: created.id },
+        json: { options: { client_secret: "rotated-1234567890abcdef" } },
+        header: { "tenant-id": "tenantId" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+
+    const { logs } = await env.data.logs.list("tenantId", {
+      page: 0,
+      per_page: 100,
+      include_totals: true,
+    });
+    const updateLog = logs.find(
+      (log) => log.description === "Update a Connection",
+    );
+    expect(updateLog).toBeDefined();
+
+    // The rotated secret is recorded as its hint, never in plaintext
+    expect(JSON.stringify(updateLog)).toContain("rota••••••••");
+    for (const log of logs) {
+      const serialized = JSON.stringify(log);
+      expect(serialized).not.toContain("3a9f1234567890abcdef");
+      expect(serialized).not.toContain("rotated-1234567890abcdef");
+    }
+  });
+
   it("should preserve existing secrets when PATCH omits them", async () => {
     const { managementApp, env } = await getTestServer();
     const managementClient = testClient(managementApp, env);

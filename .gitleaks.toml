@@ -1,0 +1,34 @@
+# Gitleaks configuration.
+#
+# The default ruleset is kept in full; this only narrows the fuzzy
+# `generic-api-key` rule, which matches on entropy and so flags any
+# realistic-looking string literal. Auth test fixtures are full of fake client
+# secrets, tokens and passwords, so that rule fires on files that by definition
+# hold no real credentials.
+#
+# Only `generic-api-key` is relaxed, and only under test paths. The
+# provider-specific rules (GitHub tokens, Stripe keys, private keys, ...) match
+# issuer-assigned formats rather than entropy and stay active everywhere, so a
+# genuinely leaked credential pasted into a test still fails the scan.
+#
+# Note: this uses the per-rule allowlist form rather than a global
+# `[[allowlists]]` with `targetRules`. The latter only exists in gitleaks
+# >= 8.30 and is silently ignored by the 8.24.3 pinned in the workflow.
+
+[extend]
+useDefault = true
+
+# Redeclaring an existing rule id merges into the default rule — the regex,
+# keywords and entropy threshold are inherited, only the allowlist is added.
+[[rules]]
+id = "generic-api-key"
+
+  [[rules.allowlists]]
+  description = "Fixture credentials in tests are not real secrets"
+  paths = [
+    '''(^|/)test/''',
+    '''(^|/)tests/''',
+    '''(^|/)__tests__/''',
+    '''\.spec\.[jt]sx?$''',
+    '''\.test\.[jt]sx?$''',
+  ]
