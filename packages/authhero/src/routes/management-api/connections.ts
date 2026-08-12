@@ -30,20 +30,102 @@ const connectionsWithTotalsSchema = withTotals({
 });
 
 // Auth0 omits secret fields from connection responses — callers must POST/PATCH
-// to set them, and a missing value means "keep existing". Mirror that contract.
+// to set them, and a missing value means "keep existing". Mirror that contract,
+// but return a masked hint in a sibling `<field>_hint` so the admin UI can show
+// that a secret is set, and which one, without ever exposing the value.
 const SECRET_OPTION_FIELDS = [
-  "client_secret",
-  "app_secret",
-  "twilio_token",
+  { secret: "client_secret", hint: "client_secret_hint" },
+  { secret: "app_secret", hint: "app_secret_hint" },
+  { secret: "twilio_token", hint: "twilio_token_hint" },
 ] as const;
+
+type ConnectionOptions = NonNullable<Connection["options"]>;
+
+const MASK = "••••••••";
+// Only reveal a prefix for secrets long enough that four characters don't
+// meaningfully narrow them down — a short hand-written secret would otherwise
+// leak a quarter of itself. The mask is a fixed width regardless of the real
+// value, so the hint doesn't leak the length either.
+const MIN_HINTABLE_LENGTH = 16;
+const HINT_PREFIX_LENGTH = 4;
+
+function secretHint(value: unknown): string | undefined {
+  if (typeof value !== "string" || value.length === 0) {
+    return undefined;
+  }
+  return value.length >= MIN_HINTABLE_LENGTH
+    ? `${value.slice(0, HINT_PREFIX_LENGTH)}${MASK}`
+    : MASK;
+}
+
+// Replace every secret in an options object with its masked hint. Used for
+// responses and for audit-log payloads, which would otherwise persist the
+// plaintext secret in the logs table.
+function redactSecretOptions(options: ConnectionOptions): ConnectionOptions {
+  const redacted = { ...options };
+
+  for (const { secret, hint } of SECRET_OPTION_FIELDS) {
+    const masked = secretHint(redacted[secret]);
+    delete redacted[secret];
+    if (masked) {
+      redacted[hint] = masked;
+    } else {
+      delete redacted[hint];
+    }
+  }
+
+  // The upstream migration credentials live one level down.
+  if (redacted.configuration) {
+    const configuration = { ...redacted.configuration };
+    const masked = secretHint(configuration.client_secret);
+    delete configuration.client_secret;
+    if (masked) {
+      configuration.client_secret_hint = masked;
+    } else {
+      delete configuration.client_secret_hint;
+    }
+    redacted.configuration = configuration;
+  }
+
+  return redacted;
+}
+
+// Normalize the options of an incoming write:
+//   - drop the response-only hints, so a client that echoes a GET response back
+//     into a PATCH can't persist "3a9f••••••••" as connection state;
+//   - drop blank secrets, so a form that submits an untouched, empty secret
+//     input is treated as "keep existing" rather than wiping the stored value.
+// A secret therefore can't be cleared by sending "" — delete the connection or
+// set a new value instead.
+function normalizeSecretWrites(options: ConnectionOptions): ConnectionOptions {
+  const normalized = { ...options };
+
+  for (const { secret, hint } of SECRET_OPTION_FIELDS) {
+    delete normalized[hint];
+    if (isBlank(normalized[secret])) {
+      delete normalized[secret];
+    }
+  }
+
+  if (normalized.configuration) {
+    const configuration = { ...normalized.configuration };
+    delete configuration.client_secret_hint;
+    if (isBlank(configuration.client_secret)) {
+      delete configuration.client_secret;
+    }
+    normalized.configuration = configuration;
+  }
+
+  return normalized;
+}
+
+function isBlank(value: unknown): boolean {
+  return typeof value === "string" && value.trim() === "";
+}
 
 function stripConnectionSecrets(connection: Connection): Connection {
   if (!connection.options) return connection;
-  const options = { ...connection.options };
-  for (const field of SECRET_OPTION_FIELDS) {
-    delete options[field];
-  }
-  return { ...connection, options };
+  return { ...connection, options: redactSecretOptions(connection.options) };
 }
 
 // Schema for the connection clients response
@@ -259,16 +341,34 @@ const patchById = defineRoute({
     // Build a separate patch payload so the original `body` stays free of
     // backfilled secrets for audit logging.
     let patchBody = body;
-    if (body.options && connectionBefore?.options) {
-      const mergedOptions = { ...body.options };
-      for (const field of SECRET_OPTION_FIELDS) {
+    if (body.options) {
+      const mergedOptions = normalizeSecretWrites(body.options);
+
+      if (connectionBefore?.options) {
+        for (const { secret } of SECRET_OPTION_FIELDS) {
+          if (
+            mergedOptions[secret] === undefined &&
+            connectionBefore.options[secret] !== undefined
+          ) {
+            mergedOptions[secret] = connectionBefore.options[secret];
+          }
+        }
+
+        // Same "missing = keep" rule for the nested upstream migration secret.
+        const previousConfigSecret =
+          connectionBefore.options.configuration?.client_secret;
         if (
-          mergedOptions[field] === undefined &&
-          connectionBefore.options[field] !== undefined
+          mergedOptions.configuration &&
+          mergedOptions.configuration.client_secret === undefined &&
+          previousConfigSecret !== undefined
         ) {
-          mergedOptions[field] = connectionBefore.options[field];
+          mergedOptions.configuration = {
+            ...mergedOptions.configuration,
+            client_secret: previousConfigSecret,
+          };
         }
       }
+
       patchBody = { ...body, options: mergedOptions };
     }
 
@@ -291,14 +391,20 @@ const patchById = defineRoute({
       });
     }
 
+    // Secrets are kept out of API responses, so they must stay out of the
+    // audit log too — it would otherwise store them in plaintext.
     await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Update a Connection",
-      beforeState: connectionBefore as Record<string, unknown>,
-      afterState: connection as Record<string, unknown>,
+      beforeState: connectionBefore
+        ? (stripConnectionSecrets(connectionBefore) as Record<string, unknown>)
+        : undefined,
+      afterState: stripConnectionSecrets(connection) as Record<string, unknown>,
       targetType: "connection",
       targetId: id,
-      body,
+      body: body.options
+        ? { ...body, options: redactSecretOptions(body.options) }
+        : body,
     });
 
     return ctx.json(stripConnectionSecrets(connection));
@@ -348,12 +454,15 @@ const postRoot = defineRoute({
     const connection = await ctx.env.data.connections.create(tenantId, {
       ...body,
       id: connectionId,
+      options: body.options
+        ? normalizeSecretWrites(body.options)
+        : body.options,
     });
 
     await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Create a Connection",
-      afterState: connection as Record<string, unknown>,
+      afterState: stripConnectionSecrets(connection) as Record<string, unknown>,
       targetType: "connection",
       targetId: connection.id,
     });
