@@ -109,7 +109,12 @@ function parseFormat(format: string): DateLayout | null {
       initial === "y" ? "year" : initial === "m" ? "month" : "day";
     if (order.includes(segment)) continue;
     order.push(segment);
-    tokens[segment] = match;
+    // A "YY" format still collects a four-digit year — the segment holds four
+    // characters and `toIsoDate` rejects anything shorter, with a two-digit
+    // entry expanded on blur. Showing "YY" as the placeholder would promise an
+    // input the field does not accept, so short year tokens are widened.
+    tokens[segment] =
+      segment === "year" && match.length < 4 ? DEFAULT_TOKENS.year : match;
   }
   if (order.length !== 3) return null;
 

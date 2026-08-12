@@ -1,3 +1,6 @@
+// `h` is the JSX factory Stencil compiles these templates against — used by
+// the transform, never referenced by name.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { h } from "@stencil/core";
 import { newSpecPage, SpecPage } from "@stencil/core/testing";
 import { AuthheroWidget } from "../src/components/authhero-widget/authhero-widget";

@@ -11,14 +11,45 @@
 /** A conservative BCP-47 shape: language, optional script, optional region. */
 const BCP47 = /^[a-z]{2,3}(-[a-z]{4})?(-([a-z]{2}|\d{3}))?$/i;
 
-function firstValidTag(value: string | undefined): string | undefined {
-  if (!value) return undefined;
-  for (const candidate of value.split(/[\s,]+/)) {
-    // Drop any q-weight ("en-GB;q=0.9") before matching
-    const tag = candidate.split(";")[0]?.trim();
-    if (tag && BCP47.test(tag)) return tag;
+/**
+ * The `q` weight of an `Accept-Language` entry's parameters, defaulting to 1
+ * when the entry carries none (RFC 9110 §12.4.2).
+ */
+function parseQuality(params: string[]): number {
+  for (const param of params) {
+    const match = /^\s*q\s*=\s*([\d.]+)\s*$/i.exec(param);
+    if (match) {
+      const q = Number(match[1]);
+      return Number.isFinite(q) ? q : 1;
+    }
   }
-  return undefined;
+  return 1;
+}
+
+/**
+ * The highest-weighted valid tag in an `Accept-Language` header (or in a
+ * space-separated `ui_locales` list, whose entries carry no weight and so all
+ * score 1).
+ *
+ * Header order is not preference order: "de;q=0.5, en-GB;q=0.9" asks for
+ * British English first. Weights are compared strictly, so equal priorities
+ * keep the order the header already expresses. `q=0` means "not acceptable"
+ * (RFC 9110 §12.5.4) and is skipped rather than selected. This mirrors the
+ * quality handling in `detectLanguage`.
+ */
+function bestValidTag(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  let best: { tag: string; q: number } | undefined;
+  for (const entry of value.split(",")) {
+    const [rawTags, ...params] = entry.split(";");
+    const q = parseQuality(params);
+    if (q <= 0) continue;
+    for (const tag of (rawTags ?? "").trim().split(/\s+/)) {
+      if (!tag || !BCP47.test(tag)) continue;
+      if (!best || q > best.q) best = { tag, q };
+    }
+  }
+  return best?.tag;
 }
 
 /**
@@ -32,7 +63,7 @@ export function resolveLocale(
   uiLocales: string | undefined,
   acceptLanguage: string | undefined,
 ): string {
-  return firstValidTag(uiLocales) ?? firstValidTag(acceptLanguage) ?? "en";
+  return bestValidTag(uiLocales) ?? bestValidTag(acceptLanguage) ?? "en";
 }
 
 /**

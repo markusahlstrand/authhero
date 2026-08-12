@@ -157,6 +157,9 @@ const patchByHook_id = defineRoute({
         },
         description: "The updated hook",
       },
+      400: {
+        description: "Trigger not supported by this hook type",
+      },
       404: {
         description: "Hook not found",
       },

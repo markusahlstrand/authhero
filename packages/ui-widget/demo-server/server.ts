@@ -1000,12 +1000,17 @@ function handleFormNodePost(
     if (!FORM_FIELD_TYPES.has(comp.type)) continue;
 
     const value = data[comp.id];
-    const isEmpty = value === undefined || value === "" || value === false;
+    const isEmpty = value === undefined || value === "";
+    // An unticked checkbox posts the string "false" — the widget serialises
+    // every field as a string — so a required LEGAL or BOOLEAN would satisfy
+    // an emptiness check while carrying a refusal. "false" is still a real
+    // answer worth storing; it just doesn't satisfy `required`.
+    const isUnanswered = isEmpty || value === false || value === "false";
 
     const isRequired = "required" in comp && comp.required === true;
     const label = "label" in comp && comp.label ? comp.label : comp.id;
 
-    if (isRequired && isEmpty) {
+    if (isRequired && isUnanswered) {
       missingFields.push(label);
     }
     if (!isEmpty) {
@@ -1442,6 +1447,29 @@ function handleSmsOtpChallengePost(
 // ============================================
 // Widget Page HTML
 // ============================================
+
+/** A conservative BCP-47 shape: language, optional script, optional region. */
+const BCP47 = /^[a-z]{2,3}(-[a-z]{4})?(-([a-z]{2}|\d{3}))?$/i;
+
+/**
+ * The locale for a request, from `?locale=` or `Accept-Language`.
+ *
+ * The value lands in an HTML attribute in two places (the SSR element and the
+ * client-side fallback), so it is validated here, at the point it enters the
+ * server, rather than escaped at each use — anything that is not a plain
+ * language tag is dropped and the widget falls back to its default.
+ */
+function resolveDemoLocale(c: {
+  req: {
+    query: (name: string) => string | undefined;
+    header: (name: string) => string | undefined;
+  };
+}): string | undefined {
+  const candidate =
+    c.req.query("locale") ||
+    c.req.header("Accept-Language")?.split(",")[0]?.split(";")[0]?.trim();
+  return candidate && BCP47.test(candidate) ? candidate : undefined;
+}
 
 async function renderWidgetPage(options: {
   screenId: string;
@@ -3721,9 +3749,7 @@ app.get("/u2/signup", async (c) => {
   // The signup screen carries a DATE field, whose segment order is
   // locale-dependent. `?locale=sv-SE` overrides the browser's preference so
   // the orders can be compared side by side.
-  const locale =
-    c.req.query("locale") ||
-    c.req.header("Accept-Language")?.split(",")[0]?.split(";")[0]?.trim();
+  const locale = resolveDemoLocale(c);
   return c.html(
     await renderWidgetPage({
       screenId: "signup",
@@ -3782,9 +3808,7 @@ app.get("/u2/forms/:formId/nodes/:nodeId", async (c) => {
   }
 
   // The form's DATE field is locale-dependent, same as the signup screen.
-  const locale =
-    c.req.query("locale") ||
-    c.req.header("Accept-Language")?.split(",")[0]?.split(";")[0]?.trim();
+  const locale = resolveDemoLocale(c);
 
   return c.html(
     await renderWidgetPage({

@@ -349,7 +349,12 @@ const postFormIdNodesNodeId = defineRoute({
           const compAny = comp as Record<string, unknown>;
           const isRequired = !!compAny.required;
           const value = data[name];
-          if (isRequired && (!value || value === "")) {
+          // The widget posts JSON with every field serialised as a string, so
+          // an unticked checkbox arrives as "false" rather than being absent
+          // the way a native form post would leave it. A required LEGAL or
+          // BOOLEAN must not be satisfied by a refusal.
+          const isUnanswered = !value || value === "" || value === "false";
+          if (isRequired && isUnanswered) {
             missingFields.push((compAny.label as string) || name);
           }
           if (typeof value === "string" && value !== "") {

@@ -77,7 +77,7 @@ export async function accumulateFormValues(
   tenantId: string,
   loginSessionId: string,
   submittedFields: Record<string, string>,
-  components: ReadonlyArray<{ id: string; type: string }>,
+  components: ReadonlyArray<{ id: string; type: string; sensitive?: boolean }>,
 ): Promise<Record<string, string>> {
   const currentSession = await ctx.env.data.loginSessions.get(
     tenantId,
@@ -97,7 +97,7 @@ export async function accumulateFormValues(
     const value = submittedFields[component.id];
     if (value === undefined) continue;
     if (NON_PERSISTED_FIELD_TYPES.has(component.type)) continue;
-    if (Reflect.get(component, "sensitive") === true) continue;
+    if (component.sensitive === true) continue;
     persistable[component.id] = value;
   }
 

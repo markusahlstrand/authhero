@@ -410,6 +410,17 @@ input[type="date"].input-field+.input-label {
   box-shadow: inset 0 0 0 1px var(--ah-color-error, #d03c38);
 }
 
+/* Forced-colors mode drops box-shadow, which is the only thing marking the
+   segment group as focused — the border colour is overridden too. Draw an
+   outline in a system colour so keyboard focus stays visible. */
+@media (forced-colors: active) {
+  .date-input:focus-within,
+  .date-input.has-error:focus-within {
+    outline: 2px solid Highlight;
+    outline-offset: 1px;
+  }
+}
+
 .date-segment {
   /* Sized in ch so the boxes track the font: wide enough for the placeholder
      tokens (DD/MM are wider than "00") without leaving a gap around a typed

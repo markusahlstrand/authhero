@@ -160,12 +160,35 @@ export class AuthheroNode {
   }
 
   /**
+   * The last value this field emitted for a TEL component. The widget mirrors
+   * every emitted value back onto the `value` prop, and that echo must not be
+   * re-parsed: the wire format carries only a dial code, so a country picked
+   * from the list would be replaced by the first entry sharing that code — a
+   * user who chose Canada would be silently moved to the US on their next
+   * keystroke.
+   */
+  private lastEmittedTel?: string;
+
+  /** Emit a TEL value and remember it, so the echo can be recognised. */
+  private emitTelValue(value: string) {
+    this.lastEmittedTel = value;
+    this.fieldChange.emit({ id: this.component.id, value });
+  }
+
+  /**
    * Hydrate localPhoneNumber (and selectedCountry) from the effective value
    * for TEL fields. The full value is stored as `{dialCode}{localNumber}`,
    * e.g. "+15551234567".
    */
   private initTelValue() {
     if (this.component?.type !== "TEL") return;
+
+    if (
+      this.lastEmittedTel !== undefined &&
+      this.getEffectiveValue() === this.lastEmittedTel
+    ) {
+      return;
+    }
 
     const config = (this.component as FieldComponent).config as
       | Record<string, unknown>
@@ -218,7 +241,7 @@ export class AuthheroNode {
     const fullNumber = this.localPhoneNumber
       ? `${this.selectedCountry.dialCode}${this.localPhoneNumber}`
       : "";
-    this.fieldChange.emit({ id: this.component.id, value: fullNumber });
+    this.emitTelValue(fullNumber);
   };
 
   /**
@@ -264,7 +287,7 @@ export class AuthheroNode {
       target.value = cleanedLocal;
       this.localPhoneNumber = cleanedLocal;
       const fullNumber = `${this.selectedCountry.dialCode}${cleanedLocal}`;
-      this.fieldChange.emit({ id: this.component.id, value: fullNumber });
+      this.emitTelValue(fullNumber);
     } else if (value.startsWith("+")) {
       // A leading "+" is an international prefix the user is still typing.
       // Keep it in the field so the dial code can build up until it matches
@@ -277,7 +300,7 @@ export class AuthheroNode {
       this.localPhoneNumber = cleaned;
       // Emit the partial prefix as-is; prefixing it with the (not yet chosen)
       // country's dial code would produce nonsense like "+1+4".
-      this.fieldChange.emit({ id: this.component.id, value: cleaned });
+      this.emitTelValue(cleaned);
     } else {
       const cleaned = allowPlus
         ? value.replace(/[^+\d\s\-()]/g, "").replace(/\+/g, "")
@@ -289,7 +312,7 @@ export class AuthheroNode {
       const fullNumber = cleaned
         ? `${this.selectedCountry.dialCode}${cleaned}`
         : "";
-      this.fieldChange.emit({ id: this.component.id, value: fullNumber });
+      this.emitTelValue(fullNumber);
     }
   }
 
@@ -315,7 +338,7 @@ export class AuthheroNode {
       } else {
         // Email or text — emit as-is
         this.localPhoneNumber = value;
-        this.fieldChange.emit({ id: this.component.id, value });
+        this.emitTelValue(value);
       }
       return;
     }
@@ -458,6 +481,22 @@ export class AuthheroNode {
   };
 
   /**
+   * Pad a single digit ("5" -> "05") and expand a two-digit year against the
+   * field's upper bound ("85" -> 1985). Shared by blur and paste so a pasted
+   * date is read the same way as a typed one.
+   */
+  private normalizeDateSegment(segment: DateSegment, value: string): string {
+    if (segment !== "year") return value.padStart(2, "0");
+    return expandTwoDigitYear(
+      value,
+      resolveYearAnchor(
+        this.dateConfig()?.max as string | undefined,
+        new Date(),
+      ),
+    );
+  }
+
+  /**
    * Normalise on blur: pad a single digit ("5" -> "05") and expand a two-digit
    * year against the field's upper bound ("85" -> 1985).
    */
@@ -466,16 +505,7 @@ export class AuthheroNode {
     const value = target.value.replace(/\D/g, "");
     if (!value) return;
 
-    const normalized =
-      segment === "year"
-        ? expandTwoDigitYear(
-            value,
-            resolveYearAnchor(
-              this.dateConfig()?.max as string | undefined,
-              new Date(),
-            ),
-          )
-        : value.padStart(2, "0");
+    const normalized = this.normalizeDateSegment(segment, value);
 
     if (normalized === value) return;
     target.value = normalized;
@@ -508,7 +538,9 @@ export class AuthheroNode {
 
   /**
    * Pasting a whole date into any segment fills all three. An ISO value is
-   * read year-first; anything else follows the field's displayed order.
+   * read year-first; anything else follows the field's displayed order. A
+   * two-digit year is expanded the same way a typed one is, so "15/03/85"
+   * pastes as 1985 rather than falling through to the browser's own paste.
    */
   private handleDatePaste = (e: ClipboardEvent) => {
     const text = e.clipboardData?.getData("text") ?? "";
@@ -528,10 +560,10 @@ export class AuthheroNode {
     };
     [first!, second!, third!].forEach((group, index) => {
       const segment = order[index]!;
-      segments[segment] = group.slice(0, AuthheroNode.SEGMENT_LENGTH[segment]);
-      if (segment !== "year") {
-        segments[segment] = segments[segment].padStart(2, "0");
-      }
+      segments[segment] = this.normalizeDateSegment(
+        segment,
+        group.slice(0, AuthheroNode.SEGMENT_LENGTH[segment]),
+      );
     });
 
     if (!toIsoDate(segments)) return;
@@ -555,7 +587,7 @@ export class AuthheroNode {
       if (config?.allow_email === true && target.value.length === 0) {
         this.telEmailMode = true;
         this.localPhoneNumber = "";
-        this.fieldChange.emit({ id: this.component.id, value: "" });
+        this.emitTelValue("");
       }
     }
   };

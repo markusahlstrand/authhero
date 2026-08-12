@@ -1,3 +1,6 @@
+// `h` is the JSX factory Stencil compiles these templates against — used by
+// the transform, never referenced by name.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { h } from "@stencil/core";
 import { newSpecPage, SpecPage } from "@stencil/core/testing";
 import { AuthheroNode } from "../src/components/authhero-node/authhero-node";
@@ -88,6 +91,28 @@ describe("TEL field country detection", () => {
     await type(page, "5551234");
 
     expect(emitted[emitted.length - 1]).toBe("+15551234");
+  });
+
+  it("keeps the picked country when the widget echoes the value back", async () => {
+    const { page, emitted } = await renderTel();
+
+    // Canada shares "+1" with the US, and the US is the first entry with that
+    // dial code — so re-deriving the country from the emitted value would
+    // move the user off Canada.
+    const countrySelect = select(page);
+    countrySelect.value = "CA";
+    countrySelect.dispatchEvent(new Event("change"));
+    await page.waitForChanges();
+
+    await type(page, "5551234");
+    expect(emitted[emitted.length - 1]).toBe("+15551234");
+
+    // The widget mirrors every emitted value back onto the `value` prop.
+    (page.root as unknown as { value?: string }).value = "+15551234";
+    await page.waitForChanges();
+
+    expect(selectedCountry(page)).toBe("CA");
+    expect(input(page).value).toBe("5551234");
   });
 
   it("replaces a half-typed prefix when a country is picked", async () => {

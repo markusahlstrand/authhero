@@ -1008,5 +1008,180 @@ describe("forms - FLOW node with AUTH0 UPDATE_USER after STEP", () => {
     const metadata = userAfter!.user_metadata as Record<string, unknown>;
     expect(metadata?.birth_year).toBe("1985");
     expect(metadata?.newsletter).toBe("yes");
+
+    // The accumulated answers are scratch space for the form, not a record —
+    // once the hook completes they must not outlive it on the session row.
+    const finalStateData = loginSession!.state_data
+      ? JSON.parse(loginSession!.state_data)
+      : {};
+    expect(finalStateData.form_values).toBeUndefined();
+  });
+
+  // Accumulating answers across steps means writing them to the login session
+  // row. Secrets and one-time codes are resolvable for the step that carried
+  // them, but must never be what gets written.
+  it("should not persist password, code or sensitive fields across steps", async () => {
+    const { universalApp, oauthApp, managementApp, getSentEmails, env } =
+      await getTestServer({
+        mockEmail: true,
+        testTenantLanguage: "en",
+      });
+    const oauthClient = testClient(oauthApp, env);
+    const universalClient = testClient(universalApp, env);
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const createFormResponse = await managementClient.forms.$post(
+      {
+        json: {
+          name: "secrets-form",
+          nodes: [
+            {
+              id: "step_one",
+              type: "STEP",
+              coordinates: { x: 100, y: 100 },
+              alias: "Secrets",
+              config: {
+                components: [
+                  {
+                    id: "text_nickname",
+                    visible: true,
+                    category: "FIELD",
+                    label: "Nickname",
+                    required: false,
+                    sensitive: false,
+                    type: "TEXT",
+                    config: {},
+                  },
+                  {
+                    id: "password_secret",
+                    visible: true,
+                    category: "FIELD",
+                    label: "Password",
+                    required: false,
+                    sensitive: false,
+                    type: "PASSWORD",
+                    config: {},
+                  },
+                  {
+                    id: "code_otp",
+                    visible: true,
+                    category: "FIELD",
+                    label: "Code",
+                    required: false,
+                    sensitive: false,
+                    type: "CODE",
+                    config: {},
+                  },
+                  {
+                    id: "text_ssn",
+                    visible: true,
+                    category: "FIELD",
+                    label: "National ID",
+                    required: false,
+                    sensitive: true,
+                    type: "TEXT",
+                    config: {},
+                  },
+                  {
+                    id: "next_one",
+                    visible: true,
+                    type: "NEXT_BUTTON",
+                    config: { text: "Continue" },
+                  },
+                ],
+                next_node: "step_two",
+              },
+            },
+            {
+              id: "step_two",
+              type: "STEP",
+              coordinates: { x: 300, y: 100 },
+              alias: "Done",
+              config: {
+                components: [
+                  {
+                    id: "next_two",
+                    visible: true,
+                    type: "NEXT_BUTTON",
+                    config: { text: "Finish" },
+                  },
+                ],
+              },
+            },
+          ],
+          start: { next_node: "step_one" },
+          ending: {},
+        },
+        header: { "tenant-id": "tenantId" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(createFormResponse.status).toBe(201);
+    const form = await createFormResponse.json();
+
+    await managementClient.hooks.$post(
+      {
+        json: {
+          trigger_id: "post-user-login",
+          form_id: form.id,
+          enabled: true,
+        },
+        header: { "tenant-id": "tenantId" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+
+    const authorizeResponse = await oauthClient.authorize.$get({
+      query: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+        state: "state-secrets",
+        nonce: "nonce-secrets",
+        scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
+      },
+    });
+    expect(authorizeResponse.status).toBe(302);
+    const universalUrl = new URL(
+      `https://example.com${authorizeResponse.headers.get("location")}`,
+    );
+    const state = universalUrl.searchParams.get("state")!;
+
+    await universalClient.login.identifier.$post({
+      query: { state },
+      form: { username: "test-secrets@example.com" },
+    });
+
+    const email = getSentEmails()[0];
+    const { code } = email.data;
+    await universalClient.login["email-otp-challenge"].$post({
+      query: { state },
+      form: { code },
+    });
+
+    const stepOnePost = await universalClient["forms"][form.id][
+      "nodes"
+    ].step_one.$post({
+      query: { state },
+      form: {
+        text_nickname: "Robin",
+        password_secret: "hunter2",
+        code_otp: "123456",
+        text_ssn: "123-45-6789",
+      },
+    });
+    expect(stepOnePost.status).toBe(302);
+
+    const loginSession = await env.data.loginSessions.get("tenantId", state);
+    const stateData = loginSession!.state_data
+      ? JSON.parse(loginSession!.state_data)
+      : {};
+    const formValues = (stateData.form_values ?? {}) as Record<string, string>;
+
+    expect(formValues.text_nickname).toBe("Robin");
+    expect(formValues).not.toHaveProperty("password_secret");
+    expect(formValues).not.toHaveProperty("code_otp");
+    expect(formValues).not.toHaveProperty("text_ssn");
   });
 });

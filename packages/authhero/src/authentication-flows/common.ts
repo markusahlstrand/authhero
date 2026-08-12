@@ -52,7 +52,10 @@ import {
   buildRequestedClaims,
 } from "../helpers/scope-claims";
 import { withDefaultPicture } from "../helpers/avatar";
-import { shouldStampUsedAt } from "../helpers/session-usage";
+import {
+  shouldStampUsedAt,
+  touchSessionUsedAt,
+} from "../helpers/session-usage";
 import { resolveSigningKeys } from "../helpers/signing-keys";
 import { JSONHTTPException } from "../errors/json-http-exception";
 import { GrantType } from "@authhero/adapter-interfaces";
@@ -919,21 +922,32 @@ export async function authenticateLoginSession(
       authenticatedAt = existingSession.authenticated_at;
 
       // Re-authorizing against an existing SSO session counts as using it, so
-      // stamp `used_at` (throttled) to keep retention analytics honest. Folded
-      // into the client-association update when one is needed so the common
-      // case stays a single write.
-      const clientMissing = !existingSession.clients.includes(client.client_id);
-      const stampUsedAt = shouldStampUsedAt(existingSession);
-      if (clientMissing || stampUsedAt) {
+      // stamp `used_at` (throttled) to keep retention analytics honest.
+      //
+      // Only the client association is worth blocking on: it is load-bearing
+      // for the rest of the flow, so it stays an awaited write, and the usage
+      // stamp rides along on it for free when it is due. On its own the stamp
+      // is analytics bookkeeping — awaiting it would let a `sessions` write
+      // failure reject an SSO re-authorization that has otherwise succeeded,
+      // so it goes through `touchSessionUsedAt`, which runs it off the
+      // critical path and swallows failures.
+      if (!existingSession.clients.includes(client.client_id)) {
         await ctx.env.data.sessions.update(
           client.tenant.id,
           existingSessionId,
           {
-            ...(clientMissing && {
-              clients: [...existingSession.clients, client.client_id],
+            clients: [...existingSession.clients, client.client_id],
+            ...(shouldStampUsedAt(existingSession) && {
+              used_at: new Date().toISOString(),
             }),
-            ...(stampUsedAt && { used_at: new Date().toISOString() }),
           },
+        );
+      } else {
+        touchSessionUsedAt(
+          ctx,
+          client.tenant.id,
+          existingSessionId,
+          existingSession,
         );
       }
     }
@@ -1179,8 +1193,13 @@ export async function completeLoginSessionHook(
   // Only update if transition is valid and state changed
   if (newState !== currentState) {
     await ctx.env.data.loginSessions.update(tenantId, loginSession.id, {
+      // Clear the hook's scratch data — the hook id, and the form answers
+      // accumulated across a multi-step form, which must not outlive it.
+      // Written as "" rather than `undefined`: every adapter's update skips
+      // undefined properties, so passing it left the column untouched and the
+      // data in place.
       state: newState,
-      state_data: undefined, // Clear hook data
+      state_data: "",
     });
   }
 }

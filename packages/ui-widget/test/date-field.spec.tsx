@@ -1,3 +1,6 @@
+// `h` is the JSX factory Stencil compiles these templates against — used by
+// the transform, never referenced by name.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { h } from "@stencil/core";
 import { newSpecPage, SpecPage } from "@stencil/core/testing";
 import { AuthheroNode } from "../src/components/authhero-node/authhero-node";
@@ -219,16 +222,42 @@ describe("DATE field", () => {
     expect(segment(page, "day").getAttribute("aria-invalid")).toBe("false");
   });
 
-  it("fills every segment from a pasted date", async () => {
-    const { page, emitted } = await renderDate({ locale: "en-GB" });
-
-    const day = segment(page, "day");
+  /** Paste `text` into a segment, the way a clipboard drop arrives. */
+  async function paste(page: SpecPage, input: HTMLInputElement, text: string) {
     const event = new Event("paste") as Event & {
       clipboardData: { getData: () => string };
     };
-    event.clipboardData = { getData: () => "1985-03-15" };
-    day.dispatchEvent(event);
+    event.clipboardData = { getData: () => text };
+    input.dispatchEvent(event);
     await page.waitForChanges();
+  }
+
+  it("fills every segment from a pasted date", async () => {
+    const { page, emitted } = await renderDate({ locale: "en-GB" });
+
+    await paste(page, segment(page, "day"), "1985-03-15");
+
+    expect(segment(page, "day").value).toBe("15");
+    expect(segment(page, "month").value).toBe("03");
+    expect(segment(page, "year").value).toBe("1985");
+    expect(emitted[emitted.length - 1]).toBe("1985-03-15");
+  });
+
+  it("reads a pasted date in the field's own order", async () => {
+    const { page, emitted } = await renderDate({ locale: "en-GB" });
+
+    await paste(page, segment(page, "day"), "15/03/1985");
+
+    expect(segment(page, "day").value).toBe("15");
+    expect(segment(page, "month").value).toBe("03");
+    expect(segment(page, "year").value).toBe("1985");
+    expect(emitted[emitted.length - 1]).toBe("1985-03-15");
+  });
+
+  it("expands a two-digit year in a pasted date", async () => {
+    const { page, emitted } = await renderDate({ locale: "en-GB" });
+
+    await paste(page, segment(page, "day"), "15/03/85");
 
     expect(segment(page, "day").value).toBe("15");
     expect(segment(page, "month").value).toBe("03");
@@ -384,6 +413,30 @@ describe("DATE field focus movement", () => {
     await type(page, segment(page, "day"), "1");
 
     expect(monthFocused).not.toHaveBeenCalled();
+  });
+
+  it("submits the screen on Enter in a segment", async () => {
+    const clicked: Array<{ id: string }> = [];
+    const page = await newSpecPage({
+      components: [AuthheroNode],
+      template: () => (
+        <authhero-node
+          component={dateComponent()}
+          locale="en-GB"
+          onButtonClick={(e: CustomEvent<{ id: string }>) =>
+            clicked.push(e.detail)
+          }
+        ></authhero-node>
+      ),
+    });
+    await page.waitForChanges();
+
+    segment(page, "day").dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+    );
+    await page.waitForChanges();
+
+    expect(clicked.map((c) => c.id)).toContain("submit");
   });
 
   it("steps back on backspace in an empty segment", async () => {

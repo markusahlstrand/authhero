@@ -6,7 +6,8 @@ import {
   BooleanInput,
   NumberInput,
 } from "@/components/admin";
-import { useWatch } from "react-hook-form";
+import { useEffect } from "react";
+import { useFormContext, useWatch } from "react-hook-form";
 import {
   getTemplateChoicesForTrigger,
   getTriggerChoicesForType,
@@ -65,13 +66,21 @@ function TypeSpecificFields() {
  */
 function TriggerField() {
   const type = useWatch({ name: "type" });
-  return (
-    <SelectInput
-      source="trigger_id"
-      label="Trigger"
-      choices={getTriggerChoicesForType(type)}
-    />
-  );
+  const triggerId = useWatch({ name: "trigger_id" });
+  const { setValue } = useFormContext();
+  const choices = getTriggerChoicesForType(type);
+
+  // Narrowing the choices does not narrow what the form already holds: a
+  // trigger picked under the previous type stays in form state, invisible in
+  // a select that no longer offers it, and submits as a 400 from the
+  // management API. Drop it as soon as it stops being a valid choice.
+  useEffect(() => {
+    if (triggerId && !choices.some((choice) => choice.id === triggerId)) {
+      setValue("trigger_id", "");
+    }
+  }, [triggerId, choices, setValue]);
+
+  return <SelectInput source="trigger_id" label="Trigger" choices={choices} />;
 }
 
 export function HooksCreate() {

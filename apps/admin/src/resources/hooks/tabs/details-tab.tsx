@@ -22,13 +22,30 @@ interface HookRecord {
   trigger_id?: string;
 }
 
-/** The hook variant, from whichever type-specific field the row carries. */
-function hookTypeOf(record?: HookRecord) {
-  if (record?.url) return "url";
-  if (record?.form_id) return "form";
-  if (record?.template_id) return "template";
-  if (record?.code_id) return "code";
-  if (record?.page_id) return "page";
+type HookVariant = "url" | "form" | "template" | "code" | "page";
+
+const HOOK_VARIANT_FIELDS: ReadonlyArray<[keyof HookRecord, HookVariant]> = [
+  ["url", "url"],
+  ["form_id", "form"],
+  ["template_id", "template"],
+  ["code_id", "code"],
+  ["page_id", "page"],
+];
+
+/**
+ * The hook variant, from whichever type-specific field the row carries.
+ *
+ * Keyed on the field being *present* rather than truthy, matching
+ * `allowedTriggersForHook` on the server (`typeof … === "string"`). A row
+ * whose discriminator is an empty string is still that variant to the API, so
+ * classifying it as unknown here would offer the full trigger list and let the
+ * edit submit a trigger the API then rejects.
+ */
+function hookTypeOf(record?: HookRecord): HookVariant | undefined {
+  if (!record) return undefined;
+  for (const [field, variant] of HOOK_VARIANT_FIELDS) {
+    if (typeof record[field] === "string") return variant;
+  }
   return undefined;
 }
 
@@ -61,32 +78,37 @@ function TriggerField() {
 
 function TypeSpecificFields() {
   const record = useRecordContext<HookRecord>();
-  if (!record) return null;
-  if (record.url) return <TextInput source="url" label="Webhook URL" />;
-  if (record.form_id) return <TextInput source="form_id" label="Form ID" />;
-  if (record.template_id) {
-    return (
-      <SelectInput
-        source="template_id"
-        label="Template"
-        choices={getTemplateChoicesForTrigger(record.trigger_id)}
-      />
-    );
-  }
-  if (record.code_id) return <TextInput source="code_id" label="Code ID" />;
-  if (record.page_id) {
-    return (
-      <>
-        <SelectInput source="page_id" label="Page" choices={pageChoices} />
-        <TextInput
-          source="permission_required"
-          label="Permission required"
-          helperText="Only interrupt the login for users holding this permission (e.g. users:impersonate). Leave empty to show the page on every login."
+  // Same variant resolution as the trigger list, so the two can never disagree
+  // about what kind of hook is being edited.
+  switch (hookTypeOf(record)) {
+    case "url":
+      return <TextInput source="url" label="Webhook URL" />;
+    case "form":
+      return <TextInput source="form_id" label="Form ID" />;
+    case "template":
+      return (
+        <SelectInput
+          source="template_id"
+          label="Template"
+          choices={getTemplateChoicesForTrigger(record?.trigger_id)}
         />
-      </>
-    );
+      );
+    case "code":
+      return <TextInput source="code_id" label="Code ID" />;
+    case "page":
+      return (
+        <>
+          <SelectInput source="page_id" label="Page" choices={pageChoices} />
+          <TextInput
+            source="permission_required"
+            label="Permission required"
+            helperText="Only interrupt the login for users holding this permission (e.g. users:impersonate). Leave empty to show the page on every login."
+          />
+        </>
+      );
+    default:
+      return null;
   }
-  return null;
 }
 
 export function DetailsTab() {
