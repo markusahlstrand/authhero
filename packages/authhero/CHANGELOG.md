@@ -1,5 +1,100 @@
 # authhero
 
+## 9.4.0
+
+### Minor Changes
+
+- 060b2d5: Restrict form hooks to the `post-user-login` trigger, the only trigger that dispatches them.
+
+  `handleFormHook` is called from `postUserLoginHook` and nowhere else, but `formHookAllowedTriggers` accepted six triggers. A form hook on `pre-user-registration`, `post-user-registration`, `validate-registration-username`, `pre-user-deletion` or `post-user-deletion` was accepted by the management API, listed as enabled in the admin UI, and then never ran — indistinguishable from a form that is simply broken. The other triggers can't support a form hook: they run as decorators on `users.create` / `users.update` / `users.remove` (so they also fire for the management API, SCIM and tenant imports) and return a `User` rather than a `Response`, leaving no channel for the redirect a form hook depends on.
+  - `formHookAllowedTriggers` is narrowed to `post-user-login`, so `POST /api/v2/hooks` now rejects the rest with a 400 instead of storing a hook that can't run.
+  - `PATCH /api/v2/hooks/{id}` re-checks the trigger against the stored row, via the new `allowedTriggersForHook` helper. The body schema is a union of _partial_ variant schemas, so a patch carrying only `trigger_id` matches whichever member has no required field left and the stored hook's type is otherwise invisible to it. Only a _change_ is rejected: a row stored on a now-unsupported trigger can still be edited (and disabled), it just can't be moved further.
+  - The admin UI narrows the trigger list per hook type in both the create form and the details tab — form and page hooks to `post-user-login`, code hooks to the four triggers they support. A hook already stored on an unsupported trigger keeps it as a flagged choice so the rest of the record stays editable.
+
+  To collect data from new users, put the form hook on `post-user-login`: it runs on the first login immediately after signup, with the user created and the login session live.
+
+- bb965de: Carry form field values across steps so a later `UPDATE_USER` can resolve them.
+
+  Each form submission only carried the components of the step being submitted, and `submittedFields` was rebuilt per request and never persisted. A multi-step form whose `UPDATE_USER` flow ran after a later step therefore resolved every earlier step's `{{$form.*}}` reference to `undefined`, and `resolveTemplateValues` dropped the key — with no error and no log, since the form path emits none. The result looked exactly like a form that silently refuses to write.
+
+  Submitted values are now accumulated on the login session's existing `state_data` (no migration) and merged into the set passed to `resolveNode`, so every answered field stays resolvable for the rest of the form. Later steps win on key collisions. The values are cleared with the rest of `state_data` by `completeLoginSessionHook`, so they never outlive the form, and `PASSWORD` / `CODE` fields and anything marked `sensitive` resolve for their own step but are never written to the session row.
+
+  Applies to all four submission handlers: the server-rendered `/u` and `/u2` form routes and the widget's flow and screen APIs.
+
+### Patch Changes
+
+- 4e668ac: Replace the native date input with a locale-aware segmented DATE field.
+
+  `input type="date"` rendered differently in every browser (a stepper in
+  Safari), kept its dd/mm/yyyy hint visible while half-filled, and needed a
+  calendar gesture to reach a year decades back — all wrong for a date typed
+  from memory, such as a birthdate.
+
+  The field is now three numeric segments with auto-advance, backspace-to-
+  previous, paste support, and two-digit year expansion ("85" becomes 1985,
+  anchored on `config.max` when the field has one). The submitted value is
+  unchanged: a single ISO `YYYY-MM-DD`, emitted only once the segments form a
+  real calendar date.
+
+  Segment order follows a new `locale` prop on the widget (`DD/MM/YYYY`,
+  `MM/DD/YYYY` or `YYYY-MM-DD`), which `authhero` resolves per request from
+  `ui_locales` then `Accept-Language`, keeping the region subtag that the
+  translation language drops. An explicit `config.format` on the component
+  overrides the locale.
+
+- 23861a8: Fix form-hook state handling and locale resolution.
+  - A multi-step form's accumulated answers are now actually cleared when the
+    hook completes. `completeLoginSessionHook` passed `state_data: undefined`,
+    which every adapter's `update` skips, so the column was left untouched and
+    the answers outlived the form on the login session row.
+  - Required LEGAL and BOOLEAN fields on `/u2` form nodes are no longer
+    satisfied by an unticked box: the widget posts JSON with every field
+    serialised as a string, so a refusal arrived as `"false"` and passed the
+    emptiness check.
+  - `Accept-Language` is read by quality, not by position — `de;q=0.5, en-GB;q=0.9`
+    now resolves to `en-GB`, and `q=0` entries are skipped.
+  - The management API's hook PATCH declares its 400 response, so the generated
+    OpenAPI spec covers the unsupported-trigger rejection it already throws.
+
+- bed0939: Return masked hints for connection secrets
+
+  Connection responses still omit `client_secret`, `app_secret` and
+  `twilio_token`, but now include a sibling `<field>_hint` holding a masked
+  preview (e.g. `3a9f••••••••`) so a UI can show that a secret is set — and which
+  one — without exposing it. Secrets shorter than 16 characters are masked
+  without a prefix, and the mask is a fixed width so it doesn't leak the real
+  length. The same applies to the nested upstream migration secret at
+  `options.configuration.client_secret`, which was previously returned in full.
+
+  Hints are response-only: they are dropped from POST/PATCH bodies, as are blank
+  secret values, so a client that echoes a record back can neither persist a mask
+  nor wipe a stored secret with an empty string. A secret consequently can't be
+  cleared by sending `""` — set a new value instead.
+
+  Connection secrets are also no longer written to the audit log in plaintext;
+  log entity state and request bodies go through the same redaction.
+
+- 64ddc3b: Stamp `sessions.used_at` when a session is actually used, so session retention analytics stop reporting 100% in week 0 and 0% in every later week.
+
+  Sessions are kept alive by refresh-token exchanges and by SSO re-authorization, but neither wrote to the `sessions` row — rotation bookkeeping all landed on `refresh_tokens`, and the SSO path only appended to `clients`. Retention buckets each session by `COALESCE(used_at_ts, created_at_ts)`, so every session looked like it was last seen in the week it was created and the cohort triangle collapsed.
+
+  The refresh-token grant now stamps `used_at` off the request's critical path (read and write both run under `waitUntil`). The SSO-reuse path folds the stamp into the client-association update when it is already making one, and otherwise stamps off the critical path too — a failed analytics write must never reject a re-authorization that has otherwise succeeded. Both are throttled to roughly one write per hour per session, so a client refreshing every few minutes costs about one `sessions` write an hour rather than one per exchange. The throttle reads the current stamp before writing rather than comparing-and-setting, so concurrent uses of the same session can occasionally write more than once in a window — that costs a redundant write, nothing more.
+
+  Cohorts fill in from the deploy forward; weeks already recorded cannot be reconstructed, since the underlying timestamps were never written.
+
+- Updated dependencies [4e668ac]
+- Updated dependencies [060b2d5]
+- Updated dependencies [9c9fefe]
+- Updated dependencies [bed0939]
+- Updated dependencies [4e668ac]
+- Updated dependencies [4e668ac]
+- Updated dependencies [23861a8]
+- Updated dependencies [01e057e]
+  - @authhero/widget@0.38.0
+  - @authhero/adapter-interfaces@4.7.0
+  - @authhero/proxy@0.10.4
+  - @authhero/saml@0.5.4
+
 ## 9.3.0
 
 ### Minor Changes
