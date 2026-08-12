@@ -10,7 +10,13 @@ import { waitUntil } from "./wait-until";
  * ample precision there; an hour keeps the value fresh enough to be useful as
  * "last used" in the management API without turning every refresh-token
  * exchange into a `sessions` write. Chatty clients that refresh hourly or more
- * cost one write per hour per session instead of one per exchange.
+ * cost roughly one write per hour per session instead of one per exchange.
+ *
+ * The throttle is advisory, not a lock: the check is a read followed by a
+ * write, so concurrent uses of the same session can both decide to stamp and
+ * double-write. That is harmless — both writes set `used_at` to ~now, so the
+ * stored value is correct either way — and the write volume stays bounded by
+ * request concurrency rather than by exchange count, which is the point.
  */
 export const SESSION_USED_AT_THROTTLE_MS = 60 * 60 * 1000;
 
