@@ -7,21 +7,60 @@ import {
 import { useRecordContext } from "ra-core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  triggerChoices,
   getTemplateChoicesForTrigger,
+  getTriggerChoicesForType,
   pageChoices,
 } from "../hookConstants";
 import { TryHookButton } from "../try-hook-button";
 
+interface HookRecord {
+  url?: string;
+  form_id?: string;
+  template_id?: string;
+  code_id?: string;
+  page_id?: string;
+  trigger_id?: string;
+}
+
+/** The hook variant, from whichever type-specific field the row carries. */
+function hookTypeOf(record?: HookRecord) {
+  if (record?.url) return "url";
+  if (record?.form_id) return "form";
+  if (record?.template_id) return "template";
+  if (record?.code_id) return "code";
+  if (record?.page_id) return "page";
+  return undefined;
+}
+
+/**
+ * Trigger list narrowed to what this hook's type can actually run on. A row
+ * stored before those lists were enforced keeps its own trigger as a flagged
+ * choice — dropping it would submit an empty trigger and 400 the whole edit,
+ * leaving a dead hook that can't even be disabled.
+ */
+function TriggerField() {
+  const record = useRecordContext<HookRecord>();
+  const choices = getTriggerChoicesForType(hookTypeOf(record));
+  const current = record?.trigger_id;
+  const choicesWithCurrent =
+    current && !choices.some((c) => c.id === current)
+      ? [
+          ...choices,
+          { id: current, name: `${current} — never runs for this hook type` },
+        ]
+      : choices;
+
+  return (
+    <SelectInput
+      source="trigger_id"
+      label="Trigger"
+      choices={choicesWithCurrent}
+    />
+  );
+}
+
 function TypeSpecificFields() {
-  const record = useRecordContext<{
-    url?: string;
-    form_id?: string;
-    template_id?: string;
-    code_id?: string;
-    page_id?: string;
-    trigger_id?: string;
-  }>();
+  const record = useRecordContext<HookRecord>();
   if (!record) return null;
   if (record.url) return <TextInput source="url" label="Webhook URL" />;
   if (record.form_id) return <TextInput source="form_id" label="Form ID" />;
@@ -59,11 +98,7 @@ export function DetailsTab() {
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <TypeSpecificFields />
-        <SelectInput
-          source="trigger_id"
-          label="Trigger"
-          choices={triggerChoices}
-        />
+        <TriggerField />
         <BooleanInput source="enabled" />
         <BooleanInput source="synchronous" />
         <NumberInput source="priority" />

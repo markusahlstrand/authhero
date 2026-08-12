@@ -87,6 +87,33 @@ export const pageHookTriggerChoices = triggerChoices.filter(
   (c) => c.id === "post-user-login",
 );
 
+/**
+ * Form hooks need an interactive request to redirect and a login session to
+ * resume into, which only post-user-login has — mirrors
+ * `formHookAllowedTriggers` in adapter-interfaces. Offering the rest just
+ * produced a hook that stored fine and then never ran.
+ */
+export const formHookTriggerChoices = triggerChoices.filter(
+  (c) => c.id === "post-user-login",
+);
+
+/**
+ * Trigger choices for a hook type, as the management API's schema union
+ * accepts them. Unknown/webhook types keep the full list.
+ */
+export function getTriggerChoicesForType(type?: string) {
+  switch (type) {
+    case "form":
+      return formHookTriggerChoices;
+    case "page":
+      return pageHookTriggerChoices;
+    case "code":
+      return codeHookTriggerChoices;
+    default:
+      return triggerChoices;
+  }
+}
+
 /** Trigger IDs supported by code hooks. */
 export const codeHookTriggerChoices = triggerChoices.filter((c) =>
   [

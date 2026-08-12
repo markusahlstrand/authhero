@@ -131,6 +131,120 @@ describe("hooks", () => {
     expect(hooks).toEqual([]);
   });
 
+  // Form hooks are dispatched from `postUserLoginHook` and nowhere else, so a
+  // form hook on any other trigger stores cleanly and then never runs — which
+  // looks exactly like a broken form.
+  describe("form hook triggers", () => {
+    it("should reject creating a form hook on a trigger that never dispatches it", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      const response = await managementClient.hooks.$post(
+        {
+          json: {
+            form_id: "form_profile_completion",
+            // @ts-expect-error - form hooks only accept post-user-login
+            trigger_id: "post-user-registration",
+          },
+          header: { "tenant-id": "tenantId" },
+        },
+        { headers: { authorization: `Bearer ${token}` } },
+      );
+
+      expect(response.status).toBe(400);
+    });
+
+    it("should accept a form hook on post-user-login", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      const response = await managementClient.hooks.$post(
+        {
+          json: {
+            form_id: "form_profile_completion",
+            trigger_id: "post-user-login",
+          },
+          header: { "tenant-id": "tenantId" },
+        },
+        { headers: { authorization: `Bearer ${token}` } },
+      );
+
+      expect(response.status).toBe(201);
+      const created = (await response.json()) as Hook;
+      expect(created.trigger_id).toBe("post-user-login");
+    });
+
+    it("should reject moving a stored form hook onto another trigger", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      const hook = await env.data.hooks.create("tenantId", {
+        hook_id: "hook_form_trigger_patch",
+        form_id: "form_profile_completion",
+        trigger_id: "post-user-login",
+        enabled: true,
+        synchronous: false,
+      });
+
+      // The PATCH body is a union of partial variant schemas, so this passes
+      // request validation — the handler has to catch it against the stored row.
+      const response = await managementClient.hooks[":id"].$patch(
+        {
+          param: { id: hook.hook_id },
+          json: { trigger_id: "post-user-registration" },
+          header: { "tenant-id": "tenantId" },
+        },
+        { headers: { authorization: `Bearer ${token}` } },
+      );
+
+      expect(response.status).toBe(400);
+
+      const stored = await env.data.hooks.get("tenantId", hook.hook_id);
+      expect(stored?.trigger_id).toBe("post-user-login");
+    });
+
+    it("should still allow editing a hook already stored on an unsupported trigger", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      const hook = await env.data.hooks.create("tenantId", {
+        hook_id: "hook_form_trigger_legacy",
+        form_id: "form_profile_completion",
+        trigger_id: "post-user-login",
+        enabled: true,
+        synchronous: false,
+      });
+      // Simulate a row stored before the trigger list was narrowed. The update
+      // adapter takes a partial, which still admits the webhook variant's
+      // wider trigger set.
+      await env.data.hooks.update("tenantId", hook.hook_id, {
+        trigger_id: "post-user-registration",
+      });
+
+      // Re-submitting the same (now unsupported) trigger must not bounce the
+      // edit — otherwise a dead hook could never even be disabled.
+      const response = await managementClient.hooks[":id"].$patch(
+        {
+          param: { id: hook.hook_id },
+          json: {
+            enabled: false,
+            trigger_id: "post-user-registration",
+          },
+          header: { "tenant-id": "tenantId" },
+        },
+        { headers: { authorization: `Bearer ${token}` } },
+      );
+
+      expect(response.status).toBe(200);
+      const stored = await env.data.hooks.get("tenantId", hook.hook_id);
+      expect(stored?.enabled).toBe(false);
+    });
+  });
+
   describe("try", () => {
     let closeServer: (() => Promise<void>) | undefined;
 

@@ -9,9 +9,8 @@ import {
 import { useWatch } from "react-hook-form";
 import {
   getTemplateChoicesForTrigger,
+  getTriggerChoicesForType,
   pageChoices,
-  pageHookTriggerChoices,
-  triggerChoices,
 } from "./hookConstants";
 
 const typeChoices = [
@@ -60,8 +59,9 @@ function TypeSpecificFields() {
 }
 
 /**
- * Page hooks only run after authentication, so offering the other triggers
- * would just produce a 400 from the management API.
+ * Form, page and code hooks each run on a subset of the triggers, so offering
+ * the rest would just produce a 400 from the management API — or, before the
+ * form-hook trigger list was narrowed, a hook that stored fine and never ran.
  */
 function TriggerField() {
   const type = useWatch({ name: "type" });
@@ -69,7 +69,7 @@ function TriggerField() {
     <SelectInput
       source="trigger_id"
       label="Trigger"
-      choices={type === "page" ? pageHookTriggerChoices : triggerChoices}
+      choices={getTriggerChoicesForType(type)}
     />
   );
 }
