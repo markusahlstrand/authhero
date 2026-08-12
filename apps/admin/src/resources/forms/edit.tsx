@@ -14,15 +14,12 @@ export function FormEdit() {
   return (
     <Edit mutationMode="pessimistic">
       <SimpleForm className="max-w-none">
-        <UrlTabs defaultValue="details" className="w-full">
+        <UrlTabs defaultValue="designer" className="w-full">
           <TabsList>
-            <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="designer">Designer</TabsTrigger>
+            <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="raw">Raw JSON</TabsTrigger>
           </TabsList>
-          <TabsContent value="details" className="mt-4">
-            <DetailsTab />
-          </TabsContent>
           <TabsContent value="designer" className="mt-4">
             <Suspense
               fallback={
@@ -31,6 +28,9 @@ export function FormEdit() {
             >
               <DesignerTab />
             </Suspense>
+          </TabsContent>
+          <TabsContent value="details" className="mt-4">
+            <DetailsTab />
           </TabsContent>
           <TabsContent value="raw" className="mt-4">
             <RawJsonTab />
