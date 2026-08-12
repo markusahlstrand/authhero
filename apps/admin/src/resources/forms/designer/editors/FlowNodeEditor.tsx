@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 
+import { FlowSelect } from "./FlowSelect";
 import { NodeTargetSelect } from "./NodeTargetSelect";
 
 interface FlowNodeEditorProps {
@@ -30,14 +31,11 @@ export function FlowNodeEditor({ index }: FlowNodeEditorProps) {
               placeholder="Friendly name"
             />
           </div>
-          <div className="flex flex-col gap-1.5">
-            <Label className="text-xs">Flow ID</Label>
-            <Input
-              value={(flowId.value as string | undefined) ?? ""}
-              onChange={(e) => flowId.onChange(e.target.value)}
-              placeholder="flow_..."
-            />
-          </div>
+          <FlowSelect
+            label="Flow"
+            value={flowId.value as string | undefined}
+            onChange={(next) => flowId.onChange(next ?? "")}
+          />
         </CardContent>
       </Card>
 

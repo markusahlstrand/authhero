@@ -13,14 +13,21 @@ const webHookAllowedTriggers = z.enum([
   // Potentially other triggers specific to webhooks in the future
 ]);
 
-const formHookAllowedTriggers = z.enum([
-  "pre-user-registration",
-  "post-user-registration",
-  "post-user-login",
-  "validate-registration-username",
-  "pre-user-deletion",
-  "post-user-deletion",
-]);
+/**
+ * Form hooks interrupt the flow by redirecting the browser to a rendered form
+ * and resuming the transaction afterwards, so they need an interactive request
+ * to hijack and a login session to resume into. Only `post-user-login` has
+ * both, and it is the only trigger that dispatches `handleFormHook`.
+ *
+ * The registration, update and deletion triggers run as decorators on
+ * `users.create` / `users.update` / `users.remove` — they also fire for the
+ * management API, SCIM and tenant imports, and they return a `User`, not a
+ * `Response`, so there is no channel to hand a redirect back through.
+ * `validate-registration-username` is a synchronous predicate with nowhere to
+ * redirect to. Form hooks on any of those were accepted and stored but could
+ * never run, which is indistinguishable from a broken form.
+ */
+const formHookAllowedTriggers = z.enum(["post-user-login"]);
 
 const templateHookAllowedTriggers = z.enum([
   "post-user-login",
@@ -40,6 +47,47 @@ const codeHookAllowedTriggers = z.enum([
 // impersonation page) after authentication, so they only make sense on the
 // post-login trigger.
 const pageHookAllowedTriggers = z.enum(["post-user-login"]);
+
+/**
+ * The field that identifies each hook variant, paired with the triggers that
+ * variant can run on. The runtime type guards (`isFormHook` and friends)
+ * duck-type on exactly these fields, so this table is the single description
+ * of "which hook is this, and where can it run".
+ */
+const hookVariantTriggers: ReadonlyArray<{
+  field: string;
+  triggers: readonly string[];
+}> = [
+  { field: "url", triggers: webHookAllowedTriggers.options },
+  { field: "form_id", triggers: formHookAllowedTriggers.options },
+  { field: "template_id", triggers: templateHookAllowedTriggers.options },
+  { field: "code_id", triggers: codeHookAllowedTriggers.options },
+  { field: "page_id", triggers: pageHookAllowedTriggers.options },
+];
+
+/**
+ * Triggers the given stored hook is allowed to run on, or `undefined` when the
+ * value isn't a recognisable hook.
+ *
+ * Needed because the update path validates a union of *partial* variant
+ * schemas: a body carrying only `trigger_id` matches whichever member has no
+ * other required field left, so the stored hook's type is invisible to the
+ * request validator. Callers re-check the incoming trigger against the row
+ * they're about to modify.
+ */
+export function allowedTriggersForHook(
+  hook: unknown,
+): readonly string[] | undefined {
+  if (!hook || typeof hook !== "object") {
+    return undefined;
+  }
+  for (const variant of hookVariantTriggers) {
+    if (typeof Reflect.get(hook, variant.field) === "string") {
+      return variant.triggers;
+    }
+  }
+  return undefined;
+}
 
 /**
  * Built-in universal-login pages a page hook can interrupt the login with.

@@ -150,35 +150,11 @@ export function FlowDesigner({
         nodesConnectable
       >
         <Background gap={16} size={1} className="!bg-transparent" />
-        <Controls className="!shadow-md" />
+        {/* Lifted clear of the form's sticky save toolbar, which is fixed to
+            the bottom of the viewport once the form is dirty. */}
+        <Controls className="!bottom-16 !shadow-md" />
 
-        <Panel position="top-right">
-          <Card className="flex flex-col gap-1 p-3 text-xs shadow-md">
-            <div className="font-medium text-foreground">Flow overview</div>
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <span>{flowNodes.length} nodes</span>
-              <span>·</span>
-              <span>{canvasEdges.length} edges</span>
-            </div>
-            {orphanCount > 0 && (
-              <Badge
-                variant="outline"
-                className="mt-1 gap-1 border-amber-500/60 text-amber-700 dark:text-amber-300"
-              >
-                <AlertTriangle className="h-3 w-3" />
-                {orphanCount} orphan{orphanCount === 1 ? "" : "s"}
-              </Badge>
-            )}
-            {warnings.length > 0 && orphanCount === 0 && (
-              <Badge variant="outline" className="mt-1 gap-1">
-                <AlertTriangle className="h-3 w-3" />
-                {warnings.length} warning{warnings.length === 1 ? "" : "s"}
-              </Badge>
-            )}
-          </Card>
-        </Panel>
-
-        <Panel position="bottom-center">
+        <Panel position="top-left">
           <Card className="flex items-center gap-2 px-3 py-1.5 shadow-md">
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Plus className="h-3.5 w-3.5" />
@@ -213,6 +189,32 @@ export function FlowDesigner({
                 Flow
               </Button>
             </div>
+          </Card>
+        </Panel>
+
+        <Panel position="top-right">
+          <Card className="flex flex-col gap-1 p-3 text-xs shadow-md">
+            <div className="font-medium text-foreground">Flow overview</div>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <span>{flowNodes.length} nodes</span>
+              <span>·</span>
+              <span>{canvasEdges.length} edges</span>
+            </div>
+            {orphanCount > 0 && (
+              <Badge
+                variant="outline"
+                className="mt-1 gap-1 border-amber-500/60 text-amber-700 dark:text-amber-300"
+              >
+                <AlertTriangle className="h-3 w-3" />
+                {orphanCount} orphan{orphanCount === 1 ? "" : "s"}
+              </Badge>
+            )}
+            {warnings.length > 0 && orphanCount === 0 && (
+              <Badge variant="outline" className="mt-1 gap-1">
+                <AlertTriangle className="h-3 w-3" />
+                {warnings.length} warning{warnings.length === 1 ? "" : "s"}
+              </Badge>
+            )}
           </Card>
         </Panel>
       </ReactFlow>

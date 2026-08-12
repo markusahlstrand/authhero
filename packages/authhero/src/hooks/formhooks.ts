@@ -16,6 +16,114 @@ import { EnrichedClient } from "../helpers/client";
 // Re-export so existing consumers don't break
 export { FORM_FIELD_TYPES };
 
+/**
+ * Field types whose submitted value is never persisted across steps. A form's
+ * accumulated values live in the login session row, so secrets and one-time
+ * codes stay in the request that carried them.
+ */
+const NON_PERSISTED_FIELD_TYPES = new Set(["PASSWORD", "CODE"]);
+
+/** Key under `state_data` holding the accumulated form values. */
+const FORM_VALUES_KEY = "form_values";
+
+function parseStateData(stateData?: string): Record<string, unknown> {
+  if (!stateData) return {};
+  try {
+    const parsed: unknown = JSON.parse(stateData);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? { ...parsed }
+      : {};
+  } catch {
+    // Unparseable state_data must not fail the submission — the worst case is
+    // that earlier steps' answers are unavailable, which is the old behaviour.
+    return {};
+  }
+}
+
+function readStoredFormValues(
+  stateData: Record<string, unknown>,
+): Record<string, string> {
+  const stored = stateData[FORM_VALUES_KEY];
+  if (!stored || typeof stored !== "object" || Array.isArray(stored)) {
+    return {};
+  }
+  const values: Record<string, string> = {};
+  for (const [key, value] of Object.entries(stored)) {
+    if (typeof value === "string") {
+      values[key] = value;
+    }
+  }
+  return values;
+}
+
+/**
+ * Merges this step's submitted values into the ones already collected in this
+ * login session and returns the full set for `{{$form.*}}` resolution.
+ *
+ * Each submission only carries the components of the step being submitted, so
+ * without this an `UPDATE_USER` placed after a later step resolves an earlier
+ * step's field to `undefined` and [resolveTemplateValues] drops the key —
+ * silently, since the form path emits no logs. Accumulating on the login
+ * session's `state_data` keeps every answered field resolvable for the rest of
+ * the form.
+ *
+ * The stored values are cleared along with the rest of `state_data` when the
+ * hook completes (`completeLoginSessionHook`), so they never outlive the form.
+ * Sensitive and password/code fields resolve for the current step but are
+ * never written to the session row.
+ */
+export async function accumulateFormValues(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  tenantId: string,
+  loginSessionId: string,
+  submittedFields: Record<string, string>,
+  components: ReadonlyArray<{ id: string; type: string; sensitive?: boolean }>,
+): Promise<Record<string, string>> {
+  const currentSession = await ctx.env.data.loginSessions.get(
+    tenantId,
+    loginSessionId,
+  );
+  const stateData = parseStateData(currentSession?.state_data);
+  const stored = readStoredFormValues(stateData);
+
+  const merged = { ...stored, ...submittedFields };
+
+  if (!currentSession) {
+    return merged;
+  }
+
+  const persistable: Record<string, string> = { ...stored };
+  for (const component of components) {
+    const value = submittedFields[component.id];
+    if (value === undefined) continue;
+    if (NON_PERSISTED_FIELD_TYPES.has(component.type)) continue;
+    if (component.sensitive === true) continue;
+    persistable[component.id] = value;
+  }
+
+  // Nothing new worth storing — skip the write rather than rewriting the row
+  // with an identical payload on every step.
+  if (Object.keys(persistable).length === Object.keys(stored).length) {
+    let changed = false;
+    for (const [key, value] of Object.entries(persistable)) {
+      if (stored[key] !== value) {
+        changed = true;
+        break;
+      }
+    }
+    if (!changed) return merged;
+  }
+
+  await ctx.env.data.loginSessions.update(tenantId, loginSessionId, {
+    state_data: JSON.stringify({
+      ...stateData,
+      [FORM_VALUES_KEY]: persistable,
+    }),
+  });
+
+  return merged;
+}
+
 // Type guard for form hooks
 export function isFormHook(
   hook: any,

@@ -5,6 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 
+import { FlowSelect } from "./FlowSelect";
+
 export function EndEditor() {
   const { field: resumeField } = useController({ name: "ending.resume_flow" });
   const { field: redirectTarget } = useController({
@@ -79,14 +81,11 @@ export function EndEditor() {
         <CardHeader>
           <CardTitle className="text-sm">After submit</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col gap-1.5">
-          <Label className="text-xs">Continue flow</Label>
-          <Input
-            placeholder="flow_..."
-            value={(afterSubmitFlowId.value as string | undefined) ?? ""}
-            onChange={(e) =>
-              afterSubmitFlowId.onChange(e.target.value || undefined)
-            }
+        <CardContent>
+          <FlowSelect
+            label="Continue flow"
+            value={afterSubmitFlowId.value as string | undefined}
+            onChange={(next) => afterSubmitFlowId.onChange(next)}
           />
         </CardContent>
       </Card>

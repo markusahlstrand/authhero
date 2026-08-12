@@ -43,6 +43,7 @@ import { getCookie } from "hono/cookie";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { buildHash } from "../../build-hash";
 import { createTranslation, getLocaleDisplayName } from "../../i18n";
+import { resolveLocaleFromContext } from "../../utils/locale";
 import {
   applyUniversalLoginTemplate,
   templateIsFullDocument,
@@ -1244,6 +1245,12 @@ export async function renderWidgetSSR(params: {
   themeJson?: string;
   state: string;
   authParamsJson: string;
+  /**
+   * BCP-47 locale (region included) for locale-dependent field layout, e.g.
+   * the segment order of DATE fields. Rendered into the element so the
+   * hydrated widget resolves the same layout the server did.
+   */
+  locale?: string;
 }): Promise<string> {
   const {
     screenId,
@@ -1252,6 +1259,7 @@ export async function renderWidgetSSR(params: {
     themeJson,
     state,
     authParamsJson,
+    locale,
   } = params;
 
   try {
@@ -1275,6 +1283,7 @@ export async function renderWidgetSSR(params: {
         state="${escapeHtml(state)}"
         auto-submit="true"
         auto-navigate="true"
+        ${locale ? `locale="${escapeHtml(locale)}"` : ""}
       >${jsonScript("screen", screenJson)}${brandingJson ? jsonScript("branding", brandingJson) : ""}${themeJson ? jsonScript("theme", themeJson) : ""}${jsonScript("auth-params", authParamsJson)}</authhero-widget>`,
       {
         fullDocument: false,
@@ -1318,6 +1327,12 @@ export async function renderWidgetPageResponse(
     clientName: string;
     poweredByLogo?: WidgetPageProps["poweredByLogo"];
     language?: string;
+    /**
+     * BCP-47 locale for field layout. Unlike `language` (the translation key,
+     * region stripped) this keeps the region: en-GB renders DD/MM/YYYY where
+     * en-US renders MM/DD/YYYY. Defaults to the request's locale.
+     */
+    locale?: string;
     availableLanguages?: string[];
     termsAndConditionsUrl?: string;
     darkMode?: DarkModePreference;
@@ -1353,6 +1368,9 @@ export async function renderWidgetPageResponse(
     themeJson: themeJsonForSsr,
     state: opts.state,
     authParamsJson: opts.authParamsJson,
+    // Callers that already resolved a locale pass it; everyone else gets one
+    // derived from the request, so no page renders without it.
+    locale: opts.locale ?? resolveLocaleFromContext(ctx),
   });
 
   // Shared slot inputs for both the body-fragment and full-document paths.

@@ -15,6 +15,7 @@ import {
   buildUserUpdates,
   mergeUserUpdates,
   resolveTemplateField,
+  accumulateFormValues,
 } from "../../hooks/formhooks";
 import { FORM_FIELD_TYPES } from "@authhero/adapter-interfaces";
 import { resolvePrimaryUser } from "../../helpers/users";
@@ -313,11 +314,21 @@ const postFormIdNodesNodeId = defineRoute({
           };
         };
 
+        // Carry earlier steps' answers forward so an UPDATE_USER placed after
+        // a later step can still resolve them.
+        const formValues = await accumulateFormValues(
+          ctx,
+          client.tenant.id,
+          loginSession.id,
+          submittedFields,
+          components,
+        );
+
         // Resolve the next node (could be FLOW, ROUTER, ACTION, or another STEP)
         const resolveResult = await resolveNode(
           form.nodes,
           nextNodeId,
-          { user, submittedFields },
+          { user, submittedFields: formValues },
           flowFetcher,
         );
 

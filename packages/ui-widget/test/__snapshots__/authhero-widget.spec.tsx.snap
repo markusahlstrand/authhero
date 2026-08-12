@@ -52,7 +52,7 @@ exports[`authhero-widget applies custom branding from fixture 1`] = `
                 </authhero-node>
                 <authhero-node>
                   <template shadowrootmode="open">
-                    <button class="btn btn-primary" data-primary-action-button part="button button-primary" type="submit">
+                    <button class="btn btn-primary" data-primary-action-button disabled="" part="button button-primary" type="submit">
                       Continue
                     </button>
                   </template>
@@ -112,7 +112,7 @@ exports[`authhero-widget renders MFA TOTP screen 1`] = `
                 </authhero-node>
                 <authhero-node>
                   <template shadowrootmode="open">
-                    <button class="btn btn-primary" data-primary-action-button part="button button-primary" type="submit">
+                    <button class="btn btn-primary" data-primary-action-button disabled="" part="button button-primary" type="submit">
                       Continue
                     </button>
                   </template>
@@ -203,7 +203,7 @@ exports[`authhero-widget renders login screen from JSON string prop 1`] = `
                 </authhero-node>
                 <authhero-node>
                   <template shadowrootmode="open">
-                    <button class="btn btn-primary" data-primary-action-button part="button button-primary" type="submit">
+                    <button class="btn btn-primary" data-primary-action-button disabled="" part="button button-primary" type="submit">
                       Continue
                     </button>
                   </template>
@@ -294,7 +294,7 @@ exports[`authhero-widget renders login with social providers 1`] = `
                 </authhero-node>
                 <authhero-node>
                   <template shadowrootmode="open">
-                    <button class="btn btn-primary" data-primary-action-button part="button button-primary" type="submit">
+                    <button class="btn btn-primary" data-primary-action-button disabled="" part="button button-primary" type="submit">
                       Continue
                     </button>
                   </template>
@@ -422,7 +422,7 @@ exports[`authhero-widget renders signup screen with all fields 1`] = `
                 </authhero-node>
                 <authhero-node>
                   <template shadowrootmode="open">
-                    <button class="btn btn-primary" data-primary-action-button part="button button-primary" type="submit">
+                    <button class="btn btn-primary" data-primary-action-button disabled="" part="button button-primary" type="submit">
                       Create account
                     </button>
                   </template>

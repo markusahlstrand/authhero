@@ -620,4 +620,568 @@ describe("forms - FLOW node with AUTH0 UPDATE_USER after STEP", () => {
       (userAfter!.user_metadata as Record<string, unknown>)?.something,
     ).toBeUndefined();
   });
+
+  // `changes` keys without a `metadata.` / `address.` prefix are written as
+  // top-level user fields. Only the prefixed forms were covered before, so a
+  // regression here looked exactly like a misconfigured form.
+  it("should write unprefixed changes keys as top-level user fields", async () => {
+    const { universalApp, oauthApp, managementApp, getSentEmails, env } =
+      await getTestServer({
+        mockEmail: true,
+        testTenantLanguage: "en",
+      });
+    const oauthClient = testClient(oauthApp, env);
+    const universalClient = testClient(universalApp, env);
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const createFlowResponse = await managementClient.flows.$post(
+      {
+        json: {
+          name: "update-top-level",
+          actions: [
+            {
+              id: "update_user_top_level",
+              type: "AUTH0",
+              action: "UPDATE_USER",
+              params: {
+                user_id: "{{user.id}}",
+                changes: {
+                  phone_number: "{{$form.text_phone}}",
+                  birthdate: "{{$form.date_birthdate}}",
+                },
+              },
+            },
+          ],
+        },
+        header: { "tenant-id": "tenantId" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(createFlowResponse.status).toBe(201);
+    const flow = await createFlowResponse.json();
+
+    const createFormResponse = await managementClient.forms.$post(
+      {
+        json: {
+          name: "top-level-form",
+          nodes: [
+            {
+              id: "step_info",
+              type: "STEP",
+              coordinates: { x: 100, y: 100 },
+              alias: "Info Step",
+              config: {
+                components: [
+                  {
+                    id: "text_phone",
+                    visible: true,
+                    category: "FIELD",
+                    label: "Phone",
+                    required: false,
+                    sensitive: false,
+                    type: "TEXT",
+                    config: {},
+                  },
+                  {
+                    id: "date_birthdate",
+                    visible: true,
+                    category: "FIELD",
+                    label: "Birthdate",
+                    required: false,
+                    sensitive: false,
+                    type: "DATE",
+                    config: { format: "DATE" },
+                  },
+                  {
+                    id: "next_btn",
+                    visible: true,
+                    type: "NEXT_BUTTON",
+                    config: { text: "Continue" },
+                  },
+                ],
+                next_node: "flow_update",
+              },
+            },
+            {
+              id: "flow_update",
+              type: "FLOW",
+              coordinates: { x: 300, y: 100 },
+              alias: "Update Flow",
+              config: { flow_id: flow.id, next_node: "$ending" },
+            },
+          ],
+          start: { next_node: "step_info" },
+          ending: {},
+        },
+        header: { "tenant-id": "tenantId" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(createFormResponse.status).toBe(201);
+    const form = await createFormResponse.json();
+
+    await managementClient.hooks.$post(
+      {
+        json: {
+          trigger_id: "post-user-login",
+          form_id: form.id,
+          enabled: true,
+        },
+        header: { "tenant-id": "tenantId" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+
+    const authorizeResponse = await oauthClient.authorize.$get({
+      query: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+        state: "state-top-level",
+        nonce: "nonce-top-level",
+        scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
+      },
+    });
+    expect(authorizeResponse.status).toBe(302);
+    const universalUrl = new URL(
+      `https://example.com${authorizeResponse.headers.get("location")}`,
+    );
+    const state = universalUrl.searchParams.get("state")!;
+
+    await universalClient.login.identifier.$post({
+      query: { state },
+      form: { username: "test-top-level@example.com" },
+    });
+
+    const email = getSentEmails()[0];
+    const { code } = email.data;
+    const enterCodePostResponse = await universalClient.login[
+      "email-otp-challenge"
+    ].$post({
+      query: { state },
+      form: { code },
+    });
+    expect(enterCodePostResponse.status).toBe(302);
+    expect(enterCodePostResponse.headers.get("location")).toBe(
+      `/u/forms/${form.id}/nodes/step_info?state=${state}`,
+    );
+
+    const formStepPost = await universalClient["forms"][form.id][
+      "nodes"
+    ].step_info.$post({
+      query: { state },
+      form: {
+        text_phone: "+4712345678",
+        date_birthdate: "1985-03-20",
+      },
+    });
+    expect(formStepPost.status).toBe(302);
+
+    const loginSession = await env.data.loginSessions.get("tenantId", state);
+    const session = await env.data.sessions.get(
+      "tenantId",
+      loginSession!.session_id!,
+    );
+    const userAfter = await env.data.users.get("tenantId", session!.user_id!);
+
+    expect(userAfter!.phone_number).toBe("+4712345678");
+    expect(userAfter!.birthdate).toBe("1985-03-20");
+  });
+
+  // Each submission only carries the components of the step being submitted, so
+  // a trailing UPDATE_USER used to resolve every earlier step's field to
+  // undefined and drop it — silently, since the form path emits no logs.
+  it("should resolve fields from earlier steps in a trailing UPDATE_USER", async () => {
+    const { universalApp, oauthApp, managementApp, getSentEmails, env } =
+      await getTestServer({
+        mockEmail: true,
+        testTenantLanguage: "en",
+      });
+    const oauthClient = testClient(oauthApp, env);
+    const universalClient = testClient(universalApp, env);
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const createFlowResponse = await managementClient.flows.$post(
+      {
+        json: {
+          name: "update-across-steps",
+          actions: [
+            {
+              id: "update_user_across_steps",
+              type: "AUTH0",
+              action: "UPDATE_USER",
+              params: {
+                user_id: "{{user.id}}",
+                changes: {
+                  // Collected on step one, consumed after step two.
+                  phone_number: "{{$form.text_phone}}",
+                  "metadata.birth_year": "{{$form.number_birth_year}}",
+                  // Collected on step two.
+                  "metadata.newsletter": "{{$form.dropdown_newsletter}}",
+                },
+              },
+            },
+          ],
+        },
+        header: { "tenant-id": "tenantId" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(createFlowResponse.status).toBe(201);
+    const flow = await createFlowResponse.json();
+
+    const createFormResponse = await managementClient.forms.$post(
+      {
+        json: {
+          name: "two-step-form",
+          nodes: [
+            {
+              id: "step_one",
+              type: "STEP",
+              coordinates: { x: 100, y: 100 },
+              alias: "Contact",
+              config: {
+                components: [
+                  {
+                    id: "text_phone",
+                    visible: true,
+                    category: "FIELD",
+                    label: "Phone",
+                    required: false,
+                    sensitive: false,
+                    type: "TEXT",
+                    config: {},
+                  },
+                  {
+                    id: "number_birth_year",
+                    visible: true,
+                    category: "FIELD",
+                    label: "Birth year",
+                    required: false,
+                    sensitive: false,
+                    type: "NUMBER",
+                    config: { min: 1900, max: 2026 },
+                  },
+                  {
+                    id: "next_one",
+                    visible: true,
+                    type: "NEXT_BUTTON",
+                    config: { text: "Continue" },
+                  },
+                ],
+                next_node: "step_two",
+              },
+            },
+            {
+              id: "step_two",
+              type: "STEP",
+              coordinates: { x: 300, y: 100 },
+              alias: "Preferences",
+              config: {
+                components: [
+                  {
+                    id: "dropdown_newsletter",
+                    visible: true,
+                    category: "FIELD",
+                    label: "Newsletter",
+                    required: false,
+                    sensitive: false,
+                    type: "DROPDOWN",
+                    config: {
+                      options: [
+                        { value: "yes", label: "Yes" },
+                        { value: "no", label: "No" },
+                      ],
+                    },
+                  },
+                  {
+                    id: "next_two",
+                    visible: true,
+                    type: "NEXT_BUTTON",
+                    config: { text: "Finish" },
+                  },
+                ],
+                next_node: "flow_update",
+              },
+            },
+            {
+              id: "flow_update",
+              type: "FLOW",
+              coordinates: { x: 500, y: 100 },
+              alias: "Update Flow",
+              config: { flow_id: flow.id, next_node: "$ending" },
+            },
+          ],
+          start: { next_node: "step_one" },
+          ending: {},
+        },
+        header: { "tenant-id": "tenantId" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(createFormResponse.status).toBe(201);
+    const form = await createFormResponse.json();
+
+    await managementClient.hooks.$post(
+      {
+        json: {
+          trigger_id: "post-user-login",
+          form_id: form.id,
+          enabled: true,
+        },
+        header: { "tenant-id": "tenantId" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+
+    const authorizeResponse = await oauthClient.authorize.$get({
+      query: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+        state: "state-multi-step",
+        nonce: "nonce-multi-step",
+        scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
+      },
+    });
+    expect(authorizeResponse.status).toBe(302);
+    const universalUrl = new URL(
+      `https://example.com${authorizeResponse.headers.get("location")}`,
+    );
+    const state = universalUrl.searchParams.get("state")!;
+
+    await universalClient.login.identifier.$post({
+      query: { state },
+      form: { username: "test-multi-step@example.com" },
+    });
+
+    const email = getSentEmails()[0];
+    const { code } = email.data;
+    const enterCodePostResponse = await universalClient.login[
+      "email-otp-challenge"
+    ].$post({
+      query: { state },
+      form: { code },
+    });
+    expect(enterCodePostResponse.status).toBe(302);
+    expect(enterCodePostResponse.headers.get("location")).toBe(
+      `/u/forms/${form.id}/nodes/step_one?state=${state}`,
+    );
+
+    // Step one: no flow runs yet, resolution stops at the next STEP.
+    const stepOnePost = await universalClient["forms"][form.id][
+      "nodes"
+    ].step_one.$post({
+      query: { state },
+      form: {
+        text_phone: "+4712345678",
+        number_birth_year: "1985",
+      },
+    });
+    expect(stepOnePost.status).toBe(302);
+    expect(stepOnePost.headers.get("location")).toBe(
+      `/u/forms/${form.id}/nodes/step_two?state=${state}`,
+    );
+
+    // Step two reaches the FLOW node, which must still see step one's answers.
+    const stepTwoPost = await universalClient["forms"][form.id][
+      "nodes"
+    ].step_two.$post({
+      query: { state },
+      form: { dropdown_newsletter: "yes" },
+    });
+    expect(stepTwoPost.status).toBe(302);
+    expect(stepTwoPost.headers.get("location")).toContain(
+      "https://example.com/callback",
+    );
+
+    const loginSession = await env.data.loginSessions.get("tenantId", state);
+    const session = await env.data.sessions.get(
+      "tenantId",
+      loginSession!.session_id!,
+    );
+    const userAfter = await env.data.users.get("tenantId", session!.user_id!);
+
+    expect(userAfter!.phone_number).toBe("+4712345678");
+    const metadata = userAfter!.user_metadata as Record<string, unknown>;
+    expect(metadata?.birth_year).toBe("1985");
+    expect(metadata?.newsletter).toBe("yes");
+
+    // The accumulated answers are scratch space for the form, not a record —
+    // once the hook completes they must not outlive it on the session row.
+    const finalStateData = loginSession!.state_data
+      ? JSON.parse(loginSession!.state_data)
+      : {};
+    expect(finalStateData.form_values).toBeUndefined();
+  });
+
+  // Accumulating answers across steps means writing them to the login session
+  // row. Secrets and one-time codes are resolvable for the step that carried
+  // them, but must never be what gets written.
+  it("should not persist password, code or sensitive fields across steps", async () => {
+    const { universalApp, oauthApp, managementApp, getSentEmails, env } =
+      await getTestServer({
+        mockEmail: true,
+        testTenantLanguage: "en",
+      });
+    const oauthClient = testClient(oauthApp, env);
+    const universalClient = testClient(universalApp, env);
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const createFormResponse = await managementClient.forms.$post(
+      {
+        json: {
+          name: "secrets-form",
+          nodes: [
+            {
+              id: "step_one",
+              type: "STEP",
+              coordinates: { x: 100, y: 100 },
+              alias: "Secrets",
+              config: {
+                components: [
+                  {
+                    id: "text_nickname",
+                    visible: true,
+                    category: "FIELD",
+                    label: "Nickname",
+                    required: false,
+                    sensitive: false,
+                    type: "TEXT",
+                    config: {},
+                  },
+                  {
+                    id: "password_secret",
+                    visible: true,
+                    category: "FIELD",
+                    label: "Password",
+                    required: false,
+                    sensitive: false,
+                    type: "PASSWORD",
+                    config: {},
+                  },
+                  {
+                    id: "code_otp",
+                    visible: true,
+                    category: "FIELD",
+                    label: "Code",
+                    required: false,
+                    sensitive: false,
+                    type: "CODE",
+                    config: {},
+                  },
+                  {
+                    id: "text_ssn",
+                    visible: true,
+                    category: "FIELD",
+                    label: "National ID",
+                    required: false,
+                    sensitive: true,
+                    type: "TEXT",
+                    config: {},
+                  },
+                  {
+                    id: "next_one",
+                    visible: true,
+                    type: "NEXT_BUTTON",
+                    config: { text: "Continue" },
+                  },
+                ],
+                next_node: "step_two",
+              },
+            },
+            {
+              id: "step_two",
+              type: "STEP",
+              coordinates: { x: 300, y: 100 },
+              alias: "Done",
+              config: {
+                components: [
+                  {
+                    id: "next_two",
+                    visible: true,
+                    type: "NEXT_BUTTON",
+                    config: { text: "Finish" },
+                  },
+                ],
+              },
+            },
+          ],
+          start: { next_node: "step_one" },
+          ending: {},
+        },
+        header: { "tenant-id": "tenantId" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(createFormResponse.status).toBe(201);
+    const form = await createFormResponse.json();
+
+    await managementClient.hooks.$post(
+      {
+        json: {
+          trigger_id: "post-user-login",
+          form_id: form.id,
+          enabled: true,
+        },
+        header: { "tenant-id": "tenantId" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+
+    const authorizeResponse = await oauthClient.authorize.$get({
+      query: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+        state: "state-secrets",
+        nonce: "nonce-secrets",
+        scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
+      },
+    });
+    expect(authorizeResponse.status).toBe(302);
+    const universalUrl = new URL(
+      `https://example.com${authorizeResponse.headers.get("location")}`,
+    );
+    const state = universalUrl.searchParams.get("state")!;
+
+    await universalClient.login.identifier.$post({
+      query: { state },
+      form: { username: "test-secrets@example.com" },
+    });
+
+    const email = getSentEmails()[0];
+    const { code } = email.data;
+    await universalClient.login["email-otp-challenge"].$post({
+      query: { state },
+      form: { code },
+    });
+
+    const stepOnePost = await universalClient["forms"][form.id][
+      "nodes"
+    ].step_one.$post({
+      query: { state },
+      form: {
+        text_nickname: "Robin",
+        password_secret: "hunter2",
+        code_otp: "123456",
+        text_ssn: "123-45-6789",
+      },
+    });
+    expect(stepOnePost.status).toBe(302);
+
+    const loginSession = await env.data.loginSessions.get("tenantId", state);
+    const stateData = loginSession!.state_data
+      ? JSON.parse(loginSession!.state_data)
+      : {};
+    const formValues = (stateData.form_values ?? {}) as Record<string, string>;
+
+    expect(formValues.text_nickname).toBe("Robin");
+    expect(formValues).not.toHaveProperty("password_secret");
+    expect(formValues).not.toHaveProperty("code_otp");
+    expect(formValues).not.toHaveProperty("text_ssn");
+  });
 });

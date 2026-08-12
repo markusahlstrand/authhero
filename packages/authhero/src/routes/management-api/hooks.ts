@@ -1,6 +1,7 @@
 import { Bindings, Variables } from "../../types";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import {
+  allowedTriggersForHook,
   hookInsertSchema,
   hookSchema,
   LogTypes,
@@ -156,6 +157,9 @@ const patchByHook_id = defineRoute({
         },
         description: "The updated hook",
       },
+      400: {
+        description: "Trigger not supported by this hook type",
+      },
       404: {
         description: "Hook not found",
       },
@@ -171,6 +175,34 @@ const patchByHook_id = defineRoute({
     const hook = ctx.req.valid("json") as Parameters<
       typeof ctx.env.data.hooks.update
     >[2];
+
+    // The body schema is a union of *partial* variant schemas, so a patch that
+    // carries only `trigger_id` validates against whichever member has no
+    // required field left — the stored hook's type is invisible to it. Check
+    // the incoming trigger against the row being modified so a form hook can't
+    // be moved onto a trigger that would never dispatch it (which stores
+    // cleanly and then silently does nothing at runtime).
+    if (hook.trigger_id) {
+      const existing = await ctx.env.data.hooks.get(tenantId, hook_id);
+      if (!existing) {
+        throw new HTTPException(404, { message: "Hook not found" });
+      }
+      const allowedTriggers = allowedTriggersForHook(existing);
+      // Only a *change* is rejected. A row stored before its type's trigger
+      // list was enforced keeps re-submitting its own trigger on every edit,
+      // and bouncing that would leave the row uneditable — including the
+      // `enabled: false` that takes a dead hook out of play.
+      const isUnchanged = hook.trigger_id === existing.trigger_id;
+      if (
+        !isUnchanged &&
+        allowedTriggers &&
+        !allowedTriggers.includes(hook.trigger_id)
+      ) {
+        throw new HTTPException(400, {
+          message: `Trigger "${hook.trigger_id}" is not supported by this hook type. Supported triggers: ${allowedTriggers.join(", ")}`,
+        });
+      }
+    }
 
     await ctx.env.data.hooks.update(tenantId, hook_id, hook);
     const result = await ctx.env.data.hooks.get(tenantId, hook_id);

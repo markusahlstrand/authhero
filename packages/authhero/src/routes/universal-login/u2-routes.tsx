@@ -49,6 +49,7 @@ import {
 import { ErrorPage } from "./error-page";
 import { DEFAULT_THEME } from "../../constants/defaultTheme";
 import { locales } from "../../i18n";
+import { resolveLocale } from "../../utils/locale";
 import { nanoid } from "nanoid";
 import { getEnrichedClient } from "../../helpers/client";
 import { prefetchClientBundle } from "../../helpers/prefetch-client-bundle";
@@ -256,6 +257,11 @@ function createScreenRouteHandler(screenId: string) {
       ui_locales || loginSession.authParams?.ui_locales,
       acceptLanguage,
     );
+    // Same sources, region kept — drives locale-dependent field layout
+    const locale = resolveLocale(
+      ui_locales || loginSession.authParams?.ui_locales,
+      acceptLanguage,
+    );
 
     // Fetch custom text for this screen and language
     const promptScreen = getPromptScreenForScreen(screenId);
@@ -436,6 +442,7 @@ function createScreenRouteHandler(screenId: string) {
       clientName: client.name || "AuthHero",
       poweredByLogo: ctx.env.poweredByLogo,
       language,
+      locale,
       availableLanguages: availableLocales,
       termsAndConditionsUrl: sanitizeUrl(
         client.client_metadata?.termsAndConditionsUrl,
@@ -507,6 +514,11 @@ function createScreenPostHandler(screenId: string) {
     // Detect language: URL ui_locales (picker) > session ui_locales (OAuth) > Accept-Language > "en"
     const acceptLanguage = ctx.req.header("Accept-Language");
     const language = detectLanguage(
+      ui_locales || loginSession.authParams?.ui_locales,
+      acceptLanguage,
+    );
+    // Same sources, region kept — drives locale-dependent field layout
+    const locale = resolveLocale(
       ui_locales || loginSession.authParams?.ui_locales,
       acceptLanguage,
     );
@@ -646,6 +658,7 @@ function createScreenPostHandler(screenId: string) {
       clientName: client.name || "AuthHero",
       poweredByLogo: ctx.env.poweredByLogo,
       language,
+      locale,
       availableLanguages: availableLocales,
       termsAndConditionsUrl: sanitizeUrl(
         client.client_metadata?.termsAndConditionsUrl,

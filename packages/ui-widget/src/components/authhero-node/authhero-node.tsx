@@ -20,6 +20,14 @@ import {
   getCountryByCode,
   type CountryData,
 } from "../../utils/country-data";
+import {
+  expandTwoDigitYear,
+  getDateLayout,
+  parseIsoDate,
+  resolveYearAnchor,
+  toIsoDate,
+  type DateSegment,
+} from "../../utils/date-format";
 
 @Component({
   tag: "authhero-node",
@@ -44,6 +52,13 @@ export class AuthheroNode {
    * Whether the component is disabled.
    */
   @Prop() disabled = false;
+
+  /**
+   * BCP-47 locale used for locale-dependent field layout (currently the
+   * segment order of DATE fields). Resolved server-side so SSR and hydration
+   * agree; falls back to day-month-year when absent.
+   */
+  @Prop() locale?: string;
 
   /**
    * Whether the password field is visible.
@@ -72,6 +87,16 @@ export class AuthheroNode {
   @State() telEmailMode = false;
 
   /**
+   * Segment values for the DATE input, each held as typed (unpadded while the
+   * user is mid-entry) and normalised on blur.
+   */
+  @State() dateSegments: Record<DateSegment, string> = {
+    year: "",
+    month: "",
+    day: "",
+  };
+
+  /**
    * Emitted when a field value changes.
    */
   @Event() fieldChange!: EventEmitter<{ id: string; value: string }>;
@@ -89,16 +114,19 @@ export class AuthheroNode {
   componentChanged() {
     this.initCountryFromConfig();
     this.initTelValue();
+    this.initDateValue();
   }
 
   @Watch("value")
   valueChanged() {
     this.initTelValue();
+    this.initDateValue();
   }
 
   componentWillLoad() {
     this.initCountryFromConfig();
     this.initTelValue();
+    this.initDateValue();
   }
 
   componentDidLoad() {
@@ -132,12 +160,35 @@ export class AuthheroNode {
   }
 
   /**
+   * The last value this field emitted for a TEL component. The widget mirrors
+   * every emitted value back onto the `value` prop, and that echo must not be
+   * re-parsed: the wire format carries only a dial code, so a country picked
+   * from the list would be replaced by the first entry sharing that code — a
+   * user who chose Canada would be silently moved to the US on their next
+   * keystroke.
+   */
+  private lastEmittedTel?: string;
+
+  /** Emit a TEL value and remember it, so the echo can be recognised. */
+  private emitTelValue(value: string) {
+    this.lastEmittedTel = value;
+    this.fieldChange.emit({ id: this.component.id, value });
+  }
+
+  /**
    * Hydrate localPhoneNumber (and selectedCountry) from the effective value
    * for TEL fields. The full value is stored as `{dialCode}{localNumber}`,
    * e.g. "+15551234567".
    */
   private initTelValue() {
     if (this.component?.type !== "TEL") return;
+
+    if (
+      this.lastEmittedTel !== undefined &&
+      this.getEffectiveValue() === this.lastEmittedTel
+    ) {
+      return;
+    }
 
     const config = (this.component as FieldComponent).config as
       | Record<string, unknown>
@@ -181,11 +232,16 @@ export class AuthheroNode {
   private handleCountryChange = (e: Event) => {
     const target = e.target as HTMLSelectElement;
     this.selectedCountry = getCountryByCode(target.value);
+    // A half-typed "+xx" prefix is replaced by the picked country, not kept
+    // as a local number (it would emit "+46+4").
+    if (this.localPhoneNumber.startsWith("+")) {
+      this.localPhoneNumber = "";
+    }
     // Re-emit the full phone number with new dial code
     const fullNumber = this.localPhoneNumber
       ? `${this.selectedCountry.dialCode}${this.localPhoneNumber}`
       : "";
-    this.fieldChange.emit({ id: this.component.id, value: fullNumber });
+    this.emitTelValue(fullNumber);
   };
 
   /**
@@ -231,7 +287,20 @@ export class AuthheroNode {
       target.value = cleanedLocal;
       this.localPhoneNumber = cleanedLocal;
       const fullNumber = `${this.selectedCountry.dialCode}${cleanedLocal}`;
-      this.fieldChange.emit({ id: this.component.id, value: fullNumber });
+      this.emitTelValue(fullNumber);
+    } else if (value.startsWith("+")) {
+      // A leading "+" is an international prefix the user is still typing.
+      // Keep it in the field so the dial code can build up until it matches
+      // a country — stripping it per keystroke means "+46" never resolves to
+      // Sweden, since each character is discarded before the next arrives.
+      const cleaned = `+${value.slice(1).replace(/[^\d\s\-()]/g, "")}`;
+      if (cleaned !== value) {
+        target.value = cleaned;
+      }
+      this.localPhoneNumber = cleaned;
+      // Emit the partial prefix as-is; prefixing it with the (not yet chosen)
+      // country's dial code would produce nonsense like "+1+4".
+      this.emitTelValue(cleaned);
     } else {
       const cleaned = allowPlus
         ? value.replace(/[^+\d\s\-()]/g, "").replace(/\+/g, "")
@@ -243,7 +312,7 @@ export class AuthheroNode {
       const fullNumber = cleaned
         ? `${this.selectedCountry.dialCode}${cleaned}`
         : "";
-      this.fieldChange.emit({ id: this.component.id, value: fullNumber });
+      this.emitTelValue(fullNumber);
     }
   }
 
@@ -269,7 +338,7 @@ export class AuthheroNode {
       } else {
         // Email or text — emit as-is
         this.localPhoneNumber = value;
-        this.fieldChange.emit({ id: this.component.id, value });
+        this.emitTelValue(value);
       }
       return;
     }
@@ -281,6 +350,226 @@ export class AuthheroNode {
   private handleInput = (e: Event) => {
     const target = e.target as HTMLInputElement;
     this.fieldChange.emit({ id: this.component.id, value: target.value });
+  };
+
+  // ===========================================================================
+  // DATE segment handling
+  // ===========================================================================
+
+  /**
+   * The last ISO value this field emitted. The widget mirrors every emitted
+   * value back onto the `value` prop, and that echo must not be treated as an
+   * external change: it would re-format the segments under the caret while
+   * the user is still typing (a day of "3" comes back as "03", swallowing the
+   * next digit).
+   */
+  private lastEmittedDate?: string;
+
+  /** Hydrate the day/month/year segments from the effective ISO value. */
+  private initDateValue() {
+    if (this.component?.type !== "DATE") return;
+
+    if (
+      this.lastEmittedDate !== undefined &&
+      this.getEffectiveValue() === this.lastEmittedDate
+    ) {
+      return;
+    }
+
+    const parsed = parseIsoDate(this.getEffectiveValue());
+    if (parsed) {
+      this.dateSegments = parsed;
+      return;
+    }
+
+    // No parseable value. Only clear when we currently hold a complete date,
+    // i.e. this is a genuine external reset: a half-typed date emits "" and
+    // the parent echoes that straight back as the value prop, which would
+    // otherwise wipe the segment the user just typed into.
+    if (toIsoDate(this.dateSegments) !== "") {
+      this.dateSegments = { year: "", month: "", day: "" };
+    }
+  }
+
+  private dateConfig(): Record<string, unknown> | undefined {
+    return (this.component as FieldComponent).config as
+      | Record<string, unknown>
+      | undefined;
+  }
+
+  private getDateLayoutForField() {
+    const config = this.dateConfig();
+    return getDateLayout(config?.format as string | undefined, this.locale);
+  }
+
+  private static readonly SEGMENT_LENGTH: Record<DateSegment, number> = {
+    day: 2,
+    month: 2,
+    year: 4,
+  };
+
+  /** Birthdate autofill tokens — the common case for a typed date. */
+  private static readonly SEGMENT_AUTOCOMPLETE: Record<DateSegment, string> = {
+    day: "bday-day",
+    month: "bday-month",
+    year: "bday-year",
+  };
+
+  /**
+   * The submittable value for the current segments: an ISO date, or "" when
+   * it is incomplete, impossible, or outside the field's `min`/`max`. ISO
+   * strings compare chronologically, so the bounds need no parsing.
+   */
+  private dateIsoValue(segments: Record<DateSegment, string>): string {
+    const iso = toIsoDate(segments);
+    if (!iso) return "";
+
+    const config = this.dateConfig();
+    const min = config?.min;
+    const max = config?.max;
+    if (typeof min === "string" && parseIsoDate(min) && iso < min) return "";
+    if (typeof max === "string" && parseIsoDate(max) && iso > max) return "";
+    return iso;
+  }
+
+  private setDateSegments(segments: Record<DateSegment, string>) {
+    this.dateSegments = segments;
+    this.lastEmittedDate = this.dateIsoValue(segments);
+    this.fieldChange.emit({
+      id: this.component.id,
+      value: this.lastEmittedDate,
+    });
+  }
+
+  private focusDateSegment(segment: DateSegment) {
+    const input = this.host.shadowRoot?.querySelector(
+      `input[data-date-segment="${segment}"]`,
+    ) as HTMLInputElement | null;
+    input?.focus();
+    input?.select();
+  }
+
+  /**
+   * Whether typing this digit completes the segment. A segment is complete at
+   * its full width, and also as soon as a further digit could not produce a
+   * valid number — no day starts with 4 and no month starts with 2.
+   */
+  private isDateSegmentComplete(segment: DateSegment, value: string): boolean {
+    if (value.length >= AuthheroNode.SEGMENT_LENGTH[segment]) return true;
+    if (value.length !== 1) return false;
+    if (segment === "day") return Number(value) > 3;
+    if (segment === "month") return Number(value) > 1;
+    return false;
+  }
+
+  private handleDateSegmentInput = (segment: DateSegment) => (e: Event) => {
+    const target = e.target as HTMLInputElement;
+    const digits = target.value
+      .replace(/\D/g, "")
+      .slice(0, AuthheroNode.SEGMENT_LENGTH[segment]);
+    if (digits !== target.value) {
+      target.value = digits;
+    }
+
+    this.setDateSegments({ ...this.dateSegments, [segment]: digits });
+
+    if (this.isDateSegmentComplete(segment, digits)) {
+      const order = this.getDateLayoutForField().order;
+      const next = order[order.indexOf(segment) + 1];
+      if (next) this.focusDateSegment(next);
+    }
+  };
+
+  /**
+   * Pad a single digit ("5" -> "05") and expand a two-digit year against the
+   * field's upper bound ("85" -> 1985). Shared by blur and paste so a pasted
+   * date is read the same way as a typed one.
+   */
+  private normalizeDateSegment(segment: DateSegment, value: string): string {
+    if (segment !== "year") return value.padStart(2, "0");
+    return expandTwoDigitYear(
+      value,
+      resolveYearAnchor(
+        this.dateConfig()?.max as string | undefined,
+        new Date(),
+      ),
+    );
+  }
+
+  /**
+   * Normalise on blur: pad a single digit ("5" -> "05") and expand a two-digit
+   * year against the field's upper bound ("85" -> 1985).
+   */
+  private handleDateSegmentBlur = (segment: DateSegment) => (e: Event) => {
+    const target = e.target as HTMLInputElement;
+    const value = target.value.replace(/\D/g, "");
+    if (!value) return;
+
+    const normalized = this.normalizeDateSegment(segment, value);
+
+    if (normalized === value) return;
+    target.value = normalized;
+    this.setDateSegments({ ...this.dateSegments, [segment]: normalized });
+  };
+
+  /**
+   * Backspace at the start of an empty segment moves to the previous one, so
+   * the whole date can be cleared without reaching for the mouse.
+   */
+  private handleDateSegmentKeyDown =
+    (segment: DateSegment) => (e: KeyboardEvent) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        this.buttonClick.emit({ id: "submit", type: "submit", value: "next" });
+        return;
+      }
+      if (e.key !== "Backspace") return;
+
+      const target = e.target as HTMLInputElement;
+      if (target.value.length > 0 || target.selectionStart !== 0) return;
+
+      const order = this.getDateLayoutForField().order;
+      const previous = order[order.indexOf(segment) - 1];
+      if (previous) {
+        e.preventDefault();
+        this.focusDateSegment(previous);
+      }
+    };
+
+  /**
+   * Pasting a whole date into any segment fills all three. An ISO value is
+   * read year-first; anything else follows the field's displayed order. A
+   * two-digit year is expanded the same way a typed one is, so "15/03/85"
+   * pastes as 1985 rather than falling through to the browser's own paste.
+   */
+  private handleDatePaste = (e: ClipboardEvent) => {
+    const text = e.clipboardData?.getData("text") ?? "";
+    const groups = text.match(/\d+/g);
+    if (!groups || groups.length < 3) return;
+
+    const [first, second, third] = groups;
+    const isoLike = first!.length === 4;
+    const order = isoLike
+      ? (["year", "month", "day"] as DateSegment[])
+      : this.getDateLayoutForField().order;
+
+    const segments: Record<DateSegment, string> = {
+      year: "",
+      month: "",
+      day: "",
+    };
+    [first!, second!, third!].forEach((group, index) => {
+      const segment = order[index]!;
+      segments[segment] = this.normalizeDateSegment(
+        segment,
+        group.slice(0, AuthheroNode.SEGMENT_LENGTH[segment]),
+      );
+    });
+
+    if (!toIsoDate(segments)) return;
+
+    e.preventDefault();
+    this.setDateSegments(segments);
   };
 
   private handleKeyDown = (e: KeyboardEvent) => {
@@ -298,7 +587,7 @@ export class AuthheroNode {
       if (config?.allow_email === true && target.value.length === 0) {
         this.telEmailMode = true;
         this.localPhoneNumber = "";
-        this.fieldChange.emit({ id: this.component.id, value: "" });
+        this.emitTelValue("");
       }
     }
   };
@@ -1039,40 +1328,93 @@ export class AuthheroNode {
     );
   }
 
+  /**
+   * DATE is rendered as three numeric segments rather than `input type=date`.
+   * A native date input renders differently in every browser (Safari adds a
+   * stepper), keeps its dd/mm/yyyy hint visible while half-filled, and asks
+   * for a calendar gesture to reach a year decades back — all wrong for a
+   * date typed from memory, which is what these fields collect.
+   */
   private renderDateField(component: FieldComponent & { type: "DATE" }) {
-    const inputId = `input-${component.id}`;
     const errors = this.getErrors();
-    const { min, max } = component.config ?? {};
-    // Date fields always have a value (even if placeholder format), so always float the label
-    const hasValue = true;
-    const effectiveValue = this.getEffectiveValue();
+    const { format } = component.config ?? {};
+    const layout = getDateLayout(format, this.locale);
+    const isoValue = this.dateIsoValue(this.dateSegments);
+    // Every segment filled but no ISO value means the date does not exist
+    // (31 February) or falls outside min/max. Flag it rather than silently
+    // submitting nothing — the widget posts JSON, so the browser's own
+    // constraint validation never runs.
+    const isIncomplete = layout.order.some(
+      (segment) => this.dateSegments[segment].length === 0,
+    );
+    const hasInvalidDate = !isoValue && !isIncomplete;
+    const hasError = errors.length > 0 || hasInvalidDate;
+    const firstInputId = `input-${component.id}`;
+
+    const segmentInput = (segment: DateSegment) => (
+      <input
+        key={segment}
+        id={segment === layout.order[0] ? firstInputId : undefined}
+        class="date-segment"
+        part={`input date-segment date-segment-${segment}`}
+        type="text"
+        inputmode="numeric"
+        autocomplete={AuthheroNode.SEGMENT_AUTOCOMPLETE[segment]}
+        data-date-segment={segment}
+        maxlength={AuthheroNode.SEGMENT_LENGTH[segment]}
+        size={AuthheroNode.SEGMENT_LENGTH[segment]}
+        value={this.dateSegments[segment]}
+        placeholder={layout.tokens[segment]}
+        aria-label={layout.tokens[segment]}
+        aria-invalid={hasError ? "true" : "false"}
+        required={component.required}
+        disabled={this.disabled}
+        onInput={this.handleDateSegmentInput(segment)}
+        onBlur={this.handleDateSegmentBlur(segment)}
+        onKeyDown={this.handleDateSegmentKeyDown(segment)}
+        onPaste={this.handleDatePaste}
+      />
+    );
 
     return (
       <div class="input-wrapper" part="input-wrapper">
         <div class="input-container">
-          <input
-            id={inputId}
-            class={this.getInputFieldClass(errors.length > 0)}
-            part="input"
-            type="date"
-            name={component.id}
-            data-input-name={component.id}
-            value={effectiveValue ?? ""}
-            placeholder=" "
-            required={component.required}
-            disabled={this.disabled}
-            min={min}
-            max={max}
-            onInput={this.handleInput}
-            onKeyDown={this.handleKeyDown}
-          />
+          <div
+            class={hasError ? "date-input has-error" : "date-input"}
+            part="date-input"
+            role="group"
+            aria-label={component.label}
+          >
+            {layout.order.map((segment, index) => [
+              index > 0 && (
+                <span
+                  key={`sep-${segment}`}
+                  class="date-separator"
+                  part="date-separator"
+                  aria-hidden="true"
+                >
+                  {layout.separator}
+                </span>
+              ),
+              segmentInput(segment),
+            ])}
+          </div>
+          {/* The group is never empty (it shows DD/MM/YYYY), so the label
+              stays in its floated position like other always-filled fields. */}
           {this.renderFloatingLabel(
             component.label,
-            inputId,
+            firstInputId,
             component.required,
-            hasValue,
+            true,
           )}
         </div>
+        {/* The submitted value: a single ISO date, whatever the display order. */}
+        <input
+          type="hidden"
+          name={component.id}
+          data-input-name={component.id}
+          value={isoValue}
+        />
         {this.renderErrors()}
         {errors.length === 0 && this.renderHint(component.hint)}
       </div>
@@ -1087,7 +1429,12 @@ export class AuthheroNode {
           part="checkbox"
           name={component.id}
           checked={
-            this.value === "true" || component.config?.default_value === true
+            // Once the field has a value it is authoritative — falling back to
+            // the default here would keep a ticked-by-default box ticked after
+            // the user unticks it.
+            this.value === undefined
+              ? component.config?.default_value === true
+              : this.value === "true"
           }
           required={component.required}
           disabled={this.disabled}

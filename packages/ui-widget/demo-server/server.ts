@@ -5,6 +5,7 @@
  * - Serves the widget page at /u2/login/identifier
  * - Provides screen API at /u2/screen/:screenId (GET and POST)
  * - Handles the full login flow with mock data
+ * - Serves a multi-step Form at /u2/forms/:formId/nodes/:nodeId
  *
  * Run with: npx tsx demo-server/server.ts
  */
@@ -13,6 +14,7 @@ import { Hono } from "hono";
 import { serve } from "@hono/node-server";
 import { logger } from "hono/logger";
 import { cors } from "hono/cors";
+import { FORM_FIELD_TYPES } from "@authhero/adapter-interfaces";
 import type { UiScreen, FormComponent } from "../src/types/components";
 import { renderToString } from "../hydrate";
 
@@ -38,6 +40,13 @@ interface SessionState {
   username?: string;
   codeId?: string;
   authenticated: boolean;
+  /**
+   * Answers collected so far by the demo form, keyed by component id. The
+   * server carries them across steps (as production does via
+   * `accumulateFormValues`) so going back — or re-rendering a step after a
+   * validation error — keeps what was already typed.
+   */
+  formValues?: Record<string, string>;
 }
 
 interface ScreenBranding {
@@ -384,6 +393,16 @@ function createSignupScreen(
         order: socialButtons.length + 2,
       },
       {
+        id: "birthdate",
+        type: "DATE",
+        category: "FIELD",
+        visible: true,
+        label: "Date of birth",
+        hint: "Segment order follows the locale attribute on the widget",
+        required: true,
+        order: socialButtons.length + 3,
+      },
+      {
         id: "submit",
         type: "NEXT_BUTTON",
         category: "BLOCK",
@@ -391,7 +410,7 @@ function createSignupScreen(
         config: {
           text: "Create account",
         },
-        order: socialButtons.length + 3,
+        order: socialButtons.length + 4,
       },
     ],
     links: [
@@ -671,6 +690,366 @@ function screenWithError(
 }
 
 // ============================================
+// Demo Form (Auth0 Forms schema)
+// ============================================
+
+/**
+ * A stand-in for a Form row in the database. Production serves these from
+ * `/u2/forms/:formId/nodes/:nodeId` (packages/authhero's u2-form-node.tsx):
+ * each STEP node holds Auth0 Forms components and points at the next node,
+ * and the widget renders one node at a time. The demo keeps the same shape so
+ * the screens here match what a real form produces.
+ *
+ * Only STEP nodes are modelled — FLOW/ROUTER/ACTION nodes run server-side
+ * logic (user updates, branching) that this UI-only demo has nothing to do.
+ */
+interface DemoFormNode {
+  id: string;
+  alias: string;
+  /** Next STEP; the last node ends the form and redirects to the callback. */
+  next_node?: string;
+  components: FormComponent[];
+}
+
+interface DemoForm {
+  id: string;
+  name: string;
+  nodes: DemoFormNode[];
+}
+
+const demoForm: DemoForm = {
+  id: "profile_completion",
+  name: "Complete your profile",
+  nodes: [
+    {
+      id: "details",
+      alias: "Your details",
+      next_node: "preferences",
+      components: [
+        {
+          id: "intro",
+          type: "RICH_TEXT",
+          category: "BLOCK",
+          visible: true,
+          config: {
+            content:
+              "We need a few more details before you continue. This takes about a minute.",
+          },
+          order: 0,
+        },
+        {
+          id: "given_name",
+          type: "TEXT",
+          category: "FIELD",
+          visible: true,
+          label: "First name",
+          required: true,
+          order: 1,
+        },
+        {
+          id: "family_name",
+          type: "TEXT",
+          category: "FIELD",
+          visible: true,
+          label: "Last name",
+          required: true,
+          order: 2,
+        },
+        {
+          id: "birthdate",
+          type: "DATE",
+          category: "FIELD",
+          visible: true,
+          label: "Date of birth",
+          hint: "Segment order follows the locale attribute on the widget",
+          order: 3,
+        },
+        {
+          id: "next",
+          type: "NEXT_BUTTON",
+          category: "BLOCK",
+          visible: true,
+          config: { text: "Continue" },
+          order: 4,
+        },
+      ],
+    },
+    {
+      id: "preferences",
+      alias: "Preferences",
+      next_node: "consent",
+      components: [
+        {
+          // No label — production promotes config.placeholder to the label so
+          // the floating-label pattern works; this exercises that path.
+          id: "company",
+          type: "TEXT",
+          category: "FIELD",
+          visible: true,
+          config: { placeholder: "Company (optional)" },
+          order: 0,
+        },
+        {
+          id: "role",
+          type: "DROPDOWN",
+          category: "FIELD",
+          visible: true,
+          label: "Your role",
+          required: true,
+          config: {
+            // A required dropdown needs a placeholder: without one the widget
+            // renders no empty option, so the browser shows the first option
+            // as selected while the field is still unanswered — and the
+            // required-field gate keeps Continue disabled.
+            placeholder: "Select your role",
+            options: [
+              { value: "developer", label: "Developer" },
+              { value: "designer", label: "Designer" },
+              { value: "product", label: "Product" },
+              { value: "other", label: "Something else" },
+            ],
+          },
+          order: 1,
+        },
+        {
+          id: "newsletter",
+          type: "CHOICE",
+          category: "FIELD",
+          visible: true,
+          label: "How often should we email you?",
+          config: {
+            display: "radio",
+            options: [
+              { value: "weekly", label: "Weekly" },
+              { value: "monthly", label: "Monthly" },
+              { value: "never", label: "Never" },
+            ],
+          },
+          order: 2,
+        },
+        {
+          id: "phone",
+          type: "TEL",
+          category: "FIELD",
+          visible: true,
+          label: "Phone number",
+          config: { default_country: "US" },
+          order: 3,
+        },
+        {
+          id: "back",
+          type: "PREVIOUS_BUTTON",
+          category: "BLOCK",
+          visible: true,
+          config: { text: "Back" },
+          order: 4,
+        },
+        {
+          id: "next",
+          type: "NEXT_BUTTON",
+          category: "BLOCK",
+          visible: true,
+          config: { text: "Continue" },
+          order: 5,
+        },
+      ],
+    },
+    {
+      id: "consent",
+      alias: "Consent",
+      components: [
+        {
+          id: "terms",
+          type: "LEGAL",
+          category: "FIELD",
+          visible: true,
+          required: true,
+          config: {
+            text: 'I accept the <a href="#" target="_blank" rel="noopener">terms and conditions</a>.',
+            html: true,
+          },
+          order: 0,
+        },
+        {
+          id: "marketing",
+          type: "BOOLEAN",
+          category: "FIELD",
+          visible: true,
+          label: "Send me product updates",
+          order: 1,
+        },
+        {
+          id: "back",
+          type: "PREVIOUS_BUTTON",
+          category: "BLOCK",
+          visible: true,
+          config: { text: "Back" },
+          order: 2,
+        },
+        {
+          id: "next",
+          type: "NEXT_BUTTON",
+          category: "BLOCK",
+          visible: true,
+          config: { text: "Finish" },
+          order: 3,
+        },
+      ],
+    },
+  ],
+};
+
+/** Screen ids for form nodes are `form-<nodeId>` (e.g. `form-details`). */
+const FORM_SCREEN_PREFIX = "form-";
+
+/** Types whose placeholder production promotes to the floating label. */
+const PLACEHOLDER_AS_LABEL_TYPES = new Set([
+  "TEXT",
+  "EMAIL",
+  "PASSWORD",
+  "NUMBER",
+  "TEL",
+  "URL",
+]);
+
+function getFormNode(nodeId: string): DemoFormNode | undefined {
+  return demoForm.nodes.find((n) => n.id === nodeId);
+}
+
+/**
+ * Convert a form node's components to a UiScreen — the demo's copy of
+ * `buildFormNodeScreen` in packages/authhero. Two transforms matter:
+ * placeholder is promoted to the floating label when a field has no label,
+ * and previously submitted answers are fed back in as `default_value`.
+ */
+function buildFormNodeScreen(
+  node: DemoFormNode,
+  state: string,
+  baseUrl: string,
+  values: Record<string, string>,
+  error?: string,
+): UiScreen {
+  const components = node.components.map((comp, index) => {
+    const config = (comp.config ?? {}) as Record<string, unknown>;
+    const value = values[comp.id];
+
+    let resolved = comp;
+
+    if (value !== undefined && FORM_FIELD_TYPES.has(comp.type)) {
+      resolved = {
+        ...resolved,
+        config: { ...config, default_value: value },
+      } as FormComponent;
+    }
+
+    // Text-ish fields carrying a placeholder but no label: production moves
+    // the placeholder onto the label, since the widget's floating label reads
+    // `label`, not `config.placeholder`. (Only these types — a DROPDOWN keeps
+    // its placeholder, it renders as the empty option.)
+    const placeholder = (resolved.config as Record<string, unknown> | undefined)
+      ?.placeholder;
+    const hasLabel = "label" in resolved && !!resolved.label;
+    if (
+      PLACEHOLDER_AS_LABEL_TYPES.has(resolved.type) &&
+      !hasLabel &&
+      typeof placeholder === "string" &&
+      placeholder
+    ) {
+      resolved = {
+        ...resolved,
+        label: placeholder,
+        config: {
+          ...(resolved.config as Record<string, unknown>),
+          placeholder: undefined,
+        },
+      } as FormComponent;
+    }
+
+    return { ...resolved, order: index } as FormComponent;
+  });
+
+  return {
+    name: `form-${node.alias}`,
+    action: `${baseUrl}/u2/forms/${demoForm.id}/nodes/${node.id}?state=${state}`,
+    method: "POST",
+    // Production titles every node with the form's name — the node alias is
+    // an authoring label, not something the end user sees.
+    title: demoForm.name,
+    components,
+    messages: error ? [{ text: error, type: "error" as const }] : undefined,
+  };
+}
+
+/**
+ * Validate + advance a form node, mirroring the production POST handler:
+ * required fields are checked server-side, answers accumulate on the session,
+ * and the next STEP is returned inline (so the widget swaps in place) while
+ * the last one completes the flow.
+ */
+function handleFormNodePost(
+  node: DemoFormNode,
+  data: Record<string, unknown>,
+  state: string,
+  baseUrl: string,
+): PostResponse {
+  const session = getSession(state);
+  const values = { ...(session.formValues ?? {}) };
+  const missingFields: string[] = [];
+
+  for (const comp of node.components) {
+    if (!FORM_FIELD_TYPES.has(comp.type)) continue;
+
+    const value = data[comp.id];
+    const isEmpty = value === undefined || value === "";
+    // An unticked checkbox posts the string "false" — the widget serialises
+    // every field as a string — so a required LEGAL or BOOLEAN would satisfy
+    // an emptiness check while carrying a refusal. "false" is still a real
+    // answer worth storing; it just doesn't satisfy `required`.
+    const isUnanswered = isEmpty || value === false || value === "false";
+
+    const isRequired = "required" in comp && comp.required === true;
+    const label = "label" in comp && comp.label ? comp.label : comp.id;
+
+    if (isRequired && isUnanswered) {
+      missingFields.push(label);
+    }
+    if (!isEmpty) {
+      values[comp.id] = String(value);
+    }
+  }
+
+  session.formValues = values;
+
+  if (missingFields.length > 0) {
+    return {
+      screen: buildFormNodeScreen(
+        node,
+        state,
+        baseUrl,
+        values,
+        `Missing required fields: ${missingFields.join(", ")}`,
+      ),
+    };
+  }
+
+  const nextNode = node.next_node ? getFormNode(node.next_node) : undefined;
+
+  if (!nextNode) {
+    console.log("📝 Demo form submitted:", values);
+    session.authenticated = true;
+    return {
+      redirect: `${baseUrl}/callback?code=demo_auth_code&state=${state}`,
+    };
+  }
+
+  return {
+    screen: buildFormNodeScreen(nextNode, state, baseUrl, values),
+    screenId: `${FORM_SCREEN_PREFIX}${nextNode.id}`,
+    navigateUrl: `${baseUrl}/u2/forms/${demoForm.id}/nodes/${nextNode.id}?state=${state}`,
+  };
+}
+
+// ============================================
 // Screen Getters
 // ============================================
 
@@ -684,6 +1063,20 @@ function getScreen(
   const branding: ScreenBranding = {
     colors: { primary: defaultSettings.brandColor },
   };
+
+  if (screenId.startsWith(FORM_SCREEN_PREFIX)) {
+    const node = getFormNode(screenId.slice(FORM_SCREEN_PREFIX.length));
+    if (!node) return null;
+    return {
+      screen: buildFormNodeScreen(
+        node,
+        state,
+        baseUrl,
+        session.formValues ?? {},
+      ),
+      branding,
+    };
+  }
 
   switch (screenId) {
     case "identifier":
@@ -1055,6 +1448,29 @@ function handleSmsOtpChallengePost(
 // Widget Page HTML
 // ============================================
 
+/** A conservative BCP-47 shape: language, optional script, optional region. */
+const BCP47 = /^[a-z]{2,3}(-[a-z]{4})?(-([a-z]{2}|\d{3}))?$/i;
+
+/**
+ * The locale for a request, from `?locale=` or `Accept-Language`.
+ *
+ * The value lands in an HTML attribute in two places (the SSR element and the
+ * client-side fallback), so it is validated here, at the point it enters the
+ * server, rather than escaped at each use — anything that is not a plain
+ * language tag is dropped and the widget falls back to its default.
+ */
+function resolveDemoLocale(c: {
+  req: {
+    query: (name: string) => string | undefined;
+    header: (name: string) => string | undefined;
+  };
+}): string | undefined {
+  const candidate =
+    c.req.query("locale") ||
+    c.req.header("Accept-Language")?.split(",")[0]?.split(";")[0]?.trim();
+  return candidate && BCP47.test(candidate) ? candidate : undefined;
+}
+
 async function renderWidgetPage(options: {
   screenId: string;
   state: string;
@@ -1063,6 +1479,8 @@ async function renderWidgetPage(options: {
   providers?: string;
   renderMode?: "client" | "ssr";
   email?: string;
+  /** Mirrors production: resolved server-side, rendered onto the element. */
+  locale?: string;
 }): Promise<string> {
   const {
     screenId,
@@ -1072,6 +1490,7 @@ async function renderWidgetPage(options: {
     providers,
     renderMode = "client",
     email,
+    locale,
   } = options;
 
   // Pre-render widget HTML if SSR mode
@@ -1113,8 +1532,19 @@ async function renderWidgetPage(options: {
       case "sms-otp-challenge":
         screen = createSmsOtpChallengeScreen(state, baseUrl);
         break;
-      default:
-        screen = createIdentifierScreen(state, baseUrl, settings);
+      default: {
+        const formNode = screenId.startsWith(FORM_SCREEN_PREFIX)
+          ? getFormNode(screenId.slice(FORM_SCREEN_PREFIX.length))
+          : undefined;
+        screen = formNode
+          ? buildFormNodeScreen(
+              formNode,
+              state,
+              baseUrl,
+              getSession(state).formValues ?? {},
+            )
+          : createIdentifierScreen(state, baseUrl, settings);
+      }
     }
 
     const screenJson = JSON.stringify(screen).replace(/'/g, "&#39;");
@@ -1126,6 +1556,7 @@ async function renderWidgetPage(options: {
           screen='${screenJson}'
           auto-submit="true"
           auto-navigate="true"
+          ${locale ? `locale="${locale}"` : ""}
         ></authhero-widget>`,
         {
           fullDocument: false,
@@ -1575,6 +2006,14 @@ async function renderWidgetPage(options: {
             <option value="signup">Sign Up</option>
             <option value="forgot-password">Forgot Password</option>
             <option value="success">Success</option>
+            <optgroup label="Form: ${demoForm.name}">
+              ${demoForm.nodes
+                .map(
+                  (n, i) =>
+                    `<option value="${FORM_SCREEN_PREFIX}${n.id}">Step ${i + 1}: ${n.alias}</option>`,
+                )
+                .join("\n              ")}
+            </optgroup>
           </select>
         </div>
         <div class="setting-row">
@@ -2045,7 +2484,7 @@ async function renderWidgetPage(options: {
     
     <div class="device-frame" id="device-frame">
       <div class="device-screen">
-        ${prerenderedWidgetHtml ? prerenderedWidgetHtml : '<authhero-widget id="widget"></authhero-widget>'}
+        ${prerenderedWidgetHtml ? prerenderedWidgetHtml : `<authhero-widget id="widget"${locale ? ` locale="${locale}"` : ""}></authhero-widget>`}
       </div>
     </div>
     
@@ -2109,7 +2548,11 @@ async function renderWidgetPage(options: {
     const baseUrl = '${baseUrl}';
     let currentState = '${state}';
     let currentScreen = '${screenId}';
-    
+
+    // Demo form, for the form-node screens (screen id = 'form-' + nodeId).
+    const formId = '${demoForm.id}';
+    const formNodeIds = ${JSON.stringify(demoForm.nodes.map((n) => n.id))};
+
     // =========================================
     // Session Storage
     // =========================================
@@ -2318,7 +2761,13 @@ async function renderWidgetPage(options: {
         '/u2/forgot-password': 'forgot-password',
         '/u2/success': 'success',
       };
-      
+
+      // Form nodes: /u2/forms/<formId>/nodes/<nodeId>
+      const formMatch = pathname.match(/^\\/u2\\/forms\\/[^/]+\\/nodes\\/([^/]+)$/);
+      if (formMatch) {
+        return 'form-' + formMatch[1];
+      }
+
       for (const [path, screen] of Object.entries(pathToScreen)) {
         if (pathname.startsWith(path)) {
           return screen;
@@ -2328,6 +2777,15 @@ async function renderWidgetPage(options: {
     }
     
     function buildUrl(screenId) {
+      if (screenId.startsWith('form-')) {
+        // Form nodes keep their production URL shape in every mode — there is
+        // no query-based equivalent route.
+        let url = '/u2/forms/' + formId + '/nodes/' + screenId.slice(5) + '?state=' + currentState;
+        if (renderMode === 'ssr') {
+          url += '&renderMode=ssr';
+        }
+        return url;
+      }
       if (urlMode === 'path' || urlMode === 'ssr') {
         const pathMap = {
           'identifier': '/u2/login/identifier',
@@ -2732,6 +3190,22 @@ async function renderWidgetPage(options: {
             widget.screen = result.screen;
             applyBranding();
           });
+
+          // Advancing a step returns the next screen inline (plus the URL it
+          // would have had) rather than a redirect — keep the badge, the
+          // screen picker and the address bar pointing at the new step.
+          if (result.screenId) {
+            currentScreen = result.screenId;
+            screenIdEl.textContent = result.screenId;
+            const select = document.getElementById('screen-select');
+            if (select.querySelector('option[value="' + result.screenId + '"]')) {
+              select.value = result.screenId;
+            }
+            if (result.navigateUrl && urlMode !== 'ssr') {
+              const url = new URL(result.navigateUrl, window.location.origin);
+              window.history.pushState({ screen: result.screenId, state: currentState }, '', url.pathname + url.search);
+            }
+          }
         }
       } catch (error) {
         console.error('Submit error:', error);
@@ -2745,9 +3219,19 @@ async function renderWidgetPage(options: {
     widget.addEventListener('buttonClick', (event) => {
       const { type, value } = event.detail;
       log('Button: ' + type + (value ? ' (' + value + ')' : ''));
-      
+
       if (type === 'SOCIAL' && value) {
         log('→ OAuth redirect: ' + value);
+      }
+
+      // PREVIOUS_BUTTON only emits an event — the page owns what "back" means.
+      // For the demo form that is the preceding node; the server re-renders it
+      // with the answers already given.
+      if (type === 'previous' && currentScreen.startsWith('form-')) {
+        const index = formNodeIds.indexOf(currentScreen.slice(5));
+        if (index > 0) {
+          navigateTo('form-' + formNodeIds[index - 1]);
+        }
       }
     });
 
@@ -3262,6 +3746,10 @@ app.get("/u2/signup", async (c) => {
   const state = c.req.query("state") || "demo";
   const renderMode = parseRenderMode(c.req.query("renderMode"));
   const baseUrl = new URL(c.req.url).origin;
+  // The signup screen carries a DATE field, whose segment order is
+  // locale-dependent. `?locale=sv-SE` overrides the browser's preference so
+  // the orders can be compared side by side.
+  const locale = resolveDemoLocale(c);
   return c.html(
     await renderWidgetPage({
       screenId: "signup",
@@ -3269,6 +3757,7 @@ app.get("/u2/signup", async (c) => {
       baseUrl,
       urlMode: "path",
       renderMode,
+      locale,
     }),
   );
 });
@@ -3301,6 +3790,61 @@ app.get("/u2/success", async (c) => {
       renderMode,
     }),
   );
+});
+
+// ----------------------------------------
+// Form nodes — mirrors production's
+// /u2/forms/:formId/nodes/:nodeId
+// ----------------------------------------
+app.get("/u2/forms/:formId/nodes/:nodeId", async (c) => {
+  const { formId, nodeId } = c.req.param();
+  const state =
+    c.req.query("state") || "demo_" + Math.random().toString(36).substr(2, 9);
+  const renderMode = parseRenderMode(c.req.query("renderMode"));
+  const baseUrl = new URL(c.req.url).origin;
+
+  if (formId !== demoForm.id || !getFormNode(nodeId)) {
+    return c.text("Form node not found", 404);
+  }
+
+  // The form's DATE field is locale-dependent, same as the signup screen.
+  const locale = resolveDemoLocale(c);
+
+  return c.html(
+    await renderWidgetPage({
+      screenId: `${FORM_SCREEN_PREFIX}${nodeId}`,
+      state,
+      baseUrl,
+      urlMode: "path",
+      renderMode,
+      locale,
+    }),
+  );
+});
+
+app.post("/u2/forms/:formId/nodes/:nodeId", async (c) => {
+  const { formId, nodeId } = c.req.param();
+  const state = c.req.query("state") || "demo";
+  const baseUrl = new URL(c.req.url).origin;
+
+  const node = formId === demoForm.id ? getFormNode(nodeId) : undefined;
+  if (!node) {
+    return c.json({ error: "Form node not found" }, 404);
+  }
+
+  let data: Record<string, unknown> = {};
+  try {
+    const body = await c.req.json();
+    data = body.data || {};
+  } catch {
+    // Empty body is OK
+  }
+
+  const result = handleFormNodePost(node, data, state, baseUrl);
+  const status = result.screen?.messages?.some((m) => m.type === "error")
+    ? 400
+    : 200;
+  return c.json(result, status);
 });
 
 // ----------------------------------------
@@ -3370,10 +3914,13 @@ console.log(`
    Path-based:  http://localhost:${port}/u2/login/identifier
    With social: http://localhost:${port}/u2/login/identifier-social
    Query-based: http://localhost:${port}/u2/login?screen=identifier
-   
+   Form:        http://localhost:${port}/u2/forms/${demoForm.id}/nodes/${demoForm.nodes[0].id}
+
    API Endpoints:
    - GET  /u2/screen/:screenId?state=xxx
    - POST /u2/screen/:screenId?state=xxx
+   - GET  /u2/forms/:formId/nodes/:nodeId?state=xxx
+   - POST /u2/forms/:formId/nodes/:nodeId?state=xxx
 `);
 
 serve({ fetch: app.fetch, port });
