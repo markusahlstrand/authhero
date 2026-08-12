@@ -14,6 +14,7 @@ import {
   buildUserUpdates,
   mergeUserUpdates,
   resolveTemplateField,
+  accumulateFormValues,
 } from "../../hooks/formhooks";
 import type { User } from "@authhero/adapter-interfaces";
 
@@ -452,11 +453,21 @@ async function handlePostScreen(
       }
     }
 
+    // Carry earlier steps' answers forward so an UPDATE_USER placed after a
+    // later step can still resolve them.
+    const formValues = await accumulateFormValues(
+      ctx,
+      client.tenant.id,
+      loginSession.id,
+      submittedFields,
+      components,
+    );
+
     // Resolve the next node
     const resolveResult = await resolveNode(
       form.nodes,
       nextNodeId,
-      { user, submittedFields },
+      { user, submittedFields: formValues },
       flowFetcher,
     );
 

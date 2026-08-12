@@ -43,6 +43,7 @@ import {
   FlowFetcher,
   buildUserUpdates,
   mergeUserUpdates,
+  accumulateFormValues,
 } from "../../hooks/formhooks";
 
 /**
@@ -1035,10 +1036,20 @@ screenApiRoutes.openapi(
         }
       }
 
+      // Carry earlier steps' answers forward so an UPDATE_USER placed after a
+      // later step can still resolve them.
+      const formValues = await accumulateFormValues(
+        ctx,
+        client.tenant.id,
+        loginSession.id,
+        submittedFields,
+        stepNode.config.components,
+      );
+
       const resolveResult = await resolveNode(
         form.nodes,
         nextNodeId,
-        { user, submittedFields },
+        { user, submittedFields: formValues },
         flowFetcher,
       );
 

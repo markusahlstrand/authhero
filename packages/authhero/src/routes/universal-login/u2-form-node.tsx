@@ -25,6 +25,7 @@ import {
   buildUserUpdates,
   mergeUserUpdates,
   resolveTemplateField,
+  accumulateFormValues,
 } from "../../hooks/formhooks";
 import { FORM_FIELD_TYPES } from "@authhero/adapter-interfaces";
 import type {
@@ -39,6 +40,7 @@ import { sanitizeUrl } from "./sanitization-utils";
 import { resolvePrimaryUser } from "../../helpers/users";
 
 import { defineRoute } from "../../utils/define-route";
+import { resolveLocaleFromContext } from "../../utils/locale";
 /**
  * Convert form node components to UiScreen format for the widget
  */
@@ -135,6 +137,7 @@ async function renderFormNodeWidgetPage(
   clientName: string,
   clientId: string,
   termsAndConditionsUrl?: string,
+  locale?: string,
 ): Promise<Response> {
   const screenJson = JSON.stringify(screen);
   const brandingJson = branding ? JSON.stringify(branding) : undefined;
@@ -156,6 +159,7 @@ async function renderFormNodeWidgetPage(
     poweredByLogo: ctx.env.poweredByLogo,
     termsAndConditionsUrl,
     darkMode,
+    locale,
   });
 }
 const getFormIdNodesNodeId = defineRoute({
@@ -259,6 +263,7 @@ const getFormIdNodesNodeId = defineRoute({
       client.name || "AuthHero",
       client.client_id,
       sanitizeUrl(client.client_metadata?.termsAndConditionsUrl),
+      resolveLocaleFromContext(ctx, loginSession.authParams?.ui_locales),
     );
   },
 });
@@ -420,11 +425,21 @@ const postFormIdNodesNodeId = defineRoute({
           };
         };
 
+        // Carry earlier steps' answers forward so an UPDATE_USER placed after
+        // a later step can still resolve them.
+        const formValues = await accumulateFormValues(
+          ctx,
+          client.tenant.id,
+          loginSession.id,
+          submittedFields,
+          components,
+        );
+
         // Resolve the next node (could be FLOW, ROUTER, ACTION, or another STEP)
         const resolveResult = await resolveNode(
           form.nodes,
           nextNodeId,
-          { user, submittedFields },
+          { user, submittedFields: formValues },
           flowFetcher,
         );
 
