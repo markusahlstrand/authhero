@@ -14,7 +14,9 @@ export interface RolePermissionsAdapter {
     options?: CreateOptions,
   ): Promise<boolean>;
 
-  // Remove permissions from a role
+  // Remove permissions from a role. Resolves `true` when the removal
+  // succeeded, including when the permissions were already absent — callers
+  // treat `false` as an adapter failure, not as "nothing matched".
   remove(
     tenant_id: string,
     role_id: string,

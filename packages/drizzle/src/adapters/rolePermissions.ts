@@ -12,6 +12,8 @@ export function createRolePermissionsAdapter(db: DrizzleDb) {
         permission_name: string;
       }>,
     ): Promise<boolean> {
+      if (permissions.length === 0) return true;
+
       const now = new Date().toISOString();
       await db
         .insert(rolePermissions)
@@ -88,6 +90,10 @@ export function createRolePermissionsAdapter(db: DrizzleDb) {
         permission_name: string;
       }>,
     ): Promise<boolean> {
+      // `or()` with no predicates is `undefined`, which would collapse the
+      // where clause to tenant+role and wipe every permission on the role.
+      if (permissions.length === 0) return true;
+
       const permsPredicates = permissions.map((perm) =>
         and(
           eq(
@@ -98,7 +104,7 @@ export function createRolePermissionsAdapter(db: DrizzleDb) {
         ),
       );
 
-      const results = await db
+      await db
         .delete(rolePermissions)
         .where(
           and(
@@ -109,7 +115,9 @@ export function createRolePermissionsAdapter(db: DrizzleDb) {
         )
         .returning();
 
-      return results.length > 0;
+      // Removing an already-absent permission is a no-op, not a failure — the
+      // caller turns `false` into a 500.
+      return true;
     },
   };
 }

@@ -15,7 +15,7 @@ export function remove(db: Kysely<Database>) {
 
     try {
       // For simplicity, delete each permission one by one
-      const results = await Promise.all(
+      await Promise.all(
         permissions.map((perm) =>
           db
             .deleteFrom("role_permissions")
@@ -31,7 +31,9 @@ export function remove(db: Kysely<Database>) {
         ),
       );
 
-      return results.some((result) => Number(result.numDeletedRows) > 0);
+      // Removing an already-absent permission is a no-op, not a failure — the
+      // caller turns `false` into a 500.
+      return true;
     } catch (error) {
       console.error("Error removing role permissions:", error);
       return false;
