@@ -1,5 +1,78 @@
 # @authhero/widget
 
+## 0.38.0
+
+### Minor Changes
+
+- 4e668ac: Replace the native date input with a locale-aware segmented DATE field.
+
+  `input type="date"` rendered differently in every browser (a stepper in
+  Safari), kept its dd/mm/yyyy hint visible while half-filled, and needed a
+  calendar gesture to reach a year decades back — all wrong for a date typed
+  from memory, such as a birthdate.
+
+  The field is now three numeric segments with auto-advance, backspace-to-
+  previous, paste support, and two-digit year expansion ("85" becomes 1985,
+  anchored on `config.max` when the field has one). The submitted value is
+  unchanged: a single ISO `YYYY-MM-DD`, emitted only once the segments form a
+  real calendar date.
+
+  Segment order follows a new `locale` prop on the widget (`DD/MM/YYYY`,
+  `MM/DD/YYYY` or `YYYY-MM-DD`), which `authhero` resolves per request from
+  `ui_locales` then `Accept-Language`, keeping the region subtag that the
+  translation language drops. An explicit `config.format` on the component
+  overrides the locale.
+
+### Patch Changes
+
+- 4e668ac: Disable the primary action button until every required field on the screen has
+  a value. The widget submits through its own handler rather than a native form
+  submit, so the browser's constraint validation never ran and an empty required
+  field only surfaced as a server error after a round trip. The same check also
+  blocks submit-on-Enter.
+
+  Also fixes BOOLEAN checkboxes: a `default_value` is now seeded into the form
+  data, so a box the user never touches submits the state it renders in, and
+  unticking a ticked-by-default box now sticks.
+
+- 4e668ac: Fix TEL field country detection when typing an international prefix. The leading
+  `+` was stripped on every keystroke, so a dial code could never build up and
+  typing `+46` never switched the country picker to Sweden.
+- 23861a8: Fix DATE and TEL field regressions in the node component.
+  - Pasting a date with a two-digit year ("15/03/85") now expands the year the
+    same way typing one does, instead of failing validation and falling through
+    to the browser's own paste.
+  - A TEL field no longer loses the country the user picked. The widget mirrors
+    every emitted value back onto the `value` prop, and re-parsing that echo
+    moved anyone on a shared dial code (Canada, Kazakhstan, the +44 islands) to
+    the first country in the table with that code.
+  - An explicit `YY` format renders a `YYYY` placeholder, matching the four
+    digits the segment actually accepts.
+  - The DATE segment group keeps a visible focus indicator in forced-colors
+    mode, where the `box-shadow` it relied on is suppressed.
+
+- 01e057e: Add a multi-step Form to the widget demo server.
+
+  The demo only ever served hand-built login screens, so form nodes — the other
+  half of what the widget renders — could only be exercised against a real
+  tenant. It now serves a three-step `profile_completion` form from
+  `/u2/forms/:formId/nodes/:nodeId`, the same route shape production uses, built
+  from STEP nodes chained by `next_node` and covering TEXT, DATE, DROPDOWN,
+  CHOICE, TEL, LEGAL, BOOLEAN, RICH_TEXT and the previous/next buttons.
+
+  Required fields are validated server-side and answers accumulate across steps,
+  so a validation error or a Back click re-renders the step with what was already
+  typed — the demo's stand-in for `accumulateFormValues`. The steps show up in
+  the demo's screen dropdown and work in every mode it offers (path URLs, SSR +
+  hydration, theming, dark mode, mobile frame).
+
+  No change to the published component; demo-server is not part of the package.
+
+- Updated dependencies [060b2d5]
+- Updated dependencies [9c9fefe]
+- Updated dependencies [bed0939]
+  - @authhero/adapter-interfaces@4.7.0
+
 ## 0.37.1
 
 ### Patch Changes

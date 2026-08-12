@@ -1,5 +1,43 @@
 # @authhero/adapter-interfaces
 
+## 4.7.0
+
+### Minor Changes
+
+- 060b2d5: Restrict form hooks to the `post-user-login` trigger, the only trigger that dispatches them.
+
+  `handleFormHook` is called from `postUserLoginHook` and nowhere else, but `formHookAllowedTriggers` accepted six triggers. A form hook on `pre-user-registration`, `post-user-registration`, `validate-registration-username`, `pre-user-deletion` or `post-user-deletion` was accepted by the management API, listed as enabled in the admin UI, and then never ran — indistinguishable from a form that is simply broken. The other triggers can't support a form hook: they run as decorators on `users.create` / `users.update` / `users.remove` (so they also fire for the management API, SCIM and tenant imports) and return a `User` rather than a `Response`, leaving no channel for the redirect a form hook depends on.
+  - `formHookAllowedTriggers` is narrowed to `post-user-login`, so `POST /api/v2/hooks` now rejects the rest with a 400 instead of storing a hook that can't run.
+  - `PATCH /api/v2/hooks/{id}` re-checks the trigger against the stored row, via the new `allowedTriggersForHook` helper. The body schema is a union of _partial_ variant schemas, so a patch carrying only `trigger_id` matches whichever member has no required field left and the stored hook's type is otherwise invisible to it. Only a _change_ is rejected: a row stored on a now-unsupported trigger can still be edited (and disabled), it just can't be moved further.
+  - The admin UI narrows the trigger list per hook type in both the create form and the details tab — form and page hooks to `post-user-login`, code hooks to the four triggers they support. A hook already stored on an unsupported trigger keeps it as a flagged choice so the rest of the record stays editable.
+
+  To collect data from new users, put the form hook on `post-user-login`: it runs on the first login immediately after signup, with the user created and the login session live.
+
+### Patch Changes
+
+- 9c9fefe: Make role permission assignment and removal idempotent so the management API stops returning 500 for no-op changes.
+  - `POST /api/v2/roles/{id}/permissions` returned 500 when re-assigning a permission the role already had. PlanetScale reports duplicate keys in the error message rather than as `ER_DUP_ENTRY` on `error.code`, so the kysely adapter rethrew the duplicate and the route surfaced it as "Failed to assign permissions to role".
+  - `DELETE /api/v2/roles/{id}/permissions` returned 500 when removing a permission the role did not have: both the kysely and drizzle adapters resolved `false` when no rows matched, and the route treats `false` as an adapter failure. They now resolve `true`, matching the AWS adapter, and the interface documents the contract.
+  - The drizzle adapter no longer deletes every permission on a role when `remove` is called with an empty array (`or()` over no predicates collapsed the where clause to tenant + role).
+
+- bed0939: Return masked hints for connection secrets
+
+  Connection responses still omit `client_secret`, `app_secret` and
+  `twilio_token`, but now include a sibling `<field>_hint` holding a masked
+  preview (e.g. `3a9f••••••••`) so a UI can show that a secret is set — and which
+  one — without exposing it. Secrets shorter than 16 characters are masked
+  without a prefix, and the mask is a fixed width so it doesn't leak the real
+  length. The same applies to the nested upstream migration secret at
+  `options.configuration.client_secret`, which was previously returned in full.
+
+  Hints are response-only: they are dropped from POST/PATCH bodies, as are blank
+  secret values, so a client that echoes a record back can neither persist a mask
+  nor wipe a stored secret with an empty string. A secret consequently can't be
+  cleared by sending `""` — set a new value instead.
+
+  Connection secrets are also no longer written to the audit log in plaintext;
+  log entity state and request bodies go through the same redaction.
+
 ## 4.6.0
 
 ### Minor Changes
