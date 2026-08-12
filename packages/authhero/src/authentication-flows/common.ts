@@ -52,6 +52,7 @@ import {
   buildRequestedClaims,
 } from "../helpers/scope-claims";
 import { withDefaultPicture } from "../helpers/avatar";
+import { shouldStampUsedAt } from "../helpers/session-usage";
 import { resolveSigningKeys } from "../helpers/signing-keys";
 import { JSONHTTPException } from "../errors/json-http-exception";
 import { GrantType } from "@authhero/adapter-interfaces";
@@ -917,13 +918,21 @@ export async function authenticateLoginSession(
       session_id = existingSessionId;
       authenticatedAt = existingSession.authenticated_at;
 
-      // Ensure the client is associated with the existing session
-      if (!existingSession.clients.includes(client.client_id)) {
+      // Re-authorizing against an existing SSO session counts as using it, so
+      // stamp `used_at` (throttled) to keep retention analytics honest. Folded
+      // into the client-association update when one is needed so the common
+      // case stays a single write.
+      const clientMissing = !existingSession.clients.includes(client.client_id);
+      const stampUsedAt = shouldStampUsedAt(existingSession);
+      if (clientMissing || stampUsedAt) {
         await ctx.env.data.sessions.update(
           client.tenant.id,
           existingSessionId,
           {
-            clients: [...existingSession.clients, client.client_id],
+            ...(clientMissing && {
+              clients: [...existingSession.clients, client.client_id],
+            }),
+            ...(stampUsedAt && { used_at: new Date().toISOString() }),
           },
         );
       }

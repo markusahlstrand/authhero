@@ -22,6 +22,7 @@ import {
 import { ulid } from "../utils/ulid";
 import { tryUpstreamRemint } from "./refresh-token-migration";
 import { userHasGlobalOrgAdminPermission } from "../helpers/scopes-permissions";
+import { touchSessionUsedAt } from "../helpers/session-usage";
 
 export const refreshTokenParamsSchema = z.object({
   grant_type: z.literal("refresh_token"),
@@ -438,6 +439,15 @@ export async function refreshTokenGrant(
         upgrade,
       );
     }
+  }
+
+  // The exchange succeeded, so the session behind it is still alive. Nothing
+  // above writes to the `sessions` row — the rotation bookkeeping all lands on
+  // `refresh_tokens` — so without this stamp a session that is refreshed for
+  // months still looks last-seen in its creation week to retention analytics.
+  // Throttled and off the critical path; see `touchSessionUsedAt`.
+  if (sessionId) {
+    touchSessionUsedAt(ctx, client.tenant.id, sessionId);
   }
 
   return {
