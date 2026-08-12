@@ -27,3 +27,8 @@ comes next; keep auth-flow logic out of this package.
   excluded from the repo's Vitest workspace).
 - `pnpm dev` builds the widget in watch mode and serves the demo at
   http://localhost:3456/u2/login/identifier (mock flow + live theme panel).
+- The same demo serves a multi-step Form at
+  http://localhost:3456/u2/forms/profile_completion/nodes/details — mirrors
+  production's `/u2/forms/:formId/nodes/:nodeId`, including required-field
+  validation and answers carried across steps. Pick it from the demo's screen
+  dropdown ("Form: Complete your profile").
