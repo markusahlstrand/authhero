@@ -54,6 +54,73 @@ const DEFAULT_TOKENS: Record<DateSegment, string> = {
 };
 
 /**
+ * Placeholder tokens in the language's own convention — a German field reads
+ * TT.MM.JJJJ, a French one JJ/MM/AAAA. Languages without an entry fall back to
+ * the English DD/MM/YYYY tokens.
+ */
+const TOKENS_BY_LANGUAGE: Record<string, Record<DateSegment, string>> = {
+  cs: { day: "DD", month: "MM", year: "RRRR" },
+  da: { day: "DD", month: "MM", year: "ÅÅÅÅ" },
+  de: { day: "TT", month: "MM", year: "JJJJ" },
+  es: { day: "DD", month: "MM", year: "AAAA" },
+  fi: { day: "PP", month: "KK", year: "VVVV" },
+  fr: { day: "JJ", month: "MM", year: "AAAA" },
+  hu: { day: "NN", month: "HH", year: "ÉÉÉÉ" },
+  it: { day: "GG", month: "MM", year: "AAAA" },
+  nb: { day: "DD", month: "MM", year: "ÅÅÅÅ" },
+  nl: { day: "DD", month: "MM", year: "JJJJ" },
+  nn: { day: "DD", month: "MM", year: "ÅÅÅÅ" },
+  no: { day: "DD", month: "MM", year: "ÅÅÅÅ" },
+  pl: { day: "DD", month: "MM", year: "RRRR" },
+  pt: { day: "DD", month: "MM", year: "AAAA" },
+  ru: { day: "ДД", month: "ММ", year: "ГГГГ" },
+  sk: { day: "DD", month: "MM", year: "RRRR" },
+  sv: { day: "DD", month: "MM", year: "ÅÅÅÅ" },
+  tr: { day: "GG", month: "AA", year: "YYYY" },
+  uk: { day: "ДД", month: "ММ", year: "РРРР" },
+};
+
+/**
+ * Separator by language, for languages that do not use the defaults ("/" for
+ * day- or month-first, "-" for year-first). Mostly the locales that write
+ * 14.08.2026 with dots — German, the Nordics minus Sweden, and most of
+ * Central/Eastern Europe.
+ */
+const SEPARATOR_BY_LANGUAGE: Record<string, string> = {
+  bg: ".",
+  cs: ".",
+  da: ".",
+  de: ".",
+  et: ".",
+  fi: ".",
+  hr: ".",
+  hu: ".",
+  is: ".",
+  ja: "/",
+  ko: ".",
+  lv: ".",
+  mk: ".",
+  nb: ".",
+  nl: "-",
+  nn: ".",
+  no: ".",
+  pl: ".",
+  ro: ".",
+  ru: ".",
+  sk: ".",
+  sl: ".",
+  sr: ".",
+  tr: ".",
+  uk: ".",
+  zh: "/",
+};
+
+/** Full-tag overrides — Finland-Swedish writes 14.8.2026 with dots. */
+const SEPARATOR_BY_TAG: Record<string, string> = {
+  "sv-fi": ".",
+};
+
+/**
  * Split a BCP-47 tag into a lowercase language subtag and, when present, a
  * two-letter region subtag. Script and variant subtags are ignored.
  */
@@ -131,11 +198,16 @@ export function getDateLayout(format?: string, locale?: string): DateLayout {
     const parsed = parseFormat(format);
     if (parsed) return parsed;
   }
+  const { language, region } = parseTag(locale);
   const order = getDateOrder(locale);
+  const separator =
+    (region ? SEPARATOR_BY_TAG[`${language}-${region}`] : undefined) ??
+    SEPARATOR_BY_LANGUAGE[language] ??
+    (order[0] === "year" ? "-" : "/");
   return {
     order,
-    tokens: DEFAULT_TOKENS,
-    separator: order[0] === "year" ? "-" : "/",
+    tokens: TOKENS_BY_LANGUAGE[language] ?? DEFAULT_TOKENS,
+    separator,
   };
 }
 
