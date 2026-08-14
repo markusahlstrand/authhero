@@ -126,6 +126,19 @@ function mapCustomDomainResponse(
 }
 
 /**
+ * Did the create call fail because the hostname already exists in the zone?
+ *
+ * Matched on the error text rather than a status code because the rejection reaches us
+ * two ways — wretch throws with the response body as its message, and a success:false
+ * body is rethrown as JSON.stringify(errors) — and both spell out the duplicate
+ * ("Duplicate custom hostname found", "workers.api.duplicate_hostname").
+ */
+function isDuplicateHostnameError(err: unknown): boolean {
+  const message = err instanceof Error ? err.message : String(err);
+  return /duplicate/i.test(message);
+}
+
+/**
  * Look up a hostname that already exists in the zone.
  *
  * Returns null when it cannot be found or cannot be safely claimed, because the only
@@ -224,7 +237,12 @@ export function createCustomDomainsAdapter(
         // edge with no authhero row. Every later attempt then hits the same rejection and
         // the domain can never be registered again — a permanent failure produced by one
         // transient one. No tenant claims it (checked above), so adopt what is already
-        // there instead. Anything we cannot positively identify still throws.
+        // there instead. Only the duplicate rejection means that: any other failure —
+        // rate limit, bad config — must not turn into adopting a hostname that happens
+        // to exist, so everything else rethrows before the lookup.
+        if (!isDuplicateHostnameError(err)) {
+          throw err;
+        }
         const existing = await findCustomHostname(
           config,
           tenant_id,
