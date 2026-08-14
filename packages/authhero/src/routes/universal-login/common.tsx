@@ -100,16 +100,31 @@ export async function initJSXRoute(
       }
     : null;
 
+  // Pick the classic /u language from ui_locales, restricted to both the
+  // i18next catalogue and the tenant's enabled_locales. Unlike u2 this flow
+  // deliberately ignores Accept-Language; when nothing requested matches, the
+  // tenant's first enabled locale is the default instead of English.
+  const enabledLanguages = tenant.enabled_locales?.map(
+    (locale) => locale.split("-")[0]?.toLowerCase() ?? locale,
+  );
   const loginSessionLanguage = loginSession.authParams?.ui_locales
     ?.split(" ")
     ?.map((locale) => locale.split("-")[0])
     ?.find((language) => {
+      if (!language) {
+        return false;
+      }
+      if (enabledLanguages?.length && !enabledLanguages.includes(language)) {
+        return false;
+      }
       if (Array.isArray(i18next.options.supportedLngs)) {
         return i18next.options.supportedLngs.includes(language);
       }
     });
 
-  await i18next.changeLanguage(loginSessionLanguage || "en");
+  await i18next.changeLanguage(
+    loginSessionLanguage || enabledLanguages?.[0] || "en",
+  );
 
   return {
     theme,

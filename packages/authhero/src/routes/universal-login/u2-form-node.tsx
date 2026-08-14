@@ -263,7 +263,11 @@ const getFormIdNodesNodeId = defineRoute({
       client.name || "AuthHero",
       client.client_id,
       sanitizeUrl(client.client_metadata?.termsAndConditionsUrl),
-      resolveLocaleFromContext(ctx, loginSession.authParams?.ui_locales),
+      resolveLocaleFromContext(
+        ctx,
+        loginSession.authParams?.ui_locales,
+        client.tenant.enabled_locales,
+      ),
     );
   },
 });

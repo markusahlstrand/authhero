@@ -48,8 +48,8 @@ import {
 } from "./u2-widget-page";
 import { ErrorPage } from "./error-page";
 import { DEFAULT_THEME } from "../../constants/defaultTheme";
-import { locales } from "../../i18n";
-import { resolveLocale } from "../../utils/locale";
+import { getAvailableLocales } from "../../i18n";
+import { resolveLanguage, resolveLocale } from "../../utils/locale";
 import { nanoid } from "nanoid";
 import { getEnrichedClient } from "../../helpers/client";
 import { prefetchClientBundle } from "../../helpers/prefetch-client-bundle";
@@ -57,8 +57,6 @@ import { isCimdClientId } from "../../helpers/cimd";
 import { UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS } from "../../constants";
 
 import { defineRoute } from "../../utils/define-route";
-// Mutable copy of the readonly `locales` tuple — handlers expect string[].
-const availableLocales: string[] = [...locales];
 
 /**
  * Mapping from screen IDs (used in routes) to prompt screen IDs (used for custom text)
@@ -115,43 +113,6 @@ const SCREEN_TO_PROMPT_MAP: Record<string, PromptScreen> = {
  */
 function getPromptScreenForScreen(screenId: string): PromptScreen | undefined {
   return SCREEN_TO_PROMPT_MAP[screenId];
-}
-
-/**
- * Detect language from ui_locales parameter or Accept-Language header
- * Priority: ui_locales (from OAuth request) > Accept-Language header > "en"
- */
-function detectLanguage(
-  uiLocales: string | undefined,
-  acceptLanguage: string | undefined,
-): string {
-  // First, try ui_locales from the OAuth authorization request
-  if (uiLocales) {
-    // ui_locales can contain multiple locales separated by spaces (e.g., "nb en")
-    // Use the first one as the preferred language
-    const firstLocale = uiLocales.split(" ")[0];
-    if (firstLocale) {
-      // Extract just the language code (e.g., "nb" from "nb-NO")
-      const langCode = firstLocale.split("-")[0]?.toLowerCase();
-      if (langCode) return langCode;
-    }
-  }
-
-  // Fall back to Accept-Language header
-  if (!acceptLanguage) return "en";
-
-  // Parse Accept-Language header (e.g., "en-US,en;q=0.9,es;q=0.8")
-  const languages = acceptLanguage.split(",").map((lang) => {
-    const [code, qValue] = lang.trim().split(";");
-    const q = qValue ? parseFloat(qValue.split("=")[1] || "1") : 1;
-    // Extract just the language code (e.g., "en" from "en-US")
-    const langCode = code?.split("-")[0]?.toLowerCase() || "en";
-    return { code: langCode, q };
-  });
-
-  // Sort by quality value and return the highest priority language
-  languages.sort((a, b) => b.q - a.q);
-  return languages[0]?.code || "en";
 }
 
 /**
@@ -251,16 +212,21 @@ function createScreenRouteHandler(screenId: string) {
       // Method or table may not exist in older adapters - continue without custom template
     }
 
-    // Detect language: URL ui_locales (picker) > session ui_locales (OAuth) > Accept-Language > "en"
+    // Detect language: URL ui_locales (picker) > session ui_locales (OAuth) >
+    // Accept-Language > tenant default. The tenant's enabled_locales both
+    // restricts the candidates and provides the fallback (Auth0 semantics).
     const acceptLanguage = ctx.req.header("Accept-Language");
-    const language = detectLanguage(
+    const enabledLocales = client.tenant.enabled_locales;
+    const language = resolveLanguage(
       ui_locales || loginSession.authParams?.ui_locales,
       acceptLanguage,
+      enabledLocales,
     );
     // Same sources, region kept — drives locale-dependent field layout
     const locale = resolveLocale(
       ui_locales || loginSession.authParams?.ui_locales,
       acceptLanguage,
+      enabledLocales,
     );
 
     // Fetch custom text for this screen and language
@@ -443,7 +409,7 @@ function createScreenRouteHandler(screenId: string) {
       poweredByLogo: ctx.env.poweredByLogo,
       language,
       locale,
-      availableLanguages: availableLocales,
+      availableLanguages: getAvailableLocales(enabledLocales),
       termsAndConditionsUrl: sanitizeUrl(
         client.client_metadata?.termsAndConditionsUrl,
       ),
@@ -511,16 +477,21 @@ function createScreenPostHandler(screenId: string) {
       }
     }
 
-    // Detect language: URL ui_locales (picker) > session ui_locales (OAuth) > Accept-Language > "en"
+    // Detect language: URL ui_locales (picker) > session ui_locales (OAuth) >
+    // Accept-Language > tenant default, restricted by the tenant's
+    // enabled_locales.
     const acceptLanguage = ctx.req.header("Accept-Language");
-    const language = detectLanguage(
+    const enabledLocales = client.tenant.enabled_locales;
+    const language = resolveLanguage(
       ui_locales || loginSession.authParams?.ui_locales,
       acceptLanguage,
+      enabledLocales,
     );
     // Same sources, region kept — drives locale-dependent field layout
     const locale = resolveLocale(
       ui_locales || loginSession.authParams?.ui_locales,
       acceptLanguage,
+      enabledLocales,
     );
 
     // Fetch custom text for this screen and language
@@ -659,7 +630,7 @@ function createScreenPostHandler(screenId: string) {
       poweredByLogo: ctx.env.poweredByLogo,
       language,
       locale,
-      availableLanguages: availableLocales,
+      availableLanguages: getAvailableLocales(enabledLocales),
       termsAndConditionsUrl: sanitizeUrl(
         client.client_metadata?.termsAndConditionsUrl,
       ),
