@@ -48,7 +48,7 @@ export const OPERATOR_OPTIONS: Array<{ value: Operator; label: string }> = [
 
 export const VALUELESS_OPERATORS: Operator[] = ["exists", "not_exists"];
 
-export interface RouterFieldOption {
+export interface UserFieldOption {
   value: string;
   label: string;
   group: string;
@@ -58,7 +58,8 @@ export interface RouterFieldOption {
 // substitutes template references; a bare path would compare as a literal.
 const userField = (path: string) => `{{context.user.${path}}}`;
 
-export const ROUTER_FIELD_OPTIONS: RouterFieldOption[] = [
+// Shared by router-condition fields and field default_value pickers.
+export const USER_FIELD_OPTIONS: UserFieldOption[] = [
   { value: userField("email"), label: "Email", group: "User profile" },
   { value: userField("name"), label: "Name", group: "User profile" },
   {
@@ -80,6 +81,16 @@ export const ROUTER_FIELD_OPTIONS: RouterFieldOption[] = [
     label: "Phone number",
     group: "User profile",
   },
+  // birthdate, gender, and address are root-level OIDC claims on the user
+  // (see adapter-interfaces baseUserSchema), NOT user_metadata fields —
+  // UPDATE_USER flow actions write bare keys to the root of the profile.
+  { value: userField("birthdate"), label: "Birthdate", group: "User profile" },
+  { value: userField("gender"), label: "Gender", group: "User profile" },
+  {
+    value: userField("address.country"),
+    label: "Country (address)",
+    group: "User profile",
+  },
   {
     value: userField("connection"),
     label: "Connection",
@@ -95,26 +106,6 @@ export const ROUTER_FIELD_OPTIONS: RouterFieldOption[] = [
   {
     value: userField("user_metadata.country"),
     label: "Country",
-    group: "User metadata",
-  },
-  {
-    value: userField("user_metadata.gender"),
-    label: "Gender",
-    group: "User metadata",
-  },
-  {
-    value: userField("user_metadata.birthdate"),
-    label: "Birthdate",
-    group: "User metadata",
-  },
-  {
-    value: userField("user_metadata.address"),
-    label: "Address",
-    group: "User metadata",
-  },
-  {
-    value: userField("user_metadata.phone"),
-    label: "Phone",
     group: "User metadata",
   },
 ];

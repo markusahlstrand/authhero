@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 
+import { TemplateValueInput } from "../TemplateValueInput";
 import type { FormNodeComponent } from "../../types";
 
 interface DateEditorProps {
@@ -89,10 +90,10 @@ export function DateEditor({ value, onChange }: DateEditorProps) {
       </div>
       <div className="flex flex-col gap-1.5">
         <Label className="text-xs">Default value</Label>
-        <Input
+        <TemplateValueInput
           value={v.config?.default_value ?? ""}
-          onChange={(e) =>
-            updateConfig({ default_value: e.target.value || undefined })
+          onChange={(next) =>
+            updateConfig({ default_value: next || undefined })
           }
         />
       </div>
