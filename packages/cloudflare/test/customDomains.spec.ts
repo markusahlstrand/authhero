@@ -483,4 +483,325 @@ describe("customDomains", () => {
       expect(err.status).toBe(404);
     }
   });
+
+  it("returns a 409 when the domain is already registered", async () => {
+    // A repeated registration is a retry, not a new fact, and the caller has to be able to
+    // tell it apart from a broken edge. Reaching Cloudflare here produced an opaque 500.
+    const { data } = await getTestServer();
+
+    const { customDomains } = createAdapters({
+      zoneId: "zoneId",
+      authKey: "authKey",
+      authEmail: "authEmail",
+      enterprise: false,
+      customDomainAdapter: data.customDomains,
+    });
+
+    await data.tenants.create({
+      id: "tenantId",
+      friendly_name: "Test Tenant",
+      audience: "https://example.com",
+      sender_email: "login@example.com",
+      sender_name: "SenderName",
+    });
+
+    await customDomains.create("tenantId", {
+      domain: "example.com",
+      type: "auth0_managed_certs",
+    });
+
+    let cloudflareCalls = 0;
+    server.use(
+      http.post(
+        "https://api.cloudflare.com/client/v4/zones/zoneId/custom_hostnames",
+        async () => {
+          cloudflareCalls += 1;
+          return HttpResponse.json(baseMock);
+        },
+      ),
+    );
+
+    try {
+      await customDomains.create("tenantId", {
+        domain: "example.com",
+        type: "auth0_managed_certs",
+      });
+      throw new Error("should have thrown");
+    } catch (err) {
+      if (!(err instanceof HTTPException)) throw err;
+      expect(err.status).toBe(409);
+    }
+
+    // Answered from our own records — the duplicate never reaches the edge.
+    expect(cloudflareCalls).toBe(0);
+
+    // The check is zone-wide, not tenant-scoped: a hostname held by another tenant has
+    // to read the same as one held by this one.
+    await data.tenants.create({
+      id: "otherTenant",
+      friendly_name: "Other Tenant",
+      audience: "https://example.com",
+      sender_email: "login@example.com",
+      sender_name: "SenderName",
+    });
+
+    try {
+      await customDomains.create("otherTenant", {
+        domain: "example.com",
+        type: "auth0_managed_certs",
+      });
+      throw new Error("should have thrown");
+    } catch (err) {
+      if (!(err instanceof HTTPException)) throw err;
+      expect(err.status).toBe(409);
+    }
+
+    expect(cloudflareCalls).toBe(0);
+  });
+
+  it("adopts a hostname that already exists in the zone", async () => {
+    // A create that dies between the Cloudflare call and the writes that follow leaves the
+    // hostname at the edge with no authhero row. Cloudflare then rejects every retry, so
+    // without adoption one transient failure makes the domain permanently unregisterable.
+    const { data } = await getTestServer();
+
+    const { customDomains } = createAdapters({
+      zoneId: "zoneId",
+      authKey: "authKey",
+      authEmail: "authEmail",
+      enterprise: false,
+      customDomainAdapter: data.customDomains,
+    });
+
+    await data.tenants.create({
+      id: "tenantId",
+      friendly_name: "Test Tenant",
+      audience: "https://example.com",
+      sender_email: "login@example.com",
+      sender_name: "SenderName",
+    });
+
+    server.use(
+      http.post(
+        "https://api.cloudflare.com/client/v4/zones/zoneId/custom_hostnames",
+        async () =>
+          HttpResponse.json(
+            {
+              errors: [
+                { code: 1406, message: "workers.api.duplicate_hostname" },
+              ],
+              messages: [],
+              success: false,
+              result: null,
+            },
+            { status: 400 },
+          ),
+      ),
+      http.get(
+        "https://api.cloudflare.com/client/v4/zones/zoneId/custom_hostnames",
+        async ({ request }) => {
+          const hostname = new URL(request.url).searchParams.get("hostname");
+          const existing = structuredClone(baseMock);
+          existing.result.hostname = hostname ?? "example.com";
+          // @ts-expect-error The list endpoint returns an array
+          existing.result = [existing.result];
+          return HttpResponse.json(existing);
+        },
+      ),
+    );
+
+    const adopted = await customDomains.create("tenantId", {
+      domain: "example.com",
+      type: "auth0_managed_certs",
+    });
+
+    expect(adopted).toMatchObject({
+      domain: "example.com",
+      custom_domain_id: "customHostnameId",
+      status: "pending",
+    });
+
+    // The point of adopting is the row: without it list() stays empty and the next attempt
+    // hits the same rejection.
+    const persisted = await data.customDomains.get(
+      "tenantId",
+      adopted.custom_domain_id,
+    );
+    expect(persisted).toMatchObject({ domain: "example.com" });
+  });
+
+  it("rethrows when the rejected hostname cannot be found in the zone", async () => {
+    const { data } = await getTestServer();
+
+    const { customDomains } = createAdapters({
+      zoneId: "zoneId",
+      authKey: "authKey",
+      authEmail: "authEmail",
+      enterprise: false,
+      customDomainAdapter: data.customDomains,
+    });
+
+    await data.tenants.create({
+      id: "tenantId",
+      friendly_name: "Test Tenant",
+      audience: "https://example.com",
+      sender_email: "login@example.com",
+      sender_name: "SenderName",
+    });
+
+    server.use(
+      http.post(
+        "https://api.cloudflare.com/client/v4/zones/zoneId/custom_hostnames",
+        async () =>
+          HttpResponse.json(
+            {
+              errors: [
+                { code: 1406, message: "workers.api.duplicate_hostname" },
+              ],
+              messages: [],
+              success: false,
+              result: null,
+            },
+            // 400 rather than 500: wretch retries 5xx, and this test is about the
+            // rejection reaching the caller, not about the retry policy.
+            { status: 400 },
+          ),
+      ),
+      http.get(
+        "https://api.cloudflare.com/client/v4/zones/zoneId/custom_hostnames",
+        async () => {
+          const empty = structuredClone(baseMock);
+          // @ts-expect-error The list endpoint returns an array
+          empty.result = [];
+          return HttpResponse.json(empty);
+        },
+      ),
+    );
+
+    await expect(
+      customDomains.create("tenantId", {
+        domain: "example.com",
+        type: "auth0_managed_certs",
+      }),
+    ).rejects.toThrow(/duplicate_hostname/);
+  });
+
+  it("rethrows an unrelated error without attempting adoption", async () => {
+    // Adoption is recovery from the duplicate rejection specifically. Any other failure
+    // must reach the caller untouched — even if the hostname happens to exist in the
+    // zone, a rate limit or a bad config is not a claim to it.
+    const { data } = await getTestServer();
+
+    const { customDomains } = createAdapters({
+      zoneId: "zoneId",
+      authKey: "authKey",
+      authEmail: "authEmail",
+      enterprise: false,
+      customDomainAdapter: data.customDomains,
+    });
+
+    await data.tenants.create({
+      id: "tenantId",
+      friendly_name: "Test Tenant",
+      audience: "https://example.com",
+      sender_email: "login@example.com",
+      sender_name: "SenderName",
+    });
+
+    let lookupCalls = 0;
+    server.use(
+      http.post(
+        "https://api.cloudflare.com/client/v4/zones/zoneId/custom_hostnames",
+        async () =>
+          HttpResponse.json(
+            {
+              errors: [{ code: 1000, message: "something else broke" }],
+              messages: [],
+              success: false,
+              result: null,
+            },
+            { status: 400 },
+          ),
+      ),
+      // The lookup would find the hostname — proving that what stops adoption is the
+      // error classification, not a lookup miss.
+      http.get(
+        "https://api.cloudflare.com/client/v4/zones/zoneId/custom_hostnames",
+        async () => {
+          lookupCalls += 1;
+          const existing = structuredClone(baseMock);
+          // @ts-expect-error The list endpoint returns an array
+          existing.result = [existing.result];
+          return HttpResponse.json(existing);
+        },
+      ),
+    );
+
+    await expect(
+      customDomains.create("tenantId", {
+        domain: "example.com",
+        type: "auth0_managed_certs",
+      }),
+    ).rejects.toThrow(/something else broke/);
+
+    expect(lookupCalls).toBe(0);
+    expect(await data.customDomains.getByDomain("example.com")).toBeFalsy();
+  });
+
+  it("never adopts a hostname stamped with another tenant's id on an enterprise zone", async () => {
+    const { data } = await getTestServer();
+
+    const { customDomains } = createAdapters({
+      zoneId: "zoneId",
+      authKey: "authKey",
+      authEmail: "authEmail",
+      enterprise: true,
+      customDomainAdapter: data.customDomains,
+    });
+
+    await data.tenants.create({
+      id: "tenantId",
+      friendly_name: "Test Tenant",
+      audience: "https://example.com",
+      sender_email: "login@example.com",
+      sender_name: "SenderName",
+    });
+
+    server.use(
+      http.post(
+        "https://api.cloudflare.com/client/v4/zones/zoneId/custom_hostnames",
+        async () =>
+          HttpResponse.json(
+            {
+              errors: [
+                { code: 1406, message: "workers.api.duplicate_hostname" },
+              ],
+              messages: [],
+              success: false,
+              result: null,
+            },
+            { status: 400 },
+          ),
+      ),
+      http.get(
+        "https://api.cloudflare.com/client/v4/zones/zoneId/custom_hostnames",
+        async () => {
+          const existing = structuredClone(baseMock);
+          existing.result.custom_metadata = { tenant_id: "someoneElse" };
+          // @ts-expect-error The list endpoint returns an array
+          existing.result = [existing.result];
+          return HttpResponse.json(existing);
+        },
+      ),
+    );
+
+    await expect(
+      customDomains.create("tenantId", {
+        domain: "example.com",
+        type: "auth0_managed_certs",
+      }),
+    ).rejects.toThrow(/duplicate_hostname/);
+
+    expect(await data.customDomains.getByDomain("example.com")).toBeFalsy();
+  });
 });
