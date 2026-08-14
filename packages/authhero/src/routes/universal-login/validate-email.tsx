@@ -31,7 +31,17 @@ const getRoot = defineRoute({
     },
     responses: {
       200: {
-        description: "Response",
+        description: "Email verified confirmation page",
+        content: { "text/html": { schema: z.string() } },
+      },
+      400: {
+        description:
+          "Branded error page (missing/invalid state or code, expired code)",
+        content: { "text/html": { schema: z.string() } },
+      },
+      500: {
+        description: "Branded error page",
+        content: { "text/html": { schema: z.string() } },
       },
     },
   }),

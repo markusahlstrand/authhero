@@ -4,7 +4,12 @@ import { AuthorizationResponseType } from "@authhero/adapter-interfaces";
 import { getTestServer } from "../helpers/test-server";
 import { u2Screen } from "../helpers/u2-screen";
 
-async function startLoginSession(oauthApp: any, env: any): Promise<string> {
+type TestServer = Awaited<ReturnType<typeof getTestServer>>;
+
+async function startLoginSession(
+  oauthApp: TestServer["oauthApp"],
+  env: TestServer["env"],
+): Promise<string> {
   const oauthClient = testClient(oauthApp, env);
   const authorizeResponse = await oauthClient.authorize.$get({
     query: {
