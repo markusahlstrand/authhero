@@ -11,27 +11,54 @@ import {
   getSelectedDomainFromStorage,
 } from "@/utils/domainUtils";
 
-export interface SessionRetentionCohort {
+export type RetentionSource = "sessions" | "refresh-tokens";
+
+export interface RetentionCohort {
   /** ISO date (UTC Monday) the cohort week starts on */
   cohort: string;
-  /** Sessions created during the cohort week */
-  sessions: number;
-  /** active[k] = sessions still active k weeks after the cohort week */
+  /** Sessions or refresh-token families created during the cohort week */
+  total: number;
+  /** active[k] = units still active k weeks after the cohort week */
   active: number[];
 }
 
-export interface SessionRetentionResponse {
+export interface RetentionResponse {
   interval: "week";
   from: string;
   to: string;
-  cohorts: SessionRetentionCohort[];
+  cohorts: RetentionCohort[];
 }
 
-export function useSessionRetention(weeks: number) {
+// The two endpoints share a shape except for the per-cohort total's name.
+interface WireCohort {
+  cohort: string;
+  sessions?: number;
+  tokens?: number;
+  active: number[];
+}
+
+interface WireResponse {
+  interval: "week";
+  from: string;
+  to: string;
+  cohorts: WireCohort[];
+}
+
+export function useRetention(
+  source: RetentionSource,
+  weeks: number,
+  clientIds: string[],
+) {
   const tenantId = useTenantId() ?? "";
-  const [data, setData] = useState<SessionRetentionResponse | null>(null);
+  const [data, setData] = useState<RetentionResponse | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Effect deps need a stable primitive, and the query string is what the
+  // request actually varies on.
+  const clientQuery = clientIds
+    .map((c) => `&client_id=${encodeURIComponent(c)}`)
+    .join("");
 
   useEffect(() => {
     if (!tenantId) {
@@ -51,7 +78,11 @@ export function useSessionRetention(weeks: number) {
     const apiBase = resolveApiBase(selectedDomain).replace(/\/$/, "");
     const formatted = selectedDomain ? formatDomain(selectedDomain) : "";
 
-    const url = `${apiBase}/api/v2/analytics/session-retention?weeks=${weeks}`;
+    const endpoint =
+      source === "sessions" ? "session-retention" : "refresh-token-retention";
+    const url = `${apiBase}/api/v2/analytics/${endpoint}?weeks=${weeks}${
+      source === "refresh-tokens" ? clientQuery : ""
+    }`;
     const httpClient = isSingleTenantForDomain(formatted)
       ? authorizedHttpClient
       : createOrganizationHttpClient(tenantId);
@@ -60,9 +91,16 @@ export function useSessionRetention(weeks: number) {
       .then((res: { body: string; json?: unknown }) => {
         if (cancelled) return;
         const json =
-          (res as { json?: SessionRetentionResponse }).json ??
-          (JSON.parse(res.body) as SessionRetentionResponse);
-        setData(json);
+          (res.json as WireResponse | undefined) ??
+          (JSON.parse(res.body) as WireResponse);
+        setData({
+          ...json,
+          cohorts: json.cohorts.map((c) => ({
+            cohort: c.cohort,
+            total: c.sessions ?? c.tokens ?? 0,
+            active: c.active,
+          })),
+        });
         setLoading(false);
       })
       .catch((err: unknown) => {
@@ -74,7 +112,7 @@ export function useSessionRetention(weeks: number) {
     return () => {
       cancelled = true;
     };
-  }, [weeks, tenantId]);
+  }, [source, weeks, clientQuery, tenantId]);
 
   return { data, error, loading };
 }

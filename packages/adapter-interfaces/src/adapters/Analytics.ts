@@ -2,6 +2,8 @@ import {
   AnalyticsQueryParams,
   AnalyticsQueryResponse,
   AnalyticsResource,
+  RefreshTokenRetentionParams,
+  RefreshTokenRetentionResponse,
   SessionRetentionParams,
   SessionRetentionResponse,
 } from "../types/Analytics";
@@ -28,4 +30,17 @@ export interface AnalyticsAdapter {
     tenantId: string,
     params: SessionRetentionParams,
   ): Promise<SessionRetentionResponse>;
+
+  /**
+   * Weekly refresh-token cohort retention, computed from the refresh_tokens
+   * table. Rotating tokens mint a new row per exchange, so rows are grouped
+   * into rotation families before folding: a family's cohort week comes from
+   * its first token's created_at_ts and its last-active week from the max of
+   * last_exchanged_at_ts/created_at_ts across the family. Optional for the
+   * same reason as sessionRetention.
+   */
+  refreshTokenRetention?(
+    tenantId: string,
+    params: RefreshTokenRetentionParams,
+  ): Promise<RefreshTokenRetentionResponse>;
 }

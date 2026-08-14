@@ -5,8 +5,11 @@ import {
   AnalyticsQueryParams,
   AnalyticsQueryResponse,
   AnalyticsResource,
+  RefreshTokenRetentionParams,
+  RefreshTokenRetentionResponse,
   SessionRetentionParams,
   SessionRetentionResponse,
+  buildRefreshTokenRetention,
   buildSessionRetention,
   sessionRetentionWindow,
   MONDAY_EPOCH_SHIFT_MS,
@@ -404,6 +407,72 @@ export function createAnalyticsAdapter(db: Kysely<Database>): AnalyticsAdapter {
       // return DECIMAL strings), so normalize with floor here rather than
       // relying on integer division in the query.
       return buildSessionRetention(
+        rows.map((r) => ({
+          created_week: Math.floor(Number(r.created_week)),
+          used_week: Math.floor(Number(r.used_week)),
+          count: Number(r.count),
+        })),
+        params.weeks,
+        now,
+      );
+    },
+
+    async refreshTokenRetention(
+      tenantId: string,
+      params: RefreshTokenRetentionParams,
+    ): Promise<RefreshTokenRetentionResponse> {
+      const now = Date.now();
+      const { sinceMs } = sessionRetentionWindow(params.weeks, now);
+      const dialect = await getDialect();
+
+      // Monday-aligned week index of an epoch-ms expression. SQLite's `/` on
+      // two integers already truncates; MySQL needs DIV for integer division.
+      const week = (expr: RawBuilder<unknown>) => {
+        const shifted = sql`(${expr} + ${sql.lit(MONDAY_EPOCH_SHIFT_MS)})`;
+        return dialect === "mysql"
+          ? sql<number>`${shifted} DIV ${sql.lit(WEEK_MS)}`
+          : sql<number>`${shifted} / ${sql.lit(WEEK_MS)}`;
+      };
+
+      // Rotating tokens mint a new row per exchange, so fold each rotation
+      // family into one unit first: cohort from the family's first token,
+      // last-active from its newest exchange (a rotation child's created_at
+      // is the exchange time; non-rotating rows carry last_exchanged_at).
+      // No row-level created_at filter: an old family with recent rotation
+      // children would otherwise be misread as a new cohort. Families whose
+      // first token predates the window are dropped by the outer filter.
+      let familyQuery = db
+        .selectFrom("refresh_tokens")
+        .where("tenant_id", "=", tenantId)
+        .select([
+          sql<number>`MIN(${sql.ref("created_at_ts")})`.as("min_created"),
+          sql<number>`MAX(COALESCE(${sql.ref("last_exchanged_at_ts")}, ${sql.ref("created_at_ts")}))`.as(
+            "max_used",
+          ),
+        ])
+        .groupBy(sql`COALESCE(${sql.ref("family_id")}, ${sql.ref("id")})`);
+      if (params.client_id && params.client_id.length > 0) {
+        familyQuery = familyQuery.where("client_id", "in", params.client_id);
+      }
+
+      const createdWeek = week(sql.ref("min_created"));
+      const usedWeek = week(sql.ref("max_used"));
+
+      const rows = await db
+        .selectFrom(familyQuery.as("families"))
+        .where("min_created", ">=", sinceMs)
+        .select([
+          createdWeek.as("created_week"),
+          usedWeek.as("used_week"),
+          sql<number>`COUNT(*)`.as("count"),
+        ])
+        .groupBy([createdWeek, usedWeek] as never)
+        .execute();
+
+      // SQLite divides bound parameters as floats (and MySQL drivers may
+      // return DECIMAL strings), so normalize with floor here rather than
+      // relying on integer division in the query.
+      return buildRefreshTokenRetention(
         rows.map((r) => ({
           created_week: Math.floor(Number(r.created_week)),
           used_week: Math.floor(Number(r.used_week)),

@@ -30,7 +30,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
-import { SessionRetentionTab } from "./SessionRetentionTab";
+import { RetentionTab } from "./RetentionTab";
 import { presetRange, TimeRange, TimeRangePicker } from "./TimeRangePicker";
 import {
   formatBucket,
@@ -268,7 +268,7 @@ export function AnalyticsPage() {
         </TabsList>
 
         <TabsContent value="retention">
-          <SessionRetentionTab />
+          <RetentionTab />
         </TabsContent>
 
         <TabsContent value="overview" className="flex flex-col gap-4">

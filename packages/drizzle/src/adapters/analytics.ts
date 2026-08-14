@@ -5,14 +5,17 @@ import {
   AnalyticsQueryParams,
   AnalyticsQueryResponse,
   AnalyticsResource,
+  RefreshTokenRetentionParams,
+  RefreshTokenRetentionResponse,
   SessionRetentionParams,
   SessionRetentionResponse,
+  buildRefreshTokenRetention,
   buildSessionRetention,
   sessionRetentionWindow,
   MONDAY_EPOCH_SHIFT_MS,
   WEEK_MS,
 } from "@authhero/adapter-interfaces";
-import { logs, sessions } from "../schema/sqlite";
+import { logs, refreshTokens, sessions } from "../schema/sqlite";
 import type { DrizzleDb } from "./types";
 
 const RESOURCE_EVENTS: Record<AnalyticsResource, readonly string[]> = {
@@ -255,6 +258,67 @@ export function createAnalyticsAdapter(db: DrizzleDb): AnalyticsAdapter {
       // Bound parameters make SQLite divide as floats, so floor here rather
       // than relying on integer division in the query.
       return buildSessionRetention(
+        rows.map((r) => ({
+          created_week: Math.floor(Number(r.created_week)),
+          used_week: Math.floor(Number(r.used_week)),
+          count: Number(r.count),
+        })),
+        params.weeks,
+        now,
+      );
+    },
+
+    async refreshTokenRetention(
+      tenantId: string,
+      params: RefreshTokenRetentionParams,
+    ): Promise<RefreshTokenRetentionResponse> {
+      const now = Date.now();
+      const { sinceMs } = sessionRetentionWindow(params.weeks, now);
+
+      // Rotating tokens mint a new row per exchange, so fold each rotation
+      // family into one unit first: cohort from the family's first token,
+      // last-active from its newest exchange (a rotation child's created_at
+      // is the exchange time; non-rotating rows carry last_exchanged_at).
+      const clientFilter =
+        params.client_id && params.client_id.length > 0
+          ? inArray(refreshTokens.client_id, params.client_id)
+          : undefined;
+
+      const families = db
+        .select({
+          min_created: sql<number>`MIN(${refreshTokens.created_at_ts})`.as(
+            "min_created",
+          ),
+          max_used:
+            sql<number>`MAX(COALESCE(${refreshTokens.last_exchanged_at_ts}, ${refreshTokens.created_at_ts}))`.as(
+              "max_used",
+            ),
+        })
+        .from(refreshTokens)
+        .where(and(eq(refreshTokens.tenant_id, tenantId), clientFilter))
+        // No row-level created_at filter: an old family with recent rotation
+        // children would otherwise be misread as a new cohort. Families whose
+        // first token predates the window are dropped below instead.
+        .groupBy(sql`COALESCE(${refreshTokens.family_id}, ${refreshTokens.id})`)
+        .as("families");
+
+      const createdWeek = sql<number>`(${families.min_created} + ${MONDAY_EPOCH_SHIFT_MS}) / ${WEEK_MS}`;
+      const usedWeek = sql<number>`(${families.max_used} + ${MONDAY_EPOCH_SHIFT_MS}) / ${WEEK_MS}`;
+
+      const rows = await db
+        .select({
+          created_week: createdWeek,
+          used_week: usedWeek,
+          count: sql<number>`COUNT(*)`,
+        })
+        .from(families)
+        .where(gte(families.min_created, sinceMs))
+        .groupBy(createdWeek, usedWeek)
+        .all();
+
+      // Bound parameters make SQLite divide as floats, so floor here rather
+      // than relying on integer division in the query.
+      return buildRefreshTokenRetention(
         rows.map((r) => ({
           created_week: Math.floor(Number(r.created_week)),
           used_week: Math.floor(Number(r.used_week)),
