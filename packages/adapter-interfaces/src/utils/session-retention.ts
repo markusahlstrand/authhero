@@ -1,4 +1,5 @@
 import {
+  RefreshTokenRetentionResponse,
   SessionRetentionCohort,
   SessionRetentionResponse,
 } from "../types/Analytics";
@@ -104,5 +105,28 @@ export function buildSessionRetention(
     from: new Date(sinceMs).toISOString(),
     to: new Date(now).toISOString(),
     cohorts,
+  };
+}
+
+/**
+ * Same fold as {@link buildSessionRetention}, but the rows count refresh-token
+ * families (created-week = the family's first token, used-week = its last
+ * exchange) and the per-cohort total is reported as `tokens`.
+ */
+export function buildRefreshTokenRetention(
+  rows: SessionRetentionRawRow[],
+  weeks: number,
+  now: number = Date.now(),
+): RefreshTokenRetentionResponse {
+  const base = buildSessionRetention(rows, weeks, now);
+  return {
+    interval: base.interval,
+    from: base.from,
+    to: base.to,
+    cohorts: base.cohorts.map(({ cohort, sessions, active }) => ({
+      cohort,
+      tokens: sessions,
+      active,
+    })),
   };
 }

@@ -405,3 +405,135 @@ describe("GET /analytics/session-retention", () => {
     expect(body.param).toBe("weeks");
   });
 });
+
+describe("GET /analytics/refresh-token-retention", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+  function seedToken(
+    env: Awaited<ReturnType<typeof getTestServer>>["env"],
+    id: string,
+    opts: Record<string, unknown> = {},
+  ) {
+    return env.data.refreshTokens.create("tenantId", {
+      id,
+      login_id: "ls1",
+      user_id: "u1",
+      // The kysely schema enforces an FK to clients, so default to the
+      // client the test server seeds.
+      client_id: "clientId",
+      device: {
+        last_ip: "",
+        initial_ip: "",
+        last_user_agent: "",
+        initial_user_agent: "",
+        initial_asn: "",
+        last_asn: "",
+      },
+      resource_servers: [],
+      rotating: false,
+      ...opts,
+    });
+  }
+
+  it("returns weekly cohorts of rotation families with client filtering", async () => {
+    const { managementApp, env } = await getTestServer();
+    const client = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    await env.data.clients.create("tenantId", {
+      client_id: "clientB",
+      client_secret: "clientSecretB",
+      name: "Other Client",
+      callbacks: [],
+      allowed_logout_urls: [],
+      web_origins: [],
+    });
+
+    // created_at_ts is pinned to Date.now() in the adapters, so build
+    // historical cohorts with fake timers. Offsets are exact multiples of a
+    // week, which keeps every token in the same relative bucket no matter
+    // where "now" falls within its week.
+    const realNow = Date.now();
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(realNow - 2 * WEEK_MS);
+      // Rotating family: root two weeks back, rotated again this week.
+      await seedToken(env, "rt1", { rotating: true, family_id: "rt1" });
+      // Non-rotating tokens: rt2 gets exchanged a week later, rt3 never.
+      await seedToken(env, "rt2");
+      await seedToken(env, "rt3", { client_id: "clientB" });
+
+      vi.setSystemTime(realNow);
+      // Rotation child — must collapse into rt1's cohort, not start a new one.
+      await seedToken(env, "rt1c1", { rotating: true, family_id: "rt1" });
+      await seedToken(env, "rt4");
+    } finally {
+      vi.useRealTimers();
+    }
+
+    await env.data.refreshTokens.update("tenantId", "rt2", {
+      last_exchanged_at: new Date(realNow - WEEK_MS).toISOString(),
+    });
+
+    const res = await client.analytics["refresh-token-retention"].$get(
+      { query: { weeks: "4" }, header: { "tenant-id": "tenantId" } },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      interval: string;
+      cohorts: Array<{ cohort: string; tokens: number; active: number[] }>;
+    };
+
+    expect(body.interval).toBe("week");
+    expect(body.cohorts).toHaveLength(4);
+
+    // Cohorts are oldest-first: index 1 is the week two weeks back. The
+    // rotation child collapses into rt1's family, so three units, not four.
+    const twoWeeksBack = body.cohorts[1]!;
+    expect(twoWeeksBack.tokens).toBe(3);
+    // +0w: all three; +1w: rt1 (rotated this week) and rt2 (exchanged then);
+    // +2w: only rt1.
+    expect(twoWeeksBack.active).toEqual([3, 2, 1]);
+
+    const currentWeek = body.cohorts[3]!;
+    expect(currentWeek.tokens).toBe(1);
+    expect(currentWeek.active).toEqual([1]);
+
+    // client_id filter narrows to clientB's single never-exchanged token.
+    const filtered = await client.analytics["refresh-token-retention"].$get(
+      {
+        query: { weeks: "4", client_id: "clientB" },
+        header: { "tenant-id": "tenantId" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(filtered.status).toBe(200);
+    const filteredBody = (await filtered.json()) as {
+      cohorts: Array<{ tokens: number; active: number[] }>;
+    };
+    expect(filteredBody.cohorts[1]!.tokens).toBe(1);
+    expect(filteredBody.cohorts[1]!.active).toEqual([1, 0, 0]);
+    expect(filteredBody.cohorts[3]!.tokens).toBe(0);
+  });
+
+  it("rejects out-of-range weeks", async () => {
+    const { managementApp, env } = await getTestServer();
+    const client = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const res = await client.analytics["refresh-token-retention"].$get(
+      { query: { weeks: "99" }, header: { "tenant-id": "tenantId" } },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { param: string };
+    expect(body.param).toBe("weeks");
+  });
+});

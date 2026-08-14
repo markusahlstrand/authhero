@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -9,9 +10,34 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2 } from "lucide-react";
-import { useSessionRetention } from "./useSessionRetention";
+import { RetentionSource, useRetention } from "./useRetention";
 
 const WEEK_OPTIONS = [8, 12, 16, 26];
+
+const SOURCE_META: Record<
+  RetentionSource,
+  { label: string; unit: string; title: string; description: string }
+> = {
+  sessions: {
+    label: "Sessions (cookies)",
+    unit: "Sessions",
+    title: "Session retention by weekly cohort",
+    description:
+      "A session counts as active in week N after creation if it was last " +
+      "used during or after that week. Week 0 is the creation week. Weeks " +
+      "are Monday-aligned, UTC.",
+  },
+  "refresh-tokens": {
+    label: "Refresh tokens",
+    unit: "Tokens",
+    title: "Refresh token retention by weekly cohort",
+    description:
+      "Rotating tokens are grouped into rotation families, so each unit is " +
+      "a device or app that got a refresh token. A family counts as active " +
+      "in week N if it was last exchanged during or after that week. Weeks " +
+      "are Monday-aligned, UTC.",
+  },
+};
 
 // Sequential single-hue ramp (blue 100→700), more = darker. Cell fills are
 // explicit hexes so they read the same in light and dark mode; the ink is
@@ -53,18 +79,54 @@ function formatPct(pct: number): string {
   return String(Math.round(pct));
 }
 
-export function SessionRetentionTab() {
+// Debounce the free-text client filter so we issue one query after typing
+// settles rather than one per keystroke.
+function useDebounced<T>(value: T, delayMs: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(value), delayMs);
+    return () => clearTimeout(id);
+  }, [value, delayMs]);
+  return debounced;
+}
+
+export function RetentionTab() {
+  const [source, setSource] = useState<RetentionSource>("sessions");
   const [weeks, setWeeks] = useState(12);
-  const { data, loading, error } = useSessionRetention(weeks);
+  const [clientId, setClientId] = useState("");
+  const debouncedClientId = useDebounced(clientId, 400);
+
+  const clientIds = debouncedClientId
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const { data, loading, error } = useRetention(source, weeks, clientIds);
+  const meta = SOURCE_META[source];
 
   const cohorts = data?.cohorts ?? [];
   const maxOffset = Math.max(0, ...cohorts.map((c) => c.active.length - 1));
-  const hasSessions = cohorts.some((c) => c.sessions > 0);
+  const hasData = cohorts.some((c) => c.total > 0);
 
   return (
     <div className="flex flex-col gap-4">
       <Card>
-        <CardContent className="flex items-center gap-3 pt-4">
+        <CardContent className="flex flex-wrap items-center gap-3 pt-4">
+          <Select
+            value={source}
+            onValueChange={(v) => setSource(v as RetentionSource)}
+          >
+            <SelectTrigger className="w-44">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {(Object.keys(SOURCE_META) as RetentionSource[]).map((s) => (
+                <SelectItem key={s} value={s}>
+                  {SOURCE_META[s].label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select
             value={String(weeks)}
             onValueChange={(v) => setWeeks(Number(v))}
@@ -80,11 +142,15 @@ export function SessionRetentionTab() {
               ))}
             </SelectContent>
           </Select>
-          <p className="text-xs text-muted-foreground">
-            A session counts as active in week N after creation if it was last
-            used during or after that week. Week 0 is the creation week. Weeks
-            are Monday-aligned, UTC.
-          </p>
+          {source === "refresh-tokens" && (
+            <Input
+              className="w-56"
+              placeholder="Client IDs (comma-separated)"
+              value={clientId}
+              onChange={(e) => setClientId(e.target.value)}
+            />
+          )}
+          <p className="text-xs text-muted-foreground">{meta.description}</p>
         </CardContent>
       </Card>
 
@@ -96,14 +162,14 @@ export function SessionRetentionTab() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Session retention by weekly cohort</CardTitle>
+          <CardTitle>{meta.title}</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
             <div className="flex items-center justify-center h-72">
               <Loader2 className="h-6 w-6 animate-spin" />
             </div>
-          ) : !hasSessions ? (
+          ) : !hasData ? (
             <p className="text-sm text-muted-foreground">No data.</p>
           ) : (
             <div className="overflow-x-auto">
@@ -111,7 +177,7 @@ export function SessionRetentionTab() {
                 <thead>
                   <tr className="text-muted-foreground">
                     <th className="pr-2 text-right font-medium">Cohort week</th>
-                    <th className="pr-2 text-right font-medium">Sessions</th>
+                    <th className="pr-2 text-right font-medium">{meta.unit}</th>
                     {Array.from({ length: maxOffset + 1 }, (_, k) => (
                       <th key={k} className="px-1 text-center font-medium">
                         +{k}w
@@ -126,13 +192,13 @@ export function SessionRetentionTab() {
                         {c.cohort}
                       </td>
                       <td className="pr-2 text-right text-muted-foreground">
-                        {c.sessions.toLocaleString()}
+                        {c.total.toLocaleString()}
                       </td>
                       {Array.from({ length: maxOffset + 1 }, (_, k) => {
                         if (k >= c.active.length) {
                           return <td key={k} />;
                         }
-                        if (c.sessions === 0) {
+                        if (c.total === 0) {
                           return (
                             <td
                               key={k}
@@ -142,13 +208,13 @@ export function SessionRetentionTab() {
                             </td>
                           );
                         }
-                        const pct = (c.active[k] / c.sessions) * 100;
+                        const pct = (c.active[k] / c.total) * 100;
                         return (
                           <td
                             key={k}
                             className="min-w-10 rounded-sm px-1 py-1.5 text-center"
                             style={cellStyle(pct)}
-                            title={`${c.cohort} cohort, +${k} weeks: ${c.active[k].toLocaleString()} of ${c.sessions.toLocaleString()} sessions still active (${pct.toFixed(1)}%)`}
+                            title={`${c.cohort} cohort, +${k} weeks: ${c.active[k].toLocaleString()} of ${c.total.toLocaleString()} ${meta.unit.toLowerCase()} still active (${pct.toFixed(1)}%)`}
                           >
                             {formatPct(pct)}
                           </td>

@@ -103,6 +103,39 @@ export interface SessionRetentionResponse {
   cohorts: SessionRetentionCohort[];
 }
 
+export interface RefreshTokenRetentionParams {
+  /** Number of weekly cohorts to include, counting back from the current week */
+  weeks: number;
+  /** Optional filter to one or more client IDs */
+  client_id?: string[];
+}
+
+export interface RefreshTokenRetentionCohort {
+  /** ISO date (UTC Monday) the cohort week starts on */
+  cohort: string;
+  /**
+   * Refresh-token families created during the cohort week. Rotating tokens
+   * mint a new row on every exchange, so the retention unit is the rotation
+   * family (a non-rotating token is a family of one).
+   */
+  tokens: number;
+  /**
+   * active[k] = token families still active k weeks after the cohort week,
+   * i.e. last exchanged during week k or later. active[0] === tokens. The
+   * array is truncated at the current week.
+   */
+  active: number[];
+}
+
+export interface RefreshTokenRetentionResponse {
+  interval: "week";
+  /** Inclusive lower bound of the first cohort week */
+  from: string;
+  /** Timestamp the query ran at; the last cohort week is still in progress */
+  to: string;
+  cohorts: RefreshTokenRetentionCohort[];
+}
+
 export const sessionRetentionCohortSchema = z.object({
   cohort: z.string(),
   sessions: z.number(),
@@ -114,6 +147,19 @@ export const sessionRetentionResponseSchema = z.object({
   from: z.string(),
   to: z.string(),
   cohorts: z.array(sessionRetentionCohortSchema),
+});
+
+export const refreshTokenRetentionCohortSchema = z.object({
+  cohort: z.string(),
+  tokens: z.number(),
+  active: z.array(z.number()),
+});
+
+export const refreshTokenRetentionResponseSchema = z.object({
+  interval: z.literal("week"),
+  from: z.string(),
+  to: z.string(),
+  cohorts: z.array(refreshTokenRetentionCohortSchema),
 });
 
 export const analyticsColumnMetaSchema = z.object({

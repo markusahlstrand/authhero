@@ -9,6 +9,7 @@ import {
   AnalyticsResource,
   AnalyticsUserType,
   analyticsQueryResponseSchema,
+  refreshTokenRetentionResponseSchema,
   sessionRetentionResponseSchema,
   CacheAdapter,
 } from "@authhero/adapter-interfaces";
@@ -528,6 +529,108 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions = {}) {
     }
 
     const result = await analytics.sessionRetention(tenantId, { weeks });
+
+    if (cache && cacheKey) {
+      // The current cohort week is always in progress, so keep the TTL short.
+      const ttl = 15 * 60;
+      cache.set(cacheKey, result, ttl).catch(() => {});
+      ctx.header("X-Cache", "MISS");
+      ctx.header("Cache-Control", "no-store");
+    }
+
+    return ctx.json(result);
+  });
+
+  // Refresh-token cohort retention, computed from the refresh_tokens table.
+  // Rotating tokens are folded into rotation families by the adapter, so the
+  // cohort unit is "a device/app that got a refresh token", not each rotation.
+  const refreshTokenRetentionRoute = createRoute({
+    tags: ["analytics"],
+    method: "get" as const,
+    path: "/refresh-token-retention",
+    request: {
+      query: z.object({
+        weeks: z.string().optional().openapi({
+          description: "Number of weekly cohorts to include, 1-26. Default 12.",
+        }),
+        client_id: z
+          .union([z.string(), z.array(z.string())])
+          .optional()
+          .openapi({
+            description: "Repeatable. Filter to one or more client IDs.",
+          }),
+      }),
+      headers: z.object({ "tenant-id": z.string().optional() }),
+    },
+    security: [{ Bearer: ["read:stats"] }],
+    responses: {
+      200: {
+        content: {
+          "application/json": { schema: refreshTokenRetentionResponseSchema },
+        },
+        description: "Weekly refresh-token cohort retention",
+      },
+      400: {
+        content: { "application/json": { schema: z.any() } },
+        description: "Invalid request",
+      },
+    },
+  });
+
+  app.openapi(refreshTokenRetentionRoute, async (ctx) => {
+    const analytics = ctx.env.data.analytics;
+    if (!analytics?.refreshTokenRetention) {
+      throw new HTTPException(501, {
+        message:
+          "Refresh token retention is not supported by the configured analytics adapter",
+      });
+    }
+
+    let weeks: number;
+    try {
+      weeks = parseInteger(ctx.req.query("weeks"), "weeks", 12, {
+        min: 1,
+        max: 26,
+      });
+    } catch (err) {
+      if (err instanceof AnalyticsRequestError) {
+        return ctx.json(
+          {
+            type: "https://authhero.net/errors/invalid-parameter",
+            title: "Invalid parameter",
+            status: 400,
+            detail: err.detail,
+            param: err.param,
+          },
+          400,
+        );
+      }
+      throw err;
+    }
+
+    const clientIds = (ctx.req.queries("client_id") ?? []).filter(Boolean);
+
+    const tenantId = requireTenantId(ctx);
+    const cacheKey = cache
+      ? `analytics:${tenantId}:refresh-token-retention:${weeks}:${[...clientIds].sort().join(",")}`
+      : null;
+
+    // The response is tenant-scoped via the tenant-id header, not the URL, so
+    // it must never land in a shared HTTP cache; the server-side cache above
+    // is keyed by tenant and does the actual caching.
+    if (cache && cacheKey) {
+      const hit = await cache.get(cacheKey);
+      if (hit !== null) {
+        ctx.header("X-Cache", "HIT");
+        ctx.header("Cache-Control", "no-store");
+        return ctx.json(hit);
+      }
+    }
+
+    const result = await analytics.refreshTokenRetention(tenantId, {
+      weeks,
+      client_id: clientIds.length > 0 ? clientIds : undefined,
+    });
 
     if (cache && cacheKey) {
       // The current cohort week is always in progress, so keep the TTL short.
