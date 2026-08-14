@@ -45,6 +45,7 @@ import {
   mergeUserUpdates,
   accumulateFormValues,
 } from "../../hooks/formhooks";
+import { resolveLanguage } from "../../utils/locale";
 
 /**
  * Mapping from screen IDs to prompt screen IDs for custom text
@@ -67,31 +68,6 @@ const SCREEN_TO_PROMPT_MAP: Record<string, PromptScreen> = {
   "passkey-enrollment-nudge": "passkeys",
   "passkey-enrollment": "passkeys",
 };
-
-/**
- * Detect language from ui_locales or Accept-Language header
- */
-function detectLanguage(
-  uiLocales: string | undefined,
-  acceptLanguage: string | undefined,
-): string {
-  if (uiLocales) {
-    const firstLocale = uiLocales.split(" ")[0];
-    if (firstLocale) {
-      const langCode = firstLocale.split("-")[0]?.toLowerCase();
-      if (langCode) return langCode;
-    }
-  }
-  if (!acceptLanguage) return "en";
-  const languages = acceptLanguage.split(",").map((lang) => {
-    const [code, qValue] = lang.trim().split(";");
-    const q = qValue ? parseFloat(qValue.split("=")[1] || "1") : 1;
-    const langCode = code?.split("-")[0]?.toLowerCase() || "en";
-    return { code: langCode, q };
-  });
-  languages.sort((a, b) => b.q - a.q);
-  return languages[0]?.code || "en";
-}
 
 /**
  * Fetch custom text for a screen and language
@@ -348,11 +324,14 @@ async function buildScreenContext(
   // populated by getEnrichedClient, so no need to re-fetch from the database
   const connections = client.connections || [];
 
-  // Detect language: URL ui_locales (picker) > session ui_locales (OAuth) > Accept-Language > "en"
+  // Detect language: URL ui_locales (picker) > session ui_locales (OAuth) >
+  // Accept-Language > tenant default, restricted by the tenant's
+  // enabled_locales.
   const acceptLanguage = ctx.req.header("Accept-Language");
-  const language = detectLanguage(
+  const language = resolveLanguage(
     uiLocalesOverride || loginSession?.authParams?.ui_locales,
     acceptLanguage,
+    client.tenant.enabled_locales,
   );
   const promptScreen = SCREEN_TO_PROMPT_MAP[screenId];
   const customText = await fetchCustomText(

@@ -30,6 +30,7 @@ import {
 import type { ScreenContext } from "./screens/types";
 import { HTTPException } from "hono/http-exception";
 import { sanitizeUrl } from "./sanitization-utils";
+import { resolveLanguage } from "../../utils/locale";
 import { defineRoute } from "../../utils/define-route";
 const getScreenId = defineRoute({
   route: createRoute({
@@ -139,7 +140,11 @@ const getScreenId = defineRoute({
       theme,
       clientName: client.name || "AuthHero",
       poweredByLogo: ctx.env.poweredByLogo,
-      language: loginSession.authParams?.ui_locales?.split(" ")[0],
+      language: resolveLanguage(
+        loginSession.authParams?.ui_locales,
+        ctx.req.header("Accept-Language"),
+        client.tenant.enabled_locales,
+      ),
       termsAndConditionsUrl: sanitizeUrl(
         client.client_metadata?.termsAndConditionsUrl,
       ),

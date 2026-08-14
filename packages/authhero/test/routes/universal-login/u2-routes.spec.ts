@@ -284,4 +284,91 @@ describe("u2 routes", () => {
       expect(defaultHtml).toContain("/u/widget/authhero-widget.esm.js");
     });
   });
+
+  describe("tenant enabled_locales", () => {
+    type TestServer = Awaited<ReturnType<typeof getTestServer>>;
+
+    async function startLogin(
+      oauthApp: TestServer["oauthApp"],
+      env: TestServer["env"],
+    ) {
+      const oauthClient = testClient(oauthApp, env);
+      const authorizeResponse = await oauthClient.authorize.$get({
+        query: {
+          client_id: "clientId",
+          redirect_uri: "https://example.com/callback",
+          state: "state",
+          nonce: "nonce",
+          scope: "openid email profile",
+          response_type: AuthorizationResponseType.CODE,
+        },
+      });
+      expect(authorizeResponse.status).toBe(302);
+      const location = authorizeResponse.headers.get("location");
+      const state = new URL(`https://example.com${location}`).searchParams.get(
+        "state",
+      );
+      if (!state) {
+        throw new Error("No state found");
+      }
+      return state;
+    }
+
+    it("renders the tenant's only enabled locale even for an English browser", async () => {
+      const { u2App, oauthApp, env } = await getTestServer({
+        mockEmail: true,
+      });
+      await env.data.tenants.update("tenantId", {
+        enabled_locales: ["nb"],
+      });
+
+      const state = await startLogin(oauthApp, env);
+
+      const response = await u2Screen(u2App, env, "login/identifier").$get({
+        query: { state },
+        header: { "Accept-Language": "en-US,en;q=0.9" },
+      });
+
+      expect(response.status).toBe(200);
+      const html = await response.text();
+      expect(html).toContain('lang="nb"');
+    });
+
+    it("still honours ui_locales when it names an enabled locale", async () => {
+      const { u2App, oauthApp, env } = await getTestServer({
+        mockEmail: true,
+      });
+      await env.data.tenants.update("tenantId", {
+        enabled_locales: ["nb", "sv"],
+      });
+
+      const state = await startLogin(oauthApp, env);
+
+      const response = await u2Screen(u2App, env, "login/identifier").$get({
+        query: { state, ui_locales: "sv" },
+        header: { "Accept-Language": "en-US,en;q=0.9" },
+      });
+
+      expect(response.status).toBe(200);
+      const html = await response.text();
+      expect(html).toContain('lang="sv"');
+    });
+
+    it("keeps browser language detection when no enabled_locales are set", async () => {
+      const { u2App, oauthApp, env } = await getTestServer({
+        mockEmail: true,
+      });
+
+      const state = await startLogin(oauthApp, env);
+
+      const response = await u2Screen(u2App, env, "login/identifier").$get({
+        query: { state },
+        header: { "Accept-Language": "sv,en;q=0.8" },
+      });
+
+      expect(response.status).toBe(200);
+      const html = await response.text();
+      expect(html).toContain('lang="sv"');
+    });
+  });
 });

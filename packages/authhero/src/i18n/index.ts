@@ -66,6 +66,24 @@ export function getLocaleDisplayName(lang: string): string {
   return LOCALE_DISPLAY_NAMES_LOOKUP[lang] ?? lang;
 }
 
+/**
+ * The locales the language picker should offer. When the tenant restricts
+ * languages via `enabled_locales`, only supported locales on that list are
+ * offered (matched on the language subtag, so "nb-NO" enables "nb"). Falls
+ * back to every supported locale when the restriction is absent or matches
+ * none of them.
+ */
+export function getAvailableLocales(enabledLocales?: string[]): string[] {
+  if (!enabledLocales?.length) return [...locales];
+  const enabledLanguages = enabledLocales.map(
+    (locale) => locale.split("-")[0]?.toLowerCase() ?? locale,
+  );
+  const available = locales.filter((locale) =>
+    enabledLanguages.includes(locale),
+  );
+  return available.length ? available : [...locales];
+}
+
 // Load Auth0-format locale files at build time via Vite's import.meta.glob
 const localeModules = import.meta.glob("../../locales/*.json", {
   eager: true,

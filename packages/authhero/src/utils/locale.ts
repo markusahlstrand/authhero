@@ -1,15 +1,27 @@
 /**
- * Locale resolution for the universal login pages.
+ * Locale and language resolution for the universal login pages and emails.
  *
- * This is deliberately separate from the `detectLanguage` helpers used to pick
- * translations: those reduce a tag to its language subtag ("en-GB" -> "en"),
- * which is the right key for a translation catalogue but throws away the
- * region — and the region is what decides whether a date reads DD/MM/YYYY or
- * MM/DD/YYYY. This keeps the full tag for formatting decisions.
+ * Two related but distinct outputs:
+ *
+ * - `resolveLanguage` reduces to a language subtag ("en-GB" -> "en"), which is
+ *   the right key for a translation catalogue.
+ * - `resolveLocale` keeps the full tag — the region is what decides whether a
+ *   date reads DD/MM/YYYY or MM/DD/YYYY.
+ *
+ * Both honour the tenant's `enabled_locales` the way Auth0 does: when set it
+ * is both a restriction (requested languages outside the list are ignored)
+ * and a default (its first entry wins when nothing requested matches).
  */
 
 /** A conservative BCP-47 shape: language, optional script, optional region. */
 const BCP47 = /^[a-z]{2,3}(-[a-z]{4})?(-([a-z]{2}|\d{3}))?$/i;
+
+const DEFAULT_LANGUAGE = "en";
+
+/** The language subtag of a BCP-47 tag, lowercased ("nb-NO" -> "nb"). */
+function languageSubtag(tag: string): string {
+  return tag.split("-")[0]!.toLowerCase();
+}
 
 /**
  * The `q` weight of an `Accept-Language` entry's parameters, defaulting to 1
@@ -27,43 +39,98 @@ function parseQuality(params: string[]): number {
 }
 
 /**
- * The highest-weighted valid tag in an `Accept-Language` header (or in a
- * space-separated `ui_locales` list, whose entries carry no weight and so all
- * score 1).
+ * All valid tags in an `Accept-Language` header (or a space-separated
+ * `ui_locales` list, whose entries carry no weight and so all score 1),
+ * ordered best first.
  *
  * Header order is not preference order: "de;q=0.5, en-GB;q=0.9" asks for
- * British English first. Weights are compared strictly, so equal priorities
- * keep the order the header already expresses. `q=0` means "not acceptable"
- * (RFC 9110 §12.5.4) and is skipped rather than selected. This mirrors the
- * quality handling in `detectLanguage`.
+ * British English first. The sort is stable, so equal priorities keep the
+ * order the header already expresses. `q=0` means "not acceptable"
+ * (RFC 9110 §12.5.4) and is skipped rather than ranked.
  */
-function bestValidTag(value: string | undefined): string | undefined {
-  if (!value) return undefined;
-  let best: { tag: string; q: number } | undefined;
+function orderedValidTags(value: string | undefined): string[] {
+  if (!value) return [];
+  const weighted: { tag: string; q: number }[] = [];
   for (const entry of value.split(",")) {
     const [rawTags, ...params] = entry.split(";");
     const q = parseQuality(params);
     if (q <= 0) continue;
     for (const tag of (rawTags ?? "").trim().split(/\s+/)) {
       if (!tag || !BCP47.test(tag)) continue;
-      if (!best || q > best.q) best = { tag, q };
+      weighted.push({ tag, q });
     }
   }
-  return best?.tag;
+  return weighted.sort((a, b) => b.q - a.q).map((w) => w.tag);
+}
+
+/**
+ * Whether a tag's language matches one of the tenant's enabled locales.
+ * Comparison is on the language subtag, so a request for "nb-NO" satisfies
+ * an enabled locale of "nb" (and vice versa).
+ */
+function matchesEnabledLocales(tag: string, enabledLocales: string[]): boolean {
+  const lang = languageSubtag(tag);
+  return enabledLocales.some((locale) => languageSubtag(locale) === lang);
 }
 
 /**
  * Resolve the locale used for formatting, keeping the region subtag.
  *
- * Priority mirrors `detectLanguage`: the OAuth request's `ui_locales` (which
- * the application sets explicitly, and is therefore the closest thing to a
- * per-tenant choice today) wins over the browser's `Accept-Language`.
+ * Priority: the OAuth request's `ui_locales` (which the application sets
+ * explicitly) wins over the browser's `Accept-Language`. When the tenant
+ * restricts languages via `enabled_locales`, candidates outside the list are
+ * skipped and the first enabled locale is the fallback instead of "en".
  */
 export function resolveLocale(
   uiLocales: string | undefined,
   acceptLanguage: string | undefined,
+  enabledLocales?: string[],
 ): string {
-  return bestValidTag(uiLocales) ?? bestValidTag(acceptLanguage) ?? "en";
+  const candidates = [
+    ...orderedValidTags(uiLocales),
+    ...orderedValidTags(acceptLanguage),
+  ];
+  if (!enabledLocales?.length) {
+    return candidates[0] ?? DEFAULT_LANGUAGE;
+  }
+  return (
+    candidates.find((tag) => matchesEnabledLocales(tag, enabledLocales)) ??
+    enabledLocales[0] ??
+    DEFAULT_LANGUAGE
+  );
+}
+
+/**
+ * Resolve the language used to pick translations: the language subtag of the
+ * same tag `resolveLocale` would choose.
+ */
+export function resolveLanguage(
+  uiLocales: string | undefined,
+  acceptLanguage: string | undefined,
+  enabledLocales?: string[],
+): string {
+  return languageSubtag(
+    resolveLocale(uiLocales, acceptLanguage, enabledLocales),
+  );
+}
+
+/**
+ * Resolve a single already-chosen language (e.g. one threaded into an email
+ * sender) against the tenant's `enabled_locales`: keep it when it is enabled
+ * (or no restriction is configured), otherwise fall back to the tenant's
+ * first enabled locale. Always returns a language subtag.
+ */
+export function resolveTenantLanguage(
+  language: string | undefined,
+  enabledLocales?: string[],
+): string {
+  if (!enabledLocales?.length) {
+    return language ? languageSubtag(language) : DEFAULT_LANGUAGE;
+  }
+  if (language && matchesEnabledLocales(language, enabledLocales)) {
+    return languageSubtag(language);
+  }
+  return languageSubtag(enabledLocales[0]!);
 }
 
 /**
@@ -73,6 +140,11 @@ export function resolveLocale(
 export function resolveLocaleFromContext(
   ctx: { req: { header: (name: string) => string | undefined } },
   uiLocales?: string,
+  enabledLocales?: string[],
 ): string {
-  return resolveLocale(uiLocales, ctx.req.header("Accept-Language"));
+  return resolveLocale(
+    uiLocales,
+    ctx.req.header("Accept-Language"),
+    enabledLocales,
+  );
 }

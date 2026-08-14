@@ -16,6 +16,7 @@ import { logMessage } from "../helpers/logging";
 import { createClientServiceToken } from "../helpers/service-token";
 import { getAuthUrl, getIssuer, getUniversalLoginUrl } from "../variables";
 import { getConnectionFromIdentifier } from "../utils/username";
+import { resolveTenantLanguage } from "../utils/locale";
 import { getEnrichedClient } from "../helpers/client";
 import { Liquid } from "liquidjs";
 import { renderEmailTemplate } from "./render";
@@ -194,6 +195,10 @@ async function buildEmailContext(
   if (!tenant) {
     throw new HTTPException(500, { message: "Tenant not found" });
   }
+  // Restrict the requested language to the tenant's enabled_locales; when
+  // nothing (matching) was requested, the tenant's first enabled locale is
+  // the default instead of English.
+  language = resolveTenantLanguage(language, tenant.enabled_locales);
 
   const branding = await ctx.env.data.branding.get(ctx.var.tenant_id);
   const logo = branding?.logo_url || "";
@@ -201,10 +206,10 @@ async function buildEmailContext(
 
   const options = {
     vendorName: tenant.friendly_name,
-    lng: language || "en",
+    lng: language,
   };
 
-  return { tenant, logo, buttonColor, options };
+  return { tenant, logo, buttonColor, options, language };
 }
 
 interface SendTemplatedEmailParams {
@@ -308,10 +313,9 @@ export async function sendResetPassword(
   language?: string,
   routePrefix?: string,
 ) {
-  const { tenant, logo, buttonColor, options } = await buildEmailContext(
-    ctx,
-    language,
-  );
+  const emailContext = await buildEmailContext(ctx, language);
+  const { tenant, logo, buttonColor, options } = emailContext;
+  language = emailContext.language;
 
   // the auth0 link looks like this:  https://auth.sesamy.dev/u/reset-verify?ticket={ticket}#
   const passwordResetUrl = `${getUniversalLoginUrl(ctx.env, undefined, routePrefix)}reset-password?state=${state}&code=${code}`;
@@ -382,10 +386,9 @@ export async function sendResetPasswordCode(
   code: string,
   language?: string,
 ) {
-  const { tenant, logo, buttonColor, options } = await buildEmailContext(
-    ctx,
-    language,
-  );
+  const emailContext = await buildEmailContext(ctx, language);
+  const { tenant, logo, buttonColor, options } = emailContext;
+  language = emailContext.language;
 
   const data: Record<string, string> = {
     tenantId: tenant.id,
@@ -469,6 +472,10 @@ export async function sendCode(
   if (!tenant) {
     throw new HTTPException(500, { message: "Tenant not found" });
   }
+  // Restrict the requested language to the tenant's enabled_locales; when
+  // nothing (matching) was requested, the tenant's first enabled locale is
+  // the default instead of English.
+  language = resolveTenantLanguage(language, tenant.enabled_locales);
 
   const { connectionType } = getConnectionFromIdentifier(to);
 
@@ -548,6 +555,10 @@ export async function sendLink(
   if (!tenant) {
     throw new HTTPException(500, { message: "Tenant not found" });
   }
+  // Restrict the requested language to the tenant's enabled_locales; when
+  // nothing (matching) was requested, the tenant's first enabled locale is
+  // the default instead of English.
+  language = resolveTenantLanguage(language, tenant.enabled_locales);
 
   if (!authParams.redirect_uri) {
     throw new HTTPException(400, { message: "redirect_uri is required" });
@@ -667,6 +678,10 @@ export async function sendValidateEmailAddress(
   if (!tenant) {
     throw new HTTPException(500, { message: "Tenant not found" });
   }
+  // Restrict the requested language to the tenant's enabled_locales; when
+  // nothing (matching) was requested, the tenant's first enabled locale is
+  // the default instead of English.
+  language = resolveTenantLanguage(language, tenant.enabled_locales);
 
   if (!user.email) {
     throw new HTTPException(400, { message: "User has no email" });
@@ -778,6 +793,10 @@ export async function sendSignupValidateEmailAddress(
   if (!tenant) {
     throw new HTTPException(500, { message: "Tenant not found" });
   }
+  // Restrict the requested language to the tenant's enabled_locales; when
+  // nothing (matching) was requested, the tenant's first enabled locale is
+  // the default instead of English.
+  language = resolveTenantLanguage(language, tenant.enabled_locales);
 
   const branding = await ctx.env.data.branding.get(ctx.var.tenant_id);
   const logo = branding?.logo_url || "";
@@ -848,10 +867,9 @@ export async function sendInvitation(
     language,
   }: SendInvitationParams,
 ) {
-  const { tenant, logo, buttonColor, options } = await buildEmailContext(
-    ctx,
-    language,
-  );
+  const emailContext = await buildEmailContext(ctx, language);
+  const { tenant, logo, buttonColor, options } = emailContext;
+  language = emailContext.language;
 
   const ttlDays = String(Math.max(1, Math.round(ttlSec / 86400)));
   const resolvedInviterName = inviterName || tenant.friendly_name;
