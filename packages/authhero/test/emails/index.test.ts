@@ -255,6 +255,23 @@ describe("Email Functions", () => {
       expect(email.to).toBe("user@example.com");
       expect(email.template).toBe("auth-verify-email");
       expect(email.data.vendorName).toBe("Test Tenant");
+
+      // The link must point at the session-less u2 ticket endpoint — the
+      // legacy /u/validate-email page required state+code params this email
+      // never carried, so those links always failed.
+      const url = new URL(email.data.emailValidationUrl);
+      expect(url.pathname).toBe("/u2/tickets/email-verification");
+      expect(url.searchParams.get("tenant_id")).toBe("tenantId");
+      const ticket = url.searchParams.get("ticket");
+      expect(ticket).toBeTruthy();
+
+      const code = await testServer.env.data.codes.get(
+        "tenantId",
+        ticket!,
+        "ticket",
+      );
+      expect(code).toBeTruthy();
+      expect(code!.user_id).toBe("email|userId");
     });
 
     it("should send email validation with custom language", async () => {

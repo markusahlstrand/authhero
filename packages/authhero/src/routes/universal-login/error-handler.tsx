@@ -49,6 +49,9 @@ function mapMessage(msg: string): string {
   if (lower.includes("ticket has expired")) {
     return "This enrollment link has expired. Please request a new enrollment link.";
   }
+  if (lower.includes("verification link is invalid")) {
+    return "This verification link is invalid or has expired. Please sign in to request a new verification email.";
+  }
   if (lower.includes("invalid enrollment session")) {
     return "The enrollment session is no longer valid. Please request a new enrollment link.";
   }
