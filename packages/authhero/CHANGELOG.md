@@ -1,5 +1,17 @@
 # authhero
 
+## 9.5.0
+
+### Minor Changes
+
+- 38afecc: Forms: support the Auth0-standard `{{fields.<field_id>}}` syntax in flow templates (alongside the existing `{{$form.*}}` alias), and expose an editable Field ID in the form designer's field component editors so flows can reference readable IDs like `phone_number` instead of auto-generated ones.
+
+### Patch Changes
+
+- e46985f: Honour the tenant's `enabled_locales` when resolving the universal-login language. Previously the setting was stored but never read: u2 pages, the screen API, the classic /u flow, and emails picked the language from `ui_locales` and `Accept-Language` only, so a tenant configured with e.g. only `nb` still rendered English. Requested languages outside `enabled_locales` are now ignored and the first enabled locale is the fallback instead of English (Auth0 semantics). The u2 language picker now only offers enabled locales.
+- Updated dependencies [5cef6e6]
+  - @authhero/widget@0.38.1
+
 ## 9.4.1
 
 ### Patch Changes
