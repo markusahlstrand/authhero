@@ -17,23 +17,42 @@ const getRoot = defineRoute({
     method: "get",
     path: "/",
     request: {
+      // Optional so requests without params (e.g. links from old verification
+      // emails that never carried state/code) reach the handler and render
+      // the branded error page instead of the default raw ZodError JSON.
       query: z.object({
-        state: z.string().openapi({
+        state: z.string().optional().openapi({
           description: "The state parameter from the authorization request",
         }),
-        code: z.string().openapi({
+        code: z.string().optional().openapi({
           description: "The code parameter from the authorization request",
         }),
       }),
     },
     responses: {
       200: {
-        description: "Response",
+        description: "Email verified confirmation page",
+        content: { "text/html": { schema: z.string() } },
+      },
+      400: {
+        description:
+          "Branded error page (missing/invalid state or code, expired code)",
+        content: { "text/html": { schema: z.string() } },
+      },
+      500: {
+        description: "Branded error page",
+        content: { "text/html": { schema: z.string() } },
       },
     },
   }),
   handler: async (ctx) => {
     const { state, code } = ctx.req.valid("query");
+
+    if (!state || !code) {
+      throw new HTTPException(400, {
+        message: "This verification link is invalid",
+      });
+    }
 
     const { env } = ctx;
 

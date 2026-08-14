@@ -49,6 +49,16 @@ function mapMessage(msg: string): string {
   if (lower.includes("ticket has expired")) {
     return "This enrollment link has expired. Please request a new enrollment link.";
   }
+  if (lower.includes("verification link is invalid")) {
+    return "This verification link is invalid or has expired. Please sign in to request a new verification email.";
+  }
+  // u2 ticket endpoints (email verification, password change)
+  if (lower.includes("ticket invalid or expired")) {
+    return "This link is invalid or has expired. Please request a new one.";
+  }
+  if (lower.includes("ticket already consumed")) {
+    return "This link has already been used. Please request a new one.";
+  }
   if (lower.includes("invalid enrollment session")) {
     return "The enrollment session is no longer valid. Please request a new enrollment link.";
   }

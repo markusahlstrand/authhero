@@ -1,4 +1,5 @@
 import { Context } from "hono";
+import { nanoid } from "nanoid";
 import { t } from "i18next";
 import { Bindings, Variables } from "../types";
 import {
@@ -13,7 +14,7 @@ import {
 import { HTTPException } from "hono/http-exception";
 import { logMessage } from "../helpers/logging";
 import { createClientServiceToken } from "../helpers/service-token";
-import { getAuthUrl, getUniversalLoginUrl } from "../variables";
+import { getAuthUrl, getIssuer, getUniversalLoginUrl } from "../variables";
 import { getConnectionFromIdentifier } from "../utils/username";
 import { getEnrichedClient } from "../helpers/client";
 import { Liquid } from "liquidjs";
@@ -34,6 +35,10 @@ function buildCreateServiceToken(
     return token.access_token;
   };
 }
+
+// 5 days, matches the Auth0 default for email-verification tickets and the
+// management API's POST /api/v2/tickets/email-verification.
+const EMAIL_VERIFICATION_TICKET_TTL_SEC = 432000;
 
 const BUILT_IN_EMAIL_SERVICES: Record<string, () => EmailServiceAdapter> = {
   mailgun: () => new MailgunEmailService(),
@@ -676,7 +681,34 @@ export async function sendValidateEmailAddress(
     lng: language || "en",
   };
 
-  const emailValidationUrl = `${getUniversalLoginUrl(ctx.env)}validate-email`;
+  // Single-use ticket consumed by GET /u2/tickets/email-verification — the
+  // same mechanism as the management API's POST /api/v2/tickets/
+  // email-verification. The legacy /u/validate-email page required a live
+  // login session (state) plus a code that this flow never minted, so links
+  // to it could never work: verification emails are opened later and often
+  // on another device.
+  const ticketId = nanoid();
+  const expiresAt = new Date(
+    Date.now() + EMAIL_VERIFICATION_TICKET_TTL_SEC * 1000,
+  ).toISOString();
+  await ctx.env.data.codes.create(tenant.id, {
+    code_id: ticketId,
+    code_type: "ticket",
+    login_id: ticketId,
+    user_id: user.user_id,
+    expires_at: expiresAt,
+    state: JSON.stringify({ purpose: "email_verification" }),
+  });
+
+  const validationUrl = new URL(
+    "u2/tickets/email-verification",
+    getIssuer(ctx.env, ctx.var.custom_domain),
+  );
+  validationUrl.searchParams.set("ticket", ticketId);
+  if (!ctx.var.custom_domain) {
+    validationUrl.searchParams.set("tenant_id", tenant.id);
+  }
+  const emailValidationUrl = validationUrl.toString();
 
   const data: Record<string, string> = {
     tenantId: tenant.id,
