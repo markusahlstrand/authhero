@@ -12,6 +12,7 @@ import wretch from "wretch";
 import { retry, dedupe } from "wretch/middlewares";
 import { CloudflareConfig } from "../types/CloudflareConfig";
 import {
+  customDomainListResponseSchema,
   customDomainResponseSchema,
   CustomDomainResult,
 } from "../types/CustomDomain";
@@ -124,6 +125,48 @@ function mapCustomDomainResponse(
   };
 }
 
+/**
+ * Look up a hostname that already exists in the zone.
+ *
+ * Returns null when it cannot be found or cannot be safely claimed, because the only
+ * caller uses this to *recover* from a failed create — anything short of a confident
+ * match has to fall through to the original error.
+ */
+async function findCustomHostname(
+  config: CloudflareConfig,
+  tenant_id: string,
+  hostname: string,
+): Promise<CustomDomainResult | null> {
+  let body: unknown;
+  try {
+    body = await getClient(config)
+      .get(`/custom_hostnames?hostname=${encodeURIComponent(hostname)}`)
+      .json();
+  } catch {
+    return null;
+  }
+
+  const parsed = customDomainListResponseSchema.safeParse(body);
+  if (!parsed.success || !parsed.data.success) {
+    return null;
+  }
+
+  const match = parsed.data.result.find(
+    (result) => result.hostname.toLowerCase() === hostname.toLowerCase(),
+  );
+  if (!match) {
+    return null;
+  }
+
+  // Enterprise zones stamp the owning tenant onto the hostname, so there it is knowable
+  // whether this is ours to take. Never adopt one that belongs to somebody else.
+  if (config.enterprise && match.custom_metadata?.tenant_id !== tenant_id) {
+    return null;
+  }
+
+  return match;
+}
+
 export function createCustomDomainsAdapter(
   config: CloudflareConfig,
 ): CustomDomainsAdapter {
@@ -133,29 +176,64 @@ export function createCustomDomainsAdapter(
         domain.domain_metadata,
       );
 
-      const { result, errors, success } = customDomainResponseSchema.parse(
-        await getClient(config)
-          .post(
-            {
-              hostname: domain.domain,
-              ssl: {
-                method: "txt",
-                type: "dv",
-                ...sslOverrides,
-              },
-              custom_metadata: config.enterprise
-                ? {
-                    tenant_id,
-                  }
-                : undefined,
-            },
-            "/custom_hostnames",
-          )
-          .json(),
+      // Registering a domain that is already registered is a retry, not a new fact.
+      // Answer it the way Auth0 does — 409, which callers can key on — rather than
+      // letting it reach Cloudflare and come back as an opaque 500. The lookup is
+      // deliberately not tenant-scoped: a hostname is unique across the zone, and a
+      // domain held by another tenant has to read the same as one held by this one.
+      const claimed = await config.customDomainAdapter.getByDomain(
+        domain.domain,
       );
+      if (claimed) {
+        throw new HTTPException(409, {
+          message: `The domain ${domain.domain} is already registered`,
+        });
+      }
 
-      if (!success) {
-        throw new Error(JSON.stringify(errors));
+      let result: CustomDomainResult;
+      try {
+        const created = customDomainResponseSchema.parse(
+          await getClient(config)
+            .post(
+              {
+                hostname: domain.domain,
+                ssl: {
+                  method: "txt",
+                  type: "dv",
+                  ...sslOverrides,
+                },
+                custom_metadata: config.enterprise
+                  ? {
+                      tenant_id,
+                    }
+                  : undefined,
+              },
+              "/custom_hostnames",
+            )
+            .json(),
+        );
+
+        if (!created.success) {
+          throw new Error(JSON.stringify(created.errors));
+        }
+        result = created.result;
+      } catch (err) {
+        // Cloudflare rejects a hostname that already exists in the zone, and that
+        // rejection is not proof somebody else owns it: the writes below are not atomic
+        // with this call, so a create that dies in between leaves the hostname at the
+        // edge with no authhero row. Every later attempt then hits the same rejection and
+        // the domain can never be registered again — a permanent failure produced by one
+        // transient one. No tenant claims it (checked above), so adopt what is already
+        // there instead. Anything we cannot positively identify still throws.
+        const existing = await findCustomHostname(
+          config,
+          tenant_id,
+          domain.domain,
+        );
+        if (!existing) {
+          throw err;
+        }
+        result = existing;
       }
 
       const customDomain = mapCustomDomainResponse({
