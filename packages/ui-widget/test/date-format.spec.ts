@@ -69,7 +69,54 @@ describe("getDateLayout", () => {
 
   it("separates year-first locales with a dash", () => {
     expect(getDateLayout(undefined, "sv").separator).toBe("-");
-    expect(getDateLayout(undefined, "de").separator).toBe("/");
+    expect(getDateLayout(undefined, "lt").separator).toBe("-");
+  });
+
+  it("uses the locale's own separator", () => {
+    // Dot locales write 14.08.2026
+    expect(getDateLayout(undefined, "de").separator).toBe(".");
+    expect(getDateLayout(undefined, "de-AT").separator).toBe(".");
+    expect(getDateLayout(undefined, "fi-FI").separator).toBe(".");
+    expect(getDateLayout(undefined, "nb-NO").separator).toBe(".");
+    expect(getDateLayout(undefined, "pl").separator).toBe(".");
+    // Dutch writes 14-08-2026
+    expect(getDateLayout(undefined, "nl").separator).toBe("-");
+    // Slash stays the default for day- and month-first
+    expect(getDateLayout(undefined, "en-GB").separator).toBe("/");
+    expect(getDateLayout(undefined, "fr-FR").separator).toBe("/");
+    // Japanese is year-first but slash-separated: 2026/08/14
+    expect(getDateLayout(undefined, "ja-JP").separator).toBe("/");
+    // Finland-Swedish is day-first with dots, unlike Sweden-Swedish
+    expect(getDateLayout(undefined, "sv-FI").separator).toBe(".");
+  });
+
+  it("localizes placeholder tokens", () => {
+    expect(getDateLayout(undefined, "de-DE").tokens).toEqual({
+      day: "TT",
+      month: "MM",
+      year: "JJJJ",
+    });
+    expect(getDateLayout(undefined, "fr").tokens).toEqual({
+      day: "JJ",
+      month: "MM",
+      year: "AAAA",
+    });
+    expect(getDateLayout(undefined, "sv-SE").tokens).toEqual({
+      day: "DD",
+      month: "MM",
+      year: "ÅÅÅÅ",
+    });
+    expect(getDateLayout(undefined, "fi").tokens).toEqual({
+      day: "PP",
+      month: "KK",
+      year: "VVVV",
+    });
+    // Unknown languages keep the English tokens
+    expect(getDateLayout(undefined, "xx").tokens).toEqual({
+      day: "DD",
+      month: "MM",
+      year: "YYYY",
+    });
   });
 });
 
