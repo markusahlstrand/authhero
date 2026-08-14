@@ -132,7 +132,7 @@ export function isFormHook(
 }
 
 /**
- * Resolves a template string like "{{context.user.email}}", "{{user.id}}", or "{{$form.gender}}" to its actual value
+ * Resolves a template string like "{{context.user.email}}", "{{user.id}}", or "{{fields.gender}}" to its actual value
  */
 export function resolveTemplateField(
   field: string,
@@ -150,8 +150,9 @@ export function resolveTemplateField(
     return resolveNestedPath(context.user, userMatch[1]);
   }
 
-  // Match patterns like {{$form.gender}} for submitted form field values (Auth0 standard)
-  const fieldsMatch = field.match(/^\{\{\$form\.(.+)\}\}$/);
+  // Match submitted form field values: {{fields.gender}} (Auth0 standard)
+  // or {{$form.gender}} (legacy alias kept for existing tenant configs)
+  const fieldsMatch = field.match(/^\{\{(?:fields|\$form)\.(.+)\}\}$/);
   if (fieldsMatch && fieldsMatch[1] && context.submittedFields) {
     const value = context.submittedFields[fieldsMatch[1]];
     return value !== undefined ? String(value) : undefined;

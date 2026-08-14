@@ -101,8 +101,10 @@ export function ComponentList({ nodeIndex }: ComponentListProps) {
 
   const remove = (id: string) => update(components.filter((c) => c.id !== id));
 
-  const replace = (next: FormNodeComponent) =>
-    update(components.map((c) => (c.id === next.id ? next : c)));
+  // Match on the id the component had when editing started, so saving an
+  // edited Field ID replaces the original instead of matching nothing.
+  const replace = (originalId: string, next: FormNodeComponent) =>
+    update(components.map((c) => (c.id === originalId ? next : c)));
 
   return (
     <div className="flex flex-col gap-2">
@@ -186,8 +188,11 @@ export function ComponentList({ nodeIndex }: ComponentListProps) {
       <ComponentEditorDialog
         open={editing !== null}
         component={editing}
+        takenIds={components.filter((c) => c.id !== editingId).map((c) => c.id)}
         onClose={() => setEditingId(null)}
-        onSave={(next) => replace(next)}
+        onSave={(next) => {
+          if (editingId) replace(editingId, next);
+        }}
       />
     </div>
   );
