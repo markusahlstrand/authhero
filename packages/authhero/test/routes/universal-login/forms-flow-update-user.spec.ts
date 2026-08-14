@@ -264,8 +264,10 @@ describe("forms - FLOW node with AUTH0 UPDATE_USER after STEP", () => {
               params: {
                 user_id: "{{user.id}}",
                 changes: {
-                  "metadata.gender": "{{$form.dropdown_gender}}",
-                  "metadata.birthdate": "{{$form.date_birthdate}}",
+                  // {{fields.*}} is the Auth0-standard syntax; {{$form.*}} is
+                  // the legacy alias — both must resolve.
+                  "metadata.gender": "{{fields.dropdown_gender}}",
+                  "metadata.birthdate": "{{fields.date_birthdate}}",
                   "address.country": "{{$form.dropdown_country}}",
                 },
               },
