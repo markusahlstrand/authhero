@@ -1,5 +1,19 @@
 # @authhero/kysely-adapter
 
+## 12.4.0
+
+### Minor Changes
+
+- 6d82d84: Add weekly refresh-token cohort retention analytics with optional client filtering
+
+  New `GET /api/v2/analytics/refresh-token-retention` management endpoint (weeks 1-26, repeatable `client_id` filter), backed by an optional `refreshTokenRetention` method on the analytics adapter. Rotating refresh tokens are folded into rotation families before the cohort fold, so each unit represents a device/app that got a refresh token rather than each rotation. Implemented for the drizzle and kysely adapters.
+
+### Patch Changes
+
+- Updated dependencies [6d82d84]
+  - @authhero/adapter-interfaces@4.8.0
+  - @authhero/proxy@0.10.5
+
 ## 12.3.1
 
 ### Patch Changes
