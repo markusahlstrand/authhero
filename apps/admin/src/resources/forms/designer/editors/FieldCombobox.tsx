@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
-import { ROUTER_FIELD_OPTIONS, type RouterFieldOption } from "../constants";
+import { USER_FIELD_OPTIONS, type UserFieldOption } from "../constants";
 
 interface FieldComboboxProps {
   value: string | undefined;
@@ -27,19 +27,20 @@ interface FieldComboboxProps {
 export function FieldCombobox({ value, onChange }: FieldComboboxProps) {
   const [open, setOpen] = useState(false);
 
-  const grouped = ROUTER_FIELD_OPTIONS.reduce<
-    Record<string, RouterFieldOption[]>
-  >((acc, option) => {
-    if (!acc[option.group]) acc[option.group] = [];
-    acc[option.group].push(option);
-    return acc;
-  }, {});
+  const grouped = USER_FIELD_OPTIONS.reduce<Record<string, UserFieldOption[]>>(
+    (acc, option) => {
+      if (!acc[option.group]) acc[option.group] = [];
+      acc[option.group].push(option);
+      return acc;
+    },
+    {},
+  );
 
   // Rules saved before the designer emitted {{context.user.…}} templates
   // hold bare paths; map them onto the matching option for display.
   const normalized =
     value && !value.startsWith("{{") ? `{{context.user.${value}}}` : value;
-  const selected = ROUTER_FIELD_OPTIONS.find((opt) => opt.value === normalized);
+  const selected = USER_FIELD_OPTIONS.find((opt) => opt.value === normalized);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -64,7 +65,7 @@ export function FieldCombobox({ value, onChange }: FieldComboboxProps) {
           <CommandInput
             placeholder="Search fields…"
             onValueChange={(v) => {
-              if (v && !ROUTER_FIELD_OPTIONS.some((o) => o.value === v)) {
+              if (v && !USER_FIELD_OPTIONS.some((o) => o.value === v)) {
                 // user is typing a custom field; we apply on Enter via item
               }
             }}
