@@ -618,11 +618,19 @@ export async function requestPasswordReset(
     Variables: Variables;
   }>,
   client: EnrichedClient,
-  email: string,
+  emailInput: string,
   state: string,
   verification_method?: "link" | "code",
   routePrefix?: string,
 ) {
+  // Normalized here rather than trusted from the caller: the three call sites
+  // reach this with values of differing provenance — the u2 screen's submitted
+  // field, and `loginSession.authParams.username`, which can carry an
+  // un-normalized `login_hint` straight from /authorize. Since a miss below
+  // *creates* a user, a mixed-case value would both fail to match the existing
+  // account and persist the mixed case onto the new one.
+  const email = emailInput.toLowerCase();
+
   // A reset request lazily creates the native user so the emailed link has a
   // user to update. When the user doesn't exist yet, only create one if the
   // connection still permits signups — otherwise creation would throw (signup

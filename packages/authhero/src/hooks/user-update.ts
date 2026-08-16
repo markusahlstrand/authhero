@@ -13,6 +13,7 @@ import { stripInternalUserFields } from "../helpers/hook-user-payload";
 import { isTemplateHook, handleTemplateHook } from "./templatehooks";
 import { builtInUserLinkingEnabled } from "../helpers/user-linking";
 import { compareUsersByAge, repointPrimary } from "../helpers/users";
+import { withLowercasedEmail } from "../utils/email";
 import {
   buildPostHookEvent,
   relayOutboxEvent,
@@ -102,6 +103,14 @@ export function createUserUpdateHooks(
         });
       }
     }
+
+    // Re-normalize after the pre-update hook: its `setUserMetadata` writes
+    // arbitrary keys onto `updates` and can therefore introduce a mixed-case
+    // `email` after the adapter wrapper normalized the incoming payload.
+    // Reassigned (rather than used only at the commit call) so the outbox
+    // event, the linking branch below, and the inline post-update dispatch all
+    // carry the stored value.
+    updates = withLowercasedEmail(updates);
 
     // Decide whether the built-in email→primary auto-link runs inside the
     // commit transaction. With "off", linking on email update only happens

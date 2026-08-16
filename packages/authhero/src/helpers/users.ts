@@ -517,7 +517,6 @@ export async function getOrCreateUserByProvider(
   params: GetOrCreateUserByProviderParams,
 ): Promise<User> {
   const {
-    username,
     provider,
     connection,
     client,
@@ -527,6 +526,18 @@ export async function getOrCreateUserByProvider(
     ip = "",
     set_user_root_attributes,
   } = params;
+
+  // Normalized once, before the lookup, because this function both reads and
+  // (on a miss) writes: a mixed-case identifier would miss the existing row
+  // and then create a duplicate. Callers arrive with identifiers of varying
+  // provenance — `loginSession.authParams.username`, which can carry an
+  // un-normalized `login_hint` from /authorize, or an upstream IdP profile.
+  // Only "@"-bearing identifiers are emails; plain usernames (which the
+  // baseUserSchema invariant forbids from containing "@") and E.164 phone
+  // numbers must keep their exact form.
+  const username = params.username.includes("@")
+    ? params.username.toLowerCase()
+    : params.username;
 
   const effectiveMode = set_user_root_attributes || "on_each_login";
   const rootAttrs =

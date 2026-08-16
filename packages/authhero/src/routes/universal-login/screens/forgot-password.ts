@@ -184,7 +184,11 @@ export const forgotPasswordScreenDefinition: ScreenDefinition = {
         customText,
       );
 
-      const email = (data.email as string)?.trim();
+      // Lowercased to match the identifier / login / signup screens. Without
+      // it a mixed-case entry misses the existing account in
+      // `requestPasswordReset` and lazily creates a duplicate user carrying
+      // the mixed-case email.
+      const email = (data.email as string)?.toLowerCase()?.trim();
 
       if (!email) {
         const errorMsg = m["no-email"]();
