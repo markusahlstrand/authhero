@@ -1,13 +1,29 @@
 import { describe, it, expect } from "vitest";
+import { Context } from "hono";
 import { getTestServer } from "../helpers/test-server";
 import { addDataHooks } from "../../src/hooks";
 import { USERNAME_PASSWORD_PROVIDER } from "../../src/constants";
 import { Strategy } from "@authhero/adapter-interfaces";
 import { getOrCreateUserByProvider } from "../../src/helpers/users";
 import { getEnrichedClient } from "../../src/helpers/client";
+import { Bindings, Variables } from "../../src/types";
+import {
+  HookEvent,
+  Hooks,
+  OnExecutePreUserRegistrationAPI,
+  OnExecutePreUserUpdateAPI,
+} from "../../src/types/Hooks";
 
-function createMockCtx(env: any): any {
-  return {
+type TestEnv = Awaited<ReturnType<typeof getTestServer>>["env"];
+type HookContext = Context<{ Bindings: Bindings; Variables: Variables }>;
+
+/**
+ * The hook decorators read only the handful of context members below. The
+ * single cast keeps that narrow shape at the fixture boundary instead of
+ * spreading `any` through every call site.
+ */
+function createMockCtx(env: TestEnv, hooks?: Hooks): HookContext {
+  const ctx = {
     req: {
       method: "POST",
       url: "http://test",
@@ -16,7 +32,10 @@ function createMockCtx(env: any): any {
       query: () => undefined,
       queries: () => ({}),
     },
-    env,
+    // `getTestServer` hands its `hooks` to `init()`, which attaches them to
+    // `ctx.env` inside the app middleware — the returned `env` has none. These
+    // tests drive the decorators directly, so attach them here.
+    env: hooks ? { ...env, hooks } : env,
     set: () => {},
     var: {
       ip: "127.0.0.1",
@@ -26,6 +45,8 @@ function createMockCtx(env: any): any {
       client_id: "test-client",
     },
   };
+
+  return ctx as unknown as HookContext;
 }
 
 // Emails sourced from upstream systems (SCIM payloads, Auth0 lazy migration,
@@ -76,6 +97,78 @@ describe("email lowercasing at the data-hooks layer", () => {
       `${USERNAME_PASSWORD_PROVIDER}|mixed-case-update`,
     );
     expect(stored?.email).toBe("after.change@example.com");
+  });
+});
+
+// Pre-registration and pre-update hooks both expose `setUserMetadata`, which
+// writes arbitrary keys onto the pending payload — including `email`. That runs
+// after the adapter wrapper normalized the incoming value, so the decorators
+// normalize again just before their commit.
+describe("email lowercasing for hook-assigned emails", () => {
+  it("lowercases an email assigned by a pre-registration hook", async () => {
+    const { env } = await getTestServer();
+    const dataWithHooks = addDataHooks(
+      createMockCtx(env, {
+        onExecutePreUserRegistration: async (
+          _event: HookEvent,
+          api: OnExecutePreUserRegistrationAPI,
+        ) => {
+          api.user.setUserMetadata("email", "Hook.Assigned@Example.COM");
+        },
+      }),
+      env.data,
+    );
+
+    const created = await dataWithHooks.users.create("tenantId", {
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|hook-create`,
+      email: "original@example.com",
+      email_verified: true,
+      provider: USERNAME_PASSWORD_PROVIDER,
+      connection: Strategy.USERNAME_PASSWORD,
+    });
+
+    expect(created.email).toBe("hook.assigned@example.com");
+
+    const stored = await env.data.users.get(
+      "tenantId",
+      `${USERNAME_PASSWORD_PROVIDER}|hook-create`,
+    );
+    expect(stored?.email).toBe("hook.assigned@example.com");
+  });
+
+  it("lowercases an email assigned by a pre-update hook", async () => {
+    const { env } = await getTestServer();
+    const dataWithHooks = addDataHooks(
+      createMockCtx(env, {
+        onExecutePreUserUpdate: async (
+          _event: HookEvent,
+          api: OnExecutePreUserUpdateAPI,
+        ) => {
+          api.user.setUserMetadata("email", "Hook.Updated@Example.COM");
+        },
+      }),
+      env.data,
+    );
+
+    await env.data.users.create("tenantId", {
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|hook-update`,
+      email: "before@example.com",
+      email_verified: true,
+      provider: USERNAME_PASSWORD_PROVIDER,
+      connection: Strategy.USERNAME_PASSWORD,
+    });
+
+    await dataWithHooks.users.update(
+      "tenantId",
+      `${USERNAME_PASSWORD_PROVIDER}|hook-update`,
+      { name: "Unrelated change" },
+    );
+
+    const stored = await env.data.users.get(
+      "tenantId",
+      `${USERNAME_PASSWORD_PROVIDER}|hook-update`,
+    );
+    expect(stored?.email).toBe("hook.updated@example.com");
   });
 });
 

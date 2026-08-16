@@ -7,6 +7,10 @@ import { getTestServer } from "../../helpers/test-server";
 import { getUsernamePasswordUser } from "../../../src/utils/username-password-provider";
 import { USERNAME_PASSWORD_PROVIDER } from "../../../src/constants";
 
+type TestServer = Awaited<ReturnType<typeof getTestServer>>;
+type TestEnv = TestServer["env"];
+type U2App = TestServer["u2App"];
+
 /**
  * The u2 forgot-password screen lazily creates a native database user when the
  * submitted address has no account yet (so the emailed reset link has a user to
@@ -15,7 +19,7 @@ import { USERNAME_PASSWORD_PROVIDER } from "../../../src/constants";
  * misses an existing account and persists the mixed case onto the new row.
  */
 describe("u2 forgot-password email casing", () => {
-  async function startLoginSession(env: any) {
+  async function startLoginSession(env: TestEnv) {
     const loginSession = await env.data.loginSessions.create("tenantId", {
       expires_at: new Date(Date.now() + 600000).toISOString(),
       csrf_token: "csrfToken",
@@ -32,8 +36,8 @@ describe("u2 forgot-password email casing", () => {
   }
 
   async function submitForgotPassword(
-    u2App: any,
-    env: any,
+    u2App: U2App,
+    env: TestEnv,
     state: string,
     email: string,
   ) {

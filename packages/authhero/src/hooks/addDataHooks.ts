@@ -8,24 +8,7 @@ import { Bindings, Variables } from "../types";
 import { createUserHooks } from "./user-registration";
 import { createUserUpdateHooks } from "./user-update";
 import { createUserDeletionHooks } from "./user-deletion";
-
-/**
- * Emails are case-insensitive identifiers: every lookup (identifier-first
- * login, `getPrimaryUserByEmail`, email-based auto-linking) lowercases its
- * input, so a mixed-case stored email is unreachable and spawns duplicate
- * accounts. Request-schema transforms only cover zod-validated bodies —
- * upstream-sourced emails (SCIM provisioning, Auth0 lazy migration, IdP
- * profiles) reach `users.create`/`users.update` unvalidated, so this wrapper
- * is the enforcement point for every write that flows through the app's
- * composed adapters.
- */
-function withLowercasedEmail<T extends { email?: string }>(input: T): T {
-  if (!input.email) {
-    return input;
-  }
-  const lowercased = input.email.toLowerCase();
-  return lowercased === input.email ? input : { ...input, email: lowercased };
-}
+import { withLowercasedEmail } from "../utils/email";
 
 /**
  * Wrap a raw `DataAdapters` with lifecycle hooks for user CRUD operations.
@@ -34,8 +17,13 @@ function withLowercasedEmail<T extends { email?: string }>(input: T): T {
  * `users.update`, and `users.remove` are replaced with decorated versions
  * that run pre/post hooks, apply the narrow transactional commits, and
  * dispatch post-event outbox messages. `users.rawCreate` is NOT decorated —
- * commit paths call it directly to bypass the hook layer by design (they
- * receive the payload already normalized by the decorated entry points).
+ * commit paths call it directly to bypass the hook layer by design.
+ *
+ * `email` is lowercased on the way in so the pre-commit hooks and lookups
+ * (`preUserSignupHook`, the email→primary linking query) see the same
+ * normalized value that will be stored. Hooks can assign `email` themselves
+ * after this point, so the decorators normalize again just before their
+ * commit — see `createUserHooks` / `createUserUpdateHooks`.
  */
 export function addDataHooks(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
