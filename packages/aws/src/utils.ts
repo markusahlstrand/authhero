@@ -8,6 +8,7 @@ import {
 } from "@aws-sdk/lib-dynamodb";
 import { DynamoDBContext, DynamoDBBaseItem } from "./types";
 import { ListParams } from "@authhero/adapter-interfaces";
+import { decodeDynamoCursor, encodeDynamoCursor } from "./cursor";
 
 /**
  * Transactional write operation for DynamoDB
@@ -162,8 +163,24 @@ export async function queryItems<T>(
   };
 }
 
+/** True when the caller asked for keyset (checkpoint) pagination. */
+export function isKeysetRequest(params?: ListParams): boolean {
+  return params?.from !== undefined || params?.take !== undefined;
+}
+
 /**
- * Query with pagination support
+ * Query with pagination support.
+ *
+ * Two modes, picked by which parameters the caller supplied:
+ *
+ * - **Keyset (checkpoint)** — `from`/`take`. `from` is an OPAQUE cursor (see
+ *   `encodeDynamoCursor`) wrapping DynamoDB's own `LastEvaluatedKey`, so a page
+ *   resumes natively via `ExclusiveStartKey` with no scanning of skipped rows.
+ *   Returns `next` when a further page may exist, and no `total` — matching
+ *   Auth0's checkpoint responses and the SQL adapters.
+ * - **Offset** — `page`/`per_page`. Unchanged, including the read-and-discard
+ *   loop DynamoDB forces on us (it has no native offset). The admin UI uses
+ *   this, and it is what `include_totals` is for.
  */
 export async function queryWithPagination<T>(
   ctx: DynamoDBContext,
@@ -180,15 +197,13 @@ export async function queryWithPagination<T>(
   limit: number;
   length: number;
   total?: number;
+  /** Opaque cursor for the next page; keyset mode only, absent on the last. */
+  next?: string;
 }> {
   const { page, per_page, include_totals = false, from, take } = params;
   const { skPrefix, indexName, scanIndexForward = true } = options || {};
 
-  // Determine pagination strategy
-  // If 'from' is provided, use it as offset (checkpoint pagination)
-  // Otherwise use page-based pagination
   const limit = take || per_page || 50;
-  const skip = from !== undefined ? parseInt(from, 10) : (page || 0) * limit;
 
   let keyConditionExpression = indexName ? `${indexName}PK = :pk` : "PK = :pk";
   const expressionAttributeValues: Record<string, unknown> = {
@@ -200,6 +215,48 @@ export async function queryWithPagination<T>(
     keyConditionExpression += ` AND begins_with(${skAttr}, :skPrefix)`;
     expressionAttributeValues[":skPrefix"] = skPrefix;
   }
+
+  if (isKeysetRequest(params)) {
+    // A malformed cursor, or one minted by a different query, decodes to null
+    // and starts the walk from the beginning rather than reaching DynamoDB as a
+    // key that disagrees with the key conditions — which surfaces as an
+    // unhandled ValidationException driven by a query parameter.
+    const startKey = from
+      ? (decodeDynamoCursor(from, { pk, indexName, skPrefix }) ?? undefined)
+      : undefined;
+
+    const result = await ctx.client.send(
+      new QueryCommand({
+        TableName: ctx.tableName,
+        IndexName: indexName,
+        KeyConditionExpression: keyConditionExpression,
+        ExpressionAttributeValues: expressionAttributeValues,
+        Limit: limit,
+        ExclusiveStartKey: startKey,
+        ScanIndexForward: scanIndexForward,
+      }),
+    );
+
+    const items = (result.Items as T[]) || [];
+    // DynamoDB returns LastEvaluatedKey whenever it stopped early — including
+    // when it happened to stop exactly at the end of the data — so `next` can
+    // point at an empty final page. That is DynamoDB's documented behaviour and
+    // the walk still terminates; the alternative (a lookahead query per page)
+    // costs a read to save a caller one.
+    const next = result.LastEvaluatedKey
+      ? encodeDynamoCursor(result.LastEvaluatedKey)
+      : undefined;
+
+    return {
+      items,
+      start: 0,
+      limit,
+      length: items.length,
+      next,
+    };
+  }
+
+  const skip = (page || 0) * limit;
 
   // If we need to skip items, we need to query more and filter
   // This is a limitation of DynamoDB - no native offset support

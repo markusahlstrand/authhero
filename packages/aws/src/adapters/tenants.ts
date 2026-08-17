@@ -3,6 +3,7 @@ import {
   TenantsDataAdapter,
   Tenant,
   CreateTenantParams,
+  Totals,
   tenantSchema,
 } from "@authhero/adapter-interfaces";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
@@ -12,6 +13,7 @@ import {
   putItem,
   deleteItem,
   queryWithPagination,
+  isKeysetRequest,
   updateItem,
   stripDynamoDBFields,
   removeNullProperties,
@@ -70,7 +72,7 @@ export function createTenantsAdapter(ctx: DynamoDBContext): TenantsDataAdapter {
 
     async list(params = {}): Promise<{
       tenants: Tenant[];
-      totals?: { start: number; limit: number; length: number };
+      totals?: Totals;
     }> {
       const { include_totals = false } = params;
 
@@ -86,6 +88,21 @@ export function createTenantsAdapter(ctx: DynamoDBContext): TenantsDataAdapter {
       );
 
       const tenants = result.items.map(toTenant);
+
+      // Checkpoint mode carries the cursor in totals even without
+      // include_totals — it is the only channel for `next`, and Auth0's
+      // checkpoint responses have no total to report anyway.
+      if (isKeysetRequest(params)) {
+        return {
+          tenants,
+          totals: {
+            start: result.start,
+            limit: result.limit,
+            length: result.length,
+            next: result.next,
+          },
+        };
+      }
 
       if (include_totals) {
         return {

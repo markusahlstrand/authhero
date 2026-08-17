@@ -15,6 +15,7 @@ import {
   putItem,
   deleteItem,
   queryWithPagination,
+  isKeysetRequest,
   updateItem,
   stripDynamoDBFields,
   removeNullProperties,
@@ -297,6 +298,21 @@ export function createClientsAdapter(ctx: DynamoDBContext): ClientsAdapter {
       );
 
       const clients = result.items.map(toClient);
+
+      // Checkpoint mode carries the cursor in totals even without
+      // include_totals — it is the only channel for `next`, and Auth0's
+      // checkpoint responses have no total to report anyway.
+      if (isKeysetRequest(params)) {
+        return {
+          clients,
+          totals: {
+            start: result.start,
+            limit: result.limit,
+            length: result.length,
+            next: result.next,
+          },
+        };
+      }
 
       if (params.include_totals) {
         return {

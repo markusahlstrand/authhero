@@ -98,6 +98,7 @@ export function createFlowsAdapter(ctx: DynamoDBContext): FlowsAdapter {
         start: result.start,
         limit: result.limit,
         length: result.length,
+        next: result.next,
       };
     },
 
