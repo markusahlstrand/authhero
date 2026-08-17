@@ -2,9 +2,10 @@ import { HTTPException } from "hono/http-exception";
 import { userIdGenerate, userIdParse } from "../../utils/user-id";
 import { Bindings, Variables } from "../../types";
 import {
-  getUsersByEmail,
+  getAllUsersByEmail,
   getUserByProvider,
   cascadeEmailToLinkedIdentities,
+  findEmailConflict,
 } from "../../helpers/users";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { querySchema } from "../../types/auth0/Query";
@@ -685,16 +686,23 @@ const patchByUser_id = defineRoute({
 
     // Check if the email is being changed to an existing email of another user
     if (userFields.email && userFields.email !== targetUser.email) {
-      const existingUser = await getUsersByEmail(
+      // Every page: the predicate below filters candidates, so a truncated
+      // first page could hide the row that actually conflicts.
+      const existingUsers = await getAllUsersByEmail(
         ctx.env.data.users,
         tenantId,
         userFields.email,
       );
 
-      // If there is an existing user with the same email address, and it is not the same user
+      // Only a row that would compete for the same *login identifier* blocks the
+      // change: same connection, and not a member of this user's own linked
+      // cluster. See findEmailConflict.
       if (
-        existingUser.length &&
-        existingUser.some((u) => u.user_id !== targetUserId)
+        findEmailConflict({
+          candidates: existingUsers,
+          target: { ...targetUser, user_id: targetUserId },
+          clusterRootId: user_id,
+        })
       ) {
         throw new HTTPException(409, {
           message: "Another user with the same email address already exists.",

@@ -20,6 +20,41 @@ export async function getUsersByEmail(
   return response.users;
 }
 
+/**
+ * Every user sharing `email`, across all pages.
+ *
+ * {@link getUsersByEmail} returns a single ten-row page, which is fine for the
+ * Auth0-shaped `/users-by-email` endpoint but not for a uniqueness check:
+ * {@link findEmailConflict} *filters* candidates by connection and cluster, so a
+ * truncated page can hide the one row that genuinely conflicts and let a
+ * duplicate through. An address legitimately spans many rows (one per provider
+ * in a linked cluster), so ten is well within reach. Mirrors the pagination loop
+ * in `resolveLinkCandidates`.
+ */
+export async function getAllUsersByEmail(
+  userAdapter: UserDataAdapter,
+  tenantId: string,
+  email: string,
+): Promise<User[]> {
+  const pageSize = 100;
+  const users: User[] = [];
+  let page = 0;
+
+  while (true) {
+    const response = await userAdapter.list(tenantId, {
+      page,
+      per_page: pageSize,
+      include_totals: false,
+      q: `email:${email}`,
+    });
+    users.push(...response.users);
+    if (response.users.length < pageSize) break;
+    page++;
+  }
+
+  return users;
+}
+
 interface GetUserByProviderParams {
   userAdapter: UserDataAdapter;
   tenant_id: string;
@@ -337,6 +372,63 @@ export function isEmailIdentifiedUser(
 ): boolean {
   if (isUsernamePasswordProvider(user.provider)) return true;
   return user.provider === "email" || user.connection === "email";
+}
+
+interface EmailConflictParams {
+  /** Every user sharing the new address, as returned by {@link getUsersByEmail}. */
+  candidates: User[];
+  /** The identity whose email is being changed. */
+  target: Pick<User, "user_id" | "provider" | "connection">;
+  /**
+   * The cluster root of the patched user. `target` may be the root itself or one
+   * of its linked secondaries (when the caller passed `connection`).
+   */
+  clusterRootId: string;
+}
+
+/**
+ * Find the user, if any, that genuinely blocks changing `target`'s email to an
+ * address already present on other rows.
+ *
+ * Two rows sharing an email is only a *conflict* when it makes a login ambiguous,
+ * and login lookups are always provider-scoped (`getUserByProvider` filters on
+ * `email:x provider:y`). So the check is scoped the way Auth0 scopes it — per
+ * connection — with one hard floor from the storage layer:
+ *
+ * - **Same provider** → always a conflict, cluster-mate or not. The
+ *   `(tenant_id, provider, email)` unique index makes a second row with that
+ *   address unrepresentable, so the write cannot succeed; a 409 is the honest
+ *   answer where allowing it would surface as a constraint-violation 500.
+ * - **Same connection, different provider** → a conflict *between* clusters. Two
+ *   `Username-Password-Authentication` rows (the `auth0`/`auth2` pair) sharing an
+ *   address are competing login rows for one credential. Unknown/custom
+ *   connections are included, so tenant-specific database connections keep the
+ *   protection they have today.
+ * - **Different connection** → not a conflict. An `sms` identity is keyed by
+ *   `phone_number` and a social identity by its provider sub, so their `email` is
+ *   ordinary profile data that can't shadow an email login. This mirrors the
+ *   `phone_number` carve-out on the same route (#1162) and matches Auth0, where
+ *   one address may exist across connections.
+ * - **Cluster-mates** (the root and its secondaries) → not a conflict, provider
+ *   permitting: they are the same person, and `cascadeEmailToLinkedIdentities`
+ *   deliberately converges the cluster onto one address right after this check.
+ *   Because AuthHero keeps secondaries as real rows (Auth0 folds them into the
+ *   primary's `identities[]`), they'd otherwise surface here as "another user".
+ */
+export function findEmailConflict({
+  candidates,
+  target,
+  clusterRootId,
+}: EmailConflictParams): User | undefined {
+  return candidates.find((candidate) => {
+    if (candidate.user_id === target.user_id) return false;
+    if (candidate.provider === target.provider) return true;
+    const isClusterMate =
+      candidate.user_id === clusterRootId ||
+      candidate.linked_to === clusterRootId;
+    if (isClusterMate) return false;
+    return candidate.connection === target.connection;
+  });
 }
 
 interface CascadeEmailParams {
