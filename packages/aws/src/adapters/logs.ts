@@ -4,6 +4,7 @@ import {
   Log,
   LogInsert,
   ListParams,
+  Totals,
   logSchema,
 } from "@authhero/adapter-interfaces";
 import { DynamoDBContext, DynamoDBBaseItem } from "../types";
@@ -138,7 +139,11 @@ export function createLogsAdapter(ctx: DynamoDBContext): LogsDataAdapter {
     async list(
       tenantId: string,
       params: ListParams = {},
-    ): Promise<{ logs: Log[]; start: number; limit: number; length: number }> {
+    ): Promise<
+      {
+        logs: Log[];
+      } & Totals
+    > {
       const result = await queryWithPagination<LogItem>(
         ctx,
         logKeys.pk(tenantId),
@@ -151,6 +156,7 @@ export function createLogsAdapter(ctx: DynamoDBContext): LogsDataAdapter {
         start: result.start,
         limit: result.limit,
         length: result.length,
+        next: result.next,
       };
     },
 

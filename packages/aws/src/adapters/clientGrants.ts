@@ -112,6 +112,7 @@ export function createClientGrantsAdapter(
         start: result.start,
         limit: result.limit,
         length: result.length,
+        next: result.next,
       };
     },
 
