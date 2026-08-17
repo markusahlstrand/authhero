@@ -5,6 +5,7 @@ import {
   getUsersByEmail,
   getUserByProvider,
   cascadeEmailToLinkedIdentities,
+  findEmailConflict,
 } from "../../helpers/users";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { querySchema } from "../../types/auth0/Query";
@@ -691,10 +692,15 @@ const patchByUser_id = defineRoute({
         userFields.email,
       );
 
-      // If there is an existing user with the same email address, and it is not the same user
+      // Only a row that would compete for the same *login identifier* blocks the
+      // change: same connection, and not a member of this user's own linked
+      // cluster. See findEmailConflict.
       if (
-        existingUser.length &&
-        existingUser.some((u) => u.user_id !== targetUserId)
+        findEmailConflict({
+          candidates: existingUser,
+          target: { ...targetUser, user_id: targetUserId },
+          clusterRootId: user_id,
+        })
       ) {
         throw new HTTPException(409, {
           message: "Another user with the same email address already exists.",
