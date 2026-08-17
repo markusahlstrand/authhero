@@ -20,6 +20,41 @@ export async function getUsersByEmail(
   return response.users;
 }
 
+/**
+ * Every user sharing `email`, across all pages.
+ *
+ * {@link getUsersByEmail} returns a single ten-row page, which is fine for the
+ * Auth0-shaped `/users-by-email` endpoint but not for a uniqueness check:
+ * {@link findEmailConflict} *filters* candidates by connection and cluster, so a
+ * truncated page can hide the one row that genuinely conflicts and let a
+ * duplicate through. An address legitimately spans many rows (one per provider
+ * in a linked cluster), so ten is well within reach. Mirrors the pagination loop
+ * in `resolveLinkCandidates`.
+ */
+export async function getAllUsersByEmail(
+  userAdapter: UserDataAdapter,
+  tenantId: string,
+  email: string,
+): Promise<User[]> {
+  const pageSize = 100;
+  const users: User[] = [];
+  let page = 0;
+
+  while (true) {
+    const response = await userAdapter.list(tenantId, {
+      page,
+      per_page: pageSize,
+      include_totals: false,
+      q: `email:${email}`,
+    });
+    users.push(...response.users);
+    if (response.users.length < pageSize) break;
+    page++;
+  }
+
+  return users;
+}
+
 interface GetUserByProviderParams {
   userAdapter: UserDataAdapter;
   tenant_id: string;

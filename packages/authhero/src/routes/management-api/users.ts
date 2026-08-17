@@ -2,7 +2,7 @@ import { HTTPException } from "hono/http-exception";
 import { userIdGenerate, userIdParse } from "../../utils/user-id";
 import { Bindings, Variables } from "../../types";
 import {
-  getUsersByEmail,
+  getAllUsersByEmail,
   getUserByProvider,
   cascadeEmailToLinkedIdentities,
   findEmailConflict,
@@ -686,7 +686,9 @@ const patchByUser_id = defineRoute({
 
     // Check if the email is being changed to an existing email of another user
     if (userFields.email && userFields.email !== targetUser.email) {
-      const existingUser = await getUsersByEmail(
+      // Every page: the predicate below filters candidates, so a truncated
+      // first page could hide the row that actually conflicts.
+      const existingUsers = await getAllUsersByEmail(
         ctx.env.data.users,
         tenantId,
         userFields.email,
@@ -697,7 +699,7 @@ const patchByUser_id = defineRoute({
       // cluster. See findEmailConflict.
       if (
         findEmailConflict({
-          candidates: existingUser,
+          candidates: existingUsers,
           target: { ...targetUser, user_id: targetUserId },
           clusterRootId: user_id,
         })

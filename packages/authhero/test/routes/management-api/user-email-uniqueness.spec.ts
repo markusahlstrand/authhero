@@ -1,7 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
 import { getAdminToken } from "../../helpers/token";
-import { getTestServer } from "../../helpers/test-server";
+import { getTestServer, TestServer } from "../../helpers/test-server";
+import { getUsersByEmail } from "../../../src/helpers/users";
+
+type ManagementClient = ReturnType<
+  typeof testClient<TestServer["managementApp"]>
+>;
 
 /**
  * The management PATCH email-uniqueness check is scoped per connection, the way
@@ -24,7 +29,7 @@ describe("management PATCH email uniqueness scoping", () => {
   const newEmail = "taken@example.com";
 
   function patchPrimary(
-    managementClient: any,
+    managementClient: ManagementClient,
     token: string,
     json: Record<string, unknown>,
   ) {
@@ -51,7 +56,6 @@ describe("management PATCH email uniqueness scoping", () => {
       provider: "sms",
       connection: "sms",
       is_social: false,
-      login_count: 0,
       linked_to: primaryId,
     });
 
@@ -82,7 +86,6 @@ describe("management PATCH email uniqueness scoping", () => {
       provider: "sms",
       connection: "sms",
       is_social: false,
-      login_count: 0,
     });
 
     const res = await patchPrimary(managementClient, token, {
@@ -103,7 +106,6 @@ describe("management PATCH email uniqueness scoping", () => {
       provider: "google-oauth2",
       connection: "google-oauth2",
       is_social: true,
-      login_count: 0,
     });
 
     const res = await patchPrimary(managementClient, token, {
@@ -127,7 +129,6 @@ describe("management PATCH email uniqueness scoping", () => {
       provider: "auth2",
       connection: "email",
       is_social: false,
-      login_count: 0,
       linked_to: primaryId,
     });
 
@@ -154,7 +155,6 @@ describe("management PATCH email uniqueness scoping", () => {
       provider: "email",
       connection: "email",
       is_social: false,
-      login_count: 0,
       linked_to: primaryId,
     });
 
@@ -176,8 +176,61 @@ describe("management PATCH email uniqueness scoping", () => {
       provider: "email",
       connection: "email",
       is_social: false,
-      login_count: 0,
     });
+
+    const res = await patchPrimary(managementClient, token, {
+      email: newEmail,
+    });
+    expect(res.status).toBe(409);
+
+    const unchanged = await env.data.users.get(tenantId, primaryId);
+    expect(unchanged!.email).toBe("foo@example.com");
+  });
+
+  /**
+   * The conflict lookup must read every page, not the single ten-row page
+   * `getUsersByEmail` returns: the predicate *filters* candidates, so allowed
+   * cross-connection rows can crowd the one row that genuinely conflicts out of
+   * a truncated result set and let a duplicate through. Ten fillers on distinct
+   * providers (the `(tenant_id, provider, email)` unique index forbids reusing
+   * one) fill the first page.
+   *
+   * Row order within a page is storage-defined, so the test asserts its own
+   * premise — that the conflicting row really is beyond page one — rather than
+   * assuming it. If a future adapter orders differently the premise fails
+   * loudly instead of the test passing vacuously.
+   */
+  it("finds a same-connection conflict beyond the first page of candidates", async () => {
+    const { managementApp, env } = await getTestServer();
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    for (let i = 0; i < 10; i++) {
+      const filler = `aa0${i}`;
+      await env.data.users.create(tenantId, {
+        user_id: `${filler}|filler`,
+        email: newEmail,
+        email_verified: true,
+        provider: filler,
+        connection: filler,
+        is_social: true,
+      });
+    }
+
+    // Same connection as the target, different provider — a genuine conflict
+    // that only full pagination surfaces.
+    await env.data.users.create(tenantId, {
+      user_id: "zzz|unrelated",
+      email: newEmail,
+      email_verified: true,
+      provider: "zzz",
+      connection: "email",
+      is_social: false,
+    });
+
+    const firstPage = await getUsersByEmail(env.data.users, tenantId, newEmail);
+    expect(firstPage).toHaveLength(10);
+    expect(firstPage.some((u) => u.user_id === "zzz|unrelated")).toBe(false);
 
     const res = await patchPrimary(managementClient, token, {
       email: newEmail,
@@ -201,7 +254,6 @@ describe("management PATCH email uniqueness scoping", () => {
       provider: "auth2",
       connection: "Username-Password-Authentication",
       is_social: false,
-      login_count: 0,
       linked_to: primaryId,
     });
     await env.data.users.create(tenantId, {
@@ -211,7 +263,6 @@ describe("management PATCH email uniqueness scoping", () => {
       provider: "auth2",
       connection: "Username-Password-Authentication",
       is_social: false,
-      login_count: 0,
     });
 
     const res = await patchPrimary(managementClient, token, {
