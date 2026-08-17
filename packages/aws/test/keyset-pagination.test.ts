@@ -80,7 +80,12 @@ describe("keyset pagination (from/take)", () => {
     // The regression this guards: `from` used to be parseInt()'d as an offset.
     // An opaque token yields NaN there, which silently returned zero rows.
     expect(Number.isNaN(Number(next))).toBe(true);
-    expect(decodeDynamoCursor(next!)).toMatchObject({ PK: expect.any(String) });
+    expect(
+      decodeDynamoCursor(next!, {
+        pk: `TENANT#${TENANT}`,
+        skPrefix: "CLIENT#",
+      }),
+    ).toMatchObject({ PK: `TENANT#${TENANT}` });
   });
 
   it("returns rows — not an empty page — when handed back its own cursor", async () => {
@@ -210,19 +215,158 @@ describe("keyset pagination (from/take)", () => {
   });
 });
 
+describe("cursors from a different query", () => {
+  afterEach(async () => {
+    await clearTestData();
+  });
+
+  afterAll(async () => {
+    await teardownTestServer();
+  });
+
+  // Every tenant-scoped entity shares the partition key TENANT#{id} and is
+  // separated only by its sort-key prefix, so a cursor from one listing is
+  // structurally valid for another. DynamoDB refuses such a key rather than
+  // returning wrong rows — these assert we reject it first, so a bad `from`
+  // restarts the walk instead of raising an unhandled ValidationException.
+
+  it("ignores a cursor minted by another entity in the same tenant", async () => {
+    const { data } = await getTestServer();
+    await seedTenant(data);
+
+    for (let i = 0; i < 6; i++) {
+      await data.clients.create(TENANT, {
+        client_id: `client-${i}`,
+        name: `C${i}`,
+      });
+      await data.clientGrants.create(TENANT, {
+        client_id: `client-${i}`,
+        audience: `https://api${i}.example.com`,
+      });
+    }
+
+    const grants = await data.clientGrants.list(TENANT, { take: 2 });
+    expect(grants.next).toBeTruthy();
+
+    // Previously: ValidationException, "does not match the range key predicate".
+    const clients = await data.clients.list(TENANT, {
+      take: 10,
+      from: grants.next,
+    });
+    expect(clients.clients).toHaveLength(6);
+  });
+
+  it("ignores a cursor minted for another tenant", async () => {
+    const { data } = await getTestServer();
+    await seedTenant(data);
+    await data.tenants.create({
+      id: "other",
+      friendly_name: "Other",
+      audience: "https://other.example.com",
+      sender_email: "o@example.com",
+      sender_name: "O",
+    });
+
+    for (let i = 0; i < 4; i++) {
+      await data.clients.create(TENANT, {
+        client_id: `client-${i}`,
+        name: `C${i}`,
+      });
+    }
+    await data.clients.create("other", { client_id: "secret", name: "Secret" });
+    await data.clients.create("other", { client_id: "secret-2", name: "S2" });
+
+    const other = await data.clients.list("other", { take: 1 });
+    expect(other.totals?.next).toBeTruthy();
+
+    const mine = await data.clients.list(TENANT, {
+      take: 10,
+      from: other.totals?.next,
+    });
+    // Restarts in the caller's own tenant. DynamoDB would have refused the key
+    // outright — this never had cross-tenant reach, it just failed loudly.
+    expect(mine.clients).toHaveLength(4);
+    expect(mine.clients.map((c) => c.client_id)).not.toContain("secret");
+  });
+
+  it("ignores a table cursor presented to a GSI-backed query", async () => {
+    const { data } = await getTestServer();
+    await seedTenant(data);
+    await data.clients.create(TENANT, { client_id: "client-0", name: "C0" });
+
+    const clientCursor = (await data.clients.list(TENANT, { take: 1 })).totals
+      ?.next;
+    expect(clientCursor).toBeTruthy();
+
+    // tenants.list queries GSI1; a table cursor lacks GSI1PK/GSI1SK.
+    // Previously: ValidationException, "The provided starting key is invalid".
+    const tenants = await data.tenants.list({ take: 10, from: clientCursor });
+    expect(tenants.tenants.length).toBeGreaterThan(0);
+  });
+});
+
 describe("dynamo cursor encoding", () => {
+  const query = { pk: "TENANT#a", skPrefix: "CLIENT#" };
+
   it("round-trips a LastEvaluatedKey", () => {
     const key = { PK: "TENANT#a", SK: "CLIENT#b" };
-    expect(decodeDynamoCursor(encodeDynamoCursor(key))).toEqual(key);
+    expect(decodeDynamoCursor(encodeDynamoCursor(key), query)).toEqual(key);
   });
 
   it("rejects malformed and foreign tokens rather than throwing", () => {
-    expect(decodeDynamoCursor("!!!not-base64!!!")).toBeNull();
-    expect(decodeDynamoCursor(encodeDynamoCursor({}))).toBeNull();
+    expect(decodeDynamoCursor("!!!not-base64!!!", query)).toBeNull();
+    expect(decodeDynamoCursor(encodeDynamoCursor({}), query)).toBeNull();
     // A cursor minted by a SQL adapter carries { s, i, k } and no PK — it must
     // not be forwarded to DynamoDB as an ExclusiveStartKey.
     const sqlCursor = "eyJzIjoiMjAyNC0wMS0wMSIsImkiOiJhYmMifQ";
     expect(decodeCursor(sqlCursor)).not.toBeNull();
-    expect(decodeDynamoCursor(sqlCursor)).toBeNull();
+    expect(decodeDynamoCursor(sqlCursor, query)).toBeNull();
+  });
+
+  it("rejects non-string key attributes", () => {
+    expect(
+      decodeDynamoCursor(encodeDynamoCursor({ PK: "TENANT#a", SK: 7 }), query),
+    ).toBeNull();
+    expect(
+      decodeDynamoCursor(
+        encodeDynamoCursor({ PK: "TENANT#a", SK: { nested: "x" } }),
+        query,
+      ),
+    ).toBeNull();
+  });
+
+  it("rejects a mismatched partition key or sort-key prefix", () => {
+    const key = { PK: "TENANT#a", SK: "CLIENT#b" };
+    expect(
+      decodeDynamoCursor(encodeDynamoCursor(key), { ...query, pk: "TENANT#z" }),
+    ).toBeNull();
+    expect(
+      decodeDynamoCursor(encodeDynamoCursor(key), {
+        ...query,
+        skPrefix: "CLIENT_GRANT#",
+      }),
+    ).toBeNull();
+  });
+
+  it("compares against the index key pair for a GSI query", () => {
+    const gsiQuery = { pk: "TENANTS", indexName: "GSI1", skPrefix: "TENANT#" };
+    const gsiKey = {
+      PK: "TENANT#a",
+      SK: "TENANT",
+      GSI1PK: "TENANTS",
+      GSI1SK: "TENANT#a",
+    };
+    // The item's own PK differs from the query's pk — only the index pair is
+    // compared, or every valid GSI cursor would be rejected.
+    expect(decodeDynamoCursor(encodeDynamoCursor(gsiKey), gsiQuery)).toEqual(
+      gsiKey,
+    );
+    // A table cursor has no GSI1PK/GSI1SK at all.
+    expect(
+      decodeDynamoCursor(
+        encodeDynamoCursor({ PK: "TENANT#a", SK: "CLIENT#b" }),
+        gsiQuery,
+      ),
+    ).toBeNull();
   });
 });

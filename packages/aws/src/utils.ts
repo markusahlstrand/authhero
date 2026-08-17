@@ -217,9 +217,13 @@ export async function queryWithPagination<T>(
   }
 
   if (isKeysetRequest(params)) {
-    // A malformed or foreign cursor decodes to null, which starts the walk from
-    // the beginning rather than throwing on client-supplied input.
-    const startKey = from ? (decodeDynamoCursor(from) ?? undefined) : undefined;
+    // A malformed cursor, or one minted by a different query, decodes to null
+    // and starts the walk from the beginning rather than reaching DynamoDB as a
+    // key that disagrees with the key conditions — which surfaces as an
+    // unhandled ValidationException driven by a query parameter.
+    const startKey = from
+      ? (decodeDynamoCursor(from, { pk, indexName, skPrefix }) ?? undefined)
+      : undefined;
 
     const result = await ctx.client.send(
       new QueryCommand({
