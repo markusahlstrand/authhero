@@ -27,7 +27,7 @@ Built-in handlers:
 | `basic_auth` | middleware | Requires a username/password in the `Authorization: Basic` header. |
 | `headers` | middleware | Adds/removes request and response headers. |
 | `cache` | middleware | Injects `Cache-Control: public, max-age=N` if not already set. |
-| `forwarded_headers` | middleware | Sets `X-Forwarded-Host`, `X-Forwarded-Proto`, `X-Real-IP`, `X-Original-URL` from CF-Connecting-IP. |
+| `forwarded_headers` | middleware | Sets `X-Forwarded-For`, `X-Forwarded-Host`, `X-Forwarded-Proto`, `X-Real-IP`, `X-Original-URL` from CF-Connecting-IP. Prepended automatically to any chain that omits it. |
 | `rewrite_cookies` | middleware | Rewrites upstream `Set-Cookie: …; Domain=` to the request host. |
 | `rewrite_location` | middleware | Rewrites the `Location` header on 3xx responses from upstream origin to request origin. |
 | `http` | terminal | Forwards to an HTTP upstream via `fetch`. |
@@ -35,6 +35,12 @@ Built-in handlers:
 | `dispatch_namespace` | terminal | Dispatches to a Cloudflare Workers for Platforms namespace (`env.DISPATCHER.get(scriptName).fetch`). `script_name` accepts `{tenant_id}`, `{custom_domain_id}`, `{domain}`, `{host}` placeholders. |
 | `redirect` | terminal | Returns a 301/302/307/308 redirect. |
 | `static` | terminal | Returns a static body (great for healthchecks). |
+
+### Client IP forwarding
+
+`forwarded_headers` is guaranteed: the proxy prepends it to every route chain (and to `defaultHandlers`) that doesn't already declare it, so route tables stored in KV or the control plane can't silently drop the visitor IP. A chain that declares it anywhere in its handler list is left exactly as configured.
+
+The handler ignores a `CF-Connecting-IP` that falls inside Cloudflare's own published ranges — that's what the header carries when the proxy is reached worker-to-worker, and stamping it would overwrite the real client IP an earlier hop already recorded in `X-Forwarded-For`. In that case the inbound chain is kept as-is; an inbound `X-Real-IP` is never trusted as a fallback because it is client-spoofable. Opt out with `{ type: "forwarded_headers", options: { skip_cloudflare_client_ip: false } }`.
 
 Register custom handlers via a `HandlerRegistry`.
 

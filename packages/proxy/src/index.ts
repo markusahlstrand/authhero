@@ -42,7 +42,14 @@ export {
   redirectHandler,
   staticHandler,
 } from "./data-plane/handlers";
-export { compileHostApp } from "./data-plane/compile";
+export {
+  compileHostApp,
+  withForwardedHeaders,
+  withForwardedHeadersFor,
+  FORWARDED_HEADERS_HANDLER_TYPE,
+} from "./data-plane/compile";
+export type { HandlerSpecLike } from "./data-plane/compile";
+export { isCloudflareIp } from "./data-plane/cloudflare-ips";
 export {
   sortRoutes,
   matchesHost,

@@ -6,6 +6,51 @@ import { buildMatchFilter, sortRoutes } from "./matcher";
 import { setProxyHostContext, type ProxyHostContext } from "./handlers/util";
 import { isTimeoutLike } from "./timeout";
 
+export const FORWARDED_HEADERS_HANDLER_TYPE = "forwarded_headers";
+
+/**
+ * Minimal shape shared by stored route handlers (`HandlerConfig`) and the
+ * catch-all specs passed to the data plane (`ProxyRouteHandlerSpec`).
+ */
+export interface HandlerSpecLike {
+  type: string;
+  options?: unknown;
+}
+
+/**
+ * Guarantee a `forwarded_headers` handler at the head of a chain. Stored route
+ * tables (KV / control plane) predate the handler and routinely omit it, which
+ * silently drops the visitor IP: nothing else in the chain stamps
+ * X-Forwarded-For / X-Real-IP, so upstreams see only the proxy hop's own
+ * source address. Chains that already declare it — anywhere in the list — are
+ * returned untouched so their configured options win and nothing is stamped
+ * twice. Prefer `withForwardedHeadersFor`, which also checks that the registry
+ * knows the handler.
+ */
+export function withForwardedHeaders(
+  handlers: readonly HandlerSpecLike[],
+): HandlerSpecLike[] {
+  if (handlers.some((h) => h.type === FORWARDED_HEADERS_HANDLER_TYPE)) {
+    return [...handlers];
+  }
+  return [{ type: FORWARDED_HEADERS_HANDLER_TYPE, options: {} }, ...handlers];
+}
+
+/**
+ * `withForwardedHeaders`, but a no-op unless `registry` knows the handler — a
+ * consumer with a bespoke registry that never registered it would otherwise
+ * get a build-time throw on every route. Every chain the data plane compiles
+ * (per-host routes and the `defaultHandlers` catch-all) goes through here.
+ */
+export function withForwardedHeadersFor(
+  registry: HandlerRegistry,
+  handlers: readonly HandlerSpecLike[],
+): HandlerSpecLike[] {
+  return registry.has(FORWARDED_HEADERS_HANDLER_TYPE)
+    ? withForwardedHeaders(handlers)
+    : [...handlers];
+}
+
 const ALL_METHODS = [
   "GET",
   "POST",
@@ -25,9 +70,14 @@ const ALL_METHODS = [
  * `handlers/util.ts`). Handlers that template against those values
  * (`dispatch_namespace`) depend on this wiring.
  *
+ * Every route's handler chain is normalized through
+ * `withForwardedHeadersFor`, so a stored route table that omits
+ * `forwarded_headers` still forwards the visitor IP.
+ *
  * `defaultHandlers` is a prebuilt middleware chain installed as the catch-all
  * when no per-host route matches. Pass `undefined` to keep the legacy 404
- * "No matching route" behavior.
+ * "No matching route" behavior. It is built by the caller (`router.ts`), which
+ * applies `withForwardedHeadersFor` to it as well.
  */
 export function compileHostApp(
   routes: ProxyRoute[],
@@ -49,7 +99,7 @@ export function compileHostApp(
   for (const route of sorted) {
     const handlers: MiddlewareHandler[] = [];
     handlers.push(buildMatchFilter(route.match));
-    for (const h of route.handlers) {
+    for (const h of withForwardedHeadersFor(registry, route.handlers)) {
       handlers.push(registry.build(h.type, h.options));
     }
 

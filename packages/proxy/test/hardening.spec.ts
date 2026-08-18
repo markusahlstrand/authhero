@@ -15,6 +15,7 @@ import { HandlerRegistry } from "../src/data-plane/registry";
 import { registerBuiltinHandlers } from "../src/data-plane/handlers";
 import { ProxyRoute, HandlerConfig } from "../src/types";
 import type { HostResolverCache } from "../src/data-plane/cache";
+import { isCloudflareIp } from "../src/data-plane/cloudflare-ips";
 
 function route(partial: {
   match?: ProxyRoute["match"];
@@ -846,5 +847,130 @@ describe("defaultHandlers fail-open fallback", () => {
       headers: { host: "unknown.example" },
     });
     expect(res.status).toBe(404);
+  });
+});
+
+describe("forwarded_headers client-IP hardening", () => {
+  // Cloudflare's worker-to-worker loopback source, seen in production when the
+  // proxy is reached from another Worker rather than from the visitor.
+  const CF_LOOPBACK_IP = "2a06:98c0:3600::103";
+
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  function appForHandlers(handlers: HandlerConfig[]) {
+    return createProxyDataPlaneRouter({
+      data: makeAdapter({
+        tenant_id: "t1",
+        custom_domain_id: "cd1",
+        domain: "customer.com",
+        routes: [route({ handlers })],
+      }),
+      cacheTtlMs: 0,
+    });
+  }
+
+  async function forwardedTo(
+    requestHeaders: Record<string, string>,
+    handlerOptions: Record<string, unknown> = {},
+  ): Promise<Headers> {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response("ok"));
+
+    const app = appForHandlers([
+      { type: "forwarded_headers", options: handlerOptions },
+      { type: "http", options: { upstream_url: "https://upstream.example" } },
+    ]);
+
+    const res = await app.request("https://customer.com/checkout", {
+      headers: { host: "customer.com", ...requestHeaders },
+    });
+    expect(res.status).toBe(200);
+    return (fetchMock.mock.calls[0]![1] as RequestInit).headers as Headers;
+  }
+
+  it("keeps the inbound chain when cf-connecting-ip is Cloudflare's own address", async () => {
+    const headers = await forwardedTo({
+      "cf-connecting-ip": CF_LOOPBACK_IP,
+      "x-forwarded-for": "203.0.113.9",
+    });
+
+    expect(headers.get("x-forwarded-for")).toBe("203.0.113.9");
+    expect(headers.get("x-real-ip")).toBe("203.0.113.9");
+  });
+
+  it("does not stamp a Cloudflare IPv4 edge address", async () => {
+    const headers = await forwardedTo({
+      // Inside 172.64.0.0/13.
+      "cf-connecting-ip": "172.68.1.1",
+      "x-forwarded-for": "198.51.100.4, 203.0.113.9",
+    });
+
+    expect(headers.get("x-forwarded-for")).toBe("198.51.100.4, 203.0.113.9");
+    expect(headers.get("x-real-ip")).toBe("203.0.113.9");
+  });
+
+  it("never launders a client-supplied x-real-ip when the client IP is skipped", async () => {
+    const headers = await forwardedTo({
+      "cf-connecting-ip": CF_LOOPBACK_IP,
+      "x-real-ip": "6.6.6.6",
+    });
+
+    // No inbound chain to fall back to: the spoofed value is scrubbed rather
+    // than trusted, and Cloudflare's address is not stamped either.
+    expect(headers.get("x-real-ip")).toBe("127.0.0.1");
+    expect(headers.get("x-forwarded-for")).toBe("127.0.0.1");
+  });
+
+  it("still stamps a real visitor IP", async () => {
+    const headers = await forwardedTo({
+      "cf-connecting-ip": "203.0.113.9",
+      "x-forwarded-for": "198.51.100.4",
+    });
+
+    expect(headers.get("x-forwarded-for")).toBe("198.51.100.4, 203.0.113.9");
+    expect(headers.get("x-real-ip")).toBe("203.0.113.9");
+  });
+
+  it("restores the legacy behavior with skip_cloudflare_client_ip: false", async () => {
+    const headers = await forwardedTo(
+      {
+        "cf-connecting-ip": CF_LOOPBACK_IP,
+        "x-forwarded-for": "203.0.113.9",
+      },
+      { skip_cloudflare_client_ip: false },
+    );
+
+    expect(headers.get("x-forwarded-for")).toBe(
+      `203.0.113.9, ${CF_LOOPBACK_IP}`,
+    );
+    expect(headers.get("x-real-ip")).toBe(CF_LOOPBACK_IP);
+  });
+});
+
+describe("isCloudflareIp", () => {
+  it("recognizes published Cloudflare ranges", () => {
+    expect(isCloudflareIp("2a06:98c0:3600::103")).toBe(true);
+    expect(isCloudflareIp("172.68.1.1")).toBe(true);
+    expect(isCloudflareIp("104.16.0.1")).toBe(true);
+    expect(isCloudflareIp("131.0.75.255")).toBe(true);
+    expect(isCloudflareIp("2606:4700:0:1::abcd")).toBe(true);
+    // IPv4-mapped IPv6 collapses to the IPv4 ranges.
+    expect(isCloudflareIp("::ffff:104.16.0.1")).toBe(true);
+    // Uppercase and bracketed forms parse the same.
+    expect(isCloudflareIp("[2A06:98C0::1]")).toBe(true);
+  });
+
+  it("rejects visitor addresses and garbage", () => {
+    expect(isCloudflareIp("203.0.113.9")).toBe(false);
+    expect(isCloudflareIp("131.0.71.255")).toBe(false);
+    expect(isCloudflareIp("2001:db8::1")).toBe(false);
+    expect(isCloudflareIp("127.0.0.1")).toBe(false);
+    expect(isCloudflareIp("")).toBe(false);
+    expect(isCloudflareIp("not-an-ip")).toBe(false);
+    expect(isCloudflareIp("999.1.1.1")).toBe(false);
+    expect(isCloudflareIp("1:2:3::4::5")).toBe(false);
   });
 });
