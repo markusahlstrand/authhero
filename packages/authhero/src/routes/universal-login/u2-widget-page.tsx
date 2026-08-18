@@ -515,6 +515,9 @@ type BodyLayout = {
  * and branding. Keeps the inline `<body>` style (fragment path) and the
  * `auth0:head` stylesheet rule (full-document path) in sync so an Auth0-style
  * template centers on the page background just like the default chrome does.
+ *
+ * The "left"/"right" offsets below are the wide-viewport values; the mobile
+ * block in `buildPageCss` collapses them back to centered under 768px.
  */
 function buildBodyLayout(opts: {
   themePageBackground?: {
@@ -880,15 +883,29 @@ function buildPageCss(opts: {
     }
 
     /* ============= MOBILE =============
-       Widget fills the viewport, chrome chips minimize. */
-    @media (max-width: 560px) {
+       Widget fills the viewport, chrome chips minimize.
+
+       The !important flags are load-bearing: the body-fragment path sets
+       the body layout inline (see buildBodyLayout) and the widget
+       container's width inline (see buildWidgetContainerStyle), and an
+       inline declaration outranks a normal rule from this stylesheet.
+
+       Below this width a page_layout of "left"/"right" collapses to
+       centered: the 80px offset only reads as a deliberate composition when
+       there's page background left over beside the widget. On a phone or a
+       narrow window the offset just pushes a 400px card off-centre (and, at
+       the low end, off-screen). */
+    @media (max-width: 767px) {
       body { justify-content: center !important; padding: 20px !important; }
     }
     @media (max-width: 480px) {
       body { background: ${widgetBackground} !important; padding: 0 !important; }
       html.ah-dark-mode body { background: #111827 !important; }
-      .widget-container { width: 100%; }
-      .ah-widget-stack { width: 100%; }
+      /* Edge-to-edge: overrides the inline clamp(320px, 100%, 400px), which
+         would otherwise hold the card at 400px with stray gutters on a
+         400-480px phone while the radius and shadow are stripped here. */
+      .widget-container { width: 100% !important; }
+      .ah-widget-stack { width: 100% !important; }
       .ah-bg-tint { display: none; }
       .ah-chip-trust, .ah-chip-legal, .ah-chip-logo { display: none; }
       .ah-chip-settings {
