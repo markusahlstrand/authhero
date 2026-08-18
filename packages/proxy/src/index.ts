@@ -45,6 +45,7 @@ export {
 export {
   compileHostApp,
   withForwardedHeaders,
+  withForwardedHeadersFor,
   FORWARDED_HEADERS_HANDLER_TYPE,
 } from "./data-plane/compile";
 export type { HandlerSpecLike } from "./data-plane/compile";

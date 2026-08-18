@@ -24,9 +24,8 @@ export interface HandlerSpecLike {
  * X-Forwarded-For / X-Real-IP, so upstreams see only the proxy hop's own
  * source address. Chains that already declare it — anywhere in the list — are
  * returned untouched so their configured options win and nothing is stamped
- * twice. Callers must only apply this when the registry actually knows the
- * handler — a consumer with a bespoke registry that never registered it would
- * otherwise get a build-time throw on every route.
+ * twice. Prefer `withForwardedHeadersFor`, which also checks that the registry
+ * knows the handler.
  */
 export function withForwardedHeaders(
   handlers: readonly HandlerSpecLike[],
@@ -35,6 +34,21 @@ export function withForwardedHeaders(
     return [...handlers];
   }
   return [{ type: FORWARDED_HEADERS_HANDLER_TYPE, options: {} }, ...handlers];
+}
+
+/**
+ * `withForwardedHeaders`, but a no-op unless `registry` knows the handler — a
+ * consumer with a bespoke registry that never registered it would otherwise
+ * get a build-time throw on every route. Every chain the data plane compiles
+ * (per-host routes and the `defaultHandlers` catch-all) goes through here.
+ */
+export function withForwardedHeadersFor(
+  registry: HandlerRegistry,
+  handlers: readonly HandlerSpecLike[],
+): HandlerSpecLike[] {
+  return registry.has(FORWARDED_HEADERS_HANDLER_TYPE)
+    ? withForwardedHeaders(handlers)
+    : [...handlers];
 }
 
 const ALL_METHODS = [
@@ -56,14 +70,14 @@ const ALL_METHODS = [
  * `handlers/util.ts`). Handlers that template against those values
  * (`dispatch_namespace`) depend on this wiring.
  *
- * Every route's handler chain is normalized through `withForwardedHeaders`, so
- * a stored route table that omits `forwarded_headers` still forwards the
- * visitor IP.
+ * Every route's handler chain is normalized through
+ * `withForwardedHeadersFor`, so a stored route table that omits
+ * `forwarded_headers` still forwards the visitor IP.
  *
  * `defaultHandlers` is a prebuilt middleware chain installed as the catch-all
  * when no per-host route matches. Pass `undefined` to keep the legacy 404
  * "No matching route" behavior. It is built by the caller (`router.ts`), which
- * applies `withForwardedHeaders` to it as well.
+ * applies `withForwardedHeadersFor` to it as well.
  */
 export function compileHostApp(
   routes: ProxyRoute[],
@@ -81,17 +95,11 @@ export function compileHostApp(
   }
 
   const sorted = sortRoutes(routes);
-  const canInjectForwardedHeaders = registry.has(
-    FORWARDED_HEADERS_HANDLER_TYPE,
-  );
 
   for (const route of sorted) {
     const handlers: MiddlewareHandler[] = [];
     handlers.push(buildMatchFilter(route.match));
-    const routeHandlers = canInjectForwardedHeaders
-      ? withForwardedHeaders(route.handlers)
-      : route.handlers;
-    for (const h of routeHandlers) {
+    for (const h of withForwardedHeadersFor(registry, route.handlers)) {
       handlers.push(registry.build(h.type, h.options));
     }
 
