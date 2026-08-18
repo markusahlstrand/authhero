@@ -74,11 +74,22 @@ Sets `Cache-Control` on the response if not already set. Cookies in the response
 
 #### `forwarded_headers`
 
-Adds `X-Forwarded-For`, `X-Forwarded-Proto`, `X-Forwarded-Host`, `X-Forwarded-Port` based on the incoming request. Use this when the upstream needs to know the original client.
+Adds `X-Forwarded-For`, `X-Forwarded-Proto`, `X-Forwarded-Host`, `X-Real-IP` and `X-Original-URL` based on the incoming request. Use this when the upstream needs to know the original client.
 
 ```json
 { "type": "forwarded_headers", "options": {} }
 ```
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `client_ip_header` | `cf-connecting-ip` | Header read for the immediate client IP. |
+| `set_x_real_ip` | `true` | Overwrite `X-Real-IP` with the immediate client IP. |
+| `set_x_original_url` | `true` | Set `X-Original-URL` to the full incoming URL. |
+| `skip_cloudflare_client_ip` | `true` | Ignore a client-IP header whose value is one of Cloudflare's own published ranges. |
+
+You never need to declare this handler to get the visitor IP forwarded: the proxy prepends it to any route chain (and to `defaultHandlers`) that doesn't already list it, so stored route tables written before the handler existed keep working. Declare it explicitly only to change the options above — a chain that declares it anywhere in the list is left untouched.
+
+`skip_cloudflare_client_ip` matters when the proxy is reached worker-to-worker: `CF-Connecting-IP` then carries Cloudflare's own loopback address rather than the visitor's, and stamping it would overwrite the real IP an earlier hop already put in `X-Forwarded-For` (geolocating every visitor to Cloudflare). With the default `true`, such a value is treated as if the header were absent and the inbound chain is preserved. An inbound `X-Real-IP` is never trusted as a fallback — it is client-spoofable. Set the option to `false` to restore the previous stamp-whatever-arrives behavior.
 
 #### `rewrite_cookies`
 

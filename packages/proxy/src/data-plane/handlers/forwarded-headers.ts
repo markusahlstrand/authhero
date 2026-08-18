@@ -1,5 +1,6 @@
 import { z } from "@hono/zod-openapi";
 import { defineHandler } from "../registry";
+import { isCloudflareIp } from "../cloudflare-ips";
 import { mutateRequestHeaders } from "./util";
 
 const optionsSchema = z.object({
@@ -8,6 +9,10 @@ const optionsSchema = z.object({
   client_ip_header: z.string().default("cf-connecting-ip"),
   set_x_real_ip: z.boolean().default(true),
   set_x_original_url: z.boolean().default(true),
+  // Ignore a client-IP header whose value is one of Cloudflare's own
+  // addresses. Set false to restore the pre-hardening behavior (stamp
+  // whatever the header carries).
+  skip_cloudflare_client_ip: z.boolean().default(true),
 });
 
 type Options = z.infer<typeof optionsSchema>;
@@ -27,7 +32,20 @@ export const forwardedHeadersHandler = defineHandler<Options>({
           headers.set("x-original-url", c.req.url);
         }
 
-        const cfIp = headers.get(options.client_ip_header);
+        const rawClientIp = headers.get(options.client_ip_header);
+        // When the proxy is itself reached worker-to-worker, CF-Connecting-IP
+        // holds Cloudflare's loopback source rather than the visitor. Stamping
+        // that would overwrite a real client IP the chain already carries (and
+        // geolocate every visitor to wherever the loopback address resolves),
+        // so treat it exactly like a missing header: fall back to the inbound
+        // X-Forwarded-For chain. We deliberately do NOT fall back to an
+        // inbound X-Real-IP — that value is client-spoofable.
+        const cfIp =
+          rawClientIp &&
+          options.skip_cloudflare_client_ip &&
+          isCloudflareIp(rawClientIp)
+            ? null
+            : rawClientIp;
         const incomingXff = headers.get("x-forwarded-for") ?? "";
         const xffParts = incomingXff
           .split(",")

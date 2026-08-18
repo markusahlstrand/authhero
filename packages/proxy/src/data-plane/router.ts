@@ -8,7 +8,11 @@ import {
 } from "./cache";
 import { HandlerRegistry } from "./registry";
 import { registerBuiltinHandlers } from "./handlers";
-import { compileHostApp } from "./compile";
+import {
+  compileHostApp,
+  withForwardedHeaders,
+  FORWARDED_HEADERS_HANDLER_TYPE,
+} from "./compile";
 import { isTimeoutLike, withRaceTimeout } from "./timeout";
 
 export interface ProxyRouteHandlerSpec {
@@ -66,9 +70,15 @@ export function createProxyDataPlaneHandler(
   // Pre-build the catch-all chain once at init time. Built handlers are
   // shared between (a) the per-host compileHostApp fallback (no-route-match)
   // and (b) the router-level fail-open path (unknown host / resolve failure).
+  // Normalized through `withForwardedHeaders` for the same reason route
+  // chains are — the catch-all serves real traffic and must not drop the
+  // visitor IP just because the configured chain forgot to ask for it.
   const defaultHandlersBuilt: MiddlewareHandler[] | undefined =
     options.defaultHandlers && options.defaultHandlers.length > 0
-      ? options.defaultHandlers.map((h) => registry.build(h.type, h.options))
+      ? (registry.has(FORWARDED_HEADERS_HANDLER_TYPE)
+          ? withForwardedHeaders(options.defaultHandlers)
+          : options.defaultHandlers
+        ).map((h) => registry.build(h.type, h.options))
       : undefined;
   // Standalone Hono app that runs only the catch-all chain. Used when no
   // host context is available (resolve returned null, timed out, or threw).

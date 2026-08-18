@@ -2,6 +2,11 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { createProxyDataPlaneRouter } from "../src/data-plane/router";
 import { ProxyDataAdapter, ResolvedHost } from "../src/adapter";
 import { ProxyRoute, HandlerConfig } from "../src/types";
+import { HandlerRegistry } from "../src/data-plane/registry";
+import {
+  registerBuiltinHandlers,
+  httpHandler,
+} from "../src/data-plane/handlers";
 
 function route(partial: {
   id?: string;
@@ -852,5 +857,227 @@ describe("data plane router — Workers immutable response headers", () => {
     });
     expect(res.status).toBe(200);
     expect(res.headers.get("cache-control")).toBe("public, max-age=60");
+  });
+});
+
+describe("forwarded_headers guarantee", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  function upstreamHeaders(fetchMock: ReturnType<typeof vi.spyOn>): Headers {
+    const init = fetchMock.mock.calls[0]![1] as RequestInit;
+    return init.headers as Headers;
+  }
+
+  function hostWithHandlers(handlers: HandlerConfig[]): ResolvedHost {
+    return {
+      tenant_id: "t1",
+      custom_domain_id: "cd1",
+      domain: "customer.com",
+      routes: [route({ match: { path: "/*" }, handlers })],
+    };
+  }
+
+  it("stamps the client IP for a stored chain that omits forwarded_headers", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response("ok"));
+
+    const app = createProxyDataPlaneRouter({
+      data: makeAdapter(
+        hostWithHandlers([
+          {
+            type: "http",
+            options: { upstream_url: "https://upstream.example" },
+          },
+        ]),
+      ),
+      cacheTtlMs: 0,
+    });
+
+    const res = await app.request("https://customer.com/checkout", {
+      headers: {
+        host: "customer.com",
+        "cf-connecting-ip": "203.0.113.9",
+        // A client-supplied value the injected handler must overwrite.
+        "x-forwarded-host": "probe.example",
+      },
+    });
+
+    expect(res.status).toBe(200);
+    const headers = upstreamHeaders(fetchMock);
+    expect(headers.get("x-forwarded-host")).toBe("customer.com");
+    expect(headers.get("x-forwarded-for")).toBe("203.0.113.9");
+    expect(headers.get("x-real-ip")).toBe("203.0.113.9");
+  });
+
+  it("does not double-stamp a chain that already declares forwarded_headers", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response("ok"));
+    const registry = new HandlerRegistry();
+    registerBuiltinHandlers(registry);
+    const buildSpy = vi.spyOn(registry, "build");
+
+    const app = createProxyDataPlaneRouter({
+      data: makeAdapter(
+        hostWithHandlers([
+          { type: "forwarded_headers", options: { set_x_real_ip: false } },
+          {
+            type: "http",
+            options: { upstream_url: "https://upstream.example" },
+          },
+        ]),
+      ),
+      registry,
+      cacheTtlMs: 0,
+    });
+
+    const res = await app.request("https://customer.com/checkout", {
+      headers: { host: "customer.com", "cf-connecting-ip": "203.0.113.9" },
+    });
+
+    expect(res.status).toBe(200);
+    expect(
+      buildSpy.mock.calls.filter(([type]) => type === "forwarded_headers"),
+    ).toHaveLength(1);
+    const headers = upstreamHeaders(fetchMock);
+    expect(headers.get("x-forwarded-for")).toBe("203.0.113.9");
+    // The declared options win: a prepended default would have set x-real-ip.
+    expect(headers.get("x-real-ip")).toBeNull();
+  });
+
+  it("leaves a forwarded_headers declared later in the chain in place", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response("ok"));
+    const registry = new HandlerRegistry();
+    registerBuiltinHandlers(registry);
+    const buildSpy = vi.spyOn(registry, "build");
+
+    const app = createProxyDataPlaneRouter({
+      data: makeAdapter(
+        hostWithHandlers([
+          { type: "cors", options: { origins: ["https://app.example"] } },
+          { type: "forwarded_headers", options: { set_x_real_ip: false } },
+          {
+            type: "http",
+            options: { upstream_url: "https://upstream.example" },
+          },
+        ]),
+      ),
+      registry,
+      cacheTtlMs: 0,
+    });
+
+    const res = await app.request("https://customer.com/checkout", {
+      headers: { host: "customer.com", "cf-connecting-ip": "203.0.113.9" },
+    });
+
+    expect(res.status).toBe(200);
+    expect(
+      buildSpy.mock.calls.filter(([type]) => type === "forwarded_headers"),
+    ).toHaveLength(1);
+    expect(upstreamHeaders(fetchMock).get("x-real-ip")).toBeNull();
+  });
+
+  it("forwards a POST body intact through an injected chain", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response("ok"));
+
+    const app = createProxyDataPlaneRouter({
+      data: makeAdapter(
+        hostWithHandlers([
+          {
+            type: "http",
+            options: { upstream_url: "https://upstream.example" },
+          },
+        ]),
+      ),
+      cacheTtlMs: 0,
+    });
+
+    const res = await app.request("https://customer.com/checkout", {
+      method: "POST",
+      headers: {
+        host: "customer.com",
+        "content-type": "application/json",
+        "cf-connecting-ip": "203.0.113.9",
+      },
+      body: JSON.stringify({ sku: "abc" }),
+    });
+
+    expect(res.status).toBe(200);
+    // The injected handler rebuilds the Request to mutate its headers — the
+    // streamed body has to survive that on every route, not just the chains
+    // that always declared forwarded_headers.
+    const init = fetchMock.mock.calls[0]![1] as RequestInit;
+    const forwarded = new Request("https://upstream.example/checkout", {
+      method: "POST",
+      headers: init.headers as Headers,
+      body: init.body as BodyInit,
+      duplex: "half",
+    } as RequestInit & { duplex: "half" });
+    expect(await forwarded.json()).toEqual({ sku: "abc" });
+    expect(upstreamHeaders(fetchMock).get("x-real-ip")).toBe("203.0.113.9");
+  });
+
+  it("skips injection when the registry does not know forwarded_headers", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response("ok"));
+    // A consumer with a bespoke registry: injecting a handler it never
+    // registered would throw at build time and 502 every request.
+    const registry = new HandlerRegistry();
+    registry.add(httpHandler);
+
+    const app = createProxyDataPlaneRouter({
+      data: makeAdapter(
+        hostWithHandlers([
+          {
+            type: "http",
+            options: { upstream_url: "https://upstream.example" },
+          },
+        ]),
+      ),
+      registry,
+      cacheTtlMs: 0,
+    });
+
+    const res = await app.request("https://customer.com/checkout", {
+      headers: { host: "customer.com", "cf-connecting-ip": "203.0.113.9" },
+    });
+
+    expect(res.status).toBe(200);
+    expect(upstreamHeaders(fetchMock).get("x-real-ip")).toBeNull();
+  });
+
+  it("stamps the client IP on the defaultHandlers catch-all chain", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response("ok"));
+
+    const app = createProxyDataPlaneRouter({
+      data: makeAdapter(null),
+      defaultHandlers: [
+        { type: "http", options: { upstream_url: "https://fallback.example" } },
+      ],
+      cacheTtlMs: 0,
+    });
+
+    const res = await app.request("https://unknown.example/checkout", {
+      headers: {
+        host: "unknown.example",
+        "cf-connecting-ip": "203.0.113.9",
+        "x-forwarded-host": "probe.example",
+      },
+    });
+
+    expect(res.status).toBe(200);
+    const headers = upstreamHeaders(fetchMock);
+    expect(headers.get("x-forwarded-host")).toBe("unknown.example");
+    expect(headers.get("x-real-ip")).toBe("203.0.113.9");
   });
 });
