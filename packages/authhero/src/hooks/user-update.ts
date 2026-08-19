@@ -12,7 +12,7 @@ import { createTokenAPI } from "./helpers/token-api";
 import { stripInternalUserFields } from "../helpers/hook-user-payload";
 import { isTemplateHook, handleTemplateHook } from "./templatehooks";
 import { builtInUserLinkingEnabled } from "../helpers/user-linking";
-import { compareUsersByAge, repointPrimary } from "../helpers/users";
+import { compareUsersByAge, linkUserTo } from "../helpers/users";
 import { withLowercasedEmail } from "../utils/email";
 import {
   buildPostHookEvent,
@@ -44,9 +44,33 @@ export function createUserUpdateHooks(
       });
     }
 
-    // If we're only updating linked_to, skip all hooks to avoid recursion
+    // Single-field `linked_to` updates skip the hooks, so the linking paths
+    // below (and `linkUserTo` itself) can write links without re-entering this
+    // decorator. They do *not* skip the one-hop invariant: this is the
+    // chokepoint every `linked_to` write passes through, so the management
+    // API's link endpoint and consumer-authored hook code are safe by
+    // construction rather than by remembering to call the right helper
+    // (issue #1250).
+    //
+    // `data` is the undecorated adapter set (see `addDataHooks`), so the reads
+    // and repointing writes below cannot recurse back into here.
     if (Object.keys(updates).length === 1 && "linked_to" in updates) {
-      return data.users.update(tenant_id, user_id, updates);
+      const { linked_to } = updates;
+      // Unlinking is always safe — it only ever makes the graph shallower.
+      if (!linked_to) {
+        return data.users.update(tenant_id, user_id, updates);
+      }
+      // Repointing the children and demoting the parent must be atomic: a
+      // crash between them is precisely the stranded-secondary state.
+      return data.transaction(async (trxData) => {
+        await linkUserTo({
+          userAdapter: trxData.users,
+          tenant_id,
+          userId: user_id,
+          primaryId: linked_to,
+        });
+        return true;
+      });
     }
 
     // Fetch the user before it's updated
@@ -189,15 +213,18 @@ export function createUserUpdateHooks(
             // secondary" rule could flip an existing primary into a
             // secondary of a newer duplicate.
             if (compareUsersByAge(updatedUser, primaryCandidate) < 0) {
-              await repointPrimary({
+              await linkUserTo({
                 userAdapter: trxData.users,
                 tenant_id,
-                formerPrimary: primaryCandidate,
-                newPrimaryId: user_id,
+                userId: primaryCandidate.user_id,
+                primaryId: user_id,
               });
             } else {
-              await trxData.users.update(tenant_id, user_id, {
-                linked_to: primaryCandidate.user_id,
+              await linkUserTo({
+                userAdapter: trxData.users,
+                tenant_id,
+                userId: user_id,
+                primaryId: primaryCandidate.user_id,
               });
             }
           } else if (otherUsers.some((u) => u.linked_to)) {
@@ -232,15 +259,18 @@ export function createUserUpdateHooks(
             if (resolvedPrimary) {
               // Same age check as the primary-candidate branch above.
               if (compareUsersByAge(updatedUser, resolvedPrimary) < 0) {
-                await repointPrimary({
+                await linkUserTo({
                   userAdapter: trxData.users,
                   tenant_id,
-                  formerPrimary: resolvedPrimary,
-                  newPrimaryId: user_id,
+                  userId: resolvedPrimary.user_id,
+                  primaryId: user_id,
                 });
               } else {
-                await trxData.users.update(tenant_id, user_id, {
-                  linked_to: resolvedPrimary.user_id,
+                await linkUserTo({
+                  userAdapter: trxData.users,
+                  tenant_id,
+                  userId: user_id,
+                  primaryId: resolvedPrimary.user_id,
                 });
               }
             }

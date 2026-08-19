@@ -949,6 +949,19 @@ const postByUser_idIdentities = defineRoute({
       });
     }
 
+    // A linked identity is not addressable as a user — `GET` and `PATCH` both
+    // 404 on one — so it cannot be the target of a link either. Accepting it
+    // would silently build a second hop (issue #1250).
+    if (user.linked_to) {
+      throw new HTTPException(404, {
+        message: "User is linked to another user",
+      });
+    }
+
+    // A plain single-field `linked_to` write. `ctx.env.data` is wrapped with
+    // the user-update hooks, so this routes through the `linkUserTo`
+    // chokepoint: anything already linked to `link_with` is repointed onto
+    // `user_id` rather than being stranded behind a now-secondary parent.
     await ctx.env.data.users.update(tenantId, link_with, {
       linked_to: user_id,
     });

@@ -23,6 +23,7 @@ import { ulid } from "../utils/ulid";
 import { tryUpstreamRemint } from "./refresh-token-migration";
 import { userHasGlobalOrgAdminPermission } from "../helpers/scopes-permissions";
 import { touchSessionUsedAt } from "../helpers/session-usage";
+import { resolvePrimaryUser } from "../helpers/users";
 
 export const refreshTokenParamsSchema = z.object({
   grant_type: z.literal("refresh_token"),
@@ -217,10 +218,17 @@ export async function refreshTokenGrant(
     throw new JSONHTTPException(403, { message: "User not found" });
   }
 
-  const user = tokenUser.linked_to
-    ? await ctx.env.data.users.get(client.tenant.id, tokenUser.linked_to)
-    : tokenUser;
-  if (!user) {
+  // Resolve to the cluster *root*, not one hop: a token whose `sub` names a
+  // mid-chain identity reads downstream as a different person (issue #1250).
+  const user = await resolvePrimaryUser(
+    ctx.env.data.users,
+    client.tenant.id,
+    tokenUser,
+  );
+  // Still linked after resolving means the chain never reached a root —
+  // dangling, cyclic, or deeper than the cap. Refuse rather than mint a token
+  // for a non-canonical identity.
+  if (user.linked_to) {
     throw new JSONHTTPException(403, { message: "User not found" });
   }
 

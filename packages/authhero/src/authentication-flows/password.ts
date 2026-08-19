@@ -40,6 +40,7 @@ import {
 } from "../helpers/password-policy";
 import { findConnectionByName } from "../utils/connections";
 import { attemptUpstreamPasswordFallback } from "./auth0-migration";
+import { resolvePrimaryUser } from "../helpers/users";
 
 const FAILED_LOGIN_WINDOW_MS = 1000 * 60 * 5;
 const FAILED_LOGIN_LIMIT = 3;
@@ -152,13 +153,10 @@ export async function clearFailedLogins(
   // successful password reset into an error, especially since the password/code
   // state has already been mutated by the time this runs.
   try {
-    const primaryUser = user.linked_to
-      ? await data.users.get(tenantId, user.linked_to)
-      : user;
-
-    if (!primaryUser) {
-      return;
-    }
+    // Resolve to the cluster root, not one hop — activity stamped on a
+    // mid-chain identity is invisible to everything that reads the canonical
+    // account (issue #1250).
+    const primaryUser = await resolvePrimaryUser(data.users, tenantId, user);
 
     if (data.userActivity) {
       const activity = await data.userActivity.get(
@@ -210,13 +208,10 @@ export async function recordPasswordReset(
   try {
     // Activity lives on the primary account (like failed_logins above), so
     // resolve the linked primary before stamping the reset timestamp.
-    const primaryUser = user.linked_to
-      ? await data.users.get(tenantId, user.linked_to)
-      : user;
-
-    if (!primaryUser) {
-      return;
-    }
+    // Resolve to the cluster root, not one hop — activity stamped on a
+    // mid-chain identity is invisible to everything that reads the canonical
+    // account (issue #1250).
+    const primaryUser = await resolvePrimaryUser(data.users, tenantId, user);
 
     await data.userActivity.upsert(tenantId, primaryUser.user_id, {
       last_password_reset: new Date().toISOString(),
@@ -354,11 +349,17 @@ export async function passwordGrant(
     }
   }
 
-  const primaryUser = user.linked_to
-    ? await data.users.get(client.tenant.id, user.linked_to)
-    : user;
+  // Resolve to the cluster root, not one hop: logging in must land on the
+  // canonical identity, never a mid-chain one (issue #1250).
+  const primaryUser = await resolvePrimaryUser(
+    data.users,
+    client.tenant.id,
+    user,
+  );
 
-  if (!primaryUser) {
+  // Still linked after resolving means the chain never reached a root —
+  // dangling, cyclic, or deeper than the cap.
+  if (primaryUser.linked_to) {
     throw new AuthError(403, {
       message: "User not found",
       code: "USER_NOT_FOUND",

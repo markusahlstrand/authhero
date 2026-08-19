@@ -19,6 +19,7 @@ import { resolveConnectionName } from "../helpers/connection";
 import { nanoid } from "nanoid";
 import { calculateScopesAndPermissions } from "../helpers/scopes-permissions";
 import { getMissingConsentScopes } from "../helpers/consent";
+import { resolvePrimaryUser } from "../helpers/users";
 
 // OAuth 2.0 Multiple Response Type Encoding Practices §3: the default
 // response_mode is `query` only for `response_type=code`; every other
@@ -213,11 +214,18 @@ export async function silentAuth({
     return handleLoginRequired("User not found");
   }
 
-  const user = sessionUser.linked_to
-    ? await env.data.users.get(client.tenant.id, sessionUser.linked_to)
-    : sessionUser;
+  // Resolve to the cluster *root*, not one hop: a token whose `sub` names a
+  // mid-chain identity reads downstream as a different person (issue #1250).
+  const user = await resolvePrimaryUser(
+    env.data.users,
+    client.tenant.id,
+    sessionUser,
+  );
 
-  if (!user) {
+  // Still linked after resolving means the chain never reached a root —
+  // dangling, cyclic, or deeper than the cap. Refuse rather than mint a token
+  // for a non-canonical identity.
+  if (user.linked_to) {
     console.error("Linked primary user not found", sessionUser.linked_to);
     return handleLoginRequired("User not found");
   }
