@@ -41,22 +41,38 @@ export function getAvatarColor(seed: string): string {
   return AVATAR_COLORS[hashString(key) % AVATAR_COLORS.length] ?? "7F7F7F";
 }
 
+// Drops unpaired UTF-16 surrogates. Display names are free-form (Auth0 allows
+// emoji in `name`/`nickname`), so slicing them by code unit can leave a lone
+// surrogate behind — and `encodeURIComponent` throws `URIError: URI malformed`
+// on those. Everything below slices by code point, but stored data can already
+// contain a broken pair, so strip defensively here too: this function must
+// never throw, or a single bad row makes the user unreadable everywhere its
+// `picture` is rendered (management API, /userinfo, ID Tokens).
+function stripLoneSurrogates(value: string): string {
+  return value
+    .replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/g, "")
+    .replace(/(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, "");
+}
+
 // Up to two uppercased initials derived from the best available display name.
 export function getAvatarInitials(user: Partial<User>): string {
-  const source =
+  const source = stripLoneSurrogates(
     user.name?.trim() ||
-    `${user.given_name ?? ""} ${user.family_name ?? ""}`.trim() ||
-    user.nickname?.trim() ||
-    user.email?.trim() ||
-    user.username?.trim() ||
-    "";
+      `${user.given_name ?? ""} ${user.family_name ?? ""}`.trim() ||
+      user.nickname?.trim() ||
+      user.email?.trim() ||
+      user.username?.trim() ||
+      "",
+  );
 
   const parts = source.split(/\s+/).filter(Boolean);
   const first = parts[0];
   if (!first) return "?";
-  if (parts.length === 1) return first.slice(0, 2).toUpperCase();
+  // Index by code point, not code unit: `"😈"[0]` is half a surrogate pair.
+  if (parts.length === 1)
+    return [...first].slice(0, 2).join("").toUpperCase() || "?";
   const last = parts[parts.length - 1] ?? first;
-  return `${first[0] ?? ""}${last[0] ?? ""}`.toUpperCase() || "?";
+  return `${[...first][0] ?? ""}${[...last][0] ?? ""}`.toUpperCase() || "?";
 }
 
 // Joins an issuer (which may or may not end with a slash) with a path without
@@ -108,7 +124,10 @@ function escapeXml(value: string): string {
 // to inject arbitrary markup.
 export function renderAvatarSvg(text: string, bg: string): string {
   const color = /^[0-9a-fA-F]{6}$/.test(bg) ? `#${bg}` : "#7F7F7F";
-  const label = escapeXml(text.slice(0, 2).toUpperCase()) || "?";
+  const label =
+    escapeXml(
+      [...stripLoneSurrogates(text)].slice(0, 2).join("").toUpperCase(),
+    ) || "?";
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120" role="img">`,
     `<rect width="120" height="120" fill="${color}"/>`,
