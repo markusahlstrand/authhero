@@ -1,5 +1,73 @@
 # authhero
 
+## 9.6.4
+
+### Patch Changes
+
+- 1762b4f: Keep linked-user clusters a single hop deep, and resolve corrupt ones defensively (#1250)
+
+  `linked_to` is now written in exactly one place. The user-update decorator routes
+  every single-field `linked_to` update through a `linkUserTo` chokepoint that
+  resolves the target to its cluster root and repoints the demoted user's own
+  secondaries first, atomically. Callers get the invariant by construction instead
+  of by remembering to call `repointPrimary`, which is now internal.
+
+  This fixes `POST /api/v2/users/{user_id}/identities`, which did a bare
+  `linked_to` write: linking a user that had linked identities of its own stranded
+  them behind a now-secondary parent, where they fell out of the API entirely —
+  absent from `GET /users` (they carry a `linked_to`) and from every primary's
+  `identities[]`. The endpoint now also returns 404 when the target is itself a
+  linked identity, matching `GET` and `PATCH` on the same user. Creating a user
+  with `linked_to` pointing at a secondary resolves to the root instead of nesting.
+
+  Resolution follows the chain transitively with a depth cap and cycle guard, so
+  data already corrupted by the above degrades to the canonical identity rather
+  than mis-resolving. Previously the token flows followed a single hop and minted
+  tokens whose `sub` named a mid-chain identity — which downstream systems keyed
+  on `sub` read as a different person. Covers the authorization-code, refresh-token,
+  silent, token-exchange and password flows, `/userinfo`, and account-linking
+  candidate selection.
+
+- 285af35: Validate usernames like Auth0 does, and stop emoji display names from 500ing
+
+  Creating a user with `username: "1Muse 😈"` returned a 500 and — worse — the
+  write had already committed, so the row was persisted and then threw again on
+  every subsequent read. `getAvatarInitials` built initials by indexing UTF-16
+  code units, so an astral character was split into a lone surrogate and the
+  `encodeURIComponent` call that builds the default `picture` URL threw
+  `URIError: URI malformed`. Initials are now taken by code point, and unpaired
+  surrogates are stripped defensively, so avatar generation cannot throw on
+  stored data. This is what made existing rows unreadable through the management
+  API, `/userinfo`, and ID Token issuance; those rows are now readable again
+  without a migration.
+
+  The crash was reachable through `name`, `nickname` and `given_name` — free-form
+  profile fields where Auth0 permits emoji — so it is fixed independently of the
+  username rules below.
+
+  `POST` and `PATCH /api/v2/users` now apply Auth0's database-connection username
+  rules and reject with a 400 instead of storing the value verbatim: alphanumerics
+  plus `_ + - . ! # $ ' ^ \` ~`, within the connection's configured length bounds
+(defaulting to Auth0's 1–15), and lowercased on write so `MyUser`and`myuser`
+  are the same account. Validation applies only to database identities — a social
+  or enterprise identity's username is IdP data and passes through untouched — and
+  only at the API boundary, so bulk tenant import still accepts legacy usernames,
+  matching Auth0's own carve-out for imported users.
+
+  One deliberate divergence from Auth0: `@` stays rejected. Auth0 allows it, but
+  `getConnectionFromIdentifier` and `getUserByProvider` use the presence of an `@`
+  to tell an email identifier from a username, so permitting it would misroute
+  logins.
+
+  Universal-login signup still accepts a non-conforming username; that surface
+  needs translated error copy across all eight locales and is left for a follow-up.
+
+- Updated dependencies [285af35]
+  - @authhero/adapter-interfaces@4.8.1
+  - @authhero/proxy@0.10.7
+  - @authhero/saml@0.5.6
+  - @authhero/widget@0.38.3
+
 ## 9.6.3
 
 ### Patch Changes
