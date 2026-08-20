@@ -3,7 +3,7 @@ import {
   User,
   UserDataAdapter,
 } from "@authhero/adapter-interfaces";
-import { compareUsersByAge } from "./users";
+import { compareUsersByAge, resolveClusterRootId } from "./users";
 
 /**
  * Resolve the ordered pool of candidate *primary* users that the built-in
@@ -35,7 +35,7 @@ export async function resolveLinkCandidates(params: {
   // fixed page could drop the oldest matching account (an email with many
   // provider identities), which would silently violate the "oldest account
   // wins" invariant the sort below relies on. Mirrors the pagination loop in
-  // `repointPrimary` (helpers/users.ts).
+  // `linkUserTo` (helpers/users.ts).
   const pageSize = 100;
   const matchingUsers: User[] = [];
   let page = 0;
@@ -66,7 +66,15 @@ export async function resolveLinkCandidates(params: {
   const seen = new Set<string>();
   for (const u of otherUsers) {
     if (!u.linked_to) continue;
-    const resolved = await userAdapter.get(tenantId, u.linked_to);
+    // Walk to the actual root: a single hop can land on a row that is itself a
+    // secondary, and offering that as a link candidate deepens the very chain
+    // this is meant to collapse (issue #1250).
+    const rootId = await resolveClusterRootId(
+      userAdapter,
+      tenantId,
+      u.linked_to,
+    );
+    const resolved = await userAdapter.get(tenantId, rootId);
     if (
       resolved &&
       resolved.user_id !== user.user_id &&

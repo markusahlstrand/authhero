@@ -15,6 +15,7 @@ import { GrantFlowUserResult } from "src/types/GrantFlowResult";
 import { logMessage, LogParams } from "../helpers/logging";
 import { getEnrichedClient } from "../helpers/client";
 import { ssrfFetchOptionsFromEnv } from "../utils/ssrf-fetch";
+import { resolvePrimaryUser } from "../helpers/users";
 
 // OAuth 2.1 / RFC 7636: client_secret and code_verifier are independent and may co-exist.
 // Proof-of-possession (one of client_secret, code_verifier, or RFC 7523 client_assertion)
@@ -328,10 +329,17 @@ export async function authorizationCodeGrantUser(
     throw new JSONHTTPException(403, { message: "User not found" });
   }
 
-  const user = codeUser.linked_to
-    ? await ctx.env.data.users.get(client.tenant.id, codeUser.linked_to)
-    : codeUser;
-  if (!user) {
+  // Resolve to the cluster *root*, not one hop: a token whose `sub` names a
+  // mid-chain identity reads downstream as a different person (issue #1250).
+  const user = await resolvePrimaryUser(
+    ctx.env.data.users,
+    client.tenant.id,
+    codeUser,
+  );
+  // Still linked after resolving means the chain never reached a root —
+  // dangling, cyclic, or deeper than the cap. Refuse rather than mint a token
+  // for a non-canonical identity.
+  if (user.linked_to) {
     throw new JSONHTTPException(403, { message: "User not found" });
   }
 

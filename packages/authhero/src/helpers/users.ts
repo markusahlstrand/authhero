@@ -4,6 +4,7 @@ import { Context } from "hono";
 import { Bindings, Variables } from "../types";
 import { userIdGenerate } from "../utils/user-id";
 import { isUsernamePasswordProvider } from "../utils/username-password-provider";
+import { JSONHTTPException } from "../errors/json-http-exception";
 
 export async function getUsersByEmail(
   userAdapter: UserDataAdapter,
@@ -216,7 +217,15 @@ export async function getPrimaryUserByEmail({
     return [...primaryUsers].sort(compareUsersByAge)[0];
   }
 
-  const primaryAccount = await userAdapter.get(tenant_id, users[0]?.linked_to!);
+  // Every match is a secondary — resolve the first one's chain to its root so
+  // a cluster that is corrupt (deeper than one hop) still yields the canonical
+  // account rather than a mid-chain row.
+  const rootId = await resolveClusterRootId(
+    userAdapter,
+    tenant_id,
+    users[0]!.linked_to!,
+  );
+  const primaryAccount = await userAdapter.get(tenant_id, rootId);
 
   if (!primaryAccount) {
     throw new Error("Primary account not found");
@@ -278,18 +287,75 @@ export async function getLastUsedUserByEmail({
     return;
   }
 
-  return (await userAdapter.get(tenant_id, linkedTo)) ?? undefined;
+  const rootId = await resolveClusterRootId(userAdapter, tenant_id, linkedTo);
+  return (await userAdapter.get(tenant_id, rootId)) ?? undefined;
 }
 
 /**
- * Resolve a user to the primary of its linked cluster. Follows a single
- * `linked_to` hop — the linking invariants keep clusters one level deep
- * (see {@link repointPrimary}) — and falls back to the given user on a
- * dangling link so callers never lose the identity they started with.
+ * Hops followed before {@link resolveClusterRootId} gives up. Correct data is
+ * one hop; anything deeper is corruption, and the cap keeps a malformed graph
+ * from turning a token mint into an unbounded read loop.
+ */
+const MAX_LINK_DEPTH = 5;
+
+/**
+ * Walk `linked_to` from `userId` to the root of its cluster.
  *
- * Used by the forms engine so that post-login profile forms evaluate
- * router conditions against, and stamp submitted values onto, the primary
- * identity even when the session points at a secondary.
+ * Correct data resolves in a single hop — {@link linkUserTo} is the only writer
+ * of `linked_to` and it keeps clusters flat. This follows the chain anyway, and
+ * loudly, because pre-existing rows written before that invariant was enforced
+ * can still be several hops deep: degrading to the right answer beats handing a
+ * caller a mid-chain identity that reads as a different person.
+ *
+ * Returns `userId` unchanged when it is a root, is unknown to the adapter, or
+ * carries a dangling link, so callers never lose the identity they started
+ * with. Cycles and over-deep chains stop at the last id reached.
+ */
+export async function resolveClusterRootId(
+  userAdapter: UserDataAdapter,
+  tenant_id: string,
+  userId: string,
+): Promise<string> {
+  let currentId = userId;
+  const visited = new Set<string>([userId]);
+
+  for (let depth = 0; depth < MAX_LINK_DEPTH; depth++) {
+    const current = await userAdapter.get(tenant_id, currentId);
+    if (!current?.linked_to) return currentId;
+
+    if (visited.has(current.linked_to)) {
+      console.error(
+        `linked_to cycle detected resolving ${userId}; stopping at ${currentId}`,
+      );
+      return currentId;
+    }
+    if (depth > 0) {
+      console.error(
+        `linked_to chain deeper than one hop resolving ${userId} (at ${current.linked_to}); the cluster needs flattening`,
+      );
+    }
+
+    visited.add(current.linked_to);
+    currentId = current.linked_to;
+  }
+
+  console.error(
+    `linked_to chain exceeded ${MAX_LINK_DEPTH} hops resolving ${userId}; stopping at ${currentId}`,
+  );
+  return currentId;
+}
+
+/**
+ * Resolve a user to the primary of its linked cluster, falling back to the
+ * given user when the link is dangling so callers never lose the identity they
+ * started with.
+ *
+ * This is the single resolver every read path should use — token minting
+ * (authorization-code, refresh-token, silent, token-exchange, password), the
+ * forms engine, and anything else that needs the canonical identity behind a
+ * session. Resolving through {@link resolveClusterRootId} means a cluster that
+ * is already corrupt degrades to the correct answer instead of minting a token
+ * for a mid-chain `sub`.
  */
 export async function resolvePrimaryUser(
   userAdapter: UserDataAdapter,
@@ -299,61 +365,121 @@ export async function resolvePrimaryUser(
   if (!user.linked_to) {
     return user;
   }
-  const primary = await userAdapter.get(tenant_id, user.linked_to);
+  const rootId = await resolveClusterRootId(
+    userAdapter,
+    tenant_id,
+    user.linked_to,
+  );
+  const primary = await userAdapter.get(tenant_id, rootId);
   return primary ?? user;
 }
 
-interface RepointPrimaryParams {
+interface LinkUserToParams {
+  /**
+   * Must be an *undecorated* adapter. {@link linkUserTo} is what the user-update
+   * decorator's `linked_to` fast-path calls, so handing it a decorated adapter
+   * would make its own writes re-enter that fast-path and recurse. Hook code
+   * holding `ctx.env.data` should not call this — a plain
+   * `users.update(id, { linked_to })` already routes through here.
+   */
   userAdapter: UserDataAdapter;
   tenant_id: string;
-  formerPrimary: User;
-  newPrimaryId: string;
+  /** The user being demoted to a secondary. */
+  userId: string;
+  /** The intended primary. Resolved to its own cluster root first. */
+  primaryId: string;
 }
 
 /**
- * Demote `formerPrimary` to a secondary of `newPrimaryId`. Any users
- * currently linked to `formerPrimary` are repointed first so the resulting
- * graph remains a single hop deep — `getPrimaryUserByProvider` and similar
- * resolvers only follow one `linked_to` step.
+ * Demote `userId` to a secondary of `primaryId`'s cluster — the one and only
+ * way `linked_to` is ever set (issue #1250).
  *
- * Each write is a single-field `linked_to` update so the user-update
- * decorator's fast-path bypasses the pre/post hooks and we don't re-enter
- * the linking logic recursively.
+ * Two things have to happen together for the graph to stay a single hop deep,
+ * and doing either without the other silently corrupts it:
+ *
+ *  - **Resolve the target.** Linking onto a row that is itself a secondary
+ *    would build a second hop, so the real root is resolved first.
+ *  - **Repoint the children.** Any users already linked to `userId` are moved
+ *    onto the root *before* `userId` is demoted. Skipping this strands them
+ *    behind a now-secondary parent, where no resolver can reach them and they
+ *    disappear from the API entirely.
+ *
+ * Callers get this for free: the decorator routes every single-field
+ * `linked_to` update through here, so a bare
+ * `users.update(id, { linked_to })` — from the management API, a consumer's
+ * hook, or internal linking code — is safe by construction rather than by
+ * remembering to call the right helper.
+ *
+ * Returns the cluster root `userId` was actually linked to, which may differ
+ * from the requested `primaryId`.
  */
-export async function repointPrimary({
+export async function linkUserTo({
   userAdapter,
   tenant_id,
-  formerPrimary,
-  newPrimaryId,
-}: RepointPrimaryParams): Promise<void> {
-  if (formerPrimary.user_id === newPrimaryId) return;
+  userId,
+  primaryId,
+}: LinkUserToParams): Promise<string> {
+  if (userId === primaryId) {
+    throw new JSONHTTPException(400, {
+      message: "Cannot link a user to itself",
+    });
+  }
 
-  // Paginate over every secondary — without this, primaries with >100 linked
-  // accounts would leave the overflow pointing at formerPrimary after it gets
-  // demoted, producing 2-hop chains that getPrimaryUserByProvider can't follow.
+  const rootId = await resolveClusterRootId(userAdapter, tenant_id, primaryId);
+
+  // The target already resolves back to the user being demoted, so this link
+  // would close a loop rather than join a cluster.
+  if (rootId === userId) {
+    throw new JSONHTTPException(400, {
+      message: "Cannot link a user to itself",
+    });
+  }
+
+  // Repoint first: if this throws, `userId` is still a reachable primary and
+  // its children are still reachable through it.
+  await repointSecondaries(userAdapter, tenant_id, userId, rootId);
+
+  await userAdapter.update(tenant_id, userId, { linked_to: rootId });
+
+  return rootId;
+}
+
+/**
+ * Move every user currently linked to `formerPrimaryId` onto `newPrimaryId`.
+ *
+ * Paginated — without this, a primary with more than one page of linked
+ * accounts would leave the overflow pointing at a row that is about to become
+ * a secondary, which is the exact 2-hop shape this all exists to prevent.
+ */
+async function repointSecondaries(
+  userAdapter: UserDataAdapter,
+  tenant_id: string,
+  formerPrimaryId: string,
+  newPrimaryId: string,
+): Promise<void> {
   const pageSize = 100;
-  let page = 0;
   while (true) {
+    // Always read page 0: each iteration rewrites the rows it just read, so
+    // they drop out of this query and the next page shifts down into it.
     const { users: secondaries } = await userAdapter.list(tenant_id, {
-      page,
+      page: 0,
       per_page: pageSize,
       include_totals: false,
-      q: `linked_to:${formerPrimary.user_id}`,
+      q: `linked_to:${formerPrimaryId}`,
     });
     if (secondaries.length === 0) break;
+
+    let written = 0;
     for (const sec of secondaries) {
       if (sec.user_id === newPrimaryId) continue;
       await userAdapter.update(tenant_id, sec.user_id, {
         linked_to: newPrimaryId,
       });
+      written++;
     }
-    if (secondaries.length < pageSize) break;
-    page++;
+    // Only `newPrimaryId` itself was left on the page — nothing more to move.
+    if (written === 0) break;
   }
-
-  await userAdapter.update(tenant_id, formerPrimary.user_id, {
-    linked_to: newPrimaryId,
-  });
 }
 
 /**
@@ -495,7 +621,7 @@ export async function cascadeEmailToLinkedIdentities({
   }
 
   // Every secondary of the primary. Paginate — a cluster can exceed one page,
-  // mirroring the loop in `repointPrimary`.
+  // mirroring the loop in `linkUserTo`.
   const pageSize = 100;
   let page = 0;
   while (true) {
@@ -538,11 +664,7 @@ export async function getPrimaryUserByProvider({
     return null;
   }
 
-  if (!user.linked_to) {
-    return user;
-  }
-
-  return userAdapter.get(tenant_id, user.linked_to);
+  return resolvePrimaryUser(userAdapter, tenant_id, user);
 }
 
 interface RootAttributes {

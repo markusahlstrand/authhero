@@ -1,6 +1,6 @@
 import { User } from "@authhero/adapter-interfaces";
 import { HookEvent, OnExecutePostLogin } from "../../types/Hooks";
-import { compareUsersByAge, repointPrimary } from "../../helpers/users";
+import { compareUsersByAge } from "../../helpers/users";
 import { resolveLinkCandidates } from "../../helpers/link-candidates";
 
 /**
@@ -200,11 +200,12 @@ export function accountLinking(
     if (compareUsersByAge(user, candidate) < 0) {
       primaryUser = user;
       secondaryUser = candidate;
-      await repointPrimary({
-        userAdapter: data.users,
-        tenant_id: tenantId,
-        formerPrimary: candidate,
-        newPrimaryId: user.user_id,
+      // A plain single-field `linked_to` write: `data` is the decorated
+      // adapter set, so the update decorator's chokepoint repoints anything
+      // already linked to `candidate` and resolves the target to its cluster
+      // root, keeping the graph a single hop deep (issue #1250).
+      await data.users.update(tenantId, candidate.user_id, {
+        linked_to: user.user_id,
       });
     } else {
       primaryUser = candidate;

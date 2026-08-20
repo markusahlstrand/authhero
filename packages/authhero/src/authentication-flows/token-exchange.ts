@@ -13,6 +13,7 @@ import {
   type JwtPayload,
 } from "../utils/jwt";
 import { getIssuer } from "../variables";
+import { resolvePrimaryUser } from "../helpers/users";
 
 const SUBJECT_TOKEN_TYPE_ACCESS_TOKEN =
   "urn:ietf:params:oauth:token-type:access_token";
@@ -172,10 +173,17 @@ export async function tokenExchangeGrant(
       error_description: "Subject token subject is not a known user",
     });
   }
-  const user = tokenUser.linked_to
-    ? await ctx.env.data.users.get(client.tenant.id, tokenUser.linked_to)
-    : tokenUser;
-  if (!user) {
+  // Resolve to the cluster *root*, not one hop: a token whose `sub` names a
+  // mid-chain identity reads downstream as a different person (issue #1250).
+  const user = await resolvePrimaryUser(
+    ctx.env.data.users,
+    client.tenant.id,
+    tokenUser,
+  );
+  // Still linked after resolving means the chain never reached a root —
+  // dangling, cyclic, or deeper than the cap. Refuse rather than mint a token
+  // for a non-canonical identity.
+  if (user.linked_to) {
     failLog("Linked user not found");
     throw new JSONHTTPException(invalidGrantStatus, {
       error: "invalid_grant",

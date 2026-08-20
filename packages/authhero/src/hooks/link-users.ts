@@ -3,7 +3,7 @@ import {
   OutboxEventInsert,
   User,
 } from "@authhero/adapter-interfaces";
-import { getPrimaryUserByEmail } from "../helpers/users";
+import { getPrimaryUserByEmail, resolveClusterRootId } from "../helpers/users";
 import { JSONHTTPException } from "../errors/json-http-exception";
 import { isUniqueConstraintError } from "../errors/is-unique-constraint-error";
 
@@ -81,18 +81,25 @@ export function commitUserHook(data: DataAdapters) {
           }
         }
 
-        // Validate primary exists before creating secondary to avoid dangling linked_to
+        // Validate primary exists before creating secondary to avoid dangling
+        // linked_to, and resolve it to its cluster root: linking onto a row
+        // that is itself a secondary would create a 2-hop chain no resolver
+        // can follow (issue #1250). A new user has no secondaries of its own,
+        // so there is nothing to repoint here.
         if (user.linked_to) {
-          const primaryUser = await trxData.users.get(
+          const rootId = await resolveClusterRootId(
+            trxData.users,
             tenant_id,
             user.linked_to,
           );
+          const primaryUser = await trxData.users.get(tenant_id, rootId);
           if (!primaryUser) {
             throw new JSONHTTPException(400, {
               error: "invalid_request",
               error_description: "Primary user does not exist",
             });
           }
+          user.linked_to = rootId;
         }
 
         // Create the user (with or without linked_to). rawCreate bypasses

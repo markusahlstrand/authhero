@@ -2,7 +2,7 @@ import { Context } from "hono";
 import { DataAdapters, LogTypes, User } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../../types";
 import { logMessage } from "../../helpers/logging";
-import { compareUsersByAge, repointPrimary } from "../../helpers/users";
+import { compareUsersByAge } from "../../helpers/users";
 
 /**
  * The `user` namespace exposed to `post-user-login` code hooks. `setLinkedTo`
@@ -33,8 +33,9 @@ export type PostLoginUserApi = {
  *    logging-in user must have a verified email, regardless of what the action
  *    asserts.
  *  - **Direction.** Older account wins (`compareUsersByAge`): if the logging-in
- *    user pre-dates the target, the target is demoted via `repointPrimary`
- *    (avoiding 2-hop chains) instead.
+ *    user pre-dates the target, the target is demoted instead. Either way the
+ *    write goes through the update decorator's `linkUserTo` chokepoint, which
+ *    keeps the cluster a single hop deep.
  *  - **Idempotency.** A no-op when the user is already linked to the target.
  */
 export function createPostLoginUserApi(params: {
@@ -102,26 +103,19 @@ export function createPostLoginUserApi(params: {
 
     // Older account wins. If the logging-in user pre-dates the target, demote
     // the target rather than turning the older user into a secondary.
+    //
+    // Either way this is a plain single-field `linked_to` write: `data` is the
+    // decorated adapter set, so the update decorator's chokepoint repoints any
+    // accounts already linked to the demoted side and resolves the target to
+    // its cluster root, keeping the graph a single hop deep (issue #1250).
     if (compareUsersByAge(currentUser, target) < 0) {
-      await repointPrimary({
-        userAdapter: data.users,
-        tenant_id: tenantId,
-        formerPrimary: target,
-        newPrimaryId: currentUser.user_id,
+      await data.users.update(tenantId, target.user_id, {
+        linked_to: currentUser.user_id,
       });
       linkedPrimaryId = currentUser.user_id;
     } else {
-      // Demote the logging-in user under the (older) target. Use
-      // `repointPrimary` — not a bare `linked_to` update — so any accounts
-      // already linked to `currentUser` are repointed at `target`, keeping the
-      // graph a single hop deep. A plain update would strand them behind a
-      // now-secondary `currentUser`, producing 2-hop chains that
-      // `getPrimaryUserByProvider` can't follow.
-      await repointPrimary({
-        userAdapter: data.users,
-        tenant_id: tenantId,
-        formerPrimary: currentUser,
-        newPrimaryId: target.user_id,
+      await data.users.update(tenantId, currentUser.user_id, {
+        linked_to: target.user_id,
       });
       currentUser = { ...currentUser, linked_to: target.user_id };
       linkedPrimaryId = target.user_id;
