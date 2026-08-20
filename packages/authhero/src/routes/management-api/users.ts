@@ -14,6 +14,7 @@ import { logMessage } from "../../helpers/logging";
 import { revokeUserSessions } from "../../helpers/revoke-user-sessions";
 import { hashPassword } from "../../helpers/password-policy";
 import {
+  Connection,
   Identity,
   LogTypes,
   Strategy,
@@ -22,6 +23,9 @@ import {
   logSchema,
   sessionSchema,
   userInsertSchema,
+  getConnectionIdentifierConfig,
+  validateUsername,
+  normalizeUsername,
   userPermissionWithDetailsListSchema,
   roleListSchema,
   organizationSchema,
@@ -60,6 +64,54 @@ function pickIdentity(user: Record<string, any>): Identity {
   }
 
   return identity;
+}
+
+// `connections.get` resolves by id, but management-API callers routinely pass
+// the connection *name* ("Username-Password-Authentication"). Fall back to a
+// name lookup so username validation reads the tenant's configured length
+// bounds rather than silently applying the 1-15 defaults.
+async function getConnectionByIdOrName(
+  data: Bindings["data"],
+  tenantId: string,
+  idOrName: string,
+): Promise<Connection | null> {
+  const byId = await data.connections.get(tenantId, idOrName);
+  if (byId) return byId;
+
+  const { connections } = await data.connections.list(tenantId, {
+    page: 0,
+    per_page: 1,
+    include_totals: false,
+    q: `name:"${idOrName}"`,
+  });
+  return connections[0] ?? null;
+}
+
+// Auth0 parity: usernames are validated against the connection's own rules and
+// rejected with a 400 rather than sanitized, and stored lowercased. Only
+// database connections have a username in the Auth0 sense; on social/enterprise
+// identities it is opaque IdP profile data and must pass through untouched.
+async function validateAndNormalizeUsername(
+  data: Bindings["data"],
+  tenantId: string,
+  username: string,
+  connectionIdOrName: string | undefined,
+): Promise<string> {
+  const connectionRecord = connectionIdOrName
+    ? await getConnectionByIdOrName(data, tenantId, connectionIdOrName)
+    : null;
+  const { usernameMinLength, usernameMaxLength } =
+    getConnectionIdentifierConfig(connectionRecord);
+
+  const error = validateUsername(username, {
+    min: usernameMinLength,
+    max: usernameMaxLength,
+  });
+  if (error) {
+    throw new HTTPException(400, { message: error });
+  }
+
+  return normalizeUsername(username);
 }
 
 const usersWithTotalsSchema = withTotals({
@@ -440,6 +492,18 @@ const postRoot = defineRoute({
         ? getProviderFromConnection(connectionRecord)
         : providedProvider || connection;
 
+    // Only database connections carry an Auth0-style username; elsewhere the
+    // field is IdP profile data and is forwarded verbatim.
+    const username =
+      isDatabaseUser && typeof body.username === "string"
+        ? await validateAndNormalizeUsername(
+            ctx.env.data,
+            tenantId,
+            body.username,
+            connection,
+          )
+        : body.username;
+
     // Parse user_id to avoid double-prefixing if client sends provider-prefixed id
     const rawUserId = body["user_id"];
     const idPart = rawUserId ? userIdParse(rawUserId) : userIdGenerate();
@@ -486,6 +550,7 @@ const postRoot = defineRoute({
         // keys below take precedence over anything with the same name.
         ...profileFields,
         email,
+        ...(username !== undefined && { username }),
         user_id,
         name: name || email || phone_number,
         phone_number,
@@ -682,6 +747,22 @@ const patchByUser_id = defineRoute({
         targetUserId = linkedUserWithConnection.user_id;
         targetUser = linkedUserWithConnection;
       }
+    }
+
+    // Same Auth0-parity username rules as create, applied against the identity
+    // actually being patched. `isUsernamePasswordProvider` (not the body's
+    // `connection`) decides, so patching a social identity leaves its IdP
+    // username alone.
+    if (
+      typeof userFields.username === "string" &&
+      isUsernamePasswordProvider(targetUser.provider)
+    ) {
+      userFields.username = await validateAndNormalizeUsername(
+        ctx.env.data,
+        tenantId,
+        userFields.username,
+        connection ?? targetUser.connection,
+      );
     }
 
     // Check if the email is being changed to an existing email of another user
