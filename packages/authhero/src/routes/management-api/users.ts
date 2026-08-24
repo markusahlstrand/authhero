@@ -1,9 +1,5 @@
 import { HTTPException } from "hono/http-exception";
-import {
-  stripProviderPrefix,
-  userIdGenerate,
-  userIdParse,
-} from "../../utils/user-id";
+import { userIdGenerate, userIdParse } from "../../utils/user-id";
 import { Bindings, Variables } from "../../types";
 import {
   getAllUsersByEmail,
@@ -542,13 +538,9 @@ const postRoot = defineRoute({
           )
         : body.username;
 
-    // Avoid double-prefixing if the client sends a provider-prefixed id. Only
-    // a leading `provider|` is removed — a bare enterprise id carries pipes of
-    // its own, and splitting on those would store a different id than asked for.
+    // Parse user_id to avoid double-prefixing if client sends provider-prefixed id
     const rawUserId = body["user_id"];
-    const idPart = rawUserId
-      ? stripProviderPrefix(rawUserId, provider)
-      : userIdGenerate();
+    const idPart = rawUserId ? userIdParse(rawUserId) : userIdGenerate();
     const user_id = `${provider}|${idPart}`;
 
     // A phone number only *identifies* a user on the passwordless `sms`
@@ -1052,21 +1044,7 @@ const postByUser_idIdentities = defineRoute({
     const { user_id } = ctx.req.valid("param");
     const tenantId = requireTenantId(ctx);
 
-    // Auth0's `{ provider, user_id }` form carries the secondary's id *without*
-    // its provider prefix ("for the identifier `google-oauth2|10809...`,
-    // `provider` is `google-oauth2` and `user_id` is `10809...`"), and
-    // `identities[]` reports it the same way via `userIdParse`. So rebuild the
-    // full `provider|id` before looking it up.
-    //
-    // Test `startsWith(provider|)` rather than "contains a pipe": a bare
-    // enterprise id legitimately contains pipes of its own (`samlp|okta|jane`
-    // is provider `samlp` plus bare id `okta|jane`), and treating those as
-    // already-prefixed would look up a user that does not exist. Callers that
-    // do send the whole `auth0|abc` alongside `provider` still resolve.
-    const link_with =
-      "link_with" in body
-        ? body.link_with
-        : `${body.provider}|${stripProviderPrefix(body.user_id, body.provider)}`;
+    const link_with = "link_with" in body ? body.link_with : body.user_id;
 
     if (link_with === user_id) {
       throw new HTTPException(400, {
