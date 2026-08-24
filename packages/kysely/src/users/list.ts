@@ -218,18 +218,27 @@ export function list(db: Kysely<Database>) {
 
     const filteredQuery = query.offset(page * per_page).limit(per_page);
 
-    const users = await filteredQuery
-      .selectAll("users")
-      .select([
-        "user_activity.last_login",
-        "user_activity.last_ip",
-        "user_activity.login_count",
-      ])
-      .execute();
+    // The count repeats the (potentially expensive) filter with no LIMIT, so
+    // run it alongside the page rather than after it.
+    const [users, countRow] = await Promise.all([
+      filteredQuery
+        .selectAll("users")
+        .select([
+          "user_activity.last_login",
+          "user_activity.last_ip",
+          "user_activity.login_count",
+        ])
+        .execute(),
+      include_totals
+        ? query
+            .select((eb) => eb.fn.countAll().as("count"))
+            .executeTakeFirstOrThrow()
+        : undefined,
+    ]);
 
     const usersWithProfiles = await hydrateProfiles(db, tenantId, users);
 
-    if (!include_totals) {
+    if (!countRow) {
       return {
         users: usersWithProfiles,
         start: 0,
@@ -238,9 +247,7 @@ export function list(db: Kysely<Database>) {
       };
     }
 
-    const { count } = await query
-      .select((eb) => eb.fn.countAll().as("count"))
-      .executeTakeFirstOrThrow();
+    const { count } = countRow;
 
     return {
       users: usersWithProfiles,

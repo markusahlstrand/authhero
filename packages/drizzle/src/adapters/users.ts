@@ -578,24 +578,32 @@ export function createUsersAdapter(db: DrizzleDb) {
         }
       }
 
-      const joinedResults = await query.offset(page * per_page).limit(per_page);
+      // The count repeats the (potentially expensive) filter with no LIMIT, so
+      // run it alongside the page rather than after it. The where clause may
+      // reference joined user_activity columns, so the count query needs the
+      // same join (1:1, so counts are unaffected).
+      const [joinedResults, countRows] = await Promise.all([
+        query.offset(page * per_page).limit(per_page),
+        include_totals
+          ? db
+              .select({ count: countFn() })
+              .from(users)
+              .leftJoin(userActivity, activityJoin())
+              .where(whereClause)
+          : undefined,
+      ]);
+
       const results = joinedResults.map((row) =>
         withActivity(row.users, row.user_activity),
       );
 
       const mapped = await hydrateLinked(results);
 
-      if (!include_totals) {
+      if (!countRows) {
         return { users: mapped };
       }
 
-      // The where clause may reference joined user_activity columns, so the
-      // count query needs the same join (1:1, so counts are unaffected).
-      const [countResult] = await db
-        .select({ count: countFn() })
-        .from(users)
-        .leftJoin(userActivity, activityJoin())
-        .where(whereClause);
+      const [countResult] = countRows;
 
       return {
         users: mapped,

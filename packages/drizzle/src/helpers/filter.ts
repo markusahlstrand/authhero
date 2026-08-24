@@ -51,6 +51,7 @@ export function coalescedExpr(mapping: CoalescedNumericColumn): SQL {
 // so both adapters get the same tenant-boundary protection: without it a
 // clause like `q=tenant_id:other` would emit SQL against arbitrary columns.
 export { sanitizeLuceneQuery } from "@authhero/adapter-interfaces";
+import { isEmailSearchTerm } from "@authhero/adapter-interfaces";
 
 /**
  * Apply a Lucene-style filter query string to a Drizzle query.
@@ -277,6 +278,19 @@ export function buildLuceneFilter(
         }
       }
     } else if (value) {
+      // A bare token that is a full email address can only match the email
+      // column, so resolve it with an indexed equality lookup instead of a
+      // leading-wildcard LIKE across every searchable column. Emails are
+      // stored lowercased, so the term is lowercased too — SQLite's `=` is
+      // case-sensitive, unlike its `LIKE`.
+      const emailColumn = searchableColumns.includes("email")
+        ? columns.email
+        : undefined;
+      if (isEmailSearchTerm(value) && is(emailColumn, Column)) {
+        conditions.push(eq(emailColumn, value.toLowerCase()));
+        continue;
+      }
+
       // Generic search across searchable columns
       const columnsToSearch = value.includes("|")
         ? [...searchableColumns, "user_id"]

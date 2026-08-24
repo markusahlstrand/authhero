@@ -143,6 +143,35 @@ describe("users", () => {
       expect(result.users[0].user_id).toBe("email|t1user");
     });
 
+    it("resolves a bare full email address as an exact email match", async () => {
+      const data = await seed();
+
+      await data.users.create("t1", {
+        user_id: "email|decoy",
+        email: "decoy@example.com",
+        // A substring search across the searchable columns would match this
+        // row on `name`; the indexed email fast path must not.
+        name: "contact t1@example.com for help",
+        email_verified: true,
+        is_social: false,
+        app_metadata: {},
+        user_metadata: {},
+        connection: Strategy.USERNAME_PASSWORD,
+        provider: "authhero",
+      });
+
+      const exact = await data.users.list("t1", { q: "t1@example.com" });
+      expect(exact.users.map((u) => u.user_id)).toEqual(["email|t1user"]);
+
+      // Stored emails are lowercase, so mixed-case input still has to match.
+      const mixedCase = await data.users.list("t1", { q: "T1@Example.com" });
+      expect(mixedCase.users.map((u) => u.user_id)).toEqual(["email|t1user"]);
+
+      // A partial term is not a full address and keeps substring semantics.
+      const partial = await data.users.list("t1", { q: "@example.com" });
+      expect(partial.users.length).toBeGreaterThan(1);
+    });
+
     it("supports filtering by provider and linked_to (used by core flows)", async () => {
       const data = await seed();
 

@@ -431,6 +431,12 @@ function IdentitiesTable() {
   );
 }
 
+// Only a complete address gets the field-scoped exact lookup; partial input
+// ("harald", "@gmail.com") still needs the substring search.
+function isEmailAddress(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
 function LinkUserButton() {
   const record = useRecordContext<UserRecord>();
   const dataProvider = useDataProvider();
@@ -451,13 +457,19 @@ function LinkUserButton() {
   };
 
   const search = async () => {
-    if (!searchText.trim() || !record) return;
+    const term = searchText.trim();
+    if (!term || !record) return;
     setSearching(true);
     try {
       const { data } = await dataProvider.getList<UserRecord>("users", {
         pagination: { page: 1, perPage: 10 },
         sort: { field: "email", order: "ASC" },
-        filter: { q: searchText },
+        // A full email address goes out as a field-scoped `email:"..."`
+        // clause, which the API resolves with an indexed lookup. A bare `q`
+        // term becomes a substring search across several columns and scans
+        // the tenant's whole users table, so keep it only for the partial
+        // searches that actually need it.
+        filter: isEmailAddress(term) ? { email: term } : { q: term },
       });
       setResults(data.filter((u) => u.id !== record.id));
     } catch {
