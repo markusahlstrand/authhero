@@ -1,5 +1,72 @@
 # @authhero/aws-adapter
 
+## 1.2.0
+
+### Minor Changes
+
+- 95f091a: Select refresh tokens by user with an exact predicate, not the Lucene grammar
+
+  Both SQL adapters split a `q` filter on `OR` _before_ tokenizing it, so a
+  user id containing `OR user_id:<other> OR` produced a clean middle clause
+  that matched another user's rows. Quoting the value did not prevent this — the
+  quotes only bracket the first and last fragments, leaving anything between
+  them parsed as query syntax. On the bulk-revoke path that meant another user's
+  tokens could be revoked.
+
+  `RefreshTokenListParams` now carries `user_id` as a first-class exact
+  predicate, and `RefreshTokensAdapter` gains
+  `revokeByUser(tenant_id, user_id, revoked_at)`. Both compile to equality
+  comparisons, so a user id is never parsed as a query. `revokeByUser` also skips
+  rows that already carry a `revoked_at`, so a concurrent bulk revocation cannot
+  overwrite the first one's audit timestamp — and it replaces an N+1 list-then-
+  update loop with a single statement.
+
+  Regression coverage runs against both the kysely and drizzle implementations.
+
+- a748f96: Store the session and auth-event facts on refresh tokens (#1257, stage 2 of #1255)
+
+  Adds five nullable columns to `refresh_tokens`, populated at mint and carried
+  across rotation:
+  - `session_id` — the authenticated session the token was issued under, Auth0's
+    field of the same name. Deliberately **not** a foreign key and never part of
+    a cascade delete: a refresh token is expected to outlive its session, so
+    cleanup removes the session row first and this pointer is left to dangle. It
+    carries revocation semantics only, which the next stage builds on.
+  - `organization`, `auth_connection`, `auth_strategy` — auth-event facts
+    denormalised from the login session. All are immutable for the life of the
+    token, and the refresh grant currently resolves them at exchange time from a
+    short-lived `login_sessions` row that is routinely cleaned up, silently
+    yielding `undefined` when it is gone.
+
+  The refresh grant reads these columns, preferring them over the login session
+  and skipping that read entirely when `session_id` is present. Rows minted
+  before this land keep every column null — the same state Auth0 represents with
+  a null `session_id` — and fall back to the previous login-session lookup, so
+  their behaviour is unchanged.
+
+  **Migrations must run before the new code is deployed:** the code writes columns
+  that have to exist. Older code against the new schema is fine, so a rolling
+  deploy is safe in that direction only.
+
+  A backfill ships alongside, populating the columns for existing tokens from
+  their parent `login_sessions` row where it still exists; tokens whose parent
+  has been cleaned up stay null. All four facts are written together or not at
+  all — `session_id` is the marker the refresh grant reads to decide whether it
+  still needs the login session, so setting it alone would make the grant skip a
+  lookup it still needs.
+
+  Also de-duplicates the kysely `refresh_tokens` row mapper, which was copied
+  across `get`, `getByLookup` and `list`, into a single `toRefreshToken`.
+
+### Patch Changes
+
+- Updated dependencies [0472ec4]
+- Updated dependencies [c039bb9]
+- Updated dependencies [95f091a]
+- Updated dependencies [a748f96]
+  - @authhero/adapter-interfaces@4.9.0
+  - @authhero/proxy@0.10.8
+
 ## 1.1.7
 
 ### Patch Changes

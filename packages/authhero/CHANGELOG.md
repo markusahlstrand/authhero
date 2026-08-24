@@ -1,5 +1,155 @@
 # authhero
 
+## 9.7.0
+
+### Minor Changes
+
+- a748f96: Add user refresh-token management, matching Auth0's contract.
+
+  `GET /api/v2/users/{user_id}/refresh-tokens` lists a user's refresh tokens and
+  `DELETE /api/v2/users/{user_id}/refresh-tokens` revokes all of them (204). The
+  list supports Auth0's checkpoint pagination (`from`/`take` returning
+  `{ tokens, next }`) as well as this codebase's offset style
+  (`include_totals`/`page`/`per_page`), so both Auth0 SDK clients and the admin UI
+  work against it. Responses carry only Auth0-equivalent fields: token secrets
+  (`token_lookup`, `token_hash`) and internal rotation bookkeeping (`family_id`,
+  `rotated_to`, `rotated_at`) are omitted.
+
+  Unlike Auth0, the bulk delete soft-revokes (sets `revoked_at`) rather than
+  removing rows, so the admin UI and the audit trail still show what was
+  invalidated and when.
+
+  The single-token routes are now also mounted at `/api/v2/refresh-tokens/{id}`,
+  matching Auth0's hyphenated spelling; the existing `/api/v2/refresh_tokens/{id}`
+  path stays as an alias.
+
+  Adapters gain checkpoint pagination on `refreshTokens.list`, and the drizzle
+  implementation's `include_totals` count no longer ignores the query filter (it
+  reported the tenant-wide row count).
+
+  The admin UI gains a "Refresh Tokens" tab on the user page with per-token revoke
+  and a "Revoke all refresh tokens" button.
+
+- a748f96: Refresh grant reads auth-event data from the token, not the login session (#1258, stage 3 of #1255)
+
+  The grant now takes `session_id`, `organization`, `auth_connection` and
+  `auth_strategy` off the refresh-token row it has already loaded, and skips the
+  `login_sessions` read entirely when they are present. `session_id` is the
+  marker for "this row carries its own facts" — it is always set at mint for a
+  token issued under a session, so its absence means the row predates the
+  columns and the old login-session path is used unchanged.
+
+  This fixes a silent failure. `login_sessions` rows are short-lived and
+  routinely cleaned up, and until now the grant resolved all four fields through
+  them at exchange time — so an orphaned token quietly lost its session id,
+  organization and connection with no error, on both the success and the failure
+  -log paths. Tokens minted from stage 2 onward no longer can.
+
+  `session_id` is also now returned by
+  `GET /api/v2/users/{user_id}/refresh-tokens`, matching Auth0's field of the
+  same name.
+
+  **Behavioural note.** An org-scoped refresh token whose login session had aged
+  out previously kept working, minting tokens _without_ the organization claim.
+  It now resolves the organization it was minted for, so an exchange fails if
+  that organization was deleted or the user's membership was revoked. That is
+  the correct outcome — revoked membership should end org-scoped access rather
+  than silently downgrade it — but it is a visible change for that narrow case.
+
+- a748f96: Store the session and auth-event facts on refresh tokens (#1257, stage 2 of #1255)
+
+  Adds five nullable columns to `refresh_tokens`, populated at mint and carried
+  across rotation:
+  - `session_id` — the authenticated session the token was issued under, Auth0's
+    field of the same name. Deliberately **not** a foreign key and never part of
+    a cascade delete: a refresh token is expected to outlive its session, so
+    cleanup removes the session row first and this pointer is left to dangle. It
+    carries revocation semantics only, which the next stage builds on.
+  - `organization`, `auth_connection`, `auth_strategy` — auth-event facts
+    denormalised from the login session. All are immutable for the life of the
+    token, and the refresh grant currently resolves them at exchange time from a
+    short-lived `login_sessions` row that is routinely cleaned up, silently
+    yielding `undefined` when it is gone.
+
+  The refresh grant reads these columns, preferring them over the login session
+  and skipping that read entirely when `session_id` is present. Rows minted
+  before this land keep every column null — the same state Auth0 represents with
+  a null `session_id` — and fall back to the previous login-session lookup, so
+  their behaviour is unchanged.
+
+  **Migrations must run before the new code is deployed:** the code writes columns
+  that have to exist. Older code against the new schema is fine, so a rolling
+  deploy is safe in that direction only.
+
+  A backfill ships alongside, populating the columns for existing tokens from
+  their parent `login_sessions` row where it still exists; tokens whose parent
+  has been cleaned up stay null. All four facts are written together or not at
+  all — `session_id` is the marker the refresh grant reads to decide whether it
+  still needs the login session, so setting it alone would make the grant skip a
+  lookup it still needs.
+
+  Also de-duplicates the kysely `refresh_tokens` row mapper, which was copied
+  across `get`, `getByLookup` and `list`, into a single `toRefreshToken`.
+
+### Patch Changes
+
+- c039bb9: Fix account linking with Auth0's `{ provider, user_id }` body, and the bare-id
+  shape of `identities[].user_id`
+
+  `POST /api/v2/users/{id}/identities` accepts either `link_with` or
+  `{ provider, user_id }`. In the second form Auth0 takes the secondary's id
+  **without** its provider prefix — "for the identifier
+  `google-oauth2|108091299999329986433`, `provider` is `google-oauth2` and
+  `user_id` is `108091299999329986433`" — but the handler looked up `body.user_id`
+  verbatim, found no user and returned a 400, _"Linking an inexistent identity is
+  not allowed."_ This is the shape the Auth0 SDK (and therefore the admin UI's
+  "Link user" button) sends, so linking was broken there for every account. The
+  full `provider|id` is now rebuilt before the lookup; an id that already carries
+  its `provider|` prefix still resolves.
+
+  `parseUserId` and `userIdParse` split on the _first_ pipe rather than every
+  pipe. Enterprise identifiers embed pipes of their own — `samlp|okta|jane` is
+  provider `samlp` plus bare id `okta|jane` — so `identities[]` reported
+  `okta`, an id belonging to no user and impossible to unlink. Management-api user
+  creation with a provider-prefixed `user_id` was truncating the same way, storing
+  a different id than the caller asked for; it now strips only a leading
+  `provider|`.
+
+  The drizzle adapter reported the _full_ `provider|id` in `identities[].user_id`,
+  where Auth0 and the kysely adapter report the bare id. Besides the response
+  divergence, `unlink` takes the bare id and re-prefixes it, so the value drizzle
+  handed out round-tripped to `provider|provider|id` and unlinked nothing while
+  still returning 200 — the admin UI's "Unlink" button silently did nothing on
+  drizzle. It now reports the bare id.
+
+- 95f091a: Select refresh tokens by user with an exact predicate, not the Lucene grammar
+
+  Both SQL adapters split a `q` filter on `OR` _before_ tokenizing it, so a
+  user id containing `OR user_id:<other> OR` produced a clean middle clause
+  that matched another user's rows. Quoting the value did not prevent this — the
+  quotes only bracket the first and last fragments, leaving anything between
+  them parsed as query syntax. On the bulk-revoke path that meant another user's
+  tokens could be revoked.
+
+  `RefreshTokenListParams` now carries `user_id` as a first-class exact
+  predicate, and `RefreshTokensAdapter` gains
+  `revokeByUser(tenant_id, user_id, revoked_at)`. Both compile to equality
+  comparisons, so a user id is never parsed as a query. `revokeByUser` also skips
+  rows that already carry a `revoked_at`, so a concurrent bulk revocation cannot
+  overwrite the first one's audit timestamp — and it replaces an N+1 list-then-
+  update loop with a single statement.
+
+  Regression coverage runs against both the kysely and drizzle implementations.
+
+- Updated dependencies [0472ec4]
+- Updated dependencies [c039bb9]
+- Updated dependencies [95f091a]
+- Updated dependencies [a748f96]
+  - @authhero/adapter-interfaces@4.9.0
+  - @authhero/proxy@0.10.8
+  - @authhero/saml@0.5.7
+  - @authhero/widget@0.38.4
+
 ## 9.6.4
 
 ### Patch Changes
