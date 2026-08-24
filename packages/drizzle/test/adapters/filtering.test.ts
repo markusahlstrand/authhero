@@ -102,6 +102,35 @@ describe("adapter q filtering", () => {
       ]);
     });
 
+    it("resolves a bare full email address as an exact email match", async () => {
+      await data.users.create("tenant1", {
+        user_id: "auth0|decoy",
+        email: "decoy@example.com",
+        // A substring search across the searchable columns would match this
+        // row on `name`; the indexed email fast path must not.
+        name: "contact alice@example.com for help",
+        email_verified: true,
+        is_social: false,
+        provider: "auth0",
+        login_count: 0,
+      });
+
+      const exact = await data.users.list("tenant1", {
+        q: "alice@example.com",
+      });
+      expect(exact.users.map((u) => u.user_id)).toEqual(["auth0|alice"]);
+
+      // Stored emails are lowercase, so mixed-case input still has to match.
+      const mixedCase = await data.users.list("tenant1", {
+        q: "Alice@Example.com",
+      });
+      expect(mixedCase.users.map((u) => u.user_id)).toEqual(["auth0|alice"]);
+
+      // A partial term is not a full address and keeps substring semantics.
+      const partial = await data.users.list("tenant1", { q: "@example.com" });
+      expect(partial.users.length).toBeGreaterThan(1);
+    });
+
     it("strips non-whitelisted fields (no tenant crossing via q)", async () => {
       // `tenant_id` is not whitelisted, so the clause is dropped and the list
       // stays scoped to tenant1 rather than emitting SQL against tenant_id.

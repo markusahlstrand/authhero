@@ -30,6 +30,7 @@ function unescapeLuceneValue(value: string): string {
 // Re-exported so existing `../helpers/filter` imports keep working; the
 // implementation is shared with the drizzle adapter via adapter-interfaces.
 export { sanitizeLuceneQuery } from "@authhero/adapter-interfaces";
+import { isEmailSearchTerm } from "@authhero/adapter-interfaces";
 
 // Generic over the query builder's DB type (not just `Database`) because
 // left-joined builders carry a widened DB type with nullable joined columns.
@@ -231,6 +232,16 @@ export function luceneFilter<DB, TB extends keyof DB, O>(
         }
       }
     } else if (value) {
+      // A bare token that is a full email address can only match the email
+      // column, so resolve it with an indexed equality lookup instead of a
+      // leading-wildcard LIKE across every searchable column. Emails are
+      // stored lowercased, so the term is lowercased too (a no-op under
+      // MySQL's case-insensitive collation, but SQLite's `=` is not).
+      if (searchableColumns.includes("email") && isEmailSearchTerm(value)) {
+        qb = qb.where(ref(toColumn("email")), "=", value.toLowerCase());
+        return;
+      }
+
       qb = qb.where((eb) =>
         eb.or(
           searchableColumns.map((col) =>

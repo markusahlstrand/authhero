@@ -65,3 +65,22 @@ export function sanitizeLuceneQuery(
   }
   return sanitizePart(query);
 }
+
+// A bare (unscoped) `q` token that is unambiguously a full email address.
+//
+// Free-text search normally emits `LIKE '%token%'` across every searchable
+// column, and a leading wildcard is unindexable: on a large tenant every user
+// row has to be read and string-compared, twice when `include_totals=true`.
+// An email address can only ever be an email, so adapters resolve such a token
+// with an equality comparison against the email column alone, which the
+// (email, provider, tenant_id) unique index serves as a seek.
+//
+// Deliberately strict — anything carrying whitespace, a LIKE wildcard or a
+// Lucene operator falls back to the substring search, so partial searches
+// ("@gmail.com", "harald") keep behaving as before.
+const EMAIL_SEARCH_TERM =
+  /^[^\s@%_*?"'()[\]{}^~:\\/]+@[^\s@%_*?"'()[\]{}^~:\\/]+\.[^\s@%_*?"'()[\]{}^~:\\/]+$/;
+
+export function isEmailSearchTerm(value: string): boolean {
+  return EMAIL_SEARCH_TERM.test(value);
+}
