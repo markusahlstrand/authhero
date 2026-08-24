@@ -584,6 +584,9 @@ export default function create(config: AuthHeroConfig) {
     .route("/connections", connectionRoutes)
     .route("/prompts", promptsRoutes)
     .route("/sessions", sessionsRoutes)
+    // Auth0 spells this resource with a hyphen. The underscore path is kept
+    // mounted as an alias so existing callers (and the admin UI) keep working.
+    .route("/refresh-tokens", refreshTokensRoutes)
     .route("/refresh_tokens", refreshTokensRoutes)
     .route("/forms", formsRoutes)
     .route("/flows", flowsRoutes)

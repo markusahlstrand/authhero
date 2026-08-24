@@ -99,19 +99,27 @@ export async function refreshTokenGrant(
   const resolveFailureLogFields = async () => {
     if (!refreshToken) return {};
     const resourceServer = refreshToken.resource_servers[0];
-    const loginSession = refreshToken.login_id
-      ? await ctx.env.data.loginSessions.get(
-          client.tenant.id,
-          refreshToken.login_id,
-        )
-      : undefined;
+    // A token carrying its own facts needs no read at all — the error path
+    // gets cheaper as well as more reliable, since a cleaned-up login session
+    // no longer costs the failure log its connection/strategy fields.
+    const loginSession =
+      refreshToken.login_id && !refreshToken.session_id
+        ? await ctx.env.data.loginSessions.get(
+            client.tenant.id,
+            refreshToken.login_id,
+          )
+        : undefined;
     return {
       userId: refreshToken.user_id,
       audience: resourceServer?.audience,
       scope: resourceServer?.scopes,
-      connection: loginSession?.auth_connection,
-      strategy: loginSession?.auth_strategy?.strategy,
-      strategy_type: loginSession?.auth_strategy?.strategy_type,
+      connection: refreshToken.auth_connection ?? loginSession?.auth_connection,
+      strategy:
+        refreshToken.auth_strategy?.strategy ??
+        loginSession?.auth_strategy?.strategy,
+      strategy_type:
+        refreshToken.auth_strategy?.strategy_type ??
+        loginSession?.auth_strategy?.strategy_type,
     };
   };
 
@@ -205,12 +213,25 @@ export async function refreshTokenGrant(
     // within leeway: fall through and mint another sibling child
   }
 
+  // Tokens minted from stage 2 of #1255 onward carry their own auth-event
+  // facts, so the login session is only consulted for older rows. `session_id`
+  // is the marker: it is always set at mint for a token issued under a
+  // session, so its absence means the row predates the columns. The other
+  // facts are genuinely optional and cannot be used to tell "not stored" from
+  // "not applicable".
+  //
+  // This is deliberately conservative — a legacy row still does exactly what
+  // it does today, including degrading to `undefined` if its login session has
+  // already been cleaned up. What it cannot do any more is degrade silently
+  // for a token minted after the migration.
+  const hasDenormalisedFacts = !!refreshToken.session_id;
+
   // The user lookup and the login-session lookup are independent — the login
   // session is keyed on refreshToken.login_id, which we already have. Fire
   // them together so the two backend round-trips overlap instead of stacking.
   const [tokenUser, loginSession] = await Promise.all([
     ctx.env.data.users.get(client.tenant.id, refreshToken.user_id),
-    refreshToken.login_id
+    refreshToken.login_id && !hasDenormalisedFacts
       ? ctx.env.data.loginSessions.get(client.tenant.id, refreshToken.login_id)
       : Promise.resolve(undefined),
   ]);
@@ -245,12 +266,17 @@ export async function refreshTokenGrant(
 
   const resourceServer = refreshToken.resource_servers[0];
 
-  // Resolve session_id from the login session fetched above.
-  const sessionId: string | undefined = loginSession?.session_id;
+  // Prefer the token's own column; fall back to the login session for rows
+  // minted before it existed.
+  const sessionId: string | undefined =
+    refreshToken.session_id ?? loginSession?.session_id;
 
-  // Resolve organization: explicit param takes priority, then fall back to login session
+  // Resolve organization: explicit param takes priority, then the token's own
+  // column, then the login session.
   const effectiveOrganization =
-    params.organization ?? loginSession?.authParams.organization;
+    params.organization ??
+    refreshToken.organization ??
+    loginSession?.authParams.organization;
 
   let organization: { id: string; name: string } | undefined;
   if (effectiveOrganization) {
@@ -350,6 +376,12 @@ export async function refreshTokenGrant(
     await ctx.env.data.refreshTokens.create(client.tenant.id, {
       id: childId,
       login_id: refreshToken.login_id,
+      // Rotation mints a new row for the same authentication event, so the
+      // ownership edge and the auth-event facts carry over unchanged.
+      session_id: refreshToken.session_id,
+      organization: refreshToken.organization,
+      auth_connection: refreshToken.auth_connection,
+      auth_strategy: refreshToken.auth_strategy,
       user_id: refreshToken.user_id,
       client_id: refreshToken.client_id,
       // Absolute expiry never extends across rotation — the family stays
@@ -470,7 +502,8 @@ export async function refreshTokenGrant(
     // re-attaching it would trip the terminal-state guard in
     // createFrontChannelAuthResponse. When the session never recorded one,
     // createAuthTokens falls back to the user's connection.
-    authConnection: loginSession?.auth_connection,
+    authConnection:
+      refreshToken.auth_connection ?? loginSession?.auth_connection,
     organization,
     authParams: {
       client_id: client.client_id,

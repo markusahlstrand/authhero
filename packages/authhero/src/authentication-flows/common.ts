@@ -3,6 +3,7 @@ import {
   AuthorizationResponseType,
   AuthParams,
   LoginSession,
+  LoginSessionAuthStrategy,
   LoginSessionState,
   LogType,
   LogTypes,
@@ -716,6 +717,22 @@ export interface CreateRefreshTokenParams {
   login_id: string;
   scope: string;
   audience?: string;
+  /**
+   * The authenticated session this token is issued under — Auth0's
+   * `session_id`. Stored so revoking a session can revoke its tokens in one
+   * hop, and so the refresh grant never has to resolve it through the
+   * short-lived login session. Optional: flows without a session still mint
+   * tokens, and the column is nullable for exactly that reason.
+   */
+  session_id?: string;
+  /**
+   * Auth-event facts, denormalised from the login session. All are immutable
+   * for the life of the token; keeping them here means the grant no longer
+   * degrades silently when the login session has been cleaned up.
+   */
+  organization?: string;
+  auth_connection?: string;
+  auth_strategy?: LoginSessionAuthStrategy;
 }
 
 export interface CreatedRefreshToken {
@@ -750,6 +767,10 @@ export async function createRefreshToken(
   const row = await ctx.env.data.refreshTokens.create(client.tenant.id, {
     id,
     login_id,
+    session_id: params.session_id,
+    organization: params.organization,
+    auth_connection: params.auth_connection,
+    auth_strategy: params.auth_strategy,
     client_id: client.client_id,
     idle_expires_at: idleExpiresAt,
     expires_at: absoluteExpiresAt,
@@ -1960,6 +1981,10 @@ export async function createFrontChannelAuthResponse(
       user,
       client,
       login_id: params.loginSession?.id || "",
+      session_id,
+      organization: authParams.organization,
+      auth_connection: params.loginSession?.auth_connection,
+      auth_strategy: params.loginSession?.auth_strategy,
       scope: authParams.scope,
       audience: authParams.audience,
     });

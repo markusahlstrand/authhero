@@ -26,6 +26,12 @@ interface RefreshTokenItem extends DynamoDBBaseItem {
   tenant_id: string;
   user_id: string;
   login_id: string;
+  // Auth0's `session_id`. Revocation semantics only — never a cascade key.
+  session_id?: string;
+  // Auth-event facts denormalised from the login session at mint time.
+  organization?: string;
+  auth_connection?: string;
+  auth_strategy?: { strategy: string; strategy_type: string };
   client_id: string;
   expires_at?: string;
   idle_expires_at?: string;
@@ -74,6 +80,10 @@ export function createRefreshTokensAdapter(
         id: refreshToken.id,
         user_id: refreshToken.user_id,
         login_id: refreshToken.login_id,
+        session_id: refreshToken.session_id,
+        organization: refreshToken.organization,
+        auth_connection: refreshToken.auth_connection,
+        auth_strategy: refreshToken.auth_strategy,
         client_id: refreshToken.client_id,
         expires_at: refreshToken.expires_at,
         idle_expires_at: refreshToken.idle_expires_at,

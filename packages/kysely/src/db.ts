@@ -260,12 +260,16 @@ const sqlRefreshTokensSchema = refreshTokenSchema
     device: true,
     resource_servers: true,
     rotating: true,
+    // Nested in the adapter shape; stored as two flat columns.
+    auth_strategy: true,
   })
   .extend({
     tenant_id: z.string(),
     device: z.string(),
     resource_servers: z.string(),
     rotating: z.number(),
+    auth_strategy_strategy: z.string().nullable().optional(),
+    auth_strategy_strategy_type: z.string().nullable().optional(),
     // Date fields - bigint timestamps with _ts suffix
     created_at_ts: z.number(),
     expires_at_ts: z.number().nullable().optional(),

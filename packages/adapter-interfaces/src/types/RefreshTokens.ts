@@ -1,12 +1,33 @@
 import { z } from "@hono/zod-openapi";
 import { deviceSchema } from "./Device";
+import { loginSessionAuthStrategySchema } from "./LoginSession";
 
 export const refreshTokenInsertSchema = z.object({
   // Internal primary key (ULID). Never sent to clients in the new wire format.
   id: z.string(),
 
-  // Link to the login session
+  // Link to the login session that minted this token. Provenance: it records
+  // which authorization transaction the token came from, and is the key the
+  // auth-code reuse-detection path revokes on. The row it points at is
+  // short-lived and routinely cleaned up, so nothing load-bearing may depend
+  // on resolving it.
   login_id: z.string(),
+
+  // Link to the authenticated (SSO) session this token was issued under —
+  // Auth0's `session_id`. Ownership for *revocation* only: revoking a session
+  // revokes its refresh tokens. Deliberately NOT a foreign key and never part
+  // of a cascade delete, because a refresh token is expected to outlive its
+  // session; cleanup removes each table on its own clock and this pointer is
+  // simply left dangling. Optional for the same reason Auth0 types it
+  // nullable, and absent on rows minted before the column existed.
+  session_id: z.string().optional(),
+
+  // Auth-event facts, denormalised from the login session at mint time. All
+  // are immutable for the life of the token, and reading them from the token
+  // keeps the refresh grant independent of a row that may have been cleaned up.
+  organization: z.string().optional(),
+  auth_connection: z.string().optional(),
+  auth_strategy: loginSessionAuthStrategySchema.optional(),
 
   // Link to user (foreign key)
   user_id: z.string(),

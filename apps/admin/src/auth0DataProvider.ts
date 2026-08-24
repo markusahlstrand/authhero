@@ -305,6 +305,7 @@ async function fetchSingleton(
 export interface AuthHeroDataProvider extends DataProvider {
   rotateSigningKeys: () => Promise<void>;
   revokeSigningKey: (kid: string) => Promise<void>;
+  revokeUserRefreshTokens: (userId: string) => Promise<void>;
   uploadCustomDomainCertificate: (
     id: string,
     cert: { certificate: string; private_key: string },
@@ -1476,6 +1477,26 @@ export default (
             ...item,
           })),
           total: res.json.length || 0,
+        };
+      }
+
+      // Refresh tokens nested under users
+      if (resource === "refresh-tokens" && params.target === "user_id") {
+        const headers = createHeaders(tenantId);
+        const res = await httpClient(
+          `${apiUrl}/api/v2/users/${encodeURIComponent(String(params.id))}/refresh-tokens?${stringify(
+            {
+              include_totals: true,
+              ...buildPaginationParams(),
+              sort: `${field}:${order === "DESC" ? "-1" : "1"}`,
+            },
+          )}`,
+          { headers },
+        );
+        const tokens = res.json.tokens || [];
+        return {
+          data: tokens.map((item: any) => ({ id: item.id, ...item })),
+          total: res.json.length ?? tokens.length,
         };
       }
 
@@ -2748,6 +2769,16 @@ export default (
       await httpClient(
         `${apiUrl}/api/v2/tenant-members/invitations/${encodeURIComponent(invitationId)}`,
         { method: "DELETE", headers: createHeaders(tenantId) },
+      );
+    },
+
+    revokeUserRefreshTokens: async (userId: string) => {
+      await httpClient(
+        `${apiUrl}/api/v2/users/${encodeURIComponent(userId)}/refresh-tokens`,
+        {
+          method: "DELETE",
+          headers: createHeaders(tenantId),
+        },
       );
     },
 

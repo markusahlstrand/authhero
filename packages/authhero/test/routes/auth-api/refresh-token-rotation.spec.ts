@@ -47,6 +47,10 @@ async function seedNewFormatToken(
     rotated_at?: string;
     rotated_to?: string;
     id?: string;
+    session_id?: string;
+    organization?: string;
+    auth_connection?: string;
+    auth_strategy?: { strategy: string; strategy_type: string };
   } = {},
 ) {
   const id = overrides.id ?? ulid();
@@ -61,6 +65,10 @@ async function seedNewFormatToken(
     family_id: overrides.family_id ?? id,
     rotated_at: overrides.rotated_at,
     rotated_to: overrides.rotated_to,
+    session_id: overrides.session_id,
+    organization: overrides.organization,
+    auth_connection: overrides.auth_connection,
+    auth_strategy: overrides.auth_strategy,
     expires_at: idleHour(),
     idle_expires_at: idleHour(),
   });
@@ -310,6 +318,65 @@ describe("refresh token rotation", () => {
     expect(res.status).toBe(403);
     const err = (await res.json()) as ErrorResponse;
     expect(err.error).toBe("invalid_grant");
+  });
+
+  it("carries session_id and the auth-event facts onto the rotated child", async () => {
+    const { oauthApp, env } = await getTestServer();
+    await setRotating(env, "rotating");
+    // The grant resolves the organization now that it comes off the token, so
+    // it has to exist and the user has to be a member — same as any other
+    // org-scoped exchange.
+    const org = await env.data.organizations.create("tenantId", {
+      id: "org_rotate",
+      name: "org-rotate",
+      display_name: "Org Rotate",
+    });
+    await env.data.userOrganizations.create("tenantId", {
+      user_id: "email|userId",
+      organization_id: org.id,
+    });
+    const seeded = await seedNewFormatToken(env, {
+      rotating: true,
+      session_id: "session-abc",
+      organization: "org_rotate",
+      auth_connection: "google-oauth2",
+      auth_strategy: { strategy: "google", strategy_type: "social" },
+    });
+    const client = testClient(oauthApp, env);
+
+    const response = await client.oauth.token.$post(
+      // @ts-expect-error - testClient type requires both form and json
+      {
+        form: {
+          grant_type: "refresh_token",
+          refresh_token: seeded.wire,
+          client_id: "clientId",
+        },
+      },
+      { headers: { "tenant-id": "tenantId" } },
+    );
+    expect(response.status).toBe(200);
+
+    const body = (await response.json()) as TokenResponse;
+    const childParsed = parseRefreshToken(body.refresh_token!);
+    if (childParsed.kind !== "new") {
+      throw new Error("expected new-format wire token");
+    }
+    const child = await env.data.refreshTokens.getByLookup(
+      "tenantId",
+      childParsed.lookup,
+    );
+
+    // Rotation mints a new row for the same authentication event, so the
+    // ownership edge must survive it — otherwise a rotated token falls out of
+    // the session revoke cascade.
+    expect(child!.session_id).toBe("session-abc");
+    expect(child!.organization).toBe("org_rotate");
+    expect(child!.auth_connection).toBe("google-oauth2");
+    expect(child!.auth_strategy).toEqual({
+      strategy: "google",
+      strategy_type: "social",
+    });
   });
 
   it("admin DELETE on a single token revokes the entire family", async () => {

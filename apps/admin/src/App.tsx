@@ -281,6 +281,7 @@ export function App({ tenantId, initialDomain, onAuthComplete }: AppProps) {
           options={{ label: "Log Streams", menuGroup: "Observability" }}
         />
         <Resource name="sessions" show={SessionShow} />
+        <Resource name="refresh-tokens" />
         <Resource name="action-executions" show={ActionExecutionShow} />
         <Resource
           name="forms"

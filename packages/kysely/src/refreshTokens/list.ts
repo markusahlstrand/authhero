@@ -6,7 +6,8 @@ import { Kysely } from "kysely";
 import { luceneFilter } from "../helpers/filter";
 import { Database } from "../db";
 import getCountAsInt from "../utils/getCountAsInt";
-import { convertDatesToAdapter } from "../utils/dateConversion";
+import { keysetPaginate, isKeysetRequest } from "../helpers/paginate";
+import { toRefreshToken } from "./to-refresh-token";
 
 export function list(db: Kysely<Database>) {
   return async (
@@ -23,6 +24,25 @@ export function list(db: Kysely<Database>) {
       query = luceneFilter(db, query, q, ["token", "login_id"]);
     }
 
+    // Keyset (checkpoint) pagination: from/take. Fixed created_at desc order
+    // with an id tiebreaker and no total, matching Auth0's checkpoint
+    // responses on /users/{user_id}/refresh-tokens.
+    if (isKeysetRequest(params)) {
+      const { rows, limit, next } = await keysetPaginate(
+        query.selectAll(),
+        params,
+        { sortColumn: "created_at_ts", sortOrder: "desc" },
+      );
+      const refresh_tokens = rows.map(toRefreshToken);
+      return {
+        refresh_tokens,
+        start: 0,
+        limit,
+        length: refresh_tokens.length,
+        next,
+      };
+    }
+
     let filteredQuery = query;
 
     if (sort && sort.sort_by) {
@@ -34,55 +54,7 @@ export function list(db: Kysely<Database>) {
 
     const refresh_tokens = await filteredQuery.selectAll().execute();
 
-    const mappedTokens = refresh_tokens.map((refresh_token) => {
-      const {
-        tenant_id: _,
-        created_at_ts,
-        expires_at_ts,
-        idle_expires_at_ts,
-        last_exchanged_at_ts,
-        revoked_at_ts,
-        rotated_at_ts,
-        ...rest
-      } = refresh_token;
-
-      // Convert dates from DB format (bigint) to ISO strings
-      const dates = convertDatesToAdapter(
-        {
-          created_at_ts,
-          expires_at_ts,
-          idle_expires_at_ts,
-          last_exchanged_at_ts,
-          revoked_at_ts,
-          rotated_at_ts,
-        },
-        ["created_at_ts"],
-        [
-          "expires_at_ts",
-          "idle_expires_at_ts",
-          "last_exchanged_at_ts",
-          "revoked_at_ts",
-          "rotated_at_ts",
-        ],
-      ) as {
-        created_at: string;
-        expires_at?: string;
-        idle_expires_at?: string;
-        last_exchanged_at?: string;
-        revoked_at?: string;
-        rotated_at?: string;
-      };
-
-      return {
-        ...rest,
-        ...dates,
-        rotating: !!refresh_token.rotating,
-        device: refresh_token.device ? JSON.parse(refresh_token.device) : {},
-        resource_servers: refresh_token.resource_servers
-          ? JSON.parse(refresh_token.resource_servers)
-          : [],
-      };
-    });
+    const mappedTokens = refresh_tokens.map(toRefreshToken);
 
     if (!include_totals) {
       return {
