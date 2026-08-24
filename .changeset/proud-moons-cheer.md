@@ -3,7 +3,7 @@
 "@authhero/adapter-interfaces": minor
 "@authhero/kysely-adapter": minor
 "@authhero/drizzle": minor
-"@authhero/aws": minor
+"@authhero/aws-adapter": minor
 ---
 
 Select refresh tokens by user with an exact predicate, not the Lucene grammar

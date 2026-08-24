@@ -3,7 +3,7 @@
 "@authhero/adapter-interfaces": minor
 "@authhero/kysely-adapter": minor
 "@authhero/drizzle": minor
-"@authhero/aws": minor
+"@authhero/aws-adapter": minor
 ---
 
 Store the session and auth-event facts on refresh tokens (#1257, stage 2 of #1255)
