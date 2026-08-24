@@ -309,9 +309,28 @@ async function fetchSingleton(
 // Extended data provider surface for non-CRUD actions (e.g. signing-key
 // rotation/revocation) that don't map cleanly to react-admin's standard verbs.
 // Consumers call these via useDataProvider<AuthHeroDataProvider>().
+export type SigningKeyType = "jwt_signing" | "saml_encryption";
+
+export interface RotateSigningKeyOptions {
+  type?: SigningKeyType;
+  validityDays?: number;
+  /**
+   * Publish the new key now, but only start signing with it after this many
+   * days — the window in which a SAML service provider can be given the new
+   * certificate without any login failing.
+   */
+  activateInDays?: number;
+  /** How long the outgoing key stays valid after the new one activates. */
+  graceDays?: number;
+}
+
 export interface AuthHeroDataProvider extends DataProvider {
-  rotateSigningKeys: () => Promise<void>;
-  revokeSigningKey: (kid: string) => Promise<void>;
+  rotateSigningKeys: (options?: RotateSigningKeyOptions) => Promise<void>;
+  revokeSigningKey: (kid: string, type?: SigningKeyType) => Promise<void>;
+  renewSigningKey: (
+    kid: string,
+    options?: { type?: SigningKeyType; validityDays?: number },
+  ) => Promise<void>;
   revokeUserRefreshTokens: (userId: string) => Promise<void>;
   uploadCustomDomainCertificate: (
     id: string,
@@ -882,9 +901,16 @@ export default (
       // pagination, so we fetch everything and let clientSideListHandler paginate.
       if (resource === "signing-keys") {
         const headers = createHeaders(tenantId);
-        const res = await httpClient(`${apiUrl}/api/v2/keys/signing`, {
-          headers,
-        });
+        // `type` selects the key bucket (JWT vs SAML) rather than filtering
+        // rows client-side: the two buckets are separate server-side.
+        const keyType =
+          typeof params.filter?.type === "string"
+            ? params.filter.type
+            : "jwt_signing";
+        const res = await httpClient(
+          `${apiUrl}/api/v2/keys/signing?type=${encodeURIComponent(keyType)}`,
+          { headers },
+        );
         const items: Array<Record<string, unknown>> = Array.isArray(res.json)
           ? (res.json as Array<Record<string, unknown>>)
           : [];
@@ -2653,11 +2679,39 @@ export default (
       return { data: deletedIds };
     },
 
-    rotateSigningKeys: async () => {
-      await httpClient(`${apiUrl}/api/v2/keys/signing/rotate`, {
+    rotateSigningKeys: async (options) => {
+      const query = new URLSearchParams({
+        type: options?.type ?? "jwt_signing",
+      });
+      if (options?.validityDays !== undefined) {
+        query.set("validity_days", String(options.validityDays));
+      }
+      if (options?.activateInDays !== undefined) {
+        query.set("activate_in_days", String(options.activateInDays));
+      }
+      if (options?.graceDays !== undefined) {
+        query.set("grace_days", String(options.graceDays));
+      }
+      await httpClient(`${apiUrl}/api/v2/keys/signing/rotate?${query}`, {
         method: "POST",
         headers: createHeaders(tenantId),
       });
+    },
+
+    renewSigningKey: async (kid, options) => {
+      const query = new URLSearchParams({
+        type: options?.type ?? "jwt_signing",
+      });
+      if (options?.validityDays !== undefined) {
+        query.set("validity_days", String(options.validityDays));
+      }
+      await httpClient(
+        `${apiUrl}/api/v2/keys/signing/${encodeURIComponent(kid)}/renew?${query}`,
+        {
+          method: "POST",
+          headers: createHeaders(tenantId),
+        },
+      );
     },
 
     listTenantOperations: async (targetTenantId, params) => {
@@ -2789,9 +2843,10 @@ export default (
       );
     },
 
-    revokeSigningKey: async (kid: string) => {
+    revokeSigningKey: async (kid: string, type?: SigningKeyType) => {
+      const query = new URLSearchParams({ type: type ?? "jwt_signing" });
       await httpClient(
-        `${apiUrl}/api/v2/keys/signing/${encodeURIComponent(kid)}/revoke`,
+        `${apiUrl}/api/v2/keys/signing/${encodeURIComponent(kid)}/revoke?${query}`,
         {
           method: "PUT",
           headers: createHeaders(tenantId),

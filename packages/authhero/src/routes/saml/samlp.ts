@@ -11,6 +11,7 @@ import { setTenantId } from "../../helpers/set-tenant-id";
 import { getEnrichedClient } from "../../helpers/client";
 import { isValidRedirectUrl } from "../../utils/is-valid-redirect-url";
 import { JSONHTTPException } from "../../errors/json-http-exception";
+import { resolveSigningKeys } from "../../helpers/signing-keys";
 import { defineRoute } from "../../utils/define-route";
 const getMetadataByClient_id = defineRoute({
   route: createRoute({
@@ -41,9 +42,16 @@ const getMetadataByClient_id = defineRoute({
 
     const client = await getEnrichedClient(ctx.env, client_id);
 
-    const { signingKeys } = await ctx.env.data.keys.list({
-      q: "type:saml_encryption",
-    });
+    // Publish every live SAML certificate, not just the signing one: a service
+    // provider that reads this document can then accept assertions from both
+    // the outgoing and incoming key for the length of a rotation's grace
+    // period, which is what makes a zero-downtime rotation possible.
+    const signingKeys = await resolveSigningKeys(
+      ctx.env.data.keys,
+      client.tenant.id,
+      ctx.env.signingKeyMode,
+      { purpose: "publish", type: "saml_encryption" },
+    );
 
     if (signingKeys.length === 0) {
       throw new HTTPException(500, {
