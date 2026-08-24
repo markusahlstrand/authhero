@@ -70,10 +70,12 @@ function StatusCell() {
   const record = useRecordContext<RefreshTokenRecord>();
   if (!record) return null;
   if (record.revoked_at) return <Badge variant="destructive">Revoked</Badge>;
-  // An absolute or idle expiry in the past means the token can no longer be
-  // exchanged even though the row is still active.
-  const expiry = record.expires_at ?? record.idle_expires_at;
-  if (expiry && new Date(expiry).getTime() < Date.now()) {
+  // Either expiry elapsing means the token can no longer be exchanged, so both
+  // are checked independently — a token with a distant absolute expiry can
+  // still be dead on its idle one.
+  const elapsed = (value?: string) =>
+    !!value && new Date(value).getTime() < Date.now();
+  if (elapsed(record.expires_at) || elapsed(record.idle_expires_at)) {
     return <Badge variant="outline">Expired</Badge>;
   }
   return <Badge variant="secondary">Active</Badge>;

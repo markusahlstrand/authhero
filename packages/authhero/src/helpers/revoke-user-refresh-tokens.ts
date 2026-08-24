@@ -1,5 +1,6 @@
 import { Context } from "hono";
 import { Bindings, Variables } from "../types";
+import { userIdFilter } from "../utils/user-filter";
 
 /**
  * Soft-revoke every active refresh token belonging to a user.
@@ -31,7 +32,7 @@ export async function revokeUserRefreshTokens(
       {
         page,
         per_page: perPage,
-        q: `user_id:${user_id}`,
+        q: userIdFilter(user_id),
       },
     );
     active.push(

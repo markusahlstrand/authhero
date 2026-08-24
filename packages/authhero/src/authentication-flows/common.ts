@@ -1983,8 +1983,12 @@ export async function createFrontChannelAuthResponse(
       login_id: params.loginSession?.id || "",
       session_id,
       organization: authParams.organization,
-      auth_connection: params.loginSession?.auth_connection,
-      auth_strategy: params.loginSession?.auth_strategy,
+      // `currentLoginSession`, not `params.loginSession`: authenticateLoginSession
+      // writes auth_connection and auth_strategy onto the row, so the object
+      // passed in from before authentication is stale. `session_id` above is
+      // already read from the refreshed row for the same reason.
+      auth_connection: currentLoginSession.auth_connection,
+      auth_strategy: currentLoginSession.auth_strategy,
       scope: authParams.scope,
       audience: authParams.audience,
     });

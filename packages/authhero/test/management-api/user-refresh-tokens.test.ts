@@ -142,6 +142,52 @@ describe("management-api user refresh tokens", () => {
     expect(Array.isArray(await res.json())).toBe(true);
   });
 
+  it("treats Lucene operators in a user id as literal text, not query syntax", async () => {
+    const { managementApp, env } = await getTestServer();
+    const token = await getAdminToken();
+    await seed(env);
+
+    // A bare `user_id:${id}` interpolation would parse this as an OR and
+    // return the other user's tokens too.
+    const injected = `${USER_ID}" OR user_id:"${OTHER_USER_ID}`;
+
+    const res = await managementApp.request(
+      `/users/${encodeURIComponent(injected)}/refresh-tokens?include_totals=true`,
+      { headers: { authorization: `Bearer ${token}`, "tenant-id": TENANT } },
+      env,
+    );
+    expect(res.status).toBe(200);
+
+    const body = await res.json();
+    // No user has that literal id, so nothing matches — and crucially the
+    // other user's token is not returned.
+    expect(body.tokens).toHaveLength(0);
+  });
+
+  it("does not let a crafted user id widen the revoke", async () => {
+    const { managementApp, env } = await getTestServer();
+    const token = await getAdminToken();
+    await seed(env);
+
+    const injected = `${USER_ID}" OR user_id:"${OTHER_USER_ID}`;
+    const res = await managementApp.request(
+      `/users/${encodeURIComponent(injected)}/refresh-tokens`,
+      {
+        method: "DELETE",
+        headers: { authorization: `Bearer ${token}`, "tenant-id": TENANT },
+      },
+      env,
+    );
+    expect(res.status).toBe(204);
+
+    // Every token is still active: the crafted id matched no user.
+    for (const id of ["rt-1", "rt-2", "rt-other"]) {
+      expect(
+        (await env.data.refreshTokens.get(TENANT, id))!.revoked_at,
+      ).toBeFalsy();
+    }
+  });
+
   it("revokes every token for the user and leaves other users alone", async () => {
     const { managementApp, env } = await getTestServer();
     const token = await getAdminToken();

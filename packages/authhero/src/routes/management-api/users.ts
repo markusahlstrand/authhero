@@ -1,5 +1,9 @@
 import { HTTPException } from "hono/http-exception";
-import { userIdGenerate, userIdParse } from "../../utils/user-id";
+import {
+  stripProviderPrefix,
+  userIdGenerate,
+  userIdParse,
+} from "../../utils/user-id";
 import { Bindings, Variables } from "../../types";
 import {
   getAllUsersByEmail,
@@ -42,6 +46,7 @@ import { getIssuer } from "../../variables";
 import { withDefaultPicture } from "../../helpers/avatar";
 
 import { defineRoute } from "../../utils/define-route";
+import { userIdFilter } from "../../utils/user-filter";
 import { requireTenantId, withTotals, listResponse } from "./helpers";
 const IDENTITY_PICK_KEYS = [
   "email",
@@ -537,9 +542,13 @@ const postRoot = defineRoute({
           )
         : body.username;
 
-    // Parse user_id to avoid double-prefixing if client sends provider-prefixed id
+    // Avoid double-prefixing if the client sends a provider-prefixed id. Only
+    // a leading `provider|` is removed — a bare enterprise id carries pipes of
+    // its own, and splitting on those would store a different id than asked for.
     const rawUserId = body["user_id"];
-    const idPart = rawUserId ? userIdParse(rawUserId) : userIdGenerate();
+    const idPart = rawUserId
+      ? stripProviderPrefix(rawUserId, provider)
+      : userIdGenerate();
     const user_id = `${provider}|${idPart}`;
 
     // A phone number only *identifies* a user on the passwordless `sms`
@@ -1043,7 +1052,21 @@ const postByUser_idIdentities = defineRoute({
     const { user_id } = ctx.req.valid("param");
     const tenantId = requireTenantId(ctx);
 
-    const link_with = "link_with" in body ? body.link_with : body.user_id;
+    // Auth0's `{ provider, user_id }` form carries the secondary's id *without*
+    // its provider prefix ("for the identifier `google-oauth2|10809...`,
+    // `provider` is `google-oauth2` and `user_id` is `10809...`"), and
+    // `identities[]` reports it the same way via `userIdParse`. So rebuild the
+    // full `provider|id` before looking it up.
+    //
+    // Test `startsWith(provider|)` rather than "contains a pipe": a bare
+    // enterprise id legitimately contains pipes of its own (`samlp|okta|jane`
+    // is provider `samlp` plus bare id `okta|jane`), and treating those as
+    // already-prefixed would look up a user that does not exist. Callers that
+    // do send the whole `auth0|abc` alongside `provider` still resolve.
+    const link_with =
+      "link_with" in body
+        ? body.link_with
+        : `${body.provider}|${stripProviderPrefix(body.user_id, body.provider)}`;
 
     if (link_with === user_id) {
       throw new HTTPException(400, {
@@ -1313,7 +1336,7 @@ const getByUser_idRefreshTokens = defineRoute({
   }),
   handler: async (ctx) => {
     const { user_id } = ctx.req.valid("param");
-    const { include_totals, page, per_page, from, take } =
+    const { include_totals, page, per_page, from, take, sort } =
       ctx.req.valid("query");
     const tenantId = requireTenantId(ctx);
 
@@ -1323,7 +1346,8 @@ const getByUser_idRefreshTokens = defineRoute({
       include_totals,
       from,
       take,
-      q: `user_id:${user_id}`,
+      sort: parseSort(sort),
+      q: userIdFilter(user_id),
     });
 
     const tokens = result.refresh_tokens.map((token) =>

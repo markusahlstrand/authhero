@@ -22,9 +22,15 @@ across rotation:
   short-lived `login_sessions` row that is routinely cleaned up, silently
   yielding `undefined` when it is gone.
 
-Additive only — nothing reads the new columns yet, so behaviour is unchanged.
-Rows minted before this land keep every column null, which is the same state
-Auth0 represents with a null `session_id`.
+The refresh grant reads these columns, preferring them over the login session
+and skipping that read entirely when `session_id` is present. Rows minted
+before this land keep every column null — the same state Auth0 represents with
+a null `session_id` — and fall back to the previous login-session lookup, so
+their behaviour is unchanged.
+
+**Migrations must run before the new code is deployed:** the code writes columns
+that have to exist. Older code against the new schema is fine, so a rolling
+deploy is safe in that direction only.
 
 A backfill ships alongside, populating the columns for existing tokens from
 their parent `login_sessions` row where it still exists; tokens whose parent

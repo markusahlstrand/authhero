@@ -377,11 +377,17 @@ export async function refreshTokenGrant(
       id: childId,
       login_id: refreshToken.login_id,
       // Rotation mints a new row for the same authentication event, so the
-      // ownership edge and the auth-event facts carry over unchanged.
-      session_id: refreshToken.session_id,
-      organization: refreshToken.organization,
-      auth_connection: refreshToken.auth_connection,
-      auth_strategy: refreshToken.auth_strategy,
+      // ownership edge and the auth-event facts carry over. These use the
+      // values resolved above rather than the parent's columns directly: a
+      // legacy parent has none, but its login session may still be alive, and
+      // copying the raw undefined would mint a child that is legacy too —
+      // leaving the family permanently unreachable by a session-keyed revoke.
+      // Rotating a legacy token while its parent survives heals it instead.
+      session_id: sessionId,
+      organization: effectiveOrganization,
+      auth_connection:
+        refreshToken.auth_connection ?? loginSession?.auth_connection,
+      auth_strategy: refreshToken.auth_strategy ?? loginSession?.auth_strategy,
       user_id: refreshToken.user_id,
       client_id: refreshToken.client_id,
       // Absolute expiry never extends across rotation — the family stays

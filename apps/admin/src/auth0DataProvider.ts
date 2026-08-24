@@ -149,6 +149,13 @@ function escapeLuceneValue(value: unknown): string {
   );
 }
 
+// A refresh token as returned by GET /users/{id}/refresh-tokens. Only `id` is
+// relied on here; the rest passes through to the record for the tab to render.
+interface RefreshTokenResponse {
+  id: string;
+  [key: string]: unknown;
+}
+
 // Maps react-admin resource names to Auth0 API paths when they differ
 const API_PATH_MAP: Record<string, string> = {
   actions: "actions/actions",
@@ -1493,9 +1500,9 @@ export default (
           )}`,
           { headers },
         );
-        const tokens = res.json.tokens || [];
+        const tokens: RefreshTokenResponse[] = res.json.tokens || [];
         return {
-          data: tokens.map((item: any) => ({ id: item.id, ...item })),
+          data: tokens.map((item) => ({ ...item, id: item.id })),
           total: res.json.length ?? tokens.length,
         };
       }

@@ -102,10 +102,14 @@ export async function up(db: Kysely<Database>): Promise<void> {
 
     migrationLog(`refresh_tokens backfill: done, ${totalUpdated} rows updated`);
   } catch (error) {
-    // A failed backfill must not block the release: the columns are optional
-    // and the grant falls back to the login session for any row left null.
-    // Re-running the migration picks up where it stopped.
-    migrationWarn("refresh_tokens backfill failed, continuing:", error);
+    // Rethrow rather than swallow. Swallowing would record the migration as
+    // applied, so it would never re-run and the rows would stay unpopulated
+    // silently — which the session-keyed revoke cascade (#1256) then
+    // under-covers, with no signal that it is doing so. Failing loudly keeps
+    // the migration pending so a retry picks up where it stopped; the writes
+    // are idempotent (`session_id IS NULL` selects only unprocessed rows).
+    migrationWarn("refresh_tokens backfill failed:", error);
+    throw error;
   }
 }
 
