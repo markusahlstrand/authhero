@@ -3,6 +3,7 @@ import { Bindings, Variables } from "../types";
 import { AuthParams, User } from "@authhero/adapter-interfaces";
 import { EnrichedClient } from "../helpers/client";
 import { JSONHTTPException } from "../errors/json-http-exception";
+import { resolveSigningKeys } from "../helpers/signing-keys";
 // Use core import to avoid xml-crypto dependency
 import { createSamlResponse, HttpSamlSigner } from "@authhero/saml/core";
 
@@ -78,11 +79,17 @@ export async function samlCallback(
     });
   }
 
-  const { signingKeys } = await ctx.env.data.keys.list({
-    q: "type:saml_encryption",
-  });
-
-  const [signingKey] = signingKeys;
+  // Resolve through the shared helper rather than taking the first row of an
+  // unsorted list: during a rotation's grace period the outgoing key is still
+  // live (`revoked_at` in the future) and would otherwise have an even chance
+  // of signing the assertion. The helper sorts `current_since` descending and
+  // only ever returns a key that carries private material.
+  const [signingKey] = await resolveSigningKeys(
+    ctx.env.data.keys,
+    client.tenant.id,
+    ctx.env.signingKeyMode,
+    { purpose: "sign", type: "saml_encryption" },
+  );
   if (!signingKey) {
     throw new JSONHTTPException(500, {
       message: "No signing key found",

@@ -8,6 +8,7 @@ import {
   resolveSigningKeys,
   resolveSigningKeyMode,
   ensureSigningKey,
+  isStaged,
 } from "../../src/helpers/signing-keys";
 
 function makeKey(overrides: Partial<SigningKey>): SigningKey {
@@ -248,5 +249,141 @@ describe("ensureSigningKey", () => {
     const result = await ensureSigningKey(adapter);
     expect(result.created).toBe(true); // control-plane scope was empty
     expect(rows).toHaveLength(2);
+  });
+});
+
+describe("staged keys", () => {
+  const inAWeek = () =>
+    new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  const anHourAgo = () => new Date(Date.now() - 60 * 60 * 1000).toISOString();
+
+  it("treats a future current_since as staged", () => {
+    expect(isStaged(makeKey({ current_since: inAWeek() }))).toBe(true);
+    expect(isStaged(makeKey({ current_since: anHourAgo() }))).toBe(false);
+    expect(isStaged(makeKey({}))).toBe(false);
+  });
+
+  it("keeps signing with the live key while a newer key is staged", async () => {
+    // The rotation a SAML service provider needs: the new certificate is
+    // published for the operator to hand over, but the outgoing key keeps
+    // signing until the service provider has had time to trust the new one.
+    const live = makeKey({
+      kid: "live",
+      pkcs7: "PRIVATE",
+      current_since: anHourAgo(),
+    });
+    const staged = makeKey({
+      kid: "staged",
+      pkcs7: "PRIVATE",
+      current_since: inAWeek(),
+    });
+    const keys = makeKeysAdapter([staged, live]);
+
+    const signing = await resolveSigningKeys(keys, "t1", "control-plane", {
+      purpose: "sign",
+      type: "saml_encryption",
+    });
+    expect(signing.map((k) => k.kid)).toEqual(["live"]);
+
+    // ...but both are published, so the service provider can pre-trust it.
+    const published = await resolveSigningKeys(keys, "t1", "control-plane", {
+      purpose: "publish",
+      type: "saml_encryption",
+    });
+    expect(published.map((k) => k.kid).sort()).toEqual(["live", "staged"]);
+  });
+
+  it("signs with a staged key once its activation time passes", async () => {
+    const live = makeKey({
+      kid: "live",
+      pkcs7: "PRIVATE",
+      current_since: new Date(Date.now() - 2000).toISOString(),
+    });
+    const activated = makeKey({
+      kid: "activated",
+      pkcs7: "PRIVATE",
+      current_since: new Date(Date.now() - 1000).toISOString(),
+    });
+    const keys = makeKeysAdapter([live, activated]);
+
+    const signing = await resolveSigningKeys(keys, "t1", "control-plane", {
+      purpose: "sign",
+    });
+    expect(signing.map((k) => k.kid)).toEqual(["activated"]);
+  });
+
+  it("ensureSigningKey mints a key when the only candidate is staged", async () => {
+    const created: SigningKey[] = [];
+    const staged = makeKey({
+      kid: "staged",
+      pkcs7: "PRIVATE",
+      current_since: inAWeek(),
+    });
+    const adapter = makeKeysAdapter([staged]);
+    const keys: KeysAdapter = {
+      ...adapter,
+      create: async (key) => {
+        created.push(key);
+      },
+    };
+
+    const result = await ensureSigningKey(keys, { name: "test" });
+    expect(result.created).toBe(true);
+    expect(created).toHaveLength(1);
+  });
+});
+
+describe("saml_encryption keys are always tenant-scoped", () => {
+  const samlKey = (overrides: Partial<SigningKey>) =>
+    makeKey({ type: "saml_encryption", pkcs7: "PRIVATE", ...overrides });
+
+  it("prefers the tenant's own certificate even in control-plane mode", async () => {
+    const shared = samlKey({ kid: "shared" });
+    const own = samlKey({ kid: "own", tenant_id: "t1" });
+    const keys = makeKeysAdapter([shared, own]);
+
+    const signing = await resolveSigningKeys(keys, "t1", "control-plane", {
+      purpose: "sign",
+      type: "saml_encryption",
+    });
+    expect(signing.map((k) => k.kid)).toEqual(["own"]);
+  });
+
+  it("falls back to the shared certificate when the tenant has none", async () => {
+    // The state every existing deployment is in: one unscoped SAML key.
+    const shared = samlKey({ kid: "shared" });
+    const keys = makeKeysAdapter([shared]);
+
+    const signing = await resolveSigningKeys(keys, "t1", "control-plane", {
+      purpose: "sign",
+      type: "saml_encryption",
+    });
+    expect(signing.map((k) => k.kid)).toEqual(["shared"]);
+  });
+
+  it("publishes the tenant's certificate alongside the shared one", async () => {
+    const keys = makeKeysAdapter([
+      samlKey({ kid: "shared" }),
+      samlKey({ kid: "own", tenant_id: "t1" }),
+    ]);
+
+    const published = await resolveSigningKeys(keys, "t1", "control-plane", {
+      purpose: "publish",
+      type: "saml_encryption",
+    });
+    expect(published.map((k) => k.kid).sort()).toEqual(["own", "shared"]);
+  });
+
+  it("leaves jwt_signing resolution on the configured mode", async () => {
+    // A tenant-scoped JWT key must stay invisible in control-plane mode.
+    const keys = makeKeysAdapter([
+      makeKey({ kid: "cp", pkcs7: "PRIVATE" }),
+      makeKey({ kid: "t1-own", tenant_id: "t1", pkcs7: "PRIVATE" }),
+    ]);
+
+    const signing = await resolveSigningKeys(keys, "t1", "control-plane", {
+      purpose: "sign",
+    });
+    expect(signing.map((k) => k.kid)).toEqual(["cp"]);
   });
 });

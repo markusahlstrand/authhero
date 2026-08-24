@@ -1,7 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
 import { deflateRawSync } from "node:zlib";
+import { X509Certificate } from "@peculiar/x509";
 import { getTestServer } from "../../helpers/test-server";
+import { createX509Certificate } from "../../../src/utils/encryption";
 
 function encodeSamlRequest(xml: string): string {
   // SAML HTTP Redirect binding compresses the AuthnRequest with raw-deflate
@@ -155,5 +157,69 @@ describe("/samlp/{client_id} — SP-initiated SAML AuthnRequest", () => {
     expect(response.status).toBe(400);
     const body = (await response.json()) as ErrorBody;
     expect(body.error_description).toMatch(/signature verification/);
+  });
+});
+
+describe("/samlp/metadata/{client_id}", () => {
+  it("publishes a staged certificate alongside the one currently signing", async () => {
+    const { samlApp, env } = await getTestServer();
+    const client = testClient(samlApp, env);
+
+    const live = await createX509Certificate({ name: "CN=live" });
+    await env.data.keys.create({
+      ...live,
+      type: "saml_encryption",
+      current_since: new Date(Date.now() - 60_000).toISOString(),
+    });
+
+    // Staged: published now so a service provider can be given it, but not
+    // signing anything until its activation date.
+    const staged = await createX509Certificate({ name: "CN=staged" });
+    await env.data.keys.create({
+      ...staged,
+      type: "saml_encryption",
+      current_since: new Date(
+        Date.now() + 7 * 24 * 60 * 60 * 1000,
+      ).toISOString(),
+    });
+
+    const response = await client.metadata[":client_id"].$get({
+      param: { client_id: "clientId" },
+    });
+    expect(response.status).toBe(200);
+
+    const metadata = await response.text();
+    for (const key of [live, staged]) {
+      expect(metadata).toContain(
+        new X509Certificate(key.cert).toString("base64"),
+      );
+    }
+  });
+
+  it("omits a revoked certificate", async () => {
+    const { samlApp, env } = await getTestServer();
+    const client = testClient(samlApp, env);
+
+    const live = await createX509Certificate({ name: "CN=live" });
+    await env.data.keys.create({ ...live, type: "saml_encryption" });
+
+    const retired = await createX509Certificate({ name: "CN=retired" });
+    await env.data.keys.create({
+      ...retired,
+      type: "saml_encryption",
+      revoked_at: new Date(Date.now() - 60_000).toISOString(),
+    });
+
+    const response = await client.metadata[":client_id"].$get({
+      param: { client_id: "clientId" },
+    });
+    const metadata = await response.text();
+
+    expect(metadata).toContain(
+      new X509Certificate(live.cert).toString("base64"),
+    );
+    expect(metadata).not.toContain(
+      new X509Certificate(retired.cert).toString("base64"),
+    );
   });
 });

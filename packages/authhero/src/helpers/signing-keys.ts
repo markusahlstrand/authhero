@@ -87,6 +87,23 @@ export interface ResolveSigningKeysOptions {
   type?: string;
 }
 
+/**
+ * SAML certificates are per-tenant by nature: each one is published in that
+ * tenant's IdP metadata and pinned by that tenant's service providers, so
+ * rotating a shared one would force every unrelated tenant's service providers
+ * to re-trust a certificate at the same moment.
+ *
+ * They therefore always resolve with tenant semantics — the tenant's own key
+ * first, the shared control-plane key as a fallback — regardless of the
+ * deployment's `signingKeyMode`, which exists for JWT signing keys where a
+ * shared key is the sane default. A deployment whose SAML key is unscoped is
+ * unaffected: with no tenant-scoped key to prefer, the fallback is the only
+ * candidate and resolution is identical.
+ */
+function modeForType(mode: SigningKeyMode, type: string): SigningKeyMode {
+  return type === "saml_encryption" ? "tenant" : mode;
+}
+
 export async function resolveSigningKeys(
   keys: KeysAdapter,
   tenantId: string,
@@ -94,7 +111,10 @@ export async function resolveSigningKeys(
   opts: ResolveSigningKeysOptions,
 ): Promise<SigningKey[]> {
   const type = opts.type ?? "jwt_signing";
-  const mode = await resolveSigningKeyMode(modeOption, tenantId);
+  const mode = modeForType(
+    await resolveSigningKeyMode(modeOption, tenantId),
+    type,
+  );
 
   if (mode === "control-plane") {
     const controlPlaneKeys = await listControlPlaneKeys(keys, type);
@@ -106,7 +126,7 @@ export async function resolveSigningKeys(
       // a control-plane rotation can re-sync a newer public key that would
       // otherwise out-sort the tenant's own private key — leaving the signer
       // with nothing to sign (#1181).
-      const preferred = controlPlaneKeys.find(isSignable);
+      const preferred = controlPlaneKeys.find(isActiveSigner);
       return preferred ? [preferred] : [];
     }
     return controlPlaneKeys;
@@ -124,7 +144,7 @@ export async function resolveSigningKeys(
     // verify keys can't sign (#1181). Returning a single-element array keeps
     // callers uniform with the publish path.
     const preferred =
-      tenantKeys.find(isSignable) ?? controlPlaneKeys.find(isSignable);
+      tenantKeys.find(isActiveSigner) ?? controlPlaneKeys.find(isActiveSigner);
     return preferred ? [preferred] : [];
   }
 
@@ -142,6 +162,25 @@ export async function resolveSigningKeys(
 /** A key is signable only if it carries private material, not just a cert. */
 export function isSignable(key: SigningKey): boolean {
   return Boolean(key.pkcs7 && key.cert);
+}
+
+/**
+ * A key with `current_since` in the future is *staged*: published so relying
+ * parties can pre-trust it, but not yet signing anything.
+ *
+ * This is what makes a zero-downtime rotation possible for a SAML service
+ * provider that pins the certificate out-of-band. The new certificate appears
+ * in the IdP metadata immediately, the operator gets it to the service
+ * provider, and only then does it start signing — the reverse order breaks
+ * every login in between.
+ */
+export function isStaged(key: SigningKey, now = new Date()): boolean {
+  return Boolean(key.current_since && new Date(key.current_since) > now);
+}
+
+/** Signing candidates: private material present and activation already due. */
+function isActiveSigner(key: SigningKey): boolean {
+  return isSignable(key) && !isStaged(key);
 }
 
 export interface EnsureSigningKeyOptions {
@@ -188,7 +227,9 @@ export async function ensureSigningKey(
     ? await listByTenant(keys, opts.tenantId, type)
     : await listControlPlaneKeys(keys, type);
 
-  const signable = existing.find(isSignable);
+  // A staged key doesn't satisfy the invariant this function exists to keep:
+  // the scope still has nothing that can sign right now.
+  const signable = existing.find(isActiveSigner);
   if (signable) {
     return { created: false, key: signable };
   }

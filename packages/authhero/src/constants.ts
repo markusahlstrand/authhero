@@ -4,6 +4,13 @@
 // users must NEVER be created with "auth2".
 export const USERNAME_PASSWORD_PROVIDER = "auth0";
 
+// Certificate lifetimes, in days. A JWT signing key is re-read from JWKS on
+// every rotation, so a one-year certificate costs nothing. A SAML certificate
+// is pinned by the service provider out-of-band and only changes when a human
+// emails it over — give it years, or the renewal turns into an outage.
+export const JWT_CERT_VALIDITY_DAYS = 365;
+export const SAML_CERT_VALIDITY_DAYS = 5 * 365;
+
 export const JWKS_CACHE_TIMEOUT_IN_SECONDS = 60 * 5; // 5 minutes
 export const SILENT_AUTH_MAX_AGE_IN_SECONDS = 30 * 24 * 60 * 60; // 30 days
 export const UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS = 24 * 60 * 60; // 1 day
