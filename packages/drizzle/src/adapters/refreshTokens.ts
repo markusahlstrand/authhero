@@ -2,7 +2,7 @@ import { eq, and, lt, isNull, count as countFn, asc, desc } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import type {
   RefreshToken,
-  ListParams,
+  RefreshTokenListParams,
   UpdateRefreshTokenOptions,
 } from "@authhero/adapter-interfaces";
 import { refreshTokens, loginSessions } from "../schema/sqlite";
@@ -247,7 +247,7 @@ export function createRefreshTokensAdapter(db: DrizzleDb) {
       return results.length > 0;
     },
 
-    async list(tenant_id: string, params?: ListParams) {
+    async list(tenant_id: string, params?: RefreshTokenListParams) {
       const {
         page = 0,
         per_page = 50,
@@ -259,9 +259,17 @@ export function createRefreshTokensAdapter(db: DrizzleDb) {
       const filter = q
         ? buildLuceneFilter(refreshTokens, q, ["user_id", "login_id"])
         : undefined;
-      const whereClause = filter
-        ? and(eq(refreshTokens.tenant_id, tenant_id), filter)
-        : eq(refreshTokens.tenant_id, tenant_id);
+      // `user_id` is an exact predicate, never routed through the Lucene
+      // grammar — see RefreshTokenListParams for why.
+      const predicates = [
+        eq(refreshTokens.tenant_id, tenant_id),
+        ...(params?.user_id !== undefined
+          ? [eq(refreshTokens.user_id, params.user_id)]
+          : []),
+        ...(filter ? [filter] : []),
+      ];
+      const whereClause =
+        predicates.length === 1 ? predicates[0]! : and(...predicates)!;
 
       // Keyset (checkpoint) pagination: from/take. Fixed created_at desc order
       // with id tiebreaker; no total, matching Auth0's checkpoint responses.
@@ -334,6 +342,28 @@ export function createRefreshTokensAdapter(db: DrizzleDb) {
         .returning();
 
       return results.length > 0;
+    },
+
+    async revokeByUser(
+      tenant_id: string,
+      user_id: string,
+      revoked_at: string,
+    ): Promise<number> {
+      // Exact predicates, and `revoked_at_ts IS NULL` so a concurrent bulk
+      // revocation cannot overwrite the first one's audit timestamp.
+      const results = await db
+        .update(refreshTokens)
+        .set({ revoked_at_ts: isoToDbDate(revoked_at) })
+        .where(
+          and(
+            eq(refreshTokens.tenant_id, tenant_id),
+            eq(refreshTokens.user_id, user_id),
+            isNull(refreshTokens.revoked_at_ts),
+          ),
+        )
+        .returning();
+
+      return results.length;
     },
 
     async revokeByLoginSession(

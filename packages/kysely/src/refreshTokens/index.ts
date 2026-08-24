@@ -5,6 +5,7 @@ import { create } from "./create";
 import { Kysely } from "kysely";
 import { remove } from "./remove";
 import { revokeByLoginSession } from "./revokeByLoginSession";
+import { revokeByUser } from "./revokeByUser";
 import { revokeFamily } from "./revokeFamily";
 import { update } from "./update";
 import { list } from "./list";
@@ -20,6 +21,7 @@ export function createRefreshTokensAdapter(
     list: list(db),
     remove: remove(db),
     revokeByLoginSession: revokeByLoginSession(db),
+    revokeByUser: revokeByUser(db),
     revokeFamily: revokeFamily(db),
     update: update(db),
   };

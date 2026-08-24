@@ -1,6 +1,6 @@
 import {
-  ListParams,
   ListRefreshTokenResponse,
+  RefreshTokenListParams,
 } from "@authhero/adapter-interfaces";
 import { Kysely } from "kysely";
 import { luceneFilter } from "../helpers/filter";
@@ -12,13 +12,26 @@ import { toRefreshToken } from "./to-refresh-token";
 export function list(db: Kysely<Database>) {
   return async (
     tenant_id: string,
-    params: ListParams = {},
+    params: RefreshTokenListParams = {},
   ): Promise<ListRefreshTokenResponse> => {
-    const { page = 0, per_page = 50, include_totals = false, sort, q } = params;
+    const {
+      page = 0,
+      per_page = 50,
+      include_totals = false,
+      sort,
+      q,
+      user_id,
+    } = params;
 
     let query = db
       .selectFrom("refresh_tokens")
       .where("refresh_tokens.tenant_id", "=", tenant_id);
+
+    // Exact predicate, never routed through the Lucene grammar — see
+    // RefreshTokenListParams for why.
+    if (user_id !== undefined) {
+      query = query.where("refresh_tokens.user_id", "=", user_id);
+    }
 
     if (q) {
       query = luceneFilter(db, query, q, ["token", "login_id"]);

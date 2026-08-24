@@ -1,17 +1,18 @@
 import { Context } from "hono";
 import { Bindings, Variables } from "../types";
-import { userIdFilter } from "../utils/user-filter";
 
 /**
  * Soft-revoke every active refresh token belonging to a user.
  *
- * Unlike the single-token admin delete (which also hard-removes the row),
- * this keeps the rows around with `revoked_at` set so the admin UI and the
- * audit trail can still show what was invalidated and when.
+ * Unlike the single-token admin delete (which also hard-removes the row), this
+ * keeps the rows around with `revoked_at` set so the admin UI and the audit
+ * trail can still show what was invalidated and when.
  *
- * Rows are gathered across all pages before any mutation: revoking in place
- * doesn't change the row set, but reading first keeps the traversal
- * independent of adapter-side ordering guarantees.
+ * Delegates to the adapter so the match is a pair of exact predicates rather
+ * than a `q` filter: the Lucene grammar splits on ` OR ` before tokenizing, so
+ * a user id containing ` OR user_id:<other> OR ` would widen a `q`-based
+ * revoke to another user's tokens. The adapter also skips already-revoked
+ * rows, so a concurrent revocation cannot overwrite an existing timestamp.
  *
  * Returns the number of tokens revoked.
  */
@@ -20,35 +21,9 @@ export async function revokeUserRefreshTokens(
   tenant_id: string,
   user_id: string,
 ): Promise<number> {
-  const revokedAt = new Date().toISOString();
-
-  const active: string[] = [];
-  let page = 0;
-  const perPage = 100;
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
-    const { refresh_tokens } = await ctx.env.data.refreshTokens.list(
-      tenant_id,
-      {
-        page,
-        per_page: perPage,
-        q: userIdFilter(user_id),
-      },
-    );
-    active.push(
-      ...refresh_tokens.filter((token) => !token.revoked_at).map((t) => t.id),
-    );
-    if (refresh_tokens.length < perPage) break;
-    page++;
-  }
-
-  let revoked = 0;
-  for (const id of active) {
-    const updated = await ctx.env.data.refreshTokens.update(tenant_id, id, {
-      revoked_at: revokedAt,
-    });
-    if (updated) revoked++;
-  }
-
-  return revoked;
+  return ctx.env.data.refreshTokens.revokeByUser(
+    tenant_id,
+    user_id,
+    new Date().toISOString(),
+  );
 }

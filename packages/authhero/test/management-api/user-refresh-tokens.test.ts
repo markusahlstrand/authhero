@@ -147,9 +147,12 @@ describe("management-api user refresh tokens", () => {
     const token = await getAdminToken();
     await seed(env);
 
-    // A bare `user_id:${id}` interpolation would parse this as an OR and
-    // return the other user's tokens too.
-    const injected = `${USER_ID}" OR user_id:"${OTHER_USER_ID}`;
+    // Three parts on purpose. Both adapters split `q` on ` OR ` before
+    // tokenizing, so with a two-part id the quotes still bracket both
+    // fragments and nothing matches — but a middle fragment comes out clean
+    // and would match the other user. Quoting never closed this; only the
+    // exact `user_id` predicate does.
+    const injected = `${USER_ID} OR user_id:${OTHER_USER_ID} OR x`;
 
     const res = await managementApp.request(
       `/users/${encodeURIComponent(injected)}/refresh-tokens?include_totals=true`,
@@ -169,7 +172,7 @@ describe("management-api user refresh tokens", () => {
     const token = await getAdminToken();
     await seed(env);
 
-    const injected = `${USER_ID}" OR user_id:"${OTHER_USER_ID}`;
+    const injected = `${USER_ID} OR user_id:${OTHER_USER_ID} OR x`;
     const res = await managementApp.request(
       `/users/${encodeURIComponent(injected)}/refresh-tokens`,
       {

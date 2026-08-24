@@ -42,7 +42,6 @@ import { getIssuer } from "../../variables";
 import { withDefaultPicture } from "../../helpers/avatar";
 
 import { defineRoute } from "../../utils/define-route";
-import { userIdFilter } from "../../utils/user-filter";
 import { requireTenantId, withTotals, listResponse } from "./helpers";
 const IDENTITY_PICK_KEYS = [
   "email",
@@ -1325,7 +1324,10 @@ const getByUser_idRefreshTokens = defineRoute({
       from,
       take,
       sort: parseSort(sort),
-      q: userIdFilter(user_id),
+      // Exact predicate rather than a `q` filter: the Lucene grammar splits on
+      // ` OR ` before tokenizing, so a crafted user id can otherwise match
+      // another user's tokens.
+      user_id,
     });
 
     const tokens = result.refresh_tokens.map((token) =>
