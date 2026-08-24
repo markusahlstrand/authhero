@@ -19,13 +19,77 @@ import { migrationLog, migrationWarn } from "../log";
  * `session_id` alone would make the grant stop looking up the organization
  * and connection it still needs. Only rows where the parent yields a
  * `session_id` are touched, so the marker never runs ahead of the data.
+ *
+ * SIZE-AWARE. This runs row-at-a-time, which is portable across MySQL and the
+ * SQLite used by tests but costs one query per row. On Cloudflare Workers —
+ * where migrateToLatest runs in production — every query is a subrequest
+ * against a 1,000-per-request cap, so a large backfill cannot finish inside a
+ * single invocation no matter how it is batched. Above THRESHOLD rows this
+ * therefore declines the work and tells the operator where the bulk path is,
+ * rather than retrying a doomed scan on every deploy.
  */
 
 const BATCH_SIZE = 500;
 const CONCURRENCY = 20;
 
+/**
+ * Highest in-scope row count this will attempt in-process.
+ *
+ * Deliberately below the Workers 1,000-subrequest cap: THRESHOLD updates plus
+ * the count and page queries has to fit inside one invocation with room to
+ * spare. Small self-hosted deployments land here and backfill automatically;
+ * anything larger is an operator task.
+ */
+const THRESHOLD = 500;
+
+const BULK_PATH =
+  "packages/kysely/migrate/data-migrations/refresh-token-session-id-backfill.sql";
+
 export async function up(db: Kysely<Database>): Promise<void> {
   try {
+    // Same predicate as the page query below, so the estimate and the work
+    // agree. Cheap relative to the backfill itself, and it runs once.
+    const scope = await db
+      .selectFrom("refresh_tokens")
+      .innerJoin(
+        "login_sessions",
+        "login_sessions.id",
+        "refresh_tokens.login_id",
+      )
+      .whereRef("login_sessions.tenant_id", "=", "refresh_tokens.tenant_id")
+      .where("refresh_tokens.session_id", "is", null)
+      .where("login_sessions.session_id", "is not", null)
+      .select((eb) => eb.fn.countAll().as("count"))
+      .executeTakeFirst();
+
+    const inScope = Number(scope?.count ?? 0);
+
+    if (inScope > THRESHOLD) {
+      // Not a swallowed error — a deliberate, logged handoff. Throwing here
+      // instead would leave the migration pending and retry this same scan on
+      // every subsequent deploy without ever finishing it, which is strictly
+      // worse: it blocks the rest of the chain and still backfills nothing.
+      //
+      // Skipping is safe to defer because nothing breaks while the parent row
+      // survives: the refresh grant falls back to reading `login_sessions`
+      // whenever `session_id` is null (see the `hasDenormalisedFacts` branch
+      // in authentication-flows/refresh-token.ts). What it is NOT safe to
+      // defer past is enabling `login_sessions` retention — once parents are
+      // pruned the facts are unrecoverable.
+      migrationWarn(
+        `refresh_tokens backfill: ${inScope} rows in scope, above the ` +
+          `in-process limit of ${THRESHOLD}. SKIPPING — run the bulk path ` +
+          `instead: ${BULK_PATH}. This must be completed before login_sessions ` +
+          `retention is enabled, or the auth-event facts are lost for good.`,
+      );
+      return;
+    }
+
+    if (inScope === 0) {
+      migrationLog("refresh_tokens backfill: nothing to do");
+      return;
+    }
+
     let totalUpdated = 0;
 
     // eslint-disable-next-line no-constant-condition
@@ -68,7 +132,10 @@ export async function up(db: Kysely<Database>): Promise<void> {
               } catch {
                 // A login session with unparseable auth_params still yields a
                 // usable session_id and connection; only the organization is
-                // lost, and the grant treats it as absent.
+                // lost, and the grant treats it as absent. Parsing in JS
+                // rather than SQL is what keeps one malformed row from
+                // aborting the batch — the SQL paths need an explicit
+                // JSON_VALID / json_valid guard to match this behaviour.
                 migrationWarn(
                   `refresh_tokens backfill: unparseable auth_params on login_session for token ${row.id}`,
                 );
@@ -102,12 +169,11 @@ export async function up(db: Kysely<Database>): Promise<void> {
 
     migrationLog(`refresh_tokens backfill: done, ${totalUpdated} rows updated`);
   } catch (error) {
-    // Rethrow rather than swallow. Swallowing would record the migration as
-    // applied, so it would never re-run and the rows would stay unpopulated
-    // silently — which the session-keyed revoke cascade (#1256) then
-    // under-covers, with no signal that it is doing so. Failing loudly keeps
+    // Rethrow rather than swallow. An actual failure mid-backfill should keep
     // the migration pending so a retry picks up where it stopped; the writes
     // are idempotent (`session_id IS NULL` selects only unprocessed rows).
+    // This is distinct from the THRESHOLD path above, which is a deliberate
+    // decision rather than a failure and therefore returns cleanly.
     migrationWarn("refresh_tokens backfill failed:", error);
     throw error;
   }
