@@ -47,6 +47,11 @@ async function seedNewFormatToken(
     rotated_at?: string;
     rotated_to?: string;
     id?: string;
+    login_id?: string;
+    session_id?: string;
+    organization?: string;
+    auth_connection?: string;
+    auth_strategy?: { strategy: string; strategy_type: string };
   } = {},
 ) {
   const id = overrides.id ?? ulid();
@@ -55,12 +60,17 @@ async function seedNewFormatToken(
   await env.data.refreshTokens.create("tenantId", {
     ...baseTokenFields,
     id,
+    ...(overrides.login_id ? { login_id: overrides.login_id } : {}),
     rotating: overrides.rotating ?? true,
     token_lookup: lookup,
     token_hash,
     family_id: overrides.family_id ?? id,
     rotated_at: overrides.rotated_at,
     rotated_to: overrides.rotated_to,
+    session_id: overrides.session_id,
+    organization: overrides.organization,
+    auth_connection: overrides.auth_connection,
+    auth_strategy: overrides.auth_strategy,
     expires_at: idleHour(),
     idle_expires_at: idleHour(),
   });
@@ -75,6 +85,24 @@ async function setRotating(
   await env.data.clients.update("tenantId", "clientId", {
     refresh_token: { rotation_type, ...(leeway !== undefined && { leeway }) },
   });
+}
+
+async function client_oauthToken(
+  oauthApp: Parameters<typeof testClient>[0],
+  env: Awaited<ReturnType<typeof getTestServer>>["env"],
+  wire: string,
+) {
+  return testClient(oauthApp, env).oauth.token.$post(
+    // @ts-expect-error - testClient type requires both form and json
+    {
+      form: {
+        grant_type: "refresh_token",
+        refresh_token: wire,
+        client_id: "clientId",
+      },
+    },
+    { headers: { "tenant-id": "tenantId" } },
+  );
 }
 
 describe("refresh token rotation", () => {
@@ -310,6 +338,129 @@ describe("refresh token rotation", () => {
     expect(res.status).toBe(403);
     const err = (await res.json()) as ErrorResponse;
     expect(err.error).toBe("invalid_grant");
+  });
+
+  it("carries session_id and the auth-event facts onto the rotated child", async () => {
+    const { oauthApp, env } = await getTestServer();
+    await setRotating(env, "rotating");
+    // The grant resolves the organization now that it comes off the token, so
+    // it has to exist and the user has to be a member — same as any other
+    // org-scoped exchange.
+    const org = await env.data.organizations.create("tenantId", {
+      id: "org_rotate",
+      name: "org-rotate",
+      display_name: "Org Rotate",
+    });
+    await env.data.userOrganizations.create("tenantId", {
+      user_id: "email|userId",
+      organization_id: org.id,
+    });
+    const seeded = await seedNewFormatToken(env, {
+      rotating: true,
+      session_id: "session-abc",
+      organization: "org_rotate",
+      auth_connection: "google-oauth2",
+      auth_strategy: { strategy: "google", strategy_type: "social" },
+    });
+    const client = testClient(oauthApp, env);
+
+    const response = await client.oauth.token.$post(
+      // @ts-expect-error - testClient type requires both form and json
+      {
+        form: {
+          grant_type: "refresh_token",
+          refresh_token: seeded.wire,
+          client_id: "clientId",
+        },
+      },
+      { headers: { "tenant-id": "tenantId" } },
+    );
+    expect(response.status).toBe(200);
+
+    const body = (await response.json()) as TokenResponse;
+    const childParsed = parseRefreshToken(body.refresh_token!);
+    if (childParsed.kind !== "new") {
+      throw new Error("expected new-format wire token");
+    }
+    const child = await env.data.refreshTokens.getByLookup(
+      "tenantId",
+      childParsed.lookup,
+    );
+
+    // Rotation mints a new row for the same authentication event, so the
+    // ownership edge must survive it — otherwise a rotated token falls out of
+    // the session revoke cascade.
+    expect(child!.session_id).toBe("session-abc");
+    expect(child!.organization).toBe("org_rotate");
+    expect(child!.auth_connection).toBe("google-oauth2");
+    expect(child!.auth_strategy).toEqual({
+      strategy: "google",
+      strategy_type: "social",
+    });
+  });
+
+  it("heals a legacy token on rotation while its login session survives", async () => {
+    const { oauthApp, env } = await getTestServer();
+    await setRotating(env, "rotating");
+
+    // A login session that still exists, carrying the auth-event facts.
+    const loginSession = await env.data.loginSessions.create("tenantId", {
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      csrf_token: "csrf",
+      authParams: { client_id: "clientId" },
+    });
+    // login_sessions.session_id carries an FK to sessions.
+    await env.data.sessions.create("tenantId", {
+      id: "session-legacy",
+      user_id: "email|userId",
+      login_session_id: loginSession.id,
+      clients: ["clientId"],
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      idle_expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      used_at: new Date().toISOString(),
+      device: {
+        last_ip: "",
+        initial_ip: "",
+        last_user_agent: "",
+        initial_user_agent: "",
+        initial_asn: "",
+        last_asn: "",
+      },
+    });
+    await env.data.loginSessions.update("tenantId", loginSession.id, {
+      session_id: "session-legacy",
+      auth_connection: "google-oauth2",
+      auth_strategy: { strategy: "google", strategy_type: "social" },
+    });
+
+    // Pre-migration shape: login_id only, none of the denormalised columns.
+    const seeded = await seedNewFormatToken(env, {
+      rotating: true,
+      login_id: loginSession.id,
+    });
+
+    const response = await client_oauthToken(oauthApp, env, seeded.wire);
+    expect(response.status).toBe(200);
+
+    const body = (await response.json()) as TokenResponse;
+    const childParsed = parseRefreshToken(body.refresh_token!);
+    if (childParsed.kind !== "new") {
+      throw new Error("expected new-format wire token");
+    }
+    const child = await env.data.refreshTokens.getByLookup(
+      "tenantId",
+      childParsed.lookup,
+    );
+
+    // Copying the parent's raw (undefined) columns would mint a child that is
+    // legacy too, leaving the family permanently unreachable by a
+    // session-keyed revoke. The resolved values heal it instead.
+    expect(child!.session_id).toBe("session-legacy");
+    expect(child!.auth_connection).toBe("google-oauth2");
+    expect(child!.auth_strategy).toEqual({
+      strategy: "google",
+      strategy_type: "social",
+    });
   });
 
   it("admin DELETE on a single token revokes the entire family", async () => {

@@ -1,5 +1,20 @@
 import { RefreshToken, RefreshTokenInsert, Totals, ListParams } from "../types";
 
+/**
+ * List params for refresh tokens, with `user_id` as a first-class exact
+ * predicate.
+ *
+ * Selecting a user through the `q` Lucene grammar is not safe here: both SQL
+ * adapters split `q` on ` OR ` *before* tokenizing, so a user id containing
+ * ` OR user_id:<other> OR ` yields a clean middle clause that matches another
+ * user's rows — quoting the value does not prevent it, because the quotes only
+ * bracket the first and last fragments. This field compiles to an equality
+ * comparison instead, so the id is never parsed as query syntax.
+ */
+export interface RefreshTokenListParams extends ListParams {
+  user_id?: string;
+}
+
 export interface ListRefreshTokenResponse extends Totals {
   refresh_tokens: RefreshToken[];
 }
@@ -34,7 +49,7 @@ export interface RefreshTokensAdapter {
   ) => Promise<RefreshToken | null>;
   list(
     tenant_id: string,
-    params?: ListParams,
+    params?: RefreshTokenListParams,
   ): Promise<ListRefreshTokenResponse>;
   update: (
     tenant_id: string,
@@ -43,6 +58,22 @@ export interface RefreshTokensAdapter {
     options?: UpdateRefreshTokenOptions,
   ) => Promise<boolean>;
   remove: (tenant_id: string, id: string) => Promise<boolean>;
+  /**
+   * Soft-revoke every refresh token belonging to a user that isn't already
+   * revoked. Exact tenant + user predicates, so nothing goes through the `q`
+   * grammar.
+   *
+   * The `revoked_at IS NULL` guard also makes this safe to run concurrently:
+   * a second bulk revocation cannot overwrite the audit timestamp written by
+   * the first.
+   *
+   * Returns the number of tokens revoked.
+   */
+  revokeByUser: (
+    tenant_id: string,
+    user_id: string,
+    revoked_at: string,
+  ) => Promise<number>;
   revokeByLoginSession: (
     tenant_id: string,
     login_session_id: string,

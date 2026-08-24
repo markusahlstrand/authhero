@@ -26,6 +26,12 @@ interface RefreshTokenItem extends DynamoDBBaseItem {
   tenant_id: string;
   user_id: string;
   login_id: string;
+  // Auth0's `session_id`. Revocation semantics only — never a cascade key.
+  session_id?: string;
+  // Auth-event facts denormalised from the login session at mint time.
+  organization?: string;
+  auth_connection?: string;
+  auth_strategy?: { strategy: string; strategy_type: string };
   client_id: string;
   expires_at?: string;
   idle_expires_at?: string;
@@ -74,6 +80,10 @@ export function createRefreshTokensAdapter(
         id: refreshToken.id,
         user_id: refreshToken.user_id,
         login_id: refreshToken.login_id,
+        session_id: refreshToken.session_id,
+        organization: refreshToken.organization,
+        auth_connection: refreshToken.auth_connection,
+        auth_strategy: refreshToken.auth_strategy,
         client_id: refreshToken.client_id,
         expires_at: refreshToken.expires_at,
         idle_expires_at: refreshToken.idle_expires_at,
@@ -218,6 +228,68 @@ export function createRefreshTokensAdapter(
         refreshTokenKeys.pk(tenantId),
         refreshTokenKeys.sk(id),
       );
+    },
+
+    async revokeByUser(
+      tenantId: string,
+      user_id: string,
+      revoked_at: string,
+    ): Promise<number> {
+      // Mirrors revokeByLoginSession: no GSI to match on, so iterate the
+      // tenant's refresh tokens and soft-revoke the ones for this user. The
+      // match is an exact comparison, never a `q` filter.
+      let count = 0;
+      let page = 0;
+      const per_page = 100;
+      for (;;) {
+        const result = await queryWithPagination<RefreshTokenItem>(
+          ctx,
+          refreshTokenKeys.pk(tenantId),
+          { page, per_page },
+          { skPrefix: "REFRESH_TOKEN#" },
+        );
+        for (const item of result.items) {
+          if (item.user_id !== user_id) continue;
+          if ((item as { revoked_at?: string }).revoked_at) continue;
+          try {
+            await ctx.client.send(
+              new UpdateCommand({
+                TableName: ctx.tableName,
+                Key: {
+                  PK: refreshTokenKeys.pk(tenantId),
+                  SK: refreshTokenKeys.sk(item.id),
+                },
+                UpdateExpression:
+                  "SET #revoked_at = :revoked_at, #updated_at = :updated_at",
+                // Also the concurrency guard: a second bulk revocation cannot
+                // overwrite the first one's audit timestamp.
+                ConditionExpression:
+                  "attribute_exists(PK) AND attribute_not_exists(#revoked_at)",
+                ExpressionAttributeNames: {
+                  "#revoked_at": "revoked_at",
+                  "#updated_at": "updated_at",
+                },
+                ExpressionAttributeValues: {
+                  ":revoked_at": revoked_at,
+                  ":updated_at": new Date().toISOString(),
+                },
+              }),
+            );
+            count++;
+          } catch (err: unknown) {
+            if (
+              (err as { name?: string })?.name ===
+              "ConditionalCheckFailedException"
+            ) {
+              continue;
+            }
+            throw err;
+          }
+        }
+        if (result.items.length < per_page) break;
+        page++;
+      }
+      return count;
     },
 
     async revokeByLoginSession(

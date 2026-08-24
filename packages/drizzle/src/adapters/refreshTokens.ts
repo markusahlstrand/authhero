@@ -2,13 +2,20 @@ import { eq, and, lt, isNull, count as countFn, asc, desc } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import type {
   RefreshToken,
-  ListParams,
+  RefreshTokenListParams,
   UpdateRefreshTokenOptions,
 } from "@authhero/adapter-interfaces";
 import { refreshTokens, loginSessions } from "../schema/sqlite";
 import { removeNullProperties, parseJsonIfString } from "../helpers/transform";
 import { convertDatesToAdapter, isoToDbDate } from "../helpers/dates";
 import { buildLuceneFilter } from "../helpers/filter";
+import {
+  isKeysetRequest,
+  keysetCondition,
+  keysetOrderBy,
+  keysetTake,
+  sliceWithNext,
+} from "../helpers/paginate";
 import type { DrizzleDb } from "./types";
 import { runAtomic } from "./atomic";
 import type { AtomicStatementList } from "./atomic";
@@ -25,6 +32,8 @@ function sqlToRefreshToken(row: any): RefreshToken {
     device,
     resource_servers,
     rotating,
+    auth_strategy_strategy,
+    auth_strategy_strategy_type,
     ...rest
   } = row;
 
@@ -53,6 +62,16 @@ function sqlToRefreshToken(row: any): RefreshToken {
     rotating: !!rotating,
     device: parseJsonIfString(device, {}),
     resource_servers: parseJsonIfString(resource_servers, []),
+    // Stored as two flat columns; the adapter shape nests them. Only present
+    // when both halves are set — a half-populated strategy is meaningless.
+    ...(auth_strategy_strategy && auth_strategy_strategy_type
+      ? {
+          auth_strategy: {
+            strategy: auth_strategy_strategy,
+            strategy_type: auth_strategy_strategy_type,
+          },
+        }
+      : {}),
   });
 }
 
@@ -73,6 +92,11 @@ export function createRefreshTokensAdapter(db: DrizzleDb) {
         tenant_id,
         client_id: token.client_id,
         login_id: token.login_id,
+        session_id: token.session_id ?? null,
+        organization: token.organization ?? null,
+        auth_connection: token.auth_connection ?? null,
+        auth_strategy_strategy: token.auth_strategy?.strategy ?? null,
+        auth_strategy_strategy_type: token.auth_strategy?.strategy_type ?? null,
         user_id: token.user_id,
         device: JSON.stringify(token.device || {}),
         resource_servers: JSON.stringify(token.resource_servers || []),
@@ -223,7 +247,7 @@ export function createRefreshTokensAdapter(db: DrizzleDb) {
       return results.length > 0;
     },
 
-    async list(tenant_id: string, params?: ListParams) {
+    async list(tenant_id: string, params?: RefreshTokenListParams) {
       const {
         page = 0,
         per_page = 50,
@@ -232,22 +256,53 @@ export function createRefreshTokensAdapter(db: DrizzleDb) {
         q,
       } = params || {};
 
-      let query = db
-        .select()
-        .from(refreshTokens)
-        .where(eq(refreshTokens.tenant_id, tenant_id))
-        .$dynamic();
+      const filter = q
+        ? buildLuceneFilter(refreshTokens, q, ["user_id", "login_id"])
+        : undefined;
+      // `user_id` is an exact predicate, never routed through the Lucene
+      // grammar — see RefreshTokenListParams for why.
+      const predicates = [
+        eq(refreshTokens.tenant_id, tenant_id),
+        ...(params?.user_id !== undefined
+          ? [eq(refreshTokens.user_id, params.user_id)]
+          : []),
+        ...(filter ? [filter] : []),
+      ];
+      const whereClause =
+        predicates.length === 1 ? predicates[0]! : and(...predicates)!;
 
-      if (q) {
-        const filter = buildLuceneFilter(refreshTokens, q, [
-          "user_id",
-          "login_id",
-        ]);
-        if (filter)
-          query = query.where(
-            and(eq(refreshTokens.tenant_id, tenant_id), filter),
-          );
+      // Keyset (checkpoint) pagination: from/take. Fixed created_at desc order
+      // with id tiebreaker; no total, matching Auth0's checkpoint responses.
+      if (isKeysetRequest(params)) {
+        const cols = {
+          sortColumn: refreshTokens.created_at_ts,
+          idColumn: refreshTokens.id,
+          sortOrder: "desc" as const,
+        };
+        const keyset = keysetCondition(params, cols);
+        const take = keysetTake(params);
+        const rows = await db
+          .select()
+          .from(refreshTokens)
+          .where(keyset ? and(whereClause, keyset) : whereClause)
+          .orderBy(...keysetOrderBy(cols))
+          .limit(take + 1);
+        const { rows: pageRows, next } = sliceWithNext(
+          rows,
+          take,
+          "created_at_ts",
+        );
+        const mapped = pageRows.map(sqlToRefreshToken);
+        return {
+          refresh_tokens: mapped,
+          start: 0,
+          limit: take,
+          length: mapped.length,
+          next,
+        };
       }
+
+      let query = db.select().from(refreshTokens).where(whereClause).$dynamic();
 
       if (sort?.sort_by) {
         const col = (refreshTokens as any)[sort.sort_by];
@@ -268,7 +323,7 @@ export function createRefreshTokensAdapter(db: DrizzleDb) {
       const [countResult] = await db
         .select({ count: countFn() })
         .from(refreshTokens)
-        .where(eq(refreshTokens.tenant_id, tenant_id));
+        .where(whereClause);
 
       return {
         refresh_tokens: mapped,
@@ -287,6 +342,28 @@ export function createRefreshTokensAdapter(db: DrizzleDb) {
         .returning();
 
       return results.length > 0;
+    },
+
+    async revokeByUser(
+      tenant_id: string,
+      user_id: string,
+      revoked_at: string,
+    ): Promise<number> {
+      // Exact predicates, and `revoked_at_ts IS NULL` so a concurrent bulk
+      // revocation cannot overwrite the first one's audit timestamp.
+      const results = await db
+        .update(refreshTokens)
+        .set({ revoked_at_ts: isoToDbDate(revoked_at) })
+        .where(
+          and(
+            eq(refreshTokens.tenant_id, tenant_id),
+            eq(refreshTokens.user_id, user_id),
+            isNull(refreshTokens.revoked_at_ts),
+          ),
+        )
+        .returning();
+
+      return results.length;
     },
 
     async revokeByLoginSession(

@@ -149,6 +149,13 @@ function escapeLuceneValue(value: unknown): string {
   );
 }
 
+// A refresh token as returned by GET /users/{id}/refresh-tokens. Only `id` is
+// relied on here; the rest passes through to the record for the tab to render.
+interface RefreshTokenResponse {
+  id: string;
+  [key: string]: unknown;
+}
+
 // Maps react-admin resource names to Auth0 API paths when they differ
 const API_PATH_MAP: Record<string, string> = {
   actions: "actions/actions",
@@ -305,6 +312,7 @@ async function fetchSingleton(
 export interface AuthHeroDataProvider extends DataProvider {
   rotateSigningKeys: () => Promise<void>;
   revokeSigningKey: (kid: string) => Promise<void>;
+  revokeUserRefreshTokens: (userId: string) => Promise<void>;
   uploadCustomDomainCertificate: (
     id: string,
     cert: { certificate: string; private_key: string },
@@ -1476,6 +1484,26 @@ export default (
             ...item,
           })),
           total: res.json.length || 0,
+        };
+      }
+
+      // Refresh tokens nested under users
+      if (resource === "refresh-tokens" && params.target === "user_id") {
+        const headers = createHeaders(tenantId);
+        const res = await httpClient(
+          `${apiUrl}/api/v2/users/${encodeURIComponent(String(params.id))}/refresh-tokens?${stringify(
+            {
+              include_totals: true,
+              ...buildPaginationParams(),
+              sort: `${field}:${order === "DESC" ? "-1" : "1"}`,
+            },
+          )}`,
+          { headers },
+        );
+        const tokens: RefreshTokenResponse[] = res.json.tokens || [];
+        return {
+          data: tokens.map((item) => ({ ...item, id: item.id })),
+          total: res.json.length ?? tokens.length,
         };
       }
 
@@ -2748,6 +2776,16 @@ export default (
       await httpClient(
         `${apiUrl}/api/v2/tenant-members/invitations/${encodeURIComponent(invitationId)}`,
         { method: "DELETE", headers: createHeaders(tenantId) },
+      );
+    },
+
+    revokeUserRefreshTokens: async (userId: string) => {
+      await httpClient(
+        `${apiUrl}/api/v2/users/${encodeURIComponent(userId)}/refresh-tokens`,
+        {
+          method: "DELETE",
+          headers: createHeaders(tenantId),
+        },
       );
     },
 

@@ -355,6 +355,11 @@ export async function authorizationCodeGrantUser(
       user,
       client,
       login_id: loginSession.id,
+      // Guarded on above, so this is always set here.
+      session_id: loginSession.session_id,
+      organization: loginSession.authParams.organization,
+      auth_connection: loginSession.auth_connection,
+      auth_strategy: loginSession.auth_strategy,
       scope: loginSession.authParams.scope,
       audience: loginSession.authParams.audience,
     });

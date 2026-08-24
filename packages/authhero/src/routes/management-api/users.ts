@@ -12,6 +12,7 @@ import { querySchema } from "../../types/auth0/Query";
 import { parseSort } from "../../utils/sort";
 import { logMessage } from "../../helpers/logging";
 import { revokeUserSessions } from "../../helpers/revoke-user-sessions";
+import { revokeUserRefreshTokens } from "../../helpers/revoke-user-refresh-tokens";
 import { hashPassword } from "../../helpers/password-policy";
 import {
   Connection,
@@ -21,6 +22,7 @@ import {
   auth0UserResponseSchema,
   identitySchema,
   logSchema,
+  refreshTokenSchema,
   sessionSchema,
   userInsertSchema,
   getConnectionIdentifierConfig,
@@ -128,6 +130,37 @@ const usersWithNextSchema = z.object({
 
 const sessionsWithTotalsSchema = withTotals({
   sessions: z.array(sessionSchema),
+});
+
+// Refresh tokens as returned by the management API, matching Auth0's
+// RefreshToken response shape. Two groups of columns are dropped: the secret
+// material (`token_lookup` / `token_hash`), which must never leave the
+// database — an admin can revoke a token but must not be able to replay it —
+// and the internal rotation bookkeeping (`family_id`, `rotated_to`,
+// `rotated_at`), which has no Auth0 equivalent. zod strips unknown keys, so
+// parsing through this schema is what enforces both.
+const refreshTokenResponseSchema = refreshTokenSchema.omit({
+  token_lookup: true,
+  token_hash: true,
+  family_id: true,
+  rotated_to: true,
+  rotated_at: true,
+});
+// `session_id` is deliberately NOT omitted: it is Auth0's field of the same
+// name, and on rows minted from stage 2 of #1255 onward it is a straight
+// passthrough rather than a lookup through the login session. Absent on older
+// rows, which is the state Auth0 represents with a null.
+
+const refreshTokensWithTotalsSchema = withTotals({
+  tokens: z.array(refreshTokenResponseSchema),
+});
+
+// Auth0's native shape for this endpoint: checkpoint pagination only.
+const refreshTokensWithNextSchema = z.object({
+  tokens: z.array(refreshTokenResponseSchema),
+  next: z.string().optional().openapi({
+    description: "Opaque cursor for the next page; absent on the last page.",
+  }),
 });
 
 const logsWithTotalsSchema = withTotals({
@@ -1243,6 +1276,131 @@ const getByUser_idSessions = defineRoute({
   },
 });
 
+const getByUser_idRefreshTokens = defineRoute({
+  route: createRoute({
+    tags: ["users"],
+    method: "get",
+    path: "/{user_id}/refresh-tokens",
+    request: {
+      query: querySchema,
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
+      params: z.object({
+        user_id: z.string(),
+      }),
+    },
+
+    security: [
+      {
+        Bearer: ["read:refresh_tokens", "read:users"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: z.union([
+              refreshTokensWithNextSchema,
+              refreshTokensWithTotalsSchema,
+              z.array(refreshTokenResponseSchema),
+            ]),
+          },
+        },
+        description: "List of refresh tokens",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const { user_id } = ctx.req.valid("param");
+    const { include_totals, page, per_page, from, take, sort } =
+      ctx.req.valid("query");
+    const tenantId = requireTenantId(ctx);
+
+    const result = await ctx.env.data.refreshTokens.list(tenantId, {
+      page,
+      per_page,
+      include_totals,
+      from,
+      take,
+      sort: parseSort(sort),
+      // Exact predicate rather than a `q` filter: the Lucene grammar splits on
+      // ` OR ` before tokenizing, so a crafted user id can otherwise match
+      // another user's tokens.
+      user_id,
+    });
+
+    const tokens = result.refresh_tokens.map((token) =>
+      refreshTokenResponseSchema.parse(token),
+    );
+
+    // Checkpoint (keyset) pagination — the only style Auth0 offers here, so
+    // an Auth0 SDK client gets the { tokens, next } shape it expects.
+    if (from !== undefined || take !== undefined) {
+      return ctx.json(
+        refreshTokensWithNextSchema.parse({ tokens, next: result.next }),
+      );
+    }
+
+    // Offset pagination, kept for the admin UI and to match the sibling
+    // /users/{user_id}/sessions route.
+    if (include_totals) {
+      return ctx.json(
+        refreshTokensWithTotalsSchema.parse({
+          tokens,
+          start: result.start,
+          limit: result.limit,
+          length: result.length,
+        }),
+      );
+    }
+
+    return ctx.json(tokens);
+  },
+});
+
+const deleteByUser_idRefreshTokens = defineRoute({
+  route: createRoute({
+    tags: ["users"],
+    method: "delete",
+    path: "/{user_id}/refresh-tokens",
+    request: {
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
+      params: z.object({
+        user_id: z.string(),
+      }),
+    },
+    security: [
+      {
+        Bearer: ["delete:refresh_tokens"],
+      },
+    ],
+    responses: {
+      204: {
+        description: "Refresh tokens revoked",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const { user_id } = ctx.req.valid("param");
+    const tenantId = requireTenantId(ctx);
+
+    const revoked = await revokeUserRefreshTokens(ctx, tenantId, user_id);
+
+    await logMessage(ctx, tenantId, {
+      type: LogTypes.SUCCESS_API_OPERATION,
+      description: `Revoked ${revoked} refresh token(s)`,
+      targetType: "refresh_token",
+      targetId: user_id,
+      userId: user_id,
+    });
+
+    return ctx.body(null, 204);
+  },
+});
+
 const getByUser_idLogs = defineRoute({
   route: createRoute({
     tags: ["users"],
@@ -1844,6 +2002,8 @@ export const userRoutes = new OpenAPIHono<{
   deleteByUser_idIdentitiesByProviderByLinked_user_id,
   getByUser_idConnectedClients,
   getByUser_idSessions,
+  getByUser_idRefreshTokens,
+  deleteByUser_idRefreshTokens,
   getByUser_idLogs,
   getByUser_idPermissions,
   postByUser_idPermissions,

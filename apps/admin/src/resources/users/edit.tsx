@@ -3,6 +3,7 @@ import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UrlTabs } from "@/components/ui/url-tabs";
 import { DetailsTab } from "./tabs/details-tab";
 import { SessionsTab } from "./tabs/sessions-tab";
+import { RefreshTokensTab } from "./tabs/refresh-tokens-tab";
 import { GrantsTab } from "./tabs/grants-tab";
 import { LogsTab } from "./tabs/logs-tab";
 import { PermissionsTab } from "./tabs/permissions-tab";
@@ -19,6 +20,7 @@ export function UserEdit() {
           <TabsList>
             <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="sessions">Sessions</TabsTrigger>
+            <TabsTrigger value="refresh-tokens">Refresh Tokens</TabsTrigger>
             <TabsTrigger value="grants">Grants</TabsTrigger>
             <TabsTrigger value="logs">Logs</TabsTrigger>
             <TabsTrigger value="permissions">Permissions</TabsTrigger>
@@ -32,6 +34,9 @@ export function UserEdit() {
           </TabsContent>
           <TabsContent value="sessions" className="mt-4">
             <SessionsTab />
+          </TabsContent>
+          <TabsContent value="refresh-tokens" className="mt-4">
+            <RefreshTokensTab />
           </TabsContent>
           <TabsContent value="grants" className="mt-4">
             <GrantsTab />

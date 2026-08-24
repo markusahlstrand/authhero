@@ -44,6 +44,17 @@ export const refreshTokens = sqliteTable(
       .references(() => tenants.id, { onDelete: "cascade" }),
     client_id: text("client_id", { length: 191 }).notNull(),
     login_id: text("login_id", { length: 26 }).notNull(),
+    // Auth0's `session_id`. Intentionally NOT a foreign key: the session is
+    // expected to be cleaned up before the token, so this pointer is allowed
+    // to dangle. Carries revocation semantics only, never cascade delete.
+    session_id: text("session_id", { length: 26 }),
+    // Auth-event facts denormalised from the login session at mint time.
+    organization: text("organization", { length: 191 }),
+    auth_connection: text("auth_connection", { length: 255 }),
+    auth_strategy_strategy: text("auth_strategy_strategy", { length: 64 }),
+    auth_strategy_strategy_type: text("auth_strategy_strategy_type", {
+      length: 64,
+    }),
     user_id: text("user_id", { length: 255 }),
     resource_servers: text("resource_servers").notNull(),
     device: text("device").notNull(),
@@ -72,6 +83,11 @@ export const refreshTokens = sqliteTable(
       table.token_lookup,
     ),
     index("idx_refresh_tokens_family_id").on(table.tenant_id, table.family_id),
+    // Backs the one-hop revoke cascade: session revoked -> its tokens revoked.
+    index("idx_refresh_tokens_session_id").on(
+      table.tenant_id,
+      table.session_id,
+    ),
   ],
 );
 
