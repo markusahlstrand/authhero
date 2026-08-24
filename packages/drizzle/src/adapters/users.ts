@@ -17,6 +17,7 @@ import type {
   ListParams,
   WriteOptions,
 } from "@authhero/adapter-interfaces";
+import { parseUserId } from "@authhero/adapter-interfaces";
 import {
   users,
   userActivity,
@@ -153,7 +154,11 @@ function userToIdentity(sqlUser: any, isPrimary: boolean) {
   const identity: any = {
     connection: sqlUser.connection,
     provider: sqlUser.provider,
-    user_id: sqlUser.user_id,
+    // Auth0 reports the bare id here, without its `provider|` prefix, and
+    // `unlink` takes it back in that shape — reporting the full identifier
+    // makes the round-trip look up `provider|provider|id` and silently unlink
+    // nothing.
+    user_id: parseUserId(sqlUser.user_id).id,
     isSocial: !!sqlUser.is_social,
   };
 

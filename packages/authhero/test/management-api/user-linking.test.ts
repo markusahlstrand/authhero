@@ -114,6 +114,77 @@ describe("management-api account linking", () => {
     expect((await getUser(SECONDARY, "include-linked")).status).toBe(200);
   });
 
+  it("links via Auth0's provider + bare user_id body", async () => {
+    const { request, getUser, createUser } = await setup();
+    await createUser(PRIMARY);
+    await createUser(SECONDARY);
+
+    // Auth0 takes the secondary's id *without* its provider prefix here, the
+    // same shape `identities[]` reports it in.
+    const [provider, bareId] = SECONDARY.split("|");
+    const res = await request(
+      `/users/${encodeURIComponent(PRIMARY)}/identities`,
+      {
+        method: "POST",
+        body: JSON.stringify({ provider, user_id: bareId }),
+      },
+    );
+    expect(res.status).toBe(201);
+    expect(identityIds(await res.json())).toEqual([PRIMARY, SECONDARY].sort());
+
+    const primary = await getUser(PRIMARY);
+    expect(identityIds((await primary.json()).identities)).toEqual(
+      [PRIMARY, SECONDARY].sort(),
+    );
+  });
+
+  it("links an enterprise identity whose bare user_id contains pipes", async () => {
+    const { request, getUser, createUser } = await setup();
+    const enterprise = "samlp|okta-connection|jane";
+    await createUser(PRIMARY);
+    await createUser(enterprise);
+
+    // `samlp|okta-connection|jane` splits into provider `samlp` and bare id
+    // `okta-connection|jane` — the pipe inside the bare id must not be read as
+    // an already-prefixed identifier.
+    const res = await request(
+      `/users/${encodeURIComponent(PRIMARY)}/identities`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          provider: "samlp",
+          user_id: "okta-connection|jane",
+        }),
+      },
+    );
+    expect(res.status).toBe(201);
+
+    const primary = await getUser(PRIMARY);
+    expect(identityIds((await primary.json()).identities)).toEqual(
+      [PRIMARY, enterprise].sort(),
+    );
+  });
+
+  it("accepts a user_id that already carries its provider prefix", async () => {
+    const { request, getUser, createUser } = await setup();
+    await createUser(PRIMARY);
+    await createUser(SECONDARY);
+
+    const res = await request(
+      `/users/${encodeURIComponent(PRIMARY)}/identities`,
+      {
+        method: "POST",
+        body: JSON.stringify({ provider: "google-oauth2", user_id: SECONDARY }),
+      },
+    );
+    expect(res.status).toBe(201);
+
+    const primary = await getUser(PRIMARY);
+    expect(identityIds((await primary.json()).identities)).toEqual(
+      [PRIMARY, SECONDARY].sort(),
+    );
+  });
+
   it("carries a linked user's own identities onto the new primary", async () => {
     const { link, getUser, createUser } = await setup();
     await createUser(PRIMARY);
