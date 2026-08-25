@@ -15,10 +15,15 @@ import { getConnectionFromIdentifier } from "../utils/username";
 import { getUniversalLoginUrl } from "../variables";
 import { isIpMatch } from "../utils/ip";
 import { t } from "i18next";
-import { createFrontChannelAuthResponse } from "./common";
+import {
+  authenticateLoginSession,
+  createFrontChannelAuthResponse,
+  createRefreshToken,
+} from "./common";
 import { RedirectException } from "../errors/redirect-exception";
 import { getEnrichedClient } from "../helpers/client";
 import { logMessage } from "../helpers/logging";
+import { GrantFlowUserResult } from "../types/GrantFlowResult";
 
 function isRateLimitDecision(value: unknown): value is RateLimitDecision {
   return (
@@ -33,6 +38,12 @@ export const passwordlessGrantParamsSchema = z.object({
   client_id: z.string(),
   username: z.string().transform((u) => u.toLowerCase()),
   otp: z.string(),
+  // Auth0's passwordless OTP grant accepts scope and audience at exchange
+  // time. They take priority over whatever /passwordless/start stored on the
+  // login session, so a caller that never set them at start can still ask for
+  // e.g. offline_access here.
+  scope: z.string().optional(),
+  audience: z.string().optional(),
   authParams: authParamsSchema.optional(),
   enforceIpCheck: z.boolean().optional().default(false),
 });
@@ -43,6 +54,8 @@ export async function passwordlessGrantUser(
     client_id,
     username,
     otp,
+    scope,
+    audience,
     authParams,
     enforceIpCheck = false,
   }: z.input<typeof passwordlessGrantParamsSchema>,
@@ -207,7 +220,72 @@ export async function passwordlessGrantUser(
       ...loginSession.authParams,
       // Merge in any authParams from the request, allowing them to override
       ...(authParams || {}),
+      // Top-level scope/audience from the token request win over both: they
+      // are what the caller asked for on this exchange.
+      ...(scope !== undefined ? { scope } : {}),
+      ...(audience !== undefined ? { audience } : {}),
     },
+  };
+}
+
+/**
+ * The `http://auth0.com/oauth/grant-type/passwordless/otp` grant at
+ * /oauth/token.
+ *
+ * Unlike the authorization-code exchange — where /authorize has already
+ * authenticated the login session and created a session — nothing has run for
+ * this login yet: /passwordless/start only stores a PENDING login session and
+ * an OTP. So authenticate it here, which creates the session the auth cookie
+ * and the refresh token below both hang off, then mint a refresh token when
+ * `offline_access` was requested (issue #1273).
+ *
+ * The sibling front-channel path (`passwordlessGrant`, used by
+ * /co/authenticate) does not go through here: createFrontChannelAuthResponse
+ * does both steps itself, and skips the refresh token for code flows so the
+ * exchange issues it instead.
+ */
+export async function passwordlessOtpGrant(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  params: z.input<typeof passwordlessGrantParamsSchema>,
+): Promise<GrantFlowUserResult> {
+  const result = await passwordlessGrantUser(ctx, params);
+
+  const authStrategy = {
+    strategy: result.connectionType === "sms" ? Strategy.SMS : Strategy.EMAIL,
+    strategy_type: StrategyType.PASSWORDLESS,
+  };
+
+  const session_id = await authenticateLoginSession(ctx, {
+    user: result.user,
+    client: result.client,
+    loginSession: result.loginSession,
+    // Reuse the session the login session already points at, if any, rather
+    // than stacking a second one on the same login.
+    existingSessionId: result.loginSession.session_id,
+    authConnection: result.connectionType,
+    authStrategy,
+  });
+
+  let refresh_token: string | undefined;
+  if (result.authParams.scope?.split(" ").includes("offline_access")) {
+    const created = await createRefreshToken(ctx, {
+      user: result.user,
+      client: result.client,
+      login_id: result.loginSession.id,
+      session_id,
+      organization: result.authParams.organization,
+      auth_connection: result.connectionType,
+      auth_strategy: authStrategy,
+      scope: result.authParams.scope,
+      audience: result.authParams.audience,
+    });
+    refresh_token = created.wireToken;
+  }
+
+  return {
+    ...result,
+    session_id,
+    refresh_token,
   };
 }
 

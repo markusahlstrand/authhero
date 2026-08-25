@@ -23,7 +23,7 @@ import {
 } from "../../authentication-flows/refresh-token";
 import {
   passwordlessGrantParamsSchema,
-  passwordlessGrantUser,
+  passwordlessOtpGrant,
 } from "../../authentication-flows/passwordless";
 import {
   tokenExchangeGrant,
@@ -102,6 +102,10 @@ const CreateRequestSchema = z.union([
     username: z.string(),
     otp: z.string(),
     realm: z.enum(["email", "sms"]),
+    // Auth0 accepts scope and audience on this grant too — without them a
+    // caller can only inherit what /passwordless/start stored.
+    scope: z.string().optional(),
+    audience: z.string().optional(),
   }),
   // RFC 8693 token exchange — downscope / org-switch a self-issued access
   // token. Only `urn:ietf:params:oauth:token-type:access_token` accepted.
@@ -349,7 +353,7 @@ const postRoot = defineRoute({
         );
         break;
       case GrantType.OTP:
-        grantResult = await passwordlessGrantUser(
+        grantResult = await passwordlessOtpGrant(
           ctx,
           passwordlessGrantParamsSchema.parse(params),
         );
