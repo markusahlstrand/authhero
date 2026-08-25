@@ -1,5 +1,12 @@
 # @authhero/saml
 
+## 0.5.8
+
+### Patch Changes
+
+- Updated dependencies [fb874ea]
+  - @authhero/adapter-interfaces@4.10.0
+
 ## 0.5.7
 
 ### Patch Changes
