@@ -1,5 +1,80 @@
 # authhero
 
+## 9.9.0
+
+### Minor Changes
+
+- 3119bb9: Issue a refresh token from the passwordless OTP grant at `/oauth/token`.
+
+  `grant_type=http://auth0.com/oauth/grant-type/passwordless/otp` never returned a
+  `refresh_token`, even when `offline_access` was requested at
+  `/passwordless/start` — the scope survived onto the tokens, but nothing minted
+  the token itself. The grant now authenticates its login session (which
+  `/passwordless/start` leaves PENDING, unlike the code flow where `/authorize`
+  has already created a session) and mints a refresh token bound to that session
+  when the effective scope contains `offline_access`. Binding it to a session
+  matters: a session-less refresh token reads as a pre-migration row to the
+  refresh grant and cannot be reached by a session revoke.
+
+  The grant also accepts `scope` and `audience` on the token request now, as
+  Auth0's does. Both override whatever `/passwordless/start` stored, so a caller
+  that never set them at start can still ask for `offline_access` at exchange time.
+
+  The cross-origin path (`/co/authenticate` with
+  `credential_type=…/passwordless/otp`) is unchanged — it already minted refresh
+  tokens through the front-channel response.
+
+- fb874ea: Revoking or deleting a session now revokes the refresh tokens issued under it.
+
+  `DELETE /api/v2/sessions/{id}` and `POST /api/v2/sessions/{id}/revoke` used to
+  touch only the sessions row, and the refresh grant checks nothing but the
+  token's own `revoked_at` — so a revoked session's refresh tokens kept minting
+  access tokens until they expired on their own. Auth0 documents the opposite for
+  the same endpoint: _"Revokes a session by ID and all associated refresh
+  tokens."_
+
+  The same hole was live on the user-block path. `revokeUserSessions` resolved
+  tokens through `sessions.login_session_id`, which is written once at session
+  creation and never repointed on SSO reuse, so it records only the session's
+  _originating_ authorization transaction. Every token minted during a later
+  re-authorization — a normal multi-client case — survived a block. Both paths now
+  share one cascade keyed on `refresh_tokens.session_id`, with the login-session
+  sweep retained alongside it for rows minted before that column existed. The
+  block path also runs the cascade for sessions that are already revoked, so
+  sessions revoked before this release do not keep live tokens.
+
+  Adapters gain `refreshTokens.revokeBySession(tenant_id, session_id,
+revoked_at)`, implemented for kysely, drizzle and DynamoDB. Custom adapters must
+  add it.
+
+  **Revocation couples; lifetime does not.** A session _expiring_ still does not
+  touch its refresh tokens, and cleanup still deletes each table on its own clock
+  — a refresh token is designed to outlive its session, and cascading on SSO
+  timeout would log out every long-lived native client. Only deliberate revocation
+  cascades.
+
+  This is a visible behavioural change: admins who revoke a session to end a
+  browser login will now also end that session's refresh tokens, which is the
+  intent.
+
+### Patch Changes
+
+- 83dc674: fix(cross-origin auth): carry the scope from /authorize through the login_ticket flow
+
+  In the cross-origin authentication flow (`POST /co/authenticate` → `GET /authorize?login_ticket=…` → `POST /oauth/token`) the authorization parameters supplied to `/authorize` were used for that request only and never persisted to the login session. Since the code exchange reads `scope` and `audience` back off the login session, the scope was silently dropped: access tokens came back with an empty `scope` claim and `offline_access` never produced a refresh token.
+
+  `ticketAuth` now merges the `/authorize` authParams over those stored by `/co/authenticate` — `/authorize` wins for everything it specifies, matching Auth0, where the authorization request owns scope, audience, response_type, redirect_uri, nonce, state and PKCE — and persists the result before completing the login.
+
+  `/co/authenticate` also now stores the `scope` its schema has always accepted, as a fallback for callers that send it there. Auth0 does not accept a scope on that endpoint, so Auth0-shaped clients are unaffected.
+
+  The merge deliberately excludes `client_id` and `username`, which identify who the ticket was minted for and are both caller-controlled at `/authorize` (`username` comes from `login_hint`). Redeeming a ticket under a different `client_id` is now rejected with a 403.
+
+- Updated dependencies [fb874ea]
+  - @authhero/adapter-interfaces@4.10.0
+  - @authhero/proxy@0.10.9
+  - @authhero/saml@0.5.8
+  - @authhero/widget@0.38.5
+
 ## 9.8.0
 
 ### Minor Changes

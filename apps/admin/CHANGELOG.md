@@ -1,5 +1,12 @@
 # @authhero/admin
 
+## 0.20.1
+
+### Patch Changes
+
+- Updated dependencies [fb874ea]
+  - @authhero/adapter-interfaces@4.10.0
+
 ## 0.20.0
 
 ### Minor Changes
