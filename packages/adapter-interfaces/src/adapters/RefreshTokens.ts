@@ -80,6 +80,27 @@ export interface RefreshTokensAdapter {
     revoked_at: string,
   ) => Promise<number>;
   /**
+   * Soft-revoke every refresh token owned by a session that isn't already
+   * revoked. This is the cascade behind "revoking a session revokes its
+   * refresh tokens" — deliberate revocation only.
+   *
+   * It must never be called for a session that merely *expired* or that
+   * cleanup removed: a refresh token is designed to outlive its session, and
+   * killing tokens on an SSO timeout would log out every long-lived native
+   * client. Lifetime does not couple; revocation does.
+   *
+   * Rows minted before `session_id` existed carry no value here and are not
+   * matched — callers sweep `revokeByLoginSession` alongside this until those
+   * rows have aged out (#1259).
+   *
+   * Returns the number of tokens revoked.
+   */
+  revokeBySession: (
+    tenant_id: string,
+    session_id: string,
+    revoked_at: string,
+  ) => Promise<number>;
+  /**
    * Soft-revoke every refresh token that shares `family_id` and isn't already
    * revoked. Used for reuse detection (entire rotation chain torched) and for
    * admin revocations that should propagate to descendants.

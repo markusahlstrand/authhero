@@ -4,6 +4,7 @@ import { HTTPException } from "hono/http-exception";
 import { sessionSchema, LogTypes } from "@authhero/adapter-interfaces";
 import { logMessage } from "../../helpers/logging";
 import { sendBackchannelLogout } from "../../helpers/backchannel-logout";
+import { revokeSessionRefreshTokens } from "../../helpers/revoke-session-refresh-tokens";
 import { defineRoute } from "../../utils/define-route";
 import { requireTenantId } from "./helpers";
 const getById = defineRoute({
@@ -82,6 +83,19 @@ const deleteById = defineRoute({
     // participating client ids, which are gone once the row is deleted.
     const session = await ctx.env.data.sessions.get(tenantId, id);
 
+    // Cascade before the row goes: deleting a session is a deliberate "end
+    // this access now", which Auth0 documents as revoking the session's
+    // refresh tokens too. Without this the tokens keep minting access tokens
+    // long after the session is gone.
+    const revokedRefreshTokens = session
+      ? await revokeSessionRefreshTokens(
+          ctx.env.data,
+          tenantId,
+          session,
+          new Date().toISOString(),
+        )
+      : 0;
+
     const result = await ctx.env.data.sessions.remove(tenantId, id);
     if (!result) {
       throw new HTTPException(404, {
@@ -95,7 +109,7 @@ const deleteById = defineRoute({
 
     await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
-      description: "Delete a Session",
+      description: `Delete a Session (revoked ${revokedRefreshTokens} refresh token(s))`,
       targetType: "session",
       targetId: id,
     });
@@ -133,9 +147,10 @@ const postByIdRevoke = defineRoute({
     const { id } = ctx.req.valid("param");
 
     const session = await ctx.env.data.sessions.get(tenantId, id);
+    const revokedAt = new Date().toISOString();
 
     const result = await ctx.env.data.sessions.update(tenantId, id, {
-      revoked_at: new Date().toISOString(),
+      revoked_at: revokedAt,
     });
     if (!result) {
       throw new HTTPException(404, {
@@ -143,13 +158,25 @@ const postByIdRevoke = defineRoute({
       });
     }
 
+    // "Revokes a session by ID and all associated refresh tokens" — the
+    // session row alone leaves the tokens minting access tokens, since the
+    // refresh grant checks only the token's own `revoked_at`.
+    const revokedRefreshTokens = session
+      ? await revokeSessionRefreshTokens(
+          ctx.env.data,
+          tenantId,
+          session,
+          revokedAt,
+        )
+      : 0;
+
     if (session) {
       sendBackchannelLogout(ctx, tenantId, session);
     }
 
     await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
-      description: "Revoke a Session",
+      description: `Revoke a Session (revoked ${revokedRefreshTokens} refresh token(s))`,
       targetType: "session",
       targetId: id,
     });
