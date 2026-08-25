@@ -240,3 +240,134 @@ describe("cross-origin ticket flow scope handling", () => {
     expect(loginSession?.authParams.username).toBe("foo@example.com");
   });
 });
+
+describe("cross-origin ticket flow identity binding", () => {
+  it("refuses a ticket redeemed under a different client_id", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const oauthClient = testClient(oauthApp, env);
+    await createPasswordUser(env);
+
+    await env.data.clients.create("tenantId", {
+      client_id: "otherClientId",
+      client_secret: "otherClientSecret",
+      name: "Other Client",
+      callbacks: ["https://example.com/callback"],
+      allowed_logout_urls: ["https://example.com/callback"],
+      web_origins: ["https://example.com"],
+    });
+
+    const loginResponse = await oauthClient.co.authenticate.$post({
+      json: {
+        client_id: "clientId",
+        credential_type: "http://auth0.com/oauth/grant-type/password-realm",
+        realm: Strategy.USERNAME_PASSWORD,
+        password: "Test1234!",
+        username: "foo@example.com",
+      },
+    });
+    const { login_ticket } = (await loginResponse.json()) as {
+      login_ticket: string;
+    };
+
+    const authorizeResponse = await oauthClient.authorize.$get({
+      query: {
+        client_id: "otherClientId",
+        login_ticket,
+        realm: Strategy.USERNAME_PASSWORD,
+        response_type: "code",
+        redirect_uri: "https://example.com/callback",
+        scope: "openid profile email offline_access",
+        state: "state",
+      },
+    });
+
+    expect(authorizeResponse.status).toBe(403);
+
+    // the ticket's login session must still name the client it was minted for
+    const ticket = await env.data.codes.get("tenantId", login_ticket, "ticket");
+    const loginSession = await env.data.loginSessions.get(
+      "tenantId",
+      ticket!.login_id,
+    );
+    expect(loginSession?.authParams.client_id).toBe("clientId");
+  });
+
+  it("ignores a login_hint that would rewrite the ticket-bound username", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const oauthClient = testClient(oauthApp, env);
+    await createPasswordUser(env);
+
+    await env.data.users.create("tenantId", {
+      email: "victim@example.com",
+      email_verified: true,
+      name: "Victim",
+      nickname: "Victim",
+      connection: Strategy.USERNAME_PASSWORD,
+      provider: USERNAME_PASSWORD_PROVIDER,
+      is_social: false,
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|victimId`,
+    });
+
+    const loginResponse = await oauthClient.co.authenticate.$post({
+      json: {
+        client_id: "clientId",
+        credential_type: "http://auth0.com/oauth/grant-type/password-realm",
+        realm: Strategy.USERNAME_PASSWORD,
+        password: "Test1234!",
+        username: "foo@example.com",
+      },
+    });
+    const { login_ticket } = (await loginResponse.json()) as {
+      login_ticket: string;
+    };
+
+    const authorizeResponse = await oauthClient.authorize.$get({
+      query: {
+        client_id: "clientId",
+        login_ticket,
+        realm: Strategy.USERNAME_PASSWORD,
+        response_type: "code",
+        redirect_uri: "https://example.com/callback",
+        scope: "openid profile email offline_access",
+        state: "state",
+        login_hint: "victim@example.com",
+      },
+    });
+    expect(authorizeResponse.status).toBe(302);
+
+    const code = new URL(
+      authorizeResponse.headers.get("location")!,
+    ).searchParams.get("code")!;
+    const authCode = await env.data.codes.get(
+      "tenantId",
+      code,
+      "authorization_code",
+    );
+    const loginSession = await env.data.loginSessions.get(
+      "tenantId",
+      authCode!.login_id,
+    );
+
+    // the login_hint must not displace the credential-verified username
+    expect(loginSession?.authParams.username).toBe("foo@example.com");
+    expect(authCode?.user_id).toBe(`${USERNAME_PASSWORD_PROVIDER}|userId`);
+
+    const tokenResponse = await oauthClient.oauth.token.$post({
+      form: {
+        grant_type: "authorization_code",
+        client_id: "clientId",
+        client_secret: "clientSecret",
+        code,
+        redirect_uri: "https://example.com/callback",
+      },
+    });
+    expect(tokenResponse.status).toBe(200);
+    const body = (await tokenResponse.json()) as { id_token: string };
+    const claims: unknown = JSON.parse(
+      Buffer.from(body.id_token.split(".")[1]!, "base64url").toString(),
+    );
+    expect((claims as { sub?: string }).sub).toBe(
+      `${USERNAME_PASSWORD_PROVIDER}|userId`,
+    );
+  });
+});

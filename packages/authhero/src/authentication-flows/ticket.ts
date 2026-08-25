@@ -72,6 +72,17 @@ export async function ticketAuth(
     throw new JSONHTTPException(403, { message: "Session not found" });
   }
 
+  // The ticket is bound to the client that verified the credentials. Redeeming
+  // it under a different client_id is never legitimate — auth0.js sends the
+  // same clientID to both endpoints — so refuse rather than let the mismatch
+  // reach the code exchange.
+  if (
+    authParams.client_id &&
+    authParams.client_id !== loginSession.authParams.client_id
+  ) {
+    throw new JSONHTTPException(403, { message: "Invalid client" });
+  }
+
   const client = await getEnrichedClient(
     env,
     loginSession.authParams.client_id,
@@ -123,9 +134,18 @@ export async function ticketAuth(
   // authorizationCodeGrantUser), so a scope that lives only on this request
   // would be silently dropped — taking `offline_access`, and with it the
   // refresh token, along with it.
+  //
+  // client_id and username are excluded from that merge: they identify who the
+  // ticket was minted for, and both are caller-controlled at /authorize
+  // (`username` is populated from `login_hint`). The code exchange re-reads
+  // client_id off the login session to enforce RFC 6749 §10.5 — that a code is
+  // redeemed by the client it was issued to — so letting /authorize rewrite it
+  // would hand that check an attacker-supplied value.
   const mergedAuthParams: AuthParams = {
     ...loginSession.authParams,
     ...omitUndefined(authParams),
+    client_id: loginSession.authParams.client_id,
+    username: loginSession.authParams.username,
   };
 
   await env.data.loginSessions.update(tenant_id, loginSession.id, {
