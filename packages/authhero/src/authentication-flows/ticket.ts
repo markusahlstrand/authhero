@@ -32,6 +32,22 @@ async function getProviderFromRealm(
   throw new JSONHTTPException(403, { message: "Invalid realm" });
 }
 
+/**
+ * Drop keys whose value is `undefined` so spreading the object never blanks a
+ * value the target already has. The /authorize query schema yields a key for
+ * every optional parameter, so a plain spread would overwrite the stored
+ * authParams with `undefined` for everything the caller left out.
+ */
+function omitUndefined<T extends object>(value: T): Partial<T> {
+  const result: Partial<T> = {};
+  for (const [key, entry] of Object.entries(value)) {
+    if (entry !== undefined) {
+      Object.assign(result, { [key]: entry });
+    }
+  }
+  return result;
+}
+
 export async function ticketAuth(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   tenant_id: string,
@@ -98,14 +114,29 @@ export async function ticketAuth(
   ctx.set("username", user.email || user.phone_number);
   ctx.set("user_id", user.user_id);
 
+  // /authorize is the authorization request — it owns scope, audience,
+  // response_type, redirect_uri, nonce, state and PKCE. /co/authenticate only
+  // verified credentials and minted the ticket, so its login session carries
+  // little more than the username. Merge the two with /authorize winning for
+  // everything it actually specified, and persist the result: the code
+  // exchange reads scope and audience back off the login session (see
+  // authorizationCodeGrantUser), so a scope that lives only on this request
+  // would be silently dropped — taking `offline_access`, and with it the
+  // refresh token, along with it.
+  const mergedAuthParams: AuthParams = {
+    ...loginSession.authParams,
+    ...omitUndefined(authParams),
+  };
+
+  await env.data.loginSessions.update(tenant_id, loginSession.id, {
+    authParams: mergedAuthParams,
+  });
+
   // Let createFrontChannelAuthResponse handle session creation and state transitions
   // It will authenticate the login session and create/link a session as needed
   return createFrontChannelAuthResponse(ctx, {
-    authParams: {
-      scope: loginSession.authParams?.scope,
-      ...authParams,
-    },
-    loginSession: loginSession,
+    authParams: mergedAuthParams,
+    loginSession: { ...loginSession, authParams: mergedAuthParams },
     user,
     client,
     authConnection: realm,

@@ -94,6 +94,12 @@ const postRoot = defineRoute({
               client_id,
               username: email,
               audience: client.tenant.default_audience,
+              // Auth0 doesn't accept a scope here — auth0.js sends it to
+              // /authorize alongside the login_ticket instead. Our schema has
+              // always advertised one, so honour it as a fallback rather than
+              // accepting and ignoring it. ticketAuth lets the scope from
+              // /authorize override this.
+              scope: body.scope,
             },
             csrf_token: nanoid(),
             ip,
