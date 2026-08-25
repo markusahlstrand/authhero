@@ -386,6 +386,26 @@ export function createRefreshTokensAdapter(db: DrizzleDb) {
       return results.length;
     },
 
+    async revokeBySession(
+      tenant_id: string,
+      session_id: string,
+      revoked_at: string,
+    ): Promise<number> {
+      const results = await db
+        .update(refreshTokens)
+        .set({ revoked_at_ts: isoToDbDate(revoked_at) })
+        .where(
+          and(
+            eq(refreshTokens.tenant_id, tenant_id),
+            eq(refreshTokens.session_id, session_id),
+            isNull(refreshTokens.revoked_at_ts),
+          ),
+        )
+        .returning();
+
+      return results.length;
+    },
+
     async revokeFamily(
       tenant_id: string,
       family_id: string,

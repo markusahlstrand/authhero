@@ -2,6 +2,7 @@ import { Context } from "hono";
 import { LogTypes } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
 import { logMessage } from "./logging";
+import { revokeSessionRefreshTokens } from "./revoke-session-refresh-tokens";
 
 /**
  * Revoke all of a user's sessions and the refresh tokens issued under them.
@@ -19,8 +20,11 @@ export async function revokeUserSessions(
 ): Promise<number> {
   const revokedAt = new Date().toISOString();
 
-  const allSessions: { id: string; login_session_id?: string; revoked_at?: string }[] =
-    [];
+  const allSessions: {
+    id: string;
+    login_session_id?: string;
+    revoked_at?: string;
+  }[] = [];
   let page = 0;
   const perPage = 100;
   // Read every page before mutating anything.
@@ -38,14 +42,18 @@ export async function revokeUserSessions(
 
   let revokedRefreshTokens = 0;
   for (const session of allSessions) {
+    // The token cascade runs even for a session that is already revoked: a
+    // session revoked before the cascade existed still has live tokens, and
+    // both sweeps skip rows that already carry a `revoked_at`, so this is
+    // idempotent rather than a second write.
+    revokedRefreshTokens += await revokeSessionRefreshTokens(
+      ctx.env.data,
+      tenant_id,
+      session,
+      revokedAt,
+    );
+
     if (session.revoked_at) continue;
-    if (session.login_session_id) {
-      revokedRefreshTokens += await ctx.env.data.refreshTokens.revokeByLoginSession(
-        tenant_id,
-        session.login_session_id,
-        revokedAt,
-      );
-    }
     await ctx.env.data.sessions.update(tenant_id, session.id, {
       revoked_at: revokedAt,
     });
