@@ -10,6 +10,7 @@ import {
   RefreshToken,
   User,
   TokenResponse,
+  escapeLuceneValue,
 } from "@authhero/adapter-interfaces";
 import {
   formatRefreshToken,
@@ -2198,7 +2199,7 @@ export async function completeLogin(
     const userOrgs = await ctx.env.data.userOrganizations.list(
       params.client.tenant.id,
       {
-        q: `user_id:${user.user_id}`,
+        q: `user_id:${escapeLuceneValue(user.user_id)}`,
         per_page: 1000, // Should be enough for most cases
       },
     );

@@ -1,5 +1,5 @@
 import { Context } from "hono";
-import { LogTypes } from "@authhero/adapter-interfaces";
+import { LogTypes, escapeLuceneValue } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
 import { logMessage } from "./logging";
 import { revokeSessionRefreshTokens } from "./revoke-session-refresh-tokens";
@@ -33,7 +33,7 @@ export async function revokeUserSessions(
     const { sessions } = await ctx.env.data.sessions.list(tenant_id, {
       page,
       per_page: perPage,
-      q: `user_id:${user_id}`,
+      q: `user_id:${escapeLuceneValue(user_id)}`,
     });
     allSessions.push(...sessions);
     if (sessions.length < perPage) break;

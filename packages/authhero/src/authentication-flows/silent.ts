@@ -6,6 +6,7 @@ import {
   LogTypes,
   LoginSession,
   Session,
+  escapeLuceneValue,
 } from "@authhero/adapter-interfaces";
 import { EnrichedClient } from "../helpers/client";
 import { logMessage } from "../helpers/logging";
@@ -286,7 +287,7 @@ export async function silentAuth({
   } else if (organizationEntity) {
     // No audience but organization specified - still need to validate membership
     const userOrgs = await env.data.userOrganizations.list(client.tenant.id, {
-      q: `user_id:${user.user_id}`,
+      q: `user_id:${escapeLuceneValue(user.user_id)}`,
       per_page: 1000,
     });
 

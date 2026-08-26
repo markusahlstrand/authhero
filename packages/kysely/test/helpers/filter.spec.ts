@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Kysely } from "kysely";
 import { Database } from "../../src/db";
 import { luceneFilter, sanitizeLuceneQuery } from "../../src/helpers/filter";
+import { escapeLuceneValue } from "@authhero/adapter-interfaces";
 
 describe("luceneFilter", () => {
   // Mock Kysely instance
@@ -22,7 +23,7 @@ describe("luceneFilter", () => {
   // A minimal stand-in for Kysely's expression builder: callable (records the
   // `(field, op, value)` triples the OR branch emits) plus an `or` method.
   const makeExpressionBuilderStub = () =>
-    Object.assign(vi.fn(), { or: vi.fn() });
+    Object.assign(vi.fn(), { or: vi.fn(), and: vi.fn() });
 
   const searchableColumns = ["title", "description"];
 
@@ -336,6 +337,88 @@ describe("luceneFilter", () => {
     );
     expect(mockQb.where).toHaveBeenCalledWith(expect.any(Function));
   });
+
+  it("keeps a quoted value carrying ` OR ` in a single clause", () => {
+    // Issue #1264: the OR split used to run before tokenizing, so the quotes
+    // only bracketed the outer fragments and `user_id:victim` in the middle
+    // became a clause of its own. The whole value is one literal now, which
+    // takes the AND path (no `where(callback)`).
+    luceneFilter(
+      mockDb,
+      qb,
+      'user_id:"attacker OR user_id:victim OR x"',
+      searchableColumns,
+    );
+    expect(mockQb.where).toHaveBeenCalledTimes(1);
+    expect(mockQb.where).toHaveBeenCalledWith(
+      "user_id",
+      "=",
+      "attacker OR user_id:victim OR x",
+    );
+  });
+
+  it("does not let an escaped quote end the quoted value", () => {
+    luceneFilter(
+      mockDb,
+      qb,
+      'user_id:"attacker\\" OR user_id:victim OR \\"x"',
+      searchableColumns,
+    );
+    expect(mockQb.where).toHaveBeenCalledTimes(1);
+    expect(mockQb.where).toHaveBeenCalledWith(
+      "user_id",
+      "=",
+      'attacker" OR user_id:victim OR "x',
+    );
+  });
+
+  it("conjoins the clauses within an OR group", () => {
+    luceneFilter(
+      mockDb,
+      qb,
+      "field1:value1 field2:value2 OR field3:value3",
+      searchableColumns,
+    );
+
+    const orCallback = mockQb.where.mock.calls[0]![0] as (
+      eb: ReturnType<typeof makeExpressionBuilderStub>,
+    ) => unknown;
+    const eb = makeExpressionBuilderStub();
+    orCallback(eb);
+    expect(eb).toHaveBeenCalledWith("field1", "=", "value1");
+    expect(eb).toHaveBeenCalledWith("field2", "=", "value2");
+    expect(eb).toHaveBeenCalledWith("field3", "=", "value3");
+    // The first group's two clauses are ANDed, then ORed with the second.
+    expect(eb.and).toHaveBeenCalledTimes(1);
+    expect(eb.or.mock.calls[0]![0]).toHaveLength(2);
+  });
+
+  // Server-side callers interpolate ids through escapeLuceneValue; the value
+  // has to come back out of the filter unchanged, operators and all.
+  it("round-trips an escaped value as one exact operand", () => {
+    const value = 'auth0|a" OR user_id:victim OR "b\\c';
+    luceneFilter(
+      mockDb,
+      qb,
+      `user_id:${escapeLuceneValue(value)}`,
+      searchableColumns,
+    );
+    expect(mockQb.where).toHaveBeenCalledTimes(1);
+    expect(mockQb.where).toHaveBeenCalledWith("user_id", "=", value);
+  });
+});
+
+describe("escapeLuceneValue", () => {
+  it("quotes the value so whitespace cannot end the clause", () => {
+    expect(escapeLuceneValue("attacker OR user_id:victim OR x")).toBe(
+      '"attacker OR user_id:victim OR x"',
+    );
+  });
+
+  it("escapes quotes and backslashes so the quoting cannot be closed", () => {
+    expect(escapeLuceneValue('a" OR b')).toBe('"a\\" OR b"');
+    expect(escapeLuceneValue("a\\b")).toBe('"a\\\\b"');
+  });
 });
 
 describe("sanitizeLuceneQuery", () => {
@@ -386,5 +469,22 @@ describe("sanitizeLuceneQuery", () => {
     expect(sanitizeLuceneQuery('tenant_id:"x" name:"John Doe"', allowed)).toBe(
       'name:"John Doe"',
     );
+  });
+
+  it("does not split a quoted value that contains ` OR `", () => {
+    // The whole clause is one allowed `name` token, so it survives intact
+    // instead of being cut into `name:"John` plus a bogus `tenant_id` part.
+    expect(
+      sanitizeLuceneQuery('name:"John OR tenant_id:other OR Doe"', allowed),
+    ).toBe('name:"John OR tenant_id:other OR Doe"');
+  });
+
+  it("keeps filtering the parts of a genuine OR query", () => {
+    expect(
+      sanitizeLuceneQuery(
+        'name:"John Doe" tenant_id:x OR display_name:acme',
+        allowed,
+      ),
+    ).toBe('name:"John Doe" OR display_name:acme');
   });
 });

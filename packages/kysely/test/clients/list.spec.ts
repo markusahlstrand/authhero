@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { escapeLuceneValue } from "@authhero/adapter-interfaces";
 import { getTestServer } from "../helpers/test-server";
 
 describe("clients", () => {
@@ -74,6 +75,42 @@ describe("clients", () => {
         "My Mobile App",
         "My Web App",
       ]);
+    });
+
+    it("matches owner_user_id exactly, quotes and escapes included", async () => {
+      const { data } = await getTestServer();
+
+      await data.tenants.create({
+        id: "tenantId",
+        friendly_name: "Test Tenant",
+        audience: "https://example.com",
+        sender_email: "login@example.com",
+        sender_name: "SenderName",
+      });
+
+      // A caller-controlled owner id reaches this list through
+      // `owner_user_id:${escapeLuceneValue(id)}`, so the exact-match branch
+      // has to survive the quoting and give the escaping back.
+      const owner = 'auth0|owner" OR owner_user_id:"auth0|victim';
+
+      await data.clients.create("tenantId", {
+        client_id: "client-owned",
+        name: "Owned",
+        owner_user_id: owner,
+      });
+      await data.clients.create("tenantId", {
+        client_id: "client-victim",
+        name: "Victim",
+        owner_user_id: "auth0|victim",
+      });
+
+      const result = await data.clients.list("tenantId", {
+        q: `owner_user_id:${escapeLuceneValue(owner)}`,
+        include_totals: true,
+      });
+
+      expect(result.clients.map((c) => c.client_id)).toEqual(["client-owned"]);
+      expect(result.totals?.total).toBe(1);
     });
 
     it("should filter clients by client_id using q parameter", async () => {
