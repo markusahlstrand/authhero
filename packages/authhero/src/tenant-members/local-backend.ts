@@ -1,4 +1,8 @@
-import { DataAdapters, Organization } from "@authhero/adapter-interfaces";
+import {
+  DataAdapters,
+  Organization,
+  escapeLuceneValue,
+} from "@authhero/adapter-interfaces";
 import { generateInviteId } from "../utils/entity-id";
 import { getDefaultUserPicture } from "../helpers/avatar";
 import {
@@ -85,7 +89,7 @@ export function createLocalTenantMembersBackend(
     userId: string,
   ): Promise<string | undefined> {
     const userOrgs = await data.userOrganizations.list(controlPlaneTenantId, {
-      q: `user_id:${userId}`,
+      q: `user_id:${escapeLuceneValue(userId)}`,
       per_page: 100,
     });
     return userOrgs.userOrganizations.find(
@@ -108,7 +112,7 @@ export function createLocalTenantMembersBackend(
           page,
           per_page,
           include_totals: true,
-          q: `organization_id:${org.id}`,
+          q: `organization_id:${escapeLuceneValue(org.id)}`,
         },
       );
 

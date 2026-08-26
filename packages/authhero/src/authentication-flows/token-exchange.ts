@@ -1,6 +1,10 @@
 import { Context } from "hono";
 import { z } from "@hono/zod-openapi";
-import { AuthParams, LogTypes } from "@authhero/adapter-interfaces";
+import {
+  AuthParams,
+  LogTypes,
+  escapeLuceneValue,
+} from "@authhero/adapter-interfaces";
 import { JSONHTTPException } from "../errors/json-http-exception";
 import { Bindings, Variables, GrantFlowUserResult } from "../types";
 import { safeCompare } from "../utils/safe-compare";
@@ -276,7 +280,7 @@ export async function tokenExchangeGrant(
   if (!hasGlobalOrgAdminPermission) {
     const userOrgs = await ctx.env.data.userOrganizations.list(
       client.tenant.id,
-      { q: `user_id:${user.user_id}`, per_page: 1000 },
+      { q: `user_id:${escapeLuceneValue(user.user_id)}`, per_page: 1000 },
     );
     const isMember = userOrgs.userOrganizations.some(
       (uo) => uo.organization_id === organization.id,

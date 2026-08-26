@@ -9,6 +9,7 @@ import {
   inviteSchema,
   inviteInsertSchema,
   LogTypes,
+  escapeLuceneValue,
 } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../../types";
 import { HTTPException } from "hono/http-exception";
@@ -495,7 +496,7 @@ const getByIdMembers = defineRoute({
         per_page,
         include_totals,
         sort: parseSort(sort),
-        q: `organization_id:${organization.id}`,
+        q: `organization_id:${escapeLuceneValue(organization.id)}`,
         from,
         take,
       },
@@ -602,7 +603,7 @@ const postByIdMembers = defineRoute({
     for (const userId of members) {
       // Check if relationship already exists
       const existing = await ctx.env.data.userOrganizations.list(tenant_id, {
-        q: `user_id:${userId}`,
+        q: `user_id:${escapeLuceneValue(userId)}`,
         per_page: 1,
       });
 
@@ -676,7 +677,7 @@ const deleteByIdMembers = defineRoute({
     // Remove each user from the organization
     for (const userId of members) {
       const userOrgs = await ctx.env.data.userOrganizations.list(tenant_id, {
-        q: `user_id:${userId}`,
+        q: `user_id:${escapeLuceneValue(userId)}`,
         per_page: 100, // Should be enough for most cases
       });
 

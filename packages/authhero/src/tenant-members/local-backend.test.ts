@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { createLocalTenantMembersBackend } from "./local-backend";
+import { unquoteLuceneValue } from "@authhero/adapter-interfaces";
 import {
   TenantInvitationNotFoundError,
   TenantOrganizationNotFoundError,
@@ -60,11 +61,12 @@ function makeData() {
       async list(_t: string, params: any) {
         const q = params?.q ?? "";
         let rows = userOrgs;
+        // Callers quote and escape the value, mirroring the real adapters.
         if (q.startsWith("organization_id:")) {
-          const id = q.slice("organization_id:".length);
+          const id = unquoteLuceneValue(q.slice("organization_id:".length));
           rows = userOrgs.filter((r) => r.organization_id === id);
         } else if (q.startsWith("user_id:")) {
-          const id = q.slice("user_id:".length);
+          const id = unquoteLuceneValue(q.slice("user_id:".length));
           rows = userOrgs.filter((r) => r.user_id === id);
         }
         return {

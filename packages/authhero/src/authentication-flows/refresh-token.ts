@@ -5,6 +5,7 @@ import {
   AuthorizationResponseMode,
   LogTypes,
   RefreshToken,
+  escapeLuceneValue,
 } from "@authhero/adapter-interfaces";
 import { z } from "@hono/zod-openapi";
 import { safeCompare } from "../utils/safe-compare";
@@ -314,7 +315,7 @@ export async function refreshTokenGrant(
       const userOrgs = await ctx.env.data.userOrganizations.list(
         client.tenant.id,
         {
-          q: `user_id:${user.user_id}`,
+          q: `user_id:${escapeLuceneValue(user.user_id)}`,
           per_page: 1000,
         },
       );

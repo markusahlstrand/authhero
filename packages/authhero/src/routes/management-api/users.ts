@@ -35,6 +35,7 @@ import {
   userPermissionWithDetailsListSchema,
   roleListSchema,
   organizationSchema,
+  escapeLuceneValue,
 } from "@authhero/adapter-interfaces";
 import { getProviderFromConnection } from "../../strategies";
 import {
@@ -1291,7 +1292,7 @@ const getByUser_idSessions = defineRoute({
       page,
       per_page,
       include_totals,
-      q: `user_id:${user_id}`,
+      q: `user_id:${escapeLuceneValue(user_id)}`,
     });
 
     return ctx.json(listResponse(include_totals, sessions, "sessions"));
@@ -1979,7 +1980,7 @@ const deleteByUser_idOrganizationsByOrganization_id = defineRoute({
 
     // Find the membership to remove
     const userOrgs = await ctx.env.data.userOrganizations.list(tenantId, {
-      q: `user_id:${user_id}`,
+      q: `user_id:${escapeLuceneValue(user_id)}`,
       per_page: 100, // Should be enough for most cases
     });
 
