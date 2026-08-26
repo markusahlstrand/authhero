@@ -12,10 +12,18 @@ const LOGIN_TYPES = ["s"];
 const LEAKED_PASSWORD_TYPES = ["pwd_leak"];
 
 /**
- * Parses a date string in YYYYMMDD format to YYYY-MM-DD
+ * Normalize a date string in YYYYMMDD or YYYY-MM-DD format to YYYY-MM-DD.
+ *
+ * The management API already normalizes `from`/`to` to YYYY-MM-DD before it
+ * calls the adapter, so blindly re-slicing as YYYYMMDD turned "2026-07-27"
+ * into "2026--0-7-" and every timestamp bound into NaN — which made
+ * /stats/daily return an empty result set (rendered as all-zero graphs).
  */
-function parseYYYYMMDD(dateStr: string): string {
-  return `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`;
+function normalizeDateParam(dateStr: string): string {
+  if (/^\d{8}$/.test(dateStr)) {
+    return `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`;
+  }
+  return dateStr;
 }
 
 /**
@@ -45,12 +53,22 @@ export function createAnalyticsEngineStatsAdapter(
       const thirtyDaysAgo = new Date(now);
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      const fromDate = from ? parseYYYYMMDD(from) : toDateString(thirtyDaysAgo);
-      const toDate = to ? parseYYYYMMDD(to) : toDateString(now);
+      const fromDate = from
+        ? normalizeDateParam(from)
+        : toDateString(thirtyDaysAgo);
+      const toDate = to ? normalizeDateParam(to) : toDateString(now);
 
       // Convert to timestamps for comparison with double2 (epoch milliseconds)
       const fromTimestamp = new Date(`${fromDate}T00:00:00Z`).getTime();
       const toTimestamp = new Date(`${toDate}T23:59:59.999Z`).getTime();
+
+      // An unparseable date would otherwise be interpolated into the SQL as
+      // `NaN`, which silently yields zero rows. Fail loudly instead.
+      if (Number.isNaN(fromTimestamp) || Number.isNaN(toTimestamp)) {
+        throw new Error(
+          `Invalid stats date range: from='${fromDate}' to='${toDate}'`,
+        );
+      }
 
       // Build IN clause for login types
       const loginTypesIn = LOGIN_TYPES.map((t) => escapeSQLString(t)).join(
