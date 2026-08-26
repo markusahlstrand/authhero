@@ -24,6 +24,11 @@ import { tryUpstreamRemint } from "./refresh-token-migration";
 import { userHasGlobalOrgAdminPermission } from "../helpers/scopes-permissions";
 import { touchSessionUsedAt } from "../helpers/session-usage";
 import { resolvePrimaryUser } from "../helpers/users";
+import {
+  resolveAbsoluteRefreshTokenLifetime,
+  resolveIdleRefreshTokenLifetime,
+  slideIdleExpiry,
+} from "../helpers/refresh-token-lifetime";
 
 export const refreshTokenParamsSchema = z.object({
   grant_type: z.literal("refresh_token"),
@@ -357,12 +362,10 @@ export async function refreshTokenGrant(
     const childHash = await hashRefreshTokenSecret(childSecret);
     const familyId = refreshToken.family_id ?? refreshToken.id;
 
-    const newIdleExpiresAt =
-      refreshToken.idle_expires_at && client.tenant.idle_session_lifetime
-        ? new Date(
-            Date.now() + client.tenant.idle_session_lifetime * 60 * 60 * 1000,
-          ).toISOString()
-        : refreshToken.idle_expires_at;
+    const newIdleExpiresAt = slideIdleExpiry(
+      client,
+      refreshToken.idle_expires_at,
+    );
 
     // Order matters across these two writes: create the child first, then
     // mark the parent rotated. If they ran concurrently and the parent update
@@ -391,8 +394,14 @@ export async function refreshTokenGrant(
       user_id: refreshToken.user_id,
       client_id: refreshToken.client_id,
       // Absolute expiry never extends across rotation — the family stays
-      // bounded by the original session_lifetime.
-      expires_at: refreshToken.expires_at,
+      // bounded by the expiry stamped at mint. The one exception is a client
+      // explicitly configured never to expire (`infinite_token_lifetime` /
+      // `expiration_type: "non-expiring"`): honour that on the next rotation
+      // instead of leaving rows minted under the old config bounded forever.
+      expires_at:
+        resolveAbsoluteRefreshTokenLifetime(client).kind === "infinite"
+          ? undefined
+          : refreshToken.expires_at,
       idle_expires_at: newIdleExpiresAt,
       device: {
         ...refreshToken.device,
@@ -441,10 +450,14 @@ export async function refreshTokenGrant(
       outgoingWireToken = formatRefreshToken(lookup, secret);
     }
 
-    if (refreshToken.idle_expires_at && client.tenant.idle_session_lifetime) {
-      const idleExpiresAt = new Date(
-        Date.now() + client.tenant.idle_session_lifetime * 60 * 60 * 1000,
-      );
+    // The sliding window moves forward by the client's idle refresh-token
+    // lifetime, falling back to the tenant's (#1260). Only a row that already
+    // has an idle window slides — one minted without an expiry (e.g. a client
+    // configured as non-expiring) is not retro-fitted with one mid-life.
+    const idleLifetime = resolveIdleRefreshTokenLifetime(client);
+
+    if (refreshToken.idle_expires_at && idleLifetime.kind === "seconds") {
+      const idleExpiresAt = new Date(Date.now() + idleLifetime.seconds * 1000);
 
       const absoluteExpiryMs = refreshToken.expires_at
         ? new Date(refreshToken.expires_at).getTime()

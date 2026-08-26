@@ -72,6 +72,7 @@ import {
   resolveConnectionName,
   getConnectionInfo,
 } from "../helpers/connection";
+import { resolveRefreshTokenExpiry } from "../helpers/refresh-token-lifetime";
 
 /**
  * Minimal client properties actually used by createAuthTokens.
@@ -756,8 +757,10 @@ export async function createRefreshToken(
   const audience =
     params.audience ?? client.tenant.default_audience ?? `${iss}userinfo`;
 
-  const idleExpiresAt = lifetimeToIso(client.tenant.idle_session_lifetime);
-  const absoluteExpiresAt = lifetimeToIso(client.tenant.session_lifetime);
+  // Refresh-token expiry comes from the client's own `refresh_token` config
+  // when set, falling back to the tenant session lifetimes (issue #1260).
+  const { expires_at: absoluteExpiresAt, idle_expires_at: idleExpiresAt } =
+    resolveRefreshTokenExpiry(client);
 
   const id = ulid();
   const { lookup, secret } = generateRefreshTokenParts();
