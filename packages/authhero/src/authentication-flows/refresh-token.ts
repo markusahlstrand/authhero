@@ -24,6 +24,11 @@ import { tryUpstreamRemint } from "./refresh-token-migration";
 import { userHasGlobalOrgAdminPermission } from "../helpers/scopes-permissions";
 import { touchSessionUsedAt } from "../helpers/session-usage";
 import { resolvePrimaryUser } from "../helpers/users";
+import {
+  resolveAbsoluteRefreshTokenLifetime,
+  resolveExchangeExpiryUpdate,
+  slideIdleExpiry,
+} from "../helpers/refresh-token-lifetime";
 
 export const refreshTokenParamsSchema = z.object({
   grant_type: z.literal("refresh_token"),
@@ -357,12 +362,10 @@ export async function refreshTokenGrant(
     const childHash = await hashRefreshTokenSecret(childSecret);
     const familyId = refreshToken.family_id ?? refreshToken.id;
 
-    const newIdleExpiresAt =
-      refreshToken.idle_expires_at && client.tenant.idle_session_lifetime
-        ? new Date(
-            Date.now() + client.tenant.idle_session_lifetime * 60 * 60 * 1000,
-          ).toISOString()
-        : refreshToken.idle_expires_at;
+    const newIdleExpiresAt = slideIdleExpiry(
+      client,
+      refreshToken.idle_expires_at,
+    );
 
     // Order matters across these two writes: create the child first, then
     // mark the parent rotated. If they ran concurrently and the parent update
@@ -391,8 +394,14 @@ export async function refreshTokenGrant(
       user_id: refreshToken.user_id,
       client_id: refreshToken.client_id,
       // Absolute expiry never extends across rotation — the family stays
-      // bounded by the original session_lifetime.
-      expires_at: refreshToken.expires_at,
+      // bounded by the expiry stamped at mint. The one exception is a client
+      // explicitly configured never to expire (`infinite_token_lifetime` /
+      // `expiration_type: "non-expiring"`): honour that on the next rotation
+      // instead of leaving rows minted under the old config bounded forever.
+      expires_at:
+        resolveAbsoluteRefreshTokenLifetime(client).kind === "infinite"
+          ? undefined
+          : refreshToken.expires_at,
       idle_expires_at: newIdleExpiresAt,
       device: {
         ...refreshToken.device,
@@ -441,24 +450,36 @@ export async function refreshTokenGrant(
       outgoingWireToken = formatRefreshToken(lookup, secret);
     }
 
-    if (refreshToken.idle_expires_at && client.tenant.idle_session_lifetime) {
-      const idleExpiresAt = new Date(
-        Date.now() + client.tenant.idle_session_lifetime * 60 * 60 * 1000,
-      );
+    // Reconcile the row against the client's current refresh-token lifetimes
+    // (#1260): slide the idle window forward, and drop the expiries the row was
+    // stamped with at mint if the client has since been switched to
+    // non-expiring. Rotation performs the same reconciliation implicitly, by
+    // minting the child row from the current config; the in-place path has to
+    // write it. `null` clears a stored column, `undefined` leaves it alone.
+    const expiryUpdate = resolveExchangeExpiryUpdate(client, refreshToken);
+    const hasExpiryUpdate =
+      expiryUpdate.expires_at !== undefined ||
+      expiryUpdate.idle_expires_at !== undefined;
 
-      const absoluteExpiryMs = refreshToken.expires_at
-        ? new Date(refreshToken.expires_at).getTime()
+    if (hasExpiryUpdate) {
+      // The login session must outlive the token it backs. A cleared column
+      // contributes nothing, so a token that has just become non-expiring
+      // leaves the session on its own clock — exactly as one minted without
+      // expiries does.
+      const absoluteExpiryMs =
+        expiryUpdate.expires_at === null || !refreshToken.expires_at
+          ? 0
+          : new Date(refreshToken.expires_at).getTime();
+      const idleExpiryMs = expiryUpdate.idle_expires_at
+        ? new Date(expiryUpdate.idle_expires_at).getTime()
         : 0;
-      const newLoginSessionExpiryMs = Math.max(
-        absoluteExpiryMs,
-        idleExpiresAt.getTime(),
-      );
+      const newLoginSessionExpiryMs = Math.max(absoluteExpiryMs, idleExpiryMs);
 
       await ctx.env.data.refreshTokens.update(
         client.tenant.id,
         refreshToken.id,
         {
-          idle_expires_at: idleExpiresAt.toISOString(),
+          ...expiryUpdate,
           last_exchanged_at: new Date().toISOString(),
           ...(deviceChanged && {
             device: {

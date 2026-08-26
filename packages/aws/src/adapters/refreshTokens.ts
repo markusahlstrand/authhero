@@ -2,6 +2,7 @@ import {
   RefreshTokensAdapter,
   RefreshToken,
   RefreshTokenInsert,
+  RefreshTokenUpdate,
   ListRefreshTokenResponse,
   ListParams,
   UpdateRefreshTokenOptions,
@@ -243,7 +244,7 @@ export function createRefreshTokensAdapter(
     async update(
       tenantId: string,
       id: string,
-      refreshToken: Partial<RefreshToken>,
+      refreshToken: RefreshTokenUpdate,
       options?: UpdateRefreshTokenOptions,
     ): Promise<boolean> {
       const updates: Record<string, unknown> = {

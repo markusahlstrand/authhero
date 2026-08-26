@@ -1,7 +1,7 @@
 import { Kysely } from "kysely";
 import { Database } from "../db";
 import {
-  RefreshToken,
+  RefreshTokenUpdate,
   UpdateRefreshTokenOptions,
 } from "@authhero/adapter-interfaces";
 import { isoToDbDate } from "../utils/dateConversion";
@@ -10,7 +10,7 @@ export function update(db: Kysely<Database>) {
   return async (
     tenant_id: string,
     id: string,
-    refresh_token: Partial<RefreshToken>,
+    refresh_token: RefreshTokenUpdate,
     options?: UpdateRefreshTokenOptions,
   ) => {
     // Exclude old date fields from refresh token object
