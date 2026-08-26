@@ -6,6 +6,7 @@ import {
   RateLimitAdapter,
   AnalyticsAdapter,
   ActionExecutionsAdapter,
+  StatsAdapter,
 } from "@authhero/adapter-interfaces";
 import { createCustomDomainsAdapter } from "./customDomains";
 import { createCloudflareCache } from "./cache";
@@ -16,6 +17,7 @@ import {
 import {
   createAnalyticsEngineLogsAdapter,
   createAnalyticsEngineAnalyticsAdapter,
+  createAnalyticsEngineStatsAdapter,
   type AnalyticsEngineLogsAdapterConfig,
   type AnalyticsEngineDataset,
 } from "./analytics-engine-logs";
@@ -107,6 +109,7 @@ export interface CloudflareAdapters {
   cache: CacheAdapter;
   logs?: LogsDataAdapter;
   analytics?: AnalyticsAdapter;
+  stats?: StatsAdapter;
   geo?: GeoAdapter;
   rateLimit?: RateLimitAdapter;
   actionExecutions?: ActionExecutionsAdapter;
@@ -142,6 +145,12 @@ export default function createAdapters(
 
   if (config.analyticsEngineLogs) {
     adapters.analytics = createAnalyticsEngineAnalyticsAdapter(
+      config.analyticsEngineLogs,
+    );
+    // /stats/daily and /stats/active-users are log-derived too. Without this
+    // consumers keep the SQL adapter's stats, which reads a logs table that no
+    // longer receives writes once logs move to Analytics Engine.
+    adapters.stats = createAnalyticsEngineStatsAdapter(
       config.analyticsEngineLogs,
     );
   }
