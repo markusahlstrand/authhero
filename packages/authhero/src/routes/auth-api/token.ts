@@ -74,6 +74,12 @@ function peekAssertionClientId(jwt: string): string | undefined {
   return undefined;
 }
 
+// Short grant ids the admin console used to store in `client.grant_types`,
+// mapped to the canonical wire values used as `grant_type` at this endpoint.
+const LEGACY_GRANT_TYPE_IDS: Record<string, string> = {
+  passwordless_otp: GrantType.OTP,
+};
+
 // We need to make the client_id and client_secret optional on each type as it can be passed in a auth-header
 const CreateRequestSchema = z.union([
   // Client credentials
@@ -377,7 +383,13 @@ const postRoot = defineRoute({
     // RFC 6749 §5.2: reject grants the client is not registered for. Only
     // enforced when the client explicitly lists `grant_types` — clients with
     // an empty/undefined list (legacy / unconfigured) keep working as before.
-    const allowedGrantTypes = grantResult.client.grant_types;
+    // The admin console historically stored the short id "passwordless_otp"
+    // while the wire grant_type is the full Auth0 URI, so client rows saved
+    // through it never matched here; map stored legacy ids to their canonical
+    // form before comparing.
+    const allowedGrantTypes = grantResult.client.grant_types?.map(
+      (grantType) => LEGACY_GRANT_TYPE_IDS[grantType] ?? grantType,
+    );
     if (
       allowedGrantTypes &&
       allowedGrantTypes.length > 0 &&
