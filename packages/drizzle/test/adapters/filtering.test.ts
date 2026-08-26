@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
+import { escapeLuceneValue } from "@authhero/adapter-interfaces";
 import { getTestServer } from "../helpers/test-server";
 
 // Exercises the Lucene-style `q` filtering wired through buildLuceneFilter /
@@ -129,6 +130,71 @@ describe("adapter q filtering", () => {
       // A partial term is not a full address and keeps substring semantics.
       const partial = await data.users.list("tenant1", { q: "@example.com" });
       expect(partial.users.length).toBeGreaterThan(1);
+    });
+
+    // Issue #1264: the OR split used to run before the quote-aware tokenizer,
+    // so quoting a value did not contain it — the quotes only bracketed the
+    // outer fragments and everything between them was parsed as query syntax.
+    // Mirrors packages/kysely/test/lucene-q-or-split.spec.ts.
+    describe("OR split vs quoting", () => {
+      const CRAFTED = "auth0|bob OR user_id:auth0|alice OR x";
+
+      beforeEach(async () => {
+        await data.users.create("tenant1", {
+          user_id: CRAFTED,
+          email: "crafted@example.org",
+          name: "Crafted",
+          email_verified: true,
+          is_social: false,
+          provider: "auth0",
+          login_count: 0,
+        });
+      });
+
+      it("does not widen the match for a crafted three-part quoted value", async () => {
+        const res = await data.users.list("tenant1", {
+          q: `user_id:"${CRAFTED}"`,
+        });
+        expect(res.users.map((u) => u.user_id)).toEqual([CRAFTED]);
+      });
+
+      it("does not widen the match for a crafted value that matches no row", async () => {
+        const res = await data.users.list("tenant1", {
+          q: 'user_id:"auth0|bob OR user_id:auth0|alice OR x2"',
+        });
+        expect(res.users).toHaveLength(0);
+      });
+
+      it("keeps an escaped value contained even when it carries a quote", async () => {
+        const evil = 'auth0|bob" OR user_id:auth0|alice OR "x';
+        const res = await data.users.list("tenant1", {
+          q: `user_id:${escapeLuceneValue(evil)}`,
+        });
+        expect(res.users).toHaveLength(0);
+      });
+
+      it("round-trips a plain value through escapeLuceneValue", async () => {
+        const res = await data.users.list("tenant1", {
+          q: `user_id:${escapeLuceneValue(CRAFTED)}`,
+        });
+        expect(res.users.map((u) => u.user_id)).toEqual([CRAFTED]);
+      });
+
+      it("conjoins several clauses inside one OR group", async () => {
+        // `a b OR c` is `(a AND b) OR c`.
+        const noMatch = await data.users.list("tenant1", {
+          q: "user_id:auth0|alice email:nobody@example.com OR user_id:auth0|bob",
+        });
+        expect(noMatch.users.map((u) => u.user_id)).toEqual(["auth0|bob"]);
+
+        const match = await data.users.list("tenant1", {
+          q: "user_id:auth0|alice email:alice@example.com OR user_id:auth0|bob",
+        });
+        expect(match.users.map((u) => u.user_id).sort()).toEqual([
+          "auth0|alice",
+          "auth0|bob",
+        ]);
+      });
     });
 
     it("strips non-whitelisted fields (no tenant crossing via q)", async () => {
