@@ -151,3 +151,47 @@ export function slideIdleExpiry(
   }
   return lifetimeToExpiresAt(lifetime, from);
 }
+
+/**
+ * The expiry columns an in-place (non-rotating) exchange should write.
+ *
+ * Three-valued per column, matching the adapter's update contract:
+ * `undefined` leaves the stored value alone, a string overwrites it, `null`
+ * clears it.
+ *
+ * Rotation reconciles a changed client config for free — the child row is
+ * minted from the current lifetimes — but the non-rotating path keeps handing
+ * back the row it was given, so it has to say so explicitly:
+ *
+ * - Idle window: slides by the resolved lifetime, and is cleared when the
+ *   client is configured never to idle-expire. A row minted without an idle
+ *   window is not retro-fitted with one mid-life.
+ * - Absolute window: never extended — refreshing must not let a bounded token
+ *   outlive the expiry stamped at mint — and only cleared when the client is
+ *   configured never to expire.
+ */
+export function resolveExchangeExpiryUpdate(
+  client: RefreshTokenLifetimeClient,
+  current: { expires_at?: string; idle_expires_at?: string },
+  from: number = Date.now(),
+): { expires_at?: null; idle_expires_at?: string | null } {
+  const update: { expires_at?: null; idle_expires_at?: string | null } = {};
+
+  if (
+    current.expires_at &&
+    resolveAbsoluteRefreshTokenLifetime(client).kind === "infinite"
+  ) {
+    update.expires_at = null;
+  }
+
+  if (current.idle_expires_at) {
+    const idle = resolveIdleRefreshTokenLifetime(client);
+    if (idle.kind === "infinite") {
+      update.idle_expires_at = null;
+    } else if (idle.kind === "seconds") {
+      update.idle_expires_at = lifetimeToExpiresAt(idle, from);
+    }
+  }
+
+  return update;
+}

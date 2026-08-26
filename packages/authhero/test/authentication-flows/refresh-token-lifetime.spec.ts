@@ -230,6 +230,73 @@ describe("per-client refresh token lifetimes", () => {
       expect(secondsFromNow(row?.idle_expires_at)).toBeLessThanOrEqual(30 * 60);
     });
 
+    it("drops a non-rotating row's inherited expiries when the client is switched to non-expiring", async () => {
+      const { oauthApp, env } = await getTestServer();
+      await setTenantLifetimes(env);
+      await setClientRefreshToken(env, {
+        rotation_type: "non-rotating",
+        expiration_type: "non-expiring",
+      });
+      // Stamped under the old config; the client has since been switched.
+      const seeded = await seedToken(env, {
+        expires_at: new Date(Date.now() + HOUR_MS).toISOString(),
+        idle_expires_at: new Date(Date.now() + HOUR_MS).toISOString(),
+      });
+
+      const response = await exchange(oauthApp, env, seeded.wire);
+      expect(response.status).toBe(200);
+
+      const row = await env.data.refreshTokens.get(TENANT, seeded.id);
+      expect(row?.expires_at).toBeFalsy();
+      expect(row?.idle_expires_at).toBeFalsy();
+    });
+
+    it("drops only the absolute expiry of a non-rotating row for infinite_token_lifetime", async () => {
+      const { oauthApp, env } = await getTestServer();
+      await setTenantLifetimes(env);
+      await setClientRefreshToken(env, {
+        rotation_type: "non-rotating",
+        infinite_token_lifetime: true,
+        idle_token_lifetime: 30 * 60,
+      });
+      const seeded = await seedToken(env, {
+        expires_at: new Date(Date.now() + HOUR_MS).toISOString(),
+        idle_expires_at: new Date(Date.now() + 60 * 1000).toISOString(),
+      });
+
+      const response = await exchange(oauthApp, env, seeded.wire);
+      expect(response.status).toBe(200);
+
+      const row = await env.data.refreshTokens.get(TENANT, seeded.id);
+      expect(row?.expires_at).toBeFalsy();
+      // The idle window is still bounded — and still slides.
+      expect(secondsFromNow(row?.idle_expires_at)).toBeGreaterThan(
+        30 * 60 - 60,
+      );
+      expect(secondsFromNow(row?.idle_expires_at)).toBeLessThanOrEqual(30 * 60);
+    });
+
+    it("never extends a non-rotating row's absolute expiry", async () => {
+      const { oauthApp, env } = await getTestServer();
+      await setTenantLifetimes(env);
+      await setClientRefreshToken(env, {
+        rotation_type: "non-rotating",
+        token_lifetime: 30 * 24 * 60 * 60,
+        idle_token_lifetime: 30 * 60,
+      });
+      const expires_at = new Date(Date.now() + HOUR_MS).toISOString();
+      const seeded = await seedToken(env, {
+        expires_at,
+        idle_expires_at: new Date(Date.now() + 60 * 1000).toISOString(),
+      });
+
+      const response = await exchange(oauthApp, env, seeded.wire);
+      expect(response.status).toBe(200);
+
+      const row = await env.data.refreshTokens.get(TENANT, seeded.id);
+      expect(row?.expires_at).toBe(expires_at);
+    });
+
     it("slides a rotated child's idle window by the client's idle_token_lifetime", async () => {
       const { oauthApp, env } = await getTestServer();
       await setTenantLifetimes(env);

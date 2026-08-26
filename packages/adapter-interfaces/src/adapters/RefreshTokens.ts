@@ -32,6 +32,26 @@ export interface UpdateRefreshTokenOptions {
   };
 }
 
+/**
+ * Update payload for a refresh token.
+ *
+ * The two expiry columns are three-valued on the way in: `undefined` leaves
+ * the stored value alone, a string overwrites it, and `null` clears it — the
+ * token stops expiring on that axis.
+ *
+ * Clearing exists for the in-place refresh exchange. A rotating client
+ * reconciles a changed refresh-token config for free, because the child row is
+ * minted from the current lifetimes; a non-rotating one keeps handing back the
+ * row it was given, so switching a client to non-expiring has to be able to
+ * drop the expiries that row was stamped with.
+ */
+export type RefreshTokenUpdate = Partial<
+  Omit<RefreshToken, "expires_at" | "idle_expires_at">
+> & {
+  expires_at?: string | null;
+  idle_expires_at?: string | null;
+};
+
 export interface RefreshTokensAdapter {
   create: (
     tenant_id: string,
@@ -54,7 +74,7 @@ export interface RefreshTokensAdapter {
   update: (
     tenant_id: string,
     id: string,
-    refresh_token: Partial<RefreshToken>,
+    refresh_token: RefreshTokenUpdate,
     options?: UpdateRefreshTokenOptions,
   ) => Promise<boolean>;
   remove: (tenant_id: string, id: string) => Promise<boolean>;

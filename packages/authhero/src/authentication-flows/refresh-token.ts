@@ -26,7 +26,7 @@ import { touchSessionUsedAt } from "../helpers/session-usage";
 import { resolvePrimaryUser } from "../helpers/users";
 import {
   resolveAbsoluteRefreshTokenLifetime,
-  resolveIdleRefreshTokenLifetime,
+  resolveExchangeExpiryUpdate,
   slideIdleExpiry,
 } from "../helpers/refresh-token-lifetime";
 
@@ -450,28 +450,36 @@ export async function refreshTokenGrant(
       outgoingWireToken = formatRefreshToken(lookup, secret);
     }
 
-    // The sliding window moves forward by the client's idle refresh-token
-    // lifetime, falling back to the tenant's (#1260). Only a row that already
-    // has an idle window slides — one minted without an expiry (e.g. a client
-    // configured as non-expiring) is not retro-fitted with one mid-life.
-    const idleLifetime = resolveIdleRefreshTokenLifetime(client);
+    // Reconcile the row against the client's current refresh-token lifetimes
+    // (#1260): slide the idle window forward, and drop the expiries the row was
+    // stamped with at mint if the client has since been switched to
+    // non-expiring. Rotation performs the same reconciliation implicitly, by
+    // minting the child row from the current config; the in-place path has to
+    // write it. `null` clears a stored column, `undefined` leaves it alone.
+    const expiryUpdate = resolveExchangeExpiryUpdate(client, refreshToken);
+    const hasExpiryUpdate =
+      expiryUpdate.expires_at !== undefined ||
+      expiryUpdate.idle_expires_at !== undefined;
 
-    if (refreshToken.idle_expires_at && idleLifetime.kind === "seconds") {
-      const idleExpiresAt = new Date(Date.now() + idleLifetime.seconds * 1000);
-
-      const absoluteExpiryMs = refreshToken.expires_at
-        ? new Date(refreshToken.expires_at).getTime()
+    if (hasExpiryUpdate) {
+      // The login session must outlive the token it backs. A cleared column
+      // contributes nothing, so a token that has just become non-expiring
+      // leaves the session on its own clock — exactly as one minted without
+      // expiries does.
+      const absoluteExpiryMs =
+        expiryUpdate.expires_at === null || !refreshToken.expires_at
+          ? 0
+          : new Date(refreshToken.expires_at).getTime();
+      const idleExpiryMs = expiryUpdate.idle_expires_at
+        ? new Date(expiryUpdate.idle_expires_at).getTime()
         : 0;
-      const newLoginSessionExpiryMs = Math.max(
-        absoluteExpiryMs,
-        idleExpiresAt.getTime(),
-      );
+      const newLoginSessionExpiryMs = Math.max(absoluteExpiryMs, idleExpiryMs);
 
       await ctx.env.data.refreshTokens.update(
         client.tenant.id,
         refreshToken.id,
         {
-          idle_expires_at: idleExpiresAt.toISOString(),
+          ...expiryUpdate,
           last_exchanged_at: new Date().toISOString(),
           ...(deviceChanged && {
             device: {

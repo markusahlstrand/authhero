@@ -3,6 +3,7 @@ import {
   RefreshTokenLifetimeClient,
   lifetimeToExpiresAt,
   resolveAbsoluteRefreshTokenLifetime,
+  resolveExchangeExpiryUpdate,
   resolveIdleRefreshTokenLifetime,
   resolveRefreshTokenExpiry,
   slideIdleExpiry,
@@ -194,6 +195,91 @@ describe("refresh token lifetime resolution", () => {
           now,
         ),
       ).toBeUndefined();
+    });
+  });
+
+  describe("resolveExchangeExpiryUpdate", () => {
+    const now = Date.UTC(2026, 0, 1);
+    const current = {
+      expires_at: new Date(now + 30 * 24 * HOUR * 1000).toISOString(),
+      idle_expires_at: new Date(now + 60 * 1000).toISOString(),
+    };
+
+    it("slides the idle window and leaves the absolute expiry alone", () => {
+      expect(
+        resolveExchangeExpiryUpdate(
+          makeClient({ idle_token_lifetime: 900 }),
+          current,
+          now,
+        ),
+      ).toEqual({
+        idle_expires_at: new Date(now + 900 * 1000).toISOString(),
+      });
+    });
+
+    it("clears both windows when the client is explicitly non-expiring", () => {
+      expect(
+        resolveExchangeExpiryUpdate(
+          makeClient({ expiration_type: "non-expiring" }),
+          current,
+          now,
+        ),
+      ).toEqual({ expires_at: null, idle_expires_at: null });
+    });
+
+    it("clears only the absolute window for infinite_token_lifetime", () => {
+      expect(
+        resolveExchangeExpiryUpdate(
+          makeClient({
+            infinite_token_lifetime: true,
+            idle_token_lifetime: 900,
+          }),
+          current,
+          now,
+        ),
+      ).toEqual({
+        expires_at: null,
+        idle_expires_at: new Date(now + 900 * 1000).toISOString(),
+      });
+    });
+
+    it("clears only the idle window for infinite_idle_token_lifetime", () => {
+      expect(
+        resolveExchangeExpiryUpdate(
+          makeClient({ infinite_idle_token_lifetime: true }),
+          current,
+          now,
+        ),
+      ).toEqual({ idle_expires_at: null });
+    });
+
+    it("never extends the absolute window, however it is configured", () => {
+      expect(
+        resolveExchangeExpiryUpdate(
+          makeClient({ token_lifetime: 10 * 365 * 24 * HOUR }),
+          current,
+          now,
+        ).expires_at,
+      ).toBeUndefined();
+    });
+
+    it("writes nothing when neither level configures a lifetime", () => {
+      expect(resolveExchangeExpiryUpdate(makeClient(), current, now)).toEqual(
+        {},
+      );
+    });
+
+    it("does not retro-fit expiries onto a row that carries none", () => {
+      expect(
+        resolveExchangeExpiryUpdate(
+          makeClient({
+            expiration_type: "non-expiring",
+            idle_token_lifetime: 900,
+          }),
+          {},
+          now,
+        ),
+      ).toEqual({});
     });
   });
 

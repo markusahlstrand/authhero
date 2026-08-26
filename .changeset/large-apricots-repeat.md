@@ -1,5 +1,8 @@
 ---
 "@authhero/adapter-interfaces": patch
+"@authhero/kysely-adapter": patch
+"@authhero/drizzle": patch
+"@authhero/aws-adapter": patch
 "authhero": patch
 ---
 
@@ -17,6 +20,10 @@ instead.
 
 The tenant lifetimes remain the fallback, so tenants that configure nothing on
 the client see no change. The idle window slides by the resolved lifetime on
-every exchange, on both the rotating and non-rotating paths; rotation still
-never extends the absolute expiry, except that a client switched to
-non-expiring drops the expiries its existing tokens inherited.
+every exchange, on both the rotating and non-rotating paths. Neither path ever
+extends an absolute expiry, and both drop the expiries an existing token was
+stamped with once its client is configured never to expire — rotation by
+minting the child row from the current config, the in-place path by clearing
+the stored columns. The refresh-token adapter `update` payload is typed
+accordingly: `null` on `expires_at` / `idle_expires_at` clears the stored
+value, `undefined` still leaves it untouched.
