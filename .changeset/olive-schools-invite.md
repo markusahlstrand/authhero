@@ -10,7 +10,9 @@ before calling the adapter. Re-slicing turned `2026-07-27` into `2026--0-7-`,
 so both timestamp bounds were interpolated into the SQL as `NaN` and every
 query matched nothing — the dashboard rendered a zero-filled 30-day range.
 Dates in either format are now accepted, and an unparseable range throws
-instead of silently querying with `NaN`.
+instead of silently querying with `NaN`. Impossible calendar dates such as
+`20260230` are rejected too, rather than rolling over to a window the caller
+never asked for.
 
 `createAdapters` also now returns a `stats` adapter whenever
 `analyticsEngineLogs` is configured. `/stats/daily` and `/stats/active-users`

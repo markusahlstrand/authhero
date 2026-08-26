@@ -88,6 +88,29 @@ describe("Analytics Engine Stats Adapter", () => {
       expect(queries).toHaveLength(0);
     });
 
+    // `new Date("2026-02-30T00:00:00Z")` rolls over to March 2 instead of
+    // failing, which would silently query a window the caller never asked for.
+    it.each(["20260230", "2026-02-30", "20260431"])(
+      "rejects the impossible calendar date %s",
+      async (from) => {
+        await expect(
+          createAdapter().getDaily("tenant-1", { from }),
+        ).rejects.toThrow(/Invalid stats date range/);
+        expect(queries).toHaveLength(0);
+      },
+    );
+
+    it("accepts a leap day in a leap year", async () => {
+      await createAdapter().getDaily("tenant-1", {
+        from: "20240229",
+        to: "20240229",
+      });
+
+      expect(timestampBounds(queries[0]!).from).toBe(
+        String(Date.UTC(2024, 1, 29, 0, 0, 0, 0)),
+      );
+    });
+
     it("scopes the query to the tenant and the configured dataset", async () => {
       await createAdapter().getDaily("tenant-1", {
         from: "2026-07-27",

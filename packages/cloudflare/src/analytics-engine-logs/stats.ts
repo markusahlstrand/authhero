@@ -34,6 +34,35 @@ function toDateString(date: Date): string {
 }
 
 /**
+ * Parse a normalized date into the epoch milliseconds of the start or end of
+ * that UTC day, or NaN if it is not a real calendar date.
+ *
+ * `new Date("2026-02-30T00:00:00Z")` does not fail — it rolls over to March 2 —
+ * so the parsed components are round-tripped against the requested ones to
+ * reject impossible dates instead of silently querying a shifted window.
+ */
+function toEpochMs(dateStr: string, bound: "start" | "end"): number {
+  const time = bound === "end" ? "23:59:59.999" : "00:00:00.000";
+  const ts = new Date(`${dateStr}T${time}Z`).getTime();
+  if (Number.isNaN(ts)) {
+    return NaN;
+  }
+
+  const parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
+  if (!parts) {
+    return ts;
+  }
+
+  const parsed = new Date(ts);
+  const rolledOver =
+    parsed.getUTCFullYear() !== Number(parts[1]) ||
+    parsed.getUTCMonth() + 1 !== Number(parts[2]) ||
+    parsed.getUTCDate() !== Number(parts[3]);
+
+  return rolledOver ? NaN : ts;
+}
+
+/**
  * Create a stats adapter that queries Analytics Engine
  */
 export function createAnalyticsEngineStatsAdapter(
@@ -59,8 +88,8 @@ export function createAnalyticsEngineStatsAdapter(
       const toDate = to ? normalizeDateParam(to) : toDateString(now);
 
       // Convert to timestamps for comparison with double2 (epoch milliseconds)
-      const fromTimestamp = new Date(`${fromDate}T00:00:00Z`).getTime();
-      const toTimestamp = new Date(`${toDate}T23:59:59.999Z`).getTime();
+      const fromTimestamp = toEpochMs(fromDate, "start");
+      const toTimestamp = toEpochMs(toDate, "end");
 
       // An unparseable date would otherwise be interpolated into the SQL as
       // `NaN`, which silently yields zero rows. Fail loudly instead.
