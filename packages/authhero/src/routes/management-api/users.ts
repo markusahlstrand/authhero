@@ -89,7 +89,7 @@ async function getConnectionByIdOrName(
     page: 0,
     per_page: 1,
     include_totals: false,
-    q: `name:"${idOrName}"`,
+    q: `name:${escapeLuceneValue(idOrName)}`,
   });
   return connections[0] ?? null;
 }
@@ -233,12 +233,12 @@ const getRoot = defineRoute({
     // ugly hardcoded switch for now!
     if (q?.includes("identities.profileData.email")) {
       // assuming no other query params here... could be stricter
-      const linkedAccountEmail = q.split("=")[1];
+      const linkedAccountEmail = q.split("=")[1] ?? "";
       const results = await ctx.env.data.users.list(tenantId, {
         page,
         per_page,
         include_totals,
-        q: `email:${linkedAccountEmail}`,
+        q: `email:${escapeLuceneValue(linkedAccountEmail)}`,
       });
 
       // we want to ignore unlinked accounts
@@ -752,7 +752,7 @@ const patchByUser_id = defineRoute({
             page: 0,
             per_page: 100,
             include_totals: false,
-            q: `linked_to:${user_id}`,
+            q: `linked_to:${escapeLuceneValue(user_id)}`,
           })
         : null;
 
@@ -775,7 +775,7 @@ const patchByUser_id = defineRoute({
             page: 0,
             per_page: 100,
             include_totals: false,
-            q: `linked_to:${user_id}`,
+            q: `linked_to:${escapeLuceneValue(user_id)}`,
           }));
 
         const linkedUserWithConnection = linkedList.users.find(matchesTarget);
@@ -1107,7 +1107,7 @@ const postByUser_idIdentities = defineRoute({
       page: 0,
       per_page: 10,
       include_totals: false,
-      q: `linked_to:${user_id}`,
+      q: `linked_to:${escapeLuceneValue(user_id)}`,
     });
 
     const identities = [user, ...linkedusers.users].map(pickIdentity);
@@ -1230,7 +1230,7 @@ const getByUser_idConnectedClients = defineRoute({
       page,
       per_page,
       include_totals,
-      q: `owner_user_id:"${user_id}"`,
+      q: `owner_user_id:${escapeLuceneValue(user_id)}`,
     });
 
     // Filter out soft-deleted clients and project to the slim shape so
@@ -1474,11 +1474,13 @@ const getByUser_idLogs = defineRoute({
       page: 0,
       per_page: 100,
       include_totals: false,
-      q: `linked_to:${user_id}`,
+      q: `linked_to:${escapeLuceneValue(user_id)}`,
     });
 
     const userIds = [user_id, ...linked.users.map((u) => u.user_id)];
-    const userIdClause = userIds.map((id) => `user_id:"${id}"`).join(" OR ");
+    const userIdClause = userIds
+      .map((id) => `user_id:${escapeLuceneValue(id)}`)
+      .join(" OR ");
     // luceneFilter has no parentheses / precedence support: it splits on
     // " OR " globally. Without sanitization, callerQ containing " OR ..."
     // (or a leading boolean operator) could escape the user_id grouping

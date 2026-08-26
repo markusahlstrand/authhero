@@ -1,4 +1,9 @@
-import { ListParams, Log } from "@authhero/adapter-interfaces";
+import {
+  ListParams,
+  Log,
+  tokenizeLuceneQuery,
+  unescapeLuceneValue,
+} from "@authhero/adapter-interfaces";
 import { AnalyticsEngineLogsAdapterConfig } from "./types";
 import {
   executeAnalyticsEngineQuery,
@@ -21,38 +26,6 @@ interface ParsedQuery {
   terms: string[];
 }
 
-/**
- * Reverse Lucene escaping on a value operand: a backslash followed by a Lucene
- * reserved character is a literal of that character (e.g. `auth0|abc\-123` ->
- * `auth0|abc-123`). Clients (such as the admin UI) escape filter values per
- * Lucene rules before interpolating them, so without this the backslash leaks
- * into the SQL comparison and exact matches never hit.
- */
-function unescapeLuceneValue(value: string): string {
-  return value.replace(/\\([\\"+\-!(){}[\]^~*?:/&|])/g, "$1");
-}
-
-/** Split a query into tokens, treating double-quoted spans as atomic. */
-function tokenizeQuery(q: string): string[] {
-  const tokens: string[] = [];
-  let current = "";
-  let inQuotes = false;
-  for (let i = 0; i < q.length; i++) {
-    const char = q[i];
-    if (char === '"') {
-      inQuotes = !inQuotes;
-      current += char;
-    } else if (char === " " && !inQuotes) {
-      if (current.trim()) tokens.push(current.trim());
-      current = "";
-    } else {
-      current += char;
-    }
-  }
-  if (current.trim()) tokens.push(current.trim());
-  return tokens;
-}
-
 /** Strip one layer of surrounding double quotes, then unescape Lucene escapes. */
 function cleanValue(raw: string): string {
   let value = raw;
@@ -72,7 +45,7 @@ function parseLuceneFilter(q: string): ParsedQuery {
   const fields: Record<string, string[]> = {};
   const terms: string[] = [];
 
-  for (const token of tokenizeQuery(q)) {
+  for (const token of tokenizeLuceneQuery(q)) {
     // `OR`/`AND` are conjunction markers, not values.
     if (token === "OR" || token === "AND") continue;
 

@@ -2,6 +2,7 @@
 "@authhero/adapter-interfaces": minor
 "@authhero/kysely-adapter": patch
 "@authhero/drizzle": patch
+"@authhero/cloudflare-adapter": patch
 "authhero": patch
 ---
 
@@ -24,7 +25,13 @@ unescapes value operands like the kysely adapter already did.
 New exports: `escapeLuceneValue` (quote and escape a value for interpolation
 into `q`), `unquoteLuceneValue`, `unescapeLuceneValue`, `tokenizeLuceneQuery`
 and `splitLuceneOrGroups`. Server-side call sites that select rows by a
-user-controlled id — the sessions and organization-membership lookups in the
-management API, the authentication flows, invitation acceptance and the
-tenant-members backend — interpolate through `escapeLuceneValue`, so an
-unquoted crafted value cannot widen those matches either.
+user-controlled id — the sessions, linked-account, owner-client, user-logs and
+organization-membership lookups in the management API, the authentication
+flows, invitation acceptance and the tenant-members backend — interpolate
+through `escapeLuceneValue`, so an unquoted crafted value cannot widen those
+matches either.
+
+The adapters that pick a value out of `q` without running the full filter (the
+kysely `user_organizations` and `clients` lists) unquote it, and the Cloudflare
+Analytics Engine logs adapter shares the same tokenizer, so an escaped value
+round-trips on every backend those call sites can reach.
