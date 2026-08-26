@@ -1,5 +1,5 @@
 /** @jsxImportSource react */
-import { Button } from "@react-email/components";
+import { Button } from "react-email";
 import { ReactNode } from "react";
 
 interface PrimaryButtonProps {
