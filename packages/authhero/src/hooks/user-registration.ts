@@ -22,7 +22,7 @@ import { isTemplateHook, handleTemplateHook } from "./templatehooks";
 import { createTokenAPI } from "./helpers/token-api";
 import { preUserSignupHook } from "./validate-signup";
 import { builtInUserLinkingEnabled } from "../helpers/user-linking";
-import { withLowercasedEmail } from "../utils/email";
+import { withNormalizedEmail } from "../utils/email";
 
 /**
  * Decorator applied by `addDataHooks` to `users.create`. Runs the full
@@ -227,11 +227,11 @@ export function createUserHooks(
 
     // Re-normalize after the pre-registration hooks: both the config hook and
     // code hooks expose `setUserMetadata`, which writes arbitrary keys onto
-    // `user` and can therefore introduce a mixed-case `email` after the
+    // `user` and can therefore introduce an un-normalized `email` after the
     // adapter wrapper normalized the incoming payload. Reassigned (rather than
     // used only at the commit call) so the outbox event, the post-registration
     // hook payload, and the log lines below all carry the stored value.
-    user = withLowercasedEmail(user);
+    user = withNormalizedEmail(user);
 
     // Decide whether the built-in email→primary auto-link runs inside the
     // commit transaction. Per-client `user_linking_mode` overrides the

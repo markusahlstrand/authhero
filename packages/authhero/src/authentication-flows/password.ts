@@ -26,6 +26,7 @@ import {
   sendValidateEmailAddress,
 } from "../emails";
 import { stringifyAuth0Client } from "../utils/client-info";
+import { normalizeEmail } from "../utils/email";
 import { createFrontChannelAuthResponse, failLoginSession } from "./common";
 import {
   LOGIN_SESSION_EXPIRATION_TIME,
@@ -630,7 +631,7 @@ export async function requestPasswordReset(
   // un-normalized `login_hint` straight from /authorize. Since a miss below
   // *creates* a user, a mixed-case value would both fail to match the existing
   // account and persist the mixed case onto the new one.
-  const email = emailInput.toLowerCase();
+  const email = normalizeEmail(emailInput);
 
   // A reset request lazily creates the native user so the emailed link has a
   // user to update. When the user doesn't exist yet, only create one if the

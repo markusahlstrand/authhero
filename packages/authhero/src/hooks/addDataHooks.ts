@@ -8,7 +8,7 @@ import { Bindings, Variables } from "../types";
 import { createUserHooks } from "./user-registration";
 import { createUserUpdateHooks } from "./user-update";
 import { createUserDeletionHooks } from "./user-deletion";
-import { withLowercasedEmail } from "../utils/email";
+import { withNormalizedEmail } from "../utils/email";
 
 /**
  * Wrap a raw `DataAdapters` with lifecycle hooks for user CRUD operations.
@@ -19,9 +19,10 @@ import { withLowercasedEmail } from "../utils/email";
  * dispatch post-event outbox messages. `users.rawCreate` is NOT decorated —
  * commit paths call it directly to bypass the hook layer by design.
  *
- * `email` is lowercased on the way in so the pre-commit hooks and lookups
- * (`preUserSignupHook`, the email→primary linking query) see the same
- * normalized value that will be stored. Hooks can assign `email` themselves
+ * `email` is normalized (trimmed and lowercased) on the way in so the
+ * pre-commit hooks and lookups (`preUserSignupHook`, the email→primary linking
+ * query) see the same normalized value that will be stored. Hooks can assign
+ * `email` themselves
  * after this point, so the decorators normalize again just before their
  * commit — see `createUserHooks` / `createUserUpdateHooks`.
  */
@@ -43,12 +44,12 @@ export function addDataHooks(
     users: {
       ...data.users,
       create: (tenant_id: string, user: User) =>
-        createWithHooks(tenant_id, withLowercasedEmail(user)),
+        createWithHooks(tenant_id, withNormalizedEmail(user)),
       update: (tenant_id, user_id, updates, options) =>
         updateWithHooks(
           tenant_id,
           user_id,
-          withLowercasedEmail(updates),
+          withNormalizedEmail(updates),
           options,
         ),
       remove: createUserDeletionHooks(ctx, rawData),

@@ -20,6 +20,7 @@ import { createInMemoryCache } from "../../adapters/cache/in-memory";
 import { scimAuthMiddleware } from "../../middlewares/scim-auth";
 import { logMessage } from "../../helpers/logging";
 import { userIdGenerate } from "../../utils/user-id";
+import { normalizeEmail } from "../../utils/email";
 import { revokeUserSessions } from "../../helpers/revoke-user-sessions";
 import {
   ScimError,
@@ -201,9 +202,14 @@ async function loadUserInConnection(
  */
 async function findByUserName(
   s: ScimContext,
-  userName: string,
+  rawUserName: string,
 ): Promise<User | null> {
-  const field = userName.includes("@") ? "email" : "username";
+  const isEmail = rawUserName.includes("@");
+  const field = isEmail ? "email" : "username";
+  // Provisioning payloads routinely carry padded values. Normalizing an
+  // email-shaped `userName` the same way the write path does keeps the lookup
+  // on the canonical row instead of missing it and provisioning a duplicate.
+  const userName = isEmail ? normalizeEmail(rawUserName) : rawUserName;
 
   let candidates: User[];
   if (Q_SAFE_VALUE.test(userName)) {

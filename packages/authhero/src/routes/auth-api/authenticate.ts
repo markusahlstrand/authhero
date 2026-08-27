@@ -17,6 +17,7 @@ import { prefetchClientBundle } from "../../helpers/prefetch-client-bundle";
 import { isCimdClientId } from "../../helpers/cimd";
 import { logMessage } from "../../helpers/logging";
 import { defineRoute } from "../../utils/define-route";
+import { normalizeEmail } from "../../utils/email";
 const postRoot = defineRoute({
   route: createRoute({
     tags: ["oauth"],
@@ -33,7 +34,10 @@ const postRoot = defineRoute({
                 ),
                 otp: z.string(),
                 client_id: z.string(),
-                username: z.string().transform((v) => v.toLowerCase()),
+                // The login identifier, normalized the same way the write path
+                // normalizes a stored email — otherwise a caller's stray space
+                // makes the lookup miss the account it just created.
+                username: z.string().transform((v) => normalizeEmail(v)),
                 realm: z.enum([Strategy.EMAIL]),
                 scope: z.string().optional(),
               }),
@@ -42,7 +46,7 @@ const postRoot = defineRoute({
                   "http://auth0.com/oauth/grant-type/password-realm",
                 ),
                 client_id: z.string(),
-                username: z.string().transform((v) => v.toLowerCase()),
+                username: z.string().transform((v) => normalizeEmail(v)),
                 password: z.string(),
                 realm: z.enum([Strategy.USERNAME_PASSWORD]),
                 scope: z.string().optional(),

@@ -18,6 +18,7 @@ import { LogTypes } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../../types";
 import { HTTPException } from "hono/http-exception";
 import { logMessage } from "../../helpers/logging";
+import { normalizeEmail } from "../../utils/email";
 import { getIssuer } from "../../variables";
 
 import { defineRoute } from "../../utils/define-route";
@@ -180,9 +181,10 @@ const postPasswordChange = defineRoute({
         }
         connectionName = connection.name;
       }
+      const normalizedEmail = normalizeEmail(body.email);
       const q = connectionName
-        ? `email:${body.email.toLowerCase()} connection:${connectionName}`
-        : `email:${body.email.toLowerCase()}`;
+        ? `email:${normalizedEmail} connection:${connectionName}`
+        : `email:${normalizedEmail}`;
       const { users } = await ctx.env.data.users.list(tenantId, {
         q,
         per_page: 1,
