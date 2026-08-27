@@ -240,8 +240,9 @@ export const clientInsertSchema = z.object({
       // Auth0-compatible fields. Listed explicitly (rather than using
       // .passthrough()) so they survive parse cycles AND keep type info,
       // without tripping dts-bundle-generator's handling of zod's
-      // `objectInputType`. Not yet honored by the engine — added so values
-      // round-trip cleanly when migrating tenants from Auth0.
+      // `objectInputType`. Honored by the engine since #1260: they drive
+      // refresh-token expiry, falling back to the tenant session lifetimes
+      // when unset.
       expiration_type: z.enum(["expiring", "non-expiring"]).optional().openapi({
         description: "Auth0-compatible: whether refresh tokens expire.",
       }),

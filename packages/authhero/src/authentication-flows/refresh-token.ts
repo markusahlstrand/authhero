@@ -20,6 +20,7 @@ import {
   parseRefreshToken,
 } from "../utils/refresh-token-format";
 import { ulid } from "../utils/ulid";
+import { slideRefreshTokenIdleExpiry } from "./common";
 import { tryUpstreamRemint } from "./refresh-token-migration";
 import { userHasGlobalOrgAdminPermission } from "../helpers/scopes-permissions";
 import { touchSessionUsedAt } from "../helpers/session-usage";
@@ -357,12 +358,10 @@ export async function refreshTokenGrant(
     const childHash = await hashRefreshTokenSecret(childSecret);
     const familyId = refreshToken.family_id ?? refreshToken.id;
 
-    const newIdleExpiresAt =
-      refreshToken.idle_expires_at && client.tenant.idle_session_lifetime
-        ? new Date(
-            Date.now() + client.tenant.idle_session_lifetime * 60 * 60 * 1000,
-          ).toISOString()
-        : refreshToken.idle_expires_at;
+    const newIdleExpiresAt = slideRefreshTokenIdleExpiry(
+      client,
+      refreshToken.idle_expires_at,
+    );
 
     // Order matters across these two writes: create the child first, then
     // mark the parent rotated. If they ran concurrently and the parent update
@@ -391,7 +390,7 @@ export async function refreshTokenGrant(
       user_id: refreshToken.user_id,
       client_id: refreshToken.client_id,
       // Absolute expiry never extends across rotation — the family stays
-      // bounded by the original session_lifetime.
+      // bounded by the absolute lifetime it was minted with.
       expires_at: refreshToken.expires_at,
       idle_expires_at: newIdleExpiresAt,
       device: {
@@ -441,10 +440,20 @@ export async function refreshTokenGrant(
       outgoingWireToken = formatRefreshToken(lookup, secret);
     }
 
-    if (refreshToken.idle_expires_at && client.tenant.idle_session_lifetime) {
-      const idleExpiresAt = new Date(
-        Date.now() + client.tenant.idle_session_lifetime * 60 * 60 * 1000,
-      );
+    // An in-place update cannot clear a column (adapters skip undefined), so
+    // when the slide resolves to "no idle expiry" — the client has since gone
+    // infinite-idle — the stored window is left as-is; it heals to no window
+    // at the next rotation or fresh mint. An unchanged value (nothing
+    // configured) skips the write too, matching the previous behaviour.
+    const slidIdleExpiresAt = slideRefreshTokenIdleExpiry(
+      client,
+      refreshToken.idle_expires_at,
+    );
+    if (
+      slidIdleExpiresAt &&
+      slidIdleExpiresAt !== refreshToken.idle_expires_at
+    ) {
+      const idleExpiresAt = new Date(slidIdleExpiresAt);
 
       const absoluteExpiryMs = refreshToken.expires_at
         ? new Date(refreshToken.expires_at).getTime()
