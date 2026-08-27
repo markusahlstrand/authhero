@@ -620,6 +620,60 @@ describe("data plane router", () => {
     });
     expect(res.headers.get("location")).toBe("https://customer.com/dest");
   });
+
+  // Regression: the authhero control plane 302s /authorize/resume to the
+  // original authorization host on purpose (so the session cookie lands on
+  // the right domain) and marks the redirect with
+  // x-authhero-preserve-location. Rewriting that Location back onto the
+  // request host sent the browser into an infinite redirect loop.
+  it("leaves a marked cross-host Location untouched and strips the marker", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(null, {
+        status: 302,
+        headers: {
+          Location: "https://upstream.example.com/authorize/resume?state=abc",
+          "x-authhero-preserve-location": "1",
+        },
+      }),
+    );
+
+    const app = createProxyDataPlaneRouter({
+      data: makeAdapter({
+        tenant_id: "t1",
+        custom_domain_id: "cd1",
+        domain: "customer.com",
+        routes: [
+          route({
+            match: { path: "/*" },
+            handlers: [
+              {
+                type: "rewrite_location",
+                options: { upstream_origin: "https://upstream.example.com" },
+              },
+              {
+                type: "http",
+                options: { upstream_url: "https://upstream.example.com" },
+              },
+            ],
+          }),
+        ],
+      }),
+      cacheTtlMs: 0,
+    });
+
+    const res = await app.request(
+      "https://customer.com/authorize/resume?state=abc",
+      {
+        headers: { host: "customer.com" },
+        redirect: "manual",
+      },
+    );
+    expect(res.status).toBe(302);
+    expect(res.headers.get("location")).toBe(
+      "https://upstream.example.com/authorize/resume?state=abc",
+    );
+    expect(res.headers.get("x-authhero-preserve-location")).toBeNull();
+  });
 });
 
 // Cloudflare Workers / Miniflare hand back `Response` objects from `fetch()`
@@ -690,6 +744,57 @@ describe("data plane router — Workers immutable response headers", () => {
     });
     expect(res.status).toBe(302);
     expect(res.headers.get("location")).toBe("https://customer.com/dest");
+  });
+
+  it("rewrite_location strips the preserve marker when upstream headers are immutable", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      freezeResponseHeaders(
+        new Response(null, {
+          status: 302,
+          headers: {
+            Location: "https://upstream.example.com/authorize/resume?state=abc",
+            "x-authhero-preserve-location": "1",
+          },
+        }),
+      ),
+    );
+
+    const app = createProxyDataPlaneRouter({
+      data: makeAdapter({
+        tenant_id: "t1",
+        custom_domain_id: "cd1",
+        domain: "customer.com",
+        routes: [
+          route({
+            match: { path: "/*" },
+            handlers: [
+              {
+                type: "rewrite_location",
+                options: { upstream_origin: "https://upstream.example.com" },
+              },
+              {
+                type: "http",
+                options: { upstream_url: "https://upstream.example.com" },
+              },
+            ],
+          }),
+        ],
+      }),
+      cacheTtlMs: 0,
+    });
+
+    const res = await app.request(
+      "https://customer.com/authorize/resume?state=abc",
+      {
+        headers: { host: "customer.com" },
+        redirect: "manual",
+      },
+    );
+    expect(res.status).toBe(302);
+    expect(res.headers.get("location")).toBe(
+      "https://upstream.example.com/authorize/resume?state=abc",
+    );
+    expect(res.headers.get("x-authhero-preserve-location")).toBeNull();
   });
 
   it("rewrite_cookies does not crash when upstream headers are immutable", async () => {

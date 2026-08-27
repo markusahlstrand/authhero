@@ -1,4 +1,5 @@
 import { z } from "@hono/zod-openapi";
+import { PRESERVE_LOCATION_HEADER } from "@authhero/adapter-interfaces";
 import { defineHandler } from "../registry";
 import { ensureMutableResponseHeaders } from "./util";
 
@@ -14,6 +15,19 @@ export const rewriteLocationHandler = defineHandler<Options>({
   build(options) {
     return async (c, next) => {
       await next();
+
+      // The authhero control plane marks its deliberate cross-host redirects
+      // (the /authorize/resume hop back to the original authorization host)
+      // with this header. Rewriting a marked Location onto the request host
+      // would send the browser straight back into the same hop — an infinite
+      // redirect loop — so honor the marker and strip it; it's internal
+      // plumbing that shouldn't reach the browser.
+      if (c.res.headers.has(PRESERVE_LOCATION_HEADER)) {
+        ensureMutableResponseHeaders(c);
+        c.res.headers.delete(PRESERVE_LOCATION_HEADER);
+        return;
+      }
+
       const status = c.res.status;
       if (status < 300 || status >= 400) return;
 
