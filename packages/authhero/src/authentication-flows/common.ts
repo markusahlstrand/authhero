@@ -7,6 +7,7 @@ import {
   LoginSessionState,
   LogType,
   LogTypes,
+  PRESERVE_LOCATION_HEADER,
   RefreshToken,
   User,
   TokenResponse,
@@ -1065,23 +1066,31 @@ export async function finalizeAuthenticatedSession(
   // redirect otherwise.
   const resumePath = `/authorize/resume?state=${encodeURIComponent(loginSession.id)}`;
   let location = resumePath;
+  let crossHost = false;
   if (loginSession.authorization_url) {
     try {
       const authzUrl = new URL(loginSession.authorization_url);
       const currentHost = ctx.var.host || "";
       if (authzUrl.host && authzUrl.host !== currentHost) {
         location = `${authzUrl.origin}${resumePath}`;
+        crossHost = true;
       }
     } catch {
       // Malformed authorization_url — just use the relative path.
     }
   }
 
+  const headers = new Headers({ location });
+  if (crossHost) {
+    // Tell Location-rewriting proxies to leave this redirect alone: the
+    // whole point of the hop is to reach the original authorization host,
+    // so rewriting it back onto the request host would loop forever.
+    headers.set(PRESERVE_LOCATION_HEADER, "1");
+  }
+
   return new Response(null, {
     status: 302,
-    headers: {
-      location,
-    },
+    headers,
   });
 }
 

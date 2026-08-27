@@ -100,6 +100,9 @@ describe("GET /authorize/resume", () => {
     expect(redirect.origin).toEqual("https://auth.example.com");
     expect(redirect.pathname).toEqual("/authorize/resume");
     expect(redirect.searchParams.get("state")).toEqual(loginSession.id);
+    // The deliberate cross-host hop is marked so Location-rewriting proxies
+    // (e.g. @authhero/proxy's rewrite_location) don't turn it into a loop.
+    expect(response.headers.get("x-authhero-preserve-location")).toEqual("1");
   });
 
   it("does not redirect to an authorization_url host that is neither a registered custom domain nor shares the registrable domain of the current host", async () => {

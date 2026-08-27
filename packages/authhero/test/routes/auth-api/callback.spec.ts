@@ -666,6 +666,9 @@ describe("callback", () => {
 
     // Callback hops via /authorize/resume — follow it to get the client redirect.
     expect(location).toEqual(`/authorize/resume?state=${loginSession.id}`);
+    // Same-host (relative) hops don't carry the preserve-location marker —
+    // it's only stamped on deliberate cross-host redirects.
+    expect(response.headers.get("x-authhero-preserve-location")).toBeNull();
     const resumeResponse = await oauthClient.authorize.resume.$get({
       query: { state: loginSession.id },
     });
@@ -868,6 +871,9 @@ describe("callback", () => {
     expect(redirect.origin).toEqual("https://auth.example.com");
     expect(redirect.pathname).toEqual("/authorize/resume");
     expect(redirect.searchParams.get("state")).toEqual(loginSession.id);
+    // The deliberate cross-host hop is marked so Location-rewriting proxies
+    // (e.g. @authhero/proxy's rewrite_location) don't turn it into a loop.
+    expect(response.headers.get("x-authhero-preserve-location")).toEqual("1");
 
     // The login session should now carry the authenticated identity so the
     // resume endpoint can complete without re-running the OAuth exchange.

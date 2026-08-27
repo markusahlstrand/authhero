@@ -1,5 +1,8 @@
 import { Context } from "hono";
-import { LoginSessionState } from "@authhero/adapter-interfaces";
+import {
+  LoginSessionState,
+  PRESERVE_LOCATION_HEADER,
+} from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
 import { JSONHTTPException } from "../errors/json-http-exception";
 import { getEnrichedClient } from "../helpers/client";
@@ -93,6 +96,11 @@ export async function resumeLoginSession(
           status: 302,
           headers: {
             location: target.toString(),
+            // Tell Location-rewriting proxies to leave this redirect alone:
+            // the whole point of the hop is to reach the original
+            // authorization host, so rewriting it back onto the request
+            // host would loop forever.
+            [PRESERVE_LOCATION_HEADER]: "1",
           },
         });
       }
