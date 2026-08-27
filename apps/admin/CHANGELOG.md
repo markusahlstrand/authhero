@@ -1,5 +1,14 @@
 # @authhero/admin
 
+## 0.20.2
+
+### Patch Changes
+
+- 58d3772: Bump `recharts` to `^3.10.1` so every app in the monorepo shares one version.
+- Updated dependencies [5b5d019]
+- Updated dependencies [1376877]
+  - @authhero/adapter-interfaces@4.11.0
+
 ## 0.20.1
 
 ### Patch Changes
