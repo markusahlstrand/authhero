@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { Hono } from "hono";
+import { unquoteLuceneValue } from "@authhero/adapter-interfaces";
 import { createControlPlaneClient } from "../helpers/control-plane-client";
 import { createTenantMembersControlPlaneApp } from "../routes/proxy-control-plane/tenant-members";
 import { createControlPlaneTenantMembersAdapter } from "./remote-backend";
@@ -70,10 +71,15 @@ function makeControlPlaneData() {
       async list(_t: string, params: any) {
         const q = params?.q ?? "";
         let rows = userOrgs;
+        // Callers quote and escape the value, mirroring the real adapters.
         if (q.startsWith("organization_id:"))
-          rows = userOrgs.filter((r) => r.organization_id === q.slice(16));
+          rows = userOrgs.filter(
+            (r) => r.organization_id === unquoteLuceneValue(q.slice(16)),
+          );
         else if (q.startsWith("user_id:"))
-          rows = userOrgs.filter((r) => r.user_id === q.slice(8));
+          rows = userOrgs.filter(
+            (r) => r.user_id === unquoteLuceneValue(q.slice(8)),
+          );
         return {
           userOrganizations: rows,
           start: 0,

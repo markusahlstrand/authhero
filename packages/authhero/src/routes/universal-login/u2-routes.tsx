@@ -47,6 +47,8 @@ import {
   resolveDarkMode,
 } from "./u2-widget-page";
 import { ErrorPage } from "./error-page";
+import { TokenInfoPage } from "./token-info-page";
+import { exchangeInfoPageCode } from "./info-code-exchange";
 import { DEFAULT_THEME } from "../../constants/defaultTheme";
 import { getAvailableLocales } from "../../i18n";
 import { resolveLanguage, resolveLocale } from "../../utils/locale";
@@ -946,10 +948,15 @@ const getInfo = defineRoute({
         description: "Info page",
         content: { "text/html": { schema: z.string() } },
       },
+      400: {
+        description:
+          "Sign-in failed: the redirect carried an OAuth error, or the authorization code could not be exchanged",
+        content: { "text/html": { schema: z.string() } },
+      },
     },
   }),
-  handler: async (ctx: any) => {
-    const { error, error_description } = ctx.req.valid("query");
+  handler: async (ctx) => {
+    const { code, error, error_description } = ctx.req.valid("query");
 
     const tenantId = ctx.var.tenant_id;
     let branding: Branding | null = null;
@@ -976,22 +983,59 @@ const getInfo = defineRoute({
       : null;
     const darkMode = resolveDarkMode(ctx, brandingWithFavicon);
 
-    const isError = Boolean(error || error_description);
-    const message = isError
-      ? error_description || error
-      : "You have signed in successfully.";
+    const brandingProps = extractBrandingProps(brandingWithFavicon);
+    const renderFailure = (message: string) =>
+      ctx.html(
+        <ErrorPage
+          variant="error"
+          title="Sign-in failed"
+          message={message}
+          statusCode={400}
+          branding={brandingProps}
+          theme={resolvedTheme}
+          darkMode={darkMode}
+        />,
+        400,
+      );
+
+    const oauthError = error_description || error;
+    if (oauthError) {
+      return renderFailure(oauthError);
+    }
+
+    // With a code and a resolvable tenant we can finish the flow right here:
+    // this page is the registered redirect_uri, so redeem the code server-side
+    // and show the issued tokens instead of a bare "signed in" message.
+    if (code && tenantId) {
+      const exchange = await exchangeInfoPageCode(ctx, tenantId, code);
+      if (!exchange.ok) {
+        return renderFailure(exchange.error_description);
+      }
+      // The page carries bearer tokens: keep it out of every cache.
+      return ctx.html(
+        <TokenInfoPage
+          tokens={exchange.tokens}
+          user={exchange.user}
+          branding={brandingProps}
+          theme={resolvedTheme}
+          darkMode={darkMode}
+        />,
+        200,
+        { "Cache-Control": "no-store", Pragma: "no-cache" },
+      );
+    }
 
     return ctx.html(
       <ErrorPage
-        variant={isError ? "error" : "info"}
-        title={isError ? "Sign-in failed" : "Signed in"}
-        message={message}
-        statusCode={isError ? 400 : 200}
-        branding={extractBrandingProps(brandingWithFavicon)}
+        variant="info"
+        title="Signed in"
+        message="You have signed in successfully."
+        statusCode={200}
+        branding={brandingProps}
         theme={resolvedTheme}
         darkMode={darkMode}
       />,
-      isError ? 400 : 200,
+      200,
     );
   },
 });

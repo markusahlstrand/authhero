@@ -100,10 +100,16 @@ ${colorConfig
 
 const ChartTooltip = RechartsPrimitive.Tooltip;
 
+// Recharts v3 reads `active`, `payload` and `label` from chart context instead
+// of passing them as `<Tooltip>` props, so they are picked off the content props
+// type rather than the `<Tooltip>` props type.
 const ChartTooltipContent = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<typeof RechartsPrimitive.Tooltip> &
-    React.ComponentProps<"div"> & {
+    React.ComponentProps<"div"> &
+    Partial<
+      Pick<RechartsPrimitive.TooltipContentProps, "payload" | "label">
+    > & {
       hideLabel?: boolean;
       hideIndicator?: boolean;
       indicator?: "line" | "dot" | "dashed";
@@ -137,7 +143,7 @@ const ChartTooltipContent = React.forwardRef<
       }
 
       const [item] = payload;
-      const key = `${labelKey || item.dataKey || item.name || "value"}`;
+      const key = `${labelKey || toConfigKey(item.dataKey) || item.name || "value"}`;
       const itemConfig = getPayloadConfigFromPayload(config, item, key);
       const value =
         !labelKey && typeof label === "string"
@@ -184,13 +190,13 @@ const ChartTooltipContent = React.forwardRef<
         {!nestLabel ? tooltipLabel : null}
         <div className="grid gap-1.5">
           {payload.map((item, index) => {
-            const key = `${nameKey || item.name || item.dataKey || "value"}`;
+            const key = `${nameKey || item.name || toConfigKey(item.dataKey) || "value"}`;
             const itemConfig = getPayloadConfigFromPayload(config, item, key);
-            const indicatorColor = color || item.payload.fill || item.color;
+            const indicatorColor = color || item.payload?.fill || item.color;
 
             return (
               <div
-                key={item.dataKey}
+                key={key + index}
                 className={cn(
                   "flex w-full flex-wrap items-stretch gap-2 [&>svg]:h-2.5 [&>svg]:w-2.5 [&>svg]:text-muted-foreground",
                   indicator === "dot" && "items-center",
@@ -256,10 +262,13 @@ ChartTooltipContent.displayName = "ChartTooltip";
 
 const ChartLegend = RechartsPrimitive.Legend;
 
+// `payload` is omitted from `<Legend>`'s own props in recharts v3; the content
+// renderer still receives it, so it is typed here from `LegendPayload`.
 const ChartLegendContent = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> &
-    Pick<RechartsPrimitive.LegendProps, "payload" | "verticalAlign"> & {
+    Pick<RechartsPrimitive.LegendProps, "verticalAlign"> & {
+      payload?: ReadonlyArray<RechartsPrimitive.LegendPayload>;
       hideIcon?: boolean;
       nameKey?: string;
     }
@@ -283,13 +292,13 @@ const ChartLegendContent = React.forwardRef<
           className,
         )}
       >
-        {payload.map((item) => {
-          const key = `${nameKey || item.dataKey || "value"}`;
+        {payload.map((item, index) => {
+          const key = `${nameKey || toConfigKey(item.dataKey) || "value"}`;
           const itemConfig = getPayloadConfigFromPayload(config, item, key);
 
           return (
             <div
-              key={item.value}
+              key={item.value ?? index}
               className={cn(
                 "flex items-center gap-1.5 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:text-muted-foreground",
               )}
@@ -313,6 +322,14 @@ const ChartLegendContent = React.forwardRef<
   },
 );
 ChartLegendContent.displayName = "ChartLegend";
+
+// `dataKey` may be an accessor function in recharts v3, which can't be used as a
+// config lookup key — only string/number keys are meaningful here.
+function toConfigKey(dataKey: RechartsPrimitive.DataKey<unknown> | undefined) {
+  return typeof dataKey === "string" || typeof dataKey === "number"
+    ? dataKey
+    : undefined;
+}
 
 // Helper to extract item config from a payload.
 function getPayloadConfigFromPayload(

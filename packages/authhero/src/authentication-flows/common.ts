@@ -10,6 +10,7 @@ import {
   RefreshToken,
   User,
   TokenResponse,
+  escapeLuceneValue,
 } from "@authhero/adapter-interfaces";
 import {
   formatRefreshToken,
@@ -72,6 +73,7 @@ import {
   resolveConnectionName,
   getConnectionInfo,
 } from "../helpers/connection";
+import { resolveRefreshTokenExpiry } from "../helpers/refresh-token-lifetime";
 
 /**
  * Minimal client properties actually used by createAuthTokens.
@@ -745,69 +747,6 @@ function lifetimeToIso(lifetimeHours?: number): string | undefined {
   return new Date(Date.now() + lifetimeHours * 60 * 60 * 1000).toISOString();
 }
 
-function lifetimeSecondsToIso(lifetimeSeconds?: number): string | undefined {
-  if (!lifetimeSeconds) return undefined;
-  return new Date(Date.now() + lifetimeSeconds * 1000).toISOString();
-}
-
-/**
- * Expiry columns for a freshly minted refresh token (#1260). The per-client
- * Auth0-compatible `refresh_token` config (seconds) wins when set —
- * `expiration_type: "non-expiring"` and the infinite flags mean no expiry at
- * all — falling back to the tenant session lifetimes (hours) when unset so
- * tenants without client-level config see no change.
- */
-export function getRefreshTokenLifetimes(client: EnrichedClient): {
-  absoluteExpiresAt: string | undefined;
-  idleExpiresAt: string | undefined;
-} {
-  const config = client.refresh_token;
-  const nonExpiring = config?.expiration_type === "non-expiring";
-
-  const absoluteExpiresAt =
-    nonExpiring || config?.infinite_token_lifetime
-      ? undefined
-      : (lifetimeSecondsToIso(config?.token_lifetime) ??
-        lifetimeToIso(client.tenant.session_lifetime));
-
-  const idleExpiresAt =
-    nonExpiring || config?.infinite_idle_token_lifetime
-      ? undefined
-      : (lifetimeSecondsToIso(config?.idle_token_lifetime) ??
-        lifetimeToIso(client.tenant.idle_session_lifetime));
-
-  return { absoluteExpiresAt, idleExpiresAt };
-}
-
-/**
- * Where an existing refresh token's sliding window moves on a successful
- * exchange. A token minted without an idle window never gains one. Otherwise
- * the per-client idle lifetime (seconds) drives the slide, falling back to
- * the tenant's idle_session_lifetime (hours); when neither is configured the
- * stored value is preserved unchanged. `undefined` means the token should
- * carry no idle expiry at all (client has since gone infinite-idle) — the
- * rotation path persists that on the child row, while in-place update paths
- * cannot clear a column and skip the write instead.
- */
-export function slideRefreshTokenIdleExpiry(
-  client: EnrichedClient,
-  currentIdleExpiresAt: string | undefined,
-): string | undefined {
-  if (!currentIdleExpiresAt) return undefined;
-  const config = client.refresh_token;
-  if (
-    config?.expiration_type === "non-expiring" ||
-    config?.infinite_idle_token_lifetime
-  ) {
-    return undefined;
-  }
-  return (
-    lifetimeSecondsToIso(config?.idle_token_lifetime) ??
-    lifetimeToIso(client.tenant.idle_session_lifetime) ??
-    currentIdleExpiresAt
-  );
-}
-
 export async function createRefreshToken(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: CreateRefreshTokenParams,
@@ -819,7 +758,10 @@ export async function createRefreshToken(
   const audience =
     params.audience ?? client.tenant.default_audience ?? `${iss}userinfo`;
 
-  const { idleExpiresAt, absoluteExpiresAt } = getRefreshTokenLifetimes(client);
+  // Refresh-token expiry comes from the client's own `refresh_token` config
+  // when set, falling back to the tenant session lifetimes (issue #1260).
+  const { expires_at: absoluteExpiresAt, idle_expires_at: idleExpiresAt } =
+    resolveRefreshTokenExpiry(client);
 
   const id = ulid();
   const { lookup, secret } = generateRefreshTokenParts();
@@ -2257,7 +2199,7 @@ export async function completeLogin(
     const userOrgs = await ctx.env.data.userOrganizations.list(
       params.client.tenant.id,
       {
-        q: `user_id:${user.user_id}`,
+        q: `user_id:${escapeLuceneValue(user.user_id)}`,
         per_page: 1000, // Should be enough for most cases
       },
     );

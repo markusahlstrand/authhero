@@ -11,7 +11,7 @@
     "type": "git",
     "url": "https://github.com/markusahlstrand/authhero"
   },
-  "version": "9.9.0",
+  "version": "9.9.1",
   "files": [
     "dist"
   ],
@@ -51,8 +51,7 @@
     "@authhero/widget": "workspace:*",
     "@hono/node-server": "^1.19.14",
     "@hono/zod-openapi": "^1.4.0",
-    "@react-email/components": "^1.0.12",
-    "@react-email/render": "^2.0.6",
+    "@react-email/render": "^2.1.0",
     "@storybook/react": "^10.4.1",
     "@storybook/react-vite": "^10.4.1",
     "@types/node": "^24.12.4",
@@ -71,6 +70,7 @@
     "postcss": "8.5.15",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
+    "react-email": "^6.9.3",
     "rollup": "^4.54.0",
     "rollup-plugin-dts": "^6.4.1",
     "rollup-plugin-visualizer": "^6.0.5",

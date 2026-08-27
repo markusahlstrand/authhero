@@ -17,6 +17,7 @@ import { stringifyAuth0Client } from "../../utils/client-info";
 import { getUniversalLoginUrl } from "../../variables";
 import { setTenantId } from "../../helpers/set-tenant-id";
 import { defineRoute } from "../../utils/define-route";
+import { normalizeEmail } from "../../utils/email";
 const postStart = defineRoute({
   route: createRoute({
     tags: ["passwordless"],
@@ -30,7 +31,7 @@ const postStart = defineRoute({
               z.object({
                 connection: z.literal("email"),
                 client_id: z.string(),
-                email: z.string().transform((u) => u.toLowerCase()),
+                email: z.string().transform((u) => normalizeEmail(u)),
                 send: z.enum(["link", "code"]),
                 authParams: authParamsSchema.omit({ client_id: true }),
               }),
@@ -140,7 +141,7 @@ const getVerifyRedirect = defineRoute({
         verification_code: z.string(),
         connection: z.string(),
         client_id: z.string(),
-        email: z.string().transform((u) => u.toLowerCase()),
+        email: z.string().transform((u) => normalizeEmail(u)),
         audience: z.string().optional(),
       }),
     },

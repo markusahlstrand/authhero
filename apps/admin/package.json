@@ -1,6 +1,6 @@
 {
   "name": "@authhero/admin",
-  "version": "0.20.1",
+  "version": "0.20.2",
   "private": false,
   "packageManager": "pnpm@10.32.1",
   "files": [
@@ -73,7 +73,7 @@
     "react-hook-form": "^7.76.1",
     "react-router": "^7.15.1",
     "react-router-dom": "^7.15.1",
-    "recharts": "^3.8.1",
+    "recharts": "^3.10.1",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.6.0",
     "tailwindcss": "^4.0.6",

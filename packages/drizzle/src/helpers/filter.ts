@@ -51,7 +51,11 @@ export function coalescedExpr(mapping: CoalescedNumericColumn): SQL {
 // so both adapters get the same tenant-boundary protection: without it a
 // clause like `q=tenant_id:other` would emit SQL against arbitrary columns.
 export { sanitizeLuceneQuery } from "@authhero/adapter-interfaces";
-import { isEmailSearchTerm } from "@authhero/adapter-interfaces";
+import {
+  isEmailSearchTerm,
+  splitLuceneOrGroups,
+  unescapeLuceneValue,
+} from "@authhero/adapter-interfaces";
 
 /**
  * Apply a Lucene-style filter query string to a Drizzle query.
@@ -89,28 +93,39 @@ export function buildLuceneFilter(
     return Number.isFinite(num) ? num : value;
   };
 
-  // Handle OR queries
-  const orParts = query.split(/ OR /i);
+  // Tokenize (quote-aware) and split on the OR operator. The split runs on
+  // tokens rather than on the raw string so a quoted value containing ` OR `
+  // stays one literal instead of breaking out into extra clauses.
+  const orGroups = splitLuceneOrGroups(query);
 
-  if (orParts.length > 1) {
-    const conditions = orParts
-      .map((orPart) => {
-        const match = orPart.trim().match(/^([^:]+):(.+)$/);
-        if (match) {
-          const [, field, value] = match;
-          if (!field || !value) return null;
-          const fieldName = field.trim();
-          const cleanValue = value.replace(/^"(.*)"$/, "$1").trim();
-          const col = columns[fieldName];
-          if (isCoalescedNumericColumn(col)) {
-            return eq(coalescedExpr(col), toNumericOperand(cleanValue));
-          }
-          if (!is(col, Column)) return null;
-          return likeSet.has(fieldName)
-            ? like(col, `%${cleanValue}%`)
-            : eq(col, cleanValue);
-        }
-        return null;
+  if (orGroups.length > 1) {
+    const conditions = orGroups
+      .map((groupTokens) => {
+        // Clauses within a group are conjoined (Lucene's implicit AND).
+        const groupConditions = groupTokens
+          .map((token) => {
+            const match = token.match(/^([^:]+):(.+)$/);
+            if (!match) return null;
+            const [, field, value] = match;
+            if (!field || !value) return null;
+            const fieldName = field.trim();
+            const cleanValue = unescapeLuceneValue(
+              value.replace(/^"(.*)"$/, "$1").trim(),
+            );
+            const col = columns[fieldName];
+            if (isCoalescedNumericColumn(col)) {
+              return eq(coalescedExpr(col), toNumericOperand(cleanValue));
+            }
+            if (!is(col, Column)) return null;
+            return likeSet.has(fieldName)
+              ? like(col, `%${cleanValue}%`)
+              : eq(col, cleanValue);
+          })
+          .filter((condition): condition is SQL => condition !== null);
+
+        if (groupConditions.length === 0) return null;
+        if (groupConditions.length === 1) return groupConditions[0]!;
+        return and(...groupConditions) ?? null;
       })
       .filter((condition): condition is SQL => condition !== null);
 
@@ -118,28 +133,8 @@ export function buildLuceneFilter(
     return or(...conditions);
   }
 
-  // Tokenize while respecting quoted strings
-  const tokens: string[] = [];
-  let current = "";
-  let inQuotes = false;
-
-  for (let i = 0; i < query.length; i++) {
-    const char = query[i];
-    if (char === '"') {
-      inQuotes = !inQuotes;
-      current += char;
-    } else if (char === " " && !inQuotes) {
-      if (current.trim()) {
-        tokens.push(current.trim());
-        current = "";
-      }
-    } else {
-      current += char;
-    }
-  }
-  if (current.trim()) {
-    tokens.push(current.trim());
-  }
+  // Single token group — the plain conjunction path.
+  const tokens = orGroups[0] ?? [];
 
   const filters = tokens
     // `AND` is the implicit conjunction in Lucene (operators are uppercase),
@@ -191,9 +186,14 @@ export function buildLuceneFilter(
         if (value.startsWith('"') && value.endsWith('"') && value.length > 1) {
           value = value.slice(1, -1);
         }
+
+        // Reverse client-side Lucene escaping (e.g. `\-` -> `-`) so the operand
+        // matches the stored value rather than a backslash-prefixed literal,
+        // matching the kysely adapter.
+        value = unescapeLuceneValue(value);
       } else {
         key = null;
-        value = filter;
+        value = unescapeLuceneValue(filter);
         isExistsQuery = false;
       }
 

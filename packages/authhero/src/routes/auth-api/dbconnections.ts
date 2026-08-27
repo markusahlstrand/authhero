@@ -26,6 +26,7 @@ import { stringifyAuth0Client } from "../../utils/client-info";
 import { setTenantId } from "../../helpers/set-tenant-id";
 import { getEnrichedClient } from "../../helpers/client";
 import { defineRoute } from "../../utils/define-route";
+import { normalizeEmail } from "../../utils/email";
 const postSignup = defineRoute({
   route: createRoute({
     tags: ["dbconnections"],
@@ -38,7 +39,7 @@ const postSignup = defineRoute({
             schema: z.object({
               client_id: z.string(),
               connection: z.literal(Strategy.USERNAME_PASSWORD),
-              email: z.string().transform((u) => u.toLowerCase()),
+              email: z.string().transform((u) => normalizeEmail(u)),
               password: z.string(),
             }),
           },
@@ -167,7 +168,7 @@ const postChangePassword = defineRoute({
             schema: z.object({
               client_id: z.string(),
               connection: z.literal(Strategy.USERNAME_PASSWORD),
-              email: z.string().transform((u) => u.toLowerCase()),
+              email: z.string().transform((u) => normalizeEmail(u)),
             }),
           },
         },

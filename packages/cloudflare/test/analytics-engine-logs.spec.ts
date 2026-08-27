@@ -16,6 +16,7 @@ import {
 import {
   createPassthroughAdapter,
   createWriteOnlyAdapter,
+  escapeLuceneValue,
   LogsDataAdapter,
 } from "@authhero/adapter-interfaces";
 
@@ -379,6 +380,41 @@ describe("Analytics Engine Logs Adapter", () => {
       const sql = capturedQueries[0]!;
       expect(sql).toContain("blob7 = 'smy|5b813ca3ec684001b8023df2'");
       expect(sql).not.toContain(`'"smy|`);
+    });
+
+    it("keeps an escaped value with a quote in a single clause", async () => {
+      // The user-logs handler escapes each id into `user_id:"…"`. An id
+      // carrying a quote must not close its clause and add another user's.
+      const capturedQueries: string[] = [];
+      server.use(
+        http.post(
+          "https://api.cloudflare.com/client/v4/accounts/test-account/analytics_engine/sql",
+          async ({ request }) => {
+            const query = await request.text();
+            capturedQueries.push(query);
+            return HttpResponse.json({ success: true, data: mockLogs });
+          },
+        ),
+      );
+
+      const adapter = createAnalyticsEngineLogsAdapter({
+        accountId: "test-account",
+        apiToken: "test-token",
+        dataset: "authhero_logs",
+      });
+
+      const crafted = `email|crafted" OR user_id:"email|victim`;
+      await adapter.list("tenant-1", {
+        page: 0,
+        per_page: 50,
+        q: `user_id:${escapeLuceneValue(crafted)}`,
+      });
+
+      const sql = capturedQueries[0]!;
+      expect(sql).toContain(
+        `blob7 = 'email|crafted" OR user_id:"email|victim'`,
+      );
+      expect(sql).not.toContain("IN (");
     });
 
     it("should OR multiple values for the same key into an IN clause", async () => {

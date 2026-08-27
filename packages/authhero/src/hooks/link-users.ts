@@ -6,6 +6,7 @@ import {
 import { getPrimaryUserByEmail, resolveClusterRootId } from "../helpers/users";
 import { JSONHTTPException } from "../errors/json-http-exception";
 import { isUniqueConstraintError } from "../errors/is-unique-constraint-error";
+import { normalizeEmail } from "../utils/email";
 
 export interface CommitUserResult {
   user: User;
@@ -62,7 +63,9 @@ export function commitUserHook(data: DataAdapters) {
         // the lookup, decision, and write are atomic — no TOCTOU window
         // against a concurrent create with the same email.
         if (resolveEmailLinkedPrimary && !user.linked_to) {
-          const normalizedEmail = user.email?.toLowerCase();
+          const normalizedEmail = user.email
+            ? normalizeEmail(user.email)
+            : undefined;
           if (normalizedEmail && user.email_verified) {
             const primaryUser = await getPrimaryUserByEmail({
               userAdapter: trxData.users,
@@ -155,7 +158,7 @@ async function findExistingUser(
   user: User,
 ): Promise<User | null> {
   const q = user.email
-    ? `email:${user.email.toLowerCase()}`
+    ? `email:${normalizeEmail(user.email)}`
     : user.phone_number
       ? `phone_number:${user.phone_number}`
       : user.username

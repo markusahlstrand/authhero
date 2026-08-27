@@ -237,30 +237,30 @@ export const clientInsertSchema = z.object({
         description:
           "Seconds after a parent token's first rotation during which presenting it again still mints a fresh sibling child instead of triggering reuse-detection. Defaults to 30s when unset.",
       }),
-      // Auth0-compatible fields. Listed explicitly (rather than using
+      // Auth0-compatible lifetime fields. Listed explicitly (rather than using
       // .passthrough()) so they survive parse cycles AND keep type info,
       // without tripping dts-bundle-generator's handling of zod's
-      // `objectInputType`. Honored by the engine since #1260: they drive
-      // refresh-token expiry, falling back to the tenant session lifetimes
-      // when unset.
+      // `objectInputType`. Honored by the engine when set; when unset the
+      // tenant's `session_lifetime` / `idle_session_lifetime` still apply.
       expiration_type: z.enum(["expiring", "non-expiring"]).optional().openapi({
-        description: "Auth0-compatible: whether refresh tokens expire.",
+        description:
+          "Whether refresh tokens for this client expire at all. 'non-expiring' overrides both the absolute and the idle lifetime.",
       }),
       token_lifetime: z.number().int().min(0).optional().openapi({
         description:
-          "Auth0-compatible: refresh-token absolute lifetime in seconds.",
+          "Refresh-token absolute lifetime in seconds. Falls back to the tenant's `session_lifetime` when unset.",
       }),
       infinite_token_lifetime: z.boolean().optional().openapi({
         description:
-          "Auth0-compatible: when true, refresh tokens have no absolute expiry.",
+          "When true, refresh tokens have no absolute expiry (overrides `token_lifetime`).",
       }),
       idle_token_lifetime: z.number().int().min(0).optional().openapi({
         description:
-          "Auth0-compatible: refresh-token idle (sliding) lifetime in seconds.",
+          "Refresh-token idle (sliding) lifetime in seconds, refreshed on every exchange. Falls back to the tenant's `idle_session_lifetime` when unset.",
       }),
       infinite_idle_token_lifetime: z.boolean().optional().openapi({
         description:
-          "Auth0-compatible: when true, refresh tokens have no idle expiry.",
+          "When true, refresh tokens have no idle expiry (overrides `idle_token_lifetime`).",
       }),
     })
     .default({})

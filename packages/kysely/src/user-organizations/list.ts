@@ -4,8 +4,16 @@ import {
   UserOrganization,
   Totals,
   ListParams,
+  unquoteLuceneValue,
 } from "@authhero/adapter-interfaces";
 import { keysetPaginate, isKeysetRequest } from "../helpers/paginate";
+
+// This list only ever supports a single exact clause, so it picks the operand
+// out of `q` directly instead of running the Lucene filter. Callers quote and
+// escape the value (see `escapeLuceneValue`), so unquote it again here.
+function clauseValue(q: string, field: string): string {
+  return unquoteLuceneValue(q.slice(field.length + 1));
+}
 
 export function list(db: Kysely<Database>) {
   return async (
@@ -21,11 +29,13 @@ export function list(db: Kysely<Database>) {
     if (params?.q) {
       // Check if the query is for a specific user or organization
       if (params.q.startsWith("user_id:")) {
-        const userId = params.q.replace("user_id:", "");
-        query = query.where("user_id", "=", userId);
+        query = query.where("user_id", "=", clauseValue(params.q, "user_id"));
       } else if (params.q.startsWith("organization_id:")) {
-        const organizationId = params.q.replace("organization_id:", "");
-        query = query.where("organization_id", "=", organizationId);
+        query = query.where(
+          "organization_id",
+          "=",
+          clauseValue(params.q, "organization_id"),
+        );
       }
     }
 
@@ -77,11 +87,17 @@ export function list(db: Kysely<Database>) {
 
     if (params?.q) {
       if (params.q.startsWith("user_id:")) {
-        const userId = params.q.replace("user_id:", "");
-        countQuery = countQuery.where("user_id", "=", userId);
+        countQuery = countQuery.where(
+          "user_id",
+          "=",
+          clauseValue(params.q, "user_id"),
+        );
       } else if (params.q.startsWith("organization_id:")) {
-        const organizationId = params.q.replace("organization_id:", "");
-        countQuery = countQuery.where("organization_id", "=", organizationId);
+        countQuery = countQuery.where(
+          "organization_id",
+          "=",
+          clauseValue(params.q, "organization_id"),
+        );
       }
     }
 

@@ -1,7 +1,11 @@
 import { Client, Totals } from "@authhero/adapter-interfaces";
 import { Kysely, Selectable, sql } from "kysely";
 import { Database } from "../db";
-import { ListParams } from "@authhero/adapter-interfaces";
+import {
+  ListParams,
+  tokenizeLuceneQuery,
+  unquoteLuceneValue,
+} from "@authhero/adapter-interfaces";
 import { removeNullProperties } from "../helpers/remove-nulls";
 import { keysetPaginate, isKeysetRequest } from "../helpers/paginate";
 
@@ -52,6 +56,20 @@ function sqlToClient(result: Selectable<Database["clients"]>): Client {
   });
 }
 
+// The exact-match branch below only fires for a query that is a single
+// `field:value` clause. Tokenizing first means a quoted value keeps its
+// spaces and an escaped quote cannot end it, and unquoting reverses the
+// escaping the caller applied (see `escapeLuceneValue`).
+function exactClause(q: string): { field: string; value: string } | null {
+  const tokens = tokenizeLuceneQuery(q);
+  if (tokens.length !== 1) return null;
+  const match = tokens[0]!.match(/^([a-zA-Z_][a-zA-Z0-9_]*):(.+)$/);
+  if (!match) return null;
+  const value = unquoteLuceneValue(match[2]!);
+  if (!value) return null;
+  return { field: match[1]!, value };
+}
+
 export function list(db: Kysely<Database>) {
   return async (
     tenantId: string,
@@ -71,19 +89,12 @@ export function list(db: Kysely<Database>) {
       "registration_type",
     ]);
     if (params?.q) {
-      const trimmed = params.q.trim();
-      const exactMatch = trimmed.match(
-        /^([a-zA-Z_][a-zA-Z0-9_]*):"?([^"]*)"?$/,
-      );
-      if (
-        exactMatch &&
-        exactMatchableFields.has(exactMatch[1]!) &&
-        exactMatch[2]
-      ) {
-        const fieldName = exactMatch[1] as
+      const exactMatch = exactClause(params.q);
+      if (exactMatch && exactMatchableFields.has(exactMatch.field)) {
+        const fieldName = exactMatch.field as
           | "owner_user_id"
           | "registration_type";
-        query = query.where(fieldName, "=", exactMatch[2]!);
+        query = query.where(fieldName, "=", exactMatch.value);
       } else {
         query = query.where((eb) =>
           eb.or([
@@ -145,19 +156,12 @@ export function list(db: Kysely<Database>) {
         .where("clients.tenant_id", "=", tenantId);
 
       if (params?.q) {
-        const trimmed = params.q.trim();
-        const exactMatch = trimmed.match(
-          /^([a-zA-Z_][a-zA-Z0-9_]*):"?([^"]*)"?$/,
-        );
-        if (
-          exactMatch &&
-          exactMatchableFields.has(exactMatch[1]!) &&
-          exactMatch[2]
-        ) {
-          const fieldName = exactMatch[1] as
+        const exactMatch = exactClause(params.q);
+        if (exactMatch && exactMatchableFields.has(exactMatch.field)) {
+          const fieldName = exactMatch.field as
             | "owner_user_id"
             | "registration_type";
-          countQuery = countQuery.where(fieldName, "=", exactMatch[2]!);
+          countQuery = countQuery.where(fieldName, "=", exactMatch.value);
         } else {
           countQuery = countQuery.where((eb) =>
             eb.or([

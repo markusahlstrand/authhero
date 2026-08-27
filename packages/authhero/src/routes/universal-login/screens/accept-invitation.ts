@@ -18,6 +18,7 @@ import {
   LogTypes,
   Strategy,
   isDatabaseConnectionStrategy,
+  escapeLuceneValue,
 } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { createTranslation } from "../../../i18n";
@@ -427,7 +428,7 @@ export const acceptInvitationScreenDefinition: ScreenDefinition = {
       // Add to organization (idempotent).
       const existing = await ctx.env.data.userOrganizations.list(
         client.tenant.id,
-        { q: `user_id:${user.user_id}`, per_page: 50 },
+        { q: `user_id:${escapeLuceneValue(user.user_id)}`, per_page: 50 },
       );
       const alreadyMember = existing.userOrganizations.some(
         (uo) => uo.organization_id === invite.organization_id,

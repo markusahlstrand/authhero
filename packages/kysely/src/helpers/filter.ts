@@ -18,19 +18,14 @@ export function coalescedRef(field: CoalescedNumericField) {
   return sql`coalesce(${sql.ref(field.column)}, ${sql.lit(field.defaultValue)})`;
 }
 
-// Reverse Lucene escaping on a value operand: a backslash followed by a Lucene
-// reserved character is a literal of that character (e.g. `auth0|abc\-123` ->
-// `auth0|abc-123`). Clients (such as the admin UI) escape filter values per
-// Lucene rules before interpolating them into the query string, so without this
-// the backslash leaks into the SQL comparison and exact matches never hit.
-function unescapeLuceneValue(value: string): string {
-  return value.replace(/\\([\\"+\-!(){}[\]^~*?:/&|])/g, "$1");
-}
-
 // Re-exported so existing `../helpers/filter` imports keep working; the
 // implementation is shared with the drizzle adapter via adapter-interfaces.
 export { sanitizeLuceneQuery } from "@authhero/adapter-interfaces";
-import { isEmailSearchTerm } from "@authhero/adapter-interfaces";
+import {
+  isEmailSearchTerm,
+  splitLuceneOrGroups,
+  unescapeLuceneValue,
+} from "@authhero/adapter-interfaces";
 
 // Generic over the query builder's DB type (not just `Database`) because
 // left-joined builders carry a widened DB type with nullable joined columns.
@@ -70,30 +65,42 @@ export function luceneFilter<DB, TB extends keyof DB, O>(
     const num = Number(value);
     return Number.isFinite(num) ? num : value;
   };
-  // Split by OR first to handle OR queries
-  const orParts = query.split(/ OR /i);
+  // Tokenize (quote-aware) and split on the OR operator. The split runs on
+  // tokens rather than on the raw string so a quoted value containing ` OR `
+  // stays one literal instead of breaking out into extra clauses.
+  const orGroups = splitLuceneOrGroups(query);
 
-  if (orParts.length > 1) {
-    // Handle OR query - combine all parts with OR logic
+  if (orGroups.length > 1) {
+    // Handle OR query - combine all groups with OR logic, conjoining the
+    // clauses within each group.
     return qb.where((eb) => {
-      const conditions = orParts
-        .map((orPart) => {
-          // Process each OR part recursively to handle AND within it
+      const conditions = orGroups
+        .map((groupTokens) => {
           // For simplicity, just parse field:value pairs directly
-          const match = orPart.trim().match(/^([^:]+):(.+)$/);
-          if (match) {
-            const [, field, value] = match;
-            if (!field || !value) return null;
-            const fieldName = field.trim();
-            const cleanValue = unescapeLuceneValue(
-              value.replace(/^"(.*)"$/, "$1").trim(),
-            );
-            if (likeSet.has(fieldName)) {
-              return eb(ref(toColumn(fieldName)), "like", `%${cleanValue}%`);
-            }
-            return eb(toLhs(fieldName), "=", toOperand(fieldName, cleanValue));
-          }
-          return null;
+          const groupConditions = groupTokens
+            .map((token) => {
+              const match = token.match(/^([^:]+):(.+)$/);
+              if (!match) return null;
+              const [, field, value] = match;
+              if (!field || !value) return null;
+              const fieldName = field.trim();
+              const cleanValue = unescapeLuceneValue(
+                value.replace(/^"(.*)"$/, "$1").trim(),
+              );
+              if (likeSet.has(fieldName)) {
+                return eb(ref(toColumn(fieldName)), "like", `%${cleanValue}%`);
+              }
+              return eb(
+                toLhs(fieldName),
+                "=",
+                toOperand(fieldName, cleanValue),
+              );
+            })
+            .filter((condition) => condition !== null);
+
+          if (groupConditions.length === 0) return null;
+          if (groupConditions.length === 1) return groupConditions[0]!;
+          return eb.and(groupConditions);
         })
         .filter((condition) => condition !== null);
 
@@ -101,31 +108,8 @@ export function luceneFilter<DB, TB extends keyof DB, O>(
     });
   }
 
-  // Original logic for AND queries
-  // Tokenize the query while respecting quoted strings
-  const tokens: string[] = [];
-  let current = "";
-  let inQuotes = false;
-
-  for (let i = 0; i < query.length; i++) {
-    const char = query[i];
-
-    if (char === '"') {
-      inQuotes = !inQuotes;
-      current += char;
-    } else if (char === " " && !inQuotes) {
-      if (current.trim()) {
-        tokens.push(current.trim());
-        current = "";
-      }
-    } else {
-      current += char;
-    }
-  }
-
-  if (current.trim()) {
-    tokens.push(current.trim());
-  }
+  // Original logic for AND queries, over the single remaining token group
+  const tokens = orGroups[0] ?? [];
 
   const filters = tokens
     // `AND` is the implicit conjunction in Lucene (operators are uppercase),

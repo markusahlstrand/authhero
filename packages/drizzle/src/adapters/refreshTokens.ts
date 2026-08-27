@@ -3,6 +3,7 @@ import { nanoid } from "nanoid";
 import type {
   RefreshToken,
   RefreshTokenListParams,
+  RefreshTokenUpdate,
   UpdateRefreshTokenOptions,
 } from "@authhero/adapter-interfaces";
 import { refreshTokens, loginSessions } from "../schema/sqlite";
@@ -181,7 +182,7 @@ export function createRefreshTokensAdapter(db: DrizzleDb) {
     async update(
       tenant_id: string,
       id: string,
-      token: Partial<RefreshToken>,
+      token: RefreshTokenUpdate,
       options?: UpdateRefreshTokenOptions,
     ): Promise<boolean> {
       const updateData: any = {};

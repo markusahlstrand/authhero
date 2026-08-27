@@ -2,12 +2,13 @@ import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
 import { getTestServer } from "../../helpers/test-server";
 import { getAdminToken } from "../../helpers/token";
+import { createSessions } from "../../helpers/create-session";
 import { AuthorizationResponseType } from "@authhero/adapter-interfaces";
 
 import { u2Screen } from "../../helpers/u2-screen";
 describe("u2 routes", () => {
   describe("info landing page", () => {
-    it("renders a branded info page without leaking the auth code", async () => {
+    it("rejects an unknown auth code without leaking it", async () => {
       const { u2App, env } = await getTestServer({ mockEmail: true });
 
       const response = await u2App.request(
@@ -16,11 +17,209 @@ describe("u2 routes", () => {
         env,
       );
 
+      expect(response.status).toBe(400);
+      const html = await response.text();
+      expect(html).toContain("Sign-in failed");
+      expect(html).toContain(
+        "The authorization code is invalid, expired or has already been used.",
+      );
+      expect(html).not.toContain("abc123");
+    });
+
+    it("renders a plain signed-in page when no code is present", async () => {
+      const { u2App, env } = await getTestServer({ mockEmail: true });
+
+      const response = await u2App.request(
+        "http://localhost/info?state=1234",
+        { method: "GET" },
+        env,
+      );
+
       expect(response.status).toBe(200);
       const html = await response.text();
       expect(html).toContain("Signed in");
       expect(html).toContain("You have signed in successfully.");
-      expect(html).not.toContain("abc123");
+    });
+
+    async function seedInfoPageCode(
+      env: Awaited<ReturnType<typeof getTestServer>>["env"],
+      redirectUri: string,
+      codeId: string,
+    ) {
+      const { loginSession } = await createSessions(env.data);
+      await env.data.loginSessions.update("tenantId", loginSession.id, {
+        authParams: {
+          ...loginSession.authParams,
+          redirect_uri: redirectUri,
+          scope: "openid profile email",
+          state: "1234",
+        },
+      });
+      await env.data.codes.create("tenantId", {
+        code_type: "authorization_code",
+        user_id: "email|userId",
+        code_id: codeId,
+        login_id: loginSession.id,
+        redirect_uri: redirectUri,
+        expires_at: new Date(Date.now() + 60_000).toISOString(),
+      });
+      return loginSession;
+    }
+
+    it("exchanges a code issued for the info page and shows the tokens", async () => {
+      const { u2App, env } = await getTestServer({ mockEmail: true });
+      // No Host header in app.request(), so the browser-facing host falls
+      // back to the issuer's (localhost:3000).
+      await seedInfoPageCode(
+        env,
+        "http://localhost:3000/info",
+        "info-page-code",
+      );
+
+      const response = await u2App.request(
+        "http://localhost/info?state=1234&code=info-page-code",
+        { method: "GET" },
+        env,
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("cache-control")).toBe("no-store");
+      const html = await response.text();
+      expect(html).toContain("Signed in");
+      expect(html).toContain("Copy id token");
+      expect(html).toContain("Copy access token");
+      // Claims grid shows the ID token payload.
+      expect(html).toContain("email|userId");
+      expect(html).toMatch(/data-copy-token="[^"]+\.[^"]+\.[^"]+"/);
+      expect(html).not.toContain("info-page-code");
+
+      // The code is single-use: it's consumed by the exchange.
+      const code = await env.data.codes.get(
+        "tenantId",
+        "info-page-code",
+        "authorization_code",
+      );
+      expect(code?.used_at).toBeTruthy();
+
+      const replay = await u2App.request(
+        "http://localhost/info?state=1234&code=info-page-code",
+        { method: "GET" },
+        env,
+      );
+      expect(replay.status).toBe(400);
+      expect(await replay.text()).toContain("Sign-in failed");
+    });
+
+    it("refuses a code whose redirect_uri only differs in scheme", async () => {
+      const { u2App, env } = await getTestServer({ mockEmail: true });
+      // Test issuer and request are both plain http; an https twin of the
+      // same host/path must not qualify (nor an http twin of an https page).
+      await seedInfoPageCode(env, "https://localhost:3000/info", "scheme-code");
+
+      const response = await u2App.request(
+        "http://localhost/info?state=1234&code=scheme-code",
+        { method: "GET" },
+        env,
+      );
+
+      expect(response.status).toBe(400);
+      expect(await response.text()).toContain("was not issued for this page");
+      const code = await env.data.codes.get(
+        "tenantId",
+        "scheme-code",
+        "authorization_code",
+      );
+      expect(code?.used_at).toBeFalsy();
+    });
+
+    describe("behind a proxy", () => {
+      // Public origin is https; the worker sees a plain-http internal URL and
+      // learns the browser-facing host from x-forwarded-host.
+      async function proxiedServer() {
+        const server = await getTestServer({ mockEmail: true });
+        server.env.ISSUER = "https://auth.example.com/";
+        return server;
+      }
+      const request = (
+        server: Awaited<ReturnType<typeof getTestServer>>,
+        code: string,
+      ) =>
+        server.u2App.request(
+          `http://internal.worker/info?state=1234&code=${code}`,
+          {
+            method: "GET",
+            headers: { "x-forwarded-host": "auth.example.com" },
+          },
+          server.env,
+        );
+
+      it("accepts a code issued for the public https origin", async () => {
+        const server = await proxiedServer();
+        await seedInfoPageCode(
+          server.env,
+          "https://auth.example.com/info",
+          "public",
+        );
+        const response = await request(server, "public");
+        expect(response.status).toBe(200);
+        expect(await response.text()).toContain("Copy access token");
+      });
+
+      it("refuses the cleartext http twin of the public origin", async () => {
+        const server = await proxiedServer();
+        await seedInfoPageCode(
+          server.env,
+          "http://auth.example.com/info",
+          "http-twin",
+        );
+        const response = await request(server, "http-twin");
+        expect(response.status).toBe(400);
+        expect(await response.text()).toContain("was not issued for this page");
+        const code = await server.env.data.codes.get(
+          "tenantId",
+          "http-twin",
+          "authorization_code",
+        );
+        expect(code?.used_at).toBeFalsy();
+      });
+
+      it("refuses a code issued for the internal request origin", async () => {
+        const server = await proxiedServer();
+        await seedInfoPageCode(
+          server.env,
+          "http://internal.worker/info",
+          "internal",
+        );
+        expect((await request(server, "internal")).status).toBe(400);
+      });
+    });
+
+    it("refuses to exchange a code that was issued for another redirect_uri", async () => {
+      const { u2App, env } = await getTestServer({ mockEmail: true });
+      await seedInfoPageCode(
+        env,
+        "https://example.com/callback",
+        "stolen-code",
+      );
+
+      const response = await u2App.request(
+        "http://localhost/info?state=1234&code=stolen-code",
+        { method: "GET" },
+        env,
+      );
+
+      expect(response.status).toBe(400);
+      const html = await response.text();
+      expect(html).toContain("was not issued for this page");
+      expect(html).not.toContain("Copy access token");
+
+      // A rejected code must remain redeemable at the real redirect target.
+      const code = await env.data.codes.get(
+        "tenantId",
+        "stolen-code",
+        "authorization_code",
+      );
+      expect(code?.used_at).toBeFalsy();
     });
 
     it("renders an error page when the redirect carries an OAuth error", async () => {

@@ -82,6 +82,58 @@ describe("GET /users/{user_id}/logs", () => {
     expect(userIds).toEqual([primaryId, secondaryId].sort());
   });
 
+  it("does not widen to another user's logs via a crafted user id", async () => {
+    // The handler builds `user_id:"…" OR user_id:"…"` from the path param and
+    // the primary's linked accounts. An id carrying a quote used to close the
+    // clause and add one of its own; escapeLuceneValue keeps it a literal.
+    const { managementApp, env } = await getTestServer();
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const victimId = "email|logs-victim";
+    const craftedId = `email|crafted" OR user_id:"${victimId}`;
+
+    for (const [user_id, email] of [
+      [craftedId, "crafted@example.com"],
+      [victimId, "logs-victim@example.com"],
+    ]) {
+      await env.data.users.create("tenantId", {
+        email: email!,
+        user_id: user_id!,
+        provider: "email",
+        email_verified: true,
+        connection: "email",
+        is_social: false,
+      });
+    }
+
+    await env.data.logs.create("tenantId", {
+      type: LogTypes.SUCCESS_LOGIN,
+      date: new Date("2026-04-04T00:00:00Z").toISOString(),
+      description: "victim login",
+      isMobile: false,
+      user_id: victimId,
+    });
+
+    const response = await managementClient.users[":user_id"].logs.$get(
+      {
+        param: { user_id: craftedId },
+        query: {},
+        header: { "tenant-id": "tenantId" },
+      },
+      {
+        headers: { authorization: `Bearer ${token}` },
+      },
+    );
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    if (!Array.isArray(body)) {
+      throw new Error("Expected array body");
+    }
+    expect(body).toHaveLength(0);
+  });
+
   it("returns 404 when called against a secondary (linked) user", async () => {
     const { managementApp, env } = await getTestServer();
     const managementClient = testClient(managementApp, env);

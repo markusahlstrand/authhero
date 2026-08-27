@@ -5,6 +5,7 @@ import { Bindings, Variables } from "../types";
 import { userIdGenerate } from "../utils/user-id";
 import { isUsernamePasswordProvider } from "../utils/username-password-provider";
 import { JSONHTTPException } from "../errors/json-http-exception";
+import { normalizeEmail } from "../utils/email";
 
 export async function getUsersByEmail(
   userAdapter: UserDataAdapter,
@@ -596,14 +597,16 @@ export async function cascadeEmailToLinkedIdentities({
   email,
   email_verified,
 }: CascadeEmailParams): Promise<void> {
-  const normalizedEmail = email.toLowerCase();
+  const normalizedEmail = normalizeEmail(email);
 
   const applyTo = async (member: User) => {
     if (member.user_id === sourceUserId) return;
     if (!isEmailIdentifiedUser(member)) return;
     // Skip no-op writes so we don't bump updated_at / emit a spurious event.
+    // Compared normalized on both sides so a legacy row stored with stray
+    // whitespace is still rewritten to the canonical form rather than skipped.
     if (
-      member.email?.toLowerCase() === normalizedEmail &&
+      member.email === normalizedEmail &&
       member.email_verified === email_verified
     ) {
       return;
@@ -750,7 +753,7 @@ export async function getOrCreateUserByProvider(
   // baseUserSchema invariant forbids from containing "@") and E.164 phone
   // numbers must keep their exact form.
   const username = params.username.includes("@")
-    ? params.username.toLowerCase()
+    ? normalizeEmail(params.username)
     : params.username;
 
   const effectiveMode = set_user_root_attributes || "on_each_login";
