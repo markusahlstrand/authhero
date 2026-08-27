@@ -2,12 +2,13 @@ import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
 import { getTestServer } from "../../helpers/test-server";
 import { getAdminToken } from "../../helpers/token";
+import { createSessions } from "../../helpers/create-session";
 import { AuthorizationResponseType } from "@authhero/adapter-interfaces";
 
 import { u2Screen } from "../../helpers/u2-screen";
 describe("u2 routes", () => {
   describe("info landing page", () => {
-    it("renders a branded info page without leaking the auth code", async () => {
+    it("rejects an unknown auth code without leaking it", async () => {
       const { u2App, env } = await getTestServer({ mockEmail: true });
 
       const response = await u2App.request(
@@ -16,11 +17,118 @@ describe("u2 routes", () => {
         env,
       );
 
+      expect(response.status).toBe(400);
+      const html = await response.text();
+      expect(html).toContain("Sign-in failed");
+      expect(html).toContain(
+        "The authorization code is invalid, expired or has already been used.",
+      );
+      expect(html).not.toContain("abc123");
+    });
+
+    it("renders a plain signed-in page when no code is present", async () => {
+      const { u2App, env } = await getTestServer({ mockEmail: true });
+
+      const response = await u2App.request(
+        "http://localhost/info?state=1234",
+        { method: "GET" },
+        env,
+      );
+
       expect(response.status).toBe(200);
       const html = await response.text();
       expect(html).toContain("Signed in");
       expect(html).toContain("You have signed in successfully.");
-      expect(html).not.toContain("abc123");
+    });
+
+    async function seedInfoPageCode(
+      env: Awaited<ReturnType<typeof getTestServer>>["env"],
+      redirectUri: string,
+      codeId: string,
+    ) {
+      const { loginSession } = await createSessions(env.data);
+      await env.data.loginSessions.update("tenantId", loginSession.id, {
+        authParams: {
+          ...loginSession.authParams,
+          redirect_uri: redirectUri,
+          scope: "openid profile email",
+          state: "1234",
+        },
+      });
+      await env.data.codes.create("tenantId", {
+        code_type: "authorization_code",
+        user_id: "email|userId",
+        code_id: codeId,
+        login_id: loginSession.id,
+        redirect_uri: redirectUri,
+        expires_at: new Date(Date.now() + 60_000).toISOString(),
+      });
+      return loginSession;
+    }
+
+    it("exchanges a code issued for the info page and shows the tokens", async () => {
+      const { u2App, env } = await getTestServer({ mockEmail: true });
+      await seedInfoPageCode(env, "http://localhost/info", "info-page-code");
+
+      const response = await u2App.request(
+        "http://localhost/info?state=1234&code=info-page-code",
+        { method: "GET" },
+        env,
+      );
+
+      expect(response.status).toBe(200);
+      const html = await response.text();
+      expect(html).toContain("Signed in");
+      expect(html).toContain("Copy id token");
+      expect(html).toContain("Copy access token");
+      // Claims grid shows the ID token payload.
+      expect(html).toContain("email|userId");
+      expect(html).toMatch(/data-copy-token="[^"]+\.[^"]+\.[^"]+"/);
+      expect(html).not.toContain("info-page-code");
+
+      // The code is single-use: it's consumed by the exchange.
+      const code = await env.data.codes.get(
+        "tenantId",
+        "info-page-code",
+        "authorization_code",
+      );
+      expect(code?.used_at).toBeTruthy();
+
+      const replay = await u2App.request(
+        "http://localhost/info?state=1234&code=info-page-code",
+        { method: "GET" },
+        env,
+      );
+      expect(replay.status).toBe(400);
+      expect(await replay.text()).toContain("Sign-in failed");
+    });
+
+    it("refuses to exchange a code that was issued for another redirect_uri", async () => {
+      const { u2App, env } = await getTestServer({ mockEmail: true });
+      await seedInfoPageCode(
+        env,
+        "https://example.com/callback",
+        "stolen-code",
+      );
+
+      const response = await u2App.request(
+        "http://localhost/info?state=1234&code=stolen-code",
+        { method: "GET" },
+        env,
+      );
+
+      expect(response.status).toBe(400);
+      const html = await response.text();
+      expect(html).toContain("was not issued for this page");
+      expect(html).not.toContain("Copy access token");
+
+      // A rejected code must remain redeemable at the real redirect target.
+      const code = await env.data.codes.get(
+        "tenantId",
+        "stolen-code",
+        "authorization_code",
+      );
+      expect(code?.used_at).toBeFalsy();
     });
 
     it("renders an error page when the redirect carries an OAuth error", async () => {
