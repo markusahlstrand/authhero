@@ -955,7 +955,7 @@ const getInfo = defineRoute({
       },
     },
   }),
-  handler: async (ctx: any) => {
+  handler: async (ctx) => {
     const { code, error, error_description } = ctx.req.valid("query");
 
     const tenantId = ctx.var.tenant_id;
@@ -998,8 +998,9 @@ const getInfo = defineRoute({
         400,
       );
 
-    if (error || error_description) {
-      return renderFailure(error_description || error);
+    const oauthError = error_description || error;
+    if (oauthError) {
+      return renderFailure(oauthError);
     }
 
     // With a code and a resolvable tenant we can finish the flow right here:

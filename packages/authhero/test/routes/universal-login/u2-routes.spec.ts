@@ -68,7 +68,13 @@ describe("u2 routes", () => {
 
     it("exchanges a code issued for the info page and shows the tokens", async () => {
       const { u2App, env } = await getTestServer({ mockEmail: true });
-      await seedInfoPageCode(env, "http://localhost/info", "info-page-code");
+      // No Host header in app.request(), so the browser-facing host falls
+      // back to the issuer's (localhost:3000).
+      await seedInfoPageCode(
+        env,
+        "http://localhost:3000/info",
+        "info-page-code",
+      );
 
       const response = await u2App.request(
         "http://localhost/info?state=1234&code=info-page-code",
@@ -108,7 +114,7 @@ describe("u2 routes", () => {
       const { u2App, env } = await getTestServer({ mockEmail: true });
       // Test issuer and request are both plain http; an https twin of the
       // same host/path must not qualify (nor an http twin of an https page).
-      await seedInfoPageCode(env, "https://localhost/info", "scheme-code");
+      await seedInfoPageCode(env, "https://localhost:3000/info", "scheme-code");
 
       const response = await u2App.request(
         "http://localhost/info?state=1234&code=scheme-code",
@@ -124,6 +130,68 @@ describe("u2 routes", () => {
         "authorization_code",
       );
       expect(code?.used_at).toBeFalsy();
+    });
+
+    describe("behind a proxy", () => {
+      // Public origin is https; the worker sees a plain-http internal URL and
+      // learns the browser-facing host from x-forwarded-host.
+      async function proxiedServer() {
+        const server = await getTestServer({ mockEmail: true });
+        server.env.ISSUER = "https://auth.example.com/";
+        return server;
+      }
+      const request = (
+        server: Awaited<ReturnType<typeof getTestServer>>,
+        code: string,
+      ) =>
+        server.u2App.request(
+          `http://internal.worker/info?state=1234&code=${code}`,
+          {
+            method: "GET",
+            headers: { "x-forwarded-host": "auth.example.com" },
+          },
+          server.env,
+        );
+
+      it("accepts a code issued for the public https origin", async () => {
+        const server = await proxiedServer();
+        await seedInfoPageCode(
+          server.env,
+          "https://auth.example.com/info",
+          "public",
+        );
+        const response = await request(server, "public");
+        expect(response.status).toBe(200);
+        expect(await response.text()).toContain("Copy access token");
+      });
+
+      it("refuses the cleartext http twin of the public origin", async () => {
+        const server = await proxiedServer();
+        await seedInfoPageCode(
+          server.env,
+          "http://auth.example.com/info",
+          "http-twin",
+        );
+        const response = await request(server, "http-twin");
+        expect(response.status).toBe(400);
+        expect(await response.text()).toContain("was not issued for this page");
+        const code = await server.env.data.codes.get(
+          "tenantId",
+          "http-twin",
+          "authorization_code",
+        );
+        expect(code?.used_at).toBeFalsy();
+      });
+
+      it("refuses a code issued for the internal request origin", async () => {
+        const server = await proxiedServer();
+        await seedInfoPageCode(
+          server.env,
+          "http://internal.worker/info",
+          "internal",
+        );
+        expect((await request(server, "internal")).status).toBe(400);
+      });
     });
 
     it("refuses to exchange a code that was issued for another redirect_uri", async () => {

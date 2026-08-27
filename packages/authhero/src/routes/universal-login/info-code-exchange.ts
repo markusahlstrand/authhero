@@ -51,37 +51,49 @@ function describeGrantError(err: HTTPException): {
 }
 
 /**
- * True when `redirectUri` points at the page currently being served: same
- * path, a host matching either the request URL or the browser-facing host
- * resolved by the tenant middleware (they differ behind a proxy), and a scheme
- * matching either the request or the configured issuer. The scheme check
- * keeps a cleartext `http://` twin of an `https://` page from qualifying;
- * plain-http local development still works because the issuer is http there.
+ * The single browser-facing origin this page is served from: the configured
+ * issuer's scheme (https for custom domains, whatever ISSUER says otherwise)
+ * on the browser-facing host resolved by the tenant middleware. Behind a
+ * proxy the internal request URL may be plain http on an internal host; it
+ * must never authorize a cleartext twin of the public origin, so it is not
+ * consulted for the origin at all.
+ */
+function trustedPageOrigin(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+): string | null {
+  const host = ctx.var.host;
+  if (!host) return null;
+  try {
+    const issuer = new URL(getIssuer(ctx.env, ctx.var.custom_domain));
+    return new URL(`${issuer.protocol}//${host}`).origin;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * True when `redirectUri` points at the page currently being served: exact
+ * match on the trusted browser-facing origin (scheme + host) and on the
+ * request path.
  */
 function isRedirectToThisPage(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   redirectUri: string | undefined,
 ): boolean {
   if (!redirectUri) return false;
+  const trustedOrigin = trustedPageOrigin(ctx);
+  if (!trustedOrigin) return false;
   let target: URL;
   let current: URL;
-  let issuer: URL;
   try {
     target = new URL(redirectUri);
     current = new URL(ctx.req.url);
-    issuer = new URL(getIssuer(ctx.env));
   } catch {
     return false;
   }
-  if (target.pathname !== current.pathname) return false;
-  const allowedProtocols = new Set([current.protocol, issuer.protocol]);
-  if (!allowedProtocols.has(target.protocol)) return false;
-  const allowedHosts = new Set(
-    [current.host, ctx.var.host].filter(
-      (host): host is string => typeof host === "string" && host.length > 0,
-    ),
+  return (
+    target.origin === trustedOrigin && target.pathname === current.pathname
   );
-  return allowedHosts.has(target.host);
 }
 
 /**
