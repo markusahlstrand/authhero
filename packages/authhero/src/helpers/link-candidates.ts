@@ -4,6 +4,7 @@ import {
   UserDataAdapter,
 } from "@authhero/adapter-interfaces";
 import { compareUsersByAge, resolveClusterRootId } from "./users";
+import { normalizeEmail } from "../utils/email";
 
 /**
  * Resolve the ordered pool of candidate *primary* users that the built-in
@@ -29,7 +30,7 @@ export async function resolveLinkCandidates(params: {
 
   if (!user.email) return [];
 
-  const normalizedEmail = user.email.toLowerCase();
+  const normalizedEmail = normalizeEmail(user.email);
 
   // Fetch *every* user sharing this email — not just the first page. A single
   // fixed page could drop the oldest matching account (an email with many

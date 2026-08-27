@@ -12,6 +12,7 @@ import { JSONHTTPException } from "../errors/json-http-exception";
 import { AuthError } from "../types/AuthError";
 import { getOrCreateUserByProvider } from "../helpers/users";
 import { getConnectionFromIdentifier } from "../utils/username";
+import { normalizeEmail } from "../utils/email";
 import { getUniversalLoginUrl } from "../variables";
 import { isIpMatch } from "../utils/ip";
 import { t } from "i18next";
@@ -36,7 +37,7 @@ function isRateLimitDecision(value: unknown): value is RateLimitDecision {
 
 export const passwordlessGrantParamsSchema = z.object({
   client_id: z.string(),
-  username: z.string().transform((u) => u.toLowerCase()),
+  username: z.string().transform((u) => normalizeEmail(u)),
   otp: z.string(),
   // Auth0's passwordless OTP grant accepts scope and audience at exchange
   // time. They take priority over whatever /passwordless/start stored on the

@@ -8,6 +8,7 @@ import { Bindings, Variables, GrantFlowUserResult } from "../types";
 import { EnrichedClient } from "../helpers/client";
 import { getOrCreateUserByProvider } from "../helpers/users";
 import { stringifyAuth0Client } from "../utils/client-info";
+import { normalizeEmail } from "../utils/email";
 import {
   Auth0UpstreamError,
   createMigrationProvider,
@@ -27,7 +28,7 @@ function pickUsername(
   issuer: string,
 ): string {
   if (userinfo.email) {
-    return userinfo.email.toLowerCase();
+    return normalizeEmail(userinfo.email);
   }
   const connectionLc = connection.toLowerCase();
   const subLc = userinfo.sub.toLowerCase();
