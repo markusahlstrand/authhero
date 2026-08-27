@@ -1,5 +1,67 @@
 # @authhero/cloudflare-adapter
 
+## 3.0.12
+
+### Patch Changes
+
+- 1376877: Tokenize the Lucene `q` filter before splitting on OR, so quoting a value
+  contains it.
+
+  Both SQL adapters split `q` on `OR` before their quote-aware tokenizer ran,
+  so the quotes around a value only bracketed the first and last fragments and
+  anything between them was parsed as query syntax. A three-part value such as
+  `user_id:"attacker OR user_id:victim OR x"` produced a clean middle clause
+  that matched another user's rows within the tenant.
+
+  The tokenizer and the OR split now live in `@authhero/adapter-interfaces` and
+  run in the right order: a quoted value is a single token, and an escaped quote
+  (`\"`) no longer ends the quoted run. Clauses within an OR group are conjoined
+  (`a b OR c` is `(a AND b) OR c`) instead of being folded into one operand.
+  `sanitizeLuceneQuery` uses the same tokenizer, and the drizzle adapter now
+  unescapes value operands like the kysely adapter already did.
+
+  New exports: `escapeLuceneValue` (quote and escape a value for interpolation
+  into `q`), `unquoteLuceneValue`, `unescapeLuceneValue`, `tokenizeLuceneQuery`
+  and `splitLuceneOrGroups`. Server-side call sites that select rows by a
+  user-controlled id — the sessions, linked-account, owner-client, user-logs and
+  organization-membership lookups in the management API, the authentication
+  flows, invitation acceptance and the tenant-members backend — interpolate
+  through `escapeLuceneValue`, so an unquoted crafted value cannot widen those
+  matches either.
+
+  The adapters that pick a value out of `q` without running the full filter (the
+  kysely `user_organizations` and `clients` lists) unquote it, and the Cloudflare
+  Analytics Engine logs adapter shares the same tokenizer, so an escaped value
+  round-trips on every backend those call sites can reach.
+
+- a3b80dd: Fix `/stats/daily` returning all zeros when logs live in Analytics Engine.
+
+  The Analytics Engine stats adapter re-parsed its `from`/`to` params as
+  `YYYYMMDD`, but the management API already normalizes them to `YYYY-MM-DD`
+  before calling the adapter. Re-slicing turned `2026-07-27` into `2026--0-7-`,
+  so both timestamp bounds were interpolated into the SQL as `NaN` and every
+  query matched nothing — the dashboard rendered a zero-filled 30-day range.
+  Dates in either format are now accepted, and an unparseable range throws
+  instead of silently querying with `NaN`. Impossible calendar dates such as
+  `20260230` are rejected too, rather than rolling over to a window the caller
+  never asked for.
+
+  `createAdapters` also now returns a `stats` adapter whenever
+  `analyticsEngineLogs` is configured. `/stats/daily` and `/stats/active-users`
+  are log-derived like `analytics`, so consumers that move logs to Analytics
+  Engine were left with the SQL adapter's stats, reading a logs table that no
+  longer receives writes.
+
+- Updated dependencies [5b5d019]
+- Updated dependencies [1376877]
+- Updated dependencies [2354170]
+- Updated dependencies [d222f28]
+- Updated dependencies [8e22776]
+  - @authhero/adapter-interfaces@4.11.0
+  - @authhero/kysely-adapter@12.6.1
+  - authhero@9.9.1
+  - @authhero/multi-tenancy@15.0.0
+
 ## 3.0.11
 
 ### Patch Changes

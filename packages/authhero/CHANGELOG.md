@@ -1,5 +1,104 @@
 # authhero
 
+## 9.9.1
+
+### Patch Changes
+
+- 5b5d019: Honour per-client refresh-token lifetimes instead of tenant session lifetimes.
+
+  `client.refresh_token.token_lifetime` / `idle_token_lifetime` (seconds) now
+  drive a refresh token's absolute and sliding expiry, with
+  `infinite_token_lifetime`, `infinite_idle_token_lifetime` and
+  `expiration_type: "non-expiring"` disabling the corresponding expiry
+  altogether — the setting native and mobile clients rely on, which was
+  previously unrepresentable. These fields were already stored and exposed in
+  the admin UI but were never read by the engine, which derived refresh-token
+  expiry from the tenant's `session_lifetime` / `idle_session_lifetime`
+  instead.
+
+  The tenant lifetimes remain the fallback, so tenants that configure nothing on
+  the client see no change. The idle window slides by the resolved lifetime on
+  every exchange, on both the rotating and non-rotating paths. Neither path ever
+  extends an absolute expiry, and both drop the expiries an existing token was
+  stamped with once its client is configured never to expire — rotation by
+  minting the child row from the current config, the in-place path by clearing
+  the stored columns. The refresh-token adapter `update` payload is typed
+  accordingly: `null` on `expires_at` / `idle_expires_at` clears the stored
+  value, `undefined` still leaves it untouched.
+
+- 1376877: Tokenize the Lucene `q` filter before splitting on OR, so quoting a value
+  contains it.
+
+  Both SQL adapters split `q` on `OR` before their quote-aware tokenizer ran,
+  so the quotes around a value only bracketed the first and last fragments and
+  anything between them was parsed as query syntax. A three-part value such as
+  `user_id:"attacker OR user_id:victim OR x"` produced a clean middle clause
+  that matched another user's rows within the tenant.
+
+  The tokenizer and the OR split now live in `@authhero/adapter-interfaces` and
+  run in the right order: a quoted value is a single token, and an escaped quote
+  (`\"`) no longer ends the quoted run. Clauses within an OR group are conjoined
+  (`a b OR c` is `(a AND b) OR c`) instead of being folded into one operand.
+  `sanitizeLuceneQuery` uses the same tokenizer, and the drizzle adapter now
+  unescapes value operands like the kysely adapter already did.
+
+  New exports: `escapeLuceneValue` (quote and escape a value for interpolation
+  into `q`), `unquoteLuceneValue`, `unescapeLuceneValue`, `tokenizeLuceneQuery`
+  and `splitLuceneOrGroups`. Server-side call sites that select rows by a
+  user-controlled id — the sessions, linked-account, owner-client, user-logs and
+  organization-membership lookups in the management API, the authentication
+  flows, invitation acceptance and the tenant-members backend — interpolate
+  through `escapeLuceneValue`, so an unquoted crafted value cannot widen those
+  matches either.
+
+  The adapters that pick a value out of `q` without running the full filter (the
+  kysely `user_organizations` and `clients` lists) unquote it, and the Cloudflare
+  Analytics Engine logs adapter shares the same tokenizer, so an escaped value
+  round-trips on every backend those call sites can reach.
+
+- 2354170: Trim whitespace when normalizing emails, not just lowercase.
+
+  Email normalization called `.toLowerCase()` but never `.trim()`, so an address
+  with leading or trailing whitespace was stored verbatim and treated as a
+  distinct identifier from its trimmed twin — producing two accounts for the same
+  person on the same connection, with auto-linking silently skipping the pair
+  because it keyed on the un-trimmed value.
+
+  `withLowercasedEmail` is now `withNormalizedEmail` and applies `.trim()` before
+  `.toLowerCase()`, via a shared `normalizeEmail` helper that both the write path
+  and the lookup paths use. That covers `addDataHooks` (and with it SCIM
+  provisioning, Auth0 lazy migration, and IdP profile mapping), the pre-user
+  registration/update hook re-normalization, the `auth-api` request schemas
+  (`/passwordless/start`, `/co/authenticate`, `/dbconnections/signup` and
+  `/dbconnections/change_password`), the passwordless grant, password reset,
+  refresh-token migration, `/api/v2/tickets` lookups, SCIM `userName` resolution,
+  and the account-linking read paths (`link-users`, `link-candidates`,
+  `getOrCreateUserByProvider`, the linked-cluster email cascade) so already-stored
+  rows with stray whitespace become linkable instead of staying invisible.
+
+  Existing data still needs a repair pass: rows where `email <> TRIM(email)` in
+  `users` and `user_identities` must be merged into their trimmed twin, or
+  trimmed in place where no twin exists.
+
+- d222f28: Replace the deprecated `@react-email/components` dependency with the unified
+  `react-email` package (v6), which now ships the same components.
+
+  The email default templates in `src/emails/defaults/*.tsx` import from
+  `react-email` instead, and `compiled.ts` was regenerated. The rendered HTML
+  changes only through upstream fixes: `<Preview>` now also emits a `<title>`,
+  `<Body>` propagates `dir`/`lang`, `<Section>` padding moves from the outer
+  `<table>` to the inner `<td>` (renders correctly in Outlook), and the
+  `mso-text-raise` hint gained its `px` unit. Every Liquid placeholder is
+  unchanged, so tenant branding and per-send variables resolve exactly as before.
+
+- 8e22776: The `/u2/info` test redirect page now exchanges the authorization code server-side and shows the result: buttons that copy the ID, access and refresh tokens to the clipboard, and a grid with the ID token claims. Codes issued for any other redirect_uri are refused so the page can't be used to redeem intercepted codes.
+- Updated dependencies [5b5d019]
+- Updated dependencies [1376877]
+  - @authhero/adapter-interfaces@4.11.0
+  - @authhero/proxy@0.10.10
+  - @authhero/saml@0.5.9
+  - @authhero/widget@0.38.6
+
 ## 9.9.0
 
 ### Minor Changes
