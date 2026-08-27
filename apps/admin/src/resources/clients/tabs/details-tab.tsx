@@ -22,7 +22,10 @@ const GRANT_TYPE_CHOICES = [
   { id: "client_credentials", name: "Client Credentials" },
   { id: "password", name: "Password" },
   { id: "mfa", name: "MFA" },
-  { id: "passwordless_otp", name: "Passwordless OTP" },
+  {
+    id: "http://auth0.com/oauth/grant-type/passwordless/otp",
+    name: "Passwordless OTP",
+  },
   {
     id: "urn:ietf:params:oauth:grant-type:token-exchange",
     name: "Token Exchange",
@@ -130,9 +133,17 @@ function ClientMetadataInput() {
   );
 }
 
+// Short ids this form used to save; stored values are mapped to the canonical
+// wire grant_type so old client rows render checked and re-save migrated.
+const LEGACY_GRANT_TYPE_IDS: Record<string, string> = {
+  passwordless_otp: "http://auth0.com/oauth/grant-type/passwordless/otp",
+};
+
 function GrantTypesInput() {
   const { field } = useInput({ source: "grant_types" });
-  const selected: string[] = Array.isArray(field.value) ? field.value : [];
+  const selected: string[] = (
+    Array.isArray(field.value) ? field.value : []
+  ).map((g: string) => LEGACY_GRANT_TYPE_IDS[g] ?? g);
 
   const toggle = (id: string, checked: boolean) => {
     const next = checked ? [...selected, id] : selected.filter((g) => g !== id);
