@@ -77,6 +77,7 @@ describe("u2 routes", () => {
       );
 
       expect(response.status).toBe(200);
+      expect(response.headers.get("cache-control")).toBe("no-store");
       const html = await response.text();
       expect(html).toContain("Signed in");
       expect(html).toContain("Copy id token");
@@ -101,6 +102,28 @@ describe("u2 routes", () => {
       );
       expect(replay.status).toBe(400);
       expect(await replay.text()).toContain("Sign-in failed");
+    });
+
+    it("refuses a code whose redirect_uri only differs in scheme", async () => {
+      const { u2App, env } = await getTestServer({ mockEmail: true });
+      // Test issuer and request are both plain http; an https twin of the
+      // same host/path must not qualify (nor an http twin of an https page).
+      await seedInfoPageCode(env, "https://localhost/info", "scheme-code");
+
+      const response = await u2App.request(
+        "http://localhost/info?state=1234&code=scheme-code",
+        { method: "GET" },
+        env,
+      );
+
+      expect(response.status).toBe(400);
+      expect(await response.text()).toContain("was not issued for this page");
+      const code = await env.data.codes.get(
+        "tenantId",
+        "scheme-code",
+        "authorization_code",
+      );
+      expect(code?.used_at).toBeFalsy();
     });
 
     it("refuses to exchange a code that was issued for another redirect_uri", async () => {

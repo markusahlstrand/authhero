@@ -948,6 +948,11 @@ const getInfo = defineRoute({
         description: "Info page",
         content: { "text/html": { schema: z.string() } },
       },
+      400: {
+        description:
+          "Sign-in failed: the redirect carried an OAuth error, or the authorization code could not be exchanged",
+        content: { "text/html": { schema: z.string() } },
+      },
     },
   }),
   handler: async (ctx: any) => {
@@ -1005,6 +1010,7 @@ const getInfo = defineRoute({
       if (!exchange.ok) {
         return renderFailure(exchange.error_description);
       }
+      // The page carries bearer tokens: keep it out of every cache.
       return ctx.html(
         <TokenInfoPage
           tokens={exchange.tokens}
@@ -1014,6 +1020,7 @@ const getInfo = defineRoute({
           darkMode={darkMode}
         />,
         200,
+        { "Cache-Control": "no-store", Pragma: "no-cache" },
       );
     }
 

@@ -12,6 +12,7 @@ import { issueTokensForGrant } from "../../authentication-flows/grant-tokens";
 import { EnrichedClient, getEnrichedClient } from "../../helpers/client";
 import { logMessage } from "../../helpers/logging";
 import { ssrfFetchOptionsFromEnv } from "../../utils/ssrf-fetch";
+import { getIssuer } from "../../variables";
 
 export type InfoCodeExchangeResult =
   | { ok: true; tokens: TokenResponse; user: User; client: EnrichedClient }
@@ -51,8 +52,11 @@ function describeGrantError(err: HTTPException): {
 
 /**
  * True when `redirectUri` points at the page currently being served: same
- * path, and a host matching either the request URL or the browser-facing host
- * resolved by the tenant middleware (they differ behind a proxy).
+ * path, a host matching either the request URL or the browser-facing host
+ * resolved by the tenant middleware (they differ behind a proxy), and a scheme
+ * matching either the request or the configured issuer. The scheme check
+ * keeps a cleartext `http://` twin of an `https://` page from qualifying;
+ * plain-http local development still works because the issuer is http there.
  */
 function isRedirectToThisPage(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
@@ -61,13 +65,17 @@ function isRedirectToThisPage(
   if (!redirectUri) return false;
   let target: URL;
   let current: URL;
+  let issuer: URL;
   try {
     target = new URL(redirectUri);
     current = new URL(ctx.req.url);
+    issuer = new URL(getIssuer(ctx.env));
   } catch {
     return false;
   }
   if (target.pathname !== current.pathname) return false;
+  const allowedProtocols = new Set([current.protocol, issuer.protocol]);
+  if (!allowedProtocols.has(target.protocol)) return false;
   const allowedHosts = new Set(
     [current.host, ctx.var.host].filter(
       (host): host is string => typeof host === "string" && host.length > 0,
