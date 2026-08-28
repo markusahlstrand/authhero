@@ -17,7 +17,8 @@ import {
   CustomDomainResult,
 } from "../types/CustomDomain";
 
-function getClient(config: CloudflareConfig) {
+/** @internal Shared with the `syncCustomDomains` sweep. */
+export function getClient(config: CloudflareConfig) {
   return wretch(`https://api.cloudflare.com/client/v4/zones/${config.zoneId}`)
     .headers({
       "X-Auth-Email": config.authEmail,
@@ -180,6 +181,66 @@ async function findCustomHostname(
   return match;
 }
 
+/**
+ * Merge a fresh Cloudflare hostname result onto the stored row and mirror the
+ * result back to the DB, so `list()` and `getByDomain()` — which never call
+ * Cloudflare — converge on it.
+ *
+ * Shared by `get()` and `syncCustomDomains()` so the interactive refresh and
+ * the cron sweep can never drift apart on what a Cloudflare payload means.
+ *
+ * Never throws: a payload that cannot be mapped, or a writeback that fails,
+ * degrades to "nothing changed" and leaves the stored row authoritative. Both
+ * callers are refresh paths — neither should fail because Cloudflare returned
+ * something surprising.
+ */
+export async function refreshFromCloudflare(
+  config: CloudflareConfig,
+  tenant_id: string,
+  stored: CustomDomain,
+  result: CustomDomainResult,
+): Promise<{ domain: CustomDomain; changed: boolean }> {
+  const domain_id = stored.custom_domain_id;
+
+  let merged: CustomDomain;
+  try {
+    merged = mapCustomDomainResponse({ ...stored, ...result });
+  } catch (err) {
+    console.warn(
+      `[custom-domains] mapCustomDomainResponse failed for ${domain_id} (tenant=${tenant_id}); keeping the stored row.`,
+      err instanceof Error ? err.message : err,
+    );
+    return { domain: stored, changed: false };
+  }
+
+  // Only write if something actually changed, to avoid pointless updated_at
+  // churn — the sweep sees every domain in the zone on every run, so almost
+  // all of them are already up to date.
+  if (
+    merged.status === stored.status &&
+    JSON.stringify(merged.verification) === JSON.stringify(stored.verification)
+  ) {
+    return { domain: merged, changed: false };
+  }
+
+  // A failed writeback must not poison the response: the merged object is
+  // still the correct answer, it just won't be cached.
+  try {
+    await config.customDomainAdapter.update(tenant_id, domain_id, {
+      status: merged.status,
+      verification: merged.verification,
+    });
+  } catch (err) {
+    console.warn(
+      `[custom-domains] DB writeback failed for ${domain_id} (tenant=${tenant_id}); returning merged response without DB sync.`,
+      err instanceof Error ? err.message : err,
+    );
+    return { domain: merged, changed: false };
+  }
+
+  return { domain: merged, changed: true };
+}
+
 export function createCustomDomainsAdapter(
   config: CloudflareConfig,
 ): CustomDomainsAdapter {
@@ -334,41 +395,15 @@ export function createCustomDomainsAdapter(
         throw new HTTPException(404);
       }
 
-      let merged: CustomDomain;
-      try {
-        merged = mapCustomDomainResponse({ ...customDomain, ...result });
-      } catch (err) {
-        console.warn(
-          `[custom-domains] mapCustomDomainResponse failed for ${domain_id} (tenant=${tenant_id}); returning stale DB row.`,
-          err instanceof Error ? err.message : err,
-        );
-        return customDomain;
-      }
-
       // Mirror the fresh Cloudflare state back to the DB so list() and the
-      // next get() reflect reality. Only write if something actually changed
-      // to avoid pointless updated_at churn. Failures here (e.g. varchar
-      // overflow on the verification column during method switch) must not
-      // poison the response — the merged object is still correct to return.
-      if (
-        merged.status !== customDomain.status ||
-        JSON.stringify(merged.verification) !==
-          JSON.stringify(customDomain.verification)
-      ) {
-        try {
-          await config.customDomainAdapter.update(tenant_id, domain_id, {
-            status: merged.status,
-            verification: merged.verification,
-          });
-        } catch (err) {
-          console.warn(
-            `[custom-domains] DB writeback failed for ${domain_id} (tenant=${tenant_id}); returning merged response without DB sync.`,
-            err instanceof Error ? err.message : err,
-          );
-        }
-      }
-
-      return merged;
+      // next get() reflect reality.
+      const { domain } = await refreshFromCloudflare(
+        config,
+        tenant_id,
+        customDomain,
+        result,
+      );
+      return domain;
     },
     getByDomain: async (domain: string) => {
       // This is used for tenant id resolution and needs to be fast

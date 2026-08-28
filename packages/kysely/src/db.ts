@@ -283,6 +283,9 @@ const sqlCustomDomainSchema = customDomainSchema.extend({
   primary: z.number(),
   tenant_id: z.string(),
   domain_metadata: z.string().optional(),
+  // Stored as a JSON string, like domain_metadata. Typing it as the parsed
+  // object here made every read site cast it away.
+  verification: z.string().optional(),
   created_at: z.string(),
   updated_at: z.string(),
 });

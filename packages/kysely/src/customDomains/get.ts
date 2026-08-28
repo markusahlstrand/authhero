@@ -22,10 +22,7 @@ export function get(db: Kysely<Database>) {
         customDomain.domain_metadata,
         undefined,
       ),
-      verification: parseJsonIfDefined(
-        customDomain.verification as any,
-        undefined,
-      ),
+      verification: parseJsonIfDefined(customDomain.verification, undefined),
     };
   };
 }

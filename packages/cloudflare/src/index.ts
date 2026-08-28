@@ -42,6 +42,11 @@ export type { AnalyticsEngineActionExecutionsAdapterConfig };
 export type { CloudflareRateLimitBinding, CloudflareRateLimitBindings };
 export { createCloudflareRateLimitAdapter } from "./rate-limit";
 export type { CloudflareConfig };
+export { syncCustomDomains } from "./customDomains/sync";
+export type {
+  SyncCustomDomainsOptions,
+  SyncCustomDomainsResult,
+} from "./customDomains/sync";
 
 // Code executors. Two flavours are exposed:
 //   - `DispatchNamespaceCodeExecutor` (Workers for Platforms): user code is
