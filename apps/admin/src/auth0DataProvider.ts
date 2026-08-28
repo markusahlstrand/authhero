@@ -1798,7 +1798,7 @@ export default (
           include_totals: true,
           ...buildPaginationParams(),
           sort: `${field}:${order === "DESC" ? "-1" : "1"}`,
-          q: `user_id:${params.id}`,
+          q: `user_id:"${escapeLuceneValue(params.id)}"`,
         })}`,
         { headers },
       );

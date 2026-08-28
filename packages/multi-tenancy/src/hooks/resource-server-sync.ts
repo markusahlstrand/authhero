@@ -3,6 +3,7 @@ import {
   ResourceServer,
   ResourceServerInsert,
   fetchAll,
+  escapeLuceneValue,
 } from "authhero";
 import { TenantEntityHooks, TenantHookContext } from "../types";
 
@@ -123,7 +124,7 @@ export function createResourceServerSyncHooks(
     identifier: string,
   ): Promise<ResourceServer | null> {
     const result = await adapters.resourceServers.list(tenantId, {
-      q: `identifier:${identifier}`,
+      q: `identifier:${escapeLuceneValue(identifier)}`,
       per_page: 1,
     });
     return result.resource_servers[0] ?? null;

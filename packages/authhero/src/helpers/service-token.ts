@@ -1,5 +1,9 @@
 import { Context } from "hono";
-import { KeysAdapter, TenantsDataAdapter } from "@authhero/adapter-interfaces";
+import {
+  KeysAdapter,
+  TenantsDataAdapter,
+  escapeLuceneValue,
+} from "@authhero/adapter-interfaces";
 import { signJWT } from "../utils/jwt";
 import { Bindings, Variables } from "../types";
 import { SigningKeyModeOption } from "../types/AuthHeroConfig";
@@ -285,7 +289,7 @@ export async function createClientServiceToken(
   const clientGrantsResponse = await ctx.env.data.clientGrants.list(
     effectiveTenantId,
     {
-      q: `client_id:"${clientId}"`,
+      q: `client_id:${escapeLuceneValue(clientId)}`,
     },
   );
   const grants = clientGrantsResponse.client_grants;

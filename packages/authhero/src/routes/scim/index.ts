@@ -6,6 +6,7 @@ import {
   ScimConfiguration,
   User,
   DataAdapters,
+  escapeLuceneValue,
 } from "@authhero/adapter-interfaces";
 import { AuthHeroConfig, Bindings, Variables } from "../../types";
 import { applyConfigMiddleware } from "../../middlewares/apply-config";
@@ -217,7 +218,7 @@ async function findByUserName(
       page: 0,
       per_page: 5,
       include_totals: false,
-      q: `${field}:${userName} connection:${s.connection.name}`,
+      q: `${field}:${escapeLuceneValue(userName)} connection:${escapeLuceneValue(s.connection.name)}`,
     });
     candidates = users;
   } else {

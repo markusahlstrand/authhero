@@ -7,7 +7,7 @@ import {
 import type { HookEvent, OnExecutePostLoginAPI } from "../../src/types/Hooks";
 import { HTTPException } from "hono/http-exception";
 import { USERNAME_PASSWORD_PROVIDER } from "../../src/constants";
-import { Strategy } from "@authhero/adapter-interfaces";
+import { Strategy, unquoteLuceneValue } from "@authhero/adapter-interfaces";
 
 // ---------------------------------------------------------------------------
 // slugify
@@ -106,14 +106,20 @@ function createMockUserAdapter(
       .mockImplementation(
         async (_tenantId: string, params?: { q?: string }) => {
           const q = params?.q || "";
+          // Clause values arrive quoted via escapeLuceneValue; unquote them
+          // the same way the real adapters do before comparing.
+          const clause = (field: string): string | undefined => {
+            const match = q.match(new RegExp(`${field}:(\\S+)`));
+            return match ? unquoteLuceneValue(match[1]!) : undefined;
+          };
           const matching = existingUsers.filter((u) => {
-            const usernameMatch = q.match(/username:(\S+)/);
-            const providerMatch = q.match(/provider:(\S+)/);
-            const linkedToMatch = q.match(/linked_to:(\S+)/);
+            const username = clause("username");
+            const provider = clause("provider");
+            const linkedTo = clause("linked_to");
             return (
-              (!usernameMatch || u.username === usernameMatch[1]) &&
-              (!providerMatch || u.provider === providerMatch[1]) &&
-              (!linkedToMatch || u.linked_to === linkedToMatch[1])
+              (username === undefined || u.username === username) &&
+              (provider === undefined || u.provider === provider) &&
+              (linkedTo === undefined || u.linked_to === linkedTo)
             );
           });
           return { users: matching };

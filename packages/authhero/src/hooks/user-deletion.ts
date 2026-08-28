@@ -3,6 +3,7 @@ import {
   DataAdapters,
   LogTypes,
   StrategyType,
+  escapeLuceneValue,
 } from "@authhero/adapter-interfaces";
 import { HTTPException } from "hono/http-exception";
 import { Bindings, Variables } from "../types";
@@ -112,7 +113,7 @@ export function createUserDeletionHooks(
     // between the two.
     const result = await data.transaction(async (trxData) => {
       const linkedUsers = await trxData.users.list(tenant_id, {
-        q: `linked_to:${user_id}`,
+        q: `linked_to:${escapeLuceneValue(user_id)}`,
       });
       for (const linkedUser of linkedUsers.users) {
         const [provider, ...rest] = linkedUser.user_id.split("|");

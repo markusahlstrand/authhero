@@ -4,7 +4,7 @@ import { initJSXRouteWithSession } from "./common";
 import i18next from "i18next";
 import ChangeEmailPage from "../../components/ChangeEmailPage";
 import { logMessage } from "../../helpers/logging";
-import { LogTypes } from "@authhero/adapter-interfaces";
+import { LogTypes, escapeLuceneValue } from "@authhero/adapter-interfaces";
 import { defineRoute } from "../../utils/define-route";
 const getRoot = defineRoute({
   route: createRoute({
@@ -187,7 +187,7 @@ const postRoot = defineRoute({
               page: 0,
               per_page: 100,
               include_totals: false,
-              q: `linked_to:${user.user_id}`,
+              q: `linked_to:${escapeLuceneValue(user.user_id)}`,
             });
 
             for (const linkedUser of linkedUsers.users) {
