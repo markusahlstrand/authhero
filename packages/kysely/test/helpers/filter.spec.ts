@@ -2,7 +2,13 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Kysely } from "kysely";
 import { Database } from "../../src/db";
 import { luceneFilter, sanitizeLuceneQuery } from "../../src/helpers/filter";
-import { escapeLuceneValue } from "@authhero/adapter-interfaces";
+import {
+  escapeLuceneValue,
+  splitLuceneOrGroups,
+  tokenizeLuceneQuery,
+  unescapeLuceneValue,
+  unquoteLuceneValue,
+} from "@authhero/adapter-interfaces";
 
 describe("luceneFilter", () => {
   // Mock Kysely instance
@@ -418,6 +424,125 @@ describe("escapeLuceneValue", () => {
   it("escapes quotes and backslashes so the quoting cannot be closed", () => {
     expect(escapeLuceneValue('a" OR b')).toBe('"a\\" OR b"');
     expect(escapeLuceneValue("a\\b")).toBe('"a\\\\b"');
+  });
+});
+
+// Direct coverage of the shared tokenizer primitives (issue #1264): both
+// adapters' filters and sanitizeLuceneQuery are built on these, so their
+// quote handling is what keeps a crafted value from becoming query syntax.
+describe("tokenizeLuceneQuery", () => {
+  it("splits on unquoted whitespace", () => {
+    expect(tokenizeLuceneQuery("a:1  b:2 c")).toEqual(["a:1", "b:2", "c"]);
+  });
+
+  it("keeps quoted whitespace inside the token", () => {
+    expect(tokenizeLuceneQuery('name:"John Doe" active:true')).toEqual([
+      'name:"John Doe"',
+      "active:true",
+    ]);
+  });
+
+  it("keeps a quoted ` OR ` inside a single token", () => {
+    expect(tokenizeLuceneQuery('user_id:"a OR user_id:b" x')).toEqual([
+      'user_id:"a OR user_id:b"',
+      "x",
+    ]);
+  });
+
+  it("does not let an escaped quote end the quoted run", () => {
+    expect(tokenizeLuceneQuery('user_id:"a\\" OR b" next')).toEqual([
+      'user_id:"a\\" OR b"',
+      "next",
+    ]);
+  });
+
+  it("swallows the rest of the query on an unterminated quote", () => {
+    // A crafted value that opens a quote must not break out into clauses.
+    expect(tokenizeLuceneQuery('name:"a OR tenant_id:x')).toEqual([
+      'name:"a OR tenant_id:x',
+    ]);
+  });
+
+  it("keeps a trailing backslash as a literal", () => {
+    expect(tokenizeLuceneQuery("a\\")).toEqual(["a\\"]);
+  });
+});
+
+describe("splitLuceneOrGroups", () => {
+  it("returns one group when there is no OR", () => {
+    expect(splitLuceneOrGroups("a:1 b:2")).toEqual([["a:1", "b:2"]]);
+  });
+
+  it("splits token groups on the OR operator", () => {
+    expect(splitLuceneOrGroups("a:1 OR b:2")).toEqual([["a:1"], ["b:2"]]);
+    expect(splitLuceneOrGroups("a:1 b:2 OR c:3")).toEqual([
+      ["a:1", "b:2"],
+      ["c:3"],
+    ]);
+  });
+
+  it("treats the operator case-insensitively", () => {
+    expect(splitLuceneOrGroups("a:1 or b:2")).toEqual([["a:1"], ["b:2"]]);
+  });
+
+  it("does not treat a quoted OR as the operator", () => {
+    expect(splitLuceneOrGroups('a:1 "OR" b:2')).toEqual([
+      ["a:1", '"OR"', "b:2"],
+    ]);
+  });
+
+  it("keeps a quoted value containing ` OR ` in one group", () => {
+    // The pre-#1264 string split cut this into three clauses, letting the
+    // middle `b:v` widen the match.
+    expect(splitLuceneOrGroups('user_id:"a OR b:v OR x"')).toEqual([
+      ['user_id:"a OR b:v OR x"'],
+    ]);
+  });
+
+  it("drops empty groups from leading, trailing or doubled ORs", () => {
+    expect(splitLuceneOrGroups("OR a:1 OR OR b:2 OR")).toEqual([
+      ["a:1"],
+      ["b:2"],
+    ]);
+  });
+});
+
+describe("unescapeLuceneValue", () => {
+  it("reverses escapes on Lucene reserved characters", () => {
+    expect(unescapeLuceneValue("auth0|abc\\-123")).toBe("auth0|abc-123");
+    expect(unescapeLuceneValue('a\\"b')).toBe('a"b');
+  });
+
+  it("collapses an escaped backslash", () => {
+    expect(unescapeLuceneValue("a\\\\b")).toBe("a\\b");
+  });
+
+  it("leaves a backslash before a non-reserved character alone", () => {
+    expect(unescapeLuceneValue("a\\db")).toBe("a\\db");
+  });
+});
+
+describe("unquoteLuceneValue", () => {
+  it("strips one layer of quotes and unescapes", () => {
+    expect(unquoteLuceneValue('"John Doe"')).toBe("John Doe");
+    expect(unquoteLuceneValue('"a\\"b"')).toBe('a"b');
+  });
+
+  it("passes an unquoted value through", () => {
+    expect(unquoteLuceneValue("plain")).toBe("plain");
+  });
+
+  it("trims surrounding whitespace", () => {
+    expect(unquoteLuceneValue('  "x"  ')).toBe("x");
+  });
+
+  it("does not treat a lone quote as a quoted pair", () => {
+    expect(unquoteLuceneValue('"')).toBe('"');
+  });
+
+  it("round-trips escapeLuceneValue", () => {
+    const value = 'a" OR user_id:victim OR "b\\c';
+    expect(unquoteLuceneValue(escapeLuceneValue(value))).toBe(value);
   });
 });
 
