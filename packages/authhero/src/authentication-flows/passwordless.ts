@@ -22,7 +22,7 @@ import {
   createRefreshToken,
 } from "./common";
 import { RedirectException } from "../errors/redirect-exception";
-import { getEnrichedClient } from "../helpers/client";
+import { getEnrichedClient, EnrichedClient } from "../helpers/client";
 import { logMessage } from "../helpers/logging";
 import { GrantFlowUserResult } from "../types/GrantFlowResult";
 
@@ -60,6 +60,7 @@ export async function passwordlessGrantUser(
     authParams,
     enforceIpCheck = false,
   }: z.input<typeof passwordlessGrantParamsSchema>,
+  preloadedClient?: EnrichedClient,
 ) {
   const ip = ctx.get("ip");
   const countryCode = ctx.get("countryCode");
@@ -81,7 +82,9 @@ export async function passwordlessGrantUser(
   // for linked accounts.
   ctx.set("connection", connectionType);
 
-  const client = await getEnrichedClient(ctx.env, client_id, ctx.var.tenant_id);
+  const client =
+    preloadedClient ??
+    (await getEnrichedClient(ctx.env, client_id, ctx.var.tenant_id));
 
   const { env } = ctx;
 
@@ -248,8 +251,9 @@ export async function passwordlessGrantUser(
 export async function passwordlessOtpGrant(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: z.input<typeof passwordlessGrantParamsSchema>,
+  preloadedClient?: EnrichedClient,
 ): Promise<GrantFlowUserResult> {
-  const result = await passwordlessGrantUser(ctx, params);
+  const result = await passwordlessGrantUser(ctx, params, preloadedClient);
 
   const authStrategy = {
     strategy: result.connectionType === "sms" ? Strategy.SMS : Strategy.EMAIL,

@@ -13,7 +13,7 @@ import {
 } from "@authhero/adapter-interfaces";
 import { GrantFlowUserResult } from "src/types/GrantFlowResult";
 import { logMessage, LogParams } from "../helpers/logging";
-import { getEnrichedClient } from "../helpers/client";
+import { getEnrichedClient, EnrichedClient } from "../helpers/client";
 import { ssrfFetchOptionsFromEnv } from "../utils/ssrf-fetch";
 import { resolvePrimaryUser } from "../helpers/users";
 
@@ -81,13 +81,18 @@ async function buildFailedExchangeLogParams(
 export async function authorizationCodeGrantUser(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: AuthorizationCodeGrantTypeParams,
+  // The token endpoint resolves the client before dispatching (to enforce
+  // `grant_types` first); pass it through so it is not looked up twice.
+  preloadedClient?: EnrichedClient,
 ): Promise<GrantFlowUserResult> {
-  const client = await getEnrichedClient(
-    ctx.env,
-    params.client_id,
-    ctx.var.tenant_id,
-    ssrfFetchOptionsFromEnv(ctx.env),
-  );
+  const client =
+    preloadedClient ??
+    (await getEnrichedClient(
+      ctx.env,
+      params.client_id,
+      ctx.var.tenant_id,
+      ssrfFetchOptionsFromEnv(ctx.env),
+    ));
 
   const code = await ctx.env.data.codes.get(
     client.tenant.id,

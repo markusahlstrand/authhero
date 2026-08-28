@@ -359,25 +359,19 @@ const postRoot = defineRoute({
     }
     ctx.set("client_id", params.client_id);
 
-    // Enforce the client's `grant_types` allowlist *before* dispatching to
-    // the grant flow. Every flow starts by loading this same client, so this
-    // costs nothing extra (the bundle was prefetched above), and a disallowed
-    // grant fails fast with no side effects — otherwise the flow has already
-    // burned the OTP / authorization code and, for the passwordless grant,
-    // created a session and refresh token that never reach the client
-    // (issue #1285). CIMD clients are skipped here: their metadata document
-    // is fetched on every lookup, and the grant flow performs that fetch, so
-    // they are checked once the flow returns instead.
-    const grantTypeCheckedBeforeDispatch = !isCimdClientId(params.client_id);
-    if (grantTypeCheckedBeforeDispatch) {
-      const client = await getEnrichedClient(
-        ctx.env,
-        params.client_id,
-        ctx.var.tenant_id,
-        ssrfFetchOptionsFromEnv(ctx.env),
-      );
-      assertGrantTypeAllowed(ctx, client, body.grant_type);
-    }
+    // Resolve the client once, up front, and enforce its `grant_types`
+    // allowlist *before* dispatching to the grant flow. Otherwise a rejected
+    // request has already burned the OTP / authorization code and, for the
+    // passwordless grant, created a session and refresh token that never
+    // reach the client (issue #1285). The resolved client is handed to the
+    // flow so it is not looked up (or, for CIMD clients, re-fetched) twice.
+    const client = await getEnrichedClient(
+      ctx.env,
+      params.client_id,
+      ctx.var.tenant_id,
+      ssrfFetchOptionsFromEnv(ctx.env),
+    );
+    assertGrantTypeAllowed(ctx, client, body.grant_type);
 
     let grantResult: GrantFlowResult;
 
@@ -386,30 +380,35 @@ const postRoot = defineRoute({
         grantResult = await authorizationCodeGrantUser(
           ctx,
           authorizationCodeGrantParamsSchema.parse(params),
+          client,
         );
         break;
       case GrantType.ClientCredential:
         grantResult = await clientCredentialsGrant(
           ctx,
           clientCredentialGrantParamsSchema.parse(params),
+          client,
         );
         break;
       case GrantType.RefreshToken:
         grantResult = await refreshTokenGrant(
           ctx,
           refreshTokenParamsSchema.parse(params),
+          client,
         );
         break;
       case GrantType.OTP:
         grantResult = await passwordlessOtpGrant(
           ctx,
           passwordlessGrantParamsSchema.parse(params),
+          client,
         );
         break;
       case TOKEN_EXCHANGE_GRANT_TYPE:
         grantResult = await tokenExchangeGrant(
           ctx,
           tokenExchangeParamsSchema.parse(params),
+          client,
         );
         break;
       default:
@@ -420,10 +419,6 @@ const postRoot = defineRoute({
           },
           400,
         );
-    }
-
-    if (!grantTypeCheckedBeforeDispatch) {
-      assertGrantTypeAllowed(ctx, grantResult.client, body.grant_type);
     }
 
     // Set tenant_id in context (or validate it matches if already set)

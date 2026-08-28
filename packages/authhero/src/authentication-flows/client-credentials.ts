@@ -5,7 +5,7 @@ import { z } from "@hono/zod-openapi";
 import { Bindings, Variables } from "../types";
 import { safeCompare } from "../utils/safe-compare";
 import { GrantFlowResult } from "../types/GrantFlowResult";
-import { getEnrichedClient } from "../helpers/client";
+import { getEnrichedClient, EnrichedClient } from "../helpers/client";
 import { logMessage } from "../helpers/logging";
 
 export const clientCredentialGrantParamsSchema = z.object({
@@ -23,12 +23,11 @@ export const clientCredentialGrantParamsSchema = z.object({
 export async function clientCredentialsGrant(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: z.infer<typeof clientCredentialGrantParamsSchema>,
+  preloadedClient?: EnrichedClient,
 ): Promise<GrantFlowResult> {
-  const client = await getEnrichedClient(
-    ctx.env,
-    params.client_id,
-    ctx.var.tenant_id,
-  );
+  const client =
+    preloadedClient ??
+    (await getEnrichedClient(ctx.env, params.client_id, ctx.var.tenant_id));
 
   const authenticatedViaAssertion =
     ctx.var.client_authenticated_via_assertion === true;

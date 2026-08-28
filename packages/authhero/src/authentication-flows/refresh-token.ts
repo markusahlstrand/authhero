@@ -10,7 +10,7 @@ import {
 import { z } from "@hono/zod-openapi";
 import { safeCompare } from "../utils/safe-compare";
 import { appendLog } from "../utils/append-log";
-import { getEnrichedClient } from "../helpers/client";
+import { getEnrichedClient, EnrichedClient } from "../helpers/client";
 import { ssrfFetchOptionsFromEnv } from "../utils/ssrf-fetch";
 import { logMessage } from "../helpers/logging";
 import {
@@ -43,13 +43,16 @@ export const refreshTokenParamsSchema = z.object({
 export async function refreshTokenGrant(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: z.infer<typeof refreshTokenParamsSchema>,
+  preloadedClient?: EnrichedClient,
 ): Promise<GrantFlowUserResult> {
-  const client = await getEnrichedClient(
-    ctx.env,
-    params.client_id,
-    ctx.var.tenant_id,
-    ssrfFetchOptionsFromEnv(ctx.env),
-  );
+  const client =
+    preloadedClient ??
+    (await getEnrichedClient(
+      ctx.env,
+      params.client_id,
+      ctx.var.tenant_id,
+      ssrfFetchOptionsFromEnv(ctx.env),
+    ));
 
   // Validate client_secret if provided
   if (params.client_secret) {

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { testClient } from "hono/testing";
 import { getTestServer } from "../../helpers/test-server";
 import { getAdminToken } from "../../helpers/token";
@@ -182,6 +182,87 @@ describe("client.grant_types is enforced before the grant flow runs", () => {
     });
     const accepted = await exchange();
     expect(accepted.status).toBe(200);
+  });
+
+  describe("CIMD clients", () => {
+    afterEach(() => vi.restoreAllMocks());
+
+    const CIMD_URL = "https://rp.example.com/cimd.json";
+
+    it("rejects before dispatch, fetching the metadata document only once", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const client = testClient(oauthApp, env);
+
+      await env.data.tenants.update("tenantId", {
+        flags: { client_id_metadata_document_registration: true },
+      });
+      env.ALLOW_PRIVATE_OUTBOUND_FETCH = true;
+      // The document registers refresh_token only, so an authorization_code
+      // exchange must be refused.
+      const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(
+        async () =>
+          new Response(
+            JSON.stringify({
+              client_id: CIMD_URL,
+              client_name: "Example MCP Client",
+              grant_types: ["refresh_token"],
+              redirect_uris: ["https://rp.example.com/callback"],
+              application_type: "web",
+            }),
+            { status: 200, headers: { "content-type": "application/json" } },
+          ),
+      );
+
+      // FK anchor row, as ensureCimdStubClient would have created on the
+      // first /authorize.
+      await env.data.clients.create("tenantId", {
+        client_id: CIMD_URL,
+        name: "Example MCP Client",
+        client_metadata: { cimd: "true" },
+      });
+      const loginSession = await env.data.loginSessions.create("tenantId", {
+        expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+        csrf_token: "csrfToken",
+        authParams: {
+          client_id: CIMD_URL,
+          scope: "openid",
+          redirect_uri: "https://rp.example.com/callback",
+        },
+      });
+      await env.data.codes.create("tenantId", {
+        code_type: "authorization_code",
+        user_id: "email|userId",
+        code_id: "cimd-check-order-code",
+        login_id: loginSession.id,
+        expires_at: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
+      });
+
+      const response = await client.oauth.token.$post(
+        // @ts-expect-error - testClient type requires both form and json
+        {
+          form: {
+            grant_type: "authorization_code",
+            code: "cimd-check-order-code",
+            redirect_uri: "https://rp.example.com/callback",
+            client_id: CIMD_URL,
+          },
+        },
+        { headers: { "tenant-id": "tenantId" } },
+      );
+
+      expect(response.status).toBe(400);
+      const body = (await response.json()) as ErrorResponse;
+      expect(body.error).toBe("unauthorized_client");
+
+      const storedCode = await env.data.codes.get(
+        "tenantId",
+        "cimd-check-order-code",
+        "authorization_code",
+      );
+      expect(storedCode?.used_at).toBeFalsy();
+      // The pre-dispatch resolution is the only metadata fetch.
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+    });
   });
 
   it("an unknown client still fails with the grant handler's error", async () => {
