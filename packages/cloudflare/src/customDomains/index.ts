@@ -189,17 +189,21 @@ async function findCustomHostname(
  * Shared by `get()` and `syncCustomDomains()` so the interactive refresh and
  * the cron sweep can never drift apart on what a Cloudflare payload means.
  *
- * Never throws: a payload that cannot be mapped, or a writeback that fails,
- * degrades to "nothing changed" and leaves the stored row authoritative. Both
- * callers are refresh paths — neither should fail because Cloudflare returned
- * something surprising.
+ * Never throws — both callers are refresh paths, and neither should fail
+ * because Cloudflare returned something surprising. Failure is reported in
+ * `outcome` rather than raised, and is kept distinct from `"unchanged"`: a
+ * sweep whose writebacks are all failing (a varchar overflow on `verification`
+ * is one we have actually seen) would otherwise be indistinguishable from a
+ * sweep that found nothing to do.
  */
+export type RefreshOutcome = "unchanged" | "updated" | "failed";
+
 export async function refreshFromCloudflare(
   config: CloudflareConfig,
   tenant_id: string,
   stored: CustomDomain,
   result: CustomDomainResult,
-): Promise<{ domain: CustomDomain; changed: boolean }> {
+): Promise<{ domain: CustomDomain; outcome: RefreshOutcome }> {
   const domain_id = stored.custom_domain_id;
 
   let merged: CustomDomain;
@@ -210,7 +214,7 @@ export async function refreshFromCloudflare(
       `[custom-domains] mapCustomDomainResponse failed for ${domain_id} (tenant=${tenant_id}); keeping the stored row.`,
       err instanceof Error ? err.message : err,
     );
-    return { domain: stored, changed: false };
+    return { domain: stored, outcome: "failed" };
   }
 
   // Only write if something actually changed, to avoid pointless updated_at
@@ -220,7 +224,7 @@ export async function refreshFromCloudflare(
     merged.status === stored.status &&
     JSON.stringify(merged.verification) === JSON.stringify(stored.verification)
   ) {
-    return { domain: merged, changed: false };
+    return { domain: merged, outcome: "unchanged" };
   }
 
   // A failed writeback must not poison the response: the merged object is
@@ -235,10 +239,10 @@ export async function refreshFromCloudflare(
       `[custom-domains] DB writeback failed for ${domain_id} (tenant=${tenant_id}); returning merged response without DB sync.`,
       err instanceof Error ? err.message : err,
     );
-    return { domain: merged, changed: false };
+    return { domain: merged, outcome: "failed" };
   }
 
-  return { domain: merged, changed: true };
+  return { domain: merged, outcome: "updated" };
 }
 
 export function createCustomDomainsAdapter(

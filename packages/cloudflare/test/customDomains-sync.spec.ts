@@ -175,37 +175,68 @@ describe("syncCustomDomains", () => {
     expect(stored?.status).toBe("pending");
   });
 
+  // perPage is the smallest Cloudflare accepts, so a full page is five
+  // hostnames and a sixth forces the second page.
   it("walks every page until Cloudflare returns a short one", async () => {
     const { data, config } = await setup();
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 6; i++) {
       await data.customDomains.create("tenantId", {
         custom_domain_id: `id-${i}`,
         domain: `d${i}.example.com`,
         type: "auth0_managed_certs",
       });
     }
+    const full = [0, 1, 2, 3, 4].map((i) =>
+      hostnameResult({ id: `id-${i}`, hostname: `d${i}.example.com` }),
+    );
     server.use(
       listPages([
-        [
-          hostnameResult({ id: "id-0", hostname: "d0.example.com" }),
-          hostnameResult({ id: "id-1", hostname: "d1.example.com" }),
-        ],
-        [hostnameResult({ id: "id-2", hostname: "d2.example.com" })],
+        full,
+        [hostnameResult({ id: "id-5", hostname: "d5.example.com" })],
       ]),
     );
 
-    const result = await syncCustomDomains(config, { perPage: 2 });
+    const result = await syncCustomDomains(config, { perPage: 5 });
 
-    expect(result).toMatchObject({ scanned: 3, matched: 3, updated: 3 });
+    expect(result).toMatchObject({ scanned: 6, matched: 6, updated: 6 });
   });
 
+  // Cloudflare rejects per_page outside 5..1000, which would fail the very
+  // first request and end the sweep having scanned nothing.
+  it("clamps perPage into the range Cloudflare accepts", async () => {
+    const { config } = await setup();
+    const seen: string[] = [];
+    server.use(
+      http.get(LIST_URL, ({ request }) => {
+        const params = new URL(request.url).searchParams;
+        seen.push(params.get("per_page") ?? "");
+        return HttpResponse.json({
+          errors: [],
+          messages: [],
+          success: true,
+          result: [],
+        });
+      }),
+    );
+
+    await syncCustomDomains(config, { perPage: 1 });
+    await syncCustomDomains(config, { perPage: 5000 });
+    await syncCustomDomains(config, { perPage: Number.NaN });
+
+    expect(seen).toEqual(["5", "1000", "50"]);
+  });
+
+  // A full first page keeps the sweep going into the second, which fails.
+  // What page one already reconciled has to survive that.
   it("returns the partial result instead of throwing when a page fails", async () => {
     const { data, config } = await setup();
-    await data.customDomains.create("tenantId", {
-      custom_domain_id: "id-0",
-      domain: "d0.example.com",
-      type: "auth0_managed_certs",
-    });
+    for (let i = 0; i < 5; i++) {
+      await data.customDomains.create("tenantId", {
+        custom_domain_id: `id-${i}`,
+        domain: `d${i}.example.com`,
+        type: "auth0_managed_certs",
+      });
+    }
     server.use(
       http.get(LIST_URL, ({ request }) => {
         const page = Number(
@@ -216,9 +247,9 @@ describe("syncCustomDomains", () => {
             errors: [],
             messages: [],
             success: true,
-            result: [
-              hostnameResult({ id: "id-0", hostname: "d0.example.com" }),
-            ],
+            result: [0, 1, 2, 3, 4].map((i) =>
+              hostnameResult({ id: `id-${i}`, hostname: `d${i}.example.com` }),
+            ),
           });
         }
         return HttpResponse.json({
@@ -230,10 +261,39 @@ describe("syncCustomDomains", () => {
       }),
     );
 
-    const result = await syncCustomDomains(config, { perPage: 1 });
+    const result = await syncCustomDomains(config, { perPage: 5 });
 
-    expect(result).toMatchObject({ scanned: 1, updated: 1, errors: 1 });
+    expect(result).toMatchObject({ scanned: 5, updated: 5, errors: 1 });
     const stored = await data.customDomains.get("tenantId", "id-0");
     expect(stored?.status).toBe("ready");
+  });
+
+  // `refreshFromCloudflare` reports a failed writeback rather than throwing, so
+  // without explicit counting this sweep would report a clean `errors: 0`.
+  it("counts a writeback that fails without throwing", async () => {
+    const { data, config } = await setup();
+    await data.customDomains.create("tenantId", {
+      custom_domain_id: "cfHostnameId",
+      domain: "login.example.com",
+      type: "auth0_managed_certs",
+    });
+    config.customDomainAdapter = {
+      ...data.customDomains,
+      update: async () => {
+        throw new Error("verification column overflow");
+      },
+    };
+    server.use(listPages([[hostnameResult({ status: "active" })]]));
+
+    const result = await syncCustomDomains(config);
+
+    expect(result).toMatchObject({
+      scanned: 1,
+      matched: 1,
+      updated: 0,
+      errors: 1,
+    });
+    const stored = await data.customDomains.get("tenantId", "cfHostnameId");
+    expect(stored?.status).toBe("pending");
   });
 });

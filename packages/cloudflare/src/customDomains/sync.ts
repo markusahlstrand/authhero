@@ -4,8 +4,9 @@ import { getClient, refreshFromCloudflare } from "./index";
 
 export interface SyncCustomDomainsOptions {
   /**
-   * Hostnames fetched per Cloudflare API call. The API caps this at 50, which
-   * is also the default — one page covers 50 domains in a single request.
+   * Hostnames fetched per Cloudflare API call. Cloudflare accepts 5 to 1000
+   * (its own default is 20); values outside that are clamped rather than
+   * rejected, since a cron should not die on a config typo. Defaults to 50.
    */
   perPage?: number;
   /**
@@ -37,9 +38,18 @@ export interface SyncCustomDomainsResult {
    * `proxy_routes` and the KV host blobs point at.
    */
   mismatched: number;
-  /** Hostnames that threw while being reconciled. Each one is logged. */
+  /**
+   * Hostnames that could not be reconciled — a throw, or a merge/writeback
+   * that failed without throwing. Each one is logged. A sweep reporting
+   * `updated: 0` is only healthy when this is 0 too.
+   */
   errors: number;
 }
+
+/** Cloudflare's documented bounds for `per_page` on this endpoint. */
+const MIN_PER_PAGE = 5;
+const MAX_PER_PAGE = 1000;
+const DEFAULT_PER_PAGE = 50;
 
 /**
  * Reconcile every custom hostname in the Cloudflare zone against the stored
@@ -79,7 +89,13 @@ export async function syncCustomDomains(
   config: CloudflareConfig,
   options: SyncCustomDomainsOptions = {},
 ): Promise<SyncCustomDomainsResult> {
-  const perPage = options.perPage ?? 50;
+  // Cloudflare rejects a per_page outside 5..1000, and that rejection would
+  // fail the very first request and end the sweep having scanned nothing.
+  // `Math.max` would propagate a NaN, so an unusable value falls back instead.
+  const requestedPerPage = Math.trunc(options.perPage ?? DEFAULT_PER_PAGE);
+  const perPage = Number.isFinite(requestedPerPage)
+    ? Math.min(MAX_PER_PAGE, Math.max(MIN_PER_PAGE, requestedPerPage))
+    : DEFAULT_PER_PAGE;
   const maxPages = options.maxPages ?? 200;
 
   const result: SyncCustomDomainsResult = {
@@ -155,14 +171,19 @@ export async function syncCustomDomains(
         }
 
         result.matched++;
-        const { changed } = await refreshFromCloudflare(
+        // `refreshFromCloudflare` reports its own failures instead of throwing,
+        // so they have to be counted here or a sweep whose every writeback is
+        // failing looks exactly like a sweep with nothing to do.
+        const { outcome } = await refreshFromCloudflare(
           config,
           stored.tenant_id,
           stored,
           hostname,
         );
-        if (changed) {
+        if (outcome === "updated") {
           result.updated++;
+        } else if (outcome === "failed") {
+          result.errors++;
         }
       } catch (err) {
         console.warn(

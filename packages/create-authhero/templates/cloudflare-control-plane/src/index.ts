@@ -144,6 +144,10 @@ function buildCloudflareConfig(
     zoneId: env.CLOUDFLARE_ZONE_ID,
     authKey: env.CLOUDFLARE_API_KEY,
     authEmail: env.CLOUDFLARE_API_EMAIL,
+    // On an Enterprise zone the hostname carries its owning tenant, so every
+    // ownership check — adoption on create, reads, and the sync sweep's refusal
+    // to mirror across a tenant boundary — can actually verify it.
+    enterprise: env.CLOUDFLARE_ZONE_ENTERPRISE === "true",
     // The Cloudflare adapter performs the zone-level side effect and persists
     // the row through this database adapter.
     customDomainAdapter: dataAdapter.customDomains,

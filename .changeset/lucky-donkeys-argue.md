@@ -12,3 +12,5 @@ Also fixes `verification` persistence, which the sweep depends on:
 
 - **drizzle**: `verification` was written to its text column as a raw object, so SQLite rejected the statement ("Too few parameter values were provided") and the accompanying `status` change was lost — a custom domain could never be marked `ready`. It is now stringified on write and parsed on read.
 - **kysely**: `getByDomain` returned `verification` as an unparsed JSON string while `get` returned an object. Both now parse it.
+
+The control-plane template now reads `CLOUDFLARE_ZONE_ENTERPRISE`, so a deployment on an Enterprise zone gets the tenant-ownership checks it has always been entitled to. Unset, behaviour is unchanged.
