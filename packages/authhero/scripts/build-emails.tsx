@@ -2,7 +2,7 @@ import * as React from "react";
 import { writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { render } from "@react-email/render";
+import { render } from "react-email";
 import type { EmailTemplateName } from "@authhero/adapter-interfaces";
 import { ResetEmail } from "../src/emails/defaults/ResetEmail";
 import { ResetEmailByCode } from "../src/emails/defaults/ResetEmailByCode";

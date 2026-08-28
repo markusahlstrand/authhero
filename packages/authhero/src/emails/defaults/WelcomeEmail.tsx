@@ -1,5 +1,5 @@
 /** @jsxImportSource react */
-import { Heading, Link, Section, Text } from "@react-email/components";
+import { Heading, Link, Section, Text } from "react-email";
 import { Layout } from "./Layout";
 import { PrimaryButton } from "./PrimaryButton";
 

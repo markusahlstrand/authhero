@@ -1,5 +1,5 @@
 /** @jsxImportSource react */
-import { Heading, Text } from "@react-email/components";
+import { Heading, Text } from "react-email";
 import { Layout } from "./Layout";
 
 export function MfaOobCode() {
