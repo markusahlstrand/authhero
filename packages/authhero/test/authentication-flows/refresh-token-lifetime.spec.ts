@@ -166,6 +166,20 @@ describe("per-client refresh token lifetimes", () => {
       expect(secondsFromNow(row.idle_expires_at)).toBeLessThanOrEqual(15 * 60);
     });
 
+    it("omits the idle expiry for infinite_idle_token_lifetime", async () => {
+      const { env } = await getTestServer();
+      await setTenantLifetimes(env);
+      await setClientRefreshToken(env, {
+        token_lifetime: 2 * 60 * 60,
+        infinite_idle_token_lifetime: true,
+      });
+
+      const row = await mintRefreshToken(env);
+
+      expect(row.idle_expires_at).toBeFalsy();
+      expect(secondsFromNow(row.expires_at)).toBeLessThanOrEqual(2 * 3600);
+    });
+
     it("omits both expiries for expiration_type: non-expiring", async () => {
       const { env } = await getTestServer();
       await setTenantLifetimes(env);
@@ -276,6 +290,37 @@ describe("per-client refresh token lifetimes", () => {
       expect(secondsFromNow(row?.idle_expires_at)).toBeLessThanOrEqual(30 * 60);
     });
 
+    it("clears only the idle window of a non-rotating row for infinite_idle_token_lifetime", async () => {
+      const { oauthApp, env } = await getTestServer();
+      await setTenantLifetimes(env);
+      await setClientRefreshToken(env, {
+        rotation_type: "non-rotating",
+        token_lifetime: 30 * 24 * 60 * 60,
+        infinite_idle_token_lifetime: true,
+      });
+      const expires_at = new Date(Date.now() + HOUR_MS).toISOString();
+      // Stamped with an idle window under the old config; the client has
+      // since gone infinite-idle. The in-place path has to clear the stored
+      // column explicitly — leaving it in place would let a stale window
+      // reject the token with invalid_grant later.
+      const seeded = await seedToken(env, {
+        expires_at,
+        idle_expires_at: new Date(Date.now() + 60 * 1000).toISOString(),
+      });
+
+      const first = await exchange(oauthApp, env, seeded.wire);
+      expect(first.status).toBe(200);
+
+      const row = await env.data.refreshTokens.get(TENANT, seeded.id);
+      expect(row?.idle_expires_at).toBeFalsy();
+      // The absolute expiry is untouched — neither extended nor cleared.
+      expect(row?.expires_at).toBe(expires_at);
+
+      // With no idle window left on the row, the same token keeps working.
+      const second = await exchange(oauthApp, env, seeded.wire);
+      expect(second.status).toBe(200);
+    });
+
     it("never extends a non-rotating row's absolute expiry", async () => {
       const { oauthApp, env } = await getTestServer();
       await setTenantLifetimes(env);
@@ -331,6 +376,37 @@ describe("per-client refresh token lifetimes", () => {
       expect(child?.expires_at).toBe(
         (await env.data.refreshTokens.get(TENANT, seeded.id))?.expires_at,
       );
+    });
+
+    it("mints an idle-less rotated child for infinite_idle_token_lifetime", async () => {
+      const { oauthApp, env } = await getTestServer();
+      await setTenantLifetimes(env);
+      await setClientRefreshToken(env, {
+        rotation_type: "rotating",
+        infinite_idle_token_lifetime: true,
+      });
+      const expires_at = new Date(Date.now() + HOUR_MS).toISOString();
+      const seeded = await seedToken(env, {
+        rotating: true,
+        expires_at,
+        idle_expires_at: new Date(Date.now() + 60 * 1000).toISOString(),
+      });
+
+      const response = await exchange(oauthApp, env, seeded.wire);
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as TokenResponse;
+
+      const parsed = parseRefreshToken(body.refresh_token!);
+      if (parsed.kind !== "new") throw new Error("expected new-format token");
+      const child = await env.data.refreshTokens.getByLookup(
+        TENANT,
+        parsed.lookup,
+      );
+
+      expect(child).toBeTruthy();
+      expect(child?.idle_expires_at).toBeFalsy();
+      // Only the idle axis is infinite; the absolute expiry is still inherited.
+      expect(child?.expires_at).toBe(expires_at);
     });
 
     it("drops the inherited expiries when the client is switched to non-expiring", async () => {
