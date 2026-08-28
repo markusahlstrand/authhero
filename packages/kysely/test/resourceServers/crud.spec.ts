@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { escapeLuceneValue } from "@authhero/adapter-interfaces";
 import { getTestServer } from "../helpers/test-server";
 
 describe("resourceServers adapter", () => {
@@ -31,6 +32,17 @@ describe("resourceServers adapter", () => {
       q: "name:My",
     });
     expect(list.resource_servers.length).toBe(1);
+
+    // A quoted operand (as produced by escapeLuceneValue at call sites such
+    // as the multi-tenancy resource-server sync) must match the same row as
+    // the raw value.
+    const quotedList = await adapters.resourceServers.list(tenant, {
+      page: 0,
+      per_page: 10,
+      include_totals: true,
+      q: `identifier:${escapeLuceneValue("https://api.example.com/")}`,
+    });
+    expect(quotedList.resource_servers.length).toBe(1);
 
     const updated = await adapters.resourceServers.update(tenant, created.id, {
       name: "My API v2",

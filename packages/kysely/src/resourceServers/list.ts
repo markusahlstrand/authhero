@@ -4,6 +4,7 @@ import {
   ListResourceServersResponse,
   ResourceServer,
 } from "@authhero/adapter-interfaces";
+import { unquoteLuceneValue } from "@authhero/adapter-interfaces";
 import { Database, sqlResourceServerSchema } from "../db";
 import getCountAsInt from "../utils/getCountAsInt";
 import { luceneFilter } from "../helpers/filter";
@@ -28,7 +29,9 @@ export function list(db: Kysely<Database>) {
       const parts = trimmedQ.split(/\s+/);
       const one = parts.length === 1 ? parts[0] : undefined;
       const match = one ? one.match(/^(-)?(name|identifier):(.*)$/) : null;
-      const value = match ? match[3] : "";
+      // Strip escapeLuceneValue quoting so a quoted operand compares as its
+      // unquoted self, mirroring the clients/user-organizations lists.
+      const value = match ? unquoteLuceneValue(match[3]!) : "";
       const hasRangeOp = /^(>=|>|<=|<)/.test(value || "");
       if (match && !hasRangeOp) {
         const neg = !!match[1];
