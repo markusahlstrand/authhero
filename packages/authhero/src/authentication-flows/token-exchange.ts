@@ -8,7 +8,7 @@ import {
 import { JSONHTTPException } from "../errors/json-http-exception";
 import { Bindings, Variables, GrantFlowUserResult } from "../types";
 import { safeCompare } from "../utils/safe-compare";
-import { getEnrichedClient } from "../helpers/client";
+import { getEnrichedClient, EnrichedClient } from "../helpers/client";
 import { userHasGlobalOrgAdminPermission } from "../helpers/scopes-permissions";
 import { logMessage } from "../helpers/logging";
 import {
@@ -49,12 +49,11 @@ export type TokenExchangeParams = z.infer<typeof tokenExchangeParamsSchema>;
 export async function tokenExchangeGrant(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: TokenExchangeParams,
+  preloadedClient?: EnrichedClient,
 ): Promise<GrantFlowUserResult> {
-  const client = await getEnrichedClient(
-    ctx.env,
-    params.client_id,
-    ctx.var.tenant_id,
-  );
+  const client =
+    preloadedClient ??
+    (await getEnrichedClient(ctx.env, params.client_id, ctx.var.tenant_id));
 
   const failLog = (description: string) =>
     logMessage(ctx, client.tenant.id, {
