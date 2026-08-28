@@ -8,6 +8,7 @@ import {
 import { logMessage } from "../../helpers/logging";
 import { Bindings, Variables } from "../../types";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
+import { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import {
   clientCredentialsGrant,
@@ -47,6 +48,7 @@ import { isCimdClientId } from "../../helpers/cimd";
 import { getAuthUrl, getIssuer } from "../../variables";
 import { resolveConnectionName } from "../../helpers/connection";
 import { defineRoute } from "../../utils/define-route";
+import { ssrfFetchOptionsFromEnv } from "../../utils/ssrf-fetch";
 const optionalClientCredentials = z.object({
   client_id: z.string().optional(),
   client_secret: z.string().optional(),
@@ -71,6 +73,33 @@ function peekAssertionClientId(jwt: string): string | undefined {
     /* fall through — invalid JSON is caught when we verify the assertion. */
   }
   return undefined;
+}
+
+/**
+ * RFC 6749 §5.2: reject grants the client is not registered for. Only
+ * enforced when the client explicitly lists `grant_types` — clients with an
+ * empty/undefined list (legacy / unconfigured) keep working as before.
+ */
+function assertGrantTypeAllowed(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  client: EnrichedClient,
+  grantType: string,
+): void {
+  const allowedGrantTypes = client.grant_types;
+  if (
+    allowedGrantTypes &&
+    allowedGrantTypes.length > 0 &&
+    !allowedGrantTypes.includes(grantType)
+  ) {
+    logMessage(ctx, client.tenant.id, {
+      type: LogTypes.FAILED_LOGIN,
+      description: `Grant type "${grantType}" is not allowed for this client`,
+    });
+    throw new JSONHTTPException(400, {
+      error: "unauthorized_client",
+      error_description: `The grant type "${grantType}" is not allowed for this client`,
+    });
+  }
 }
 
 // We need to make the client_id and client_secret optional on each type as it can be passed in a auth-header
@@ -330,6 +359,26 @@ const postRoot = defineRoute({
     }
     ctx.set("client_id", params.client_id);
 
+    // Enforce the client's `grant_types` allowlist *before* dispatching to
+    // the grant flow. Every flow starts by loading this same client, so this
+    // costs nothing extra (the bundle was prefetched above), and a disallowed
+    // grant fails fast with no side effects — otherwise the flow has already
+    // burned the OTP / authorization code and, for the passwordless grant,
+    // created a session and refresh token that never reach the client
+    // (issue #1285). CIMD clients are skipped here: their metadata document
+    // is fetched on every lookup, and the grant flow performs that fetch, so
+    // they are checked once the flow returns instead.
+    const grantTypeCheckedBeforeDispatch = !isCimdClientId(params.client_id);
+    if (grantTypeCheckedBeforeDispatch) {
+      const client = await getEnrichedClient(
+        ctx.env,
+        params.client_id,
+        ctx.var.tenant_id,
+        ssrfFetchOptionsFromEnv(ctx.env),
+      );
+      assertGrantTypeAllowed(ctx, client, body.grant_type);
+    }
+
     let grantResult: GrantFlowResult;
 
     switch (body.grant_type) {
@@ -373,23 +422,8 @@ const postRoot = defineRoute({
         );
     }
 
-    // RFC 6749 §5.2: reject grants the client is not registered for. Only
-    // enforced when the client explicitly lists `grant_types` — clients with
-    // an empty/undefined list (legacy / unconfigured) keep working as before.
-    const allowedGrantTypes = grantResult.client.grant_types;
-    if (
-      allowedGrantTypes &&
-      allowedGrantTypes.length > 0 &&
-      !allowedGrantTypes.includes(body.grant_type)
-    ) {
-      logMessage(ctx, grantResult.client.tenant.id, {
-        type: LogTypes.FAILED_LOGIN,
-        description: `Grant type "${body.grant_type}" is not allowed for this client`,
-      });
-      throw new JSONHTTPException(400, {
-        error: "unauthorized_client",
-        error_description: `The grant type "${body.grant_type}" is not allowed for this client`,
-      });
+    if (!grantTypeCheckedBeforeDispatch) {
+      assertGrantTypeAllowed(ctx, grantResult.client, body.grant_type);
     }
 
     // Set tenant_id in context (or validate it matches if already set)
