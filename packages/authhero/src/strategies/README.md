@@ -89,10 +89,10 @@ const socialConnections = client.connections
 
 To add a new social authentication strategy:
 
-1. **Create the strategy implementation** (e.g., `linkedin.ts`):
+1. **Create the strategy implementation** (e.g., `linkedin.ts`). OAuth2 provider clients live in the vendored `src/oauth2-client` module (see `providers.ts` for existing ones like `Google`, `Facebook`, `GitHub`); add a provider class there if the generic `OAuth2Client` isn't enough:
 
    ```typescript
-   import { LinkedIn } from "arctic";
+   import { LinkedIn } from "../oauth2-client";
    import { Context } from "hono";
    import { Connection } from "@authhero/adapter-interfaces";
    import { nanoid } from "nanoid";
