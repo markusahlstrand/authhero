@@ -84,13 +84,26 @@ function isoWeekOf(iso) {
   return `${year}-w${String(week).padStart(2, "0")}`;
 }
 
-/** The last week that has fully ended — never the one still in progress. */
+/** Today's calendar date in the pinned zone, as `YYYY-MM-DD`. */
+function todayIn(tz) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
+/**
+ * The last week that has fully ended — never the one still in progress. "Today" is
+ * Stockholm's, like every other boundary here: at 23:30 UTC on a Sunday it is already
+ * Monday in Stockholm, and the week that just ended is the one to write.
+ */
 function lastCompleteWeek() {
-  const today = new Date();
-  const day = today.getUTCDay() || 7;
-  const thisMonday = new Date(today);
-  thisMonday.setUTCDate(today.getUTCDate() - (day - 1));
-  return isoWeekOf(addDays(thisMonday.toISOString().slice(0, 10), -7));
+  const today = todayIn(TZ);
+  const day = new Date(`${today}T00:00:00Z`).getUTCDay() || 7;
+  const thisMonday = addDays(today, -(day - 1));
+  return isoWeekOf(addDays(thisMonday, -7));
 }
 
 /** `2026-w34` → `{ id, start, end }`, end exclusive. */
@@ -98,6 +111,9 @@ function weekRange(id) {
   const m = /^(\d{4})-w(\d{2})$/.exec(id);
   if (!m) throw new Error(`not a week id: ${id} (expected 2026-w34)`);
   const start = mondayOfIsoWeek(Number(m[1]), Number(m[2]));
+  // `2026-w00` and `2026-w54` parse, and map onto some other week's Monday; a filename
+  // carrying one would pass the range check while duplicating a real week's coverage.
+  if (isoWeekOf(start) !== id) throw new Error(`not an ISO week: ${id}`);
   return { id, start, end: addDays(start, 7) };
 }
 
