@@ -8,6 +8,7 @@
     "test": "echo \"Error: no test specified\" && exit 0",
     "format": "prettier --write \"./**/*.{js,jsx,ts,tsx,json}\"",
     "format:check": "prettier --check \"./**/*.{js,jsx,ts,tsx,json}\"",
+    "lint:changelog": "node tools/changelog-week.mjs",
     "manage": "pnpm --filter @authhero/manage",
     "admin": "pnpm --filter @authhero/admin",
     "authhero": "pnpm --filter authhero",

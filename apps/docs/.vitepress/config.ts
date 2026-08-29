@@ -1,5 +1,38 @@
 import { defineConfig } from "vitepress";
 import { withMermaid } from "vitepress-plugin-mermaid";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+/**
+ * The weekly changelog, read from the filesystem rather than listed by hand.
+ *
+ * Every other sidebar section is a curated order. The changelog is not: it is one
+ * page per week, newest first, forever. A hand-maintained list of those would be a
+ * second description of a directory listing, so the directory *is* the list, and an
+ * entry added by Monday's digest reaches the nav with nothing else to remember.
+ */
+const CHANGELOG_DIR = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  "../changelog",
+);
+function changelogSidebar() {
+  const entries = existsSync(CHANGELOG_DIR)
+    ? readdirSync(CHANGELOG_DIR)
+        .filter((f) => f.endsWith(".md") && f !== "index.md")
+        .sort()
+        .reverse()
+    : [];
+  return entries.map((file) => {
+    const slug = file.replace(/\.md$/, "");
+    const raw = readFileSync(join(CHANGELOG_DIR, file), "utf8");
+    const title = /^title:\s*(.+)$/m
+      .exec(raw)?.[1]
+      .trim()
+      .replace(/^['"]|['"]$/g, "");
+    return { text: title ?? slug, link: `/changelog/${slug}` };
+  });
+}
 
 // https://vitepress.dev/reference/site-config
 export default withMermaid(
@@ -152,6 +185,7 @@ gtag('config', 'G-DNZWG3PF2L');`,
         { text: "Architecture", link: "/architecture/" },
         { text: "Standards", link: "/standards/" },
         { text: "API Reference", link: "/api/overview" },
+        { text: "Changelog", link: "/changelog/" },
       ],
 
       sidebar: [
@@ -690,6 +724,14 @@ gtag('config', 'G-DNZWG3PF2L');`,
             { text: "Code Style", link: "/contributing/code-style" },
             { text: "Testing", link: "/contributing/testing" },
             { text: "Release Process", link: "/contributing/release-process" },
+          ],
+        },
+        {
+          text: "Changelog",
+          collapsed: true,
+          items: [
+            { text: "Overview", link: "/changelog/" },
+            ...changelogSidebar(),
           ],
         },
       ],

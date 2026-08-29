@@ -1,0 +1,32 @@
+# The weekly changelog's completeness gate.
+#
+# `apps/docs/changelog/<week>.md` is authored prose; the one mechanical property it
+# has is that every PR merged inside an entry's declared range is named on the page.
+# `tools/changelog-week.mjs --check` asserts exactly that, and nothing else — so the
+# job runs only when an entry or the tool changes, and on every push to main (where
+# a merge that lands after an entry was written is what turns it red).
+#
+# It reads history, so the checkout is full depth: on a shallow clone the check
+# refuses to run rather than report green over a history it cannot see.
+name: Changelog
+
+on:
+  pull_request:
+    paths:
+      - "apps/docs/changelog/**"
+      - "tools/changelog-week.mjs"
+      - ".github/workflows/changelog.yml"
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+      - run: node tools/changelog-week.mjs --check
