@@ -67,9 +67,13 @@ Refresh tokens allow obtaining new access tokens without requiring the user to r
 **Characteristics:**
 
 - Opaque strings (not JWTs)
-- Long lifetime (days or weeks)
-- Can be revoked
-- Single-use or rotating (configurable)
+- Lifetime configured per application — see [Refresh token lifetimes](#refresh-token-lifetimes) below
+- Can be revoked, individually or per user
+- Single-use or rotating (configurable via the client's `refresh_token.rotation_type`)
+
+A refresh token is bound to the session it was minted from. Revoking or deleting
+that session revokes the token with it, so a centralized logout takes the
+refresh token down too.
 
 **Usage:**
 
@@ -105,9 +109,51 @@ Token lifetimes are configurable per tenant and application:
 
 - **ID Token**: Typically 10 hours (36000 seconds)
 - **Access Token**: Typically 24 hours (86400 seconds)
-- **Refresh Token**: Typically 30 days or more
+- **Refresh Token**: see below
 
 Shorter lifetimes improve security but require more frequent token refreshes.
+
+### Refresh token lifetimes
+
+Refresh-token expiry and session expiry are two separate concepts, as in Auth0.
+Refresh-token expiry is configured **per application**, in seconds, under the
+client's `refresh_token` object; session expiry is configured **per tenant**, in
+hours. Each refresh token carries two independent windows:
+
+- **Absolute** — how long the token is valid regardless of use.
+- **Idle (sliding)** — how long the token survives without being exchanged.
+  Re-stamped on every successful exchange.
+
+Each window resolves in this order, first match wins:
+
+| Order | Absolute window                     | Idle window                              | Result                        |
+| ----- | ----------------------------------- | ---------------------------------------- | ----------------------------- |
+| 1     | `refresh_token.expiration_type: "non-expiring"` | same setting                 | Never expires — this is the master switch and overrides both windows |
+| 2     | `refresh_token.infinite_token_lifetime: true` | `refresh_token.infinite_idle_token_lifetime: true` | That window never expires |
+| 3     | `refresh_token.token_lifetime` (seconds) | `refresh_token.idle_token_lifetime` (seconds) | Expires after that many seconds |
+| 4     | tenant `session_lifetime` (hours)   | tenant `idle_session_lifetime` (hours)   | Falls back to the tenant setting |
+| 5     | neither set                         | neither set                              | No expiry stamped             |
+
+A zero, negative or absent value at either level counts as unset and falls
+through to the next row, so tenants that never configured per-client lifetimes
+keep exactly the behaviour they had before.
+
+Two consequences worth knowing:
+
+- **Refreshing never extends the absolute window.** Exchanging a token slides
+  the idle expiry forward but leaves the absolute expiry stamped at mint, so a
+  bounded token cannot outlive it by being used.
+- **A token minted without an idle window is not retro-fitted with one.** If you
+  add an `idle_token_lifetime` later, existing tokens keep no idle expiry until
+  they rotate. Switching a client to `non-expiring` does propagate: it clears
+  expiries that were already stamped.
+
+`refresh_token.rotation_type` (`rotating` / `non-rotating`, defaulting to
+`non-rotating`) and `refresh_token.leeway` (seconds, default 30) control
+rotation rather than lifetime.
+
+See [Applications](/entities/configuration/applications) for where these live on
+the client.
 
 ## Token Validation
 
@@ -157,3 +203,6 @@ See [Session Management](/features/session-management) for details.
 - [POST /oauth/token](/api/endpoints#token-endpoint) - Exchange authorization code or refresh token
 - [GET /.well-known/jwks.json](/api/endpoints#jwks-endpoint) - Public keys for token validation
 - [POST /oauth/revoke](/api/endpoints#revoke-endpoint) - Revoke refresh token
+- [GET /api/v2/users/{user_id}/refresh-tokens](/api/endpoints#refresh-tokens) - List a user's refresh tokens
+- [DELETE /api/v2/users/{user_id}/refresh-tokens](/api/endpoints#refresh-tokens) - Revoke all of a user's refresh tokens
+- [GET | DELETE /api/v2/refresh-tokens/{id}](/api/endpoints#refresh-tokens) - Read or revoke a single refresh token
