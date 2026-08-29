@@ -2,6 +2,7 @@ import {
   LinkCandidate,
   User,
   UserDataAdapter,
+  escapeLuceneValue,
 } from "@authhero/adapter-interfaces";
 import { compareUsersByAge, resolveClusterRootId } from "./users";
 import { normalizeEmail } from "../utils/email";
@@ -45,7 +46,7 @@ export async function resolveLinkCandidates(params: {
       page,
       per_page: pageSize,
       include_totals: false,
-      q: `email:${normalizedEmail}`,
+      q: `email:${escapeLuceneValue(normalizedEmail)}`,
     });
     matchingUsers.push(...users);
     if (users.length < pageSize) break;

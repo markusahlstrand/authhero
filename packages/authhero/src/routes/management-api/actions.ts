@@ -8,6 +8,7 @@ import {
   actionVersionSchema,
   DataAdapters,
   LogTypes,
+  escapeLuceneValue,
 } from "@authhero/adapter-interfaces";
 import { logMessage } from "../../helpers/logging";
 import { querySchema } from "../../types/auth0/Query";
@@ -346,7 +347,7 @@ const deleteById = defineRoute({
 
     // Check if action is bound to any triggers via hooks
     const hooks = await ctx.env.data.hooks.list(tenantId, {
-      q: `code_id:"${id}"`,
+      q: `code_id:${escapeLuceneValue(id)}`,
     });
     if (hooks.hooks.length > 0) {
       throw new HTTPException(409, {

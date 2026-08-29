@@ -2,6 +2,7 @@ import {
   DATABASE_CONNECTION_STRATEGY,
   DataAdapters,
   Strategy,
+  escapeLuceneValue,
 } from "@authhero/adapter-interfaces";
 import { createX509Certificate } from "./utils/encryption";
 import { userIdGenerate } from "./utils/user-id";
@@ -746,7 +747,7 @@ export async function seed(
 
   // Check if admin user already exists
   const existingUsers = await adapters.users.list(tenantId, {
-    q: `username:${adminUsername}`,
+    q: `username:${escapeLuceneValue(adminUsername)}`,
   });
 
   let userId: string;
@@ -906,7 +907,7 @@ export async function seed(
   // allow_organization_name_in_authentication_api is enabled on the tenant
   const { organizations: existingOrgs } = await adapters.organizations.list(
     tenantId,
-    { q: `name:${tenantId}` },
+    { q: `name:${escapeLuceneValue(tenantId)}` },
   );
   let organization = existingOrgs[0];
   if (!organization) {

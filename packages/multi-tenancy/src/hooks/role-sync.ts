@@ -1,4 +1,10 @@
-import { DataAdapters, Role, RoleInsert, fetchAll } from "authhero";
+import {
+  DataAdapters,
+  Role,
+  RoleInsert,
+  fetchAll,
+  escapeLuceneValue,
+} from "authhero";
 import { TenantEntityHooks, TenantHookContext } from "../types";
 
 /**
@@ -108,7 +114,7 @@ export function createRoleSyncHooks(config: RoleSyncConfig): RoleEntityHooks {
     name: string,
   ): Promise<Role | null> {
     const result = await adapters.roles.list(tenantId, {
-      q: `name:${name}`,
+      q: `name:${escapeLuceneValue(name)}`,
       per_page: 1,
     });
     return result.roles[0] ?? null;

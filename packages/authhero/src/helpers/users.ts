@@ -1,4 +1,8 @@
-import { User, UserDataAdapter } from "@authhero/adapter-interfaces";
+import {
+  User,
+  UserDataAdapter,
+  escapeLuceneValue,
+} from "@authhero/adapter-interfaces";
 import { EnrichedClient } from "./client";
 import { Context } from "hono";
 import { Bindings, Variables } from "../types";
@@ -16,7 +20,7 @@ export async function getUsersByEmail(
     page: 0,
     per_page: 10,
     include_totals: false,
-    q: `email:${email}`,
+    q: `email:${escapeLuceneValue(email)}`,
   });
 
   return response.users;
@@ -47,7 +51,7 @@ export async function getAllUsersByEmail(
       page,
       per_page: pageSize,
       include_totals: false,
-      q: `email:${email}`,
+      q: `email:${escapeLuceneValue(email)}`,
     });
     users.push(...response.users);
     if (response.users.length < pageSize) break;
@@ -73,23 +77,23 @@ export async function getUserByProvider({
   let userIdQuery: string;
 
   if (provider === "sms") {
-    userIdQuery = `phone_number:${username}`;
+    userIdQuery = `phone_number:${escapeLuceneValue(username)}`;
   } else if (username.includes("@")) {
     // Email-based lookup
     // INVARIANT: plain usernames must not contain "@", enforced by
     // baseUserSchema in adapter-interfaces. This guarantees the heuristic
     // here never misclassifies a username as an email.
-    userIdQuery = `email:${username}`;
+    userIdQuery = `email:${escapeLuceneValue(username)}`;
   } else {
     // Username-based lookup (no @ sign means it's a plain username)
-    userIdQuery = `username:${username}`;
+    userIdQuery = `username:${escapeLuceneValue(username)}`;
   }
 
   const { users } = await userAdapter.list(tenant_id, {
     page: 0,
     per_page: 10,
     include_totals: false,
-    q: `${userIdQuery} provider:${provider}`,
+    q: `${userIdQuery} provider:${escapeLuceneValue(provider)}`,
   });
 
   if (users.length > 1) {
@@ -167,7 +171,7 @@ export async function userExistsByEmail({
     page: 0,
     per_page: 1,
     include_totals: false,
-    q: `email:${email}`,
+    q: `email:${escapeLuceneValue(email)}`,
   });
 
   return users.length > 0;
@@ -197,7 +201,7 @@ export async function getPrimaryUserByEmail({
     page: 0,
     per_page: 10,
     include_totals: false,
-    q: `email:${email}`,
+    q: `email:${escapeLuceneValue(email)}`,
   });
 
   if (users.length === 0) {
@@ -270,7 +274,7 @@ export async function getLastUsedUserByEmail({
     page: 0,
     per_page: 10,
     include_totals: false,
-    q: `email:${email}`,
+    q: `email:${escapeLuceneValue(email)}`,
   });
 
   if (users.length === 0) {
@@ -466,7 +470,7 @@ async function repointSecondaries(
       page: 0,
       per_page: pageSize,
       include_totals: false,
-      q: `linked_to:${formerPrimaryId}`,
+      q: `linked_to:${escapeLuceneValue(formerPrimaryId)}`,
     });
     if (secondaries.length === 0) break;
 
@@ -632,7 +636,7 @@ export async function cascadeEmailToLinkedIdentities({
       page,
       per_page: pageSize,
       include_totals: false,
-      q: `linked_to:${primaryUserId}`,
+      q: `linked_to:${escapeLuceneValue(primaryUserId)}`,
     });
     if (secondaries.length === 0) break;
     for (const sec of secondaries) {

@@ -1,7 +1,7 @@
 import { OnExecutePostLogin } from "../../types/Hooks";
 import { userIdGenerate } from "../../utils/user-id";
 import { USERNAME_PASSWORD_PROVIDER } from "../../constants";
-import { Strategy } from "@authhero/adapter-interfaces";
+import { Strategy, escapeLuceneValue } from "@authhero/adapter-interfaces";
 import { isUniqueConstraintError } from "../../errors/is-unique-constraint-error";
 import {
   USERNAME_PASSWORD_PROVIDERS,
@@ -109,7 +109,7 @@ async function isUsernameTaken(
       page: 0,
       per_page: 1,
       include_totals: false,
-      q: `username:${username} provider:${provider}`,
+      q: `username:${escapeLuceneValue(username)} provider:${escapeLuceneValue(provider)}`,
     });
     if (users.length > 0) {
       return true;
@@ -267,7 +267,7 @@ export function ensureUsername(
           page: 0,
           per_page: 1,
           include_totals: false,
-          q: `linked_to:${user.user_id} provider:${lookupProvider}`,
+          q: `linked_to:${escapeLuceneValue(user.user_id)} provider:${escapeLuceneValue(lookupProvider)}`,
         });
         if (linkedUsernameUsers.length > 0) {
           return;

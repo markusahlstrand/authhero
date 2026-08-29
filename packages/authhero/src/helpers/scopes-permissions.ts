@@ -1,5 +1,9 @@
 import { Context } from "hono";
-import { ResourceServer, GrantType } from "@authhero/adapter-interfaces";
+import {
+  ResourceServer,
+  GrantType,
+  escapeLuceneValue,
+} from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
 import { JSONHTTPException } from "../errors/json-http-exception";
 import { MANAGEMENT_API_AUDIENCE } from "../middlewares/authentication";
@@ -247,7 +251,7 @@ async function calculateClientCredentialsScopes(
 
   // Get client grants for this client
   const clientGrantsResponse = await ctx.env.data.clientGrants.list(tenantId, {
-    q: `client_id:"${clientId}"`,
+    q: `client_id:${escapeLuceneValue(clientId)}`,
   });
 
   // Filter by audience
@@ -395,7 +399,7 @@ export async function calculateScopesAndPermissions(
     // Only check membership if user doesn't have global admin:organizations permission
     if (!hasGlobalOrgAdminPermission) {
       const userOrgs = await ctx.env.data.userOrganizations.list(tenantId, {
-        q: `user_id:${userId}`,
+        q: `user_id:${escapeLuceneValue(userId)}`,
         per_page: 1000, // Should be enough for most cases
       });
 

@@ -7,6 +7,7 @@ import {
   CodeExecutor,
   DataAdapters,
   Hook,
+  escapeLuceneValue,
 } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
 import { HookEvent, OnExecuteCredentialsExchangeAPI } from "../types/Hooks";
@@ -171,14 +172,12 @@ async function loadCodeForHook(
       inheritFromTenantId &&
       inheritFromTenantId !== tenant_id
     ) {
-      // Escape backslashes and quotes so the quoted phrase survives names
-      // containing punctuation (colons, parens, etc. are fine inside a
-      // quoted Lucene phrase; only `\` and `"` need escaping). We still
-      // exact-match the result client-side as a defensive backstop.
-      const quoted = action.name.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+      // Quote-and-escape the name so punctuation (colons, parens, etc.)
+      // survives as a single Lucene literal. We still exact-match the result
+      // client-side as a defensive backstop.
       const { actions: matches } = await data.actions.list(
         inheritFromTenantId,
-        { q: `name:"${quoted}"`, per_page: 5 },
+        { q: `name:${escapeLuceneValue(action.name)}`, per_page: 5 },
       );
       const upstream = matches.find(
         (a) => a.name === action.name && a.is_system,

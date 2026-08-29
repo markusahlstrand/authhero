@@ -1,6 +1,6 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import type { Context } from "hono";
-import { LogTypes } from "@authhero/adapter-interfaces";
+import { LogTypes, escapeLuceneValue } from "@authhero/adapter-interfaces";
 import type { Client, ClientInsert } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../../../types";
 import { JSONHTTPException } from "../../../errors/json-http-exception";
@@ -526,7 +526,7 @@ export const registerRoutes = new OpenAPIHono<{
 
       const grantsToRemove = await ctx.env.data.clientGrants.list(
         ctx.var.tenant_id,
-        { q: `client_id:"${client_id}"` },
+        { q: `client_id:${escapeLuceneValue(client_id)}` },
       );
 
       await ctx.env.data.transaction(async (trx) => {

@@ -1,6 +1,10 @@
 import { Bindings, Variables } from "../../types";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { actionSchema, LogTypes } from "@authhero/adapter-interfaces";
+import {
+  actionSchema,
+  LogTypes,
+  escapeLuceneValue,
+} from "@authhero/adapter-interfaces";
 import { logMessage } from "../../helpers/logging";
 import { HTTPException } from "hono/http-exception";
 import { generateHookId } from "../../utils/entity-id";
@@ -91,7 +95,7 @@ const getByTriggerIdBindings = defineRoute({
 
     // Get all hooks for this trigger that are code hooks
     const hooks = await ctx.env.data.hooks.list(tenantId, {
-      q: `trigger_id:"${internalTriggerId}"`,
+      q: `trigger_id:${escapeLuceneValue(internalTriggerId)}`,
       per_page: 100,
     });
 
@@ -227,7 +231,7 @@ const patchByTriggerIdBindings = defineRoute({
 
     // All bindings valid — safe to swap out existing code hooks.
     const existingHooks = await ctx.env.data.hooks.list(tenantId, {
-      q: `trigger_id:"${internalTriggerId}"`,
+      q: `trigger_id:${escapeLuceneValue(internalTriggerId)}`,
       per_page: 100,
     });
 

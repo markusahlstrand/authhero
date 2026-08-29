@@ -8,7 +8,7 @@ import generateOTP from "../../utils/otp";
 import { nanoid } from "nanoid";
 import { EMAIL_VERIFICATION_EXPIRATION_TIME } from "../../constants";
 import { logMessage } from "../../helpers/logging";
-import { LogTypes } from "@authhero/adapter-interfaces";
+import { LogTypes, escapeLuceneValue } from "@authhero/adapter-interfaces";
 import { defineRoute } from "../../utils/define-route";
 const getRoot = defineRoute({
   route: createRoute({
@@ -123,7 +123,7 @@ const postRoot = defineRoute({
       page: 1,
       per_page: 1,
       include_totals: false,
-      q: `email:"${email}"`,
+      q: `email:${escapeLuceneValue(email)}`,
     });
 
     if (

@@ -7,7 +7,11 @@ import {
 } from "../../utils/encryption";
 import { HTTPException } from "hono/http-exception";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { SigningKey, signingKeySchema } from "@authhero/adapter-interfaces";
+import {
+  SigningKey,
+  signingKeySchema,
+  escapeLuceneValue,
+} from "@authhero/adapter-interfaces";
 import {
   isSignable,
   isStaged,
@@ -219,7 +223,7 @@ async function findKeyByKid(
   type: KeyType,
 ): Promise<SigningKey> {
   const { signingKeys } = await ctx.env.data.keys.list({
-    q: `type:${type} AND kid:${kid}`,
+    q: `type:${type} AND kid:${escapeLuceneValue(kid)}`,
   });
   const existing = signingKeys.find((k) => k.kid === kid);
   if (!existing) {
@@ -360,7 +364,7 @@ const getSigningByKid = defineRoute({
     const { type } = ctx.req.valid("query");
 
     const { signingKeys } = await ctx.env.data.keys.list({
-      q: `type:${type} AND kid:${kid}`,
+      q: `type:${type} AND kid:${escapeLuceneValue(kid)}`,
     });
     const key = signingKeys.find((k) => k.kid === kid);
     if (!key) {

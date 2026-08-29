@@ -3,6 +3,7 @@ import {
   DataAdapters,
   LogTypes,
   UserDataAdapter,
+  escapeLuceneValue,
 } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
 import { logMessage } from "../helpers/logging";
@@ -191,7 +192,7 @@ export function createUserUpdateHooks(
             page: 0,
             per_page: 10,
             include_totals: false,
-            q: `email:${normalizedEmail}`,
+            q: `email:${escapeLuceneValue(normalizedEmail)}`,
           });
 
           // Exclude the current user from candidates

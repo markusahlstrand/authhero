@@ -8,6 +8,7 @@ import {
   fetchAll,
   EntityHooks,
   EntityHookContext,
+  escapeLuceneValue,
 } from "authhero";
 import { TenantEntityHooks, TenantHookContext } from "../types";
 
@@ -101,7 +102,7 @@ function createEntitySyncHooks<TEntity extends { name: string }, TInsert>(
   ): Promise<TEntity | null> {
     const entityAdapter = adapter(adapters);
     const items = await entityAdapter.list(tenantId, {
-      q: `name:${name}`,
+      q: `name:${escapeLuceneValue(name)}`,
       per_page: 1,
     });
     return items[0] ?? null;
@@ -500,7 +501,7 @@ export function createSyncHooks(config: EntitySyncConfig): SyncHooksResult {
     name: string,
   ): Promise<Role | null> {
     const result = await adapters.roles.list(tenantId, {
-      q: `name:${name}`,
+      q: `name:${escapeLuceneValue(name)}`,
       per_page: 1,
     });
     return result.roles[0] ?? null;
