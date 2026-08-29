@@ -222,6 +222,23 @@ describe("per-client refresh token lifetimes", () => {
       expect(body.error_description).toBe("Refresh token has expired");
     });
 
+    it("rejects a token past its idle window", async () => {
+      const { oauthApp, env } = await getTestServer();
+      await setClientRefreshToken(env, { idle_token_lifetime: 60 });
+      // Absolute expiry still ahead; only the idle window has lapsed.
+      const seeded = await seedToken(env, {
+        expires_at: new Date(Date.now() + HOUR_MS).toISOString(),
+        idle_expires_at: new Date(Date.now() - HOUR_MS).toISOString(),
+      });
+
+      const response = await exchange(oauthApp, env, seeded.wire);
+
+      expect(response.status === 400 || response.status === 403).toBe(true);
+      const body = (await response.json()) as ErrorResponse;
+      expect(body.error).toBe("invalid_grant");
+      expect(body.error_description).toBe("Refresh token has expired");
+    });
+
     it("slides a non-rotating token's idle window by the client's idle_token_lifetime", async () => {
       const { oauthApp, env } = await getTestServer();
       await setTenantLifetimes(env);
@@ -242,6 +259,45 @@ describe("per-client refresh token lifetimes", () => {
         30 * 60 - 60,
       );
       expect(secondsFromNow(row?.idle_expires_at)).toBeLessThanOrEqual(30 * 60);
+    });
+
+    it("slides a non-rotating token's idle window by the tenant's idle_session_lifetime when the client is unconfigured", async () => {
+      const { oauthApp, env } = await getTestServer();
+      await setTenantLifetimes(env); // 7-day idle window
+      await setClientRefreshToken(env, { rotation_type: "non-rotating" });
+      const seeded = await seedToken(env, {
+        idle_expires_at: new Date(Date.now() + 60 * 1000).toISOString(),
+      });
+
+      const response = await exchange(oauthApp, env, seeded.wire);
+      expect(response.status).toBe(200);
+
+      const row = await env.data.refreshTokens.get(TENANT, seeded.id);
+      expect(secondsFromNow(row?.idle_expires_at)).toBeGreaterThan(
+        7 * 24 * 3600 - 60,
+      );
+      expect(secondsFromNow(row?.idle_expires_at)).toBeLessThanOrEqual(
+        7 * 24 * 3600,
+      );
+    });
+
+    it("does not retro-fit expiries onto a non-rotating row minted without them", async () => {
+      const { oauthApp, env } = await getTestServer();
+      await setTenantLifetimes(env);
+      await setClientRefreshToken(env, {
+        rotation_type: "non-rotating",
+        token_lifetime: 2 * 60 * 60,
+        idle_token_lifetime: 30 * 60,
+      });
+      // Minted with no expiries — e.g. before any lifetime was configured.
+      const seeded = await seedToken(env);
+
+      const response = await exchange(oauthApp, env, seeded.wire);
+      expect(response.status).toBe(200);
+
+      const row = await env.data.refreshTokens.get(TENANT, seeded.id);
+      expect(row?.expires_at).toBeFalsy();
+      expect(row?.idle_expires_at).toBeFalsy();
     });
 
     it("drops a non-rotating row's inherited expiries when the client is switched to non-expiring", async () => {
@@ -407,6 +463,39 @@ describe("per-client refresh token lifetimes", () => {
       expect(child?.idle_expires_at).toBeFalsy();
       // Only the idle axis is infinite; the absolute expiry is still inherited.
       expect(child?.expires_at).toBe(expires_at);
+    });
+
+    it("keeps a rotated child unbounded when the parent had no absolute expiry", async () => {
+      const { oauthApp, env } = await getTestServer();
+      await setClientRefreshToken(env, {
+        rotation_type: "rotating",
+        token_lifetime: 60 * 60,
+        idle_token_lifetime: 30 * 60,
+      });
+      // Parent minted unbounded; a later token_lifetime must not retro-fit an
+      // absolute expiry onto the family mid-life.
+      const seeded = await seedToken(env, {
+        rotating: true,
+        idle_expires_at: new Date(Date.now() + 60 * 1000).toISOString(),
+      });
+
+      const response = await exchange(oauthApp, env, seeded.wire);
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as TokenResponse;
+
+      const parsed = parseRefreshToken(body.refresh_token!);
+      if (parsed.kind !== "new") throw new Error("expected new-format token");
+      const child = await env.data.refreshTokens.getByLookup(
+        TENANT,
+        parsed.lookup,
+      );
+
+      expect(child).toBeTruthy();
+      expect(child?.expires_at).toBeFalsy();
+      // The idle window still slides from the current config.
+      expect(secondsFromNow(child?.idle_expires_at)).toBeGreaterThan(
+        30 * 60 - 60,
+      );
     });
 
     it("drops the inherited expiries when the client is switched to non-expiring", async () => {
