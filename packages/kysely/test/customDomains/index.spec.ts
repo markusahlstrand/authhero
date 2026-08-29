@@ -88,4 +88,46 @@ describe("customDomains", () => {
 
     expect(getCustomDomainResultNotFound).toBe(null);
   });
+
+  // `getByDomain` used to skip the JSON parse that `get` does, so the routing
+  // path saw `verification` as a raw string while the by-id path saw an object.
+  it("returns verification in the same shape from get and getByDomain", async () => {
+    const { data } = await getTestServer();
+
+    await data.tenants.create({
+      id: "tenantId",
+      friendly_name: "Test Tenant",
+      audience: "https://example.com",
+      sender_email: "login@example.com",
+      sender_name: "SenderName",
+    });
+
+    const created = await data.customDomains.create("tenantId", {
+      domain: "login.example.com",
+      type: "auth0_managed_certs",
+    });
+
+    const verification = {
+      methods: [
+        {
+          name: "txt" as const,
+          record: "record-value",
+          domain: "_acme.login.example.com",
+        },
+      ],
+    };
+    await data.customDomains.update("tenantId", created.custom_domain_id, {
+      status: "ready",
+      verification,
+    });
+
+    const byId = await data.customDomains.get(
+      "tenantId",
+      created.custom_domain_id,
+    );
+    const byDomain = await data.customDomains.getByDomain("login.example.com");
+
+    expect(byId?.verification).toEqual(verification);
+    expect(byDomain?.verification).toEqual(verification);
+  });
 });

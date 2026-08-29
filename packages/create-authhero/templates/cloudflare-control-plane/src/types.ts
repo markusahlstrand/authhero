@@ -20,4 +20,10 @@ export interface Env {
   CLOUDFLARE_ZONE_ID?: string;
   CLOUDFLARE_API_KEY?: string;
   CLOUDFLARE_API_EMAIL?: string;
+  // Set to "true" on an Enterprise zone. Enterprise zones can stamp the owning
+  // tenant onto each custom hostname, which is what lets the adapter tell "this
+  // hostname is ours to adopt" from "this one belongs to somebody else". Left
+  // unset, every ownership check falls back to the hostname being unique across
+  // the zone, which is true but cannot detect drift.
+  CLOUDFLARE_ZONE_ENTERPRISE?: string;
 }

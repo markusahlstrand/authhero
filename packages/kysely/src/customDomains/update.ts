@@ -17,7 +17,7 @@ export function update(db: Kysely<Database>) {
         domain_metadata: JSON.stringify(domain_metadata),
       }),
       ...(verification !== undefined && {
-        verification: JSON.stringify(verification) as any,
+        verification: JSON.stringify(verification),
       }),
     };
 

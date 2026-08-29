@@ -6,11 +6,15 @@ import { removeNullProperties, parseJsonIfString } from "../helpers/transform";
 import type { DrizzleDb } from "./types";
 
 function sqlToCustomDomain(row: any): CustomDomain {
-  const { tenant_id: _, domain_metadata, ...rest } = row;
+  const { tenant_id: _, domain_metadata, verification, ...rest } = row;
   return removeNullProperties({
     ...rest,
     primary: !!rest.primary,
     domain_metadata: parseJsonIfString(domain_metadata),
+    // `verification` is a text column holding JSON. Callers compare it against
+    // freshly-computed objects (the Cloudflare refresh does exactly that), so
+    // handing back the raw string would make every comparison fail.
+    verification: parseJsonIfString(verification),
   });
 }
 
@@ -28,7 +32,9 @@ export function createCustomDomainsAdapter(db: DrizzleDb) {
         status: params.status || "pending",
         type: params.type,
         origin_domain_name: params.origin_domain_name,
-        verification: params.verification,
+        verification: params.verification
+          ? JSON.stringify(params.verification)
+          : undefined,
         custom_client_ip_header: params.custom_client_ip_header,
         tls_policy: params.tls_policy,
         domain_metadata: params.domain_metadata
@@ -103,7 +109,7 @@ export function createCustomDomainsAdapter(db: DrizzleDb) {
       if (params.origin_domain_name !== undefined)
         updateData.origin_domain_name = params.origin_domain_name;
       if (params.verification !== undefined)
-        updateData.verification = params.verification;
+        updateData.verification = JSON.stringify(params.verification);
       if (params.custom_client_ip_header !== undefined)
         updateData.custom_client_ip_header = params.custom_client_ip_header;
       if (params.tls_policy !== undefined)

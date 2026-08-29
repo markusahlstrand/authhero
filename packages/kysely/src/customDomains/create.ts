@@ -37,6 +37,12 @@ export function create(db: Kysely<Database>) {
         domain_metadata: customDomain.domain_metadata
           ? JSON.stringify(customDomain.domain_metadata)
           : undefined,
+        // Both of these columns hold JSON strings. `verification` cannot
+        // currently arrive on an insert (it is not part of CustomDomainInsert),
+        // but the spread above would happily write an object if it ever could.
+        verification: customDomain.verification
+          ? JSON.stringify(customDomain.verification)
+          : undefined,
       })
       .execute();
 

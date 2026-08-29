@@ -1,7 +1,10 @@
 import { drizzle } from "drizzle-orm/d1";
 import createAdapters, { createProxyDataAdapter } from "@authhero/drizzle";
 import * as schema from "@authhero/drizzle/schema/sqlite";
-import createCloudflareAdapters from "@authhero/cloudflare-adapter";
+import createCloudflareAdapters, {
+  syncCustomDomains,
+  type CloudflareConfig,
+} from "@authhero/cloudflare-adapter";
 import {
   AuthHeroConfig,
   CustomDomainsAdapter,
@@ -39,19 +42,10 @@ export default {
     // custom hostname) and the only place that can see every tenant's domains
     // (so a hostname is claimed exactly once). Tenant shards reach this
     // through `createControlPlaneCustomDomainsAdapter`.
-    const customDomains: CustomDomainsAdapter | undefined =
-      env.CLOUDFLARE_ZONE_ID &&
-      env.CLOUDFLARE_API_KEY &&
-      env.CLOUDFLARE_API_EMAIL
-        ? createCloudflareAdapters({
-            zoneId: env.CLOUDFLARE_ZONE_ID,
-            authKey: env.CLOUDFLARE_API_KEY,
-            authEmail: env.CLOUDFLARE_API_EMAIL,
-            // The Cloudflare adapter performs the zone-level side effect and
-            // persists the row through this database adapter.
-            customDomainAdapter: dataAdapter.customDomains,
-          }).customDomains
-        : undefined;
+    const cloudflareConfig = buildCloudflareConfig(env, dataAdapter);
+    const customDomains: CustomDomainsAdapter | undefined = cloudflareConfig
+      ? createCloudflareAdapters(cloudflareConfig).customDomains
+      : undefined;
 
     if (customDomains) {
       // The same adapter serves both writers, so neither can create a domain
@@ -78,9 +72,16 @@ export default {
   // ────────────────────────────────────────────────────────────────────────
   // Retention sweep (this Worker's own D1)
   // ────────────────────────────────────────────────────────────────────────
-  // Prunes expired `codes`, processed `outbox_events` and expired sessions in
-  // the control plane's own database, which otherwise grows without bound.
-  // Runs on the cron in wrangler.toml.
+  // Two jobs share this handler, dispatched on which cron fired:
+  //
+  //   */5 * * * *  custom domain sync — reconciles every hostname in the
+  //                Cloudflare zone against the stored rows. Without it a
+  //                domain that finishes validation at the edge stays `pending`
+  //                here until somebody opens its detail page, because `list`
+  //                and the routing path deliberately never call Cloudflare.
+  //   0 3 * * *    retention — prunes expired `codes`, processed
+  //                `outbox_events` and expired sessions in the control plane's
+  //                own database, which otherwise grows without bound.
   //
   // NOTE: this sweeps only AUTH_DB (the control_plane tenant). Each WFP tenant
   // has its OWN D1 and its tenant Worker cannot carry a cron (dispatch-namespace
@@ -88,12 +89,70 @@ export default {
   // centrally — call `runRetention({ dataAdapter, tenantId })` per tenant using
   // `buildTenantAdapters(env, tenantId)` below. That cross-tenant driver is not
   // wired here yet; see https://authhero.net/deployment/data-retention.
-  async scheduled(_event: ScheduledEvent, env: Env): Promise<void> {
+  async scheduled(event: ScheduledEvent, env: Env): Promise<void> {
     const { dataAdapter } = await buildDataAdapter(env);
-    const { sweeps } = await runRetention({ dataAdapter });
-    console.log("retention sweep", sweeps);
+
+    // An unrecognised cron runs everything, so a hand-triggered
+    // `wrangler dev --test-scheduled` (which reports the first cron) still
+    // exercises both jobs.
+    const recognised =
+      event.cron === CUSTOM_DOMAIN_SYNC_CRON || event.cron === RETENTION_CRON;
+
+    if (event.cron === CUSTOM_DOMAIN_SYNC_CRON || !recognised) {
+      const cloudflareConfig = buildCloudflareConfig(env, dataAdapter);
+      if (cloudflareConfig) {
+        console.log(
+          "custom domain sync",
+          await syncCustomDomains(cloudflareConfig),
+        );
+      }
+    }
+
+    if (event.cron === RETENTION_CRON || !recognised) {
+      const { sweeps } = await runRetention({ dataAdapter });
+      console.log("retention sweep", sweeps);
+    }
   },
 };
+
+/**
+ * The cron expressions from wrangler.toml. Keep the two files in step: an
+ * unrecognised cron falls through to running every job, which is safe but
+ * makes the daily retention pass run on the five-minute schedule.
+ */
+const CUSTOM_DOMAIN_SYNC_CRON = "*/5 * * * *";
+const RETENTION_CRON = "0 3 * * *";
+
+/**
+ * Cloudflare zone credentials, or `undefined` when custom domains are not
+ * configured. Shared by the request path and the sync cron so both address the
+ * same zone through the same database adapter.
+ */
+function buildCloudflareConfig(
+  env: Env,
+  dataAdapter: DataAdapters,
+): CloudflareConfig | undefined {
+  if (
+    !env.CLOUDFLARE_ZONE_ID ||
+    !env.CLOUDFLARE_API_KEY ||
+    !env.CLOUDFLARE_API_EMAIL
+  ) {
+    return undefined;
+  }
+
+  return {
+    zoneId: env.CLOUDFLARE_ZONE_ID,
+    authKey: env.CLOUDFLARE_API_KEY,
+    authEmail: env.CLOUDFLARE_API_EMAIL,
+    // On an Enterprise zone the hostname carries its owning tenant, so every
+    // ownership check — adoption on create, reads, and the sync sweep's refusal
+    // to mirror across a tenant boundary — can actually verify it.
+    enterprise: env.CLOUDFLARE_ZONE_ENTERPRISE === "true",
+    // The Cloudflare adapter performs the zone-level side effect and persists
+    // the row through this database adapter.
+    customDomainAdapter: dataAdapter.customDomains,
+  };
+}
 
 /**
  * Build the base DataAdapters over the control plane's own D1 (AUTH_DB),

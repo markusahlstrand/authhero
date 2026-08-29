@@ -21,6 +21,9 @@ export function getByDomain(db: Kysely<Database>) {
         customDomain.domain_metadata,
         undefined,
       ),
+      // Must be parsed here exactly as in `get`: a caller that reaches a domain
+      // by hostname gets the same shape as one that reaches it by id.
+      verification: parseJsonIfDefined(customDomain.verification, undefined),
     };
   };
 }
