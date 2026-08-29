@@ -89,6 +89,44 @@ Exchanges credentials for access tokens. Supports multiple grant types.
 }
 ```
 
+#### Passwordless OTP
+
+Exchanges an email or SMS one-time code — the one `POST /passwordless/start`
+sent — for tokens.
+
+```json
+{
+  "grant_type": "http://auth0.com/oauth/grant-type/passwordless/otp",
+  "client_id": "your-client-id",
+  "username": "user@example.com",
+  "otp": "123456",
+  "realm": "email",
+  "scope": "openid profile offline_access"
+}
+```
+
+| Parameter    | Required | Description                                                                                   |
+| ------------ | -------- | --------------------------------------------------------------------------------------------- |
+| `grant_type` | Yes      | Must be `http://auth0.com/oauth/grant-type/passwordless/otp`                                     |
+| `client_id`  | Yes      | Your application's client ID                                                                     |
+| `username`   | Yes      | The email address or phone number the code was sent to                                           |
+| `otp`        | Yes      | The one-time code                                                                                |
+| `realm`      | Yes      | `email` or `sms`                                                                                 |
+| `scope`      | No       | Defaults to whatever `/passwordless/start` stored for the login session                          |
+| `audience`   | No       | Defaults to whatever `/passwordless/start` stored for the login session                          |
+
+A `refresh_token` is returned when the effective scope contains
+`offline_access` — pass it explicitly here if `/passwordless/start` did not
+already request it. The token is bound to the session this grant authenticates,
+so revoking that session revokes the token.
+
+#### Token Exchange
+
+RFC 8693 token exchange (`urn:ietf:params:oauth:grant-type:token-exchange`) to
+downscope or org-switch a self-issued access token. Only
+`urn:ietf:params:oauth:token-type:access_token` is accepted as the subject
+token type.
+
 ### POST /dbconnections/signup
 
 Registers a new user.
@@ -723,11 +761,90 @@ Manage user sessions.
 
 **Endpoint:** `GET /api/v2/sessions`
 
+#### Refresh Tokens
+
+List and revoke a user's refresh tokens, or address a single token by id.
+
+| Endpoint                                        | Scopes                            | Description                                                                          |
+| ----------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------ |
+| `GET /api/v2/users/{user_id}/refresh-tokens`    | `read:refresh_tokens`, `read:users` | List the user's refresh tokens                                                        |
+| `DELETE /api/v2/users/{user_id}/refresh-tokens` | `delete:refresh_tokens`           | Revoke all of the user's refresh tokens. Returns `204`.                                |
+| `GET /api/v2/refresh-tokens/{id}`               | `read:refresh_tokens`             | Get a single refresh token                                                            |
+| `DELETE /api/v2/refresh-tokens/{id}`            | `delete:refresh_tokens`           | Revoke the token's whole rotation family, then delete the row. Returns `200`.          |
+
+`/api/v2/refresh_tokens/{id}` (underscore) is mounted as an alias of
+`/api/v2/refresh-tokens/{id}`.
+
+**Pagination on the list route.** Two styles are supported:
+
+- **Checkpoint (Auth0-native).** Pass `from` and/or `take` and the response is
+  `{ "tokens": [...], "next": "<cursor>" }`. `next` is an opaque cursor and is
+  absent on the last page — this is the shape an Auth0 SDK expects here.
+- **Offset.** Pass `page`/`per_page`, optionally with `include_totals=true` for
+  `{ "tokens": [...], "start": 0, "limit": 10, "length": 42 }`. Without
+  `include_totals` the response is a bare array. Kept for the admin console and
+  to match the sibling `/users/{user_id}/sessions` route.
+
+The list is filtered by an exact `user_id` predicate rather than a `q` query, so
+a crafted user id cannot match another user's tokens.
+
+**Response fields.** `token_lookup`, `token_hash`, `family_id`, `rotated_to` and
+`rotated_at` are stripped — the API never returns token material or the internal
+rotation chain. `session_id` **is** returned (Auth0 has the same field); it is
+absent on tokens minted before session ids were stored on the row.
+
+::: tip Revocation is a soft revoke
+`DELETE /api/v2/users/{user_id}/refresh-tokens` sets `revoked_at` on the rows
+rather than deleting them, so a revoked token is still visible in the list with
+its revocation timestamp. `DELETE /api/v2/refresh-tokens/{id}` additionally
+removes the addressed row, and revokes the rest of its rotation family first —
+revoking one token in a rotation chain torches the chain.
+:::
+
 #### Signing Keys
 
-Manage signing keys.
+Manage signing keys. Every route takes an optional `type` query parameter that
+selects the key bucket: `jwt_signing` (the default, and what every pre-existing
+caller addresses) or `saml_encryption`, whose keys sign SAML assertions.
 
-**Endpoint:** `GET /api/v2/keys`
+| Endpoint                                   | Scopes                 | Description                                                     |
+| ------------------------------------------ | ---------------------- | ---------------------------------------------------------------- |
+| `GET /api/v2/keys/signing`                 | `read:signing_keys`    | List keys in the bucket                                          |
+| `GET /api/v2/keys/signing/{kid}`           | `read:signing_keys`    | Get one key                                                      |
+| `POST /api/v2/keys/signing/rotate`         | `create:signing_keys`  | Mint a new key pair and certificate. Returns `201`.               |
+| `PUT /api/v2/keys/signing/{kid}/revoke`    | `update:signing_keys`  | Revoke a key. Returns `201`.                                     |
+| `POST /api/v2/keys/signing/{kid}/renew`    | `create:signing_keys`  | Re-issue the certificate over the **existing** key pair          |
+
+**Rotate parameters:**
+
+| Parameter          | Default                                     | Description                                                                                    |
+| ------------------ | ------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `type`             | `jwt_signing`                               | Which bucket to rotate                                                                            |
+| `validity_days`    | 1 year for `jwt_signing`, 5 years for `saml_encryption` | Lifetime of the new certificate (1–3650)                                                |
+| `activate_in_days` | `0`                                         | Publish the new key now but only start signing with it after this many days (0–365)                |
+| `grace_days`       | `1`                                         | How long the outgoing keys stay valid after the new key **activates** (not after the call), 0–365 |
+
+Staging via `activate_in_days` exists for SAML: a service provider cannot
+discover the new certificate on its own, so an operator needs time to deliver
+it. The grace window runs from activation rather than from the call, so a staged
+rotation cannot retire the outgoing key before the incoming one takes over.
+`validity_days` is also accepted by `{kid}/revoke` and `{kid}/renew`.
+
+**Renew vs rotate.** Rotation replaces the key material and is the right
+default. Renewal re-issues the certificate over the same key pair, and exists
+for SAML service providers that pin the certificate's public key.
+
+::: warning `pkcs7` is never returned
+Responses are the stored key minus its `pkcs7` private key material, plus
+`expires_at`/`expired` read from the certificate itself and an `inherited` flag.
+`read:signing_keys` lets a caller see which keys exist and copy a public
+certificate — not walk off with the ability to mint tokens.
+
+Keys with `inherited: true` are not owned by the requesting scope (a shared
+control-plane key, or a public-only copy projected from one). They are
+read-only: the mutating routes answer `403`, and the key must be changed in the
+control plane instead.
+:::
 
 #### Tenant Branding
 
