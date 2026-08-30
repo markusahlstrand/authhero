@@ -258,7 +258,7 @@ SELECT * FROM sessions WHERE user_id = 'email|user123';
 
 ## Revocation
 
-Ending a session deliberately also revokes every refresh token issued under it. Expiry does not. The rule the code follows is that **revocation couples, lifetime does not**: a refresh token is designed to outlive the browser session it was minted in, so killing tokens on an SSO idle timeout would sign every long-lived native client out on each timeout, while an admin (or a block) ending a session means "end this access now".
+Administratively ending a session — the Management API session delete/revoke endpoints, or blocking the user — also revokes every refresh token issued under it. Nothing else does: neither logout nor expiry touches the tokens. The rule the code follows is that **revocation couples, lifetime does not**: a refresh token is designed to outlive the browser session it was minted in, so killing tokens on an SSO idle timeout would sign every long-lived native client out on each timeout. Logout sits on the lifetime side of that line — it ends the browser session (and notifies clients), but a native app holding a refresh token keeps it.
 
 Cascades to refresh tokens:
 
@@ -273,7 +273,7 @@ Cascades to refresh tokens:
 
 The cascade (`packages/authhero/src/helpers/revoke-session-refresh-tokens.ts`) runs two sweeps in sequence:
 
-1. **`session_id`** — the ownership edge, and the complete one. Every token minted under a session records it.
+1. **`session_id`** — the ownership edge, and the complete one for every token minted since the column was introduced. Rows older than that carry no `session_id` and are only reachable through the second sweep.
 2. **`login_id`** — a legacy fallback for rows minted before `session_id` existed, using the session's originating `login_session_id`. That link is never repointed on SSO reuse, so on its own it misses tokens minted during a later re-authorization; it is kept only until pre-existing rows age out.
 
 Both sweeps guard on `revoked_at IS NULL`, so running them in sequence (or re-running the cascade on an already-revoked session) is idempotent rather than a double write. User block goes through `revoke-user-sessions.ts`, which pages every session for the user before mutating anything and runs the cascade even for sessions that were already revoked — those were revoked before the cascade existed and can still have live tokens.
