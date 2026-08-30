@@ -31,7 +31,30 @@ export interface AnalyticsEngineOutboxMetricsConfig {
   analyticsEngineBinding?: AnalyticsEngineDataset;
 }
 
-const truncate = (value: string, max = 1024): string => value.substring(0, max);
+const encoder = new TextEncoder();
+
+/**
+ * Analytics Engine limits are measured in bytes (96 for the index, 16 KB for
+ * the whole data point), so cut on UTF-8 byte length rather than UTF-16 code
+ * units — a non-ASCII tenant id or error message would otherwise blow the
+ * limit and get the write rejected. Never splits a code point.
+ */
+function truncateBytes(value: string, maxBytes: number): string {
+  if (encoder.encode(value).length <= maxBytes) return value;
+
+  let bytes = 0;
+  let truncated = "";
+  for (const char of value) {
+    const size = encoder.encode(char).length;
+    if (bytes + size > maxBytes) break;
+    bytes += size;
+    truncated += char;
+  }
+  return truncated;
+}
+
+const truncate = (value: string, max = 1024): string =>
+  truncateBytes(value, max);
 
 /**
  * Create an Analytics Engine sink for outbox relay metrics.
@@ -84,7 +107,7 @@ export function createAnalyticsEngineOutboxMetricsSink(
           truncate(metric.error ?? ""),
         ],
         doubles: [metric.value, metric.retryCount ?? 0, Date.now()],
-        indexes: [metric.tenantId.substring(0, 96)],
+        indexes: [truncateBytes(metric.tenantId, 96)],
       });
     } catch (error) {
       // Observability must never break event delivery.

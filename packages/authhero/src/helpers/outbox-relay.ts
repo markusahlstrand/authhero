@@ -24,13 +24,30 @@ const DEFAULT_MAX_RETRIES = 5;
 const DEFAULT_RETENTION_DAYS = 7;
 const DEFAULT_LEASE_MS = 30_000; // 30 seconds
 
+function isPromiseLike(value: unknown): value is PromiseLike<unknown> {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "then" in value &&
+    typeof value.then === "function"
+  );
+}
+
 /**
  * Emit a metric without ever letting a broken sink break event delivery.
+ * Handles both a synchronous throw and a sink that (despite the `void` return
+ * type) hands back a promise, so a rejecting async sink cannot surface as an
+ * unhandled rejection.
  */
 function emitMetric(sink: OutboxMetricsSink | undefined, metric: OutboxMetric) {
   if (!sink) return;
   try {
-    sink(metric);
+    const result: unknown = sink(metric);
+    if (isPromiseLike(result)) {
+      result.then(undefined, (error: unknown) =>
+        console.error("Outbox metrics sink rejected", error),
+      );
+    }
   } catch (error) {
     console.error("Outbox metrics sink threw", error);
   }
@@ -46,6 +63,14 @@ async function tryDeadLetter(
   source: "request" | "cron",
 ): Promise<void> {
   console.warn(`Outbox event ${event.id} dead-lettering: ${error}`);
+  try {
+    await outbox.deadLetter(event.id, error);
+  } catch {
+    // Best effort — event stays in outbox if dead-letter write fails. No
+    // metric either: the event has not actually transitioned, and a later
+    // pass will try again.
+    return;
+  }
   emitMetric(metrics, {
     name: "outbox_events_dead_lettered_total",
     value: 1,
@@ -55,11 +80,6 @@ async function tryDeadLetter(
     error,
     ...(event.retry_count !== undefined && { retryCount: event.retry_count }),
   });
-  try {
-    await outbox.deadLetter(event.id, error);
-  } catch {
-    // Best effort — event stays in outbox if dead-letter write fails
-  }
 }
 
 function computeRetryDelayMs(retryCount: number): number {

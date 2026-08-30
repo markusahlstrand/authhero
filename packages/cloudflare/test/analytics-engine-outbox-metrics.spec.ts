@@ -53,7 +53,7 @@ describe("createAnalyticsEngineOutboxMetricsSink", () => {
     expect(dataPoint.doubles?.[0]).toBe(4);
   });
 
-  it("truncates the index to 96 characters", () => {
+  it("truncates the index to 96 bytes", () => {
     const writeDataPoint = vi.fn();
     const sink = createAnalyticsEngineOutboxMetricsSink({
       analyticsEngineBinding: { writeDataPoint },
@@ -69,6 +69,28 @@ describe("createAnalyticsEngineOutboxMetricsSink", () => {
 
     const [dataPoint] = writeDataPoint.mock.calls[0];
     expect(dataPoint.indexes?.[0]).toHaveLength(96);
+  });
+
+  it("bounds a multi-byte index by UTF-8 bytes, not code units", () => {
+    const writeDataPoint = vi.fn();
+    const sink = createAnalyticsEngineOutboxMetricsSink({
+      analyticsEngineBinding: { writeDataPoint },
+    });
+
+    sink({
+      name: "outbox_events_processed_total",
+      value: 1,
+      // 4 bytes per emoji — 96 code units would be 384 bytes.
+      tenantId: "🎉".repeat(100),
+      eventType: "user.created",
+      source: "cron",
+    });
+
+    const [dataPoint] = writeDataPoint.mock.calls[0];
+    const index: string = dataPoint.indexes[0];
+    expect(new TextEncoder().encode(index).length).toBeLessThanOrEqual(96);
+    // Cut on a code point boundary, never mid-surrogate-pair.
+    expect(index).toBe("🎉".repeat(24));
   });
 
   it("is a silent no-op without a binding", () => {

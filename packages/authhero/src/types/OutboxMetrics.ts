@@ -3,8 +3,10 @@
  *
  * - `outbox_events_processed_total` — counter, one per event that every
  *   accepting destination delivered successfully.
- * - `outbox_events_dead_lettered_total` — counter, one per event moved to the
- *   dead-letter state (retries exhausted, or no destination accepted it).
+ * - `outbox_events_dead_lettered_total` — counter, one per event successfully
+ *   moved to the dead-letter state (retries exhausted, or no destination
+ *   accepted it). Not emitted when the dead-letter write itself fails, since
+ *   the event has not transitioned.
  * - `outbox_retry_delay_seconds` — observation, emitted once per delivery
  *   failure with the backoff delay before the next attempt. Its count doubles
  *   as a retry counter.
@@ -42,8 +44,9 @@ export interface OutboxMetric {
  * `@authhero/cloudflare-adapter` ships an Analytics Engine implementation via
  * `createAnalyticsEngineOutboxMetricsSink`.
  *
- * Implementations must not throw and should not return a promise the relay
- * has to await — the relay calls this synchronously and swallows errors, so a
- * broken sink can never fail event delivery.
+ * Implementations should be synchronous and must not throw. The relay calls
+ * the sink without awaiting it and swallows both synchronous throws and
+ * rejections from a promise-returning sink, so a broken sink can never fail
+ * event delivery.
  */
 export type OutboxMetricsSink = (metric: OutboxMetric) => void;

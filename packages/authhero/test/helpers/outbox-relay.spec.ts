@@ -420,6 +420,28 @@ describe("outbox metrics", () => {
     );
   });
 
+  it("does not report a dead-letter when the dead-letter write fails", async () => {
+    const event = makeOutboxEvent({
+      id: "evt-1",
+      retry_count: 5,
+      error: "last error",
+    });
+    const outbox = makeOutbox({
+      claimEvents: vi.fn().mockResolvedValue(["evt-1"]),
+      getByIds: vi.fn().mockResolvedValue([event]),
+      deadLetter: vi.fn().mockRejectedValue(new Error("db down")),
+    });
+    const metrics = vi.fn();
+
+    await processOutboxEvents(outbox, ["evt-1"], [makeDestination()], {
+      maxRetries: 5,
+      metrics,
+    });
+
+    expect(outbox.deadLetter).toHaveBeenCalled();
+    expect(metrics).not.toHaveBeenCalled();
+  });
+
   it("still delivers when no metrics sink is configured", async () => {
     const event = makeOutboxEvent({ id: "evt-1" });
     const outbox = makeOutbox({
@@ -450,6 +472,31 @@ describe("outbox metrics", () => {
     });
 
     expect(outbox.markProcessed).toHaveBeenCalledWith(["evt-1"]);
+    consoleError.mockRestore();
+  });
+
+  it("swallows rejections from a promise-returning sink", async () => {
+    const event = makeOutboxEvent({ id: "evt-1" });
+    const outbox = makeOutbox({
+      claimEvents: vi.fn().mockResolvedValue(["evt-1"]),
+      getByIds: vi.fn().mockResolvedValue([event]),
+    });
+    const metrics = vi.fn(() => Promise.reject(new Error("sink is down")));
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+
+    await processOutboxEvents(outbox, ["evt-1"], [makeDestination()], {
+      metrics,
+    });
+    // Let the rejection handler run before asserting.
+    await Promise.resolve();
+
+    expect(outbox.markProcessed).toHaveBeenCalledWith(["evt-1"]);
+    expect(consoleError).toHaveBeenCalledWith(
+      "Outbox metrics sink rejected",
+      expect.any(Error),
+    );
     consoleError.mockRestore();
   });
 });

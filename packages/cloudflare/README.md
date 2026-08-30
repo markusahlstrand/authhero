@@ -727,11 +727,14 @@ works in local dev and tests.
 | double3 | number | timestamp (epoch ms)                                                                                             |
 | index1  | string | tenant_id (for efficient filtering)                                                                              |
 
+Analytics Engine samples rows under load, so weight counters by
+`_sample_interval` to get true totals:
+
 ```bash
-# Dead-lettered events per tenant over the last day
+# Dead-lettered events per tenant
 curl "https://api.cloudflare.com/client/v4/accounts/{account_id}/analytics_engine/sql" \
   -H "Authorization: Bearer $API_TOKEN" \
-  -d "SELECT index1 as tenant, sum(double1) as dead_lettered FROM authhero_outbox_metrics WHERE blob1 = 'outbox_events_dead_lettered_total' GROUP BY index1"
+  -d "SELECT index1 as tenant, sum(double1 * _sample_interval) as dead_lettered FROM authhero_outbox_metrics WHERE blob1 = 'outbox_events_dead_lettered_total' GROUP BY index1"
 ```
 
 ## Geo Adapter
