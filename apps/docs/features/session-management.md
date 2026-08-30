@@ -256,6 +256,32 @@ SELECT * FROM sessions WHERE user_id = 'email|user123';
 - **Multiple sessions**: User has multiple active sessions (normal for different devices)
 - **Session reuse failure**: Existing session not properly linked to new login session
 
+## Revocation
+
+Ending a session deliberately also revokes every refresh token issued under it. Expiry does not. The rule the code follows is that **revocation couples, lifetime does not**: a refresh token is designed to outlive the browser session it was minted in, so killing tokens on an SSO idle timeout would sign every long-lived native client out on each timeout, while an admin (or a block) ending a session means "end this access now".
+
+Cascades to refresh tokens:
+
+| Path                                      | Session                  | Refresh tokens  |
+| ----------------------------------------- | ------------------------ | --------------- |
+| `DELETE /api/v2/sessions/{id}`            | deleted                  | revoked         |
+| `POST /api/v2/sessions/{id}/revoke`       | `revoked_at` set         | revoked         |
+| Blocking a user (`blocked: true`)         | all sessions revoked     | revoked         |
+| `GET /v2/logout`, `GET /oidc/logout`      | `revoked_at` set         | **not** revoked |
+| Absolute / idle expiry                    | expires on its own clock | **not** revoked |
+| `cleanupSessions` / `cleanupUserSessions` | row deleted              | **not** revoked |
+
+The cascade (`packages/authhero/src/helpers/revoke-session-refresh-tokens.ts`) runs two sweeps in sequence:
+
+1. **`session_id`** — the ownership edge, and the complete one. Every token minted under a session records it.
+2. **`login_id`** — a legacy fallback for rows minted before `session_id` existed, using the session's originating `login_session_id`. That link is never repointed on SSO reuse, so on its own it misses tokens minted during a later re-authorization; it is kept only until pre-existing rows age out.
+
+Both sweeps guard on `revoked_at IS NULL`, so running them in sequence (or re-running the cascade on an already-revoked session) is idempotent rather than a double write. User block goes through `revoke-user-sessions.ts`, which pages every session for the user before mutating anything and runs the cascade even for sessions that were already revoked — those were revoked before the cascade existed and can still have live tokens.
+
+Separately, the authorization-code flow revokes refresh tokens by `login_id` when it detects a code being redeemed twice.
+
+Deleting or revoking a session also sends [back-channel logout](#logout-notifications) notifications.
+
 ## Logout Notifications
 
 When a session is revoked — via `GET /v2/logout`, `GET /oidc/logout`, or the Management API session delete/revoke endpoints — AuthHero sends a signed logout token to every client that participated in the session and has back-channel logout URLs registered. See [OIDC Back-Channel Logout 1.0](/standards/backchannel-logout) for the token format, delivery semantics, and how to register a client.
@@ -275,6 +301,8 @@ await cleanupSessions(env.data);
 ```
 
 See [Audit Logging → Scheduled Jobs](/features/audit-logging#scheduled-jobs) for a full `scheduled()` handler example combining session and outbox cleanup.
+
+Cleanup is expiry, not [revocation](#revocation): it removes rows that have already aged out of each table on that table's own clock, and never revokes a live refresh token because the session it points at was swept. This is why `refresh_tokens.session_id` is not a foreign key — the pointer is allowed to dangle.
 
 ## Best Practices
 

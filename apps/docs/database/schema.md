@@ -242,7 +242,11 @@ erDiagram
         text tenant_id PK,FK
         text client_id FK
         text login_id FK "login_session id"
+        text session_id "sessions id, not an FK"
         text user_id FK
+        text organization
+        text auth_connection
+        text auth_strategy "JSON"
         text resource_servers "JSON array"
         boolean rotating
         text token_hash
@@ -275,6 +279,11 @@ erDiagram
 - **`login_sessions`** — one row per authentication attempt. The OAuth authorization parameters live in the JSON `auth_params` column (the legacy hoisted `authParams_*` columns were dropped). `state` tracks the flow (`pending` → `authenticated` / `failed`), and CSRF token, IP, and user agent support flow security.
 - **`sessions`** — authenticated browser sessions with absolute and idle expiration, the device fingerprint, and the list of clients that have used the session (single sign-on).
 - **`refresh_tokens`** — supports rotating refresh tokens: tokens are stored hashed (`token_hash`), rotation chains share a `family_id`, and `rotated_to` links each token to its successor so reuse of a stale token can revoke the whole family.
+
+  A token row carries two different links. `login_id` is provenance — the authorization transaction the token was minted from, and the key the authorization-code reuse-detection path revokes on. `session_id` is Auth0's field and records the authenticated (SSO) session the token was issued under; it exists for [revocation](/features/session-management#revocation) only. It is deliberately **not** a foreign key and is never part of a cascade delete, because a refresh token is expected to outlive its session — each table is cleaned up on its own clock and the pointer is simply left dangling. It is absent on rows minted before the column existed.
+
+  `organization`, `auth_connection`, and `auth_strategy` are auth-event facts denormalised from the login session at mint time. They are immutable for the life of the token, so the refresh grant can read them straight off the token row instead of resolving a `login_sessions` row that may already have been swept. `session_id` is the marker for which rows carry them: it is always set at mint for a token issued under a session, so when it is `null` the row predates the columns and the grant falls back to looking up the login session by `login_id` (degrading to `undefined` if that row is gone).
+
 - **`codes`** — short-lived one-time codes keyed by `(code_id, code_type)`: authorization codes (with PKCE challenge), email verification, password reset, and similar.
 
 Three older single-purpose stores — `authentication_codes`, `otps`, and `tickets` — still exist for backwards compatibility and hold the same kind of short-lived flow state.
@@ -382,17 +391,17 @@ erDiagram
 
 All of these tables are keyed by (or scoped to) `tenant_id` and configure how the hosted login looks and behaves.
 
-| Table | Purpose |
-| --- | --- |
-| `branding` | Logo, favicon, font, and color settings (one row per tenant). |
-| `themes` | Full Universal Login theme: complete color palette, typography, borders, and widget layout. |
-| `universal_login_templates` | Custom page template (HTML) wrapping the login widget. |
-| `custom_text` | Per-prompt, per-language text overrides, keyed by `(tenant_id, prompt, language)`. |
-| `prompt_settings` | Login flow behavior: identifier-first vs. combined, WebAuthn as first factor. |
-| `email_providers` | Outbound email provider and credentials (one row per tenant). |
-| `email_templates` | Per-template email content (subject, body, syntax), keyed by `(tenant_id, template)`. |
-| `forms` | Custom form definitions (Auth0 Forms schema) with nodes, translations, and styling. |
-| `flows` | Named action sequences that forms and hooks can trigger. |
+| Table                       | Purpose                                                                                     |
+| --------------------------- | ------------------------------------------------------------------------------------------- |
+| `branding`                  | Logo, favicon, font, and color settings (one row per tenant).                               |
+| `themes`                    | Full Universal Login theme: complete color palette, typography, borders, and widget layout. |
+| `universal_login_templates` | Custom page template (HTML) wrapping the login widget.                                      |
+| `custom_text`               | Per-prompt, per-language text overrides, keyed by `(tenant_id, prompt, language)`.          |
+| `prompt_settings`           | Login flow behavior: identifier-first vs. combined, WebAuthn as first factor.               |
+| `email_providers`           | Outbound email provider and credentials (one row per tenant).                               |
+| `email_templates`           | Per-template email content (subject, body, syntax), keyed by `(tenant_id, template)`.       |
+| `forms`                     | Custom form definitions (Auth0 Forms schema) with nodes, translations, and styling.         |
+| `flows`                     | Named action sequences that forms and hooks can trigger.                                    |
 
 ## Extensibility: Hooks, Actions, and the Outbox
 
