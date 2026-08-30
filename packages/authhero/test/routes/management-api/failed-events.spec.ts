@@ -110,6 +110,53 @@ describe("management-api failed-events", () => {
     expect(listAfter.events.some((e: any) => e.id === id)).toBe(false);
   });
 
+  it("replays an event that still carries the claim from the pass that dead-lettered it", async () => {
+    // A real dead-letter comes out of a relay pass that claimed the event
+    // first, and `deadLetter` does not release that claim (unlike
+    // `markRetry`). A replay therefore has to clear it too, or
+    // `getUnprocessed` keeps skipping the event until the lease ages out and
+    // the operator's retry looks like it did nothing.
+    const { managementApp, env } = await getTestServer();
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const id = await env.data.outbox.create("tenantId", {
+      tenant_id: "tenantId",
+      event_type: "hook.post-user-registration",
+      log_type: "sapi",
+      category: "system",
+      actor: { type: "system" },
+      target: { type: "user", id: "email|userId" },
+      request: { method: "POST", path: "/users", ip: "127.0.0.1" },
+      hostname: "localhost",
+      timestamp: new Date().toISOString(),
+    });
+    // Claim first, then dead-letter — the order a real relay pass takes. The
+    // lease runs well into the future so an expiring lease can't mask a
+    // regression.
+    const claimed = await env.data.outbox.claimEvents(
+      [id],
+      "worker-1",
+      5 * 60 * 1000,
+    );
+    expect(claimed).toContain(id);
+    await env.data.outbox.deadLetter(id, "webhook h1 returned 500");
+
+    const retryResponse = await (managementClient["failed-events"] as any)[
+      ":id"
+    ].retry.$post(
+      {
+        param: { id },
+        header: { "tenant-id": "tenantId" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(retryResponse.status).toBe(200);
+
+    const unprocessed = await env.data.outbox.getUnprocessed(10);
+    expect(unprocessed.some((e: any) => e.id === id)).toBe(true);
+  });
+
   it("refuses to replay an event that belongs to a different tenant", async () => {
     // Need a second tenant to cross-tenant probe. Seed it + an event there.
     const { managementApp, env } = await getTestServer();

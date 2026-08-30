@@ -266,6 +266,12 @@ export function createOutboxAdapter(db: DrizzleDb): OutboxAdapter {
           retry_count: 0,
           next_retry_at: null,
           error: null,
+          // Release the claim the relay pass that dead-lettered this event
+          // left behind. `deadLetter` doesn't clear it (unlike `markRetry`),
+          // so without this the replayed event stays invisible to
+          // `getUnprocessed` until the stale lease expires.
+          claimed_by: null,
+          claim_expires_at: null,
         })
         .where(
           and(
