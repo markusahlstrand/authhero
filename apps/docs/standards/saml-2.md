@@ -15,7 +15,7 @@ SAML 2.0 support is provided by [`@authhero/saml`](/customization/saml/) and is 
 - **AuthHero as SAML IdP** — `/samlp/{client_id}` endpoint accepts `AuthnRequest` and issues signed SAML responses.
 - **Metadata** — `/samlp/metadata/{client_id}` publishes IdP metadata XML.
 - **HTTP-POST binding** — SAML responses are delivered via an auto-submitting HTML form POST to the SP's `AssertionConsumerServiceURL`.
-- **Signed assertions** — assertions are signed with the tenant's X.509 signing key.
+- **Signed assertions** — assertions are signed with the tenant's X.509 signing key. Certificates are tenant-scoped and can be rotated with a staging window, renewed over the same key pair, or revoked — see [Certificate lifecycle](/customization/saml/configuration#certificate-lifecycle).
 - **Attribute statements** — standard user attributes are mapped into SAML attributes.
 - **Single Logout Service** — `SingleLogoutService` URL is published in metadata.
 - **Custom signers** — tenants can supply their own signing implementation via the [SAML package](/customization/saml/custom-signers).

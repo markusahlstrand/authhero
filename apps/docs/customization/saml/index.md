@@ -54,6 +54,7 @@ const app = init({
 ## Documentation
 
 - [Configuration](./configuration.md) - Configuration options and usage
+- [Certificate lifecycle](./configuration.md#certificate-lifecycle) - Rotating, renewing and revoking SAML certificates
 - [API Reference](./api-reference.md) - Complete API documentation
 - [Custom Signers](./custom-signers.md) - Implementing custom signing logic
 

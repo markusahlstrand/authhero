@@ -252,9 +252,61 @@ For Node.js deployments where you need local signing:
 | Variable            | Description                             | Required |
 | ------------------- | --------------------------------------- | -------- |
 | `SAML_SIGN_URL`     | HTTP endpoint for SAML signing          | No       |
-| `ORGANIZATION_NAME` | Organization name for SAML certificates | Yes      |
+| `ORGANIZATION_NAME` | Organization name for SAML certificates | No       |
 | `AUTH_URL`          | Base URL for authentication endpoints   | Yes      |
 | `ISSUER`            | Issuer identifier for SAML assertions   | Yes      |
+
+`ORGANIZATION_NAME` only supplies the certificate subject (`CN=…`) when a key is minted. It is optional: the name falls back through `ORGANIZATION_NAME` → the tenant id (for a tenant-scoped key) → the literal `authhero`. Setting it is still recommended, because the subject is what an administrator on the service-provider side sees when they inspect the certificate you send them.
+
+## Certificate lifecycle
+
+SAML certificates are managed through the Management API's signing-key routes with `?type=saml_encryption`. That query parameter selects the key bucket; every route defaults to `jwt_signing`, so it must be passed explicitly for SAML.
+
+SAML keys are **always tenant-scoped**, whatever the deployment's `signingKeyMode` is. A tenant's own certificate is preferred for signing, and the shared control-plane certificate is used only as a fallback while a tenant key is being provisioned. This is deliberate: each certificate is published in that tenant's IdP metadata and pinned by that tenant's service providers, so a shared certificate could not be rotated without forcing every unrelated tenant's SPs to re-trust at the same moment. A control-plane certificate that a tenant merely inherits comes back flagged `inherited: true` and the mutating routes refuse it.
+
+The default validity for a SAML certificate is **five years** (JWT signing keys default to one year). Every route below accepts `validity_days` (1–3650) to override it.
+
+### Inspecting
+
+```http
+GET /api/v2/keys/signing?type=saml_encryption
+GET /api/v2/keys/signing/{kid}?type=saml_encryption
+```
+
+Requires `read:signing_keys`. Private key material is never returned. Each entry carries `expires_at` and `expired` read off the certificate itself, `current` for the key that is actually signing, `next` for a staged key, and `inherited` for a key the tenant does not own.
+
+### Rotating
+
+```http
+POST /api/v2/keys/signing/rotate?type=saml_encryption&activate_in_days=7&grace_days=7
+```
+
+Requires `create:signing_keys`. Rotation mints a **new key pair**, so the `kid` and the public key change.
+
+- `activate_in_days` (default `0`) — publish the new certificate now but only start signing with it after this many days. This is the mechanism that makes a zero-downtime rotation possible for SAML: a service provider cannot discover a new certificate on its own, so the new `KeyDescriptor` is published in `/samlp/metadata/{client_id}` **immediately** while the outgoing key keeps signing, giving you a window to deliver the new certificate out-of-band. Doing it the other way round breaks every login in between. The admin console defaults to 7 days for SAML.
+- `grace_days` (default `1`) — how long the outgoing certificate stays valid. The clock runs from **activation**, not from now, so a staged rotation cannot retire the old key before the new one takes over. During the grace period both certificates appear in the metadata, so an SP will accept assertions from either.
+
+### Renewing
+
+```http
+POST /api/v2/keys/signing/{kid}/renew?type=saml_encryption
+```
+
+Requires `create:signing_keys`. Renewal re-issues the certificate over the **existing key pair**: the public key is unchanged, so the `kid` and the signature-verification path stay the same and only the certificate's validity window moves.
+
+This is the escape hatch for a service provider that pins the certificate bytes and cannot be updated on your schedule. An SP that trusts the public key or the `kid` needs to do nothing at all; only an SP comparing the certificate itself has to be handed the re-issued one. Prefer `rotate` when you can — renewal keeps the same key material, so it does not help if that material is what you are trying to replace.
+
+### Revoking
+
+```http
+PUT /api/v2/keys/signing/{kid}/revoke?type=saml_encryption
+```
+
+Requires `update:signing_keys`. Revokes the key immediately and mints a replacement in the same scope. There is no staging window, so an SP that pins the certificate will fail until it has the replacement — use `rotate` with `activate_in_days` unless you are responding to a compromise.
+
+### Admin console
+
+All of the above is available in the admin console under **Signing Keys → SAML**, including the certificate in the form an SP needs and a rotation dialog pre-filled with the SAML defaults.
 
 ## Examples
 
