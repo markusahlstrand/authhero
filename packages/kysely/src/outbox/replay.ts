@@ -7,6 +7,11 @@ import { Database } from "../db";
  * next_retry_at. Scoped to tenantId so management-API callers can't reach
  * into another tenant's dead-letter queue.
  *
+ * The claim is released too. `deadLetter` leaves `claimed_by` /
+ * `claim_expires_at` set from the relay pass that retired the event (unlike
+ * `markRetry`, which clears them), so a replay inside the 30s lease window
+ * would otherwise be skipped by `getUnprocessed` until the lease aged out.
+ *
  * Returns true if a row was updated (matched id + tenant + was dead-lettered),
  * false otherwise (so the route handler's 404 branch still works).
  */
@@ -21,6 +26,8 @@ export function replayOutboxEvent(db: Kysely<Database>) {
         retry_count: 0,
         next_retry_at: null,
         error: null,
+        claimed_by: null,
+        claim_expires_at: null,
       })
       .where("id", "=", id)
       .where("tenant_id", "=", tenantId)
