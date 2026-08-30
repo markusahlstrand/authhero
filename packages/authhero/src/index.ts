@@ -34,6 +34,11 @@ export {
 export type { UserSessionCleanupParams } from "./helpers/user-session-cleanup";
 export { drainOutbox } from "./helpers/outbox-relay";
 export type { EventDestination } from "./helpers/outbox-relay";
+export type {
+  OutboxMetric,
+  OutboxMetricName,
+  OutboxMetricsSink,
+} from "./types/OutboxMetrics";
 export { cleanupOutbox } from "./helpers/outbox-cleanup";
 export { cleanupCodes } from "./helpers/codes-cleanup";
 export { cleanupActionExecutions } from "./helpers/action-executions-cleanup";

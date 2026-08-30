@@ -302,3 +302,154 @@ describe("drainOutbox", () => {
     expect(outbox.cleanup).toHaveBeenCalledWith(expect.any(String));
   });
 });
+
+describe("outbox metrics", () => {
+  it("emits outbox_events_processed_total on successful delivery", async () => {
+    const event = makeOutboxEvent({ id: "evt-1" });
+    const outbox = makeOutbox({
+      claimEvents: vi.fn().mockResolvedValue(["evt-1"]),
+      getByIds: vi.fn().mockResolvedValue([event]),
+    });
+    const metrics = vi.fn();
+
+    await processOutboxEvents(outbox, ["evt-1"], [makeDestination()], {
+      metrics,
+    });
+
+    expect(metrics).toHaveBeenCalledTimes(1);
+    expect(metrics).toHaveBeenCalledWith({
+      name: "outbox_events_processed_total",
+      value: 1,
+      tenantId: "tenant-1",
+      eventType: "user.created",
+      source: "request",
+      retryCount: 0,
+    });
+  });
+
+  it("emits outbox_retry_delay_seconds with the backoff delay on failure", async () => {
+    const event = makeOutboxEvent({ id: "evt-1", retry_count: 2 });
+    const outbox = makeOutbox({
+      claimEvents: vi.fn().mockResolvedValue(["evt-1"]),
+      getByIds: vi.fn().mockResolvedValue([event]),
+    });
+    const metrics = vi.fn();
+    const destination = makeDestination({
+      deliver: vi.fn().mockRejectedValue(new Error("delivery failed")),
+    });
+
+    await processOutboxEvents(outbox, ["evt-1"], [destination], { metrics });
+
+    // BASE_DELAY_MS (1000ms) * 2^2 = 4000ms
+    expect(metrics).toHaveBeenCalledTimes(1);
+    expect(metrics).toHaveBeenCalledWith({
+      name: "outbox_retry_delay_seconds",
+      value: 4,
+      tenantId: "tenant-1",
+      eventType: "user.created",
+      source: "request",
+      destination: "test-destination",
+      error: "delivery failed",
+      retryCount: 2,
+    });
+  });
+
+  it("emits outbox_events_dead_lettered_total when retries are exhausted", async () => {
+    const event = makeOutboxEvent({
+      id: "evt-1",
+      retry_count: 5,
+      error: "last error",
+    });
+    const outbox = makeOutbox({
+      claimEvents: vi.fn().mockResolvedValue(["evt-1"]),
+      getByIds: vi.fn().mockResolvedValue([event]),
+    });
+    const metrics = vi.fn();
+
+    await processOutboxEvents(outbox, ["evt-1"], [makeDestination()], {
+      maxRetries: 5,
+      metrics,
+    });
+
+    expect(metrics).toHaveBeenCalledWith({
+      name: "outbox_events_dead_lettered_total",
+      value: 1,
+      tenantId: "tenant-1",
+      eventType: "user.created",
+      source: "request",
+      error: "last error",
+      retryCount: 5,
+    });
+  });
+
+  it("emits outbox_events_dead_lettered_total when no destination accepts", async () => {
+    const event = makeOutboxEvent({ id: "evt-1" });
+    const outbox = makeOutbox({
+      claimEvents: vi.fn().mockResolvedValue(["evt-1"]),
+      getByIds: vi.fn().mockResolvedValue([event]),
+    });
+    const metrics = vi.fn();
+    const destination = makeDestination({ accepts: () => false });
+
+    await processOutboxEvents(outbox, ["evt-1"], [destination], { metrics });
+
+    expect(metrics).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: "outbox_events_dead_lettered_total",
+        value: 1,
+        error: "No destination accepts event_type=user.created",
+      }),
+    );
+  });
+
+  it("tags drainOutbox metrics with source=cron", async () => {
+    const event = makeOutboxEvent({ id: "evt-1" });
+    const outbox = makeOutbox({
+      getUnprocessed: vi.fn().mockResolvedValue([event]),
+      claimEvents: vi.fn().mockResolvedValue(["evt-1"]),
+    });
+    const metrics = vi.fn();
+
+    await drainOutbox(outbox, [makeDestination()], { metrics });
+
+    expect(metrics).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: "outbox_events_processed_total",
+        source: "cron",
+      }),
+    );
+  });
+
+  it("still delivers when no metrics sink is configured", async () => {
+    const event = makeOutboxEvent({ id: "evt-1" });
+    const outbox = makeOutbox({
+      claimEvents: vi.fn().mockResolvedValue(["evt-1"]),
+      getByIds: vi.fn().mockResolvedValue([event]),
+    });
+
+    await processOutboxEvents(outbox, ["evt-1"], [makeDestination()]);
+
+    expect(outbox.markProcessed).toHaveBeenCalledWith(["evt-1"]);
+  });
+
+  it("keeps delivering when the metrics sink throws", async () => {
+    const event = makeOutboxEvent({ id: "evt-1" });
+    const outbox = makeOutbox({
+      claimEvents: vi.fn().mockResolvedValue(["evt-1"]),
+      getByIds: vi.fn().mockResolvedValue([event]),
+    });
+    const metrics = vi.fn(() => {
+      throw new Error("sink is down");
+    });
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+
+    await processOutboxEvents(outbox, ["evt-1"], [makeDestination()], {
+      metrics,
+    });
+
+    expect(outbox.markProcessed).toHaveBeenCalledWith(["evt-1"]);
+    consoleError.mockRestore();
+  });
+});

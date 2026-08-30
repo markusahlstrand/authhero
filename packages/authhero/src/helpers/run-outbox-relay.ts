@@ -1,5 +1,6 @@
 import { CodeExecutor, DataAdapters } from "@authhero/adapter-interfaces";
 import type { WebhookInvoker } from "../types/AuthHeroConfig";
+import type { OutboxMetricsSink } from "../types/OutboxMetrics";
 import { drainOutbox } from "./outbox-relay";
 import { cleanupOutbox } from "./outbox-cleanup";
 import { createDefaultDestinations } from "./default-destinations";
@@ -43,6 +44,14 @@ export interface RunOutboxRelayConfig {
    * silently skipped.
    */
   codeExecutor?: CodeExecutor;
+
+  /**
+   * Optional metrics sink — same shape as `init({ outbox: { metrics } })`.
+   * Receives `outbox_events_processed_total`,
+   * `outbox_events_dead_lettered_total` and `outbox_retry_delay_seconds` for
+   * the events this cron drain handles, tagged `source: "cron"`.
+   */
+  metrics?: OutboxMetricsSink;
 }
 
 /**
@@ -87,6 +96,7 @@ export async function runOutboxRelay(
     maxRetries,
     webhookTimeoutMs,
     codeExecutor,
+    metrics,
   } = config;
 
   if (!dataAdapter.outbox) {
@@ -113,6 +123,7 @@ export async function runOutboxRelay(
       batchSize,
       maxRetries,
       retentionDays,
+      metrics,
     });
   } catch (error) {
     drainError = error;

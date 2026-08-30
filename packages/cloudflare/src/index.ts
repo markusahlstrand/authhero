@@ -75,6 +75,11 @@ export { createAnalyticsEngineLogsAdapter } from "./analytics-engine-logs";
 export { createAnalyticsEngineStatsAdapter } from "./analytics-engine-logs";
 export { createAnalyticsEngineAnalyticsAdapter } from "./analytics-engine-logs";
 export { createAnalyticsEngineActionExecutionsAdapter } from "./analytics-engine-action-executions";
+export { createAnalyticsEngineOutboxMetricsSink } from "./analytics-engine-outbox-metrics";
+export type {
+  AnalyticsEngineOutboxMetricsConfig,
+  OutboxMetricRecord,
+} from "./analytics-engine-outbox-metrics";
 export { createR2SQLLogsAdapter } from "./r2-sql-logs";
 export { createR2SQLStatsAdapter } from "./r2-sql-logs";
 
