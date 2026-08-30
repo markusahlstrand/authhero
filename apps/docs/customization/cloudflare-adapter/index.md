@@ -13,7 +13,7 @@ The Cloudflare adapter provides Cloudflare-specific integrations for AuthHero, i
 - **[Cache](./cache)**: Cloudflare Cache API integration for high-performance caching
 - **[Rate Limit](/customization/adapter-interfaces/rate-limit)** (optional): Workers Rate Limiter bindings wired into AuthHero's `pre-login`, `brute-force`, and `pre-user-registration` scopes
 - **Logs** (optional): Two options for authentication logs:
-  - **[Analytics Engine](./analytics-engine)**: Low-latency writes with SQL querying (90-day retention)
+  - **[Analytics Engine](./analytics-engine)**: Low-latency writes with SQL querying (90-day retention). Also returns the log-derived `analytics` and `stats` adapters.
   - **[R2 SQL](./r2-sql)**: Long-term storage with unlimited retention
 - **Edge Compatible**: Works in Cloudflare Workers and standard Node.js environments
 - **Global Distribution**: Leverage Cloudflare's global network
@@ -68,8 +68,9 @@ const adapters = createAdapters({
   },
 });
 
-// Use the adapters
-const { customDomains, cache, logs } = adapters;
+// Use the adapters. `analytics` and `stats` are only present when
+// `analyticsEngineLogs` is configured — they are derived from the same events.
+const { customDomains, cache, logs, analytics, stats } = adapters;
 ```
 
 ## Adapters
@@ -181,10 +182,22 @@ export const dataAdapters = {
   ...database,
   cache: cloudflareAdapters.cache,
   customDomains: cloudflareAdapters.customDomains,
+  // The three log-derived adapters must move together — see the note below
   logs: cloudflareAdapters.logs,
+  analytics: cloudflareAdapters.analytics,
+  stats: cloudflareAdapters.stats,
   rateLimit: cloudflareAdapters.rateLimit, // optional — undefined if no bindings configured
 };
 ```
+
+::: warning Move `logs`, `analytics` and `stats` together
+Configuring `analyticsEngineLogs` makes `createAdapters` return all three of
+`logs`, `analytics` and `stats`, because all three are derived from the same
+log events. If you forward only `logs` and leave `analytics`/`stats` on the SQL
+database adapter, `/api/v2/stats/daily`, `/api/v2/stats/active-users` and the
+analytics endpoints keep reading the SQL `logs` table — which no longer
+receives writes once logs go to Analytics Engine — and report zeros.
+:::
 
 ## Environment Variables
 

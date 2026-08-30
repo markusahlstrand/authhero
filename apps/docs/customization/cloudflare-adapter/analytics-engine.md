@@ -87,7 +87,26 @@ interface AnalyticsEngineLogsAdapterConfig {
 }
 ```
 
-## Methods
+## Adapters returned
+
+A single `analyticsEngineLogs` config yields three adapters from `createAdapters`,
+because all three answer questions about the same log events:
+
+| Adapter     | Methods                                     | Used by                                              |
+| ----------- | ------------------------------------------- | ---------------------------------------------------- |
+| `logs`      | `create`, `get`, `list`                     | `/api/v2/logs`                                        |
+| `analytics` | `query(tenantId, resource, params)`         | `/api/v2/analytics/*`                                 |
+| `stats`     | `getDaily(tenantId, params)`, `getActiveUsers(tenantId)` | `/api/v2/stats/daily`, `/api/v2/stats/active-users` |
+
+Forward all three to your data adapters. If you forward only `logs`, the
+`analytics` and `stats` calls stay on your SQL database adapter and query a
+`logs` table that no longer receives writes, so the dashboards read zero.
+
+`analytics.sessionRetention` is **not** implemented here — it is computed from
+the `sessions` table rather than from log events, so the retention route
+responds `501` when the Analytics Engine adapter is in use.
+
+### Methods
 
 - `create(tenantId, log)` - Create a log entry (writes to Analytics Engine)
 - `get(tenantId, logId)` - Get a specific log entry (queries SQL API)
@@ -120,7 +139,11 @@ export default {
       },
     });
 
-    const { logs } = adapters;
+    // The same config returns all three log-derived adapters. Forward
+    // `analytics` and `stats` alongside `logs` when you build your data
+    // adapters, or the stats and analytics endpoints keep reading the SQL
+    // logs table and report zeros.
+    const { logs, analytics, stats } = adapters;
 
     // Write a log (fire-and-forget, no await needed but recommended)
     await logs.create("tenant-123", {
@@ -137,6 +160,25 @@ export default {
     const recentLogs = await logs.list("tenant-123", {
       per_page: 50,
       q: "type:s",
+    });
+
+    // Same events, aggregated — these back /stats/daily and /stats/active-users
+    const daily = await stats.getDaily("tenant-123", {
+      from: "20260801",
+      to: "20260830",
+    });
+    const activeUsers = await stats.getActiveUsers("tenant-123");
+
+    // ...and the analytics endpoints
+    const loginsPerDay = await analytics.query("tenant-123", "logins", {
+      from: "2026-08-01T00:00:00Z",
+      to: "2026-08-30T00:00:00Z",
+      interval: "day",
+      tz: "UTC",
+      filters: {},
+      group_by: ["time"],
+      limit: 100,
+      offset: 0,
     });
 
     return new Response("OK");
