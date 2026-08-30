@@ -68,6 +68,40 @@ Key configuration options for applications:
 - **Grant Types**: OAuth grant types the application can use
 - **Token Endpoint Auth Method**: How the application authenticates to the token endpoint
 - **CORS**: Cross-origin resource sharing settings for web applications
+- **Refresh Tokens**: Rotation and lifetime settings — see below
+
+### Refresh Tokens
+
+The client's `refresh_token` object configures how refresh tokens issued to this
+application rotate and expire. It maps to the **Refresh Tokens** tab in the
+Admin UI.
+
+| Field                          | Type                            | Default          | Description                                                                     |
+| ------------------------------ | ------------------------------- | ---------------- | --------------------------------------------------------------------------------- |
+| `rotation_type`                | `rotating` \| `non-rotating`    | `non-rotating`   | Whether a token is replaced on every exchange (Auth0 `rotating` behaviour)          |
+| `leeway`                       | seconds (0–600)                 | `30`             | Grace window after a parent token's first rotation in which presenting it again mints a sibling instead of tripping reuse detection |
+| `expiration_type`              | `expiring` \| `non-expiring`    | `expiring`       | Master switch. `non-expiring` overrides both the absolute and the idle lifetime      |
+| `token_lifetime`               | seconds                         | tenant `session_lifetime` | Absolute lifetime — how long the token is valid regardless of use          |
+| `infinite_token_lifetime`      | boolean                         | `false`          | No absolute expiry (overrides `token_lifetime`)                                     |
+| `idle_token_lifetime`          | seconds                         | tenant `idle_session_lifetime` | Idle (sliding) lifetime, re-stamped on every exchange                 |
+| `infinite_idle_token_lifetime` | boolean                         | `false`          | No idle expiry (overrides `idle_token_lifetime`)                                    |
+
+```typescript
+PATCH /api/v2/clients/{id}
+{
+  "refresh_token": {
+    "rotation_type": "rotating",
+    "expiration_type": "expiring",
+    "token_lifetime": 2592000,      // 30 days, absolute
+    "idle_token_lifetime": 1296000  // 15 days without use
+  }
+}
+```
+
+Lifetimes here are in **seconds**, while the tenant-level `session_lifetime` /
+`idle_session_lifetime` fallbacks are in **hours**. See
+[Token Lifetimes](/entities/security/tokens#refresh-token-lifetimes) for the
+full precedence order.
 
 ## Creating an Application
 
