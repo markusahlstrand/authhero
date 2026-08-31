@@ -19,9 +19,9 @@ AuthHero is a multi-tenant authentication system that provides identity and acce
 ## Applications
 
 - **admin** - Admin interface (shadcn/ui + ra-core) for managing tenants, users, applications, and more
-- **demo** - Demo authentication server using the kysely adapter and SQLite
-- **proxy-dev** - Cloudflare Worker harness for developing/deploying `@authhero/proxy`
 - **docs** - Documentation site powered by VitePress, deployed to Cloudflare Pages at [docs.authhero.net](https://docs.authhero.net) — see [apps/docs/DEPLOYMENT.md](apps/docs/DEPLOYMENT.md)
+- **website** - Public marketing site (Vite + React SSG, Cloudflare Pages)
+- **conformance-runner** - Playwright runner for the OpenID Foundation conformance suite
 
 ## Quick Start
 
@@ -67,15 +67,20 @@ cd authhero
 pnpm install
 ```
 
-### Running the Demo
+### Running a Local Auth Server
 
-Start the demo authentication server:
+The monorepo has no committed demo app. To get a runnable auth server, scaffold
+one from the `local` template:
 
 ```bash
-pnpm demo dev
+pnpm create-authhero dev
 ```
 
-This starts a local auth server at `http://localhost:8787` with SQLite storage.
+This builds the CLI, scaffolds `packages/create-authhero/auth-server` in
+workspace mode, runs its migrations and starts it at `http://localhost:3000`
+with SQLite storage (Swagger UI at `/docs`). Re-running the command recreates
+the scaffold from scratch, so treat it as disposable — make lasting changes in
+`packages/create-authhero/templates/local`.
 
 ### Running All Apps
 
@@ -87,9 +92,9 @@ pnpm dev
 
 This starts:
 
-- Demo auth server
 - Admin interface
 - Documentation site
+- Marketing website
 - All other apps in parallel
 
 ### Running Specific Apps
@@ -97,10 +102,10 @@ This starts:
 Use these shortcuts to work with individual apps:
 
 ```bash
-pnpm demo          # Work with demo app
 pnpm admin         # Work with admin interface
 pnpm authhero      # Work with main package
 pnpm vitepress     # Work with docs
+pnpm website       # Work with the marketing site
 ```
 
 ### Running OIDC Conformance Tests
@@ -205,20 +210,23 @@ Releases are automated via GitHub Actions when changesets are merged to the main
 ```
 authhero/
 ├── apps/
-│   ├── admin/            # Admin interface (shadcn/ui + ra-core)
-│   ├── demo/             # Demo auth server
-│   ├── proxy-dev/        # Worker harness for @authhero/proxy
-│   └── docs/             # Documentation site
+│   ├── admin/               # Admin interface (shadcn/ui + ra-core)
+│   ├── conformance-runner/  # OIDC conformance suite runner
+│   ├── docs/                # Documentation site
+│   └── website/             # Marketing site
 ├── packages/
 │   ├── adapter-interfaces/
-│   ├── authhero/         # Main package
+│   ├── authhero/            # Main package
+│   ├── aws/
 │   ├── cloudflare/
-│   ├── create-authhero/  # Project generator CLI
+│   ├── create-authhero/     # Project generator CLI (+ templates/)
 │   ├── drizzle/
 │   ├── kysely/
-│   ├── proxy/            # Multi-tenant reverse proxy library
-│   └── saml/
-└── test/                 # Integration tests
+│   ├── multi-tenancy/
+│   ├── proxy/               # Multi-tenant reverse proxy library
+│   ├── saml/
+│   └── ui-widget/
+└── test/                    # Integration tests
 ```
 
 ## Resources

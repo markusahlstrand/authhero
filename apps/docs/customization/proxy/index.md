@@ -57,7 +57,7 @@ pnpm add @authhero/drizzle drizzle-orm
 
 `@authhero/proxy` is a library, not a service. You write a thin Cloudflare Worker (or any Hono entry) that wires up a data adapter and mounts the app — the same way you wrap `authhero` in your own app today.
 
-The [`apps/proxy-dev`](https://github.com/markusahlstrand/authhero/tree/main/apps/proxy-dev) Worker in this monorepo is a runnable starting point you can copy from. The [`cloudflare-wfp-dispatcher` template](https://github.com/markusahlstrand/authhero/tree/main/packages/create-authhero/templates/cloudflare-wfp-dispatcher) is the WFP variant.
+The [`proxy` template](https://github.com/markusahlstrand/authhero/tree/main/packages/create-authhero/templates/proxy) in this monorepo is a runnable starting point you can copy from. The [`cloudflare-wfp-dispatcher` template](https://github.com/markusahlstrand/authhero/tree/main/packages/create-authhero/templates/cloudflare-wfp-dispatcher) is the WFP variant.
 
 ### Static configuration (no database)
 

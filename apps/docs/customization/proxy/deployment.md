@@ -674,4 +674,4 @@ Secrets (HTTP control-plane shape):
 
 All cache tuning happens in code via the `cache` option on `createProxyApp` (see [Host caching](/customization/proxy/caching)).
 
-For a runnable reference deployment, see [`apps/proxy-dev`](https://github.com/markusahlstrand/authhero/tree/main/apps/proxy-dev) in the monorepo. It shows the canonical Cloudflare Workers setup, including threading `ExecutionContext.waitUntil` through `AsyncLocalStorage` so background SWR refreshes survive the response.
+For a runnable reference deployment, see the [`proxy` template](https://github.com/markusahlstrand/authhero/tree/main/packages/create-authhero/templates/proxy) in the monorepo. It shows the canonical Cloudflare Workers setup, including threading `ExecutionContext.waitUntil` through `AsyncLocalStorage` so background SWR refreshes survive the response.
