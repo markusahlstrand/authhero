@@ -6,21 +6,11 @@ import { DetailsTab } from "./tabs/details-tab";
 import { TestTab } from "./tabs/test-tab";
 import { VersionsTab } from "./tabs/versions-tab";
 import { RawJsonTab } from "@/common/RawJsonTab";
-
-type Secret = { name: string; value?: string };
-type Trigger = { id?: string };
-
-type ActionRecord = {
-  id: string | number;
-  tenant_id?: string;
-  created_at?: string;
-  updated_at?: string;
-  status?: string;
-  deployed_at?: string;
-  supported_triggers?: Trigger[];
-  secrets?: Secret[];
-  trigger_id?: string;
-} & Record<string, unknown>;
+import {
+  fromActionFormValues,
+  toActionFormValues,
+  type ActionRecord,
+} from "./formMapping";
 
 export function ActionEdit() {
   // Per-mount sentinel that a user cannot reproduce as a real secret value, so
@@ -36,37 +26,9 @@ export function ActionEdit() {
     <Edit
       mutationMode="pessimistic"
       queryOptions={{
-        select: (data: ActionRecord) => ({
-          ...data,
-          secrets: data.secrets?.map((s) => ({
-            name: s.name,
-            value: sentinel,
-          })),
-        }),
+        select: (data: ActionRecord) => toActionFormValues(data, sentinel),
       }}
-      transform={(data: ActionRecord) => {
-        const {
-          id: _id,
-          tenant_id: _tenant_id,
-          created_at: _created_at,
-          updated_at: _updated_at,
-          status: _status,
-          deployed_at: _deployed_at,
-          trigger_id: _trigger_id,
-          ...rest
-        } = data;
-        const cleanedSecrets = (rest.secrets ?? [])
-          .filter((s): s is Secret => !!s?.name)
-          .map((s) =>
-            s.value === sentinel
-              ? { name: s.name }
-              : { name: s.name, value: s.value },
-          );
-        return {
-          ...rest,
-          secrets: cleanedSecrets,
-        };
-      }}
+      transform={(data: ActionRecord) => fromActionFormValues(data, sentinel)}
     >
       <SimpleForm className="max-w-none">
         <UrlTabs defaultValue="details" className="w-full">
