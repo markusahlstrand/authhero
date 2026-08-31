@@ -375,18 +375,12 @@ export async function createAuthTokens(
     ? Object.keys(authParams.claims.userinfo)
     : undefined;
 
-  // Strip `act` from custom claims so callers can't override the actor
-  // recorded by the grant flow (RFC 8693). RESERVED_CLAIMS already protects
-  // the JWT-spec reserved set above; `act` is enforced here too.
-  const actFilteredCustomClaims = params.customClaims
-    ? Object.fromEntries(
-        Object.entries(params.customClaims).filter(([key]) => key !== "act"),
-      )
-    : undefined;
-
   // Caller-supplied claims may add new names but never overwrite one the
   // authorization server owns; colliding names are dropped with a warning.
-  const sanitizedCustomClaims = applyCustomClaims(actFilteredCustomClaims, {
+  // This subsumes the bespoke `act` filter that used to sit here — `act` is
+  // reserved on every write path now, so a hook cannot forge the RFC 8693
+  // actor either (it could when only this path filtered it).
+  const sanitizedCustomClaims = applyCustomClaims(params.customClaims, {
     kind: "access_token",
     source: "createAuthTokens(customClaims)",
     ctx,

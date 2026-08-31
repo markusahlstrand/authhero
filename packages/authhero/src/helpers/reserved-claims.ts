@@ -45,7 +45,11 @@ const JWT_REGISTERED_CLAIMS = [
  *   request's tenant context and to enforce the cross-tenant guard, so a
  *   caller-supplied value would satisfy that guard rather than trip it.
  * - `act` records the RFC 8693 acting party (impersonator or delegating
- *   client) for the audit trail; only the grant flow may set it.
+ *   client) for the audit trail; only the grant flow may set it, so a caller
+ *   cannot forge the actor an impersonation is attributed to. `createAuthTokens`
+ *   used to filter `act` out of its `customClaims` parameter specifically for
+ *   this reason; reserving it here covers the hook `setCustomClaim` paths the
+ *   bespoke filter never reached.
  * - `scope` and `permissions` are the authorization the grant actually
  *   computed, `org_id`/`org_name` the organization it resolved.
  * - `requested_userinfo_claims` is how the mint hands the OIDC Core 5.5
@@ -74,7 +78,8 @@ const AUTHHERO_ACCESS_TOKEN_CLAIMS = [
  * `nonce` is set before the credentials-exchange hooks run, so without this it
  * is overwritable and RP replay protection breaks. `at_hash` / `c_hash` /
  * `s_hash` happen to be computed after the hooks today, so they are safe by
- * ordering alone — reserving them makes that independent of ordering.
+ * ordering alone — reserving them means the guarantee no longer depends on
+ * where in `createAuthTokens` the hooks are invoked.
  */
 const AUTHHERO_ID_TOKEN_CLAIMS = [
   "nonce",
