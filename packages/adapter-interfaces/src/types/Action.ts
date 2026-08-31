@@ -48,7 +48,10 @@ export const actionSchema = actionInsertSchema
     tenant_id: z.string(),
     status: z.enum(["draft", "built"]).default("built"),
     deployed_at: z.string().optional(),
-    // Override secrets to return names only (no values) in responses
+    // Secrets keep their `value` here: this is the stored shape, and the code
+    // hook executor reads the values at execution time to build the sandbox
+    // environment. Anything serialised back over HTTP must use
+    // `actionResponseSchema` instead, which drops `value`.
     secrets: z
       .array(
         z.object({
@@ -60,3 +63,21 @@ export const actionSchema = actionInsertSchema
   })
   .extend(baseEntitySchema.shape);
 export type Action = z.infer<typeof actionSchema>;
+
+/** A secret as it appears in an API response — name only, never the value. */
+export const actionSecretNameSchema = z.object({
+  name: z.string(),
+});
+
+/**
+ * The action shape safe to return over HTTP.
+ *
+ * Identical to {@link actionSchema} except that secrets are narrowed to their
+ * names, so a secret value cannot leak through a management-API response —
+ * the route handlers already redact at runtime, and this makes the type
+ * system enforce it rather than relying on every handler remembering.
+ */
+export const actionResponseSchema = actionSchema.extend({
+  secrets: z.array(actionSecretNameSchema).optional(),
+});
+export type ActionResponse = z.infer<typeof actionResponseSchema>;

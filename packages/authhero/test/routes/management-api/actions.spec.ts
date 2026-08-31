@@ -361,4 +361,113 @@ describe("action-trigger bindings invoke the deployed action code", () => {
     // Direct invocation through handleCodeHook (covered in detail in
     // codehooks.spec.ts) — here we only verify the binding round-trips.
   });
+
+  it("never returns a secret value on any action response path", async () => {
+    const { executor } = makeRecordingExecutor();
+    const { managementApp, env } = await getTestServer({
+      codeExecutor: executor,
+    });
+    const client = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const SECRET_VALUE = "super-secret-token-value";
+
+    // Every response body is scanned for the raw value rather than only
+    // checking `secrets[].value`, so a leak through any other field (a
+    // serialised version snapshot, say) fails too.
+    const expectNoLeak = async (label: string, res: Response) => {
+      const body = await res.text();
+      expect(body, `${label} leaked the secret value`).not.toContain(
+        SECRET_VALUE,
+      );
+      return JSON.parse(body);
+    };
+
+    const createRes = await client.actions.actions.$post(
+      {
+        json: {
+          name: "secretive",
+          code: "// v1",
+          secrets: [{ name: "API_KEY", value: SECRET_VALUE }],
+          supported_triggers: [{ id: "post-login" }],
+        },
+        header: { "tenant-id": TENANT },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(createRes.status).toBe(201);
+    const created = await expectNoLeak("POST /actions", createRes);
+    expect(created.secrets).toEqual([{ name: "API_KEY" }]);
+
+    // The value really is stored — the leak tests below are meaningful only
+    // if there is something to leak.
+    const stored = await env.data.actions.get(TENANT, created.id);
+    expect(stored?.secrets?.[0]?.value).toBe(SECRET_VALUE);
+
+    const getRes = await client.actions.actions[":id"].$get(
+      {
+        param: { id: created.id },
+        header: { "tenant-id": TENANT },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    const fetched = await expectNoLeak("GET /actions/:id", getRes);
+    expect(fetched.secrets).toEqual([{ name: "API_KEY" }]);
+
+    const listRes = await client.actions.actions.$get(
+      {
+        header: { "tenant-id": TENANT },
+        query: {},
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    await expectNoLeak("GET /actions", listRes);
+
+    const patchRes = await client.actions.actions[":id"].$patch(
+      {
+        param: { id: created.id },
+        json: { code: "// v2" },
+        header: { "tenant-id": TENANT },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    await expectNoLeak("PATCH /actions/:id", patchRes);
+
+    const deployRes = await client.actions.actions[":id"].deploy.$post(
+      {
+        param: { id: created.id },
+        header: { "tenant-id": TENANT },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    await expectNoLeak("POST /actions/:id/deploy", deployRes);
+
+    const bindRes = await client.actions.triggers[":triggerId"].bindings.$patch(
+      {
+        param: { triggerId: "post-login" },
+        json: {
+          bindings: [
+            {
+              ref: { type: "action_id", value: created.id },
+              display_name: "Secretive",
+            },
+          ],
+        },
+        header: { "tenant-id": TENANT },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    await expectNoLeak("PATCH /actions/triggers/:id/bindings", bindRes);
+
+    const bindingsRes = await client.actions.triggers[
+      ":triggerId"
+    ].bindings.$get(
+      {
+        param: { triggerId: "post-login" },
+        header: { "tenant-id": TENANT },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    await expectNoLeak("GET /actions/triggers/:id/bindings", bindingsRes);
+  });
 });
