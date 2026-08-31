@@ -1,5 +1,40 @@
 # @authhero/adapter-interfaces
 
+## 4.12.0
+
+### Minor Changes
+
+- 86e991b: Add `actionResponseSchema` (and `actionSecretNameSchema`) to `@authhero/adapter-interfaces`: the action shape safe to return over HTTP, with secrets narrowed to `{ name }`. The management-API action and action-trigger-binding routes now declare their responses with it, so a secret `value` can no longer reach a response body — previously the handlers redacted at runtime but the OpenAPI schema still advertised and permitted `value`. `actionSchema` keeps `value`, since it describes the stored shape the code-hook executor reads at execution time.
+- bb9da90: Make RFC 7523 client assertions single use and bound their lifetime.
+
+  `private_key_jwt` and `client_secret_jwt` assertions were verified but never spent: `jti` was parsed and discarded, and `exp` had no upper bound, so a captured assertion authenticated the client for its full — unbounded — lifetime.
+  - An assertion is now rejected when `exp - iat` exceeds a maximum (default 300s), and its absolute `exp` is capped at `now + max` so omitting `iat` cannot sidestep the bound. Configurable via `CLIENT_ASSERTION_MAX_LIFETIME_SECONDS`, alongside the new `CLIENT_ASSERTION_LEEWAY_SECONDS`.
+  - The `jti` is spent at `POST /oauth/token` after signature verification and before the client counts as authenticated; presenting it again returns `invalid_client`. The marker is keyed on a digest of `client_assertion:<client_id>:<jti>`, so two clients may use the same `jti` value while one client cannot reuse its own.
+
+  Markers are stored through the existing codes adapter as a new `client_assertion_jti` code type, so they are tenant-scoped, atomic on the `(code_id, code_type)` primary key, and swept by the existing `cleanupCodes` retention job. `login_id` on `codeInsertSchema` is now optional — a client assertion has no login session, and the column was already nullable in every adapter.
+
+  Clients that mint assertions with a long `exp` must shorten it, and clients that reuse a fixed `jti` must generate a new one per request.
+
+- 90b21e4: Fix an infinite redirect loop on `/authorize/resume` when a vanity/custom
+  domain is fronted by `@authhero/proxy` with `rewrite_location` composed into
+  the route chain for control-plane upstreams.
+
+  The control plane deliberately 302s `/authorize/resume` to the host that
+  served the original `/authorize` request so the session cookie lands on the
+  right domain. `rewrite_location` saw that Location's origin match the route's
+  upstream origin and rewrote it back onto the vanity host, where the host
+  check failed again — the browser bounced on `/authorize/resume` forever.
+
+  Those deliberate cross-host redirects (in `finalizeAuthenticatedSession` and
+  `resumeLoginSession`) are now stamped with an
+  `x-authhero-preserve-location: 1` response header, and `rewrite_location`
+  leaves a marked Location untouched, stripping the marker before the response
+  reaches the browser. Same-host/relative redirects are unmarked and rewrite
+  exactly as before. The header name is exported from
+  `@authhero/adapter-interfaces` as `PRESERVE_LOCATION_HEADER`.
+
+- b775994: Add a typed `FeatureNotSupportedError` (plus an `isFeatureNotSupportedError` guard) to `@authhero/adapter-interfaces` and throw it from the AWS DynamoDB actions, action-versions and action-executions stubs, so callers can map an unimplemented feature to a 501 instead of a generic 500. The three action adapter factories are now re-exported from `@authhero/aws-adapter`'s package root alongside the other adapters. Internally, the `ensure-username` and `account-linking` template hooks now share a single `runTemplateHook` helper rather than duplicating the event stub and re-fetch.
+
 ## 4.11.0
 
 ### Minor Changes

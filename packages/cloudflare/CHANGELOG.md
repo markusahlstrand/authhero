@@ -1,5 +1,50 @@
 # @authhero/cloudflare-adapter
 
+## 3.1.0
+
+### Minor Changes
+
+- ae09a9b: Add `syncCustomDomains`, a cron-driven sweep that reconciles every custom hostname in the Cloudflare zone against the stored custom-domain rows.
+
+  Custom-domain state only ever refreshed when a single domain was read by id: `list` and `getByDomain` are deliberately DB-only, so a hostname that finished validation at the edge stayed `pending` in the database until someone opened its detail page. The sweep enumerates Cloudflare-first (one paginated list call per 50 hostnames) and shares its merge/write-back logic with `get`, so the interactive and scheduled refresh paths cannot drift apart.
+
+  Also fixes `verification` persistence, which the sweep depends on:
+  - **drizzle**: `verification` was written to its text column as a raw object, so SQLite rejected the statement ("Too few parameter values were provided") and the accompanying `status` change was lost — a custom domain could never be marked `ready`. It is now stringified on write and parsed on read.
+  - **kysely**: `getByDomain` returned `verification` as an unparsed JSON string while `get` returned an object. Both now parse it.
+
+  The control-plane template now reads `CLOUDFLARE_ZONE_ENTERPRISE`, so a deployment on an Enterprise zone gets the tenant-ownership checks it has always been entitled to. Unset, behaviour is unchanged.
+
+- c86912c: Add structured observability metrics to the outbox relay. Both the inline
+  per-request relay and the cron drain can now emit
+  `outbox_events_processed_total`, `outbox_events_dead_lettered_total` and
+  `outbox_retry_delay_seconds` to an optional sink configured via
+  `init({ outbox: { metrics } })` and `runOutboxRelay({ metrics })`. The core
+  package stays sink-agnostic; `@authhero/cloudflare-adapter` ships an Analytics
+  Engine implementation as `createAnalyticsEngineOutboxMetricsSink`.
+
+### Patch Changes
+
+- Updated dependencies [2e77d57]
+- Updated dependencies [86e991b]
+- Updated dependencies [6aaafb4]
+- Updated dependencies [c60fee4]
+- Updated dependencies [bb9da90]
+- Updated dependencies [318af44]
+- Updated dependencies [f2f8ff4]
+- Updated dependencies [33e4190]
+- Updated dependencies [8b0ed6f]
+- Updated dependencies [4ff665a]
+- Updated dependencies [ae09a9b]
+- Updated dependencies [c86912c]
+- Updated dependencies [90b21e4]
+- Updated dependencies [f80567b]
+- Updated dependencies [6744248]
+- Updated dependencies [b775994]
+  - authhero@9.10.0
+  - @authhero/adapter-interfaces@4.12.0
+  - @authhero/kysely-adapter@12.6.2
+  - @authhero/multi-tenancy@15.0.1
+
 ## 3.0.12
 
 ### Patch Changes
