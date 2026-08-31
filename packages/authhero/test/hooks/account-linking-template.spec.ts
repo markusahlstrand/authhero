@@ -1,8 +1,14 @@
 import { describe, it, expect } from "vitest";
+import { Context } from "hono";
+import { DataAdapters, User } from "@authhero/adapter-interfaces";
 import { getTestServer } from "../helpers/test-server";
 import { accountLinking } from "../../src/hooks/pre-defined/account-linking";
 import { addDataHooks } from "../../src/hooks";
 import { USERNAME_PASSWORD_PROVIDER } from "../../src/constants";
+import { Bindings, Variables } from "../../src/types";
+import { HookEvent, OnExecutePostLoginAPI } from "../../src/types/Hooks";
+
+type HookCtx = Context<{ Bindings: Bindings; Variables: Variables }>;
 
 /**
  * Integration tests for the `accountLinking` pre-defined post-login hook
@@ -18,39 +24,47 @@ describe("accountLinking pre-defined hook", () => {
   // The test server fixture already creates `email|userId` with
   // foo@example.com (email_verified: true). We'll use that as the primary
   // and create a secondary account with the same email to test linking.
-  function mockCtx(data: any): any {
-    return {
-      env: { data },
+
+  // The hook only reaches for `env.data`, the request basics and the `ip`
+  // context var, so a partial context is enough — assembled and cast once
+  // here rather than at every call site.
+  function mockCtx(data: DataAdapters): HookCtx {
+    const ctx: Partial<HookCtx> = {
+      env: { data } as HookCtx["env"],
       req: {
         method: "POST",
         url: "http://test",
         path: "/test",
         header: () => tenantId,
-      },
-      var: { tenant_id: tenantId, ip: "127.0.0.1" },
-      get: (key: string) => (key === "ip" ? "127.0.0.1" : undefined),
+      } as unknown as HookCtx["req"],
+      var: { tenant_id: tenantId, ip: "127.0.0.1" } as HookCtx["var"],
+      get: ((key: string) =>
+        key === "ip" ? "127.0.0.1" : undefined) as HookCtx["get"],
     };
+    return ctx as HookCtx;
   }
 
-  function invokeHook(ctx: any, user: any) {
+  const noopApi: OnExecutePostLoginAPI = {
+    prompt: { render: () => {} },
+    redirect: {
+      sendUserTo: () => {},
+      encodeToken: () => "",
+      validateToken: () => null,
+    },
+    token: { createServiceToken: async () => "" },
+  };
+
+  // `users.get` returns `User | null`, so accept null and normalise it to the
+  // `user?: User` the hook event declares.
+  function invokeHook(ctx: HookCtx, user: User | null | undefined) {
     const hook = accountLinking();
-    return hook(
-      {
-        ctx,
-        user,
-        tenant: { id: tenantId },
-        request: { ip: "127.0.0.1", url: "http://test" },
-      } as any,
-      {
-        prompt: { render: () => {} },
-        redirect: {
-          sendUserTo: () => {},
-          encodeToken: () => "",
-          validateToken: () => null,
-        },
-        token: { createServiceToken: async () => "" },
-      } as any,
-    );
+    const event: HookEvent = {
+      ctx,
+      user: user ?? undefined,
+      tenant: { id: tenantId },
+      request: { ip: "127.0.0.1", url: "http://test", method: "POST" },
+    };
+    return hook(event, noopApi);
   }
 
   it("links a new password account to an existing email primary with the same verified email", async () => {
@@ -71,7 +85,7 @@ describe("accountLinking pre-defined hook", () => {
     const before = await env.data.users.get(tenantId, passwordUserId);
     expect(before?.linked_to).toBeFalsy();
 
-    const ctx = mockCtx(addDataHooks({} as any, env.data));
+    const ctx = mockCtx(addDataHooks({} as HookCtx, env.data));
     await invokeHook(ctx, before);
 
     const after = await env.data.users.get(tenantId, passwordUserId);
@@ -80,7 +94,7 @@ describe("accountLinking pre-defined hook", () => {
 
     // And the primary's identities list should include the newly-linked one.
     const primary = await env.data.users.get(tenantId, "email|userId");
-    const providers = primary?.identities?.map((i: any) => i.provider) ?? [];
+    const providers = primary?.identities?.map((i) => i.provider) ?? [];
     expect(providers).toContain(USERNAME_PASSWORD_PROVIDER);
   });
 
@@ -100,8 +114,11 @@ describe("accountLinking pre-defined hook", () => {
 
     const secondary = await env.data.users.get(tenantId, secondaryId);
 
-    const ctx = mockCtx(addDataHooks({} as any, env.data));
-    await invokeHook(ctx, { ...secondary, linked_to: "email|userId" });
+    const ctx = mockCtx(addDataHooks({} as HookCtx, env.data));
+    await invokeHook(
+      ctx,
+      secondary && { ...secondary, linked_to: "email|userId" },
+    );
 
     // linked_to should still point at the original primary — no change.
     const stillLinked = await env.data.users.list(tenantId, {
@@ -125,7 +142,7 @@ describe("accountLinking pre-defined hook", () => {
 
     const unverified = await env.data.users.get(tenantId, unverifiedId);
 
-    const ctx = mockCtx(addDataHooks({} as any, env.data));
+    const ctx = mockCtx(addDataHooks({} as HookCtx, env.data));
     await invokeHook(ctx, unverified);
 
     const after = await env.data.users.get(tenantId, unverifiedId);
@@ -138,7 +155,7 @@ describe("accountLinking pre-defined hook", () => {
     // the hook against it should not set linked_to on itself.
     const primary = await env.data.users.get(tenantId, "email|userId");
 
-    const ctx = mockCtx(addDataHooks({} as any, env.data));
+    const ctx = mockCtx(addDataHooks({} as HookCtx, env.data));
     await invokeHook(ctx, primary);
 
     const after = await env.data.users.get(tenantId, "email|userId");
