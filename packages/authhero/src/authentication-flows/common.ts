@@ -56,6 +56,12 @@ import {
 } from "../helpers/scope-claims";
 import { withDefaultPicture } from "../helpers/avatar";
 import {
+  applyCustomClaim,
+  applyCustomClaims,
+  ServerOwnedAccessTokenClaims,
+  ServerOwnedIdTokenClaims,
+} from "../helpers/reserved-claims";
+import {
   shouldStampUsedAt,
   touchSessionUsedAt,
 } from "../helpers/session-usage";
@@ -127,8 +133,6 @@ export interface CreateAuthTokensParams {
   code?: string;
 }
 
-const RESERVED_CLAIMS = ["sub", "iss", "aud", "exp", "nbf", "iat", "jti"];
-
 /**
  * Map the grant being exchanged to the matching `FAILED_EXCHANGE_*` audit log
  * type so a hook `access.deny()` is recorded under the same taxonomy as the
@@ -162,23 +166,30 @@ function buildCredentialsExchangeApi(
   accessTokenPayload: Record<string, unknown>,
   idTokenPayload: Record<string, unknown> | undefined,
   grantType?: GrantType,
+  /**
+   * Identifies the hook writing the claims, so a dropped reserved claim is
+   * attributable in the tenant log stream.
+   */
+  hookSource = "onExecuteCredentialsExchange",
 ): OnExecuteCredentialsExchangeAPI {
   return {
     accessToken: {
       setCustomClaim: (claim: string, value: any) => {
-        if (RESERVED_CLAIMS.includes(claim)) {
-          throw new Error(`Cannot overwrite reserved claim '${claim}'`);
-        }
-        accessTokenPayload[claim] = value;
+        applyCustomClaim(accessTokenPayload, claim, value, {
+          kind: "access_token",
+          source: hookSource,
+          ctx,
+        });
       },
     },
     idToken: {
       setCustomClaim: (claim: string, value: any) => {
-        if (RESERVED_CLAIMS.includes(claim)) {
-          throw new Error(`Cannot overwrite reserved claim '${claim}'`);
-        }
         if (idTokenPayload) {
-          idTokenPayload[claim] = value;
+          applyCustomClaim(idTokenPayload, claim, value, {
+            kind: "id_token",
+            source: hookSource,
+            ctx,
+          });
         }
       },
     },
@@ -367,13 +378,23 @@ export async function createAuthTokens(
   // Strip `act` from custom claims so callers can't override the actor
   // recorded by the grant flow (RFC 8693). RESERVED_CLAIMS already protects
   // the JWT-spec reserved set above; `act` is enforced here too.
-  const sanitizedCustomClaims = params.customClaims
+  const actFilteredCustomClaims = params.customClaims
     ? Object.fromEntries(
         Object.entries(params.customClaims).filter(([key]) => key !== "act"),
       )
     : undefined;
 
-  const accessTokenPayload: Record<string, unknown> = {
+  // Caller-supplied claims may add new names but never overwrite one the
+  // authorization server owns; colliding names are dropped with a warning.
+  const sanitizedCustomClaims = applyCustomClaims(actFilteredCustomClaims, {
+    kind: "access_token",
+    source: "createAuthTokens(customClaims)",
+    ctx,
+  });
+
+  // Typed as `ServerOwnedAccessTokenClaims` so a claim added here without
+  // being added to ACCESS_TOKEN_RESERVED_CLAIMS is a compile error.
+  const serverOwnedAccessTokenClaims: ServerOwnedAccessTokenClaims = {
     aud: audience,
     scope: authParams.scope || "",
     sub: user?.user_id || authParams.client_id,
@@ -395,18 +416,14 @@ export async function createAuthTokens(
         ? organization.name.toLowerCase()
         : undefined,
     permissions,
-    // Spread custom claims last so they can add new fields but not override reserved ones above
-    ...sanitizedCustomClaims,
   };
 
-  // Validate that custom claims don't override reserved JWT claims
-  if (params.customClaims) {
-    for (const claim of RESERVED_CLAIMS) {
-      if (claim in params.customClaims) {
-        throw new Error(`Cannot overwrite reserved claim '${claim}'`);
-      }
-    }
-  }
+  const accessTokenPayload: Record<string, unknown> = {
+    ...serverOwnedAccessTokenClaims,
+    // Spread custom claims last so they can add new fields but not override
+    // reserved ones above — `sanitizedCustomClaims` no longer contains any.
+    ...sanitizedCustomClaims,
+  };
 
   // Parse scopes to determine which claims to include in id_token
   // Following OIDC Core spec section 5.4 for standard claims
@@ -437,26 +454,41 @@ export async function createAuthTokens(
   const shouldIncludeScopeClaimsInIdToken =
     client.auth0_conformant !== false || isPureIdTokenResponseType;
 
+  // The server-owned halves of the ID token, split around the profile claims
+  // so the emission order (and therefore the wire shape) is unchanged. Both
+  // are typed as `ServerOwnedIdTokenClaims`, so adding a claim here without
+  // adding its name to ID_TOKEN_RESERVED_CLAIMS is a compile error.
+  const idTokenIdentityClaims: ServerOwnedIdTokenClaims = {
+    // The audience for an id token is the client id
+    aud: authParams.client_id,
+    sub: user?.user_id,
+    iss,
+    sid: session_id,
+    nonce: authParams.nonce,
+    // OIDC Core §2: auth_time is REQUIRED when max_age was used and
+    // OPTIONAL otherwise. Always emit when we have it — adding the
+    // claim is non-breaking (existing RPs ignore unknown claims), and
+    // it lets RPs verify re-authentication for prompt=login / max_age
+    // flows.
+    ...(auth_time !== undefined ? { auth_time } : {}),
+    // OIDC Core 2.1: When acr_values is requested, the server SHOULD return
+    // an acr claim with one of the requested values
+    ...(authParams.acr_values
+      ? { acr: authParams.acr_values.split(" ")[0] }
+      : {}),
+  };
+
+  const idTokenAuthorizationClaims: ServerOwnedIdTokenClaims = {
+    act: actClaim,
+    org_id: organization?.id,
+    // Auth0 SDK validates org_name case-insensitively, so we lowercase it
+    org_name: organization?.name.toLowerCase(),
+  };
+
   const idTokenPayload: Record<string, unknown> | undefined =
     user && hasOpenidScope
       ? {
-          // The audience for an id token is the client id
-          aud: authParams.client_id,
-          sub: user.user_id,
-          iss,
-          sid: session_id,
-          nonce: authParams.nonce,
-          // OIDC Core §2: auth_time is REQUIRED when max_age was used and
-          // OPTIONAL otherwise. Always emit when we have it — adding the
-          // claim is non-breaking (existing RPs ignore unknown claims), and
-          // it lets RPs verify re-authentication for prompt=login / max_age
-          // flows.
-          ...(auth_time !== undefined ? { auth_time } : {}),
-          // OIDC Core 2.1: When acr_values is requested, the server SHOULD return
-          // an acr claim with one of the requested values
-          ...(authParams.acr_values
-            ? { acr: authParams.acr_values.split(" ")[0] }
-            : {}),
+          ...idTokenIdentityClaims,
           // OIDC Core 5.4 scope-driven claims (profile, email, address, phone),
           // shared with /userinfo via buildScopeClaims so the two stay in sync.
           ...(shouldIncludeScopeClaimsInIdToken
@@ -485,10 +517,7 @@ export async function createAuthTokens(
                 Object.keys(authParams.claims.userinfo),
               )
             : {}),
-          act: actClaim,
-          org_id: organization?.id,
-          // Auth0 SDK validates org_name case-insensitively, so we lowercase it
-          org_name: organization?.name.toLowerCase(),
+          ...idTokenAuthorizationClaims,
         }
       : undefined;
 
@@ -557,13 +586,6 @@ export async function createAuthTokens(
         isTemplateHook(h),
     );
 
-    const templateApi = buildCredentialsExchangeApi(
-      ctx,
-      accessTokenPayload,
-      idTokenPayload,
-      grantType,
-    );
-
     if (user) {
       for (const hook of credentialsExchangeTemplateHooks) {
         if (!isTemplateHook(hook)) continue;
@@ -572,7 +594,15 @@ export async function createAuthTokens(
             ctx,
             hook.template_id,
             user,
-            templateApi,
+            // Built per hook so a dropped reserved claim names the template
+            // that tried to set it.
+            buildCredentialsExchangeApi(
+              ctx,
+              accessTokenPayload,
+              idTokenPayload,
+              grantType,
+              `template-hook:${hook.template_id}`,
+            ),
           );
         } catch (err) {
           // Let HTTPExceptions (e.g. access.deny()) propagate
@@ -593,6 +623,7 @@ export async function createAuthTokens(
       accessTokenPayload,
       idTokenPayload,
       grantType,
+      "credentials-exchange-code-hook",
     );
 
     const executionId = await handleCredentialsExchangeCodeHooks(

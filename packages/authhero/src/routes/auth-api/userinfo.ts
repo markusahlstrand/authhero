@@ -12,6 +12,7 @@ import type { User } from "@authhero/adapter-interfaces";
 import { defineRoute } from "../../utils/define-route";
 import { getIssuer } from "../../variables";
 import { withDefaultPicture } from "../../helpers/avatar";
+import { applyCustomClaim } from "../../helpers/reserved-claims";
 // OIDC Address Claim schema per OIDC Core 5.1.1
 const addressClaimSchema = z
   .object({
@@ -185,8 +186,16 @@ const getRoot = defineRoute({
           scopes,
         },
         {
+          // Custom claims are spread over the base response below, so an
+          // unguarded write here could replace the subject the access token
+          // was issued for. Reserved names are dropped with a warning.
           setCustomClaim: (claim: string, value: unknown) => {
-            customClaims[claim] = value;
+            applyCustomClaim(customClaims, claim, value, {
+              kind: "userinfo",
+              source: "onFetchUserInfo",
+              ctx,
+              tenantId: tenant_id,
+            });
           },
         },
       );
@@ -353,8 +362,16 @@ const postRoot = defineRoute({
           scopes,
         },
         {
+          // Custom claims are spread over the base response below, so an
+          // unguarded write here could replace the subject the access token
+          // was issued for. Reserved names are dropped with a warning.
           setCustomClaim: (claim: string, value: unknown) => {
-            customClaims[claim] = value;
+            applyCustomClaim(customClaims, claim, value, {
+              kind: "userinfo",
+              source: "onFetchUserInfo",
+              ctx,
+              tenantId: tenant_id,
+            });
           },
         },
       );

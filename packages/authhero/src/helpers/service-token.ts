@@ -11,26 +11,13 @@ import { pemToBuffer } from "../utils/crypto";
 import { algForCert } from "../utils/jwk-alg";
 import { getIssuer } from "../variables";
 import { resolveSigningKeys } from "./signing-keys";
+import {
+  applyCustomClaims,
+  ServerOwnedAccessTokenClaims,
+} from "./reserved-claims";
 
 const AUTH_SERVICE_CLIENT_ID = "auth-service";
 const DEFAULT_EXPIRES_IN_SECONDS = 3600;
-// `azp` is deliberately NOT reserved here: trusted hook code overrides it on
-// internal auth-service mints to attribute the call to a vendor/tenant for
-// downstream APIs, while `sub` stays "auth-service". Client-bound mints
-// (createClientServiceToken) keep `azp` locked to the registered client.
-const RESERVED_CLAIMS = [
-  "sub",
-  "iss",
-  "aud",
-  "exp",
-  "nbf",
-  "iat",
-  "jti",
-  "scope",
-  "tenant_id",
-];
-
-const CLIENT_RESERVED_CLAIMS = [...RESERVED_CLAIMS, "azp"];
 
 export interface ServiceTokenResponse {
   access_token: string;
@@ -84,13 +71,16 @@ export async function createServiceTokenCore(
     );
   }
 
-  if (params.customClaims) {
-    for (const claim of RESERVED_CLAIMS) {
-      if (claim in params.customClaims) {
-        throw new Error(`Cannot overwrite reserved claim '${claim}'`);
-      }
-    }
-  }
+  // `azp` is deliberately NOT reserved on this path (see
+  // SERVICE_TOKEN_RESERVED_CLAIMS): trusted hook code overrides it on internal
+  // auth-service mints to attribute the call to a vendor/tenant for downstream
+  // APIs, while `sub` stays "auth-service". Client-bound mints
+  // (createClientServiceToken) keep `azp` locked to the registered client.
+  const customClaims = applyCustomClaims(params.customClaims, {
+    kind: "service_token",
+    source: "createServiceToken(customClaims)",
+    tenantId,
+  });
 
   const resolvedKeys = await resolveSigningKeys(
     keys,
@@ -108,14 +98,18 @@ export async function createServiceTokenCore(
   const expiresInSeconds =
     params.expiresInSeconds ?? DEFAULT_EXPIRES_IN_SECONDS;
 
-  const accessTokenPayload: Record<string, unknown> = {
+  const serverOwnedClaims: ServerOwnedAccessTokenClaims = {
     aud: audience,
     scope,
     sub: AUTH_SERVICE_CLIENT_ID,
     azp: AUTH_SERVICE_CLIENT_ID,
     iss: issuer,
     tenant_id: tenantId,
-    ...params.customClaims,
+  };
+
+  const accessTokenPayload: Record<string, unknown> = {
+    ...serverOwnedClaims,
+    ...customClaims,
   };
 
   const access_token = await signJWT(alg, keyBuffer, accessTokenPayload, {
@@ -327,13 +321,12 @@ export async function createClientServiceToken(
     );
   }
 
-  if (params.customClaims) {
-    for (const claim of CLIENT_RESERVED_CLAIMS) {
-      if (claim in params.customClaims) {
-        throw new Error(`Cannot overwrite reserved claim '${claim}'`);
-      }
-    }
-  }
+  const customClaims = applyCustomClaims(params.customClaims, {
+    kind: "client_service_token",
+    source: "createClientServiceToken(customClaims)",
+    ctx,
+    tenantId: effectiveTenantId,
+  });
 
   const resolvedKeys = await resolveSigningKeys(
     ctx.env.data.keys,
@@ -351,8 +344,7 @@ export async function createClientServiceToken(
   const expiresInSeconds =
     params.expiresInSeconds ?? DEFAULT_EXPIRES_IN_SECONDS;
 
-  const accessTokenPayload: Record<string, unknown> = {
-    ...params.customClaims,
+  const serverOwnedClaims: ServerOwnedAccessTokenClaims = {
     aud: resolvedAudience,
     scope: requestedScopes.join(" "),
     sub: clientId,
@@ -360,6 +352,11 @@ export async function createClientServiceToken(
     iss: getIssuer(ctx.env),
     tenant_id: effectiveTenantId,
     gty: "client_credentials",
+  };
+
+  const accessTokenPayload: Record<string, unknown> = {
+    ...customClaims,
+    ...serverOwnedClaims,
   };
 
   const access_token = await signJWT(alg, keyBuffer, accessTokenPayload, {
