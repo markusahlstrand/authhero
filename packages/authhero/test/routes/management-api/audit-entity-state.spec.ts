@@ -350,4 +350,46 @@ describe("management-api audit entity state", () => {
     expect(event?.target.before?.name).toBe("loki");
     expect(event?.target.after).toBeUndefined();
   });
+
+  it("redacts the log stream sink credential from the entity state", async () => {
+    const { managementApp, env } = await getTestServer({ outbox: true });
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const stream = await env.data.logStreams!.create("tenantId", {
+      name: "loki",
+      type: "http",
+      status: "active",
+      sink: {
+        http_endpoint: "https://logs.example.com",
+        http_authorization: "Bearer super-secret",
+      },
+    });
+
+    const events = captureAuditEvents(env.data.outbox!);
+
+    const response = await managementClient["log-streams"][":id"].$patch(
+      {
+        header: { "tenant-id": "tenantId" },
+        param: { id: stream.id },
+        json: { status: "paused" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(response.status).toBe(200);
+
+    // The credential lives one level down, under `sink` — redaction has to
+    // recurse or the bearer token rides along into every audit destination.
+    const event = events.find((e) => e.target.type === "log_stream");
+    expect(event?.target.before).toMatchObject({
+      sink: { http_authorization: "[REDACTED]" },
+    });
+    expect(event?.target.after).toMatchObject({
+      sink: {
+        http_authorization: "[REDACTED]",
+        // Non-sensitive sink fields survive so the audit trail stays useful.
+        http_endpoint: "https://logs.example.com",
+      },
+    });
+  });
 });

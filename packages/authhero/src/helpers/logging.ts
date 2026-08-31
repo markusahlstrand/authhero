@@ -13,7 +13,14 @@ import { instanceToJson } from "../utils/instance-to-json";
 import { getConnectionInfo } from "./connection";
 import { USER_TARGET_TYPES } from "./audit-target-types";
 
-/** Fields fully replaced with [REDACTED] in entity state and request bodies. */
+/**
+ * Fields fully replaced with [REDACTED] in entity state and request bodies.
+ *
+ * Log stream sinks are an open record, so the credential each destination type
+ * uses is listed here under both the snake_case and camelCase spellings Auth0
+ * accepts — otherwise a stream's bearer token or API key rides along in the
+ * audit event's entity state.
+ */
 const SENSITIVE_FIELDS = new Set([
   "password",
   "password_hash",
@@ -25,6 +32,12 @@ const SENSITIVE_FIELDS = new Set([
   "credentials",
   "encryption_key",
   "otp_secret",
+  "http_authorization",
+  "httpAuthorization",
+  "datadog_api_key",
+  "datadogApiKey",
+  "splunk_token",
+  "splunkToken",
 ]);
 
 /**
@@ -44,6 +57,18 @@ function maskTail(value: string, visible = 3): string {
   return "*".repeat(value.length - visible) + value.slice(-visible);
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value) &&
+    !(value instanceof Date)
+  );
+}
+
+// Recurses into nested objects: several entities keep their credential one
+// level down (a log stream's `sink.http_authorization`, for example), so a
+// top-level-only sweep would let it through into the audit event.
 function redactSensitiveFields(
   obj: Record<string, unknown> | undefined,
 ): Record<string, unknown> | undefined {
@@ -54,6 +79,8 @@ function redactSensitiveFields(
       result[key] = "[REDACTED]";
     } else if (TAIL_MASKED_FIELDS.has(key) && typeof value === "string") {
       result[key] = maskTail(value);
+    } else if (isPlainObject(value)) {
+      result[key] = redactSensitiveFields(value);
     } else {
       result[key] = value;
     }
@@ -467,9 +494,7 @@ export async function logMessage(
           path: ctx.req.path,
           qs: ctx.req.queries(),
           body: redactBody(params.body || ctx.var.body || ""),
-          ...(params.redirect_uri
-            ? { redirect_uri: params.redirect_uri }
-            : {}),
+          ...(params.redirect_uri ? { redirect_uri: params.redirect_uri } : {}),
         },
         ...(params.response && {
           response: params.response,
