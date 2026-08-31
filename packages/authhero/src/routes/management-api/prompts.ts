@@ -89,14 +89,18 @@ const patchRoot = defineRoute({
       ...promptSettings,
     });
 
+    const updated = await ctx.env.data.promptSettings.get(tenantId);
+
     await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Update Prompt Settings",
       targetType: "prompt_settings",
       targetId: tenantId,
+      ...(existing ? { beforeState: { ...existing } } : {}),
+      ...(updated ? { afterState: { ...updated } } : {}),
     });
 
-    return ctx.json(await ctx.env.data.promptSettings.get(tenantId));
+    return ctx.json(updated);
   },
 });
 
@@ -267,6 +271,12 @@ const putByPromptCustomTextByLanguage = defineRoute({
     const body = await ctx.req.json();
     const customText = customTextSchema.parse(body);
 
+    const existingCustomText = await ctx.env.data.customText.get(
+      tenantId,
+      prompt,
+      language,
+    );
+
     await ctx.env.data.customText.set(tenantId, prompt, language, customText);
 
     await logMessage(ctx, tenantId, {
@@ -274,6 +284,8 @@ const putByPromptCustomTextByLanguage = defineRoute({
       description: "Set Custom Text",
       targetType: "custom_text",
       targetId: tenantId,
+      ...(existingCustomText ? { beforeState: { ...existingCustomText } } : {}),
+      afterState: { ...customText },
     });
 
     return ctx.json(customText);
@@ -309,13 +321,21 @@ const deleteByPromptCustomTextByLanguage = defineRoute({
     const tenantId = requireTenantId(ctx);
     const { prompt, language } = ctx.req.valid("param");
 
+    const existingCustomText = await ctx.env.data.customText.get(
+      tenantId,
+      prompt,
+      language,
+    );
+
     await ctx.env.data.customText.delete(tenantId, prompt, language);
 
+    // A delete has no after state — consumers fall back to `before`.
     await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Delete Custom Text",
       targetType: "custom_text",
       targetId: tenantId,
+      ...(existingCustomText ? { beforeState: { ...existingCustomText } } : {}),
     });
 
     return ctx.body(null, 204);

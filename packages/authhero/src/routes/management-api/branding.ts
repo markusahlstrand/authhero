@@ -101,6 +101,10 @@ const patchRoot = defineRoute({
     const tenantId = requireTenantId(ctx);
     const branding = ctx.req.valid("json");
 
+    // Read before mutating so the audit event carries the before/after pair
+    // the diff is computed from.
+    const existingBranding = await ctx.env.data.branding.get(tenantId);
+
     await ctx.env.data.branding.set(tenantId, branding);
 
     // Return the updated branding (like Auth0 does)
@@ -111,6 +115,8 @@ const patchRoot = defineRoute({
       description: "Update Branding",
       targetType: "branding",
       targetId: tenantId,
+      ...(existingBranding ? { beforeState: { ...existingBranding } } : {}),
+      ...(updatedBranding ? { afterState: { ...updatedBranding } } : {}),
     });
 
     return ctx.json(updatedBranding || DEFAULT_BRANDING);
@@ -200,6 +206,9 @@ const putTemplatesUniversalLogin = defineRoute({
       });
     }
 
+    const existingTemplate =
+      await ctx.env.data.universalLoginTemplates.get(tenantId);
+
     await ctx.env.data.universalLoginTemplates.set(tenantId, template);
 
     await logMessage(ctx, tenantId, {
@@ -207,6 +216,8 @@ const putTemplatesUniversalLogin = defineRoute({
       description: "Set Universal Login Template",
       targetType: "universal_login_template",
       targetId: tenantId,
+      ...(existingTemplate ? { beforeState: { ...existingTemplate } } : {}),
+      afterState: { ...template },
     });
 
     return ctx.body(null, 204);
@@ -236,13 +247,19 @@ const deleteTemplatesUniversalLogin = defineRoute({
   }),
   handler: async (ctx) => {
     const tenantId = requireTenantId(ctx);
+
+    const existingTemplate =
+      await ctx.env.data.universalLoginTemplates.get(tenantId);
+
     await ctx.env.data.universalLoginTemplates.delete(tenantId);
 
+    // A delete has no after state — consumers fall back to `before`.
     await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Delete Universal Login Template",
       targetType: "universal_login_template",
       targetId: tenantId,
+      ...(existingTemplate ? { beforeState: { ...existingTemplate } } : {}),
     });
 
     return ctx.body(null, 204);
