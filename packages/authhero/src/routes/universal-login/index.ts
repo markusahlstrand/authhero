@@ -97,15 +97,17 @@ export default function create(config: AuthHeroConfig) {
           ...(config.dataAdapter.logStreams
             ? [new LogStreamDestination(config.dataAdapter.logStreams)]
             : []),
-          ...(config.outbox?.pipeline
-            ? [new PipelineDestination(config.outbox.pipeline)]
-            : []),
           new WebhookDestination(config.dataAdapter.hooks, async (tenantId) => {
             const token = await createServiceToken(ctx, tenantId, "webhook");
             return token.access_token;
           }),
           new CodeHookDestination(ctx.env.data, ctx.env.codeExecutor),
           new RegistrationFinalizerDestination(config.dataAdapter.users),
+          // Archive last: the relay stops the destination loop on first
+          // failure, so a Pipelines outage must not block real delivery.
+          ...(config.outbox?.pipeline
+            ? [new PipelineDestination(config.outbox.pipeline)]
+            : []),
         ],
       }),
     )

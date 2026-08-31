@@ -109,6 +109,23 @@ describe("PipelineDestination", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("refuses a non-https endpoint rather than sending the token in the clear", async () => {
+    const fetchMock = vi.fn();
+
+    expect(
+      () =>
+        new PipelineDestination({
+          endpoint: "http://stream-1.ingest.cloudflare.com",
+          token: "ingest-token",
+          fetchImpl: fetchMock as unknown as typeof fetch,
+        }),
+    ).toThrow(/must use https/);
+    expect(
+      () => new PipelineDestination({ endpoint: "not-a-url", token: "t" }),
+    ).toThrow(/not a valid URL/);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("throws on a non-2xx ingest response so the relay retries the event", async () => {
     const fetchMock = vi
       .fn()

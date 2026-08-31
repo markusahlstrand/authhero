@@ -51,9 +51,6 @@ export default function create(config: AuthHeroConfig) {
         ...(config.dataAdapter.logStreams
           ? [new LogStreamDestination(config.dataAdapter.logStreams)]
           : []),
-        ...(config.outbox?.pipeline
-          ? [new PipelineDestination(config.outbox.pipeline)]
-          : []),
         new WebhookDestination(
           config.dataAdapter.hooks,
           makeOutboxServiceTokenFactory({
@@ -67,6 +64,11 @@ export default function create(config: AuthHeroConfig) {
         // Must come after delivery destinations so the flag only flips when
         // the upstream hook destinations actually succeeded.
         new RegistrationFinalizerDestination(config.dataAdapter.users),
+        // Archive last: the relay stops the destination loop on first failure,
+        // so a Pipelines outage must not be able to block real delivery.
+        ...(config.outbox?.pipeline
+          ? [new PipelineDestination(config.outbox.pipeline)]
+          : []),
       ],
     }),
   );

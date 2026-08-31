@@ -132,10 +132,6 @@ export function createDefaultDestinations(
     destinations.push(new LogStreamDestination(dataAdapter.logStreams));
   }
 
-  if (pipeline) {
-    destinations.push(new PipelineDestination(pipeline));
-  }
-
   if (getServiceToken) {
     destinations.push(
       new WebhookDestination(dataAdapter.hooks, getServiceToken, {
@@ -188,6 +184,15 @@ export function createDefaultDestinations(
     // Must come AFTER the delivery destinations (webhook + code hook) so the
     // registration-completed flag only flips once delivery has succeeded.
     destinations.push(new RegistrationFinalizerDestination(dataAdapter.users));
+  }
+
+  // Archive last. The relay stops an event's destination loop on the first
+  // failure, so anything ahead of a Pipelines outage would stop being
+  // delivered. Nothing depends on the archive, so it is the destination that
+  // can afford to be blocked — the cost is that an event which permanently
+  // fails an earlier destination never reaches the archive.
+  if (pipeline) {
+    destinations.push(new PipelineDestination(pipeline));
   }
 
   return destinations;

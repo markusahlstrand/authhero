@@ -118,6 +118,28 @@ describe("createDefaultDestinations", () => {
     expect(destinations[1]).toBeInstanceOf(PipelineDestination);
   });
 
+  it("puts the archive destination last so an ingest outage cannot block delivery", () => {
+    const destinations = createDefaultDestinations({
+      dataAdapter: {
+        logs: {} as LogsDataAdapter,
+        hooks: {} as HooksAdapter,
+        users: {} as UserDataAdapter,
+      },
+      getServiceToken: async () => "token",
+      pipeline: {
+        endpoint: "https://stream-1.ingest.cloudflare.com",
+        token: "ingest-token",
+      },
+    });
+
+    // The relay stops an event's destination loop on the first failure, so the
+    // archive must come after webhook + registration-finalizer delivery.
+    expect(destinations).toHaveLength(4);
+    expect(destinations[1]).toBeInstanceOf(WebhookDestination);
+    expect(destinations[2]).toBeInstanceOf(RegistrationFinalizerDestination);
+    expect(destinations[3]).toBeInstanceOf(PipelineDestination);
+  });
+
   it("routes hook.* events through a consumer-supplied webhookInvoker instead of raw fetch", async () => {
     const hooks = {
       list: vi.fn().mockResolvedValue({

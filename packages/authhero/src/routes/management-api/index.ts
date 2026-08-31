@@ -413,9 +413,6 @@ export default function create(config: AuthHeroConfig) {
         ...(managementAdapter.logStreams
           ? [new LogStreamDestination(managementAdapter.logStreams)]
           : []),
-        ...(config.outbox?.pipeline
-          ? [new PipelineDestination(config.outbox.pipeline)]
-          : []),
         new WebhookDestination(managementAdapter.hooks, async (tenantId) => {
           const token = await createServiceToken(ctx, tenantId, "webhook");
           return token.access_token;
@@ -440,6 +437,11 @@ export default function create(config: AuthHeroConfig) {
         // Must come after delivery destinations so the flag only flips when
         // the upstream hook destinations actually succeeded.
         new RegistrationFinalizerDestination(managementAdapter.users),
+        // Archive last: the relay stops the destination loop on first failure,
+        // so a Pipelines outage must not be able to block real delivery.
+        ...(config.outbox?.pipeline
+          ? [new PipelineDestination(config.outbox.pipeline)]
+          : []),
       ],
     }),
   );

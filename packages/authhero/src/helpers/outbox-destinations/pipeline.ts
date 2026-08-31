@@ -57,6 +57,23 @@ export class PipelineDestination implements EventDestination {
   private fetchImpl: typeof fetch;
 
   constructor(options: PipelineDestinationOptions) {
+    // Every request carries the ingest token and a full audit event, so refuse
+    // to send them in the clear. Fails at construction rather than per-event so
+    // a mistyped endpoint surfaces at startup.
+    let parsed: URL;
+    try {
+      parsed = new URL(options.endpoint);
+    } catch {
+      throw new Error(
+        `PipelineDestination: endpoint is not a valid URL: ${options.endpoint}`,
+      );
+    }
+    if (parsed.protocol !== "https:") {
+      throw new Error(
+        `PipelineDestination: endpoint must use https, got ${parsed.protocol}`,
+      );
+    }
+
     this.endpoint = options.endpoint;
     this.token = options.token;
     this.timeoutMs = options.timeoutMs ?? DEFAULT_DELIVERY_TIMEOUT_MS;

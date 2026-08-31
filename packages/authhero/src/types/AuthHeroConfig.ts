@@ -174,7 +174,11 @@ export interface OutboxConfig {
 }
 
 export interface OutboxPipelineConfig {
-  /** Stream HTTP ingest endpoint, e.g. `https://<stream-id>.ingest.cloudflare.com`. */
+  /**
+   * Stream HTTP ingest endpoint, e.g. `https://<stream-id>.ingest.cloudflare.com`.
+   * Must be https — the destination rejects any other scheme at startup, since
+   * every request carries the ingest token and a full audit event.
+   */
   endpoint: string;
   /** Stream ingest token, sent as `Authorization: Bearer`. */
   token: string;
