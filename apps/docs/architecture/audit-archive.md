@@ -42,11 +42,19 @@ The destination sends events to the Pipelines **stream HTTP ingest endpoint** wi
 token, configured via env:
 
 ```ts
-env.outbox.pipeline = {
-  endpoint: "https://pipelines.cloudflare.com/.../streams/<id>",
-  token: "<stream ingest token>",
-};
+init({
+  outbox: {
+    enabled: true,
+    pipeline: {
+      endpoint: "https://<stream-id>.ingest.cloudflare.com",
+      token: "<stream ingest token>",
+    },
+  },
+});
 ```
+
+Each POST carries a JSON array of records (the format the stream ingest endpoint accepts);
+the relay delivers one event at a time, so that is normally a single-element array.
 
 HTTP is chosen over the Worker binding so the destination works in every deployment
 (Node/demo included) and stays symmetric with the log-streams destination. The stream buffers
@@ -57,18 +65,18 @@ and batches; the destination stays thin.
 Promote the query and erasure keys to typed columns; keep the full event as a `json` column so
 nothing is lost and the promoted set can grow later:
 
-| Column        | Type      | Notes                                     |
-| ------------- | --------- | ----------------------------------------- |
-| `id`          | string    | Event id — dedup key                      |
-| `timestamp`   | timestamp | Partition by day                          |
-| `tenant_id`   | string    | Filter column (not a partition key)       |
-| `event_type`  | string    | e.g. `branding.updated`                   |
-| `log_type`    | string    | Auth0 code (`sapi`, `fapi`, `s`, ...)     |
+| Column        | Type      | Notes                                             |
+| ------------- | --------- | ------------------------------------------------- |
+| `id`          | string    | Event id — dedup key                              |
+| `timestamp`   | timestamp | Partition by day                                  |
+| `tenant_id`   | string    | Filter column (not a partition key)               |
+| `event_type`  | string    | e.g. `branding.updated`                           |
+| `log_type`    | string    | Auth0 code (`sapi`, `fapi`, `s`, ...)             |
 | `category`    | string    | `admin_action` / `user_action` / `api` / `system` |
-| `actor_id`    | string    | Erasure key                               |
-| `target_type` | string    |                                           |
-| `target_id`   | string    | Erasure key                               |
-| `event`       | json      | Full `AuditEvent`, verbatim               |
+| `actor_id`    | string    | Erasure key                                       |
+| `target_type` | string    |                                                   |
+| `target_id`   | string    | Erasure key                                       |
+| `event`       | json      | Full `AuditEvent`, verbatim                       |
 
 Sink: `r2-data-catalog`, Parquet + zstd (defaults), automatic **compaction** enabled (the sink
 rolls files every ~5 minutes; without compaction the table accumulates thousands of small
@@ -143,7 +151,10 @@ PATCH with the `before` payload. Two honest caveats:
 1. Finish `beforeState`/`afterState` rollout to remaining management API modules (branding and
    prompts first).
 2. Extend archive-bound redaction (IP truncation, drop `actor.email`, diff-only for `users.*`).
-3. `pipeline` outbox destination + env config + tests.
+3. ~~`pipeline` outbox destination + env config + tests.~~ **Done** —
+   `PipelineDestination` in `packages/authhero/src/helpers/outbox-destinations/pipeline.ts`,
+   configured via `init({ outbox: { pipeline: { endpoint, token } } })` and registered on both
+   the per-request and cron drain paths. Inert until the config is set.
 4. Infra: stream, schema, sink (compaction + snapshot expiration), pipeline SQL — Terraform or
    wrangler, in the deploy repo.
 5. Dedup guidance for consumers; decide on per-destination tracking.

@@ -9,7 +9,11 @@ import {
 import { CodeHookDestination } from "./outbox-destinations/code-hooks";
 import { RegistrationFinalizerDestination } from "./outbox-destinations/registration-finalizer";
 import { ControlPlaneSyncDestination } from "./outbox-destinations/control-plane-sync";
-import type { WebhookInvoker } from "../types/AuthHeroConfig";
+import { PipelineDestination } from "./outbox-destinations/pipeline";
+import type {
+  OutboxPipelineConfig,
+  WebhookInvoker,
+} from "../types/AuthHeroConfig";
 
 export interface CreateDefaultDestinationsConfig {
   /**
@@ -67,6 +71,13 @@ export interface CreateDefaultDestinationsConfig {
    * failed per-request delivery would be silently skipped on retry.
    */
   codeExecutor?: CodeExecutor;
+
+  /**
+   * Same shape as `init({ outbox: { pipeline } })`. When set, cron-drained
+   * events are also archived to the Cloudflare Pipelines stream, matching the
+   * per-request destination list. Omit to leave the archive out entirely.
+   */
+  pipeline?: OutboxPipelineConfig;
 }
 
 /**
@@ -104,6 +115,7 @@ export function createDefaultDestinations(
     webhookInvoker,
     controlPlaneSync,
     codeExecutor,
+    pipeline,
   } = config;
 
   if (controlPlaneSync && !getServiceToken) {
@@ -172,6 +184,15 @@ export function createDefaultDestinations(
     // Must come AFTER the delivery destinations (webhook + code hook) so the
     // registration-completed flag only flips once delivery has succeeded.
     destinations.push(new RegistrationFinalizerDestination(dataAdapter.users));
+  }
+
+  // Archive last. The relay stops an event's destination loop on the first
+  // failure, so anything ahead of a Pipelines outage would stop being
+  // delivered. Nothing depends on the archive, so it is the destination that
+  // can afford to be blocked — the cost is that an event which permanently
+  // fails an earlier destination never reaches the archive.
+  if (pipeline) {
+    destinations.push(new PipelineDestination(pipeline));
   }
 
   return destinations;

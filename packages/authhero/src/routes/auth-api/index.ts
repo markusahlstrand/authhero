@@ -27,6 +27,7 @@ import { outboxMiddleware } from "../../middlewares/outbox";
 import { serverTimingMiddleware } from "../../helpers/server-timing";
 import { LogsDestination } from "../../helpers/outbox-destinations/logs";
 import { LogStreamDestination } from "../../helpers/outbox-destinations/log-streams";
+import { PipelineDestination } from "../../helpers/outbox-destinations/pipeline";
 import { WebhookDestination } from "../../helpers/outbox-destinations/webhooks";
 import { CodeHookDestination } from "../../helpers/outbox-destinations/code-hooks";
 import { RegistrationFinalizerDestination } from "../../helpers/outbox-destinations/registration-finalizer";
@@ -63,6 +64,11 @@ export default function create(config: AuthHeroConfig) {
         // Must come after delivery destinations so the flag only flips when
         // the upstream hook destinations actually succeeded.
         new RegistrationFinalizerDestination(config.dataAdapter.users),
+        // Archive last: the relay stops the destination loop on first failure,
+        // so a Pipelines outage must not be able to block real delivery.
+        ...(config.outbox?.pipeline
+          ? [new PipelineDestination(config.outbox.pipeline)]
+          : []),
       ],
     }),
   );

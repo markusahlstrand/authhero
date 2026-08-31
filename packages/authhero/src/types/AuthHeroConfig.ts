@@ -163,6 +163,27 @@ export interface OutboxConfig {
    * Left unset, the relay emits nothing beyond its existing console logging.
    */
   metrics?: OutboxMetricsSink;
+  /**
+   * When set, audit events are additionally archived to a Cloudflare Pipelines
+   * stream, which lands them in R2 as an Iceberg table. Left unset, no archive
+   * destination is registered and delivery is unchanged.
+   *
+   * See `apps/docs/architecture/audit-archive.md`.
+   */
+  pipeline?: OutboxPipelineConfig;
+}
+
+export interface OutboxPipelineConfig {
+  /**
+   * Stream HTTP ingest endpoint, e.g. `https://<stream-id>.ingest.cloudflare.com`.
+   * Must be https — the destination rejects any other scheme at startup, since
+   * every request carries the ingest token and a full audit event.
+   */
+  endpoint: string;
+  /** Stream ingest token, sent as `Authorization: Bearer`. */
+  token: string;
+  /** Per-request timeout in ms (default: 10_000). */
+  timeoutMs?: number;
 }
 
 /**

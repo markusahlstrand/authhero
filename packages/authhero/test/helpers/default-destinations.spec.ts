@@ -10,6 +10,7 @@ import { createDefaultDestinations } from "../../src/helpers/default-destination
 import { LogsDestination } from "../../src/helpers/outbox-destinations/logs";
 import { WebhookDestination } from "../../src/helpers/outbox-destinations/webhooks";
 import { RegistrationFinalizerDestination } from "../../src/helpers/outbox-destinations/registration-finalizer";
+import { PipelineDestination } from "../../src/helpers/outbox-destinations/pipeline";
 import { drainOutbox } from "../../src/helpers/outbox-relay";
 
 function makeEvent(overrides: Partial<OutboxEvent> = {}): OutboxEvent {
@@ -84,6 +85,59 @@ describe("createDefaultDestinations", () => {
     expect(destinations[1]).toBeInstanceOf(WebhookDestination);
     // Must come after WebhookDestination so the flag only flips on success.
     expect(destinations[2]).toBeInstanceOf(RegistrationFinalizerDestination);
+  });
+
+  it("omits the archive destination when no pipeline config is given", () => {
+    const destinations = createDefaultDestinations({
+      dataAdapter: {
+        logs: {} as LogsDataAdapter,
+        hooks: {} as HooksAdapter,
+        users: {} as UserDataAdapter,
+      },
+    });
+
+    expect(destinations.some((d) => d instanceof PipelineDestination)).toBe(
+      false,
+    );
+  });
+
+  it("adds the archive destination when a pipeline config is given", () => {
+    const destinations = createDefaultDestinations({
+      dataAdapter: {
+        logs: {} as LogsDataAdapter,
+        hooks: {} as HooksAdapter,
+        users: {} as UserDataAdapter,
+      },
+      pipeline: {
+        endpoint: "https://stream-1.ingest.cloudflare.com",
+        token: "ingest-token",
+      },
+    });
+
+    expect(destinations).toHaveLength(2);
+    expect(destinations[1]).toBeInstanceOf(PipelineDestination);
+  });
+
+  it("puts the archive destination last so an ingest outage cannot block delivery", () => {
+    const destinations = createDefaultDestinations({
+      dataAdapter: {
+        logs: {} as LogsDataAdapter,
+        hooks: {} as HooksAdapter,
+        users: {} as UserDataAdapter,
+      },
+      getServiceToken: async () => "token",
+      pipeline: {
+        endpoint: "https://stream-1.ingest.cloudflare.com",
+        token: "ingest-token",
+      },
+    });
+
+    // The relay stops an event's destination loop on the first failure, so the
+    // archive must come after webhook + registration-finalizer delivery.
+    expect(destinations).toHaveLength(4);
+    expect(destinations[1]).toBeInstanceOf(WebhookDestination);
+    expect(destinations[2]).toBeInstanceOf(RegistrationFinalizerDestination);
+    expect(destinations[3]).toBeInstanceOf(PipelineDestination);
   });
 
   it("routes hook.* events through a consumer-supplied webhookInvoker instead of raw fetch", async () => {
