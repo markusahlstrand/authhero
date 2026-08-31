@@ -69,18 +69,29 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 // Recurses into nested objects: several entities keep their credential one
 // level down (a log stream's `sink.http_authorization`, for example), so a
 // top-level-only sweep would let it through into the audit event.
+//
+// `tailMask` is only enabled for request bodies. TAIL_MASKED_FIELDS names the
+// credentials an OAuth *request* carries, and those names collide with
+// ordinary entity columns — an action's `code` is its source, not an
+// authorization code, and masking it would reduce every action audit event to
+// a row of asterisks. Entity state therefore gets full-redaction only.
 function redactSensitiveFields(
   obj: Record<string, unknown> | undefined,
+  tailMask = false,
 ): Record<string, unknown> | undefined {
   if (!obj) return undefined;
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
     if (SENSITIVE_FIELDS.has(key)) {
       result[key] = "[REDACTED]";
-    } else if (TAIL_MASKED_FIELDS.has(key) && typeof value === "string") {
+    } else if (
+      tailMask &&
+      TAIL_MASKED_FIELDS.has(key) &&
+      typeof value === "string"
+    ) {
       result[key] = maskTail(value);
     } else if (isPlainObject(value)) {
-      result[key] = redactSensitiveFields(value);
+      result[key] = redactSensitiveFields(value, tailMask);
     } else {
       result[key] = value;
     }
@@ -91,7 +102,7 @@ function redactSensitiveFields(
 /** Redact sensitive fields if the value is a plain object, otherwise return as-is */
 function redactBody(body: unknown): unknown {
   if (body && typeof body === "object" && !Array.isArray(body)) {
-    return redactSensitiveFields(body as Record<string, unknown>);
+    return redactSensitiveFields(body as Record<string, unknown>, true);
   }
   return body;
 }
