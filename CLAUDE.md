@@ -8,14 +8,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Install dependencies
 pnpm install
 
-# Run all apps in parallel (demo, admin, docs)
+# Run all apps in parallel (admin, docs, website)
 pnpm dev
 
 # Run specific app/package
-pnpm demo dev          # Demo auth server at http://localhost:8787
 pnpm admin dev         # Admin UI
 pnpm authhero dev      # Main package
 pnpm vitepress dev     # Docs site
+
+# Local auth server: scaffold the `local` template into
+# packages/create-authhero/auth-server, migrate it and run it on
+# http://localhost:3000. Re-running recreates the scaffold from scratch.
+pnpm create-authhero dev
 
 # Tests
 pnpm test                    # All tests across configured packages
@@ -55,12 +59,12 @@ This is a **pnpm monorepo** implementing a multi-tenant authentication/IAM syste
 
 ### Applications
 
-- **`apps/demo`** — Local development server (Hono + Kysely + better-sqlite3). Entry point for testing the full auth stack locally at `http://localhost:8787`.
 - **`apps/admin`** — Admin UI built on `ra-core` (the headless half of react-admin) with shadcn/ui and Tailwind v4. Uses Auth0 SPA JS for its own authentication to the admin API.
-- **`apps/proxy-dev`** — Cloudflare Worker harness for developing/deploying `@authhero/proxy`.
 - **`apps/docs`** — VitePress documentation site.
 - **`apps/website`** — Public marketing site (Vite + React SSG, Cloudflare Pages).
-- **`apps/conformance-auth-server`** / **`apps/conformance-runner`** — Local AuthHero server plus Playwright runner for the OpenID Foundation conformance suite.
+- **`apps/conformance-runner`** — Playwright runner for the OpenID Foundation conformance suite. It boots a local auth server scaffolded into `apps/conformance-auth-server`, which is gitignored — edit the `create-authhero` template it is generated from, not the scaffold.
+
+There is no committed local auth-server app. For a runnable local stack, scaffold one with `pnpm create-authhero dev` (see Commands above).
 
 Packages with non-obvious conventions have their own `CLAUDE.md` (currently `apps/admin` and `packages/ui-widget`).
 

@@ -9,8 +9,11 @@ AuthHero is a multi-tenant authentication system that provides identity and acce
 ## Key Applications
 
 - **admin**: Admin interface for managing tenants, users, applications, and more (built on `ra-core` with shadcn/ui and Tailwind v4)
-- **demo**: Demo application showcasing AuthHero functionality
-- **proxy-dev**: Cloudflare Worker harness for the `@authhero/proxy` reverse-proxy library
+- **docs**: VitePress documentation site
+- **website**: Public marketing site (Vite + React SSG)
+- **conformance-runner**: Playwright runner for the OpenID Foundation conformance suite
+
+There is no committed demo app; scaffold a local auth server with `pnpm create-authhero dev`.
 
 ## Architectural Notes
 
