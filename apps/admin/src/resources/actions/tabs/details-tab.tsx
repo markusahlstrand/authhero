@@ -6,6 +6,7 @@ import {
   ArrayInput,
   BooleanInput,
   CodeInput,
+  SelectInput,
   SimpleFormIterator,
   TextInput,
 } from "@/components/admin";
@@ -24,6 +25,7 @@ import {
   getSelectedDomainFromStorage,
 } from "@/utils/domainUtils";
 import { getConfigValue } from "@/utils/runtimeConfig";
+import { ACTION_TRIGGER_CHOICES } from "../formMapping";
 
 function getApiUrl(): string {
   const domains = getDomainFromStorage();
@@ -156,6 +158,12 @@ export function DetailsTab() {
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <TextInput source="name" />
+          <SelectInput
+            source="trigger_id"
+            label="Trigger"
+            choices={ACTION_TRIGGER_CHOICES}
+            helperText="The event this action runs on."
+          />
           <TextInput source="runtime" />
           {isControlPlane && (
             <BooleanInput

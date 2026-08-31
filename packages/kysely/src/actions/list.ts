@@ -78,11 +78,14 @@ export function list(db: Kysely<Database>) {
     });
 
     if (!include_totals) {
+      // No count query is run, so `length` reports the size of this page
+      // rather than the total. `start`/`limit` still describe the window that
+      // was requested, matching the `include_totals` branch below.
       return {
         actions,
-        start: 0,
-        limit: 0,
-        length: 0,
+        start: page * per_page,
+        limit: per_page,
+        length: actions.length,
       };
     }
 
