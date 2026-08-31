@@ -22,16 +22,18 @@ AuthHero is a monorepo containing multiple packages and applications that work t
 - `/packages/aws` - AWS DynamoDB adapter
 - `/packages/saml` - SAML utilities for SSO authentication
 - `/packages/multi-tenancy` - Multi-tenant support with per-tenant database isolation
+- `/packages/proxy` - Multi-tenant reverse proxy that resolves a host to a tenant and dispatches to upstreams
 - `/packages/create-authhero` - CLI tool for creating new AuthHero projects
 - `/packages/ui-widget` - Server-Driven UI widget for authentication flows
 
 ## Applications
 
-- `/apps/demo` - Demo authentication server using SQLite
-- `/apps/react-admin` - Admin interface for managing tenants, users, and applications
-- `/apps/auth0-proxy` - Proxy service for Auth0 API compatibility
+- `/apps/admin` - Admin interface for managing tenants, users, and applications
 - `/apps/docs` - VitePress documentation site
-- `/apps/portal` - User portal for self-service account management
+- `/apps/website` - Public marketing site
+- `/apps/conformance-runner` - Playwright runner for the OpenID Foundation conformance suite
+
+There is no committed local auth server. For a runnable local stack, scaffold one with `pnpm create-authhero dev`.
 
 ## Key Features
 
@@ -70,4 +72,6 @@ Environment variables:
 
 ## License
 
-MIT License
+Dual-licensed under AGPL-3.0-only or a commercial license — see `LICENSING.md` for the
+per-package table. `@authhero/adapter-interfaces`, `create-authhero` (and the apps it
+scaffolds) and `@authhero/widget` are MIT.
