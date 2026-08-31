@@ -37,6 +37,21 @@ const versionsWithTotalsSchema = withTotals({
   versions: z.array(actionVersionSchema),
 });
 
+/**
+ * The action as recorded in an audit event's entity state.
+ *
+ * `secrets` is an array, so the recursive redaction in `logMessage` doesn't
+ * reach into it. Strip the values here — the same strip every response already
+ * does — so the names survive (a reviewer can still see which secrets the
+ * action carried) while the values never leave the database.
+ */
+function auditState(action: Action): Record<string, unknown> {
+  return {
+    ...action,
+    secrets: action.secrets?.map((s) => ({ name: s.name })),
+  };
+}
+
 function snapshotActionVersion(
   data: DataAdapters,
   tenant_id: string,
@@ -173,6 +188,7 @@ const postRoot = defineRoute({
       description: "Create action",
       targetType: "action",
       targetId: action.id,
+      afterState: auditState(action),
     });
 
     return ctx.json(action, { status: 201 });
@@ -273,6 +289,8 @@ const patchById = defineRoute({
     const { id } = ctx.req.valid("param");
     const body = ctx.req.valid("json");
 
+    const existing = await ctx.env.data.actions.get(tenantId, id);
+
     const updated = await ctx.env.data.actions.update(tenantId, id, body);
     if (!updated) {
       throw new HTTPException(404, { message: "Action not found" });
@@ -305,6 +323,8 @@ const patchById = defineRoute({
       description: "Update action",
       targetType: "action",
       targetId: id,
+      ...(existing ? { beforeState: auditState(existing) } : {}),
+      afterState: auditState(action),
     });
 
     return ctx.json({
@@ -359,6 +379,8 @@ const deleteById = defineRoute({
       });
     }
 
+    const existing = await ctx.env.data.actions.get(tenantId, id);
+
     const result = await ctx.env.data.actions.remove(tenantId, id);
     if (!result) {
       throw new HTTPException(404, { message: "Action not found" });
@@ -383,6 +405,8 @@ const deleteById = defineRoute({
       description: "Delete action",
       targetType: "action",
       targetId: id,
+      // A delete has no after state — consumers fall back to `before`.
+      ...(existing ? { beforeState: auditState(existing) } : {}),
     });
 
     return ctx.text("OK");
@@ -445,9 +469,10 @@ const postByIdDeploy = defineRoute({
       }
     }
 
+    const deployedAt = new Date().toISOString();
     await ctx.env.data.actions.update(tenantId, id, {
       status: "built",
-      deployed_at: new Date().toISOString(),
+      deployed_at: deployedAt,
     });
 
     // Reached only after a successful executor deploy (or none configured).
@@ -458,6 +483,12 @@ const postByIdDeploy = defineRoute({
       description: "Deploy action",
       targetType: "action",
       targetId: id,
+      beforeState: auditState(action),
+      afterState: auditState({
+        ...action,
+        status: "built",
+        deployed_at: deployedAt,
+      }),
     });
 
     return ctx.json({
@@ -648,6 +679,8 @@ const postByActionIdVersionsByIdDeploy = defineRoute({
       }
     }
 
+    const existing = await ctx.env.data.actions.get(tenantId, actionId);
+
     await ctx.env.data.actions.update(tenantId, actionId, {
       code: version.code,
       runtime: version.runtime,
@@ -670,6 +703,8 @@ const postByActionIdVersionsByIdDeploy = defineRoute({
       description: `Roll back action to version ${version.number}`,
       targetType: "action",
       targetId: actionId,
+      ...(existing ? { beforeState: auditState(existing) } : {}),
+      afterState: auditState(updated),
     });
 
     return ctx.json({

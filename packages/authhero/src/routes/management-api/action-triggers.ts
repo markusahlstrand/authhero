@@ -90,6 +90,19 @@ const bindingResponseSchema = z.object({
 const bindingsResponseSchema = z.object({
   bindings: z.array(bindingResponseSchema),
 });
+
+/**
+ * One binding as recorded in an audit event's entity state. Only the stored
+ * hook fields — the action's own body is audited by the `/actions` routes, so
+ * repeating it here would duplicate (and could leak) action code on every
+ * binding change.
+ */
+type BindingState = {
+  id: string;
+  trigger_id: string;
+  code_id: string;
+  priority?: number;
+};
 const getByTriggerIdBindings = defineRoute({
   route: createRoute({
     tags: ["actions"],
@@ -271,13 +284,29 @@ const patchByTriggerIdBindings = defineRoute({
       per_page: 100,
     });
 
+    // Snapshot the bindings about to be dropped so the audit event can show
+    // what the trigger was wired to before the swap. Kept to the same shape as
+    // the after state below — an asymmetric shape would make every field of
+    // every binding look changed in the recorded diff.
+    const previousBindings: BindingState[] = [];
+
     for (const hook of existingHooks.hooks) {
       if ("code_id" in hook && hook.code_id) {
+        previousBindings.push({
+          id: hook.hook_id,
+          trigger_id: toAuth0TriggerId(hook.trigger_id),
+          code_id: hook.code_id,
+          priority: hook.priority,
+        });
         await ctx.env.data.hooks.remove(tenantId, hook.hook_id);
       }
     }
 
+    // Match the priority ordering the GET route reports (highest first).
+    previousBindings.sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
+
     const resultBindings: z.infer<typeof bindingResponseSchema>[] = [];
+    const newBindings: BindingState[] = [];
     for (let i = 0; i < resolved.length; i++) {
       const { binding, actionId, action } = resolved[i]!;
 
@@ -290,6 +319,13 @@ const patchByTriggerIdBindings = defineRoute({
         enabled: true,
         synchronous: true,
         priority: resolved.length - i,
+      });
+
+      newBindings.push({
+        id: hook.hook_id,
+        trigger_id: toAuth0TriggerId(hook.trigger_id),
+        code_id: actionId,
+        priority: hook.priority,
       });
 
       resultBindings.push({
@@ -309,6 +345,18 @@ const patchByTriggerIdBindings = defineRoute({
       type: LogTypes.SUCCESS_API_OPERATION,
       description: `Update trigger bindings for ${triggerId}`,
       targetType: "action",
+      // The entity being mutated is the trigger's binding set, not any one
+      // action, so the trigger is what the audit event targets.
+      targetId: triggerId,
+      ...(previousBindings.length
+        ? {
+            beforeState: {
+              trigger_id: triggerId,
+              bindings: previousBindings,
+            },
+          }
+        : {}),
+      afterState: { trigger_id: triggerId, bindings: newBindings },
     });
 
     return ctx.json({ bindings: resultBindings });

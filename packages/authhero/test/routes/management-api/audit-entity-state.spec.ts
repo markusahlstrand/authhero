@@ -703,4 +703,302 @@ describe("management-api audit entity state", () => {
     expect(event?.target.before?.domain).toBe("doomed.example.com");
     expect(event?.target.after).toBeUndefined();
   });
+
+  it("records only an after state when an action is created", async () => {
+    const { managementApp, env } = await getTestServer({ outbox: true });
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const events = captureAuditEvents(env.data.outbox!);
+
+    const response = await managementClient.actions.actions.$post(
+      {
+        header: { "tenant-id": "tenantId" },
+        json: { name: "enrich-token", code: "exports.onExecute = () => {};" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(response.status).toBe(201);
+
+    const event = events.find((e) => e.target.type === "action");
+    expect(event?.target.before).toBeUndefined();
+    expect(event?.target.after?.name).toBe("enrich-token");
+  });
+
+  it("records before/after/diff for an action update", async () => {
+    const { managementApp, env } = await getTestServer({ outbox: true });
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const action = await env.data.actions.create("tenantId", {
+      name: "enrich-token",
+      code: "exports.onExecute = () => { /* old */ };",
+    });
+
+    const events = captureAuditEvents(env.data.outbox!);
+
+    const response = await managementClient.actions.actions[":id"].$patch(
+      {
+        header: { "tenant-id": "tenantId" },
+        param: { id: action.id },
+        json: { code: "exports.onExecute = () => { /* new */ };" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(response.status).toBe(200);
+
+    const event = events.find((e) => e.target.type === "action");
+    expect(event?.target.before?.code).toBe(
+      "exports.onExecute = () => { /* old */ };",
+    );
+    expect(event?.target.after?.code).toBe(
+      "exports.onExecute = () => { /* new */ };",
+    );
+    expect(event?.target.diff?.code).toEqual({
+      old: "exports.onExecute = () => { /* old */ };",
+      new: "exports.onExecute = () => { /* new */ };",
+    });
+  });
+
+  it("keeps an action's source readable in the entity state", async () => {
+    const { managementApp, env } = await getTestServer({ outbox: true });
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const action = await env.data.actions.create("tenantId", {
+      name: "enrich-token",
+      code: "exports.onExecute = () => {};",
+    });
+
+    const events = captureAuditEvents(env.data.outbox!);
+
+    const response = await managementClient.actions.actions[":id"].$patch(
+      {
+        header: { "tenant-id": "tenantId" },
+        param: { id: action.id },
+        json: { name: "renamed" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(response.status).toBe(200);
+
+    // `code` is tail-masked in *request bodies* because that's where an OAuth
+    // authorization code turns up. An action's `code` is its source, so entity
+    // state must not be masked — otherwise the audit trail for the one entity
+    // whose whole point is its code is a row of asterisks.
+    const event = events.find((e) => e.target.type === "action");
+    expect(event?.target.before?.code).toBe("exports.onExecute = () => {};");
+    expect(event?.target.after?.code).toBe("exports.onExecute = () => {};");
+  });
+
+  it("records the deleted action as the before state", async () => {
+    const { managementApp, env } = await getTestServer({ outbox: true });
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const action = await env.data.actions.create("tenantId", {
+      name: "doomed-action",
+      code: "exports.onExecute = () => {};",
+    });
+
+    const events = captureAuditEvents(env.data.outbox!);
+
+    const response = await managementClient.actions.actions[":id"].$delete(
+      { header: { "tenant-id": "tenantId" }, param: { id: action.id } },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(response.status).toBe(200);
+
+    const event = events.find((e) => e.target.type === "action");
+    expect(event?.target.before?.name).toBe("doomed-action");
+    expect(event?.target.after).toBeUndefined();
+  });
+
+  it("keeps action secret names but never their values in the entity state", async () => {
+    const { managementApp, env } = await getTestServer({ outbox: true });
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const action = await env.data.actions.create("tenantId", {
+      name: "enrich-token",
+      code: "exports.onExecute = () => {};",
+      secrets: [{ name: "API_KEY", value: "super-secret" }],
+    });
+
+    const events = captureAuditEvents(env.data.outbox!);
+
+    const response = await managementClient.actions.actions[":id"].$patch(
+      {
+        header: { "tenant-id": "tenantId" },
+        param: { id: action.id },
+        json: { name: "enrich-token-v2" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(response.status).toBe(200);
+
+    // `secrets` is an array, so the recursive redaction in logMessage can't
+    // reach the value — the route has to strip it before handing over state.
+    const event = events.find((e) => e.target.type === "action");
+    expect(event?.target.before?.secrets).toEqual([{ name: "API_KEY" }]);
+    expect(event?.target.after?.secrets).toEqual([{ name: "API_KEY" }]);
+    expect(JSON.stringify(event)).not.toContain("super-secret");
+  });
+
+  it("records before/after/diff for an action deploy", async () => {
+    const { managementApp, env } = await getTestServer({ outbox: true });
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const action = await env.data.actions.create("tenantId", {
+      name: "enrich-token",
+      code: "exports.onExecute = () => {};",
+    });
+    await env.data.actions.update("tenantId", action.id, { status: "draft" });
+
+    const events = captureAuditEvents(env.data.outbox!);
+
+    const response = await managementClient.actions.actions[":id"].deploy.$post(
+      { header: { "tenant-id": "tenantId" }, param: { id: action.id } },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(response.status).toBe(200);
+
+    const event = events.find((e) => e.target.type === "action");
+    expect(event?.target.before?.status).toBe("draft");
+    expect(event?.target.after?.status).toBe("built");
+    expect(event?.target.after?.deployed_at).toBeTruthy();
+  });
+
+  it("records the trigger's binding set before and after a bindings update", async () => {
+    const { managementApp, env } = await getTestServer({ outbox: true });
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const action = await env.data.actions.create("tenantId", {
+      name: "enrich-token",
+      code: "exports.onExecute = () => {};",
+    });
+    const existingHook = await env.data.hooks.create("tenantId", {
+      hook_id: "hook_existing",
+      trigger_id: "post-user-login",
+      code_id: action.id,
+      enabled: true,
+      synchronous: true,
+      priority: 1,
+    });
+
+    const events = captureAuditEvents(env.data.outbox!);
+
+    const response = await managementClient.actions.triggers[
+      ":triggerId"
+    ].bindings.$patch(
+      {
+        header: { "tenant-id": "tenantId" },
+        param: { triggerId: "post-login" },
+        json: { bindings: [{ ref: { type: "action_id", value: action.id } }] },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(response.status).toBe(200);
+
+    const event = events.find((e) => e.target.type === "action");
+    expect(event?.target.id).toBe("post-login");
+    expect(event?.target.before).toEqual({
+      trigger_id: "post-login",
+      bindings: [
+        {
+          id: existingHook.hook_id,
+          trigger_id: "post-login",
+          code_id: action.id,
+          priority: 1,
+        },
+      ],
+    });
+    // The swap creates a fresh hook row, so the binding id changes even though
+    // the same action stays bound.
+    const after = event?.target.after as {
+      trigger_id: string;
+      bindings: Array<{ code_id: string; trigger_id: string }>;
+    };
+    expect(after.trigger_id).toBe("post-login");
+    expect(after.bindings).toHaveLength(1);
+    expect(after.bindings[0]?.code_id).toBe(action.id);
+    expect(after.bindings[0]?.trigger_id).toBe("post-login");
+  });
+
+  it("records before/after/diff for a migration-source update with the credentials redacted", async () => {
+    const { managementApp, env } = await getTestServer({ outbox: true });
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const source = await env.data.migrationSources!.create("tenantId", {
+      name: "Upstream Auth0",
+      provider: "auth0",
+      connection: "auth0",
+      enabled: true,
+      credentials: {
+        domain: "tenant.auth0.com",
+        client_id: "upstream-cid",
+        client_secret: "super-secret",
+      },
+    });
+
+    const events = captureAuditEvents(env.data.outbox!);
+
+    const response = await managementClient["migration-sources"][":id"].$patch(
+      {
+        header: { "tenant-id": "tenantId" },
+        param: { id: source.id },
+        json: { name: "Upstream Auth0 (EU)" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(response.status).toBe(200);
+
+    const event = events.find((e) => e.target.type === "migration_source");
+    expect(event?.target.before?.name).toBe("Upstream Auth0");
+    expect(event?.target.after?.name).toBe("Upstream Auth0 (EU)");
+    expect(event?.target.diff?.name).toEqual({
+      old: "Upstream Auth0",
+      new: "Upstream Auth0 (EU)",
+    });
+    // `credentials` is a sensitive field, so the whole block is replaced —
+    // the upstream client_secret never reaches an audit destination.
+    expect(event?.target.before?.credentials).toBe("[REDACTED]");
+    expect(event?.target.after?.credentials).toBe("[REDACTED]");
+    expect(JSON.stringify(event)).not.toContain("super-secret");
+  });
+
+  it("records the deleted migration source as the before state", async () => {
+    const { managementApp, env } = await getTestServer({ outbox: true });
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const source = await env.data.migrationSources!.create("tenantId", {
+      name: "Doomed source",
+      provider: "auth0",
+      connection: "auth0",
+      enabled: true,
+      credentials: {
+        domain: "tenant.auth0.com",
+        client_id: "upstream-cid",
+        client_secret: "super-secret",
+      },
+    });
+
+    const events = captureAuditEvents(env.data.outbox!);
+
+    const response = await managementClient["migration-sources"][":id"].$delete(
+      { header: { "tenant-id": "tenantId" }, param: { id: source.id } },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(response.status).toBe(204);
+
+    const event = events.find((e) => e.target.type === "migration_source");
+    expect(event?.target.before?.name).toBe("Doomed source");
+    expect(event?.target.before?.credentials).toBe("[REDACTED]");
+    expect(event?.target.after).toBeUndefined();
+    expect(JSON.stringify(event)).not.toContain("super-secret");
+  });
 });

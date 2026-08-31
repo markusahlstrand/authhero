@@ -54,6 +54,46 @@ describe("authorization_code grant - failed exchange logging", () => {
     expect(failedExchangeLog?.user_id).toBe("");
   });
 
+  it("tail-masks the authorization code in the logged request body", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const client = testClient(oauthApp, env);
+
+    await client.oauth.token.$post(
+      {
+        form: {
+          grant_type: "authorization_code",
+          code: "invalid-code-12345",
+          redirect_uri: "http://localhost:3000/callback",
+          client_id: "clientId",
+          client_secret: "clientSecret",
+        },
+      },
+      { headers: { "tenant-id": "tenantId" } },
+    );
+
+    const { logs } = await env.data.logs.list("tenantId", {
+      page: 0,
+      per_page: 100,
+      include_totals: false,
+    });
+
+    const failedExchangeLog = logs.find(
+      (log) =>
+        log.type ===
+        LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN,
+    );
+
+    // Request bodies keep the tail mask Auth0 uses for issued credentials, so
+    // an operator can cross-reference the code without it being readable. This
+    // masking is deliberately scoped to bodies — entity state records an
+    // action's `code` (its source) verbatim.
+    const body = failedExchangeLog?.details?.request?.body as
+      | { code?: string; client_secret?: string }
+      | undefined;
+    expect(body?.code).toBe("***************345");
+    expect(body?.client_secret).toBe("[REDACTED]");
+  });
+
   it("should log feacft when code is expired with user_id and client_id", async () => {
     const { oauthApp, env } = await getTestServer();
     const client = testClient(oauthApp, env);
