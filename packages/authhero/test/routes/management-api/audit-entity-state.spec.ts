@@ -170,4 +170,184 @@ describe("management-api audit entity state", () => {
     );
     expect(event?.target.after).toBeUndefined();
   });
+
+  it("records before/after/diff for a role update", async () => {
+    const { managementApp, env } = await getTestServer({ outbox: true });
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const role = await env.data.roles.create("tenantId", {
+      name: "auditor",
+      description: "Old description",
+    });
+
+    const events = captureAuditEvents(env.data.outbox!);
+
+    const response = await managementClient.roles[":id"].$patch(
+      {
+        header: { "tenant-id": "tenantId" },
+        param: { id: role.id },
+        json: { description: "New description" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(response.status).toBe(200);
+
+    const event = events.find((e) => e.target.type === "role");
+    expect(event?.target.before?.description).toBe("Old description");
+    expect(event?.target.after?.description).toBe("New description");
+    expect(event?.target.diff?.description).toEqual({
+      old: "Old description",
+      new: "New description",
+    });
+  });
+
+  it("records the deleted role as the before state", async () => {
+    const { managementApp, env } = await getTestServer({ outbox: true });
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const role = await env.data.roles.create("tenantId", {
+      name: "auditor",
+      description: "To be removed",
+    });
+
+    const events = captureAuditEvents(env.data.outbox!);
+
+    const response = await managementClient.roles[":id"].$delete(
+      { header: { "tenant-id": "tenantId" }, param: { id: role.id } },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(response.status).toBe(200);
+
+    const event = events.find((e) => e.target.type === "role");
+    expect(event?.target.before?.name).toBe("auditor");
+    expect(event?.target.after).toBeUndefined();
+  });
+
+  it("records before/after/diff for a hook update", async () => {
+    const { managementApp, env } = await getTestServer({ outbox: true });
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const hook = await env.data.hooks.create("tenantId", {
+      url: "https://example.com/old-hook",
+      trigger_id: "post-user-registration",
+      enabled: true,
+      synchronous: false,
+    });
+
+    const events = captureAuditEvents(env.data.outbox!);
+
+    const response = await managementClient.hooks[":hook_id"].$patch(
+      {
+        header: { "tenant-id": "tenantId" },
+        param: { hook_id: hook.hook_id },
+        json: { url: "https://example.com/new-hook" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(response.status).toBe(200);
+
+    const event = events.find((e) => e.target.type === "hook");
+    expect(event?.target.before?.url).toBe("https://example.com/old-hook");
+    expect(event?.target.after?.url).toBe("https://example.com/new-hook");
+    expect(event?.target.diff?.url).toEqual({
+      old: "https://example.com/old-hook",
+      new: "https://example.com/new-hook",
+    });
+  });
+
+  it("records the deleted hook as the before state", async () => {
+    const { managementApp, env } = await getTestServer({ outbox: true });
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const hook = await env.data.hooks.create("tenantId", {
+      url: "https://example.com/doomed-hook",
+      trigger_id: "post-user-registration",
+      enabled: true,
+      synchronous: false,
+    });
+
+    const events = captureAuditEvents(env.data.outbox!);
+
+    const response = await managementClient.hooks[":hook_id"].$delete(
+      { header: { "tenant-id": "tenantId" }, param: { hook_id: hook.hook_id } },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(response.status).toBe(200);
+
+    const event = events.find((e) => e.target.type === "hook");
+    expect(event?.target.before?.url).toBe("https://example.com/doomed-hook");
+    expect(event?.target.after).toBeUndefined();
+  });
+
+  it("records before/after/diff for a log-stream update", async () => {
+    const { managementApp, env } = await getTestServer({ outbox: true });
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const stream = await env.data.logStreams!.create("tenantId", {
+      name: "loki",
+      type: "http",
+      status: "active",
+      sink: {
+        http_endpoint: "https://logs.example.com",
+        http_content_type: "application/json",
+        http_content_format: "JSONLINES",
+        http_authorization: "Bearer x",
+      },
+    });
+
+    const events = captureAuditEvents(env.data.outbox!);
+
+    const response = await managementClient["log-streams"][":id"].$patch(
+      {
+        header: { "tenant-id": "tenantId" },
+        param: { id: stream.id },
+        json: { status: "paused" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(response.status).toBe(200);
+
+    const event = events.find((e) => e.target.type === "log_stream");
+    expect(event?.target.before?.status).toBe("active");
+    expect(event?.target.after?.status).toBe("paused");
+    expect(event?.target.diff?.status).toEqual({
+      old: "active",
+      new: "paused",
+    });
+  });
+
+  it("records the deleted log stream as the before state", async () => {
+    const { managementApp, env } = await getTestServer({ outbox: true });
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const stream = await env.data.logStreams!.create("tenantId", {
+      name: "loki",
+      type: "http",
+      status: "active",
+      sink: {
+        http_endpoint: "https://logs.example.com",
+        http_content_type: "application/json",
+        http_content_format: "JSONLINES",
+        http_authorization: "Bearer x",
+      },
+    });
+
+    const events = captureAuditEvents(env.data.outbox!);
+
+    const response = await managementClient["log-streams"][":id"].$delete(
+      { header: { "tenant-id": "tenantId" }, param: { id: stream.id } },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(response.status).toBe(204);
+
+    const event = events.find((e) => e.target.type === "log_stream");
+    expect(event?.target.before?.name).toBe("loki");
+    expect(event?.target.after).toBeUndefined();
+  });
 });

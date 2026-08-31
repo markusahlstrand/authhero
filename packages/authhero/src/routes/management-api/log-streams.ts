@@ -144,6 +144,7 @@ const patchById = defineRoute({
     const adapter = getAdapter(ctx);
     const { id } = ctx.req.valid("param");
     const body = ctx.req.valid("json");
+    const existing = await adapter.get(tenantId, id);
     const ok = await adapter.update(tenantId, id, body);
     if (!ok) {
       throw new HTTPException(404);
@@ -158,6 +159,7 @@ const patchById = defineRoute({
       description: "Update a Log Stream",
       targetType: "log_stream",
       targetId: id,
+      ...(existing ? { beforeState: { ...existing } } : {}),
       afterState: stream as Record<string, unknown>,
     });
 
@@ -183,16 +185,19 @@ const deleteById = defineRoute({
     const tenantId = requireTenantId(ctx);
     const adapter = getAdapter(ctx);
     const { id } = ctx.req.valid("param");
+    const existing = await adapter.get(tenantId, id);
     const ok = await adapter.remove(tenantId, id);
     if (!ok) {
       throw new HTTPException(404);
     }
 
+    // A delete has no after state — consumers fall back to `before`.
     await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Delete a Log Stream",
       targetType: "log_stream",
       targetId: id,
+      ...(existing ? { beforeState: { ...existing } } : {}),
     });
 
     return ctx.body(null, 204);
