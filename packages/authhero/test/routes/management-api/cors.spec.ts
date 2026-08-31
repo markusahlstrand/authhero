@@ -191,6 +191,59 @@ describe("management-api CORS", () => {
     expect(response.headers.get("Vary")).toContain("Origin");
   });
 
+  // The preflight response and the actual response are built on two different
+  // code paths (a fresh 204 vs. the handler's response). They must answer with
+  // exactly the same CORS header set — this is what regressed when the two
+  // paths each carried their own copy of the header block.
+  it("answers a preflight and an actual request with the identical CORS header set", async () => {
+    const { managementApp, env } = await getTestServer();
+
+    const corsHeaders = (response: Response) =>
+      Object.fromEntries(
+        [...response.headers].filter(([name]) =>
+          name.toLowerCase().startsWith("access-control-"),
+        ),
+      );
+
+    const preflight = await managementApp.request(
+      "/clients",
+      {
+        method: "OPTIONS",
+        headers: {
+          Origin: "https://example.com",
+          "tenant-id": "tenantId",
+          "Access-Control-Request-Method": "GET",
+        },
+      },
+      env,
+    );
+
+    const actual = await managementApp.request(
+      "/clients",
+      {
+        method: "GET",
+        headers: {
+          Origin: "https://example.com",
+          "tenant-id": "tenantId",
+        },
+      },
+      env,
+    );
+
+    expect(Object.keys(corsHeaders(preflight)).sort()).toEqual([
+      "access-control-allow-credentials",
+      "access-control-allow-headers",
+      "access-control-allow-methods",
+      "access-control-allow-origin",
+      "access-control-expose-headers",
+      "access-control-max-age",
+    ]);
+    expect(corsHeaders(actual)).toEqual(corsHeaders(preflight));
+    // Vary is set once on both, not duplicated by the header helper.
+    expect(preflight.headers.get("Vary")).toBe("Origin");
+    expect(actual.headers.get("Vary")).toBe("Origin");
+  });
+
   // Regression (production CORS outage on the control plane): the Cloudflare
   // Workers runtime defines a `webSocket` property — value `null` — on *every*
   // Response. The actual-request CORS block used `"webSocket" in ctx.res` to

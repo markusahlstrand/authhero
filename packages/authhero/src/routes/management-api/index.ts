@@ -78,6 +78,26 @@ import { RegistrationFinalizerDestination } from "../../helpers/outbox-destinati
 import { ControlPlaneSyncDestination } from "../../helpers/outbox-destinations/control-plane-sync";
 import { createServiceToken } from "../../helpers/service-token";
 
+// The CORS header set the management API answers with. Written from a single
+// place so the preflight response and the actual response can never drift
+// apart. `Vary: Origin` is deliberately not set here — the call sites append
+// it even when the origin isn't allowed, so caches never serve one origin's
+// allow/deny decision to another.
+function setCorsHeaders(headers: Headers, allowedOrigin: string) {
+  headers.set("Access-Control-Allow-Origin", allowedOrigin);
+  headers.set(
+    "Access-Control-Allow-Headers",
+    "Tenant-Id, Content-Type, Content-Range, Auth0-Client, Authorization, Range, Upgrade-Insecure-Requests",
+  );
+  headers.set(
+    "Access-Control-Allow-Methods",
+    "POST, PUT, GET, DELETE, PATCH, OPTIONS",
+  );
+  headers.set("Access-Control-Expose-Headers", "Content-Length, Content-Range");
+  headers.set("Access-Control-Max-Age", "600");
+  headers.set("Access-Control-Allow-Credentials", "true");
+}
+
 export default function create(config: AuthHeroConfig) {
   const app = new OpenAPIHono<{
     Bindings: Bindings;
@@ -128,53 +148,16 @@ export default function create(config: AuthHeroConfig) {
   app.use(async (ctx, next) => {
     const origin = ctx.req.header("origin");
 
-    // Helper to set CORS headers
-    const setCorsHeaders = (allowedOrigin: string) => {
-      ctx.res.headers.set("Access-Control-Allow-Origin", allowedOrigin);
-      ctx.res.headers.set(
-        "Access-Control-Allow-Headers",
-        "Tenant-Id, Content-Type, Content-Range, Auth0-Client, Authorization, Range, Upgrade-Insecure-Requests",
-      );
-      ctx.res.headers.set(
-        "Access-Control-Allow-Methods",
-        "POST, PUT, GET, DELETE, PATCH, OPTIONS",
-      );
-      ctx.res.headers.set(
-        "Access-Control-Expose-Headers",
-        "Content-Length, Content-Range",
-      );
-      ctx.res.headers.set("Access-Control-Max-Age", "600");
-      ctx.res.headers.set("Access-Control-Allow-Credentials", "true");
-      ctx.res.headers.append("Vary", "Origin");
-    };
-
     // Handle preflight requests
     if (ctx.req.method === "OPTIONS") {
       const response = new Response(null, { status: 204 });
+      // Set Vary up front, so it is present whether or not the origin turns
+      // out to be allowed and caches don't serve a denial to an allowed origin.
+      response.headers.append("Vary", "Origin");
 
       if (origin) {
-        // Helper to set preflight CORS headers
-        const setPreflightCors = (allowedOrigin: string) => {
-          response.headers.set("Access-Control-Allow-Origin", allowedOrigin);
-          response.headers.set(
-            "Access-Control-Allow-Headers",
-            "Tenant-Id, Content-Type, Content-Range, Auth0-Client, Authorization, Range, Upgrade-Insecure-Requests",
-          );
-          response.headers.set(
-            "Access-Control-Allow-Methods",
-            "POST, PUT, GET, DELETE, PATCH, OPTIONS",
-          );
-          response.headers.set(
-            "Access-Control-Expose-Headers",
-            "Content-Length, Content-Range",
-          );
-          response.headers.set("Access-Control-Max-Age", "600");
-          response.headers.set("Access-Control-Allow-Credentials", "true");
-          response.headers.append("Vary", "Origin");
-        };
-
         if (config.allowedOrigins?.includes(origin)) {
-          setPreflightCors(origin);
+          setCorsHeaders(response.headers, origin);
           return response;
         }
 
@@ -190,14 +173,12 @@ export default function create(config: AuthHeroConfig) {
             (client) => client.web_origins || [],
           );
           if (allWebOrigins.includes(origin)) {
-            setPreflightCors(origin);
+            setCorsHeaders(response.headers, origin);
             return response;
           }
         }
       }
       // Return 204 without CORS headers if origin not allowed
-      // Still set Vary so caches don't serve this to an allowed origin
-      response.headers.append("Vary", "Origin");
       return response;
     }
 
@@ -221,7 +202,7 @@ export default function create(config: AuthHeroConfig) {
       if (origin) {
         // Check static allowedOrigins first
         if (config.allowedOrigins?.includes(origin)) {
-          setCorsHeaders(origin);
+          setCorsHeaders(ctx.res.headers, origin);
           return;
         }
 
@@ -240,7 +221,7 @@ export default function create(config: AuthHeroConfig) {
             (client) => client.web_origins || [],
           );
           if (allWebOrigins.includes(origin)) {
-            setCorsHeaders(origin);
+            setCorsHeaders(ctx.res.headers, origin);
           }
         }
       }
