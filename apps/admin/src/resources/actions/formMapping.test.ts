@@ -102,6 +102,18 @@ describe("fromActionFormValues", () => {
     expect(payload.deployed_at).toBeUndefined();
   });
 
+  it("unbinds the trigger when the select is cleared", () => {
+    const payload = fromActionFormValues(
+      {
+        trigger_id: "",
+        supported_triggers: [{ id: "post-login" }],
+      },
+      SENTINEL,
+    );
+
+    expect(payload.supported_triggers).toEqual([]);
+  });
+
   it("omits supported_triggers when neither the form nor the record has one", () => {
     const payload = fromActionFormValues({ name: "addRole" }, SENTINEL);
 

@@ -81,12 +81,16 @@ export function fromActionFormValues(
 
   const existingTriggers = rest.supported_triggers;
   // Reuse the stored entry when the trigger is unchanged so its `version`
-  // survives the round-trip.
+  // survives the round-trip. Clearing the select submits an empty value: that
+  // is an unbind, so send an empty array rather than silently leaving the old
+  // trigger in place. An action that never had a trigger stays untouched.
   const supported_triggers = trigger_id
     ? existingTriggers?.[0]?.id === trigger_id
       ? existingTriggers
       : [{ id: trigger_id }]
-    : existingTriggers;
+    : existingTriggers
+      ? []
+      : undefined;
 
   return {
     ...rest,
