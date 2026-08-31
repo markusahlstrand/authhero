@@ -43,16 +43,51 @@ export default {
 
 ### Configuration
 
-| Field | Required | Description |
-| --- | --- | --- |
-| `dataAdapter` | yes | Same `DataAdapters` you pass to `init()`. Must include `outbox` — the call is a no-op if it doesn't. |
-| `issuer` | yes | Issuer URL used when minting `auth-service` tokens. Typically `env.ISSUER`. Webhook receivers that validate `iss` will accept tokens from both the inline and cron paths. |
-| `webhookInvoker` | no | Same shape as the `webhookInvoker` option on `init()`. **Pass the same function** — see below. |
-| `codeExecutor` | no | Same executor passed to `init({ codeExecutor })`. Pass it so cron-drained `hook.*` events also run `post-user-registration` / `post-user-deletion` code hooks — otherwise a code hook that failed per-request delivery is silently skipped on retry. |
-| `retentionDays` | no | Days to keep processed events before cleanup. Default `7`. |
-| `batchSize` | no | Max events per drain pass. Forwarded to `drainOutbox`. |
-| `maxRetries` | no | Max delivery attempts before an event is dead-lettered. Forwarded to `drainOutbox`. |
-| `webhookTimeoutMs` | no | HTTP timeout when the default invoker is used. Default `10000`. |
+| Field              | Required | Description                                                                                                                                                                                                                                          |
+| ------------------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dataAdapter`      | yes      | Same `DataAdapters` you pass to `init()`. Must include `outbox` — the call is a no-op if it doesn't.                                                                                                                                                 |
+| `issuer`           | yes      | Issuer URL used when minting `auth-service` tokens. Typically `env.ISSUER`. Webhook receivers that validate `iss` will accept tokens from both the inline and cron paths.                                                                            |
+| `webhookInvoker`   | no       | Same shape as the `webhookInvoker` option on `init()`. **Pass the same function** — see below.                                                                                                                                                       |
+| `codeExecutor`     | no       | Same executor passed to `init({ codeExecutor })`. Pass it so cron-drained `hook.*` events also run `post-user-registration` / `post-user-deletion` code hooks — otherwise a code hook that failed per-request delivery is silently skipped on retry. |
+| `retentionDays`    | no       | Days to keep processed events before cleanup. Default `7`.                                                                                                                                                                                           |
+| `batchSize`        | no       | Max events per drain pass. Forwarded to `drainOutbox`.                                                                                                                                                                                               |
+| `maxRetries`       | no       | Max delivery attempts before an event is dead-lettered. Forwarded to `drainOutbox`.                                                                                                                                                                  |
+| `webhookTimeoutMs` | no       | HTTP timeout when the default invoker is used. Default `10000`.                                                                                                                                                                                      |
+| `metrics`          | no       | Sink for relay metrics. Same shape as `init({ outbox: { metrics } })` — see [Metrics](#metrics).                                                                                                                                                     |
+
+### Metrics
+
+The relay can report structured counters instead of only logging. Pass a
+`metrics` callback and it is invoked for each of:
+
+| Metric                              | Type                 | Emitted when                                                          |
+| ----------------------------------- | -------------------- | --------------------------------------------------------------------- |
+| `outbox_events_processed_total`     | counter (`value: 1`) | Every accepting destination delivered the event.                      |
+| `outbox_events_dead_lettered_total` | counter (`value: 1`) | Retries were exhausted, or no destination accepted the event.         |
+| `outbox_retry_delay_seconds`        | observation          | A destination failed; `value` is the backoff before the next attempt. |
+
+Each metric also carries `tenantId`, `eventType`, `retryCount` and
+`source` (`"request"` for the inline per-request relay, `"cron"` for
+`runOutboxRelay`), plus `destination` and `error` on failures. The sink is
+called synchronously and any error it throws is caught and logged, so a broken
+sink can never fail event delivery.
+
+Pass the same sink to `init()` and `runOutboxRelay()` so both paths report
+together:
+
+```ts
+import { createAnalyticsEngineOutboxMetricsSink } from "@authhero/cloudflare-adapter";
+
+const metrics = createAnalyticsEngineOutboxMetricsSink({
+  analyticsEngineBinding: env.OUTBOX_METRICS,
+});
+
+init({ dataAdapter, outbox: { enabled: true, metrics } });
+await runOutboxRelay({ dataAdapter, issuer: env.ISSUER, metrics });
+```
+
+Any callback works — the core package never knows where the numbers go, so
+StatsD, OpenTelemetry or a plain `console.log` are equally valid sinks.
 
 ### Pass the same `webhookInvoker` you pass to `init()`
 
@@ -133,14 +168,17 @@ Any scheduler can drive the relay. Call `runOutboxRelay` on a timer:
 ```ts
 import { runOutboxRelay } from "authhero";
 
-setInterval(() => {
-  runOutboxRelay({
-    dataAdapter,
-    issuer: process.env.ISSUER!,
-    webhookInvoker,
-    retentionDays: 7,
-  }).catch((err) => console.error("outbox relay failed", err));
-}, 5 * 60 * 1000);
+setInterval(
+  () => {
+    runOutboxRelay({
+      dataAdapter,
+      issuer: process.env.ISSUER!,
+      webhookInvoker,
+      retentionDays: 7,
+    }).catch((err) => console.error("outbox relay failed", err));
+  },
+  5 * 60 * 1000,
+);
 ```
 
 For Kubernetes / systemd, wire the same call to a cron-style job that runs every 5 minutes and exits.

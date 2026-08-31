@@ -676,6 +676,67 @@ curl "https://api.cloudflare.com/client/v4/accounts/{account_id}/analytics_engin
   -d "SELECT blob3 as type, count() as count FROM authhero_logs WHERE index1 = 'tenant-123' GROUP BY blob3"
 ```
 
+## Outbox Metrics Sink (Analytics Engine)
+
+`createAnalyticsEngineOutboxMetricsSink` turns authhero's outbox relay metrics
+into Analytics Engine data points, so dead-letters and retry backoff are
+queryable instead of only appearing in `console` output.
+
+### Setup
+
+1. Add a dataset binding in `wrangler.toml`:
+
+```toml
+[[analytics_engine_datasets]]
+binding = "OUTBOX_METRICS"
+dataset = "authhero_outbox_metrics"
+```
+
+2. Pass the sink to both relay paths — `init()` (inline per-request delivery)
+   and `runOutboxRelay()` (the cron drain):
+
+```typescript
+import { createAnalyticsEngineOutboxMetricsSink } from "@authhero/cloudflare-adapter";
+import { init, runOutboxRelay } from "authhero";
+
+const metrics = createAnalyticsEngineOutboxMetricsSink({
+  analyticsEngineBinding: env.OUTBOX_METRICS,
+});
+
+const { app } = init({ dataAdapter, outbox: { enabled: true, metrics } });
+
+// in scheduled():
+await runOutboxRelay({ dataAdapter, issuer: env.ISSUER, metrics });
+```
+
+Without `analyticsEngineBinding` the sink is a silent no-op, so the same wiring
+works in local dev and tests.
+
+### Data Schema
+
+| Field   | Type   | Description                                                                                                      |
+| ------- | ------ | ---------------------------------------------------------------------------------------------------------------- |
+| blob1   | string | metric name (`outbox_events_processed_total`, `outbox_events_dead_lettered_total`, `outbox_retry_delay_seconds`) |
+| blob2   | string | tenant_id                                                                                                        |
+| blob3   | string | event_type                                                                                                       |
+| blob4   | string | source (`request` or `cron`)                                                                                     |
+| blob5   | string | destination (delivery failures only)                                                                             |
+| blob6   | string | error (delivery failures only)                                                                                   |
+| double1 | number | value — `1` for counters, retry delay in seconds for `outbox_retry_delay_seconds`                                |
+| double2 | number | retry_count of the event                                                                                         |
+| double3 | number | timestamp (epoch ms)                                                                                             |
+| index1  | string | tenant_id (for efficient filtering)                                                                              |
+
+Analytics Engine samples rows under load, so weight counters by
+`_sample_interval` to get true totals:
+
+```bash
+# Dead-lettered events per tenant
+curl "https://api.cloudflare.com/client/v4/accounts/{account_id}/analytics_engine/sql" \
+  -H "Authorization: Bearer $API_TOKEN" \
+  -d "SELECT index1 as tenant, sum(double1 * _sample_interval) as dead_lettered FROM authhero_outbox_metrics WHERE blob1 = 'outbox_events_dead_lettered_total' GROUP BY index1"
+```
+
 ## Geo Adapter
 
 The Cloudflare Geo adapter extracts geographic location information from Cloudflare's automatic request headers. This is used to enrich authentication logs with location data.

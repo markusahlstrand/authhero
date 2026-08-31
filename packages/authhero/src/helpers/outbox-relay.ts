@@ -1,4 +1,5 @@
 import { OutboxAdapter, AuditEvent } from "@authhero/adapter-interfaces";
+import type { OutboxMetric, OutboxMetricsSink } from "../types/OutboxMetrics";
 
 /**
  * Interface for outbox event destinations.
@@ -23,25 +24,70 @@ const DEFAULT_MAX_RETRIES = 5;
 const DEFAULT_RETENTION_DAYS = 7;
 const DEFAULT_LEASE_MS = 30_000; // 30 seconds
 
-async function tryDeadLetter(
-  outbox: OutboxAdapter,
-  eventId: string,
-  error: string,
-): Promise<void> {
-  console.warn(`Outbox event ${eventId} dead-lettering: ${error}`);
+function isPromiseLike(value: unknown): value is PromiseLike<unknown> {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "then" in value &&
+    typeof value.then === "function"
+  );
+}
+
+/**
+ * Emit a metric without ever letting a broken sink break event delivery.
+ * Handles both a synchronous throw and a sink that (despite the `void` return
+ * type) hands back a promise, so a rejecting async sink cannot surface as an
+ * unhandled rejection.
+ */
+function emitMetric(sink: OutboxMetricsSink | undefined, metric: OutboxMetric) {
+  if (!sink) return;
   try {
-    await outbox.deadLetter(eventId, error);
-  } catch {
-    // Best effort — event stays in outbox if dead-letter write fails
+    const result: unknown = sink(metric);
+    if (isPromiseLike(result)) {
+      result.then(undefined, (error: unknown) =>
+        console.error("Outbox metrics sink rejected", error),
+      );
+    }
+  } catch (error) {
+    console.error("Outbox metrics sink threw", error);
   }
 }
 
+async function tryDeadLetter(
+  outbox: OutboxAdapter,
+  event: Pick<AuditEvent, "id" | "tenant_id" | "event_type"> & {
+    retry_count?: number;
+  },
+  error: string,
+  metrics: OutboxMetricsSink | undefined,
+  source: "request" | "cron",
+): Promise<void> {
+  console.warn(`Outbox event ${event.id} dead-lettering: ${error}`);
+  try {
+    await outbox.deadLetter(event.id, error);
+  } catch {
+    // Best effort — event stays in outbox if dead-letter write fails. No
+    // metric either: the event has not actually transitioned, and a later
+    // pass will try again.
+    return;
+  }
+  emitMetric(metrics, {
+    name: "outbox_events_dead_lettered_total",
+    value: 1,
+    tenantId: event.tenant_id,
+    eventType: event.event_type,
+    source,
+    error,
+    ...(event.retry_count !== undefined && { retryCount: event.retry_count }),
+  });
+}
+
+function computeRetryDelayMs(retryCount: number): number {
+  return Math.min(BASE_DELAY_MS * Math.pow(2, retryCount), MAX_DELAY_MS);
+}
+
 function computeNextRetryAt(retryCount: number): string {
-  const delayMs = Math.min(
-    BASE_DELAY_MS * Math.pow(2, retryCount),
-    MAX_DELAY_MS,
-  );
-  return new Date(Date.now() + delayMs).toISOString();
+  return new Date(Date.now() + computeRetryDelayMs(retryCount)).toISOString();
 }
 
 /**
@@ -53,11 +99,12 @@ export async function processOutboxEvents(
   outbox: OutboxAdapter,
   ids: string[],
   destinations: EventDestination[],
-  options?: { maxRetries?: number },
+  options?: { maxRetries?: number; metrics?: OutboxMetricsSink },
 ): Promise<void> {
   if (ids.length === 0) return;
 
   const maxRetries = options?.maxRetries ?? DEFAULT_MAX_RETRIES;
+  const metrics = options?.metrics;
 
   // Claim events to prevent concurrent processing by drain workers
   const workerId = crypto.randomUUID();
@@ -73,8 +120,10 @@ export async function processOutboxEvents(
     if (event.retry_count >= maxRetries) {
       await tryDeadLetter(
         outbox,
-        event.id,
+        event,
         event.error || `Exceeded max retries (${maxRetries})`,
+        metrics,
+        "request",
       );
       continue;
     }
@@ -92,6 +141,16 @@ export async function processOutboxEvents(
         allSucceeded = false;
         const errorMessage =
           error instanceof Error ? error.message : String(error);
+        emitMetric(metrics, {
+          name: "outbox_retry_delay_seconds",
+          value: computeRetryDelayMs(event.retry_count) / 1000,
+          tenantId: event.tenant_id,
+          eventType: event.event_type,
+          source: "request",
+          destination: destination.name,
+          error: errorMessage,
+          retryCount: event.retry_count,
+        });
         try {
           await outbox.markRetry(
             event.id,
@@ -108,14 +167,24 @@ export async function processOutboxEvents(
     if (!anyDestinationAccepted) {
       await tryDeadLetter(
         outbox,
-        event.id,
+        event,
         `No destination accepts event_type=${event.event_type}`,
+        metrics,
+        "request",
       );
       continue;
     }
 
     if (allSucceeded) {
       processedIds.push(event.id);
+      emitMetric(metrics, {
+        name: "outbox_events_processed_total",
+        value: 1,
+        tenantId: event.tenant_id,
+        eventType: event.event_type,
+        source: "request",
+        retryCount: event.retry_count,
+      });
     }
   }
 
@@ -136,11 +205,17 @@ export async function processOutboxEvents(
 export async function drainOutbox(
   outbox: OutboxAdapter,
   destinations: EventDestination[],
-  options?: { batchSize?: number; maxRetries?: number; retentionDays?: number },
+  options?: {
+    batchSize?: number;
+    maxRetries?: number;
+    retentionDays?: number;
+    metrics?: OutboxMetricsSink;
+  },
 ): Promise<void> {
   const batchSize = options?.batchSize ?? DEFAULT_BATCH_SIZE;
   const maxRetries = options?.maxRetries ?? DEFAULT_MAX_RETRIES;
   const retentionDays = options?.retentionDays ?? DEFAULT_RETENTION_DAYS;
+  const metrics = options?.metrics;
 
   const events = await outbox.getUnprocessed(batchSize);
   if (events.length === 0) return;
@@ -163,8 +238,10 @@ export async function drainOutbox(
     if (event.retry_count >= maxRetries) {
       await tryDeadLetter(
         outbox,
-        event.id,
+        event,
         event.error || `Exceeded max retries (${maxRetries})`,
+        metrics,
+        "cron",
       );
       continue;
     }
@@ -182,6 +259,16 @@ export async function drainOutbox(
         allSucceeded = false;
         const errorMessage =
           error instanceof Error ? error.message : String(error);
+        emitMetric(metrics, {
+          name: "outbox_retry_delay_seconds",
+          value: computeRetryDelayMs(event.retry_count) / 1000,
+          tenantId: event.tenant_id,
+          eventType: event.event_type,
+          source: "cron",
+          destination: destination.name,
+          error: errorMessage,
+          retryCount: event.retry_count,
+        });
         try {
           await outbox.markRetry(
             event.id,
@@ -198,14 +285,24 @@ export async function drainOutbox(
     if (!anyDestinationAccepted) {
       await tryDeadLetter(
         outbox,
-        event.id,
+        event,
         `No destination accepts event_type=${event.event_type}`,
+        metrics,
+        "cron",
       );
       continue;
     }
 
     if (allSucceeded) {
       processedIds.push(event.id);
+      emitMetric(metrics, {
+        name: "outbox_events_processed_total",
+        value: 1,
+        tenantId: event.tenant_id,
+        eventType: event.event_type,
+        source: "cron",
+        retryCount: event.retry_count,
+      });
     } else {
       failedIds.push(event.id);
     }

@@ -14,6 +14,7 @@ import {
   TenantOperationKind,
 } from "@authhero/adapter-interfaces";
 import type { RolePermissionHooks, Hooks } from "./Hooks";
+import type { OutboxMetricsSink } from "./OutboxMetrics";
 import type { SamlSigner } from "@authhero/saml/core";
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import type { Handler, MiddlewareHandler } from "hono";
@@ -156,6 +157,12 @@ export interface OutboxConfig {
   retentionDays?: number;
   /** Max delivery retries before giving up on an event (default: 5) */
   maxRetries?: number;
+  /**
+   * Optional sink for relay metrics (`outbox_events_processed_total`,
+   * `outbox_events_dead_lettered_total`, `outbox_retry_delay_seconds`).
+   * Left unset, the relay emits nothing beyond its existing console logging.
+   */
+  metrics?: OutboxMetricsSink;
 }
 
 /**

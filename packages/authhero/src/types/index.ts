@@ -2,5 +2,6 @@ export * from "./Variables";
 export * from "./Bindings";
 export * from "./auth0";
 export * from "./AuthHeroConfig";
+export * from "./OutboxMetrics";
 export * from "./GrantFlowResult";
 export * from "./Hooks";

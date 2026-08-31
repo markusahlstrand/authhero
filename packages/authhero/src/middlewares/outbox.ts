@@ -54,6 +54,7 @@ export function outboxMiddleware(
               options.getDestinations(ctx),
               {
                 maxRetries: ctx.env.outbox?.maxRetries,
+                metrics: ctx.env.outbox?.metrics,
               },
             ),
           );
