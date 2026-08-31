@@ -1,0 +1,111 @@
+name: Bug report
+description: Something in AuthHero doesn't behave the way it should
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. The more precisely you can pin down which
+        package and which request is misbehaving, the faster this gets fixed.
+
+        **Please don't report security vulnerabilities here** — an issue is
+        public the moment you file it. Contact the maintainer privately
+        instead.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you saw, and what you expected instead.
+      placeholder: |
+        Calling POST /oauth/token with grant_type=refresh_token returns 401
+        for a token that was issued less than a minute earlier.
+
+        I expected a new access token.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: |
+        A failing test is the most useful form of this, but a request/response
+        pair or a numbered list is fine. Please redact tokens and secrets.
+      placeholder: |
+        1. Create a client with refresh token rotation enabled
+        2. Complete an authorization code flow
+        3. Exchange the refresh token
+        4. Exchange it again within the reuse interval → 401
+    validations:
+      required: true
+
+  - type: dropdown
+    id: package
+    attributes:
+      label: Which package?
+      description: Best guess is fine. Pick "Not sure" if you can't tell.
+      multiple: true
+      options:
+        - authhero (core — auth routes, management API, login UI)
+        - "@authhero/adapter-interfaces"
+        - "@authhero/drizzle"
+        - "@authhero/kysely-adapter"
+        - "@authhero/aws-adapter"
+        - "@authhero/cloudflare-adapter"
+        - "@authhero/saml"
+        - "@authhero/proxy"
+        - "@authhero/multi-tenancy"
+        - "@authhero/widget"
+        - create-authhero
+        - apps/admin (Admin UI)
+        - apps/docs / apps/website
+        - Not sure
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The version of the package above, or the commit SHA if you're on a checkout.
+      placeholder: "authhero@0.60.1"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: adapter
+    attributes:
+      label: Database adapter
+      description: Which adapter is behind the failing request?
+      options:
+        - Drizzle (SQLite / D1)
+        - Kysely (MySQL / PlanetScale)
+        - Kysely (SQLite)
+        - DynamoDB
+        - Other / custom
+        - Not applicable
+    validations:
+      required: false
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Runtime and anything else that might matter.
+      placeholder: |
+        Runtime: Cloudflare Workers (wrangler 4.x) / Node 22
+        Deployment: self-hosted
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or error output
+      description: |
+        Relevant log lines or a stack trace. This is rendered as code, so no
+        backticks needed — but do redact tokens, secrets and personal data.
+      render: text
+    validations:
+      required: false

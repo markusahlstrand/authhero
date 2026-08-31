@@ -1,0 +1,74 @@
+name: Feature request
+description: Suggest a capability or an improvement to an existing one
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        AuthHero aims to be API-compatible with Auth0, so if the thing you want
+        already exists there, saying which endpoint or setting it maps to is
+        the single most useful detail you can give.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      description: |
+        The situation you're stuck in, rather than the solution you have in
+        mind — it often turns out there's an existing way through.
+      placeholder: |
+        We migrate tenants from Auth0 in batches and need to import users with
+        their existing bcrypt hashes, so people don't have to reset passwords.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like to see?
+      description: How you'd expect it to work — endpoints, config, UI, whatever fits.
+    validations:
+      required: true
+
+  - type: input
+    id: auth0-equivalent
+    attributes:
+      label: Auth0 equivalent
+      description: The matching Auth0 endpoint or feature, if there is one.
+      placeholder: "POST /api/v2/jobs/users-imports"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which area?
+      multiple: true
+      options:
+        - Auth flows (/authorize, /oauth/token, universal login)
+        - Management API
+        - Admin UI
+        - Database adapters
+        - Hooks / actions / forms
+        - Logs, audit events, outbox
+        - Multi-tenancy / custom domains
+        - Docs
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you've considered
+      description: Workarounds you've tried, and why they fall short.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      options:
+        - label: I'd be willing to open a PR for this
+          required: false

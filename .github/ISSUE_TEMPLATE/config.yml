@@ -1,0 +1,10 @@
+# Blank issues stay enabled: maintainer issues here are often design notes or
+# review round-ups that don't fit either form.
+blank_issues_enabled: true
+contact_links:
+  - name: Question or idea
+    url: https://github.com/markusahlstrand/authhero/discussions
+    about: For usage questions and open-ended discussion, before it's a concrete bug or feature.
+  - name: Documentation
+    url: https://docs.authhero.net
+    about: Setup, configuration, adapters, and the contributing guide.
