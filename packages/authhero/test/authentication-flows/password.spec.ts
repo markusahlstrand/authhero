@@ -5,6 +5,7 @@ import bcryptjs from "bcryptjs";
 import { USERNAME_PASSWORD_PROVIDER } from "../../src/constants";
 import { Strategy } from "@authhero/adapter-interfaces";
 import { recordPasswordReset } from "../../src/authentication-flows/password";
+import { Bindings } from "../../src/types";
 
 describe("password authentication - failed login tracking", () => {
   it("should reject a login after three failed attempts and record in user_activity", async () => {
@@ -357,5 +358,91 @@ describe("password authentication - failed login tracking", () => {
       `${USERNAME_PASSWORD_PROVIDER}|resetLinked`,
     );
     expect(linkedActivity?.last_password_reset).toBeFalsy();
+  });
+});
+
+describe("password authentication - pre-login rate limiting", () => {
+  // Seeds a user with a known-good password and turns on the tenant's
+  // suspicious-IP throttling, so the pre-login `rateLimit.consume()` branch in
+  // `passwordGrant` actually runs for the request.
+  async function seedThrottledTenant(env: Bindings) {
+    await env.data.users.create("tenantId", {
+      email: "throttled@example.com",
+      email_verified: true,
+      name: "Throttled User",
+      nickname: "Throttled User",
+      connection: Strategy.USERNAME_PASSWORD,
+      provider: USERNAME_PASSWORD_PROVIDER,
+      is_social: false,
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|throttled`,
+    });
+    await env.data.passwords.create("tenantId", {
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|throttled`,
+      password: await bcryptjs.hash("CorrectPassword123!", 10),
+      algorithm: "bcrypt",
+    });
+    await env.data.tenants.update("tenantId", {
+      attack_protection: {
+        suspicious_ip_throttling: { enabled: true, shields: ["block"] },
+      },
+    });
+  }
+
+  const authenticateBody = {
+    client_id: "clientId",
+    credential_type: "http://auth0.com/oauth/grant-type/password-realm",
+    realm: Strategy.USERNAME_PASSWORD,
+    password: "CorrectPassword123!",
+    username: "throttled@example.com",
+  };
+
+  it("fails open when the rateLimit adapter throws", async () => {
+    const throwingRateLimit = {
+      consume: async () => {
+        throw new Error("rate-limit backend exploded");
+      },
+    };
+
+    const { oauthApp, env } = await getTestServer({
+      rateLimit: throwingRateLimit,
+    });
+    await seedThrottledTenant(env);
+    const oauthClient = testClient(oauthApp, env);
+
+    const response = await oauthClient.co.authenticate.$post(
+      { json: authenticateBody },
+      { headers: { "cf-connecting-ip": "203.0.113.10" } },
+    );
+
+    // A misbehaving rate-limit backend must never lock real users out.
+    expect(response.status).toEqual(200);
+  });
+
+  it("still blocks when the rateLimit adapter denies the request", async () => {
+    // Companion to the test above: proves the fail-open result comes from the
+    // catch block, and not from the throttling branch never running at all.
+    const consumed: Array<{ scope: string; key: string }> = [];
+    const denyingRateLimit = {
+      consume: async (scope: string, key: string) => {
+        consumed.push({ scope, key });
+        return { allowed: false, retryAfterSeconds: 30 };
+      },
+    };
+
+    const { oauthApp, env } = await getTestServer({
+      rateLimit: denyingRateLimit,
+    });
+    await seedThrottledTenant(env);
+    const oauthClient = testClient(oauthApp, env);
+
+    const response = await oauthClient.co.authenticate.$post(
+      { json: authenticateBody },
+      { headers: { "cf-connecting-ip": "203.0.113.10" } },
+    );
+
+    expect(response.status).toEqual(429);
+    expect(consumed).toHaveLength(1);
+    expect(consumed[0]?.scope).toBe("pre-login");
+    expect(consumed[0]?.key).toBe("tenantId:203.0.113.10");
   });
 });
