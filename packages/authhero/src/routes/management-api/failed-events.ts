@@ -22,6 +22,18 @@ const listFailedEventsResponseSchema = z.object({
   limit: z.number(),
   length: z.number(),
 });
+
+/**
+ * Upper bound on a single bulk-retry call. Each id is a separate adapter
+ * round-trip, so an unbounded list would let one request hold a worker for
+ * an arbitrary time. Operators with a larger backlog page through it.
+ */
+const BULK_RETRY_MAX_IDS = 100;
+
+const bulkRetryResponseSchema = z.object({
+  replayed: z.array(z.string()),
+  not_found: z.array(z.string()),
+});
 const getRoot = defineRoute({
   route: createRoute({
     tags: ["failed-events"],
@@ -124,7 +136,70 @@ const postByIdRetry = defineRoute({
   },
 });
 
+const postBulkRetry = defineRoute({
+  route: createRoute({
+    tags: ["failed-events"],
+    method: "post",
+    path: "/bulk-retry",
+    request: {
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
+      body: {
+        content: {
+          "application/json": {
+            schema: z.object({
+              ids: z.array(z.string()).min(1).max(BULK_RETRY_MAX_IDS),
+            }),
+          },
+        },
+      },
+    },
+    security: [
+      {
+        Bearer: ["update:logs"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: bulkRetryResponseSchema,
+          },
+        },
+        description: "Per-id replay result",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
+    const outbox = ctx.env.data.outbox;
+    if (!outbox) {
+      throw new HTTPException(501, {
+        message: "Outbox is not configured for this adapter",
+      });
+    }
+
+    const { ids } = ctx.req.valid("json");
+
+    const replayed: string[] = [];
+    const notFound: string[] = [];
+    // A repeated id would replay once and then miss (the row is no longer
+    // dead-lettered), landing the same id in both buckets. Dedupe first so
+    // each id gets exactly one verdict, in the order it was sent.
+    for (const id of new Set(ids)) {
+      // Same tenant scoping as the single-event retry: a token for tenant A
+      // can never reach into tenant B's dead-letter queue. One unknown id
+      // reports as not_found rather than failing the whole batch.
+      const wasReplayed = await outbox.replay(id, tenantId);
+      (wasReplayed ? replayed : notFound).push(id);
+    }
+
+    return ctx.json({ replayed, not_found: notFound });
+  },
+});
+
 export const failedEventsRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
-}>().openapiRoutes([getRoot, postByIdRetry] as const);
+}>().openapiRoutes([getRoot, postBulkRetry, postByIdRetry] as const);

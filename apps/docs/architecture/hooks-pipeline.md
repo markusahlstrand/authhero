@@ -93,12 +93,12 @@ After the request handler returns, the `outboxMiddleware` flushes the synchronou
 
 Four destinations ship today:
 
-| Destination | `accepts()` | `deliver()` |
-|---|---|---|
-| `LogsDestination` | `!event.event_type.startsWith("hook.")` | writes an `AuditEvent` to the `logs` table |
-| `WebhookDestination` | `event.event_type.startsWith("hook.")` | POSTs to each enabled webhook whose `trigger_id` matches, with `Idempotency-Key: {event.id}` and a 10s `AbortController` timeout |
-| `CodeHookDestination` | `event.event_type.startsWith("hook.")` | runs each enabled **code hook** whose `trigger_id` matches through the `codeExecutor`, persists an `action_executions` record, and throws if any hook failed so the event is retried. No-op when no executor is configured. Listed **after** `WebhookDestination` |
-| `RegistrationFinalizerDestination` | `event.event_type === "hook.post-user-registration"` | sets `user.registration_completed_at` (listed **after** the delivery destinations so the flag only flips when webhook **and** code-hook delivery succeeded) |
+| Destination                        | `accepts()`                                          | `deliver()`                                                                                                                                                                                                                                                       |
+| ---------------------------------- | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `LogsDestination`                  | `!event.event_type.startsWith("hook.")`              | writes an `AuditEvent` to the `logs` table                                                                                                                                                                                                                        |
+| `WebhookDestination`               | `event.event_type.startsWith("hook.")`               | POSTs to each enabled webhook whose `trigger_id` matches, with `Idempotency-Key: {event.id}` and a 10s `AbortController` timeout                                                                                                                                  |
+| `CodeHookDestination`              | `event.event_type.startsWith("hook.")`               | runs each enabled **code hook** whose `trigger_id` matches through the `codeExecutor`, persists an `action_executions` record, and throws if any hook failed so the event is retried. No-op when no executor is configured. Listed **after** `WebhookDestination` |
+| `RegistrationFinalizerDestination` | `event.event_type === "hook.post-user-registration"` | sets `user.registration_completed_at` (listed **after** the delivery destinations so the flag only flips when webhook **and** code-hook delivery succeeded)                                                                                                       |
 
 `WebhookDestination` and `CodeHookDestination` both accept `hook.*` events, so a single `hook.post-user-registration` / `hook.post-user-deletion` event fans out to webhooks **and** code hooks. The fan-out is not independent per destination: the relay runs an event's destinations in order and stops the loop at the first failure (step 2 above), so a webhook failure short-circuits the code-hook destination on that pass. The whole event is retried later, re-running every destination — which is why each destination must be idempotent.
 
@@ -114,10 +114,11 @@ Destinations are constructed per request in `getDestinations(ctx)` so they can c
 
 ## Dead-letter & replay
 
-When an event exhausts `maxRetries` (default 5), the relay writes `dead_lettered_at` + `final_error` on the row and marks it processed so it stops consuming relay capacity. Two management endpoints expose the queue:
+When an event exhausts `maxRetries` (default 5), the relay writes `dead_lettered_at` + `final_error` on the row and marks it processed so it stops consuming relay capacity. Three management endpoints expose the queue:
 
 - `GET /api/v2/failed-events?page=0&per_page=50[&include_totals=true]` — list dead-lettered events for the authenticated tenant, newest first.
 - `POST /api/v2/failed-events/:id/retry` — clear `dead_lettered_at`, `final_error`, `processed_at`, `retry_count`, `next_retry_at`, `error`. The next relay pass picks it up.
+- `POST /api/v2/failed-events/bulk-retry` — the same replay for up to 100 ids at once, reporting `{ replayed, not_found }` per id rather than failing the batch.
 
 See the [Failed events admin reference](../customization/failed-events.md) for the request/response shapes.
 
