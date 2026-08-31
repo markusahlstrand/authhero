@@ -192,6 +192,135 @@ describe("management-api failed-events", () => {
     ).toBe(true);
   });
 
+  it("bulk-replays several dead-lettered events and reports unknown ids", async () => {
+    const { managementApp, env } = await getTestServer();
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const first = await seedDeadLetteredEvent(env, "tenantId");
+    const second = await seedDeadLetteredEvent(env, "tenantId");
+
+    const response = await (managementClient["failed-events"] as any)[
+      "bulk-retry"
+    ].$post(
+      {
+        json: { ids: [first, "does-not-exist", second] },
+        header: { "tenant-id": "tenantId" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as {
+      replayed: string[];
+      not_found: string[];
+    };
+    // One unknown id must not sink the ids around it.
+    expect(body.replayed.sort()).toEqual([first, second].sort());
+    expect(body.not_found).toEqual(["does-not-exist"]);
+
+    const unprocessed = await env.data.outbox.getUnprocessed(10);
+    const unprocessedIds = unprocessed.map((e: any) => e.id);
+    expect(unprocessedIds).toContain(first);
+    expect(unprocessedIds).toContain(second);
+
+    const listAfter = await env.data.outbox.listFailed("tenantId", {});
+    expect(listAfter.events.length).toBe(0);
+  });
+
+  it("refuses to bulk-replay events belonging to a different tenant", async () => {
+    const { managementApp, env } = await getTestServer();
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    await env.data.tenants.create({
+      id: "otherTenant",
+      friendly_name: "Other Tenant",
+      audience: "https://other.example.com",
+      sender_email: "login@other.example.com",
+      sender_name: "Other",
+    });
+    const otherTenantEventId = await seedDeadLetteredEvent(env, "otherTenant");
+    const ownEventId = await seedDeadLetteredEvent(env, "tenantId");
+
+    const response = await (managementClient["failed-events"] as any)[
+      "bulk-retry"
+    ].$post(
+      {
+        json: { ids: [ownEventId, otherTenantEventId] },
+        header: { "tenant-id": "tenantId" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as {
+      replayed: string[];
+      not_found: string[];
+    };
+    expect(body.replayed).toEqual([ownEventId]);
+    expect(body.not_found).toEqual([otherTenantEventId]);
+
+    const stillFailed = await env.data.outbox.listFailed("otherTenant", {});
+    expect(
+      stillFailed.events.some((e: any) => e.id === otherTenantEventId),
+    ).toBe(true);
+  });
+
+  it("gives a repeated id a single verdict", async () => {
+    const { managementApp, env } = await getTestServer();
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const id = await seedDeadLetteredEvent(env, "tenantId");
+
+    const response = await (managementClient["failed-events"] as any)[
+      "bulk-retry"
+    ].$post(
+      {
+        json: { ids: [id, id] },
+        header: { "tenant-id": "tenantId" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as {
+      replayed: string[];
+      not_found: string[];
+    };
+    expect(body.replayed).toEqual([id]);
+    expect(body.not_found).toEqual([]);
+  });
+
+  it("rejects an empty or oversized id list", async () => {
+    const { managementApp, env } = await getTestServer();
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const empty = await (managementClient["failed-events"] as any)[
+      "bulk-retry"
+    ].$post(
+      {
+        json: { ids: [] },
+        header: { "tenant-id": "tenantId" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(empty.status).toBe(400);
+
+    const tooMany = await (managementClient["failed-events"] as any)[
+      "bulk-retry"
+    ].$post(
+      {
+        json: { ids: Array.from({ length: 101 }, (_, i) => `evt-${i}`) },
+        header: { "tenant-id": "tenantId" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(tooMany.status).toBe(400);
+  });
+
   it("returns 404 when replaying an unknown event id", async () => {
     const { managementApp, env } = await getTestServer();
     const managementClient = testClient(managementApp, env);

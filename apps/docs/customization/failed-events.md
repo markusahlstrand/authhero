@@ -12,7 +12,7 @@ When an outbox event exceeds its retry budget (default 5 attempts, exponential b
 - `final_error` set to the last failure reason
 - All previous columns (`retry_count`, `error`, `payload`, …) preserved for forensics
 
-The management API exposes two endpoints for operators to inspect and replay dead-lettered events.
+The management API exposes three endpoints for operators to inspect and replay dead-lettered events.
 
 ## `GET /api/v2/failed-events`
 
@@ -28,11 +28,11 @@ tenant-id: <tenant-id>
 
 ### Query parameters
 
-| Param            | Type    | Default | Description                                          |
-| ---------------- | ------- | ------- | ---------------------------------------------------- |
-| `page`           | number  | `0`     | Zero-based page index.                               |
-| `per_page`       | number  | `50`    | Page size.                                           |
-| `include_totals` | boolean | `false` | When `true`, the response includes `length`.         |
+| Param            | Type    | Default | Description                                  |
+| ---------------- | ------- | ------- | -------------------------------------------- |
+| `page`           | number  | `0`     | Zero-based page index.                       |
+| `per_page`       | number  | `50`    | Page size.                                   |
+| `include_totals` | boolean | `false` | When `true`, the response includes `length`. |
 
 ### Response
 
@@ -99,12 +99,47 @@ It does **not** touch `claimed_by` / `claim_expires_at`, because those expire na
 
 After replay, the event behaves identically to a freshly-enqueued one. Destinations must still be idempotent — the payload and `id` are unchanged, so webhooks with `Idempotency-Key` will dedupe correctly on the receiving side.
 
+## `POST /api/v2/failed-events/bulk-retry`
+
+Replays up to 100 dead-lettered events in one call — the usual shape of a
+recovery after a destination was down for a while.
+
+### Request
+
+```http
+POST /api/v2/failed-events/bulk-retry
+Authorization: Bearer <management-api-token>
+tenant-id: <tenant-id>
+Content-Type: application/json
+
+{ "ids": ["01HY…", "01HZ…"] }
+```
+
+### Response
+
+```json
+{
+  "replayed": ["01HY…"],
+  "not_found": ["01HZ…"]
+}
+```
+
+The call reports per id instead of failing as a unit: an id that is unknown,
+already replayed, or owned by another tenant lands in `not_found` while the
+rest still replay. Repeated ids are deduplicated, so every id gets exactly one
+verdict.
+
+### Errors
+
+- `400 Bad Request` — `ids` is empty or holds more than 100 entries. Page through a larger backlog.
+- `501 Not Implemented` — the current tenant's `DataAdapters` has no `outbox`.
+
 ## Operating the queue
 
 - **Alerting**. The relay calls `console.warn(...)` on dead-letter. Wire that to your log aggregation for noisy-neighbor visibility, or poll `GET /failed-events` from an operator dashboard.
-- **Bulk replay**. Not yet exposed as a single endpoint — iterate the list and POST each id individually. Tracked in [#953](https://github.com/markusahlstrand/authhero/issues/953) if this becomes painful.
-- **Manual discard**. Not yet exposed — dead-lettered events age out via the `cleanup` retention sweep along with normally-processed events.
-- **Auth scopes**. `GET` requires `read:logs`. `POST` requires `update:logs`. Both are tenant-scoped — dead-lettered events from other tenants are invisible.
+- **Bulk replay**. Use `POST /failed-events/bulk-retry` with up to 100 ids per call.
+- **Manual discard**. Not yet exposed — dead-lettered events age out via the `cleanup` retention sweep along with normally-processed events. Tracked in [#953](https://github.com/markusahlstrand/authhero/issues/953); it needs a new `OutboxAdapter` method, so it is a contract change across every adapter.
+- **Auth scopes**. `GET` requires `read:logs`. Both `POST` endpoints require `update:logs`. All are tenant-scoped — dead-lettered events from other tenants are invisible.
 
 ## When to suspect the dead-letter queue
 
