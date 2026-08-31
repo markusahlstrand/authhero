@@ -1,5 +1,34 @@
 # @authhero/kysely-adapter
 
+## 12.6.2
+
+### Patch Changes
+
+- 8b0ed6f: Report the real pagination window from `actions.list` when `include_totals` is
+  false. It previously returned `start: 0, limit: 0, length: 0` regardless of the
+  requested page, so callers that paginate without totals could not tell where
+  the page started or that it held any rows at all. `start`/`limit` now describe
+  the requested window and `length` is the number of rows on the page, matching
+  the `include_totals` branch.
+- 4ff665a: Escape all values interpolated into Lucene `q` filters with `escapeLuceneValue`. Follow-up to the tokenize-before-OR-split fix (#1264): the remaining raw interpolations (emails, usernames, user ids, client ids, linked_to lookups, entity names in the multi-tenancy sync hooks, and the SCIM/DCR lookups) now go through the shared escaping helper, so a value containing whitespace, quotes or `OR` can never widen a query into extra clauses. The kysely resourceServers list's single-clause fast path now unquotes the operand (via `unquoteLuceneValue`) so quoted values keep matching.
+- ae09a9b: Add `syncCustomDomains`, a cron-driven sweep that reconciles every custom hostname in the Cloudflare zone against the stored custom-domain rows.
+
+  Custom-domain state only ever refreshed when a single domain was read by id: `list` and `getByDomain` are deliberately DB-only, so a hostname that finished validation at the edge stayed `pending` in the database until someone opened its detail page. The sweep enumerates Cloudflare-first (one paginated list call per 50 hostnames) and shares its merge/write-back logic with `get`, so the interactive and scheduled refresh paths cannot drift apart.
+
+  Also fixes `verification` persistence, which the sweep depends on:
+  - **drizzle**: `verification` was written to its text column as a raw object, so SQLite rejected the statement ("Too few parameter values were provided") and the accompanying `status` change was lost — a custom domain could never be marked `ready`. It is now stringified on write and parsed on read.
+  - **kysely**: `getByDomain` returned `verification` as an unparsed JSON string while `get` returned an object. Both now parse it.
+
+  The control-plane template now reads `CLOUDFLARE_ZONE_ENTERPRISE`, so a deployment on an Enterprise zone gets the tenant-ownership checks it has always been entitled to. Unset, behaviour is unchanged.
+
+- f80567b: Release the outbox claim when replaying a dead-lettered event. `deadLetter` leaves `claimed_by` / `claim_expires_at` set from the relay pass that retired the event (unlike `markRetry`, which clears them), so replaying via `POST /api/v2/failed-events/{id}/retry` inside the 30-second lease window left the event invisible to `getUnprocessed` and the operator's retry appeared to do nothing.
+- Updated dependencies [86e991b]
+- Updated dependencies [bb9da90]
+- Updated dependencies [90b21e4]
+- Updated dependencies [b775994]
+  - @authhero/adapter-interfaces@4.12.0
+  - @authhero/proxy@0.10.11
+
 ## 12.6.1
 
 ### Patch Changes

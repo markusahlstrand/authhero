@@ -1,5 +1,72 @@
 # authhero
 
+## 9.10.0
+
+### Minor Changes
+
+- 6aaafb4: Add a `pipeline` outbox destination that archives audit events to a Cloudflare Pipelines stream (landing them in R2 as an Iceberg table). Configure with `init({ outbox: { pipeline: { endpoint, token } } })`, or pass `pipeline` to `createDefaultDestinations` for the cron drain path. No destination is registered when the config is absent, so existing deployments are unaffected.
+- bb9da90: Make RFC 7523 client assertions single use and bound their lifetime.
+
+  `private_key_jwt` and `client_secret_jwt` assertions were verified but never spent: `jti` was parsed and discarded, and `exp` had no upper bound, so a captured assertion authenticated the client for its full — unbounded — lifetime.
+  - An assertion is now rejected when `exp - iat` exceeds a maximum (default 300s), and its absolute `exp` is capped at `now + max` so omitting `iat` cannot sidestep the bound. Configurable via `CLIENT_ASSERTION_MAX_LIFETIME_SECONDS`, alongside the new `CLIENT_ASSERTION_LEEWAY_SECONDS`.
+  - The `jti` is spent at `POST /oauth/token` after signature verification and before the client counts as authenticated; presenting it again returns `invalid_client`. The marker is keyed on a digest of `client_assertion:<client_id>:<jti>`, so two clients may use the same `jti` value while one client cannot reuse its own.
+
+  Markers are stored through the existing codes adapter as a new `client_assertion_jti` code type, so they are tenant-scoped, atomic on the `(code_id, code_type)` primary key, and swept by the existing `cleanupCodes` retention job. `login_id` on `codeInsertSchema` is now optional — a client assertion has no login session, and the column was already nullable in every adapter.
+
+  Clients that mint assertions with a long `exp` must shorten it, and clients that reuse a fixed `jti` must generate a new one per request.
+
+- f2f8ff4: Add `POST /api/v2/failed-events/bulk-retry` to the management API. It replays up to 100 dead-lettered outbox events in one call, scoped to the caller's tenant like the single-event retry, and reports `{ replayed, not_found }` per id so one unknown id does not sink the rest of the batch.
+- c86912c: Add structured observability metrics to the outbox relay. Both the inline
+  per-request relay and the cron drain can now emit
+  `outbox_events_processed_total`, `outbox_events_dead_lettered_total` and
+  `outbox_retry_delay_seconds` to an optional sink configured via
+  `init({ outbox: { metrics } })` and `runOutboxRelay({ metrics })`. The core
+  package stays sink-agnostic; `@authhero/cloudflare-adapter` ships an Analytics
+  Engine implementation as `createAnalyticsEngineOutboxMetricsSink`.
+- 6744248: Route every custom-claim write path through one shared reserved-claim set (`helpers/reserved-claims.ts`).
+
+  Previously three divergent lists governed which claim names tenant-supplied code could set: the credentials-exchange hook API protected the seven JWT-spec names, `createServiceToken` protected nine, and `/userinfo` protected none at all. Claims the mint computes — `scope`, `permissions`, `tenant_id`, `sid`, `act`, `org_id`, `org_name`, `requested_userinfo_claims`, and on the ID token `nonce`, `at_hash`, `c_hash`, `s_hash` — were therefore writable from a hook on some paths, and `/userinfo` let a hook replace `sub`. All of them are now reserved on every path: both `setCustomClaim` closures in `createAuthTokens`, both in `/userinfo`, the `params.customClaims` merge, and both service-token mints.
+
+  Behaviour change: a colliding claim name is now **dropped with a warning in the tenant log stream** instead of throwing. The seven JWT-spec names previously failed the whole exchange; a hook that picks an unlucky claim name now degrades to "the claim isn't there". Non-colliding claims on the same call are unaffected, and tokens for requests that set no colliding claim keep their exact claim set.
+
+  Internal `auth-service` mints still allow `azp` to be overridden for downstream attribution; client-bound mints keep it locked to the registered client id.
+
+### Patch Changes
+
+- 2e77d57: Validate the trigger id on `PATCH /actions/triggers/{triggerId}/bindings` against the triggers a code hook can actually run on. A trigger outside that set (for example `post-user-update`) was previously cast through and persisted as a hook row that no dispatcher would ever pick up; it now returns a 400 instead.
+- 86e991b: Add `actionResponseSchema` (and `actionSecretNameSchema`) to `@authhero/adapter-interfaces`: the action shape safe to return over HTTP, with secrets narrowed to `{ name }`. The management-API action and action-trigger-binding routes now declare their responses with it, so a secret `value` can no longer reach a response body — previously the handlers redacted at runtime but the OpenAPI schema still advertised and permitted `value`. `actionSchema` keeps `value`, since it describes the stored shape the code-hook executor reads at execution time.
+- c60fee4: Capture entity state on branding and prompt audit events. Branding updates, universal-login template writes and deletes, prompt-settings updates and custom-text writes and deletes now carry `before`/`after`/`diff` on the emitted audit event, like themes and users already did.
+- 318af44: Write the management API's CORS headers from a single helper so the preflight response and the actual response can no longer drift apart. Also stops `Vary: Origin` being appended twice on ordinary responses.
+- 33e4190: Enforce the client's `grant_types` allowlist at `POST /oauth/token` before dispatching to the grant flow. Previously the check ran after the flow, so a rejected `unauthorized_client` request had already consumed the OTP or authorization code and, for the passwordless grant, created an orphaned session and refresh token. A disallowed grant now fails fast with no side effects.
+- 4ff665a: Escape all values interpolated into Lucene `q` filters with `escapeLuceneValue`. Follow-up to the tokenize-before-OR-split fix (#1264): the remaining raw interpolations (emails, usernames, user ids, client ids, linked_to lookups, entity names in the multi-tenancy sync hooks, and the SCIM/DCR lookups) now go through the shared escaping helper, so a value containing whitespace, quotes or `OR` can never widen a query into extra clauses. The kysely resourceServers list's single-clause fast path now unquotes the operand (via `unquoteLuceneValue`) so quoted values keep matching.
+- 90b21e4: Fix an infinite redirect loop on `/authorize/resume` when a vanity/custom
+  domain is fronted by `@authhero/proxy` with `rewrite_location` composed into
+  the route chain for control-plane upstreams.
+
+  The control plane deliberately 302s `/authorize/resume` to the host that
+  served the original `/authorize` request so the session cookie lands on the
+  right domain. `rewrite_location` saw that Location's origin match the route's
+  upstream origin and rewrote it back onto the vanity host, where the host
+  check failed again — the browser bounced on `/authorize/resume` forever.
+
+  Those deliberate cross-host redirects (in `finalizeAuthenticatedSession` and
+  `resumeLoginSession`) are now stamped with an
+  `x-authhero-preserve-location: 1` response header, and `rewrite_location`
+  leaves a marked Location untouched, stripping the marker before the response
+  reaches the browser. Same-host/relative redirects are unmarked and rewrite
+  exactly as before. The header name is exported from
+  `@authhero/adapter-interfaces` as `PRESERVE_LOCATION_HEADER`.
+
+- b775994: Add a typed `FeatureNotSupportedError` (plus an `isFeatureNotSupportedError` guard) to `@authhero/adapter-interfaces` and throw it from the AWS DynamoDB actions, action-versions and action-executions stubs, so callers can map an unimplemented feature to a 501 instead of a generic 500. The three action adapter factories are now re-exported from `@authhero/aws-adapter`'s package root alongside the other adapters. Internally, the `ensure-username` and `account-linking` template hooks now share a single `runTemplateHook` helper rather than duplicating the event stub and re-fetch.
+- Updated dependencies [86e991b]
+- Updated dependencies [bb9da90]
+- Updated dependencies [90b21e4]
+- Updated dependencies [b775994]
+  - @authhero/adapter-interfaces@4.12.0
+  - @authhero/proxy@0.10.11
+  - @authhero/saml@0.5.10
+  - @authhero/widget@0.38.7
+
 ## 9.9.1
 
 ### Patch Changes

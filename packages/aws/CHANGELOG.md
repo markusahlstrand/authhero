@@ -1,5 +1,27 @@
 # @authhero/aws-adapter
 
+## 1.3.2
+
+### Patch Changes
+
+- bb9da90: Make RFC 7523 client assertions single use and bound their lifetime.
+
+  `private_key_jwt` and `client_secret_jwt` assertions were verified but never spent: `jti` was parsed and discarded, and `exp` had no upper bound, so a captured assertion authenticated the client for its full — unbounded — lifetime.
+  - An assertion is now rejected when `exp - iat` exceeds a maximum (default 300s), and its absolute `exp` is capped at `now + max` so omitting `iat` cannot sidestep the bound. Configurable via `CLIENT_ASSERTION_MAX_LIFETIME_SECONDS`, alongside the new `CLIENT_ASSERTION_LEEWAY_SECONDS`.
+  - The `jti` is spent at `POST /oauth/token` after signature verification and before the client counts as authenticated; presenting it again returns `invalid_client`. The marker is keyed on a digest of `client_assertion:<client_id>:<jti>`, so two clients may use the same `jti` value while one client cannot reuse its own.
+
+  Markers are stored through the existing codes adapter as a new `client_assertion_jti` code type, so they are tenant-scoped, atomic on the `(code_id, code_type)` primary key, and swept by the existing `cleanupCodes` retention job. `login_id` on `codeInsertSchema` is now optional — a client assertion has no login session, and the column was already nullable in every adapter.
+
+  Clients that mint assertions with a long `exp` must shorten it, and clients that reuse a fixed `jti` must generate a new one per request.
+
+- b775994: Add a typed `FeatureNotSupportedError` (plus an `isFeatureNotSupportedError` guard) to `@authhero/adapter-interfaces` and throw it from the AWS DynamoDB actions, action-versions and action-executions stubs, so callers can map an unimplemented feature to a 501 instead of a generic 500. The three action adapter factories are now re-exported from `@authhero/aws-adapter`'s package root alongside the other adapters. Internally, the `ensure-username` and `account-linking` template hooks now share a single `runTemplateHook` helper rather than duplicating the event stub and re-fetch.
+- Updated dependencies [86e991b]
+- Updated dependencies [bb9da90]
+- Updated dependencies [90b21e4]
+- Updated dependencies [b775994]
+  - @authhero/adapter-interfaces@4.12.0
+  - @authhero/proxy@0.10.11
+
 ## 1.3.1
 
 ### Patch Changes

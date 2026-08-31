@@ -1,5 +1,26 @@
 # @authhero/multi-tenancy
 
+## 15.0.1
+
+### Patch Changes
+
+- 4ff665a: Escape all values interpolated into Lucene `q` filters with `escapeLuceneValue`. Follow-up to the tokenize-before-OR-split fix (#1264): the remaining raw interpolations (emails, usernames, user ids, client ids, linked_to lookups, entity names in the multi-tenancy sync hooks, and the SCIM/DCR lookups) now go through the shared escaping helper, so a value containing whitespace, quotes or `OR` can never widen a query into extra clauses. The kysely resourceServers list's single-clause fast path now unquotes the operand (via `unquoteLuceneValue`) so quoted values keep matching.
+- Updated dependencies [2e77d57]
+- Updated dependencies [86e991b]
+- Updated dependencies [6aaafb4]
+- Updated dependencies [c60fee4]
+- Updated dependencies [bb9da90]
+- Updated dependencies [318af44]
+- Updated dependencies [f2f8ff4]
+- Updated dependencies [33e4190]
+- Updated dependencies [4ff665a]
+- Updated dependencies [c86912c]
+- Updated dependencies [90b21e4]
+- Updated dependencies [6744248]
+- Updated dependencies [b775994]
+  - authhero@9.10.0
+  - @authhero/adapter-interfaces@4.12.0
+
 ## 15.0.0
 
 ### Major Changes
