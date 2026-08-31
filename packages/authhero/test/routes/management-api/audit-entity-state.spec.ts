@@ -392,4 +392,315 @@ describe("management-api audit entity state", () => {
       },
     });
   });
+
+  it("records only an after state when an email template is created", async () => {
+    const { managementApp, env } = await getTestServer({ outbox: true });
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const events = captureAuditEvents(env.data.outbox!);
+
+    const response = await managementClient["email-templates"].$post(
+      {
+        header: { "tenant-id": "tenantId" },
+        json: {
+          template: "welcome_email",
+          body: "Welcome!",
+          from: "hello@example.com",
+          subject: "Welcome",
+          syntax: "liquid",
+          includeEmailInRedirect: false,
+          enabled: true,
+        },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(response.status).toBe(201);
+
+    const event = events.find((e) => e.target.type === "email_template");
+    expect(event?.target.before).toBeUndefined();
+    expect(event?.target.after?.subject).toBe("Welcome");
+  });
+
+  it("records before/after/diff for an email-template upsert over an existing row", async () => {
+    const { managementApp, env } = await getTestServer({ outbox: true });
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    await env.data.emailTemplates.create("tenantId", {
+      template: "welcome_email",
+      body: "Old body",
+      from: "hello@example.com",
+      subject: "Old subject",
+      syntax: "liquid",
+      includeEmailInRedirect: false,
+      enabled: true,
+    });
+
+    const events = captureAuditEvents(env.data.outbox!);
+
+    const response = await managementClient["email-templates"][
+      ":templateName"
+    ].$put(
+      {
+        header: { "tenant-id": "tenantId" },
+        param: { templateName: "welcome_email" },
+        json: {
+          template: "welcome_email",
+          body: "New body",
+          from: "hello@example.com",
+          subject: "New subject",
+          syntax: "liquid",
+          includeEmailInRedirect: false,
+          enabled: true,
+        },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(response.status).toBe(200);
+
+    const event = events.find((e) => e.target.type === "email_template");
+    expect(event?.target.before?.subject).toBe("Old subject");
+    expect(event?.target.after?.subject).toBe("New subject");
+    expect(event?.target.diff?.subject).toEqual({
+      old: "Old subject",
+      new: "New subject",
+    });
+  });
+
+  it("records before/after/diff for an email-template patch", async () => {
+    const { managementApp, env } = await getTestServer({ outbox: true });
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    await env.data.emailTemplates.create("tenantId", {
+      template: "welcome_email",
+      body: "Old body",
+      from: "hello@example.com",
+      subject: "Old subject",
+      syntax: "liquid",
+      includeEmailInRedirect: false,
+      enabled: true,
+    });
+
+    const events = captureAuditEvents(env.data.outbox!);
+
+    const response = await managementClient["email-templates"][
+      ":templateName"
+    ].$patch(
+      {
+        header: { "tenant-id": "tenantId" },
+        param: { templateName: "welcome_email" },
+        json: { subject: "Patched subject" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(response.status).toBe(200);
+
+    const event = events.find((e) => e.target.type === "email_template");
+    expect(event?.target.before?.subject).toBe("Old subject");
+    expect(event?.target.after?.subject).toBe("Patched subject");
+    expect(event?.target.diff?.subject).toEqual({
+      old: "Old subject",
+      new: "Patched subject",
+    });
+  });
+
+  it("records the deleted email template as the before state", async () => {
+    const { managementApp, env } = await getTestServer({ outbox: true });
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    await env.data.emailTemplates.create("tenantId", {
+      template: "welcome_email",
+      body: "Doomed body",
+      from: "hello@example.com",
+      subject: "Doomed subject",
+      syntax: "liquid",
+      includeEmailInRedirect: false,
+      enabled: true,
+    });
+
+    const events = captureAuditEvents(env.data.outbox!);
+
+    const response = await managementClient["email-templates"][
+      ":templateName"
+    ].$delete(
+      {
+        header: { "tenant-id": "tenantId" },
+        param: { templateName: "welcome_email" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(response.status).toBe(204);
+
+    const event = events.find((e) => e.target.type === "email_template");
+    expect(event?.target.before?.subject).toBe("Doomed subject");
+    expect(event?.target.after).toBeUndefined();
+  });
+
+  it("records before/after/diff for a form update", async () => {
+    const { managementApp, env } = await getTestServer({ outbox: true });
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const form = await env.data.forms.create("tenantId", {
+      name: "Old form name",
+    });
+
+    const events = captureAuditEvents(env.data.outbox!);
+
+    const response = await managementClient.forms[":id"].$patch(
+      {
+        header: { "tenant-id": "tenantId" },
+        param: { id: form.id },
+        json: { name: "New form name" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(response.status).toBe(200);
+
+    const event = events.find((e) => e.target.type === "form");
+    expect(event?.target.before?.name).toBe("Old form name");
+    expect(event?.target.after?.name).toBe("New form name");
+    expect(event?.target.diff?.name).toEqual({
+      old: "Old form name",
+      new: "New form name",
+    });
+  });
+
+  it("records the deleted form as the before state", async () => {
+    const { managementApp, env } = await getTestServer({ outbox: true });
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const form = await env.data.forms.create("tenantId", {
+      name: "Doomed form",
+    });
+
+    const events = captureAuditEvents(env.data.outbox!);
+
+    const response = await managementClient.forms[":id"].$delete(
+      { header: { "tenant-id": "tenantId" }, param: { id: form.id } },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(response.status).toBe(200);
+
+    const event = events.find((e) => e.target.type === "form");
+    expect(event?.target.before?.name).toBe("Doomed form");
+    expect(event?.target.after).toBeUndefined();
+  });
+
+  it("records before/after/diff for a flow update", async () => {
+    const { managementApp, env } = await getTestServer({ outbox: true });
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const flow = await env.data.flows.create("tenantId", {
+      name: "Old flow name",
+      actions: [],
+    });
+
+    const events = captureAuditEvents(env.data.outbox!);
+
+    const response = await managementClient.flows[":id"].$patch(
+      {
+        header: { "tenant-id": "tenantId" },
+        param: { id: flow.id },
+        json: { name: "New flow name" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(response.status).toBe(200);
+
+    const event = events.find((e) => e.target.type === "flow");
+    expect(event?.target.before?.name).toBe("Old flow name");
+    expect(event?.target.after?.name).toBe("New flow name");
+    expect(event?.target.diff?.name).toEqual({
+      old: "Old flow name",
+      new: "New flow name",
+    });
+  });
+
+  it("records the deleted flow as the before state", async () => {
+    const { managementApp, env } = await getTestServer({ outbox: true });
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const flow = await env.data.flows.create("tenantId", {
+      name: "Doomed flow",
+      actions: [],
+    });
+
+    const events = captureAuditEvents(env.data.outbox!);
+
+    const response = await managementClient.flows[":id"].$delete(
+      { header: { "tenant-id": "tenantId" }, param: { id: flow.id } },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(response.status).toBe(200);
+
+    const event = events.find((e) => e.target.type === "flow");
+    expect(event?.target.before?.name).toBe("Doomed flow");
+    expect(event?.target.after).toBeUndefined();
+  });
+
+  it("records before/after/diff for a custom-domain update", async () => {
+    const { managementApp, env } = await getTestServer({ outbox: true });
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const customDomain = await env.data.customDomains.create("tenantId", {
+      domain: "auth.example.com",
+      type: "auth0_managed_certs",
+      tls_policy: "recommended",
+    });
+
+    const events = captureAuditEvents(env.data.outbox!);
+
+    const response = await managementClient["custom-domains"][":id"].$patch(
+      {
+        header: { "tenant-id": "tenantId" },
+        param: { id: customDomain.custom_domain_id },
+        json: { custom_client_ip_header: "cf-connecting-ip" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(response.status).toBe(200);
+
+    const event = events.find((e) => e.target.type === "custom_domain");
+    expect(event?.target.before?.domain).toBe("auth.example.com");
+    expect(event?.target.after?.custom_client_ip_header).toBe(
+      "cf-connecting-ip",
+    );
+    expect(event?.target.diff?.custom_client_ip_header?.new).toBe(
+      "cf-connecting-ip",
+    );
+  });
+
+  it("records the deleted custom domain as the before state", async () => {
+    const { managementApp, env } = await getTestServer({ outbox: true });
+    const managementClient = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const customDomain = await env.data.customDomains.create("tenantId", {
+      domain: "doomed.example.com",
+      type: "auth0_managed_certs",
+    });
+
+    const events = captureAuditEvents(env.data.outbox!);
+
+    const response = await managementClient["custom-domains"][":id"].$delete(
+      {
+        header: { "tenant-id": "tenantId" },
+        param: { id: customDomain.custom_domain_id },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(response.status).toBe(200);
+
+    const event = events.find((e) => e.target.type === "custom_domain");
+    expect(event?.target.before?.domain).toBe("doomed.example.com");
+    expect(event?.target.after).toBeUndefined();
+  });
 });

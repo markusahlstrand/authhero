@@ -107,16 +107,19 @@ const deleteForm = defineRoute({
   handler: async (ctx) => {
     const tenant_id = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
+    const existing = await ctx.env.data.forms.get(tenant_id, id);
     const result = await ctx.env.data.forms.remove(tenant_id, id);
     if (!result) {
       throw new HTTPException(404, { message: "Form not found" });
     }
 
+    // A delete has no after state — consumers fall back to `before`.
     await logMessage(ctx, tenant_id, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Delete a Form",
       targetType: "form",
       targetId: id,
+      ...(existing ? { beforeState: { ...existing } } : {}),
     });
 
     return ctx.text("OK");
@@ -152,6 +155,7 @@ const patchForm = defineRoute({
     const tenant_id = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
     const body = ctx.req.valid("json");
+    const existing = await ctx.env.data.forms.get(tenant_id, id);
     const result = await ctx.env.data.forms.update(tenant_id, id, body);
     if (!result) {
       throw new HTTPException(404, { message: "Form not found" });
@@ -166,6 +170,7 @@ const patchForm = defineRoute({
       description: "Update a Form",
       targetType: "form",
       targetId: id,
+      ...(existing ? { beforeState: { ...existing } } : {}),
       afterState: form as Record<string, unknown>,
     });
 
