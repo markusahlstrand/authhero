@@ -304,6 +304,10 @@ gtag('config', 'G-DNZWG3PF2L');`,
             },
             { text: "Hooks", link: "/features/hooks" },
             {
+              text: "User Creation Flow",
+              link: "/features/user-creation-flow",
+            },
+            {
               text: "Invitations & Tickets",
               link: "/features/invitations-and-tickets",
             },
@@ -533,6 +537,35 @@ gtag('config', 'G-DNZWG3PF2L');`,
             {
               text: "Built-in Adapters",
               link: "/customization/built-in-adapters",
+              collapsed: true,
+              items: [
+                { text: "Drizzle", link: "/customization/drizzle/" },
+                { text: "Kysely", link: "/customization/kysely/" },
+                { text: "AWS (DynamoDB)", link: "/customization/aws-adapter/" },
+                {
+                  text: "Cloudflare",
+                  link: "/customization/cloudflare-adapter/",
+                  collapsed: true,
+                  items: [
+                    {
+                      text: "Custom Domains",
+                      link: "/customization/cloudflare-adapter/custom-domains",
+                    },
+                    {
+                      text: "Analytics Engine",
+                      link: "/customization/cloudflare-adapter/analytics-engine",
+                    },
+                    {
+                      text: "R2 SQL",
+                      link: "/customization/cloudflare-adapter/r2-sql",
+                    },
+                    {
+                      text: "Cache",
+                      link: "/customization/cloudflare-adapter/cache",
+                    },
+                  ],
+                },
+              ],
             },
             {
               text: "Custom Auth Middleware",
@@ -566,6 +599,10 @@ gtag('config', 'G-DNZWG3PF2L');`,
                 {
                   text: "Page Templates (Liquid)",
                   link: "/customization/ui-widget/liquid-templates",
+                },
+                {
+                  text: "Client–Server Protocol",
+                  link: "/customization/ui-widget/client-server-protocol",
                 },
                 {
                   text: "API Reference",
@@ -673,6 +710,34 @@ gtag('config', 'G-DNZWG3PF2L');`,
           ],
         },
         {
+          text: "Apps & Tools",
+          collapsed: true,
+          items: [
+            {
+              text: "Create AuthHero CLI",
+              link: "/packages/create-authhero/",
+              collapsed: true,
+              items: [
+                { text: "Usage", link: "/packages/create-authhero/usage" },
+                {
+                  text: "Commands",
+                  link: "/packages/create-authhero/commands",
+                },
+              ],
+            },
+            {
+              text: "Admin Dashboard",
+              link: "/apps/admin/",
+              collapsed: true,
+              items: [
+                { text: "Installation", link: "/apps/admin/installation" },
+                { text: "Usage", link: "/apps/admin/usage" },
+                { text: "Development", link: "/apps/admin/development" },
+              ],
+            },
+          ],
+        },
+        {
           text: "Auth0 Comparison",
           collapsed: true,
           items: [
@@ -724,6 +789,7 @@ gtag('config', 'G-DNZWG3PF2L');`,
             { text: "Code Style", link: "/contributing/code-style" },
             { text: "Testing", link: "/contributing/testing" },
             { text: "Release Process", link: "/contributing/release-process" },
+            { text: "Troubleshooting", link: "/troubleshooting" },
           ],
         },
         {
