@@ -242,6 +242,8 @@ const patchById = defineRoute({
     const body = ctx.req.valid("json");
     const tenantId = requireTenantId(ctx);
 
+    const existing = await ctx.env.data.roles.get(tenantId, id);
+
     const updated = await ctx.env.data.roles.update(tenantId, id, body);
 
     if (!updated) {
@@ -255,6 +257,7 @@ const patchById = defineRoute({
       description: "Update a Role",
       targetType: "role",
       targetId: id,
+      ...(existing ? { beforeState: { ...existing } } : {}),
       afterState: role as unknown as Record<string, unknown>,
     });
 
@@ -290,17 +293,21 @@ const deleteById = defineRoute({
     const { id } = ctx.req.valid("param");
     const tenantId = requireTenantId(ctx);
 
+    const existing = await ctx.env.data.roles.get(tenantId, id);
+
     const deleted = await ctx.env.data.roles.remove(tenantId, id);
 
     if (!deleted) {
       throw new HTTPException(404);
     }
 
+    // A delete has no after state — consumers fall back to `before`.
     await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Delete a Role",
       targetType: "role",
       targetId: id,
+      ...(existing ? { beforeState: { ...existing } } : {}),
     });
 
     return ctx.text("OK");

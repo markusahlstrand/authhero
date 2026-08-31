@@ -182,8 +182,9 @@ const patchByHook_id = defineRoute({
     // the incoming trigger against the row being modified so a form hook can't
     // be moved onto a trigger that would never dispatch it (which stores
     // cleanly and then silently does nothing at runtime).
+    const existing = await ctx.env.data.hooks.get(tenantId, hook_id);
+
     if (hook.trigger_id) {
-      const existing = await ctx.env.data.hooks.get(tenantId, hook_id);
       if (!existing) {
         throw new HTTPException(404, { message: "Hook not found" });
       }
@@ -216,6 +217,7 @@ const patchByHook_id = defineRoute({
       description: "Update a Hook",
       targetType: "hook",
       targetId: hook_id,
+      ...(existing ? { beforeState: { ...existing } } : {}),
       afterState: result as Record<string, unknown>,
     });
 
@@ -299,17 +301,21 @@ const deleteByHook_id = defineRoute({
     const tenantId = requireTenantId(ctx);
     const { hook_id } = ctx.req.valid("param");
 
+    const existing = await ctx.env.data.hooks.get(tenantId, hook_id);
+
     const result = await ctx.env.data.hooks.remove(tenantId, hook_id);
 
     if (!result) {
       throw new HTTPException(404, { message: "Hook not found" });
     }
 
+    // A delete has no after state — consumers fall back to `before`.
     await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Delete a Hook",
       targetType: "hook",
       targetId: hook_id,
+      ...(existing ? { beforeState: { ...existing } } : {}),
     });
 
     return ctx.text("OK");
