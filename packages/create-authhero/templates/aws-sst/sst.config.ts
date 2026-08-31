@@ -50,6 +50,14 @@ export default $config({
     // ════════════════════════════════════════════════════════════════════════
     // Lambda Function
     // ════════════════════════════════════════════════════════════════════════
+    // To use a custom domain, pass `domain` here — it is a constructor
+    // option, not an assignable property:
+    //
+    //   new sst.aws.ApiGatewayV2("AuthHeroApi", {
+    //     domain: "auth.yourdomain.com",
+    //   });
+    //
+    // See https://sst.dev/docs/component/aws/apigatewayv2/#domain
     const api = new sst.aws.ApiGatewayV2("AuthHeroApi");
 
     const authFunction = new sst.aws.Function("AuthHeroFunction", {
@@ -72,16 +80,6 @@ export default $config({
     });
 
     api.route("$default", authFunction.arn);
-
-    // ════════════════════════════════════════════════════════════════════════
-    // Optional: Custom Domain
-    // ════════════════════════════════════════════════════════════════════════
-    // Uncomment and configure to use a custom domain:
-    //
-    // api.domain = {
-    //   name: "auth.yourdomain.com",
-    //   dns: sst.aws.dns(),
-    // };
 
     return {
       api: api.url,
