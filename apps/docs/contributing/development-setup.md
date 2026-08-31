@@ -33,7 +33,7 @@ pnpm install
 AuthHero is organized as a monorepo with several packages and applications:
 
 - `packages/`: Contains the core library and adapters
-- `apps/`: Contains the demo app and management dashboard
+- `apps/`: Contains the admin UI, the docs site, the marketing website and the conformance runner
 
 ## Running the Projects
 
