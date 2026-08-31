@@ -362,6 +362,50 @@ describe("action-trigger bindings invoke the deployed action code", () => {
     // codehooks.spec.ts) — here we only verify the binding round-trips.
   });
 
+  it("rejects a trigger that code hooks cannot bind to instead of storing it", async () => {
+    const { managementApp, env } = await getTestServer();
+    const client = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const createRes = await client.actions.actions.$post(
+      {
+        json: {
+          name: "unbindable-trigger-action",
+          code: "exports.onExecutePostLogin = async () => {}",
+          supported_triggers: [{ id: "post-login" }],
+        },
+        header: { "tenant-id": TENANT },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    const { id: actionId } = (await createRes.json()) as { id: string };
+
+    // `post-user-update` is a real hook trigger, but not one a code hook may
+    // run on. Previously it was cast through and persisted a hook row that no
+    // dispatcher would ever pick up.
+    const bindRes = await client.actions.triggers[":triggerId"].bindings.$patch(
+      {
+        param: { triggerId: "post-user-update" },
+        json: {
+          bindings: [{ ref: { type: "action_id", value: actionId } }],
+        },
+        header: { "tenant-id": TENANT },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(bindRes.status).toBe(400);
+    expect(await bindRes.text()).toContain(
+      "Trigger post-user-update does not support action bindings",
+    );
+
+    const hooks = await env.data.hooks.list(TENANT, {
+      q: 'trigger_id:"post-user-update"',
+    });
+    expect(
+      hooks.hooks.find((h) => "code_id" in h && h.code_id === actionId),
+    ).toBeUndefined();
+  });
+
   it("never returns a secret value on any action response path", async () => {
     const { executor } = makeRecordingExecutor();
     const { managementApp, env } = await getTestServer({

@@ -4,6 +4,7 @@ import {
   actionResponseSchema,
   LogTypes,
   escapeLuceneValue,
+  type HookInsert,
 } from "@authhero/adapter-interfaces";
 import { logMessage } from "../../helpers/logging";
 import { HTTPException } from "hono/http-exception";
@@ -30,6 +31,36 @@ function toInternalTriggerId(triggerId: string): string {
 
 function toAuth0TriggerId(triggerId: string): string {
   return REVERSE_TRIGGER_ID_MAP[triggerId] || triggerId;
+}
+
+/**
+ * The triggers a code hook may bind to, taken from the adapter contract's hook
+ * union rather than restated as a free-form string. `satisfies` fails the build
+ * if an entry here stops being a valid code-hook trigger.
+ *
+ * If the contract ever gains a new code-hook trigger that is missing from this
+ * list, the binding route rejects it with a 400 instead of persisting a hook
+ * row whose `trigger_id` no dispatcher recognises — a visible failure rather
+ * than a silently dead binding.
+ */
+type CodeHookTriggerId = Extract<HookInsert, { code_id: string }>["trigger_id"];
+
+const CODE_HOOK_TRIGGER_IDS = [
+  "post-user-login",
+  "credentials-exchange",
+  "pre-user-registration",
+  "post-user-registration",
+] as const satisfies readonly CodeHookTriggerId[];
+
+/**
+ * Resolve an Auth0-facing trigger id to the internal code-hook trigger it binds
+ * to, or `undefined` when it is not a trigger actions can run on.
+ */
+function toCodeHookTriggerId(triggerId: string): CodeHookTriggerId | undefined {
+  const internalTriggerId = toInternalTriggerId(triggerId);
+  return CODE_HOOK_TRIGGER_IDS.find(
+    (candidate) => candidate === internalTriggerId,
+  );
 }
 
 // Auth0's PATCH /actions/triggers/{id}/bindings sends ref as { type, value }
@@ -170,7 +201,12 @@ const patchByTriggerIdBindings = defineRoute({
     const tenantId = requireTenantId(ctx);
     const { triggerId } = ctx.req.valid("param");
     const { bindings } = ctx.req.valid("json");
-    const internalTriggerId = toInternalTriggerId(triggerId);
+    const internalTriggerId = toCodeHookTriggerId(triggerId);
+    if (!internalTriggerId) {
+      throw new HTTPException(400, {
+        message: `Trigger ${triggerId} does not support action bindings`,
+      });
+    }
 
     // Resolve and validate every binding (action exists, ref shape valid)
     // before mutating any state — partial removal of existing hooks
@@ -241,7 +277,7 @@ const patchByTriggerIdBindings = defineRoute({
       }
     }
 
-    const resultBindings: any[] = [];
+    const resultBindings: z.infer<typeof bindingResponseSchema>[] = [];
     for (let i = 0; i < resolved.length; i++) {
       const { binding, actionId, action } = resolved[i]!;
 
@@ -249,7 +285,7 @@ const patchByTriggerIdBindings = defineRoute({
       // Higher index = lower priority (first in array executes first)
       const hook = await ctx.env.data.hooks.create(tenantId, {
         hook_id: generateHookId(),
-        trigger_id: internalTriggerId as any,
+        trigger_id: internalTriggerId,
         code_id: actionId,
         enabled: true,
         synchronous: true,
