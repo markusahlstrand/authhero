@@ -125,7 +125,7 @@ export async function connectionCallback(
     state,
     "oauth2_state",
   );
-  if (!auth0state || !auth0state.connection_id) {
+  if (!auth0state || !auth0state.connection_id || !auth0state.login_id) {
     throw new JSONHTTPException(403, { message: "State not found" });
   }
 

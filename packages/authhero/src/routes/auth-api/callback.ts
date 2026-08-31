@@ -44,7 +44,7 @@ async function returnError(
     state,
     "oauth2_state",
   );
-  if (!oauth2code) {
+  if (!oauth2code || !oauth2code.login_id) {
     return redirectToErrorPage(ctx, "state_not_found");
   }
 
@@ -182,7 +182,7 @@ async function handleCallback(
           state,
           "oauth2_state",
         );
-        if (oauth2code) {
+        if (oauth2code?.login_id) {
           const loginSession = await ctx.env.data.loginSessions.get(
             ctx.var.tenant_id,
             oauth2code.login_id,

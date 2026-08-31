@@ -60,7 +60,7 @@ export async function ticketAuth(
   ctx.set("connection", realm);
 
   const code = await env.data.codes.get(tenant_id, ticketId, "ticket");
-  if (!code || code.used_at) {
+  if (!code || code.used_at || !code.login_id) {
     throw new JSONHTTPException(403, { message: "Ticket not found" });
   }
 

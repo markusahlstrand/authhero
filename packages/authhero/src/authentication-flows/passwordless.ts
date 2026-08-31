@@ -142,7 +142,7 @@ export async function passwordlessGrantUser(
 
   const code = await env.data.codes.get(client.tenant.id, otp, "otp");
 
-  if (!code) {
+  if (!code || !code.login_id) {
     logMessage(ctx, client.tenant.id, {
       type: LogTypes.FAILED_EXCHANGE_PASSWORDLESS_OTP_FOR_ACCESS_TOKEN,
       description: "Code invalid",

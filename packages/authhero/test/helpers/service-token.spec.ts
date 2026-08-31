@@ -109,15 +109,25 @@ describe("createServiceToken", () => {
     expect(payload.exp - payload.iat).toBe(120);
   });
 
-  it("rejects reserved claims in customClaims", async () => {
+  it("drops reserved claims from customClaims instead of failing the mint", async () => {
     const { env } = await getTestServer();
     const ctx = makeCtx(env);
 
-    await expect(
-      createServiceToken(ctx, TENANT_ID, "webhook", undefined, {
-        tenant_id: "other-tenant",
-      }),
-    ).rejects.toThrow(/Cannot overwrite reserved claim 'tenant_id'/);
+    const result = await createServiceToken(
+      ctx,
+      TENANT_ID,
+      "webhook",
+      undefined,
+      { tenant_id: "other-tenant", request_id: "req-1" },
+    );
+
+    const payload = parseJWT(result.access_token)!.payload as Record<
+      string,
+      unknown
+    >;
+    expect(payload.tenant_id).toBe(TENANT_ID);
+    // Non-reserved claims on the same call still land.
+    expect(payload.request_id).toBe("req-1");
   });
 
   it("allows overriding azp via customClaims for downstream attribution", async () => {
@@ -414,21 +424,24 @@ describe("createClientServiceToken", () => {
     ).rejects.toThrow(/multiple client_grants/);
   });
 
-  it("rejects reserved claims in customClaims", async () => {
+  it("drops reserved claims from customClaims instead of failing the mint", async () => {
     const { env } = await setupClientWithGrant({
       clientId: "with-claims",
       audience: "urn:sesamy",
       scopes: ["email:queue"],
     });
     const ctx = makeCtx(env);
-    await expect(
-      createClientServiceToken(ctx, TENANT_ID, {
-        clientId: "with-claims",
-        scope: "email:queue",
-        audience: "urn:sesamy",
-        customClaims: { sub: "hacker" },
-      }),
-    ).rejects.toThrow(/Cannot overwrite reserved claim 'sub'/);
+    const result = await createClientServiceToken(ctx, TENANT_ID, {
+      clientId: "with-claims",
+      scope: "email:queue",
+      audience: "urn:sesamy",
+      customClaims: { sub: "hacker" },
+    });
+    const payload = parseJWT(result.access_token)!.payload as Record<
+      string,
+      unknown
+    >;
+    expect(payload.sub).toBe("with-claims");
   });
 
   it("keeps azp reserved for client-bound tokens", async () => {
@@ -440,14 +453,17 @@ describe("createClientServiceToken", () => {
       scopes: ["email:queue"],
     });
     const ctx = makeCtx(env);
-    await expect(
-      createClientServiceToken(ctx, TENANT_ID, {
-        clientId: "azp-locked",
-        scope: "email:queue",
-        audience: "urn:sesamy",
-        customClaims: { azp: "spoofed" },
-      }),
-    ).rejects.toThrow(/Cannot overwrite reserved claim 'azp'/);
+    const result = await createClientServiceToken(ctx, TENANT_ID, {
+      clientId: "azp-locked",
+      scope: "email:queue",
+      audience: "urn:sesamy",
+      customClaims: { azp: "spoofed" },
+    });
+    const payload = parseJWT(result.access_token)!.payload as Record<
+      string,
+      unknown
+    >;
+    expect(payload.azp).toBe("azp-locked");
   });
 
   it("merges non-reserved customClaims into the JWT", async () => {

@@ -115,7 +115,7 @@ export async function exchangeInfoPageCode(
     code,
     "authorization_code",
   );
-  const loginSession = codeRecord
+  const loginSession = codeRecord?.login_id
     ? await ctx.env.data.loginSessions.get(tenantId, codeRecord.login_id)
     : null;
   const clientId = loginSession?.authParams.client_id;

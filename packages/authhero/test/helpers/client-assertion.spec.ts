@@ -62,6 +62,76 @@ const standardClaims = () => ({
 });
 
 describe("verifyClientAssertion (RFC 7523)", () => {
+  it("rejects an assertion whose stated lifetime exceeds the maximum", async () => {
+    const { privateBuffer, publicJwk } = await generateRsaKeypair();
+    const jwt = await signJWT("RS256", privateBuffer, standardClaims(), {
+      includeIssuedTimestamp: true,
+      // A year — RFC 7523 sets no upper bound, so this is a valid assertion
+      // as far as the spec is concerned.
+      expiresInSeconds: 365 * 24 * 3600,
+      headers: { kid: publicJwk.kid },
+    });
+    await expect(
+      verifyClientAssertion(jwt, clientWithJwks(publicJwk), {
+        acceptedAudiences: [TOKEN_ENDPOINT, ISSUER],
+      }),
+    ).rejects.toThrow(/lifetime/);
+  });
+
+  it("accepts an assertion at exactly the maximum lifetime", async () => {
+    const { privateBuffer, publicJwk } = await generateRsaKeypair();
+    const jwt = await signJWT("RS256", privateBuffer, standardClaims(), {
+      includeIssuedTimestamp: true,
+      expiresInSeconds: 300,
+      headers: { kid: publicJwk.kid },
+    });
+    const verified = await verifyClientAssertion(
+      jwt,
+      clientWithJwks(publicJwk),
+      { acceptedAudiences: [TOKEN_ENDPOINT, ISSUER] },
+    );
+    expect(verified.clientId).toBe(CLIENT_ID);
+    expect(verified.exp).toEqual(expect.any(Number));
+  });
+
+  it("caps the absolute exp when the assertion omits iat", async () => {
+    const { privateBuffer, publicJwk } = await generateRsaKeypair();
+    const nowSec = Math.floor(Date.now() / 1000);
+    const jwt = await signJWT(
+      "RS256",
+      privateBuffer,
+      { ...standardClaims(), exp: nowSec + 3600 },
+      { headers: { kid: publicJwk.kid } },
+    );
+    await expect(
+      verifyClientAssertion(jwt, clientWithJwks(publicJwk), {
+        acceptedAudiences: [TOKEN_ENDPOINT, ISSUER],
+      }),
+    ).rejects.toThrow(/must not expire more than/);
+  });
+
+  it("honours a configured maximum lifetime", async () => {
+    const { privateBuffer, publicJwk } = await generateRsaKeypair();
+    const jwt = await signJWT("RS256", privateBuffer, standardClaims(), {
+      includeIssuedTimestamp: true,
+      expiresInSeconds: 600,
+      headers: { kid: publicJwk.kid },
+    });
+    await expect(
+      verifyClientAssertion(jwt, clientWithJwks(publicJwk), {
+        acceptedAudiences: [TOKEN_ENDPOINT, ISSUER],
+        maxLifetimeSeconds: 60,
+      }),
+    ).rejects.toThrow(/60s/);
+
+    const verified = await verifyClientAssertion(
+      jwt,
+      clientWithJwks(publicJwk),
+      { acceptedAudiences: [TOKEN_ENDPOINT, ISSUER], maxLifetimeSeconds: 900 },
+    );
+    expect(verified.clientId).toBe(CLIENT_ID);
+  });
+
   it("verifies a valid private_key_jwt assertion (RS256)", async () => {
     const { privateBuffer, publicJwk } = await generateRsaKeypair();
     const jwt = await signJWT("RS256", privateBuffer, standardClaims(), {

@@ -830,7 +830,7 @@ const getGuardianEnroll = defineRoute({
 
     // Validate the ticket
     const code = await ctx.env.data.codes.get(tenantId, ticket, "ticket");
-    if (!code) {
+    if (!code || !code.login_id) {
       logMessage(ctx, tenantId, {
         type: LogTypes.MFA_ENROLLMENT_FAILED,
         description: "Enrollment ticket not found",

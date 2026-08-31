@@ -8,6 +8,11 @@ export const codeTypeSchema = z.enum([
   "authorization_code",
   "oauth2_state",
   "ticket",
+  // Single-use marker for an RFC 7523 client-assertion `jti`. Unlike every
+  // other code type this is not a credential we issued — it is a record that a
+  // client-presented assertion has been spent, so it is stored already used
+  // and only exists until the assertion it guards expires.
+  "client_assertion_jti",
 ]);
 export type CodeType = z.infer<typeof codeTypeSchema>;
 
@@ -16,7 +21,10 @@ export const codeInsertSchema = z.object({
     description:
       "The code that will be used in for instance an email verification flow",
   }),
-  login_id: z.string().openapi({
+  // Optional: every code type issued during a login flow carries one, but
+  // `client_assertion_jti` rows are created at the token endpoint where there
+  // is no login session. The column is already nullable in every adapter.
+  login_id: z.string().optional().openapi({
     description: "The id of the login session that the code is connected to",
   }),
   connection_id: z.string().optional().openapi({
