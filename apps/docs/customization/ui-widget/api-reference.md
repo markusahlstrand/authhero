@@ -105,7 +105,7 @@ The widget supports [27+ Auth0 component types](https://auth0.com/docs/authentic
 
 ## Examples
 
-See the [demo app](/apps/demo/) for complete working examples of all integration patterns.
+See [Integration Patterns](/customization/ui-widget/integration-patterns) for complete working examples of every integration pattern.
 
 ## Further Reading
 
