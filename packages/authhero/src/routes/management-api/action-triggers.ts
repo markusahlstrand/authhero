@@ -1,7 +1,7 @@
 import { Bindings, Variables } from "../../types";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import {
-  actionSchema,
+  actionResponseSchema,
   LogTypes,
   escapeLuceneValue,
 } from "@authhero/adapter-interfaces";
@@ -51,7 +51,7 @@ const bindingResponseSchema = z.object({
   id: z.string(),
   trigger_id: z.string(),
   display_name: z.string(),
-  action: actionSchema,
+  action: actionResponseSchema,
   created_at: z.string(),
   updated_at: z.string(),
 });

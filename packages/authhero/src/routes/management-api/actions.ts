@@ -4,7 +4,7 @@ import {
   Action,
   ActionVersion,
   actionInsertSchema,
-  actionSchema,
+  actionResponseSchema,
   actionVersionSchema,
   DataAdapters,
   LogTypes,
@@ -18,7 +18,7 @@ import { HTTPException } from "hono/http-exception";
 import { defineRoute } from "../../utils/define-route";
 import { requireTenantId, withTotals, listResponse } from "./helpers";
 const actionsWithTotalsSchema = withTotals({
-  actions: z.array(actionSchema),
+  actions: z.array(actionResponseSchema),
 });
 
 const AUTH0_TO_INTERNAL_TRIGGER: Record<string, string> = {
@@ -73,7 +73,10 @@ const getRoot = defineRoute({
       200: {
         content: {
           "application/json": {
-            schema: z.union([z.array(actionSchema), actionsWithTotalsSchema]),
+            schema: z.union([
+              z.array(actionResponseSchema),
+              actionsWithTotalsSchema,
+            ]),
           },
         },
         description: "List of actions",
@@ -130,7 +133,7 @@ const postRoot = defineRoute({
       201: {
         content: {
           "application/json": {
-            schema: actionSchema,
+            schema: actionResponseSchema,
           },
         },
         description: "The created action",
@@ -198,7 +201,7 @@ const getById = defineRoute({
       200: {
         content: {
           "application/json": {
-            schema: actionSchema,
+            schema: actionResponseSchema,
           },
         },
         description: "An action",
@@ -255,7 +258,7 @@ const patchById = defineRoute({
       200: {
         content: {
           "application/json": {
-            schema: actionSchema,
+            schema: actionResponseSchema,
           },
         },
         description: "The updated action",
@@ -408,7 +411,7 @@ const postByIdDeploy = defineRoute({
       200: {
         content: {
           "application/json": {
-            schema: actionSchema,
+            schema: actionResponseSchema,
           },
         },
         description: "The deployed action",
@@ -606,7 +609,7 @@ const postByActionIdVersionsByIdDeploy = defineRoute({
       200: {
         content: {
           "application/json": {
-            schema: actionSchema,
+            schema: actionResponseSchema,
           },
         },
         description: "The action after rollback",
