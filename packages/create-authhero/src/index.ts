@@ -372,7 +372,7 @@ const setupConfigs: Record<SetupType, SetupConfig> = {
         devDependencies: {
           "@types/aws-lambda": "^8.10.0",
           "@types/node": "^22.0.0",
-          sst: "^3.0.0",
+          sst: "^4.0.0",
           tsx: "^4.0.0",
           typescript: "^5.9.0",
         },

@@ -295,6 +295,21 @@ describe("aws-sst template", () => {
       `from "@authhero/aws-adapter"`,
     );
   });
+
+  it("pins SST v4 and keeps sst.config.ts on the components v4 supports", () => {
+    const { projectPath } = projects["aws-sst"];
+    const pkg = readJson(path.join(projectPath, "package.json"));
+    expect(pkg.devDependencies.sst).toBe("^4.0.0");
+
+    // SST v4 needs no config rewrite as long as the app sticks to SST's own
+    // components — the breaking changes are in the underlying Pulumi AWS
+    // provider, which only leaks through `transform` or a direct
+    // `@pulumi/aws` import. Neither may appear here.
+    // https://sst.dev/docs/migrate-from-v3/
+    const config = readFile(projectPath, "sst.config.ts");
+    expect(config).not.toContain("@pulumi/aws");
+    expect(config).not.toContain("transform:");
+  });
 });
 
 describe("proxy template", () => {
