@@ -108,6 +108,20 @@ export type Bindings = {
   ALLOW_PRIVATE_OUTBOUND_FETCH?: boolean;
 
   /**
+   * Clock-skew leeway in seconds applied to a client assertion's `exp`/`nbf`
+   * at `POST /oauth/token`. Defaults to 30 when unset.
+   */
+  CLIENT_ASSERTION_LEEWAY_SECONDS?: number;
+
+  /**
+   * Upper bound, in seconds, on a client assertion's lifetime (`exp - iat`,
+   * and the absolute `exp` measured from now). RFC 7523 sets no limit, so
+   * without one a client can mint an assertion valid for a year. Defaults to
+   * 300 when unset.
+   */
+  CLIENT_ASSERTION_MAX_LIFETIME_SECONDS?: number;
+
+  /**
    * Controls where Server-Timing instrumentation goes. The data/cache adapters
    * and the webhook hook always measure per-operation latency; this decides the
    * sink:

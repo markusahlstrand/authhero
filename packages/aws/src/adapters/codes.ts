@@ -25,7 +25,7 @@ interface CodeItem extends DynamoDBBaseItem {
   code_id: string;
   tenant_id: string;
   code_type: CodeType;
-  login_id: string;
+  login_id?: string;
   connection_id?: string;
   code_verifier?: string;
   code_challenge?: string;

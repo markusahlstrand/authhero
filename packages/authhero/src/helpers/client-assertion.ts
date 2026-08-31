@@ -19,6 +19,14 @@ const SUPPORTED_ASYMMETRIC_ALGS = new Set<SupportedAlg>([
 
 const SUPPORTED_SYMMETRIC_ALGS = new Set(["HS256", "HS384", "HS512"]);
 
+/**
+ * Default upper bound on a client assertion's lifetime. RFC 7523 gives no
+ * limit, so without one a client can mint an assertion valid for a year and a
+ * captured assertion stays usable for that whole window. 300s matches the
+ * usual guidance for a single-use token presented directly to the endpoint.
+ */
+const DEFAULT_MAX_LIFETIME_SECONDS = 300;
+
 const HS_HASH_BY_ALG: Record<string, string> = {
   HS256: "SHA-256",
   HS384: "SHA-384",
@@ -62,6 +70,14 @@ export interface VerifyClientAssertionOptions extends LoadClientKeysOptions {
   acceptedAudiences: string[];
   /** Clock-skew leeway in seconds. Defaults to 30. */
   leewaySeconds?: number;
+  /**
+   * Maximum accepted assertion lifetime in seconds. Rejects an assertion whose
+   * `exp - iat` exceeds this, and caps the absolute `exp` at `now + max` so an
+   * assertion that omits `iat` cannot sidestep the bound. Defaults to
+   * DEFAULT_MAX_LIFETIME_SECONDS (300) — the window a captured assertion stays
+   * replayable in is bounded by this, so keep it short.
+   */
+  maxLifetimeSeconds?: number;
   /** Override Date.now() for tests. */
   now?: () => number;
 }
@@ -77,8 +93,15 @@ export interface VerifiedClientAssertion {
   clientId: string;
   /** Which authentication method was actually used. */
   method: ClientAssertionMethod;
-  /** Optional jti claim — useful if callers want to enforce replay protection. */
+  /**
+   * The `jti` claim, when present. `consumeClientAssertionJti`
+   * (helpers/client-assertion-replay.ts) spends it so an assertion cannot be
+   * presented twice; the token endpoint calls that after this verifier
+   * returns.
+   */
   jti?: string;
+  /** The `exp` claim, in seconds. Bounds how long the `jti` must be remembered. */
+  exp: number;
   /** The full verified payload, in case callers need other claims. */
   payload: Record<string, unknown>;
 }
@@ -261,6 +284,8 @@ export async function verifyClientAssertion(
     clientId: sub,
     method,
     jti: typeof payload.jti === "string" ? payload.jti : undefined,
+    // validateClaims has already rejected a non-numeric exp.
+    exp: payload.exp as number,
     payload,
   };
 }
@@ -304,6 +329,27 @@ function validateClaims(
     );
   }
 
+  // Bound how long an assertion is valid for. Checked two ways because `iat`
+  // is optional in RFC 7523 §3: when it is present the stated lifetime must
+  // fit the bound, and either way the absolute expiry must fall inside the
+  // same window measured from now.
+  const maxLifetime = opts.maxLifetimeSeconds ?? DEFAULT_MAX_LIFETIME_SECONDS;
+  if (
+    typeof payload.iat === "number" &&
+    payload.exp - payload.iat > maxLifetime
+  ) {
+    throw new ClientAssertionError(
+      "invalid_client",
+      `client_assertion lifetime (exp - iat) must not exceed ${maxLifetime}s`,
+    );
+  }
+  if (payload.exp - leeway > nowSec + maxLifetime) {
+    throw new ClientAssertionError(
+      "invalid_client",
+      `client_assertion must not expire more than ${maxLifetime}s from now`,
+    );
+  }
+
   if (typeof payload.nbf === "number" && payload.nbf - leeway > nowSec) {
     throw new ClientAssertionError(
       "invalid_client",
@@ -332,4 +378,7 @@ function validateClaims(
   }
 }
 
-export { ASSERTION_TYPE as CLIENT_ASSERTION_TYPE };
+export {
+  ASSERTION_TYPE as CLIENT_ASSERTION_TYPE,
+  DEFAULT_MAX_LIFETIME_SECONDS as CLIENT_ASSERTION_DEFAULT_MAX_LIFETIME_SECONDS,
+};

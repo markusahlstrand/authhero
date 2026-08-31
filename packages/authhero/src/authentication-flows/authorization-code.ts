@@ -100,7 +100,9 @@ export async function authorizationCodeGrantUser(
     "authorization_code",
   );
 
-  if (!code || !code.user_id) {
+  // `login_id` is optional on the Code type (client-assertion jti markers
+  // carry none); an authorization_code without one is not redeemable.
+  if (!code || !code.user_id || !code.login_id) {
     logMessage(ctx, client.tenant.id, {
       ...(await buildFailedExchangeLogParams(ctx, client.tenant.id, params)),
       type: LogTypes.FAILED_EXCHANGE_AUTHORIZATION_CODE_FOR_ACCESS_TOKEN,

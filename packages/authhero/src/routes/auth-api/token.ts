@@ -42,6 +42,7 @@ import {
   ClientAssertionError,
   CLIENT_ASSERTION_TYPE,
 } from "../../helpers/client-assertion";
+import { consumeClientAssertionJti } from "../../helpers/client-assertion-replay";
 import { getEnrichedClient, EnrichedClient } from "../../helpers/client";
 import { prefetchClientBundle } from "../../helpers/prefetch-client-bundle";
 import { isCimdClientId } from "../../helpers/cimd";
@@ -314,7 +315,11 @@ const postRoot = defineRoute({
         const verified = await verifyClientAssertion(
           clientAssertion,
           assertionClient,
-          { acceptedAudiences: [tokenEndpoint, issuer] },
+          {
+            acceptedAudiences: [tokenEndpoint, issuer],
+            leewaySeconds: ctx.env.CLIENT_ASSERTION_LEEWAY_SECONDS,
+            maxLifetimeSeconds: ctx.env.CLIENT_ASSERTION_MAX_LIFETIME_SECONDS,
+          },
         );
         // RFC 7521 §4.2: the assertion authentication method MUST match the
         // method the client registered. Block clients that registered with a
@@ -337,6 +342,26 @@ const postRoot = defineRoute({
             error_description: `client_assertion method ${verified.method} does not match registered token_endpoint_auth_method ${registered}`,
           });
         }
+        // RFC 7523 §3: the assertion's `jti` makes it single use. Spend it
+        // after the signature and method checks and before the client counts
+        // as authenticated, so a captured assertion cannot be replayed for the
+        // rest of its lifetime.
+        const jtiConsumed = await consumeClientAssertionJti(
+          ctx,
+          ctx.var.tenant_id,
+          {
+            clientId: verified.clientId,
+            jti: verified.jti,
+            exp: verified.exp,
+          },
+        );
+        if (!jtiConsumed) {
+          throw new JSONHTTPException(401, {
+            error: "invalid_client",
+            error_description: "client_assertion has already been used",
+          });
+        }
+
         params.client_id = verified.clientId;
         ctx.set("client_authenticated_via_assertion", true);
       } catch (e) {

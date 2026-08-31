@@ -295,6 +295,182 @@ describe("/oauth/token with RFC 7523 client_assertion", () => {
     expect(response.status).toBe(200);
   });
 
+  it("rejects a replayed assertion and accepts a fresh one", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const { privateBuffer, publicJwk } = await generateRsaKeypair();
+    await attachClientJwks(env, publicJwk);
+    const oauthClient = testClient(oauthApp, env);
+
+    const assertion = await makeAssertion(privateBuffer, publicJwk.kid!, {
+      jti: "single-use-jti",
+    });
+
+    const post = (clientAssertion: string) =>
+      oauthClient.oauth.token.$post(
+        // @ts-expect-error - testClient type requires both form and json
+        {
+          form: {
+            grant_type: "client_credentials",
+            client_id: "clientId",
+            client_assertion: clientAssertion,
+            client_assertion_type: CLIENT_ASSERTION_TYPE,
+            audience: "https://example.com",
+          },
+        },
+        { headers: { "tenant-id": "tenantId" } },
+      );
+
+    expect((await post(assertion)).status).toBe(200);
+
+    const replay = await post(assertion);
+    expect(replay.status).toBe(401);
+    const body = (await replay.json()) as TokenFailure;
+    expect(body.error).toBe("invalid_client");
+
+    // A new assertion from the same client still authenticates.
+    const fresh = await makeAssertion(privateBuffer, publicJwk.kid!, {
+      jti: "another-jti",
+    });
+    expect((await post(fresh)).status).toBe(200);
+  });
+
+  it("rejects a replayed client_secret_jwt assertion too", async () => {
+    const { oauthApp, env } = await getTestServer();
+    await env.data.clients.update("tenantId", "clientId", {
+      token_endpoint_auth_method: "client_secret_jwt",
+    });
+    const secretBytes = new Uint8Array(
+      new TextEncoder().encode("clientSecret"),
+    );
+    const assertion = await signJWT(
+      "HS256",
+      secretBytes,
+      {
+        iss: "clientId",
+        sub: "clientId",
+        aud: TOKEN_ENDPOINT,
+        jti: "hs-single-use-jti",
+      },
+      { includeIssuedTimestamp: true, expiresInSeconds: 300 },
+    );
+
+    const oauthClient = testClient(oauthApp, env);
+    const post = () =>
+      oauthClient.oauth.token.$post(
+        // @ts-expect-error - testClient form type
+        {
+          form: {
+            grant_type: "client_credentials",
+            client_id: "clientId",
+            client_assertion: assertion,
+            client_assertion_type: CLIENT_ASSERTION_TYPE,
+            audience: "https://example.com",
+          },
+        },
+        { headers: { "tenant-id": "tenantId" } },
+      );
+
+    expect((await post()).status).toBe(200);
+    expect((await post()).status).toBe(401);
+  });
+
+  it("lets two clients use the same jti value", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const first = await generateRsaKeypair("kid-one");
+    const second = await generateRsaKeypair("kid-two");
+    await attachClientJwks(env, first.publicJwk);
+    await env.data.clients.create("tenantId", {
+      client_id: "otherClientId",
+      client_secret: "otherClientSecret",
+      name: "Other Test Client",
+      token_endpoint_auth_method: "private_key_jwt",
+      registration_metadata: { jwks: { keys: [second.publicJwk] } },
+    });
+
+    const oauthClient = testClient(oauthApp, env);
+    const post = (clientId: string, clientAssertion: string) =>
+      oauthClient.oauth.token.$post(
+        // @ts-expect-error - testClient type requires both form and json
+        {
+          form: {
+            grant_type: "client_credentials",
+            client_id: clientId,
+            client_assertion: clientAssertion,
+            client_assertion_type: CLIENT_ASSERTION_TYPE,
+            audience: "https://example.com",
+          },
+        },
+        { headers: { "tenant-id": "tenantId" } },
+      );
+
+    const sharedJti = "a-jti-both-clients-picked";
+    const firstAssertion = await makeAssertion(
+      first.privateBuffer,
+      first.publicJwk.kid!,
+      { jti: sharedJti },
+    );
+    const secondAssertion = await signJWT(
+      "RS256",
+      second.privateBuffer,
+      {
+        iss: "otherClientId",
+        sub: "otherClientId",
+        aud: TOKEN_ENDPOINT,
+        jti: sharedJti,
+      },
+      {
+        includeIssuedTimestamp: true,
+        expiresInSeconds: 300,
+        headers: { kid: second.publicJwk.kid },
+      },
+    );
+
+    expect((await post("clientId", firstAssertion)).status).toBe(200);
+    expect((await post("otherClientId", secondAssertion)).status).toBe(200);
+  });
+
+  it("rejects an assertion with an unbounded lifetime", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const { privateBuffer, publicJwk } = await generateRsaKeypair();
+    await attachClientJwks(env, publicJwk);
+
+    const assertion = await signJWT(
+      "RS256",
+      privateBuffer,
+      {
+        iss: "clientId",
+        sub: "clientId",
+        aud: TOKEN_ENDPOINT,
+        jti: "long-lived-jti",
+      },
+      {
+        includeIssuedTimestamp: true,
+        expiresInSeconds: 365 * 24 * 3600,
+        headers: { kid: publicJwk.kid },
+      },
+    );
+
+    const oauthClient = testClient(oauthApp, env);
+    const response = await oauthClient.oauth.token.$post(
+      // @ts-expect-error - testClient type requires both form and json
+      {
+        form: {
+          grant_type: "client_credentials",
+          client_id: "clientId",
+          client_assertion: assertion,
+          client_assertion_type: CLIENT_ASSERTION_TYPE,
+          audience: "https://example.com",
+        },
+      },
+      { headers: { "tenant-id": "tenantId" } },
+    );
+
+    expect(response.status).toBe(401);
+    const body = (await response.json()) as TokenFailure;
+    expect(body.error).toBe("invalid_client");
+    expect(body.error_description).toMatch(/lifetime/);
+  });
+
   it("advertises private_key_jwt + client_secret_jwt in discovery", async () => {
     const { oauthApp, env } = await getTestServer();
     const oauthClient = testClient(oauthApp, env);

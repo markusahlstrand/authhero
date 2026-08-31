@@ -214,7 +214,7 @@ const postRoot = defineRoute({
           )
         : undefined;
 
-      const emailVerificationSession = emailVerificationCode
+      const emailVerificationSession = emailVerificationCode?.login_id
         ? await env.data.loginSessions.get(
             client.tenant.id,
             emailVerificationCode.login_id,
