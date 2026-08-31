@@ -28,6 +28,7 @@ import { clientInfoMiddleware } from "../../middlewares/client-info";
 import { outboxMiddleware } from "../../middlewares/outbox";
 import { LogsDestination } from "../../helpers/outbox-destinations/logs";
 import { LogStreamDestination } from "../../helpers/outbox-destinations/log-streams";
+import { PipelineDestination } from "../../helpers/outbox-destinations/pipeline";
 import { WebhookDestination } from "../../helpers/outbox-destinations/webhooks";
 import { CodeHookDestination } from "../../helpers/outbox-destinations/code-hooks";
 import { RegistrationFinalizerDestination } from "../../helpers/outbox-destinations/registration-finalizer";
@@ -70,6 +71,9 @@ export default function createU2App(config: AuthHeroConfig) {
           new LogsDestination(config.dataAdapter.logs),
           ...(config.dataAdapter.logStreams
             ? [new LogStreamDestination(config.dataAdapter.logStreams)]
+            : []),
+          ...(config.outbox?.pipeline
+            ? [new PipelineDestination(config.outbox.pipeline)]
             : []),
           new WebhookDestination(config.dataAdapter.hooks, async (tenantId) => {
             const token = await createServiceToken(ctx, tenantId, "webhook");

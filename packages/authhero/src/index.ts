@@ -81,6 +81,11 @@ export {
   type ControlPlaneSyncDestinationOptions,
 } from "./helpers/outbox-destinations/control-plane-sync";
 export {
+  PipelineDestination,
+  type PipelineDestinationOptions,
+  type PipelineRecord,
+} from "./helpers/outbox-destinations/pipeline";
+export {
   type SyncEvent,
   type SyncEntity,
   type SyncOp,

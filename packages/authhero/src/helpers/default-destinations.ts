@@ -9,7 +9,11 @@ import {
 import { CodeHookDestination } from "./outbox-destinations/code-hooks";
 import { RegistrationFinalizerDestination } from "./outbox-destinations/registration-finalizer";
 import { ControlPlaneSyncDestination } from "./outbox-destinations/control-plane-sync";
-import type { WebhookInvoker } from "../types/AuthHeroConfig";
+import { PipelineDestination } from "./outbox-destinations/pipeline";
+import type {
+  OutboxPipelineConfig,
+  WebhookInvoker,
+} from "../types/AuthHeroConfig";
 
 export interface CreateDefaultDestinationsConfig {
   /**
@@ -67,6 +71,13 @@ export interface CreateDefaultDestinationsConfig {
    * failed per-request delivery would be silently skipped on retry.
    */
   codeExecutor?: CodeExecutor;
+
+  /**
+   * Same shape as `init({ outbox: { pipeline } })`. When set, cron-drained
+   * events are also archived to the Cloudflare Pipelines stream, matching the
+   * per-request destination list. Omit to leave the archive out entirely.
+   */
+  pipeline?: OutboxPipelineConfig;
 }
 
 /**
@@ -104,6 +115,7 @@ export function createDefaultDestinations(
     webhookInvoker,
     controlPlaneSync,
     codeExecutor,
+    pipeline,
   } = config;
 
   if (controlPlaneSync && !getServiceToken) {
@@ -118,6 +130,10 @@ export function createDefaultDestinations(
 
   if (dataAdapter.logStreams) {
     destinations.push(new LogStreamDestination(dataAdapter.logStreams));
+  }
+
+  if (pipeline) {
+    destinations.push(new PipelineDestination(pipeline));
   }
 
   if (getServiceToken) {
