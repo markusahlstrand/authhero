@@ -145,6 +145,9 @@ export default function createAdapters(
 }
 
 // Re-export individual adapters for custom usage
+export { createActionsAdapter } from "./adapters/actions";
+export { createActionExecutionsAdapter } from "./adapters/actionExecutions";
+export { createActionVersionsAdapter } from "./adapters/actionVersions";
 export { createTenantsAdapter } from "./adapters/tenants";
 export { createUsersAdapter } from "./adapters/users";
 export { createSessionsAdapter } from "./adapters/sessions";

@@ -11,3 +11,4 @@ export * from "./cursor";
 export * from "./lucene";
 export * from "./session-retention";
 export * from "./username-validation";
+export * from "./feature-not-supported";

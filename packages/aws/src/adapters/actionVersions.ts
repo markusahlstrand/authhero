@@ -1,4 +1,7 @@
-import { ActionVersionsAdapter } from "@authhero/adapter-interfaces";
+import {
+  ActionVersionsAdapter,
+  FeatureNotSupportedError,
+} from "@authhero/adapter-interfaces";
 
 /**
  * Stub action-versions adapter for the DynamoDB backend.
@@ -8,9 +11,10 @@ import { ActionVersionsAdapter } from "@authhero/adapter-interfaces";
  */
 export function createActionVersionsAdapter(): ActionVersionsAdapter {
   const notImplemented = (method: string): never => {
-    throw new Error(
-      `Action versions are not implemented in the AWS DynamoDB adapter (called ${method}). ` +
-        "Use a SQL-backed adapter (kysely) for tenants that require actions.",
+    throw new FeatureNotSupportedError(
+      "action versions",
+      "AWS DynamoDB",
+      `Called ${method}. Use a SQL-backed adapter (kysely or drizzle) for tenants that require actions.`,
     );
   };
 

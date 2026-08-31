@@ -1,4 +1,7 @@
-import { ActionExecutionsAdapter } from "@authhero/adapter-interfaces";
+import {
+  ActionExecutionsAdapter,
+  FeatureNotSupportedError,
+} from "@authhero/adapter-interfaces";
 
 /**
  * Stub action-executions adapter for the DynamoDB backend.
@@ -9,9 +12,10 @@ import { ActionExecutionsAdapter } from "@authhero/adapter-interfaces";
  */
 export function createActionExecutionsAdapter(): ActionExecutionsAdapter {
   const notImplemented = (method: string): never => {
-    throw new Error(
-      `Action executions are not implemented in the AWS DynamoDB adapter (called ${method}). ` +
-        "Use a SQL-backed adapter (kysely) for tenants that require actions.",
+    throw new FeatureNotSupportedError(
+      "action executions",
+      "AWS DynamoDB",
+      `Called ${method}. Use a SQL-backed adapter (kysely or drizzle) for tenants that require actions.`,
     );
   };
 

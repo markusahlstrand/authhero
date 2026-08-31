@@ -1,7 +1,12 @@
 import { Context } from "hono";
 import { Bindings, Variables } from "../types";
 import { User } from "@authhero/adapter-interfaces";
-import { OnExecuteCredentialsExchangeAPI, HookEvent } from "../types/Hooks";
+import {
+  OnExecuteCredentialsExchangeAPI,
+  OnExecutePostLogin,
+  OnExecutePostLoginAPI,
+  HookEvent,
+} from "../types/Hooks";
 import * as preDefinedHooks from "./pre-defined";
 
 // Type guard for template hooks
@@ -14,6 +19,58 @@ export function isTemplateHook(
     typeof hook.template_id === "string" &&
     typeof hook.enabled === "boolean"
   );
+}
+
+/**
+ * The post-login API surface handed to a template hook.
+ *
+ * Template hooks run from the data layer rather than from inside the
+ * universal-login loop, so there is no page to render and no browser to
+ * redirect. Every member is a no-op; the pre-defined hooks used as templates
+ * only mutate the user through `event.ctx.env.data`.
+ */
+const NOOP_POST_LOGIN_API: OnExecutePostLoginAPI = {
+  prompt: { render: () => {} },
+  redirect: {
+    sendUserTo: () => {},
+    encodeToken: () => "",
+    validateToken: () => null,
+  },
+  token: {
+    createServiceToken: async () => "",
+  },
+};
+
+/**
+ * Runs a pre-defined post-login hook as a template hook and returns the
+ * resulting user.
+ *
+ * Both template hooks write the user back through the data adapter rather
+ * than returning it, so the stored row is re-fetched afterwards — for
+ * `account-linking` this also resolves `linked_to` to the primary user.
+ */
+async function runTemplateHook(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  tenant_id: string,
+  user: User,
+  hookFn: OnExecutePostLogin,
+): Promise<User> {
+  const event: HookEvent = {
+    ctx,
+    user,
+    tenant: { id: tenant_id },
+    request: {
+      ip: ctx.get("ip") || "",
+      url: ctx.req.url,
+      method: ctx.req.method,
+      user_agent: ctx.get("useragent") || "",
+    },
+  };
+
+  await hookFn(event, NOOP_POST_LOGIN_API);
+
+  const updatedUser = await ctx.env.data.users.get(tenant_id, user.user_id);
+  return updatedUser || user;
 }
 
 /**
@@ -37,65 +94,22 @@ export async function handleTemplateHook(
   }
 
   switch (template_id) {
-    case "ensure-username": {
-      const hookFn = preDefinedHooks.ensureUsername();
-      await hookFn(
-        {
-          ctx,
-          user,
-          tenant: { id: tenant_id },
-          request: {
-            ip: ctx.get("ip") || "",
-            url: ctx.req.url,
-          },
-        } as any,
-        {
-          prompt: { render: () => {} },
-          redirect: {
-            sendUserTo: () => {},
-            encodeToken: () => "",
-            validateToken: () => null,
-          },
-          token: {
-            createServiceToken: async () => "",
-          },
-        },
+    case "ensure-username":
+      return runTemplateHook(
+        ctx,
+        tenant_id,
+        user,
+        preDefinedHooks.ensureUsername(),
       );
-      // ensureUsername modifies the user in the database, re-fetch
-      const updatedUser = await ctx.env.data.users.get(tenant_id, user.user_id);
-      return updatedUser || user;
-    }
-    case "account-linking": {
-      const hookFn = preDefinedHooks.accountLinking({
-        copyUserMetadata: metadata?.copy_user_metadata === true,
-      });
-      await hookFn(
-        {
-          ctx,
-          user,
-          tenant: { id: tenant_id },
-          request: {
-            ip: ctx.get("ip") || "",
-            url: ctx.req.url,
-          },
-        } as any,
-        {
-          prompt: { render: () => {} },
-          redirect: {
-            sendUserTo: () => {},
-            encodeToken: () => "",
-            validateToken: () => null,
-          },
-          token: {
-            createServiceToken: async () => "",
-          },
-        },
+    case "account-linking":
+      return runTemplateHook(
+        ctx,
+        tenant_id,
+        user,
+        preDefinedHooks.accountLinking({
+          copyUserMetadata: metadata?.copy_user_metadata === true,
+        }),
       );
-      // accountLinking may have set linked_to, re-fetch so downstream sees
-      // the primary user (the update adapter resolves linked_to chains).
-      const updatedUser = await ctx.env.data.users.get(tenant_id, user.user_id);
-      return updatedUser || user;
-    }
     default:
       console.warn(`[templatehooks] Unknown template_id: ${template_id}`);
       return user;
