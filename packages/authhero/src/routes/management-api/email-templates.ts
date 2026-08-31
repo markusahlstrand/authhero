@@ -71,6 +71,7 @@ const postRoot = defineRoute({
       description: "Create Email Template",
       targetType: "email_template",
       targetId: body.template,
+      afterState: created as Record<string, unknown>,
     });
 
     return ctx.json(created, { status: 201 });
@@ -212,6 +213,9 @@ const putByTemplateName = defineRoute({
       description: "Update Email Template",
       targetType: "email_template",
       targetId: templateName,
+      // The PUT upserts, so there is no before state on a first write.
+      ...(existing ? { beforeState: { ...existing } } : {}),
+      afterState: stored as Record<string, unknown>,
     });
 
     return ctx.json(stored);
@@ -246,6 +250,10 @@ const patchByTemplateName = defineRoute({
     const { templateName } = ctx.req.valid("param");
     const patch = ctx.req.valid("json");
 
+    const existing = await ctx.env.data.emailTemplates.get(
+      tenantId,
+      templateName,
+    );
     const updated = await ctx.env.data.emailTemplates.update(
       tenantId,
       templateName,
@@ -268,6 +276,8 @@ const patchByTemplateName = defineRoute({
       description: "Patch Email Template",
       targetType: "email_template",
       targetId: templateName,
+      ...(existing ? { beforeState: { ...existing } } : {}),
+      afterState: stored as Record<string, unknown>,
     });
 
     return ctx.json(stored);
@@ -300,6 +310,10 @@ const deleteByTemplateName = defineRoute({
     const tenantId = requireTenantId(ctx);
     const { templateName } = ctx.req.valid("param");
 
+    const existing = await ctx.env.data.emailTemplates.get(
+      tenantId,
+      templateName,
+    );
     const removed = await ctx.env.data.emailTemplates.remove(
       tenantId,
       templateName,
@@ -308,11 +322,13 @@ const deleteByTemplateName = defineRoute({
       throw new HTTPException(404, { message: "Email template not found" });
     }
 
+    // A delete has no after state — consumers fall back to `before`.
     await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Delete Email Template",
       targetType: "email_template",
       targetId: templateName,
+      ...(existing ? { beforeState: { ...existing } } : {}),
     });
 
     return ctx.body(null, 204);

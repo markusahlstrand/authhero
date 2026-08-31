@@ -120,6 +120,7 @@ const deleteById = defineRoute({
     const tenantId = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
 
+    const existing = await ctx.env.data.customDomains.get(tenantId, id);
     const result = await ctx.env.data.customDomains.remove(tenantId, id);
     if (!result) {
       throw new HTTPException(404, {
@@ -127,11 +128,13 @@ const deleteById = defineRoute({
       });
     }
 
+    // A delete has no after state — consumers fall back to `before`.
     await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Delete a Custom Domain",
       targetType: "custom_domain",
       targetId: id,
+      ...(existing ? { beforeState: { ...existing } } : {}),
     });
 
     return ctx.text("OK");
@@ -179,6 +182,7 @@ const patchById = defineRoute({
     const { id } = ctx.req.valid("param");
     const body = ctx.req.valid("json");
 
+    const existing = await ctx.env.data.customDomains.get(tenantId, id);
     const result = await ctx.env.data.customDomains.update(tenantId, id, body);
     if (!result) {
       throw new HTTPException(404);
@@ -195,6 +199,7 @@ const patchById = defineRoute({
       description: "Update a Custom Domain",
       targetType: "custom_domain",
       targetId: id,
+      ...(existing ? { beforeState: { ...existing } } : {}),
       afterState: customDomain as Record<string, unknown>,
     });
 

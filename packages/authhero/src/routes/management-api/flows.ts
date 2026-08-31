@@ -134,6 +134,7 @@ const deleteById = defineRoute({
     const tenant_id = requireTenantId(ctx);
     const { id } = ctx.req.valid("param");
 
+    const existing = await ctx.env.data.flows.get(tenant_id, id);
     const result = await ctx.env.data.flows.remove(tenant_id, id);
     if (!result) {
       throw new HTTPException(404, {
@@ -141,11 +142,13 @@ const deleteById = defineRoute({
       });
     }
 
+    // A delete has no after state — consumers fall back to `before`.
     await logMessage(ctx, tenant_id, {
       type: LogTypes.SUCCESS_API_OPERATION,
       description: "Delete a Flow",
       targetType: "flow",
       targetId: id,
+      ...(existing ? { beforeState: { ...existing } } : {}),
     });
 
     return ctx.text("OK");
@@ -193,6 +196,7 @@ const patchById = defineRoute({
     const { id } = ctx.req.valid("param");
     const body = ctx.req.valid("json");
 
+    const existing = await ctx.env.data.flows.get(tenant_id, id);
     const flow = await ctx.env.data.flows.update(tenant_id, id, body);
     if (!flow) {
       throw new HTTPException(404, {
@@ -205,6 +209,7 @@ const patchById = defineRoute({
       description: "Update a Flow",
       targetType: "flow",
       targetId: id,
+      ...(existing ? { beforeState: { ...existing } } : {}),
       afterState: flow as Record<string, unknown>,
     });
 
