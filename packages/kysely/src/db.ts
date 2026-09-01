@@ -662,9 +662,28 @@ export interface Database {
     target_database_version: string | null;
     error: string | null;
     initiated_by: string | null;
+    input: string | null; // JSON
+    result: string | null; // JSON
+    claimed_by: string | null;
+    claim_expires_at: string | null;
     created_at: string;
     updated_at: string;
     finished_at: string | null;
+  };
+  // Per-item checkpoints for batch operations (issue #1325). One row per
+  // item in the operation's input; the composite (operation_id, seq) key is
+  // what makes a replayed chunk a no-op rather than a duplicate.
+  tenant_operation_rows: {
+    operation_id: string;
+    seq: number;
+    payload: string; // JSON
+    status: string;
+    error_code: string | null;
+    error_message: string | null;
+    error_path: string | null;
+    entity_id: string | null;
+    created_at: string;
+    updated_at: string;
   };
   tenant_operation_events: {
     id: string;

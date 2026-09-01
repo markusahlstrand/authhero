@@ -60,6 +60,13 @@ describe("runRetention", () => {
       { table: "outbox_events", status: "swept", deleted: 3 },
       { table: "action_executions", status: "swept", deleted: 4 },
       {
+        // The mock adapter has no tenantOperations, so bulk-import jobs are
+        // reported unsupported rather than swept.
+        table: "tenant_operations (users_import)",
+        status: "skipped",
+        reason: "not supported by this adapter",
+      },
+      {
         table: "sessions, refresh_tokens, login_sessions",
         status: "swept",
         deleted: undefined,
@@ -112,7 +119,7 @@ describe("runRetention", () => {
       dataAdapter: makeDataAdapter({ actionExecutionsCleanup: null }),
     });
 
-    expect(sweeps[2]).toEqual({
+    expect(sweeps.find((s) => s.table === "action_executions")).toEqual({
       table: "action_executions",
       status: "skipped",
       reason: "not supported by this adapter",
@@ -132,7 +139,7 @@ describe("runRetention", () => {
 
     expect(codesCleanup).toHaveBeenCalledTimes(1);
     expect(sessionCleanup).toHaveBeenCalledTimes(1);
-    expect(sweeps[1]).toEqual({
+    expect(sweeps.find((s) => s.table === "outbox_events")).toEqual({
       table: "outbox_events",
       status: "skipped",
       reason: "not supported by this adapter",
@@ -144,7 +151,11 @@ describe("runRetention", () => {
       dataAdapter: makeDataAdapter({ sessionCleanup: null }),
     });
 
-    expect(sweeps[3]).toEqual({
+    expect(
+      sweeps.find(
+        (s) => s.table === "sessions, refresh_tokens, login_sessions",
+      ),
+    ).toEqual({
       table: "sessions, refresh_tokens, login_sessions",
       status: "skipped",
       reason: "not supported by this adapter",

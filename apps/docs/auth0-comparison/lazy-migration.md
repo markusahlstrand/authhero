@@ -11,7 +11,7 @@ Move traffic from an Auth0 tenant to AuthHero one user at a time, without forcin
 
 **Refresh-token re-mint** — when a client presents a refresh token that didn't originate from AuthHero, the configured tenant-level **Migration Source** redeems it at the upstream `/oauth/token` and `/userinfo`, resolves or lazily creates the local user (matched by upstream `sub`), and mints fresh AuthHero tokens. The client keeps using `grant_type=refresh_token` — no SDK change. After one exchange per user, that user is fully on the AuthHero side.
 
-Bulk import via `/api/v2/users-imports` remains useful for other migration shapes; this page covers the lazy/just-in-time approach that needs no client SDK changes.
+[Bulk import](/auth0-comparison/bulk-user-import) via `/api/v2/jobs/users-imports` remains useful for other migration shapes; this page covers the lazy/just-in-time approach that needs no client SDK changes.
 
 ## Migrating from a version that proxied refresh tokens
 
@@ -102,13 +102,13 @@ The upstream refresh token is dead to AuthHero after one successful exchange —
 
 ## What happens during a typical migration
 
-| Day | Event | What runs |
-| --- | --- | --- |
-| 0 | DNS flipped, AuthHero is now serving auth | Local lookups miss; password fallback activates |
-| 0 | Clients holding Auth0 refresh tokens hit `/oauth/token` | Migration Source redeems the token upstream, mints fresh AuthHero tokens, returns them |
-| 0–N | A user signs in with username/password | Password fallback verifies against Auth0, creates them locally, stores hash |
-| N+1 | Migrated user signs in again | Served entirely from AuthHero — no upstream call |
-| Eventually | Upstream traffic settles | Disable the Migration Source and the per-connection `import_mode`; decommission the upstream Auth0 tenant |
+| Day        | Event                                                   | What runs                                                                                                 |
+| ---------- | ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| 0          | DNS flipped, AuthHero is now serving auth               | Local lookups miss; password fallback activates                                                           |
+| 0          | Clients holding Auth0 refresh tokens hit `/oauth/token` | Migration Source redeems the token upstream, mints fresh AuthHero tokens, returns them                    |
+| 0–N        | A user signs in with username/password                  | Password fallback verifies against Auth0, creates them locally, stores hash                               |
+| N+1        | Migrated user signs in again                            | Served entirely from AuthHero — no upstream call                                                          |
+| Eventually | Upstream traffic settles                                | Disable the Migration Source and the per-connection `import_mode`; decommission the upstream Auth0 tenant |
 
 Once the upstream password-fallback traffic drops to a handful per day you can flip `import_mode` off and decommission the upstream Auth0 tenant.
 
@@ -122,7 +122,7 @@ Once the upstream password-fallback traffic drops to a handful per day you can f
 
 ## Comparison with the other migration mechanisms
 
-- **Bulk import via `/api/v2/users-imports`** — pre-seeds users (with password hashes if you can extract them) so AuthHero owns the records upfront. Use when you want to flip DNS in one shot rather than draining the upstream incrementally.
+- **[Bulk import](/auth0-comparison/bulk-user-import) via `/api/v2/jobs/users-imports`** — pre-seeds users (with bcrypt password hashes if you can extract them) so AuthHero owns the records upfront. Use when you want to flip DNS in one shot rather than draining the upstream incrementally.
 - **[Token Exchange (RFC 8693)](/standards/rfc-8693)** — an explicit `grant_type=urn:ietf:params:oauth:grant-type:token-exchange` surface for callers that prefer signalling the migration in the request rather than relying on transparent fallback.
 - **Lazy migration (this page)** — no client changes for password logins or refresh tokens; users and refresh tokens are migrated transparently on first use.
 

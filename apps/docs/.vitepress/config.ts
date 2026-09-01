@@ -747,6 +747,10 @@ gtag('config', 'G-DNZWG3PF2L');`,
               link: "/auth0-comparison/account-linking",
             },
             {
+              text: "Bulk User Import",
+              link: "/auth0-comparison/bulk-user-import",
+            },
+            {
               text: "Email Templates",
               link: "/auth0-comparison/email-templates",
             },

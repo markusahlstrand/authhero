@@ -42,6 +42,18 @@ export type {
 export { cleanupOutbox } from "./helpers/outbox-cleanup";
 export { cleanupCodes } from "./helpers/codes-cleanup";
 export { cleanupActionExecutions } from "./helpers/action-executions-cleanup";
+export { cleanupUsersImports } from "./helpers/users-import-cleanup";
+export type { UsersImportCleanupParams } from "./helpers/users-import-cleanup";
+export {
+  advanceUsersImport,
+  resumeUsersImports,
+} from "./helpers/users-import/process";
+export type {
+  AdvanceOptions,
+  AdvanceResult,
+  ResumeUsersImportsOptions,
+  ResumeUsersImportsResult,
+} from "./helpers/users-import/process";
 export type { OutboxCleanupParams } from "./helpers/outbox-cleanup";
 export type { CodesCleanupParams } from "./helpers/codes-cleanup";
 export type { ActionExecutionsCleanupParams } from "./helpers/action-executions-cleanup";

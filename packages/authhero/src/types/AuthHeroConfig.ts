@@ -542,6 +542,21 @@ export interface AuthHeroConfig {
   tenantOperationExecutor?: TenantOperationExecutorBinding;
 
   /**
+   * Maximum accepted size of a bulk user-import file, in bytes
+   * (`POST /api/v2/jobs/users-imports`). Defaults to Auth0's documented
+   * 500 KB, so any Auth0-shaped client sees identical behaviour. Raise it
+   * only for a migration you control end to end — a larger file means more
+   * rows staged inside a single request.
+   */
+  usersImportMaxBytes?: number;
+
+  /**
+   * Maximum bulk user-import jobs a single tenant may have in flight.
+   * Defaults to Auth0's limit of 2; further submissions get a 429.
+   */
+  usersImportMaxConcurrentJobs?: number;
+
+  /**
    * Optional powered-by logo to display at the bottom left of the login widget.
    * This is only configurable in code, not stored in the database.
    *

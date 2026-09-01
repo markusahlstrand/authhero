@@ -55,6 +55,7 @@ import { OutboxAdapter } from "./Outbox";
 import { RateLimitAdapter } from "./RateLimit";
 import { TenantOperationsAdapter } from "./TenantOperations";
 import { TenantOperationEventsAdapter } from "./TenantOperationEvents";
+import { TenantOperationRowsAdapter } from "./TenantOperationRows";
 import { RolloutsAdapter } from "./Rollouts";
 
 /**
@@ -164,6 +165,12 @@ export interface DataAdapters {
   tenantOperations?: TenantOperationsAdapter;
   /** Per-step history rows for `tenantOperations`; append-only. */
   tenantOperationEvents?: TenantOperationEventsAdapter;
+  /**
+   * Per-item checkpoints for batch operations (issue #1325). Required for
+   * the Auth0-compatible `POST /api/v2/jobs/users-imports` endpoints —
+   * without it, batch imports cannot be staged or resumed.
+   */
+  tenantOperationRows?: TenantOperationRowsAdapter;
   /**
    * Optional fleet rollout records (issue #1026). Phase 1 ships the table
    * and CRUD only; the wave/canary coordinator and routes come later.
@@ -287,4 +294,5 @@ export * from "./UserActivity";
 export * from "./Users";
 export * from "./TenantOperations";
 export * from "./TenantOperationEvents";
+export * from "./TenantOperationRows";
 export * from "./Rollouts";

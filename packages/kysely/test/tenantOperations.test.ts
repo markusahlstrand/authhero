@@ -262,3 +262,144 @@ describe("RolloutsAdapter", () => {
     expect(created.filter).toBeNull();
   });
 });
+
+describe("TenantOperationsAdapter leases and batch fields", () => {
+  it("round-trips the input parameters and the result summary", async () => {
+    const { data } = await getTestServer();
+    const adapter = data.tenantOperations!;
+
+    const created = await adapter.create({
+      tenant_id: "tenant-a",
+      kind: "users_import",
+      engine: "inline",
+      input: { connection_id: "con_1", upsert: true },
+    });
+    expect(created.input).toEqual({ connection_id: "con_1", upsert: true });
+    expect(created.result).toBeNull();
+
+    const fetched = await adapter.get(created.id);
+    expect(fetched!.input).toEqual({ connection_id: "con_1", upsert: true });
+
+    await adapter.update(created.id, {
+      status: "succeeded",
+      result: { total: 3, inserted: 2, updated: 1, failed: 0 },
+    });
+    const done = await adapter.get(created.id);
+    expect(done!.result).toEqual({
+      total: 3,
+      inserted: 2,
+      updated: 1,
+      failed: 0,
+    });
+    // Untouched by the update.
+    expect(done!.input).toEqual({ connection_id: "con_1", upsert: true });
+  });
+
+  it("lets only one worker hold the lease until it expires", async () => {
+    const { data } = await getTestServer();
+    const adapter = data.tenantOperations!;
+
+    const created = await adapter.create({
+      tenant_id: "tenant-a",
+      kind: "users_import",
+      engine: "inline",
+    });
+
+    expect(await adapter.claim(created.id, "worker-1", 60_000)).toBe(true);
+    expect(await adapter.claim(created.id, "worker-2", 60_000)).toBe(false);
+    // The holder re-claiming is a no-op that extends its own lease.
+    expect(await adapter.claim(created.id, "worker-1", 60_000)).toBe(true);
+
+    const claimed = await adapter.get(created.id);
+    expect(claimed!.claimed_by).toBe("worker-1");
+    expect(claimed!.claim_expires_at).toBeTypeOf("string");
+
+    // Expire the lease by claiming with a lease that is already in the past.
+    await adapter.claim(created.id, "worker-1", -1000);
+    expect(await adapter.claim(created.id, "worker-2", 60_000)).toBe(true);
+    expect((await adapter.get(created.id))!.claimed_by).toBe("worker-2");
+  });
+
+  it("releases only the lease the caller holds", async () => {
+    const { data } = await getTestServer();
+    const adapter = data.tenantOperations!;
+
+    const created = await adapter.create({
+      tenant_id: "tenant-a",
+      kind: "users_import",
+      engine: "inline",
+    });
+
+    await adapter.claim(created.id, "worker-1", 60_000);
+    expect(await adapter.release(created.id, "worker-2")).toBe(false);
+    expect((await adapter.get(created.id))!.claimed_by).toBe("worker-1");
+
+    expect(await adapter.release(created.id, "worker-1")).toBe(true);
+    const released = await adapter.get(created.id);
+    expect(released!.claimed_by).toBeNull();
+    expect(released!.claim_expires_at).toBeNull();
+  });
+
+  it("lists only unfinished, unleased operations of the requested kind", async () => {
+    const { data } = await getTestServer();
+    const adapter = data.tenantOperations!;
+
+    const pending = await adapter.create({
+      tenant_id: "tenant-a",
+      kind: "users_import",
+      engine: "inline",
+    });
+    // created_at has millisecond precision; nudge past it so the
+    // `created_at asc` ordering is unambiguous rather than a nanoid tiebreak.
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    const running = await adapter.create({
+      tenant_id: "tenant-a",
+      kind: "users_import",
+      engine: "inline",
+    });
+    await adapter.update(running.id, { status: "running" });
+    const succeeded = await adapter.create({
+      tenant_id: "tenant-a",
+      kind: "users_import",
+      engine: "inline",
+    });
+    await adapter.update(succeeded.id, { status: "succeeded" });
+    const otherKind = await adapter.create({
+      tenant_id: "tenant-a",
+      kind: "provision",
+      engine: "inline",
+    });
+    const leased = await adapter.create({
+      tenant_id: "tenant-a",
+      kind: "users_import",
+      engine: "inline",
+    });
+    await adapter.claim(leased.id, "worker-1", 60_000);
+
+    const resumable = await adapter.listResumable({
+      kind: "users_import",
+      limit: 10,
+    });
+    const ids = resumable.map((operation) => operation.id);
+    expect(ids).toContain(pending.id);
+    expect(ids).toContain(running.id);
+    expect(ids).not.toContain(succeeded.id);
+    expect(ids).not.toContain(otherKind.id);
+    expect(ids).not.toContain(leased.id);
+
+    // Oldest unfinished work first.
+    expect(ids.indexOf(pending.id)).toBeLessThan(ids.indexOf(running.id));
+
+    // An expired lease is reclaimable, so it comes back into the sweep.
+    await adapter.claim(leased.id, "worker-1", -1000);
+    const afterExpiry = await adapter.listResumable({
+      kind: "users_import",
+      limit: 10,
+    });
+    expect(afterExpiry.map((operation) => operation.id)).toContain(leased.id);
+
+    expect(
+      await adapter.listResumable({ kind: "users_import", limit: 1 }),
+    ).toHaveLength(1);
+  });
+});

@@ -5,6 +5,7 @@ import {
   ListTenantOperationsResult,
   TenantOperation,
   TenantOperationInsert,
+  TenantOperationKind,
   TenantOperationUpdate,
   TenantOperationsAdapter,
   tenantOperationInsertSchema,
@@ -13,6 +14,19 @@ import {
 import { Database } from "../db";
 
 type TenantOperationRow = Database["tenant_operations"];
+
+function parseJsonObject(raw: string | null): Record<string, unknown> | null {
+  if (!raw) return null;
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return Object.fromEntries(Object.entries(parsed));
+    }
+  } catch {
+    /* fall through */
+  }
+  return null;
+}
 
 function rowToTenantOperation(row: TenantOperationRow): TenantOperation {
   return tenantOperationSchema.parse({
@@ -28,6 +42,10 @@ function rowToTenantOperation(row: TenantOperationRow): TenantOperation {
     target_database_version: row.target_database_version,
     error: row.error,
     initiated_by: row.initiated_by,
+    input: parseJsonObject(row.input),
+    result: parseJsonObject(row.result),
+    claimed_by: row.claimed_by,
+    claim_expires_at: row.claim_expires_at,
     created_at: row.created_at,
     updated_at: row.updated_at,
     finished_at: row.finished_at,
@@ -54,6 +72,10 @@ export function createTenantOperationsAdapter(
         target_database_version: input.target_database_version ?? null,
         error: null,
         initiated_by: input.initiated_by ?? null,
+        input: input.input ? JSON.stringify(input.input) : null,
+        result: null,
+        claimed_by: null,
+        claim_expires_at: null,
         created_at: now,
         updated_at: now,
         finished_at: null,
@@ -136,6 +158,12 @@ export function createTenantOperationsAdapter(
       if (operation.target_database_version !== undefined)
         set.target_database_version = operation.target_database_version;
       if (operation.error !== undefined) set.error = operation.error;
+      if (operation.result !== undefined)
+        set.result = operation.result ? JSON.stringify(operation.result) : null;
+      if (operation.claimed_by !== undefined)
+        set.claimed_by = operation.claimed_by;
+      if (operation.claim_expires_at !== undefined)
+        set.claim_expires_at = operation.claim_expires_at;
       if (operation.finished_at !== undefined)
         set.finished_at = operation.finished_at;
 
@@ -146,6 +174,85 @@ export function createTenantOperationsAdapter(
         .executeTakeFirst();
 
       return Number(result.numUpdatedRows) > 0;
+    },
+
+    async claim(
+      id: string,
+      worker_id: string,
+      leaseMs: number,
+    ): Promise<boolean> {
+      const now = new Date();
+      const nowIso = now.toISOString();
+      const expires = new Date(now.getTime() + leaseMs).toISOString();
+
+      // One conditional statement: free lease, expired lease, or a lease this
+      // same worker already holds (re-claim is a no-op that extends it).
+      await db
+        .updateTable("tenant_operations")
+        .where("id", "=", id)
+        .where((eb) =>
+          eb.or([
+            eb("claimed_by", "is", null),
+            eb("claim_expires_at", "<=", nowIso),
+            eb("claimed_by", "=", worker_id),
+          ]),
+        )
+        .set({
+          claimed_by: worker_id,
+          claim_expires_at: expires,
+          updated_at: nowIso,
+        })
+        .executeTakeFirst();
+
+      // MySQL reports 0 changed rows when the UPDATE is a no-op (same worker,
+      // same values), so the read-back — not numUpdatedRows — decides.
+      const row = await db
+        .selectFrom("tenant_operations")
+        .where("id", "=", id)
+        .select(["claimed_by"])
+        .executeTakeFirst();
+
+      return row?.claimed_by === worker_id;
+    },
+
+    async release(id: string, worker_id: string): Promise<boolean> {
+      const result = await db
+        .updateTable("tenant_operations")
+        .where("id", "=", id)
+        .where("claimed_by", "=", worker_id)
+        .set({
+          claimed_by: null,
+          claim_expires_at: null,
+          updated_at: new Date().toISOString(),
+        })
+        .executeTakeFirst();
+
+      return Number(result.numUpdatedRows) > 0;
+    },
+
+    async listResumable(params: {
+      kind: TenantOperationKind;
+      limit: number;
+    }): Promise<TenantOperation[]> {
+      const nowIso = new Date().toISOString();
+
+      const rows = await db
+        .selectFrom("tenant_operations")
+        .where("kind", "=", params.kind)
+        .where("status", "in", ["pending", "running"])
+        .where((eb) =>
+          eb.or([
+            eb("claimed_by", "is", null),
+            eb("claim_expires_at", "<=", nowIso),
+          ]),
+        )
+        .selectAll()
+        .orderBy("created_at", "asc")
+        .orderBy("id", "asc")
+        .limit(params.limit)
+        .execute();
+
+      return rows.map(rowToTenantOperation);
     },
 
     async remove(id: string): Promise<boolean> {

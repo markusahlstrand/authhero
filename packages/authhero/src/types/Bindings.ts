@@ -79,6 +79,14 @@ export type Bindings = {
   // POST /api/v2/tenants/{id}/operations.
   tenantOperationExecutor?: TenantOperationExecutorBinding;
 
+  // Maximum accepted size of a bulk user-import file, in bytes. Defaults to
+  // Auth0's documented 500 KB. Set via init({ usersImportMaxBytes }).
+  usersImportMaxBytes?: number;
+
+  // Maximum bulk user-import jobs a tenant may have in flight. Defaults to
+  // Auth0's limit of 2. Set via init({ usersImportMaxConcurrentJobs }).
+  usersImportMaxConcurrentJobs?: number;
+
   // Optional transactional outbox configuration
   // Set via init({ outbox: { enabled: true } })
   outbox?: OutboxConfig;

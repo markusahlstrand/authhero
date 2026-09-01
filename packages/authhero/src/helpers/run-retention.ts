@@ -1,4 +1,5 @@
 import { DataAdapters } from "@authhero/adapter-interfaces";
+import { cleanupUsersImports } from "./users-import-cleanup";
 import { cleanupActionExecutions } from "./action-executions-cleanup";
 import { cleanupCodes } from "./codes-cleanup";
 import { cleanupOutbox } from "./outbox-cleanup";
@@ -15,6 +16,12 @@ export interface RunRetentionConfig {
 
   /** Days of action execution history to keep. Default 30. */
   actionExecutionsRetentionDays?: number;
+
+  /**
+   * Hours to keep finished bulk user-import jobs and their staged rows.
+   * Default 24, matching Auth0's job-data retention.
+   */
+  usersImportRetentionHours?: number;
 
   /**
    * Scope the session sweep to a single tenant. Codes and outbox events are
@@ -123,6 +130,7 @@ export async function runRetention(
     codesRetentionDays,
     outboxRetentionDays,
     actionExecutionsRetentionDays,
+    usersImportRetentionHours,
     tenantId,
   } = config;
 
@@ -158,6 +166,13 @@ export async function runRetention(
       run: () =>
         cleanupActionExecutions(dataAdapter.actionExecutions, {
           retentionDays: actionExecutionsRetentionDays,
+        }),
+    },
+    {
+      table: "tenant_operations (users_import)",
+      run: () =>
+        cleanupUsersImports(dataAdapter, {
+          retentionHours: usersImportRetentionHours,
         }),
     },
     {

@@ -51,6 +51,7 @@ import { createAnalyticsAdapter } from "./analytics";
 import { createOutboxAdapter } from "./outbox";
 import { createSessionCleanup } from "./cleanup";
 import { createTenantOperationsAdapter } from "./tenantOperations";
+import { createTenantOperationRowsAdapter } from "./tenantOperationRows";
 import { createTenantOperationEventsAdapter } from "./tenantOperationEvents";
 import { createRolloutsAdapter } from "./rollouts";
 import { hasBatch } from "./atomic";
@@ -119,6 +120,7 @@ export default function createAdapters(
       ? {
           tenantOperations: createTenantOperationsAdapter(db),
           tenantOperationEvents: createTenantOperationEventsAdapter(db),
+          tenantOperationRows: createTenantOperationRowsAdapter(db),
           rollouts: createRolloutsAdapter(db),
         }
       : {}),
