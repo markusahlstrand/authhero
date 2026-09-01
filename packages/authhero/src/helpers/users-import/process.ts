@@ -10,6 +10,7 @@ import {
 } from "../../types/auth0/UserImport";
 import {
   buildUserId,
+  deriveImportUserId,
   IMPORT_ERROR_CODES,
   mapEntry,
   type ImportRowError,
@@ -204,6 +205,7 @@ async function processRow(
     entry,
     connection: input.connection,
     provider: input.provider,
+    fallbackUserId: await deriveImportUserId(row.operation_id, row.seq),
   });
   if (!mapped.ok) {
     return errorOutcome(row.seq, mapped.error);
@@ -217,12 +219,35 @@ async function processRow(
       input.provider,
     );
 
-    if (existingId && !input.upsert) {
+    // A row is reprocessed whenever its driver died between writing the user
+    // and committing the outcome. Because the id is derived from
+    // (operation_id, seq), an existing user carrying exactly that id can only
+    // be this row's own earlier write — so report the import that actually
+    // happened instead of a spurious conflict.
+    const ownPriorWrite = existingId === mapped.value.user.user_id;
+
+    if (existingId && !input.upsert && !ownPriorWrite) {
       return errorOutcome(row.seq, {
         code: IMPORT_ERROR_CODES.USER_ALREADY_EXISTS,
         message: `A user matching ${entry.email} already exists; enable upsert to update it`,
         path: "email",
       });
+    }
+
+    if (existingId && ownPriorWrite) {
+      // Finish what the interrupted attempt started: the user row exists, but
+      // its password may not have been written before the crash.
+      if (mapped.value.password) {
+        const current = await data.passwords.get(tenantId, existingId);
+        if (!current) {
+          await data.passwords.create(tenantId, {
+            user_id: existingId,
+            is_current: true,
+            ...mapped.value.password,
+          });
+        }
+      }
+      return { seq: row.seq, status: "inserted", entity_id: existingId };
     }
 
     if (existingId) {
@@ -345,6 +370,11 @@ export async function advanceUsersImport(
 
   let processed = 0;
   const budget = options.maxRows ?? Number.POSITIVE_INFINITY;
+  // Tracks that each chunk actually drains the pending queue; see the
+  // no-progress guard at the end of the loop. Seeded from a real count so
+  // even the FIRST chunk is checked — otherwise a stalled job would always
+  // reprocess one chunk before stopping.
+  let pendingBefore = (await rowsAdapter.countByStatus(operationId)).pending;
 
   try {
     for (;;) {
@@ -364,14 +394,29 @@ export async function advanceUsersImport(
 
       // Commit the whole chunk in one call: an interruption before this
       // point leaves every row in the chunk `pending` and safely repeatable.
-      await rowsAdapter.recordOutcomes(operationId, outcomes);
-      processed += outcomes.length;
+      // Count what was actually committed, not what was attempted: a commit
+      // that moved no rows is not progress, and reporting it as such would
+      // make the resume sweep believe a stalled job is advancing.
+      processed += await rowsAdapter.recordOutcomes(operationId, outcomes);
 
       const counts = await rowsAdapter.countByStatus(operationId);
       await operationsAdapter.update(operationId, {
         current_step: `${counts.total - counts.pending}/${counts.total} rows`,
         result: buildSummary(counts),
       });
+
+      // Safety valve. `claimPending` selects on `status = 'pending'`, so if a
+      // commit ever fails to move its rows out of that state the same chunk
+      // would be handed back forever — an unbounded loop that re-applies the
+      // same writes. Bail out instead and leave the operation for the next
+      // driver, which is safe because nothing here is half-committed.
+      if (counts.pending >= pendingBefore) {
+        console.warn(
+          `users_import ${operationId} made no progress on a chunk of ${outcomes.length} rows (${counts.pending} still pending); stopping this pass`,
+        );
+        break;
+      }
+      pendingBefore = counts.pending;
     }
 
     const counts = await rowsAdapter.countByStatus(operationId);

@@ -579,6 +579,115 @@ describe("durability", () => {
     expect(all.users).toHaveLength(1);
   });
 
+  it("stops instead of spinning when a chunk makes no progress", async () => {
+    const users = Array.from({ length: 150 }, (_, i) => ({
+      email: `stall-${i}@example.com`,
+    }));
+    const { response, env } = await postImport(users);
+    const operationId = (await response.json()).id.replace(/^job_/, "");
+
+    // Simulate a commit that silently fails to move rows out of `pending`.
+    // Without the no-progress guard this would hand the same chunk back
+    // forever, re-applying the same writes on every pass.
+    const rows = env.data.tenantOperationRows!;
+    const original = rows.recordOutcomes.bind(rows);
+    rows.recordOutcomes = async () => 0;
+
+    const result = await Promise.race([
+      advanceUsersImport(env.data, operationId, { chunkSize: 10 }),
+      new Promise((_, reject) =>
+        setTimeout(
+          () => reject(new Error("advanceUsersImport did not return")),
+          5000,
+        ),
+      ),
+    ]);
+
+    // The stalled pass committed nothing, so it reports no progress.
+    expect(result).toMatchObject({ done: false, processed: 0 });
+
+    // Recovery must not merely drain the queue — the users the stalled pass
+    // created are real imports, so they must be reported as inserted rather
+    // than misclassified as USER_ALREADY_EXISTS conflicts.
+    rows.recordOutcomes = original;
+    await drain(env);
+    const counts = await rows.countByStatus(operationId);
+    expect(counts.pending).toBe(0);
+    expect(counts.inserted).toBe(users.length);
+    expect(counts.failed).toBe(0);
+  });
+
+  it("reports a crash-interrupted row as imported, not as a conflict", async () => {
+    const { response, env } = await postImport([
+      { email: "crashed@example.com", password_hash: BCRYPT_HASH },
+    ]);
+    const operationId = (await response.json()).id.replace(/^job_/, "");
+    await drain(env);
+
+    const rows = env.data.tenantOperationRows!;
+
+    // Reproduce a driver that wrote the user and died before committing the
+    // outcome: the user exists, but its row is back in `pending`.
+    const before = await rows.list(operationId, { page: 0, per_page: 10 });
+    expect(before.rows[0].status).toBe("inserted");
+    const createdId = before.rows[0].entity_id;
+    expect(createdId).toBeTruthy();
+
+    await rows.removeByOperation(operationId);
+    await rows.createMany([
+      {
+        operation_id: operationId,
+        seq: before.rows[0].seq,
+        payload: before.rows[0].payload,
+        status: "pending",
+      },
+    ]);
+    await env.data.tenantOperations!.update(operationId, {
+      status: "running",
+      finished_at: null,
+    });
+
+    await drain(env);
+
+    // The import genuinely succeeded, so it must not be reported as failed.
+    const after = await rows.list(operationId, { page: 0, per_page: 10 });
+    expect(after.rows[0].status).toBe("inserted");
+    expect(after.rows[0].entity_id).toBe(createdId);
+    expect(after.rows[0].error_code).toBeFalsy();
+
+    // And no duplicate user was created.
+    const users = await env.data.users.list("tenantId", {
+      q: 'email:"crashed@example.com"',
+      page: 0,
+      per_page: 10,
+      include_totals: false,
+    });
+    expect(users.users).toHaveLength(1);
+  });
+
+  it("stops on the very first chunk when it makes no progress", async () => {
+    const users = Array.from({ length: 150 }, (_, i) => ({
+      email: `firstchunk-${i}@example.com`,
+    }));
+    const { response, env } = await postImport(users);
+    const operationId = (await response.json()).id.replace(/^job_/, "");
+
+    const rows = env.data.tenantOperationRows!;
+    const original = rows.recordOutcomes.bind(rows);
+    let chunks = 0;
+    rows.recordOutcomes = async () => {
+      chunks += 1;
+      return 0;
+    };
+
+    await advanceUsersImport(env.data, operationId, { chunkSize: 10 });
+
+    // Seeding the guard from a real count means the first stalled chunk stops
+    // the pass; a guard seeded to Infinity would have processed two.
+    expect(chunks).toBe(1);
+    rows.recordOutcomes = original;
+  });
+
   it("does not double-process when two drivers race", async () => {
     const users = Array.from({ length: 150 }, (_, i) => ({
       email: `race-${i}@example.com`,

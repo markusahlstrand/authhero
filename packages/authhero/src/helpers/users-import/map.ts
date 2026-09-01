@@ -175,11 +175,38 @@ export function mapPassword(
 export function buildUserId(
   userId: string | undefined,
   provider: string,
+  fallbackId?: string,
 ): string {
   const idPart = userId
     ? stripProviderPrefix(userId, provider)
-    : userIdGenerate();
+    : (fallbackId ?? userIdGenerate());
   return `${provider}|${idPart}`;
+}
+
+/**
+ * Deterministic bare id for an import row that supplied no `user_id`.
+ *
+ * Retry safety depends on this. A driver can create a user and then die
+ * before committing that row's outcome, leaving the row `pending`; the next
+ * driver reprocesses it. With a random id the retry cannot tell its own
+ * half-finished write from a genuinely pre-existing user, and reports a
+ * successful import as `USER_ALREADY_EXISTS`. Deriving the id from
+ * `(operation_id, seq)` — both immutable for the life of the row — makes the
+ * retry regenerate the exact same id, so it can recognise its own work.
+ *
+ * Not a security boundary: the inputs are our own identifiers, so this only
+ * needs to be stable and collision-free, which a truncated SHA-256 is.
+ */
+export async function deriveImportUserId(
+  operationId: string,
+  seq: number,
+): Promise<string> {
+  const data = new TextEncoder().encode(`${operationId}:${seq}`);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(digest))
+    .slice(0, 12)
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 export interface MapEntryParams {
@@ -188,6 +215,12 @@ export interface MapEntryParams {
   connection: string;
   /** Resolved username-password provider for this tenant. */
   provider: string;
+  /**
+   * Id to use when the entry supplies none. Pass the value from
+   * {@link deriveImportUserId} so a reprocessed row rebuilds the same id;
+   * omitting it falls back to a random one.
+   */
+  fallbackUserId?: string;
 }
 
 /**
@@ -199,6 +232,7 @@ export function mapEntry({
   entry,
   connection,
   provider,
+  fallbackUserId,
 }: MapEntryParams): MapResult {
   const password = mapPassword(entry);
   if (!password.ok) {
@@ -213,7 +247,7 @@ export function mapEntry({
     is_social: false,
   };
 
-  user.user_id = buildUserId(entry.user_id, provider);
+  user.user_id = buildUserId(entry.user_id, provider, fallbackUserId);
   if (entry.username !== undefined) user.username = entry.username;
   if (entry.phone_number !== undefined) user.phone_number = entry.phone_number;
   if (entry.phone_verified !== undefined) {
