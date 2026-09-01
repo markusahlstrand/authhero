@@ -603,13 +603,18 @@ describe("durability", () => {
       ),
     ]);
 
-    expect(result).toMatchObject({ done: false });
+    // The stalled pass committed nothing, so it reports no progress.
+    expect(result).toMatchObject({ done: false, processed: 0 });
 
-    // Recovery is unaffected: a working driver still finishes the job.
+    // Recovery must not merely drain the queue — the users the stalled pass
+    // created are real imports, so they must be reported as inserted rather
+    // than misclassified as USER_ALREADY_EXISTS conflicts.
     rows.recordOutcomes = original;
     await drain(env);
     const counts = await rows.countByStatus(operationId);
     expect(counts.pending).toBe(0);
+    expect(counts.inserted).toBe(users.length);
+    expect(counts.failed).toBe(0);
   });
 
   it("reports a crash-interrupted row as imported, not as a conflict", async () => {

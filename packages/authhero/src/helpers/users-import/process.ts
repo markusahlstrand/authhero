@@ -394,8 +394,10 @@ export async function advanceUsersImport(
 
       // Commit the whole chunk in one call: an interruption before this
       // point leaves every row in the chunk `pending` and safely repeatable.
-      await rowsAdapter.recordOutcomes(operationId, outcomes);
-      processed += outcomes.length;
+      // Count what was actually committed, not what was attempted: a commit
+      // that moved no rows is not progress, and reporting it as such would
+      // make the resume sweep believe a stalled job is advancing.
+      processed += await rowsAdapter.recordOutcomes(operationId, outcomes);
 
       const counts = await rowsAdapter.countByStatus(operationId);
       await operationsAdapter.update(operationId, {
