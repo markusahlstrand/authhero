@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import bcryptjs from "bcryptjs";
 import {
   buildUserId,
+  deriveImportUserId,
   entryIdentityKeys,
   IMPORT_ERROR_CODES,
   mapEntry,
@@ -91,6 +92,32 @@ describe("buildUserId", () => {
   it("generates an id when the entry has none", () => {
     const id = buildUserId(undefined, "auth0");
     expect(id).toMatch(/^auth0\|[0-9a-f]{24}$/);
+  });
+
+  it("uses the supplied fallback id instead of a random one", () => {
+    expect(buildUserId(undefined, "auth0", "deadbeef")).toBe("auth0|deadbeef");
+  });
+
+  it("prefers an explicit entry id over the fallback", () => {
+    expect(buildUserId("explicit", "auth0", "deadbeef")).toBe("auth0|explicit");
+  });
+});
+
+describe("deriveImportUserId", () => {
+  it("is stable for the same row, so a retry rebuilds the same id", async () => {
+    const a = await deriveImportUserId("op_abc", 7);
+    const b = await deriveImportUserId("op_abc", 7);
+    expect(a).toBe(b);
+    expect(a).toMatch(/^[0-9a-f]{24}$/);
+  });
+
+  it("differs across rows and across operations", async () => {
+    const [row7, row8, otherOp] = await Promise.all([
+      deriveImportUserId("op_abc", 7),
+      deriveImportUserId("op_abc", 8),
+      deriveImportUserId("op_xyz", 7),
+    ]);
+    expect(new Set([row7, row8, otherOp]).size).toBe(3);
   });
 });
 

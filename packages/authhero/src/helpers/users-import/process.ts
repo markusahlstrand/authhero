@@ -10,6 +10,7 @@ import {
 } from "../../types/auth0/UserImport";
 import {
   buildUserId,
+  deriveImportUserId,
   IMPORT_ERROR_CODES,
   mapEntry,
   type ImportRowError,
@@ -204,6 +205,7 @@ async function processRow(
     entry,
     connection: input.connection,
     provider: input.provider,
+    fallbackUserId: await deriveImportUserId(row.operation_id, row.seq),
   });
   if (!mapped.ok) {
     return errorOutcome(row.seq, mapped.error);
@@ -217,12 +219,35 @@ async function processRow(
       input.provider,
     );
 
-    if (existingId && !input.upsert) {
+    // A row is reprocessed whenever its driver died between writing the user
+    // and committing the outcome. Because the id is derived from
+    // (operation_id, seq), an existing user carrying exactly that id can only
+    // be this row's own earlier write — so report the import that actually
+    // happened instead of a spurious conflict.
+    const ownPriorWrite = existingId === mapped.value.user.user_id;
+
+    if (existingId && !input.upsert && !ownPriorWrite) {
       return errorOutcome(row.seq, {
         code: IMPORT_ERROR_CODES.USER_ALREADY_EXISTS,
         message: `A user matching ${entry.email} already exists; enable upsert to update it`,
         path: "email",
       });
+    }
+
+    if (existingId && ownPriorWrite) {
+      // Finish what the interrupted attempt started: the user row exists, but
+      // its password may not have been written before the crash.
+      if (mapped.value.password) {
+        const current = await data.passwords.get(tenantId, existingId);
+        if (!current) {
+          await data.passwords.create(tenantId, {
+            user_id: existingId,
+            is_current: true,
+            ...mapped.value.password,
+          });
+        }
+      }
+      return { seq: row.seq, status: "inserted", entity_id: existingId };
     }
 
     if (existingId) {
@@ -346,8 +371,10 @@ export async function advanceUsersImport(
   let processed = 0;
   const budget = options.maxRows ?? Number.POSITIVE_INFINITY;
   // Tracks that each chunk actually drains the pending queue; see the
-  // no-progress guard at the end of the loop.
-  let pendingBefore = Number.POSITIVE_INFINITY;
+  // no-progress guard at the end of the loop. Seeded from a real count so
+  // even the FIRST chunk is checked — otherwise a stalled job would always
+  // reprocess one chunk before stopping.
+  let pendingBefore = (await rowsAdapter.countByStatus(operationId)).pending;
 
   try {
     for (;;) {
