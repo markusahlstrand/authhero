@@ -1,5 +1,44 @@
 # authhero
 
+## 9.11.0
+
+### Minor Changes
+
+- b44cd0a: Add Auth0-compatible bulk user import (`POST /api/v2/jobs/users-imports`, `GET /api/v2/jobs/{id}`, `GET /api/v2/jobs/{id}/errors`) with bcrypt password-hash support.
+
+  Users are staged as individual `tenant_operation_rows` checkpoints and processed in chunks that commit before advancing, so an import survives a driver dying mid-run: `resumeUsersImports()` picks up any unfinished job and resumes it from the last committed chunk. Wire it to a scheduled handler alongside `runRetention()`, which now also deletes finished jobs after 24 hours.
+
+  bcrypt is the only importable algorithm, since it is the only one AuthHero can verify. Other Auth0 algorithms fail per row with `UNSUPPORTED_HASH_ALGORITHM` rather than rejecting the file, so a mixed export still imports its bcrypt majority.
+
+  New `init()` options `usersImportMaxBytes` (default 500 KB) and `usersImportMaxConcurrentJobs` (default 2) match Auth0's limits out of the box and can be raised for a large migration. `runRetention()` accepts `usersImportRetentionHours` (default 24).
+
+  `tenantOperations.engine` is widened from a closed enum to an open string, so a deployment can record its own driver instead of being limited to the two AuthHero ships. `tenant_operations` also gains `input`, `result`, and lease columns (`claimed_by`, `claim_expires_at`), plus `claim`/`release`/`listResumable` on the adapter.
+
+### Patch Changes
+
+- d9a8968: Capture entity state on action, trigger-binding and migration-source audit
+  events, and stop tail-masking entity state.
+
+  The `/actions`, `/actions/triggers/{id}/bindings` and `/migration-sources`
+  management routes now record `before`/`after` state on the audit events they
+  emit, so the outbox carries the same detail the already-converted config
+  entities do. Action secret values are stripped (the names are kept) and a
+  migration source's credentials block is redacted.
+
+  Tail-masking (`code`, `refresh_token`, `subject_token`, `actor_token`) is now
+  applied to request bodies only, which is what it was documented to cover. It
+  was also being applied to entity state, where an action's `code` is its source
+  rather than an authorization code — that reduced every action audit event to a
+  row of asterisks.
+
+- 48db8db: Capture entity state on email template, form, flow and custom domain audit events so the archived audit trail carries a before/after/diff for those config entities.
+- 23d90ca: Capture entity state on role, hook and log stream audit events, and redact credentials nested inside entity state (such as a log stream's `sink.http_authorization`)
+- Updated dependencies [b44cd0a]
+  - @authhero/adapter-interfaces@4.13.0
+  - @authhero/proxy@0.10.12
+  - @authhero/saml@0.5.11
+  - @authhero/widget@0.38.8
+
 ## 9.10.0
 
 ### Minor Changes
