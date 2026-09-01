@@ -144,11 +144,15 @@ Requests on a custom domain issue `https://<custom domain>/` as `iss`, and the m
 
 **`401` from the Management API**
 
-The access token is missing, expired, or lacks the scope for the endpoint. Management scopes are per resource (`read:users`, `update:users`, …) — see [Management API security](/security/management-api).
+`401` means no bearer token was presented at all — a missing or malformed `Authorization` header. Nothing about the token itself has been checked yet.
 
-**`403` where you expected `404` (or the reverse)**
+**`403` from the Management API**
 
-`403` means the token is valid but not permitted. A `404` on a resource you know exists usually means the request resolved to a _different tenant_: re-read the resolution order in [Wrong tenant, or none](#wrong-tenant-or-none).
+Everything else the auth middleware rejects is a `403`, not a `401`: an invalid or expired token, a token whose audience is not the management API, a cross-tenant request without a control-plane token, and — the common one — a valid token that lacks the required permission. Management scopes are per resource (`read:users`, `update:users`, …); add the missing one to the token's client or role. See [Management API security](/security/management-api).
+
+**`404` on a resource you know exists**
+
+Usually the request resolved to a _different tenant_: re-read the resolution order in [Wrong tenant, or none](#wrong-tenant-or-none).
 
 **CORS: the browser blocks the request**
 
@@ -163,7 +167,9 @@ See [Pagination](/api/pagination) for `page` / `per_page` / `include_totals`, an
 
 ## Common Error Codes
 
-OAuth-style errors on `/authorize`, `/oauth/token` and `/oauth/revoke` follow [RFC 6749](/standards/rfc-6749): a JSON body with `error` and `error_description`.
+OAuth-style errors carry an `error` and an `error_description`. How they are _delivered_ depends on the endpoint: `/oauth/token` ([RFC 6749](/standards/rfc-6749) §5.2) and `/oauth/revoke` ([RFC 7009](/standards/rfc-7009)) answer with a JSON body, while `/authorize` normally redirects the error back to a registered `redirect_uri` — and only answers directly when there is no registered URI to redirect to.
+
+The table below notes which specification defines each code where it is not RFC 6749.
 
 | `error`                                            | Typical cause                                                                                                                     |
 | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
@@ -176,7 +182,7 @@ OAuth-style errors on `/authorize`, `/oauth/token` and `/oauth/revoke` follow [R
 | `unsupported_response_mode`                        | `response_mode=query` was combined with a response type that carries a token.                                                     |
 | `invalid_redirect_uri` / `invalid_client_metadata` | Dynamic Client Registration only ([RFC 7591](/standards/rfc-7591)): the submitted redirect URIs or client metadata were rejected. |
 | `access_denied`                                    | The user or policy refused the request.                                                                                           |
-| `login_required` / `consent_required`              | Returned to `prompt=none` requests that cannot be completed silently.                                                             |
+| `login_required` / `consent_required`              | [OpenID Connect Core](/standards/openid-connect-core) §3.1.2.6: a `prompt=none` request that cannot be completed silently.        |
 | `server_error`                                     | An unexpected failure; check the server logs.                                                                                     |
 
 Errors from the interactive login flow use a `code`/`message` shape instead:
@@ -198,4 +204,9 @@ If you can't resolve your issue using this guide, you can:
 
 1. Search the [GitHub issues](https://github.com/markusahlstrand/authhero/issues) for similar problems
 2. Open a new issue with the failing request, the response body, and the matching tenant log entry
+
+::: danger Redact before you post
+Strip every credential from anything you paste into a public issue: access, ID and refresh tokens, authorization codes, `client_secret` values, session cookies, `Authorization` headers, and the email addresses, phone numbers and user IDs of real users. A JWT is not opaque — anyone can decode it — and an authorization code or refresh token in a public issue is a live credential until it is revoked. If a maintainer needs the unredacted values, send them privately rather than in the issue thread.
+:::
+
 3. Reach out to the community for help

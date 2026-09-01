@@ -73,8 +73,10 @@ Drizzle is the primary adapter. Use Kysely for an existing deployment; for a new
 The package is published as `@authhero/kysely-adapter` (note the suffix — the Drizzle package has none):
 
 ```bash
-npm install @authhero/kysely-adapter kysely
+npm install @authhero/kysely-adapter kysely better-sqlite3
 ```
+
+The adapter does not depend on a driver — install the one for your database (`better-sqlite3` here, `pg` for PostgreSQL, `mysql2` for MySQL).
 
 Build a `Kysely` instance typed with the adapter's `Database` interface, then hand it to `createAdapters`:
 
@@ -97,7 +99,7 @@ Swap the dialect for `PostgresDialect` or `MysqlDialect` (or a PlanetScale diale
 
 ## Database Schema
 
-All adapters implement the same logical, multi-tenant schema: almost every table carries a `tenant_id`, and every adapter method takes the tenant as an explicit argument.
+All adapters implement the same logical, multi-tenant schema: almost every table carries a `tenant_id`, and the methods that operate on those tables take the tenant as an explicit first argument. A few entities are deliberately not tenant-scoped — signing keys are keyed by `kid` alone, and `clients.getByClientId` resolves a client id to its tenant — so their methods take no `tenant_id`.
 
 [Schema](/database/schema) documents the tables domain by domain, with entity diagrams. The authoritative definition is the Drizzle schema in [`packages/drizzle/src/schema/sqlite/`](https://github.com/markusahlstrand/authhero/tree/main/packages/drizzle/src/schema/sqlite).
 
@@ -140,6 +142,10 @@ wrangler d1 migrations apply AUTH_DB --local    # local
 wrangler d1 migrations apply AUTH_DB --remote   # remote
 ```
 
+`createAdapters(db, { controlPlane: true })` needs a **second** migration set on top of this one — `drizzle-control-plane/`, shipped in the same package with its own journal, which must be applied into its own migrations table (`__drizzle_migrations_control_plane`). Enabling `controlPlane` without applying it leaves the tenant-operation and rollout tables missing. On Node it is simply a second `migrate()` call against the same database — see [Tenant operations](/customization/multi-tenancy/tenant-operations) for the exact snippet. Either way the two sets must stay in separate migrations tables, or each will try to re-apply the other's history.
+
+Ordinary tenant deployments should leave `controlPlane` unset and apply only the core `drizzle/` set.
+
 ### Kysely
 
 The Kysely adapter carries its migrations in code and exposes a runner:
@@ -177,11 +183,11 @@ const users: DataAdapters["users"] = {
 
 Rules worth knowing before you start:
 
-- **Every method is tenant-scoped.** The `tenantId` argument is not advisory — an implementation that ignores it leaks data across tenants.
-- **Not every entity is required.** Optional capabilities (rate limiting, user activity, analytics, the outbox) are checked for presence at runtime and skipped when absent, so a partial adapter is a legitimate starting point. See [Adapter interfaces](/customization/adapter-interfaces/) for which are optional and what the caller does without them.
+- **Honour the tenant argument.** Wherever a method takes `tenantId` it is not advisory — an implementation that ignores it leaks data across tenants.
+- **The required entities really are required.** `DataAdapters` is a complete object: every core entity, plus `transaction`, must be present for `init()` to type-check. Only the properties declared optional in the interface (`rateLimit`, `userActivity`, `analytics`, `outbox`, …) may be left out; those are checked for presence at runtime and their features degrade gracefully. See [Adapter interfaces](/customization/adapter-interfaces/) for which are optional and what the caller does without them.
 - **Return `null`, don't throw, for a missing row.** Callers distinguish "not found" from "failed"; throwing turns a 404 into a 500.
-- **Mirror the list contract.** `list` takes `page` / `per_page` / `include_totals` / `q` and returns the same envelope every other adapter returns — see [Pagination](/api/pagination).
+- **Match each entity's own list contract.** `ListParams` covers `page` / `per_page` / `include_totals` / `q`, plus `sort`, the keyset-pagination pair `from` / `take`, and the `from_date` / `to_date` range — see [Pagination](/api/pagination). The response envelope is per entity, not shared: `list` on users returns `{ users, ...totals }`, on keys `{ signingKeys, ...totals }`. Take the shape from the entity's typed response interface in [`packages/adapter-interfaces/src/adapters/`](https://github.com/markusahlstrand/authhero/tree/main/packages/adapter-interfaces/src/adapters) rather than assuming one envelope.
 
 The simplest way to build one is to start from an existing implementation: [`packages/drizzle/src/adapters/`](https://github.com/markusahlstrand/authhero/tree/main/packages/drizzle/src/adapters) is the reference, and [`packages/aws`](https://github.com/markusahlstrand/authhero/tree/main/packages/aws) shows the same contract satisfied by a non-SQL store.
 
-You do not have to replace everything at once. `createPassthroughAdapter` (from `@authhero/adapter-interfaces`) wraps one entity adapter at a time: reads are served by the primary, writes are also synced to one or more secondaries, each of which may be a partial implementation and may be blocking or fire-and-forget. That is what makes an incremental switch between backends possible — see [Migration strategies](/database/migration) and [Built-in adapters](/customization/built-in-adapters).
+You do not have to move every entity to the new backend at once. `createPassthroughAdapter` (from `@authhero/adapter-interfaces`) wraps **one entity adapter** at a time: reads are served by the primary, writes are also synced to one or more secondaries, each of which may be a partial implementation and may be blocking or fire-and-forget. The assembled `DataAdapters` object stays complete — you are swapping one property's implementation, not omitting it. That is what makes an incremental switch between backends possible; see [Migration strategies](/database/migration) and [Built-in adapters](/customization/built-in-adapters).
