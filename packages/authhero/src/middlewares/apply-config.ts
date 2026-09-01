@@ -48,6 +48,15 @@ export function applyConfigMiddleware(
       ctx.env.tenantUpgrade = config.tenantUpgrade;
     }
 
+    if (config.usersImportMaxBytes !== undefined) {
+      ctx.env.usersImportMaxBytes = config.usersImportMaxBytes;
+    }
+
+    if (config.usersImportMaxConcurrentJobs !== undefined) {
+      ctx.env.usersImportMaxConcurrentJobs =
+        config.usersImportMaxConcurrentJobs;
+    }
+
     if (config.tenantOperationExecutor) {
       ctx.env.tenantOperationExecutor = config.tenantOperationExecutor;
     }

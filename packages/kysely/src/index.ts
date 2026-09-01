@@ -56,6 +56,7 @@ import {
 import { createUserActivityAdapter } from "./userActivity";
 import { createTenantOperationsAdapter } from "./tenantOperations";
 import { createTenantOperationEventsAdapter } from "./tenantOperationEvents";
+import { createTenantOperationRowsAdapter } from "./tenantOperationRows";
 import { createRolloutsAdapter } from "./rollouts";
 
 export { migrateToLatest, migrateDown } from "../migrate/migrate";
@@ -112,6 +113,7 @@ export default function createAdapters(
     tenants: createTenantsAdapter(db),
     tenantOperations: createTenantOperationsAdapter(db),
     tenantOperationEvents: createTenantOperationEventsAdapter(db),
+    tenantOperationRows: createTenantOperationRowsAdapter(db),
     rollouts: createRolloutsAdapter(db),
     themes: createThemesAdapter(db),
     universalLoginTemplates: createUniversalLoginTemplatesAdapter(db),

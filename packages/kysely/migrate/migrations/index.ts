@@ -7,6 +7,7 @@ import * as actionExecutionsCreatedAtIndex from "./2026-08-10T12:00:00_action_ex
 import * as pageHooks from "./2026-08-11T12:00:00_page_hooks";
 import * as refreshTokenSessionId from "./2026-08-20T12:00:00_refresh_token_session_id";
 import * as refreshTokenSessionIdBackfill from "./2026-08-21T12:00:00_refresh_token_session_id_backfill";
+import * as tenantOperationRows from "./2026-09-01T12:00:00_tenant_operation_rows";
 
 /**
  * Kysely runs these in key order and refuses to start if an already-executed
@@ -35,4 +36,5 @@ export default {
   "2026-08-20T12:00:00_refresh_token_session_id": refreshTokenSessionId,
   "2026-08-21T12:00:00_refresh_token_session_id_backfill":
     refreshTokenSessionIdBackfill,
+  "2026-09-01T12:00:00_tenant_operation_rows": tenantOperationRows,
 };

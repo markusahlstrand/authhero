@@ -41,6 +41,39 @@ export interface TenantOperationsAdapter {
   ): Promise<ListTenantOperationsResult>;
   /** Always bumps `updated_at`. */
   update(id: string, operation: TenantOperationUpdate): Promise<boolean>;
+
+  /**
+   * Atomically take the lease on an operation so only one driver advances
+   * it at a time. Succeeds when the operation is unclaimed or its existing
+   * lease has expired (or is already held by `worker_id`, making re-claim
+   * by the same worker a no-op); returns false when another live worker
+   * holds it.
+   *
+   * The lease is an efficiency guard, not a correctness guard — per-item
+   * checkpoints in `tenant_operation_rows` are what keep a batch operation
+   * correct if two drivers ever overlap. Implementations MUST perform the
+   * check and the write in a single conditional statement.
+   */
+  claim(id: string, worker_id: string, leaseMs: number): Promise<boolean>;
+
+  /**
+   * Release a lease held by `worker_id`. Returns false when the lease has
+   * since been taken by someone else, in which case the caller must not
+   * assume its own writes were the last ones.
+   */
+  release(id: string, worker_id: string): Promise<boolean>;
+
+  /**
+   * Operations that still have work to do and are free to be picked up:
+   * status `pending` or `running`, matching `kind`, whose lease is absent
+   * or expired. Ordered `created_at` ascending so the oldest unfinished
+   * work drains first. Backs the resume sweep that guarantees a batch
+   * completes even when every driver that touched it died.
+   */
+  listResumable(params: {
+    kind: TenantOperationKind;
+    limit: number;
+  }): Promise<TenantOperation[]>;
   /** Retention cleanup only — not exposed via routes; events cascade. */
   remove(id: string): Promise<boolean>;
 }

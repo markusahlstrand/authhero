@@ -1,10 +1,22 @@
-import { and, desc, eq, inArray, lt, SQL } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  inArray,
+  isNull,
+  lt,
+  lte,
+  or,
+  SQL,
+} from "drizzle-orm";
 import { nanoid } from "nanoid";
 import type {
   ListTenantOperationsParams,
   ListTenantOperationsResult,
   TenantOperation,
   TenantOperationInsert,
+  TenantOperationKind,
   TenantOperationUpdate,
   TenantOperationsAdapter,
 } from "@authhero/adapter-interfaces";
@@ -14,6 +26,15 @@ import {
 } from "@authhero/adapter-interfaces";
 import { tenantOperations } from "../schema/control-plane";
 import type { DrizzleDb } from "./types";
+
+function parseJsonColumn(raw: string | null): unknown {
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
 
 function rowToTenantOperation(
   row: typeof tenantOperations.$inferSelect,
@@ -31,6 +52,10 @@ function rowToTenantOperation(
     target_database_version: row.target_database_version,
     error: row.error,
     initiated_by: row.initiated_by,
+    input: parseJsonColumn(row.input),
+    result: parseJsonColumn(row.result),
+    claimed_by: row.claimed_by,
+    claim_expires_at: row.claim_expires_at,
     created_at: row.created_at,
     updated_at: row.updated_at,
     finished_at: row.finished_at,
@@ -57,6 +82,10 @@ export function createTenantOperationsAdapter(
         target_database_version: input.target_database_version ?? null,
         error: null,
         initiated_by: input.initiated_by ?? null,
+        input: input.input ? JSON.stringify(input.input) : null,
+        result: null,
+        claimed_by: null,
+        claim_expires_at: null,
         created_at: now,
         updated_at: now,
         finished_at: null,
@@ -149,6 +178,12 @@ export function createTenantOperationsAdapter(
       if (operation.target_database_version !== undefined)
         set.target_database_version = operation.target_database_version;
       if (operation.error !== undefined) set.error = operation.error;
+      if (operation.result !== undefined)
+        set.result = operation.result ? JSON.stringify(operation.result) : null;
+      if (operation.claimed_by !== undefined)
+        set.claimed_by = operation.claimed_by;
+      if (operation.claim_expires_at !== undefined)
+        set.claim_expires_at = operation.claim_expires_at;
       if (operation.finished_at !== undefined)
         set.finished_at = operation.finished_at;
 
@@ -157,6 +192,95 @@ export function createTenantOperationsAdapter(
         .set(set)
         .where(eq(tenantOperations.id, id));
       return true;
+    },
+
+    async claim(
+      id: string,
+      worker_id: string,
+      leaseMs: number,
+    ): Promise<boolean> {
+      const now = new Date().toISOString();
+      const claimExpires = new Date(Date.now() + leaseMs).toISOString();
+
+      // Single conditional write: take the lease only when it is free,
+      // expired, or already ours. Mirrors `outbox.claimEvents`.
+      await db
+        .update(tenantOperations)
+        .set({ claimed_by: worker_id, claim_expires_at: claimExpires })
+        .where(
+          and(
+            eq(tenantOperations.id, id),
+            or(
+              isNull(tenantOperations.claimed_by),
+              lte(tenantOperations.claim_expires_at, now),
+              eq(tenantOperations.claimed_by, worker_id),
+            ),
+          ),
+        );
+
+      const held = await db
+        .select({ id: tenantOperations.id })
+        .from(tenantOperations)
+        .where(
+          and(
+            eq(tenantOperations.id, id),
+            eq(tenantOperations.claimed_by, worker_id),
+            eq(tenantOperations.claim_expires_at, claimExpires),
+          ),
+        )
+        .limit(1);
+
+      return held.length > 0;
+    },
+
+    async release(id: string, worker_id: string): Promise<boolean> {
+      const held = await db
+        .select({ id: tenantOperations.id })
+        .from(tenantOperations)
+        .where(
+          and(
+            eq(tenantOperations.id, id),
+            eq(tenantOperations.claimed_by, worker_id),
+          ),
+        )
+        .limit(1);
+      if (held.length === 0) return false;
+
+      await db
+        .update(tenantOperations)
+        .set({ claimed_by: null, claim_expires_at: null })
+        .where(
+          and(
+            eq(tenantOperations.id, id),
+            eq(tenantOperations.claimed_by, worker_id),
+          ),
+        );
+      return true;
+    },
+
+    async listResumable(params: {
+      kind: TenantOperationKind;
+      limit: number;
+    }): Promise<TenantOperation[]> {
+      const now = new Date().toISOString();
+
+      const rows = await db
+        .select()
+        .from(tenantOperations)
+        .where(
+          and(
+            inArray(tenantOperations.status, ["pending", "running"]),
+            eq(tenantOperations.kind, params.kind),
+            or(
+              isNull(tenantOperations.claimed_by),
+              lte(tenantOperations.claim_expires_at, now),
+            ),
+          ),
+        )
+        .orderBy(asc(tenantOperations.created_at), asc(tenantOperations.id))
+        .limit(params.limit);
+
+      return rows.map(rowToTenantOperation);
     },
 
     async remove(id: string): Promise<boolean> {

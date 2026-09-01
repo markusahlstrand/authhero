@@ -77,6 +77,7 @@ export * from "./SigningKey";
 export * from "./Tenant";
 export * from "./TenantOperation";
 export * from "./TenantOperationEvent";
+export * from "./TenantOperationRow";
 export * from "./Rollout";
 export * from "./Token";
 export * from "./User";
