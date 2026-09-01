@@ -172,15 +172,23 @@ jobs:
       # Clone the OIDF conformance suite. The compose files require a locally
       # built JAR (the suite doesn't publish a public Docker image), so we
       # cache ~/.m2 and the suite's target/ directory across runs.
+      # Pinned to a release tag: the suite's default branch is not always
+      # green (release-v5.2.4 + 1 broke the build by calling a method that had
+      # been removed from JsonSchemaValidationResult), and an unpinned clone
+      # makes our CI fail for reasons that have nothing to do with this repo.
+      # Bump SUITE_REF (and the cache key below) to move to a newer suite.
       - name: Clone conformance suite
+        env:
+          SUITE_REF: release-v5.2.4
         run: |
           if [ ! -d ~/conformance-suite ]; then
-            git clone --depth 1 https://gitlab.com/openid/conformance-suite.git ~/conformance-suite
+            git clone --depth 1 --branch "$SUITE_REF" \
+              https://gitlab.com/openid/conformance-suite.git ~/conformance-suite
           fi
 
       # The suite is cloned into ~/conformance-suite (outside $GITHUB_WORKSPACE),
-      # so hashFiles can't see its pom.xml. Use a static version tag instead and
-      # bump it manually when a fresh suite build is needed.
+      # so hashFiles can't see its pom.xml. Key on the pinned suite ref instead,
+      # and bump the -vN suffix when a fresh build of the same ref is needed.
       - name: Cache conformance suite build
         id: suite-cache
         uses: actions/cache@v5
@@ -188,9 +196,9 @@ jobs:
           path: |
             ~/conformance-suite/target
             ~/.m2/repository
-          key: conformance-suite-${{ runner.os }}-v1
+          key: conformance-suite-${{ runner.os }}-release-v5.2.4-v1
           restore-keys: |
-            conformance-suite-${{ runner.os }}-
+            conformance-suite-${{ runner.os }}-release-v5.2.4-
 
       - name: Build conformance suite (cold cache)
         if: steps.suite-cache.outputs.cache-hit != 'true'
