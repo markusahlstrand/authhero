@@ -194,6 +194,7 @@ gtag('config', 'G-DNZWG3PF2L');`,
           items: [
             { text: "What is AuthHero?", link: "/" },
             { text: "Installation", link: "/getting-started" },
+            { text: "Your First Login", link: "/first-login" },
           ],
         },
         {
