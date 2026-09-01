@@ -24,11 +24,11 @@ pnpm add authhero @authhero/multi-tenancy
 
 ## Documentation
 
-📚 **Full documentation**: [https://authhero.net/packages/multi-tenancy/](https://authhero.net/packages/multi-tenancy/)
+📚 **Full documentation**: [https://docs.authhero.net/customization/multi-tenancy/](https://docs.authhero.net/customization/multi-tenancy/)
 
-- [Architecture](https://authhero.net/packages/multi-tenancy/architecture) - Organization-tenant model and token-based access
-- [Database Isolation](https://authhero.net/packages/multi-tenancy/database-isolation) - Per-tenant databases
-- [API Reference](https://authhero.net/packages/multi-tenancy/api-reference) - Complete API documentation
+- [Architecture](https://docs.authhero.net/customization/multi-tenancy/architecture) - Organization-tenant model and token-based access
+- [Database Isolation](https://docs.authhero.net/customization/multi-tenancy/database-isolation) - Per-tenant databases
+- [API Reference](https://docs.authhero.net/customization/multi-tenancy/api-reference) - Complete API documentation
 
 ## Quick Start
 
