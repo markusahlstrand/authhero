@@ -57,6 +57,10 @@ export function applyConfigMiddleware(
         config.usersImportMaxConcurrentJobs;
     }
 
+    if (config.unsafeAllowAzpCustomClaim !== undefined) {
+      ctx.env.unsafeAllowAzpCustomClaim = config.unsafeAllowAzpCustomClaim;
+    }
+
     if (config.tenantOperationExecutor) {
       ctx.env.tenantOperationExecutor = config.tenantOperationExecutor;
     }

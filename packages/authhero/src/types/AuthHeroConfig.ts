@@ -557,6 +557,28 @@ export interface AuthHeroConfig {
   usersImportMaxConcurrentJobs?: number;
 
   /**
+   * Let hooks write the `azp` claim, which the authorization server otherwise
+   * owns. Defaults to `false`, and should stay that way in a new deployment.
+   *
+   * `azp` is reserved because `middlewares/authentication.ts` reads it as the
+   * calling client's id, so a hook-supplied value lands in the request context
+   * where a registered client id is expected.
+   *
+   * The flag exists because reserving the name is not a no-op for a deployment
+   * that was already using it: the mint never emits `azp` itself, so a hook
+   * was the only thing writing it, and reserving it deletes the claim from
+   * every token rather than restoring a server-computed value. Turning this on
+   * keeps those tokens intact while the services reading `azp` are moved onto
+   * a claim the hook owns.
+   *
+   * **Transitional.** Enable it only where the hooks writing `azp` are
+   * first-party code, and turn it off once the migration is done.
+   *
+   * @default false
+   */
+  unsafeAllowAzpCustomClaim?: boolean;
+
+  /**
    * Optional powered-by logo to display at the bottom left of the login widget.
    * This is only configurable in code, not stored in the database.
    *
