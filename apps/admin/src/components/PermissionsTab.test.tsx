@@ -1,11 +1,5 @@
 import { describe, it, expect, vi, beforeAll } from "vitest";
-import {
-  render,
-  screen,
-  fireEvent,
-  waitFor,
-  within,
-} from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import {
   CoreAdminContext,
   RecordContextProvider,
@@ -23,7 +17,6 @@ beforeAll(() => {
   Element.prototype.setPointerCapture = () => {};
   Element.prototype.releasePointerCapture = () => {};
   Element.prototype.scrollIntoView = () => {};
-  // @ts-expect-error jsdom lacks ResizeObserver
   globalThis.ResizeObserver ||= class {
     observe() {}
     unobserve() {}
@@ -58,6 +51,8 @@ function renderUsersPermissionsTab(create: ReturnType<typeof vi.fn>) {
       return Promise.resolve({ data: [], total: 0 });
     }),
     getManyReference: vi.fn(() => Promise.resolve({ data: [], total: 0 })),
+    // @ts-expect-error the mock returns one concrete record, not ra-core's
+    // generic `CreateResult<ResultRecordType>`
     create,
   });
 
@@ -95,6 +90,8 @@ function renderRolesPermissionsTab(create: ReturnType<typeof vi.fn>) {
       return Promise.resolve({ data: [], total: 0 });
     }),
     getManyReference,
+    // @ts-expect-error the mock returns one concrete record, not ra-core's
+    // generic `CreateResult<ResultRecordType>`
     create,
   });
 

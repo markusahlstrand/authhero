@@ -54,6 +54,22 @@ jobs:
         # multi-tenancy, cloudflare, aws and create-authhero.
         run: pnpm -r --filter './packages/**' build
 
+      # `pnpm -r ... build` above already type-checks every package (each one
+      # emits its own .d.ts through tsc), but the apps do not: `vite build`
+      # strips types without checking them. Run their `tsc --noEmit` here, and
+      # only after the packages are built, because apps/admin type-checks
+      # against @authhero/adapter-interfaces' dist types.
+      - name: Type-check apps
+        run: pnpm type-check
+
+      # ESLint gate. Scoped to apps/website for now: it is the only workspace
+      # that is clean today. apps/admin (~230) and the packages (~760 in
+      # authhero alone) have a backlog that is mostly react/prop-types noise
+      # in a TypeScript codebase plus @typescript-eslint/no-explicit-any, so
+      # widening this gate needs a rules decision first (see #1015).
+      - name: Lint
+        run: pnpm website lint
+
       - name: Build admin
         run: pnpm admin build
 

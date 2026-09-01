@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import type { RaRecord } from "ra-core";
 import { Edit, SimpleForm } from "@/components/admin";
 import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UrlTabs } from "@/components/ui/url-tabs";
@@ -26,7 +27,13 @@ export function ActionEdit() {
     <Edit
       mutationMode="pessimistic"
       queryOptions={{
-        select: (data: ActionRecord) => toActionFormValues(data, sentinel),
+        // `select` has to hand back a record with an id, and `ActionRecord`
+        // models the looser form-values shape where every field is optional,
+        // so carry the fetched id through explicitly.
+        select: (data: RaRecord) => ({
+          ...toActionFormValues(data, sentinel),
+          id: data.id,
+        }),
       }}
       transform={(data: ActionRecord) => fromActionFormValues(data, sentinel)}
     >
