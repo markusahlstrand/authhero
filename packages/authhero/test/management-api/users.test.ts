@@ -1,6 +1,35 @@
 import { describe, it, expect } from "vitest";
+import { testClient } from "hono/testing";
 import { getAdminToken } from "../helpers/token";
 import { getTestServer } from "../helpers/test-server";
+import type { Bindings } from "../../src/types";
+
+// The user sub-resources — global roles, organization memberships and
+// sessions — had no coverage at all, and neither did the plain 404 paths on
+// GET/DELETE /users/{user_id}. See the "Management API CRUD tests are thin"
+// box in #1015.
+
+async function seedTenant(env: Bindings, tenantId: string) {
+  await env.data.tenants.create({
+    id: tenantId,
+    friendly_name: "Users Tenant",
+    audience: "https://example.com",
+    default_audience: "https://example.com",
+    sender_email: "login@example.com",
+    sender_name: "SenderName",
+  });
+}
+
+async function seedUser(env: Bindings, tenantId: string, userId: string) {
+  return env.data.users.create(tenantId, {
+    email: `${userId.replace(/[^a-z0-9]/gi, "-")}@example.com`,
+    user_id: userId,
+    provider: "email",
+    connection: "email",
+    email_verified: true,
+    is_social: false,
+  });
+}
 
 describe("POST /api/v2/users", () => {
   it("returns 400 rather than 500 when the request has no body or content-type", async () => {
@@ -286,5 +315,360 @@ describe("PATCH /api/v2/users/:user_id phone_number uniqueness", () => {
     );
 
     expect(response.status).toBe(200);
+  });
+});
+
+describe("GET/DELETE /api/v2/users/:user_id", () => {
+  it("returns 404 when fetching a user that does not exist", async () => {
+    const { managementApp, env } = await getTestServer();
+    const client = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const response = await client.users[":user_id"].$get(
+      {
+        param: { user_id: "email|nobody" },
+        header: { "tenant-id": "tenantId" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+
+    expect(response.status).toBe(404);
+  });
+
+  it("returns 404 when deleting a user that does not exist", async () => {
+    const { managementApp, env } = await getTestServer();
+    const client = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const response = await client.users[":user_id"].$delete(
+      {
+        param: { user_id: "email|nobody" },
+        header: { "tenant-id": "tenantId" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+
+    expect(response.status).toBe(404);
+  });
+
+  it("does not reach a user belonging to another tenant", async () => {
+    const { managementApp, env } = await getTestServer();
+    const client = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const tenantId = `users-isolation-${Date.now()}`;
+    await seedTenant(env, tenantId);
+    await seedUser(env, tenantId, "email|other-tenant-user");
+
+    const response = await client.users[":user_id"].$get(
+      {
+        param: { user_id: "email|other-tenant-user" },
+        header: { "tenant-id": "tenantId" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+
+    expect(response.status).toBe(404);
+  });
+});
+
+describe("user roles", () => {
+  it("assigns, lists and removes global roles", async () => {
+    const { managementApp, env } = await getTestServer();
+    const client = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const tenantId = `user-roles-${Date.now()}`;
+    await seedTenant(env, tenantId);
+    await seedUser(env, tenantId, "email|role-user");
+    const role = await env.data.roles.create(tenantId, {
+      name: "tenant-admin",
+      description: "Tenant administrator",
+    });
+
+    const assignResponse = await client.users[":user_id"].roles.$post(
+      {
+        param: { user_id: "email|role-user" },
+        json: { roles: [role.id] },
+        header: { "tenant-id": tenantId },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(assignResponse.status).toBe(201);
+
+    const listResponse = await client.users[":user_id"].roles.$get(
+      {
+        param: { user_id: "email|role-user" },
+        header: { "tenant-id": tenantId },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(listResponse.status).toBe(200);
+    const roles = (await listResponse.json()) as Array<{ id: string }>;
+    expect(roles.map((r) => r.id)).toEqual([role.id]);
+
+    const removeResponse = await client.users[":user_id"].roles.$delete(
+      {
+        param: { user_id: "email|role-user" },
+        json: { roles: [role.id] },
+        header: { "tenant-id": tenantId },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(removeResponse.status).toBe(200);
+
+    const afterResponse = await client.users[":user_id"].roles.$get(
+      {
+        param: { user_id: "email|role-user" },
+        header: { "tenant-id": tenantId },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(await afterResponse.json()).toEqual([]);
+  });
+
+  it("returns 404 for a user that does not exist", async () => {
+    const { managementApp, env } = await getTestServer();
+    const client = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const listResponse = await client.users[":user_id"].roles.$get(
+      {
+        param: { user_id: "email|nobody" },
+        header: { "tenant-id": "tenantId" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(listResponse.status).toBe(404);
+
+    const assignResponse = await client.users[":user_id"].roles.$post(
+      {
+        param: { user_id: "email|nobody" },
+        json: { roles: [] },
+        header: { "tenant-id": "tenantId" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(assignResponse.status).toBe(404);
+
+    const removeResponse = await client.users[":user_id"].roles.$delete(
+      {
+        param: { user_id: "email|nobody" },
+        json: { roles: [] },
+        header: { "tenant-id": "tenantId" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(removeResponse.status).toBe(404);
+  });
+});
+
+describe("user organizations", () => {
+  it("lists the organizations a user belongs to and removes a membership", async () => {
+    const { managementApp, env } = await getTestServer();
+    const client = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const tenantId = `user-orgs-${Date.now()}`;
+    await seedTenant(env, tenantId);
+    await seedUser(env, tenantId, "email|org-member");
+    const organization = await env.data.organizations.create(tenantId, {
+      name: "acme",
+      display_name: "Acme Inc",
+    });
+    await env.data.userOrganizations.create(tenantId, {
+      user_id: "email|org-member",
+      organization_id: organization.id,
+    });
+
+    const listResponse = await client.users[":user_id"].organizations.$get(
+      {
+        param: { user_id: "email|org-member" },
+        query: {},
+        header: { "tenant-id": tenantId },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(listResponse.status).toBe(200);
+    const organizations = (await listResponse.json()) as Array<{ id: string }>;
+    expect(organizations.map((o) => o.id)).toEqual([organization.id]);
+
+    const removeResponse = await client.users[":user_id"].organizations[
+      ":organization_id"
+    ].$delete(
+      {
+        param: {
+          user_id: "email|org-member",
+          organization_id: organization.id,
+        },
+        header: { "tenant-id": tenantId },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(removeResponse.status).toBe(200);
+
+    const afterResponse = await client.users[":user_id"].organizations.$get(
+      {
+        param: { user_id: "email|org-member" },
+        query: {},
+        header: { "tenant-id": tenantId },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(await afterResponse.json()).toEqual([]);
+  });
+
+  it("returns the totals envelope when include_totals is set", async () => {
+    const { managementApp, env } = await getTestServer();
+    const client = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const tenantId = `user-orgs-totals-${Date.now()}`;
+    await seedTenant(env, tenantId);
+    await seedUser(env, tenantId, "email|org-totals");
+    const organization = await env.data.organizations.create(tenantId, {
+      name: "totals-org",
+    });
+    await env.data.userOrganizations.create(tenantId, {
+      user_id: "email|org-totals",
+      organization_id: organization.id,
+    });
+
+    const response = await client.users[":user_id"].organizations.$get(
+      {
+        param: { user_id: "email|org-totals" },
+        query: { include_totals: "true", page: "0", per_page: "10" },
+        header: { "tenant-id": tenantId },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body).toMatchObject({ start: 0, limit: 10, length: 1 });
+    expect((body as { organizations: unknown[] }).organizations).toHaveLength(
+      1,
+    );
+  });
+
+  it("returns 404 for an unknown user and for a membership the user does not have", async () => {
+    const { managementApp, env } = await getTestServer();
+    const client = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const tenantId = `user-orgs-404-${Date.now()}`;
+    await seedTenant(env, tenantId);
+    await seedUser(env, tenantId, "email|no-orgs");
+    const organization = await env.data.organizations.create(tenantId, {
+      name: "unrelated-org",
+    });
+
+    const unknownUser = await client.users[":user_id"].organizations.$get(
+      {
+        param: { user_id: "email|nobody" },
+        query: {},
+        header: { "tenant-id": tenantId },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(unknownUser.status).toBe(404);
+
+    const notAMember = await client.users[":user_id"].organizations[
+      ":organization_id"
+    ].$delete(
+      {
+        param: { user_id: "email|no-orgs", organization_id: organization.id },
+        header: { "tenant-id": tenantId },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(notAMember.status).toBe(404);
+  });
+});
+
+describe("GET /api/v2/users/:user_id/sessions", () => {
+  async function createSession(env: Bindings, userId: string, id: string) {
+    const loginSession = await env.data.loginSessions.create("tenantId", {
+      expires_at: new Date(Date.now() + 3600_000).toISOString(),
+      csrf_token: "csrf",
+      authParams: { client_id: "clientId" },
+    });
+    const expiresAt = new Date(Date.now() + 3600_000).toISOString();
+
+    return env.data.sessions.create("tenantId", {
+      id,
+      user_id: userId,
+      login_session_id: loginSession.id,
+      used_at: new Date().toISOString(),
+      device: {},
+      clients: ["clientId"],
+      expires_at: expiresAt,
+      idle_expires_at: expiresAt,
+    });
+  }
+
+  it("returns only the sessions belonging to the user", async () => {
+    const { managementApp, env } = await getTestServer();
+    const client = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    await seedUser(env, "tenantId", "email|session-owner");
+    await seedUser(env, "tenantId", "email|session-stranger");
+    await createSession(env, "email|session-owner", "session-owned");
+    await createSession(env, "email|session-stranger", "session-other");
+
+    const response = await client.users[":user_id"].sessions.$get(
+      {
+        param: { user_id: "email|session-owner" },
+        query: {},
+        header: { "tenant-id": "tenantId" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+
+    expect(response.status).toBe(200);
+    const sessions = (await response.json()) as Array<{ id: string }>;
+    expect(sessions.map((s) => s.id)).toEqual(["session-owned"]);
+  });
+
+  it("returns the totals envelope when include_totals is set", async () => {
+    const { managementApp, env } = await getTestServer();
+    const client = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    await seedUser(env, "tenantId", "email|session-totals");
+    await createSession(env, "email|session-totals", "session-totals-1");
+
+    const response = await client.users[":user_id"].sessions.$get(
+      {
+        param: { user_id: "email|session-totals" },
+        query: { include_totals: "true", page: "0", per_page: "10" },
+        header: { "tenant-id": "tenantId" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body).toMatchObject({ start: 0, limit: 10 });
+    expect((body as { sessions: unknown[] }).sessions).toHaveLength(1);
+  });
+
+  it("returns an empty list for a user with no sessions", async () => {
+    const { managementApp, env } = await getTestServer();
+    const client = testClient(managementApp, env);
+    const token = await getAdminToken();
+
+    const response = await client.users[":user_id"].sessions.$get(
+      {
+        param: { user_id: "email|userId" },
+        query: {},
+        header: { "tenant-id": "tenantId" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual([]);
   });
 });
