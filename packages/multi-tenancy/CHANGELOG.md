@@ -1,5 +1,15 @@
 # @authhero/multi-tenancy
 
+## 15.0.2
+
+### Patch Changes
+
+- b18cb2e: Fix the dead documentation links in the README. They pointed at
+  `authhero.net/packages/multi-tenancy/*`, which does not exist; the chapters are
+  published at `docs.authhero.net/customization/multi-tenancy/*`.
+- Updated dependencies [e5c33c6]
+  - authhero@9.11.1
+
 ## 15.0.1
 
 ### Patch Changes
