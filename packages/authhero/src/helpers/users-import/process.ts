@@ -345,6 +345,9 @@ export async function advanceUsersImport(
 
   let processed = 0;
   const budget = options.maxRows ?? Number.POSITIVE_INFINITY;
+  // Tracks that each chunk actually drains the pending queue; see the
+  // no-progress guard at the end of the loop.
+  let pendingBefore = Number.POSITIVE_INFINITY;
 
   try {
     for (;;) {
@@ -372,6 +375,19 @@ export async function advanceUsersImport(
         current_step: `${counts.total - counts.pending}/${counts.total} rows`,
         result: buildSummary(counts),
       });
+
+      // Safety valve. `claimPending` selects on `status = 'pending'`, so if a
+      // commit ever fails to move its rows out of that state the same chunk
+      // would be handed back forever — an unbounded loop that re-applies the
+      // same writes. Bail out instead and leave the operation for the next
+      // driver, which is safe because nothing here is half-committed.
+      if (counts.pending >= pendingBefore) {
+        console.warn(
+          `users_import ${operationId} made no progress on a chunk of ${outcomes.length} rows (${counts.pending} still pending); stopping this pass`,
+        );
+        break;
+      }
+      pendingBefore = counts.pending;
     }
 
     const counts = await rowsAdapter.countByStatus(operationId);

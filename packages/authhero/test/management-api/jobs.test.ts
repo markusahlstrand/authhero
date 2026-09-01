@@ -579,6 +579,39 @@ describe("durability", () => {
     expect(all.users).toHaveLength(1);
   });
 
+  it("stops instead of spinning when a chunk makes no progress", async () => {
+    const users = Array.from({ length: 150 }, (_, i) => ({
+      email: `stall-${i}@example.com`,
+    }));
+    const { response, env } = await postImport(users);
+    const operationId = (await response.json()).id.replace(/^job_/, "");
+
+    // Simulate a commit that silently fails to move rows out of `pending`.
+    // Without the no-progress guard this would hand the same chunk back
+    // forever, re-applying the same writes on every pass.
+    const rows = env.data.tenantOperationRows!;
+    const original = rows.recordOutcomes.bind(rows);
+    rows.recordOutcomes = async () => 0;
+
+    const result = await Promise.race([
+      advanceUsersImport(env.data, operationId, { chunkSize: 10 }),
+      new Promise((_, reject) =>
+        setTimeout(
+          () => reject(new Error("advanceUsersImport did not return")),
+          5000,
+        ),
+      ),
+    ]);
+
+    expect(result).toMatchObject({ done: false });
+
+    // Recovery is unaffected: a working driver still finishes the job.
+    rows.recordOutcomes = original;
+    await drain(env);
+    const counts = await rows.countByStatus(operationId);
+    expect(counts.pending).toBe(0);
+  });
+
   it("does not double-process when two drivers race", async () => {
     const users = Array.from({ length: 150 }, (_, i) => ({
       email: `race-${i}@example.com`,
