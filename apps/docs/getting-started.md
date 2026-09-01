@@ -50,39 +50,34 @@ npx create-authhero my-auth-app
 ```
 
 The CLI will guide you through:
-1. Choosing a template (`local` for SQLite or `cloudflare` for D1)
-2. Setting up an admin user
-3. Running migrations and starting the dev server
+1. Choosing a template (`local` for SQLite, `cloudflare` for D1, `aws-sst`, or `proxy`)
+2. Whether to include the admin UI at `/admin` and enable multi-tenant mode
+3. Installing dependencies, running migrations and starting the dev server
+
+The admin user is not created by the CLI. The `local` template serves HTTPS on `https://localhost:3000` with a self-signed certificate; open `/setup` there on first run and the wizard creates the first tenant, the admin user and a `default` application — see [Your first login](/first-login).
 
 ### Non-Interactive Mode
 
 ```bash
-npx create-authhero my-app \
-  --template local \
-  --email admin@example.com \
-  --password mypassword123 \
-  --yes
+npx create-authhero my-app --template local --yes
 ```
 
 #### CLI Options
 
 | Option | Description |
 | --- | --- |
-| `-t, --template <type>` | `local` (SQLite) or `cloudflare` (D1) |
-| `-e, --email <email>` | Admin email address |
-| `-p, --password <password>` | Admin password (min 8 characters) |
+| `-t, --template <type>` | `local` (SQLite), `cloudflare` (D1), `aws-sst`, or `proxy` |
 | `--package-manager <pm>` | `npm`, `yarn`, `pnpm`, or `bun` |
-| `--multi-tenant` | Enable multi-tenant support (cloudflare only) |
+| `--admin-ui` | Serve the admin dashboard at `/admin` (`local` and `cloudflare`) |
+| `--multi-tenant` | Enable multi-tenant support |
+| `--skip-install` / `--skip-migrate` / `--skip-start` | Stop after scaffolding |
 | `-y, --yes` | Skip prompts, use defaults |
 
 ## What's Next
 
-Once AuthHero is running:
+**[Your first login](/first-login)** walks through the whole thing end to end on the server you just started: sign in to the admin dashboard at `/admin`, then drive an authorization-code login by hand — `/authorize` in the browser, the universal login screen, and the code exchange at `/oauth/token`.
 
-1. Open the admin dashboard at your server URL
-2. Create an application (client) for your app
-3. Configure a connection (e.g., email/password)
-4. Integrate using any Auth0-compatible SDK
+After that, point your own application at AuthHero: add its callback URL to an application in the dashboard and use any Auth0-compatible SDK.
 
 ### Learn More
 
