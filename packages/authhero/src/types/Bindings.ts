@@ -87,6 +87,12 @@ export type Bindings = {
   // Auth0's limit of 2. Set via init({ usersImportMaxConcurrentJobs }).
   usersImportMaxConcurrentJobs?: number;
 
+  // Transitional: let a hook write the `azp` claim even though the
+  // authorization server owns it. Set via
+  // init({ unsafeAllowAzpCustomClaim: true }). See AuthHeroConfig for why
+  // this is unsafe and when to turn it off again.
+  unsafeAllowAzpCustomClaim?: boolean;
+
   // Optional transactional outbox configuration
   // Set via init({ outbox: { enabled: true } })
   outbox?: OutboxConfig;

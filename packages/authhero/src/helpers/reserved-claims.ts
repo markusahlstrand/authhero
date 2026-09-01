@@ -155,10 +155,28 @@ const RESERVED_BY_KIND: Record<ClaimPayloadKind, readonly string[]> = {
   client_service_token: CLIENT_SERVICE_TOKEN_RESERVED_CLAIMS,
 };
 
+/**
+ * Transitional escape hatch for `init({ unsafeAllowAzpCustomClaim: true })`.
+ *
+ * A deployment that shipped `azp` as a tenant-owned claim before this module
+ * existed cannot un-reserve it atomically: every downstream service reading
+ * `azp` has to be moved off it first, and until then reserving the name simply
+ * deletes the claim from the token (the mint never emits `azp` itself). The
+ * flag keeps those tokens intact while that migration runs.
+ *
+ * It is unsafe because `middlewares/authentication.ts` reads `azp` as the
+ * calling client's id, so a hook-supplied value lands in the request context
+ * where a registered client id is expected. Enable it only to buy time, and
+ * only where the hooks writing `azp` are first-party code.
+ */
 export function isReservedClaim(
   claim: string,
   kind: ClaimPayloadKind,
+  options: { allowAzpOverride?: boolean } = {},
 ): boolean {
+  if (claim === "azp" && options.allowAzpOverride) {
+    return false;
+  }
   return RESERVED_BY_KIND[kind].includes(claim);
 }
 
@@ -189,7 +207,8 @@ export function applyCustomClaim(
   value: unknown,
   options: ApplyCustomClaimOptions,
 ): boolean {
-  if (isReservedClaim(claim, options.kind)) {
+  const allowAzpOverride = options.ctx?.env?.unsafeAllowAzpCustomClaim === true;
+  if (isReservedClaim(claim, options.kind, { allowAzpOverride })) {
     warnDroppedClaim(claim, options);
     return false;
   }

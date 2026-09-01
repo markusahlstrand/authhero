@@ -190,6 +190,127 @@ describe("reserved claims", () => {
     });
   });
 
+  describe("unsafeAllowAzpCustomClaim — the transitional escape hatch", () => {
+    it("releases azp on every payload that reserves it, and nothing else", () => {
+      const allow = { allowAzpOverride: true };
+
+      for (const kind of [
+        "access_token",
+        "id_token",
+        "client_service_token",
+      ] as const) {
+        expect(isReservedClaim("azp", kind)).toBe(true);
+        expect(isReservedClaim("azp", kind, allow)).toBe(false);
+        // The flag is about `azp` alone — everything else stays locked.
+        expect(isReservedClaim("tenant_id", kind, allow)).toBe(true);
+        expect(isReservedClaim("sub", kind, allow)).toBe(true);
+        expect(isReservedClaim("scope", kind, allow)).toBe(true);
+      }
+    });
+
+    it("writes the hook's azp onto the access token when the flag is set", async () => {
+      const { env } = await getTestServer();
+      env.unsafeAllowAzpCustomClaim = true;
+      const ctx = makeCtx(env);
+      const { client, user } = await makeTokenParams(env);
+
+      env.hooks = {
+        onExecuteCredentialsExchange: async (
+          _event: HookEvent,
+          api: OnExecuteCredentialsExchangeAPI,
+        ) => {
+          api.accessToken.setCustomClaim("azp", "vendor-123");
+          // Still fenced off: the flag names one claim, not a bypass.
+          api.accessToken.setCustomClaim("tenant_id", "other-tenant");
+          api.accessToken.setCustomClaim("scope", "admin:everything");
+        },
+      };
+
+      const tokens = await createAuthTokens(ctx, {
+        authParams: {
+          client_id: "clientId",
+          response_type: AuthorizationResponseType.TOKEN,
+          audience: "https://example.com",
+          scope: "openid profile",
+        },
+        client,
+        user,
+        session_id: "session_id",
+      });
+
+      const payload = parseJWT(tokens.access_token)!.payload as Record<
+        string,
+        unknown
+      >;
+      expect(payload.azp).toBe("vendor-123");
+      expect(payload.tenant_id).toBe("tenantId");
+      expect(payload.scope).toBe("openid profile");
+    });
+
+    it("drops the hook's azp when the flag is absent", async () => {
+      const { env } = await getTestServer();
+      const ctx = makeCtx(env);
+      const { client, user } = await makeTokenParams(env);
+
+      env.hooks = {
+        onExecuteCredentialsExchange: async (
+          _event: HookEvent,
+          api: OnExecuteCredentialsExchangeAPI,
+        ) => {
+          api.accessToken.setCustomClaim("azp", "vendor-123");
+        },
+      };
+
+      const tokens = await createAuthTokens(ctx, {
+        authParams: {
+          client_id: "clientId",
+          response_type: AuthorizationResponseType.TOKEN,
+          audience: "https://example.com",
+          scope: "openid profile",
+        },
+        client,
+        user,
+        session_id: "session_id",
+      });
+
+      // The mint never emits `azp` itself, so reserving it removes the claim
+      // outright rather than restoring a server-computed value — which is the
+      // whole reason the flag exists.
+      const payload = parseJWT(tokens.access_token)!.payload as Record<
+        string,
+        unknown
+      >;
+      expect(payload.azp).toBeUndefined();
+    });
+
+    it("also releases azp through the params.customClaims path", async () => {
+      const { env } = await getTestServer();
+      env.unsafeAllowAzpCustomClaim = true;
+      const ctx = makeCtx(env);
+      const { client, user } = await makeTokenParams(env);
+
+      const tokens = await createAuthTokens(ctx, {
+        authParams: {
+          client_id: "clientId",
+          response_type: AuthorizationResponseType.TOKEN,
+          audience: "https://example.com",
+          scope: "openid profile",
+        },
+        client,
+        user,
+        session_id: "session_id",
+        customClaims: { azp: "vendor-123", tenant_id: "other-tenant" },
+      });
+
+      const payload = parseJWT(tokens.access_token)!.payload as Record<
+        string,
+        unknown
+      >;
+      expect(payload.azp).toBe("vendor-123");
+      expect(payload.tenant_id).toBe("tenantId");
+    });
+  });
+
   describe("credentials-exchange hooks — setCustomClaim", () => {
     it("cannot overwrite an access-token claim the grant computed", async () => {
       const { env } = await getTestServer();
