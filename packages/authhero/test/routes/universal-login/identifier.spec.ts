@@ -564,4 +564,59 @@ describe("login identifier page", () => {
       consoleError.mockRestore();
     }
   });
+
+  it("trims whitespace around the identifier before looking the user up", async () => {
+    const { universalApp, oauthApp, env } = await getTestServer({
+      mockEmail: true,
+    });
+    const oauthClient = testClient(oauthApp, env);
+    const universalClient = testClient(universalApp, env);
+
+    // Autofill and mobile keyboards routinely append a trailing space. The
+    // padded form has to resolve to the same account as the clean one, or the
+    // person is silently routed to a different login strategy — and, further
+    // down the write paths, to a second account (issue #1279).
+    await env.data.users.create("tenantId", {
+      user_id: `${USERNAME_PASSWORD_PROVIDER}|paddeduser`,
+      email: "padded@example.com",
+      email_verified: true,
+      provider: USERNAME_PASSWORD_PROVIDER,
+      connection: Strategy.USERNAME_PASSWORD,
+      is_social: false,
+      app_metadata: {
+        strategy: Strategy.USERNAME_PASSWORD,
+      },
+    });
+
+    const authorizeResponse = await oauthClient.authorize.$get({
+      query: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+        state: "state",
+        nonce: "nonce",
+        scope: "openid email profile",
+        response_type: AuthorizationResponseType.CODE,
+      },
+    });
+    const location = authorizeResponse.headers.get("location");
+    const state = new URL(`https://example.com${location}`).searchParams.get(
+      "state",
+    );
+    if (!state) {
+      throw new Error("No state found");
+    }
+
+    const response = await universalClient.login.identifier.$post({
+      query: { state },
+      form: { username: "  Padded@Example.com  " },
+    });
+
+    // Same outcome as the unpadded address: the password account is found and
+    // the person goes to the password screen, not the email-code fallback.
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toContain("/u/enter-password");
+
+    const loginSession = await env.data.loginSessions.get("tenantId", state);
+    expect(loginSession?.authParams.username).toBe("padded@example.com");
+  });
 });

@@ -5,6 +5,7 @@ import i18next from "i18next";
 import ChangeEmailPage from "../../components/ChangeEmailPage";
 import { logMessage } from "../../helpers/logging";
 import { LogTypes, escapeLuceneValue } from "@authhero/adapter-interfaces";
+import { normalizeEmail } from "../../utils/email";
 import { defineRoute } from "../../utils/define-route";
 const getRoot = defineRoute({
   route: createRoute({
@@ -84,7 +85,7 @@ const postRoot = defineRoute({
         state: z.string().openapi({
           description: "The state parameter from the authorization request",
         }),
-        email: z.string().toLowerCase(),
+        email: z.string().transform(normalizeEmail),
         change_id: z.string(),
       }),
       body: {

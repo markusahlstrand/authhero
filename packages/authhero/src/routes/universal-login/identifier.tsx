@@ -112,7 +112,12 @@ const postRoot = defineRoute({
         content: {
           "application/x-www-form-urlencoded": {
             schema: z.object({
-              username: z.string().transform((u) => u.toLowerCase()),
+              // Trim as well as lowercase: the field also carries phone
+              // numbers and plain usernames, so `normalizeEmail` would be the
+              // wrong name here, but the canonical form is the same. Without
+              // the trim a padded address reaches the user lookups verbatim
+              // and misses the account it belongs to (issue #1279).
+              username: z.string().transform((u) => u.trim().toLowerCase()),
               login_selection: z.enum(["code", "password"]).optional(),
             }),
           },

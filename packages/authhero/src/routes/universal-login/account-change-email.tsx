@@ -9,6 +9,7 @@ import { nanoid } from "nanoid";
 import { EMAIL_VERIFICATION_EXPIRATION_TIME } from "../../constants";
 import { logMessage } from "../../helpers/logging";
 import { LogTypes, escapeLuceneValue } from "@authhero/adapter-interfaces";
+import { normalizeEmail } from "../../utils/email";
 import { defineRoute } from "../../utils/define-route";
 const getRoot = defineRoute({
   route: createRoute({
@@ -80,7 +81,7 @@ const postRoot = defineRoute({
         content: {
           "application/x-www-form-urlencoded": {
             schema: z.object({
-              email: z.string().toLowerCase(),
+              email: z.string().transform(normalizeEmail),
             }),
           },
         },
@@ -118,18 +119,17 @@ const postRoot = defineRoute({
         continuationScope: "change-email",
       });
 
-    // Check if email is already taken by checking existing users
+    // Check if email is already taken by checking existing users.
+    // `page` is 0-indexed, and two rows are enough: only one of them can be
+    // the current user, so any second row is by definition someone else.
     const existingUsers = await env.data.users.list(client.tenant.id, {
-      page: 1,
-      per_page: 1,
+      page: 0,
+      per_page: 2,
       include_totals: false,
       q: `email:${escapeLuceneValue(email)}`,
     });
 
-    if (
-      existingUsers.users.length > 0 &&
-      existingUsers.users[0]?.user_id !== user.user_id
-    ) {
+    if (existingUsers.users.some((u) => u.user_id !== user.user_id)) {
       return ctx.html(
         <AccountChangeEmailPage
           theme={theme}
