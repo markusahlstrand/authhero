@@ -142,6 +142,14 @@ describe("postUserLoginHook → SUCCESS_LOGIN log carries details.execution_id",
     expect(successLogs[0]?.details).toMatchObject({
       execution_id: executionId,
     });
+    // The execution id is merged into the auto-built details, it does not
+    // replace them — the request snapshot has to survive alongside it.
+    const detailsWithExecution = successLogs[0]?.details as {
+      request?: { method?: string; path?: string; qs?: unknown };
+    };
+    expect(detailsWithExecution.request?.method).toBe("POST");
+    expect(detailsWithExecution.request?.path).toBe("/run");
+    expect(detailsWithExecution.request?.qs).toBeDefined();
 
     // And the execution itself is fetchable by that id.
     const execution = await server.env.data.actionExecutions.get(

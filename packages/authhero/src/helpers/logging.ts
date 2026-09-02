@@ -158,11 +158,19 @@ export type LogParams = {
     body?: unknown;
   };
   /**
-   * When provided, replaces the auto-generated details object entirely.
-   * Use this to store a compact, pre-built details payload (e.g. for webhook logs)
-   * that fits within storage limits (Analytics Engine blob: 1024 bytes).
+   * When provided, replaces the auto-generated `{ request, response? }` details
+   * object entirely. Use this to store a compact, pre-built details payload
+   * (e.g. for webhook logs) that fits within storage limits (Analytics Engine
+   * blob: 1024 bytes). `execution_id` is still merged on top when set — pass it
+   * via its own field rather than inlining it here, or the request block is lost.
    */
   details?: Record<string, unknown>;
+  /**
+   * The action execution this event resulted from. Merged into `details` rather
+   * than replacing it, so a login log keeps its request snapshot while still
+   * linking to the execution (Auth0 reaches executions via the tenant logs).
+   */
+  execution_id?: string;
   /**
    * If true, wait for the log to complete before returning.
    * If false (default), execute logging asynchronously in the background.
@@ -499,17 +507,22 @@ export async function logMessage(
       user_agent: ctx.var.useragent || "",
       auth0_client: ctx.var.auth0_client,
       date: new Date().toISOString(),
-      details: params.details || {
-        request: {
-          method: ctx.req.method,
-          path: ctx.req.path,
-          qs: ctx.req.queries(),
-          body: redactBody(params.body || ctx.var.body || ""),
-          ...(params.redirect_uri ? { redirect_uri: params.redirect_uri } : {}),
-        },
-        ...(params.response && {
-          response: params.response,
+      details: {
+        ...(params.details || {
+          request: {
+            method: ctx.req.method,
+            path: ctx.req.path,
+            qs: ctx.req.queries(),
+            body: redactBody(params.body || ctx.var.body || ""),
+            ...(params.redirect_uri
+              ? { redirect_uri: params.redirect_uri }
+              : {}),
+          },
+          ...(params.response && {
+            response: params.response,
+          }),
         }),
+        ...(params.execution_id ? { execution_id: params.execution_id } : {}),
       },
       isMobile: false,
       client_id: ctx.var.client_id,

@@ -494,7 +494,7 @@ const postRoot = defineRoute({
         client_name: grantResult.client.name,
         scope: grantResult.authParams.scope,
         audience: grantResult.authParams.audience,
-        ...(executionId ? { details: { execution_id: executionId } } : {}),
+        ...(executionId ? { execution_id: executionId } : {}),
       });
     }
 
