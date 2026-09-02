@@ -175,7 +175,7 @@ describe("user permissions", () => {
     await seedUser(env, ownerTenant, "email|shared-id");
     await seedUser(env, otherTenant, "email|shared-id");
 
-    await client.users[":user_id"].permissions.$post(
+    const assignResponse = await client.users[":user_id"].permissions.$post(
       {
         param: { user_id: "email|shared-id" },
         json: {
@@ -190,6 +190,9 @@ describe("user permissions", () => {
       },
       { headers: { authorization: `Bearer ${token}` } },
     );
+    // Without this the isolation assertion below would also pass if the
+    // assignment itself had failed.
+    expect(assignResponse.status).toBe(201);
 
     const response = await client.users[":user_id"].permissions.$get(
       {
