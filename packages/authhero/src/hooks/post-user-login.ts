@@ -271,6 +271,12 @@ export async function postUserLoginHook(
   // log still fires for early returns (form/page/env-hook redirects) and even
   // if a hook throws, preserving the prior unconditional-emission behavior.
   let executionId: string | null = null;
+  // Collected across both hook kinds — the env hook
+  // (ctx.env.hooks.onExecutePostLogin) and the tenant's code hooks — and
+  // persisted as one execution record in the `finally`. Persisting there
+  // rather than inline is what makes the record survive every exit: an env
+  // hook or form/page hook that redirects, and a hook that throws.
+  const outcomes: HandleCodeHookOutcome[] = [];
   try {
     // Update the user's last login info. Deferred off the critical path:
     // nothing in this request reads the result (the in-memory `user` keeps
@@ -328,48 +334,80 @@ export async function postUserLoginHook(
     // Trigger any onExecutePostLogin hooks defined in ctx.env.hooks
     if (ctx.env.hooks?.onExecutePostLogin && enhancedEvent && loginSession) {
       let redirectUrl: string | null = null;
+      const startedAt = new Date().toISOString();
+      // Recorded, then rethrown below: a throwing env hook must still fail the
+      // login exactly as before, but it should no longer be invisible.
+      let thrown: unknown = null;
 
-      await ctx.env.hooks.onExecutePostLogin(enhancedEvent, {
-        prompt: {
-          render: (_formId: string) => {},
+      try {
+        await ctx.env.hooks.onExecutePostLogin(enhancedEvent, {
+          prompt: {
+            render: (_formId: string) => {},
+          },
+          redirect: {
+            sendUserTo: (
+              url: string,
+              options?: { query?: Record<string, string> },
+            ) => {
+              const urlObj = new URL(url, ctx.req.url);
+
+              // Add any additional query parameters first, then set the state
+              // parameter last so a user-supplied `query.state` can't overwrite
+              // the login-session state AuthHero relies on for compatibility.
+              if (options?.query) {
+                Object.entries(options.query).forEach(([key, value]) => {
+                  urlObj.searchParams.set(key, value);
+                });
+              }
+              urlObj.searchParams.set("state", loginSession.id);
+
+              redirectUrl = urlObj.toString();
+            },
+            encodeToken: (_options: {
+              secret: string;
+              payload: Record<string, any>;
+              expiresInSeconds?: number;
+            }): string => {
+              // Fail loudly instead of returning placeholder output that action
+              // code would mistake for a real signed token.
+              throw new Error("redirect.encodeToken is not implemented");
+            },
+            validateToken: (_options: {
+              secret: string;
+              tokenParameterName?: string;
+            }): Record<string, any> => {
+              throw new Error("redirect.validateToken is not implemented");
+            },
+          },
+          token: createTokenAPI(ctx, tenant_id),
+        });
+      } catch (err) {
+        thrown = err;
+      }
+
+      // The env hook runs in the worker rather than the sandboxed code
+      // executor, so there is no captured console output to attach (`logs`
+      // stays empty) and no `api.access.deny` on OnExecutePostLoginAPI to
+      // record (`denied` is always false).
+      outcomes.push({
+        result: {
+          action_name: "onExecutePostLogin",
+          error: thrown
+            ? {
+                id: "execution_threw",
+                msg: thrown instanceof Error ? thrown.message : String(thrown),
+              }
+            : null,
+          started_at: startedAt,
+          ended_at: new Date().toISOString(),
         },
-        redirect: {
-          sendUserTo: (
-            url: string,
-            options?: { query?: Record<string, string> },
-          ) => {
-            const urlObj = new URL(url, ctx.req.url);
-
-            // Add any additional query parameters first, then set the state
-            // parameter last so a user-supplied `query.state` can't overwrite
-            // the login-session state AuthHero relies on for compatibility.
-            if (options?.query) {
-              Object.entries(options.query).forEach(([key, value]) => {
-                urlObj.searchParams.set(key, value);
-              });
-            }
-            urlObj.searchParams.set("state", loginSession.id);
-
-            redirectUrl = urlObj.toString();
-          },
-          encodeToken: (_options: {
-            secret: string;
-            payload: Record<string, any>;
-            expiresInSeconds?: number;
-          }): string => {
-            // Fail loudly instead of returning placeholder output that action
-            // code would mistake for a real signed token.
-            throw new Error("redirect.encodeToken is not implemented");
-          },
-          validateToken: (_options: {
-            secret: string;
-            tokenParameterName?: string;
-          }): Record<string, any> => {
-            throw new Error("redirect.validateToken is not implemented");
-          },
-        },
-        token: createTokenAPI(ctx, tenant_id),
+        logs: [],
+        denied: false,
       });
+
+      if (thrown) {
+        throw thrown;
+      }
 
       // If a redirect was requested, mark session as awaiting hook and return redirect
       if (redirectUrl) {
@@ -507,7 +545,6 @@ export async function postUserLoginHook(
         candidates: linkCandidates,
       });
 
-      const outcomes: HandleCodeHookOutcome[] = [];
       for (const hook of codeHooks) {
         if (!isCodeHook(hook)) continue;
         // Only hooks that opted in see `link_candidates` — otherwise an
@@ -549,17 +586,6 @@ export async function postUserLoginHook(
         const primary = await data.users.get(tenant_id, linkedPrimaryId);
         if (primary) user = primary;
       }
-
-      const persistedExecutionId = await persistActionExecution(
-        data,
-        tenant_id,
-        "post-user-login",
-        outcomes,
-      );
-      if (persistedExecutionId) {
-        executionId = persistedExecutionId;
-        ctx.set("action_execution_id", persistedExecutionId);
-      }
     }
 
     // Handle webhook hooks (invoke all enabled webhooks)
@@ -575,6 +601,25 @@ export async function postUserLoginHook(
     // If no form hook, just return the user
     return user;
   } finally {
+    if (outcomes.length > 0) {
+      try {
+        const persistedExecutionId = await persistActionExecution(
+          data,
+          tenant_id,
+          "post-user-login",
+          outcomes,
+        );
+        if (persistedExecutionId) {
+          executionId = persistedExecutionId;
+          ctx.set("action_execution_id", persistedExecutionId);
+        }
+      } catch (err) {
+        // Bookkeeping must never mask the login's own outcome — neither the
+        // returned user/redirect nor an in-flight hook error.
+        console.warn("Failed to persist post-login action execution:", err);
+      }
+    }
+
     logMessage(ctx, tenant_id, {
       type: LogTypes.SUCCESS_LOGIN,
       description: `Successful login for ${user.user_id}`,
