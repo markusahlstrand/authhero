@@ -1,6 +1,8 @@
 import { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import {
+  ActionExecutionLogEntry,
+  ActionExecutionLogs,
   ActionExecutionResult,
   ActionExecutionStatus,
   CodeExecutionLog,
@@ -353,6 +355,84 @@ export async function handleCodeHook(
 }
 
 /**
+ * Budget, in characters, for the console output persisted with a single
+ * execution record. The number comes from Auth0 ("A maximum of 256 characters
+ * may be persistently stored for `console.log()` outputs for each Action"),
+ * but the unit deliberately does not: Auth0 charges the budget per Action,
+ * AuthHero charges it once for the whole execution, so an execution with
+ * several bound actions is stricter here than on Auth0.
+ *
+ * That is the point. Each executor already caps its own capture (50 entries
+ * x 500 chars), so the per-action axis is bounded; what was not bounded is the
+ * number of actions bound to one trigger multiplying that ceiling. And
+ * `action_executions.logs` is written on every token exchange — including
+ * refresh grants — so the aggregate is what needs a ceiling.
+ *
+ * It is a budget, not a per-line trim: it is spent across lines in order.
+ */
+export const MAX_PERSISTED_LOG_CHARS = 256;
+
+/**
+ * Trim aggregated per-action console output down to
+ * `MAX_PERSISTED_LOG_CHARS` characters, in order, and append an explicit
+ * marker so a reader can tell the record is truncated rather than complete.
+ *
+ * A line that straddles the budget is cut at the boundary and kept; the lines
+ * after it are dropped. The marker is appended to the last entry that retained
+ * output and is not itself charged against the budget.
+ */
+export function capActionExecutionLogs(
+  logs: ActionExecutionLogs,
+  budget: number = MAX_PERSISTED_LOG_CHARS,
+): ActionExecutionLogs {
+  const total = logs.reduce(
+    (sum, entry) =>
+      sum + entry.lines.reduce((n, line) => n + line.message.length, 0),
+    0,
+  );
+  if (total <= budget) {
+    return logs;
+  }
+
+  let remaining = budget;
+  let droppedLines = 0;
+  const capped: ActionExecutionLogs = [];
+
+  for (const entry of logs) {
+    const lines: ActionExecutionLogEntry[] = [];
+    for (const line of entry.lines) {
+      if (remaining <= 0) {
+        droppedLines += 1;
+        continue;
+      }
+      if (line.message.length <= remaining) {
+        lines.push(line);
+        remaining -= line.message.length;
+      } else {
+        lines.push({ ...line, message: line.message.slice(0, remaining) });
+        remaining = 0;
+        droppedLines += 1;
+      }
+    }
+    if (lines.length > 0) {
+      capped.push({ action_name: entry.action_name, lines });
+    }
+  }
+
+  const last = capped[capped.length - 1];
+  if (last) {
+    last.lines.push({
+      level: "warn",
+      message:
+        `[authhero] console output truncated at ${budget} characters ` +
+        `(${total} captured, ${droppedLines} line(s) truncated or dropped)`,
+    });
+  }
+
+  return capped;
+}
+
+/**
  * Aggregate per-action outcomes into an Auth0-shape execution record and
  * persist it via the adapter. Returns the generated execution_id (uuid)
  * so the caller can embed it in the surrounding tenant log.
@@ -372,9 +452,11 @@ export async function persistActionExecution(
       ? "partial"
       : "final";
 
-  const logs = outcomes
-    .filter((o) => o.logs.length > 0)
-    .map((o) => ({ action_name: o.result.action_name, lines: o.logs }));
+  const logs = capActionExecutionLogs(
+    outcomes
+      .filter((o) => o.logs.length > 0)
+      .map((o) => ({ action_name: o.result.action_name, lines: o.logs })),
+  );
 
   await data.actionExecutions.create(tenant_id, {
     id,

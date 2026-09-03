@@ -38,7 +38,7 @@ If you started from a `create-authhero` template you do not need to add this by 
 | --- | --- | --- |
 | `codes` | 1 day past expiry | Authorization codes, OTPs, OAuth2 state, email-verification and password-reset codes. Highest-churn table in the system. |
 | `outbox_events` | 7 days after processing | Only processed and dead-lettered events are removed. Skipped when the adapter has no `outbox`. |
-| `action_executions` | 30 days after creation | One row per action execution — diagnostic history referenced from logs. Skipped when the adapter's backend expires rows itself (DynamoDB TTL, Analytics Engine). |
+| `action_executions` | 10 days after creation | One row per action execution — diagnostic history referenced from logs, including up to 256 characters of the action's own `console` output. Matches Auth0's execution-storage window. Skipped when the adapter's backend expires rows itself (DynamoDB TTL, Analytics Engine). |
 | `sessions`, `refresh_tokens`, `login_sessions` | 1 week past expiry (fixed grace period) | Skipped when the adapter does not implement `sessionCleanup`. |
 
 Codes, outbox events and action executions are swept globally; they are not tenant-scoped, because an expired row is dead regardless of who owns it. Pass `tenantId` to scope the session sweep to one tenant.
@@ -76,7 +76,7 @@ import { cleanupCodes, cleanupOutbox, cleanupActionExecutions } from "authhero";
 await cleanupCodes(dataAdapter.codes, { retentionDays: 1 });
 await cleanupOutbox(dataAdapter.outbox, { retentionDays: 7 });
 await cleanupActionExecutions(dataAdapter.actionExecutions, {
-  retentionDays: 30,
+  retentionDays: 10,
 });
 await dataAdapter.sessionCleanup?.();
 ```
