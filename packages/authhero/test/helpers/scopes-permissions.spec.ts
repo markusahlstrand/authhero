@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { Context } from "hono";
 import { calculateScopesAndPermissions } from "../../src/helpers/scopes-permissions";
 import { getTestServer } from "../helpers/test-server";
@@ -2039,6 +2039,197 @@ describe("scopes-permissions helper", () => {
 
         // Clean up
         await env.data.resourceServers.remove("tenantId", resourceServer.id!);
+      });
+    });
+
+    describe("warns about scopes not defined on the resource server (#1359)", () => {
+      it("warns with client_id, audience and the dropped scopes for a client grant", async () => {
+        const { env } = await getTestServer();
+        const ctx = {
+          env,
+          var: {},
+        } as Context<{
+          Bindings: Bindings;
+          Variables: Variables;
+        }>;
+
+        const resourceServer = await env.data.resourceServers.create(
+          "tenantId",
+          {
+            identifier: "https://dropped-scopes-api.example.com",
+            name: "Dropped Scopes API",
+            scopes: [
+              { value: "users:read", description: "Read users" },
+              { value: "checkouts:read", description: "Read checkouts" },
+            ],
+            options: {
+              enforce_policies: false,
+              token_dialect: "access_token",
+            },
+          },
+        );
+
+        await env.data.clients.create("tenantId", {
+          client_id: "test-client-id",
+          name: "Test Client",
+        });
+
+        // The grant authorizes two scopes the resource server never defines.
+        await env.data.clientGrants.create("tenantId", {
+          client_id: "test-client-id",
+          audience: "https://dropped-scopes-api.example.com",
+          scope: [
+            "users:read",
+            "access-lists:write",
+            "access-lists:manage",
+            "checkouts:read",
+          ],
+        });
+
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+        try {
+          const result = await calculateScopesAndPermissions(ctx, {
+            grantType: GrantType.ClientCredential,
+            tenantId: "tenantId",
+            clientId: "test-client-id",
+            audience: "https://dropped-scopes-api.example.com",
+            requestedScopes: [],
+          });
+
+          // Behaviour is unchanged: only the defined scopes are issued.
+          expect(result.scopes).toEqual(["users:read", "checkouts:read"]);
+
+          expect(warn).toHaveBeenCalledTimes(1);
+          const message = String(warn.mock.calls[0]?.[0]);
+          expect(message).toContain("access-lists:write");
+          expect(message).toContain("access-lists:manage");
+          expect(message).toContain("source=client_grant");
+          expect(message).toContain("client_id=test-client-id");
+          expect(message).toContain(
+            "audience=https://dropped-scopes-api.example.com",
+          );
+          // The scopes that survived must not be reported as dropped.
+          expect(message).not.toContain("checkouts:read");
+        } finally {
+          warn.mockRestore();
+          await env.data.resourceServers.remove("tenantId", resourceServer.id!);
+        }
+      });
+
+      it("does not warn when every granted scope is defined", async () => {
+        const { env } = await getTestServer();
+        const ctx = {
+          env,
+          var: {},
+        } as Context<{
+          Bindings: Bindings;
+          Variables: Variables;
+        }>;
+
+        const resourceServer = await env.data.resourceServers.create(
+          "tenantId",
+          {
+            identifier: "https://no-drop-api.example.com",
+            name: "No Drop API",
+            scopes: [{ value: "users:read", description: "Read users" }],
+            options: {
+              enforce_policies: false,
+              token_dialect: "access_token",
+            },
+          },
+        );
+
+        await env.data.clients.create("tenantId", {
+          client_id: "test-client-id",
+          name: "Test Client",
+        });
+
+        await env.data.clientGrants.create("tenantId", {
+          client_id: "test-client-id",
+          audience: "https://no-drop-api.example.com",
+          scope: ["users:read"],
+        });
+
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+        try {
+          const result = await calculateScopesAndPermissions(ctx, {
+            grantType: GrantType.ClientCredential,
+            tenantId: "tenantId",
+            clientId: "test-client-id",
+            audience: "https://no-drop-api.example.com",
+            requestedScopes: [],
+          });
+
+          expect(result.scopes).toEqual(["users:read"]);
+          expect(warn).not.toHaveBeenCalled();
+        } finally {
+          warn.mockRestore();
+          await env.data.resourceServers.remove("tenantId", resourceServer.id!);
+        }
+      });
+
+      it("warns for a user permission the resource server does not define", async () => {
+        const { env } = await getTestServer();
+        const ctx = {
+          env,
+          var: {},
+        } as Context<{
+          Bindings: Bindings;
+          Variables: Variables;
+        }>;
+
+        const resourceServer = await env.data.resourceServers.create(
+          "tenantId",
+          {
+            identifier: "https://dropped-permission-api.example.com",
+            name: "Dropped Permission API",
+            scopes: [{ value: "users:read", description: "Read users" }],
+            options: {
+              enforce_policies: true, // RBAC on: permissions drive the token
+              token_dialect: "access_token",
+            },
+          },
+        );
+
+        // `legacy:permission` is assigned to the user but no longer defined on
+        // the resource server — the same misconfiguration, on the user path.
+        await env.data.userPermissions.create("tenantId", "userId", {
+          user_id: "userId",
+          resource_server_identifier:
+            "https://dropped-permission-api.example.com",
+          permission_name: "legacy:permission",
+        });
+        await env.data.userPermissions.create("tenantId", "userId", {
+          user_id: "userId",
+          resource_server_identifier:
+            "https://dropped-permission-api.example.com",
+          permission_name: "users:read",
+        });
+
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+        try {
+          const result = await calculateScopesAndPermissions(ctx, {
+            tenantId: "tenantId",
+            clientId: "test-client-id",
+            userId: "userId",
+            audience: "https://dropped-permission-api.example.com",
+            requestedScopes: ["users:read"],
+          });
+
+          expect(result.scopes).toEqual(["users:read"]);
+
+          expect(warn).toHaveBeenCalledTimes(1);
+          const message = String(warn.mock.calls[0]?.[0]);
+          expect(message).toContain("legacy:permission");
+          expect(message).toContain("source=user_permissions");
+          expect(message).toContain("user_id=userId");
+        } finally {
+          warn.mockRestore();
+          await env.data.resourceServers.remove("tenantId", resourceServer.id!);
+        }
       });
     });
   });

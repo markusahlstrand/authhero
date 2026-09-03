@@ -200,6 +200,39 @@ export async function userHasGlobalOrgAdminPermission(
  *
  * This implementation only considers client grants, the audience, and the resource server configuration.
  */
+/**
+ * A client grant or a user/role permission may reference a scope the resource
+ * server does not define. The filters below drop those from the issued token,
+ * which used to leave no trace anywhere: the grant lists five scopes, the admin
+ * UI shows five scopes, and the token carries three. Warn with the identifiers
+ * an operator needs to find the offending row.
+ *
+ * Observability only — the returned scopes are unchanged.
+ */
+function warnUndefinedScopes(params: {
+  source: "client_grant" | "user_permissions";
+  tenantId: string;
+  clientId: string;
+  audience: string;
+  granted: string[];
+  definedScopes: string[];
+  userId?: string;
+}) {
+  const dropped = params.granted.filter(
+    (scope) => !params.definedScopes.includes(scope),
+  );
+  if (dropped.length === 0) {
+    return;
+  }
+
+  const identity = params.userId ? `, user_id=${params.userId}` : "";
+  console.warn(
+    `[scopes-permissions] Dropped scope(s) not defined on the resource server: ` +
+      `${dropped.join(", ")} (source=${params.source}, tenant_id=${params.tenantId}, ` +
+      `client_id=${params.clientId}, audience=${params.audience}${identity})`,
+  );
+}
+
 async function calculateClientCredentialsScopes(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: ClientCredentialsScopesParams,
@@ -294,6 +327,15 @@ async function calculateClientCredentialsScopes(
     definedScopes.includes(scope),
   );
 
+  warnUndefinedScopes({
+    source: "client_grant",
+    tenantId,
+    clientId,
+    audience,
+    granted: grantedScopes,
+    definedScopes,
+  });
+
   // Auth0 behavior:
   // - If NO scopes requested at all: return ALL granted scopes
   // - If scopes ARE requested (including OIDC-only): return intersection of
@@ -372,8 +414,14 @@ export async function calculateScopesAndPermissions(
   }
 
   // For user-based grants, userId is guaranteed to be present due to discriminated union
-  const { tenantId, userId, audience, requestedScopes, organizationId } =
-    params;
+  const {
+    tenantId,
+    clientId,
+    userId,
+    audience,
+    requestedScopes,
+    organizationId,
+  } = params;
 
   // Fetch the tenant once — its flags drive both the org-permission-inheritance
   // check below and the scope-filtering posture further down.
@@ -565,6 +613,16 @@ export async function calculateScopesAndPermissions(
   const allowedPermissions = userPermissionsList.filter((permission) =>
     definedScopes.includes(permission),
   );
+
+  warnUndefinedScopes({
+    source: "user_permissions",
+    tenantId,
+    clientId,
+    audience,
+    granted: userPermissionsList,
+    definedScopes,
+    userId,
+  });
 
   // Scopes NOT defined on the resource server pass through by default — the
   // API doesn't restrict them, matching Auth0's behavior. Tenants that opt
