@@ -200,6 +200,110 @@ describe("ClientGrantsAdapter", () => {
     expect(scopes).toContainEqual(["write:users"]);
   });
 
+  it("should default to newest first when no sort is given", async () => {
+    // created_at is written with millisecond precision, so seed explicit
+    // timestamps rather than relying on the ordering of three fast inserts.
+    const seeds = [
+      { id: "grant-old", audience: "https://old.example.com", day: "01" },
+      { id: "grant-mid", audience: "https://mid.example.com", day: "02" },
+      { id: "grant-new", audience: "https://new.example.com", day: "03" },
+    ];
+
+    for (const seed of seeds) {
+      await db
+        .insertInto("resource_servers")
+        .values({
+          id: `${seed.id}-api`,
+          tenant_id: tenantId,
+          identifier: seed.audience,
+          name: seed.id,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .execute();
+
+      await adapter.clientGrants.create(
+        tenantId,
+        {
+          client_id: "test-client-id",
+          audience: seed.audience,
+          scope: ["read:things"],
+        },
+        {
+          importMetadata: {
+            id: seed.id,
+            created_at: `2026-01-${seed.day}T00:00:00.000Z`,
+            updated_at: `2026-01-${seed.day}T00:00:00.000Z`,
+          },
+        },
+      );
+    }
+
+    const result = await adapter.clientGrants.list(tenantId, {
+      page: 0,
+      per_page: 50,
+      include_totals: false,
+    });
+
+    expect(result.client_grants.map((grant) => grant.id)).toEqual([
+      "grant-new",
+      "grant-mid",
+      "grant-old",
+    ]);
+  });
+
+  it("should page stably when grants share a created_at timestamp", async () => {
+    const sameInstant = "2026-01-01T00:00:00.000Z";
+    for (const id of ["grant-a", "grant-b", "grant-c"]) {
+      await db
+        .insertInto("resource_servers")
+        .values({
+          id: `${id}-api`,
+          tenant_id: tenantId,
+          identifier: `https://${id}.example.com`,
+          name: id,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .execute();
+
+      await adapter.clientGrants.create(
+        tenantId,
+        {
+          client_id: "test-client-id",
+          audience: `https://${id}.example.com`,
+          scope: ["read:things"],
+        },
+        {
+          importMetadata: {
+            id,
+            created_at: sameInstant,
+            updated_at: sameInstant,
+          },
+        },
+      );
+    }
+
+    // The id tiebreaker gives tied rows a total order, so walking the pages
+    // sees each grant exactly once with no gap or repeat at the boundary.
+    const firstPage = await adapter.clientGrants.list(tenantId, {
+      page: 0,
+      per_page: 2,
+      include_totals: false,
+    });
+    const secondPage = await adapter.clientGrants.list(tenantId, {
+      page: 1,
+      per_page: 2,
+      include_totals: false,
+    });
+
+    const walked = [
+      ...firstPage.client_grants.map((grant) => grant.id),
+      ...secondPage.client_grants.map((grant) => grant.id),
+    ];
+    expect(walked).toEqual(["grant-c", "grant-b", "grant-a"]);
+  });
+
   it("should list client grants with pagination", async () => {
     // Create multiple resource servers for different grants
     for (let i = 0; i < 5; i++) {

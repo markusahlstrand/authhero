@@ -95,7 +95,12 @@ export function list(db: Kysely<Database>) {
       const { ref } = db.dynamic;
       filteredQuery = filteredQuery.orderBy(ref(sort.sort_by), sort.sort_order);
     } else {
-      filteredQuery = filteredQuery.orderBy("client_grants.created_at", "desc");
+      // `id` breaks ties the same way the keyset path does, so rows sharing a
+      // created_at millisecond still get a total order and page boundaries
+      // stay stable.
+      filteredQuery = filteredQuery
+        .orderBy("client_grants.created_at", "desc")
+        .orderBy("client_grants.id", "desc");
     }
 
     const results = await filteredQuery

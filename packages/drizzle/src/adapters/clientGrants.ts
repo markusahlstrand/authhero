@@ -179,7 +179,14 @@ export function createClientGrantsAdapter(db: DrizzleDb) {
           );
         }
       } else {
-        query = query.orderBy(asc(clientGrants.created_at));
+        // Default to newest first, matching the keyset path above, the kysely
+        // adapter and Auth0's convention. `id` breaks ties the same way the
+        // keyset path does, so rows sharing a created_at millisecond still get
+        // a total order and page boundaries stay stable.
+        query = query.orderBy(
+          desc(clientGrants.created_at),
+          desc(clientGrants.id),
+        );
       }
 
       const results = await query.offset(page * per_page).limit(per_page);
