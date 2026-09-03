@@ -15,23 +15,44 @@ import { MAX_BATCHES, createSessionCleanup } from "../src/cleanup";
 
 const BATCH_SIZE = 1000;
 
+// One entry per statement the sweep is expected to emit, in round-robin order.
+const SWEEPS = [
+  "login_sessions.expires_at_ts",
+  "refresh_tokens.expires_at_ts",
+  "refresh_tokens.idle_expires_at_ts",
+  "sessions.expires_at_ts",
+  "sessions.idle_expires_at_ts",
+];
+
 /**
  * A connection that answers each DELETE with a scripted row count, so the
- * batch budget can be exercised without materialising millions of rows.
+ * batch budget can be exercised without materialising millions of rows. The
+ * script is keyed by `<table>.<column>`, since each table is swept by one
+ * statement per expiry column.
  */
 class ScriptedConnection implements DatabaseConnection {
-  readonly tables: string[] = [];
+  readonly statements: string[] = [];
+  readonly sql: string[] = [];
 
-  constructor(private readonly deletedRows: (table: string) => number) {}
+  constructor(private readonly deletedRows: (sweep: string) => number) {}
+
+  get tables(): string[] {
+    return this.statements.map((statement) => statement.split(".")[0]!);
+  }
 
   async executeQuery<R>(compiledQuery: CompiledQuery): Promise<QueryResult<R>> {
-    const match = /^delete from `([a-z_]+)`/.exec(compiledQuery.sql);
-    if (!match?.[1]) {
+    const match = /^delete from `([a-z_]+)` where `([a-z_]+)` </.exec(
+      compiledQuery.sql,
+    );
+    if (!match?.[1] || !match[2]) {
       throw new Error(`Unexpected statement: ${compiledQuery.sql}`);
     }
 
-    this.tables.push(match[1]);
-    return { rows: [], numAffectedRows: BigInt(this.deletedRows(match[1])) };
+    const sweep = `${match[1]}.${match[2]}`;
+    this.statements.push(sweep);
+    this.sql.push(compiledQuery.sql);
+    // The script may throw to simulate a statement timeout.
+    return { rows: [], numAffectedRows: BigInt(this.deletedRows(sweep)) };
   }
 
   streamQuery<R>(): AsyncIterableIterator<QueryResult<R>> {
@@ -39,7 +60,7 @@ class ScriptedConnection implements DatabaseConnection {
   }
 }
 
-function stubDb(deletedRows: (table: string) => number) {
+function stubDb(deletedRows: (sweep: string) => number) {
   const connection = new ScriptedConnection(deletedRows);
 
   const driver: Driver = {
@@ -62,8 +83,8 @@ function stubDb(deletedRows: (table: string) => number) {
   return { connection, db: new Kysely<Database>({ dialect }) };
 }
 
-const countOf = (tables: string[], table: string) =>
-  tables.filter((t) => t === table).length;
+const countOf = (entries: string[], entry: string) =>
+  entries.filter((candidate) => candidate === entry).length;
 
 describe("session cleanup batch budget", () => {
   afterEach(() => {
@@ -73,21 +94,17 @@ describe("session cleanup batch budget", () => {
   it("sweeps every table even when an earlier one has a large backlog", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
 
-    // refresh_tokens never drains; the other two clear in a single batch.
-    const { connection, db } = stubDb((table) =>
-      table === "refresh_tokens" ? BATCH_SIZE : 5,
+    // refresh_tokens never drains; the other tables clear in a single batch.
+    const { connection, db } = stubDb((sweep) =>
+      sweep.startsWith("refresh_tokens") ? BATCH_SIZE : 5,
     );
 
     await createSessionCleanup(db)();
 
-    expect(connection.tables.slice(0, 3)).toEqual([
-      "refresh_tokens",
-      "sessions",
-      "login_sessions",
-    ]);
-    expect(countOf(connection.tables, "sessions")).toBe(1);
+    expect(connection.statements.slice(0, SWEEPS.length)).toEqual(SWEEPS);
+    expect(countOf(connection.tables, "sessions")).toBe(2);
     expect(countOf(connection.tables, "login_sessions")).toBe(1);
-    expect(countOf(connection.tables, "refresh_tokens")).toBeGreaterThan(1);
+    expect(countOf(connection.tables, "refresh_tokens")).toBeGreaterThan(2);
   });
 
   it("stops at the batch budget instead of looping until drained", async () => {
@@ -97,19 +114,71 @@ describe("session cleanup batch budget", () => {
 
     await createSessionCleanup(db)();
 
-    expect(connection.tables).toHaveLength(MAX_BATCHES);
-    // Round-robin: no table is starved by the ones swept before it.
-    for (const table of ["refresh_tokens", "sessions", "login_sessions"]) {
-      expect(countOf(connection.tables, table)).toBe(MAX_BATCHES / 3);
+    expect(connection.statements).toHaveLength(MAX_BATCHES);
+    // Round-robin: no sweep is starved by the ones that run before it.
+    for (const sweep of SWEEPS) {
+      expect(countOf(connection.statements, sweep)).toBe(
+        MAX_BATCHES / SWEEPS.length,
+      );
     }
+  });
+
+  it("never ORs the two expiry columns into one statement", async () => {
+    const { connection, db } = stubDb(() => 0);
+
+    await createSessionCleanup(db)({
+      tenant_id: "tenantId",
+      user_id: "email|user1",
+    });
+
+    // MySQL declines to index_merge across an OR and falls back to a full
+    // scan, which on a production-sized table exceeds the statement timeout.
+    // Every sweep must therefore be a single-column range on its own index.
+    expect(connection.statements).toEqual(SWEEPS);
+    for (const sql of connection.sql) {
+      expect(sql).not.toContain(" or ");
+    }
+  });
+
+  it("keeps sweeping the other tables when one statement throws", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const { connection, db } = stubDb((sweep) => {
+      if (sweep === "login_sessions.expires_at_ts") {
+        throw new Error("statement timeout");
+      }
+      return 7;
+    });
+
+    await createSessionCleanup(db)();
+
+    // The failing sweep is attempted once and then skipped; every other sweep
+    // still runs, rather than the whole run aborting on the first throw.
+    expect(countOf(connection.statements, "login_sessions.expires_at_ts")).toBe(
+      1,
+    );
+    for (const sweep of SWEEPS.slice(1)) {
+      expect(countOf(connection.statements, sweep)).toBe(1);
+    }
+
+    expect(error).toHaveBeenCalledTimes(1);
+    expect(String(error.mock.calls[0]?.[0])).toContain(
+      "login_sessions.expires_at_ts",
+    );
+    // A run that lost a table is not a clean run.
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0]?.[0])).toContain(
+      "login_sessions.expires_at_ts failed",
+    );
   });
 
   it("warns rather than logging success when the budget runs out", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
 
-    const { db } = stubDb((table) =>
-      table === "login_sessions" ? BATCH_SIZE : 0,
+    const { db } = stubDb((sweep) =>
+      sweep === "login_sessions.expires_at_ts" ? BATCH_SIZE : 0,
     );
 
     await createSessionCleanup(db)();
@@ -117,8 +186,8 @@ describe("session cleanup batch budget", () => {
     expect(log).not.toHaveBeenCalled();
     expect(warn).toHaveBeenCalledTimes(1);
     const message = String(warn.mock.calls[0]?.[0]);
-    // Names the table that ran out of budget, and only that one.
-    expect(message).toContain(`before login_sessions drained`);
+    // Names the sweep that ran out of budget, and only that one.
+    expect(message).toContain(`before login_sessions.expires_at_ts drained`);
     expect(message).toContain(String(MAX_BATCHES));
   });
 
@@ -126,16 +195,18 @@ describe("session cleanup batch budget", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
 
-    const { connection, db } = stubDb((table) =>
-      table === "sessions" ? 3 : 0,
+    const { connection, db } = stubDb((sweep) =>
+      sweep === "sessions.idle_expires_at_ts" ? 3 : 0,
     );
 
     await createSessionCleanup(db)();
 
-    expect(connection.tables).toHaveLength(3);
+    expect(connection.statements).toHaveLength(SWEEPS.length);
     expect(warn).not.toHaveBeenCalled();
+    // Totals are per table, not per statement: the two sessions sweeps are
+    // summed into one entry.
     expect(log).toHaveBeenCalledWith(
-      "Session cleanup: deleted 0 refresh_tokens, 3 sessions, 0 login_sessions",
+      "Session cleanup: deleted 0 login_sessions, 0 refresh_tokens, 3 sessions",
     );
   });
 });

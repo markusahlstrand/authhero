@@ -934,6 +934,90 @@ describe("sessionCleanup", () => {
     expect(sessions.length).toEqual(1);
     expect(sessions[0].tenant_id).toEqual("tenant2");
   });
+
+  // The two expiry columns are swept by separate statements rather than one
+  // OR'd predicate, so the idle-only rows — which on production are the bulk
+  // of the backlog — must still be picked up.
+  it("should remove rows that are expired only by idle_expires_at", async () => {
+    const twoWeeksAgo = new Date(
+      Date.now() - 1000 * 60 * 60 * 24 * 14,
+    ).toISOString();
+    const nextYear = new Date(
+      Date.now() + 1000 * 60 * 60 * 24 * 365,
+    ).toISOString();
+
+    const { data, db } = await getTestServer();
+
+    await data.tenants.create({
+      id: "tenantId",
+      friendly_name: "Test Tenant",
+      audience: "https://example.com",
+      sender_email: "login@example.com",
+      sender_name: "SenderName",
+    });
+
+    await data.clients.create("tenantId", {
+      client_id: "clientId",
+      client_secret: "clientSecret",
+      name: "Test Client",
+      callbacks: ["https://example.com/callback"],
+      allowed_logout_urls: ["https://example.com/callback"],
+      web_origins: ["https://example.com"],
+    });
+
+    await data.users.create("tenantId", {
+      email: "user1@example.com",
+      email_verified: true,
+      name: "User 1",
+      nickname: "user1",
+      picture: "https://example.com/user1.png",
+      connection: "email",
+      provider: "email",
+      is_social: false,
+      user_id: "email|user1",
+    });
+
+    const device = {
+      last_ip: "",
+      initial_ip: "",
+      last_user_agent: "",
+      initial_user_agent: "",
+      initial_asn: "",
+      last_asn: "",
+    };
+
+    // Absolute expiry is a year out; only the idle window has lapsed.
+    await data.sessions.create("tenantId", {
+      id: "idleSession",
+      user_id: "email|user1",
+      clients: ["clientId"],
+      expires_at: nextYear,
+      idle_expires_at: twoWeeksAgo,
+      device,
+    });
+
+    await data.refreshTokens.create("tenantId", {
+      id: "idleRefreshToken",
+      login_id: "loginSession1",
+      user_id: "email|user1",
+      client_id: "clientId",
+      expires_at: nextYear,
+      idle_expires_at: twoWeeksAgo,
+      resource_servers: [{ audience: "http://example.com", scopes: "openid" }],
+      device,
+    });
+
+    await data.sessionCleanup!();
+
+    const sessions = await db.selectFrom("sessions").selectAll().execute();
+    expect(sessions.length).toEqual(0);
+
+    const refreshTokens = await db
+      .selectFrom("refresh_tokens")
+      .selectAll()
+      .execute();
+    expect(refreshTokens.length).toEqual(0);
+  });
 });
 
 describe("codes cleanup", () => {
