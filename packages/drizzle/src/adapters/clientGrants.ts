@@ -179,7 +179,9 @@ export function createClientGrantsAdapter(db: DrizzleDb) {
           );
         }
       } else {
-        query = query.orderBy(asc(clientGrants.created_at));
+        // Default to newest first, matching the keyset path above, the kysely
+        // adapter and Auth0's convention.
+        query = query.orderBy(desc(clientGrants.created_at));
       }
 
       const results = await query.offset(page * per_page).limit(per_page);

@@ -200,6 +200,58 @@ describe("ClientGrantsAdapter", () => {
     expect(scopes).toContainEqual(["write:users"]);
   });
 
+  it("should default to newest first when no sort is given", async () => {
+    // created_at is written with millisecond precision, so seed explicit
+    // timestamps rather than relying on the ordering of three fast inserts.
+    const seeds = [
+      { id: "grant-old", audience: "https://old.example.com", day: "01" },
+      { id: "grant-mid", audience: "https://mid.example.com", day: "02" },
+      { id: "grant-new", audience: "https://new.example.com", day: "03" },
+    ];
+
+    for (const seed of seeds) {
+      await db
+        .insertInto("resource_servers")
+        .values({
+          id: `${seed.id}-api`,
+          tenant_id: tenantId,
+          identifier: seed.audience,
+          name: seed.id,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .execute();
+
+      await adapter.clientGrants.create(
+        tenantId,
+        {
+          client_id: "test-client-id",
+          audience: seed.audience,
+          scope: ["read:things"],
+        },
+        {
+          importMetadata: {
+            id: seed.id,
+            created_at: `2026-01-${seed.day}T00:00:00.000Z`,
+            updated_at: `2026-01-${seed.day}T00:00:00.000Z`,
+          },
+        },
+      );
+    }
+
+    const result = await adapter.clientGrants.list(tenantId, {
+      page: 0,
+      per_page: 50,
+      include_totals: false,
+    });
+
+    expect(result.client_grants.map((grant) => grant.id)).toEqual([
+      "grant-new",
+      "grant-mid",
+      "grant-old",
+    ]);
+  });
+
   it("should list client grants with pagination", async () => {
     // Create multiple resource servers for different grants
     for (let i = 0; i < 5; i++) {
