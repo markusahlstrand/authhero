@@ -1,5 +1,14 @@
 # @authhero/kysely-adapter
 
+## 12.7.1
+
+### Patch Changes
+
+- 9c6d5d8: Bound and fairly schedule the session cleanup sweep. `createSessionCleanup` drained `refresh_tokens`, `sessions` and `login_sessions` one after another with unbounded loops, so on Cloudflare Workers a backlog in an earlier table could consume the whole subrequest budget and leave `login_sessions` unswept indefinitely. The three tables are now swept round-robin under a per-invocation budget of 300 batches, and an exhausted budget logs a `console.warn` naming the tables that did not drain instead of a success-shaped line.
+- a42c6e6: Chunk the `codes` retention sweep on MySQL. Both deletes in `cleanupCodes` now run in 50,000-row passes until a pass comes up short, matching the `action_executions` sweep, so the first run against a large backlog no longer risks exceeding PlanetScale's per-statement limits and failing on every subsequent run. SQLite keeps the unchunked path since `DELETE ... LIMIT` needs a non-default build flag.
+- 723fba3: Align the default `clientGrants.list` ordering across adapters: the offset path in drizzle now returns newest first (`created_at desc`), matching kysely, drizzle's own keyset path and Auth0's convention. Both adapters gained a test pinning the default.
+- 742224a: Make session cleanup actually delete on MySQL. The `refresh_tokens` and `sessions` sweeps each ran one DELETE with `expires_at_ts < c OR idle_expires_at_ts < c`; MySQL will not index_merge across the OR, so both statements fell back to a full table scan and were killed by PlanetScale's statement timeout. Each expiry column now gets its own single-predicate statement, the same split `codes/cleanup.ts` already documents. Each sweep also has its own `try/catch`, so a statement that times out no longer aborts the whole run, and `login_sessions` is swept first because `login_sessions_session_fk` is `ON DELETE CASCADE` and draining the child table first makes the `sessions` batches far cheaper.
+
 ## 12.7.0
 
 ### Minor Changes

@@ -1,5 +1,29 @@
 # authhero
 
+## 9.11.2
+
+### Patch Changes
+
+- 02fa0db: Bound the console output persisted with each action execution.
+
+  `persistActionExecution` now caps the aggregated `logs` payload at 256 characters per execution — a budget spent across lines in order rather than a per-line trim — and appends an explicit `[authhero] console output truncated at 256 characters …` marker so a truncated record is never mistaken for a complete one. Auth0 uses the same number but charges it per Action, so an execution with several bound actions is stricter here than on Auth0.
+
+  The default `actionExecutionsRetentionDays` drops from 30 to 10 days, matching Auth0's execution-storage window. Deployments that want the old window can pass `actionExecutionsRetentionDays: 30` to `runRetention`.
+
+- 12353fd: Record an action execution for `ctx.env.hooks.onExecutePostLogin`. Env post-login
+  hooks previously produced no `action_executions` row and no `details.execution_id`
+  on the `Successful Login` log, because the env-hook branch returned before the
+  code-hook persist. Env and code hook outcomes are now aggregated into one
+  execution record, persisted on every exit path — including an env hook that
+  redirects or throws.
+- 0d61af3: Keep `details.request` on tenant logs that carry an action `execution_id`. The
+  execution id is now passed as its own `execution_id` log param and merged into
+  the details object instead of replacing it, so `Successful Login` and token-grant
+  logs keep their request snapshot (method, path, qs, redirect_uri) when a
+  post-login action ran.
+- 9382731: Trim whitespace around email identifiers in the remaining universal-login route schemas (`/u/login/identifier`, `/u/account/change-email`, `/u/account/change-email-verify`), so a padded address resolves to the same account as the clean one instead of bypassing the uniqueness check and creating a duplicate.
+- fdf89e0: Warn when a client grant or a user permission references a scope the resource server does not define. These scopes were dropped from the issued token with no error, warning or log, so a grant listing five scopes could mint a token carrying three with nothing explaining the difference. The warning carries the tenant, client, audience and dropped scope list. Issued scopes are unchanged — this is observability only.
+
 ## 9.11.1
 
 ### Patch Changes
