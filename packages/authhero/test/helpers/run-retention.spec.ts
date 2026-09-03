@@ -91,7 +91,8 @@ describe("runRetention", () => {
       dataAdapter: makeDataAdapter({ actionExecutionsCleanup }),
     });
 
-    expect(daysAgo(actionExecutionsCleanup.mock.calls[0][0])).toBe(30);
+    // 10 days, matching Auth0's documented execution-storage window.
+    expect(daysAgo(actionExecutionsCleanup.mock.calls[0][0])).toBe(10);
   });
 
   it("honours per-table retention overrides", async () => {

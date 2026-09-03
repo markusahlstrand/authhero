@@ -14,7 +14,7 @@ export interface RunRetentionConfig {
   /** Days to keep processed/dead-lettered outbox events. Default 7. */
   outboxRetentionDays?: number;
 
-  /** Days of action execution history to keep. Default 30. */
+  /** Days of action execution history to keep. Default 10, matching Auth0. */
   actionExecutionsRetentionDays?: number;
 
   /**
