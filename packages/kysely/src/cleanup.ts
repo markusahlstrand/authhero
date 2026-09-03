@@ -5,6 +5,22 @@ import { SessionCleanupParams } from "@authhero/adapter-interfaces";
 // Grace period: wait 1 week after expiration before deleting
 const GRACE_PERIOD_MS = 7 * 24 * 60 * 60 * 1000;
 
+const BATCH_SIZE = 1000;
+
+// Every DELETE below is one subrequest through the PlanetScale HTTP driver,
+// and Cloudflare Workers cap an invocation at 1,000 subrequests total. This
+// runs lazily inside a request that has already spent part of that budget, so
+// bound our own share well below the cap. Whatever does not drain in this run
+// is picked up by the next one — the sweep is idempotent.
+export const MAX_BATCHES = 300;
+
+type Sweep = {
+  table: string;
+  deleteBatch: () => Promise<number>;
+  deleted: number;
+  drained: boolean;
+};
+
 /**
  * Create a scoped session cleanup function that can filter by tenant and/or user.
  * This is designed for lazy cleanup after login session creation.
@@ -16,109 +32,125 @@ const GRACE_PERIOD_MS = 7 * 24 * 60 * 60 * 1000;
  * independently without expensive subqueries to check for active children.
  *
  * Records are deleted only after they have been expired for the grace period (1 week).
+ *
+ * The three tables are swept round-robin rather than one after another: draining
+ * them in a fixed order lets a backlog in the first table consume the whole batch
+ * budget, which is how login_sessions went unswept for months while
+ * refresh_tokens stayed clean.
  */
 export function createSessionCleanup(db: Kysely<Database>) {
   return async (params?: SessionCleanupParams): Promise<void> => {
     const { tenant_id, user_id } = params || {};
     const now = Date.now();
     const cutoffTime = now - GRACE_PERIOD_MS;
-    const BATCH_SIZE = 1000;
+
+    const sweeps: Sweep[] = [
+      {
+        table: "refresh_tokens",
+        deleted: 0,
+        drained: false,
+        deleteBatch: async () => {
+          let query = db
+            .deleteFrom("refresh_tokens")
+            .where((eb) =>
+              eb.or([
+                eb("expires_at_ts", "<", cutoffTime),
+                eb("idle_expires_at_ts", "<", cutoffTime),
+              ]),
+            );
+
+          if (tenant_id) {
+            query = query.where("tenant_id", "=", tenant_id);
+          }
+          if (user_id) {
+            query = query.where("user_id", "=", user_id);
+          }
+
+          const result = await query.limit(BATCH_SIZE).execute();
+          return Number(result[0]?.numDeletedRows ?? 0);
+        },
+      },
+      {
+        table: "sessions",
+        deleted: 0,
+        drained: false,
+        deleteBatch: async () => {
+          let query = db
+            .deleteFrom("sessions")
+            .where((eb) =>
+              eb.or([
+                eb("expires_at_ts", "<", cutoffTime),
+                eb("idle_expires_at_ts", "<", cutoffTime),
+              ]),
+            );
+
+          if (tenant_id) {
+            query = query.where("tenant_id", "=", tenant_id);
+          }
+          if (user_id) {
+            query = query.where("user_id", "=", user_id);
+          }
+
+          const result = await query.limit(BATCH_SIZE).execute();
+          return Number(result[0]?.numDeletedRows ?? 0);
+        },
+      },
+      {
+        table: "login_sessions",
+        deleted: 0,
+        drained: false,
+        deleteBatch: async () => {
+          let query = db
+            .deleteFrom("login_sessions")
+            .where("expires_at_ts", "<", cutoffTime);
+
+          if (tenant_id) {
+            query = query.where("tenant_id", "=", tenant_id);
+          }
+          if (user_id) {
+            query = query.where("user_id", "=", user_id);
+          }
+
+          const result = await query.limit(BATCH_SIZE).execute();
+          return Number(result[0]?.numDeletedRows ?? 0);
+        },
+      },
+    ];
 
     try {
-      // 1. Delete refresh_tokens in batches
-      let deletedRefreshTokens = 0;
-      while (true) {
-        let refreshTokensQuery = db
-          .deleteFrom("refresh_tokens")
-          .where((eb) =>
-            eb.or([
-              eb("expires_at_ts", "<", cutoffTime),
-              eb("idle_expires_at_ts", "<", cutoffTime),
-            ]),
-          );
+      let batches = 0;
+      while (batches < MAX_BATCHES && sweeps.some((sweep) => !sweep.drained)) {
+        for (const sweep of sweeps) {
+          if (sweep.drained || batches >= MAX_BATCHES) {
+            continue;
+          }
 
-        if (tenant_id) {
-          refreshTokensQuery = refreshTokensQuery.where(
-            "tenant_id",
-            "=",
-            tenant_id,
-          );
-        }
-        if (user_id) {
-          refreshTokensQuery = refreshTokensQuery.where(
-            "user_id",
-            "=",
-            user_id,
-          );
-        }
+          const deletedCount = await sweep.deleteBatch();
+          batches += 1;
+          sweep.deleted += deletedCount;
 
-        const result = await refreshTokensQuery.limit(BATCH_SIZE).execute();
-        const deletedCount = Number(result[0]?.numDeletedRows ?? 0);
-        deletedRefreshTokens += deletedCount;
-        if (deletedCount < BATCH_SIZE) break;
+          // A short batch means the table has nothing left past the cutoff.
+          if (deletedCount < BATCH_SIZE) {
+            sweep.drained = true;
+          }
+        }
       }
 
-      // 2. Delete sessions in batches
-      let deletedSessions = 0;
-      while (true) {
-        let sessionsQuery = db
-          .deleteFrom("sessions")
-          .where((eb) =>
-            eb.or([
-              eb("expires_at_ts", "<", cutoffTime),
-              eb("idle_expires_at_ts", "<", cutoffTime),
-            ]),
-          );
+      const summary = sweeps
+        .map((sweep) => `${sweep.deleted} ${sweep.table}`)
+        .join(", ");
+      const notDrained = sweeps
+        .filter((sweep) => !sweep.drained)
+        .map((sweep) => sweep.table);
 
-        if (tenant_id) {
-          sessionsQuery = sessionsQuery.where("tenant_id", "=", tenant_id);
-        }
-        if (user_id) {
-          sessionsQuery = sessionsQuery.where("user_id", "=", user_id);
-        }
-
-        const result = await sessionsQuery.limit(BATCH_SIZE).execute();
-        const deletedCount = Number(result[0]?.numDeletedRows ?? 0);
-        deletedSessions += deletedCount;
-        if (deletedCount < BATCH_SIZE) break;
-      }
-
-      // 3. Delete login_sessions in batches
-      let deletedLoginSessions = 0;
-      while (true) {
-        let loginSessionsQuery = db
-          .deleteFrom("login_sessions")
-          .where("expires_at_ts", "<", cutoffTime);
-
-        if (tenant_id) {
-          loginSessionsQuery = loginSessionsQuery.where(
-            "tenant_id",
-            "=",
-            tenant_id,
-          );
-        }
-        if (user_id) {
-          loginSessionsQuery = loginSessionsQuery.where(
-            "user_id",
-            "=",
-            user_id,
-          );
-        }
-
-        const result = await loginSessionsQuery.limit(BATCH_SIZE).execute();
-        const deletedCount = Number(result[0]?.numDeletedRows ?? 0);
-        deletedLoginSessions += deletedCount;
-        if (deletedCount < BATCH_SIZE) break;
-      }
-
-      if (
-        deletedRefreshTokens > 0 ||
-        deletedSessions > 0 ||
-        deletedLoginSessions > 0
-      ) {
-        console.log(
-          `Session cleanup: deleted ${deletedRefreshTokens} refresh_tokens, ${deletedSessions} sessions, ${deletedLoginSessions} login_sessions`,
+      if (notDrained.length > 0) {
+        // Do not log this as a success: the backlog outlived the budget, and
+        // silence here is what let it grow unnoticed in the first place.
+        console.warn(
+          `Session cleanup: batch budget of ${MAX_BATCHES} exhausted before ${notDrained.join(", ")} drained. Deleted ${summary}`,
         );
+      } else if (sweeps.some((sweep) => sweep.deleted > 0)) {
+        console.log(`Session cleanup: deleted ${summary}`);
       }
     } catch (error) {
       // Log but don't throw - this is a background cleanup task
