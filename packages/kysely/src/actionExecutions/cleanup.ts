@@ -1,24 +1,14 @@
-import { Kysely, sql } from "kysely";
+import { Kysely } from "kysely";
 import { Database } from "../db";
+import { DatabaseType, getDatabaseType } from "../helpers/database-type";
 
 // Rows deleted per statement on MySQL. Bounds the lock footprint of a single
 // DELETE so the first sweep of a long-uncleaned table cannot exceed
 // PlanetScale's per-statement limits.
 const CHUNK = 50_000;
 
-async function getDatabaseType(
-  db: Kysely<Database>,
-): Promise<"mysql" | "sqlite"> {
-  try {
-    await sql`SELECT VERSION()`.execute(db);
-    return "mysql";
-  } catch {
-    return "sqlite";
-  }
-}
-
 export function cleanup(db: Kysely<Database>) {
-  let dbType: "mysql" | "sqlite" | undefined;
+  let dbType: DatabaseType | undefined;
 
   return async (olderThan: string): Promise<number> => {
     // Unlike `codes`, this table has always written the numeric timestamp, so
