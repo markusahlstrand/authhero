@@ -164,6 +164,122 @@ describe("account", () => {
     expect(logs).toHaveLength(1);
   });
 
+  it("trims whitespace around the new address through the change-email flow", async () => {
+    const testServer = await getTestServer({
+      mockEmail: true,
+    });
+
+    const { universalApp, env, getSentEmails } = testServer;
+    const universalClient = testClient(universalApp, env);
+
+    const { cookieName, cookieValue, state } = await loginWithCode(testServer, {
+      redirect_uri: "http://localhost:3000/u/account",
+    });
+
+    const changeEmailResponse = await universalClient["account"][
+      "change-email"
+    ].$post(
+      {
+        query: { state },
+        form: {
+          email: "  Padded@Example.com  ",
+        },
+      },
+      {
+        headers: {
+          cookie: `${cookieName}=${cookieValue}`,
+        },
+      },
+    );
+
+    expect(changeEmailResponse.status).toBe(302);
+    const location = changeEmailResponse.headers.get("location");
+    expect(location).toContain("email=padded%40example.com");
+
+    // The verification code must go to the trimmed address — the padded one is
+    // a different mailbox as far as most senders are concerned.
+    const sentEmails = getSentEmails();
+    const verificationEmail = sentEmails[sentEmails.length - 1];
+    expect(verificationEmail.to).toBe("padded@example.com");
+
+    const changeId = new URL(
+      location!,
+      "http://localhost:3000",
+    ).searchParams.get("change_id");
+
+    // The padded address survives in the URL of an already-open tab, so the
+    // verify step has to canonicalise it again before it becomes the stored
+    // email (issue #1279).
+    const verifyCodeResponse = await universalClient.account[
+      "change-email-verify"
+    ].$post(
+      {
+        query: {
+          state,
+          email: "  Padded@Example.com  ",
+          change_id: changeId!,
+        },
+        form: {
+          code: verificationEmail.data.code,
+        },
+      },
+      {
+        headers: {
+          cookie: `${cookieName}=${cookieValue}`,
+        },
+      },
+    );
+
+    expect(verifyCodeResponse.status).toBe(302);
+    expect(verifyCodeResponse.headers.get("location")).toContain(
+      "email=padded%40example.com",
+    );
+
+    const updatedUser = await env.data.users.get("tenantId", "email|userId");
+    expect(updatedUser?.email).toBe("padded@example.com");
+  });
+
+  it("rejects a padded address that is already taken by another user", async () => {
+    const testServer = await getTestServer({
+      mockEmail: true,
+    });
+
+    const { universalApp, env } = testServer;
+    const universalClient = testClient(universalApp, env);
+
+    await env.data.users.create("tenantId", {
+      user_id: "email|takenuser",
+      email: "taken@example.com",
+      email_verified: true,
+      provider: "email",
+      connection: "email",
+      is_social: false,
+    });
+
+    const { cookieName, cookieValue, state } = await loginWithCode(testServer, {
+      redirect_uri: "http://localhost:3000/u/account",
+    });
+
+    // Without the trim the uniqueness query looks for the padded string, finds
+    // nothing, and hands out a second account for the same mailbox.
+    const response = await universalClient["account"]["change-email"].$post(
+      {
+        query: { state },
+        form: {
+          email: " taken@example.com ",
+        },
+      },
+      {
+        headers: {
+          cookie: `${cookieName}=${cookieValue}`,
+        },
+      },
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain("Email is already taken");
+  });
+
   it("should redirect to login identifier when accessing /u/account without valid session", async () => {
     const testServer = await getTestServer({
       mockEmail: true,
