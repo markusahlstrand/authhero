@@ -1197,10 +1197,13 @@ Supported triggers and their export names:
 
 `console.log` inside a code hook is not just a development aid — the executor captures it and AuthHero writes it to the `action_executions` table, one row per execution, where it stays for the [retention window](/deployment/data-retention).
 
-Two limits apply, both matching Auth0:
+Two limits apply:
 
-- **256 characters per execution.** This is a budget for the whole execution's console output, not a per-line trim. Output past the budget is cut and the record gains an explicit `[authhero] console output truncated at 256 characters …` line, so a truncated record is never mistaken for a complete one. Each executor separately caps its own capture at 50 entries × 500 characters before this.
-- **10 days of history**, the default `actionExecutionsRetentionDays` for [`runRetention`](/deployment/data-retention).
+- **256 characters per execution.** A budget for the whole execution's console output, spent across lines in order rather than trimmed per line. Output past the budget is cut and the record gains an explicit `[authhero] console output truncated at 256 characters …` line, so a truncated record is never mistaken for a complete one. Each executor separately caps its own capture at 50 entries × 500 characters before this.
+
+  Auth0 uses the same number but charges it [per Action](https://auth0.com/docs/customize/actions/limitations); AuthHero charges it once for the whole execution, so a trigger with several actions bound to it is **stricter** here than on Auth0. Budget for it accordingly if you are porting Auth0 actions across.
+
+- **10 days of history**, the default `actionExecutionsRetentionDays` for [`runRetention`](/deployment/data-retention) — this one matches Auth0's execution-storage window exactly.
 
 Because this output is durably stored, **never log secrets or PII from a code hook**. A line like `console.log(JSON.stringify(user))` writes an email address, name and `app_metadata` into a diagnostics table, and a line dumping response headers can write a bearer token there. The 256-character cap bounds the volume; it does not make the first 256 characters safe. `credentials-exchange` in particular runs on every token exchange, including refresh grants, so anything logged there is written on the hottest path in the system.
 

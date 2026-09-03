@@ -356,13 +356,19 @@ export async function handleCodeHook(
 
 /**
  * Budget, in characters, for the console output persisted with a single
- * execution record — matching Auth0: "A maximum of 256 characters may be
- * persistently stored for `console.log()` outputs for each Action."
+ * execution record. The number comes from Auth0 ("A maximum of 256 characters
+ * may be persistently stored for `console.log()` outputs for each Action"),
+ * but the unit deliberately does not: Auth0 charges the budget per Action,
+ * AuthHero charges it once for the whole execution, so an execution with
+ * several bound actions is stricter here than on Auth0.
  *
- * It is a budget for the whole execution, not a per-line trim. Each executor
- * already caps its own capture (50 entries x 500 chars), but an execution with
- * several bound actions multiplies that ceiling, and `action_executions.logs`
- * is written on every token exchange — including refresh grants.
+ * That is the point. Each executor already caps its own capture (50 entries
+ * x 500 chars), so the per-action axis is bounded; what was not bounded is the
+ * number of actions bound to one trigger multiplying that ceiling. And
+ * `action_executions.logs` is written on every token exchange — including
+ * refresh grants — so the aggregate is what needs a ceiling.
+ *
+ * It is a budget, not a per-line trim: it is spent across lines in order.
  */
 export const MAX_PERSISTED_LOG_CHARS = 256;
 
