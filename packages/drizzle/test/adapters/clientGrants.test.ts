@@ -65,6 +65,40 @@ describe("clientGrants adapter", () => {
     expect(result.length).toBe(3);
   });
 
+  it("should page stably when grants share a created_at timestamp", async () => {
+    const sameInstant = "2026-01-01T00:00:00.000Z";
+    for (const id of ["grant-a", "grant-b", "grant-c"]) {
+      await db.insert(clientGrants).values({
+        id,
+        tenant_id: "t1",
+        client_id: "client1",
+        audience: `https://${id}.example.com`,
+        scope: JSON.stringify(["read:things"]),
+        created_at: sameInstant,
+        updated_at: sameInstant,
+      });
+    }
+
+    // The id tiebreaker gives tied rows a total order, so walking the pages
+    // sees each grant exactly once with no gap or repeat at the boundary.
+    const firstPage = await data.clientGrants.list("t1", {
+      page: 0,
+      per_page: 2,
+      include_totals: false,
+    });
+    const secondPage = await data.clientGrants.list("t1", {
+      page: 1,
+      per_page: 2,
+      include_totals: false,
+    });
+
+    const walked = [
+      ...firstPage.client_grants.map((g) => g.id),
+      ...secondPage.client_grants.map((g) => g.id),
+    ];
+    expect(walked).toEqual(["grant-c", "grant-b", "grant-a"]);
+  });
+
   it("should still honour an explicit ascending sort", async () => {
     await seedGrants();
 
