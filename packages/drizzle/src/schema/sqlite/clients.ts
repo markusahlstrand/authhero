@@ -153,5 +153,12 @@ export const clientGrants = sqliteTable(
       name: "pk_client_grants",
     }),
     index("idx_client_grants_audience").on(table.audience),
+    // One grant per client/audience pair — kysely enforces the same
+    // constraint under the same index name.
+    uniqueIndex("uq_client_grants_tenant_client_audience").on(
+      table.tenant_id,
+      table.client_id,
+      table.audience,
+    ),
   ],
 );
