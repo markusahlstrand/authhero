@@ -57,6 +57,13 @@
       "when": 1787240700556,
       "tag": "0007_refresh_token_session_id_backfill",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1788700194751,
+      "tag": "0008_client_grants_unique_audience",
+      "breakpoints": true
     }
   ]
 }
