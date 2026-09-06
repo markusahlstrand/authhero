@@ -122,9 +122,9 @@ describe("client_grants unique (tenant_id, client_id, audience)", () => {
       applyOne(sqlite, "0008");
 
       const ids = sqlite
-        .prepare("SELECT id FROM client_grants ORDER BY id")
+        .prepare<[], { id: string }>("SELECT id FROM client_grants ORDER BY id")
         .all()
-        .map((r: any) => r.id);
+        .map((r) => r.id);
       expect(ids).toEqual(["dup-new", "other-aud", "other-tenant"]);
     });
 
@@ -142,9 +142,9 @@ describe("client_grants unique (tenant_id, client_id, audience)", () => {
       applyOne(sqlite, "0008");
 
       const ids = sqlite
-        .prepare("SELECT id FROM client_grants")
+        .prepare<[], { id: string }>("SELECT id FROM client_grants")
         .all()
-        .map((r: any) => r.id);
+        .map((r) => r.id);
       expect(ids).toEqual(["tie-b"]);
     });
 
