@@ -32,6 +32,12 @@ import {
   ReferenceManyField,
 } from "@/components/admin";
 import { DateAgo } from "@/common/DateAgo";
+import {
+  UNDEFINED_SCOPE_HINT,
+  buildScopeOptions,
+  definedScopesByAudience,
+  type ScopeOption,
+} from "./clientGrantScopes";
 
 interface ResourceServer extends RaRecord {
   identifier: string;
@@ -326,18 +332,33 @@ function AddClientGrantButton() {
   );
 }
 
-function ScopesCell() {
+function ScopesCell({
+  definedScopes,
+}: {
+  /** `audience -> scopes the resource server defines`; undefined while loading. */
+  definedScopes?: Map<string, Set<string>>;
+}) {
   const record = useRecordContext<ClientGrantRecord>();
   if (!record?.scope || record.scope.length === 0) {
     return <span className="text-muted-foreground">No scopes</span>;
   }
+  const defined = definedScopes?.get(record.audience);
   return (
     <div className="flex flex-wrap gap-1">
-      {record.scope.map((s) => (
-        <Badge key={s} variant="secondary">
-          {s}
-        </Badge>
-      ))}
+      {record.scope.map((s) => {
+        // While the resource servers are still loading (or the audience has no
+        // resource server at all) flag nothing rather than everything.
+        const isUndefined = defined ? !defined.has(s) : false;
+        return (
+          <Badge
+            key={s}
+            variant={isUndefined ? "destructive" : "secondary"}
+            title={isUndefined ? UNDEFINED_SCOPE_HINT : undefined}
+          >
+            {s}
+          </Badge>
+        );
+      })}
     </div>
   );
 }
@@ -354,9 +375,7 @@ function EditClientGrantCell() {
   const notify = useNotify();
   const refresh = useRefresh();
   const [open, setOpen] = useState(false);
-  const [allScopes, setAllScopes] = useState<
-    Array<{ value: string; description: string }>
-  >([]);
+  const [allScopes, setAllScopes] = useState<ScopeOption[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
@@ -378,17 +397,7 @@ function EditClientGrantCell() {
         },
       );
       const server = data.find((s) => s.identifier === record.audience);
-      const scopes = (server?.scopes ?? []).map((s) => ({
-        value: s.value ?? s.permission_name ?? "",
-        description: s.description ?? "",
-      }));
-      const existingValues = new Set(scopes.map((s) => s.value));
-      for (const v of record.scope ?? []) {
-        if (v && !existingValues.has(v)) {
-          scopes.push({ value: v, description: "" });
-        }
-      }
-      setAllScopes(scopes.filter((s) => s.value));
+      setAllScopes(buildScopeOptions(server, record.scope));
     } catch {
       notify("Error loading scopes", { type: "error" });
     } finally {
@@ -510,11 +519,23 @@ function EditClientGrantCell() {
                             htmlFor={`edit-scope-${s.value}`}
                             className="flex-1 cursor-pointer"
                           >
-                            <div className="text-sm font-medium">{s.value}</div>
-                            {s.description && (
-                              <div className="text-xs text-muted-foreground">
-                                {s.description}
+                            <div className="flex items-center gap-2 text-sm font-medium">
+                              {s.value}
+                              {s.undefinedOnResourceServer && (
+                                <Badge variant="destructive">Not defined</Badge>
+                              )}
+                            </div>
+                            {s.undefinedOnResourceServer ? (
+                              <div className="text-xs text-destructive">
+                                Not defined on {record.audience} — dropped from
+                                issued tokens
                               </div>
+                            ) : (
+                              s.description && (
+                                <div className="text-xs text-muted-foreground">
+                                  {s.description}
+                                </div>
+                              )
                             )}
                           </label>
                         </li>
@@ -602,7 +623,39 @@ function RemoveClientGrantCell() {
   );
 }
 
+/**
+ * The scopes each resource server defines, so the grants table can flag scopes
+ * that will be dropped from issued tokens without opening the editor (#1359).
+ */
+function useDefinedScopesByAudience() {
+  const dataProvider = useDataProvider();
+  const [definedScopes, setDefinedScopes] =
+    useState<Map<string, Set<string>>>();
+
+  useEffect(() => {
+    let cancelled = false;
+    dataProvider
+      .getList<ResourceServer>("resource-servers", {
+        pagination: { page: 1, perPage: 100 },
+        sort: { field: "name", order: "ASC" },
+        filter: {},
+      })
+      .then(({ data }) => {
+        if (!cancelled) setDefinedScopes(definedScopesByAudience(data));
+      })
+      // Leave the map undefined on failure — no flags is better than wrong flags.
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [dataProvider]);
+
+  return definedScopes;
+}
+
 export function ClientGrantsTab() {
+  const definedScopes = useDefinedScopesByAudience();
+
   return (
     <div className="flex flex-col gap-4">
       <div>
@@ -622,7 +675,7 @@ export function ClientGrantsTab() {
         <DataTable rowClick={false} bulkActionButtons={false}>
           <DataTable.Col source="audience" label="Resource server" />
           <DataTable.Col label="Scopes">
-            <ScopesCell />
+            <ScopesCell definedScopes={definedScopes} />
           </DataTable.Col>
           <DataTable.Col label="Created">
             <CreatedCell />
