@@ -1,4 +1,5 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
+import { Context } from "hono";
 import { Bindings, Variables } from "../../types";
 import { HTTPException } from "hono/http-exception";
 import {
@@ -7,6 +8,7 @@ import {
   LogTypes,
 } from "@authhero/adapter-interfaces";
 import { logMessage } from "../../helpers/logging";
+import { findUndefinedResourceServerScopes } from "../../helpers/scopes-permissions";
 
 import { defineRoute } from "../../utils/define-route";
 import { requireTenantId, withTotals, listResponse } from "./helpers";
@@ -82,6 +84,54 @@ const clientGrantsWithNextSchema = z.object({
     description: "Opaque cursor for the next page; absent on the last page.",
   }),
 });
+/**
+ * A client grant may list scopes the resource server for its audience does not
+ * define. `calculateClientCredentialsScopes` filters those out unconditionally,
+ * so the grant says five scopes and the issued token carries three, with
+ * nothing in between explaining the difference (#1359).
+ *
+ * Auth0 accepts such a write, so the default here is to accept it too and log
+ * the mismatch at the moment the operator makes it. Tenants that have already
+ * opted into strict scope handling with the `restrict_undefined_scopes` flag —
+ * the same flag that drops undefined scopes on the user-based path — get the
+ * write rejected instead, while they can still fix it.
+ */
+async function checkGrantScopesAreDefined(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  tenantId: string,
+  grant: { client_id?: string; audience?: string; scope?: string[] },
+) {
+  const { audience, scope } = grant;
+  if (!audience || !scope?.length) {
+    return;
+  }
+
+  const undefinedScopes = await findUndefinedResourceServerScopes(ctx, {
+    tenantId,
+    audience,
+    scopes: scope,
+  });
+  if (undefinedScopes.length === 0) {
+    return;
+  }
+
+  const tenant = await ctx.env.data.tenants.get(tenantId);
+  if (tenant?.flags?.restrict_undefined_scopes === true) {
+    throw new HTTPException(400, {
+      message:
+        `Scope(s) not defined on the resource server for audience ${audience}: ` +
+        `${undefinedScopes.join(", ")}`,
+    });
+  }
+
+  console.warn(
+    `[client-grants] Client grant references scope(s) not defined on the ` +
+      `resource server, they will be dropped from issued tokens: ` +
+      `${undefinedScopes.join(", ")} (tenant_id=${tenantId}, ` +
+      `client_id=${grant.client_id}, audience=${audience})`,
+  );
+}
+
 const getRoot = defineRoute({
   route: createRoute({
     tags: ["client-grants"],
@@ -313,6 +363,14 @@ const patchById = defineRoute({
       });
     }
 
+    // A patch may change the audience, the scopes, or neither: check the grant
+    // as it will be after the update.
+    await checkGrantScopesAreDefined(ctx, tenant_id, {
+      client_id: body.client_id ?? exists.client_id,
+      audience: body.audience ?? exists.audience,
+      scope: body.scope ?? exists.scope,
+    });
+
     const updated = await ctx.env.data.clientGrants.update(tenant_id, id, body);
 
     if (!updated) {
@@ -377,6 +435,8 @@ const postRoot = defineRoute({
   handler: async (ctx) => {
     const tenant_id = requireTenantId(ctx);
     const body = ctx.req.valid("json");
+
+    await checkGrantScopesAreDefined(ctx, tenant_id, body);
 
     const clientGrant = await ctx.env.data.clientGrants.create(tenant_id, body);
 
