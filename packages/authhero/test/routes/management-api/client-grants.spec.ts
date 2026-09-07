@@ -1,15 +1,17 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import { testClient } from "hono/testing";
 import { getAdminToken } from "../../helpers/token";
 import { getTestServer } from "../../helpers/test-server";
 
 describe("client-grants", () => {
   let managementClient: any;
+  let env: any;
   let token: string;
 
   beforeEach(async () => {
-    const { managementApp, env } = await getTestServer();
-    managementClient = testClient(managementApp, env);
+    const testServer = await getTestServer();
+    env = testServer.env;
+    managementClient = testClient(testServer.managementApp, env);
     token = await getAdminToken();
   });
 
@@ -269,5 +271,120 @@ describe("client-grants", () => {
         },
       },
     );
+  });
+
+  describe("scopes not defined on the resource server (#1359)", () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    async function createResourceServer(identifier: string) {
+      const response = await managementClient["resource-servers"].$post(
+        {
+          json: {
+            identifier,
+            name: `API ${identifier}`,
+            scopes: [{ value: "read:users", description: "Read users" }],
+          },
+          header: { "tenant-id": "tenantId" },
+        },
+        { headers: { authorization: `Bearer ${token}` } },
+      );
+      expect(response.status).toBe(201);
+      return response.json();
+    }
+
+    function createGrant(json: Record<string, unknown>) {
+      return managementClient["client-grants"].$post(
+        {
+          json,
+          header: { "tenant-id": "tenantId" },
+        },
+        { headers: { authorization: `Bearer ${token}` } },
+      );
+    }
+
+    it("accepts the write but warns when the tenant has not opted into strict scopes", async () => {
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      await createResourceServer("https://api.undefined-scopes.example.com");
+
+      const response = await createGrant({
+        client_id: "clientId",
+        audience: "https://api.undefined-scopes.example.com",
+        scope: ["read:users", "access-lists:write"],
+      });
+
+      // Auth0 accepts a grant referencing undefined scopes, so authhero does too.
+      expect(response.status).toBe(201);
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining("access-lists:write"),
+      );
+      // Only the undefined scope is named, not the defined one.
+      expect(warn.mock.calls[0]?.[0]).not.toContain("read:users,");
+    });
+
+    it("rejects the create with a 400 when restrict_undefined_scopes is set", async () => {
+      await createResourceServer("https://api.strict-grants.example.com");
+      await env.data.tenants.update("tenantId", {
+        flags: { restrict_undefined_scopes: true },
+      });
+
+      const response = await createGrant({
+        client_id: "clientId",
+        audience: "https://api.strict-grants.example.com",
+        scope: ["read:users", "access-lists:write"],
+      });
+
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.message).toContain("access-lists:write");
+      expect(body.message).not.toContain("read:users");
+    });
+
+    it("rejects the patch with a 400 when restrict_undefined_scopes is set", async () => {
+      await createResourceServer("https://api.strict-patch.example.com");
+
+      const created = await createGrant({
+        client_id: "clientId",
+        audience: "https://api.strict-patch.example.com",
+        scope: ["read:users"],
+      });
+      expect(created.status).toBe(201);
+      const grant = await created.json();
+
+      await env.data.tenants.update("tenantId", {
+        flags: { restrict_undefined_scopes: true },
+      });
+
+      const response = await managementClient["client-grants"][":id"].$patch(
+        {
+          param: { id: grant.id },
+          json: { scope: ["read:users", "access-lists:manage"] },
+          header: { "tenant-id": "tenantId" },
+        },
+        { headers: { authorization: `Bearer ${token}` } },
+      );
+
+      expect(response.status).toBe(400);
+      expect((await response.json()).message).toContain("access-lists:manage");
+
+      // The stored grant is unchanged.
+      const stored = await env.data.clientGrants.get("tenantId", grant.id);
+      expect(stored.scope).toEqual(["read:users"]);
+    });
+
+    it("leaves grants whose audience has no resource server untouched", async () => {
+      await env.data.tenants.update("tenantId", {
+        flags: { restrict_undefined_scopes: true },
+      });
+
+      const response = await createGrant({
+        client_id: "clientId",
+        audience: "https://no-such-resource-server.example.com",
+        scope: ["anything:at-all"],
+      });
+
+      expect(response.status).toBe(201);
+    });
   });
 });

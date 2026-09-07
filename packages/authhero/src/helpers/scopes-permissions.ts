@@ -233,6 +233,41 @@ function warnUndefinedScopes(params: {
   );
 }
 
+/**
+ * Returns the subset of `scopes` that the resource server matching `audience`
+ * does not define — the scopes that would silently vanish from an issued token.
+ *
+ * Returns an empty list when no resource server matches the audience: those
+ * grants (control-plane, cross-tenant) have no scope catalogue to check
+ * against, so there is nothing to flag.
+ */
+export async function findUndefinedResourceServerScopes(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  params: { tenantId: string; audience: string; scopes: string[] },
+): Promise<string[]> {
+  const { tenantId, audience, scopes } = params;
+
+  if (scopes.length === 0) {
+    return [];
+  }
+
+  const { resource_servers } =
+    await ctx.env.data.resourceServers.list(tenantId);
+
+  const resourceServer = resource_servers.find(
+    (rs: ResourceServer) => rs.identifier === audience,
+  );
+  if (!resourceServer) {
+    return [];
+  }
+
+  const definedScopes = (resourceServer.scopes || []).map(
+    (scope) => scope.value,
+  );
+
+  return scopes.filter((scope) => !definedScopes.includes(scope));
+}
+
 async function calculateClientCredentialsScopes(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: ClientCredentialsScopesParams,
