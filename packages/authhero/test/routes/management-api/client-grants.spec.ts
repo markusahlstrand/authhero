@@ -5,7 +5,7 @@ import { getTestServer } from "../../helpers/test-server";
 
 describe("client-grants", () => {
   let managementClient: any;
-  let env: any;
+  let env: Awaited<ReturnType<typeof getTestServer>>["env"];
   let token: string;
 
   beforeEach(async () => {
