@@ -347,6 +347,39 @@ describe("management-api authentication-methods", () => {
       expect(response.status).toBe(404);
     });
 
+    it("does not delete an enrollment owned by another user in the same tenant", async () => {
+      const { env, managementClient, token } = await setup();
+      await seedUsers(env.data, "tenantId", ["email|otherUser"]);
+
+      const enrollment = await env.data.authenticationMethods.create(
+        "tenantId",
+        {
+          user_id: "email|otherUser",
+          type: "phone",
+          phone_number: "+46707123456",
+          confirmed: true,
+        },
+      );
+
+      const response = await managementClient.users[":user_id"][
+        "authentication-methods"
+      ][":method_id"].$delete(
+        {
+          param: { user_id: USER_ID, method_id: enrollment.id },
+          header: { "tenant-id": "tenantId" },
+        },
+        { headers: { authorization: `Bearer ${token}` } },
+      );
+
+      expect(response.status).toBe(404);
+      expect(
+        await env.data.authenticationMethods.list(
+          "tenantId",
+          "email|otherUser",
+        ),
+      ).toHaveLength(1);
+    });
+
     it("does not delete an enrollment owned by the same user in another tenant", async () => {
       const { env, managementClient, token } = await setup();
       await seedTenant(env.data, "otherTenant", { userIds: [USER_ID] });

@@ -123,6 +123,7 @@ describe("management-api tenants", () => {
 
     it("does not accept database_version, which the provisioner owns", async () => {
       const { app, env, token } = await setup();
+      const before = await env.data.tenants.get("tenantId");
 
       const response = await app.request(
         "/api/v2/tenants/settings",
@@ -140,7 +141,7 @@ describe("management-api tenants", () => {
 
       expect(response.status).toBe(200);
       const tenant = await env.data.tenants.get("tenantId");
-      expect(tenant?.database_version).not.toBe("0099_hijack.sql");
+      expect(tenant?.database_version).toBe(before?.database_version);
     });
 
     it("returns 404 when the tenant does not exist", async () => {
