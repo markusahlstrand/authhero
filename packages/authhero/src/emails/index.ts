@@ -18,8 +18,7 @@ import { getAuthUrl, getIssuer, getUniversalLoginUrl } from "../variables";
 import { getConnectionFromIdentifier } from "../utils/username";
 import { resolveTenantLanguage } from "../utils/locale";
 import { getEnrichedClient } from "../helpers/client";
-import { Liquid } from "liquidjs";
-import { renderEmailTemplate } from "./render";
+import { getLiquid, renderEmailTemplate } from "./render";
 import { getDefaultTemplate } from "./defaults";
 import { MailgunEmailService } from "../email-services/mailgun";
 import { ResendEmailService } from "../email-services/resend";
@@ -926,12 +925,6 @@ export async function sendInvitation(
   });
 }
 
-const testLiquid = new Liquid({
-  cache: true,
-  strictVariables: false,
-  strictFilters: false,
-});
-
 export interface SendTestEmailParams {
   to: string;
   templateName: EmailTemplateName;
@@ -1043,9 +1036,10 @@ export async function sendTestEmail(
     copyright: t("copyright", options),
   };
 
+  const liquid = getLiquid();
   const [renderedSubject, renderedHtml] = await Promise.all([
-    testLiquid.parseAndRender(subjectSource, vars),
-    testLiquid.parseAndRender(bodySource, vars),
+    liquid.parseAndRender(subjectSource, vars),
+    liquid.parseAndRender(bodySource, vars),
   ]);
 
   await sendEmail(ctx, {
