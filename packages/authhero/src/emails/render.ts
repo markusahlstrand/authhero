@@ -4,11 +4,17 @@ import { EmailTemplateName } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
 import { getDefaultTemplate } from "./defaults";
 
-const liquid = new Liquid({
-  cache: true,
-  strictVariables: false,
-  strictFilters: false,
-});
+// Constructed on first render: the Liquid constructor is a measurable share
+// of module-evaluation time, and most cold starts never send an email.
+let liquidEngine: Liquid | undefined;
+export function getLiquid(): Liquid {
+  liquidEngine ??= new Liquid({
+    cache: true,
+    strictVariables: false,
+    strictFilters: false,
+  });
+  return liquidEngine;
+}
 
 export interface RenderedEmail {
   subject: string;
@@ -55,6 +61,7 @@ export async function renderEmailTemplate(
     return { kind: "none" };
   }
 
+  const liquid = getLiquid();
   const [subject, html] = await Promise.all([
     liquid.parseAndRender(source.subject, vars),
     liquid.parseAndRender(source.body, vars),
@@ -80,6 +87,7 @@ export async function renderDefaultTemplate(
 ): Promise<{ subject: string; html: string } | null> {
   const fallback = getDefaultTemplate(templateName);
   if (!fallback) return null;
+  const liquid = getLiquid();
   const [subject, html] = await Promise.all([
     liquid.parseAndRender(fallback.subject, vars),
     liquid.parseAndRender(fallback.body, vars),

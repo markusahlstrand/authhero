@@ -128,11 +128,10 @@ function widgetContainerHtml(
 // Liquid engine + slot tags
 // ---------------------------------------------------------------------------
 
-const engine = new Liquid({
-  cache: true,
-  strictVariables: false,
-  strictFilters: false,
-});
+// Built on first use (see getEngine below): the Liquid constructor plus tag
+// registration is a measurable share of module-evaluation time, and only
+// tenants with a custom login template ever reach it.
+let engineInstance: Liquid | undefined;
 
 /** Parse an optional `style="pill|plain|auto"` argument from a slot tag. */
 function parseSlotStyle(rest: string): ChipStyle | undefined {
@@ -151,7 +150,7 @@ function parseSlotStyle(rest: string): ChipStyle | undefined {
  * variant. The rendered HTML comes from per-request fragment factories in the
  * render scope, so unknown/omitted slots render empty.
  */
-function registerSlotTag(namespace: "auth0" | "authhero") {
+function registerSlotTag(engine: Liquid, namespace: "auth0" | "authhero") {
   engine.registerTag(namespace, {
     parse(token: TagToken) {
       // token.args is everything after the tag name, e.g. ':legal style="plain"'.
@@ -170,8 +169,18 @@ function registerSlotTag(namespace: "auth0" | "authhero") {
   });
 }
 
-registerSlotTag("auth0");
-registerSlotTag("authhero");
+function getEngine(): Liquid {
+  if (!engineInstance) {
+    engineInstance = new Liquid({
+      cache: true,
+      strictVariables: false,
+      strictFilters: false,
+    });
+    registerSlotTag(engineInstance, "auth0");
+    registerSlotTag(engineInstance, "authhero");
+  }
+  return engineInstance;
+}
 
 type SlotFactory = (style?: ChipStyle) => string;
 
@@ -283,7 +292,7 @@ export function validateUniversalLoginTemplate(
     };
   }
   try {
-    engine.parse(body);
+    getEngine().parse(body);
   } catch (err) {
     return {
       valid: false,
@@ -327,6 +336,7 @@ export async function applyUniversalLoginTemplate(
     },
   };
 
+  const engine = getEngine();
   try {
     return await engine.parseAndRender(template, scope);
   } catch (err) {
