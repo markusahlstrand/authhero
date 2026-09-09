@@ -1,5 +1,6 @@
 import { Kysely } from "kysely";
 import { create } from "./create";
+import { createMany } from "./createMany";
 import { get } from "./get";
 import { list } from "./list";
 import { remove } from "./remove";
@@ -13,6 +14,7 @@ export function createUsersAdapter(db: Kysely<Database>): UserDataAdapter {
   return {
     create: createFn,
     rawCreate: createFn,
+    createMany: createMany(db),
     remove: remove(db),
     get: get(db),
     list: list(db),

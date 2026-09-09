@@ -14,6 +14,7 @@ import {
   IMPORT_ERROR_CODES,
   mapEntry,
   type ImportRowError,
+  type MappedEntry,
 } from "./map";
 
 /**
@@ -181,44 +182,277 @@ async function findExistingUser(
 }
 
 /**
- * Write one staged row. Returns the outcome to commit; never throws for
- * per-row problems, so one bad entry cannot abort a chunk.
+ * How many distinct values go into one batched existence probe.
+ *
+ * The probe is an OR over a single column, which MySQL resolves as a range
+ * scan on that column's index — unlike an OR across two columns, which it
+ * refuses to index_merge. Keeping each probe to one field is therefore what
+ * makes this fast; the cap only bounds the generated query string.
  */
-async function processRow(
+const PROBE_BATCH = 100;
+
+/** Look up many values of one field in as few queries as the cap allows. */
+async function probeField(
+  data: DataAdapters,
+  tenantId: string,
+  field: "user_id" | "email" | "username" | "phone_number",
+  values: string[],
+): Promise<Map<string, string>> {
+  const found = new Map<string, string>();
+  const unique = [...new Set(values)];
+
+  for (let i = 0; i < unique.length; i += PROBE_BATCH) {
+    const slice = unique.slice(i, i + PROBE_BATCH);
+    const q = slice
+      .map((v) => `${field}:"${v.replace(/"/g, '\\"')}"`)
+      .join(" OR ");
+    const result = await data.users.list(tenantId, {
+      q,
+      page: 0,
+      per_page: slice.length,
+      include_totals: false,
+    });
+    for (const user of result.users) {
+      const key = (user as unknown as Record<string, unknown>)[field];
+      if (typeof key === "string" && !found.has(key)) {
+        found.set(key, user.user_id);
+      }
+    }
+  }
+
+  return found;
+}
+
+interface PreparedRow {
+  row: TenantOperationRow;
+  /** Set when the row failed before any lookup — validation or mapping. */
+  outcome?: TenantOperationRowOutcome;
+  entry?: UserImportEntry;
+  mapped?: MappedEntry;
+  /** The id this row would be written under, for the own-prior-write probe. */
+  probeId?: string;
+  existingId?: string | null;
+}
+
+/**
+ * Process a whole chunk, trading per-row round-trips for batched ones.
+ *
+ * The naive shape — probe, insert user, insert password, per row — costs about
+ * four sequential queries per row, which on a hosted database is ~400 ms of
+ * pure latency each and makes a large migration take days. Here the chunk is
+ * parsed and mapped in memory, every existence probe for a given field runs as
+ * one query, and the rows that turn out to be new users are written with a
+ * single batched insert. A 50-row chunk goes from ~200 queries to about five.
+ *
+ * Rows needing an update (upsert), rows resuming their own interrupted write,
+ * and rows that hit any batch failure fall back to `writeRow` individually, so
+ * every outcome the ledger records is still attributed to its own row.
+ */
+async function processChunk(
+  data: DataAdapters,
+  tenantId: string,
+  rows: TenantOperationRow[],
+  input: UsersImportInput,
+): Promise<TenantOperationRowOutcome[]> {
+  // 1. Parse and map. Pure except for the derived id, which is a local digest.
+  const prepared: PreparedRow[] = await Promise.all(
+    rows.map(async (row): Promise<PreparedRow> => {
+      const parsed = userImportEntrySchema.safeParse(row.payload);
+      if (!parsed.success) {
+        const first = parsed.error.issues[0];
+        return {
+          row,
+          outcome: errorOutcome(row.seq, {
+            code: IMPORT_ERROR_CODES.VALIDATION_ERROR,
+            message: first?.message ?? "Invalid user entry",
+            path: first?.path.join("."),
+          }),
+        };
+      }
+      const entry = parsed.data;
+      const mapped = mapEntry({
+        entry,
+        connection: input.connection,
+        provider: input.provider,
+        fallbackUserId: await deriveImportUserId(row.operation_id, row.seq),
+      });
+      if (!mapped.ok) {
+        return { row, outcome: errorOutcome(row.seq, mapped.error) };
+      }
+      return {
+        row,
+        entry,
+        mapped: mapped.value,
+        probeId:
+          entry.user_id !== undefined
+            ? buildUserId(entry.user_id, input.provider)
+            : undefined,
+      };
+    }),
+  );
+
+  const live = prepared.filter((p) => !p.outcome && p.entry && p.mapped);
+
+  // 2. One probe per field, matching findExistingUser's precedence. The
+  //    derived id is probed too: an existing user carrying it can only be this
+  //    row's own earlier write, which writeRow treats as a resume rather than
+  //    a conflict.
+  const ids = live.flatMap((p) =>
+    [p.probeId, p.mapped!.user.user_id].filter((v): v is string => !!v),
+  );
+  const emails = live.map((p) => p.entry!.email).filter(Boolean);
+  const usernames = live
+    .map((p) => p.entry!.username)
+    .filter((v): v is string => v !== undefined);
+  const phones = live
+    .map((p) => p.entry!.phone_number)
+    .filter((v): v is string => v !== undefined);
+
+  const [byId, byEmail, byUsername, byPhone] = await Promise.all([
+    ids.length ? probeField(data, tenantId, "user_id", ids) : new Map(),
+    emails.length ? probeField(data, tenantId, "email", emails) : new Map(),
+    usernames.length
+      ? probeField(data, tenantId, "username", usernames)
+      : new Map(),
+    phones.length
+      ? probeField(data, tenantId, "phone_number", phones)
+      : new Map(),
+  ]);
+
+  // 3. Resolve each row's identity, in findExistingUser's order.
+  //    `seen` de-duplicates within the chunk: two rows sharing an email would
+  //    both probe "absent" and both insert, which is the duplicate the
+  //    row-at-a-time loop avoided only by being sequential.
+  const seen = new Map<string, string>();
+  for (const p of live) {
+    const entry = p.entry!;
+    p.existingId =
+      (p.probeId ? byId.get(p.probeId) : undefined) ??
+      byId.get(p.mapped!.user.user_id!) ??
+      byEmail.get(entry.email) ??
+      (entry.username !== undefined
+        ? byUsername.get(entry.username)
+        : undefined) ??
+      (entry.phone_number !== undefined
+        ? byPhone.get(entry.phone_number)
+        : undefined) ??
+      seen.get(entry.email) ??
+      null;
+    if (p.existingId === null) {
+      seen.set(entry.email, p.mapped!.user.user_id!);
+    }
+  }
+
+  // 4. New users are the batchable case; everything else keeps the per-row
+  //    path, which is where upsert and resume semantics live.
+  const fresh = live.filter((p) => p.existingId === null);
+  const rest = live.filter((p) => p.existingId !== null);
+
+  const outcomes = new Map<number, TenantOperationRowOutcome>();
+  for (const p of prepared) {
+    if (p.outcome) outcomes.set(p.row.seq, p.outcome);
+  }
+
+  if (fresh.length) {
+    const inserts = fresh.map((p) => ({
+      ...p.mapped!.user,
+      // MappedPassword is {password, algorithm}; UserInsert wants
+      // {hash, algorithm} for the atomic user+password write.
+      ...(p.mapped!.password
+        ? {
+            password: {
+              hash: p.mapped!.password.password,
+              algorithm: p.mapped!.password.algorithm,
+            },
+          }
+        : {}),
+    }));
+
+    let batched = false;
+    if (data.users.createMany) {
+      try {
+        await data.users.createMany(tenantId, inserts);
+        batched = true;
+      } catch {
+        // A batch is all-or-nothing and cannot say which row collided, so on
+        // any failure re-run the whole set individually and let each row
+        // record its own outcome. Slower, but only for the failing chunk.
+        batched = false;
+      }
+    }
+
+    if (batched) {
+      for (const p of fresh) {
+        outcomes.set(p.row.seq, {
+          seq: p.row.seq,
+          status: "inserted",
+          entity_id: p.mapped!.user.user_id,
+        });
+      }
+    } else {
+      for (const p of fresh) {
+        outcomes.set(
+          p.row.seq,
+          await writeRow(
+            data,
+            tenantId,
+            p.row,
+            input,
+            p.entry!,
+            p.mapped!,
+            // Re-probe rather than trusting the batch's view: the batch may
+            // have partially applied before failing.
+            await findExistingUser(data, tenantId, p.entry!, input.provider),
+          ),
+        );
+      }
+    }
+  }
+
+  for (const p of rest) {
+    outcomes.set(
+      p.row.seq,
+      await writeRow(
+        data,
+        tenantId,
+        p.row,
+        input,
+        p.entry!,
+        p.mapped!,
+        p.existingId!,
+      ),
+    );
+  }
+
+  return rows.map(
+    (row) =>
+      outcomes.get(row.seq) ?? {
+        seq: row.seq,
+        status: "failed" as const,
+        error_code: IMPORT_ERROR_CODES.INTERNAL_ERROR,
+        error_message: "Row produced no outcome",
+      },
+  );
+}
+
+/**
+ * The write half of a row, with its identity already resolved.
+ *
+ * Split out so the batched chunk path can reuse exactly these branches after
+ * doing the probe in bulk — the conflict, upsert and resume rules live here
+ * once rather than in two places that could disagree.
+ */
+async function writeRow(
   data: DataAdapters,
   tenantId: string,
   row: TenantOperationRow,
   input: UsersImportInput,
+  entry: UserImportEntry,
+  mappedValue: MappedEntry,
+  existingId: string | null,
 ): Promise<TenantOperationRowOutcome> {
-  const parsed = userImportEntrySchema.safeParse(row.payload);
-  if (!parsed.success) {
-    const first = parsed.error.issues[0];
-    return errorOutcome(row.seq, {
-      code: IMPORT_ERROR_CODES.VALIDATION_ERROR,
-      message: first?.message ?? "Invalid user entry",
-      path: first?.path.join("."),
-    });
-  }
-  const entry = parsed.data;
-
-  const mapped = mapEntry({
-    entry,
-    connection: input.connection,
-    provider: input.provider,
-    fallbackUserId: await deriveImportUserId(row.operation_id, row.seq),
-  });
-  if (!mapped.ok) {
-    return errorOutcome(row.seq, mapped.error);
-  }
-
+  const mapped = { value: mappedValue };
   try {
-    const existingId = await findExistingUser(
-      data,
-      tenantId,
-      entry,
-      input.provider,
-    );
-
     // A row is reprocessed whenever its driver died between writing the user
     // and committing the outcome. Because the id is derived from
     // (operation_id, seq), an existing user carrying exactly that id can only
@@ -387,10 +621,7 @@ export async function advanceUsersImport(
       const pending = await rowsAdapter.claimPending(operationId, take);
       if (pending.length === 0) break;
 
-      const outcomes: TenantOperationRowOutcome[] = [];
-      for (const row of pending) {
-        outcomes.push(await processRow(data, tenantId, row, input));
-      }
+      const outcomes = await processChunk(data, tenantId, pending, input);
 
       // Commit the whole chunk in one call: an interruption before this
       // point leaves every row in the chunk `pending` and safely repeatable.

@@ -155,7 +155,23 @@ Without this the accepting request still makes a start, and any subsequent reque
 
 The defaults are Auth0's, so an Auth0-shaped client sees identical behaviour. A migration of a million users is therefore ~1,000 jobs of ~1,000 users, submitted two at a time — the same shape as the equivalent Auth0 migration. Raise the limits only for a migration you control end to end; a larger file means more rows staged inside a single request.
 
-Exceeding the concurrency limit returns `429`.
+Exceeding the concurrency limit returns `429`. AuthHero does not queue past the limit, and neither does Auth0 — the client is expected to hold back its own submissions, which is why Auth0's own guidance for ten or more jobs is to drive them from a job-scheduler framework. A submitted-but-unfinished job counts toward the limit, not just an actively processing one.
+
+### How rows are written
+
+Within a chunk, rows are **batched rather than processed one at a time**. The chunk is parsed and mapped in memory, each existence probe runs as one query per field across the whole chunk, and rows that turn out to be new users are written with a single batched insert. A 50-row chunk costs about five queries rather than about two hundred.
+
+This matters more than it might sound. The work is dominated by round-trip latency, not by the database's write cost — against a hosted database a row-at-a-time loop spends roughly 400 ms per row almost entirely waiting, which is the difference between a million-user import taking hours and taking days.
+
+Three cases deliberately keep the per-row path:
+
+- **Upserts.** Updating an existing user writes different values per row, which does not batch. A bulk migration is overwhelmingly `upsert: false`.
+- **A failed batch.** Because a batch insert cannot say which row collided, any failure is retried row by row so each outcome is still attributed to the row that caused it.
+- **Resuming an interrupted job.** Rows whose derived id already exists are recognised as their own earlier write rather than reported as a conflict.
+
+De-duplication within a chunk is handled explicitly: two rows carrying the same email produce one user, not two.
+
+Adapters may implement an optional `createMany` on `UserDataAdapter` to take part in this; the kysely adapter does. It is optional, and AuthHero falls back to looping `create` when it is absent, so an adapter without it keeps working — just at the older cost per row. `createMany` writes the user and its password only, so users carrying identities, activity counters or outbox events continue to go through `create`.
 
 ## Required scopes
 

@@ -46,6 +46,29 @@ export interface UserDataAdapter {
     user: UserInsert,
     options?: WriteOptions,
   ): Promise<User>;
+  /**
+   * Insert many users in as few round-trips as the backend allows.
+   *
+   * Optional. Callers MUST fall back to looping `create` when it is absent —
+   * this exists to make bulk paths (the users-import job) fast, not to add a
+   * second way of writing a user that every backend has to implement.
+   *
+   * Unlike `create` this is deliberately narrow: it writes the users row and,
+   * where `user.password` is set, the companion password row. It does NOT
+   * handle identities, activity counters or outbox events, because no bulk
+   * caller needs them and supporting them would make the batch no cheaper than
+   * the loop it replaces. Pass a user carrying those and the implementation is
+   * free to reject the batch.
+   *
+   * Returns the created users in input order. On a uniqueness violation the
+   * whole batch is rejected — the caller is expected to have de-duplicated and
+   * probed first, and to retry row-by-row to attribute the failure.
+   */
+  createMany?(
+    tenantId: string,
+    users: UserInsert[],
+    options?: WriteOptions,
+  ): Promise<User[]>;
   remove(
     tenantId: string,
     id: string,
