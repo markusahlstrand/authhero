@@ -31,18 +31,31 @@ async function postImport(
   users: unknown[],
   extra: Record<string, string> = {},
 ) {
-  const { managementApp, env } = await getTestServer();
+  const server = await getTestServer();
+  const response = await postImportWith(server, users, extra);
+  return { response, env: server.env, server };
+}
+
+/**
+ * Submit into an existing server. `getTestServer()` builds a fresh in-memory
+ * database every call, so anything asserting on state left by a previous import
+ * MUST reuse the server rather than calling `postImport` twice.
+ */
+async function postImportWith(
+  server: Awaited<ReturnType<typeof getTestServer>>,
+  users: unknown[],
+  extra: Record<string, string> = {},
+) {
   const token = await getAdminToken();
-  const response = await managementApp.request(
+  return server.managementApp.request(
     "/jobs/users-imports",
     {
       method: "POST",
       headers: { authorization: `Bearer ${token}`, "tenant-id": "tenantId" },
       body: importForm(users, extra),
     },
-    env,
+    server.env,
   );
-  return { response, env };
 }
 
 async function drain(env: { data: Parameters<typeof resumeUsersImports>[0] }) {
@@ -128,19 +141,39 @@ describe("users import — batched writes", () => {
   });
 
   it("still reports a pre-existing user as a per-row conflict", async () => {
-    const { env } = await postImport([
+    const { env, server } = await postImport([
       { email: "already@example.com", email_verified: true },
     ]);
     await drain(env);
 
-    // Same address again, upsert off: the row must fail, not silently insert.
-    const second = await postImport([
+    // Same server, so the second import genuinely sees the first one's user.
+    // Two getTestServer() calls would each get their own in-memory database
+    // and the assertion would pass without a conflict ever occurring.
+    const second = await postImportWith(server, [
       { email: "already@example.com", email_verified: true },
       { email: "fresh-alongside@example.com", email_verified: true },
     ]);
-    await drain(second.env);
+    expect(second.status).toBe(202);
+    const job = await second.json();
+    await drain(env);
 
-    const found = await second.env.data.users.list("tenantId", {
+    // The conflict is recorded against its own row, not swallowed by the batch.
+    const errorsResponse = await server.managementApp.request(
+      `/jobs/${job.id}/errors`,
+      {
+        headers: {
+          authorization: `Bearer ${await getAdminToken()}`,
+          "tenant-id": "tenantId",
+        },
+      },
+      env,
+    );
+    const errors = await errorsResponse.json();
+    expect(errors).toHaveLength(1);
+    expect(errors[0].errors[0].code).toBe("USER_ALREADY_EXISTS");
+
+    // Still exactly one user for that address.
+    const found = await env.data.users.list("tenantId", {
       q: 'email:"already@example.com"',
       page: 0,
       per_page: 10,
@@ -148,8 +181,8 @@ describe("users import — batched writes", () => {
     });
     expect(found.users).toHaveLength(1);
 
-    // The healthy row in the same chunk still lands.
-    const alongside = await second.env.data.users.list("tenantId", {
+    // And the healthy row in the same chunk still lands.
+    const alongside = await env.data.users.list("tenantId", {
       q: 'email:"fresh-alongside@example.com"',
       page: 0,
       per_page: 10,

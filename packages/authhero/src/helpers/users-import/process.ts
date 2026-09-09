@@ -13,6 +13,8 @@ import {
   deriveImportUserId,
   IMPORT_ERROR_CODES,
   mapEntry,
+  identityKey,
+  type IdentityField,
   type ImportRowError,
   type MappedEntry,
 } from "./map";
@@ -195,7 +197,7 @@ const PROBE_BATCH = 100;
 async function probeField(
   data: DataAdapters,
   tenantId: string,
-  field: "user_id" | "email" | "username" | "phone_number",
+  field: IdentityField,
   values: string[],
 ): Promise<Map<string, string>> {
   const found = new Map<string, string>();
@@ -213,9 +215,10 @@ async function probeField(
       include_totals: false,
     });
     for (const user of result.users) {
-      const key = (user as unknown as Record<string, unknown>)[field];
-      if (typeof key === "string" && !found.has(key)) {
-        found.set(key, user.user_id);
+      const stored = (user as unknown as Record<string, unknown>)[field];
+      if (typeof stored === "string") {
+        const key = identityKey(field, stored);
+        if (!found.has(key)) found.set(key, user.user_id);
       }
     }
   }
@@ -326,20 +329,21 @@ async function processChunk(
   const seen = new Map<string, string>();
   for (const p of live) {
     const entry = p.entry!;
+    const emailKey = identityKey("email", entry.email);
     p.existingId =
-      (p.probeId ? byId.get(p.probeId) : undefined) ??
-      byId.get(p.mapped!.user.user_id!) ??
-      byEmail.get(entry.email) ??
+      (p.probeId ? byId.get(identityKey("user_id", p.probeId)) : undefined) ??
+      byId.get(identityKey("user_id", p.mapped!.user.user_id!)) ??
+      byEmail.get(emailKey) ??
       (entry.username !== undefined
-        ? byUsername.get(entry.username)
+        ? byUsername.get(identityKey("username", entry.username))
         : undefined) ??
       (entry.phone_number !== undefined
-        ? byPhone.get(entry.phone_number)
+        ? byPhone.get(identityKey("phone_number", entry.phone_number))
         : undefined) ??
-      seen.get(entry.email) ??
+      seen.get(emailKey) ??
       null;
     if (p.existingId === null) {
-      seen.set(entry.email, p.mapped!.user.user_id!);
+      seen.set(emailKey, p.mapped!.user.user_id!);
     }
   }
 

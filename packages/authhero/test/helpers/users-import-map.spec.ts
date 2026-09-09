@@ -4,6 +4,7 @@ import {
   buildUserId,
   deriveImportUserId,
   entryIdentityKeys,
+  identityKey,
   IMPORT_ERROR_CODES,
   mapEntry,
   mapPassword,
@@ -193,5 +194,38 @@ describe("entryIdentityKeys", () => {
     expect(keys).toContain("user_id:u1");
     expect(keys).toContain("username:bob");
     expect(keys).toContain("phone:+15551234567");
+  });
+});
+
+describe("identityKey", () => {
+  it("compares email and username case-insensitively", () => {
+    expect(identityKey("email", "Foo@Example.com")).toBe(
+      identityKey("email", "foo@example.com"),
+    );
+    expect(identityKey("username", "Alice")).toBe(
+      identityKey("username", "alice"),
+    );
+  });
+
+  it("compares user_id and phone_number exactly", () => {
+    // Lowercasing an id would collapse two genuinely distinct users, and phone
+    // numbers have no case to normalize.
+    expect(identityKey("user_id", "auth0|AbC")).not.toBe(
+      identityKey("user_id", "auth0|abc"),
+    );
+    expect(identityKey("phone_number", "+4712345678")).toBe("+4712345678");
+  });
+
+  it("agrees with the keys a file is de-duplicated on", () => {
+    // The batched import probe and the accept-time duplicate check have to
+    // consider the same things the same identity, or a row rejected as a
+    // duplicate in one place would be inserted in the other.
+    const upper = entryIdentityKeys({
+      email: "Foo@Example.com",
+    } as Parameters<typeof entryIdentityKeys>[0]);
+    const lower = entryIdentityKeys({
+      email: "foo@example.com",
+    } as Parameters<typeof entryIdentityKeys>[0]);
+    expect(upper).toEqual(lower);
   });
 });

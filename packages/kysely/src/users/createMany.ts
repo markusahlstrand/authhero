@@ -39,9 +39,18 @@ export function createMany(db: Kysely<Database>) {
   return async (
     tenantId: string,
     users: UserInsert[],
-    _options?: WriteOptions,
+    options?: WriteOptions,
   ): Promise<User[]> => {
     if (users.length === 0) return [];
+
+    // This function never writes the outbox, so accepting events here would
+    // report success while silently dropping the caller's audit trail.
+    if (options?.outboxEvents?.length) {
+      throw new HTTPException(400, {
+        message:
+          "createMany does not persist outbox events; use create for those users",
+      });
+    }
 
     const rejected = users.find(usesUnbatchableFields);
     if (rejected) {
@@ -126,18 +135,20 @@ export function createMany(db: Kysely<Database>) {
       } else {
         await db.transaction().execute(execute);
       }
-    } catch (err: any) {
+    } catch (err) {
+      const code = (err as { code?: unknown } | null)?.code;
+      const message = err instanceof Error ? err.message : String(err);
       if (
-        err.code === "SQLITE_CONSTRAINT_UNIQUE" ||
-        err.code === "ER_DUP_ENTRY" ||
-        err.message?.includes("AlreadyExists")
+        code === "SQLITE_CONSTRAINT_UNIQUE" ||
+        code === "ER_DUP_ENTRY" ||
+        message.includes("AlreadyExists")
       ) {
         // Deliberately the same 409 `create` raises. The batch caller cannot
         // tell which row collided, so it is expected to retry row-by-row and
         // let `create` attribute the conflict.
         throw new HTTPException(409, { message: "User already exists" });
       }
-      throw new HTTPException(500, { message: `${err.code}, ${err.message}` });
+      throw new HTTPException(500, { message: `${String(code)}, ${message}` });
     }
 
     return prepared.map(({ sqlUser }) => ({
