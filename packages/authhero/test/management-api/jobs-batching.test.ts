@@ -218,15 +218,24 @@ describe("users import — batched writes", () => {
       email_verified: true,
     }));
 
-    const { env } = await postImport(users);
+    const server = await getTestServer();
+    const env = server.env;
 
     // Force the batch path to fail so the row-at-a-time fallback runs. Every
     // user must still land, and each row must still get its own outcome.
+    //
+    // Installed BEFORE the request: the accept route kicks the first chunk off
+    // via `waitUntil`, which outside Workers is flushed before the response
+    // returns, so anything these five rows do has already happened by the time
+    // `postImportWith` resolves. Overriding afterwards would leave the test
+    // passing with the fallback never exercised.
     const original = env.data.users.createMany;
     env.data.users.createMany = async () => {
       throw new Error("simulated batch failure");
     };
     try {
+      const response = await postImportWith(server, users);
+      expect(response.status).toBe(202);
       await drain(env);
     } finally {
       env.data.users.createMany = original;
@@ -243,6 +252,94 @@ describe("users import — batched writes", () => {
     }
   });
 
+  it("re-resolves identity per row when upserting", async () => {
+    // An upsert chunk cannot share one identity snapshot. Here row 1 renames
+    // the existing user's username, which frees that username for row 2: the
+    // sequential loop created a second user, while a chunk-wide snapshot still
+    // points row 2 at the user row 1 just renamed and updates it twice.
+    const server = await getTestServer();
+    const env = server.env;
+
+    await postImportWith(server, [
+      { email: "shift-a@example.com", username: "shared-name" },
+    ]);
+    await drain(env);
+
+    const second = await postImportWith(
+      server,
+      [
+        { email: "shift-a@example.com", username: "renamed" },
+        { email: "shift-b@example.com", username: "shared-name" },
+      ],
+      { upsert: "true" },
+    );
+    expect(second.status).toBe(202);
+    await drain(env);
+
+    // Row 2 is its own user, not a second write to row 1's.
+    const b = await env.data.users.list("tenantId", {
+      q: 'email:"shift-b@example.com"',
+      page: 0,
+      per_page: 10,
+      include_totals: false,
+    });
+    expect(b.users).toHaveLength(1);
+
+    const a = await env.data.users.list("tenantId", {
+      q: 'email:"shift-a@example.com"',
+      page: 0,
+      per_page: 10,
+      include_totals: false,
+    });
+    expect(a.users).toHaveLength(1);
+    expect(a.users[0]!.username).toBe("renamed");
+    expect(a.users[0]!.user_id).not.toBe(b.users[0]!.user_id);
+  });
+
+  it("does not let a crafted value widen an existence probe", async () => {
+    // Probe values are interpolated into a Lucene query. Escaping only quotes
+    // lets a value ending in a backslash close its own clause and append an
+    // OR, so the probe matches an unrelated user — and on an upsert that
+    // user's row is then overwritten with the imported row's values.
+    const server = await getTestServer();
+    const env = server.env;
+
+    await postImportWith(server, [{ email: "victim@example.com" }]);
+    await drain(env);
+    const before = await env.data.users.list("tenantId", {
+      q: 'email:"victim@example.com"',
+      page: 0,
+      per_page: 10,
+      include_totals: false,
+    });
+    expect(before.users).toHaveLength(1);
+
+    const crafted =
+      'craft\\" OR email:victim@example.com OR username:"tail';
+    const second = await postImportWith(
+      server,
+      [{ email: "attacker@example.com", username: crafted }],
+      { upsert: "true" },
+    );
+    expect(second.status).toBe(202);
+    await drain(env);
+
+    // The victim is untouched and the crafted row became its own user.
+    const victim = await env.data.users.get(
+      "tenantId",
+      before.users[0]!.user_id,
+    );
+    expect(victim?.email).toBe("victim@example.com");
+    const attacker = await env.data.users.list("tenantId", {
+      q: 'email:"attacker@example.com"',
+      page: 0,
+      per_page: 10,
+      include_totals: false,
+    });
+    expect(attacker.users).toHaveLength(1);
+    expect(attacker.users[0]!.user_id).not.toBe(before.users[0]!.user_id);
+  });
+
   it("costs a bounded number of adapter calls regardless of chunk size", async () => {
     // The regression this guards is the whole reason for the change: writing
     // rows one at a time cost ~4 queries per row, which is pure latency on a
@@ -253,13 +350,25 @@ describe("users import — batched writes", () => {
       email_verified: true,
     }));
 
-    const { env } = await postImport(users);
+    const server = await getTestServer();
+    const env = server.env;
 
     let userCreates = 0;
     let userLists = 0;
-    const realCreate = env.data.users.create;
+    let batchCalls = 0;
+    // `rawCreate` is what the per-row path ultimately reaches: the management
+    // API wraps `create` in the registration hooks, which commit through
+    // `rawCreate`, so counting only `create` would miss a fallback entirely.
+    const realCreate = env.data.users.rawCreate;
     const realList = env.data.users.list;
-    env.data.users.create = async (...args: Parameters<typeof realCreate>) => {
+    const realCreateMany = env.data.users.createMany!;
+    // Counters must be in place before the POST: the inline kick processes all
+    // 20 rows (one chunk is 50) inside the request, so instrumenting after it
+    // returns would measure an import that is already over — and the test
+    // would pass just as happily against the row-at-a-time implementation.
+    env.data.users.rawCreate = async (
+      ...args: Parameters<typeof realCreate>
+    ) => {
       userCreates += 1;
       return realCreate(...args);
     };
@@ -267,15 +376,37 @@ describe("users import — batched writes", () => {
       userLists += 1;
       return realList(...args);
     };
+    env.data.users.createMany = async (
+      ...args: Parameters<typeof realCreateMany>
+    ) => {
+      batchCalls += 1;
+      return realCreateMany(...args);
+    };
     try {
+      const response = await postImportWith(server, users);
+      expect(response.status).toBe(202);
       await drain(env);
     } finally {
-      env.data.users.create = realCreate;
+      env.data.users.rawCreate = realCreate;
       env.data.users.list = realList;
+      env.data.users.createMany = realCreateMany;
     }
+
+    // All 20 users landed — a cheap import that imported nothing would also
+    // score well on the counters.
+    const imported = await env.data.users.list("tenantId", {
+      q: 'email:"counted-0@example.com" OR email:"counted-19@example.com"',
+      page: 0,
+      per_page: 10,
+      include_totals: false,
+    });
+    expect(imported.users).toHaveLength(2);
 
     // Batched: no per-row create at all, and probes counted per field rather
     // than per row. Before this change 20 rows cost 20 creates and >=20 lists.
+    // `userCreates === 0` is also what catches a batch that throws and silently
+    // falls back to the row-at-a-time path.
+    expect(batchCalls).toBe(1);
     expect(userCreates).toBe(0);
     expect(userLists).toBeLessThan(10);
   });

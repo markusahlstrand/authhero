@@ -4,6 +4,8 @@ import type {
   TenantOperationRow,
   TenantOperationRowOutcome,
 } from "@authhero/adapter-interfaces";
+import { escapeLuceneValue } from "@authhero/adapter-interfaces";
+import { withNormalizedEmail } from "../../utils/email";
 import {
   userImportEntrySchema,
   type UserImportEntry,
@@ -125,9 +127,12 @@ async function findByField(
   field: string,
   value: string,
 ): Promise<string | null> {
-  const escaped = value.replace(/"/g, '\\"');
   const result = await data.users.list(tenantId, {
-    q: `${field}:"${escaped}"`,
+    // escapeLuceneValue escapes backslashes as well as quotes, and returns the
+    // value already quoted. Escaping only quotes is not enough: a value ending
+    // in a backslash leaves an even number of them, the closing quote is taken
+    // as literal, and the rest of the value becomes query syntax.
+    q: `${field}:${escapeLuceneValue(value)}`,
     page: 0,
     per_page: 1,
     include_totals: false,
@@ -193,6 +198,26 @@ async function findExistingUser(
  */
 const PROBE_BATCH = 100;
 
+/**
+ * Rows read per probe page.
+ *
+ * A probe cannot ask for one row per requested value: none of these fields is
+ * unique on its own — email and username are unique only together with the
+ * provider, and phone_number is not unique at all — so several rows can come
+ * back for one value and fill a page sized to the value count, hiding a match
+ * for a later value and letting an existing user be classified as new. Pages
+ * are therefore read until every value has an answer or the matches run out.
+ */
+const PROBE_PAGE_SIZE = 200;
+
+/**
+ * Bound on pages read per probe slice, so a value matching an unbounded number
+ * of rows (a shared phone number) cannot turn one chunk into a table scan. The
+ * unresolved values simply fall back to being treated as new, which the unique
+ * constraint and the per-row retry still catch.
+ */
+const PROBE_MAX_PAGES = 10;
+
 /** Look up many values of one field in as few queries as the cap allows. */
 async function probeField(
   data: DataAdapters,
@@ -205,21 +230,27 @@ async function probeField(
 
   for (let i = 0; i < unique.length; i += PROBE_BATCH) {
     const slice = unique.slice(i, i + PROBE_BATCH);
-    const q = slice
-      .map((v) => `${field}:"${v.replace(/"/g, '\\"')}"`)
-      .join(" OR ");
-    const result = await data.users.list(tenantId, {
-      q,
-      page: 0,
-      per_page: slice.length,
-      include_totals: false,
-    });
-    for (const user of result.users) {
-      const stored = (user as unknown as Record<string, unknown>)[field];
-      if (typeof stored === "string") {
-        const key = identityKey(field, stored);
-        if (!found.has(key)) found.set(key, user.user_id);
+    const wanted = new Set(slice.map((v) => identityKey(field, v)));
+    const q = slice.map((v) => `${field}:${escapeLuceneValue(v)}`).join(" OR ");
+
+    for (let page = 0; page < PROBE_MAX_PAGES; page += 1) {
+      const result = await data.users.list(tenantId, {
+        q,
+        page,
+        per_page: PROBE_PAGE_SIZE,
+        include_totals: false,
+      });
+      for (const user of result.users) {
+        const stored = (user as unknown as Record<string, unknown>)[field];
+        if (typeof stored === "string") {
+          const key = identityKey(field, stored);
+          if (!found.has(key)) found.set(key, user.user_id);
+          wanted.delete(key);
+        }
       }
+      // Stop as soon as every value in the slice has an answer, or the page
+      // came back short — either way there is nothing more to learn.
+      if (wanted.size === 0 || result.users.length < PROBE_PAGE_SIZE) break;
     }
   }
 
@@ -296,6 +327,46 @@ async function processChunk(
 
   const live = prepared.filter((p) => !p.outcome && p.entry && p.mapped);
 
+  const outcomes = new Map<number, TenantOperationRowOutcome>();
+  for (const p of prepared) {
+    if (p.outcome) outcomes.set(p.row.seq, p.outcome);
+  }
+  const collect = () =>
+    rows.map(
+      (row) =>
+        outcomes.get(row.seq) ?? {
+          seq: row.seq,
+          status: "failed" as const,
+          error_code: IMPORT_ERROR_CODES.INTERNAL_ERROR,
+          error_message: "Row produced no outcome",
+        },
+    );
+
+  // 1b. An upsert job resolves identity per row and never batches. Its writes
+  //     change rows that a later row in the same chunk may itself match, so a
+  //     snapshot taken once for the whole chunk is not equivalent to the
+  //     sequential loop: a row that renames an existing user's username would
+  //     leave a later row still pointing at that user, updating it twice
+  //     instead of creating its own. Re-probing per row costs what the old
+  //     loop cost, and a bulk migration is overwhelmingly `upsert: false`.
+  if (input.upsert) {
+    for (const p of live) {
+      outcomes.set(
+        p.row.seq,
+        await writeRow(
+          data,
+          tenantId,
+          p.row,
+          input,
+          p.entry!,
+          p.mapped!,
+          await findExistingUser(data, tenantId, p.entry!, input.provider),
+        ),
+      );
+    }
+    return collect();
+  }
+
   // 2. One probe per field, matching findExistingUser's precedence. The
   //    derived id is probed too: an existing user carrying it can only be this
   //    row's own earlier write, which writeRow treats as a resume rather than
@@ -329,21 +400,33 @@ async function processChunk(
   const seen = new Map<string, string>();
   for (const p of live) {
     const entry = p.entry!;
-    const emailKey = identityKey("email", entry.email);
+    // Namespaced so a username can never collide with an email of the same
+    // text, and covering every field the probes cover: a chunk carrying two
+    // rows that share a username (or a phone number) is the same duplicate
+    // the sequential loop caught by re-probing after each write.
+    const localKeys = [
+      `email:${identityKey("email", entry.email)}`,
+      ...(entry.username !== undefined
+        ? [`username:${identityKey("username", entry.username)}`]
+        : []),
+      ...(entry.phone_number !== undefined
+        ? [`phone_number:${identityKey("phone_number", entry.phone_number)}`]
+        : []),
+    ];
     p.existingId =
       (p.probeId ? byId.get(identityKey("user_id", p.probeId)) : undefined) ??
       byId.get(identityKey("user_id", p.mapped!.user.user_id!)) ??
-      byEmail.get(emailKey) ??
+      byEmail.get(identityKey("email", entry.email)) ??
       (entry.username !== undefined
         ? byUsername.get(identityKey("username", entry.username))
         : undefined) ??
       (entry.phone_number !== undefined
         ? byPhone.get(identityKey("phone_number", entry.phone_number))
         : undefined) ??
-      seen.get(emailKey) ??
+      localKeys.map((k) => seen.get(k)).find((v) => v !== undefined) ??
       null;
     if (p.existingId === null) {
-      seen.set(emailKey, p.mapped!.user.user_id!);
+      for (const key of localKeys) seen.set(key, p.mapped!.user.user_id!);
     }
   }
 
@@ -352,25 +435,26 @@ async function processChunk(
   const fresh = live.filter((p) => p.existingId === null);
   const rest = live.filter((p) => p.existingId !== null);
 
-  const outcomes = new Map<number, TenantOperationRowOutcome>();
-  for (const p of prepared) {
-    if (p.outcome) outcomes.set(p.row.seq, p.outcome);
-  }
-
   if (fresh.length) {
-    const inserts = fresh.map((p) => ({
-      ...p.mapped!.user,
-      // MappedPassword is {password, algorithm}; UserInsert wants
-      // {hash, algorithm} for the atomic user+password write.
-      ...(p.mapped!.password
-        ? {
-            password: {
-              hash: p.mapped!.password.password,
-              algorithm: p.mapped!.password.algorithm,
-            },
-          }
-        : {}),
-    }));
+    const inserts = fresh.map((p) =>
+      // `addDataHooks` normalizes email on the way into `users.create`, but it
+      // does not decorate `createMany` — so the batch has to do it itself or
+      // imported rows would be stored with their original casing while every
+      // lookup normalizes, and the probe above would stop finding them.
+      withNormalizedEmail({
+        ...p.mapped!.user,
+        // MappedPassword is {password, algorithm}; UserInsert wants
+        // {hash, algorithm} for the atomic user+password write.
+        ...(p.mapped!.password
+          ? {
+              password: {
+                hash: p.mapped!.password.password,
+                algorithm: p.mapped!.password.algorithm,
+              },
+            }
+          : {}),
+      }),
+    );
 
     let batched = false;
     if (data.users.createMany) {
@@ -428,15 +512,7 @@ async function processChunk(
     );
   }
 
-  return rows.map(
-    (row) =>
-      outcomes.get(row.seq) ?? {
-        seq: row.seq,
-        status: "failed" as const,
-        error_code: IMPORT_ERROR_CODES.INTERNAL_ERROR,
-        error_message: "Row produced no outcome",
-      },
-  );
+  return collect();
 }
 
 /**

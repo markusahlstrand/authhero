@@ -103,7 +103,7 @@ export function createMany(db: Kysely<Database>) {
             }
           : undefined;
 
-      return { sqlUser, passwordRecord };
+      return { sqlUser, passwordRecord, original: user };
     });
 
     const userRows = prepared.map((p) => p.sqlUser);
@@ -151,7 +151,7 @@ export function createMany(db: Kysely<Database>) {
       throw new HTTPException(500, { message: `${String(code)}, ${message}` });
     }
 
-    return prepared.map(({ sqlUser }) => ({
+    return prepared.map(({ sqlUser, original }) => ({
       ...sqlUser,
       login_count: 0,
       email_verified: !!sqlUser.email_verified,
@@ -159,9 +159,14 @@ export function createMany(db: Kysely<Database>) {
       blocked: !!sqlUser.blocked,
       phone_verified:
         sqlUser.phone_verified === null ? undefined : !!sqlUser.phone_verified,
-      app_metadata: JSON.parse(sqlUser.app_metadata),
-      user_metadata: JSON.parse(sqlUser.user_metadata),
-      address: sqlUser.address ? JSON.parse(sqlUser.address) : undefined,
+      // Return the values the caller passed in, exactly as `create` does,
+      // rather than re-parsing the serialized column. The metadata fields are
+      // optional, so `JSON.stringify` yields `undefined` for an ordinary
+      // import row and parsing it back would throw *after* the transaction
+      // has committed — reporting a failure for writes that actually landed.
+      app_metadata: original.app_metadata,
+      user_metadata: original.user_metadata,
+      address: original.address,
     })) as unknown as User[];
   };
 }
