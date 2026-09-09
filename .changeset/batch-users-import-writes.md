@@ -4,7 +4,7 @@
 "authhero": minor
 ---
 
-Batch the bulk user import's row writes, so a large migration is bounded by database throughput rather than round-trip latency.
+Batch the bulk user import's row writes, so a large migration is bounded by database throughput rather than round-trip latency. **Two behaviour changes come with it — see the end of this note.**
 
 `advanceUsersImport` processed staged rows strictly one at a time: up to four existence probes, then a user insert, then a password insert, each awaited in turn. Measured against a hosted PlanetScale database that is roughly 400 ms per row — almost entirely waiting — which puts a million-user import somewhere around 55 hours, and gets worse the further the database is from the worker.
 
@@ -20,4 +20,16 @@ Three properties the sequential loop provided for free are now explicit, and cov
 - **Per-row error attribution.** Validation and conflict outcomes are decided before any write, so they stay attributed to their own row. If a batch insert fails, the whole chunk is retried row by row so each failure is recorded against the row that caused it.
 - **Resume after an interrupted driver.** Rows whose derived id already exists are still recognised as their own earlier write rather than reported as a spurious conflict.
 
-Upserts continue to use the per-row path: updating existing users writes different values per row, which does not batch, and a bulk migration is overwhelmingly `upsert: false`.
+Upserts continue to use the per-row path, and skip chunk-level probing entirely: an upsert changes rows a later row in the same chunk may itself match, so a snapshot taken once per chunk is not equivalent to resolving identity per row. An `upsert: true` import therefore runs at the old cost — the speedup applies to `upsert: false`, which is the shape of a migration.
+
+## Scope
+
+The speedup requires an adapter that implements `createMany`. Only the kysely adapter does today; drizzle and aws fall back to looping the per-row write and are unchanged.
+
+## Behaviour changes
+
+**A bulk import no longer runs the user registration hooks.** The fresh-user write now goes through `users.rawCreate` on both the batched and per-row paths, so pre-registration denial, hook metadata mutation, built-in email linking and the post-registration outbox event no longer fire for imported users. This matches Auth0, where a users-import job does not trigger Actions.
+
+It is also what keeps the two paths honest: `createMany` is not decorated by `addDataHooks`, so leaving the fallback on the decorated `create` would have made policy enforcement depend on whether the installed adapter implements `createMany`. If you rely on registration hooks firing during an import, this release changes that.
+
+**An imported password is now written in the same call as its user.** Previously the import wrote the user and then made a second `passwords.create` call, so an interrupted driver could leave a user who could not log in until a later sweep repaired them. The password now rides on the user insert and commits in the same transaction on both paths.

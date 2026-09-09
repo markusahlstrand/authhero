@@ -257,6 +257,35 @@ async function probeField(
   return found;
 }
 
+/**
+ * The insert a fresh row writes, identical on the batched and per-row paths.
+ *
+ * `addDataHooks` normalizes email into `users.create` but decorates neither
+ * `rawCreate` nor `createMany`, so the import does it here — otherwise rows
+ * would be stored with the file's casing while every lookup normalizes, and
+ * the probe that is supposed to find them would not.
+ *
+ * The password rides on the user rather than being written afterwards: both
+ * `rawCreate` and `createMany` commit it in the same transaction as the user
+ * row, so an interrupted driver can no longer leave an imported user who
+ * cannot log in.
+ */
+function freshInsert(mapped: MappedEntry) {
+  return withNormalizedEmail({
+    ...mapped.user,
+    // MappedPassword is {password, algorithm}; UserInsert wants
+    // {hash, algorithm} for the atomic user+password write.
+    ...(mapped.password
+      ? {
+          password: {
+            hash: mapped.password.password,
+            algorithm: mapped.password.algorithm,
+          },
+        }
+      : {}),
+  });
+}
+
 interface PreparedRow {
   row: TenantOperationRow;
   /** Set when the row failed before any lookup — validation or mapping. */
@@ -436,25 +465,7 @@ async function processChunk(
   const rest = live.filter((p) => p.existingId !== null);
 
   if (fresh.length) {
-    const inserts = fresh.map((p) =>
-      // `addDataHooks` normalizes email on the way into `users.create`, but it
-      // does not decorate `createMany` — so the batch has to do it itself or
-      // imported rows would be stored with their original casing while every
-      // lookup normalizes, and the probe above would stop finding them.
-      withNormalizedEmail({
-        ...p.mapped!.user,
-        // MappedPassword is {password, algorithm}; UserInsert wants
-        // {hash, algorithm} for the atomic user+password write.
-        ...(p.mapped!.password
-          ? {
-              password: {
-                hash: p.mapped!.password.password,
-                algorithm: p.mapped!.password.algorithm,
-              },
-            }
-          : {}),
-      }),
-    );
+    const inserts = fresh.map((p) => freshInsert(p.mapped!));
 
     let batched = false;
     if (data.users.createMany) {
@@ -584,14 +595,15 @@ async function writeRow(
       return { seq: row.seq, status: "updated", entity_id: existingId };
     }
 
-    const created = await data.users.create(tenantId, mapped.value.user);
-    if (mapped.value.password) {
-      await data.passwords.create(tenantId, {
-        user_id: created.user_id,
-        is_current: true,
-        ...mapped.value.password,
-      });
-    }
+    // `rawCreate`, not `create`: a bulk import does not run the registration
+    // hooks, matching Auth0, where a users-import job does not trigger Actions.
+    // This path is also the fallback for a failed batch, and `createMany` is
+    // undecorated — routing one through the hook layer and the other around it
+    // would make policy enforcement depend on which adapter is installed.
+    const created = await data.users.rawCreate(
+      tenantId,
+      freshInsert(mapped.value),
+    );
     return { seq: row.seq, status: "inserted", entity_id: created.user_id };
   } catch (error) {
     return errorOutcome(row.seq, {

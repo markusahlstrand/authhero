@@ -171,7 +171,19 @@ Three cases deliberately keep the per-row path:
 
 De-duplication within a chunk is handled explicitly: two rows carrying the same email produce one user, not two.
 
-Adapters may implement an optional `createMany` on `UserDataAdapter` to take part in this; the kysely adapter does. It is optional, and AuthHero falls back to looping `create` when it is absent, so an adapter without it keeps working — just at the older cost per row. `createMany` writes the user and its password only, so users carrying identities, activity counters or outbox events continue to go through `create`.
+Adapters may implement an optional `createMany` on `UserDataAdapter` to take part in this; the kysely adapter does. It is optional, and AuthHero falls back to looping the per-row write when it is absent, so an adapter without it keeps working — just at the older cost per row. `createMany` writes the user and its password only, so users carrying identities, activity counters or outbox events continue to go through `create`.
+
+### Imported users do not run registration hooks
+
+A fresh user is written with `users.rawCreate`, so pre-registration denial, hook metadata mutation, built-in email linking and the post-registration outbox event do not fire for imported users. This matches Auth0, where a users-import job does not trigger Actions — an import is a data-loading path, not a sign-up.
+
+Both the batched write and the per-row fallback use `rawCreate`, deliberately. `createMany` is not wrapped by the hook layer, so routing one path through the hooks and the other around them would make the policy applied to an import file depend on which adapter happened to be installed.
+
+If you need hooks to run for imported users, do it after the job completes — read the operation's rows and drive them through your own flow — rather than relying on the import to fire them.
+
+### Passwords commit with their user
+
+An imported password is written in the same call as the user, and commits in the same transaction. An interrupted driver therefore cannot leave an imported user who exists but cannot log in.
 
 ## Required scopes
 

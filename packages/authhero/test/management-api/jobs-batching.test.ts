@@ -314,8 +314,7 @@ describe("users import — batched writes", () => {
     });
     expect(before.users).toHaveLength(1);
 
-    const crafted =
-      'craft\\" OR email:victim@example.com OR username:"tail';
+    const crafted = 'craft\\" OR email:victim@example.com OR username:"tail';
     const second = await postImportWith(
       server,
       [{ email: "attacker@example.com", username: crafted }],
