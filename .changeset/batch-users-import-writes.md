@@ -16,11 +16,16 @@ Adds an optional `createMany` to `UserDataAdapter`, implemented by the kysely ad
 
 Three properties the sequential loop provided for free are now explicit, and covered by tests:
 
-- **In-chunk de-duplication.** Two rows sharing an email used to be impossible to double-insert because the second row's probe saw the first row's write. A batch probes everything before writing anything, so the chunk is de-duplicated in memory.
+- **In-chunk de-duplication.** Two rows sharing an email used to be impossible to double-insert because the second row's probe saw the first row's write. A batch probes everything before writing anything, so the chunk is de-duplicated in memory — on every identifier the probes cover, so a repeated username or phone number is caught too.
 - **Per-row error attribution.** Validation and conflict outcomes are decided before any write, so they stay attributed to their own row. If a batch insert fails, the whole chunk is retried row by row so each failure is recorded against the row that caused it.
 - **Resume after an interrupted driver.** Rows whose derived id already exists are still recognised as their own earlier write rather than reported as a spurious conflict.
 
 Upserts continue to use the per-row path, and skip chunk-level probing entirely: an upsert changes rows a later row in the same chunk may itself match, so a snapshot taken once per chunk is not equivalent to resolving identity per row. An `upsert: true` import therefore runs at the old cost — the speedup applies to `upsert: false`, which is the shape of a migration.
+
+Also fixes two problems in the existence probe itself, one of them pre-existing:
+
+- **Probe values are escaped properly.** They were interpolated with only their quotes escaped, so a value ending in a backslash could close its own clause and append an `OR` — widening the probe to match an unrelated user. On an `upsert` job that user's row was then overwritten with the imported row's values. Values now go through `escapeLuceneValue`, which escapes backslashes as well.
+- **A probe reads as many pages as it needs.** None of the probed fields is unique on its own (email and username are unique only per provider; phone numbers are not unique at all), so several rows can come back for one value and fill a page sized to the number of values, hiding a match for a later value and letting an existing user be treated as new.
 
 ## Scope
 

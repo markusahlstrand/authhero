@@ -165,11 +165,11 @@ This matters more than it might sound. The work is dominated by round-trip laten
 
 Three cases deliberately keep the per-row path:
 
-- **Upserts.** Updating an existing user writes different values per row, which does not batch. A bulk migration is overwhelmingly `upsert: false`.
+- **Upserts.** A job submitted with `upsert=true` never batches at all: it resolves each row's identity immediately before writing it. An upsert changes rows that a later row in the same chunk may itself match — renaming a username frees that username for the next row — so a chunk-wide identity snapshot would not be equivalent to writing the rows in order. A bulk migration is overwhelmingly `upsert: false`.
 - **A failed batch.** Because a batch insert cannot say which row collided, any failure is retried row by row so each outcome is still attributed to the row that caused it.
 - **Resuming an interrupted job.** Rows whose derived id already exists are recognised as their own earlier write rather than reported as a conflict.
 
-De-duplication within a chunk is handled explicitly: two rows carrying the same email produce one user, not two.
+De-duplication within a chunk is handled explicitly, on every identifier the probes cover: two rows carrying the same email — or the same username, or the same phone number — produce one user, not two.
 
 Adapters may implement an optional `createMany` on `UserDataAdapter` to take part in this; the kysely adapter does. It is optional, and AuthHero falls back to looping the per-row write when it is absent, so an adapter without it keeps working — just at the older cost per row. `createMany` writes the user and its password only, so users carrying identities, activity counters or outbox events continue to go through `create`.
 
