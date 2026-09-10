@@ -38,15 +38,20 @@
 import { Liquid, type TagToken, type Context } from "liquidjs";
 import type { Branding, Theme } from "@authhero/adapter-interfaces";
 import {
-  LogoChip,
-  SettingsChip,
-  DarkModeToggle,
-  LanguagePicker,
-  PoweredByChip,
-  LegalChip,
-  type DarkModePreference,
-  type ChipStyle,
-} from "./u2-widget-page";
+  renderLogoChip,
+  renderSettingsChip,
+  renderDarkModeToggle,
+  renderLanguagePicker,
+  renderPoweredByChip,
+  renderLegalChip,
+  renderMobileFooter,
+} from "@authhero/widget/page-chrome";
+import type {
+  DarkModePreference,
+  ChipStyle,
+  LanguageOption,
+} from "@authhero/widget/page-chrome";
+import { buildLanguageOptions, resolveTermsLabel } from "./u2-widget-page";
 
 /**
  * Exact default-form widget token. Kept for the default template body and as
@@ -202,56 +207,55 @@ function buildSlotFragments(
     // Empty on the body-fragment path, where the shell owns the <head>.
     "auth0:head": () => opts.headHtml ?? "",
     "authhero:logo": (style) =>
-      (
-        <LogoChip
-          logoUrl={opts.logoUrl}
-          clientName={opts.clientName}
-          variant={style}
-        />
-      ).toString(),
+      renderLogoChip({
+        logoUrl: opts.logoUrl,
+        clientName: opts.clientName,
+        variant: style,
+      }),
     "authhero:settings": (style) =>
-      (
-        <SettingsChip
-          darkMode={opts.darkMode}
-          language={opts.language}
-          availableLanguages={opts.availableLanguages}
-          variant={style}
-        />
-      ).toString(),
+      renderSettingsChip({
+        darkMode: opts.darkMode,
+        language: opts.language,
+        languages: languageOptions(opts.availableLanguages),
+        variant: style,
+      }),
     "authhero:dark-mode-toggle": () =>
-      (<DarkModeToggle darkMode={opts.darkMode} />).toString(),
-    "authhero:language-picker": () =>
-      opts.availableLanguages
-        ? (
-            <LanguagePicker
-              language={opts.language}
-              availableLanguages={opts.availableLanguages}
-            />
-          ).toString()
-        : "",
+      renderDarkModeToggle({ darkMode: opts.darkMode }),
+    "authhero:language-picker": () => {
+      const languages = languageOptions(opts.availableLanguages);
+      return languages
+        ? renderLanguagePicker({ language: opts.language, languages })
+        : "";
+    },
     "authhero:powered-by": (style) =>
       opts.poweredBy
-        ? (
-            <PoweredByChip
-              url={opts.poweredBy.url}
-              href={opts.poweredBy.href}
-              alt={opts.poweredBy.alt}
-              height={opts.poweredBy.height}
-              variant={style}
-            />
-          ).toString()
+        ? renderPoweredByChip({ ...opts.poweredBy, variant: style })
         : "",
     "authhero:legal": (style) =>
-      opts.termsAndConditionsUrl
-        ? (
-            <LegalChip
-              termsAndConditionsUrl={opts.termsAndConditionsUrl}
-              language={opts.language}
-              variant={style}
-            />
-          ).toString()
-        : "",
+      renderLegalChip({
+        termsAndConditionsUrl: opts.termsAndConditionsUrl,
+        termsLabel: resolveTermsLabel(opts.language),
+        variant: style,
+      }),
+    // Phone footer bar. Templates that want the mobile chrome can place it
+    // explicitly; the default shell emits it alongside the corner chips.
+    "authhero:footer": () =>
+      renderMobileFooter({
+        darkMode: opts.darkMode,
+        language: opts.language,
+        languages: languageOptions(opts.availableLanguages),
+        termsAndConditionsUrl: opts.termsAndConditionsUrl,
+        termsLabel: resolveTermsLabel(opts.language),
+        poweredBy: opts.poweredBy,
+      }),
   };
+}
+
+/** Localized picker options, or undefined when the tenant set no languages. */
+function languageOptions(
+  availableLanguages?: string[],
+): LanguageOption[] | undefined {
+  return buildLanguageOptions(availableLanguages);
 }
 
 /** Strips HTML comments so commented-out markup isn't mistaken for live tags. */

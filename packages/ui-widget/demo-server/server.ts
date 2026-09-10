@@ -17,6 +17,23 @@ import { cors } from "hono/cors";
 import { FORM_FIELD_TYPES } from "@authhero/adapter-interfaces";
 import type { UiScreen, FormComponent } from "../src/types/components";
 import { renderToString } from "../hydrate";
+/**
+ * The real page chrome — the same module the authhero login page renders.
+ * Importing it (rather than hand-copying the CSS, as this demo used to) is
+ * what makes the phone preview trustworthy: if the login page's mobile layout
+ * changes, this preview changes with it.
+ */
+import {
+  buildPageCss,
+  buildBodyLayout,
+  renderLogoChip,
+  renderSettingsChip,
+  renderPoweredByChip,
+  renderLegalChip,
+  renderMobileFooter,
+  type DarkModePreference,
+  type LanguageOption,
+} from "../src/page-chrome";
 
 // ============================================
 // Helpers
@@ -29,6 +46,22 @@ function escapeHtml(str: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+/**
+ * Serialize a value for interpolation into an inline `<script>` body.
+ *
+ * `JSON.stringify` alone is not enough: it escapes quotes and backslashes but
+ * leaves `<` intact, so a request-derived value containing `</script>` ends
+ * the element during HTML parsing and whatever follows runs as markup. The
+ * line terminators U+2028/U+2029 are valid JSON but break JavaScript strings.
+ */
+function jsonForScript(value: unknown): string {
+  return JSON.stringify(value ?? null)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
 }
 
 // ============================================
@@ -89,6 +122,14 @@ interface DynamicSettings {
 // ============================================
 // Demo Settings (defaults)
 // ============================================
+
+/**
+ * Stand-in trust mark for the demo's "Powered by" toggle. Inline so the
+ * preview needs no asset pipeline — a real tenant supplies a hosted URL.
+ */
+const poweredByLogoDataUri = Buffer.from(
+  `<svg xmlns="http://www.w3.org/2000/svg" width="132" height="14" viewBox="0 0 132 14"><text x="0" y="11" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#6b7280">Powered by AuthHero</text></svg>`,
+).toString("base64");
 
 const defaultSettings = {
   strategy: "code" as "code" | "password",
@@ -1471,6 +1512,129 @@ function resolveDemoLocale(c: {
   return candidate && BCP47.test(candidate) ? candidate : undefined;
 }
 
+/**
+ * Bare login page — the demo's preview target.
+ *
+ * The demo's device frame is a 375px box inside a desktop-width window, so
+ * CSS media queries never fire in it: the "mobile" toggle used to show the
+ * desktop rendering shrunk into a phone bezel. This page is loaded into a
+ * 375px-wide <iframe> instead, which IS its own viewport, so the real
+ * <=480px rules apply and the preview matches a phone.
+ *
+ * Crucially it renders from `@authhero/widget/page-chrome` — the same module
+ * the authhero login page uses for its CSS and chrome markup. An earlier
+ * version of this page hand-copied those rules and drifted from production
+ * twice in a day. Nothing here should reimplement page chrome; if something
+ * is missing, add it to the shared module so both sides get it.
+ */
+function renderMobilePreviewPage(options: {
+  screenId: string;
+  state: string;
+}): string {
+  const { screenId, state } = options;
+  // Boot values only. Everything themeable is re-applied over postMessage
+  // from the parent demo page as the settings panel changes.
+  const bodyLayout = buildBodyLayout({
+    themePageBackground: { background_color: defaultSettings.brandColor },
+    brandingPageBackground: undefined,
+    fontUrl: null,
+  });
+  const pageCss = buildPageCss({
+    primaryColor: defaultSettings.brandColor,
+    widgetBackground: "#ffffff",
+    hasBgImage: false,
+  });
+
+  return `<!DOCTYPE html>
+<html lang="en" data-bg="none" data-logo-position="widget">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AuthHero Widget — device preview</title>
+  <script type="module" src="/widget/authhero-widget/authhero-widget.esm.js"></script>
+  <style id="ah-page-css">${pageCss}</style>
+  <style>
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: ${bodyLayout.justifyContent};
+      background: ${bodyLayout.background};
+      font-family: ${bodyLayout.fontFamily};
+      padding: ${bodyLayout.padding};
+    }
+    .widget-container { width: clamp(320px, 100%, 400px); }
+  </style>
+</head>
+<body>
+  <div class="ah-bg-tint" aria-hidden="true"></div>
+  <div class="widget-container">
+    <authhero-widget id="widget" auto-submit="true" auto-navigate="true"></authhero-widget>
+  </div>
+  <div id="chrome" style="display:contents"></div>
+  <script>
+    const widget = document.getElementById('widget');
+    const chrome = document.getElementById('chrome');
+    const root = document.documentElement;
+
+    fetch('/u2/screen/' + ${jsonForScript(screenId)} + '?state=' + ${jsonForScript(state)})
+      .then((r) => r.json())
+      .then((data) => { widget.screen = data.screen || data; })
+      .catch(() => {});
+
+    // Live settings from the parent demo page.
+    //
+    // The chrome and page CSS are rendered SERVER-side by the shared
+    // page-chrome module and fetched from /u2/preview/chrome, so this page
+    // holds no copy of either. That round-trip is the whole point: whatever
+    // the real login page would emit for these settings is exactly what
+    // renders here.
+    window.addEventListener('message', async (e) => {
+      const msg = e.data;
+      if (!msg || msg.type !== 'ah-demo-branding') return;
+
+      widget.branding = msg.branding;
+      widget.theme = msg.theme;
+
+      let rendered;
+      try {
+        const res = await fetch('/u2/preview/chrome', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(msg.settings || {}),
+        });
+        rendered = await res.json();
+      } catch (err) {
+        return;
+      }
+
+      document.getElementById('ah-page-css').textContent = rendered.pageCss;
+      chrome.innerHTML = rendered.chromeHtml;
+
+      root.setAttribute('data-bg', rendered.dataBg);
+      root.setAttribute('data-logo-position', rendered.logoPosition);
+      root.classList.remove('ah-dark-mode', 'ah-light-mode');
+      const dm = rendered.darkMode;
+      if (dm === 'dark') { root.classList.add('ah-dark-mode'); root.setAttribute('data-mode', 'dark'); }
+      else if (dm === 'light') { root.classList.add('ah-light-mode'); root.setAttribute('data-mode', 'light'); }
+      else { root.removeAttribute('data-mode'); }
+
+      Object.assign(document.body.style, rendered.bodyStyle);
+
+      // Mirror the production page: the widget only goes full-bleed on a
+      // phone when there is no background image behind it.
+      if (rendered.dataBg === 'image') widget.setAttribute('floating', '');
+      else widget.removeAttribute('floating');
+    });
+
+    if (window.parent !== window) {
+      window.parent.postMessage({ type: 'ah-demo-preview-ready' }, '*');
+    }
+  </script>
+</body>
+</html>`;
+}
+
 async function renderWidgetPage(options: {
   screenId: string;
   state: string;
@@ -1821,6 +1985,13 @@ async function renderWidgetPage(options: {
       margin-top: 0.5rem;
     }
     
+    .setting-hint {
+      margin-top: 0.5rem;
+      font-size: 11px;
+      line-height: 1.5;
+      color: rgba(255,255,255,0.45);
+    }
+
     /* Device Preview Frame */
     .device-frame {
       background: #1a1a2e;
@@ -1836,17 +2007,45 @@ async function renderWidgetPage(options: {
       display: flex;
       flex-direction: column;
     }
+    /* The SCREEN is 375x667, not the frame — the 12px bezel sits outside it.
+       Sizing the frame instead would leave the screen 24px narrower than the
+       viewport the preview iframe declares, clipping the card's right edge. */
     .device-frame.mobile {
-      width: 375px;
-      height: 667px;
+      width: auto;
+      height: auto;
     }
     .device-frame.mobile .device-screen {
-      width: 100%;
-      height: 100%;
+      width: 375px;
+      height: 667px;
       justify-content: center;
     }
     .device-frame.mobile authhero-widget {
       max-width: none;
+    }
+    /* In mobile mode the iframe replaces the inline widget entirely: it is a
+       real 375px viewport, so the page's phone media queries fire in it. */
+    .mobile-frame {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: block;
+    }
+    .device-frame.mobile .device-screen > authhero-widget,
+    .device-frame.mobile .device-screen > *:not(.mobile-frame) {
+      display: none;
+    }
+    .device-frame:not(.mobile):not(.page) .mobile-frame {
+      display: none;
+    }
+    /* Page mode: a full-size iframe so the fixed-position corner chips
+       anchor to a real page viewport, exactly as they do in production. */
+    .device-frame.page,
+    .device-frame.page .device-screen {
+      width: 100%;
+      height: 100%;
+    }
+    .device-frame.page .device-screen > *:not(.mobile-frame) {
+      display: none;
     }
     .preview-area.mobile-preview {
       padding: 2rem;
@@ -1933,19 +2132,6 @@ async function renderWidgetPage(options: {
     }
 
     /* Page Footer Bar */
-    .page-footer-bar { position: absolute; bottom: 0; left: 0; right: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; padding: 8px 20px; background: rgba(255,255,255,0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid rgba(0,0,0,0.08); color: #333; font-size: 13px; }
-    .footer-left, .footer-right { display: flex; align-items: center; gap: 12px; }
-    .footer-bar-powered-by { opacity: 0.7; transition: opacity 0.2s; line-height: 0; }
-    .footer-bar-powered-by:hover { opacity: 1; }
-    .footer-bar-powered-by img { display: block; }
-    .footer-bar-terms { font-size: 12px; color: inherit; opacity: 0.65; text-decoration: none; transition: opacity 0.2s; }
-    .footer-bar-terms:hover { opacity: 1; text-decoration: underline; }
-    .footer-bar-lang { display: flex; align-items: center; gap: 6px; background: none; border: none; padding: 0; font-size: 13px; color: inherit; cursor: pointer; opacity: 0.7; transition: opacity 0.2s; }
-    .footer-bar-lang:hover { opacity: 1; }
-    .footer-bar-lang select { appearance: none; -webkit-appearance: none; background: none; border: none; font: inherit; color: inherit; cursor: pointer; padding-right: 2px; outline: none; }
-    .footer-bar-dm { display: flex; align-items: center; justify-content: center; background: none; border: none; padding: 4px; color: inherit; cursor: pointer; opacity: 0.7; transition: opacity 0.2s; border-radius: 4px; }
-    .footer-bar-dm:hover { opacity: 1; }
-    .preview-area.dark-mode .page-footer-bar { background: rgba(0,0,0,0.5); border-top-color: rgba(255,255,255,0.08); color: #eee; }
 
     /* Responsive */
     @media (max-width: 900px) {
@@ -2034,9 +2220,13 @@ async function renderWidgetPage(options: {
         <div class="setting-row">
           <label>Preview Viewport</label>
           <div class="viewport-toggle">
-            <button type="button" class="viewport-btn active" data-viewport="desktop">
+            <button type="button" class="viewport-btn active" data-viewport="widget">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/></svg>
+              Widget
+            </button>
+            <button type="button" class="viewport-btn" data-viewport="page">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-              Desktop
+              Page
             </button>
             <button type="button" class="viewport-btn" data-viewport="mobile">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18"/></svg>
@@ -2074,6 +2264,54 @@ async function renderWidgetPage(options: {
           <input type="checkbox" id="dark-mode">
           <label for="dark-mode">Dark Mode</label>
         </div>
+      </div>
+    </div>
+
+    <!-- Page Chrome -->
+    <div class="settings-section" data-section="chrome">
+      <h3>Page Chrome</h3>
+      <div class="settings-section-content">
+        <div class="setting-row">
+          <label for="chrome-dark-mode">Dark Mode</label>
+          <select id="chrome-dark-mode">
+            <option value="auto">Auto (follow OS)</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+        </div>
+        <div class="setting-row">
+          <label for="chrome-logo-position">Logo Position</label>
+          <select id="chrome-logo-position">
+            <option value="widget">In widget</option>
+            <option value="chip">Corner chip</option>
+            <option value="none">None</option>
+          </select>
+        </div>
+        <div class="setting-row checkbox-row">
+          <input type="checkbox" id="chrome-terms" checked>
+          <label for="chrome-terms">Terms &amp; Conditions link</label>
+        </div>
+        <div class="setting-row checkbox-row">
+          <input type="checkbox" id="chrome-powered-by" checked>
+          <label for="chrome-powered-by">"Powered by" trust mark</label>
+        </div>
+        <div class="setting-row checkbox-row">
+          <input type="checkbox" id="chrome-languages" checked>
+          <label for="chrome-languages">Language picker</label>
+        </div>
+        <div class="setting-row">
+          <label for="chrome-language">Language</label>
+          <select id="chrome-language">
+            <option value="en">English</option>
+            <option value="sv">Svenska</option>
+            <option value="nb">Norsk bokm&aring;l</option>
+            <option value="da">Dansk</option>
+          </select>
+        </div>
+        <p class="setting-hint">
+          Corner chips on desktop, a footer bar under 480px &mdash; switch the
+          preview to Mobile to see the footer.
+        </p>
       </div>
     </div>
 
@@ -2485,6 +2723,11 @@ async function renderWidgetPage(options: {
     <div class="device-frame" id="device-frame">
       <div class="device-screen">
         ${prerenderedWidgetHtml ? prerenderedWidgetHtml : `<authhero-widget id="widget"${locale ? ` locale="${locale}"` : ""}></authhero-widget>`}
+        <!-- Mobile preview. An iframe is its own viewport, so the page's
+             <=480px rules actually apply inside it — the widget above is
+             laid out against the desktop-width window and can't show them.
+             src is set on demand by the viewport toggle. -->
+        <iframe id="mobile-frame" class="mobile-frame" title="Phone preview" hidden></iframe>
       </div>
     </div>
     
@@ -2493,46 +2736,10 @@ async function renderWidgetPage(options: {
       <div id="events"></div>
     </div>
 
-    <footer class="page-footer-bar" id="page-footer-bar">
-      <div class="footer-left">
-        <div class="footer-bar-powered-by">
-          <a href="https://authhero.com" target="_blank" rel="noopener noreferrer">
-            <svg width="80" height="20" viewBox="0 0 80 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <text x="0" y="15" font-family="system-ui, sans-serif" font-size="11" fill="currentColor" opacity="0.7">Powered by AuthHero</text>
-            </svg>
-          </a>
-        </div>
-        <a class="footer-bar-terms" href="#" target="_blank" rel="noopener noreferrer">Terms and Conditions</a>
-      </div>
-      <div class="footer-right">
-        <button class="footer-bar-dm" type="button" aria-label="Toggle dark mode" id="footer-dark-toggle">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="5"/>
-            <line x1="12" y1="1" x2="12" y2="3"/>
-            <line x1="12" y1="21" x2="12" y2="23"/>
-            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-            <line x1="1" y1="12" x2="3" y2="12"/>
-            <line x1="21" y1="12" x2="23" y2="12"/>
-            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-          </svg>
-        </button>
-        <div class="footer-bar-lang">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:0.6">
-            <circle cx="12" cy="12" r="10"/>
-            <path d="M2 12h20"/>
-            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-          </svg>
-          <select onchange="log('Language changed to: ' + this.value)">
-            <option value="en" selected>English</option>
-            <option value="nb">Norsk</option>
-            <option value="sv">Svenska</option>
-            <option value="da">Dansk</option>
-          </select>
-        </div>
-      </div>
-    </footer>
+    <!-- The old hand-mocked footer bar lived here. It had a dead terms
+         link and a hardcoded language list that matched nothing in
+         production. The Page and Mobile previews render the real chrome
+         from @authhero/widget/page-chrome instead. -->
   </div>
 
   <script type="module">
@@ -2547,6 +2754,31 @@ async function renderWidgetPage(options: {
     
     const baseUrl = '${baseUrl}';
     let currentState = '${state}';
+
+    // Chrome settings — the tenant-configurable bits of the page furniture.
+    // Each maps to a real prop on the authhero login page, so toggling one
+    // here shows exactly what a tenant with (or without) it configured sees.
+    const DEMO_LANGUAGES = [
+      { value: 'en', label: 'English' },
+      { value: 'sv', label: 'Svenska' },
+      { value: 'nb', label: 'Norsk bokmål' },
+      { value: 'da', label: 'Dansk' },
+    ];
+    const DEMO_TERMS_URL = 'https://example.com/terms';
+    const DEMO_POWERED_BY = {
+      url: 'data:image/svg+xml;base64,${poweredByLogoDataUri}',
+      href: 'https://authhero.com',
+      alt: 'Powered by AuthHero',
+      height: 14,
+    };
+    const chromeSettings = {
+      showTerms: true,
+      showPoweredBy: true,
+      showLanguages: true,
+      language: 'en',
+      darkMode: 'auto',
+      logoPosition: 'widget',
+    };
     let currentScreen = '${screenId}';
 
     // Demo form, for the form-node screens (screen id = 'form-' + nodeId).
@@ -2947,6 +3179,8 @@ async function renderWidgetPage(options: {
         return;
       }
       fetchScreen(screenId);
+      // Keep the phone preview on the same screen as the main preview.
+      if (mobileFrame && !mobileFrame.hidden) loadMobilePreview();
       log('Navigate → ' + screenId);
     }
 
@@ -2974,6 +3208,9 @@ async function renderWidgetPage(options: {
       
       // Update CSS variables
       document.documentElement.style.setProperty('--primary-color', branding.colors?.primary || theme.colors?.primary_button || '${defaultSettings.brandColor}');
+      
+      // Keep the phone preview in step with the settings panel.
+      syncMobilePreview();
       
       // Persist to session storage
       saveSettings();
@@ -3269,23 +3506,98 @@ async function renderWidgetPage(options: {
     const viewportBtns = document.querySelectorAll('.viewport-btn');
     const deviceFrame = document.getElementById('device-frame');
     
+    const mobileFrame = document.getElementById('mobile-frame');
+
+    // Point the phone preview at the bare page for whatever screen is shown.
+    // Reloading it (rather than just unhiding) keeps the preview in step when
+    // the demo navigates between screens.
+    function loadMobilePreview() {
+      mobileFrame.hidden = false;
+      mobileFrame.src = '/u2/preview/' + encodeURIComponent(currentScreen) +
+        '?state=' + encodeURIComponent(currentState);
+    }
+
+    // Push branding into the phone preview. The iframe asks for this once it
+    // has booted, and applyBranding() calls it on every settings change.
+    function syncMobilePreview() {
+      if (!mobileFrame || mobileFrame.hidden || !mobileFrame.contentWindow) return;
+      mobileFrame.contentWindow.postMessage({
+        type: 'ah-demo-branding',
+        branding: JSON.parse(JSON.stringify(branding)),
+        theme: JSON.parse(JSON.stringify(theme)),
+        // The preview posts these straight back to /u2/preview/chrome, which
+        // renders them through the shared page-chrome module.
+        settings: {
+          clientName: 'sesamy-test',
+          logoUrl: branding.logo_url,
+          logoPosition: chromeSettings.logoPosition,
+          primaryColor: branding.colors && branding.colors.primary,
+          primaryButton: theme.colors && theme.colors.primary_button,
+          widgetBackground: theme.colors && theme.colors.widget_background,
+          pageBackgroundColor: theme.page_background && theme.page_background.background_color,
+          pageBackgroundImage: theme.page_background && theme.page_background.background_image_url,
+          pageLayout: theme.page_background && theme.page_background.page_layout,
+          darkMode: chromeSettings.darkMode,
+          language: chromeSettings.language,
+          languages: chromeSettings.showLanguages ? DEMO_LANGUAGES : undefined,
+          termsAndConditionsUrl: chromeSettings.showTerms ? DEMO_TERMS_URL : undefined,
+          termsLabel: 'Terms & Privacy',
+          poweredBy: chromeSettings.showPoweredBy ? DEMO_POWERED_BY : undefined,
+        },
+      }, '*');
+    }
+
+    window.addEventListener('message', (e) => {
+      if (e.data && e.data.type === 'ah-demo-preview-ready') syncMobilePreview();
+    });
+
     viewportBtns.forEach(btn => {
       btn.addEventListener('click', () => {
         const viewport = btn.dataset.viewport;
         viewportBtns.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         
-        if (viewport === 'mobile') {
-          previewArea.classList.add('mobile-preview');
-          deviceFrame.classList.add('mobile');
+        // Three preview modes, each honest about what it shows:
+        //   widget — the component inline. The event log, SSR toggle and
+        //            screen navigation are wired to THIS instance, so it
+        //            stays the default working view.
+        //   page   — the real login page in a full-size iframe: page CSS,
+        //            corner chips, background. What a desktop visitor sees.
+        //   mobile — the same page in a 375px iframe, so the <=480px rules
+        //            fire and the footer bar replaces the chips.
+        previewArea.classList.toggle('mobile-preview', viewport === 'mobile');
+        deviceFrame.classList.toggle('mobile', viewport === 'mobile');
+        deviceFrame.classList.toggle('page', viewport === 'page');
+
+        if (viewport === 'widget') {
+          mobileFrame.hidden = true;
+          mobileFrame.removeAttribute('src');
         } else {
-          previewArea.classList.remove('mobile-preview');
-          deviceFrame.classList.remove('mobile');
+          loadMobilePreview();
         }
         log('Viewport → ' + viewport);
       });
     });
     
+    // Page-chrome controls. Each drives a real prop on the login page, so
+    // the preview shows what a tenant with that setting actually gets.
+    function bindChrome(id, apply) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('change', () => {
+        apply(el.type === 'checkbox' ? el.checked : el.value);
+        saveSettings();
+        syncMobilePreview();
+        log('Chrome → ' + id + ' = ' + (el.type === 'checkbox' ? el.checked : el.value));
+      });
+    }
+    bindChrome('chrome-dark-mode', (v) => { chromeSettings.darkMode = v; });
+    bindChrome('chrome-logo-position', (v) => { chromeSettings.logoPosition = v; });
+    bindChrome('chrome-terms', (v) => { chromeSettings.showTerms = v; });
+    bindChrome('chrome-powered-by', (v) => { chromeSettings.showPoweredBy = v; });
+    bindChrome('chrome-languages', (v) => { chromeSettings.showLanguages = v; });
+    bindChrome('chrome-language', (v) => { chromeSettings.language = v; });
+
     // Screen selector
     document.getElementById('screen-select').addEventListener('change', (e) => {
       navigateTo(e.target.value);
@@ -3353,15 +3665,6 @@ async function renderWidgetPage(options: {
     document.getElementById('dark-mode').addEventListener('change', (e) => {
       darkMode = e.target.checked;
       applyDarkMode(darkMode);
-      log('Dark mode → ' + (darkMode ? 'on' : 'off'));
-      saveSettings();
-    });
-
-    // Dark mode toggle (footer bar)
-    document.getElementById('footer-dark-toggle').addEventListener('click', () => {
-      darkMode = !darkMode;
-      applyDarkMode(darkMode);
-      document.getElementById('dark-mode').checked = darkMode;
       log('Dark mode → ' + (darkMode ? 'on' : 'off'));
       saveSettings();
     });
@@ -3626,6 +3929,90 @@ app.post("/u2/screen/:screenId", async (c) => {
       ? 400
       : 200;
   return c.json(result, status);
+});
+
+// ----------------------------------------
+// Phone preview: bare login page, no demo chrome.
+// Loaded by the demo's mobile toggle into a 375px <iframe> so the real
+// <=480px media queries actually fire. See renderMobilePreviewPage.
+// ----------------------------------------
+/**
+ * Renders the page chrome for a given set of demo settings, using the same
+ * shared module the authhero login page uses. The preview iframe posts its
+ * settings here on every change rather than reimplementing any chrome
+ * client-side — that indirection is what keeps the demo honest.
+ */
+app.post("/u2/preview/chrome", async (c) => {
+  const s = await c.req.json().catch(() => ({}));
+
+  const darkMode: DarkModePreference =
+    s.darkMode === "dark" || s.darkMode === "light" ? s.darkMode : "auto";
+  const languages: LanguageOption[] | undefined = Array.isArray(s.languages)
+    ? s.languages
+    : undefined;
+  const themePageBackground = {
+    background_color: s.pageBackgroundColor,
+    background_image_url: s.pageBackgroundImage || undefined,
+    page_layout: s.pageLayout,
+  };
+  const hasBgImage = !!themePageBackground.background_image_url;
+  const logoPosition = s.logoPosition || "widget";
+
+  const bodyLayout = buildBodyLayout({
+    themePageBackground,
+    brandingPageBackground: undefined,
+    fontUrl: null,
+  });
+
+  const chromeHtml =
+    renderLogoChip({ logoUrl: s.logoUrl, clientName: s.clientName || "Acme" }) +
+    renderSettingsChip({ darkMode, language: s.language, languages }) +
+    (s.poweredBy
+      ? renderPoweredByChip({
+          url: s.poweredBy.url,
+          href: s.poweredBy.href,
+          alt: s.poweredBy.alt,
+          height: s.poweredBy.height,
+        })
+      : "") +
+    renderLegalChip({
+      termsAndConditionsUrl: s.termsAndConditionsUrl,
+      termsLabel: s.termsLabel || "Terms & Privacy",
+    }) +
+    renderMobileFooter({
+      darkMode,
+      language: s.language,
+      languages,
+      termsAndConditionsUrl: s.termsAndConditionsUrl,
+      termsLabel: s.termsLabel || "Terms & Privacy",
+      poweredBy: s.poweredBy,
+    });
+
+  return c.json({
+    chromeHtml,
+    pageCss: buildPageCss({
+      primaryColor: s.primaryColor,
+      themePrimary: s.primaryButton,
+      widgetBackground: s.widgetBackground || "#ffffff",
+      hasBgImage,
+    }),
+    bodyStyle: {
+      background: bodyLayout.background,
+      justifyContent: bodyLayout.justifyContent,
+      fontFamily: bodyLayout.fontFamily,
+      padding: bodyLayout.padding,
+    },
+    dataBg: hasBgImage ? "image" : "none",
+    logoPosition,
+    darkMode,
+  });
+});
+
+app.get("/u2/preview/:screenId", (c) => {
+  const screenId = c.req.param("screenId");
+  const state =
+    c.req.query("state") || "demo_" + Math.random().toString(36).substr(2, 9);
+  return c.html(renderMobilePreviewPage({ screenId, state }));
 });
 
 // ----------------------------------------

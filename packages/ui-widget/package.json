@@ -26,6 +26,10 @@
       "require": "./hydrate/index.js"
     },
     "./loader": "./loader/index.js",
+    "./page-chrome": {
+      "import": "./dist/collection/page-chrome/index.js",
+      "types": "./dist/types/page-chrome/index.d.ts"
+    },
     "./dist/esm/loader.js": "./dist/esm/loader.js",
     "./server": {
       "import": "./dist/collection/server/index.js",
