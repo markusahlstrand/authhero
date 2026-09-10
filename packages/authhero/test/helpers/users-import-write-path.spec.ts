@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import type { DataAdapters } from "@authhero/adapter-interfaces";
 import { advanceUsersImport } from "../../src/helpers/users-import/process";
 
@@ -153,8 +153,7 @@ describe("users import — how a fresh user is written", () => {
 
   it("carries the password on the user rather than a second write", async () => {
     // A real bcrypt hash: the import rejects anything else.
-    const hash =
-      "$2b$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy";
+    const hash = "$2b$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy";
     const { data, calls, written } = makeAdapters({
       rows: [{ email: "pw@example.com", password_hash: hash }],
     });
