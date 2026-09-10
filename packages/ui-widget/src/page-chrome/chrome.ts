@@ -212,7 +212,10 @@ export function renderMobileFooter(opts: {
     renderDarkModeToggle({ darkMode: opts.darkMode, size: 14 }) + picker;
 
   // Nothing to show — don't emit an empty bar taking up 48px of a phone.
-  if (!terms && !poweredBy && !picker) return "";
+  // `controls` counts towards "something to show": it carries the dark-mode
+  // toggle, and the phone layout hides the corner settings chip, so dropping
+  // the footer here would leave the device with no way to switch theme.
+  if (!terms && !poweredBy && !controls) return "";
 
   return (
     `<footer class="ah-footer" data-ah-slot="footer">` +

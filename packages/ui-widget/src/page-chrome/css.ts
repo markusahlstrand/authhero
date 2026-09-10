@@ -557,8 +557,13 @@ ${
       .ah-bg-tint { display: none; }
       /* The full-bleed widget is exactly 100vh, so pad its bottom (a
          light-DOM rule on the host beats the :host rule in its shadow tree)
-         to stop a tall form scrolling under the fixed footer. */
-      authhero-widget { padding-bottom: 60px; }
+         to stop a tall form scrolling under the fixed footer. The footer's
+         own bottom padding grows with the safe-area inset, so the clearance
+         has to track it or the footer covers the last field on a notched
+         phone — mirror that \`max()\` rather than hard-coding 60px. */
+      authhero-widget {
+        padding-bottom: calc(54px + max(6px, env(safe-area-inset-bottom, 6px)));
+      }
     }`
 }
   `;

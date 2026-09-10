@@ -35,21 +35,38 @@ export function escapeCssUrl(url: string): string {
     .replace(/\t/g, "");
 }
 
+/** True for URLs we're willing to emit: http(s)/data, or root-relative. */
+function isAllowedUrl(url: string): boolean {
+  try {
+    return ["http:", "https:", "data:"].includes(new URL(url).protocol);
+  } catch {
+    return url.startsWith("/");
+  }
+}
+
 /** Sanitize a URL for use in href/src attributes. Returns "" if unsafe. */
 export function sanitizeUrl(url: string | undefined): string {
   if (!url) return "";
-  try {
-    const parsed = new URL(url);
-    if (!["http:", "https:", "data:"].includes(parsed.protocol)) {
-      return "";
-    }
-    return escapeHtml(url);
-  } catch {
-    if (url.startsWith("/")) {
-      return escapeHtml(url);
-    }
-    return "";
-  }
+  return isAllowedUrl(url) ? escapeHtml(url) : "";
+}
+
+/**
+ * Sanitize a URL for use inside a CSS `url("...")`. Returns "" if unsafe.
+ *
+ * Deliberately not `sanitizeUrl` + `escapeCssUrl`: HTML entities are never
+ * decoded inside a `<style>` element, so HTML-escaping here would put the
+ * literal text `&amp;` into the stylesheet and corrupt every query string it
+ * touches — a signed `?sig=x&expires=y` would be requested as
+ * `?sig=x&amp;expires=y` and the image would fail to load.
+ *
+ * Angle brackets still have to go, or a `</style>` inside the URL would end
+ * the element and let the rest of it parse as markup. They are percent-encoded
+ * rather than entity-encoded so the URL stays a valid URL.
+ */
+export function sanitizeCssUrl(url: string | undefined): string {
+  if (!url) return "";
+  if (!isAllowedUrl(url)) return "";
+  return escapeCssUrl(url.replace(/</g, "%3C").replace(/>/g, "%3E"));
 }
 
 /** Sanitize a CSS color value. Returns "" if it doesn't look like a color. */
@@ -113,11 +130,11 @@ export function buildThemePageBackground(
   fallbackBrandingBackground: BrandingPageBackground | undefined,
 ): string {
   if (themePageBackground?.background_image_url) {
-    const imageUrl = sanitizeUrl(themePageBackground.background_image_url);
+    const imageUrl = sanitizeCssUrl(themePageBackground.background_image_url);
     if (imageUrl) {
       const bgColor =
         sanitizeCssColor(themePageBackground.background_color) || "#f5f5f5";
-      return `${bgColor} url("${escapeCssUrl(imageUrl)}") center / cover no-repeat`;
+      return `${bgColor} url("${imageUrl}") center / cover no-repeat`;
     }
   }
 

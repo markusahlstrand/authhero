@@ -36,9 +36,19 @@ export const DARK_MODE_CSS_VARS: Record<string, string> = {
 // Color helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * Parse a hex color into `[r, g, b]`.
+ *
+ * Accepts every hex form `sanitizeCssColor` lets through: `#rgb`, `#rgba`,
+ * `#rrggbb` and `#rrggbbaa`. Shorthand is expanded before parsing (`#fff` is
+ * white, not `[0, 15, 255]`) and any alpha channel is dropped — these values
+ * feed luminance and contrast maths, which only read the color channels.
+ */
 function parseDarkHex(hex: string): [number, number, number] {
-  const c = hex.replace("#", "");
-  const n = parseInt(c, 16);
+  const value = hex.replace(/^#/, "");
+  const expanded =
+    value.length <= 4 ? [...value].map((d) => d + d).join("") : value;
+  const n = parseInt(expanded.slice(0, 6), 16);
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
 function darkLuminance(hex: string): number {

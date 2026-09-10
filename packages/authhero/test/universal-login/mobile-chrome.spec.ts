@@ -120,9 +120,20 @@ describe("u2 page — phone chrome", () => {
     expect(css).toMatch(/authhero-widget\s*\{\s*padding-bottom:/);
   });
 
-  it("emits no footer when nothing is configured for it", async () => {
+  it("keeps the footer for the dark-mode toggle alone", async () => {
+    // No terms, no trust mark and a single language, so the footer carries
+    // nothing but the toggle — and still has to render. The phone layout
+    // hides the corner settings chip, so this is the only way left to switch
+    // theme on a device.
     const html = await render();
-    expect(html).not.toContain('<footer class="ah-footer"');
+    expect(html).toContain('<footer class="ah-footer"');
+    const footer = html.slice(
+      html.indexOf('<footer class="ah-footer"'),
+      html.indexOf("</footer>") + 9,
+    );
+    expect(footer).toContain("Toggle dark mode");
+    expect(footer).not.toContain('<select aria-label="Language"');
+    expect(footer).not.toContain("ah-footer-trust");
   });
 
   it("still emits the corner chips for wide viewports", async () => {

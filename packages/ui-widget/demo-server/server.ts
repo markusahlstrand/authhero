@@ -48,6 +48,22 @@ function escapeHtml(str: string): string {
     .replace(/'/g, "&#39;");
 }
 
+/**
+ * Serialize a value for interpolation into an inline `<script>` body.
+ *
+ * `JSON.stringify` alone is not enough: it escapes quotes and backslashes but
+ * leaves `<` intact, so a request-derived value containing `</script>` ends
+ * the element during HTML parsing and whatever follows runs as markup. The
+ * line terminators U+2028/U+2029 are valid JSON but break JavaScript strings.
+ */
+function jsonForScript(value: unknown): string {
+  return JSON.stringify(value ?? null)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
+}
+
 // ============================================
 // Types
 // ============================================
@@ -1561,7 +1577,7 @@ function renderMobilePreviewPage(options: {
     const chrome = document.getElementById('chrome');
     const root = document.documentElement;
 
-    fetch('/u2/screen/' + ${JSON.stringify(screenId)} + '?state=' + ${JSON.stringify(state)})
+    fetch('/u2/screen/' + ${jsonForScript(screenId)} + '?state=' + ${jsonForScript(state)})
       .then((r) => r.json())
       .then((data) => { widget.screen = data.screen || data; })
       .catch(() => {});

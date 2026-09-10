@@ -48,7 +48,7 @@ async function render(pageBackground: Record<string, string>) {
   return typeof rendered === "string" ? rendered : String(rendered);
 }
 
-test.skipIf(!process.env.PREVIEW)(
+test.skipIf(process.env.PREVIEW !== "1")(
   "render both phone variants to /tmp",
   async () => {
     writeFileSync(
