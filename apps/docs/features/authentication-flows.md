@@ -102,9 +102,11 @@ that is unset too. So compare `aud` against the identifier _your_ resource
 server owns and reject everything else; never trust the value the token
 happens to carry.
 
-Access tokens additionally carry `scope`, `permissions` (when the resource
-server issues them), `sid` (the session ID), and `org_id` when the token was
-issued in an organization context. Custom claims added by hooks can never
+Access tokens additionally carry `scope`, the `permissions` AuthHero granted
+for the requested audience, `sid` (the session ID), and `org_id` when the token
+was issued in an organization context. `permissions` is minted by the
+authorization server and only consumed by the resource server — it is not
+something an API adds to a token. Custom claims added by hooks can never
 overwrite a claim the authorization server owns — colliding names are dropped.
 See [Tokens](/entities/security/tokens) for the full claim reference.
 
