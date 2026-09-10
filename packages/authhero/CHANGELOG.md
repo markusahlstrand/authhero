@@ -1,5 +1,31 @@
 # authhero
 
+## 9.12.1
+
+### Patch Changes
+
+- 3547937: Fix the u2 login card collapsing to a sliver on phones when the tenant uses a custom universal-login template.
+
+  Below 480px the page widens the card with `width: 100% !important`, and a percentage width needs a definite containing block to resolve against. The page body is a **row** flex box centring one item, and a row flex item is sized by its content — so the percentage only resolves when the widget's container _is_ that flex item, which is exactly the shape of the default template.
+
+  A custom template that wraps the widget in its own element — a `<main>`, say — puts a content-sized box in between. The percentage turns cyclic, the card shrink-to-fits to its min-content width, and a 375px phone renders a 243px card floating in the middle of the screen. It also came out narrower than before the phone rules landed, because the inline `clamp(320px, 100%, 400px)` those rules override had a 320px floor.
+
+  Under the breakpoint the body is now a **column** flex box with `align-items: stretch`. The cross axis becomes horizontal, so every in-flow wrapper between the body and the widget inherits the body's width and the percentages below it have a definite box to resolve against — whatever markup the template puts in between. On a 375px phone the card goes from 243px to 335px (the full width inside the page's 20px gutters); with no page background image it stays edge-to-edge. The fixed-position corner chips and the footer bar are out of flow and unaffected, and nothing changes at 481px and up, where the card keeps its 400px width.
+
+- c179067: Emit the u2 page layout from one place, so the phone breakpoints no longer need `!important`.
+
+  The same layout was expressed two ways. The full-document (Auth0-style) template path put the body layout in the stylesheet; the body-fragment path applied it inline on `<body>`. The widget container's responsive width was inline on both. An inline declaration outranks a normal rule from a stylesheet, so every rule in the mobile block had to shout to be heard — and the demo server, which hand-mirrored both, had its own copies sitting _after_ the shared stylesheet, where only those `!important` flags kept them from winning.
+
+  Both paths now emit the body layout through `buildPageCss`, and the container's `width: clamp(320px, 100%, 400px)` — identical for every tenant on every request — moves into the `.widget-container` rule. The inline style keeps only the per-tenant CSS variables, which is what inline is for. The phone rules then override by plain cascade: same specificity, later in the sheet.
+
+  Six `!important` flags go, along with the demo's duplicated body and container rules and the `bodyStyle` field on `/u2/preview/chrome`. No visual change — the rendered layout is identical at every width, in both phone variants, and whether or not a custom template wraps the widget in its own element.
+
+  The remaining `!important` flags are the dark-mode CSS-variable overrides, which genuinely have to outrank the container's inline variables, and the reduced-motion animation reset.
+
+- Updated dependencies [3547937]
+- Updated dependencies [c179067]
+  - @authhero/widget@0.38.10
+
 ## 9.12.0
 
 ### Minor Changes
