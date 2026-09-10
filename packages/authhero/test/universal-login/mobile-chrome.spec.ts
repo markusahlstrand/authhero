@@ -108,6 +108,24 @@ describe("u2 page — phone chrome", () => {
     expect(css).toMatch(/\.ah-footer\s*\{\s*display:\s*flex/);
   });
 
+  it("stretches the body's children so a wrapped widget still fills the screen", async () => {
+    // Regression: the phone rules widen the card with `width: 100%`, and a
+    // percentage needs a definite containing block. Body is a row flex box,
+    // whose items are content-sized — so the 100% only resolves when the
+    // widget's container IS the flex item, as it is in the default template.
+    // A custom template that wraps the widget in its own element (a <main>,
+    // say) puts a content-sized box in between, the percentage turns cyclic,
+    // and the card shrink-to-fits to its min-content width — 243px of a
+    // 375px phone, narrower than the 320px floor it used to hold.
+    //
+    // Switching to a column flex box makes the cross axis horizontal, where
+    // align-items: stretch gives every in-flow wrapper the body's width.
+    const css = mobileCss(await render({ termsAndConditionsUrl: TERMS }));
+    const body = css.slice(css.indexOf("body {"));
+    expect(body).toMatch(/flex-direction:\s*column\s*!important/);
+    expect(body).toMatch(/align-items:\s*stretch\s*!important/);
+  });
+
   it("keeps the footer hidden above the breakpoint", async () => {
     const css = pageCss(await render({ termsAndConditionsUrl: TERMS }));
     // The base rule hides it; only the mobile block reveals it.

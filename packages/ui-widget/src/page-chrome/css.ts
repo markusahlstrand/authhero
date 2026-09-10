@@ -518,6 +518,14 @@ export function buildPageCss(opts: {
       body { justify-content: center !important; padding: 20px !important; }
     }
     @media (max-width: 480px) {
+      /* Column, so stretch runs horizontally and every in-flow wrapper
+         inherits the body's width. The widths below are percentages, which
+         need a definite containing block: body is otherwise a row flex box
+         whose item is content-sized, so a custom template that wraps the
+         widget in its own element makes the percentage cyclic and the card
+         shrink-to-fits to min-content (243px on a 375px phone). Vertical
+         centering carries over from the <=767px rule's justify-content. */
+      body { flex-direction: column !important; align-items: stretch !important; }
       /* Full width in both variants: overrides the inline
          clamp(320px, 100%, 400px), which would otherwise hold the card at
          400px with stray gutters on a 400-480px phone. */
