@@ -1,5 +1,104 @@
 # authhero
 
+## 9.12.0
+
+### Minor Changes
+
+- 6254b46: Batch the bulk user import's row writes, so a large migration is bounded by database throughput rather than round-trip latency. **Two behaviour changes come with it — see the end of this note.**
+
+  `advanceUsersImport` processed staged rows strictly one at a time: up to four existence probes, then a user insert, then a password insert, each awaited in turn. Measured against a hosted PlanetScale database that is roughly 400 ms per row — almost entirely waiting — which puts a million-user import somewhere around 55 hours, and gets worse the further the database is from the worker.
+
+  A chunk is now parsed and mapped in memory, every existence probe for a given field runs as a single query, and the rows that turn out to be new users are written with one batched insert. A 50-row chunk goes from about 200 queries to about five; a 20-user import now issues zero per-row `users.create` calls.
+
+  Probes are deliberately one query per field rather than one query overall. MySQL will not `index_merge` across an `OR` spanning two columns and falls back to a full scan, but an `OR` over a single column resolves as a range scan on that column's index — so `email:"a" OR email:"b"` is fast while mixing fields would not be.
+
+  Adds an optional `createMany` to `UserDataAdapter`, implemented by the kysely adapter. It is optional and callers fall back to looping `create`, so adapters that do not implement it keep working unchanged. It writes the users row and its companion password row only — identities, activity counters and outbox events still go through `create`, and a user carrying them is rejected rather than silently written without them.
+
+  Three properties the sequential loop provided for free are now explicit, and covered by tests:
+  - **In-chunk de-duplication.** Two rows sharing an email used to be impossible to double-insert because the second row's probe saw the first row's write. A batch probes everything before writing anything, so the chunk is de-duplicated in memory — on every identifier the probes cover, so a repeated username or phone number is caught too.
+  - **Per-row error attribution.** Validation and conflict outcomes are decided before any write, so they stay attributed to their own row. If a batch insert fails, the whole chunk is retried row by row so each failure is recorded against the row that caused it.
+  - **Resume after an interrupted driver.** Rows whose derived id already exists are still recognised as their own earlier write rather than reported as a spurious conflict.
+
+  Upserts continue to use the per-row path, and skip chunk-level probing entirely: an upsert changes rows a later row in the same chunk may itself match, so a snapshot taken once per chunk is not equivalent to resolving identity per row. An `upsert: true` import therefore runs at the old cost — the speedup applies to `upsert: false`, which is the shape of a migration.
+
+  Also fixes two problems in the existence probe itself, one of them pre-existing:
+  - **Probe values are escaped properly.** They were interpolated with only their quotes escaped, so a value ending in a backslash could close its own clause and append an `OR` — widening the probe to match an unrelated user. On an `upsert` job that user's row was then overwritten with the imported row's values. Values now go through `escapeLuceneValue`, which escapes backslashes as well.
+  - **A probe reads as many pages as it needs.** None of the probed fields is unique on its own (email and username are unique only per provider; phone numbers are not unique at all), so several rows can come back for one value and fill a page sized to the number of values, hiding a match for a later value and letting an existing user be treated as new.
+
+  ## Scope
+
+  The speedup requires an adapter that implements `createMany`. Only the kysely adapter does today; drizzle and aws fall back to looping the per-row write and are unchanged.
+
+  ## Behaviour changes
+
+  **A bulk import no longer runs the user registration hooks.** The fresh-user write now goes through `users.rawCreate` on both the batched and per-row paths, so pre-registration denial, hook metadata mutation, built-in email linking and the post-registration outbox event no longer fire for imported users. This matches Auth0, where a users-import job does not trigger Actions.
+
+  It is also what keeps the two paths honest: `createMany` is not decorated by `addDataHooks`, so leaving the fallback on the decorated `create` would have made policy enforcement depend on whether the installed adapter implements `createMany`. If you rely on registration hooks firing during an import, this release changes that.
+
+  **An imported password is now written in the same call as its user.** Previously the import wrote the user and then made a second `passwords.create` call, so an interrupted driver could leave a user who could not log in until a later sweep repaired them. The password now rides on the user insert and commits in the same transaction on both paths.
+
+### Patch Changes
+
+- 02fa0db: Bound the console output persisted with each action execution.
+
+  `persistActionExecution` now caps the aggregated `logs` payload at 256 characters per execution — a budget spent across lines in order rather than a per-line trim — and appends an explicit `[authhero] console output truncated at 256 characters …` marker so a truncated record is never mistaken for a complete one. Auth0 uses the same number but charges it per Action, so an execution with several bound actions is stricter here than on Auth0.
+
+  The default `actionExecutionsRetentionDays` drops from 30 to 10 days, matching Auth0's execution-storage window. Deployments that want the old window can pass `actionExecutionsRetentionDays: 30` to `runRetention`.
+
+- 8a6e196: Surface scopes that the resource server does not define when a client grant is created or updated. By default the management API accepts the write, as Auth0 does, and logs a warning naming the undefined scopes; tenants that have set the `restrict_undefined_scopes` flag get the write rejected with a 400 instead. Grants whose audience has no matching resource server are left untouched.
+- 12353fd: Record an action execution for `ctx.env.hooks.onExecutePostLogin`. Env post-login
+  hooks previously produced no `action_executions` row and no `details.execution_id`
+  on the `Successful Login` log, because the env-hook branch returned before the
+  code-hook persist. Env and code hook outcomes are now aggregated into one
+  execution record, persisted on every exit path — including an env hook that
+  redirects or throws.
+- 0d61af3: Keep `details.request` on tenant logs that carry an action `execution_id`. The
+  execution id is now passed as its own `execution_id` log param and merged into
+  the details object instead of replacing it, so `Successful Login` and token-grant
+  logs keep their request snapshot (method, path, qs, redirect_uri) when a
+  post-login action ran.
+- 7eb6800: Fix the u2 login page on phones, and give it a real footer.
+
+  **Background image was dropped on mobile.** Below 480px the page
+  unconditionally replaced the body background with the widget's own colour, so
+  a tenant's `theme.page_background.background_image_url` never rendered on the
+  device most sign-ins come from. The phone layout now has two variants:
+  - **With a background image** — the card floats on the image, keeping its
+    radius and shadow. The widget is marked `floating` so its own stylesheet
+    doesn't paint over the image with 100vh of widget colour.
+  - **Without one** — unchanged: the card fills the screen edge-to-edge.
+
+  **A stray line split the phone screen.** The full-bleed variant stripped the
+  card's `box-shadow` and `border-radius` but not its `border`, so a themed
+  `--ah-widget-border-width` drew the card's bottom edge straight across the
+  viewport, leaving the fill below it looking cut off. The border is now
+  dropped along with the rest of the card chrome.
+
+  **Corner chips are replaced by a footer bar on phones.** They used to be
+  hidden outright below 480px — terms and the trust mark simply vanished, and
+  the settings chip sat on top of the card. They now collapse into a footer
+  pinned to the bottom of the viewport carrying the terms link, the trust mark,
+  the dark-mode toggle and the language picker, with a surface that adapts to
+  light/dark and to whether there's a background image behind it.
+
+  **Page chrome moved to `@authhero/widget/page-chrome`.** The CSS and chrome
+  markup were defined in authhero and hand-mirrored in the widget's demo server,
+  which drifted. Both now render from one framework-free module — strings in,
+  strings out, no JSX runtime and no i18n stack (authhero resolves labels and
+  passes them in). The chip renderers return HTML strings rather than JSX nodes;
+  the Liquid `{%- authhero:* -%}` slots already called `.toString()` on them, so
+  that contract is unchanged, and a new `authhero:footer` slot is available.
+
+- 9382731: Trim whitespace around email identifiers in the remaining universal-login route schemas (`/u/login/identifier`, `/u/account/change-email`, `/u/account/change-email-verify`), so a padded address resolves to the same account as the clean one instead of bypassing the uniqueness check and creating a duplicate.
+- d412c45: Trim module-evaluation cost on cold start: construct the LiquidJS engines (email templates, custom universal-login templates) lazily on first use, import `@authhero/saml` only through its `core` entry so the SAML core is no longer bundled twice, and dedupe `@peculiar/x509`. Bundle shrinks by ~230 KB and bare import time drops ~14%. No public API changes.
+- fdf89e0: Warn when a client grant or a user permission references a scope the resource server does not define. These scopes were dropped from the issued token with no error, warning or log, so a grant listing five scopes could mint a token carrying three with nothing explaining the difference. The warning carries the tenant, client, audience and dropped scope list. Issued scopes are unchanged — this is observability only.
+- Updated dependencies [6254b46]
+- Updated dependencies [7eb6800]
+  - @authhero/adapter-interfaces@4.14.0
+  - @authhero/widget@0.38.9
+  - @authhero/proxy@0.10.13
+  - @authhero/saml@0.5.12
+
 ## 9.11.1
 
 ### Patch Changes
