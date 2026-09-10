@@ -155,7 +155,35 @@ Without this the accepting request still makes a start, and any subsequent reque
 
 The defaults are Auth0's, so an Auth0-shaped client sees identical behaviour. A migration of a million users is therefore ~1,000 jobs of ~1,000 users, submitted two at a time — the same shape as the equivalent Auth0 migration. Raise the limits only for a migration you control end to end; a larger file means more rows staged inside a single request.
 
-Exceeding the concurrency limit returns `429`.
+Exceeding the concurrency limit returns `429`. AuthHero does not queue past the limit, and neither does Auth0 — the client is expected to hold back its own submissions, which is why Auth0's own guidance for ten or more jobs is to drive them from a job-scheduler framework. A submitted-but-unfinished job counts toward the limit, not just an actively processing one.
+
+### How rows are written
+
+Within a chunk, rows are **batched rather than processed one at a time**. The chunk is parsed and mapped in memory, each existence probe runs as one query per field across the whole chunk, and rows that turn out to be new users are written with a single batched insert. A 50-row chunk costs about five queries rather than about two hundred.
+
+This matters more than it might sound. The work is dominated by round-trip latency, not by the database's write cost — against a hosted database a row-at-a-time loop spends roughly 400 ms per row almost entirely waiting, which is the difference between a million-user import taking hours and taking days.
+
+Three cases deliberately keep the per-row path:
+
+- **Upserts.** A job submitted with `upsert=true` never batches at all: it resolves each row's identity immediately before writing it. An upsert changes rows that a later row in the same chunk may itself match — renaming a username frees that username for the next row — so a chunk-wide identity snapshot would not be equivalent to writing the rows in order. A bulk migration is overwhelmingly `upsert: false`.
+- **A failed batch.** Because a batch insert cannot say which row collided, any failure is retried row by row so each outcome is still attributed to the row that caused it.
+- **Resuming an interrupted job.** Rows whose derived id already exists are recognised as their own earlier write rather than reported as a conflict.
+
+De-duplication within a chunk is handled explicitly, on every identifier the probes cover: two rows carrying the same email — or the same username, or the same phone number — produce one user, not two.
+
+Adapters may implement an optional `createMany` on `UserDataAdapter` to take part in this; the kysely adapter does. It is optional, and AuthHero falls back to looping the per-row write when it is absent, so an adapter without it keeps working — just at the older cost per row. `createMany` writes the user and its password only, so users carrying identities, activity counters or outbox events continue to go through `create`.
+
+### Imported users do not run registration hooks
+
+A fresh user is written with `users.rawCreate`, so pre-registration denial, hook metadata mutation, built-in email linking and the post-registration outbox event do not fire for imported users. This matches Auth0, where a users-import job does not trigger Actions — an import is a data-loading path, not a sign-up.
+
+Both the batched write and the per-row fallback use `rawCreate`, deliberately. `createMany` is not wrapped by the hook layer, so routing one path through the hooks and the other around them would make the policy applied to an import file depend on which adapter happened to be installed.
+
+If you need hooks to run for imported users, do it after the job completes — read the operation's rows and drive them through your own flow — rather than relying on the import to fire them.
+
+### Passwords commit with their user
+
+An imported password is written in the same call as the user, and commits in the same transaction. An interrupted driver therefore cannot leave an imported user who exists but cannot log in.
 
 ## Required scopes
 

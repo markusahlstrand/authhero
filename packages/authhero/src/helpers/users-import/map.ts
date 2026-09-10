@@ -317,15 +317,35 @@ export function toStagedPayload(entry: unknown): Record<string, unknown> {
   return { ...entry };
 }
 
+export type IdentityField = "user_id" | "email" | "username" | "phone_number";
+
+/**
+ * Normalize one identity value so two spellings of the same identity compare
+ * equal.
+ *
+ * `email` and `username` are case-insensitive; `user_id` and `phone_number`
+ * are compared exactly, because lowercasing an id could collapse two genuinely
+ * distinct users. `entryIdentityKeys` below applies the same rule, and the
+ * batched import probe uses this so its in-memory lookups agree with what the
+ * database considers the same row — on MySQL an `email` probe is resolved with
+ * a case-insensitive collation and can return a different spelling than the one
+ * asked for.
+ */
+export function identityKey(field: IdentityField, value: string): string {
+  return field === "email" || field === "username"
+    ? value.toLowerCase()
+    : value;
+}
+
 /**
  * Identity keys Auth0 dedupes an import file on: a repeat of any of these
  * within one file is an error rather than a silent overwrite.
  */
 export function entryIdentityKeys(entry: UserImportEntry): string[] {
-  const keys: string[] = [`email:${entry.email.toLowerCase()}`];
+  const keys: string[] = [`email:${identityKey("email", entry.email)}`];
   if (entry.user_id !== undefined) keys.push(`user_id:${entry.user_id}`);
   if (entry.username !== undefined) {
-    keys.push(`username:${entry.username.toLowerCase()}`);
+    keys.push(`username:${identityKey("username", entry.username)}`);
   }
   if (entry.phone_number !== undefined) {
     keys.push(`phone:${entry.phone_number}`);
