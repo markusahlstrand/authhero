@@ -69,16 +69,30 @@ message instead — see [Login flow error codes](#login-flow-error-codes) below.
 
 These are the `error` values returned by the OAuth and OIDC endpoints.
 
-| Code                     | Typical status | Meaning                                                                                                                 |
-| ------------------------ | -------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `invalid_request`        | 400            | The request is missing a required parameter, or a parameter is malformed                                                |
-| `invalid_client`         | 401 / 403      | Client authentication failed — unknown `client_id`, wrong `client_secret`, or an unacceptable `client_assertion`        |
-| `invalid_grant`          | 403            | The authorization code, refresh token, OTP or ticket is invalid, expired, already used, or was issued to another client |
-| `unauthorized_client`    | 403            | The client is not allowed to use this grant type                                                                        |
-| `unsupported_grant_type` | 400            | The requested `grant_type` is not supported                                                                             |
-| `invalid_scope`          | 400            | A requested scope is unknown or not permitted for this client                                                           |
-| `access_denied`          | 403            | The request was refused — for example the user denied consent, or the account is blocked                                |
-| `server_error`           | 500            | An unexpected error occurred while handling the request                                                                 |
+| Code                     | Typical status | Meaning                                                                                                          |
+| ------------------------ | -------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `invalid_request`        | 400            | The request is missing a required parameter, or a parameter is malformed                                         |
+| `invalid_client`         | 401 / 403      | Client authentication failed — unknown `client_id`, wrong `client_secret`, or an unacceptable `client_assertion` |
+| `invalid_grant`          | 403            | The authorization code or refresh token is invalid, expired, already used, or was issued to another client       |
+| `unauthorized_client`    | 403            | The client is not allowed to use this grant type                                                                 |
+| `unsupported_grant_type` | 400            | The requested `grant_type` is not supported                                                                      |
+| `invalid_scope`          | 400            | A requested scope is unknown or not permitted for this client                                                    |
+| `access_denied`          | 403            | The request was refused — for example the user denied consent, or the account is blocked                         |
+| `server_error`           | 500            | An unexpected error occurred while handling the request                                                          |
+
+`invalid_grant` is returned with `403` to match Auth0. Clients registered with
+`auth0_conformant: false` get RFC 6749 §5.2's `400` for the same failure
+instead.
+
+Two credential-exchange failures deliberately do **not** use `invalid_grant`:
+
+- A bad **passwordless OTP** (the
+  `http://auth0.com/oauth/grant-type/passwordless/otp` grant) returns `400`
+  with a human-readable, localized `message` — "Invalid code", "Code expired"
+  or "Code is already used" — and no `error` field.
+- A bad **login ticket** (`/authorize?login_ticket=…`, the second leg of
+  `/co/authenticate`) returns `403` with a plain `message` such as
+  `Ticket not found`, `Session not found`, `Invalid client` or `Invalid realm`.
 
 ### Errors specific to `prompt=none`
 

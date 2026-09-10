@@ -56,9 +56,11 @@ a release.
 
 The workflow:
 
-1. Installs dependencies and builds every workspace package with
+1. Installs dependencies and builds every package under `packages/**` with
    `pnpm -r --filter './packages/**' build` (topological order, so each package
-   type-checks against its dependencies' freshly built `.d.ts` files).
+   type-checks against its dependencies' freshly built `.d.ts` files). Note
+   the filter's scope: nothing under `apps/` is built by this step, which
+   matters for `@authhero/admin` — see below.
 2. Runs [`changesets/action`](https://github.com/changesets/action).
 
 When unreleased changesets are present in `.changeset/`, the action opens (or
@@ -100,6 +102,13 @@ configuration:
   conformance runner. Everything else is released, including `@authhero/admin`,
   which lives under `apps/` but is a published package.
 
+::: warning `@authhero/admin` is published but not built by the release job
+`@authhero/admin` is not private and publishes its `dist` directory, but the
+workflow's build step only covers `packages/**` and the package has no
+`prepublishOnly` hook — so a release job builds no admin bundle. Build it
+before relying on a published `@authhero/admin` tarball.
+:::
+
 ## Post-Release Steps
 
 After the publish job goes green:
@@ -116,8 +125,11 @@ After the publish job goes green:
    than using the workspace, so update the dependency range in each consuming
    repository and deploy it. Adapter packages must be bumped together with
    `authhero` when a release changes the adapter contract.
-4. **Check the conformance result.** The OpenID conformance workflow runs
-   automatically on the `changeset-release/main` version PR (it is skipped on
-   every other PR). If it was red, decide whether the failure is a real
-   regression before advertising the release — see
+4. **Check the conformance result.** The OpenID conformance workflow is
+   _triggered_ on every pull request targeting `main`, so the required check is
+   always reported — but its jobs are gated on
+   `github.head_ref == 'changeset-release/main'`, so on any other PR they
+   report as skipped and nothing actually runs. The version PR is therefore the
+   only place a real conformance result appears. If it was red, decide whether
+   the failure is a real regression before advertising the release — see
    [Conformance](/standards/conformance).

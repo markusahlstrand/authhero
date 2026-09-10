@@ -52,6 +52,31 @@ recognise (key rotation adds a new key before retiring the old one). Every token
 AuthHero issues carries the signing key's `kid` in its JWT header, so pick the
 matching key rather than assuming there is only one.
 
+Do not refetch on _every_ unrecognised `kid`: anyone who can reach your API can
+mint garbage tokens with a fresh random `kid` each time, and an unbounded
+refresh turns that into a request amplifier against your own JWKS endpoint. Use
+a verifier that bounds the refetch — `jose`'s `createRemoteJWKSet` is the usual
+choice, and handles it for you with a cache (`cacheMaxAge`, default 10 minutes),
+a cooldown between refreshes (`cooldownDuration`, default 30 seconds) and
+coalescing of concurrent in-flight fetches:
+
+```ts
+import { createRemoteJWKSet, jwtVerify } from "jose";
+
+const JWKS = createRemoteJWKSet(
+  new URL("https://auth.yourdomain.com/.well-known/jwks.json"),
+);
+
+const { payload } = await jwtVerify(token, JWKS, {
+  issuer: "https://auth.yourdomain.com/",
+  audience: "https://api.yourdomain.com",
+  algorithms: ["RS256"],
+});
+```
+
+If you write your own verifier instead, implement the equivalent: cache the
+key set, rate-limit refreshes, and de-duplicate concurrent fetches.
+
 ### 2. Verify the signature
 
 The supported signing algorithms are advertised in
@@ -61,23 +86,40 @@ anything else — never trust the token header's `alg` on its own.
 
 ### 3. Check the claims
 
-| Claim         | What to check                                                                                                                                                                                                  |
-| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `iss`         | Must equal your issuer **exactly**, including the trailing slash as configured. AuthHero does not normalize it, and it is byte-identical to the `issuer` in the discovery document.                            |
-| `aud`         | For an **ID token**, the `client_id` it was issued to. For an **access token**, the `audience` requested at `/authorize` (i.e. the resource server identifier). Reject tokens minted for a different audience. |
-| `exp` / `iat` | Standard expiry and issued-at checks. Access tokens default to 24 hours, overridable per resource server; impersonation tokens are always 1 hour.                                                              |
-| `nonce`       | On an ID token from an interactive flow, must match the `nonce` you sent to `/authorize`.                                                                                                                      |
-| `sub`         | The user ID. Use this as the stable account identifier, not `email`.                                                                                                                                           |
+| Claim         | What to check                                                                                                                                                                       |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `iss`         | Must equal your issuer **exactly**, including the trailing slash as configured. AuthHero does not normalize it, and it is byte-identical to the `issuer` in the discovery document. |
+| `aud`         | For an **ID token**, the `client_id` it was issued to. For an **access token**, your own resource server identifier — see below. Reject anything else.                              |
+| `exp` / `iat` | Standard expiry and issued-at checks. Access tokens default to 24 hours, overridable per resource server; impersonation tokens are always 1 hour.                                   |
+| `nonce`       | On an ID token from an interactive flow, must match the `nonce` you sent to `/authorize`.                                                                                           |
+| `sub`         | The user ID. Use this as the stable account identifier, not `email`.                                                                                                                |
 
-Access tokens additionally carry `scope`, `sid` (the session ID), and `org_id`
-when the token was issued in an organization context. Custom claims added by
-hooks can never overwrite a claim the authorization server owns — colliding
-names are dropped. See [Tokens](/entities/security/tokens) for the full claim
-reference.
+An access token's `aud` is whatever the request asked for: the `audience`
+parameter sent to `/authorize`, or — on the `client_credentials` grant, which
+never touches `/authorize` — the `audience` sent to `/oauth/token`. Either
+falls back to the tenant's `default_audience`, and to `<issuer>userinfo` if
+that is unset too. So compare `aud` against the identifier _your_ resource
+server owns and reject everything else; never trust the value the token
+happens to carry.
+
+Access tokens additionally carry `scope`, `permissions` (when the resource
+server issues them), `sid` (the session ID), and `org_id` when the token was
+issued in an organization context. Custom claims added by hooks can never
+overwrite a claim the authorization server owns — colliding names are dropped.
+See [Tokens](/entities/security/tokens) for the full claim reference.
 
 If you need up-to-date profile information rather than proof of authentication,
 call [`/userinfo`](/api/endpoints) with the access token instead of reading
 profile claims out of the token.
+
+### 4. Authorize the operation
+
+Signature, `iss`, `aud` and `exp` only establish that the token is genuine and
+meant for you. They say nothing about what the caller may do. Every protected
+operation must additionally check that the token grants it — the relevant entry
+in `scope` or in `permissions` — and return `403` when it doesn't. A token
+issued for your audience with none of the scopes an endpoint needs is a valid
+token and an unauthorized request.
 
 ## Refresh Token Flow
 

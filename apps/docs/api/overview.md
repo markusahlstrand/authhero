@@ -35,8 +35,8 @@ The base URL for API requests depends on your AuthHero configuration:
 
 ## Response Format
 
-All API responses are JSON. Successful responses return the resource (or a
-collection) **directly** — there is no wrapper envelope:
+Management API responses, and the JSON responses of the OAuth endpoints, return
+the resource (or a collection) **directly** — there is no wrapper envelope:
 
 ```json
 {
@@ -49,8 +49,12 @@ List endpoints return a bare array by default, or an Auth0-style totals envelope
 when `include_totals=true`; checkpoint pagination returns the items plus a `next`
 cursor. See [Pagination](pagination.md).
 
-Errors are returned as a flat object rather than nested under the success
-payload — see [Error Codes](error-codes.md) for the exact shapes.
+JSON errors are returned as a flat object rather than nested under the success
+payload. Not every failure is JSON, though: `/authorize` reports errors back
+through the redirect it was given — as query or fragment parameters, or as a
+`postMessage` for `response_mode=web_message` — so a client must not blindly
+parse an `/authorize` response as JSON. See [Error Codes](error-codes.md) for
+the exact shapes of both.
 
 ## Rate Limiting
 
@@ -81,16 +85,20 @@ open** — a misbehaving rate limiter must never lock users out.
 
 ### Attack protection
 
-Independently of the rate-limit adapter, two tenant-level controls apply:
+Two tenant-level attack-protection controls sit on top of the scopes above:
 
-- **Suspicious IP throttling** — the `pre-login` check above only runs when the
-  tenant's `attack_protection.suspicious_ip_throttling.enabled` is true, and it
-  skips IPs on that section's `allowlist`.
+- **Suspicious IP throttling** — this _is_ the `pre-login` check above, so it
+  needs the `rateLimit` adapter as well as the tenant's
+  `attack_protection.suspicious_ip_throttling.enabled` flag; without an adapter
+  it does not run at all. When both are in place it skips IPs on that section's
+  `allowlist`.
 - **Brute-force protection** — password logins are refused with `403` and the
   code `TOO_MANY_FAILED_LOGINS` after 3 failed attempts within 5 minutes. The
   counter is stored against the user's primary (linked) account and is cleared
-  by a successful login or a password reset. Other authentication methods (OTP,
-  social login) remain available while the account is throttled.
+  by a successful login or a password reset. This one is _not_ adapter-backed —
+  it counts against the user record and applies whether or not a `rateLimit`
+  adapter is configured. Other authentication methods (OTP, social login)
+  remain available while the account is throttled.
 
 Both sections are readable and writable through
 `/api/v2/attack-protection/suspicious-ip-throttling` and
