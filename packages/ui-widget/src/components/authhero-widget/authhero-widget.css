@@ -8,7 +8,15 @@
 
 :host {
   display: block;
-  font-family: var(--ah-font-family, 'ulp-font', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, sans-serif);
+  font-family: var(
+    --ah-font-family,
+    "ulp-font",
+    -apple-system,
+    BlinkMacSystemFont,
+    Roboto,
+    Helvetica,
+    sans-serif
+  );
   font-size: var(--ah-font-size-base, 16px);
   line-height: var(--ah-line-height-base, 1.5);
   color: var(--ah-color-text, #1e212a);
@@ -26,7 +34,8 @@
   margin: 0 auto;
   background-color: var(--ah-color-bg, #ffffff);
   border-radius: var(--ah-widget-radius, 5px);
-  border: var(--ah-widget-border-width, 0) solid var(--ah-widget-border-color, transparent);
+  border: var(--ah-widget-border-width, 0) solid
+    var(--ah-widget-border-color, transparent);
   box-shadow: var(--ah-widget-shadow, 0 4px 22px 0 rgba(0, 0, 0, 0.11));
   box-sizing: border-box;
 }
@@ -206,7 +215,7 @@ form {
 
 .divider::before,
 .divider::after {
-  content: '';
+  content: "";
   flex: 1;
   border-bottom: 1px solid var(--ah-color-border-muted, #c9cace);
 }
@@ -325,22 +334,45 @@ form {
 
 /* ==========================================================================
    Small Screen Adjustments
-   - Remove shadow and border-radius for edge-to-edge look
-   - Keep widget background color
-   - Full width spanning entire screen
+
+   Two mobile layouts, selected by the `floating` attribute on the host:
+
+   - Default (no attribute) — full-bleed. The card fills the phone screen
+     edge-to-edge: shadow and radius stripped, host painted in the widget
+     background and stretched to 100vh. This is right on a solid page
+     background, where there is nothing behind the card worth showing.
+
+   - `floating` — the card stays a card, centred on the page background with
+     its radius and shadow intact. The page sets this when
+     `theme.page_background.background_image_url` is present, so the tenant's
+     background image is still visible around the card on a phone. The host
+     must NOT paint a background or claim 100vh here, or it would cover the
+     very image it is meant to sit on.
    ========================================================================== */
 
 @media (max-width: 480px) {
-  :host {
+  :host(:not([floating])) {
     display: block;
     width: 100%;
     min-height: 100vh;
     background-color: var(--ah-color-bg, #ffffff);
   }
 
-  .widget-container {
+  :host(:not([floating])) .widget-container {
     box-shadow: none;
     border-radius: 0;
+    /* The border must go too, not just the radius and shadow: a themed
+       --ah-widget-border-width draws the card's bottom edge straight across
+       the phone, splitting the screen with a stray line where the form ends
+       and leaving the fill below it looking cut off rather than intentional. */
+    border: 0;
+    width: 100%;
+    margin: 0;
+  }
+
+  /* Floating: full width within the page's padding, card chrome preserved
+     (radius/shadow keep their themed --ah-widget-* values). */
+  :host([floating]) .widget-container {
     width: 100%;
     margin: 0;
   }
