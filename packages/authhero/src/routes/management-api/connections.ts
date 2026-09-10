@@ -29,6 +29,14 @@ const connectionsWithTotalsSchema = withTotals({
   connections: z.array(connectionSchema),
 });
 
+// Checkpoint (keyset) pagination response: items plus an opaque cursor.
+const connectionsWithNextSchema = z.object({
+  connections: z.array(connectionSchema),
+  next: z.string().optional().openapi({
+    description: "Opaque cursor for the next page; absent on the last page.",
+  }),
+});
+
 // Auth0 omits secret fields from connection responses — callers must POST/PATCH
 // to set them, and a missing value means "keep existing". Mirror that contract,
 // but return a masked hint in a sibling `<field>_hint` so the admin UI can show
@@ -169,6 +177,7 @@ const getRoot = defineRoute({
             schema: z.union([
               z.array(connectionSchema),
               connectionsWithTotalsSchema,
+              connectionsWithNextSchema,
             ]),
           },
         },
@@ -184,6 +193,8 @@ const getRoot = defineRoute({
       include_totals = false,
       sort,
       q,
+      from,
+      take,
     } = ctx.req.valid("query");
 
     const result = await ctx.env.data.connections.list(tenantId, {
@@ -192,9 +203,18 @@ const getRoot = defineRoute({
       include_totals,
       sort: parseSort(sort),
       q,
+      from,
+      take,
     });
 
     const connections = result.connections.map(stripConnectionSecrets);
+
+    // Keyset (checkpoint) pagination: return Auth0's { items, next } shape so
+    // callers can walk past the first page with the opaque cursor. The offset
+    // mode below (page/per_page + include_totals) is untouched.
+    if (from !== undefined || take !== undefined) {
+      return ctx.json({ connections, next: result.next });
+    }
 
     return ctx.json(
       listResponse(include_totals, { ...result, connections }, "connections"),

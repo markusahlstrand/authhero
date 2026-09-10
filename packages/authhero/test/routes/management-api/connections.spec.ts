@@ -668,4 +668,159 @@ describe("connections", () => {
     expect(rotated?.options?.app_secret).toBe("app-secret");
     expect(rotated?.options?.twilio_token).toBe("twilio-secret");
   });
+
+  // Checkpoint (keyset) pagination — a superset of Auth0, which only offers
+  // offset paging on /connections.
+  describe("checkpoint pagination", () => {
+    const CP_TENANT = "checkpoint-connections-tenant";
+
+    async function seedConnections(
+      env: Awaited<ReturnType<typeof getTestServer>>["env"],
+      count: number,
+    ) {
+      await env.data.tenants.create({
+        id: CP_TENANT,
+        friendly_name: "Checkpoint Connections Tenant",
+        audience: "https://example.com",
+        sender_email: "login@example.com",
+        sender_name: "SenderName",
+      });
+      for (let i = 0; i < count; i++) {
+        await env.data.connections.create(CP_TENANT, {
+          id: `con-cp-${i.toString().padStart(2, "0")}`,
+          name: `connection-${i}`,
+          strategy: "mock-strategy",
+          options: {},
+        });
+      }
+    }
+
+    it("pages connections with take/from and an opaque next cursor", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      await seedConnections(env, 12);
+
+      const seen = new Set<string>();
+      let from: string | undefined;
+      let pages = 0;
+
+      for (;;) {
+        const response = await managementClient.connections.$get(
+          {
+            query: from ? { take: "5", from } : { take: "5" },
+            header: { "tenant-id": CP_TENANT },
+          },
+          { headers: { authorization: `Bearer ${token}` } },
+        );
+        expect(response.status).toBe(200);
+
+        const body = (await response.json()) as {
+          connections: Connection[];
+          next?: string;
+        };
+        pages++;
+        // Checkpoint responses are { connections, next }, not a bare array
+        // and not the offset totals shape.
+        expect(Array.isArray(body.connections)).toBe(true);
+        expect("start" in body).toBe(false);
+        for (const connection of body.connections) {
+          expect(seen.has(connection.id)).toBe(false); // no duplicates
+          seen.add(connection.id);
+        }
+        if (!body.next) break;
+        expect(body.next).not.toMatch(/^\d+$/); // opaque, not an offset
+        from = body.next;
+        if (pages > 10) throw new Error("cursor walk did not terminate");
+      }
+
+      expect(seen.size).toBe(12);
+      expect(pages).toBe(3); // 5 + 5 + 2
+    });
+
+    it("still redacts secrets in checkpoint mode", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      await env.data.tenants.create({
+        id: CP_TENANT,
+        friendly_name: "Checkpoint Connections Tenant",
+        audience: "https://example.com",
+        sender_email: "login@example.com",
+        sender_name: "SenderName",
+      });
+      await env.data.connections.create(CP_TENANT, {
+        id: "con-secret",
+        name: "secretive",
+        strategy: "mock-strategy",
+        options: { client_id: "cid", client_secret: "super-secret" },
+      });
+
+      const response = await managementClient.connections.$get(
+        {
+          query: { take: "5" },
+          header: { "tenant-id": CP_TENANT },
+        },
+        { headers: { authorization: `Bearer ${token}` } },
+      );
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as { connections: Connection[] };
+      expect(body.connections).toHaveLength(1);
+      expect(body.connections[0]!.options?.client_secret).toBeUndefined();
+      expect(JSON.stringify(body)).not.toContain("super-secret");
+    });
+
+    it("leaves the offset mode untouched", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      await seedConnections(env, 12);
+
+      const response = await managementClient.connections.$get(
+        {
+          query: { page: "0", per_page: "5", include_totals: "true" },
+          header: { "tenant-id": CP_TENANT },
+        },
+        { headers: { authorization: `Bearer ${token}` } },
+      );
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as {
+        connections: Connection[];
+        start: number;
+        limit: number;
+        length: number;
+        next?: string;
+      };
+      expect(body.connections).toHaveLength(5);
+      expect(body.start).toBe(0);
+      expect(body.limit).toBe(5);
+      expect(body.length).toBe(12);
+      // No cursor is minted for offset requests.
+      expect(body.next).toBeUndefined();
+    });
+
+    it("rejects a cursor that is not a valid opaque token", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      await seedConnections(env, 3);
+
+      // A garbage cursor decodes to nothing, so the walk restarts from the
+      // first page rather than erroring or leaking an offset interpretation.
+      const response = await managementClient.connections.$get(
+        {
+          query: { take: "5", from: "not-a-cursor" },
+          header: { "tenant-id": CP_TENANT },
+        },
+        { headers: { authorization: `Bearer ${token}` } },
+      );
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as { connections: Connection[] };
+      expect(body.connections).toHaveLength(3);
+    });
+  });
 });

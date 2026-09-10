@@ -5,6 +5,13 @@ import type { Connection, ListParams } from "@authhero/adapter-interfaces";
 import { connections } from "../schema/sqlite";
 import { removeNullProperties, parseJsonIfString } from "../helpers/transform";
 import { buildLuceneFilter } from "../helpers/filter";
+import {
+  isKeysetRequest,
+  keysetCondition,
+  keysetOrderBy,
+  keysetTake,
+  sliceWithNext,
+} from "../helpers/paginate";
 import type { DrizzleDb } from "./types";
 
 function generateConnectionId(): string {
@@ -122,6 +129,38 @@ export function createConnectionsAdapter(db: DrizzleDb) {
       if (q) {
         const lucene = buildLuceneFilter(connections, q, ["name"]);
         if (lucene) filter = and(filter, lucene)!;
+      }
+
+      // Keyset (checkpoint) pagination: from/take. Fixed created_at desc order
+      // with an id tiebreaker; no total, matching Auth0's checkpoint responses.
+      if (isKeysetRequest(params)) {
+        const cols = {
+          sortColumn: connections.created_at,
+          idColumn: connections.id,
+          sortOrder: "desc" as const,
+        };
+        const keyset = keysetCondition(params, cols);
+        const take = keysetTake(params);
+        const rows = await db
+          .select()
+          .from(connections)
+          .where(keyset ? and(filter, keyset) : filter)
+          .orderBy(...keysetOrderBy(cols))
+          .limit(take + 1);
+        const { rows: pageRows, next } = sliceWithNext(
+          rows,
+          take,
+          "created_at",
+          "id",
+        );
+        const pageConnections = pageRows.map(sqlToConnection);
+        return {
+          connections: pageConnections,
+          start: 0,
+          limit: take,
+          length: pageConnections.length,
+          next,
+        };
       }
 
       let query = db.select().from(connections).where(filter).$dynamic();
