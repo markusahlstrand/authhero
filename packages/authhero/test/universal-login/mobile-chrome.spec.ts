@@ -122,8 +122,8 @@ describe("u2 page — phone chrome", () => {
     // align-items: stretch gives every in-flow wrapper the body's width.
     const css = mobileCss(await render({ termsAndConditionsUrl: TERMS }));
     const body = css.slice(css.indexOf("body {"));
-    expect(body).toMatch(/flex-direction:\s*column\s*!important/);
-    expect(body).toMatch(/align-items:\s*stretch\s*!important/);
+    expect(body).toMatch(/flex-direction:\s*column/);
+    expect(body).toMatch(/align-items:\s*stretch/);
   });
 
   it("keeps the footer hidden above the breakpoint", async () => {

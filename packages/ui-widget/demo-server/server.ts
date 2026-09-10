@@ -1543,6 +1543,7 @@ function renderMobilePreviewPage(options: {
     primaryColor: defaultSettings.brandColor,
     widgetBackground: "#ffffff",
     hasBgImage: false,
+    bodyLayout,
   });
 
   return `<!DOCTYPE html>
@@ -1553,18 +1554,6 @@ function renderMobilePreviewPage(options: {
   <title>AuthHero Widget — device preview</title>
   <script type="module" src="/widget/authhero-widget/authhero-widget.esm.js"></script>
   <style id="ah-page-css">${pageCss}</style>
-  <style>
-    body {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: ${bodyLayout.justifyContent};
-      background: ${bodyLayout.background};
-      font-family: ${bodyLayout.fontFamily};
-      padding: ${bodyLayout.padding};
-    }
-    .widget-container { width: clamp(320px, 100%, 400px); }
-  </style>
 </head>
 <body>
   <div class="ah-bg-tint" aria-hidden="true"></div>
@@ -1619,7 +1608,6 @@ function renderMobilePreviewPage(options: {
       else if (dm === 'light') { root.classList.add('ah-light-mode'); root.setAttribute('data-mode', 'light'); }
       else { root.removeAttribute('data-mode'); }
 
-      Object.assign(document.body.style, rendered.bodyStyle);
 
       // Mirror the production page: the widget only goes full-bleed on a
       // phone when there is no background image behind it.
@@ -3995,13 +3983,8 @@ app.post("/u2/preview/chrome", async (c) => {
       themePrimary: s.primaryButton,
       widgetBackground: s.widgetBackground || "#ffffff",
       hasBgImage,
+      bodyLayout,
     }),
-    bodyStyle: {
-      background: bodyLayout.background,
-      justifyContent: bodyLayout.justifyContent,
-      fontFamily: bodyLayout.fontFamily,
-      padding: bodyLayout.padding,
-    },
     dataBg: hasBgImage ? "image" : "none",
     logoPosition,
     darkMode,

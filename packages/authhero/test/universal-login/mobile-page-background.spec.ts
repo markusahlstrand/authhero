@@ -10,8 +10,8 @@
  *    background collapses into the widget's colour.
  *
  * The regression these guard: a blanket
- * `body { background: <widget bg> !important }` at <=480px, which wiped the
- * tenant's background image on every phone.
+ * `body { background: <widget bg> }` at <=480px, which wiped the tenant's
+ * background image on every phone.
  */
 import { describe, expect, it } from "vitest";
 import { renderWidgetPageResponse } from "../../src/routes/universal-login/u2-widget-page";
@@ -118,7 +118,7 @@ describe("u2 page — phone layout", () => {
       const css = mobileCss(
         await render({ background_color: "#0f172a", page_layout: "center" }),
       );
-      expect(css).toMatch(/body\s*\{[^}]*background:\s*#ffffff\s*!important/);
+      expect(css).toMatch(/body\s*\{[^}]*background:\s*#ffffff\s*[;}]/);
       expect(css).toMatch(/\.ah-bg-tint\s*\{\s*display:\s*none/);
     });
 
