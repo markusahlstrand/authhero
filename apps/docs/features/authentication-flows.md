@@ -29,7 +29,97 @@ AuthHero issues several types of tokens:
 
 ## Token Verification
 
-[Token verification process will be documented here]
+ID tokens and access tokens are signed JWTs, and APIs should verify them
+**locally** rather than calling back to AuthHero on every request.
+
+### 1. Discover the keys
+
+AuthHero publishes standard OIDC discovery documents:
+
+```http
+GET /.well-known/openid-configuration
+GET /.well-known/oauth-authorization-server
+```
+
+Both advertise a `jwks_uri` pointing at:
+
+```http
+GET /.well-known/jwks.json
+```
+
+Fetch the JWKS once, cache it, and refresh it when you see a `kid` you don't
+recognise (key rotation adds a new key before retiring the old one). Every token
+AuthHero issues carries the signing key's `kid` in its JWT header, so pick the
+matching key rather than assuming there is only one.
+
+Do not refetch on _every_ unrecognised `kid`: anyone who can reach your API can
+mint garbage tokens with a fresh random `kid` each time, and an unbounded
+refresh turns that into a request amplifier against your own JWKS endpoint. Use
+a verifier that bounds the refetch — `jose`'s `createRemoteJWKSet` is the usual
+choice, and handles it for you with a cache (`cacheMaxAge`, default 10 minutes),
+a cooldown between refreshes (`cooldownDuration`, default 30 seconds) and
+coalescing of concurrent in-flight fetches:
+
+```ts
+import { createRemoteJWKSet, jwtVerify } from "jose";
+
+const JWKS = createRemoteJWKSet(
+  new URL("https://auth.yourdomain.com/.well-known/jwks.json"),
+);
+
+const { payload } = await jwtVerify(token, JWKS, {
+  issuer: "https://auth.yourdomain.com/",
+  audience: "https://api.yourdomain.com",
+  algorithms: ["RS256"],
+});
+```
+
+If you write your own verifier instead, implement the equivalent: cache the
+key set, rate-limit refreshes, and de-duplicate concurrent fetches.
+
+### 2. Verify the signature
+
+The supported signing algorithms are advertised in
+`id_token_signing_alg_values_supported` and are currently `RS256`, `ES256`,
+`ES384` and `ES512`. Pin your verifier to the algorithms you expect and reject
+anything else — never trust the token header's `alg` on its own.
+
+### 3. Check the claims
+
+| Claim         | What to check                                                                                                                                                                       |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `iss`         | Must equal your issuer **exactly**, including the trailing slash as configured. AuthHero does not normalize it, and it is byte-identical to the `issuer` in the discovery document. |
+| `aud`         | For an **ID token**, the `client_id` it was issued to. For an **access token**, your own resource server identifier — see below. Reject anything else.                              |
+| `exp` / `iat` | Standard expiry and issued-at checks. Access tokens default to 24 hours, overridable per resource server; impersonation tokens are always 1 hour.                                   |
+| `nonce`       | On an ID token from an interactive flow, must match the `nonce` you sent to `/authorize`.                                                                                           |
+| `sub`         | The user ID. Use this as the stable account identifier, not `email`.                                                                                                                |
+
+An access token's `aud` is whatever the request asked for: the `audience`
+parameter sent to `/authorize`, or — on the `client_credentials` grant, which
+never touches `/authorize` — the `audience` sent to `/oauth/token`. Either
+falls back to the tenant's `default_audience`, and to `<issuer>userinfo` if
+that is unset too. So compare `aud` against the identifier _your_ resource
+server owns and reject everything else; never trust the value the token
+happens to carry.
+
+Access tokens additionally carry `scope`, `permissions` (when the resource
+server issues them), `sid` (the session ID), and `org_id` when the token was
+issued in an organization context. Custom claims added by hooks can never
+overwrite a claim the authorization server owns — colliding names are dropped.
+See [Tokens](/entities/security/tokens) for the full claim reference.
+
+If you need up-to-date profile information rather than proof of authentication,
+call [`/userinfo`](/api/endpoints) with the access token instead of reading
+profile claims out of the token.
+
+### 4. Authorize the operation
+
+Signature, `iss`, `aud` and `exp` only establish that the token is genuine and
+meant for you. They say nothing about what the caller may do. Every protected
+operation must additionally check that the token grants it — the relevant entry
+in `scope` or in `permissions` — and return `403` when it doesn't. A token
+issued for your audience with none of the scopes an endpoint needs is a valid
+token and an unauthorized request.
 
 ## Refresh Token Flow
 
@@ -111,8 +201,88 @@ See the [`grants`](/entities/identity/users#oauth-grants) entity for the underly
 
 ## Custom Authentication Flows
 
-[Custom authentication flow options will be documented here]
+The flow above can be extended at several points without forking AuthHero.
+
+### Hooks
+
+[Hooks](/features/hooks) run your own logic at fixed points in the flow. Each
+hook is registered against a `trigger_id`:
+
+| Trigger                  | When it runs                                                                                   |
+| ------------------------ | ---------------------------------------------------------------------------------------------- |
+| `pre-user-registration`  | Before a new user is created — can reject the signup                                           |
+| `post-user-registration` | After a user has been created                                                                  |
+| `post-user-login`        | After authentication succeeds, before tokens are issued — the usual place to add custom claims |
+| `credentials-exchange`   | On the `client_credentials` grant, for machine-to-machine tokens                               |
+
+A hook is either a **webhook** (AuthHero POSTs the event to your URL) or a
+**code hook** (a JavaScript function stored on the tenant and run by the
+configured code executor, using Auth0-style `onExecutePostLogin` /
+`onExecutePreUserRegistration` entry points).
+
+Note that hooks may add claims but may not overwrite the claims the
+authorization server owns — see [Token Verification](#token-verification).
+
+### Forms and Flows
+
+[Forms](/features/forms) let you insert extra server-rendered steps (for example
+profile completion) into the login journey, and [Flows](/features/flows)
+describe the actions taken when a form is submitted. Together they cover most
+"ask the user for one more thing before finishing login" cases without custom
+code.
+
+### Connections
+
+Which authentication methods a user is offered is a per-tenant, per-client
+choice of connections: database (username/password), passwordless email or SMS
+one-time codes, social providers, and [SAML](/customization/saml/). A database
+connection with `import_mode` enabled additionally supports lazy migration —
+credentials are verified against the upstream provider on first login and then
+stored locally.
+
+### Multi-factor authentication
+
+[MFA](/features/mfa) adds a challenge step after primary authentication.
+
+### Login UI
+
+The hosted login screens are themeable per tenant through branding and prompt
+settings, including whether the identifier and password are collected on one
+screen or two. See the [Customization](/customization/) section.
 
 ## Security Considerations
 
-[Security best practices will be documented here]
+- **Always use PKCE for public clients.** A token exchange with no
+  `client_secret` is only accepted when the request carries a `code_verifier`
+  **and** the stored authorization code carries a `code_challenge` issued at
+  `/authorize`. A bare `code_verifier` against a non-PKCE code is not proof of
+  possession and is rejected. See [RFC 7636](/standards/rfc-7636).
+- **Send and verify `state` and `nonce`.** `state` protects the redirect against
+  CSRF; `nonce` binds the ID token to your authorization request. Verify both on
+  the way back.
+- **Prefer rotating refresh tokens.** Setting a client's
+  `refresh_token.rotation_type` to `rotating` issues a new refresh token on each
+  exchange. AuthHero detects reuse of an already-rotated token and revokes the
+  whole token family; a short `leeway` (30 seconds by default) tolerates
+  legitimate retries and races.
+- **Keep refresh tokens and client secrets off the browser.** Public clients
+  should hold only short-lived access tokens; anything with a `client_secret`
+  belongs on a server.
+- **Scope tokens to a real audience.** Request the resource server's identifier
+  as `audience` and have each API reject tokens issued for a different one. See
+  [RBAC and scopes](/features/rbac-and-scopes).
+- **Mark external integrations as third-party clients.** Setting
+  `is_first_party: false` forces per-user consent instead of silently honoring
+  whatever scope the client asks for.
+- **Enable attack protection.** Brute-force protection and suspicious-IP
+  throttling are per-tenant settings; the IP throttle also needs a rate-limit
+  adapter to be configured. See
+  [Rate Limiting](/api/overview#rate-limiting).
+- **Don't put secrets in custom claims.** Access tokens are readable by anyone
+  holding them; treat every claim you add in a hook as public.
+- **Revoke on the way out.** Logout should terminate the session, not just drop
+  the client's copy of the tokens — see
+  [Session management](/features/session-management).
+
+For tenant isolation, Management API authorization and encryption at rest, see
+the [Security model](/security/).
