@@ -49,12 +49,75 @@ Before releasing, ensure that:
 
 ## Creating a Release
 
-[Release creation process will be documented here]
+Releases are driven entirely by the `Release` workflow
+(`.github/workflows/release.yml`), which runs on every push to `main`. There is
+no manual release command — merging a PR that contains changesets is what starts
+a release.
+
+The workflow:
+
+1. Installs dependencies and builds every workspace package with
+   `pnpm -r --filter './packages/**' build` (topological order, so each package
+   type-checks against its dependencies' freshly built `.d.ts` files).
+2. Runs [`changesets/action`](https://github.com/changesets/action).
+
+When unreleased changesets are present in `.changeset/`, the action opens (or
+updates) a pull request titled **`chore: version packages`**. That PR is
+generated, not hand-written: it deletes the consumed `.changeset/*.md` files,
+bumps each affected package's `version`, and appends the changeset descriptions
+to the package's `CHANGELOG.md`.
+
+Review the version PR the same way you'd review any other one — in particular
+check that the bump types match the changes described. If a bump is wrong, fix
+the changeset on `main` rather than editing the generated PR; the action will
+regenerate it.
 
 ## Publishing Packages
 
-[Package publication process will be documented here]
+Merging the `chore: version packages` PR pushes to `main` and re-runs the
+workflow. This time there are no changesets left to consume, so the action runs
+the publish step instead:
+
+```bash
+pnpm changeset publish
+```
+
+This publishes every package whose version is not yet on npm and pushes the
+`<package>@<version>` git tags that `changeset publish` creates. Relevant
+configuration:
+
+- **Access** — `.changeset/config.json` sets `"access": "public"`, so scoped
+  `@authhero/*` packages are published publicly.
+- **Provenance** — the workflow sets `NPM_CONFIG_PROVENANCE: true` and requests
+  the `id-token: write` permission, so releases carry npm provenance
+  attestations linking them back to the workflow run.
+- **Internal dependencies** — `updateInternalDependencies` is `patch` and
+  `bumpVersionsWithWorkspaceProtocolOnly` is `true`, so a bump to
+  `@authhero/adapter-interfaces` also patch-bumps the workspace packages that
+  depend on it.
+- **What is not published** — anything marked `"private": true` in its
+  `package.json`. That covers the documentation site, the website, and the
+  conformance runner. Everything else is released, including `@authhero/admin`,
+  which lives under `apps/` but is a published package.
 
 ## Post-Release Steps
 
-[Post-release steps will be documented here]
+After the publish job goes green:
+
+1. **Verify the release landed on npm.** Check that the `latest` dist-tag
+   matches the version in the repository, e.g.
+   `npm view authhero version` and
+   `npm view @authhero/drizzle version`. A publish can partially fail (for
+   example on an npm outage); the git tag existing does not by itself prove the
+   tarball is on the registry.
+2. **Check the changelog.** `packages/<name>/CHANGELOG.md` should contain an
+   entry for the new version with the changeset descriptions.
+3. **Bump consumers.** Downstream deployments pin published versions rather
+   than using the workspace, so update the dependency range in each consuming
+   repository and deploy it. Adapter packages must be bumped together with
+   `authhero` when a release changes the adapter contract.
+4. **Check the conformance result.** The OpenID conformance workflow runs
+   automatically on the `changeset-release/main` version PR (it is skipped on
+   every other PR). If it was red, decide whether the failure is a real
+   regression before advertising the release — see
+   [Conformance](/standards/conformance).
