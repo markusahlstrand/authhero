@@ -200,11 +200,15 @@ export function resolveTermsLabel(language?: string): string {
 // ---------------------------------------------------------------------------
 
 /**
- * Build the inline `style` value for the widget container. Custom templates
- * inject the widget into a tenant-controlled body fragment, so the same CSS
- * variables (and responsive width clamp) the default layout uses must be
- * forwarded — otherwise primary-color theming and the responsive width are
- * lost on the custom-template path.
+ * Build the inline `style` value for the widget container: the per-tenant CSS
+ * variables, and nothing else. Custom templates inject the widget into a
+ * tenant-controlled body fragment, so these have to be forwarded or
+ * primary-color theming is lost on the custom-template path.
+ *
+ * The responsive width lives in the stylesheet (`.widget-container` in
+ * `buildPageCss`) rather than here. It is identical for every tenant, and an
+ * inline declaration would outrank the phone breakpoints that override it —
+ * which is what forced the whole mobile block to shout with !important.
  */
 function buildWidgetContainerStyle(
   branding: WidgetPageProps["branding"],
@@ -226,9 +230,7 @@ function buildWidgetContainerStyle(
       blackContrast > whiteContrast * BIAS ? "#000000" : "#ffffff";
     cssVariables.push(`--ah-color-text-on-primary: ${textOnPrimary}`);
   }
-  return cssVariables.length > 0
-    ? cssVariables.join("; ") + "; width: clamp(320px, 100%, 400px);"
-    : "width: clamp(320px, 100%, 400px);";
+  return cssVariables.join("; ");
 }
 
 // ---------------------------------------------------------------------------
@@ -311,10 +313,10 @@ export function buildHeadEssentials(opts: {
   const themePrimary = sanitizeCssColor(opts.theme?.colors?.primary_button);
   const widgetBackground =
     sanitizeCssColor(opts.theme?.colors?.widget_background) || "#ffffff";
-  // Full-document templates own `<body>` (no inline body style), so the page
-  // layout must come from the stylesheet — otherwise the widget renders
-  // top-left on a bare white page ("no styles"). This centers it on the page
-  // background, matching what Auth0's own `auth0:head` ships.
+  // Full-document templates own `<body>`, so the page layout has to come from
+  // the stylesheet — otherwise the widget renders top-left on a bare white
+  // page ("no styles"). This centers it on the page background, matching what
+  // Auth0's own `auth0:head` ships.
   const bodyLayout = buildBodyLayout({
     themePageBackground: opts.theme?.page_background,
     brandingPageBackground: opts.branding?.colors?.page_background,
@@ -375,8 +377,9 @@ export function WidgetPage({
   const fontUrl = sanitizeUrl(branding?.font?.url);
   const widgetBackground =
     sanitizeCssColor(theme?.colors?.widget_background) || "#ffffff";
-  // Same layout resolution the full-document path emits into the stylesheet;
-  // here it's applied inline on `<body>` (and wins over any stylesheet rule).
+  // Emitted into the stylesheet by `buildPageCss` below, exactly as on the
+  // full-document path — one mechanism, so the phone breakpoints override it
+  // by plain cascade instead of having to outrank an inline declaration.
   const bodyLayout = buildBodyLayout({
     themePageBackground,
     brandingPageBackground: branding?.colors?.page_background,
@@ -387,16 +390,6 @@ export function WidgetPage({
   const safeLogoUrl = branding?.logo_url
     ? sanitizeUrl(branding.logo_url)
     : null;
-
-  const bodyStyle = {
-    minHeight: "100vh",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: bodyLayout.justifyContent,
-    background: bodyLayout.background,
-    fontFamily: bodyLayout.fontFamily,
-    padding: bodyLayout.padding,
-  };
 
   const widgetContainerStyle = buildWidgetContainerStyle(branding, theme);
 
@@ -422,6 +415,7 @@ export function WidgetPage({
     themePrimary: sanitizeCssColor(theme?.colors?.primary_button),
     widgetBackground,
     hasBgImage,
+    bodyLayout,
   });
 
   // -------------------------------------------------------------------------
@@ -479,7 +473,7 @@ export function WidgetPage({
           src={`/u/widget/authhero-widget.esm.js?v=${buildHash}`}
         />
       </head>
-      <body style={bodyStyle}>
+      <body>
         {hasBgImage && <div class="ah-bg-tint" aria-hidden="true" />}
 
         {customBodyHtml ? (

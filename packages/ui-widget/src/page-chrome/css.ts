@@ -11,8 +11,8 @@ import { darkModeCssVarRules } from "./colors";
 import { buildThemePageBackground } from "./html";
 import type { BrandingPageBackground, ThemePageBackground } from "./html";
 
-/** Layout values for the page `<body>` — shared by the body-fragment path
- *  (applied inline) and the full-document path (emitted into the stylesheet). */
+/** Layout values for the page `<body>` — emitted into the stylesheet by
+ *  `buildPageCss` on both render paths. */
 export type BodyLayout = {
   background: string;
   fontFamily: string;
@@ -22,9 +22,8 @@ export type BodyLayout = {
 
 /**
  * Resolve the page-body layout (centering, background, font) from the theme
- * and branding. Keeps the inline `<body>` style (fragment path) and the
- * `auth0:head` stylesheet rule (full-document path) in sync so an Auth0-style
- * template centers on the page background just like the default chrome does.
+ * and branding, so an Auth0-style template centers on the page background just
+ * like the default chrome does.
  *
  * The "left"/"right" offsets below are the wide-viewport values; the mobile
  * block in `buildPageCss` collapses them back to centered under 768px.
@@ -71,11 +70,10 @@ export function buildPageCss(opts: {
    */
   hasBgImage?: boolean;
   /**
-   * Page-body layout (centering, background, font). Only the full-document
-   * (Auth0-style) path passes this — there the tenant owns `<body>`, so the
-   * centering/background that the body-fragment path applies inline must come
-   * from the stylesheet instead. The fragment path omits it: its inline
-   * `<body>` style already covers layout and wins over a stylesheet rule.
+   * Page-body layout (centering, background, font). Both render paths pass it:
+   * expressing the layout one way, in this stylesheet, is what lets the phone
+   * breakpoints below override it by plain cascade. Omit it only when the
+   * caller styles `<body>` itself.
    */
   bodyLayout?: BodyLayout;
 }): string {
@@ -247,6 +245,11 @@ export function buildPageCss(opts: {
     .widget-container {
       position: relative;
       z-index: 1;
+      /* Static for every tenant and every request, so it belongs here rather
+         than in the container's inline style — that inline style carries only
+         the per-tenant CSS variables, which leaves the media queries below
+         free to override the width by plain cascade. */
+      width: clamp(320px, 100%, 400px);
       /* Names this box as its own view-transition group so its size morphs
          smoothly across step navigations (see STEP TRANSITIONS above). */
       view-transition-name: ah-widget;
@@ -504,10 +507,11 @@ export function buildPageCss(opts: {
        background image or fills the viewport when there isn't one — the
        two variants are emitted conditionally at the end of this block.
 
-       The !important flags are load-bearing: the body-fragment path sets
-       the body layout inline (see buildBodyLayout) and the widget
-       container's width inline (see buildWidgetContainerStyle), and an
-       inline declaration outranks a normal rule from this stylesheet.
+       Everything below overrides the base rules by plain cascade — same
+       specificity, later in the sheet. That only holds because the body
+       layout and the container width are emitted into this stylesheet on
+       both render paths; an inline declaration would outrank them and each
+       rule here would need !important to be heard.
 
        Below this width a page_layout of "left"/"right" collapses to
        centered: the 80px offset only reads as a deliberate composition when
@@ -515,7 +519,7 @@ export function buildPageCss(opts: {
        narrow window the offset just pushes a 400px card off-centre (and, at
        the low end, off-screen). */
     @media (max-width: 767px) {
-      body { justify-content: center !important; padding: 20px !important; }
+      body { justify-content: center; padding: 20px; }
     }
     @media (max-width: 480px) {
       /* Column, so stretch runs horizontally and every in-flow wrapper
@@ -525,12 +529,12 @@ export function buildPageCss(opts: {
          widget in its own element makes the percentage cyclic and the card
          shrink-to-fits to min-content (243px on a 375px phone). Vertical
          centering carries over from the <=767px rule's justify-content. */
-      body { flex-direction: column !important; align-items: stretch !important; }
-      /* Full width in both variants: overrides the inline
+      body { flex-direction: column; align-items: stretch; }
+      /* Full width in both variants: overrides the base
          clamp(320px, 100%, 400px), which would otherwise hold the card at
          400px with stray gutters on a 400-480px phone. */
-      .widget-container { width: 100% !important; }
-      .ah-widget-stack { width: 100% !important; }
+      .widget-container { width: 100%; }
+      .ah-widget-stack { width: 100%; }
       /* Every corner chip gives way to the footer bar, which carries the
          same content in a strip that can't overlap the form. */
       .ah-chip, .ah-chip-legal { display: none; }
@@ -549,7 +553,7 @@ ${
        attribute (see renderWidgetSSR). */
     @media (max-width: 480px) {
       /* Extra bottom padding keeps the floating card clear of the footer. */
-      body { padding: 20px 20px 76px !important; }
+      body { padding: 20px 20px 76px; }
       .ah-bg-tint { display: block; }
     }`
     : `
@@ -560,8 +564,8 @@ ${
        the widget's own colour. Matches the widget stylesheet's default
        (non-\`floating\`) mobile layout. */
     @media (max-width: 480px) {
-      body { background: ${widgetBackground} !important; padding: 0 !important; }
-      html.ah-dark-mode body { background: #111827 !important; }
+      body { background: ${widgetBackground}; padding: 0; }
+      html.ah-dark-mode body { background: #111827; }
       .ah-bg-tint { display: none; }
       /* The full-bleed widget is exactly 100vh, so pad its bottom (a
          light-DOM rule on the host beats the :host rule in its shadow tree)
