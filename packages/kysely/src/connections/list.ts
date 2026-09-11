@@ -7,6 +7,7 @@ import {
 import { Database } from "../db";
 import getCountAsInt from "../utils/getCountAsInt";
 import { transformConnections } from "./transform";
+import { keysetPaginate, isKeysetRequest } from "../helpers/paginate";
 
 export function list(db: Kysely<Database>) {
   return async (
@@ -21,6 +22,24 @@ export function list(db: Kysely<Database>) {
 
     if (q) {
       query = luceneFilter(db, query, q, ["user_id", "ip"]);
+    }
+
+    // Keyset (checkpoint) pagination: from/take. Fixed created_at desc order
+    // with an id tiebreaker; no total, matching Auth0's checkpoint responses.
+    if (isKeysetRequest(params)) {
+      const { rows, limit, next } = await keysetPaginate(
+        query.selectAll(),
+        params,
+        { sortColumn: "created_at", sortOrder: "desc", idColumn: "id" },
+      );
+      const pageConnections = transformConnections(rows);
+      return {
+        connections: pageConnections,
+        start: 0,
+        limit,
+        length: pageConnections.length,
+        next,
+      };
     }
 
     const filteredQuery = query.offset(page * per_page).limit(per_page);
