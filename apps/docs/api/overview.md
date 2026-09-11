@@ -62,7 +62,9 @@ Rate limiting is **optional and adapter-provided**. AuthHero itself ships no
 built-in counter: the host application supplies a `rateLimit` adapter
 implementing `consume(scope, key)` (see `RateLimitAdapter` in
 `@authhero/adapter-interfaces`), typically backed by a Cloudflare Workers Rate
-Limiter binding. If no adapter is configured, none of the checks below run.
+Limiter binding. If no adapter is configured, none of the adapter-backed scopes
+below run — brute-force protection is the one attack protection that survives
+without it, see [Attack protection](#attack-protection).
 
 Three logical scopes are defined. The numeric threshold and window for each are
 chosen by the backend at deploy time — they are not tenant-configurable, and the
@@ -96,9 +98,9 @@ Two tenant-level attack-protection controls sit on top of the scopes above:
   code `TOO_MANY_FAILED_LOGINS` after 3 failed attempts within 5 minutes. The
   counter is stored against the user's primary (linked) account and is cleared
   by a successful login or a password reset. This one is _not_ adapter-backed —
-  it counts against the user record and applies whether or not a `rateLimit`
-  adapter is configured. Other authentication methods (OTP, social login)
-  remain available while the account is throttled.
+  it counts against the user record and applies whether a `rateLimit` adapter
+  is configured or not. Other authentication methods (OTP, social login) remain
+  available while the account is throttled.
 
 Both sections are readable and writable through
 `/api/v2/attack-protection/suspicious-ip-throttling` and
