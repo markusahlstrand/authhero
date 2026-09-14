@@ -102,11 +102,18 @@ that is unset too. So compare `aud` against the identifier _your_ resource
 server owns and reject everything else; never trust the value the token
 happens to carry.
 
-Access tokens additionally carry `scope`, `permissions` (when the resource
-server issues them), `sid` (the session ID), and `org_id` when the token was
-issued in an organization context. Custom claims added by hooks can never
-overwrite a claim the authorization server owns — colliding names are dropped.
-See [Tokens](/entities/security/tokens) for the full claim reference.
+Access tokens additionally carry `scope`, `sid` (the session ID), and `org_id`
+when the token was issued in an organization context. A `permissions` claim is
+only present when the resource server has RBAC enabled (`enforce_policies:
+true`) _and_ its `token_dialect` is `access_token_authz`; with the default
+`access_token` dialect the granted permissions are folded into `scope` and no
+`permissions` claim is emitted, so an API must not assume the claim exists.
+When it is present, `permissions` is minted by the authorization server and
+only consumed by the resource server — it is not something an API adds to a
+token. See [RBAC and scopes](/features/rbac-and-scopes) for the dialect
+rules. Custom claims added by hooks can never overwrite a claim the
+authorization server owns — colliding names are dropped. See
+[Tokens](/entities/security/tokens) for the full claim reference.
 
 If you need up-to-date profile information rather than proof of authentication,
 call [`/userinfo`](/api/endpoints) with the access token instead of reading

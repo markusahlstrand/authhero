@@ -128,8 +128,11 @@ After the publish job goes green:
 4. **Check the conformance result.** The OpenID conformance workflow is
    _triggered_ on every pull request targeting `main`, so the required check is
    always reported — but its jobs are gated on
-   `github.head_ref == 'changeset-release/main'`, so on any other PR they
-   report as skipped and nothing actually runs. The version PR is therefore the
-   only place a real conformance result appears. If it was red, decide whether
-   the failure is a real regression before advertising the release — see
+   `github.event_name == 'workflow_dispatch' || github.head_ref == 'changeset-release/main'`,
+   so on any other PR they report as skipped and nothing actually runs. The
+   version PR is therefore the only PR that produces a conformance result
+   automatically; you can get one on any branch by running the workflow
+   manually from the Actions tab (`workflow_dispatch`, which also takes a
+   `grep` filter). If it was red, decide whether the failure is a real
+   regression before advertising the release — see
    [Conformance](/standards/conformance).
