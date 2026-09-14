@@ -13,6 +13,14 @@ type DailyStatsRow = {
   leaked_passwords: number;
 };
 
+const OTHER_TENANT_FIXTURE = {
+  id: OTHER_TENANT,
+  friendly_name: "Other Tenant",
+  audience: "https://other.example.com",
+  sender_email: "login@other.example.com",
+  sender_name: "Other",
+};
+
 function isoDaysAgo(days: number): string {
   const date = new Date();
   date.setUTCDate(date.getUTCDate() - days);
@@ -94,13 +102,7 @@ describe("management-api stats", () => {
     const client = testClient(managementApp, env);
     const token = await getAdminToken();
 
-    await env.data.tenants.create({
-      id: OTHER_TENANT,
-      friendly_name: "Other Tenant",
-      audience: "https://other.example.com",
-      sender_email: "login@other.example.com",
-      sender_name: "Other",
-    });
+    await env.data.tenants.create(OTHER_TENANT_FIXTURE);
 
     await env.data.logs.create(TENANT, {
       log_id: "log-own",
@@ -194,6 +196,16 @@ describe("management-api stats", () => {
       user_id: "email|stale",
       isMobile: false,
     });
+    // Recent, but on another tenant — the active-users query has its own
+    // tenant predicate, separate from the daily one.
+    await env.data.tenants.create(OTHER_TENANT_FIXTURE);
+    await env.data.logs.create(OTHER_TENANT, {
+      log_id: "active-foreign",
+      type: "s",
+      date: isoDaysAgo(1),
+      user_id: "email|foreign",
+      isMobile: false,
+    });
 
     const response = await client.stats["active-users"].$get(
       { header: { "tenant-id": TENANT } },
@@ -209,11 +221,17 @@ describe("management-api stats", () => {
     const client = testClient(managementApp, env);
     const tokenWithoutScope = await getAdminToken({ permissions: [] });
 
-    const response = await client.stats.daily.$get(
+    const dailyResponse = await client.stats.daily.$get(
       { query: {}, header: { "tenant-id": TENANT } },
       { headers: { authorization: `Bearer ${tokenWithoutScope}` } },
     );
+    expect(dailyResponse.status).toBe(403);
 
-    expect(response.status).toBe(403);
+    // /active-users declares its own security block, so check it too.
+    const activeUsersResponse = await client.stats["active-users"].$get(
+      { header: { "tenant-id": TENANT } },
+      { headers: { authorization: `Bearer ${tokenWithoutScope}` } },
+    );
+    expect(activeUsersResponse.status).toBe(403);
   });
 });

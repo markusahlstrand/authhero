@@ -52,6 +52,7 @@ describe("management-api client registration tokens", () => {
     const client = testClient(managementApp, env);
     const token = await getAdminToken();
 
+    const before = Date.now();
     const response = await client["client-registration-tokens"].$post(
       {
         json: {
@@ -64,14 +65,18 @@ describe("management-api client registration tokens", () => {
       },
       { headers: { authorization: `Bearer ${token}` } },
     );
+    const after = Date.now();
 
     expect(response.status).toBe(201);
     const body = (await response.json()) as MintResponse;
     expect(body.sub).toBe("email|userId");
     expect(body.constraints).toEqual({ client_name: "Pinned App" });
     expect(body.single_use).toBe(false);
-    const ttlMs = new Date(body.expires_at).getTime() - Date.now();
-    expect(ttlMs).toBeLessThanOrEqual(60 * 1000);
+    // The expiry must land exactly 60s after the mint, bracketed by the
+    // timestamps around the request so an already-expired token fails here.
+    const expiresAt = new Date(body.expires_at).getTime();
+    expect(expiresAt).toBeGreaterThanOrEqual(before + 60 * 1000);
+    expect(expiresAt).toBeLessThanOrEqual(after + 60 * 1000);
 
     const stored = await env.data.clientRegistrationTokens.get(TENANT, body.id);
     expect(stored!.sub).toBe("email|userId");

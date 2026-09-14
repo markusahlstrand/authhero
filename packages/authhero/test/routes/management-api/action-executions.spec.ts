@@ -210,7 +210,16 @@ describe("management-api action executions", () => {
       },
       { headers: { authorization: `Bearer ${tokenWithoutScope}` } },
     );
-
     expect(response.status).toBe(403);
+
+    // /logs declares its own security block, so check it independently.
+    const logsResponse = await client.actions.executions[":id"].logs.$get(
+      {
+        param: { id: created.id },
+        header: { "tenant-id": TENANT },
+      },
+      { headers: { authorization: `Bearer ${tokenWithoutScope}` } },
+    );
+    expect(logsResponse.status).toBe(403);
   });
 });
