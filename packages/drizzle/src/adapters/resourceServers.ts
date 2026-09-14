@@ -4,6 +4,13 @@ import type { ResourceServer, ListParams } from "@authhero/adapter-interfaces";
 import { resourceServers } from "../schema/sqlite";
 import { removeNullProperties, parseJsonIfString } from "../helpers/transform";
 import { buildLuceneFilter, sanitizeLuceneQuery } from "../helpers/filter";
+import {
+  isKeysetRequest,
+  keysetCondition,
+  keysetOrderBy,
+  keysetTake,
+  sliceWithNext,
+} from "../helpers/paginate";
 import type { DrizzleDb } from "./types";
 
 // Fields resourceServers.list() accepts in `q`. Excludes `tenant_id` to prevent
@@ -208,6 +215,38 @@ export function createResourceServersAdapter(db: DrizzleDb) {
           );
           if (filter) whereConditions.push(filter);
         }
+      }
+
+      // Keyset (checkpoint) pagination: from/take. Fixed created_at desc order
+      // with an id tiebreaker; no total, matching Auth0's checkpoint responses.
+      if (isKeysetRequest(params)) {
+        const cols = {
+          sortColumn: resourceServers.created_at,
+          idColumn: resourceServers.id,
+          sortOrder: "desc" as const,
+        };
+        const keyset = keysetCondition(params, cols);
+        const take = keysetTake(params);
+        const rows = await db
+          .select()
+          .from(resourceServers)
+          .where(and(...whereConditions, keyset))
+          .orderBy(...keysetOrderBy(cols))
+          .limit(take + 1);
+        const { rows: pageRows, next } = sliceWithNext(
+          rows,
+          take,
+          "created_at",
+          "id",
+        );
+        const pageResourceServers = pageRows.map(sqlToResourceServer);
+        return {
+          resource_servers: pageResourceServers,
+          start: 0,
+          limit: take,
+          length: pageResourceServers.length,
+          next,
+        };
       }
 
       let query = db
