@@ -787,4 +787,130 @@ describe("resource-servers", () => {
       expect(response.status).toBe(200);
     });
   });
+
+  // Checkpoint (keyset) pagination — a superset of Auth0, which only offers
+  // offset paging on /resource-servers.
+  describe("checkpoint pagination", () => {
+    const CP_TENANT = "checkpoint-resource-servers-tenant";
+
+    type ResourceServerBody = { id: string; identifier: string };
+
+    async function seedResourceServers(
+      env: Awaited<ReturnType<typeof getTestServer>>["env"],
+      count: number,
+    ) {
+      await env.data.tenants.create({
+        id: CP_TENANT,
+        friendly_name: "Checkpoint Resource Servers Tenant",
+        audience: "https://example.com",
+        sender_email: "login@example.com",
+        sender_name: "SenderName",
+      });
+      for (let i = 0; i < count; i++) {
+        await env.data.resourceServers.create(CP_TENANT, {
+          id: `rs-cp-${i.toString().padStart(2, "0")}`,
+          name: `api${i}`,
+          identifier: `https://api-${i}.example.com`,
+          scopes: [],
+        });
+      }
+    }
+
+    it("pages resource servers with take/from and an opaque next cursor", async () => {
+      const { managementApp, env } = await getTestServer();
+      const localClient = testClient(managementApp, env);
+      const localToken = await getAdminToken();
+
+      await seedResourceServers(env, 12);
+
+      const seen = new Set<string>();
+      let from: string | undefined;
+      let pages = 0;
+
+      for (;;) {
+        const response = await localClient["resource-servers"].$get(
+          {
+            query: from ? { take: "5", from } : { take: "5" },
+            header: { "tenant-id": CP_TENANT },
+          },
+          { headers: { authorization: `Bearer ${localToken}` } },
+        );
+        expect(response.status).toBe(200);
+
+        const body = (await response.json()) as {
+          resource_servers: ResourceServerBody[];
+          next?: string;
+        };
+        pages++;
+        // Checkpoint responses are { resource_servers, next }, not a bare
+        // array and not the offset totals shape.
+        expect(Array.isArray(body.resource_servers)).toBe(true);
+        expect("start" in body).toBe(false);
+        for (const resourceServer of body.resource_servers) {
+          expect(seen.has(resourceServer.id)).toBe(false); // no duplicates
+          seen.add(resourceServer.id);
+        }
+        if (!body.next) break;
+        expect(body.next).not.toMatch(/^\d+$/); // opaque, not an offset
+        from = body.next;
+        if (pages > 10) throw new Error("cursor walk did not terminate");
+      }
+
+      expect(seen.size).toBe(12);
+      expect(pages).toBe(3); // 5 + 5 + 2
+    });
+
+    it("leaves the offset mode untouched", async () => {
+      const { managementApp, env } = await getTestServer();
+      const localClient = testClient(managementApp, env);
+      const localToken = await getAdminToken();
+
+      await seedResourceServers(env, 12);
+
+      const response = await localClient["resource-servers"].$get(
+        {
+          query: { page: "0", per_page: "5", include_totals: "true" },
+          header: { "tenant-id": CP_TENANT },
+        },
+        { headers: { authorization: `Bearer ${localToken}` } },
+      );
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as {
+        resource_servers: ResourceServerBody[];
+        start: number;
+        limit: number;
+        length: number;
+        next?: string;
+      };
+      expect(body.resource_servers).toHaveLength(5);
+      expect(body.start).toBe(0);
+      expect(body.limit).toBe(5);
+      expect(body.length).toBe(12);
+      // No cursor is minted for offset requests.
+      expect(body.next).toBeUndefined();
+    });
+
+    it("rejects a cursor that is not a valid opaque token", async () => {
+      const { managementApp, env } = await getTestServer();
+      const localClient = testClient(managementApp, env);
+      const localToken = await getAdminToken();
+
+      await seedResourceServers(env, 3);
+
+      // A garbage cursor decodes to nothing, so the walk restarts from the
+      // first page rather than erroring or leaking an offset interpretation.
+      const response = await localClient["resource-servers"].$get(
+        {
+          query: { take: "5", from: "not-a-cursor" },
+          header: { "tenant-id": CP_TENANT },
+        },
+        { headers: { authorization: `Bearer ${localToken}` } },
+      );
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as {
+        resource_servers: ResourceServerBody[];
+      };
+      expect(body.resource_servers).toHaveLength(3);
+    });
+  });
 });

@@ -18,6 +18,14 @@ const resourceServersWithTotalsSchema = withTotals({
   resource_servers: z.array(resourceServerSchema),
 });
 
+// Checkpoint (keyset) pagination response: items plus an opaque cursor.
+const resourceServersWithNextSchema = z.object({
+  resource_servers: z.array(resourceServerSchema),
+  next: z.string().optional().openapi({
+    description: "Opaque cursor for the next page; absent on the last page.",
+  }),
+});
+
 // Auth0 lets clients reference a resource server by either its UUID id or its
 // URL identifier. SDKs (e.g. terraform-provider-auth0) commonly pass the
 // identifier. Look up by id first; on miss, scan by identifier.
@@ -60,6 +68,7 @@ const getRoot = defineRoute({
             schema: z.union([
               z.array(resourceServerSchema),
               resourceServersWithTotalsSchema,
+              resourceServersWithNextSchema,
             ]),
           },
         },
@@ -76,6 +85,8 @@ const getRoot = defineRoute({
       include_totals = false,
       sort,
       q,
+      from,
+      take,
     } = ctx.req.valid("query");
 
     const result = await ctx.env.data.resourceServers.list(tenant_id, {
@@ -84,7 +95,19 @@ const getRoot = defineRoute({
       include_totals,
       sort: parseSort(sort),
       q,
+      from,
+      take,
     });
+
+    // Keyset (checkpoint) pagination: return Auth0's { items, next } shape so
+    // callers can walk past the first page with the opaque cursor. The offset
+    // mode below (page/per_page + include_totals) is untouched.
+    if (from !== undefined || take !== undefined) {
+      return ctx.json({
+        resource_servers: result.resource_servers,
+        next: result.next,
+      });
+    }
 
     return ctx.json(listResponse(include_totals, result, "resource_servers"));
   },
