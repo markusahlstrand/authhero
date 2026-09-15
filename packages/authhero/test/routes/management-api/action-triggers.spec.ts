@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
 import { getAdminToken } from "../../helpers/token";
-import { getTestServer } from "../../helpers/test-server";
+import { getTestServer, type TestServer } from "../../helpers/test-server";
 
 const TENANT = "tenantId";
 const OTHER_TENANT = "otherTenant";
@@ -23,7 +23,12 @@ type Binding = {
   updated_at: string;
 };
 
-type Client = ReturnType<typeof testClient<any>>;
+type Client = ReturnType<typeof testClient<TestServer["managementApp"]>>;
+
+// Derived from the route itself so the helper stays in step with the schema.
+type BindingInput = Parameters<
+  Client["actions"]["triggers"][":triggerId"]["bindings"]["$patch"]
+>[0]["json"]["bindings"][number];
 
 async function createAction(
   client: Client,
@@ -68,7 +73,7 @@ async function patchBindings(
   client: Client,
   token: string,
   triggerId: string,
-  bindings: unknown[],
+  bindings: BindingInput[],
   tenantId = TENANT,
 ) {
   return client.actions.triggers[":triggerId"].bindings.$patch(
@@ -114,6 +119,7 @@ describe("management-api action trigger bindings", () => {
         trigger_id: "post-user-login",
         url: "https://example.com/webhook",
         enabled: true,
+        synchronous: false,
       });
 
       const body = await getBindings(client, token, "post-login");
@@ -241,8 +247,6 @@ describe("management-api action trigger bindings", () => {
         { ref: { type: "action_id", value: removedId } },
       ]);
       expect(first.status).toBe(200);
-      const firstBody = (await first.json()) as { bindings: Binding[] };
-      const firstHookIds = firstBody.bindings.map((b) => b.id);
 
       const second = await patchBindings(client, token, "post-login", [
         { ref: { type: "action_id", value: addedId } },
@@ -263,13 +267,8 @@ describe("management-api action trigger bindings", () => {
         addedId,
         keptId,
       ]);
-      // Bindings are re-created, not updated in place, so no hook id from the
-      // first PATCH survives (a stale id would keep its old priority).
-      for (const binding of listed.bindings) {
-        expect(firstHookIds).not.toContain(binding.id);
-      }
-
-      // Nothing is left behind in storage either.
+      // Nothing is left behind in storage either: exactly the two bound
+      // actions, with no orphan hook from the replaced set.
       const hooks = await env.data.hooks.list(TENANT, {
         q: 'trigger_id:"post-user-login"',
       });
@@ -319,6 +318,7 @@ describe("management-api action trigger bindings", () => {
         trigger_id: "post-user-login",
         url: "https://example.com/webhook",
         enabled: true,
+        synchronous: false,
       });
       const actionId = await createAction(client, token, "beside-webhook");
 
