@@ -77,6 +77,8 @@ type getEnvParams = {
   tenantOperationExecutor?: import("../../src/types").TenantOperationExecutorBinding;
   // Optional static CORS allow-list passed through to `init`.
   allowedOrigins?: string[];
+  // Optional Management API MCP endpoint config passed through to `init`.
+  mcp?: import("../../src/types").McpConfig;
 };
 
 export type TestServer = {
@@ -291,6 +293,7 @@ export async function getTestServer(
       ? { tenantOperationExecutor: args.tenantOperationExecutor }
       : {}),
     ...(args.allowedOrigins ? { allowedOrigins: args.allowedOrigins } : {}),
+    ...(args.mcp ? { mcp: args.mcp } : {}),
   });
   return {
     ...apps,

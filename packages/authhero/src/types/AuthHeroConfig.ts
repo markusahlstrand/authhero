@@ -25,6 +25,25 @@ import type {
 import { EntityHooks } from "./Hooks";
 
 /**
+ * Configuration for the Management API MCP endpoint. See `AuthHeroConfig.mcp`.
+ */
+export interface McpConfig {
+  /**
+   * Confidential client on the control-plane tenant used for the in-process
+   * token exchange. It needs a `client_secret`, `organization_usage` set to
+   * `allow` or `require`, and the token-exchange grant in `grant_types` (or
+   * no `grant_types` restriction).
+   */
+  exchangeClientId: string;
+  /**
+   * Issuer of the control-plane tenant that MCP clients authenticate against,
+   * byte-exact including the trailing slash (e.g.
+   * `https://control.token.example.com/`). Defaults to `env.ISSUER`.
+   */
+  controlPlaneIssuer?: string;
+}
+
+/**
  * Parameters passed to a custom webhook invoker function.
  */
 export interface WebhookInvokerParams {
@@ -365,6 +384,23 @@ export interface AuthHeroConfig {
    */
   managementApiExtensions?: ManagementApiExtension[];
 
+  /**
+   * Remote MCP server for the Management API (`POST /mcp` plus RFC 9728
+   * protected-resource metadata). Only meaningful on a deployment that serves
+   * the control plane (`multiTenancyConfig.controlPlaneTenantId`).
+   *
+   * MCP clients authenticate against the control-plane tenant (typically via
+   * CIMD). On the control-plane host every tool takes a `tenant_id`; on a
+   * tenant's own host (subdomain or custom domain) the tools are pinned to
+   * that tenant. Either way, access is decided by control-plane organization
+   * membership: each tool call exchanges the caller's token (RFC 8693) for an
+   * org-scoped management token and dispatches in-process to `/api/v2`.
+   *
+   * When `controlPlaneIssuer` differs from `env.ISSUER`, the exchanged token
+   * carries that issuer, so `additionalIssuers` must accept it for the
+   * management API — the same requirement the admin UI already has.
+   */
+  mcp?: McpConfig;
   /**
    * Optional privileged control-plane endpoint for the `@authhero/proxy`
    * data plane. When set, mounts `GET /api/v2/proxy/control-plane/hosts/:host`

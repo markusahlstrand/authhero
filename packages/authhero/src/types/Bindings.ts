@@ -3,6 +3,7 @@ import type { SamlSigner } from "@authhero/saml/core";
 import { Hooks } from "./Hooks";
 import {
   EntityHooksConfig,
+  McpConfig,
   OutboxConfig,
   SigningKeyModeOption,
   TenantOperationExecutorBinding,
@@ -113,6 +114,10 @@ export type Bindings = {
   // "tenant" for a tenant_id switches that tenant onto its own keys
   // with control-plane fallback while a tenant key is provisioned.
   signingKeyMode?: SigningKeyModeOption;
+
+  // Set via init({ mcp: ... }). /authorize reads it to accept the MCP
+  // server's resource URLs as audiences (RFC 8707).
+  mcp?: McpConfig;
 
   /**
    * Allow outbound fetches (jwks_uri, request_uri) to localhost / private IP

@@ -5,6 +5,7 @@ import i18next from "i18next";
 import { Bindings, Variables, AuthHeroConfig } from "./types";
 import createManagementApi from "./routes/management-api";
 import { createProxyControlPlaneApp } from "./routes/proxy-control-plane";
+import { createMcpApp } from "./routes/mcp";
 import createOauthApi from "./routes/auth-api";
 import createUniversalLogin from "./routes/universal-login";
 import createU2App from "./routes/universal-login/u2-index";
@@ -325,6 +326,11 @@ export function init(config: AuthHeroConfig) {
   ) {
     scimApp = createScimApi(config);
     app.route("/scim/v2/connections/:connection_id", scimApp);
+  }
+
+  // Management API MCP server (POST /mcp + RFC 9728 metadata), opt-in.
+  if (config.mcp) {
+    app.route("/", createMcpApp(config.mcp, app));
   }
 
   const oauthApp = createOauthApi(config);

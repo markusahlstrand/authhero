@@ -25,6 +25,7 @@ import { resumeLoginSession } from "../../authentication-flows/resume";
 import { getEnrichedClient } from "../../helpers/client";
 import { prefetchClientBundle } from "../../helpers/prefetch-client-bundle";
 import { isCimdClientId } from "../../helpers/cimd";
+import { isMcpResourceUrl } from "../mcp/resource";
 import { getIssuer, getSelfCallbackWildcards } from "../../variables";
 import { formPostResponse } from "../../utils/form-post";
 import { setTenantId } from "../../helpers/set-tenant-id";
@@ -76,6 +77,9 @@ const authorizeParamsSchema = z.object({
     z.nativeEnum(AuthorizationResponseType).optional(),
   ),
   audience: z.string().optional(),
+  // RFC 8707 resource indicator. Mapped onto `audience`, which is how
+  // AuthHero keys access tokens; MCP clients send it instead of `audience`.
+  resource: z.string().optional(),
   connection: z.string().optional(),
   nonce: z.string().optional(),
   max_age: z.string().optional(),
@@ -386,7 +390,19 @@ const getRoot = defineRoute({
       realm,
       auth0Client,
       screen_hint,
+      resource,
     } = { ...queryParams, ...requestParams };
+
+    // RFC 8707: the resource indicator names the API the token is for. When
+    // both are sent they must name the same one.
+    if (resource) {
+      if (audience && audience !== resource) {
+        throw new HTTPException(400, {
+          message: "invalid_target: resource and audience disagree",
+        });
+      }
+      audience = resource;
+    }
 
     ctx.set("log", "authorize");
 
@@ -607,7 +623,13 @@ const getRoot = defineRoute({
     // explicit (e.g. via tenant default_audience), not a resource server,
     // so it must skip the check too.
     const userinfoAudience = `${getIssuer(ctx.env, ctx.var.custom_domain)}userinfo`;
-    if (authParams.audience && authParams.audience !== userinfoAudience) {
+    // This deployment's own MCP server URLs are accepted without a registered
+    // resource server; the MCP endpoint checks the audience itself.
+    if (
+      authParams.audience &&
+      authParams.audience !== userinfoAudience &&
+      !(await isMcpResourceUrl(env, authParams.audience))
+    ) {
       const { resource_servers } = await env.data.resourceServers.list(
         client.tenant.id,
       );
