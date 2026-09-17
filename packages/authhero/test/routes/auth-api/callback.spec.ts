@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { testClient } from "hono/testing";
 import { getTestServer } from "../../helpers/test-server";
+import { mockStrategy } from "../../helpers/mock-strategy";
 import { nanoid } from "nanoid";
 import {
   AuthorizationResponseMode,
@@ -229,6 +230,145 @@ describe("callback", () => {
       expect.anything(),
     );
     consoleError.mockRestore();
+  });
+
+  it("should write one tenant-scoped failed-login event when the connection callback throws", async () => {
+    // The catch-all branch hands its own log description to returnError, which
+    // writes the single FAILED_LOGIN event once the tenant is resolved.
+    const { oauthApp, env } = await getTestServer({ outbox: true });
+    const oauthClient = testClient(oauthApp, env);
+
+    const outbox = env.data.outbox!;
+    const created: { tenantId: string; type?: string; description?: string }[] =
+      [];
+    const create = outbox.create.bind(outbox);
+    outbox.create = async (tenantId, event) => {
+      created.push({
+        tenantId,
+        type: event.log_type,
+        description: event.description,
+      });
+      return create(tenantId, event);
+    };
+
+    await env.data.connections.create("tenantId", {
+      id: "connectionId",
+      name: "mock-strategy",
+      strategy: "mock-strategy",
+      options: {
+        client_id: "clientId",
+        client_secret: "clientSecret",
+      },
+    });
+
+    const loginSession = await env.data.loginSessions.create("tenantId", {
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      csrf_token: "csrfToken",
+      authParams: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+      },
+    });
+
+    const state = await env.data.codes.create("tenantId", {
+      code_id: nanoid(),
+      code_type: "oauth2_state",
+      login_id: loginSession.id,
+      connection_id: "connectionId",
+      code_verifier: "verifier",
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+    });
+
+    const strategyError = vi
+      .spyOn(mockStrategy, "validateAuthorizationCodeAndGetUserWithRaw")
+      .mockRejectedValueOnce(new Error("token endpoint unreachable"));
+
+    const response = await oauthClient.callback.$get({
+      query: {
+        state: state.code_id,
+        code: "foo@example.com",
+      },
+    });
+    strategyError.mockRestore();
+
+    expect(response.status).toEqual(302);
+    const location = response.headers.get("location");
+    if (!location) {
+      throw new Error("No location header");
+    }
+    const redirectUri = new URL(location);
+    expect(redirectUri.pathname).toEqual("/u/login/identifier");
+    expect(redirectUri.searchParams.get("error")).toEqual("connection_error");
+    expect(redirectUri.searchParams.get("state")).toEqual(loginSession.id);
+
+    expect(created).toEqual([
+      {
+        tenantId: "tenantId",
+        type: "f",
+        description: "Connection callback failed: token endpoint unreachable",
+      },
+    ]);
+  });
+
+  it("should not act on another tenant's state when the provider returns an error on a tenant's host", async () => {
+    // The state lookup is scoped to the host's tenant, so a foreign state is
+    // simply not found: the same outcome the success path gives, and nothing
+    // is logged under either tenant.
+    const { oauthApp, env } = await getTestServer({ outbox: true });
+    const oauthClient = testClient(oauthApp, env);
+
+    await env.data.tenants.create({
+      id: "otherTenant",
+      friendly_name: "Other Tenant",
+      audience: "https://other.example.com",
+      sender_email: "login@other.example.com",
+      sender_name: "Other",
+    });
+
+    const outbox = env.data.outbox!;
+    const created: string[] = [];
+    const create = outbox.create.bind(outbox);
+    outbox.create = async (tenantId, event) => {
+      created.push(tenantId);
+      return create(tenantId, event);
+    };
+
+    const loginSession = await env.data.loginSessions.create("tenantId", {
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      csrf_token: "csrfToken",
+      authParams: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+      },
+    });
+
+    const state = await env.data.codes.create("tenantId", {
+      code_id: nanoid(),
+      code_type: "oauth2_state",
+      login_id: loginSession.id,
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+    });
+
+    const response = await oauthClient.callback.$get(
+      {
+        query: {
+          state: state.code_id,
+          error: "access_denied",
+          error_description: "User cancelled",
+        },
+      },
+      { headers: { "tenant-id": "otherTenant" } },
+    );
+
+    expect(response.status).toEqual(302);
+    const location = response.headers.get("location");
+    if (!location) {
+      throw new Error("No location header");
+    }
+    const redirectUri = new URL(location);
+    expect(redirectUri.pathname).toEqual("/u/error");
+    expect(redirectUri.searchParams.get("error")).toEqual("state_not_found");
+    expect(created).toEqual([]);
   });
 
   it("should redirect to /u2/login/identifier with error params when universal_login_version is 2", async () => {
