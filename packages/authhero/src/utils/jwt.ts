@@ -206,6 +206,14 @@ export interface ValidateJwtTokenOptions {
    * strict single-issuer check when omitted.
    */
   additionalIssuers?: string[];
+  /**
+   * Verify against this tenant's keyset instead of the one resolved from the
+   * request (`ctx.var.tenant_id`). For endpoints that accept tokens from a
+   * fixed issuing tenant regardless of which host they are served on — e.g.
+   * the MCP endpoint, which takes control-plane tokens on tenant hosts. Pair
+   * with `skipIssuerCheck` and compare `iss` against that tenant's issuer.
+   */
+  tenantId?: string;
 }
 
 /**
@@ -237,7 +245,7 @@ export async function validateJwtToken(
     // host — checked below as a second line of defense.
     const jwksKeys = await getJwksForVerification(
       ctx.env.data,
-      ctx.var.tenant_id,
+      options.tenantId ?? ctx.var.tenant_id,
       ctx.env.signingKeyMode,
     );
     const jwksKey = jwksKeys.find((key) => key.kid === header.kid);

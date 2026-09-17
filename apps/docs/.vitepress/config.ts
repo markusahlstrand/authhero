@@ -334,6 +334,10 @@ gtag('config', 'G-DNZWG3PF2L');`,
               link: "/features/multi-tenant-saas",
             },
             {
+              text: "Management API MCP Server",
+              link: "/features/mcp-server",
+            },
+            {
               text: "Tenant Export & Import",
               link: "/features/tenant-export-import",
             },
