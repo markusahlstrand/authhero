@@ -81,6 +81,10 @@ export function applyConfigMiddleware(
       ctx.env.signingKeyMode = config.signingKeyMode;
     }
 
+    if (config.mcp) {
+      ctx.env.mcp = config.mcp;
+    }
+
     return next();
   };
 }

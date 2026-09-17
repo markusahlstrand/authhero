@@ -90,6 +90,7 @@ import { resolveRefreshTokenExpiry } from "../helpers/refresh-token-lifetime";
 export interface AuthTokenClient {
   client_id: string;
   tenant: {
+    id: string;
     audience?: string;
     default_audience?: string;
     allow_organization_name_in_authentication_api?: boolean;
@@ -393,7 +394,10 @@ export async function createAuthTokens(
     scope: authParams.scope || "",
     sub: user?.user_id || authParams.client_id,
     iss,
-    tenant_id: ctx.var.tenant_id,
+    // From the client, not the request: the claim must always name the
+    // issuing tenant, since shared signing keys mean the signature alone
+    // does not (the MCP endpoint relies on this).
+    tenant_id: client.tenant.id,
     sid: session_id,
     act: actClaim, // RFC 8693 act claim — user impersonation and/or client delegation
     org_id: organization ? organization.id : undefined,

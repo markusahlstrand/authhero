@@ -1,6 +1,6 @@
 # Design: Management API MCP endpoint
 
-- **Status:** Phase 1 implemented (read-only tools, both host modes). Phases 2–4 are still design.
+- **Status:** Phases 1 and 4 implemented (read-only tools, both host modes, audience binding). Phases 2–3 are still design.
   The user-facing reference is `apps/docs/features/mcp-server.md`.
 - **Author:** Markus Ahlstrand
 - **Created:** 2026-09-17
@@ -25,8 +25,8 @@ It lives in `packages/authhero/src/routes/mcp/` and is mounted by `init()` when
 MCP client ──POST /mcp (no token)──▶ 401 WWW-Authenticate: Bearer resource_metadata=".../.well-known/oauth-protected-resource/mcp"
            ──GET protected-resource metadata──▶ { resource, authorization_servers: [control-plane issuer] }
            ──GET <issuer>/.well-known/oauth-authorization-server──▶ client_id_metadata_document_supported: true
-           ──/authorize (client_id = CIMD URL, PKCE S256)──▶ control-plane login + third-party consent
-           ──/oauth/token──▶ control-plane access token (no org claim)
+           ──/authorize (client_id = CIMD URL, PKCE S256, resource = MCP URL)──▶ control-plane login + third-party consent
+           ──/oauth/token──▶ control-plane access token (aud = MCP URL, no org claim)
            ──POST /mcp (Bearer)──▶ tools
 ```
 
@@ -72,11 +72,24 @@ The management API's cross-tenant guard only checks that a token is a control-pl
 it does not compare `org_name` with the target tenant. The MCP layer enforces membership
 itself (steps 1 and 2) rather than relying on that guard.
 
-### Issuers
+### Bearer token checks
 
 - The bearer token is verified against the **control-plane keyset**
   (`validateJwtToken` `tenantId` option), with `iss` compared byte-exactly to
   `mcp.controlPlaneIssuer` (default `env.ISSUER`).
+- `tenant_id` must be the control-plane tenant. With shared signing keys another tenant's
+  token also verifies, and on the default issuer its `iss` matches, so the claim is what
+  ties the token to the control plane. Token issuance stamps `tenant_id` from the client's
+  tenant so the claim is always present.
+- `aud` must be exactly this host's MCP URL (the metadata `resource`). `/authorize` maps the
+  RFC 8707 `resource` parameter onto `audience` (they must agree when both are sent) and
+  accepts an MCP URL without a registered resource server when it is `/mcp` on a host this
+  deployment serves: the issuer host, the control-plane host, an existing
+  `{tenant}.{issuer host}` subdomain, or a registered custom domain.
+- Tokens with an `act` claim (already exchanged) are rejected.
+
+### Issuers
+
 - The exchange compares the subject `iss` byte-exactly with the issuer resolved from the
   token request. On the default issuer the tenant comes from a `tenant-id` header;
   otherwise the request carries `x-forwarded-host` for the control-plane host.
@@ -117,10 +130,8 @@ change.
    `list_connections`, `list_resource_servers`, `list_roles`, `search_logs`), docs.
 2. WFP routing (§6): a proxy route config and `cloudflare-wfp.md`.
 3. Write tools behind their own permissions, with `destructiveHint` annotations.
-4. Audience binding: accept RFC 8707 `resource` as an alias for `audience` and register the
-   MCP resource URL, so a token is bound to one MCP host. Until then, any control-plane
-   token is accepted at `/mcp`, and the membership check is the only thing that decides
-   access.
+4. **Done:** audience binding. `/authorize` maps RFC 8707 `resource` onto `audience`, and
+   `/mcp` requires `aud` to be its own URL and `tenant_id` to be the control plane.
 
 Also open: have control-plane provisioning create the exchange client, and cache exchanged
 tokens across requests. Today they are cached per request only.

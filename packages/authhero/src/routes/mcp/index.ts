@@ -8,12 +8,12 @@ import { extractBearerToken } from "../../utils/auth-header";
 import { validateJwtToken } from "../../utils/jwt";
 import { createToolApi, type FetchableApp, type McpCaller } from "./dispatch";
 import { handleMcpBody, rpcError } from "./protocol";
+import { MCP_PATH } from "./resource";
 import { buildInstructions, buildTools } from "./tools";
 
 type McpEnv = { Bindings: Bindings; Variables: Variables };
 type McpContext = Context<McpEnv>;
 
-const MCP_PATH = "/mcp";
 const METADATA_PATH = "/.well-known/oauth-protected-resource";
 
 interface Mode {
@@ -128,9 +128,18 @@ export function createMcpApp(config: McpConfig, app: FetchableApp) {
         return unauthorized(ctx, "invalid_token");
       throw err;
     }
-    // Delegated (already exchanged) tokens are not accepted as a subject.
+    // - `tenant_id`: with shared signing keys another tenant's token verifies
+    //   against the control-plane keyset, and on the default issuer its `iss`
+    //   matches too, so the tenant claim is what binds it to the control plane.
+    // - `aud`: the token must have been issued for this MCP URL (RFC 8707
+    //   `resource`), not replayed from another client or API.
+    // - `act`: delegated (already exchanged) tokens are not a valid subject.
+    const resourceUrl = `${publicOrigin(ctx)}${MCP_PATH}`;
+    const audiences = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
     if (
       payload.iss !== mode.controlPlaneIssuer ||
+      payload.tenant_id !== mode.controlPlaneTenantId ||
+      !audiences.includes(resourceUrl) ||
       !payload.sub ||
       payload.act !== undefined
     ) {

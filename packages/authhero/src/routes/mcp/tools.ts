@@ -44,9 +44,11 @@ const intStr = (value: unknown): string | undefined => {
 };
 
 // Keys whose values must never reach a model's context, wherever they appear:
-// client and signing secrets, connection credentials, key material.
+// client and signing secrets, connection credentials, key material, and the
+// upstream OAuth tokens stored on user identities (`access_token`,
+// `refresh_token`, …). Anchored so fields like `token_lifetime` survive.
 const SECRET_KEY =
-  /secret|password|private_key|api_key|^pkcs7$|^signing_keys$|^encryption_key$|^credentials$/i;
+  /secret|password|private_key|api_key|(^|_)token$|^pkcs7$|^signing_keys$|^encryption_key$|^credentials$/i;
 
 export function redactSecrets(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(redactSecrets);

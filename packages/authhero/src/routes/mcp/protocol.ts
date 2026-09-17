@@ -63,16 +63,25 @@ async function handleMessage(
   session: McpSession,
   message: unknown,
 ): Promise<JsonRpcResponse | null> {
-  const rawId = isRecord(message) ? message.id : undefined;
+  if (!isRecord(message)) {
+    return rpcError(null, -32600, "Invalid Request");
+  }
+
+  const rawId = message.id;
   const id =
     typeof rawId === "string" || typeof rawId === "number" ? rawId : undefined;
 
-  if (!isRecord(message) || typeof message.method !== "string") {
-    return id !== undefined ? rpcError(id, -32600, "Invalid Request") : null;
+  if (typeof message.method !== "string") {
+    // A JSON-RPC response from the client (we never send requests, but the
+    // transport allows it) needs no answer.
+    if ("result" in message || "error" in message) return null;
+    return rpcError(id ?? null, -32600, "Invalid Request");
   }
 
-  // A message without an id is a notification and gets no response.
-  if (id === undefined) return null;
+  // Only an omitted id marks a notification. MCP forbids null ids, so a null
+  // or non-scalar id is an invalid request rather than a notification.
+  if (!("id" in message)) return null;
+  if (id === undefined) return rpcError(null, -32600, "Invalid Request");
 
   const params = isRecord(message.params) ? message.params : {};
 

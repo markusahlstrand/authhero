@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { signJWT } from "../../../src/utils/jwt";
 import { MANAGEMENT_API_AUDIENCE } from "../../../src/middlewares/authentication";
+import { redactSecrets } from "../../../src/routes/mcp/tools";
 import { getTestServer } from "../../helpers/test-server";
 import { getCertificate, pemToBuffer } from "../../helpers/token";
 
@@ -91,8 +92,15 @@ async function setup(): Promise<TestServer> {
   return server;
 }
 
+const CONTROL_PLANE_RESOURCE = "http://localhost:3000/mcp";
+
 async function mintToken(
-  overrides: { iss?: string; act?: { sub: string } } = {},
+  overrides: {
+    iss?: string;
+    aud?: string | string[];
+    tenant_id?: string;
+    act?: { sub: string };
+  } = {},
 ): Promise<string> {
   const signingKey = await getCertificate();
   return signJWT(
@@ -101,9 +109,9 @@ async function mintToken(
     {
       iss: overrides.iss ?? ISSUER,
       sub: USER_ID,
-      aud: "https://example.com",
+      aud: overrides.aud ?? CONTROL_PLANE_RESOURCE,
       scope: "openid profile",
-      tenant_id: CONTROL_PLANE,
+      tenant_id: overrides.tenant_id ?? CONTROL_PLANE,
       ...(overrides.act ? { act: overrides.act } : {}),
     },
     {
@@ -149,7 +157,13 @@ async function callTool(
       method: "tools/call",
       params: { name, arguments: args },
     },
-    { token: await mintToken(), ...options },
+    {
+      // Tokens are bound to the MCP URL of the host they are used on.
+      token: await mintToken({
+        aud: options.host ? `https://${options.host}/mcp` : undefined,
+      }),
+      ...options,
+    },
   );
   expect(response.status).toBe(200);
   const body: ToolCallResult = await response.json();
@@ -220,6 +234,39 @@ describe("MCP endpoint", () => {
       );
     });
 
+    it("rejects a token issued for another audience", async () => {
+      const server = await setup();
+      const response = await post(
+        server,
+        { jsonrpc: "2.0", id: 1, method: "initialize" },
+        { token: await mintToken({ aud: "https://example.com" }) },
+      );
+      expect(response.status).toBe(401);
+      expect(response.headers.get("www-authenticate")).toContain(
+        'error="invalid_token"',
+      );
+    });
+
+    it("rejects a token issued for another host's MCP URL", async () => {
+      const server = await setup();
+      const response = await post(
+        server,
+        { jsonrpc: "2.0", id: 1, method: "initialize" },
+        { token: await mintToken({ aud: "https://acme.localhost:3000/mcp" }) },
+      );
+      expect(response.status).toBe(401);
+    });
+
+    it("rejects a token issued by another tenant", async () => {
+      const server = await setup();
+      const response = await post(
+        server,
+        { jsonrpc: "2.0", id: 1, method: "initialize" },
+        { token: await mintToken({ tenant_id: "acme" }) },
+      );
+      expect(response.status).toBe(401);
+    });
+
     it("rejects an already-delegated token", async () => {
       const server = await setup();
       const response = await post(
@@ -257,6 +304,38 @@ describe("MCP endpoint", () => {
       const response = await post(
         server,
         { jsonrpc: "2.0", method: "notifications/initialized" },
+        { token: await mintToken() },
+      );
+      expect(response.status).toBe(202);
+    });
+
+    it("answers a null id and a non-object batch entry with Invalid Request", async () => {
+      const server = await setup();
+      const response = await post(
+        server,
+        [{ jsonrpc: "2.0", id: null, method: "ping" }, 42],
+        { token: await mintToken() },
+      );
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual([
+        {
+          jsonrpc: "2.0",
+          id: null,
+          error: { code: -32600, message: "Invalid Request" },
+        },
+        {
+          jsonrpc: "2.0",
+          id: null,
+          error: { code: -32600, message: "Invalid Request" },
+        },
+      ]);
+    });
+
+    it("returns 202 for a JSON-RPC response from the client", async () => {
+      const server = await setup();
+      const response = await post(
+        server,
+        { jsonrpc: "2.0", id: 7, result: {} },
         { token: await mintToken() },
       );
       expect(response.status).toBe(202);
@@ -353,7 +432,10 @@ describe("MCP endpoint", () => {
       const response = await post(
         server,
         { jsonrpc: "2.0", id: 1, method: "tools/list" },
-        { token: await mintToken(), host: "acme.localhost:3000" },
+        {
+          token: await mintToken({ aud: "https://acme.localhost:3000/mcp" }),
+          host: "acme.localhost:3000",
+        },
       );
       const body = await response.json();
       const tools: {
@@ -400,6 +482,95 @@ describe("MCP endpoint", () => {
       );
       expect(isError).toBe(true);
       expect(text).toBe('No access to tenant "other"');
+    });
+  });
+  describe("RFC 8707 resource at /authorize", () => {
+    function authorize(server: TestServer, params: Record<string, string>) {
+      const query = new URLSearchParams({
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+        state: "state",
+        scope: "openid",
+        response_type: "code",
+        ...params,
+      });
+      return server.app.request(
+        `http://localhost:3000/authorize?${query}`,
+        { headers: { origin: "https://example.com" } },
+        server.env,
+      );
+    }
+
+    it("uses this deployment's MCP URL as the audience", async () => {
+      const server = await setup();
+      const response = await authorize(server, {
+        resource: "https://acme.localhost:3000/mcp",
+      });
+      expect(response.status).toBe(302);
+      const location = new URL(
+        response.headers.get("location")!,
+        "http://localhost:3000",
+      );
+      expect(location.pathname).toBe("/u/login/identifier");
+
+      const loginSession = await server.env.data.loginSessions.get(
+        CONTROL_PLANE,
+        location.searchParams.get("state")!,
+      );
+      expect(loginSession?.authParams.audience).toBe(
+        "https://acme.localhost:3000/mcp",
+      );
+    });
+
+    it("rejects an MCP URL on a host this deployment does not serve", async () => {
+      const server = await setup();
+      const response = await authorize(server, {
+        resource: "https://unknown.localhost:3000/mcp",
+      });
+      expect(response.status).toBe(302);
+      const location = new URL(response.headers.get("location")!);
+      expect(location.searchParams.get("error")).toBe("access_denied");
+    });
+
+    it("rejects a resource that disagrees with the audience", async () => {
+      const server = await setup();
+      const response = await authorize(server, {
+        resource: CONTROL_PLANE_RESOURCE,
+        audience: "https://example.com",
+      });
+      expect(response.status).toBe(400);
+    });
+  });
+
+  describe("redaction", () => {
+    it("redacts secrets and identity tokens but keeps token settings", () => {
+      expect(
+        redactSecrets({
+          client_secret: "s",
+          signing_secret: "s",
+          token_endpoint_auth_method: "none",
+          token_lifetime: 3600,
+          identities: [
+            {
+              provider: "google-oauth2",
+              access_token: "a",
+              refresh_token: "r",
+            },
+          ],
+        }),
+      ).toEqual({
+        client_secret: "[redacted]",
+        signing_secret: "[redacted]",
+        token_endpoint_auth_method: "none",
+        token_lifetime: 3600,
+        identities: [
+          {
+            provider: "google-oauth2",
+            access_token: "[redacted]",
+            refresh_token: "[redacted]",
+          },
+        ],
+      });
     });
   });
 });

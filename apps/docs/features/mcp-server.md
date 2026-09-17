@@ -13,6 +13,7 @@ The server is read-only.
 
 - **Sign-in goes through the control plane.** MCP clients register with [CIMD](/standards/cimd): their `client_id` is an HTTPS URL, so no client needs to be created up front. The administrator signs in to the control-plane tenant and approves the client on the consent screen.
 - **Organization membership decides access.** A user can reach a tenant when they are a member of the control-plane organization named after that tenant. On each call, their token is exchanged ([RFC 8693](/standards/rfc-8693)) for a management token scoped to that organization. Its permissions come from the user's roles in the organization.
+- **Tokens are bound to one MCP URL.** Clients send the MCP URL as the RFC 8707 `resource` parameter, and AuthHero uses it as the token audience. `/mcp` only accepts a control-plane token whose `aud` is its own URL, so tokens issued to other clients or APIs are rejected.
 - **Calls go through the normal Management API**, so the same permission checks, validation, hooks and logs apply.
 - **Secrets are redacted** from tool results before they reach the model.
 
@@ -77,6 +78,6 @@ The first tool call opens the control-plane login in the browser. For a single t
 
 ## Limitations
 
-- Access tokens are not yet bound to the MCP URL (RFC 8707 `resource`), so any control-plane access token is accepted at `/mcp`. Organization membership still decides which tenants it can reach.
+- A token is bound to the host it was issued for, so a client that connects to both the control-plane host and a tenant host signs in once for each.
 - On Workers for Platforms, `/mcp` on tenant hosts must be routed to the control plane.
 - Users who sign in to a tenant directly, rather than through the control plane, cannot use that tenant's MCP endpoint.
