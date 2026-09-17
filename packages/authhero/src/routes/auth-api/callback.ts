@@ -13,6 +13,7 @@ import { logMessage } from "../../helpers/logging";
 import { JSONHTTPException } from "../../errors/json-http-exception";
 
 import { getEnrichedClient } from "../../helpers/client";
+import { setTenantId } from "../../helpers/set-tenant-id";
 import { getIssuer } from "../../variables";
 
 function redirectToErrorPage(
@@ -37,7 +38,7 @@ async function returnError(
   error: string,
   error_description?: string,
   error_code?: string,
-  skipLog?: boolean,
+  logDescription?: string,
 ) {
   const oauth2code = await ctx.env.data.codes.get(
     ctx.var.tenant_id || "",
@@ -61,23 +62,40 @@ async function returnError(
     throw new HTTPException(400, { message: "Redirect uri not found" });
   }
 
-  if (!skipLog) {
+  let client: Awaited<ReturnType<typeof getEnrichedClient>> | undefined;
+  if (loginSession.authParams.client_id) {
+    try {
+      client = await getEnrichedClient(
+        ctx.env,
+        loginSession.authParams.client_id,
+        ctx.var.tenant_id,
+      );
+    } catch {
+      // fall back to /u/login/identifier
+    }
+  }
+
+  // /callback is state-keyed, so the tenant middleware leaves tenant_id unset
+  // on a host that doesn't identify the tenant. Take it from the session's
+  // client, as connectionCallback does, so the log isn't written without one.
+  if (client) {
+    setTenantId(ctx, client.tenant.id);
+  }
+
+  if (ctx.var.tenant_id) {
     logMessage(ctx, ctx.var.tenant_id, {
       type: LogTypes.FAILED_LOGIN,
-      description: `Failed connection login: ${error_code} ${error}, ${error_description}`,
+      description:
+        logDescription ??
+        `Failed connection login: ${error_code} ${error}, ${error_description}`,
     });
   }
 
   let routePrefix = "/u";
   let loginPath = "/login/identifier";
-  if (loginSession.authParams.client_id) {
+  if (client) {
     try {
-      const client = await getEnrichedClient(
-        ctx.env,
-        loginSession.authParams.client_id,
-        ctx.var.tenant_id,
-      );
-      if (client?.client_metadata?.universal_login_version === "2") {
+      if (client.client_metadata?.universal_login_version === "2") {
         routePrefix = "/u2";
 
         const promptSettings = await ctx.env.data.promptSettings.get(
@@ -213,10 +231,6 @@ async function handleCallback(
     // Catch all other errors (OAuth2RequestError, network errors,
     // JWT parsing errors, etc.) - log them and redirect to login with error
     const description = getErrorDescription(err);
-    logMessage(ctx, ctx.var.tenant_id, {
-      type: LogTypes.FAILED_LOGIN,
-      description: `Connection callback failed: ${description}`,
-    });
 
     return returnError(
       ctx,
@@ -224,7 +238,7 @@ async function handleCallback(
       "connection_error",
       "Connection failed",
       undefined,
-      true,
+      `Connection callback failed: ${description}`,
     );
   }
 }

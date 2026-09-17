@@ -182,6 +182,55 @@ describe("callback", () => {
     expect(redirectUri.searchParams.get("state")).toEqual(loginSession.id);
   });
 
+  it("should write the failed-login audit event under the session's tenant when the provider returns an error", async () => {
+    // /callback is state-keyed, so the tenant middleware leaves tenant_id
+    // unset. The error branch must resolve it itself, or the outbox insert
+    // fails on the NOT NULL tenant_id column and the event is dropped.
+    const { oauthApp, env } = await getTestServer({ outbox: true });
+    const oauthClient = testClient(oauthApp, env);
+
+    const outbox = env.data.outbox!;
+    const created: { tenantId: string; type?: string }[] = [];
+    const create = outbox.create.bind(outbox);
+    outbox.create = async (tenantId, event) => {
+      created.push({ tenantId, type: event.log_type });
+      return create(tenantId, event);
+    };
+    const consoleError = vi.spyOn(console, "error");
+
+    const loginSession = await env.data.loginSessions.create("tenantId", {
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      csrf_token: "csrfToken",
+      authParams: {
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+      },
+    });
+
+    const state = await env.data.codes.create("tenantId", {
+      code_id: nanoid(),
+      code_type: "oauth2_state",
+      login_id: loginSession.id,
+      expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+    });
+
+    const response = await oauthClient.callback.$get({
+      query: {
+        state: state.code_id,
+        error: "access_denied",
+        error_description: "User cancelled",
+      },
+    });
+
+    expect(response.status).toEqual(302);
+    expect(created).toEqual([{ tenantId: "tenantId", type: "f" }]);
+    expect(consoleError).not.toHaveBeenCalledWith(
+      "Outbox event creation failed",
+      expect.anything(),
+    );
+    consoleError.mockRestore();
+  });
+
   it("should redirect to /u2/login/identifier with error params when universal_login_version is 2", async () => {
     const { oauthApp, env } = await getTestServer();
     const oauthClient = testClient(oauthApp, env);
