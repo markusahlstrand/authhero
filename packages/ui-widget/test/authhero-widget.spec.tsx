@@ -406,4 +406,77 @@ describe("authhero-widget", () => {
     const subtitles = nodeShadow.querySelectorAll(".btn-social-subtitle");
     expect(subtitles.length).toBe(2);
   });
+
+  describe("cancelable navigate event", () => {
+    const socialScreen = {
+      title: "Sign in",
+      action: "http://localhost/login/identifier",
+      method: "POST",
+      components: [
+        {
+          id: "social-buttons",
+          type: "SOCIAL",
+          category: "FIELD",
+          visible: true,
+          config: { providers: ["google-oauth2"] },
+          order: 0,
+        },
+      ],
+    };
+
+    async function clickSocialButton(onNavigate?: (e: Event) => void) {
+      const page = await newSpecPage({
+        components: [AuthheroWidget, AuthheroNode],
+        html: `<authhero-widget auto-navigate="true" state="abc" auth-params='{"client_id":"client"}' screen='${JSON.stringify(socialScreen)}'></authhero-widget>`,
+      });
+      await page.waitForChanges();
+
+      const locationHref = jest.fn();
+      Object.defineProperty(page.win, "location", {
+        value: { href: "http://localhost/" },
+        writable: true,
+      });
+      Object.defineProperty(page.win.location, "href", {
+        set: locationHref,
+        get: () => "http://localhost/",
+      });
+
+      if (onNavigate) {
+        page.root!.addEventListener("navigate", onNavigate);
+      }
+
+      const nodeShadow =
+        page.root!.shadowRoot!.querySelector("authhero-node")!.shadowRoot!;
+      const button = nodeShadow.querySelector(
+        'button[data-connection-name="google-oauth2"]',
+      ) as HTMLButtonElement;
+      expect(button).not.toBeNull();
+      button.click();
+      await page.waitForChanges();
+
+      return locationHref;
+    }
+
+    it("redirects to /authorize for a social login by default", async () => {
+      const locationHref = await clickSocialButton();
+
+      expect(locationHref).toHaveBeenCalledTimes(1);
+      const url = new URL(locationHref.mock.calls[0][0], "http://localhost");
+      expect(url.pathname).toBe("/authorize");
+      expect(url.searchParams.get("connection")).toBe("google-oauth2");
+      expect(url.searchParams.get("state")).toBe("abc");
+    });
+
+    it("lets the host page take over with preventDefault()", async () => {
+      const seen: string[] = [];
+      const locationHref = await clickSocialButton((e) => {
+        seen.push((e as CustomEvent).detail.url);
+        e.preventDefault();
+      });
+
+      expect(seen).toHaveLength(1);
+      expect(seen[0]).toContain("/authorize?");
+      expect(locationHref).not.toHaveBeenCalled();
+    });
+  });
 });

@@ -52,6 +52,15 @@ export default function renderAuthIframe(
               }, targetOrigin);
           } else {
               mainWin.postMessage(authorizationResponse, targetOrigin);
+              // Embedded login: a social/enterprise connection is opened
+              // as a popup by the login iframe, so the opener is on our own
+              // origin rather than the application's and the post above is
+              // dropped by the browser. Post to our origin as well so the
+              // iframe can relay the response to the application (embed.ts);
+              // a same-origin target can only ever reach our own pages.
+              if (window.opener && window.location.origin !== targetOrigin) {
+                  mainWin.postMessage(authorizationResponse, window.location.origin);
+              }
           }
           }
           ) (this, this.document);

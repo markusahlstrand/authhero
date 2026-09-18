@@ -7,6 +7,10 @@ description: Different ways to integrate the AuthHero UI Widget in your applicat
 
 The widget supports multiple integration patterns depending on your use case.
 
+::: tip Login in a modal without exposing the form to your page
+Every pattern below mounts the widget in your own DOM, where any script on the page can read the form. To show the hosted login in a modal while the form stays on the auth origin, frame the `/u2` pages instead: see [Embedded Login (iframe)](/customization/embedded-login).
+:::
+
 ## 1. Event-Based Integration (Recommended)
 
 This pattern gives you full control over the authentication flow. The widget emits events, and you handle HTTP requests with your preferred auth library.

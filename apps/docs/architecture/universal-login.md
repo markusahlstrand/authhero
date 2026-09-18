@@ -57,6 +57,10 @@ How it works:
 
 The badge only appears on the widget-based `/u2/` screens; the deprecated server-rendered `/u/` login does not render it. Style it from outside the widget via the `button-social-badge` CSS part, or recolor it with the `--ah-color-last-used` / `--ah-color-last-used-text` custom properties — see [Widget Customization](/customization/ui-widget/customization).
 
+## Embedding in a modal
+
+The `/u2/` pages can also run inside an `<iframe>` on the application's own site: start the flow with `response_mode=web_message`, and the pages render in a compact layout, report their height, and post the authorization response to the page. Framing is allowed only from the application's Allowed Web Origins; every other universal-login response denies framing. See [Embedded Login (iframe)](/customization/embedded-login).
+
 ## Customization
 
 For details on customizing the login experience, see [UI Widget](/customization/ui-widget/) in the Customization section.

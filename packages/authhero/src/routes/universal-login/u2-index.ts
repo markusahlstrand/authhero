@@ -37,6 +37,7 @@ import { screenApiRoutes } from "./screen-api";
 import { u2Routes } from "./u2-routes.tsx";
 import { u2FormNodeRoutes } from "./u2-form-node.tsx";
 import { createUniversalLoginErrorHandler } from "./error-handler";
+import { frameAncestorsMiddleware } from "./embed";
 
 export default function createU2App(config: AuthHeroConfig) {
   const app = new OpenAPIHono<{
@@ -48,6 +49,9 @@ export default function createU2App(config: AuthHeroConfig) {
 
   // Render a branded error page for all errors (except redirects)
   app.onError(createUniversalLoginErrorHandler());
+
+  // Login pages deny framing unless the session is embedded (see embed.ts).
+  app.use("*", frameAncestorsMiddleware);
 
   // CORS middleware for screen API - allow requests from any origin
   app.use(

@@ -20,6 +20,7 @@ import { setTenantId } from "../../helpers/set-tenant-id";
 import { ssrfFetchOptionsFromEnv } from "../../utils/ssrf-fetch";
 import { hasValidContinuationScope } from "../../authentication-flows/common";
 import { DEFAULT_THEME } from "../../constants/defaultTheme";
+import { resolveEmbedLogin } from "./embed";
 
 export async function initJSXRoute(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
@@ -59,6 +60,9 @@ export async function initJSXRoute(
   );
   ctx.set("client_id", client.client_id);
   setTenantId(ctx, client.tenant.id);
+  // Embedded (iframe) login is a property of the session, so every page and
+  // the error handler can read it from the context without re-resolving.
+  ctx.set("embedLogin", resolveEmbedLogin(loginSession, client));
 
   // Use tenant from enriched client (already validated in getEnrichedClient)
   const tenant = client.tenant;

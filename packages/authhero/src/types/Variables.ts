@@ -2,6 +2,7 @@ import { LoginSession } from "@authhero/adapter-interfaces";
 import { CountryCode } from "libphonenumber-js";
 import { Auth0Client } from "./Auth0Client";
 import type { PreferState } from "../middlewares/prefer";
+import type { EmbedLoginContext } from "../routes/universal-login/embed";
 
 export type Variables = {
   tenant_id: string;
@@ -28,6 +29,10 @@ export type Variables = {
   org_name?: string;
   // This is used by the hooks
   loginSession?: LoginSession;
+  // Set by initJSXRoute when the login session runs embedded in an iframe on
+  // the application's site (response_mode=web_message). Drives the
+  // frame-ancestors policy and the compact page rendering.
+  embedLogin?: EmbedLoginContext;
   // Client info from middleware
   auth0_client?: Auth0Client;
   useragent?: string;

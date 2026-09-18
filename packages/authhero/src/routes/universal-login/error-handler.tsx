@@ -12,6 +12,7 @@ import { extractBrandingProps, resolveDarkMode } from "./u2-widget-page";
 import { ErrorPage } from "./error-page";
 import type { Bindings, Variables } from "../../types";
 import type { Branding, Theme } from "@authhero/adapter-interfaces";
+import { buildEmbedErrorScript, frameAncestorsHeaders } from "./embed";
 
 /**
  * Map technical error messages to user-friendly ones.
@@ -131,6 +132,19 @@ export function createUniversalLoginErrorHandler() {
 
     const darkMode = resolveDarkMode(c, brandingWithFavicon);
 
+    // An error thrown after initJSXRoute resolved an embedded (iframe)
+    // session: keep the page frameable by the application and hand it the
+    // error as a web_message response so its modal can react. The
+    // middleware that normally sets these headers never runs after a throw.
+    const embed = c.var?.embedLogin;
+    const embedScript = embed
+      ? buildEmbedErrorScript(embed, {
+          error: status >= 500 ? "server_error" : "invalid_request",
+          error_description: message,
+          state: c.var?.loginSession?.authParams?.state,
+        })
+      : undefined;
+
     return c.html(
       <ErrorPage
         message={message}
@@ -138,8 +152,11 @@ export function createUniversalLoginErrorHandler() {
         branding={extractBrandingProps(brandingWithFavicon)}
         theme={resolvedTheme}
         darkMode={darkMode}
+        embed={Boolean(embed)}
+        extraScript={embedScript}
       />,
       status,
+      frameAncestorsHeaders(embed),
     );
   };
 }

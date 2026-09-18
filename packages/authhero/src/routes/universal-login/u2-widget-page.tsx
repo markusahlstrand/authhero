@@ -77,6 +77,7 @@ import {
   applyUniversalLoginTemplate,
   templateIsFullDocument,
 } from "./universal-login-template";
+import { buildEmbedPageScript, type EmbedLoginContext } from "./embed";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -164,7 +165,27 @@ export type WidgetPageProps = {
    * managed by this component.
    */
   customBodyHtml?: string;
+  /**
+   * Set when the page renders inside an iframe on the application's site
+   * (see embed.ts). The page then drops the chips and footer, collapses to
+   * the widget's own height on a transparent background so the embedding
+   * modal supplies the frame, and runs the resize/relay script.
+   */
+  embed?: EmbedLoginContext;
 };
+
+/**
+ * Overrides for the embedded (iframe) layout. Appended after the shared page
+ * CSS so they win by cascade; `!important` on the backgrounds because the
+ * phone breakpoints set them with higher-specificity dark-mode selectors.
+ */
+const EMBED_PAGE_CSS = `
+    html, body { background: transparent !important; }
+    body { min-height: 0; display: block; padding: 0; }
+    .widget-container { width: 100%; }
+    .ah-bg-tint, .ah-chip, .ah-chip-legal, .ah-footer { display: none; }
+    authhero-widget { padding-bottom: 0; }
+`;
 
 // ---------------------------------------------------------------------------
 // i18n bridge for the shared chrome
@@ -364,6 +385,7 @@ export function WidgetPage({
   logoPosition,
   extraScript,
   customBodyHtml,
+  embed,
 }: WidgetPageProps) {
   const resolvedLogoPosition: LogoPosition =
     logoPosition ?? theme?.page_background?.logo_placement ?? "widget";
@@ -430,28 +452,31 @@ export function WidgetPage({
   const languages = buildLanguageOptions(availableLanguages);
   const termsLabel = resolveTermsLabel(language);
 
-  const chromeHtml =
-    renderLogoChip({ logoUrl: safeLogoUrl, clientName }) +
-    renderSettingsChip({ darkMode, language, languages }) +
-    (poweredByLogo
-      ? renderPoweredByChip({
-          url: poweredByLogo.url,
-          href: poweredByLogo.href,
-          alt: poweredByLogo.alt,
-          height: poweredByLogo.height,
-        })
-      : "") +
-    renderLegalChip({ termsAndConditionsUrl, termsLabel }) +
-    // Phone footer. Always emitted; CSS reveals it only under 480px, where
-    // the corner chips are hidden because they'd overlap the full-screen card.
-    renderMobileFooter({
-      darkMode,
-      language,
-      languages,
-      termsAndConditionsUrl,
-      termsLabel,
-      poweredBy: poweredByLogo,
-    });
+  // Embedded pages render no chrome: the embedding modal owns the frame,
+  // and the chips' links would navigate inside the iframe.
+  const chromeHtml = embed
+    ? ""
+    : renderLogoChip({ logoUrl: safeLogoUrl, clientName }) +
+      renderSettingsChip({ darkMode, language, languages }) +
+      (poweredByLogo
+        ? renderPoweredByChip({
+            url: poweredByLogo.url,
+            href: poweredByLogo.href,
+            alt: poweredByLogo.alt,
+            height: poweredByLogo.height,
+          })
+        : "") +
+      renderLegalChip({ termsAndConditionsUrl, termsLabel }) +
+      // Phone footer. Always emitted; CSS reveals it only under 480px, where
+      // the corner chips are hidden because they'd overlap the full-screen card.
+      renderMobileFooter({
+        darkMode,
+        language,
+        languages,
+        termsAndConditionsUrl,
+        termsLabel,
+        poweredBy: poweredByLogo,
+      });
 
   return (
     <html
@@ -460,6 +485,7 @@ export function WidgetPage({
       data-mode={htmlDataMode}
       data-bg={hasBgImage ? "image" : "none"}
       data-logo-position={resolvedLogoPosition}
+      data-embed={embed ? "true" : undefined}
     >
       <head>
         <meta charSet="UTF-8" />
@@ -467,14 +493,18 @@ export function WidgetPage({
         <title>Sign in - {clientName}</title>
         {faviconUrl && <link rel="icon" href={faviconUrl} />}
         {fontUrl && <link rel="stylesheet" href={fontUrl} />}
-        <style dangerouslySetInnerHTML={{ __html: pageCss }} />
+        <style
+          dangerouslySetInnerHTML={{
+            __html: embed ? pageCss + EMBED_PAGE_CSS : pageCss,
+          }}
+        />
         <script
           type="module"
           src={`/u/widget/authhero-widget.esm.js?v=${buildHash}`}
         />
       </head>
       <body>
-        {hasBgImage && <div class="ah-bg-tint" aria-hidden="true" />}
+        {hasBgImage && !embed && <div class="ah-bg-tint" aria-hidden="true" />}
 
         {customBodyHtml ? (
           /* Custom-template path: tenant-controlled body markup. The
@@ -516,6 +546,12 @@ export function WidgetPage({
 
         {extraScript && (
           <script dangerouslySetInnerHTML={{ __html: extraScript }} />
+        )}
+
+        {embed && (
+          <script
+            dangerouslySetInnerHTML={{ __html: buildEmbedPageScript(embed) }}
+          />
         )}
 
         {/* Dark-mode runtime — applies dark CSS vars to the widget's
@@ -702,6 +738,10 @@ export async function renderWidgetPageResponse(
     themeForWidget !== opts.theme
       ? JSON.stringify(themeForWidget)
       : opts.themeJson;
+  // Embedded (iframe) sessions are resolved by initJSXRoute; a tenant's
+  // page template is skipped for them since it lays out a whole page.
+  const embed: EmbedLoginContext | undefined = ctx.var?.embedLogin;
+  const customTemplateBody = embed ? undefined : opts.customTemplateBody;
   const widgetHtml = await renderWidgetSSR({
     screenId: opts.screenId,
     screenJson: opts.screenJson,
@@ -714,12 +754,14 @@ export async function renderWidgetPageResponse(
     locale: opts.locale ?? resolveLocaleFromContext(ctx),
     // A page background image stays visible around the card on phones, so
     // the widget must not go full-bleed there — see buildPageCss's mobile
-    // block and the widget stylesheet's `[floating]` variant.
-    floating: !!opts.theme?.page_background?.background_image_url,
+    // block and the widget stylesheet's `[floating]` variant. An embedded
+    // page is a card inside the application's modal at any width, so it
+    // always floats.
+    floating: !!embed || !!opts.theme?.page_background?.background_image_url,
   });
 
   // Shared slot inputs for both the body-fragment and full-document paths.
-  const slotOptions = opts.customTemplateBody
+  const slotOptions = customTemplateBody
     ? {
         widgetHtml,
         screenId: opts.screenId,
@@ -748,21 +790,18 @@ export async function renderWidgetPageResponse(
   // Render it as the whole page, with `{%- auth0:head -%}` injecting the head
   // essentials. Body-fragment templates fall through to the fixed page shell.
   if (
-    opts.customTemplateBody &&
+    customTemplateBody &&
     slotOptions &&
-    templateIsFullDocument(opts.customTemplateBody)
+    templateIsFullDocument(customTemplateBody)
   ) {
-    const rendered = await applyUniversalLoginTemplate(
-      opts.customTemplateBody,
-      {
-        ...slotOptions,
-        headHtml: buildHeadEssentials({
-          clientName: opts.clientName,
-          branding: extractBrandingProps(opts.branding),
-          theme: opts.theme,
-        }),
-      },
-    );
+    const rendered = await applyUniversalLoginTemplate(customTemplateBody, {
+      ...slotOptions,
+      headHtml: buildHeadEssentials({
+        clientName: opts.clientName,
+        branding: extractBrandingProps(opts.branding),
+        theme: opts.theme,
+      }),
+    });
     const doc = /^\s*<!doctype/i.test(rendered)
       ? rendered
       : `<!DOCTYPE html>${rendered}`;
@@ -770,9 +809,9 @@ export async function renderWidgetPageResponse(
   }
 
   let customBodyHtml: string | undefined;
-  if (opts.customTemplateBody && slotOptions) {
+  if (customTemplateBody && slotOptions) {
     customBodyHtml = await applyUniversalLoginTemplate(
-      opts.customTemplateBody,
+      customTemplateBody,
       slotOptions,
     );
   }
@@ -793,6 +832,7 @@ export async function renderWidgetPageResponse(
       logoPosition={opts.logoPosition ?? derivedPosition}
       extraScript={opts.extraScript}
       customBodyHtml={customBodyHtml}
+      embed={embed}
     />,
     opts.status,
   );

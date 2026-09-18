@@ -31,6 +31,13 @@ export type ErrorPageProps = {
   };
   theme?: Theme | null;
   darkMode?: DarkModePreference;
+  /** Inline script appended to the body (embedded login posts the error). */
+  extraScript?: string;
+  /**
+   * Embedded (iframe) rendering: no page background or viewport centering,
+   * so the card sits in the embedding modal at its own height.
+   */
+  embed?: boolean;
 };
 
 export function ErrorPage({
@@ -41,6 +48,8 @@ export function ErrorPage({
   branding,
   theme,
   darkMode = "auto",
+  extraScript,
+  embed = false,
 }: ErrorPageProps) {
   const isInfo = variant === "info";
   const resolvedTitle =
@@ -141,6 +150,14 @@ export function ErrorPage({
               @media (max-width: 480px) and (prefers-color-scheme: dark) {
                 html:not(.ah-light-mode) body { background: #111827 !important; }
               }
+              ${
+                embed
+                  ? `
+              html, body { background: transparent !important; }
+              body { min-height: 0; display: block; padding: 0; }
+              .error-card { width: 100%; min-height: 0; }`
+                  : ""
+              }
             `,
           }}
         />
@@ -181,6 +198,9 @@ export function ErrorPage({
           <div class="error-title">{resolvedTitle}</div>
           <div class="error-message">{message}</div>
         </div>
+        {extraScript && (
+          <script dangerouslySetInnerHTML={{ __html: extraScript }} />
+        )}
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var p=localStorage.getItem('ah-dark-mode');if(p!==null&&!document.cookie.match(/ah-dark-mode=/)){var v=p==='1'?'dark':'light';document.cookie='ah-dark-mode='+v+';path=/;max-age=31536000;SameSite=Lax';localStorage.removeItem('ah-dark-mode')}}catch(e){}})()`,
