@@ -9,6 +9,7 @@ import {
   resolveEmbedLogin,
   frameAncestorsHeaders,
   buildEmbedErrorScript,
+  buildEmbedPageScript,
 } from "../../../src/routes/universal-login/embed";
 import { createUniversalLoginErrorHandler } from "../../../src/routes/universal-login/error-handler";
 import renderAuthIframe from "../../../src/utils/authIframe";
@@ -41,6 +42,59 @@ async function createEmbeddedLoginSession(env: TestEnv) {
  */
 const FIXTURE_FRAME_ANCESTORS =
   "frame-ancestors https://example.com http://localhost:3000";
+
+/**
+ * Runs the embedded page's inline script against a stubbed window and
+ * document, then fires one `navigate` event at the widget it attached to.
+ * Returns what the script did with it: the URL it opened in a popup, if any,
+ * and whether it cancelled the widget's own navigation.
+ *
+ * The script is a string injected into the page, so this is the only way to
+ * exercise its branches rather than assert on its source text.
+ */
+function dispatchNavigate(url: string) {
+  const opened: string[] = [];
+  let navigateHandler: ((evt: unknown) => void) | undefined;
+
+  const win = {
+    location: { origin: "https://login.example.com" },
+    parent: { postMessage: () => {} },
+    addEventListener: () => {},
+    open: (target: string) => {
+      opened.push(target);
+      // A window object is truthy enough for the script's blocker check.
+      return { close: () => {} };
+    },
+    ResizeObserver: undefined,
+  };
+  const widget = {
+    addEventListener: (type: string, handler: (evt: unknown) => void) => {
+      if (type === "navigate") navigateHandler = handler;
+    },
+  };
+  const doc = {
+    documentElement: { getBoundingClientRect: () => ({ height: 100 }) },
+    querySelector: () => widget,
+  };
+
+  const script = buildEmbedPageScript({
+    targetOrigin: "https://example.com",
+    frameAncestors: ["https://example.com"],
+  });
+  // eslint-disable-next-line no-new-func
+  new Function("window", "document", script)(win, doc);
+
+  expect(navigateHandler).toBeDefined();
+  let prevented = false;
+  navigateHandler!({
+    detail: { url },
+    preventDefault: () => {
+      prevented = true;
+    },
+  });
+
+  return { opened, prevented };
+}
 
 describe("embedded login (iframe)", () => {
   describe("resolveEmbedLogin", () => {
@@ -314,6 +368,57 @@ describe("embedded login (iframe)", () => {
       expect(html).toContain(
         "window.opener && window.location.origin !== targetOrigin",
       );
+    });
+  });
+
+  /**
+   * Which navigations the frame hands to a popup. Identity providers refuse
+   * to render in a frame, so they have to leave it; every internal hop has
+   * to stay, or a plain password login would spawn a window mid-flow.
+   */
+  describe("popup routing", () => {
+    it("opens our own /authorize, the social-login redirect, in a popup", () => {
+      const { opened, prevented } = dispatchNavigate(
+        "/authorize?connection=google-oauth2&state=abc",
+      );
+
+      expect(opened).toEqual([
+        "https://login.example.com/authorize?connection=google-oauth2&state=abc",
+      ]);
+      expect(prevented).toBe(true);
+    });
+
+    it("opens an enterprise IdP on its own origin in a popup", () => {
+      // What the identifier form returns when home-realm discovery matches
+      // an enterprise connection: a redirect straight to the provider.
+      const { opened, prevented } = dispatchNavigate(
+        "https://idp.example.com/saml/sso?SAMLRequest=abc",
+      );
+
+      expect(opened).toEqual([
+        "https://idp.example.com/saml/sso?SAMLRequest=abc",
+      ]);
+      expect(prevented).toBe(true);
+    });
+
+    it("leaves /authorize/resume inside the frame", () => {
+      // The terminal hop of a password, OTP or MFA step. It renders the
+      // web_message response in the frame, which posts to the application.
+      const { opened, prevented } = dispatchNavigate(
+        "/authorize/resume?state=session-id",
+      );
+
+      expect(opened).toEqual([]);
+      expect(prevented).toBe(false);
+    });
+
+    it("leaves the next hosted screen inside the frame", () => {
+      const { opened, prevented } = dispatchNavigate(
+        "/u2/enter-password?state=session-id",
+      );
+
+      expect(opened).toEqual([]);
+      expect(prevented).toBe(false);
     });
   });
 });

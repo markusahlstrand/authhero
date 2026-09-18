@@ -478,5 +478,87 @@ describe("authhero-widget", () => {
       expect(seen[0]).toContain("/authorize?");
       expect(locationHref).not.toHaveBeenCalled();
     });
+
+    /**
+     * The other half of the cancelable event: a POST screen whose response
+     * carries a redirect. The embedded login page cancels this one to open an
+     * enterprise IdP matched by home-realm discovery in a popup, so the
+     * suppression has to hold for a successful form authentication too, not
+     * just for a social button.
+     */
+    const passwordScreen = {
+      title: "Enter your password",
+      action: "http://localhost/login/password",
+      method: "POST",
+      components: [
+        {
+          id: "password",
+          type: "PASSWORD",
+          category: "FIELD",
+          visible: true,
+          order: 0,
+          config: { name: "password" },
+        },
+      ],
+    };
+
+    const IDP_REDIRECT = "https://idp.example.com/saml/sso?SAMLRequest=abc";
+
+    async function submitPasswordForm(onNavigate?: (e: Event) => void) {
+      const page = await newSpecPage({
+        components: [AuthheroWidget, AuthheroNode],
+        html: `<authhero-widget auto-submit="true" auto-navigate="true" state="abc" auth-params='{"client_id":"client"}' screen='${JSON.stringify(passwordScreen)}'></authhero-widget>`,
+      });
+      await page.waitForChanges();
+
+      (global as any).fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => "application/json" },
+        json: async () => ({ redirect: IDP_REDIRECT }),
+      });
+
+      const locationHref = jest.fn();
+      Object.defineProperty(page.win, "location", {
+        value: { href: "http://localhost/" },
+        writable: true,
+      });
+      Object.defineProperty(page.win.location, "href", {
+        set: locationHref,
+        get: () => "http://localhost/",
+      });
+
+      if (onNavigate) {
+        page.root!.addEventListener("navigate", onNavigate);
+      }
+
+      const form = page.root!.shadowRoot!.querySelector("form");
+      expect(form).not.toBeNull();
+      form!.dispatchEvent(
+        new Event("submit", { bubbles: true, cancelable: true }),
+      );
+      // The handler awaits fetch before it navigates.
+      await page.waitForChanges();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      await page.waitForChanges();
+
+      return locationHref;
+    }
+
+    it("redirects to the response's URL after a form authentication", async () => {
+      const locationHref = await submitPasswordForm();
+
+      expect(locationHref).toHaveBeenCalledWith(IDP_REDIRECT);
+    });
+
+    it("suppresses the post-submit redirect on preventDefault()", async () => {
+      const seen: string[] = [];
+      const locationHref = await submitPasswordForm((e) => {
+        seen.push((e as CustomEvent).detail.url);
+        e.preventDefault();
+      });
+
+      expect(seen).toEqual([IDP_REDIRECT]);
+      expect(locationHref).not.toHaveBeenCalled();
+    });
   });
 });

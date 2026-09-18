@@ -55,7 +55,7 @@ carries `Content-Security-Policy: frame-ancestors 'none'`.
 
 Build the `/authorize` URL as usual, with `response_mode=web_message`:
 
-```
+```text
 https://login.example.com/authorize
   ?client_id=YOUR_CLIENT_ID
   &redirect_uri=https%3A%2F%2Fwww.example.com%2Fcallback
@@ -181,8 +181,14 @@ completes on the auth origin and hands the authorization response back to the
 frame, which relays it to your page. Your listener sees it as any other
 completion, from the frame's window.
 
-The popup opens from the user's click, so it is not affected by popup
-blockers under normal conditions.
+For a social connection the popup opens straight from the user's click, so
+popup blockers leave it alone. An enterprise connection matched from the
+email address on the identifier screen is different: the redirect to the IdP
+comes back from the submitted form, so the popup opens after a network round
+trip and a strict blocker may refuse it. The frame falls back to navigating
+to the provider, which a provider that denies framing will leave blank. If
+you rely on enterprise connections, prompt users to allow popups for your
+site.
 
 Passkeys work in the frame as long as the `allow` attribute above is present.
 The relying-party ID is the auth domain, so a custom domain on your site is

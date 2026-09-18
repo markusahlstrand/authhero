@@ -102,10 +102,21 @@ export function frameAncestorsHeaders(
  *    page whenever the document's height changes, so the parent can size
  *    the iframe to the current screen instead of fixing its height.
  * 2. Social and enterprise connections: those providers refuse to render
- *    inside a frame, so the widget's redirect to /authorize is intercepted
- *    and opened in a popup window instead. The popup completes on the
- *    web_message response page, which posts the authorization response to
- *    its opener (this frame) on our own origin.
+ *    inside a frame, so the widget's redirect to the provider is intercepted
+ *    and opened in a popup window instead. Two shapes reach us: social
+ *    login redirects to our own /authorize, which 302s onwards to the
+ *    provider, while an enterprise connection matched by the identifier
+ *    form's home-realm discovery redirects straight to the IdP on its own
+ *    origin. So the popup opens for our /authorize and for anything that
+ *    leaves our origin. Every other same-origin URL — /authorize/resume
+ *    after a password or MFA step, the next /u2 screen — is an internal
+ *    hop that belongs inside the frame and is left alone.
+ *
+ *    The popup completes on the web_message response page, which posts the
+ *    authorization response to its opener (this frame) on our own origin.
+ *    A popup opened from the HRD path follows an awaited fetch rather than
+ *    a click, so a blocker may refuse it; the frame then navigates as it
+ *    did before, which is the pre-existing dead-frame case, not a new one.
  * 3. Relay: an authorization response received from such a popup is
  *    forwarded to the embedding page, so the parent sees every completion
  *    as coming from the iframe, whichever path produced it.
@@ -136,7 +147,7 @@ function attach(widget){
 widget.addEventListener("navigate",function(evt){
 var url=evt.detail&&evt.detail.url;if(!url)return;
 var u;try{u=new URL(url,window.location.origin)}catch(e){return}
-if(u.origin!==window.location.origin||u.pathname!=="/authorize")return;
+if(u.origin===window.location.origin&&u.pathname!=="/authorize")return;
 var w=window.open(u.toString(),"authhero_login","popup,width=500,height=650");
 if(w){evt.preventDefault()}
 });
