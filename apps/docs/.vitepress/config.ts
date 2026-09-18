@@ -577,6 +577,10 @@ gtag('config', 'G-DNZWG3PF2L');`,
               link: "/customization/custom-authorization-middleware",
             },
             {
+              text: "Embedded Login (iframe)",
+              link: "/customization/embedded-login",
+            },
+            {
               text: "UI Widget",
               link: "/customization/ui-widget/",
               collapsed: true,

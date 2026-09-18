@@ -357,10 +357,13 @@ export class AuthheroWidget {
   @Event() linkClick!: EventEmitter<LinkClickEventDetail>;
 
   /**
-   * Emitted when the widget wants to navigate (e.g., after successful auth).
-   * The consuming application decides how to handle navigation.
+   * Emitted when the widget wants to navigate (e.g., after successful auth
+   * or for a social login redirect). The consuming application decides how
+   * to handle navigation. Cancelable: calling `preventDefault()` on the
+   * event stops the widget's own `window.location` navigation, so a host
+   * page can, for example, open a social provider in a popup instead.
    */
-  @Event() navigate!: EventEmitter<NavigateEventDetail>;
+  @Event({ cancelable: true }) navigate!: EventEmitter<NavigateEventDetail>;
 
   /**
    * Emitted when auth flow completes with a redirect URL.
@@ -1011,9 +1014,9 @@ export class AuthheroWidget {
           // Auth complete - emit complete event
           this.flowComplete.emit({ redirectUrl: result.redirect });
           // Also emit navigate for backwards compatibility
-          this.navigate.emit({ url: result.redirect });
-          // Auto-navigate if enabled
-          if (this.shouldAutoNavigate) {
+          const navigateEvent = this.navigate.emit({ url: result.redirect });
+          // Auto-navigate if enabled and the host didn't take over
+          if (this.shouldAutoNavigate && !navigateEvent.defaultPrevented) {
             window.location.href = result.redirect;
           }
         } else if (!response.ok && result.screen) {
@@ -1657,8 +1660,10 @@ export class AuthheroWidget {
       "/authorize?" + new URLSearchParams(queryParams).toString(),
     );
 
-    // Emit navigate event and redirect
-    this.navigate.emit({ url: socialUrl });
+    // Emit navigate event and redirect, unless the host page took over
+    // (an embedded page opens the provider in a popup instead)
+    const navigateEvent = this.navigate.emit({ url: socialUrl });
+    if (navigateEvent.defaultPrevented) return;
     window.location.href = socialUrl;
   }
 

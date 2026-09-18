@@ -237,7 +237,7 @@ declare namespace LocalJSX {
          */
         "onLinkClick"?: (event: AuthheroWidgetCustomEvent<LinkClickEventDetail>) => void;
         /**
-          * Emitted when the widget wants to navigate (e.g., after successful auth). The consuming application decides how to handle navigation.
+          * Emitted when the widget wants to navigate (e.g., after successful auth or for a social login redirect). The consuming application decides how to handle navigation. Cancelable: calling `preventDefault()` on the event stops the widget's own `window.location` navigation, so a host page can, for example, open a social provider in a popup instead.
          */
         "onNavigate"?: (event: AuthheroWidgetCustomEvent<NavigateEventDetail>) => void;
         /**

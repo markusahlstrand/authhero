@@ -37,6 +37,7 @@ import { impersonateRoutes } from "./impersonate";
 import { continueRoutes } from "./continue";
 import { errorRoutes } from "./error";
 import { createUniversalLoginErrorHandler } from "./error-handler";
+import { frameAncestorsMiddleware } from "./embed";
 
 export default function create(config: AuthHeroConfig) {
   const app = new OpenAPIHono<{
@@ -49,6 +50,9 @@ export default function create(config: AuthHeroConfig) {
 
   // Render a branded error page for all errors (except redirects)
   app.onError(createUniversalLoginErrorHandler());
+
+  // Login pages deny framing unless the session is embedded (see embed.ts).
+  app.use("*", frameAncestorsMiddleware);
 
   // Handle CSS route separately to avoid unnecessary middleware
   app.get("/css/tailwind.css", async (ctx: Context) => {
