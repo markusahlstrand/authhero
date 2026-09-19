@@ -22,12 +22,23 @@ const GRANT_TYPE_CHOICES = [
   { id: "client_credentials", name: "Client Credentials" },
   { id: "password", name: "Password" },
   { id: "mfa", name: "MFA" },
-  { id: "passwordless_otp", name: "Passwordless OTP" },
+  {
+    id: "http://auth0.com/oauth/grant-type/passwordless/otp",
+    name: "Passwordless OTP",
+  },
   {
     id: "urn:ietf:params:oauth:grant-type:token-exchange",
     name: "Token Exchange",
   },
 ];
+
+// Short ids this form saved before it switched to the canonical wire values
+// the token endpoint compares against. Stored values are folded into their
+// wire form on read, so old records render checked and migrate on the next
+// save. The token endpoint accepts both, so nothing breaks in between.
+const LEGACY_GRANT_TYPE_IDS: Record<string, string> = {
+  passwordless_otp: "http://auth0.com/oauth/grant-type/passwordless/otp",
+};
 
 const EMAIL_VALIDATION_CHOICES = [
   { id: "disabled", name: "Disabled" },
@@ -132,7 +143,11 @@ function ClientMetadataInput() {
 
 function GrantTypesInput() {
   const { field } = useInput({ source: "grant_types" });
-  const selected: string[] = Array.isArray(field.value) ? field.value : [];
+  const selected: string[] = Array.isArray(field.value)
+    ? field.value.map(
+        (granted: string) => LEGACY_GRANT_TYPE_IDS[granted] ?? granted,
+      )
+    : [];
 
   const toggle = (id: string, checked: boolean) => {
     const next = checked ? [...selected, id] : selected.filter((g) => g !== id);
