@@ -77,6 +77,17 @@ function peekAssertionClientId(jwt: string): string | undefined {
 }
 
 /**
+ * Short grant ids the admin console wrote into `client.grant_types` before it
+ * switched to the canonical wire values. They are folded into their wire form
+ * before the §5.2 comparison so existing client rows keep working without a
+ * data migration. `mfa` is deliberately absent: no MFA grant is implemented at
+ * the token endpoint, so it has no wire value to map onto yet.
+ */
+const LEGACY_GRANT_TYPE_IDS: Record<string, string> = {
+  passwordless_otp: GrantType.OTP,
+};
+
+/**
  * RFC 6749 §5.2: reject grants the client is not registered for. Only
  * enforced when the client explicitly lists `grant_types` — clients with an
  * empty/undefined list (legacy / unconfigured) keep working as before.
@@ -86,7 +97,9 @@ function assertGrantTypeAllowed(
   client: EnrichedClient,
   grantType: string,
 ): void {
-  const allowedGrantTypes = client.grant_types;
+  const allowedGrantTypes = client.grant_types?.map(
+    (allowed) => LEGACY_GRANT_TYPE_IDS[allowed] ?? allowed,
+  );
   if (
     allowedGrantTypes &&
     allowedGrantTypes.length > 0 &&
