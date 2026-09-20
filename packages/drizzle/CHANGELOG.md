@@ -1,5 +1,14 @@
 # @authhero/drizzle
 
+## 1.7.2
+
+### Patch Changes
+
+- 6392dee: Support keyset (checkpoint) pagination on `GET /api/v2/connections`. Passing `from`/`take` now returns `{ connections, next }` with an opaque cursor, in fixed `created_at desc` order with an id tiebreaker. The existing `page`/`per_page` + `include_totals` offset mode is unchanged.
+- 82fc9e6: Support keyset (checkpoint) pagination on `GET /api/v2/resource-servers`. Passing `from`/`take` now returns `{ resource_servers, next }` with an opaque cursor, in fixed `created_at desc` order with an id tiebreaker. The existing `page`/`per_page` + `include_totals` offset mode is unchanged.
+- Updated dependencies [ea69698]
+  - @authhero/proxy@0.10.14
+
 ## 1.7.1
 
 ### Patch Changes

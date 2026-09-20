@@ -1,5 +1,27 @@
 # authhero
 
+## 9.13.0
+
+### Minor Changes
+
+- d07ab25: Embedded login: the hosted `/u2` pages can run inside an `<iframe>` on the application's own site. A login session started with `response_mode=web_message` renders in a compact layout (no page chrome, transparent background, floating card), posts `authhero:resize` messages so the embedding page can size the frame to each screen, opens social and enterprise connections in a popup and relays their result, and delivers errors as `authorization_response` messages. Framing is allowed only from the client's `web_origins`.
+
+  All other universal-login responses (`/u` and `/u2`) now send `Content-Security-Policy: frame-ancestors 'none'` and `X-Frame-Options: DENY`. Anything that framed the login pages before must list its origin in the application's Allowed Web Origins and use `response_mode=web_message`.
+
+- 66d557e: Add a Management API MCP server. When `mcp` is configured, `init()` serves `POST /mcp` plus RFC 9728 protected-resource metadata. MCP clients sign in to the control-plane tenant (via CIMD). On the control-plane host the read-only tools take a `tenant_id`; on a tenant's own host they are pinned to that tenant. Access follows control-plane organization membership: each call exchanges the caller's token for an organization-scoped management token and dispatches to `/api/v2` in-process. Tokens are bound to the MCP URL: `/authorize` now accepts the RFC 8707 `resource` parameter as the audience, and `/mcp` requires `aud` to be its own URL and `tenant_id` to be the control plane. Access tokens now always take `tenant_id` from the client's tenant. `validateJwtToken` gains a `tenantId` option to verify against a specific tenant's keyset.
+
+### Patch Changes
+
+- 976cd34: Resolve the tenant from the login session's client on the `/callback` error path. `/callback` is state-keyed, so on a host that doesn't identify the tenant `tenant_id` was still unset when a provider returned an error (e.g. `access_denied` after the user cancels), and the `FAILED_LOGIN` audit event was written without one. With the outbox enabled, the insert failed on `outbox_events.tenant_id NOT NULL` and the event was dropped ("Outbox event creation failed"). Fixes #1393.
+- 6392dee: Support keyset (checkpoint) pagination on `GET /api/v2/connections`. Passing `from`/`take` now returns `{ connections, next }` with an opaque cursor, in fixed `created_at desc` order with an id tiebreaker. The existing `page`/`per_page` + `include_totals` offset mode is unchanged.
+- 02c72b1: Accept the legacy `passwordless_otp` grant id in a client's `grant_types`. The admin console stored that short id while `POST /oauth/token` compares the wire value `http://auth0.com/oauth/grant-type/passwordless/otp`, so a client that ticked "Passwordless OTP" rejected every OTP exchange with `unauthorized_client`. The token endpoint now folds the legacy id into its wire form before the RFC 6749 §5.2 check, and the console saves the full URI while still rendering existing rows as checked — no data migration needed.
+- d32f6e3: Expand management-api endpoint coverage for action executions, client registration tokens and stats: Auth0 response shapes, tenant scoping, scope gates on every route, and the minted-token TTL bounds.
+- 82fc9e6: Support keyset (checkpoint) pagination on `GET /api/v2/resource-servers`. Passing `from`/`take` now returns `{ resource_servers, next }` with an opaque cursor, in fixed `created_at desc` order with an id tiebreaker. The existing `page`/`per_page` + `include_totals` offset mode is unchanged.
+- Updated dependencies [ea69698]
+- Updated dependencies [d07ab25]
+  - @authhero/proxy@0.10.14
+  - @authhero/widget@0.39.0
+
 ## 9.12.1
 
 ### Patch Changes
