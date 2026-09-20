@@ -61,5 +61,12 @@ Two-tier shape: in-memory (per-isolate) → `CacheAdapter` (per-colo / cross-iso
 
 When you control the proxy upstream and want hits shared across colos, pair this with `@authhero/cloudflare-adapter`'s `createCloudflareCache` (Cloudflare [Cache API](https://developers.cloudflare.com/workers/runtime-apis/cache/) under the hood).
 
-> The earlier `createCacheApiHostCache` helper is still exported but **deprecated** — it only does TTL caching without SWR. Migrate to `createCacheAdapterHostCache(createCloudflareCache(...))` for the same Cloudflare-backed cache plus SWR.
+## Upstream deadlines
 
+Both cache layers put a deadline on the `resolveHost` call they make — `upstreamTimeoutMs`, defaulting to 8000 ms in-memory and 5000 ms in the `CacheAdapter` layer. The inner layer is the shorter of the two on purpose: when they are nested it gives up first, so it still gets to serve its own stale value before the outer one intervenes. Both sit under the router's 10 s `resolveHostTimeoutMs` ceiling. Set either to `0` to disable.
+
+Without a deadline, an upstream that answers neither way holds the request open until that outer ceiling fires, and `staleIfErrorTtlMs` is never reached — the last known-good value is sitting in the cache, but nothing ever throws to go and get it.
+
+Neither layer shares a pending refresh between callers, so concurrent misses for the same host each call the upstream. That is deliberate. On Workers a promise belongs to the request that created it: once that request ends the promise may never settle, and on the old shared-promise design every later request in the isolate that awaited it hung with it — permanently, since only the promise settling ever cleared the pointer. A handful of duplicate fetches on a cold isolate is much cheaper. Background refreshes during the stale window are still damped, by a timestamp rather than a promise.
+
+> The earlier `createCacheApiHostCache` helper is still exported but **deprecated** — it only does TTL caching without SWR. Migrate to `createCacheAdapterHostCache(createCloudflareCache(...))` for the same Cloudflare-backed cache plus SWR.

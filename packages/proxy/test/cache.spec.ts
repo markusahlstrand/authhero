@@ -105,7 +105,11 @@ describe("in-memory host cache", () => {
     expect(fn).toHaveBeenCalledTimes(2);
   });
 
-  it("dedupes concurrent misses for the same host", async () => {
+  // Concurrent misses each call the upstream on purpose. Sharing one pending
+  // promise between callers is what stranded whole isolates: a promise belongs
+  // to the request that created it, so once that request ends it may never
+  // settle, and everyone still awaiting it hangs.
+  it("resolves every concurrent miss for the same host", async () => {
     const fn = vi.fn(
       (h: string) =>
         new Promise<ResolvedHost | null>((resolve) =>
@@ -122,9 +126,66 @@ describe("in-memory host cache", () => {
       cache.resolveHost("a.example"),
     ]);
     await vi.runAllTimersAsync();
-    await inflight;
 
-    expect(fn).toHaveBeenCalledTimes(1);
+    expect(await inflight).toEqual([
+      host("a.example"),
+      host("a.example"),
+      host("a.example"),
+    ]);
+  });
+
+  it("does not let a refresh that never settles wedge later lookups", async () => {
+    let calls = 0;
+    const fn = vi.fn((h: string) => {
+      calls += 1;
+      // The first caller is stranded exactly as a cancelled request strands a
+      // pending fetch on Workers: the promise settles neither way, ever.
+      if (calls === 1) return new Promise<ResolvedHost | null>(() => {});
+      return Promise.resolve(host(h));
+    });
+    const cache = createInMemoryHostCache(makeAdapter(fn), {
+      freshTtlMs: 1000,
+      upstreamTimeoutMs: 2000,
+    });
+
+    // Attach the rejection handler before the deadline fires, or the
+    // rejection is briefly unhandled and Node reports it.
+    const stranded = expect(cache.resolveHost("a.example")).rejects.toThrow(
+      /timed out/,
+    );
+    await vi.advanceTimersByTimeAsync(2100);
+    await stranded;
+
+    // The next request must reach the upstream rather than await the corpse of
+    // the first one.
+    const after = cache.resolveHost("a.example");
+    await vi.runAllTimersAsync();
+    expect(await after).toEqual(host("a.example"));
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
+
+  it("serves stale-if-error when a refresh times out", async () => {
+    let calls = 0;
+    const fn = vi.fn((h: string) => {
+      calls += 1;
+      if (calls === 1) return Promise.resolve(host(h));
+      return new Promise<ResolvedHost | null>(() => {});
+    });
+    const cache = createInMemoryHostCache(makeAdapter(fn), {
+      freshTtlMs: 1000,
+      staleIfErrorTtlMs: 60_000,
+      upstreamTimeoutMs: 2000,
+    });
+
+    expect(await cache.resolveHost("a.example")).toEqual(host("a.example"));
+
+    vi.advanceTimersByTime(1500); // past fresh, inside stale-if-error
+    const pending = cache.resolveHost("a.example");
+    await vi.advanceTimersByTimeAsync(2100);
+
+    // Without a deadline on the upstream call this would hang instead, and the
+    // last known-good value below would never be reached.
+    expect(await pending).toEqual(host("a.example"));
   });
 
   it("uses separate negative TTL for null results", async () => {

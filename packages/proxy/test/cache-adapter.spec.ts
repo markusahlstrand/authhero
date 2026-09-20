@@ -175,7 +175,9 @@ describe("cache-adapter host cache", () => {
     expect(fn).toHaveBeenCalledTimes(2);
   });
 
-  it("dedupes concurrent in-isolate refreshes", async () => {
+  // Concurrent misses each call the upstream on purpose — see the matching
+  // note in cache.spec.ts for why no pending promise is shared between them.
+  it("resolves every concurrent in-isolate refresh", async () => {
     const fn = vi.fn(
       (h: string) =>
         new Promise<ResolvedHost | null>((resolve) =>
@@ -195,9 +197,66 @@ describe("cache-adapter host cache", () => {
       resolver.resolveHost("a.example"),
     ]);
     await vi.runAllTimersAsync();
-    await inflight;
 
-    expect(fn).toHaveBeenCalledTimes(1);
+    expect(await inflight).toEqual([
+      host("a.example"),
+      host("a.example"),
+      host("a.example"),
+    ]);
+  });
+
+  it("does not let a refresh that never settles wedge later lookups", async () => {
+    let calls = 0;
+    const fn = vi.fn((h: string) => {
+      calls += 1;
+      if (calls === 1) return new Promise<ResolvedHost | null>(() => {});
+      return Promise.resolve(host(h));
+    });
+    const cache = createMemoryCacheAdapter();
+    const resolver = createCacheAdapterHostCache({
+      upstream: makeUpstream(fn),
+      cache,
+      freshTtlMs: 1000,
+      upstreamTimeoutMs: 2000,
+    });
+
+    // Attach the rejection handler before the deadline fires, or the
+    // rejection is briefly unhandled and Node reports it.
+    const stranded = expect(resolver.resolveHost("a.example")).rejects.toThrow(
+      /timed out/,
+    );
+    await vi.advanceTimersByTimeAsync(2100);
+    await stranded;
+
+    const after = resolver.resolveHost("a.example");
+    await vi.runAllTimersAsync();
+    expect(await after).toEqual(host("a.example"));
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
+
+  it("serves stale-if-error when a refresh times out", async () => {
+    let calls = 0;
+    const fn = vi.fn((h: string) => {
+      calls += 1;
+      if (calls === 1) return Promise.resolve(host(h));
+      return new Promise<ResolvedHost | null>(() => {});
+    });
+    const cache = createMemoryCacheAdapter();
+    const resolver = createCacheAdapterHostCache({
+      upstream: makeUpstream(fn),
+      cache,
+      freshTtlMs: 1000,
+      staleIfErrorTtlMs: 60_000,
+      upstreamTimeoutMs: 2000,
+    });
+
+    expect(await resolver.resolveHost("a.example")).toEqual(host("a.example"));
+
+    vi.advanceTimersByTime(1500);
+    const pending = resolver.resolveHost("a.example");
+    await vi.advanceTimersByTimeAsync(2100);
+
+    expect(await pending).toEqual(host("a.example"));
   });
 
   it("uses a separate negative TTL for null upstream results", async () => {
