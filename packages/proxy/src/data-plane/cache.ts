@@ -132,6 +132,12 @@ export function createInMemoryHostCache(
   // Purely advisory — it damps stampedes of background refreshes and is never
   // awaited. Once the guard window lapses the entry is treated as idle again,
   // so a refresh whose request died can never wedge the host permanently.
+  //
+  // Best-effort by design, and not owned by any one refresh: a slow refresh
+  // that finishes after a newer one started can clear the newer one's mark.
+  // The cost of losing it is a single extra background refresh, which is far
+  // cheaper than the concurrency this cache already allows on a cold miss,
+  // where every caller goes upstream on its own.
   function refreshInFlight(entry: CacheEntry, now: number): boolean {
     if (entry.refresh_started_at === undefined) return false;
     if (now - entry.refresh_started_at < guardWindow) return true;

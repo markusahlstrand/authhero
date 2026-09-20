@@ -151,7 +151,9 @@ export function createCacheAdapterHostCache(
   }
 
   // Purely advisory — it damps stampedes of background refreshes and is never
-  // awaited.
+  // awaited. Not owned by any one refresh: a slow refresh that finishes after
+  // a newer one started clears the newer one's mark, costing a single extra
+  // background refresh. See the matching note in cache.ts.
   function refreshInFlight(host: string, now: number): boolean {
     const startedAt = refreshStartedAt.get(host);
     if (startedAt === undefined) return false;
