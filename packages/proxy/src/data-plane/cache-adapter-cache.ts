@@ -33,6 +33,13 @@ export interface CacheAdapterHostCacheOptions {
   // the upstream instead of hanging the request.
   cacheReadTimeoutMs?: number;
   cacheWriteTimeoutMs?: number;
+  // Deadline (ms) on a single `upstream.resolveHost()` call. Without one, an
+  // upstream that answers neither way holds the caller open until some outer
+  // ceiling fires, and the `staleIfErrorTtlMs` fallback below is never reached.
+  // Defaults to 5000 — under the 8s default of `createInMemoryHostCache`, so
+  // that when the two are nested this inner layer gives up first and gets to
+  // serve its own stale value. Set to 0 to disable.
+  upstreamTimeoutMs?: number;
 }
 
 interface CachedPayload {
@@ -45,6 +52,7 @@ interface CachedPayload {
 
 const DEFAULT_CACHE_READ_TIMEOUT_MS = 1_000;
 const DEFAULT_CACHE_WRITE_TIMEOUT_MS = 1_000;
+const DEFAULT_UPSTREAM_TIMEOUT_MS = 5_000;
 
 /**
  * Wraps an upstream `HostResolverCache` with a generic `CacheAdapter` layer.
@@ -88,9 +96,21 @@ export function createCacheAdapterHostCache(
     waitUntil,
     cacheReadTimeoutMs = DEFAULT_CACHE_READ_TIMEOUT_MS,
     cacheWriteTimeoutMs = DEFAULT_CACHE_WRITE_TIMEOUT_MS,
+    upstreamTimeoutMs = DEFAULT_UPSTREAM_TIMEOUT_MS,
   } = options;
 
-  const inflight = new Map<string, Promise<ResolvedHost | null>>();
+  // How long a started refresh is assumed to still be running. Tied to the
+  // upstream deadline, so it always outlives a healthy refresh and always
+  // expires after a stranded one.
+  const guardWindow = upstreamTimeoutMs > 0 ? upstreamTimeoutMs : 10_000;
+
+  // When the most recent upstream refresh per host was started. Deliberately a
+  // timestamp and NOT the pending promise: a promise created by one request is
+  // tied to that request's I/O context, so once that request ends the promise
+  // may never settle, and every later request in the isolate that awaited it
+  // hung with it — permanently, since the entry was only ever cleared by the
+  // promise settling. A number cannot strand, and the guard self-heals.
+  const refreshStartedAt = new Map<string, number>();
 
   function buildKey(host: string): string {
     return `${keyPrefix}:${host.toLowerCase()}`;
@@ -130,13 +150,31 @@ export function createCacheAdapterHostCache(
     return op as Promise<void>;
   }
 
+  // Purely advisory — it damps stampedes of background refreshes and is never
+  // awaited.
+  function refreshInFlight(host: string, now: number): boolean {
+    const startedAt = refreshStartedAt.get(host);
+    if (startedAt === undefined) return false;
+    if (now - startedAt < guardWindow) return true;
+    refreshStartedAt.delete(host);
+    return false;
+  }
+
+  function callUpstream(host: string): Promise<ResolvedHost | null> {
+    const p = upstream.resolveHost(host);
+    return upstreamTimeoutMs > 0
+      ? withRaceTimeout(p, upstreamTimeoutMs, "resolveHost")
+      : p;
+  }
+
+  // Each caller runs its own upstream call — see `refreshStartedAt` above for
+  // why no pending promise is shared between requests.
   async function refresh(host: string): Promise<ResolvedHost | null> {
-    const existing = inflight.get(host);
-    if (existing) return existing;
+    refreshStartedAt.set(host, Date.now());
 
     const promise = (async () => {
       try {
-        const value = await upstream.resolveHost(host);
+        const value = await callUpstream(host);
         const now = Date.now();
         const freshTtl = value === null ? negativeTtlMs : freshTtlMs;
         const staleTtl = value === null ? 0 : staleTtlMs;
@@ -156,11 +194,10 @@ export function createCacheAdapterHostCache(
         await safeCacheSet(buildKey(host), payload, ttlSeconds);
         return value;
       } finally {
-        inflight.delete(host);
+        refreshStartedAt.delete(host);
       }
     })();
 
-    inflight.set(host, promise);
     return promise;
   }
 
@@ -175,7 +212,7 @@ export function createCacheAdapterHostCache(
           return cached.value;
         }
         if (cached.staleUntilMs > now) {
-          if (!inflight.has(host)) {
+          if (!refreshInFlight(host, now)) {
             const p = refresh(host).catch(() => undefined);
             if (waitUntil) waitUntil(p);
           }

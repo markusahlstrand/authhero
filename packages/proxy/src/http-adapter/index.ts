@@ -1,6 +1,7 @@
 import type { ProxyDataAdapter, ResolvedHost } from "../adapter";
 import type { ProxyRoutesAdapter } from "../adapter";
 import { PROXY_RESOLVE_HOST_SCOPE } from "../constants";
+import { TimeoutError } from "../data-plane/timeout";
 
 export interface HttpProxyAdapterOptions {
   // Base URL of the AuthHero control plane, without trailing slash.
@@ -24,8 +25,9 @@ export interface HttpProxyAdapterOptions {
   // Token cache: how many seconds to refresh before expiry. Defaults to 60.
   tokenRefreshSkewSeconds?: number;
   // Per-request timeout (ms) applied to both the token fetch and the
-  // resolveHost fetch. Defaults to 2500. Kept well below the router's
-  // outer `resolveHostTimeoutMs` (10s) so two sequential fetches (token +
+  // resolveHost fetch, covering the response body and not just the headers.
+  // Defaults to 2500. Kept well below the router's outer
+  // `resolveHostTimeoutMs` (10s) so two sequential fetches (token +
   // resolveHost) still fit under the outer ceiling, and so this inner
   // abort surfaces a structured adapter error instead of being shadowed
   // by the outer race timeout.
@@ -91,18 +93,35 @@ export function createHttpProxyAdapter(
   const skewSeconds = options.tokenRefreshSkewSeconds ?? 60;
   const timeoutMs = options.timeoutMs ?? 2500;
 
+  // The deadline covers the whole operation, body read included — aborting the
+  // fetch alone leaves a stalled body to hang forever, because the timer is
+  // already cleared by the time the caller reads it.
   function withTimeout<T>(op: (signal: AbortSignal) => Promise<T>): Promise<T> {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-    return op(controller.signal).finally(() => clearTimeout(timer));
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const deadline = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => {
+        controller.abort();
+        reject(new TimeoutError(timeoutMs, "control plane"));
+      }, timeoutMs);
+    });
+    return Promise.race([op(controller.signal), deadline]).finally(() =>
+      clearTimeout(timer),
+    );
   }
 
+  // Only the token lives at adapter scope, never a pending fetch. A promise
+  // started by one request is tied to that request's I/O context: if that
+  // request is cancelled the promise may never settle, and every later request
+  // in the isolate that awaited it hangs with it — for the life of the isolate,
+  // since nothing but the promise settling ever cleared the pointer. Each
+  // request mints on its own instead; the few concurrent token fetches when one
+  // expires are cheap next to that.
   let token: { value: string; expires_at: number } | null = null;
-  let pending: Promise<string> | null = null;
 
   async function fetchToken(): Promise<string> {
-    const res = await withTimeout((signal) =>
-      fetchFn(`${baseUrl}/oauth/token`, {
+    const body = await withTimeout(async (signal) => {
+      const res = await fetchFn(`${baseUrl}/oauth/token`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -113,14 +132,14 @@ export function createHttpProxyAdapter(
           scope,
         }),
         signal,
-      }),
-    );
-    if (!res.ok) {
-      throw new Error(
-        `Proxy adapter token request failed: ${res.status} ${await res.text().catch(() => "")}`,
-      );
-    }
-    const body = (await res.json()) as TokenResponse;
+      });
+      if (!res.ok) {
+        throw new Error(
+          `Proxy adapter token request failed: ${res.status} ${await res.text().catch(() => "")}`,
+        );
+      }
+      return (await res.json()) as TokenResponse;
+    });
     const expiresIn = body.expires_in ?? 3600;
     token = {
       value: body.access_token,
@@ -131,11 +150,7 @@ export function createHttpProxyAdapter(
 
   async function getToken(): Promise<string> {
     if (token && token.expires_at > Date.now()) return token.value;
-    if (pending) return pending;
-    pending = fetchToken().finally(() => {
-      pending = null;
-    });
-    return pending;
+    return fetchToken();
   }
 
   return {
@@ -143,19 +158,19 @@ export function createHttpProxyAdapter(
     async resolveHost(host: string): Promise<ResolvedHost | null> {
       const accessToken = await getToken();
       const url = `${baseUrl}${resolvePath}${encodeURIComponent(host.toLowerCase())}`;
-      const res = await withTimeout((signal) =>
-        fetchFn(url, {
+      return withTimeout(async (signal) => {
+        const res = await fetchFn(url, {
           headers: { authorization: `Bearer ${accessToken}` },
           signal,
-        }),
-      );
-      if (res.status === 404) return null;
-      if (!res.ok) {
-        throw new Error(
-          `Proxy adapter resolveHost failed: ${res.status} ${await res.text().catch(() => "")}`,
-        );
-      }
-      return (await res.json()) as ResolvedHost;
+        });
+        if (res.status === 404) return null;
+        if (!res.ok) {
+          throw new Error(
+            `Proxy adapter resolveHost failed: ${res.status} ${await res.text().catch(() => "")}`,
+          );
+        }
+        return (await res.json()) as ResolvedHost;
+      });
     },
   };
 }
