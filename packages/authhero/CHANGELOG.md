@@ -1,5 +1,14 @@
 # authhero
 
+## 9.13.1
+
+### Patch Changes
+
+- b8c686c: Copy `ctx.env` per request before writing to it. Cloudflare Workers pass the same `env` object to every request in an isolate, and the routes store each request's adapter stack on `ctx.env.data`. Concurrent requests overwrote each other's stack, so one request could wait on another request's in-flight promises. The runtime then cancelled it with "Worker's code had hung", which showed up behind the proxy as `service_binding_timeout` 504s.
+- 9a4f195: Derive the client IP from headers a caller cannot forge. `clientInfoMiddleware` read the first `X-Forwarded-For` entry whenever `X-Forwarded-Host` was set, but `@authhero/proxy` preserves the inbound chain and only appends the hop it verified — so anything to the left of that hop is the caller's own claim. `ctx.var.ip` keys the pre-login rate limiter (and its allowlist) and the passwordless IP check, both of which a scanner could sidestep by sending its own header. The IP now comes from `CF-Connecting-IP` (unless it holds one of Cloudflare's own addresses, as it does on a worker-to-worker hop), then `X-Real-IP`, then the last `X-Forwarded-For` entry. Refresh-token device records read the same derived value instead of the raw header.
+- Updated dependencies [9a4f195]
+  - @authhero/proxy@0.10.15
+
 ## 9.13.0
 
 ### Minor Changes
