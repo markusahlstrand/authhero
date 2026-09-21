@@ -1,7 +1,7 @@
 import { z } from "@hono/zod-openapi";
 import { defineHandler } from "../registry";
 import { isTimeoutLike, withAbortTimeout } from "../timeout";
-import { buildUpstreamRequest } from "./http";
+import { bodyReadFailure, buildUpstreamRequest } from "./http";
 import { getProxyRequest } from "./util";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -50,10 +50,17 @@ export const serviceBindingHandler = defineHandler<Options>({
 
     return async (c) => {
       const req = getProxyRequest(c);
-      const { target, init } = await buildUpstreamRequest(
-        { upstream_url: upstreamUrl, preserve_host: options.preserve_host },
-        req,
-      );
+      let built: Awaited<ReturnType<typeof buildUpstreamRequest>>;
+      try {
+        built = await buildUpstreamRequest(
+          { upstream_url: upstreamUrl, preserve_host: options.preserve_host },
+          req,
+          timeoutMs,
+        );
+      } catch (err) {
+        return bodyReadFailure(err);
+      }
+      const { target, init } = built;
 
       // `hostname` (no port) so `rewrite_cookies` can match against the
       // upstream cookie's `Domain=` attribute, which never carries a port.

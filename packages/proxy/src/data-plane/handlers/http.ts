@@ -1,6 +1,6 @@
 import { z } from "@hono/zod-openapi";
 import { defineHandler } from "../registry";
-import { isTimeoutLike, withAbortTimeout } from "../timeout";
+import { isTimeoutLike, TimeoutError, withAbortTimeout } from "../timeout";
 import { getProxyRequest } from "./util";
 
 const HOP_HEADERS = new Set([
@@ -49,6 +49,64 @@ function declaredBodySize(req: Request): number | null {
 }
 
 /**
+ * Read a length-delimited body into memory, giving up after `ms`.
+ *
+ * `arrayBuffer()` takes no signal and runs before the upstream timeout starts,
+ * so a client that trickles its body in could otherwise hold the request open
+ * indefinitely. Reading through a reader lets the deadline cancel the stream.
+ */
+async function readBodyWithin(
+  body: ReadableStream<Uint8Array>,
+  ms: number,
+): Promise<ArrayBuffer> {
+  const reader = body.getReader();
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    reader.cancel().catch(() => {});
+  }, ms);
+
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (timedOut) throw new TimeoutError(ms, "Request body read");
+      if (done) break;
+      chunks.push(value);
+      size += value.byteLength;
+    }
+  } finally {
+    clearTimeout(timer);
+  }
+
+  const buffered = new Uint8Array(size);
+  let offset = 0;
+  for (const chunk of chunks) {
+    buffered.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return buffered.buffer;
+}
+
+/**
+ * The response for a request whose body could not be read up front: 408 when
+ * the client was too slow, 400 when the stream failed.
+ */
+export function bodyReadFailure(err: unknown): Response {
+  if (isTimeoutLike(err)) {
+    return new Response("Request body timeout", {
+      status: 408,
+      headers: { "x-authhero-proxy-error": "request_body_timeout" },
+    });
+  }
+  return new Response("Bad request", {
+    status: 400,
+    headers: { "x-authhero-proxy-error": "request_body_failed" },
+  });
+}
+
+/**
  * Decide what to hand `fetch` as the upstream body.
  *
  * Forwarding `req.body` gives the runtime a stream it must keep pumping for as
@@ -67,6 +125,7 @@ function declaredBodySize(req: Request): number | null {
 async function resolveUpstreamBody(
   req: Request,
   headers: Headers,
+  bodyTimeoutMs: number,
 ): Promise<BodyInit | undefined> {
   if (!bodyAllowed(req.method) || !req.body) return undefined;
 
@@ -75,7 +134,7 @@ async function resolveUpstreamBody(
     return req.body;
   }
 
-  const buffered = await req.arrayBuffer();
+  const buffered = await readBodyWithin(req.body, bodyTimeoutMs);
   // A client is free to declare a length it does not send. Restate the header
   // from what actually arrived so the upstream is never handed a body and a
   // content-length that disagree.
@@ -86,6 +145,7 @@ async function resolveUpstreamBody(
 export async function buildUpstreamRequest(
   options: Options,
   req: Request,
+  bodyTimeoutMs: number,
 ): Promise<{ target: URL; init: RequestInit }> {
   const inUrl = new URL(req.url);
   const target = new URL(options.upstream_url);
@@ -106,7 +166,7 @@ export async function buildUpstreamRequest(
     headers.set("x-forwarded-proto", inUrl.protocol.replace(":", ""));
   }
 
-  const body = await resolveUpstreamBody(req, headers);
+  const body = await resolveUpstreamBody(req, headers, bodyTimeoutMs);
   const init: RequestInit & { duplex?: "half" } = {
     method: req.method,
     headers,
@@ -128,7 +188,13 @@ export const httpHandler = defineHandler<Options>({
     const timeoutMs = options.timeout_ms ?? DEFAULT_UPSTREAM_TIMEOUT_MS;
     return async (c) => {
       const req = getProxyRequest(c);
-      const { target, init } = await buildUpstreamRequest(options, req);
+      let built: Awaited<ReturnType<typeof buildUpstreamRequest>>;
+      try {
+        built = await buildUpstreamRequest(options, req, timeoutMs);
+      } catch (err) {
+        return bodyReadFailure(err);
+      }
+      const { target, init } = built;
 
       // Stash upstream context for downstream rewrite handlers run on the
       // response phase of earlier middleware in the chain. Use `hostname`

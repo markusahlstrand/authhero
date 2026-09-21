@@ -423,6 +423,51 @@ describe("upstream request body", () => {
     expect(init.duplex).toBe("half");
   });
 
+  it("returns 408 when a small body stalls past timeout_ms", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response("ok"));
+    const app = createProxyDataPlaneRouter({
+      data: makeAdapter({
+        ...customerHost(),
+        routes: [
+          route({
+            handlers: [
+              {
+                type: "http",
+                options: {
+                  upstream_url: "https://upstream.example",
+                  timeout_ms: 50,
+                },
+              },
+            ],
+          }),
+        ],
+      }),
+    });
+
+    // Declares 9 bytes, sends 4, then never finishes.
+    const stalled = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode("1234"));
+      },
+    });
+    const res = await app.request(
+      new Request("https://customer.com/login", {
+        method: "POST",
+        headers: { host: "customer.com", "content-length": "9" },
+        body: stalled,
+        duplex: "half",
+      } as RequestInit & { duplex: "half" }),
+    );
+
+    expect(res.status).toBe(408);
+    expect(res.headers.get("x-authhero-proxy-error")).toBe(
+      "request_body_timeout",
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("sends no body on a GET", async () => {
     const fetchMock = vi
       .spyOn(globalThis, "fetch")
