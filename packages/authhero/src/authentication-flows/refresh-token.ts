@@ -348,7 +348,10 @@ export async function refreshTokenGrant(
   const clientRotates = client.refresh_token?.rotation_type === "rotating";
   const shouldRotate = refreshToken.rotating || clientRotates;
 
-  const nextLastIp = ctx.req.header("x-real-ip") || "";
+  // `ctx.var.ip` rather than the raw header: `clientInfoMiddleware` picks the
+  // least forgeable source, so a caller reaching this app directly can't stamp
+  // an address of its choosing onto the device record.
+  const nextLastIp = ctx.var.ip || "";
   const nextLastUa = ctx.req.header("user-agent") || "";
   const deviceChanged =
     nextLastIp !== refreshToken.device?.last_ip ||
