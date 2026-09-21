@@ -8,14 +8,20 @@ import { AuthHeroConfig, Bindings, Variables } from "../types";
  * Applied both in the outer `init()` app and in each sub-app's middleware
  * chain so that serving a sub-app (oauthApp, managementApp, ...) directly —
  * without routing through the outer app — still sees the config.
+ *
+ * `ctx.env` is replaced with a shallow copy before anything is written to it.
+ * On Cloudflare Workers the runtime hands every request in an isolate the SAME
+ * `env` object, and the routes store per-request state on it (`ctx.env.data =
+ * composeAuthData({ ctx, ... })`). Writing to the shared object let concurrent
+ * requests overwrite each other's adapter stack, so one request awaited
+ * another request's in-flight promises — which the runtime cancels as a hung
+ * Worker once the owning request ends.
  */
 export function applyConfigMiddleware(
   config: AuthHeroConfig,
 ): MiddlewareHandler<{ Bindings: Bindings; Variables: Variables }> {
   return async (ctx, next) => {
-    if (!ctx.env) {
-      ctx.env = {} as Bindings;
-    }
+    ctx.env = { ...(ctx.env ?? {}) } as Bindings;
 
     if (!ctx.env.data && config.dataAdapter) {
       ctx.env.data = config.dataAdapter;
