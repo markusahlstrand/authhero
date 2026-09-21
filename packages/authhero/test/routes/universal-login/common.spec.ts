@@ -12,9 +12,12 @@ describe("initJSXRoute", () => {
   let ctx: Context<{ Bindings: Bindings; Variables: Variables }>;
   let mockLoginSession: any;
   let state: string;
+  let mockReq: { method: string; path: string };
 
   beforeEach(async () => {
     testServer = await getTestServer();
+
+    mockReq = { method: "GET", path: "/u2/login/identifier" };
 
     // Create a mock context
     ctx = {
@@ -22,7 +25,7 @@ describe("initJSXRoute", () => {
       var: {
         tenant_id: "tenantId",
       },
-      req: { method: "GET", path: "/u2/login/identifier" },
+      req: mockReq,
       set: () => {},
     } as any;
 
@@ -204,14 +207,9 @@ describe("initJSXRoute", () => {
       await testServer.env.data.tenants.update("tenantId", {
         default_redirection_uri: "https://app.example.com/login",
       });
-      const postCtx = {
-        ...ctx,
-        req: { method: "POST", path: "/u2/login/identifier" },
-      } as any;
+      mockReq.method = "POST";
 
-      const error = await initJSXRoute(postCtx, "expired-state").catch(
-        (e) => e,
-      );
+      const error = await initJSXRoute(ctx, "expired-state").catch((e) => e);
 
       expect(error).toBeInstanceOf(HTTPException);
       expect((error as HTTPException).status).toBe(400);
