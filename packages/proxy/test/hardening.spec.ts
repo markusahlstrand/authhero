@@ -328,6 +328,145 @@ describe("http hardening", () => {
   });
 });
 
+describe("upstream request body", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  function appWithUpstream() {
+    return createProxyDataPlaneRouter({ data: makeAdapter(customerHost()) });
+  }
+
+  async function post(
+    app: ReturnType<typeof appWithUpstream>,
+    headers: Record<string, string>,
+    body: string,
+  ) {
+    return app.request("https://customer.com/login", {
+      method: "POST",
+      headers: { host: "customer.com", ...headers },
+      body,
+    });
+  }
+
+  it("buffers a small body so no stream is left pumping after the response", async () => {
+    // An upstream that answers a POST without reading the body (a 404, a
+    // redirect) leaves a forwarded stream half-pumped, and the runtime logs
+    // `Can't read from request stream after response has been sent.` once we
+    // return its response. A buffered body has nothing left to pump.
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response("not found", { status: 404 }));
+
+    const res = await post(
+      appWithUpstream(),
+      { "content-length": "9", "content-type": "text/plain" },
+      "123456789",
+    );
+
+    expect(res.status).toBe(404);
+    const init = fetchMock.mock.calls[0]![1] as RequestInit & {
+      duplex?: string;
+    };
+    expect(init.body).toBeInstanceOf(ArrayBuffer);
+    expect(init.duplex).toBeUndefined();
+    expect(new TextDecoder().decode(init.body as ArrayBuffer)).toBe(
+      "123456789",
+    );
+  });
+
+  it("restates content-length from what actually arrived", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response("ok"));
+
+    await post(
+      appWithUpstream(),
+      { "content-length": "999", "content-type": "text/plain" },
+      "1234",
+    );
+
+    const init = fetchMock.mock.calls[0]![1] as RequestInit;
+    expect((init.headers as Headers).get("content-length")).toBe("4");
+    expect(new TextDecoder().decode(init.body as ArrayBuffer)).toBe("1234");
+  });
+
+  it("streams a body whose declared length is over the buffering ceiling", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response("ok"));
+
+    await post(
+      appWithUpstream(),
+      { "content-length": String(1024 * 1024), "content-type": "text/plain" },
+      "an upload the client is still sending",
+    );
+
+    const init = fetchMock.mock.calls[0]![1] as RequestInit & {
+      duplex?: string;
+    };
+    expect(init.body).toBeInstanceOf(ReadableStream);
+    expect(init.duplex).toBe("half");
+  });
+
+  it("streams a body with no declared length", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response("ok"));
+
+    await post(appWithUpstream(), { "content-type": "text/plain" }, "chunked");
+
+    const init = fetchMock.mock.calls[0]![1] as RequestInit & {
+      duplex?: string;
+    };
+    expect(init.body).toBeInstanceOf(ReadableStream);
+    expect(init.duplex).toBe("half");
+  });
+
+  it("sends no body on a GET", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response("ok"));
+
+    await appWithUpstream().request("https://customer.com/login", {
+      headers: { host: "customer.com" },
+    });
+
+    const init = fetchMock.mock.calls[0]![1] as RequestInit;
+    expect(init.body).toBeUndefined();
+  });
+
+  it("forwards a buffered body through a service binding", async () => {
+    const fetcher = {
+      fetch: vi.fn(async () => new Response("ok")),
+    };
+    const app = createProxyDataPlaneRouter({
+      data: makeAdapter({
+        tenant_id: "t1",
+        custom_domain_id: "cd1",
+        domain: "customer.com",
+        routes: [
+          route({
+            handlers: [
+              { type: "service_binding", options: { binding: "UPSTREAM" } },
+            ],
+          }),
+        ],
+      }),
+      bindings: { UPSTREAM: fetcher },
+    });
+
+    await post(
+      app,
+      { "content-length": "9", "content-type": "text/plain" },
+      "123456789",
+    );
+
+    const forwarded = fetcher.fetch.mock.calls[0]![0] as unknown as Request;
+    expect(await forwarded.text()).toBe("123456789");
+  });
+});
+
 describe("router defense-in-depth", () => {
   beforeEach(() => {
     vi.useFakeTimers();

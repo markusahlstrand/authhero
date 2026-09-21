@@ -12,28 +12,70 @@ describe("clientInfoMiddleware", () => {
   });
 
   describe("IP address extraction", () => {
-    it("should extract the first IP from x-forwarded-for header when x-forwarded-host is present", async () => {
-      // Setup a route to capture the context variables
+    beforeEach(() => {
       app.get("/test", (c) => {
         return c.json({ ip: c.get("ip") });
       });
+    });
 
+    it("should prefer cf-connecting-ip over any forwarded header", async () => {
       const response = await app.request("/test", {
         headers: {
           "x-forwarded-host": "example.com",
-          "x-forwarded-for": "192.168.1.100, 10.0.0.1, 203.0.113.1",
+          "x-forwarded-for": "192.168.1.100, 10.0.0.1",
+          "x-real-ip": "198.51.100.7",
+          "cf-connecting-ip": "203.0.113.1",
         },
       });
 
       const body = await response.json();
-      expect(body.ip).toBe("192.168.1.100");
+      expect(body.ip).toBe("203.0.113.1");
     });
 
-    it("should handle single IP in x-forwarded-for header", async () => {
-      app.get("/test", (c) => {
-        return c.json({ ip: c.get("ip") });
+    it("should ignore a client-supplied x-forwarded-for prefix", async () => {
+      // The chain a scanner sends is preserved by @authhero/proxy, which only
+      // appends the hop it verified. Trusting the head of it would let the
+      // caller pick its own rate-limit key.
+      const response = await app.request("/test", {
+        headers: {
+          "x-forwarded-host": "example.com",
+          "x-forwarded-for": "127.0.0.1, 203.0.113.1",
+        },
       });
 
+      const body = await response.json();
+      expect(body.ip).toBe("203.0.113.1");
+    });
+
+    it("should fall back to x-real-ip when cf-connecting-ip is Cloudflare's own address", async () => {
+      // What a worker-to-worker hop looks like: the runtime replaces
+      // CF-Connecting-IP with the loopback source, and the proxy has already
+      // stamped the visitor into x-real-ip.
+      const response = await app.request("/test", {
+        headers: {
+          "x-forwarded-host": "example.com",
+          "x-forwarded-for": "127.0.0.1, 203.0.113.1",
+          "x-real-ip": "203.0.113.1",
+          "cf-connecting-ip": "2a06:98c0:3600::103",
+        },
+      });
+
+      const body = await response.json();
+      expect(body.ip).toBe("203.0.113.1");
+    });
+
+    it("should fall back to the last x-forwarded-for hop when no other header is usable", async () => {
+      const response = await app.request("/test", {
+        headers: {
+          "x-forwarded-for": " 127.0.0.1 , 10.0.0.1 , 203.0.113.1 ",
+        },
+      });
+
+      const body = await response.json();
+      expect(body.ip).toBe("203.0.113.1");
+    });
+
+    it("should handle a single IP in x-forwarded-for", async () => {
       const response = await app.request("/test", {
         headers: {
           "x-forwarded-host": "example.com",
@@ -45,43 +87,7 @@ describe("clientInfoMiddleware", () => {
       expect(body.ip).toBe("192.168.1.100");
     });
 
-    it("should handle x-forwarded-for with spaces around commas", async () => {
-      app.get("/test", (c) => {
-        return c.json({ ip: c.get("ip") });
-      });
-
-      const response = await app.request("/test", {
-        headers: {
-          "x-forwarded-host": "example.com",
-          "x-forwarded-for": " 192.168.1.100 , 10.0.0.1 , 203.0.113.1 ",
-        },
-      });
-
-      const body = await response.json();
-      expect(body.ip).toBe("192.168.1.100");
-    });
-
-    it("should fallback to cf-connecting-ip when x-forwarded-host is not present", async () => {
-      app.get("/test", (c) => {
-        return c.json({ ip: c.get("ip") });
-      });
-
-      const response = await app.request("/test", {
-        headers: {
-          "x-forwarded-for": "192.168.1.100, 10.0.0.1",
-          "cf-connecting-ip": "203.0.113.1",
-        },
-      });
-
-      const body = await response.json();
-      expect(body.ip).toBe("203.0.113.1");
-    });
-
-    it("should fallback to x-real-ip when other headers are not available", async () => {
-      app.get("/test", (c) => {
-        return c.json({ ip: c.get("ip") });
-      });
-
+    it("should use x-real-ip when it is the only header present", async () => {
       const response = await app.request("/test", {
         headers: {
           "x-real-ip": "203.0.113.1",
@@ -93,10 +99,6 @@ describe("clientInfoMiddleware", () => {
     });
 
     it("should not set IP when no relevant headers are present", async () => {
-      app.get("/test", (c) => {
-        return c.json({ ip: c.get("ip") });
-      });
-
       const response = await app.request("/test", {
         headers: {},
       });

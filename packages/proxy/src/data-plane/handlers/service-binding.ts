@@ -50,7 +50,7 @@ export const serviceBindingHandler = defineHandler<Options>({
 
     return async (c) => {
       const req = getProxyRequest(c);
-      const { target, init } = buildUpstreamRequest(
+      const { target, init } = await buildUpstreamRequest(
         { upstream_url: upstreamUrl, preserve_host: options.preserve_host },
         req,
       );
