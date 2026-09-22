@@ -12,6 +12,7 @@ The Cloudflare adapter provides Cloudflare-specific integrations for AuthHero, i
 - **[Custom Domains](./custom-domains)**: Manage custom domains via Cloudflare API with automatic SSL certificates
 - **[Cache](./cache)**: Cloudflare Cache API integration for high-performance caching
 - **[Rate Limit](/customization/adapter-interfaces/rate-limit)** (optional): Workers Rate Limiter bindings wired into AuthHero's `pre-login`, `brute-force`, and `pre-user-registration` scopes
+- **[Email Sending](./email)** (optional): An `emailService` adapter for the Cloudflare Email Sending `send_email` binding
 - **Logs** (optional): Two options for authentication logs:
   - **[Analytics Engine](./analytics-engine)**: Low-latency writes with SQL querying (90-day retention). Also returns the log-derived `analytics` and `stats` adapters.
   - **[R2 SQL](./r2-sql)**: Long-term storage with unlimited retention

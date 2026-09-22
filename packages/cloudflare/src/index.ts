@@ -41,6 +41,13 @@ export type { AnalyticsEngineActionExecutionsAdapterConfig };
 // Re-export rate-limit types so consumers can type their wrangler bindings
 export type { CloudflareRateLimitBinding, CloudflareRateLimitBindings };
 export { createCloudflareRateLimitAdapter } from "./rate-limit";
+export {
+  createCloudflareEmailService,
+  type CloudflareEmailServiceOptions,
+  type CloudflareSendEmailBinding,
+  type CloudflareEmailMessage,
+  type CloudflareEmailAddress,
+} from "./email-service";
 export type { CloudflareConfig };
 export { syncCustomDomains } from "./customDomains/sync";
 export type {
