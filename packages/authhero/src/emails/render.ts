@@ -1,7 +1,6 @@
-import { Context } from "hono";
 import { Liquid } from "liquidjs";
 import { EmailTemplateName } from "@authhero/adapter-interfaces";
-import { Bindings, Variables } from "../types";
+import { RequestContext } from "../types";
 import { getDefaultTemplate } from "./defaults";
 
 // Constructed on first render: the Liquid constructor is a measurable share
@@ -39,11 +38,11 @@ export type RenderResult =
  *   3. `{ kind: "none" }` if neither exists.
  */
 export async function renderEmailTemplate(
-  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  ctx: RequestContext,
   templateName: EmailTemplateName,
   vars: Record<string, unknown>,
   fallbackFrom: string,
-  tenantId: string = ctx.var.tenant_id,
+  tenantId: string,
 ): Promise<RenderResult> {
   const override = await ctx.env.data.emailTemplates.get(
     tenantId,

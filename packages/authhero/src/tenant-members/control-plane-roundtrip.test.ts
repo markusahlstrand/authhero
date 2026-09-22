@@ -1,12 +1,16 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { Hono } from "hono";
-import { unquoteLuceneValue } from "@authhero/adapter-interfaces";
+import {
+  unquoteLuceneValue,
+  type EmailServiceSendParams,
+} from "@authhero/adapter-interfaces";
 import { createControlPlaneClient } from "../helpers/control-plane-client";
 import { createTenantMembersControlPlaneApp } from "../routes/proxy-control-plane/tenant-members";
 import { createControlPlaneTenantMembersAdapter } from "./remote-backend";
 import { createLocalTenantMembersBackend } from "./local-backend";
 import { CONTROL_PLANE_TENANT_MEMBERS_PATH } from "./wire";
 import type { AuthenticateControlPlane } from "../routes/proxy-control-plane/custom-domains";
+import type { Bindings } from "../types";
 
 const CP = "control-plane";
 const ACME = "acme";
@@ -232,5 +236,177 @@ describe("tenant-members control-plane round trip", () => {
     await expect(remote.listMembers("ghost")).rejects.toThrow(
       /no organization/i,
     );
+  });
+});
+
+describe("tenant-members control-plane round trip: default invitation email", () => {
+  /**
+   * The control-plane tenant and the shard's tenant each get their own email
+   * provider and branding, so the assertions can tell which one was used.
+   */
+  function makeEmailEnv(opts: { failSend?: boolean } = {}) {
+    const cpData = makeControlPlaneData();
+    const sent: EmailServiceSendParams[] = [];
+    const created: string[] = [];
+    const perTenant = (cp: unknown, shard: unknown) => async (t: string) =>
+      t === CP ? cp : t === ACME ? shard : null;
+    const data = {
+      ...cpData,
+      invites: {
+        ...cpData.invites,
+        async create(_t: string, p: { id: string }) {
+          created.push(p.id);
+          return { ...p };
+        },
+      },
+      tenants: {
+        get: perTenant(
+          { id: CP, friendly_name: "Control Plane" },
+          { id: ACME, friendly_name: "Acme Tenant" },
+        ),
+      },
+      branding: {
+        get: perTenant(
+          { logo_url: "https://cp.example.com/logo.png" },
+          { logo_url: "https://acme.example.com/logo.png" },
+        ),
+      },
+      emailProviders: {
+        get: perTenant(
+          {
+            name: "mock-email",
+            credentials: { api_key: "cp-key" },
+            default_from_address: "team@cp.example.com",
+          },
+          {
+            name: "mock-email",
+            credentials: { api_key: "acme-key" },
+            default_from_address: "login@acme.example.com",
+          },
+        ),
+      },
+      emailTemplates: { get: async () => null },
+      emailService: {
+        async send(params: EmailServiceSendParams) {
+          if (opts.failSend) throw new Error("provider down");
+          sent.push(params);
+        },
+      },
+    };
+    // Deliberately partial: only what the invitation path reads.
+    const env = {
+      data,
+      ISSUER: "https://cp.example.com/",
+    } as unknown as Bindings;
+    return { env, sent, created };
+  }
+
+  /** The control-plane resource wired the documented way: `ctx: c`. */
+  function makeRemoteWithEmail(
+    env: Bindings,
+    overrides: Record<string, unknown> = {},
+  ) {
+    const root = new Hono<{ Bindings: Bindings }>();
+    root.route(
+      CONTROL_PLANE_TENANT_MEMBERS_PATH,
+      createTenantMembersControlPlaneApp({
+        getBackend: (c) =>
+          createLocalTenantMembersBackend({
+            data: c.env.data,
+            controlPlaneTenantId: CP,
+            issuer: "https://cp.example.com/",
+            invitationClientId: "invite-client",
+            ctx: c,
+            ...overrides,
+          }),
+        authenticate,
+      }),
+    );
+    return makeRemote({ fetch: (req) => root.fetch(req, env) });
+  }
+
+  it("sends the user_invitation email as the control-plane tenant", async () => {
+    const { env, sent } = makeEmailEnv();
+    const invite = await makeRemoteWithEmail(env).createInvitation(ACME, {
+      invitee: { email: "new@acme.com" },
+      inviter: { name: "Ann" },
+    });
+
+    expect(sent).toHaveLength(1);
+    const [email] = sent;
+    if (!email) throw new Error("no email sent");
+    expect(email.to).toBe("new@acme.com");
+    expect(email.template).toBe("auth-invitation");
+    expect(email.emailProvider.credentials.api_key).toBe("cp-key");
+    expect(email.from).toBe("team@cp.example.com");
+    expect(email.data.tenantId).toBe(CP);
+    expect(email.data.logo).toBe("https://cp.example.com/logo.png");
+    expect(email.data.organizationName).toBe("Acme");
+    expect(email.data.invitationUrl).toBe(invite.invitation_url);
+  });
+
+  it("sends nothing when send_invitation_email is false", async () => {
+    const { env, sent, created } = makeEmailEnv();
+    await makeRemoteWithEmail(env).createInvitation(ACME, {
+      invitee: { email: "new@acme.com" },
+      send_invitation_email: false,
+    });
+    expect(created).toHaveLength(1);
+    expect(sent).toHaveLength(0);
+  });
+
+  it("uses a host-supplied sendInvitationEmail instead of the default", async () => {
+    const { env, sent } = makeEmailEnv();
+    const sendInvitationEmail = vi.fn(async () => {});
+    await makeRemoteWithEmail(env, { sendInvitationEmail }).createInvitation(
+      ACME,
+      { invitee: { email: "new@acme.com" } },
+    );
+    expect(sendInvitationEmail).toHaveBeenCalledOnce();
+    expect(sent).toHaveLength(0);
+  });
+
+  it("still creates the invitation when delivery fails", async () => {
+    const { env, created } = makeEmailEnv({ failSend: true });
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const invite = await makeRemoteWithEmail(env).createInvitation(ACME, {
+        invitee: { email: "new@acme.com" },
+      });
+      expect(created).toEqual([invite.id]);
+      expect(errors).toHaveBeenCalledWith(
+        expect.stringContaining("[tenant-members] failed to send invitation"),
+        expect.anything(),
+      );
+    } finally {
+      errors.mockRestore();
+    }
+  });
+});
+
+describe("tenant-members control-plane resource: default authentication", () => {
+  it("rejects a request without a control-plane bearer token when no authenticate is passed", async () => {
+    const root = new Hono();
+    root.route(
+      CONTROL_PLANE_TENANT_MEMBERS_PATH,
+      createTenantMembersControlPlaneApp({
+        getBackend: () => {
+          throw new Error("backend must not be reached");
+        },
+      }),
+    );
+    const env = { ISSUER: "https://cp.example.com/" };
+    const unauthenticated = await root.fetch(
+      new Request(`http://cp${CONTROL_PLANE_TENANT_MEMBERS_PATH}/members`),
+      env,
+    );
+    expect(unauthenticated.status).toBe(401);
+    const forged = await root.fetch(
+      new Request(`http://cp${CONTROL_PLANE_TENANT_MEMBERS_PATH}/members`, {
+        headers: { authorization: `Bearer tok::${ACME}` },
+      }),
+      env,
+    );
+    expect(forged.status).toBe(401);
   });
 });

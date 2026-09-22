@@ -7,7 +7,7 @@ import {
   AuditCategory,
   Strategy,
 } from "@authhero/adapter-interfaces";
-import { Variables, Bindings } from "../types";
+import { Variables, Bindings, RequestContext } from "../types";
 import { waitUntil } from "./wait-until";
 import { instanceToJson } from "../utils/instance-to-json";
 import { getConnectionInfo } from "./connection";
@@ -189,10 +189,7 @@ export type LogParams = {
 
 /** The affected user for the flat log's `user_id`: the target for user-scoped
  *  management operations, otherwise the subject/actor user. */
-function subjectUserId(
-  params: LogParams,
-  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
-): string {
+function subjectUserId(params: LogParams, ctx: RequestContext): string {
   if (
     params.targetType &&
     USER_TARGET_TYPES.has(params.targetType) &&
@@ -220,10 +217,7 @@ function computeDiff(
   return Object.keys(diff).length > 0 ? diff : undefined;
 }
 
-function inferCategory(
-  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
-  params: LogParams,
-): AuditCategory {
+function inferCategory(ctx: RequestContext, params: LogParams): AuditCategory {
   // Admin action via management API (ctx.var.user_id is the admin)
   if (ctx.var.user_id) return "admin_action";
   // Admin-like action outside the management API (e.g. impersonation) where
@@ -258,7 +252,7 @@ type LogEnrichment = {
  * — enrichment must never break log delivery.
  */
 async function resolveLogEnrichment(
-  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  ctx: RequestContext,
   tenantId: string,
   params: LogParams,
 ): Promise<LogEnrichment> {
@@ -325,7 +319,7 @@ async function resolveLogEnrichment(
 }
 
 function buildAuditEvent(
-  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  ctx: RequestContext,
   tenantId: string,
   params: LogParams,
   enrichment?: LogEnrichment,
@@ -447,7 +441,7 @@ function inferOperationType(method: string): string {
 }
 
 export async function logMessage(
-  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  ctx: RequestContext,
   tenantId: string,
   params: LogParams,
 ): Promise<void> {

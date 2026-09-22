@@ -249,4 +249,54 @@ export async function verifyControlPlaneToken(
   };
 }
 
+function extractBearerToken(request: Request): string | null {
+  const header = request.headers.get("authorization");
+  if (!header) return null;
+  const match = /^Bearer\s+(\S+)$/i.exec(header);
+  return match?.[1] ?? null;
+}
+
+/**
+ * Authenticate a control-plane request: its `Bearer` JWT must be issued by
+ * either the runtime `env.ISSUER` or the host the request actually arrived on
+ * (`x-forwarded-host` or the request URL's host), and carry `requiredScope`.
+ */
+export async function authenticateControlPlaneRequest(
+  c: {
+    req: {
+      raw: Request;
+      header(name: string): string | undefined;
+      url: string;
+    };
+    env: { ISSUER: string };
+  },
+  requiredScope: string | string[],
+  options: Pick<
+    VerifyControlPlaneTokenOptions,
+    "jwksFetch" | "isTrustedIssuer"
+  > = {},
+): Promise<VerifyControlPlaneTokenResult> {
+  const token = extractBearerToken(c.req.raw);
+  if (!token) return { ok: false, reason: "missing bearer token" };
+
+  // Accept either the canonical ISSUER (legacy callers) or the host the
+  // request actually landed on. The latter covers both tenant subdomains
+  // (e.g. `sesamy.token.sesamy.com`) and registered custom domains
+  // fronted by `@authhero/proxy` (e.g. `login.parcferme.no`) — both
+  // collapse to "iss equals the request host" because only authhero can
+  // mint tokens signed by a key in that host's JWKS.
+  const inboundHost =
+    c.req.header("x-forwarded-host") ?? new URL(c.req.url).host;
+  const inboundIssuer = `https://${inboundHost}/`;
+  const expectedIssuers = Array.from(new Set([c.env.ISSUER, inboundIssuer]));
+
+  return verifyControlPlaneToken({
+    token,
+    jwksFetch: options.jwksFetch,
+    expectedIssuers,
+    requiredScope,
+    isTrustedIssuer: options.isTrustedIssuer,
+  });
+}
+
 export { PROXY_RESOLVE_HOST_SCOPE };

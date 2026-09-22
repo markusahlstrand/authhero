@@ -743,15 +743,16 @@ export default init({
           controlPlaneTenantId: CONTROL_PLANE_TENANT_ID,
           issuer, // builds invitation acceptance links + default avatars
           invitationClientId: env.INVITATION_CLIENT_ID,
-          // Optional: any async sender. Omit it and the invitation is still
-          // created and returned; only email delivery is skipped (like Auth0).
-          sendInvitationEmail: async ({ to, invitationUrl }) =>
-            deliverEmail(c, to, invitationUrl),
+          // Email invitations with the built-in template, as the control-plane
+          // tenant. Pass `sendInvitationEmail` instead to use your own sender.
+          ctx: c,
         }),
     },
   },
 });
 ```
+
+The resource authenticates shards itself (a `controlplane:tenant_members` token), so `tenantMembers` needs no `authenticate`. With `ctx: c`, invitations created by a shard are emailed the same way as on a single instance (below). Without `ctx` or `sendInvitationEmail`, the invitation is still created and returned; only email delivery is skipped (like Auth0).
 
 ### Single-instance deployments
 

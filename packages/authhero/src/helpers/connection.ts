@@ -1,11 +1,10 @@
-import { Context } from "hono";
 import {
   LoginSession,
   Strategy,
   User,
   isDatabaseConnectionStrategy,
 } from "@authhero/adapter-interfaces";
-import { Bindings, Variables } from "../types";
+import { RequestContext } from "../types";
 import { HookEvent } from "../types/Hooks";
 
 export type ConnectionInfo = NonNullable<HookEvent["connection"]>;
@@ -54,7 +53,7 @@ export function resolveConnectionName(
  * connection — callers decide whether to synthesize a fallback.
  */
 export async function getConnectionInfo(
-  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  ctx: RequestContext,
   tenantId: string,
   connectionName: string | undefined,
   user?: Pick<User, "provider"> | null,

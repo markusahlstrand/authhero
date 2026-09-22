@@ -1,6 +1,5 @@
-import { Context } from "hono";
 import { LogTypes } from "@authhero/adapter-interfaces";
-import { Bindings, Variables } from "../types";
+import { RequestContext } from "../types";
 import { logMessage } from "./logging";
 
 /**
@@ -190,7 +189,7 @@ export interface ApplyCustomClaimOptions {
    */
   source: string;
   /** Request context, when there is one — the warning goes to the tenant log. */
-  ctx?: Context<{ Bindings: Bindings; Variables: Variables }>;
+  ctx?: RequestContext;
   /** Tenant to log against. Defaults to `ctx.var.tenant_id`. */
   tenantId?: string;
 }

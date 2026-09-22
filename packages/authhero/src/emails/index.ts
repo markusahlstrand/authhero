@@ -1,7 +1,7 @@
 import { Context } from "hono";
 import { nanoid } from "nanoid";
 import { t } from "i18next";
-import { Bindings, Variables } from "../types";
+import { Bindings, RequestContext, Variables } from "../types";
 import {
   AuthParams,
   CreateServiceTokenFn,
@@ -25,7 +25,7 @@ import { ResendEmailService } from "../email-services/resend";
 import { PostmarkEmailService } from "../email-services/postmark";
 
 function buildCreateServiceToken(
-  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  ctx: RequestContext,
   tenantId: string,
 ): CreateServiceTokenFn {
   return async (p) => {
@@ -34,6 +34,15 @@ function buildCreateServiceToken(
     });
     return token.access_token;
   };
+}
+
+/** The explicit tenant id, else the request's; throws when neither is set. */
+function resolveTenantId(ctx: RequestContext, tenantId?: string): string {
+  const resolved = tenantId ?? ctx.var.tenant_id;
+  if (!resolved) {
+    throw new HTTPException(500, { message: "Tenant not found" });
+  }
+  return resolved;
 }
 
 // 5 days, matches the Auth0 default for email-verification tickets and the
@@ -57,10 +66,11 @@ export type SendEmailParams = {
 };
 
 export async function sendEmail(
-  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  ctx: RequestContext,
   params: SendEmailParams,
-  tenantId: string = ctx.var.tenant_id,
+  tenantIdOverride?: string,
 ) {
+  const tenantId = resolveTenantId(ctx, tenantIdOverride);
   const emailProvider = await ctx.env.data.emailProviders.get(tenantId);
 
   if (!emailProvider) {
@@ -186,10 +196,11 @@ export async function sendSms(
 }
 
 async function buildEmailContext(
-  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  ctx: RequestContext,
   language?: string,
-  tenantId: string = ctx.var.tenant_id,
+  tenantIdOverride?: string,
 ) {
+  const tenantId = resolveTenantId(ctx, tenantIdOverride);
   const tenant = await ctx.env.data.tenants.get(tenantId);
   if (!tenant) {
     throw new HTTPException(500, { message: "Tenant not found" });
@@ -238,10 +249,11 @@ interface SendTemplatedEmailParams {
  * as suppressed).
  */
 async function sendTemplatedEmail(
-  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  ctx: RequestContext,
   params: SendTemplatedEmailParams,
-  tenantId: string = ctx.var.tenant_id,
+  tenantIdOverride?: string,
 ): Promise<boolean> {
+  const tenantId = resolveTenantId(ctx, tenantIdOverride);
   const provider = await ctx.env.data.emailProviders.get(tenantId);
   const fallbackFrom =
     provider?.default_from_address || `login@${ctx.env.ISSUER}`;
@@ -867,7 +879,7 @@ export interface SendInvitationParams {
 }
 
 export async function sendInvitation(
-  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  ctx: RequestContext,
   {
     to,
     invitationUrl,
@@ -875,9 +887,10 @@ export async function sendInvitation(
     organizationName,
     ttlSec,
     language,
-    tenantId = ctx.var.tenant_id,
+    tenantId: tenantIdOverride,
   }: SendInvitationParams,
 ) {
+  const tenantId = resolveTenantId(ctx, tenantIdOverride);
   const emailContext = await buildEmailContext(ctx, language, tenantId);
   const { tenant, logo, buttonColor, options } = emailContext;
   language = emailContext.language;
