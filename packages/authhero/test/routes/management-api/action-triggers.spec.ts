@@ -358,6 +358,132 @@ describe("management-api action trigger bindings", () => {
       );
     });
 
+    it("restores the original bindings when a create fails mid-swap", async () => {
+      const { managementApp, env } = await getTestServer();
+      const client = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      const firstId = await createAction(client, token, "original-first");
+      const secondId = await createAction(client, token, "original-second");
+      const replacementA = await createAction(client, token, "replacement-a");
+      const replacementB = await createAction(client, token, "replacement-b");
+
+      // Seeded directly so the rows carry non-default fields the rollback
+      // has to preserve, not just the audit-shaped binding summary.
+      await env.data.hooks.create(TENANT, {
+        hook_id: "hook-original-first",
+        trigger_id: "post-user-login",
+        code_id: firstId,
+        enabled: true,
+        synchronous: true,
+        priority: 2,
+        metadata: { note: "keep" },
+      });
+      await env.data.hooks.create(TENANT, {
+        hook_id: "hook-original-second",
+        trigger_id: "post-user-login",
+        code_id: secondId,
+        enabled: false,
+        synchronous: false,
+        priority: 1,
+      });
+      const before = await env.data.hooks.list(TENANT, {
+        q: 'trigger_id:"post-user-login"',
+      });
+
+      const realCreate = env.data.hooks.create;
+      let calls = 0;
+      env.data.hooks.create = async (tenantId, hook) => {
+        calls++;
+        if (calls === 2) {
+          throw new Error("storage unavailable");
+        }
+        return realCreate(tenantId, hook);
+      };
+
+      // The original error surfaces (the parent app turns it into a 500)
+      // rather than a partial swap being reported as success.
+      await expect(
+        patchBindings(client, token, "post-login", [
+          { ref: { type: "action_id", value: replacementA } },
+          { ref: { type: "action_id", value: replacementB } },
+        ]),
+      ).rejects.toThrow("storage unavailable");
+      env.data.hooks.create = realCreate;
+      // One new binding, the failing one, then the two restored originals.
+      expect(calls).toBe(4);
+
+      const after = await env.data.hooks.list(TENANT, {
+        q: 'trigger_id:"post-user-login"',
+      });
+      const strip = (hooks: typeof after.hooks) =>
+        hooks
+          .map(({ created_at, updated_at, ...rest }) => rest)
+          .sort((a, b) => a.hook_id.localeCompare(b.hook_id));
+      expect(strip(after.hooks)).toEqual(strip(before.hooks));
+
+      const listed = await getBindings(client, token, "post-login");
+      expect(listed.bindings.map((b) => b.action.id)).toEqual([
+        firstId,
+        secondId,
+      ]);
+    });
+
+    it("does not shadow-copy an inherited hook when rolling back", async () => {
+      const { managementApp, env } = await getTestServer();
+      const client = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      // Stand-in for a control-plane hook surfaced through runtime
+      // inheritance: listed for this tenant but owned by another one, so the
+      // tenant-scoped remove deletes nothing.
+      await env.data.tenants.create(OTHER_TENANT_FIXTURE);
+      const inherited = await env.data.hooks.create(OTHER_TENANT, {
+        hook_id: "hook-inherited",
+        trigger_id: "post-user-login",
+        code_id: "act_control_plane",
+        enabled: true,
+        synchronous: true,
+        priority: 5,
+        metadata: { inheritable: true },
+      });
+      const replacementId = await createAction(client, token, "replacement");
+
+      const realList = env.data.hooks.list;
+      const realCreate = env.data.hooks.create;
+      env.data.hooks.list = async (tenantId, params) => {
+        const result = await realList(tenantId, params);
+        return { ...result, hooks: [...result.hooks, inherited] };
+      };
+      let failed = false;
+      const createdIds: (string | undefined)[] = [];
+      env.data.hooks.create = async (tenantId, hook) => {
+        createdIds.push(hook.hook_id);
+        if (!failed) {
+          failed = true;
+          throw new Error("storage unavailable");
+        }
+        return realCreate(tenantId, hook);
+      };
+
+      await expect(
+        patchBindings(client, token, "post-login", [
+          { ref: { type: "action_id", value: replacementId } },
+        ]),
+      ).rejects.toThrow("storage unavailable");
+      env.data.hooks.list = realList;
+      env.data.hooks.create = realCreate;
+
+      // The rollback must not try to re-create it for this tenant. Asserted
+      // on the calls because the test store keys hooks by id alone, so a
+      // shadow copy would collide rather than land.
+      expect(createdIds).not.toContain("hook-inherited");
+      expect(await env.data.hooks.get(TENANT, "hook-inherited")).toBeNull();
+      expect(
+        (await env.data.hooks.get(OTHER_TENANT, "hook-inherited"))?.hook_id,
+      ).toBe("hook-inherited");
+    });
+
     it("returns 404 for an unknown action name", async () => {
       const { managementApp, env } = await getTestServer();
       const client = testClient(managementApp, env);
