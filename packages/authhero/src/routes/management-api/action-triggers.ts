@@ -310,8 +310,12 @@ const patchByTriggerIdBindings = defineRoute({
             code_id: hook.code_id,
             priority: hook.priority,
           });
-          await ctx.env.data.hooks.remove(tenantId, hook.hook_id);
-          removedHooks.push(hook);
+          // Only restore rows this tenant actually owned: an inherited
+          // control-plane hook is listed but not removable here, and
+          // re-creating it would leave a tenant-local shadow copy.
+          if (await ctx.env.data.hooks.remove(tenantId, hook.hook_id)) {
+            removedHooks.push(hook);
+          }
         }
       }
 

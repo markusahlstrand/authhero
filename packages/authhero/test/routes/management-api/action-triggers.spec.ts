@@ -429,6 +429,61 @@ describe("management-api action trigger bindings", () => {
       ]);
     });
 
+    it("does not shadow-copy an inherited hook when rolling back", async () => {
+      const { managementApp, env } = await getTestServer();
+      const client = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      // Stand-in for a control-plane hook surfaced through runtime
+      // inheritance: listed for this tenant but owned by another one, so the
+      // tenant-scoped remove deletes nothing.
+      await env.data.tenants.create(OTHER_TENANT_FIXTURE);
+      const inherited = await env.data.hooks.create(OTHER_TENANT, {
+        hook_id: "hook-inherited",
+        trigger_id: "post-user-login",
+        code_id: "act_control_plane",
+        enabled: true,
+        synchronous: true,
+        priority: 5,
+        metadata: { inheritable: true },
+      });
+      const replacementId = await createAction(client, token, "replacement");
+
+      const realList = env.data.hooks.list;
+      const realCreate = env.data.hooks.create;
+      env.data.hooks.list = async (tenantId, params) => {
+        const result = await realList(tenantId, params);
+        return { ...result, hooks: [...result.hooks, inherited] };
+      };
+      let failed = false;
+      const createdIds: (string | undefined)[] = [];
+      env.data.hooks.create = async (tenantId, hook) => {
+        createdIds.push(hook.hook_id);
+        if (!failed) {
+          failed = true;
+          throw new Error("storage unavailable");
+        }
+        return realCreate(tenantId, hook);
+      };
+
+      await expect(
+        patchBindings(client, token, "post-login", [
+          { ref: { type: "action_id", value: replacementId } },
+        ]),
+      ).rejects.toThrow("storage unavailable");
+      env.data.hooks.list = realList;
+      env.data.hooks.create = realCreate;
+
+      // The rollback must not try to re-create it for this tenant. Asserted
+      // on the calls because the test store keys hooks by id alone, so a
+      // shadow copy would collide rather than land.
+      expect(createdIds).not.toContain("hook-inherited");
+      expect(await env.data.hooks.get(TENANT, "hook-inherited")).toBeNull();
+      expect(
+        (await env.data.hooks.get(OTHER_TENANT, "hook-inherited"))?.hook_id,
+      ).toBe("hook-inherited");
+    });
+
     it("returns 404 for an unknown action name", async () => {
       const { managementApp, env } = await getTestServer();
       const client = testClient(managementApp, env);
