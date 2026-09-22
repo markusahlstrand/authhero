@@ -43,9 +43,10 @@ export async function renderEmailTemplate(
   templateName: EmailTemplateName,
   vars: Record<string, unknown>,
   fallbackFrom: string,
+  tenantId: string = ctx.var.tenant_id,
 ): Promise<RenderResult> {
   const override = await ctx.env.data.emailTemplates.get(
-    ctx.var.tenant_id,
+    tenantId,
     templateName,
   );
 

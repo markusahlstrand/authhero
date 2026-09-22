@@ -1,8 +1,11 @@
+import { Context } from "hono";
 import {
   DataAdapters,
   Organization,
   escapeLuceneValue,
 } from "@authhero/adapter-interfaces";
+import { Bindings, Variables } from "../types";
+import { sendInvitation } from "../emails";
 import { generateInviteId } from "../utils/entity-id";
 import { getDefaultUserPicture } from "../helpers/avatar";
 import {
@@ -45,9 +48,16 @@ export interface LocalTenantMembersBackendOptions {
    */
   invitationClientId?: string;
   /**
-   * Best-effort invitation email delivery. Bound to a request context at the
-   * call site (it needs branding/email infra). Failures must not fail the
-   * create — Auth0 returns the invite even when delivery fails.
+   * The request context. When set and `sendInvitationEmail` is not, invitation
+   * emails are sent with the built-in `user_invitation` template as the
+   * control-plane tenant (its email provider, branding and locales), not the
+   * request's tenant.
+   */
+  ctx?: Context<{ Bindings: Bindings; Variables: Variables }>;
+  /**
+   * Best-effort invitation email delivery. Overrides the built-in sender used
+   * when `ctx` is set. Failures must not fail the create — Auth0 returns the
+   * invite even when delivery fails.
    */
   sendInvitationEmail?: (params: {
     to: string;
@@ -69,7 +79,13 @@ export interface LocalTenantMembersBackendOptions {
 export function createLocalTenantMembersBackend(
   options: LocalTenantMembersBackendOptions,
 ): TenantMembersBackend {
-  const { data, controlPlaneTenantId, issuer } = options;
+  const { data, controlPlaneTenantId, issuer, ctx } = options;
+  const sendInvitationEmail: LocalTenantMembersBackendOptions["sendInvitationEmail"] =
+    options.sendInvitationEmail ??
+    (ctx
+      ? (params) =>
+          sendInvitation(ctx, { ...params, tenantId: controlPlaneTenantId })
+      : undefined);
 
   /**
    * A tenant's org is the one whose `name` equals the tenant id. `get` resolves
@@ -294,10 +310,10 @@ export function createLocalTenantMembersBackend(
       if (
         input.send_invitation_email !== false &&
         input.invitee.email &&
-        options.sendInvitationEmail
+        sendInvitationEmail
       ) {
         try {
-          await options.sendInvitationEmail({
+          await sendInvitationEmail({
             to: input.invitee.email,
             invitationUrl,
             inviterName: input.inviter?.name,
