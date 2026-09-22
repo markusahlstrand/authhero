@@ -1,7 +1,11 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { Hono } from "hono";
 import { createLocalTenantMembersBackend } from "./local-backend";
+import type { EmailServiceSendParams } from "@authhero/adapter-interfaces";
+import type { Bindings, Variables } from "../types";
 import { unquoteLuceneValue } from "@authhero/adapter-interfaces";
 import {
+  TenantInvitation,
   TenantInvitationNotFoundError,
   TenantOrganizationNotFoundError,
 } from "./types";
@@ -258,5 +262,140 @@ describe("local tenant-members backend", () => {
       fx.backend.revokeInvitation(TENANT, "inv_other"),
     ).rejects.toBeInstanceOf(TenantInvitationNotFoundError);
     expect(fx.peek.invites.has("inv_other")).toBe(true);
+  });
+});
+
+describe("local tenant-members backend: default invitation email", () => {
+  /**
+   * The control-plane tenant and the child tenant each get their own email
+   * provider and branding, so the assertions can tell which one was used.
+   */
+  function makeEmailEnv(opts: { failSend?: boolean } = {}) {
+    const fx = makeData();
+    const sent: EmailServiceSendParams[] = [];
+    const perTenant = (cp: unknown, child: unknown) => async (t: string) =>
+      t === CP ? cp : t === TENANT ? child : null;
+    const data = {
+      ...fx.data,
+      tenants: {
+        get: perTenant(
+          { id: CP, friendly_name: "Control Plane" },
+          { id: TENANT, friendly_name: "Acme Tenant" },
+        ),
+      },
+      branding: {
+        get: perTenant(
+          { logo_url: "https://cp.example.com/logo.png" },
+          { logo_url: "https://acme.example.com/logo.png" },
+        ),
+      },
+      emailProviders: {
+        get: perTenant(
+          {
+            name: "mock-email",
+            credentials: { api_key: "cp-key" },
+            default_from_address: "team@cp.example.com",
+          },
+          {
+            name: "mock-email",
+            credentials: { api_key: "acme-key" },
+            default_from_address: "login@acme.example.com",
+          },
+        ),
+      },
+      emailTemplates: { get: async () => null },
+      emailService: {
+        async send(params: EmailServiceSendParams) {
+          if (opts.failSend) throw new Error("provider down");
+          sent.push(params);
+        },
+      },
+    };
+    // Deliberately partial: only what the invitation path reads.
+    const env = {
+      data,
+      ISSUER: "https://cp.example.com/",
+    } as unknown as Bindings;
+    return { fx, env, sent };
+  }
+
+  /** Create an invitation from inside a request scoped to the CHILD tenant. */
+  async function inviteFromChildTenant(
+    env: Bindings,
+    fx: ReturnType<typeof makeData>,
+    overrides: Record<string, unknown> = {},
+    input: Record<string, unknown> = {},
+  ) {
+    const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
+    app.post("/invite", async (ctx) => {
+      ctx.set("tenant_id", TENANT);
+      const backend = createLocalTenantMembersBackend({
+        data: fx.data,
+        controlPlaneTenantId: CP,
+        issuer: "https://cp.example.com/",
+        invitationClientId: "invite-client",
+        ctx,
+        ...overrides,
+      });
+      created = await backend.createInvitation(TENANT, {
+        invitee: { email: "new@acme.com" },
+        inviter: { name: "Ann" },
+        ...input,
+      });
+      return ctx.body(null, 201);
+    });
+    let created: TenantInvitation | undefined;
+    const res = await app.request("/invite", { method: "POST" }, env);
+    if (!created) throw new Error(`invitation not created (${res.status})`);
+    return { status: res.status, invite: created };
+  }
+
+  it("sends the user_invitation email as the control-plane tenant", async () => {
+    const { fx, env, sent } = makeEmailEnv();
+    const { status, invite } = await inviteFromChildTenant(env, fx);
+
+    expect(status).toBe(201);
+    expect(sent).toHaveLength(1);
+    const [email] = sent;
+    if (!email) throw new Error("no email sent");
+    expect(email.to).toBe("new@acme.com");
+    expect(email.template).toBe("auth-invitation");
+    expect(email.emailProvider.credentials.api_key).toBe("cp-key");
+    expect(email.from).toBe("team@cp.example.com");
+    expect(email.data.tenantId).toBe(CP);
+    expect(email.data.logo).toBe("https://cp.example.com/logo.png");
+    expect(email.data.organizationName).toBe("Acme");
+    expect(email.data.invitationUrl).toBe(invite.invitation_url);
+    expect(email.html).toContain(invite.id);
+  });
+
+  it("sends nothing when send_invitation_email is false", async () => {
+    const { fx, env, sent } = makeEmailEnv();
+    await inviteFromChildTenant(env, fx, {}, { send_invitation_email: false });
+    expect(sent).toHaveLength(0);
+  });
+
+  it("uses a host-supplied sendInvitationEmail instead of the default", async () => {
+    const { fx, env, sent } = makeEmailEnv();
+    const sendInvitationEmail = vi.fn(async () => {});
+    await inviteFromChildTenant(env, fx, { sendInvitationEmail });
+    expect(sendInvitationEmail).toHaveBeenCalledOnce();
+    expect(sent).toHaveLength(0);
+  });
+
+  it("still creates the invitation when delivery fails", async () => {
+    const { fx, env } = makeEmailEnv({ failSend: true });
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const { status, invite } = await inviteFromChildTenant(env, fx);
+      expect(status).toBe(201);
+      expect(fx.peek.invites.has(invite.id)).toBe(true);
+      expect(errors).toHaveBeenCalledWith(
+        expect.stringContaining("[tenant-members] failed to send invitation"),
+        expect.anything(),
+      );
+    } finally {
+      errors.mockRestore();
+    }
   });
 });

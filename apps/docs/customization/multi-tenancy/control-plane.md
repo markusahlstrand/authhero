@@ -757,6 +757,24 @@ export default init({
 
 When the control plane and the tenants share one database, there is no hop: wire the **local** backend straight into `tenantMembers.getBackend` (the same `createLocalTenantMembersBackend`) and omit `proxyControlPlane.tenantMembers`. The shard's `/api/v2/tenant-members` resource then resolves the org against the same database it already holds.
 
+Pass the request context as `ctx` and invitations are emailed with the built-in `user_invitation` template, sent as the control-plane tenant: its email provider, branding, `default_from_address` and locales are used, not the child tenant's. A `sendInvitationEmail` you pass still takes precedence.
+
+```typescript
+export default init({
+  dataAdapter,
+  tenantMembers: {
+    getBackend: (ctx) =>
+      createLocalTenantMembersBackend({
+        data: ctx.env.data,
+        controlPlaneTenantId: CONTROL_PLANE_TENANT_ID,
+        issuer,
+        invitationClientId: env.INVITATION_CLIENT_ID,
+        ctx,
+      }),
+  },
+});
+```
+
 ### Admin UI
 
 The per-tenant admin ships a **Team** page (Settings → Team) that drives this resource: invite colleagues by email, remove administrators, and edit each administrator's roles. The invitation client is resolved server-side, so — unlike the control-plane-only `/tenants/:id/members` page — it does not depend on a client id being present in local storage. Because members are control-plane users (which a shard can't enumerate), the way to add someone is an email invitation, not a user search; the control-plane page remains the place for global admins to add existing control-plane users directly.

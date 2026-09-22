@@ -59,10 +59,9 @@ export type SendEmailParams = {
 export async function sendEmail(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: SendEmailParams,
+  tenantId: string = ctx.var.tenant_id,
 ) {
-  const emailProvider = await ctx.env.data.emailProviders.get(
-    ctx.var.tenant_id,
-  );
+  const emailProvider = await ctx.env.data.emailProviders.get(tenantId);
 
   if (!emailProvider) {
     throw new HTTPException(500, { message: "Email provider not found" });
@@ -84,16 +83,16 @@ export async function sendEmail(
         params.from ||
         emailProvider.default_from_address ||
         `login@${ctx.env.ISSUER}`,
-      createServiceToken: buildCreateServiceToken(ctx, ctx.var.tenant_id),
+      createServiceToken: buildCreateServiceToken(ctx, tenantId),
     });
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
     console.error(
-      `[sendEmail] tenant=${ctx.var.tenant_id} provider=${emailProvider.name} template=${params.template} to=${params.to}: ${errorMessage}`,
+      `[sendEmail] tenant=${tenantId} provider=${emailProvider.name} template=${params.template} to=${params.to}: ${errorMessage}`,
       err,
     );
     try {
-      await logMessage(ctx, ctx.var.tenant_id, {
+      await logMessage(ctx, tenantId, {
         type: LogTypes.FAILED_SENDING_NOTIFICATION,
         description:
           `email send failed via ${emailProvider.name}: ${errorMessage}`.slice(
@@ -189,8 +188,9 @@ export async function sendSms(
 async function buildEmailContext(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   language?: string,
+  tenantId: string = ctx.var.tenant_id,
 ) {
-  const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
+  const tenant = await ctx.env.data.tenants.get(tenantId);
   if (!tenant) {
     throw new HTTPException(500, { message: "Tenant not found" });
   }
@@ -199,7 +199,7 @@ async function buildEmailContext(
   // the default instead of English.
   language = resolveTenantLanguage(language, tenant.enabled_locales);
 
-  const branding = await ctx.env.data.branding.get(ctx.var.tenant_id);
+  const branding = await ctx.env.data.branding.get(tenantId);
   const logo = branding?.logo_url || "";
   const buttonColor = branding?.colors?.primary || "#7d68f4";
 
@@ -240,8 +240,9 @@ interface SendTemplatedEmailParams {
 async function sendTemplatedEmail(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   params: SendTemplatedEmailParams,
+  tenantId: string = ctx.var.tenant_id,
 ): Promise<boolean> {
-  const provider = await ctx.env.data.emailProviders.get(ctx.var.tenant_id);
+  const provider = await ctx.env.data.emailProviders.get(tenantId);
   const fallbackFrom =
     provider?.default_from_address || `login@${ctx.env.ISSUER}`;
 
@@ -280,6 +281,7 @@ async function sendTemplatedEmail(
     params.templateName,
     vars,
     fallbackFrom,
+    tenantId,
   );
 
   if (result.kind === "disabled") {
@@ -292,14 +294,18 @@ async function sendTemplatedEmail(
     result.kind === "rendered" ? result.email.html : params.fallbackHtml;
   const from = result.kind === "rendered" ? result.email.from : fallbackFrom;
 
-  await sendEmail(ctx, {
-    to: params.to,
-    subject,
-    html,
-    template: params.legacyTemplate,
-    data: params.data,
-    from,
-  });
+  await sendEmail(
+    ctx,
+    {
+      to: params.to,
+      subject,
+      html,
+      template: params.legacyTemplate,
+      data: params.data,
+      from,
+    },
+    tenantId,
+  );
   return true;
 }
 
@@ -853,6 +859,11 @@ export interface SendInvitationParams {
   organizationName: string;
   ttlSec: number;
   language?: string;
+  /**
+   * Tenant whose email provider, branding, templates and locales are used.
+   * Defaults to the request's tenant.
+   */
+  tenantId?: string;
 }
 
 export async function sendInvitation(
@@ -864,9 +875,10 @@ export async function sendInvitation(
     organizationName,
     ttlSec,
     language,
+    tenantId = ctx.var.tenant_id,
   }: SendInvitationParams,
 ) {
-  const emailContext = await buildEmailContext(ctx, language);
+  const emailContext = await buildEmailContext(ctx, language, tenantId);
   const { tenant, logo, buttonColor, options } = emailContext;
   language = emailContext.language;
 
@@ -911,18 +923,22 @@ export async function sendInvitation(
     copyright: t("copyright", tOpts),
   };
 
-  await sendTemplatedEmail(ctx, {
-    to,
-    templateName: "user_invitation",
-    legacyTemplate: "auth-invitation",
-    fallbackSubject: t("invitation_email_subject", tOpts),
-    fallbackHtml: `You've been invited to ${organizationName}. Accept your invitation: ${invitationUrl}`,
-    tenant,
-    branding: { logo, primary_color: buttonColor },
-    url: invitationUrl,
-    language,
-    data,
-  });
+  await sendTemplatedEmail(
+    ctx,
+    {
+      to,
+      templateName: "user_invitation",
+      legacyTemplate: "auth-invitation",
+      fallbackSubject: t("invitation_email_subject", tOpts),
+      fallbackHtml: `You've been invited to ${organizationName}. Accept your invitation: ${invitationUrl}`,
+      tenant,
+      branding: { logo, primary_color: buttonColor },
+      url: invitationUrl,
+      language,
+      data,
+    },
+    tenantId,
+  );
 }
 
 export interface SendTestEmailParams {
