@@ -1,7 +1,11 @@
-import type { ProxyDataAdapter, ResolvedHost } from "../adapter";
+import type {
+  ProxyDataAdapter,
+  ResolvedHost,
+  ResolveHostOptions,
+} from "../adapter";
 import type { ProxyRoutesAdapter } from "../adapter";
 import { PROXY_RESOLVE_HOST_SCOPE } from "../constants";
-import { TimeoutError } from "../data-plane/timeout";
+import { anySignal, TimeoutError } from "../data-plane/timeout";
 
 export interface HttpProxyAdapterOptions {
   // Base URL of the AuthHero control plane, without trailing slash.
@@ -95,9 +99,14 @@ export function createHttpProxyAdapter(
 
   // The deadline covers the whole operation, body read included — aborting the
   // fetch alone leaves a stalled body to hang forever, because the timer is
-  // already cleared by the time the caller reads it.
-  function withTimeout<T>(op: (signal: AbortSignal) => Promise<T>): Promise<T> {
+  // already cleared by the time the caller reads it. `parent` is the caller's
+  // signal: when its deadline fires first, the fetch is aborted with it.
+  function withTimeout<T>(
+    parent: AbortSignal | undefined,
+    op: (signal: AbortSignal) => Promise<T>,
+  ): Promise<T> {
     const controller = new AbortController();
+    const signal = anySignal([parent, controller.signal]) ?? controller.signal;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const deadline = new Promise<never>((_, reject) => {
       timer = setTimeout(() => {
@@ -105,7 +114,7 @@ export function createHttpProxyAdapter(
         reject(new TimeoutError(timeoutMs, "control plane"));
       }, timeoutMs);
     });
-    return Promise.race([op(controller.signal), deadline]).finally(() =>
+    return Promise.race([op(signal), deadline]).finally(() =>
       clearTimeout(timer),
     );
   }
@@ -119,8 +128,8 @@ export function createHttpProxyAdapter(
   // expires are cheap next to that.
   let token: { value: string; expires_at: number } | null = null;
 
-  async function fetchToken(): Promise<string> {
-    const body = await withTimeout(async (signal) => {
+  async function fetchToken(parent?: AbortSignal): Promise<string> {
+    const body = await withTimeout(parent, async (signal) => {
       const res = await fetchFn(`${baseUrl}/oauth/token`, {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -148,17 +157,21 @@ export function createHttpProxyAdapter(
     return body.access_token;
   }
 
-  async function getToken(): Promise<string> {
+  async function getToken(parent?: AbortSignal): Promise<string> {
     if (token && token.expires_at > Date.now()) return token.value;
-    return fetchToken();
+    return fetchToken(parent);
   }
 
   return {
     proxyRoutes: readOnlyProxyRoutes(),
-    async resolveHost(host: string): Promise<ResolvedHost | null> {
-      const accessToken = await getToken();
+    async resolveHost(
+      host: string,
+      resolveOptions?: ResolveHostOptions,
+    ): Promise<ResolvedHost | null> {
+      const parent = resolveOptions?.signal;
+      const accessToken = await getToken(parent);
       const url = `${baseUrl}${resolvePath}${encodeURIComponent(host.toLowerCase())}`;
-      return withTimeout(async (signal) => {
+      return withTimeout(parent, async (signal) => {
         const res = await fetchFn(url, {
           headers: { authorization: `Bearer ${accessToken}` },
           signal,
