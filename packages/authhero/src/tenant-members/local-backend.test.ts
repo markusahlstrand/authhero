@@ -1,9 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { Hono } from "hono";
 import { createLocalTenantMembersBackend } from "./local-backend";
+import type { EmailServiceSendParams } from "@authhero/adapter-interfaces";
 import type { Bindings, Variables } from "../types";
 import { unquoteLuceneValue } from "@authhero/adapter-interfaces";
 import {
+  TenantInvitation,
   TenantInvitationNotFoundError,
   TenantOrganizationNotFoundError,
 } from "./types";
@@ -270,7 +272,7 @@ describe("local tenant-members backend: default invitation email", () => {
    */
   function makeEmailEnv(opts: { failSend?: boolean } = {}) {
     const fx = makeData();
-    const sent: any[] = [];
+    const sent: EmailServiceSendParams[] = [];
     const perTenant = (cp: unknown, child: unknown) => async (t: string) =>
       t === CP ? cp : t === TENANT ? child : null;
     const data = {
@@ -303,13 +305,17 @@ describe("local tenant-members backend: default invitation email", () => {
       },
       emailTemplates: { get: async () => null },
       emailService: {
-        async send(params: any) {
+        async send(params: EmailServiceSendParams) {
           if (opts.failSend) throw new Error("provider down");
           sent.push(params);
         },
       },
     };
-    const env = { data, ISSUER: "https://cp.example.com/" } as any;
+    // Deliberately partial: only what the invitation path reads.
+    const env = {
+      data,
+      ISSUER: "https://cp.example.com/",
+    } as unknown as Bindings;
     return { fx, env, sent };
   }
 
@@ -331,24 +337,27 @@ describe("local tenant-members backend: default invitation email", () => {
         ctx,
         ...overrides,
       });
-      const invite = await backend.createInvitation(TENANT, {
+      created = await backend.createInvitation(TENANT, {
         invitee: { email: "new@acme.com" },
         inviter: { name: "Ann" },
         ...input,
       });
-      return ctx.json(invite);
+      return ctx.body(null, 201);
     });
+    let created: TenantInvitation | undefined;
     const res = await app.request("/invite", { method: "POST" }, env);
-    return { status: res.status, invite: (await res.json()) as any };
+    if (!created) throw new Error(`invitation not created (${res.status})`);
+    return { status: res.status, invite: created };
   }
 
   it("sends the user_invitation email as the control-plane tenant", async () => {
     const { fx, env, sent } = makeEmailEnv();
     const { status, invite } = await inviteFromChildTenant(env, fx);
 
-    expect(status).toBe(200);
+    expect(status).toBe(201);
     expect(sent).toHaveLength(1);
-    const email = sent[0];
+    const [email] = sent;
+    if (!email) throw new Error("no email sent");
     expect(email.to).toBe("new@acme.com");
     expect(email.template).toBe("auth-invitation");
     expect(email.emailProvider.credentials.api_key).toBe("cp-key");
@@ -379,7 +388,7 @@ describe("local tenant-members backend: default invitation email", () => {
     const errors = vi.spyOn(console, "error").mockImplementation(() => {});
     try {
       const { status, invite } = await inviteFromChildTenant(env, fx);
-      expect(status).toBe(200);
+      expect(status).toBe(201);
       expect(fx.peek.invites.has(invite.id)).toBe(true);
       expect(errors).toHaveBeenCalledWith(
         expect.stringContaining("[tenant-members] failed to send invitation"),
