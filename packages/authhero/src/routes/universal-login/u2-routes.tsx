@@ -31,6 +31,7 @@ import {
 } from "./screens/registry";
 import type { ScreenContext } from "./screens/types";
 import { HTTPException } from "hono/http-exception";
+import { RedirectException } from "../../errors/redirect-exception";
 import { LogTypes } from "@authhero/adapter-interfaces";
 import { logMessage } from "../../helpers/logging";
 import { sanitizeUrl } from "./sanitization-utils";
@@ -182,7 +183,14 @@ function createScreenRouteHandler(screenId: string) {
       client = initResult.client;
       loginSession = initResult.loginSession;
     } catch (err) {
-      console.error(`[u2/${screenId}] Failed to initialize route:`, err);
+      // Expected client errors (e.g. an expired login session) and redirects
+      // are rendered by the error handler; only log unexpected failures.
+      const expected =
+        err instanceof RedirectException ||
+        (err instanceof HTTPException && err.status < 500);
+      if (!expected) {
+        console.error(`[u2/${screenId}] Failed to initialize route:`, err);
+      }
       throw err;
     }
 

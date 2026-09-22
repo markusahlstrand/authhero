@@ -22,6 +22,29 @@ import { hasValidContinuationScope } from "../../authentication-flows/common";
 import { DEFAULT_THEME } from "../../constants/defaultTheme";
 import { resolveEmbedLogin } from "./embed";
 
+async function getDefaultRedirectionUri(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+): Promise<string | undefined> {
+  if (ctx.req.method !== "GET" || ctx.req.path.includes("/screen/")) {
+    return undefined;
+  }
+  const tenantId = ctx.var.tenant_id;
+  if (!tenantId) return undefined;
+
+  const tenant = await ctx.env.data.tenants.get(tenantId).catch(() => null);
+  const uri = tenant?.default_redirection_uri;
+  if (!uri) return undefined;
+
+  try {
+    const url = new URL(uri);
+    return url.protocol === "https:" || url.protocol === "http:"
+      ? url.toString()
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export async function initJSXRoute(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   state: string,
@@ -34,6 +57,13 @@ export async function initJSXRoute(
   );
 
   if (!loginSession) {
+    // Typically a bookmarked or restored login page whose session has been
+    // cleaned up. Like Auth0, send page navigations to the tenant's default
+    // login route when one is configured; otherwise render the error page.
+    const defaultRedirect = await getDefaultRedirectionUri(ctx);
+    if (defaultRedirect) {
+      throw new RedirectException(defaultRedirect, 302);
+    }
     throw new HTTPException(400, { message: "Login session not found" });
   }
 

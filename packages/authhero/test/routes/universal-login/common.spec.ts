@@ -12,9 +12,12 @@ describe("initJSXRoute", () => {
   let ctx: Context<{ Bindings: Bindings; Variables: Variables }>;
   let mockLoginSession: any;
   let state: string;
+  let mockReq: { method: string; path: string };
 
   beforeEach(async () => {
     testServer = await getTestServer();
+
+    mockReq = { method: "GET", path: "/u2/login/identifier" };
 
     // Create a mock context
     ctx = {
@@ -22,6 +25,7 @@ describe("initJSXRoute", () => {
       var: {
         tenant_id: "tenantId",
       },
+      req: mockReq,
       set: () => {},
     } as any;
 
@@ -184,6 +188,42 @@ describe("initJSXRoute", () => {
           "Login session not found",
         );
       }
+    });
+
+    it("should redirect to the tenant's default_redirection_uri when login session not found", async () => {
+      await testServer.env.data.tenants.update("tenantId", {
+        default_redirection_uri: "https://app.example.com/login",
+      });
+
+      const error = await initJSXRoute(ctx, "expired-state").catch((e) => e);
+
+      expect(error).toBeInstanceOf(RedirectException);
+      expect((error as RedirectException).location).toBe(
+        "https://app.example.com/login",
+      );
+    });
+
+    it("should not redirect non-GET requests when login session not found", async () => {
+      await testServer.env.data.tenants.update("tenantId", {
+        default_redirection_uri: "https://app.example.com/login",
+      });
+      mockReq.method = "POST";
+
+      const error = await initJSXRoute(ctx, "expired-state").catch((e) => e);
+
+      expect(error).toBeInstanceOf(HTTPException);
+      expect((error as HTTPException).status).toBe(400);
+    });
+
+    it("should ignore a non-http default_redirection_uri", async () => {
+      await testServer.env.data.tenants.update("tenantId", {
+        default_redirection_uri: "javascript:alert(1)",
+      });
+
+      const error = await initJSXRoute(ctx, "expired-state").catch((e) => e);
+
+      expect(error).toBeInstanceOf(HTTPException);
+      expect((error as HTTPException).status).toBe(400);
     });
 
     it("should throw RedirectException when login session is closed and allowSession is false", async () => {
