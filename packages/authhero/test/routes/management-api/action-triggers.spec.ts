@@ -358,6 +358,77 @@ describe("management-api action trigger bindings", () => {
       );
     });
 
+    it("restores the original bindings when a create fails mid-swap", async () => {
+      const { managementApp, env } = await getTestServer();
+      const client = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      const firstId = await createAction(client, token, "original-first");
+      const secondId = await createAction(client, token, "original-second");
+      const replacementA = await createAction(client, token, "replacement-a");
+      const replacementB = await createAction(client, token, "replacement-b");
+
+      // Seeded directly so the rows carry non-default fields the rollback
+      // has to preserve, not just the audit-shaped binding summary.
+      await env.data.hooks.create(TENANT, {
+        hook_id: "hook-original-first",
+        trigger_id: "post-user-login",
+        code_id: firstId,
+        enabled: true,
+        synchronous: true,
+        priority: 2,
+        metadata: { note: "keep" },
+      });
+      await env.data.hooks.create(TENANT, {
+        hook_id: "hook-original-second",
+        trigger_id: "post-user-login",
+        code_id: secondId,
+        enabled: false,
+        synchronous: false,
+        priority: 1,
+      });
+      const before = await env.data.hooks.list(TENANT, {
+        q: 'trigger_id:"post-user-login"',
+      });
+
+      const realCreate = env.data.hooks.create;
+      let calls = 0;
+      env.data.hooks.create = async (tenantId, hook) => {
+        calls++;
+        if (calls === 2) {
+          throw new Error("storage unavailable");
+        }
+        return realCreate(tenantId, hook);
+      };
+
+      // The original error surfaces (the parent app turns it into a 500)
+      // rather than a partial swap being reported as success.
+      await expect(
+        patchBindings(client, token, "post-login", [
+          { ref: { type: "action_id", value: replacementA } },
+          { ref: { type: "action_id", value: replacementB } },
+        ]),
+      ).rejects.toThrow("storage unavailable");
+      env.data.hooks.create = realCreate;
+      // One new binding, the failing one, then the two restored originals.
+      expect(calls).toBe(4);
+
+      const after = await env.data.hooks.list(TENANT, {
+        q: 'trigger_id:"post-user-login"',
+      });
+      const strip = (hooks: typeof after.hooks) =>
+        hooks
+          .map(({ created_at, updated_at, ...rest }) => rest)
+          .sort((a, b) => a.hook_id.localeCompare(b.hook_id));
+      expect(strip(after.hooks)).toEqual(strip(before.hooks));
+
+      const listed = await getBindings(client, token, "post-login");
+      expect(listed.bindings.map((b) => b.action.id)).toEqual([
+        firstId,
+        secondId,
+      ]);
+    });
+
     it("returns 404 for an unknown action name", async () => {
       const { managementApp, env } = await getTestServer();
       const client = testClient(managementApp, env);

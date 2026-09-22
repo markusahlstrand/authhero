@@ -4,6 +4,7 @@ import {
   actionResponseSchema,
   LogTypes,
   escapeLuceneValue,
+  type Hook,
   type HookInsert,
 } from "@authhero/adapter-interfaces";
 import { logMessage } from "../../helpers/logging";
@@ -289,57 +290,80 @@ const patchByTriggerIdBindings = defineRoute({
     // the after state below — an asymmetric shape would make every field of
     // every binding look changed in the recorded diff.
     const previousBindings: BindingState[] = [];
+    // Full rows, not just the audit shape, so a failed swap can restore them
+    // exactly (same hook_id, enabled, synchronous, metadata...).
+    const removedHooks: Extract<Hook, { code_id: string }>[] = [];
+    const createdHookIds: string[] = [];
 
-    for (const hook of existingHooks.hooks) {
-      if ("code_id" in hook && hook.code_id) {
-        previousBindings.push({
+    const resultBindings: z.infer<typeof bindingResponseSchema>[] = [];
+    const newBindings: BindingState[] = [];
+
+    // The adapter contract has no transaction primitive, so a failure mid-swap
+    // is compensated by hand: drop what was created and re-create what was
+    // removed. A second failure during that rollback can still lose bindings.
+    try {
+      for (const hook of existingHooks.hooks) {
+        if ("code_id" in hook && hook.code_id) {
+          previousBindings.push({
+            id: hook.hook_id,
+            trigger_id: toAuth0TriggerId(hook.trigger_id),
+            code_id: hook.code_id,
+            priority: hook.priority,
+          });
+          await ctx.env.data.hooks.remove(tenantId, hook.hook_id);
+          removedHooks.push(hook);
+        }
+      }
+
+      for (let i = 0; i < resolved.length; i++) {
+        const { binding, actionId, action } = resolved[i]!;
+
+        // Create a hook binding with priority based on array position
+        // Higher index = lower priority (first in array executes first)
+        const hook = await ctx.env.data.hooks.create(tenantId, {
+          hook_id: generateHookId(),
+          trigger_id: internalTriggerId,
+          code_id: actionId,
+          enabled: true,
+          synchronous: true,
+          priority: resolved.length - i,
+        });
+        createdHookIds.push(hook.hook_id);
+
+        newBindings.push({
           id: hook.hook_id,
           trigger_id: toAuth0TriggerId(hook.trigger_id),
-          code_id: hook.code_id,
+          code_id: actionId,
           priority: hook.priority,
         });
-        await ctx.env.data.hooks.remove(tenantId, hook.hook_id);
+
+        resultBindings.push({
+          id: hook.hook_id,
+          trigger_id: toAuth0TriggerId(hook.trigger_id),
+          display_name: binding.display_name || action.name,
+          action: {
+            ...action,
+            secrets: action.secrets?.map((s) => ({ name: s.name })),
+          },
+          created_at: hook.created_at,
+          updated_at: hook.updated_at,
+        });
       }
+    } catch (err) {
+      // Best effort: keep going past individual rollback failures so as many
+      // bindings as possible are restored, then surface the original error.
+      for (const hookId of createdHookIds) {
+        await ctx.env.data.hooks.remove(tenantId, hookId).catch(() => {});
+      }
+      for (const removed of removedHooks) {
+        const { created_at, updated_at, ...hookInsert } = removed;
+        await ctx.env.data.hooks.create(tenantId, hookInsert).catch(() => {});
+      }
+      throw err;
     }
 
     // Match the priority ordering the GET route reports (highest first).
     previousBindings.sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
-
-    const resultBindings: z.infer<typeof bindingResponseSchema>[] = [];
-    const newBindings: BindingState[] = [];
-    for (let i = 0; i < resolved.length; i++) {
-      const { binding, actionId, action } = resolved[i]!;
-
-      // Create a hook binding with priority based on array position
-      // Higher index = lower priority (first in array executes first)
-      const hook = await ctx.env.data.hooks.create(tenantId, {
-        hook_id: generateHookId(),
-        trigger_id: internalTriggerId,
-        code_id: actionId,
-        enabled: true,
-        synchronous: true,
-        priority: resolved.length - i,
-      });
-
-      newBindings.push({
-        id: hook.hook_id,
-        trigger_id: toAuth0TriggerId(hook.trigger_id),
-        code_id: actionId,
-        priority: hook.priority,
-      });
-
-      resultBindings.push({
-        id: hook.hook_id,
-        trigger_id: toAuth0TriggerId(hook.trigger_id),
-        display_name: binding.display_name || action.name,
-        action: {
-          ...action,
-          secrets: action.secrets?.map((s) => ({ name: s.name })),
-        },
-        created_at: hook.created_at,
-        updated_at: hook.updated_at,
-      });
-    }
 
     await logMessage(ctx, tenantId, {
       type: LogTypes.SUCCESS_API_OPERATION,
