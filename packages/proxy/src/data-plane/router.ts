@@ -9,7 +9,7 @@ import {
 import { HandlerRegistry } from "./registry";
 import { registerBuiltinHandlers } from "./handlers";
 import { compileHostApp, withForwardedHeadersFor } from "./compile";
-import { isTimeoutLike, withRaceTimeout } from "./timeout";
+import { isTimeoutLike, withDeadline } from "./timeout";
 
 export interface ProxyRouteHandlerSpec {
   type: string;
@@ -86,10 +86,13 @@ export function createProxyDataPlaneHandler(
     if (!host) return c.text("Missing host", 400);
 
     try {
-      const resolved = await withRaceTimeout(
-        resolver.resolveHost(host),
+      // The ceiling aborts the resolver's signal, so abort-aware layers
+      // below (the HTTP adapter's fetch) stop instead of running on.
+      const resolved = await withDeadline(
         resolveHostTimeoutMs,
         "resolveHost",
+        undefined,
+        (signal) => resolver.resolveHost(host, { signal }),
       );
       if (!resolved) {
         if (defaultApp) return await defaultApp.fetch(c.req.raw);

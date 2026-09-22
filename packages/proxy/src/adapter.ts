@@ -25,8 +25,19 @@ export interface ResolvedHost {
  * its management API. `resolveHost` is the cross-tenant lookup the proxy data
  * plane needs on every incoming request — it maps a request `Host` header to
  * the owning tenant, custom domain, and route set.
+ *
+ * `options.signal` aborts when the caller's deadline fires. Implementations
+ * backed by cancellable I/O (fetch) should pass it through so the work stops;
+ * others may ignore it, and the caller's timeout still races them.
  */
 export interface ProxyDataAdapter {
   proxyRoutes: ProxyRoutesAdapter;
-  resolveHost(host: string): Promise<ResolvedHost | null>;
+  resolveHost(
+    host: string,
+    options?: ResolveHostOptions,
+  ): Promise<ResolvedHost | null>;
+}
+
+export interface ResolveHostOptions {
+  signal?: AbortSignal;
 }

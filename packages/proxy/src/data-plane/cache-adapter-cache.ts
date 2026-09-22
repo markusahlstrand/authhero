@@ -1,7 +1,7 @@
 import type { CacheAdapter } from "@authhero/adapter-interfaces";
-import type { ResolvedHost } from "../adapter";
+import type { ResolvedHost, ResolveHostOptions } from "../adapter";
 import type { HostResolverCache } from "./cache";
-import { withRaceTimeout } from "./timeout";
+import { withDeadline, withRaceTimeout } from "./timeout";
 
 export interface CacheAdapterHostCacheOptions {
   // Underlying resolver (e.g. an HTTP adapter or DB adapter). The cache layer
@@ -162,21 +162,28 @@ export function createCacheAdapterHostCache(
     return false;
   }
 
-  function callUpstream(host: string): Promise<ResolvedHost | null> {
-    const p = upstream.resolveHost(host);
+  function callUpstream(
+    host: string,
+    signal: AbortSignal | undefined,
+  ): Promise<ResolvedHost | null> {
     return upstreamTimeoutMs > 0
-      ? withRaceTimeout(p, upstreamTimeoutMs, "resolveHost")
-      : p;
+      ? withDeadline(upstreamTimeoutMs, "resolveHost", signal, (s) =>
+          upstream.resolveHost(host, { signal: s }),
+        )
+      : upstream.resolveHost(host, { signal });
   }
 
   // Each caller runs its own upstream call — see `refreshStartedAt` above for
   // why no pending promise is shared between requests.
-  async function refresh(host: string): Promise<ResolvedHost | null> {
+  async function refresh(
+    host: string,
+    signal?: AbortSignal,
+  ): Promise<ResolvedHost | null> {
     refreshStartedAt.set(host, Date.now());
 
     const promise = (async () => {
       try {
-        const value = await callUpstream(host);
+        const value = await callUpstream(host, signal);
         const now = Date.now();
         const freshTtl = value === null ? negativeTtlMs : freshTtlMs;
         const staleTtl = value === null ? 0 : staleTtlMs;
@@ -204,7 +211,10 @@ export function createCacheAdapterHostCache(
   }
 
   return {
-    async resolveHost(host: string): Promise<ResolvedHost | null> {
+    async resolveHost(
+      host: string,
+      options?: ResolveHostOptions,
+    ): Promise<ResolvedHost | null> {
       const key = buildKey(host);
       const cached = await safeCacheGet(key);
       const now = Date.now();
@@ -215,6 +225,8 @@ export function createCacheAdapterHostCache(
         }
         if (cached.staleUntilMs > now) {
           if (!refreshInFlight(host, now)) {
+            // Not given the caller's signal — see the matching note in
+            // cache.ts: a background refresh must not die with its caller.
             const p = refresh(host).catch(() => undefined);
             if (waitUntil) waitUntil(p);
           }
@@ -223,7 +235,7 @@ export function createCacheAdapterHostCache(
       }
 
       try {
-        return await refresh(host);
+        return await refresh(host, options?.signal);
       } catch (err) {
         // Stale-if-error: when upstream throws and we still hold a usable
         // cached value (either inside `staleIfErrorUntilMs` or — for older

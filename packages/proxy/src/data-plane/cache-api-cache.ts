@@ -1,4 +1,4 @@
-import type { ResolvedHost } from "../adapter";
+import type { ResolvedHost, ResolveHostOptions } from "../adapter";
 import type { HostResolverCache } from "./cache";
 import { withRaceTimeout } from "./timeout";
 
@@ -90,7 +90,10 @@ export function createCacheApiHostCache(
   }
 
   return {
-    async resolveHost(host: string): Promise<ResolvedHost | null> {
+    async resolveHost(
+      host: string,
+      resolveOptions?: ResolveHostOptions,
+    ): Promise<ResolvedHost | null> {
       const key = syntheticKey(namespace, host);
       const hit = await safeCacheMatch(key);
       if (hit) {
@@ -102,7 +105,7 @@ export function createCacheApiHostCache(
         }
       }
 
-      const value = await options.upstream.resolveHost(host);
+      const value = await options.upstream.resolveHost(host, resolveOptions);
       const ttl = value === null ? negativeTtl : positiveTtl;
       const cached = new Response(
         JSON.stringify({ value } satisfies CachedPayload),

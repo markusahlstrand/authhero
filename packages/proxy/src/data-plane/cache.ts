@@ -1,5 +1,5 @@
-import { ProxyDataAdapter, ResolvedHost } from "../adapter";
-import { withRaceTimeout } from "./timeout";
+import { ProxyDataAdapter, ResolvedHost, ResolveHostOptions } from "../adapter";
+import { withDeadline } from "./timeout";
 
 interface CacheEntry {
   value: ResolvedHost | null;
@@ -18,7 +18,10 @@ interface CacheEntry {
 }
 
 export interface HostResolverCache {
-  resolveHost(host: string): Promise<ResolvedHost | null>;
+  resolveHost(
+    host: string,
+    options?: ResolveHostOptions,
+  ): Promise<ResolvedHost | null>;
 }
 
 export interface HostCacheOptions {
@@ -145,23 +148,30 @@ export function createInMemoryHostCache(
     return false;
   }
 
-  function callUpstream(host: string): Promise<ResolvedHost | null> {
-    const p = data.resolveHost(host);
+  function callUpstream(
+    host: string,
+    signal: AbortSignal | undefined,
+  ): Promise<ResolvedHost | null> {
     return upstreamTimeout > 0
-      ? withRaceTimeout(p, upstreamTimeout, "resolveHost")
-      : p;
+      ? withDeadline(upstreamTimeout, "resolveHost", signal, (s) =>
+          data.resolveHost(host, { signal: s }),
+        )
+      : data.resolveHost(host, { signal });
   }
 
   // Each caller runs its own upstream call. Concurrent misses for the same host
   // therefore cost a few duplicate fetches on a cold isolate, which is cheap
   // next to the alternative: sharing one pending promise between requests, so
   // that a single stranded refresh hangs every later request in the isolate.
-  async function refresh(host: string): Promise<ResolvedHost | null> {
+  async function refresh(
+    host: string,
+    signal?: AbortSignal,
+  ): Promise<ResolvedHost | null> {
     const entry = cache.get(host);
     if (entry) entry.refresh_started_at = Date.now();
 
     try {
-      const value = await callUpstream(host);
+      const value = await callUpstream(host, signal);
       store(host, value, Date.now());
       return value;
     } catch (err) {
@@ -178,7 +188,7 @@ export function createInMemoryHostCache(
   }
 
   return {
-    async resolveHost(host: string) {
+    async resolveHost(host: string, options?: ResolveHostOptions) {
       const now = Date.now();
       const cached = cache.get(host);
 
@@ -193,6 +203,9 @@ export function createInMemoryHostCache(
         cache.delete(host);
         cache.set(host, cached);
         if (!refreshInFlight(cached, now)) {
+          // Not given the caller's signal: this refresh outlives the caller
+          // (it is handed to waitUntil) and refills the cache for later
+          // requests, so only its own upstream deadline may cut it short.
           const p = refresh(host).catch(() => undefined);
           if (waitUntil) waitUntil(p);
         }
@@ -203,7 +216,7 @@ export function createInMemoryHostCache(
       // and we still hold a value within the stale-if-error window, serve it
       // rather than letting the request fail closed.
       try {
-        return await refresh(host);
+        return await refresh(host, options?.signal);
       } catch (err) {
         if (cached && cached.stale_if_error_until > now) {
           return cached.value;
