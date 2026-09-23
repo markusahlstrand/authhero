@@ -787,3 +787,60 @@ describe("/u2/connect/start — picker permission gating", () => {
     expect(body).not.toContain('"id":"tenant_tenantId"');
   });
 });
+
+// SES-919: follow the action actually embedded in the page, including the
+// widget's JSON envelope, rather than submitting a native HTML form.
+describe("SES-919 widget request contract", () => {
+  it("completes picker and consent using the rendered widget actions", async () => {
+    const { oauthApp, u2App, env } = await getTestServer();
+    await enableConnectFlow(env);
+    await provisionControlPlane(env);
+    const stateId = await startConnectFlow(oauthApp, env);
+    const session = await createUserSession(env);
+    const headers = {
+      "tenant-id": "tenantId",
+      cookie: `tenantId-auth-token=${session.id}`,
+    };
+    async function submitPage(path: string, data: Record<string, string>) {
+      const page = await u2App.request(path, { headers }, env);
+      expect(page.status).toBe(200);
+      const html = await page.text();
+      const match = html.match(
+        /<script type="application\/json" data-authhero="screen">([\s\S]*?)<\/script>/,
+      );
+      expect(match).toBeTruthy();
+      const screen = JSON.parse(match![1]);
+      expect(screen.action).toContain("/u2/screen/");
+      return u2App.request(
+        screen.action.replace(/^\/u2/, ""),
+        {
+          method: "POST",
+          headers: {
+            ...headers,
+            "content-type": "application/json",
+            accept: "application/json",
+          },
+          body: JSON.stringify({ data }),
+        },
+        env,
+      );
+    }
+    const picker = await submitPage(`/connect/select-tenant?state=${stateId}`, {
+      tenant_child_tenant: "true",
+    });
+    expect(picker.status).toBe(200);
+    expect(picker.headers.get("content-type")).toContain("application/json");
+    expect(await picker.json()).toEqual({
+      redirect: `/u2/connect/start?state=${stateId}`,
+    });
+    const consent = await submitPage(`/connect/start?state=${stateId}`, {
+      connect: "true",
+    });
+    expect(consent.status).toBe(200);
+    expect(consent.headers.get("content-type")).toContain("application/json");
+    const callback = new URL((await consent.json()).redirect);
+    expect(callback.origin).toBe("https://publisher.com");
+    expect(callback.searchParams.get("authhero_tenant")).toBe("child_tenant");
+    expect(callback.searchParams.get("authhero_iat")).toBeTruthy();
+  });
+});

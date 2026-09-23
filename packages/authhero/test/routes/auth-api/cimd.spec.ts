@@ -371,3 +371,206 @@ describe("getEnrichedClient recovers the CIMD tenant on state-keyed routes", () 
     );
   });
 });
+
+// SES-919: connect login is an internal continuation, not an OAuth code flow.
+describe("SES-919 unauthenticated connect with a CIMD anchor", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it.each([undefined, "code"] as const)(
+    "completes social login with response_type=%s",
+    async (responseType) => {
+      const { oauthApp, u2App, env } = await getTestServer();
+      env.ALLOW_PRIVATE_OUTBOUND_FETCH = true;
+      mockFetchJson(validDocument());
+      await env.data.clients.create("tenantId", {
+        client_id: CIMD_URL,
+        name: "CIMD anchor",
+        app_type: "regular_web",
+      });
+      await env.data.tenants.update("tenantId", {
+        default_client_id: CIMD_URL,
+        flags: {
+          client_id_metadata_document_registration: true,
+          enable_dynamic_client_registration: true,
+        },
+      });
+      const start = await oauthApp.request(
+        `/connect/start?${new URLSearchParams({
+          domain: "publisher.com",
+          return_to: "https://publisher.com/wp-admin/connect-callback",
+          state: "csrf-abc",
+        })}`,
+        { headers: { "tenant-id": "tenantId" } },
+        env,
+      );
+      expect(start.status).toBe(302);
+      const state = new URL(
+        start.headers.get("location")!,
+        "http://localhost",
+      ).searchParams.get("state")!;
+      const consent = await u2App.request(
+        `/connect/start?state=${state}`,
+        {
+          headers: { "tenant-id": "tenantId" },
+        },
+        env,
+      );
+      expect(consent.status).toBe(302);
+      expect(consent.headers.get("location")).toMatch(/\/login(?:\?|\/)/);
+      const loginSession = await env.data.loginSessions.get("tenantId", state);
+      expect(loginSession!.authParams.client_id).toBe(CIMD_URL);
+      expect(loginSession!.authParams.code_challenge).toBeUndefined();
+      const query = new URLSearchParams({
+        client_id: CIMD_URL,
+        state,
+        connection: "mock-strategy",
+      });
+      if (responseType) query.set("response_type", responseType);
+      const response = await oauthApp.request(
+        `/authorize?${query}`,
+        {
+          headers: { "tenant-id": "tenantId" },
+        },
+        env,
+      );
+      expect(response.status, await response.text()).toBe(302);
+      expect(response.headers.get("location")).toBe(
+        "https://example.com/authorize",
+      );
+      const callback = await oauthApp.request(
+        "/login/callback?state=code&code=entra-mismatch",
+        { headers: { "tenant-id": "tenantId" } },
+        env,
+      );
+      expect(callback.status, await callback.text()).toBe(302);
+      const resume = await oauthApp.request(
+        `/authorize/resume?state=${state}`,
+        { headers: { "tenant-id": "tenantId" } },
+        env,
+      );
+      expect(resume.status, await resume.text()).toBe(302);
+      expect(resume.headers.get("location")).toBe(
+        `/u2/connect/start?state=${state}`,
+      );
+      expect(resume.headers.get("set-cookie")).toBeTruthy();
+      const after = await env.data.loginSessions.get("tenantId", state);
+      expect(after?.authParams.redirect_uri).toBeUndefined();
+      expect(after?.authParams.response_type).toBeUndefined();
+      expect(after?.session_id).toBeTruthy();
+    },
+  );
+});
+
+describe("connect continuation validation", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it.each([
+    "missing",
+    "ordinary",
+    "expired-time",
+    "expired-state",
+    "completed",
+    "failed",
+    "other-client",
+    "stored-redirect",
+    "stored-response-type",
+    "request-redirect",
+    "other-response-type",
+  ])("keeps PKCE enforcement for %s sessions or requests", async (scenario) => {
+    const { oauthApp, env } = await getTestServer();
+    await enableCimd(env);
+    env.ALLOW_PRIVATE_OUTBOUND_FETCH = true;
+    mockFetchJson(validDocument());
+    const session = await env.data.loginSessions.create("tenantId", {
+      expires_at: new Date(
+        Date.now() + (scenario === "expired-time" ? -60000 : 60000),
+      ).toISOString(),
+      authParams: {
+        client_id: scenario === "other-client" ? "clientId" : CIMD_URL,
+        ...(scenario === "stored-redirect"
+          ? { redirect_uri: "https://rp.example.com/callback" }
+          : {}),
+        ...(scenario === "stored-response-type"
+          ? { response_type: "code" as const }
+          : {}),
+      },
+      csrf_token: "csrf",
+      state_data: JSON.stringify(
+        scenario === "ordinary"
+          ? {}
+          : {
+              connect: {
+                domain: "publisher.com",
+                return_to: "https://publisher.com/callback",
+                caller_state: "csrf",
+              },
+            },
+      ),
+    });
+    const terminalState = {
+      "expired-state": "expired",
+      completed: "completed",
+      failed: "failed",
+    }[scenario];
+    if (terminalState) {
+      await env.data.loginSessions.update("tenantId", session.id, {
+        state: terminalState as "expired" | "completed" | "failed",
+      });
+    }
+    const query = new URLSearchParams({
+      client_id: CIMD_URL,
+      connection: "mock-strategy",
+      state: scenario === "missing" ? "unknown" : session.id,
+      response_type:
+        scenario === "other-response-type" ? "code id_token" : "code",
+    });
+    if (scenario === "request-redirect")
+      query.set("redirect_uri", "https://rp.example.com/callback");
+    const response = await oauthApp.request(
+      `/authorize?${query}`,
+      {
+        headers: { "tenant-id": "tenantId" },
+      },
+      env,
+    );
+    expect(response.status).toBe(400);
+    expect(await response.text()).toContain(
+      "PKCE with code_challenge_method=S256 is required",
+    );
+    expect(
+      await env.data.codes.get("tenantId", "code", "oauth2_state"),
+    ).toBeNull();
+  });
+
+  it("still rejects an unregistered origin on a valid connect continuation", async () => {
+    const { oauthApp, env } = await getTestServer();
+    await enableCimd(env);
+    env.ALLOW_PRIVATE_OUTBOUND_FETCH = true;
+    mockFetchJson(validDocument());
+    const session = await env.data.loginSessions.create("tenantId", {
+      expires_at: new Date(Date.now() + 60000).toISOString(),
+      authParams: { client_id: CIMD_URL },
+      csrf_token: "csrf",
+      state_data: JSON.stringify({ connect: { domain: "publisher.com" } }),
+    });
+    const query = new URLSearchParams({
+      client_id: CIMD_URL,
+      connection: "mock-strategy",
+      state: session.id,
+    });
+    const response = await oauthApp.request(
+      `/authorize?${query}`,
+      {
+        headers: {
+          "tenant-id": "tenantId",
+          origin: "https://unregistered.example",
+        },
+      },
+      env,
+    );
+    expect(response.status).toBe(403);
+    expect(await response.text()).toContain(
+      "Origin https://unregistered.example not allowed",
+    );
+  });
+});

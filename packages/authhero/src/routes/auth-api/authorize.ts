@@ -25,6 +25,7 @@ import { resumeLoginSession } from "../../authentication-flows/resume";
 import { getEnrichedClient } from "../../helpers/client";
 import { prefetchClientBundle } from "../../helpers/prefetch-client-bundle";
 import { isCimdClientId } from "../../helpers/cimd";
+import { isConnectLoginSession } from "../../helpers/dcr/connect-state";
 import { isMcpResourceUrl } from "../mcp/resource";
 import { getIssuer, getSelfCallbackWildcards } from "../../variables";
 import { formPostResponse } from "../../utils/form-post";
@@ -469,6 +470,39 @@ const getRoot = defineRoute({
           parsedClaims = stored.claims;
         }
       }
+    }
+
+    // Connect authenticates the user for consent; it does not issue an OAuth
+    // authorization response. Resume only a live, matching server-side session
+    // and use its stored parameters so this cannot relax normal OAuth checks.
+    if (
+      connection &&
+      connection !== Strategy.EMAIL &&
+      existingSession &&
+      existingSession.authParams.client_id === client.client_id &&
+      existingSession.state !== LoginSessionState.COMPLETED &&
+      existingSession.state !== LoginSessionState.FAILED &&
+      existingSession.state !== LoginSessionState.EXPIRED &&
+      Date.parse(existingSession.expires_at) > Date.now() &&
+      isConnectLoginSession(existingSession.state_data) &&
+      !existingSession.authParams.redirect_uri &&
+      !existingSession.authParams.response_type &&
+      !redirect_uri &&
+      (!response_type || response_type === AuthorizationResponseType.CODE)
+    ) {
+      const origin = ctx.req.header("origin");
+      if (origin && !verifyRequestOrigin(origin, client.web_origins || [])) {
+        throw new HTTPException(403, {
+          message: `Origin ${origin} not allowed`,
+        });
+      }
+      return connectionAuth(
+        ctx,
+        client,
+        connection,
+        { ...existingSession.authParams, state: existingSession.id },
+        existingSession,
+      );
     }
 
     // CIMD clients are public (no client_secret). Require PKCE with S256 for
