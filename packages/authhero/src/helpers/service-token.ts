@@ -5,7 +5,7 @@ import {
   escapeLuceneValue,
 } from "@authhero/adapter-interfaces";
 import { signJWT } from "../utils/jwt";
-import { Bindings, Variables } from "../types";
+import { Bindings, RequestContext, Variables } from "../types";
 import { SigningKeyModeOption } from "../types/AuthHeroConfig";
 import { pemToBuffer } from "../utils/crypto";
 import { algForCert } from "../utils/jwk-alg";
@@ -205,7 +205,7 @@ export interface CreateClientServiceTokenParams {
  * out of control-plane inheritance or no control plane is configured.
  */
 async function resolveControlPlaneTenantId(
-  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  ctx: RequestContext,
   tenantId: string,
 ): Promise<string | undefined> {
   const config = ctx.env.data.multiTenancyConfig;
@@ -238,7 +238,7 @@ export interface CreateClientServiceTokenOptions {
  * any requested scope is not in `grant.scope`.
  */
 export async function createClientServiceToken(
-  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  ctx: RequestContext,
   tenantId: string,
   params: CreateClientServiceTokenParams,
   options?: CreateClientServiceTokenOptions,

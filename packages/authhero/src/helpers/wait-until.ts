@@ -14,7 +14,12 @@ import { getRuntimeKey } from "hono/adapter";
  * webhook dispatches) completes, producing flaky test behavior and requests
  * that occasionally lose tail work if the process exits.
  */
-export function waitUntil(ctx: Context, promise: Promise<unknown>) {
+export function waitUntil(
+  ctx: Pick<Context, "executionCtx" | "var"> & {
+    set(key: "backgroundPromises", value: Promise<void>[]): void;
+  },
+  promise: Promise<unknown>,
+) {
   if (getRuntimeKey() === "workerd") {
     try {
       ctx.executionCtx.waitUntil(promise);

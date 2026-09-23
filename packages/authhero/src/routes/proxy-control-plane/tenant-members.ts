@@ -10,6 +10,8 @@ import {
   membersMutationBodySchema,
 } from "../../tenant-members/wire";
 import type { AuthenticateControlPlane } from "./custom-domains";
+import { CONTROL_PLANE_TENANT_MEMBERS_SCOPE } from "./scopes";
+import { authenticateControlPlaneRequest } from "./verify";
 
 type TenantVars = { tenantId: string };
 
@@ -21,12 +23,19 @@ export interface TenantMembersControlPlaneOptions {
    * Build the backend for a request. Bound to the control-plane database
    * (`c.env.data`) and, optionally, an email sender at wire-up time. The tenant
    * is pinned separately from the verified token, so the factory does not need
-   * it.
+   * it. Pass `c` as the local backend's `ctx` to send invitation emails as the
+   * control-plane tenant.
    */
   getBackend: (
     c: CpCtx,
   ) => TenantMembersBackend | Promise<TenantMembersBackend>;
-  authenticate: AuthenticateControlPlane;
+  /**
+   * Defaults to verifying a `controlplane:tenant_members` bearer token issued
+   * by `env.ISSUER` or the inbound host. Ignored under
+   * `createProxyControlPlaneApp`, which always applies that check together with
+   * its own `jwksFetch` / `isTrustedIssuer`.
+   */
+  authenticate?: AuthenticateControlPlane;
 }
 
 /**
@@ -43,7 +52,11 @@ export function createTenantMembersControlPlaneApp(
   options: TenantMembersControlPlaneOptions,
 ): Hono<{ Bindings: Bindings; Variables: TenantVars }> {
   const app = new Hono<{ Bindings: Bindings; Variables: TenantVars }>();
-  const { getBackend, authenticate } = options;
+  const { getBackend } = options;
+  const authenticate: AuthenticateControlPlane =
+    options.authenticate ??
+    ((c) =>
+      authenticateControlPlaneRequest(c, CONTROL_PLANE_TENANT_MEMBERS_SCOPE));
 
   app.use("*", async (c, next) => {
     const result = await authenticate(c);

@@ -22,7 +22,7 @@ import {
   PROXY_RESOLVE_HOST_SCOPE,
 } from "./scopes";
 import {
-  verifyControlPlaneToken,
+  authenticateControlPlaneRequest,
   type VerifyControlPlaneTokenResult,
 } from "./verify";
 
@@ -115,13 +115,6 @@ export interface ProxyControlPlaneOptions {
   tenantMembers?: TenantMembersControlPlaneOptions;
 }
 
-function extractBearerToken(request: Request): string | null {
-  const header = request.headers.get("authorization");
-  if (!header) return null;
-  const match = /^Bearer\s+(\S+)$/i.exec(header);
-  return match?.[1] ?? null;
-}
-
 /**
  * Returns a Hono app exposing the privileged proxy control-plane endpoint
  * `GET /hosts/:host`. When `applySyncEvents` is provided, also exposes
@@ -152,7 +145,7 @@ export function createProxyControlPlaneApp(
       authenticate(c, requiredScope);
   }
 
-  async function authenticate(
+  function authenticate(
     c: {
       req: {
         raw: Request;
@@ -163,25 +156,8 @@ export function createProxyControlPlaneApp(
     },
     requiredScope: string | string[],
   ): Promise<VerifyControlPlaneTokenResult> {
-    const token = extractBearerToken(c.req.raw);
-    if (!token) return { ok: false, reason: "missing bearer token" };
-
-    // Accept either the canonical ISSUER (legacy callers) or the host the
-    // request actually landed on. The latter covers both tenant subdomains
-    // (e.g. `sesamy.token.sesamy.com`) and registered custom domains
-    // fronted by `@authhero/proxy` (e.g. `login.parcferme.no`) — both
-    // collapse to "iss equals the request host" because only authhero can
-    // mint tokens signed by a key in that host's JWKS.
-    const inboundHost =
-      c.req.header("x-forwarded-host") ?? new URL(c.req.url).host;
-    const inboundIssuer = `https://${inboundHost}/`;
-    const expectedIssuers = Array.from(new Set([c.env.ISSUER, inboundIssuer]));
-
-    return verifyControlPlaneToken({
-      token,
+    return authenticateControlPlaneRequest(c, requiredScope, {
       jwksFetch: options.jwksFetch,
-      expectedIssuers,
-      requiredScope,
       isTrustedIssuer: options.isTrustedIssuer,
     });
   }

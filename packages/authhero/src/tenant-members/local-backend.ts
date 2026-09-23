@@ -1,10 +1,9 @@
-import { Context } from "hono";
 import {
   DataAdapters,
   Organization,
   escapeLuceneValue,
 } from "@authhero/adapter-interfaces";
-import { Bindings, Variables } from "../types";
+import { RequestContext } from "../types";
 import { sendInvitation } from "../emails";
 import { generateInviteId } from "../utils/entity-id";
 import { getDefaultUserPicture } from "../helpers/avatar";
@@ -53,7 +52,7 @@ export interface LocalTenantMembersBackendOptions {
    * control-plane tenant (its email provider, branding and locales), not the
    * request's tenant.
    */
-  ctx?: Context<{ Bindings: Bindings; Variables: Variables }>;
+  ctx?: RequestContext;
   /**
    * Best-effort invitation email delivery. Overrides the built-in sender used
    * when `ctx` is set. Failures must not fail the create — Auth0 returns the
