@@ -212,6 +212,15 @@ export async function universalAuth({
   // For u2 routes, check if we should use identifier+password flow
   // Default to identifier-first (true) as per promptSettingSchema
   if (routePrefix === "/u2") {
+    if (
+      connection === Strategy.EMAIL &&
+      client.connections.some((c) => c.strategy === Strategy.EMAIL)
+    ) {
+      return ctx.redirect(
+        `${routePrefix}/login/login-passwordless-identifier?state=${loginSession.id}`,
+      );
+    }
+
     const promptSettings = await ctx.env.data.promptSettings.get(
       client.tenant.id,
     );
