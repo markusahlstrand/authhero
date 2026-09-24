@@ -1,5 +1,31 @@
 # authhero
 
+## 9.14.0
+
+### Minor Changes
+
+- 0632b4d: `createLocalTenantMembersBackend` can now send tenant-member invitation emails itself. The feature is opt-in: pass the request context as `ctx`.
+
+  ```ts
+  getBackend: (ctx) =>
+    createLocalTenantMembersBackend({ ...options, ctx }),
+  ```
+
+  With `ctx` set and no `sendInvitationEmail`, invitations go out with the built-in `user_invitation` template. They are sent as the control-plane tenant, so its email provider, branding, `default_from_address` and locales are used, not the child tenant's. A host-supplied `sendInvitationEmail` still takes precedence. `send_invitation_email: false` still sends nothing, and a failed delivery is logged without failing the invitation. `sendInvitation` also accepts an optional `tenantId`.
+
+  Existing hosts see no behaviour change: a backend built without `ctx` works exactly as before.
+
+- 77510ad: The proxy control-plane `tenant-members` resource can now send invitation emails without a host-supplied sender: pass the request context as `ctx` to `createLocalTenantMembersBackend` in `proxyControlPlane.tenantMembers.getBackend` (`getBackend: (c) => createLocalTenantMembersBackend({ ...options, ctx: c })`), and WFP shards' invitations are emailed with the `user_invitation` template as the control-plane tenant. The email, logging and service-token helpers now accept a narrower request context in which every request variable is optional. `TenantMembersControlPlaneOptions.authenticate` is now optional: it defaults to the built-in `controlplane:tenant_members` bearer-token check, and `createProxyControlPlaneApp` keeps applying that check itself, so hosts no longer need to pass a stub.
+
+### Patch Changes
+
+- 3687615: Fix social login during the Connect consent flow when the login session is anchored to a Client ID Metadata Document client. Resume live, matching Connect sessions without requiring OAuth response parameters or PKCE, while retaining PKCE enforcement for ordinary authorization-code requests.
+- 4130600: Support passwordless email login when `/authorize` specifies `connection=email` without `login_hint`. Prompt for an email address in both universal login versions and honor the email connection instead of password-first settings or the user's last-used password strategy.
+- 135ce0d: Roll back `PATCH /api/v2/actions/triggers/{triggerId}/bindings` when the swap fails partway: hooks created so far are removed and the removed bindings are re-created with their original ids and fields, so a storage failure no longer leaves the trigger partially unbound.
+- 97dbc84: Redirect page loads with an expired or unknown login session to the tenant's `default_redirection_uri` when one is configured (Auth0 behaviour), and stop logging expected 4xx errors from u2 screen initialization at error level.
+- Updated dependencies [d00506b]
+  - @authhero/proxy@0.11.0
+
 ## 9.13.1
 
 ### Patch Changes
