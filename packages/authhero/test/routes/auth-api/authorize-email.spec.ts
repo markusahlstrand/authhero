@@ -77,6 +77,56 @@ describe("authorize with connection=email", () => {
     },
   );
 
+  it.each([true, false])(
+    "preserves the password fallback without an email connection (identifier_first=%s)",
+    async (identifierFirst) => {
+      const { oauthApp, u2App, env, getSentEmails } = await getTestServer({
+        mockEmail: true,
+      });
+      await env.data.clients.update("tenantId", "clientId", {
+        client_metadata: { universal_login_version: "2" },
+      });
+      await env.data.clientConnections.updateByClient("tenantId", "clientId", [
+        "Username-Password-Authentication",
+      ]);
+      await env.data.promptSettings.set("tenantId", {
+        identifier_first: identifierFirst,
+        password_first: true,
+      });
+
+      const response = await testClient(oauthApp, env).authorize.$get({
+        query: {
+          client_id: "clientId",
+          redirect_uri: "https://example.com/callback",
+          response_type: AuthorizationResponseType.CODE,
+          connection: "email",
+        },
+      });
+      expect(response.status).toBe(302);
+      const location = new URL(
+        response.headers.get("location")!,
+        "https://example.com",
+      );
+      const screenPath = identifierFirst ? "login/identifier" : "login";
+      expect(location.pathname).toBe(`/u2/${screenPath}`);
+      const state = location.searchParams.get("state")!;
+      const screen = u2Screen(u2App, env, screenPath);
+      const page = await screen.$get({ query: { state } });
+      expect(page.status).toBe(200);
+      if (identifierFirst) {
+        const submitted = await screen.$post({
+          query: { state },
+          form: { username: "foo@example.com" },
+        });
+        expect(submitted.status).toBe(200);
+        expect(await submitted.text()).toContain("enter-password");
+      } else {
+        expect(await page.text()).toContain('"type":"PASSWORD"');
+      }
+      expect(await getSentEmails()).toHaveLength(0);
+    },
+  );
+
   it("still sends a code immediately when login_hint is supplied", async () => {
     const { oauthApp, env, getSentEmails } = await getTestServer({
       mockEmail: true,
