@@ -303,6 +303,22 @@ export async function getLoginStrategy(
   connectionType: "email" | "sms" | "username",
   login_selection?: "password" | "code",
 ): Promise<LoginStrategy> {
+  // Preserve the email choice from /authorize after collecting the identifier.
+  // Tenant defaults and the user's last-used strategy must not turn an
+  // explicitly requested passwordless login into a password challenge.
+  const authorizationUrl = ctx.var.loginSession?.authorization_url;
+  if (
+    connectionType === "email" &&
+    authorizationUrl &&
+    new URL(authorizationUrl).searchParams.get("connection") ===
+      Strategy.EMAIL &&
+    client.connections.some(
+      (connection) => connection.strategy === Strategy.EMAIL,
+    )
+  ) {
+    return "email";
+  }
+
   // Username identifiers always use password authentication
   // (usernames only exist on password connections)
   if (connectionType === "username") {
