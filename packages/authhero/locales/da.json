@@ -53,7 +53,8 @@
       "resendText": "Send koden igen",
       "sessionExpired": "Din session er udløbet. Prøv venligst igen.",
       "title": "Tjek din e-mail",
-      "unexpectedError": "Der opstod en uventet fejl"
+      "unexpectedError": "Der opstod en uventet fejl",
+      "usePasswordText": "Log ind med adgangskode"
     }
   },
   "email-verification": {
@@ -208,7 +209,8 @@
       "title": "Indtast adgangskode",
       "unverifiedEmail": "Bekræft venligst din e-mailadresse, før du logger ind",
       "user-blocked": "Din konto er blevet blokeret efter flere på hinanden følgende loginforsøg.",
-      "wrong-credentials": "Forkert adgangskode"
+      "wrong-credentials": "Forkert adgangskode",
+      "sendCodeText": "Log ind med kode"
     }
   },
   "login-passwordless": {

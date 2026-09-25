@@ -351,6 +351,7 @@ async function buildScreenContext(
   if (username) {
     if (
       screenId === "email-otp-challenge" ||
+      screenId === "enter-password" ||
       screenId === "reset-password-code"
     ) {
       data.email = username;

@@ -78,6 +78,12 @@ const nextButtonComponent = blockComponentBase.extend({
   type: z.literal("NEXT_BUTTON"),
   config: z.object({
     text: z.string().optional(),
+    // Render as a secondary (outlined) button, e.g. an alternative action
+    // below the primary submit button.
+    variant: z.enum(["primary", "secondary"]).optional(),
+    // Submit without requiring the screen's required fields, for buttons that
+    // switch to another flow instead of submitting the entered values.
+    skip_validation: z.boolean().optional(),
   }),
 });
 

@@ -53,7 +53,8 @@
       "resendText": "Lähetä koodi uudelleen",
       "sessionExpired": "Istuntosi on vanhentunut. Yritä uudelleen.",
       "title": "Tarkista sähköpostisi",
-      "unexpectedError": "Odottamaton virhe tapahtui"
+      "unexpectedError": "Odottamaton virhe tapahtui",
+      "usePasswordText": "Kirjaudu salasanalla"
     }
   },
   "email-verification": {
@@ -208,7 +209,8 @@
       "title": "Anna salasana",
       "unverifiedEmail": "Vahvista sähköpostiosoitteesi ennen kirjautumista",
       "user-blocked": "Tilisi on estetty useiden peräkkäisten kirjautumisyritysten jälkeen.",
-      "wrong-credentials": "Väärä salasana"
+      "wrong-credentials": "Väärä salasana",
+      "sendCodeText": "Kirjaudu koodilla"
     }
   },
   "login-passwordless": {

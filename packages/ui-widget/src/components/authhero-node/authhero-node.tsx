@@ -784,8 +784,18 @@ export class AuthheroNode {
   // BLOCK Component Renderers
   // ===========================================================================
 
-  private renderDivider() {
-    return <hr class="divider" part="divider" />;
+  private renderDivider(component: BlockComponent & { type: "DIVIDER" }) {
+    const text = component.config?.text;
+    if (!text) {
+      return <hr class="divider" part="divider" />;
+    }
+    return (
+      <div class="divider" part="divider" role="separator">
+        <span class="divider-text" part="divider-text">
+          {text}
+        </span>
+      </div>
+    );
   }
 
   private renderHtml(component: BlockComponent & { type: "HTML" }) {
@@ -827,12 +837,16 @@ export class AuthheroNode {
   private renderNextButton(
     component: BlockComponent & { type: "NEXT_BUTTON" },
   ) {
+    const secondary = component.config.variant === "secondary";
     return (
       <button
         type="submit"
-        class="btn btn-primary"
-        part="button button-primary"
-        data-primary-action-button
+        class={secondary ? "btn btn-secondary" : "btn btn-primary"}
+        part={secondary ? "button button-secondary" : "button button-primary"}
+        data-primary-action-button={secondary ? undefined : true}
+        name={secondary ? component.id : undefined}
+        value={secondary ? "true" : undefined}
+        formNoValidate={component.config.skip_validation}
         disabled={this.disabled}
         onClick={(e) => this.handleButtonClick(e, "submit", "next")}
       >
@@ -1760,7 +1774,9 @@ export class AuthheroNode {
     switch (this.component.type) {
       // BLOCK components
       case "DIVIDER":
-        return this.renderDivider();
+        return this.renderDivider(
+          this.component as BlockComponent & { type: "DIVIDER" },
+        );
       case "HTML":
         return this.renderHtml(
           this.component as BlockComponent & { type: "HTML" },

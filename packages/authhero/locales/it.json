@@ -53,7 +53,8 @@
       "resendText": "Reinvio del codice",
       "sessionExpired": "La sessione è scaduta. Riprova.",
       "title": "Controlla la tua email",
-      "unexpectedError": "Si è verificato un errore imprevisto"
+      "unexpectedError": "Si è verificato un errore imprevisto",
+      "usePasswordText": "Accedi con la password"
     }
   },
   "email-verification": {
@@ -208,7 +209,8 @@
       "title": "Inserire la password",
       "unverifiedEmail": "Verifica il tuo indirizzo email prima di accedere",
       "user-blocked": "Il tuo account è stato bloccato dopo diversi tentativi di accesso consecutivi.",
-      "wrong-credentials": "Password errata"
+      "wrong-credentials": "Password errata",
+      "sendCodeText": "Accedi con un codice"
     }
   },
   "login-passwordless": {

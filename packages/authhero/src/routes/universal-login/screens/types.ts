@@ -174,6 +174,19 @@ export interface ScreenDefinition {
  */
 export async function getLoginPath(context: ScreenContext): Promise<string> {
   const { routePrefix = "/u2" } = context;
+  return (await isIdentifierFirstLogin(context))
+    ? `${routePrefix}/login/identifier`
+    : `${routePrefix}/login`;
+}
+
+/**
+ * Whether the login flow starts on the identifier screen. On the combined
+ * password-first login page the user picks password or code up front, so the
+ * "or" switch between the two challenge screens is only offered here.
+ */
+export async function isIdentifierFirstLogin(
+  context: ScreenContext,
+): Promise<boolean> {
   const promptSettings = await context.ctx.env.data.promptSettings.get(
     context.tenant.id,
   );
@@ -181,9 +194,7 @@ export async function getLoginPath(context: ScreenContext): Promise<string> {
   const hasPasswordConnection = context.connections.some((c) =>
     isDatabaseConnectionStrategy(c.strategy),
   );
-  return settings.identifier_first === false && hasPasswordConnection
-    ? `${routePrefix}/login`
-    : `${routePrefix}/login/identifier`;
+  return settings.identifier_first !== false || !hasPasswordConnection;
 }
 
 /**

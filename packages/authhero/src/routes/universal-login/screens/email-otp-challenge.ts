@@ -10,7 +10,7 @@ import {
   isDatabaseConnectionStrategy,
 } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
-import { getLoginPath } from "./types";
+import { getLoginPath, isIdentifierFirstLogin } from "./types";
 import { escapeHtml } from "../sanitization-utils";
 import { createTranslation } from "../../../i18n";
 import { passwordlessGrant } from "../../../authentication-flows/passwordless";
@@ -18,6 +18,35 @@ import { createFrontChannelAuthResponse } from "../../../authentication-flows/co
 import { HTTPException } from "hono/http-exception";
 import { JSONHTTPException } from "../../../errors/json-http-exception";
 import { getPrimaryUsernamePasswordUser } from "../../../utils/username-password-provider";
+import { enterPasswordScreen } from "./enter-password";
+
+/**
+ * Whether the user can switch from the email code to their password. Only
+ * offered in the identifier-first flow — the combined login page already
+ * lets the user pick — and only when the user has a password account.
+ */
+async function canSwitchToPassword(
+  context: ScreenContext,
+  email: string | undefined,
+): Promise<boolean> {
+  if (
+    !email ||
+    !context.connections.some((c) => isDatabaseConnectionStrategy(c.strategy))
+  ) {
+    return false;
+  }
+  if (!(await isIdentifierFirstLogin(context))) return false;
+  try {
+    const passwordUser = await getPrimaryUsernamePasswordUser({
+      env: context.ctx.env,
+      tenant_id: context.tenant.id,
+      username: email,
+    });
+    return !!passwordUser;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Create the email-otp-challenge screen
@@ -94,6 +123,33 @@ export async function emailOtpChallengeScreen(
     },
   ];
 
+  if (await canSwitchToPassword(context, email)) {
+    components.push(
+      {
+        id: "divider",
+        type: "DIVIDER",
+        category: "BLOCK",
+        visible: true,
+        order: 3,
+        config: {
+          text: common.orText(),
+        },
+      },
+      {
+        id: "use-password",
+        type: "NEXT_BUTTON",
+        category: "BLOCK",
+        visible: true,
+        config: {
+          text: m.usePasswordText(),
+          variant: "secondary",
+          skip_validation: true,
+        },
+        order: 4,
+      },
+    );
+  }
+
   // Determine the back link: if there's no password connection, the user
   // is in a passwordless flow and should go back to the passwordless identifier
   const hasPasswordConnection = context.connections.some((c) =>
@@ -139,6 +195,22 @@ export const emailOtpChallengeScreenDefinition: ScreenDefinition = {
     get: emailOtpChallengeScreen,
     post: async (context, data) => {
       const { ctx, client, state } = context;
+
+      // "Log in with password" switch
+      if (data["use-password"] === "true") {
+        const email = context.data?.email as string | undefined;
+        if (await canSwitchToPassword(context, email)) {
+          return {
+            screen: await enterPasswordScreen({
+              ...context,
+              errors: undefined,
+              data: { email },
+            }),
+          };
+        }
+        return { screen: await emailOtpChallengeScreen(context) };
+      }
+
       const code = (data.code as string)?.trim();
 
       // Initialize i18n for validation/error messages
@@ -286,28 +358,11 @@ export const emailOtpChallengeScreenDefinition: ScreenDefinition = {
           );
         }
 
-        // Check if user has password login available
-        let hasPasswordLogin = false;
-        try {
-          const passwordUser = await getPrimaryUsernamePasswordUser({
-            env: ctx.env,
-            tenant_id: client.tenant.id,
-            username: loginSession.authParams.username,
-          });
-          hasPasswordLogin = !!passwordUser;
-        } catch {
-          // Ignore errors
-        }
-
         return {
           error: errorMessage,
           screen: await emailOtpChallengeScreen({
             ...context,
             errors: { code: errorMessage },
-            data: {
-              ...context.data,
-              hasPasswordLogin,
-            },
           }),
         };
       }

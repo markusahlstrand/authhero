@@ -305,3 +305,67 @@ describe("BOOLEAN defaults", () => {
     expect(submitted[0].marketing).toBe("false");
   });
 });
+
+describe("skip_validation buttons", () => {
+  const switchButton = {
+    id: "send-code",
+    type: "NEXT_BUTTON",
+    config: {
+      text: "Log in with a code",
+      variant: "secondary",
+      skip_validation: true,
+    },
+  };
+
+  function secondaryButton(page: SpecPage) {
+    const nodes = Array.from(
+      page.root!.shadowRoot!.querySelectorAll("authhero-node"),
+    );
+    for (const node of nodes) {
+      const button = node.shadowRoot?.querySelector<HTMLButtonElement>(
+        "button.btn-secondary",
+      );
+      if (button) return button;
+    }
+    throw new Error("No secondary button rendered");
+  }
+
+  it("stays enabled and submits while a required field is empty", async () => {
+    const { page, submitted } = await render(
+      screenWith([
+        { id: "password", type: "PASSWORD", label: "Password", required: true },
+        nextButton,
+        { id: "divider", type: "DIVIDER", config: { text: "or" } },
+        switchButton,
+      ] as UiScreen["components"]),
+    );
+
+    expect(isContinueDisabled(page)).toBe(true);
+    expect(secondaryButton(page).hasAttribute("disabled")).toBe(false);
+
+    secondaryButton(page).click();
+    await page.waitForChanges();
+
+    expect(submitted).toHaveLength(1);
+    expect(submitted[0]["send-code"]).toBe("true");
+  });
+
+  it("renders a divider inline when the screen has no social buttons", async () => {
+    const { page } = await render(
+      screenWith([
+        { id: "password", type: "PASSWORD", label: "Password", required: true },
+        nextButton,
+        { id: "divider", type: "DIVIDER", config: { text: "or" } },
+        switchButton,
+      ] as UiScreen["components"]),
+    );
+
+    const nodes = Array.from(
+      page.root!.shadowRoot!.querySelectorAll("authhero-node"),
+    );
+    const dividerText = nodes
+      .map((n) => n.shadowRoot?.querySelector(".divider-text")?.textContent)
+      .find(Boolean);
+    expect(dividerText).toBe("or");
+  });
+});
