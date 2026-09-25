@@ -23,9 +23,7 @@ import { getPrimaryUsernamePasswordUser } from "../../../utils/username-password
 import { findHrdConnection } from "../../../helpers/hrd";
 import { connectionAuth } from "../../../authentication-flows/connection";
 import { getLoginStrategy } from "../common";
-import generateOTP from "../../../utils/otp";
-import { sendCode, sendLink } from "../../../emails";
-import { OTP_EXPIRATION_TIME } from "../../../constants";
+import { sendLoginOtp } from "./login-otp";
 import { emailOtpChallengeScreen } from "./email-otp-challenge";
 import { smsOtpChallengeScreen } from "./sms-otp-challenge";
 import { magicLinkSentScreen } from "./magic-link-sent";
@@ -704,53 +702,15 @@ export const identifierScreenDefinition: ScreenDefinition = {
         (p) => p.strategy === connectionType,
       );
 
-      // Extract language from ui_locales
-      const language = loginSession.authParams?.ui_locales
-        ?.split(" ")
-        ?.map((locale: string) => locale.split("-")[0])[0];
-
       if (!silentSignupStub) {
-        let code_id = generateOTP();
-        let existingCode = await ctx.env.data.codes.get(
-          client.tenant.id,
-          code_id,
-          "otp",
-        );
-
-        while (existingCode) {
-          code_id = generateOTP();
-          existingCode = await ctx.env.data.codes.get(
-            client.tenant.id,
-            code_id,
-            "otp",
-          );
-        }
-
-        await ctx.env.data.codes.create(client.tenant.id, {
-          code_id,
-          code_type: "otp",
-          login_id: loginSession.id,
-          expires_at: new Date(Date.now() + OTP_EXPIRATION_TIME).toISOString(),
-          redirect_uri: loginSession.authParams.redirect_uri,
+        await sendLoginOtp(ctx, {
+          client,
+          loginSession,
+          to: normalized,
+          magicLink:
+            connectionType === "email" &&
+            connection?.options?.authentication_method === "magic_link",
         });
-
-        if (
-          connectionType === "email" &&
-          connection?.options?.authentication_method === "magic_link"
-        ) {
-          await sendLink(ctx, {
-            to: normalized,
-            code: code_id,
-            authParams: loginSession.authParams,
-            language,
-          });
-        } else {
-          await sendCode(ctx, {
-            to: normalized,
-            code: code_id,
-            language,
-          });
-        }
       }
 
       // Return appropriate screen based on connection type and auth method

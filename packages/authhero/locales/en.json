@@ -53,7 +53,8 @@
       "resendText": "Resend code",
       "sessionExpired": "Your session has expired. Please try again.",
       "title": "Check your email",
-      "unexpectedError": "An unexpected error occurred"
+      "unexpectedError": "An unexpected error occurred",
+      "usePasswordText": "Log in with password"
     }
   },
   "email-verification": {
@@ -208,7 +209,8 @@
       "title": "Enter your password",
       "unverifiedEmail": "Please verify your email address before logging in",
       "user-blocked": "Your account has been blocked after multiple consecutive login attempts.",
-      "wrong-credentials": "Wrong password"
+      "wrong-credentials": "Wrong password",
+      "sendCodeText": "Log in with a code"
     }
   },
   "login-passwordless": {

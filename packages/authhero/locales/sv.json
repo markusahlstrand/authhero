@@ -53,7 +53,8 @@
       "resendText": "Skicka koden igen",
       "sessionExpired": "Din session har gått ut. Försök igen.",
       "title": "Kolla din e-post",
-      "unexpectedError": "Ett oväntat fel uppstod"
+      "unexpectedError": "Ett oväntat fel uppstod",
+      "usePasswordText": "Logga in med lösenord"
     }
   },
   "email-verification": {
@@ -208,7 +209,8 @@
       "title": "Ange lösenord",
       "unverifiedEmail": "Verifiera din e-postadress innan du loggar in",
       "user-blocked": "Ditt konto har blockerats efter flera misslyckade inloggningsförsök i rad.",
-      "wrong-credentials": "Fel lösenord"
+      "wrong-credentials": "Fel lösenord",
+      "sendCodeText": "Logga in med kod"
     }
   },
   "login-passwordless": {

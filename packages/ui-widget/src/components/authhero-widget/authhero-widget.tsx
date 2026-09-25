@@ -1576,7 +1576,16 @@ export class AuthheroWidget {
     if (detail.type === "submit") {
       // Enter in a text field submits too, so the required-field gate has to
       // live here and not only on the button's disabled state.
-      if (this._screen && this.hasUnfilledRequiredFields(this._screen)) {
+      // Buttons that switch flow (e.g. "Log in with a code") opt out.
+      const clicked = this._screen?.components?.find((c) => c.id === detail.id);
+      const skipValidation =
+        clicked?.type === "NEXT_BUTTON" &&
+        clicked.config?.skip_validation === true;
+      if (
+        this._screen &&
+        !skipValidation &&
+        this.hasUnfilledRequiredFields(this._screen)
+      ) {
         return;
       }
       // For GET screens (or missing method), navigate directly — no form submission needed
@@ -1873,10 +1882,17 @@ export class AuthheroWidget {
     const socialComponents = components.filter((c) =>
       this.isSocialComponent(c),
     );
+    // The first divider separates the social buttons from the form fields and
+    // is rendered between those sections. Any other divider (or any divider
+    // on a screen without social buttons) renders inline with the fields,
+    // e.g. the "or" above an alternative login method.
+    const dividerComponent =
+      socialComponents.length > 0
+        ? components.find((c) => this.isDividerComponent(c))
+        : undefined;
     const fieldComponents = components.filter(
-      (c) => !this.isSocialComponent(c) && !this.isDividerComponent(c),
+      (c) => !this.isSocialComponent(c) && c !== dividerComponent,
     );
-    const dividerComponent = components.find((c) => this.isDividerComponent(c));
     const hasDivider = !!dividerComponent;
     const dividerText =
       (dividerComponent as DividerComponent)?.config?.text || "Or";
@@ -2088,6 +2104,7 @@ export class AuthheroWidget {
                       disabled={
                         this.loading ||
                         (component.type === "NEXT_BUTTON" &&
+                          component.config?.skip_validation !== true &&
                           requiredFieldsMissing)
                       }
                     />

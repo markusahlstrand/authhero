@@ -124,6 +124,13 @@ Used for form submission and navigation:
 
 The button's text can be customized via the `text` property.
 
+Two optional properties support secondary actions next to the main submit button:
+
+- `variant`: `"primary"` (default) or `"secondary"` for an outlined button.
+- `skip_validation`: when `true`, the button stays enabled and submits even when required fields are empty. The clicked button's `id` is sent as `"true"` in the submitted data, so the server can tell which button was used. The built-in login screens use this for the "Log in with a code" / "Log in with password" switch.
+
+A `DIVIDER` with `config.text` placed between the buttons renders as an "or" separator.
+
 ## Node Types
 
 ### STEP Node

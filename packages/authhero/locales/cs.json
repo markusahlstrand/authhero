@@ -53,7 +53,8 @@
       "resendText": "Opětovné odeslání kódu",
       "sessionExpired": "Platnost vaší relace vypršela. Zkuste to prosím znovu.",
       "title": "Zkontrolujte svůj e-mail",
-      "unexpectedError": "Došlo k neočekávané chybě"
+      "unexpectedError": "Došlo k neočekávané chybě",
+      "usePasswordText": "Přihlásit se heslem"
     }
   },
   "email-verification": {
@@ -208,7 +209,8 @@
       "title": "Zadejte heslo",
       "unverifiedEmail": "Před přihlášením prosím ověřte svou e-mailovou adresu",
       "user-blocked": "Váš účet byl zablokován po několika po sobě jdoucích neúspěšných pokusech o přihlášení.",
-      "wrong-credentials": "Nesprávné heslo"
+      "wrong-credentials": "Nesprávné heslo",
+      "sendCodeText": "Přihlásit se kódem"
     }
   },
   "login-passwordless": {

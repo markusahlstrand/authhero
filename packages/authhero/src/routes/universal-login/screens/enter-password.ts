@@ -5,12 +5,40 @@
  */
 
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
+import { Strategy } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
-import { getLoginPath } from "./types";
+import { getLoginPath, isIdentifierFirstLogin } from "./types";
 import { escapeHtml } from "../sanitization-utils";
 import { createTranslation } from "../../../i18n";
 import { loginWithPassword } from "../../../authentication-flows/password";
 import { AuthError } from "../../../types/AuthError";
+import { userExistsByEmail } from "../../../helpers/users";
+import { validateSignupEmail } from "../../../hooks";
+import { sendLoginOtp } from "./login-otp";
+import { emailOtpChallengeScreen } from "./email-otp-challenge";
+
+/**
+ * Whether the user can switch from the password challenge to an emailed code.
+ * Only offered in the identifier-first flow — the combined login page already
+ * lets the user pick — and only for email identifiers on a client with a
+ * code-based email connection.
+ */
+async function canSwitchToEmailCode(
+  context: ScreenContext,
+  email: string | undefined,
+): Promise<boolean> {
+  if (!email?.includes("@")) return false;
+  const emailConnection = context.connections.find(
+    (c) => c.strategy === Strategy.EMAIL,
+  );
+  if (
+    !emailConnection ||
+    emailConnection.options?.authentication_method === "magic_link"
+  ) {
+    return false;
+  }
+  return isIdentifierFirstLogin(context);
+}
 
 /**
  * Create the enter-password screen
@@ -88,6 +116,33 @@ export async function enterPasswordScreen(
     },
   ];
 
+  if (await canSwitchToEmailCode(context, email)) {
+    components.push(
+      {
+        id: "divider",
+        type: "DIVIDER",
+        category: "BLOCK",
+        visible: true,
+        order: 3,
+        config: {
+          text: common.orText(),
+        },
+      },
+      {
+        id: "send-code",
+        type: "NEXT_BUTTON",
+        category: "BLOCK",
+        visible: true,
+        config: {
+          text: m.sendCodeText(),
+          variant: "secondary",
+          skip_validation: true,
+        },
+        order: 4,
+      },
+    );
+  }
+
   const loginPath = await getLoginPath(context);
 
   const screen: UiScreen = {
@@ -125,6 +180,12 @@ export const enterPasswordScreenDefinition: ScreenDefinition = {
     get: enterPasswordScreen,
     post: async (context, data) => {
       const { ctx, client, state } = context;
+
+      // "Log in with a code" switch: email a code and show the OTP challenge
+      if (data["send-code"] === "true") {
+        return switchToEmailCode(context);
+      }
+
       const password = (data.password as string)?.trim();
 
       // Validate password is provided
@@ -209,3 +270,66 @@ export const enterPasswordScreenDefinition: ScreenDefinition = {
     },
   },
 };
+
+/**
+ * Handle the switch from the password screen to an emailed one-time code.
+ */
+async function switchToEmailCode(context: ScreenContext) {
+  const { ctx, client, state } = context;
+  const loginSession = await ctx.env.data.loginSessions.get(
+    client.tenant.id,
+    state,
+  );
+  const email = loginSession?.authParams?.username;
+
+  if (!loginSession || !email) {
+    return {
+      error: "Session expired",
+      screen: await enterPasswordScreen({
+        ...context,
+        errors: { password: "Session expired. Please start over." },
+      }),
+    };
+  }
+
+  if (!(await canSwitchToEmailCode(context, email))) {
+    return { screen: await enterPasswordScreen(context) };
+  }
+
+  // Mirror the identifier screen: an unknown email only gets a code if it
+  // could sign up. Otherwise show the challenge without sending anything so
+  // the switch doesn't reveal whether the account exists.
+  let mayReceiveCode = await userExistsByEmail({
+    userAdapter: ctx.env.data.users,
+    tenant_id: client.tenant.id,
+    email,
+  });
+  if (!mayReceiveCode) {
+    const validation = await validateSignupEmail(
+      ctx,
+      client,
+      ctx.env.data,
+      email,
+      Strategy.EMAIL,
+      { identifierPreflight: true },
+    );
+    mayReceiveCode = validation.allowed;
+  }
+
+  if (mayReceiveCode) {
+    await sendLoginOtp(ctx, {
+      client,
+      loginSession,
+      to: email,
+      magicLink: false,
+    });
+  }
+
+  return {
+    screen: await emailOtpChallengeScreen({
+      ...context,
+      errors: undefined,
+      data: { email },
+    }),
+  };
+}
