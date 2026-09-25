@@ -24,6 +24,11 @@ import { enterPasswordScreen } from "./enter-password";
  * Whether the user can switch from the email code to their password. Only
  * offered in the identifier-first flow — the combined login page already
  * lets the user pick — and only when the user has a password account.
+ *
+ * In enumeration-safe mode (client.hide_sign_up_disabled_error) the account
+ * lookup is skipped so the button doesn't reveal whether a password account
+ * exists; the password flow rejects unknown users with the same error as a
+ * wrong password.
  */
 async function canSwitchToPassword(
   context: ScreenContext,
@@ -36,6 +41,7 @@ async function canSwitchToPassword(
     return false;
   }
   if (!(await isIdentifierFirstLogin(context))) return false;
+  if (context.client.hide_sign_up_disabled_error === true) return true;
   try {
     const passwordUser = await getPrimaryUsernamePasswordUser({
       env: context.ctx.env,

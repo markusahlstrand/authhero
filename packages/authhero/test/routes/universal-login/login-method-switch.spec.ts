@@ -186,6 +186,31 @@ describe("u2 login method switch (identifier-first)", () => {
   });
 });
 
+describe("u2 login method switch (enumeration-safe)", () => {
+  it("offers 'log in with password' without revealing whether a password exists", async () => {
+    const { u2App, env, state } = await setup({
+      identifierFirst: true,
+      withPassword: false,
+    });
+    await env.data.clients.update("tenantId", "clientId", {
+      hide_sign_up_disabled_error: true,
+    });
+
+    const codeScreen = await getScreen(
+      u2App,
+      env,
+      "email-otp-challenge",
+      state,
+    );
+    expect(componentIds(codeScreen)).toContain("use-password");
+
+    const result = await postScreen(u2App, env, "email-otp-challenge", state, {
+      "use-password": "true",
+    });
+    expect(result.screen.name).toBe("enter-password");
+  });
+});
+
 describe("u2 login method switch (combined login page)", () => {
   it("does not offer a switch on either challenge screen", async () => {
     const { u2App, env, state, getSentEmails } = await setup({
