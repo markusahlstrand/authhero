@@ -189,6 +189,19 @@ describe("custom token exchange with a declarative JWT profile", () => {
     );
   });
 
+  it("accepts JWKS keys that omit the optional alg member", async () => {
+    const { oauthApp, env } = await getTestServer();
+    const keypair = await generateKeypair();
+    const { alg: _alg, ...jwkWithoutAlg } = keypair.jwk;
+    await seedClient(env);
+    await seedJwtProfile(env, keypair, { jwks: { keys: [jwkWithoutAlg] } });
+
+    const { status } = await exchange(oauthApp, env, {
+      subject_token: await signSubjectToken(keypair),
+    });
+    expect(status).toBe(200);
+  });
+
   it("accepts the token endpoint as the subject token audience", async () => {
     const { oauthApp, env } = await getTestServer();
     const keypair = await generateKeypair();

@@ -133,6 +133,37 @@ describe("management-api token-exchange-profiles", () => {
     );
   });
 
+  it("accepts JWKS keys without alg but rejects symmetric ones", async () => {
+    const { request } = await setup();
+    const [key] = JWKS.keys;
+    const { alg: _alg, ...keyWithoutAlg } = key!;
+
+    const withoutAlg = await request("", {
+      method: "POST",
+      body: {
+        ...jwtProfile,
+        jwt_verification: {
+          ...jwtProfile.jwt_verification,
+          jwks: { keys: [keyWithoutAlg] },
+        },
+      },
+    });
+    expect(withoutAlg.status).toBe(201);
+
+    const symmetric = await request("", {
+      method: "POST",
+      body: {
+        ...jwtProfile,
+        subject_token_type: "urn:acme:hs",
+        jwt_verification: {
+          ...jwtProfile.jwt_verification,
+          jwks: { keys: [{ ...key, alg: "HS256" }] },
+        },
+      },
+    });
+    expect(symmetric.status).toBe(400);
+  });
+
   it("rejects a duplicate subject_token_type with 409", async () => {
     const { request } = await setup();
     expect(

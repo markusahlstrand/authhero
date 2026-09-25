@@ -29,7 +29,7 @@ A profile verifies the subject token in one of two ways:
 
 AuthHero verifies the subject token itself:
 
-- The signature is checked against your keys. You supply them inline (`jwks`) or as a URL (`jwks_uri`, https only). Only asymmetric algorithms are accepted (RS256/384/512, ES256/384/512). You can narrow this with `algorithms`.
+- The signature is checked against your keys. You supply them inline (`jwks`) or as a URL (`jwks_uri`, https only). Only asymmetric algorithms are accepted (RS256/384/512, ES256/384/512). You can narrow this with `algorithms`. Keys may omit `alg`: the key type and the token header decide it, as in most published JWKS documents.
 - `iss` must equal the profile's `issuer` exactly.
 - `aud` must include one of `audience`. If you leave `audience` out, it defaults to the tenant's issuer and its `/oauth/token` URL.
 - `exp` is required. The token may not live longer than `max_lifetime_seconds` (default 300, at most 3600). Clock skew of 30 seconds is tolerated.
@@ -156,7 +156,7 @@ To refuse the exchange, call one of:
 - `api.access.rejectInvalidSubjectToken(reason)`: the subject token is bad. It counts towards brute-force protection.
 - `api.access.deny(code, reason)`: any other refusal. It returns a 400 with `error: code`.
 
-Actions run in a sandbox without `require`, so they can't load `jose` or other packages. If your subject token is a JWT, use the declarative mode.
+Actions run in a sandbox without `require`, so they can't load `jose` or other packages. If your subject token is a JWT, use the declarative mode. Actions can call `fetch`, so opaque tokens can be validated against the system that issued them, for example an introspection endpoint whose URL and credentials are kept in the action's secrets. The admin UI's starter code for this trigger does exactly that.
 
 ## Errors
 

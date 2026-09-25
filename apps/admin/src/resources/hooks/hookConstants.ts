@@ -168,22 +168,31 @@ exports.onExecuteCustomTokenExchange = async (event, api) => {
 };
 
 /**
- * Verify event.transaction.subject_token and return its claims, or null.
- * Never trust the token unverified. With jose this looks like:
+ * Validate event.transaction.subject_token and return the user's claims, or
+ * null. Never trust the token unvalidated.
  *
- *   const jwks = createRemoteJWKSet(new URL(event.secrets.JWKS_URI));
- *   const { payload } = await jwtVerify(event.transaction.subject_token, jwks, {
- *     issuer: event.secrets.ISSUER,
- *     audience: event.secrets.AUDIENCE,
- *     maxTokenAge: "5 minutes",
- *   });
+ * Actions cannot load modules such as jose. If the subject token is a JWT
+ * signed with a key you can publish as a JWKS, use a profile in
+ * "Verify JWT" mode instead: it checks the signature, issuer, audience,
+ * lifetime and jti without an action.
  *
- * Keep keys, issuers and other config in the action's secrets
- * (event.secrets). A profile in "Verify JWT" mode does all of this without
- * an action.
+ * For opaque tokens, ask the system that issued them. Keep URLs and
+ * credentials in the action's secrets (event.secrets).
  */
 async function verifySubjectToken(event) {
-  return null;
+  const response = await fetch(event.secrets.INTROSPECTION_URL, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: \`Bearer \${event.secrets.INTROSPECTION_TOKEN}\`,
+    },
+    body: JSON.stringify({ token: event.transaction.subject_token }),
+  });
+  if (!response.ok) return null;
+
+  // Expected shape: { active: true, sub, email?, name? }
+  const result = await response.json();
+  return result.active ? result : null;
 }
 `;
 
