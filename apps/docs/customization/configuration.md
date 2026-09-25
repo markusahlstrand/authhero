@@ -461,6 +461,24 @@ The `powered_by_logo_url` field is available in the API. When set, it displays a
 }
 ```
 
+### Organization Branding
+
+An organization can override the tenant branding for logins that run in its context, that is when `/authorize` is called with `organization=<organization id>`. Set it on the organization through the Management API (`PATCH /api/v2/organizations/{id}`):
+
+```typescript
+{
+  branding: {
+    logo_url: "https://acme.example.com/logo.png",
+    colors: {
+      primary: "#ff0000",
+      page_background: "#ffffff"
+    }
+  }
+}
+```
+
+Each field is optional and falls back to the tenant's value. A value set on the organization also replaces the matching theme value (the widget logo, the primary button color and the page background), so it wins over both. An organization `page_background` also removes the tenant's background image. Fonts, borders and the rest of the theme stay tenant-wide.
+
 ## Complete Example
 
 Here's a complete example showing all configuration options:
