@@ -1,5 +1,18 @@
 # @authhero/adapter-interfaces
 
+## 4.15.0
+
+### Minor Changes
+
+- 83c941a: Add Auth0-compatible Custom Token Exchange. A client can now exchange a token signed by a trusted backend at `/oauth/token` (RFC 8693, with a customer-defined `subject_token_type`) for AuthHero tokens for one of your users.
+  - New `/api/v2/token-exchange-profiles` management API and `tokenExchangeProfiles` adapter (kysely and drizzle, with migrations). A profile either runs an action on the new `custom-token-exchange` trigger (`api.authentication.setUserById` / `setUserByConnection`, `api.access.deny` / `rejectInvalidSubjectToken`), or verifies a JWT declaratively against a JWKS with no code (AuthHero extension).
+  - New client field `token_exchange.allow_any_profile_of_type` opts a client in.
+  - Admin UI: Custom Token Exchange profiles page, application toggle, and the new action trigger.
+
+### Patch Changes
+
+- 9fefea9: Let users switch between password and email code on the u2 login challenge screens, like the classic login. In the identifier-first flow, the enter-password screen now shows an "or" divider with a "Log in with a code" button that emails a code, and the email-otp-challenge screen offers "Log in with password" when the user has a password. `NEXT_BUTTON` gains optional `variant: "secondary"` and `skip_validation` config, and the widget renders dividers inline on screens without social buttons.
+
 ## 4.14.0
 
 ### Minor Changes
