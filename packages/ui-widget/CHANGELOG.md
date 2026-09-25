@@ -1,5 +1,14 @@
 # @authhero/widget
 
+## 0.39.1
+
+### Patch Changes
+
+- 9fefea9: Let users switch between password and email code on the u2 login challenge screens, like the classic login. In the identifier-first flow, the enter-password screen now shows an "or" divider with a "Log in with a code" button that emails a code, and the email-otp-challenge screen offers "Log in with password" when the user has a password. `NEXT_BUTTON` gains optional `variant: "secondary"` and `skip_validation` config, and the widget renders dividers inline on screens without social buttons.
+- Updated dependencies [83c941a]
+- Updated dependencies [9fefea9]
+  - @authhero/adapter-interfaces@4.15.0
+
 ## 0.39.0
 
 ### Minor Changes

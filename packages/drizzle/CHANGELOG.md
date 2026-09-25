@@ -1,5 +1,21 @@
 # @authhero/drizzle
 
+## 1.8.0
+
+### Minor Changes
+
+- 83c941a: Add Auth0-compatible Custom Token Exchange. A client can now exchange a token signed by a trusted backend at `/oauth/token` (RFC 8693, with a customer-defined `subject_token_type`) for AuthHero tokens for one of your users.
+  - New `/api/v2/token-exchange-profiles` management API and `tokenExchangeProfiles` adapter (kysely and drizzle, with migrations). A profile either runs an action on the new `custom-token-exchange` trigger (`api.authentication.setUserById` / `setUserByConnection`, `api.access.deny` / `rejectInvalidSubjectToken`), or verifies a JWT declaratively against a JWKS with no code (AuthHero extension).
+  - New client field `token_exchange.allow_any_profile_of_type` opts a client in.
+  - Admin UI: Custom Token Exchange profiles page, application toggle, and the new action trigger.
+
+### Patch Changes
+
+- Updated dependencies [83c941a]
+- Updated dependencies [9fefea9]
+  - @authhero/adapter-interfaces@4.15.0
+  - @authhero/proxy@0.11.1
+
 ## 1.7.4
 
 ### Patch Changes
