@@ -437,3 +437,165 @@ describe("create", () => {
     expect(headerOf(calls[0], "tenant-id")).toBeNull();
   });
 });
+
+describe("token-exchange-profiles", () => {
+  const profile = (id: string) => ({
+    id,
+    name: `Profile ${id}`,
+    subject_token_type: `urn:acme:${id}`,
+    type: "custom_authentication",
+  });
+
+  it("follows the checkpoint cursor and pages the result client-side", async () => {
+    const { client, calls } = createHttpClient(({ url }) => {
+      const from = new URL(url).searchParams.get("from");
+      return from === "cursor-2"
+        ? { token_exchange_profiles: [profile("tep_3")] }
+        : {
+            token_exchange_profiles: [profile("tep_1"), profile("tep_2")],
+            next: "cursor-2",
+          };
+    });
+    const provider = auth0DataProvider(API_URL, client, TENANT_ID);
+
+    const result = await provider.getList("token-exchange-profiles", {
+      pagination: { page: 2, perPage: 2 },
+      sort: NO_SORT,
+      filter: {},
+    });
+
+    expect(calls).toHaveLength(2);
+    const first = new URL(calls[0].url);
+    expect(first.pathname).toBe("/api/v2/token-exchange-profiles");
+    expect(first.searchParams.has("from")).toBe(false);
+    expect(first.searchParams.get("take")).toBe("100");
+    // No offset pagination params: the endpoint only knows from/take.
+    expect(first.searchParams.has("page")).toBe(false);
+    expect(new URL(calls[1].url).searchParams.get("from")).toBe("cursor-2");
+    expect(headerOf(calls[0], "tenant-id")).toBe(TENANT_ID);
+
+    expect(result.total).toBe(3);
+    expect(result.data.map((r) => r.id)).toEqual(["tep_3"]);
+  });
+
+  it("searches by subject token type", async () => {
+    const { client } = createHttpClient(() => ({
+      token_exchange_profiles: [profile("tep_1"), profile("other")],
+    }));
+    const provider = auth0DataProvider(API_URL, client, TENANT_ID);
+
+    const result = await provider.getList("token-exchange-profiles", {
+      pagination: { page: 1, perPage: 10 },
+      sort: NO_SORT,
+      filter: { q: "urn:acme:other" },
+    });
+
+    expect(result.data.map((r) => r.id)).toEqual(["other"]);
+  });
+
+  it("fetches one profile by id", async () => {
+    const { client, calls } = createHttpClient(() => profile("tep_1"));
+    const provider = auth0DataProvider(API_URL, client, TENANT_ID);
+
+    const result = await provider.getOne("token-exchange-profiles", {
+      id: "tep_1",
+    });
+
+    expect(calls[0].url).toBe(
+      `${API_URL}/api/v2/token-exchange-profiles/tep_1`,
+    );
+    expect(result.data).toEqual(profile("tep_1"));
+  });
+
+  it("creates with only the API fields and the custom_authentication type", async () => {
+    const { client, calls } = createHttpClient(() => profile("tep_1"));
+    const provider = auth0DataProvider(API_URL, client, TENANT_ID);
+
+    const result = await provider.create("token-exchange-profiles", {
+      data: {
+        name: "Profile tep_1",
+        subject_token_type: "urn:acme:tep_1",
+        action_id: "act_1",
+        mode: "action",
+      },
+    });
+
+    expect(calls[0].url).toBe(`${API_URL}/api/v2/token-exchange-profiles`);
+    expect(calls[0].options?.method).toBe("POST");
+    expect(bodyOf(calls[0])).toEqual({
+      name: "Profile tep_1",
+      subject_token_type: "urn:acme:tep_1",
+      type: "custom_authentication",
+      action_id: "act_1",
+    });
+    expect(result.data.id).toBe("tep_1");
+  });
+
+  it("sends jwt_verification instead of action_id for a declarative profile", async () => {
+    const { client, calls } = createHttpClient(() => profile("tep_1"));
+    const provider = auth0DataProvider(API_URL, client, TENANT_ID);
+    const jwt_verification = {
+      issuer: "https://acme.example",
+      jwks_uri: "https://acme.example/.well-known/jwks.json",
+      user_mapping: { type: "user_id" },
+    };
+
+    await provider.create("token-exchange-profiles", {
+      data: {
+        name: "P",
+        subject_token_type: "urn:acme:p",
+        jwt_verification,
+      },
+    });
+
+    expect(bodyOf(calls[0])).toEqual({
+      name: "P",
+      subject_token_type: "urn:acme:p",
+      type: "custom_authentication",
+      jwt_verification,
+    });
+  });
+
+  it("patches only the mutable fields", async () => {
+    const { client, calls } = createHttpClient(() => profile("tep_1"));
+    const provider = auth0DataProvider(API_URL, client, TENANT_ID);
+
+    const result = await provider.update("token-exchange-profiles", {
+      id: "tep_1",
+      previousData: profile("tep_1"),
+      data: {
+        ...profile("tep_1"),
+        name: "Renamed",
+        action_id: "act_1",
+        created_at: "2026-01-01",
+        updated_at: "2026-01-02",
+      },
+    });
+
+    expect(calls[0].url).toBe(
+      `${API_URL}/api/v2/token-exchange-profiles/tep_1`,
+    );
+    expect(calls[0].options?.method).toBe("PATCH");
+    expect(bodyOf(calls[0])).toEqual({
+      name: "Renamed",
+      subject_token_type: "urn:acme:tep_1",
+    });
+    expect(result.data.id).toBe("tep_1");
+  });
+
+  it("deletes by id and returns the previous record", async () => {
+    const { client, calls } = createHttpClient(() => undefined);
+    const provider = auth0DataProvider(API_URL, client, TENANT_ID);
+
+    const result = await provider.delete("token-exchange-profiles", {
+      id: "tep_1",
+      previousData: profile("tep_1"),
+    });
+
+    expect(calls[0].url).toBe(
+      `${API_URL}/api/v2/token-exchange-profiles/tep_1`,
+    );
+    expect(calls[0].options?.method).toBe("DELETE");
+    expect(result.data).toEqual(profile("tep_1"));
+  });
+});

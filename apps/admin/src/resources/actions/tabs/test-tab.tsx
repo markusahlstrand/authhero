@@ -74,6 +74,20 @@ const EXAMPLE_EVENTS: Record<string, Record<string, unknown>> = {
     },
     request: { ip: "127.0.0.1", method: "POST", url: "/dbconnections/signup" },
   },
+  "custom-token-exchange": {
+    transaction: {
+      subject_token: "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.example.signature",
+      subject_token_type: "urn:acme:session-token",
+    },
+    client: { client_id: "test-client", name: "Test Client" },
+    request: {
+      ip: "127.0.0.1",
+      method: "POST",
+      url: "/oauth/token",
+      hostname: "auth.example.com",
+    },
+    tenant: { id: "test-tenant" },
+  },
 };
 
 function getApiUrl(): string {

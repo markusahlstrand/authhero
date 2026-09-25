@@ -4,6 +4,7 @@ import { Route } from "react-router-dom";
 import {
   Activity,
   AlertTriangle,
+  ArrowLeftRight,
   BarChart3,
   Cloud,
   Code,
@@ -40,6 +41,11 @@ import {
   ConnectionCreate,
   ConnectionEdit,
 } from "./resources/connections";
+import {
+  TokenExchangeProfileList,
+  TokenExchangeProfileCreate,
+  TokenExchangeProfileEdit,
+} from "./resources/token-exchange-profiles";
 import { UsersList, UserCreate, UserEdit } from "./resources/users";
 import {
   DomainList,
@@ -220,6 +226,17 @@ export function App({ tenantId, initialDomain, onAuthComplete }: AppProps) {
           create={ConnectionCreate}
           edit={ConnectionEdit}
           options={{ menuGroup: "Applications" }}
+        />
+        <Resource
+          name="token-exchange-profiles"
+          icon={ArrowLeftRight}
+          list={TokenExchangeProfileList}
+          create={TokenExchangeProfileCreate}
+          edit={TokenExchangeProfileEdit}
+          options={{
+            label: "Custom Token Exchange",
+            menuGroup: "Applications",
+          }}
         />
         <Resource
           name="users"

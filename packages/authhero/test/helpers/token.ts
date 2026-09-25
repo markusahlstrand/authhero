@@ -97,6 +97,7 @@ const ADMIN_PERMISSIONS = [
   "create:scim_token",
   "create:signing_keys",
   "create:user_tickets",
+  "create:token_exchange_profiles",
   "create:users",
   "delete:actions",
   "delete:branding",
@@ -122,6 +123,7 @@ const ADMIN_PERMISSIONS = [
   "delete:scim_config",
   "delete:scim_token",
   "delete:sessions",
+  "delete:token_exchange_profiles",
   "delete:users",
   "read:actions",
   "read:attack_protection",
@@ -156,6 +158,7 @@ const ADMIN_PERMISSIONS = [
   "read:tenant_operations",
   "create:tenant_operations",
   "read:tenants",
+  "read:token_exchange_profiles",
   "read:users",
   "update:actions",
   "update:attack_protection",
@@ -183,6 +186,7 @@ const ADMIN_PERMISSIONS = [
   "update:sessions",
   "update:signing_keys",
   "update:tenants",
+  "update:token_exchange_profiles",
   "update:users",
 ];
 

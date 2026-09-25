@@ -25,6 +25,7 @@ import { ThemesAdapter } from "./Themes";
 import { LoginSessionsAdapter } from "./LoginSessions";
 import { PromptSettingsAdapter } from "./PromptSettings";
 import { ProxyRoutesAdapter } from "./ProxyRoutes";
+import { TokenExchangeProfilesAdapter } from "./TokenExchangeProfiles";
 import { ScimConfigurationsAdapter } from "./ScimConfigurations";
 import { ScimTokensAdapter } from "./ScimTokens";
 import { ScimExternalIdsAdapter } from "./ScimExternalIds";
@@ -154,6 +155,12 @@ export interface DataAdapters {
   analytics?: AnalyticsAdapter;
   tenants: TenantsDataAdapter;
   /**
+   * Optional Custom Token Exchange profiles (issue #1417). When set, the
+   * `/api/v2/token-exchange-profiles` management API is mounted and the
+   * token-exchange grant accepts customer-defined `subject_token_type`s.
+   */
+  tokenExchangeProfiles?: TokenExchangeProfilesAdapter;
+  /**
    * Optional control-plane log of durable tenant lifecycle operations
    * (provision / seed / upgrade / backup / deprovision — issue #1026).
    * The tenant row's provisioning fields remain the current-state snapshot;
@@ -280,6 +287,7 @@ export * from "./Logs";
 export * from "./Passwords";
 export * from "./PromptSettings";
 export * from "./ProxyRoutes";
+export * from "./TokenExchangeProfiles";
 export * from "./ScimConfigurations";
 export * from "./ScimTokens";
 export * from "./ScimExternalIds";

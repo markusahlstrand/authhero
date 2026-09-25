@@ -49,3 +49,6 @@ export * from "./proxyRoutes";
 
 // SCIM inbound provisioning (#1191)
 export * from "./scim";
+
+// Custom Token Exchange profiles (#1417)
+export * from "./tokenExchangeProfiles";

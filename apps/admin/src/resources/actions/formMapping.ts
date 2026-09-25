@@ -28,6 +28,8 @@ export const ACTION_TRIGGER_IDS = [
   "credentials-exchange",
   "pre-user-registration",
   "post-user-registration",
+  // Not bindable: a token exchange profile references the action by id.
+  "custom-token-exchange",
 ] as const;
 
 export const ACTION_TRIGGER_CHOICES = ACTION_TRIGGER_IDS.map((id) => ({

@@ -31,7 +31,25 @@ export async function loadClientJwks(
   client: ClientWithKeys,
   opts: LoadClientKeysOptions = {},
 ): Promise<Jwk[]> {
-  const inline = client.registration_metadata?.jwks;
+  return loadJwks(
+    {
+      jwks: client.registration_metadata?.jwks,
+      jwks_uri: client.client_metadata?.jwks_uri,
+    },
+    opts,
+  );
+}
+
+/**
+ * Resolve verification keys published inline (`jwks`) or by reference
+ * (`jwks_uri`). Inline takes precedence. The remote fetch goes through the
+ * SSRF guard. Returns an empty array when neither is set.
+ */
+export async function loadJwks(
+  source: { jwks?: unknown; jwks_uri?: unknown },
+  opts: LoadClientKeysOptions = {},
+): Promise<Jwk[]> {
+  const inline = source.jwks;
   if (inline && typeof inline === "object") {
     const parsed = jwksKeySchema.safeParse(inline);
     if (parsed.success) {
@@ -43,7 +61,7 @@ export async function loadClientJwks(
     throw new Error("Client has malformed inline jwks");
   }
 
-  const jwksUri = client.client_metadata?.jwks_uri;
+  const jwksUri = source.jwks_uri;
   if (typeof jwksUri === "string" && jwksUri.length > 0) {
     const { status, body } = await ssrfSafeFetch(jwksUri, opts.fetch);
     if (status !== 200) {

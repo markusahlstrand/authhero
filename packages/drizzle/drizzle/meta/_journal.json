@@ -64,6 +64,13 @@
       "when": 1788700194751,
       "tag": "0008_client_grants_unique_audience",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1790333364216,
+      "tag": "0009_token_exchange_profiles",
+      "breakpoints": true
     }
   ]
 }

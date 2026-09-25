@@ -1,0 +1,1 @@
+export { createTokenExchangeProfilesAdapter } from "./adapter";

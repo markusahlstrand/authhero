@@ -104,4 +104,41 @@ describe("clients", () => {
     const list = await data.clients.list("tenantId", {});
     expect(list.clients.length).toBe(2);
   });
+
+  it("round-trips the token_exchange field", async () => {
+    const { data } = await getTestServer();
+
+    await data.tenants.create({
+      id: "tenantId",
+      friendly_name: "Test Tenant",
+      audience: "https://example.com",
+      sender_email: "login@example.com",
+      sender_name: "SenderName",
+    });
+
+    const created = await data.clients.create("tenantId", {
+      client_id: "te-client",
+      name: "Token exchange client",
+      token_exchange: { allow_any_profile_of_type: ["custom_authentication"] },
+    });
+    expect(created.token_exchange).toEqual({
+      allow_any_profile_of_type: ["custom_authentication"],
+    });
+
+    const fetched = await data.clients.get("tenantId", "te-client");
+    expect(fetched?.token_exchange).toEqual({
+      allow_any_profile_of_type: ["custom_authentication"],
+    });
+    const { clients } = await data.clients.list("tenantId");
+    expect(
+      clients.find((c) => c.client_id === "te-client")?.token_exchange,
+    ).toEqual({ allow_any_profile_of_type: ["custom_authentication"] });
+
+    await data.clients.update("tenantId", "te-client", {
+      token_exchange: { allow_any_profile_of_type: [] },
+    });
+    expect(
+      (await data.clients.get("tenantId", "te-client"))?.token_exchange,
+    ).toEqual({ allow_any_profile_of_type: [] });
+  });
 });

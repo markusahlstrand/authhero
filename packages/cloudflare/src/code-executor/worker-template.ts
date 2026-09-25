@@ -1,4 +1,7 @@
-import { TRIGGER_API_SHAPES } from "@authhero/adapter-interfaces";
+import {
+  TRIGGER_API_SHAPES,
+  TRIGGER_FUNCTION_NAMES,
+} from "@authhero/adapter-interfaces";
 
 /**
  * Generates a Cloudflare Worker script that wraps user-authored code.
@@ -12,12 +15,7 @@ import { TRIGGER_API_SHAPES } from "@authhero/adapter-interfaces";
 export function generateWorkerScript(userCode: string): string {
   return `// Auto-generated AuthHero code hook worker
 
-const fnNames = {
-  "post-user-login": "onExecutePostLogin",
-  "credentials-exchange": "onExecuteCredentialsExchange",
-  "pre-user-registration": "onExecutePreUserRegistration",
-  "post-user-registration": "onExecutePostUserRegistration",
-};
+const fnNames = ${JSON.stringify(TRIGGER_FUNCTION_NAMES)};
 
 // Shared source of truth for the per-trigger API allowlist — see
 // TRIGGER_API_SHAPES in @authhero/adapter-interfaces.

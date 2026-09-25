@@ -2,17 +2,22 @@ import { z } from "@hono/zod-openapi";
 
 export const jwksSchema = z
   .object({
-    alg: z.enum([
-      "RS256",
-      "RS384",
-      "RS512",
-      "ES256",
-      "ES384",
-      "ES512",
-      "HS256",
-      "HS384",
-      "HS512",
-    ]),
+    // Optional per RFC 7517 §4.4: published JWKS documents often omit it,
+    // and verifiers then pick the algorithm from the key type and the JWS
+    // header. When present it is restricted to the algorithms we support.
+    alg: z
+      .enum([
+        "RS256",
+        "RS384",
+        "RS512",
+        "ES256",
+        "ES384",
+        "ES512",
+        "HS256",
+        "HS384",
+        "HS512",
+      ])
+      .optional(),
     kid: z.string().optional(),
     kty: z.enum(["RSA", "EC", "oct"]),
     use: z.enum(["sig", "enc"]).optional(),

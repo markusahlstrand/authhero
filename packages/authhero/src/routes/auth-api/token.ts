@@ -30,7 +30,12 @@ import {
   tokenExchangeGrant,
   tokenExchangeParamsSchema,
   TOKEN_EXCHANGE_GRANT_TYPE,
+  SUBJECT_TOKEN_TYPE_ACCESS_TOKEN,
 } from "../../authentication-flows/token-exchange";
+import {
+  customTokenExchangeGrant,
+  customTokenExchangeParamsSchema,
+} from "../../authentication-flows/custom-token-exchange";
 import { issueTokensForGrant } from "../../authentication-flows/grant-tokens";
 import { serializeAuthCookie } from "../../utils/cookies";
 import { GrantFlowResult } from "src/types/GrantFlowResult";
@@ -152,6 +157,9 @@ const CreateRequestSchema = z.union([
   // RFC 8693 token exchange — downscope / org-switch a self-issued access
   // token. Only `urn:ietf:params:oauth:token-type:access_token` accepted.
   tokenExchangeParamsSchema.extend(optionalClientCredentials.shape),
+  // Custom Token Exchange — any other subject_token_type, resolved against
+  // the tenant's token exchange profiles.
+  customTokenExchangeParamsSchema.extend(optionalClientCredentials.shape),
 ]);
 
 function successLogTypeForGrant(grantType: string): LogType | undefined {
@@ -412,6 +420,7 @@ const postRoot = defineRoute({
     assertGrantTypeAllowed(ctx, client, body.grant_type);
 
     let grantResult: GrantFlowResult;
+    let isCustomTokenExchange = false;
 
     switch (body.grant_type) {
       case GrantType.AuthorizationCode:
@@ -443,11 +452,27 @@ const postRoot = defineRoute({
         );
         break;
       case TOKEN_EXCHANGE_GRANT_TYPE:
-        grantResult = await tokenExchangeGrant(
-          ctx,
-          tokenExchangeParamsSchema.parse(params),
-          client,
-        );
+        if (params.subject_token_type === SUBJECT_TOKEN_TYPE_ACCESS_TOKEN) {
+          // The request body union also admits this shape through the custom
+          // schema, so a missing `organization` must be reported here.
+          const parsed = tokenExchangeParamsSchema.safeParse(params);
+          if (!parsed.success) {
+            throw new JSONHTTPException(400, {
+              error: "invalid_request",
+              error_description: parsed.error.issues
+                .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
+                .join("; "),
+            });
+          }
+          grantResult = await tokenExchangeGrant(ctx, parsed.data, client);
+        } else {
+          isCustomTokenExchange = true;
+          grantResult = await customTokenExchangeGrant(
+            ctx,
+            customTokenExchangeParamsSchema.parse(params),
+            client,
+          );
+        }
         break;
       default:
         return ctx.json(
@@ -482,7 +507,9 @@ const postRoot = defineRoute({
       body.grant_type as GrantType,
     );
 
-    const successLogType = successLogTypeForGrant(body.grant_type);
+    const successLogType = isCustomTokenExchange
+      ? LogTypes.SUCCESS_EXCHANGE_CUSTOM_TOKEN
+      : successLogTypeForGrant(body.grant_type);
     if (successLogType) {
       const executionId = ctx.var.action_execution_id;
       const grantUser = grantResult.user;

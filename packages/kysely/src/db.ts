@@ -470,6 +470,7 @@ const sqlClientSchema = clientSchema.extend({
   owner_user_id: z.string().optional().nullable(),
   registration_type: z.string().optional().nullable(),
   registration_metadata: z.string().optional().nullable(),
+  token_exchange: z.string().optional().nullable(),
 });
 
 export const sqlClientRegistrationTokenSchema = z.object({
@@ -617,6 +618,18 @@ export interface Database {
     priority: number;
     match: string; // JSON-encoded RouteMatch
     handlers: string; // JSON-encoded HandlerConfig[]
+    created_at: string;
+    updated_at: string;
+  };
+  // Custom Token Exchange profiles (#1417).
+  token_exchange_profiles: {
+    id: string;
+    tenant_id: string;
+    name: string;
+    subject_token_type: string;
+    action_id: string | null;
+    type: string;
+    jwt_verification: string | null; // JSON-encoded TokenExchangeJwtVerification
     created_at: string;
     updated_at: string;
   };

@@ -28,6 +28,7 @@ import { createOrganizationsAdapter } from "./organizations";
 import { createPasswordsAdapter } from "./passwords";
 import { createPromptSettingsAdapter } from "./promptSettings";
 import { createProxyRoutesAdapter } from "./proxyRoutes";
+import { createTokenExchangeProfilesAdapter } from "./tokenExchangeProfiles";
 import {
   createScimConfigurationsAdapter,
   createScimTokensAdapter,
@@ -116,6 +117,7 @@ export default function createAdapters(
     sessions: createSessionsAdapter(db),
     sessionCleanup: createSessionCleanup(db),
     tenants: createTenantsAdapter(db),
+    tokenExchangeProfiles: createTokenExchangeProfilesAdapter(db),
     ...(databaseOptions.controlPlane
       ? {
           tenantOperations: createTenantOperationsAdapter(db),

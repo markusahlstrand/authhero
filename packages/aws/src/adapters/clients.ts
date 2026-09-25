@@ -73,6 +73,7 @@ interface ClientItem extends DynamoDBBaseItem {
   client_authentication_methods?: string;
   signed_request_object?: string;
   token_quota?: string;
+  token_exchange?: string;
 }
 
 function toClient(item: ClientItem): Client {
@@ -128,6 +129,9 @@ function toClient(item: ClientItem): Client {
       ? JSON.parse(item.signed_request_object)
       : undefined,
     token_quota: item.token_quota ? JSON.parse(item.token_quota) : undefined,
+    token_exchange: item.token_exchange
+      ? JSON.parse(item.token_exchange)
+      : undefined,
   });
 
   return clientSchema.parse(data);
@@ -241,6 +245,9 @@ export function createClientsAdapter(ctx: DynamoDBContext): ClientsAdapter {
           : undefined,
         token_quota: params.token_quota
           ? JSON.stringify(params.token_quota)
+          : undefined,
+        token_exchange: params.token_exchange
+          ? JSON.stringify(params.token_exchange)
           : undefined,
         created_at: now,
         updated_at: now,
@@ -362,6 +369,7 @@ export function createClientsAdapter(ctx: DynamoDBContext): ClientsAdapter {
         "client_authentication_methods",
         "signed_request_object",
         "token_quota",
+        "token_exchange",
       ];
 
       for (const field of jsonFields) {

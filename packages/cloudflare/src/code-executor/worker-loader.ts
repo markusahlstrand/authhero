@@ -2,6 +2,7 @@ import {
   CodeExecutionResult,
   CodeExecutor,
   TRIGGER_API_SHAPES,
+  TRIGGER_FUNCTION_NAMES,
 } from "@authhero/adapter-interfaces";
 
 /**
@@ -30,12 +31,7 @@ export interface WorkerLoaderCodeExecutorOptions {
   compatibilityDate?: string;
 }
 
-const TRIGGER_FN_NAMES: Record<string, string> = {
-  "post-user-login": "onExecutePostLogin",
-  "credentials-exchange": "onExecuteCredentialsExchange",
-  "pre-user-registration": "onExecutePreUserRegistration",
-  "post-user-registration": "onExecutePostUserRegistration",
-};
+const TRIGGER_FN_NAMES = TRIGGER_FUNCTION_NAMES;
 
 // Shared with the local executor via `TRIGGER_API_SHAPES` so the two executors
 // expose an identical surface. Serialized into the generated worker below.

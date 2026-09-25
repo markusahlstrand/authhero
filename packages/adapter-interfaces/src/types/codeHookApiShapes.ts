@@ -40,6 +40,26 @@ export const TRIGGER_API_SHAPES: Readonly<
     access: ["deny"],
   },
   "post-user-registration": {},
+  // Not bound through trigger bindings: a Custom Token Exchange profile names
+  // the action it runs (issue #1417). Exactly one of the two `authentication`
+  // setters must be called for the exchange to succeed.
+  "custom-token-exchange": {
+    authentication: ["setUserById", "setUserByConnection"],
+    access: ["deny", "rejectInvalidSubjectToken"],
+  },
+};
+
+/**
+ * The export each trigger's user code must define, e.g.
+ * `exports.onExecutePostLogin = async (event, api) => { ... }`. Shared by both
+ * executors for the same reason as {@link TRIGGER_API_SHAPES}.
+ */
+export const TRIGGER_FUNCTION_NAMES: Readonly<Record<string, string>> = {
+  "post-user-login": "onExecutePostLogin",
+  "credentials-exchange": "onExecuteCredentialsExchange",
+  "pre-user-registration": "onExecutePreUserRegistration",
+  "post-user-registration": "onExecutePostUserRegistration",
+  "custom-token-exchange": "onExecuteCustomTokenExchange",
 };
 
 /**

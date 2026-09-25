@@ -1,4 +1,39 @@
+import { useInput } from "ra-core";
 import { BooleanInput, SelectInput } from "@/components/admin";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+
+const CUSTOM_AUTHENTICATION = "custom_authentication";
+
+// Not a BooleanInput: that one writes `false` into an untouched field, which
+// would send `token_exchange.allow_any_profile_of_type: false` on every save.
+// This only writes when toggled, and always writes the array shape.
+function CustomTokenExchangeToggle() {
+  const { field } = useInput({
+    source: "token_exchange.allow_any_profile_of_type",
+  });
+  const enabled =
+    Array.isArray(field.value) && field.value.includes(CUSTOM_AUTHENTICATION);
+
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center gap-2">
+        <Switch
+          id="custom-token-exchange"
+          checked={enabled}
+          onCheckedChange={(checked) =>
+            field.onChange(checked ? [CUSTOM_AUTHENTICATION] : [])
+          }
+        />
+        <Label htmlFor="custom-token-exchange">Custom Token Exchange</Label>
+      </div>
+      <p className="text-sm text-muted-foreground">
+        Let this application exchange subject tokens at /oauth/token through the
+        tenant&apos;s Custom Token Exchange profiles.
+      </p>
+    </div>
+  );
+}
 
 const TOKEN_ENDPOINT_AUTH_METHOD_CHOICES = [
   { id: "none", name: "None (public client, PKCE)" },
@@ -38,6 +73,7 @@ export function AdvancedTab() {
         label="SSO Disabled"
         helperText="When enabled, this client won't reuse existing SSO sessions. Users must authenticate every time."
       />
+      <CustomTokenExchangeToggle />
     </>
   );
 }
