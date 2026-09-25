@@ -322,4 +322,90 @@ describe("initJSXRoute", () => {
       // Should use 'sv' as final fallback
     });
   });
+
+  describe("organization branding", () => {
+    async function useOrganization(organization: string | undefined) {
+      await testServer.env.data.loginSessions.update("tenantId", state, {
+        authParams: { ...mockLoginSession.authParams, organization },
+      });
+    }
+
+    beforeEach(async () => {
+      await testServer.env.data.branding.set("tenantId", {
+        logo_url: "https://tenant.example.com/logo.png",
+        colors: { primary: "#111111", page_background: "#222222" },
+      });
+    });
+
+    it("uses the tenant branding when the login has no organization", async () => {
+      const result = await initJSXRoute(ctx, state);
+
+      expect(result.branding?.logo_url).toBe(
+        "https://tenant.example.com/logo.png",
+      );
+      expect(result.branding?.colors?.primary).toBe("#111111");
+    });
+
+    it("overrides the tenant branding and theme with the organization's", async () => {
+      const organization = await testServer.env.data.organizations.create(
+        "tenantId",
+        {
+          name: "acme",
+          branding: {
+            logo_url: "https://acme.example.com/logo.png",
+            colors: { primary: "#ff0000", page_background: "#00ff00" },
+          },
+        },
+      );
+      await useOrganization(organization.id);
+
+      const result = await initJSXRoute(ctx, state);
+
+      expect(result.branding?.logo_url).toBe(
+        "https://acme.example.com/logo.png",
+      );
+      expect(result.branding?.colors).toEqual({
+        primary: "#ff0000",
+        page_background: "#00ff00",
+      });
+      // The theme wins over branding when rendering, so it carries the
+      // organization's values too.
+      expect(result.theme.widget.logo_url).toBe(
+        "https://acme.example.com/logo.png",
+      );
+      expect(result.theme.colors.primary_button).toBe("#ff0000");
+      expect(result.theme.page_background.background_color).toBe("#00ff00");
+      expect(result.theme.page_background.background_image_url).toBe("");
+    });
+
+    it("keeps tenant values the organization doesn't set", async () => {
+      const organization = await testServer.env.data.organizations.create(
+        "tenantId",
+        {
+          name: "logo-only",
+          branding: { logo_url: "https://logo-only.example.com/logo.png" },
+        },
+      );
+      await useOrganization(organization.id);
+
+      const result = await initJSXRoute(ctx, state);
+
+      expect(result.branding?.logo_url).toBe(
+        "https://logo-only.example.com/logo.png",
+      );
+      const tenantBranding = await testServer.env.data.branding.get("tenantId");
+      expect(result.branding?.colors).toEqual(tenantBranding?.colors);
+      expect(result.theme.colors.primary_button).not.toBe("#ff0000");
+    });
+
+    it("falls back to the tenant branding when the organization doesn't exist", async () => {
+      await useOrganization("org_missing");
+
+      const result = await initJSXRoute(ctx, state);
+
+      expect(result.branding?.logo_url).toBe(
+        "https://tenant.example.com/logo.png",
+      );
+    });
+  });
 });

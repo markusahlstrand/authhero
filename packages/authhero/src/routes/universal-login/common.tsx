@@ -20,6 +20,7 @@ import { setTenantId } from "../../helpers/set-tenant-id";
 import { ssrfFetchOptionsFromEnv } from "../../utils/ssrf-fetch";
 import { hasValidContinuationScope } from "../../authentication-flows/common";
 import { DEFAULT_THEME } from "../../constants/defaultTheme";
+import { applyOrganizationBranding } from "../../helpers/organization-branding";
 import { resolveEmbedLogin } from "./embed";
 
 async function getDefaultRedirectionUri(
@@ -117,14 +118,23 @@ export async function initJSXRoute(
     throw new RedirectException(redirectUrl.toString(), 302);
   }
 
-  // Fetch theme and branding in parallel
-  const [themeResult, branding] = await Promise.all([
+  // Fetch theme, branding and the login's organization in parallel
+  const organizationId = loginSession.authParams.organization;
+  const [themeResult, tenantBranding, organization] = await Promise.all([
     env.data.themes.get(tenant.id, "default"),
     env.data.branding.get(tenant.id),
+    organizationId
+      ? env.data.organizations.get(tenant.id, organizationId).catch(() => null)
+      : null,
   ]);
 
-  // Fall back to DEFAULT_THEME when no theme is stored in the database
-  const theme = themeResult ?? DEFAULT_THEME;
+  // Fall back to DEFAULT_THEME when no theme is stored in the database, then
+  // let the organization's branding override the tenant's (Auth0 behavior).
+  const { branding, theme } = applyOrganizationBranding(
+    tenantBranding,
+    themeResult ?? DEFAULT_THEME,
+    organization?.branding,
+  );
 
   // Only include favicon_url when on a custom domain
   const brandingWithFavicon = branding
