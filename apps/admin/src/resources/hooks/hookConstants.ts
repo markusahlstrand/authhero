@@ -124,16 +124,74 @@ export const codeHookTriggerChoices = triggerChoices.filter((c) =>
   ].includes(c.id),
 );
 
-/** Maps trigger IDs to the expected export function name for code hooks. */
+/**
+ * Maps trigger IDs to the expected export function name for code hooks and
+ * actions. Actions use Auth0's trigger ids (`post-login`), hooks AuthHero's
+ * (`post-user-login`), so both spellings are listed.
+ *
+ * `custom-token-exchange` is deliberately absent from the trigger choices
+ * above: its actions are referenced by a token exchange profile, never bound
+ * to a trigger.
+ */
 export const triggerHandlerNames: Record<string, string> = {
   "post-user-login": "onExecutePostLogin",
+  "post-login": "onExecutePostLogin",
   "credentials-exchange": "onExecuteCredentialsExchange",
   "pre-user-registration": "onExecutePreUserRegistration",
   "post-user-registration": "onExecutePostUserRegistration",
+  "custom-token-exchange": "onExecuteCustomTokenExchange",
 };
+
+const CUSTOM_TOKEN_EXCHANGE_TEMPLATE = `/**
+ * Runs when a client exchanges a subject token at /oauth/token with the
+ * subject_token_type of a token exchange profile that uses this action.
+ * Call exactly one of api.authentication.setUserById / setUserByConnection,
+ * or reject the request.
+ */
+exports.onExecuteCustomTokenExchange = async (event, api) => {
+  const claims = await verifySubjectToken(event);
+  if (!claims) {
+    // Counts toward brute-force protection.
+    api.access.rejectInvalidSubjectToken("Invalid subject token");
+    return;
+  }
+
+  api.authentication.setUserByConnection(
+    "my-connection",
+    {
+      user_id: claims.sub,
+      email: claims.email,
+      name: claims.name,
+    },
+    { creationBehavior: "create_if_not_exists", updateBehavior: "none" },
+  );
+};
+
+/**
+ * Verify event.transaction.subject_token and return its claims, or null.
+ * Never trust the token unverified. With jose this looks like:
+ *
+ *   const jwks = createRemoteJWKSet(new URL(event.secrets.JWKS_URI));
+ *   const { payload } = await jwtVerify(event.transaction.subject_token, jwks, {
+ *     issuer: event.secrets.ISSUER,
+ *     audience: event.secrets.AUDIENCE,
+ *     maxTokenAge: "5 minutes",
+ *   });
+ *
+ * Keep keys, issuers and other config in the action's secrets
+ * (event.secrets). A profile in "Verify JWT" mode does all of this without
+ * an action.
+ */
+async function verifySubjectToken(event) {
+  return null;
+}
+`;
 
 /** Returns the default code template for the given trigger ID. */
 export function getDefaultCodeTemplate(triggerId?: string): string {
+  if (triggerId === "custom-token-exchange") {
+    return CUSTOM_TOKEN_EXCHANGE_TEMPLATE;
+  }
   const handlerName = triggerId && triggerHandlerNames[triggerId];
   if (!handlerName) {
     return `// Replace "onExecuteHandler" with the handler for your trigger

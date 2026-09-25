@@ -319,6 +319,10 @@ gtag('config', 'G-DNZWG3PF2L');`,
             { text: "Account Linking", link: "/features/account-linking" },
             { text: "Impersonation", link: "/features/impersonation" },
             {
+              text: "Custom Token Exchange",
+              link: "/features/custom-token-exchange",
+            },
+            {
               text: "Session Management",
               link: "/features/session-management",
             },

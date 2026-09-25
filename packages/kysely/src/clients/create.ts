@@ -96,6 +96,9 @@ export function create(db: Kysely<Database>) {
       registration_metadata: params.registration_metadata
         ? JSON.stringify(params.registration_metadata)
         : null,
+      token_exchange: params.token_exchange
+        ? JSON.stringify(params.token_exchange)
+        : null,
     });
 
     await db.insertInto("clients").values(insertData).execute();

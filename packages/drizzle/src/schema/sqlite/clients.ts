@@ -87,6 +87,7 @@ export const clients = sqliteTable(
     registration_type: text("registration_type", { length: 32 }),
     registration_metadata: text("registration_metadata"),
     user_linking_mode: text("user_linking_mode", { length: 16 }),
+    token_exchange: text("token_exchange"),
   },
   (table) => [
     primaryKey({

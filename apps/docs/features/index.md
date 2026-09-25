@@ -12,6 +12,7 @@ description: AuthHero features — authentication flows, MFA, hooks, account lin
 - **[Invitations & Tickets](/features/invitations-and-tickets)** — Send Auth0-compatible organization invitations and issue email-verification / password-change tickets
 - **[Account Linking](/features/account-linking)** — Consolidate multiple identities into a single user profile
 - **[Impersonation](/features/impersonation)** — Allow admins to sign in as another user
+- **[Custom Token Exchange](/features/custom-token-exchange)** — Exchange a token your backend signed for AuthHero tokens (RFC 8693)
 - **[Session Management](/features/session-management)** — Login sessions, user sessions, and session configuration
 - **[RBAC & Scopes](/features/rbac-and-scopes)** — Detailed guide for implementing role-based access control
 - **[SCIM Provisioning](/features/scim-provisioning)** — Provision and deprovision users from Okta or Microsoft Entra ID over SCIM 2.0

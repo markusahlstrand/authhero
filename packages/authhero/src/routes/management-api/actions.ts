@@ -379,6 +379,16 @@ const deleteById = defineRoute({
       });
     }
 
+    // A token exchange profile runs its action by id, and the id cannot be
+    // changed on the profile, so the action must outlive the profile.
+    const profiles = await ctx.env.data.tokenExchangeProfiles?.list(tenantId);
+    if (profiles?.some((profile) => profile.action_id === id)) {
+      throw new HTTPException(409, {
+        message:
+          "Action is used by a token exchange profile. Delete the profile before deleting the action.",
+      });
+    }
+
     const existing = await ctx.env.data.actions.get(tenantId, id);
 
     const result = await ctx.env.data.actions.remove(tenantId, id);

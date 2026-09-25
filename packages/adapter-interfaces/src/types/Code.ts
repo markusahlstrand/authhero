@@ -13,6 +13,9 @@ export const codeTypeSchema = z.enum([
   // client-presented assertion has been spent, so it is stored already used
   // and only exists until the assertion it guards expires.
   "client_assertion_jti",
+  // Same idea for the `jti` of a Custom Token Exchange subject token verified
+  // by a declarative token exchange profile.
+  "subject_token_jti",
 ]);
 export type CodeType = z.infer<typeof codeTypeSchema>;
 

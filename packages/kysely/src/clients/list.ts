@@ -53,6 +53,9 @@ function sqlToClient(result: Selectable<Database["clients"]>): Client {
     registration_metadata: result.registration_metadata
       ? JSON.parse(result.registration_metadata)
       : undefined,
+    token_exchange: result.token_exchange
+      ? JSON.parse(result.token_exchange)
+      : undefined,
   });
 }
 

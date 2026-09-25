@@ -84,6 +84,7 @@ export * from "./User";
 export * from "./Theme";
 export * from "./PromptSetting";
 export * from "./ProxyRoute";
+export * from "./TokenExchangeProfile";
 export * from "./ScimConfiguration";
 export * from "./ScimToken";
 export * from "./ScimExternalId";

@@ -171,6 +171,40 @@ function getApiPath(resource: string): string {
 // as its own resource so standard List/Create/Edit components work.
 const SCOPE_RES = "resource-server-scopes";
 
+const TOKEN_EXCHANGE_PROFILES_RES = "token-exchange-profiles";
+const TOKEN_EXCHANGE_PROFILES_PAGE_SIZE = 100;
+const TOKEN_EXCHANGE_PROFILES_MAX_PAGES = 50;
+
+// Only these fields may be sent on PATCH; `action_id` and `type` are fixed
+// at creation and the API rejects the request if they are present.
+function pickTokenExchangeProfileUpdate(
+  data: Record<string, unknown>,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const key of ["name", "subject_token_type", "jwt_verification"]) {
+    if (data[key] !== undefined && data[key] !== null) out[key] = data[key];
+  }
+  return out;
+}
+
+function pickTokenExchangeProfileCreate(
+  data: Record<string, unknown>,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {
+    name: data.name,
+    subject_token_type: data.subject_token_type,
+    type: data.type ?? "custom_authentication",
+  };
+  // The API requires exactly one of the two. The form keeps both around while
+  // the user switches modes, so send only the one that wins.
+  if (typeof data.action_id === "string" && data.action_id) {
+    out.action_id = data.action_id;
+  } else if (data.jwt_verification) {
+    out.jwt_verification = data.jwt_verification;
+  }
+  return out;
+}
+
 function splitScopeId(id: string | number): readonly [string, string] {
   const s = String(id);
   const i = s.indexOf(":");
@@ -944,6 +978,41 @@ export default (
           searchQuery: params.filter?.q,
           searchFields: ["domain", "custom_domain_id"],
           idKey: "custom_domain_id",
+        });
+      }
+
+      // Token exchange profiles only support Auth0 checkpoint pagination
+      // (`from`/`take`, `next` cursor) and return no total. A tenant has few
+      // profiles, so follow the cursor to the end and page client-side.
+      if (resource === TOKEN_EXCHANGE_PROFILES_RES) {
+        const headers = createHeaders(tenantId);
+        const all: Array<Record<string, unknown>> = [];
+        let from: string | undefined;
+        for (let i = 0; i < TOKEN_EXCHANGE_PROFILES_MAX_PAGES; i++) {
+          const url = `${apiUrl}/api/v2/${TOKEN_EXCHANGE_PROFILES_RES}?${stringify(
+            { from, take: TOKEN_EXCHANGE_PROFILES_PAGE_SIZE },
+          )}`;
+          const res = await httpClient(url, { headers });
+          const body = res.json ?? {};
+          const items = Array.isArray(body.token_exchange_profiles)
+            ? body.token_exchange_profiles
+            : [];
+          all.push(...items);
+          if (typeof body.next !== "string" || !body.next || !items.length) {
+            break;
+          }
+          from = body.next;
+        }
+
+        return clientSideListHandler({
+          data: all,
+          page,
+          perPage: perPage || 10,
+          sortField: field,
+          sortOrder: order,
+          searchQuery: params.filter?.q,
+          searchFields: ["name", "subject_token_type", "id"],
+          idKey: "id",
         });
       }
 
@@ -2160,6 +2229,20 @@ export default (
         };
       }
 
+      if (resource === TOKEN_EXCHANGE_PROFILES_RES) {
+        const res = await httpClient(
+          `${apiUrl}/api/v2/${TOKEN_EXCHANGE_PROFILES_RES}/${encodeURIComponent(String(params.id))}`,
+          {
+            headers,
+            method: "PATCH",
+            body: JSON.stringify(
+              pickTokenExchangeProfileUpdate(cleanParams.data),
+            ),
+          },
+        );
+        return { data: { ...res.json, id: res.json.id ?? params.id } };
+      }
+
       // HTTP fallback for other resources
       return httpClient(
         `${apiUrl}/api/v2/${getApiPath(resource)}/${params.id}`,
@@ -2403,6 +2486,14 @@ export default (
         };
       }
 
+      if (resource === TOKEN_EXCHANGE_PROFILES_RES) {
+        const res = await post(
+          TOKEN_EXCHANGE_PROFILES_RES,
+          pickTokenExchangeProfileCreate(params.data),
+        );
+        return { data: { ...res.json, id: res.json.id } };
+      }
+
       // Default create (for endpoints not in SDK)
       // Clean up null values from form data
       const cleanedData = removeNullValues(params.data);
@@ -2551,6 +2642,15 @@ export default (
           params.id as string,
         );
         return { data: { id: params.id } };
+      }
+
+      // 204 with no body: hand react-admin the deleted record back.
+      if (resource === TOKEN_EXCHANGE_PROFILES_RES) {
+        await httpClient(
+          `${apiUrl}/api/v2/${TOKEN_EXCHANGE_PROFILES_RES}/${encodeURIComponent(String(params.id))}`,
+          { method: "DELETE", headers },
+        );
+        return { data: params.previousData ?? { id: params.id } };
       }
 
       // User identity unlink (Auth0 SDK)

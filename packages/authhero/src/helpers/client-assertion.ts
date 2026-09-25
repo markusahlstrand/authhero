@@ -1,5 +1,9 @@
 import { Jwk, decodeBase64Url } from "@authhero/adapter-interfaces";
-import { importParamsForJwk, SupportedAlg } from "../utils/jwk-alg";
+import { SupportedAlg } from "../utils/jwk-alg";
+import {
+  jwkMatchesAlg,
+  verifyAsymmetricJwsSignature,
+} from "../utils/jws-verify";
 import {
   loadClientJwks,
   LoadClientKeysOptions,
@@ -31,13 +35,6 @@ const HS_HASH_BY_ALG: Record<string, string> = {
   HS256: "SHA-256",
   HS384: "SHA-384",
   HS512: "SHA-512",
-};
-
-const RSA_VERIFY_PARAMS: AlgorithmIdentifier = { name: "RSASSA-PKCS1-v1_5" };
-const EC_HASH_BY_ALG: Record<string, string> = {
-  ES256: "SHA-256",
-  ES384: "SHA-384",
-  ES512: "SHA-512",
 };
 
 export type ClientAssertionMethod = "private_key_jwt" | "client_secret_jwt";
@@ -218,7 +215,7 @@ export async function verifyClientAssertion(
     }
     const candidates: Jwk[] = header.kid
       ? jwks.filter((k) => k.kid === header.kid)
-      : jwks.filter((k) => matchesAlg(k, alg));
+      : jwks.filter((k) => jwkMatchesAlg(k, alg));
     if (candidates.length === 0) {
       throw new ClientAssertionError(
         "missing_keys",
@@ -227,42 +224,12 @@ export async function verifyClientAssertion(
           : `no JWK found for alg=${alg}`,
       );
     }
-    let verified = false;
-    for (const candidate of candidates) {
-      if (!matchesAlg(candidate, alg)) continue;
-      let cryptoKey: CryptoKey;
-      try {
-        const importParams = importParamsForJwk(candidate, alg);
-        cryptoKey = await crypto.subtle.importKey(
-          "jwk",
-          candidate,
-          importParams,
-          false,
-          ["verify"],
-        );
-      } catch {
-        continue;
-      }
-      const verifyParams =
-        candidate.kty === "EC"
-          ? { name: "ECDSA", hash: EC_HASH_BY_ALG[alg]! }
-          : RSA_VERIFY_PARAMS;
-      try {
-        if (
-          await crypto.subtle.verify(
-            verifyParams,
-            cryptoKey,
-            signature,
-            signedInput,
-          )
-        ) {
-          verified = true;
-          break;
-        }
-      } catch {
-        continue;
-      }
-    }
+    const { verified } = await verifyAsymmetricJwsSignature({
+      signedInput,
+      signature,
+      alg,
+      jwks: candidates,
+    });
     if (!verified) {
       throw new ClientAssertionError(
         "invalid_client",
@@ -288,13 +255,6 @@ export async function verifyClientAssertion(
     exp: payload.exp as number,
     payload,
   };
-}
-
-function matchesAlg(jwk: Jwk, alg: SupportedAlg): boolean {
-  if (jwk.alg && jwk.alg !== alg) return false;
-  if (alg.startsWith("ES") && jwk.kty !== "EC") return false;
-  if (alg.startsWith("RS") && jwk.kty !== "RSA") return false;
-  return true;
 }
 
 function validateClaims(

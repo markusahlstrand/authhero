@@ -58,6 +58,9 @@ export function getByClientId(db: Kysely<Database>) {
       registration_metadata: client.registration_metadata
         ? JSON.parse(client.registration_metadata)
         : undefined,
+      token_exchange: client.token_exchange
+        ? JSON.parse(client.token_exchange)
+        : undefined,
     });
   };
 }

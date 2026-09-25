@@ -48,6 +48,7 @@ import { createOutboxAdapter } from "./outbox";
 import { createLogStreamsAdapter } from "./log-streams";
 import { createMigrationSourcesAdapter } from "./migrationSources";
 import { createProxyRoutesAdapter } from "./proxyRoutes";
+import { createTokenExchangeProfilesAdapter } from "./tokenExchangeProfiles";
 import {
   createScimConfigurationsAdapter,
   createScimTokensAdapter,
@@ -114,6 +115,7 @@ export default function createAdapters(
     tenantOperations: createTenantOperationsAdapter(db),
     tenantOperationEvents: createTenantOperationEventsAdapter(db),
     tenantOperationRows: createTenantOperationRowsAdapter(db),
+    tokenExchangeProfiles: createTokenExchangeProfilesAdapter(db),
     rollouts: createRolloutsAdapter(db),
     themes: createThemesAdapter(db),
     universalLoginTemplates: createUniversalLoginTemplatesAdapter(db),

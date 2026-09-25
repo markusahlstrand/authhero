@@ -1,5 +1,5 @@
 import { Context } from "hono";
-import { encodeHex } from "@authhero/adapter-interfaces";
+import { CodeType, encodeHex } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
 
 /**
@@ -18,22 +18,63 @@ import { Bindings, Variables } from "../types";
  * scheduled handler, so nothing new has to clean these rows up.
  */
 
-const CODE_TYPE = "client_assertion_jti" as const;
-
 /**
- * Namespaced so two clients may legitimately use the same `jti` value while a
- * single client cannot reuse its own. Hashed so the stored id does not carry a
- * client-chosen string, and so its length is bounded by the column.
+ * Namespaced so two issuers may legitimately use the same `jti` value while a
+ * single issuer cannot reuse its own. Hashed so the stored id does not carry
+ * an issuer-chosen string, and so its length is bounded by the column.
  */
-async function assertionJtiCodeId(
-  clientId: string,
-  jti: string,
-): Promise<string> {
+async function jtiCodeId(namespace: string, jti: string): Promise<string> {
   const digest = await crypto.subtle.digest(
     "SHA-256",
-    new TextEncoder().encode(`client_assertion:${clientId}:${jti}`),
+    new TextEncoder().encode(`${namespace}:${jti}`),
   );
   return encodeHex(digest);
+}
+
+/**
+ * Record a presented token's `jti` as spent.
+ *
+ * @returns false when the same `(namespace, jti)` was already spent, true
+ *   otherwise.
+ */
+export async function consumeSingleUseJti(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  tenantId: string,
+  params: {
+    codeType: Extract<CodeType, "client_assertion_jti" | "subject_token_jti">;
+    namespace: string;
+    jti: string;
+    /** The token's `exp`, in seconds — when the marker becomes collectable. */
+    exp: number;
+  },
+): Promise<boolean> {
+  const codeId = await jtiCodeId(params.namespace, params.jti);
+
+  const existing = await ctx.env.data.codes.get(
+    tenantId,
+    codeId,
+    params.codeType,
+  );
+  if (existing) return false;
+
+  // The marker is stored already used: it records a spent token rather than a
+  // credential we issued, and there is nothing left to consume. It is safe to
+  // delete once the token it guards has expired, so `expires_at` is the
+  // token's own `exp`.
+  try {
+    await ctx.env.data.codes.create(tenantId, {
+      code_id: codeId,
+      code_type: params.codeType,
+      expires_at: new Date(params.exp * 1000).toISOString(),
+      used_at: new Date().toISOString(),
+    });
+  } catch {
+    // Lost the insert to a concurrent presentation of the same token — the
+    // primary key on (code_id, code_type) makes this the atomic guard.
+    return false;
+  }
+
+  return true;
 }
 
 export interface ConsumeClientAssertionJtiParams {
@@ -60,28 +101,10 @@ export async function consumeClientAssertionJti(
   const { clientId, jti, exp } = params;
   if (!jti) return true;
 
-  const codeId = await assertionJtiCodeId(clientId, jti);
-
-  const existing = await ctx.env.data.codes.get(tenantId, codeId, CODE_TYPE);
-  if (existing) return false;
-
-  // The marker is stored already used: it records a spent assertion rather
-  // than a credential we issued, and there is nothing left to consume. It is
-  // safe to delete once the assertion it guards has expired, so `expires_at`
-  // is the assertion's own `exp`.
-  const usedAt = new Date().toISOString();
-  try {
-    await ctx.env.data.codes.create(tenantId, {
-      code_id: codeId,
-      code_type: CODE_TYPE,
-      expires_at: new Date(exp * 1000).toISOString(),
-      used_at: usedAt,
-    });
-  } catch {
-    // Lost the insert to a concurrent presentation of the same assertion —
-    // the primary key on (code_id, code_type) makes this the atomic guard.
-    return false;
-  }
-
-  return true;
+  return consumeSingleUseJti(ctx, tenantId, {
+    codeType: "client_assertion_jti",
+    namespace: `client_assertion:${clientId}`,
+    jti,
+    exp,
+  });
 }

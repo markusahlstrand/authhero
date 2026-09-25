@@ -19,7 +19,7 @@ import {
 import { getIssuer } from "../variables";
 import { resolvePrimaryUser } from "../helpers/users";
 
-const SUBJECT_TOKEN_TYPE_ACCESS_TOKEN =
+export const SUBJECT_TOKEN_TYPE_ACCESS_TOKEN =
   "urn:ietf:params:oauth:token-type:access_token";
 
 export const TOKEN_EXCHANGE_GRANT_TYPE =
@@ -196,20 +196,6 @@ export async function tokenExchangeGrant(
 
   ctx.set("user_id", user.user_id);
 
-  // Look up the target organization.
-  const org = await ctx.env.data.organizations.get(
-    client.tenant.id,
-    params.organization,
-  );
-  if (!org) {
-    failLog(`Organization '${params.organization}' not found`);
-    throw new JSONHTTPException(400, {
-      error: "invalid_request",
-      error_description: `Organization '${params.organization}' not found`,
-    });
-  }
-  const organization = { id: org.id, name: org.name };
-
   // Resolve the target audience. Defaults to the subject token's audience —
   // for the typical authhero shape (one inherited resource server per
   // tenant), this means the only thing changing is `org_id`.
@@ -259,41 +245,12 @@ export async function tokenExchangeGrant(
     });
   }
 
-  // Authorize the org switch. Mirrors the refresh-token grant: bypass when
-  // the user has the global `admin:organizations` permission on the Management
-  // API (gated by tenant flag); otherwise require membership. This is a
-  // management-plane permission, so it is matched against the Management API
-  // audience, never the requested token's audience.
-  // Shared with the refresh-token and scopes-permissions gates so all three
-  // agree on what "global org admin" means (#1198).
-  let hasGlobalOrgAdminPermission = false;
-  const tenant = await ctx.env.data.tenants.get(client.tenant.id);
-  if (tenant?.flags?.inherit_global_permissions_in_organizations) {
-    hasGlobalOrgAdminPermission = await userHasGlobalOrgAdminPermission(
-      ctx,
-      client.tenant.id,
-      user.user_id,
-    );
-  }
-
-  if (!hasGlobalOrgAdminPermission) {
-    const userOrgs = await ctx.env.data.userOrganizations.list(
-      client.tenant.id,
-      { q: `user_id:${escapeLuceneValue(user.user_id)}`, per_page: 1000 },
-    );
-    const isMember = userOrgs.userOrganizations.some(
-      (uo) => uo.organization_id === organization.id,
-    );
-    if (!isMember) {
-      failLog(
-        `User ${user.user_id} is not a member of organization ${organization.id}`,
-      );
-      throw new JSONHTTPException(403, {
-        error: "access_denied",
-        error_description: "User is not a member of the specified organization",
-      });
-    }
-  }
+  const organization = await authorizeOrganizationAccess(ctx, {
+    tenantId: client.tenant.id,
+    userId: user.user_id,
+    organizationId: params.organization,
+    failLog,
+  });
 
   // Downscope: requested scopes must be a subset of the subject token's.
   const subjectScopes = (subjectPayload.scope ?? "").split(" ").filter(Boolean);
@@ -328,4 +285,69 @@ export async function tokenExchangeGrant(
     // Stamp the exchanging client as the actor on the new token.
     actClient: { client_id: client.client_id },
   };
+}
+
+/**
+ * Resolve the organization a token-exchange request asks for and check the
+ * user may act in it: a member, or a holder of the global
+ * `admin:organizations` permission when the tenant opts into inheriting it.
+ * Shared by the org-switch exchange and Custom Token Exchange.
+ */
+export async function authorizeOrganizationAccess(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  params: {
+    tenantId: string;
+    userId: string;
+    organizationId: string;
+    failLog: (description: string) => void;
+  },
+): Promise<{ id: string; name: string }> {
+  const { tenantId, userId, failLog } = params;
+
+  const org = await ctx.env.data.organizations.get(
+    tenantId,
+    params.organizationId,
+  );
+  if (!org) {
+    failLog(`Organization '${params.organizationId}' not found`);
+    throw new JSONHTTPException(400, {
+      error: "invalid_request",
+      error_description: `Organization '${params.organizationId}' not found`,
+    });
+  }
+
+  // Bypass membership when the user has the global `admin:organizations`
+  // permission on the Management API (gated by tenant flag); otherwise
+  // require membership. This is a management-plane permission, so it is
+  // matched against the Management API audience, never the requested token's
+  // audience. Shared with the refresh-token and scopes-permissions gates so
+  // all agree on what "global org admin" means (#1198).
+  let hasGlobalOrgAdminPermission = false;
+  const tenant = await ctx.env.data.tenants.get(tenantId);
+  if (tenant?.flags?.inherit_global_permissions_in_organizations) {
+    hasGlobalOrgAdminPermission = await userHasGlobalOrgAdminPermission(
+      ctx,
+      tenantId,
+      userId,
+    );
+  }
+
+  if (!hasGlobalOrgAdminPermission) {
+    const userOrgs = await ctx.env.data.userOrganizations.list(tenantId, {
+      q: `user_id:${escapeLuceneValue(userId)}`,
+      per_page: 1000,
+    });
+    const isMember = userOrgs.userOrganizations.some(
+      (uo) => uo.organization_id === org.id,
+    );
+    if (!isMember) {
+      failLog(`User ${userId} is not a member of organization ${org.id}`);
+      throw new JSONHTTPException(403, {
+        error: "access_denied",
+        error_description: "User is not a member of the specified organization",
+      });
+    }
+  }
+
+  return { id: org.id, name: org.name };
 }

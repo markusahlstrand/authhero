@@ -3,6 +3,7 @@ import {
   CodeExecutionResult,
   CodeExecutor,
   TRIGGER_API_SHAPES,
+  TRIGGER_FUNCTION_NAMES,
 } from "@authhero/adapter-interfaces";
 
 const MAX_LOG_ENTRIES = 50;
@@ -80,15 +81,7 @@ export class LocalCodeExecutor implements CodeExecutor {
     const capturedConsole = createCapturingConsole(logs);
 
     try {
-      // Map trigger ID to the expected export function name
-      const fnNames: Record<string, string> = {
-        "post-user-login": "onExecutePostLogin",
-        "credentials-exchange": "onExecuteCredentialsExchange",
-        "pre-user-registration": "onExecutePreUserRegistration",
-        "post-user-registration": "onExecutePostUserRegistration",
-      };
-
-      const fnName = fnNames[params.triggerId];
+      const fnName = TRIGGER_FUNCTION_NAMES[params.triggerId];
       if (!fnName) {
         return {
           success: false,

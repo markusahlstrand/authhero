@@ -64,6 +64,7 @@ import { guardianRoutes } from "./guardian";
 import { authenticationMethodsRoutes } from "./authentication-methods";
 import { ticketsRoutes } from "./tickets";
 import { proxyRoutesRoutes } from "./proxy-routes";
+import { tokenExchangeProfilesRoutes } from "./token-exchange-profiles";
 import { operationRoutes, tenantOperationsRoutes } from "./tenant-operations";
 import { tenantExportImportRoutes } from "./tenant-export-import";
 import { jobsRoutes } from "./jobs";
@@ -612,6 +613,17 @@ export default function create(config: AuthHeroConfig) {
   // adapter is optional on DataAdapters; without it the routes return 501.
   if (!extensionPaths.has("/proxy-routes") && managementAdapter.proxyRoutes) {
     managementApp.route("/proxy-routes", proxyRoutesRoutes);
+  }
+
+  // Custom Token Exchange profiles (#1417), when the adapter exposes them.
+  if (
+    !extensionPaths.has("/token-exchange-profiles") &&
+    managementAdapter.tokenExchangeProfiles
+  ) {
+    managementApp.route(
+      "/token-exchange-profiles",
+      tokenExchangeProfilesRoutes,
+    );
   }
 
   // SCIM inbound provisioning config + tokens (#1191). Mounted per connection
