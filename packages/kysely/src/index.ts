@@ -61,6 +61,12 @@ import { createTenantOperationRowsAdapter } from "./tenantOperationRows";
 import { createRolloutsAdapter } from "./rollouts";
 
 export { migrateToLatest, migrateDown } from "../migrate/migrate";
+export { planMigrations, formatMigrationPlan } from "../migrate/plan";
+export type {
+  MigrationPlan,
+  PlannedMigration,
+  PlannedStatement,
+} from "../migrate/plan";
 export type { Database } from "./db";
 export {
   createProxyRoutesAdapter,
