@@ -48,12 +48,12 @@ export function update(db: Kysely<Database>) {
       sqlSession.login_session_id = session.login_session_id;
     }
 
-    const results = await db
+    const result = await db
       .updateTable("sessions")
       .set(sqlSession)
       .where("tenant_id", "=", tenant_id)
       .where("sessions.id", "=", id)
-      .execute();
+      .executeTakeFirst();
 
     // When a session is renewed (its expiry slides forward), keep the parent
     // login_session alive at least as long. Best-effort and idempotent
@@ -89,6 +89,6 @@ export function update(db: Kysely<Database>) {
         .catch(() => {});
     }
 
-    return !!results.length;
+    return (result.numUpdatedRows ?? 0n) > 0n;
   };
 }

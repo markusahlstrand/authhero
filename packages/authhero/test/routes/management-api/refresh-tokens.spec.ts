@@ -170,14 +170,7 @@ describe("management-api refresh tokens", () => {
       expect(unrelated?.revoked_at).toBeFalsy();
     });
 
-    // KNOWN DEVIATION: the route is written to answer 404, but
-    // `refreshTokens.remove` in the kysely adapter returns `!!results.length`
-    // — kysely's `execute()` resolves to one result object per statement, so
-    // that is `true` even when no row matched. The tenant predicate is still
-    // in the WHERE clause, so nothing crosses tenants; only the status code
-    // is wrong. Pinned as observed — the fix belongs in packages/kysely (use
-    // `numDeletedRows`, as `grants.remove` already does).
-    it("answers 200 for an unknown refresh token (should be 404)", async () => {
+    it("returns 404 for an unknown refresh token", async () => {
       const { managementClient, token } = await setup();
 
       const response = await managementClient["refresh-tokens"][":id"].$delete(
@@ -188,7 +181,7 @@ describe("management-api refresh tokens", () => {
         { headers: { authorization: `Bearer ${token}` } },
       );
 
-      expect(response.status).toBe(200);
+      expect(response.status).toBe(404);
     });
 
     it("does not remove a refresh token of another tenant", async () => {
@@ -207,8 +200,7 @@ describe("management-api refresh tokens", () => {
         { headers: { authorization: `Bearer ${token}` } },
       );
 
-      // Same deviation as above: the status is 200, but the row survives.
-      expect(response.status).toBe(200);
+      expect(response.status).toBe(404);
       const untouched = await env.data.refreshTokens.get(
         "otherTenant",
         "otherRefreshTokenId",
