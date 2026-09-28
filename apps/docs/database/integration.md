@@ -158,6 +158,17 @@ await migrateToLatest(db);
 
 `migrateToLatest` is idempotent — it applies only the migrations that have not run yet — so it is safe to call from a deploy step. `migrateDown` reverts the most recent one.
 
+To see what a run would change before applying it, use `planMigrations`. It lists the pending migrations and the SQL each would execute, without writing to the database:
+
+```typescript
+import { planMigrations, formatMigrationPlan } from "@authhero/kysely-adapter";
+
+const plan = await planMigrations(db);
+console.log(formatMigrationPlan(plan));
+```
+
+Reads go to the real database, so dialect detection and data backfills see real rows, but writes are captured instead of executed. That means the plan can differ from a real run when a migration depends on earlier writes: a migration that reads a table or column an earlier pending migration creates reports an error in the plan, and "skip if the column already exists" guards never fire.
+
 Moving data between two databases (rather than moving the schema forward) is a different job: see [Migration strategies](/database/migration) for the dual-write approach.
 
 ## Custom Adapter Implementation

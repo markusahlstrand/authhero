@@ -12,12 +12,20 @@ npm install @authhero/kysely-adapter
 
 ```typescript
 import { Kysely } from "kysely";
-import { createAdapters, migrateToLatest } from "@authhero/kysely-adapter";
+import {
+  createAdapters,
+  formatMigrationPlan,
+  migrateToLatest,
+  planMigrations,
+} from "@authhero/kysely-adapter";
 
 // Create your Kysely instance with your preferred dialect
 const db = new Kysely<Database>({
   dialect: yourDialect,
 });
+
+// Preview pending migrations without applying them (optional)
+console.log(formatMigrationPlan(await planMigrations(db)));
 
 // Run migrations
 await migrateToLatest(db);
