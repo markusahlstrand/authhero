@@ -250,10 +250,11 @@ describe("previewClient", () => {
           })),
         },
       };
-      vi.stubGlobal(
-        "open",
-        vi.fn(() => mockWindow),
-      );
+      vi.spyOn(window, "open").mockReturnValue(mockWindow);
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
     });
 
     it("opens a blank tab with a loading message", async () => {
@@ -380,10 +381,7 @@ describe("previewClient", () => {
     });
 
     it("throws an error if the window cannot be opened (popup blocked)", async () => {
-      vi.stubGlobal(
-        "open",
-        vi.fn(() => null),
-      );
+      vi.spyOn(window, "open").mockReturnValue(null);
 
       await expect(openFullPreview({ tenantId })).rejects.toThrow(
         "Could not open the preview tab",
