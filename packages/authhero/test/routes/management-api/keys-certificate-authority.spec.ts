@@ -40,6 +40,8 @@ async function setup(
         { ...tenant, query: type ? { type } : {} },
         auth,
       ),
+    revoke: (kid: string) =>
+      management.keys.signing[kid].revoke.$put({ ...tenant, query: {} }, auth),
     renew: (kid: string) =>
       management.keys.signing[kid].renew.$post({ ...tenant, query: {} }, auth),
     jwks: async () => {
@@ -140,6 +142,44 @@ describe("signing keys with a certificate authority", () => {
     expect(published?.x5c).toBeUndefined();
     expect(warn).toHaveBeenCalled();
     warn.mockRestore();
+  });
+
+  function failingIssuance(
+    env: { signingCertificateAuthority?: unknown },
+    ca: {
+      issuer: { getIssuerCertificates: () => Promise<string[]> };
+    },
+  ) {
+    env.signingCertificateAuthority = {
+      issuer: {
+        issueCertificate: async () => {
+          throw new Error("CA unreachable");
+        },
+        getIssuerCertificates: ca.issuer.getIssuerCertificates,
+      },
+    };
+  }
+
+  it("leaves existing keys unrevoked when rotation can't issue a certificate", async () => {
+    const { rotate, currentKey, env, ca } = await setup();
+    await rotate();
+    const before = await currentKey();
+    failingIssuance(env, ca);
+
+    await expect(rotate()).rejects.toThrow(/CA unreachable/);
+    const after = await env.data.keys.list({ q: "type:jwt_signing" });
+    const key = after.signingKeys.find((k) => k.kid === before.kid);
+    expect(key?.revoked_at).toBeFalsy();
+  });
+
+  it("leaves the key in service when revoke-and-replace can't issue a certificate", async () => {
+    const { rotate, revoke, currentKey, env, ca } = await setup();
+    await rotate();
+    const before = await currentKey();
+    failingIssuance(env, ca);
+
+    await expect(revoke(before.kid)).rejects.toThrow(/CA unreachable/);
+    expect((await currentKey()).kid).toBe(before.kid);
   });
 
   it("keeps SAML keys self-signed", async () => {

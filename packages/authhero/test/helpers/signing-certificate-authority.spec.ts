@@ -81,6 +81,48 @@ describe("CA-issued signing certificates", () => {
     ).rejects.toThrow(/different key/);
   });
 
+  it("rejects a certificate the CA issued for a different owner", async () => {
+    const ca = await createTestSigningCa();
+    const misbinding: CertificateIssuer = {
+      issueCertificate: (request) =>
+        ca.issuer.issueCertificate({
+          ...request,
+          uri: "urn:authhero:tenant:other",
+        }),
+      getIssuerCertificates: ca.issuer.getIssuerCertificates,
+    };
+
+    await expect(
+      createX509Certificate({
+        name: "CN=acme",
+        certificateAuthority: {
+          issuer: misbinding,
+          uri: "urn:authhero:tenant:acme",
+        },
+      }),
+    ).rejects.toThrow(/different owner/);
+  });
+
+  it("rejects a certificate that outlives the requested validity", async () => {
+    const ca = await createTestSigningCa();
+    const longLived: CertificateIssuer = {
+      issueCertificate: (request) =>
+        ca.issuer.issueCertificate({
+          ...request,
+          notAfter: new Date(request.notAfter.getTime() + 86_400_000),
+        }),
+      getIssuerCertificates: ca.issuer.getIssuerCertificates,
+    };
+
+    await expect(
+      createX509Certificate({
+        name: "CN=acme",
+        validityDays: 7,
+        certificateAuthority: { issuer: longLived, uri: "urn:x" },
+      }),
+    ).rejects.toThrow(/validity window/);
+  });
+
   it("stays self-signed without a CA", async () => {
     const key = await createX509Certificate({ name: "CN=acme" });
     const cert = new x509.X509Certificate(key.cert);

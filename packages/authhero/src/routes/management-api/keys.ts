@@ -460,6 +460,22 @@ const postSigningRotate = defineRoute({
     assertScopeMutable(authority);
     const activatesAt = new Date(Date.now() + (activate_in_days ?? 0) * DAY);
     const revokesAt = new Date(activatesAt.getTime() + (grace_days ?? 1) * DAY);
+    // Issue the replacement before revoking anything: a CA issuer can fail
+    // (unreachable, wrong key), and failing after the revocations are written
+    // would leave the scope with no signer once the grace period ends.
+    const certificateAuthority = certificateAuthorityIssuance(
+      ctx.env.signingCertificateAuthority,
+      {
+        type,
+        tenant_id: scope === "control-plane" ? undefined : scope.tenantId,
+      },
+    );
+    const signingKey = await createX509Certificate({
+      name: certificateName(ctx, scope),
+      validityDays: validity_days ?? defaultValidityDays(ctx, type),
+      certificateAuthority,
+    });
+
     // Only revoke keys in the same scope we're rotating into; otherwise
     // rotating tenant X would also wipe the shared control-plane keys
     // every other tenant still depends on. The adapter already filters
@@ -492,19 +508,6 @@ const postSigningRotate = defineRoute({
       if (signingKeys.length < perPage) break;
       page++;
     }
-
-    const certificateAuthority = certificateAuthorityIssuance(
-      ctx.env.signingCertificateAuthority,
-      {
-        type,
-        tenant_id: scope === "control-plane" ? undefined : scope.tenantId,
-      },
-    );
-    const signingKey = await createX509Certificate({
-      name: certificateName(ctx, scope),
-      validityDays: validity_days ?? defaultValidityDays(ctx, type),
-      certificateAuthority,
-    });
 
     // Stamp `current_since` on the replacement so the resolveSigningKeys
     // tiebreaker picks it over the still-in-grace older keys; without
@@ -573,13 +576,8 @@ const putSigningByKidRevoke = defineRoute({
     // whoever does own it — the control plane keeps signing with the original.
     assertMutable(existing, await resolveKeyAuthority(ctx, type));
 
-    const revoked = await ctx.env.data.keys.update(kid, {
-      revoked_at: new Date().toISOString(),
-    });
-    if (!revoked) {
-      throw new HTTPException(404, { message: "Key not found" });
-    }
-
+    // Issue the replacement first so a failing CA leaves the key in service
+    // instead of revoking it with nothing to take over.
     const signingKey = await createX509Certificate({
       name: certificateName(
         ctx,
@@ -591,6 +589,13 @@ const putSigningByKidRevoke = defineRoute({
         { type, tenant_id: existing.tenant_id },
       ),
     });
+
+    const revoked = await ctx.env.data.keys.update(kid, {
+      revoked_at: new Date().toISOString(),
+    });
+    if (!revoked) {
+      throw new HTTPException(404, { message: "Key not found" });
+    }
 
     // See rotate handler: stamp current_since so the new key sorts ahead
     // of the just-revoked one in the resolveSigningKeys tiebreaker.

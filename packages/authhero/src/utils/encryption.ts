@@ -350,24 +350,61 @@ export async function renewX509Certificate(
   };
 }
 
+/** Clock skew tolerated between the auth worker and a remote CA. */
+const CA_CLOCK_SKEW_MS = 5 * 60 * 1000;
+
 /**
  * Have the CA certify `publicKey`, then check that the certificate it returned
- * is for that key — a remote issuer that answered with someone else's
- * certificate would otherwise publish a key nothing can sign for.
+ * is the one we asked for. A matching key alone isn't enough: relying parties
+ * trust the key for whichever owner its SAN URI names, so a leaf bound to the
+ * wrong owner — or one that is itself a CA, or outlives the requested window —
+ * must never be stored or published.
+ *
+ * The subject DN isn't compared: CAs legitimately rewrite it, and ownership is
+ * carried by the SAN URI, not the CN.
  */
 async function issueFromCertificateAuthority(
   ca: CertificateAuthorityIssuance,
   params: { publicKey: CryptoKey; name: string; validityDays?: number },
 ): Promise<x509.X509Certificate> {
   const spki = await crypto.subtle.exportKey("spki", params.publicKey);
+  const notBefore = new Date();
+  const notAfter = certNotAfter(params.validityDays);
   const pem = await ca.issuer.issueCertificate({
     publicKey: convertPKCS7ToPem("PUBLIC", spki),
     subject: params.name,
     uri: ca.uri,
-    notBefore: new Date(),
-    notAfter: certNotAfter(params.validityDays),
+    notBefore,
+    notAfter,
   });
   const cert = new x509.X509Certificate(pem);
+
+  const sanUris =
+    cert
+      .getExtension(x509.SubjectAlternativeNameExtension)
+      ?.names.items.filter((name) => name.type === "url")
+      .map((name) => name.value) ?? [];
+  if (sanUris.length !== 1 || sanUris[0] !== ca.uri) {
+    throw new Error(
+      `The certificate authority returned a certificate for a different owner: expected SAN URI ${ca.uri}`,
+    );
+  }
+
+  if (cert.getExtension(x509.BasicConstraintsExtension)?.ca) {
+    throw new Error(
+      "The certificate authority returned a CA certificate for a signing key",
+    );
+  }
+
+  if (
+    cert.notBefore.getTime() < notBefore.getTime() - CA_CLOCK_SKEW_MS ||
+    cert.notAfter.getTime() > notAfter.getTime() + CA_CLOCK_SKEW_MS ||
+    cert.notAfter.getTime() <= Date.now()
+  ) {
+    throw new Error(
+      "The certificate authority returned a certificate outside the requested validity window",
+    );
+  }
 
   const expected = computeJWKThumbprint(
     await crypto.subtle.exportKey("jwk", params.publicKey),
