@@ -232,7 +232,6 @@ describe("previewClient", () => {
   describe("openFullPreview", () => {
     const tenantId = "test-tenant";
     let mockWindow: any;
-    let mockFetch: any;
 
     beforeEach(() => {
       // Setup mock window.open
@@ -255,9 +254,6 @@ describe("previewClient", () => {
         "open",
         vi.fn(() => mockWindow),
       );
-
-      // Setup mock fetch-like HTTP client
-      mockFetch = vi.fn();
     });
 
     it("opens a blank tab with a loading message", async () => {
