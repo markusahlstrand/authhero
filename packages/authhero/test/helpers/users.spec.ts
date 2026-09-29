@@ -5,6 +5,8 @@ import {
   compareUsersByLastLogin,
   getLastUsedUserByEmail,
   getPrimaryUserByEmail,
+  linkUserTo,
+  resolveClusterRootId,
   userExistsByEmail,
 } from "../../src/helpers/users";
 
@@ -345,5 +347,191 @@ describe("compareUsersByLastLogin", () => {
     };
 
     expect([broken, valid].sort(compareUsersByLastLogin)[0]).toBe(valid);
+  });
+});
+
+describe("linkUserTo", () => {
+  const TENANT = "tenantId";
+
+  async function seedUser(
+    users: UserDataAdapter,
+    tenant_id: string,
+    id: string,
+    linked_to?: string,
+  ) {
+    return users.create(tenant_id, {
+      user_id: `auth0|${id}`,
+      email: `${id}@example.com`,
+      email_verified: true,
+      provider: "auth0",
+      connection: "password",
+      is_social: false,
+      ...(linked_to ? { linked_to: `auth0|${linked_to}` } : {}),
+    });
+  }
+
+  async function linkedTo(
+    users: UserDataAdapter,
+    tenant_id: string,
+    id: string,
+  ) {
+    return (await users.get(tenant_id, `auth0|${id}`))?.linked_to;
+  }
+
+  it("rejects linking a primary onto its own secondary and leaves both rows unchanged", async () => {
+    const { env } = await getTestServer();
+    const users = env.data.users;
+    await seedUser(users, TENANT, "f");
+    await seedUser(users, TENANT, "n", "f");
+
+    await expect(
+      linkUserTo({
+        userAdapter: users,
+        tenant_id: TENANT,
+        userId: "auth0|f",
+        primaryId: "auth0|n",
+      }),
+    ).rejects.toMatchObject({ status: 400 });
+
+    expect(await linkedTo(users, TENANT, "f")).toBeUndefined();
+    expect(await linkedTo(users, TENANT, "n")).toBe("auth0|f");
+  });
+
+  it("rejects linking a user to itself", async () => {
+    const { env } = await getTestServer();
+    const users = env.data.users;
+    await seedUser(users, TENANT, "solo");
+
+    await expect(
+      linkUserTo({
+        userAdapter: users,
+        tenant_id: TENANT,
+        userId: "auth0|solo",
+        primaryId: "auth0|solo",
+      }),
+    ).rejects.toMatchObject({ status: 400 });
+    expect(await linkedTo(users, TENANT, "solo")).toBeUndefined();
+  });
+
+  it("moves every secondary of a demoted primary exactly one hop to the new root", async () => {
+    const { env } = await getTestServer();
+    const users = env.data.users;
+    await seedUser(users, TENANT, "root");
+    await seedUser(users, TENANT, "old");
+    await seedUser(users, TENANT, "s1", "old");
+    await seedUser(users, TENANT, "s2", "old");
+    await seedUser(users, TENANT, "s3", "old");
+
+    const rootId = await linkUserTo({
+      userAdapter: users,
+      tenant_id: TENANT,
+      userId: "auth0|old",
+      primaryId: "auth0|root",
+    });
+
+    expect(rootId).toBe("auth0|root");
+    for (const id of ["old", "s1", "s2", "s3"]) {
+      expect(await linkedTo(users, TENANT, id)).toBe("auth0|root");
+    }
+    expect(await linkedTo(users, TENANT, "root")).toBeUndefined();
+  });
+
+  it("resolves a secondary target to its cluster root instead of building a chain", async () => {
+    const { env } = await getTestServer();
+    const users = env.data.users;
+    await seedUser(users, TENANT, "root");
+    await seedUser(users, TENANT, "mid", "root");
+    await seedUser(users, TENANT, "new");
+
+    const rootId = await linkUserTo({
+      userAdapter: users,
+      tenant_id: TENANT,
+      userId: "auth0|new",
+      primaryId: "auth0|mid",
+    });
+
+    expect(rootId).toBe("auth0|root");
+    expect(await linkedTo(users, TENANT, "new")).toBe("auth0|root");
+  });
+
+  it("does not touch another tenant's users", async () => {
+    const { env } = await getTestServer();
+    const users = env.data.users;
+    await env.data.tenants.create({
+      id: "otherTenant",
+      friendly_name: "Other Tenant",
+      audience: "https://other.example.com",
+      default_audience: "https://other.example.com",
+      sender_email: "login@other.example.com",
+      sender_name: "Other",
+    });
+
+    // Same user ids in both tenants.
+    await seedUser(users, TENANT, "root");
+    await seedUser(users, TENANT, "old");
+    await seedUser(users, TENANT, "s1", "old");
+    await seedUser(users, "otherTenant", "root");
+    await seedUser(users, "otherTenant", "old");
+    await seedUser(users, "otherTenant", "s1", "old");
+
+    await linkUserTo({
+      userAdapter: users,
+      tenant_id: TENANT,
+      userId: "auth0|old",
+      primaryId: "auth0|root",
+    });
+
+    expect(await linkedTo(users, TENANT, "s1")).toBe("auth0|root");
+    expect(await linkedTo(users, "otherTenant", "old")).toBeUndefined();
+    expect(await linkedTo(users, "otherTenant", "s1")).toBe("auth0|old");
+    expect(await linkedTo(users, "otherTenant", "root")).toBeUndefined();
+  });
+});
+
+describe("resolveClusterRootId on corrupt data", () => {
+  it("terminates on a hand-seeded 2-cycle instead of looping", async () => {
+    const { env } = await getTestServer();
+    const users = env.data.users;
+    await users.create("tenantId", {
+      user_id: "auth0|a",
+      email: "a@example.com",
+      email_verified: true,
+      provider: "auth0",
+      connection: "password",
+      is_social: false,
+      linked_to: "auth0|b",
+    });
+    await users.create("tenantId", {
+      user_id: "auth0|b",
+      email: "b@example.com",
+      email_verified: true,
+      provider: "auth0",
+      connection: "password",
+      is_social: false,
+      linked_to: "auth0|a",
+    });
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+
+    try {
+      const resolved = await Promise.race([
+        resolveClusterRootId(users, "tenantId", "auth0|a"),
+        new Promise<string>((_, reject) =>
+          setTimeout(
+            () => reject(new Error("resolveClusterRootId hung")),
+            2000,
+          ),
+        ),
+      ]);
+
+      // Stops at the last id reached before revisiting a node.
+      expect(["auth0|a", "auth0|b"]).toContain(resolved);
+      expect(consoleError).toHaveBeenCalledWith(
+        expect.stringContaining("linked_to cycle detected"),
+      );
+    } finally {
+      consoleError.mockRestore();
+    }
   });
 });
