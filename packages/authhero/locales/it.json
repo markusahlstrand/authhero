@@ -83,6 +83,7 @@
       "editEmailText": "Modifica",
       "emailPlaceholder": "Indirizzo e-mail",
       "enterACodeBtn": "Accedi con un codice",
+      "enterACodeShortBtn": "Codice",
       "federatedConnectionButtonText": "Continua con ${connectionName}",
       "lastUsedText": "Ultimo utilizzato",
       "footerLinkText": "Iscriviti",
