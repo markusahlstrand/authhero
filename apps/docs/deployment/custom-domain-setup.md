@@ -68,7 +68,11 @@ With the option on, `/.well-known/*` is only served for:
 - a host with a `custom_domains` row, either directly or through
   `x-forwarded-host`
 
-A `tenant-id` header doesn't count, because it says nothing about the host.
+When a proxy sets `x-forwarded-host`, that is the host checked: a known
+backend `Host` behind it doesn't make an unregistered public alias valid. A
+`tenant-id` header doesn't count either, because it says nothing about the
+host. The guard also covers the MCP protected-resource metadata
+(`/.well-known/oauth-protected-resource`) when `mcp` is configured.
 Before you enable it, check every host the deployment is reached on: a
 `*.workers.dev` URL, a domain alias that was never registered as a custom
 domain, or a proxy that doesn't forward `x-forwarded-host` would all start

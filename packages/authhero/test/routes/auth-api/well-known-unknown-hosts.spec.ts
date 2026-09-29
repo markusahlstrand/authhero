@@ -89,6 +89,30 @@ describe("/.well-known with rejectUnknownHosts", () => {
     ).toBe(200);
   });
 
+  it("checks the forwarded host, not a known backend host behind it", async () => {
+    const { jwks } = await setup({ rejectUnknownHosts: true });
+
+    // Known ISSUER host as the backend host.
+    expect(
+      (
+        await jwks({
+          host: "localhost:3000",
+          "x-forwarded-host": "unknown.example.org",
+        })
+      ).status,
+    ).toBe(404);
+    // Registered custom domain as the backend host: tenantMiddleware resolves
+    // it as custom_domain, which must not vouch for the forwarded alias.
+    expect(
+      (
+        await jwks({
+          host: "login.example.com",
+          "x-forwarded-host": "unknown.example.org",
+        })
+      ).status,
+    ).toBe(404);
+  });
+
   it("does not let a tenant-id header vouch for an unknown host", async () => {
     const { jwks } = await setup({ rejectUnknownHosts: true });
 
