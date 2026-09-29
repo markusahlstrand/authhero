@@ -1630,6 +1630,7 @@ export class AuthheroNode {
           name: string;
           strategy?: string;
           display_name?: string;
+          short_name?: string;
           icon_url?: string;
           href?: string;
           last_used?: boolean;
@@ -1695,9 +1696,18 @@ export class AuthheroNode {
               part={`button-social-content button-social-content-${safeProvider}`}
             >
               <span
+                class="btn-social-text"
                 part={`button-social-text button-social-text-${safeProvider}`}
               >
                 {getButtonText(provider)}
+              </span>
+              {/* Shown instead of the full text when the buttons collapse
+                  into a compact row on short viewports. */}
+              <span
+                class="btn-social-text-short"
+                part={`button-social-text-short button-social-text-short-${safeProvider}`}
+              >
+                {details?.short_name || getButtonText(provider)}
               </span>
               <span
                 class="btn-social-subtitle"

@@ -93,6 +93,7 @@ describe("identifier screen - social buttons with provider details", () => {
     expect(html).toContain('"strategy":"oidc"');
     expect(html).toContain('"icon_url":"https://example.com/vipps-icon.svg"');
     expect(html).toContain('"display_name":"Continue with Vipps"');
+    expect(html).toContain('"short_name":"Vipps"');
 
     // Also verify the widget rendered the icon correctly
     expect(html).toContain('<img class="social-icon');

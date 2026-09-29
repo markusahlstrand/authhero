@@ -75,6 +75,7 @@ function buildSocialButtons(
       display_name: m.federatedConnectionButtonText({
         connectionName: displayName,
       }),
+      short_name: displayName,
       icon_url: getConnectionIconUrl(conn),
       ...(conn.name === lastUsedConnection
         ? { last_used: true, last_used_label: m.lastUsedText() }
