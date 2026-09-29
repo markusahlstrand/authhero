@@ -345,26 +345,21 @@ const getRoot = defineRoute({
       }
     }
 
-    // RFC 9101 §6.1 / OIDC Core §6.1: parameters in the signed Request Object
-    // take precedence over duplicate query-string values. If the same param
-    // is present in both with differing values, reject — silently picking
-    // either side is unsafe (an attacker who controls the query string could
-    // override a signed redirect_uri).
-    for (const key of Object.keys(requestParams) as Array<
-      keyof typeof requestParams
-    >) {
-      const reqValue = requestParams[key];
-      const qValue = (queryParams as Record<string, unknown>)[key];
-      if (
-        reqValue !== undefined &&
-        qValue !== undefined &&
-        reqValue !== qValue
-      ) {
-        throw new HTTPException(400, {
-          message: `request object and query parameter "${key}" disagree`,
-        });
-      }
+    // RFC 9101 §5: when a Request Object is supplied, the authorization server
+    // MUST use only the parameters inside it. Unsigned query values are
+    // ignored, whether they duplicate a signed value or fill a gap the signed
+    // payload left open. The outer client_id is only used to locate the
+    // client's keys, and it must match the signed client_id.
+    if (requestObjectJwt && requestParams.client_id !== queryParams.client_id) {
+      throw new HTTPException(400, {
+        message: requestParams.client_id
+          ? "client_id in the request object does not match the client_id parameter"
+          : "request object is missing client_id",
+      });
     }
+    const authorizeParams = requestObjectJwt
+      ? { ...requestParams, client_id: queryParams.client_id }
+      : queryParams;
     let {
       redirect_uri,
       scope,
@@ -381,7 +376,7 @@ const getRoot = defineRoute({
       ui_locales,
       organization,
       claims: rawClaims,
-    } = { ...queryParams, ...requestParams };
+    } = authorizeParams;
     const {
       client_id,
       vendor_id,
@@ -392,7 +387,7 @@ const getRoot = defineRoute({
       auth0Client,
       screen_hint,
       resource,
-    } = { ...queryParams, ...requestParams };
+    } = authorizeParams;
 
     // RFC 8707: the resource indicator names the API the token is for. When
     // both are sent they must name the same one.
@@ -435,8 +430,11 @@ const getRoot = defineRoute({
     //
     // The lookup result is also handed to connectionAuth below so the
     // connection flow doesn't fetch the same session a second time.
+    //
+    // Never hydrate a signed request: RFC 9101 §5 allows only the parameters
+    // in the Request Object, so a stored session must not fill its gaps.
     let existingSession: LoginSession | null | undefined;
-    if (state) {
+    if (state && !requestObjectJwt) {
       existingSession = await env.data.loginSessions.get(
         client.tenant.id,
         state,
