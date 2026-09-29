@@ -602,9 +602,16 @@ const postByIdMembers = defineRoute({
     // Validate every id before writing anything so a bad id can't leave the
     // batch partially applied.
     const uniqueMembers = [...new Set(members)];
-    const found = await Promise.all(
-      uniqueMembers.map((userId) => ctx.env.data.users.get(tenant_id, userId)),
-    );
+    const found: unknown[] = [];
+    // Bounded fan-out: look users up in chunks rather than all at once.
+    for (let i = 0; i < uniqueMembers.length; i += 25) {
+      const chunk = uniqueMembers.slice(i, i + 25);
+      found.push(
+        ...(await Promise.all(
+          chunk.map((userId) => ctx.env.data.users.get(tenant_id, userId)),
+        )),
+      );
+    }
     if (found.some((user) => !user)) {
       throw new HTTPException(400, { message: "Some users do not exist" });
     }
@@ -623,7 +630,9 @@ const postByIdMembers = defineRoute({
         alreadyMember = existing.organizations.some(
           (org) => org.id === organization.id,
         );
-        if (existing.organizations.length < 100) break;
+        // Adapters may drop rows whose organization no longer exists, so a
+        // short page doesn't prove it is the last one; stop on an empty page.
+        if (existing.organizations.length === 0 || page >= 99) break;
       }
 
       if (!alreadyMember) {
