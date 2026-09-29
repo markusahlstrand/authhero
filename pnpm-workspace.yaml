@@ -7,3 +7,8 @@ packages:
   - docker
 onlyBuiltDependencies:
   - better-sqlite3
+# eslint-plugin-react has not declared ESLint 10 support yet (latest 7.37.5).
+# The recommended config is wrapped with fixupConfigRules in eslint.config.mjs.
+peerDependencyRules:
+  allowedVersions:
+    eslint-plugin-react>eslint: "10"
