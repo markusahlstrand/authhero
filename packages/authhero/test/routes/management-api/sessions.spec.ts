@@ -138,15 +138,7 @@ describe("management-api sessions", () => {
       expect(await env.data.sessions.get("tenantId", "sessionId")).toBeNull();
     });
 
-    // KNOWN DEVIATION: Auth0 answers 404 here and the route is written for
-    // it, but `sessions.remove` in the kysely adapter returns
-    // `!!results.length` — kysely's `execute()` resolves to one result object
-    // per statement, so that is `true` even when no row matched. The tenant
-    // predicate still lives in the WHERE clause, so nothing crosses tenants;
-    // only the status code is wrong. Pinned as observed — the fix belongs in
-    // packages/kysely (use `numDeletedRows`, as `grants.remove` already does)
-    // and is out of scope for this test-only change.
-    it("answers 200 for an unknown session (should be 404)", async () => {
+    it("returns 404 for an unknown session", async () => {
       const { managementClient, token } = await setup();
 
       const response = await managementClient.sessions[":id"].$delete(
@@ -157,7 +149,7 @@ describe("management-api sessions", () => {
         { headers: { authorization: `Bearer ${token}` } },
       );
 
-      expect(response.status).toBe(200);
+      expect(response.status).toBe(404);
     });
 
     it("does not remove a session of another tenant", async () => {
@@ -176,8 +168,7 @@ describe("management-api sessions", () => {
         { headers: { authorization: `Bearer ${token}` } },
       );
 
-      // Same deviation as above: the status is 200, but the row survives.
-      expect(response.status).toBe(200);
+      expect(response.status).toBe(404);
       expect(
         await env.data.sessions.get("otherTenant", "otherSessionId"),
       ).not.toBeNull();
@@ -203,10 +194,7 @@ describe("management-api sessions", () => {
       expect(revoked?.revoked_at).toBeTruthy();
     });
 
-    // Same known deviation as DELETE, via `sessions.update` — it also returns
-    // `!!results.length`, so a no-op UPDATE reads as a hit and the route
-    // answers 202 instead of 404.
-    it("answers 202 for an unknown session (should be 404)", async () => {
+    it("returns 404 for an unknown session", async () => {
       const { managementClient, token } = await setup();
 
       const response = await managementClient.sessions[":id"].revoke.$post(
@@ -217,7 +205,7 @@ describe("management-api sessions", () => {
         { headers: { authorization: `Bearer ${token}` } },
       );
 
-      expect(response.status).toBe(202);
+      expect(response.status).toBe(404);
     });
 
     it("does not revoke a session of another tenant", async () => {
@@ -236,8 +224,7 @@ describe("management-api sessions", () => {
         { headers: { authorization: `Bearer ${token}` } },
       );
 
-      // Same deviation as above: the status is 202, but the row is untouched.
-      expect(response.status).toBe(202);
+      expect(response.status).toBe(404);
       const untouched = await env.data.sessions.get(
         "otherTenant",
         "otherSessionId",
