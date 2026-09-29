@@ -478,6 +478,10 @@ gtag('config', 'G-DNZWG3PF2L');`,
               text: "Encryption at Rest",
               link: "/security/encryption-at-rest",
             },
+            {
+              text: "Signing-key Certificates",
+              link: "/security/signing-key-certificates",
+            },
           ],
         },
         {

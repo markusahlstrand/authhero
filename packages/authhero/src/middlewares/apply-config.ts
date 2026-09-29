@@ -87,6 +87,10 @@ export function applyConfigMiddleware(
       ctx.env.signingKeyMode = config.signingKeyMode;
     }
 
+    if (config.signingCertificateAuthority) {
+      ctx.env.signingCertificateAuthority = config.signingCertificateAuthority;
+    }
+
     if (config.mcp) {
       ctx.env.mcp = config.mcp;
     }

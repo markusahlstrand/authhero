@@ -1,3 +1,7 @@
+import {
+  DEFAULT_CA_CERT_VALIDITY_DAYS,
+  certificateAuthorityIssuance,
+} from "../../helpers/signing-certificate-authority";
 import { Context } from "hono";
 import { X509Certificate } from "@peculiar/x509";
 import { Bindings, Variables } from "../../types";
@@ -42,6 +46,21 @@ const DEFAULT_VALIDITY_DAYS: Record<KeyType, number> = {
   jwt_signing: JWT_CERT_VALIDITY_DAYS,
   saml_encryption: SAML_CERT_VALIDITY_DAYS,
 };
+
+/**
+ * CA-issued certificates are short-lived and renewed on a schedule, so they
+ * default to the CA's lifetime rather than the self-signed default.
+ */
+function defaultValidityDays(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  type: KeyType,
+): number {
+  const ca = ctx.env.signingCertificateAuthority;
+  if (ca && type === "jwt_signing") {
+    return ca.validityDays ?? DEFAULT_CA_CERT_VALIDITY_DAYS;
+  }
+  return DEFAULT_VALIDITY_DAYS[type];
+}
 
 const validityDaysQuerySchema = z.coerce
   .number()
@@ -474,9 +493,17 @@ const postSigningRotate = defineRoute({
       page++;
     }
 
+    const certificateAuthority = certificateAuthorityIssuance(
+      ctx.env.signingCertificateAuthority,
+      {
+        type,
+        tenant_id: scope === "control-plane" ? undefined : scope.tenantId,
+      },
+    );
     const signingKey = await createX509Certificate({
       name: certificateName(ctx, scope),
-      validityDays: validity_days ?? DEFAULT_VALIDITY_DAYS[type],
+      validityDays: validity_days ?? defaultValidityDays(ctx, type),
+      certificateAuthority,
     });
 
     // Stamp `current_since` on the replacement so the resolveSigningKeys
@@ -558,7 +585,11 @@ const putSigningByKidRevoke = defineRoute({
         ctx,
         existing.tenant_id ? { tenantId: existing.tenant_id } : "control-plane",
       ),
-      validityDays: validity_days ?? DEFAULT_VALIDITY_DAYS[type],
+      validityDays: validity_days ?? defaultValidityDays(ctx, type),
+      certificateAuthority: certificateAuthorityIssuance(
+        ctx.env.signingCertificateAuthority,
+        { type, tenant_id: existing.tenant_id },
+      ),
     });
 
     // See rotate handler: stamp current_since so the new key sorts ahead
@@ -627,7 +658,11 @@ const postSigningByKidRenew = defineRoute({
     const renewed = await renewX509Certificate({
       cert: existing.cert,
       pkcs7: existing.pkcs7!,
-      validityDays: validity_days ?? DEFAULT_VALIDITY_DAYS[type],
+      validityDays: validity_days ?? defaultValidityDays(ctx, type),
+      certificateAuthority: certificateAuthorityIssuance(
+        ctx.env.signingCertificateAuthority,
+        { type, tenant_id: existing.tenant_id },
+      ),
     });
 
     // `fingerprint` is deliberately left alone: it identifies the public key,

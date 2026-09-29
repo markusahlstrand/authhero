@@ -234,6 +234,20 @@ export type {
   EnsureSigningKeyResult,
 } from "./helpers/signing-keys";
 
+// Signing-key certificate authority (x5c chains in the JWKS).
+export {
+  createLocalCertificateIssuer,
+  TENANT_URI_PREFIX,
+  CONTROL_PLANE_URI,
+  DEFAULT_CA_CERT_VALIDITY_DAYS,
+} from "./helpers/signing-certificate-authority";
+export type {
+  CertificateIssuer,
+  SigningCertificateRequest,
+  SigningCertificateAuthority,
+  LocalCertificateIssuerOptions,
+} from "./helpers/signing-certificate-authority";
+
 // Export constants
 export { USERNAME_PASSWORD_PROVIDER } from "./constants";
 

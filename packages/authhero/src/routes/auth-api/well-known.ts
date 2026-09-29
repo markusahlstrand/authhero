@@ -31,6 +31,7 @@ const getJwksJson = defineRoute({
       ctx.env.data,
       ctx.var.tenant_id,
       ctx.env.signingKeyMode,
+      ctx.env.signingCertificateAuthority?.issuer,
     );
 
     return ctx.json(
