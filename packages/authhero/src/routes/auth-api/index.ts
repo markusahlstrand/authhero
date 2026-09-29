@@ -21,6 +21,7 @@ import { avatarRoutes } from "./avatars";
 import { composeAuthData } from "../../helpers/compose-auth-data";
 import { createInMemoryCache } from "../../adapters/cache/in-memory";
 import { applyConfigMiddleware } from "../../middlewares/apply-config";
+import { rejectUnknownHostsMiddleware } from "../../middlewares/reject-unknown-hosts";
 import { tenantMiddleware } from "../../middlewares/tenant";
 import { clientInfoMiddleware } from "../../middlewares/client-info";
 import { outboxMiddleware } from "../../middlewares/outbox";
@@ -129,6 +130,8 @@ export default function create(config: AuthHeroConfig) {
     .use(clientInfoMiddleware)
     .use(tenantMiddleware)
     .use(createAuthMiddleware(app));
+
+  app.use("/.well-known/*", rejectUnknownHostsMiddleware);
 
   const oauthApp = app
     .route("/v2/logout", logoutRoutes)
