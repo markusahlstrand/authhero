@@ -16,6 +16,7 @@ import {
 import type { RolePermissionHooks, Hooks } from "./Hooks";
 import type { OutboxMetricsSink } from "./OutboxMetrics";
 import type { SamlSigner } from "@authhero/saml/core";
+import type { SigningCertificateAuthority } from "../helpers/signing-certificate-authority";
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import type { Handler, MiddlewareHandler } from "hono";
 import type {
@@ -760,6 +761,31 @@ export interface AuthHeroConfig {
    * @default "control-plane"
    */
   signingKeyMode?: SigningKeyModeOption;
+
+  /**
+   * Issue `jwt_signing` certificates from an intermediate CA instead of
+   * self-signing them, and publish the chain (`x5c`, `x5t#S256`) in the JWKS.
+   *
+   * Each certificate carries its owner in a SubjectAlternativeName URI
+   * (`urn:authhero:tenant:<id>`, or `urn:authhero:control-plane`), so a
+   * relying party can pin one root and trust a key for a tenant without
+   * knowing which hosts that tenant is served on.
+   *
+   * Applies to keys created or renewed after it is set. Existing
+   * self-signed keys keep working and are published without a chain until
+   * they are rotated out. SAML keys are never CA-issued.
+   *
+   * @example
+   * ```ts
+   * signingCertificateAuthority: {
+   *   issuer: createLocalCertificateIssuer({
+   *     certificate: env.SIGNING_CA_CERT,
+   *     privateKey: env.SIGNING_CA_KEY,
+   *   }),
+   * }
+   * ```
+   */
+  signingCertificateAuthority?: SigningCertificateAuthority;
 
   /**
    * Answer 404 on `/.well-known/*` when the request host doesn't belong to

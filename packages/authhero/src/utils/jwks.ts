@@ -10,8 +10,37 @@ import {
   resolveSigningKeys,
 } from "../helpers/signing-keys";
 import { SigningKeyModeOption } from "../types/AuthHeroConfig";
+import {
+  CertificateIssuer,
+  certificateChainMembers,
+  isCaIssued,
+} from "../helpers/signing-certificate-authority";
 
-async function signingKeysToJwks(signingKeys: SigningKey[]) {
+async function signingKeysToJwks(
+  signingKeys: SigningKey[],
+  certificateIssuer?: CertificateIssuer,
+) {
+  // Only fetched when some key is CA-issued, so a deployment without a CA —
+  // or one whose keys are all still self-signed — pays nothing. A failing
+  // issuer degrades to publishing keys without a chain: token verification
+  // must never depend on the CA being reachable.
+  let issuerCertificates: Promise<X509Certificate[]> | undefined;
+  const loadIssuerCertificates = () => {
+    issuerCertificates ??= certificateIssuer
+      ? certificateIssuer
+          .getIssuerCertificates()
+          .then((pems) => pems.map((pem) => new X509Certificate(pem)))
+          .catch((err: unknown) => {
+            console.warn(
+              "[authhero] could not load signing CA certificates; publishing JWKS without x5c",
+              err,
+            );
+            return [];
+          })
+      : Promise.resolve([]);
+    return issuerCertificates;
+  };
+
   return Promise.all(
     signingKeys.map(async (signingKey) => {
       const importedCert = new X509Certificate(signingKey.cert);
@@ -25,11 +54,19 @@ async function signingKeysToJwks(signingKeys: SigningKey[]) {
       // published JWKS lets clients verify without guessing.
       const alg = jwkKey.alg ?? algForJwk(jwkKey);
 
+      const chain = isCaIssued(importedCert)
+        ? await certificateChainMembers(
+            importedCert,
+            await loadIssuerCertificates(),
+          )
+        : undefined;
+
       return jwksSchema.parse({
         ...jwkKey,
         alg,
         use: "sig",
         kid: signingKey.kid,
+        ...chain,
       });
     }),
   );
@@ -45,6 +82,7 @@ export async function getJwksForPublication(
   data: DataAdapters,
   tenantId: string,
   modeOption: SigningKeyModeOption | undefined,
+  certificateIssuer?: CertificateIssuer,
 ) {
   const signingKeys = await resolveSigningKeys(
     data.keys,
@@ -52,7 +90,7 @@ export async function getJwksForPublication(
     modeOption,
     { purpose: "publish" },
   );
-  return signingKeysToJwks(signingKeys);
+  return signingKeysToJwks(signingKeys, certificateIssuer);
 }
 
 /**

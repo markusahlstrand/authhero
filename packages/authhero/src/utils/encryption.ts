@@ -8,6 +8,7 @@ import {
   encodeBase64,
   encodeHex,
 } from "@authhero/adapter-interfaces";
+import type { CertificateAuthorityIssuance } from "../helpers/signing-certificate-authority";
 
 const RFC7638_REQUIRED_MEMBERS: Record<string, string[]> = {
   RSA: ["e", "kty", "n"],
@@ -41,6 +42,11 @@ export interface CreateX509CertificateParams {
    * emails it over — so SAML keys want years, not months.
    */
   validityDays?: number;
+  /**
+   * Issue the certificate from a CA instead of self-signing it. The key pair
+   * is still generated here; only the public key is sent to the issuer.
+   */
+  certificateAuthority?: CertificateAuthorityIssuance;
 }
 
 /**
@@ -70,7 +76,7 @@ function genAlgForKeyType(
   }
 }
 
-function signingAlgForKeyType(
+export function signingAlgForKeyType(
   keyType: SigningKeyType,
 ): RsaHashedKeyGenParams | EcdsaParams {
   switch (keyType) {
@@ -135,23 +141,29 @@ export async function createX509Certificate(
   const nanoId = nanoid();
   const serialNumber = encodeHex(new TextEncoder().encode(nanoId));
 
-  const cert = await x509.X509CertificateGenerator.createSelfSigned({
-    serialNumber,
-    name: params.name,
-    notBefore: new Date(),
-    notAfter: certNotAfter(params.validityDays),
-    signingAlgorithm: signingAlgForKeyType(keyType),
-    keys,
-    extensions: [
-      new x509.BasicConstraintsExtension(true, 2, true),
-      new x509.ExtendedKeyUsageExtension(["1.3.6.1.5.5.7.3.1"], true), // serverAuth
-      new x509.KeyUsagesExtension(
-        x509.KeyUsageFlags.keyCertSign | x509.KeyUsageFlags.cRLSign,
-        true,
-      ),
-      await x509.SubjectKeyIdentifierExtension.create(keys.publicKey),
-    ],
-  });
+  const cert = params.certificateAuthority
+    ? await issueFromCertificateAuthority(params.certificateAuthority, {
+        publicKey: keys.publicKey!,
+        name: params.name,
+        validityDays: params.validityDays,
+      })
+    : await x509.X509CertificateGenerator.createSelfSigned({
+        serialNumber,
+        name: params.name,
+        notBefore: new Date(),
+        notAfter: certNotAfter(params.validityDays),
+        signingAlgorithm: signingAlgForKeyType(keyType),
+        keys,
+        extensions: [
+          new x509.BasicConstraintsExtension(true, 2, true),
+          new x509.ExtendedKeyUsageExtension(["1.3.6.1.5.5.7.3.1"], true), // serverAuth
+          new x509.KeyUsagesExtension(
+            x509.KeyUsageFlags.keyCertSign | x509.KeyUsageFlags.cRLSign,
+            true,
+          ),
+          await x509.SubjectKeyIdentifierExtension.create(keys.publicKey),
+        ],
+      });
 
   const privateKey = await crypto.subtle.exportKey("pkcs8", keys.privateKey!);
 
@@ -181,6 +193,8 @@ export interface RenewX509CertificateParams {
   /** Subject/issuer CN for the new certificate. Defaults to the current CN. */
   name?: string;
   validityDays?: number;
+  /** Re-issue from a CA instead of self-signing. The key pair is unchanged. */
+  certificateAuthority?: CertificateAuthorityIssuance;
 }
 
 export interface RenewX509CertificateResult {
@@ -207,7 +221,7 @@ const RENEWABLE_KEY_TYPES: SigningKeyType[] = [
  * the stored row doesn't record the key type, so we probe. The list is short
  * and an import either succeeds or throws immediately.
  */
-async function importPrivateKey(
+export async function importPrivateKey(
   pkcs7: string,
 ): Promise<{ key: CryptoKey; keyType: SigningKeyType }> {
   const der = pemToBuffer(pkcs7);
@@ -305,29 +319,117 @@ export async function renewX509Certificate(
   const serialNumber = encodeHex(new TextEncoder().encode(nanoid()));
   const name = params.name || existingCert.subject;
 
-  const cert = await x509.X509CertificateGenerator.createSelfSigned({
-    serialNumber,
-    name,
-    notBefore: new Date(),
-    notAfter: certNotAfter(params.validityDays),
-    signingAlgorithm: signingAlgForKeyType(keyType),
-    keys: { privateKey, publicKey },
-    extensions: [
-      new x509.BasicConstraintsExtension(true, 2, true),
-      new x509.ExtendedKeyUsageExtension(["1.3.6.1.5.5.7.3.1"], true), // serverAuth
-      new x509.KeyUsagesExtension(
-        x509.KeyUsageFlags.keyCertSign | x509.KeyUsageFlags.cRLSign,
-        true,
-      ),
-      await x509.SubjectKeyIdentifierExtension.create(publicKey),
-    ],
-  });
+  const cert = params.certificateAuthority
+    ? await issueFromCertificateAuthority(params.certificateAuthority, {
+        publicKey,
+        name,
+        validityDays: params.validityDays,
+      })
+    : await x509.X509CertificateGenerator.createSelfSigned({
+        serialNumber,
+        name,
+        notBefore: new Date(),
+        notAfter: certNotAfter(params.validityDays),
+        signingAlgorithm: signingAlgForKeyType(keyType),
+        keys: { privateKey, publicKey },
+        extensions: [
+          new x509.BasicConstraintsExtension(true, 2, true),
+          new x509.ExtendedKeyUsageExtension(["1.3.6.1.5.5.7.3.1"], true), // serverAuth
+          new x509.KeyUsagesExtension(
+            x509.KeyUsageFlags.keyCertSign | x509.KeyUsageFlags.cRLSign,
+            true,
+          ),
+          await x509.SubjectKeyIdentifierExtension.create(publicKey),
+        ],
+      });
 
   return {
     cert: cert.toString("pem"),
     thumbprint: encodeHex(await cert.getThumbprint()),
     fingerprint,
   };
+}
+
+/** Clock skew tolerated between the auth worker and a remote CA. */
+const CA_CLOCK_SKEW_MS = 5 * 60 * 1000;
+
+/**
+ * Have the CA certify `publicKey`, then check that the certificate it returned
+ * is the one we asked for. A matching key alone isn't enough: relying parties
+ * trust the key for whichever owner its SAN URI names, so a leaf bound to the
+ * wrong owner — or one that is itself a CA, or outlives the requested window —
+ * must never be stored or published.
+ *
+ * The subject DN isn't compared: CAs legitimately rewrite it, and ownership is
+ * carried by the SAN URI, not the CN.
+ */
+async function issueFromCertificateAuthority(
+  ca: CertificateAuthorityIssuance,
+  params: { publicKey: CryptoKey; name: string; validityDays?: number },
+): Promise<x509.X509Certificate> {
+  const spki = await crypto.subtle.exportKey("spki", params.publicKey);
+  const notBefore = new Date();
+  const notAfter = certNotAfter(params.validityDays);
+  const pem = await ca.issuer.issueCertificate({
+    publicKey: convertPKCS7ToPem("PUBLIC", spki),
+    subject: params.name,
+    uri: ca.uri,
+    notBefore,
+    notAfter,
+  });
+  const cert = new x509.X509Certificate(pem);
+
+  const sanUris =
+    cert
+      .getExtension(x509.SubjectAlternativeNameExtension)
+      ?.names.items.filter((name) => name.type === "url")
+      .map((name) => name.value) ?? [];
+  if (sanUris.length !== 1 || sanUris[0] !== ca.uri) {
+    throw new Error(
+      `The certificate authority returned a certificate for a different owner: expected SAN URI ${ca.uri}`,
+    );
+  }
+
+  if (cert.getExtension(x509.BasicConstraintsExtension)?.ca) {
+    throw new Error(
+      "The certificate authority returned a CA certificate for a signing key",
+    );
+  }
+
+  // An absent KeyUsage extension permits every usage (RFC 5280 §4.2.1.3), so
+  // only a present one can be wrong: it must allow signing tokens, and must
+  // not allow signing certificates or CRLs. Extra bits such as
+  // nonRepudiation are left to the CA's profile.
+  const keyUsage = cert.getExtension(x509.KeyUsagesExtension)?.usages;
+  if (
+    keyUsage !== undefined &&
+    (!(keyUsage & x509.KeyUsageFlags.digitalSignature) ||
+      keyUsage & (x509.KeyUsageFlags.keyCertSign | x509.KeyUsageFlags.cRLSign))
+  ) {
+    throw new Error(
+      "The certificate authority returned a certificate whose key usage doesn't permit signing tokens",
+    );
+  }
+
+  if (
+    cert.notBefore.getTime() < notBefore.getTime() - CA_CLOCK_SKEW_MS ||
+    cert.notAfter.getTime() > notAfter.getTime() + CA_CLOCK_SKEW_MS ||
+    cert.notAfter.getTime() <= Date.now()
+  ) {
+    throw new Error(
+      "The certificate authority returned a certificate outside the requested validity window",
+    );
+  }
+
+  const expected = computeJWKThumbprint(
+    await crypto.subtle.exportKey("jwk", params.publicKey),
+  );
+  if ((await getJWKThumbprint(cert)) !== (await expected)) {
+    throw new Error(
+      "The certificate authority returned a certificate for a different key",
+    );
+  }
+  return cert;
 }
 
 export function convertPKCS7ToPem(

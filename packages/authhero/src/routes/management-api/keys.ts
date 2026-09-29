@@ -1,3 +1,7 @@
+import {
+  DEFAULT_CA_CERT_VALIDITY_DAYS,
+  certificateAuthorityIssuance,
+} from "../../helpers/signing-certificate-authority";
 import { Context } from "hono";
 import { X509Certificate } from "@peculiar/x509";
 import { Bindings, Variables } from "../../types";
@@ -42,6 +46,21 @@ const DEFAULT_VALIDITY_DAYS: Record<KeyType, number> = {
   jwt_signing: JWT_CERT_VALIDITY_DAYS,
   saml_encryption: SAML_CERT_VALIDITY_DAYS,
 };
+
+/**
+ * CA-issued certificates are short-lived and renewed on a schedule, so they
+ * default to the CA's lifetime rather than the self-signed default.
+ */
+function defaultValidityDays(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  type: KeyType,
+): number {
+  const ca = ctx.env.signingCertificateAuthority;
+  if (ca && type === "jwt_signing") {
+    return ca.validityDays ?? DEFAULT_CA_CERT_VALIDITY_DAYS;
+  }
+  return DEFAULT_VALIDITY_DAYS[type];
+}
 
 const validityDaysQuerySchema = z.coerce
   .number()
@@ -441,6 +460,22 @@ const postSigningRotate = defineRoute({
     assertScopeMutable(authority);
     const activatesAt = new Date(Date.now() + (activate_in_days ?? 0) * DAY);
     const revokesAt = new Date(activatesAt.getTime() + (grace_days ?? 1) * DAY);
+    // Issue the replacement before revoking anything: a CA issuer can fail
+    // (unreachable, wrong key), and failing after the revocations are written
+    // would leave the scope with no signer once the grace period ends.
+    const certificateAuthority = certificateAuthorityIssuance(
+      ctx.env.signingCertificateAuthority,
+      {
+        type,
+        tenant_id: scope === "control-plane" ? undefined : scope.tenantId,
+      },
+    );
+    const signingKey = await createX509Certificate({
+      name: certificateName(ctx, scope),
+      validityDays: validity_days ?? defaultValidityDays(ctx, type),
+      certificateAuthority,
+    });
+
     // Only revoke keys in the same scope we're rotating into; otherwise
     // rotating tenant X would also wipe the shared control-plane keys
     // every other tenant still depends on. The adapter already filters
@@ -473,11 +508,6 @@ const postSigningRotate = defineRoute({
       if (signingKeys.length < perPage) break;
       page++;
     }
-
-    const signingKey = await createX509Certificate({
-      name: certificateName(ctx, scope),
-      validityDays: validity_days ?? DEFAULT_VALIDITY_DAYS[type],
-    });
 
     // Stamp `current_since` on the replacement so the resolveSigningKeys
     // tiebreaker picks it over the still-in-grace older keys; without
@@ -546,20 +576,26 @@ const putSigningByKidRevoke = defineRoute({
     // whoever does own it — the control plane keeps signing with the original.
     assertMutable(existing, await resolveKeyAuthority(ctx, type));
 
+    // Issue the replacement first so a failing CA leaves the key in service
+    // instead of revoking it with nothing to take over.
+    const signingKey = await createX509Certificate({
+      name: certificateName(
+        ctx,
+        existing.tenant_id ? { tenantId: existing.tenant_id } : "control-plane",
+      ),
+      validityDays: validity_days ?? defaultValidityDays(ctx, type),
+      certificateAuthority: certificateAuthorityIssuance(
+        ctx.env.signingCertificateAuthority,
+        { type, tenant_id: existing.tenant_id },
+      ),
+    });
+
     const revoked = await ctx.env.data.keys.update(kid, {
       revoked_at: new Date().toISOString(),
     });
     if (!revoked) {
       throw new HTTPException(404, { message: "Key not found" });
     }
-
-    const signingKey = await createX509Certificate({
-      name: certificateName(
-        ctx,
-        existing.tenant_id ? { tenantId: existing.tenant_id } : "control-plane",
-      ),
-      validityDays: validity_days ?? DEFAULT_VALIDITY_DAYS[type],
-    });
 
     // See rotate handler: stamp current_since so the new key sorts ahead
     // of the just-revoked one in the resolveSigningKeys tiebreaker.
@@ -627,7 +663,11 @@ const postSigningByKidRenew = defineRoute({
     const renewed = await renewX509Certificate({
       cert: existing.cert,
       pkcs7: existing.pkcs7!,
-      validityDays: validity_days ?? DEFAULT_VALIDITY_DAYS[type],
+      validityDays: validity_days ?? defaultValidityDays(ctx, type),
+      certificateAuthority: certificateAuthorityIssuance(
+        ctx.env.signingCertificateAuthority,
+        { type, tenant_id: existing.tenant_id },
+      ),
     });
 
     // `fingerprint` is deliberately left alone: it identifies the public key,

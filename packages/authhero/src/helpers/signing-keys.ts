@@ -1,6 +1,11 @@
 import { SigningKey, KeysAdapter } from "@authhero/adapter-interfaces";
 import { SigningKeyMode, SigningKeyModeOption } from "../types/AuthHeroConfig";
 import { createX509Certificate } from "../utils/encryption";
+import {
+  DEFAULT_CA_CERT_VALIDITY_DAYS,
+  SigningCertificateAuthority,
+  certificateAuthorityIssuance,
+} from "./signing-certificate-authority";
 
 /**
  * Returns the non-revoked subset of a list result, sorted newest-first.
@@ -197,6 +202,12 @@ export interface EnsureSigningKeyOptions {
   name?: string;
   /** Defaults to `"jwt_signing"`. */
   type?: SigningKey["type"];
+  /**
+   * Issue the new key's certificate from this CA (`jwt_signing` only). The
+   * SAN is resolved from `tenantId`, so a WFP tenant worker that stores its
+   * keys without one should set `subjectUri` on the CA config.
+   */
+  certificateAuthority?: SigningCertificateAuthority;
 }
 
 export interface EnsureSigningKeyResult {
@@ -235,8 +246,20 @@ export async function ensureSigningKey(
   }
 
   // Default keyType is RSA -> RS256, matching seed.ts and the rotate endpoint.
+  const certificateAuthority = certificateAuthorityIssuance(
+    opts.certificateAuthority,
+    { type, tenant_id: opts.tenantId },
+  );
   const generated = await createX509Certificate({
     name: `CN=${opts.name || opts.tenantId || "authhero"}`,
+    certificateAuthority,
+    ...(certificateAuthority
+      ? {
+          validityDays:
+            opts.certificateAuthority?.validityDays ??
+            DEFAULT_CA_CERT_VALIDITY_DAYS,
+        }
+      : {}),
   });
   const key: SigningKey = {
     ...generated,

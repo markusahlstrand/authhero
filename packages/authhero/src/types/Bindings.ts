@@ -1,3 +1,4 @@
+import type { SigningCertificateAuthority } from "../helpers/signing-certificate-authority";
 import { CodeExecutor, DataAdapters } from "@authhero/adapter-interfaces";
 import type { SamlSigner } from "@authhero/saml/core";
 import { Hooks } from "./Hooks";
@@ -114,6 +115,10 @@ export type Bindings = {
   // "tenant" for a tenant_id switches that tenant onto its own keys
   // with control-plane fallback while a tenant key is provisioned.
   signingKeyMode?: SigningKeyModeOption;
+
+  // Set via init({ signingCertificateAuthority }). New and renewed
+  // jwt_signing certificates are issued from it, and the JWKS carries x5c.
+  signingCertificateAuthority?: SigningCertificateAuthority;
 
   // Set via init({ rejectUnknownHosts: true }). /.well-known/* answers 404
   // for hosts that are neither the ISSUER host, a tenant subdomain, nor a

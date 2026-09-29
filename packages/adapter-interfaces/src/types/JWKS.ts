@@ -29,6 +29,8 @@ export const jwksSchema = z
     x: z.string().optional(),
     y: z.string().optional(),
     x5t: z.string().optional(),
+    // RFC 7517 §4.9: base64url SHA-256 thumbprint of the DER certificate.
+    "x5t#S256": z.string().optional(),
     x5c: z.array(z.string()).optional(),
   })
   .superRefine((jwk, ctx) => {
