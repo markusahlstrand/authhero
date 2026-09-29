@@ -91,6 +91,10 @@ export function applyConfigMiddleware(
       ctx.env.signingCertificateAuthority = config.signingCertificateAuthority;
     }
 
+    if (config.rejectUnknownHosts) {
+      ctx.env.rejectUnknownHosts = config.rejectUnknownHosts;
+    }
+
     if (config.mcp) {
       ctx.env.mcp = config.mcp;
     }

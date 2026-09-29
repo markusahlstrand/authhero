@@ -83,6 +83,7 @@
       "editEmailText": "Muokkaa",
       "emailPlaceholder": "Sähköpostiosoite",
       "enterACodeBtn": "Kirjaudu koodilla",
+      "enterACodeShortBtn": "Koodi",
       "federatedConnectionButtonText": "Jatka palvelulla ${connectionName}",
       "lastUsedText": "Viimeksi käytetty",
       "footerLinkText": "Rekisteröidy",

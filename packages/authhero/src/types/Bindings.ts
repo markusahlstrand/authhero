@@ -120,6 +120,11 @@ export type Bindings = {
   // jwt_signing certificates are issued from it, and the JWKS carries x5c.
   signingCertificateAuthority?: SigningCertificateAuthority;
 
+  // Set via init({ rejectUnknownHosts: true }). /.well-known/* answers 404
+  // for hosts that are neither the ISSUER host, a tenant subdomain, nor a
+  // registered custom domain.
+  rejectUnknownHosts?: boolean;
+
   // Set via init({ mcp: ... }). /authorize reads it to accept the MCP
   // server's resource URLs as audiences (RFC 8707).
   mcp?: McpConfig;

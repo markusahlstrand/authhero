@@ -657,7 +657,7 @@ describe("organization members (remaining paths)", () => {
     expect(response.status).toBe(200);
   });
 
-  it("fails hard when a member does not exist", async () => {
+  it("rejects a member that does not exist with a 400", async () => {
     const { managementApp, env } = await getTestServer();
     const client = testClient(managementApp, env);
     const token = await getAdminToken();
@@ -668,22 +668,15 @@ describe("organization members (remaining paths)", () => {
       name: "ghost-org",
     });
 
-    // Documents current behaviour, not desired behaviour: the handler verifies
-    // the organization but never the users, so an unknown user id falls
-    // through to the user_organizations foreign key and escapes as a raw
-    // adapter error instead of a response. Auth0 answers 400 ("Some users do
-    // not exist"). Flagged for a human on the PR — if the handler starts
-    // validating members, this should become a 400 assertion.
-    await expect(
-      client.organizations[":id"].members.$post(
-        {
-          param: { id: organization.id },
-          json: { members: ["email|does-not-exist"] },
-          header: { "tenant-id": tenantId },
-        },
-        { headers: { authorization: `Bearer ${token}` } },
-      ),
-    ).rejects.toThrow();
+    const response = await client.organizations[":id"].members.$post(
+      {
+        param: { id: organization.id },
+        json: { members: ["email|does-not-exist"] },
+        header: { "tenant-id": tenantId },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(response.status).toBe(400);
 
     const listResponse = await client.organizations[":id"].members.$get(
       {

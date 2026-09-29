@@ -207,6 +207,37 @@ describe("MCP endpoint", () => {
     });
   });
 
+  describe("protected resource metadata with rejectUnknownHosts", () => {
+    it("returns 404 for a host the deployment doesn't own", async () => {
+      const server = await setup();
+      server.env.rejectUnknownHosts = true;
+      for (const path of [
+        "/.well-known/oauth-protected-resource",
+        "/.well-known/oauth-protected-resource/mcp",
+      ]) {
+        const response = await server.app.request(
+          `http://localhost:3000${path}`,
+          { headers: { "x-forwarded-host": "unknown.example.org" } },
+          server.env,
+        );
+        expect(response.status).toBe(404);
+      }
+    });
+
+    it("serves known hosts", async () => {
+      const server = await setup();
+      server.env.rejectUnknownHosts = true;
+      for (const host of ["localhost:3000", "acme.localhost:3000"]) {
+        const response = await server.app.request(
+          "http://localhost:3000/.well-known/oauth-protected-resource/mcp",
+          { headers: { "x-forwarded-host": host } },
+          server.env,
+        );
+        expect(response.status).toBe(200);
+      }
+    });
+  });
+
   describe("authentication", () => {
     it("challenges a request without a token", async () => {
       const server = await setup();

@@ -81,6 +81,8 @@ describe("login screen - passwordless button", () => {
     expect(passwordlessProvider.href).toContain(
       "login-passwordless-identifier",
     );
+    // Compact two-button row on short viewports shows the bare label
+    expect(passwordlessProvider.short_name).toBe("Code");
   });
 
   it("should NOT show passwordless button when only password connection is available", async () => {

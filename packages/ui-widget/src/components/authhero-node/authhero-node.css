@@ -558,6 +558,64 @@ input[type="date"].input-field+.input-label {
   flex-shrink: 0;
 }
 
+/* Short label is only shown in the compact row layout below. */
+.btn-social-text-short {
+  display: none;
+}
+
+/* Short viewport (e.g. laptops): stacked full-width buttons push the form
+   below the fold, so lay 2+ buttons out in a row like the classic login
+   page. Two buttons keep the icon plus the bare provider name; three or more
+   go icon-only, as on small screens. */
+@media (max-height: 900px) and (min-width: 481px) {
+  .social-buttons:has(.btn-social:nth-child(2)) {
+    flex-direction: row;
+    gap: 8px;
+  }
+
+  .social-buttons:has(.btn-social:nth-child(2)) .btn-social {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 12px;
+  }
+
+  .social-buttons:has(.btn-social:nth-child(2)) .btn-social-content {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .social-buttons:has(.btn-social:nth-child(2)) .btn-social-text {
+    display: none;
+  }
+
+  .social-buttons:has(.btn-social:nth-child(2)) .btn-social-text-short {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Buttons without an icon keep their short name so they aren't blank. */
+  .social-buttons:has(.btn-social:nth-child(3))
+    .btn-social:not(.no-icon)
+    .btn-social-content {
+    display: none;
+  }
+
+  .social-buttons:has(.btn-social:nth-child(3)) .social-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  /* Icon-only buttons are about as wide as the badge, so center it. */
+  .social-buttons:has(.btn-social:nth-child(3)) .btn-social-badge {
+    left: 50%;
+    right: auto;
+    transform: translate(-50%, -50%);
+  }
+}
+
 /* Small screen: collapse social buttons to icon-only in a row only if 3+ buttons */
 @media (max-width: 480px) {
   /* Only apply icon-only layout when there are 3 or more social buttons */

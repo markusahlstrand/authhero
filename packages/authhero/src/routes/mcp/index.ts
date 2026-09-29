@@ -4,6 +4,7 @@ import { HTTPException } from "hono/http-exception";
 import type { Bindings, McpConfig, Variables } from "../../types";
 import { JSONHTTPException } from "../../errors/json-http-exception";
 import { tenantMiddleware } from "../../middlewares/tenant";
+import { rejectUnknownHostsMiddleware } from "../../middlewares/reject-unknown-hosts";
 import { extractBearerToken } from "../../utils/auth-header";
 import { validateJwtToken } from "../../utils/jwt";
 import { createToolApi, type FetchableApp, type McpCaller } from "./dispatch";
@@ -92,6 +93,10 @@ export function createMcpApp(config: McpConfig, app: FetchableApp) {
   // middleware would run for every other route too.
   for (const path of [MCP_PATH, METADATA_PATH, `${METADATA_PATH}${MCP_PATH}`]) {
     mcp.use(path, corsMiddleware, tenantMiddleware);
+  }
+  // Same opt-in guard the OAuth app applies to the rest of /.well-known/*.
+  for (const path of [METADATA_PATH, `${METADATA_PATH}${MCP_PATH}`]) {
+    mcp.use(path, rejectUnknownHostsMiddleware);
   }
 
   const metadata = (ctx: McpContext) => {

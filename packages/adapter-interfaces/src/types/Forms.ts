@@ -376,6 +376,9 @@ const socialField = fieldComponentBase.extend({
             name: z.string(),
             strategy: z.string().optional(),
             display_name: z.string().optional(),
+            // Bare provider name ("Google") used when the buttons collapse
+            // into a compact row and display_name is too long to fit.
+            short_name: z.string().optional(),
             icon_url: z.string().optional(),
             href: z.string().optional(),
             last_used: z.boolean().optional(),

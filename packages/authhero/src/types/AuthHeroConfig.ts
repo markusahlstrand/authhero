@@ -788,6 +788,20 @@ export interface AuthHeroConfig {
   signingCertificateAuthority?: SigningCertificateAuthority;
 
   /**
+   * Answer 404 on `/.well-known/*` when the request host doesn't belong to
+   * this deployment: not the ISSUER host, not a `{tenant}.{issuer}`
+   * subdomain of an existing tenant, and not a registered custom domain.
+   *
+   * Without it, discovery and JWKS are served for any host that reaches the
+   * worker, falling back to the control-plane keys and apex metadata. Turn it
+   * on once every host the deployment is reached on is one of the above
+   * (watch for `*.workers.dev` URLs and unregistered domain aliases).
+   *
+   * @default false
+   */
+  rejectUnknownHosts?: boolean;
+
+  /**
    * Relax the management API audience check from a hard 403 to a
    * `console.warn`. Tokens issued for any other audience will still be
    * accepted as long as they carry a matching scope/permission string.

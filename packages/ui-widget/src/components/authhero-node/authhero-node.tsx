@@ -20,6 +20,7 @@ import {
   getCountryByCode,
   type CountryData,
 } from "../../utils/country-data";
+import { sanitizeForCssToken } from "../../utils/css-token";
 import {
   expandTwoDigitYear,
   getDateLayout,
@@ -638,18 +639,6 @@ export class AuthheroNode {
     return undefined;
   }
 
-  /**
-   * Sanitize a string for use in CSS class names and part tokens.
-   * Replaces spaces and special characters with hyphens, converts to lowercase.
-   */
-  private sanitizeForCssToken(value: string): string {
-    return value
-      .toLowerCase()
-      .replace(/[^a-z0-9-]/g, "-") // Replace non-alphanumeric chars with hyphen
-      .replace(/-+/g, "-") // Collapse multiple hyphens
-      .replace(/^-|-$/g, ""); // Remove leading/trailing hyphens
-  }
-
   private handleButtonClick = (e: Event, type: string, value?: string) => {
     // Always prevent default to avoid double submissions
     // The parent widget handles the actual form submission
@@ -987,7 +976,7 @@ export class AuthheroNode {
     if (config?.last_used !== true) {
       return null;
     }
-    const safeId = this.sanitizeForCssToken(component.id);
+    const safeId = sanitizeForCssToken(component.id);
     return (
       <span class="input-badge" part={`input-badge input-badge-${safeId}`}>
         {config.last_used_label || "Last used"}
@@ -1630,6 +1619,7 @@ export class AuthheroNode {
           name: string;
           strategy?: string;
           display_name?: string;
+          short_name?: string;
           icon_url?: string;
           href?: string;
           last_used?: boolean;
@@ -1657,7 +1647,7 @@ export class AuthheroNode {
     // Get provider icon from provider_details icon_url
     const getProviderIcon = (provider: string) => {
       const details = detailsMap.get(provider);
-      const safeProvider = this.sanitizeForCssToken(provider);
+      const safeProvider = sanitizeForCssToken(provider);
       if (details?.icon_url) {
         return (
           <img
@@ -1681,7 +1671,7 @@ export class AuthheroNode {
     return (
       <div class="social-buttons" part="social-buttons">
         {providers.map((provider) => {
-          const safeProvider = this.sanitizeForCssToken(provider);
+          const safeProvider = sanitizeForCssToken(provider);
           const strategy = getProviderStrategy(provider);
           const icon = getProviderIcon(provider);
           const details = detailsMap.get(provider);
@@ -1695,9 +1685,18 @@ export class AuthheroNode {
               part={`button-social-content button-social-content-${safeProvider}`}
             >
               <span
+                class="btn-social-text"
                 part={`button-social-text button-social-text-${safeProvider}`}
               >
                 {getButtonText(provider)}
+              </span>
+              {/* Shown instead of the full text when the buttons collapse
+                  into a compact row on short viewports. */}
+              <span
+                class="btn-social-text-short"
+                part={`button-social-text-short button-social-text-short-${safeProvider}`}
+              >
+                {details?.short_name || getButtonText(provider)}
               </span>
               <span
                 class="btn-social-subtitle"
