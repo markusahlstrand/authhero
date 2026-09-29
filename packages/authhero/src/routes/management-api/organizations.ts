@@ -610,19 +610,20 @@ const postByIdMembers = defineRoute({
     }
 
     for (const userId of uniqueMembers) {
-      // Page through all of the user's memberships: they may belong to other
-      // organizations too, so a single-row lookup can miss this one.
+      // Page through all of the user's organizations: they may belong to
+      // others too, so a single-row lookup can miss this one.
       let alreadyMember = false;
       for (let page = 0; !alreadyMember; page++) {
-        const existing = await ctx.env.data.userOrganizations.list(tenant_id, {
-          q: `user_id:${escapeLuceneValue(userId)}`,
-          page,
-          per_page: 100,
-        });
-        alreadyMember = existing.userOrganizations.some(
-          (uo) => uo.organization_id === organization.id,
+        const existing =
+          await ctx.env.data.userOrganizations.listUserOrganizations(
+            tenant_id,
+            userId,
+            { page, per_page: 100 },
+          );
+        alreadyMember = existing.organizations.some(
+          (org) => org.id === organization.id,
         );
-        if (existing.userOrganizations.length < 100) break;
+        if (existing.organizations.length < 100) break;
       }
 
       if (!alreadyMember) {
