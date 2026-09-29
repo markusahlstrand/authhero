@@ -83,6 +83,7 @@
       "editEmailText": "Rediger",
       "emailPlaceholder": "E-mail-adresse",
       "enterACodeBtn": "Log ind med en kode",
+      "enterACodeShortBtn": "Kode",
       "federatedConnectionButtonText": "Fortsæt med ${connectionName}",
       "lastUsedText": "Senest brugt",
       "footerLinkText": "Tilmeld dig",

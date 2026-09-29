@@ -83,6 +83,7 @@
       "editEmailText": "Edit",
       "emailPlaceholder": "Email address",
       "enterACodeBtn": "Sign in with a code",
+      "enterACodeShortBtn": "Code",
       "federatedConnectionButtonText": "Continue with ${connectionName}",
       "lastUsedText": "Last used",
       "footerLinkText": "Sign up",

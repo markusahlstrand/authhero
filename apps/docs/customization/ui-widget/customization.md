@@ -82,7 +82,7 @@ The widget exposes CSS parts that allow you to style internal elements from outs
 | `button-social-content-{provider}`  | Provider-specific content wrapper                                                            |
 | `button-social-text`                | The main text inside social buttons                                                          |
 | `button-social-text-{provider}`     | Provider-specific main text                                                                  |
-| `button-social-text-short`          | Bare provider name, shown instead of the main text when the buttons collapse into a row on short viewports (max-height 900px) |
+| `button-social-text-short`          | Bare provider name, shown instead of the main text when exactly two buttons share a row on short viewports (max-height 900px). Hidden in icon-only rows (three or more buttons, or the narrow phone row) |
 | `button-social-text-short-{provider}` | Provider-specific short text                                                               |
 | `button-social-subtitle`            | Subtitle text element (empty by default, populate via CSS)                                   |
 | `button-social-subtitle-{provider}` | Provider-specific subtitle element                                                           |

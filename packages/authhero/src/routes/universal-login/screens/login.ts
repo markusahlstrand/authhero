@@ -90,6 +90,7 @@ function buildSocialButtons(
       name: firstPasswordless.name,
       strategy: firstPasswordless.strategy,
       display_name: m.enterACodeBtn(),
+      short_name: firstPasswordless.display_name || m.enterACodeShortBtn(),
       icon_url: getConnectionIconUrl(firstPasswordless),
       href: passwordlessUrl,
       ...(passwordlessConnections.some((c) => c.name === lastUsedConnection)

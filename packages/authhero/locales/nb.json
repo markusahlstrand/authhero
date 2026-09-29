@@ -83,6 +83,7 @@
       "editEmailText": "Rediger",
       "emailPlaceholder": "E-postadresse",
       "enterACodeBtn": "Logg inn med en kode",
+      "enterACodeShortBtn": "Kode",
       "federatedConnectionButtonText": "Fortsett med ${connectionName}",
       "lastUsedText": "Sist brukt",
       "footerLinkText": "Registrer deg",

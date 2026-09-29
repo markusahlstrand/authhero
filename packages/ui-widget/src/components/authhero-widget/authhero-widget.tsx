@@ -16,6 +16,7 @@ import type {
 import type { WidgetBranding, WidgetTheme } from "../../utils/branding";
 import { mergeThemeVars, applyCssVars } from "../../utils/branding";
 import { sanitizeHtml } from "../../utils/sanitize-html";
+import { sanitizeForCssToken } from "../../utils/css-token";
 
 /**
  * When a screen's field section is made up entirely of choice buttons
@@ -1935,7 +1936,7 @@ export class AuthheroWidget {
       const config = component.config as { providers?: string[] } | undefined;
       const providers = config?.providers ?? [];
       const providerParts = providers.flatMap((p: string) => {
-        const safe = p.replace(/[^a-zA-Z0-9-]/g, "-");
+        const safe = sanitizeForCssToken(p);
         return [
           `button-social-${safe}`,
           `button-social-content-${safe}`,
