@@ -7,7 +7,7 @@ import { callbackRoutes, loginCallbackRoutes } from "./callback";
 import { logoutRoutes } from "./logout";
 import { oidcLogoutRoutes } from "./oidc-logout";
 import { userinfoRoutes } from "./userinfo";
-import { wellKnownRoutes } from "./well-known";
+import { rejectUnknownHostsMiddleware, wellKnownRoutes } from "./well-known";
 import { tokenRoutes } from "./token";
 import { revokeRoutes } from "./revoke";
 import { dbConnectionRoutes } from "./dbconnections";
@@ -129,6 +129,8 @@ export default function create(config: AuthHeroConfig) {
     .use(clientInfoMiddleware)
     .use(tenantMiddleware)
     .use(createAuthMiddleware(app));
+
+  app.use("/.well-known/*", rejectUnknownHostsMiddleware);
 
   const oauthApp = app
     .route("/v2/logout", logoutRoutes)

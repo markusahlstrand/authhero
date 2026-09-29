@@ -87,6 +87,10 @@ export function applyConfigMiddleware(
       ctx.env.signingKeyMode = config.signingKeyMode;
     }
 
+    if (config.rejectUnknownHosts) {
+      ctx.env.rejectUnknownHosts = config.rejectUnknownHosts;
+    }
+
     if (config.mcp) {
       ctx.env.mcp = config.mcp;
     }

@@ -2,6 +2,7 @@ import {
   jwksKeySchema,
   openIDConfigurationSchema,
 } from "@authhero/adapter-interfaces";
+import { Context, MiddlewareHandler } from "hono";
 import { OpenAPIHono, createRoute } from "@hono/zod-openapi";
 import { JWKS_CACHE_TIMEOUT_IN_SECONDS } from "../../constants";
 import { Bindings, Variables } from "../../types";
@@ -236,6 +237,56 @@ const getOAuthAuthorizationServer = defineRoute({
     return ctx.json(result, { headers: METADATA_CACHE_HEADERS });
   },
 });
+
+/**
+ * True when the request host belongs to this deployment: the ISSUER host, a
+ * `{tenant}.{issuer}` subdomain of an existing tenant, or a registered custom
+ * domain. tenantMiddleware has usually settled this already (it sets
+ * `custom_domain` for the last two), but it returns early for authenticated
+ * users and `tenant-id` headers, so those requests are re-checked here.
+ */
+async function isKnownHost(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+): Promise<boolean> {
+  if (ctx.var.custom_domain) return true;
+
+  const issuerHost = new URL(getIssuer(ctx.env)).host.toLowerCase();
+  const candidates = [
+    ctx.req.header("x-forwarded-host"),
+    ctx.req.header("host"),
+  ]
+    .filter((host): host is string => !!host)
+    .map((host) => host.toLowerCase());
+
+  for (const host of candidates) {
+    if (host === issuerHost) return true;
+    if (host.endsWith(`.${issuerHost}`)) {
+      const label = host.slice(0, -(issuerHost.length + 1));
+      if (!label.includes(".") && (await ctx.env.data.tenants.get(label))) {
+        return true;
+      }
+      continue;
+    }
+    if (await ctx.env.data.customDomains.getByDomain(host)) return true;
+  }
+  return false;
+}
+
+/**
+ * Opt-in (`init({ rejectUnknownHosts: true })`). Without it, discovery and
+ * JWKS on a host this deployment doesn't own fall back to the control-plane
+ * keys and apex metadata, so anyone could point a domain at the worker and
+ * serve AuthHero discovery from it.
+ */
+export const rejectUnknownHostsMiddleware: MiddlewareHandler<{
+  Bindings: Bindings;
+  Variables: Variables;
+}> = async (ctx, next) => {
+  if (ctx.env.rejectUnknownHosts && !(await isKnownHost(ctx))) {
+    return ctx.text("Not Found", 404);
+  }
+  return next();
+};
 
 export const wellKnownRoutes = new OpenAPIHono<{
   Bindings: Bindings;
