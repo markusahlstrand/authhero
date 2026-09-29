@@ -123,6 +123,52 @@ describe("CA-issued signing certificates", () => {
     ).rejects.toThrow(/validity window/);
   });
 
+  it("rejects a leaf whose key usage doesn't permit signing tokens", async () => {
+    const issuerKeys = await crypto.subtle.generateKey(
+      {
+        name: "RSASSA-PKCS1-v1_5",
+        hash: "SHA-256",
+        publicExponent: new Uint8Array([1, 0, 1]),
+        modulusLength: 2048,
+      },
+      true,
+      ["sign", "verify"],
+    );
+    const certSigning: CertificateIssuer = {
+      issueCertificate: async (request) => {
+        const leaf = await x509.X509CertificateGenerator.create({
+          subject: request.subject,
+          issuer: "CN=Rogue",
+          notBefore: request.notBefore,
+          notAfter: request.notAfter,
+          signingAlgorithm: { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+          publicKey: new x509.PublicKey(request.publicKey),
+          signingKey: issuerKeys.privateKey,
+          extensions: [
+            new x509.BasicConstraintsExtension(false, undefined, true),
+            new x509.KeyUsagesExtension(
+              x509.KeyUsageFlags.digitalSignature |
+                x509.KeyUsageFlags.keyCertSign,
+              true,
+            ),
+            new x509.SubjectAlternativeNameExtension([
+              { type: "url", value: request.uri },
+            ]),
+          ],
+        });
+        return leaf.toString("pem");
+      },
+      getIssuerCertificates: async () => [],
+    };
+
+    await expect(
+      createX509Certificate({
+        name: "CN=acme",
+        certificateAuthority: { issuer: certSigning, uri: "urn:x" },
+      }),
+    ).rejects.toThrow(/key usage/);
+  });
+
   it("stays self-signed without a CA", async () => {
     const key = await createX509Certificate({ name: "CN=acme" });
     const cert = new x509.X509Certificate(key.cert);

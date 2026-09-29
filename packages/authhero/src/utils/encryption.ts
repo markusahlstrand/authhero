@@ -396,6 +396,21 @@ async function issueFromCertificateAuthority(
     );
   }
 
+  // An absent KeyUsage extension permits every usage (RFC 5280 §4.2.1.3), so
+  // only a present one can be wrong: it must allow signing tokens, and must
+  // not allow signing certificates or CRLs. Extra bits such as
+  // nonRepudiation are left to the CA's profile.
+  const keyUsage = cert.getExtension(x509.KeyUsagesExtension)?.usages;
+  if (
+    keyUsage !== undefined &&
+    (!(keyUsage & x509.KeyUsageFlags.digitalSignature) ||
+      keyUsage & (x509.KeyUsageFlags.keyCertSign | x509.KeyUsageFlags.cRLSign))
+  ) {
+    throw new Error(
+      "The certificate authority returned a certificate whose key usage doesn't permit signing tokens",
+    );
+  }
+
   if (
     cert.notBefore.getTime() < notBefore.getTime() - CA_CLOCK_SKEW_MS ||
     cert.notAfter.getTime() > notAfter.getTime() + CA_CLOCK_SKEW_MS ||
