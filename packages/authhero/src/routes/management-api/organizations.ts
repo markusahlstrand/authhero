@@ -599,17 +599,31 @@ const postByIdMembers = defineRoute({
       throw new HTTPException(404, { message: "Organization not found" });
     }
 
-    // Add each user to the organization
-    for (const userId of members) {
-      // Check if relationship already exists
-      const existing = await ctx.env.data.userOrganizations.list(tenant_id, {
-        q: `user_id:${escapeLuceneValue(userId)}`,
-        per_page: 1,
-      });
+    // Validate every id before writing anything so a bad id can't leave the
+    // batch partially applied.
+    const uniqueMembers = [...new Set(members)];
+    const found = await Promise.all(
+      uniqueMembers.map((userId) => ctx.env.data.users.get(tenant_id, userId)),
+    );
+    if (found.some((user) => !user)) {
+      throw new HTTPException(400, { message: "Some users do not exist" });
+    }
 
-      const alreadyMember = existing.userOrganizations.some(
-        (uo) => uo.organization_id === organization.id,
-      );
+    for (const userId of uniqueMembers) {
+      // Page through all of the user's memberships: they may belong to other
+      // organizations too, so a single-row lookup can miss this one.
+      let alreadyMember = false;
+      for (let page = 0; !alreadyMember; page++) {
+        const existing = await ctx.env.data.userOrganizations.list(tenant_id, {
+          q: `user_id:${escapeLuceneValue(userId)}`,
+          page,
+          per_page: 100,
+        });
+        alreadyMember = existing.userOrganizations.some(
+          (uo) => uo.organization_id === organization.id,
+        );
+        if (existing.userOrganizations.length < 100) break;
+      }
 
       if (!alreadyMember) {
         await ctx.env.data.userOrganizations.create(tenant_id, {

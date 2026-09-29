@@ -410,6 +410,114 @@ describe("organizations management API endpoint", () => {
 
       expect(response.status).toBe(404);
     });
+
+    async function setup() {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+      const tenantId = `members-add-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      await env.data.tenants.create({
+        id: tenantId,
+        friendly_name: "Members Add Tenant",
+        audience: "https://example.com",
+        default_audience: "https://example.com",
+        sender_email: "login@example.com",
+        sender_name: "SenderName",
+      });
+      const orgA = await env.data.organizations.create(tenantId, {
+        name: "org-a",
+        display_name: "Org A",
+      });
+      const orgB = await env.data.organizations.create(tenantId, {
+        name: "org-b",
+        display_name: "Org B",
+      });
+      const makeUser = async (n: string) => {
+        const user_id = `email|${n}`;
+        await env.data.users.create(tenantId, {
+          email: `${n}@example.com`,
+          user_id,
+          provider: "email",
+          connection: "email",
+          email_verified: true,
+          is_social: false,
+        });
+        return user_id;
+      };
+      const addMembers = (orgId: string, members: string[]) =>
+        managementClient.organizations[":id"].members.$post(
+          {
+            param: { id: orgId },
+            json: { members },
+            header: { "tenant-id": tenantId },
+          },
+          { headers: { authorization: `Bearer ${token}` } },
+        );
+      const countFor = async (userId: string, orgId: string) => {
+        const res = await env.data.userOrganizations.list(tenantId, {
+          q: `user_id:${userId}`,
+          per_page: 100,
+        });
+        return res.userOrganizations.filter(
+          (uo) => uo.organization_id === orgId,
+        ).length;
+      };
+      return { env, tenantId, orgA, orgB, makeUser, addMembers, countFor };
+    }
+
+    it("adds existing users and returns 204", async () => {
+      const { orgA, makeUser, addMembers, countFor } = await setup();
+      const u = await makeUser("add-ok");
+
+      const res = await addMembers(orgA.id, [u]);
+
+      expect(res.status).toBe(204);
+      expect(await countFor(u, orgA.id)).toBe(1);
+    });
+
+    it("returns 400 and writes nothing for an unknown user id", async () => {
+      const { env, tenantId, orgA, addMembers } = await setup();
+
+      const res = await addMembers(orgA.id, ["email|ghost"]);
+
+      expect(res.status).toBe(400);
+      const rows = await env.data.userOrganizations.list(tenantId, {
+        q: `organization_id:${orgA.id}`,
+      });
+      expect(rows.userOrganizations).toHaveLength(0);
+    });
+
+    it("rejects a mixed known/unknown batch atomically", async () => {
+      const { orgA, makeUser, addMembers, countFor } = await setup();
+      const known = await makeUser("mixed-known");
+
+      const res = await addMembers(orgA.id, [known, "email|ghost"]);
+
+      expect(res.status).toBe(400);
+      expect(await countFor(known, orgA.id)).toBe(0);
+    });
+
+    it("is idempotent when the user already belongs to this and another org", async () => {
+      const { orgA, orgB, makeUser, addMembers, countFor, env, tenantId } =
+        await setup();
+      const u = await makeUser("multi-org");
+      // Add to A first, then B, so B is the user's most recent membership.
+      await env.data.userOrganizations.create(tenantId, {
+        user_id: u,
+        organization_id: orgA.id,
+      });
+      await new Promise((r) => setTimeout(r, 5));
+      await env.data.userOrganizations.create(tenantId, {
+        user_id: u,
+        organization_id: orgB.id,
+      });
+
+      const res = await addMembers(orgA.id, [u]);
+
+      expect(res.status).toBe(204);
+      expect(await countFor(u, orgA.id)).toBe(1);
+      expect(await countFor(u, orgB.id)).toBe(1);
+    });
   });
 
   describe("DELETE /api/v2/organizations/:id/members", () => {
