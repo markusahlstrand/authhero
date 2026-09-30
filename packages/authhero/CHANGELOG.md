@@ -1,5 +1,24 @@
 # authhero
 
+## 9.16.0
+
+### Minor Changes
+
+- 90e305f: Add an opt-in `rejectUnknownHosts` option to `init()`. When it's on, `/.well-known/*` returns 404 for any host that isn't the ISSUER host, a subdomain of an existing tenant, or a registered custom domain. It's off by default, so existing deployments are unaffected.
+- 90cb85c: Add an optional `signingCertificateAuthority` to `init()`. When it's set, new and renewed `jwt_signing` certificates are issued from your intermediate CA instead of being self-signed. Each certificate carries a SAN URI naming its owner: `urn:authhero:tenant:<id>` for tenant keys and `urn:authhero:control-plane` for shared keys. The JWKS publishes `x5c` and `x5t#S256` for these keys, so a resource server can pin one root instead of keeping an issuer registry. `createLocalCertificateIssuer` provides an in-process issuer, and `ensureSigningKey` accepts a `certificateAuthority` option. The JWKS schema now allows `x5t#S256`. Without the option, nothing changes.
+- f94c944: Collapse u2 social login buttons into a row on short viewports (max-height 900px), matching the classic login page: two buttons show the icon and bare provider name (new `short_name` in `provider_details`, exposed as the `button-social-text-short` part), three or more go icon-only.
+
+### Patch Changes
+
+- 02fe005: `/authorize` now uses only the parameters inside a signed Request Object (`request` or `request_uri`), as RFC 9101 §5 requires. Unsigned query parameters can no longer fill gaps in the signed payload. When a duplicate query value differs, the signed value is used instead of rejecting the request. The Request Object must contain a `client_id` that matches the outer `client_id` parameter. Signed requests are no longer filled in from a stored login session.
+- cf757a7: `POST /api/v2/organizations/{id}/members` now validates every user id before adding anything. Unknown user ids return a 400 ("Some users do not exist") instead of surfacing a 500, and nothing from the batch is added. Re-adding an existing member is now a no-op even when the user also belongs to other organizations.
+- Updated dependencies [90cb85c]
+- Updated dependencies [f94c944]
+  - @authhero/adapter-interfaces@4.16.0
+  - @authhero/widget@0.40.0
+  - @authhero/proxy@0.11.2
+  - @authhero/saml@0.5.14
+
 ## 9.15.0
 
 ### Minor Changes
