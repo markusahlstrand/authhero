@@ -12,7 +12,16 @@ import type {
   TenantsDataAdapter,
 } from "@authhero/adapter-interfaces";
 import { createWfpForwardMiddleware } from "../src";
-import { createDispatchSyncDefaults, createWfpTenantApp } from "../src/wfp";
+import {
+  createDispatchRenewSigningCertificates,
+  createDispatchSyncDefaults,
+  createWfpTenantApp,
+} from "../src/wfp";
+import {
+  init,
+  createLocalCertificateIssuer,
+  type CertificateIssuer,
+} from "authhero";
 
 const CP = "control_plane";
 
@@ -678,5 +687,196 @@ describe("createWfpTenantApp /internal/sync-defaults", () => {
     } finally {
       errorSpy.mockRestore();
     }
+  });
+});
+
+describe("createWfpTenantApp with a signing certificate authority", () => {
+  const env = {
+    AUTH_DB: {},
+    ENCRYPTION_KEY: b64Key(1),
+    ISSUER: "https://acme.tokens.example.com/",
+    CONTROL_PLANE_TENANT_ID: CP,
+    CONTROL_PLANE_ISSUER: "https://controlplane.example.com/",
+    WFP_INTERNAL_SYNC_SECRET: "push-secret",
+  };
+  const ctx = { waitUntil() {}, passThroughOnException() {} };
+
+  const syncPayload = {
+    connections: [],
+    resourceServers: [],
+    hooks: [],
+    emailProvider: null,
+    branding: null,
+    promptSettings: null,
+    signingKeys: [
+      {
+        kid: "cp-kid-1",
+        type: "jwt_signing" as const,
+        cert: "-----PUBLIC-----",
+        fingerprint: "fp",
+        thumbprint: "tp",
+      },
+    ],
+  };
+
+  async function setup(options: { withCa?: boolean } = {}) {
+    const tenant = await makeAdapters();
+    // A self-signed certificate from createX509Certificate is a CA
+    // certificate (CA=true, keyCertSign), so it can serve as the issuer.
+    const { createX509Certificate } = init({ dataAdapter: tenant });
+    const caKey = await createX509Certificate({ name: "CN=Test CA" });
+    const local = createLocalCertificateIssuer({
+      certificate: caKey.cert,
+      privateKey: caKey.pkcs7!,
+    });
+    const requestedUris: string[] = [];
+    const issuer: CertificateIssuer = {
+      issueCertificate: (request) => {
+        requestedUris.push(request.uri);
+        return local.issueCertificate(request);
+      },
+      getIssuerCertificates: local.getIssuerCertificates,
+    };
+
+    const app = createWfpTenantApp({
+      createDataAdapter: () => tenant,
+      ...(options.withCa === false
+        ? {}
+        : {
+            signingCertificateAuthority: () => ({ issuer, tenantId: "acme" }),
+          }),
+    });
+    const post = (path: string, secret?: string, body?: unknown) =>
+      app.fetch(
+        new Request(`https://tenant.internal${path}`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            ...(secret ? { authorization: `Bearer ${secret}` } : {}),
+          },
+          ...(body ? { body: JSON.stringify(body) } : {}),
+        }),
+        env,
+        ctx,
+      );
+
+    return { tenant, issuer, requestedUris, post, createX509Certificate };
+  }
+
+  it("mints the tenant key from the CA, naming the tenant, not the control plane", async () => {
+    const { post, requestedUris } = await setup();
+
+    const res = await post(
+      "/internal/sync-defaults",
+      "push-secret",
+      syncPayload,
+    );
+
+    expect(res.status).toBe(200);
+    expect(requestedUris).toEqual(["urn:authhero:tenant:acme"]);
+  });
+
+  it("renews due certificates and leaves the projected control-plane key alone", async () => {
+    const { tenant, post, issuer, requestedUris, createX509Certificate } =
+      await setup();
+    await post("/internal/sync-defaults", "push-secret", syncPayload);
+    const due = await createX509Certificate({
+      name: "CN=acme",
+      validityDays: 1,
+      certificateAuthority: { issuer, uri: "urn:authhero:tenant:acme" },
+    });
+    await tenant.keys.create({ ...due, type: "jwt_signing" });
+    requestedUris.length = 0;
+
+    const res = await post(
+      "/internal/renew-signing-certificates",
+      "push-secret",
+    );
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.renewed).toEqual([due.kid]);
+    expect(body.notDue).toBe(1); // the 30-day key minted by sync-defaults
+    expect(requestedUris).toEqual(["urn:authhero:tenant:acme"]);
+
+    const { signingKeys } = await tenant.keys.list({ q: "type:jwt_signing" });
+    expect(signingKeys.find((k) => k.kid === "cp-kid-1")?.cert).toBe(
+      "-----PUBLIC-----",
+    );
+    expect(signingKeys.find((k) => k.kid === due.kid)?.cert).not.toBe(due.cert);
+  });
+
+  it("requires the shared secret on the renewal route", async () => {
+    const { post } = await setup();
+
+    expect((await post("/internal/renew-signing-certificates")).status).toBe(
+      401,
+    );
+    expect(
+      (await post("/internal/renew-signing-certificates", "nope")).status,
+    ).toBe(401);
+  });
+
+  it("answers 404 on the renewal route without a CA", async () => {
+    const { post } = await setup({ withCa: false });
+
+    const res = await post(
+      "/internal/renew-signing-certificates",
+      "push-secret",
+    );
+
+    expect(res.status).toBe(404);
+  });
+});
+
+describe("createDispatchRenewSigningCertificates", () => {
+  it("POSTs to the tenant script's renewal route with the bearer secret", async () => {
+    const dispatcher = fakeDispatcher(() =>
+      Response.json({ renewed: ["kid-1"], notDue: 2 }),
+    );
+    const renew = createDispatchRenewSigningCertificates({
+      dispatcher,
+      internalSecret: "push-secret",
+    });
+
+    const result = await renew("acme");
+
+    expect(result).toEqual({ renewed: ["kid-1"], notDue: 2 });
+    expect(dispatcher.calls).toHaveLength(1);
+    expect(dispatcher.calls[0]!.scriptName).toBe("tenant-acme-auth");
+    expect(dispatcher.calls[0]!.url).toBe(
+      "https://tenant.internal/internal/renew-signing-certificates",
+    );
+    expect(
+      new Headers(dispatcher.calls[0]!.init?.headers).get("authorization"),
+    ).toBe("Bearer push-secret");
+  });
+
+  it("throws with the worker's error code on failure", async () => {
+    const renew = createDispatchRenewSigningCertificates({
+      dispatcher: fakeDispatcher(
+        () =>
+          new Response(JSON.stringify({ failed: [{ kid: "kid-1" }] }), {
+            status: 500,
+            headers: {
+              "x-authhero-error": "signing_certificate_renewal_failed",
+            },
+          }),
+      ),
+      internalSecret: "push-secret",
+    });
+
+    await expect(renew("acme")).rejects.toThrow(
+      /500 \(signing_certificate_renewal_failed\)/,
+    );
+  });
+
+  it("rejects an unexpected response body", async () => {
+    const renew = createDispatchRenewSigningCertificates({
+      dispatcher: fakeDispatcher(() => Response.json({ ok: true })),
+      internalSecret: "push-secret",
+    });
+
+    await expect(renew("acme")).rejects.toThrow(/unexpected body/);
   });
 });

@@ -4,7 +4,12 @@ import {
   loadEncryptionKey,
   createEncryptedDataAdapterWithKeyRing,
   ensureSigningKey,
+  renewSigningCertificates,
+  SigningCertificateRenewalError,
+  TENANT_URI_PREFIX,
   type AuthHeroConfig,
+  type CertificateIssuer,
+  type SigningCertificateAuthority,
   type DataAdapters,
   type IssuerResolver,
 } from "authhero";
@@ -17,6 +22,7 @@ import {
 
 const CONTROL_PLANE_KEY_ID = "cp";
 const SYNC_PATH = "/internal/sync-defaults";
+const RENEW_CERTIFICATES_PATH = "/internal/renew-signing-certificates";
 
 /**
  * Log the cause and return a structured 500: a stable error `code`, the
@@ -112,6 +118,43 @@ export interface WfpTenantAppOptions<Env extends WfpTenantEnv = WfpTenantEnv> {
     result: ControlPlaneDefaultsApplyResult,
     env: Env,
   ) => void | Promise<void>;
+  /**
+   * Issue this tenant's signing certificates from a CA, so a resource server
+   * can trust them through one pinned root. Typically an HTTP issuer, so the
+   * CA key stays out of the tenant worker.
+   *
+   * `tenantId` is required because a tenant worker stores its own keys
+   * without a `tenant_id`: without it the certificate would claim the
+   * control-plane URN, which resource servers trust for every tenant.
+   * Renew with `POST /internal/renew-signing-certificates`, pushed by the
+   * control plane via `createDispatchRenewSigningCertificates`.
+   */
+  signingCertificateAuthority?: (
+    env: Env,
+  ) => WfpSigningCertificateAuthority | undefined;
+}
+
+export interface WfpSigningCertificateAuthority {
+  issuer: CertificateIssuer;
+  /** The tenant this worker serves; certificates name `urn:authhero:tenant:<tenantId>`. */
+  tenantId: string;
+  /** Certificate lifetime in days. Defaults to the authhero default (30). */
+  validityDays?: number;
+}
+
+/**
+ * Pin the SAN to this worker's tenant. The authhero default derives it from
+ * the key's `tenant_id`, which a tenant worker's own keys don't have.
+ */
+function tenantCertificateAuthority(
+  ca: WfpSigningCertificateAuthority,
+): SigningCertificateAuthority {
+  const uri = `${TENANT_URI_PREFIX}${ca.tenantId}`;
+  return {
+    issuer: ca.issuer,
+    validityDays: ca.validityDays,
+    subjectUri: () => uri,
+  };
 }
 
 /** Default additional-issuers resolver: gate the control-plane issuer to control-plane tokens. */
@@ -157,8 +200,17 @@ async function buildTenantApp<Env extends WfpTenantEnv>(
     controlPlaneTenantId,
   });
 
+  const wfpCertificateAuthority = options.signingCertificateAuthority?.(env);
+  const certificateAuthority = wfpCertificateAuthority
+    ? tenantCertificateAuthority(wfpCertificateAuthority)
+    : undefined;
+
   const baseConfig: AuthHeroConfig = {
     dataAdapter,
+    // Rotation, the renew endpoint and the JWKS x5c all read this.
+    ...(certificateAuthority
+      ? { signingCertificateAuthority: certificateAuthority }
+      : {}),
     // Accept the control plane's issuer for forwarded admin tokens — but only
     // for control-plane tokens (see `gatedControlPlaneIssuer`). The signature
     // is still verified, against the projected control-plane keys.
@@ -221,6 +273,7 @@ async function buildTenantApp<Env extends WfpTenantEnv>(
     try {
       const ensured = await ensureSigningKey(encrypted.keys, {
         name: env.ISSUER,
+        certificateAuthority,
       });
       signingKey = { created: ensured.created };
     } catch (err) {
@@ -241,6 +294,49 @@ async function buildTenantApp<Env extends WfpTenantEnv>(
     // confirm provisioning wired a private key (dispatch workers aren't
     // tailable). Additive to the apply result the verify step reads from D1.
     return c.json({ ...result, signingKey });
+  });
+
+  // Renew this tenant's CA-issued certificates. Pushed by the control plane
+  // (`createDispatchRenewSigningCertificates`) because tenant workers in a
+  // dispatch namespace have no schedule of their own.
+  app.post(RENEW_CERTIFICATES_PATH, async (c) => {
+    const secret = env.WFP_INTERNAL_SYNC_SECRET;
+    const authorization = c.req.header("authorization");
+    if (!secret || authorization !== `Bearer ${secret}`) {
+      return c.json({ error: "unauthorized" }, 401);
+    }
+    if (!certificateAuthority) {
+      return c.json({ error: "no signing certificate authority" }, 404);
+    }
+
+    try {
+      const result = await renewSigningCertificates({
+        // The key-ring adapter, as for sync-defaults: the tenant's own keys
+        // live here without a tenant_id, next to public-only control-plane
+        // copies that renewal skips.
+        dataAdapter: { keys: encrypted.keys },
+        certificateAuthority,
+      });
+      return c.json(result);
+    } catch (err) {
+      if (err instanceof SigningCertificateRenewalError) {
+        console.error(`[wfp-tenant] signing_certificate_renewal_failed:`, err);
+        c.header("X-Authhero-Error", "signing_certificate_renewal_failed");
+        return c.json(
+          {
+            error: "signing_certificate_renewal_failed",
+            renewed: err.result.renewed,
+            notDue: err.result.notDue,
+            failed: err.result.failed.map(({ kid, error }) => ({
+              kid,
+              detail: error instanceof Error ? error.message : String(error),
+            })),
+          },
+          500,
+        );
+      }
+      return errorResponse(c, "signing_certificate_renewal_failed", err);
+    }
   });
 
   app.route("/", authheroApp);
