@@ -1,9 +1,67 @@
 import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
-import { getAdminToken } from "../../helpers/token";
+import { createToken, getAdminToken } from "../../helpers/token";
 import { getTestServer } from "../../helpers/test-server";
 
 describe("organizations management API endpoint", () => {
+  describe("GET /api/v2/organizations with access:all_organizations (#1437)", () => {
+    async function listWith(permissions: string[], org_id?: string) {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      await env.data.organizations.create("tenantId", { name: "publisher-a" });
+      await env.data.organizations.create("tenantId", { name: "publisher-b" });
+      const token = await createToken({
+        tenant_id: "tenantId",
+        permissions,
+        org_id,
+      });
+      return managementClient.organizations.$get(
+        { query: {}, header: { "tenant-id": "tenantId" } },
+        { headers: { authorization: `Bearer ${token}` } },
+      );
+    }
+
+    it("lists every organization without read:organizations", async () => {
+      const response = await listWith(["access:all_organizations"]);
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as { name: string }[];
+      const names = body.map((org) => org.name);
+      expect(names).toEqual(
+        expect.arrayContaining(["publisher-a", "publisher-b"]),
+      );
+    });
+
+    it("is not honoured on an org-scoped token", async () => {
+      const response = await listWith(
+        ["access:all_organizations"],
+        "org_from_an_org_role",
+      );
+      expect(response.status).toBe(403);
+    });
+
+    it("still lets read:organizations list on an org-scoped token", async () => {
+      const response = await listWith(["read:organizations"], "org_x");
+      expect(response.status).toBe(200);
+    });
+
+    it("does not open the org detail routes", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const org = await env.data.organizations.create("tenantId", {
+        name: "publisher-a",
+      });
+      const token = await createToken({
+        tenant_id: "tenantId",
+        permissions: ["access:all_organizations"],
+      });
+      const response = await managementClient.organizations[":id"].$get(
+        { param: { id: org.id }, header: { "tenant-id": "tenantId" } },
+        { headers: { authorization: `Bearer ${token}` } },
+      );
+      expect(response.status).toBe(403);
+    });
+  });
+
   describe("GET /api/v2/organizations", () => {
     it("should list organizations with pagination", async () => {
       const { managementApp, env } = await getTestServer();

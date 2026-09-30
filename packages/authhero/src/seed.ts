@@ -257,6 +257,11 @@ export const MANAGEMENT_API_SCOPES = [
     value: "admin:organizations",
   },
   {
+    description:
+      "Access every organization without membership (no tenant admin rights)",
+    value: "access:all_organizations",
+  },
+  {
     description: "Read Organization Discovery Domains",
     value: "read:organization_discovery_domains",
   },

@@ -17,6 +17,10 @@ import type { Organization } from "@authhero/adapter-interfaces";
 import type { ScreenContext } from "./types";
 import { fetchAll } from "../../../utils/fetchAll";
 import { MANAGEMENT_API_AUDIENCE } from "../../../middlewares/authentication";
+import {
+  ACCESS_ALL_ORGANIZATIONS_PERMISSION,
+  userHasGlobalManagementPermission,
+} from "../../../helpers/scopes-permissions";
 
 // Permission required on a child tenant's control-plane org for the user to
 // register a DCR client against that tenant. Mirrors the Management API
@@ -75,6 +79,42 @@ export async function userHasGlobalOrgAdmin(
 }
 
 /**
+ * True when the user holds the global `access:all_organizations` permission
+ * (directly or through a role, Management API audience). Such a user may open
+ * any control-plane org without being a member, but is NOT a tenant admin:
+ * registering a DCR client still needs `create:clients`, which for these
+ * users can come from their global roles (#1437).
+ */
+export async function userHasAccessAllOrganizations(
+  context: ScreenContext,
+  userId: string,
+): Promise<boolean> {
+  return userHasGlobalManagementPermission(
+    context.ctx,
+    context.tenant.id,
+    userId,
+    ACCESS_ALL_ORGANIZATIONS_PERMISSION,
+  );
+}
+
+/**
+ * True when the user holds `create:clients` at global scope (Management API
+ * audience). For a user with `access:all_organizations` this lets them
+ * register on any child tenant without an org-scoped role.
+ */
+export async function userCanRegisterGlobally(
+  context: ScreenContext,
+  userId: string,
+): Promise<boolean> {
+  return userHasGlobalManagementPermission(
+    context.ctx,
+    context.tenant.id,
+    userId,
+    DCR_REGISTER_PERMISSION,
+  );
+}
+
+/**
  * True when the user holds the DCR register permission on the given
  * control-plane organization (scoped to the Management API audience).
  */
@@ -112,6 +152,8 @@ export async function userCanRegisterOnOrg(
  *
  * Access is granted when either:
  *  - the user holds the global `admin:organizations` escape hatch, or
+ *  - the user holds global `access:all_organizations` AND `create:clients`
+ *    (globally or on that org), with no membership needed, or
  *  - the user is a member of the control-plane org whose `name` equals the
  *    target tenant id AND holds `create:clients` on their role for that org.
  *
@@ -132,6 +174,21 @@ export async function userCanRegisterOnTenant(
 
   if (await userHasGlobalOrgAdmin(context, userId)) {
     return true;
+  }
+
+  if (await userHasAccessAllOrganizations(context, userId)) {
+    const allOrganizations = await fetchAll<Organization>(
+      (params) => ctx.env.data.organizations.list(controlPlaneTenantId, params),
+      "organizations",
+    );
+    const targetOrg = allOrganizations.find((o) => o.name === targetTenantId);
+    if (!targetOrg) {
+      return false;
+    }
+    return (
+      (await userCanRegisterGlobally(context, userId)) ||
+      (await userCanRegisterOnOrg(context, userId, targetOrg.id))
+    );
   }
 
   const organizations = await fetchAll<Organization>(

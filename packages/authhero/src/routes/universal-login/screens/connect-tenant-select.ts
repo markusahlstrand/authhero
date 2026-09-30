@@ -21,7 +21,12 @@ import { getAuthCookie } from "../../../utils/cookies";
 import { RedirectException } from "../../../errors/redirect-exception";
 import { escapeHtml } from "../sanitization-utils";
 import { fetchAll } from "../../../utils/fetchAll";
-import { userHasGlobalOrgAdmin, userCanRegisterOnOrg } from "./connect-authz";
+import {
+  userHasGlobalOrgAdmin,
+  userHasAccessAllOrganizations,
+  userCanRegisterOnOrg,
+  userCanRegisterGlobally,
+} from "./connect-authz";
 
 interface ConnectConsentData {
   integration_type?: string;
@@ -92,15 +97,27 @@ async function listUserTenantOptions(
       .map((t) => ({ id: t.id, display_name: t.friendly_name || t.id }));
   }
 
-  const organizations = await fetchAll<Organization>(
-    (params) =>
-      ctx.env.data.userOrganizations.listUserOrganizations(
-        controlPlaneTenantId,
-        userId,
-        params,
-      ),
-    "organizations",
-  );
+  // `access:all_organizations` opens every control-plane org, not just the
+  // user's memberships. It does not grant registration by itself: each org
+  // still needs `create:clients`, globally or on that org (#1437).
+  const canAccessAll = await userHasAccessAllOrganizations(context, userId);
+  const canRegisterGlobally =
+    canAccessAll && (await userCanRegisterGlobally(context, userId));
+  const organizations = canAccessAll
+    ? await fetchAll<Organization>(
+        (params) =>
+          ctx.env.data.organizations.list(controlPlaneTenantId, params),
+        "organizations",
+      )
+    : await fetchAll<Organization>(
+        (params) =>
+          ctx.env.data.userOrganizations.listUserOrganizations(
+            controlPlaneTenantId,
+            userId,
+            params,
+          ),
+        "organizations",
+      );
 
   // Org name maps 1:1 to a child tenant id (see provisioning hooks). DCR
   // targets child tenants only, so the control plane itself is never a valid
@@ -112,7 +129,12 @@ async function listUserTenantOptions(
       if (org.name === controlPlaneTenantId) return null;
       const childTenant = await ctx.env.data.tenants.get(org.name);
       if (!childTenant) return null;
-      if (!(await userCanRegisterOnOrg(context, userId, org.id))) return null;
+      if (
+        !canRegisterGlobally &&
+        !(await userCanRegisterOnOrg(context, userId, org.id))
+      ) {
+        return null;
+      }
       return {
         id: org.name,
         display_name: org.display_name || childTenant.friendly_name || org.name,

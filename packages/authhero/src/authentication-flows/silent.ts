@@ -6,7 +6,6 @@ import {
   LogTypes,
   LoginSession,
   Session,
-  escapeLuceneValue,
 } from "@authhero/adapter-interfaces";
 import { EnrichedClient } from "../helpers/client";
 import { logMessage } from "../helpers/logging";
@@ -18,7 +17,10 @@ import { createAuthTokens, createCodeData } from "./common";
 import { resolveConnectionName } from "../helpers/connection";
 
 import { nanoid } from "nanoid";
-import { calculateScopesAndPermissions } from "../helpers/scopes-permissions";
+import {
+  calculateScopesAndPermissions,
+  userCanAccessOrganization,
+} from "../helpers/scopes-permissions";
 import { getMissingConsentScopes } from "../helpers/consent";
 import { resolvePrimaryUser } from "../helpers/users";
 
@@ -285,17 +287,15 @@ export async function silentAuth({
       throw error;
     }
   } else if (organizationEntity) {
-    // No audience but organization specified - still need to validate membership
-    const userOrgs = await env.data.userOrganizations.list(client.tenant.id, {
-      q: `user_id:${escapeLuceneValue(user.user_id)}`,
-      per_page: 1000,
-    });
-
-    const isMember = userOrgs.userOrganizations.some(
-      (uo) => uo.organization_id === organizationEntity.id,
+    // No audience but organization specified - still need to validate access
+    const canAccess = await userCanAccessOrganization(
+      ctx,
+      client.tenant.id,
+      user.user_id,
+      organizationEntity.id,
     );
 
-    if (!isMember) {
+    if (!canAccess) {
       return handleLoginRequired(
         "User is not a member of the specified organization",
       );

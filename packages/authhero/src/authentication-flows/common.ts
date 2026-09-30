@@ -11,7 +11,6 @@ import {
   RefreshToken,
   User,
   TokenResponse,
-  escapeLuceneValue,
 } from "@authhero/adapter-interfaces";
 import {
   formatRefreshToken,
@@ -47,7 +46,10 @@ import {
 import { handleCredentialsExchangeCodeHooks } from "../hooks/codehooks";
 import renderAuthIframe from "../utils/authIframe";
 import { formPostResponse } from "../utils/form-post";
-import { calculateScopesAndPermissions } from "../helpers/scopes-permissions";
+import {
+  calculateScopesAndPermissions,
+  userCanAccessOrganization,
+} from "../helpers/scopes-permissions";
 import { getMissingConsentScopes } from "../helpers/consent";
 import { isConnectLoginSession } from "../helpers/dcr/connect-state";
 import {
@@ -2233,26 +2235,21 @@ export async function completeLogin(
 
   // CRITICAL: Enforce organization membership validation even without audience
   // This prevents users from forging org_id claims in tokens
-  if (user && params.organization) {
-    const userOrgs = await ctx.env.data.userOrganizations.list(
+  // Members pass, and so do users allowed into every organization (#1437).
+  if (
+    user &&
+    params.organization &&
+    !(await userCanAccessOrganization(
+      ctx,
       params.client.tenant.id,
-      {
-        q: `user_id:${escapeLuceneValue(user.user_id)}`,
-        per_page: 1000, // Should be enough for most cases
-      },
-    );
-
-    const isMember = userOrgs.userOrganizations.some(
-      (uo) => uo.organization_id === params.organization!.id,
-    );
-
-    if (!isMember) {
-      // User is not a member of the organization - throw 403 error
-      throw new JSONHTTPException(403, {
-        error: "access_denied",
-        error_description: "User is not a member of the specified organization",
-      });
-    }
+      user.user_id,
+      params.organization.id,
+    ))
+  ) {
+    throw new JSONHTTPException(403, {
+      error: "access_denied",
+      error_description: "User is not a member of the specified organization",
+    });
   }
 
   // Calculate scopes and permissions early, before any hooks

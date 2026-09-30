@@ -25,6 +25,9 @@ import { getDefaultUserPicture } from "../../helpers/avatar";
 import { sendInvitation } from "../../emails";
 
 import { defineRoute } from "../../utils/define-route";
+import { scopeForms } from "../../middlewares/authentication";
+import { ACCESS_ALL_ORGANIZATIONS_PERMISSION } from "../../helpers/scopes-permissions";
+import { JSONHTTPException } from "../../errors/json-http-exception";
 import { requireTenantId, withTotals, listResponse } from "./helpers";
 // Query schema for invitations list endpoint
 const invitationsQuerySchema = z.object({
@@ -155,6 +158,13 @@ const removeMembersRequestSchema = z.object({
     description: "Array of user IDs to remove from the organization",
   }),
 });
+const listCallerClaimsSchema = z
+  .object({
+    scope: z.string().optional(),
+    permissions: z.array(z.string()).optional(),
+  })
+  .passthrough();
+
 const getRoot = defineRoute({
   route: createRoute({
     tags: ["organizations"],
@@ -168,7 +178,9 @@ const getRoot = defineRoute({
     },
     security: [
       {
-        Bearer: ["read:organizations"],
+        // `access:all_organizations` may list every org without the broader
+        // read:organizations (members, invitations). See handler guard.
+        Bearer: ["read:organizations", ACCESS_ALL_ORGANIZATIONS_PERMISSION],
       },
     ],
     responses: {
@@ -190,6 +202,25 @@ const getRoot = defineRoute({
     const tenant_id = requireTenantId(ctx);
     const { page, per_page, include_totals, sort, q, from, take } =
       ctx.req.valid("query");
+
+    // `access:all_organizations` only counts at global scope. An org-scoped
+    // token carrying it got it from an org role, so it must also hold
+    // read:organizations to list (#1437).
+    if (ctx.var.organization_id) {
+      const claims = listCallerClaimsSchema.safeParse(ctx.var.user);
+      const granted = claims.success
+        ? [
+            ...(claims.data.permissions ?? []),
+            ...(claims.data.scope?.split(" ").filter(Boolean) ?? []),
+          ]
+        : [];
+      const canRead = scopeForms("read:organizations").some((scope) =>
+        granted.includes(scope),
+      );
+      if (!canRead) {
+        throw new JSONHTTPException(403, { message: "Unauthorized" });
+      }
+    }
 
     const result = await ctx.env.data.organizations.list(tenant_id, {
       page,

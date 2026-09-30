@@ -42,6 +42,8 @@ export interface CreateTokenParams {
   // asked for under `claims.userinfo`. Tests use this to exercise the
   // `requested_userinfo_claims` access-token slot end-to-end.
   requested_userinfo_claims?: string[];
+  // Organization the token was issued for (org-scoped tokens).
+  org_id?: string;
 }
 
 export async function createToken(params?: CreateTokenParams) {
@@ -58,6 +60,7 @@ export async function createToken(params?: CreateTokenParams) {
       iss: "http://localhost:3000/",
       tenant_id: params?.tenant_id,
       ...(params?.azp ? { azp: params.azp } : {}),
+      ...(params?.org_id ? { org_id: params.org_id } : {}),
       ...(params?.requested_userinfo_claims
         ? { requested_userinfo_claims: params.requested_userinfo_claims }
         : {}),
