@@ -58,7 +58,7 @@ export const ToggleFilterButton = ({
 
 const toggleFilter = (value: any, filters: any) => {
   const isSelected = matches(
-    pickBy(value, (val) => typeof val !== "undefined"),
+    pickBy(value, (val: unknown) => typeof val !== "undefined"),
   )(filters);
 
   if (isSelected) {
@@ -74,4 +74,4 @@ const toggleFilter = (value: any, filters: any) => {
 };
 
 const getIsSelected = (value: any, filters: any) =>
-  matches(pickBy(value, (val) => typeof val !== "undefined"))(filters);
+  matches(pickBy(value, (val: unknown) => typeof val !== "undefined"))(filters);

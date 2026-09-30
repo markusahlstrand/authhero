@@ -2615,11 +2615,12 @@ export default (
 
       // User organizations
       if (resource === "user-organizations") {
-        let organization_id, user_id;
+        let organization_id: string | undefined;
+        let user_id: string | undefined;
 
         if (params.previousData) {
           user_id = params.previousData.user_id;
-          organization_id = params.id;
+          organization_id = String(params.id);
         } else if (typeof params.id === "string" && params.id.includes("_")) {
           [user_id, organization_id] = params.id.split("_");
         }
