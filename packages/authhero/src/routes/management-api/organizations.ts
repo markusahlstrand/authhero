@@ -160,7 +160,8 @@ const removeMembersRequestSchema = z.object({
 });
 const listCallerClaimsSchema = z
   .object({
-    scope: z.string().optional(),
+    // The auth middleware accepts both a space-separated string and an array.
+    scope: z.union([z.string(), z.array(z.string())]).optional(),
     permissions: z.array(z.string()).optional(),
   })
   .passthrough();
@@ -211,7 +212,9 @@ const getRoot = defineRoute({
       const granted = claims.success
         ? [
             ...(claims.data.permissions ?? []),
-            ...(claims.data.scope?.split(" ").filter(Boolean) ?? []),
+            ...(typeof claims.data.scope === "string"
+              ? claims.data.scope.split(" ").filter(Boolean)
+              : (claims.data.scope ?? [])),
           ]
         : [];
       const canRead = scopeForms("read:organizations").some((scope) =>

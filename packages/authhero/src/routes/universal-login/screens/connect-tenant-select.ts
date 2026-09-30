@@ -103,21 +103,31 @@ async function listUserTenantOptions(
   const canAccessAll = await userHasAccessAllOrganizations(context, userId);
   const canRegisterGlobally =
     canAccessAll && (await userCanRegisterGlobally(context, userId));
+  const memberOrganizations = await fetchAll<Organization>(
+    (params) =>
+      ctx.env.data.userOrganizations.listUserOrganizations(
+        controlPlaneTenantId,
+        userId,
+        params,
+      ),
+    "organizations",
+  );
+  // Merge memberships into the global list: fetchAll caps the global list,
+  // and the permission must never hide an org the user is a member of.
   const organizations = canAccessAll
-    ? await fetchAll<Organization>(
-        (params) =>
-          ctx.env.data.organizations.list(controlPlaneTenantId, params),
-        "organizations",
-      )
-    : await fetchAll<Organization>(
-        (params) =>
-          ctx.env.data.userOrganizations.listUserOrganizations(
-            controlPlaneTenantId,
-            userId,
-            params,
-          ),
-        "organizations",
-      );
+    ? [
+        ...new Map(
+          [
+            ...(await fetchAll<Organization>(
+              (params) =>
+                ctx.env.data.organizations.list(controlPlaneTenantId, params),
+              "organizations",
+            )),
+            ...memberOrganizations,
+          ].map((org) => [org.id, org]),
+        ).values(),
+      ]
+    : memberOrganizations;
 
   // Org name maps 1:1 to a child tenant id (see provisioning hooks). DCR
   // targets child tenants only, so the control plane itself is never a valid

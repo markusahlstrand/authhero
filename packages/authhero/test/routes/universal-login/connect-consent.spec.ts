@@ -871,6 +871,45 @@ describe("/u2/connect/start — access:all_organizations (#1437)", () => {
     );
   });
 
+  it("keeps member orgs the global org list does not return", async () => {
+    const { oauthApp, u2App, env } = await getTestServer();
+    await enableConnectFlow(env);
+    const memberOrg = await provisionControlPlane(env);
+    await addStrangerTenant(env);
+    await grantGlobal(env, ["access:all_organizations"]);
+
+    // Simulate the member org falling outside the capped global listing.
+    const list = env.data.organizations.list.bind(env.data.organizations);
+    env.data.organizations.list = async (tenantId, params) => {
+      const result = await list(tenantId, params);
+      return {
+        ...result,
+        organizations: result.organizations.filter(
+          (org) => org.id !== memberOrg.id,
+        ),
+      };
+    };
+
+    const { body, stateId, session } = await renderPicker(oauthApp, u2App, env);
+    expect(body).toContain('"id":"tenant_child_tenant"');
+
+    // The POST re-check falls back to membership too.
+    const response = await u2App.request(
+      `/connect/select-tenant?state=${encodeURIComponent(stateId)}`,
+      {
+        method: "POST",
+        headers: {
+          "tenant-id": "tenantId",
+          cookie: `tenantId-auth-token=${session.id}`,
+          "content-type": "application/x-www-form-urlencoded",
+        },
+        body: "tenant_child_tenant=Publisher+Workspace",
+      },
+      env,
+    );
+    expect(response.status).toBe(302);
+  });
+
   it("does not grant registration rights on its own", async () => {
     const { oauthApp, u2App, env } = await getTestServer();
     await enableConnectFlow(env);

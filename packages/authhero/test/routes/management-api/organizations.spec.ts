@@ -1,6 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { testClient } from "hono/testing";
-import { createToken, getAdminToken } from "../../helpers/token";
+import {
+  createToken,
+  getAdminToken,
+  getCertificate,
+  pemToBuffer,
+} from "../../helpers/token";
+import { signJWT } from "../../../src/utils/jwt";
 import { getTestServer } from "../../helpers/test-server";
 
 describe("organizations management API endpoint", () => {
@@ -41,6 +47,33 @@ describe("organizations management API endpoint", () => {
 
     it("still lets read:organizations list on an org-scoped token", async () => {
       const response = await listWith(["read:organizations"], "org_x");
+      expect(response.status).toBe(200);
+    });
+
+    it("accepts an array-valued scope claim on an org-scoped token", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await signJWT(
+        "RS256",
+        pemToBuffer((await getCertificate()).pkcs7!),
+        {
+          aud: "urn:authhero:management",
+          sub: "userId",
+          iss: "http://localhost:3000/",
+          tenant_id: "tenantId",
+          org_id: "org_x",
+          scope: ["read:organizations"],
+        },
+        {
+          includeIssuedTimestamp: true,
+          expiresInSeconds: 3600,
+          headers: { kid: (await getCertificate()).kid },
+        },
+      );
+      const response = await managementClient.organizations.$get(
+        { query: {}, header: { "tenant-id": "tenantId" } },
+        { headers: { authorization: `Bearer ${token}` } },
+      );
       expect(response.status).toBe(200);
     });
 

@@ -182,13 +182,16 @@ export async function userCanRegisterOnTenant(
       "organizations",
     );
     const targetOrg = allOrganizations.find((o) => o.name === targetTenantId);
-    if (!targetOrg) {
-      return false;
+    if (
+      targetOrg &&
+      ((await userCanRegisterGlobally(context, userId)) ||
+        (await userCanRegisterOnOrg(context, userId, targetOrg.id)))
+    ) {
+      return true;
     }
-    return (
-      (await userCanRegisterGlobally(context, userId)) ||
-      (await userCanRegisterOnOrg(context, userId, targetOrg.id))
-    );
+    // Not granted through the global list (which fetchAll caps). Fall
+    // through to the membership path so the permission never removes access
+    // the user already has as a member.
   }
 
   const organizations = await fetchAll<Organization>(
