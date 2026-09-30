@@ -1,5 +1,17 @@
 # @authhero/widget
 
+## 0.40.0
+
+### Minor Changes
+
+- f94c944: Collapse u2 social login buttons into a row on short viewports (max-height 900px), matching the classic login page: two buttons show the icon and bare provider name (new `short_name` in `provider_details`, exposed as the `button-social-text-short` part), three or more go icon-only.
+
+### Patch Changes
+
+- Updated dependencies [90cb85c]
+- Updated dependencies [f94c944]
+  - @authhero/adapter-interfaces@4.16.0
+
 ## 0.39.1
 
 ### Patch Changes

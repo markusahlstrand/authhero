@@ -1,5 +1,22 @@
 # @authhero/kysely-adapter
 
+## 12.10.0
+
+### Minor Changes
+
+- c0e67f1: Add `planMigrations` and `formatMigrationPlan`, a dry run of `migrateToLatest` that lists pending migrations and the SQL each would execute without writing to the database.
+
+### Patch Changes
+
+- 70af60d: Fix `sessions.remove`, `sessions.update`, and `refreshTokens.remove` to report whether a row was actually affected. They previously returned `!!results.length` on the result of `execute()`, which resolves to one result object per statement even when zero rows matched — so the adapter always reported success.
+
+  **Behaviour change:** `DELETE /api/v2/sessions/{id}`, `POST /api/v2/sessions/{id}/revoke`, and `DELETE /api/v2/refresh-tokens/{id}` now answer `404` for an unknown id or an id belonging to another tenant, instead of `200`/`202`. They already answered `404` when the underlying adapter reported no row affected — only the (always-true) boolean was wrong.
+
+- Updated dependencies [90cb85c]
+- Updated dependencies [f94c944]
+  - @authhero/adapter-interfaces@4.16.0
+  - @authhero/proxy@0.11.2
+
 ## 12.9.0
 
 ### Minor Changes
