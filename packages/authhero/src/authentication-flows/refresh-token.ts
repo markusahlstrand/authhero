@@ -5,7 +5,6 @@ import {
   AuthorizationResponseMode,
   LogTypes,
   RefreshToken,
-  escapeLuceneValue,
 } from "@authhero/adapter-interfaces";
 import { z } from "@hono/zod-openapi";
 import { safeCompare } from "../utils/safe-compare";
@@ -22,7 +21,7 @@ import {
 } from "../utils/refresh-token-format";
 import { ulid } from "../utils/ulid";
 import { tryUpstreamRemint } from "./refresh-token-migration";
-import { userHasGlobalOrgAdminPermission } from "../helpers/scopes-permissions";
+import { userCanAccessOrganization } from "../helpers/scopes-permissions";
 import { touchSessionUsedAt } from "../helpers/session-usage";
 import { resolvePrimaryUser } from "../helpers/users";
 import {
@@ -302,43 +301,20 @@ export async function refreshTokenGrant(
       });
     }
 
-    // Check if user has the global `admin:organizations` permission, which
-    // bypasses the membership check. This is a management-plane permission, so
-    // it is always matched against the Management API audience — never against
-    // the requested token's audience (which may be an app resource server).
-    // Shared with the scopes-permissions gate so both stay in parity (#1198).
-    let hasGlobalOrgAdminPermission = false;
-    const currentTenant = await ctx.env.data.tenants.get(client.tenant.id);
-
-    if (currentTenant?.flags?.inherit_global_permissions_in_organizations) {
-      hasGlobalOrgAdminPermission = await userHasGlobalOrgAdminPermission(
+    // Membership, or global `access:all_organizations` / `admin:organizations`
+    // with the inherit flag. Same rule as every other org gate (#1198, #1437).
+    if (
+      !(await userCanAccessOrganization(
         ctx,
         client.tenant.id,
         user.user_id,
-      );
-    }
-
-    // Verify the user is a member of the organization (unless they have global admin permission)
-    if (!hasGlobalOrgAdminPermission) {
-      const userOrgs = await ctx.env.data.userOrganizations.list(
-        client.tenant.id,
-        {
-          q: `user_id:${escapeLuceneValue(user.user_id)}`,
-          per_page: 1000,
-        },
-      );
-
-      const isMember = userOrgs.userOrganizations.some(
-        (uo) => uo.organization_id === organization!.id,
-      );
-
-      if (!isMember) {
-        throw new JSONHTTPException(403, {
-          error: "access_denied",
-          error_description:
-            "User is not a member of the specified organization",
-        });
-      }
+        organization.id,
+      ))
+    ) {
+      throw new JSONHTTPException(403, {
+        error: "access_denied",
+        error_description: "User is not a member of the specified organization",
+      });
     }
   }
 

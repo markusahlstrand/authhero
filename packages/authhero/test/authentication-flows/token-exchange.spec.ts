@@ -362,6 +362,80 @@ describe("token-exchange grant (RFC 8693)", () => {
     expect(body.error).toBe("access_denied");
   });
 
+  it("exchanges for an org the user is not a member of when they hold global access:all_organizations (#1437)", async () => {
+    const { oauthApp, env } = await getTestServer();
+    await seedExchangeClient(env);
+    const org = await seedOrg(env);
+    // Global (organization "") and on the Management API; no tenant flag.
+    await env.data.userPermissions.create(
+      TENANT_ID,
+      USER_ID,
+      {
+        user_id: USER_ID,
+        resource_server_identifier: "urn:authhero:management",
+        permission_name: "access:all_organizations",
+      },
+      "",
+    );
+
+    const subjectToken = await mintSubjectToken();
+    const oauthClient = testClient(oauthApp, env);
+    const response = await oauthClient.oauth.token.$post(
+      // @ts-expect-error - testClient type requires both form and json
+      {
+        form: {
+          grant_type: TOKEN_EXCHANGE_GRANT,
+          subject_token: subjectToken,
+          subject_token_type: ACCESS_TOKEN_TYPE,
+          client_id: EXCHANGE_CLIENT_ID,
+          client_secret: EXCHANGE_CLIENT_SECRET,
+          organization: org.id,
+        },
+      },
+      { headers: { "tenant-id": TENANT_ID } },
+    );
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as TokenResponse;
+    expect(decodeAccessToken(body.access_token!).org_id).toBe(org.id);
+  });
+
+  it("rejects when access:all_organizations is only assigned on another org (#1437)", async () => {
+    const { oauthApp, env } = await getTestServer();
+    await seedExchangeClient(env);
+    const org = await seedOrg(env);
+    const otherOrg = await seedOrg(env, "org_tenant_b");
+    await env.data.userPermissions.create(
+      TENANT_ID,
+      USER_ID,
+      {
+        user_id: USER_ID,
+        resource_server_identifier: "urn:authhero:management",
+        permission_name: "access:all_organizations",
+      },
+      otherOrg.id,
+    );
+
+    const subjectToken = await mintSubjectToken();
+    const oauthClient = testClient(oauthApp, env);
+    const response = await oauthClient.oauth.token.$post(
+      // @ts-expect-error - testClient type requires both form and json
+      {
+        form: {
+          grant_type: TOKEN_EXCHANGE_GRANT,
+          subject_token: subjectToken,
+          subject_token_type: ACCESS_TOKEN_TYPE,
+          client_id: EXCHANGE_CLIENT_ID,
+          client_secret: EXCHANGE_CLIENT_SECRET,
+          organization: org.id,
+        },
+      },
+      { headers: { "tenant-id": TENANT_ID } },
+    );
+
+    expect(response.status).toBe(403);
+  });
+
   it("rejects requested scopes that exceed the subject token's scopes", async () => {
     const { oauthApp, env } = await getTestServer();
     await seedExchangeClient(env);

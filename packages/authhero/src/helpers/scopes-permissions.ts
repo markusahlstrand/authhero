@@ -125,39 +125,62 @@ async function getTenantPermissionsForOrganization(
 }
 
 /**
- * True when the user holds the global `admin:organizations` escape hatch — the
- * single canonical key for "may act on any organization without being a
- * member". It is a management-plane permission, so it is always matched against
- * the Management API audience, never the requested token's audience.
- *
- * "Global" means an assignment with an empty organization scope (`""`). Both
- * directly-assigned user permissions AND role-derived permissions count, so a
- * user granted the permission either way is treated consistently (see #1198).
- *
- * The caller is responsible for gating on the
- * `inherit_global_permissions_in_organizations` tenant flag; this helper only
- * answers whether the permission is present.
+ * Management API permission that lets a user act on any organization without
+ * being a member. Doubles as a tenant-admin permission on the multi-tenancy
+ * `/tenants` routes, and only bypasses org membership when the tenant has the
+ * `inherit_global_permissions_in_organizations` flag.
  */
-export async function userHasGlobalOrgAdminPermission(
+export const ADMIN_ORGANIZATIONS_PERMISSION = "admin:organizations";
+
+/**
+ * Management API permission that lets a user get org-scoped tokens for (and
+ * list) every organization without being a member. Unlike
+ * `admin:organizations` it carries no tenant-admin rights and needs no tenant
+ * flag: holding the permission is the opt-in.
+ */
+export const ACCESS_ALL_ORGANIZATIONS_PERMISSION = "access:all_organizations";
+
+/**
+ * Returns which of `candidates` the user holds at global scope (organization
+ * `""`) on the Management API audience. Directly-assigned user permissions and
+ * role-derived permissions both count (#1198). These are management-plane
+ * permissions, so they are always matched against the Management API audience,
+ * never the requested token's audience.
+ */
+async function getGlobalManagementPermissions(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   tenantId: string,
   userId: string,
-): Promise<boolean> {
-  // Directly-assigned global user permissions.
-  const globalUserPermissions = await ctx.env.data.userPermissions.list(
-    tenantId,
-    userId,
-    undefined,
-    "", // Empty string for tenant-level (global) permissions
-  );
+  candidates: string[],
+): Promise<Set<string>> {
+  const held = new Set<string>();
+  const collect = (
+    permissions: {
+      permission_name: string;
+      resource_server_identifier: string;
+    }[],
+  ) => {
+    for (const permission of permissions) {
+      if (
+        permission.resource_server_identifier === MANAGEMENT_API_AUDIENCE &&
+        candidates.includes(permission.permission_name)
+      ) {
+        held.add(permission.permission_name);
+      }
+    }
+  };
 
-  const hasDirect = globalUserPermissions.some(
-    (permission) =>
-      permission.permission_name === "admin:organizations" &&
-      permission.resource_server_identifier === MANAGEMENT_API_AUDIENCE,
+  // Directly-assigned global user permissions.
+  collect(
+    await ctx.env.data.userPermissions.list(
+      tenantId,
+      userId,
+      undefined,
+      "", // Empty string for tenant-level (global) permissions
+    ),
   );
-  if (hasDirect) {
-    return true;
+  if (held.size === candidates.length) {
+    return held;
   }
 
   // Role-derived global permissions.
@@ -167,26 +190,104 @@ export async function userHasGlobalOrgAdminPermission(
     undefined,
     "", // Empty string for tenant-level (global) roles
   );
-
   for (const role of globalRoles) {
-    const rolePermissions = await ctx.env.data.rolePermissions.list(
-      tenantId,
-      role.id,
-      { per_page: 1000 },
+    collect(
+      await ctx.env.data.rolePermissions.list(tenantId, role.id, {
+        per_page: 1000,
+      }),
     );
-
-    const hasAdminOrg = rolePermissions.some(
-      (permission) =>
-        permission.permission_name === "admin:organizations" &&
-        permission.resource_server_identifier === MANAGEMENT_API_AUDIENCE,
-    );
-
-    if (hasAdminOrg) {
-      return true;
+    if (held.size === candidates.length) {
+      break;
     }
   }
 
-  return false;
+  return held;
+}
+
+/**
+ * True when the user holds `permissionName` at global scope on the Management
+ * API audience, directly or through a role.
+ */
+export async function userHasGlobalManagementPermission(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  tenantId: string,
+  userId: string,
+  permissionName: string,
+): Promise<boolean> {
+  const held = await getGlobalManagementPermissions(ctx, tenantId, userId, [
+    permissionName,
+  ]);
+  return held.has(permissionName);
+}
+
+/**
+ * Single rule for "may this user get an org-scoped token for an organization
+ * they are not a member of?". Used by every org-membership gate
+ * (calculateScopesAndPermissions, token exchange, refresh token) so they can
+ * never disagree.
+ *
+ * True when the user holds, at global scope on the Management API audience:
+ *  - `access:all_organizations` (no tenant flag needed), or
+ *  - `admin:organizations` AND the tenant has
+ *    `inherit_global_permissions_in_organizations` (legacy behaviour).
+ *
+ * Pass `tenant` when the caller already loaded it to skip a second fetch.
+ */
+export async function userCanAccessAllOrganizations(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  tenantId: string,
+  userId: string,
+  tenant?: {
+    flags?: { inherit_global_permissions_in_organizations?: boolean };
+  } | null,
+): Promise<boolean> {
+  const resolvedTenant =
+    tenant === undefined ? await ctx.env.data.tenants.get(tenantId) : tenant;
+  const adminBypassEnabled =
+    resolvedTenant?.flags?.inherit_global_permissions_in_organizations === true;
+
+  const candidates = adminBypassEnabled
+    ? [ACCESS_ALL_ORGANIZATIONS_PERMISSION, ADMIN_ORGANIZATIONS_PERMISSION]
+    : [ACCESS_ALL_ORGANIZATIONS_PERMISSION];
+  const held = await getGlobalManagementPermissions(
+    ctx,
+    tenantId,
+    userId,
+    candidates,
+  );
+
+  return (
+    held.has(ACCESS_ALL_ORGANIZATIONS_PERMISSION) ||
+    (adminBypassEnabled && held.has(ADMIN_ORGANIZATIONS_PERMISSION))
+  );
+}
+
+/**
+ * True when the user may get an org-scoped token for `organizationId`: either
+ * they may access every organization (see `userCanAccessAllOrganizations`) or
+ * they are a member of it. Every org gate (login, silent auth, token grants)
+ * goes through here so they apply the same rule.
+ */
+export async function userCanAccessOrganization(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  tenantId: string,
+  userId: string,
+  organizationId: string,
+  tenant?: {
+    flags?: { inherit_global_permissions_in_organizations?: boolean };
+  } | null,
+): Promise<boolean> {
+  if (await userCanAccessAllOrganizations(ctx, tenantId, userId, tenant)) {
+    return true;
+  }
+
+  const userOrgs = await ctx.env.data.userOrganizations.list(tenantId, {
+    q: `user_id:${escapeLuceneValue(userId)}`,
+    per_page: 1000, // Should be enough for most cases
+  });
+  return userOrgs.userOrganizations.some(
+    (uo) => uo.organization_id === organizationId,
+  );
 }
 
 /**
@@ -464,41 +565,20 @@ export async function calculateScopesAndPermissions(
   const restrictUndefinedScopes =
     currentTenant?.flags?.restrict_undefined_scopes === true;
 
-  // Check if user has admin:organizations permission at global level
-  // This allows org admins to get tokens for any organization without membership
-  let hasGlobalOrgAdminPermission = false;
-
-  if (organizationId) {
-    if (currentTenant?.flags?.inherit_global_permissions_in_organizations) {
-      // Checks both directly-assigned and role-derived global permissions, so
-      // this gate stays in parity with the refresh-token grant's gate (#1198).
-      hasGlobalOrgAdminPermission = await userHasGlobalOrgAdminPermission(
-        ctx,
-        tenantId,
-        userId,
-      );
-    }
-
-    // Only check membership if user doesn't have global admin:organizations permission
-    if (!hasGlobalOrgAdminPermission) {
-      const userOrgs = await ctx.env.data.userOrganizations.list(tenantId, {
-        q: `user_id:${escapeLuceneValue(userId)}`,
-        per_page: 1000, // Should be enough for most cases
-      });
-
-      const isMember = userOrgs.userOrganizations.some(
-        (uo) => uo.organization_id === organizationId,
-      );
-
-      if (!isMember) {
-        // User is not a member of the organization - throw 403 error
-        throw new JSONHTTPException(403, {
-          error: "access_denied",
-          error_description:
-            "User is not a member of the specified organization",
-        });
-      }
-    }
+  if (
+    organizationId &&
+    !(await userCanAccessOrganization(
+      ctx,
+      tenantId,
+      userId,
+      organizationId,
+      currentTenant,
+    ))
+  ) {
+    throw new JSONHTTPException(403, {
+      error: "access_denied",
+      error_description: "User is not a member of the specified organization",
+    });
   }
 
   // Handle default OIDC scopes first - these are always available

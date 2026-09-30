@@ -2661,6 +2661,108 @@ describe("token", () => {
       await env.data.organizations.remove("tenantId", organization.id);
     });
 
+    it("should allow refresh token with organization when user has global access:all_organizations, without the inherit flag (#1437)", async () => {
+      const { oauthApp, env } = await getTestServer();
+      const client = testClient(oauthApp, env);
+
+      const audience = "https://portal-refresh-api.example.com";
+      const resourceServer = await env.data.resourceServers.create("tenantId", {
+        name: "Portal Refresh API",
+        identifier: audience,
+        scopes: [{ value: "read:vendors", description: "Read vendors" }],
+        options: {
+          enforce_policies: true,
+          token_dialect: "access_token_authz",
+        },
+      });
+
+      const organization = await env.data.organizations.create("tenantId", {
+        name: "access-all-org",
+      });
+
+      const user = await env.data.users.create("tenantId", {
+        user_id: "email|hq-user",
+        email: "hq@example.com",
+        provider: "email",
+        connection: "email",
+        email_verified: true,
+        is_social: false,
+      });
+
+      // A global "Portal Full Access"-style role: the management-plane
+      // access permission plus the app scope that should land in the token.
+      const role = await env.data.roles.create("tenantId", {
+        name: "Portal Full Access",
+      });
+      await env.data.rolePermissions.assign("tenantId", role.id, [
+        {
+          role_id: role.id,
+          resource_server_identifier: "urn:authhero:management",
+          permission_name: "access:all_organizations",
+        },
+        {
+          role_id: role.id,
+          resource_server_identifier: audience,
+          permission_name: "read:vendors",
+        },
+      ]);
+      await env.data.userRoles.create("tenantId", user.user_id, role.id, "");
+
+      const loginSession = await env.data.loginSessions.create("tenantId", {
+        expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+        csrf_token: "csrfToken",
+        authParams: {
+          client_id: "clientId",
+          redirect_uri: "https://example.com/callback",
+        },
+      });
+      const idle_expires_at = new Date(
+        Date.now() + 1000 * 60 * 60,
+      ).toISOString();
+      const { wireToken } = await createTestRefreshToken(env, "tenantId", {
+        id: "refreshTokenAccessAll",
+        login_id: loginSession.id,
+        user_id: user.user_id,
+        client_id: "clientId",
+        resource_servers: [{ audience, scopes: "read:vendors" }],
+        device: {
+          last_ip: "",
+          initial_ip: "",
+          last_user_agent: "",
+          initial_user_agent: "",
+          initial_asn: "",
+          last_asn: "",
+        },
+        rotating: false,
+        idle_expires_at,
+        expires_at: idle_expires_at,
+      });
+
+      const response = await client.oauth.token.$post(
+        // @ts-expect-error - testClient type requires both form and json
+        {
+          form: {
+            grant_type: "refresh_token",
+            refresh_token: wireToken,
+            client_id: "clientId",
+            organization: organization.id,
+          },
+        },
+        { headers: { "tenant-id": "tenantId" } },
+      );
+
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as TokenResponse;
+      const payload = parseJWT(body.access_token)?.payload as any;
+      expect(payload.org_id).toBe(organization.id);
+      expect(payload.permissions).toContain("read:vendors");
+      expect(payload.permissions).not.toContain("access:all_organizations");
+
+      await env.data.resourceServers.remove("tenantId", resourceServer.id!);
+      await env.data.users.remove("tenantId", user.user_id);
+      await env.data.organizations.remove("tenantId", organization.id);
+    });
+
     it("should NOT bypass membership when admin:organizations is on an app audience instead of the Management API", async () => {
       const { oauthApp, env } = await getTestServer();
       const client = testClient(oauthApp, env);

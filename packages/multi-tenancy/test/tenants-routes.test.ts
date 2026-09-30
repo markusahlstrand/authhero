@@ -189,6 +189,52 @@ describe("tenants routes authorization", () => {
     expect(await adapters.tenants.get("other-tenant")).not.toBeNull();
   });
 
+  describe("access:all_organizations grants no tenant-admin rights (#1437)", () => {
+    // Global control-plane token (no org claim) carrying the org-access
+    // permission, as a support user in the publisher portal would hold.
+    const supportUser: TestUser = {
+      sub: "auth0|support",
+      tenant_id: controlPlaneTenantId,
+      scope: "read:tenants",
+      permissions: ["access:all_organizations"],
+    };
+
+    it("cannot delete a tenant it is not a member of", async () => {
+      await createChildTenant("publisher-tenant");
+      const { hooks } = setupMultiTenancy(accessControlConfig);
+      const app = createHostApp({
+        config: accessControlConfig,
+        hooks,
+        user: supportUser,
+      });
+
+      const response = await app.request(
+        "/management/tenants/publisher-tenant",
+        { method: "DELETE" },
+        env,
+      );
+
+      expect(response.status).toBe(403);
+      expect(await adapters.tenants.get("publisher-tenant")).not.toBeNull();
+    });
+
+    it("does not list every tenant", async () => {
+      await createChildTenant("publisher-tenant");
+      const { hooks } = setupMultiTenancy(accessControlConfig);
+      const app = createHostApp({
+        config: accessControlConfig,
+        hooks,
+        user: supportUser,
+      });
+
+      const response = await app.request("/management/tenants", {}, env);
+
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as { tenants: { id: string }[] };
+      expect(body.tenants.map((t) => t.id)).not.toContain("publisher-tenant");
+    });
+  });
+
   it("makes a tenant created via the API deletable by its creator", async () => {
     const creatorId = "auth0|creator";
 

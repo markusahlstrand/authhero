@@ -83,12 +83,15 @@ Tenants support feature flags for enabling/disabling functionality:
 When enabled, users with tenant-level roles will inherit those permissions when accessing organization-scoped resources. This is useful for global administrators who need access to all organizations within a tenant.
 
 **Example:**
+
 ```typescript
 // User has tenant-level role "admin" with permissions ["read:users", "write:users"]
 // When accessing organization "org_123":
 // - With flag enabled: Token includes ["read:users", "write:users"]
 // - With flag disabled: Token only includes organization-specific permissions
 ```
+
+The flag also lets the global `admin:organizations` permission skip the membership check for organization tokens. The `access:all_organizations` permission skips it without the flag. See [Access to every organization](/entities/identity/organizations#access-to-every-organization).
 
 See [Organizations](/entities/identity/organizations) for more details on permission inheritance.
 

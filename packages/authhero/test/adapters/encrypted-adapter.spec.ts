@@ -75,8 +75,8 @@ describe("createEncryptedDataAdapter", () => {
       strategy: "google-oauth2",
       options: {
         client_id: "public-id",
-        client_secret: "shh",
-        configuration: { client_secret: "nested-shh" },
+        client_secret: "top secret!",
+        configuration: { client_secret: "nested secret!" },
       },
     });
 
@@ -86,15 +86,20 @@ describe("createEncryptedDataAdapter", () => {
       .where("id", "=", "conn1")
       .executeTakeFirst();
     const rawOptions = String(rawRow?.options);
-    expect(rawOptions).not.toContain("shh");
+    // The plaintext secrets contain characters outside the base64url
+    // alphabet, so they can never appear inside ciphertext by chance.
+    expect(rawOptions).not.toContain("top secret!");
+    expect(rawOptions).not.toContain("nested secret!");
     expect(rawOptions).toContain(ENC_PREFIX);
     // Non-sensitive keys stay readable.
     expect(rawOptions).toContain("public-id");
 
     const fetched = await ctx.data.connections.get("t1", "conn1");
-    expect(fetched?.options.client_secret).toBe("shh");
+    expect(fetched?.options.client_secret).toBe("top secret!");
     expect(fetched?.options.client_id).toBe("public-id");
-    expect(fetched?.options.configuration?.client_secret).toBe("nested-shh");
+    expect(fetched?.options.configuration?.client_secret).toBe(
+      "nested secret!",
+    );
   });
 
   it("encrypts email provider credentials", async () => {

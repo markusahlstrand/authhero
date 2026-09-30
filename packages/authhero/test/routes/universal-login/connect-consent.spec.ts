@@ -788,6 +788,144 @@ describe("/u2/connect/start — picker permission gating", () => {
   });
 });
 
+describe("/u2/connect/start — access:all_organizations (#1437)", () => {
+  async function addStrangerTenant(env: Bindings) {
+    // A child tenant whose control-plane org the user is NOT a member of.
+    await env.data.tenants.create({
+      id: "stranger_tenant",
+      friendly_name: "Stranger Workspace",
+      audience: "urn:authhero:tenant:stranger_tenant",
+      sender_email: "login@example.com",
+      sender_name: "SenderName",
+    });
+    await env.data.organizations.create("tenantId", {
+      name: "stranger_tenant",
+      display_name: "Stranger Workspace",
+    });
+  }
+
+  async function grantGlobal(env: Bindings, permissions: string[]) {
+    const role = await env.data.roles.create("tenantId", {
+      name: "Portal Full Access",
+    });
+    await env.data.rolePermissions.assign(
+      "tenantId",
+      role.id,
+      permissions.map((permission_name) => ({
+        role_id: role.id,
+        resource_server_identifier: MANAGEMENT_API_AUDIENCE,
+        permission_name,
+      })),
+    );
+    await env.data.userRoles.create("tenantId", "email|userId", role.id, "");
+  }
+
+  async function renderPicker(oauthApp: any, u2App: any, env: Bindings) {
+    const stateId = await startConnectFlow(oauthApp, env);
+    const session = await createUserSession(env);
+    const response = await u2App.request(
+      `/connect/select-tenant?state=${encodeURIComponent(stateId)}`,
+      {
+        method: "GET",
+        headers: {
+          "tenant-id": "tenantId",
+          cookie: `tenantId-auth-token=${session.id}`,
+        },
+      },
+      env,
+    );
+    expect(response.status).toBe(200);
+    return { body: await response.text(), stateId, session };
+  }
+
+  it("lists every org when the global role also grants create:clients", async () => {
+    const { oauthApp, u2App, env } = await getTestServer();
+    await enableConnectFlow(env);
+    await provisionControlPlane(env);
+    await addStrangerTenant(env);
+    await grantGlobal(env, ["access:all_organizations", "create:clients"]);
+
+    const { body, stateId, session } = await renderPicker(oauthApp, u2App, env);
+    expect(body).toContain('"id":"tenant_child_tenant"');
+    expect(body).toContain('"id":"tenant_stranger_tenant"');
+    expect(body).not.toContain('"id":"tenant_tenantId"');
+
+    // The pick of a non-member tenant is accepted at POST time too.
+    const response = await u2App.request(
+      `/connect/select-tenant?state=${encodeURIComponent(stateId)}`,
+      {
+        method: "POST",
+        headers: {
+          "tenant-id": "tenantId",
+          cookie: `tenantId-auth-token=${session.id}`,
+          "content-type": "application/x-www-form-urlencoded",
+        },
+        body: "tenant_stranger_tenant=Stranger+Workspace",
+      },
+      env,
+    );
+    expect(response.status).toBe(302);
+    const updated = await env.data.loginSessions.get("tenantId", stateId);
+    expect(JSON.parse(updated!.state_data!).connect.target_tenant_id).toBe(
+      "stranger_tenant",
+    );
+  });
+
+  it("keeps member orgs the global org list does not return", async () => {
+    const { oauthApp, u2App, env } = await getTestServer();
+    await enableConnectFlow(env);
+    const memberOrg = await provisionControlPlane(env);
+    await addStrangerTenant(env);
+    await grantGlobal(env, ["access:all_organizations"]);
+
+    // Simulate the member org falling outside the capped global listing.
+    const list = env.data.organizations.list.bind(env.data.organizations);
+    env.data.organizations.list = async (tenantId, params) => {
+      const result = await list(tenantId, params);
+      return {
+        ...result,
+        organizations: result.organizations.filter(
+          (org) => org.id !== memberOrg.id,
+        ),
+      };
+    };
+
+    const { body, stateId, session } = await renderPicker(oauthApp, u2App, env);
+    expect(body).toContain('"id":"tenant_child_tenant"');
+
+    // The POST re-check falls back to membership too.
+    const response = await u2App.request(
+      `/connect/select-tenant?state=${encodeURIComponent(stateId)}`,
+      {
+        method: "POST",
+        headers: {
+          "tenant-id": "tenantId",
+          cookie: `tenantId-auth-token=${session.id}`,
+          "content-type": "application/x-www-form-urlencoded",
+        },
+        body: "tenant_child_tenant=Publisher+Workspace",
+      },
+      env,
+    );
+    expect(response.status).toBe(302);
+  });
+
+  it("does not grant registration rights on its own", async () => {
+    const { oauthApp, u2App, env } = await getTestServer();
+    await enableConnectFlow(env);
+    await provisionControlPlane(env);
+    await addStrangerTenant(env);
+    // Access to every org, but no create:clients anywhere global.
+    await grantGlobal(env, ["access:all_organizations"]);
+
+    const { body } = await renderPicker(oauthApp, u2App, env);
+    // The membership org keeps its org-scoped create:clients role.
+    expect(body).toContain('"id":"tenant_child_tenant"');
+    // Unlike admin:organizations, this is not a tenant-admin escape hatch.
+    expect(body).not.toContain('"id":"tenant_stranger_tenant"');
+  });
+});
+
 // SES-919: follow the action actually embedded in the page, including the
 // widget's JSON envelope, rather than submitting a native HTML form.
 describe("SES-919 widget request contract", () => {

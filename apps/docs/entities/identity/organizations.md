@@ -105,6 +105,21 @@ By default, user permissions are scoped to organizations. However, tenants can e
 
 See [Tenants](/entities/configuration/tenants#inherit_global_permissions_in_organizations) and [Security Model](/security/#organizations) for more details.
 
+### Access to every organization
+
+Normally a user can only get an organization token (the `organization` parameter at `/authorize` or `/oauth/token`) for an organization they are a member of. Two Management API permissions (on `urn:authhero:management`) let a user skip that check. Both only count when assigned at global scope, directly or through a role. An assignment inside an organization never bypasses membership.
+
+|                                                     | `access:all_organizations`                    | `admin:organizations`                                                   |
+| --------------------------------------------------- | --------------------------------------------- | ----------------------------------------------------------------------- |
+| Org tokens without membership                       | Yes                                           | Only with the `inherit_global_permissions_in_organizations` tenant flag |
+| Lists every org via `GET /api/v2/organizations`     | Yes                                           | Only with `read:organizations`                                          |
+| Tenant admin on the multi-tenancy `/tenants` routes | No                                            | Yes                                                                     |
+| Registers DCR clients on any child tenant           | Only with `create:clients` from a global role | Yes                                                                     |
+
+Use `access:all_organizations` for support or back-office staff who need to open any organization with the scopes of a global role, but must not administer tenants. Global roles are always merged into organization tokens, so the org token carries the role's permissions for the requested audience. The permission itself never appears in app-audience tokens.
+
+`GET /api/v2/users/{id}/organizations` still returns memberships only, as in Auth0. To list every organization, call `GET /api/v2/organizations` with a global Management API token that carries `access:all_organizations` or `read:organizations`. The new permission only opens the list route. It is ignored on org-scoped tokens and does not open organization details, members or invitations.
+
 ## API Reference
 
 - [GET /api/v2/organizations](/api/endpoints#get-organizations)

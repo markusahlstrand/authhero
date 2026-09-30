@@ -69,7 +69,7 @@ export interface AuthMiddlewareOptions {
 // reversed `resource:verb` form (`users:read`). Auth0 uses the former; some
 // clients in the wild use the latter, so we treat them as equivalent rather
 // than forcing every caller to reissue tokens.
-function scopeForms(scope: string): string[] {
+export function scopeForms(scope: string): string[] {
   const parts = scope.split(":");
   if (parts.length !== 2 || !parts[0] || !parts[1]) {
     return [scope];
