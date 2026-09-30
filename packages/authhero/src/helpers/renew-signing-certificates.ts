@@ -93,14 +93,16 @@ export async function renewSigningCertificates(
   };
 
   for (const key of await listRenewableKeys(dataAdapter.keys, now)) {
-    const cert = new x509.X509Certificate(key.cert);
-    if (!isCaIssued(cert)) continue;
-    if (cert.notAfter.getTime() > renewBefore) {
-      result.notDue++;
-      continue;
-    }
-
+    // Parsing is inside the try: one unreadable row is reported as a failure
+    // rather than stopping every other key from being renewed.
     try {
+      const cert = new x509.X509Certificate(key.cert);
+      if (!isCaIssued(cert)) continue;
+      if (cert.notAfter.getTime() > renewBefore) {
+        result.notDue++;
+        continue;
+      }
+
       const renewed = await renewX509Certificate({
         cert: key.cert,
         pkcs7: key.pkcs7!,

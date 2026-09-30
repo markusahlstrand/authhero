@@ -142,6 +142,25 @@ describe("renewSigningCertificates", () => {
     expect(result.renewed).toEqual([outgoing.kid]);
   });
 
+  it("reports an unreadable certificate without stopping the run", async () => {
+    const { env, ca, addKey } = await setup();
+    const broken = await addKey({
+      validityDays: 1,
+      overrides: { kid: "broken", cert: "not a certificate" },
+    });
+    const due = await addKey({ validityDays: 1 });
+
+    const error = await renewSigningCertificates({
+      dataAdapter: env.data,
+      certificateAuthority: { issuer: ca.issuer },
+    }).catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(SigningCertificateRenewalError);
+    const { result } = error as SigningCertificateRenewalError;
+    expect(result.failed.map((f) => f.kid)).toEqual([broken.kid]);
+    expect(result.renewed).toEqual([due.kid]);
+  });
+
   it("tries every key and reports failures at the end", async () => {
     const { env, ca, addKey, stored } = await setup();
     const first = await addKey({ validityDays: 1 });
