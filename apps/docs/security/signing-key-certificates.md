@@ -80,6 +80,66 @@ AuthHero picks the intermediate by matching the issuer name and then verifying t
 
 No issuer allowlist or custom-domain registry is needed. A JWKS hosted by someone else can't produce a chain to your root.
 
+The token is unverified when step 1 runs, so its `iss` decides which URL your API fetches. Guard that fetch:
+
+- Fetch over HTTPS only, and refuse private and loopback addresses. Use a short timeout and cap the response size.
+- Cache each issuer's JWKS for about five minutes, and cap how many issuers you keep. Otherwise random `iss` values fill the cache.
+- Refetch on an unknown `kid` at most once a minute per issuer.
+- Make authorization decisions on the token's `tenant_id` and `aud`. Without a registry, a custom-domain `iss` can't be tied to a tenant, so treat it as informational.
+
+A stolen private key and its still-valid certificate chain to your root wherever they are hosted, so revocation takes effect when the certificate expires. Keep lifetimes short. Renewal is cheap, because it keeps the key.
+
+## Renewal
+
+CA-issued certificates are short-lived, so renew them on a schedule. `renewSigningCertificates` re-issues every CA-issued `jwt_signing` certificate that expires soon. It keeps the key pair, so the `kid` and every token already issued stay valid:
+
+```ts
+import { renewSigningCertificates } from "authhero";
+
+export default {
+  async scheduled(_event, env) {
+    await renewSigningCertificates({
+      dataAdapter,
+      certificateAuthority: signingCertificateAuthority, // same value as init()
+    });
+  },
+};
+```
+
+- **When it renews:** certificates expiring within `renewBeforeDays`. The default is a third of `validityDays`, which is 10 days for the 30-day default. Run it at least daily.
+- **What it skips:** self-signed keys and public-only rows. Keys in their post-rotation grace period are renewed, because they're still published.
+- **Failures:** every key is tried. If any fail, a `SigningCertificateRenewalError` carrying the full result is thrown at the end, so the cron run shows as failed.
+
+## Running the CA as a separate service
+
+`createLocalCertificateIssuer` keeps the intermediate's private key in the auth worker. To keep it elsewhere, serve the issuer from its own worker and point AuthHero at it:
+
+```ts
+// CA service
+import { createCertificateIssuerApp, createLocalCertificateIssuer } from "authhero";
+
+export default createCertificateIssuerApp({
+  issuer: createLocalCertificateIssuer({ certificate, privateKey }),
+  authorize: async ({ request, certificateRequest }) => {
+    const caller = await authenticateCaller(request); // your credential check
+    return certificateRequest.uri === `urn:authhero:tenant:${caller.tenantId}`;
+  },
+  maxValidityDays: 90, // default
+});
+```
+
+```ts
+// Auth worker
+signingCertificateAuthority: {
+  issuer: createHttpCertificateIssuer({
+    url: "https://ca.internal.example.com",
+    headers: { authorization: `Bearer ${env.CA_TOKEN}` },
+  }),
+}
+```
+
+`authorize` is the only thing stopping a caller from getting a certificate that names another tenant, or the control plane, so tie the caller's credential to the URI it may request. `maxValidityDays` caps the lifetime a caller can ask for. `GET /issuer-certificates` isn't authorized, because the intermediates are published in every `x5c` anyway. The client caches the answer for five minutes and never caches a failure.
+
 ## Rolling it out
 
 - **Existing keys are unaffected.** Keys created before the CA was configured stay self-signed and are published without `x5c`. They keep verifying as before until they're rotated out.
@@ -89,6 +149,5 @@ No issuer allowlist or custom-domain registry is needed. A JWKS hosted by someon
 
 ## Current limitations
 
-- **No automatic renewal yet.** Until the scheduled renewal lands, renew CA-issued keys before they expire with the renew endpoint, or set a longer `validityDays`. An expired certificate doesn't stop AuthHero from verifying its own tokens, but a resource server that checks the chain will reject the key.
 - **Seeded keys are self-signed.** The first key created by `seed()` is self-signed; rotate it once the CA is configured.
-- **WFP tenant workers aren't wired up yet.** They mint their keys in `sync-defaults` without a CA. An HTTP issuer for them is planned.
+- **WFP tenant workers aren't wired up yet.** They mint their keys in `sync-defaults` without a CA.

@@ -241,6 +241,22 @@ export {
   CONTROL_PLANE_URI,
   DEFAULT_CA_CERT_VALIDITY_DAYS,
 } from "./helpers/signing-certificate-authority";
+export {
+  renewSigningCertificates,
+  SigningCertificateRenewalError,
+} from "./helpers/renew-signing-certificates";
+export type {
+  RenewSigningCertificatesConfig,
+  RenewSigningCertificatesResult,
+} from "./helpers/renew-signing-certificates";
+export {
+  createHttpCertificateIssuer,
+  createCertificateIssuerApp,
+} from "./helpers/http-certificate-issuer";
+export type {
+  HttpCertificateIssuerOptions,
+  CertificateIssuerAppOptions,
+} from "./helpers/http-certificate-issuer";
 export type {
   CertificateIssuer,
   SigningCertificateRequest,
