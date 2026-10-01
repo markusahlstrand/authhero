@@ -134,7 +134,9 @@ async function buildEnhancedEventObject(
       ip: ip || "",
       user_agent: userAgent,
       method: ctx.req.method,
-      url: ctx.req.url,
+      // Authentication may finish on a callback or /authorize/resume request.
+      // Keep the original /authorize parameters available to post-login hooks.
+      url: loginSession.authorization_url || ctx.req.url,
       geoip: {
         cityName: undefined,
         continentCode: undefined,
@@ -596,6 +598,9 @@ export async function postUserLoginHook(
       tenant_id,
       user,
       trigger_id: "post-user-login",
+      request: {
+        url: loginSession?.authorization_url || ctx.req.url,
+      },
     });
 
     // If no form hook, just return the user

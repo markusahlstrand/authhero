@@ -75,7 +75,7 @@ export function createLoginSessionsAdapter(
         ip: session.ip,
         useragent: session.useragent,
         session_id: session.session_id,
-        authorization_url: session.authorization_url?.slice(0, 1024),
+        authorization_url: session.authorization_url,
         created_at: now,
         updated_at: now,
       };

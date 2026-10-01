@@ -50,6 +50,7 @@ describe("postUserLoginHook → env hooks produce action execution records", () 
       "tenantId",
       {
         csrf_token: "csrf",
+        authorization_url: `https://login.example.com/authorize?client_id=clientId&long=${"x".repeat(1100)}&utm_source=newsletter&utm_campaign=fall`,
         authParams: {
           client_id: "clientId",
           response_type: "code",
@@ -62,14 +63,27 @@ describe("postUserLoginHook → env hooks produce action execution records", () 
     );
 
     let hookRan = false;
+    let actionUrl: string | undefined;
+    let webhookUrl: string | undefined;
+    await server.env.data.hooks.create("tenantId", {
+      url: "https://example.com/post-login",
+      trigger_id: "post-user-login",
+      enabled: true,
+      synchronous: true,
+    });
 
     const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
     app.post("/run", async (ctx) => {
       Object.assign(ctx.env, server.env);
       ctx.env.hooks = {
-        onExecutePostLogin: async () => {
+        onExecutePostLogin: async (event) => {
           hookRan = true;
+          actionUrl = event.request.url;
         },
+      };
+      ctx.env.webhookInvoker = async ({ data }) => {
+        webhookUrl = data.request?.url;
+        return new Response(null, { status: 200 });
       };
       ctx.set("tenant_id", "tenantId");
       ctx.set("ip", "1.2.3.4");
@@ -103,6 +117,8 @@ describe("postUserLoginHook → env hooks produce action execution records", () 
     );
     expect(res.status).toBe(200);
     expect(hookRan).toBe(true);
+    expect(actionUrl).toBe(loginSession.authorization_url);
+    expect(webhookUrl).toBe(loginSession.authorization_url);
 
     const body = (await res.json()) as { action_execution_id: string | null };
     expect(body.action_execution_id).toBeTypeOf("string");

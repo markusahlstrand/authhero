@@ -83,9 +83,7 @@ export function createLoginSessionsAdapter(db: DrizzleDb) {
         session_id: session.session_id,
         csrf_token: session.csrf_token,
         auth_params: JSON.stringify(session.authParams || {}),
-        authorization_url: session.authorization_url
-          ? session.authorization_url.substring(0, 1024)
-          : undefined,
+        authorization_url: session.authorization_url,
         ip: session.ip,
         useragent: session.useragent,
         auth0Client: session.auth0Client,
@@ -151,10 +149,7 @@ export function createLoginSessionsAdapter(db: DrizzleDb) {
       if (session.authenticated_at !== undefined)
         updateData.authenticated_at = session.authenticated_at;
       if (session.authorization_url !== undefined)
-        updateData.authorization_url = session.authorization_url?.substring(
-          0,
-          1024,
-        );
+        updateData.authorization_url = session.authorization_url;
       if (session.expires_at !== undefined)
         updateData.expires_at_ts = isoToDbDate(session.expires_at);
 
