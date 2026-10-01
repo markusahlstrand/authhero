@@ -16,7 +16,6 @@ export function create(db: Kysely<Database>) {
     const createdLogin: LoginSession = {
       id: ulid(),
       ...login,
-      authorization_url: login.authorization_url?.slice(0, 1024),
       created_at: now,
       updated_at: now,
       state: login.state || LoginSessionState.PENDING,

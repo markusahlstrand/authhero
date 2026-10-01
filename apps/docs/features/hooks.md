@@ -875,6 +875,7 @@ Modifies authentication flow, tokens, or redirects users.
   request: {
     ip: string,
     user_agent: string,
+    url: string, // Original /authorize URL when a login session has one
     geoip: {
       countryCode: string,
       // ... other geo fields
@@ -908,6 +909,18 @@ Modifies authentication flow, tokens, or redirects users.
   // ... other Auth0-compatible fields
 }
 ```
+
+For login attribution, add UTM parameters to the `/authorize` URL and read them
+from `event.request.url` in an `onExecutePostLogin` or post-login code hook:
+
+```typescript
+const authorizeUrl = new URL(event.request.url);
+const utmSource = authorizeUrl.searchParams.get("utm_source");
+const utmCampaign = authorizeUrl.searchParams.get("utm_campaign");
+```
+
+Post-login webhooks receive the same URL in `request.url`. When there is no
+stored authorization URL, hooks receive the current request URL instead.
 
 **API Object**:
 
