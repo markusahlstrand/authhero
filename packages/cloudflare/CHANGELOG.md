@@ -1,5 +1,15 @@
 # @authhero/cloudflare-adapter
 
+## 3.1.8
+
+### Patch Changes
+
+- Updated dependencies [9e0a479]
+- Updated dependencies [00840fa]
+  - authhero@9.18.0
+  - @authhero/kysely-adapter@12.11.0
+  - @authhero/multi-tenancy@15.0.2
+
 ## 3.1.7
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @authhero/admin
 
+## 0.21.2
+
+### Patch Changes
+
+- c9f6f29: Tighten admin types: enable noImplicitAny
+
 ## 0.21.1
 
 ### Patch Changes
