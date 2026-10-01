@@ -44,10 +44,10 @@ describe("previewClient", () => {
     // Default mock implementations
     (getDomainFromStorage as any).mockReturnValue([]);
     (getSelectedDomainFromStorage as any).mockReturnValue("");
-    (formatDomain as any).mockImplementation((d) =>
+    (formatDomain as any).mockImplementation((d: string) =>
       d.replace(/^https?:\/\//, "").trim(),
     );
-    (buildUrlWithProtocol as any).mockImplementation((url) => {
+    (buildUrlWithProtocol as any).mockImplementation((url: string) => {
       if (url.startsWith("http")) return url;
       return `https://${url}`;
     });
@@ -86,7 +86,7 @@ describe("previewClient", () => {
         },
       ]);
       (formatDomain as any).mockReturnValue("auth.example.com");
-      (buildUrlWithProtocol as any).mockImplementation((url) => {
+      (buildUrlWithProtocol as any).mockImplementation((url: string) => {
         if (url === "api.example.com") return "https://api.example.com";
         return url;
       });
@@ -115,7 +115,7 @@ describe("previewClient", () => {
       (getSelectedDomainFromStorage as any).mockReturnValue("");
       (getDomainFromStorage as any).mockReturnValue([]);
       (formatDomain as any).mockReturnValue("");
-      (buildUrlWithProtocol as any).mockImplementation((url) =>
+      (buildUrlWithProtocol as any).mockImplementation((url: string) =>
         url.startsWith("http") ? url : `https://${url}`,
       );
 
