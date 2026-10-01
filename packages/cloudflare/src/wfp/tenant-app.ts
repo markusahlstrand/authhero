@@ -317,7 +317,7 @@ async function buildTenantApp<Env extends WfpTenantEnv>(
         dataAdapter: { keys: encrypted.keys },
         certificateAuthority,
       });
-      return c.json(result);
+      return c.json({ renewed: result.renewed, notDue: result.notDue });
     } catch (err) {
       if (err instanceof SigningCertificateRenewalError) {
         console.error(`[wfp-tenant] signing_certificate_renewal_failed:`, err);

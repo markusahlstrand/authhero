@@ -116,7 +116,10 @@ export default {
 
 ```ts
 // CA service
-import { createCertificateIssuerApp, createLocalCertificateIssuer } from "authhero";
+import {
+  createCertificateIssuerApp,
+  createLocalCertificateIssuer,
+} from "authhero";
 
 export default createCertificateIssuerApp({
   issuer: createLocalCertificateIssuer({ certificate, privateKey }),
@@ -178,12 +181,24 @@ const renew = createDispatchRenewSigningCertificates({
   internalSecret: env.WFP_INTERNAL_SYNC_SECRET,
 });
 
+const failures: Error[] = [];
 for (const tenantId of wfpTenantIds) {
-  await renew(tenantId); // POST /internal/renew-signing-certificates
+  try {
+    await renew(tenantId); // POST /internal/renew-signing-certificates
+  } catch (cause) {
+    failures.push(
+      new Error(`Certificate renewal failed for tenant ${tenantId}`, { cause }),
+    );
+  }
+}
+if (failures.length > 0) {
+  throw new AggregateError(
+    failures,
+    "Some tenant certificates could not be renewed",
+  );
 }
 ```
 
 ## Current limitations
 
 - **Seeded keys are self-signed.** The first key created by `seed()` is self-signed; rotate it once the CA is configured.
-

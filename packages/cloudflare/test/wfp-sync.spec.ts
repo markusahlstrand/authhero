@@ -795,8 +795,8 @@ describe("createWfpTenantApp with a signing certificate authority", () => {
 
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.renewed).toEqual([due.kid]);
-    expect(body.notDue).toBe(1); // the 30-day key minted by sync-defaults
+    // The 30-day key minted by sync-defaults is not due.
+    expect(body).toEqual({ renewed: [due.kid], notDue: 1 });
     expect(requestedUris).toEqual(["urn:authhero:tenant:acme"]);
 
     const { signingKeys } = await tenant.keys.list({ q: "type:jwt_signing" });
@@ -804,6 +804,46 @@ describe("createWfpTenantApp with a signing certificate authority", () => {
       "-----PUBLIC-----",
     );
     expect(signingKeys.find((k) => k.kid === due.kid)?.cert).not.toBe(due.cert);
+  });
+
+  it("returns structured per-key failures when the renewal issuer fails", async () => {
+    const { tenant, post, issuer, createX509Certificate } = await setup();
+    const due = await createX509Certificate({
+      name: "CN=acme",
+      validityDays: 1,
+      certificateAuthority: { issuer, uri: "urn:authhero:tenant:acme" },
+    });
+    await tenant.keys.create({ ...due, type: "jwt_signing" });
+    const issuerSpy = vi
+      .spyOn(issuer, "issueCertificate")
+      .mockRejectedValue(new Error("CA unavailable"));
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const res = await post(
+        "/internal/renew-signing-certificates",
+        "push-secret",
+      );
+
+      expect(res.status).toBe(500);
+      expect(res.headers.get("x-authhero-error")).toBe(
+        "signing_certificate_renewal_failed",
+      );
+      expect(await res.json()).toEqual({
+        error: "signing_certificate_renewal_failed",
+        renewed: [],
+        notDue: 0,
+        failed: [{ kid: due.kid, detail: "CA unavailable" }],
+      });
+      expect(issuerSpy).toHaveBeenCalledOnce();
+      expect(errorSpy).toHaveBeenCalled();
+      const { signingKeys } = await tenant.keys.list({ q: "type:jwt_signing" });
+      expect(signingKeys.find((key) => key.kid === due.kid)?.cert).toBe(
+        due.cert,
+      );
+    } finally {
+      issuerSpy.mockRestore();
+      errorSpy.mockRestore();
+    }
   });
 
   it("requires the shared secret on the renewal route", async () => {
