@@ -145,6 +145,7 @@ async function listRenewableKeys(
       per_page: PAGE_SIZE,
     });
     for (const key of signingKeys) {
+      if (key.type !== "jwt_signing") continue;
       if (key.revoked_at && new Date(key.revoked_at) <= now) continue;
       if (!key.pkcs7) continue;
       out.push(key);

@@ -125,6 +125,37 @@ describe("renewSigningCertificates", () => {
     ).toBe(revoked.cert);
   });
 
+  it("skips SAML keys when the adapter ignores the type filter", async () => {
+    const { env, ca, addKey } = await setup();
+    const saml = await addKey({
+      validityDays: 1,
+      overrides: { type: "saml_encryption" },
+    });
+    const jwt = await addKey({ validityDays: 1 });
+    const result = await renewSigningCertificates({
+      dataAdapter: {
+        keys: {
+          ...env.data.keys,
+          list: async () => ({
+            signingKeys: [saml, jwt],
+            start: 0,
+            limit: 100,
+            length: 2,
+          }),
+        },
+      },
+      certificateAuthority: { issuer: ca.issuer },
+    });
+
+    expect(result).toEqual({ renewed: [jwt.kid], notDue: 0, failed: [] });
+    const { signingKeys } = await env.data.keys.list({
+      q: "type:saml_encryption",
+    });
+    expect(signingKeys.find((key) => key.kid === saml.kid)?.cert).toBe(
+      saml.cert,
+    );
+  });
+
   it("renews keys still in their post-rotation grace period", async () => {
     const { env, ca, addKey } = await setup();
     const outgoing = await addKey({
