@@ -4,6 +4,13 @@ import type { Role, ListParams } from "@authhero/adapter-interfaces";
 import { roles } from "../schema/sqlite";
 import { removeNullProperties, parseJsonIfString } from "../helpers/transform";
 import { buildLuceneFilter } from "../helpers/filter";
+import {
+  isKeysetRequest,
+  keysetCondition,
+  keysetOrderBy,
+  keysetTake,
+  sliceWithNext,
+} from "../helpers/paginate";
 import type { DrizzleDb } from "./types";
 
 function sqlToRole(row: any): Role {
@@ -90,6 +97,33 @@ export function createRolesAdapter(db: DrizzleDb) {
       const whereClause = luceneFilter
         ? and(eq(roles.tenant_id, tenantId), luceneFilter)
         : eq(roles.tenant_id, tenantId);
+
+      if (isKeysetRequest(params)) {
+        const cols = {
+          sortColumn: roles.created_at,
+          idColumn: roles.id,
+          sortOrder: "desc" as const,
+        };
+        const take = keysetTake(params);
+        const rows = await db
+          .select()
+          .from(roles)
+          .where(and(whereClause, keysetCondition(params, cols)))
+          .orderBy(...keysetOrderBy(cols))
+          .limit(take + 1);
+        const { rows: pageRows, next } = sliceWithNext(
+          rows,
+          take,
+          "created_at",
+        );
+        return {
+          roles: pageRows.map(sqlToRole),
+          start: 0,
+          limit: take,
+          length: pageRows.length,
+          next,
+        };
+      }
 
       let query = db.select().from(roles).where(whereClause).$dynamic();
 

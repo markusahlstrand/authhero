@@ -8,13 +8,14 @@ import {
 import getCountAsInt from "../utils/getCountAsInt";
 import { luceneFilter } from "../helpers/filter";
 import { z } from "@hono/zod-openapi";
+import { isKeysetRequest, keysetPaginate } from "../helpers/paginate";
 
 type RoleDbRow = z.infer<typeof sqlRoleSchema>;
 
 export function list(db: Kysely<Database>) {
   return async (
     tenantId: string,
-    params: ListParams,
+    params: ListParams = {},
   ): Promise<ListRolesResponse> => {
     let query = db.selectFrom("roles").where("roles.tenant_id", "=", tenantId);
 
@@ -24,19 +25,21 @@ export function list(db: Kysely<Database>) {
       query = luceneFilter(db, query, params.q, ["name"]);
     }
 
+    if (isKeysetRequest(params)) {
+      const { rows, limit, next } = await keysetPaginate(
+        query.selectAll(),
+        params,
+        { sortColumn: "created_at", sortOrder: "desc", idColumn: "id" },
+      );
+      const roles = rows.map(toRole);
+      return { roles, start: 0, limit, length: roles.length, next };
+    }
+
     const filteredQuery = query.offset(page * per_page).limit(per_page);
 
     const rows = await filteredQuery.selectAll().execute();
 
-    const roles: Role[] = rows.map((row) => {
-      const dbRow = row as RoleDbRow;
-      const { is_system, tenant_id, metadata, ...rest } = dbRow;
-      return {
-        ...rest,
-        is_system: is_system ? true : undefined,
-        metadata: metadata ? JSON.parse(metadata) : undefined,
-      };
-    });
+    const roles: Role[] = rows.map(toRole);
 
     if (!include_totals) {
       return {
@@ -57,5 +60,14 @@ export function list(db: Kysely<Database>) {
       limit: per_page,
       length: getCountAsInt(count),
     };
+  };
+}
+
+function toRole(row: RoleDbRow): Role {
+  const { is_system, tenant_id, metadata, ...rest } = row;
+  return {
+    ...rest,
+    is_system: is_system ? true : undefined,
+    metadata: metadata ? JSON.parse(metadata) : undefined,
   };
 }

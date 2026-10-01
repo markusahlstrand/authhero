@@ -197,6 +197,81 @@ describe("roles", () => {
     expect(get404Response.status).toBe(404);
   });
 
+  it("walks roles with opaque cursors and keeps offset paging", async () => {
+    const tenantId = "roles-checkpoint-tenant";
+    const { managementApp, env } = await getTestServer();
+    const client = testClient(managementApp, env);
+    const adminToken = await getAdminToken();
+    await env.data.tenants.create({
+      id: tenantId,
+      friendly_name: "Roles Checkpoint Tenant",
+      audience: "https://example.com",
+      sender_email: "login@example.com",
+      sender_name: "SenderName",
+    });
+    for (let i = 0; i < 7; i++) {
+      await env.data.roles.create(tenantId, { name: `role-${i}` });
+    }
+
+    const seen = new Set<string>();
+    let from: string | undefined;
+    let pages = 0;
+    do {
+      const response = await client.roles.$get(
+        {
+          query: from ? { from, take: "3" } : { take: "3" },
+          header: { "tenant-id": tenantId },
+        },
+        { headers: { authorization: `Bearer ${adminToken}` } },
+      );
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as {
+        roles: Array<{ id: string }>;
+        next?: string;
+      };
+      expect("start" in body).toBe(false);
+      for (const role of body.roles) {
+        expect(seen.has(role.id)).toBe(false);
+        seen.add(role.id);
+      }
+      from = body.next;
+      if (from) expect(from).not.toMatch(/^\d+$/);
+      if (++pages > 4) throw new Error("role cursor walk did not terminate");
+    } while (from);
+    expect(seen.size).toBe(7);
+    expect(pages).toBe(3);
+
+    const offset = await client.roles.$get(
+      {
+        query: { page: "1", per_page: "3", include_totals: "true" },
+        header: { "tenant-id": tenantId },
+      },
+      { headers: { authorization: `Bearer ${adminToken}` } },
+    );
+    expect(offset.status).toBe(200);
+    const offsetBody = (await offset.json()) as {
+      roles: unknown[];
+      start: number;
+      limit: number;
+      length: number;
+      next?: string;
+    };
+    expect(offsetBody.roles).toHaveLength(3);
+    expect(offsetBody.start).toBe(3);
+    expect(offsetBody.limit).toBe(3);
+    expect(offsetBody.length).toBe(7);
+    expect(offsetBody.next).toBeUndefined();
+
+    const sortedCheckpoint = await client.roles.$get(
+      {
+        query: { take: "3", sort: "name:1" },
+        header: { "tenant-id": tenantId },
+      },
+      { headers: { authorization: `Bearer ${adminToken}` } },
+    );
+    expect(sortedCheckpoint.status).toBe(400);
+  });
+
   it("should handle role permissions management", async () => {
     // First create a role
     const createRoleResponse = await managementClient.roles.$post(

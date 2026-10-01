@@ -63,4 +63,28 @@ describe("roles", () => {
     });
     expect(emptyList.roles.length).toBe(0);
   });
+
+  it("walks roles without duplicates after an intervening insert", async () => {
+    const { data } = await getTestServer();
+    const tenant = "roles-cursor-tenant";
+    for (let i = 0; i < 7; i++) {
+      await data.roles.create(tenant, { name: `role-${i}` });
+    }
+
+    const first = await data.roles.list(tenant, { take: 3 });
+    expect(first.next).toBeDefined();
+    await data.roles.create(tenant, { name: "new-role" });
+
+    const seen = new Set(first.roles.map((role) => role.id));
+    let from = first.next;
+    while (from) {
+      const result = await data.roles.list(tenant, { take: 3, from });
+      for (const role of result.roles) {
+        expect(seen.has(role.id)).toBe(false);
+        seen.add(role.id);
+      }
+      from = result.next;
+    }
+    expect(seen.size).toBeGreaterThanOrEqual(7);
+  });
 });
