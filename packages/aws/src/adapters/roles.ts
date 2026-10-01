@@ -92,6 +92,7 @@ export function createRolesAdapter(ctx: DynamoDBContext): RolesAdapter {
         start: result.start,
         limit: result.limit,
         length: result.length,
+        next: result.next,
       };
     },
 

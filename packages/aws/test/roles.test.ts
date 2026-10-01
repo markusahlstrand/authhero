@@ -94,4 +94,26 @@ describe("roles", () => {
     const list = await data.roles.list("tenantId");
     expect(list.roles).toHaveLength(3);
   });
+
+  it("returns a next cursor for checkpoint pagination", async () => {
+    const { data } = await getTestServer();
+    const tenantId = "roles-cursor-tenant";
+    for (let i = 0; i < 7; i++) {
+      await data.roles.create(tenantId, { name: `role-${i}` });
+    }
+
+    const seen = new Set<string>();
+    let from: string | undefined;
+    let pages = 0;
+    do {
+      const result = await data.roles.list(tenantId, { take: 3, from });
+      for (const role of result.roles) {
+        expect(seen.has(role.id)).toBe(false);
+        seen.add(role.id);
+      }
+      from = result.next;
+      if (++pages > 4) throw new Error("role cursor walk did not terminate");
+    } while (from);
+    expect(seen.size).toBe(7);
+  });
 });

@@ -20,6 +20,13 @@ const rolesWithTotalsSchema = withTotals({
   roles: z.array(roleSchema),
 });
 
+const rolesWithNextSchema = z.object({
+  roles: z.array(roleSchema),
+  next: z.string().optional().openapi({
+    description: "Opaque cursor for the next page; absent on the last page.",
+  }),
+});
+
 const rolePermissionsWithTotalsSchema = withTotals({
   permissions: z.array(rolePermissionSchema),
 });
@@ -82,7 +89,11 @@ const getRoot = defineRoute({
       200: {
         content: {
           "application/json": {
-            schema: z.union([z.array(roleSchema), rolesWithTotalsSchema]),
+            schema: z.union([
+              z.array(roleSchema),
+              rolesWithTotalsSchema,
+              rolesWithNextSchema,
+            ]),
           },
         },
         description: "List of roles",
@@ -90,7 +101,17 @@ const getRoot = defineRoute({
     },
   }),
   handler: async (ctx) => {
-    const { page, per_page, include_totals, sort, q } = ctx.req.valid("query");
+    const { page, per_page, include_totals, sort, q, from, take } =
+      ctx.req.valid("query");
+
+    // Checkpoint mode uses a fixed order across adapters. Offset requests keep
+    // their existing sort behavior.
+    if ((from !== undefined || take !== undefined) && sort !== undefined) {
+      throw new HTTPException(400, {
+        message:
+          "Sorting is not supported with checkpoint pagination for roles",
+      });
+    }
 
     const tenantId = requireTenantId(ctx);
 
@@ -100,7 +121,13 @@ const getRoot = defineRoute({
       include_totals,
       sort: parseSort(sort),
       q,
+      from,
+      take,
     });
+
+    if (from !== undefined || take !== undefined) {
+      return ctx.json({ roles: result.roles, next: result.next });
+    }
 
     return ctx.json(listResponse(include_totals, result, "roles"));
   },
