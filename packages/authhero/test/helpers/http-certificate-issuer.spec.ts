@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import * as x509 from "@peculiar/x509";
 import { chainLength, createTestSigningCa, sanUris } from "./signing-ca";
 import { createX509Certificate } from "../../src/utils/encryption";
@@ -86,6 +86,34 @@ describe("HTTP certificate issuer", () => {
         },
       }),
     ).rejects.toThrow(/400/);
+  });
+
+  it("rejects a future validity window even within the lifetime cap", async () => {
+    const issueCertificate = vi.fn();
+    const app = createCertificateIssuerApp({
+      issuer: { issueCertificate, getIssuerCertificates: async () => [] },
+      authorize: () => true,
+      maxValidityDays: 7,
+    });
+    const notBefore = new Date(Date.now() + 3650 * 86_400_000);
+    const notAfter = new Date(notBefore.getTime() + 7 * 86_400_000);
+    const response = await app.request("/certificates", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        publicKey: "unused",
+        subject: "CN=acme",
+        uri: "urn:authhero:tenant:acme",
+        notBefore: notBefore.toISOString(),
+        notAfter: notAfter.toISOString(),
+      }),
+    });
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: "requested validity is not allowed",
+    });
+    expect(issueCertificate).not.toHaveBeenCalled();
   });
 
   it("rejects malformed requests", async () => {

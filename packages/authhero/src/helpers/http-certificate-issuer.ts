@@ -123,7 +123,8 @@ export interface CertificateIssuerAppOptions {
     certificateRequest: SigningCertificateRequest;
   }) => boolean | Promise<boolean>;
   /**
-   * The longest lifetime a caller may request. Keeps a compromised caller
+   * The longest lifetime and time from now until expiry a caller may request.
+   * Keeps a compromised caller
    * from minting a certificate that outlives its access.
    *
    * @default 90
@@ -159,7 +160,11 @@ export function createCertificateIssuerApp(
       const lifetimeMs =
         certificateRequest.notAfter.getTime() -
         certificateRequest.notBefore.getTime();
-      if (lifetimeMs <= 0 || lifetimeMs > maxValidityMs) {
+      if (
+        lifetimeMs <= 0 ||
+        lifetimeMs > maxValidityMs ||
+        certificateRequest.notAfter.getTime() > Date.now() + maxValidityMs
+      ) {
         return c.json({ error: "requested validity is not allowed" }, 400);
       }
 
