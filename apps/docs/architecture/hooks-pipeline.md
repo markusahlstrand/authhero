@@ -114,11 +114,13 @@ Destinations are constructed per request in `getDestinations(ctx)` so they can c
 
 ## Dead-letter & replay
 
-When an event exhausts `maxRetries` (default 5), the relay writes `dead_lettered_at` + `final_error` on the row and marks it processed so it stops consuming relay capacity. Three management endpoints expose the queue:
+When an event exhausts `maxRetries` (default 5), the relay writes `dead_lettered_at` + `final_error` on the row and marks it processed so it stops consuming relay capacity. These management endpoints expose the queue:
 
 - `GET /api/v2/failed-events?page=0&per_page=50[&include_totals=true]` — list dead-lettered events for the authenticated tenant, newest first.
 - `POST /api/v2/failed-events/:id/retry` — clear `dead_lettered_at`, `final_error`, `processed_at`, `retry_count`, `next_retry_at`, `error`. The next relay pass picks it up.
 - `POST /api/v2/failed-events/bulk-retry` — the same replay for up to 100 ids at once, reporting `{ replayed, not_found }` per id rather than failing the batch.
+- `DELETE /api/v2/failed-events/:id` — permanently delete a dead-lettered event that will never succeed. Only dead-lettered rows are touched; returns `204`.
+- `POST /api/v2/failed-events/bulk-discard` — the same discard for up to 100 ids, reporting `{ discarded, not_found }`.
 
 See the [Failed events admin reference](../customization/failed-events.md) for the request/response shapes.
 

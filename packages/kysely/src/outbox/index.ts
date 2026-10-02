@@ -10,6 +10,7 @@ import { markOutboxEventRetry } from "./markRetry";
 import { deadLetterOutboxEvent } from "./deadLetter";
 import { listFailedOutboxEvents } from "./listFailed";
 import { replayOutboxEvent } from "./replay";
+import { discardOutboxEvent } from "./discard";
 import { cleanupOutboxEvents } from "./cleanup";
 
 export function createOutboxAdapter(db: Kysely<Database>): OutboxAdapter {
@@ -23,6 +24,7 @@ export function createOutboxAdapter(db: Kysely<Database>): OutboxAdapter {
     deadLetter: deadLetterOutboxEvent(db),
     listFailed: listFailedOutboxEvents(db),
     replay: replayOutboxEvent(db),
+    discard: discardOutboxEvent(db),
     cleanup: cleanupOutboxEvents(db),
   };
 }
