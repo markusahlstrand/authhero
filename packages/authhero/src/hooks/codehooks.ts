@@ -12,6 +12,7 @@ import {
   escapeLuceneValue,
 } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../types";
+import type { ActionExecutionLogCapture } from "../types/AuthHeroConfig";
 import { HookEvent, OnExecuteCredentialsExchangeAPI } from "../types/Hooks";
 import { EnrichedClient } from "../helpers/client";
 
@@ -433,15 +434,36 @@ export function capActionExecutionLogs(
 }
 
 /**
+ * Select the outcomes whose console output may be persisted under the
+ * configured `actionExecutionLogs` mode. `"errors"` keeps only outcomes that
+ * errored or denied access. Any value other than the documented modes (a
+ * JS caller passing `"OFF"`, say) fails closed and persists nothing.
+ */
+export function selectPersistedLogOutcomes(
+  outcomes: HandleCodeHookOutcome[],
+  logCapture: ActionExecutionLogCapture = "full",
+): HandleCodeHookOutcome[] {
+  if (logCapture === "full") return outcomes;
+  if (logCapture === "errors") {
+    return outcomes.filter((o) => o.denied || !!o.result.error);
+  }
+  return [];
+}
+
+/**
  * Aggregate per-action outcomes into an Auth0-shape execution record and
  * persist it via the adapter. Returns the generated execution_id (uuid)
  * so the caller can embed it in the surrounding tenant log.
+ *
+ * `options.logCapture` (from `init({ actionExecutionLogs })`) decides which
+ * console output reaches `logs`; the rest of the record is always written.
  */
 export async function persistActionExecution(
   data: Pick<DataAdapters, "actionExecutions">,
   tenant_id: string,
   triggerId: string,
   outcomes: HandleCodeHookOutcome[],
+  options: { logCapture?: ActionExecutionLogCapture } = {},
 ): Promise<string | null> {
   if (outcomes.length === 0) return null;
 
@@ -453,7 +475,7 @@ export async function persistActionExecution(
       : "final";
 
   const logs = capActionExecutionLogs(
-    outcomes
+    selectPersistedLogOutcomes(outcomes, options.logCapture)
       .filter((o) => o.logs.length > 0)
       .map((o) => ({ action_name: o.result.action_name, lines: o.logs })),
   );
@@ -529,5 +551,6 @@ export async function handleCredentialsExchangeCodeHooks(
     tenant_id,
     "credentials-exchange",
     outcomes,
+    { logCapture: ctx.env.actionExecutionLogs },
   );
 }

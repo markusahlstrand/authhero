@@ -95,6 +95,10 @@ export function applyConfigMiddleware(
       ctx.env.rejectUnknownHosts = config.rejectUnknownHosts;
     }
 
+    if (config.actionExecutionLogs) {
+      ctx.env.actionExecutionLogs = config.actionExecutionLogs;
+    }
+
     if (config.mcp) {
       ctx.env.mcp = config.mcp;
     }

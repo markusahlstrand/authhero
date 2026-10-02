@@ -3,6 +3,7 @@ import { CodeExecutor, DataAdapters } from "@authhero/adapter-interfaces";
 import type { SamlSigner } from "@authhero/saml/core";
 import { Hooks } from "./Hooks";
 import {
+  ActionExecutionLogCapture,
   EntityHooksConfig,
   McpConfig,
   OutboxConfig,
@@ -124,6 +125,10 @@ export type Bindings = {
   // for hosts that are neither the ISSUER host, a tenant subdomain, nor a
   // registered custom domain.
   rejectUnknownHosts?: boolean;
+
+  // Set via init({ actionExecutionLogs }). Which action console output is
+  // persisted to action_executions.logs. Defaults to "full" when unset.
+  actionExecutionLogs?: ActionExecutionLogCapture;
 
   // Set via init({ mcp: ... }). /authorize reads it to accept the MCP
   // server's resource URLs as audiences (RFC 8707).
