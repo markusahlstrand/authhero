@@ -3,6 +3,7 @@ import { CodeExecutor, DataAdapters } from "@authhero/adapter-interfaces";
 import type { SamlSigner } from "@authhero/saml/core";
 import { Hooks } from "./Hooks";
 import {
+  ActionExecutionLogCapture,
   EntityHooksConfig,
   McpConfig,
   OutboxConfig,
@@ -26,6 +27,12 @@ export type Bindings = {
   // `createEncryptedDataAdapter`. Generate with: openssl rand -base64 32
   ENCRYPTION_KEY?: string;
 
+  /**
+   * @deprecated Read `ctx.var.data` instead. Holds the raw adapter passed in
+   * at startup until a route group composes its per-request stack, after
+   * which it is a compatibility alias for the same object as `ctx.var.data`.
+   * The alias will be removed in the next major release (#140).
+   */
   data: DataAdapters;
 
   hooks?: Hooks;
@@ -124,6 +131,10 @@ export type Bindings = {
   // for hosts that are neither the ISSUER host, a tenant subdomain, nor a
   // registered custom domain.
   rejectUnknownHosts?: boolean;
+
+  // Set via init({ actionExecutionLogs }). Which action console output is
+  // persisted to action_executions.logs. Defaults to "full" when unset.
+  actionExecutionLogs?: ActionExecutionLogCapture;
 
   // Set via init({ mcp: ... }). /authorize reads it to accept the MCP
   // server's resource URLs as audiences (RFC 8707).

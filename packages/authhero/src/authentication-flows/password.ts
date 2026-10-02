@@ -42,6 +42,11 @@ import {
 import { findConnectionByName } from "../utils/connections";
 import { attemptUpstreamPasswordFallback } from "./auth0-migration";
 import { resolvePrimaryUser } from "../helpers/users";
+import {
+  LoginEmailVerification,
+  sendLoginEmailVerificationCode,
+  setPendingLoginEmailVerification,
+} from "./email-verification";
 
 const FAILED_LOGIN_WINDOW_MS = 1000 * 60 * 5;
 const FAILED_LOGIN_LIMIT = 3;
@@ -237,6 +242,7 @@ export async function passwordGrant(
   authParams: AuthParams & { password: string },
   loginSession?: LoginSession,
   realm: string = Strategy.USERNAME_PASSWORD,
+  emailVerification?: LoginEmailVerification,
 ): Promise<GrantFlowUserResult> {
   const { data } = ctx.env;
 
@@ -498,18 +504,46 @@ export async function passwordGrant(
       ?.split(" ")
       ?.map((locale) => locale.split("-")[0])[0];
 
-    await sendValidateEmailAddress(ctx, user, language, {
-      client_id: client.client_id,
-      redirect_uri: authParams.redirect_uri,
-    });
+    // The password is valid: bind the session's verification step to this
+    // user. The verification screens act only on this binding.
+    if (emailVerification && loginSession) {
+      await setPendingLoginEmailVerification(
+        ctx,
+        client.tenant.id,
+        loginSession.id,
+        {
+          user_id: user.user_id,
+          connection: targetConnection?.name ?? realm,
+        },
+      );
+    }
+
+    if (emailVerification?.method === "code" && loginSession) {
+      await sendLoginEmailVerificationCode(ctx, {
+        client,
+        user,
+        loginSession,
+        connection: targetConnection?.name ?? realm,
+        language,
+      });
+    } else {
+      await sendValidateEmailAddress(ctx, user, language, {
+        resultUrl: emailVerification?.resultUrl,
+        client_id: client.client_id,
+        redirect_uri: authParams.redirect_uri,
+      });
+    }
 
     logMessage(ctx, client.tenant.id, {
       type: LogTypes.FAILED_LOGIN,
       description: "Email not verified",
     });
 
-    // Mark login session as failed
-    if (loginSession) {
+    // UI flows that handle verification keep the login session alive so the
+    // user can finish it after verifying (code screen, or the emailed link
+    // returning to the login screen). Callers without a verification step
+    // can't continue the session.
+    if (loginSession && !emailVerification) {
       await failLoginSession(
         ctx,
         client.tenant.id,
@@ -542,6 +576,7 @@ export async function loginWithPassword(
   loginSession?: LoginSession,
   ticketAuth?: boolean,
   realm: string = Strategy.USERNAME_PASSWORD,
+  emailVerification?: LoginEmailVerification,
 ): Promise<Response> {
   const result = await passwordGrant(
     ctx,
@@ -549,6 +584,7 @@ export async function loginWithPassword(
     authParams,
     loginSession,
     realm,
+    emailVerification,
   );
 
   // Pass through to createFrontChannelAuthResponse which handles session creation

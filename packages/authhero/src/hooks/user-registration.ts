@@ -198,6 +198,7 @@ export function createUserHooks(
               tenant_id,
               "pre-user-registration",
               outcomes,
+              { logCapture: ctx.env.actionExecutionLogs },
             );
             throw err;
           }
@@ -219,6 +220,7 @@ export function createUserHooks(
         tenant_id,
         "pre-user-registration",
         outcomes,
+        { logCapture: ctx.env.actionExecutionLogs },
       );
       if (executionId) {
         ctx.set("action_execution_id", executionId);

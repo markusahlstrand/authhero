@@ -247,6 +247,22 @@ connection with `import_mode` enabled additionally supports lazy migration —
 credentials are verified against the upstream provider on first login and then
 stored locally.
 
+### Email verification
+
+A client with `client_metadata.email_validation` set to `"enforced"` won't let
+a password login complete until the user's email is verified. The verification
+step depends on the database connection's
+`options.attributes.email.verification_method`:
+
+- `"code"` (default): the user is emailed a 6-digit code and sees a code entry
+  screen. A correct code verifies the email and completes the same login.
+- `"link"`: the user is emailed a verification link and sees a "check your
+  email" screen. The link verifies the email and takes the user back to the
+  login screen, where they sign in again.
+
+Both screens can resend the email. The same setting decides whether password
+reset uses a code or a link.
+
 ### Multi-factor authentication
 
 [MFA](/features/mfa) adds a challenge step after primary authentication.

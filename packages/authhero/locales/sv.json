@@ -70,6 +70,31 @@
       "successDescription": "Din e-postadress har verifierats.",
       "successTitle": "E-post verifierad",
       "title": "Ange engångskod"
+    },
+    "email-verification-code": {
+      "buttonText": "Fortsätt",
+      "codeLabel": "Verifieringskod",
+      "codePlaceholder": "Ange 6-siffrig kod",
+      "defaultDescription": "Ange koden vi skickade till din e-post för att bekräfta din adress och fortsätta.",
+      "description": "Vi skickade en kod till ${email}. Ange den för att bekräfta din e-postadress och fortsätta.",
+      "invalidCode": "Koden är ogiltig eller har gått ut",
+      "noCode": "Ange verifieringskoden",
+      "pageTitle": "Verifiera e-post | ${clientName}",
+      "resendFailed": "Det gick inte att skicka koden igen. Försök igen.",
+      "resendSuccess": "En ny kod har skickats till din e-post",
+      "resendText": "Skicka koden igen",
+      "sessionExpired": "Din session har gått ut. Försök igen.",
+      "title": "Bekräfta din e-postadress",
+      "tooManyAttempts": "För många försök. Försök igen senare."
+    },
+    "email-verification-link-sent": {
+      "defaultDescription": "Vi skickade en verifieringslänk till din e-post. Klicka på länken för att bekräfta din adress och logga sedan in igen.",
+      "description": "Vi skickade en verifieringslänk till ${email}. Klicka på länken för att bekräfta din adress och logga sedan in igen.",
+      "pageTitle": "Verifiera e-post | ${clientName}",
+      "resendFailed": "Det gick inte att skicka e-postmeddelandet igen. Försök igen.",
+      "resendSuccess": "Ett nytt verifieringsmejl har skickats",
+      "resendText": "Skicka e-postmeddelandet igen",
+      "title": "Kolla din e-post"
     }
   },
   "invitation": {

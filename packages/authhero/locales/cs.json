@@ -70,6 +70,31 @@
       "successDescription": "Váš e-mail byl úspěšně ověřen.",
       "successTitle": "E-mail ověřen",
       "title": "Ověření e-mailu"
+    },
+    "email-verification-code": {
+      "buttonText": "Pokračovat",
+      "codeLabel": "Ověřovací kód",
+      "codePlaceholder": "Zadejte 6místný kód",
+      "defaultDescription": "Zadejte kód, který jsme vám poslali e-mailem, abyste ověřili svou adresu a mohli pokračovat.",
+      "description": "Poslali jsme kód na ${email}. Zadejte jej pro ověření své e-mailové adresy a pokračujte.",
+      "invalidCode": "Zadaný kód je neplatný nebo vypršel",
+      "noCode": "Zadejte ověřovací kód",
+      "pageTitle": "Ověření e-mailu | ${clientName}",
+      "resendFailed": "Kód se nepodařilo znovu odeslat. Zkuste to prosím znovu.",
+      "resendSuccess": "Na váš e-mail byl odeslán nový kód",
+      "resendText": "Znovu odeslat kód",
+      "sessionExpired": "Vaše relace vypršela. Zkuste to prosím znovu.",
+      "title": "Ověřte svůj e-mail",
+      "tooManyAttempts": "Příliš mnoho pokusů. Zkuste to prosím později."
+    },
+    "email-verification-link-sent": {
+      "defaultDescription": "Poslali jsme vám e-mailem ověřovací odkaz. Kliknutím na odkaz ověřte svou adresu a poté se znovu přihlaste.",
+      "description": "Poslali jsme ověřovací odkaz na ${email}. Kliknutím na odkaz ověřte svou adresu a poté se znovu přihlaste.",
+      "pageTitle": "Ověření e-mailu | ${clientName}",
+      "resendFailed": "E-mail se nepodařilo znovu odeslat. Zkuste to prosím znovu.",
+      "resendSuccess": "Byl odeslán nový ověřovací e-mail",
+      "resendText": "Znovu odeslat e-mail",
+      "title": "Zkontrolujte svůj e-mail"
     }
   },
   "invitation": {

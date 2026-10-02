@@ -32,4 +32,32 @@ export default [
       ],
     },
   },
+  {
+    // `ctx.env` is one object shared by every request in a Workers isolate,
+    // so per-request state written to it leaks between requests (#140). Put
+    // it on a context variable instead; the adapter stack goes through
+    // `setRequestData`. These two files are the only sanctioned writers.
+    files: ["packages/authhero/src/**/*.{ts,tsx}"],
+    ignores: [
+      "packages/authhero/src/helpers/request-data.ts",
+      "packages/authhero/src/middlewares/apply-config.ts",
+    ],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector:
+            "AssignmentExpression > MemberExpression.left[object.type='MemberExpression'][object.property.name='env']",
+          message:
+            "Don't write to ctx.env during a request (#140). Use a context variable (ctx.set), or setRequestData for the adapter stack.",
+        },
+        {
+          selector:
+            "AssignmentExpression > MemberExpression.left[property.name='env']",
+          message:
+            "Don't replace ctx.env during a request (#140); only applyConfigMiddleware may copy it.",
+        },
+      ],
+    },
+  },
 ];

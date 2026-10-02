@@ -61,4 +61,59 @@ describe("applyConfigMiddleware", () => {
     const res = await app.request("/", {}, {});
     expect(await res.json()).toEqual({ same: true });
   });
+
+  it("sets ctx.var.data to env.data for routes that never compose", async () => {
+    const configData = fakeData("config");
+    const envData = fakeData("env");
+    const app = new OpenAPIHono<{ Bindings: Bindings; Variables: Variables }>();
+    app.use("*", applyConfigMiddleware({ dataAdapter: configData }));
+    app.get("/", (ctx) =>
+      ctx.json({
+        sameAsEnv: ctx.var.data === ctx.env.data,
+        isConfig: ctx.var.data === configData,
+        isEnv: ctx.var.data === envData,
+      }),
+    );
+
+    const fromConfig = await app.request("/", {}, {});
+    expect(await fromConfig.json()).toEqual({
+      sameAsEnv: true,
+      isConfig: true,
+      isEnv: false,
+    });
+
+    const fromEnv = await app.request("/", {}, { data: envData });
+    expect(await fromEnv.json()).toEqual({
+      sameAsEnv: true,
+      isConfig: false,
+      isEnv: true,
+    });
+  });
+
+  it("re-syncs ctx.var.data when a nested app runs the middleware again", async () => {
+    const baseData = fakeData("base");
+    const replaced = fakeData("replaced");
+    const config: AuthHeroConfig = { dataAdapter: baseData };
+    const outer = new OpenAPIHono<{
+      Bindings: Bindings;
+      Variables: Variables;
+    }>();
+    outer.use("*", applyConfigMiddleware(config));
+    // Stands in for a consumer middleware (e.g. per-tenant database
+    // isolation) that still writes the deprecated env alias.
+    outer.use("*", async (ctx, next) => {
+      ctx.env.data = replaced;
+      await next();
+    });
+    const inner = new OpenAPIHono<{
+      Bindings: Bindings;
+      Variables: Variables;
+    }>();
+    inner.use(applyConfigMiddleware(config));
+    inner.get("/", (ctx) => ctx.json({ same: ctx.var.data === replaced }));
+    outer.route("/inner", inner);
+
+    const res = await outer.request("/inner", {}, {});
+    expect(await res.json()).toEqual({ same: true });
+  });
 });

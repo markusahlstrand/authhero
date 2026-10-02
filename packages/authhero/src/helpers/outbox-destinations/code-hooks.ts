@@ -8,6 +8,7 @@ import {
   isCodeHook,
   persistActionExecution,
 } from "../../hooks/codehooks";
+import type { ActionExecutionLogCapture } from "../../types/AuthHeroConfig";
 
 const HOOK_EVENT_PREFIX = "hook.";
 
@@ -53,10 +54,16 @@ export class CodeHookDestination implements EventDestination {
   name = "code-hooks";
   private data: CodeHookData;
   private codeExecutor?: CodeExecutor;
+  private logCapture?: ActionExecutionLogCapture;
 
-  constructor(data: CodeHookData, codeExecutor?: CodeExecutor) {
+  constructor(
+    data: CodeHookData,
+    codeExecutor?: CodeExecutor,
+    options: { logCapture?: ActionExecutionLogCapture } = {},
+  ) {
     this.data = data;
     this.codeExecutor = codeExecutor;
+    this.logCapture = options.logCapture;
   }
 
   accepts(event: AuditEvent): boolean {
@@ -134,6 +141,7 @@ export class CodeHookDestination implements EventDestination {
         invocation.tenantId,
         invocation.triggerId,
         outcomes,
+        { logCapture: this.logCapture },
       );
 
       const failed = outcomes.filter((o) => o.result.error);

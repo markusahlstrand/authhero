@@ -26,6 +26,10 @@ export function applyConfigMiddleware(
     if (!ctx.env.data && config.dataAdapter) {
       ctx.env.data = config.dataAdapter;
     }
+    // Baseline for `ctx.var.data` on routes that never compose a per-request
+    // stack. This middleware runs again in each sub-app, so it re-syncs from
+    // `env.data` rather than skipping when the variable is already set.
+    ctx.set("data", ctx.env.data);
 
     if (config.hooks) {
       ctx.env.hooks = {
@@ -93,6 +97,10 @@ export function applyConfigMiddleware(
 
     if (config.rejectUnknownHosts) {
       ctx.env.rejectUnknownHosts = config.rejectUnknownHosts;
+    }
+
+    if (config.actionExecutionLogs) {
+      ctx.env.actionExecutionLogs = config.actionExecutionLogs;
     }
 
     if (config.mcp) {

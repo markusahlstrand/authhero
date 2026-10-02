@@ -167,6 +167,7 @@
   "validate_email_body": "Tjek din indbakke for instruktioner om validering af e-mail.",
   "validate_email_title": "Tilmeldte sig",
   "verify_email_click_to_verify": "Klik på knappen for at bekræfte din e-mailadresse",
+  "verify_email_enter_code": "Indtast denne kode for at bekræfte din e-mailadresse",
   "verify_email_subject": "Bekræft din e-mailadresse",
   "verify_email_title": "Bekræft din e-mailadresse",
   "verify_email_verify": "Bekræft konto",

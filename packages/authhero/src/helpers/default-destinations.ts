@@ -11,6 +11,7 @@ import { RegistrationFinalizerDestination } from "./outbox-destinations/registra
 import { ControlPlaneSyncDestination } from "./outbox-destinations/control-plane-sync";
 import { PipelineDestination } from "./outbox-destinations/pipeline";
 import type {
+  ActionExecutionLogCapture,
   OutboxPipelineConfig,
   WebhookInvoker,
 } from "../types/AuthHeroConfig";
@@ -73,6 +74,13 @@ export interface CreateDefaultDestinationsConfig {
   codeExecutor?: CodeExecutor;
 
   /**
+   * Same value as `init({ actionExecutionLogs })`. Controls which console
+   * output cron-drained code hooks persist to `action_executions.logs`, so
+   * they match inline deliveries. Defaults to `"full"`.
+   */
+  actionExecutionLogs?: ActionExecutionLogCapture;
+
+  /**
    * Same shape as `init({ outbox: { pipeline } })`. When set, cron-drained
    * events are also archived to the Cloudflare Pipelines stream, matching the
    * per-request destination list. Omit to leave the archive out entirely.
@@ -115,6 +123,7 @@ export function createDefaultDestinations(
     webhookInvoker,
     controlPlaneSync,
     codeExecutor,
+    actionExecutionLogs,
     pipeline,
   } = config;
 
@@ -167,6 +176,7 @@ export function createDefaultDestinations(
           multiTenancyConfig: dataAdapter.multiTenancyConfig,
         },
         codeExecutor,
+        { logCapture: actionExecutionLogs },
       ),
     );
   }

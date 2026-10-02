@@ -70,6 +70,31 @@
       "successDescription": "Twój adres e-mail został pomyślnie zweryfikowany.",
       "successTitle": "E-mail zweryfikowany",
       "title": "Zweryfikuj swój adres e-mail"
+    },
+    "email-verification-code": {
+      "buttonText": "Kontynuuj",
+      "codeLabel": "Kod weryfikacyjny",
+      "codePlaceholder": "Wpisz 6-cyfrowy kod",
+      "defaultDescription": "Wpisz kod, który wysłaliśmy na Twój adres e-mail, aby potwierdzić adres i kontynuować.",
+      "description": "Wysłaliśmy kod na adres ${email}. Wpisz go, aby potwierdzić swój adres e-mail i kontynuować.",
+      "invalidCode": "Wprowadzony kod jest nieprawidłowy lub wygasł",
+      "noCode": "Wpisz kod weryfikacyjny",
+      "pageTitle": "Weryfikacja e-mail | ${clientName}",
+      "resendFailed": "Nie udało się ponownie wysłać kodu. Spróbuj ponownie.",
+      "resendSuccess": "Nowy kod został wysłany na Twój adres e-mail",
+      "resendText": "Wyślij kod ponownie",
+      "sessionExpired": "Twoja sesja wygasła. Spróbuj ponownie.",
+      "title": "Potwierdź swój adres e-mail",
+      "tooManyAttempts": "Zbyt wiele prób. Spróbuj ponownie później."
+    },
+    "email-verification-link-sent": {
+      "defaultDescription": "Wysłaliśmy link weryfikacyjny na Twój adres e-mail. Kliknij link, aby potwierdzić adres, a następnie zaloguj się ponownie.",
+      "description": "Wysłaliśmy link weryfikacyjny na adres ${email}. Kliknij link, aby potwierdzić adres, a następnie zaloguj się ponownie.",
+      "pageTitle": "Weryfikacja e-mail | ${clientName}",
+      "resendFailed": "Nie udało się ponownie wysłać wiadomości. Spróbuj ponownie.",
+      "resendSuccess": "Wysłano nową wiadomość weryfikacyjną",
+      "resendText": "Wyślij wiadomość ponownie",
+      "title": "Sprawdź swoją skrzynkę"
     }
   },
   "invitation": {

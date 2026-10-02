@@ -16,6 +16,10 @@ import { userExistsByEmail } from "../../../helpers/users";
 import { validateSignupEmail } from "../../../hooks";
 import { sendLoginOtp } from "./login-otp";
 import { emailOtpChallengeScreen } from "./email-otp-challenge";
+import {
+  emailVerificationRequiredScreen,
+  getLoginEmailVerification,
+} from "./email-verification";
 
 /**
  * Whether the user can switch from the password challenge to an emailed code.
@@ -224,6 +228,9 @@ export const enterPasswordScreenDefinition: ScreenDefinition = {
             password,
           },
           loginSession,
+          undefined,
+          undefined,
+          await getLoginEmailVerification(context),
         );
 
         // Get the redirect URL from the response
@@ -254,7 +261,12 @@ export const enterPasswordScreenDefinition: ScreenDefinition = {
         ) {
           errorMessage = m["wrong-credentials"]();
         } else if (authError.code === "EMAIL_NOT_VERIFIED") {
-          errorMessage = m.unverifiedEmail();
+          return {
+            screen: await emailVerificationRequiredScreen(
+              context,
+              loginSession.authParams.username,
+            ),
+          };
         } else if (authError.code === "TOO_MANY_FAILED_LOGINS") {
           errorMessage = m["user-blocked"]();
         }

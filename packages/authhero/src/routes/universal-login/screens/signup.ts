@@ -27,6 +27,11 @@ import {
 } from "../../../helpers/password-policy";
 import { userIdGenerate } from "../../../utils/user-id";
 import { sendValidateEmailAddress } from "../../../emails";
+import { AuthError } from "../../../types/AuthError";
+import {
+  emailVerificationRequiredScreen,
+  getLoginEmailVerification,
+} from "./email-verification";
 import { loginWithPassword } from "../../../authentication-flows/password";
 
 /**
@@ -349,16 +354,22 @@ export const signupScreenDefinition: ScreenDefinition = {
         ?.split(" ")
         ?.map((locale: string) => locale.split("-")[0])[0];
 
-      // Send verification email - wrapped in try/catch to prevent signup failure
-      // if email sending fails. User can always re-request verification later.
-      try {
-        await sendValidateEmailAddress(ctx, newUser, language, {
-          client_id: client.client_id,
-          redirect_uri: loginSession.authParams.redirect_uri,
-        });
-      } catch (emailError) {
-        console.error("Failed to send verification email:", emailError);
-        // Continue with signup - email verification can be retried later
+      // When verification is enforced the login below sends it (code or
+      // link, per the connection) and shows the matching screen; sending here
+      // too would email the user twice.
+      if (client.client_metadata?.email_validation !== "enforced") {
+        // Send verification email - wrapped in try/catch to prevent signup
+        // failure if email sending fails. User can always re-request
+        // verification later.
+        try {
+          await sendValidateEmailAddress(ctx, newUser, language, {
+            client_id: client.client_id,
+            redirect_uri: loginSession.authParams.redirect_uri,
+          });
+        } catch (emailError) {
+          console.error("Failed to send verification email:", emailError);
+          // Continue with signup - email verification can be retried later
+        }
       }
 
       // Try to log in the user
@@ -371,6 +382,9 @@ export const signupScreenDefinition: ScreenDefinition = {
             password,
           },
           loginSession,
+          undefined,
+          undefined,
+          await getLoginEmailVerification(context),
         );
 
         // Get the redirect URL from the response
@@ -382,7 +396,12 @@ export const signupScreenDefinition: ScreenDefinition = {
         }
         // For non-redirect responses (e.g., web_message mode), pass through directly
         return { response: result };
-      } catch {
+      } catch (e: unknown) {
+        if (e instanceof AuthError && e.code === "EMAIL_NOT_VERIFIED") {
+          return {
+            screen: await emailVerificationRequiredScreen(context, email),
+          };
+        }
         // Login failed but user was created, show message about verification
         return {
           screen: await signupScreen({

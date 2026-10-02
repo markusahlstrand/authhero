@@ -753,6 +753,7 @@ async function recordExecution(
       tenantId,
       CUSTOM_TOKEN_EXCHANGE_TRIGGER,
       [outcome],
+      { logCapture: ctx.env.actionExecutionLogs },
     );
     if (executionId) ctx.set("action_execution_id", executionId);
   } catch (error) {
