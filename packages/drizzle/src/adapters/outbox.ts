@@ -284,5 +284,22 @@ export function createOutboxAdapter(db: DrizzleDb): OutboxAdapter {
 
       return results.length > 0;
     },
+
+    async discard(id: string, tenantId: string): Promise<boolean> {
+      // Same match as `replay`: only a dead-lettered row in the caller's
+      // tenant. Pending and processed events are never deleted here.
+      const results = await db
+        .delete(outboxEvents)
+        .where(
+          and(
+            eq(outboxEvents.id, id),
+            eq(outboxEvents.tenant_id, tenantId),
+            isNotNull(outboxEvents.dead_lettered_at),
+          ),
+        )
+        .returning({ id: outboxEvents.id });
+
+      return results.length > 0;
+    },
   };
 }
