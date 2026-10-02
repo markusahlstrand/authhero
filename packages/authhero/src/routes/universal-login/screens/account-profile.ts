@@ -7,6 +7,7 @@
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { resolveAccountUser } from "./account-helpers";
+import { createTranslation } from "../../../i18n";
 
 /**
  * Create the account-profile screen
@@ -17,6 +18,12 @@ export async function accountProfileScreen(
   const { branding, state, errors, messages, routePrefix = "/u2" } = context;
 
   const { user } = await resolveAccountUser(context);
+  const { m } = createTranslation(
+    "common",
+    "account-profile",
+    context.language || "en",
+    context.customText,
+  );
 
   const stateParam = encodeURIComponent(state);
 
@@ -26,9 +33,9 @@ export async function accountProfileScreen(
       type: "TEXT",
       category: "FIELD",
       visible: true,
-      label: "First Name",
+      label: m.givenNameLabel(),
       config: {
-        placeholder: "First Name",
+        placeholder: m.givenNameLabel(),
         default_value: user.given_name || "",
       },
       required: false,
@@ -42,9 +49,9 @@ export async function accountProfileScreen(
       type: "TEXT",
       category: "FIELD",
       visible: true,
-      label: "Last Name",
+      label: m.familyNameLabel(),
       config: {
-        placeholder: "Last Name",
+        placeholder: m.familyNameLabel(),
         default_value: user.family_name || "",
       },
       required: false,
@@ -58,9 +65,9 @@ export async function accountProfileScreen(
       type: "TEXT",
       category: "FIELD",
       visible: true,
-      label: "Nickname",
+      label: m.nicknameLabel(),
       config: {
-        placeholder: "Nickname",
+        placeholder: m.nicknameLabel(),
         default_value: user.nickname || "",
       },
       required: false,
@@ -74,9 +81,9 @@ export async function accountProfileScreen(
       type: "TEXT",
       category: "FIELD",
       visible: true,
-      label: "Phone Number",
+      label: m.phoneNumberLabel(),
       config: {
-        placeholder: "Phone Number",
+        placeholder: m.phoneNumberLabel(),
         default_value: user.phone_number || "",
       },
       required: false,
@@ -90,7 +97,7 @@ export async function accountProfileScreen(
       type: "TEXT",
       category: "FIELD",
       visible: true,
-      label: "Profile Picture URL",
+      label: m.pictureLabel(),
       config: {
         placeholder: "https://example.com/photo.jpg",
         default_value: user.picture || "",
@@ -107,7 +114,7 @@ export async function accountProfileScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        text: "Save Changes",
+        text: m.buttonText(),
       },
       order: 5,
     },
@@ -117,13 +124,13 @@ export async function accountProfileScreen(
     name: "account-profile",
     action: `${routePrefix}/account/profile?state=${stateParam}`,
     method: "POST",
-    title: "Edit Profile",
-    description: "Update your personal information",
+    title: m.title(),
+    description: m.description(),
     components,
     links: [
       {
         id: "back-to-account",
-        text: "Back to Account",
+        text: m.backToAccountText(),
         href: `${routePrefix}/account?state=${stateParam}`,
       },
     ],
@@ -148,6 +155,12 @@ async function handleAccountProfileSubmit(
   const { ctx, tenant, routePrefix = "/u2", state } = context;
 
   const { user } = await resolveAccountUser(context);
+  const { m } = createTranslation(
+    "common",
+    "account-profile",
+    context.language || "en",
+    context.customText,
+  );
 
   const updateData: Record<string, string | undefined> = {};
   if (typeof data.given_name === "string") {
@@ -182,10 +195,10 @@ async function handleAccountProfileSubmit(
     };
   } catch (err) {
     return {
-      error: "Failed to update profile",
+      error: m.updateFailed(),
       screen: await accountProfileScreen({
         ...context,
-        messages: [{ text: "Failed to update profile", type: "error" }],
+        messages: [{ text: m.updateFailed(), type: "error" }],
       }),
     };
   }

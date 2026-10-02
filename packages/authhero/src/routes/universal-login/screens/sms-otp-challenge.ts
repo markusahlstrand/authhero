@@ -10,6 +10,7 @@ import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { getLoginPath } from "./types";
 import { escapeHtml } from "../sanitization-utils";
 import { createTranslation } from "../../../i18n";
+import { HTTPException } from "hono/http-exception";
 import { passwordlessGrant } from "../../../authentication-flows/passwordless";
 import { createFrontChannelAuthResponse } from "../../../authentication-flows/common";
 import { getPrimaryUsernamePasswordUser } from "../../../utils/username-password-provider";
@@ -278,11 +279,15 @@ export const smsOtpChallengeScreenDefinition: ScreenDefinition = {
 
         let errorMessage: string = m.unexpectedError() as string;
         const rawMessage = (e as Error).message;
-        if (rawMessage) {
+        if (e instanceof HTTPException && e.status === 429) {
+          errorMessage = m.tooManyRequests();
+        } else if (rawMessage) {
           try {
             const parsed = JSON.parse(rawMessage);
+            // userSafe errors are all wrong/used/expired code failures; their
+            // message isn't localized, so show the translated equivalent.
             if (parsed.userSafe && parsed.message) {
-              errorMessage = parsed.message;
+              errorMessage = m["invalid-code"]();
             }
           } catch {
             // Keep the generic error message for non-JSON errors

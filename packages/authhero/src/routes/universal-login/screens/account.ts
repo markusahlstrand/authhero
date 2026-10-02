@@ -9,6 +9,7 @@ import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { resolveAccountUser } from "./account-helpers";
 import { escapeHtml } from "../sanitization-utils";
 import { PASSKEY_TYPES } from "./passkey-utils";
+import { createTranslation } from "../../../i18n";
 
 /**
  * Create the account hub screen
@@ -27,6 +28,12 @@ export async function accountScreen(
   } = context;
 
   const { user } = await resolveAccountUser(context);
+  const { m } = createTranslation(
+    "common",
+    "account",
+    context.language || "en",
+    context.customText,
+  );
 
   // Fetch enrollments and separate MFA from passkeys
   let mfaCount = 0;
@@ -84,37 +91,43 @@ export async function accountScreen(
   }> = [
     {
       href: `${routePrefix}/account/profile?state=${stateParam}`,
-      label: "Edit Profile",
-      detail: "Name, email, phone number, and picture",
+      label: m.editProfileLabel(),
+      detail: m.editProfileDetail(),
     },
     {
       href: `${routePrefix}/account/security?state=${stateParam}`,
-      label: "Security Settings",
+      label: m.securityLabel(),
       detail:
-        mfaCount > 0
-          ? `${mfaCount} method${mfaCount !== 1 ? "s" : ""} configured`
-          : "Multi-factor authentication",
+        mfaCount === 1
+          ? m.securityMethodsCountOne({ count: String(mfaCount) })
+          : mfaCount > 1
+            ? m.securityMethodsCount({ count: String(mfaCount) })
+            : m.securityDetail(),
     },
   ];
 
   if (hasPasskeysEnabled) {
     navItems.push({
       href: `${routePrefix}/account/passkeys?state=${stateParam}`,
-      label: "Passkeys",
+      label: m.passkeysLabel(),
       detail:
-        passkeyCount > 0
-          ? `${passkeyCount} passkey${passkeyCount !== 1 ? "s" : ""} registered`
-          : "Sign in without a password",
+        passkeyCount === 1
+          ? m.passkeysCountOne({ count: String(passkeyCount) })
+          : passkeyCount > 1
+            ? m.passkeysCount({ count: String(passkeyCount) })
+            : m.passkeysDetail(),
     });
   }
 
   navItems.push({
     href: `${routePrefix}/account/linked?state=${stateParam}`,
-    label: "Linked Accounts",
+    label: m.linkedAccountsLabel(),
     detail:
-      linkedIdentities.length > 0
-        ? `${linkedIdentities.length} linked account${linkedIdentities.length !== 1 ? "s" : ""}`
-        : "Connect social accounts",
+      linkedIdentities.length === 1
+        ? m.linkedAccountsCountOne({ count: String(linkedIdentities.length) })
+        : linkedIdentities.length > 1
+          ? m.linkedAccountsCount({ count: String(linkedIdentities.length) })
+          : m.linkedAccountsDetail(),
   });
 
   const navLinksHtml = navItems
@@ -178,8 +191,8 @@ export async function accountScreen(
           <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;padding-top:16px;border-top:1px solid #e5e7eb">
             <a href="${escapeHtml(`${routePrefix}/account/delete?state=${stateParam}`)}" style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border:1px solid #fecaca;border-radius:8px;text-decoration:none;color:#dc2626;transition:background 0.15s">
               <div>
-                <div style="font-weight:500;font-size:14px">Delete Account</div>
-                <div style="font-size:13px;color:#ef4444;margin-top:2px">Permanently delete your account and data</div>
+                <div style="font-weight:500;font-size:14px">${escapeHtml(m.deleteAccountLabel())}</div>
+                <div style="font-size:13px;color:#ef4444;margin-top:2px">${escapeHtml(m.deleteAccountDetail())}</div>
               </div>
               <div style="font-size:18px">&#8250;</div>
             </a>
@@ -194,13 +207,13 @@ export async function accountScreen(
     name: "account",
     action: `${routePrefix}/account?state=${stateParam}`,
     method: "POST",
-    title: "Account Settings",
-    description: "Manage your account",
+    title: m.title(),
+    description: m.description(),
     components,
     links: [
       {
         id: "logout",
-        text: "Log Out",
+        text: m.logoutText(),
         href: logoutUrl,
       },
     ],

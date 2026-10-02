@@ -9,14 +9,7 @@ import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { resolveAccountUser } from "./account-helpers";
 import { escapeHtml } from "../sanitization-utils";
 import { PASSKEY_TYPES } from "./passkey-utils";
-
-const MFA_TYPE_LABELS: Record<string, string> = {
-  totp: "Authenticator App",
-  phone: "Phone (SMS)",
-  email: "Email",
-  push: "Push Notification",
-  webauthn: "Security Key",
-};
+import { createTranslation } from "../../../i18n";
 
 /**
  * Create the account-security screen
@@ -34,7 +27,21 @@ export async function accountSecurityScreen(
   } = context;
 
   const { user } = await resolveAccountUser(context);
+  const { m } = createTranslation(
+    "common",
+    "account-security",
+    context.language || "en",
+    context.customText,
+  );
   const stateParam = encodeURIComponent(state);
+
+  const mfaTypeLabels: Record<string, string> = {
+    totp: m.typeTotp(),
+    phone: m.typePhone(),
+    email: m.typeEmail(),
+    push: m.typePush(),
+    webauthn: m.typeWebauthn(),
+  };
 
   // Fetch MFA enrollments
   let enrollments: Array<{
@@ -66,29 +73,30 @@ export async function accountSecurityScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        content:
-          "<p style='color:#6b7280'>You have no two-factor authentication methods configured.</p>",
+        content: `<p style='color:#6b7280'>${escapeHtml(m.noEnrollments())}</p>`,
       },
       order: 0,
     });
   } else {
     const enrollmentHtml = enrollments
       .map((enrollment) => {
-        const typeLabel = MFA_TYPE_LABELS[enrollment.type] || enrollment.type;
+        const typeLabel = mfaTypeLabels[enrollment.type] || enrollment.type;
         const detail = enrollment.phone_number
           ? ` (${escapeHtml(enrollment.phone_number)})`
           : "";
         const createdAt = enrollment.created_at
-          ? new Date(enrollment.created_at).toLocaleDateString()
+          ? new Date(enrollment.created_at).toLocaleDateString(
+              context.language || "en",
+            )
           : "";
 
         return `
           <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border:1px solid #e5e7eb;border-radius:8px">
             <div>
               <div style="font-weight:500;font-size:14px">${escapeHtml(typeLabel)}${detail}</div>
-              ${createdAt ? `<div style="font-size:13px;color:#9ca3af;margin-top:2px">Added ${escapeHtml(createdAt)}</div>` : ""}
+              ${createdAt ? `<div style="font-size:13px;color:#9ca3af;margin-top:2px">${escapeHtml(m.addedOn({ date: createdAt }))}</div>` : ""}
             </div>
-            <button type="submit" name="action" value="remove_enrollment" data-enrollment-id="${escapeHtml(enrollment.id)}" style="background:none;border:1px solid #fecaca;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;color:#dc2626" onclick="handleRemoveEnrollment(this)">Remove</button>
+            <button type="submit" name="action" value="remove_enrollment" data-enrollment-id="${escapeHtml(enrollment.id)}" style="background:none;border:1px solid #fecaca;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;color:#dc2626" onclick="handleRemoveEnrollment(this)">${escapeHtml(m.removeButtonText())}</button>
           </div>
         `;
       })
@@ -127,8 +135,8 @@ export async function accountSecurityScreen(
     addLinks.push(
       `<a href="${routePrefix}/account/security/totp-enrollment?state=${stateParam}" style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border:1px solid #d1d5db;border-radius:8px;text-decoration:none;color:inherit;transition:background 0.15s">
         <div>
-          <div style="font-weight:500;font-size:14px">Add Authenticator App</div>
-          <div style="font-size:13px;color:#6b7280;margin-top:2px">Use an app like Google Authenticator or Authy</div>
+          <div style="font-weight:500;font-size:14px">${escapeHtml(m.addTotpLabel())}</div>
+          <div style="font-size:13px;color:#6b7280;margin-top:2px">${escapeHtml(m.addTotpDetail())}</div>
         </div>
         <div style="color:#9ca3af;font-size:18px">&#8250;</div>
       </a>`,
@@ -139,8 +147,8 @@ export async function accountSecurityScreen(
     addLinks.push(
       `<a href="${routePrefix}/account/security/phone-enrollment?state=${stateParam}" style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border:1px solid #d1d5db;border-radius:8px;text-decoration:none;color:inherit;transition:background 0.15s">
         <div>
-          <div style="font-weight:500;font-size:14px">Add Phone (SMS)</div>
-          <div style="font-size:13px;color:#6b7280;margin-top:2px">Receive verification codes via text message</div>
+          <div style="font-weight:500;font-size:14px">${escapeHtml(m.addSmsLabel())}</div>
+          <div style="font-size:13px;color:#6b7280;margin-top:2px">${escapeHtml(m.addSmsDetail())}</div>
         </div>
         <div style="color:#9ca3af;font-size:18px">&#8250;</div>
       </a>`,
@@ -164,13 +172,13 @@ export async function accountSecurityScreen(
     name: "account-security",
     action: `${routePrefix}/account/security?state=${stateParam}`,
     method: "POST",
-    title: "Security Settings",
-    description: "Manage your two-factor authentication methods",
+    title: m.title(),
+    description: m.description(),
     components,
     links: [
       {
         id: "back-to-account",
-        text: "Back to Account",
+        text: m.backToAccountText(),
         href: `${routePrefix}/account?state=${stateParam}`,
       },
     ],
@@ -210,6 +218,12 @@ async function handleAccountSecuritySubmit(
   const { ctx, tenant } = context;
 
   const { user } = await resolveAccountUser(context);
+  const { m } = createTranslation(
+    "common",
+    "account-security",
+    context.language || "en",
+    context.customText,
+  );
 
   const action = data.action as string;
   const enrollmentId = data.enrollment_id as string;
@@ -223,10 +237,10 @@ async function handleAccountSecuritySubmit(
       );
       if (!enrollment || enrollment.user_id !== user.user_id) {
         return {
-          error: "Enrollment not found",
+          error: m.enrollmentNotFound(),
           screen: await accountSecurityScreen({
             ...context,
-            messages: [{ text: "Enrollment not found", type: "error" }],
+            messages: [{ text: m.enrollmentNotFound(), type: "error" }],
           }),
         };
       }
@@ -238,7 +252,7 @@ async function handleAccountSecuritySubmit(
           ...context,
           messages: [
             {
-              text: "Authentication method removed",
+              text: m.removeSuccess(),
               type: "success",
             },
           ],
@@ -246,12 +260,12 @@ async function handleAccountSecuritySubmit(
       };
     } catch {
       return {
-        error: "Failed to remove authentication method",
+        error: m.removeFailed(),
         screen: await accountSecurityScreen({
           ...context,
           messages: [
             {
-              text: "Failed to remove authentication method",
+              text: m.removeFailed(),
               type: "error",
             },
           ],

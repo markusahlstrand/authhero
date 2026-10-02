@@ -17,6 +17,140 @@
       "termsOfServiceText": "Käyttöehdot",
       "termsShortText": "Ehdot",
       "tryAgainText": "Yritä uudelleen"
+    },
+    "account": {
+      "title": "Tilin asetukset",
+      "description": "Hallitse tiliäsi",
+      "editProfileLabel": "Muokkaa profiilia",
+      "editProfileDetail": "Nimi, sähköposti, puhelinnumero ja kuva",
+      "securityLabel": "Suojausasetukset",
+      "securityDetail": "Monivaiheinen tunnistautuminen",
+      "securityMethodsCountOne": "${count} menetelmä määritetty",
+      "securityMethodsCount": "${count} menetelmää määritetty",
+      "passkeysLabel": "Tunnistautumisavaimet",
+      "passkeysDetail": "Kirjaudu ilman salasanaa",
+      "passkeysCountOne": "${count} tunnistautumisavain rekisteröity",
+      "passkeysCount": "${count} tunnistautumisavainta rekisteröity",
+      "linkedAccountsLabel": "Linkitetyt tilit",
+      "linkedAccountsDetail": "Yhdistä sosiaalisen median tilejä",
+      "linkedAccountsCountOne": "${count} linkitetty tili",
+      "linkedAccountsCount": "${count} linkitettyä tiliä",
+      "deleteAccountLabel": "Poista tili",
+      "deleteAccountDetail": "Poista tilisi ja tietosi pysyvästi",
+      "logoutText": "Kirjaudu ulos"
+    },
+    "account-profile": {
+      "title": "Muokkaa profiilia",
+      "description": "Päivitä henkilötietosi",
+      "givenNameLabel": "Etunimi",
+      "familyNameLabel": "Sukunimi",
+      "nicknameLabel": "Lempinimi",
+      "phoneNumberLabel": "Puhelinnumero",
+      "pictureLabel": "Profiilikuvan URL-osoite",
+      "buttonText": "Tallenna muutokset",
+      "backToAccountText": "Takaisin tiliin",
+      "updateFailed": "Profiilin päivittäminen epäonnistui"
+    },
+    "account-delete": {
+      "title": "Poista tili",
+      "description": "Poista tilisi pysyvästi",
+      "warningTitle": "Varoitus: Tämä toiminto on pysyvä",
+      "warningText": "Kaikki tietosi poistetaan pysyvästi. Tämä koskee profiiliasi, linkitettyjä tilejä ja tunnistautumismenetelmiä. Toimintoa ei voi peruuttaa.",
+      "confirmationLabel": "Vahvista kirjoittamalla \"${confirmationWord}\"",
+      "buttonText": "Poista tilini",
+      "cancelText": "Peruuta",
+      "confirmationError": "Vahvista kirjoittamalla \"${confirmationWord}\"",
+      "deleteSuccess": "Tilisi on poistettu",
+      "deleteFailed": "Tilin poistaminen epäonnistui"
+    },
+    "account-linked": {
+      "title": "Linkitetyt tilit",
+      "description": "Hallitse linkitettyjä tilejäsi",
+      "noLinkedAccounts": "Ei linkitettyjä tilejä.",
+      "unlinkButtonText": "Poista linkitys",
+      "backToAccountText": "Takaisin tiliin",
+      "unlinkSuccess": "Tilin linkitys poistettu",
+      "unlinkFailed": "Linkityksen poistaminen epäonnistui"
+    },
+    "account-security": {
+      "title": "Suojausasetukset",
+      "description": "Hallitse kaksivaiheisen tunnistautumisen menetelmiäsi",
+      "noEnrollments": "Sinulla ei ole määritettyjä kaksivaiheisen tunnistautumisen menetelmiä.",
+      "addedOn": "Lisätty ${date}",
+      "removeButtonText": "Poista",
+      "addTotpLabel": "Lisää todennussovellus",
+      "addTotpDetail": "Käytä esimerkiksi Google Authenticator- tai Authy-sovellusta",
+      "addSmsLabel": "Lisää puhelin (tekstiviesti)",
+      "addSmsDetail": "Vastaanota vahvistuskoodit tekstiviestinä",
+      "typeTotp": "Todennussovellus",
+      "typePhone": "Puhelin (tekstiviesti)",
+      "typeEmail": "Sähköposti",
+      "typePush": "Push-ilmoitus",
+      "typeWebauthn": "Suojausavain",
+      "backToAccountText": "Takaisin tiliin",
+      "enrollmentNotFound": "Menetelmää ei löytynyt",
+      "removeSuccess": "Tunnistautumismenetelmä poistettu",
+      "removeFailed": "Tunnistautumismenetelmän poistaminen epäonnistui"
+    },
+    "account-passkeys": {
+      "title": "Tunnistautumisavaimet",
+      "description": "Hallitse tunnistautumisavaimiasi salasanatonta kirjautumista varten",
+      "noPasskeysText": "Sinulla ei ole rekisteröityjä tunnistautumisavaimia.",
+      "defaultPasskeyName": "Tunnistautumisavain",
+      "syncedBadgeText": "Synkronoitu",
+      "addedOnText": "Lisätty ${date}",
+      "renameButtonText": "Nimeä uudelleen",
+      "removeButtonText": "Poista",
+      "renamePromptText": "Anna tälle tunnistautumisavaimelle uusi nimi:",
+      "addPasskeyButtonText": "Lisää tunnistautumisavain",
+      "backToAccountText": "Takaisin tiliin",
+      "logoutText": "Kirjaudu ulos",
+      "passkeyNotFoundText": "Tunnistautumisavainta ei löytynyt",
+      "passkeyRemovedText": "Tunnistautumisavain poistettu",
+      "removeFailedText": "Tunnistautumisavaimen poistaminen epäonnistui",
+      "invalidNameText": "Nimen on oltava 1–64 merkkiä pitkä",
+      "passkeyRenamedText": "Tunnistautumisavain nimetty uudelleen",
+      "renameFailedText": "Tunnistautumisavaimen nimeäminen uudelleen epäonnistui",
+      "startRegistrationFailedText": "Tunnistautumisavaimen rekisteröinnin aloittaminen epäonnistui",
+      "missingCredentialText": "Tunnistautumisavaimen tiedot puuttuvat",
+      "challengeExpiredText": "Pyyntö on vanhentunut. Yritä uudelleen.",
+      "invalidCredentialText": "Tunnistautumisavaimen tiedot ovat virheelliset",
+      "verificationFailedText": "Tunnistautumisavaimen vahvistus epäonnistui",
+      "passkeyAddedText": "Tunnistautumisavain lisätty",
+      "registrationFailedText": "Tunnistautumisavaimen rekisteröinti epäonnistui. Yritä uudelleen."
+    },
+    "account-mfa-phone-enrollment": {
+      "title": "Ota puhelin käyttöön (tekstiviesti)",
+      "description": "Syötä puhelinnumerosi saadaksesi vahvistuskoodit tekstiviestillä.",
+      "phoneLabel": "Puhelinnumero",
+      "sendCodeButtonText": "Lähetä vahvistuskoodi",
+      "backToSecurityText": "Takaisin suojausasetuksiin",
+      "verifyTitle": "Vahvista puhelinnumero",
+      "verifyDescription": "Syötä puhelimeesi lähetetty vahvistuskoodi.",
+      "codeSentText": "Vahvistuskoodi on lähetetty numeroon ${phoneNumber}",
+      "codeSentToYourPhoneText": "Vahvistuskoodi on lähetetty puhelimeesi",
+      "codeLabel": "Vahvistuskoodi",
+      "codePlaceholder": "Syötä vahvistuskoodi",
+      "verifyButtonText": "Vahvista ja ota käyttöön",
+      "noPhoneText": "Syötä puhelinnumerosi",
+      "invalidPhoneText": "Syötä kelvollinen puhelinnumero",
+      "sendCodeFailedText": "Vahvistuskoodin lähettäminen epäonnistui. Yritä uudelleen.",
+      "noCodeText": "Syötä vahvistuskoodi",
+      "invalidCodeText": "Virheellinen koodi. Yritä uudelleen.",
+      "sessionInvalidText": "Jokin meni pieleen. Aloita rekisteröinti uudelleen."
+    },
+    "account-mfa-totp-enrollment": {
+      "title": "Ota todentajasovellus käyttöön",
+      "description": "Skannaa QR-koodi todentajasovelluksellasi ja syötä sitten vahvistuskoodi alle.",
+      "qrCodeAltText": "QR-koodi",
+      "manualKeyText": "Tai syötä tämä avain manuaalisesti:",
+      "codeLabel": "Vahvistuskoodi",
+      "codePlaceholder": "Syötä 6-numeroinen koodi",
+      "verifyButtonText": "Vahvista ja ota käyttöön",
+      "backToSecurityText": "Takaisin suojausasetuksiin",
+      "noCodeText": "Syötä vahvistuskoodi",
+      "invalidCodeText": "Virheellinen koodi. Yritä uudelleen.",
+      "verificationFailedText": "Vahvistus epäonnistui. Yritä uudelleen."
     }
   },
   "consent": {
@@ -26,7 +160,39 @@
       "description": "${clientName} pyytää pääsyä tilillesi",
       "pageTitle": "Valtuuta | ${clientName}",
       "scopesTitle": "Tämä sallii sovelluksen ${clientName}:",
-      "title": "Valtuuta ${clientName}"
+      "title": "Valtuuta ${clientName}",
+      "accessAccountText": "haluaa käyttää ${tenantName}-tiliäsi käyttäjänä ${userName}.",
+      "notAuthenticated": "Kirjaudu sisään jatkaaksesi.",
+      "sessionExpired": "Istuntosi on vanhentunut. Yritä uudelleen.",
+      "consentStorageNotConfigured": "Suostumustasi ei voitu tallentaa. Ota yhteyttä sovelluksen omistajaan."
+    },
+    "connect-consent": {
+      "title": "Yhdistä sovellus",
+      "description": "Sallitaanko ${domain} toimia puolestasi?",
+      "connectAccountText": "haluaa yhdistää ${tenantName}-tiliisi käyttäjänä ${userName}.",
+      "workspaceLabel": "Työtila:",
+      "apiLabel": "Rajapinta:",
+      "permissionsLabel": "Pyydetyt oikeudet:",
+      "localDevBadge": "Paikallinen kehitys",
+      "localDevTooltip": "Tämä sivusto on paikallinen kehitysympäristö, ei tuotanto. Yhteys ei toimi tämän laitteen tai verkon ulkopuolella.",
+      "buttonText": "Yhdistä",
+      "cancelText": "Peruuta",
+      "notAuthenticated": "Kirjaudu sisään jatkaaksesi.",
+      "sessionExpired": "Istuntosi on vanhentunut. Yritä uudelleen.",
+      "workspaceSelectionRequired": "Valitse ensin työtila.",
+      "noWorkspaceAccess": "Sinulla ei ole pääsyä tähän työtilaan",
+      "workspaceNotFound": "Työtilaa ei löytynyt"
+    },
+    "connect-tenant-select": {
+      "title": "Valitse työtila",
+      "description": "Valitse, mihin ${tenantName}-työtilaan ${domain} yhdistetään.",
+      "noWorkspacesDescription": "Ei käytettävissä olevia työtiloja",
+      "noWorkspacesText": "Sinulla ei ole pääsyä yhteenkään ${tenantName}-työtilaan. Pyydä ylläpitäjää kutsumaan sinut.",
+      "cancelText": "Peruuta",
+      "notAuthenticated": "Kirjaudu sisään jatkaaksesi.",
+      "sessionExpired": "Istuntosi on vanhentunut. Yritä uudelleen.",
+      "noWorkspaceSelected": "Valitse työtila.",
+      "noWorkspaceAccess": "Sinulla ei ole pääsyä tähän työtilaan"
     }
   },
   "device-flow": {
@@ -54,7 +220,8 @@
       "sessionExpired": "Istuntosi on vanhentunut. Yritä uudelleen.",
       "title": "Tarkista sähköpostisi",
       "unexpectedError": "Odottamaton virhe tapahtui",
-      "usePasswordText": "Kirjaudu salasanalla"
+      "usePasswordText": "Kirjaudu salasanalla",
+      "tooManyRequests": "Liian monta yritystä. Odota hetki ja yritä uudelleen."
     }
   },
   "email-verification": {
@@ -72,7 +239,9 @@
       "acceptButtonText": "Hyväksy kutsu",
       "description": "${inviterName} on kutsunut sinut liittymään organisaatioon ${organizationName} palvelussa ${clientName}",
       "pageTitle": "Kutsu | ${clientName}",
-      "title": "Sinut on kutsuttu"
+      "title": "Sinut on kutsuttu",
+      "defaultOrganizationName": "(tuntematon)",
+      "acceptFailed": "Tilin käyttöönottoa ei voitu viimeistellä. Yritä uudelleen."
     }
   },
   "login": {
@@ -114,7 +283,10 @@
       "usernameTooLong": "Käyttäjänimen on oltava enintään ${max} merkkiä",
       "usernameTooShort": "Käyttäjänimen on oltava vähintään ${min} merkkiä",
       "wrongCredentials": "Väärä käyttäjänimi tai salasana",
-      "passkeyButtonText": "Kirjaudu sisään passkey:llä"
+      "passkeyButtonText": "Kirjaudu sisään passkey:llä",
+      "userBlocked": "Tilisi on estetty useiden peräkkäisten kirjautumisyritysten jälkeen.",
+      "tooManyRequests": "Liian monta yritystä. Odota hetki ja yritä uudelleen.",
+      "unexpectedError": "Jokin meni pieleen. Yritä uudelleen."
     }
   },
   "login-id": {
@@ -211,7 +383,10 @@
       "unverifiedEmail": "Vahvista sähköpostiosoitteesi ennen kirjautumista",
       "user-blocked": "Tilisi on estetty useiden peräkkäisten kirjautumisyritysten jälkeen.",
       "wrong-credentials": "Väärä salasana",
-      "sendCodeText": "Kirjaudu koodilla"
+      "sendCodeText": "Kirjaudu koodilla",
+      "sessionExpired": "Istuntosi on vanhentunut. Yritä uudelleen.",
+      "tooManyRequests": "Liian monta yritystä. Odota hetki ja yritä uudelleen.",
+      "unexpectedError": "Jokin meni pieleen. Yritä uudelleen."
     }
   },
   "login-passwordless": {
@@ -280,7 +455,9 @@
       "transaction-not-found": "Rekisteröintitapahtumasi on vanhentunut, sinun täytyy aloittaa alusta.",
       "pageTitle": "Ota todentaja käyttöön | ${clientName}",
       "unexpectedError": "Jokin meni pieleen. Yritä uudelleen.",
-      "enrollmentComplete": "MFA-rekisteröinti on valmis. Voit sulkea tämän sivun."
+      "enrollmentComplete": "MFA-rekisteröinti on valmis. Voit sulkea tämän sivun.",
+      "pickAuthenticatorText": "Kokeile toista menetelmää",
+      "qrCodeAltText": "QR-koodi"
     },
     "mfa-totp-challenge": {
       "title": "Vahvista henkilöllisyytesi",
@@ -411,7 +588,10 @@
       "cancelLinkText": "Ohita toistaiseksi",
       "retryButtonText": "Yritä uudelleen",
       "enrollmentComplete": "Tunnistautumisavaimesi on määritetty onnistuneesti. Voit sulkea tämän sivun.",
-      "pageTitle": "Luo Tunnistautumisavain | ${clientName}"
+      "pageTitle": "Luo Tunnistautumisavain | ${clientName}",
+      "sessionExpired": "Istuntosi on vanhentunut. Yritä uudelleen.",
+      "enrollmentRequired": "Sinun on luotava tunnistautumisavain jatkaaksesi.",
+      "challengeExpired": "Pyyntö on vanhentunut. Yritä uudelleen."
     },
     "passkey-challenge": {
       "title": "Kirjaudu sisään passkey:llä",
@@ -419,7 +599,8 @@
       "errorMessage": "Passkey-todennus epäonnistui. Yritä uudelleen.",
       "cancelLinkText": "Takaisin kirjautumiseen",
       "retryButtonText": "Yritä uudelleen",
-      "pageTitle": "Kirjaudu sisään passkey:llä | ${clientName}"
+      "pageTitle": "Kirjaudu sisään passkey:llä | ${clientName}",
+      "sessionExpired": "Istuntosi on vanhentunut. Yritä uudelleen."
     }
   },
   "organizations": {
@@ -450,7 +631,9 @@
       "successDescription": "Olemme lähettäneet salasanan palautuslinkin sähköpostiosoitteeseesi.",
       "successTitle": "Salasanan palautussähköposti lähetetty",
       "title": "Unohditko salasanan?",
-      "user-not-found": "Käyttäjää ei löytynyt"
+      "user-not-found": "Käyttäjää ei löytynyt",
+      "noPassword": "Salasana vaaditaan",
+      "sessionExpired": "Istuntosi on vanhentunut. Yritä uudelleen."
     },
     "reset-password-code": {
       "backToLoginText": "Takaisin kirjautumiseen",
@@ -473,7 +656,8 @@
       "resendSuccess": "Uusi koodi on lähetetty sähköpostiisi",
       "resendText": "Lähetä koodi uudelleen",
       "sessionExpired": "Istuntosi on vanhentunut. Yritä uudelleen.",
-      "title": "Syötä palautuskoodi"
+      "title": "Syötä palautuskoodi",
+      "noPassword": "Salasana vaaditaan"
     }
   },
   "signup": {
@@ -504,7 +688,9 @@
       "title": "Valitse salasana",
       "username-already-exists": "Tämä käyttäjänimi on jo varattu",
       "usernamePlaceholder": "Käyttäjänimi",
-      "verifyEmailText": "Tarkista sähköpostisi vahvistaaksesi tilisi"
+      "verifyEmailText": "Tarkista sähköpostisi vahvistaaksesi tilisi",
+      "confirmPasswordRequired": "Vahvista salasanasi",
+      "createUserFailed": "Tilin luominen epäonnistui. Yritä uudelleen."
     }
   },
   "signup-id": {
@@ -536,7 +722,15 @@
       "password-too-weak": "Salasana on liian heikko",
       "passwordPlaceholder": "Salasana",
       "showPasswordText": "Näytä salasana",
-      "title": "Valitse salasana"
+      "title": "Valitse salasana",
+      "passwordTooShort": "Salasanan on oltava vähintään ${minLength} merkkiä",
+      "passwordMissingLowercase": "Salasanan on sisällettävä vähintään yksi pieni kirjain",
+      "passwordMissingUppercase": "Salasanan on sisällettävä vähintään yksi iso kirjain",
+      "passwordMissingNumber": "Salasanan on sisällettävä vähintään yksi numero",
+      "passwordMissingSpecial": "Salasanan on sisällettävä vähintään yksi erikoismerkki",
+      "passwordReused": "Salasanaa on käytetty äskettäin, eikä sitä voi käyttää uudelleen",
+      "passwordContainsPersonalInfo": "Salasana ei saa sisältää henkilötietoja, kuten nimeäsi tai sähköpostiosoitettasi",
+      "passwordContainsForbiddenWord": "Salasana sisältää kielletyn sanan"
     }
   },
   "sms-otp-challenge": {
@@ -552,7 +746,8 @@
       "resendText": "Lähetä koodi uudelleen",
       "sessionExpired": "Istuntosi on vanhentunut. Yritä uudelleen.",
       "title": "Tarkista puhelimesi",
-      "unexpectedError": "Odottamaton virhe tapahtui"
+      "unexpectedError": "Odottamaton virhe tapahtui",
+      "tooManyRequests": "Liian monta yritystä. Odota hetki ja yritä uudelleen."
     }
   },
   "status": {

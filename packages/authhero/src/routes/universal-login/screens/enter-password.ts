@@ -188,13 +188,22 @@ export const enterPasswordScreenDefinition: ScreenDefinition = {
 
       const password = (data.password as string)?.trim();
 
+      const locale = context.language || "en";
+      const { m } = createTranslation(
+        "login-password",
+        "login-password",
+        locale,
+        context.customText,
+      );
+
       // Validate password is provided
       if (!password) {
+        const errorMessage = m["no-password"]();
         return {
-          error: "Password is required",
+          error: errorMessage,
           screen: await enterPasswordScreen({
             ...context,
-            errors: { password: "Password is required" },
+            errors: { password: errorMessage },
           }),
         };
       }
@@ -206,11 +215,12 @@ export const enterPasswordScreenDefinition: ScreenDefinition = {
       );
 
       if (!loginSession || !loginSession.authParams?.username) {
+        const errorMessage = m.sessionExpired();
         return {
-          error: "Session expired",
+          error: errorMessage,
           screen: await enterPasswordScreen({
             ...context,
-            errors: { password: "Session expired. Please start over." },
+            errors: { password: errorMessage },
           }),
         };
       }
@@ -237,16 +247,11 @@ export const enterPasswordScreenDefinition: ScreenDefinition = {
         return { response: result };
       } catch (e: unknown) {
         const authError = e as AuthError;
-        // Initialize i18n for error messages
-        const locale = context.language || "en";
-        const { m } = createTranslation(
-          "login-password",
-          "login-password",
-          locale,
-          context.customText,
-        );
 
-        let errorMessage = authError.message || m["wrong-credentials"]();
+        // Errors without a code (e.g. a hook's api.access.deny reason) are
+        // shown as-is; coded AuthErrors carry English text and are mapped.
+        let errorMessage =
+          (!authError.code && authError.message) || m.unexpectedError();
 
         if (
           authError.code === "INVALID_PASSWORD" ||
@@ -255,8 +260,13 @@ export const enterPasswordScreenDefinition: ScreenDefinition = {
           errorMessage = m["wrong-credentials"]();
         } else if (authError.code === "EMAIL_NOT_VERIFIED") {
           errorMessage = m.unverifiedEmail();
-        } else if (authError.code === "TOO_MANY_FAILED_LOGINS") {
+        } else if (
+          authError.code === "TOO_MANY_FAILED_LOGINS" ||
+          authError.code === "USER_BLOCKED"
+        ) {
           errorMessage = m["user-blocked"]();
+        } else if (authError.code === "TOO_MANY_REQUESTS") {
+          errorMessage = m.tooManyRequests();
         }
 
         return {
@@ -283,11 +293,18 @@ async function switchToEmailCode(context: ScreenContext) {
   const email = loginSession?.authParams?.username;
 
   if (!loginSession || !email) {
+    const { m } = createTranslation(
+      "login-password",
+      "login-password",
+      context.language || "en",
+      context.customText,
+    );
+    const errorMessage = m.sessionExpired();
     return {
-      error: "Session expired",
+      error: errorMessage,
       screen: await enterPasswordScreen({
         ...context,
-        errors: { password: "Session expired. Please start over." },
+        errors: { password: errorMessage },
       }),
     };
   }

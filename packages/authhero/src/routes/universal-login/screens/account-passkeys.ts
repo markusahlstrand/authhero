@@ -21,6 +21,16 @@ import {
   buildWebAuthnRegistrationScript,
   buildWebAuthnCeremony,
 } from "./passkey-utils";
+import { createTranslation } from "../../../i18n";
+
+function getTranslation(context: ScreenContext) {
+  return createTranslation(
+    "common",
+    "account-passkeys",
+    context.language || "en",
+    context.customText,
+  );
+}
 
 /**
  * Create the account-passkeys screen
@@ -41,6 +51,7 @@ async function accountPasskeysScreen(
     routePrefix = "/u2",
     client,
   } = context;
+  const { m, locale } = getTranslation(context);
 
   const { user } = await resolveAccountUser(context);
   const stateParam = encodeURIComponent(state);
@@ -87,31 +98,32 @@ async function accountPasskeysScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        content:
-          "<p style='color:#6b7280;text-align:center;padding:24px 0'>You have no passkeys registered.</p>",
+        content: `<p style='color:#6b7280;text-align:center;padding:24px 0'>${escapeHtml(m.noPasskeysText())}</p>`,
       },
       order: 0,
     });
   } else {
     const passkeyHtml = passkeys
       .map((passkey) => {
-        const name = escapeHtml(passkey.friendly_name || "Passkey");
+        const name = escapeHtml(
+          passkey.friendly_name || m.defaultPasskeyName(),
+        );
         const createdAt = passkey.created_at
-          ? new Date(passkey.created_at).toLocaleDateString()
+          ? new Date(passkey.created_at).toLocaleDateString(locale)
           : "";
         const backupBadge = passkey.credential_backed_up
-          ? '<span style="display:inline-block;padding:2px 6px;border-radius:4px;background:#dcfce7;color:#166534;font-size:11px;margin-left:8px">Synced</span>'
+          ? `<span style="display:inline-block;padding:2px 6px;border-radius:4px;background:#dcfce7;color:#166534;font-size:11px;margin-left:8px">${escapeHtml(m.syncedBadgeText())}</span>`
           : "";
 
         return `
           <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border:1px solid #e5e7eb;border-radius:8px">
             <div>
               <div style="font-weight:500;font-size:14px">${name}${backupBadge}</div>
-              ${createdAt ? `<div style="font-size:13px;color:#6b7280;margin-top:2px">Added ${escapeHtml(createdAt)}</div>` : ""}
+              ${createdAt ? `<div style="font-size:13px;color:#6b7280;margin-top:2px">${escapeHtml(m.addedOnText({ date: createdAt }))}</div>` : ""}
             </div>
             <div style="display:flex;gap:8px">
-              <button type="submit" name="action" value="rename_passkey" class="rename-passkey-btn" data-passkey-id="${escapeHtml(passkey.id)}" data-friendly-name="${name}" style="background:none;border:1px solid #d1d5db;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;color:#374151">Rename</button>
-              <button type="submit" name="action" value="remove_passkey" class="remove-passkey-btn" data-passkey-id="${escapeHtml(passkey.id)}" style="background:none;border:1px solid #fecaca;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;color:#dc2626">Remove</button>
+              <button type="submit" name="action" value="rename_passkey" class="rename-passkey-btn" data-passkey-id="${escapeHtml(passkey.id)}" data-friendly-name="${name}" style="background:none;border:1px solid #d1d5db;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;color:#374151">${escapeHtml(m.renameButtonText())}</button>
+              <button type="submit" name="action" value="remove_passkey" class="remove-passkey-btn" data-passkey-id="${escapeHtml(passkey.id)}" style="background:none;border:1px solid #fecaca;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;color:#dc2626">${escapeHtml(m.removeButtonText())}</button>
             </div>
           </div>
         `;
@@ -173,7 +185,7 @@ async function accountPasskeysScreen(
     category: "BLOCK",
     visible: true,
     config: {
-      text: "Add Passkey",
+      text: m.addPasskeyButtonText(),
     },
     order: 5,
   });
@@ -182,18 +194,18 @@ async function accountPasskeysScreen(
     name: "account-passkeys",
     action: `${routePrefix}/account/passkeys?state=${stateParam}`,
     method: "POST",
-    title: "Passkeys",
-    description: "Manage your passkeys for passwordless sign-in",
+    title: m.title(),
+    description: m.description(),
     components,
     links: [
       {
         id: "back-to-account",
-        text: "Back to Account",
+        text: m.backToAccountText(),
         href: `${routePrefix}/account?state=${stateParam}`,
       },
       {
         id: "logout",
-        text: "Log Out",
+        text: m.logoutText(),
         href: logoutUrl,
       },
     ],
@@ -201,6 +213,11 @@ async function accountPasskeysScreen(
   };
 
   // Event listeners for passkey rename/remove buttons (avoids inline JS injection)
+  // "<" is escaped so custom text can't close the surrounding <script> tag.
+  const renamePromptJs = JSON.stringify(m.renamePromptText()).replace(
+    /</g,
+    "\\u003c",
+  );
   const passkeyScript =
     passkeys.length > 0
       ? `(function(){
@@ -210,7 +227,7 @@ root.querySelectorAll('.rename-passkey-btn').forEach(function(btn){
 btn.addEventListener('click',function(e){
 var f=getForm(btn);if(!f){e.preventDefault();return}
 var p=f.querySelector('[name="passkey_id"]');if(p)p.value=btn.dataset.passkeyId;
-var n=prompt('Enter a new name for this passkey:',btn.dataset.friendlyName);
+var n=prompt(${renamePromptJs},btn.dataset.friendlyName);
 if(n===null){e.preventDefault();return}
 var fn=f.querySelector('[name="friendly_name"]');if(fn)fn.value=n;
 })});
@@ -249,6 +266,15 @@ async function handleAccountPasskeysSubmit(
 > {
   const { ctx, tenant, client, state } = context;
   const { user } = await resolveAccountUser(context);
+  const { m } = getTranslation(context);
+
+  const errorResult = async (text: string) => ({
+    error: text,
+    screen: await accountPasskeysScreen({
+      ...context,
+      messages: [{ text, type: "error" }],
+    }),
+  });
 
   const action =
     (data.action as string) || (data["action-field"] as string) || "";
@@ -268,13 +294,7 @@ async function handleAccountPasskeysSubmit(
           enrollment.type as (typeof PASSKEY_TYPES)[number],
         )
       ) {
-        return {
-          error: "Passkey not found",
-          screen: await accountPasskeysScreen({
-            ...context,
-            messages: [{ text: "Passkey not found", type: "error" }],
-          }),
-        };
+        return errorResult(m.passkeyNotFoundText());
       }
 
       await ctx.env.data.authenticationMethods.remove(tenant.id, passkeyId);
@@ -282,17 +302,11 @@ async function handleAccountPasskeysSubmit(
       return {
         screen: await accountPasskeysScreen({
           ...context,
-          messages: [{ text: "Passkey removed", type: "success" }],
+          messages: [{ text: m.passkeyRemovedText(), type: "success" }],
         }),
       };
     } catch {
-      return {
-        error: "Failed to remove passkey",
-        screen: await accountPasskeysScreen({
-          ...context,
-          messages: [{ text: "Failed to remove passkey", type: "error" }],
-        }),
-      };
+      return errorResult(m.removeFailedText());
     }
   }
 
@@ -300,18 +314,7 @@ async function handleAccountPasskeysSubmit(
   if (action === "rename_passkey" && passkeyId) {
     const friendlyName = (data.friendly_name as string)?.trim();
     if (!friendlyName || friendlyName.length > 64) {
-      return {
-        error: "Invalid name",
-        screen: await accountPasskeysScreen({
-          ...context,
-          messages: [
-            {
-              text: "Name must be between 1 and 64 characters",
-              type: "error",
-            },
-          ],
-        }),
-      };
+      return errorResult(m.invalidNameText());
     }
 
     try {
@@ -326,13 +329,7 @@ async function handleAccountPasskeysSubmit(
           enrollment.type as (typeof PASSKEY_TYPES)[number],
         )
       ) {
-        return {
-          error: "Passkey not found",
-          screen: await accountPasskeysScreen({
-            ...context,
-            messages: [{ text: "Passkey not found", type: "error" }],
-          }),
-        };
+        return errorResult(m.passkeyNotFoundText());
       }
 
       await ctx.env.data.authenticationMethods.update(tenant.id, passkeyId, {
@@ -342,17 +339,11 @@ async function handleAccountPasskeysSubmit(
       return {
         screen: await accountPasskeysScreen({
           ...context,
-          messages: [{ text: "Passkey renamed", type: "success" }],
+          messages: [{ text: m.passkeyRenamedText(), type: "success" }],
         }),
       };
     } catch {
-      return {
-        error: "Failed to rename passkey",
-        screen: await accountPasskeysScreen({
-          ...context,
-          messages: [{ text: "Failed to rename passkey", type: "error" }],
-        }),
-      };
+      return errorResult(m.renameFailedText());
     }
   }
 
@@ -426,18 +417,7 @@ async function handleAccountPasskeysSubmit(
         }),
       };
     } catch {
-      return {
-        error: "Failed to start passkey registration",
-        screen: await accountPasskeysScreen({
-          ...context,
-          messages: [
-            {
-              text: "Failed to start passkey registration",
-              type: "error",
-            },
-          ],
-        }),
-      };
+      return errorResult(m.startRegistrationFailedText());
     }
   }
 
@@ -445,13 +425,7 @@ async function handleAccountPasskeysSubmit(
   if (action === "complete_add_passkey") {
     const credentialJson = data["credential-field"] as string;
     if (!credentialJson) {
-      return {
-        error: "Missing credential data",
-        screen: await accountPasskeysScreen({
-          ...context,
-          messages: [{ text: "Missing credential data", type: "error" }],
-        }),
-      };
+      return errorResult(m.missingCredentialText());
     }
 
     try {
@@ -465,28 +439,14 @@ async function handleAccountPasskeysSubmit(
       const expectedChallenge = stateData.webauthn_challenge as string;
 
       if (!expectedChallenge) {
-        return {
-          error: "Challenge expired",
-          screen: await accountPasskeysScreen({
-            ...context,
-            messages: [
-              { text: "Challenge expired. Please try again.", type: "error" },
-            ],
-          }),
-        };
+        return errorResult(m.challengeExpiredText());
       }
 
       let credential;
       try {
         credential = JSON.parse(credentialJson);
       } catch {
-        return {
-          error: "Invalid credential",
-          screen: await accountPasskeysScreen({
-            ...context,
-            messages: [{ text: "Invalid credential data", type: "error" }],
-          }),
-        };
+        return errorResult(m.invalidCredentialText());
       }
 
       const rpId = getRpId(ctx);
@@ -501,13 +461,7 @@ async function handleAccountPasskeysSubmit(
       });
 
       if (!verification.verified || !verification.registrationInfo) {
-        return {
-          error: "Verification failed",
-          screen: await accountPasskeysScreen({
-            ...context,
-            messages: [{ text: "Passkey verification failed", type: "error" }],
-          }),
-        };
+        return errorResult(m.verificationFailedText());
       }
 
       const { credential: webauthnCred, credentialBackedUp } =
@@ -525,7 +479,7 @@ async function handleAccountPasskeysSubmit(
         sign_count: webauthnCred.counter,
         credential_backed_up: credentialBackedUp,
         transports: credential.response?.transports || [],
-        friendly_name: "Passkey",
+        friendly_name: m.defaultPasskeyName(),
         confirmed: true,
       });
 
@@ -538,7 +492,7 @@ async function handleAccountPasskeysSubmit(
       return {
         screen: await accountPasskeysScreen({
           ...context,
-          messages: [{ text: "Passkey added successfully", type: "success" }],
+          messages: [{ text: m.passkeyAddedText(), type: "success" }],
         }),
       };
     } catch (err) {
@@ -548,35 +502,13 @@ async function handleAccountPasskeysSubmit(
         userId: user.user_id,
       });
 
-      return {
-        error: "Passkey registration failed",
-        screen: await accountPasskeysScreen({
-          ...context,
-          messages: [
-            {
-              text: "Passkey registration failed. Please try again.",
-              type: "error",
-            },
-          ],
-        }),
-      };
+      return errorResult(m.registrationFailedText());
     }
   }
 
   // --- Error from client-side WebAuthn failure ---
   if (action === "error") {
-    return {
-      error: "Passkey registration failed",
-      screen: await accountPasskeysScreen({
-        ...context,
-        messages: [
-          {
-            text: "Passkey registration failed. Please try again.",
-            type: "error",
-          },
-        ],
-      }),
-    };
+    return errorResult(m.registrationFailedText());
   }
 
   // Default: re-render the screen

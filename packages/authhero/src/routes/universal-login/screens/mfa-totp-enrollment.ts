@@ -8,6 +8,7 @@ import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
 import { LogTypes } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { createTranslation } from "../../../i18n";
+import { escapeHtml } from "../sanitization-utils";
 import { HTTPException } from "hono/http-exception";
 import {
   generateTotpSecret,
@@ -101,7 +102,7 @@ export async function mfaTotpEnrollmentScreen(
     links.push({
       id: "back",
       text: "",
-      linkText: "Try another method",
+      linkText: m.pickAuthenticatorText(),
       href: `${routePrefix}/mfa/login-options?state=${encodeURIComponent(state)}`,
     });
   }
@@ -122,14 +123,17 @@ export async function mfaTotpEnrollmentScreen(
   };
 }
 
-async function generateQrCodeHtml(totpUri: string): Promise<string> {
+async function generateQrCodeHtml(
+  totpUri: string,
+  altText: string,
+): Promise<string> {
   const svg = await QRCode.toString(totpUri, {
     type: "svg",
     margin: 2,
     width: 200,
   });
   const dataUrl = `data:image/svg+xml;base64,${btoa(svg)}`;
-  return `<img src="${dataUrl}" alt="QR Code" width="200" height="200" />`;
+  return `<img src="${dataUrl}" alt="${escapeHtml(altText)}" width="200" height="200" />`;
 }
 
 /**
@@ -211,7 +215,13 @@ export const mfaTotpEnrollmentScreenDefinition: ScreenDefinition = {
       const issuer = client.tenant.friendly_name || client.tenant.id;
 
       const totpUri = createTotpUri(issuer, accountName, secretBase32);
-      const qrCodeSvg = await generateQrCodeHtml(totpUri);
+      const { m } = createTranslation(
+        "mfa-otp",
+        "mfa-totp-enrollment",
+        context.language || "en",
+        context.customText,
+      );
+      const qrCodeSvg = await generateQrCodeHtml(totpUri, m.qrCodeAltText());
 
       return mfaTotpEnrollmentScreen(context, {
         qrCodeSvg,
@@ -252,7 +262,7 @@ export const mfaTotpEnrollmentScreenDefinition: ScreenDefinition = {
         let qrCodeSvg: string | undefined;
         if (secretBase32) {
           const totpUri = createTotpUri(issuer, accountName, secretBase32);
-          qrCodeSvg = await generateQrCodeHtml(totpUri);
+          qrCodeSvg = await generateQrCodeHtml(totpUri, m.qrCodeAltText());
         }
 
         return {
@@ -355,7 +365,7 @@ export const mfaTotpEnrollmentScreenDefinition: ScreenDefinition = {
 
         const errorMessage = m["invalid-code"]();
         const totpUri = createTotpUri(issuer, accountName, secretBase32);
-        const qrCodeSvg = await generateQrCodeHtml(totpUri);
+        const qrCodeSvg = await generateQrCodeHtml(totpUri, m.qrCodeAltText());
         return {
           error: errorMessage,
           screen: await mfaTotpEnrollmentScreen(

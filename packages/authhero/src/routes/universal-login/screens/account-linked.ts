@@ -8,6 +8,7 @@ import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { resolveAccountUser } from "./account-helpers";
 import { escapeHtml } from "../sanitization-utils";
+import { createTranslation } from "../../../i18n";
 
 const PROVIDER_LABELS: Record<string, string> = {
   "google-oauth2": "Google",
@@ -30,6 +31,12 @@ export async function accountLinkedScreen(
   let { messages } = context;
 
   const { user } = await resolveAccountUser(context);
+  const { m } = createTranslation(
+    "common",
+    "account-linked",
+    context.language || "en",
+    context.customText,
+  );
   const stateParam = encodeURIComponent(state);
 
   // Filter to non-primary identities
@@ -51,7 +58,7 @@ export async function accountLinkedScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        content: "<p style='color:#6b7280'>No linked accounts.</p>",
+        content: `<p style='color:#6b7280'>${escapeHtml(m.noLinkedAccounts())}</p>`,
       },
       order: 0,
     });
@@ -68,7 +75,7 @@ export async function accountLinkedScreen(
               <div style="font-size:13px;color:#6b7280">${escapeHtml(providerLabel)}</div>
               <div style="font-weight:500">${escapeHtml(email)}</div>
             </div>
-            <button type="submit" name="action" value="unlink_account:${escapeHtml(identity.provider)}:${escapeHtml(identity.user_id)}" style="padding:6px 16px;font-size:13px;color:#dc2626;border:1px solid #dc2626;border-radius:6px;background:transparent;cursor:pointer;white-space:nowrap">Unlink</button>
+            <button type="submit" name="action" value="unlink_account:${escapeHtml(identity.provider)}:${escapeHtml(identity.user_id)}" style="padding:6px 16px;font-size:13px;color:#dc2626;border:1px solid #dc2626;border-radius:6px;background:transparent;cursor:pointer;white-space:nowrap">${escapeHtml(m.unlinkButtonText())}</button>
           </div>
         `;
       })
@@ -90,13 +97,13 @@ export async function accountLinkedScreen(
     name: "account-linked",
     action: `${routePrefix}/account/linked?state=${stateParam}`,
     method: "POST",
-    title: "Linked Accounts",
-    description: "Manage your linked accounts",
+    title: m.title(),
+    description: m.description(),
     components,
     links: [
       {
         id: "back-to-account",
-        text: "Back to Account",
+        text: m.backToAccountText(),
         href: `${routePrefix}/account?state=${stateParam}`,
       },
     ],
@@ -121,6 +128,12 @@ async function handleAccountLinkedSubmit(
   const { ctx, tenant } = context;
 
   const { user } = await resolveAccountUser(context);
+  const { m } = createTranslation(
+    "common",
+    "account-linked",
+    context.language || "en",
+    context.customText,
+  );
 
   const action = data.action as string;
 
@@ -141,26 +154,24 @@ async function handleAccountLinkedSubmit(
         return {
           screen: await accountLinkedScreen({
             ...context,
-            messages: [
-              { text: "Account unlinked successfully", type: "success" },
-            ],
+            messages: [{ text: m.unlinkSuccess(), type: "success" }],
           }),
         };
       }
 
       return {
-        error: "Failed to unlink account",
+        error: m.unlinkFailed(),
         screen: await accountLinkedScreen({
           ...context,
-          messages: [{ text: "Failed to unlink account", type: "error" }],
+          messages: [{ text: m.unlinkFailed(), type: "error" }],
         }),
       };
     } catch {
       return {
-        error: "Failed to unlink account",
+        error: m.unlinkFailed(),
         screen: await accountLinkedScreen({
           ...context,
-          messages: [{ text: "Failed to unlink account", type: "error" }],
+          messages: [{ text: m.unlinkFailed(), type: "error" }],
         }),
       };
     }

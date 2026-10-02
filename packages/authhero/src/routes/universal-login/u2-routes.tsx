@@ -60,6 +60,7 @@ import { isCimdClientId } from "../../helpers/cimd";
 import { UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS } from "../../constants";
 
 import { defineRoute } from "../../utils/define-route";
+import { withHandlerError } from "./screens/handler-error";
 
 /**
  * Mapping from screen IDs (used in routes) to prompt screen IDs (used for custom text)
@@ -572,13 +573,11 @@ function createScreenPostHandler(screenId: string) {
     // Otherwise, render the next/current screen as full HTML page
     const screenResult = result.screen;
 
-    // Surface a handler error as a screen-level message so it's visible to the
-    // user rather than silently dropped behind an unchanged re-rendered screen.
+    // Surface a handler error the screen doesn't already show as a
+    // screen-level message, rather than silently dropping it behind an
+    // unchanged re-rendered screen.
     if ("error" in result) {
-      screenResult.screen.messages = [
-        ...(screenResult.screen.messages ?? []),
-        { text: result.error, type: "error" as const },
-      ];
+      screenResult.screen = withHandlerError(screenResult.screen, result.error);
     }
 
     // Get custom template if available

@@ -344,7 +344,7 @@ export const passkeyEnrollmentScreenDefinition: ScreenDefinition = {
       if (!loginSession || !loginSession.user_id) {
         return {
           screen: await passkeyEnrollmentScreen(context, {
-            errorMessage: "Session not found",
+            errorMessage: m.sessionExpired(),
           }),
         };
       }
@@ -404,7 +404,7 @@ export const passkeyEnrollmentScreenDefinition: ScreenDefinition = {
           return {
             screen: await passkeyEnrollmentScreen(context, {
               optionsJSON,
-              errorMessage: "Enrollment is required",
+              errorMessage: m.enrollmentRequired(),
               isGuardianEnrollment,
             }),
           };
@@ -455,7 +455,7 @@ export const passkeyEnrollmentScreenDefinition: ScreenDefinition = {
         if (!userForAuth) {
           return {
             screen: await passkeyEnrollmentScreen(context, {
-              errorMessage: "User not found",
+              errorMessage: m.sessionExpired(),
             }),
           };
         }
@@ -493,7 +493,7 @@ export const passkeyEnrollmentScreenDefinition: ScreenDefinition = {
         return {
           screen: await passkeyEnrollmentScreen(context, {
             optionsJSON,
-            errorMessage: "Challenge expired. Please try again.",
+            errorMessage: m.challengeExpired(),
           }),
         };
       }

@@ -79,7 +79,7 @@ export async function mfaPhoneEnrollmentScreen(
     links.push({
       id: "back",
       text: "",
-      linkText: "Try another method",
+      linkText: m.pickAuthenticatorText(),
       href: `${routePrefix}/mfa/login-options?state=${encodeURIComponent(state)}`,
     });
   }
