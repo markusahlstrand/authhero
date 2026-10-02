@@ -49,35 +49,37 @@ export function createDispatchRenewSigningCertificates(
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-    let response: Response;
+    // The timer stays armed through the body read: aborting the signal also
+    // cancels a stalled body, so one hung tenant can't hold up the renewal
+    // loop past `timeoutMs`.
     try {
-      response = await dispatcher
+      const response = await dispatcher
         .get(scriptName)
         .fetch(`https://tenant.internal${RENEW_PATH}`, {
           method: "POST",
           headers: { authorization: `Bearer ${internalSecret}` },
           signal: controller.signal,
         });
+
+      if (!response.ok) {
+        const body = await response.text().catch(() => "");
+        const code = response.headers.get("x-authhero-error");
+        throw new Error(
+          `signing-certificate renewal for "${scriptName}" failed: ${response.status}` +
+            `${code ? ` (${code})` : ""} ${body.slice(0, 512)}`,
+        );
+      }
+
+      const body: unknown = await response.json();
+      if (!isRenewResult(body)) {
+        throw new Error(
+          `signing-certificate renewal for "${scriptName}" returned an unexpected body`,
+        );
+      }
+      return { renewed: body.renewed, notDue: body.notDue };
     } finally {
       clearTimeout(timer);
     }
-
-    if (!response.ok) {
-      const body = await response.text().catch(() => "");
-      const code = response.headers.get("x-authhero-error");
-      throw new Error(
-        `signing-certificate renewal for "${scriptName}" failed: ${response.status}` +
-          `${code ? ` (${code})` : ""} ${body.slice(0, 512)}`,
-      );
-    }
-
-    const body: unknown = await response.json();
-    if (!isRenewResult(body)) {
-      throw new Error(
-        `signing-certificate renewal for "${scriptName}" returned an unexpected body`,
-      );
-    }
-    return body;
   };
 }
 

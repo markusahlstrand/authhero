@@ -20,6 +20,7 @@ import {
 import {
   init,
   createLocalCertificateIssuer,
+  type AuthHeroConfig,
   type CertificateIssuer,
 } from "authhero";
 
@@ -719,7 +720,12 @@ describe("createWfpTenantApp with a signing certificate authority", () => {
     ],
   };
 
-  async function setup(options: { withCa?: boolean } = {}) {
+  async function setup(
+    options: {
+      withCa?: boolean;
+      configure?: (base: AuthHeroConfig) => AuthHeroConfig;
+    } = {},
+  ) {
     const tenant = await makeAdapters();
     // A self-signed certificate from createX509Certificate is a CA
     // certificate (CA=true, keyCertSign), so it can serve as the issuer.
@@ -745,6 +751,7 @@ describe("createWfpTenantApp with a signing certificate authority", () => {
         : {
             signingCertificateAuthority: () => ({ issuer, tenantId: "acme" }),
           }),
+      ...(options.configure ? { configure: options.configure } : {}),
     });
     const post = (path: string, secret?: string, body?: unknown) =>
       app.fetch(
@@ -774,6 +781,51 @@ describe("createWfpTenantApp with a signing certificate authority", () => {
 
     expect(res.status).toBe(200);
     expect(requestedUris).toEqual(["urn:authhero:tenant:acme"]);
+  });
+
+  it("issues and renews from the authority `configure` leaves in place", async () => {
+    const { tenant, post, issuer, requestedUris, createX509Certificate } =
+      await setup({
+        configure: (base) => ({
+          ...base,
+          signingCertificateAuthority: {
+            issuer: base.signingCertificateAuthority!.issuer,
+            subjectUri: () => "urn:example:override",
+          },
+        }),
+      });
+
+    await post("/internal/sync-defaults", "push-secret", syncPayload);
+    expect(requestedUris).toEqual(["urn:example:override"]);
+
+    const due = await createX509Certificate({
+      name: "CN=acme",
+      validityDays: 1,
+      certificateAuthority: { issuer, uri: "urn:example:override" },
+    });
+    await tenant.keys.create({ ...due, type: "jwt_signing" });
+    requestedUris.length = 0;
+
+    const res = await post(
+      "/internal/renew-signing-certificates",
+      "push-secret",
+    );
+
+    expect(res.status).toBe(200);
+    expect(requestedUris).toEqual(["urn:example:override"]);
+  });
+
+  it("answers 404 on the renewal route when `configure` removes the authority", async () => {
+    const { post } = await setup({
+      configure: ({ signingCertificateAuthority: _removed, ...base }) => base,
+    });
+
+    const res = await post(
+      "/internal/renew-signing-certificates",
+      "push-secret",
+    );
+
+    expect(res.status).toBe(404);
   });
 
   it("renews due certificates and leaves the projected control-plane key alone", async () => {
@@ -909,6 +961,29 @@ describe("createDispatchRenewSigningCertificates", () => {
     await expect(renew("acme")).rejects.toThrow(
       /500 \(signing_certificate_renewal_failed\)/,
     );
+  });
+
+  it("keeps the timeout armed while reading a stalled response body", async () => {
+    const renew = createDispatchRenewSigningCertificates({
+      dispatcher: fakeDispatcher(({ init }) => {
+        const signal = init?.signal;
+        // Headers arrive, the body never does — until the signal aborts it.
+        const body = new ReadableStream<Uint8Array>({
+          start(controller) {
+            signal?.addEventListener("abort", () =>
+              controller.error(signal.reason),
+            );
+          },
+        });
+        return new Response(body, {
+          headers: { "content-type": "application/json" },
+        });
+      }),
+      internalSecret: "push-secret",
+      timeoutMs: 20,
+    });
+
+    await expect(renew("acme")).rejects.toThrow();
   });
 
   it("rejects an unexpected response body", async () => {

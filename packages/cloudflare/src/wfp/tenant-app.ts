@@ -87,7 +87,8 @@ export interface WfpTenantAppOptions<Env extends WfpTenantEnv = WfpTenantEnv> {
   /**
    * Hook to extend or override the authhero config before `init` — add custom
    * hooks, code executors, `signingKeyMode`, extra issuers, etc. Receives the
-   * scaffold's base config and the env.
+   * scaffold's base config and the env. The `signingCertificateAuthority` it
+   * returns is the one sync-defaults and the renew route use as well.
    */
   configure?: (base: AuthHeroConfig, env: Env) => AuthHeroConfig;
   /**
@@ -221,6 +222,9 @@ async function buildTenantApp<Env extends WfpTenantEnv>(
   const config = options.configure
     ? options.configure(baseConfig, env)
     : baseConfig;
+  // The effective authority after `configure`: issuance at sync-defaults and
+  // the renew route use the same CA as rotation and the JWKS x5c.
+  const effectiveCertificateAuthority = config.signingCertificateAuthority;
 
   const { app: authheroApp } = init(config);
 
@@ -273,7 +277,7 @@ async function buildTenantApp<Env extends WfpTenantEnv>(
     try {
       const ensured = await ensureSigningKey(encrypted.keys, {
         name: env.ISSUER,
-        certificateAuthority,
+        certificateAuthority: effectiveCertificateAuthority,
       });
       signingKey = { created: ensured.created };
     } catch (err) {
@@ -305,7 +309,7 @@ async function buildTenantApp<Env extends WfpTenantEnv>(
     if (!secret || authorization !== `Bearer ${secret}`) {
       return c.json({ error: "unauthorized" }, 401);
     }
-    if (!certificateAuthority) {
+    if (!effectiveCertificateAuthority) {
       return c.json({ error: "no signing certificate authority" }, 404);
     }
 
@@ -315,7 +319,7 @@ async function buildTenantApp<Env extends WfpTenantEnv>(
         // live here without a tenant_id, next to public-only control-plane
         // copies that renewal skips.
         dataAdapter: { keys: encrypted.keys },
-        certificateAuthority,
+        certificateAuthority: effectiveCertificateAuthority,
       });
       return c.json({ renewed: result.renewed, notDue: result.notDue });
     } catch (err) {
