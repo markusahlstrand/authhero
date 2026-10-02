@@ -167,6 +167,7 @@
   "validate_email_body": "Pokyny k ověření e-mailu najdete ve své e-mailové schránce.",
   "validate_email_title": "Zaregistrovali jste se",
   "verify_email_click_to_verify": "Klikněte na tlačítko pro ověření e-mailové adresy",
+  "verify_email_enter_code": "Zadejte tento kód pro ověření své e-mailové adresy",
   "verify_email_subject": "Ověřte svou e-mailovou adresu",
   "verify_email_title": "Ověřte svou e-mailovou adresu",
   "verify_email_verify": "Ověření účtu",

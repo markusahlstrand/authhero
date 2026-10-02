@@ -686,10 +686,20 @@ export async function sendLink(
   });
 }
 
+export interface SendValidateEmailAddressOptions {
+  /**
+   * Where the ticket endpoint redirects after verifying. Set by the login
+   * flow so the link lands the user back on the login screen of the session
+   * that asked for verification instead of a bare confirmation page.
+   */
+  resultUrl?: string;
+}
+
 export async function sendValidateEmailAddress(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   user: User,
   language?: string,
+  { resultUrl }: SendValidateEmailAddressOptions = {},
 ) {
   const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
   if (!tenant) {
@@ -729,7 +739,10 @@ export async function sendValidateEmailAddress(
     login_id: ticketId,
     user_id: user.user_id,
     expires_at: expiresAt,
-    state: JSON.stringify({ purpose: "email_verification" }),
+    state: JSON.stringify({
+      purpose: "email_verification",
+      ...(resultUrl ? { result_url: resultUrl } : {}),
+    }),
   });
 
   const validationUrl = new URL(
@@ -786,6 +799,83 @@ export async function sendValidateEmailAddress(
     } catch (logErr) {
       console.error(
         "[sendValidateEmailAddress] failed to record log entry",
+        logErr,
+      );
+    }
+    throw err;
+  }
+
+  logMessage(ctx, tenant.id, {
+    type: LogTypes.SUCCESS_VERIFICATION_EMAIL_REQUEST,
+    description: user.email,
+    userId: user.user_id,
+  });
+}
+
+/**
+ * Email a one-time code that verifies the user's email address. Used by the
+ * login flow when the database connection's `verification_method` is "code";
+ * the code is entered on the u2 email-verification screen.
+ */
+export async function sendEmailVerificationCode(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  user: User,
+  code: string,
+  language?: string,
+) {
+  if (!user.email) {
+    throw new HTTPException(400, { message: "User has no email" });
+  }
+
+  const emailContext = await buildEmailContext(ctx, language);
+  const { tenant, logo, buttonColor, options } = emailContext;
+  language = emailContext.language;
+
+  const data: Record<string, string> = {
+    tenantId: tenant.id,
+    language: language || "en",
+    code,
+    vendorName: tenant.friendly_name,
+    logo,
+    supportUrl: tenant.support_url || "",
+    buttonColor,
+    welcomeToYourAccount: t("verify_email_title", options),
+    welcome_to_your_account: t("verify_email_title", options),
+    linkEmailClickToLogin: t("verify_email_enter_code", options),
+    link_email_click_to_login: t("verify_email_enter_code", options),
+    codeValid30Mins: t("code_valid_30_minutes", options),
+    code_valid_30_minutes: t("code_valid_30_minutes", options),
+    code_email_subject: t("verify_email_subject", options),
+    supportInfo: t("support_info", options),
+    support_info: t("support_info", options),
+    contactUs: t("contact_us", options),
+    contact_us: t("contact_us", options),
+    copyright: t("copyright", options),
+  };
+
+  try {
+    await sendTemplatedEmail(ctx, {
+      to: user.email,
+      templateName: "verify_email_by_code",
+      legacyTemplate: "auth-code",
+      fallbackSubject: t("verify_email_subject", options),
+      fallbackHtml: `Your email verification code is: ${code}`,
+      tenant,
+      branding: { logo, primary_color: buttonColor },
+      code,
+      language,
+      data,
+    });
+  } catch (err) {
+    try {
+      await logMessage(ctx, tenant.id, {
+        type: LogTypes.FAILED_VERIFICATION_EMAIL_REQUEST,
+        description: user.email,
+        userId: user.user_id,
+      });
+    } catch (logErr) {
+      console.error(
+        "[sendEmailVerificationCode] failed to record log entry",
         logErr,
       );
     }

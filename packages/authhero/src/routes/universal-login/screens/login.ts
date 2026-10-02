@@ -28,6 +28,10 @@ import type { LoginScreen } from "../../../generated/locale-types";
 import { getConnectionIconUrl } from "../../../strategies";
 import { loginWithPassword } from "../../../authentication-flows/password";
 import { AuthError } from "../../../types/AuthError";
+import {
+  emailVerificationRequiredScreen,
+  getLoginEmailVerification,
+} from "./email-verification";
 import { generateAuthenticationOptions } from "@simplewebauthn/server";
 import { createFrontChannelAuthResponse } from "../../../authentication-flows/common";
 import {
@@ -709,6 +713,9 @@ export const loginScreenDefinition: ScreenDefinition = {
             password,
           },
           loginSession,
+          undefined,
+          undefined,
+          await getLoginEmailVerification(context),
         );
 
         // Get the redirect URL from the response
@@ -731,7 +738,9 @@ export const loginScreenDefinition: ScreenDefinition = {
         ) {
           errorMessage = m.wrongCredentials();
         } else if (authError.code === "EMAIL_NOT_VERIFIED") {
-          errorMessage = m.unverifiedEmail();
+          return {
+            screen: await emailVerificationRequiredScreen(context, normalized),
+          };
         } else if (authError.code === "TOO_MANY_FAILED_LOGINS") {
           errorMessage = m.tooManyFailedLogins();
         }
