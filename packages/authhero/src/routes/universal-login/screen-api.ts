@@ -31,7 +31,7 @@ import type {
   ScreenBranding,
   ScreenResult,
 } from "./screens/types";
-import type { PromptScreen, CustomText } from "@authhero/adapter-interfaces";
+import type { CustomText } from "@authhero/adapter-interfaces";
 import {
   createFrontChannelAuthResponse,
   completeLoginSessionHook,
@@ -47,28 +47,7 @@ import {
 } from "../../hooks/formhooks";
 import { resolveLanguage } from "../../utils/locale";
 import { withHandlerError } from "./screens/handler-error";
-
-/**
- * Mapping from screen IDs to prompt screen IDs for custom text
- */
-const SCREEN_TO_PROMPT_MAP: Record<string, PromptScreen> = {
-  identifier: "login-id",
-  login: "login",
-  "enter-password": "login-password",
-  "email-otp-challenge": "email-otp-challenge",
-  "sms-otp-challenge": "email-otp-challenge",
-  signup: "signup",
-  "forgot-password": "reset-password",
-  "reset-password": "reset-password",
-  "reset-password-code": "reset-password",
-  impersonate: "login",
-  "pre-signup": "signup-id",
-  "pre-signup-sent": "signup",
-  consent: "consent",
-  "login-passwordless-identifier": "login-passwordless",
-  "passkey-enrollment-nudge": "passkeys",
-  "passkey-enrollment": "passkeys",
-};
+import { getPromptScreenForScreen } from "./screen-prompt-map";
 
 /**
  * Fetch custom text for a screen and language
@@ -79,7 +58,7 @@ async function fetchCustomText(
   screenId: string,
   language: string,
 ): Promise<CustomText | undefined> {
-  const promptScreen = SCREEN_TO_PROMPT_MAP[screenId];
+  const promptScreen = getPromptScreenForScreen(screenId);
   if (!promptScreen) return undefined;
 
   try {
@@ -334,7 +313,7 @@ async function buildScreenContext(
     acceptLanguage,
     client.tenant.enabled_locales,
   );
-  const promptScreen = SCREEN_TO_PROMPT_MAP[screenId];
+  const promptScreen = getPromptScreenForScreen(screenId);
   const customText = await fetchCustomText(
     ctx,
     ctx.var.tenant_id,
