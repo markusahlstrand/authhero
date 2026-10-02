@@ -21,6 +21,7 @@ import { avatarRoutes } from "./avatars";
 import { composeAuthData } from "../../helpers/compose-auth-data";
 import { createInMemoryCache } from "../../adapters/cache/in-memory";
 import { applyConfigMiddleware } from "../../middlewares/apply-config";
+import { setRequestData } from "../../helpers/request-data";
 import { rejectUnknownHostsMiddleware } from "../../middlewares/reject-unknown-hosts";
 import { tenantMiddleware } from "../../middlewares/tenant";
 import { clientInfoMiddleware } from "../../middlewares/client-info";
@@ -85,7 +86,7 @@ export default function create(config: AuthHeroConfig) {
         cleanupIntervalMs: 0,
       });
 
-    ctx.env.data = composeAuthData({
+    const data = composeAuthData({
       ctx,
       rawData: config.dataAdapter,
       cacheAdapter,
@@ -109,6 +110,7 @@ export default function create(config: AuthHeroConfig) {
         "keys",
       ],
     });
+    setRequestData(ctx, data);
     return next();
   });
 
