@@ -61,7 +61,9 @@ export default function create(config: AuthHeroConfig) {
           }),
           { webhookInvoker: ctx.env.webhookInvoker },
         ),
-        new CodeHookDestination(ctx.env.data, ctx.env.codeExecutor),
+        new CodeHookDestination(ctx.env.data, ctx.env.codeExecutor, {
+          logCapture: ctx.env.actionExecutionLogs,
+        }),
         // Must come after delivery destinations so the flag only flips when
         // the upstream hook destinations actually succeeded.
         new RegistrationFinalizerDestination(config.dataAdapter.users),

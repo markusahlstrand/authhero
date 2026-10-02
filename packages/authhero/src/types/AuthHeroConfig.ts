@@ -240,6 +240,12 @@ export type UserLinkingModeResolver = (params: {
 export type UserLinkingModeOption = UserLinkingMode | UserLinkingModeResolver;
 
 /**
+ * Which action (code hook) console output is persisted to
+ * `action_executions.logs`. See `AuthHeroConfig.actionExecutionLogs`.
+ */
+export type ActionExecutionLogCapture = "full" | "errors" | "off";
+
+/**
  * Resolver for the per-tenant username/password provider value.
  *
  * The native database provider has historically been written as `"auth2"`;
@@ -800,6 +806,27 @@ export interface AuthHeroConfig {
    * @default false
    */
   rejectUnknownHosts?: boolean;
+
+  /**
+   * Controls which action (code hook) console output is persisted to
+   * `action_executions.logs`. Actions still capture and see their own
+   * console output while they run; only what is written to the database
+   * changes. The execution record itself (status, results) is always
+   * persisted.
+   *
+   * - `"full"`: persist console output for every action, subject to the
+   *   256-character budget per execution.
+   * - `"errors"`: persist console output only for actions that failed
+   *   (errored or denied access). Output from successful actions is dropped.
+   * - `"off"`: never persist console output.
+   *
+   * `credentials-exchange` runs on every token exchange, and console output
+   * often contains user PII, so `"errors"` or `"off"` is recommended for
+   * high-volume or privacy-sensitive deployments.
+   *
+   * @default "full"
+   */
+  actionExecutionLogs?: ActionExecutionLogCapture;
 
   /**
    * Relax the management API audience check from a hard 403 to a

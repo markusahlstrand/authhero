@@ -1,5 +1,8 @@
 import { CodeExecutor, DataAdapters } from "@authhero/adapter-interfaces";
-import type { WebhookInvoker } from "../types/AuthHeroConfig";
+import type {
+  ActionExecutionLogCapture,
+  WebhookInvoker,
+} from "../types/AuthHeroConfig";
 import type { OutboxMetricsSink } from "../types/OutboxMetrics";
 import { drainOutbox } from "./outbox-relay";
 import { cleanupOutbox } from "./outbox-cleanup";
@@ -44,6 +47,13 @@ export interface RunOutboxRelayConfig {
    * silently skipped.
    */
   codeExecutor?: CodeExecutor;
+
+  /**
+   * Same value as `init({ actionExecutionLogs })`, so code hooks run by this
+   * cron drain persist console output the same way as inline deliveries.
+   * Defaults to `"full"`.
+   */
+  actionExecutionLogs?: ActionExecutionLogCapture;
 
   /**
    * Optional metrics sink — same shape as `init({ outbox: { metrics } })`.
@@ -96,6 +106,7 @@ export async function runOutboxRelay(
     maxRetries,
     webhookTimeoutMs,
     codeExecutor,
+    actionExecutionLogs,
     metrics,
   } = config;
 
@@ -115,6 +126,7 @@ export async function runOutboxRelay(
     webhookTimeoutMs,
     webhookInvoker,
     codeExecutor,
+    actionExecutionLogs,
   });
 
   let drainError: unknown;

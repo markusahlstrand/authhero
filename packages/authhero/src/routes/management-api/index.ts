@@ -400,7 +400,9 @@ export default function create(config: AuthHeroConfig) {
           const token = await createServiceToken(ctx, tenantId, "webhook");
           return token.access_token;
         }),
-        new CodeHookDestination(managementAdapter, ctx.env.codeExecutor),
+        new CodeHookDestination(managementAdapter, ctx.env.codeExecutor, {
+          logCapture: ctx.env.actionExecutionLogs,
+        }),
         ...(config.controlPlaneSync
           ? [
               new ControlPlaneSyncDestination({

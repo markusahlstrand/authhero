@@ -105,7 +105,9 @@ export default function create(config: AuthHeroConfig) {
             const token = await createServiceToken(ctx, tenantId, "webhook");
             return token.access_token;
           }),
-          new CodeHookDestination(ctx.env.data, ctx.env.codeExecutor),
+          new CodeHookDestination(ctx.env.data, ctx.env.codeExecutor, {
+            logCapture: ctx.env.actionExecutionLogs,
+          }),
           new RegistrationFinalizerDestination(config.dataAdapter.users),
           // Archive last: the relay stops the destination loop on first
           // failure, so a Pipelines outage must not block real delivery.

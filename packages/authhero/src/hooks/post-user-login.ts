@@ -613,6 +613,7 @@ export async function postUserLoginHook(
           tenant_id,
           "post-user-login",
           outcomes,
+          { logCapture: ctx.env.actionExecutionLogs },
         );
         if (persistedExecutionId) {
           executionId = persistedExecutionId;
