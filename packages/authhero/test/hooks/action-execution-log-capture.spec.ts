@@ -80,6 +80,12 @@ describe("selectPersistedLogOutcomes", () => {
   it("keeps nothing under off", () => {
     expect(selectPersistedLogOutcomes([ok, failed], "off")).toEqual([]);
   });
+
+  it("fails closed on an unrecognized mode", () => {
+    // A plain-JS caller can pass anything; JSON.parse stands in for it.
+    const unknownMode = JSON.parse('"OFF"');
+    expect(selectPersistedLogOutcomes([ok, failed], unknownMode)).toEqual([]);
+  });
 });
 
 describe("persistActionExecution logCapture", () => {

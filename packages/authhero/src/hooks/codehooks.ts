@@ -436,17 +436,18 @@ export function capActionExecutionLogs(
 /**
  * Select the outcomes whose console output may be persisted under the
  * configured `actionExecutionLogs` mode. `"errors"` keeps only outcomes that
- * errored or denied access.
+ * errored or denied access. Any value other than the documented modes (a
+ * JS caller passing `"OFF"`, say) fails closed and persists nothing.
  */
 export function selectPersistedLogOutcomes(
   outcomes: HandleCodeHookOutcome[],
   logCapture: ActionExecutionLogCapture = "full",
 ): HandleCodeHookOutcome[] {
-  if (logCapture === "off") return [];
+  if (logCapture === "full") return outcomes;
   if (logCapture === "errors") {
     return outcomes.filter((o) => o.denied || !!o.result.error);
   }
-  return outcomes;
+  return [];
 }
 
 /**
