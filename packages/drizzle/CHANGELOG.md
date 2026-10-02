@@ -1,5 +1,15 @@
 # @authhero/drizzle
 
+## 1.9.0
+
+### Minor Changes
+
+- 00840fa: Add opaque cursor pagination to `GET /api/v2/roles` across SQL and DynamoDB adapters while preserving offset pagination.
+
+### Patch Changes
+
+- 9e0a479: Expose the original authorization URL to post-login Actions and webhooks so they can read UTM and attribution parameters. Preserve full authorization URLs in the login-session adapters now that SQL stores them as text.
+
 ## 1.8.1
 
 ### Patch Changes
