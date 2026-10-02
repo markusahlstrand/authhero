@@ -1,10 +1,27 @@
-import { LoginSession } from "@authhero/adapter-interfaces";
+import { DataAdapters, LoginSession } from "@authhero/adapter-interfaces";
 import { CountryCode } from "libphonenumber-js";
 import { Auth0Client } from "./Auth0Client";
 import type { PreferState } from "../middlewares/prefer";
 import type { EmbedLoginContext } from "../routes/universal-login/embed";
 
 export type Variables = {
+  /**
+   * The adapter stack for this request. Read this, not `ctx.env.data`.
+   *
+   * Route groups compose a per-request stack (`composeAuthData({ ctx, ... })`)
+   * that holds request-scoped state: the dedup map, the client-bundle promise
+   * and hooks bound to this `ctx`. It lives here rather than on `env` because
+   * Cloudflare Workers hand every request in an isolate the same `env`
+   * object, so a stack stored there leaks between concurrent requests (#140).
+   *
+   * Typed as required because `applyConfigMiddleware`, the first middleware
+   * of every route group, always sets it (to the startup adapter until a
+   * route group composes its own stack). Optional would force a guard on
+   * every read for a case that cannot happen behind that middleware; code
+   * mounted without it has to set the variable itself. Set it through
+   * `setRequestData` so the deprecated `ctx.env.data` alias stays in sync.
+   */
+  data: DataAdapters;
   tenant_id: string;
   ip: string;
   client_id?: string;

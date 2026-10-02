@@ -35,6 +35,10 @@ import { consentScreenDefinition } from "./consent";
 import { connectTenantSelectScreenDefinition } from "./connect-tenant-select";
 import { tryConnectionResultScreenDefinition } from "./try-connection-result";
 import { acceptInvitationScreenDefinition } from "./accept-invitation";
+import {
+  emailVerificationCodeScreenDefinition,
+  emailVerificationLinkSentScreenDefinition,
+} from "./email-verification";
 
 /**
  * Registry of all built-in screens
@@ -75,6 +79,8 @@ export const screenRegistry: Map<string, ScreenDefinition> = new Map([
   ["connect-tenant-select", connectTenantSelectScreenDefinition],
   ["try-connection-result", tryConnectionResultScreenDefinition],
   ["accept-invitation", acceptInvitationScreenDefinition],
+  ["email-verification-code", emailVerificationCodeScreenDefinition],
+  ["email-verification-link-sent", emailVerificationLinkSentScreenDefinition],
 ]);
 
 /**

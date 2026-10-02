@@ -10,6 +10,7 @@ import {
 } from "@authhero/adapter-interfaces";
 import { AuthHeroConfig, Bindings, Variables } from "../../types";
 import { applyConfigMiddleware } from "../../middlewares/apply-config";
+import { setRequestData } from "../../helpers/request-data";
 import { tenantMiddleware } from "../../middlewares/tenant";
 import { clientInfoMiddleware } from "../../middlewares/client-info";
 import { outboxMiddleware } from "../../middlewares/outbox";
@@ -532,13 +533,14 @@ export function createScimApi(config: AuthHeroConfig) {
         maxEntries: 100,
         cleanupIntervalMs: 0,
       });
-    ctx.env.data = composeAuthData({
+    const data = composeAuthData({
       ctx,
       rawData: config.dataAdapter,
       cacheAdapter,
       defaultTtl: config.dataAdapter.cache ? 300 : 0,
       nonBundleEntities: ["clients", "forms"],
     });
+    setRequestData(ctx, data);
     return next();
   });
   app.use(clientInfoMiddleware).use(tenantMiddleware).use(scimAuthMiddleware);

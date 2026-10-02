@@ -5,6 +5,7 @@ import { createAuthMiddleware } from "../../middlewares/authentication";
 import { composeAuthData } from "../../helpers/compose-auth-data";
 import { createInMemoryCache } from "../../adapters/cache/in-memory";
 import { applyConfigMiddleware } from "../../middlewares/apply-config";
+import { setRequestData } from "../../helpers/request-data";
 import { tenantMiddleware } from "../../middlewares/tenant";
 import { clientInfoMiddleware } from "../../middlewares/client-info";
 import { outboxMiddleware } from "../../middlewares/outbox";
@@ -47,7 +48,7 @@ export default function create(config: AuthHeroConfig) {
         cleanupIntervalMs: 0,
       });
 
-    ctx.env.data = composeAuthData({
+    const data = composeAuthData({
       ctx,
       rawData: config.dataAdapter,
       cacheAdapter,
@@ -56,6 +57,7 @@ export default function create(config: AuthHeroConfig) {
       // getByClientId rationale.
       nonBundleEntities: ["clients", "forms"],
     });
+    setRequestData(ctx, data);
     return next();
   });
 

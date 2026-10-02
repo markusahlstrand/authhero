@@ -332,7 +332,9 @@ async function buildScreenContext(
     if (
       screenId === "email-otp-challenge" ||
       screenId === "enter-password" ||
-      screenId === "reset-password-code"
+      screenId === "reset-password-code" ||
+      screenId === "email-verification-code" ||
+      screenId === "email-verification-link-sent"
     ) {
       data.email = username;
     } else if (screenId === "sms-otp-challenge") {
@@ -823,6 +825,8 @@ screenApiRoutes.openapi(
       const screenIdToPath: Record<string, string> = {
         "forgot-password": "reset-password/request",
         "reset-password-code": "reset-password/code",
+        "email-verification-code": "login/email-verification",
+        "email-verification-link-sent": "login/email-verification-sent",
       };
       const navigatePrefix = loginScreenIds.includes(nextScreenId)
         ? "/u2/login"

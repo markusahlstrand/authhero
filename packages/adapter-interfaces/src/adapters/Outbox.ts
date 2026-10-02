@@ -64,6 +64,16 @@ export interface OutboxAdapter {
    * the tenant.
    */
   replay(id: string, tenantId: string): Promise<boolean>;
+  /**
+   * Permanently delete a dead-lettered event so an operator can drop one that
+   * will never succeed. Only deletes when the row matches both the id and
+   * `tenantId` and is dead-lettered — pending and processed events are never
+   * touched. Returns false when no such row exists.
+   *
+   * Optional so third-party adapters keep compiling; the management API
+   * answers 501 when it is missing.
+   */
+  discard?(id: string, tenantId: string): Promise<boolean>;
   /** Delete processed events older than the given ISO date. Returns count deleted. */
   cleanup(olderThan: string): Promise<number>;
 }

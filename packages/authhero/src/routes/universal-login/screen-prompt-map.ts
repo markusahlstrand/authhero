@@ -48,6 +48,8 @@ const SCREEN_TO_PROMPT_MAP: Record<string, PromptScreen> = {
   "connect-consent": "consent",
   "connect-tenant-select": "consent",
   "email-verification": "email-verification",
+  "email-verification-code": "email-verification",
+  "email-verification-link-sent": "email-verification",
   organizations: "organizations",
   invitation: "invitation",
   "accept-invitation": "invitation",

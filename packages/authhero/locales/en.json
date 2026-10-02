@@ -232,6 +232,31 @@
       "successDescription": "Your email has been verified successfully.",
       "successTitle": "Email verified",
       "title": "Verify your email"
+    },
+    "email-verification-code": {
+      "buttonText": "Continue",
+      "codeLabel": "Verification code",
+      "codePlaceholder": "Enter 6-digit code",
+      "defaultDescription": "Enter the code we sent to your email to verify your address and continue.",
+      "description": "We sent a code to ${email}. Enter it to verify your email address and continue.",
+      "invalidCode": "The code you entered is invalid or has expired",
+      "noCode": "Please enter the verification code",
+      "pageTitle": "Verify Email | ${clientName}",
+      "resendFailed": "Failed to resend the code. Please try again.",
+      "resendSuccess": "A new code has been sent to your email",
+      "resendText": "Resend code",
+      "sessionExpired": "Your session has expired. Please try again.",
+      "title": "Verify your email",
+      "tooManyAttempts": "Too many attempts. Please try again later."
+    },
+    "email-verification-link-sent": {
+      "defaultDescription": "We sent a verification link to your email. Click the link to verify your address, then log in again.",
+      "description": "We sent a verification link to ${email}. Click the link to verify your address, then log in again.",
+      "pageTitle": "Verify Email | ${clientName}",
+      "resendFailed": "Failed to resend the email. Please try again.",
+      "resendSuccess": "A new verification email has been sent",
+      "resendText": "Resend email",
+      "title": "Check your email"
     }
   },
   "invitation": {

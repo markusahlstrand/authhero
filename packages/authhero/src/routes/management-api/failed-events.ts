@@ -24,14 +24,20 @@ const listFailedEventsResponseSchema = z.object({
 });
 
 /**
- * Upper bound on a single bulk-retry call. Each id is a separate adapter
- * round-trip, so an unbounded list would let one request hold a worker for
- * an arbitrary time. Operators with a larger backlog page through it.
+ * Upper bound on a single bulk-retry or bulk-discard call. Each id is a
+ * separate adapter round-trip, so an unbounded list would let one request
+ * hold a worker for an arbitrary time. Operators with a larger backlog page
+ * through it.
  */
-const BULK_RETRY_MAX_IDS = 100;
+const BULK_MAX_IDS = 100;
 
 const bulkRetryResponseSchema = z.object({
   replayed: z.array(z.string()),
+  not_found: z.array(z.string()),
+});
+
+const bulkDiscardResponseSchema = z.object({
+  discarded: z.array(z.string()),
   not_found: z.array(z.string()),
 });
 const getRoot = defineRoute({
@@ -149,7 +155,7 @@ const postBulkRetry = defineRoute({
         content: {
           "application/json": {
             schema: z.object({
-              ids: z.array(z.string()).min(1).max(BULK_RETRY_MAX_IDS),
+              ids: z.array(z.string()).min(1).max(BULK_MAX_IDS),
             }),
           },
         },
@@ -199,7 +205,115 @@ const postBulkRetry = defineRoute({
   },
 });
 
+const deleteById = defineRoute({
+  route: createRoute({
+    tags: ["failed-events"],
+    method: "delete",
+    path: "/{id}",
+    request: {
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
+      params: z.object({ id: z.string() }),
+    },
+    security: [
+      {
+        Bearer: ["update:logs"],
+      },
+    ],
+    responses: {
+      204: { description: "Event permanently discarded" },
+      404: { description: "Not found" },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
+    const outbox = ctx.env.data.outbox;
+    if (!outbox?.discard) {
+      throw new HTTPException(501, {
+        message: "Discarding failed events is not supported by this adapter",
+      });
+    }
+
+    const { id } = ctx.req.valid("param");
+    // Same tenant scoping as retry. The adapter only deletes dead-lettered
+    // rows, so a pending or processed event id also lands in the 404 branch.
+    const discarded = await outbox.discard(id, tenantId);
+    if (!discarded) {
+      throw new HTTPException(404, {
+        message: "Dead-lettered event not found",
+      });
+    }
+    return ctx.body(null, 204);
+  },
+});
+
+const postBulkDiscard = defineRoute({
+  route: createRoute({
+    tags: ["failed-events"],
+    method: "post",
+    path: "/bulk-discard",
+    request: {
+      headers: z.object({
+        "tenant-id": z.string().optional(),
+      }),
+      body: {
+        content: {
+          "application/json": {
+            schema: z.object({
+              ids: z.array(z.string()).min(1).max(BULK_MAX_IDS),
+            }),
+          },
+        },
+      },
+    },
+    security: [
+      {
+        Bearer: ["update:logs"],
+      },
+    ],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: bulkDiscardResponseSchema,
+          },
+        },
+        description: "Per-id discard result",
+      },
+    },
+  }),
+  handler: async (ctx) => {
+    const tenantId = requireTenantId(ctx);
+    const outbox = ctx.env.data.outbox;
+    if (!outbox?.discard) {
+      throw new HTTPException(501, {
+        message: "Discarding failed events is not supported by this adapter",
+      });
+    }
+
+    const { ids } = ctx.req.valid("json");
+
+    const discarded: string[] = [];
+    const notFound: string[] = [];
+    // Dedupe for the same reason as bulk-retry: a repeated id would delete
+    // once and then miss, landing in both buckets.
+    for (const id of new Set(ids)) {
+      const wasDiscarded = await outbox.discard(id, tenantId);
+      (wasDiscarded ? discarded : notFound).push(id);
+    }
+
+    return ctx.json({ discarded, not_found: notFound });
+  },
+});
+
 export const failedEventsRoutes = new OpenAPIHono<{
   Bindings: Bindings;
   Variables: Variables;
-}>().openapiRoutes([getRoot, postBulkRetry, postByIdRetry] as const);
+}>().openapiRoutes([
+  getRoot,
+  postBulkRetry,
+  postBulkDiscard,
+  postByIdRetry,
+  deleteById,
+] as const);

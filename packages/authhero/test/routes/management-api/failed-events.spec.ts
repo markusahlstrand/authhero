@@ -338,4 +338,227 @@ describe("management-api failed-events", () => {
 
     expect(retryResponse.status).toBe(404);
   });
+
+  describe("discard", () => {
+    async function seedOtherTenant(env: any) {
+      await env.data.tenants.create({
+        id: "otherTenant",
+        friendly_name: "Other Tenant",
+        audience: "https://other.example.com",
+        sender_email: "login@other.example.com",
+        sender_name: "Other",
+      });
+    }
+
+    function deleteEvent(
+      managementClient: any,
+      id: string,
+      token: string,
+    ): Promise<Response> {
+      return managementClient["failed-events"][":id"].$delete(
+        {
+          param: { id },
+          header: { "tenant-id": "tenantId" },
+        },
+        { headers: { authorization: `Bearer ${token}` } },
+      );
+    }
+
+    it("permanently deletes a dead-lettered event", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      const id = await seedDeadLetteredEvent(env, "tenantId");
+
+      const response = await deleteEvent(managementClient, id, token);
+      expect(response.status).toBe(204);
+
+      const listAfter = await env.data.outbox.listFailed("tenantId", {});
+      expect(listAfter.events.some((e: any) => e.id === id)).toBe(false);
+      expect(await env.data.outbox.getByIds([id])).toHaveLength(0);
+    });
+
+    it("returns 404 for an unknown event id", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      const response = await deleteEvent(
+        managementClient,
+        "does-not-exist",
+        token,
+      );
+      expect(response.status).toBe(404);
+    });
+
+    it("returns 404 for an event that is still pending", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      const id = await env.data.outbox.create("tenantId", {
+        tenant_id: "tenantId",
+        event_type: "hook.post-user-registration",
+        log_type: "sapi",
+        category: "system",
+        actor: { type: "system" },
+        target: { type: "user", id: "email|userId" },
+        request: { method: "POST", path: "/users", ip: "127.0.0.1" },
+        hostname: "localhost",
+        timestamp: new Date().toISOString(),
+      });
+
+      const response = await deleteEvent(managementClient, id, token);
+      expect(response.status).toBe(404);
+      expect(await env.data.outbox.getByIds([id])).toHaveLength(1);
+    });
+
+    it("refuses to discard an event that belongs to a different tenant", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      await seedOtherTenant(env);
+      const otherTenantEventId = await seedDeadLetteredEvent(
+        env,
+        "otherTenant",
+      );
+
+      const response = await deleteEvent(
+        managementClient,
+        otherTenantEventId,
+        token,
+      );
+      expect(response.status).toBe(404);
+
+      const stillFailed = await env.data.outbox.listFailed("otherTenant", {});
+      expect(
+        stillFailed.events.some((e: any) => e.id === otherTenantEventId),
+      ).toBe(true);
+    });
+
+    it("requires the update:logs scope, like retry", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+
+      const id = await seedDeadLetteredEvent(env, "tenantId");
+
+      const readOnlyToken = await getAdminToken({ permissions: ["read:logs"] });
+      const denied = await deleteEvent(managementClient, id, readOnlyToken);
+      expect(denied.status).toBe(403);
+      expect(await env.data.outbox.getByIds([id])).toHaveLength(1);
+
+      const deniedBulk = await (managementClient["failed-events"] as any)[
+        "bulk-discard"
+      ].$post(
+        {
+          json: { ids: [id] },
+          header: { "tenant-id": "tenantId" },
+        },
+        { headers: { authorization: `Bearer ${readOnlyToken}` } },
+      );
+      expect(deniedBulk.status).toBe(403);
+
+      const updateToken = await getAdminToken({
+        permissions: ["update:logs"],
+      });
+      const allowed = await deleteEvent(managementClient, id, updateToken);
+      expect(allowed.status).toBe(204);
+    });
+
+    it("returns 501 when the outbox adapter does not implement discard", async () => {
+      // 5xx HTTPExceptions are rendered by the parent app's onError, so go
+      // through the full app rather than the management sub-app.
+      const { app, env } = await getTestServer();
+      const token = await getAdminToken();
+
+      const id = await seedDeadLetteredEvent(env, "tenantId");
+      const { discard: _discard, ...outboxWithoutDiscard } = env.data.outbox;
+      env.data.outbox = outboxWithoutDiscard;
+
+      const headers = {
+        "tenant-id": "tenantId",
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      };
+      const response = await app.request(
+        `/api/v2/failed-events/${id}`,
+        { method: "DELETE", headers },
+        env,
+      );
+      expect(response.status).toBe(501);
+
+      const bulkResponse = await app.request(
+        "/api/v2/failed-events/bulk-discard",
+        { method: "POST", headers, body: JSON.stringify({ ids: [id] }) },
+        env,
+      );
+      expect(bulkResponse.status).toBe(501);
+    });
+
+    it("bulk-discards several events and reports the rest as not_found", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      await seedOtherTenant(env);
+      const first = await seedDeadLetteredEvent(env, "tenantId");
+      const second = await seedDeadLetteredEvent(env, "tenantId");
+      const otherTenantEventId = await seedDeadLetteredEvent(
+        env,
+        "otherTenant",
+      );
+
+      const response = await (managementClient["failed-events"] as any)[
+        "bulk-discard"
+      ].$post(
+        {
+          json: {
+            ids: [first, "does-not-exist", second, first, otherTenantEventId],
+          },
+          header: { "tenant-id": "tenantId" },
+        },
+        { headers: { authorization: `Bearer ${token}` } },
+      );
+
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as {
+        discarded: string[];
+        not_found: string[];
+      };
+      expect(body.discarded).toEqual([first, second]);
+      expect(body.not_found).toEqual(["does-not-exist", otherTenantEventId]);
+
+      const listAfter = await env.data.outbox.listFailed("tenantId", {});
+      expect(listAfter.events.length).toBe(0);
+
+      const stillFailed = await env.data.outbox.listFailed("otherTenant", {});
+      expect(
+        stillFailed.events.some((e: any) => e.id === otherTenantEventId),
+      ).toBe(true);
+    });
+
+    it("rejects an empty or oversized bulk-discard id list", async () => {
+      const { managementApp, env } = await getTestServer();
+      const managementClient = testClient(managementApp, env);
+      const token = await getAdminToken();
+
+      for (const ids of [
+        [],
+        Array.from({ length: 101 }, (_, i) => `evt-${i}`),
+      ]) {
+        const response = await (managementClient["failed-events"] as any)[
+          "bulk-discard"
+        ].$post(
+          {
+            json: { ids },
+            header: { "tenant-id": "tenantId" },
+          },
+          { headers: { authorization: `Bearer ${token}` } },
+        );
+        expect(response.status).toBe(400);
+      }
+    });
+  });
 });

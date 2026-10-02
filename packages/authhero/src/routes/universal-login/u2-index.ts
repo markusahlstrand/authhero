@@ -22,6 +22,7 @@ import { AuthHeroConfig, Bindings, Variables } from "../../types";
 import { composeAuthData } from "../../helpers/compose-auth-data";
 import { createInMemoryCache } from "../../adapters/cache/in-memory";
 import { applyConfigMiddleware } from "../../middlewares/apply-config";
+import { setRequestData } from "../../helpers/request-data";
 import { serverTimingMiddleware } from "../../helpers/server-timing";
 import { tenantMiddleware } from "../../middlewares/tenant";
 import { clientInfoMiddleware } from "../../middlewares/client-info";
@@ -80,7 +81,9 @@ export default function createU2App(config: AuthHeroConfig) {
             const token = await createServiceToken(ctx, tenantId, "webhook");
             return token.access_token;
           }),
-          new CodeHookDestination(ctx.env.data, ctx.env.codeExecutor),
+          new CodeHookDestination(ctx.env.data, ctx.env.codeExecutor, {
+            logCapture: ctx.env.actionExecutionLogs,
+          }),
           new RegistrationFinalizerDestination(config.dataAdapter.users),
           // Archive last: the relay stops the destination loop on first
           // failure, so a Pipelines outage must not block real delivery.
@@ -103,7 +106,7 @@ export default function createU2App(config: AuthHeroConfig) {
           cleanupIntervalMs: 0,
         });
 
-      ctx.env.data = composeAuthData({
+      const data = composeAuthData({
         ctx,
         rawData: config.dataAdapter,
         cacheAdapter,
@@ -120,6 +123,7 @@ export default function createU2App(config: AuthHeroConfig) {
           "universalLoginTemplates",
         ],
       });
+      setRequestData(ctx, data);
       return next();
     })
     .use(clientInfoMiddleware)

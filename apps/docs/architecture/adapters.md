@@ -34,6 +34,12 @@ const adapters = createKyselyAdapters(db);
 const app = createApp({ dataAdapter: adapters });
 ```
 
+### Reading the adapters during a request
+
+Each route group wraps the adapter you pass in with request-scoped layers (caching, deduplication, hooks), so every request gets its own adapter stack. Middleware and hooks running inside a request read that stack from `ctx.var.data`.
+
+`ctx.env.data` points at the same object for now but is deprecated, and will be removed in a future major release. Don't write to `ctx.env` during a request: on Cloudflare Workers every request in an isolate shares the same `env` object.
+
 ## Built-in Adapters
 
 | Adapter | Database | Best For |

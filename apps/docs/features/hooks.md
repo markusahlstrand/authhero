@@ -1220,6 +1220,27 @@ Two limits apply:
 
 Because this output is durably stored, **never log secrets or PII from a code hook**. A line like `console.log(JSON.stringify(user))` writes an email address, name and `app_metadata` into a diagnostics table, and a line dumping response headers can write a bearer token there. The 256-character cap bounds the volume; it does not make the first 256 characters safe. `credentials-exchange` in particular runs on every token exchange, including refresh grants, so anything logged there is written on the hottest path in the system.
 
+#### Turning persistence down or off
+
+The `actionExecutionLogs` option on `init()` controls which console output is written to `action_executions.logs`, for the whole deployment:
+
+```ts
+const { app } = init({
+  dataAdapter,
+  actionExecutionLogs: "errors", // "full" (default) | "errors" | "off"
+});
+```
+
+| Mode | What is persisted to `logs` |
+|------|-----------------------------|
+| `"full"` (default) | Console output of every action in the execution, subject to the 256-character budget above. |
+| `"errors"` | Only the output of actions that failed — an action that threw or returned an error, or one that denied access. Output from successful actions in the same execution is dropped; if none failed, `logs` is omitted. |
+| `"off"` | Nothing. `logs` is always omitted. |
+
+The setting applies only at persistence time. Hooks still capture and see their own console output while they run, and the execution record itself (status and per-action results) is written in every mode. Code hooks delivered through the outbox honor it too: when you drain the outbox from a cron, pass the same value as `actionExecutionLogs` to `runOutboxRelay` / `createDefaultDestinations`.
+
+`"errors"` or `"off"` is recommended for high-volume triggers such as `credentials-exchange`, and anywhere hook output may contain user data you do not want stored.
+
 ### Outbox-backed delivery for post-registration / post-deletion code hooks
 
 `post-user-registration` and `post-user-deletion` code hooks are delivered through the [outbox pipeline](../architecture/hooks-pipeline.md), the same durable path as webhooks — via `CodeHookDestination`. They are **not** run inline in the request:

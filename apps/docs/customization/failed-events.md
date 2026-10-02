@@ -1,6 +1,6 @@
 ---
 title: Failed Events (Dead-letter Queue)
-description: Management API endpoints for listing and replaying outbox events whose delivery exhausted retries.
+description: Management API endpoints for listing, replaying and discarding outbox events whose delivery exhausted retries.
 ---
 
 # Failed Events
@@ -12,7 +12,7 @@ When an outbox event exceeds its retry budget (default 5 attempts, exponential b
 - `final_error` set to the last failure reason
 - All previous columns (`retry_count`, `error`, `payload`, …) preserved for forensics
 
-The management API exposes three endpoints for operators to inspect and replay dead-lettered events.
+The management API exposes endpoints for operators to inspect, replay and discard dead-lettered events.
 
 ## `GET /api/v2/failed-events`
 
@@ -134,12 +134,74 @@ verdict.
 - `400 Bad Request` — `ids` is empty or holds more than 100 entries. Page through a larger backlog.
 - `501 Not Implemented` — the current tenant's `DataAdapters` has no `outbox`.
 
+## `DELETE /api/v2/failed-events/:id`
+
+Permanently deletes a dead-lettered event. Use it for an event that will never
+succeed (for example, a webhook for a user that no longer exists) so it stops
+cluttering the queue. **This cannot be undone** — the payload is gone, and the
+event can no longer be replayed.
+
+Only dead-lettered events can be discarded. A pending or already-delivered
+event with the same id is left alone and the call answers `404`.
+
+### Request
+
+```http
+DELETE /api/v2/failed-events/01HY…
+Authorization: Bearer <management-api-token>
+tenant-id: <tenant-id>
+```
+
+### Response
+
+`204 No Content` with an empty body.
+
+### Errors
+
+- `404 Not Found` — no dead-lettered event exists with that id in this tenant.
+- `501 Not Implemented` — the current tenant's `DataAdapters` has no `outbox`, or its outbox adapter does not implement the optional `discard` method.
+
+## `POST /api/v2/failed-events/bulk-discard`
+
+Permanently deletes up to 100 dead-lettered events in one call. Same rules as
+the single-event `DELETE`: only dead-lettered events in this tenant are
+removed, and the deletion cannot be undone.
+
+### Request
+
+```http
+POST /api/v2/failed-events/bulk-discard
+Authorization: Bearer <management-api-token>
+tenant-id: <tenant-id>
+Content-Type: application/json
+
+{ "ids": ["01HY…", "01HZ…"] }
+```
+
+### Response
+
+```json
+{
+  "discarded": ["01HY…"],
+  "not_found": ["01HZ…"]
+}
+```
+
+As with `bulk-retry`, each id gets its own verdict: an id that is unknown, not
+dead-lettered, or owned by another tenant lands in `not_found` while the rest
+are still discarded. Repeated ids are deduplicated.
+
+### Errors
+
+- `400 Bad Request` — `ids` is empty or holds more than 100 entries.
+- `501 Not Implemented` — same as the single-event `DELETE`.
+
 ## Operating the queue
 
 - **Alerting**. The relay calls `console.warn(...)` on dead-letter. Wire that to your log aggregation for noisy-neighbor visibility, or poll `GET /failed-events` from an operator dashboard.
 - **Bulk replay**. Use `POST /failed-events/bulk-retry` with up to 100 ids per call.
-- **Manual discard**. Not yet exposed — dead-lettered events age out via the `cleanup` retention sweep along with normally-processed events. Tracked in [#953](https://github.com/markusahlstrand/authhero/issues/953); it needs a new `OutboxAdapter` method, so it is a contract change across every adapter.
-- **Auth scopes**. `GET` requires `read:logs`. Both `POST` endpoints require `update:logs`. All are tenant-scoped — dead-lettered events from other tenants are invisible.
+- **Manual discard**. Use `DELETE /failed-events/:id` or `POST /failed-events/bulk-discard` to permanently drop events that will never succeed. Anything you don't discard ages out via the `cleanup` retention sweep along with normally-processed events. Discard relies on the optional `OutboxAdapter.discard` method, which the kysely and drizzle adapters implement; a custom adapter without it answers `501`.
+- **Auth scopes**. `GET` requires `read:logs`. The retry and discard endpoints (`POST` and `DELETE`) require `update:logs`. All are tenant-scoped — dead-lettered events from other tenants are invisible.
 
 ## When to suspect the dead-letter queue
 

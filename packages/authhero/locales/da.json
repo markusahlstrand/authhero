@@ -232,6 +232,31 @@
       "successDescription": "Din e-mail er blevet bekræftet.",
       "successTitle": "E-mail bekræftet",
       "title": "Bekræft din e-mail"
+    },
+    "email-verification-code": {
+      "buttonText": "Fortsæt",
+      "codeLabel": "Bekræftelseskode",
+      "codePlaceholder": "Indtast 6-cifret kode",
+      "defaultDescription": "Indtast koden, vi sendte til din e-mail, for at bekræfte din adresse og fortsætte.",
+      "description": "Vi har sendt en kode til ${email}. Indtast den for at bekræfte din e-mailadresse og fortsætte.",
+      "invalidCode": "Koden er ugyldig eller udløbet",
+      "noCode": "Indtast bekræftelseskoden",
+      "pageTitle": "Bekræft e-mail | ${clientName}",
+      "resendFailed": "Koden kunne ikke sendes igen. Prøv igen.",
+      "resendSuccess": "En ny kode er sendt til din e-mail",
+      "resendText": "Send koden igen",
+      "sessionExpired": "Din session er udløbet. Prøv igen.",
+      "title": "Bekræft din e-mailadresse",
+      "tooManyAttempts": "For mange forsøg. Prøv igen senere."
+    },
+    "email-verification-link-sent": {
+      "defaultDescription": "Vi har sendt et bekræftelseslink til din e-mail. Klik på linket for at bekræfte din adresse, og log derefter ind igen.",
+      "description": "Vi har sendt et bekræftelseslink til ${email}. Klik på linket for at bekræfte din adresse, og log derefter ind igen.",
+      "pageTitle": "Bekræft e-mail | ${clientName}",
+      "resendFailed": "E-mailen kunne ikke sendes igen. Prøv igen.",
+      "resendSuccess": "En ny bekræftelsesmail er sendt",
+      "resendText": "Send e-mailen igen",
+      "title": "Tjek din e-mail"
     }
   },
   "invitation": {
