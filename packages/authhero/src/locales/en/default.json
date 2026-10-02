@@ -177,6 +177,7 @@
   "invitation_accept_title": "Accept invitation",
   "invitation_accept_description": "You've been invited to join {{organizationName}}. Set a password to finish creating your account.",
   "verify_email_click_to_verify": "Click the button to verify your email address",
+  "verify_email_enter_code": "Enter this code to verify your email address",
   "verify_email_subject": "Validate your email address",
   "verify_email_title": "Validate your email address",
   "verify_email_verify": "Verify account",

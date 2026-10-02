@@ -65,6 +65,31 @@
       "successDescription": "E-postadressen din er bekreftet.",
       "successTitle": "E-post bekreftet",
       "title": "Bekreft e-posten din"
+    },
+    "email-verification-code": {
+      "buttonText": "Fortsett",
+      "codeLabel": "Bekreftelseskode",
+      "codePlaceholder": "Skriv inn 6-sifret kode",
+      "defaultDescription": "Skriv inn koden vi sendte til e-posten din for å bekrefte adressen og fortsette.",
+      "description": "Vi sendte en kode til ${email}. Skriv den inn for å bekrefte e-postadressen din og fortsette.",
+      "invalidCode": "Koden er ugyldig eller utløpt",
+      "noCode": "Skriv inn bekreftelseskoden",
+      "pageTitle": "Bekreft e-post | ${clientName}",
+      "resendFailed": "Kunne ikke sende koden på nytt. Prøv igjen.",
+      "resendSuccess": "En ny kode er sendt til e-posten din",
+      "resendText": "Send koden på nytt",
+      "sessionExpired": "Økten din har utløpt. Prøv igjen.",
+      "title": "Bekreft e-postadressen din",
+      "tooManyAttempts": "For mange forsøk. Prøv igjen senere."
+    },
+    "email-verification-link-sent": {
+      "defaultDescription": "Vi sendte en bekreftelseslenke til e-posten din. Klikk på lenken for å bekrefte adressen, og logg deretter inn på nytt.",
+      "description": "Vi sendte en bekreftelseslenke til ${email}. Klikk på lenken for å bekrefte adressen, og logg deretter inn på nytt.",
+      "pageTitle": "Bekreft e-post | ${clientName}",
+      "resendFailed": "Kunne ikke sende e-posten på nytt. Prøv igjen.",
+      "resendSuccess": "En ny bekreftelses-e-post er sendt",
+      "resendText": "Send e-posten på nytt",
+      "title": "Sjekk e-posten din"
     }
   },
   "invitation": {

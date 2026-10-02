@@ -67,6 +67,8 @@ const SCREEN_TO_PROMPT_MAP: Record<string, PromptScreen> = {
   "login-passwordless-identifier": "login-passwordless",
   "passkey-enrollment-nudge": "passkeys",
   "passkey-enrollment": "passkeys",
+  "email-verification-code": "email-verification",
+  "email-verification-link-sent": "email-verification",
 };
 
 /**
@@ -352,7 +354,9 @@ async function buildScreenContext(
     if (
       screenId === "email-otp-challenge" ||
       screenId === "enter-password" ||
-      screenId === "reset-password-code"
+      screenId === "reset-password-code" ||
+      screenId === "email-verification-code" ||
+      screenId === "email-verification-link-sent"
     ) {
       data.email = username;
     } else if (screenId === "sms-otp-challenge") {
@@ -843,6 +847,8 @@ screenApiRoutes.openapi(
       const screenIdToPath: Record<string, string> = {
         "forgot-password": "reset-password/request",
         "reset-password-code": "reset-password/code",
+        "email-verification-code": "login/email-verification",
+        "email-verification-link-sent": "login/email-verification-sent",
       };
       const navigatePrefix = loginScreenIds.includes(nextScreenId)
         ? "/u2/login"

@@ -65,6 +65,31 @@
       "successDescription": "La tua email è stata verificata con successo.",
       "successTitle": "Email verificata",
       "title": "Verificare l'e-mail"
+    },
+    "email-verification-code": {
+      "buttonText": "Continua",
+      "codeLabel": "Codice di verifica",
+      "codePlaceholder": "Inserisci il codice a 6 cifre",
+      "defaultDescription": "Inserisci il codice che ti abbiamo inviato via e-mail per verificare il tuo indirizzo e continuare.",
+      "description": "Abbiamo inviato un codice a ${email}. Inseriscilo per verificare il tuo indirizzo e-mail e continuare.",
+      "invalidCode": "Il codice inserito non è valido o è scaduto",
+      "noCode": "Inserisci il codice di verifica",
+      "pageTitle": "Verifica e-mail | ${clientName}",
+      "resendFailed": "Impossibile inviare nuovamente il codice. Riprova.",
+      "resendSuccess": "Un nuovo codice è stato inviato alla tua e-mail",
+      "resendText": "Invia di nuovo il codice",
+      "sessionExpired": "La sessione è scaduta. Riprova.",
+      "title": "Verifica la tua e-mail",
+      "tooManyAttempts": "Troppi tentativi. Riprova più tardi."
+    },
+    "email-verification-link-sent": {
+      "defaultDescription": "Ti abbiamo inviato un link di verifica via e-mail. Fai clic sul link per verificare il tuo indirizzo, quindi accedi di nuovo.",
+      "description": "Abbiamo inviato un link di verifica a ${email}. Fai clic sul link per verificare il tuo indirizzo, quindi accedi di nuovo.",
+      "pageTitle": "Verifica e-mail | ${clientName}",
+      "resendFailed": "Impossibile inviare nuovamente l'e-mail. Riprova.",
+      "resendSuccess": "È stata inviata una nuova e-mail di verifica",
+      "resendText": "Invia di nuovo l'e-mail",
+      "title": "Controlla la tua e-mail"
     }
   },
   "invitation": {

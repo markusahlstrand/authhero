@@ -65,6 +65,31 @@
       "successDescription": "Sähköpostiosoitteesi on vahvistettu onnistuneesti.",
       "successTitle": "Sähköposti vahvistettu",
       "title": "Vahvista sähköpostiosoitteesi"
+    },
+    "email-verification-code": {
+      "buttonText": "Jatka",
+      "codeLabel": "Vahvistuskoodi",
+      "codePlaceholder": "Syötä 6-numeroinen koodi",
+      "defaultDescription": "Syötä sähköpostiisi lähettämämme koodi vahvistaaksesi osoitteesi ja jatkaaksesi.",
+      "description": "Lähetimme koodin osoitteeseen ${email}. Syötä se vahvistaaksesi sähköpostiosoitteesi ja jatkaaksesi.",
+      "invalidCode": "Koodi on virheellinen tai vanhentunut",
+      "noCode": "Syötä vahvistuskoodi",
+      "pageTitle": "Vahvista sähköposti | ${clientName}",
+      "resendFailed": "Koodin uudelleenlähetys epäonnistui. Yritä uudelleen.",
+      "resendSuccess": "Uusi koodi on lähetetty sähköpostiisi",
+      "resendText": "Lähetä koodi uudelleen",
+      "sessionExpired": "Istuntosi on vanhentunut. Yritä uudelleen.",
+      "title": "Vahvista sähköpostiosoitteesi",
+      "tooManyAttempts": "Liian monta yritystä. Yritä myöhemmin uudelleen."
+    },
+    "email-verification-link-sent": {
+      "defaultDescription": "Lähetimme vahvistuslinkin sähköpostiisi. Vahvista osoitteesi napsauttamalla linkkiä ja kirjaudu sitten uudelleen sisään.",
+      "description": "Lähetimme vahvistuslinkin osoitteeseen ${email}. Vahvista osoitteesi napsauttamalla linkkiä ja kirjaudu sitten uudelleen sisään.",
+      "pageTitle": "Vahvista sähköposti | ${clientName}",
+      "resendFailed": "Sähköpostin uudelleenlähetys epäonnistui. Yritä uudelleen.",
+      "resendSuccess": "Uusi vahvistusviesti on lähetetty",
+      "resendText": "Lähetä sähköposti uudelleen",
+      "title": "Tarkista sähköpostisi"
     }
   },
   "invitation": {
