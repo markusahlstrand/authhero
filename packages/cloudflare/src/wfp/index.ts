@@ -10,7 +10,14 @@ export {
 } from "./dispatch-sync-defaults";
 
 export {
+  createDispatchRenewSigningCertificates,
+  type DispatchRenewSigningCertificatesOptions,
+  type DispatchRenewSigningCertificatesResult,
+} from "./dispatch-renew-signing-certificates";
+
+export {
   createWfpTenantApp,
   type WfpTenantEnv,
   type WfpTenantAppOptions,
+  type WfpSigningCertificateAuthority,
 } from "./tenant-app";

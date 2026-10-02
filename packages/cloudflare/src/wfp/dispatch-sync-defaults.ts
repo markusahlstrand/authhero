@@ -6,8 +6,8 @@ import {
 } from "@authhero/multi-tenancy";
 import type { DispatchNamespace } from "../code-executor";
 
-const DEFAULT_SCRIPT_NAME_TEMPLATE = "tenant-{tenant_id}-auth";
-const DEFAULT_TIMEOUT_MS = 30_000;
+export const DEFAULT_SCRIPT_NAME_TEMPLATE = "tenant-{tenant_id}-auth";
+export const DEFAULT_TIMEOUT_MS = 30_000;
 const SYNC_PATH = "/internal/sync-defaults";
 
 export interface DispatchSyncDefaultsOptions {
@@ -30,7 +30,7 @@ export interface DispatchSyncDefaultsOptions {
   timeoutMs?: number;
 }
 
-function fillTemplate(template: string, tenantId: string): string {
+export function fillTemplate(template: string, tenantId: string): string {
   return template.replace(/\{tenant_id\}/g, tenantId);
 }
 

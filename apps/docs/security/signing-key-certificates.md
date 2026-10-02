@@ -116,7 +116,10 @@ export default {
 
 ```ts
 // CA service
-import { createCertificateIssuerApp, createLocalCertificateIssuer } from "authhero";
+import {
+  createCertificateIssuerApp,
+  createLocalCertificateIssuer,
+} from "authhero";
 
 export default createCertificateIssuerApp({
   issuer: createLocalCertificateIssuer({ certificate, privateKey }),
@@ -147,7 +150,55 @@ signingCertificateAuthority: {
 - **Renewal re-issues from the CA.** `POST /api/v2/keys/signing/{kid}/renew` re-issues the certificate from the CA and keeps the `kid`.
 - **Control-plane keys stay trusted.** Because they're CA-issued too, moving tenants from the shared key to their own keys with `signingKeyMode` needs no change at the resource server.
 
+## Workers for Platforms tenants
+
+A WFP tenant worker stores its own keys without a `tenant_id`, so it has to be told which tenant it is. Otherwise its certificates would name the control plane, which resource servers trust for every tenant. `createWfpTenantApp` takes the tenant explicitly:
+
+```ts
+createWfpTenantApp({
+  createDataAdapter,
+  signingCertificateAuthority: (env) => ({
+    issuer: createHttpCertificateIssuer({
+      url: env.SIGNING_CA_URL,
+      headers: { authorization: `Bearer ${env.SIGNING_CA_TOKEN}` },
+    }),
+    tenantId: env.TENANT_ID, // set per tenant by your provisioner's `secrets`
+  }),
+});
+```
+
+- **Issuance:** `sync-defaults` mints the tenant's key from the CA when the tenant has no signing key yet.
+- **Rotation, renewal and the JWKS:** these use the same CA.
+- **Credentials:** give each tenant its own CA credential, and have the CA service's `authorize` accept only that tenant's URN.
+
+Tenant workers in a dispatch namespace have no schedule of their own, so the control plane pushes renewal to them from its own scheduled handler:
+
+```ts
+import { createDispatchRenewSigningCertificates } from "@authhero/cloudflare-adapter/wfp";
+
+const renew = createDispatchRenewSigningCertificates({
+  dispatcher: env.DISPATCHER,
+  internalSecret: env.WFP_INTERNAL_SYNC_SECRET,
+});
+
+const failures: Error[] = [];
+for (const tenantId of wfpTenantIds) {
+  try {
+    await renew(tenantId); // POST /internal/renew-signing-certificates
+  } catch (cause) {
+    failures.push(
+      new Error(`Certificate renewal failed for tenant ${tenantId}`, { cause }),
+    );
+  }
+}
+if (failures.length > 0) {
+  throw new AggregateError(
+    failures,
+    "Some tenant certificates could not be renewed",
+  );
+}
+```
+
 ## Current limitations
 
 - **Seeded keys are self-signed.** The first key created by `seed()` is self-signed; rotate it once the CA is configured.
-- **WFP tenant workers aren't wired up yet.** They mint their keys in `sync-defaults` without a CA.
