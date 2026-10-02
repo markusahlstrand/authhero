@@ -318,3 +318,185 @@ describe("u2 signup with enforced email verification", () => {
     expect(sent[0].data.code).toMatch(/^\d{6}$/);
   });
 });
+
+describe("u2 login email verification requires a validated password", () => {
+  const OTHER_USER_ID = `${USERNAME_PASSWORD_PROVIDER}|otherUserId`;
+  const OTHER_EMAIL = "other@example.com";
+
+  // A login email-verification code bound to the session, as the screens
+  // would mint one, without going through the password step.
+  async function plantCode(
+    env: Awaited<ReturnType<typeof setup>>["env"],
+    state: string,
+    userId: string,
+    codeId: string,
+  ) {
+    await env.data.codes.create("tenantId", {
+      code_id: codeId,
+      code_type: "email_verification",
+      login_id: state,
+      user_id: userId,
+      expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+      state: JSON.stringify({
+        purpose: "login_email_verification",
+        connection: Strategy.USERNAME_PASSWORD,
+      }),
+    });
+  }
+
+  async function createOtherUser(
+    env: Awaited<ReturnType<typeof setup>>["env"],
+  ) {
+    await env.data.users.create("tenantId", {
+      email: OTHER_EMAIL,
+      email_verified: false,
+      connection: Strategy.USERNAME_PASSWORD,
+      provider: USERNAME_PASSWORD_PROVIDER,
+      is_social: false,
+      user_id: OTHER_USER_ID,
+    });
+  }
+
+  it("rejects a resend after only the identifier step and cannot complete the login", async () => {
+    const { u2App, env, state, getSentEmails } = await setup();
+
+    const resend = await postScreen(
+      u2App,
+      env,
+      "email-verification-code",
+      state,
+      { action: "resend" },
+    );
+    expect(resend.redirect).toBeUndefined();
+    expect(resend.screen?.name).toBe("email-verification-code");
+    const codeField = resend.screen?.components.find((c) => c.id === "code");
+    expect(codeField?.messages?.[0]?.type).toBe("error");
+    expect(getSentEmails()).toHaveLength(0);
+
+    const redeem = await postScreen(
+      u2App,
+      env,
+      "email-verification-code",
+      state,
+      { code: "123456" },
+    );
+    expect(redeem.redirect).toBeUndefined();
+    expect(
+      (await env.data.users.get("tenantId", USER_ID))?.email_verified,
+    ).toBe(false);
+  });
+
+  it("rejects a link resend after only the identifier step", async () => {
+    const { u2App, env, state, getSentEmails } = await setup({
+      method: "link",
+    });
+
+    const resend = await postScreen(
+      u2App,
+      env,
+      "email-verification-link-sent",
+      state,
+      { action: "resend" },
+    );
+    expect(resend.screen?.name).toBe("email-verification-link-sent");
+    expect(resend.screen?.messages?.[0]?.type).toBe("error");
+    expect(getSentEmails()).toHaveLength(0);
+  });
+
+  it("rejects redeeming a code when the password was never validated", async () => {
+    const { u2App, env, state } = await setup();
+    await plantCode(env, state, USER_ID, "123456");
+
+    const json = await postScreen(
+      u2App,
+      env,
+      "email-verification-code",
+      state,
+      { code: "123456" },
+    );
+    expect(json.redirect).toBeUndefined();
+
+    // The no-JS form route runs the same handler
+    const form = await u2App.request(
+      `/login/email-verification?state=${encodeURIComponent(state)}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ code: "123456" }).toString(),
+      },
+      env,
+    );
+    expect(form.headers.get("location") ?? "").not.toContain(
+      "https://example.com/callback",
+    );
+
+    expect(
+      (await env.data.users.get("tenantId", USER_ID))?.email_verified,
+    ).toBe(false);
+    const loginSession = await env.data.loginSessions.get("tenantId", state);
+    expect(loginSession?.state).toBe(LoginSessionState.PENDING);
+  });
+
+  it("rejects a code minted for a different user than the password step validated", async () => {
+    const { u2App, env, state, getSentEmails } = await setup();
+    await createOtherUser(env);
+
+    await postScreen(u2App, env, "enter-password", state, {
+      password: PASSWORD,
+    });
+    const realCode = getSentEmails()[0].data.code;
+    const otherCode = realCode === "654321" ? "123456" : "654321";
+    await plantCode(env, state, OTHER_USER_ID, otherCode);
+
+    const result = await postScreen(
+      u2App,
+      env,
+      "email-verification-code",
+      state,
+      { code: otherCode },
+    );
+    expect(result.redirect).toBeUndefined();
+    expect(
+      (await env.data.users.get("tenantId", OTHER_USER_ID))?.email_verified,
+    ).toBe(false);
+  });
+
+  it("resends to the password-validated user even if the session username changes", async () => {
+    const { u2App, env, state, getSentEmails } = await setup();
+    await createOtherUser(env);
+
+    await postScreen(u2App, env, "enter-password", state, {
+      password: PASSWORD,
+    });
+
+    // Re-running the identifier step rewrites the session username
+    const loginSession = await env.data.loginSessions.get("tenantId", state);
+    await env.data.loginSessions.update("tenantId", state, {
+      authParams: { ...loginSession!.authParams, username: OTHER_EMAIL },
+    });
+
+    const resend = await postScreen(
+      u2App,
+      env,
+      "email-verification-code",
+      state,
+      { action: "resend" },
+    );
+    expect(resend.screen?.messages?.[0]?.type).toBe("success");
+
+    const sent = getSentEmails();
+    expect(sent).toHaveLength(2);
+    expect(sent[1].to).toBe(EMAIL);
+
+    const ok = await postScreen(u2App, env, "email-verification-code", state, {
+      code: sent[1].data.code,
+    });
+    expect(ok.redirect).toContain("https://example.com/callback");
+    expect(
+      (await env.data.users.get("tenantId", USER_ID))?.email_verified,
+    ).toBe(true);
+    expect(
+      (await env.data.users.get("tenantId", OTHER_USER_ID))?.email_verified,
+    ).toBe(false);
+  });
+});

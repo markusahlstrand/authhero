@@ -13,11 +13,7 @@
  */
 
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
-import {
-  Strategy,
-  StrategyType,
-  isDatabaseConnectionStrategy,
-} from "@authhero/adapter-interfaces";
+import { Strategy, StrategyType } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { getLoginPath } from "./types";
 import { escapeHtml } from "../sanitization-utils";
@@ -26,11 +22,11 @@ import { createFrontChannelAuthResponse } from "../../../authentication-flows/co
 import {
   LoginEmailVerification,
   getEmailVerificationMethod,
+  getPendingLoginEmailVerification,
   sendLoginEmailVerificationCode,
   verifyLoginEmailCode,
 } from "../../../authentication-flows/email-verification";
 import { sendValidateEmailAddress } from "../../../emails";
-import { getUsernamePasswordUser } from "../../../utils/username-password-provider";
 import { getIssuer } from "../../../variables";
 
 function maskEmail(email: string | undefined): string {
@@ -84,9 +80,10 @@ export async function emailVerificationRequiredScreen(
 }
 
 /**
- * Re-send the verification email for the user of this login session. Only
- * sends when the session's user exists and is still unverified; the caller
- * shows the same confirmation either way so the screen doesn't reveal it.
+ * Re-send the verification email for the user whose password this login
+ * session validated. Only sends when that user is still unverified; the
+ * caller shows the same confirmation either way so the screen doesn't reveal
+ * it.
  */
 async function resendVerification(context: ScreenContext): Promise<void> {
   const { ctx, client, state } = context;
@@ -94,16 +91,14 @@ async function resendVerification(context: ScreenContext): Promise<void> {
     client.tenant.id,
     state,
   );
-  const username = loginSession?.authParams?.username;
-  if (!loginSession || !username) {
+  const pending = loginSession
+    ? getPendingLoginEmailVerification(loginSession)
+    : undefined;
+  if (!loginSession || !pending) {
     throw new Error("Session expired");
   }
 
-  const user = await getUsernamePasswordUser({
-    env: ctx.env,
-    tenant_id: client.tenant.id,
-    username,
-  });
+  const user = await ctx.env.data.users.get(client.tenant.id, pending.user_id);
   if (!user?.email || user.email_verified) {
     return;
   }
@@ -111,14 +106,11 @@ async function resendVerification(context: ScreenContext): Promise<void> {
   const language = getLanguage(loginSession.authParams.ui_locales);
   const verification = await getLoginEmailVerification(context);
   if (verification.method === "code") {
-    const passwordConnection = client.connections.find((c) =>
-      isDatabaseConnectionStrategy(c.strategy),
-    );
     await sendLoginEmailVerificationCode(ctx, {
       client,
       user,
       loginSession,
-      connection: passwordConnection?.name ?? Strategy.USERNAME_PASSWORD,
+      connection: pending.connection,
       language,
     });
   } else {
@@ -323,7 +315,7 @@ export const emailVerificationCodeScreenDefinition: ScreenDefinition = {
         client.tenant.id,
         state,
       );
-      if (!loginSession) {
+      if (!loginSession || !getPendingLoginEmailVerification(loginSession)) {
         return withError(m.sessionExpired());
       }
 

@@ -45,6 +45,7 @@ import { resolvePrimaryUser } from "../helpers/users";
 import {
   LoginEmailVerification,
   sendLoginEmailVerificationCode,
+  setPendingLoginEmailVerification,
 } from "./email-verification";
 
 const FAILED_LOGIN_WINDOW_MS = 1000 * 60 * 5;
@@ -502,6 +503,20 @@ export async function passwordGrant(
     const language = loginSession?.authParams?.ui_locales
       ?.split(" ")
       ?.map((locale) => locale.split("-")[0])[0];
+
+    // The password is valid: bind the session's verification step to this
+    // user. The verification screens act only on this binding.
+    if (emailVerification && loginSession) {
+      await setPendingLoginEmailVerification(
+        ctx,
+        client.tenant.id,
+        loginSession.id,
+        {
+          user_id: user.user_id,
+          connection: targetConnection?.name ?? realm,
+        },
+      );
+    }
 
     if (emailVerification?.method === "code" && loginSession) {
       await sendLoginEmailVerificationCode(ctx, {
