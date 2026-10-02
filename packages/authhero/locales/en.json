@@ -60,6 +60,11 @@
   "email-verification": {
     "email-verification": {
       "description": "We sent an email to ${email}",
+      "linkAlreadyUsed": "This verification link has already been used. Please request a new one.",
+      "linkInvalid": "This verification link is invalid.",
+      "linkInvalidOrExpired": "This verification link is invalid or has expired. Please request a new one.",
+      "linkInvalidTitle": "Verification link not valid",
+      "linkWrongType": "This link can't be used to verify an email.",
       "pageTitle": "Verify Email | ${clientName}",
       "resendText": "Resend email",
       "successDescription": "Your email has been verified successfully.",

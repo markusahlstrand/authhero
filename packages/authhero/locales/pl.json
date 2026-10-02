@@ -60,6 +60,11 @@
   "email-verification": {
     "email-verification": {
       "description": "Wysłaliśmy wiadomość na ${email}",
+      "linkAlreadyUsed": "Ten link weryfikacyjny został już użyty. Poproś o nowy.",
+      "linkInvalid": "Ten link weryfikacyjny jest nieprawidłowy.",
+      "linkInvalidOrExpired": "Ten link weryfikacyjny jest nieprawidłowy lub wygasł. Poproś o nowy.",
+      "linkInvalidTitle": "Link weryfikacyjny jest nieprawidłowy",
+      "linkWrongType": "Tego linku nie można użyć do weryfikacji adresu e-mail.",
       "pageTitle": "Weryfikacja e-mail | ${clientName}",
       "resendText": "Wyślij ponownie e-mail",
       "successDescription": "Twój adres e-mail został pomyślnie zweryfikowany.",

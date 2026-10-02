@@ -60,6 +60,11 @@
   "email-verification": {
     "email-verification": {
       "description": "Vi skickade ett e-postmeddelande till ${email}",
+      "linkAlreadyUsed": "Verifieringslänken har redan använts. Begär en ny.",
+      "linkInvalid": "Verifieringslänken är ogiltig.",
+      "linkInvalidOrExpired": "Verifieringslänken är ogiltig eller har gått ut. Begär en ny.",
+      "linkInvalidTitle": "Verifieringslänken är inte giltig",
+      "linkWrongType": "Den här länken kan inte användas för att verifiera en e-postadress.",
       "pageTitle": "Verifiera e-post | ${clientName}",
       "resendText": "Skicka koden igen",
       "successDescription": "Din e-postadress har verifierats.",

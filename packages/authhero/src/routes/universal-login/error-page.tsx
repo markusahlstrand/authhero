@@ -6,6 +6,7 @@
  */
 
 import {
+  safeLinkHref,
   sanitizeUrl,
   sanitizeCssColor,
   buildThemePageBackground,
@@ -82,7 +83,7 @@ export function ErrorPage({
     "#2563EB";
   const successColor = sanitizeCssColor(theme?.colors?.success) || "#16A34A";
   const iconColor = isSuccess ? successColor : isInfo ? infoColor : errorColor;
-  const actionHref = action ? sanitizeUrl(action.href) : undefined;
+  const actionHref = action ? safeLinkHref(action.href) : undefined;
   const actionLabelColor =
     sanitizeCssColor(theme?.colors?.primary_button_label) || "#ffffff";
   const buttonCornerRadius = theme?.borders?.button_border_radius ?? 8;

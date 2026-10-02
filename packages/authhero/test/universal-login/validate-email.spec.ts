@@ -141,6 +141,70 @@ describe("email verification after signup", () => {
     expect(html).toContain("Fortsätt");
   });
 
+  async function renderVerifiedWithInitiateLoginUri(initiateLoginUri: string) {
+    const { app, env } = await getTestServer({ mockEmail: true });
+    await env.data.clients.update("tenantId", "clientId", {
+      initiate_login_uri: initiateLoginUri,
+    });
+    await env.data.users.create("tenantId", {
+      user_id: "auth2|verify-me",
+      email: "verify-me@example.com",
+      email_verified: false,
+      provider: "auth2",
+      connection: "Username-Password-Authentication",
+      is_social: false,
+    });
+    await env.data.codes.create("tenantId", {
+      code_id: "verify-ticket",
+      code_type: "ticket",
+      login_id: "verify-ticket",
+      user_id: "auth2|verify-me",
+      expires_at: new Date(Date.now() + 60_000).toISOString(),
+      state: JSON.stringify({
+        purpose: "email_verification",
+        client_id: "clientId",
+        redirect_uri: "https://example.com/callback",
+      }),
+    });
+    const response = await app.request(
+      "http://localhost/u2/tickets/email-verification?ticket=verify-ticket&tenant_id=tenantId",
+      { method: "GET" },
+      env,
+    );
+    expect(response.status).toBe(200);
+    return response.text();
+  }
+
+  it("escapes the Continue URL's query string only once", async () => {
+    const html = await renderVerifiedWithInitiateLoginUri(
+      "https://app.example.com/login?a=1&b=2",
+    );
+    expect(html).toContain('href="https://app.example.com/login?a=1&amp;b=2"');
+  });
+
+  it("ignores a non-HTTPS initiate_login_uri and falls back to the redirect_uri origin", async () => {
+    const html = await renderVerifiedWithInitiateLoginUri(
+      "data:text/html,<h1>hi</h1>",
+    );
+    expect(html).not.toContain("data:text/html");
+    expect(html).toContain('href="https://example.com"');
+  });
+
+  it("localizes the failure page from Accept-Language for an unknown ticket", async () => {
+    const { app, env } = await getTestServer({ mockEmail: true });
+
+    const response = await app.request(
+      "http://localhost/u2/tickets/email-verification?ticket=nope&tenant_id=tenantId",
+      { method: "GET", headers: { "Accept-Language": "sv" } },
+      env,
+    );
+
+    expect(response.status).toBe(400);
+    const html = await response.text();
+    expect(html).toContain('lang="sv"');
+    expect(html).toContain("Verifieringslänken är ogiltig eller har gått ut");
+  });
+
   it("renders a branded error page for an unknown ticket", async () => {
     const { app, env } = await getTestServer({ mockEmail: true });
 

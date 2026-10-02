@@ -68,6 +68,27 @@ export function sanitizeUrl(url: string | undefined): string {
 }
 
 /**
+ * Validate a URL for a JSX link `href` and return it unescaped, since JSX
+ * escapes attribute values itself (running sanitizeUrl first double-escapes
+ * `&` in query strings). Only http(s) and same-origin paths are allowed —
+ * no `data:` here, as the result is a clickable link.
+ */
+export function safeLinkHref(url: string | undefined): string | undefined {
+  if (!url) return undefined;
+  if (url.startsWith("/")) {
+    return /^\/[\/\\]/.test(url) ? undefined : url;
+  }
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" || parsed.protocol === "http:"
+      ? url
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Sanitize CSS color value
  */
 export function sanitizeCssColor(color: string | undefined): string {

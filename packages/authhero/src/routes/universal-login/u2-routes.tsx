@@ -1224,8 +1224,12 @@ async function resolveEmailVerificationContinueUrl(
   if (meta.client_id) {
     try {
       const client = await ctx.env.data.clients.get(tenantId, meta.client_id);
-      const initiateLoginUri = sanitizeUrl(client?.initiate_login_uri);
-      if (initiateLoginUri) return initiateLoginUri;
+      // Auth0 requires initiate_login_uri to be HTTPS; the schema doesn't
+      // enforce it, so anything else falls back to the redirect_uri origin.
+      const initiateLoginUri = client?.initiate_login_uri;
+      if (initiateLoginUri && new URL(initiateLoginUri).protocol === "https:") {
+        return initiateLoginUri;
+      }
     } catch {
       // Fall through to the redirect_uri origin
     }
@@ -1302,35 +1306,55 @@ const getEmailVerificationTicket = defineRoute({
       darkMode: resolveDarkMode(ctx, brandingWithFavicon),
     };
 
-    const renderFailure = (message: string) =>
-      ctx.html(
+    // The ticket's stored language wins when there is one; an unknown
+    // ticket falls back to the request's Accept-Language.
+    const ticketLanguage = (stored?: string) =>
+      resolveLanguage(
+        stored,
+        ctx.req.header("Accept-Language"),
+        enabledLocales,
+      );
+    const emailVerificationText = (
+      language: string,
+      customText: CustomText | undefined,
+    ) =>
+      createTranslation(
+        "email-verification",
+        "email-verification",
+        language,
+        customText,
+      ).m;
+
+    const renderFailure = async (
+      pickMessage: (m: ReturnType<typeof emailVerificationText>) => string,
+      storedLanguage?: string,
+    ) => {
+      const language = ticketLanguage(storedLanguage);
+      const m = emailVerificationText(
+        language,
+        await fetchCustomText(ctx, tenantId, "email-verification", language),
+      );
+      return ctx.html(
         <ErrorPage
           variant="error"
-          title="Verification link not valid"
-          message={message}
+          lang={language}
+          title={m.linkInvalidTitle()}
+          message={pickMessage(m)}
           statusCode={400}
           {...pageProps}
         />,
         400,
       );
+    };
 
     const renderVerified = async (meta: EmailVerificationTicketState) => {
-      const language = resolveLanguage(
-        meta.language,
-        ctx.req.header("Accept-Language"),
-        enabledLocales,
-      );
+      const language = ticketLanguage(meta.language);
       const [customText, continueText, continueUrl] = await Promise.all([
         fetchCustomText(ctx, tenantId, "email-verification", language),
         fetchCustomText(ctx, tenantId, "status", language),
         resolveEmailVerificationContinueUrl(ctx, tenantId, meta),
       ]);
-      const { m } = createTranslation(
-        "email-verification",
-        "email-verification",
-        language,
-        customText,
-      );
+      const m = emailVerificationText(language, customText);
       const { m: statusM } = createTranslation(
         "status",
         "status",
@@ -1361,9 +1385,7 @@ const getEmailVerificationTicket = defineRoute({
         type: LogTypes.FAILED_VERIFICATION_EMAIL,
         description: "Ticket invalid or expired",
       });
-      return renderFailure(
-        "This verification link is invalid or has expired. Please request a new one.",
-      );
+      return renderFailure((m) => m.linkInvalidOrExpired());
     }
 
     // Validate ticket purpose BEFORE consuming so non-email-verification
@@ -1375,14 +1397,14 @@ const getEmailVerificationTicket = defineRoute({
         description: "Wrong ticket type",
         userId: code.user_id || undefined,
       });
-      return renderFailure("This link can't be used to verify an email.");
+      return renderFailure((m) => m.linkWrongType(), meta.language);
     }
     if (!code.user_id) {
       await logMessage(ctx, tenantId, {
         type: LogTypes.FAILED_VERIFICATION_EMAIL,
         description: "Ticket has no user",
       });
-      return renderFailure("This verification link is invalid.");
+      return renderFailure((m) => m.linkInvalid(), meta.language);
     }
 
     // A consumed ticket for an already-verified user is a second click — or
@@ -1398,9 +1420,7 @@ const getEmailVerificationTicket = defineRoute({
       if (user?.email_verified && !meta.result_url) {
         return renderVerified(meta);
       }
-      return renderFailure(
-        "This verification link has already been used. Please request a new one.",
-      );
+      return renderFailure((m) => m.linkAlreadyUsed(), meta.language);
     };
 
     if (code.used_at) {

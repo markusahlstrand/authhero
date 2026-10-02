@@ -60,6 +60,11 @@
   "email-verification": {
     "email-verification": {
       "description": "Lähetimme sähköpostin osoitteeseen ${email}",
+      "linkAlreadyUsed": "Vahvistuslinkki on jo käytetty. Pyydä uusi linkki.",
+      "linkInvalid": "Vahvistuslinkki on virheellinen.",
+      "linkInvalidOrExpired": "Vahvistuslinkki on virheellinen tai vanhentunut. Pyydä uusi linkki.",
+      "linkInvalidTitle": "Vahvistuslinkki ei kelpaa",
+      "linkWrongType": "Tällä linkillä ei voi vahvistaa sähköpostiosoitetta.",
       "pageTitle": "Vahvista sähköposti | ${clientName}",
       "resendText": "Lähetä koodi uudelleen",
       "successDescription": "Sähköpostiosoitteesi on vahvistettu onnistuneesti.",
