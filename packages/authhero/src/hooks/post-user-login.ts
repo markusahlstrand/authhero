@@ -637,6 +637,7 @@ export async function postUserLoginHook(
       audience: params?.authParams?.audience,
       scope: params?.authParams?.scope,
       redirect_uri: params?.authParams?.redirect_uri,
+      authorization_url: loginSession?.authorization_url,
       ...(executionId ? { execution_id: executionId } : {}),
     });
   }

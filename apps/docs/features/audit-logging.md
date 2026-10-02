@@ -50,8 +50,9 @@ Every audit event captures:
 | `category` | `user_action`, `admin_action`, `system`, or `api` |
 | `actor` | Who performed the action — type, ID, email, scopes, client_id |
 | `target` | What was affected — entity type, ID, before/after state, diff |
-| `request` | HTTP method, path, query, body, IP, user agent |
+| `request` | HTTP method, path, query, body, IP, user agent, plus `redirect_uri` (and, on the event only, `authorization_url`) for logins |
 | `response` | Status code and response body |
+| `execution_id` | The post-login action execution the event resulted from, when actions ran |
 | `timestamp` | ISO 8601 timestamp |
 
 ### Before/After State
@@ -77,6 +78,28 @@ Request Handler
 ## Querying Logs
 
 The management API `GET /api/v2/logs` endpoints work identically in both modes. When the outbox is enabled, the relay populates the same logs table via the `LogsDestination` transformer.
+
+### Login details
+
+A `Successful Login` (`s`) log usually comes from the callback or `/authorize/resume` request, so `qs` holds only `code` and `state`. AuthHero adds the details of the authorization the login completes:
+
+```json
+"details": {
+  "request": {
+    "method": "GET",
+    "path": "/callback",
+    "qs": { "code": "…", "state": "…" },
+    "redirect_uri": "https://app.example.com/callback"
+  },
+  "execution_id": "…"
+}
+```
+
+- **`redirect_uri`** is where the login is going.
+- **`execution_id`** links to the post-login action execution. It's only set when actions ran.
+- **`authorization_url`** is the original `/authorize` URL, including any `utm_*` or other parameters the RP added. It is carried on the audit event as `request.authorization_url` and delivered to log streams in `details.request.authorization_url`, so consumers can parse it themselves, for example for marketing attribution. It is **not** stored in the logs table: it can be large, and it contains values such as `login_hint`. Post-login hooks get the same URL as `event.request.url` (see [Hooks](/features/hooks)).
+
+These fields come out the same with and without the outbox. Log streams are delivered by the outbox relay, so `authorization_url` needs `outbox.enabled`.
 
 ## Scheduled Jobs
 

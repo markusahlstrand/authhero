@@ -151,6 +151,11 @@ export type LogParams = {
    */
   redirect_uri?: string;
   /**
+   * The original `/authorize` URL of the login. Carried on the audit event
+   * (and so to log streams) but not written to the log's `details`.
+   */
+  authorization_url?: string;
+  /**
    * Response details to include in the log (for Management API operations)
    */
   response?: {
@@ -393,6 +398,9 @@ function buildAuditEvent(
       ip: ctx.var.ip || "",
       user_agent: ctx.var.useragent || undefined,
       ...(params.redirect_uri ? { redirect_uri: params.redirect_uri } : {}),
+      ...(params.authorization_url
+        ? { authorization_url: params.authorization_url }
+        : {}),
     },
 
     response: params.response
@@ -422,6 +430,7 @@ function buildAuditEvent(
     hostname: ctx.var.host || "",
     is_mobile: false,
     auth0_client: ctx.var.auth0_client,
+    ...(params.execution_id ? { execution_id: params.execution_id } : {}),
     timestamp: new Date().toISOString(),
   };
 }

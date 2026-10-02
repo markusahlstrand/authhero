@@ -44,6 +44,9 @@ function toLogInsert(event: AuditEvent): LogInsert {
         path: event.request.path,
         qs: event.request.query,
         body: event.request.body,
+        ...(event.request.redirect_uri
+          ? { redirect_uri: event.request.redirect_uri }
+          : {}),
       },
       ...(event.response && {
         response: {
@@ -51,6 +54,7 @@ function toLogInsert(event: AuditEvent): LogInsert {
           body: event.response.body,
         },
       }),
+      ...(event.execution_id ? { execution_id: event.execution_id } : {}),
     },
   };
 }
