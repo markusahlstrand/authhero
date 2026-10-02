@@ -1,5 +1,20 @@
 # authhero
 
+## 9.19.0
+
+### Minor Changes
+
+- 1d80d07: `Successful Login` audit events now carry the original `/authorize` URL as `request.authorization_url`, and log streams deliver it in `details.request.authorization_url` so consumers can parse it (for example for `utm_*` attribution). It is not stored in the logs table. With the outbox enabled, `details.request.redirect_uri` and `details.execution_id` were previously dropped. They now survive the relay into the logs table and log streams. `AuditEvent` gains an optional `execution_id` and `request.authorization_url`.
+- 307af71: Add `renewSigningCertificates()` for scheduled handlers. It re-issues CA-issued signing certificates that are close to expiry and keeps the `kid`. Also add `createHttpCertificateIssuer` and `createCertificateIssuerApp`, so the signing CA can run as a separate service. The service requires an `authorize` check and caps certificate lifetimes with `maxValidityDays`.
+
+### Patch Changes
+
+- Updated dependencies [1d80d07]
+  - @authhero/adapter-interfaces@4.17.0
+  - @authhero/proxy@0.11.3
+  - @authhero/saml@0.5.15
+  - @authhero/widget@0.40.1
+
 ## 9.18.0
 
 ### Minor Changes
