@@ -35,7 +35,6 @@ import {
   resolveConnectionName,
 } from "../helpers/connection";
 import { waitUntil } from "../helpers/wait-until";
-import { extractLoginAttribution } from "../utils/login-attribution";
 
 // Type guard for webhook hooks
 function isWebHook(hook: any): hook is { url: string; enabled: boolean } {
@@ -638,7 +637,7 @@ export async function postUserLoginHook(
       audience: params?.authParams?.audience,
       scope: params?.authParams?.scope,
       redirect_uri: params?.authParams?.redirect_uri,
-      attribution: extractLoginAttribution(loginSession?.authorization_url),
+      authorization_url: loginSession?.authorization_url,
       ...(executionId ? { execution_id: executionId } : {}),
     });
   }

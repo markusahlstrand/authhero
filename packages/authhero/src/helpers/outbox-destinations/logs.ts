@@ -47,9 +47,6 @@ function toLogInsert(event: AuditEvent): LogInsert {
         ...(event.request.redirect_uri
           ? { redirect_uri: event.request.redirect_uri }
           : {}),
-        ...(event.request.attribution
-          ? { attribution: event.request.attribution }
-          : {}),
       },
       ...(event.response && {
         response: {

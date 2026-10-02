@@ -62,7 +62,7 @@ describe("LogsDestination.transform - user_id resolution", () => {
 });
 
 describe("LogsDestination.transform - login details", () => {
-  it("carries redirect_uri, attribution and execution_id into details", () => {
+  it("carries redirect_uri and execution_id, but not authorization_url, into details", () => {
     const { log } = makeDestination().transform(
       makeEvent({
         event_type: "s",
@@ -74,7 +74,8 @@ describe("LogsDestination.transform - login details", () => {
           query: { code: "c", state: "s" },
           ip: "1.2.3.4",
           redirect_uri: "https://app.example.com/cb",
-          attribution: { utm_source: "newsletter" },
+          authorization_url:
+            "https://auth.example.com/authorize?utm_source=newsletter",
         },
         execution_id: "exec-1",
       }),
@@ -87,7 +88,6 @@ describe("LogsDestination.transform - login details", () => {
         qs: { code: "c", state: "s" },
         body: undefined,
         redirect_uri: "https://app.example.com/cb",
-        attribution: { utm_source: "newsletter" },
       },
       execution_id: "exec-1",
     });
@@ -98,6 +98,5 @@ describe("LogsDestination.transform - login details", () => {
 
     expect(log.details).not.toHaveProperty("execution_id");
     expect(log.details?.request).not.toHaveProperty("redirect_uri");
-    expect(log.details?.request).not.toHaveProperty("attribution");
   });
 });

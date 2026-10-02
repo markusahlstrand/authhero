@@ -1,9 +1,14 @@
 import { describe, it, expect } from "vitest";
 import { Hono } from "hono";
-import { CodeExecutor, LogTypes, User } from "@authhero/adapter-interfaces";
+import {
+  AuditEvent,
+  CodeExecutor,
+  LogTypes,
+  User,
+} from "@authhero/adapter-interfaces";
 import { postUserLoginHook } from "../../src/hooks";
 import { flushBackgroundPromises } from "../../src/helpers/wait-until";
-import { drainOutbox } from "../../src/helpers/outbox-relay";
+import { drainOutbox, EventDestination } from "../../src/helpers/outbox-relay";
 import { LogsDestination } from "../../src/helpers/outbox-destinations/logs";
 import { Bindings, Variables } from "../../src/types";
 import { getTestServer } from "../helpers/test-server";
@@ -80,7 +85,7 @@ async function successLoginDetails(options: { outbox: boolean }) {
   });
 
   // The login completes on a later request (here: /callback?code&state),
-  // which is why the attribution has to come from the stored authorize URL.
+  // which is why the authorize URL has to come from the login session.
   const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
   app.get("/callback", async (ctx) => {
     Object.assign(ctx.env, server.env);
@@ -120,9 +125,19 @@ async function successLoginDetails(options: { outbox: boolean }) {
   };
   expect(action_execution_id).toBeTypeOf("string");
 
+  // Captures what the relay hands to destinations such as log streams.
+  const relayed: AuditEvent[] = [];
+  const capture: EventDestination = {
+    name: "capture",
+    transform: (event) => event,
+    async deliver(events) {
+      relayed.push(...(events as AuditEvent[]));
+    },
+  };
   if (options.outbox) {
     await drainOutbox(server.env.data.outbox!, [
       new LogsDestination(server.env.data.logs),
+      capture,
     ]);
   }
 
@@ -133,14 +148,18 @@ async function successLoginDetails(options: { outbox: boolean }) {
   });
   const successLogs = logs.filter((log) => log.type === LogTypes.SUCCESS_LOGIN);
   expect(successLogs).toHaveLength(1);
-  return { details: successLogs[0]!.details, action_execution_id };
+  return {
+    details: successLogs[0]!.details,
+    action_execution_id,
+    relayedSuccess: relayed.find((e) => e.log_type === LogTypes.SUCCESS_LOGIN),
+  };
 }
 
 describe.each([
   { path: "without the outbox", outbox: false },
   { path: "through the outbox relay", outbox: true },
 ])("Successful Login log $path", ({ outbox }) => {
-  it("records redirect_uri, execution_id and only the allowlisted attribution", async () => {
+  it("records redirect_uri and execution_id, but not the authorize URL", async () => {
     const { details, action_execution_id } = await successLoginDetails({
       outbox,
     });
@@ -150,18 +169,17 @@ describe.each([
       request: {
         path: "/callback",
         redirect_uri: "http://localhost/cb",
-        attribution: {
-          utm_source: "newsletter",
-          utm_medium: "email",
-          utm_campaign: "oct",
-          gclid: "abc123",
-        },
       },
     });
+    expect(details?.request).not.toHaveProperty("authorization_url");
+    expect(JSON.stringify(details)).not.toContain("someone@example.com");
+  });
+});
 
-    const serialized = JSON.stringify(details);
-    expect(serialized).not.toContain("someone@example.com");
-    expect(serialized).not.toContain("secret-state");
-    expect(serialized).not.toContain("secret-nonce");
+describe("Successful Login audit event", () => {
+  it("carries the original authorize URL to outbox destinations", async () => {
+    const { relayedSuccess } = await successLoginDetails({ outbox: true });
+
+    expect(relayedSuccess?.request.authorization_url).toBe(AUTHORIZATION_URL);
   });
 });

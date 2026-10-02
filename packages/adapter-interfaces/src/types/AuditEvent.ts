@@ -44,10 +44,12 @@ export const requestContextSchema = z.object({
   /** The RP `redirect_uri` this authorization is completing for, when known. */
   redirect_uri: z.string().optional(),
   /**
-   * Allowlisted marketing parameters (`utm_*`, `gclid`, …) from the original
-   * `/authorize` URL, for a login that completes on a later request.
+   * The original `/authorize` URL, for a login that completes on a later
+   * request (callback, `/authorize/resume`). Delivered to log streams so
+   * consumers can parse it (e.g. for `utm_*` attribution); it is not copied
+   * into the logs table, since it can be large and carries `login_hint`.
    */
-  attribution: z.record(z.string(), z.string()).optional(),
+  authorization_url: z.string().optional(),
 });
 
 export type RequestContext = z.infer<typeof requestContextSchema>;

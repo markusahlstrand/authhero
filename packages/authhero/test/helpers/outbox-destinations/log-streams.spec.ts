@@ -101,7 +101,7 @@ describe("LogStreamDestination", () => {
     expect(body[0].data.type).toBe("sapi");
   });
 
-  it("carries redirect_uri, attribution and execution_id into details", async () => {
+  it("carries redirect_uri, authorization_url and execution_id into details", async () => {
     const dest = new LogStreamDestination(
       makeStreams([
         {
@@ -126,7 +126,8 @@ describe("LogStreamDestination", () => {
             path: "/callback",
             ip: "1.2.3.4",
             redirect_uri: "https://app.example.com/cb",
-            attribution: { utm_campaign: "oct" },
+            authorization_url:
+              "https://auth.example.com/authorize?utm_campaign=oct",
           },
           execution_id: "exec-1",
         }),
@@ -137,9 +138,9 @@ describe("LogStreamDestination", () => {
     expect(body[0].data.details.request.redirect_uri).toBe(
       "https://app.example.com/cb",
     );
-    expect(body[0].data.details.request.attribution).toEqual({
-      utm_campaign: "oct",
-    });
+    expect(body[0].data.details.request.authorization_url).toBe(
+      "https://auth.example.com/authorize?utm_campaign=oct",
+    );
     expect(body[0].data.details.execution_id).toBe("exec-1");
   });
 

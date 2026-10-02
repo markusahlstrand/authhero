@@ -32,7 +32,7 @@ interface LogStreamData {
       qs?: Record<string, string>;
       body?: unknown;
       redirect_uri?: string;
-      attribution?: Record<string, string>;
+      authorization_url?: string;
     };
     response?: { statusCode: number; body?: unknown };
     execution_id?: string;
@@ -85,8 +85,8 @@ function toPayload(event: AuditEvent): LogStreamPayload {
           ...(event.request.redirect_uri
             ? { redirect_uri: event.request.redirect_uri }
             : {}),
-          ...(event.request.attribution
-            ? { attribution: event.request.attribution }
+          ...(event.request.authorization_url
+            ? { authorization_url: event.request.authorization_url }
             : {}),
         },
         ...(event.response && {
