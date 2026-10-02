@@ -60,3 +60,44 @@ describe("LogsDestination.transform - user_id resolution", () => {
     expect(log.user_id).toBe("admin-actor-id");
   });
 });
+
+describe("LogsDestination.transform - login details", () => {
+  it("carries redirect_uri, attribution and execution_id into details", () => {
+    const { log } = makeDestination().transform(
+      makeEvent({
+        event_type: "s",
+        log_type: "s",
+        target: { type: "user", id: "auth0|user" },
+        request: {
+          method: "GET",
+          path: "/callback",
+          query: { code: "c", state: "s" },
+          ip: "1.2.3.4",
+          redirect_uri: "https://app.example.com/cb",
+          attribution: { utm_source: "newsletter" },
+        },
+        execution_id: "exec-1",
+      }),
+    );
+
+    expect(log.details).toEqual({
+      request: {
+        method: "GET",
+        path: "/callback",
+        qs: { code: "c", state: "s" },
+        body: undefined,
+        redirect_uri: "https://app.example.com/cb",
+        attribution: { utm_source: "newsletter" },
+      },
+      execution_id: "exec-1",
+    });
+  });
+
+  it("omits them when the event has none", () => {
+    const { log } = makeDestination().transform(makeEvent());
+
+    expect(log.details).not.toHaveProperty("execution_id");
+    expect(log.details?.request).not.toHaveProperty("redirect_uri");
+    expect(log.details?.request).not.toHaveProperty("attribution");
+  });
+});

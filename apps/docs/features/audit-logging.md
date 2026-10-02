@@ -50,8 +50,9 @@ Every audit event captures:
 | `category` | `user_action`, `admin_action`, `system`, or `api` |
 | `actor` | Who performed the action — type, ID, email, scopes, client_id |
 | `target` | What was affected — entity type, ID, before/after state, diff |
-| `request` | HTTP method, path, query, body, IP, user agent |
+| `request` | HTTP method, path, query, body, IP, user agent, plus `redirect_uri` and `attribution` for logins |
 | `response` | Status code and response body |
+| `execution_id` | The post-login action execution the event resulted from, when actions ran |
 | `timestamp` | ISO 8601 timestamp |
 
 ### Before/After State
@@ -77,6 +78,34 @@ Request Handler
 ## Querying Logs
 
 The management API `GET /api/v2/logs` endpoints work identically in both modes. When the outbox is enabled, the relay populates the same logs table via the `LogsDestination` transformer.
+
+### Login attribution
+
+A `Successful Login` (`s`) log records both where the login came from and where it went:
+
+```json
+"details": {
+  "request": {
+    "method": "GET",
+    "path": "/callback",
+    "qs": { "code": "…", "state": "…" },
+    "redirect_uri": "https://app.example.com/callback",
+    "attribution": {
+      "utm_source": "newsletter",
+      "utm_medium": "email",
+      "utm_campaign": "oct"
+    }
+  },
+  "execution_id": "…"
+}
+```
+
+- **Where the parameters come from.** A login usually completes on the callback or `/authorize/resume` request, so `qs` holds `code` and `state`. The marketing parameters are therefore read from the original `/authorize` URL that the login session stored.
+- **What is kept.** Only `utm_*` parameters and the click ids `gclid`, `fbclid` and `msclkid` are recorded, at most 10 of them, with each value truncated to 128 characters. Everything else in that URL is left out, including `login_hint`, `state` and `nonce`.
+- **When it's omitted.** If none of those parameters are present, there is no `attribution` key.
+- **`execution_id`** is only set when post-login actions ran.
+
+`redirect_uri`, `attribution` and `execution_id` come out the same in both modes, and they reach log streams too. Post-login hooks can read the full URL from `event.request.url` (see [Hooks](/features/hooks)).
 
 ## Scheduled Jobs
 

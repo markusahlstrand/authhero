@@ -43,6 +43,11 @@ export const requestContextSchema = z.object({
   correlation_id: z.string().optional(),
   /** The RP `redirect_uri` this authorization is completing for, when known. */
   redirect_uri: z.string().optional(),
+  /**
+   * Allowlisted marketing parameters (`utm_*`, `gclid`, …) from the original
+   * `/authorize` URL, for a login that completes on a later request.
+   */
+  attribution: z.record(z.string(), z.string()).optional(),
 });
 
 export type RequestContext = z.infer<typeof requestContextSchema>;
@@ -93,6 +98,9 @@ export const auditEventInsertSchema = z.object({
   auth0_client: auth0ClientSchema.optional(),
   hostname: z.string(),
   is_mobile: z.boolean().optional(),
+
+  /** The action execution this event resulted from (`details.execution_id` on the log). */
+  execution_id: z.string().optional(),
 
   timestamp: z.string(),
 });

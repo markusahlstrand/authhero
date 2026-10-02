@@ -101,6 +101,48 @@ describe("LogStreamDestination", () => {
     expect(body[0].data.type).toBe("sapi");
   });
 
+  it("carries redirect_uri, attribution and execution_id into details", async () => {
+    const dest = new LogStreamDestination(
+      makeStreams([
+        {
+          id: "lst_1",
+          name: "loki",
+          type: "http",
+          status: "active",
+          sink: {
+            http_endpoint: "https://logs.test/in",
+            http_content_type: "application/json",
+            http_content_format: "JSONARRAY",
+          },
+        },
+      ]),
+    );
+    await dest.deliver([
+      dest.transform(
+        makeEvent({
+          log_type: "s",
+          request: {
+            method: "GET",
+            path: "/callback",
+            ip: "1.2.3.4",
+            redirect_uri: "https://app.example.com/cb",
+            attribution: { utm_campaign: "oct" },
+          },
+          execution_id: "exec-1",
+        }),
+      ),
+    ]);
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body[0].data.details.request.redirect_uri).toBe(
+      "https://app.example.com/cb",
+    );
+    expect(body[0].data.details.request.attribution).toEqual({
+      utm_campaign: "oct",
+    });
+    expect(body[0].data.details.execution_id).toBe("exec-1");
+  });
+
   it("encodes JSONLINES format with trailing newline", async () => {
     const dest = new LogStreamDestination(
       makeStreams([

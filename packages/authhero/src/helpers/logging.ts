@@ -151,6 +151,12 @@ export type LogParams = {
    */
   redirect_uri?: string;
   /**
+   * Allowlisted marketing parameters (`utm_*`, click ids) from the original
+   * `/authorize` URL — see `extractLoginAttribution`. Recorded on the request
+   * block next to `redirect_uri`: where the login came from and where it went.
+   */
+  attribution?: Record<string, string>;
+  /**
    * Response details to include in the log (for Management API operations)
    */
   response?: {
@@ -393,6 +399,7 @@ function buildAuditEvent(
       ip: ctx.var.ip || "",
       user_agent: ctx.var.useragent || undefined,
       ...(params.redirect_uri ? { redirect_uri: params.redirect_uri } : {}),
+      ...(params.attribution ? { attribution: params.attribution } : {}),
     },
 
     response: params.response
@@ -422,6 +429,7 @@ function buildAuditEvent(
     hostname: ctx.var.host || "",
     is_mobile: false,
     auth0_client: ctx.var.auth0_client,
+    ...(params.execution_id ? { execution_id: params.execution_id } : {}),
     timestamp: new Date().toISOString(),
   };
 }
@@ -511,6 +519,7 @@ export async function logMessage(
             ...(params.redirect_uri
               ? { redirect_uri: params.redirect_uri }
               : {}),
+            ...(params.attribution ? { attribution: params.attribution } : {}),
           },
           ...(params.response && {
             response: params.response,
