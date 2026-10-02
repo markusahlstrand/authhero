@@ -22,6 +22,7 @@ import { AuthHeroConfig, Bindings, Variables } from "../../types";
 import { composeAuthData } from "../../helpers/compose-auth-data";
 import { createInMemoryCache } from "../../adapters/cache/in-memory";
 import { applyConfigMiddleware } from "../../middlewares/apply-config";
+import { setRequestData } from "../../helpers/request-data";
 import { serverTimingMiddleware } from "../../helpers/server-timing";
 import { tenantMiddleware } from "../../middlewares/tenant";
 import { clientInfoMiddleware } from "../../middlewares/client-info";
@@ -103,7 +104,7 @@ export default function createU2App(config: AuthHeroConfig) {
           cleanupIntervalMs: 0,
         });
 
-      ctx.env.data = composeAuthData({
+      const data = composeAuthData({
         ctx,
         rawData: config.dataAdapter,
         cacheAdapter,
@@ -120,6 +121,7 @@ export default function createU2App(config: AuthHeroConfig) {
           "universalLoginTemplates",
         ],
       });
+      setRequestData(ctx, data);
       return next();
     })
     .use(clientInfoMiddleware)

@@ -1,4 +1,5 @@
 import {
+  DataAdapters,
   jwksKeySchema,
   openIDConfigurationSchema,
 } from "@authhero/adapter-interfaces";
@@ -28,7 +29,7 @@ const getJwksJson = defineRoute({
   }),
   handler: async (ctx) => {
     const keys = await getJwksForPublication(
-      ctx.env.data,
+      ctx.var.data,
       ctx.var.tenant_id,
       ctx.env.signingKeyMode,
       ctx.env.signingCertificateAuthority?.issuer,
@@ -58,11 +59,11 @@ const METADATA_CACHE_HEADERS = {
 };
 
 async function buildAuthServerMetadata(ctx: {
-  var: { custom_domain?: string; tenant_id: string };
+  var: { custom_domain?: string; tenant_id: string; data: DataAdapters };
   env: Bindings;
 }) {
   const customDomain = ctx.var.custom_domain;
-  const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
+  const tenant = await ctx.var.data.tenants.get(ctx.var.tenant_id);
   const dcrEnabled = tenant?.flags?.enable_dynamic_client_registration === true;
   const cimdEnabled =
     tenant?.flags?.client_id_metadata_document_registration === true;
@@ -251,10 +252,10 @@ export const wellKnownRoutes = new OpenAPIHono<{
     const domain = ctx.var.custom_domain || ctx.req.header("x-forwarded-host");
     if (!domain) return ctx.text("Not Found", 404);
 
-    const customDomain = await ctx.env.data.customDomains.getByDomain(domain);
+    const customDomain = await ctx.var.data.customDomains.getByDomain(domain);
     if (!customDomain) return ctx.text("Not Found", 404);
 
-    const fullDomain = await ctx.env.data.customDomains.get(
+    const fullDomain = await ctx.var.data.customDomains.get(
       customDomain.tenant_id,
       customDomain.custom_domain_id,
     );

@@ -26,6 +26,12 @@ export type Bindings = {
   // `createEncryptedDataAdapter`. Generate with: openssl rand -base64 32
   ENCRYPTION_KEY?: string;
 
+  /**
+   * @deprecated Read `ctx.var.data` instead. Holds the raw adapter passed in
+   * at startup until a route group composes its per-request stack, after
+   * which it is a compatibility alias for the same object as `ctx.var.data`.
+   * The alias will be removed in the next major release (#140).
+   */
   data: DataAdapters;
 
   hooks?: Hooks;

@@ -14,6 +14,7 @@ import { changeEmailConfirmationRoutes } from "./account-change-email-confirmati
 import { composeAuthData } from "../../helpers/compose-auth-data";
 import { createInMemoryCache } from "../../adapters/cache/in-memory";
 import { applyConfigMiddleware } from "../../middlewares/apply-config";
+import { setRequestData } from "../../helpers/request-data";
 import { serverTimingMiddleware } from "../../helpers/server-timing";
 import { preSignupRoutes } from "./pre-signup";
 import { invalidSessionRoutes } from "./invalid-session";
@@ -128,7 +129,7 @@ export default function create(config: AuthHeroConfig) {
           cleanupIntervalMs: 0,
         });
 
-      ctx.env.data = composeAuthData({
+      const data = composeAuthData({
         ctx,
         rawData: config.dataAdapter,
         cacheAdapter,
@@ -145,6 +146,7 @@ export default function create(config: AuthHeroConfig) {
           "universalLoginTemplates",
         ],
       });
+      setRequestData(ctx, data);
       return next();
     })
     .use(clientInfoMiddleware)

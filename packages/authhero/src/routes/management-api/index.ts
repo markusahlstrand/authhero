@@ -38,6 +38,7 @@ import {
   serverTimingMiddleware,
 } from "../../helpers/server-timing";
 import { applyConfigMiddleware } from "../../middlewares/apply-config";
+import { setRequestData } from "../../helpers/request-data";
 import {
   ensureMutableResponse,
   isWebSocketUpgrade,
@@ -434,7 +435,9 @@ export default function create(config: AuthHeroConfig) {
     // createUserUpdateHooks, createUserDeletionHooks). Holding a transaction
     // across the full request would enclose external I/O — pre-registration
     // webhooks and user-authored action code — which is unsafe on hosted DBs.
-    ctx.env.data = applyDecorators(ctx, managementAdapter);
+    setRequestData(ctx, applyDecorators(ctx, managementAdapter));
+    // Startup config, the same value on every request, so not the #140 race.
+    // eslint-disable-next-line no-restricted-syntax
     ctx.env.entityHooks = config.entityHooks;
     await next();
   });
@@ -533,10 +536,13 @@ export default function create(config: AuthHeroConfig) {
     // Add entity hooks after tenant is known
     .use(async (ctx, next) => {
       if (config.entityHooks && ctx.var.tenant_id) {
-        ctx.env.data = addEntityHooks(ctx.env.data, {
-          tenantId: ctx.var.tenant_id,
-          entityHooks: config.entityHooks,
-        });
+        setRequestData(
+          ctx,
+          addEntityHooks(ctx.var.data, {
+            tenantId: ctx.var.tenant_id,
+            entityHooks: config.entityHooks,
+          }),
+        );
       }
       return next();
     });
