@@ -17,7 +17,11 @@ export type ErrorPageProps = {
   title?: string;
   message: string;
   statusCode: number;
-  variant?: "error" | "info";
+  variant?: "error" | "info" | "success";
+  /** Optional call-to-action rendered as a primary button under the message. */
+  action?: { label: string; href: string };
+  /** Overrides the default `lang` attribute ("en"). */
+  lang?: string;
   branding?: {
     colors?: {
       primary?: string;
@@ -45,6 +49,8 @@ export function ErrorPage({
   message,
   statusCode,
   variant = "error",
+  action,
+  lang = "en",
   branding,
   theme,
   darkMode = "auto",
@@ -52,8 +58,11 @@ export function ErrorPage({
   embed = false,
 }: ErrorPageProps) {
   const isInfo = variant === "info";
+  const isSuccess = variant === "success";
+  const isError = variant === "error";
   const resolvedTitle =
-    title ?? (isInfo ? "Information" : "Something went wrong");
+    title ??
+    (isSuccess ? "Success" : isInfo ? "Information" : "Something went wrong");
   const pageBackground = buildThemePageBackground(
     theme?.page_background,
     branding?.colors?.page_background,
@@ -71,7 +80,12 @@ export function ErrorPage({
     sanitizeCssColor(theme?.colors?.primary_button) ||
     sanitizeCssColor(branding?.colors?.primary) ||
     "#2563EB";
-  const iconColor = isInfo ? infoColor : errorColor;
+  const successColor = sanitizeCssColor(theme?.colors?.success) || "#16A34A";
+  const iconColor = isSuccess ? successColor : isInfo ? infoColor : errorColor;
+  const actionHref = action ? sanitizeUrl(action.href) : undefined;
+  const actionLabelColor =
+    sanitizeCssColor(theme?.colors?.primary_button_label) || "#ffffff";
+  const buttonCornerRadius = theme?.borders?.button_border_radius ?? 8;
 
   const htmlClass =
     darkMode === "dark"
@@ -81,11 +95,11 @@ export function ErrorPage({
         : undefined;
 
   return (
-    <html lang="en" class={htmlClass}>
+    <html lang={lang} class={htmlClass}>
       <head>
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>{isInfo ? resolvedTitle : `Error - ${statusCode}`}</title>
+        <title>{isError ? `Error - ${statusCode}` : resolvedTitle}</title>
         {faviconUrl && <link rel="icon" href={faviconUrl} />}
         {fontUrl && <link rel="stylesheet" href={fontUrl} />}
         <style
@@ -130,6 +144,18 @@ export function ErrorPage({
                 color: #666;
                 line-height: 1.5;
               }
+              .error-action {
+                display: block;
+                margin-top: 28px;
+                padding: 12px 16px;
+                border-radius: ${buttonCornerRadius}px;
+                background: ${infoColor};
+                color: ${actionLabelColor};
+                font-size: 15px;
+                font-weight: 600;
+                text-decoration: none;
+              }
+              .error-action:hover { opacity: 0.9; }
               /* Explicit dark mode */
               html.ah-dark-mode body { background: #111827 !important; }
               html.ah-dark-mode .error-card { background: #1f2937; }
@@ -182,7 +208,9 @@ export function ErrorPage({
               stroke-linejoin="round"
             >
               <circle cx="12" cy="12" r="10" />
-              {isInfo ? (
+              {isSuccess ? (
+                <polyline points="8 12.5 11 15.5 16 9.5" />
+              ) : isInfo ? (
                 <>
                   <line x1="12" y1="16" x2="12" y2="12" />
                   <line x1="12" y1="8" x2="12.01" y2="8" />
@@ -197,6 +225,11 @@ export function ErrorPage({
           </div>
           <div class="error-title">{resolvedTitle}</div>
           <div class="error-message">{message}</div>
+          {action && actionHref && (
+            <a class="error-action" href={actionHref}>
+              {action.label}
+            </a>
+          )}
         </div>
         {extraScript && (
           <script dangerouslySetInnerHTML={{ __html: extraScript }} />

@@ -686,10 +686,21 @@ export async function sendLink(
   });
 }
 
+/**
+ * Where the verification landing page's "Continue" button should lead. Stored
+ * on the ticket so the page can send the user back to the app that triggered
+ * the email — it never resumes the original login session.
+ */
+export type EmailVerificationReturnTo = {
+  client_id?: string;
+  redirect_uri?: string;
+};
+
 export async function sendValidateEmailAddress(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   user: User,
   language?: string,
+  returnTo?: EmailVerificationReturnTo,
 ) {
   const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
   if (!tenant) {
@@ -729,7 +740,12 @@ export async function sendValidateEmailAddress(
     login_id: ticketId,
     user_id: user.user_id,
     expires_at: expiresAt,
-    state: JSON.stringify({ purpose: "email_verification" }),
+    state: JSON.stringify({
+      purpose: "email_verification",
+      client_id: returnTo?.client_id,
+      redirect_uri: returnTo?.redirect_uri,
+      language,
+    }),
   });
 
   const validationUrl = new URL(

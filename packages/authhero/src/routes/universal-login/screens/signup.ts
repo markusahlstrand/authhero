@@ -352,7 +352,10 @@ export const signupScreenDefinition: ScreenDefinition = {
       // Send verification email - wrapped in try/catch to prevent signup failure
       // if email sending fails. User can always re-request verification later.
       try {
-        await sendValidateEmailAddress(ctx, newUser, language);
+        await sendValidateEmailAddress(ctx, newUser, language, {
+          client_id: client.client_id,
+          redirect_uri: loginSession.authParams.redirect_uri,
+        });
       } catch (emailError) {
         console.error("Failed to send verification email:", emailError);
         // Continue with signup - email verification can be retried later

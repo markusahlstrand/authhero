@@ -135,7 +135,9 @@ const postSignup = defineRoute({
     // Send verification email - wrapped in try/catch to prevent signup failure
     // if email sending fails. User can always re-request verification later.
     try {
-      await sendValidateEmailAddress(ctx, newUser);
+      await sendValidateEmailAddress(ctx, newUser, undefined, {
+        client_id: client.client_id,
+      });
     } catch (emailError) {
       console.error("Failed to send verification email:", emailError);
       // Continue with signup - email verification can be retried later

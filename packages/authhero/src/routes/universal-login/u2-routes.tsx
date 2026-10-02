@@ -51,7 +51,7 @@ import { ErrorPage } from "./error-page";
 import { TokenInfoPage } from "./token-info-page";
 import { exchangeInfoPageCode } from "./info-code-exchange";
 import { DEFAULT_THEME } from "../../constants/defaultTheme";
-import { getAvailableLocales } from "../../i18n";
+import { createTranslation, getAvailableLocales } from "../../i18n";
 import { resolveLanguage, resolveLocale } from "../../utils/locale";
 import { nanoid } from "nanoid";
 import { getEnrichedClient } from "../../helpers/client";
@@ -1176,6 +1176,74 @@ const postAcceptInvitation = defineRoute({
   handler: createScreenPostHandler("accept-invitation"),
 });
 
+type EmailVerificationTicketState = {
+  purpose?: string;
+  result_url?: string;
+  client_id?: string;
+  redirect_uri?: string;
+  language?: string;
+};
+
+function parseEmailVerificationTicketState(
+  state: string | undefined | null,
+): EmailVerificationTicketState {
+  if (!state) return {};
+  try {
+    const parsed: unknown = JSON.parse(state);
+    if (typeof parsed !== "object" || parsed === null) return {};
+    const read = (key: string) => {
+      const value: unknown = Reflect.get(parsed, key);
+      return typeof value === "string" ? value : undefined;
+    };
+    return {
+      purpose: read("purpose"),
+      result_url: read("result_url"),
+      client_id: read("client_id"),
+      redirect_uri: read("redirect_uri"),
+      language: read("language"),
+    };
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Where the "Continue" button on the verified page leads: the client's
+ * initiate_login_uri (Auth0's "Application Login URI"), else the origin of the
+ * redirect_uri the user signed up from. Starting over at the app — rather than
+ * resuming the original login — means the link can't act as a login token when
+ * opened on another device; a user who still has a session is signed in
+ * silently by the app's own /authorize round-trip.
+ */
+async function resolveEmailVerificationContinueUrl(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ctx: any,
+  tenantId: string,
+  meta: EmailVerificationTicketState,
+): Promise<string | undefined> {
+  if (meta.client_id) {
+    try {
+      const client = await ctx.env.data.clients.get(tenantId, meta.client_id);
+      const initiateLoginUri = sanitizeUrl(client?.initiate_login_uri);
+      if (initiateLoginUri) return initiateLoginUri;
+    } catch {
+      // Fall through to the redirect_uri origin
+    }
+  }
+  // redirect_uri was validated against the client's callbacks at /authorize
+  // and only ever comes from server-side ticket state.
+  if (!meta.redirect_uri) return undefined;
+  try {
+    const url = new URL(meta.redirect_uri);
+    if (url.protocol !== "https:" && url.protocol !== "http:") {
+      return undefined;
+    }
+    return url.origin;
+  } catch {
+    return undefined;
+  }
+}
+
 const getEmailVerificationTicket = defineRoute({
   route: createRoute({
     tags: ["u2"],
@@ -1193,11 +1261,99 @@ const getEmailVerificationTicket = defineRoute({
         description: "Verification complete",
         content: { "text/html": { schema: z.string() } },
       },
+      400: {
+        description: "Ticket invalid, expired or already consumed",
+        content: { "text/html": { schema: z.string() } },
+      },
     },
   }),
   handler: async (ctx: any) => {
     const { ticket } = ctx.req.valid("query");
     const tenantId = ctx.var.tenant_id;
+
+    let branding: Branding | null = null;
+    let theme: Theme | null = null;
+    let enabledLocales: string[] | undefined;
+    try {
+      if (tenantId) {
+        const [loadedTheme, loadedBranding, tenant] = await Promise.all([
+          ctx.env.data.themes.get(tenantId, "default"),
+          ctx.env.data.branding.get(tenantId),
+          ctx.env.data.tenants.get(tenantId),
+        ]);
+        theme = loadedTheme;
+        branding = loadedBranding;
+        enabledLocales = tenant?.enabled_locales;
+      }
+    } catch {
+      // Fall back to default styling if branding fetch fails
+    }
+    const brandingWithFavicon = branding
+      ? {
+          ...branding,
+          favicon_url: ctx.var?.custom_domain
+            ? branding.favicon_url
+            : undefined,
+        }
+      : null;
+    const pageProps = {
+      branding: extractBrandingProps(brandingWithFavicon),
+      theme: theme ?? DEFAULT_THEME,
+      darkMode: resolveDarkMode(ctx, brandingWithFavicon),
+    };
+
+    const renderFailure = (message: string) =>
+      ctx.html(
+        <ErrorPage
+          variant="error"
+          title="Verification link not valid"
+          message={message}
+          statusCode={400}
+          {...pageProps}
+        />,
+        400,
+      );
+
+    const renderVerified = async (meta: EmailVerificationTicketState) => {
+      const language = resolveLanguage(
+        meta.language,
+        ctx.req.header("Accept-Language"),
+        enabledLocales,
+      );
+      const [customText, continueText, continueUrl] = await Promise.all([
+        fetchCustomText(ctx, tenantId, "email-verification", language),
+        fetchCustomText(ctx, tenantId, "status", language),
+        resolveEmailVerificationContinueUrl(ctx, tenantId, meta),
+      ]);
+      const { m } = createTranslation(
+        "email-verification",
+        "email-verification",
+        language,
+        customText,
+      );
+      const { m: statusM } = createTranslation(
+        "status",
+        "status",
+        language,
+        continueText,
+      );
+      return ctx.html(
+        <ErrorPage
+          variant="success"
+          lang={language}
+          title={m.successTitle()}
+          message={m.successDescription()}
+          statusCode={200}
+          action={
+            continueUrl
+              ? { label: statusM.continueButtonText(), href: continueUrl }
+              : undefined
+          }
+          {...pageProps}
+        />,
+        200,
+      );
+    };
 
     const code = await ctx.env.data.codes.get(tenantId, ticket, "ticket");
     if (!code || new Date(code.expires_at).getTime() < Date.now()) {
@@ -1205,49 +1361,55 @@ const getEmailVerificationTicket = defineRoute({
         type: LogTypes.FAILED_VERIFICATION_EMAIL,
         description: "Ticket invalid or expired",
       });
-      throw new HTTPException(400, { message: "Ticket invalid or expired" });
-    }
-    if (code.used_at) {
-      await logMessage(ctx, tenantId, {
-        type: LogTypes.FAILED_VERIFICATION_EMAIL,
-        description: "Ticket already consumed",
-        userId: code.user_id || undefined,
-      });
-      throw new HTTPException(400, { message: "Ticket already consumed" });
+      return renderFailure(
+        "This verification link is invalid or has expired. Please request a new one.",
+      );
     }
 
     // Validate ticket purpose BEFORE consuming so non-email-verification
     // tickets (e.g. password-change) presented to this endpoint aren't burned.
-    let meta: { purpose?: string; result_url?: string } = {};
-    try {
-      meta = code.state ? JSON.parse(code.state) : {};
-    } catch {
-      // ignore
-    }
+    const meta = parseEmailVerificationTicketState(code.state);
     if (meta.purpose !== "email_verification") {
       await logMessage(ctx, tenantId, {
         type: LogTypes.FAILED_VERIFICATION_EMAIL,
         description: "Wrong ticket type",
         userId: code.user_id || undefined,
       });
-      throw new HTTPException(400, { message: "Wrong ticket type" });
+      return renderFailure("This link can't be used to verify an email.");
     }
     if (!code.user_id) {
       await logMessage(ctx, tenantId, {
         type: LogTypes.FAILED_VERIFICATION_EMAIL,
         description: "Ticket has no user",
       });
-      throw new HTTPException(400, { message: "Ticket has no user" });
+      return renderFailure("This verification link is invalid.");
     }
 
-    const consumed = await ctx.env.data.codes.consume(tenantId, ticket);
-    if (!consumed) {
+    // A consumed ticket for an already-verified user is a second click — or
+    // the user's first, after a mail scanner prefetched the link. Show the
+    // same verified page instead of an error; nothing changes server-side.
+    const renderConsumed = async () => {
       await logMessage(ctx, tenantId, {
         type: LogTypes.FAILED_VERIFICATION_EMAIL,
         description: "Ticket already consumed",
         userId: code.user_id || undefined,
       });
-      throw new HTTPException(400, { message: "Ticket already consumed" });
+      const user = await ctx.env.data.users.get(tenantId, code.user_id);
+      if (user?.email_verified && !meta.result_url) {
+        return renderVerified(meta);
+      }
+      return renderFailure(
+        "This verification link has already been used. Please request a new one.",
+      );
+    };
+
+    if (code.used_at) {
+      return renderConsumed();
+    }
+
+    const consumed = await ctx.env.data.codes.consume(tenantId, ticket);
+    if (!consumed) {
+      return renderConsumed();
     }
 
     await ctx.env.data.users.update(tenantId, code.user_id, {
@@ -1263,9 +1425,7 @@ const getEmailVerificationTicket = defineRoute({
     if (meta.result_url) {
       return ctx.redirect(meta.result_url);
     }
-    return ctx.html(
-      "<!doctype html><html><body><p>Email verified.</p></body></html>",
-    );
+    return renderVerified(meta);
   },
 });
 

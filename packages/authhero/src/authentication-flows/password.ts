@@ -498,7 +498,10 @@ export async function passwordGrant(
       ?.split(" ")
       ?.map((locale) => locale.split("-")[0])[0];
 
-    await sendValidateEmailAddress(ctx, user, language);
+    await sendValidateEmailAddress(ctx, user, language, {
+      client_id: client.client_id,
+      redirect_uri: authParams.redirect_uri,
+    });
 
     logMessage(ctx, client.tenant.id, {
       type: LogTypes.FAILED_LOGIN,
