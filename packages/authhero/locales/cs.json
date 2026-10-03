@@ -227,6 +227,11 @@
   "email-verification": {
     "email-verification": {
       "description": "Odeslali jsme e-mail na ${email}",
+      "linkAlreadyUsed": "Tento ověřovací odkaz už byl použit. Vyžádejte si nový.",
+      "linkInvalid": "Tento ověřovací odkaz je neplatný.",
+      "linkInvalidOrExpired": "Tento ověřovací odkaz je neplatný nebo vypršel. Vyžádejte si nový.",
+      "linkInvalidTitle": "Ověřovací odkaz není platný",
+      "linkWrongType": "Tento odkaz nelze použít k ověření e-mailové adresy.",
       "pageTitle": "Ověření e-mailu | ${clientName}",
       "resendText": "Opětovné odeslání kódu",
       "successDescription": "Váš e-mail byl úspěšně ověřen.",

@@ -275,7 +275,10 @@ const postRoot = defineRoute({
           ?.split(" ")
           ?.map((locale) => locale.split("-")[0])[0];
 
-        await sendValidateEmailAddress(ctx, newUser, language);
+        await sendValidateEmailAddress(ctx, newUser, language, {
+          client_id: client.client_id,
+          redirect_uri: loginSession.authParams.redirect_uri,
+        });
 
         return ctx.html(
           <MessagePage

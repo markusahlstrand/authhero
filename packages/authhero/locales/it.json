@@ -227,6 +227,11 @@
   "email-verification": {
     "email-verification": {
       "description": "Abbiamo inviato un'email a ${email}",
+      "linkAlreadyUsed": "Questo link di verifica è già stato usato. Richiedine uno nuovo.",
+      "linkInvalid": "Questo link di verifica non è valido.",
+      "linkInvalidOrExpired": "Questo link di verifica non è valido o è scaduto. Richiedine uno nuovo.",
+      "linkInvalidTitle": "Link di verifica non valido",
+      "linkWrongType": "Questo link non può essere usato per verificare un indirizzo email.",
       "pageTitle": "Verifica email | ${clientName}",
       "resendText": "Reinvia email",
       "successDescription": "La tua email è stata verificata con successo.",

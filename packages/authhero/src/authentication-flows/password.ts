@@ -529,6 +529,8 @@ export async function passwordGrant(
     } else {
       await sendValidateEmailAddress(ctx, user, language, {
         resultUrl: emailVerification?.resultUrl,
+        client_id: client.client_id,
+        redirect_uri: authParams.redirect_uri,
       });
     }
 

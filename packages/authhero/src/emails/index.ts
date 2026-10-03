@@ -686,11 +686,21 @@ export async function sendLink(
   });
 }
 
-export interface SendValidateEmailAddressOptions {
+/**
+ * Where the verification landing page's "Continue" button should lead. Stored
+ * on the ticket so the page can send the user back to the app that triggered
+ * the email — it never resumes the original login session.
+ */
+export type EmailVerificationReturnTo = {
+  client_id?: string;
+  redirect_uri?: string;
+};
+
+export interface SendValidateEmailAddressOptions extends EmailVerificationReturnTo {
   /**
    * Where the ticket endpoint redirects after verifying. Set by the login
    * flow so the link lands the user back on the login screen of the session
-   * that asked for verification instead of a bare confirmation page.
+   * that asked for verification instead of the landing page.
    */
   resultUrl?: string;
 }
@@ -699,7 +709,7 @@ export async function sendValidateEmailAddress(
   ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
   user: User,
   language?: string,
-  { resultUrl }: SendValidateEmailAddressOptions = {},
+  { resultUrl, client_id, redirect_uri }: SendValidateEmailAddressOptions = {},
 ) {
   const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
   if (!tenant) {
@@ -742,6 +752,9 @@ export async function sendValidateEmailAddress(
     state: JSON.stringify({
       purpose: "email_verification",
       ...(resultUrl ? { result_url: resultUrl } : {}),
+      client_id,
+      redirect_uri,
+      language,
     }),
   });
 

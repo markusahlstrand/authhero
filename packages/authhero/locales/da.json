@@ -227,6 +227,11 @@
   "email-verification": {
     "email-verification": {
       "description": "Vi sendte en e-mail til ${email}",
+      "linkAlreadyUsed": "Bekræftelseslinket er allerede brugt. Anmod om et nyt.",
+      "linkInvalid": "Bekræftelseslinket er ugyldigt.",
+      "linkInvalidOrExpired": "Bekræftelseslinket er ugyldigt eller udløbet. Anmod om et nyt.",
+      "linkInvalidTitle": "Bekræftelseslinket er ikke gyldigt",
+      "linkWrongType": "Dette link kan ikke bruges til at bekræfte en e-mailadresse.",
       "pageTitle": "Bekræft e-mail | ${clientName}",
       "resendText": "Send koden igen",
       "successDescription": "Din e-mail er blevet bekræftet.",
