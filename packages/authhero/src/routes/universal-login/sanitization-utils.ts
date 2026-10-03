@@ -76,7 +76,7 @@ export function sanitizeUrl(url: string | undefined): string {
 export function safeLinkHref(url: string | undefined): string | undefined {
   if (!url) return undefined;
   if (url.startsWith("/")) {
-    return /^\/[\/\\]/.test(url) ? undefined : url;
+    return /^\/[/\\]/.test(url) ? undefined : url;
   }
   try {
     const parsed = new URL(url);
