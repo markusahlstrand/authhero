@@ -1,5 +1,24 @@
 # @authhero/cloudflare-adapter
 
+## 3.2.0
+
+### Minor Changes
+
+- 774bf43: `createWfpTenantApp` accepts a `signingCertificateAuthority` option (`{ issuer, tenantId }`). The tenant key minted in `sync-defaults`, rotations, renewals and the JWKS `x5c` all use it. Certificates always name the tenant, never the control plane. A new `POST /internal/renew-signing-certificates` route, protected by the sync secret, renews CA-issued certificates. `createDispatchRenewSigningCertificates` pushes that renewal to a tenant worker from the control plane's scheduled handler.
+
+### Patch Changes
+
+- Updated dependencies [ba89657]
+- Updated dependencies [654154c]
+- Updated dependencies [c7398fb]
+- Updated dependencies [73c886d]
+- Updated dependencies [f9f52be]
+- Updated dependencies [347275f]
+  - authhero@9.20.0
+  - @authhero/adapter-interfaces@4.18.0
+  - @authhero/kysely-adapter@12.12.0
+  - @authhero/multi-tenancy@15.0.2
+
 ## 3.1.9
 
 ### Patch Changes

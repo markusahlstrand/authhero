@@ -1,5 +1,12 @@
 # @authhero/proxy
 
+## 0.11.4
+
+### Patch Changes
+
+- Updated dependencies [654154c]
+  - @authhero/adapter-interfaces@4.18.0
+
 ## 0.11.3
 
 ### Patch Changes
