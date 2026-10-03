@@ -1,5 +1,29 @@
 # authhero
 
+## 9.20.0
+
+### Minor Changes
+
+- ba89657: Add an `actionExecutionLogs` option to `init()` that controls which action (code hook) console output is saved to `action_executions.logs`. `"full"` keeps today's behaviour and is the default, `"errors"` saves output only for actions that failed or denied access, and `"off"` never saves it. Hooks still see their own console output while they run, and the execution record itself is always written; only what is stored changes. The same value can be passed to `runOutboxRelay` and `createDefaultDestinations` so outbox-delivered code hooks follow it too.
+- 654154c: Operators can now permanently discard dead-lettered outbox events that will never succeed, either one at a time with `DELETE /api/v2/failed-events/{id}` or up to 100 at once with `POST /api/v2/failed-events/bulk-discard`. Both require the `update:logs` scope, are scoped to the caller's tenant, and only ever delete dead-lettered events. They rely on a new optional `discard(id, tenantId)` method on `OutboxAdapter`, implemented by the kysely and drizzle adapters; adapters without it answer 501.
+- c7398fb: Show a proper email verification step on u2 when `email_validation` is `"enforced"` and the user's email is unverified, instead of a field error under the password field. The database connection's `attributes.email.verification_method` picks the method. With `"code"` (default), the user enters an emailed code and the same login continues. With `"link"`, a "check your email" screen is shown and the emailed link returns the user to the login screen. Both screens can resend the email. Signup no longer sends two verification emails when verification is enforced.
+- 73c886d: Each request's adapter stack is now available as `ctx.var.data`. Use it in middleware, hooks and custom routes from now on.
+
+  `ctx.env.data` still works and points at the same object, so nothing breaks at runtime. It is deprecated and will be removed in a future major release. The stack belongs on the request rather than on `env` because Cloudflare Workers share one `env` object between all requests in an isolate, which is how concurrent requests ended up using each other's adapters in September.
+
+  `Variables` now has a required `data` field. Code that builds a `Variables` object by hand, for example a test mock, needs to add it.
+
+- f9f52be: Render a branded, translated "Email verified" page for `/u2/tickets/email-verification` instead of bare HTML. The page shows a Continue button that leads back to the app: the client's `initiate_login_uri` when it is HTTPS, or else the origin of the `redirect_uri` the user signed up from. Verification emails sent from login and signup flows now store the client, redirect URI and language on the ticket. Clicking an already used link for a verified user shows the verified page again instead of an error, which covers mail scanners that prefetch links. Tickets created with a `result_url` still show an already-used error on a second click. Invalid or expired links render a branded, translated error page.
+
+### Patch Changes
+
+- 347275f: Localize u2 screen errors and account/consent screens. Handler errors are no longer shown as an extra English banner when the screen already displays a (localized) field error, every hard-coded English error on the login, signup, password-reset, passkey, MFA and invitation screens now comes from the locale files, and the account, consent and connect screens are translated into all supported languages.
+- Updated dependencies [654154c]
+  - @authhero/adapter-interfaces@4.18.0
+  - @authhero/proxy@0.11.4
+  - @authhero/saml@0.5.16
+  - @authhero/widget@0.40.2
+
 ## 9.19.0
 
 ### Minor Changes
