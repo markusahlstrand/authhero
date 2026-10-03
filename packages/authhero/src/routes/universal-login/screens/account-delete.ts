@@ -7,6 +7,11 @@
 import type { UiScreen, FormNodeComponent } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
 import { resolveAccountUser } from "./account-helpers";
+import { createTranslation } from "../../../i18n";
+import { escapeHtml } from "../sanitization-utils";
+
+// The literal word users must type; intentionally not localized.
+const CONFIRMATION_WORD = "DELETE";
 
 /**
  * Create the account-delete screen
@@ -17,6 +22,12 @@ export async function accountDeleteScreen(
   const { branding, state, errors, messages, routePrefix = "/u2" } = context;
 
   await resolveAccountUser(context);
+  const { m } = createTranslation(
+    "common",
+    "account-delete",
+    context.language || "en",
+    context.customText,
+  );
   const stateParam = encodeURIComponent(state);
 
   const components: FormNodeComponent[] = [
@@ -28,8 +39,8 @@ export async function accountDeleteScreen(
       config: {
         content: `
           <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:16px;margin-bottom:8px">
-            <p style="color:#dc2626;font-weight:600;margin-bottom:8px">Warning: This action is permanent</p>
-            <p style="color:#7f1d1d;font-size:14px">All your data will be permanently deleted. This includes your profile, linked accounts, and authentication methods. This action cannot be undone.</p>
+            <p style="color:#dc2626;font-weight:600;margin-bottom:8px">${escapeHtml(m.warningTitle())}</p>
+            <p style="color:#7f1d1d;font-size:14px">${escapeHtml(m.warningText())}</p>
           </div>
         `,
       },
@@ -40,9 +51,9 @@ export async function accountDeleteScreen(
       type: "TEXT",
       category: "FIELD",
       visible: true,
-      label: 'Type "DELETE" to confirm',
+      label: m.confirmationLabel({ confirmationWord: CONFIRMATION_WORD }),
       config: {
-        placeholder: "DELETE",
+        placeholder: CONFIRMATION_WORD,
       },
       required: true,
       order: 1,
@@ -56,7 +67,7 @@ export async function accountDeleteScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        text: "Delete My Account",
+        text: m.buttonText(),
       },
       order: 2,
     },
@@ -66,13 +77,13 @@ export async function accountDeleteScreen(
     name: "account-delete",
     action: `${routePrefix}/account/delete?state=${stateParam}`,
     method: "POST",
-    title: "Delete Account",
-    description: "Permanently delete your account",
+    title: m.title(),
+    description: m.description(),
     components,
     links: [
       {
         id: "cancel",
-        text: "Cancel",
+        text: m.cancelText(),
         href: `${routePrefix}/account?state=${stateParam}`,
       },
     ],
@@ -97,15 +108,24 @@ async function handleAccountDeleteSubmit(
   const { ctx, tenant, state } = context;
 
   const { user, session } = await resolveAccountUser(context);
+  const { m } = createTranslation(
+    "common",
+    "account-delete",
+    context.language || "en",
+    context.customText,
+  );
 
   const confirmation = (data.confirmation as string)?.trim();
 
-  if (confirmation !== "DELETE") {
+  if (confirmation !== CONFIRMATION_WORD) {
+    const confirmationError = m.confirmationError({
+      confirmationWord: CONFIRMATION_WORD,
+    });
     return {
-      error: 'Please type "DELETE" to confirm',
+      error: confirmationError,
       screen: await accountDeleteScreen({
         ...context,
-        errors: { confirmation: 'Please type "DELETE" to confirm' },
+        errors: { confirmation: confirmationError },
       }),
     };
   }
@@ -134,7 +154,7 @@ async function handleAccountDeleteSubmit(
         ...context,
         messages: [
           {
-            text: "Your account has been deleted",
+            text: m.deleteSuccess(),
             type: "success",
           },
         ],
@@ -142,10 +162,10 @@ async function handleAccountDeleteSubmit(
     };
   } catch {
     return {
-      error: "Failed to delete account",
+      error: m.deleteFailed(),
       screen: await accountDeleteScreen({
         ...context,
-        messages: [{ text: "Failed to delete account", type: "error" }],
+        messages: [{ text: m.deleteFailed(), type: "error" }],
       }),
     };
   }

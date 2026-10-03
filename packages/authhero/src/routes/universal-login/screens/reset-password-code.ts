@@ -15,6 +15,7 @@ import { escapeHtml } from "../sanitization-utils";
 import { createTranslation } from "../../../i18n";
 import { requestPasswordReset } from "../../../authentication-flows/password";
 import { executePasswordReset } from "./reset-password";
+import { localizePasswordPolicyError } from "./signup";
 
 /**
  * Create the reset-password-code screen
@@ -245,11 +246,12 @@ export const resetPasswordCodeScreenDefinition: ScreenDefinition = {
 
       // Validate password is provided
       if (!password) {
+        const errorMessage = m.noPassword();
         return {
-          error: "Password is required",
+          error: errorMessage,
           screen: await resetPasswordCodeScreen({
             ...context,
-            errors: { password: "Password is required" },
+            errors: { password: errorMessage },
           }),
         };
       }
@@ -297,7 +299,15 @@ export const resetPasswordCodeScreenDefinition: ScreenDefinition = {
       }
 
       const errorMessage =
-        result.error === "code_expired" ? m.invalidCode() : result.error;
+        result.error === "code_expired"
+          ? m.invalidCode()
+          : result.error === "password_policy"
+            ? localizePasswordPolicyError(
+                result.policyError,
+                locale,
+                context.customText,
+              )
+            : m.failed();
 
       return {
         error: errorMessage,

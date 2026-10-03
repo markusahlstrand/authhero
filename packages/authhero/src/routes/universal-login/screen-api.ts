@@ -31,7 +31,7 @@ import type {
   ScreenBranding,
   ScreenResult,
 } from "./screens/types";
-import type { PromptScreen, CustomText } from "@authhero/adapter-interfaces";
+import type { CustomText } from "@authhero/adapter-interfaces";
 import {
   createFrontChannelAuthResponse,
   completeLoginSessionHook,
@@ -46,30 +46,8 @@ import {
   accumulateFormValues,
 } from "../../hooks/formhooks";
 import { resolveLanguage } from "../../utils/locale";
-
-/**
- * Mapping from screen IDs to prompt screen IDs for custom text
- */
-const SCREEN_TO_PROMPT_MAP: Record<string, PromptScreen> = {
-  identifier: "login-id",
-  login: "login",
-  "enter-password": "login-password",
-  "email-otp-challenge": "email-otp-challenge",
-  "sms-otp-challenge": "email-otp-challenge",
-  signup: "signup",
-  "forgot-password": "reset-password",
-  "reset-password": "reset-password",
-  "reset-password-code": "reset-password",
-  impersonate: "login",
-  "pre-signup": "signup-id",
-  "pre-signup-sent": "signup",
-  consent: "consent",
-  "login-passwordless-identifier": "login-passwordless",
-  "passkey-enrollment-nudge": "passkeys",
-  "passkey-enrollment": "passkeys",
-  "email-verification-code": "email-verification",
-  "email-verification-link-sent": "email-verification",
-};
+import { withHandlerError } from "./screens/handler-error";
+import { getPromptScreenForScreen } from "./screen-prompt-map";
 
 /**
  * Fetch custom text for a screen and language
@@ -80,7 +58,7 @@ async function fetchCustomText(
   screenId: string,
   language: string,
 ): Promise<CustomText | undefined> {
-  const promptScreen = SCREEN_TO_PROMPT_MAP[screenId];
+  const promptScreen = getPromptScreenForScreen(screenId);
   if (!promptScreen) return undefined;
 
   try {
@@ -335,7 +313,7 @@ async function buildScreenContext(
     acceptLanguage,
     client.tenant.enabled_locales,
   );
-  const promptScreen = SCREEN_TO_PROMPT_MAP[screenId];
+  const promptScreen = getPromptScreenForScreen(screenId);
   const customText = await fetchCustomText(
     ctx,
     ctx.var.tenant_id,
@@ -859,25 +837,21 @@ screenApiRoutes.openapi(
           ? `${navigatePrefix}/${screenPath}?state=${encodeURIComponent(state)}`
           : undefined;
 
-      // When the handler returned an error, surface it as a screen-level error
-      // message so the widget can render it. Without this the error string is
-      // dropped and the user just sees the same screen re-rendered with a 400.
-      const messages =
+      // When the handler returned an error the screen doesn't already show,
+      // surface it as a screen-level message so the widget can render it.
+      // Without this the user just sees the same screen re-rendered with a 400.
+      const renderedScreen =
         "error" in result
-          ? [
-              ...(screenData.screen.messages ?? []),
-              { text: result.error, type: "error" as const },
-            ]
-          : screenData.screen.messages;
+          ? withHandlerError(screenData.screen, result.error)
+          : screenData.screen;
 
       return ctx.json(
         {
           screen: {
-            ...screenData.screen,
+            ...renderedScreen,
             // Widget will POST JSON here when JS is enabled
             action: `/u2/screen/${nextScreenId}?state=${encodeURIComponent(state)}`,
-            messages,
-            links: screenData.screen.links?.map((link) => ({
+            links: renderedScreen.links?.map((link) => ({
               ...link,
               href: link.href
                 .replace("/u/widget/", "/u2/")

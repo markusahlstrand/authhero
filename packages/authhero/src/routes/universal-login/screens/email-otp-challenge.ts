@@ -343,17 +343,17 @@ export const emailOtpChallengeScreenDefinition: ScreenDefinition = {
         if (e instanceof JSONHTTPException) {
           try {
             const parsed = JSON.parse((e as Error).message);
-            if (parsed.message) {
-              errorMessage = parsed.message;
-            }
+            // userSafe errors are all wrong/used/expired code failures; their
+            // message isn't localized, so show the translated equivalent.
             if (parsed.userSafe) {
               isUserSafe = true;
+              errorMessage = m["invalid-code"]();
             }
           } catch {
             // Keep the generic error message for non-JSON errors
           }
-        } else if (e instanceof HTTPException) {
-          errorMessage = e.message;
+        } else if (e instanceof HTTPException && e.status === 429) {
+          errorMessage = m.tooManyRequests();
         }
 
         // Only log genuinely unexpected errors at error level.

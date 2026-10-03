@@ -8,6 +8,7 @@ import type {
   UiScreen,
   FormNodeComponent,
   User,
+  CustomText,
 } from "@authhero/adapter-interfaces";
 import {
   Strategy,
@@ -24,6 +25,8 @@ import {
   getPasswordPolicy,
   validatePasswordPolicy,
   hashPassword,
+  PasswordPolicyError,
+  PASSWORD_ERROR_CODES,
 } from "../../../helpers/password-policy";
 import { userIdGenerate } from "../../../utils/user-id";
 import { sendValidateEmailAddress } from "../../../emails";
@@ -33,6 +36,48 @@ import {
   getLoginEmailVerification,
 } from "./email-verification";
 import { loginWithPassword } from "../../../authentication-flows/password";
+
+/**
+ * Translate a validatePasswordPolicy failure into a user-facing message.
+ * The PasswordPolicyError message itself is English-only.
+ */
+export function localizePasswordPolicyError(
+  error: unknown,
+  locale: string,
+  customText?: CustomText,
+): string {
+  const { m } = createTranslation(
+    "signup-password",
+    "signup-password",
+    locale,
+    customText,
+  );
+  if (!(error instanceof PasswordPolicyError)) {
+    return m["password-too-weak"]();
+  }
+  switch (error.code) {
+    case PASSWORD_ERROR_CODES.TOO_SHORT:
+      return m.passwordTooShort({
+        minLength: String(error.params?.minLength ?? ""),
+      });
+    case PASSWORD_ERROR_CODES.MISSING_LOWERCASE:
+      return m.passwordMissingLowercase();
+    case PASSWORD_ERROR_CODES.MISSING_UPPERCASE:
+      return m.passwordMissingUppercase();
+    case PASSWORD_ERROR_CODES.MISSING_NUMBER:
+      return m.passwordMissingNumber();
+    case PASSWORD_ERROR_CODES.MISSING_SPECIAL:
+      return m.passwordMissingSpecial();
+    case PASSWORD_ERROR_CODES.REUSED:
+      return m.passwordReused();
+    case PASSWORD_ERROR_CODES.CONTAINS_PERSONAL_INFO:
+      return m.passwordContainsPersonalInfo();
+    case PASSWORD_ERROR_CODES.CONTAINS_FORBIDDEN_WORD:
+      return m.passwordContainsForbiddenWord();
+    default:
+      return m["password-too-weak"]();
+  }
+}
 
 /**
  * Create the signup screen
@@ -183,54 +228,52 @@ export const signupScreenDefinition: ScreenDefinition = {
         locale,
         context.customText,
       );
-      const { m: passwordM } = createTranslation(
-        "signup-password",
-        "signup-password",
-        locale,
-        context.customText,
-      );
 
       // Validate required fields
       if (!email) {
+        const errorMessage = m["no-email"]();
         return {
-          error: "Email is required",
+          error: errorMessage,
           screen: await signupScreen({
             ...context,
-            errors: { email: m["invalid-email-format"]() },
+            errors: { email: errorMessage },
           }),
         };
       }
 
       if (!password) {
+        const errorMessage = m["no-password"]();
         return {
-          error: "Password is required",
+          error: errorMessage,
           screen: await signupScreen({
             ...context,
             prefill: { email },
-            errors: { password: m["no-password"]() },
+            errors: { password: errorMessage },
           }),
         };
       }
 
       if (!rePassword) {
+        const errorMessage = m.confirmPasswordRequired();
         return {
-          error: "Please confirm your password",
+          error: errorMessage,
           screen: await signupScreen({
             ...context,
             prefill: { email },
-            errors: { re_password: m.confirmPasswordPlaceholder() },
+            errors: { re_password: errorMessage },
           }),
         };
       }
 
       // Check passwords match
       if (password !== rePassword) {
+        const errorMessage = m.passwordsDidntMatch();
         return {
-          error: "Passwords don't match",
+          error: errorMessage,
           screen: await signupScreen({
             ...context,
             prefill: { email },
-            errors: { re_password: m.passwordsDidntMatch() },
+            errors: { re_password: errorMessage },
           }),
         };
       }
@@ -256,10 +299,11 @@ export const signupScreenDefinition: ScreenDefinition = {
           data: ctx.env.data,
         });
       } catch (policyError: unknown) {
-        const errorMessage =
-          policyError instanceof Error
-            ? policyError.message
-            : passwordM["password-too-weak"]();
+        const errorMessage = localizePasswordPolicyError(
+          policyError,
+          locale,
+          context.customText,
+        );
 
         return {
           error: errorMessage,
@@ -279,12 +323,13 @@ export const signupScreenDefinition: ScreenDefinition = {
       });
 
       if (existingUser) {
+        const errorMessage = m["email-already-exists"]();
         return {
-          error: "User already exists",
+          error: errorMessage,
           screen: await signupScreen({
             ...context,
             prefill: { email },
-            errors: { email: m["email-already-exists"]() },
+            errors: { email: errorMessage },
           }),
         };
       }
@@ -296,12 +341,13 @@ export const signupScreenDefinition: ScreenDefinition = {
       );
 
       if (!loginSession) {
+        const errorMessage = m.sessionExpired();
         return {
-          error: "Session expired",
+          error: errorMessage,
           screen: await signupScreen({
             ...context,
             prefill: { email },
-            errors: { email: m.sessionExpired() },
+            errors: { email: errorMessage },
           }),
         };
       }
@@ -339,12 +385,13 @@ export const signupScreenDefinition: ScreenDefinition = {
       } catch (err: any) {
         console.log("Err: " + err.message);
 
+        const errorMessage = m.createUserFailed();
         return {
-          error: "Failed to create user",
+          error: errorMessage,
           screen: await signupScreen({
             ...context,
             prefill: { email },
-            errors: { email: "Failed to create user" },
+            errors: { email: errorMessage },
           }),
         };
       }

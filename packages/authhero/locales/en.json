@@ -17,6 +17,140 @@
       "termsOfServiceText": "Terms of Service",
       "termsShortText": "Terms",
       "tryAgainText": "Try again"
+    },
+    "account": {
+      "title": "Account Settings",
+      "description": "Manage your account",
+      "editProfileLabel": "Edit Profile",
+      "editProfileDetail": "Name, email, phone number, and picture",
+      "securityLabel": "Security Settings",
+      "securityDetail": "Multi-factor authentication",
+      "securityMethodsCountOne": "${count} method configured",
+      "securityMethodsCount": "${count} methods configured",
+      "passkeysLabel": "Passkeys",
+      "passkeysDetail": "Sign in without a password",
+      "passkeysCountOne": "${count} passkey registered",
+      "passkeysCount": "${count} passkeys registered",
+      "linkedAccountsLabel": "Linked Accounts",
+      "linkedAccountsDetail": "Connect social accounts",
+      "linkedAccountsCountOne": "${count} linked account",
+      "linkedAccountsCount": "${count} linked accounts",
+      "deleteAccountLabel": "Delete Account",
+      "deleteAccountDetail": "Permanently delete your account and data",
+      "logoutText": "Log Out"
+    },
+    "account-profile": {
+      "title": "Edit Profile",
+      "description": "Update your personal information",
+      "givenNameLabel": "First Name",
+      "familyNameLabel": "Last Name",
+      "nicknameLabel": "Nickname",
+      "phoneNumberLabel": "Phone Number",
+      "pictureLabel": "Profile Picture URL",
+      "buttonText": "Save Changes",
+      "backToAccountText": "Back to Account",
+      "updateFailed": "Failed to update profile"
+    },
+    "account-delete": {
+      "title": "Delete Account",
+      "description": "Permanently delete your account",
+      "warningTitle": "Warning: This action is permanent",
+      "warningText": "All your data will be permanently deleted. This includes your profile, linked accounts, and authentication methods. This action cannot be undone.",
+      "confirmationLabel": "Type \"${confirmationWord}\" to confirm",
+      "buttonText": "Delete My Account",
+      "cancelText": "Cancel",
+      "confirmationError": "Please type \"${confirmationWord}\" to confirm",
+      "deleteSuccess": "Your account has been deleted",
+      "deleteFailed": "Failed to delete account"
+    },
+    "account-linked": {
+      "title": "Linked Accounts",
+      "description": "Manage your linked accounts",
+      "noLinkedAccounts": "No linked accounts.",
+      "unlinkButtonText": "Unlink",
+      "backToAccountText": "Back to Account",
+      "unlinkSuccess": "Account unlinked successfully",
+      "unlinkFailed": "Failed to unlink account"
+    },
+    "account-security": {
+      "title": "Security Settings",
+      "description": "Manage your two-factor authentication methods",
+      "noEnrollments": "You have no two-factor authentication methods configured.",
+      "addedOn": "Added ${date}",
+      "removeButtonText": "Remove",
+      "addTotpLabel": "Add Authenticator App",
+      "addTotpDetail": "Use an app like Google Authenticator or Authy",
+      "addSmsLabel": "Add Phone (SMS)",
+      "addSmsDetail": "Receive verification codes via text message",
+      "typeTotp": "Authenticator App",
+      "typePhone": "Phone (SMS)",
+      "typeEmail": "Email",
+      "typePush": "Push Notification",
+      "typeWebauthn": "Security Key",
+      "backToAccountText": "Back to Account",
+      "enrollmentNotFound": "Enrollment not found",
+      "removeSuccess": "Authentication method removed",
+      "removeFailed": "Failed to remove authentication method"
+    },
+    "account-passkeys": {
+      "title": "Passkeys",
+      "description": "Manage your passkeys for passwordless sign-in",
+      "noPasskeysText": "You have no passkeys registered.",
+      "defaultPasskeyName": "Passkey",
+      "syncedBadgeText": "Synced",
+      "addedOnText": "Added ${date}",
+      "renameButtonText": "Rename",
+      "removeButtonText": "Remove",
+      "renamePromptText": "Enter a new name for this passkey:",
+      "addPasskeyButtonText": "Add Passkey",
+      "backToAccountText": "Back to Account",
+      "logoutText": "Log Out",
+      "passkeyNotFoundText": "Passkey not found",
+      "passkeyRemovedText": "Passkey removed",
+      "removeFailedText": "Failed to remove passkey",
+      "invalidNameText": "Name must be between 1 and 64 characters",
+      "passkeyRenamedText": "Passkey renamed",
+      "renameFailedText": "Failed to rename passkey",
+      "startRegistrationFailedText": "Failed to start passkey registration",
+      "missingCredentialText": "Missing credential data",
+      "challengeExpiredText": "Challenge expired. Please try again.",
+      "invalidCredentialText": "Invalid credential data",
+      "verificationFailedText": "Passkey verification failed",
+      "passkeyAddedText": "Passkey added successfully",
+      "registrationFailedText": "Passkey registration failed. Please try again."
+    },
+    "account-mfa-phone-enrollment": {
+      "title": "Set Up Phone (SMS)",
+      "description": "Enter your phone number to receive verification codes via SMS.",
+      "phoneLabel": "Phone number",
+      "sendCodeButtonText": "Send Verification Code",
+      "backToSecurityText": "Back to Security Settings",
+      "verifyTitle": "Verify Phone Number",
+      "verifyDescription": "Enter the verification code sent to your phone.",
+      "codeSentText": "A verification code has been sent to ${phoneNumber}",
+      "codeSentToYourPhoneText": "A verification code has been sent to your phone",
+      "codeLabel": "Verification code",
+      "codePlaceholder": "Enter verification code",
+      "verifyButtonText": "Verify & Enable",
+      "noPhoneText": "Please enter your phone number",
+      "invalidPhoneText": "Please enter a valid phone number",
+      "sendCodeFailedText": "Failed to send verification code. Please try again.",
+      "noCodeText": "Please enter the verification code",
+      "invalidCodeText": "Invalid code. Please try again.",
+      "sessionInvalidText": "Something went wrong. Please start the enrollment again."
+    },
+    "account-mfa-totp-enrollment": {
+      "title": "Set Up Authenticator App",
+      "description": "Scan the QR code with your authenticator app, then enter the verification code below.",
+      "qrCodeAltText": "QR Code",
+      "manualKeyText": "Or enter this key manually:",
+      "codeLabel": "Verification code",
+      "codePlaceholder": "Enter 6-digit code",
+      "verifyButtonText": "Verify & Enable",
+      "backToSecurityText": "Back to Security Settings",
+      "noCodeText": "Please enter the verification code",
+      "invalidCodeText": "Invalid code. Please try again.",
+      "verificationFailedText": "Verification failed. Please try again."
     }
   },
   "consent": {
@@ -26,7 +160,39 @@
       "description": "${clientName} is requesting access to your account",
       "pageTitle": "Authorize | ${clientName}",
       "scopesTitle": "This will allow ${clientName} to:",
-      "title": "Authorize ${clientName}"
+      "title": "Authorize ${clientName}",
+      "accessAccountText": "wants to access your ${tenantName} account as ${userName}.",
+      "notAuthenticated": "You need to sign in to continue.",
+      "sessionExpired": "Your session has expired. Please try again.",
+      "consentStorageNotConfigured": "Your consent could not be saved. Please contact the application owner."
+    },
+    "connect-consent": {
+      "title": "Connect application",
+      "description": "Allow ${domain} to act on your behalf?",
+      "connectAccountText": "wants to connect to your ${tenantName} account as ${userName}.",
+      "workspaceLabel": "Workspace:",
+      "apiLabel": "For API:",
+      "permissionsLabel": "Requested permissions:",
+      "localDevBadge": "Local development",
+      "localDevTooltip": "This site is a non-production local development origin. The connection will not work outside this machine or network.",
+      "buttonText": "Connect",
+      "cancelText": "Cancel",
+      "notAuthenticated": "You need to sign in to continue.",
+      "sessionExpired": "Your session has expired. Please try again.",
+      "workspaceSelectionRequired": "Please choose a workspace first.",
+      "noWorkspaceAccess": "You don't have access to that workspace",
+      "workspaceNotFound": "Workspace not found"
+    },
+    "connect-tenant-select": {
+      "title": "Choose a workspace",
+      "description": "Select which ${tenantName} workspace ${domain} should connect to.",
+      "noWorkspacesDescription": "No workspaces available",
+      "noWorkspacesText": "You don't have access to any ${tenantName} workspaces. Ask an administrator to invite you.",
+      "cancelText": "Cancel",
+      "notAuthenticated": "You need to sign in to continue.",
+      "sessionExpired": "Your session has expired. Please try again.",
+      "noWorkspaceSelected": "Please choose a workspace.",
+      "noWorkspaceAccess": "You don't have access to that workspace"
     }
   },
   "device-flow": {
@@ -54,7 +220,8 @@
       "sessionExpired": "Your session has expired. Please try again.",
       "title": "Check your email",
       "unexpectedError": "An unexpected error occurred",
-      "usePasswordText": "Log in with password"
+      "usePasswordText": "Log in with password",
+      "tooManyRequests": "Too many attempts. Please wait a moment and try again."
     }
   },
   "email-verification": {
@@ -97,7 +264,9 @@
       "acceptButtonText": "Accept invitation",
       "description": "${inviterName} has invited you to join ${organizationName} on ${clientName}",
       "pageTitle": "Invitation | ${clientName}",
-      "title": "You've been invited"
+      "title": "You've been invited",
+      "defaultOrganizationName": "the organization",
+      "acceptFailed": "We couldn't finish setting up your account. Please try again."
     }
   },
   "login": {
@@ -139,7 +308,10 @@
       "usernameTooLong": "Username must be ${max} characters or less",
       "usernameTooShort": "Username must be at least ${min} characters",
       "passkeyButtonText": "Sign in with a passkey",
-      "wrongCredentials": "Wrong username or password"
+      "wrongCredentials": "Wrong username or password",
+      "userBlocked": "Your account has been blocked after multiple consecutive login attempts.",
+      "tooManyRequests": "Too many attempts. Please wait a moment and try again.",
+      "unexpectedError": "Something went wrong. Please try again."
     }
   },
   "login-id": {
@@ -236,7 +408,10 @@
       "unverifiedEmail": "Please verify your email address before logging in",
       "user-blocked": "Your account has been blocked after multiple consecutive login attempts.",
       "wrong-credentials": "Wrong password",
-      "sendCodeText": "Log in with a code"
+      "sendCodeText": "Log in with a code",
+      "sessionExpired": "Your session has expired. Please try again.",
+      "tooManyRequests": "Too many attempts. Please wait a moment and try again.",
+      "unexpectedError": "Something went wrong. Please try again."
     }
   },
   "login-passwordless": {
@@ -305,7 +480,9 @@
       "transaction-not-found": "Your enrollment transaction expired, you will need to start again.",
       "unexpectedError": "Something went wrong. Please try again.",
       "pageTitle": "Set up Authenticator | ${clientName}",
-      "enrollmentComplete": "MFA enrollment is complete. You can close this page."
+      "enrollmentComplete": "MFA enrollment is complete. You can close this page.",
+      "pickAuthenticatorText": "Try another method",
+      "qrCodeAltText": "QR code"
     },
     "mfa-totp-challenge": {
       "title": "Verify your identity",
@@ -436,7 +613,10 @@
       "cancelLinkText": "Skip for now",
       "retryButtonText": "Try again",
       "enrollmentComplete": "Your passkey has been set up successfully. You can close this page.",
-      "pageTitle": "Create Passkey | ${clientName}"
+      "pageTitle": "Create Passkey | ${clientName}",
+      "sessionExpired": "Your session has expired. Please try again.",
+      "enrollmentRequired": "You need to set up a passkey to continue.",
+      "challengeExpired": "The request has expired. Please try again."
     },
     "passkey-challenge": {
       "title": "Sign in with a passkey",
@@ -444,7 +624,8 @@
       "errorMessage": "Passkey authentication failed. Please try again.",
       "cancelLinkText": "Back to login",
       "retryButtonText": "Try again",
-      "pageTitle": "Sign In with Passkey | ${clientName}"
+      "pageTitle": "Sign In with Passkey | ${clientName}",
+      "sessionExpired": "Your session has expired. Please try again."
     }
   },
   "organizations": {
@@ -475,7 +656,9 @@
       "successDescription": "We have sent a password reset link to your email address.",
       "successTitle": "Check your email",
       "title": "Forgot your password?",
-      "user-not-found": "User not found"
+      "user-not-found": "User not found",
+      "noPassword": "Password is required",
+      "sessionExpired": "Your session has expired. Please try again."
     },
     "reset-password-code": {
       "backToLoginText": "Back to login",
@@ -498,7 +681,8 @@
       "resendSuccess": "A new code has been sent to your email",
       "resendText": "Resend code",
       "sessionExpired": "Your session has expired. Please try again.",
-      "title": "Enter reset code"
+      "title": "Enter reset code",
+      "noPassword": "Password is required"
     }
   },
   "signup": {
@@ -529,7 +713,9 @@
       "title": "Create your account",
       "username-already-exists": "This username is already taken",
       "usernamePlaceholder": "Username",
-      "verifyEmailText": "Please check your email to verify your account"
+      "verifyEmailText": "Please check your email to verify your account",
+      "confirmPasswordRequired": "Please confirm your password",
+      "createUserFailed": "We couldn't create your account. Please try again."
     }
   },
   "signup-id": {
@@ -561,7 +747,15 @@
       "password-too-weak": "Password is too weak",
       "passwordPlaceholder": "Password",
       "showPasswordText": "Show password",
-      "title": "Create your password"
+      "title": "Create your password",
+      "passwordTooShort": "Password must be at least ${minLength} characters",
+      "passwordMissingLowercase": "Password must contain at least one lowercase letter",
+      "passwordMissingUppercase": "Password must contain at least one uppercase letter",
+      "passwordMissingNumber": "Password must contain at least one number",
+      "passwordMissingSpecial": "Password must contain at least one special character",
+      "passwordReused": "Password was used recently and cannot be reused",
+      "passwordContainsPersonalInfo": "Password cannot contain personal information like your name or email",
+      "passwordContainsForbiddenWord": "Password contains a forbidden word"
     }
   },
   "sms-otp-challenge": {
@@ -577,7 +771,8 @@
       "resendText": "Resend code",
       "sessionExpired": "Your session has expired. Please try again.",
       "title": "Check your phone",
-      "unexpectedError": "An unexpected error occurred"
+      "unexpectedError": "An unexpected error occurred",
+      "tooManyRequests": "Too many attempts. Please wait a moment and try again."
     }
   },
   "status": {

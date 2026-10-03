@@ -16,6 +16,7 @@ import { requireClientRegistrationTokens } from "../../auth-api/register/shared"
 import { logMessage } from "../../../helpers/logging";
 import { LogTypes } from "@authhero/adapter-interfaces";
 import { userCanRegisterOnTenant } from "./connect-authz";
+import { createTranslation } from "../../../i18n";
 
 interface ConnectConsentData {
   integration_type?: string;
@@ -94,6 +95,12 @@ export async function connectConsentScreen(
 ): Promise<ScreenResult> {
   const { ctx, tenant, branding, state, messages } = context;
   const routePrefix = CONNECT_ROUTE_PREFIX;
+  const { m } = createTranslation(
+    "consent",
+    "connect-consent",
+    context.language || "en",
+    context.customText,
+  );
 
   // Resolve session — bounce to login if missing.
   const loginPath = await getLoginPath(context);
@@ -154,15 +161,15 @@ export async function connectConsentScreen(
   }
 
   const audienceBlock = audienceLabel
-    ? `<div style="margin-top:12px;font-size:13px;color:#6b7280">For API: <span style="color:#111827;font-weight:500">${escapeHtml(audienceLabel)}</span></div>`
+    ? `<div style="margin-top:12px;font-size:13px;color:#6b7280">${m.apiLabel()} <span style="color:#111827;font-weight:500">${escapeHtml(audienceLabel)}</span></div>`
     : "";
 
   const scopeBlock = connect.scope
-    ? `<div style="margin-top:4px;font-size:13px;color:#6b7280">Requested permissions: <span style="color:#111827;font-weight:500">${escapeHtml(connect.scope)}</span></div>`
+    ? `<div style="margin-top:4px;font-size:13px;color:#6b7280">${m.permissionsLabel()} <span style="color:#111827;font-weight:500">${escapeHtml(connect.scope)}</span></div>`
     : "";
 
   const localDevBadge = connect.is_local_dev
-    ? `<span title="This site is a non-production local development origin. The connection will not work outside this machine or network." style="display:inline-block;margin-left:8px;padding:2px 8px;font-size:11px;font-weight:500;color:#92400e;background:#fef3c7;border:1px solid #fcd34d;border-radius:9999px;vertical-align:middle">Local development</span>`
+    ? `<span title="${escapeHtml(m.localDevTooltip())}" style="display:inline-block;margin-left:8px;padding:2px 8px;font-size:11px;font-weight:500;color:#92400e;background:#fef3c7;border:1px solid #fcd34d;border-radius:9999px;vertical-align:middle">${m.localDevBadge()}</span>`
     : "";
 
   // When a child tenant was selected on a control plane, surface its
@@ -177,8 +184,13 @@ export async function connectConsentScreen(
       targetTenant?.friendly_name || connect.target_tenant_id;
   }
   const workspaceLine = targetWorkspaceLabel
-    ? `<div style="font-size:13px;color:#6b7280;margin-top:4px">Workspace: <span style="color:#111827;font-weight:500">${escapeHtml(targetWorkspaceLabel)}</span></div>`
+    ? `<div style="font-size:13px;color:#6b7280;margin-top:4px">${m.workspaceLabel()} <span style="color:#111827;font-weight:500">${escapeHtml(targetWorkspaceLabel)}</span></div>`
     : "";
+
+  const connectAccountHtml = m.connectAccountText({
+    tenantName: escapeHtml(tenant.friendly_name),
+    userName: `<span style="font-weight:500">${escapeHtml(user.email || user.name || user.user_id)}</span>`,
+  });
 
   const components: FormNodeComponent[] = [
     {
@@ -191,7 +203,7 @@ export async function connectConsentScreen(
           <div style="display:flex;flex-direction:column;gap:12px;padding:16px;border:1px solid #e5e7eb;border-radius:8px;background:#f9fafb">
             ${connect.integration_type ? `<div style="font-size:14px;color:#6b7280">${escapeHtml(connect.integration_type)}</div>` : ""}
             <div style="font-size:18px;font-weight:600;color:#111827">${escapeHtml(connect.domain)}${localDevBadge}</div>
-            <div style="font-size:14px;color:#374151">wants to connect to your ${escapeHtml(tenant.friendly_name)} account as <span style="font-weight:500">${escapeHtml(user.email || user.name || user.user_id)}</span>.</div>
+            <div style="font-size:14px;color:#374151">${connectAccountHtml}</div>
             ${workspaceLine}
             ${audienceBlock}
             ${scopeBlock}
@@ -206,7 +218,7 @@ export async function connectConsentScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        text: "Connect",
+        text: m.buttonText(),
       },
       order: 1,
     },
@@ -216,13 +228,13 @@ export async function connectConsentScreen(
     name: "connect-consent",
     action: `${routePrefix}/connect/start?state=${stateParam}`,
     method: "POST",
-    title: "Connect application",
-    description: `Allow ${connect.domain} to act on your behalf?`,
+    title: m.title(),
+    description: m.description({ domain: connect.domain }),
     components,
     links: [
       {
         id: "cancel",
-        text: "Cancel",
+        text: m.cancelText(),
         href: cancelUrl,
       },
     ],
@@ -242,6 +254,12 @@ async function handleConnectConsentSubmit(
   | { response: Response }
 > {
   const { ctx, tenant, state } = context;
+  const { m } = createTranslation(
+    "consent",
+    "connect-consent",
+    context.language || "en",
+    context.customText,
+  );
 
   // Resolve session inline (mirrors the GET handler).
   const authCookie = getAuthCookie(tenant.id, ctx.req.header("cookie"));
@@ -250,14 +268,14 @@ async function handleConnectConsentSubmit(
     : null;
   if (!session || session.revoked_at) {
     return {
-      error: "Not authenticated",
+      error: m.notAuthenticated(),
       screen: await connectConsentScreen(context),
     };
   }
   const user = await ctx.env.data.users.get(tenant.id, session.user_id);
   if (!user) {
     return {
-      error: "Not authenticated",
+      error: m.notAuthenticated(),
       screen: await connectConsentScreen(context),
     };
   }
@@ -266,7 +284,7 @@ async function handleConnectConsentSubmit(
   const connect = readConnectData(loginSession?.state_data);
   if (!connect || !loginSession) {
     return {
-      error: "Connect session expired",
+      error: m.sessionExpired(),
       screen: await connectConsentScreen(context),
     };
   }
@@ -278,7 +296,7 @@ async function handleConnectConsentSubmit(
     !connect.target_tenant_id
   ) {
     return {
-      error: "Workspace selection required",
+      error: m.workspaceSelectionRequired(),
       screen: await connectConsentScreen(context),
     };
   }
@@ -310,14 +328,14 @@ async function handleConnectConsentSubmit(
     );
     if (!allowed) {
       return {
-        error: "You don't have access to that workspace",
+        error: m.noWorkspaceAccess(),
         screen: await connectConsentScreen(context),
       };
     }
     const targetTenant = await ctx.env.data.tenants.get(targetTenantId);
     if (!targetTenant) {
       return {
-        error: "Workspace not found",
+        error: m.workspaceNotFound(),
         screen: await connectConsentScreen(context),
       };
     }

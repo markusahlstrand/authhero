@@ -17,6 +17,140 @@
       "termsOfServiceText": "Användarvillkor",
       "termsShortText": "Villkor",
       "tryAgainText": "Försök igen"
+    },
+    "account": {
+      "title": "Kontoinställningar",
+      "description": "Hantera ditt konto",
+      "editProfileLabel": "Redigera profil",
+      "editProfileDetail": "Namn, e-post, telefonnummer och bild",
+      "securityLabel": "Säkerhetsinställningar",
+      "securityDetail": "Multifaktorautentisering",
+      "securityMethodsCountOne": "${count} metod konfigurerad",
+      "securityMethodsCount": "${count} metoder konfigurerade",
+      "passkeysLabel": "Passkeys",
+      "passkeysDetail": "Logga in utan lösenord",
+      "passkeysCountOne": "${count} passkey registrerad",
+      "passkeysCount": "${count} passkeys registrerade",
+      "linkedAccountsLabel": "Länkade konton",
+      "linkedAccountsDetail": "Koppla sociala konton",
+      "linkedAccountsCountOne": "${count} länkat konto",
+      "linkedAccountsCount": "${count} länkade konton",
+      "deleteAccountLabel": "Radera konto",
+      "deleteAccountDetail": "Radera ditt konto och dina data permanent",
+      "logoutText": "Logga ut"
+    },
+    "account-profile": {
+      "title": "Redigera profil",
+      "description": "Uppdatera dina personuppgifter",
+      "givenNameLabel": "Förnamn",
+      "familyNameLabel": "Efternamn",
+      "nicknameLabel": "Smeknamn",
+      "phoneNumberLabel": "Telefonnummer",
+      "pictureLabel": "URL till profilbild",
+      "buttonText": "Spara ändringar",
+      "backToAccountText": "Tillbaka till kontot",
+      "updateFailed": "Det gick inte att uppdatera profilen"
+    },
+    "account-delete": {
+      "title": "Radera konto",
+      "description": "Radera ditt konto permanent",
+      "warningTitle": "Varning: Den här åtgärden är permanent",
+      "warningText": "Alla dina data raderas permanent. Det omfattar din profil, länkade konton och autentiseringsmetoder. Åtgärden kan inte ångras.",
+      "confirmationLabel": "Skriv \"${confirmationWord}\" för att bekräfta",
+      "buttonText": "Radera mitt konto",
+      "cancelText": "Avbryt",
+      "confirmationError": "Skriv \"${confirmationWord}\" för att bekräfta",
+      "deleteSuccess": "Ditt konto har raderats",
+      "deleteFailed": "Det gick inte att radera kontot"
+    },
+    "account-linked": {
+      "title": "Länkade konton",
+      "description": "Hantera dina länkade konton",
+      "noLinkedAccounts": "Inga länkade konton.",
+      "unlinkButtonText": "Koppla bort",
+      "backToAccountText": "Tillbaka till kontot",
+      "unlinkSuccess": "Kontot har kopplats bort",
+      "unlinkFailed": "Det gick inte att koppla bort kontot"
+    },
+    "account-security": {
+      "title": "Säkerhetsinställningar",
+      "description": "Hantera dina metoder för tvåfaktorsautentisering",
+      "noEnrollments": "Du har inga metoder för tvåfaktorsautentisering konfigurerade.",
+      "addedOn": "Tillagd ${date}",
+      "removeButtonText": "Ta bort",
+      "addTotpLabel": "Lägg till autentiseringsapp",
+      "addTotpDetail": "Använd en app som Google Authenticator eller Authy",
+      "addSmsLabel": "Lägg till telefon (SMS)",
+      "addSmsDetail": "Få verifieringskoder via sms",
+      "typeTotp": "Autentiseringsapp",
+      "typePhone": "Telefon (SMS)",
+      "typeEmail": "E-post",
+      "typePush": "Push-notis",
+      "typeWebauthn": "Säkerhetsnyckel",
+      "backToAccountText": "Tillbaka till kontot",
+      "enrollmentNotFound": "Metoden hittades inte",
+      "removeSuccess": "Autentiseringsmetoden har tagits bort",
+      "removeFailed": "Det gick inte att ta bort autentiseringsmetoden"
+    },
+    "account-passkeys": {
+      "title": "Passkeys",
+      "description": "Hantera dina passkeys för inloggning utan lösenord",
+      "noPasskeysText": "Du har inga registrerade passkeys.",
+      "defaultPasskeyName": "Passkey",
+      "syncedBadgeText": "Synkad",
+      "addedOnText": "Tillagd ${date}",
+      "renameButtonText": "Byt namn",
+      "removeButtonText": "Ta bort",
+      "renamePromptText": "Ange ett nytt namn för denna passkey:",
+      "addPasskeyButtonText": "Lägg till passkey",
+      "backToAccountText": "Tillbaka till kontot",
+      "logoutText": "Logga ut",
+      "passkeyNotFoundText": "Passkey hittades inte",
+      "passkeyRemovedText": "Passkey borttagen",
+      "removeFailedText": "Det gick inte att ta bort passkey",
+      "invalidNameText": "Namnet måste vara mellan 1 och 64 tecken",
+      "passkeyRenamedText": "Passkey har bytt namn",
+      "renameFailedText": "Det gick inte att byta namn på passkey",
+      "startRegistrationFailedText": "Det gick inte att starta registreringen av passkey",
+      "missingCredentialText": "Uppgifter för passkey saknas",
+      "challengeExpiredText": "Begäran har gått ut. Försök igen.",
+      "invalidCredentialText": "Ogiltiga uppgifter för passkey",
+      "verificationFailedText": "Verifieringen av passkey misslyckades",
+      "passkeyAddedText": "Passkey har lagts till",
+      "registrationFailedText": "Registreringen av passkey misslyckades. Försök igen."
+    },
+    "account-mfa-phone-enrollment": {
+      "title": "Konfigurera telefon (SMS)",
+      "description": "Ange ditt telefonnummer för att få verifieringskoder via SMS.",
+      "phoneLabel": "Telefonnummer",
+      "sendCodeButtonText": "Skicka verifieringskod",
+      "backToSecurityText": "Tillbaka till säkerhetsinställningar",
+      "verifyTitle": "Verifiera telefonnummer",
+      "verifyDescription": "Ange verifieringskoden som skickades till din telefon.",
+      "codeSentText": "En verifieringskod har skickats till ${phoneNumber}",
+      "codeSentToYourPhoneText": "En verifieringskod har skickats till din telefon",
+      "codeLabel": "Verifieringskod",
+      "codePlaceholder": "Ange verifieringskod",
+      "verifyButtonText": "Verifiera och aktivera",
+      "noPhoneText": "Ange ditt telefonnummer",
+      "invalidPhoneText": "Ange ett giltigt telefonnummer",
+      "sendCodeFailedText": "Det gick inte att skicka verifieringskoden. Försök igen.",
+      "noCodeText": "Ange verifieringskoden",
+      "invalidCodeText": "Ogiltig kod. Försök igen.",
+      "sessionInvalidText": "Något gick fel. Starta registreringen igen."
+    },
+    "account-mfa-totp-enrollment": {
+      "title": "Konfigurera autentiseringsapp",
+      "description": "Skanna QR-koden med din autentiseringsapp och ange sedan verifieringskoden nedan.",
+      "qrCodeAltText": "QR-kod",
+      "manualKeyText": "Eller ange denna nyckel manuellt:",
+      "codeLabel": "Verifieringskod",
+      "codePlaceholder": "Ange 6-siffrig kod",
+      "verifyButtonText": "Verifiera och aktivera",
+      "backToSecurityText": "Tillbaka till säkerhetsinställningar",
+      "noCodeText": "Ange verifieringskoden",
+      "invalidCodeText": "Ogiltig kod. Försök igen.",
+      "verificationFailedText": "Verifieringen misslyckades. Försök igen."
     }
   },
   "consent": {
@@ -26,7 +160,39 @@
       "description": "${clientName} begär åtkomst till ditt konto",
       "pageTitle": "Auktorisera | ${clientName}",
       "scopesTitle": "Detta ger ${clientName} tillåtelse att:",
-      "title": "Auktorisera ${clientName}"
+      "title": "Auktorisera ${clientName}",
+      "accessAccountText": "vill få åtkomst till ditt ${tenantName}-konto som ${userName}.",
+      "notAuthenticated": "Du måste logga in för att fortsätta.",
+      "sessionExpired": "Din session har gått ut. Försök igen.",
+      "consentStorageNotConfigured": "Ditt samtycke kunde inte sparas. Kontakta applikationens ägare."
+    },
+    "connect-consent": {
+      "title": "Anslut applikation",
+      "description": "Vill du tillåta ${domain} att agera för din räkning?",
+      "connectAccountText": "vill ansluta till ditt ${tenantName}-konto som ${userName}.",
+      "workspaceLabel": "Arbetsyta:",
+      "apiLabel": "För API:",
+      "permissionsLabel": "Begärda behörigheter:",
+      "localDevBadge": "Lokal utveckling",
+      "localDevTooltip": "Den här webbplatsen är en lokal utvecklingsmiljö, inte produktion. Anslutningen fungerar inte utanför den här datorn eller det här nätverket.",
+      "buttonText": "Anslut",
+      "cancelText": "Avbryt",
+      "notAuthenticated": "Du måste logga in för att fortsätta.",
+      "sessionExpired": "Din session har gått ut. Försök igen.",
+      "workspaceSelectionRequired": "Välj en arbetsyta först.",
+      "noWorkspaceAccess": "Du har inte åtkomst till den arbetsytan",
+      "workspaceNotFound": "Arbetsytan hittades inte"
+    },
+    "connect-tenant-select": {
+      "title": "Välj en arbetsyta",
+      "description": "Välj vilken ${tenantName}-arbetsyta ${domain} ska ansluta till.",
+      "noWorkspacesDescription": "Inga arbetsytor tillgängliga",
+      "noWorkspacesText": "Du har inte åtkomst till några ${tenantName}-arbetsytor. Be en administratör att bjuda in dig.",
+      "cancelText": "Avbryt",
+      "notAuthenticated": "Du måste logga in för att fortsätta.",
+      "sessionExpired": "Din session har gått ut. Försök igen.",
+      "noWorkspaceSelected": "Välj en arbetsyta.",
+      "noWorkspaceAccess": "Du har inte åtkomst till den arbetsytan"
     }
   },
   "device-flow": {
@@ -54,7 +220,8 @@
       "sessionExpired": "Din session har gått ut. Försök igen.",
       "title": "Kolla din e-post",
       "unexpectedError": "Ett oväntat fel uppstod",
-      "usePasswordText": "Logga in med lösenord"
+      "usePasswordText": "Logga in med lösenord",
+      "tooManyRequests": "För många försök. Vänta en stund och försök igen."
     }
   },
   "email-verification": {
@@ -97,7 +264,9 @@
       "acceptButtonText": "Acceptera inbjudan",
       "description": "${inviterName} har bjudit in dig att gå med i ${organizationName} på ${clientName}",
       "pageTitle": "Inbjudan | ${clientName}",
-      "title": "Du har blivit inbjuden"
+      "title": "Du har blivit inbjuden",
+      "defaultOrganizationName": "organisationen",
+      "acceptFailed": "Det gick inte att slutföra registreringen av ditt konto. Försök igen."
     }
   },
   "login": {
@@ -139,7 +308,10 @@
       "usernameTooLong": "Användarnamnet får vara högst ${max} tecken",
       "usernameTooShort": "Användarnamnet måste vara minst ${min} tecken",
       "wrongCredentials": "Fel användarnamn eller lösenord",
-      "passkeyButtonText": "Logga in med passkey"
+      "passkeyButtonText": "Logga in med passkey",
+      "userBlocked": "Ditt konto har blockerats efter flera misslyckade inloggningsförsök i rad.",
+      "tooManyRequests": "För många försök. Vänta en stund och försök igen.",
+      "unexpectedError": "Något gick fel. Försök igen."
     }
   },
   "login-id": {
@@ -236,7 +408,10 @@
       "unverifiedEmail": "Verifiera din e-postadress innan du loggar in",
       "user-blocked": "Ditt konto har blockerats efter flera misslyckade inloggningsförsök i rad.",
       "wrong-credentials": "Fel lösenord",
-      "sendCodeText": "Logga in med kod"
+      "sendCodeText": "Logga in med kod",
+      "sessionExpired": "Din session har gått ut. Försök igen.",
+      "tooManyRequests": "För många försök. Vänta en stund och försök igen.",
+      "unexpectedError": "Något gick fel. Försök igen."
     }
   },
   "login-passwordless": {
@@ -305,7 +480,9 @@
       "transaction-not-found": "Din registreringstransaktion har gått ut, du behöver börja om.",
       "pageTitle": "Konfigurera autentiseringsapp | ${clientName}",
       "unexpectedError": "Något gick fel. Försök igen.",
-      "enrollmentComplete": "MFA-registreringen är klar. Du kan stänga denna sida."
+      "enrollmentComplete": "MFA-registreringen är klar. Du kan stänga denna sida.",
+      "pickAuthenticatorText": "Prova en annan metod",
+      "qrCodeAltText": "QR-kod"
     },
     "mfa-totp-challenge": {
       "title": "Verifiera din identitet",
@@ -436,7 +613,10 @@
       "cancelLinkText": "Hoppa över för nu",
       "retryButtonText": "Försök igen",
       "enrollmentComplete": "Din nyckel har konfigurerats. Du kan stänga denna sida.",
-      "pageTitle": "Skapa Nyckel | ${clientName}"
+      "pageTitle": "Skapa Nyckel | ${clientName}",
+      "sessionExpired": "Din session har gått ut. Försök igen.",
+      "enrollmentRequired": "Du måste skapa en nyckel för att fortsätta.",
+      "challengeExpired": "Begäran har gått ut. Försök igen."
     },
     "passkey-challenge": {
       "title": "Logga in med passkey",
@@ -444,7 +624,8 @@
       "errorMessage": "Autentisering med passkey misslyckades. Försök igen.",
       "cancelLinkText": "Tillbaka till inloggning",
       "retryButtonText": "Försök igen",
-      "pageTitle": "Logga in med passkey | ${clientName}"
+      "pageTitle": "Logga in med passkey | ${clientName}",
+      "sessionExpired": "Din session har gått ut. Försök igen."
     }
   },
   "organizations": {
@@ -475,7 +656,9 @@
       "successDescription": "Vi har skickat en länk för lösenordsåterställning till din e-postadress.",
       "successTitle": "Vi har skickat ett e-postmeddelande med instruktioner om hur du återställer ditt lösenord till den e-postadress du angav.",
       "title": "Har du glömt lösenordet?",
-      "user-not-found": "Användaren hittades inte"
+      "user-not-found": "Användaren hittades inte",
+      "noPassword": "Lösenord krävs",
+      "sessionExpired": "Din session har gått ut. Försök igen."
     },
     "reset-password-code": {
       "backToLoginText": "Tillbaka till inloggning",
@@ -498,7 +681,8 @@
       "resendSuccess": "En ny kod har skickats till din e-post",
       "resendText": "Skicka koden igen",
       "sessionExpired": "Din session har gått ut. Försök igen.",
-      "title": "Ange återställningskod"
+      "title": "Ange återställningskod",
+      "noPassword": "Lösenord krävs"
     }
   },
   "signup": {
@@ -529,7 +713,9 @@
       "title": "Välj lösenord",
       "username-already-exists": "Användarnamnet är redan taget",
       "usernamePlaceholder": "Användarnamn",
-      "verifyEmailText": "Kontrollera din e-post för att verifiera ditt konto"
+      "verifyEmailText": "Kontrollera din e-post för att verifiera ditt konto",
+      "confirmPasswordRequired": "Bekräfta ditt lösenord",
+      "createUserFailed": "Det gick inte att skapa ditt konto. Försök igen."
     }
   },
   "signup-id": {
@@ -561,7 +747,15 @@
       "password-too-weak": "Lösenordet är för svagt",
       "passwordPlaceholder": "Lösenord",
       "showPasswordText": "Visa lösenord",
-      "title": "Välj lösenord"
+      "title": "Välj lösenord",
+      "passwordTooShort": "Lösenordet måste vara minst ${minLength} tecken",
+      "passwordMissingLowercase": "Lösenordet måste innehålla minst en liten bokstav",
+      "passwordMissingUppercase": "Lösenordet måste innehålla minst en stor bokstav",
+      "passwordMissingNumber": "Lösenordet måste innehålla minst en siffra",
+      "passwordMissingSpecial": "Lösenordet måste innehålla minst ett specialtecken",
+      "passwordReused": "Lösenordet har använts nyligen och kan inte återanvändas",
+      "passwordContainsPersonalInfo": "Lösenordet får inte innehålla personlig information som ditt namn eller e-post",
+      "passwordContainsForbiddenWord": "Lösenordet innehåller ett förbjudet ord"
     }
   },
   "sms-otp-challenge": {
@@ -577,7 +771,8 @@
       "resendText": "Skicka koden igen",
       "sessionExpired": "Din session har gått ut. Försök igen.",
       "title": "Kolla din telefon",
-      "unexpectedError": "Ett oväntat fel uppstod"
+      "unexpectedError": "Ett oväntat fel uppstod",
+      "tooManyRequests": "För många försök. Vänta en stund och försök igen."
     }
   },
   "status": {

@@ -17,6 +17,140 @@
       "termsOfServiceText": "Podmínky služby",
       "termsShortText": "Podmínky",
       "tryAgainText": "Zkusit znovu"
+    },
+    "account": {
+      "title": "Nastavení účtu",
+      "description": "Spravujte svůj účet",
+      "editProfileLabel": "Upravit profil",
+      "editProfileDetail": "Jméno, e-mail, telefonní číslo a fotografie",
+      "securityLabel": "Nastavení zabezpečení",
+      "securityDetail": "Vícefaktorové ověření",
+      "securityMethodsCountOne": "${count} nastavená metoda",
+      "securityMethodsCount": "Nastavené metody: ${count}",
+      "passkeysLabel": "Passkeys",
+      "passkeysDetail": "Přihlášení bez hesla",
+      "passkeysCountOne": "${count} registrovaný passkey",
+      "passkeysCount": "Registrované passkeys: ${count}",
+      "linkedAccountsLabel": "Propojené účty",
+      "linkedAccountsDetail": "Propojit účty sociálních sítí",
+      "linkedAccountsCountOne": "${count} propojený účet",
+      "linkedAccountsCount": "Propojené účty: ${count}",
+      "deleteAccountLabel": "Smazat účet",
+      "deleteAccountDetail": "Trvale smazat váš účet a data",
+      "logoutText": "Odhlásit se"
+    },
+    "account-profile": {
+      "title": "Upravit profil",
+      "description": "Aktualizujte své osobní údaje",
+      "givenNameLabel": "Jméno",
+      "familyNameLabel": "Příjmení",
+      "nicknameLabel": "Přezdívka",
+      "phoneNumberLabel": "Telefonní číslo",
+      "pictureLabel": "URL profilové fotografie",
+      "buttonText": "Uložit změny",
+      "backToAccountText": "Zpět na účet",
+      "updateFailed": "Profil se nepodařilo aktualizovat"
+    },
+    "account-delete": {
+      "title": "Smazat účet",
+      "description": "Trvale smazat váš účet",
+      "warningTitle": "Upozornění: Tato akce je nevratná",
+      "warningText": "Všechna vaše data budou trvale smazána, včetně profilu, propojených účtů a metod ověření. Tuto akci nelze vrátit zpět.",
+      "confirmationLabel": "Pro potvrzení napište \"${confirmationWord}\"",
+      "buttonText": "Smazat můj účet",
+      "cancelText": "Zrušit",
+      "confirmationError": "Pro potvrzení napište \"${confirmationWord}\"",
+      "deleteSuccess": "Váš účet byl smazán",
+      "deleteFailed": "Účet se nepodařilo smazat"
+    },
+    "account-linked": {
+      "title": "Propojené účty",
+      "description": "Spravujte své propojené účty",
+      "noLinkedAccounts": "Žádné propojené účty.",
+      "unlinkButtonText": "Odpojit",
+      "backToAccountText": "Zpět na účet",
+      "unlinkSuccess": "Účet byl odpojen",
+      "unlinkFailed": "Účet se nepodařilo odpojit"
+    },
+    "account-security": {
+      "title": "Nastavení zabezpečení",
+      "description": "Spravujte své metody dvoufázového ověření",
+      "noEnrollments": "Nemáte nastavené žádné metody dvoufázového ověření.",
+      "addedOn": "Přidáno ${date}",
+      "removeButtonText": "Odebrat",
+      "addTotpLabel": "Přidat ověřovací aplikaci",
+      "addTotpDetail": "Použijte aplikaci, jako je Google Authenticator nebo Authy",
+      "addSmsLabel": "Přidat telefon (SMS)",
+      "addSmsDetail": "Dostávejte ověřovací kódy pomocí SMS",
+      "typeTotp": "Ověřovací aplikace",
+      "typePhone": "Telefon (SMS)",
+      "typeEmail": "E-mail",
+      "typePush": "Push oznámení",
+      "typeWebauthn": "Bezpečnostní klíč",
+      "backToAccountText": "Zpět na účet",
+      "enrollmentNotFound": "Metoda nebyla nalezena",
+      "removeSuccess": "Metoda ověření byla odebrána",
+      "removeFailed": "Metodu ověření se nepodařilo odebrat"
+    },
+    "account-passkeys": {
+      "title": "Passkeys",
+      "description": "Spravujte své passkeys pro přihlášení bez hesla",
+      "noPasskeysText": "Nemáte zaregistrované žádné passkeys.",
+      "defaultPasskeyName": "Passkey",
+      "syncedBadgeText": "Synchronizováno",
+      "addedOnText": "Přidáno ${date}",
+      "renameButtonText": "Přejmenovat",
+      "removeButtonText": "Odebrat",
+      "renamePromptText": "Zadejte nový název tohoto passkey:",
+      "addPasskeyButtonText": "Přidat passkey",
+      "backToAccountText": "Zpět na účet",
+      "logoutText": "Odhlásit se",
+      "passkeyNotFoundText": "Passkey nebyl nalezen",
+      "passkeyRemovedText": "Passkey byl odebrán",
+      "removeFailedText": "Passkey se nepodařilo odebrat",
+      "invalidNameText": "Název musí mít 1 až 64 znaků",
+      "passkeyRenamedText": "Passkey byl přejmenován",
+      "renameFailedText": "Passkey se nepodařilo přejmenovat",
+      "startRegistrationFailedText": "Registraci passkey se nepodařilo zahájit",
+      "missingCredentialText": "Chybí data passkey",
+      "challengeExpiredText": "Platnost požadavku vypršela. Zkuste to znovu.",
+      "invalidCredentialText": "Neplatná data passkey",
+      "verificationFailedText": "Ověření passkey se nezdařilo",
+      "passkeyAddedText": "Passkey byl úspěšně přidán",
+      "registrationFailedText": "Registrace passkey se nezdařila. Zkuste to znovu."
+    },
+    "account-mfa-phone-enrollment": {
+      "title": "Nastavit telefon (SMS)",
+      "description": "Zadejte své telefonní číslo, abyste dostávali ověřovací kódy přes SMS.",
+      "phoneLabel": "Telefonní číslo",
+      "sendCodeButtonText": "Odeslat ověřovací kód",
+      "backToSecurityText": "Zpět na nastavení zabezpečení",
+      "verifyTitle": "Ověřit telefonní číslo",
+      "verifyDescription": "Zadejte ověřovací kód zaslaný na váš telefon.",
+      "codeSentText": "Ověřovací kód byl odeslán na ${phoneNumber}",
+      "codeSentToYourPhoneText": "Ověřovací kód byl odeslán na váš telefon",
+      "codeLabel": "Ověřovací kód",
+      "codePlaceholder": "Zadejte ověřovací kód",
+      "verifyButtonText": "Ověřit a zapnout",
+      "noPhoneText": "Zadejte své telefonní číslo",
+      "invalidPhoneText": "Zadejte platné telefonní číslo",
+      "sendCodeFailedText": "Ověřovací kód se nepodařilo odeslat. Zkuste to znovu.",
+      "noCodeText": "Zadejte ověřovací kód",
+      "invalidCodeText": "Neplatný kód. Zkuste to znovu.",
+      "sessionInvalidText": "Něco se pokazilo. Začněte registraci znovu."
+    },
+    "account-mfa-totp-enrollment": {
+      "title": "Nastavit ověřovací aplikaci",
+      "description": "Naskenujte QR kód ověřovací aplikací a poté níže zadejte ověřovací kód.",
+      "qrCodeAltText": "QR kód",
+      "manualKeyText": "Nebo zadejte tento klíč ručně:",
+      "codeLabel": "Ověřovací kód",
+      "codePlaceholder": "Zadejte šestimístný kód",
+      "verifyButtonText": "Ověřit a zapnout",
+      "backToSecurityText": "Zpět na nastavení zabezpečení",
+      "noCodeText": "Zadejte ověřovací kód",
+      "invalidCodeText": "Neplatný kód. Zkuste to znovu.",
+      "verificationFailedText": "Ověření se nezdařilo. Zkuste to znovu."
     }
   },
   "consent": {
@@ -26,7 +160,39 @@
       "description": "${clientName} žádá o přístup k vašemu účtu",
       "pageTitle": "Autorizace | ${clientName}",
       "scopesTitle": "Tímto povolíte ${clientName}:",
-      "title": "Autorizovat ${clientName}"
+      "title": "Autorizovat ${clientName}",
+      "accessAccountText": "požaduje přístup k vašemu účtu ${tenantName} jako ${userName}.",
+      "notAuthenticated": "Pro pokračování se musíte přihlásit.",
+      "sessionExpired": "Platnost vaší relace vypršela. Zkuste to prosím znovu.",
+      "consentStorageNotConfigured": "Váš souhlas se nepodařilo uložit. Kontaktujte provozovatele aplikace."
+    },
+    "connect-consent": {
+      "title": "Připojit aplikaci",
+      "description": "Povolit ${domain} jednat vaším jménem?",
+      "connectAccountText": "se chce připojit k vašemu účtu ${tenantName} jako ${userName}.",
+      "workspaceLabel": "Pracovní prostor:",
+      "apiLabel": "Pro API:",
+      "permissionsLabel": "Požadovaná oprávnění:",
+      "localDevBadge": "Lokální vývoj",
+      "localDevTooltip": "Tento web je lokální vývojové prostředí, nikoli produkční. Připojení nebude fungovat mimo tento počítač nebo síť.",
+      "buttonText": "Připojit",
+      "cancelText": "Zrušit",
+      "notAuthenticated": "Pro pokračování se musíte přihlásit.",
+      "sessionExpired": "Platnost vaší relace vypršela. Zkuste to prosím znovu.",
+      "workspaceSelectionRequired": "Nejprve vyberte pracovní prostor.",
+      "noWorkspaceAccess": "K tomuto pracovnímu prostoru nemáte přístup",
+      "workspaceNotFound": "Pracovní prostor nebyl nalezen"
+    },
+    "connect-tenant-select": {
+      "title": "Vyberte pracovní prostor",
+      "description": "Vyberte, ke kterému pracovnímu prostoru ${tenantName} se má ${domain} připojit.",
+      "noWorkspacesDescription": "Žádné dostupné pracovní prostory",
+      "noWorkspacesText": "Nemáte přístup k žádnému pracovnímu prostoru ${tenantName}. Požádejte správce o pozvánku.",
+      "cancelText": "Zrušit",
+      "notAuthenticated": "Pro pokračování se musíte přihlásit.",
+      "sessionExpired": "Platnost vaší relace vypršela. Zkuste to prosím znovu.",
+      "noWorkspaceSelected": "Vyberte pracovní prostor.",
+      "noWorkspaceAccess": "K tomuto pracovnímu prostoru nemáte přístup"
     }
   },
   "device-flow": {
@@ -54,7 +220,8 @@
       "sessionExpired": "Platnost vaší relace vypršela. Zkuste to prosím znovu.",
       "title": "Zkontrolujte svůj e-mail",
       "unexpectedError": "Došlo k neočekávané chybě",
-      "usePasswordText": "Přihlásit se heslem"
+      "usePasswordText": "Přihlásit se heslem",
+      "tooManyRequests": "Příliš mnoho pokusů. Chvíli počkejte a zkuste to znovu."
     }
   },
   "email-verification": {
@@ -97,7 +264,9 @@
       "acceptButtonText": "Přijmout pozvánku",
       "description": "${inviterName} vás pozval(a), abyste se připojili k ${organizationName} na ${clientName}",
       "pageTitle": "Pozvánka | ${clientName}",
-      "title": "Byli jste pozváni"
+      "title": "Byli jste pozváni",
+      "defaultOrganizationName": "organizaci",
+      "acceptFailed": "Nastavení účtu se nepodařilo dokončit. Zkuste to znovu."
     }
   },
   "login": {
@@ -139,7 +308,10 @@
       "usernameTooLong": "Uživatelské jméno musí mít nejvýše ${max} znaků",
       "usernameTooShort": "Uživatelské jméno musí mít alespoň ${min} znaků",
       "wrongCredentials": "Nesprávné uživatelské jméno nebo heslo",
-      "passkeyButtonText": "Přihlásit se pomocí passkey"
+      "passkeyButtonText": "Přihlásit se pomocí passkey",
+      "userBlocked": "Váš účet byl zablokován po několika po sobě jdoucích neúspěšných pokusech o přihlášení.",
+      "tooManyRequests": "Příliš mnoho pokusů. Chvíli počkejte a zkuste to znovu.",
+      "unexpectedError": "Něco se pokazilo. Zkuste to znovu."
     }
   },
   "login-id": {
@@ -236,7 +408,10 @@
       "unverifiedEmail": "Před přihlášením prosím ověřte svou e-mailovou adresu",
       "user-blocked": "Váš účet byl zablokován po několika po sobě jdoucích neúspěšných pokusech o přihlášení.",
       "wrong-credentials": "Nesprávné heslo",
-      "sendCodeText": "Přihlásit se kódem"
+      "sendCodeText": "Přihlásit se kódem",
+      "sessionExpired": "Platnost vaší relace vypršela. Zkuste to prosím znovu.",
+      "tooManyRequests": "Příliš mnoho pokusů. Chvíli počkejte a zkuste to znovu.",
+      "unexpectedError": "Něco se pokazilo. Zkuste to znovu."
     }
   },
   "login-passwordless": {
@@ -305,7 +480,9 @@
       "transaction-not-found": "Platnost vaší registrace vypršela, budete muset začít znovu.",
       "pageTitle": "Nastavení ověřovací aplikace | ${clientName}",
       "unexpectedError": "Něco se pokazilo. Zkuste to prosím znovu.",
-      "enrollmentComplete": "Registrace MFA je dokončena. Tuto stránku můžete zavřít."
+      "enrollmentComplete": "Registrace MFA je dokončena. Tuto stránku můžete zavřít.",
+      "pickAuthenticatorText": "Zkusit jinou metodu",
+      "qrCodeAltText": "QR kód"
     },
     "mfa-totp-challenge": {
       "title": "Ověřte svou identitu",
@@ -436,7 +613,10 @@
       "cancelLinkText": "Prozatím přeskočit",
       "retryButtonText": "Zkusit znovu",
       "enrollmentComplete": "Váš passkey byl úspěšně nastaven. Tuto stránku můžete zavřít.",
-      "pageTitle": "Vytvoření Passkey | ${clientName}"
+      "pageTitle": "Vytvoření Passkey | ${clientName}",
+      "sessionExpired": "Platnost vaší relace vypršela. Zkuste to prosím znovu.",
+      "enrollmentRequired": "Pro pokračování musíte nastavit passkey.",
+      "challengeExpired": "Platnost požadavku vypršela. Zkuste to znovu."
     },
     "passkey-challenge": {
       "title": "Přihlásit se pomocí passkey",
@@ -444,7 +624,8 @@
       "errorMessage": "Ověření pomocí passkey selhalo. Zkuste to prosím znovu.",
       "cancelLinkText": "Zpět na přihlášení",
       "retryButtonText": "Zkusit znovu",
-      "pageTitle": "Přihlášení pomocí passkey | ${clientName}"
+      "pageTitle": "Přihlášení pomocí passkey | ${clientName}",
+      "sessionExpired": "Platnost vaší relace vypršela. Zkuste to prosím znovu."
     }
   },
   "organizations": {
@@ -475,7 +656,9 @@
       "successDescription": "Odkaz na obnovení hesla jsme odeslali na vaši e-mailovou adresu.",
       "successTitle": "Zkontrolujte svůj e-mail",
       "title": "Zapomněli jste heslo?",
-      "user-not-found": "Uživatel nenalezen"
+      "user-not-found": "Uživatel nenalezen",
+      "noPassword": "Heslo je povinné",
+      "sessionExpired": "Platnost vaší relace vypršela. Zkuste to prosím znovu."
     },
     "reset-password-code": {
       "backToLoginText": "Zpět na přihlášení",
@@ -498,7 +681,8 @@
       "resendSuccess": "Nový kód byl odeslán na váš e-mail",
       "resendText": "Odeslat kód znovu",
       "sessionExpired": "Platnost vaší relace vypršela. Zkuste to prosím znovu.",
-      "title": "Zadejte kód pro obnovení"
+      "title": "Zadejte kód pro obnovení",
+      "noPassword": "Heslo je povinné"
     }
   },
   "signup": {
@@ -529,7 +713,9 @@
       "title": "Vytvořte svůj účet",
       "username-already-exists": "Toto uživatelské jméno je již obsazeno",
       "usernamePlaceholder": "Uživatelské jméno",
-      "verifyEmailText": "Zkontrolujte prosím svůj e-mail pro ověření účtu"
+      "verifyEmailText": "Zkontrolujte prosím svůj e-mail pro ověření účtu",
+      "confirmPasswordRequired": "Potvrďte prosím své heslo",
+      "createUserFailed": "Účet se nepodařilo vytvořit. Zkuste to znovu."
     }
   },
   "signup-id": {
@@ -561,7 +747,15 @@
       "password-too-weak": "Heslo je příliš slabé",
       "passwordPlaceholder": "Heslo",
       "showPasswordText": "Zobrazit heslo",
-      "title": "Vytvořte své heslo"
+      "title": "Vytvořte své heslo",
+      "passwordTooShort": "Heslo musí mít alespoň ${minLength} znaků",
+      "passwordMissingLowercase": "Heslo musí obsahovat alespoň jedno malé písmeno",
+      "passwordMissingUppercase": "Heslo musí obsahovat alespoň jedno velké písmeno",
+      "passwordMissingNumber": "Heslo musí obsahovat alespoň jednu číslici",
+      "passwordMissingSpecial": "Heslo musí obsahovat alespoň jeden speciální znak",
+      "passwordReused": "Heslo bylo nedávno použito a nelze jej znovu použít",
+      "passwordContainsPersonalInfo": "Heslo nesmí obsahovat osobní údaje jako jméno nebo e-mail",
+      "passwordContainsForbiddenWord": "Heslo obsahuje zakázané slovo"
     }
   },
   "sms-otp-challenge": {
@@ -577,7 +771,8 @@
       "resendText": "Opětovné odeslání kódu",
       "sessionExpired": "Platnost vaší relace vypršela. Zkuste to prosím znovu.",
       "title": "Zkontrolujte svůj telefon",
-      "unexpectedError": "Došlo k neočekávané chybě"
+      "unexpectedError": "Došlo k neočekávané chybě",
+      "tooManyRequests": "Příliš mnoho pokusů. Chvíli počkejte a zkuste to znovu."
     }
   },
   "status": {

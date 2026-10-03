@@ -433,11 +433,20 @@ export const identifierScreenDefinition: ScreenDefinition = {
         }
 
         // On passkey failure, re-render identifier with error
+        // result.error is an internal English reason; show the localized
+        // passkey failure message instead.
+        const { m: passkeyM } = createTranslation(
+          "passkeys",
+          "passkey-challenge",
+          context.language || "en",
+          context.customText,
+        );
+        const errorMessage = passkeyM.errorMessage();
         return {
-          error: result.error,
+          error: errorMessage,
           screen: await identifierScreen({
             ...context,
-            messages: [{ text: result.error, type: "error" as const }],
+            messages: [{ text: errorMessage, type: "error" as const }],
           }),
         };
       }
@@ -635,13 +644,13 @@ export const identifierScreenDefinition: ScreenDefinition = {
           if (client.hide_sign_up_disabled_error === true) {
             silentSignupStub = true;
           } else {
-            const errorMsg = validation.reason || m.userAccountDoesNotExist();
+            const errorMsg = m.userAccountDoesNotExist();
             return {
               error: errorMsg,
               screen: await identifierScreen({
                 ...context,
                 prefill: { username },
-                errors: { username: m.userAccountDoesNotExist() },
+                errors: { username: errorMsg },
               }),
             };
           }

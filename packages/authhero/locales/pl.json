@@ -17,6 +17,140 @@
       "termsOfServiceText": "Regulamin",
       "termsShortText": "Zasady",
       "tryAgainText": "Spróbuj ponownie"
+    },
+    "account": {
+      "title": "Ustawienia konta",
+      "description": "Zarządzaj swoim kontem",
+      "editProfileLabel": "Edytuj profil",
+      "editProfileDetail": "Imię i nazwisko, e-mail, numer telefonu i zdjęcie",
+      "securityLabel": "Ustawienia bezpieczeństwa",
+      "securityDetail": "Uwierzytelnianie wieloskładnikowe",
+      "securityMethodsCountOne": "${count} skonfigurowana metoda",
+      "securityMethodsCount": "Skonfigurowane metody: ${count}",
+      "passkeysLabel": "Klucze dostępu",
+      "passkeysDetail": "Logowanie bez hasła",
+      "passkeysCountOne": "${count} zarejestrowany klucz dostępu",
+      "passkeysCount": "Zarejestrowane klucze dostępu: ${count}",
+      "linkedAccountsLabel": "Połączone konta",
+      "linkedAccountsDetail": "Połącz konta społecznościowe",
+      "linkedAccountsCountOne": "${count} połączone konto",
+      "linkedAccountsCount": "Połączone konta: ${count}",
+      "deleteAccountLabel": "Usuń konto",
+      "deleteAccountDetail": "Trwale usuń swoje konto i dane",
+      "logoutText": "Wyloguj się"
+    },
+    "account-profile": {
+      "title": "Edytuj profil",
+      "description": "Zaktualizuj swoje dane osobowe",
+      "givenNameLabel": "Imię",
+      "familyNameLabel": "Nazwisko",
+      "nicknameLabel": "Pseudonim",
+      "phoneNumberLabel": "Numer telefonu",
+      "pictureLabel": "Adres URL zdjęcia profilowego",
+      "buttonText": "Zapisz zmiany",
+      "backToAccountText": "Wróć do konta",
+      "updateFailed": "Nie udało się zaktualizować profilu"
+    },
+    "account-delete": {
+      "title": "Usuń konto",
+      "description": "Trwale usuń swoje konto",
+      "warningTitle": "Uwaga: tej operacji nie można cofnąć",
+      "warningText": "Wszystkie Twoje dane zostaną trwale usunięte, w tym profil, połączone konta i metody uwierzytelniania. Tej operacji nie można cofnąć.",
+      "confirmationLabel": "Wpisz \"${confirmationWord}\", aby potwierdzić",
+      "buttonText": "Usuń moje konto",
+      "cancelText": "Anuluj",
+      "confirmationError": "Wpisz \"${confirmationWord}\", aby potwierdzić",
+      "deleteSuccess": "Twoje konto zostało usunięte",
+      "deleteFailed": "Nie udało się usunąć konta"
+    },
+    "account-linked": {
+      "title": "Połączone konta",
+      "description": "Zarządzaj połączonymi kontami",
+      "noLinkedAccounts": "Brak połączonych kont.",
+      "unlinkButtonText": "Odłącz",
+      "backToAccountText": "Wróć do konta",
+      "unlinkSuccess": "Konto zostało odłączone",
+      "unlinkFailed": "Nie udało się odłączyć konta"
+    },
+    "account-security": {
+      "title": "Ustawienia bezpieczeństwa",
+      "description": "Zarządzaj metodami uwierzytelniania dwuskładnikowego",
+      "noEnrollments": "Nie masz skonfigurowanych metod uwierzytelniania dwuskładnikowego.",
+      "addedOn": "Dodano ${date}",
+      "removeButtonText": "Usuń",
+      "addTotpLabel": "Dodaj aplikację uwierzytelniającą",
+      "addTotpDetail": "Użyj aplikacji, takiej jak Google Authenticator lub Authy",
+      "addSmsLabel": "Dodaj telefon (SMS)",
+      "addSmsDetail": "Otrzymuj kody weryfikacyjne SMS-em",
+      "typeTotp": "Aplikacja uwierzytelniająca",
+      "typePhone": "Telefon (SMS)",
+      "typeEmail": "E-mail",
+      "typePush": "Powiadomienie push",
+      "typeWebauthn": "Klucz bezpieczeństwa",
+      "backToAccountText": "Wróć do konta",
+      "enrollmentNotFound": "Nie znaleziono metody",
+      "removeSuccess": "Metoda uwierzytelniania została usunięta",
+      "removeFailed": "Nie udało się usunąć metody uwierzytelniania"
+    },
+    "account-passkeys": {
+      "title": "Klucze dostępu",
+      "description": "Zarządzaj kluczami dostępu do logowania bez hasła",
+      "noPasskeysText": "Nie masz zarejestrowanych kluczy dostępu.",
+      "defaultPasskeyName": "Klucz dostępu",
+      "syncedBadgeText": "Zsynchronizowany",
+      "addedOnText": "Dodano ${date}",
+      "renameButtonText": "Zmień nazwę",
+      "removeButtonText": "Usuń",
+      "renamePromptText": "Wpisz nową nazwę tego klucza dostępu:",
+      "addPasskeyButtonText": "Dodaj klucz dostępu",
+      "backToAccountText": "Wróć do konta",
+      "logoutText": "Wyloguj się",
+      "passkeyNotFoundText": "Nie znaleziono klucza dostępu",
+      "passkeyRemovedText": "Klucz dostępu został usunięty",
+      "removeFailedText": "Nie udało się usunąć klucza dostępu",
+      "invalidNameText": "Nazwa musi mieć od 1 do 64 znaków",
+      "passkeyRenamedText": "Nazwa klucza dostępu została zmieniona",
+      "renameFailedText": "Nie udało się zmienić nazwy klucza dostępu",
+      "startRegistrationFailedText": "Nie udało się rozpocząć rejestracji klucza dostępu",
+      "missingCredentialText": "Brak danych klucza dostępu",
+      "challengeExpiredText": "Żądanie wygasło. Spróbuj ponownie.",
+      "invalidCredentialText": "Nieprawidłowe dane klucza dostępu",
+      "verificationFailedText": "Weryfikacja klucza dostępu nie powiodła się",
+      "passkeyAddedText": "Klucz dostępu został dodany",
+      "registrationFailedText": "Rejestracja klucza dostępu nie powiodła się. Spróbuj ponownie."
+    },
+    "account-mfa-phone-enrollment": {
+      "title": "Skonfiguruj telefon (SMS)",
+      "description": "Wpisz numer telefonu, aby otrzymywać kody weryfikacyjne SMS-em.",
+      "phoneLabel": "Numer telefonu",
+      "sendCodeButtonText": "Wyślij kod weryfikacyjny",
+      "backToSecurityText": "Wróć do ustawień zabezpieczeń",
+      "verifyTitle": "Zweryfikuj numer telefonu",
+      "verifyDescription": "Wpisz kod weryfikacyjny wysłany na Twój telefon.",
+      "codeSentText": "Kod weryfikacyjny został wysłany na numer ${phoneNumber}",
+      "codeSentToYourPhoneText": "Kod weryfikacyjny został wysłany na Twój telefon",
+      "codeLabel": "Kod weryfikacyjny",
+      "codePlaceholder": "Wpisz kod weryfikacyjny",
+      "verifyButtonText": "Zweryfikuj i włącz",
+      "noPhoneText": "Wpisz swój numer telefonu",
+      "invalidPhoneText": "Wpisz prawidłowy numer telefonu",
+      "sendCodeFailedText": "Nie udało się wysłać kodu weryfikacyjnego. Spróbuj ponownie.",
+      "noCodeText": "Wpisz kod weryfikacyjny",
+      "invalidCodeText": "Nieprawidłowy kod. Spróbuj ponownie.",
+      "sessionInvalidText": "Coś poszło nie tak. Rozpocznij rejestrację od nowa."
+    },
+    "account-mfa-totp-enrollment": {
+      "title": "Skonfiguruj aplikację uwierzytelniającą",
+      "description": "Zeskanuj kod QR aplikacją uwierzytelniającą, a następnie wpisz poniżej kod weryfikacyjny.",
+      "qrCodeAltText": "Kod QR",
+      "manualKeyText": "Lub wpisz ten klucz ręcznie:",
+      "codeLabel": "Kod weryfikacyjny",
+      "codePlaceholder": "Wpisz 6-cyfrowy kod",
+      "verifyButtonText": "Zweryfikuj i włącz",
+      "backToSecurityText": "Wróć do ustawień zabezpieczeń",
+      "noCodeText": "Wpisz kod weryfikacyjny",
+      "invalidCodeText": "Nieprawidłowy kod. Spróbuj ponownie.",
+      "verificationFailedText": "Weryfikacja nie powiodła się. Spróbuj ponownie."
     }
   },
   "consent": {
@@ -26,7 +160,39 @@
       "description": "${clientName} prosi o dostęp do Twojego konta",
       "pageTitle": "Autoryzacja | ${clientName}",
       "scopesTitle": "Umożliwi to ${clientName}:",
-      "title": "Autoryzuj ${clientName}"
+      "title": "Autoryzuj ${clientName}",
+      "accessAccountText": "chce uzyskać dostęp do Twojego konta ${tenantName} jako ${userName}.",
+      "notAuthenticated": "Musisz się zalogować, aby kontynuować.",
+      "sessionExpired": "Twoja sesja wygasła. Spróbuj ponownie.",
+      "consentStorageNotConfigured": "Nie udało się zapisać Twojej zgody. Skontaktuj się z właścicielem aplikacji."
+    },
+    "connect-consent": {
+      "title": "Połącz aplikację",
+      "description": "Zezwolić ${domain} na działanie w Twoim imieniu?",
+      "connectAccountText": "chce połączyć się z Twoim kontem ${tenantName} jako ${userName}.",
+      "workspaceLabel": "Obszar roboczy:",
+      "apiLabel": "Dla API:",
+      "permissionsLabel": "Żądane uprawnienia:",
+      "localDevBadge": "Środowisko lokalne",
+      "localDevTooltip": "Ta witryna to lokalne środowisko deweloperskie, a nie produkcyjne. Połączenie nie będzie działać poza tym komputerem lub siecią.",
+      "buttonText": "Połącz",
+      "cancelText": "Anuluj",
+      "notAuthenticated": "Musisz się zalogować, aby kontynuować.",
+      "sessionExpired": "Twoja sesja wygasła. Spróbuj ponownie.",
+      "workspaceSelectionRequired": "Najpierw wybierz obszar roboczy.",
+      "noWorkspaceAccess": "Nie masz dostępu do tego obszaru roboczego",
+      "workspaceNotFound": "Nie znaleziono obszaru roboczego"
+    },
+    "connect-tenant-select": {
+      "title": "Wybierz obszar roboczy",
+      "description": "Wybierz obszar roboczy ${tenantName}, z którym ma się połączyć ${domain}.",
+      "noWorkspacesDescription": "Brak dostępnych obszarów roboczych",
+      "noWorkspacesText": "Nie masz dostępu do żadnego obszaru roboczego ${tenantName}. Poproś administratora o zaproszenie.",
+      "cancelText": "Anuluj",
+      "notAuthenticated": "Musisz się zalogować, aby kontynuować.",
+      "sessionExpired": "Twoja sesja wygasła. Spróbuj ponownie.",
+      "noWorkspaceSelected": "Wybierz obszar roboczy.",
+      "noWorkspaceAccess": "Nie masz dostępu do tego obszaru roboczego"
     }
   },
   "device-flow": {
@@ -54,7 +220,8 @@
       "sessionExpired": "Twoja sesja wygasła. Spróbuj ponownie.",
       "title": "Sprawdź swoją pocztę",
       "unexpectedError": "Wystąpił nieoczekiwany błąd",
-      "usePasswordText": "Zaloguj się hasłem"
+      "usePasswordText": "Zaloguj się hasłem",
+      "tooManyRequests": "Zbyt wiele prób. Poczekaj chwilę i spróbuj ponownie."
     }
   },
   "email-verification": {
@@ -97,7 +264,9 @@
       "acceptButtonText": "Przyjmij zaproszenie",
       "description": "${inviterName} zaprosił Cię do dołączenia do ${organizationName} w ${clientName}",
       "pageTitle": "Zaproszenie | ${clientName}",
-      "title": "Otrzymałeś zaproszenie"
+      "title": "Otrzymałeś zaproszenie",
+      "defaultOrganizationName": "organizacji",
+      "acceptFailed": "Nie udało się dokończyć konfiguracji konta. Spróbuj ponownie."
     }
   },
   "login": {
@@ -139,7 +308,10 @@
       "usernameTooLong": "Nazwa użytkownika musi mieć maksymalnie ${max} znaków",
       "usernameTooShort": "Nazwa użytkownika musi mieć co najmniej ${min} znaków",
       "wrongCredentials": "Nieprawidłowa nazwa użytkownika lub hasło",
-      "passkeyButtonText": "Zaloguj się za pomocą passkey"
+      "passkeyButtonText": "Zaloguj się za pomocą passkey",
+      "userBlocked": "Twoje konto zostało zablokowane po wielu kolejnych nieudanych próbach logowania.",
+      "tooManyRequests": "Zbyt wiele prób. Poczekaj chwilę i spróbuj ponownie.",
+      "unexpectedError": "Coś poszło nie tak. Spróbuj ponownie."
     }
   },
   "login-id": {
@@ -236,7 +408,10 @@
       "unverifiedEmail": "Zweryfikuj swój adres e-mail przed zalogowaniem",
       "user-blocked": "Twoje konto zostało zablokowane po wielu kolejnych nieudanych próbach logowania.",
       "wrong-credentials": "Nieprawidłowe hasło",
-      "sendCodeText": "Zaloguj się kodem"
+      "sendCodeText": "Zaloguj się kodem",
+      "sessionExpired": "Twoja sesja wygasła. Spróbuj ponownie.",
+      "tooManyRequests": "Zbyt wiele prób. Poczekaj chwilę i spróbuj ponownie.",
+      "unexpectedError": "Coś poszło nie tak. Spróbuj ponownie."
     }
   },
   "login-passwordless": {
@@ -305,7 +480,9 @@
       "transaction-not-found": "Twoja transakcja rejestracji wygasła, musisz zacząć od nowa.",
       "pageTitle": "Konfiguracja uwierzytelniania | ${clientName}",
       "unexpectedError": "Coś poszło nie tak. Spróbuj ponownie.",
-      "enrollmentComplete": "Rejestracja MFA została zakończona. Możesz zamknąć tę stronę."
+      "enrollmentComplete": "Rejestracja MFA została zakończona. Możesz zamknąć tę stronę.",
+      "pickAuthenticatorText": "Wypróbuj inną metodę",
+      "qrCodeAltText": "Kod QR"
     },
     "mfa-totp-challenge": {
       "title": "Zweryfikuj swoją tożsamość",
@@ -436,7 +613,10 @@
       "cancelLinkText": "Pomiń na razie",
       "retryButtonText": "Spróbuj ponownie",
       "enrollmentComplete": "Twój klucz dostępu został pomyślnie skonfigurowany. Możesz zamknąć tę stronę.",
-      "pageTitle": "Tworzenie Klucza Dostępu | ${clientName}"
+      "pageTitle": "Tworzenie Klucza Dostępu | ${clientName}",
+      "sessionExpired": "Twoja sesja wygasła. Spróbuj ponownie.",
+      "enrollmentRequired": "Aby kontynuować, musisz skonfigurować klucz dostępu.",
+      "challengeExpired": "Żądanie wygasło. Spróbuj ponownie."
     },
     "passkey-challenge": {
       "title": "Zaloguj się za pomocą passkey",
@@ -444,7 +624,8 @@
       "errorMessage": "Uwierzytelnianie za pomocą passkey nie powiodło się. Spróbuj ponownie.",
       "cancelLinkText": "Powrót do logowania",
       "retryButtonText": "Spróbuj ponownie",
-      "pageTitle": "Logowanie za pomocą passkey | ${clientName}"
+      "pageTitle": "Logowanie za pomocą passkey | ${clientName}",
+      "sessionExpired": "Twoja sesja wygasła. Spróbuj ponownie."
     }
   },
   "organizations": {
@@ -475,7 +656,9 @@
       "successDescription": "Wysłaliśmy link do resetowania hasła na Twój adres e-mail.",
       "successTitle": "Sprawdź swoją pocztę",
       "title": "Zapomniałeś hasła?",
-      "user-not-found": "Nie znaleziono użytkownika"
+      "user-not-found": "Nie znaleziono użytkownika",
+      "noPassword": "Hasło jest wymagane",
+      "sessionExpired": "Twoja sesja wygasła. Spróbuj ponownie."
     },
     "reset-password-code": {
       "backToLoginText": "Wróć do logowania",
@@ -498,7 +681,8 @@
       "resendSuccess": "Nowy kod został wysłany na Twój e-mail",
       "resendText": "Wyślij kod ponownie",
       "sessionExpired": "Twoja sesja wygasła. Spróbuj ponownie.",
-      "title": "Wprowadź kod resetowania"
+      "title": "Wprowadź kod resetowania",
+      "noPassword": "Hasło jest wymagane"
     }
   },
   "signup": {
@@ -529,7 +713,9 @@
       "title": "Utwórz konto",
       "username-already-exists": "Ta nazwa użytkownika jest już zajęta",
       "usernamePlaceholder": "Nazwa użytkownika",
-      "verifyEmailText": "Sprawdź swoją pocztę, aby zweryfikować konto"
+      "verifyEmailText": "Sprawdź swoją pocztę, aby zweryfikować konto",
+      "confirmPasswordRequired": "Potwierdź hasło",
+      "createUserFailed": "Nie udało się utworzyć konta. Spróbuj ponownie."
     }
   },
   "signup-id": {
@@ -561,7 +747,15 @@
       "password-too-weak": "Hasło jest zbyt słabe",
       "passwordPlaceholder": "Hasło",
       "showPasswordText": "Pokaż hasło",
-      "title": "Utwórz hasło"
+      "title": "Utwórz hasło",
+      "passwordTooShort": "Hasło musi mieć co najmniej ${minLength} znaków",
+      "passwordMissingLowercase": "Hasło musi zawierać co najmniej jedną małą literę",
+      "passwordMissingUppercase": "Hasło musi zawierać co najmniej jedną wielką literę",
+      "passwordMissingNumber": "Hasło musi zawierać co najmniej jedną cyfrę",
+      "passwordMissingSpecial": "Hasło musi zawierać co najmniej jeden znak specjalny",
+      "passwordReused": "Hasło było niedawno używane i nie może być ponownie użyte",
+      "passwordContainsPersonalInfo": "Hasło nie może zawierać danych osobowych, takich jak imię lub adres e-mail",
+      "passwordContainsForbiddenWord": "Hasło zawiera zakazane słowo"
     }
   },
   "sms-otp-challenge": {
@@ -577,7 +771,8 @@
       "resendText": "Wyślij ponownie kod",
       "sessionExpired": "Twoja sesja wygasła. Spróbuj ponownie.",
       "title": "Sprawdź swój telefon",
-      "unexpectedError": "Wystąpił nieoczekiwany błąd"
+      "unexpectedError": "Wystąpił nieoczekiwany błąd",
+      "tooManyRequests": "Zbyt wiele prób. Poczekaj chwilę i spróbuj ponownie."
     }
   },
   "status": {

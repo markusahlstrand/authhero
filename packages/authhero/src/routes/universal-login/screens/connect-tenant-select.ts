@@ -27,6 +27,7 @@ import {
   userCanRegisterOnOrg,
   userCanRegisterGlobally,
 } from "./connect-authz";
+import { createTranslation } from "../../../i18n";
 
 interface ConnectConsentData {
   integration_type?: string;
@@ -165,6 +166,12 @@ export async function connectTenantSelectScreen(
 ): Promise<ScreenResult> {
   const { ctx, tenant, branding, state, messages } = context;
   const routePrefix = CONNECT_ROUTE_PREFIX;
+  const { m } = createTranslation(
+    "consent",
+    "connect-tenant-select",
+    context.language || "en",
+    context.customText,
+  );
 
   const loginPath = await getLoginPath(context);
   const authCookie = getAuthCookie(tenant.id, ctx.req.header("cookie"));
@@ -201,7 +208,7 @@ export async function connectTenantSelectScreen(
         config: {
           content: `
             <div style="padding:16px;border:1px solid #fecaca;border-radius:8px;background:#fef2f2;color:#991b1b;font-size:14px">
-              You don't have access to any ${escapeHtml(tenant.friendly_name)} workspaces. Ask an administrator to invite you.
+              ${m.noWorkspacesText({ tenantName: escapeHtml(tenant.friendly_name) })}
             </div>
           `,
         },
@@ -212,10 +219,10 @@ export async function connectTenantSelectScreen(
       name: "connect-tenant-select",
       action: `${routePrefix}/connect/select-tenant?state=${stateParam}`,
       method: "POST",
-      title: "Choose a workspace",
-      description: "No workspaces available",
+      title: m.title(),
+      description: m.noWorkspacesDescription(),
       components,
-      links: [{ id: "cancel", text: "Cancel", href: cancelUrl }],
+      links: [{ id: "cancel", text: m.cancelText(), href: cancelUrl }],
       messages,
     };
     return { screen, branding };
@@ -236,10 +243,13 @@ export async function connectTenantSelectScreen(
     name: "connect-tenant-select",
     action: `${routePrefix}/connect/select-tenant?state=${stateParam}`,
     method: "POST",
-    title: "Choose a workspace",
-    description: `Select which ${escapeHtml(tenant.friendly_name)} workspace ${escapeHtml(connect.domain)} should connect to.`,
+    title: m.title(),
+    description: m.description({
+      tenantName: escapeHtml(tenant.friendly_name),
+      domain: escapeHtml(connect.domain),
+    }),
     components,
-    links: [{ id: "cancel", text: "Cancel", href: cancelUrl }],
+    links: [{ id: "cancel", text: m.cancelText(), href: cancelUrl }],
     messages,
   };
 
@@ -257,6 +267,12 @@ async function handleConnectTenantSelectSubmit(
 > {
   const { ctx, tenant, state } = context;
   const routePrefix = CONNECT_ROUTE_PREFIX;
+  const { m } = createTranslation(
+    "consent",
+    "connect-tenant-select",
+    context.language || "en",
+    context.customText,
+  );
 
   const authCookie = getAuthCookie(tenant.id, ctx.req.header("cookie"));
   const session = authCookie
@@ -264,7 +280,7 @@ async function handleConnectTenantSelectSubmit(
     : null;
   if (!session || session.revoked_at) {
     return {
-      error: "Not authenticated",
+      error: m.notAuthenticated(),
       screen: await connectTenantSelectScreen(context),
     };
   }
@@ -273,7 +289,7 @@ async function handleConnectTenantSelectSubmit(
   const connect = readConnectData(loginSession?.state_data);
   if (!connect || !loginSession) {
     return {
-      error: "Connect session expired",
+      error: m.sessionExpired(),
       screen: await connectTenantSelectScreen(context),
     };
   }
@@ -281,7 +297,7 @@ async function handleConnectTenantSelectSubmit(
   const selectedKey = Object.keys(data).find((k) => k.startsWith("tenant_"));
   if (!selectedKey) {
     return {
-      error: "No tenant selected",
+      error: m.noWorkspaceSelected(),
       screen: await connectTenantSelectScreen(context),
     };
   }
@@ -291,7 +307,7 @@ async function handleConnectTenantSelectSubmit(
   const allowed = await listUserTenantOptions(context, session.user_id);
   if (!allowed.some((t) => t.id === selectedTenantId)) {
     return {
-      error: "You don't have access to that workspace",
+      error: m.noWorkspaceAccess(),
       screen: await connectTenantSelectScreen(context),
     };
   }

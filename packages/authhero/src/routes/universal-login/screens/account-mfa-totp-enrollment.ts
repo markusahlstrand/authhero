@@ -15,15 +15,29 @@ import {
 } from "../../../authentication-flows/mfa";
 import { logMessage } from "../../../helpers/logging";
 import QRCode from "qrcode";
+import { createTranslation } from "../../../i18n";
+import { escapeHtml } from "../sanitization-utils";
 
-async function generateQrCodeHtml(totpUri: string): Promise<string> {
+function getTranslation(context: ScreenContext) {
+  return createTranslation(
+    "common",
+    "account-mfa-totp-enrollment",
+    context.language || "en",
+    context.customText,
+  );
+}
+
+async function generateQrCodeHtml(
+  totpUri: string,
+  altText: string,
+): Promise<string> {
   const svg = await QRCode.toString(totpUri, {
     type: "svg",
     margin: 2,
     width: 200,
   });
   const dataUrl = `data:image/svg+xml;base64,${btoa(svg)}`;
-  return `<img src="${dataUrl}" alt="QR Code" width="200" height="200" />`;
+  return `<img src="${dataUrl}" alt="${escapeHtml(altText)}" width="200" height="200" />`;
 }
 
 /**
@@ -34,6 +48,7 @@ async function accountMfaTotpEnrollmentScreen(
   extraData?: { qrCodeSvg?: string; secretBase32?: string },
 ): Promise<ScreenResult> {
   const { branding, state, errors, messages, routePrefix = "/u2" } = context;
+  const { m } = getTranslation(context);
   const stateParam = encodeURIComponent(state);
 
   const components: FormNodeComponent[] = [];
@@ -58,7 +73,7 @@ async function accountMfaTotpEnrollmentScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        content: `<p style="text-align:center;font-size:13px;color:#6b7280">Or enter this key manually:</p><p style="text-align:center;font-family:monospace;font-size:14px;word-break:break-all">${extraData.secretBase32}</p>`,
+        content: `<p style="text-align:center;font-size:13px;color:#6b7280">${escapeHtml(m.manualKeyText())}</p><p style="text-align:center;font-family:monospace;font-size:14px;word-break:break-all">${extraData.secretBase32}</p>`,
       },
       order: 1,
     });
@@ -70,9 +85,9 @@ async function accountMfaTotpEnrollmentScreen(
       type: "TEXT",
       category: "FIELD",
       visible: true,
-      label: "Verification code",
+      label: m.codeLabel(),
       config: {
-        placeholder: "Enter 6-digit code",
+        placeholder: m.codePlaceholder(),
         max_length: 6,
       },
       required: true,
@@ -87,7 +102,7 @@ async function accountMfaTotpEnrollmentScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        text: "Verify & Enable",
+        text: m.verifyButtonText(),
       },
       order: 3,
     },
@@ -97,14 +112,13 @@ async function accountMfaTotpEnrollmentScreen(
     name: "account-mfa-totp-enrollment",
     action: `${routePrefix}/account/security/totp-enrollment?state=${stateParam}`,
     method: "POST",
-    title: "Set Up Authenticator App",
-    description:
-      "Scan the QR code with your authenticator app, then enter the verification code below.",
+    title: m.title(),
+    description: m.description(),
     components,
     links: [
       {
         id: "back-to-security",
-        text: "Back to Security Settings",
+        text: m.backToSecurityText(),
         href: `${routePrefix}/account/security?state=${stateParam}`,
       },
     ],
@@ -154,7 +168,10 @@ export const accountMfaTotpEnrollmentScreenDefinition: ScreenDefinition = {
       const accountName = user.email || user.user_id;
       const issuer = tenant.friendly_name || tenant.id;
       const totpUri = createTotpUri(issuer, accountName, secretBase32);
-      const qrCodeSvg = await generateQrCodeHtml(totpUri);
+      const qrCodeSvg = await generateQrCodeHtml(
+        totpUri,
+        getTranslation(context).m.qrCodeAltText(),
+      );
 
       return accountMfaTotpEnrollmentScreen(context, {
         qrCodeSvg,
@@ -165,14 +182,12 @@ export const accountMfaTotpEnrollmentScreenDefinition: ScreenDefinition = {
       const { ctx, tenant, state } = context;
       const code = (data.code as string)?.trim();
       const { user } = await resolveAccountUser(context);
+      const { m } = getTranslation(context);
 
       if (!code) {
         return {
-          error: "Please enter the verification code",
-          screen: await reRenderWithQr(
-            context,
-            "Please enter the verification code",
-          ),
+          error: m.noCodeText(),
+          screen: await reRenderWithQr(context, m.noCodeText()),
         };
       }
 
@@ -205,11 +220,8 @@ export const accountMfaTotpEnrollmentScreenDefinition: ScreenDefinition = {
           userId: user.user_id,
         });
         return {
-          error: "Verification failed",
-          screen: await reRenderWithQr(
-            context,
-            "Verification failed. Please try again.",
-          ),
+          error: m.verificationFailedText(),
+          screen: await reRenderWithQr(context, m.verificationFailedText()),
         };
       }
 
@@ -220,11 +232,8 @@ export const accountMfaTotpEnrollmentScreenDefinition: ScreenDefinition = {
           userId: user.user_id,
         });
         return {
-          error: "Invalid code",
-          screen: await reRenderWithQr(
-            context,
-            "Invalid code. Please try again.",
-          ),
+          error: m.invalidCodeText(),
+          screen: await reRenderWithQr(context, m.invalidCodeText()),
         };
       }
 
@@ -280,7 +289,10 @@ async function reRenderWithQr(
     const accountName = user.email || user.user_id;
     const issuer = tenant.friendly_name || tenant.id;
     const totpUri = createTotpUri(issuer, accountName, secretBase32);
-    qrCodeSvg = await generateQrCodeHtml(totpUri);
+    qrCodeSvg = await generateQrCodeHtml(
+      totpUri,
+      getTranslation(context).m.qrCodeAltText(),
+    );
   }
 
   return accountMfaTotpEnrollmentScreen(

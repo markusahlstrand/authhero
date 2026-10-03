@@ -35,12 +35,7 @@ import { RedirectException } from "../../errors/redirect-exception";
 import { LogTypes } from "@authhero/adapter-interfaces";
 import { logMessage } from "../../helpers/logging";
 import { sanitizeUrl } from "./sanitization-utils";
-import type {
-  PromptScreen,
-  CustomText,
-  Branding,
-  Theme,
-} from "@authhero/adapter-interfaces";
+import type { CustomText, Branding, Theme } from "@authhero/adapter-interfaces";
 import {
   derivePageLogoPlacement,
   extractBrandingProps,
@@ -60,65 +55,8 @@ import { isCimdClientId } from "../../helpers/cimd";
 import { UNIVERSAL_AUTH_SESSION_EXPIRES_IN_SECONDS } from "../../constants";
 
 import { defineRoute } from "../../utils/define-route";
-
-/**
- * Mapping from screen IDs (used in routes) to prompt screen IDs (used for custom text)
- * This allows URLs like /u2/login/identifier to fetch custom text for "login-id"
- */
-const SCREEN_TO_PROMPT_MAP: Record<string, PromptScreen> = {
-  identifier: "login-id",
-  login: "login", // Combined identifier + password screen
-  "enter-password": "login-password",
-  "email-otp-challenge": "email-otp-challenge",
-  "sms-otp-challenge": "email-otp-challenge", // SMS shares email-otp-challenge prompt
-  signup: "signup",
-  "forgot-password": "reset-password",
-  "reset-password": "reset-password",
-  "reset-password-code": "reset-password",
-  impersonate: "login",
-  "pre-signup": "signup-id",
-  "pre-signup-sent": "signup",
-  consent: "consent",
-  "login-passwordless-identifier": "login-passwordless",
-  mfa: "mfa",
-  "mfa-otp": "mfa-otp",
-  "mfa-phone-challenge": "mfa-phone",
-  "mfa-totp-enrollment": "mfa-otp",
-  "mfa-totp-challenge": "mfa-otp",
-  "mfa-email": "mfa-email",
-  "mfa-push": "mfa-push",
-  "mfa-webauthn": "mfa-webauthn",
-  "passkey-enrollment-nudge": "passkeys",
-  "passkey-enrollment": "passkeys",
-  "passkey-challenge": "passkeys",
-  "mfa-voice": "mfa-voice",
-  "mfa-phone-enrollment": "mfa-phone",
-  "mfa-login-options": "mfa-login-options",
-  "mfa-recovery-code": "mfa-recovery-code",
-  account: "common",
-  "account-profile": "common",
-  "account-security": "common",
-  "account-linked": "common",
-  "account-delete": "common",
-  "account-passkeys": "common",
-  status: "status",
-  "device-flow": "device-flow",
-  "connect-consent": "consent",
-  "connect-tenant-select": "consent",
-  "email-verification": "email-verification",
-  "email-verification-code": "email-verification",
-  "email-verification-link-sent": "email-verification",
-  organizations: "organizations",
-  invitation: "invitation",
-  "accept-invitation": "invitation",
-};
-
-/**
- * Get the prompt screen ID for a given screen ID
- */
-function getPromptScreenForScreen(screenId: string): PromptScreen | undefined {
-  return SCREEN_TO_PROMPT_MAP[screenId];
-}
+import { withHandlerError } from "./screens/handler-error";
+import { getPromptScreenForScreen } from "./screen-prompt-map";
 
 /**
  * Fetch custom text for a screen and language, with fallbacks
@@ -574,13 +512,11 @@ function createScreenPostHandler(screenId: string) {
     // Otherwise, render the next/current screen as full HTML page
     const screenResult = result.screen;
 
-    // Surface a handler error as a screen-level message so it's visible to the
-    // user rather than silently dropped behind an unchanged re-rendered screen.
+    // Surface a handler error the screen doesn't already show as a
+    // screen-level message, rather than silently dropping it behind an
+    // unchanged re-rendered screen.
     if ("error" in result) {
-      screenResult.screen.messages = [
-        ...(screenResult.screen.messages ?? []),
-        { text: result.error, type: "error" as const },
-      ];
+      screenResult.screen = withHandlerError(screenResult.screen, result.error);
     }
 
     // Get custom template if available

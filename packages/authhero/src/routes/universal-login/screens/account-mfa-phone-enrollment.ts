@@ -13,12 +13,23 @@ import { sendMfaOtp, verifyMfaOtp } from "../../../authentication-flows/mfa";
 import { logMessage } from "../../../helpers/logging";
 import { parsePhoneNumberFromString } from "libphonenumber-js";
 import type { CountryCode } from "libphonenumber-js";
+import { createTranslation } from "../../../i18n";
+
+function getTranslation(context: ScreenContext) {
+  return createTranslation(
+    "common",
+    "account-mfa-phone-enrollment",
+    context.language || "en",
+    context.customText,
+  );
+}
 
 /**
  * Render the phone number input screen (step 1)
  */
 function phoneInputScreen(context: ScreenContext): ScreenResult {
   const { branding, state, errors, messages, routePrefix = "/u2" } = context;
+  const { m } = getTranslation(context);
   const stateParam = encodeURIComponent(state);
 
   const components: FormNodeComponent[] = [
@@ -36,7 +47,7 @@ function phoneInputScreen(context: ScreenContext): ScreenResult {
       type: "TEL",
       category: "FIELD",
       visible: true,
-      label: "Phone number",
+      label: m.phoneLabel(),
       config: {
         placeholder: "+1 (555) 000-0000",
         default_country: context.ctx.get("countryCode") || "US",
@@ -53,7 +64,7 @@ function phoneInputScreen(context: ScreenContext): ScreenResult {
       category: "BLOCK",
       visible: true,
       config: {
-        text: "Send Verification Code",
+        text: m.sendCodeButtonText(),
       },
       order: 2,
     },
@@ -63,14 +74,13 @@ function phoneInputScreen(context: ScreenContext): ScreenResult {
     name: "account-mfa-phone-enrollment",
     action: `${routePrefix}/account/security/phone-enrollment?state=${stateParam}`,
     method: "POST",
-    title: "Set Up Phone (SMS)",
-    description:
-      "Enter your phone number to receive verification codes via SMS.",
+    title: m.title(),
+    description: m.description(),
     components,
     links: [
       {
         id: "back-to-security",
-        text: "Back to Security Settings",
+        text: m.backToSecurityText(),
         href: `${routePrefix}/account/security?state=${stateParam}`,
       },
     ],
@@ -85,9 +95,20 @@ function phoneInputScreen(context: ScreenContext): ScreenResult {
  */
 function codeInputScreen(
   context: ScreenContext,
-  maskedPhone: string,
+  maskedPhone: string | undefined,
 ): ScreenResult {
   const { branding, state, errors, messages, routePrefix = "/u2" } = context;
+  const { m } = getTranslation(context);
+
+  // Translate with a placeholder token so the masked number can be wrapped
+  // in <strong> after the (possibly custom) text has been escaped.
+  const phoneToken = "__PHONE_NUMBER__";
+  const phoneInfoHtml = maskedPhone
+    ? escapeHtml(m.codeSentText({ phoneNumber: phoneToken })).replace(
+        phoneToken,
+        `<strong>${escapeHtml(maskedPhone)}</strong>`,
+      )
+    : escapeHtml(m.codeSentToYourPhoneText());
   const stateParam = encodeURIComponent(state);
 
   const components: FormNodeComponent[] = [
@@ -106,7 +127,7 @@ function codeInputScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        content: `<p style="text-align:center;color:#6b7280">A verification code has been sent to <strong>${escapeHtml(maskedPhone)}</strong></p>`,
+        content: `<p style="text-align:center;color:#6b7280">${phoneInfoHtml}</p>`,
       },
       order: 1,
     },
@@ -115,9 +136,9 @@ function codeInputScreen(
       type: "TEXT",
       category: "FIELD",
       visible: true,
-      label: "Verification code",
+      label: m.codeLabel(),
       config: {
-        placeholder: "Enter verification code",
+        placeholder: m.codePlaceholder(),
         max_length: 6,
       },
       required: true,
@@ -132,7 +153,7 @@ function codeInputScreen(
       category: "BLOCK",
       visible: true,
       config: {
-        text: "Verify & Enable",
+        text: m.verifyButtonText(),
       },
       order: 3,
     },
@@ -142,13 +163,13 @@ function codeInputScreen(
     name: "account-mfa-phone-enrollment",
     action: `${routePrefix}/account/security/phone-enrollment?state=${stateParam}`,
     method: "POST",
-    title: "Verify Phone Number",
-    description: "Enter the verification code sent to your phone.",
+    title: m.verifyTitle(),
+    description: m.verifyDescription(),
     components,
     links: [
       {
         id: "back-to-security",
-        text: "Back to Security Settings",
+        text: m.backToSecurityText(),
         href: `${routePrefix}/account/security?state=${stateParam}`,
       },
     ],
@@ -183,6 +204,7 @@ export const accountMfaPhoneEnrollmentScreenDefinition: ScreenDefinition = {
     post: async (context, data) => {
       const { ctx, tenant, client, state } = context;
       const { user } = await resolveAccountUser(context);
+      const { m } = getTranslation(context);
       const action = data.action as string;
 
       // --- Step 1: Submit phone number and send OTP ---
@@ -191,10 +213,10 @@ export const accountMfaPhoneEnrollmentScreenDefinition: ScreenDefinition = {
 
         if (!phoneNumber) {
           return {
-            error: "Please enter your phone number",
+            error: m.noPhoneText(),
             screen: phoneInputScreen({
               ...context,
-              errors: { phone_number: "Please enter your phone number" },
+              errors: { phone_number: m.noPhoneText() },
             }),
           };
         }
@@ -206,10 +228,10 @@ export const accountMfaPhoneEnrollmentScreenDefinition: ScreenDefinition = {
         });
         if (!parsed || !parsed.isValid()) {
           return {
-            error: "Invalid phone number",
+            error: m.invalidPhoneText(),
             screen: phoneInputScreen({
               ...context,
-              errors: { phone_number: "Please enter a valid phone number" },
+              errors: { phone_number: m.invalidPhoneText() },
             }),
           };
         }
@@ -281,13 +303,10 @@ export const accountMfaPhoneEnrollmentScreenDefinition: ScreenDefinition = {
             userId: user.user_id,
           });
           return {
-            error: "Failed to send verification code",
+            error: m.sendCodeFailedText(),
             screen: phoneInputScreen({
               ...context,
-              errors: {
-                phone_number:
-                  "Failed to send verification code. Please try again.",
-              },
+              errors: { phone_number: m.sendCodeFailedText() },
             }),
           };
         }
@@ -305,15 +324,15 @@ export const accountMfaPhoneEnrollmentScreenDefinition: ScreenDefinition = {
           ? JSON.parse(loginSession.state_data)
           : {};
         const phoneNumber = stateData.phoneNumber as string | undefined;
-        const masked = phoneNumber ? maskPhone(phoneNumber) : "your phone";
+        const masked = phoneNumber ? maskPhone(phoneNumber) : undefined;
 
         if (!code) {
           return {
-            error: "Please enter the verification code",
+            error: m.noCodeText(),
             screen: codeInputScreen(
               {
                 ...context,
-                errors: { code: "Please enter the verification code" },
+                errors: { code: m.noCodeText() },
               },
               masked,
             ),
@@ -337,11 +356,11 @@ export const accountMfaPhoneEnrollmentScreenDefinition: ScreenDefinition = {
             userId: user.user_id,
           });
           return {
-            error: "Invalid code",
+            error: m.invalidCodeText(),
             screen: codeInputScreen(
               {
                 ...context,
-                errors: { code: "Invalid code. Please try again." },
+                errors: { code: m.invalidCodeText() },
               },
               masked,
             ),
@@ -357,13 +376,10 @@ export const accountMfaPhoneEnrollmentScreenDefinition: ScreenDefinition = {
             userId: user.user_id,
           });
           return {
-            error: "Enrollment session is invalid",
+            error: m.sessionInvalidText(),
             screen: phoneInputScreen({
               ...context,
-              errors: {
-                phone_number:
-                  "Something went wrong. Please start the enrollment again.",
-              },
+              errors: { phone_number: m.sessionInvalidText() },
             }),
           };
         }

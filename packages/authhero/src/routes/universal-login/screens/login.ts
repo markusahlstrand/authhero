@@ -496,11 +496,20 @@ export const loginScreenDefinition: ScreenDefinition = {
         }
 
         // On passkey failure, re-render login with error
+        // result.error is an internal English reason; show the localized
+        // passkey failure message instead.
+        const { m: passkeyM } = createTranslation(
+          "passkeys",
+          "passkey-challenge",
+          context.language || "en",
+          context.customText,
+        );
+        const errorMessage = passkeyM.errorMessage();
         return {
-          error: result.error,
+          error: errorMessage,
           screen: await loginScreen({
             ...context,
-            messages: [{ text: result.error, type: "error" as const }],
+            messages: [{ text: errorMessage, type: "error" as const }],
           }),
         };
       }
@@ -730,7 +739,10 @@ export const loginScreenDefinition: ScreenDefinition = {
       } catch (e: unknown) {
         const authError = e as AuthError;
 
-        let errorMessage = authError.message || m.wrongCredentials();
+        // Errors without a code (e.g. a hook's api.access.deny reason) are
+        // shown as-is; coded AuthErrors carry English text and are mapped.
+        let errorMessage =
+          (!authError.code && authError.message) || m.unexpectedError();
 
         if (
           authError.code === "INVALID_PASSWORD" ||
@@ -743,6 +755,10 @@ export const loginScreenDefinition: ScreenDefinition = {
           };
         } else if (authError.code === "TOO_MANY_FAILED_LOGINS") {
           errorMessage = m.tooManyFailedLogins();
+        } else if (authError.code === "USER_BLOCKED") {
+          errorMessage = m.userBlocked();
+        } else if (authError.code === "TOO_MANY_REQUESTS") {
+          errorMessage = m.tooManyRequests();
         }
 
         return {

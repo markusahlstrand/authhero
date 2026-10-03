@@ -307,7 +307,7 @@ export const loginPasswordlessIdentifierScreenDefinition: ScreenDefinition = {
           if (client.hide_sign_up_disabled_error === true) {
             silentSignupStub = true;
           } else {
-            const errorMsg = validation.reason || m.userAccountDoesNotExist();
+            const errorMsg = m.userAccountDoesNotExist();
             return {
               error: errorMsg,
               screen: await loginPasswordlessIdentifierScreen({

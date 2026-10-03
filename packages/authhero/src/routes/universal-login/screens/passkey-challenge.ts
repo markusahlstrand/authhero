@@ -200,16 +200,12 @@ export const passkeyChallengeScreenDefinition: ScreenDefinition = {
       const credentialJson = data["credential-field"] as string;
 
       const locale = context.language || "en";
-      const { m: _m2 } = createTranslation(
+      const { m } = createTranslation(
         "passkeys",
         "passkey-challenge",
         locale,
         context.customText,
       );
-      const m = _m2 as unknown as {
-        [key: string]: (vars?: Record<string, unknown>) => string;
-        errorMessage: () => string;
-      };
 
       const loginSession = await ctx.env.data.loginSessions.get(
         client.tenant.id,
@@ -218,7 +214,7 @@ export const passkeyChallengeScreenDefinition: ScreenDefinition = {
       if (!loginSession) {
         return {
           screen: await passkeyChallengeScreen(context, {
-            errorMessage: "Session not found",
+            errorMessage: m.sessionExpired(),
           }),
         };
       }

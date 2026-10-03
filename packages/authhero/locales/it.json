@@ -17,6 +17,140 @@
       "termsOfServiceText": "Termini di servizio",
       "termsShortText": "Termini",
       "tryAgainText": "Riprova"
+    },
+    "account": {
+      "title": "Impostazioni account",
+      "description": "Gestisci il tuo account",
+      "editProfileLabel": "Modifica profilo",
+      "editProfileDetail": "Nome, email, numero di telefono e immagine",
+      "securityLabel": "Impostazioni di sicurezza",
+      "securityDetail": "Autenticazione a più fattori",
+      "securityMethodsCountOne": "${count} metodo configurato",
+      "securityMethodsCount": "${count} metodi configurati",
+      "passkeysLabel": "Passkey",
+      "passkeysDetail": "Accedi senza password",
+      "passkeysCountOne": "${count} passkey registrata",
+      "passkeysCount": "${count} passkey registrate",
+      "linkedAccountsLabel": "Account collegati",
+      "linkedAccountsDetail": "Collega account social",
+      "linkedAccountsCountOne": "${count} account collegato",
+      "linkedAccountsCount": "${count} account collegati",
+      "deleteAccountLabel": "Elimina account",
+      "deleteAccountDetail": "Elimina definitivamente il tuo account e i tuoi dati",
+      "logoutText": "Esci"
+    },
+    "account-profile": {
+      "title": "Modifica profilo",
+      "description": "Aggiorna i tuoi dati personali",
+      "givenNameLabel": "Nome",
+      "familyNameLabel": "Cognome",
+      "nicknameLabel": "Soprannome",
+      "phoneNumberLabel": "Numero di telefono",
+      "pictureLabel": "URL dell'immagine del profilo",
+      "buttonText": "Salva modifiche",
+      "backToAccountText": "Torna all'account",
+      "updateFailed": "Impossibile aggiornare il profilo"
+    },
+    "account-delete": {
+      "title": "Elimina account",
+      "description": "Elimina definitivamente il tuo account",
+      "warningTitle": "Attenzione: questa azione è definitiva",
+      "warningText": "Tutti i tuoi dati verranno eliminati definitivamente, inclusi profilo, account collegati e metodi di autenticazione. Questa azione non può essere annullata.",
+      "confirmationLabel": "Digita \"${confirmationWord}\" per confermare",
+      "buttonText": "Elimina il mio account",
+      "cancelText": "Annulla",
+      "confirmationError": "Digita \"${confirmationWord}\" per confermare",
+      "deleteSuccess": "Il tuo account è stato eliminato",
+      "deleteFailed": "Impossibile eliminare l'account"
+    },
+    "account-linked": {
+      "title": "Account collegati",
+      "description": "Gestisci i tuoi account collegati",
+      "noLinkedAccounts": "Nessun account collegato.",
+      "unlinkButtonText": "Scollega",
+      "backToAccountText": "Torna all'account",
+      "unlinkSuccess": "Account scollegato",
+      "unlinkFailed": "Impossibile scollegare l'account"
+    },
+    "account-security": {
+      "title": "Impostazioni di sicurezza",
+      "description": "Gestisci i metodi di autenticazione a due fattori",
+      "noEnrollments": "Non hai configurato alcun metodo di autenticazione a due fattori.",
+      "addedOn": "Aggiunto il ${date}",
+      "removeButtonText": "Rimuovi",
+      "addTotpLabel": "Aggiungi app di autenticazione",
+      "addTotpDetail": "Usa un'app come Google Authenticator o Authy",
+      "addSmsLabel": "Aggiungi telefono (SMS)",
+      "addSmsDetail": "Ricevi i codici di verifica tramite SMS",
+      "typeTotp": "App di autenticazione",
+      "typePhone": "Telefono (SMS)",
+      "typeEmail": "Email",
+      "typePush": "Notifica push",
+      "typeWebauthn": "Chiave di sicurezza",
+      "backToAccountText": "Torna all'account",
+      "enrollmentNotFound": "Metodo non trovato",
+      "removeSuccess": "Metodo di autenticazione rimosso",
+      "removeFailed": "Impossibile rimuovere il metodo di autenticazione"
+    },
+    "account-passkeys": {
+      "title": "Passkey",
+      "description": "Gestisci le tue passkey per l'accesso senza password",
+      "noPasskeysText": "Non hai passkey registrate.",
+      "defaultPasskeyName": "Passkey",
+      "syncedBadgeText": "Sincronizzata",
+      "addedOnText": "Aggiunta il ${date}",
+      "renameButtonText": "Rinomina",
+      "removeButtonText": "Rimuovi",
+      "renamePromptText": "Inserisci un nuovo nome per questa passkey:",
+      "addPasskeyButtonText": "Aggiungi passkey",
+      "backToAccountText": "Torna all'account",
+      "logoutText": "Esci",
+      "passkeyNotFoundText": "Passkey non trovata",
+      "passkeyRemovedText": "Passkey rimossa",
+      "removeFailedText": "Impossibile rimuovere la passkey",
+      "invalidNameText": "Il nome deve contenere da 1 a 64 caratteri",
+      "passkeyRenamedText": "Passkey rinominata",
+      "renameFailedText": "Impossibile rinominare la passkey",
+      "startRegistrationFailedText": "Impossibile avviare la registrazione della passkey",
+      "missingCredentialText": "Dati della passkey mancanti",
+      "challengeExpiredText": "La richiesta è scaduta. Riprova.",
+      "invalidCredentialText": "Dati della passkey non validi",
+      "verificationFailedText": "Verifica della passkey non riuscita",
+      "passkeyAddedText": "Passkey aggiunta correttamente",
+      "registrationFailedText": "Registrazione della passkey non riuscita. Riprova."
+    },
+    "account-mfa-phone-enrollment": {
+      "title": "Configura telefono (SMS)",
+      "description": "Inserisci il tuo numero di telefono per ricevere i codici di verifica via SMS.",
+      "phoneLabel": "Numero di telefono",
+      "sendCodeButtonText": "Invia codice di verifica",
+      "backToSecurityText": "Torna alle impostazioni di sicurezza",
+      "verifyTitle": "Verifica numero di telefono",
+      "verifyDescription": "Inserisci il codice di verifica inviato al tuo telefono.",
+      "codeSentText": "È stato inviato un codice di verifica a ${phoneNumber}",
+      "codeSentToYourPhoneText": "È stato inviato un codice di verifica al tuo telefono",
+      "codeLabel": "Codice di verifica",
+      "codePlaceholder": "Inserisci il codice di verifica",
+      "verifyButtonText": "Verifica e attiva",
+      "noPhoneText": "Inserisci il tuo numero di telefono",
+      "invalidPhoneText": "Inserisci un numero di telefono valido",
+      "sendCodeFailedText": "Invio del codice di verifica non riuscito. Riprova.",
+      "noCodeText": "Inserisci il codice di verifica",
+      "invalidCodeText": "Codice non valido. Riprova.",
+      "sessionInvalidText": "Qualcosa è andato storto. Ricomincia la registrazione."
+    },
+    "account-mfa-totp-enrollment": {
+      "title": "Configura l'app di autenticazione",
+      "description": "Scansiona il codice QR con la tua app di autenticazione, poi inserisci il codice di verifica qui sotto.",
+      "qrCodeAltText": "Codice QR",
+      "manualKeyText": "Oppure inserisci questa chiave manualmente:",
+      "codeLabel": "Codice di verifica",
+      "codePlaceholder": "Inserisci il codice a 6 cifre",
+      "verifyButtonText": "Verifica e attiva",
+      "backToSecurityText": "Torna alle impostazioni di sicurezza",
+      "noCodeText": "Inserisci il codice di verifica",
+      "invalidCodeText": "Codice non valido. Riprova.",
+      "verificationFailedText": "Verifica non riuscita. Riprova."
     }
   },
   "consent": {
@@ -26,7 +160,39 @@
       "description": "${clientName} richiede l'accesso al tuo account",
       "pageTitle": "Autorizza | ${clientName}",
       "scopesTitle": "Questo permetterà a ${clientName} di:",
-      "title": "Autorizza ${clientName}"
+      "title": "Autorizza ${clientName}",
+      "accessAccountText": "vuole accedere al tuo account ${tenantName} come ${userName}.",
+      "notAuthenticated": "Devi accedere per continuare.",
+      "sessionExpired": "La sessione è scaduta. Riprova.",
+      "consentStorageNotConfigured": "Impossibile salvare il tuo consenso. Contatta il proprietario dell'applicazione."
+    },
+    "connect-consent": {
+      "title": "Collega applicazione",
+      "description": "Consentire a ${domain} di agire per tuo conto?",
+      "connectAccountText": "vuole connettersi al tuo account ${tenantName} come ${userName}.",
+      "workspaceLabel": "Spazio di lavoro:",
+      "apiLabel": "Per l'API:",
+      "permissionsLabel": "Autorizzazioni richieste:",
+      "localDevBadge": "Sviluppo locale",
+      "localDevTooltip": "Questo sito è un ambiente di sviluppo locale, non di produzione. La connessione non funzionerà al di fuori di questo computer o di questa rete.",
+      "buttonText": "Collega",
+      "cancelText": "Annulla",
+      "notAuthenticated": "Devi accedere per continuare.",
+      "sessionExpired": "La sessione è scaduta. Riprova.",
+      "workspaceSelectionRequired": "Scegli prima uno spazio di lavoro.",
+      "noWorkspaceAccess": "Non hai accesso a questo spazio di lavoro",
+      "workspaceNotFound": "Spazio di lavoro non trovato"
+    },
+    "connect-tenant-select": {
+      "title": "Scegli uno spazio di lavoro",
+      "description": "Seleziona lo spazio di lavoro ${tenantName} a cui ${domain} deve connettersi.",
+      "noWorkspacesDescription": "Nessuno spazio di lavoro disponibile",
+      "noWorkspacesText": "Non hai accesso a nessuno spazio di lavoro ${tenantName}. Chiedi a un amministratore di invitarti.",
+      "cancelText": "Annulla",
+      "notAuthenticated": "Devi accedere per continuare.",
+      "sessionExpired": "La sessione è scaduta. Riprova.",
+      "noWorkspaceSelected": "Scegli uno spazio di lavoro.",
+      "noWorkspaceAccess": "Non hai accesso a questo spazio di lavoro"
     }
   },
   "device-flow": {
@@ -54,7 +220,8 @@
       "sessionExpired": "La sessione è scaduta. Riprova.",
       "title": "Controlla la tua email",
       "unexpectedError": "Si è verificato un errore imprevisto",
-      "usePasswordText": "Accedi con la password"
+      "usePasswordText": "Accedi con la password",
+      "tooManyRequests": "Troppi tentativi. Attendi qualche istante e riprova."
     }
   },
   "email-verification": {
@@ -97,7 +264,9 @@
       "acceptButtonText": "Accetta invito",
       "description": "${inviterName} ti ha invitato a unirti a ${organizationName} su ${clientName}",
       "pageTitle": "Invito | ${clientName}",
-      "title": "Sei stato invitato"
+      "title": "Sei stato invitato",
+      "defaultOrganizationName": "un'organizzazione",
+      "acceptFailed": "Non è stato possibile completare la configurazione del tuo account. Riprova."
     }
   },
   "login": {
@@ -139,7 +308,10 @@
       "usernameTooLong": "Il nome utente deve avere al massimo ${max} caratteri",
       "usernameTooShort": "Il nome utente deve avere almeno ${min} caratteri",
       "wrongCredentials": "Nome utente o password errati",
-      "passkeyButtonText": "Accedi con una passkey"
+      "passkeyButtonText": "Accedi con una passkey",
+      "userBlocked": "Il tuo account è stato bloccato dopo diversi tentativi di accesso consecutivi.",
+      "tooManyRequests": "Troppi tentativi. Attendi qualche istante e riprova.",
+      "unexpectedError": "Qualcosa è andato storto. Riprova."
     }
   },
   "login-id": {
@@ -236,7 +408,10 @@
       "unverifiedEmail": "Verifica il tuo indirizzo email prima di accedere",
       "user-blocked": "Il tuo account è stato bloccato dopo diversi tentativi di accesso consecutivi.",
       "wrong-credentials": "Password errata",
-      "sendCodeText": "Accedi con un codice"
+      "sendCodeText": "Accedi con un codice",
+      "sessionExpired": "La sessione è scaduta. Riprova.",
+      "tooManyRequests": "Troppi tentativi. Attendi qualche istante e riprova.",
+      "unexpectedError": "Qualcosa è andato storto. Riprova."
     }
   },
   "login-passwordless": {
@@ -305,7 +480,9 @@
       "transaction-not-found": "La tua transazione di registrazione è scaduta, dovrai ricominciare.",
       "pageTitle": "Configura autenticatore | ${clientName}",
       "unexpectedError": "Qualcosa è andato storto. Riprova.",
-      "enrollmentComplete": "La registrazione MFA è completata. Puoi chiudere questa pagina."
+      "enrollmentComplete": "La registrazione MFA è completata. Puoi chiudere questa pagina.",
+      "pickAuthenticatorText": "Prova un altro metodo",
+      "qrCodeAltText": "Codice QR"
     },
     "mfa-totp-challenge": {
       "title": "Verifica la tua identità",
@@ -436,7 +613,10 @@
       "cancelLinkText": "Salta per ora",
       "retryButtonText": "Riprova",
       "enrollmentComplete": "La tua passkey è stata configurata con successo. Puoi chiudere questa pagina.",
-      "pageTitle": "Crea Passkey | ${clientName}"
+      "pageTitle": "Crea Passkey | ${clientName}",
+      "sessionExpired": "La sessione è scaduta. Riprova.",
+      "enrollmentRequired": "Devi configurare una passkey per continuare.",
+      "challengeExpired": "La richiesta è scaduta. Riprova."
     },
     "passkey-challenge": {
       "title": "Accedi con passkey",
@@ -444,7 +624,8 @@
       "errorMessage": "Autenticazione con passkey non riuscita. Riprova.",
       "cancelLinkText": "Torna al login",
       "retryButtonText": "Riprova",
-      "pageTitle": "Accedi con passkey | ${clientName}"
+      "pageTitle": "Accedi con passkey | ${clientName}",
+      "sessionExpired": "La sessione è scaduta. Riprova."
     }
   },
   "organizations": {
@@ -475,7 +656,9 @@
       "successDescription": "Abbiamo inviato un link per reimpostare la password al tuo indirizzo email.",
       "successTitle": "Controlla la tua email",
       "title": "Hai dimenticato la password?",
-      "user-not-found": "Utente non trovato"
+      "user-not-found": "Utente non trovato",
+      "noPassword": "La password è obbligatoria",
+      "sessionExpired": "La sessione è scaduta. Riprova."
     },
     "reset-password-code": {
       "backToLoginText": "Torna al login",
@@ -498,7 +681,8 @@
       "resendSuccess": "Un nuovo codice è stato inviato alla tua email",
       "resendText": "Reinvia codice",
       "sessionExpired": "La sessione è scaduta. Riprova.",
-      "title": "Inserisci il codice di reimpostazione"
+      "title": "Inserisci il codice di reimpostazione",
+      "noPassword": "La password è obbligatoria"
     }
   },
   "signup": {
@@ -529,7 +713,9 @@
       "title": "Crea il tuo account",
       "username-already-exists": "Questo nome utente è già in uso",
       "usernamePlaceholder": "Nome utente",
-      "verifyEmailText": "Controlla la tua email per verificare il tuo account"
+      "verifyEmailText": "Controlla la tua email per verificare il tuo account",
+      "confirmPasswordRequired": "Conferma la password",
+      "createUserFailed": "Non è stato possibile creare il tuo account. Riprova."
     }
   },
   "signup-id": {
@@ -561,7 +747,15 @@
       "password-too-weak": "La password è troppo debole",
       "passwordPlaceholder": "Password",
       "showPasswordText": "Mostra password",
-      "title": "Crea la tua password"
+      "title": "Crea la tua password",
+      "passwordTooShort": "La password deve contenere almeno ${minLength} caratteri",
+      "passwordMissingLowercase": "La password deve contenere almeno una lettera minuscola",
+      "passwordMissingUppercase": "La password deve contenere almeno una lettera maiuscola",
+      "passwordMissingNumber": "La password deve contenere almeno un numero",
+      "passwordMissingSpecial": "La password deve contenere almeno un carattere speciale",
+      "passwordReused": "La password è stata utilizzata di recente e non può essere riutilizzata",
+      "passwordContainsPersonalInfo": "La password non può contenere informazioni personali come il nome o l'email",
+      "passwordContainsForbiddenWord": "La password contiene una parola vietata"
     }
   },
   "sms-otp-challenge": {
@@ -577,7 +771,8 @@
       "resendText": "Reinvia codice",
       "sessionExpired": "La sessione è scaduta. Riprova.",
       "title": "Controlla il tuo telefono",
-      "unexpectedError": "Si è verificato un errore imprevisto"
+      "unexpectedError": "Si è verificato un errore imprevisto",
+      "tooManyRequests": "Troppi tentativi. Attendi qualche istante e riprova."
     }
   },
   "status": {

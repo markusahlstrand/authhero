@@ -17,6 +17,140 @@
       "termsOfServiceText": "Servicevilkår",
       "termsShortText": "Vilkår",
       "tryAgainText": "Prøv igen"
+    },
+    "account": {
+      "title": "Kontoindstillinger",
+      "description": "Administrer din konto",
+      "editProfileLabel": "Rediger profil",
+      "editProfileDetail": "Navn, e-mail, telefonnummer og billede",
+      "securityLabel": "Sikkerhedsindstillinger",
+      "securityDetail": "Multifaktorgodkendelse",
+      "securityMethodsCountOne": "${count} metode konfigureret",
+      "securityMethodsCount": "${count} metoder konfigureret",
+      "passkeysLabel": "Adgangsnøgler",
+      "passkeysDetail": "Log ind uden adgangskode",
+      "passkeysCountOne": "${count} adgangsnøgle registreret",
+      "passkeysCount": "${count} adgangsnøgler registreret",
+      "linkedAccountsLabel": "Tilknyttede konti",
+      "linkedAccountsDetail": "Tilknyt sociale konti",
+      "linkedAccountsCountOne": "${count} tilknyttet konto",
+      "linkedAccountsCount": "${count} tilknyttede konti",
+      "deleteAccountLabel": "Slet konto",
+      "deleteAccountDetail": "Slet din konto og dine data permanent",
+      "logoutText": "Log ud"
+    },
+    "account-profile": {
+      "title": "Rediger profil",
+      "description": "Opdater dine personlige oplysninger",
+      "givenNameLabel": "Fornavn",
+      "familyNameLabel": "Efternavn",
+      "nicknameLabel": "Kaldenavn",
+      "phoneNumberLabel": "Telefonnummer",
+      "pictureLabel": "URL til profilbillede",
+      "buttonText": "Gem ændringer",
+      "backToAccountText": "Tilbage til kontoen",
+      "updateFailed": "Profilen kunne ikke opdateres"
+    },
+    "account-delete": {
+      "title": "Slet konto",
+      "description": "Slet din konto permanent",
+      "warningTitle": "Advarsel: Denne handling er permanent",
+      "warningText": "Alle dine data slettes permanent. Det omfatter din profil, tilknyttede konti og godkendelsesmetoder. Handlingen kan ikke fortrydes.",
+      "confirmationLabel": "Skriv \"${confirmationWord}\" for at bekræfte",
+      "buttonText": "Slet min konto",
+      "cancelText": "Annuller",
+      "confirmationError": "Skriv \"${confirmationWord}\" for at bekræfte",
+      "deleteSuccess": "Din konto er blevet slettet",
+      "deleteFailed": "Kontoen kunne ikke slettes"
+    },
+    "account-linked": {
+      "title": "Tilknyttede konti",
+      "description": "Administrer dine tilknyttede konti",
+      "noLinkedAccounts": "Ingen tilknyttede konti.",
+      "unlinkButtonText": "Fjern tilknytning",
+      "backToAccountText": "Tilbage til kontoen",
+      "unlinkSuccess": "Kontoens tilknytning er fjernet",
+      "unlinkFailed": "Tilknytningen kunne ikke fjernes"
+    },
+    "account-security": {
+      "title": "Sikkerhedsindstillinger",
+      "description": "Administrer dine metoder til totrinsgodkendelse",
+      "noEnrollments": "Du har ingen metoder til totrinsgodkendelse konfigureret.",
+      "addedOn": "Tilføjet ${date}",
+      "removeButtonText": "Fjern",
+      "addTotpLabel": "Tilføj godkendelsesapp",
+      "addTotpDetail": "Brug en app som Google Authenticator eller Authy",
+      "addSmsLabel": "Tilføj telefon (SMS)",
+      "addSmsDetail": "Modtag bekræftelseskoder via sms",
+      "typeTotp": "Godkendelsesapp",
+      "typePhone": "Telefon (SMS)",
+      "typeEmail": "E-mail",
+      "typePush": "Push-notifikation",
+      "typeWebauthn": "Sikkerhedsnøgle",
+      "backToAccountText": "Tilbage til kontoen",
+      "enrollmentNotFound": "Metoden blev ikke fundet",
+      "removeSuccess": "Godkendelsesmetoden er fjernet",
+      "removeFailed": "Godkendelsesmetoden kunne ikke fjernes"
+    },
+    "account-passkeys": {
+      "title": "Adgangsnøgler",
+      "description": "Administrer dine adgangsnøgler til login uden adgangskode",
+      "noPasskeysText": "Du har ingen registrerede adgangsnøgler.",
+      "defaultPasskeyName": "Adgangsnøgle",
+      "syncedBadgeText": "Synkroniseret",
+      "addedOnText": "Tilføjet ${date}",
+      "renameButtonText": "Omdøb",
+      "removeButtonText": "Fjern",
+      "renamePromptText": "Indtast et nyt navn til denne adgangsnøgle:",
+      "addPasskeyButtonText": "Tilføj adgangsnøgle",
+      "backToAccountText": "Tilbage til kontoen",
+      "logoutText": "Log ud",
+      "passkeyNotFoundText": "Adgangsnøglen blev ikke fundet",
+      "passkeyRemovedText": "Adgangsnøglen er fjernet",
+      "removeFailedText": "Adgangsnøglen kunne ikke fjernes",
+      "invalidNameText": "Navnet skal være mellem 1 og 64 tegn",
+      "passkeyRenamedText": "Adgangsnøglen er omdøbt",
+      "renameFailedText": "Adgangsnøglen kunne ikke omdøbes",
+      "startRegistrationFailedText": "Registrering af adgangsnøgle kunne ikke startes",
+      "missingCredentialText": "Data for adgangsnøglen mangler",
+      "challengeExpiredText": "Anmodningen er udløbet. Prøv igen.",
+      "invalidCredentialText": "Ugyldige data for adgangsnøglen",
+      "verificationFailedText": "Bekræftelse af adgangsnøglen mislykkedes",
+      "passkeyAddedText": "Adgangsnøglen er tilføjet",
+      "registrationFailedText": "Registrering af adgangsnøgle mislykkedes. Prøv igen."
+    },
+    "account-mfa-phone-enrollment": {
+      "title": "Opsæt telefon (SMS)",
+      "description": "Indtast dit telefonnummer for at modtage bekræftelseskoder via SMS.",
+      "phoneLabel": "Telefonnummer",
+      "sendCodeButtonText": "Send bekræftelseskode",
+      "backToSecurityText": "Tilbage til sikkerhedsindstillinger",
+      "verifyTitle": "Bekræft telefonnummer",
+      "verifyDescription": "Indtast bekræftelseskoden, der blev sendt til din telefon.",
+      "codeSentText": "En bekræftelseskode er sendt til ${phoneNumber}",
+      "codeSentToYourPhoneText": "En bekræftelseskode er sendt til din telefon",
+      "codeLabel": "Bekræftelseskode",
+      "codePlaceholder": "Indtast bekræftelseskode",
+      "verifyButtonText": "Bekræft og aktiver",
+      "noPhoneText": "Indtast dit telefonnummer",
+      "invalidPhoneText": "Indtast et gyldigt telefonnummer",
+      "sendCodeFailedText": "Bekræftelseskoden kunne ikke sendes. Prøv igen.",
+      "noCodeText": "Indtast bekræftelseskoden",
+      "invalidCodeText": "Ugyldig kode. Prøv igen.",
+      "sessionInvalidText": "Noget gik galt. Start tilmeldingen igen."
+    },
+    "account-mfa-totp-enrollment": {
+      "title": "Opsæt autentificeringsapp",
+      "description": "Scan QR-koden med din autentificeringsapp, og indtast derefter bekræftelseskoden nedenfor.",
+      "qrCodeAltText": "QR-kode",
+      "manualKeyText": "Eller indtast denne nøgle manuelt:",
+      "codeLabel": "Bekræftelseskode",
+      "codePlaceholder": "Indtast 6-cifret kode",
+      "verifyButtonText": "Bekræft og aktiver",
+      "backToSecurityText": "Tilbage til sikkerhedsindstillinger",
+      "noCodeText": "Indtast bekræftelseskoden",
+      "invalidCodeText": "Ugyldig kode. Prøv igen.",
+      "verificationFailedText": "Bekræftelsen mislykkedes. Prøv igen."
     }
   },
   "consent": {
@@ -26,7 +160,39 @@
       "description": "${clientName} anmoder om adgang til din konto",
       "pageTitle": "Godkend | ${clientName}",
       "scopesTitle": "Dette vil give ${clientName} tilladelse til at:",
-      "title": "Godkend ${clientName}"
+      "title": "Godkend ${clientName}",
+      "accessAccountText": "ønsker adgang til din ${tenantName}-konto som ${userName}.",
+      "notAuthenticated": "Du skal logge ind for at fortsætte.",
+      "sessionExpired": "Din session er udløbet. Prøv venligst igen.",
+      "consentStorageNotConfigured": "Dit samtykke kunne ikke gemmes. Kontakt ejeren af applikationen."
+    },
+    "connect-consent": {
+      "title": "Forbind applikation",
+      "description": "Vil du tillade ${domain} at handle på dine vegne?",
+      "connectAccountText": "ønsker at forbinde til din ${tenantName}-konto som ${userName}.",
+      "workspaceLabel": "Arbejdsområde:",
+      "apiLabel": "Til API:",
+      "permissionsLabel": "Anmodede tilladelser:",
+      "localDevBadge": "Lokal udvikling",
+      "localDevTooltip": "Dette websted er et lokalt udviklingsmiljø, ikke produktion. Forbindelsen vil ikke virke uden for denne maskine eller dette netværk.",
+      "buttonText": "Forbind",
+      "cancelText": "Annuller",
+      "notAuthenticated": "Du skal logge ind for at fortsætte.",
+      "sessionExpired": "Din session er udløbet. Prøv venligst igen.",
+      "workspaceSelectionRequired": "Vælg et arbejdsområde først.",
+      "noWorkspaceAccess": "Du har ikke adgang til det arbejdsområde",
+      "workspaceNotFound": "Arbejdsområdet blev ikke fundet"
+    },
+    "connect-tenant-select": {
+      "title": "Vælg et arbejdsområde",
+      "description": "Vælg hvilket ${tenantName}-arbejdsområde ${domain} skal forbinde til.",
+      "noWorkspacesDescription": "Ingen tilgængelige arbejdsområder",
+      "noWorkspacesText": "Du har ikke adgang til nogen ${tenantName}-arbejdsområder. Bed en administrator om at invitere dig.",
+      "cancelText": "Annuller",
+      "notAuthenticated": "Du skal logge ind for at fortsætte.",
+      "sessionExpired": "Din session er udløbet. Prøv venligst igen.",
+      "noWorkspaceSelected": "Vælg et arbejdsområde.",
+      "noWorkspaceAccess": "Du har ikke adgang til det arbejdsområde"
     }
   },
   "device-flow": {
@@ -54,7 +220,8 @@
       "sessionExpired": "Din session er udløbet. Prøv venligst igen.",
       "title": "Tjek din e-mail",
       "unexpectedError": "Der opstod en uventet fejl",
-      "usePasswordText": "Log ind med adgangskode"
+      "usePasswordText": "Log ind med adgangskode",
+      "tooManyRequests": "For mange forsøg. Vent et øjeblik, og prøv igen."
     }
   },
   "email-verification": {
@@ -97,7 +264,9 @@
       "acceptButtonText": "Acceptér invitation",
       "description": "${inviterName} har inviteret dig til at deltage i ${organizationName} på ${clientName}",
       "pageTitle": "Invitation | ${clientName}",
-      "title": "Du er blevet inviteret"
+      "title": "Du er blevet inviteret",
+      "defaultOrganizationName": "organisationen",
+      "acceptFailed": "Vi kunne ikke færdiggøre opsætningen af din konto. Prøv igen."
     }
   },
   "login": {
@@ -139,7 +308,10 @@
       "usernameTooLong": "Brugernavnet må højst være ${max} tegn",
       "usernameTooShort": "Brugernavnet skal være mindst ${min} tegn",
       "wrongCredentials": "Forkert brugernavn eller adgangskode",
-      "passkeyButtonText": "Log ind med passkey"
+      "passkeyButtonText": "Log ind med passkey",
+      "userBlocked": "Din konto er blevet blokeret efter flere på hinanden følgende loginforsøg.",
+      "tooManyRequests": "For mange forsøg. Vent et øjeblik, og prøv igen.",
+      "unexpectedError": "Noget gik galt. Prøv igen."
     }
   },
   "login-id": {
@@ -236,7 +408,10 @@
       "unverifiedEmail": "Bekræft venligst din e-mailadresse, før du logger ind",
       "user-blocked": "Din konto er blevet blokeret efter flere på hinanden følgende loginforsøg.",
       "wrong-credentials": "Forkert adgangskode",
-      "sendCodeText": "Log ind med kode"
+      "sendCodeText": "Log ind med kode",
+      "sessionExpired": "Din session er udløbet. Prøv venligst igen.",
+      "tooManyRequests": "For mange forsøg. Vent et øjeblik, og prøv igen.",
+      "unexpectedError": "Noget gik galt. Prøv igen."
     }
   },
   "login-passwordless": {
@@ -305,7 +480,9 @@
       "transaction-not-found": "Din tilmeldingssession er udløbet. Du skal starte forfra.",
       "pageTitle": "Opsæt autentificeringsapp | ${clientName}",
       "unexpectedError": "Noget gik galt. Prøv venligst igen.",
-      "enrollmentComplete": "MFA-tilmeldingen er fuldført. Du kan lukke denne side."
+      "enrollmentComplete": "MFA-tilmeldingen er fuldført. Du kan lukke denne side.",
+      "pickAuthenticatorText": "Prøv en anden metode",
+      "qrCodeAltText": "QR-kode"
     },
     "mfa-totp-challenge": {
       "title": "Bekræft din identitet",
@@ -436,7 +613,10 @@
       "cancelLinkText": "Spring over for nu",
       "retryButtonText": "Prøv igen",
       "enrollmentComplete": "Din adgangsnøgle er konfigureret. Du kan lukke denne side.",
-      "pageTitle": "Opret Adgangsnøgle | ${clientName}"
+      "pageTitle": "Opret Adgangsnøgle | ${clientName}",
+      "sessionExpired": "Din session er udløbet. Prøv venligst igen.",
+      "enrollmentRequired": "Du skal oprette en adgangsnøgle for at fortsætte.",
+      "challengeExpired": "Anmodningen er udløbet. Prøv igen."
     },
     "passkey-challenge": {
       "title": "Log ind med passkey",
@@ -444,7 +624,8 @@
       "errorMessage": "Godkendelse med passkey mislykkedes. Prøv venligst igen.",
       "cancelLinkText": "Tilbage til login",
       "retryButtonText": "Prøv igen",
-      "pageTitle": "Log ind med passkey | ${clientName}"
+      "pageTitle": "Log ind med passkey | ${clientName}",
+      "sessionExpired": "Din session er udløbet. Prøv venligst igen."
     }
   },
   "organizations": {
@@ -475,7 +656,9 @@
       "successDescription": "Vi har sendt et link til nulstilling af adgangskode til din e-mailadresse.",
       "successTitle": "E-mail til nulstilling af adgangskode sendt",
       "title": "Har du glemt din adgangskode?",
-      "user-not-found": "Bruger ikke fundet"
+      "user-not-found": "Bruger ikke fundet",
+      "noPassword": "Adgangskode er påkrævet",
+      "sessionExpired": "Din session er udløbet. Prøv venligst igen."
     },
     "reset-password-code": {
       "backToLoginText": "Tilbage til login",
@@ -498,7 +681,8 @@
       "resendSuccess": "En ny kode er blevet sendt til din e-mail",
       "resendText": "Send kode igen",
       "sessionExpired": "Din session er udløbet. Prøv venligst igen.",
-      "title": "Indtast nulstillingskode"
+      "title": "Indtast nulstillingskode",
+      "noPassword": "Adgangskode er påkrævet"
     }
   },
   "signup": {
@@ -529,7 +713,9 @@
       "title": "Vælg adgangskode",
       "username-already-exists": "Dette brugernavn er allerede taget",
       "usernamePlaceholder": "Brugernavn",
-      "verifyEmailText": "Tjek venligst din e-mail for at bekræfte din konto"
+      "verifyEmailText": "Tjek venligst din e-mail for at bekræfte din konto",
+      "confirmPasswordRequired": "Bekræft din adgangskode",
+      "createUserFailed": "Vi kunne ikke oprette din konto. Prøv igen."
     }
   },
   "signup-id": {
@@ -561,7 +747,15 @@
       "password-too-weak": "Adgangskoden er for svag",
       "passwordPlaceholder": "Adgangskode",
       "showPasswordText": "Vis adgangskode",
-      "title": "Vælg adgangskode"
+      "title": "Vælg adgangskode",
+      "passwordTooShort": "Adgangskoden skal være mindst ${minLength} tegn",
+      "passwordMissingLowercase": "Adgangskoden skal indeholde mindst ét lille bogstav",
+      "passwordMissingUppercase": "Adgangskoden skal indeholde mindst ét stort bogstav",
+      "passwordMissingNumber": "Adgangskoden skal indeholde mindst ét tal",
+      "passwordMissingSpecial": "Adgangskoden skal indeholde mindst ét specialtegn",
+      "passwordReused": "Adgangskoden er blevet brugt for nylig og kan ikke genbruges",
+      "passwordContainsPersonalInfo": "Adgangskoden må ikke indeholde personlige oplysninger som dit navn eller e-mail",
+      "passwordContainsForbiddenWord": "Adgangskoden indeholder et forbudt ord"
     }
   },
   "sms-otp-challenge": {
@@ -577,7 +771,8 @@
       "resendText": "Send koden igen",
       "sessionExpired": "Din session er udløbet. Prøv venligst igen.",
       "title": "Tjek din telefon",
-      "unexpectedError": "Der opstod en uventet fejl"
+      "unexpectedError": "Der opstod en uventet fejl",
+      "tooManyRequests": "For mange forsøg. Vent et øjeblik, og prøv igen."
     }
   },
   "status": {

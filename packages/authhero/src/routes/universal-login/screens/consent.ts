@@ -23,6 +23,7 @@ import {
   LoginSessionEventType,
 } from "../../../state-machines/login-session";
 import { computeMissingConsentScopes } from "../../../helpers/consent";
+import { createTranslation } from "../../../i18n";
 
 const ROUTE_PREFIX = "/u2";
 
@@ -56,6 +57,12 @@ export async function consentScreen(
   context: ScreenContext,
 ): Promise<ScreenResult> {
   const { ctx, tenant, client, branding, state, messages } = context;
+  const { m } = createTranslation(
+    "consent",
+    "consent",
+    context.language || "en",
+    context.customText,
+  );
 
   const loginPath = await getLoginPath(context);
   const loginSession = await ctx.env.data.loginSessions.get(tenant.id, state);
@@ -176,6 +183,16 @@ export async function consentScreen(
     )
     .join("");
 
+  // Variables are escaped here; the translated template itself is trusted
+  // (locale files or tenant custom text), like other RICH_TEXT screens.
+  const accessAccountHtml = m.accessAccountText({
+    tenantName: escapeHtml(tenant.friendly_name || tenant.id),
+    userName: `<span style="font-weight:500">${escapeHtml(user.email || user.name || user.user_id)}</span>`,
+  });
+  const scopesTitleHtml = m.scopesTitle({
+    clientName: escapeHtml(clientLabel),
+  });
+
   const components: FormNodeComponent[] = [
     {
       id: "consent-summary",
@@ -186,8 +203,8 @@ export async function consentScreen(
         content: `
           <div style="display:flex;flex-direction:column;gap:12px;padding:16px;border:1px solid #e5e7eb;border-radius:8px;background:#f9fafb">
             <div style="font-size:18px;font-weight:600;color:#111827">${escapeHtml(clientLabel)}</div>
-            <div style="font-size:14px;color:#374151">wants to access your ${escapeHtml(tenant.friendly_name || tenant.id)} account as <span style="font-weight:500">${escapeHtml(user.email || user.name || user.user_id)}</span>.</div>
-            <div style="font-size:13px;color:#6b7280;margin-top:8px">It will be able to:</div>
+            <div style="font-size:14px;color:#374151">${accessAccountHtml}</div>
+            <div style="font-size:13px;color:#6b7280;margin-top:8px">${scopesTitleHtml}</div>
             <ul style="margin:0;padding-left:20px">${scopeListHtml}</ul>
           </div>
         `,
@@ -199,7 +216,7 @@ export async function consentScreen(
       type: "NEXT_BUTTON",
       category: "BLOCK",
       visible: true,
-      config: { text: "Allow" },
+      config: { text: m.buttonText() },
       order: 1,
     },
   ];
@@ -209,10 +226,10 @@ export async function consentScreen(
     name: "consent",
     action: `${ROUTE_PREFIX}/consent?state=${stateParam}`,
     method: "POST",
-    title: "Authorize application",
-    description: `Allow ${clientLabel} to access your account?`,
+    title: m.title({ clientName: clientLabel }),
+    description: m.description({ clientName: clientLabel }),
     components,
-    links: [{ id: "deny", text: "Deny", href: denyUrl }],
+    links: [{ id: "deny", text: m.cancelButtonText(), href: denyUrl }],
     messages,
   };
 
@@ -229,11 +246,17 @@ async function handleConsentSubmit(
   | { response: Response }
 > {
   const { ctx, tenant, client, state } = context;
+  const { m } = createTranslation(
+    "consent",
+    "consent",
+    context.language || "en",
+    context.customText,
+  );
 
   const loginSession = await ctx.env.data.loginSessions.get(tenant.id, state);
   if (!loginSession) {
     return {
-      error: "Consent session expired",
+      error: m.sessionExpired(),
       screen: await consentScreen(context),
     };
   }
@@ -246,11 +269,17 @@ async function handleConsentSubmit(
     ? await ctx.env.data.sessions.get(tenant.id, sessionId)
     : null;
   if (!session || session.revoked_at) {
-    return { error: "Not authenticated", screen: await consentScreen(context) };
+    return {
+      error: m.notAuthenticated(),
+      screen: await consentScreen(context),
+    };
   }
   const user = await ctx.env.data.users.get(tenant.id, session.user_id);
   if (!user) {
-    return { error: "Not authenticated", screen: await consentScreen(context) };
+    return {
+      error: m.notAuthenticated(),
+      screen: await consentScreen(context),
+    };
   }
 
   // POST = approve. The Deny link goes back through GET with ?deny=1 so we
@@ -259,7 +288,7 @@ async function handleConsentSubmit(
   // bypass it.
   if (!ctx.env.data.grants) {
     return {
-      error: "Consent storage is not configured",
+      error: m.consentStorageNotConfigured(),
       screen: await consentScreen(context),
     };
   }

@@ -17,6 +17,7 @@ import {
   validatePasswordPolicy,
 } from "../../../helpers/password-policy";
 import { createTranslation } from "../../../i18n";
+import { localizePasswordPolicyError } from "./signup";
 import type { Context } from "hono";
 import type { Bindings, Variables } from "../../../types";
 import type { EnrichedClient } from "../../../helpers/client";
@@ -31,7 +32,14 @@ export async function executePasswordReset(params: {
   code: string;
   password: string;
   username: string;
-}): Promise<{ success: true } | { error: string; field: "code" | "password" }> {
+}): Promise<
+  | { success: true }
+  | {
+      error: "user_not_found" | "code_expired" | "reset_failed";
+      field: "code" | "password";
+    }
+  | { error: "password_policy"; field: "password"; policyError: unknown }
+> {
   const { ctx, client, code, password, username } = params;
   const { env } = ctx;
 
@@ -43,7 +51,7 @@ export async function executePasswordReset(params: {
   });
 
   if (!user) {
-    return { error: "User not found", field: "password" };
+    return { error: "user_not_found", field: "password" };
   }
 
   // Find the password connection by strategy
@@ -66,9 +74,7 @@ export async function executePasswordReset(params: {
       data: env.data,
     });
   } catch (policyError: unknown) {
-    const errorMessage =
-      policyError instanceof Error ? policyError.message : "Password too weak";
-    return { error: errorMessage, field: "password" };
+    return { error: "password_policy", field: "password", policyError };
   }
 
   // Validate the reset code
@@ -148,10 +154,7 @@ export async function executePasswordReset(params: {
       userId: user.user_id,
     });
 
-    return {
-      error: err instanceof Error ? err.message : "Password reset failed",
-      field: "password",
-    };
+    return { error: "reset_failed", field: "password" };
   }
 }
 
@@ -266,11 +269,12 @@ export const resetPasswordScreenDefinition: ScreenDefinition = {
 
       // Validate password is provided
       if (!password) {
+        const errorMessage = m.noPassword();
         return {
-          error: "Password is required",
+          error: errorMessage,
           screen: await resetPasswordScreen({
             ...context,
-            errors: { password: "Password is required" },
+            errors: { password: errorMessage },
           }),
         };
       }
@@ -294,11 +298,12 @@ export const resetPasswordScreenDefinition: ScreenDefinition = {
       );
 
       if (!loginSession || !loginSession.authParams?.username) {
+        const errorMessage = m.sessionExpired();
         return {
-          error: "Session expired",
+          error: errorMessage,
           screen: await resetPasswordScreen({
             ...context,
-            errors: { password: "Session expired. Please start over." },
+            errors: { password: errorMessage },
           }),
         };
       }
@@ -306,11 +311,12 @@ export const resetPasswordScreenDefinition: ScreenDefinition = {
       // Validate the reset code is present
       const codeParam = context.data?.code as string | undefined;
       if (!codeParam) {
+        const errorMessage = m.codeExpired();
         return {
-          error: "Reset code not found",
+          error: errorMessage,
           screen: await resetPasswordScreen({
             ...context,
-            errors: { password: "Reset code not found" },
+            errors: { password: errorMessage },
           }),
         };
       }
@@ -329,7 +335,15 @@ export const resetPasswordScreenDefinition: ScreenDefinition = {
       }
 
       const errorMessage =
-        result.error === "code_expired" ? m.codeExpired() : result.error;
+        result.error === "code_expired"
+          ? m.codeExpired()
+          : result.error === "password_policy"
+            ? localizePasswordPolicyError(
+                result.policyError,
+                locale,
+                context.customText,
+              )
+            : m.failed();
 
       return {
         error: errorMessage,

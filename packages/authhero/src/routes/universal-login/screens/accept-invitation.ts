@@ -34,6 +34,7 @@ import {
 import { userIdGenerate } from "../../../utils/user-id";
 import { loginWithPassword } from "../../../authentication-flows/password";
 import { logMessage } from "../../../helpers/logging";
+import { localizePasswordPolicyError } from "./signup";
 
 interface InvitationStateData {
   invitation_id?: string;
@@ -71,7 +72,7 @@ export async function acceptInvitationScreen(
 
   const orgName =
     (context.data?.organization_name as string | undefined) ||
-    "the organization";
+    invitationM.defaultOrganizationName();
 
   const components: FormNodeComponent[] = [];
   let order = 1;
@@ -176,9 +177,9 @@ export const acceptInvitationScreenDefinition: ScreenDefinition = {
         locale,
         context.customText,
       );
-      const { m: passwordM } = createTranslation(
-        "signup-password",
-        "signup-password",
+      const { m: invitationM } = createTranslation(
+        "invitation",
+        "invitation",
         locale,
         context.customText,
       );
@@ -193,7 +194,7 @@ export const acceptInvitationScreenDefinition: ScreenDefinition = {
           description: "Session expired",
         });
         return {
-          error: "Session expired",
+          error: m.sessionExpired(),
           screen: await acceptInvitationScreen({
             ...context,
             errors: { password: m.sessionExpired() },
@@ -210,7 +211,7 @@ export const acceptInvitationScreenDefinition: ScreenDefinition = {
           description: "Invitation invalid",
         });
         return {
-          error: "Invitation invalid",
+          error: m.sessionExpired(),
           screen: await acceptInvitationScreen({
             ...context,
             errors: { password: m.sessionExpired() },
@@ -229,7 +230,7 @@ export const acceptInvitationScreenDefinition: ScreenDefinition = {
           description: "Invitation expired",
         });
         return {
-          error: "Invitation expired",
+          error: m.sessionExpired(),
           screen: await acceptInvitationScreen({
             ...context,
             errors: { password: m.sessionExpired() },
@@ -243,7 +244,7 @@ export const acceptInvitationScreenDefinition: ScreenDefinition = {
           description: "Password is required",
         });
         return {
-          error: "Password is required",
+          error: m["no-password"](),
           screen: await acceptInvitationScreen({
             ...context,
             prefill: { email },
@@ -257,7 +258,7 @@ export const acceptInvitationScreenDefinition: ScreenDefinition = {
           description: "Passwords don't match",
         });
         return {
-          error: "Passwords don't match",
+          error: m.passwordsDidntMatch(),
           screen: await acceptInvitationScreen({
             ...context,
             prefill: { email },
@@ -285,13 +286,15 @@ export const acceptInvitationScreenDefinition: ScreenDefinition = {
           data: ctx.env.data,
         });
       } catch (policyError: unknown) {
-        const message =
-          policyError instanceof Error
-            ? policyError.message
-            : passwordM["password-too-weak"]();
+        const message = localizePasswordPolicyError(
+          policyError,
+          locale,
+          context.customText,
+        );
         await logMessage(ctx, client.tenant.id, {
           type: LogTypes.FAILED_INVITE_ACCEPT,
-          description: message,
+          description:
+            policyError instanceof Error ? policyError.message : message,
           connection,
         });
         return {
@@ -338,11 +341,11 @@ export const acceptInvitationScreenDefinition: ScreenDefinition = {
             connection,
           });
           return {
-            error: "Failed to create user",
+            error: invitationM.acceptFailed(),
             screen: await acceptInvitationScreen({
               ...context,
               prefill: { email },
-              errors: { email: "Failed to create user" },
+              errors: { email: invitationM.acceptFailed() },
             }),
           };
         }
@@ -363,13 +366,15 @@ export const acceptInvitationScreenDefinition: ScreenDefinition = {
               data: ctx.env.data,
             });
           } catch (policyError: unknown) {
-            const message =
-              policyError instanceof Error
-                ? policyError.message
-                : passwordM["password-too-weak"]();
+            const message = localizePasswordPolicyError(
+              policyError,
+              locale,
+              context.customText,
+            );
             await logMessage(ctx, client.tenant.id, {
               type: LogTypes.FAILED_INVITE_ACCEPT,
-              description: message,
+              description:
+                policyError instanceof Error ? policyError.message : message,
               connection,
             });
             return {
@@ -415,11 +420,11 @@ export const acceptInvitationScreenDefinition: ScreenDefinition = {
             connection,
           });
           return {
-            error: "Failed to update user",
+            error: invitationM.acceptFailed(),
             screen: await acceptInvitationScreen({
               ...context,
               prefill: { email },
-              errors: { email: "Failed to update user" },
+              errors: { email: invitationM.acceptFailed() },
             }),
           };
         }
