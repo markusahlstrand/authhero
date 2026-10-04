@@ -11,7 +11,9 @@ import type {
   CustomText,
 } from "@authhero/adapter-interfaces";
 import {
+  LogTypes,
   Strategy,
+  StrategyType,
   isDatabaseConnectionStrategy,
 } from "@authhero/adapter-interfaces";
 import type { ScreenContext, ScreenResult, ScreenDefinition } from "./types";
@@ -36,6 +38,7 @@ import {
   getLoginEmailVerification,
 } from "./email-verification";
 import { loginWithPassword } from "../../../authentication-flows/password";
+import { logMessage } from "../../../helpers/logging";
 
 /**
  * Translate a validatePasswordPolicy failure into a user-facing message.
@@ -395,6 +398,16 @@ export const signupScreenDefinition: ScreenDefinition = {
           }),
         };
       }
+
+      logMessage(ctx, client.tenant.id, {
+        type: LogTypes.SUCCESS_SIGNUP,
+        description: "Successful signup",
+        userId: user_id,
+        username: email,
+        connection,
+        strategy: Strategy.USERNAME_PASSWORD,
+        strategy_type: StrategyType.DATABASE,
+      });
 
       // Extract language from ui_locales
       const language = loginSession.authParams?.ui_locales

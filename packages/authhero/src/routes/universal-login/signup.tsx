@@ -3,7 +3,9 @@ import { HTTPException } from "hono/http-exception";
 import bcryptjs from "bcryptjs";
 import i18next from "i18next";
 import {
+  LogTypes,
   Strategy,
+  StrategyType,
   isDatabaseConnectionStrategy,
 } from "@authhero/adapter-interfaces";
 import { Bindings, Variables } from "../../types";
@@ -25,6 +27,7 @@ import { passwordGrant } from "../../authentication-flows/password";
 import { AuthError } from "../../types/AuthError";
 import { createFrontChannelAuthResponse } from "../../authentication-flows/common";
 import { defineRoute } from "../../utils/define-route";
+import { logMessage } from "../../helpers/logging";
 const getRoot = defineRoute({
   route: createRoute({
     tags: ["login"],
@@ -267,6 +270,16 @@ const postRoot = defineRoute({
         password: await bcryptjs.hash(loginParams.password, 10),
         algorithm: "bcrypt",
         is_current: true,
+      });
+
+      logMessage(ctx, client.tenant.id, {
+        type: LogTypes.SUCCESS_SIGNUP,
+        description: "Successful signup",
+        userId: user_id,
+        username: loginSession.authParams.username,
+        connection,
+        strategy: Strategy.USERNAME_PASSWORD,
+        strategy_type: StrategyType.DATABASE,
       });
 
       if (!email_verified) {

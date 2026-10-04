@@ -100,5 +100,22 @@ describe("signup", () => {
       throw new Error("User not found");
     }
     expect(user.identities?.length).toBe(2);
+
+    // The signup is logged for the created identity, not the primary user
+    // it was linked to.
+    const { logs } = await env.data.logs.list("tenantId", {
+      page: 0,
+      per_page: 100,
+      include_totals: true,
+    });
+    const signups = logs.filter((l) => l.type === "ss");
+    expect(signups).toHaveLength(1);
+    const createdIdentity = user.identities?.find(
+      (identity) => identity.provider !== user.provider,
+    );
+    expect(signups[0]?.user_id).toBe(
+      `${createdIdentity?.provider}|${createdIdentity?.user_id}`,
+    );
+    expect(signups[0]?.user_name).toBe("foo@example.com");
   });
 });

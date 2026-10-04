@@ -895,9 +895,11 @@ export async function sendEmailVerificationCode(
     throw err;
   }
 
+  // sendValidateEmailAddress logs the same type for the link email; say which
+  // one this was so the two are distinguishable in the logs.
   logMessage(ctx, tenant.id, {
     type: LogTypes.SUCCESS_VERIFICATION_EMAIL_REQUEST,
-    description: user.email,
+    description: `Verification code sent to ${user.email}`,
     userId: user.user_id,
   });
 }
