@@ -124,10 +124,7 @@ const postRoot = defineRoute({
     } catch (err) {
       const customException = err as AuthError;
 
-      if (
-        customException.code === "INVALID_PASSWORD" ||
-        customException.code === "USER_NOT_FOUND"
-      ) {
+      if (customException.code === "INVALID_CREDENTIALS") {
         return ctx.html(
           <EnterPasswordPage
             theme={theme}

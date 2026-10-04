@@ -207,7 +207,7 @@ describe("auth0 migration: password fallback", () => {
     expect(fetchSpy).toHaveBeenCalledTimes(2);
   });
 
-  it("rejects with INVALID_PASSWORD when upstream rejects credentials", async () => {
+  it("rejects with INVALID_CREDENTIALS when upstream rejects credentials", async () => {
     fetchSpy.mockResolvedValueOnce(
       jsonResponse(403, {
         error: "invalid_grant",
@@ -229,6 +229,7 @@ describe("auth0 migration: password fallback", () => {
     });
 
     expect(response.status).toBe(403);
+    expect(await response.text()).toBe("Wrong email or password.");
     expect(fetchSpy).toHaveBeenCalledTimes(1);
 
     const { users } = await env.data.users.list(TENANT_ID, {

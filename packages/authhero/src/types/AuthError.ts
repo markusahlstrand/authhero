@@ -3,7 +3,7 @@ import { ContentfulStatusCode } from "hono/utils/http-status";
 
 export type HttpExceptionCode =
   | "EMAIL_NOT_VERIFIED"
-  | "INVALID_PASSWORD"
+  | "INVALID_CREDENTIALS"
   | "USER_NOT_FOUND"
   | "USER_BLOCKED"
   | "TOO_MANY_FAILED_LOGINS"

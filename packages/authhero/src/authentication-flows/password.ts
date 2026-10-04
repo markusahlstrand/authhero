@@ -52,6 +52,36 @@ const FAILED_LOGIN_WINDOW_MS = 1000 * 60 * 5;
 const FAILED_LOGIN_LIMIT = 3;
 
 /**
+ * The one failure a password login reports for an unknown user, an
+ * unresolvable linked user and a wrong password, so the response does not
+ * reveal whether the account exists. Tenant logs keep the distinction
+ * (`fu` vs `fp`).
+ */
+function invalidCredentialsError(): AuthError {
+  return new AuthError(403, {
+    message: "Wrong email or password.",
+    code: "INVALID_CREDENTIALS",
+  });
+}
+
+let dummyPasswordHash: Promise<string> | undefined;
+
+/**
+ * Runs a bcrypt compare (result discarded) on paths that have no stored hash
+ * to check, so they take as long as a wrong-password attempt. The hash is
+ * created once per isolate with the same cost factor as real password hashes.
+ */
+async function runDummyPasswordCompare(password: string): Promise<void> {
+  dummyPasswordHash ??= hashPassword(nanoid()).then(({ hash }) => hash);
+  try {
+    await bcryptjs.compare(password, await dummyPasswordHash);
+  } catch (error) {
+    dummyPasswordHash = undefined;
+    console.error("Dummy password compare failed:", error);
+  }
+}
+
+/**
  * Filter lockout timestamps (ISO 8601 strings) down to those inside the
  * 5-minute window. Unparseable entries are dropped.
  */
@@ -349,10 +379,8 @@ export async function passwordGrant(
 
       // Note: Not marking session as FAILED - user can retry with correct credentials
 
-      throw new AuthError(403, {
-        message: "User not found",
-        code: "USER_NOT_FOUND",
-      });
+      await runDummyPasswordCompare(authParams.password);
+      throw invalidCredentialsError();
     }
   }
 
@@ -367,10 +395,8 @@ export async function passwordGrant(
   // Still linked after resolving means the chain never reached a root —
   // dangling, cyclic, or deeper than the cap.
   if (primaryUser.linked_to) {
-    throw new AuthError(403, {
-      message: "User not found",
-      code: "USER_NOT_FOUND",
-    });
+    await runDummyPasswordCompare(authParams.password);
+    throw invalidCredentialsError();
   }
 
   // The realm is the connection this login targets (defaults to the canonical
@@ -418,9 +444,12 @@ export async function passwordGrant(
 
   const password = await data.passwords.get(client.tenant.id, user.user_id);
 
-  let valid =
-    password &&
-    (await bcryptjs.compare(authParams.password, password.password));
+  let valid = false;
+  if (password) {
+    valid = await bcryptjs.compare(authParams.password, password.password);
+  } else {
+    await runDummyPasswordCompare(authParams.password);
+  }
 
   if (!valid && !password) {
     // Try upstream lazy migration before recording a failed-login strike —
@@ -464,10 +493,7 @@ export async function passwordGrant(
 
     // Note: Not marking session as FAILED - user can retry with correct password
 
-    throw new AuthError(403, {
-      message: "Invalid password",
-      code: "INVALID_PASSWORD",
-    });
+    throw invalidCredentialsError();
   }
 
   // A blocked account cannot log in. Checked against the resolved primary
