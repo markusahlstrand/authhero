@@ -21,7 +21,7 @@ import { avatarRoutes } from "./avatars";
 import { composeAuthData } from "../../helpers/compose-auth-data";
 import { createInMemoryCache } from "../../adapters/cache/in-memory";
 import { applyConfigMiddleware } from "../../middlewares/apply-config";
-import { setRequestData } from "../../helpers/request-data";
+import { getBaseData, setRequestData } from "../../helpers/request-data";
 import { rejectUnknownHostsMiddleware } from "../../middlewares/reject-unknown-hosts";
 import { tenantMiddleware } from "../../middlewares/tenant";
 import { clientInfoMiddleware } from "../../middlewares/client-info";
@@ -47,33 +47,36 @@ export default function create(config: AuthHeroConfig) {
 
   app.use(
     outboxMiddleware({
-      getOutbox: () => config.dataAdapter.outbox,
-      getDestinations: (ctx) => [
-        new LogsDestination(config.dataAdapter.logs),
-        ...(config.dataAdapter.logStreams
-          ? [new LogStreamDestination(config.dataAdapter.logStreams)]
-          : []),
-        new WebhookDestination(
-          config.dataAdapter.hooks,
-          makeOutboxServiceTokenFactory({
-            tenants: ctx.env.data.tenants,
-            keys: ctx.env.data.keys,
-            issuer: getIssuer(ctx.env, ctx.var.custom_domain),
+      getOutbox: (ctx) => getBaseData(ctx, config.dataAdapter).outbox,
+      getDestinations: (ctx) => {
+        const base = getBaseData(ctx, config.dataAdapter);
+        return [
+          new LogsDestination(base.logs),
+          ...(base.logStreams
+            ? [new LogStreamDestination(base.logStreams)]
+            : []),
+          new WebhookDestination(
+            base.hooks,
+            makeOutboxServiceTokenFactory({
+              tenants: ctx.env.data.tenants,
+              keys: ctx.env.data.keys,
+              issuer: getIssuer(ctx.env, ctx.var.custom_domain),
+            }),
+            { webhookInvoker: ctx.env.webhookInvoker },
+          ),
+          new CodeHookDestination(ctx.env.data, ctx.env.codeExecutor, {
+            logCapture: ctx.env.actionExecutionLogs,
           }),
-          { webhookInvoker: ctx.env.webhookInvoker },
-        ),
-        new CodeHookDestination(ctx.env.data, ctx.env.codeExecutor, {
-          logCapture: ctx.env.actionExecutionLogs,
-        }),
-        // Must come after delivery destinations so the flag only flips when
-        // the upstream hook destinations actually succeeded.
-        new RegistrationFinalizerDestination(config.dataAdapter.users),
-        // Archive last: the relay stops the destination loop on first failure,
-        // so a Pipelines outage must not be able to block real delivery.
-        ...(config.outbox?.pipeline
-          ? [new PipelineDestination(config.outbox.pipeline)]
-          : []),
-      ],
+          // Must come after delivery destinations so the flag only flips when
+          // the upstream hook destinations actually succeeded.
+          new RegistrationFinalizerDestination(base.users),
+          // Archive last: the relay stops the destination loop on first failure,
+          // so a Pipelines outage must not be able to block real delivery.
+          ...(config.outbox?.pipeline
+            ? [new PipelineDestination(config.outbox.pipeline)]
+            : []),
+        ];
+      },
     }),
   );
 
@@ -88,7 +91,7 @@ export default function create(config: AuthHeroConfig) {
 
     const data = composeAuthData({
       ctx,
-      rawData: config.dataAdapter,
+      rawData: getBaseData(ctx, config.dataAdapter),
       cacheAdapter,
       defaultTtl: config.dataAdapter.cache ? 300 : 0,
       // Bundle-covered entities (tenants/connections/clientConnections/

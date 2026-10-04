@@ -17,3 +17,15 @@ export function setRequestData(
   ctx.set("data", data);
   ctx.env.data = data;
 }
+
+/**
+ * The raw adapter a route group composes its per-request stack on: the base
+ * an earlier middleware installed on `ctx.var.baseData` (per-tenant database
+ * isolation), or `fallback`, the startup adapter from the config.
+ */
+export function getBaseData(
+  ctx: Context<{ Bindings: Bindings; Variables: Variables }>,
+  fallback: DataAdapters,
+): DataAdapters {
+  return ctx.var.baseData ?? fallback;
+}

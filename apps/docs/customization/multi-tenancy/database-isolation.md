@@ -284,14 +284,23 @@ const dbMiddleware = createDatabaseMiddleware({
 });
 
 app.use("*", dbMiddleware);
+app.route("/", authheroApp);
 ```
 
 The middleware:
 
-1. Extracts the tenant ID from the request context
+1. Reads the tenant ID from `ctx.var.tenant_id`. Mounted in front of AuthHero, that is only set if something resolved it already, such as subdomain routing or your own middleware. Without it the request fails with 400.
 2. Calls `getAdapters(tenantId)` to get the tenant's database
-3. Injects the adapters into `c.env.data`
-4. All downstream handlers use the tenant-specific database
+3. Installs the adapters as the request's base adapter (`ctx.var.baseData`)
+4. Every AuthHero route group (auth API, universal login, u2, SAML, SCIM, management API) builds its per-request adapter stack (caching, hooks, client bundle) on top of that base instead of the `dataAdapter` passed to `init()`. Outbox events and logs for the request go to the same database.
+
+`getAdapters` replaces both `dataAdapter` and `managementDataAdapter` for the request. If you rely on wrappers such as runtime fallback from the control plane, apply them to the adapters you return.
+
+Mount the middleware before AuthHero's routes. Hono runs middleware in registration order, so middleware registered after the routes never runs for them.
+
+::: info
+Before `@authhero/multi-tenancy` 15.1 the middleware only wrote `ctx.env.data`, which AuthHero's route groups replaced with a stack built from the startup `dataAdapter`. Those routes read and wrote the shared database, not the tenant's. The middleware also wrote to the `env` object itself, which on Cloudflare Workers is shared by every request in an isolate. It now works on a per-request copy.
+:::
 
 ## Best Practices
 

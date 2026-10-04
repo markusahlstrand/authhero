@@ -5,7 +5,7 @@ import { createAuthMiddleware } from "../../middlewares/authentication";
 import { composeAuthData } from "../../helpers/compose-auth-data";
 import { createInMemoryCache } from "../../adapters/cache/in-memory";
 import { applyConfigMiddleware } from "../../middlewares/apply-config";
-import { setRequestData } from "../../helpers/request-data";
+import { getBaseData, setRequestData } from "../../helpers/request-data";
 import { tenantMiddleware } from "../../middlewares/tenant";
 import { clientInfoMiddleware } from "../../middlewares/client-info";
 import { outboxMiddleware } from "../../middlewares/outbox";
@@ -26,16 +26,19 @@ export default function create(config: AuthHeroConfig) {
 
   app.use(
     outboxMiddleware({
-      getOutbox: () => config.dataAdapter.outbox,
-      getDestinations: () => [
-        new LogsDestination(config.dataAdapter.logs),
-        ...(config.dataAdapter.logStreams
-          ? [new LogStreamDestination(config.dataAdapter.logStreams)]
-          : []),
-        ...(config.outbox?.pipeline
-          ? [new PipelineDestination(config.outbox.pipeline)]
-          : []),
-      ],
+      getOutbox: (ctx) => getBaseData(ctx, config.dataAdapter).outbox,
+      getDestinations: (ctx) => {
+        const base = getBaseData(ctx, config.dataAdapter);
+        return [
+          new LogsDestination(base.logs),
+          ...(base.logStreams
+            ? [new LogStreamDestination(base.logStreams)]
+            : []),
+          ...(config.outbox?.pipeline
+            ? [new PipelineDestination(config.outbox.pipeline)]
+            : []),
+        ];
+      },
     }),
   );
 
@@ -50,7 +53,7 @@ export default function create(config: AuthHeroConfig) {
 
     const data = composeAuthData({
       ctx,
-      rawData: config.dataAdapter,
+      rawData: getBaseData(ctx, config.dataAdapter),
       cacheAdapter,
       defaultTtl: config.dataAdapter.cache ? 300 : 0,
       // `clients` kept in L2 — see auth-api comment for the pre-prefetch

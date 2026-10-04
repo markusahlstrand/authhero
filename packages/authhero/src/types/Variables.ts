@@ -22,6 +22,14 @@ export type Variables = {
    * `setRequestData` so the deprecated `ctx.env.data` alias stays in sync.
    */
   data: DataAdapters;
+  /**
+   * Raw, uncomposed adapter for this request, installed by middleware that
+   * runs before authhero (e.g. `@authhero/multi-tenancy` database isolation).
+   * Route groups compose their stack on top of it instead of the startup
+   * `dataAdapter`. Never set this to a composed stack: it would be wrapped
+   * twice. Read it through `getBaseData`.
+   */
+  baseData?: DataAdapters;
   tenant_id: string;
   ip: string;
   client_id?: string;

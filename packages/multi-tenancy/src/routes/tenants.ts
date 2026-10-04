@@ -16,6 +16,7 @@ import {
   MultiTenancyHooks,
   TenantHookContext,
 } from "../types";
+import { getRequestData } from "../middleware/request-data";
 
 /**
  * The subset of token claims we read off `ctx.var.user` to make tenant
@@ -132,7 +133,7 @@ export function createTenantsOpenAPIRouter(
         !tokenIsOrgScoped && userPermissions.includes("admin:organizations");
 
       if (hasFullAccess) {
-        const result = await ctx.env.data.tenants.list({
+        const result = await getRequestData(ctx).tenants.list({
           page,
           per_page,
           include_totals,
@@ -154,7 +155,7 @@ export function createTenantsOpenAPIRouter(
       // Get control plane tenant ID from config or from adapters' multiTenancyConfig
       const controlPlaneTenantId =
         config.accessControl?.controlPlaneTenantId ??
-        ctx.env.data.multiTenancyConfig?.controlPlaneTenantId;
+        getRequestData(ctx).multiTenancyConfig?.controlPlaneTenantId;
 
       // When access control is enabled, a token without a subject must not
       // fall through to the global "return all tenants" path below — that
@@ -170,7 +171,7 @@ export function createTenantsOpenAPIRouter(
         // Get all organizations the user belongs to on the control plane
         const userOrgs = await fetchAll<{ id: string; name: string }>(
           (params) =>
-            ctx.env.data.userOrganizations.listUserOrganizations(
+            getRequestData(ctx).userOrganizations.listUserOrganizations(
               controlPlaneTenantId,
               user.sub,
               params,
@@ -220,7 +221,7 @@ export function createTenantsOpenAPIRouter(
         const idFilter = paginatedIds.map((id) => `id:${id}`).join(" OR ");
         const combinedQuery = q ? `(${idFilter}) AND (${q})` : idFilter;
 
-        const result = await ctx.env.data.tenants.list({
+        const result = await getRequestData(ctx).tenants.list({
           q: combinedQuery,
           per_page: perPage,
           include_totals: false, // We calculate totals from accessibleTenantIds
@@ -239,7 +240,7 @@ export function createTenantsOpenAPIRouter(
       }
 
       // If no access control, return all tenants (for backward compatibility)
-      const result = await ctx.env.data.tenants.list({
+      const result = await getRequestData(ctx).tenants.list({
         page,
         per_page,
         include_totals,
@@ -311,7 +312,7 @@ export function createTenantsOpenAPIRouter(
 
       // Create hook context
       const hookCtx: TenantHookContext = {
-        adapters: ctx.env.data,
+        adapters: getRequestData(ctx),
         ctx,
       };
 
@@ -321,7 +322,7 @@ export function createTenantsOpenAPIRouter(
       }
 
       // Create the tenant - adapter will throw HTTPException(409) if tenant ID already exists
-      const tenant = await ctx.env.data.tenants.create(body);
+      const tenant = await getRequestData(ctx).tenants.create(body);
 
       // Call afterCreate hook
       if (hooks.tenants?.afterCreate) {
@@ -368,7 +369,7 @@ export function createTenantsOpenAPIRouter(
       // Get control plane tenant ID from config or from adapters' multiTenancyConfig
       const controlPlaneTenantId =
         config.accessControl?.controlPlaneTenantId ??
-        ctx.env.data.multiTenancyConfig?.controlPlaneTenantId;
+        getRequestData(ctx).multiTenancyConfig?.controlPlaneTenantId;
 
       // Validate access and prevent deleting the control plane
       if (controlPlaneTenantId) {
@@ -423,7 +424,7 @@ export function createTenantsOpenAPIRouter(
         if (!hasAccess) {
           const userOrgs = await fetchAll<{ id: string; name: string }>(
             (params) =>
-              ctx.env.data.userOrganizations.listUserOrganizations(
+              getRequestData(ctx).userOrganizations.listUserOrganizations(
                 controlPlaneTenantId,
                 caller.sub,
                 params,
@@ -442,7 +443,7 @@ export function createTenantsOpenAPIRouter(
         }
       }
 
-      const tenant = await ctx.env.data.tenants.get(id);
+      const tenant = await getRequestData(ctx).tenants.get(id);
       if (!tenant) {
         throw new HTTPException(404, {
           message: "Tenant not found",
@@ -451,7 +452,7 @@ export function createTenantsOpenAPIRouter(
 
       // Create hook context
       const hookCtx: TenantHookContext = {
-        adapters: ctx.env.data,
+        adapters: getRequestData(ctx),
         ctx,
       };
 
@@ -461,7 +462,7 @@ export function createTenantsOpenAPIRouter(
       }
 
       // Delete the tenant
-      await ctx.env.data.tenants.remove(id);
+      await getRequestData(ctx).tenants.remove(id);
 
       // Call afterDelete hook
       if (hooks.tenants?.afterDelete) {
@@ -502,7 +503,7 @@ export function createTenantsOpenAPIRouter(
       },
     }),
     async (ctx) => {
-      const tenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
+      const tenant = await getRequestData(ctx).tenants.get(ctx.var.tenant_id);
 
       if (!tenant) {
         throw new HTTPException(404, {
@@ -557,7 +558,9 @@ export function createTenantsOpenAPIRouter(
       const { id, ...sanitizedUpdates } = updates;
 
       // Get existing tenant
-      const existingTenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
+      const existingTenant = await getRequestData(ctx).tenants.get(
+        ctx.var.tenant_id,
+      );
 
       if (!existingTenant) {
         throw new HTTPException(404, {
@@ -570,7 +573,7 @@ export function createTenantsOpenAPIRouter(
       if ("default_client_id" in sanitizedUpdates) {
         const next = sanitizedUpdates.default_client_id;
         if (typeof next === "string" && next.length > 0) {
-          const client = await ctx.env.data.clients.get(
+          const client = await getRequestData(ctx).clients.get(
             ctx.var.tenant_id,
             next,
           );
@@ -590,10 +593,12 @@ export function createTenantsOpenAPIRouter(
       // Deep merge with updates to preserve nested object properties
       const mergedTenant = deepMergePatch(existingTenant, sanitizedUpdates);
 
-      await ctx.env.data.tenants.update(ctx.var.tenant_id, mergedTenant);
+      await getRequestData(ctx).tenants.update(ctx.var.tenant_id, mergedTenant);
 
       // Return the updated tenant
-      const updatedTenant = await ctx.env.data.tenants.get(ctx.var.tenant_id);
+      const updatedTenant = await getRequestData(ctx).tenants.get(
+        ctx.var.tenant_id,
+      );
 
       if (!updatedTenant) {
         throw new HTTPException(500, {

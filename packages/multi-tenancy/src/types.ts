@@ -14,6 +14,13 @@ export interface MultiTenancyBindings {
  * Variables type from authhero core - simplified version for this package
  */
 export interface MultiTenancyVariables {
+  /** The request's adapter stack, set by authhero (see `getRequestData`). */
+  data?: DataAdapters;
+  /**
+   * Raw per-tenant adapter installed by `createDatabaseMiddleware`; authhero
+   * composes its per-request stack on top of it.
+   */
+  baseData?: DataAdapters;
   tenant_id: string;
   organization_id?: string;
   org_name?: string;

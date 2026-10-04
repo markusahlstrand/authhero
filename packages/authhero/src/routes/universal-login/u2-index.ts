@@ -22,7 +22,7 @@ import { AuthHeroConfig, Bindings, Variables } from "../../types";
 import { composeAuthData } from "../../helpers/compose-auth-data";
 import { createInMemoryCache } from "../../adapters/cache/in-memory";
 import { applyConfigMiddleware } from "../../middlewares/apply-config";
-import { setRequestData } from "../../helpers/request-data";
+import { getBaseData, setRequestData } from "../../helpers/request-data";
 import { serverTimingMiddleware } from "../../helpers/server-timing";
 import { tenantMiddleware } from "../../middlewares/tenant";
 import { clientInfoMiddleware } from "../../middlewares/client-info";
@@ -71,26 +71,29 @@ export default function createU2App(config: AuthHeroConfig) {
     .use(serverTimingMiddleware)
     .use(
       outboxMiddleware({
-        getOutbox: () => config.dataAdapter.outbox,
-        getDestinations: (ctx) => [
-          new LogsDestination(config.dataAdapter.logs),
-          ...(config.dataAdapter.logStreams
-            ? [new LogStreamDestination(config.dataAdapter.logStreams)]
-            : []),
-          new WebhookDestination(config.dataAdapter.hooks, async (tenantId) => {
-            const token = await createServiceToken(ctx, tenantId, "webhook");
-            return token.access_token;
-          }),
-          new CodeHookDestination(ctx.env.data, ctx.env.codeExecutor, {
-            logCapture: ctx.env.actionExecutionLogs,
-          }),
-          new RegistrationFinalizerDestination(config.dataAdapter.users),
-          // Archive last: the relay stops the destination loop on first
-          // failure, so a Pipelines outage must not block real delivery.
-          ...(config.outbox?.pipeline
-            ? [new PipelineDestination(config.outbox.pipeline)]
-            : []),
-        ],
+        getOutbox: (ctx) => getBaseData(ctx, config.dataAdapter).outbox,
+        getDestinations: (ctx) => {
+          const base = getBaseData(ctx, config.dataAdapter);
+          return [
+            new LogsDestination(base.logs),
+            ...(base.logStreams
+              ? [new LogStreamDestination(base.logStreams)]
+              : []),
+            new WebhookDestination(base.hooks, async (tenantId) => {
+              const token = await createServiceToken(ctx, tenantId, "webhook");
+              return token.access_token;
+            }),
+            new CodeHookDestination(ctx.env.data, ctx.env.codeExecutor, {
+              logCapture: ctx.env.actionExecutionLogs,
+            }),
+            new RegistrationFinalizerDestination(base.users),
+            // Archive last: the relay stops the destination loop on first
+            // failure, so a Pipelines outage must not block real delivery.
+            ...(config.outbox?.pipeline
+              ? [new PipelineDestination(config.outbox.pipeline)]
+              : []),
+          ];
+        },
       }),
     )
     .use(async (ctx, next) => {
@@ -108,7 +111,7 @@ export default function createU2App(config: AuthHeroConfig) {
 
       const data = composeAuthData({
         ctx,
-        rawData: config.dataAdapter,
+        rawData: getBaseData(ctx, config.dataAdapter),
         cacheAdapter,
         defaultTtl,
         // `clients` kept in L2 — see auth-api comment for the pre-prefetch
