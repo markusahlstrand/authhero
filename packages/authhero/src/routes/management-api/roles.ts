@@ -31,6 +31,13 @@ const rolePermissionsWithTotalsSchema = withTotals({
   permissions: z.array(rolePermissionSchema),
 });
 
+const rolePermissionsWithNextSchema = z.object({
+  permissions: z.array(rolePermissionSchema),
+  next: z.string().optional().openapi({
+    description: "Opaque cursor for the next page; absent on the last page.",
+  }),
+});
+
 // Auth0's GET /roles/{id}/users returns user summaries, not full profiles.
 const roleUserSchema = z.object({
   user_id: z.string(),
@@ -367,6 +374,7 @@ const getByIdPermissions = defineRoute({
             schema: z.union([
               rolePermissionListSchema,
               rolePermissionsWithTotalsSchema,
+              rolePermissionsWithNextSchema,
             ]),
           },
         },
@@ -377,7 +385,17 @@ const getByIdPermissions = defineRoute({
   handler: async (ctx) => {
     const { id } = ctx.req.valid("param");
 
-    const { page, per_page, include_totals, sort, q } = ctx.req.valid("query");
+    const { page, per_page, include_totals, sort, q, from, take } =
+      ctx.req.valid("query");
+    const checkpoint = from !== undefined || take !== undefined;
+
+    // Checkpoint mode has a fixed (resource server, permission) order.
+    if (checkpoint && sort !== undefined) {
+      throw new HTTPException(400, {
+        message:
+          "Sorting is not supported with checkpoint pagination for role permissions",
+      });
+    }
 
     const tenantId = requireTenantId(ctx);
 
@@ -388,6 +406,23 @@ const getByIdPermissions = defineRoute({
       throw new HTTPException(404, {
         message: "Role not found",
       });
+    }
+
+    // Checkpoint (from/take) is an authhero extension here; Auth0 pages this
+    // endpoint by offset only.
+    if (checkpoint) {
+      const adapter = ctx.env.data.rolePermissions;
+      if (!adapter.listCheckpoint) {
+        throw new HTTPException(501, {
+          message:
+            "Checkpoint pagination is not supported for role permissions by this data adapter",
+        });
+      }
+      const result = await adapter.listCheckpoint(tenantId, id, {
+        from,
+        take,
+      });
+      return ctx.json({ permissions: result.permissions, next: result.next });
     }
 
     // Auth0's GET /roles/:id/permissions returns the raw array by default,

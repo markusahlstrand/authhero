@@ -5,6 +5,12 @@ import {
 } from "../types/RolePermission";
 import { CreateOptions } from "../types/ImportMetadata";
 
+export interface ListRolePermissionsCheckpointResponse {
+  permissions: RolePermissionList;
+  /** Opaque checkpoint cursor for the next page; absent on the last page. */
+  next?: string;
+}
+
 export interface RolePermissionsAdapter {
   // Assign permissions to a role
   assign(
@@ -32,4 +38,18 @@ export interface RolePermissionsAdapter {
     role_id: string,
     params?: ListParams,
   ): Promise<RolePermissionList>;
+
+  /**
+   * Checkpoint (from/take) pagination over a role's permissions, ordered by
+   * (resource_server_identifier, permission_name) ascending — the composite
+   * key, so the order is unique without a surrogate id. Separate from `list`
+   * because that returns a bare array with nowhere to carry `next`. Optional
+   * so existing adapter implementations keep compiling; the management API
+   * answers checkpoint requests with 501 when it is missing.
+   */
+  listCheckpoint?(
+    tenant_id: string,
+    role_id: string,
+    params?: ListParams,
+  ): Promise<ListRolePermissionsCheckpointResponse>;
 }

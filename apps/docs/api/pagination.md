@@ -44,31 +44,36 @@ GET /api/v2/users?take=50&from=eyJpIjoiZW1haWx8...
 
 ### Supported endpoints
 
-| Endpoint | Items field |
-| -------- | ----------- |
-| `GET /api/v2/users` | `users` |
-| `GET /api/v2/logs` | `logs` |
-| `GET /api/v2/clients` | `clients` |
-| `GET /api/v2/client-grants` | `client_grants` |
-| `GET /api/v2/organizations` | `organizations` |
-| `GET /api/v2/organizations/{id}/members` | `members` |
-| `GET /api/v2/roles/{id}/users` | `users` |
+| Endpoint                                 | Items field        |
+| ---------------------------------------- | ------------------ |
+| `GET /api/v2/users`                      | `users`            |
+| `GET /api/v2/logs`                       | `logs`             |
+| `GET /api/v2/clients`                    | `clients`          |
+| `GET /api/v2/client-grants`              | `client_grants`    |
+| `GET /api/v2/organizations`              | `organizations`    |
+| `GET /api/v2/organizations/{id}/members` | `members`          |
+| `GET /api/v2/roles/{id}/users`           | `users`            |
+| `GET /api/v2/connections`                | `connections`      |
+| `GET /api/v2/resource-servers`           | `resource_servers` |
+| `GET /api/v2/roles`                      | `roles`            |
+| `GET /api/v2/roles/{id}/permissions`     | `permissions`      |
 
 Other list endpoints accept `from`/`take` in their query schema but ignore them and never return `next` — they stay offset-paginated.
 
 ### Mode selection and sorting
 
 - Supplying **either** `from` or `take` switches the whole request to checkpoint mode; `page` and `per_page` are then ignored.
-- Checkpoint walks are ordered by creation time descending (users/logs also accept ascending). On `/users` only `sort=created_at:1|-1` is honored and on `/logs` only `sort=date:1|-1`; any other sort column returns `400`. The remaining endpoints use a fixed order and ignore `sort`.
+- Checkpoint walks are ordered by creation time descending (users/logs also accept ascending). On `/users` only `sort=created_at:1|-1` is honored and on `/logs` only `sort=date:1|-1`; any other sort column returns `400`. `/roles/{id}/permissions` walks by resource server identifier, then permission name, ascending. `/roles` and `/roles/{id}/permissions` return `400` when `sort` is combined with checkpoint mode; the remaining endpoints use a fixed order and ignore `sort`.
 - A cursor is bound to the sort it was minted under — replaying it with a different `sort` returns `400`.
 - `GET /roles/{id}/users` caps `take` (and `per_page`) at 100, matching Auth0.
 
 ### Differences from Auth0
 
 - Auth0 does **not** offer checkpoint pagination on `GET /users` (offset only, capped at 1000 results); AuthHero does, so full user exports don't need `q` partitioning tricks.
+- Auth0 also pages `GET /roles`, `GET /roles/{id}/permissions` and `GET /resource-servers` by offset only; checkpoint mode on those is an AuthHero extension. `GET /connections` supports checkpoint in Auth0 too, with the same `{ connections, next }` shape.
 - Auth0 documents `from` as an id; AuthHero keeps it fully opaque so the encoding can evolve.
 - Checkpoint walks on `/users` return primary users only — linked accounts appear as `identities` on their primary user rather than as separate rows.
 
 ### Adapter note
 
-The DynamoDB (`@authhero/aws`) adapter does not implement true checkpoint cursors yet — it treats `from` as a numeric offset and never returns `next`. Use the Drizzle or Kysely adapters for cursor-stable walks.
+The DynamoDB (`@authhero/aws`) adapter backs checkpoint mode with DynamoDB's own `LastEvaluatedKey`, so its cursors are not interchangeable with the SQL adapters'. Its last page can carry a `next` that leads to an empty page, so stop on an empty page as well as on a missing `next`. `GET /roles/{id}/users` is not implemented on DynamoDB.

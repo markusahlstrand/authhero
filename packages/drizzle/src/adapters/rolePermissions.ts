@@ -1,5 +1,15 @@
 import { eq, and, or, inArray } from "drizzle-orm";
 import { rolePermissions, resourceServers } from "../schema/sqlite";
+import type {
+  ListParams,
+  ListRolePermissionsCheckpointResponse,
+} from "@authhero/adapter-interfaces";
+import {
+  keysetCondition,
+  keysetOrderBy,
+  keysetTake,
+  sliceWithNext,
+} from "../helpers/paginate";
 import type { DrizzleDb } from "./types";
 
 export function createRolePermissionsAdapter(db: DrizzleDb) {
@@ -48,38 +58,52 @@ export function createRolePermissionsAdapter(db: DrizzleDb) {
         )
         .all();
 
-      // Batch-fetch resource server names to avoid N+1 queries
-      const uniqueIdentifiers = [
-        ...new Set(results.map((r) => r.resource_server_identifier)),
-      ];
+      return withResourceServerNames(db, tenant_id, results);
+    },
 
-      const nameMap = new Map<string, string>();
-      if (uniqueIdentifiers.length > 0) {
-        const rsRows = await db
-          .select({
-            identifier: resourceServers.identifier,
-            name: resourceServers.name,
-          })
-          .from(resourceServers)
-          .where(
-            and(
-              eq(resourceServers.tenant_id, tenant_id),
-              inArray(resourceServers.identifier, uniqueIdentifiers),
-            ),
-          )
-          .all();
-
-        for (const rs of rsRows) {
-          nameMap.set(rs.identifier, rs.name);
-        }
-      }
-
-      return results.map((row) => ({
-        ...row,
-        resource_server_name:
-          nameMap.get(row.resource_server_identifier) ||
-          row.resource_server_identifier,
-      }));
+    // Checkpoint (from/take) pagination. The composite key
+    // (resource_server_identifier, permission_name) is unique per role, so it
+    // serves as sort column + tiebreaker without a surrogate id.
+    async listCheckpoint(
+      tenant_id: string,
+      role_id: string,
+      params: ListParams = {},
+    ): Promise<ListRolePermissionsCheckpointResponse> {
+      const cols = {
+        sortColumn: rolePermissions.resource_server_identifier,
+        idColumn: rolePermissions.permission_name,
+        sortOrder: "asc" as const,
+      };
+      const take = keysetTake(params);
+      const rows = await db
+        .select({
+          role_id: rolePermissions.role_id,
+          resource_server_identifier:
+            rolePermissions.resource_server_identifier,
+          permission_name: rolePermissions.permission_name,
+          created_at: rolePermissions.created_at,
+        })
+        .from(rolePermissions)
+        .where(
+          and(
+            eq(rolePermissions.tenant_id, tenant_id),
+            eq(rolePermissions.role_id, role_id),
+            keysetCondition(params, cols),
+          ),
+        )
+        .orderBy(...keysetOrderBy(cols))
+        .limit(take + 1)
+        .all();
+      const { rows: pageRows, next } = sliceWithNext(
+        rows,
+        take,
+        "resource_server_identifier",
+        "permission_name",
+      );
+      return {
+        permissions: await withResourceServerNames(db, tenant_id, pageRows),
+        next,
+      };
     },
 
     async remove(
@@ -120,4 +144,41 @@ export function createRolePermissionsAdapter(db: DrizzleDb) {
       return true;
     },
   };
+}
+
+// Batch-fetch resource server names to avoid N+1 queries
+async function withResourceServerNames<
+  Row extends { resource_server_identifier: string },
+>(db: DrizzleDb, tenant_id: string, results: Row[]) {
+  const uniqueIdentifiers = [
+    ...new Set(results.map((r) => r.resource_server_identifier)),
+  ];
+
+  const nameMap = new Map<string, string>();
+  if (uniqueIdentifiers.length > 0) {
+    const rsRows = await db
+      .select({
+        identifier: resourceServers.identifier,
+        name: resourceServers.name,
+      })
+      .from(resourceServers)
+      .where(
+        and(
+          eq(resourceServers.tenant_id, tenant_id),
+          inArray(resourceServers.identifier, uniqueIdentifiers),
+        ),
+      )
+      .all();
+
+    for (const rs of rsRows) {
+      nameMap.set(rs.identifier, rs.name);
+    }
+  }
+
+  return results.map((row) => ({
+    ...row,
+    resource_server_name:
+      nameMap.get(row.resource_server_identifier) ||
+      row.resource_server_identifier,
+  }));
 }
