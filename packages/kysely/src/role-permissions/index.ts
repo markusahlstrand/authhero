@@ -1,7 +1,7 @@
 import { Kysely } from "kysely";
 import { assign } from "./assign";
 import { remove } from "./remove";
-import { list } from "./list";
+import { list, listCheckpoint } from "./list";
 import { Database } from "../db";
 
 export function rolePermissions(db: Kysely<Database>) {
@@ -9,5 +9,6 @@ export function rolePermissions(db: Kysely<Database>) {
     assign: assign(db),
     remove: remove(db),
     list: list(db),
+    listCheckpoint: listCheckpoint(db),
   };
 }

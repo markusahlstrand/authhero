@@ -31,6 +31,13 @@ const rolePermissionsWithTotalsSchema = withTotals({
   permissions: z.array(rolePermissionSchema),
 });
 
+const rolePermissionsWithNextSchema = z.object({
+  permissions: z.array(rolePermissionSchema),
+  next: z.string().optional().openapi({
+    description: "Opaque cursor for the next page; absent on the last page.",
+  }),
+});
+
 // Auth0's GET /roles/{id}/users returns user summaries, not full profiles.
 const roleUserSchema = z.object({
   user_id: z.string(),
@@ -51,6 +58,17 @@ const roleUsersWithNextSchema = z.object({
   users: z.array(roleUserSchema),
 });
 
+// The shared `take` uses parseInt, which reads "2.5" and "2junk" as 2.
+// Require the raw value to be all digits; an empty value stays undefined.
+const strictTakeSchema = z
+  .string()
+  .optional()
+  .refine((t) => !t || /^\d+$/.test(t), {
+    message: "take must be a positive integer",
+  })
+  .transform((t) => (t ? Number(t) : undefined))
+  .openapi({ description: "Number of results per page. Defaults to 50." });
+
 // Auth0 caps per_page/take at 100 on this endpoint; the cap also bounds the
 // hydration fan-out below (one users.get() per returned user). Only the
 // parameters the handler consumes are accepted — Auth0 supports neither
@@ -65,17 +83,21 @@ const roleUsersQuerySchema = querySchema
   })
   .extend({
     per_page: querySchema.shape.per_page.pipe(z.number().int().min(0).max(100)),
-    take: querySchema.shape.take.pipe(
-      z.number().int().min(1).max(100).optional(),
-    ),
+    take: strictTakeSchema.pipe(z.number().int().min(1).max(100).optional()),
   });
+// Checkpoint `take` reaches the adapters as a raw limit (DynamoDB rejects
+// anything below 1), so reject non-positive and non-numeric values here.
+const checkpointQuerySchema = querySchema.extend({
+  take: strictTakeSchema.pipe(z.number().int().min(1).optional()),
+});
+
 const getRoot = defineRoute({
   route: createRoute({
     tags: ["roles"],
     method: "get",
     path: "/",
     request: {
-      query: querySchema,
+      query: checkpointQuerySchema,
       headers: z.object({
         "tenant-id": z.string().optional(),
       }),
@@ -353,7 +375,7 @@ const getByIdPermissions = defineRoute({
       headers: z.object({
         "tenant-id": z.string().optional(),
       }),
-      query: querySchema,
+      query: checkpointQuerySchema,
     },
     security: [
       {
@@ -367,6 +389,7 @@ const getByIdPermissions = defineRoute({
             schema: z.union([
               rolePermissionListSchema,
               rolePermissionsWithTotalsSchema,
+              rolePermissionsWithNextSchema,
             ]),
           },
         },
@@ -377,7 +400,17 @@ const getByIdPermissions = defineRoute({
   handler: async (ctx) => {
     const { id } = ctx.req.valid("param");
 
-    const { page, per_page, include_totals, sort, q } = ctx.req.valid("query");
+    const { page, per_page, include_totals, sort, q, from, take } =
+      ctx.req.valid("query");
+    const checkpoint = from !== undefined || take !== undefined;
+
+    // Checkpoint mode has a fixed (resource server, permission) order.
+    if (checkpoint && (sort !== undefined || q !== undefined)) {
+      throw new HTTPException(400, {
+        message:
+          "Sorting and filtering are not supported with checkpoint pagination for role permissions",
+      });
+    }
 
     const tenantId = requireTenantId(ctx);
 
@@ -388,6 +421,23 @@ const getByIdPermissions = defineRoute({
       throw new HTTPException(404, {
         message: "Role not found",
       });
+    }
+
+    // Checkpoint (from/take) is an authhero extension here; Auth0 pages this
+    // endpoint by offset only.
+    if (checkpoint) {
+      const adapter = ctx.env.data.rolePermissions;
+      if (!adapter.listCheckpoint) {
+        throw new HTTPException(501, {
+          message:
+            "Checkpoint pagination is not supported for role permissions by this data adapter",
+        });
+      }
+      const result = await adapter.listCheckpoint(tenantId, id, {
+        from,
+        take,
+      });
+      return ctx.json({ permissions: result.permissions, next: result.next });
     }
 
     // Auth0's GET /roles/:id/permissions returns the raw array by default,

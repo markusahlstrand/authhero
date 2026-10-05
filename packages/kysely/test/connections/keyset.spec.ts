@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from "vitest";
-import { decodeCursor } from "@authhero/adapter-interfaces";
+import { decodeCursor, encodeCursor } from "@authhero/adapter-interfaces";
 import { getTestServer } from "../helpers/test-server";
 
 // Checkpoint (from/take) pagination for connections, backing
@@ -127,5 +127,18 @@ describe("connections keyset pagination (from/take)", () => {
     expect(offset.limit).toBe(10);
     // No cursor is minted for offset requests.
     expect(offset.next).toBeUndefined();
+  });
+
+  it("rejects a cursor minted under a different sort", async () => {
+    const page1 = await data.connections.list(tenantId, { take: 10 });
+    // Same position, but stamped with a sort spec this fixed-order endpoint
+    // never mints — e.g. a token carried over from a sorted logs walk.
+    const foreign = encodeCursor({
+      ...decodeCursor(page1.next!)!,
+      k: "name:asc",
+    });
+    await expect(
+      data.connections.list(tenantId, { take: 10, from: foreign }),
+    ).rejects.toMatchObject({ status: 400 });
   });
 });

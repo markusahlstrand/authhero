@@ -76,4 +76,30 @@ describe("connections", () => {
     );
     expect(fetchedAfterDelete).toBeNull();
   });
+
+  it("returns a next cursor for checkpoint pagination", async () => {
+    const { data } = await getTestServer();
+    const tenantId = "connections-cursor-tenant";
+    for (let i = 0; i < 7; i++) {
+      await data.connections.create(tenantId, {
+        name: `connection-${i}`,
+        strategy: "mock-strategy",
+        options: {},
+      });
+    }
+
+    const seen = new Set<string>();
+    let from: string | undefined;
+    let pages = 0;
+    do {
+      const result = await data.connections.list(tenantId, { take: 3, from });
+      for (const connection of result.connections) {
+        expect(seen.has(connection.id)).toBe(false);
+        seen.add(connection.id);
+      }
+      from = result.next;
+      if (++pages > 4) throw new Error("cursor walk did not terminate");
+    } while (from);
+    expect(seen.size).toBe(7);
+  });
 });

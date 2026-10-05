@@ -116,4 +116,39 @@ describe("roles", () => {
     } while (from);
     expect(seen.size).toBe(7);
   });
+
+  it("walks role permissions via the checkpoint cursor", async () => {
+    const { data } = await getTestServer();
+    const tenantId = "role-permissions-cursor-tenant";
+    const role = await data.roles.create(tenantId, { name: "role" });
+    await data.rolePermissions.assign(
+      tenantId,
+      role.id,
+      Array.from({ length: 7 }, (_, i) => ({
+        role_id: role.id,
+        resource_server_identifier: `https://api-${i % 2}.example.com`,
+        permission_name: `perm:${i}`,
+      })),
+    );
+
+    const seen = new Set<string>();
+    let from: string | undefined;
+    let pages = 0;
+    do {
+      const result = await data.rolePermissions.listCheckpoint!(
+        tenantId,
+        role.id,
+        { take: 3, from },
+      );
+      for (const p of result.permissions) {
+        const key = `${p.resource_server_identifier}|${p.permission_name}`;
+        expect(seen.has(key)).toBe(false);
+        seen.add(key);
+      }
+      from = result.next;
+      // DynamoDB may hand back a final cursor that points at an empty page.
+      if (++pages > 4) throw new Error("cursor walk did not terminate");
+    } while (from);
+    expect(seen.size).toBe(7);
+  });
 });

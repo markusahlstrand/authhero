@@ -2,6 +2,7 @@ import {
   RolePermissionsAdapter,
   RolePermissionInsert,
   RolePermissionList,
+  ListRolePermissionsCheckpointResponse,
   RolePermission,
   ListParams,
   rolePermissionSchema,
@@ -96,6 +97,26 @@ export function createRolePermissionsAdapter(
       );
 
       return result.items.map(toRolePermission);
+    },
+
+    // Ordered by the sort key, PERMISSION#<resource server>#<permission>.
+    // `take` is defaulted so a bare call still runs in keyset mode.
+    async listCheckpoint(
+      tenantId: string,
+      roleId: string,
+      params: ListParams = {},
+    ): Promise<ListRolePermissionsCheckpointResponse> {
+      const result = await queryWithPagination<RolePermissionItem>(
+        ctx,
+        rolePermissionKeys.pk(tenantId, roleId),
+        { from: params.from, take: params.take ?? 50 },
+        { skPrefix: rolePermissionKeys.skPrefix() },
+      );
+
+      return {
+        permissions: result.items.map(toRolePermission),
+        next: result.next,
+      };
     },
   };
 }

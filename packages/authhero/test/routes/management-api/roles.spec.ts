@@ -272,6 +272,133 @@ describe("roles", () => {
     expect(sortedCheckpoint.status).toBe(400);
   });
 
+  it("walks role permissions with opaque cursors and keeps offset paging", async () => {
+    const tenantId = "role-permissions-checkpoint-tenant";
+    const { managementApp, env } = await getTestServer();
+    const client = testClient(managementApp, env);
+    const adminToken = await getAdminToken();
+    await env.data.tenants.create({
+      id: tenantId,
+      friendly_name: "Role Permissions Checkpoint Tenant",
+      audience: "https://example.com",
+      sender_email: "login@example.com",
+      sender_name: "SenderName",
+    });
+    const role = await env.data.roles.create(tenantId, { name: "role" });
+    await env.data.rolePermissions.assign(
+      tenantId,
+      role.id,
+      Array.from({ length: 7 }, (_, i) => ({
+        role_id: role.id,
+        resource_server_identifier: `https://api-${i % 2}.example.com`,
+        permission_name: `perm:${i}`,
+      })),
+    );
+
+    const seen = new Set<string>();
+    let from: string | undefined;
+    let pages = 0;
+    do {
+      const response = await client.roles[":id"].permissions.$get(
+        {
+          param: { id: role.id },
+          query: from ? { from, take: "3" } : { take: "3" },
+          header: { "tenant-id": tenantId },
+        },
+        { headers: { authorization: `Bearer ${adminToken}` } },
+      );
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as {
+        permissions: Array<{
+          resource_server_identifier: string;
+          permission_name: string;
+        }>;
+        next?: string;
+      };
+      expect(Array.isArray(body)).toBe(false);
+      expect("start" in body).toBe(false);
+      for (const p of body.permissions) {
+        const key = `${p.resource_server_identifier}|${p.permission_name}`;
+        expect(seen.has(key)).toBe(false);
+        seen.add(key);
+      }
+      from = body.next;
+      if (from) expect(from).not.toMatch(/^\d+$/);
+      if (++pages > 4) {
+        throw new Error("permission cursor walk did not terminate");
+      }
+    } while (from);
+    expect(seen.size).toBe(7);
+    expect(pages).toBe(3);
+
+    // Default and include_totals responses keep Auth0's offset shapes.
+    const plain = await client.roles[":id"].permissions.$get(
+      {
+        param: { id: role.id },
+        query: {},
+        header: { "tenant-id": tenantId },
+      },
+      { headers: { authorization: `Bearer ${adminToken}` } },
+    );
+    expect(plain.status).toBe(200);
+    const plainBody = await plain.json();
+    expect(Array.isArray(plainBody)).toBe(true);
+
+    const offset = await client.roles[":id"].permissions.$get(
+      {
+        param: { id: role.id },
+        query: { page: "1", per_page: "3", include_totals: "true" },
+        header: { "tenant-id": tenantId },
+      },
+      { headers: { authorization: `Bearer ${adminToken}` } },
+    );
+    expect(offset.status).toBe(200);
+    const offsetBody = (await offset.json()) as {
+      permissions: unknown[];
+      start: number;
+      limit: number;
+      total: number;
+      next?: string;
+    };
+    expect(offsetBody.permissions).toHaveLength(3);
+    expect(offsetBody.start).toBe(3);
+    expect(offsetBody.limit).toBe(3);
+    expect(offsetBody.total).toBe(7);
+    expect(offsetBody.next).toBeUndefined();
+
+    const sortedCheckpoint = await client.roles[":id"].permissions.$get(
+      {
+        param: { id: role.id },
+        query: { take: "3", sort: "permission_name:1" },
+        header: { "tenant-id": tenantId },
+      },
+      { headers: { authorization: `Bearer ${adminToken}` } },
+    );
+    expect(sortedCheckpoint.status).toBe(400);
+
+    const filteredCheckpoint = await client.roles[":id"].permissions.$get(
+      {
+        param: { id: role.id },
+        query: { take: "3", q: "perm:1" },
+        header: { "tenant-id": tenantId },
+      },
+      { headers: { authorization: `Bearer ${adminToken}` } },
+    );
+    expect(filteredCheckpoint.status).toBe(400);
+
+    for (const take of ["0", "-1", "abc", "2.5", "2junk"]) {
+      const invalidTake = await client.roles[":id"].permissions.$get(
+        {
+          param: { id: role.id },
+          query: { take },
+          header: { "tenant-id": tenantId },
+        },
+        { headers: { authorization: `Bearer ${adminToken}` } },
+      );
+      expect(invalidTake.status).toBe(400);
+    }
+  });
+
   it("should handle role permissions management", async () => {
     // First create a role
     const createRoleResponse = await managementClient.roles.$post(
@@ -766,6 +893,18 @@ describe("GET /api/v2/roles/:id/users", () => {
       { headers: { authorization: `Bearer ${token}` } },
     );
     expect(takeResponse.status).toBe(400);
+
+    const fractionalTakeResponse = await managementClient.roles[
+      ":id"
+    ].users.$get(
+      {
+        param: { id: role.id },
+        query: { take: "2.5" },
+        header: { "tenant-id": "tenantId" },
+      },
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(fractionalTakeResponse.status).toBe(400);
   });
 
   it("walks all users across pages via the opaque next cursor", async () => {

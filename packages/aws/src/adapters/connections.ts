@@ -103,6 +103,7 @@ export function createConnectionsAdapter(
         start: result.start,
         limit: result.limit,
         length: result.length,
+        next: result.next,
       };
     },
 

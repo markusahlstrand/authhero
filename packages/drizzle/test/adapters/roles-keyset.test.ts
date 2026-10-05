@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { decodeCursor, encodeCursor } from "@authhero/adapter-interfaces";
 import { getTestServer } from "../helpers/test-server";
 
 describe("roles checkpoint pagination", () => {
@@ -39,5 +40,50 @@ describe("roles checkpoint pagination", () => {
     expect(offset.limit).toBe(3);
     expect(offset.length).toBe(8);
     expect(offset.next).toBeUndefined();
+  });
+
+  it("emits an opaque cursor that is stable under a mid-walk insert", async () => {
+    const { data } = getTestServer();
+    const tenantId = "roles-cursor-insert";
+    await data.tenants.create({ id: tenantId, name: "Roles Tenant" });
+    for (let i = 0; i < 7; i++) {
+      await data.roles.create(tenantId, { name: `role-${i}` });
+    }
+
+    const first = await data.roles.list(tenantId, { take: 3 });
+    expect(first.next).toBeDefined();
+    expect(first.next).not.toBe("3");
+    expect(decodeCursor(first.next!)).not.toBeNull();
+
+    await data.roles.create(tenantId, { name: "new-role" });
+
+    const seen = new Set(first.roles.map((role) => role.id));
+    let from = first.next;
+    while (from) {
+      const result = await data.roles.list(tenantId, { take: 3, from });
+      for (const role of result.roles) {
+        expect(seen.has(role.id)).toBe(false);
+        seen.add(role.id);
+      }
+      from = result.next;
+    }
+    expect(seen.size).toBeGreaterThanOrEqual(7);
+  });
+
+  it("rejects a cursor minted under a different sort", async () => {
+    const { data } = getTestServer();
+    const tenantId = "roles-cursor-sort";
+    await data.tenants.create({ id: tenantId, name: "Roles Tenant" });
+    for (let i = 0; i < 4; i++) {
+      await data.roles.create(tenantId, { name: `role-${i}` });
+    }
+    const first = await data.roles.list(tenantId, { take: 2 });
+    const foreign = encodeCursor({
+      ...decodeCursor(first.next!)!,
+      k: "name:asc",
+    });
+    await expect(
+      data.roles.list(tenantId, { take: 2, from: foreign }),
+    ).rejects.toMatchObject({ status: 400 });
   });
 });
