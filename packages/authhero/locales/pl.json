@@ -3,6 +3,7 @@
     "common": {
       "alertListTitle": "Powiadomienia",
       "backText": "Wróć",
+      "backToLoginText": "Wróć do logowania",
       "cancelText": "Anuluj",
       "closeText": "Zamknij",
       "contactSupportText": "Potrzebujesz pomocy?",

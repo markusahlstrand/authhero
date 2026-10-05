@@ -3,6 +3,7 @@
     "common": {
       "alertListTitle": "Alerts",
       "backText": "Back",
+      "backToLoginText": "Back to login",
       "cancelText": "Cancel",
       "closeText": "Close",
       "contactSupportText": "Contact Support",

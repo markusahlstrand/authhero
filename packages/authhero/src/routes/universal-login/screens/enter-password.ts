@@ -161,7 +161,7 @@ export async function enterPasswordScreen(
       {
         id: "back",
         text: "",
-        linkText: common.backText(),
+        linkText: common.backToLoginText(),
         href: `${loginPath}?state=${encodeURIComponent(state)}`,
       },
     ],

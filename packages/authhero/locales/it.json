@@ -3,6 +3,7 @@
     "common": {
       "alertListTitle": "Avvisi",
       "backText": "Torna indietro",
+      "backToLoginText": "Torna al login",
       "cancelText": "Annulla",
       "closeText": "Chiudi",
       "contactSupportText": "Contatta l'assistenza",

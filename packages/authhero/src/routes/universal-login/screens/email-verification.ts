@@ -192,7 +192,7 @@ export async function emailVerificationCodeScreen(
       {
         id: "back",
         text: "",
-        linkText: common.backText(),
+        linkText: common.backToLoginText(),
         href: `${await getLoginPath(context)}?state=${encodeURIComponent(state)}`,
       },
     ],
@@ -248,7 +248,7 @@ export async function emailVerificationLinkSentScreen(
       {
         id: "back",
         text: "",
-        linkText: common.backText(),
+        linkText: common.backToLoginText(),
         href: `${await getLoginPath(context)}?state=${encodeURIComponent(state)}`,
       },
     ],

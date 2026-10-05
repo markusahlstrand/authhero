@@ -40,7 +40,6 @@ export async function resetPasswordCodeScreen(
     locale,
     customText,
   );
-  const { m: loginM } = createTranslation("login", "login", locale, customText);
 
   const email = data?.email as string | undefined;
   const maskedEmail = email ? email.replace(/(.{2})(.*)(@.*)/, "$1***$3") : "";
@@ -150,7 +149,6 @@ export async function resetPasswordCodeScreen(
       {
         id: "back",
         text: m.backToLoginText(),
-        linkText: loginM.buttonText(),
         href: `${await getLoginPath(context)}?state=${encodeURIComponent(state)}`,
       },
     ],
