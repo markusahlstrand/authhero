@@ -132,6 +132,17 @@ async function fillAuthHeroLoginIfPresent(
     const startUrl = page.url();
     if (!isAuthHeroLoginUrl(startUrl)) return;
 
+    // u2 pages are server-rendered and the widget hydrates after `load`.
+    // Before that the inputs have no handlers and the submit button is
+    // disabled; it also drops `data-ready` while a submit or client-side
+    // screen swap is in flight. Classic /u pages have no widget.
+    if ((await page.locator("authhero-widget").count()) > 0) {
+      await page
+        .locator("authhero-widget[data-ready]")
+        .waitFor({ timeout: 10_000 })
+        .catch(() => {});
+    }
+
     const usernameField = page.locator(
       'input[name="username"]:not([type="hidden"])',
     );
