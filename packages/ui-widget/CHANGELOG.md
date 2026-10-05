@@ -1,5 +1,13 @@
 # @authhero/widget
 
+## 0.40.3
+
+### Patch Changes
+
+- 65cf8e7: Keep values typed into server-rendered u2 fields before the widget hydrates (they were wiped and the submit button stayed disabled), and expose a `data-ready` attribute on `<authhero-widget>` that is set once the widget is interactive and removed while a submit or screen swap is in flight. E2E tests should wait on `authhero-widget[data-ready]`.
+- Updated dependencies [e988384]
+  - @authhero/adapter-interfaces@4.19.0
+
 ## 0.40.2
 
 ### Patch Changes
