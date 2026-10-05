@@ -76,13 +76,19 @@ const roleUsersQuerySchema = querySchema
       z.number().int().min(1).max(100).optional(),
     ),
   });
+// Checkpoint `take` reaches the adapters as a raw limit (DynamoDB rejects
+// anything below 1), so reject non-positive and non-numeric values here.
+const checkpointQuerySchema = querySchema.extend({
+  take: querySchema.shape.take.pipe(z.number().int().min(1).optional()),
+});
+
 const getRoot = defineRoute({
   route: createRoute({
     tags: ["roles"],
     method: "get",
     path: "/",
     request: {
-      query: querySchema,
+      query: checkpointQuerySchema,
       headers: z.object({
         "tenant-id": z.string().optional(),
       }),
@@ -360,7 +366,7 @@ const getByIdPermissions = defineRoute({
       headers: z.object({
         "tenant-id": z.string().optional(),
       }),
-      query: querySchema,
+      query: checkpointQuerySchema,
     },
     security: [
       {

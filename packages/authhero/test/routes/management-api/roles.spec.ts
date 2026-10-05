@@ -385,6 +385,18 @@ describe("roles", () => {
       { headers: { authorization: `Bearer ${adminToken}` } },
     );
     expect(filteredCheckpoint.status).toBe(400);
+
+    for (const take of ["0", "-1", "abc"]) {
+      const invalidTake = await client.roles[":id"].permissions.$get(
+        {
+          param: { id: role.id },
+          query: { take },
+          header: { "tenant-id": tenantId },
+        },
+        { headers: { authorization: `Bearer ${adminToken}` } },
+      );
+      expect(invalidTake.status).toBe(400);
+    }
   });
 
   it("should handle role permissions management", async () => {
