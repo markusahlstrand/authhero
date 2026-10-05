@@ -909,7 +909,9 @@ export class AuthheroWidget {
         const input = Array.from(
           r.querySelectorAll<HTMLInputElement>("input[name]"),
         ).find((el) => el.name === component.id && el.type !== "hidden");
-        if (input?.value) {
+        // Adopt "" too: a prefilled default the user cleared before
+        // hydration must not be restored by the client render.
+        if (input) {
           adopted[component.id] = input.value;
           break;
         }
